@@ -18,7 +18,8 @@
     "lint": "oxlint --disable-nested-config && eslint . --quiet",
     "lint:fix": "oxlint --fix --disable-nested-config && eslint . --fix",
     "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && bun run typecheck:tests",
+    "typecheck:tests": "node scripts/check-typecheck-tests.mjs",
     "format:check": "prettier --check .",
     "format": "prettier --check . --write",
     "knip:check": "knip",
@@ -169,7 +170,7 @@
     "zod-validation-error": "^4.0.0"
   },
   "name": "@codyswann/lisa",
-  "version": "4.38.1",
+  "version": "4.38.8",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {

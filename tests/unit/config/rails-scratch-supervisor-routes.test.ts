@@ -262,7 +262,7 @@ describe("every shipped Rails route crosses exactly one supervisor boundary", ()
       ...read(WORKFLOW).matchAll(/--suite (\S+) --/g),
       ...read(LEFTHOOK).matchAll(/--suite (\S+) --/g),
     ].map(match => match[1] ?? "");
-    expect(labels.toSorted((a, b) => a.localeCompare(b))).toEqual([
+    expect(labels.slice().sort((a, b) => a.localeCompare(b))).toEqual([
       "mutant-postgres",
       "prepush-mutant",
       "prepush-rspec",
@@ -346,5 +346,7 @@ function findByBasename(root: string, basename: string): readonly string[] {
         if (entry.isDirectory()) return walk(full);
         return entry.name === basename ? [path.relative(root, full)] : [];
       });
-  return walk(root).toSorted((a, b) => a.localeCompare(b));
+  return walk(root)
+    .slice()
+    .sort((a, b) => a.localeCompare(b));
 }

@@ -81,6 +81,14 @@ export const FAMILIES = [
     kind: "allow-list",
   },
   {
+    // The #3811 quarantine. `allow-list` is exactly right here: the list may
+    // shrink freely, and ADDING a file — re-authorising type debt that the
+    // gate would otherwise refuse — is the change that needs a human to see it.
+    id: "typecheck-quarantine",
+    match: /(^|\/)typecheck-quarantine\.json$/,
+    kind: "allow-list",
+  },
+  {
     id: "lighthouse",
     match: /(^|\/)(?:lighthouserc-config|lighthouserc|\.lighthouserc)\.json$/,
     kind: "lighthouse",

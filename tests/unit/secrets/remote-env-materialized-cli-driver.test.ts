@@ -213,11 +213,14 @@ describe("materialized environment authority CLI binding", () => {
         "getuid",
         `lstat:${VALUES_DIRECTORY}`,
         `lstat:${VALUES_FILE}`,
-      ].toSorted((left, right) => left.localeCompare(right));
+      ]
+        .slice()
+        .sort((left, right) => left.localeCompare(right));
       expect(
         observed.events
           .slice(0, 3)
-          .toSorted((left, right) => left.localeCompare(right))
+          .slice()
+          .sort((left, right) => left.localeCompare(right))
       ).toEqual(expected);
       expect(observed.events.at(-1)).toBe(`read:${VALUES_FILE}:utf8`);
     }
@@ -240,9 +243,11 @@ describe("materialized environment authority CLI binding", () => {
         "getuid",
         `lstat:${VALUES_DIRECTORY}`,
         `lstat:${VALUES_FILE}`,
-      ].toSorted((left, right) => left.localeCompare(right));
+      ]
+        .slice()
+        .sort((left, right) => left.localeCompare(right));
       expect(
-        observed.events.toSorted((left, right) => left.localeCompare(right))
+        observed.events.slice().sort((left, right) => left.localeCompare(right))
       ).toEqual(expected);
       expect(observed.diagnostics.join("\n")).toMatch(/ownership mismatch/iu);
       expect(observed.diagnostics.join("\n")).not.toContain(

@@ -23,7 +23,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
-      "b93880769e7ac402879200ce80a32095baa38d1fbc47cf17804bd6df49ce3b8a",
+      "ca4f5084989115c7fe87ce3b8d895938146af6b1d01e11b9b342519d09832d6a",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lib/kill-marks.mjs":
@@ -61,7 +61,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
       "a76959fff54b59af0d46cc8066d75bdfaf8bfd0591505663ab7cfcdf38f34fa6",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "e192737a8756b97e406d2b1cbdb099e3b7f190cc6b96c3681284637de95c1646",
+      "c0aa42f5e0a15a5d1938369129d0b7f726a4db1a80389d427e6f9647d7cf97fa",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
@@ -71,13 +71,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "adbf8dccc221ec83641f1f5358ccafc9ec70a4ea6372ae6ad874603d767d693d",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "414606d6d577d0ee9f839bfa336028c7d64c0159b9f6026739331afa19f50000",
+      "daf2f7b54950869632c7ecc02201a0c3fd482195594ae641075dd9718cfdfebd",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "ce1520dba31d32856d470cf744700e0636518dd3a767627d42ac0a77007d6813",
+      "5bc1466a79c18e565e62305d4adeca0c7de94a1e5a22b2c2a75c84f634fcec86",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -744,6 +744,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
       "d47314b66d6ce85f77d6e058f861eede4462b2b0a33d54e82ff1c931167ec3f7",
+    "plugins/src/base/hooks/block-managed-file-edits.agy.sh":
+      "19cda51fcc113f0b3c184d8907913ab4b49ecb81db80ce7909639194bc9c52d6",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
       "049fe1451b6d0b32b78afe8abc1c79ec09c33a9f0e2a10a3b864b63139375f49",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
@@ -783,7 +785,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "743663565a80b56abc63fbe23dd4da557c41c96a6e98bfe7eca46245dc4e7cb9",
+      "f9f2622b2664ced23825a3c35400797ed68e274677aabdfa69e590218109a10e",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -795,7 +797,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs":
       "2ae57ea1eb0a0199559a17ee69186953f41115986a276e641ff8b3070e2f9fa6",
     "plugins/src/base/hooks/threshold-ratchet-families.mjs":
-      "d4ca6737385c55238878252b1f9a5e2aee6372540e74b6409de1889053a9e7af",
+      "41ace8a335792d00c028ea5dd4ce89491a30826aa542d39d94c7c8d20e98b6d5",
     "plugins/src/base/hooks/threshold-ratchet.mjs":
       "8e8f5e3a11a786926ea9b26e0503c9d9479d7e68695147bfdd23de732f581a3d",
     "plugins/src/base/hooks/threshold-ratchet.sh":
@@ -821,7 +823,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/claim-evidence-mapping.md":
       "d12a6153b8c22db2826153c479d107c7a885e22cbcdd49e4fd8193e0cbbe8ae3",
     "plugins/src/base/rules/eager/claim-time-guards.md":
-      "63f3644def406efef864f58f2b0caa1354341650b12cadb8064141cecffca40c",
+      "1bd94591d65106b075b3114f62ed2a5523ccb929f258f310b1401914c6374805",
     "plugins/src/base/rules/eager/coding-philosophy.md":
       "cf2c52032e0368d81f17f002fed5c957ab350d01fc4a43f66b5f366516bac54a",
     "plugins/src/base/rules/eager/config-resolution.md":
@@ -933,7 +935,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/claim-evidence-mapping.md":
       "49a3bbf4e8a9a8ca9e13eeafa672517d077060cfeb5d9710881ec9f5c3f3ec75",
     "plugins/src/base/rules/reference/claim-time-guards.md":
-      "50abda40a427d14560b401d32ff6b28e458298649e1ba48330105945b4128ed7",
+      "7ff87b8da8a4c79782768b203cdf9cebdac613509bfcee5a7def23f2e84f55f2",
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
@@ -1161,7 +1163,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-add-journey/SKILL.md":
       "4ceda3474a9b32abae835c2676e8cb2b7e888c6ba04b95843dbe7254293bbf32",
     "plugins/src/base/skills/lisa-github-build-intake/SKILL.md":
-      "dc6eb5c49d88df7f88355e1236fb8c0bbbd77d00a1b4f047bbb4f04e1edafbe9",
+      "48ecd7ed8fb69b2023ae87f04cc48963bbc67aec5a8d92d5021d39d83e33f305",
     "plugins/src/base/skills/lisa-github-claim/SKILL.md":
       "71301c6d45d7eb5523e74aa7f070bb2becf57ca68fb8bde9e02ee937b78815f7",
     "plugins/src/base/skills/lisa-github-create/SKILL.md":
@@ -1215,7 +1217,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-add-journey/SKILL.md":
       "a00606cc7927f034e847f34d7e44e72fa7f3a14ddf6a469deb7eae1e06531fd7",
     "plugins/src/base/skills/lisa-jira-build-intake/SKILL.md":
-      "57dbe9a28db15eaa47cf32afec7c4b05904511b96ba47b39096d3af6d9164335",
+      "965a2a3ee544d3a7269bf6f1ae9c112f0716e6ba70922eb184ac0aad0ef153e5",
     "plugins/src/base/skills/lisa-jira-claim/SKILL.md":
       "9c4935441a4e6b55df0949178f96e927184c4909bffff8929b39a304bc5ac00a",
     "plugins/src/base/skills/lisa-jira-create/SKILL.md":
@@ -1253,7 +1255,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "e63ae35df1a928dac7b42535ce11e77e8c617e60838ba319f22081400e87886e",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
-      "4e6c110422baf4577c06dc097431eadba040418d90d3340530d15aac35120ad6",
+      "b2f2b5b453d9233ebc97e548964875f737a4cb9b111ed3d5a695edfec28a9f76",
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md":
       "efde30b5eac8b2cc56499ce391bd3d43ebb017c4ce948b5d547b52acb66715bb",
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":
@@ -1499,7 +1501,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-add-journey/SKILL.md":
       "a3da2e0350bcdebcdcc05f2d7931af868382638d3a28d09d4718f2f458d4be0a",
     "plugins/src/base/skills/lisa-tracker-build-intake/SKILL.md":
-      "db392f3342cac926bbf65025427dac303c937fe3d6f59bb3feb50c8e0f75fa3b",
+      "f570f0e51712ec8f67120161ca9bb9f47bfc90aa90d37fd583b166c8b308918c",
     "plugins/src/base/skills/lisa-tracker-claim/SKILL.md":
       "481922dba26c4e62ae36193a2e1565860aecf7e344bf5c37b3a0759f42676846",
     "plugins/src/base/skills/lisa-tracker-create/SKILL.md":
@@ -2201,7 +2203,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
       "874f0792beab000939d480c1a0547ce4dd351421b4e5f0fbb495aae246ab85c2",
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs":
-      "9281e995587ad2c73e15c4381ec4ecfa40fd789f171c0698cdcf8dea32539e62",
+      "7558bb84701eb2d1ce5f3571a40862c4d659ad9a8cda804aa31c8a4f460cce43",
     "rails/copy-overwrite/sgconfig.yml":
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "rails/create-only/.github/workflows/ci.yml":
@@ -2280,6 +2282,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "89176394a933d0a42c39ab1805a45e782a2f3e1893d707ac1afb439062397088",
     "scripts/check-third-party-action-pins.mjs":
       "c085949d734edfef2807a95bc7c4814485e30f7bfad4d5054586aa264a5d42b4",
+    "scripts/check-typecheck-tests.mjs":
+      "f09e5da1e70b20228c39f6133fc355bcbc8c3af0fb65e1afd100203d862b1b9e",
     "scripts/check-ui-demo-data.mjs":
       "82a5ed89ae830482dbaab99e2f8eeededcde60a7dd6ac145f191b4ac8394c85b",
     "scripts/check-whole-output-guards.mjs":
@@ -2301,7 +2305,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/copy-codex-scripts.mjs":
       "2d7082d5033088c85f66995aee9e3ee1e7751435e65bfde8e1cb002e6689d476",
     "scripts/copy-opencode-plugin-templates.mjs":
-      "3818f04c404d46bd1ce5c0536b0b8aadf223a55ef8d869369709a650f0a50f74",
+      "4d68863cd8414d29218280cded63f2c29c3f8d51d8e74cc3b6adfec4f25b06ec",
     "scripts/detect-stale-workflow-inputs.mjs":
       "04274c1ed972c040ccf0b64aba193368d652769094db6d97706706530e93d74f",
     "scripts/downstream-name-digest.mjs":
@@ -2313,7 +2317,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/fix-test-assertions.mjs":
       "59b5e8cc31e7c7323d20bd180f2ae97c08a9685758483b6fe00ba77317a845f2",
     "scripts/generate-agy-plugin-artifacts.mjs":
-      "c0f1c79f16c01243c4c329bac43c576ab795367338b645225c809c2b6b2a134e",
+      "d9edb5089ece7525e0ffdec923f7d4781da95c3de85ef34172cf513d69b09f1d",
     "scripts/generate-codex-plugin-artifacts.mjs":
       "facb86910c07d1b8025868d24425fdaea7b6efbe282bace5ee5bf23957d6b51a",
     "scripts/generate-copilot-plugin-artifacts.mjs":
@@ -2525,7 +2529,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "dfd2fef680de5ef03e63075e8a61c62ca4d95cdfdff6201939b79c748d3397f6",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "cebfb61c953142ed6f52a0de07580dc2cd0c2c69262028750d2a3414c52524d6",
+      "b15fe6ad9427933bf522ee96792c2033941f249306c0e310cccc1747210703fb",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "47bc8b91e38535e694f43d9d3b76c4589ae2796e4ce9e875ab6b09a273e0c93a",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -2555,7 +2559,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
       "874f0792beab000939d480c1a0547ce4dd351421b4e5f0fbb495aae246ab85c2",
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs":
-      "9281e995587ad2c73e15c4381ec4ecfa40fd789f171c0698cdcf8dea32539e62",
+      "7558bb84701eb2d1ce5f3571a40862c4d659ad9a8cda804aa31c8a4f460cce43",
     "typescript/copy-overwrite/sgconfig.yml":
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "typescript/copy-overwrite/tsconfig.eslint.json":
@@ -3630,6 +3634,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/hooks/block-host-name-leak.sh": true,
     "plugins/lisa-agy/hooks/block-instruction-file-edits.agy.sh": true,
     "plugins/lisa-agy/hooks/block-instruction-file-edits.sh": true,
+    "plugins/lisa-agy/hooks/block-managed-file-edits.agy.sh": true,
+    "plugins/lisa-agy/hooks/block-managed-file-edits.sh": true,
     "plugins/lisa-agy/hooks/block-no-verify.agy.sh": true,
     "plugins/lisa-agy/hooks/block-shell-json-parsing.agy.sh": true,
     "plugins/lisa-agy/hooks/block-shell-json-parsing.sh": true,
@@ -7110,6 +7116,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/hooks/block-host-name-leak.sh": true,
     "plugins/lisa/hooks/block-instruction-file-edits.agy.sh": true,
     "plugins/lisa/hooks/block-instruction-file-edits.sh": true,
+    "plugins/lisa/hooks/block-managed-file-edits.agy.sh": true,
     "plugins/lisa/hooks/block-managed-file-edits.sh": true,
     "plugins/lisa/hooks/block-no-verify.agy.sh": true,
     "plugins/lisa/hooks/block-no-verify.sh": true,
@@ -7790,6 +7797,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/hooks/block-host-name-leak.sh": true,
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh": true,
     "plugins/src/base/hooks/block-instruction-file-edits.sh": true,
+    "plugins/src/base/hooks/block-managed-file-edits.agy.sh": true,
     "plugins/src/base/hooks/block-managed-file-edits.sh": true,
     "plugins/src/base/hooks/block-no-verify.agy.sh": true,
     "plugins/src/base/hooks/block-no-verify.sh": true,
@@ -8629,6 +8637,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-state-classification.mjs": true,
     "scripts/check-template-workflow-refs.mjs": true,
     "scripts/check-third-party-action-pins.mjs": true,
+    "scripts/check-typecheck-tests.mjs": true,
     "scripts/check-ui-demo-data.mjs": true,
     "scripts/check-whole-output-guards.mjs": true,
     "scripts/check-workflow-package-paths.mjs": true,
@@ -9129,6 +9138,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/opencode/plugin-catalog.ts": true,
     "src/opencode/plugin-templates/lisa-block-direct-issue-create.ts": true,
     "src/opencode/plugin-templates/lisa-block-instruction-file-edits.ts": true,
+    "src/opencode/plugin-templates/lisa-block-managed-file-edits.ts": true,
     "src/opencode/plugin-templates/lisa-block-migration-edits.ts": true,
     "src/opencode/plugin-templates/lisa-block-no-verify.ts": true,
     "src/opencode/plugin-templates/lisa-block-suppress-directives.ts": true,
@@ -9554,6 +9564,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/support/git-executable.ts": true,
     "tests/support/prune-fixtures.ts": true,
     "tests/support/work-item-cli.ts": true,
+    "tests/unit/agy/block-managed-file-edits-agy.test.ts": true,
     "tests/unit/agy/block-no-verify-agy.test.ts": true,
     "tests/unit/agy/mcp-collect.test.ts": true,
     "tests/unit/agy/mcp-installer.test.ts": true,
@@ -10020,6 +10031,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/parity-safety-net-heredoc-literal.test.ts": true,
     "tests/unit/hooks/parity-safety-net-heredoc.test.ts": true,
     "tests/unit/hooks/parity-safety-net-line-continuation.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-noexec.test.ts": true,
     "tests/unit/hooks/parity-safety-net-preserve-remedy.test.ts": true,
     "tests/unit/hooks/parity-safety-net-prose-remedy.test.ts": true,
     "tests/unit/hooks/parity-safety-net-scan-failure.test.ts": true,
@@ -10075,6 +10087,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/agent-installer.test.ts": true,
     "tests/unit/opencode/agent-transformer.test.ts": true,
     "tests/unit/opencode/block-direct-issue-create-cross-repo-parity.test.ts": true,
+    "tests/unit/opencode/block-managed-file-edits-plugin.test.ts": true,
     "tests/unit/opencode/block-no-verify-emit.test.ts": true,
     "tests/unit/opencode/block-no-verify-plugin.test.ts": true,
     "tests/unit/opencode/command-installer.test.ts": true,
@@ -10090,6 +10103,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/settings-installer.test.ts": true,
     "tests/unit/opencode/skills-installer.test.ts": true,
     "tests/unit/plugins/container-view-pattern-parity.test.ts": true,
+    "tests/unit/plugins/hook-registration-agreement.test.ts": true,
     "tests/unit/plugins/hook-registration.test.ts": true,
     "tests/unit/plugins/support/hook-registration-fixture.ts": true,
     "tests/unit/scripts/ast-grep-enforcement.test.ts": true,
@@ -10233,6 +10247,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-run-gates-shipped-as.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-supervisor-verdict.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-unproved.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-zero-collection.test.ts": true,
     "tests/unit/scripts/lisa-run-gates.test.ts": true,
     "tests/unit/scripts/lisa-test-node.test.ts": true,
     "tests/unit/scripts/lisa-work-item-complete.test.ts": true,
@@ -10334,6 +10349,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-multi-item-range.test.ts": true,
     "tests/unit/scripts/work-item-optional-validation.test.ts": true,
     "tests/unit/scripts/work-item-push-destination.test.ts": true,
+    "tests/unit/scripts/work-item-push-merge-defer.test.ts": true,
     "tests/unit/scripts/work-item-run-and-gh-version.test.ts": true,
     "tests/unit/scripts/work-item-tracker-unreachable.test.ts": true,
     "tests/unit/secrets/automation-workflow.test.ts": true,
@@ -10428,6 +10444,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/atlassian-access-acli-profile.test.ts": true,
     "tests/unit/strategies/atlassian-access-changelog.test.ts": true,
     "tests/unit/strategies/atlassian-error-redaction.test.ts": true,
+    "tests/unit/strategies/attempt-valve-recovery-contract.test.ts": true,
     "tests/unit/strategies/automation-reversal-memory.test.ts": true,
     "tests/unit/strategies/automation-run-history-helpers.ts": true,
     "tests/unit/strategies/automation-run-record-cli.test.ts": true,
@@ -10724,6 +10741,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tsconfig.eslint.json": true,
     "tsconfig.json": true,
     "tsconfig.local.json": true,
+    "tsconfig.tests.json": true,
     "tsconfig/base.json": true,
     "tsconfig/build.json": true,
     "tsconfig/cdk.json": true,
@@ -10734,6 +10752,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tsconfig/phaser.json": true,
     "tsconfig/spec.json": true,
     "tsconfig/typescript.json": true,
+    "typecheck-quarantine.json": true,
     "typescript/copy-contents/.husky/commit-msg": true,
     "typescript/copy-contents/.husky/post-checkout": true,
     "typescript/copy-contents/.husky/pre-commit": true,
