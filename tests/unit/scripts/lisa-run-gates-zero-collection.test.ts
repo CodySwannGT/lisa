@@ -36,12 +36,17 @@ import {
   runGates,
   STATE,
 } from "../../../all/copy-overwrite/scripts/lisa-run-gates.mjs";
-import {
-  COMMIT,
-  type GateRun,
-  RUNNER,
-  sink,
-} from "./lisa-run-gates-fixtures.js";
+import { COMMIT, RUNNER, sink } from "./lisa-run-gates-fixtures.js";
+
+/**
+ * The runner's own result shape.
+ *
+ * Taken from `runGates` rather than from the fixtures module, which exports a
+ * structurally similar `GateRun` that is a DIFFERENT type to the compiler.
+ * Annotating with the fixtures' one type-errors under `tsconfig.tests.json`,
+ * which is exactly what the newly-live test type gate caught here.
+ */
+type GateRunResult = ReturnType<typeof runGates>;
 
 const INTEGRATION = "test-integration";
 const TASK = "test:integration";
@@ -95,12 +100,12 @@ function runWith(
   output: string,
   code = 0
 ): {
-  result: GateRun;
+  result: GateRunResult;
   transcript: string;
   entry: { state: string; detail: string } | undefined;
 } {
   const { lines, out } = sink();
-  const result: GateRun = runGates({
+  const result: GateRunResult = runGates({
     gates: { [INTEGRATION]: { [COMMIT]: { level: "required", run: TASK } } },
     moment: COMMIT,
     runner: RUNNER,
