@@ -381,6 +381,47 @@ export const REVIEW_DESCRIPTION_DEFAULTS = Object.freeze({
 });
 
 /**
+ * `no_work` phrases whose presence does NOT establish that no review happened.
+ *
+ * The rest of `no_work` is safe to speak plainly about: `review skipped`,
+ * `review queued`, `waiting` and the others describe a vendor saying it did not
+ * start. `rate limited` turned out not to. Measured on CodySwannGT/lisa#3762 —
+ * the check reported `success` with the description `Review rate limited` and
+ * the vendor HAD reviewed, posting `CHANGES_REQUESTED` with a comment that
+ * found a real defect.
+ *
+ * Moving the phrase between the two lists would not help, and the reason bounds
+ * what any change here can achieve: **the description is not a function of
+ * whether a review happened.** `proof` is matched whole-string, so a
+ * reviewed-and-objected pull request still carrying `Review rate limited` can
+ * never reach it. Settling the question needs a second input — `reviews` /
+ * `reviewThreads` — which this script does not read and deliberately does not
+ * fetch: that would make the claim checkable at the cost of turning a
+ * description classifier into a network client (CodySwannGT/lisa#3827).
+ *
+ * So the phrase stays in `no_work` — denying credit on it remains correct and
+ * remains the safe direction — and only the WORDING changes. For these phrases
+ * the report says what it can support and stops instructing a conclusion it
+ * cannot.
+ */
+const AMBIGUOUS_NO_WORK = Object.freeze(["rate limited"]);
+
+/**
+ * Whether a `no_work` description can be reported as proof that nothing ran.
+ *
+ * Matched as a substring, exactly as `no_work` itself is, so the two always
+ * agree about what a description contains.
+ * @param {string | undefined} description - Description the check reported
+ * @returns {boolean} True when "it did no work" is a claim the text supports
+ */
+export function noWorkClaimIsCertain(description) {
+  const text = String(description ?? "")
+    .trim()
+    .toLowerCase();
+  return !AMBIGUOUS_NO_WORK.some(phrase => text.includes(phrase));
+}
+
+/**
  * Verdicts `classifyCheckDescription` returns.
  *
  * `unproven` is the FALLBACK on purpose: the absence of a recognised phrase is
@@ -1299,15 +1340,21 @@ export function evaluateVacuousChecks(declaration, checks, options = {}) {
  * @param {string} name - Check context name
  * @param {boolean} trustRequired - Whether the ruleset snapshot is trusted
  * @param {ReadonlySet<string>} required - Required-context snapshot
+ * @param {boolean} certain - Whether the description supports "no review happened"
  * @returns {string} Sentence appended to a finding
  */
-function evidenceRequiredNote(name, trustRequired, required) {
+function evidenceRequiredNote(name, trustRequired, required, certain) {
   if (!trustRequired) {
     return " Whether it is ruleset-required is NOT KNOWN here — `required_contexts` has not been transcribed, so this cannot say what the merge gate recorded.";
   }
-  return required.has(name)
-    ? " This context IS ruleset-required, so branch protection recorded a satisfied review gate for a review that did not happen."
-    : " This context is not in `required_contexts`, so no merge gate was falsified — but nothing reviewed this either.";
+  if (required.has(name)) {
+    return certain
+      ? " This context IS ruleset-required, so branch protection recorded a satisfied review gate for a review that did not happen."
+      : " This context IS ruleset-required, so branch protection recorded a satisfied review gate on evidence that does not establish a review happened.";
+  }
+  return certain
+    ? " This context is not in `required_contexts`, so no merge gate was falsified — but nothing reviewed this either."
+    : " This context is not in `required_contexts`, so no merge gate was falsified — and this does not say whether anything reviewed it.";
 }
 
 /**
@@ -1338,17 +1385,24 @@ function evaluateEvidenceBearingCheck(name, entry, checks, context) {
     return null;
   }
 
+  // Whether "it did no work" is a claim this description can support. A
+  // `rate limited` string cannot (CodySwannGT/lisa#3762), so every sentence
+  // below that would otherwise assert it is softened for that case.
+  const certain = noWorkClaimIsCertain(found.description);
   const requiredNote = evidenceRequiredNote(
     name,
     context.trustRequired,
-    context.required
+    context.required,
+    certain
   );
   if (verdict === DESCRIPTION_VERDICTS.noWork && state === "SUCCESS") {
     return {
       kind: VIOLATIONS.vacuous,
       token: name,
       contexts: [name],
-      message: `\`${name}\` reported ${state} with the description ${JSON.stringify(found.description ?? "")}, which says it DID NO WORK.${context.at}${requiredNote} \`gh pr checks\` prints \`pass\` for this exactly as it does for a real review — the description is the only thing that tells them apart. Treat this PR as UNREVIEWED.`,
+      message: certain
+        ? `\`${name}\` reported ${state} with the description ${JSON.stringify(found.description ?? "")}, which says it DID NO WORK.${context.at}${requiredNote} \`gh pr checks\` prints \`pass\` for this exactly as it does for a real review, and shows neither \`reviews\` nor \`reviewThreads\`. Treat this PR as UNREVIEWED.`
+        : `\`${name}\` reported ${state} with the description ${JSON.stringify(found.description ?? "")}, which proves neither that it reviewed anything nor that it did not — this vendor has reported this same description on a pull request it HAD reviewed and objected to (CodySwannGT/lisa#3762).${context.at}${requiredNote} \`gh pr checks\` prints \`pass\` for this exactly as it does for a real review, and cannot tell them apart. Read \`reviews\` and \`reviewThreads\` — which \`gh pr checks\` does not show — before treating this PR as reviewed OR as unreviewed.`,
     };
   }
   return {

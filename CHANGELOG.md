@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.38.4](https://github.com/CodySwannGT/lisa/compare/v4.38.3...v4.38.4) (2026-09-04)
+
+
+### Bug Fixes
+
+* **hooks:** reach Antigravity and OpenCode with the managed-file guard ([ecf969b](https://github.com/CodySwannGT/lisa/commit/ecf969b0ddbd0d6329971b1660e625ff40256ad3)), closes [#3736](https://github.com/CodySwannGT/lisa/issues/3736) [#3750](https://github.com/CodySwannGT/lisa/issues/3750) [CodySwannGT/lisa#3750](https://github.com/CodySwannGT/lisa/issues/3750)
+
+### [4.38.3](https://github.com/CodySwannGT/lisa/compare/v4.38.2...v4.38.3) (2026-09-04)
+
+
+### Bug Fixes
+
+* **ci:** type-check tests, which the required gate never compiled ([be1f08f](https://github.com/CodySwannGT/lisa/commit/be1f08f6710520b01f498f3fca886d5dcd0ea30f)), closes [CodySwannGT/lisa#3811](https://github.com/CodySwannGT/lisa/issues/3811) [#3811](https://github.com/CodySwannGT/lisa/issues/3811) [CodySwannGT/lisa#3811](https://github.com/CodySwannGT/lisa/issues/3811)
+
 ### [4.38.2](https://github.com/CodySwannGT/lisa/compare/v4.38.1...v4.38.2) (2026-09-04)
 
 

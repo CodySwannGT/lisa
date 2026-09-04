@@ -744,6 +744,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
       "d47314b66d6ce85f77d6e058f861eede4462b2b0a33d54e82ff1c931167ec3f7",
+    "plugins/src/base/hooks/block-managed-file-edits.agy.sh":
+      "19cda51fcc113f0b3c184d8907913ab4b49ecb81db80ce7909639194bc9c52d6",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
       "071ac9bfdba975c6f9c6b763a8adf5cf482016bde0c2dbae45fd2562d1b6de3b",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
@@ -2303,7 +2305,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/copy-codex-scripts.mjs":
       "2d7082d5033088c85f66995aee9e3ee1e7751435e65bfde8e1cb002e6689d476",
     "scripts/copy-opencode-plugin-templates.mjs":
-      "3818f04c404d46bd1ce5c0536b0b8aadf223a55ef8d869369709a650f0a50f74",
+      "4d68863cd8414d29218280cded63f2c29c3f8d51d8e74cc3b6adfec4f25b06ec",
     "scripts/detect-stale-workflow-inputs.mjs":
       "04274c1ed972c040ccf0b64aba193368d652769094db6d97706706530e93d74f",
     "scripts/downstream-name-digest.mjs":
@@ -2315,7 +2317,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/fix-test-assertions.mjs":
       "59b5e8cc31e7c7323d20bd180f2ae97c08a9685758483b6fe00ba77317a845f2",
     "scripts/generate-agy-plugin-artifacts.mjs":
-      "c0f1c79f16c01243c4c329bac43c576ab795367338b645225c809c2b6b2a134e",
+      "d9edb5089ece7525e0ffdec923f7d4781da95c3de85ef34172cf513d69b09f1d",
     "scripts/generate-codex-plugin-artifacts.mjs":
       "facb86910c07d1b8025868d24425fdaea7b6efbe282bace5ee5bf23957d6b51a",
     "scripts/generate-copilot-plugin-artifacts.mjs":
@@ -3632,6 +3634,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/hooks/block-host-name-leak.sh": true,
     "plugins/lisa-agy/hooks/block-instruction-file-edits.agy.sh": true,
     "plugins/lisa-agy/hooks/block-instruction-file-edits.sh": true,
+    "plugins/lisa-agy/hooks/block-managed-file-edits.agy.sh": true,
+    "plugins/lisa-agy/hooks/block-managed-file-edits.sh": true,
     "plugins/lisa-agy/hooks/block-no-verify.agy.sh": true,
     "plugins/lisa-agy/hooks/block-shell-json-parsing.agy.sh": true,
     "plugins/lisa-agy/hooks/block-shell-json-parsing.sh": true,
@@ -7112,6 +7116,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/hooks/block-host-name-leak.sh": true,
     "plugins/lisa/hooks/block-instruction-file-edits.agy.sh": true,
     "plugins/lisa/hooks/block-instruction-file-edits.sh": true,
+    "plugins/lisa/hooks/block-managed-file-edits.agy.sh": true,
     "plugins/lisa/hooks/block-managed-file-edits.sh": true,
     "plugins/lisa/hooks/block-no-verify.agy.sh": true,
     "plugins/lisa/hooks/block-no-verify.sh": true,
@@ -7792,6 +7797,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/hooks/block-host-name-leak.sh": true,
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh": true,
     "plugins/src/base/hooks/block-instruction-file-edits.sh": true,
+    "plugins/src/base/hooks/block-managed-file-edits.agy.sh": true,
     "plugins/src/base/hooks/block-managed-file-edits.sh": true,
     "plugins/src/base/hooks/block-no-verify.agy.sh": true,
     "plugins/src/base/hooks/block-no-verify.sh": true,
@@ -9132,6 +9138,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/opencode/plugin-catalog.ts": true,
     "src/opencode/plugin-templates/lisa-block-direct-issue-create.ts": true,
     "src/opencode/plugin-templates/lisa-block-instruction-file-edits.ts": true,
+    "src/opencode/plugin-templates/lisa-block-managed-file-edits.ts": true,
     "src/opencode/plugin-templates/lisa-block-migration-edits.ts": true,
     "src/opencode/plugin-templates/lisa-block-no-verify.ts": true,
     "src/opencode/plugin-templates/lisa-block-suppress-directives.ts": true,
@@ -9557,6 +9564,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/support/git-executable.ts": true,
     "tests/support/prune-fixtures.ts": true,
     "tests/support/work-item-cli.ts": true,
+    "tests/unit/agy/block-managed-file-edits-agy.test.ts": true,
     "tests/unit/agy/block-no-verify-agy.test.ts": true,
     "tests/unit/agy/mcp-collect.test.ts": true,
     "tests/unit/agy/mcp-installer.test.ts": true,
@@ -10077,6 +10085,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/agent-installer.test.ts": true,
     "tests/unit/opencode/agent-transformer.test.ts": true,
     "tests/unit/opencode/block-direct-issue-create-cross-repo-parity.test.ts": true,
+    "tests/unit/opencode/block-managed-file-edits-plugin.test.ts": true,
     "tests/unit/opencode/block-no-verify-emit.test.ts": true,
     "tests/unit/opencode/block-no-verify-plugin.test.ts": true,
     "tests/unit/opencode/command-installer.test.ts": true,
@@ -10092,6 +10101,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/settings-installer.test.ts": true,
     "tests/unit/opencode/skills-installer.test.ts": true,
     "tests/unit/plugins/container-view-pattern-parity.test.ts": true,
+    "tests/unit/plugins/hook-registration-agreement.test.ts": true,
     "tests/unit/plugins/hook-registration.test.ts": true,
     "tests/unit/plugins/support/hook-registration-fixture.ts": true,
     "tests/unit/scripts/absent-required-checks.test.ts": true,

@@ -54,7 +54,15 @@
         "matcher": "Bash"
       },
       {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-managed-file-edits.sh",
+        "matcher": "Bash"
+      },
+      {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-instruction-file-edits.sh",
+        "matcher": "Write|Edit|MultiEdit"
+      },
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-managed-file-edits.sh",
         "matcher": "Write|Edit|MultiEdit"
       },
       {
