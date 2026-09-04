@@ -2937,11 +2937,47 @@ function reportMapping(findings, commitRefs, bodyRefs) {
 
 /**
  * Check every pull-request requirement and report all of the unmet ones.
+ *
+ * `rangeIsPartial` is what the PUSH path passes, and it changes exactly one
+ * thing: whether a commit side with nothing in it is a violation.
+ *
+ * The push path evaluates the UNPUSHED range — deliberately, and for a reason
+ * that must not be undone: `parsePushGroups` excludes commits already on the
+ * remote branch (validated by earlier pushes) and commits reachable from the
+ * remote default branch, and it must never use `--remotes=<remote>`, whose ref
+ * set includes the branch being force-pushed and would let a pusher exempt
+ * arbitrary commits. That range is right. What was wrong is the verdict drawn
+ * from it: this function's message says "Pull request has no non-merge commit
+ * linked", which is a claim about the PULL REQUEST, made from a range that is
+ * only a SUBSET of it.
+ *
+ * A merge-conflict resolution is the case that exposed it (#3851). Its unpushed
+ * range is one merge commit; merges are trailer-exempt; the non-merge set is
+ * therefore empty — while the pull request itself contains a perfectly
+ * trailered non-merge commit that was validated on an earlier push. The gate
+ * refused correctly-attributed work, and its advice ("amend the commit and
+ * force-push") named a commit that does not exist and an operation the
+ * destructive-command guard refuses. That deadlocked against
+ * `artifact-freshness`, which requires the regeneration to live IN the merge.
+ *
+ * So when the range is partial and has nothing to check, the commit-side
+ * question is DEFERRED rather than answered: it has no subject here, and its
+ * subject is the pull request, where `validate-pr` asks it correctly from
+ * `base..head` — a required, merge-blocking check (`🔗 Work-Item
+ * Traceability`), so this defers to something that genuinely runs rather than
+ * to nothing.
+ *
+ * Deliberately NOT an early return, for the same reason the `tracedWhereAuthored`
+ * exemption below is not one: gates 4 and 5 are properties of the pull request
+ * BODY and the tracker, met by a separate edit, and they stay enforced here
+ * exactly as everywhere else. Returning would retire two working gates on
+ * precisely the pull requests this makes pushable.
  * @param {{result?: object, error?: Error}} outcome Commit-side outcome.
  * @param {string} prUrl Pull request URL.
  * @param {string} prBody Pull request body.
+ * @param {boolean} [rangeIsPartial] True when the range is a subset of the PR's.
  */
-function validatePrData(outcome, prUrl, prBody) {
+function validatePrData(outcome, prUrl, prBody, rangeIsPartial = false) {
   const result = outcome.result;
   if (result?.relevant === 0 && result.releaseExempt > 0 && !result.mergeExempt)
     return;
@@ -2964,6 +3000,15 @@ function validatePrData(outcome, prUrl, prBody) {
   // defect expensive to read in the first place.
   const tracedWhereAuthored =
     result?.relevant === 0 && result.protectedExempt > 0;
+  // Nothing to check HERE, and the subject is one level up. Scoped to a merge
+  // because that is the only way a partial range empties out while the pull
+  // request is attributed: the trailered commit is excluded for having been
+  // validated on an earlier push. `relevant === 0` cannot mask an untrailered
+  // commit — `validateCommits` increments the counter BEFORE reading the
+  // trailer, so a missing one raises through `outcome.error` on a different
+  // branch entirely, and the control below still refuses it.
+  const deferredToPullRequest =
+    rangeIsPartial === true && result?.relevant === 0 && result.mergeExempt > 0;
   // All three are COMMIT-side. They carry `IN_THIS_PR` because a rewrite plus a
   // force-push does clear them without recreating the pull request — but the
   // tag's wording invites a body edit, which cannot touch a commit message. The
@@ -2976,13 +3021,17 @@ function validatePrData(outcome, prUrl, prBody) {
         : outcome.error.message,
       scope: IN_THIS_PR,
     });
-  else if (!tracedWhereAuthored && result.relevant === 0)
+  else if (
+    !tracedWhereAuthored &&
+    !deferredToPullRequest &&
+    result.relevant === 0
+  )
     findings.push({
       gate: GATE_COMMIT,
       message: `Pull request has no non-merge commit linked to a work item. ${COMMIT_REWRITE_ADVICE}`,
       scope: IN_THIS_PR,
     });
-  else if (!tracedWhereAuthored && !result.ref)
+  else if (!tracedWhereAuthored && !deferredToPullRequest && !result.ref)
     findings.push({
       gate: GATE_COMMIT,
       message: `Pull request commits are not linked to a work item. ${COMMIT_REWRITE_ADVICE}`,
@@ -4242,7 +4291,11 @@ export function unresolvedPushReport(result, label) {
  */
 function reportPushGroup(outcome, pr, label) {
   if (pr) {
-    validatePrData(outcome, pr.url, pr.body);
+    // `true`: a push range is ALWAYS a subset of the pull request's — it drops
+    // commits already on the remote branch and everything reachable from the
+    // remote default branch. So a commit side with nothing in it means "no
+    // subject in THIS push", never "no subject in the pull request".
+    validatePrData(outcome, pr.url, pr.body, true);
     console.log(
       `WORK_ITEM_TRACKING_OK ${label}${outcome.result.relevant} commit(s)${alreadyTraced(outcome.result)}, ${provedHere(outcome.result.contract)}`
     );
