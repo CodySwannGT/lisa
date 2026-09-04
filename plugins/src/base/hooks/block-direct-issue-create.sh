@@ -1426,7 +1426,11 @@ EXEC_WRAPPERS = {
     "nohup": (frozenset(), 0),
     "setsid": (frozenset(), 0),
     "stdbuf": (frozenset({"-i", "-o", "-e"}), 0),
-    "sudo": (frozenset({"-u", "--user", "-g", "--group", "-C", "--close-from"}), 0),
+    "sudo": (frozenset({
+        "-u", "--user", "-g", "--group", "-C", "--close-from",
+        "-p", "--prompt", "-h", "--host", "-r", "--role",
+        "-t", "--type", "-U", "--other-user",
+    }), 0),
     "time": (frozenset(), 0),
     "timeout": (frozenset({"-k", "--kill-after", "-s", "--signal"}), 1),
 }
@@ -1446,6 +1450,30 @@ NO_SCRIPT_OPTIONS = {
     "python3": {"-c", "-m", "--command", "--module"},
     "ruby": {"-e"},
 }
+
+# Interpreter switches whose value is a separate token, followed by the real
+# script operand. Treating the value as the script makes the guard inspect a
+# preload or option value and never reach what the interpreter executes.
+INTERPRETER_VALUE_OPTIONS = {
+    "bash": {"-o", "--option"},
+    "dash": {"-o"},
+    "ksh": {"-o"},
+    "node": {"-r", "--require"},
+    "nodejs": {"-r", "--require"},
+    "sh": {"-o"},
+    "zsh": {"-o"},
+}
+
+# Runtime subcommands that introduce the script path rather than name it.
+INTERPRETER_SUBCOMMANDS = {
+    "bun": {"run"},
+    "deno": {"run"},
+}
+
+
+def is_assignment_word(token):
+    """Whether token is a POSIX shell assignment in command-prefix position."""
+    return re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", token) is not None
 
 # Programs that READ their operands and never execute them as programs.
 #
@@ -1501,7 +1529,7 @@ def executing_command(argv):
     index = 0
     while index < len(argv):
         token = argv[index]
-        if "=" in token and not token.startswith(("=", "-")):
+        if is_assignment_word(token):
             index += 1
             continue
         program = basename(token)
@@ -1568,16 +1596,20 @@ def executed_operand(argv):
     # shebang — `./create.sh` names no interpreter and runs all the same.
     if program not in EXECUTING_INTERPRETERS and resolve_operand(token) is not None:
         return token
-    # `bash < create.sh` runs that file as surely as `bash create.sh` does, and
-    # `<` is not a segment boundary, so the pair survives in one argv.
-    for index, argument in enumerate(args):
-        if argument == "<" and index + 1 < len(args):
-            return args[index + 1]
     # Reached by a known interpreter AND by a program this parser cannot name.
     # The unknown case is followed on purpose — see READ_ONLY_PROGRAMS.
-    for argument in args:
-        if argument == "--":
+    redirected = None
+    index = 0
+    while index < len(args):
+        argument = args[index]
+        if argument == "<":
+            if index + 1 < len(args):
+                redirected = args[index + 1]
+            index += 2
             continue
+        if argument == "--":
+            index += 1
+            return args[index] if index < len(args) else redirected
         if argument.startswith("-"):
             # A command string or a module name; no script file follows.
             head = argument.split("=", 1)[0]
@@ -1588,9 +1620,15 @@ def executed_operand(argv):
                     return None
             elif head in NO_SCRIPT_OPTIONS.get(program, set()):
                 return None
+            takes_value = head in INTERPRETER_VALUE_OPTIONS.get(program, set())
+            index += 2 if takes_value and "=" not in argument else 1
+            continue
+        if argument in INTERPRETER_SUBCOMMANDS.get(program, set()):
+            index += 1
             continue
         return argument
-    return None
+    # `bash < create.sh` runs stdin only when no explicit script was named.
+    return redirected
 
 
 def file_operands(argv):

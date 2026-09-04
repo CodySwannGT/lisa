@@ -590,6 +590,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "84bb3e15166be4764f10ed3fe6239cfd2ece45d4333343e0d9cf6dd295ab5b42",
     "8d1f04ef5c5da9db9190e22b37a435e118e39d6e7deafc5402b4593c8e9db2b2",
     "8df0ebd0d9b248d74683ed3a39da84c7348dd8ca08d0bb651f69f1987b554412",
+    "8e1a04254f214c7de4ac252f0aec0f520aae617b87c7b306df6f08c6d2e8cf76",
   ]),
   "scripts/lisa-hooks/block-instruction-file-edits.sh": Object.freeze([
     "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
@@ -609,6 +610,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "92e0ff52fcb29bc112ddcf1c3d85432032596572a84f3c5806a5b0c286ae55b3",
     "c1b2abf324269c0248136500eb37d7c43559552f152a7c5d07a23c219fdc70b2",
     "c6472a7f9d509a7eb7b17d665fe3f34827d4e5a50ba5b0d044dd325b468adbf8",
+    "cad609dc78827ab9e8db9ffae2fc02b0ac760df74d1d6e9737753c3b0887a2ef",
     "d3df68b0201c1f34d1e8398f313b99705b99ae36e8944e32c32a0278200b685d",
     "d3ef2562b718156912f0877f8a0668026f5966fcca43eb9e064aa57a4e9a4976",
     "d517c6ab5dedf577ca713484cb41eb886f8580a6a351206901e4bf13f66421b5",
@@ -1526,6 +1528,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "84bb3e15166be4764f10ed3fe6239cfd2ece45d4333343e0d9cf6dd295ab5b42",
     "8d1f04ef5c5da9db9190e22b37a435e118e39d6e7deafc5402b4593c8e9db2b2",
     "8df0ebd0d9b248d74683ed3a39da84c7348dd8ca08d0bb651f69f1987b554412",
+    "8e1a04254f214c7de4ac252f0aec0f520aae617b87c7b306df6f08c6d2e8cf76",
   ]),
   "scripts/lisa-hooks/block-instruction-file-edits.sh": Object.freeze([
     "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
@@ -1545,6 +1548,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "92e0ff52fcb29bc112ddcf1c3d85432032596572a84f3c5806a5b0c286ae55b3",
     "c1b2abf324269c0248136500eb37d7c43559552f152a7c5d07a23c219fdc70b2",
     "c6472a7f9d509a7eb7b17d665fe3f34827d4e5a50ba5b0d044dd325b468adbf8",
+    "cad609dc78827ab9e8db9ffae2fc02b0ac760df74d1d6e9737753c3b0887a2ef",
     "d3df68b0201c1f34d1e8398f313b99705b99ae36e8944e32c32a0278200b685d",
     "d3ef2562b718156912f0877f8a0668026f5966fcca43eb9e064aa57a4e9a4976",
     "d517c6ab5dedf577ca713484cb41eb886f8580a6a351206901e4bf13f66421b5",

@@ -45,11 +45,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "c73eac2c0759e58231c06a76d4d72b65079e3eb4aab14e335937a56babe31ab5",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "0e4a69c6f072cdf8c77931dd846348cf3f08ea0f47c6c0b0f5c4828cde5a8daa",
+      "8e1a04254f214c7de4ac252f0aec0f520aae617b87c7b306df6f08c6d2e8cf76",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
-      "d3df68b0201c1f34d1e8398f313b99705b99ae36e8944e32c32a0278200b685d",
+      "cad609dc78827ab9e8db9ffae2fc02b0ac760df74d1d6e9737753c3b0887a2ef",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
       "8be7f21ef757597ab23180d68c3bf22db8272c42f889b8883b16703744d4d2e7",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
@@ -725,13 +725,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "2adaf15910b6d00e69c202d263d407a21b31c0afce0039c6c042e51c278d2325",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "c0e0b59f169d54f0e93d78c58b28aacd90f6e8c627750143d60f54b5ea9614d4",
+      "793371b42179e171a9f9f8652f170d6ce4fe649cdee4a20a243b39c99712d2fc",
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
       "d47314b66d6ce85f77d6e058f861eede4462b2b0a33d54e82ff1c931167ec3f7",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
-      "bcb09b48d66e40834236edc2d0e78c24b6363502b05297fee46d87ced6ee9d3c",
+      "8247bcc83b792c947bb99121d6aa92509d337ca78a0a7cec97713317e2246610",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
       "b3d54e9321d236a3202ebe5cc35c75e7b5b5794ef7f6eb032550aa368a116ea4",
     "plugins/src/base/hooks/block-no-verify.sh":
