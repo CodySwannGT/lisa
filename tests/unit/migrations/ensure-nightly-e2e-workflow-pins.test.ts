@@ -242,4 +242,119 @@ describe("EnsureNightlyE2EWorkflowPinsMigration", () => {
       `@${RELEASE_TAG}`
     );
   });
+
+  /**
+   * Arming the bypass gate against body-evidence deletion (#3476, #3485).
+   *
+   * A valid waiver needs the bypass label AND a `Nightly-E2E-Bypass:` line in
+   * the pull-request body. The caller subscribes to `labeled`/`unlabeled`, so
+   * deleting the label re-fires the gate; nothing subscribes to `edited`, so
+   * deleting the BODY line fires nothing and the previous SUCCESS stands.
+   *
+   * The reusable workflow is `on: workflow_call` and cannot declare
+   * pull-request activity types, so the trigger list is only expressible in the
+   * caller — which ships from `create-only` and is never overwritten. That
+   * makes this migration the ONLY surface that reaches an already-seeded
+   * repository. A template-only fix would leave every existing consumer
+   * permanently half-armed.
+   */
+  describe("body-change re-evaluation", () => {
+    /**
+     * A seeded caller as it exists in the installed base today.
+     * @param types - The `types:` value the caller was seeded with
+     */
+    async function seedCaller(types: string): Promise<void> {
+      await fs.writeFile(
+        path.join(projectDir, HEALTH),
+        [
+          "name: Nightly E2E Health",
+          "",
+          "on:",
+          "  pull_request:",
+          "    branches: [dev]",
+          "    # applying or removing the bypass label re-evaluates immediately",
+          `    types: ${types}`,
+          "  workflow_dispatch:",
+          "",
+          "jobs:",
+          "  gate:",
+          "    uses: CodySwannGT/lisa/.github/workflows/nightly-e2e-health.yml@v9.8.7",
+          "",
+        ].join("\n")
+      );
+    }
+
+    it("arms an installed caller whose trigger list omits edited", async () => {
+      await seedCaller("[opened, synchronize, reopened, labeled, unlabeled]");
+
+      expect(await migration.applies(context())).toBe(true);
+      expect(await migration.apply(context())).toMatchObject({
+        action: "applied",
+      });
+      expect(
+        await fs.readFile(path.join(projectDir, HEALTH), "utf8")
+      ).toContain(
+        "types: [opened, synchronize, reopened, labeled, unlabeled, edited]"
+      );
+    });
+
+    it("keeps the comments that say why each trigger is there", async () => {
+      await seedCaller("[opened, synchronize, reopened, labeled, unlabeled]");
+
+      await migration.apply(context());
+
+      const after = await fs.readFile(path.join(projectDir, HEALTH), "utf8");
+      expect(after).toContain("re-evaluates immediately");
+      expect(after).toContain("workflow_dispatch:");
+      expect(after).toContain("branches: [dev]");
+    });
+
+    it("is a no-op on a caller that is already armed", async () => {
+      await seedCaller(
+        "[opened, synchronize, reopened, labeled, unlabeled, edited]"
+      );
+      const before = await fs.readFile(path.join(projectDir, HEALTH), "utf8");
+
+      expect(await migration.applies(context())).toBe(false);
+      expect(await migration.apply(context())).toMatchObject({
+        action: "noop",
+      });
+      expect(await fs.readFile(path.join(projectDir, HEALTH), "utf8")).toBe(
+        before
+      );
+    });
+
+    it("preserves activity types the consumer added themselves", async () => {
+      await seedCaller("[opened, synchronize, ready_for_review]");
+
+      await migration.apply(context());
+
+      const after = await fs.readFile(path.join(projectDir, HEALTH), "utf8");
+      expect(after).toContain("ready_for_review");
+      expect(after).toContain("edited");
+    });
+
+    it("leaves the report caller's triggers alone", async () => {
+      // Only the health caller gates a merge on a waiver. Rewriting triggers
+      // in a workflow this defect does not concern is scope the consumer did
+      // not ask for.
+      await seedCaller(
+        "[opened, synchronize, reopened, labeled, unlabeled, edited]"
+      );
+      const reportSource = [
+        "on:",
+        "  pull_request:",
+        "    types: [opened, synchronize]",
+        "jobs: {}",
+        "",
+      ].join("\n");
+      await fs.writeFile(path.join(projectDir, REPORT), reportSource);
+
+      await migration.apply(context());
+
+      expect(await fs.readFile(path.join(projectDir, REPORT), "utf8")).toBe(
+        reportSource
+      );
+    });
+  });
 });
