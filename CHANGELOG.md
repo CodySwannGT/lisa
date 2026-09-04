@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.34.19](https://github.com/CodySwannGT/lisa/compare/v4.34.18...v4.34.19) (2026-09-04)
+
+
+### Bug Fixes
+
+* **hooks:** refuse apply_patch writes to managed templates ([c18d810](https://github.com/CodySwannGT/lisa/commit/c18d810f2258bba12a2df7973b591b2ae4c98617)), closes [#3776](https://github.com/CodySwannGT/lisa/issues/3776) [CodySwannGT/lisa#3776](https://github.com/CodySwannGT/lisa/issues/3776)
+
 ### [4.34.18](https://github.com/CodySwannGT/lisa/compare/v4.34.17...v4.34.18) (2026-09-04)
 
 ### [4.34.17](https://github.com/CodySwannGT/lisa/compare/v4.34.16...v4.34.17) (2026-09-04)
