@@ -424,11 +424,17 @@ function moduleSuffixIndex(graph: ModuleGraph): ModuleSuffixIndex {
 
 /**
  * Every module reachable from a set of roots, roots included.
+ *
+ * Exported for the supervision-wiring gate, which walks the same import graph
+ * to prove no test spawns a vitest child outside the supervised route. The
+ * export was narrowed to module-private while that gate's only consumer sat on
+ * an unlanded branch — dead-code detection cannot see a caller that has not
+ * merged yet, so the seam disappeared for want of the consumer now arriving.
  * @param graph - The import graph
  * @param roots - Where to start
  * @returns The transitive closure
  */
-function reachableFrom(
+export function reachableFrom(
   graph: ModuleGraph,
   roots: ReadonlySet<string>
 ): ReadonlySet<string> {
