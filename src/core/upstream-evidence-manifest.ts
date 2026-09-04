@@ -1031,7 +1031,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
       "defb299d4467829e010fe2c2e6ea50e3b5f9afa87262926c02f9dc12c1722efc",
     "plugins/src/base/scripts/intake-blocker-reprobe.mjs":
-      "135a9b5a0894f70562b54d2071caff1e679c0fe542a606caca39e9e6a5b65f24",
+      "643b169d49fa706c882083ef724510f997d5fc2f3fa37847e072d636113f48d3",
     "plugins/src/base/scripts/intake-prework-denominator.mjs":
       "0a40cb91ab1c0e810f42d035d9652af3033e97c692b93b911de851991c12eca1",
     "plugins/src/base/scripts/lifecycle-label-trust.mjs":
@@ -1129,7 +1129,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-add-journey/SKILL.md":
       "4ceda3474a9b32abae835c2676e8cb2b7e888c6ba04b95843dbe7254293bbf32",
     "plugins/src/base/skills/lisa-github-build-intake/SKILL.md":
-      "c2fcfee69246b0c271d5f8af963d1c1dc8737446235572fa6ffd68316f15edb3",
+      "dc6eb5c49d88df7f88355e1236fb8c0bbbd77d00a1b4f047bbb4f04e1edafbe9",
     "plugins/src/base/skills/lisa-github-claim/SKILL.md":
       "71301c6d45d7eb5523e74aa7f070bb2becf57ca68fb8bde9e02ee937b78815f7",
     "plugins/src/base/skills/lisa-github-create/SKILL.md":
@@ -1183,7 +1183,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-add-journey/SKILL.md":
       "a00606cc7927f034e847f34d7e44e72fa7f3a14ddf6a469deb7eae1e06531fd7",
     "plugins/src/base/skills/lisa-jira-build-intake/SKILL.md":
-      "bdbe58399c14a25c805d743d9198aa89b373307084776a88050dfd6f8e38ea0f",
+      "57dbe9a28db15eaa47cf32afec7c4b05904511b96ba47b39096d3af6d9164335",
     "plugins/src/base/skills/lisa-jira-claim/SKILL.md":
       "9c4935441a4e6b55df0949178f96e927184c4909bffff8929b39a304bc5ac00a",
     "plugins/src/base/skills/lisa-jira-create/SKILL.md":
@@ -1221,7 +1221,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "e63ae35df1a928dac7b42535ce11e77e8c617e60838ba319f22081400e87886e",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
-      "d74874b9c36cb9ccba76ae1f883a027c1d43fdb56b82d449a4ec21244a171e96",
+      "4e6c110422baf4577c06dc097431eadba040418d90d3340530d15aac35120ad6",
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md":
       "efde30b5eac8b2cc56499ce391bd3d43ebb017c4ce948b5d547b52acb66715bb",
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":
@@ -10382,6 +10382,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/intake-explain-scaffold.test.ts": true,
     "tests/unit/strategies/intake-explain-smoke-fixtures.test.ts": true,
     "tests/unit/strategies/intake-prework-denominator.test.ts": true,
+    "tests/unit/strategies/intake-ready-human-gate.test.ts": true,
     "tests/unit/strategies/jira-config-resolution.test.ts": true,
     "tests/unit/strategies/jira-description-adf.test.ts": true,
     "tests/unit/strategies/jira-evidence-config-bound-status.test.ts": true,

@@ -205,6 +205,41 @@ true, and nothing re-read one before this phase. For each pre-work candidate out
 
 ### Phase 3 — Process the first eligible ready ticket
 
+#### 3.0 Human-hold gate (absolute, and it runs before every other gate)
+
+A person parks an item by putting `[lisa-human-gate]` in its description. That marker used to be
+read only for candidates **outside** `$READY` (Phase 2's blocker re-probe), so an item already in
+the ready lane was claimed with the hold never consulted — one was dispatched and fully implemented
+before a human vetoed the merge. The check was correct; it was unreachable from the path that
+matters.
+
+Run this **first**, ahead of the repo-scope gate (3a.0) and the leaf-only gate (3a), for every ready
+candidate. Ordering is load-bearing for the same reason it is inside `classifyPreWorkCandidate`: no
+other gate's verdict — however conclusive — may promote an item a person parked.
+
+1. **Classify with `classifyReadyCandidate(...)`** from `scripts/intake-blocker-reprobe.mjs`. It
+   shares the gate test with the pre-work classifier deliberately — two copies of a substring test
+   drift, and a drifted gate fails *silently*, by quietly ceasing to match. Do **not** re-implement
+   the test here, and do **not** key it on `reason=`: markers in the wild carry no `reason=` key at
+   all and sit anywhere in the body, so a structured parse would miss them while appearing to work
+   on every item that happens to have one.
+2. **On `claimable: false` with reason `human-gate`, do not claim and do not dispatch.**
+3. **Reconcile the lane; do not merely skip.** Skipping alone leaves the item in `$READY`, re-judged
+   and re-rejected every cycle forever and seen by nothing — `lisa-repair-intake` sweeps items that
+   are **not** in the ready role and excludes gated ones outright, so a ready-and-gated item falls
+   outside its filter twice over. Call
+   `planHumanGateReconciliation({ labels, body, humanNeededLabel, readyLabel, alreadyNotified })`
+   and apply exactly the actions it returns: remove `$READY`, add the configured human-needed
+   marker, and post `formatHumanGateNote()` once. The planner is idempotent by state, so an item
+   already out of the lane and already marked yields no second mutation and no second comment. This
+   is the same repair the leaf-only gate already performs for a ready item that must not be
+   dispatched.
+4. **Name it in the cycle summary** via `summarizeHumanGateHolds([...])`, so the record
+   distinguishes "nothing was eligible" from "something eligible was held for a person". A lane
+   mutation nobody can see afterwards is the same class of problem this gate exists to fix.
+5. **Continue to the next candidate.** A held item does not end the cycle.
+
+
 #### 3a.0 Repo-scope gate (claim only current-repo tickets)
 
 A JIRA project can oversee multiple repos (`frontend` / `backend` / `infrastructure`). This skill claims only tickets for the repo it is running in. Run this gate **before** the leaf-only gate (3a) and the claim (3b), per the `repo-scope-split` rule's "Claim-time repo scoping" section (cite it by slug; do not restate its decision table).
