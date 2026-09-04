@@ -376,6 +376,64 @@ EOF
 }
 
 case "$tool_name" in
+  apply_patch)
+    # Codex's primary edit mechanism, and the one this guard was already
+    # registered for while being unable to read it.
+    #
+    # `src/codex/enforcement-fallback-installer.ts` registers the dispatcher
+    # on `Bash|Edit|Write|apply_patch`, so this envelope was already being
+    # delivered here - and matched no arm below, fell off the end of the
+    # `case`, and exited 0. A registered guard that receives the call and
+    # allows it is worse than an unregistered one, because the wiring reads
+    # as complete: an auditor sees the matcher forwarding `apply_patch` into
+    # a guard about managed files and correctly concludes it is covered
+    # (CodySwannGT/lisa#3776).
+    #
+    # The envelope carries no `file_path`. Verified against codex-cli 0.125.0
+    # by capturing real hook stdin - see `src/codex/scripts/_extract-edit-paths.sh`,
+    # which performs this same header parse for the Codex-side hooks:
+    #
+    #   Edit / Write   -> tool_input.file_path  (single string)
+    #   apply_patch    -> tool_input.command    (a STRING holding the whole
+    #                                           patch, NOT an array)
+    #
+    # and the patch names its targets in header lines, MANY per patch:
+    #
+    #   *** Add File: <path>
+    #   *** Update File: <path>
+    #   *** Delete File: <path>
+    #
+    # So every header is walked and each target classified; one managed
+    # target anywhere in a multi-file patch refuses the whole call, because
+    # the patch applies atomically and there is no partial acceptance to
+    # offer.
+    #
+    # This restates `_extract-edit-paths.sh`'s header match rather than
+    # sourcing it, and that is forced by where the two files ship: this guard
+    # installs to a host's `scripts/lisa-hooks/`, that helper to
+    # `.codex/hooks/lisa/`, and neither tree can source across to the other.
+    # `tests/unit/hooks/block-managed-file-edits-apply-patch.test.ts` pins the
+    # two header sets equal so the restatement cannot drift into a gap - the
+    # same answer `core/hook-copy-parity` gives for sibling copies that
+    # legitimately cannot be one file. What is NOT restated is the
+    # classification: `managed_source` and `refuse` are the single copy here,
+    # exactly as for every other arm.
+    patch_text="$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
+    [ -n "$patch_text" ] || exit 0
+    while IFS= read -r patch_line; do
+      case "$patch_line" in
+        "*** Add File: "* | "*** Update File: "* | "*** Delete File: "*) ;;
+        *) continue ;;
+      esac
+      candidate="${patch_line#*File: }"
+      [ -n "$candidate" ] || continue
+      if source_path="$(managed_source "$candidate")"; then
+        refuse "$candidate" "$source_path" "$(relative_path "$candidate")"
+      fi
+    done <<EOF
+$patch_text
+EOF
+    ;;
   Write | Edit | MultiEdit | NotebookEdit | Update)
     paths="$(printf '%s' "$input" | jq -r '
       [ .tool_input.file_path?,
