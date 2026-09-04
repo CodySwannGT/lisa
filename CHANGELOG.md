@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.34.7](https://github.com/CodySwannGT/lisa/compare/v4.34.6...v4.34.7) (2026-09-04)
+
+
+### Bug Fixes
+
+* **drive-pr-to-merge:** do not arm auto-merge before a review exists ([bb4949d](https://github.com/CodySwannGT/lisa/commit/bb4949d5f8a02bde5e7a43954474919cb2f1c70e)), closes [#3221](https://github.com/CodySwannGT/lisa/issues/3221) [CodySwannGT/lisa#3439](https://github.com/CodySwannGT/lisa/issues/3439)
+* **maestro:** surface the Android emulator's FATAL instead of a boot timeout ([9b1d7e0](https://github.com/CodySwannGT/lisa/commit/9b1d7e0e9f18f18c9db0c7b9d91dbb4963ef8eb9)), closes [#3470](https://github.com/CodySwannGT/lisa/issues/3470) [#3699](https://github.com/CodySwannGT/lisa/issues/3699) [#3699](https://github.com/CodySwannGT/lisa/issues/3699) [#3699](https://github.com/CodySwannGT/lisa/issues/3699) [CodySwannGT/lisa#3470](https://github.com/CodySwannGT/lisa/issues/3470)
+
 ### [4.34.6](https://github.com/CodySwannGT/lisa/compare/v4.34.5...v4.34.6) (2026-09-04)
 
 
