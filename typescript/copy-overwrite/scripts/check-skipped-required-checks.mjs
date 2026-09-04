@@ -341,6 +341,7 @@ export const VIOLATIONS = Object.freeze({
   whitespace: "whitespace_in_skip_token",
   vacuous: "vacuous_required_check",
   unproven: "unproven_required_check",
+  absent: "absent_required_check",
   reviewWaived: "review_evidence_waived",
   reviewUnsatisfied: "review_evidence_unsatisfied",
 });
@@ -1408,6 +1409,92 @@ function evaluateEvidenceBearingCheck(name, entry, checks, context) {
     kind: VIOLATIONS.unproven,
     token: name,
     message: `\`${name}\` reported ${state} with the description ${JSON.stringify(found.description ?? "")}, which proves neither that it reviewed anything nor that it did not.${context.at}${requiredNote} Read the check itself before treating this PR as reviewed, or add the phrase to \`evidence_bearing_checks.${name}.proof\` once you have confirmed what it means.`,
+  };
+}
+
+/**
+ * Every required context that posted NO check-run at all.
+ *
+ * The third member of the family this file's header names, and the one that was
+ * missing. **Skipped** is a check that ran and declined to prove anything;
+ * **vacuous** is one that ran, reported success, and did no work; **absent** is
+ * one that never reported. All three satisfy a merge gate without evidence, and
+ * absence is the quietest because it produces no row for anyone to read.
+ *
+ * MEASURED (CodySwannGT/lisa#3580, on PR #3573): 15 required contexts, 2
+ * reported, 13 absent. The three workflow runs that would have posted them sat
+ * at `conclusion: action_required` with `created_at == updated_at` — parked,
+ * never executed. The pull request rendered as "CI running" for 26 hours.
+ *
+ * **Why the vacuity arm could not see it.** {@link evaluateVacuousChecks}
+ * iterates `evidence_bearing_checks`, which held ONE name on that repository.
+ * `required_contexts` held fifteen. This file already knew the full required
+ * set and spent it only on an annotation — "This context IS ruleset-required" —
+ * attached to findings about the one. Nothing ever walked the fifteen to ask
+ * which of them said nothing. The data was here; the question was not.
+ *
+ * Three properties, each load-bearing:
+ *
+ * - **Absent is not pending.** A check in flight has posted a row and will post
+ *   a verdict; an absent one never will. Folding them together is the confusion
+ *   that made the stall invisible, so this must not make it in reverse — only a
+ *   context with no row at all counts, whatever state the rows carry.
+ * - **No snapshot, no finding.** Without `required_contexts` this cannot know
+ *   what was required, and a guard that invented the set would fire on every
+ *   repository that has not transcribed one. Absence of knowledge is not
+ *   knowledge of absence — the same distinction the arm exists to enforce,
+ *   pointed at itself.
+ * - **The parked-run lookup is an ENRICHMENT, never a precondition.** It names
+ *   the approval gate when it can, because "absent" alone sends an operator
+ *   hunting a broken workflow. But a finding that only reports when it can also
+ *   explain would report nothing wherever the explanation is unavailable, which
+ *   is the silent failure this was written to end.
+ * @param {object} declaration - The per-repo declaration
+ * @param {ReadonlyArray<{name: string}>} checks - Rows read for the head SHA
+ * @param {object} [options] - `headSha` to cite, `parkedRuns` to explain with
+ * @returns {{violations: object[], checked: number, absent: string[]}} Findings
+ */
+export function evaluateAbsentRequiredChecks(
+  declaration,
+  checks,
+  options = {}
+) {
+  const required = declaration.required_contexts;
+  if (!Array.isArray(required))
+    return { violations: [], checked: 0, absent: [] };
+
+  const at = citeHeadSha(options.headSha);
+  const parked = (options.parkedRuns ?? []).filter(
+    run => String(run?.conclusion ?? "") === "action_required"
+  );
+  // Named once for every finding rather than per context: a parked run posts no
+  // check-run, so nothing ties one run to one absent context. Reporting the
+  // whole parked set against each is honest about that; pretending to a mapping
+  // this data cannot support would be a worse answer than an imprecise one.
+  const approval =
+    parked.length === 0
+      ? ""
+      : ` A workflow run for this head is parked at \`action_required\` and will never complete on its own: ${parked
+          .map(
+            run => `${JSON.stringify(String(run.name ?? ""))} (run ${run.id})`
+          )
+          .join(
+            ", "
+          )}. Approve it with \`gh api -X POST repos/<owner>/<repo>/actions/runs/<id>/approve\`, or the context stays absent indefinitely.`;
+
+  const absent = required.filter(
+    name => checks.find(check => check.name === name) === undefined
+  );
+
+  return {
+    checked: required.length,
+    absent,
+    violations: absent.map(name => ({
+      kind: VIOLATIONS.absent,
+      token: name,
+      contexts: [name],
+      message: `\`${name}\` is ruleset-required but did not report on this pull request at all.${at} It posted NO check-run — not pending, not failing, ABSENT. \`gh pr checks\` prints no line for it and the pull request page renders it exactly as one still in flight, so every surface says "wait" and none says "broken".${approval} (If the context was renamed, fix \`required_contexts\`; names are compared byte for byte.)`,
+    })),
   };
 }
 
@@ -2810,6 +2897,14 @@ export function inspectVacuity(argv, declaration, options = {}) {
     trustRequiredContexts: options.trustRequiredContexts,
     headSha: read.headSha,
   });
+  // Evaluated on the same rows the vacuity arm just read, so the absence arm
+  // costs no extra fetch. It runs on EVERY invocation for the reason the review
+  // gate does: a finding computed only when somebody opted in is invisible on
+  // exactly the repositories that have not opted in yet.
+  const absent = evaluateAbsentRequiredChecks(declaration, read.checks, {
+    headSha: read.headSha,
+    parkedRuns: options.parkedRuns,
+  });
   // The gate is evaluated on EVERY run, not only when a caller asked it to
   // block. Its findings are what make a waiver visible, and a waiver that is
   // only computed when somebody opted in would be invisible on exactly the
@@ -2841,7 +2936,12 @@ export function inspectVacuity(argv, declaration, options = {}) {
     prSource: source,
     headSha: read.headSha,
     checked: evaluated.checked,
-    violations: [...evaluated.violations, ...gate.violations],
+    violations: [
+      ...evaluated.violations,
+      ...absent.violations,
+      ...gate.violations,
+    ],
+    absent: absent.absent,
     gateStates: gate.states,
     gateConditions: gate.conditions,
     gateDescriptions: gate.descriptions,

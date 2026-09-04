@@ -2533,7 +2533,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "dfd2fef680de5ef03e63075e8a61c62ca4d95cdfdff6201939b79c748d3397f6",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "b15fe6ad9427933bf522ee96792c2033941f249306c0e310cccc1747210703fb",
+      "b0fd287c90182cc0d2f0c29281bc88020cef441a6449c15a99b1c85ea2ed3205",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "47bc8b91e38535e694f43d9d3b76c4589ae2796e4ce9e875ab6b09a273e0c93a",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -10118,6 +10118,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/plugins/hook-registration-agreement.test.ts": true,
     "tests/unit/plugins/hook-registration.test.ts": true,
     "tests/unit/plugins/support/hook-registration-fixture.ts": true,
+    "tests/unit/scripts/absent-required-checks.test.ts": true,
     "tests/unit/scripts/ast-grep-enforcement.test.ts": true,
     "tests/unit/scripts/bdd-adoption.test.ts": true,
     "tests/unit/scripts/bdd-discovery.test.ts": true,
