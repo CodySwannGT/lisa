@@ -244,6 +244,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "2bafd97867aeabbb9f584e35312a7c16e2c8ad899b39152b8606fb8fff550fdb",
     "2d0d86f8484a9cbf7faf0cc04f114f93ed0afa782276d92efc14154d884be0fb",
     "35796a9f26c1e456be3c23193171fdfbeb1d7088ed8b6a7c3c144949a8495897",
+    "362c3f2636c8fa9cf6aedf16fce0a7f744976c953462c553b845557487e0a62d",
     "36baa6b590f997e7cb9221db6e11943c860c3f7427d70b83a344706940ad2e99",
     "3dc5c8c57ff052e29579bf4ba3900b2e65872c6d24177c39acd6fd830b051ad2",
     "444210c8fbfca1d3e6ae0e180fe95752e10152610ad349ffea377136f4ae8cf7",
@@ -266,6 +267,8 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "c04a78cb52beaa2e852846e03f42172a4e4a180222dcd54f4c305911249b68b1",
     "c5187c278a3357a66daf2103cf9b3fcb396ec2dd39aa795b9729504fad2c3ada",
     "c94bc76dfc82acad178c692fa6959a0fef9d83860c72c6a7c88f6048959b0d6e",
+    "c957c1b9dbd75ddb8ff0fd2b049aea7e67f60b32ce5aba2965ca7c2051bb2024",
+    "cebfb61c953142ed6f52a0de07580dc2cd0c2c69262028750d2a3414c52524d6",
     "d386d621db2538ab7c5dfaa73f927c9ea87692d1a9e0ac02330a960c64af206e",
     "d649aaf3abf584272bb886b1a722afe16ea861186214284ac61f96b3386e63d7",
     "da2e191a8fbfa4042b3bfff331bc2ee19077acb972b5cfc9cf35eba383115959",
@@ -288,6 +291,8 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/check-third-party-action-pins.mjs": Object.freeze([
     "2c8b35c5ddab14420c24652d6fb907c882e93f308c6be7ab4c15f8bdf635479d",
     "79117b039e0d7df001e60835ad3538126ba88273bc5fa3c1d30d8e8e704e77cc",
+    "9d28e92c08c23d8433659d6276521bc2ecbe37eccbf57181bf828ec6ab4b2a02",
+    "9f441b6b8697f0a64abd29125eb7881ebdb0c8d47487bdd18ff09633eb3dab19",
     "b578c55d2d8d63243de502e332f2dd2e0ae2a670c6ed18c418c67abb96c8b8fd",
   ]),
   "scripts/check-third-party-review-evidence.mjs": Object.freeze([
@@ -1249,6 +1254,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "2bafd97867aeabbb9f584e35312a7c16e2c8ad899b39152b8606fb8fff550fdb",
     "2d0d86f8484a9cbf7faf0cc04f114f93ed0afa782276d92efc14154d884be0fb",
     "35796a9f26c1e456be3c23193171fdfbeb1d7088ed8b6a7c3c144949a8495897",
+    "362c3f2636c8fa9cf6aedf16fce0a7f744976c953462c553b845557487e0a62d",
     "36baa6b590f997e7cb9221db6e11943c860c3f7427d70b83a344706940ad2e99",
     "3dc5c8c57ff052e29579bf4ba3900b2e65872c6d24177c39acd6fd830b051ad2",
     "444210c8fbfca1d3e6ae0e180fe95752e10152610ad349ffea377136f4ae8cf7",
@@ -1271,6 +1277,8 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "c04a78cb52beaa2e852846e03f42172a4e4a180222dcd54f4c305911249b68b1",
     "c5187c278a3357a66daf2103cf9b3fcb396ec2dd39aa795b9729504fad2c3ada",
     "c94bc76dfc82acad178c692fa6959a0fef9d83860c72c6a7c88f6048959b0d6e",
+    "c957c1b9dbd75ddb8ff0fd2b049aea7e67f60b32ce5aba2965ca7c2051bb2024",
+    "cebfb61c953142ed6f52a0de07580dc2cd0c2c69262028750d2a3414c52524d6",
     "d386d621db2538ab7c5dfaa73f927c9ea87692d1a9e0ac02330a960c64af206e",
     "d649aaf3abf584272bb886b1a722afe16ea861186214284ac61f96b3386e63d7",
     "da2e191a8fbfa4042b3bfff331bc2ee19077acb972b5cfc9cf35eba383115959",
@@ -1293,6 +1301,8 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   "scripts/check-third-party-action-pins.mjs": Object.freeze([
     "2c8b35c5ddab14420c24652d6fb907c882e93f308c6be7ab4c15f8bdf635479d",
     "79117b039e0d7df001e60835ad3538126ba88273bc5fa3c1d30d8e8e704e77cc",
+    "9d28e92c08c23d8433659d6276521bc2ecbe37eccbf57181bf828ec6ab4b2a02",
+    "9f441b6b8697f0a64abd29125eb7881ebdb0c8d47487bdd18ff09633eb3dab19",
     "b578c55d2d8d63243de502e332f2dd2e0ae2a670c6ed18c418c67abb96c8b8fd",
   ]),
   "scripts/check-third-party-review-evidence.mjs": Object.freeze([

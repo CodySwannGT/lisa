@@ -563,8 +563,10 @@ export function readFlagValue(argv, name) {
   }
   const at = argv.indexOf(name);
   if (at === -1) return undefined;
-  const next = argv[at + 1];
-  return next === undefined || next.startsWith("--") ? undefined : next;
+  const valueAt = at + 1;
+  if (valueAt >= argv.length) return undefined;
+  const next = argv[valueAt];
+  return next.startsWith("--") ? undefined : next;
 }
 
 /**
@@ -1317,7 +1319,7 @@ function evidenceRequiredNote(name, trustRequired, required) {
  * @returns {object|null} A finding, or null when this check proved work or is red
  */
 function evaluateEvidenceBearingCheck(name, entry, checks, context) {
-  const vocabulary = typeof entry === "object" && entry !== null ? entry : {};
+  const vocabulary = entry && typeof entry === "object" ? entry : {};
   const found = checks.find(check => check.name === name);
   if (found === undefined) {
     return {
