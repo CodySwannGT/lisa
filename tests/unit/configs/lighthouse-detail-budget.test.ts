@@ -14,6 +14,7 @@ const CHECKER = path.join(
   "expo/copy-overwrite/scripts/check-lighthouse-details.mjs"
 );
 const EXAMPLE_URL = "http://localhost/example.html";
+const OTHER_URL = "http://localhost/privacy-policy.html";
 
 /**
  * Create a host-shaped fixture with Lighthouse result files.
@@ -51,11 +52,16 @@ function projectWithReports(
  * Build one minimal forced-reflow Lighthouse result.
  * @param score - Lighthouse audit score
  * @param reflowTimes - Detail-table measurements
+ * @param url - Audited URL
  * @returns LHR-shaped object
  */
-function report(score: number, reflowTimes: readonly number[] = []) {
+function report(
+  score: number,
+  reflowTimes: readonly number[] = [],
+  url: string = EXAMPLE_URL
+) {
   return {
-    finalUrl: EXAMPLE_URL,
+    finalUrl: url,
     audits: {
       "forced-reflow-insight": {
         score,
@@ -71,6 +77,20 @@ function report(score: number, reflowTimes: readonly number[] = []) {
       },
     },
   };
+}
+
+/**
+ * Build one Lighthouse result per run total, as LHCI writes them.
+ * A zero total is a run whose audit passed with no measurable reflow, which is
+ * the common shape — most runs of most URLs report nothing at all.
+ * @param totals - Per-run forced-reflow totals
+ * @param url - Audited URL
+ * @returns LHR-shaped objects, one per run
+ */
+function runs(totals: readonly number[], url: string = EXAMPLE_URL) {
+  return totals.map(total =>
+    total === 0 ? report(1, [], url) : report(0, [total], url)
+  );
 }
 
 /**
@@ -112,27 +132,136 @@ function run(project: string) {
 describe("Lighthouse detail budget", () => {
   it("passes measured reflows at or below the configured millisecond ceiling", () => {
     const result = run(
-      projectWithReports([report(0, [25, 50]), report(1)], 75)
+      projectWithReports(
+        [
+          report(0, [25, 50]),
+          report(0, [25, 50]),
+          report(0, [25, 50]),
+          report(1),
+        ],
+        75
+      )
     );
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("forced reflow <= 75 ms (max 75.0 ms)");
+    expect(result.stdout).toContain(
+      "forced reflow median <= 75 ms (largest median 75.0 ms)"
+    );
   });
 
   it("does not double-count the top-function and bottom-up detail tables", () => {
     const result = run(
-      projectWithReports([reportWithDuplicateTables(75)], 100)
+      projectWithReports(
+        [
+          reportWithDuplicateTables(75),
+          reportWithDuplicateTables(75),
+          reportWithDuplicateTables(75),
+        ],
+        100
+      )
     );
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("forced reflow <= 100 ms (max 75.0 ms)");
+    expect(result.stdout).toContain(
+      "forced reflow median <= 100 ms (largest median 75.0 ms)"
+    );
   });
 
-  it("fails when one run exceeds the configured ceiling", () => {
-    const result = run(projectWithReports([report(0, [60, 41])], 100));
+  it("passes a URL whose only run above the ceiling is a cold warmup spike", () => {
+    const result = run(projectWithReports(runs([105.2, 0, 0, 0, 0]), 100));
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(
+      "forced reflow median <= 100 ms (largest median 0.0 ms)"
+    );
+  });
+
+  it("fails a URL whose runs are consistently above the ceiling", () => {
+    const result = run(
+      projectWithReports(runs([105, 110, 120, 108, 115]), 100)
+    );
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("101.0 ms exceeds 100 ms");
+    expect(result.stderr).toContain("median 110.0 ms of 5 runs exceeds 100 ms");
+  });
+
+  it("fails a URL with too few runs to take a median, naming the run count", () => {
+    const result = run(projectWithReports(runs([0, 0]), 100));
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("2 runs is fewer than the 3 needed");
+    expect(result.stderr).toContain(
+      "raise collect.numberOfRuns in lighthouserc-config.json to at least 3"
+    );
+  });
+
+  it("refuses to assert a maximum under the name of a median at one run per URL", () => {
+    const result = run(projectWithReports(runs([105]), 100));
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("1 run is fewer than the 3 needed");
+    expect(result.stderr).toContain("collect.numberOfRuns");
+    expect(result.stderr).not.toContain("exceeds 100 ms");
+  });
+
+  it("asserts each URL against its own median", () => {
+    const result = run(
+      projectWithReports(
+        [
+          ...runs([105, 0, 0], EXAMPLE_URL),
+          ...runs([120, 120, 120], OTHER_URL),
+        ],
+        100
+      )
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      `${OTHER_URL}: median 120.0 ms of 3 runs exceeds 100 ms`
+    );
+    expect(result.stderr).not.toContain(EXAMPLE_URL);
+  });
+
+  it("honors a host threshold above Lisa's shipped default", () => {
+    const result = run(projectWithReports(runs([120, 120, 120]), 150));
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(
+      "forced reflow median <= 150 ms (largest median 120.0 ms)"
+    );
+  });
+
+  it("applies the shipped 100 ms default when the host configures nothing", () => {
+    const result = run(projectWithReports(runs([120, 120, 120])));
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("median 120.0 ms of 3 runs exceeds 100 ms");
+  });
+
+  it("groups runs by finalDisplayedUrl when finalUrl is absent", () => {
+    const reports = runs([120, 120, 120]).map(entry => {
+      const { finalUrl, ...rest } = entry;
+      return { ...rest, finalDisplayedUrl: finalUrl };
+    });
+
+    const result = run(projectWithReports(reports, 100));
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      `${EXAMPLE_URL}: median 120.0 ms of 3 runs exceeds 100 ms`
+    );
+  });
+
+  it("fails closed when a report names no URL to group runs by", () => {
+    const reports = runs([0, 0, 0]).map(entry => {
+      const { finalUrl, ...rest } = entry;
+      return rest;
+    });
+
+    const result = run(projectWithReports(reports, 100));
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("no URL to group runs by");
   });
 
   it("fails closed when an aggregate contains a negative measurement", () => {
@@ -210,5 +339,16 @@ describe("Lighthouse detail budget", () => {
     expect(command).toContain("--assert.assertions.forced-reflow-insight=off");
     expect(command).toContain("node scripts/check-lighthouse-details.mjs");
     expect(lighthouseConfig).toContain('"forced-reflow-insight": "off"');
+  });
+
+  it("collects at least the runs per URL the checker needs for a median", () => {
+    const shippedConfig = JSON.parse(
+      readFileSync(
+        path.join(REPO_ROOT, "expo/create-only/lighthouserc-config.json"),
+        "utf8"
+      )
+    );
+
+    expect(shippedConfig.collect.numberOfRuns).toBeGreaterThanOrEqual(3);
   });
 });
