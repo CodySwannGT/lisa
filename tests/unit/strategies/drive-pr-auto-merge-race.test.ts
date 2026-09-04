@@ -104,9 +104,35 @@ describe.each(ROOTS)("drive-pr-to-merge auto-merge race guard (%s)", root => {
     expect(rationaleStart).toBeGreaterThan(trueModeStart);
     expect(rationaleEnd).toBeGreaterThan(rationaleStart);
 
+    // THE INVARIANT NARROWED, and this excision is where that is recorded.
+    //
+    //   before:  auto_merge=true                 => never disarm
+    //   after:   auto_merge=true AND not held    => never disarm
+    //
+    // The hold gate (#3558) lets anyone stop an in-flight run by labelling the
+    // PR, and stopping means turning the latch off — on a run that began as
+    // auto_merge=true. So section 4's two hold outcomes describe a disarm, and
+    // they are DESCRIPTIONS of a terminal state rather than instructions to
+    // disarm mid-drive.
+    //
+    // This is not an accommodation. The defect this test guards is the RACE —
+    // disarm, re-arm, repeatedly, while still driving — and a hold does neither
+    // half: once, then stop. The compensating assertion below pins exactly that,
+    // so the narrowing is guarded rather than merely permitted. Widening this
+    // excision any further needs the same treatment: cut by boundary, and prove
+    // what you cut is still constrained somewhere else.
+    const holdOutcomesStart = content.indexOf("- **`awaiting-human:held`**");
+    const holdOutcomesEnd = content.indexOf(
+      "- **`CLOSED`**",
+      holdOutcomesStart
+    );
+    expect(holdOutcomesStart).toBeGreaterThan(rationaleEnd);
+    expect(holdOutcomesEnd).toBeGreaterThan(holdOutcomesStart);
+
     const instructions =
       content.slice(trueModeStart, rationaleStart) +
-      content.slice(rationaleEnd);
+      content.slice(rationaleEnd, holdOutcomesStart) +
+      content.slice(holdOutcomesEnd);
     // Guard the guard: bad anchors would slice to nothing and pass vacuously.
     expect(instructions.length).toBeGreaterThan(2000);
 
@@ -115,6 +141,27 @@ describe.each(ROOTS)("drive-pr-to-merge auto-merge race guard (%s)", root => {
       .filter(line => DISARM_FORMS.test(line));
 
     expect(offenders).toEqual([]);
+  });
+
+  it("constrains the one disarm the true path now allows: the hold, once, then stop", () => {
+    // COMPENSATING ASSERTION for the excision above. The test either side of it
+    // would pass a hold that disarmed and then carried on driving, or disarmed
+    // and re-armed on the next iteration — which is the race, reintroduced
+    // through the one door this change opened. So the exception is pinned here
+    // rather than merely excused there.
+    //
+    // Both halves are asserted separately because they fail separately: a hold
+    // that re-arms is the race outright, while a hold that keeps driving is the
+    // slower version that gets there on the next fix-push.
+    expect(content).toMatch(/The disarm is once and terminal/);
+    expect(content).toMatch(/never re-arm the latch afterwards/);
+    expect(content).toMatch(/never\s+resume driving in the same run/);
+
+    // And the reason has to travel with the rule, or the next reader relaxes it
+    // back into a pause that polls.
+    expect(content).toMatch(
+      /A hold that re-armed, or that\s+kept driving afterwards, would be the race that rule names/
+    );
   });
 
   it("refuses merge_method=rebase rather than verifying it wrongly", () => {

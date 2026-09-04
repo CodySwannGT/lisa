@@ -48,6 +48,8 @@ Recognized optional hints:
 
    This delegation is now load-bearing rather than a convenience: it is the only path that arms auto-merge, so skipping it leaves the PR open rather than quietly merging it. Reporting submission as complete without invoking it is a failed submit, not a partial one — say so instead of implying the PR is on its way to merged.
 
+   **The hold label needs no check here, and adding one would be dead code.** `drive-pr-to-merge` evaluates its hold gate before it arms anything, so a PR created with the label already on it is never armed — by the delegation, not by a second check in this skill. That guarantee used to require one: while step 5 armed the latch at creation, a hold that covered only the loop left the creation-time arm wide open, which is why CodySwannGT/lisa#3558 asked for a check in both places. Step 5 no longer arms, so there is nothing here for a label to gate. If you are adding one because the ticket says to, re-read step 5 first.
+
 ### Native Development Linkage
 
 Add provider-appropriate linkage to the PR title and/or body without changing the status lifecycle:

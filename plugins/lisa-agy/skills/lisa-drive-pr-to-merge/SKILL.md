@@ -41,6 +41,11 @@ merges" loop. Other skills delegate here instead of re-implementing it. Runs
   green, open, un-merged PR is the *success* outcome of this mode, not a hang.
   Used by learning-persistence flows whose low-confidence PRs must wait for a
   human (`lisa-persist-learning`).
+
+  **`auto_merge` is caller-time and nothing re-reads it.** That is what the hold
+  label (section 0) exists for: the same behaviour, raisable by anyone at any
+  point while the loop runs. Both routes land in `awaiting-human`; they differ
+  only in who can take them and when.
 - `on_blocker=<fix|report>` — what to do when a blocker needs code or review work.
   Default `fix`.
   - **`fix`** (the full loop): resolve conflicts, fix failing checks, address +
@@ -97,9 +102,115 @@ gh pr edit <pr> --add-label "lisa:babysitter-on-duty"
 closed, or a hard block handed to a human. A crashed session that never
 releases is why the TTL exists; do not rely on it as the normal release path.
 
+### The hold gate — a stop anyone can raise
+
+Section 0 owns this skill's two PR labels: the lease it **writes** to declare
+ownership, and the hold it **reads** to be told to stop. Same mechanism, pointed
+at different things — a lease is a claim, a hold is a decision.
+
+**The label** is `lisa:hold` by default, overridable per project at
+`github.labels.merge.hold`, resolved local-over-global like every other
+configured name. Resolve it ONCE at startup and reuse the resolved string; a
+name re-resolved each iteration can change identity mid-loop for no reason a
+reader could reconstruct afterwards.
+
+```bash
+HOLD_LABEL=$(
+  jq -r 'first(.github.labels.merge.hold | strings)' \
+    .lisa.config.local.json .lisa.config.json 2>/dev/null | head -n1
+)
+HOLD_LABEL="${HOLD_LABEL:-lisa:hold}"
+```
+
+**What it means:** exactly `auto_merge=false`, for as long as it is present. Not
+a new concept and not a new terminal state — the same disarm, the same
+fail-closed re-read, the same `awaiting-human` landing. The only new surface is
+one label read.
+
+**Why it exists.** `auto_merge` is decided by the caller at invocation, and
+nothing re-reads it, so the only person who can stop the merge is the person who
+started it. Anyone else — a reviewer who opens the PR while the loop is driving
+it, someone holding a PR another session armed — has no lever and loses the
+race. Measured (#3558): four explicit `gh pr merge --disable-auto` calls were
+each followed by a re-arm 7–25 seconds later, and the PR merged two seconds
+after its final check went green. **The hold did not fail; it lost a race.** A
+signal the loop itself reads cannot be raced, because the loop is what reads it.
+
+#### Evaluate it in two places, and re-read it every iteration
+
+- **Before arming** (section 1) — a PR already carrying the label is never armed.
+- **On every watch-loop iteration** (section 2), before acting on any blocker.
+
+Re-reading is the entire point. A check that runs once at startup is a
+caller-time signal wearing a loop's clothing and fixes nothing, because the case
+that matters is a label applied **after** the loop is already running. If you
+are changing this and it is convenient to read the label once, you have
+reintroduced the defect.
+
+```bash
+gh pr view <pr> --json labels --jq "[.labels[].name] | index(\"$HOLD_LABEL\") != null"
+```
+
+**Match the resolved name exactly — never a prefix.** `lisa:babysitter-on-duty`
+is a label this skill applies to itself and shares the `lisa:` prefix; a
+prefix match would make the loop stop on its own lease, which is a deadlock
+that looks like a human decision.
+
+#### When held
+
+1. Run the existing `auto_merge=false` disarm (section 1) — disable the latch
+   once and prove with the fail-closed re-read that it took.
+2. Return `awaiting-human:held` (section 4).
+3. **Do not remove the label.** Removing a human's signal is unrecoverable from
+   inside the loop; leaving a stale one costs a cycle and is visible. Only
+   whoever applied it takes it off, and a later invocation then resumes normally.
+
+Do not keep polling while held. Held is terminal for this run, not a pause to
+wait out — the loop has been told a human is looking, and continuing to drive is
+the behaviour the label exists to stop.
+
+**The disarm is once and terminal: never re-arm the latch afterwards, and never
+resume driving in the same run.** This is what keeps a hold compatible with the
+armed-across-fix-pushes rule in section 1, which otherwise forbids disarming on
+the `auto_merge=true` path. That rule exists to prevent a *race* — disarm, then
+re-arm, repeatedly, while still driving — and a hold does neither half of it: it
+turns the latch off exactly once and then stops. A hold that re-armed, or that
+kept driving afterwards, would be the race that rule names, wearing a label.
+
+#### When the read fails
+
+**Fail toward hold.** The asymmetry decides it: a false hold costs one cycle and
+is visible in a terminal report someone can act on, while a false no-hold merges
+past a human's objection and cannot be undone. Where the two errors are
+unequal, take the recoverable one.
+
+But a read that keeps failing must not become a silent deadlock, so the failure
+is **reported as its own outcome** rather than dressed up as a decision:
+
+- retry the read once;
+- if it still fails, disarm as above and return **`awaiting-human:hold-unknown`**,
+  naming the error.
+
+`awaiting-human:held` and `awaiting-human:hold-unknown` are different facts and
+an operator needs to know which: the first says *a human stopped this*, the
+second says *I could not tell whether a human stopped this.* Collapsing them
+would hide a broken permission behind a human decision, and nobody would ever
+look.
+
+**A PR with no hold label is driven exactly as it is today.** This gate adds a
+stop; it does not add a block. If the label is absent and the read succeeded,
+nothing about the run changes.
+
 ## 1. Enable auto-merge
 
-**Gate: only when `auto_merge=true` (the default).** When `auto_merge=false`,
+**Gate: the hold label is absent (section 0's hold gate), and `auto_merge=true`
+(the default).** Evaluate the hold gate BEFORE anything in this section,
+including the arm gate below and the direct-merge capability fallback: a held PR
+is not armed, not merged directly, and not driven — it disarms once and returns
+`awaiting-human:held`. Checking after arming would authorise the merge the label
+exists to prevent, which is the same ordering error the arm gate itself fixes.
+
+When `auto_merge=false`,
 skip the enable step and its capability fallback — do not enable auto-merge,
 and do **not** use the capability fallback below: on a repo that disallows
 auto-merge, an `auto_merge=false` PR must stay OPEN for human triage, never be
@@ -357,6 +468,12 @@ Poll the live state each iteration:
 gh pr view <pr> --json state,mergeStateStatus,mergeable,reviewDecision,statusCheckRollup,headRefName,baseRefName
 ```
 
+**Re-read the hold label on every iteration, before handling any blocker**
+(section 0's hold gate). It is polled separately from the line above rather than
+folded into it, because `labels` is not part of the blocker state: the hold is a
+question about whether to keep going at all, asked before the blocker questions,
+and a run that answers it once at startup has not implemented it.
+
 Handle every blocker class; after any fix, re-poll and continue. Do not stop while
 the PR is still open and progress is possible. On each iteration, refresh the
 babysitter lease if its last stamp is older than ~30 minutes (section 0).
@@ -392,6 +509,13 @@ not act — classify the blocker
 and return per the input contract above. That includes (f): adjudicating a pending
 auto-fix PR (merging, closing, or deleting its branch) is destructive work, not
 diagnosis — return its classification (`blocked:pending-auto-fix`) instead.
+
+**The hold gate binds in report mode too**, and it binds first: a held PR
+returns `awaiting-human:held` without arming, without the mechanical step (a)
+nudge, and without an `update-branch`. Hold is not a blocker classification and
+never returns as one — `blocked:*` says *this PR cannot proceed yet*, while a
+hold says *someone asked me not to proceed*, and reporting the second as the
+first would file a human's decision as a defect for something else to clear.
 
 The arm gate binds in report mode too, and this is the mode where forgetting it
 does the most damage: a diagnose-only run that arms the latch has not diagnosed
@@ -938,6 +1062,22 @@ Loop until one of:
   merge but nobody reviewed it: the review tool says it skips public
   repositories, and that will not change on its own. Merge it yourself or ask
   for a human review."*
+- **`awaiting-human:held`** → success, and the only terminal state a person can
+  cause on purpose from outside the run. The hold label (section 0) was present,
+  the latch was disarmed once and the re-read proved it, and the label was left
+  in place. Report the PR URL, the resolved label name, and that removing the
+  label lets a later invocation resume — for example: *"PR #123 is on hold:
+  someone added the `lisa:hold` label, so I stopped instead of merging it.
+  Remove that label when you want it to continue."* Not a stall and not a
+  failure: a human asked for the PR to stop, and it stopped.
+- **`awaiting-human:hold-unknown`** → the hold label could not be read (twice),
+  so whether a human asked for a stop is **unknown**. The latch is disarmed and
+  the PR sits OPEN, on the fail-toward-hold rule in section 0. Report the read
+  error verbatim. This is deliberately NOT reported as `awaiting-human:held`:
+  that would file a broken permission or a rate limit as a human decision, and
+  the one thing nobody would then do is investigate it. Usually a missing
+  `issues: read` / label-read permission, which is fixable and invisible from
+  the merge outcome alone.
 - **`CLOSED`** → report (PR was closed without merge).
 - **Hard block needing a human**: an unresolvable conflict, a failing check that
   needs design input, or genuine unresolved human objection (not a bot gate). Stop
