@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.35.0](https://github.com/CodySwannGT/lisa/compare/v4.34.21...v4.35.0) (2026-09-04)
+
+
+### Features
+
+* **rules:** ship the measurement-integrity method as a consultable rule ([1187b11](https://github.com/CodySwannGT/lisa/commit/1187b11e5c089a8cefea0b67011b0bd709bfec81)), closes [#3739](https://github.com/CodySwannGT/lisa/issues/3739) [#3739](https://github.com/CodySwannGT/lisa/issues/3739) [CodySwannGT/lisa#3739](https://github.com/CodySwannGT/lisa/issues/3739)
+
 ### [4.34.21](https://github.com/CodySwannGT/lisa/compare/v4.34.20...v4.34.21) (2026-09-04)
 
 ### [4.34.20](https://github.com/CodySwannGT/lisa/compare/v4.34.19...v4.34.20) (2026-09-04)
