@@ -1,0 +1,96 @@
+name: 🧹 Lifecycle Drift Sweep
+
+# Runs the work-item lifecycle drift sweep in REPORT mode and gives its report
+# a consumer.
+#
+# The sweep's report-first default is correct and is not what this changes: a
+# sweep that closes work items as a side effect of being run is not one anyone
+# runs twice. The defect it closes is that nothing scheduled the sweep and
+# nothing read its output. `mjs sweep` appeared in exactly one place in the
+# repository — the generated `lisa-drive-pr-to-merge` skill copies — and in no
+# workflow, cron, or automation config. So the report existed only when a human
+# happened to type the command, and the first evidence anyone had looked since
+# the backstop shipped was a run five weeks later that found 53 drifted items.
+#
+# A control whose safe default is "report" needs a NAMED consumer of the
+# report. Without one, "report-only" and "absent" are the same thing with
+# different amounts of code (CodySwannGT/lisa#3907).
+#
+# Drift fails the job on purpose, which routes the report into the existing
+# deduplicating failure-to-issue workflow. That is the destination: an issue a
+# human or an intake loop already watches, not a job summary nobody opens.
+#
+# NOTE: repo-specific to the Lisa monorepo, NOT a Lisa template — do not move
+# it under plugins/src or the create-only template sets.
+
+on:
+  schedule:
+    # Daily. Drift accrues per merge, not per commit to this repository, so a
+    # weekly cadence would let a week of closed work advertise itself as
+    # in-flight — which is the state agents read when choosing what to build.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sweep:
+    name: 🧹 Report lifecycle drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # The sweep's evidence is what a deploy branch's commits DECLARE, so
+          # it needs real history. A shallow clone would find no declarations
+          # and report no drift — the failure mode this whole job exists to
+          # stop being invisible.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: '22.21.1'
+      - name: Sweep the ready and claimed lanes
+        id: sweep
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -o pipefail
+          node scripts/lisa-work-item.mjs sweep | tee sweep.txt
+      - name: Publish the report
+        if: always()
+        run: |
+          {
+            echo '## Lifecycle drift sweep'
+            echo
+            echo '```'
+            cat sweep.txt 2>/dev/null || echo 'the sweep produced no output'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Fail when drift exists
+        run: |
+          # `grep -c` exits non-zero on zero matches, which would read as
+          # "drift found" here — the inverse of the truth. Count without
+          # letting the exit status decide.
+          drifted="$(grep -c '^DRIFT' sweep.txt || true)"
+          if [ "${drifted:-0}" -gt 0 ]; then
+            echo "::error::${drifted} work item(s) have shipped but are still open in a ready or claimed lane."
+            exit 1
+          fi
+          echo "No lifecycle drift."
+
+  # A scheduled run nobody reads is the same as no scheduled run. A red run
+  # files a deduplicated issue, which is the named destination the sweep's
+  # report never had.
+  create_issue_on_failure:
+    if: ${{ failure() && github.repository == 'CodySwannGT/lisa' }}
+    needs: sweep
+    uses: ./.github/workflows/create-github-issue-on-failure.yml
+    permissions:
+      contents: read
+      issues: write
+    with:
+      workflow_name: 'Lifecycle drift sweep'
+      failed_job: 'sweep'
+      package_manager: 'bun'

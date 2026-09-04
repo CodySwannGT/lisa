@@ -1074,9 +1074,25 @@ not there, and a lifecycle step performed by hand is one nothing can verify
 happened.
 
 **The backstop, for the ones that still slip:** `lisa-work-item.mjs sweep`
-reports every claimed item that already has a merged pull request, and
+reports every open item — in the **ready** lane as well as the **claimed** one —
+that a commit on a deploy branch DECLARES via its `Work-Item:` trailer, and
 `--apply` completes them. Reporting is the default deliberately — a sweep that
 closes things as a side effect of being run is not one anyone runs twice.
+
+You do not need to run it. The `🧹 Lifecycle Drift Sweep` workflow runs it
+daily and files a deduplicated issue when drift exists, because a report with
+no consumer and no report are the same thing with different amounts of code.
+
+Two properties worth knowing, because both were once the other way round:
+
+- **Credit requires a declaration, never a mention.** Evidence is a commit
+  reachable from a deploy branch whose own trailer names the item. It used to
+  be a timeline cross-reference, which any pull request that so much as *named*
+  `#N` created — so one merged land-stack pull request made every sibling in
+  its batch look shipped. Measured: 8 of 53 reported items had no commit
+  declaring them, and every one of the 8 had live work open against it.
+- **A clean result names the lanes it examined.** "No drift" over a subject
+  list that excluded the ready lane was true and unusable.
 
 ## 4. Terminal states
 
