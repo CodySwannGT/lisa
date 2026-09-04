@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.34.20](https://github.com/CodySwannGT/lisa/compare/v4.34.19...v4.34.20) (2026-09-04)
+
+
+### Bug Fixes
+
+* **build:** rebuild dist unconditionally instead of only when absent ([9784668](https://github.com/CodySwannGT/lisa/commit/9784668b9d1b66dffbd78ed52881c3b16c4a80c6)), closes [#3778](https://github.com/CodySwannGT/lisa/issues/3778) [CodySwannGT/lisa#3778](https://github.com/CodySwannGT/lisa/issues/3778)
+* **guards:** stop remedies pointing agents at shared mutable state ([7fb4019](https://github.com/CodySwannGT/lisa/commit/7fb401909c2b9593be6f751be663c901edd03d3f)), closes [#3722](https://github.com/CodySwannGT/lisa/issues/3722) [CodySwannGT/lisa#3722](https://github.com/CodySwannGT/lisa/issues/3722)
+* harden managed guard follow-up paths ([76a5e89](https://github.com/CodySwannGT/lisa/commit/76a5e893140e4e7c9a58d4092047e085851d6d47)), closes [CodySwannGT/lisa#3782](https://github.com/CodySwannGT/lisa/issues/3782)
+* **hooks:** read the declaration when tokenising fails, not only from a file ([dec4370](https://github.com/CodySwannGT/lisa/commit/dec437044bf8a16156254f232c8527a1fbeaab1a)), closes [#3727](https://github.com/CodySwannGT/lisa/issues/3727) [CodySwannGT/lisa#3727](https://github.com/CodySwannGT/lisa/issues/3727)
+
 ### [4.34.19](https://github.com/CodySwannGT/lisa/compare/v4.34.18...v4.34.19) (2026-09-04)
 
 
