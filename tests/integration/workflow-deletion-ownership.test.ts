@@ -21,6 +21,17 @@ const WORKFLOWS = path.join(".github", "workflows");
 /** Manifest file name the fixture rewrites per case. */
 const DELETIONS_JSON = "deletions.json";
 
+/**
+ * A non-workflow path `createMockLisaDir` declares for deletion.
+ *
+ * Stands in for the 213 declared paths outside `.github/workflows/`, which the
+ * ownership gate does not cover and which are now announced anyway.
+ */
+const NON_WORKFLOW = ".lisa-manifest";
+
+/** Log prefix every completed removal carries. */
+const DELETED_PREFIX = "Deleted:";
+
 /** Reason string used by the forced-deletion cases. */
 const FORCED_REASON = "it leaks a token";
 
@@ -213,7 +224,7 @@ describe("ownership gate on .github/workflows deletions", () => {
     expect(
       logger.successes.some(
         message =>
-          message.startsWith("Deleted:") && message.includes(LISA_MANAGED)
+          message.startsWith(DELETED_PREFIX) && message.includes(LISA_MANAGED)
       )
     ).toBe(true);
     // And again in the end-of-run summary, which is the part an operator
@@ -221,15 +232,15 @@ describe("ownership gate on .github/workflows deletions", () => {
     expect(
       logger.warnings.some(
         message =>
-          message.includes("Deleted:") && message.includes(LISA_MANAGED)
+          message.includes(DELETED_PREFIX) && message.includes(LISA_MANAGED)
       )
     ).toBe(true);
   });
 
-  it("carries the deleted workflow out for the apply receipt", async () => {
+  it("carries the deleted path out for the apply receipt", async () => {
     const result = await createLisa(new SilentLogger()).apply();
 
-    expect(result.deletedWorkflowPaths).toEqual([LISA_MANAGED]);
+    expect(result.deletedPaths).toEqual([LISA_MANAGED]);
   });
 
   it("reports nothing under the workflows tree when nothing was touched", async () => {
@@ -243,6 +254,77 @@ describe("ownership gate on .github/workflows deletions", () => {
         message.includes("GitHub Actions workflows touched by this run")
       )
     ).toBe(false);
+  });
+
+  it("runs the gate on a postinstall-triggered apply, not just an explicit one", async () => {
+    // The trigger that actually bites. `bun install` runs `lisa apply` in
+    // consumer repos, so the loss does not need anyone to deliberately bump a
+    // pin — an ordinary install picks up whatever the range resolves to. A gate
+    // that only sat on the explicit `lisa apply` path would pass its own tests
+    // and never run where the damage happens.
+    const result = await createLisa(new SilentLogger(), {
+      postinstall: true,
+    }).apply();
+
+    expect(result.success).toBe(true);
+    expect(await fs.pathExists(path.join(destDir, HOST_AUTHORED))).toBe(true);
+    expect(await fs.pathExists(path.join(destDir, LISA_SEEDED))).toBe(true);
+    expect(await fs.pathExists(path.join(destDir, LISA_MANAGED))).toBe(false);
+  });
+
+  it("announces on a postinstall-triggered apply too", async () => {
+    const logger = new RecordingLogger();
+
+    await createLisa(logger, { postinstall: true }).apply();
+
+    expect(
+      logger.warnings.some(
+        message =>
+          message.includes(DELETED_PREFIX) && message.includes(LISA_MANAGED)
+      )
+    ).toBe(true);
+  });
+
+  it("forces through even when the consumer edited the file", async () => {
+    // The ordering that has to hold. #3599 removed a drift arm because it
+    // demanded administration:read and so forced a personal access token into
+    // a permanent repository secret, and its suite states in prose that an
+    // EDITED consumer copy is deleted deliberately — an edited copy asks for
+    // the same token. So the force arm must short-circuit BEFORE any content or
+    // modification comparison. A gate of the shape "the bytes differ from what
+    // we shipped, so the host has local work here, so preserve it" inverts on
+    // exactly the paths where deletion matters most.
+    await fs.writeFile(
+      path.join(destDir, LISA_SEEDED),
+      `${SEEDED_HEADER}\n\n# heavily edited downstream\n${BODY}`
+    );
+    await fs.writeJson(path.join(lisaDir, "expo", DELETIONS_JSON), {
+      paths: [LISA_SEEDED],
+      force: { [LISA_SEEDED]: FORCED_REASON },
+    });
+
+    await createLisa(new SilentLogger()).apply();
+
+    expect(await fs.pathExists(path.join(destDir, LISA_SEEDED))).toBe(false);
+  });
+
+  it("announces a non-workflow deletion the gate never inspects", async () => {
+    // 213 of the 255 declared delete paths are not workflows. The ownership
+    // gate does not cover them and this change does not widen it — but their
+    // removal is no longer silent, which is the half of the defect that costs
+    // nothing to fix everywhere.
+    await fs.writeFile(path.join(destDir, NON_WORKFLOW), "legacy\n");
+    const logger = new RecordingLogger();
+
+    const result = await createLisa(logger).apply();
+
+    expect(result.deletedPaths).toContain(NON_WORKFLOW);
+    expect(
+      logger.warnings.some(
+        message =>
+          message.includes(DELETED_PREFIX) && message.includes(NON_WORKFLOW)
+      )
+    ).toBe(true);
   });
 
   it("still removes a headerless workflow the manifest forces", async () => {
@@ -284,12 +366,10 @@ describe("ownership gate on .github/workflows deletions", () => {
   it("keeps deleting non-workflow paths the manifest names", async () => {
     // The gate is scoped to .github/workflows on purpose. Everything else the
     // manifests name behaves exactly as it did before.
-    await fs.writeFile(path.join(destDir, ".lisa-manifest"), "legacy\n");
+    await fs.writeFile(path.join(destDir, NON_WORKFLOW), "legacy\n");
 
     await createLisa(new SilentLogger()).apply();
 
-    expect(await fs.pathExists(path.join(destDir, ".lisa-manifest"))).toBe(
-      false
-    );
+    expect(await fs.pathExists(path.join(destDir, NON_WORKFLOW))).toBe(false);
   });
 });
