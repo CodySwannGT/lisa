@@ -38,6 +38,14 @@
         "matcher": "Bash"
       },
       {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-blind-automerge.sh",
+        "matcher": "Bash"
+      },
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-host-name-leak.sh",
+        "matcher": "Bash"
+      },
+      {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-instruction-file-edits.sh",
         "matcher": "Write|Edit|MultiEdit"
       },

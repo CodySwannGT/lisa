@@ -13,6 +13,36 @@ on:
   push:
     branches:
       - staging
+      # Production deployment is OPT-IN and is left off deliberately. It is not
+      # an oversight, and it is not ready to simply uncomment — this workflow
+      # separates environments by AWS ACCOUNT, not by resource name, so a push
+      # to `main` needs a production account that already exists.
+      #
+      # To enable it, uncomment `- main` below AFTER all four are true:
+      #
+      #   1. A repository secret named `AWS_ACCOUNT_ID_MAIN` holds the
+      #      production AWS account ID. The name is not arbitrary:
+      #      `noliran/branch-based-secrets` below turns `AWS_ACCOUNT_ID` into
+      #      `AWS_ACCOUNT_ID_<BRANCH IN UPPERCASE>`, so `staging` reads
+      #      `AWS_ACCOUNT_ID_STAGING` and `main` reads `AWS_ACCOUNT_ID_MAIN`.
+      #      Without it the account id resolves empty and the deploy fails at
+      #      the credentials step.
+      #   2. That account has the `DeployServiceRole` IAM role, trusting this
+      #      repository's OIDC subject — the role this job assumes.
+      #   3. That account has the ECS cluster and services this file names in
+      #      `env:` — `webCluster`, `web-rails-service`, `worker-service` —
+      #      and the ECR repositories `web` and `worker2`. The names are FIXED,
+      #      not suffixed per environment, so production needs its own account
+      #      carrying the same names rather than differently-named resources
+      #      beside staging's.
+      #   4. Your Rails app has a `production` environment configured. The
+      #      build already maps the branch for you: `APP_STAGE` below resolves
+      #      `main` to `production` and is passed as `RAILS_ENV`.
+      #
+      # Until then production is still reachable by hand: `workflow_dispatch`
+      # takes no inputs, so you can run this workflow against any branch from
+      # the Actions tab. What is switched off here is the AUTOMATIC deploy on
+      # every push to `main`.
       # - main
   workflow_dispatch:
 

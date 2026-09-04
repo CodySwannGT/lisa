@@ -9,6 +9,7 @@ import { load as loadYaml } from "js-yaml";
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const RAILS_MERGE_SETTINGS = "rails/merge/.claude/settings.json";
 const RAILS_CI = "rails/create-only/.github/workflows/ci.yml";
+const RAILS_DEPLOY = "rails/create-only/.github/workflows/deploy.yml";
 
 /**
  * Read a JSON template from the Lisa repository.
@@ -68,5 +69,40 @@ describe("Rails templates", () => {
     expect(perms?.["checks"]).toBe("write");
     expect(perms?.["pull-requests"]).toBe("write");
     expect(perms?.["contents"]).toBe("read");
+  });
+
+  it("says why the deploy template does not trigger on main, or triggers on it", () => {
+    // CodySwannGT/lisa#3743. This template shipped `# - main` commented out
+    // with no explanation, which is indistinguishable from an accident — and
+    // `create-only` means a host inherits it once, never sees it refreshed,
+    // and has nothing to prompt the question.
+    //
+    // Either resolution is acceptable and this asserts the DISJUNCTION rather
+    // than the comment, so a later decision to actually enable production is
+    // not blocked by its own regression test. What is not acceptable is a
+    // bare `# - main`.
+    //
+    // The comment must also be ACTIONABLE. `AWS_ACCOUNT_ID_MAIN` is the
+    // load-bearing detail: `noliran/branch-based-secrets` expands
+    // `AWS_ACCOUNT_ID` to `AWS_ACCOUNT_ID_<BRANCH>`, so enabling `main`
+    // without that secret produces a failing production deploy rather than a
+    // working one. A comment saying only "enable when ready" is the bare
+    // `# - main` with more words, and would pass a weaker assertion.
+    const deployText = readText(RAILS_DEPLOY);
+    const deploy = loadYaml(deployText) as {
+      readonly on?: {
+        readonly push?: { readonly branches?: readonly string[] };
+      };
+      readonly true?: {
+        readonly push?: { readonly branches?: readonly string[] };
+      };
+    };
+    // `on:` is YAML 1.1 truthy, so js-yaml can key it as `true`.
+    const branches = (deploy.on ?? deploy.true)?.push?.branches ?? [];
+
+    if (branches.includes("main")) return;
+
+    expect(deployText).toContain("AWS_ACCOUNT_ID_MAIN");
+    expect(deployText).toMatch(/opt-in|deliberate/iu);
   });
 });

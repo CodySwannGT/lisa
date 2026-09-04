@@ -90,7 +90,7 @@
 # from mine", and guessing "behind" is how a fork's stronger guard gets silently
 # replaced by a weaker upstream one. Add a name here in the same commit that
 # closes a vector.
-# lisa-guard-capabilities: managed-path-resolution, lisaignore-precedence, generated-path-rebuild, redirect-target, tee-target, sed-in-place-all-spellings, executed-script-reach, source-builtin-reach, stdin-redirect-reach, wrapper-positional-operand
+# lisa-guard-capabilities: managed-path-resolution, lisaignore-precedence, generated-path-rebuild, redirect-target, tee-target, sed-in-place-all-spellings, executed-script-reach, source-builtin-reach, stdin-redirect-reach, wrapper-positional-operand, direct-script-command-reach, analyzer-failure-visible, apply-patch-parse-failure-visible, apply-patch-move-target, shell-command-string-reach
 set -euo pipefail
 
 input="$(cat)"
@@ -373,6 +373,76 @@ EOF
 }
 
 case "$tool_name" in
+  apply_patch)
+    # Codex's primary edit mechanism, and the one this guard was already
+    # registered for while being unable to read it.
+    #
+    # `src/codex/enforcement-fallback-installer.ts` registers the dispatcher
+    # on `Bash|Edit|Write|apply_patch`, so this envelope was already being
+    # delivered here - and matched no arm below, fell off the end of the
+    # `case`, and exited 0. A registered guard that receives the call and
+    # allows it is worse than an unregistered one, because the wiring reads
+    # as complete: an auditor sees the matcher forwarding `apply_patch` into
+    # a guard about managed files and correctly concludes it is covered
+    # (CodySwannGT/lisa#3776).
+    #
+    # The envelope carries no `file_path`. Verified against codex-cli 0.125.0
+    # by capturing real hook stdin - see `src/codex/scripts/_extract-edit-paths.sh`,
+    # which performs this same header parse for the Codex-side hooks:
+    #
+    #   Edit / Write   -> tool_input.file_path  (single string)
+    #   apply_patch    -> tool_input.command    (a STRING holding the whole
+    #                                           patch, NOT an array)
+    #
+    # and the patch names its targets in header lines, MANY per patch:
+    #
+    #   *** Add File: <path>
+    #   *** Update File: <path>
+    #   *** Delete File: <path>
+    #   *** Move to: <path>
+    #
+    # So every header is walked and each target classified; one managed
+    # target anywhere in a multi-file patch refuses the whole call, because
+    # the patch applies atomically and there is no partial acceptance to
+    # offer.
+    #
+    # This restates `_extract-edit-paths.sh`'s header match rather than
+    # sourcing it, and that is forced by where the two files ship: this guard
+    # installs to a host's `scripts/lisa-hooks/`, that helper to
+    # `.codex/hooks/lisa/`, and neither tree can source across to the other.
+    # `tests/unit/hooks/block-managed-file-edits-apply-patch.test.ts` pins the
+    # two header sets equal so the restatement cannot drift into a gap - the
+    # same answer `core/hook-copy-parity` gives for sibling copies that
+    # legitimately cannot be one file. What is NOT restated is the
+    # classification: `managed_source` and `refuse` are the single copy here,
+    # exactly as for every other arm.
+    if ! patch_text="$(printf '%s' "$input" | jq -er '
+      if ((.tool_input.command? // "") | type) == "string"
+      then (.tool_input.command? // "")
+      else error("tool_input.command must be a string")
+      end')"; then
+      printf 'block-managed-file-edits: could not parse the apply_patch command; managed-file protection refused the edit\n' >&2
+      exit 2
+    fi
+    [ -n "$patch_text" ] || exit 0
+    while IFS= read -r patch_line; do
+      case "$patch_line" in
+        "*** Add File: "* | "*** Update File: "* | "*** Delete File: "*)
+          candidate="${patch_line#*File: }"
+          ;;
+        "*** Move to: "*)
+          candidate="${patch_line#*** Move to: }"
+          ;;
+        *) continue ;;
+      esac
+      [ -n "$candidate" ] || continue
+      if source_path="$(managed_source "$candidate")"; then
+        refuse "$candidate" "$source_path" "$(relative_path "$candidate")"
+      fi
+    done <<EOF
+$patch_text
+EOF
+    ;;
   Write | Edit | MultiEdit | NotebookEdit | Update)
     paths="$(printf '%s' "$input" | jq -r '
       [ .tool_input.file_path?,
@@ -607,7 +677,9 @@ def command_word(statement):
         statement: One statement's tokens.
 
     Returns:
-        A pair (program, args); (None, []) when no program is named.
+        A triple (token, program, args); (None, None, []) when no program is
+        named. The raw token is retained because `./edit.sh` has no interpreter:
+        its command word is itself the executed script.
     """
     index = 0
     while index < len(statement):
@@ -617,7 +689,7 @@ def command_word(statement):
             continue
         program = token.rsplit("/", 1)[-1]
         if program not in FOLLOW_WRAPPERS:
-            return (program, statement[index + 1 :])
+            return (token, program, statement[index + 1 :])
         separate, positional = FOLLOW_WRAPPERS[program]
         index += 1
         while index < len(statement) and statement[index].startswith("-"):
@@ -627,7 +699,7 @@ def command_word(statement):
                 break
             index += 2 if option in separate else 1
         index += positional
-    return (None, [])
+    return (None, None, [])
 
 
 def shell_script_operand(args):
@@ -649,6 +721,29 @@ def shell_script_operand(args):
                 return None
             continue
         return token
+    return None
+
+
+def shell_command_string(statement):
+    """The inline command a shell executes with `-c`, or None.
+
+    Args:
+        statement: One statement's tokens.
+
+    Returns:
+        The command string operand, or None when this is not a shell `-c` call.
+    """
+    _token, program, args = command_word(statement)
+    if program not in SHELL_PROGRAMS:
+        return None
+    for index, token in enumerate(args):
+        if token == "--":
+            return None
+        if token.startswith("-") and not token.startswith("--") and "c" in token[1:]:
+            command_index = index + 1
+            if command_index < len(args) and args[command_index] == "--":
+                command_index += 1
+            return args[command_index] if command_index < len(args) else None
     return None
 
 
@@ -674,7 +769,7 @@ def write_targets(statement):
         Candidate paths this statement writes.
     """
     found = []
-    program, args = command_word(statement)
+    _token, program, args = command_word(statement)
     for index, token in enumerate(statement):
         if token in REDIRECT_OUT and index + 1 < len(statement):
             found.append(statement[index + 1])
@@ -697,7 +792,7 @@ def executed_script(statement):
     Returns:
         The operand token naming a script that will run, or None.
     """
-    program, args = command_word(statement)
+    token, program, args = command_word(statement)
     if program is None:
         return None
     if program in SHELL_PROGRAMS:
@@ -708,6 +803,12 @@ def executed_script(statement):
         return shell_script_operand(args)
     if program in SOURCE_BUILTINS:
         return args[0] if args else None
+    # A script in command position executes through its shebang. This also
+    # covers a direct path after wrappers such as `sudo ./edit.sh`; `command_word`
+    # deliberately keeps the raw token while using its basename for wrapper and
+    # shell classification.
+    if resolve(token) is not None:
+        return token
     return None
 
 
@@ -768,6 +869,9 @@ def collect(text, depth, seen, out):
         if not statement:
             continue
         out.extend(write_targets(statement))
+        nested = shell_command_string(statement)
+        if nested is not None and depth < FOLLOW_MAX_DEPTH:
+            collect(nested, depth + 1, seen, out)
         operand = executed_script(statement)
         if operand is None:
             continue
@@ -798,10 +902,27 @@ for target in targets:
     if cleaned:
         print(cleaned)
 PY
-    write_targets="$(printf '%s' "$analyzer" |
+    analyzer_stderr="$(mktemp "${TMPDIR:-/tmp}/lisa-managed-edit-analyzer.XXXXXX")" || {
+      printf 'block-managed-file-edits: could not allocate analyzer stderr capture; Bash write protection is NOT active\n' >&2
+      exit 0
+    }
+    if write_targets="$(printf '%s' "$analyzer" |
       MANAGED_EDIT_COMMAND="$command_str" \
         MANAGED_EDIT_PROJECT="$project_root" \
-        python3 - 2>/dev/null || true)"
+        python3 - 2>"$analyzer_stderr")"; then
+      analyzer_status=0
+    else
+      analyzer_status=$?
+    fi
+    if [ "$analyzer_status" -ne 0 ]; then
+      printf 'block-managed-file-edits: Bash analyzer failed (exit %s); Bash write protection is NOT active\n' "$analyzer_status" >&2
+      while IFS= read -r analyzer_line; do
+        [ -n "$analyzer_line" ] && printf '  python3: %s\n' "$analyzer_line" >&2
+      done <"$analyzer_stderr"
+      rm -f "$analyzer_stderr"
+      exit 0
+    fi
+    rm -f "$analyzer_stderr"
     while IFS= read -r token; do
       [ -n "$token" ] || continue
       if source_path="$(managed_source "$token")"; then

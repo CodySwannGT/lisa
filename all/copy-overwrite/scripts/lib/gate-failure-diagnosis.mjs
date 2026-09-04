@@ -29,6 +29,7 @@
  * measurement when the suite that produced it finished.
  * @module lib/gate-failure-diagnosis
  */
+import { readFileSync } from "node:fs";
 import { availableParallelism, loadavg } from "node:os";
 
 /** Default load-average source for {@link machineLoad}. */
@@ -53,6 +54,8 @@ export const DIAGNOSIS = Object.freeze({
   INTERFERENCE: "interference",
   /** The runner executed zero test files, so nothing it printed is a measurement. */
   NO_TESTS_RAN: "no-tests-ran",
+  /** A doc comment ended early, so everything below it was parsed as code. */
+  COMMENT_TERMINATED: "comment-terminated",
   /** Output was read and matched nothing this module knows. */
   UNDIAGNOSED: "undiagnosed",
   /** No output was available to read, so nothing can be said. */
@@ -486,12 +489,10 @@ function killedVerdict(code, load) {
  * way this whole module can do harm.
  */
 const RESOURCE_REFUSAL_PATTERNS = Object.freeze([
-  /\bsetpgid\s*\([^)]*\):\s*Operation not permitted/,
+  /\bchild setpgid\s*\(\d+\s+to\s+\d+\):\s*Operation not permitted/,
   /\bfork:\s*Resource temporarily unavailable/,
-  /\bposix_spawn\b[^\n]*\b(?:EAGAIN|ENOMEM)\b/,
-  /\bspawn\b[^\n]*\bEAGAIN\b/,
-  /\bEMFILE\b|\bToo many open files\b/,
-  /\bENOMEM\b|\bCannot allocate memory\b/,
+  /\bposix_spawn\b[^\n]*\b(?:EAGAIN|ENOMEM|EMFILE)\b/,
+  /\bspawn\b[^\n]*\b(?:EAGAIN|ENOMEM|EMFILE)\b/,
 ]);
 
 /**
@@ -684,7 +685,7 @@ function emptyTranscriptVerdict() {
  * @param {LoadReading|null} load The machine's load at diagnosis time.
  * @returns {object} What the failure was, before it is attributed.
  */
-function classify(output, code, load) {
+function classify(output, code, load, read) {
   if (wasKilled(code)) return killedVerdict(code ?? null, load);
 
   if (typeof output !== "string") return unavailableVerdict();
@@ -713,6 +714,19 @@ function classify(output, code, load) {
   if (NO_TESTS_PATTERN.test(output) && !SUMMARY_PATTERN.test(output)) {
     return noTestsVerdict(output);
   }
+
+  // Above every signature read out of the transcript, and below the three
+  // above it, for opposite reasons. A killed or interfered-with run is a fact
+  // about the machine, so its transcript describes the interruption rather
+  // than the code and nothing in the files it named can be trusted to be the
+  // cause. A doc comment that ends early is the other way round: it is read
+  // from the FILE rather than inferred from the output, and where it is
+  // present every error the transcript reports below it — the missing names,
+  // the arithmetic on identifiers, the unterminated template literal — is a
+  // consequence of it. Measured: the true cause sat ~25 lines ABOVE the first
+  // reported error, so the natural search direction walks away from it.
+  const terminated = findTerminatedComments(output, read);
+  if (terminated.length > 0) return commentTerminatedVerdict(terminated);
 
   const timeouts = findTimeouts(output);
   const failures = findFailures(output);
@@ -745,6 +759,275 @@ function classify(output, code, load) {
 }
 
 /**
+ * How many files named by a transcript are opened looking for a broken block.
+ *
+ * A cap rather than no limit, because the transcript is untrusted input: a
+ * pathological one could otherwise name thousands of paths and turn a
+ * diagnosis into a filesystem walk.
+ */
+const MAX_SCANNED_FILES = 20;
+
+/** Largest file this scan will read, so one huge generated file cannot stall it. */
+const MAX_SCANNED_BYTES = 2_000_000;
+
+/**
+ * Everything a path cannot contain, which is therefore what separates one.
+ *
+ * Splitting on the delimiters rather than matching the path is deliberate. A
+ * pattern of the obvious shape — a repeated class that itself contains `.`,
+ * followed by a literal `.` and an extension — is ambiguous about where the
+ * extension begins, which is polynomial backtracking on adversarial input and
+ * is reported as such by `sonarjs/slow-regex`. A transcript is untrusted
+ * input, so this reads it with one non-ambiguous split and a suffix test.
+ *
+ * Splitting also handles all four tools at once, which spell the location
+ * differently: `tsc` writes `src/a.ts(90,9)`, ESLint prints the bare path on
+ * its own line, `oxlint` writes `,-[src/a.ts:90:9]`, and vite's oxc transform
+ * writes a boxed `file:line:col`. Every one of those frames is delimiters
+ * around a path.
+ */
+const PATH_DELIMITER = /[^\w./@-]+/;
+
+/**
+ * Shed trailing sentence punctuation before a token is tested as a path.
+ *
+ * A scan rather than `/\.+$/`, which is the `(a+)$` shape `sonarjs/slow-regex`
+ * reports: on a token of many dots the anchored quantifier retries from every
+ * position. The transcript is untrusted input, so a linear walk is both the
+ * safe answer and the plainer one.
+ * @param {string} token One token split out of the transcript.
+ * @returns {string} The token with any trailing dots removed.
+ */
+function withoutTrailingDots(token) {
+  let end = token.length;
+  while (end > 0 && token[end - 1] === ".") end -= 1;
+  return token.slice(0, end);
+}
+
+/** Extensions this scan will open. Anything else is not source it can read. */
+const SOURCE_EXTENSIONS = Object.freeze([
+  ".ts",
+  ".tsx",
+  ".mts",
+  ".cts",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs",
+]);
+
+/**
+ * Every token in a transcript shaped like a path to a source file.
+ * @param {string} output The gate command's combined output.
+ * @returns {string[]} Candidate paths, de-duplicated, order preserved.
+ */
+function candidatePaths(output) {
+  const candidates = output
+    .split(PATH_DELIMITER)
+    .map(withoutTrailingDots)
+    .filter(token =>
+      SOURCE_EXTENSIONS.some(extension => token.endsWith(extension))
+    );
+  return [...new Set(candidates)];
+}
+
+/** The remedy, named once because the summary and the evidence both cite it. */
+const TERMINATOR_REMEDY =
+  "write the example so it cannot contain the terminator — `sandbox-<id>/` rather than a glob";
+
+/**
+ * Doc comments in this source that end before their author meant them to.
+ *
+ * ## What is being matched, and why not simply "a terminator inside a comment"
+ *
+ * The terminator is legitimate; every block comment has one. What marks the
+ * defect is that the block **continues** after it: the following lines are
+ * still ` * ` prose and there is a later, real terminator further down. So an
+ * ordinary block — whose first terminator is the last thing on its line — is
+ * never matched, and neither is `/** … *<slash> const x = 1;`, whose next line
+ * is code rather than prose.
+ *
+ * ## Why this reads TEXT and is not a lint rule
+ *
+ * Measured on the reproduction: the file does not parse. ESLint reports
+ * `Parsing error: ';' expected` and runs **zero** rules on it; `oxlint` and
+ * vite's oxc transform report a parse error too. A rule that lives inside a
+ * parser is therefore absent in exactly the case that motivates it. Lexing the
+ * lines needs no parse and so still works on the wreckage.
+ *
+ * Exported so the shape can be asserted against fixture text with no
+ * filesystem and no compiler.
+ * @param {string} source The file's full text.
+ * @returns {{endsAt: number, opensAt: number, realEndsAt: number, line: string}[]}
+ *   One entry per broken block: 1-based lines for where it opened, where it
+ *   actually ended, and where its author's terminator sits.
+ */
+export function terminatedDocComments(source) {
+  const lines = String(source ?? "").split("\n");
+  const broken = [];
+  // A `while` rather than a `for`, because a block is consumed WHOLE: the
+  // cursor jumps past the terminator this block actually ended on, so the
+  // prose inside one comment can never be mistaken for the opener of another.
+  // Reassigning a `for` counter to do that is `sonarjs/updated-loop-counter`,
+  // and rightly — the loop header would then be lying about its own stride.
+  let index = 0;
+  while (index < lines.length) {
+    if (!DOC_OPENER.test(lines[index])) {
+      index += 1;
+      continue;
+    }
+    const block = readDocBlock(lines, index);
+    // No terminator anywhere below this opener, so no block after it can end
+    // early either. Nothing further to find.
+    if (block === null) break;
+    if (block.broken !== null) broken.push(block.broken);
+    index = block.resumeAt + 1;
+  }
+  return broken;
+}
+
+/** A JSDoc block opening at the start of a line — never one inside an expression. */
+const DOC_OPENER = /^\s*\/\*\*/;
+
+/** A line that is still comment prose: leading whitespace, then an asterisk. */
+const DOC_CONTINUATION = /^\s*\*/;
+
+/**
+ * Read one block comment and say whether it ends where its author meant.
+ * @param {string[]} lines Every line of the file.
+ * @param {number} start Index of the line the block opens on.
+ * @returns {{broken: object|null, resumeAt: number}|null} What was found.
+ */
+function readDocBlock(lines, start) {
+  const opener = lines[start].indexOf("/**");
+  const ends = firstTerminator(lines, start, opener + 3);
+  if (ends === null) return null;
+  // Nothing after the terminator on its line: an ordinary block, whether that
+  // is ` *<slash>` on its own line or a one-line `/** … *<slash>`.
+  if (lines[ends.line].slice(ends.column + 2).trim() === "")
+    return { broken: null, resumeAt: ends.line };
+  const real = realTerminator(lines, ends.line);
+  if (real === null) return { broken: null, resumeAt: ends.line };
+  return {
+    broken: {
+      endsAt: ends.line + 1,
+      line: lines[ends.line].trim(),
+      opensAt: start + 1,
+      realEndsAt: real + 1,
+    },
+    resumeAt: real,
+  };
+}
+
+/**
+ * Where a block comment's first terminator sits.
+ * @param {string[]} lines Every line of the file.
+ * @param {number} start Index of the line the block opens on.
+ * @param {number} from Column to start looking from on that first line.
+ * @returns {{column: number, line: number}|null} Its position, or null.
+ */
+function firstTerminator(lines, start, from) {
+  for (let index = start; index < lines.length; index += 1) {
+    const column = lines[index].indexOf("*/", index === start ? from : 0);
+    if (column !== -1) return { column, line: index };
+  }
+  return null;
+}
+
+/**
+ * The terminator the author meant, found by following the prose that keeps
+ * going after the block has already ended.
+ *
+ * Returns null the moment a line stops being prose, which is what keeps an
+ * intentional `/** … *<slash> code` off this path.
+ * @param {string[]} lines Every line of the file.
+ * @param {number} after Index of the line the block actually ended on.
+ * @returns {number|null} Index of the author's terminator, or null.
+ */
+function realTerminator(lines, after) {
+  for (let index = after + 1; index < lines.length; index += 1) {
+    if (!DOC_CONTINUATION.test(lines[index])) return null;
+    if (lines[index].includes("*/")) return index;
+  }
+  return null;
+}
+
+/**
+ * Every existing source file a transcript names, capped and de-duplicated.
+ * @param {string} output The gate command's combined output.
+ * @param {(path: string) => string|null} read Reads a file, or returns null.
+ * @returns {{path: string, source: string}[]} What could actually be read.
+ */
+function namedSources(output, read) {
+  const paths = candidatePaths(output);
+  const sources = [];
+  for (const path of paths) {
+    if (sources.length >= MAX_SCANNED_FILES) break;
+    const source = read(path);
+    if (source !== null) sources.push({ path, source });
+  }
+  return sources;
+}
+
+/**
+ * Read a file for the scan, treating every failure as "nothing to say".
+ *
+ * A diagnosis that throws is worse than one that stays quiet: it would replace
+ * the real failure with its own.
+ * @param {string} path Path named by the transcript.
+ * @returns {string|null} The text, or null when it cannot be read.
+ */
+function readSourceFile(path) {
+  try {
+    const source = readFileSync(path, "utf8");
+    return source.length > MAX_SCANNED_BYTES ? null : source;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The verdict for a doc comment that ended early.
+ * @param {{path: string, broken: object}[]} found Broken blocks, with files.
+ * @returns {Diagnosis} A verdict naming the comment and the line it ended on.
+ */
+function commentTerminatedVerdict(found) {
+  const first = found[0];
+  return {
+    kind: DIAGNOSIS.COMMENT_TERMINATED,
+    summary:
+      `a doc comment in ${first.path} ends early, on line ${first.broken.endsAt} — ` +
+      `every error reported below that line is downstream of it, not a fault of its own`,
+    evidence: capped([
+      ...found.map(
+        entry =>
+          `${entry.path}:${entry.broken.endsAt} — the block opened on line ${entry.broken.opensAt} ends at the terminator INSIDE this line, not on line ${entry.broken.realEndsAt}`
+      ),
+      `line ${first.broken.endsAt} reads: ${first.broken.line}`,
+      TERMINATOR_REMEDY,
+    ]),
+  };
+}
+
+/**
+ * Look for a doc comment that ended early in the files this transcript names.
+ *
+ * Grounded on purpose: it only opens files the failing command itself
+ * mentioned, so it can never invent a cause from a file the run never touched.
+ * @param {string} output The gate command's combined output.
+ * @param {(path: string) => string|null} read Reads a file, or returns null.
+ * @returns {{path: string, broken: object}[]} Every broken block found.
+ */
+function findTerminatedComments(output, read) {
+  const found = [];
+  for (const { path, source } of namedSources(output, read)) {
+    for (const broken of terminatedDocComments(source))
+      found.push({ broken, path });
+  }
+  return found;
+}
+
+/**
  * Classify a failure and say whose property it belongs to.
  *
  * Attribution is separated from classification on purpose. Reading a
@@ -759,9 +1042,17 @@ function classify(output, code, load) {
  * @param {LoadReading|null} [load] The machine's load, for a kill's evidence
  *   line. Defaults to reading this machine; pass `null` to suppress the line,
  *   or a fixed reading to make the output deterministic.
+ * @param {(path: string) => string|null} [read] Reads a source file the
+ *   transcript named, returning null when it cannot be read. Defaults to the
+ *   real filesystem; injected by tests so a fixture needs no files on disk.
  * @returns {Diagnosis} What the failure was, and whose it was.
  */
-export function diagnoseFailure(output, code, load = machineLoad()) {
-  const verdict = classify(output, code, load);
+export function diagnoseFailure(
+  output,
+  code,
+  load = machineLoad(),
+  read = readSourceFile
+) {
+  const verdict = classify(output, code, load, read);
   return { ...verdict, proves: ATTRIBUTION[verdict.kind] ?? null };
 }

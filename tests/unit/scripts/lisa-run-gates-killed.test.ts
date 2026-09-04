@@ -16,7 +16,6 @@
  */
 
 import { describe, expect, it } from "vitest";
-
 import {
   runGates,
   STATE,
@@ -155,6 +154,29 @@ describe("runGates: a killed gate is not a failed one", () => {
     ]);
     expect(result.blocked).toBe(true);
     expect(lines.some(line => line.includes(FAILED_HEADLINE))).toBe(false);
+  });
+
+  it("leaves one marker for one killed command shared by several gates", () => {
+    const shared = { level: "required", run: "test:cov" };
+    const { exec } = stubExec({ [`${RUNNER} test:cov`]: SIGTERM_EXIT });
+    const marks: Array<{ kind: string; gateId: string }> = [];
+    runGates({
+      gates: {
+        "coverage-adequacy": { [COMMIT]: shared },
+        "test-correctness": { [COMMIT]: shared },
+      },
+      moment: COMMIT,
+      runner: RUNNER,
+      exec,
+      recordKill: mark => {
+        marks.push(mark);
+        return true;
+      },
+    });
+
+    expect(marks).toEqual([
+      { kind: STATE.KILLED, gateId: "coverage-adequacy" },
+    ]);
   });
 
   it("leaves an ordinary nonzero exit reporting FAILED", () => {

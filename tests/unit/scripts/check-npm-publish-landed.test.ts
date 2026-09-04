@@ -231,6 +231,94 @@ describe("check-npm-publish-landed verdicts", () => {
   });
 });
 
+describe("each registry attempt has its own complete deadline", () => {
+  it("uses a fresh abort signal for every retry", async () => {
+    const signals: AbortSignal[] = [];
+    const fetchImpl = (async (_url: string, init?: RequestInit) => {
+      signals.push(init?.signal as AbortSignal);
+      return { status: 404, ok: false };
+    }) as unknown as typeof fetch;
+
+    await verifyPublish({
+      packageName: PACKAGE,
+      version: VERSION,
+      registry: REGISTRY,
+      attempts: 3,
+      delayMs: 0,
+      fetchImpl,
+      sleep: async (): Promise<void> => undefined,
+    });
+
+    expect(signals).toHaveLength(3);
+    expect(new Set(signals).size).toBe(3);
+  });
+
+  it("keeps the deadline armed until response.json settles", async () => {
+    let finishBody: ((value: unknown) => void) | undefined;
+    const body = new Promise(resolve => {
+      finishBody = resolve;
+    });
+    const cleared: unknown[] = [];
+    const token = { timer: true };
+    const pending = verifyPublish({
+      packageName: PACKAGE,
+      version: VERSION,
+      registry: REGISTRY,
+      attempts: 1,
+      fetchImpl: (async () => ({
+        status: 200,
+        ok: true,
+        json: async () => body,
+      })) as unknown as typeof fetch,
+      setAttemptTimer: (() => token) as unknown as typeof setTimeout,
+      clearAttemptTimer: (value: unknown) => cleared.push(value),
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(cleared).toEqual([]);
+
+    finishBody?.({ version: VERSION });
+    await expect(pending).resolves.toMatchObject({ verdict: "published" });
+    expect(cleared).toEqual([token]);
+  });
+
+  it("aborts and reports an unprovable stalled response body", async () => {
+    let expire: (() => void) | undefined;
+    const fetchImpl = (async (_url: string, init?: RequestInit) => ({
+      status: 200,
+      ok: true,
+      json: () =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () =>
+            reject(new Error("aborted"))
+          );
+        }),
+    })) as unknown as typeof fetch;
+    const pending = verifyPublish({
+      packageName: PACKAGE,
+      version: VERSION,
+      registry: REGISTRY,
+      attempts: 1,
+      attemptTimeoutMs: 25,
+      fetchImpl,
+      setAttemptTimer: (callback: () => void) => {
+        expire = callback;
+        return { timer: true };
+      },
+      clearAttemptTimer: () => undefined,
+    });
+
+    await Promise.resolve();
+    expire?.();
+
+    await expect(pending).resolves.toMatchObject({
+      verdict: "unprovable",
+      detail: "attempt exceeded 25ms deadline",
+    });
+  });
+});
+
 describe("check-npm-publish-landed exit codes and report", () => {
   /**
    * Drive the CLI body and capture both streams.
@@ -327,4 +415,20 @@ describe("check-npm-publish-landed exit codes and report", () => {
       "--package"
     );
   });
+
+  it.each(["0", "-1", "Infinity", "NaN", "9007199254740992"])(
+    "refuses an invalid attempt count (%s) before asking the registry",
+    async attempts => {
+      await expect(
+        main([
+          "--package",
+          PACKAGE,
+          "--version",
+          VERSION,
+          "--attempts",
+          attempts,
+        ])
+      ).rejects.toThrow("--attempts must be a positive safe integer");
+    }
+  );
 });

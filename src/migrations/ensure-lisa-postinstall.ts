@@ -11,80 +11,23 @@ import type {
 const PACKAGE_JSON = "package.json";
 const CI_GUARD_PREFIX = '[ -n "$CI" ] || ';
 const BOOTSTRAP_PREFIX = "LISA_BOOTSTRAP=1 ";
-/**
- * The hook's declaration that it is a package-manager install lifecycle.
- *
- * This — not `--skip-git-check` — is what selects the reduced
- * `postinstall-safe` apply (CodySwannGT/lisa#3066). It is spelled as an
- * environment prefix rather than a flag on purpose: the command tail stays
- * byte-identical, so {@link LISA_INVOCATION_RE} keeps matching every hook
- * already installed in a consumer's `package.json` with one added alternative
- * in a group it already had.
- */
-const POSTINSTALL_PREFIX = "LISA_POSTINSTALL=1 ";
-const LISA_MARKER = "node_modules/@codyswann/lisa/dist/index.js";
-const LISA_APPLY_COMMAND = `node ${LISA_MARKER} --yes --skip-git-check .`;
-/** The apply command with the declaration, as an operator would reproduce it. */
-const LISA_APPLY_COMMAND_AS_POSTINSTALL = `${POSTINSTALL_PREFIX}${LISA_APPLY_COMMAND}`;
-
-/**
- * What the operator sees on stderr when the bootstrap apply fails.
- *
- * Written for someone scrolling past a wall of install output who may not know
- * what Lisa is: it says what stopped working (templates and guardrails are no
- * longer arriving), that the real error is directly above, and the two commands
- * that reproduce and diagnose it. ASCII and free of `"`, `$`, and backticks so
- * it survives being embedded in a JSON string inside a `sh -c` command.
- */
-export const APPLY_FAILURE_NOTICE =
-  "lisa: TEMPLATE APPLY FAILED - this project is NOT receiving Lisa template " +
-  "or guardrail updates. The error is above. Reproduce it with: " +
-  `${LISA_APPLY_COMMAND_AS_POSTINSTALL} - then run: node ${LISA_MARKER} doctor`;
-
-/**
- * The failure branch: say why, then exit non-zero.
- *
- * `exit 1` rather than a bare `false` because this invocation is routinely
- * chained (`<lisa> && <the host's own postinstall>`); `exit` ends the script at
- * the failure regardless of what a consumer composed around it, so the status
- * cannot be overwritten by a later command in the chain.
- */
-const APPLY_FAILURE_TAIL = ` || { echo "${APPLY_FAILURE_NOTICE}" >&2; exit 1; }`;
+const LEGACY_LISA_MARKER = "node_modules/@codyswann/lisa/dist/index.js";
+const POSTINSTALL_RUNNER_MARKER =
+  "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-postinstall.mjs";
 
 /**
  * The bootstrap invocation chained into a host project's `postinstall`.
  *
- * Shape: **loud and fatal**. Two earlier shapes each discarded the apply's exit
- * code. `2>/dev/null || true` discarded its stderr too, so a totally failed
- * apply was byte-for-byte indistinguishable from success and a repo could
- * silently stop receiving template updates (CodySwannGT/lisa#2467). Replacing
- * `true` with `echo` recovered the reason but not the fact: `echo` also exits 0,
- * so a failed apply still reported success and the one warning line scrolled
- * away in a wall of install output (CodySwannGT/lisa#3466). The failure branch
- * now prints the notice and exits 1.
- *
- * Failing the install is a deliberate trade against the previous reasoning,
- * which was that a non-zero postinstall would convert a template-sync problem
- * into an install outage across the fleet. Two things bound that risk. The
- * `[ -n "$CI" ] ||` guard means this branch never executes when `CI` is set, so
- * no CI pipeline can be broken by it and the exposure is local installs only;
- * and `CI=1` remains the escape hatch for anyone who needs to install past a
- * broken apply. Against that, the apply receipt this failed run did NOT write —
- * previously offered as the durable signal — cannot tell `lisa doctor` that an
- * apply *failed*, only that none has succeeded recently, which is equally true
- * of a project that was never applied or was deliberately skipped. The exit code
- * is the only signal that distinguishes them.
- *
- * The cost, stated plainly: {@link composePostinstall} builds
- * `<lisa> && <the host's own postinstall>`, so a failed apply now also skips
- * whatever the host chained after it (`patch-package` and friends). That is the
- * honest outcome — the install genuinely did not complete — but it is a wider
- * change than the exit code alone.
+ * Shape: bounded, loud, durable, and deliberately non-fatal. The runner owns
+ * the timeout, exposes the real error, and records a marker for `lisa doctor`;
+ * `|| true` keeps a template failure from stranding the host before it can
+ * install the fix. This is the same invocation the package template writes,
+ * so a migration cannot leave older callers on the superseded direct apply.
  *
  * Exported so tests can execute the real script under `sh` rather than assert
  * on a string.
  */
-export const LISA_INVOCATION = `${CI_GUARD_PREFIX}${BOOTSTRAP_PREFIX}${POSTINSTALL_PREFIX}${LISA_APPLY_COMMAND}${APPLY_FAILURE_TAIL}`;
+export const LISA_INVOCATION = `${CI_GUARD_PREFIX}${BOOTSTRAP_PREFIX}node ${POSTINSTALL_RUNNER_MARKER} || true`;
 
 /**
  * Project types that do not use Node.js postinstall hooks (e.g. Rails).
@@ -132,12 +75,19 @@ async function readPackageJson(
  * never re-applies keeps its old spelling forever, which is why an old
  * alternative may never be removed.
  */
-const LISA_INVOCATION_RE = new RegExp(
+const LEGACY_LISA_INVOCATION_RE = new RegExp(
   '(?:(?:\\[ -n "\\$CI" \\] \\|\\| )|(?:LISA_BOOTSTRAP=1 )|(?:LISA_POSTINSTALL=1 ))*' +
     "node node_modules/@codyswann/lisa/dist/index\\.js --yes --skip-git-check \\." +
     "(?: 2>/dev/null \\|\\| true" +
     '| \\|\\| \\{ echo "[^"]*" >&2; exit 1; \\}' +
     '| \\|\\| echo "[^"]*" >&2)?'
+);
+
+/** The bounded runner spelling currently written by Lisa. */
+const POSTINSTALL_RUNNER_RE = new RegExp(
+  '(?:(?:\\[ -n "\\$CI" \\] \\|\\| )|(?:LISA_BOOTSTRAP=1 ))*' +
+    "node node_modules/@codyswann/lisa/all/copy-overwrite/scripts/" +
+    "lisa-postinstall\\.mjs(?: \\|\\| true)?"
 );
 
 /**
@@ -152,8 +102,11 @@ function composePostinstall(existing: string | undefined): string {
   if (!trimmed) {
     return LISA_INVOCATION;
   }
-  if (trimmed.includes(LISA_MARKER)) {
-    return trimmed.replace(LISA_INVOCATION_RE, LISA_INVOCATION);
+  if (trimmed.includes(POSTINSTALL_RUNNER_MARKER)) {
+    return trimmed.replace(POSTINSTALL_RUNNER_RE, LISA_INVOCATION);
+  }
+  if (trimmed.includes(LEGACY_LISA_MARKER)) {
+    return trimmed.replace(LEGACY_LISA_INVOCATION_RE, LISA_INVOCATION);
   }
   return `${LISA_INVOCATION} && ${trimmed}`;
 }
@@ -221,7 +174,8 @@ export class EnsureLisaPostinstallMigration implements Migration {
     const normalizedPostinstall = composePostinstall(postinstall);
     if (!hasNodePostinstallType(ctx.detectedTypes)) {
       return (
-        postinstall.includes(LISA_MARKER) &&
+        (postinstall.includes(LEGACY_LISA_MARKER) ||
+          postinstall.includes(POSTINSTALL_RUNNER_MARKER)) &&
         normalizedPostinstall !== postinstall
       );
     }

@@ -36,7 +36,7 @@
 # Add a name here in the same commit that closes a vector. A hardening that
 # forgets to is invisible to refresh, and shows up as an unexplained diff at
 # review time instead of a named capability.
-# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, env-split-string, git-config-key, git-config-parameters, git-config-parameters-append, git-config-parameters-expansion, heredoc-shell-word, herestring-aware, no-verify-short, nested-shell-no-verify, nested-shell-long-options, env-split-string-abbrev, command-wrapper-normalization, executed-script-reach, source-builtin-reach, stdin-redirect-reach, wrapper-positional-operand, dispatcher-exec-position
+# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, env-split-string, git-config-key, git-config-parameters, git-config-parameters-append, git-config-parameters-expansion, heredoc-shell-word, herestring-aware, no-verify-short, nested-shell-no-verify, nested-shell-long-options, env-split-string-abbrev, command-wrapper-normalization, executed-script-reach, source-builtin-reach, stdin-redirect-reach, wrapper-positional-operand, dispatcher-exec-position, tilde-script-reach, shell-option-stdin-reach
 #
 # Shell-token matching avoids false positives from issue bodies, heredocs, and
 # commit-message prose while still catching quoted real argv values such as
@@ -268,8 +268,38 @@ ENV_LONG_SEPARATE_VALUE = {"--argv0", "--chdir", "--split-string", "--unset"}
 
 # env's single-letter options, by whether the rest of a cluster is more
 # options or the option's value.
+#
+# BOTH PLATFORMS' SETS, not one. These began as GNU's, and an option that is
+# in neither set falls through to `ambiguous`, which this guard treats as
+# suspicious. That default is correct and stays — an unknown option genuinely
+# could take a value and swallow the command name. What is wrong is a
+# well-known option being unknown, and on a macOS fleet `env -P` is exactly
+# that: BSD's "search altpath for the utility", refused on every ordinary
+# command it prefixes.
+#
+# Measured, one option at a time, against the guard before this change. BSD's
+# complete short set is `0 i v u C P S`, from the synopsis in env(1):
+#
+#     allowed   -0  -i  -v  -u NAME  -C DIR     already covered
+#     BLOCKED   -P altpath                      the defect, and the ONLY one
+#     BLOCKED   -S string                       correct: split-string reparses
+#                                               an opaque payload, so what it
+#                                               runs cannot be proven here
+#     BLOCKED   -Z  -Q                          correct: unknown stays suspicious
+#
+# So the population is one letter, not a class. The two platforms' short
+# options coincide everywhere else, which is why "detect the platform and
+# choose a table" would be machinery for a single character — and would fail
+# on a machine running GNU coreutils under a BSD userland, or the reverse.
+# Recognising the union is both smaller and more robust.
+#
+# Adding a letter here is a WEAKENING, so it needs the same evidence as any
+# other: ten bypass shapes routed through `-P` — long flag, attached value,
+# short cluster, abbreviation, an assignment, `HUSKY=0`, a hooksPath disable,
+# a nested `-c` shell, an executed script, and `-P` swallowing the command
+# word — were all refused before this change and are all still refused after.
 ENV_SHORT_NO_VALUE = frozenset("i0v")
-ENV_SHORT_TAKES_VALUE = frozenset("uCaS")
+ENV_SHORT_TAKES_VALUE = frozenset("uCaSP")
 
 # Builtins and wrappers that run whatever FOLLOWS them without changing what
 # it is: `command env -S ...` runs exactly the `env` that `env -S ...` runs,
@@ -980,7 +1010,7 @@ def resolve_script(token):
     """
     if COMPUTED_VALUE.search(token):
         return (None, "a computed path the guard cannot resolve before the shell does")
-    text = token.strip().strip("'\"")
+    text = os.path.expanduser(token.strip().strip("'\""))
     # `bash -` and a bare `-` read the script from stdin; there is no file.
     if not text or text == "-":
         return (None, None)
@@ -1000,6 +1030,48 @@ def resolve_script(token):
             continue
         return (candidate, None)
     return (None, "a script that does not exist or cannot be read")
+
+
+SHELL_COMMAND_STRING = object()
+SHELL_STDIN = object()
+
+
+def shell_execution_operand(args):
+    """The file a shell runs, or a sentinel for `-c` and stdin modes.
+
+    `shell_script_operand` intentionally collapses both cases to None for the
+    nested-command scanner. Reach cannot: `bash -c '...'` has already exposed
+    its text, while `bash -x`, `bash -e`, and `bash --` still await a script on
+    stdin and must remain linked to a following `< file` separator.
+    """
+    index = 0
+    opaque_option_seen = False
+    while index < len(args):
+        token = args[index]
+        if token == "--":
+            index += 1
+            break
+        if not token.startswith(("-", "+")):
+            if not opaque_option_seen:
+                break
+            index += 1
+            opaque_option_seen = False
+            continue
+        if token in SHELL_OPTIONS_SEPARATE_VALUE:
+            index += 2
+            continue
+        if token.startswith(SHELL_OPTIONS_INLINE_VALUE):
+            index += 1
+            continue
+        if token.startswith("--"):
+            if token not in SHELL_LONG_OPTIONS_NO_VALUE:
+                opaque_option_seen = True
+            index += 1
+            continue
+        if "c" in token[1:]:
+            return SHELL_COMMAND_STRING
+        index += 1
+    return args[index] if index < len(args) else SHELL_STDIN
 
 
 def executed_scripts(tokens):
@@ -1036,9 +1108,12 @@ def executed_scripts(tokens):
             if name in SOURCE_BUILTINS:
                 operand = arguments[0] if arguments else None
             elif name in SHELL_PROGRAMS:
-                operand = shell_script_operand(arguments)
-                if operand is None and not arguments:
+                operand = shell_execution_operand(arguments)
+                if operand is SHELL_STDIN:
                     previous_shell_awaiting_stdin = True
+                    continue
+                if operand is SHELL_COMMAND_STRING:
+                    continue
             else:
                 continue
             if operand is None:

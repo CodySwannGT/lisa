@@ -44,6 +44,7 @@ import {
   findActionRefs,
   isFixtureWorkflow,
   isGovernedWorkflow,
+  parseArgs,
 } from "../../../scripts/check-third-party-action-pins.mjs";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils";
@@ -430,6 +431,18 @@ describe("check-third-party-action-pins CLI", () => {
 
   it("exits 2 when --root is given without a value", () => {
     expect(run(["--root"]).code).toBe(2);
+  });
+
+  it("treats a following flag as a missing --root value", () => {
+    const result = run(["--root", "--json"]);
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain("--root requires a value");
+  });
+
+  it("treats a sparse argument slot as a missing --root value", () => {
+    const args = ["--root"];
+    args.length = 2;
+    expect(() => parseArgs(args)).toThrow("--root requires a value");
   });
 
   it("emits a machine-readable report under --json", () => {
