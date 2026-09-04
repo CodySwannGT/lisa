@@ -151,6 +151,25 @@ const SCRIPT_RULES = {
     agy: false,
     copilot: true,
   },
+  // Ships wherever the agent has a session-start event, on the same reasoning
+  // as `inject-resolved-config.sh`. The question it answers — WHICH COPY of
+  // Lisa is executing in this session — is not vendor-specific: every harness
+  // resolves a plugin copy once at session start and then runs it unchanged,
+  // so every harness can hand an agent a stale contract while the repository
+  // is green.
+  //
+  // Documented gap: agy has no SessionStart event at all, so agy sessions get
+  // no vintage block. The compensating rung is the shared one AGENTS.md
+  // requires when a harness cannot represent a control — the Bash enforcement
+  // dispatcher still names the producing copy and its vintage in every refusal
+  // it prints, and `lisa doctor` reports the same resolution on every agent.
+  "enforcement-vintage.sh": {
+    claude: true,
+    codex: true,
+    cursor: true,
+    agy: false,
+    copilot: true,
+  },
   "inject-flow-context.sh": {
     claude: true,
     codex: true,

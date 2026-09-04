@@ -764,6 +764,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "104922ba5912b797bf9ce15881dcef76916ea1782ac1e669151265b7db9fb263",
     "plugins/src/base/hooks/enforce-verification-gate.sh":
       "29885d07ff6da70f193ea0f0691d63f324deb79fbd7ede519596415875d94458",
+    "plugins/src/base/hooks/enforcement-vintage.mjs":
+      "ddd8d27b6aa1e93e489f4c229f501380c9718b0bb9e2b4f0b3d9450168868f77",
+    "plugins/src/base/hooks/enforcement-vintage.sh":
+      "e23cb84a0035c86805ce7aada15adae6634a5a8cb68a9e2ba677ab1953721b97",
     "plugins/src/base/hooks/failure-signature-index.mjs":
       "06cf3f7d917a793f283ced2997d3b9dade47f33d40904ca6914b9879313ab7df",
     "plugins/src/base/hooks/failure-signature-index.sh":
@@ -4016,6 +4020,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/hooks/cleanup-stale-worktrees.sh": true,
     "plugins/lisa-copilot/hooks/discharge-work-item-gates.sh": true,
     "plugins/lisa-copilot/hooks/enforce-verification-gate.sh": true,
+    "plugins/lisa-copilot/hooks/enforcement-vintage.mjs": true,
+    "plugins/lisa-copilot/hooks/enforcement-vintage.sh": true,
     "plugins/lisa-copilot/hooks/failure-signature-index.mjs": true,
     "plugins/lisa-copilot/hooks/failure-signature-index.sh": true,
     "plugins/lisa-copilot/hooks/inject-resolved-config.mjs": true,
@@ -4510,6 +4516,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/hooks/cleanup-stale-worktrees.sh": true,
     "plugins/lisa-cursor/hooks/discharge-work-item-gates.sh": true,
     "plugins/lisa-cursor/hooks/enforce-verification-gate.sh": true,
+    "plugins/lisa-cursor/hooks/enforcement-vintage.mjs": true,
+    "plugins/lisa-cursor/hooks/enforcement-vintage.sh": true,
     "plugins/lisa-cursor/hooks/failure-signature-index.mjs": true,
     "plugins/lisa-cursor/hooks/failure-signature-index.sh": true,
     "plugins/lisa-cursor/hooks/hooks.json": true,
@@ -7120,6 +7128,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/hooks/discharge-work-item-gates.sh": true,
     "plugins/lisa/hooks/enforce-team-first.sh": true,
     "plugins/lisa/hooks/enforce-verification-gate.sh": true,
+    "plugins/lisa/hooks/enforcement-vintage.mjs": true,
+    "plugins/lisa/hooks/enforcement-vintage.sh": true,
     "plugins/lisa/hooks/failure-signature-index.mjs": true,
     "plugins/lisa/hooks/failure-signature-index.sh": true,
     "plugins/lisa/hooks/inject-flow-context.sh": true,
@@ -7800,6 +7810,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/hooks/discharge-work-item-gates.sh": true,
     "plugins/src/base/hooks/enforce-team-first.sh": true,
     "plugins/src/base/hooks/enforce-verification-gate.sh": true,
+    "plugins/src/base/hooks/enforcement-vintage.mjs": true,
+    "plugins/src/base/hooks/enforcement-vintage.sh": true,
     "plugins/src/base/hooks/failure-signature-index.mjs": true,
     "plugins/src/base/hooks/failure-signature-index.sh": true,
     "plugins/src/base/hooks/inject-flow-context.sh": true,
@@ -9329,6 +9341,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/cpu-budget.ts": true,
     "tests/helpers/enforcement-census-fixtures.ts": true,
     "tests/helpers/enforcement-fallback-fixtures.ts": true,
+    "tests/helpers/enforcement-vintage-harness.ts": true,
     "tests/helpers/gate-capture.ts": true,
     "tests/helpers/gate-coverage-harness.ts": true,
     "tests/helpers/hardcoded-temp-path-scan.ts": true,
@@ -9991,6 +10004,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/enforcement-fallback-zero-guards.test.ts": true,
     "tests/unit/hooks/enforcement-fallback.test.ts": true,
     "tests/unit/hooks/enforcement-gates-e2e.test.ts": true,
+    "tests/unit/hooks/enforcement-vintage-wiring.test.ts": true,
+    "tests/unit/hooks/enforcement-vintage.test.ts": true,
     "tests/unit/hooks/failure-signature-index-wiring.test.ts": true,
     "tests/unit/hooks/failure-signature-index.test.ts": true,
     "tests/unit/hooks/gate-coverage-errored-leg.test.ts": true,
