@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
-      "bc135e1c130844a2e5daf769104e78a42fd804de06ae79b7b50bf357b3d76795",
+      "b93880769e7ac402879200ce80a32095baa38d1fbc47cf17804bd6df49ce3b8a",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lib/kill-marks.mjs":
@@ -1231,7 +1231,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-write-ticket/SKILL.md":
       "5352b209c42c8263b0ecdd1826116a244d3eba70c861592b8d4df6bf13a0b5bf",
     "plugins/src/base/skills/lisa-jsdoc-best-practices/SKILL.md":
-      "7cf0729966ac0afcab6e2c043f192772a9e9e7c72fae61e55b300e97308f970e",
+      "c70ebb143c511cd09c789611bf5dbd636d769c462de000dd694c53f8fcf6f444",
     "plugins/src/base/skills/lisa-kane-browser/SKILL.md":
       "e082517cb42f437eeb22b3935aa0fef09299874736e55184e88d2b64f7860a7d",
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
@@ -10084,6 +10084,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/e2e-coverage-run-awareness.test.ts": true,
     "tests/unit/scripts/e2e-coverage.test.ts": true,
     "tests/unit/scripts/floor-collisions.test.ts": true,
+    "tests/unit/scripts/gate-diagnosis-comment-terminated.test.ts": true,
     "tests/unit/scripts/gate-diagnosis-no-tests-ran.test.ts": true,
     "tests/unit/scripts/gate-failure-diagnosis.test.ts": true,
     "tests/unit/scripts/gate-killed-under-load.test.ts": true,
