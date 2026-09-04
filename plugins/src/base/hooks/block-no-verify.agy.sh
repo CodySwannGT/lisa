@@ -195,8 +195,38 @@ ENV_LONG_SEPARATE_VALUE = {"--argv0", "--chdir", "--split-string", "--unset"}
 
 # env's single-letter options, by whether the rest of a cluster is more
 # options or the option's value.
+#
+# BOTH PLATFORMS' SETS, not one. These began as GNU's, and an option that is
+# in neither set falls through to `ambiguous`, which this guard treats as
+# suspicious. That default is correct and stays — an unknown option genuinely
+# could take a value and swallow the command name. What is wrong is a
+# well-known option being unknown, and on a macOS fleet `env -P` is exactly
+# that: BSD's "search altpath for the utility", refused on every ordinary
+# command it prefixes.
+#
+# Measured, one option at a time, against the guard before this change. BSD's
+# complete short set is `0 i v u C P S`, from the synopsis in env(1):
+#
+#     allowed   -0  -i  -v  -u NAME  -C DIR     already covered
+#     BLOCKED   -P altpath                      the defect, and the ONLY one
+#     BLOCKED   -S string                       correct: split-string reparses
+#                                               an opaque payload, so what it
+#                                               runs cannot be proven here
+#     BLOCKED   -Z  -Q                          correct: unknown stays suspicious
+#
+# So the population is one letter, not a class. The two platforms' short
+# options coincide everywhere else, which is why "detect the platform and
+# choose a table" would be machinery for a single character — and would fail
+# on a machine running GNU coreutils under a BSD userland, or the reverse.
+# Recognising the union is both smaller and more robust.
+#
+# Adding a letter here is a WEAKENING, so it needs the same evidence as any
+# other: ten bypass shapes routed through `-P` — long flag, attached value,
+# short cluster, abbreviation, an assignment, `HUSKY=0`, a hooksPath disable,
+# a nested `-c` shell, an executed script, and `-P` swallowing the command
+# word — were all refused before this change and are all still refused after.
 ENV_SHORT_NO_VALUE = frozenset("i0v")
-ENV_SHORT_TAKES_VALUE = frozenset("uCaS")
+ENV_SHORT_TAKES_VALUE = frozenset("uCaSP")
 
 # Builtins and wrappers that run whatever FOLLOWS them without changing what
 # it is: `command env -S ...` runs exactly the `env` that `env -S ...` runs,

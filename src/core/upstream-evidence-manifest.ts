@@ -47,7 +47,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
       "fe934dd76a1270e00b8ce7d10f6f24a5d34a8fdc205bb51642c8725d0f3d6d1d",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "220e16d26cefff69cb26de5c33491a5d4c67c9905032a87e07f14580dbb580be",
+      "adea9d26bffcf1781e3b6675f2cf436b7c83f3f283790e77e54fdbd9276d17f0",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "234cb82cc9033bd04940a553d4ddc95b078e585e41777d6529d887676edc40b1",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
@@ -729,9 +729,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.sh":
       "7724a27f0aa148d2a1011b55ffe41b78297269b65189886b6f6a7b4f1ef4a580",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
-      "587cdd14ac9ecaa725da33f8f5b6adebdaeb3ad603650748d9ae1e6fd9f57973",
+      "a2c8e77c4ad27366e1fa9c4264866824ce3a0a557e0d25baac93c33868d29166",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "0e621599960cef0834419ccaa2fc074bee427d419dba19ad7146903a0e2020fc",
+      "aac0a202c55c0991fe7ed9e5012c472e97702a826e91e2dfb6be1d9b9f2d1201",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":
@@ -9831,6 +9831,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-managed-file-edits-file-reach.test.ts": true,
     "tests/unit/hooks/block-managed-file-edits.test.ts": true,
     "tests/unit/hooks/block-no-verify-command-config.test.ts": true,
+    "tests/unit/hooks/block-no-verify-env-platform.test.ts": true,
     "tests/unit/hooks/block-no-verify-file-reach.test.ts": true,
     "tests/unit/hooks/block-no-verify-missing-jq.test.ts": true,
     "tests/unit/hooks/block-no-verify-nested-shell-parity.test.ts": true,
