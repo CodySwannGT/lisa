@@ -1111,7 +1111,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "ab7bb855fd3ebe321e41b0143815f202b70f6ba38f6678791d6d9e933e0c3fd8",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "a1a51c4fdc6542df397d38cbb1544255e55b1bdc6b958f8c9e66cd36d4500306",
+      "7a0b633393b6c3f607019db8417c224209321cc49bf75849c77124b5c27482a0",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -10365,6 +10365,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/doctor-wiki-delegation.test.ts": true,
     "tests/unit/strategies/drive-pr-admin-bypass-contract.test.ts": true,
     "tests/unit/strategies/drive-pr-arm-gate.test.ts": true,
+    "tests/unit/strategies/drive-pr-armed-unmergeable.test.ts": true,
     "tests/unit/strategies/drive-pr-auto-merge-race.test.ts": true,
     "tests/unit/strategies/drive-pr-conflict-zero-ci.test.ts": true,
     "tests/unit/strategies/drive-pr-hold-gate.test.ts": true,
