@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.38.8](https://github.com/CodySwannGT/lisa/compare/v4.38.7...v4.38.8) (2026-09-04)
+
+
+### Bug Fixes
+
+* **gates:** a zero exit with zero tests is not a pass ([c14dba8](https://github.com/CodySwannGT/lisa/commit/c14dba82a53bac880c286a629ec610de5c13bdc6)), closes [#2603](https://github.com/CodySwannGT/lisa/issues/2603) [#3715](https://github.com/CodySwannGT/lisa/issues/3715) [CodySwannGT/lisa#3715](https://github.com/CodySwannGT/lisa/issues/3715)
+* **hooks:** a syntax check is not an execution — parity-safety-net ([0c9c0f9](https://github.com/CodySwannGT/lisa/commit/0c9c0f9cbdb9bc6879a4f37bdd22463c96991c40)), closes [#3828](https://github.com/CodySwannGT/lisa/issues/3828) [#3828](https://github.com/CodySwannGT/lisa/issues/3828) [#3803](https://github.com/CodySwannGT/lisa/issues/3803) [CodySwannGT/lisa#3803](https://github.com/CodySwannGT/lisa/issues/3803)
+* **test:** annotate the gate result with the runner's own type ([7e21fdf](https://github.com/CodySwannGT/lisa/commit/7e21fdf2759f6fa3d803439649cc234361182948)), closes [#3846](https://github.com/CodySwannGT/lisa/issues/3846) [#3715](https://github.com/CodySwannGT/lisa/issues/3715) [CodySwannGT/lisa#3715](https://github.com/CodySwannGT/lisa/issues/3715)
+
 ### [4.38.7](https://github.com/CodySwannGT/lisa/compare/v4.38.6...v4.38.7) (2026-09-04)
 
 
