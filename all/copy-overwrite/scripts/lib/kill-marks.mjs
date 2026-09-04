@@ -135,21 +135,22 @@ function pruneKillMarks({ dir, now }) {
 }
 
 /**
- * Marks left by OTHER runs, inside the retention window, newest first.
+ * Marks left by EARLIER runs, inside the retention window, newest first.
  *
  * Read this BEFORE a run executes anything. A run that reads afterwards can
  * see the mark it wrote itself and report its own kill back to itself as
  * mysterious prior context — the note would be true, circular, and useless.
- * Excluding the current pid is not enough on its own, because one process can
- * run gates more than once.
+ * Process identity is deliberately irrelevant: one long-lived agent process
+ * can invoke the gate runner more than once, and a mark from its earlier
+ * invocation is still prior context. The runner prevents self-reporting by
+ * taking this snapshot before it executes any gate.
  * @param {object} [deps] Injectable seams for tests.
  * @param {string} [deps.dir] Mark directory.
  * @param {number} [deps.now] Epoch milliseconds.
- * @param {number} [deps.self] Process id to exclude.
  * @returns {Array<{kind: string, gateId: string, at: number, pid: number}>} Marks.
  */
 export function recentKillMarks(deps = {}) {
-  const { dir = killMarkDir(), now = Date.now(), self = process.pid } = deps;
+  const { dir = killMarkDir(), now = Date.now() } = deps;
   try {
     if (!existsSync(dir)) return [];
     return readdirSync(dir)
@@ -163,8 +164,8 @@ export function recentKillMarks(deps = {}) {
       })
       .filter(mark => mark !== null && mark.schema === 1)
       .filter(mark => Number.isFinite(mark.at))
+      .filter(mark => mark.at <= now)
       .filter(mark => now - mark.at <= KILL_MARK_RETENTION_MS)
-      .filter(mark => mark.pid !== self)
       .sort((left, right) => right.at - left.at);
   } catch {
     return [];

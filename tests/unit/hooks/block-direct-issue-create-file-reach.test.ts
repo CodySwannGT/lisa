@@ -109,6 +109,89 @@ describe("block-direct-issue-create.sh reach", () => {
       expect(status).toBe(EXIT_BLOCKED);
     });
 
+    it.each([
+      ["bash -e", "bash -e"],
+      ["sh -m", "sh -m"],
+      ["zsh -x", "zsh -x"],
+    ])("scans past %s to the shell script operand", (_label, runner) => {
+      const cwd = projectWithTracker(LINEAR_CONFIG);
+      const script = fixture(cwd, SCRIPT_FILE, UNDECLARED_SCRIPT);
+
+      const { status } = runHook(bash(`${runner} ${script}`), { cwd });
+
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    it.each([
+      ["bash option value", "bash -o errexit"],
+      ["Node preload", "node --require preload.js"],
+      ["Deno subcommand", "deno run"],
+    ])("scans past a %s to the executed script", (_label, runner) => {
+      const cwd = projectWithTracker(LINEAR_CONFIG);
+      const script = fixture(cwd, SCRIPT_FILE, UNDECLARED_SCRIPT);
+
+      const { status } = runHook(bash(`${runner} ${script}`), { cwd });
+
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    it.each(["--config harmless.json", "-c harmless.json"])(
+      "scans past Deno run's %s option value",
+      option => {
+        const cwd = projectWithTracker(LINEAR_CONFIG);
+        fixture(cwd, "harmless.json", "{}\n");
+        const script = fixture(cwd, SCRIPT_FILE, UNDECLARED_SCRIPT);
+
+        const { status } = runHook(bash(`deno run ${option} ${script}`), {
+          cwd,
+        });
+
+        expect(status).toBe(EXIT_BLOCKED);
+      }
+    );
+
+    it("prefers an explicit script over a later stdin redirect", () => {
+      const cwd = projectWithTracker(LINEAR_CONFIG);
+      const script = fixture(cwd, SCRIPT_FILE, UNDECLARED_SCRIPT);
+      const input = fixture(cwd, "input.txt", "ordinary input\n");
+
+      const { status } = runHook(bash(`bash ${script} < ${input}`), { cwd });
+
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    it.each(["-p prompt", "--host host", "-r role", "--type type", "-U other"])(
+      "scans through sudo's %s option value",
+      option => {
+        const cwd = projectWithTracker(LINEAR_CONFIG);
+        const script = fixture(cwd, SCRIPT_FILE, UNDECLARED_SCRIPT);
+
+        const { status } = runHook(bash(`sudo ${option} bash ${script}`), {
+          cwd,
+        });
+
+        expect(status).toBe(EXIT_BLOCKED);
+      }
+    );
+
+    it("does not mistake an executable containing equals for an assignment", () => {
+      const cwd = projectWithTracker(LINEAR_CONFIG);
+      const script = fixture(cwd, "run=guard.sh", UNDECLARED_SCRIPT);
+
+      const { status } = runHook(bash(script), { cwd });
+
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
+    it("scans past a Bash += command-prefix assignment", () => {
+      const cwd = projectWithTracker(LINEAR_CONFIG);
+      const script = fixture(cwd, SCRIPT_FILE, UNDECLARED_SCRIPT);
+
+      const { status } = runHook(bash(`FLAG+=x bash ${script}`), { cwd });
+
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
     it("refuses a creation written in a language that is not shell", () => {
       const cwd = projectWithTracker(LINEAR_CONFIG);
       const script = fixture(
@@ -211,6 +294,22 @@ describe("block-direct-issue-create.sh reach", () => {
   });
 
   describe("allows what reaching further must not start refusing", () => {
+    it.each([
+      ["a Python module argument", "python3 -m fixture.module"],
+      ["a Node eval argument", "node -e 'console.log(1)'"],
+      ["a shell command-string argument", "bash -c 'echo ok'"],
+    ])(
+      "does not treat the trailing file as executed after %s",
+      (_label, runner) => {
+        const cwd = projectWithTracker(LINEAR_CONFIG);
+        const script = fixture(cwd, SCRIPT_FILE, UNDECLARED_SCRIPT);
+
+        const { status } = runHook(bash(`${runner} ${script}`), { cwd });
+
+        expect(status).toBe(EXIT_ALLOWED);
+      }
+    );
+
     it("allows a script whose create carries the build-ready role", () => {
       const cwd = projectWithTracker();
       const script = fixture(

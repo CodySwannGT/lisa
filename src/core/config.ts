@@ -419,15 +419,19 @@ export interface LisaResult {
    */
   readonly stalePaths: readonly string[];
   /**
-   * `.github/workflows/` files this run deleted.
+   * Every file this run deleted, workflow or not.
    *
    * Carried out of the apply for the same reason as `stalePaths`, and with more
-   * urgency: a deleted workflow removes its own checks, so nothing downstream
-   * ever goes red to mark the loss (CodySwannGT/lisa#3656). The caller writes
-   * these into the receipt so the removal is answerable after the install
-   * output is gone.
+   * urgency: a deletion leaves nothing on disk to find later, and a deleted
+   * workflow removes its own checks so nothing downstream ever goes red to mark
+   * the loss (CodySwannGT/lisa#3656). The caller writes these into the receipt
+   * so the removal is answerable after the install output is gone.
+   *
+   * Wider than the ownership gate on purpose. The gate gets to be careful about
+   * a narrow tree; the record has no reason to be, and 213 of the 255 declared
+   * delete paths are not workflows.
    */
-  readonly deletedWorkflowPaths: readonly string[];
+  readonly deletedPaths: readonly string[];
 }
 
 /**

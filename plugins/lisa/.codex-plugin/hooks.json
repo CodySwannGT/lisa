@@ -67,6 +67,10 @@
           {
             "type": "command",
             "command": "${PLUGIN_ROOT}/hooks/block-blind-automerge.sh"
+          },
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/block-host-name-leak.sh"
           }
         ]
       },

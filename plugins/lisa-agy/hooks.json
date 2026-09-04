@@ -76,5 +76,18 @@
         ]
       }
     ]
+  },
+  "lisa-block-host-name-leak": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$HOME/.gemini/config/plugins/lisa/hooks/block-host-name-leak.agy.sh\""
+          }
+        ]
+      }
+    ]
   }
 }

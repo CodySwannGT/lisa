@@ -1246,30 +1246,47 @@ export const REVIEW_GATE_STATES = Object.freeze({
  * WHICH condition produced the state, as stable tokens.
  *
  * The state is the gate's SEVERITY and stays three-valued; this is what the
- * gate OBSERVED, and it is six-valued because `unsatisfied` is reached from
- * four structurally different situations:
+ * gate OBSERVED, and it is seven-valued because `unsatisfied` is reached from
+ * five structurally different situations:
  *
- * | condition      | what actually happened            | operator's next move  |
- * |----------------|-----------------------------------|-----------------------|
- * | `absent`       | nobody reviewed                   | investigate the silence |
- * | `objected`     | a review ran and objected         | READ THE OBJECTION    |
- * | `pending`      | the reviewer is late              | wait, then re-run     |
- * | `unrecognised` | the reviewer said something new   | classify the phrase   |
+ * | condition       | what actually happened           | operator's next move  |
+ * |-----------------|----------------------------------|-----------------------|
+ * | `absent`        | nobody reviewed                  | investigate the silence |
+ * | `objected`      | a review ran and objected        | READ THE OBJECTION    |
+ * | `pending`       | the reviewer is late             | wait, then re-run     |
+ * | `unrecognised`  | the reviewer said something new  | classify the phrase   |
+ * | `undetermined`  | THE GATE STOPPED WAITING         | re-run; read nothing into it |
  *
- * All four published one word, so an operator handed `unsatisfied` had to guess
- * between four situations whose correct responses have nothing in common — and
- * three of those guesses are wrong. That collapse is why CodySwannGT/lisa#3706,
- * #3716 and #3600 each described a different defect and each was partly right:
- * they are four faces of one impoverished vocabulary.
+ * All of them published one word, so an operator handed `unsatisfied` had to
+ * guess between situations whose correct responses have nothing in common. That
+ * collapse is why CodySwannGT/lisa#3706, #3716 and #3600 each described a
+ * different defect and each was partly right: they are faces of one
+ * impoverished vocabulary.
  *
  * The second row is the sharpest. This file states that a review which
  * "RAN AND OBJECTED is the case this gate exists to let through to a human" —
  * and then reported it identically to nobody-reviewed. Blocking is correct
  * there, so no exit code was ever wrong; what was missing is any way to tell
- * the operator which of the four they were looking at.
+ * the operator which of them they were looking at.
+ *
+ * THE LAST ROW IS NOT AN OBSERVATION AND MUST NEVER READ LIKE ONE (#3716).
+ * `absent` and `pending` are things the gate SAW; `undetermined` is the gate
+ * saying it ran out of time before it could see anything. Reported as `absent`
+ * — "did not report on this pull request at all... investigate the silence" —
+ * it sends an operator to audit the change instead of the wait, which is
+ * exactly what a false red costs. MEASURED: a settle window expired NINE
+ * SECONDS before the review it was waiting for arrived.
+ *
+ * And it is not a rare corner. {@link checksSettled} returns false whenever a
+ * declared check is missing or still pending, so the wait CANNOT end early on
+ * either shape: with one declared check, every `absent` and every `pending`
+ * this gate can currently produce is a wait that expired. The two tokens are
+ * kept because they are the honest labels for a settled reading, and a future
+ * declaration with several checks can settle one while another is still in
+ * flight — but today `undetermined` is what fires, and that is the point.
  *
  * SEVERITY IS DELIBERATELY UNCHANGED HERE. See `reviewGateState` for why
- * `pending` keeps blocking.
+ * `pending` keeps blocking, and why `undetermined` blocks with it.
  */
 export const REVIEW_GATE_CONDITIONS = Object.freeze({
   satisfied: "satisfied",
@@ -1278,6 +1295,7 @@ export const REVIEW_GATE_CONDITIONS = Object.freeze({
   objected: "objected",
   pending: "pending",
   unrecognised: "unrecognised",
+  undetermined: "undetermined",
 });
 
 /**
@@ -1317,17 +1335,35 @@ function normalizeDescription(description) {
  * would trade a false red for a silent merge, and this file has a whole
  * vocabulary of evidence that the silent direction is the expensive one.
  *
- * @param {{present: boolean, state?: string, description?: string}} reading - One check
+ * WAITING IS NOT OBSERVING (#3716). `reading.waitExpired` is the settle loop
+ * reporting that it hit its deadline rather than reaching a terminal read. When
+ * it is set, the two shapes that mean "nothing conclusive yet" — no status at
+ * all, and a status still in flight — are reported as `undetermined` instead of
+ * as `absent` and `pending`. The distinction between those two shapes is
+ * preserved inside the sentence, because "never started" and "started and ran
+ * long" are different things to go and look at; what changes is that neither is
+ * asserted as a fact about the reviewer when the gate simply stopped waiting.
+ *
+ * @param {{present: boolean, state?: string, description?: string, waitExpired?: boolean}} reading - One check, and whether the settle wait expired
  * @param {{waive?: readonly string[], satisfy?: readonly string[]}} [vocabulary] - Per-check extensions
  * @returns {{state: string, condition: string, why: string}} Severity, the condition observed, and a one-line reason
  */
 export function reviewGateState(reading, vocabulary = {}) {
+  // Shared by both inconclusive shapes so they can never drift apart, and so
+  // the sentence always says what to do (re-run) before it says what was seen.
+  const undetermined = seen => ({
+    state: REVIEW_GATE_STATES.unsatisfied,
+    condition: REVIEW_GATE_CONDITIONS.undetermined,
+    why: `was ${seen} when the settle window EXPIRED. The gate stopped waiting; it did not observe that nobody reviewed. This is NOT a finding about the code and nothing about the change should be investigated on the strength of it — RE-RUN THIS JOB once the reviewer has settled. Blocking is deliberate: an expired wait has not established that a review happened, and passing on it would let a pull request merge unreviewed whenever a reviewer ran slow. Do NOT re-request the review: a re-request OVERWRITES the existing commit status rather than adding to it, so under throttle it destroys a real review one-way and replaces a substantive objection with a rate-limit string.`,
+  });
   if (!reading.present) {
-    return {
-      state: REVIEW_GATE_STATES.unsatisfied,
-      condition: REVIEW_GATE_CONDITIONS.absent,
-      why: "did not report on this pull request at all. ABSENT is not the same as waived: nothing said it could not review, so nothing accounts for the silence. A guard that read absence as permission would pass forever the first time it looked at the wrong commit.",
-    };
+    return reading.waitExpired === true
+      ? undetermined("still unreported")
+      : {
+          state: REVIEW_GATE_STATES.unsatisfied,
+          condition: REVIEW_GATE_CONDITIONS.absent,
+          why: "did not report on this pull request at all. ABSENT is not the same as waived: nothing said it could not review, so nothing accounts for the silence. A guard that read absence as permission would pass forever the first time it looked at the wrong commit.",
+        };
   }
   const state = String(reading.state ?? "").toUpperCase();
   const text = normalizeDescription(reading.description);
@@ -1339,11 +1375,13 @@ export function reviewGateState(reading, vocabulary = {}) {
     };
   }
   if (state !== "SUCCESS") {
-    return {
-      state: REVIEW_GATE_STATES.unsatisfied,
-      condition: REVIEW_GATE_CONDITIONS.pending,
-      why: `is still ${state === "" ? "unreported" : state} after the settle window. An unsettled check has not said anything yet, and the gate does not guess on its behalf. This is LATENESS, not a verdict about the code — wait for the reviewer to settle, then RE-RUN THIS JOB. Do NOT re-request the review: a re-request OVERWRITES the existing commit status rather than adding to it, so under throttle it destroys a real review one-way and replaces a substantive objection with a rate-limit string.`,
-    };
+    return reading.waitExpired === true
+      ? undetermined(`still ${state === "" ? "unreported" : state}`)
+      : {
+          state: REVIEW_GATE_STATES.unsatisfied,
+          condition: REVIEW_GATE_CONDITIONS.pending,
+          why: `is still ${state === "" ? "unreported" : state} after the settle window. An unsettled check has not said anything yet, and the gate does not guess on its behalf. This is LATENESS, not a verdict about the code — wait for the reviewer to settle, then RE-RUN THIS JOB. Do NOT re-request the review: a re-request OVERWRITES the existing commit status rather than adding to it, so under throttle it destroys a real review one-way and replaces a substantive objection with a rate-limit string.`,
+        };
   }
   const satisfies = [...REVIEW_SATISFACTIONS, ...(vocabulary.satisfy ?? [])];
   if (satisfies.some(phrase => text === normalizeDescription(phrase))) {
@@ -1378,14 +1416,19 @@ export function reviewGateState(reading, vocabulary = {}) {
  *
  * @param {object} declaration - The per-repo declaration
  * @param {ReadonlyArray<{name: string, state: string, description?: string}>} checks - The checks
- * @param {{headSha?: string}} [options] - `headSha` is cited in every finding
- * @returns {{violations: object[], states: Record<string, string>, descriptions: Record<string, string>, checked: number}} Findings, per-check state, the description each verdict was read from, and how many were examined
+ * @param {{headSha?: string, waitExpired?: boolean}} [options] - `headSha` is cited in every finding; `waitExpired` says the settle loop hit its deadline
+ * @returns {{violations: object[], states: Record<string, string>, conditions: Record<string, string>, descriptions: Record<string, string>, checked: number}} Findings, per-check state and condition, the description each verdict was read from, and how many were examined
  */
 export function evaluateReviewGate(declaration, checks, options = {}) {
   const declared = declaration.evidence_bearing_checks ?? {};
   const at = citeHeadSha(options.headSha);
   const violations = [];
   const states = {};
+  // Carried alongside the states for the same reason the descriptions are: the
+  // RENDERED verdict has to say WHICH condition it is publishing, and `states`
+  // is three-valued severity that cannot tell an expired wait from a review
+  // that ran and objected (#3716).
+  const conditions = {};
   // Carried out with the states because the RENDERED verdict quotes it. A title
   // that said only "WAIVED" would tell an operator that something was waived
   // and not which vendor sentence did the waiving, which is the fact that says
@@ -1399,15 +1442,17 @@ export function evaluateReviewGate(declaration, checks, options = {}) {
     const found = checks.find(check => check.name === name);
     const verdict = reviewGateState(
       found === undefined
-        ? { present: false }
+        ? { present: false, waitExpired: options.waitExpired === true }
         : {
             present: true,
             state: found.state,
             description: found.description,
+            waitExpired: options.waitExpired === true,
           },
       vocabulary
     );
     states[name] = verdict.state;
+    conditions[name] = verdict.condition;
     // Assigned ONLY when the check reported. An absent check with a `""`
     // description entry renders as `CodeRabbit reported ""` — a sentence that
     // says it reported. MEASURED on this fix's own first commit, where the
@@ -1432,7 +1477,7 @@ export function evaluateReviewGate(declaration, checks, options = {}) {
     });
   }
 
-  return { violations, states, descriptions, checked };
+  return { violations, states, conditions, descriptions, checked };
 }
 
 /**
@@ -1512,13 +1557,22 @@ function waiveRateSuffix(rate) {
  * that matters — a waiver and a satisfaction never render the same — is
  * testable without a GitHub API.
  *
- * @param {{states?: Record<string, string>, descriptions?: Record<string, string>, refusal?: {kind: string}|null, waiveRate?: {waived: number, sampled: number}}} reading -
- *   The gate's per-check states, the descriptions they were read from, any
- *   refusal, and an optional sampled waive rate
+ * THE TITLE IS THE ONLY LAYER A MERGE DECISION READS (#3716). Before this, an
+ * expired settle wait published `UNREVIEWED — ... posted NO review status at
+ * all`: a sentence asserting an observation the gate never made. The timeout
+ * was known — the settle loop returned it — and it reached only a parenthetical
+ * in the job summary, and only on the branch where there were NO violations. So
+ * the one path where it mattered, a red check blocking a merge, was the one
+ * path that never said it. The conditions are carried here for that reason.
+ *
+ * @param {{states?: Record<string, string>, conditions?: Record<string, string>, descriptions?: Record<string, string>, refusal?: {kind: string}|null, waiveRate?: {waived: number, sampled: number}}} reading -
+ *   The gate's per-check states and conditions, the descriptions they were read
+ *   from, any refusal, and an optional sampled waive rate
  * @returns {{verdict: string, conclusion: string, title: string}} What to publish
  */
 export function reviewGateVerdict(reading = {}) {
   const states = reading.states ?? {};
+  const conditions = reading.conditions ?? {};
   const descriptions = reading.descriptions ?? {};
   const names = Object.keys(states);
   const suffix = waiveRateSuffix(reading.waiveRate);
@@ -1540,23 +1594,45 @@ export function reviewGateVerdict(reading = {}) {
    * check that posted nothing is the one phrasing this whole file exists to
    * refuse: it makes absence look like a quiet answer.
    *
+   * An `undetermined` check is quoted as a WAIT, never as a report. Saying it
+   * "posted NO review status at all" is true of the bytes and false as an
+   * account of what happened, and it is the sentence that sends an operator to
+   * audit the change rather than re-run the job.
+   *
    * @param {string} name - The declared check name
-   * @returns {string} `<name> reported "<description>"`, or that it posted none
+   * @returns {string} `<name> reported "<description>"`, or what the wait did
    */
-  const quote = name =>
-    Object.hasOwn(descriptions, name)
+  const quote = name => {
+    if (conditions[name] === REVIEW_GATE_CONDITIONS.undetermined) {
+      return `${name} had not settled when the gate's wait EXPIRED — not observed to be unreviewed`;
+    }
+    return Object.hasOwn(descriptions, name)
       ? `${name} reported ${JSON.stringify(descriptions[name])}`
       : `${name} posted NO review status at all`;
+  };
 
   const unsatisfied = names.filter(
     name => states[name] === REVIEW_GATE_STATES.unsatisfied
   );
   if (unsatisfied.length > 0) {
+    // FAIL-CLOSED, LABELLED. The conclusion is `failure` either way: an expired
+    // wait has not established that a review happened, and the whole family of
+    // defects this gate is made of is a control reporting a conclusion it did
+    // not reach — so resolving a timeout to `success` would be a new instance
+    // of exactly that. What changes is the WORD, because "we could not tell"
+    // and "nobody reviewed" are different things to hand a human. Only when
+    // EVERY unsatisfied check is undetermined, so a real objection alongside a
+    // slow reviewer still leads with UNREVIEWED.
+    const allUndetermined = unsatisfied.every(
+      name => conditions[name] === REVIEW_GATE_CONDITIONS.undetermined
+    );
     return {
       verdict: REVIEW_GATE_STATES.unsatisfied,
       conclusion: REVIEW_VERDICT_CONCLUSIONS.unsatisfied,
       title: fitTitle(
-        `UNREVIEWED — review evidence unsatisfied: ${unsatisfied.map(quote).join("; ")}${suffix}`
+        allUndetermined
+          ? `UNDETERMINED — the gate stopped waiting before review evidence settled, and is NOT reporting that nobody reviewed: ${unsatisfied.map(quote).join("; ")}. RE-RUN this job; do not investigate the change on the strength of this${suffix}`
+          : `UNREVIEWED — review evidence unsatisfied: ${unsatisfied.map(quote).join("; ")}${suffix}`
       ),
     };
   }
@@ -2444,6 +2520,11 @@ export function inspectVacuity(argv, declaration, options = {}) {
   // repositories that have not opted in yet.
   const gate = evaluateReviewGate(declaration, read.checks, {
     headSha: read.headSha,
+    // The settle loop exits on one of two things: everything declared reached a
+    // terminal read, or the deadline passed. So `settled === false` IS "the
+    // wait expired", and it is the only place that fact exists — every reader
+    // downstream sees a check row that looks identical either way (#3716).
+    waitExpired: read.settled === false,
   });
   // Sampled ONLY when this pull request is itself waived. The rate answers
   // "is this the exception or the rule?", a question that only arises once a
@@ -2466,10 +2547,12 @@ export function inspectVacuity(argv, declaration, options = {}) {
     checked: evaluated.checked,
     violations: [...evaluated.violations, ...gate.violations],
     gateStates: gate.states,
+    gateConditions: gate.conditions,
     gateDescriptions: gate.descriptions,
     waiveRate,
     verdict: reviewGateVerdict({
       states: gate.states,
+      conditions: gate.conditions,
       descriptions: gate.descriptions,
       waiveRate,
     }),
@@ -2710,6 +2793,16 @@ function main(argv) {
       lines.push(`- **${violation.kind}** — ${violation.message}`);
       process.stderr.write(
         `::${blocks(violation) ? "error" : "warning"} title=${violation.kind}::${violation.message.split("\n")[0]}\n`
+      );
+    }
+    // The clean branch above has always disclosed an expired wait. This branch
+    // — a RED run, the only one where the disclosure changes what an operator
+    // does next — did not, so the fact was published exactly where it was not
+    // needed and withheld where it was (#3716).
+    if (result.vacuity?.settled === false) {
+      lines.push(
+        "",
+        "⏳ The settle wait EXPIRED before every declared review check reached a terminal state, so the readings above are where the wait stopped rather than where the reviewer finished. RE-RUN this job before treating any of it as a finding about the change."
       );
     }
     if (warnOnly) {

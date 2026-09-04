@@ -102,6 +102,10 @@ const PROSE: readonly (readonly [string, string])[] = [
     `git commit -m "plan: truncate the board later"`,
   ],
   [
+    "a commit message naming a client and operation",
+    `git commit -m "fix mysql truncate sessions"`,
+  ],
+  [
     "a PR title mentioning the operation",
     `gh pr create --title "stop truncate output loss"`,
   ],

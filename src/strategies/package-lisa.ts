@@ -1051,8 +1051,8 @@ function locateLisaPin(packageJson: Record<string, unknown>): {
  * applied version and the INSTALLED version are two halves of one thing. When
  * they drift, a config file calls an export the installed package does not have
  * and every run of the tool that loads it dies at config load — while the apply
- * itself reports success, and `postinstall`'s `[ -d dist/configs ] || tsc ||
- * true` swallows the only local signal. The failure then surfaces at the next
+ * itself reports success, and `postinstall`'s `tsc || true` swallows the only
+ * local signal. The failure then surfaces at the next
  * lint run, detached from the apply that caused it (#2953).
  *
  * A range is rewritten as readily as an exact pin, and deliberately so: a caret
