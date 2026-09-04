@@ -93,6 +93,24 @@ function prefixCounts(names) {
     );
 }
 
+/**
+ * Resolve the effective direct-entry cap for one scan.
+ *
+ * Tests drive the over-cap refusal branch with a small injected cap so the
+ * fixture is hundreds of entries rather than {@link MAX_TMPDIR_ENTRIES} of
+ * them. The clamp makes the seam one-directional: an injected cap can only
+ * ever LOWER the bound, so no caller can widen the production limit through
+ * it, and the shipped CLI entrypoint — which passes no probes — is unchanged.
+ * @param {number} [requested] Injected cap, when a caller supplies one
+ * @returns {number} Effective cap, never above the production bound
+ */
+export function boundedEntryCap(requested) {
+  if (requested === undefined) return MAX_TMPDIR_ENTRIES;
+  if (!Number.isSafeInteger(requested) || requested < 1)
+    throw new Error("Injected temp entry cap must be a positive integer");
+  return Math.min(requested, MAX_TMPDIR_ENTRIES);
+}
+
 /** Read one platform directory through streaming opendir iteration. */
 function scanDirectNames(root, limit) {
   const directory = fs.opendirSync(root);
@@ -458,7 +476,7 @@ function inspectNamespace(root, probes = {}) {
  * Build a complete snapshot of one authoritative temp root.
  * @param {string} logicalRoot Root as supplied by the operator
  * @param {number} nowMs Observation epoch milliseconds
- * @param {{isProcessAlive?: (pid: number) => boolean, processBirthFingerprintSnapshot?: (pids: readonly number[]) => ReadonlyMap<number, string | undefined>}} [probes] Bounded process-authority probes
+ * @param {{isProcessAlive?: (pid: number) => boolean, maxEntries?: number, processBirthFingerprintSnapshot?: (pids: readonly number[]) => ReadonlyMap<number, string | undefined>}} [probes] Bounded process-authority probes and an optional lowered entry cap
  * @returns {object} Complete snapshot
  */
 export function buildTmpdirSnapshot(
@@ -474,7 +492,10 @@ export function buildTmpdirSnapshot(
     throw new Error("Observation time must be a non-negative integer");
   }
   const canonicalRoot = fs.realpathSync(logicalRoot);
-  const names = scanDirectNames(canonicalRoot, MAX_TMPDIR_ENTRIES);
+  const names = scanDirectNames(
+    canonicalRoot,
+    boundedEntryCap(probes.maxEntries)
+  );
   return {
     schemaVersion: TMPDIR_GROWTH_SCHEMA_VERSION,
     groupingVersion: TMPDIR_GROUPING_VERSION,
@@ -891,7 +912,7 @@ function writeArtifact(artifactPath, artifact) {
 /**
  * Run one CLI measurement, returning its documented exit status.
  * @param {readonly string[]} argv CLI arguments
- * @param {{isProcessAlive?: (pid: number) => boolean, processBirthFingerprintSnapshot?: (pids: readonly number[]) => ReadonlyMap<number, string | undefined>}} [probes] Internal process-authority probes
+ * @param {{isProcessAlive?: (pid: number) => boolean, maxEntries?: number, processBirthFingerprintSnapshot?: (pids: readonly number[]) => ReadonlyMap<number, string | undefined>}} [probes] Internal process-authority probes and an optional lowered entry cap
  * @returns {number} Documented process exit status
  */
 export function runTmpdirGrowth(argv = process.argv.slice(2), probes = {}) {

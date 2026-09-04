@@ -183,6 +183,23 @@ jobs:
       # NOT read, and exits 2 at zero.
       - name: Check no probe spends a failure as an absence
         run: bun run check:probe-absence-direction
+      # #3888: a guard that reports OK when its comparison had no subject. The
+      # instance that motivated it is a REQUIRED push gate — the conflict-marker
+      # prover printed `✓ no leftover conflict markers in 0 tracked files` and
+      # exited 0, a merge-governing green over bytes nobody read. The count was
+      # in hand and nothing read it, which is the whole class: an empty subject
+      # set and a satisfied comparison rendered identically.
+      #
+      # Measured by RUNNING each root-scoped guard against an empty git
+      # repository rather than by reading it, because a static heuristic that
+      # misses one reports a clean tree — the very failure being swept for. A
+      # guard that states its subject was ABSENT (`not-adopted`, "nothing to
+      # register") passes: it said what it examined. Like its neighbours it
+      # refuses to pass an inspection it did not perform: it prints how many
+      # guards it probed, and how many declare no root override and so could
+      # not be, and exits 2 at zero probed.
+      - name: Check no guard reports OK on an empty subject
+        run: bun run check:empty-subject-guards
       # #3190: a shell guard cannot be mutation-tested — #3111 established that
       # Stryker cannot instrument shell at all — so its driving test is the only
       # bite evidence it can have, and nine guards had a driving test whose every

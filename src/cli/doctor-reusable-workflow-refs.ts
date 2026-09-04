@@ -1,73 +1,51 @@
 /**
- * Doctor check: callers of Lisa's reusable workflows point at the ref their
- * role requires — `@main` for almost all of them, an immutable pin for the two
- * that are merge gates.
+ * Doctor check: every caller of a Lisa reusable workflow names a full-length
+ * commit SHA, so "the rollout is complete" is a measurement rather than a claim.
  *
- * ## Why `@main` is right for almost all of them
+ * ## What it is measuring
  *
- * Consumers tracking `@main` is an owner decision, and the rest of the gate
- * subsystem is built on it. The permission-scope baseline is frozen precisely
- * because "an installed caller is a snapshot of the past, so the property that
- * keeps it working is that the callee does not move", and a renamed required
- * context has to reach every consumer in one release. Both assume a caller
- * receives a change on its next run.
+ * A ref that is not a 40-character SHA — `@main`, a version tag, a short SHA —
+ * means this repository executes something other than the Lisa it installed.
+ * With `@main` that is whatever landed on Lisa's default branch since the run
+ * started; with a tag it is a release the project may be a major behind; with
+ * a short SHA it is ambiguous, and several GitHub APIs answer a short SHA with
+ * an empty result rather than an error.
  *
- * A pinned caller breaks that silently, and silently is the problem: it keeps
- * running, keeps reporting, and stops receiving fixes. Nothing surfaces it.
+ * The pin is written by `ensure-pinned-reusable-workflow-refs` on every apply,
+ * so a project that has been applied since the pinner shipped has none of
+ * these. One that still does has not been reached, which is exactly the fact
+ * this check exists to report: a repository still on a mutable ref is the unit
+ * of work remaining in the rollout, and nothing else surfaces it.
  *
- * ## Why two of them are the opposite
+ * ## Why it does not check WHICH SHA
  *
- * `nightly-e2e-health` and `nightly-e2e-report` produce a **required merge
- * gate** context. The thing deciding whether code may merge must not change
- * under you between two runs of the same pull request, so those callers pin an
- * immutable ref and `@main` is a defect there. That is a ratified exception
- * guarded by `tests/integration/nightly-e2e-{health,report}-workflow.test.ts`,
- * and the shipped templates carry the reasoning inline.
- *
- * So the rule is two-directional, and a check enforcing only "everything must
- * be `@main`" would delete a deliberate guarantee — which is exactly what the
- * first draft of this module did before those tests caught it.
+ * Being one release behind is not the defect. That project self-heals on its
+ * next apply and, in the meantime, runs a Lisa somebody reviewed. A project on
+ * `@main` never self-heals into immutability and never ran a reviewed Lisa at
+ * all. Reporting both as the same finding would bury the second in the first.
  *
  * ## Not the same question as action pinning
  *
  * `doctor-readiness-action-pins` wants third-party *step* actions pinned to a
- * full SHA — supply-chain immutability for code Lisa does not control. This is
- * job-level `uses:` pointing at Lisa itself, where mutability is usually the
- * point. Opposite answers, different subjects.
+ * full SHA. This is job-level `uses:` pointing at Lisa itself. The subjects
+ * differ; since CodySwannGT/lisa#3893 the answer no longer does, because a
+ * host project is a third party to Lisa in exactly the sense that guidance
+ * means.
  * @module cli/doctor-reusable-workflow-refs
  */
 import { readdir, readFile } from "node:fs/promises";
 import * as path from "node:path";
 
+import {
+  findReusableWorkflowRefs,
+  isMutableRef,
+} from "../core/reusable-workflow-pin.js";
 import type { DoctorCheck } from "./doctor.js";
 
 /** Name rendered in the doctor report. */
 const CHECK_NAME = "Lisa reusable workflow refs";
 
-/** The ref an ordinary caller is expected to track. */
-const EXPECTED_REF = "main";
-
-/**
- * Reusables whose callers MUST pin an immutable ref instead of `@main`.
- *
- * Both produce a required merge-gate context, and a merge gate that can change
- * between two runs of the same pull request is not a gate. Guarded upstream by
- * `nightly-e2e-health-workflow.test.ts` and `nightly-e2e-report-workflow.test.ts`,
- * so this set cannot grow silently.
- */
-const MERGE_GATE_REUSABLES = new Set([
-  "nightly-e2e-health.yml",
-  "nightly-e2e-report.yml",
-]);
-
-/** A ref that cannot move under a running pull request. */
-const IMMUTABLE_REF = /^(v\d+\.\d+\.\d+|[0-9a-f]{40})$/;
-
-/** Job-level `uses:` mapping pointing at a Lisa reusable workflow, capturing the ref. */
-const LISA_REUSABLE_USES =
-  /^[ \t]*uses:\s*["']?CodySwannGT\/lisa\/\.github\/workflows\/([A-Za-z0-9._-]+\.ya?ml)@([^\s"']+)/gm;
-
-/** One caller pointing at the wrong kind of ref for its role. */
+/** One caller still naming something other than a full commit SHA. */
 export interface RefFinding {
   /** Workflow file inside the project, relative to the project root. */
   file: string;
@@ -94,29 +72,26 @@ async function workflowFiles(targetPath: string): Promise<string[]> {
 }
 
 /**
- * Judge one caller's ref against the role of the reusable it calls.
- * @param reusable - Reusable workflow file name
- * @param ref - The ref the caller uses
- * @returns A problem statement, or null when the ref is correct
+ * Describe what is wrong with a mutable ref, in the operator's terms.
+ * @param ref - The ref the caller currently names
+ * @returns A problem statement
  */
-function refProblem(reusable: string, ref: string): string | null {
-  if (MERGE_GATE_REUSABLES.has(reusable)) {
-    if (IMMUTABLE_REF.test(ref)) return null;
+function refProblem(ref: string): string {
+  if (/^[0-9a-f]{7,39}$/.test(ref)) {
     return (
-      `produces a required merge-gate context, so it must pin an immutable ref ` +
-      `(a version tag or a full SHA); \`@${ref}\` can change between two runs of ` +
-      "the same pull request"
+      "is a SHORT commit SHA, which is ambiguous — pin the full 40 characters, " +
+      "which is what GitHub's APIs answer questions about"
     );
   }
-  if (ref === EXPECTED_REF) return null;
   return (
-    `should track @${EXPECTED_REF}; a pinned caller keeps running and keeps ` +
-    "reporting while it stops receiving fixes, so nothing surfaces the drift"
+    `is the mutable ref \`@${ref}\`, so this repository runs whatever that ref ` +
+    "points at when a run starts rather than the Lisa it installed; run " +
+    "`lisa apply` to pin it at the installed version's commit"
   );
 }
 
 /**
- * Find callers whose ref does not match the role of the reusable they call.
+ * Find callers still naming something other than a full-length commit SHA.
  * @param targetPath - Project root
  * @returns Every finding, in file order
  */
@@ -131,22 +106,21 @@ export async function reusableRefFindings(
       // failure would silently drop the file from the audit — reporting a clean
       // project because it could not read one.
       const text = await readFile(file, "utf8").catch(() => "");
-      return [...text.matchAll(LISA_REUSABLE_USES)].flatMap(match => {
-        const [, reusable, ref] = match;
-        if (reusable === undefined || ref === undefined) return [];
-        const problem = refProblem(reusable, ref);
-        if (problem === null) return [];
-        return [
-          { file: path.relative(targetPath, file), reusable, ref, problem },
-        ];
-      });
+      return findReusableWorkflowRefs(text)
+        .filter(reference => isMutableRef(reference))
+        .map(reference => ({
+          file: path.relative(targetPath, file),
+          reusable: reference.workflow,
+          ref: reference.ref,
+          problem: refProblem(reference.ref),
+        }));
     })
   );
   return perFile.flat();
 }
 
 /**
- * Report callers of Lisa's reusable workflows using the wrong ref for their role.
+ * Report callers of Lisa's reusable workflows that are still mutable.
  * @param targetPath - Project path to inspect
  * @returns Doctor check result
  */
@@ -168,7 +142,7 @@ export async function checkReusableWorkflowRefs(
     return {
       name: CHECK_NAME,
       status: "ok",
-      detail: `Every Lisa reusable workflow caller uses the ref its role requires (${files.length} workflow file(s) scanned)`,
+      detail: `Every Lisa reusable workflow caller is pinned at a full commit SHA (${files.length} workflow file(s) scanned)`,
     };
   }
 
@@ -179,6 +153,6 @@ export async function checkReusableWorkflowRefs(
   return {
     name: CHECK_NAME,
     status: "fail",
-    detail: `${findings.length} caller(s) use the wrong ref: ${lines}.`,
+    detail: `${findings.length} caller(s) are not pinned to a full commit SHA: ${lines}.`,
   };
 }
