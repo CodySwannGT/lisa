@@ -311,7 +311,7 @@ does not even admit the version doing the applying.
 When those halves drift, a config file calls an export the installed package
 does not have and **every** run of the tool that loads it dies at config load —
 lint, lint-staged, the pre-commit hook, CI Lint — while the apply itself reports
-success. `postinstall`'s `[ -d dist/configs ] || tsc || true` swallows the only
+success. `postinstall`'s `tsc || true` swallows the only
 local signal, so the failure surfaces at the next lint run, detached from the
 apply that caused it, looking like a broken ESLint config rather than a version
 skew. That is #2953.

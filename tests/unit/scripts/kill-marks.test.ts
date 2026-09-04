@@ -76,17 +76,17 @@ describe("an earlier run leaves a mark a later run can read", () => {
     expect(marks[0]?.gateId).toBe("test-correctness");
   });
 
-  it("does not report a run's own mark back to itself", () => {
-    // A run that reads after writing sees its own kill and reports it as
-    // mysterious prior context — true, circular, and useless. The runner also
-    // reads before executing; this is the second half of that guard.
+  it("reports an earlier invocation's mark from the same process", () => {
+    // Long-lived agent processes can invoke the runner more than once. PID
+    // equality cannot distinguish the previous invocation from the current
+    // one; the runner's pre-execution snapshot supplies that boundary.
     const dir = markDir();
     recordKillMark(
       { kind: "killed", gateId: "g" },
       { dir, now: NOW, pid: SELF }
     );
 
-    expect(recentKillMarks({ dir, now: NOW, self: SELF })).toEqual([]);
+    expect(recentKillMarks({ dir, now: NOW, self: SELF })).toHaveLength(1);
   });
 
   it("ignores a mark older than the retention window", () => {
@@ -111,6 +111,18 @@ describe("an earlier run leaves a mark a later run can read", () => {
     );
 
     expect(recentKillMarks({ dir, now: NOW, self: SELF })).toHaveLength(1);
+  });
+
+  it("ignores a future-dated mark", () => {
+    const dir = markDir();
+    expect(
+      recordKillMark(
+        { kind: "killed", gateId: "from-the-future" },
+        { dir, now: NOW + 60_000, pid: 111 }
+      )
+    ).toBe(true);
+
+    expect(recentKillMarks({ dir, now: NOW, self: SELF })).toEqual([]);
   });
 
   it("returns the newest first, so the closest kill reads first", () => {

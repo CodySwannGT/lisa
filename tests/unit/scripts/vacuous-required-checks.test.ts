@@ -63,24 +63,52 @@ interface GuardModule {
   readonly REVIEW_GATE_STATES: Record<string, string>;
   readonly REVIEW_GATE_BLOCKING: readonly string[];
   readonly NEVER_BLOCKING: readonly string[];
+  readonly REVIEW_GATE_CONDITIONS: Record<string, string>;
   reviewGateState(
-    reading: { present: boolean; state?: string; description?: string },
+    reading: {
+      present: boolean;
+      state?: string;
+      description?: string;
+      waitExpired?: boolean;
+    },
     vocabulary?: { waive?: readonly string[]; satisfy?: readonly string[] }
-  ): { state: string; why: string };
+  ): { state: string; condition: string; why: string };
   evaluateReviewGate(
     declaration: Record<string, unknown>,
     checks: readonly CheckRow[],
-    options?: { headSha?: string }
+    options?: { headSha?: string; waitExpired?: boolean }
   ): {
     violations: Violation[];
     states: Record<string, string>;
+    conditions: Record<string, string>;
     descriptions: Record<string, string>;
     checked: number;
   };
+  fetchSettledChecks(
+    declaration: Record<string, unknown>,
+    pr: string | number,
+    repo: string | undefined,
+    options?: {
+      timeoutSeconds?: number;
+      intervalSeconds?: number;
+      fetch?: (
+        pr: string | number,
+        repo: string | undefined,
+        headSha: string | undefined
+      ) => readonly CheckRow[];
+      now?: () => number;
+      sleep?: (ms: number) => void;
+      headSha?: (
+        pr: string | number,
+        repo: string | undefined
+      ) => string | undefined;
+    }
+  ): { checks: CheckRow[]; settled: boolean; headSha: string | undefined };
   readonly REVIEW_VERDICT_CONCLUSIONS: Record<string, string>;
   readonly REVIEW_VERDICT_TITLE_LIMIT: number;
   reviewGateVerdict(reading?: {
     states?: Record<string, string>;
+    conditions?: Record<string, string>;
     descriptions?: Record<string, string>;
     refusal?: { kind: string } | null;
     waiveRate?: { waived: number; sampled: number };
@@ -230,6 +258,27 @@ describe("vacuous required checks", () => {
         mod.VIOLATIONS.vacuous,
       ]);
       expect(result.checked).toBe(1);
+    });
+
+    it("normalizes malformed evidence vocabularies without throwing", () => {
+      for (const entry of [null, true, "not-an-object"]) {
+        const result = mod.evaluateVacuousChecks(
+          declarationWith({
+            evidence_bearing_checks: { [CODERABBIT]: entry },
+          }),
+          [
+            {
+              name: CODERABBIT,
+              state: "SUCCESS",
+              description: RATE_LIMITED,
+            },
+          ]
+        );
+
+        expect(result.violations.map(violation => violation.kind)).toEqual([
+          mod.VIOLATIONS.vacuous,
+        ]);
+      }
     });
 
     it("says branch protection recorded it when the check is ruleset-required", () => {
@@ -848,6 +897,191 @@ describe("vacuous required checks", () => {
       );
 
       expect(tally).toBe(undefined);
+    });
+  });
+
+  describe("an expired wait is not an observation (#3716)", () => {
+    /**
+     * Drives the settle loop with a scripted sequence of reads and a fake clock.
+     *
+     * `sleep` advances the same clock `now` reads, so the loop's real 300s
+     * ceiling is exercised without the suite waiting for any of it.
+     *
+     * @param reads - One check roster per poll; the last repeats once exhausted
+     * @returns The loop's result plus how many polls it took
+     */
+    function settleWith(reads: readonly (readonly CheckRow[])[]) {
+      let clock = 0;
+      let polls = 0;
+      const result = mod.fetchSettledChecks(declarationWith(), "1", undefined, {
+        timeoutSeconds: 300,
+        intervalSeconds: 15,
+        now: () => clock,
+        sleep: (ms: number) => {
+          clock += ms;
+        },
+        headSha: () => HEAD_SHA,
+        fetch: () => {
+          const roster = reads[Math.min(polls, reads.length - 1)];
+          polls += 1;
+          return roster;
+        },
+      });
+      return { ...result, polls };
+    }
+
+    const pendingRow: CheckRow = {
+      name: CODERABBIT,
+      state: "PENDING",
+      bucket: "pending",
+    };
+    // `Review completed` rather than `Review approved`: the former is in the
+    // shipped satisfy vocabulary, the latter is only satisfying where a
+    // declaration names it, and this case is about the WAIT, not the phrase.
+    const completedRow: CheckRow = {
+      name: CODERABBIT,
+      state: "SUCCESS",
+      bucket: "pass",
+      description: COMPLETED,
+    };
+
+    // REGRESSION GUARD, NOT A DISCRIMINATOR. The settle loop already waits, and
+    // this passes with or without the rest of this commit — it is here because
+    // nothing covered `fetchSettledChecks` at all, which is how a defect about
+    // waiting shipped past a suite of 52 tests.
+    it("waits through a pending review and reads the success that follows", () => {
+      const settled = settleWith([[pendingRow], [pendingRow], [completedRow]]);
+
+      expect(settled.settled).toBe(true);
+      expect(settled.polls).toBeGreaterThan(1);
+      const gate = mod.evaluateReviewGate(declarationWith(), settled.checks, {
+        waitExpired: settled.settled === false,
+      });
+      expect(gate.states[CODERABBIT]).toBe(mod.REVIEW_GATE_STATES.satisfied);
+    });
+
+    it("gives up after the ceiling when the review never settles", () => {
+      const settled = settleWith([[pendingRow]]);
+
+      expect(settled.settled).toBe(false);
+    });
+
+    it("reports an expired wait on an absent check as undetermined, not absent", () => {
+      const verdict = mod.reviewGateState({
+        present: false,
+        waitExpired: true,
+      });
+
+      expect(verdict.state).toBe(mod.REVIEW_GATE_STATES.unsatisfied);
+      expect(verdict.condition).toBe(mod.REVIEW_GATE_CONDITIONS.undetermined);
+      expect(verdict.why).toContain("EXPIRED");
+      // The sentence this replaces sent operators to audit the change.
+      expect(verdict.why).not.toContain(
+        "did not report on this pull request at all"
+      );
+    });
+
+    it("reports an expired wait on a pending check as undetermined, not pending", () => {
+      const verdict = mod.reviewGateState({
+        present: true,
+        state: "PENDING",
+        waitExpired: true,
+      });
+
+      expect(verdict.condition).toBe(mod.REVIEW_GATE_CONDITIONS.undetermined);
+      // Which shape it expired on still has to survive: "never started" and
+      // "started and ran long" are different things to go and look at.
+      expect(verdict.why).toContain("PENDING");
+    });
+
+    it("keeps absent and pending for readings taken when the wait completed", () => {
+      expect(mod.reviewGateState({ present: false }).condition).toBe(
+        mod.REVIEW_GATE_CONDITIONS.absent
+      );
+      expect(
+        mod.reviewGateState({ present: true, state: "PENDING" }).condition
+      ).toBe(mod.REVIEW_GATE_CONDITIONS.pending);
+    });
+
+    it("publishes UNDETERMINED where a merge decision reads it", () => {
+      const gate = mod.evaluateReviewGate(declarationWith(), [], {
+        waitExpired: true,
+      });
+      const rendered = mod.reviewGateVerdict({
+        states: gate.states,
+        conditions: gate.conditions,
+        descriptions: gate.descriptions,
+      });
+
+      expect(rendered.title).toContain("UNDETERMINED");
+      expect(rendered.title).toContain("RE-RUN");
+      // The exact sentence #3716 was filed about.
+      expect(rendered.title).not.toContain("posted NO review status at all");
+    });
+
+    // THE CONTROL. A gate that waits and then passes would satisfy every test
+    // above and be silently catastrophic, so the severity is pinned here.
+    it("still BLOCKS an unreviewed pull request, however it is labelled", () => {
+      for (const waitExpired of [false, true]) {
+        const gate = mod.evaluateReviewGate(declarationWith(), [], {
+          waitExpired,
+        });
+        const rendered = mod.reviewGateVerdict({
+          states: gate.states,
+          conditions: gate.conditions,
+          descriptions: gate.descriptions,
+        });
+
+        expect(gate.states[CODERABBIT]).toBe(
+          mod.REVIEW_GATE_STATES.unsatisfied
+        );
+        expect(rendered.conclusion).toBe(
+          mod.REVIEW_VERDICT_CONCLUSIONS.unsatisfied
+        );
+      }
+    });
+
+    it("leads with UNREVIEWED when a real objection sits beside a slow reviewer", () => {
+      const rendered = mod.reviewGateVerdict({
+        states: {
+          [CODERABBIT]: mod.REVIEW_GATE_STATES.unsatisfied,
+          Other: mod.REVIEW_GATE_STATES.unsatisfied,
+        },
+        conditions: {
+          [CODERABBIT]: mod.REVIEW_GATE_CONDITIONS.undetermined,
+          Other: mod.REVIEW_GATE_CONDITIONS.objected,
+        },
+        descriptions: { Other: "Changes requested" },
+      });
+
+      expect(rendered.title).toContain("UNREVIEWED");
+      expect(rendered.title).not.toContain("UNDETERMINED");
+    });
+
+    it("does not relabel a check that settled while another was still late", () => {
+      // `waitExpired` is a property of the WAIT, not of this check. One that
+      // reached a terminal read keeps its own verdict.
+      expect(
+        mod.reviewGateState(
+          { present: true, state: "SUCCESS", description: APPROVED },
+          { satisfy: [APPROVED] }
+        ).state
+      ).toBe(mod.REVIEW_GATE_STATES.satisfied);
+      expect(
+        mod.reviewGateState({
+          present: true,
+          state: "SUCCESS",
+          description: RATE_LIMITED,
+          waitExpired: true,
+        }).condition
+      ).toBe(mod.REVIEW_GATE_CONDITIONS.waived);
+      expect(
+        mod.reviewGateState({
+          present: true,
+          state: "FAILURE",
+          waitExpired: true,
+        }).condition
+      ).toBe(mod.REVIEW_GATE_CONDITIONS.objected);
     });
   });
 

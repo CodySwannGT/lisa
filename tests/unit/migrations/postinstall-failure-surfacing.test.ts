@@ -1,18 +1,11 @@
 /**
- * Behavioural regression tests for CodySwannGT/lisa#2467 and #3466.
+ * Migration coverage for postinstall failure handling.
  *
- * The shipped postinstall bootstrap redirected the apply's stderr to
- * `/dev/null` and then `|| true`d the exit code, so a completely failed apply
- * was byte-for-byte indistinguishable from a successful one. A repo in the
- * portfolio ran that way for months and received no template updates (#2467).
- * The follow-up shape swapped `true` for `echo`, which recovered the reason but
- * not the fact — `echo` also exits 0, so postinstall still reported success on
- * a failed apply (#3466).
- *
- * These tests execute the real composed script under `sh` — the same way a
- * package manager runs it — instead of asserting on the string, because the
- * property that matters is observable behaviour: a failure must be visible in
- * the output AND in the exit status.
+ * The bounded runner owns timeout, visible diagnostics, and the durable
+ * failure marker. This suite pins the migration boundary: every historical
+ * direct-apply spelling is replaced in place by that runner, while host-owned
+ * postinstall work is retained exactly once.
+ * @module tests/unit/migrations/postinstall-failure-surfacing
  */
 import * as path from "node:path";
 import * as fs from "fs-extra";
@@ -23,94 +16,37 @@ import {
   EnsureLisaPostinstallMigration,
   LISA_INVOCATION,
 } from "../../../src/migrations/ensure-lisa-postinstall.js";
-import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
-const LISA_ENTRY_RELATIVE = "node_modules/@codyswann/lisa/dist/index.js";
-const REAL_ERROR = "SyntaxError: does not provide an export named 'default'";
-/** Stub entry point that fails the way a crashing apply does. */
-const FAILING_ENTRY = "process.exit(1);";
-/** Absolute interpreter path: never resolve the shell through PATH. */
-const SHELL = "/bin/sh";
-/** The pre-fix invocation that discarded both stderr and the exit code. */
-const SWALLOWING_INVOCATION = `[ -n "$CI" ] || LISA_BOOTSTRAP=1 node ${LISA_ENTRY_RELATIVE} --yes --skip-git-check . 2>/dev/null || true`;
-/**
- * The intermediate shape from CodySwannGT/lisa#2745: it prints the reason but
- * `echo` exits 0, so the failure is still reported as a successful install.
- */
-const EXIT_ZERO_WARNING_INVOCATION = `[ -n "$CI" ] || LISA_BOOTSTRAP=1 LISA_POSTINSTALL=1 node ${LISA_ENTRY_RELATIVE} --yes --skip-git-check . || echo "lisa: TEMPLATE APPLY FAILED - see ${LISA_ENTRY_RELATIVE} doctor" >&2`;
+const DIRECT_ENTRY = "node_modules/@codyswann/lisa/dist/index.js";
+const SWALLOWING_INVOCATION = `[ -n "$CI" ] || LISA_BOOTSTRAP=1 node ${DIRECT_ENTRY} --yes --skip-git-check . 2>/dev/null || true`;
+const EXIT_ZERO_WARNING_INVOCATION = `[ -n "$CI" ] || LISA_BOOTSTRAP=1 LISA_POSTINSTALL=1 node ${DIRECT_ENTRY} --yes --skip-git-check . || echo "lisa: TEMPLATE APPLY FAILED - see ${DIRECT_ENTRY} doctor" >&2`;
+const FATAL_INVOCATION = `[ -n "$CI" ] || LISA_BOOTSTRAP=1 LISA_POSTINSTALL=1 node ${DIRECT_ENTRY} --yes --skip-git-check . || { echo "lisa: TEMPLATE APPLY FAILED" >&2; exit 1; }`;
+const BOUNDED_RUNNER =
+  '[ -n "$CI" ] || LISA_BOOTSTRAP=1 node node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-postinstall.mjs || true';
 
-describe("postinstall bootstrap surfaces a failed apply", () => {
+describe("postinstall migration adopts the bounded failure runner", () => {
   let tempDir: string;
   let projectDir: string;
 
   beforeEach(async () => {
     tempDir = await createTempDir();
     projectDir = path.join(tempDir, "project");
-    await fs.ensureDir(
-      path.join(projectDir, path.dirname(LISA_ENTRY_RELATIVE))
-    );
+    await fs.ensureDir(projectDir);
   });
 
-  afterEach(async () => {
-    await cleanupTempDir(tempDir);
-  });
+  afterEach(async () => cleanupTempDir(tempDir));
 
   /**
-   * Install a stub Lisa entry point with the given behaviour.
-   * @param body - Node source for the stub
+   * Migrate one installed postinstall spelling.
+   * @param existing Current postinstall value.
+   * @returns The migrated postinstall value.
    */
-  async function writeLisaEntry(body: string): Promise<void> {
-    await fs.writeFile(path.join(projectDir, LISA_ENTRY_RELATIVE), body);
-  }
-
-  /**
-   * Run a postinstall script the way a package manager does.
-   * @param script - The composed postinstall command
-   * @param ci - Value for the CI env var, or undefined to unset it
-   * @returns Captured status and streams
-   */
-  function runPostinstall(
-    script: string,
-    ci?: string
-  ): {
-    readonly status: number | null;
-    readonly stdout: string;
-    readonly stderr: string;
-  } {
-    const env = { ...process.env };
-    if (ci === undefined) {
-      delete env.CI;
-    } else {
-      env.CI = ci;
-    }
-    const result = boundedSpawnSync({
-      label: "the postinstall script under sh",
-      command: SHELL,
-      args: ["-c", script],
-      cwd: projectDir,
-      env,
-    });
-    return {
-      status: result.status,
-      stdout: result.stdout ?? "",
-      stderr: result.stderr ?? "",
-    };
-  }
-
-  /**
-   * Run the migration over a project whose postinstall is already `existing`.
-   * @param existing - The postinstall spelling the project currently ships
-   * @returns The project's package.json after the migration
-   */
-  async function upgradePostinstall(
-    existing: string
-  ): Promise<{ readonly scripts: Record<string, string> }> {
+  async function upgrade(existing: string): Promise<string> {
     await fs.writeJson(path.join(projectDir, "package.json"), {
       scripts: { postinstall: existing },
     });
     const detectedTypes: readonly ProjectType[] = ["typescript"];
-
     await new EnsureLisaPostinstallMigration().apply({
       projectDir,
       lisaDir: tempDir,
@@ -118,124 +54,43 @@ describe("postinstall bootstrap surfaces a failed apply", () => {
       dryRun: false,
       logger: new SilentLogger(),
     });
-
-    return fs.readJson(path.join(projectDir, "package.json"));
+    const pkg = await fs.readJson(path.join(projectDir, "package.json"));
+    return pkg.scripts.postinstall;
   }
 
-  it("lets the real error reach stderr instead of /dev/null", async () => {
-    await writeLisaEntry(
-      `console.error(${JSON.stringify(REAL_ERROR)}); process.exit(1);`
+  it("exports the same bounded runner the package template uses", () => {
+    expect(LISA_INVOCATION).toBe(BOUNDED_RUNNER);
+  });
+
+  it.each([
+    SWALLOWING_INVOCATION,
+    EXIT_ZERO_WARNING_INVOCATION,
+    FATAL_INVOCATION,
+  ])("replaces a historical direct apply in place", async old => {
+    const after = await upgrade(old);
+
+    expect(after).toBe(BOUNDED_RUNNER);
+    expect(after).not.toContain(DIRECT_ENTRY);
+  });
+
+  it("preserves host work once while replacing the direct apply", async () => {
+    expect(await upgrade(`${SWALLOWING_INVOCATION} && patch-package`)).toBe(
+      `${BOUNDED_RUNNER} && patch-package`
     );
-
-    expect(runPostinstall(LISA_INVOCATION).stderr).toContain(REAL_ERROR);
   });
 
-  it("adds a warning naming the failure and how to reproduce it", async () => {
-    await writeLisaEntry(FAILING_ENTRY);
-
-    const { stderr } = runPostinstall(LISA_INVOCATION);
-
-    // The operator sees only this line in a wall of install output: it must say
-    // that templates are not being applied, and give the command to re-run.
-    expect(stderr).toContain("lisa");
-    expect(stderr.toUpperCase()).toContain("FAILED");
-    expect(stderr).toContain(LISA_ENTRY_RELATIVE);
-    expect(stderr).toContain("doctor");
-  });
-
-  it("does not report success when the apply fails", async () => {
-    await writeLisaEntry(FAILING_ENTRY);
-
-    // The whole of CodySwannGT/lisa#3466: `|| echo` exits 0, so the package
-    // manager saw a clean postinstall on a totally failed apply.
-    expect(runPostinstall(LISA_INVOCATION).status).not.toBe(0);
-  });
-
-  it("stays quiet when the apply succeeds", async () => {
-    await writeLisaEntry("process.exit(0);");
-
-    const { status, stderr } = runPostinstall(LISA_INVOCATION);
-
-    expect(status).toBe(0);
-    expect(stderr).toBe("");
-  });
-
-  it("stops the chain instead of letting a later command mask the failure", async () => {
-    await writeLisaEntry(FAILING_ENTRY);
-
-    // composePostinstall builds `<lisa> && <the host's own postinstall>`. The
-    // accepted cost of failing loudly: the host's chained script is skipped,
-    // and — the point — its exit status cannot overwrite the failure.
-    const { status, stdout } = runPostinstall(
-      `${LISA_INVOCATION} && echo host-postinstall-ran`
+  it("leaves an already upgraded script byte-identical", async () => {
+    expect(await upgrade(`${BOUNDED_RUNNER} && patch-package`)).toBe(
+      `${BOUNDED_RUNNER} && patch-package`
     );
-
-    expect(status).not.toBe(0);
-    expect(stdout).not.toContain("host-postinstall-ran");
   });
 
-  it("survives a `;`-composed chain that would otherwise discard the status", async () => {
-    await writeLisaEntry(FAILING_ENTRY);
+  it("normalizes an unguarded bounded runner without duplicating it", async () => {
+    const unguarded =
+      "node node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-postinstall.mjs";
 
-    // `exit 1` rather than a bare `false`: a consumer who hand-edits the
-    // separator to `;` still gets a non-zero install.
-    expect(
-      runPostinstall(`${LISA_INVOCATION} ; echo host-postinstall-ran`).status
-    ).not.toBe(0);
-  });
-
-  it("short-circuits entirely when CI is set", async () => {
-    await writeLisaEntry("console.error('should not run'); process.exit(1);");
-
-    const { status, stderr } = runPostinstall(LISA_INVOCATION, "true");
-
-    expect(status).toBe(0);
-    expect(stderr).toBe("");
-  });
-
-  it("proves the pre-fix shape was silent on the same failure", async () => {
-    await writeLisaEntry(
-      `console.error(${JSON.stringify(REAL_ERROR)}); process.exit(1);`
+    expect(await upgrade(`${unguarded} && patch-package`)).toBe(
+      `${BOUNDED_RUNNER} && patch-package`
     );
-
-    const { status, stdout, stderr } = runPostinstall(SWALLOWING_INVOCATION);
-
-    // This is the bug, pinned: a total failure produced nothing at all.
-    expect(status).toBe(0);
-    expect(stdout).toBe("");
-    expect(stderr).toBe("");
-  });
-
-  it("proves the intermediate shape reported success on the same failure", async () => {
-    await writeLisaEntry(
-      `console.error(${JSON.stringify(REAL_ERROR)}); process.exit(1);`
-    );
-
-    const { status, stderr } = runPostinstall(EXIT_ZERO_WARNING_INVOCATION);
-
-    // CodySwannGT/lisa#3466 pinned: the reason was visible, the failure was not.
-    expect(stderr).toContain("TEMPLATE APPLY FAILED");
-    expect(status).toBe(0);
-  });
-
-  it("upgrades an installed project off the swallowing shape", async () => {
-    const pkg = await upgradePostinstall(SWALLOWING_INVOCATION);
-
-    expect(pkg.scripts.postinstall).toBe(LISA_INVOCATION);
-    expect(pkg.scripts.postinstall).not.toContain("2>/dev/null");
-  });
-
-  it("upgrades an installed project off the exit-0 warning shape in place", async () => {
-    const pkg = await upgradePostinstall(EXIT_ZERO_WARNING_INVOCATION);
-
-    // Replaced, not chained: a missed match would leave the project running two
-    // applies per install (the CodySwannGT/lisa#3050 shape).
-    expect(pkg.scripts.postinstall).toBe(LISA_INVOCATION);
-  });
-
-  it("leaves an already-upgraded project byte-identical", async () => {
-    const pkg = await upgradePostinstall(`${LISA_INVOCATION} && patch-package`);
-
-    expect(pkg.scripts.postinstall).toBe(`${LISA_INVOCATION} && patch-package`);
   });
 });

@@ -254,6 +254,24 @@ describe("the contract digest answers one question and no other", () => {
 });
 
 describe("the envelope reads its subject, contract, and producer from the run", () => {
+  it("uses one captured Lisa identity even if artifacts change later", () => {
+    const captured = {
+      surface: "managed-script",
+      registry_version: "4.35.0",
+      registry_path: "scripts/lisa-gates.mjs",
+      workflow_ref: "owner/repo/.github/workflows/quality.yml@refs/heads/main",
+      workflow_sha: "a".repeat(40),
+      artifacts: {
+        "lisa-gates.mjs": `sha256:${"b".repeat(12)}`,
+        "lisa-run-gates.mjs": `sha256:${"c".repeat(12)}`,
+      },
+    };
+
+    const doc = build([], { identity: captured });
+
+    expect(doc.contract).toMatchObject(captured);
+  });
+
   it("records the repository, commit, and ref the run declares", () => {
     process.env["GITHUB_REPOSITORY"] = REPO;
     process.env["GITHUB_SHA"] = "a".repeat(40);

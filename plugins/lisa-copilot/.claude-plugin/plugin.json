@@ -1,6 +1,6 @@
 {
   "name": "lisa",
-  "version": "4.34.18",
+  "version": "4.37.3",
   "description": "Universal governance — agents, skills, commands, hooks, and rules for all projects",
   "author": {
     "name": "Cody Swann"
@@ -69,6 +69,14 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-direct-issue-create.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-blind-automerge.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-host-name-leak.sh"
           },
           {
             "type": "command",

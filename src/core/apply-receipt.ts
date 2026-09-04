@@ -81,21 +81,26 @@ export interface ApplyReceipt {
    */
   readonly stale_paths: readonly string[];
   /**
-   * `.github/workflows/` files that apply deleted.
+   * Every file that apply deleted.
    *
    * Recorded for a reason `stale_paths` does not share. A stale file is still
-   * on disk and can be found by looking; a deleted workflow leaves nothing
-   * behind at all, and because a workflow that no longer exists cannot fail, it
-   * takes its own alarm with it. The removal reads as a quiet, healthy repo
-   * from every angle except the one nobody checks — three of them went that way
-   * in a consumer repo before an unrelated test hit `ENOENT`
-   * (CodySwannGT/lisa#3656).
+   * on disk and can be found by looking; a deleted one leaves nothing behind at
+   * all, and a deleted workflow additionally takes its own alarm with it,
+   * because a workflow that no longer exists cannot fail. The removal reads as
+   * a quiet, healthy repo from every angle except the one nobody checks — three
+   * of them went that way in a consumer repo before an unrelated test hit
+   * `ENOENT` (CodySwannGT/lisa#3656).
+   *
+   * This is the copy that survives. Package managers hide postinstall stdout,
+   * and the reconciliation trampoline is spawned detached with `stdio:
+   * "ignore"`, so a console line there is not merely easy to miss — it is
+   * unobservable by construction.
    *
    * Written by every apply, including the ones that delete nothing: an empty
-   * array asserts "this apply removed no workflows", which is a different
-   * statement from a receipt too old to have the field.
+   * array asserts "this apply removed nothing", which is a different statement
+   * from a receipt too old to have the field.
    */
-  readonly deleted_workflow_paths: readonly string[];
+  readonly deleted_paths: readonly string[];
 }
 
 /**
@@ -160,7 +165,7 @@ export async function readApplyReceipt(
     harness: typeof parsed.harness === "string" ? parsed.harness : "unknown",
     apply_mode: toApplyMode(parsed.apply_mode),
     stale_paths: toPathList(parsed.stale_paths),
-    deleted_workflow_paths: toPathList(parsed.deleted_workflow_paths),
+    deleted_paths: toPathList(parsed.deleted_paths),
   };
 }
 
@@ -177,7 +182,7 @@ export async function readApplyReceipt(
  * @param details.harness - Harness the apply emitted for
  * @param details.applyMode - Whether this was a full or postinstall-safe apply
  * @param details.stalePaths - Managed files the apply left out of date
- * @param details.deletedWorkflowPaths - Workflow files the apply removed
+ * @param details.deletedPaths - Files the apply removed
  * @param now - Clock, injectable for tests
  * @returns True when the receipt was persisted
  */
@@ -188,7 +193,7 @@ export async function recordSuccessfulApply(
     readonly harness: string;
     readonly applyMode: ApplyMode;
     readonly stalePaths: readonly string[];
-    readonly deletedWorkflowPaths: readonly string[];
+    readonly deletedPaths: readonly string[];
   },
   now: () => Date = () => new Date()
 ): Promise<boolean> {
@@ -199,7 +204,7 @@ export async function recordSuccessfulApply(
     harness: details.harness,
     apply_mode: details.applyMode,
     stale_paths: [...details.stalePaths],
-    deleted_workflow_paths: [...details.deletedWorkflowPaths],
+    deleted_paths: [...details.deletedPaths],
   };
   const receiptPath = resolveApplyReceiptPath(root);
   try {

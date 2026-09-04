@@ -11,9 +11,11 @@
  * config load — lint, lint-staged, the pre-commit hook, CI Lint. The apply
  * reported success.
  *
- * It is not caught locally either: `postinstall` runs
- * `[ -d dist/configs ] || tsc || true`, so a host that already has a `dist/`
- * skips the build and `|| true` swallows the rest. The mismatch surfaces at the
+ * It is not caught locally either: `postinstall` runs `tsc || true`, so
+ * `|| true` swallows the failure. (It also used to skip the build entirely
+ * whenever a `dist/` already existed; that presence guard was removed in
+ * #3778, which removes one of the two mechanisms but not this one.)
+ * The mismatch surfaces at the
  * NEXT ESLint run, detached from the apply that caused it, and reads as a
  * broken ESLint config rather than as a version skew.
  *
@@ -195,6 +197,24 @@ describe("apply pins the version it is applying (#2953)", () => {
     });
   });
 
+  /**
+   * The exemption, and the consequence it carries.
+   *
+   * Adding a dependency on a published copy of itself as a side effect of
+   * applying to itself is not something Lisa should do, and this block keeps it
+   * from happening. What nobody wrote down is the other half: Lisa's manifest
+   * already HAS a `@codyswann/lisa` devDependency, and the phase this exempts is
+   * the only thing that would keep such a pin current. So **this repository's
+   * pin is maintained by nothing** — every consumer is maintained, the
+   * maintainer is not.
+   *
+   * That is not theoretical. The pin rotted two majors twice: #2279 (2026-08-04)
+   * and #3662 (2026-09-03), each found only because a human read a version
+   * string, and the second time it had been holding a broken test green for a
+   * month. #3768 is where that was decided and where the replacement reader
+   * lives — `scripts/check-self-dependency-pin.mjs`, a required CI step that
+   * compares the declared floor against the newest INSTALLABLE release.
+   */
   describe("Lisa never pins itself", () => {
     it("adds no self-dependency when the host manifest is Lisa's own", async () => {
       await host.writeTemplate(TYPESCRIPT, INERT_TEMPLATE);
