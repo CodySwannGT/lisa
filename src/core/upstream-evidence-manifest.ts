@@ -2453,7 +2453,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-contents/.husky/pre-commit":
       "4f4811401632ec2452e513875a8f01f5c4a9b74776b1926c9075ed99a06da436",
     "typescript/copy-contents/.husky/pre-push":
-      "c71d3e842aafb2ccbaaebb82e1cabd267ef9a0d6f2845fd75807f46fdeccbc0a",
+      "e73dde7a1dcb3c10be5db540b9d9f46ec74b90ecc10a850b4fb098481ef6de6e",
     "typescript/copy-contents/.husky/prepare-commit-msg":
       "4a719c20da65653f266e7c8a346b5546ad05f1dfa34665fc7fec47e89d2f58d1",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
