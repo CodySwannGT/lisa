@@ -348,7 +348,66 @@ In `@example` blocks, use fenced code blocks and escape `@` as `\@`:
  */
 ```
 
-### Quick Reference for Escaping
+### Path Examples Must Not Contain the Block Terminator
+
+A path written as an example inside a doc comment **ends the comment** if it
+contains `*/` — a glob such as `sandbox-*/`, or any real directory whose
+name ends in an asterisk. Everything below that point is then parsed as source:
+path segments become identifiers, and the separator between them becomes
+division.
+
+**Write the wildcard as a placeholder, not a glob:**
+
+```typescript
+// WRONG — the comment ends inside the path, mid-line
+/**
+ * Debris lands at `.stryker-tmp/bite-guard-intact/sandbox-*/rails/scripts/foo.sh`
+ * and this line is no longer a comment.
+ */
+
+// RIGHT — a placeholder cannot terminate the block
+/**
+ * Debris lands at `.stryker-tmp/bite-guard-intact/sandbox-<id>/rails/scripts/foo.sh`
+ * and this line is still a comment.
+ */
+```
+
+`<id>`, `<name>`, `<n>` — the same placeholder convention used everywhere else
+in Lisa's docs. Escaping (`*\/`) also works but produces an example nobody can
+copy and paste, which defeats the point of writing one.
+
+### What it looks like when you get it wrong
+
+The build goes red immediately — `bun run typecheck`, `bun run lint` and the
+test run all fail — but **none of them mentions a comment**, and every line
+they report sits *below* the real cause. Measured, with the true cause on
+line 89:
+
+```text
+src/configs/repo-scan.ts(90,9):  error TS1005: ';' expected.
+src/configs/repo-scan.ts(90,20): error TS1443: Module declaration names may only use ' or " quoted strings.
+src/configs/repo-scan.ts(94,1):  error TS1160: Unterminated template literal.
+```
+
+Errors naming identifiers you never wrote — `Cannot find name 'mutation'`,
+`Cannot find name 'src'` — are the giveaway: those are backtick contents from
+inside the comment, now being read as code. **Look upward for a doc comment
+before looking for a missing import.**
+
+Lisa's gate runner says this for you. When a gate fails, it scans the files the
+failure named and reports the closed comment by name:
+
+```text
+a doc comment in src/configs/repo-scan.ts ends early, on line 89 — every error
+reported below that line is downstream of it, not a fault of its own
+  ↳ src/configs/repo-scan.ts:89 — the block opened on line 87 ends at the
+    terminator INSIDE this line, not on line 92
+```
+
+It is a text scan rather than a lint rule on purpose: the file does not parse,
+so ESLint reports `Parsing error` and runs zero rules on it.
+
+## Quick Reference for Escaping
 
 | Context | Approach | Example |
 |---------|----------|---------|

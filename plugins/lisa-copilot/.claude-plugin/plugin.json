@@ -1,6 +1,6 @@
 {
   "name": "lisa",
-  "version": "4.35.4",
+  "version": "4.38.0",
   "description": "Universal governance — agents, skills, commands, hooks, and rules for all projects",
   "author": {
     "name": "Cody Swann"
@@ -37,11 +37,29 @@
         ]
       },
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/discharge-work-item-gates.sh"
+          }
+        ]
+      },
+      {
         "matcher": "Edit|Write|NotebookEdit|Bash",
         "hooks": [
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/threshold-ratchet.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Edit|Write|Read|Task|Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/withdrawn-rulings.sh --hook"
           }
         ]
       }
@@ -69,6 +87,10 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-direct-issue-create.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-blind-automerge.sh"
           },
           {
             "type": "command",
@@ -122,6 +144,15 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/withdrawn-rulings.sh --session-start"
           }
         ]
       },

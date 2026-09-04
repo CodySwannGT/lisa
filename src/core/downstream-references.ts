@@ -37,6 +37,10 @@ import { findHostNames, hostNameEntries } from "./downstream-names.js";
 export const PUBLIC_ORGS: readonly string[] = [
   "codyswanngt",
   "actions",
+  // The Rust community's Actions org. Named only as a lookalike fixture: it is
+  // what proves the `actions` exemption is an owner allowlist rather than a
+  // prefix match, which a substring check would silently get wrong.
+  "actions-rs",
   "github",
   "anthropics",
   "openai",
