@@ -159,17 +159,28 @@ describe("release package identity workflow", () => {
       "${{ needs.version.outputs.release_commit }}"
     );
 
-    const createRelease = namedStep(
+    // The decision this guards is WHICH commit the release targets: the exact
+    // release commit, never the branch head. Since #3717 the value reaches the
+    // script through `env:` rather than being interpolated into it — the same
+    // treatment the `release_commit` step above already required — so the
+    // binding is asserted on `env` and the usage on the shell variable. The
+    // negative assertions are what keep this a guard rather than a restatement.
+    const createReleaseStep = namedStep(
       release.jobs.github_release,
       "Create GitHub Release"
-    ).run;
-    expect(createRelease).toContain(
-      '--arg target "${{ needs.version.outputs.release_commit }}"'
     );
-    expect(createRelease).toContain(
-      '[ "$TARGET" != "${{ needs.version.outputs.release_commit }}" ]'
+    const createRelease = createReleaseStep.run;
+    expect(createReleaseStep.env).toMatchObject({
+      RELEASE_COMMIT: "${{ needs.version.outputs.release_commit }}",
+    });
+    expect(createRelease).toContain('--arg target "$RELEASE_COMMIT"');
+    expect(createRelease).toContain('[ "$TARGET" != "$RELEASE_COMMIT" ]');
+    expect(createReleaseStep.env?.["RELEASE_COMMIT"]).not.toBe(
+      "${{ github.sha }}"
     );
-    expect(createRelease).not.toContain('--arg target "${{ github.sha }}"');
+    expect(createRelease).not.toContain("${{ github.sha }}");
+    // Nothing in this step may be interpolated into shell source (#3717).
+    expect(createRelease).not.toContain("${{");
   });
 
   it("requires the exact release commit and establishes version before build", async () => {
