@@ -38,15 +38,14 @@
         "matcher": "Bash"
       },
       {
-        "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-direct-issue-create.sh",
-        "matcher": "Bash"
-      },
-      {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-instruction-file-edits.sh",
         "matcher": "Write|Edit|MultiEdit"
       },
       {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh"
+      },
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-direct-issue-create.sh"
       }
     ],
     "stop": [

@@ -59,10 +59,6 @@
           {
             "type": "command",
             "command": "${PLUGIN_ROOT}/hooks/block-instruction-file-edits.sh"
-          },
-          {
-            "type": "command",
-            "command": "${PLUGIN_ROOT}/hooks/block-direct-issue-create.sh"
           }
         ]
       },
@@ -81,6 +77,15 @@
           {
             "type": "command",
             "command": "${PLUGIN_ROOT}/hooks/enforce-verification-gate.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/block-direct-issue-create.sh"
           }
         ]
       }

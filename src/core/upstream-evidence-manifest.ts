@@ -45,7 +45,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "c73eac2c0759e58231c06a76d4d72b65079e3eb4aab14e335937a56babe31ab5",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "84bb3e15166be4764f10ed3fe6239cfd2ece45d4333343e0d9cf6dd295ab5b42",
+      "6edfeec55433192c89b955a026ca3b5a25ade8e04c3267542d1cd884cd0bb3bb",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
@@ -723,9 +723,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/commands/wiki/install.md":
       "51392cf053c17edd549bfbaba5d19ce669dc79021aafa7cfa100324ad38de11f",
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
-      "2adaf15910b6d00e69c202d263d407a21b31c0afce0039c6c042e51c278d2325",
+      "3e8e54a608e57b57e3fd372ad5b9a7b2794ce4934a67e36f374c8a06dc16e69e",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "aff23b92a9aeaf5d284384935fc1da64ae72c3bbda7bc16485d0fd45385479fc",
+      "7a3c6d529d899573fbc7ede122a3d545c786409546decbc68d51a8eccbf01b3e",
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
@@ -9833,6 +9833,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-direct-issue-create-data-paths.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-declarations.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-file-reach.test.ts": true,
+    "tests/unit/hooks/block-direct-issue-create-mcp-substrate.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-missing-interpreter.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-remediation-executability.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-state-declaration.test.ts": true,
