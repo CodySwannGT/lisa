@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.38.3](https://github.com/CodySwannGT/lisa/compare/v4.38.2...v4.38.3) (2026-09-04)
+
+
+### Bug Fixes
+
+* **ci:** type-check tests, which the required gate never compiled ([be1f08f](https://github.com/CodySwannGT/lisa/commit/be1f08f6710520b01f498f3fca886d5dcd0ea30f)), closes [CodySwannGT/lisa#3811](https://github.com/CodySwannGT/lisa/issues/3811) [#3811](https://github.com/CodySwannGT/lisa/issues/3811) [CodySwannGT/lisa#3811](https://github.com/CodySwannGT/lisa/issues/3811)
+
 ### [4.38.2](https://github.com/CodySwannGT/lisa/compare/v4.38.1...v4.38.2) (2026-09-04)
 
 
