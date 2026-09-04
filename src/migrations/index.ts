@@ -7,6 +7,7 @@ import { EnsureLighthouseCollectOptionsMigration } from "./ensure-lighthouse-col
 import { EnsureNightlyE2EWorkflowPinsMigration } from "./ensure-nightly-e2e-workflow-pins.js";
 import { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 import { EnsureOxlintBaseConfigsMigration } from "./ensure-oxlint-base-configs.js";
+import { EnsurePinnedReusableWorkflowRefsMigration } from "./ensure-pinned-reusable-workflow-refs.js";
 import { EnsurePlaywrightDedicatedCallerMigration } from "./ensure-playwright-dedicated-caller.js";
 import { EnsurePushDefaultSafeMigration } from "./ensure-push-default-safe.js";
 import { EnsureQualityCallerScopesMigration } from "./ensure-quality-caller-scopes.js";
@@ -40,6 +41,7 @@ export { EnsureLighthouseCollectOptionsMigration } from "./ensure-lighthouse-col
 export { EnsureNightlyE2EWorkflowPinsMigration } from "./ensure-nightly-e2e-workflow-pins.js";
 export { EnsureLisaPostinstallMigration } from "./ensure-lisa-postinstall.js";
 export { EnsureOxlintBaseConfigsMigration } from "./ensure-oxlint-base-configs.js";
+export { EnsurePinnedReusableWorkflowRefsMigration } from "./ensure-pinned-reusable-workflow-refs.js";
 export { EnsurePlaywrightDedicatedCallerMigration } from "./ensure-playwright-dedicated-caller.js";
 export { EnsurePushDefaultSafeMigration } from "./ensure-push-default-safe.js";
 export { EnsureQualityCallerScopesMigration } from "./ensure-quality-caller-scopes.js";
@@ -86,6 +88,9 @@ export class MigrationRegistry {
       new PruneRetiredClaudeDenyRulesMigration(),
       new ReconcileClaudeStackPluginsMigration(),
       new UntrackCodexMarketplaceMigration(),
+      // Last: every other workflow migration has finished editing caller files,
+      // so the pin this writes is the one that survives the apply.
+      new EnsurePinnedReusableWorkflowRefsMigration(),
     ];
   }
 
