@@ -1152,11 +1152,8 @@ const scoredSubjectNote = scored => {
     scored.length > listed.length
       ? `\n     …and ${scored.length - listed.length} more`
       : "";
-  return (
-    `\n   Scored ${scored.length} changed line range(s) from THIS change:\n` +
-    listed.map(range => `     • ${range}`).join("\n") +
-    rest
-  );
+  const lines = listed.map(range => `     • ${range}`).join("\n");
+  return `\n   Scored ${scored.length} changed line range(s) from THIS change:\n${lines}${rest}`;
 };
 
 /**
