@@ -907,16 +907,26 @@ describe("the vacuity arm, as something that actually runs", () => {
       expect(inspection?.violations[0]?.message).toContain(HEAD_A);
     });
 
-    it("BLOCKS on ABSENT, which is not the same as waived", () => {
+    it("BLOCKS when a declared check never reported, and never waives it", () => {
       // Measured on CodySwannGT/lisa#3221: 40 of 40 MERGE COMMITS carry no
       // CodeRabbit status at all. A gate keyed on the wrong commit reads absent
       // every single time, so absent-means-waived would pass forever while
-      // reporting nothing — inert, and green.
+      // reporting nothing — inert, and green. THAT is what this pins, and it is
+      // unchanged: the state is still `unsatisfied` and the finding is still
+      // raised.
       //
       // Driven here rather than through the workflow step because `checksSettled`
       // treats a declared check that has not reported as UNSETTLED and re-reads
       // until the window expires. That is right in production and unreachable in
       // a test budget, so this arm passes `--settle-timeout=0`.
+      //
+      // WHICH IS ALSO WHY THE WORDING MOVED (#3716). A zero-second window is an
+      // expired window, so this path now reports `undetermined` — the gate
+      // stopped waiting — rather than asserting that nobody reviewed. The
+      // distinction is the whole of #3716: a wait that ended is not an
+      // observation. `absent` as a settled reading is still pinned directly, in
+      // vacuous-required-checks.test.ts, where `reviewGateState` is called
+      // without an expired wait.
       const inspection = mod.inspectVacuity(
         [VACUITY, "--pr=4003", NO_WAIT],
         declarationWith(),
@@ -932,7 +942,11 @@ describe("the vacuity arm, as something that actually runs", () => {
       const gate = inspection?.violations.find(
         v => v.kind === "review_evidence_unsatisfied"
       );
-      expect(gate?.message).toContain("ABSENT is not the same as waived");
+      expect(gate?.message).toContain("EXPIRED");
+      // The load-bearing half of the original assertion: whatever it is called,
+      // it is NOT a waiver and it does not read as one.
+      expect(inspection?.gateStates?.[CODERABBIT]).not.toBe("waived");
+      expect(gate?.message).not.toContain("could not review");
       expect(gate?.message).toContain(HEAD_A);
     });
 
