@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.34.15](https://github.com/CodySwannGT/lisa/compare/v4.34.14...v4.34.15) (2026-09-04)
+
+
+### Bug Fixes
+
+* **deps:** bump the self-dependency pin off a two-majors-stale floor ([928b424](https://github.com/CodySwannGT/lisa/commit/928b424a7b936bf11637fb120a4594f3aa7a3306)), closes [#2279](https://github.com/CodySwannGT/lisa/issues/2279) [#3505](https://github.com/CodySwannGT/lisa/issues/3505) [CodySwannGT/lisa#3662](https://github.com/CodySwannGT/lisa/issues/3662)
+* **hooks:** teach block-no-verify BSD env's -P, which it refused as unknown ([2a4afe3](https://github.com/CodySwannGT/lisa/commit/2a4afe3550c5e02bedff20487909b0663a1669cf)), closes [#3736](https://github.com/CodySwannGT/lisa/issues/3736) [CodySwannGT/lisa#3541](https://github.com/CodySwannGT/lisa/issues/3541)
+* **release:** exempt and de-ReDoS the publish checker ([434fdd0](https://github.com/CodySwannGT/lisa/commit/434fdd0940e43bc74563150ad752135cadb75714)), closes [CodySwannGT/lisa#3684](https://github.com/CodySwannGT/lisa/issues/3684)
+* **release:** prove a publish reached npm instead of assuming it did ([474e1fe](https://github.com/CodySwannGT/lisa/commit/474e1fe3e71fbd2ffd26ad20f4601c62ae63af1c)), closes [CodySwannGT/lisa#3684](https://github.com/CodySwannGT/lisa/issues/3684)
+
+### [4.34.14](https://github.com/CodySwannGT/lisa/compare/v4.34.13...v4.34.14) (2026-09-04)
+
+
+### Bug Fixes
+
+* **ci:** check the workflow's own half of the contract handshake too ([543ed13](https://github.com/CodySwannGT/lisa/commit/543ed1346878dcf60ef221d5a920db6661324059)), closes [CodySwannGT/lisa#3477](https://github.com/CodySwannGT/lisa/issues/3477)
+* **work-item:** give the traceability gate's two halves a version to compare ([db7dfbb](https://github.com/CodySwannGT/lisa/commit/db7dfbbe4b47c903374acf84b1feef6499395b58)), closes [#2721](https://github.com/CodySwannGT/lisa/issues/2721) [pre-#2672](https://github.com/CodySwannGT/pre-/issues/2672) [pre-#2721](https://github.com/CodySwannGT/pre-/issues/2721) [at-#2721](https://github.com/CodySwannGT/at-/issues/2721) [at-#2721](https://github.com/CodySwannGT/at-/issues/2721) [#2672](https://github.com/CodySwannGT/lisa/issues/2672) [#2721](https://github.com/CodySwannGT/lisa/issues/2721) [#2721](https://github.com/CodySwannGT/lisa/issues/2721) [CodySwannGT/lisa#3477](https://github.com/CodySwannGT/lisa/issues/3477)
+
 ### [4.34.13](https://github.com/CodySwannGT/lisa/compare/v4.34.12...v4.34.13) (2026-09-04)
 
 ### [4.34.12](https://github.com/CodySwannGT/lisa/compare/v4.34.11...v4.34.12) (2026-09-04)

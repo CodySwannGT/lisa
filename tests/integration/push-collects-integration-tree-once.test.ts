@@ -160,6 +160,46 @@ function stageStubPackageManager(root: string): void {
 }
 
 /**
+ * The environment a git command in the FIXTURE must run under.
+ *
+ * `GIT_*` is stripped rather than inherited. Vitest runs inside this
+ * repository, and a leaked `GIT_DIR` or `GIT_INDEX_FILE` points a fixture's
+ * git command at the REAL checkout — where it would succeed, against the wrong
+ * repository, and the test would pass for a reason unrelated to what it checks.
+ */
+const FIXTURE_GIT_ENV = Object.fromEntries(
+  Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_"))
+) as NodeJS.ProcessEnv;
+
+/**
+ * Runs one git command inside the fixture, refusing to continue on failure.
+ *
+ * @param root - The fixture repository root
+ * @param args - Arguments after `git`
+ * @throws {Error} When git exits non-zero, naming the command
+ */
+function fixtureGit(root: string, ...args: readonly string[]): void {
+  // `boundedSpawnSync`, not a bare `spawnSync`: every synchronous child start
+  // in this tree must carry a deadline, and `unbounded-spawn-conformance`
+  // enforces it. `/usr/bin/env` rather than a bare `git` matches
+  // `edit-time-copies-are-derived.test.ts` — resolving the binary through $PATH
+  // directly trips `sonarjs/no-os-command-from-path`.
+  const done = boundedSpawnSync({
+    label: `fixture git ${args.join(" ")}`,
+    command: "/usr/bin/env",
+    args: ["git", ...args],
+    baseMs: 15_000,
+    cwd: root,
+    env: FIXTURE_GIT_ENV,
+  });
+  if (done.status !== 0) {
+    throw new Error(
+      `fixture git ${args.join(" ")} failed (${String(done.status)}): ${done.stderr ?? ""}`
+    );
+  }
+}
+
+/**
  * A throwaway project on the Lisa TypeScript template, with no `gates` block —
  * the shape every consumer has, and the shape that takes the fallback path.
  * @param options - Fixture options
@@ -183,6 +223,18 @@ function stageProject(options: { readonly withCovUnit: boolean }): {
   };
   const manifest = `${JSON.stringify({ name: "fixture", private: true, scripts }, null, 2)}\n`;
 
+  // A PRE-PUSH hook runs in a repository that can be pushed, and until #3662
+  // this fixture was a bare temp directory. The hook's work-item gate could not
+  // compute a push range in it at all, and the ONLY thing keeping that green
+  // was a self-dependency pinned two majors back: `pre-push` resolves the gate
+  // from `node_modules/@codyswann/lisa` FIRST, and the 2.328.0 copy tolerated
+  // the failure where 4.33.x fails closed. Failing closed is the correct
+  // behaviour — a push gate that cannot tell what is being pushed should
+  // refuse — so the bump did not break this test, it stopped a broken test
+  // from passing.
+  fixtureGit(root, "init", "--initial-branch=main");
+  fixtureGit(root, "config", "user.email", "fixture@example.invalid");
+  fixtureGit(root, "config", "user.name", "Fixture");
   dirs.push(root);
   writeFileSync(log, "");
   writeFileSync(path.join(root, "package.json"), manifest);
@@ -198,6 +250,24 @@ function stageProject(options: { readonly withCovUnit: boolean }): {
     path.join(root, "scripts"),
     { recursive: true }
   );
+  // One commit, and an `origin/main` pointing AT it, so the push range is
+  // empty. That is deliberate and worth stating rather than leaving to be
+  // inferred: this suite measures how many times the hook collects the
+  // integration tree, not whether work-item validation accepts a message. An
+  // empty range keeps that gate out of the way HONESTLY — it really has
+  // nothing to validate — instead of feeding it a trailer this fixture would
+  // then be silently asserting things about.
+  // The 4.33.x work-item gate also requires the project declaration every real
+  // consumer has. No `gates` block, so the fallback path this suite exists to
+  // exercise is still the one taken.
+  writeFileSync(
+    path.join(root, ".lisa.config.json"),
+    `${JSON.stringify({ tracker: "github", github: { org: "fixture", repo: "fixture" } }, null, 2)}
+`
+  );
+  fixtureGit(root, "add", "--all");
+  fixtureGit(root, "commit", "--no-verify", "-m", "fixture: stage the project");
+  fixtureGit(root, "update-ref", "refs/remotes/origin/main", "HEAD");
   writeFileSync(
     path.join(root, "scripts/lisa-work-item.mjs"),
     "process.exit(0);\n"
