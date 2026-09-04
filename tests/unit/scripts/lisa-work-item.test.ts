@@ -2763,6 +2763,120 @@ describe("commands refuse a binding that belongs to another branch", () => {
 // come from the liveness check. A control that refuses for the wrong reason
 // would look identical to the fix working.
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// #3888: the GitHub arm of the same comparison.
+//
+// `assertBranchMatches` had NO subject on the `github` provider — the arm
+// returned `undefined` unconditionally — and the binding arm is a no-op on an
+// unbound worktree. Measured 2026-09-04: 101 of 105 worktrees on one machine
+// were unbound, so on this repository's own tracker the identity check
+// compared the trailer against nothing and printed `WORK_ITEM_TRACKING_OK`
+// either way.
+//
+// The repository half of `owner/repo#123` was never the open question:
+// `canonicalizeRef` refuses anything outside `contract.repository` before this
+// comparison is reached. Only the NUMBER was, and branch names carry it under
+// the convention `lisa-implement` writes.
+//
+// Every case sends a well-formed, in-repository reference, so the pre-fix
+// behaviour is a genuine ACCEPT rather than a refusal arriving from some other
+// gate — a control that refuses for the wrong reason would look identical to
+// the fix working.
+// ---------------------------------------------------------------------------
+describe("commit identity fallback: a GitHub branch's issue number", () => {
+  /** A fixture on `branch`, carrying a GitHub contract for `acme/widgets`. */
+  function githubFixtureOn(branch: string, config = githubConfig()): Fixture {
+    const fixture = createFixture(config);
+    git(fixture.root, ["switch", "-q", "-c", branch], fixture.env);
+    return fixture;
+  }
+
+  /** Run `validate-commit` over a well-formed message carrying `ref`. */
+  function validateCommitFor(fixture: Fixture, ref: string): CommandResult {
+    const file = path.join(fixture.root, "COMMIT_EDITMSG");
+    writeFileSync(file, `chore: a change\n\nWork-Item: ${ref}\n`);
+    return command(fixture, ["validate-commit", file]);
+  }
+
+  it("refuses a mis-attributed trailer and accepts the matching one, unbound", () => {
+    const fixture = githubFixtureOn("fix/3888-guard-empty-subject");
+
+    // Pre-fix this exited 0 and printed `WORK_ITEM_TRACKING_OK
+    // acme/widgets#42` — a valid, in-repository reference to work this branch
+    // is not doing, on its way into permanent history.
+    const refused = validateCommitFor(fixture, "acme/widgets#42");
+    expect(refused.status).toBe(1);
+    expect(refused.stderr).toContain("acme/widgets#42");
+    expect(refused.stderr).toContain("acme/widgets#3888");
+
+    // The complement, on a branch naming the issue the trailer names. The
+    // fixture tracker answers for `#42`, so this is the reference it can prove
+    // live — which keeps the accept arm about the branch comparison and not
+    // about liveness.
+    const matched = githubFixtureOn("fix/42-guard-empty-subject");
+    const accepted = validateCommitFor(matched, "acme/widgets#42");
+    expect(accepted.status, accepted.stderr).toBe(0);
+    expect(accepted.stdout).toContain("WORK_ITEM_TRACKING_OK acme/widgets#42");
+  });
+
+  it("reads the number this repository's branch conventions actually write", () => {
+    // Drawn from real branch names in this repository, not invented: the
+    // agent-prefixed form, the `issue-` form, and the bare form.
+    for (const [branch, number] of [
+      ["codex/614-add-checkout-copy", "614"],
+      ["claude/issue-1423-20260704-1813", "1423"],
+      ["1924-learnings-lock-toctou", "1924"],
+      ["chore/2543-safety-net-pin-2.0.4", "2543"],
+    ] as const) {
+      const fixture = githubFixtureOn(branch);
+
+      const refused = validateCommitFor(fixture, "acme/widgets#42");
+
+      expect(refused.status, `${branch}: ${refused.stdout}`).toBe(1);
+      expect(refused.stderr).toContain(`acme/widgets#${number}`);
+    }
+  });
+
+  it("fails open on every branch that encodes no issue number", () => {
+    // The defect being closed is a comparison that silently did not happen.
+    // Replacing it with a new class of blocked commit on branches that never
+    // encoded an issue would trade one surprise for a louder one. `4.4.11` is
+    // the trap worth pinning: digits open the segment, but a `.` follows them,
+    // so a release branch is not read as issue #4.
+    for (const branch of [
+      "main",
+      "dev",
+      "staging",
+      "chore/update-cdk",
+      "release/4.4.11",
+      "claude/wonderful-vaughan-61d007",
+    ]) {
+      const fixture = githubFixtureOn("fix/3888-seed");
+      git(fixture.root, ["switch", "-q", "-C", branch], fixture.env);
+
+      const result = validateCommitFor(fixture, "acme/widgets#42");
+
+      expect(result.status, `${branch}: ${result.stderr}`).toBe(0);
+      expect(result.stdout).toContain("WORK_ITEM_TRACKING_OK acme/widgets#42");
+    }
+  });
+
+  it("reads no branch number when the issue queue is another repository", () => {
+    // With `queueRepo` pointing elsewhere, a number in THIS repository's
+    // branch name is not a statement about that queue's issue numbering, and
+    // reading it as one would invent refusals nobody had before.
+    const fixture = githubFixtureOn("fix/3888-guard-empty-subject", {
+      tracker: "github",
+      github: { org: "acme", repo: "identity", queueRepo: "acme/widgets" },
+    });
+
+    const result = validateCommitFor(fixture, "acme/widgets#42");
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toContain("WORK_ITEM_TRACKING_OK acme/widgets#42");
+  });
+});
+
 describe("commit identity fallback: the branch when no binding exists", () => {
   /** The Linear tracker config the fake `curl` transport answers for. */
   const LINEAR = {
@@ -2888,10 +3002,11 @@ describe("commit identity fallback: the branch when no binding exists", () => {
     }
   });
 
-  it("reads no branch reference for the GitHub provider", () => {
-    // A GitHub reference is `owner/repo#123`. No branch-naming convention
-    // encodes one, so a branch segment that merely LOOKS like a key must not
-    // become a comparison the GitHub path never had.
+  it("reads no branch reference from a GitHub branch naming a tracker key", () => {
+    // A GitHub reference is `owner/repo#123`. A branch segment that merely
+    // LOOKS like a Jira/Linear key encodes no issue NUMBER, so it must not
+    // become a comparison — the GitHub arm reads a leading number and nothing
+    // else. See the `#3888` block below for the shape it does read.
     const fixture = createFixture(githubConfig());
     git(
       fixture.root,

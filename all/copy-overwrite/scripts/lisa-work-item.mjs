@@ -2172,6 +2172,55 @@ function assertStateAmong(refs, contract) {
 }
 
 /**
+ * The GitHub issue a branch name encodes, or undefined when it encodes none.
+ *
+ * A GitHub reference is `owner/repo#123`, and no branch name carries the
+ * `owner/repo` half — which is why this arm used to return `undefined`
+ * unconditionally. But the repository half is not a question a branch has to
+ * answer: `canonicalizeRef` already refuses any reference outside
+ * `contract.repository`, so every reference that reaches this comparison is in
+ * THIS repository by construction, and the only open question is the number.
+ * Branch names do carry that, under the convention `lisa-implement` writes and
+ * this repository's own history uses throughout — `fix/3888-slug`,
+ * `codex/614-add-checkout-copy`, `claude/issue-1423-20260704-1813`.
+ *
+ * Measured 2026-09-04 (issue #3888): the `github` provider is this
+ * repository's tracker, so `assertBranchMatches` had no subject on any
+ * unbound worktree — 101 of 105 — and `WORK_ITEM_TRACKING_OK` was printed off
+ * a comparison that never happened. The binding arm covered the other four.
+ *
+ * ## Narrowed to a repository that IS its own issue queue
+ *
+ * When `github.queueRepo` points the work-item queue at ANOTHER repository, a
+ * number in this repository's branch name is not a statement about that
+ * queue's issue numbering, and reading it as one would invent refusals. So the
+ * fallback is confined to `repositoryIsIdentity`, and a queue-repo project
+ * keeps exactly the behaviour it has today.
+ *
+ * ## Only a leading number in the last segment counts
+ *
+ * The digits must OPEN the final path segment and be followed by `-` and a
+ * word character, optionally behind `issue-`. That shape is what the
+ * convention writes, and every other shape a branch name takes reads as
+ * nothing: `release/4.4.11` (a `.` follows the digits), `chore/update-cdk`,
+ * `claude/wonderful-vaughan-61d007`, `dev`, `main`. Fails OPEN on all of them,
+ * exactly as the Jira and Linear arm does — the defect being closed is a
+ * comparison that silently did not happen, and replacing it with a new class
+ * of blocked commit on branches that never encoded an issue would trade one
+ * surprise for a louder one.
+ * @param {object} contract Resolved tracker contract.
+ * @returns {string|undefined} Canonical `owner/repo#123`, or undefined.
+ */
+function githubBranchWorkItem(contract) {
+  if (!contract.repositoryIsIdentity) return undefined;
+  const branch = activeBranch();
+  if (!branch) return undefined;
+  const segment = branch.slice(branch.lastIndexOf("/") + 1);
+  const match = /^(?:issue-)?([1-9]\d{0,6})-\w/.exec(segment);
+  return match ? `${contract.repository}#${match[1]}` : undefined;
+}
+
+/**
  * The work item a branch name encodes, or undefined when it encodes none.
  *
  * The second ground truth `validate-commit` needs. `assertStateMatches` has
@@ -2207,9 +2256,7 @@ function assertStateAmong(refs, contract) {
  *   branch encodes none.
  */
 function branchWorkItem(contract) {
-  // A GitHub reference is `owner/repo#123`; no branch-naming convention
-  // encodes one, so there is nothing here to read.
-  if (contract.provider === "github") return undefined;
+  if (contract.provider === "github") return githubBranchWorkItem(contract);
   const branch = activeBranch();
   if (!branch) return undefined;
   const key =
