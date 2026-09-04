@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.40.0](https://github.com/CodySwannGT/lisa/compare/v4.39.0...v4.40.0) (2026-09-04)
+
+
+### Features
+
+* **hooks:** refuse a commit that stages another worktree's uncommitted file ([0a2a342](https://github.com/CodySwannGT/lisa/commit/0a2a342b6f4b2dfe2f6a30e431977ef9052c032f)), closes [CodySwannGT/lisa#3863](https://github.com/CodySwannGT/lisa/issues/3863) [CodySwannGT/lisa#3712](https://github.com/CodySwannGT/lisa/issues/3712)
+
+
+### Bug Fixes
+
+* **publish:** gate the publish inputs and stop interpolating them ([de2abd8](https://github.com/CodySwannGT/lisa/commit/de2abd86e2f6fe6bc07aa2d316d4d0879de83b96)), closes [#3717](https://github.com/CodySwannGT/lisa/issues/3717) [CodySwannGT/lisa#3717](https://github.com/CodySwannGT/lisa/issues/3717) [CodySwannGT/lisa#3717](https://github.com/CodySwannGT/lisa/issues/3717)
+* **release:** reject empty expressions in scripts ([b62408d](https://github.com/CodySwannGT/lisa/commit/b62408d8d043281b18b6230bc8493659459b1e78)), closes [CodySwannGT/lisa#3892](https://github.com/CodySwannGT/lisa/issues/3892)
+* **release:** stop interpolating the version into shell source ([0659089](https://github.com/CodySwannGT/lisa/commit/06590892a0cba809c1d7e841d7fef29c38b63532)), closes [#3717](https://github.com/CodySwannGT/lisa/issues/3717) [CodySwannGT/lisa#3717](https://github.com/CodySwannGT/lisa/issues/3717) [CodySwannGT/lisa#3717](https://github.com/CodySwannGT/lisa/issues/3717)
+
 ## [4.39.0](https://github.com/CodySwannGT/lisa/compare/v4.38.8...v4.39.0) (2026-09-04)
 
 
