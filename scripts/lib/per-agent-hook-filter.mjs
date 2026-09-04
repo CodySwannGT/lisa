@@ -70,6 +70,16 @@ const SCRIPT_RULES = {
     agy: true,
     copilot: true,
   },
+  // Bash-only by construction, like the guard above, and about a command every
+  // agent runs on every PR it opens. Nothing in it reads a Claude-only
+  // capability: it tokenizes a shell command and asks `gh` one question.
+  "block-blind-automerge.sh": {
+    claude: true,
+    codex: true,
+    cursor: true,
+    agy: true,
+    copilot: true,
+  },
   // Portable everywhere the agent has a session-start event, because the
   // question it answers — can this agent reach the credentials its work needs
   // — is not vendor-specific. It only reads config and asks the provider for

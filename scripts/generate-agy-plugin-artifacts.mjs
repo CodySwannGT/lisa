@@ -261,6 +261,17 @@ const AGY_PLUGIN_HOOKS = [
     agyScript: "block-direct-issue-create.agy.sh",
     supportScripts: ["block-direct-issue-create.sh"],
   },
+  {
+    // Bash-only by construction, like the guard above: `gh pr merge --auto` is
+    // a shell command whatever the harness, so `run_command` is the whole of
+    // its surface and agy loses nothing.
+    sourceScript: "block-blind-automerge.sh",
+    hookName: "lisa-block-blind-automerge",
+    event: "PreToolUse",
+    matcher: "run_command",
+    agyScript: "block-blind-automerge.agy.sh",
+    supportScripts: ["block-blind-automerge.sh"],
+  },
 ];
 
 /**
