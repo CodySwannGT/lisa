@@ -179,6 +179,21 @@ function runStep(
 }
 
 describe("release.yml version handling (#3717)", () => {
+  it("contains no empty GitHub Actions expressions in run scripts", () => {
+    const workflow = loadYaml(fs.readFileSync(WORKFLOW, "utf-8")) as Workflow;
+
+    for (const [jobName, job] of Object.entries(workflow.jobs)) {
+      for (const step of job.steps ?? []) {
+        if (step.run !== undefined) {
+          expect(
+            step.run,
+            `${jobName} / ${step.name ?? "unnamed step"}`
+          ).not.toMatch(/\$\{\{\s*\}\}/u);
+        }
+      }
+    }
+  });
+
   describe("Determine Version rejects anything that is not a plain semver", () => {
     it.each(INJECTION_PAYLOADS)("refuses custom_version %j", payload => {
       const result = runStep(stepBody(VERSION_JOB, DETERMINE_VERSION), {

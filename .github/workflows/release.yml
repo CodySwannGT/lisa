@@ -447,7 +447,7 @@ jobs:
 
           # Correlation ID from the init job, read from the job-level `env:`
           # rather than substituted in here. The heredoc is quoted, so the shell
-          # writing this file does not expand it - but a `${{ }}` expression is
+          # writing this file does not expand it - but an Actions expression is
           # substituted by Actions BEFORE any shell sees it, which would bake
           # the raw value into a file that later steps `source`. That makes the
           # written file shell source text, so a value carrying metacharacters
