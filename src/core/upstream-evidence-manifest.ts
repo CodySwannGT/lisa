@@ -3,7 +3,7 @@
 export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
   Object.freeze({
     "all/copy-contents/.gitattributes":
-      "39b6fea7a398e6cb9afff8735c19823ed3eabd1cd36d087f6fc21ab6b7fd7d3a",
+      "e19d1a971de1a9142cb13d58ce56a98a3ec1c0594a6930ca7f92cb5ef4135d40",
     "all/copy-contents/gitignore":
       "3c3ce0693a6bf0531c7e080aef16103c5cfa6aeb0f897ffaba730966c103ffb6",
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
@@ -788,6 +788,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "212f80bcdfd9e3ec2254987c5a7186d1d2d38065b330ddcdc631f76df7c4a6c0",
     "plugins/src/base/hooks/track-plan-sessions.sh":
       "8bc47dcad3aed628df0c9efbe7b6f3df87635b94b0c54c71e0bd52eceace563a",
+    "plugins/src/base/hooks/withdrawn-rulings.mjs":
+      "fcaac3917b7cafc9b8c853644d16a0598b3df0ef6d117af0ad03c4251c60a294",
+    "plugins/src/base/hooks/withdrawn-rulings.sh":
+      "5dbf429b6ec73c3c29fb96008efa1015feaa4812c1b4bb26aaa5d0b904a0ff9c",
     "plugins/src/base/rules/eager/automation-runbook-contract.md":
       "0442c478cac32b2522534309bda96a30e1cd268b9041d2b6a7a63d08a5c49920",
     "plugins/src/base/rules/eager/base-rules.md":
@@ -896,6 +900,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "a6cc1d50c5b91080171490edce4d375f136a14790dcbb247ca8b736ad8f55cfd",
     "plugins/src/base/rules/eager/wiki-knowledge-source.md":
       "b3ae63fca40461fef19779d8f0c971553963ed8fe9c22fc504da3d8e757b3a36",
+    "plugins/src/base/rules/eager/withdrawn-rulings.md":
+      "d31ad0b430524038131474c4b7b8239a8d68562f502d2d7797f2de5bbe3b2495",
     "plugins/src/base/rules/eager/work-item-definition-of-ready.md":
       "9d9d800cba5420176705df9fae2aec0cfad81d7e6d2c306aea2f7a498eaa10a3",
     "plugins/src/base/rules/reference/automation-runbook-contract.md":
@@ -1006,6 +1012,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "9ae8db87b37c7700687fabd1b8632b3cddd0f1f1e4b04384c604f88f160056ed",
     "plugins/src/base/rules/reference/wiki-knowledge-source.md":
       "725a7415a0606f85164722bd4b4975bce1f496cc43c97e45b224810b1a685189",
+    "plugins/src/base/rules/reference/withdrawn-rulings.md":
+      "089ebd9f633ca739a10bdef0ac162b28aa8516da181f568923246cace9c00508",
     "plugins/src/base/rules/reference/work-item-definition-of-ready.md":
       "ebcfe89f5a33a8008c4a54c1c2f4a092952df3263adc8f537a4c0b6ad8dbe18d",
     "plugins/src/base/scripts/automation-run-record.mjs":
@@ -3987,6 +3995,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/hooks/threshold-ratchet-families.mjs": true,
     "plugins/lisa-copilot/hooks/threshold-ratchet.mjs": true,
     "plugins/lisa-copilot/hooks/threshold-ratchet.sh": true,
+    "plugins/lisa-copilot/hooks/withdrawn-rulings.mjs": true,
+    "plugins/lisa-copilot/hooks/withdrawn-rulings.sh": true,
     "plugins/lisa-copilot/rules/eager/automation-runbook-contract.md": true,
     "plugins/lisa-copilot/rules/eager/base-rules.md": true,
     "plugins/lisa-copilot/rules/eager/bdd-e2e-coverage.md": true,
@@ -4041,6 +4051,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/eager/usage-accounting.md": true,
     "plugins/lisa-copilot/rules/eager/verification.md": true,
     "plugins/lisa-copilot/rules/eager/wiki-knowledge-source.md": true,
+    "plugins/lisa-copilot/rules/eager/withdrawn-rulings.md": true,
     "plugins/lisa-copilot/rules/eager/work-item-definition-of-ready.md": true,
     "plugins/lisa-copilot/rules/reference/automation-runbook-contract.md": true,
     "plugins/lisa-copilot/rules/reference/base-rules.md": true,
@@ -4096,6 +4107,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/reference/usage-accounting.md": true,
     "plugins/lisa-copilot/rules/reference/verification.md": true,
     "plugins/lisa-copilot/rules/reference/wiki-knowledge-source.md": true,
+    "plugins/lisa-copilot/rules/reference/withdrawn-rulings.md": true,
     "plugins/lisa-copilot/rules/reference/work-item-definition-of-ready.md": true,
     "plugins/lisa-copilot/scripts/automation-run-record.mjs": true,
     "plugins/lisa-copilot/scripts/automation-status-claude-adapter.mjs": true,
@@ -4473,6 +4485,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/hooks/threshold-ratchet-families.mjs": true,
     "plugins/lisa-cursor/hooks/threshold-ratchet.mjs": true,
     "plugins/lisa-cursor/hooks/threshold-ratchet.sh": true,
+    "plugins/lisa-cursor/hooks/withdrawn-rulings.mjs": true,
+    "plugins/lisa-cursor/hooks/withdrawn-rulings.sh": true,
     "plugins/lisa-cursor/mcp.json": true,
     "plugins/lisa-cursor/rules/automation-runbook-contract-reference.mdc": true,
     "plugins/lisa-cursor/rules/automation-runbook-contract.mdc": true,
@@ -4582,6 +4596,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/verification.mdc": true,
     "plugins/lisa-cursor/rules/wiki-knowledge-source-reference.mdc": true,
     "plugins/lisa-cursor/rules/wiki-knowledge-source.mdc": true,
+    "plugins/lisa-cursor/rules/withdrawn-rulings-reference.mdc": true,
+    "plugins/lisa-cursor/rules/withdrawn-rulings.mdc": true,
     "plugins/lisa-cursor/rules/work-item-definition-of-ready-reference.mdc": true,
     "plugins/lisa-cursor/rules/work-item-definition-of-ready.mdc": true,
     "plugins/lisa-cursor/scripts/automation-run-record.mjs": true,
@@ -7077,6 +7093,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/hooks/threshold-ratchet.sh": true,
     "plugins/lisa/hooks/ticket-sync-reminder.sh": true,
     "plugins/lisa/hooks/track-plan-sessions.sh": true,
+    "plugins/lisa/hooks/withdrawn-rulings.mjs": true,
+    "plugins/lisa/hooks/withdrawn-rulings.sh": true,
     "plugins/lisa/rules/eager/automation-runbook-contract.md": true,
     "plugins/lisa/rules/eager/base-rules.md": true,
     "plugins/lisa/rules/eager/bdd-e2e-coverage.md": true,
@@ -7131,6 +7149,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/eager/usage-accounting.md": true,
     "plugins/lisa/rules/eager/verification.md": true,
     "plugins/lisa/rules/eager/wiki-knowledge-source.md": true,
+    "plugins/lisa/rules/eager/withdrawn-rulings.md": true,
     "plugins/lisa/rules/eager/work-item-definition-of-ready.md": true,
     "plugins/lisa/rules/reference/automation-runbook-contract.md": true,
     "plugins/lisa/rules/reference/base-rules.md": true,
@@ -7186,6 +7205,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/reference/usage-accounting.md": true,
     "plugins/lisa/rules/reference/verification.md": true,
     "plugins/lisa/rules/reference/wiki-knowledge-source.md": true,
+    "plugins/lisa/rules/reference/withdrawn-rulings.md": true,
     "plugins/lisa/rules/reference/work-item-definition-of-ready.md": true,
     "plugins/lisa/scripts/automation-run-record.mjs": true,
     "plugins/lisa/scripts/automation-status-claude-adapter.mjs": true,
@@ -7747,6 +7767,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/hooks/threshold-ratchet.sh": true,
     "plugins/src/base/hooks/ticket-sync-reminder.sh": true,
     "plugins/src/base/hooks/track-plan-sessions.sh": true,
+    "plugins/src/base/hooks/withdrawn-rulings.mjs": true,
+    "plugins/src/base/hooks/withdrawn-rulings.sh": true,
     "plugins/src/base/rules/eager/automation-runbook-contract.md": true,
     "plugins/src/base/rules/eager/base-rules.md": true,
     "plugins/src/base/rules/eager/bdd-e2e-coverage.md": true,
@@ -7801,6 +7823,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/eager/usage-accounting.md": true,
     "plugins/src/base/rules/eager/verification.md": true,
     "plugins/src/base/rules/eager/wiki-knowledge-source.md": true,
+    "plugins/src/base/rules/eager/withdrawn-rulings.md": true,
     "plugins/src/base/rules/eager/work-item-definition-of-ready.md": true,
     "plugins/src/base/rules/reference/automation-runbook-contract.md": true,
     "plugins/src/base/rules/reference/base-rules.md": true,
@@ -7856,6 +7879,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/reference/usage-accounting.md": true,
     "plugins/src/base/rules/reference/verification.md": true,
     "plugins/src/base/rules/reference/wiki-knowledge-source.md": true,
+    "plugins/src/base/rules/reference/withdrawn-rulings.md": true,
     "plugins/src/base/rules/reference/work-item-definition-of-ready.md": true,
     "plugins/src/base/scripts/automation-run-record.mjs": true,
     "plugins/src/base/scripts/automation-status-claude-adapter.mjs": true,
@@ -9929,6 +9953,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/track-plan-sessions.test.ts": true,
     "tests/unit/hooks/typecheck-hook-placement.test.ts": true,
     "tests/unit/hooks/verification-failure-mode-fixtures.test.ts": true,
+    "tests/unit/hooks/withdrawn-rulings-wiring.test.ts": true,
+    "tests/unit/hooks/withdrawn-rulings.test.ts": true,
     "tests/unit/hooks/work-item-wiring.test.ts": true,
     "tests/unit/hooks/worktree-create-failure.test.ts": true,
     "tests/unit/hooks/worktree-create.test.ts": true,

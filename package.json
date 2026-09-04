@@ -66,6 +66,7 @@
     "check:orphan-processes": "node scripts/check-orphan-test-processes.mjs",
     "check:merge-drivers": "node scripts/check-merge-driver-registration.mjs",
     "check:failure-signatures": "node plugins/src/base/hooks/failure-signature-index.mjs --check",
+    "check:withdrawn-rulings": "node plugins/src/base/hooks/withdrawn-rulings.mjs --check",
     "check:template-workflow-refs": "node scripts/check-template-workflow-refs.mjs",
     "check:third-party-action-pins": "node scripts/check-third-party-action-pins.mjs",
     "check:workflow-package-paths": "node scripts/check-workflow-package-paths.mjs",

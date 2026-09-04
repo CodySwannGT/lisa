@@ -17,6 +17,15 @@
 # it exists to preserve.
 .lisa/PROJECT_LEARNINGS.overflow.md merge=lisa-learnings
 
+# Withdrawal tombstones, appended by every agent that retracts a claim it
+# circulated (CodySwannGT/lisa#3752). A sibling of the ledger above — same
+# concurrent writers on their own branches — but one JSON object per line
+# and append-only, so git's BUILT-IN union driver reconstructs concurrent
+# appends exactly. No bespoke driver, and nothing machine-local to register.
+# A default line merge here would drop a retraction, which is the one
+# failure this ledger exists to make impossible.
+.lisa/WITHDRAWN.jsonl merge=union
+
 # END: AI GUARDRAILS
 
 # The two checked-in generated artifacts. Every branch that changes a shipped

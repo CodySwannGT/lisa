@@ -44,6 +44,15 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/threshold-ratchet.sh"
           }
         ]
+      },
+      {
+        "matcher": "Bash|Edit|Write|Read|Task|Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/withdrawn-rulings.sh --hook"
+          }
+        ]
       }
     ],
     "preToolUse": [
@@ -118,6 +127,15 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/withdrawn-rulings.sh --session-start"
           }
         ]
       },
