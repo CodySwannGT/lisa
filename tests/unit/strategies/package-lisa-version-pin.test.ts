@@ -195,6 +195,24 @@ describe("apply pins the version it is applying (#2953)", () => {
     });
   });
 
+  /**
+   * The exemption, and the consequence it carries.
+   *
+   * Adding a dependency on a published copy of itself as a side effect of
+   * applying to itself is not something Lisa should do, and this block keeps it
+   * from happening. What nobody wrote down is the other half: Lisa's manifest
+   * already HAS a `@codyswann/lisa` devDependency, and the phase this exempts is
+   * the only thing that would keep such a pin current. So **this repository's
+   * pin is maintained by nothing** — every consumer is maintained, the
+   * maintainer is not.
+   *
+   * That is not theoretical. The pin rotted two majors twice: #2279 (2026-08-04)
+   * and #3662 (2026-09-03), each found only because a human read a version
+   * string, and the second time it had been holding a broken test green for a
+   * month. #3768 is where that was decided and where the replacement reader
+   * lives — `scripts/check-self-dependency-pin.mjs`, a required CI step that
+   * compares the declared floor against the newest INSTALLABLE release.
+   */
   describe("Lisa never pins itself", () => {
     it("adds no self-dependency when the host manifest is Lisa's own", async () => {
       await host.writeTemplate(TYPESCRIPT, INERT_TEMPLATE);
