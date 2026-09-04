@@ -34,6 +34,25 @@
  * the referenced file, and the title, which is what appears in every listing and
  * notification.
  *
+ * WHY THIS IS NOT MATERIALIZED INTO HOST PROJECTS
+ *
+ * The five sibling PreToolUse guards are copied into host projects through
+ * `all/copy-overwrite/scripts/lisa-hooks/`. This one deliberately is not, and
+ * the omission is a scope decision rather than an oversight.
+ *
+ * The denylist holds the names of host projects — the very repositories that
+ * install Lisa. Shipped into host project X, this guard would refuse every
+ * issue in which X writes its own name, which is normal and correct writing
+ * there. The rule it enforces is Lisa's: **this** repository is public and
+ * `dist/` ships to npm, so **this** repository may not name its hosts. A host
+ * naming itself carries none of that.
+ *
+ * So the parity obligation is satisfied across every agent surface OF THIS
+ * REPOSITORY — Claude, Codex, Cursor, Antigravity, Copilot all register it —
+ * and stops at the boundary where the rule itself stops applying. Anyone
+ * tempted to add it to `plugins/materialized-artifacts.json` should have a
+ * reason why a host project should be refused its own name.
+ *
  * FAILING OPEN, LOUDLY
  *
  * When the denylist cannot be loaded this permits the write and says so on
