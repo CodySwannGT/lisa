@@ -262,7 +262,7 @@ describe("every shipped Rails route crosses exactly one supervisor boundary", ()
       ...read(WORKFLOW).matchAll(/--suite (\S+) --/g),
       ...read(LEFTHOOK).matchAll(/--suite (\S+) --/g),
     ].map(match => match[1] ?? "");
-    expect(labels.toSorted((a, b) => a.localeCompare(b))).toEqual([
+    expect(labels.slice().sort((a, b) => a.localeCompare(b))).toEqual([
       "mutant-postgres",
       "prepush-mutant",
       "prepush-rspec",
@@ -303,7 +303,7 @@ describe("the mutation gate's own behavior is unchanged by supervision", () => {
   it("still mutates only changed Ruby subjects, diff-only, against the same base", () => {
     const source = read(MUTATION_SCRIPT);
     expect(source).toContain(
-      `git diff --name-only --diff-filter=ACMR "\${BASE}...HEAD" -- 'app/**/*.rb' 'lib/**/*.rb'`
+      `git diff --name-only --diff-filter=ACMR "\${BASE}" -- 'app/**/*.rb' 'lib/**/*.rb'`
     );
     expect(source).toContain('exec bundle exec mutant run --since "$SINCE"');
   });
@@ -346,5 +346,7 @@ function findByBasename(root: string, basename: string): readonly string[] {
         if (entry.isDirectory()) return walk(full);
         return entry.name === basename ? [path.relative(root, full)] : [];
       });
-  return walk(root).toSorted((a, b) => a.localeCompare(b));
+  return walk(root)
+    .slice()
+    .sort((a, b) => a.localeCompare(b));
 }

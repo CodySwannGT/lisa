@@ -115,6 +115,8 @@ describe("the preparation setup seam", () => {
     }
 
     const byName = (a: string, b: string) => a.localeCompare(b);
-    expect([...found].toSorted(byName)).toEqual([...declared].toSorted(byName));
+    expect([...found].slice().sort(byName)).toEqual(
+      [...declared].slice().sort(byName)
+    );
   });
 });

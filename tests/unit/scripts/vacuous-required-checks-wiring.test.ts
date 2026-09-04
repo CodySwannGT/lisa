@@ -1014,7 +1014,43 @@ describe("the vacuity arm, as something that actually runs", () => {
       );
       expect(output).toContain("vacuous_required_check");
       expect(output).toContain(RATE_LIMITED);
+    });
+
+    it("does not tell the reader a rate-limited check means UNREVIEWED", () => {
+      // CodySwannGT/lisa#3762: this vendor reported `Review rate limited` on a
+      // pull request it HAD reviewed, posting CHANGES_REQUESTED with a real
+      // finding. Denying credit stays correct; asserting nobody looked does not.
+      // An agent that follows the old instruction writes a disclosure saying no
+      // review happened while an objection sits on the PR.
+      const bin = stubGh([coderabbit(RATE_LIMITED)]);
+      const { output } = runCli(
+        repoDeclaring(declarationWith()),
+        [VACUITY, "--pr=3123", STUB_REPO],
+        bin
+      );
+
+      expect(output).not.toMatch(/treat this pr as unreviewed/iu);
+      expect(output).toContain("proves neither");
+      expect(output).toContain("reviewThreads");
+    });
+
+    it("STILL says UNREVIEWED for a description that really does mean no work", () => {
+      // The control that stops the fix going too far. Softening every `no_work`
+      // phrase would trade a false claim for a useless one — `Review skipped`
+      // genuinely is the vendor saying it did not start, and the report should
+      // keep saying so plainly.
+      const bin = stubGh([
+        coderabbit("Review skipped: reviews are disabled for this base branch"),
+      ]);
+      const { output } = runCli(
+        repoDeclaring(declarationWith()),
+        [VACUITY, "--pr=3123", STUB_REPO],
+        bin
+      );
+
+      expect(output).toContain("vacuous_required_check");
       expect(output).toContain("Treat this PR as UNREVIEWED");
+      expect(output).toContain("DID NO WORK");
     });
 
     it("NEGATIVE CONTROL — reports a real review as proof, and exits 0", () => {

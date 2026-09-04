@@ -109,7 +109,8 @@ describe("the cleanup authority acknowledges before the payload allocates", () =
       .split("\n")
       .filter(line => line.includes("="))
       .map(line => line.slice(0, line.indexOf("=")))
-      .toSorted((a, b) => a.localeCompare(b));
+      .slice()
+      .sort((a, b) => a.localeCompare(b));
     expect(keys).toEqual([
       "birth",
       "devino",

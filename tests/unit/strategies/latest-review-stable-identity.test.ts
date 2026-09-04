@@ -47,7 +47,8 @@ const successfulRows = (run: ReviewReducerRun): readonly ReviewRecord[] => {
 const identityIds = (rows: readonly ReviewRecord[]): readonly string[] =>
   rows
     .map(row => `${String(row.user?.login)}:${String(row.id)}`)
-    .toSorted((left, right) => left.localeCompare(right));
+    .slice()
+    .sort((left, right) => left.localeCompare(right));
 
 describe("executed stable reviewer identity reducer", () => {
   it("fetches all pages before applying the documented reducer", () => {

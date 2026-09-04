@@ -45,6 +45,11 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
     forProjectTypes: ["*"],
   },
   {
+    id: "block-managed-file-edits",
+    templateFilename: "lisa-block-managed-file-edits.ts",
+    forProjectTypes: ["*"],
+  },
+  {
     id: "block-direct-issue-create",
     templateFilename: "lisa-block-direct-issue-create.ts",
     forProjectTypes: ["*"],

@@ -55,15 +55,40 @@ A hit counts only when it names **this** key. Branch-name coincidence, a similar
 
 ```text
 Build attempt <N> did not complete: <one-line operator-readable reason>.
-<!-- [lisa-build-attempt] n=<N> outcome=<outcome> -->
+<!-- [lisa-build-attempt] n=<N> outcome=<outcome> measures=<work|machine> -->
 ```
 
-The marker line is verbatim; the count is the number of `[lisa-build-attempt]` markers on the item. Match on the **marker, never the title**. A successful build records no marker, so an item that shipped after one bad attempt starts clean if it is ever re-filed.
+The marker line is verbatim. Match on the **marker, never the title**. A successful build records no marker, so an item that shipped after one bad attempt starts clean if it is ever re-filed.
 
-**The threshold is two.** At the top of the claim, count existing markers. With **two or more**, do not claim:
+**`measures=` says what the attempt is evidence about, and only `work` is counted.**
+
+- `measures=work` — the build ran and did not satisfy the item. That is evidence about *this item*: the code, the criteria, the spec.
+- `measures=machine` — the run was terminated rather than answered, or the loop could not complete for a reason outside the item: a gate killed under load, a substrate or access failure, an out-of-memory reap. That is evidence about *the box*, and the item is a bystander.
+
+A run whose exit code is one of the terminating signals — the set `gate-failure-diagnosis` already names as *"the ones that actually terminate a gate on this fleet: an operator's Ctrl-C, an out-of-memory reap, a CPU-time limit, and the SIGTERM a saturated box hands out"* — is `measures=machine`. So is any run whose own outcome is `recovery-required`, which the automation runbook contract already defines as *"the loop itself could not complete (access, tooling, or substrate broken)"*. Both discriminators are shipped and already correct; this field is what carries their answer to the counter.
+
+**Why this is not optional.** A pre-push gate killed by machine contention is errored, gate-blocked, and unmerged all at once — three non-success outcomes from one event that proved nothing about the work. Counting it retires items during exactly the busy periods when nobody is watching, and the item's own history then testifies that it failed twice, which is true and completely misleading.
+
+**Both fields must be written even when the answer is obvious.** A marker with no `measures=` is counted as `work` — the conservative reading, because an unlabelled attempt is more likely an old marker than a machine failure, and a valve that fails open is the infinite re-claim loop this guard exists to prevent.
+
+**The count is scoped to the current ready-lane period.** Count only markers recorded **after the item most recently entered the ready lane**. Markers older than that describe a period a human has already responded to; they stay on the item as history and stop being evidence about the attempt in front of you.
+
+The lane history is already available on every tracker, and for a near-identical purpose — rejection detection reads it to spot an item that reached review and came back:
+
+- **GitHub** — the `LabeledEvent` / `UnlabeledEvent` stream is already in the read bundle. No extra call.
+- **JIRA** — `lisa-atlassian-access operation: changelog key:<K>`. `read-ticket` uses `fields=*all`, which does **not** include it; the expansion must be requested explicitly.
+- **Linear** — `lisa-linear-access operation: history id:<ID>`.
+
+**If the lane history cannot be read, count every `measures=work` marker regardless of age** and say so in the comment. Degrading to the unscoped count keeps the valve intact; degrading to "count nothing" would reopen the infinite re-claim loop. A history read failure must never *strand* an item either — it narrows recovery, it does not block the claim outright.
+
+**The threshold is two.** At the top of the claim, count the markers that survive both filters. With **two or more**, do not claim:
 
 1. Move the item to the configured `blocked` role (`build.blocked` / `workflow.blocked`, resolved per `config-resolution` — never a hardcoded lane).
 2. Post an operator-readable comment naming both prior attempts, what each one hit, and what a human would need to decide or supply. Written for a non-technical operator, per `report-actionability`.
 3. **Stop the loop** — end the cycle without claiming anything else. Stopping is the point: the next scheduled invocation should not immediately pick up the next item as though nothing happened.
 
-**Recovery is deliberate.** A blocked item returns to the queue only when a human (or `lisa-repair-intake`, once the named blocker is provably cleared) moves it back. The attempt markers stay on the item as history; re-entering the ready lane after a real fix is a fresh claim whose markers describe why it was hard, not a silent reset of the counter.
+**Recovery is deliberate, and it works.** A blocked item returns to the queue only when a human (or `lisa-repair-intake`, once the named blocker is provably cleared) moves it back. The attempt markers stay on the item as permanent history — nothing deletes them, and comments could not be deleted even if something wanted to. What the return *does* is end the period those markers describe: the next claim counts from the new ready-lane entry, so an item that was fixed and requeued is claimable, while an item that keeps failing accumulates fresh markers inside the new period and is stopped again by the same valve.
+
+Re-entering the ready lane is therefore the discharge, and it is deliberate by construction — a person or a repair cycle has to do it. That is not a silent reset: nothing resets, the window moves.
+
+**This paragraph used to describe behaviour the code did not have** (CodySwannGT/lisa#3854). The count was unscoped and taken fresh at every claim, so an item with two markers was refused on re-entry — the recovery this section documents could not run, and a human fixing the real cause and requeueing would watch the loop re-block it every cycle, forever. **The prose was doing the opposite of its job**: an auditor reading a section headed "Recovery is deliberate" sees a control that is covered and stops checking, so the documentation is what prevented anyone from noticing. Keep this note. A recovery path that is described but inert is worse than one that is absent, because an absent path invites the question "so how does this ever end?" and a documented one answers it wrongly.

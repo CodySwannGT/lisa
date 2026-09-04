@@ -14,6 +14,7 @@ const BIN_RAILS = "bin/rails";
 const CONFIG_APPLICATION_RB = "config/application.rb";
 const GEMFILE = "Gemfile";
 const DELETIONS_JSON = "deletions.json";
+const NEEDS_REVIEW = "needs-review";
 const COPY_OVERWRITE = "copy-overwrite";
 const COPY_CONTENTS = "copy-contents";
 const CREATE_ONLY = "create-only";
@@ -197,6 +198,7 @@ export async function createMockLisaDir(dir: string): Promise<void> {
   // Create all/deletions.json to mirror the real Lisa deletion of legacy manifest
   await fs.writeJson(path.join(dir, "all", DELETIONS_JSON), {
     paths: [".lisa-manifest"],
+    basis: { ".lisa-manifest": NEEDS_REVIEW },
   });
 
   // Create typescript/ directory
@@ -207,6 +209,7 @@ export async function createMockLisaDir(dir: string): Promise<void> {
   // Create typescript/deletions.json for testing .lisaignore with deletions
   await fs.writeJson(path.join(dir, "typescript", DELETIONS_JSON), {
     paths: ["legacy-workflow.yml"],
+    basis: { "legacy-workflow.yml": NEEDS_REVIEW },
   });
 
   await createMockHarperFabricTemplates(dir);
@@ -261,6 +264,7 @@ export async function createMockLisaDir(dir: string): Promise<void> {
   // Create rails/deletions.json
   await fs.writeJson(path.join(dir, "rails", DELETIONS_JSON), {
     paths: [".overcommit.yml"],
+    basis: { ".overcommit.yml": NEEDS_REVIEW },
   });
 }
 

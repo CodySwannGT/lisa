@@ -408,6 +408,11 @@ jobs:
       contents: write
     env:
       HUSKY: '0'
+      # Job-level so every step - and `release-logger.sh`, which is written by
+      # one step and sourced by several others - reads the correlation ID from
+      # the environment instead of having it substituted into the script that
+      # writes the logger. See the Setup Release Logger step.
+      RELEASE_CORRELATION_ID: ${{ needs.release_init.outputs.correlation_id }}
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
@@ -426,8 +431,10 @@ jobs:
 
       - name: Refresh release branch tip
         if: github.ref_type == 'branch'
+        env:
+          RELEASE_REF_NAME: ${{ github.ref_name }}
         run: |
-          target_ref="${{ github.ref_name }}"
+          target_ref="$RELEASE_REF_NAME"
           git fetch origin "$target_ref" --tags --force
           git reset --hard "origin/$target_ref"
 
@@ -438,8 +445,14 @@ jobs:
           cat > release-logger.sh << 'EOF'
           #!/bin/bash
 
-          # Correlation ID from init job
-          RELEASE_CORRELATION_ID="${{ needs.release_init.outputs.correlation_id }}"
+          # Correlation ID from the init job, read from the job-level `env:`
+          # rather than substituted in here. The heredoc is quoted, so the shell
+          # writing this file does not expand it - but an Actions expression is
+          # substituted by Actions BEFORE any shell sees it, which would bake
+          # the raw value into a file that later steps `source`. That makes the
+          # written file shell source text, so a value carrying metacharacters
+          # would execute in every step that sources the logger.
+          RELEASE_CORRELATION_ID="${RELEASE_CORRELATION_ID:-unknown}"
           export RELEASE_CORRELATION_ID
 
           # Structured log function
@@ -644,6 +657,31 @@ jobs:
             TAG="v$VERSION"
           fi
 
+          # Fail closed unless the computed version and tag are plain semver.
+          # Under the `custom` strategy VERSION is `inputs.custom_version`
+          # passed through untouched, and TAG additionally carries
+          # `inputs.prerelease` / `inputs.environment`; all three are free-text
+          # `type: string` inputs. These values are consumed downstream by
+          # `npx standard-version --release-as` in a job holding
+          # `contents: write`, so a value carrying shell metacharacters must
+          # never reach a command line. Validating at the source rather than at
+          # that one call site covers every consumer of these outputs,
+          # including the `needs.version.outputs.*` readers in other jobs.
+          # `printf %s` rather than `echo`: a value of `-n` or `-e` would be
+          # eaten as an option by some shells' echo and never reach grep.
+          semver_re='^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$'
+          tag_re='^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$'
+          if ! printf '%s' "$VERSION" | grep -Eq "$semver_re"; then
+            echo "::error::Refusing to release: computed version is not a valid semantic version. Check the custom_version / prerelease inputs."
+            echo "❌ Release refused: computed version is not a valid semantic version" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          if ! printf '%s' "$TAG" | grep -Eq "$tag_re"; then
+            echo "::error::Refusing to release: computed tag is not a valid version tag. Check the prerelease / environment inputs."
+            echo "❌ Release refused: computed tag is not a valid version tag" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "bump_type=${BUMP_TYPE:-custom}" >> $GITHUB_OUTPUT
@@ -662,13 +700,29 @@ jobs:
 
       - name: Generate Changelog
         id: changelog
+        # Every value this step needs is passed through `env:` and read as a
+        # quoted shell variable. A `${{ }}` expression is substituted into the
+        # script BEFORE the shell parses it, so an interpolated value is shell
+        # SOURCE TEXT, not an argument; an expression expanded into `env:` is
+        # not re-parsed that way. Combined with the semver gate in
+        # `Determine Version`, that is both halves of the remedy - validation
+        # alone still lets a value flow into source text, and env-passing alone
+        # would accept a malformed version.
+        env:
+          RELEASE_STRATEGY: ${{ inputs.release_strategy }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_ENVIRONMENT: ${{ inputs.environment }}
+          RELEASE_EMERGENCY: ${{ inputs.emergency_release }}
+          RELEASE_APPROVER: ${{ needs.release_approval.outputs.approver || 'N/A' }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+          RELEASE_REF_NAME: ${{ github.ref_name }}
         run: |
           source ./release-logger.sh
 
           log_release_event "changelog_generation" "started" "Generating changelog and release notes"
 
           # Generate changelog based on strategy
-          if [ "${{ inputs.release_strategy }}" == "standard-version" ]; then
+          if [ "$RELEASE_STRATEGY" == "standard-version" ]; then
             # `[skip ci]` is honoured by GitHub Actions and is load-bearing: this
             # commit is pushed back to the branch that triggered the workflow, so
             # without it the push retriggers the release and bumps again, forever.
@@ -681,7 +735,7 @@ jobs:
             # keep it last. Measured on a host project using this workflow: over
             # one 17-day window its production branch recorded 18 Amplify builds,
             # 7 of them from release commits claiming a skip, and 0 skipped.
-            npx standard-version --release-as ${{ steps.version.outputs.version }} --skip.tag --releaseCommitMessageFormat "chore(release): {{currentTag}} [skip ci] [skip-cd]"
+            npx standard-version --release-as "$RELEASE_VERSION" --skip.tag --releaseCommitMessageFormat "chore(release): {{currentTag}} [skip ci] [skip-cd]"
 
             # standard-version rewrites the full CHANGELOG.md but the GitHub
             # release body is built from CHANGELOG_ENTRY.md, so extract this
@@ -689,7 +743,7 @@ jobs:
             # Version headings are "## [x.y.z](...)" or "### [x.y.z](...)"
             # (patch entries share the ### level with "### Bug Fixes" sections,
             # so match on the version token, not the heading depth).
-            awk -v ver="${{ steps.version.outputs.version }}" '
+            awk -v ver="$RELEASE_VERSION" '
               /^#+ \[?[0-9]+\.[0-9]+\.[0-9]+/ {
                 if (index($0, "[" ver "]") > 0 || $2 == ver) { found=1; print; next }
                 if (found) { exit }
@@ -698,7 +752,7 @@ jobs:
             ' CHANGELOG.md > CHANGELOG_ENTRY.md
 
             if [ ! -s CHANGELOG_ENTRY.md ]; then
-              echo "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/CHANGELOG.md) for this release's changes." > CHANGELOG_ENTRY.md
+              echo "See [CHANGELOG.md](https://github.com/$RELEASE_REPOSITORY/blob/$RELEASE_REF_NAME/CHANGELOG.md) for this release's changes." > CHANGELOG_ENTRY.md
             fi
           else
             # Custom changelog generation
@@ -711,14 +765,14 @@ jobs:
 
             # Generate changelog with categories
             cat > CHANGELOG_ENTRY.md << EOF
-          ## [${{ steps.version.outputs.version }}] - $(date +%Y-%m-%d)
+          ## [$RELEASE_VERSION] - $(date +%Y-%m-%d)
 
           ### Release Information
-          - **Environment**: ${{ inputs.environment }}
-          - **Release Type**: ${{ inputs.release_strategy }}
-          - **Correlation ID**: ${{ needs.release_init.outputs.correlation_id }}
-          - **Emergency Release**: ${{ inputs.emergency_release }}
-          - **Approved By**: ${{ needs.release_approval.outputs.approver || 'N/A' }}
+          - **Environment**: $RELEASE_ENVIRONMENT
+          - **Release Type**: $RELEASE_STRATEGY
+          - **Correlation ID**: $RELEASE_CORRELATION_ID
+          - **Emergency Release**: $RELEASE_EMERGENCY
+          - **Approved By**: $RELEASE_APPROVER
 
           EOF
 
@@ -754,11 +808,18 @@ jobs:
 
       - name: Push Changelog Changes
         if: inputs.release_strategy == 'standard-version'
+        # Same reasoning as Generate Changelog: assigning an interpolation to a
+        # shell variable is better than expanding it in command position, but it
+        # is still source text - a value containing a double quote closes the
+        # assignment early. `env:` removes the substitution entirely.
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_REF_NAME: ${{ github.ref_name }}
         run: |
           source ./release-logger.sh
 
-          target_ref="${{ github.ref_name }}"
-          version="${{ steps.version.outputs.version }}"
+          target_ref="$RELEASE_REF_NAME"
+          version="$RELEASE_VERSION"
 
           # Re-derive the release stamp on a freshly fetched tip. The initial
           # release commit (Generate Changelog) stamps package.json,
@@ -1303,14 +1364,31 @@ jobs:
         id: create_release
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          # `needs.version.outputs.tag` and `.version` are gated to plain semver
+          # by the check in Determine Version, and `github.repository` is fixed
+          # by the platform - so none of these is reachable today. They are
+          # passed through `env:` anyway because this step builds a curl command
+          # line, and a step that reaches a command line should not depend on a
+          # judgement about its inputs staying constrained.
+          #
+          # This does NOT make the whole file free of interpolation: 196 `${{ }}`
+          # expressions remain in other `run:` bodies here, almost all of them
+          # emitting markdown summaries or JSON heredocs rather than commands.
+          # Closing those is a separate, mechanical change; it is not folded
+          # into a security fix.
+          RELEASE_TAG: ${{ needs.version.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.version.outputs.version }}
+          RELEASE_COMMIT: ${{ needs.version.outputs.release_commit }}
+          RELEASE_IS_PRERELEASE: ${{ needs.version.outputs.prerelease == 'true' }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
         run: |
           # Prepare release data
           RELEASE_DATA=$(jq -n \
-            --arg tag "${{ needs.version.outputs.tag }}" \
-            --arg name "Release ${{ needs.version.outputs.version }}" \
+            --arg tag "$RELEASE_TAG" \
+            --arg name "Release $RELEASE_VERSION" \
             --arg body "$(cat RELEASE_NOTES.md)" \
-            --arg target "${{ needs.version.outputs.release_commit }}" \
-            --argjson prerelease "${{ needs.version.outputs.prerelease == 'true' }}" \
+            --arg target "$RELEASE_COMMIT" \
+            --argjson prerelease "$RELEASE_IS_PRERELEASE" \
             --argjson draft false \
             '{
               tag_name: $tag,
@@ -1328,17 +1406,17 @@ jobs:
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
             -d "$RELEASE_DATA" \
-            "https://api.github.com/repos/${{ github.repository }}/releases")
+            "https://api.github.com/repos/$RELEASE_REPOSITORY/releases")
 
           if [ "$HTTP_CODE" = "422" ] && jq -e '.errors[]? | select(.code == "already_exists")' response.json >/dev/null; then
-            echo "Release ${{ needs.version.outputs.tag }} already exists; fetching it"
+            echo "Release $RELEASE_TAG already exists; fetching it"
             curl --fail-with-body -sS \
               -H "Authorization: token $GITHUB_TOKEN" \
               -H "Accept: application/vnd.github.v3+json" \
-              "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ needs.version.outputs.tag }}" > response.json
+              "https://api.github.com/repos/$RELEASE_REPOSITORY/releases/tags/$RELEASE_TAG" > response.json
             TARGET=$(jq -r '.target_commitish' response.json)
-            if [ "$TARGET" != "${{ needs.version.outputs.release_commit }}" ]; then
-              echo "::error::Tag ${{ needs.version.outputs.tag }} was already released from a different commit ($TARGET). This branch's version counter has fallen behind the repo's tags — align the version in package.json past the latest existing tag."
+            if [ "$TARGET" != "$RELEASE_COMMIT" ]; then
+              echo "::error::Tag $RELEASE_TAG was already released from a different commit ($TARGET). This branch's version counter has fallen behind the repo's tags — align the version in package.json past the latest existing tag."
               exit 1
             fi
           elif [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then

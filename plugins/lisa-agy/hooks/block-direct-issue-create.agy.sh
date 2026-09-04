@@ -8,9 +8,19 @@
 # block-direct-issue-create.sh beside it (same delegation pattern as
 # block-instruction-file-edits.agy.sh).
 #
-# No scope gap here, unlike the instruction-file adapter: the canonical guard is
-# Bash-only by construction, and `run_command` is exactly the surface it needs.
-# agy therefore receives the whole guard, not an arm of it.
+# SCOPE GAP, recorded rather than silently dropped (AGENTS.md). This used to
+# read "no scope gap here: the canonical guard is Bash-only by construction, and
+# `run_command` is exactly the surface it needs." That stopped being true in
+# CodySwannGT/lisa#3753: the canonical guard now covers a SECOND substrate —
+# structured tool payloads, where a creation arrives as named fields rather than
+# as a command line — because the filing contract was enforced on the shell and
+# unenforced on every tool call beside it.
+#
+# This adapter forwards `run_command` and nothing else, so on agy that second
+# substrate is still uncovered. Closing it needs agy's own tool-call envelope
+# (which tool names its creation surface, and where the arguments land), and
+# that is a different piece of work from translating one protocol. The shell
+# surface agy does expose receives the whole guard, exactly as before.
 #
 # Fail-open on missing runtimes: a missed refusal costs one under-declared
 # ticket, and `lisa-repair-intake` already sweeps for exactly that. Failing

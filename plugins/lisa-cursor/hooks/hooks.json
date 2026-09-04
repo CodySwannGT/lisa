@@ -16,8 +16,16 @@
         "matcher": "Bash"
       },
       {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/discharge-work-item-gates.sh",
+        "matcher": "Bash"
+      },
+      {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/threshold-ratchet.sh",
         "matcher": "Edit|Write|NotebookEdit|Bash"
+      },
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/withdrawn-rulings.sh --hook",
+        "matcher": "Bash|Edit|Write|Read|Task|Grep|Glob"
       }
     ],
     "preToolUse": [
@@ -38,10 +46,6 @@
         "matcher": "Bash"
       },
       {
-        "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-direct-issue-create.sh",
-        "matcher": "Bash"
-      },
-      {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-blind-automerge.sh",
         "matcher": "Bash"
       },
@@ -50,11 +54,22 @@
         "matcher": "Bash"
       },
       {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-managed-file-edits.sh",
+        "matcher": "Bash"
+      },
+      {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-instruction-file-edits.sh",
         "matcher": "Write|Edit|MultiEdit"
       },
       {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-managed-file-edits.sh",
+        "matcher": "Write|Edit|MultiEdit"
+      },
+      {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh"
+      },
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/block-direct-issue-create.sh"
       }
     ],
     "stop": [
@@ -68,6 +83,9 @@
         "matcher": "startup"
       },
       {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/withdrawn-rulings.sh --session-start"
+      },
+      {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/inject-resolved-config.sh"
       },
       {
@@ -78,6 +96,9 @@
       }
     ],
     "subagentStart": [
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/withdrawn-rulings.sh --session-start"
+      },
       {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/inject-resolved-config.sh"
       },

@@ -166,7 +166,9 @@
         "posted_by": 347564,
         "evidence": {
           "reviewer": true,
-          "proof": ["Review completed"]
+          "proof": [
+            "Review completed"
+          ]
         }
       }
     },
@@ -187,6 +189,12 @@
       "push": {
         "level": "required",
         "run": "check:failure-signatures"
+      }
+    },
+    "x-withdrawn-rulings": {
+      "push": {
+        "level": "required",
+        "run": "check:withdrawn-rulings"
       }
     }
   },
