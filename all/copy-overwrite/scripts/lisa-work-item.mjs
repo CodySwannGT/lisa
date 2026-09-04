@@ -2390,6 +2390,74 @@ function remoteDefaultRef(remote) {
 }
 
 /**
+ * The scope `validate-push` reports when it never saw the pushed refs at all.
+ *
+ * Named rather than left blank because this is the exact case #3874 measured:
+ * with no refs to read, the range falls back to the PUSHER'S `HEAD` — which on
+ * a cross-worktree push is a different branch than the one being pushed. The
+ * answer computed there is accurate about the local checkout and says nothing
+ * whatsoever about what is leaving the machine, so the verdict has to carry the
+ * scope it was computed over or a reader cannot tell the two apart.
+ */
+const HEAD_FALLBACK_SCOPE =
+  "local HEAD (the pushed refs were not readable, so this is NOT the pushed range)";
+
+/**
+ * An object id, short enough to read and long enough to be unambiguous.
+ * @param {string} oid A 40-character object id.
+ * @returns {string} The first twelve characters.
+ */
+function abbreviate(oid) {
+  return oid.slice(0, 12);
+}
+
+/**
+ * The pushed refs, from wherever this invocation can actually reach them.
+ *
+ * READING THE STREAM SPENDS IT, and the pre-push hook has several readers: the
+ * deletion guard, the destination guard, every declared gate, and this. The
+ * hook therefore captures git's stdin to a file once and names it in
+ * `LISA_PUSHED_REFS_FILE`, which is the only source that survives a gate having
+ * already drained the stream — and the gate runner is exactly where this runs
+ * on a project that declares `gates.traceability`.
+ *
+ * Stdin stays the fallback so driving the subcommand by hand with a pipe still
+ * works, and an unreadable file falls through to it rather than failing: a
+ * scratch file that vanished must not turn a push into an error about
+ * plumbing.
+ * @param {string|undefined} refsFile Path named by `--refs` or the environment.
+ * @returns {string} The raw stream, possibly empty.
+ */
+function readPushRefs(refsFile) {
+  if (refsFile !== undefined) {
+    try {
+      return readFileSync(refsFile, "utf8");
+    } catch {
+      // Fall through to stdin below.
+    }
+  }
+  try {
+    return readFileSync(0, "utf8");
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * The scope clause every push verdict carries, pass or fail.
+ *
+ * A green that does not say what it looked at is indistinguishable from a green
+ * that looked at the wrong thing, which is the whole of #3874: `0 commit(s)`
+ * printed for a branch carrying a traced commit, because the range came from
+ * the pusher's checkout instead of the pushed ref.
+ * @param {string} scope The range or tree examined.
+ * @returns {string} The clause, ready to append to a verdict line.
+ */
+function examined(scope) {
+  return ` [examined ${scope}]`;
+}
+
+/**
  * One pushed ref and the commits it introduces, per line git sent.
  *
  * PER REF, not pooled, and that is the correction rather than a refactor.
@@ -2419,30 +2487,34 @@ function parsePushGroups(input, remote) {
   for (const line of input.trim().split(/\r?\n/).filter(Boolean)) {
     const [localRef, localOid, , remoteOid] = line.trim().split(/\s+/);
     if (!localOid || ZERO_OID.test(localOid)) continue;
-    const args =
-      remoteOid && !ZERO_OID.test(remoteOid)
-        ? [
-            "rev-list",
-            `${remoteOid}..${localOid}`,
-            ...(defaultRef ? ["--not", defaultRef] : []),
-          ]
-        : // New-branch lane: `--remotes=<remote>` is safe HERE because the branch
-          // being pushed has no remote-tracking ref yet — the exclusion set can
-          // only contain refs that already passed validation on earlier pushes.
-          // The existing-branch lane above must NOT use it (its tracking ref is
-          // pusher-controlled); it excludes only the remote default branch.
-          ["rev-list", localOid, "--not", `--remotes=${remote}`];
+    const existing = Boolean(remoteOid) && !ZERO_OID.test(remoteOid);
+    const args = existing
+      ? [
+          "rev-list",
+          `${remoteOid}..${localOid}`,
+          ...(defaultRef ? ["--not", defaultRef] : []),
+        ]
+      : // New-branch lane: `--remotes=<remote>` is safe HERE because the branch
+        // being pushed has no remote-tracking ref yet — the exclusion set can
+        // only contain refs that already passed validation on earlier pushes.
+        // The existing-branch lane above must NOT use it (its tracking ref is
+        // pusher-controlled); it excludes only the remote default branch.
+        ["rev-list", localOid, "--not", `--remotes=${remote}`];
     groups.push({
-      localRef,
       commits: git(args).split("\n").filter(Boolean),
+      localRef,
+      scope: existing
+        ? `${localRef} ${abbreviate(remoteOid)}..${abbreviate(localOid)}`
+        : `${localRef} (new branch) ${abbreviate(localOid)}`,
     });
   }
   if (groups.length === 0 && input.trim() === "") {
     groups.push({
-      localRef: undefined,
       commits: git(["rev-list", "HEAD", "--not", `--remotes=${remote}`])
         .split("\n")
         .filter(Boolean),
+      localRef: undefined,
+      scope: HEAD_FALLBACK_SCOPE,
     });
   }
   return groups;
@@ -4184,7 +4256,13 @@ function pushGroups(input, remote) {
   const carrying = parsed.filter(group => group.commits.length > 0);
   return carrying.length > 0
     ? carrying
-    : [{ localRef: parsed[0]?.localRef, commits: [] }];
+    : [
+        {
+          commits: [],
+          localRef: parsed[0]?.localRef,
+          scope: parsed[0]?.scope ?? HEAD_FALLBACK_SCOPE,
+        },
+      ];
 }
 
 /**
@@ -4259,9 +4337,14 @@ function pushDeferralNote(result) {
  * the WIRING and the direct cases prove the WORDS.
  * @param {object} result Commit-side result.
  * @param {string} label Prefix naming the ref, empty for a single-ref push.
+ * @param {string} [scope] The range or tree this verdict was computed over.
  * @returns {string} The whole report, replacing the success line.
  */
-export function unresolvedPushReport(result, label) {
+export function unresolvedPushReport(
+  result,
+  label,
+  scope = HEAD_FALLBACK_SCOPE
+) {
   const contract = result.contract;
   const refs = result.refs ?? [];
   const declaration = refs.map(ref => `Work-Item: ${ref}`).join("\n     ");
@@ -4270,7 +4353,7 @@ export function unresolvedPushReport(result, label) {
       ? `  UNRESOLVED gate 5 — each item needs a managed \`${MARKER}\` backlink comment pointing at the pull request. \`discharge-pr-gates\` posts it; nothing else has to remember to.`
       : `  n/a         gate 5 — the tracker backlink is not required here: workItem.verify is "trailer".`;
   return [
-    `WORK_ITEM_TRACKING_INCOMPLETE ${label}${result.relevant} commit(s)${alreadyTraced(result)}: gates 1-3 proved here, 2 of 5 gates NOT CHECKED.`,
+    `WORK_ITEM_TRACKING_INCOMPLETE ${label}${result.relevant} commit(s)${alreadyTraced(result)}${examined(scope)}: gates 1-3 proved here, 2 of 5 gates NOT CHECKED.`,
     `  This push is not a clean bill of health for ${refs.join(", ")}. ${pushDeferralNote(result)}`,
     `  UNRESOLVED gate 4 — the pull-request BODY must carry, on its own line${refs.length > 1 ? "s" : ""}:`,
     `     ${declaration}`,
@@ -4288,8 +4371,9 @@ export function unresolvedPushReport(result, label) {
  * @param {{result?: object, error?: Error}} outcome Commit-side outcome.
  * @param {object|undefined} pr The pull request this ref is about, if any.
  * @param {string} label Prefix naming the ref, empty for a single-ref push.
+ * @param {string} scope The range or tree this verdict was computed over.
  */
-function reportPushGroup(outcome, pr, label) {
+function reportPushGroup(outcome, pr, label, scope) {
   if (pr) {
     // `true`: a push range is ALWAYS a subset of the pull request's — it drops
     // commits already on the remote branch and everything reachable from the
@@ -4297,7 +4381,7 @@ function reportPushGroup(outcome, pr, label) {
     // subject in THIS push", never "no subject in the pull request".
     validatePrData(outcome, pr.url, pr.body, true);
     console.log(
-      `WORK_ITEM_TRACKING_OK ${label}${outcome.result.relevant} commit(s)${alreadyTraced(outcome.result)}, ${provedHere(outcome.result.contract)}`
+      `WORK_ITEM_TRACKING_OK ${label}${outcome.result.relevant} commit(s)${alreadyTraced(outcome.result)}, ${provedHere(outcome.result.contract)}${examined(scope)}`
     );
     return;
   }
@@ -4315,16 +4399,22 @@ function reportPushGroup(outcome, pr, label) {
   // checklist teaches the reader to skip it.
   if ((outcome.result.refs ?? []).length === 0) {
     console.log(
-      `WORK_ITEM_TRACKING_OK ${label}${outcome.result.relevant} commit(s)${alreadyTraced(outcome.result)}; this range names no work item, so gates 4 and 5 have nothing to check here.`
+      `WORK_ITEM_TRACKING_OK ${label}${outcome.result.relevant} commit(s)${alreadyTraced(outcome.result)}; this range names no work item, so gates 4 and 5 have nothing to check here.${examined(scope)}`
     );
     return;
   }
-  console.log(unresolvedPushReport(outcome.result, label));
+  console.log(unresolvedPushReport(outcome.result, label, scope));
 }
 
 function validatePush(args) {
-  const remote = args[0] || "origin";
-  const input = readFileSync(0, "utf8");
+  const remote = args[0] && !args[0].startsWith("-") ? args[0] : "origin";
+  // `--refs <file>` / `LISA_PUSHED_REFS_FILE` names the captured pre-push
+  // stream, exactly as `validate-push-destination` reads it. Without it this
+  // command is reachable — through the gate runner — only after some earlier
+  // reader has already spent git's stdin, and the empty-stream fallback below
+  // then answers about the PUSHER'S `HEAD` rather than the pushed ref
+  // (CodySwannGT/lisa#3874).
+  const input = readPushRefs(option(args, "--refs", "LISA_PUSHED_REFS_FILE"));
   // The deploy chain is read from the remote default branch, the same ref this
   // path already trusts to bound the range. A local working tree could declare
   // anything, but so could a `--no-verify`; CI is the enforcing copy.
@@ -4337,7 +4427,8 @@ function validatePush(args) {
     reportPushGroup(
       outcome,
       group === target ? pr : undefined,
-      groups.length > 1 ? `${group.localRef ?? "(stdin)"}: ` : ""
+      groups.length > 1 ? `${group.localRef ?? "(stdin)"}: ` : "",
+      group.scope
     );
   }
 }
