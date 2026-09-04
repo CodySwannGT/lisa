@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.37.1](https://github.com/CodySwannGT/lisa/compare/v4.37.0...v4.37.1) (2026-09-04)
+
+
+### Code Refactoring
+
+* lower skipped-check guard complexity ([c3f7ca7](https://github.com/CodySwannGT/lisa/commit/c3f7ca78471ada2e9200b6c9bcf273e39e1e4aae)), closes [CodySwannGT/lisa#3837](https://github.com/CodySwannGT/lisa/issues/3837)
+
 ## [4.37.0](https://github.com/CodySwannGT/lisa/compare/v4.36.2...v4.37.0) (2026-09-04)
 
 
