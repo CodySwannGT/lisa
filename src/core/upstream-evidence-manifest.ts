@@ -726,6 +726,12 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "2adaf15910b6d00e69c202d263d407a21b31c0afce0039c6c042e51c278d2325",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
       "f53f2998b0f2332514fa17a24f7b0fa5d7782f76fbf78648c59ae8e33b81ed14",
+    "plugins/src/base/hooks/block-host-name-leak.agy.sh":
+      "9522a2db621178d9cee5bf70ff3948251c5043868f372924bfee19126dbd1c41",
+    "plugins/src/base/hooks/block-host-name-leak.mjs":
+      "e8e2e6b63da631093d2f1bfee843ce913fa800a60e61274bda7222aaee195b9b",
+    "plugins/src/base/hooks/block-host-name-leak.sh":
+      "853a890c7fe9e490e9271d7606b087643e542954fcdec4631172a40ef36bf32b",
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
@@ -2278,6 +2284,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "3818f04c404d46bd1ce5c0536b0b8aadf223a55ef8d869369709a650f0a50f74",
     "scripts/detect-stale-workflow-inputs.mjs":
       "04274c1ed972c040ccf0b64aba193368d652769094db6d97706706530e93d74f",
+    "scripts/downstream-name-digest.mjs":
+      "7db91654f03ddd37bfdf1c34acfbfad9832a44ab762ca94c179809ad8faf4aa3",
     "scripts/fix-namespace-test-assertions.mjs":
       "b083f7de09c10402d92730320d1ffb958d6fa17d058aad5230350986a1a61adf",
     "scripts/fix-test-assertions-pass2.mjs":
@@ -2285,7 +2293,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/fix-test-assertions.mjs":
       "59b5e8cc31e7c7323d20bd180f2ae97c08a9685758483b6fe00ba77317a845f2",
     "scripts/generate-agy-plugin-artifacts.mjs":
-      "a952d25eeb83aa21d71ea7e46c7ba06c8c1ecd0fcf25a734900728191ce52105",
+      "ad560849a7a0e4219eb1605f3fc2c4f63b94377abf2f896b62c48f9332913d0b",
     "scripts/generate-codex-plugin-artifacts.mjs":
       "facb86910c07d1b8025868d24425fdaea7b6efbe282bace5ee5bf23957d6b51a",
     "scripts/generate-copilot-plugin-artifacts.mjs":
@@ -3587,6 +3595,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/hooks.json": true,
     "plugins/lisa-agy/hooks/block-direct-issue-create.agy.sh": true,
     "plugins/lisa-agy/hooks/block-direct-issue-create.sh": true,
+    "plugins/lisa-agy/hooks/block-host-name-leak.agy.sh": true,
+    "plugins/lisa-agy/hooks/block-host-name-leak.mjs": true,
+    "plugins/lisa-agy/hooks/block-host-name-leak.sh": true,
     "plugins/lisa-agy/hooks/block-instruction-file-edits.agy.sh": true,
     "plugins/lisa-agy/hooks/block-instruction-file-edits.sh": true,
     "plugins/lisa-agy/hooks/block-no-verify.agy.sh": true,
@@ -3965,6 +3976,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/commands/lisa/verify.md": true,
     "plugins/lisa-copilot/commands/lisa/wiki/install.md": true,
     "plugins/lisa-copilot/hooks/block-direct-issue-create.sh": true,
+    "plugins/lisa-copilot/hooks/block-host-name-leak.mjs": true,
+    "plugins/lisa-copilot/hooks/block-host-name-leak.sh": true,
     "plugins/lisa-copilot/hooks/block-instruction-file-edits.sh": true,
     "plugins/lisa-copilot/hooks/block-managed-file-edits.sh": true,
     "plugins/lisa-copilot/hooks/block-no-verify.sh": true,
@@ -4451,6 +4464,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/commands/lisa/verify.md": true,
     "plugins/lisa-cursor/commands/lisa/wiki/install.md": true,
     "plugins/lisa-cursor/hooks/block-direct-issue-create.sh": true,
+    "plugins/lisa-cursor/hooks/block-host-name-leak.mjs": true,
+    "plugins/lisa-cursor/hooks/block-host-name-leak.sh": true,
     "plugins/lisa-cursor/hooks/block-instruction-file-edits.sh": true,
     "plugins/lisa-cursor/hooks/block-managed-file-edits.sh": true,
     "plugins/lisa-cursor/hooks/block-no-verify.sh": true,
@@ -7046,6 +7061,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/commands/wiki/install.md": true,
     "plugins/lisa/hooks/block-direct-issue-create.agy.sh": true,
     "plugins/lisa/hooks/block-direct-issue-create.sh": true,
+    "plugins/lisa/hooks/block-host-name-leak.agy.sh": true,
+    "plugins/lisa/hooks/block-host-name-leak.mjs": true,
+    "plugins/lisa/hooks/block-host-name-leak.sh": true,
     "plugins/lisa/hooks/block-instruction-file-edits.agy.sh": true,
     "plugins/lisa/hooks/block-instruction-file-edits.sh": true,
     "plugins/lisa/hooks/block-managed-file-edits.sh": true,
@@ -7716,6 +7734,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/commands/wiki/install.md": true,
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh": true,
     "plugins/src/base/hooks/block-direct-issue-create.sh": true,
+    "plugins/src/base/hooks/block-host-name-leak.agy.sh": true,
+    "plugins/src/base/hooks/block-host-name-leak.mjs": true,
+    "plugins/src/base/hooks/block-host-name-leak.sh": true,
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh": true,
     "plugins/src/base/hooks/block-instruction-file-edits.sh": true,
     "plugins/src/base/hooks/block-managed-file-edits.sh": true,
@@ -8563,6 +8584,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/copy-codex-scripts.mjs": true,
     "scripts/copy-opencode-plugin-templates.mjs": true,
     "scripts/detect-stale-workflow-inputs.mjs": true,
+    "scripts/downstream-name-digest.mjs": true,
     "scripts/fix-namespace-test-assertions.mjs": true,
     "scripts/fix-test-assertions-pass2.mjs": true,
     "scripts/fix-test-assertions.mjs": true,
@@ -9851,6 +9873,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-direct-issue-create-state-declaration.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create.test.ts": true,
     "tests/unit/hooks/block-generated-artifact-edits.test.ts": true,
+    "tests/unit/hooks/block-host-name-leak.test.ts": true,
     "tests/unit/hooks/block-instruction-file-edits.test.ts": true,
     "tests/unit/hooks/block-managed-file-edits-apply-patch.test.ts": true,
     "tests/unit/hooks/block-managed-file-edits-file-reach.test.ts": true,
@@ -10031,6 +10054,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/destructive-production-unreachable.test.ts": true,
     "tests/unit/scripts/detect-stale-workflow-inputs-helpers.ts": true,
     "tests/unit/scripts/detect-stale-workflow-inputs.test.ts": true,
+    "tests/unit/scripts/downstream-name-digest.test.ts": true,
     "tests/unit/scripts/e2e-coverage-interpolation-wildcard.test.ts": true,
     "tests/unit/scripts/e2e-coverage-run-awareness.test.ts": true,
     "tests/unit/scripts/e2e-coverage.test.ts": true,
