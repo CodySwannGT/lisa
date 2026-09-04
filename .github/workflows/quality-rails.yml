@@ -118,9 +118,28 @@ jobs:
 
       - name: 🔖 Report which Lisa is running
         # Resolved through the same three-candidate search every gate job
-        # below uses, in the same order, deliberately: the point of the stamp
-        # is to name the copy that will actually produce the verdicts, and a
-        # different search order would name a different file.
+        # below uses, in the same order, and against the same filesystem,
+        # deliberately: the point of the stamp is to name the copy that will
+        # actually produce the verdicts, and a different search order, or the
+        # same order over a different directory tree, would name a different
+        # file.
+        #
+        # NO DEPENDENCY INSTALL HERE, UNLIKE quality.yml AND playwright-e2e.yml.
+        # Those two install before every gate job, so a stamp that skipped the
+        # install searched a filesystem with no `node_modules` and digested a
+        # different copy than the gates ran. This workflow installs no JS
+        # dependencies anywhere — a Rails project legitimately has no Node
+        # toolchain, and `🎛️ Resolve the learnings-budget gate` below records
+        # why installing one to read a declaration was refused — so its gate
+        # jobs and this stamp already search the same tree, and adding an
+        # install would be the thing that made them differ.
+        #
+        # The remaining asymmetry is the fetched-tarball fallback that job
+        # reaches when no on-disk candidate exists. This stamp does not follow
+        # it there: it warns that no registry is on disk, which is a report a
+        # reader can act on, rather than a digest of a copy fetched here and
+        # possibly not the one fetched there. `registry path` in the stamp
+        # names whichever copy was measured whenever one was.
         #
         # `|| true` and `set -uo pipefail` without `-e`: the registry this
         # resolves is whatever copy the project happens to have installed, and
