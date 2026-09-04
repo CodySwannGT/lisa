@@ -447,22 +447,74 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
    */
   const PUSH = "push";
 
-  /** The one pass that proves both correctness and coverage at push. */
-  const SPLIT_COVERAGE_TASK = "test:cov:unit";
+  /** The two gates one push pass proves together, in sorted order. */
+  const COVERAGE_PROVER_GATES = ["coverage-adequacy", "test-correctness"];
+
+  /**
+   * Resolve the single pass that proves both correctness and coverage at push.
+   *
+   * Derived from the configuration rather than written here, so a deliberate
+   * rename of the push task does not read as a regression. What must not
+   * change is the shape: exactly these two gates, sharing exactly ONE task.
+   * @returns The push task both provers resolve to
+   */
+  function splitCoverageTask(): string {
+    const covering = gatesAt(parsedConfig(), PUSH).filter(entry =>
+      COVERAGE_PROVER_GATES.includes(entry.id)
+    );
+    expect(
+      covering
+        .map(entry => entry.id)
+        .toSorted((left, right) => left.localeCompare(right))
+    ).toEqual(COVERAGE_PROVER_GATES);
+    const tasks = [...new Set(covering.map(entry => entry.task))];
+    // One task, not two: the same run proves both properties, and the pre-push
+    // step stands down only when both are declared against it.
+    expect(tasks).toHaveLength(1);
+    const [task] = tasks;
+    if (typeof task !== "string")
+      throw new Error("Push coverage prover resolves to no task");
+    return task;
+  }
 
   it("keeps the coverage prover out of the integration directory", () => {
-    const covering = gatesAt(parsedConfig(), PUSH).filter(entry =>
-      ["coverage-adequacy", "test-correctness"].includes(entry.id)
-    );
-    expect(covering.map(entry => entry.task)).toEqual([
-      SPLIT_COVERAGE_TASK,
-      SPLIT_COVERAGE_TASK,
-    ]);
     // The exclusion is the property; the LISA_COVERAGE_SCOPE=unit prefix the
     // script also carries is what gives the narrower run its own threshold
     // block, and is asserted where that mechanism lives.
-    expect(script(SPLIT_COVERAGE_TASK)).toContain(
+    expect(script(splitCoverageTask())).toContain(
       "vitest run --coverage --exclude='**/integration/**'"
+    );
+  });
+
+  /**
+   * The temp-growth BENCHMARK must not run inside the pre-push pass.
+   *
+   * It builds three real 100,000-entry corpora in the shared platform temp
+   * root — 300,000 entries — and asserts wall-clock command latency. On a
+   * machine running many concurrent agents that is both the slowest file in
+   * the suite and a load spike every other lane pays for, and it failed the
+   * push gate on branches whose diffs could not reach it.
+   *
+   * It is excluded by FILE and still runs in the full suite CI drives, exactly
+   * as the mutation performance suites are excluded from `test:integration:push`.
+   * Without this assertion the split would be free to rot back silently.
+   */
+  it("keeps the 100k temp-growth benchmark out of the push pass", () => {
+    const pushTask = splitCoverageTask();
+
+    expect(script(pushTask)).toContain(
+      "--exclude='**/measure-tmpdir-growth-performance.test.ts'"
+    );
+    // The benchmark still runs somewhere: the PR-moment prover must NOT
+    // exclude it, or the split would have deleted the coverage rather than
+    // relocated it.
+    const prTask = gatesAt(parsedConfig(), "pull-request").find(
+      entry => entry.id === "test-correctness"
+    )?.task;
+    expect(prTask).toBeDefined();
+    expect(prTask).not.toBe(pushTask);
+    expect(script(prTask as string)).not.toContain(
+      "measure-tmpdir-growth-performance"
     );
   });
 

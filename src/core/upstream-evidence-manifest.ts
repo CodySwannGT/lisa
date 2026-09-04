@@ -2419,7 +2419,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/materialize-copy-overwrite.mjs":
       "f510944db5b234131cb659b8780f571b460f8052a854131aa27558d73e126f36",
     "scripts/measure-tmpdir-growth.mjs":
-      "ee8c3464fb529061eeacfe67844828b983f7f53785c3f4eba50e6c20c8efb431",
+      "aa2f336fdb9592e4b7bda1a676d0915ba259e66a06081622a7e724604219d56b",
     "scripts/merge-generated-artifact.mjs":
       "d5abe45efb47732aa59da587f2ccfc9c2290b113a2bcab8b305ff46ab39c273e",
     "scripts/mutation-performance-measure.mjs":
@@ -9401,6 +9401,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/test-run-module-closure.ts": true,
     "tests/helpers/test-run-supervision-analyzer.ts": true,
     "tests/helpers/test-utils.ts": true,
+    "tests/helpers/tmpdir-growth-cap-boundary.ts": true,
     "tests/helpers/tmpdir-growth-command-harness.ts": true,
     "tests/helpers/tmpdir-growth-darwin-performance.ts": true,
     "tests/helpers/tmpdir-growth-performance-types.ts": true,
@@ -10269,6 +10270,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/maestro-flake-classification.test.ts": true,
     "tests/unit/scripts/maestro-flake-helpers.ts": true,
     "tests/unit/scripts/maestro-intermittent-registry.test.ts": true,
+    "tests/unit/scripts/measure-tmpdir-growth-performance.test.ts": true,
     "tests/unit/scripts/measure-tmpdir-growth.test.ts": true,
     "tests/unit/scripts/merge-driver-registration.test.ts": true,
     "tests/unit/scripts/merge-generated-artifact-derived-entries.test.ts": true,
