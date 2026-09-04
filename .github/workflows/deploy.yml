@@ -107,6 +107,54 @@ jobs:
       node_version: '22.21.1'
       package_manager: 'bun'
 
+  # The deploy-outcome guard.
+  #
+  # `publish_npm` is a reusable-workflow call, so it cannot carry a guard step of
+  # its own the way the stack templates' deploy jobs do. This job is that guard:
+  # it runs on every deploy, never skips, and so reports green or red and never
+  # the third, silent state. A job that skips when the release fails is, as a
+  # status check, indistinguishable from one that passed — which is how a
+  # release can silently not ship while every status field says it did (#3467).
+  #
+  # Keep the `run:` body byte-identical to the guard in every stack template's
+  # deploy workflow; a test asserts the copies have not drifted apart.
+  deploy_outcome:
+    name: 🚨 Deploy Outcome
+    needs: [determine_environment, release]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: 🚨 Confirm the release shipped
+        env:
+          DEPLOY_ENVIRONMENT: ${{ needs.determine_environment.outputs.environment }}
+          RELEASE_RESULT: ${{ needs.release.result }}
+        run: |
+          if [ "${RELEASE_RESULT}" = "success" ]; then
+            echo "✅ The release succeeded. Deploying to ${DEPLOY_ENVIRONMENT}."
+            exit 0
+          fi
+          {
+            echo "### 🚨 Nothing new was deployed to ${DEPLOY_ENVIRONMENT}"
+            echo ""
+            echo "The **Release** step did not succeed (it reported \`${RELEASE_RESULT}\`), so no"
+            echo "new version reached \`${DEPLOY_ENVIRONMENT}\`. Whatever was already running"
+            echo "there is untouched and still working — this change simply has not shipped."
+            echo ""
+            echo "**What to do next**"
+            echo ""
+            echo "1. Open the **Release** job in this run and read the step marked in red."
+            echo "2. The most common cause is that this version number was already released from"
+            echo "   another branch. The fix is to raise \`version\` in \`package.json\` above every"
+            echo "   version already released, then merge again."
+            echo "3. If anything here is unclear, send this run's link to whoever looks after"
+            echo "   deployments. Do not merge anything else into this branch until it is fixed."
+          } >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}"
+          echo "::error title=Nothing new was deployed to ${DEPLOY_ENVIRONMENT}::The release did not succeed (${RELEASE_RESULT}), so this change did not ship and the previous version is still running. Open the Release job in this run to see why, fix it, then merge again."
+          exit 1
+
   # The post-deploy gate. It proves a property of what is now live, so it runs
   # after the publish rather than instead of it — a red here does not un-ship the
   # release, it says the shipped thing does not hold and hands the operator a
