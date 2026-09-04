@@ -61,7 +61,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
       "a76959fff54b59af0d46cc8066d75bdfaf8bfd0591505663ab7cfcdf38f34fa6",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "e192737a8756b97e406d2b1cbdb099e3b7f190cc6b96c3681284637de95c1646",
+      "c0aa42f5e0a15a5d1938369129d0b7f726a4db1a80389d427e6f9647d7cf97fa",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
@@ -785,7 +785,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "743663565a80b56abc63fbe23dd4da557c41c96a6e98bfe7eca46245dc4e7cb9",
+      "f9f2622b2664ced23825a3c35400797ed68e274677aabdfa69e590218109a10e",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -10030,6 +10030,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/parity-safety-net-heredoc-literal.test.ts": true,
     "tests/unit/hooks/parity-safety-net-heredoc.test.ts": true,
     "tests/unit/hooks/parity-safety-net-line-continuation.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-noexec.test.ts": true,
     "tests/unit/hooks/parity-safety-net-preserve-remedy.test.ts": true,
     "tests/unit/hooks/parity-safety-net-prose-remedy.test.ts": true,
     "tests/unit/hooks/parity-safety-net-scan-failure.test.ts": true,
