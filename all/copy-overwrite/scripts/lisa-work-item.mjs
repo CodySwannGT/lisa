@@ -4034,11 +4034,7 @@ function sweep(args) {
     // A sweep must not abort on the first item whose merges have not reached a
     // deploy branch. It reports that item and carries on, which is what makes
     // the backstop safe to run over a whole queue.
-    console.log(
-      outcome.applied
-        ? `completed ${ref} -> ${outcome.terminal}  (merged: ${evidence}) bases: ${outcome.bases}`
-        : outcome.report
-    );
+    console.log(outcome.report);
   }
   if (drifted === 0) {
     console.log(

@@ -59,12 +59,13 @@ const ADD_TERMINAL = `--add-label ${TERMINAL}`;
 const ISSUE_CLOSE = "issue close";
 const STACK_BRANCH = "stack/queue-drain-20260903";
 const STAGING_BRANCH = "release/staging";
+const DEV_BRANCH = "dev-branch";
 
 /** A project that deploys `main` to production and one branch to staging. */
 const DEPLOY_CONFIG = {
   deploy: {
     branches: {
-      dev: "dev-branch",
+      dev: DEV_BRANCH,
       production: "main",
       staging: STAGING_BRANCH,
     },
@@ -217,7 +218,7 @@ describe("GitHub completion weighs the merged pull request's base branch", () =>
 
   it("reports, rather than ranks, two different non-production environments", () => {
     const run = complete(createFixture(DEPLOY_CONFIG), {
-      FAKE_GH_PR_BASE: "dev-branch",
+      FAKE_GH_PR_BASE: DEV_BRANCH,
       FAKE_GH_PR_BASE_8: STAGING_BRANCH,
       FAKE_GH_TIMELINE_JSON: mergedTimeline([7, 8]),
     });
@@ -259,6 +260,28 @@ describe("the sweep backstop inherits the same weighing", () => {
     // queue that contains one.
     expect(result.exitCode).toBeUndefined();
     expect(result.stdout).toContain("work-item NOT completed");
+  });
+
+  it("reports a non-production role as advanced, not completed", () => {
+    const fixture = createFixture({
+      ...SWEEP_CONFIG,
+      deploy: { branches: { dev: DEV_BRANCH, production: "main" } },
+    });
+    const log = path.join(fixture.root, "gh.log");
+    const result = cli(fixture, ["sweep", "--apply"], {
+      FAKE_GH_ISSUE_JSON: CLAIMED_ISSUE,
+      FAKE_GH_LIST_JSON: JSON.stringify([{ number: 42, title: "on dev" }]),
+      FAKE_GH_LOG: log,
+      FAKE_GH_PR_BASE: DEV_BRANCH,
+      FAKE_GH_TIMELINE_JSON: mergedTimeline([7], "acme/code"),
+    });
+
+    expect(result.exitCode).toBeUndefined();
+    expect(result.stdout).toContain(
+      "work-item advanced: acme/code#42 -> status:on-dev"
+    );
+    expect(result.stdout).not.toContain("completed acme/code#42");
+    expect(readFileSync(log, "utf8")).not.toContain(ISSUE_CLOSE);
   });
 });
 

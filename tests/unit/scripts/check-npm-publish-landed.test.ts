@@ -327,4 +327,20 @@ describe("check-npm-publish-landed exit codes and report", () => {
       "--package"
     );
   });
+
+  it.each(["0", "-1", "Infinity", "NaN", "9007199254740992"])(
+    "refuses an invalid attempt count (%s) before asking the registry",
+    async attempts => {
+      await expect(
+        main([
+          "--package",
+          PACKAGE,
+          "--version",
+          VERSION,
+          "--attempts",
+          attempts,
+        ])
+      ).rejects.toThrow("--attempts must be a positive safe integer");
+    }
+  );
 });
