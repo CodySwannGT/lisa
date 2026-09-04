@@ -112,7 +112,39 @@ interface GuardModule {
     descriptions?: Record<string, string>;
     refusal?: { kind: string } | null;
     waiveRate?: { waived: number; sampled: number };
+    carried?: {
+      unreviewed?: readonly string[];
+      reviewed?: number;
+      unread?: string;
+    };
   }): { verdict: string; conclusion: string; title: string };
+  readonly CARRIED_PULL_REQUEST_LIMIT: number;
+  evaluateCarriedReview(
+    declaration: Record<string, unknown>,
+    carried: readonly {
+      number: number | string;
+      headSha?: string;
+      checks?: readonly CheckRow[];
+      unreadable?: string;
+    }[]
+  ): { violations: Violation[]; unreviewed: string[]; reviewed: number };
+  readCarriedReview(
+    declaration: Record<string, unknown>,
+    pr: string | number,
+    repo?: string,
+    options?: {
+      fetchCarried?: (
+        pr: string | number,
+        repo?: string
+      ) => { number: number; headSha: string }[];
+      fetchCarriedChecks?: (sha: string, repo?: string) => CheckRow[];
+    }
+  ): {
+    violations: Violation[];
+    unreviewed: string[];
+    reviewed: number;
+    unread?: string;
+  };
   summarizeWaiveRate(samples: readonly Record<string, string>[]): {
     sampled: number;
     waived: number;
@@ -156,6 +188,16 @@ const COMPLETED = "Review completed";
 
 /** A description this fleet has seen but nobody has confirmed the meaning of. */
 const APPROVED = "Review approved";
+
+/**
+ * The measured base-branch string, byte-exact off #3632 / #3633 / #3634 / #3636.
+ *
+ * All four reported `state: success` carrying this, all four merged into a
+ * batching branch no ruleset watches, and all four reached the default branch
+ * inside one integration pull request whose own review had completed.
+ */
+const BASE_BRANCH_DISABLED =
+  "Review skipped: reviews are disabled for this base branch";
 
 /**
  * Builds a declaration that treats CodeRabbit as evidence-bearing.
@@ -1076,6 +1118,201 @@ describe("vacuous required checks", () => {
       for (const kind of mod.NEVER_BLOCKING) {
         expect(mod.VIOLATIONS.suppressesRequired).not.toBe(kind);
       }
+    });
+  });
+
+  describe("the pull requests a batch CARRIES (#3658)", () => {
+    /**
+     * One constituent row, as the carried arm consumes it.
+     *
+     * @param number - The carried pull request number
+     * @param description - What its CodeRabbit status said
+     * @returns One entry for `evaluateCarriedReview`
+     */
+    const constituent = (number: number, description: string) => ({
+      number,
+      headSha: HEAD_SHA,
+      checks: [{ name: CODERABBIT, state: "SUCCESS", description }],
+    });
+
+    it("does not render a batch carrying an UNREVIEWED pull request the way it renders a reviewed one", () => {
+      // THE regression, and the shape #3639 fixed one level down. MEASURED
+      // 2026-09-03: an integration pull request whose OWN review completed
+      // carried four constituents that each reported the base-branch string.
+      // Every constituent's own gate went red on its own pull request, on a
+      // branch outside every ruleset ref condition, so the red changed nothing
+      // — and the batch that carried all four into the default branch rendered
+      // `success`, character for character what a fully reviewed batch renders.
+      const own = mod.evaluateReviewGate(declarationWith(), [
+        { name: CODERABBIT, state: "SUCCESS", description: COMPLETED },
+      ]);
+      const carried = mod.evaluateCarriedReview(declarationWith(), [
+        constituent(3632, BASE_BRANCH_DISABLED),
+        constituent(3629, COMPLETED),
+      ]);
+
+      const batch = mod.reviewGateVerdict({
+        states: own.states,
+        descriptions: own.descriptions,
+        carried,
+      });
+      const reviewed = mod.reviewGateVerdict({
+        states: own.states,
+        descriptions: own.descriptions,
+        carried: { unreviewed: [], reviewed: 2 },
+      });
+
+      expect(reviewed.conclusion).toBe("success");
+      expect(batch.conclusion).not.toBe(reviewed.conclusion);
+      expect(batch.conclusion).toBe("neutral");
+      expect(batch.title).toContain("UNREVIEWED");
+      expect(batch.title).toContain("#3632");
+    });
+
+    it("refuses to render a green batch from the RENDERER alone", () => {
+      // Deliberately built by hand rather than through the carried arm. Every
+      // other case in this block would fail on a tree where the arm is simply
+      // ABSENT, which proves a symbol exists rather than that a behaviour
+      // changed. This one calls only `reviewGateVerdict`, which already
+      // shipped, hands it a batch tally, and pins that the tally is READ: on
+      // the code this replaces, the identical call returns `success`.
+      const green = mod.reviewGateVerdict({
+        states: { [CODERABBIT]: mod.REVIEW_GATE_STATES.satisfied },
+        descriptions: { [CODERABBIT]: COMPLETED },
+        carried: { unreviewed: ["#3632", "#3636"], reviewed: 3 },
+      });
+
+      expect(green.conclusion).toBe("neutral");
+      expect(green.verdict).toBe(mod.REVIEW_GATE_STATES.waived);
+      expect(green.title).toContain("#3636");
+    });
+
+    it("names which constituents were carried unreviewed, not just how many", () => {
+      // The acceptance criterion is that an operator inspecting a merged
+      // integration pull request can tell WHICH constituents were read. A count
+      // alone sends them back to the raw statuses, which is where the fact was
+      // already lost.
+      const carried = mod.evaluateCarriedReview(declarationWith(), [
+        constituent(3632, BASE_BRANCH_DISABLED),
+        constituent(3633, BASE_BRANCH_DISABLED),
+        constituent(3629, COMPLETED),
+      ]);
+
+      expect(carried.unreviewed).toEqual(["#3632", "#3633"]);
+      expect(carried.reviewed).toBe(1);
+      expect(carried.violations).toHaveLength(2);
+      expect(carried.violations[0]?.message).toContain("CARRIES #3632");
+      expect(carried.violations[0]?.message).toContain(BASE_BRANCH_DISABLED);
+    });
+
+    it("counts an unreadable constituent AGAINST the batch", () => {
+      // Refusing to report a clean scan that never ran. A constituent whose
+      // evidence could not be fetched is not a reviewed one, and the arm whose
+      // silence would read as approval is exactly the one that must not be
+      // allowed to fall silent.
+      const carried = mod.evaluateCarriedReview(declarationWith(), [
+        { number: 3634, headSha: HEAD_SHA, unreadable: "gh: 404 Not Found" },
+      ]);
+
+      expect(carried.unreviewed).toEqual(["#3634"]);
+      expect(carried.reviewed).toBe(0);
+      expect(carried.violations[0]?.message).toContain("could NOT be read");
+    });
+
+    it("treats a batch it could not enumerate as unaccounted, never as clean", () => {
+      const unread = mod.readCarriedReview(declarationWith(), 3637, "o/r", {
+        fetchCarried: () => {
+          throw new Error("gh: API rate limit exceeded");
+        },
+      });
+      const own = mod.evaluateReviewGate(declarationWith(), [
+        { name: CODERABBIT, state: "SUCCESS", description: COMPLETED },
+      ]);
+
+      expect(unread.unread).toContain("rate limit");
+      expect(
+        mod.reviewGateVerdict({
+          states: own.states,
+          descriptions: own.descriptions,
+          carried: unread,
+        }).conclusion
+      ).toBe("neutral");
+    });
+
+    it("leaves an ordinary pull request — one that carries nothing — untouched", () => {
+      // The cost and the blast radius are both zero where there is no batch:
+      // no constituents, no extra reads, and the same `success` as before.
+      const own = mod.evaluateReviewGate(declarationWith(), [
+        { name: CODERABBIT, state: "SUCCESS", description: COMPLETED },
+      ]);
+      const carried = mod.readCarriedReview(declarationWith(), 42, "o/r", {
+        fetchCarried: () => [],
+        fetchCarriedChecks: () => {
+          throw new Error("must not be called when nothing is carried");
+        },
+      });
+
+      expect(carried.unreviewed).toEqual([]);
+      expect(carried.violations).toEqual([]);
+      expect(
+        mod.reviewGateVerdict({
+          states: own.states,
+          descriptions: own.descriptions,
+          carried,
+        }).conclusion
+      ).toBe("success");
+    });
+
+    it("reports a batch past the cap as unread rather than as the part it read", () => {
+      // A silently truncated scan is the fail-open this file exists to refuse.
+      const many = Array.from(
+        { length: mod.CARRIED_PULL_REQUEST_LIMIT + 1 },
+        (_ignored, index) => ({ number: index + 1, headSha: HEAD_SHA })
+      );
+      const carried = mod.readCarriedReview(declarationWith(), 3637, "o/r", {
+        fetchCarried: () => many,
+        fetchCarriedChecks: () => [
+          { name: CODERABBIT, state: "SUCCESS", description: COMPLETED },
+        ],
+      });
+
+      expect(carried.unread).toContain(
+        String(mod.CARRIED_PULL_REQUEST_LIMIT + 1)
+      );
+      expect(carried.reviewed).toBe(0);
+    });
+
+    it("reads each constituent at its OWN head, never at the batch's", () => {
+      // A status description is not stable across commits, and the constituent
+      // head is the commit branch protection recorded on the constituent. The
+      // batch's head carries the MERGES and none of their review statuses,
+      // which is why the existing one-commit read cannot see this at all.
+      const seen: string[] = [];
+      mod.readCarriedReview(declarationWith(), 3637, "o/r", {
+        fetchCarried: () => [
+          { number: 3632, headSha: "506c87ae" },
+          { number: 3633, headSha: "59b19d2f" },
+        ],
+        fetchCarriedChecks: sha => {
+          seen.push(sha);
+          return [
+            { name: CODERABBIT, state: "SUCCESS", description: COMPLETED },
+          ];
+        },
+      });
+
+      expect(seen).toEqual(["506c87ae", "59b19d2f"]);
+    });
+
+    it("reports the carried gap without ever blocking on it", () => {
+      // The constituents\' own gates already reached the failing verdict where
+      // the diff lives. Reddening the batch as well would fail a pull request
+      // for a vendor condition its author cannot reach — the "gate that gets
+      // deleted" failure this file names twice. Visibility, not enforcement.
+      expect(mod.NEVER_BLOCKING).toContain(mod.VIOLATIONS.reviewCarried);
+      expect(mod.REVIEW_GATE_BLOCKING).not.toContain(
+        mod.VIOLATIONS.reviewCarried
+      );
     });
   });
 });

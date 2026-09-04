@@ -272,6 +272,8 @@ function stubGh(rows: readonly CheckRow[] | null, laterPage = false): string {
 case "$1:$2" in
   pr:view) printf '%s\n' ${JSON.stringify(HEAD_A)} ;;
   pr:checks) ${rows === null ? "exit 1" : `cat ${JSON.stringify(payload)}`} ;;
+  api:*/pulls/*/commits*) printf '%s\n' '[]' ;;
+  api:*/commits/*/pulls*) printf '%s\n' '[]' ;;
   api:*status*) ${apiAnswer} ;;
   api:*check-runs*) ${rows === null ? "exit 1" : "printf '%s\\n' '[]'"} ;;
   *) exit 1 ;;

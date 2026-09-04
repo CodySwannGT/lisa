@@ -125,6 +125,8 @@ describe("🕵️ Review Evidence gate", () => {
 case "$1:$2" in
   pr:view) printf '%s\n' ${JSON.stringify(HEAD_SHA)} ;;
   pr:checks) ${rows === null ? "exit 1" : `cat ${JSON.stringify(payload)}`} ;;
+  api:*/pulls/*/commits*) printf '%s\n' '[]' ;;
+  api:*/commits/*/pulls*) printf '%s\n' '[]' ;;
   api:*status*) ${apiAnswer} ;;
   api:*check-runs*) ${rows === null ? "exit 1" : "printf '%s\\n' '[]'"} ;;
   *) exit 1 ;;
