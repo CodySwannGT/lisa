@@ -229,6 +229,33 @@ describe("EnsurePinnedReusableWorkflowRefsMigration", () => {
         resolveTagCommit: async () => null,
       });
 
+    /**
+     * Dependencies whose declared release identity will not resolve.
+     * @returns Readers that stamp a commit no ref can name
+     */
+    const malformed = (): ReleasePinDependencies =>
+      deps({ readStampedCommit: () => "not-a-sha" });
+
+    /**
+     * Put the caller in the TEMPLATES rather than the project, as a fresh
+     * install has it at the moment the pre-strategy hook runs.
+     */
+    async function seedFreshInstall(): Promise<void> {
+      await fs.remove(path.join(projectDir, ".github"));
+      const templateDir = path.join(
+        lisaDir,
+        "typescript",
+        "create-only",
+        ".github",
+        "workflows"
+      );
+      await fs.ensureDir(templateDir);
+      await fs.writeFile(
+        path.join(templateDir, "ci.yml"),
+        caller(QUALITY, "main")
+      );
+    }
+
     it("ABORTS with a non-zero outcome rather than pinning something", async () => {
       await fs.writeFile(path.join(projectDir, CI), caller(QUALITY, "main"));
       await expect(
@@ -262,23 +289,47 @@ describe("EnsurePinnedReusableWorkflowRefsMigration", () => {
       ).rejects.toBeInstanceOf(UnresolvableReleasePinError);
     });
 
-    it("aborts for a FRESH install too, where the callers are still in the templates", async () => {
+    it("aborts a FRESH install too when the identity is BROKEN, not merely absent", async () => {
       // The project has no workflows yet; the caller arrives when the templates
       // are copied, minutes later. Looking only at the project would let a
-      // fresh install past the gate and pin nothing.
-      await fs.remove(path.join(projectDir, ".github"));
-      const templateDir = path.join(
-        lisaDir,
-        "typescript",
-        "create-only",
-        ".github",
-        "workflows"
-      );
-      await fs.ensureDir(templateDir);
-      await fs.writeFile(
-        path.join(templateDir, "ci.yml"),
-        caller(QUALITY, "main")
-      );
+      // fresh install past the gate and pin nothing. A broken stamp means the
+      // installed Lisa cannot be trusted about itself, so nothing proceeds.
+      await seedFreshInstall();
+
+      await expect(
+        new EnsurePinnedReusableWorkflowRefsMigration(
+          malformed()
+        ).beforeStrategies(context())
+      ).rejects.toBeInstanceOf(UnresolvableReleasePinError);
+    });
+
+    it("does NOT abort a fresh install from an UNRELEASED Lisa — it says so instead", async () => {
+      // A working checkout has no release tag for a caller to name, so pinning
+      // is not merely impossible there, it is meaningless. Aborting would make
+      // every developer checkout unable to apply Lisa at all. The apply
+      // continues, warns, and `lisa doctor` reports the refs it seeded.
+      await seedFreshInstall();
+      const warnings: string[] = [];
+      const ctx = {
+        ...context(),
+        logger: {
+          ...new SilentLogger(),
+          warn: (m: string) => warnings.push(m),
+        },
+      } as MigrationContext;
+
+      await expect(
+        new EnsurePinnedReusableWorkflowRefsMigration(
+          unresolvable()
+        ).beforeStrategies(ctx)
+      ).resolves.toBeUndefined();
+      expect(warnings.join("\n")).toContain("left unpinned");
+    });
+
+    it("STILL aborts an unreleased Lisa when the project ALREADY calls a reusable", async () => {
+      // The one case where continuing would be the fail-open: an existing
+      // caller stays mutable while the apply reports success.
+      await fs.writeFile(path.join(projectDir, CI), caller(QUALITY, "main"));
 
       await expect(
         new EnsurePinnedReusableWorkflowRefsMigration(

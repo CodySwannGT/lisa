@@ -28,6 +28,21 @@
  * nothing. It must never fall back to `@main`, and it must never leave a
  * project whose package pin and workflow ref describe different versions —
  * a partial rewrite is worse than no rewrite, because it looks finished.
+ *
+ * ## Two different "cannot resolve", and they are not the same failure
+ *
+ * A Lisa that DECLARES a release identity and cannot be resolved to a commit
+ * is broken: something rewrote a stamp after publish, and nothing it says
+ * about itself can be trusted. That is `"malformed"`, and it stops an apply
+ * wherever a caller is involved.
+ *
+ * A Lisa that declares NO release identity was never released — a working
+ * checkout, or a template tree copied somewhere without its history. There is
+ * no tag for a caller to name, so pinning is not merely impossible, it is
+ * meaningless. That is `"unreleased"`, and it is reported rather than fatal
+ * except where refusing to act would silently leave an EXISTING caller
+ * mutable. Collapsing the two would make every developer checkout unable to
+ * apply Lisa at all.
  * @module core/lisa-release-pin
  */
 import { execFile } from "node:child_process";
@@ -42,20 +57,39 @@ const execFileAsync = promisify(execFile);
 const RELEASE_TAG = /^v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/u;
 
 /**
+ * Which kind of "cannot resolve" this is.
+ *
+ * `"malformed"` — the installed Lisa DECLARES a release identity and it will
+ * not resolve. Something rewrote a stamp after publish, so nothing it says
+ * about itself can be trusted.
+ *
+ * `"unreleased"` — it declares none. A working checkout, or a template tree
+ * copied without its history. There is no tag for a caller to name, so pinning
+ * is meaningless rather than merely blocked.
+ */
+export type UnresolvableReason = "malformed" | "unreleased";
+
+/**
  * The installed Lisa cannot be resolved to the commit its version tag names.
  *
  * Thrown rather than reported so an apply aborts instead of silently leaving
  * mutable refs in place, which is the fail-open shape this whole subsystem
- * exists to remove.
+ * exists to remove. Read `reason` before deciding how far that goes: not every
+ * unresolvable pin is a broken installation.
  */
 export class UnresolvableReleasePinError extends Error {
+  /** Which of the two failures this is; see the module note. */
+  readonly reason: UnresolvableReason;
+
   /**
    * Create the error.
+   * @param reason - Broken declared identity, or no identity declared at all
    * @param message - Operator-readable statement of what could not be resolved
    */
-  constructor(message: string) {
+  constructor(reason: UnresolvableReason, message: string) {
     super(message);
     this.name = "UnresolvableReleasePinError";
+    this.reason = reason;
   }
 }
 
@@ -115,12 +149,14 @@ function releaseTagFor(version: string, stampedTag: string | null): string {
   if (stampedTag === null) return expected;
   if (!RELEASE_TAG.test(stampedTag)) {
     throw new UnresolvableReleasePinError(
+      "malformed",
       `the installed Lisa stamps release tag ${JSON.stringify(stampedTag)}, which is not a release tag. ` +
         "Refusing to pin a workflow at a ref derived from it."
     );
   }
   if (stampedTag !== expected) {
     throw new UnresolvableReleasePinError(
+      "malformed",
       `the installed Lisa is version ${version} but stamps release tag ${stampedTag}. ` +
         "Pinning either one would give this project a workflow ref and a package pin that " +
         "describe different releases, so nothing is written."
@@ -148,6 +184,7 @@ export async function resolveReleasePin(
     const sha = stamped.trim().toLowerCase();
     if (!FULL_COMMIT_SHA.test(sha)) {
       throw new UnresolvableReleasePinError(
+        "malformed",
         `the installed Lisa stamps release commit ${JSON.stringify(stamped)}, which is not a ` +
           "full 40-character commit SHA. A short or malformed SHA is ambiguous and several " +
           "GitHub APIs answer it with an empty result, so it is refused rather than written."
@@ -160,6 +197,7 @@ export async function resolveReleasePin(
   if (fromGit !== null) return { sha: fromGit, version };
 
   throw new UnresolvableReleasePinError(
+    "unreleased",
     `cannot resolve Lisa ${tag} to a commit: the installed package carries no release-commit ` +
       `stamp and ${tag} is not a tag in ${lisaDir}. Every reusable-workflow ref has been left ` +
       "exactly as it was — pinning some callers and not others, or falling back to a branch, " +

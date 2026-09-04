@@ -35,7 +35,7 @@ const TEMPLATE_MODES = ["create-only", "copy-overwrite"] as const;
 /** Outcome of resolving the pin, deferred so a failure can abort before writes. */
 type Resolution =
   | { readonly ok: true; readonly pin: ReleasePin }
-  | { readonly ok: false; readonly error: Error };
+  | { readonly ok: false; readonly error: UnresolvableReleasePinError };
 
 /**
  * Pin every Lisa reusable-workflow caller in a project at the commit the
@@ -59,9 +59,21 @@ type Resolution =
  * migrations run the copy strategies have already written. So the resolution
  * happens in `beforeStrategies`, which runs first: an installed Lisa that
  * cannot name its own release commit stops the apply there, before anything
- * has changed. A project with no caller workflows anywhere — neither installed
- * nor about to be — is not held to that, because there is nothing to pin and
- * so nothing to be wrong about.
+ * has changed.
+ *
+ * ## What it refuses to do, and what it only reports
+ *
+ * A Lisa whose DECLARED release identity will not resolve is broken, and it
+ * stops the apply wherever a caller is involved — installed in the project, or
+ * about to arrive from the templates.
+ *
+ * A Lisa that declares NO release identity was never released: a working
+ * checkout, or a template tree copied somewhere without its history. There is
+ * no tag for a caller to name, so the apply continues and says so — refusing
+ * would make every developer checkout unable to apply Lisa at all. The one
+ * exception is a project that ALREADY calls a Lisa reusable workflow: leaving
+ * an existing caller mutable while reporting a successful apply is the
+ * fail-open shape this migration exists to remove, so that case still stops.
  *
  * ## Why it declines nothing in postinstall-safe mode
  *
@@ -79,6 +91,17 @@ export class EnsurePinnedReusableWorkflowRefsMigration implements Migration {
   private resolution: Resolution | null = null;
 
   /**
+   * Whether the project already called a Lisa reusable workflow when this
+   * apply started, or null when nobody looked before the strategies ran.
+   *
+   * Asked before the copy, because afterwards the answer is always yes: the
+   * templates have just seeded callers, and "was already installed" and "was
+   * seeded thirty seconds ago" are the two cases that need opposite answers
+   * from an unreleased Lisa.
+   */
+  private hadCallersBefore: boolean | null = null;
+
+  /**
    * Create the migration.
    * @param deps - Pin resolution readers, injectable for deterministic tests
    */
@@ -94,12 +117,29 @@ export class EnsurePinnedReusableWorkflowRefsMigration implements Migration {
   /**
    * Resolve the pin before any strategy writes, and abort here if it cannot be.
    * @param ctx - Migration context
+   * @throws {UnresolvableReleasePinError} When a caller is involved and the pin will not resolve
    */
   async beforeStrategies(ctx: MigrationContext): Promise<void> {
     this.resolution = await this.resolve(ctx);
+    this.hadCallersBefore = await containsCaller(ctx.projectDir);
     if (this.resolution.ok) return;
-    if (!(await this.anyCallerReachable(ctx))) return;
-    throw this.resolution.error;
+    const { error } = this.resolution;
+
+    const fatal =
+      error.reason === "malformed"
+        ? await this.anyCallerReachable(ctx)
+        : this.hadCallersBefore;
+    if (fatal) throw error;
+
+    if (await this.anyCallerReachable(ctx)) {
+      // Said out loud rather than swallowed: this apply is about to seed
+      // caller workflows that stay on a mutable ref, and the only reason that
+      // is tolerable is that this Lisa is not a release. `lisa doctor` will
+      // report those refs, so the gap is visible from two directions.
+      ctx.logger.warn(
+        `Lisa reusable-workflow refs left unpinned: ${error.message}`
+      );
+    }
   }
 
   /**
@@ -117,9 +157,11 @@ export class EnsurePinnedReusableWorkflowRefsMigration implements Migration {
   async applies(ctx: MigrationContext): Promise<boolean> {
     if (!(await containsCaller(ctx.projectDir))) return false;
     const resolution = await this.resolved(ctx);
-    if (!resolution.ok) return true;
-    const changes = await this.plan(ctx.projectDir, resolution.pin);
-    return changes.length > 0;
+    if (resolution.ok) {
+      const changes = await this.plan(ctx.projectDir, resolution.pin);
+      return changes.length > 0;
+    }
+    return this.isFatal(ctx, resolution.error);
   }
 
   /**
@@ -130,7 +172,14 @@ export class EnsurePinnedReusableWorkflowRefsMigration implements Migration {
    */
   async apply(ctx: MigrationContext): Promise<MigrationResult> {
     const resolution = await this.resolved(ctx);
-    if (!resolution.ok) throw resolution.error;
+    if (!resolution.ok) {
+      if (this.isFatal(ctx, resolution.error)) throw resolution.error;
+      return {
+        name: this.name,
+        action: "noop",
+        message: `Lisa reusable-workflow refs left unpinned: ${resolution.error.message}`,
+      };
+    }
     const { pin } = resolution;
 
     // Every rewrite is computed before any is written. A partial rewrite would
@@ -153,6 +202,30 @@ export class EnsurePinnedReusableWorkflowRefsMigration implements Migration {
     }
     ctx.logger.success(message);
     return { name: this.name, action: "applied", changedFiles, message };
+  }
+
+  /**
+   * Whether an unresolved pin must stop this apply rather than be reported.
+   *
+   * A DECLARED identity that will not resolve is a broken installation and
+   * stops wherever a caller is involved. No declared identity at all is an
+   * unreleased tree, which has no tag for a caller to name — it stops only
+   * where continuing would leave a caller that was ALREADY there mutable
+   * while the apply reported success.
+   * @param ctx - Migration context
+   * @param error - The resolution failure
+   * @returns True when the apply must abort
+   */
+  private isFatal(
+    ctx: MigrationContext,
+    error: UnresolvableReleasePinError
+  ): boolean {
+    if (error.reason === "malformed") return true;
+    // Null means nobody looked before the strategies ran — a direct call, or a
+    // registry driven without the pre-strategy hook. Treating that as "there
+    // were callers" is the conservative reading: it aborts rather than
+    // reporting a skip nobody asked for.
+    return this.hadCallersBefore ?? true;
   }
 
   /**

@@ -187,7 +187,37 @@ describe("an applied project pins Lisa's reusable workflows", () => {
     );
   });
 
-  it("FAILS the apply and writes nothing when the version's tag resolves to no commit", async () => {
+  it("FAILS the apply and writes nothing when the installed identity will not resolve", async () => {
+    // A stamp that is not a commit means the installed Lisa cannot be trusted
+    // about itself. There is no version of "carry on" here that does not end
+    // with a caller naming something nobody chose.
+    const outcome = await apply(pinDeps({ readStampedCommit: () => "HEAD" }));
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.errors.join("\n")).toContain("full 40-character commit SHA");
+    // Nothing was copied: the abort landed before the strategies ran, so the
+    // project is exactly as it was rather than half-applied and pointing at a
+    // mutable ref that reads as deliberate.
+    expect(await fs.pathExists(path.join(destDir, CI))).toBe(false);
+  });
+
+  it("does not repair the failed apply by falling back to @main", async () => {
+    await apply(pinDeps({ readStampedCommit: () => "HEAD" }));
+    const workflows = path.join(destDir, ".github", "workflows");
+    const emitted = (await fs.pathExists(workflows))
+      ? await fs.readdir(workflows)
+      : [];
+    expect(emitted).toEqual([]);
+  });
+
+  it("FAILS an apply that would leave an ALREADY-INSTALLED caller mutable", async () => {
+    // The unreleased case, which is not fatal on its own — a working checkout
+    // has no tag for a caller to name. It becomes fatal here, because the
+    // project already calls a Lisa reusable and finishing would report success
+    // over a ref that stayed mutable.
+    await fs.ensureDir(path.join(destDir, ".github", "workflows"));
+    await fs.writeFile(path.join(destDir, CI), CALLER_TEMPLATE);
+
     const outcome = await apply(
       pinDeps({
         readStampedCommit: () => null,
@@ -198,24 +228,8 @@ describe("an applied project pins Lisa's reusable workflows", () => {
 
     expect(outcome.success).toBe(false);
     expect(outcome.errors.join("\n")).toContain("cannot resolve Lisa v4.4.11");
-    // Nothing was copied: the abort landed before the strategies ran, so the
-    // project is exactly as it was rather than half-applied and pointing at a
-    // mutable ref that reads as deliberate.
-    expect(await fs.pathExists(path.join(destDir, CI))).toBe(false);
-  });
-
-  it("does not repair the failed apply by falling back to @main", async () => {
-    await apply(
-      pinDeps({
-        readStampedCommit: () => null,
-        readStampedTag: () => null,
-        resolveTagCommit: async () => null,
-      })
+    expect(await fs.readFile(path.join(destDir, CI), "utf8")).toBe(
+      CALLER_TEMPLATE
     );
-    const workflows = path.join(destDir, ".github", "workflows");
-    const emitted = (await fs.pathExists(workflows))
-      ? await fs.readdir(workflows)
-      : [];
-    expect(emitted).toEqual([]);
   });
 });
