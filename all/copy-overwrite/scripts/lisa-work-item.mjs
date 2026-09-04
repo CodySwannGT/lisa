@@ -3475,7 +3475,7 @@ function recordDeployRole(ref, before, role) {
  * that wrongly did.
  * @param {string} ref Canonical work-item reference.
  * @param {object} contract The resolved tracker contract.
- * @returns {{applied: boolean, merged: number[], report: string, terminal: string|null}}
+ * @returns {{applied: boolean, bases: string, merged: number[], report: string, terminal: string|null}}
  *   What was applied, and why.
  */
 function completeGithubWorkItem(ref, contract) {

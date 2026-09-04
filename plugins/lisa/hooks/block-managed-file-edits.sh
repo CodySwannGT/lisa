@@ -90,7 +90,7 @@
 # from mine", and guessing "behind" is how a fork's stronger guard gets silently
 # replaced by a weaker upstream one. Add a name here in the same commit that
 # closes a vector.
-# lisa-guard-capabilities: managed-path-resolution, lisaignore-precedence, generated-path-rebuild, redirect-target, tee-target, sed-in-place-all-spellings, executed-script-reach, source-builtin-reach, stdin-redirect-reach, wrapper-positional-operand
+# lisa-guard-capabilities: managed-path-resolution, lisaignore-precedence, generated-path-rebuild, redirect-target, tee-target, sed-in-place-all-spellings, executed-script-reach, source-builtin-reach, stdin-redirect-reach, wrapper-positional-operand, direct-script-command-reach, analyzer-failure-visible
 set -euo pipefail
 
 input="$(cat)"
@@ -607,7 +607,9 @@ def command_word(statement):
         statement: One statement's tokens.
 
     Returns:
-        A pair (program, args); (None, []) when no program is named.
+        A triple (token, program, args); (None, None, []) when no program is
+        named. The raw token is retained because `./edit.sh` has no interpreter:
+        its command word is itself the executed script.
     """
     index = 0
     while index < len(statement):
@@ -617,7 +619,7 @@ def command_word(statement):
             continue
         program = token.rsplit("/", 1)[-1]
         if program not in FOLLOW_WRAPPERS:
-            return (program, statement[index + 1 :])
+            return (token, program, statement[index + 1 :])
         separate, positional = FOLLOW_WRAPPERS[program]
         index += 1
         while index < len(statement) and statement[index].startswith("-"):
@@ -627,7 +629,7 @@ def command_word(statement):
                 break
             index += 2 if option in separate else 1
         index += positional
-    return (None, [])
+    return (None, None, [])
 
 
 def shell_script_operand(args):
@@ -674,7 +676,7 @@ def write_targets(statement):
         Candidate paths this statement writes.
     """
     found = []
-    program, args = command_word(statement)
+    _token, program, args = command_word(statement)
     for index, token in enumerate(statement):
         if token in REDIRECT_OUT and index + 1 < len(statement):
             found.append(statement[index + 1])
@@ -697,7 +699,7 @@ def executed_script(statement):
     Returns:
         The operand token naming a script that will run, or None.
     """
-    program, args = command_word(statement)
+    token, program, args = command_word(statement)
     if program is None:
         return None
     if program in SHELL_PROGRAMS:
@@ -708,6 +710,12 @@ def executed_script(statement):
         return shell_script_operand(args)
     if program in SOURCE_BUILTINS:
         return args[0] if args else None
+    # A script in command position executes through its shebang. This also
+    # covers a direct path after wrappers such as `sudo ./edit.sh`; `command_word`
+    # deliberately keeps the raw token while using its basename for wrapper and
+    # shell classification.
+    if resolve(token) is not None:
+        return token
     return None
 
 
@@ -798,10 +806,27 @@ for target in targets:
     if cleaned:
         print(cleaned)
 PY
-    write_targets="$(printf '%s' "$analyzer" |
+    analyzer_stderr="$(mktemp "${TMPDIR:-/tmp}/lisa-managed-edit-analyzer.XXXXXX")" || {
+      printf 'block-managed-file-edits: could not allocate analyzer stderr capture; Bash write protection is NOT active\n' >&2
+      exit 0
+    }
+    if write_targets="$(printf '%s' "$analyzer" |
       MANAGED_EDIT_COMMAND="$command_str" \
         MANAGED_EDIT_PROJECT="$project_root" \
-        python3 - 2>/dev/null || true)"
+        python3 - 2>"$analyzer_stderr")"; then
+      analyzer_status=0
+    else
+      analyzer_status=$?
+    fi
+    if [ "$analyzer_status" -ne 0 ]; then
+      printf 'block-managed-file-edits: Bash analyzer failed (exit %s); Bash write protection is NOT active\n' "$analyzer_status" >&2
+      while IFS= read -r analyzer_line; do
+        [ -n "$analyzer_line" ] && printf '  python3: %s\n' "$analyzer_line" >&2
+      done <"$analyzer_stderr"
+      rm -f "$analyzer_stderr"
+      exit 0
+    fi
+    rm -f "$analyzer_stderr"
     while IFS= read -r token; do
       [ -n "$token" ] || continue
       if source_path="$(managed_source "$token")"; then

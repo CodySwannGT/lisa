@@ -215,20 +215,26 @@ function collectSamples(reportPaths) {
   const samplesByUrl = new Map();
   const failures = [];
   for (const reportPath of reportPaths) {
-    const report = readReport(reportPath);
-    const audit = report?.audits?.[AUDIT_ID];
-    if (audit === null || typeof audit !== "object") {
-      failures.push(`${path.basename(reportPath)}: missing ${AUDIT_ID} audit`);
-      continue;
-    }
+    let report;
+    let audit;
     let measurements;
     let url;
     try {
+      report = readReport(reportPath);
+      audit = report?.audits?.[AUDIT_ID];
+      if (audit === null || typeof audit !== "object") {
+        failures.push(
+          `${path.basename(reportPath)}: missing ${AUDIT_ID} audit`
+        );
+        continue;
+      }
       measurements = readAggregateMeasurements(audit.details);
       url = readReportUrl(report);
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const filename = path.basename(reportPath);
       failures.push(
-        `${path.basename(reportPath)}: ${error instanceof Error ? error.message : String(error)}`
+        message.startsWith(filename) ? message : `${filename}: ${message}`
       );
       continue;
     }
