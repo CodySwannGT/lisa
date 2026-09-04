@@ -475,6 +475,37 @@ export function parseArgs(argv) {
 }
 
 /**
+ * Paths whose same-entry conflicts resolve by taking a side and regenerating,
+ * rather than by stopping the merge (CodySwannGT/lisa#3822).
+ *
+ * ## Why this is an allowlist and not the driver's default
+ *
+ * Both artifacts this driver serves are derived, so for BOTH of them "neither
+ * side is authoritative" is true. What differs is measured frequency: the
+ * manifest holds one line per path, so two concurrent edits to the SAME source
+ * file are a guaranteed textual collision there even when the edits themselves
+ * merge cleanly — hash collapse. Measured on #3798, `main` and the branch
+ * changed 8 of the same source files, git merged all 8, and the manifest was
+ * the only conflicting path. The hash ledger appeared in 0 of 7 conflicts in
+ * the same sample despite being touched by 43% of PRs.
+ *
+ * So the ledger is deliberately NOT listed. Not because taking a side would be
+ * unsafe for it — it would be equally safe — but because a change earns its
+ * scope from what it fixes, and extending this to a file that does not conflict
+ * would trade a measured problem for an unmeasured one. Ranking by TOUCH rate
+ * would have put the ledger in; ranking by CONFLICT rate keeps it out.
+ *
+ * ## Paths are exact and repo-relative
+ *
+ * Git passes `%P` as the path relative to the top of the working tree. Matching
+ * exactly rather than by suffix keeps a file named `upstream-evidence-manifest.ts`
+ * somewhere else from silently inheriting this behaviour.
+ */
+export const RESOLVE_BY_REGENERATION = new Set([
+  "src/core/upstream-evidence-manifest.ts",
+]);
+
+/**
  * Run the driver against git-supplied side files.
  * @param {readonly string[]} argv - Arguments after the script name
  * @param {(message: string) => void} [error] - Sink for the diagnostic
@@ -503,6 +534,15 @@ export function runMergeGeneratedArtifact(
   const [baseText, oursText, theirsText] = sides.map(side => side.content);
   const result = mergeGeneratedArtifact(baseText, oursText, theirsText);
   if (!result.ok) {
+    if (RESOLVE_BY_REGENERATION.has(options.path ?? "")) {
+      error(
+        `merge-generated-artifact: ${label} took OUR side unmerged — its content is derived, so neither side is authoritative and there is nothing to reconcile.\n` +
+          `THE RESULT IS STALE AND MUST BE REGENERATED before it is committed:\n` +
+          `  bun run build:upstream-evidence-manifest && git add ${label}\n` +
+          `The artifact-freshness commit gate rejects the commit if you skip this, so a stale artifact cannot ship — but the gate fires later and says less than this line does.\n`
+      );
+      return 0;
+    }
     error(
       `merge-generated-artifact: ${label} could not be merged mechanically — ${result.reason}.\n` +
         `Both sides are preserved in the index (stages 2 and 3). Resolve by regenerating against the merged tree:\n` +
