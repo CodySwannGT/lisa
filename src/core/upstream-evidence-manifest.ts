@@ -2389,7 +2389,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/materialize-copy-overwrite.mjs":
       "f510944db5b234131cb659b8780f571b460f8052a854131aa27558d73e126f36",
     "scripts/merge-generated-artifact.mjs":
-      "f35fa9294b5fe5739b23a602121a6a63cfe6795f3abe142502b3705deba069d3",
+      "d5abe45efb47732aa59da587f2ccfc9c2290b113a2bcab8b305ff46ab39c273e",
     "scripts/mutation-performance-measure.mjs":
       "0dc9719648ae7a94ccad57587cef8cd03e8d38bbc33d47c1863b503a7d8350c6",
     "scripts/mutation-performance.schema.json":
@@ -10146,6 +10146,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/maestro-flake-helpers.ts": true,
     "tests/unit/scripts/maestro-intermittent-registry.test.ts": true,
     "tests/unit/scripts/merge-driver-registration.test.ts": true,
+    "tests/unit/scripts/merge-generated-artifact-derived-entries.test.ts": true,
     "tests/unit/scripts/merge-generated-artifact.test.ts": true,
     "tests/unit/scripts/mutation-gate-wiring.test.ts": true,
     "tests/unit/scripts/mutation-performance-measure.test.ts": true,
