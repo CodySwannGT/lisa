@@ -9986,6 +9986,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/bounded-spawn-deadline-contract.test.ts": true,
     "tests/unit/scripts/bounded-spawn.test.ts": true,
     "tests/unit/scripts/build-cursor-hooks-json.test.ts": true,
+    "tests/unit/scripts/build-predicate-freshness.test.ts": true,
     "tests/unit/scripts/check-conflict-markers.test.ts": true,
     "tests/unit/scripts/check-delivery-deletion-conflicts.test.ts": true,
     "tests/unit/scripts/check-duplicate-versions-helpers.ts": true,

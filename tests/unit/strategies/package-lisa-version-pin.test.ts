@@ -11,9 +11,11 @@
  * config load — lint, lint-staged, the pre-commit hook, CI Lint. The apply
  * reported success.
  *
- * It is not caught locally either: `postinstall` runs
- * `[ -d dist/configs ] || tsc || true`, so a host that already has a `dist/`
- * skips the build and `|| true` swallows the rest. The mismatch surfaces at the
+ * It is not caught locally either: `postinstall` runs `tsc || true`, so
+ * `|| true` swallows the failure. (It also used to skip the build entirely
+ * whenever a `dist/` already existed; that presence guard was removed in
+ * #3778, which removes one of the two mechanisms but not this one.)
+ * The mismatch surfaces at the
  * NEXT ESLint run, detached from the apply that caused it, and reads as a
  * broken ESLint config rather than as a version skew.
  *

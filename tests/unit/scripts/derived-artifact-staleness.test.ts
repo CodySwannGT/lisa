@@ -302,8 +302,15 @@ describe("local test command covers the same files as CI", () => {
   ).scripts as Record<string, string>;
 
   it("builds the distributed wrapper before any test script delegates to it", () => {
+    // The build is UNCONDITIONAL (#3778). It was previously guarded by
+    // `[ -d dist/configs ] ||`, a presence test standing in for a freshness
+    // test: it rebuilt only when `dist` was absent, never when it was stale, so
+    // a rebase onto newer sources left tests executing pre-merge code against
+    // post-merge expectations. The property this test names — build before
+    // delegating — is unchanged and now strictly stronger; only the literal
+    // moved.
     expect(scripts["lisa-test-run"]).toBe(
-      "([ -d dist/configs ] || bun run build) && node dist/cli/lisa-test-run.js --profile lisa"
+      "bun run build && node dist/cli/lisa-test-run.js --profile lisa"
     );
   });
 
