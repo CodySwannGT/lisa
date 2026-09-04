@@ -183,8 +183,8 @@ describe("derived-artifact staleness gate: prefix list stays in step", () => {
       left < right ? -1 : Number(left > right);
 
     expect(declared.length).toBeGreaterThan(0);
-    expect([...PACKAGED_EVIDENCE_PREFIXES].toSorted(byCodePoint)).toEqual(
-      declared.toSorted(byCodePoint)
+    expect([...PACKAGED_EVIDENCE_PREFIXES].slice().sort(byCodePoint)).toEqual(
+      declared.slice().sort(byCodePoint)
     );
   });
 });

@@ -795,7 +795,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs":
       "2ae57ea1eb0a0199559a17ee69186953f41115986a276e641ff8b3070e2f9fa6",
     "plugins/src/base/hooks/threshold-ratchet-families.mjs":
-      "d4ca6737385c55238878252b1f9a5e2aee6372540e74b6409de1889053a9e7af",
+      "41ace8a335792d00c028ea5dd4ce89491a30826aa542d39d94c7c8d20e98b6d5",
     "plugins/src/base/hooks/threshold-ratchet.mjs":
       "8e8f5e3a11a786926ea9b26e0503c9d9479d7e68695147bfdd23de732f581a3d",
     "plugins/src/base/hooks/threshold-ratchet.sh":
@@ -2201,7 +2201,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
       "874f0792beab000939d480c1a0547ce4dd351421b4e5f0fbb495aae246ab85c2",
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs":
-      "9281e995587ad2c73e15c4381ec4ecfa40fd789f171c0698cdcf8dea32539e62",
+      "7558bb84701eb2d1ce5f3571a40862c4d659ad9a8cda804aa31c8a4f460cce43",
     "rails/copy-overwrite/sgconfig.yml":
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "rails/create-only/.github/workflows/ci.yml":
@@ -2280,6 +2280,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "89176394a933d0a42c39ab1805a45e782a2f3e1893d707ac1afb439062397088",
     "scripts/check-third-party-action-pins.mjs":
       "c085949d734edfef2807a95bc7c4814485e30f7bfad4d5054586aa264a5d42b4",
+    "scripts/check-typecheck-tests.mjs":
+      "f09e5da1e70b20228c39f6133fc355bcbc8c3af0fb65e1afd100203d862b1b9e",
     "scripts/check-ui-demo-data.mjs":
       "82a5ed89ae830482dbaab99e2f8eeededcde60a7dd6ac145f191b4ac8394c85b",
     "scripts/check-whole-output-guards.mjs":
@@ -2555,7 +2557,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
       "874f0792beab000939d480c1a0547ce4dd351421b4e5f0fbb495aae246ab85c2",
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs":
-      "9281e995587ad2c73e15c4381ec4ecfa40fd789f171c0698cdcf8dea32539e62",
+      "7558bb84701eb2d1ce5f3571a40862c4d659ad9a8cda804aa31c8a4f460cce43",
     "typescript/copy-overwrite/sgconfig.yml":
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "typescript/copy-overwrite/tsconfig.eslint.json":
@@ -8629,6 +8631,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-state-classification.mjs": true,
     "scripts/check-template-workflow-refs.mjs": true,
     "scripts/check-third-party-action-pins.mjs": true,
+    "scripts/check-typecheck-tests.mjs": true,
     "scripts/check-ui-demo-data.mjs": true,
     "scripts/check-whole-output-guards.mjs": true,
     "scripts/check-workflow-package-paths.mjs": true,
@@ -10723,6 +10726,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tsconfig.eslint.json": true,
     "tsconfig.json": true,
     "tsconfig.local.json": true,
+    "tsconfig.tests.json": true,
     "tsconfig/base.json": true,
     "tsconfig/build.json": true,
     "tsconfig/cdk.json": true,
@@ -10733,6 +10737,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tsconfig/phaser.json": true,
     "tsconfig/spec.json": true,
     "tsconfig/typescript.json": true,
+    "typecheck-quarantine.json": true,
     "typescript/copy-contents/.husky/commit-msg": true,
     "typescript/copy-contents/.husky/post-checkout": true,
     "typescript/copy-contents/.husky/pre-commit": true,

@@ -170,7 +170,9 @@ describe("codex/build-byte-stable (#551)", () => {
     const snapshot: Record<string, string> = {};
     const walk = async (current: string): Promise<void> => {
       const entries = await fs.readdir(current, { withFileTypes: true });
-      const sorted = entries.toSorted((a, b) => a.name.localeCompare(b.name));
+      const sorted = entries
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name));
       for (const entry of sorted) {
         const abs = path.join(current, entry.name);
         if (entry.isDirectory()) {
@@ -218,8 +220,12 @@ describe("codex/build-byte-stable (#551)", () => {
       const snapA = await snapshotTree(outA);
       const snapB = await snapshotTree(outB);
 
-      const keysA = Object.keys(snapA).toSorted((a, b) => a.localeCompare(b));
-      const keysB = Object.keys(snapB).toSorted((a, b) => a.localeCompare(b));
+      const keysA = Object.keys(snapA)
+        .slice()
+        .sort((a, b) => a.localeCompare(b));
+      const keysB = Object.keys(snapB)
+        .slice()
+        .sort((a, b) => a.localeCompare(b));
       expect(keysA).toEqual(keysB);
       for (const rel of Object.keys(snapA)) {
         expect(snapB[rel]).toBe(snapA[rel]);

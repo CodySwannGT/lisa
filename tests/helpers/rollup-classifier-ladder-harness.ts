@@ -159,7 +159,8 @@ export const filesBelow = (root: string): readonly string[] =>
       if (entry.isDirectory()) return filesBelow(child);
       return entry.isFile() ? [child] : [];
     })
-    .toSorted((left, right) => left.localeCompare(right));
+    .slice()
+    .sort((left, right) => left.localeCompare(right));
 
 /**
  * Count exact non-overlapping occurrences.
