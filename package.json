@@ -72,6 +72,7 @@
     "check:delivery-deletion-conflicts": "node scripts/check-delivery-deletion-conflicts.mjs",
     "check:duplicate-versions": "node scripts/check-duplicate-versions.mjs",
     "check:required-check-promotions": "node scripts/check-required-check-promotions.mjs",
+    "check:self-pin": "node scripts/check-self-dependency-pin.mjs",
     "policy:reconcile": "node all/copy-overwrite/scripts/lisa-reconcile-policy.mjs",
     "check:work-item": "node scripts/lisa-work-item.mjs validate-pr",
     "check:work-item:push": "node scripts/lisa-work-item.mjs validate-push",

@@ -2,6 +2,7 @@
   "all/copy-overwrite/scripts/lib/bounded-spawn.mjs",
   "all/copy-overwrite/scripts/lib/invoked-as-script.mjs",
   "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh",
+  "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh",
   "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh",
   "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh",
   "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh",
