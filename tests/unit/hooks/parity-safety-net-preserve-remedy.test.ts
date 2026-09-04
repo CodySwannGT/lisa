@@ -210,5 +210,27 @@ describe("parity-safety-net: preserving work is offered safely (#3722)", () => {
         expect(source).not.toContain(advice);
       }
     });
+
+    it.each(SHIPPED_COPIES)(
+      "%s does not sell re-clone as like-for-like",
+      copy => {
+        // The control-plane refusal offered "re-clone if the checkout is
+        // genuinely to be discarded". Defensible on a single checkout; here every
+        // linked worktree stores a pointer into that one .git, so a reader who
+        // has stopped reading conditions destroys each of them and whatever
+        // uncommitted work they hold.
+        //
+        // Static for a different reason than the sweep above: this refusal fires
+        // from a git-statement context the rendered cases in this file do not
+        // reach, so pinning it here is the honest coverage rather than a claim to
+        // have exercised it.
+        const source = readFileSync(copy, "utf8");
+
+        expect(source).not.toContain(
+          "or re-clone if the checkout is genuinely to be discarded"
+        );
+        expect(source).toContain("every linked worktree stores a pointer");
+      }
+    );
   });
 });
