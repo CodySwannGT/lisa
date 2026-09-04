@@ -38,10 +38,20 @@ function normalizeLabels(labels) {
 }
 
 /**
- * @param {{ labels?: unknown, body?: unknown, humanNeededLabel?: unknown }} input
- * @returns {boolean}
+ * Whether an item is held for a person, on either surface.
+ *
+ * Exported deliberately, and it is the ONLY answer to that question anywhere in
+ * the intake machinery. Every selection and promotion path calls this rather
+ * than inspecting labels itself, because the label surface alone is a partial
+ * answer: the vendor writers stamp the body marker on a deliberate hold, so an
+ * item held exactly as the filing contract instructs carries no label at all.
+ * A path that read labels alone judged such an item unheld and promoted it —
+ * which is #3805, and is why this is a shared function rather than a shared
+ * convention.
+ * @param {{ labels?: unknown, body?: unknown, humanNeededLabel?: unknown }} input - Candidate surfaces
+ * @returns {boolean} True when a person is holding this item
  */
-function isHumanGated(input) {
+export function isHumanGated(input) {
   const configured = String(
     input.humanNeededLabel ?? DEFAULT_HUMAN_NEEDED_LABEL
   )
@@ -280,6 +290,113 @@ export function planHumanGateReconciliation(input = {}) {
     reason: changed ? "reconcile" : "already-reconciled",
     actions,
   };
+}
+
+/**
+ * Marker on the note the normalization sweep leaves, so a later cycle
+ * recognises its own work instead of commenting again.
+ *
+ * Deliberately NOT the hold marker and deliberately not a superstring of it:
+ * `HUMAN_GATE_MARKER` closes with `]`, so neither this nor
+ * `HUMAN_GATE_NOTE_MARKER` matches it. A note that read as a hold declaration
+ * would make every reported item look held to the next body-reading sweep,
+ * including items the report merely names.
+ */
+export const NORMALIZATION_HOLD_NOTE_MARKER =
+  "<!-- [lisa-human-gate-normalization-held] -->";
+
+/**
+ * Decide whether an item carrying NO configured lifecycle label may be
+ * normalized into a ready lane.
+ *
+ * This is the promotion path, and it was keyed on labels alone. The configured
+ * `human_needed` label is one of the lifecycle labels whose *absence* the sweep
+ * enumerates on, so an item held only by the body marker was a member of the
+ * swept population by definition and got the build-ready label applied to it.
+ * The `[lisa-human-gate]` exclusion existed, in a different and read-only sweep
+ * further down the same contract: the one sweep that writes was the one that
+ * could not see the marker.
+ *
+ * Order is load-bearing for the same reason it is in `classifyPreWorkCandidate`:
+ * the hold is checked before lane membership and before any classification, so
+ * nothing downstream — however confident — can promote an item a person parked.
+ *
+ * On a match this plans NO write of its own. `planHumanGateReconciliation`
+ * turns a match into durable state, so a false positive there latches and every
+ * later cycle agrees with the first. The gate test is a plain substring match
+ * whose imprecision is tracked separately, so this path refuses and reports
+ * read-only instead — the same treatment the ungated-filing sweep already gives
+ * a hold it finds.
+ * @param {{
+ *   labels?: unknown
+ *   body?: unknown
+ *   humanNeededLabel?: unknown
+ *   lifecycleLabels?: unknown
+ *   readyLabel?: unknown
+ * }} input - Candidate surfaces plus the configured lifecycle vocabulary
+ * @returns {{ normalize: boolean, reason: string, humanGated: boolean, actions: { addReadyLabel: string | null, reportHold: boolean } }} Normalization plan
+ */
+export function planLabelNormalization(input = {}) {
+  const idle = Object.freeze({ addReadyLabel: null, reportHold: false });
+  if (isHumanGated(input)) {
+    return {
+      normalize: false,
+      reason: "human-gate",
+      humanGated: true,
+      actions: Object.freeze({ addReadyLabel: null, reportHold: true }),
+    };
+  }
+
+  const labels = normalizeLabels(input.labels);
+  if (normalizeLabels(input.lifecycleLabels).some(l => labels.includes(l))) {
+    return {
+      normalize: false,
+      reason: "already-in-lifecycle",
+      humanGated: false,
+      actions: idle,
+    };
+  }
+
+  const ready = trimmedString(input.readyLabel);
+  if (ready.length === 0) {
+    return {
+      normalize: false,
+      reason: "no-ready-label",
+      humanGated: false,
+      actions: idle,
+    };
+  }
+
+  return {
+    normalize: true,
+    reason: "normalize",
+    humanGated: false,
+    actions: Object.freeze({ addReadyLabel: ready, reportHold: false }),
+  };
+}
+
+/**
+ * Render the notice for an item the normalization sweep left alone.
+ *
+ * Distinct from `formatHumanGateNote` because the two say opposite things
+ * about what happened: that one reports a lane that WAS changed, this one
+ * reports a promotion that was declined and nothing else. Reusing it would tell
+ * an operator their item had been moved when it had not.
+ * @returns {string} Comment body, carrying the marker that keeps a re-run quiet
+ */
+export function formatNormalizationHoldNote() {
+  return [
+    "**Left alone: a person is holding this**",
+    "",
+    "- What was found: the description says a person is holding this one, so " +
+      "it was not put into the queue that agents work from.",
+    "- What changed: nothing at all. It was left exactly as it is, and " +
+      "nothing will pick it up on its own.",
+    "- To resume it: remove the hold note from the description, then put it " +
+      "into the build queue.",
+    "",
+    NORMALIZATION_HOLD_NOTE_MARKER,
+  ].join("\n");
 }
 
 /**
