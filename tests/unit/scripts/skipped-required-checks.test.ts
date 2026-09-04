@@ -34,6 +34,7 @@ interface Violation {
 interface GuardModule {
   readonly DECLARATION_PATH: string;
   readonly VIOLATIONS: Record<string, string>;
+  readFlagValue(argv: readonly string[], name: string): string | undefined;
   readSkipJobs(contents: string, sourcePath: string): string[];
   unquoteScalar(raw: string): string;
   loadDeclaration(rootDir: string): Record<string, unknown>;
@@ -58,6 +59,18 @@ describe("check-skipped-required-checks", () => {
     mod = (await import(
       pathToFileURL(path.join(REPO_ROOT, SCRIPT_REL)).href
     )) as unknown as GuardModule;
+  });
+
+  describe("reading value-taking CLI flags", () => {
+    it("treats a final flag and a following flag as missing values", () => {
+      expect(mod.readFlagValue(["--pr"], "--pr")).toBeUndefined();
+      expect(mod.readFlagValue(["--pr", "--repo"], "--pr")).toBeUndefined();
+    });
+
+    it("returns inline and following values", () => {
+      expect(mod.readFlagValue(["--pr=42"], "--pr")).toBe("42");
+      expect(mod.readFlagValue(["--pr", "42"], "--pr")).toBe("42");
+    });
   });
 
   describe("reading `skip_jobs` out of a workflow", () => {

@@ -31,10 +31,26 @@
  * For a pointwise function, **a pointwise 3-way merge of the OUTPUT equals the
  * function applied to the merged INPUT**. If a key changed on our side only,
  * the merged tree has our version of the file it describes, so our entry is the
- * right one; symmetrically for theirs; if both sides changed the same key
- * differently, the merged tree has a file that neither side described, and this
- * driver conflicts rather than inventing an answer. So the result is not one
- * side's blob — it is a reconstruction of what regeneration would produce.
+ * right one; symmetrically for theirs. So the result is not one side's blob —
+ * it is a reconstruction of what regeneration would produce.
+ *
+ * ## The one case where reconstruction is impossible
+ *
+ * If both sides changed the same key differently, the merged tree has a file
+ * that neither side described, so there is no right answer to reconstruct.
+ * CodySwannGT/lisa#3822 measured what that costs: it is not an exotic case but
+ * **the guaranteed consequence of two agents editing one source file**, because
+ * the manifest collapses a whole file to a single line. On the real repository,
+ * two branches editing different regions of one hook script auto-merge with
+ * both edits present and the manifest is the ONLY conflicting path — a derived
+ * file turning a clean merge into a failed one.
+ *
+ * So the two artifacts diverge here, and only here.
+ * {@link DERIVED_ENTRY_RESOLUTION_PATHS} names the manifest: a contested entry
+ * takes our side, the merge finishes, and the file is announced as stale until
+ * the generator runs against the whole tree. The ledger keeps conflicting,
+ * because it has never had this problem to solve — both decisions are argued at
+ * that constant.
  *
  * ## Why the driver cannot simply run the generators
  *
@@ -87,7 +103,9 @@
  *   node scripts/merge-generated-artifact.mjs --base %O --ours %A --theirs %B --path %P
  *
  * Exit codes:
- *   0 — merged cleanly; the result was written over the `--ours` file.
+ *   0 — merged; the result was written over the `--ours` file. For the manifest
+ *       this can mean "merged and deliberately stale" — the driver says so on
+ *       stderr and names the regeneration command.
  *   1 — conflict. `--ours` is left untouched (a parseable artifact plus a
  *       precise stderr reason beats a corrupted one; both sides remain in the
  *       index at stages 2 and 3), and git records the path as unmerged.
@@ -116,6 +134,63 @@ const ENTRY_LINE = /^(\s+)("(?:[^"\\]|\\.)*"|[A-Za-z_$][\w$]*)\s*:/u;
 
 /** Header of an append-only array entry, e.g. `"dest": Object.freeze([`. */
 const ARRAY_OPEN = /Object\.freeze\(\[\s*$/u;
+
+/**
+ * Artifacts whose same-key collisions are resolved to one side instead of
+ * conflicting (CodySwannGT/lisa#3822).
+ *
+ * ## Why only this file
+ *
+ * The manifest collapses each whole file to ONE line — a path and a content
+ * hash — so **two concurrent edits to the same source file are a guaranteed
+ * textual collision here**, whether or not the edits themselves conflict.
+ * Measured on the real repository: two branches editing different regions of
+ * `all/copy-overwrite/scripts/lib/kill-marks.mjs` auto-merge with both edits
+ * present, and the manifest is the ONLY conflicting path. The artifact converts
+ * a clean merge into a failed one.
+ *
+ * Neither side is right in that case and neither is wrong: the merged tree has
+ * a file that neither side described, so the correct hash is a RECOMPUTATION,
+ * not a choice. The driver cannot recompute it — measured in #3816, a driver
+ * that shells out to the generator reads a half-merged working tree and is
+ * guaranteed to be wrong about exactly the paths that caused the conflict. So
+ * the driver resolves to one side and the artifact is stale BY CONSTRUCTION
+ * until regeneration, which is announced on stderr and enforced elsewhere:
+ * `tests/unit/scripts/upstream-evidence-manifest.test.ts` asserts the
+ * generator's own `--check`, and `test-correctness` is a required gate at push
+ * and on the pull request. A stale manifest cannot reach `main`.
+ *
+ * ## Why NOT the hash ledger
+ *
+ * `src/core/lisa-owned-hash-ledger.ts` appears in **0 of 7** historical
+ * conflicts despite a 43% touch rate, and merged cleanly on both sides of two
+ * live PRs the day #3822 was filed. Its entries are append-only arrays that
+ * `unionArrayEntry` already merges exactly. It needs nothing, and a same-key
+ * collision there means something this driver does not understand — so it keeps
+ * conflicting, which is the safe answer for an artifact with no measured
+ * problem. Measuring TOUCH RATE would have ranked it a major offender;
+ * measuring CONFLICTS shows it is not an offender at all.
+ * @type {ReadonlySet<string>}
+ */
+export const DERIVED_ENTRY_RESOLUTION_PATHS = Object.freeze(
+  new Set(["src/core/upstream-evidence-manifest.ts"])
+);
+
+/**
+ * Whether same-key collisions in this artifact resolve instead of conflicting.
+ *
+ * An unknown path (git supplied no `%P`, or a fixture under another name) is
+ * strict. Defaulting the other way would extend a deliberately narrow exception
+ * to every file the driver is ever mapped to, silently.
+ * @param {string | undefined} artifactPath - Repo-relative path git is merging
+ * @returns {boolean} True when one side may be taken for a contested entry
+ */
+export function resolvesDerivedEntries(artifactPath) {
+  return (
+    artifactPath !== undefined &&
+    DERIVED_ENTRY_RESOLUTION_PATHS.has(artifactPath)
+  );
+}
 
 /**
  * Compare two keys the way both generators sort theirs.
@@ -335,37 +410,75 @@ function mergeSide(hasBase, base, ours, theirs, key) {
 const entryKey = lines => (lines === undefined ? ABSENT : lines.join("\n"));
 
 /**
+ * Decide what one entry both sides changed becomes.
+ *
+ * Three outcomes, in the order they are tried: an append-only union when both
+ * sides grew the same array; a resolution to OUR side when the artifact is one
+ * whose entries are recomputed rather than authored (see
+ * {@link DERIVED_ENTRY_RESOLUTION_PATHS}); a conflict otherwise.
+ *
+ * Resolution requires BOTH sides to have the entry. A key one side deleted and
+ * the other changed says the source file was removed on one branch and edited
+ * on the other — a real disagreement about the tree, which git itself surfaces
+ * on the source path. Taking a side there would answer a question nobody asked
+ * this driver.
+ * @param {string[] | undefined} base - Merge-base entry lines
+ * @param {string[] | undefined} ours - Our entry lines
+ * @param {string[] | undefined} theirs - Their entry lines
+ * @param {boolean} resolveDerived - Whether one side may be taken
+ * @returns {{kind: "unioned" | "derived", lines: string[]} | {kind: "conflict"}} Outcome
+ */
+function resolveContestedEntry(base, ours, theirs, resolveDerived) {
+  if (ours === undefined || theirs === undefined) return { kind: "conflict" };
+  const unioned = unionArrayEntry(base, ours, theirs);
+  if (unioned !== undefined) return { kind: "unioned", lines: unioned };
+  if (resolveDerived) return { kind: "derived", lines: ours };
+  return { kind: "conflict" };
+}
+
+/**
  * Merge one entries block.
  * @param {Map<string, string[]> | undefined} base - Merge-base entries
  * @param {Map<string, string[]>} ours - Our entries
  * @param {Map<string, string[]>} theirs - Their entries
- * @returns {{ok: true, entries: Map<string, string[]>} | {ok: false, reason: string}} Merged block
+ * @param {boolean} resolveDerived - Whether a contested entry may take our side
+ * @returns {{ok: true, entries: Map<string, string[]>, resolved: string[]} | {ok: false, reason: string}} Merged block
  */
-function mergeEntries(base, ours, theirs) {
+function mergeEntries(base, ours, theirs, resolveDerived) {
   const merged = new Map();
+  const resolved = [];
   const keys = [
     ...new Set([...(base?.keys() ?? []), ...ours.keys(), ...theirs.keys()]),
   ];
   for (const name of keys.sort(compareKeys)) {
     const b = base?.get(name);
-    const o = ours.get(name);
-    const t = theirs.get(name);
-    const straight = mergeSide(base !== undefined, b, o, t, entryKey);
+    const straight = mergeSide(
+      base !== undefined,
+      b,
+      ours.get(name),
+      theirs.get(name),
+      entryKey
+    );
     if (straight.ok) {
       if (straight.value !== undefined) merged.set(name, straight.value);
       continue;
     }
-    const unioned =
-      o !== undefined && t !== undefined ? unionArrayEntry(b, o, t) : undefined;
-    if (unioned === undefined) {
+    const outcome = resolveContestedEntry(
+      b,
+      ours.get(name),
+      theirs.get(name),
+      resolveDerived
+    );
+    if (outcome.kind === "conflict") {
       return {
         ok: false,
         reason: `both sides changed the entry for ${name} in incompatible ways`,
       };
     }
-    merged.set(name, unioned);
+    if (outcome.kind === "derived") resolved.push(name);
+    merged.set(name, outcome.lines);
   }
-  return { ok: true, entries: merged };
+  return { ok: true, entries: merged, resolved };
 }
 
 /**
@@ -377,9 +490,13 @@ function mergeEntries(base, ours, theirs) {
  * @param {string} base - `%O` contents ("" when the file is new on both sides)
  * @param {string} ours - `%A` contents
  * @param {string} theirs - `%B` contents
- * @returns {{ok: true, text: string} | {ok: false, reason: string}} Merge result
+ * @param {string} [artifactPath] - `%P`, the path being merged. Omitted means
+ *   unknown, which is strict: only a path in
+ *   {@link DERIVED_ENTRY_RESOLUTION_PATHS} resolves a contested entry.
+ * @returns {{ok: true, text: string, resolved: string[]} | {ok: false, reason: string}} Merge result
  */
-export function mergeGeneratedArtifact(base, ours, theirs) {
+export function mergeGeneratedArtifact(base, ours, theirs, artifactPath) {
+  const resolveDerived = resolvesDerivedEntries(artifactPath);
   const parsedOurs = parseArtifact(ours);
   const parsedTheirs = parseArtifact(theirs);
   if (!parsedOurs.ok)
@@ -406,6 +523,7 @@ export function mergeGeneratedArtifact(base, ours, theirs) {
     parsedBase = undefined;
   }
   const merged = [];
+  const resolved = [];
   for (const [index, ourChunk] of parsedOurs.chunks.entries()) {
     const theirChunk = parsedTheirs.chunks[index];
     const baseChunk = parsedBase?.[index];
@@ -429,16 +547,18 @@ export function mergeGeneratedArtifact(base, ours, theirs) {
     const result = mergeEntries(
       baseChunk?.entries,
       ourChunk.entries,
-      theirChunk.entries
+      theirChunk.entries,
+      resolveDerived
     );
     if (!result.ok) return result;
+    resolved.push(...result.resolved);
     merged.push({
       kind: "entries",
       indent: ourChunk.indent,
       entries: result.entries,
     });
   }
-  return { ok: true, text: renderArtifact(merged) };
+  return { ok: true, text: renderArtifact(merged), resolved };
 }
 
 /**
@@ -474,6 +594,41 @@ export function parseArgs(argv) {
   return options;
 }
 
+/** Most contested paths to name before the notice starts summarising. */
+const NAMED_RESOLVED = 3;
+
+/**
+ * The notice a resolved-to-one-side merge prints (CodySwannGT/lisa#3822).
+ *
+ * Says the merge SUCCEEDED and the file is nonetheless wrong, which is not the
+ * usual shape of a merge message and is the whole point: the merged tree
+ * contains bytes neither side hashed, so the recorded hash is stale by
+ * construction until the generator runs against the whole tree. Regeneration is
+ * the operator's next action and the command is named here rather than left to
+ * be looked up.
+ * @param {string} label - Path git is merging
+ * @param {readonly string[]} resolved - Keys taken from our side
+ * @returns {string} Operator-facing notice, newline-terminated
+ */
+export function describeResolved(label, resolved) {
+  const shown = resolved.slice(0, NAMED_RESOLVED).join(", ");
+  const rest =
+    resolved.length > NAMED_RESOLVED
+      ? ` and ${resolved.length - NAMED_RESOLVED} more`
+      : "";
+  return (
+    `merge-generated-artifact: ${label} merged, and is now STALE on purpose.\n` +
+    `  ${resolved.length} entr${resolved.length === 1 ? "y" : "ies"} changed on both sides (${shown}${rest}).\n` +
+    `  Each records a whole file as one hash, so any two edits to that file collide here\n` +
+    `  even when the edits themselves merge cleanly — as they just did. The merged tree\n` +
+    `  describes bytes neither side hashed, so no side is the right answer and this\n` +
+    `  driver took ours to let the merge finish. Recompute before you commit:\n` +
+    `    bun run build:upstream-evidence-manifest && git add ${label}\n` +
+    `  Forgetting is caught, not silent: the unit suite asserts the generator's --check,\n` +
+    `  and test-correctness is required at push and on the pull request.\n`
+  );
+}
+
 /**
  * Run the driver against git-supplied side files.
  * @param {readonly string[]} argv - Arguments after the script name
@@ -501,7 +656,12 @@ export function runMergeGeneratedArtifact(
     return 1;
   }
   const [baseText, oursText, theirsText] = sides.map(side => side.content);
-  const result = mergeGeneratedArtifact(baseText, oursText, theirsText);
+  const result = mergeGeneratedArtifact(
+    baseText,
+    oursText,
+    theirsText,
+    options.path
+  );
   if (!result.ok) {
     error(
       `merge-generated-artifact: ${label} could not be merged mechanically — ${result.reason}.\n` +
@@ -511,6 +671,8 @@ export function runMergeGeneratedArtifact(
     return 1;
   }
   writeFileSync(ours, result.text);
+  if (result.resolved.length > 0)
+    error(describeResolved(label, result.resolved));
   return 0;
 }
 

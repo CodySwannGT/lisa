@@ -17,6 +17,15 @@
 # it exists to preserve.
 .lisa/PROJECT_LEARNINGS.overflow.md merge=lisa-learnings
 
+# Withdrawal tombstones, appended by every agent that retracts a claim it
+# circulated (CodySwannGT/lisa#3752). A sibling of the ledger above — same
+# concurrent writers on their own branches — but one JSON object per line
+# and append-only, so git's BUILT-IN union driver reconstructs concurrent
+# appends exactly. No bespoke driver, and nothing machine-local to register.
+# A default line merge here would drop a retraction, which is the one
+# failure this ledger exists to make impossible.
+.lisa/WITHDRAWN.jsonl merge=union
+
 # END: AI GUARDRAILS
 
 # The two checked-in generated artifacts. Every branch that changes a shipped
@@ -27,5 +36,14 @@
 # machine-local — `bun install` registers it via
 # scripts/install-generated-artifact-merge-driver.mjs, and `lisa doctor`
 # reports it when a mapping here has no registered driver.
+#
+# The two paths get the SAME driver and deliberately different treatment when
+# both sides change one entry (CodySwannGT/lisa#3822). The manifest records a
+# whole file as one hash, so two edits to one source file always collide there
+# even when the edits merge cleanly; the driver takes a side, says the artifact
+# is stale, and the required test-correctness gate refuses a stale manifest at
+# push. The ledger conflicts as it always has — it was in 0 of 7 measured
+# conflicts, so it has nothing to fix and a collision there means something
+# unrecognised. The scoping lives in DERIVED_ENTRY_RESOLUTION_PATHS.
 src/core/upstream-evidence-manifest.ts merge=lisa-generated-artifact
 src/core/lisa-owned-hash-ledger.ts merge=lisa-generated-artifact

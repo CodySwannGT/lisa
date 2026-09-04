@@ -69,16 +69,41 @@
  *   - the file list comes from `git ls-files`, so the gate sees exactly what a
  *     release would carry.
  *
+ * ## `--warn`: how this arrives in a consumer without breaking it
+ *
+ * This file also ships to consumers through `all/copy-overwrite/scripts/`,
+ * which — unlike `create-only` — reaches every repository that already exists,
+ * on its next update. That reach is exactly why it must not arrive blocking.
+ *
+ * A consumer's seeded workflows carry mutable refs *today*: that is the defect
+ * #3588 exists to migrate away. A detector that hard-failed on arrival would
+ * redden the entire installed base at once, for a condition those repositories
+ * did not introduce and could not have fixed yet, since the migration that
+ * fixes it lands in the same update. That is not hypothetical — a guard added
+ * to a workflow consumed at `@main` failed closed on a pre-existing consumer
+ * misconfiguration and took four repositories' releases down for five hours;
+ * the repair was to keep it loud and stop it blocking (#3755, #3757).
+ *
+ * So `--warn` reports every finding and exits 0, and the shipped consumer
+ * script entry uses it. Tightening to blocking is a separate, deliberate
+ * decision for once the installed base has had a chance to migrate — one flag
+ * on one line — not something to "finish" while consumers are still mutable.
+ *
+ * `--warn` also softens the empty-scan usage error, because a consumer with no
+ * workflow files is an ordinary shape rather than a broken invocation. A
+ * misspelled flag stays a hard error in every mode: that one is the caller's.
+ *
  * CLI:
- *   node scripts/check-third-party-action-pins.mjs [--root <dir>] [--json]
+ *   node scripts/check-third-party-action-pins.mjs [--root <dir>] [--json] [--warn]
  *
  * Exit codes (mirroring the sibling gates in this directory):
- *   0 — every third-party reference is a 40-hex SHA carrying a version comment.
+ *   0 — every third-party reference is a 40-hex SHA carrying a version comment;
+ *       or `--warn` was passed and the findings are being reported, not enforced.
  *   1 — >=1 reference is mutable, or pinned without a version comment.
  *   2 — operational/usage error: unknown flag, a flag missing its value,
  *       `--root` absent or not a git repository, git unavailable, or zero
  *       workflow files discovered. Finding nothing to check is a broken
- *       invocation, not conformance.
+ *       invocation, not conformance — except under `--warn`, see above.
  *
  * @module scripts/check-third-party-action-pins
  */
@@ -134,14 +159,60 @@ const NO_VERSION = "missing-version-comment";
  * a trailing `# v1.2.3` can be read. Local (`./path`) and container
  * (`docker://`) references have no owner and never match.
  */
-const USES_RE =
-  /^\s*(?:-\s*)?uses:\s*(?<owner>[A-Za-z0-9][A-Za-z0-9-]*)\/(?<rest>[A-Za-z0-9_.][A-Za-z0-9_./-]*)@(?<ref>[^\s"'#]+)(?<trailer>.*)$/;
+const USES_RE = /^[ \t]*(?:-[ \t]*)?uses:[ \t]*(?<value>[^\s"'#]+)/;
+
+/** A well-formed action owner. Anchored, so matching is linear. */
+const OWNER_RE = /^[A-Za-z0-9][A-Za-z0-9-]*$/;
+
+/** A well-formed action path below the owner. Anchored, so linear. */
+const ACTION_PATH_RE = /^[A-Za-z0-9_.][A-Za-z0-9_./-]*$/;
+
+/**
+ * Split a `uses:` value into owner, action path, and ref.
+ *
+ * The shape is validated with anchored parts rather than described as one
+ * pattern. Spelling `owner/repo/path@ref` as adjacent character classes gives
+ * the engine several ways to divide the same text, which is super-linear on a
+ * long line; splitting first and validating each piece has one.
+ *
+ * @param {string} value - the raw value of a `uses:` line.
+ * @returns {{ owner: string, rest: string, ref: string } | null} parts, or null
+ *   when this is not an `owner/repo@ref` reference (a local `./path` or a
+ *   `docker://` image never is).
+ */
+function parseUsesValue(value) {
+  const at = value.lastIndexOf("@");
+  if (at <= 0) return null;
+  const action = value.slice(0, at);
+  const ref = value.slice(at + 1);
+  const slash = action.indexOf("/");
+  if (ref === "" || slash <= 0 || action.includes("://")) return null;
+  const owner = action.slice(0, slash);
+  const rest = action.slice(slash + 1);
+  if (!OWNER_RE.test(owner) || !ACTION_PATH_RE.test(rest)) return null;
+  return { owner, rest, ref };
+}
 
 /** A full commit SHA. Abbreviated SHAs are ambiguous and do not count. */
 const FULL_SHA_RE = /^[0-9a-f]{40}$/;
 
-/** A trailing `# <version>` comment with at least one non-space character. */
-const VERSION_COMMENT_RE = /#\s*(?<version>\S.*?)\s*$/;
+/**
+ * Read the version out of a line's trailing `# ...` comment.
+ *
+ * Deliberately not a regex. Every spelling of "text after a hash to end of
+ * line" is either a backtracking shape or an unanchored `.*$` the engine
+ * retries from each position, and neither is worth it for a one-character
+ * search.
+ *
+ * @param {string} trailer - everything on the line after the `uses:` value.
+ * @returns {string | null} the comment text, or null when there is none.
+ */
+function versionComment(trailer) {
+  const hash = trailer.indexOf("#");
+  if (hash < 0) return null;
+  const version = trailer.slice(hash + 1).trim();
+  return version === "" ? null : version;
+}
 
 /** Max bytes of `git ls-files` output (7k+ tracked paths is ~0.3 MB today). */
 const MAX_GIT_OUTPUT_BYTES = 64 * 1024 * 1024;
@@ -182,15 +253,19 @@ export function findActionRefs(content) {
   for (let index = 0; index < lines.length; index++) {
     const match = USES_RE.exec(lines[index]);
     if (match === null) continue;
-    const { owner, ref, rest, trailer } = match.groups;
-    const comment = VERSION_COMMENT_RE.exec(trailer);
+    const parsed = parseUsesValue(match.groups.value);
+    if (parsed === null) continue;
+    const { owner, ref, rest } = parsed;
     refs.push({
       action: `${owner}/${rest}`,
       kind: classifyOwner(owner),
       line: index + 1,
       owner,
       ref,
-      version: comment === null ? null : comment.groups.version,
+      // The rest of the line is sliced rather than captured: a trailing `.*`
+      // after the value's character class gives the engine two ways to divide
+      // the same text, which is the super-linear shape.
+      version: versionComment(lines[index].slice(match[0].length)),
     });
   }
   return refs;
@@ -350,13 +425,20 @@ function humanReport(report) {
 export function parseArgs(argv) {
   let root = null;
   let json = false;
+  let warn = false;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--json") {
       json = true;
+    } else if (arg === "--warn") {
+      warn = true;
     } else if (arg === "--root") {
-      const next = argv[i + 1];
-      if (next === undefined || next.startsWith("--")) {
+      const valueAt = i + 1;
+      if (valueAt >= argv.length || !Object.hasOwn(argv, valueAt)) {
+        throw new UsageError("--root requires a value");
+      }
+      const next = argv[valueAt];
+      if (next.startsWith("--")) {
         throw new UsageError("--root requires a value");
       }
       root = next;
@@ -365,7 +447,7 @@ export function parseArgs(argv) {
       throw new UsageError(`unknown argument: ${arg}`);
     }
   }
-  return { json, root: path.resolve(root ?? REPO_ROOT) };
+  return { json, warn, root: path.resolve(root ?? REPO_ROOT) };
 }
 
 /**
@@ -406,13 +488,21 @@ export function main(argv, io = {}) {
   const out = io.stdout ?? process.stdout;
   const err = io.stderr ?? process.stderr;
   let opts;
-  let scan;
   try {
     opts = parseArgs(argv);
-    scan = collectWorkflows(opts.root);
   } catch (error) {
+    // A misspelled flag is the caller's mistake and stays loud in every mode.
     err.write(`error: ${error.message}\n`);
     return 2;
+  }
+  let scan;
+  try {
+    scan = collectWorkflows(opts.root);
+  } catch (error) {
+    // Under --warn this is a repository with nothing to scan, which for a
+    // consumer is an ordinary shape rather than a broken invocation.
+    err.write(`error: ${error.message}\n`);
+    return opts.warn ? 0 : 2;
   }
 
   let checked = 0;
@@ -445,7 +535,18 @@ export function main(argv, io = {}) {
   out.write(
     `${opts.json ? JSON.stringify(report, null, 2) : humanReport(report)}\n`
   );
-  return report.findings.length === 0 ? 0 : 1;
+  if (report.findings.length === 0) {
+    return 0;
+  }
+  if (opts.warn) {
+    out.write(
+      "\nReporting only: this check is not blocking here. Nothing above stops " +
+        "a build.\nRun `npx @codyswann/lisa@latest .` to pin these " +
+        "references, then re-run.\n"
+    );
+    return 0;
+  }
+  return 1;
 }
 
 if (invokedAsScript(import.meta.url)) {
