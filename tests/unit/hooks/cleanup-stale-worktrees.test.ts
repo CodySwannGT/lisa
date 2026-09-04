@@ -8,7 +8,7 @@
  * as "clean" — an unreadable worktree state must never be swept.
  * @module tests/unit/hooks/cleanup-stale-worktrees
  */
-import { existsSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
@@ -20,6 +20,7 @@ const HOOK_PATH = path.resolve(
 );
 const BASH_PATH = "/bin/bash";
 const GIT_PATH = resolveGit();
+const UNCOMMITTED_BYTES = "export const answer = 42;\n";
 const GIT_IDENTITY = {
   GIT_AUTHOR_NAME: "t",
   GIT_AUTHOR_EMAIL: "t@t",
@@ -119,6 +120,63 @@ async function createRepoWithPushedWorktree(): Promise<{
 }
 
 /**
+ * Deliver the content-reachability guard where an applied host project has it.
+ *
+ * The sweep resolves `scripts/lisa-worktree-guard.mjs` first, so a fixture that
+ * copies the real script there exercises the real wiring rather than a stub.
+ * @param root - Primary repo root
+ */
+function deliverGuard(root: string): void {
+  const dest = path.join(root, "scripts");
+  mkdirSync(path.join(dest, "lib"), { recursive: true });
+  copyFileSync(
+    path.resolve("all/copy-overwrite/scripts/lisa-worktree-guard.mjs"),
+    path.join(dest, "lisa-worktree-guard.mjs")
+  );
+  copyFileSync(
+    path.resolve("all/copy-overwrite/scripts/lib/invoked-as-script.mjs"),
+    path.join(dest, "lib", "invoked-as-script.mjs")
+  );
+}
+
+/**
+ * Commit one file in a worktree and push its branch, so the sweep's
+ * HEAD-is-pushed gate still passes.
+ * @param worktree - Linked worktree path
+ * @param file - Repo-relative file to commit
+ */
+function commitAndPush(worktree: string, file: string): void {
+  const env = { ...cleanGitEnv(), ...GIT_IDENTITY };
+  boundedSpawnSync({
+    label: "git add",
+    command: GIT_PATH,
+    args: ["add", file],
+    cwd: worktree,
+    env,
+  });
+  boundedSpawnSync({
+    label: "git commit",
+    command: GIT_PATH,
+    args: ["commit", "-q", "-m", "keep"],
+    cwd: worktree,
+    env,
+  });
+  boundedSpawnSync({
+    label: "git push origin stale-branch",
+    command: GIT_PATH,
+    args: [
+      "push",
+      "-q",
+      "-f",
+      "origin",
+      "stale-branch:refs/heads/stale-branch",
+    ],
+    cwd: worktree,
+    env,
+  });
+}
+
+/**
  * Locate the admin index file for a linked worktree so it can be corrupted
  * to force `git status` to fail there while other git plumbing still works.
  * @param worktree - Path to the linked worktree
@@ -169,6 +227,40 @@ describe("cleanup-stale-worktrees.sh", () => {
 
     expect(status).toBe(0);
     expect(existsSync(worktree)).toBe(false);
+  });
+
+  it("does NOT remove a worktree holding untracked bytes that exist in no commit", async () => {
+    const { root, worktree } = await createRepoWithPushedWorktree();
+    deliverGuard(root);
+    writeFileSync(path.join(worktree, "fresh.ts"), UNCOMMITTED_BYTES);
+
+    const { status } = runHook(root);
+
+    expect(status).toBe(0);
+    expect(existsSync(worktree)).toBe(true);
+  });
+
+  it("still removes a worktree whose untracked bytes are already committed", async () => {
+    const { root, worktree } = await createRepoWithPushedWorktree();
+    deliverGuard(root);
+    writeFileSync(path.join(worktree, "kept.ts"), UNCOMMITTED_BYTES);
+    commitAndPush(worktree, "kept.ts");
+    writeFileSync(path.join(worktree, "duplicate.ts"), UNCOMMITTED_BYTES);
+
+    const { status } = runHook(root);
+
+    expect(status).toBe(0);
+    expect(existsSync(worktree)).toBe(false);
+  });
+
+  it("falls back to keeping any untracked worktree when the guard is absent", async () => {
+    const { root, worktree } = await createRepoWithPushedWorktree();
+    writeFileSync(path.join(worktree, "fresh.ts"), UNCOMMITTED_BYTES);
+
+    const { status } = runHook(root);
+
+    expect(status).toBe(0);
+    expect(existsSync(worktree)).toBe(true);
   });
 
   it("does NOT remove a worktree when git status fails (corrupted index)", async () => {

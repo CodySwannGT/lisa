@@ -13,8 +13,13 @@
 #   3. No modified/staged TRACKED files ("real work" is never deleted).
 #   4. Its HEAD commit is reachable from some remote ref (nothing unpushed).
 #   5. It is older than --min-age-days (default 7) by directory mtime.
+#   6. Its uncommitted content is reachable from some commit — asked of the
+#      bytes, not of the tracking state, by lisa-worktree-guard.
 #   Untracked-only dirt (node_modules, .env.local, build output) blocks
-#   removal by default; pass --force-untracked to treat it as junk.
+#   removal by default; pass --force-untracked to treat it as junk. Even then
+#   the content gate stands: --force-untracked means "untracked files are not
+#   by themselves work", not "delete bytes that exist in no commit"
+#   (CodySwannGT/lisa#3863).
 #
 # DRY-RUN BY DEFAULT. Nothing is deleted until you pass --apply.
 #
@@ -61,6 +66,21 @@ fi
 NOW=$(date +%s)
 MIN_AGE_SECS=$((MIN_AGE_DAYS * 86400))
 REMOVED=0 KEPT_DIRTY=0 KEPT_UNPUSHED=0 KEPT_YOUNG=0 KEPT_UNTRACKED=0 ORPHANS=0 ERRORS=0
+KEPT_UNREACHABLE=0
+
+# Content-reachability guard. Absent node or an unresolvable script leaves the
+# older gates in charge rather than silently widening what this script deletes.
+GUARD=""
+for candidate in \
+  "$REPO/scripts/lisa-worktree-guard.mjs" \
+  "$REPO/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-worktree-guard.mjs" \
+  "$REPO/all/copy-overwrite/scripts/lisa-worktree-guard.mjs"; do
+  if [ -f "$candidate" ]; then
+    GUARD="$candidate"
+    break
+  fi
+done
+command -v node > /dev/null 2>&1 || GUARD=""
 
 log() { printf '%s\n' "$*"; }
 act() { if [ "$APPLY" = 1 ]; then log "REMOVE  $*"; else log "WOULD-REMOVE  $*"; fi; }
@@ -149,6 +169,14 @@ process_worktree() {
     return
   fi
 
+  # Content gate: bytes that exist in no commit are never junk, whatever
+  # --force-untracked says about tracking state.
+  if [ -n "$GUARD" ] && ! node "$GUARD" check "$wt" > /dev/null 2>&1; then
+    KEPT_UNREACHABLE=$((KEPT_UNREACHABLE + 1))
+    log "KEEP (holds content that exists in no commit)  $wt"
+    return
+  fi
+
   local force_flag=()
   if [ -n "$(git -C "$wt" status --porcelain 2>/dev/null)" ]; then
     if [ "$FORCE_UNTRACKED" = 1 ]; then
@@ -217,6 +245,6 @@ fi
 log ""
 log "=== summary ==="
 log "removed (or would remove): $REMOVED   orphan dirs: $ORPHANS"
-log "kept: $KEPT_DIRTY modified-tracked, $KEPT_UNPUSHED unpushed, $KEPT_UNTRACKED untracked-only, $KEPT_YOUNG too-young   errors: $ERRORS"
+log "kept: $KEPT_DIRTY modified-tracked, $KEPT_UNPUSHED unpushed, $KEPT_UNTRACKED untracked-only, $KEPT_UNREACHABLE uncommitted-content, $KEPT_YOUNG too-young   errors: $ERRORS"
 [ "$APPLY" = 0 ] && log "(dry run — rerun with --apply to delete)"
 exit 0
