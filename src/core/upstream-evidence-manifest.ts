@@ -14,6 +14,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "a0f17592d4436de4c240f7c78512537581aa2ed5e89f0caf1fe890694163a873",
     "all/copy-overwrite/scripts/check-state-classification.mjs":
       "a72910f9885629dd6d8a739b900f5603e4b53d68ece64100a2a5647016b58e1e",
+    "all/copy-overwrite/scripts/check-third-party-action-pins.mjs":
+      "79117b039e0d7df001e60835ad3538126ba88273bc5fa3c1d30d8e8e704e77cc",
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs":
       "95f91f2a74ed4e523d064d5d374eadd1c1114f03a3a4fa41532c9b0fd32089de",
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
@@ -2243,7 +2245,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-template-workflow-refs.mjs":
       "f784a822ae82f41b7501d61e45a1badeecb84f118083f4c53c66402d6c50ffa2",
     "scripts/check-third-party-action-pins.mjs":
-      "b578c55d2d8d63243de502e332f2dd2e0ae2a670c6ed18c418c67abb96c8b8fd",
+      "f61b310333d4734225482906708bba90582882b5312ba39701a43cf6960706db",
     "scripts/check-ui-demo-data.mjs":
       "82a5ed89ae830482dbaab99e2f8eeededcde60a7dd6ac145f191b4ac8394c85b",
     "scripts/check-whole-output-guards.mjs":
@@ -2389,7 +2391,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "4a949276121b6fb9673c12954b56a767ce5c17bc8f375a331903a27ded505000",
+      "94113ed3a78826f8db89e9726c109a4242f55208ace8d16b7b635f67c508d7a4",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -2445,7 +2447,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "0775c6feb7638122e8b68d611cd709bf270f7b5adb5d0d2baa9afab8a6c0fc42",
     "typescript/copy-overwrite/.prettierignore":
-      "8dbc066a48379ae0f2e20dd3ebbcb8d930a7fa37158fa4ab3746a36cb7f534e9",
+      "9850374cc1a061c4fec985a3398fd88535da1f34cd9b768ce1ea2af6adcb41b8",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -2559,7 +2561,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "4804b20a50d9c66154643c73bcb84655c36e9dc8f2a514d22990adba1c0ce947",
+      "cc58815ec5cd6b7df3ab401fb3ff7b9b154f0aedb09857395273e7c1df7313a6",
     "ui/README.md":
       "9c4aa65ff4028eedfda1f284d47b620fff7353c07fd8084ccc427fe4c5a1ed72",
     "ui/index.html":
@@ -2712,6 +2714,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/check-orphaned-branches.mjs": true,
     "all/copy-overwrite/scripts/check-release-package-identity.mjs": true,
     "all/copy-overwrite/scripts/check-state-classification.mjs": true,
+    "all/copy-overwrite/scripts/check-third-party-action-pins.mjs": true,
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs": true,
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs": true,
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs": true,
@@ -10146,6 +10149,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/skipped-required-checks.test.ts": true,
     "tests/unit/scripts/slow-lint-dead-code-enforcement.test.ts": true,
     "tests/unit/scripts/state-classification.test.ts": true,
+    "tests/unit/scripts/third-party-action-pins-warn-mode.test.ts": true,
     "tests/unit/scripts/third-party-review-evidence.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-baseline.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-gates.test.ts": true,
