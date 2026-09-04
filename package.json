@@ -55,7 +55,8 @@
     "check:nightly-guard-certificate": "node scripts/generate-nightly-e2e-guard-certificate.mjs --check",
     "generate:two-channel-couplings": "bun scripts/generate-two-channel-couplings.ts",
     "check:two-channel-couplings": "bun scripts/generate-two-channel-couplings.ts --check",
-    "check:artifacts": "status=0; bun run check:upstream-evidence-manifest || status=1; bun run check:lisa-owned-hash-ledger || status=1; bun run check:nightly-guard-certificate || status=1; bun run check:two-channel-couplings || status=1; exit $status",
+    "check:deletion-basis": "node scripts/check-deletion-basis.mjs",
+    "check:artifacts": "status=0; bun run check:upstream-evidence-manifest || status=1; bun run check:lisa-owned-hash-ledger || status=1; bun run check:nightly-guard-certificate || status=1; bun run check:two-channel-couplings || status=1; bun run check:deletion-basis || status=1; exit $status",
     "refresh:upstream-public-commits": "node scripts/generate-upstream-evidence-manifest.mjs --refresh-public-commits",
     "check:rules-pairing": "bash scripts/check-rules-pairing.sh",
     "check:pipeline-status-reads": "node scripts/check-pipeline-status-reads.mjs",
@@ -170,7 +171,7 @@
     "zod-validation-error": "^4.0.0"
   },
   "name": "@codyswann/lisa",
-  "version": "4.38.4",
+  "version": "4.40.0",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {

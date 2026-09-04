@@ -2,6 +2,57 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.40.0](https://github.com/CodySwannGT/lisa/compare/v4.39.0...v4.40.0) (2026-09-04)
+
+
+### Features
+
+* **hooks:** refuse a commit that stages another worktree's uncommitted file ([0a2a342](https://github.com/CodySwannGT/lisa/commit/0a2a342b6f4b2dfe2f6a30e431977ef9052c032f)), closes [CodySwannGT/lisa#3863](https://github.com/CodySwannGT/lisa/issues/3863) [CodySwannGT/lisa#3712](https://github.com/CodySwannGT/lisa/issues/3712)
+
+
+### Bug Fixes
+
+* **publish:** gate the publish inputs and stop interpolating them ([de2abd8](https://github.com/CodySwannGT/lisa/commit/de2abd86e2f6fe6bc07aa2d316d4d0879de83b96)), closes [#3717](https://github.com/CodySwannGT/lisa/issues/3717) [CodySwannGT/lisa#3717](https://github.com/CodySwannGT/lisa/issues/3717) [CodySwannGT/lisa#3717](https://github.com/CodySwannGT/lisa/issues/3717)
+* **release:** reject empty expressions in scripts ([b62408d](https://github.com/CodySwannGT/lisa/commit/b62408d8d043281b18b6230bc8493659459b1e78)), closes [CodySwannGT/lisa#3892](https://github.com/CodySwannGT/lisa/issues/3892)
+* **release:** stop interpolating the version into shell source ([0659089](https://github.com/CodySwannGT/lisa/commit/06590892a0cba809c1d7e841d7fef29c38b63532)), closes [#3717](https://github.com/CodySwannGT/lisa/issues/3717) [CodySwannGT/lisa#3717](https://github.com/CodySwannGT/lisa/issues/3717) [CodySwannGT/lisa#3717](https://github.com/CodySwannGT/lisa/issues/3717)
+
+## [4.39.0](https://github.com/CodySwannGT/lisa/compare/v4.38.8...v4.39.0) (2026-09-04)
+
+
+### Features
+
+* **deletions:** require a declared basis before removing a host's file ([bb2851a](https://github.com/CodySwannGT/lisa/commit/bb2851abe02743daa418bcdf047b5835c161a7af)), closes [#3656](https://github.com/CodySwannGT/lisa/issues/3656) [#3599](https://github.com/CodySwannGT/lisa/issues/3599) [CodySwannGT/lisa#3700](https://github.com/CodySwannGT/lisa/issues/3700)
+
+### [4.38.8](https://github.com/CodySwannGT/lisa/compare/v4.38.7...v4.38.8) (2026-09-04)
+
+
+### Bug Fixes
+
+* **gates:** a zero exit with zero tests is not a pass ([c14dba8](https://github.com/CodySwannGT/lisa/commit/c14dba82a53bac880c286a629ec610de5c13bdc6)), closes [#2603](https://github.com/CodySwannGT/lisa/issues/2603) [#3715](https://github.com/CodySwannGT/lisa/issues/3715) [CodySwannGT/lisa#3715](https://github.com/CodySwannGT/lisa/issues/3715)
+* **hooks:** a syntax check is not an execution — parity-safety-net ([0c9c0f9](https://github.com/CodySwannGT/lisa/commit/0c9c0f9cbdb9bc6879a4f37bdd22463c96991c40)), closes [#3828](https://github.com/CodySwannGT/lisa/issues/3828) [#3828](https://github.com/CodySwannGT/lisa/issues/3828) [#3803](https://github.com/CodySwannGT/lisa/issues/3803) [CodySwannGT/lisa#3803](https://github.com/CodySwannGT/lisa/issues/3803)
+* **test:** annotate the gate result with the runner's own type ([7e21fdf](https://github.com/CodySwannGT/lisa/commit/7e21fdf2759f6fa3d803439649cc234361182948)), closes [#3846](https://github.com/CodySwannGT/lisa/issues/3846) [#3715](https://github.com/CodySwannGT/lisa/issues/3715) [CodySwannGT/lisa#3715](https://github.com/CodySwannGT/lisa/issues/3715)
+
+### [4.38.7](https://github.com/CodySwannGT/lisa/compare/v4.38.6...v4.38.7) (2026-09-04)
+
+
+### Bug Fixes
+
+* **intake:** scope the attempt valve so recovery actually recovers ([0657ffe](https://github.com/CodySwannGT/lisa/commit/0657ffe2d8b5a3e98826b96fd93c0ecd81f78128)), closes [#3854](https://github.com/CodySwannGT/lisa/issues/3854) [CodySwannGT/lisa#3854](https://github.com/CodySwannGT/lisa/issues/3854)
+
+### [4.38.6](https://github.com/CodySwannGT/lisa/compare/v4.38.5...v4.38.6) (2026-09-04)
+
+
+### Bug Fixes
+
+* **work-item:** defer the commit gate when the push range has no subject ([d046fdc](https://github.com/CodySwannGT/lisa/commit/d046fdc808fec01cec9aaf2eb909babf7fde5f01)), closes [CodySwannGT/lisa#3851](https://github.com/CodySwannGT/lisa/issues/3851)
+
+### [4.38.5](https://github.com/CodySwannGT/lisa/compare/v4.38.4...v4.38.5) (2026-09-04)
+
+
+### Bug Fixes
+
+* stop the vacuity guard asserting a review did not happen ([db76a4b](https://github.com/CodySwannGT/lisa/commit/db76a4bc4b3e66dc9d7f0318510d2128fc7e1191)), closes [CodySwannGT/lisa#3762](https://github.com/CodySwannGT/lisa/issues/3762) [CodySwannGT/lisa#3825](https://github.com/CodySwannGT/lisa/issues/3825) [CodySwannGT/lisa#3827](https://github.com/CodySwannGT/lisa/issues/3827)
+
 ### [4.38.4](https://github.com/CodySwannGT/lisa/compare/v4.38.3...v4.38.4) (2026-09-04)
 
 

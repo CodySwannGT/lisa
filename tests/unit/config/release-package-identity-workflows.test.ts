@@ -31,6 +31,8 @@ interface WorkflowStep {
 
 /** Minimal workflow job fields exercised by this contract. */
 interface WorkflowJob {
+  /** Job-level environment, where release identity now enters (#3717). */
+  env?: Record<string, string>;
   /** Values exposed to dependent jobs. */
   outputs?: Record<string, string>;
   /** Ordered workflow steps. */
@@ -159,17 +161,28 @@ describe("release package identity workflow", () => {
       "${{ needs.version.outputs.release_commit }}"
     );
 
-    const createRelease = namedStep(
+    // The decision this guards is WHICH commit the release targets: the exact
+    // release commit, never the branch head. Since #3717 the value reaches the
+    // script through `env:` rather than being interpolated into it — the same
+    // treatment the `release_commit` step above already required — so the
+    // binding is asserted on `env` and the usage on the shell variable. The
+    // negative assertions are what keep this a guard rather than a restatement.
+    const createReleaseStep = namedStep(
       release.jobs.github_release,
       "Create GitHub Release"
-    ).run;
-    expect(createRelease).toContain(
-      '--arg target "${{ needs.version.outputs.release_commit }}"'
     );
-    expect(createRelease).toContain(
-      '[ "$TARGET" != "${{ needs.version.outputs.release_commit }}" ]'
+    const createRelease = createReleaseStep.run;
+    expect(createReleaseStep.env).toMatchObject({
+      RELEASE_COMMIT: "${{ needs.version.outputs.release_commit }}",
+    });
+    expect(createRelease).toContain('--arg target "$RELEASE_COMMIT"');
+    expect(createRelease).toContain('[ "$TARGET" != "$RELEASE_COMMIT" ]');
+    expect(createReleaseStep.env?.["RELEASE_COMMIT"]).not.toBe(
+      "${{ github.sha }}"
     );
-    expect(createRelease).not.toContain('--arg target "${{ github.sha }}"');
+    expect(createRelease).not.toContain("${{ github.sha }}");
+    // Nothing in this step may be interpolated into shell source (#3717).
+    expect(createRelease).not.toContain("${{");
   });
 
   it("requires the exact release commit and establishes version before build", async () => {
@@ -193,8 +206,15 @@ describe("release package identity workflow", () => {
     expect(checkoutIdentity.run).toContain(
       "node scripts/check-release-package-identity.mjs checkout"
     );
+    // Property unchanged: the checkout is validated against the release commit
+    // the caller named. The mechanism moved to job-level `env:` (#3717), so the
+    // step body carries `$RELEASE_COMMIT` and the binding is asserted below —
+    // the variable alone would be satisfied by one bound to anything.
     expect(checkoutIdentity.run).toContain(
-      '--release-commit "${{ inputs.release_commit }}"'
+      '--release-commit "$RELEASE_COMMIT"'
+    );
+    expect(publishJob.env?.["RELEASE_COMMIT"]).toContain(
+      "inputs.release_commit"
     );
 
     const updateIndex = steps.findIndex(
@@ -218,8 +238,11 @@ describe("release package identity workflow", () => {
     expect(publishIndex).toBeGreaterThan(packIndex);
     const stampReleaseCommit =
       namedStep(publishJob, STAMP_RELEASE_IDENTITY_STEP).run ?? "";
-    expect(stampReleaseCommit).toContain(
-      'RELEASE_COMMIT="${{ inputs.release_commit }}"'
+    // The step no longer assigns RELEASE_COMMIT itself — it is job-level `env:`
+    // now (#3717), asserted at the binding above. What must remain true here is
+    // that the stamp writes the release commit into the package.
+    expect(publishJob.env?.["RELEASE_COMMIT"]).toContain(
+      "inputs.release_commit"
     );
     expect(stampReleaseCommit).toContain(
       'npm pkg set lisaReleaseCommit="$RELEASE_COMMIT"'
@@ -227,8 +250,14 @@ describe("release package identity workflow", () => {
     expect(stampReleaseCommit).toContain(
       'npm pkg set gitHead="$RELEASE_COMMIT"'
     );
-    expect(namedStep(publishJob, "Publish to npm with OIDC").run).toContain(
-      'npm publish "${{ steps.release_package.outputs.tarball }}"'
+    // Property unchanged: what is published is the exact tarball the pack step
+    // produced and validated, not a re-pack or a directory. The tarball path is
+    // a STEP output rather than a workflow input, so its binding lives in the
+    // step's own `env:` (#3717) instead of being interpolated into the command.
+    const publishStep = namedStep(publishJob, "Publish to npm with OIDC");
+    expect(publishStep.run).toContain('npm publish "$RELEASE_TARBALL"');
+    expect(publishStep.env?.["RELEASE_TARBALL"]).toContain(
+      "steps.release_package.outputs.tarball"
     );
   });
 
@@ -242,8 +271,12 @@ describe("release package identity workflow", () => {
     // The commit the package was built from is provenance; the tag is the only
     // identity a consumer can be pinned at, because a rewrite carries the tag
     // forward and orphans the commit.
-    expect(stamp).toContain('RELEASE_TAG="${{ inputs.tag }}"');
+    // Property unchanged — the tag is stamped and the packed candidate is
+    // validated against it. The tag now reaches both steps as job-level `env:`
+    // rather than as an interpolated expression (#3717), so the binding is what
+    // ties them back to the caller's input.
+    expect(publishJob.env?.["RELEASE_TAG"]).toContain("inputs.tag");
     expect(stamp).toContain('npm pkg set lisaReleaseTag="$RELEASE_TAG"');
-    expect(pack).toContain('--tag "${{ inputs.tag }}"');
+    expect(pack).toContain('--tag "$RELEASE_TAG"');
   });
 });

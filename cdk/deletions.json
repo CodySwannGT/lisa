@@ -5,5 +5,12 @@
     "jest.cdk.ts",
     "jest.base.ts",
     "jest.thresholds.json"
-  ]
+  ],
+  "basis": {
+    "jest.config.ts": "needs-review",
+    "jest.config.local.ts": "needs-review",
+    "jest.cdk.ts": "needs-review",
+    "jest.base.ts": "needs-review",
+    "jest.thresholds.json": "needs-review"
+  }
 }

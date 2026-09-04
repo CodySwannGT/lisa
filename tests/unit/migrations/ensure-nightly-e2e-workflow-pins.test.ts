@@ -170,12 +170,21 @@ describe("EnsureNightlyE2EWorkflowPinsMigration", () => {
       "utf8"
     );
 
-    expect(workflow).toContain('RELEASE_COMMIT="${{ inputs.release_commit }}"');
+    // Property unchanged: the published package records the commit it was
+    // built from AND the tag it was cut at, because this migration pins callers
+    // at the TAG — a history rewrite orphans the commit while carrying the tag
+    // forward, and a caller pinned at an orphaned commit stops loading its
+    // workflow without ever failing.
+    //
+    // The bindings moved from shell assignments to job-level `env:` (#3717),
+    // which is the template-injection fix. The `npm pkg set` lines — the ones
+    // that actually stamp the package — are untouched.
+    expect(workflow).toContain("RELEASE_COMMIT: ${{ inputs.release_commit }}");
     expect(workflow).toContain(
       'npm pkg set lisaReleaseCommit="$RELEASE_COMMIT"'
     );
     expect(workflow).toContain('npm pkg set gitHead="$RELEASE_COMMIT"');
-    expect(workflow).toContain('RELEASE_TAG="${{ inputs.tag }}"');
+    expect(workflow).toContain("RELEASE_TAG: ${{ inputs.tag }}");
     expect(workflow).toContain('npm pkg set lisaReleaseTag="$RELEASE_TAG"');
   });
 
