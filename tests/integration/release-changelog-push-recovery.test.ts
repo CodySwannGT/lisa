@@ -105,11 +105,13 @@ const sleepSync = (ms: number): void => {
 };
 
 /**
- * Extracts the real "Push Changelog Changes" step from release.yml and
- * substitutes the GitHub expression context this test drives it with, so the
+ * Extracts the real "Push Changelog Changes" step from release.yml, so the
  * assertions exercise exactly what the workflow ships instead of a copy that
- * can silently drift.
- * @returns The step's shell body with `${{ ... }}` expressions resolved.
+ * can silently drift. It used to substitute `${{ ... }}` the way Actions does;
+ * since #3717 the step takes those values through `env:` (supplied by
+ * `runStep`), so there is nothing left to substitute and a body still carrying
+ * one is a regression rather than something to paper over.
+ * @returns The step's shell body, verbatim.
  */
 const loadPushScript = (): string => {
   const workflow = yaml.load(
@@ -120,12 +122,10 @@ const loadPushScript = (): string => {
   if (!run) {
     throw new Error("Push Changelog Changes step not found in release.yml");
   }
-  return run
-    .replace(/\$\{\{\s*github\.ref_name\s*\}\}/g, "main")
-    .replace(
-      /\$\{\{\s*steps\.version\.outputs\.version\s*\}\}/g,
-      RELEASE_VERSION
-    );
+  if (run.includes("${{")) {
+    throw new Error("Push Changelog Changes interpolates; use `env:` (#3717)");
+  }
+  return run;
 };
 
 // The buggy pre-fix loop, preserved verbatim as a control so the test proves
@@ -310,6 +310,9 @@ const runStep = (
       ...GIT_ENV,
       PATH: `${repo.binDir}:${process.env.PATH ?? ""}`,
       REPRO_MARKER: repo.markerFile,
+      // Supplied through `env:` since #3717, not interpolated into the script.
+      RELEASE_REF_NAME: "main",
+      RELEASE_VERSION,
     },
   };
   let lastErr: unknown;
