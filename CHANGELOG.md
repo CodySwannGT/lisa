@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.37.3](https://github.com/CodySwannGT/lisa/compare/v4.37.2...v4.37.3) (2026-09-04)
+
+
+### Bug Fixes
+
+* **hooks:** name the directory the resolved-config block resolved for ([61f7cca](https://github.com/CodySwannGT/lisa/commit/61f7ccac83fd5c0dd72696f43a982688c92c002b)), closes [CodySwannGT/lisa#3765](https://github.com/CodySwannGT/lisa/issues/3765)
+* **intake:** honour the body hold marker on the promotion path ([16e62ac](https://github.com/CodySwannGT/lisa/commit/16e62acf542f5af6e85b8cd435a1a9d580621577)), closes [#3815](https://github.com/CodySwannGT/lisa/issues/3815) [CodySwannGT/lisa#3805](https://github.com/CodySwannGT/lisa/issues/3805)
+
 ### [4.37.2](https://github.com/CodySwannGT/lisa/compare/v4.37.1...v4.37.2) (2026-09-04)
 
 
