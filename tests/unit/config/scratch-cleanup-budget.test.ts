@@ -152,6 +152,13 @@ function runChildCleanupPreflight(tree: VirtualTree): void {
     Date,
     process: {
       argv: ["node", "1", "2"],
+      // The cleanup program gained a fault-injection hook after this fake was
+      // written and now reads process.env directly. An absent `env` makes the
+      // read throw before the entry bound is reached, which would report as a
+      // failed assertion about the bound rather than an incomplete sandbox.
+      // Empty is the correct value: no fault injected, which is what this case
+      // exercises.
+      env: {},
       exit: (code: number) => {
         throw new Error(`unexpected exit ${String(code)}`);
       },
@@ -206,7 +213,22 @@ describe("scratch cleanup entry budget", () => {
     expect(tree.remaining()).toBe(1);
   });
 
-  it("bounds a selected child tree before the quarantine rename", () => {
+  // SKIPPED because main deliberately reversed the ordering this asserts, and
+  // this case therefore encodes a pre-change design rather than a live defect.
+  //
+  // It requires the entry bound to bite BEFORE any mutation. main now
+  // quarantines first and scans after, and says why at the change site in
+  // src/configs/vitest/scratch-bound-cleanup-programs.ts: "A pre-rename scan
+  // leaves a window in which a writer creates an entry that is therefore absent
+  // from the recorded list, never deleted, and left to fail the final rmdirSync
+  // with ENOTEMPTY". That is a TOCTOU fix — main's order is the safer one, so
+  // "fix main to satisfy this test" would be a regression.
+  //
+  // Left skipped rather than deleted because dropping a measurement is a
+  // judgement about intent that belongs to CodySwannGT/lisa#3414, not to a
+  // recovery pass. Filed as CodySwannGT/lisa#3770: either port it to assert
+  // bound-after-quarantine, or retire it as superseded.
+  it.skip("bounds a selected child tree before the quarantine rename", () => {
     const tree = virtualTree(1, 100_001);
 
     expect(() => runChildCleanupPreflight(tree)).toThrow(/entry bound/iu);
