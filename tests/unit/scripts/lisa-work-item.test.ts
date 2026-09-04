@@ -22,7 +22,10 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { textContainsBacklink } from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
+import {
+  pullRequestViewArgs,
+  textContainsBacklink,
+} from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
 import {
   boundedSpawnSync,
   ioLatencyBudgetMs,
@@ -207,6 +210,21 @@ case "\${1:-} \${2:-}" in
     esac
     ;;
   "pr view")
+    # Real gh REFUSES to infer the current branch once --repo is given:
+    # "argument required when using the --repo flag", exit 1. This double used
+    # to accept that invocation, which made it more permissive than the tool it
+    # stands in for — so a call that could never work in the field passed every
+    # case here. That is exactly how #3791 survived this suite: the push path
+    # sent --repo with no selector on every run, the real gh rejected it, and
+    # the caller read the usage error as "no pull request exists".
+    case "\${3:-}" in
+      -*|"")
+        case "$*" in
+          *--repo*)
+            echo "argument required when using the --repo flag" >&2
+            exit 1 ;;
+        esac ;;
+    esac
     [ "\${FAKE_GH_PR_MISSING:-0}" != "1" ] || exit 1
     printf '%s\\n' "$FAKE_GH_PR_JSON"
     ;;
@@ -1720,6 +1738,121 @@ describe("merge lane (#1956 R2): push-range base-branch exemption", () => {
     expect(result.stdout).toContain("All five gates, and when each one bites:");
     expect(result.stdout).toContain("the pull-request BODY declares EXACTLY");
     expect(result.stdout).toContain("backlink comment");
+  });
+
+  /**
+   * The other half of the case above, and the one that was missing (#3791).
+   *
+   * Asserting only that the deferral is PRINTED when no pull request exists is
+   * satisfied by a guard that prints it always — which is what this one did.
+   * The push path passed `--repo` with no selector, real gh answered "argument
+   * required when using the --repo flag", `allowFailure` turned that into
+   * `undefined`, and the deferral went out on every push. It was true by
+   * accident before a pull request existed and false afterwards, and it was
+   * determined in neither case: gates 4 and 5 were never checked at push at
+   * all. Only a case where a pull request DOES exist can tell the two apart.
+   */
+  it("checks gates 4 and 5 at push when a pull request does exist", () => {
+    const fixture = createFixture();
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    git(
+      fixture.root,
+      ["update-ref", "refs/remotes/origin/main", base],
+      fixture.env
+    );
+    setOriginHead(fixture);
+    expect(command(fixture, ["bind", "acme/widgets#42"]).status).toBe(0);
+    const head = commit(
+      fixture,
+      "feat: branch work\n\nWork-Item: acme/widgets#42"
+    );
+
+    // The fake pull request already declares the item (gate 4). Gate 5 needs a
+    // managed backlink on the item, and supplying it here is the point: with
+    // the lookup repaired, BOTH gates now actually run at push, so both have to
+    // be satisfiable at push for this to pass.
+    const prUrl = "https://github.com/acme/code/pull/7";
+    const log = path.join(fixture.root, "gh.log");
+    const branch = git(
+      fixture.root,
+      ["rev-parse", "--abbrev-ref", "HEAD"],
+      fixture.env
+    );
+    const result = command(fixture, ["validate-push", "origin"], {
+      env: {
+        FAKE_GH_ISSUE_JSON: JSON.stringify({
+          closedByPullRequestsReferences: [],
+          comments: [{ body: `[lisa-pr-link] ${prUrl}` }],
+          labels: [{ name: "status:in-progress" }, { name: "type:Bug" }],
+          number: 42,
+          state: "OPEN",
+          url: "https://github.com/acme/widgets/issues/42",
+        }),
+        FAKE_GH_LOG: log,
+      },
+      input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${base}\n`,
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).not.toContain("no pull request exists yet");
+    expect(result.stdout).toContain("WORK_ITEM_TRACKING_OK");
+    // The INVOCATION, not just the outcome. Asserting only that a pull request
+    // was resolved is satisfied by any argv the double happens to tolerate, and
+    // the double tolerating an argv the real tool rejects is the whole defect —
+    // so the shape of the call is the thing under test.
+    expect(readFileSync(log, "utf8")).toContain(
+      `pr view ${branch} --repo acme/code --json url,body,state`
+    );
+  });
+});
+
+/**
+ * Argv construction, in-process (#3791).
+ *
+ * Every case above spawns the CLI, so Stryker sees no in-process coverage of
+ * these lines and scored seven surviving mutants against them — a gap no
+ * subprocess assertion can close, however well written. The shape of this call
+ * is precisely what was defective, so it is tested where it can actually be
+ * measured.
+ */
+describe("pullRequestViewArgs", () => {
+  it("selects by number when one is given, in preference to the branch", () => {
+    expect(pullRequestViewArgs(7, "feature/x", "acme/code")).toEqual([
+      "pr",
+      "view",
+      "7",
+      "--repo",
+      "acme/code",
+      "--json",
+      "url,body,state",
+    ]);
+  });
+
+  it("falls back to the branch when no number is given", () => {
+    expect(pullRequestViewArgs(undefined, "feature/x", "acme/code")).toEqual([
+      "pr",
+      "view",
+      "feature/x",
+      "--repo",
+      "acme/code",
+      "--json",
+      "url,body,state",
+    ]);
+  });
+
+  /**
+   * The case the defect turned on. `gh` refuses `--repo` with no selector —
+   * "argument required when using the --repo flag" — so sending it alone is a
+   * usage error the caller then reads as "no pull request exists". With nothing
+   * to resolve by, the flag is withheld rather than sent.
+   */
+  it("withholds --repo when there is no selector at all", () => {
+    expect(pullRequestViewArgs(undefined, undefined, "acme/code")).toEqual([
+      "pr",
+      "view",
+      "--json",
+      "url,body,state",
+    ]);
   });
 
   it("still rejects a branch-authored commit with no Work-Item trailer", () => {
