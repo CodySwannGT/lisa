@@ -2237,7 +2237,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-state-classification.mjs":
       "26baaa85c0758fa41f1f66257f7d3a31ea4dd5cf17a9c0acaa3e89caaaf6265a",
     "scripts/check-template-workflow-refs.mjs":
-      "aeefe4da9e728da09d5430bd3ed14e52a5abebde7aec2d67e6861777101346ce",
+      "89176394a933d0a42c39ab1805a45e782a2f3e1893d707ac1afb439062397088",
     "scripts/check-third-party-action-pins.mjs":
       "b578c55d2d8d63243de502e332f2dd2e0ae2a670c6ed18c418c67abb96c8b8fd",
     "scripts/check-ui-demo-data.mjs":

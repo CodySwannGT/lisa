@@ -196,7 +196,28 @@ describe("findWorkflowRefs", () => {
   });
 
   it("finds a reference under every block-scalar spelling", () => {
-    for (const marker of [">", ">-", ">+", "|", "|-", "|+"]) {
+    // Every spelling YAML permits for the header, including an explicit
+    // indentation indicator on EITHER side of the chomping indicator. A header
+    // this parser fails to recognise is a reference it never scans for, which
+    // is indistinguishable from a template that has none.
+    for (const marker of [
+      ">",
+      ">-",
+      ">+",
+      "|",
+      "|-",
+      "|+",
+      ">1",
+      "|9",
+      ">2-",
+      ">3+",
+      "|4-",
+      "|5+",
+      ">-6",
+      ">+7",
+      "|-8",
+      "|+1",
+    ]) {
       const yaml = [
         `    uses: ${marker}`,
         "      CodySwannGT/lisa/.github/workflows/a.yml@main",
@@ -204,6 +225,30 @@ describe("findWorkflowRefs", () => {
       expect(findWorkflowRefs(yaml), `spelling ${marker}`).toEqual([
         { line: 2, ref: "main", target: REUSABLE_A },
       ]);
+    }
+  });
+
+  it("still FLAGS a bad ref hidden behind an indentation indicator", () => {
+    // Finding the reference is only half the gate. The spelling that hid a raw
+    // SHA from every sweep must end in a VERDICT, not merely in a parse — a
+    // parser that matches everything and reports nothing actionable would
+    // satisfy a found-it assertion while leaving the defect shipping.
+    for (const marker of [">2-", ">-2", "|3+", "|+3"]) {
+      const yaml = [
+        "jobs:",
+        "  track:",
+        `    uses: ${marker}`,
+        "      CodySwannGT/lisa/.github/workflows/a.yml@08628ca0d2db045d3b0d87fcad8e444565836ff9",
+      ].join("\n");
+      const refs = findWorkflowRefs(yaml);
+      expect(refs, `spelling ${marker}`).toEqual([
+        {
+          line: 4,
+          ref: "08628ca0d2db045d3b0d87fcad8e444565836ff9",
+          target: REUSABLE_A,
+        },
+      ]);
+      expect(violatesRefPolicy(refs[0]), `verdict ${marker}`).toBe(true);
     }
   });
 

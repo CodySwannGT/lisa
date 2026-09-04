@@ -91,8 +91,17 @@ const USES_RE = /uses:\s*CodySwannGT\/lisa\/([^\s@]+)@([^\s"'#]+)/g;
  * way, and every sweep run against it — including one done by hand — reported
  * the file clean. A parser that silently sees nothing is the same false green
  * this gate exists to prevent, one level up.
+ *
+ * The header may also carry an explicit INDENTATION indicator — a single digit
+ * `1`-`9` — and YAML permits it on either side of the chomping indicator, so
+ * `>2-` and `>-2` are both well-formed. Matching only the chomping indicator
+ * reproduces the very blind spot above in a narrower form: the header fails to
+ * match, the continuation scan never runs, and the reference is invisible
+ * again. The digit class is `1`-`9` rather than `\d` because `0` is not a legal
+ * indentation indicator and the indicator is exactly one digit wide.
  */
-const USES_BLOCK_RE = /^(\s*)uses:\s*[>|][-+]?\s*(?:#.*)?$/;
+const USES_BLOCK_RE =
+  /^(\s*)uses:\s*[>|](?:[-+][1-9]?|[1-9][-+]?)?\s*(?:#.*)?$/;
 
 /** The reference itself, unanchored, for continuation lines. */
 const BARE_REF_RE = /CodySwannGT\/lisa\/([^\s@]+)@([^\s"'#]+)/g;
