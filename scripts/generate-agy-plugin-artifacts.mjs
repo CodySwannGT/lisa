@@ -261,6 +261,18 @@ const AGY_PLUGIN_HOOKS = [
     agyScript: "block-direct-issue-create.agy.sh",
     supportScripts: ["block-direct-issue-create.sh"],
   },
+  {
+    // Same shape as the entry above, plus one support file the others do not
+    // need: the classifier is Node, because the denylist it consults is
+    // compiled JavaScript and a bash reimplementation would be a second copy of
+    // the thing the guard exists to protect.
+    sourceScript: "block-host-name-leak.sh",
+    hookName: "lisa-block-host-name-leak",
+    event: "PreToolUse",
+    matcher: "run_command",
+    agyScript: "block-host-name-leak.agy.sh",
+    supportScripts: ["block-host-name-leak.sh", "block-host-name-leak.mjs"],
+  },
 ];
 
 /**
