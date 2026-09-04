@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.40.1](https://github.com/CodySwannGT/lisa/compare/v4.40.0...v4.40.1) (2026-09-04)
+
+
+### Bug Fixes
+
+* **hooks:** a syntax check is not an execution — stop adjudicating bash -n ([8fef728](https://github.com/CodySwannGT/lisa/commit/8fef728e759c7d5e1be21b2ea57ac0cbb0b54d16)), closes [#3781](https://github.com/CodySwannGT/lisa/issues/3781) [CodySwannGT/lisa#3781](https://github.com/CodySwannGT/lisa/issues/3781)
+* **hooks:** let a co-generated artifact through the cross-worktree guard ([e655255](https://github.com/CodySwannGT/lisa/commit/e655255119817be85ed92ac4cf9072b266050fac)), closes [CodySwannGT/lisa#3712](https://github.com/CodySwannGT/lisa/issues/3712)
+* **mutation:** window the diff on the tree Stryker mutates ([4d4796c](https://github.com/CodySwannGT/lisa/commit/4d4796cb01348c63ee544e7d28e54a1f27169b6e)), closes [CodySwannGT/lisa#3889](https://github.com/CodySwannGT/lisa/issues/3889)
+* **plugins:** regenerate the agy managed-file guard after the source edit ([bae1f4f](https://github.com/CodySwannGT/lisa/commit/bae1f4f5106a7aec5b4d07f5127bb675188c3081)), closes [#3781](https://github.com/CodySwannGT/lisa/issues/3781) [CodySwannGT/lisa#3781](https://github.com/CodySwannGT/lisa/issues/3781)
+
 ## [4.40.0](https://github.com/CodySwannGT/lisa/compare/v4.39.0...v4.40.0) (2026-09-04)
 
 
