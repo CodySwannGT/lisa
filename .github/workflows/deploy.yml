@@ -153,6 +153,7 @@ jobs:
             echo "   deployments. Do not merge anything else into this branch until it is fixed."
           } >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}"
           echo "::error title=Nothing new was deployed to ${DEPLOY_ENVIRONMENT}::The release did not succeed (${RELEASE_RESULT}), so this change did not ship and the previous version is still running. Open the Release job in this run to see why, fix it, then merge again."
+          exit 1
 
   # Reconcile the release artifacts against the registry when the publish did
   # not succeed (CodySwannGT/lisa#3684).
