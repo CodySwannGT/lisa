@@ -94,6 +94,7 @@ describe("block-managed-file-edits.sh apply_patch arm", () => {
     ["Update File", `*** Update File: ${MANAGED}\n@@\n-local\n+tampered`],
     ["Add File", `*** Add File: ${MANAGED}\n+tampered`],
     ["Delete File", `*** Delete File: ${MANAGED}`],
+    ["Move to", `*** Move to: ${MANAGED}`],
   ])("refuses a managed target under *** %s", (_label, body) => {
     expect(runPatch(`${PATCH_OPEN}\n${body}\n${PATCH_CLOSE}`)).toBe(
       EXIT_BLOCKED
@@ -176,6 +177,22 @@ describe("block-managed-file-edits.sh apply_patch arm", () => {
       expect(runPatch("")).toBe(EXIT_ALLOWED);
     });
 
+    it("refuses a non-string command instead of swallowing jq failure", () => {
+      const result = runGuard(
+        GUARD,
+        { tool_name: "apply_patch", tool_input: { command: { patch: true } } },
+        {
+          cwd: host,
+          env: { CLAUDE_PROJECT_DIR: host, LISA_ALLOW_MANAGED_FILE_WRITE: "" },
+        }
+      );
+
+      expect(result.status).toBe(EXIT_BLOCKED);
+      expect(result.stderr).toContain(
+        "could not parse the apply_patch command"
+      );
+    });
+
     it("allows a patch with no file headers at all", () => {
       expect(runPatch(`${PATCH_OPEN}\n${PATCH_CLOSE}`)).toBe(EXIT_ALLOWED);
     });
@@ -194,8 +211,8 @@ describe("block-managed-file-edits.sh apply_patch arm", () => {
     // would be permanently red, since one file classifies and the other only
     // extracts.
     const headers = (source: string): readonly string[] =>
-      [...source.matchAll(/\*\*\* (Add|Update|Delete) File: /g)]
-        .map(match => match[1] as string)
+      [...source.matchAll(/\*\*\* (?:(Add|Update|Delete) File|(Move) to): /g)]
+        .map(match => (match[1] ?? match[2]) as string)
         .filter((value, index, all) => all.indexOf(value) === index)
         .toSorted((a, b) => a.localeCompare(b));
 
@@ -210,7 +227,7 @@ describe("block-managed-file-edits.sh apply_patch arm", () => {
       )
     );
 
-    expect(guardHeaders).toEqual(["Add", "Delete", "Update"]);
+    expect(guardHeaders).toEqual(["Add", "Delete", "Move", "Update"]);
     expect(guardHeaders).toEqual(helperHeaders);
   });
 });
