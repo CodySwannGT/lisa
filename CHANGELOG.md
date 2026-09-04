@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.35.5](https://github.com/CodySwannGT/lisa/compare/v4.35.4...v4.35.5) (2026-09-04)
+
+
+### Bug Fixes
+
+* **gates:** name the doc comment that ended early, instead of the wreckage below it ([f9455de](https://github.com/CodySwannGT/lisa/commit/f9455de3661f7ed9ea03e1256ec97b33679f1bcf)), closes [CodySwannGT/lisa#3661](https://github.com/CodySwannGT/lisa/issues/3661) [CodySwannGT/lisa#3661](https://github.com/CodySwannGT/lisa/issues/3661)
+
+
+### Documentation
+
+* **rules:** give class exclusion a second domain, and say why that matters ([3c686bc](https://github.com/CodySwannGT/lisa/commit/3c686bc67a7669567b36cbbbc13ec0d7df5f114c)), closes [#3810](https://github.com/CodySwannGT/lisa/issues/3810) [#3739](https://github.com/CodySwannGT/lisa/issues/3739) [#3739](https://github.com/CodySwannGT/lisa/issues/3739) [#3810](https://github.com/CodySwannGT/lisa/issues/3810) [CodySwannGT/lisa#3810](https://github.com/CodySwannGT/lisa/issues/3810)
+
 ### [4.35.4](https://github.com/CodySwannGT/lisa/compare/v4.35.3...v4.35.4) (2026-09-04)
 
 ### [4.35.3](https://github.com/CodySwannGT/lisa/compare/v4.35.2...v4.35.3) (2026-09-04)
