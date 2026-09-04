@@ -675,6 +675,46 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: matrix.action == 'run'
+        env:
+          GATE_ID: ${{ matrix.gate }}
+          GATE_RUNNER: ${{ matrix.runner }}
+          GATE_TASK: ${{ matrix.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🚦 Run the declared gate
         id: gate_run
         # The generic runner's half of the same rule the façade jobs below
@@ -979,6 +1019,46 @@ jobs:
           echo "oxlint $(./node_modules/.bin/oxlint --version | head -1) found."
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🧹 Run the code-style gate
         id: gate_run
         # NON-BLOCKING ONLY WHERE THE PROJECT DECLARED IT SO. `optional` means
@@ -1160,6 +1240,46 @@ jobs:
           node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🐢 Run the code-style-slow gate
         id: gate_run
         # NON-BLOCKING ONLY WHERE THE PROJECT DECLARED IT SO. `optional` means
@@ -1336,6 +1456,46 @@ jobs:
             exit 0
           fi
           node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🔍 Run the type-correctness gate
@@ -1635,6 +1795,46 @@ jobs:
           node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: ✅ Run the coverage-adequacy gate
         id: gate_run
         # NON-BLOCKING ONLY WHERE THE PROJECT DECLARED IT SO. `optional` means
@@ -1854,6 +2054,46 @@ jobs:
             yarn install --frozen-lockfile
           elif [ "$PACKAGE_MANAGER" = "bun" ]; then
             bun install --frozen-lockfile
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
@@ -2113,6 +2353,46 @@ jobs:
             yarn install --frozen-lockfile
           elif [ "$PACKAGE_MANAGER" = "bun" ]; then
             bun install --frozen-lockfile
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
@@ -2402,6 +2682,46 @@ jobs:
           fi
           echo "sha=$base" >> "$GITHUB_OUTPUT"
 
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🧾 Run the behavior-contract gate
         id: gate_run
         # NON-BLOCKING ONLY WHERE THE PROJECT DECLARED IT SO. `optional` means
@@ -2634,6 +2954,46 @@ jobs:
             exit 0
           fi
           node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 📚 Run the learnings-budget gate
@@ -2978,6 +3338,46 @@ jobs:
           fs.appendFileSync(process.env.GITHUB_ENV, `${lines.join("\n")}\n`);
           NODE
 
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🧪 Run the test-correctness gate
         id: gate_run
         # NON-BLOCKING ONLY WHERE THE PROJECT DECLARED IT SO. `optional` means
@@ -3250,6 +3650,46 @@ jobs:
             yarn install --frozen-lockfile
           elif [ "${{ inputs.package_manager }}" = "bun" ]; then
             bun install --frozen-lockfile
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
@@ -3608,6 +4048,46 @@ jobs:
           node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🧪 Run the test-integration gate
         id: gate_run
         # NON-BLOCKING ONLY WHERE THE PROJECT DECLARED IT SO. `optional` means
@@ -3827,6 +4307,46 @@ jobs:
             exit 0
           fi
           node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 📱 Run the e2e-native gate
@@ -4069,6 +4589,46 @@ jobs:
           node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 📐 Run the format-conformance gate
         id: gate_run
         # NON-BLOCKING ONLY WHERE THE PROJECT DECLARED IT SO. `optional` means
@@ -4294,6 +4854,46 @@ jobs:
       # load-bearing: GitHub Actions binds `&&` tighter than `||`, so without
       # them `A || B && C` would parse as `A || (B && C)` and the configured
       # gate would run on a cache hit.
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🏗️ Run the build-integrity gate
         id: gate_run
         # NON-BLOCKING ONLY WHERE THE PROJECT DECLARED IT SO. `optional` means
@@ -4657,6 +5257,46 @@ jobs:
           if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
           process.stdout.write(`configured=true\nlevel=${level}\nrunner=${runner}\ntask=${task}\n`); });
           ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 📐 Run the threshold-monotonicity gate
@@ -5033,6 +5673,46 @@ jobs:
           fi
           echo "base=$base" >> "$GITHUB_OUTPUT"
           echo "Validating ${base}..${PR_HEAD_SHA}"
+
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🔗 Run the traceability gate
         id: gate_run
@@ -5412,6 +6092,46 @@ jobs:
         run: ${{ inputs.package_manager }} run export:web
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: ⚡ Run the performance-budget gate
         id: gate_run
         # NON-BLOCKING ONLY WHERE THE PROJECT DECLARED IT SO. `optional` means
@@ -5660,6 +6380,46 @@ jobs:
           node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🧪 Run the mjs-suites gate
         id: gate_run
         # NON-BLOCKING ONLY WHERE THE PROJECT DECLARED IT SO. `optional` means
@@ -5888,6 +6648,46 @@ jobs:
           node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: ♻️ Run the environment-reset gate
         id: gate_run
         # NON-BLOCKING ONLY WHERE THE PROJECT DECLARED IT SO. `optional` means
@@ -6076,6 +6876,46 @@ jobs:
           node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🌱 Run the environment-reseed gate
         id: gate_run
         # NON-BLOCKING ONLY WHERE THE PROJECT DECLARED IT SO. `optional` means
@@ -6262,6 +7102,46 @@ jobs:
             exit 0
           fi
           node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🗑️ Run the dead-code gate
@@ -6459,6 +7339,46 @@ jobs:
             exit 0
           fi
           node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🩹 Run the conflict-residue gate
@@ -6695,6 +7615,46 @@ jobs:
             exit 0
           fi
           node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🔎 Run the structural-rules gate
@@ -7010,6 +7970,46 @@ jobs:
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🧱 Run the security-floor-integrity gate
         id: gate_run
         # NON-BLOCKING ONLY WHERE THE PROJECT DECLARED IT SO. `optional` means
@@ -7201,6 +8201,46 @@ jobs:
             exit 0
           fi
           node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🔒 Run the dependency-vulnerability gate
@@ -7536,6 +8576,46 @@ jobs:
             exit 0
           fi
           node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🔍 Run the static-security gate
@@ -7999,6 +9079,46 @@ jobs:
           node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🔐 Run the credential-leakage gate
         id: gate_run
         # NON-BLOCKING ONLY WHERE THE PROJECT DECLARED IT SO. `optional` means
@@ -8198,6 +9318,46 @@ jobs:
             exit 0
           fi
           node "$RESOLVER" unconfigured --moment="$GATE_MOMENT" --gate="$GATE_ID" --surface=quality-workflow --format=github || true
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 🧪 Verify the configured gate runner is installed
+        # THE COMPLEMENT OF THE FALLBACK PREFLIGHT. The only other
+        # tool-existence check in this workflow is gated
+        # `configured == 'false'`, and the step that runs `$GATE_RUNNER` is
+        # gated `configured == 'true'` — mutually exclusive, so that preflight
+        # could never be in a position to see the runner. Without this step a
+        # runner that is not installed reaches `$GATE_RUNNER $GATE_TASK` and
+        # dies as a bare `exit 127`, which renders as a broken gate rather
+        # than a configuration mismatch and sends the reader hunting a bug
+        # that does not exist.
+        #
+        # NOT a duplicate of the shape validation. `readGates` and the resolve
+        # step above both check that the runner IS A PLAIN COMMAND — a
+        # property of the config file, and the one #2789 needed when
+        # `"runner": ":"` silenced every gate. Whether that command EXISTS is
+        # a property of the machine, which neither can know. Extending those
+        # checks cannot cover this.
+        #
+        # Placed here rather than inside the resolve block because `snyk`
+        # carries the same resolve block and provisions no toolchain at all —
+        # a probe there would fail a healthy project for a runner that job
+        # never invokes.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. CI was provisioned with package_manager: '$PACKAGE_MANAGER'. Either set gates.runner to \"$PACKAGE_MANAGER run\" in .lisa.config.json, or pass package_manager: '$HEAD' to this workflow."
+            exit 1
+          fi
+          if [ -n "$PACKAGE_MANAGER" ] && [ "$HEAD" != "$PACKAGE_MANAGER" ]; then
+            echo "::warning::gates.runner is \"$GATE_RUNNER\" but CI was provisioned with package_manager: '$PACKAGE_MANAGER'. \"$HEAD\" is present on this runner today so gates.$GATE_ID will run, but the two disagree, and a runner image without \"$HEAD\" turns every gate into a bare exit 127."
+          fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 📜 Run the license-compliance gate

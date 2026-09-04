@@ -1,6 +1,6 @@
 {
   "name": "lisa-phaser",
-  "version": "4.34.0",
+  "version": "4.34.2",
   "description": "Phaser 4 game-development rules for TypeScript projects",
   "author": {
     "name": "Cody Swann"

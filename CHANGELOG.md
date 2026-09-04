@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.34.2](https://github.com/CodySwannGT/lisa/compare/v4.34.1...v4.34.2) (2026-09-04)
+
+### [4.34.1](https://github.com/CodySwannGT/lisa/compare/v4.34.0...v4.34.1) (2026-09-04)
+
+
+### Bug Fixes
+
+* **ci:** re-evaluate the nightly bypass gate when the PR body changes ([4b38550](https://github.com/CodySwannGT/lisa/commit/4b38550216cb4c71e7a2c5347e05552a633df470)), closes [#3476](https://github.com/CodySwannGT/lisa/issues/3476) [#3485](https://github.com/CodySwannGT/lisa/issues/3485) [CodySwannGT/lisa#3476](https://github.com/CodySwannGT/lisa/issues/3476)
+* **detection:** require cdk.json for CDK app treatment ([ee0fa71](https://github.com/CodySwannGT/lisa/commit/ee0fa715861303a02f4748f8c93c4596605cf0fe)), closes [CodySwannGT/lisa#3533](https://github.com/CodySwannGT/lisa/issues/3533)
+
 ## [4.34.0](https://github.com/CodySwannGT/lisa/compare/v4.33.14...v4.34.0) (2026-09-03)
 
 
