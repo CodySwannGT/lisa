@@ -78,9 +78,62 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Bump version and create tag
+      - name: Bump version and cut an environment-scoped tag
+        id: version
         if: steps.skip.outputs.skip != 'true'
-        run: npx standard-version@9
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          # Bump VERSION and write the changelog, but do NOT let
+          # standard-version cut the tag. Tags are repo-global while the
+          # version counter in VERSION is branch-local, so a single clean
+          # `vX.Y.Z` namespace shared by dev, staging and main means a version
+          # cut on one branch collides with the same version cut on another —
+          # and a promote or sync-back carries it across. `--skip.tag` moves
+          # tag naming to the block below, which scopes it per environment.
+          npx standard-version@9 --skip.tag
+
+          VERSION=$(cat VERSION)
+
+          # Only production cuts a clean `vX.Y.Z`. Every other environment cuts
+          # a PRE-RELEASE tag `vX.Y.Z-<branch>.<epoch>`, so each branch has its
+          # own tag namespace and cross-branch collisions are impossible
+          # regardless of promote or sync timing.
+          #
+          # The suffix lives ONLY on the git tag. VERSION stays clean on every
+          # branch, so standard-version's next-version computation — which
+          # reads VERSION — is never fed a prerelease string.
+          #
+          # `/` is legal in a git ref but not in the `vX.Y.Z-<label>.<n>` shape
+          # semver expects, so the branch is flattened for the label.
+          case "$BRANCH" in
+            main | master | prod | production)
+              TAG="v${VERSION}"
+              ;;
+            *)
+              LABEL=$(printf '%s' "$BRANCH" | tr -c 'A-Za-z0-9.-' '-')
+              TAG="v${VERSION}-${LABEL}.$(date +%s)"
+              ;;
+          esac
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+          # Refuse a collision in this job rather than letting `git push` fail
+          # on a rejected ref, which reports as a raw non-fast-forward and says
+          # nothing about what to do. Reachable only on a production branch now
+          # that every other environment carries a timestamp.
+          git fetch origin --tags --quiet || true
+          EXISTING=$(git rev-list -n 1 "$TAG" 2>/dev/null || true)
+          if [ -n "$EXISTING" ] && [ "$EXISTING" != "$(git rev-parse HEAD)" ]; then
+            echo "::error::Tag $TAG already exists on a different commit ($EXISTING). This branch's version counter has fallen behind the repo's tags — align VERSION past the latest existing tag."
+            exit 1
+          fi
+
+          # Annotated, so `git push --follow-tags` carries it.
+          if [ -z "$EXISTING" ]; then
+            git tag -a "$TAG" -m "chore(release): $TAG"
+          fi
 
       - name: Push changes
         if: steps.skip.outputs.skip != 'true'
@@ -92,8 +145,16 @@ jobs:
         if: steps.skip.outputs.skip != 'true' && github.ref_name == 'main'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
         run: |
-          VERSION=$(cat VERSION)
-          gh release create "v${VERSION}" \
-            --title "v${VERSION}" \
+          # Idempotent: a rerun after a partial failure finds the release
+          # already created for this tag — reuse it instead of dying, which
+          # would fail the release job and SKIP the deploy that depends on it.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; reusing it"
+            exit 0
+          fi
+
+          gh release create "$TAG" \
+            --title "$TAG" \
             --generate-notes

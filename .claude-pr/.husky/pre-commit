@@ -213,20 +213,24 @@ elif command -v gitleaks >/dev/null 2>&1; then
   fi
   echo "✅ No secrets detected"
 else
+  # Blocks rather than warns. This branch used to print the warning below and
+  # continue with exit 0, which made "gitleaks is not installed" and "no
+  # secrets were found" the same observable: a green commit. A credential scan
+  # that cannot run has not cleared the commit, and the lint-staged preflight
+  # further down already states the rule this branch was breaking — a check
+  # that cannot RUN is not a skip and not a pass.
   echo ""
-  echo "⚠️  WARNING: Gitleaks is not installed!"
+  echo "❌ Commit blocked: Gitleaks is required and is not installed."
   echo ""
-  echo "Gitleaks helps prevent secrets from being committed to your repository."
+  echo "Gitleaks is what stops secrets reaching this repository's history, and"
+  echo "without it this hook cannot tell a clean commit from an unscanned one."
   echo ""
   echo "To install Gitleaks:"
   echo "  macOS:    brew install gitleaks"
   echo "  Windows:  scoop install gitleaks  # or choco install gitleaks"
   echo "  Linux:    See https://github.com/gitleaks/gitleaks#installing"
   echo ""
-  echo "After installation, your commits will be automatically scanned for secrets."
-  echo ""
-  echo "Continuing without secret scanning..."
-  echo ""
+  exit 1
 fi
 
 # Check if native changes require runtime version bump

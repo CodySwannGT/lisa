@@ -114,11 +114,15 @@ describe("maestro-native-e2e android disk preflight", () => {
    * Executes the workflow step's own script under stubbed `df` and `sudo`.
    * @param beforeMb - Free MiB the stubbed `df` reports on its first call.
    * @param afterMb - Free MiB it reports on every later call.
+   * @param diskSize - Value of `android_emulator_disk_size`; empty means the
+   *   caller set nothing. Overrides the literal `${{ }}` text the step's `env`
+   *   carries out of the YAML, which nothing expands outside a runner.
    * @returns The script's exit status and its combined output.
    */
   const runPreflight = async (
     beforeMb: number,
-    afterMb: number
+    afterMb: number,
+    diskSize = ""
   ): Promise<HarnessResult> => {
     const caseDir = await fs.mkdtemp(path.join(workDir, "case-"));
     const bodyPath = path.join(caseDir, "preflight.sh");
@@ -161,6 +165,15 @@ describe("maestro-native-e2e android disk preflight", () => {
       STUB_DF_COUNTER: counterPath,
       STUB_FREE_BEFORE_MB: String(beforeMb),
       STUB_FREE_AFTER_MB: String(afterMb),
+      // AFTER the `preflight?.env` spread, deliberately. That spread carries
+      // the step's env verbatim out of the YAML, so this key arrives as the
+      // literal text `${{ inputs.android_emulator_disk_size }}` — Actions
+      // expands it on a runner, nothing expands it here. Left as-is the script
+      // would try to parse that string as a size and refuse, which is the
+      // correct behaviour for a genuinely unreadable value and the wrong
+      // behaviour for a test bench. Overriding it is what makes the default
+      // case (`""`) mean "caller set nothing".
+      ANDROID_EMULATOR_DISK_SIZE: diskSize,
     };
 
     try {
@@ -268,6 +281,85 @@ describe("maestro-native-e2e android disk preflight", () => {
     expect(result.output).toContain("7100");
     expect(result.output).toContain(EXPECTED_FLOOR_MB);
     expect(result.output).toMatch(/userdata partition/i);
+  });
+
+  /**
+   * The coupling between `android_emulator_disk_size` and this floor, which is
+   * the whole reason the input could not ship on its own.
+   *
+   * A floor left at the 8192 literal turns that input into a way to re-create
+   * the exact failure this preflight prevents: the caller asks for 12G, the
+   * check compares free space against 8192 and PASSES, and the emulator then
+   * cannot allocate 12G, dies in ~0.2s, and the run spends the whole boot
+   * timeout polling a dead process. It lands in the one configuration where
+   * the operator has explicitly said they need more space and is therefore
+   * least likely to suspect capacity.
+   *
+   * Each case runs the shipped script; none of them reads the floor back out
+   * of the file under test.
+   */
+  describe("the floor tracks the requested partition size", () => {
+    it("keeps the 8 GiB floor when the caller sets no size", async () => {
+      // 9000 MB free clears 8192 but would NOT clear a raised floor, so this
+      // also proves the derivation stays out of the way when unused.
+      const result = await runPreflight(9000, 9000);
+      expect(result.status).toBe(0);
+    });
+
+    it("refuses a 12G partition on a runner that only clears the default floor", async () => {
+      // 9000 MB free: enough for the default AVD, nowhere near 12G + headroom.
+      // Before the derivation this passed and the emulator died at launch.
+      const result = await runPreflight(9000, 9000, "12G");
+      expect(result.status).not.toBe(0);
+      expect(result.output).toContain("13312");
+    });
+
+    it("allows a 12G partition on a runner that can hold it", async () => {
+      const result = await runPreflight(9000, 20_000, "12G");
+      expect(result.status).toBe(0);
+    });
+
+    it("explains that the requested size is what raised the floor", async () => {
+      // Without this the operator sees a capacity failure naming a number they
+      // never configured, on a runner that was fine yesterday.
+      const result = await runPreflight(9000, 9000, "12G");
+      expect(result.output).toMatch(/android_emulator_disk_size/);
+      expect(result.output).toContain("12G");
+    });
+
+    it("never lets a SMALLER requested partition lower the floor", async () => {
+      // A caller asking for 2G must not be able to talk this check into
+      // passing on a runner still too full for the emulator's working set.
+      const result = await runPreflight(6925, 7100, "2G");
+      expect(result.status).not.toBe(0);
+      expect(result.output).toContain(EXPECTED_FLOOR_MB);
+    });
+
+    it("accepts every size unit the action documents", async () => {
+      // Bytes, K, M and G — the grammar `disk-size` declares. A unit this
+      // could not read would silently fall back to the default floor, which is
+      // the trap above wearing a different hat. All four spell 12 GiB, so all
+      // four must land on the same derived floor; a unit converted wrongly
+      // shows up here as a different number rather than as a pass.
+      for (const size of ["12884901888", "12582912K", "12288M", "12G"]) {
+        const result = await runPreflight(9000, 9000, size);
+        expect(result.status, `expected ${size} to raise the floor`).not.toBe(
+          0
+        );
+        expect(result.output).toContain("13312");
+      }
+    });
+
+    it("refuses a size it cannot parse rather than ignoring it", async () => {
+      // Ignoring an unreadable value would reinstate the default floor while
+      // looking like the request had been honoured — a silent downgrade of the
+      // exact check the caller was trying to strengthen.
+      for (const bad of ["12GB", "abc", "-4G"]) {
+        const result = await runPreflight(20_000, 20_000, bad);
+        expect(result.status, `expected ${bad} to be refused`).not.toBe(0);
+        expect(result.output).toMatch(/not a size|is not/i);
+      }
+    });
   });
 
   it("does not delete anything when the reclaim loop is stubbed away", async () => {

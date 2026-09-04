@@ -85,6 +85,44 @@ if ! command -v node >/dev/null 2>&1; then
   exit 1
 fi
 
+# jq is required too, and it is proved HERE rather than at the first step that
+# needs it.
+#
+# jq decides five things in this hook, not one: the dependency-vulnerability
+# audit below, and — through `jq -e '.scripts[...]'` — whether `lint:slow`,
+# `knip:check`, `knip` and `test:mutation` exist at all. A false result from
+# those four probes is indistinguishable from a project that configures none of
+# them, so a machine without jq printed "Skipping slow lint rules (lint:slow
+# not configured)" about a project that configures it, ran no audit at all, and
+# pushed green.
+#
+# That is the failure this whole subsystem exists to prevent: a control
+# returning success for an input it never examined. Absence of the tool and
+# absence of findings produced the identical observable — a clean push — so
+# nothing downstream could tell an audited push from an unaudited one, and the
+# audit is not decoration: it blocks real pushes on real HIGH advisories.
+#
+# The audit block used to warn and continue here, on the reasoning that jq "may
+# legitimately be absent". That was written when jq gated one optional audit.
+# The honest treatment is the one node gets immediately above, and the one the
+# pre-commit lint-staged preflight already states in as many words: a check
+# that cannot RUN is not a skip and not a pass — it blocks.
+if ! command -v jq >/dev/null 2>&1; then
+  echo "❌ Push blocked: jq is required and is not installed."
+  echo ""
+  echo "   Without jq this hook cannot run the dependency-vulnerability audit,"
+  echo "   and cannot read package.json to tell whether lint:slow, knip and"
+  echo "   test:mutation are configured — so it would skip all four and report"
+  echo "   a clean push it never earned."
+  echo ""
+  echo "To install jq:"
+  echo "  macOS:    brew install jq"
+  echo "  Windows:  choco install jq  # or scoop install jq"
+  echo "  Linux:    apt-get install jq"
+  echo ""
+  exit 1
+fi
+
 # BEGIN: push destination guard
 # ---------------------------------------------------------------------------
 # Refuse a push whose RESOLVED destination is a deploy branch it was not aimed
@@ -381,20 +419,12 @@ fi
 # Run security audit
 echo "🔒 Running security audit..."
 
-# jq is required for all audit paths (JSON config reading, npm/yarn filtering)
+# jq is required for all audit paths (JSON config reading, npm/yarn filtering),
+# and is proved present at the top of this hook. There is deliberately no
+# "jq is missing, continue anyway" branch here: that branch made a missing tool
+# and a clean audit print the same thing.
 if lisa_gate_covers dependency-vulnerability; then
   echo "ℹ️  Covered by the dependency-vulnerability gate; the built-in audit stands down."
-elif ! command -v jq >/dev/null 2>&1; then
-  echo ""
-  echo "⚠️  WARNING: jq is not installed - required for security audit"
-  echo ""
-  echo "To install jq:"
-  echo "  macOS:    brew install jq"
-  echo "  Windows:  choco install jq  # or scoop install jq"
-  echo "  Linux:    apt-get install jq"
-  echo ""
-  echo "Continuing without security audit..."
-  echo ""
 else
   # Load GHSA exclusion IDs from JSON config files (managed + project-local)
   load_audit_exclusions() {
@@ -670,10 +700,10 @@ fi
 # did before — slower, but never with the integration tree silently dropped,
 # which is the failure direction that would actually cost something.
 #
-# Resolved with node rather than jq: this hook already refuses to run at all
-# without node, whereas jq may legitimately be absent — the audit block above
-# says so in as many words. Deciding this with jq would hand every jq-less
-# machine the slow path without a word.
+# Resolved with node rather than jq. This used to be a real distinction — jq
+# was optional and node was not — and it stopped being one when jq became a
+# hard requirement at the top of this hook. Either would answer correctly now;
+# node stays because rewriting a working probe buys nothing.
 # The unit script is selected only when it carries LISA_COVERAGE_SCOPE=unit.
 # That marker is not decoration: the threshold factory reads it and enforces the
 # `unit` block, so a `test:cov:unit` without it is measured against the floor

@@ -2,6 +2,88 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.34.4](https://github.com/CodySwannGT/lisa/compare/v4.34.3...v4.34.4) (2026-09-04)
+
+
+### Bug Fixes
+
+* **deps:** floor browserslist at 4.28.7 to clear two high advisories ([7e5549b](https://github.com/CodySwannGT/lisa/commit/7e5549bdd6b8b3eb5f1502d330ef1cacc7e976b4)), closes [CodySwannGT/lisa#3557](https://github.com/CodySwannGT/lisa/issues/3557)
+* **hooks:** cut new worktrees from the integration branch, not ambient HEAD ([885a76c](https://github.com/CodySwannGT/lisa/commit/885a76c1a1331d47323c71a6aa9fe041e4625471)), closes [CodySwannGT/lisa#3463](https://github.com/CodySwannGT/lisa/issues/3463)
+* **intake:** reach the human gate on the ready lane, and reconcile the lane ([f00af89](https://github.com/CodySwannGT/lisa/commit/f00af898bfa6f1ded34c51160e4e506ee76044fa)), closes [CodySwannGT/lisa#3552](https://github.com/CodySwannGT/lisa/issues/3552)
+* **release:** emit [skip-cd] so Amplify Hosting actually skips version bumps ([5cafc10](https://github.com/CodySwannGT/lisa/commit/5cafc100fcf2e4d6aadd0157e1c25d601e0a8e88)), closes [aws-amplify/amplify-hosting#491](https://github.com/aws-amplify/amplify-hosting/issues/491) [amplify-hosting#2145](https://github.com/CodySwannGT/amplify-hosting/issues/2145) [#491](https://github.com/CodySwannGT/lisa/issues/491) [CodySwannGT/lisa#3557](https://github.com/CodySwannGT/lisa/issues/3557)
+* **release:** give the Rails release path per-environment tag namespaces ([68d0683](https://github.com/CodySwannGT/lisa/commit/68d0683a95b6f4f155c1172e0d3d5e3c748fc509)), closes [CodySwannGT/lisa#3467](https://github.com/CodySwannGT/lisa/issues/3467)
+
+### [4.34.3](https://github.com/CodySwannGT/lisa/compare/v4.34.2...v4.34.3) (2026-09-04)
+
+
+### Bug Fixes
+
+* **ci:** name the missing gate runner instead of dying at exit 127 ([1f3c8a4](https://github.com/CodySwannGT/lisa/commit/1f3c8a4d403d5473d420f0b9553c9e88d8993a67)), closes [#2789](https://github.com/CodySwannGT/lisa/issues/2789) [#3693](https://github.com/CodySwannGT/lisa/issues/3693) [CodySwannGT/lisa#3537](https://github.com/CodySwannGT/lisa/issues/3537)
+
+### [4.34.2](https://github.com/CodySwannGT/lisa/compare/v4.34.1...v4.34.2) (2026-09-04)
+
+### [4.34.1](https://github.com/CodySwannGT/lisa/compare/v4.34.0...v4.34.1) (2026-09-04)
+
+
+### Bug Fixes
+
+* **ci:** re-evaluate the nightly bypass gate when the PR body changes ([4b38550](https://github.com/CodySwannGT/lisa/commit/4b38550216cb4c71e7a2c5347e05552a633df470)), closes [#3476](https://github.com/CodySwannGT/lisa/issues/3476) [#3485](https://github.com/CodySwannGT/lisa/issues/3485) [CodySwannGT/lisa#3476](https://github.com/CodySwannGT/lisa/issues/3476)
+* **detection:** require cdk.json for CDK app treatment ([ee0fa71](https://github.com/CodySwannGT/lisa/commit/ee0fa715861303a02f4748f8c93c4596605cf0fe)), closes [CodySwannGT/lisa#3533](https://github.com/CodySwannGT/lisa/issues/3533)
+
+## [4.34.0](https://github.com/CodySwannGT/lisa/compare/v4.33.14...v4.34.0) (2026-09-03)
+
+
+### Features
+
+* **maestro:** let a caller size the emulator partition, and make the floor track it ([75024d2](https://github.com/CodySwannGT/lisa/commit/75024d249a3a080ee82d20907f1ad2741ce27db7)), closes [#3611](https://github.com/CodySwannGT/lisa/issues/3611) [#3611](https://github.com/CodySwannGT/lisa/issues/3611) [#3470](https://github.com/CodySwannGT/lisa/issues/3470) [CodySwannGT/lisa#3470](https://github.com/CodySwannGT/lisa/issues/3470)
+
+
+### Bug Fixes
+
+* **coverage:** refuse a coverage run whose include resolves to no files ([682ec25](https://github.com/CodySwannGT/lisa/commit/682ec25f2e0ddaa4dddd02ac55105e782cdbdedf)), closes [CodySwannGT/lisa#3468](https://github.com/CodySwannGT/lisa/issues/3468)
+
+### [4.33.14](https://github.com/CodySwannGT/lisa/compare/v4.33.13...v4.33.14) (2026-09-03)
+
+
+### Bug Fixes
+
+* **skills:** carry the gate reason, widen drift detection, and prove the gate precedes the claim ([149846e](https://github.com/CodySwannGT/lisa/commit/149846ebf0c8015bdf00b45933b3c7d40be91ab3)), closes [CodySwannGT/lisa#3607](https://github.com/CodySwannGT/lisa/issues/3607) [CodySwannGT/lisa#3607](https://github.com/CodySwannGT/lisa/issues/3607)
+* **skills:** key lisa-track's hold gate on the item's marker, not only the caller ([d9589e9](https://github.com/CodySwannGT/lisa/commit/d9589e94f1aa88153c894b55f5e4df04901160be)), closes [CodySwannGT/lisa#3607](https://github.com/CodySwannGT/lisa/issues/3607) [CodySwannGT/lisa#3607](https://github.com/CodySwannGT/lisa/issues/3607)
+* **skills:** let lisa-track express a human gate instead of publishing a held decision ([a489cd7](https://github.com/CodySwannGT/lisa/commit/a489cd7c3b228437dde3dad485008deb64ef76fa)), closes [#3552](https://github.com/CodySwannGT/lisa/issues/3552) [CodySwannGT/lisa#3607](https://github.com/CodySwannGT/lisa/issues/3607) [CodySwannGT/lisa#3607](https://github.com/CodySwannGT/lisa/issues/3607)
+* **workstation:** open the macOS gh archives with unzip, not tar ([d4805f9](https://github.com/CodySwannGT/lisa/commit/d4805f90c9594dacc23e62e80704afd6dbbd55a7)), closes [#3474](https://github.com/CodySwannGT/lisa/issues/3474) [CodySwannGT/lisa#3474](https://github.com/CodySwannGT/lisa/issues/3474)
+* **workstation:** pin bws for macOS, and gh for Intel macs ([e224585](https://github.com/CodySwannGT/lisa/commit/e224585a4fef48e9c5ac71864a2cd2bb105c3565)), closes [#3474](https://github.com/CodySwannGT/lisa/issues/3474) [CodySwannGT/lisa#3474](https://github.com/CodySwannGT/lisa/issues/3474)
+
+### [4.33.13](https://github.com/CodySwannGT/lisa/compare/v4.33.12...v4.33.13) (2026-09-03)
+
+
+### Bug Fixes
+
+* **hooks:** block when a gate's tool is missing instead of pushing green ([e78c27e](https://github.com/CodySwannGT/lisa/commit/e78c27e1a7e7b5687622423e4e95a1c2e847dc48)), closes [#3660](https://github.com/CodySwannGT/lisa/issues/3660) [CodySwannGT/lisa#3660](https://github.com/CodySwannGT/lisa/issues/3660)
+* **hooks:** close four classify-step fail-opens in the destructive-command guard ([c60b7de](https://github.com/CodySwannGT/lisa/commit/c60b7de4912f2d44eee630814aa119ed1ea7d46a)), closes [#3494](https://github.com/CodySwannGT/lisa/issues/3494) [CodySwannGT/lisa#3494](https://github.com/CodySwannGT/lisa/issues/3494)
+* **test:** read the run summary through the reporter's colour escapes ([1395559](https://github.com/CodySwannGT/lisa/commit/13955594c6c370cff097f2a9888e2250e8f3f1fc)), closes [CodySwannGT/lisa#3666](https://github.com/CodySwannGT/lisa/issues/3666)
+* **vitest:** run the suite unsupervised instead of refusing to collect ([319367d](https://github.com/CodySwannGT/lisa/commit/319367de0b80445bec627e811c2ce815e6ff6091)), closes [CodySwannGT/lisa#3666](https://github.com/CodySwannGT/lisa/issues/3666)
+
+
+### Documentation
+
+* **test:** record why the unsupervised case must stay out-of-process ([7b762fb](https://github.com/CodySwannGT/lisa/commit/7b762fbff5efe270ba23182c2cf1ccd2f6e83ade)), closes [CodySwannGT/lisa#3666](https://github.com/CodySwannGT/lisa/issues/3666)
+
+### [4.33.12](https://github.com/CodySwannGT/lisa/compare/v4.33.11...v4.33.12) (2026-09-03)
+
+
+### Bug Fixes
+
+* **to-tracker:** ground build tickets in deployed state, not source alone ([b40a826](https://github.com/CodySwannGT/lisa/commit/b40a82639959ba7e1b74ac688408b485d0a0ed84)), closes [#3480](https://github.com/CodySwannGT/lisa/issues/3480) [CodySwannGT/lisa#3480](https://github.com/CodySwannGT/lisa/issues/3480)
+
+### [4.33.11](https://github.com/CodySwannGT/lisa/compare/v4.33.10...v4.33.11) (2026-09-03)
+
+### [4.33.10](https://github.com/CodySwannGT/lisa/compare/v4.33.9...v4.33.10) (2026-09-03)
+
+
+### Bug Fixes
+
+* **postinstall:** stop reporting success when the template apply fails ([3832bf3](https://github.com/CodySwannGT/lisa/commit/3832bf311896a00245dc00b60b75f894b16bf95b)), closes [#2467](https://github.com/CodySwannGT/lisa/issues/2467) [#3050](https://github.com/CodySwannGT/lisa/issues/3050) [CodySwannGT/lisa#3466](https://github.com/CodySwannGT/lisa/issues/3466)
+
 ### [4.33.9](https://github.com/CodySwannGT/lisa/compare/v4.33.8...v4.33.9) (2026-09-03)
 
 

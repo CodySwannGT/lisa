@@ -14,6 +14,7 @@ import type {
   RebaseStateFixture,
   Verdict,
 } from "./safety-net-guard-harness";
+import { STDIN_DELETER_FIXTURES } from "./safety-net-stdin-deleter-fixtures";
 import { SUBST_BOUNDARY_FIXTURES } from "./safety-net-subst-fixtures";
 
 /** Replaced at runtime with the temp project dir (for in-project absolute rm). */
@@ -281,6 +282,10 @@ export const STATELESS_FIXTURES: readonly GuardFixture[] = [
   fx("FX-A3", "xargs grep pattern", ALLOW, XARGS_RM),
   fx("FX-A4", "find . -name pre-delete-backup -print", ALLOW, FIND_DELETE),
   fx("FX-A5", "echo a.txt | xargs rm -f", ALLOW, XARGS_RM),
+  // J2. classify-step rows (issue #3494) — how the deleter and the delete FLAGS
+  // are spelled must not change the verdict. Kept in their own module for the
+  // max-lines budget, spread here so the guards test consumes them unchanged.
+  ...STDIN_DELETER_FIXTURES,
   // K. disk destroyers (absorb 12)
   fx("DD-B1", "dd if=/dev/zero of=/dev/sda", BLOCK, DISK_DESTROYER),
   fx("DD-B2", "mkfs.ext4 /dev/sda1", BLOCK, DISK_DESTROYER),
