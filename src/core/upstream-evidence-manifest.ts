@@ -2307,7 +2307,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/cleanup-local-merged-branches.sh":
       "1f9bc0419187b3cdf0182106588e35dc1068d921be74331aab3737a9de25de57",
     "scripts/cleanup-worktrees.sh":
-      "30f32ee8e904dd03220a4c626d0b4adb69363d08c59ca471712760ff72ea4fd2",
+      "b47e79c3ad29c6bb0c8441cd99c851adf0bd5e8ded9840ca18fa40d5b7604be4",
     "scripts/copy-codex-scripts.mjs":
       "2d7082d5033088c85f66995aee9e3ee1e7751435e65bfde8e1cb002e6689d476",
     "scripts/copy-opencode-plugin-templates.mjs":

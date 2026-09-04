@@ -51,7 +51,12 @@ while [ $# -gt 0 ]; do
       fi
       MIN_AGE_DAYS="$1" ;;
     --delete-branches) DELETE_BRANCHES=1 ;;
-    -h|--help) sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    # Print the whole leading comment block, not a hardcoded line count. `2,30p`
+    # silently stopped covering the last option the moment the header grew by
+    # six lines, and nothing reported it — the help text is not asserted
+    # anywhere, so the only symptom is an operator who never learns an option
+    # exists. Stop at the first non-comment line instead, which cannot drift.
+    -h|--help) sed -n '2,${/^[^#]/q;p;}' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) REPO="$1" ;;
   esac
   shift
