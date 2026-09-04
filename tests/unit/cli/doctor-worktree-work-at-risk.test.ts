@@ -446,5 +446,53 @@ describe("checkWorktreeWorkAtRisk", () => {
     expect(result.detail).not.toContain("/w/risk-6");
     expect(result.detail).toContain("and 1 more");
   });
+
+  // CodySwannGT/lisa#3722: this check fires at the exact moment an agent is
+  // holding work that exists nowhere else, and its advice is read as an
+  // instruction. It used to say "commit with `git add -A`", which is the one
+  // sweep that is unsafe here — with concurrent agents the index can already
+  // hold a different worktree's staged changes, so the sweep commits theirs
+  // into this branch. Both halves are asserted: the unsafe form is gone AND a
+  // safe one is named, because the negative alone is satisfied by saying
+  // nothing about how to commit at all.
+  it("advises explicit pathspecs, never a bare -A sweep", async () => {
+    mockGit(
+      gitResponses([
+        [
+          "/repo",
+          ["worktree", "list", "--porcelain"],
+          {
+            stdout: "worktree /repo\nHEAD abc\n\nworktree /w/risk\nHEAD def\n",
+          },
+        ],
+        ["/w/risk", ["status", "--porcelain"], { stdout: " M src/a.ts\n" }],
+        [
+          "/w/risk",
+          ["rev-parse", "--abbrev-ref", "HEAD"],
+          { stdout: "risk\n" },
+        ],
+        [
+          "/w/risk",
+          ["rev-list", "--count", "HEAD", "--not", "--remotes"],
+          { stdout: "0\n" },
+        ],
+        [
+          "/w/risk",
+          ["rev-parse", "--abbrev-ref", "@{u}"],
+          { stdout: "origin/risk\n" },
+        ],
+      ])
+    );
+
+    const result = await checkWorktreeWorkAtRisk("/repo");
+
+    // The absence assertion targets the RECOMMENDING spelling, not the bare
+    // command: the replacement names `git add -A` in order to warn against it,
+    // so forbidding the substring would forbid the warning too.
+    expect(result.detail).not.toContain("Commit with `git add -A`");
+    expect(result.detail).toContain("Never sweep with `git add -A`");
+    expect(result.detail).toContain("git commit -- <paths>");
+    expect(result.detail).toContain("git show --stat HEAD");
+  });
 });
 /* eslint-enable jsdoc/require-jsdoc, max-lines, sonarjs/no-duplicate-string -- End fixture-heavy doctor tests. */

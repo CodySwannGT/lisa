@@ -165,6 +165,37 @@ describes yours:
 EOF
 )"
 
+# How to preserve uncommitted work before an operation that would discard it.
+#
+# This is appended to the reasons that refuse a discarding operation, and its
+# whole point is what it does NOT say (issue #3722). The obvious advice is
+# "stash it first", and on a single-checkout repository that is fine. Here it
+# is the most dangerous thing an agent can be told: the stash is ONE STACK PER
+# CLONE, shared by every worktree, so with concurrent agents a sibling's push
+# can shift your entry and a sibling's pop can consume it. `lint-staged` pushes
+# one on every commit too, so agent and tooling entries interleave.
+#
+# A remedy fires at the exact moment an agent is holding the work most worth
+# protecting, and a guard's own output reads as authoritative — so pointing it
+# at shared mutable state there is worse than the refusal it accompanies.
+#
+# The patch file is per-worktree: `mktemp` names it, so nothing has to invent a
+# filename, and it lives in this agent's own TMPDIR where no sibling can reach
+# it. Untracked files are unaffected by both refused operations, so `git diff`
+# captures everything at risk.
+PRESERVE_GUIDANCE="$(
+  cat <<'EOF'
+Preserve the work first, per-worktree:
+
+  git diff [-- <path>] > "$(mktemp "${TMPDIR:-/tmp}/lisa-preserve-XXXXXX.patch")"
+
+and restore it later with `git apply <that file>`.
+
+Do NOT reach for `git stash`. One stash stack is shared by every worktree of a
+clone, so a concurrently running agent can consume the entry you just pushed.
+EOF
+)"
+
 # block() prints the reason to stderr (surfaced to the model) and exits 2 so the
 # Bash tool call is denied. $1 = human-readable reason for the block.
 #
@@ -1577,7 +1608,9 @@ done <<<"$push_segments"
 if matches "${GIT_CMD}"'reset\b.*--(hard|merge)\b'; then
   if git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
     && [ -n "$(git status --porcelain 2>/dev/null)" ]; then
-    block "git reset --hard/--merge on a dirty working tree would discard uncommitted changes (stash or commit first)"
+    block "git reset --hard/--merge on a dirty working tree would discard uncommitted changes (commit first, or preserve as below)" "$PRESERVE_GUIDANCE
+
+$DESTRUCTIVE_GUIDANCE"
   fi
 fi
 
@@ -1627,7 +1660,9 @@ if matches "${GIT_CHECKOUT}${GIT_TOKENS}"'--([[:space:]]|$)' \
   || matches "${GIT_CHECKOUT}${GIT_TOKENS}"'(-[[:alnum:]]*f[[:alnum:]]*|--force)([[:space:]]|=|$)' \
   || matches "${GIT_CHECKOUT}"'[[:space:]][^;&|]*--pathspec-from-file' \
   || matches "${GIT_CHECKOUT}"'[[:space:]]+\.(/)?([[:space:]]|$)'; then
-  block "git checkout discarding local changes (--, -f/--force, --pathspec-from-file, or bare .) — use git stash to preserve work first"
+  block "git checkout discarding local changes (--, -f/--force, --pathspec-from-file, or bare .)" "$PRESERVE_GUIDANCE
+
+$DESTRUCTIVE_GUIDANCE"
 fi
 
 # 5. `git switch` discards: `--discard-changes` and its `-f/--force` aliases.

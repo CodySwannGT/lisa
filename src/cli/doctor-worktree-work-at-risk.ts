@@ -191,8 +191,11 @@ export async function checkWorktreeWorkAtRisk(
       `${exposed.length} worktree${exposed.length === 1 ? "" : "s"} hold work ` +
       `that exists nowhere else: ${shown.join("; ")}.${remainder} ` +
       "Uncommitted files are the severe case — a commit survives in the reflog, " +
-      "a dirty tree is in no object database at all. Commit with `git add -A` " +
-      "(untracked files are not stashed without `-u`), then push the branch. " +
+      "a dirty tree is in no object database at all. Commit with EXPLICIT " +
+      "pathspecs (`git commit -- <paths>`) and confirm with `git show --stat " +
+      "HEAD`, then push the branch. Never sweep with `git add -A` here: with " +
+      "concurrent agents the index can already hold another worktree's staged " +
+      "work, and a sweep commits theirs into your branch. " +
       "Until it is pushed, another agent inspecting this ticket sees no remote " +
       "branch and cannot distinguish this work from abandoned work",
   };
