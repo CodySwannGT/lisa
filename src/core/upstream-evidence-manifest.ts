@@ -269,7 +269,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/ci.yml":
       "5ea18b202fd952a79996e310fd933a2ac741d5e639b4d15224276e7e285f91ba",
     "expo/create-only/.github/workflows/deploy.yml":
-      "a50a7a7fe595bf450cd22b1d1d6d2a733a895d235f2480a9ae1255f57aadc497",
+      "ac842bf930d40b4314ce0678c08902d0efc372273608d34fc2bebb5f271026e8",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
       "917d1918f3bff9b4c19db3f9a9bd6fd1d7c5d3db0947dacec3f4797c692632d6",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
@@ -2175,7 +2175,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/create-only/.github/workflows/ci.yml":
       "924375bcfcb8c13f546a7e323cf5ad99cee1427d3ba90386680db16b981e5ab4",
     "rails/create-only/.github/workflows/deploy.yml":
-      "644db274694e18b0aa25871d8b940177688809d998f62c789bff42e222761b83",
+      "6ec40a108fc65faa66abdc7adc5936d674eb943561f15dd30f348855ed418ff4",
     "rails/create-only/.mise.toml":
       "28be5746256a30ad2260da7d37244cc461f8963ce5d5a81ddce71b48f0ab6ef0",
     "rails/create-only/.mutant.yml":
@@ -9287,6 +9287,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/deploy-gate-blocks-release.test.ts": true,
     "tests/integration/deploy-moment-evidence.test.ts": true,
     "tests/integration/deploy-moment-runner.test.ts": true,
+    "tests/integration/deploy-outcome-guard-helper.ts": true,
+    "tests/integration/deploy-outcome-guard.test.ts": true,
     "tests/integration/doctor-nightly-e2e-guard-cli-helper.ts": true,
     "tests/integration/doctor-nightly-e2e-guard-cli.test.ts": true,
     "tests/integration/doctor-nightly-e2e-guard-network.test.ts": true,

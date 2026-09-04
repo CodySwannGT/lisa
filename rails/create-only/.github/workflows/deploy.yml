@@ -58,7 +58,17 @@ jobs:
   deploy_rails:
     name: Deploy
     needs: [release]
-    if: ${{ github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release):') }}
+    # `!cancelled()` suppresses the implicit `success()` GitHub otherwise ANDs
+    # onto this condition. Without it a failed release SKIPPED this job, and a
+    # skipped job renders as neutral and counts as a satisfied required check —
+    # so the deploy that never happened left no signal at all. The release
+    # result is now read by the guard STEP below, which fails this job loudly
+    # instead (#3467). The `chore(release):` clause is unchanged: that push is
+    # the release commit coming back round, and skipping it is correct.
+    if: >-
+      !cancelled() &&
+      (github.event_name != 'push' ||
+      !startsWith(github.event.head_commit.message, 'chore(release):'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -77,6 +87,40 @@ jobs:
       GITHUB_REF_NAME: ${{ github.ref_name }}
 
     steps:
+      # Deploy-outcome guard. Deliberately the FIRST step: it decides whether the
+      # rest of this job may proceed, and it reports a verdict on EVERY run, so
+      # this check is green or red and never the third, silent state.
+      #
+      # Keep the `run:` body byte-identical to the guard in every other Lisa
+      # deploy workflow — an operator reads the same words whichever stack they
+      # are on, and a test asserts the copies have not drifted apart.
+      - name: 🚨 Confirm the release shipped
+        env:
+          DEPLOY_ENVIRONMENT: ${{ github.ref_name }}
+          RELEASE_RESULT: ${{ needs.release.result }}
+        run: |
+          if [ "${RELEASE_RESULT}" = "success" ]; then
+            echo "✅ The release succeeded. Deploying to ${DEPLOY_ENVIRONMENT}."
+            exit 0
+          fi
+          {
+            echo "### 🚨 Nothing new was deployed to ${DEPLOY_ENVIRONMENT}"
+            echo ""
+            echo "The **Release** step did not succeed (it reported \`${RELEASE_RESULT}\`), so no"
+            echo "new version reached \`${DEPLOY_ENVIRONMENT}\`. Whatever was already running"
+            echo "there is untouched and still working — this change simply has not shipped."
+            echo ""
+            echo "**What to do next**"
+            echo ""
+            echo "1. Open the **Release** job in this run and read the step marked in red."
+            echo "2. The most common cause is that this version number was already released from"
+            echo "   another branch. The fix is to raise \`version\` in \`package.json\` above every"
+            echo "   version already released, then merge again."
+            echo "3. If anything here is unclear, send this run's link to whoever looks after"
+            echo "   deployments. Do not merge anything else into this branch until it is fixed."
+          } >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}"
+          echo "::error title=Nothing new was deployed to ${DEPLOY_ENVIRONMENT}::The release did not succeed (${RELEASE_RESULT}), so this change did not ship and the previous version is still running. Open the Release job in this run to see why, fix it, then merge again."
+          exit 1
       - name: Checkout code
         uses: actions/checkout@v6
         with:

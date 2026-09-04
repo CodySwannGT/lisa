@@ -211,14 +211,61 @@ jobs:
         release,
         check_app_config_changes,
       ]
-    # Run if EAS is set up, regardless of whether trigger_eas_build ran or was skipped
+    # Runs when EAS is set up, regardless of whether trigger_eas_build ran or
+    # was skipped — and, deliberately, EVEN WHEN THE RELEASE DID NOT SUCCEED.
+    #
+    # This condition used to end in `needs.release.result == 'success'`, which
+    # made a failed release SKIP this job. GitHub renders a skipped job as
+    # neutral and treats a skipped required check as satisfied, so a deploy that
+    # never happened left no signal anywhere: the branch still had its release
+    # commit, versions still matched across branches, and nothing prompted
+    # anyone to go read CI history for skipped Deploy jobs. The release result
+    # is now read by the guard STEP below, which fails this job loudly (#3467).
+    #
+    # `!cancelled()` rather than `always()`: it still suppresses the implicit
+    # `success()`, so the job runs on a failed release, while a run an operator
+    # cancelled does not get a verdict it never earned. EAS not being set up is
+    # a genuine "not applicable" and still skips.
     if: |
-      always() && 
-      needs.check_eas_setup.outputs.has_eas_setup == 'true' &&
-      needs.release.result == 'success'
+      !cancelled() &&
+      needs.check_eas_setup.outputs.has_eas_setup == 'true'
     permissions:
       contents: read
     steps:
+      # Deploy-outcome guard. Deliberately the FIRST step: it decides whether the
+      # rest of this job may proceed, and it reports a verdict on EVERY run, so
+      # this check is green or red and never the third, silent state.
+      #
+      # Keep the `run:` body byte-identical to the guard in every other Lisa
+      # deploy workflow — an operator reads the same words whichever stack they
+      # are on, and a test asserts the copies have not drifted apart.
+      - name: 🚨 Confirm the release shipped
+        env:
+          DEPLOY_ENVIRONMENT: ${{ needs.determine_environment.outputs.environment }}
+          RELEASE_RESULT: ${{ needs.release.result }}
+        run: |
+          if [ "${RELEASE_RESULT}" = "success" ]; then
+            echo "✅ The release succeeded. Deploying to ${DEPLOY_ENVIRONMENT}."
+            exit 0
+          fi
+          {
+            echo "### 🚨 Nothing new was deployed to ${DEPLOY_ENVIRONMENT}"
+            echo ""
+            echo "The **Release** step did not succeed (it reported \`${RELEASE_RESULT}\`), so no"
+            echo "new version reached \`${DEPLOY_ENVIRONMENT}\`. Whatever was already running"
+            echo "there is untouched and still working — this change simply has not shipped."
+            echo ""
+            echo "**What to do next**"
+            echo ""
+            echo "1. Open the **Release** job in this run and read the step marked in red."
+            echo "2. The most common cause is that this version number was already released from"
+            echo "   another branch. The fix is to raise \`version\` in \`package.json\` above every"
+            echo "   version already released, then merge again."
+            echo "3. If anything here is unclear, send this run's link to whoever looks after"
+            echo "   deployments. Do not merge anything else into this branch until it is fixed."
+          } >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}"
+          echo "::error title=Nothing new was deployed to ${DEPLOY_ENVIRONMENT}::The release did not succeed (${RELEASE_RESULT}), so this change did not ship and the previous version is still running. Open the Release job in this run to see why, fix it, then merge again."
+          exit 1
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
