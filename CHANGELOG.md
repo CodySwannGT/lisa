@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.34.4](https://github.com/CodySwannGT/lisa/compare/v4.34.3...v4.34.4) (2026-09-04)
+
+
+### Bug Fixes
+
+* **deps:** floor browserslist at 4.28.7 to clear two high advisories ([7e5549b](https://github.com/CodySwannGT/lisa/commit/7e5549bdd6b8b3eb5f1502d330ef1cacc7e976b4)), closes [CodySwannGT/lisa#3557](https://github.com/CodySwannGT/lisa/issues/3557)
+* **hooks:** cut new worktrees from the integration branch, not ambient HEAD ([885a76c](https://github.com/CodySwannGT/lisa/commit/885a76c1a1331d47323c71a6aa9fe041e4625471)), closes [CodySwannGT/lisa#3463](https://github.com/CodySwannGT/lisa/issues/3463)
+* **intake:** reach the human gate on the ready lane, and reconcile the lane ([f00af89](https://github.com/CodySwannGT/lisa/commit/f00af898bfa6f1ded34c51160e4e506ee76044fa)), closes [CodySwannGT/lisa#3552](https://github.com/CodySwannGT/lisa/issues/3552)
+* **release:** emit [skip-cd] so Amplify Hosting actually skips version bumps ([5cafc10](https://github.com/CodySwannGT/lisa/commit/5cafc100fcf2e4d6aadd0157e1c25d601e0a8e88)), closes [aws-amplify/amplify-hosting#491](https://github.com/aws-amplify/amplify-hosting/issues/491) [amplify-hosting#2145](https://github.com/CodySwannGT/amplify-hosting/issues/2145) [#491](https://github.com/CodySwannGT/lisa/issues/491) [CodySwannGT/lisa#3557](https://github.com/CodySwannGT/lisa/issues/3557)
+* **release:** give the Rails release path per-environment tag namespaces ([68d0683](https://github.com/CodySwannGT/lisa/commit/68d0683a95b6f4f155c1172e0d3d5e3c748fc509)), closes [CodySwannGT/lisa#3467](https://github.com/CodySwannGT/lisa/issues/3467)
+
 ### [4.34.3](https://github.com/CodySwannGT/lisa/compare/v4.34.2...v4.34.3) (2026-09-04)
 
 
