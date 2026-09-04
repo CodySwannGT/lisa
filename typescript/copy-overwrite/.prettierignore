@@ -80,6 +80,7 @@ scripts/check-verification-coverage.mjs
 scripts/classify-maestro-failures.mjs
 scripts/lisa-command-envelope.mjs
 scripts/lisa-commit-msg-gates.mjs
+scripts/lisa-cross-worktree-guard.mjs
 scripts/lisa-destructive-guard.mjs
 scripts/lisa-environment-prepare.mjs
 scripts/lisa-floor-collisions.mjs

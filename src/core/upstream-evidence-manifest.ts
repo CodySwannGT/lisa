@@ -36,6 +36,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "014a94647efc636cbce961364a82f03c1f3c1e54a55e9d21508fded88dce49c4",
     "all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs":
       "5d587fd849cef02e9706d084ac2b508f3885da0ba59b76311e3b666f4fbff01e",
+    "all/copy-overwrite/scripts/lisa-cross-worktree-guard.mjs":
+      "41b92e1e94a8ee9ad0235359dbd83566a49b17db60da933835057dc77008ab87",
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
@@ -2439,7 +2441,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "87d39e01fa85d6e837609212ab94bd6cb3714770ccd625c5eb4b73b186065c03",
+      "9b57722adfc8ad89cb5801956bbb2b00df5d3c847a9681e431107178eea2872d",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -2481,7 +2483,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-contents/.husky/post-checkout":
       "f3abc4528e12d3ad2bc48b236d19f105e2817595c744156a558c62ae5551ccfb",
     "typescript/copy-contents/.husky/pre-commit":
-      "4f4811401632ec2452e513875a8f01f5c4a9b74776b1926c9075ed99a06da436",
+      "d5f85c0b5d9a0277389c1ae96aec30db603ee38637d4ab749a659bb031d06d93",
     "typescript/copy-contents/.husky/pre-push":
       "e73dde7a1dcb3c10be5db540b9d9f46ec74b90ecc10a850b4fb098481ef6de6e",
     "typescript/copy-contents/.husky/prepare-commit-msg":
@@ -2495,7 +2497,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "0775c6feb7638122e8b68d611cd709bf270f7b5adb5d0d2baa9afab8a6c0fc42",
     "typescript/copy-overwrite/.prettierignore":
-      "2c665c73e141e29f455f27674e071dcda240f432a07fff3d2781ab617ef562b9",
+      "b3b3910fbea6fb918cb213935d3a7a356d0d5d554dd9aca66fb1beb672124d30",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -2773,6 +2775,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs": true,
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs": true,
     "all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs": true,
+    "all/copy-overwrite/scripts/lisa-cross-worktree-guard.mjs": true,
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs": true,
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh": true,
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs": true,
@@ -9997,6 +10000,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/cleanup-stale-worktrees.test.ts": true,
     "tests/unit/hooks/commit-msg-gate-families.test.ts": true,
     "tests/unit/hooks/commit-msg.test.ts": true,
+    "tests/unit/hooks/cross-worktree-guard.test.ts": true,
     "tests/unit/hooks/discharge-work-item-gates.test.ts": true,
     "tests/unit/hooks/enforce-config-extensions.test.ts": true,
     "tests/unit/hooks/enforce-team-first.test.ts": true,
