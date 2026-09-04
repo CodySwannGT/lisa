@@ -2296,6 +2296,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "f517c44a1058a87051b6bb9520e8596a37521f475ca67e0d47159163999ff692",
     "scripts/check-shell-guard-refusal-coverage.mjs":
       "d6b056c4311ea612e85d16ae565a57c5e10c822e87e21d689e12a6cc89dfda3f",
+    "scripts/check-shipped-surface-removals.mjs":
+      "c6d1cb1c15254202977602e28b85e5cd0eef0ccdce849dcf5ff74299fd59adef",
     "scripts/check-state-classification.mjs":
       "26baaa85c0758fa41f1f66257f7d3a31ea4dd5cf17a9c0acaa3e89caaaf6265a",
     "scripts/check-template-workflow-refs.mjs":
@@ -2398,6 +2400,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "9bd530bae922022870c8bb1b69925778fa609c67561228cc8cfa94a0ee3f5e7c",
     "scripts/lib/shell-guard-trace.mjs":
       "cb38f7b938bc2932e52ce2abefec8466b2c3edde97292e1e7b5a0f7c6464d4b5",
+    "scripts/lib/shipped-surface.mjs":
+      "9ba04034e2a3382d90a48d81b641ba52c6f1c95028d14aa2005ab0d4e3d65208",
     "scripts/lib/upstream-manifest-staleness.mjs":
       "c69fc5ba10228b7f4f8d0068db27ee8a289143094fa8718b14af83f4af31f76d",
     "scripts/lib/workflow-contract-probe.mjs":
@@ -8675,6 +8679,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-security-floors.mjs": true,
     "scripts/check-self-dependency-pin.mjs": true,
     "scripts/check-shell-guard-refusal-coverage.mjs": true,
+    "scripts/check-shipped-surface-removals.mjs": true,
     "scripts/check-state-classification.mjs": true,
     "scripts/check-template-workflow-refs.mjs": true,
     "scripts/check-test-case-executed.mjs": true,
@@ -8726,6 +8731,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/reusable-workflow-contract.mjs": true,
     "scripts/lib/shell-guard-refusal-coverage.mjs": true,
     "scripts/lib/shell-guard-trace.mjs": true,
+    "scripts/lib/shipped-surface.mjs": true,
     "scripts/lib/upstream-manifest-staleness.mjs": true,
     "scripts/lib/workflow-contract-probe.mjs": true,
     "scripts/lisa-assert-eas-profile.mjs": true,
@@ -8767,6 +8773,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/verify-learner-frontmatter-built.mjs": true,
     "scripts/verify-packed-learnings-contract.mjs": true,
     "sgconfig.yml": true,
+    "shipped-removals.json": true,
     "spec/tasc-0.1-draft.md": true,
     "specs/.keep": true,
     "src/agy/mcp-installer.ts": true,
@@ -10232,6 +10239,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/check-release-package-identity.test.ts": true,
     "tests/unit/scripts/check-self-dependency-pin.test.ts": true,
     "tests/unit/scripts/check-shell-guard-refusal-coverage.test.ts": true,
+    "tests/unit/scripts/check-shipped-surface-removals.test.ts": true,
     "tests/unit/scripts/check-template-workflow-refs.test.ts": true,
     "tests/unit/scripts/check-test-case-executed.test.ts": true,
     "tests/unit/scripts/check-third-party-action-pins.test.ts": true,
@@ -10407,6 +10415,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/security-floors.test.ts": true,
     "tests/unit/scripts/setup-jira-cli-config.test.ts": true,
     "tests/unit/scripts/setup-jira-cli-project-dir.test.ts": true,
+    "tests/unit/scripts/shipped-surface.test.ts": true,
     "tests/unit/scripts/skipped-required-checks-wiring.test.ts": true,
     "tests/unit/scripts/skipped-required-checks.test.ts": true,
     "tests/unit/scripts/slow-lint-dead-code-enforcement.test.ts": true,

@@ -77,6 +77,7 @@
     "check:third-party-action-pins": "node scripts/check-third-party-action-pins.mjs",
     "check:workflow-package-paths": "node scripts/check-workflow-package-paths.mjs",
     "check:delivery-deletion-conflicts": "node scripts/check-delivery-deletion-conflicts.mjs",
+    "check:shipped-surface-removals": "node scripts/check-shipped-surface-removals.mjs",
     "check:duplicate-versions": "node scripts/check-duplicate-versions.mjs",
     "check:required-check-promotions": "node scripts/check-required-check-promotions.mjs",
     "check:self-pin": "node scripts/check-self-dependency-pin.mjs",

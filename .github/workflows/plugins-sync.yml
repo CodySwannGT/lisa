@@ -113,6 +113,26 @@ jobs:
       # would fail every consumer's commit.
       - name: Check no path is both delivered and deleted
         run: bun run check:delivery-deletion-conflicts
+      # #3849: the step above asks whether a path is delivered and deleted at
+      # once. This one asks the opposite question, and it is the harder one
+      # here, because removal is structurally harder than addition: the copy
+      # lanes overwrite and `deepMergeWithArrayUnion` unions, so a template
+      # edit can ADD to a host's tree and can never remove from it. A removal
+      # made upstream with neither a deletions entry nor a migration does
+      # nothing downstream, silently, while looking complete in the diff.
+      #
+      # Both surfaces are governed, because both leave a host broken. A shipped
+      # FILE that vanishes is kept forever by every host that ever received it.
+      # A shipped script's named EXPORT that vanishes fails at module link time
+      # in whatever host code imported it - which is the shape that was actually
+      # reported, from a host-owned importer this repository never shipped and
+      # therefore could not have found by scanning its own imports.
+      #
+      # Needs full history: the gate compares HEAD against the baseline tag
+      # pinned in `shipped-removals.json`, so the `fetch-depth: 0` and tags this
+      # job already checks out are load-bearing rather than incidental.
+      - name: Check every removal from a shipped surface is governed
+        run: bun run check:shipped-surface-removals
       # #2960: consumers reference the reusable workflow at `@main` but
       # version-pin the package, so every consumer runs TODAY'S workflow
       # against an OLDER package. #2951 proved the cost — a prover moved
