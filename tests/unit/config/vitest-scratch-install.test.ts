@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -174,31 +174,88 @@ describe("installScratchRoot", () => {
     }
   });
 
-  it("refuses an unsupervised caller with executable public CLI syntax", async () => {
-    const scope = globalThis as Record<string, unknown>;
-    const previousMemo = scope["__lisaScratchRunRoot__"];
-    const previousHandle = scope["__lisaScratchWorkerScopeV1__"];
-    const previousLease = process.env["LISA_TEST_RUN_LEASE"];
-    const { installScratchRoot } =
+  // This replaces a case that pinned the opposite contract — it asserted that
+  // an unsupervised caller was REFUSED, and it passed for four minor releases
+  // while the refusal broke every consumer who ran `vitest` without the
+  // wrapper. The refusal ran during collection, so what it actually produced
+  // was `Tests  no tests`: a red gate that had evaluated nothing. The contract
+  // is inverted here rather than deleted, so the file still states on purpose
+  // what happens without a lease. What a direct `vitest` invocation really
+  // does end to end is in tests/integration/vitest-unsupervised-direct-run.
+  it("mints its own lease rather than refusing an unsupervised caller", async () => {
+    // All three, not just the lease: `lisa-test-run` sets them together, so a
+    // run missing only the lease is a state no direct invocation can be in.
+    // Scrubbing the suite label is also what makes the expected label below a
+    // hardcoded constant instead of whatever the ambient wrapper chose.
+    const wrapperEnv = [
+      "LISA_TEST_RUN_LEASE",
+      "LISA_TEST_SCRATCH_SUITE",
+      "LISA_TEST_SCRATCH_PREFIXES",
+    ] as const;
+    const previous = wrapperEnv.map(name => [name, process.env[name]] as const);
+    const { acquireSuiteLease } =
       await import("../../../src/configs/vitest/scratch-setup.js");
+    const { removeOwnedScratchRunRoot } =
+      await import("../../../src/configs/vitest/scratch.js");
 
-    delete scope["__lisaScratchRunRoot__"];
-    delete scope["__lisaScratchWorkerScopeV1__"];
-    delete process.env["LISA_TEST_RUN_LEASE"];
+    // A registered prefix, so the leak guard accepts this directory as an
+    // addition it recognises rather than failing the suite that made it.
+    const base = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-unsupervised-"));
+    const warnings: string[] = [];
+    const write = vi
+      .spyOn(process.stderr, "write")
+      .mockImplementation((chunk: unknown) => {
+        warnings.push(String(chunk));
+        return true;
+      });
+
+    for (const name of wrapperEnv) delete process.env[name];
 
     try {
-      expect(() => installScratchRoot()).toThrow(
-        /lisa-test-run --profile <profile> --adapter vitest -- vitest/u
+      const acquired = withProcessPlatformTempRoot(base, () =>
+        acquireSuiteLease()
       );
+      try {
+        expect(
+          acquired.ownedSuiteRoot,
+          "an unsupervised run has to own the suite root it minted, or nothing " +
+            "will ever reclaim it"
+        ).toBeDefined();
+        expect(acquired.lease.suiteLabel).toBe("vitest");
+        expect(acquired.lease.baseCanonicalPath).toBe(fs.realpathSync(base));
+        expect(warnings.join("")).toContain("self-supervised");
+        expect(warnings.join("")).toContain(
+          "lisa-test-run --profile <profile> --adapter vitest -- vitest"
+        );
+      } finally {
+        const owned = acquired.ownedSuiteRoot;
+        if (owned !== undefined) {
+          withProcessPlatformTempRoot(base, () => {
+            removeOwnedScratchRunRoot(owned);
+          });
+        }
+      }
     } finally {
-      scope["__lisaScratchRunRoot__"] = previousMemo;
-      scope["__lisaScratchWorkerScopeV1__"] = previousHandle;
-      if (previousLease === undefined) {
-        delete process.env["LISA_TEST_RUN_LEASE"];
-      } else {
-        process.env["LISA_TEST_RUN_LEASE"] = previousLease;
+      write.mockRestore();
+      removeScratchDir(base);
+      for (const [name, value] of previous) {
+        if (value === undefined) {
+          delete process.env[name];
+        } else {
+          process.env[name] = value;
+        }
       }
     }
+  });
+
+  it("prefers an inherited lease over minting one", async () => {
+    const { acquireSuiteLease } =
+      await import("../../../src/configs/vitest/scratch-setup.js");
+
+    // The ambient suite runs under the wrapper, so the environment already
+    // carries a real lease. Nothing is minted and nothing needs reclaiming.
+    expect(process.env["LISA_TEST_RUN_LEASE"]).toBeDefined();
+    expect(acquireSuiteLease().ownedSuiteRoot).toBeUndefined();
   });
 });
 

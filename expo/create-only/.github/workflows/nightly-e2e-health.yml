@@ -65,7 +65,22 @@ on:
     # `labeled` / `unlabeled` ride on top of the defaults so applying (or
     # removing) the bypass label re-evaluates the gate immediately instead of
     # requiring an empty push to re-trigger `synchronize`.
-    types: [opened, synchronize, reopened, labeled, unlabeled]
+    #
+    # `edited` is here for the OTHER half of the same evidence, and removing it
+    # re-opens a hole that merged a pull request once already (#3476, #3485). A
+    # valid bypass needs TWO things, and the guard re-checks both on every run:
+    # the label, and a `Nightly-E2E-Bypass: <ticket> <reason>` line in the pull
+    # request BODY. Deleting the label re-fires this gate because `unlabeled` is
+    # listed. Deleting the BODY line raises `edited` and nothing else — so
+    # without it, the waiver's justification can be deleted while the green
+    # check it produced stays green and merge-eligible.
+    #
+    # The guard reading live state does not save you here, and it is worth
+    # being precise about why: it already reads the label and body from the API
+    # at gate time rather than from the frozen event payload. But a live read
+    # only happens when something INVOKES the guard, and a body edit invokes
+    # nothing. The reading is current; the reading never happens.
+    types: [opened, synchronize, reopened, labeled, unlabeled, edited]
   workflow_dispatch:
 
 permissions:

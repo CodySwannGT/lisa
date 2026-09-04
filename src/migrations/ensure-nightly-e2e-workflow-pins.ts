@@ -2,6 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import * as fse from "fs-extra";
 import { getPackageReleaseTag, getPackageVersion } from "../cli/version.js";
+import { ensureBodyChangeTrigger } from "../core/nightly-e2e-pull-request-triggers.js";
 import type {
   Migration,
   MigrationContext,
@@ -36,16 +37,25 @@ type VersionReader = () => string;
 type ReleaseTagReader = () => string | null;
 
 /**
- * Keep an installed nightly E2E caller pinned at the installed Lisa release tag.
+ * Keep an installed nightly E2E caller pinned at the installed Lisa release tag,
+ * and keep its bypass gate armed against body-evidence deletion.
  *
  * The tag, never the release commit: the commit the package was built from is
  * not guaranteed to survive, and a caller pinned at an orphaned commit stops
  * loading silently rather than failing.
+ *
+ * The second job is here rather than in the template because of where the file
+ * lives. The caller ships from `create-only` and is marked "this file is YOURS
+ * — Lisa will not overwrite it", so a template fix reaches new adoptions only
+ * and every already-seeded repository keeps its original trigger list forever.
+ * The reusable workflow cannot carry the fix either: it is `on: workflow_call`,
+ * and a reusable workflow cannot declare pull-request activity types. This
+ * migration is the only surface that reaches the installed base (#3476, #3485).
  */
 export class EnsureNightlyE2EWorkflowPinsMigration implements Migration {
   readonly name = "ensure-nightly-e2e-workflow-pins";
   readonly description =
-    "Align nightly E2E reusable-workflow pins with installed Lisa";
+    "Align nightly E2E reusable-workflow pins with installed Lisa and keep the bypass gate armed against body-evidence deletion";
 
   /**
    * Create the migration.
@@ -200,8 +210,14 @@ export class EnsureNightlyE2EWorkflowPinsMigration implements Migration {
     const pinUpdated = source.replace(pinPattern, `$1${releaseRef}`);
     const pinChanged = pinUpdated !== source;
 
-    if (file === "nightly-e2e-health.yml" && pinChanged) {
-      const commentUpdated = pinUpdated.replace(
+    if (file === "nightly-e2e-health.yml") {
+      // Arm the gate against body-evidence deletion BEFORE the pin edits, and
+      // unconditionally — not only when the pin changed. A consumer already on
+      // the current release has nothing to repin and would otherwise never
+      // receive this, which is the entire installed base a month from now.
+      const armed = ensureBodyChangeTrigger(pinUpdated);
+      if (!pinChanged) return armed;
+      const commentUpdated = armed.replace(
         /# v\d+\.\d+\.\d+ matches this repo's own installed Lisa/,
         `# v${lisaVersion} matches this repo's own installed Lisa`
       );

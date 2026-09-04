@@ -28,10 +28,13 @@ import {
   resolveProvider,
   version,
 } from "../../../plugins/src/base/skills/lisa-setup-workstation/scripts/workstation.mjs";
+import { toManifestEntry } from "../../../plugins/src/base/skills/lisa-setup-workstation/scripts/cli.mjs";
+import { resolvePlatform } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs";
 
 import {
   BIN_DIR,
   HOME,
+  PINNED_ARTIFACTS,
   SYSTEM_GIT,
   VENDOR_SCRIPT,
   probes,
@@ -65,6 +68,53 @@ describe("catalogue integrity", () => {
       }
     }
   );
+
+  // The table lives in fixtures.js, where each digest is recorded alongside how
+  // it was obtained.
+  it.each(PINNED_ARTIFACTS.map(p => [p.tool, p.platform, p] as const))(
+    "resolves %s on %s to exactly the artifact that was checksummed",
+    (tool, platform, expected) => {
+      // `bws` was pinned for Linux only, so a macOS workstation selecting the
+      // bitwarden provider got `no pin for darwin-arm64` from this very
+      // resolver — the one credential CLI Lisa can verify was the one macOS had
+      // to install by hand. `gh` had the mirror-image gap on Intel macs.
+      const entry = [...PROVIDERS, ...TOOLS].find(
+        e => (e.binary ?? e.name) === tool
+      );
+      // Through the installer's own adapter, so what is asserted is the entry
+      // the installer receives — not the catalogue block a reader sees.
+      const resolved = resolvePlatform(toManifestEntry(entry), platform);
+
+      expect(resolved.url, `${tool}/${platform} url`).toBe(expected.url);
+      expect(resolved.sha256, `${tool}/${platform} sha256`).toBe(
+        expected.sha256
+      );
+      expect(resolved.install, `${tool}/${platform} install`).toBe(
+        expected.install
+      );
+      // gh names a path inside the archive; bws archives hold the binary at
+      // the root, so there is nothing to name.
+      expect(resolved.binary, `${tool}/${platform} binary`).toBe(
+        "binary" in expected ? expected.binary : tool
+      );
+    }
+  );
+
+  it("covers every platform each pinned entry declares", () => {
+    // Without this, dropping a platform block would delete its row's coverage
+    // silently: the table above only proves the platforms it happens to list.
+    for (const tool of ["bws", "gh"]) {
+      const entry = [...PROVIDERS, ...TOOLS].find(
+        e => (e.binary ?? e.name) === tool
+      );
+      const byName = (a: string, b: string) => a.localeCompare(b);
+      expect(Object.keys(entry.platforms).sort(byName)).toEqual(
+        PINNED_ARTIFACTS.filter(p => p.tool === tool)
+          .map(p => p.platform)
+          .sort(byName)
+      );
+    }
+  });
 
   it("gives every entry a kind the installer knows how to act on", () => {
     const known = new Set([...INSTALLABLE, "required", "manual", "none"]);

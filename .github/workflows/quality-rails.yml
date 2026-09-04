@@ -992,6 +992,32 @@ jobs:
           echo "Nothing in this job proved the learnings budget, which is what that declaration asked for."
           echo "Declaration read by: $GATE_RESOLVER"
 
+      - name: 🧪 Verify the configured gate runner is installed
+        # The quality.yml counterpart carries this at every run site, for the
+        # reason recorded there: shape is validated at the resolve step and in
+        # the registry, both properties of the CONFIG FILE, while whether the
+        # command EXISTS is a property of the MACHINE that neither can know.
+        # Without it an uninstalled runner reaches `$GATE_RUNNER $GATE_TASK`
+        # and dies as a bare `exit 127`, which reads as a broken gate.
+        #
+        # DELIBERATELY SHORTER THAN THE quality.yml MESSAGE. That one also
+        # names the `package_manager` CI was provisioned with, because the
+        # defect there is a MISMATCH between two declarations. This workflow
+        # declares no `package_manager` input at all, so that half is not
+        # knowable here and is not guessed at.
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          GATE_ID: ${{ steps.gate.outputs.gate }}
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        run: |
+          set -euo pipefail
+          HEAD="${GATE_RUNNER%% *}"
+          if ! command -v "$HEAD" >/dev/null 2>&1; then
+            echo "::error::gates.runner is \"$GATE_RUNNER\", but \"$HEAD\" is not installed on this runner, so gates.$GATE_ID would have run \"$GATE_RUNNER $GATE_TASK\" and died with a bare exit 127. Either set gates.runner in .lisa.config.json to a command this runner provides, or provision \"$HEAD\" before the gates run."
+            exit 1
+          fi
+
       - name: 📚 Run the learnings-budget gate
         id: gate_run
         # NON-BLOCKING ONLY WHERE THE PROJECT DECLARED IT SO, exactly as the
