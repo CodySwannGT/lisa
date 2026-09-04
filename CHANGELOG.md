@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.38.7](https://github.com/CodySwannGT/lisa/compare/v4.38.6...v4.38.7) (2026-09-04)
+
+
+### Bug Fixes
+
+* **intake:** scope the attempt valve so recovery actually recovers ([0657ffe](https://github.com/CodySwannGT/lisa/commit/0657ffe2d8b5a3e98826b96fd93c0ecd81f78128)), closes [#3854](https://github.com/CodySwannGT/lisa/issues/3854) [CodySwannGT/lisa#3854](https://github.com/CodySwannGT/lisa/issues/3854)
+
 ### [4.38.6](https://github.com/CodySwannGT/lisa/compare/v4.38.5...v4.38.6) (2026-09-04)
 
 
