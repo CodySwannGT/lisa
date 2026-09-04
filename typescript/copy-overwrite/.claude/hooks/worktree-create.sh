@@ -199,12 +199,14 @@ fi
 if git -C "$_root" show-ref --verify --quiet "refs/heads/$_wt_branch" 2>/dev/null; then
   _reused=1
   _add_err="$(git -C "$_root" worktree add "$_path" "$_wt_branch" 2>&1 >/dev/null)"
+  _add_status=$?
 else
   _reused=0
   _add_err="$(git -C "$_root" worktree add --no-track -b "$_wt_branch" "$_path" "$_base_ref" 2>&1 >/dev/null)"
+  _add_status=$?
 fi
 
-if [ ! -d "$_path" ]; then
+if [ "$_add_status" -ne 0 ] || [ ! -d "$_path" ]; then
   _log "WorktreeCreate: git worktree add failed for $_path."
   [ -n "$_add_err" ] && _log "  git: $_add_err"
   exit 1

@@ -308,25 +308,6 @@ describe("a run that measured NOTHING must not render as a pass (#3668)", () => 
   // `OUTCOMES` for months: "both exit 0, and only the marker says which one
   // happened." A marker in a log is not a control.
 
-  it("classifies only the two outcomes that actually run Stryker as measured", () => {
-    // Membership is THE RUN, not the verdict. `scoped` and `wholeList` are the
-    // only outcomes that carry a `reportRun`, so they are the only two under
-    // which mutants existed. A run that measured and then FAILED still
-    // measured; the exit code carries that, not this.
-    expect(gate.measuredAnything(gate.OUTCOMES.scoped)).toBe(true);
-    expect(gate.measuredAnything(gate.OUTCOMES.wholeList)).toBe(true);
-
-    for (const outcome of [
-      gate.OUTCOMES.nothingToMutate,
-      gate.OUTCOMES.noCurrentLines,
-      gate.OUTCOMES.uninstrumentableLanguage,
-      gate.OUTCOMES.noBase,
-      gate.OUTCOMES.disabled,
-    ]) {
-      expect(gate.measuredAnything(outcome)).toBe(false);
-    }
-  });
-
   it("keeps `nothing-to-mutate` and `no-current-lines` DISTINCT", () => {
     // #3333 owns the routing between these two; this issue owns how they
     // render. They are different facts with different remedies — 0 of the
@@ -336,20 +317,36 @@ describe("a run that measured NOTHING must not render as a pass (#3668)", () => 
     expect(gate.OUTCOMES.nothingToMutate).not.toBe(
       gate.OUTCOMES.noCurrentLines
     );
-    expect(gate.measuredAnything(gate.OUTCOMES.nothingToMutate)).toBe(false);
-    expect(gate.measuredAnything(gate.OUTCOMES.noCurrentLines)).toBe(false);
   });
 
-  it("answers FALSE for an outcome nobody classified", () => {
-    // The direction matters and is the whole safety property. A new outcome
-    // added without being classified must not inherit "measured": failing
-    // closed costs a `skipping` row on a run that did measure, and failing
-    // open costs exactly the false green this issue is about.
-    expect(gate.measuredAnything("mutation-gate: invented-tomorrow")).toBe(
-      false
-    );
-    expect(gate.measuredAnything("")).toBe(false);
-    expect(gate.measuredAnything(undefined)).toBe(false);
+  it("derives measurement from the concrete report, not the outcome name", () => {
+    const unmeasured = gate.reportRun(ROOT, {
+      code: 1,
+      output: "DryRunExecutor timed out before a score was produced",
+    });
+    const killed = gate.reportRun(ROOT, {
+      code: 1,
+      output: null,
+      killedBy: "child-deadline",
+    });
+    const measured = gate.reportRun(ROOT, {
+      code: 0,
+      output: [
+        "-----------|------------------|----------|-----------|------------|----------|----------|",
+        "           | % Mutation score |          |           |            |          |          |",
+        "File       |  total | covered | # killed | # timeout | # survived | # no cov | # errors |",
+        "-----------|--------|---------|----------|-----------|------------|----------|----------|",
+        "All files  |  100.00 |   100.00 |     1 |       0 |       0 |     0 |      0 |",
+        "-----------|--------|---------|----------|-----------|------------|----------|----------|",
+      ].join("\n"),
+    });
+
+    expect(unmeasured.measured).toBe(false);
+    expect(killed.measured).toBe(false);
+    expect(measured.measured).toBe(true);
+    expect(unmeasured.code).toBe(1);
+    expect(killed.code).toBe(1);
+    expect(measured.code).toBe(0);
   });
 
   it("names its outcome at EVERY exit, and returns the code untouched", () => {
@@ -362,20 +359,23 @@ describe("a run that measured NOTHING must not render as a pass (#3668)", () => 
       const output = path.join(scratch, "out.txt");
 
       expect(
-        gate.finish(gate.OUTCOMES.nothingToMutate, 0, {
+        gate.finish(gate.OUTCOMES.nothingToMutate, 0, false, {
           GITHUB_OUTPUT: output,
         })
       ).toBe(0);
       expect(
-        gate.finish(gate.OUTCOMES.scoped, 1, { GITHUB_OUTPUT: output })
+        gate.finish(gate.OUTCOMES.scoped, 1, true, {
+          GITHUB_OUTPUT: output,
+        })
       ).toBe(1);
 
       const written = fs.readFileSync(output, "utf8");
-      expect(written).toContain(
-        `mutation_outcome=${gate.OUTCOMES.nothingToMutate}`
+      expect(written).toBe(
+        `mutation_outcome=${gate.OUTCOMES.nothingToMutate}\n` +
+          `mutation_measured=false\n` +
+          `mutation_outcome=${gate.OUTCOMES.scoped}\n` +
+          `mutation_measured=true\n`
       );
-      expect(written).toContain("mutation_measured=false");
-      expect(written).toContain("mutation_measured=true");
     } finally {
       fs.rmSync(scratch, { recursive: true, force: true });
     }
@@ -384,8 +384,29 @@ describe("a run that measured NOTHING must not render as a pass (#3668)", () => 
   it("never lets a missing output destination change the exit code", () => {
     // Reporting, downstream of a verdict already reached. Losing the render
     // must not invert the code the gate worked to earn.
-    expect(gate.finish(gate.OUTCOMES.scoped, 7, {})).toBe(7);
-    expect(gate.finish(gate.OUTCOMES.scoped, 7, { GITHUB_OUTPUT: "" })).toBe(7);
+    expect(gate.finish(gate.OUTCOMES.scoped, 7, false, {})).toBe(7);
+    expect(
+      gate.finish(gate.OUTCOMES.scoped, 7, false, { GITHUB_OUTPUT: "" })
+    ).toBe(7);
+  });
+
+  it("defaults an outcome with no concrete report to unmeasured", () => {
+    const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "mutation-default-"));
+    const saved = process.env.GITHUB_OUTPUT;
+    try {
+      const output = path.join(scratch, "out.txt");
+      process.env.GITHUB_OUTPUT = output;
+
+      expect(gate.finish(gate.OUTCOMES.nothingToMutate, 0)).toBe(0);
+      expect(fs.readFileSync(output, "utf8")).toBe(
+        `mutation_outcome=${gate.OUTCOMES.nothingToMutate}\n` +
+          "mutation_measured=false\n"
+      );
+    } finally {
+      if (saved === undefined) delete process.env.GITHUB_OUTPUT;
+      else process.env.GITHUB_OUTPUT = saved;
+      fs.rmSync(scratch, { recursive: true, force: true });
+    }
   });
 
   it("routes EVERY exit in runGate through finish, with no bare return", () => {

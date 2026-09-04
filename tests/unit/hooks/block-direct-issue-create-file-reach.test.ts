@@ -109,6 +109,19 @@ describe("block-direct-issue-create.sh reach", () => {
       expect(status).toBe(EXIT_BLOCKED);
     });
 
+    it.each([
+      ["bash -e", "bash -e"],
+      ["sh -m", "sh -m"],
+      ["zsh -x", "zsh -x"],
+    ])("scans past %s to the shell script operand", (_label, runner) => {
+      const cwd = projectWithTracker(LINEAR_CONFIG);
+      const script = fixture(cwd, SCRIPT_FILE, UNDECLARED_SCRIPT);
+
+      const { status } = runHook(bash(`${runner} ${script}`), { cwd });
+
+      expect(status).toBe(EXIT_BLOCKED);
+    });
+
     it("refuses a creation written in a language that is not shell", () => {
       const cwd = projectWithTracker(LINEAR_CONFIG);
       const script = fixture(
@@ -211,6 +224,22 @@ describe("block-direct-issue-create.sh reach", () => {
   });
 
   describe("allows what reaching further must not start refusing", () => {
+    it.each([
+      ["a Python module argument", "python3 -m fixture.module"],
+      ["a Node eval argument", "node -e 'console.log(1)'"],
+      ["a shell command-string argument", "bash -c 'echo ok'"],
+    ])(
+      "does not treat the trailing file as executed after %s",
+      (_label, runner) => {
+        const cwd = projectWithTracker(LINEAR_CONFIG);
+        const script = fixture(cwd, SCRIPT_FILE, UNDECLARED_SCRIPT);
+
+        const { status } = runHook(bash(`${runner} ${script}`), { cwd });
+
+        expect(status).toBe(EXIT_ALLOWED);
+      }
+    );
+
     it("allows a script whose create carries the build-ready role", () => {
       const cwd = projectWithTracker();
       const script = fixture(

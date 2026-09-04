@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
-      "3e9a5911c9b4b4f3c0dd6aef4ecc7accb762edf6e62eea66252248f7c02684f4",
+      "bc135e1c130844a2e5daf769104e78a42fd804de06ae79b7b50bf357b3d76795",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lib/kill-marks.mjs":
@@ -45,13 +45,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "c73eac2c0759e58231c06a76d4d72b65079e3eb4aab14e335937a56babe31ab5",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "84bb3e15166be4764f10ed3fe6239cfd2ece45d4333343e0d9cf6dd295ab5b42",
+      "803752f85a9f013014be5d04e444c65f7d3eea476569c5d7048d4d13b8e0bb9e",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
-      "387a3f7f7dfbde9823532435fc1c7dbca687c8f3d1b63d9a435812b4a33e0425",
+      "d3df68b0201c1f34d1e8398f313b99705b99ae36e8944e32c32a0278200b685d",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "220e16d26cefff69cb26de5c33491a5d4c67c9905032a87e07f14580dbb580be",
+      "8be7f21ef757597ab23180d68c3bf22db8272c42f889b8883b16703744d4d2e7",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "234cb82cc9033bd04940a553d4ddc95b078e585e41777d6529d887676edc40b1",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
@@ -73,7 +73,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "41b967f736d7fcf9d8928ad7c8cc767c5beb9544e2fbfa3317c65734aa02fcfd",
+      "5ba15f6126e253ce9554579ddde86fc0bd744cd0c5c1395cb4e4b8f0472cc134",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -253,7 +253,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
       "da5cc02794a5972fc3ac72650b3783b5af7ed909ab92c1a8de5e925bae873d0d",
     "expo/copy-overwrite/scripts/check-lighthouse-details.mjs":
-      "6a836272c43592f2ffd2f622656ee011b80099fe368cf46e2ee35384d5128c3d",
+      "c33678782088725f6e95a07873a4260c347d915518d0c52e107ff3dc0ad32641",
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs":
       "8c96523e2e5df9ef79b7936afd79ab56d032f608681201e2a989b0b95da6c80b",
     "expo/copy-overwrite/scripts/lib/bounded-spawn.mjs":
@@ -725,17 +725,17 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "2adaf15910b6d00e69c202d263d407a21b31c0afce0039c6c042e51c278d2325",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "aff23b92a9aeaf5d284384935fc1da64ae72c3bbda7bc16485d0fd45385479fc",
+      "3cde2805c0aad381de7392c426ebf44135fda0769536393a96aedb1062b69f2c",
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
       "d47314b66d6ce85f77d6e058f861eede4462b2b0a33d54e82ff1c931167ec3f7",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
-      "2177d3237b598670cc5d2c8d8def68a3098a00abe9ca70484daa01a2688a43fd",
+      "bcb09b48d66e40834236edc2d0e78c24b6363502b05297fee46d87ced6ee9d3c",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
-      "587cdd14ac9ecaa725da33f8f5b6adebdaeb3ad603650748d9ae1e6fd9f57973",
+      "b3d54e9321d236a3202ebe5cc35c75e7b5b5794ef7f6eb032550aa368a116ea4",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "0e621599960cef0834419ccaa2fc074bee427d419dba19ad7146903a0e2020fc",
+      "bf35051fd263066723ec60d7c3fba1a5f39a3edd7589b361e63fdaf307118d6a",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":
@@ -1113,7 +1113,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "ab7bb855fd3ebe321e41b0143815f202b70f6ba38f6678791d6d9e933e0c3fd8",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "a1a51c4fdc6542df397d38cbb1544255e55b1bdc6b958f8c9e66cd36d4500306",
+      "7a0b633393b6c3f607019db8417c224209321cc49bf75849c77124b5c27482a0",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -2443,7 +2443,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-contents/.husky/prepare-commit-msg":
       "4a719c20da65653f266e7c8a346b5546ad05f1dfa34665fc7fec47e89d2f58d1",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
-      "242d5ee425e0374da00e07f5fea5fcf06840087227f51710eaea119d80f349dc",
+      "888cfd16bd1ac04f9f8a835eae62f8bd2c956de654bce12ce9a6a52947b121ca",
     "typescript/copy-overwrite/.github/GITHUB_ACTIONS.md":
       "3f5d8e7f5f2c8ec1d369359f2ee64c033736df4bc172d06da1b4be5ee65b173b",
     "typescript/copy-overwrite/.lintstagedrc.json":
@@ -2497,7 +2497,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
-      "c323c9e952ded431f4db53cb941da42cc50cd647ad8bd384faf565b2eaacf048",
+      "f719ca6ad02b1b62bfff329b66a1382cc58705f4ee4e6f7497216504321a906a",
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-action.mjs":
       "640b65e1caba4ba33e19e4a1ff49f869a99c15eb7d59a88498a5b2466acf438e",
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-github-jira.mjs":
@@ -9843,6 +9843,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-managed-file-edits-file-reach.test.ts": true,
     "tests/unit/hooks/block-managed-file-edits.test.ts": true,
     "tests/unit/hooks/block-no-verify-command-config.test.ts": true,
+    "tests/unit/hooks/block-no-verify-env-platform.test.ts": true,
     "tests/unit/hooks/block-no-verify-file-reach.test.ts": true,
     "tests/unit/hooks/block-no-verify-missing-jq.test.ts": true,
     "tests/unit/hooks/block-no-verify-nested-shell-parity.test.ts": true,
@@ -9915,6 +9916,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/typecheck-hook-placement.test.ts": true,
     "tests/unit/hooks/verification-failure-mode-fixtures.test.ts": true,
     "tests/unit/hooks/work-item-wiring.test.ts": true,
+    "tests/unit/hooks/worktree-create-failure.test.ts": true,
     "tests/unit/hooks/worktree-create.test.ts": true,
     "tests/unit/migrations/ensure-audit-ignore-local-exclusions-esbuild.test.ts": true,
     "tests/unit/migrations/ensure-audit-ignore-local-exclusions.test.ts": true,
@@ -10374,6 +10376,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/doctor-wiki-delegation.test.ts": true,
     "tests/unit/strategies/drive-pr-admin-bypass-contract.test.ts": true,
     "tests/unit/strategies/drive-pr-arm-gate.test.ts": true,
+    "tests/unit/strategies/drive-pr-armed-unmergeable.test.ts": true,
     "tests/unit/strategies/drive-pr-auto-merge-race.test.ts": true,
     "tests/unit/strategies/drive-pr-conflict-zero-ci.test.ts": true,
     "tests/unit/strategies/drive-pr-hold-gate.test.ts": true,
