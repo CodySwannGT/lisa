@@ -208,6 +208,29 @@ describe("block-no-verify.sh reach", () => {
     });
   });
 
+  describe("allows a syntax check, which executes nothing", () => {
+    // `-n` is noexec: the shell reads and parses the operand, then exits
+    // without running a line. It is the one shape that puts a path at a
+    // command position while provably executing nothing, and reach adjudicated
+    // it anyway — so a syntax check of any file merely DISCUSSING the bypass
+    // was refused, which is most of this repository's guards and every husky
+    // hook. Paired with the executing control below: noexec is the
+    // distinction, not the program.
+    it.each([
+      ["bash -n", `bash -n ${BYPASS_SCRIPT}`],
+      ["sh -n", `sh -n ${BYPASS_SCRIPT}`],
+      ["-n in a cluster", `bash -en ${BYPASS_SCRIPT}`],
+      ["the long spelling", `bash --noexec ${BYPASS_SCRIPT}`],
+      ["a syntax check of this guard's own source", `bash -n ${GUARD}`],
+    ])(ALLOWS, (_label, command) => {
+      expect(run(command)).toBe(EXIT_ALLOWED);
+    });
+
+    it("still refuses the same script when it actually runs", () => {
+      expect(run(`bash ${BYPASS_SCRIPT}`)).toBe(EXIT_BLOCKED);
+    });
+  });
+
   describe("fails closed on an execution it cannot follow", () => {
     // Silence on an unclassifiable EXECUTION is the bug being fixed, and a
     // truncated scan would report a confident ALLOW about text it never read.
