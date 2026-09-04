@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.36.0](https://github.com/CodySwannGT/lisa/compare/v4.35.5...v4.36.0) (2026-09-04)
+
+
+### Features
+
+* **ci:** ship the third-party pin detector to consumers, reporting only ([6b9fa10](https://github.com/CodySwannGT/lisa/commit/6b9fa108ca63941e5ee6923200bbebbf35d447b8)), closes [#3585](https://github.com/CodySwannGT/lisa/issues/3585) [#3755](https://github.com/CodySwannGT/lisa/issues/3755) [#3757](https://github.com/CodySwannGT/lisa/issues/3757) [CodySwannGT/lisa#3588](https://github.com/CodySwannGT/lisa/issues/3588)
+* **migrations:** pin third-party actions in already-seeded consumers ([011d312](https://github.com/CodySwannGT/lisa/commit/011d31208e78237ddc138b0db04c26dcac99ea4a)), closes [#3585](https://github.com/CodySwannGT/lisa/issues/3585) [CodySwannGT/lisa#3588](https://github.com/CodySwannGT/lisa/issues/3588)
+
 ### [4.35.5](https://github.com/CodySwannGT/lisa/compare/v4.35.4...v4.35.5) (2026-09-04)
 
 
