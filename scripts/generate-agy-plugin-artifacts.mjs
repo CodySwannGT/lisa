@@ -252,6 +252,18 @@ const AGY_PLUGIN_HOOKS = [
     supportScripts: ["block-instruction-file-edits.sh"],
   },
   {
+    // Bash arm only, on the same terms as the instruction-file entry above:
+    // agy matches `run_command`, so an agy file-edit tool call writing a
+    // copy-overwrite template cannot be intercepted. What agy does get is the
+    // redirection / append / tee signatures, followed into executed scripts.
+    sourceScript: "block-managed-file-edits.sh",
+    hookName: "lisa-block-managed-file-edits",
+    event: "PreToolUse",
+    matcher: "run_command",
+    agyScript: "block-managed-file-edits.agy.sh",
+    supportScripts: ["block-managed-file-edits.sh"],
+  },
+  {
     // No arm-only caveat here, unlike the entry above: the canonical guard is
     // Bash-only, and `run_command` is the whole of its surface.
     sourceScript: "block-direct-issue-create.sh",

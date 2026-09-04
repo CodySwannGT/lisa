@@ -1,3 +1,8 @@
 {
-  "paths": ["jest.config.local.ts"]
+  "paths": [
+    "jest.config.local.ts"
+  ],
+  "basis": {
+    "jest.config.local.ts": "needs-review"
+  }
 }

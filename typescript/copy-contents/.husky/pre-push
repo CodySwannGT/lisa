@@ -584,41 +584,113 @@ else
       echo "   Check that TMPDIR (${TMPDIR:-/tmp}) exists and is writable." >&2
       exit 1
     fi
-    # bun's own diagnostics are kept rather than discarded. "Lockfile not found"
-    # is the difference between a broken audit and a clean one, and throwing it
-    # away is how a failed command comes to read as a measured zero.
-    bun audit --production --json > "$AUDIT_OUTPUT" 2>"$AUDIT_STDERR" || true
-    if [ ! -s "$AUDIT_OUTPUT" ]; then
+    # The audit is a NETWORK call, and the network is the one input to this gate
+    # that answers differently to the same question. Measured 2026-09-04, three
+    # consecutive `bun audit --production --json` invocations in one directory
+    # seconds apart: run 1 returned 0 bytes with `Timeout: audit request failed`,
+    # runs 2 and 3 returned 6036 bytes of valid JSON. Read as a single attempt
+    # that is a blocked `git push` — and the push has already paid for the whole
+    # gate chain (tests, typecheck, dead-code, traceability, mutation) because
+    # the audit sits near the end of it. One flaky call, one full cycle.
+    #
+    # So the call is retried, and ONLY the indeterminate outcome is retried:
+    #
+    #   determinate   — the payload parsed. Break immediately, whether it is
+    #                   clean or names a critical advisory. A real vulnerability
+    #                   fails on the FIRST call and is never retried into a pass;
+    #                   a clean audit pays nothing for a knob it did not need.
+    #   indeterminate — nothing parsed: zero bytes, or bytes that are neither
+    #                   JSON nor gzipped JSON. The audit did not happen. That is
+    #                   what a retry can change, and the only thing it may.
+    #
+    # The direction matters more than the retry does. Retrying a determinate
+    # answer is how a gate talks itself out of a finding; this loop cannot,
+    # because a parsed payload leaves the loop before any backoff is reached.
+    #
+    # Three outcomes, three sentences. "The audit did not run" is never collapsed
+    # into "the audit found nothing" (that is the fail-open this block exists to
+    # remove) nor into "the audit found something" (that sends the reader hunting
+    # a vulnerability that was never measured). When every attempt is
+    # indeterminate the block still refuses, with the same two distinguishable
+    # messages it printed before — a retry that muted either would trade a noisy
+    # flake for a silent hole.
+    AUDIT_ATTEMPTS="${LISA_AUDIT_ATTEMPTS:-3}"
+    AUDIT_RETRY_DELAY="${LISA_AUDIT_RETRY_DELAY:-2}"
+    # A non-numeric knob is a typo, not an instruction. This hook does not run
+    # under `set -e`, so `[ abc -le 3 ]` would print an error and the loop would
+    # behave in a way nobody chose; falling back to the default keeps a
+    # fat-fingered env var from quietly disarming the retry.
+    case "$AUDIT_ATTEMPTS" in ''|*[!0-9]*) AUDIT_ATTEMPTS=3 ;; esac
+    case "$AUDIT_RETRY_DELAY" in ''|*[!0-9]*) AUDIT_RETRY_DELAY=2 ;; esac
+    [ "$AUDIT_ATTEMPTS" -ge 1 ] || AUDIT_ATTEMPTS=1
+
+    AUDIT_JSON=""
+    # "" once a payload parsed; otherwise which refusal the last attempt earned.
+    AUDIT_INDETERMINATE=""
+    AUDIT_ATTEMPT=1
+    while [ "$AUDIT_ATTEMPT" -le "$AUDIT_ATTEMPTS" ]; do
+      # bun's own diagnostics are kept rather than discarded. "Lockfile not
+      # found" is the difference between a broken audit and a clean one, and
+      # throwing it away is how a failed command comes to read as a measured
+      # zero. "Timeout: audit request failed" is the line that names this bug,
+      # and an agent grepping the push output for its own expected failure
+      # shapes has already thrown it away once.
+      bun audit --production --json > "$AUDIT_OUTPUT" 2>"$AUDIT_STDERR" || true
+      if [ ! -s "$AUDIT_OUTPUT" ]; then
+        AUDIT_INDETERMINATE="empty"
+      elif jq empty "$AUDIT_OUTPUT" >/dev/null 2>&1; then
+        AUDIT_JSON=$(cat "$AUDIT_OUTPUT")
+        AUDIT_INDETERMINATE=""
+        break
+      else
+        # Bun can return gzip-compressed JSON on stdout while still reporting a
+        # parse error on stderr. Normalize that transport shape before applying
+        # Lisa's advisory allowlist.
+        DECOMPRESSED_AUDIT_OUTPUT="$(mktemp "${TMPDIR:-/tmp}/bun-audit-gz.XXXXXXXX")"
+        if [ -n "$DECOMPRESSED_AUDIT_OUTPUT" ]; then
+          gzip -dc "$AUDIT_OUTPUT" > "$DECOMPRESSED_AUDIT_OUTPUT" 2>/dev/null || true
+        fi
+        # `-s` before `jq empty`: an EMPTY file passes `jq empty` (no input is
+        # not invalid input), so a gunzip that failed and wrote nothing would be
+        # accepted as valid JSON and set AUDIT_JSON to the empty string.
+        if [ -s "$DECOMPRESSED_AUDIT_OUTPUT" ] && jq empty "$DECOMPRESSED_AUDIT_OUTPUT" >/dev/null 2>&1; then
+          AUDIT_JSON=$(cat "$DECOMPRESSED_AUDIT_OUTPUT")
+          rm -f "$DECOMPRESSED_AUDIT_OUTPUT"
+          AUDIT_INDETERMINATE=""
+          break
+        fi
+        rm -f "$DECOMPRESSED_AUDIT_OUTPUT"
+        AUDIT_INDETERMINATE="unparseable"
+      fi
+      if [ "$AUDIT_ATTEMPT" -lt "$AUDIT_ATTEMPTS" ]; then
+        echo "⏳ Security audit attempt $AUDIT_ATTEMPT of $AUDIT_ATTEMPTS parsed no advisory data (the audit did not run — this is not a finding); retrying in ${AUDIT_RETRY_DELAY}s..." >&2
+        if [ "$AUDIT_RETRY_DELAY" -gt 0 ]; then
+          sleep "$AUDIT_RETRY_DELAY"
+        fi
+        AUDIT_RETRY_DELAY=$((AUDIT_RETRY_DELAY * 2))
+      fi
+      AUDIT_ATTEMPT=$((AUDIT_ATTEMPT + 1))
+    done
+
+    if [ "$AUDIT_INDETERMINATE" = "empty" ]; then
       echo "❌ Push blocked: bun audit produced no output, so nothing was audited." >&2
       echo "   This is NOT a clean result — a clean audit prints JSON ({} when" >&2
       echo "   there are no advisories). Empty output means the audit did not run." >&2
+      echo "   Tried $AUDIT_ATTEMPTS attempt(s) with backoff; every one came back" >&2
+      echo "   empty, so this is not the transient registry timeout a retry clears." >&2
       if [ -s "$AUDIT_STDERR" ]; then
         echo "   bun said:" >&2
         sed 's/^/     /' "$AUDIT_STDERR" >&2
       fi
       rm -f "$AUDIT_OUTPUT" "$AUDIT_STDERR"
       exit 1
-    elif jq empty "$AUDIT_OUTPUT" >/dev/null 2>&1; then
-      AUDIT_JSON=$(cat "$AUDIT_OUTPUT")
-    else
-      DECOMPRESSED_AUDIT_OUTPUT="$(mktemp "${TMPDIR:-/tmp}/bun-audit-gz.XXXXXXXX")"
-      if [ -n "$DECOMPRESSED_AUDIT_OUTPUT" ]; then
-        gzip -dc "$AUDIT_OUTPUT" > "$DECOMPRESSED_AUDIT_OUTPUT" 2>/dev/null || true
-      fi
-      # `-s` before `jq empty`: an EMPTY file passes `jq empty` (no input is
-      # not invalid input), so a gunzip that failed and wrote nothing would be
-      # accepted as valid JSON and set AUDIT_JSON to the empty string.
-      if [ -s "$DECOMPRESSED_AUDIT_OUTPUT" ] && jq empty "$DECOMPRESSED_AUDIT_OUTPUT" >/dev/null 2>&1; then
-        AUDIT_JSON=$(cat "$DECOMPRESSED_AUDIT_OUTPUT")
-        rm -f "$DECOMPRESSED_AUDIT_OUTPUT"
-      else
-        rm -f "$DECOMPRESSED_AUDIT_OUTPUT" "$AUDIT_OUTPUT" "$AUDIT_STDERR"
-        echo "❌ Push blocked: bun audit output is neither JSON nor gzipped JSON," >&2
-        echo "   so no advisory data was parsed and nothing was audited." >&2
-        echo "   This is NOT a clean result. Re-run 'bun audit --production --json'" >&2
-        echo "   to see what it emitted." >&2
-        exit 1
-      fi
+    elif [ "$AUDIT_INDETERMINATE" = "unparseable" ]; then
+      rm -f "$AUDIT_OUTPUT" "$AUDIT_STDERR"
+      echo "❌ Push blocked: bun audit output is neither JSON nor gzipped JSON," >&2
+      echo "   so no advisory data was parsed and nothing was audited." >&2
+      echo "   This is NOT a clean result. Re-run 'bun audit --production --json'" >&2
+      echo "   to see what it emitted. Tried $AUDIT_ATTEMPTS attempt(s)." >&2
+      exit 1
     fi
     rm -f "$AUDIT_OUTPUT" "$AUDIT_STDERR"
     UNFIXED_HIGH=$(echo "$AUDIT_JSON" | jq -r --arg ids "$AUDIT_EXCLUSIONS" '

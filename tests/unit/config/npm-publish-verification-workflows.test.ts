@@ -53,6 +53,8 @@ interface WorkflowStep {
 interface WorkflowJob {
   /** Condition gating the job. */
   if?: string;
+  /** Job-level environment, where release identity now enters (#3717). */
+  env?: Record<string, string>;
   /** Jobs this one waits for. */
   needs?: string[];
   /** Ordered workflow steps. */
@@ -121,12 +123,27 @@ describe("publish-to-npm.yml proves the publish landed", () => {
   });
 
   it("passes the released version, not whatever the registry calls latest", async () => {
+    // The property is unchanged: the check must be told WHICH version to look
+    // for, and that version must be the one this release published.
+    //
+    // The mechanism moved (#3717). The version used to be interpolated into
+    // the step's shell source as `${{ inputs.version }}`, which is the
+    // template-injection defect that change removes. It now arrives as the
+    // job-level `RELEASE_VERSION` environment variable, so the step body no
+    // longer contains an expression to grep for.
+    //
+    // Asserting the BINDING as well as the use is deliberately stronger than
+    // the old single grep: `--version "$RELEASE_VERSION"` alone would also be
+    // satisfied by a variable bound to something else entirely, which is
+    // exactly the "whatever the registry calls latest" failure this names.
     const workflow = await readWorkflow(PUBLISH_WORKFLOW);
-    const steps = workflow.jobs.publish?.steps ?? [];
+    const publish = workflow.jobs.publish;
+    const steps = publish?.steps ?? [];
 
     const verify = steps[indexOfStep(steps, VERIFY_STEP)];
     expect(verify?.run).toContain("--version");
-    expect(verify?.run).toContain("inputs.version");
+    expect(verify?.run).toContain("$RELEASE_VERSION");
+    expect(publish?.env?.["RELEASE_VERSION"]).toContain("inputs.version");
   });
 
   it("gates the step on nothing, so no condition can quietly switch it off", async () => {

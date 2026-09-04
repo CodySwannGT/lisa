@@ -239,7 +239,11 @@ esac
 
     expect(output).toContain("vacuous_required_check");
     expect(output).toContain(RATE_LIMITED);
-    expect(output).toContain("Treat this PR as UNREVIEWED");
+    // The finding still fires and still names the description; it no longer
+    // instructs a conclusion `Review rate limited` cannot support
+    // (CodySwannGT/lisa#3762), and points at what settles it instead.
+    expect(output).not.toMatch(/treat this pr as unreviewed/iu);
+    expect(output).toContain("reviewThreads");
     // Exit 0, and the reason is now the WAIVER rather than report-only. The
     // owner's ruling (CodySwannGT/lisa#3221) waives the two descriptions in
     // which the check says, in its own words, that it could not review — both

@@ -14,6 +14,15 @@
  * `output.args.command`. Throwing in `tool.execute.before` cancels the tool
  * call and surfaces the message to the agent.
  *
+ * SCOPE GAP, recorded rather than silently dropped (AGENTS.md). Since
+ * CodySwannGT/lisa#3753 the canonical guard covers a SECOND substrate —
+ * structured tool payloads, where a creation arrives as named fields rather
+ * than a command line — because the filing contract was enforced on the shell
+ * and unenforced on every tool call beside it. This port returns early for any
+ * tool other than `bash`, so on OpenCode that substrate is still uncovered.
+ * Closing it needs OpenCode's own creation-tool envelope, which is separate
+ * work from porting the shell path.
+ *
  * The port matches on the raw command text rather than tokenising it, which
  * makes it naturally immune to the prefix and tokenisation bypass classes the
  * shell guard had to be restructured to close — an unrecognised wrapper is just

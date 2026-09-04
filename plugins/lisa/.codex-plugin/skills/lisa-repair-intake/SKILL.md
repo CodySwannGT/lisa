@@ -951,6 +951,23 @@ with labels like `build-ready`, or with no Lisa status label at all, that are in
    selected by `intake_mode`. If `intake_mode=prd`, only PRD-classified issues are normalized. If
    `intake_mode=build`, every non-PRD issue is normalized as a build ticket. If `intake_mode=both`,
    classify PRDs first and normalize all remaining issues as build tickets.
+2a. **Ask whether a person is holding it, before anything else.** Call
+   `planLabelNormalization({ labels, body, humanNeededLabel, lifecycleLabels, readyLabel })` from
+   `scripts/intake-blocker-reprobe.mjs` for every candidate and apply exactly the verdict it
+   returns. Do **not** re-implement the test here and do **not** decide held-ness from labels
+   alone: the vendor writers stamp the `[lisa-human-gate]` marker into the body of a deliberate
+   hold, and `human_needed` is one of the lifecycle labels this sweep keys on the **absence** of —
+   so an item held exactly as the filing contract instructs is a member of this swept population by
+   construction, and a label-only read promoted it into the build queue (#3805). The
+   `[lisa-human-gate]` exclusion already existed in the read-only "Ungated non-ready filing" sweep
+   below; the one sweep that writes was the one that could not see it.
+
+   On `normalize: false` with reason `human-gate`, **stop for that item**: apply no label, do not
+   classify it, and report it read-only per step 5. Writing a label here — even the human-needed
+   marker — would turn a match into durable state on a second path, and the gate test is a plain
+   substring match whose precision is a separate open defect (#3815). Refusing and reporting is
+   the safe failure direction without the latch. Count these under `held_for_person`, never under
+   `normalized_ready`.
 3. Classify the issue:
    - **PRD** if it has PRD labels/markers (`prd`, `type:PRD`, `kind:prd`), PRD structure
      (`## Problem`, `## Goals`, `## Validation Journey`, generated-work/backlink sections), or
@@ -964,7 +981,8 @@ with labels like `build-ready`, or with no Lisa status label at all, that are in
    - **Ambiguous PRD/build** if strong PRD and build classifications both match. In `intake_mode=prd`
      normalize as PRD; in `intake_mode=build` normalize as build; in `intake_mode=both`, prefer PRD
      only when the body has PRD structure, otherwise build.
-4. Apply exactly one configured ready label for the classified lifecycle:
+4. Apply exactly one configured ready label for the classified lifecycle — and only when step
+   2a returned `normalize: true`; its `actions.addReadyLabel` is the label to apply, verbatim:
    - PRD → add the configured PRD `ready` label (default `prd-ready`).
    - Build ticket → add the configured build `ready` label (default `status:ready`).
    Keep any unofficial labels for auditability unless the project has explicitly configured one as a
@@ -972,7 +990,11 @@ with labels like `build-ready`, or with no Lisa status label at all, that are in
    normalization makes the next normal `lisa-intake` run pick it up.
 5. Post one idempotent `[lisa-repair-intake]` note naming the classification and the configured label
    applied. Include the normalization result in the loop-prevention fingerprint so repeated repair
-   cycles do not spam comments.
+   cycles do not spam comments. For an item step 2a held, post `formatNormalizationHoldNote()`
+   instead — it says that nothing was changed and how a person resumes the item, which is the
+   opposite of what the reconciliation note says and must not be substituted for it. A promotion
+   declined silently is invisible, which is the quieter version of the failure this step exists to
+   prevent, so name every held item in the cycle summary via `summarizeHumanGateHolds([...])`.
 
 ### Ungated non-ready filing → surface as an incomplete handoff (read-only)
 
@@ -1223,6 +1245,8 @@ It MAY:
   Epic/Story container** from its hierarchy/body-parentage children — so rollup and the GitHub UI can
   rely on the native graph. This repairs structure only; it does not ship, transition, or verify the
   parent.
+- Leave a normalization candidate untouched and report it when it is held for a person — the
+  human gate is consulted before classification and its refusal is absolute.
 - Normalize a GitHub issue with no configured lifecycle label by adding the configured PRD or build
   `ready` label after classifying the issue. This is a visibility repair, not a claim; the item
   remains open and unclaimed for normal intake.
@@ -1305,6 +1329,10 @@ Report outcomes in these buckets:
   from hierarchy/body-parentage) whose missing native sub-issue links were attached.
 - `normalized_ready` — GitHub issues missing official lifecycle labels that were classified and
   given the configured PRD/build `ready` label so normal intake can claim them.
+- `held_for_person` — normalization candidates left exactly as they were because a person is
+  holding them, per the human gate in step 2a of that repair. Nothing was written to them. This
+  bucket is never merged into `normalized_ready` or `errors`: "a person parked this and I honoured
+  it" is a repair outcome, not a failure and not a promotion.
 - `still_blocked` — examined and intentionally left `blocked`, with the active reason.
 - `reversal_suppressed` — a repair this skill previously made was reversed by a human, so the
   classification was **not** re-applied. Name the **reversed transition** (role, direction, and
