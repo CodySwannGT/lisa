@@ -164,6 +164,16 @@ export class Lisa {
    */
   private readonly hostAheadNotes: string[] = [];
   /**
+   * Templates this apply declined to write because they would have outranked
+   * configuration the project already maintains, each with the reason.
+   *
+   * Full sentences for the same reason as {@link hostAheadNotes}: the filename
+   * alone cannot convey it. The absent file is the *correct* outcome here, so
+   * without the sentence an operator has nothing to distinguish "Lisa
+   * deliberately stood down" from "the template never arrived".
+   */
+  private readonly shadowedNotes: string[] = [];
+  /**
    * Every `.github/workflows/` path this apply removed, and every one it
    * refused to remove, as operator-readable lines.
    *
@@ -2137,6 +2147,13 @@ export class Lisa {
           result.note ?? `${result.relativePath}: kept your copy.`
         );
         break;
+      case "shadowed":
+        this.counters.shadowed++;
+        this.shadowedNotes.push(
+          result.note ??
+            `${result.relativePath}: not written — it would outrank your own config.`
+        );
+        break;
       case "overwritten":
         this.counters.overwritten++;
         break;
@@ -2201,6 +2218,17 @@ export class Lisa {
             ? `Would keep your copy: ${result.relativePath}`
             : `Kept your copy: ${result.relativePath}`
         );
+        break;
+      case "shadowed":
+        // Warn, not info: the file is absent by design, and an operator who
+        // later wonders why the template never arrived needs this line to have
+        // been visible at the time.
+        this.deps.logger.warn(
+          this.config.dryRun
+            ? `Would not write, your own config takes precedence: ${result.relativePath}`
+            : `Not written, your own config takes precedence: ${result.relativePath}`
+        );
+        this.logNote(result);
         break;
       case "overwritten":
         this.logMessage(
@@ -2414,6 +2442,7 @@ export class Lisa {
     }
     this.printStaleDetail();
     this.printHostAheadDetail();
+    this.printShadowedDetail();
     this.printWorkflowDeletionDetail();
   }
 
@@ -2459,6 +2488,7 @@ export class Lisa {
     }
     this.printStaleDetail();
     this.printHostAheadDetail();
+    this.printShadowedDetail();
     this.printWorkflowDeletionDetail();
   }
 
@@ -2516,6 +2546,31 @@ export class Lisa {
     }
     logger.info(
       "Nothing is broken. Lisa only replaces one of its own files when it can prove your copy came from an older Lisa."
+    );
+  }
+
+  /**
+   * Name every template this apply declined to write to avoid outranking the
+   * project's own configuration.
+   *
+   * Reported as good news for the same reason as {@link printHostAheadDetail}:
+   * the project's config surviving is the correct outcome. But it is stated at
+   * all because the *absence* of a file is invisible — a template that never
+   * arrives looks identical to one that was never shipped, and this is the only
+   * moment anything can say which happened (CodySwannGT/lisa#3501).
+   */
+  private printShadowedDetail(): void {
+    if (this.counters.shadowed === 0) return;
+    const { logger } = this.deps;
+
+    logger.info(
+      `${this.counters.shadowed} template(s) were not written because this project already configures those tools itself:`
+    );
+    for (const note of this.shadowedNotes) {
+      logger.info(`  ${note}`);
+    }
+    logger.info(
+      "Nothing is broken. Lisa's file would have taken precedence over yours, so yours was left in charge."
     );
   }
 

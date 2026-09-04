@@ -3,6 +3,10 @@ import { copyFile, readFile } from "node:fs/promises";
 import { mayRefreshTemplate } from "../core/config.js";
 import type { FileOperationResult } from "../core/config.js";
 import {
+  shadowedConfigNote,
+  shadowedConfigSibling,
+} from "../core/config-shadowing.js";
+import {
   declaresReplacedEveryRun,
   isLisaOwnedTemplate,
 } from "../core/lisa-owned-templates.js";
@@ -44,11 +48,12 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
     const destExists = await fse.pathExists(destPath);
 
     if (!destExists) {
-      if (!config.dryRun) {
-        await ensureParentDir(destPath);
-        await copyFile(sourcePath, destPath);
-      }
-      return { relativePath, strategy: this.name, action: "copied" };
+      return this.createMissingFile(
+        sourcePath,
+        destPath,
+        relativePath,
+        context
+      );
     }
 
     if (await filesIdentical(sourcePath, destPath)) {
@@ -253,6 +258,93 @@ export class CopyOverwriteStrategy implements ICopyStrategy {
       relativePath,
       context.hashLedger
     );
+  }
+
+  /**
+   * Create a managed file the destination does not have.
+   *
+   * Its own method because this branch is where CodySwannGT/lisa#3501 lives.
+   * Every guard in {@link apply} asks whether THIS path exists, and each is
+   * blind to a differently-spelled file that outranks it: a repo configuring
+   * knip as `knip.ts` has no `knip.json`, so the template lands as a NEW file
+   * that knip then prefers, silently replacing the repo's own settings with
+   * stack defaults. The question has to be asked here, before the write,
+   * because there is no later branch — the create path is the whole defect.
+   * @param sourcePath - Packaged template path
+   * @param destPath - Installed file path, which does not yet exist
+   * @param relativePath - Repo-relative path for reporting
+   * @param context - Strategy context with config
+   * @returns The `copied` result, or `shadowed` when Lisa stands down
+   */
+  private async createMissingFile(
+    sourcePath: string,
+    destPath: string,
+    relativePath: string,
+    context: StrategyContext
+  ): Promise<FileOperationResult> {
+    const shadowed = await this.standDownForHostConfig(
+      sourcePath,
+      destPath,
+      relativePath
+    );
+    if (shadowed !== undefined) return shadowed;
+
+    if (!context.config.dryRun) {
+      await ensureParentDir(destPath);
+      await copyFile(sourcePath, destPath);
+    }
+    return { relativePath, strategy: this.name, action: "copied" };
+  }
+
+  /**
+   * The existing config file this template would outrank, if any.
+   *
+   * **Seed templates only, and the exclusion is the safety argument.** A
+   * template that declares `IS replaced on each` is a governance artifact —
+   * `eslint.config.ts`, `vitest.config.ts`, `commitlint.config.cjs`,
+   * `sgconfig.yml` — where writing the file IS the guardrail. Standing down
+   * because a same-family file exists would let any host silently disable
+   * Lisa's enforcement by dropping in an `eslint.config.js`, with nothing
+   * reporting it: #2374's undeliverable-fix incident re-entering through the
+   * door opened to fix #3501. For those, a same-family host file is a conflict
+   * to surface, never a reason not to write.
+   *
+   * Reuses `declaresReplacedEveryRun` rather than introducing a second notion
+   * of who owns a file. Two overlapping ownership definitions is how the next
+   * defect of this shape gets built.
+   *
+   * Returns a result only when Lisa is standing down, so the caller falls
+   * through to its normal create path in every other case.
+   * @param sourcePath - Packaged template path, read for its own declaration
+   * @param destPath - Installed file path, whose directory is the search root
+   * @param relativePath - Repo-relative path of the managed template
+   * @returns A `shadowed` result when the template is withheld, else undefined
+   */
+  private async standDownForHostConfig(
+    sourcePath: string,
+    destPath: string,
+    relativePath: string
+  ): Promise<FileOperationResult | undefined> {
+    // Read once, ahead of any probe: the declaration is a property of the
+    // template, not of the candidate being tested.
+    if (declaresReplacedEveryRun(await readFile(sourcePath, "utf8"))) {
+      return undefined;
+    }
+    const projectRoot = destPath.slice(
+      0,
+      destPath.length - relativePath.length
+    );
+    const shadowed = await shadowedConfigSibling(relativePath, candidate =>
+      fse.pathExists(`${projectRoot}${candidate}`)
+    );
+    if (shadowed === undefined) return undefined;
+
+    return {
+      relativePath,
+      strategy: this.name,
+      action: "shadowed",
+      note: shadowedConfigNote(relativePath, shadowed.tool, shadowed.sibling),
+    };
   }
 
   /**
