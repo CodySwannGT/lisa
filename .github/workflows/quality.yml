@@ -5232,9 +5232,32 @@ jobs:
           # state is only reachable once a consumer already has the subcommand.
           contract_err="$(mktemp)"
           expected_contract="${EXPECTED_WORK_ITEM_CONTRACT}"
+          # The workflow's OWN half of the handshake gets the same validity
+          # check the script's half already gets. `expected_work_item_contract`
+          # is an optional input, and Actions treats an explicitly-passed empty
+          # string as a value that WAS provided — so a caller writing
+          # `${{ inputs.something }}` that resolves to empty silently overrides
+          # the declared default rather than falling back to it. The comparison
+          # below would then read an empty `expected_major`, and a perfectly
+          # well-formed reply from the script would fail this REQUIRED gate on
+          # a mismatch that is not a real major mismatch.
+          #
+          # Skipped rather than failed, for exactly the reason the absent
+          # subcommand is skipped above: this workflow is consumed at `@main`,
+          # so failing closed on a caller's empty string would redden the whole
+          # fleet for a misconfiguration each consumer's own script is innocent
+          # of. The warning names the value actually received, because a
+          # required gate that changes behaviour for a reason the operator
+          # cannot see is the failure this pair keeps producing.
+          if ! printf '%s\n' "$expected_contract" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::warning::Work-item contract handshake skipped: this workflow's expected_work_item_contract is not a major.minor.patch version (received '${expected_contract}'). Pass a full version, or omit the input entirely to take its default — passing an empty value overrides the default rather than falling back to it. This run cannot tell how old scripts/lisa-work-item.mjs is, so any failure it reports may be superseded logic."
+            expected_contract=""
+          fi
           expected_major="${expected_contract%%.*}"
           expected_minor="$(printf '%s.' "$expected_contract" | cut -d. -f2)"
-          if contract_raw="$(node scripts/lisa-work-item.mjs contract-version 2>"$contract_err")"; then
+          if [ -z "$expected_contract" ]; then
+            : # Handshake skipped; the warning above already said why.
+          elif contract_raw="$(node scripts/lisa-work-item.mjs contract-version 2>"$contract_err")"; then
             script_contract="$(printf '%s\n' "$contract_raw" | head -1)"
             # Only a well-formed version is treated as an ANSWER to the
             # handshake. Anything else means the script at this path is not

@@ -157,6 +157,46 @@ describe.each(FILES)("%s work-item contract handshake", file => {
       'echo "Work-item gate contract: script $script_contract, workflow expects $expected_contract"'
     );
   });
+
+  /**
+   * The same version test, applied to the half the workflow controls.
+   *
+   * `expected_work_item_contract` is an OPTIONAL input, and Actions treats an
+   * explicitly-passed empty string as a value that was provided — so a caller
+   * interpolating a variable that resolves to empty overrides the declared
+   * default rather than falling back to it. A perfectly well-formed reply from
+   * the script is then compared against an empty `expected_major`, and this
+   * REQUIRED gate fails on a mismatch that is not a real major mismatch. The
+   * script's half was already guarded against exactly this; the workflow's
+   * half was not, so only one of the two answers could be trusted.
+   */
+  it("validates BOTH halves of the handshake, not just the script's", () => {
+    const text = textOf(file);
+    const versionTest = "grep -Eq '^[0-9]+\\.[0-9]+\\.[0-9]+$'";
+    expect(text.split(versionTest).length - 1).toBe(2);
+  });
+
+  /**
+   * Warned and skipped rather than failed, for the same reason the absent
+   * subcommand is: these workflows are consumed at `@main`, so failing closed
+   * on a caller's empty string would redden the entire fleet for a
+   * misconfiguration each consumer's own script is innocent of.
+   */
+  it("skips, and does not fail, when its OWN expected version is malformed", () => {
+    const text = textOf(file);
+    const start = text.indexOf("Work-item contract handshake skipped");
+    expect(start).toBeGreaterThan(-1);
+    const branch = text.slice(start - 300, start + 700);
+    expect(branch).toContain(WARNING);
+    expect(branch).not.toContain(FAILS);
+    // The received value has to reach the log. A required gate that changes
+    // behaviour for a reason the operator cannot see is the failure mode this
+    // pair keeps producing, and a silent skip is that failure wearing green.
+    expect(branch).toContain("received '${expected_contract}'");
+    // And the comparison must actually be bypassed — warning while still
+    // comparing against an empty major would leave the red in place.
+    expect(text).toContain('if [ -z "$expected_contract" ]; then');
+  });
 });
 
 describe("two-channel coupling registry", () => {
