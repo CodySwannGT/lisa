@@ -12,6 +12,7 @@
     "test:unit": "$npm_execpath run lisa-test-run -- --adapter vitest -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*'",
     "test:cov": "$npm_execpath run lisa-test-run -- --adapter vitest -- vitest run --coverage",
     "test:cov:unit": "LISA_COVERAGE_SCOPE=unit $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'",
+    "test:cov:unit:push": "LISA_COVERAGE_SCOPE=unit $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*' --exclude='**/measure-tmpdir-growth-performance.test.ts'",
     "pretest:mutation": "bun run build",
     "test:mutation": "LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\",\"worker-\"]' $npm_execpath run lisa-test-run -- --adapter direct -- node scripts/lisa-mutation.mjs",
     "test:mutation:full": "LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\",\"worker-\"]' $npm_execpath run lisa-test-run -- --adapter direct -- node scripts/lisa-mutation.mjs --all",
