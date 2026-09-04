@@ -40,9 +40,12 @@ type VersionReader = () => string;
  * migration is the only surface that reaches the installed base (#3476, #3485).
  */
 export class EnsureNightlyE2EWorkflowPinsMigration implements Migration {
+  // The name outlived the pin arm. It is kept because it is the identity the
+  // migration registry, its tests, and any apply receipt already record — a
+  // rename would be a bigger change than the one that emptied it of meaning.
   readonly name = "ensure-nightly-e2e-workflow-pins";
   readonly description =
-    "Align nightly E2E reusable-workflow pins with installed Lisa and keep the bypass gate armed against body-evidence deletion";
+    "Keep the nightly E2E bypass gate armed against body-evidence deletion and its version comments current";
 
   /**
    * Create the migration.
@@ -54,7 +57,7 @@ export class EnsureNightlyE2EWorkflowPinsMigration implements Migration {
   ) {}
 
   /**
-   * Decide whether an Expo caller still points at another Lisa release.
+   * Decide whether an installed Expo caller still needs arming or refreshing.
    *
    * @param ctx - Migration context
    * @returns True when one supported caller needs a safe literal update
