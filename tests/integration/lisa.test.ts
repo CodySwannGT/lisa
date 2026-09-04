@@ -806,6 +806,7 @@ describe("Lisa Integration Tests", () => {
       await fs.ensureDir(cdkDir);
       await fs.writeJson(path.join(cdkDir, "deletions.json"), {
         paths: [JEST_CONFIG_LOCAL],
+        basis: { [JEST_CONFIG_LOCAL]: "needs-review" },
       });
 
       const result = await createLisa().apply();
@@ -838,6 +839,7 @@ describe("Lisa Integration Tests", () => {
       await fs.ensureDir(harperDir);
       await fs.writeJson(path.join(harperDir, "deletions.json"), {
         paths: [JEST_CONFIG_LOCAL],
+        basis: { [JEST_CONFIG_LOCAL]: "needs-review" },
       });
 
       const result = await createLisa().apply();
