@@ -715,6 +715,21 @@ export function loadDeclaration(rootDir) {
     );
   }
   const declaration = JSON.parse(readFileSync(path, "utf8"));
+  assertRequiredDeclarationKeys(declaration);
+  assertDeclarationCollections(declaration);
+  assertEnforcementMode(declaration);
+  assertSkipJobDeclarations(declaration.skip_job_declarations);
+  assertEvidenceBearingChecks(declaration.evidence_bearing_checks ?? {});
+  return declaration;
+}
+
+/**
+ * Refuses a declaration that omits one of the guard's load-bearing snapshots.
+ *
+ * @param {object} declaration - Parsed declaration
+ * @returns {void}
+ */
+function assertRequiredDeclarationKeys(declaration) {
   for (const key of [
     "required_contexts",
     "workflows",
@@ -726,6 +741,15 @@ export function loadDeclaration(rootDir) {
       );
     }
   }
+}
+
+/**
+ * Validates the two top-level collections the evaluator consumes.
+ *
+ * @param {object} declaration - Parsed declaration
+ * @returns {void}
+ */
+function assertDeclarationCollections(declaration) {
   if (!Array.isArray(declaration.required_contexts)) {
     throw new Error(
       `check-skipped-required-checks: \`required_contexts\` must be an array of context strings, transcribed byte for byte from the ruleset (emoji and the \` / \` separator included).`
@@ -739,6 +763,15 @@ export function loadDeclaration(rootDir) {
       `check-skipped-required-checks: \`workflows\` must list at least one workflow file whose \`skip_jobs\` this guard reads.`
     );
   }
+}
+
+/**
+ * Validates the optional enforcement switch independently of declaration data.
+ *
+ * @param {object} declaration - Parsed declaration
+ * @returns {void}
+ */
+function assertEnforcementMode(declaration) {
   if (
     declaration.enforcement !== undefined &&
     !ENFORCEMENT_MODES.includes(declaration.enforcement)
@@ -747,7 +780,41 @@ export function loadDeclaration(rootDir) {
       `check-skipped-required-checks: \`enforcement\` must be one of ${ENFORCEMENT_MODES.map(mode => `"${mode}"`).join(", ")}, not ${JSON.stringify(declaration.enforcement)}. Omit it to enforce — a typo silently downgrading this guard to advice is the fail-open shape it exists to refuse.`
     );
   }
+}
 
+/**
+ * Validates one skip-token declaration.
+ *
+ * @param {string} token - Declared skip token
+ * @param {unknown} entry - Declaration value
+ * @returns {void}
+ */
+function assertSkipJobDeclaration(token, entry) {
+  if (
+    typeof entry !== "object" ||
+    entry === null ||
+    Array.isArray(entry) ||
+    !Array.isArray(entry.suppressed_contexts) ||
+    typeof entry.ruleset_required !== "boolean"
+  ) {
+    throw new Error(
+      `check-skipped-required-checks: the declaration for \`${token}\` in ${DECLARATION_PATH} is malformed. Each entry must be an object with an array \`suppressed_contexts\` and a boolean \`ruleset_required\`. A malformed entry still counts as "declared" where it is used, which turns this guard into a no-op for that exact token.`
+    );
+  }
+  if (entry.suppressed_contexts.some(name => typeof name !== "string")) {
+    throw new Error(
+      `check-skipped-required-checks: \`${token}.suppressed_contexts\` must contain only context strings — they are compared byte for byte against \`required_contexts\`.`
+    );
+  }
+}
+
+/**
+ * Validates every skip-token declaration.
+ *
+ * @param {Record<string, unknown>} declarations - Token declarations
+ * @returns {void}
+ */
+function assertSkipJobDeclarations(declarations) {
   // Validate the SHAPE of every declaration, not just its presence. A truthy
   // non-object entry (`"test:e2e": true`, or a string) reads as "declared" at
   // the point of use, then yields `suppressed_contexts: undefined` — no hits,
@@ -755,53 +822,78 @@ export function loadDeclaration(rootDir) {
   // someone was trying to document, which is the fail-open class this file
   // exists to refuse. A bad snapshot fails loudly HERE instead, where it is
   // unambiguously a configuration error rather than a clean bill of health.
-  for (const [token, entry] of Object.entries(
-    declaration.skip_job_declarations
-  )) {
-    if (
-      typeof entry !== "object" ||
-      entry === null ||
-      Array.isArray(entry) ||
-      !Array.isArray(entry.suppressed_contexts) ||
-      typeof entry.ruleset_required !== "boolean"
-    ) {
-      throw new Error(
-        `check-skipped-required-checks: the declaration for \`${token}\` in ${DECLARATION_PATH} is malformed. Each entry must be an object with an array \`suppressed_contexts\` and a boolean \`ruleset_required\`. A malformed entry still counts as "declared" where it is used, which turns this guard into a no-op for that exact token.`
-      );
-    }
-    if (entry.suppressed_contexts.some(name => typeof name !== "string")) {
-      throw new Error(
-        `check-skipped-required-checks: \`${token}.suppressed_contexts\` must contain only context strings — they are compared byte for byte against \`required_contexts\`.`
-      );
-    }
+  for (const [token, entry] of Object.entries(declarations)) {
+    assertSkipJobDeclaration(token, entry);
   }
+}
 
+/**
+ * Validates one optional description-vocabulary list.
+ *
+ * @param {string} checkName - Evidence-bearing check name
+ * @param {object} entry - Vocabulary declaration
+ * @param {string} list - Vocabulary list name
+ * @returns {void}
+ */
+function assertEvidenceVocabularyList(checkName, entry, list) {
+  if (entry[list] === undefined) return;
+  if (
+    !Array.isArray(entry[list]) ||
+    entry[list].some(phrase => typeof phrase !== "string")
+  ) {
+    throw new Error(
+      `check-skipped-required-checks: \`evidence_bearing_checks.${checkName}.${list}\` must be an array of description strings.`
+    );
+  }
+  if (entry[list].some(phrase => normalizeDescription(phrase) === "")) {
+    throw new Error(
+      `check-skipped-required-checks: \`evidence_bearing_checks.${checkName}.${list}\` must not contain an empty or whitespace-only description. An empty phrase can match missing evidence or every description, depending on how the vocabulary is consumed.`
+    );
+  }
+}
+
+/**
+ * Refuses vocabulary that grants and denies credit for the same description.
+ *
+ * @param {string} checkName - Evidence-bearing check name
+ * @param {object} entry - Vocabulary declaration
+ * @returns {void}
+ */
+function assertEvidenceVocabularyDisjoint(checkName, entry) {
+  const satisfactions = new Set(
+    [...REVIEW_SATISFACTIONS, ...(entry.satisfy ?? [])].map(
+      normalizeDescription
+    )
+  );
+  const waivers = new Set(
+    [...ENTITLEMENT_WAIVERS, ...(entry.waive ?? [])].map(normalizeDescription)
+  );
+  const overlap = [...satisfactions].filter(phrase => waivers.has(phrase));
+  if (overlap.length > 0) {
+    throw new Error(
+      `check-skipped-required-checks: \`evidence_bearing_checks.${checkName}.satisfy\` and \`.waive\` must be disjoint after shipped defaults are applied. These phrases appear in both: ${overlap.map(phrase => JSON.stringify(phrase)).join(", ")}. A phrase cannot mean both "review completed" and "review did not run".`
+    );
+  }
+}
+
+/**
+ * Validates every evidence-bearing check declaration.
+ *
+ * @param {Record<string, unknown>} checks - Evidence-bearing check declarations
+ * @returns {void}
+ */
+function assertEvidenceBearingChecks(checks) {
   // Same reasoning for the vacuity declarations: a non-object entry would read
   // as "declared" and then yield an empty vocabulary, quietly examining the
   // check against defaults the author thought they had overridden.
-  for (const [name, entry] of Object.entries(
-    declaration.evidence_bearing_checks ?? {}
-  )) {
+  for (const [name, entry] of Object.entries(checks)) {
     if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
       throw new Error(
         `check-skipped-required-checks: the declaration for \`${name}\` in \`evidence_bearing_checks\` must be an object — use \`{}\` to accept the shipped description vocabulary.`
       );
     }
     for (const list of ["proof", "no_work", "satisfy", "waive"]) {
-      if (entry[list] === undefined) continue;
-      if (
-        !Array.isArray(entry[list]) ||
-        entry[list].some(phrase => typeof phrase !== "string")
-      ) {
-        throw new Error(
-          `check-skipped-required-checks: \`evidence_bearing_checks.${name}.${list}\` must be an array of description strings.`
-        );
-      }
-      if (entry[list].some(phrase => normalizeDescription(phrase) === "")) {
-        throw new Error(
-          `check-skipped-required-checks: \`evidence_bearing_checks.${name}.${list}\` must not contain an empty or whitespace-only description. An empty phrase can match missing evidence or every description, depending on how the vocabulary is consumed.`
-        );
-      }
+      assertEvidenceVocabularyList(name, entry, list);
     }
 
     // Resolve the shipped defaults before checking disjointness. A custom
@@ -809,22 +901,8 @@ export function loadDeclaration(rootDir) {
     // ambiguous as overlap between two custom lists. Satisfaction is checked
     // first at runtime, so accepting overlap would silently upgrade an explicit
     // waiver into evidence that a review completed.
-    const satisfactions = new Set(
-      [...REVIEW_SATISFACTIONS, ...(entry.satisfy ?? [])].map(
-        normalizeDescription
-      )
-    );
-    const waivers = new Set(
-      [...ENTITLEMENT_WAIVERS, ...(entry.waive ?? [])].map(normalizeDescription)
-    );
-    const overlap = [...satisfactions].filter(phrase => waivers.has(phrase));
-    if (overlap.length > 0) {
-      throw new Error(
-        `check-skipped-required-checks: \`evidence_bearing_checks.${name}.satisfy\` and \`.waive\` must be disjoint after shipped defaults are applied. These phrases appear in both: ${overlap.map(phrase => JSON.stringify(phrase)).join(", ")}. A phrase cannot mean both "review completed" and "review did not run".`
-      );
-    }
+    assertEvidenceVocabularyDisjoint(name, entry);
   }
-  return declaration;
 }
 
 /**
@@ -975,66 +1053,144 @@ export function evaluateSkippedRequiredChecks(
   const violations = [];
 
   for (const token of skipped) {
-    const entry = declarations[token];
-    if (!entry) {
-      violations.push({
+    violations.push(
+      ...evaluateSkippedToken(
+        token,
+        declarations[token],
+        required,
+        ticketPattern,
+        trustRequired
+      )
+    );
+  }
+
+  violations.push(...findOrphanedExemptions(declarations, skipped));
+
+  return { violations, checked: skipped.length };
+}
+
+/**
+ * Evaluates one token against its declaration and the trusted ruleset snapshot.
+ *
+ * @param {string} token - Skip token in a workflow
+ * @param {object|undefined} entry - Its declaration
+ * @param {ReadonlySet<string>} required - Required-context snapshot
+ * @param {RegExp} ticketPattern - Accepted exemption ticket pattern
+ * @param {boolean} trustRequired - Whether the snapshot is trusted
+ * @returns {object[]} Violations for this token
+ */
+function evaluateSkippedToken(
+  token,
+  entry,
+  required,
+  ticketPattern,
+  trustRequired
+) {
+  if (!entry) {
+    return [
+      {
         kind: VIOLATIONS.undeclared,
         token,
         message: `\`${token}\` is skipped but not declared in ${DECLARATION_PATH}. Declare what it silences and whether any of that is ruleset-required — an undeclared skip is a skip nobody reviewed.`,
-      });
-      continue;
-    }
-    if (!trustRequired) continue;
-    const suppressed = entry.suppressed_contexts ?? [];
-    const hits = suppressed.filter(context => required.has(context));
+      },
+    ];
+  }
+  if (!trustRequired) return [];
 
-    if (hits.length > 0 && entry.ruleset_required !== true) {
-      violations.push({
+  const suppressed = entry.suppressed_contexts ?? [];
+  const hits = suppressed.filter(context => required.has(context));
+  return [
+    ...evaluateRequiredSnapshotCoherence(token, entry, suppressed, hits),
+    ...evaluateRequiredSuppression(token, entry, hits, ticketPattern),
+  ];
+}
+
+/**
+ * Checks whether one token's declaration agrees with the required snapshot.
+ *
+ * @param {string} token - Skip token
+ * @param {object} entry - Token declaration
+ * @param {ReadonlyArray<string>} suppressed - Contexts the token suppresses
+ * @param {ReadonlyArray<string>} hits - Suppressed contexts that are required
+ * @returns {object[]} Snapshot-coherence violations
+ */
+function evaluateRequiredSnapshotCoherence(token, entry, suppressed, hits) {
+  if (hits.length > 0 && entry.ruleset_required !== true) {
+    return [
+      {
         kind: VIOLATIONS.incoherent,
         token,
         message: `\`${token}\` declares \`ruleset_required: false\`, but it suppresses ${hits.map(hit => `"${hit}"`).join(", ")}, which \`required_contexts\` says IS required. One of the two snapshots is out of date — fix the one that is wrong, do not delete the check.`,
-      });
-    }
-    if (hits.length === 0 && entry.ruleset_required === true) {
-      violations.push({
+      },
+    ];
+  }
+  if (hits.length === 0 && entry.ruleset_required === true) {
+    return [
+      {
         kind: VIOLATIONS.stale,
         token,
         message: `\`${token}\` declares \`ruleset_required: true\`, but none of ${suppressed.map(name => `"${name}"`).join(", ") || "(nothing)"} appears in \`required_contexts\`. The context was renamed or de-required and this declaration now describes a world that no longer exists.`,
-      });
-    }
-    if (hits.length > 0) {
-      const exemption = entry.exemption;
-      if (!exemption) {
-        violations.push({
-          kind: VIOLATIONS.suppressesRequired,
-          token,
-          contexts: hits,
-          message: `\`${token}\` silences the ruleset-required context(s) ${hits.map(hit => `"${hit}"`).join(", ")}. GitHub counts a SKIPPED required check as SATISFIED, so that context reports green having run zero steps — the gate is decorative. Fix the suite, de-require the context, or record an exemption with a tracker ticket.`,
-        });
-      } else if (
-        typeof exemption.ticket !== "string" ||
-        !ticketPattern.test(exemption.ticket)
-      ) {
-        violations.push({
-          kind: VIOLATIONS.badExemption,
-          token,
-          message: `\`${token}\` carries an exemption whose ticket ${JSON.stringify(exemption.ticket)} does not match ${ticketPattern}. An exemption is a decision someone owns; without a ticket it is just a way to silence this guard.`,
-        });
-      }
-    }
+      },
+    ];
   }
+  return [];
+}
 
-  for (const [token, entry] of Object.entries(declarations)) {
-    if (entry.exemption && !skipped.includes(token)) {
-      violations.push({
-        kind: VIOLATIONS.orphaned,
+/**
+ * Checks whether a real required-context suppression has an owned exemption.
+ *
+ * @param {string} token - Skip token
+ * @param {object} entry - Token declaration
+ * @param {ReadonlyArray<string>} hits - Required contexts suppressed
+ * @param {RegExp} ticketPattern - Accepted exemption ticket pattern
+ * @returns {object[]} Suppression or exemption violations
+ */
+function evaluateRequiredSuppression(token, entry, hits, ticketPattern) {
+  if (hits.length === 0) return [];
+  const exemption = entry.exemption;
+  if (!exemption) {
+    return [
+      {
+        kind: VIOLATIONS.suppressesRequired,
         token,
-        message: `\`${token}\` carries an exemption but is no longer skipped anywhere. Delete the exemption — leaving it teaches readers that the exemption list is fiction.`,
-      });
-    }
+        contexts: hits,
+        message: `\`${token}\` silences the ruleset-required context(s) ${hits.map(hit => `"${hit}"`).join(", ")}. GitHub counts a SKIPPED required check as SATISFIED, so that context reports green having run zero steps — the gate is decorative. Fix the suite, de-require the context, or record an exemption with a tracker ticket.`,
+      },
+    ];
   }
+  if (
+    typeof exemption.ticket !== "string" ||
+    !ticketPattern.test(exemption.ticket)
+  ) {
+    return [
+      {
+        kind: VIOLATIONS.badExemption,
+        token,
+        message: `\`${token}\` carries an exemption whose ticket ${JSON.stringify(exemption.ticket)} does not match ${ticketPattern}. An exemption is a decision someone owns; without a ticket it is just a way to silence this guard.`,
+      },
+    ];
+  }
+  return [];
+}
 
-  return { violations, checked: skipped.length };
+/**
+ * Finds exemptions whose tokens are no longer skipped.
+ *
+ * @param {Record<string, object>} declarations - All token declarations
+ * @param {ReadonlyArray<string>} skipped - Tokens currently skipped
+ * @returns {object[]} Orphaned-exemption violations
+ */
+function findOrphanedExemptions(declarations, skipped) {
+  const violations = [];
+  for (const [token, entry] of Object.entries(declarations)) {
+    if (!entry.exemption || skipped.includes(token)) continue;
+    violations.push({
+      kind: VIOLATIONS.orphaned,
+      token,
+      message: `\`${token}\` carries an exemption but is no longer skipped anywhere. Delete the exemption — leaving it teaches readers that the exemption list is fiction.`,
+    });
+  }
+  return violations;
 }
 
 /**
@@ -1120,53 +1276,83 @@ export function evaluateVacuousChecks(declaration, checks, options = {}) {
   const at = citeHeadSha(options.headSha);
   const required = new Set(declaration.required_contexts ?? []);
   const violations = [];
-  let checked = 0;
+  const entries = Object.entries(declared);
 
-  for (const [name, entry] of Object.entries(declared)) {
-    checked += 1;
-    const vocabulary = typeof entry === "object" && entry !== null ? entry : {};
-    const found = checks.find(check => check.name === name);
-
-    if (found === undefined) {
-      violations.push({
-        kind: VIOLATIONS.unproven,
-        token: name,
-        message: `\`${name}\` is declared evidence-bearing but did not report on this pull request at all.${at} A report of "no unresolved review threads" from this PR means NOBODY LOOKED, not that nothing was wrong — say which one you observed. (If the context was renamed, fix \`evidence_bearing_checks\`; names are compared byte for byte.)`,
-      });
-      continue;
-    }
-
-    const state = String(found.state ?? "").toUpperCase();
-    if (state === "FAILURE" || state === "ERROR") continue;
-
-    const verdict = classifyCheckDescription(found.description, vocabulary);
-    if (verdict === DESCRIPTION_VERDICTS.proved && state === "SUCCESS") {
-      continue;
-    }
-
-    const requiredNote = !trustRequired
-      ? " Whether it is ruleset-required is NOT KNOWN here — `required_contexts` has not been transcribed, so this cannot say what the merge gate recorded."
-      : required.has(name)
-        ? " This context IS ruleset-required, so branch protection recorded a satisfied review gate for a review that did not happen."
-        : " This context is not in `required_contexts`, so no merge gate was falsified — but nothing reviewed this either.";
-
-    violations.push(
-      verdict === DESCRIPTION_VERDICTS.noWork && state === "SUCCESS"
-        ? {
-            kind: VIOLATIONS.vacuous,
-            token: name,
-            contexts: [name],
-            message: `\`${name}\` reported ${state} with the description ${JSON.stringify(found.description ?? "")}, which says it DID NO WORK.${at}${requiredNote} \`gh pr checks\` prints \`pass\` for this exactly as it does for a real review — the description is the only thing that tells them apart. Treat this PR as UNREVIEWED.`,
-          }
-        : {
-            kind: VIOLATIONS.unproven,
-            token: name,
-            message: `\`${name}\` reported ${state} with the description ${JSON.stringify(found.description ?? "")}, which proves neither that it reviewed anything nor that it did not.${at}${requiredNote} Read the check itself before treating this PR as reviewed, or add the phrase to \`evidence_bearing_checks.${name}.proof\` once you have confirmed what it means.`,
-          }
-    );
+  for (const [name, entry] of entries) {
+    const violation = evaluateEvidenceBearingCheck(name, entry, checks, {
+      at,
+      required,
+      trustRequired,
+    });
+    if (violation !== null) violations.push(violation);
   }
 
-  return { violations, checked };
+  return { violations, checked: entries.length };
+}
+
+/**
+ * Explains whether the named evidence check is part of the trusted ruleset.
+ *
+ * @param {string} name - Check context name
+ * @param {boolean} trustRequired - Whether the ruleset snapshot is trusted
+ * @param {ReadonlySet<string>} required - Required-context snapshot
+ * @returns {string} Sentence appended to a finding
+ */
+function evidenceRequiredNote(name, trustRequired, required) {
+  if (!trustRequired) {
+    return " Whether it is ruleset-required is NOT KNOWN here — `required_contexts` has not been transcribed, so this cannot say what the merge gate recorded.";
+  }
+  return required.has(name)
+    ? " This context IS ruleset-required, so branch protection recorded a satisfied review gate for a review that did not happen."
+    : " This context is not in `required_contexts`, so no merge gate was falsified — but nothing reviewed this either.";
+}
+
+/**
+ * Evaluates one declared evidence-bearing check.
+ *
+ * @param {string} name - Declared check name
+ * @param {object} entry - Per-check description vocabulary
+ * @param {ReadonlyArray<object>} checks - Reported checks
+ * @param {{at: string, required: ReadonlySet<string>, trustRequired: boolean}} context - Shared evaluation context
+ * @returns {object|null} A finding, or null when this check proved work or is red
+ */
+function evaluateEvidenceBearingCheck(name, entry, checks, context) {
+  const vocabulary = typeof entry === "object" && entry !== null ? entry : {};
+  const found = checks.find(check => check.name === name);
+  if (found === undefined) {
+    return {
+      kind: VIOLATIONS.unproven,
+      token: name,
+      message: `\`${name}\` is declared evidence-bearing but did not report on this pull request at all.${context.at} A report of "no unresolved review threads" from this PR means NOBODY LOOKED, not that nothing was wrong — say which one you observed. (If the context was renamed, fix \`evidence_bearing_checks\`; names are compared byte for byte.)`,
+    };
+  }
+
+  const state = String(found.state ?? "").toUpperCase();
+  if (state === "FAILURE" || state === "ERROR") return null;
+
+  const verdict = classifyCheckDescription(found.description, vocabulary);
+  if (verdict === DESCRIPTION_VERDICTS.proved && state === "SUCCESS") {
+    return null;
+  }
+
+  const requiredNote = evidenceRequiredNote(
+    name,
+    context.trustRequired,
+    context.required
+  );
+  if (verdict === DESCRIPTION_VERDICTS.noWork && state === "SUCCESS") {
+    return {
+      kind: VIOLATIONS.vacuous,
+      token: name,
+      contexts: [name],
+      message: `\`${name}\` reported ${state} with the description ${JSON.stringify(found.description ?? "")}, which says it DID NO WORK.${context.at}${requiredNote} \`gh pr checks\` prints \`pass\` for this exactly as it does for a real review — the description is the only thing that tells them apart. Treat this PR as UNREVIEWED.`,
+    };
+  }
+  return {
+    kind: VIOLATIONS.unproven,
+    token: name,
+    message: `\`${name}\` reported ${state} with the description ${JSON.stringify(found.description ?? "")}, which proves neither that it reviewed anything nor that it did not.${context.at}${requiredNote} Read the check itself before treating this PR as reviewed, or add the phrase to \`evidence_bearing_checks.${name}.proof\` once you have confirmed what it means.`,
+  };
 }
 
 /**
@@ -1349,46 +1535,100 @@ function normalizeDescription(description) {
  * @returns {{state: string, condition: string, why: string}} Severity, the condition observed, and a one-line reason
  */
 export function reviewGateState(reading, vocabulary = {}) {
-  // Shared by both inconclusive shapes so they can never drift apart, and so
-  // the sentence always says what to do (re-run) before it says what was seen.
-  const undetermined = seen => ({
-    state: REVIEW_GATE_STATES.unsatisfied,
-    condition: REVIEW_GATE_CONDITIONS.undetermined,
-    why: `was ${seen} when the settle window EXPIRED. The gate stopped waiting; it did not observe that nobody reviewed. This is NOT a finding about the code and nothing about the change should be investigated on the strength of it — RE-RUN THIS JOB once the reviewer has settled. Blocking is deliberate: an expired wait has not established that a review happened, and passing on it would let a pull request merge unreviewed whenever a reviewer ran slow. Do NOT re-request the review: a re-request OVERWRITES the existing commit status rather than adding to it, so under throttle it destroys a real review one-way and replaces a substantive objection with a rate-limit string.`,
-  });
-  if (!reading.present) {
-    return reading.waitExpired === true
-      ? undetermined("still unreported")
-      : {
-          state: REVIEW_GATE_STATES.unsatisfied,
-          condition: REVIEW_GATE_CONDITIONS.absent,
-          why: "did not report on this pull request at all. ABSENT is not the same as waived: nothing said it could not review, so nothing accounts for the silence. A guard that read absence as permission would pass forever the first time it looked at the wrong commit.",
-        };
-  }
+  if (!reading.present) return unreportedReviewGateState(reading.waitExpired);
+
   const state = String(reading.state ?? "").toUpperCase();
   const text = normalizeDescription(reading.description);
   if (state === "FAILURE" || state === "ERROR") {
-    return {
-      state: REVIEW_GATE_STATES.unsatisfied,
-      condition: REVIEW_GATE_CONDITIONS.objected,
-      why: `reported ${state}${text === "" ? "" : ` — ${JSON.stringify(reading.description ?? "")}`}. A review that RAN AND OBJECTED is the case this gate exists to let through to a human, and it is the one thing no waiver covers. READ THE OBJECTION: this is the one condition here where a review did happen.`,
-    };
+    return objectedReviewGateState(state, text, reading.description);
   }
   if (state !== "SUCCESS") {
-    return reading.waitExpired === true
-      ? undetermined(`still ${state === "" ? "unreported" : state}`)
-      : {
-          state: REVIEW_GATE_STATES.unsatisfied,
-          condition: REVIEW_GATE_CONDITIONS.pending,
-          why: `is still ${state === "" ? "unreported" : state} after the settle window. An unsettled check has not said anything yet, and the gate does not guess on its behalf. This is LATENESS, not a verdict about the code — wait for the reviewer to settle, then RE-RUN THIS JOB. Do NOT re-request the review: a re-request OVERWRITES the existing commit status rather than adding to it, so under throttle it destroys a real review one-way and replaces a substantive objection with a rate-limit string.`,
-        };
+    return pendingReviewGateState(state, reading.waitExpired);
   }
+  return successfulReviewGateState(text, reading.description, vocabulary);
+}
+
+/**
+ * Builds the common verdict for a settle window that expired inconclusively.
+ *
+ * @param {string} seen - What the final poll observed
+ * @returns {{state: string, condition: string, why: string}} Review gate verdict
+ */
+function undeterminedReviewGateState(seen) {
+  return {
+    state: REVIEW_GATE_STATES.unsatisfied,
+    condition: REVIEW_GATE_CONDITIONS.undetermined,
+    why: `was ${seen} when the settle window EXPIRED. The gate stopped waiting; it did not observe that nobody reviewed. This is NOT a finding about the code and nothing about the change should be investigated on the strength of it — RE-RUN THIS JOB once the reviewer has settled. Blocking is deliberate: an expired wait has not established that a review happened, and passing on it would let a pull request merge unreviewed whenever a reviewer ran slow. Do NOT re-request the review: a re-request OVERWRITES the existing commit status rather than adding to it, so under throttle it destroys a real review one-way and replaces a substantive objection with a rate-limit string.`,
+  };
+}
+
+/**
+ * Classifies a check that did not report at all.
+ *
+ * @param {boolean|undefined} waitExpired - Whether the settle window expired
+ * @returns {{state: string, condition: string, why: string}} Review gate verdict
+ */
+function unreportedReviewGateState(waitExpired) {
+  if (waitExpired === true) {
+    return undeterminedReviewGateState("still unreported");
+  }
+  return {
+    state: REVIEW_GATE_STATES.unsatisfied,
+    condition: REVIEW_GATE_CONDITIONS.absent,
+    why: "did not report on this pull request at all. ABSENT is not the same as waived: nothing said it could not review, so nothing accounts for the silence. A guard that read absence as permission would pass forever the first time it looked at the wrong commit.",
+  };
+}
+
+/**
+ * Classifies a review check that ran and objected.
+ *
+ * @param {string} state - Normalized failure state
+ * @param {string} text - Normalized description
+ * @param {string|undefined} description - Original description
+ * @returns {{state: string, condition: string, why: string}} Review gate verdict
+ */
+function objectedReviewGateState(state, text, description) {
+  return {
+    state: REVIEW_GATE_STATES.unsatisfied,
+    condition: REVIEW_GATE_CONDITIONS.objected,
+    why: `reported ${state}${text === "" ? "" : ` — ${JSON.stringify(description ?? "")}`}. A review that RAN AND OBJECTED is the case this gate exists to let through to a human, and it is the one thing no waiver covers. READ THE OBJECTION: this is the one condition here where a review did happen.`,
+  };
+}
+
+/**
+ * Classifies a check that has not reached success or failure.
+ *
+ * @param {string} state - Normalized in-flight state
+ * @param {boolean|undefined} waitExpired - Whether the settle window expired
+ * @returns {{state: string, condition: string, why: string}} Review gate verdict
+ */
+function pendingReviewGateState(state, waitExpired) {
+  const observed = state === "" ? "unreported" : state;
+  if (waitExpired === true) {
+    return undeterminedReviewGateState(`still ${observed}`);
+  }
+  return {
+    state: REVIEW_GATE_STATES.unsatisfied,
+    condition: REVIEW_GATE_CONDITIONS.pending,
+    why: `is still ${observed} after the settle window. An unsettled check has not said anything yet, and the gate does not guess on its behalf. This is LATENESS, not a verdict about the code — wait for the reviewer to settle, then RE-RUN THIS JOB. Do NOT re-request the review: a re-request OVERWRITES the existing commit status rather than adding to it, so under throttle it destroys a real review one-way and replaces a substantive objection with a rate-limit string.`,
+  };
+}
+
+/**
+ * Classifies a successful check from its exact description vocabulary.
+ *
+ * @param {string} text - Normalized description
+ * @param {string|undefined} description - Original description
+ * @param {{waive?: readonly string[], satisfy?: readonly string[]}} vocabulary - Per-check extensions
+ * @returns {{state: string, condition: string, why: string}} Review gate verdict
+ */
+function successfulReviewGateState(text, description, vocabulary) {
   const satisfies = [...REVIEW_SATISFACTIONS, ...(vocabulary.satisfy ?? [])];
   if (satisfies.some(phrase => text === normalizeDescription(phrase))) {
     return {
       state: REVIEW_GATE_STATES.satisfied,
       condition: REVIEW_GATE_CONDITIONS.satisfied,
-      why: `reported ${JSON.stringify(reading.description ?? "")}, which is a review that ran.`,
+      why: `reported ${JSON.stringify(description ?? "")}, which is a review that ran.`,
     };
   }
   const waivers = [...ENTITLEMENT_WAIVERS, ...(vocabulary.waive ?? [])];
@@ -1396,13 +1636,13 @@ export function reviewGateState(reading, vocabulary = {}) {
     return {
       state: REVIEW_GATE_STATES.waived,
       condition: REVIEW_GATE_CONDITIONS.waived,
-      why: `reported ${JSON.stringify(reading.description ?? "")} — the check saying, in its own words, that it could not review. WAIVED, not satisfied: this pull request is UNREVIEWED and merging it is a decision taken on that basis. The waiver clears the moment the entitlement behind it is fixed, at which point this gate starts biting with no code change.`,
+      why: `reported ${JSON.stringify(description ?? "")} — the check saying, in its own words, that it could not review. WAIVED, not satisfied: this pull request is UNREVIEWED and merging it is a decision taken on that basis. The waiver clears the moment the entitlement behind it is fixed, at which point this gate starts biting with no code change.`,
     };
   }
   return {
     state: REVIEW_GATE_STATES.unsatisfied,
     condition: REVIEW_GATE_CONDITIONS.unrecognised,
-    why: `reported SUCCESS with the description ${JSON.stringify(reading.description ?? "")}, which is neither a review that ran nor one of the named waivers. An UNRECOGNISED description is surfaced rather than waived — a gate that waived on "anything that is not a completed review" would waive a genuine failure and every phrase the vendor has not invented yet. If this string is legitimate, add it to \`evidence_bearing_checks\` under \`satisfy\` or \`waive\`, deliberately and by name.`,
+    why: `reported SUCCESS with the description ${JSON.stringify(description ?? "")}, which is neither a review that ran nor one of the named waivers. An UNRECOGNISED description is surfaced rather than waived — a gate that waived on "anything that is not a completed review" would waive a genuine failure and every phrase the vendor has not invented yet. If this string is legitimate, add it to \`evidence_bearing_checks\` under \`satisfy\` or \`waive\`, deliberately and by name.`,
   };
 }
 
@@ -2628,235 +2868,380 @@ export function runGuard(argv, options = {}) {
  * @returns {void}
  */
 function main(argv) {
-  /** @type {{violations: object[], checked: number, tokens: string[], enforcement: string, trust: {trusted: boolean, reason: string}, recipe: string}} */
-  let result;
-  try {
-    result = runGuard(argv);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (argv.includes("--json")) {
-      process.stdout.write(
-        `${JSON.stringify({ ok: false, error: message }, null, 2)}\n`
-      );
-    } else {
-      process.stderr.write(
-        `::error title=Skipped-required-check guard::${message}\n`
-      );
-      process.stdout.write(`❌ ${message}\n`);
-    }
-    process.exitCode = 1;
+  const attempt = attemptGuardRun(argv);
+  if (attempt.error !== undefined) {
+    writeGuardError(argv, attempt.error);
     return;
   }
 
-  const warnOnly = result.enforcement === "warn";
-  // The supported alternative to a per-consumer `--json` wrapper. Opt-in, so
-  // the shipped default is unchanged for everyone who does not pass it.
-  const failOnVacuous = argv.includes("--fail-on-vacuous");
-  // The review gate's own switch, deliberately NOT `--fail-on-vacuous`. That
-  // flag means "fail on a check that did no work", which under the owner's
-  // ruling (CodySwannGT/lisa#3221) is precisely the case that must NOT fail:
-  // the two named entitlement descriptions are waived. Sharing one flag between
-  // opposite policies is how a gate ends up doing the thing its name forbids.
-  const requireReviewEvidence = argv.includes(REQUIRE_REVIEW_EVIDENCE_FLAG);
-  /**
-   * True when a violation still fails the build under the active mode.
-   *
-   * @param {{kind: string}} violation - One violation
-   * @returns {boolean} True when it blocks
-   */
-  const blocks = violation => {
-    if (REVIEW_GATE_BLOCKING.includes(violation.kind)) {
-      return requireReviewEvidence;
-    }
-    // A named waiver is report-only under every flag. `--fail-on-vacuous`
-    // governs checks that claimed success without proving work; it must not
-    // turn a vendor entitlement waiver into a failure through a shared array.
-    if (violation.kind === VIOLATIONS.reviewWaived) return false;
-    return NEVER_BLOCKING.includes(violation.kind)
-      ? failOnVacuous
-      : !warnOnly || ALWAYS_BLOCKING.includes(violation.kind);
-  };
-  const blocking = result.violations.filter(blocks);
+  const result = attempt.result;
+  const policy = cliPolicy(argv, result);
+  const outcome = cliOutcome(result, policy);
+
   // Published BEFORE the report and before the exit code, because it is the only
-  // artefact of this run that a merge decision reads. A verdict computed after a
-  // `return` on some branch is a verdict that exists on the happy path only.
-  const verdict = result.verdict;
-  if (verdict !== undefined) writeVerdictOutputs(verdict);
-  const refusal = result.vacuity?.refusal ?? null;
-  const refusalBlocks =
-    refusal !== null && (!warnOnly || requireReviewEvidence);
-  const failed =
-    blocking.length > 0 ||
-    (!result.trust.trusted && !warnOnly) ||
-    refusalBlocks;
+  // artefact of this run that a merge decision reads.
+  if (result.verdict !== undefined) writeVerdictOutputs(result.verdict);
 
   if (argv.includes("--json")) {
+    writeJsonResult(result, outcome.failed);
+    return;
+  }
+  writeTextResult(result, policy, outcome);
+}
+
+/**
+ * Runs the guard without making error presentation part of the entry point.
+ *
+ * @param {ReadonlyArray<string>} argv - Arguments
+ * @returns {{result?: object, error?: unknown}} One guard result or error
+ */
+function attemptGuardRun(argv) {
+  try {
+    return { result: runGuard(argv) };
+  } catch (error) {
+    return { error };
+  }
+}
+
+/**
+ * Prints an exception in the selected output format.
+ *
+ * @param {ReadonlyArray<string>} argv - Arguments
+ * @param {unknown} error - Guard exception
+ * @returns {void}
+ */
+function writeGuardError(argv, error) {
+  const message = error instanceof Error ? error.message : String(error);
+  if (argv.includes("--json")) {
     process.stdout.write(
-      `${JSON.stringify(
-        {
-          ok: !failed,
-          answered: result.trust.trusted,
-          inspected:
-            result.vacuity !== undefined && result.vacuity.refusal === null,
-          ...result,
-        },
-        null,
-        2
-      )}\n`
+      `${JSON.stringify({ ok: false, error: message }, null, 2)}\n`
     );
-    if (failed) process.exitCode = 1;
+  } else {
+    process.stderr.write(
+      `::error title=Skipped-required-check guard::${message}\n`
+    );
+    process.stdout.write(`❌ ${message}\n`);
+  }
+  process.exitCode = 1;
+}
+
+/**
+ * Reads the CLI switches that change which findings block.
+ *
+ * @param {ReadonlyArray<string>} argv - Arguments
+ * @param {object} result - Guard result
+ * @returns {{warnOnly: boolean, failOnVacuous: boolean, requireReviewEvidence: boolean}} Active policy
+ */
+function cliPolicy(argv, result) {
+  return {
+    warnOnly: result.enforcement === "warn",
+    // The supported alternative to a per-consumer `--json` wrapper.
+    failOnVacuous: argv.includes("--fail-on-vacuous"),
+    // Deliberately distinct from `--fail-on-vacuous`; entitlement waivers do
+    // not become failures through a shared switch.
+    requireReviewEvidence: argv.includes(REQUIRE_REVIEW_EVIDENCE_FLAG),
+  };
+}
+
+/**
+ * True when one violation blocks under the active CLI policy.
+ *
+ * @param {{kind: string}} violation - One violation
+ * @param {{warnOnly: boolean, failOnVacuous: boolean, requireReviewEvidence: boolean}} policy - Active policy
+ * @returns {boolean} True when the finding blocks
+ */
+function violationBlocks(violation, policy) {
+  if (REVIEW_GATE_BLOCKING.includes(violation.kind)) {
+    return policy.requireReviewEvidence;
+  }
+  if (violation.kind === VIOLATIONS.reviewWaived) return false;
+  if (NEVER_BLOCKING.includes(violation.kind)) return policy.failOnVacuous;
+  return !policy.warnOnly || ALWAYS_BLOCKING.includes(violation.kind);
+}
+
+/**
+ * Computes the blocking set and refusal state once for both renderers.
+ *
+ * @param {object} result - Guard result
+ * @param {object} policy - Active CLI policy
+ * @returns {{blocking: object[], refusal: object|null, refusalBlocks: boolean, failed: boolean}} CLI outcome
+ */
+function cliOutcome(result, policy) {
+  const blocking = result.violations.filter(violation =>
+    violationBlocks(violation, policy)
+  );
+  const refusal = result.vacuity?.refusal ?? null;
+  const refusalBlocks =
+    refusal !== null && (!policy.warnOnly || policy.requireReviewEvidence);
+  const failed =
+    blocking.length > 0 ||
+    (!result.trust.trusted && !policy.warnOnly) ||
+    refusalBlocks;
+  return { blocking, refusal, refusalBlocks, failed };
+}
+
+/**
+ * Writes the machine-readable report.
+ *
+ * @param {object} result - Guard result
+ * @param {boolean} failed - Whether the run blocks
+ * @returns {void}
+ */
+function writeJsonResult(result, failed) {
+  process.stdout.write(
+    `${JSON.stringify(
+      {
+        ok: !failed,
+        answered: result.trust.trusted,
+        inspected:
+          result.vacuity !== undefined && result.vacuity.refusal === null,
+        ...result,
+      },
+      null,
+      2
+    )}\n`
+  );
+  if (failed) process.exitCode = 1;
+}
+
+/**
+ * Appends the published review verdict to the human report.
+ *
+ * @param {string[]} lines - Report lines
+ * @param {object} result - Guard result
+ * @returns {void}
+ */
+function appendVerdictReport(lines, result) {
+  if (result.verdict === undefined) return;
+  lines.push(
+    `**${result.verdict.title}**`,
+    "",
+    `Published as check-run conclusion \`${result.verdict.conclusion}\`. A \`neutral\` conclusion is how a WAIVED pull request is kept out of the shape a satisfied one prints — the waiver still blocks nothing, and it no longer looks like a review.`,
+    "",
+    result.waiveRate === undefined
+      ? "The waive rate over recently merged pull requests was NOT sampled on this run, so no rate is claimed here."
+      : `Recently merged pull requests sampled: ${result.waiveRate.sampled} — ${result.waiveRate.satisfied} reviewed, ${result.waiveRate.waived} waived, ${result.waiveRate.unsatisfied} unsatisfied.`,
+    ""
+  );
+}
+
+/**
+ * Appends and annotates an untrusted ruleset snapshot.
+ *
+ * @param {string[]} lines - Report lines
+ * @param {object} result - Guard result
+ * @param {object} policy - Active CLI policy
+ * @returns {void}
+ */
+function appendSnapshotRefusal(lines, result, policy) {
+  if (result.trust.trusted) return;
+  lines.push(
+    "⛔ **NOT CHECKED** — this guard cannot say whether any skip silences a required status check, and will not pretend to.",
+    "",
+    result.trust.reason,
+    "",
+    "```",
+    result.recipe,
+    "```",
+    ""
+  );
+  process.stderr.write(
+    `::${policy.warnOnly ? "warning" : "error"} title=Skipped-required checks NOT CHECKED::${result.trust.reason.split("\n")[0]}\n`
+  );
+}
+
+/**
+ * Appends and annotates a vacuity inspection that could not run.
+ *
+ * @param {string[]} lines - Report lines
+ * @param {{refusal: object|null, refusalBlocks: boolean}} outcome - CLI outcome
+ * @returns {void}
+ */
+function appendInspectionRefusal(lines, outcome) {
+  if (outcome.refusal === null) return;
+  lines.push(
+    `⛔ **NOT INSPECTED** (\`${outcome.refusal.kind}\`) — the vacuity arm did not examine a single check, and will not report that nothing was vacuous.`,
+    "",
+    outcome.refusal.reason,
+    ""
+  );
+  process.stderr.write(
+    `::${outcome.refusalBlocks ? "error" : "warning"} title=${outcome.refusal.kind}::${outcome.refusal.reason.split("\n")[0]}\n`
+  );
+}
+
+/**
+ * Appends the clean result, respecting a refused inspection.
+ *
+ * @param {string[]} lines - Report lines
+ * @param {object} result - Guard result
+ * @param {object|null} refusal - Vacuity refusal
+ * @returns {void}
+ */
+function appendCleanResult(lines, result, refusal) {
+  if (refusal !== null) return;
+  if (!result.trust.trusted) {
+    lines.push(
+      `The rules that do NOT read \`required_contexts\` were still applied to ${result.checked} token(s) and found nothing.`
+    );
     return;
   }
 
+  lines.push(
+    `✅ ${result.checked} \`skip_jobs\` token(s) examined; none silences a ruleset-required status check.`
+  );
+  if (result.pr === undefined) return;
+  const settleNote =
+    result.vacuity?.settled === false
+      ? " (One or more had not settled when the wait expired, so this is what was true at that moment.)"
+      : "";
+  lines.push(
+    `✅ ${result.evidenceChecked} evidence-bearing check(s) examined on PR #${result.pr}; each proved it did work.${settleNote}`
+  );
+}
+
+/**
+ * Appends annotations and prose for every finding.
+ *
+ * @param {string[]} lines - Report lines
+ * @param {object} result - Guard result
+ * @param {object} policy - Active CLI policy
+ * @param {object[]} blocking - Blocking subset
+ * @returns {void}
+ */
+function appendFindingReport(lines, result, policy, blocking) {
+  lines.push(
+    `${blocking.length > 0 ? "❌" : "⚠️"} ${result.violations.length} violation(s) across ${result.checked} \`skip_jobs\` token(s):`,
+    ""
+  );
+  for (const violation of result.violations) {
+    lines.push(`- **${violation.kind}** — ${violation.message}`);
+    process.stderr.write(
+      `::${violationBlocks(violation, policy) ? "error" : "warning"} title=${violation.kind}::${violation.message.split("\n")[0]}\n`
+    );
+  }
+  appendFindingContext(lines, result, policy);
+}
+
+/**
+ * Appends contextual guidance that applies to groups of findings.
+ *
+ * @param {string[]} lines - Report lines
+ * @param {object} result - Guard result
+ * @param {object} policy - Active CLI policy
+ * @returns {void}
+ */
+function appendFindingContext(lines, result, policy) {
+  if (result.vacuity?.settled === false) {
+    lines.push(
+      "",
+      "⏳ The settle wait EXPIRED before every declared review check reached a terminal state, so the readings above are where the wait stopped rather than where the reviewer finished. RE-RUN this job before treating any of it as a finding about the change."
+    );
+  }
+  if (policy.warnOnly) appendWarnModeGuidance(lines, policy);
+  if (hasVacuityFinding(result.violations)) {
+    appendVacuityGuidance(lines, policy.failOnVacuous);
+  }
+  if (hasReviewWaiver(result.violations)) appendReviewWaiverGuidance(lines);
+}
+
+/** @param {ReadonlyArray<object>} violations @returns {boolean} */
+function hasVacuityFinding(violations) {
+  return violations.some(violation =>
+    [VIOLATIONS.vacuous, VIOLATIONS.unproven].includes(violation.kind)
+  );
+}
+
+/** @param {ReadonlyArray<object>} violations @returns {boolean} */
+function hasReviewWaiver(violations) {
+  return violations.some(
+    violation => violation.kind === VIOLATIONS.reviewWaived
+  );
+}
+
+/** @param {string[]} lines @param {object} policy @returns {void} */
+function appendWarnModeGuidance(lines, policy) {
+  const reviewNote = policy.requireReviewEvidence
+    ? ` This run also passed \`--require-review-evidence\`, so \`${VIOLATIONS.reviewUnsatisfied}\` blocks.`
+    : "";
+  const vacuityNote = policy.failOnVacuous
+    ? ` This run also passed \`--fail-on-vacuous\`, so \`${VIOLATIONS.vacuous}\` and \`${VIOLATIONS.unproven}\` block.`
+    : "";
+  lines.push(
+    "",
+    `This declaration sets \`"enforcement": "warn"\`, so ordinary findings are report-only. A proven false green (\`${VIOLATIONS.suppressesRequired}\`) still blocks.${reviewNote}${vacuityNote} Review each finding, fix or declare it, then delete the \`enforcement\` key when the adoption ramp is complete.`
+  );
+}
+
+/** @param {string[]} lines @param {boolean} failOnVacuous @returns {void} */
+function appendVacuityGuidance(lines, failOnVacuous) {
+  lines.push(
+    "",
+    failOnVacuous
+      ? `\`${VIOLATIONS.vacuous}\` and \`${VIOLATIONS.unproven}\` are REPORT-ONLY by default; this run passed \`--fail-on-vacuous\`, which is the supported way to ask for an exit code once the governance call has been made. What they mean is unchanged: a PR carrying either finding has not been shown to be reviewed, so do not record it as reviewed.`
+      : `\`${VIOLATIONS.vacuous}\` and \`${VIOLATIONS.unproven}\` are REPORT-ONLY in every enforcement mode — they never fail a build. A required check can go hollow because a vendor hit an org-wide spending cap, and reddening every PR on a billing state would be a worse gate than the one being criticised. What they change is what you may CLAIM: a PR carrying either finding has not been shown to be reviewed, so do not record it as reviewed. Pass \`--fail-on-vacuous\` to make them block.`
+  );
+}
+
+/** @param {string[]} lines @returns {void} */
+function appendReviewWaiverGuidance(lines) {
+  lines.push(
+    "",
+    `\`${VIOLATIONS.reviewWaived}\` is REPORT-ONLY under every enforcement mode and command-line flag. It records that the named review could not run; it is neither evidence that a review completed nor a failure the pull-request author can fix.`
+  );
+}
+
+/**
+ * Builds the complete human-readable report.
+ *
+ * @param {object} result - Guard result
+ * @param {object} policy - Active CLI policy
+ * @param {object} outcome - CLI outcome
+ * @returns {string} Markdown report
+ */
+function buildTextReport(result, policy, outcome) {
   const lines = ["## 🔒 Required checks that prove nothing", ""];
-
-  // The verdict is the FIRST line of the report and not a footnote, and it is
-  // the same string published to the check run, so the two surfaces cannot
-  // drift into disagreeing about what this run concluded.
-  if (verdict !== undefined) {
-    lines.push(
-      `**${verdict.title}**`,
-      "",
-      `Published as check-run conclusion \`${verdict.conclusion}\`. A \`neutral\` conclusion is how a WAIVED pull request is kept out of the shape a satisfied one prints — the waiver still blocks nothing, and it no longer looks like a review.`,
-      "",
-      result.waiveRate === undefined
-        ? "The waive rate over recently merged pull requests was NOT sampled on this run, so no rate is claimed here."
-        : `Recently merged pull requests sampled: ${result.waiveRate.sampled} — ${result.waiveRate.satisfied} reviewed, ${result.waiveRate.waived} waived, ${result.waiveRate.unsatisfied} unsatisfied.`,
-      ""
-    );
-  }
-
-  // The refusal comes FIRST and replaces the verdict. Printing "✅ none
-  // silences a required check" from a snapshot nobody transcribed is the one
-  // outcome that is worse than never running: it is a confident wrong answer,
-  // and it teaches people to trust it (#2476).
-  if (!result.trust.trusted) {
-    lines.push(
-      `⛔ **NOT CHECKED** — this guard cannot say whether any skip silences a required status check, and will not pretend to.`,
-      "",
-      result.trust.reason,
-      "",
-      "```",
-      result.recipe,
-      "```",
-      ""
-    );
-    process.stderr.write(
-      `::${warnOnly ? "warning" : "error"} title=Skipped-required checks NOT CHECKED::${result.trust.reason.split("\n")[0]}\n`
-    );
-  }
-
-  // Second refusal, same shape and the same reason as the first: an inspection
-  // that never happened must not print the sentence a clean one prints.
-  if (refusal !== null) {
-    lines.push(
-      `⛔ **NOT INSPECTED** (\`${refusal.kind}\`) — the vacuity arm did not examine a single check, and will not report that nothing was vacuous.`,
-      "",
-      refusal.reason,
-      ""
-    );
-    process.stderr.write(
-      `::${refusalBlocks ? "error" : "warning"} title=${refusal.kind}::${refusal.reason.split("\n")[0]}\n`
-    );
-  }
-
-  if (refusal !== null && result.violations.length === 0) {
-    // NOT INSPECTED is the whole verdict for this arm. Neither a clean summary
-    // nor a vacuity-violation summary may contradict a result that examined
-    // nothing. Independent offline violations still render below: a refused
-    // evidence read cannot erase what the skip declaration already proved.
-  } else if (result.violations.length === 0) {
-    if (result.trust.trusted) {
-      lines.push(
-        `✅ ${result.checked} \`skip_jobs\` token(s) examined; none silences a ruleset-required status check.`,
-        ...(result.pr === undefined || refusal !== null
-          ? []
-          : [
-              `✅ ${result.evidenceChecked} evidence-bearing check(s) examined on PR #${result.pr}; each proved it did work.${
-                result.vacuity?.settled === false
-                  ? " (One or more had not settled when the wait expired, so this is what was true at that moment.)"
-                  : ""
-              }`,
-            ])
-      );
-    } else {
-      lines.push(
-        `The rules that do NOT read \`required_contexts\` were still applied to ${result.checked} token(s) and found nothing.`
-      );
-    }
+  appendVerdictReport(lines, result);
+  appendSnapshotRefusal(lines, result, policy);
+  appendInspectionRefusal(lines, outcome);
+  if (result.violations.length === 0) {
+    appendCleanResult(lines, result, outcome.refusal);
   } else {
-    lines.push(
-      `${blocking.length > 0 ? "❌" : "⚠️"} ${result.violations.length} violation(s) across ${result.checked} \`skip_jobs\` token(s):`,
-      ""
-    );
-    for (const violation of result.violations) {
-      lines.push(`- **${violation.kind}** — ${violation.message}`);
-      process.stderr.write(
-        `::${blocks(violation) ? "error" : "warning"} title=${violation.kind}::${violation.message.split("\n")[0]}\n`
-      );
-    }
-    // The clean branch above has always disclosed an expired wait. This branch
-    // — a RED run, the only one where the disclosure changes what an operator
-    // does next — did not, so the fact was published exactly where it was not
-    // needed and withheld where it was (#3716).
-    if (result.vacuity?.settled === false) {
-      lines.push(
-        "",
-        "⏳ The settle wait EXPIRED before every declared review check reached a terminal state, so the readings above are where the wait stopped rather than where the reviewer finished. RE-RUN this job before treating any of it as a finding about the change."
-      );
-    }
-    if (warnOnly) {
-      lines.push(
-        "",
-        `This declaration sets \`"enforcement": "warn"\`, so ordinary findings are report-only. A proven false green (\`${VIOLATIONS.suppressesRequired}\`) still blocks.${requireReviewEvidence ? ` This run also passed \`--require-review-evidence\`, so \`${VIOLATIONS.reviewUnsatisfied}\` blocks.` : ""}${failOnVacuous ? ` This run also passed \`--fail-on-vacuous\`, so \`${VIOLATIONS.vacuous}\` and \`${VIOLATIONS.unproven}\` block.` : ""} Review each finding, fix or declare it, then delete the \`enforcement\` key when the adoption ramp is complete.`
-      );
-    }
-    if (
-      result.violations.some(violation =>
-        [VIOLATIONS.vacuous, VIOLATIONS.unproven].includes(violation.kind)
-      )
-    ) {
-      lines.push(
-        "",
-        failOnVacuous
-          ? `\`${VIOLATIONS.vacuous}\` and \`${VIOLATIONS.unproven}\` are REPORT-ONLY by default; this run passed \`--fail-on-vacuous\`, which is the supported way to ask for an exit code once the governance call has been made. What they mean is unchanged: a PR carrying either finding has not been shown to be reviewed, so do not record it as reviewed.`
-          : `\`${VIOLATIONS.vacuous}\` and \`${VIOLATIONS.unproven}\` are REPORT-ONLY in every enforcement mode — they never fail a build. A required check can go hollow because a vendor hit an org-wide spending cap, and reddening every PR on a billing state would be a worse gate than the one being criticised. What they change is what you may CLAIM: a PR carrying either finding has not been shown to be reviewed, so do not record it as reviewed. Pass \`--fail-on-vacuous\` to make them block.`
-      );
-    }
-    if (
-      result.violations.some(
-        violation => violation.kind === VIOLATIONS.reviewWaived
-      )
-    ) {
-      lines.push(
-        "",
-        `\`${VIOLATIONS.reviewWaived}\` is REPORT-ONLY under every enforcement mode and command-line flag. It records that the named review could not run; it is neither evidence that a review completed nor a failure the pull-request author can fix.`
-      );
-    }
+    appendFindingReport(lines, result, policy, outcome.blocking);
   }
-  const report = `${lines.join("\n")}\n`;
+  return `${lines.join("\n")}\n`;
+}
+
+/**
+ * Writes the human report, best-effort step summary, and exit status.
+ *
+ * @param {object} result - Guard result
+ * @param {object} policy - Active CLI policy
+ * @param {object} outcome - CLI outcome
+ * @returns {void}
+ */
+function writeTextResult(result, policy, outcome) {
+  const report = buildTextReport(result, policy, outcome);
   process.stdout.write(report);
-  if (process.env.GITHUB_STEP_SUMMARY) {
-    // Synchronous, and failure-tolerant, because this is reporting rather than
-    // verdict. The dynamic import returned a promise `main` did not await, so an
-    // unwritable path, a removed directory or a full disk produced an unhandled
-    // rejection — which Node exits non-zero on. A clean run then reported a CI
-    // failure while the printed report said the guard passed, inverting the exit
-    // code this file works hard to make meaningful. Losing a summary line is the
-    // acceptable failure here; losing the verdict is not.
-    try {
-      appendFileSync(process.env.GITHUB_STEP_SUMMARY, report);
-    } catch (error) {
-      console.error(
-        `[skipped-required-checks] step summary not written: ${error.message}`
-      );
-    }
+  writeStepSummary(report);
+  if (outcome.failed) process.exitCode = 1;
+}
+
+/**
+ * Appends the report to the Actions summary without changing the verdict.
+ *
+ * @param {string} report - Rendered report
+ * @returns {void}
+ */
+function writeStepSummary(report) {
+  if (!process.env.GITHUB_STEP_SUMMARY) return;
+  try {
+    appendFileSync(process.env.GITHUB_STEP_SUMMARY, report);
+  } catch (error) {
+    console.error(
+      `[skipped-required-checks] step summary not written: ${error.message}`
+    );
   }
-  // Refusal is a failure, not a pass: an explicit run must never be mistaken
-  // for a clean bill of health. `warn` — which only Lisa's untranscribed seeds
-  // ship — downgrades it, because reddening a whole fleet the day a seed
-  // arrives is how a gate gets deleted instead of transcribed.
-  if (failed) process.exitCode = 1;
 }
 
 if (invokedAsScript(import.meta.url)) {
