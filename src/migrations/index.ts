@@ -11,6 +11,7 @@ import { EnsurePushDefaultSafeMigration } from "./ensure-push-default-safe.js";
 import { EnsureQualityCallerScopesMigration } from "./ensure-quality-caller-scopes.js";
 import { EnsureSeededGatesMigration } from "./ensure-seeded-gates.js";
 import { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes-lisa-harness.js";
+import { EnsureThirdPartyActionPinsMigration } from "./ensure-third-party-action-pins.js";
 import { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
 import { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared.js";
 import { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
@@ -42,6 +43,7 @@ export { EnsurePushDefaultSafeMigration } from "./ensure-push-default-safe.js";
 export { EnsureQualityCallerScopesMigration } from "./ensure-quality-caller-scopes.js";
 export { EnsureSeededGatesMigration } from "./ensure-seeded-gates.js";
 export { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes-lisa-harness.js";
+export { EnsureThirdPartyActionPinsMigration } from "./ensure-third-party-action-pins.js";
 export { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
 export { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared.js";
 export { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
@@ -76,6 +78,7 @@ export class MigrationRegistry {
       new EnsureQualityCallerScopesMigration(),
       new EnsureSeededGatesMigration(),
       new EnsureSonarExcludesLisaHarnessMigration(),
+      new EnsureThirdPartyActionPinsMigration(),
       new EnsureWikiSourceDeclaredMigration(),
       new PruneRetiredClaudeDenyRulesMigration(),
       new ReconcileClaudeStackPluginsMigration(),
