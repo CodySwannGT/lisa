@@ -2437,7 +2437,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-contents/.husky/prepare-commit-msg":
       "4a719c20da65653f266e7c8a346b5546ad05f1dfa34665fc7fec47e89d2f58d1",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
-      "8dbddc0297ca574d150b3e669550320bd2df6e592c083317626f53a91f36d349",
+      "242d5ee425e0374da00e07f5fea5fcf06840087227f51710eaea119d80f349dc",
     "typescript/copy-overwrite/.github/GITHUB_ACTIONS.md":
       "3f5d8e7f5f2c8ec1d369359f2ee64c033736df4bc172d06da1b4be5ee65b173b",
     "typescript/copy-overwrite/.lintstagedrc.json":

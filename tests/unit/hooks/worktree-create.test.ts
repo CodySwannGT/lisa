@@ -9,7 +9,7 @@
  * branch, and keeps all git chatter off stdout.
  * @module tests/unit/hooks/worktree-create
  */
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -85,23 +85,30 @@ function createGitRepo(): string {
  * Run the hook with a WorktreeCreate stdin payload.
  * @param root - Project root passed as `cwd` in the payload
  * @param name - Worktree name
+ * @param options - Overrides for how the hook is invoked
+ * @param options.env - Extra environment variables for the hook process
+ * @param options.omitCwd - Omit `cwd` from the payload entirely
  * @returns The hook's exit status, trimmed stdout, and stderr
  */
 function runHook(
   root: string,
-  name: string
+  name: string,
+  options: {
+    env?: NodeJS.ProcessEnv;
+    omitCwd?: boolean;
+  } = {}
 ): { status: number | null; stdout: string; stderr: string } {
   const payload = JSON.stringify({
     hook_event_name: "WorktreeCreate",
     name,
-    cwd: root,
+    ...(options.omitCwd === true ? {} : { cwd: root }),
   });
   const result = boundedSpawnSync({
     label: "worktree-create.sh",
     command: SH_PATH,
     args: [HOOK_PATH],
     cwd: root,
-    env: cleanGitEnv(),
+    env: { ...cleanGitEnv(), ...options.env },
     input: payload,
   });
   // Raw stdout (not trimmed): the contract is "ONLY the path", so tests assert
@@ -171,5 +178,201 @@ describe.skipIf(!hasJq)("WorktreeCreate hook", () => {
     expect(status).not.toBe(0);
     expect(stdout.trim()).toBe("");
     expect(existsSync(path.join(root, "..", "escape"))).toBe(false);
+  });
+});
+
+const INTEGRATION_BRANCH = "main";
+const FEATURE_BRANCH = "feat/other-ticket";
+const FEATURE_COMMIT_SUBJECT = "another work item's unmerged commit";
+const INTEGRATION_COMMIT_SUBJECT = "init";
+const REMOTE_SECRET = "s3cr3t-token";
+const REMOTE_URL_WITH_SECRET = `https://user:${REMOTE_SECRET}@example.invalid/o/r.git`;
+
+/**
+ * Run a git command in a repo and return its trimmed stdout.
+ * @param cwd - Directory to run in
+ * @param args - Git arguments
+ * @returns Trimmed stdout
+ */
+function git(cwd: string, args: readonly string[]): string {
+  return (
+    boundedSpawnSync({
+      label: `git ${args[0] ?? ""}`,
+      command: GIT_PATH,
+      args: [...args],
+      cwd,
+      env: { ...cleanGitEnv(), ...GIT_IDENTITY },
+    }).stdout ?? ""
+  ).trim();
+}
+
+/**
+ * The subject line of a worktree's checked-out commit — the cheapest way to say
+ * which base it was actually cut from.
+ * @param worktree - Worktree path
+ * @returns The commit subject
+ */
+function baseSubject(worktree: string): string {
+  return git(worktree, ["log", "-1", "--format=%s"]);
+}
+
+/**
+ * A checkout parked on an unmerged feature branch, with the integration base
+ * held by `refs/remotes/origin/main`. This is the shape that made every created
+ * worktree inherit another work item's commits.
+ * @param options - Fixture shape controls
+ * @param options.originHead - Set false to leave `origin/HEAD` unresolvable
+ * @returns The repo root
+ */
+function createDriftedRepo(options: { originHead?: boolean } = {}): string {
+  const root = createGitRepo();
+  git(root, ["branch", "-M", INTEGRATION_BRANCH]);
+  git(root, [
+    "update-ref",
+    `refs/remotes/origin/${INTEGRATION_BRANCH}`,
+    git(root, ["rev-parse", INTEGRATION_BRANCH]),
+  ]);
+  git(root, ["remote", "add", "origin", REMOTE_URL_WITH_SECRET]);
+  git(root, ["checkout", "-q", "-b", FEATURE_BRANCH]);
+  git(root, ["commit", "-q", "--allow-empty", "-m", FEATURE_COMMIT_SUBJECT]);
+  if (options.originHead !== false) {
+    git(root, [
+      "symbolic-ref",
+      "refs/remotes/origin/HEAD",
+      `refs/remotes/origin/${INTEGRATION_BRANCH}`,
+    ]);
+  }
+  return root;
+}
+
+describe.skipIf(!hasJq)("WorktreeCreate hook base selection", () => {
+  it("bases a new worktree on the integration branch, not the checkout's HEAD", () => {
+    const root = createDriftedRepo();
+    const { status, stdout } = runHook(root, "based");
+    expect(status).toBe(0);
+
+    const worktree = stdout.trim();
+    expect(baseSubject(worktree)).toBe(INTEGRATION_COMMIT_SUBJECT);
+  });
+
+  it("does not inherit commits that are absent from the integration branch", () => {
+    const root = createDriftedRepo();
+    const worktree = runHook(root, "clean-base").stdout.trim();
+
+    // Left/right counts against the integration branch: the right-hand number
+    // is commits the worktree carries that origin/main does not. Before the
+    // fix this was `0\t1` — the feature branch's commit came along silently.
+    expect(
+      git(worktree, [
+        "rev-list",
+        "--left-right",
+        "--count",
+        `refs/remotes/origin/${INTEGRATION_BRANCH}...HEAD`,
+      ])
+    ).toBe("0\t0");
+  });
+
+  it("does not make the integration branch the new branch's push upstream", () => {
+    const root = createDriftedRepo();
+    const worktree = runHook(root, "untracked").stdout.trim();
+    const upstream = boundedSpawnSync({
+      label: "git rev-parse @{u}",
+      command: GIT_PATH,
+      args: ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"],
+      cwd: worktree,
+      env: cleanGitEnv(),
+    });
+    expect(upstream.status).not.toBe(0);
+  });
+
+  it("announces the repository and the resolved base on stderr", () => {
+    const root = createDriftedRepo();
+    const { stderr } = runHook(root, "announced");
+    expect(stderr).toContain(`repository : ${root}`);
+    expect(stderr).toContain(`base       : refs/remotes/origin/main`);
+    expect(stderr).toContain("(origin/HEAD)");
+  });
+
+  it("redacts credentials embedded in the announced origin URL", () => {
+    const root = createDriftedRepo();
+    const { stderr } = runHook(root, "redacted");
+    expect(stderr).not.toContain(REMOTE_SECRET);
+    expect(stderr).toContain("https://example.invalid/o/r.git");
+  });
+
+  it("falls back to HEAD and warns loudly when no integration branch resolves", () => {
+    const root = createDriftedRepo({ originHead: false });
+    const { status, stdout, stderr } = runHook(root, "fallback");
+
+    // The fallback must not be a hard failure: a non-zero exit aborts worktree
+    // creation entirely, so an offline clone or a repo with no remote still
+    // gets a worktree — it just gets told what it got.
+    expect(status).toBe(0);
+    expect(stderr).toContain("(fallback)");
+    expect(stderr).toContain("WARNING");
+    expect(stderr).toContain("may carry another work item's unmerged commits");
+    expect(baseSubject(stdout.trim())).toBe(FEATURE_COMMIT_SUBJECT);
+  });
+
+  it("uses the configured production branch when origin/HEAD is absent", () => {
+    const root = createDriftedRepo({ originHead: false });
+    writeFileSync(
+      path.join(root, ".lisa.config.json"),
+      JSON.stringify({ deploy: { branches: { production: "main" } } })
+    );
+    const { stdout, stderr } = runHook(root, "configured");
+    expect(stderr).toContain("(deploy.branches.production)");
+    expect(baseSubject(stdout.trim())).toBe(INTEGRATION_COMMIT_SUBJECT);
+  });
+
+  it("ignores an origin/HEAD symref pointing outside refs/remotes/origin/", () => {
+    const root = createDriftedRepo({ originHead: false });
+    // A symref that resolves, but to a ref the remote does not govern. Taking
+    // it would let anything that can write the ref store choose the base.
+    git(root, [
+      "symbolic-ref",
+      "refs/remotes/origin/HEAD",
+      `refs/heads/${FEATURE_BRANCH}`,
+    ]);
+    const { stderr } = runHook(root, "crafted");
+    expect(stderr).toContain("(fallback)");
+    expect(stderr).not.toContain("(origin/HEAD)");
+  });
+
+  it("refuses when LISA_WORKTREE_BASE names a ref that does not resolve", () => {
+    const root = createDriftedRepo();
+    const { status, stdout, stderr } = runHook(root, "badbase", {
+      env: { LISA_WORKTREE_BASE: "refs/heads/does-not-exist" },
+    });
+
+    // An explicit override that cannot be honored is a configuration error the
+    // operator can see and fix. Silently using a different base is the exact
+    // failure this hook exists to stop.
+    expect(status).not.toBe(0);
+    expect(stdout.trim()).toBe("");
+    expect(stderr).toContain("LISA_WORKTREE_BASE");
+    expect(existsSync(path.join(root, ".claude", "worktrees", "badbase"))).toBe(
+      false
+    );
+  });
+
+  it("honors a LISA_WORKTREE_BASE that does resolve", () => {
+    const root = createDriftedRepo();
+    const { stdout, stderr } = runHook(root, "override", {
+      env: { LISA_WORKTREE_BASE: `refs/heads/${FEATURE_BRANCH}` },
+    });
+    expect(stderr).toContain("(LISA_WORKTREE_BASE)");
+    expect(baseSubject(stdout.trim())).toBe(FEATURE_COMMIT_SUBJECT);
+  });
+
+  it("warns rather than silently resolving the repo when cwd is missing", () => {
+    const root = createDriftedRepo();
+    const { status, stderr } = runHook(root, "nocwd", { omitCwd: true });
+
+    // The hook cannot know which repository was intended — it is handed only
+    // `{ name, cwd }`. What it must not do is take the process working
+    // directory without saying so.
+    expect(status).toBe(0);
+    expect(stderr).toContain("payload carried no 'cwd'");
   });
 });
