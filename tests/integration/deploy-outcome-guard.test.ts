@@ -27,13 +27,14 @@
  * Per the Test Isolation house rule, expected values are HARDCODED.
  * @module tests/integration/deploy-outcome-guard
  */
-import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
 import { load as loadYaml } from "js-yaml";
 import { describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 
 import {
   jobRuns,
@@ -229,8 +230,10 @@ function runGuard(
 } {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-deploy-outcome-"));
   const summaryFile = path.join(dir, "summary.md");
-  const outcome = spawnSync(SHELL, ["-c", script], {
-    encoding: "utf8",
+  const outcome = boundedSpawnSync({
+    label: "deploy outcome guard",
+    command: SHELL,
+    args: ["-c", script],
     env: {
       ...process.env,
       RELEASE_RESULT: release,
