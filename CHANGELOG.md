@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.39.0](https://github.com/CodySwannGT/lisa/compare/v4.38.8...v4.39.0) (2026-09-04)
+
+
+### Features
+
+* **deletions:** require a declared basis before removing a host's file ([bb2851a](https://github.com/CodySwannGT/lisa/commit/bb2851abe02743daa418bcdf047b5835c161a7af)), closes [#3656](https://github.com/CodySwannGT/lisa/issues/3656) [#3599](https://github.com/CodySwannGT/lisa/issues/3599) [CodySwannGT/lisa#3700](https://github.com/CodySwannGT/lisa/issues/3700)
+
 ### [4.38.8](https://github.com/CodySwannGT/lisa/compare/v4.38.7...v4.38.8) (2026-09-04)
 
 
