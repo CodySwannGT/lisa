@@ -81,6 +81,15 @@ const GUARD_TS = "src/guard.ts";
 /** The one changed line in the standard guard fixture. */
 const GUARD_RANGE = `${GUARD_TS}:1-1`;
 
+/** Commit message for the step that widens a fixture enough to window it. */
+const WIDEN = "widen source";
+
+/** A four-line fixture body, wide enough for a line window to mean something. */
+const FOUR_LINES = "one\ntwo\nthree\nfour\n";
+
+/** The same fixture with only its second line edited. */
+const FOUR_LINES_EDITED = "one\ntwo changed\nthree\nfour\n";
+
 /** Body for a second source file added on a topic branch. */
 const SRC_B = "export const b = 2;\n";
 
@@ -821,10 +830,10 @@ describe("diff scoping against a real repository", () => {
   });
 
   it("scopes an existing file to its changed new-side line", () => {
-    write(root, "src/a.ts", "one\ntwo\nthree\nfour\n");
-    commit(root, "widen source");
+    write(root, "src/a.ts", FOUR_LINES);
+    commit(root, WIDEN);
     git(root, ["checkout", "-q", "-b", TOPIC]);
-    write(root, "src/a.ts", "one\ntwo changed\nthree\nfour\n");
+    write(root, "src/a.ts", FOUR_LINES_EDITED);
     commit(root, TOPIC);
 
     const scope = selectChangedTargets(
@@ -837,9 +846,75 @@ describe("diff scoping against a real repository", () => {
     expect(scope.noCurrentLines).toEqual([]);
   });
 
+  it("windows on the working tree Stryker mutates, not on committed state", () => {
+    write(root, "src/a.ts", FOUR_LINES);
+    commit(root, WIDEN);
+    git(root, ["checkout", "-q", "-b", TOPIC]);
+    write(root, "src/a.ts", FOUR_LINES_EDITED);
+    commit(root, TOPIC);
+    // An uncommitted insertion ABOVE the change. Stryker reads the working
+    // tree, where "two changed" now sits on line 5; a window derived from
+    // `base...HEAD` still calls it line 2, which in the working tree is a
+    // comment. The run then mutates lines nobody touched and the score is
+    // reported as a verdict about the change — a confident answer to a
+    // question that was never asked.
+    write(
+      root,
+      "src/a.ts",
+      "// c1\n// c2\n// c3\none\ntwo changed\nthree\nfour\n"
+    );
+
+    const scope = selectChangedTargets(
+      root,
+      resolveDiffBase(root, "main"),
+      compileMutatePatterns([SRC_TS])
+    );
+    expect(scope.selected).toEqual(["src/a.ts:1-3", "src/a.ts:5-5"]);
+  });
+
+  it("selects a mutate target whose only change is uncommitted", () => {
+    git(root, ["checkout", "-q", "-b", TOPIC]);
+    write(root, "src/a.ts", "export const a = 2;\n");
+
+    const scope = selectChangedTargets(
+      root,
+      resolveDiffBase(root, "main"),
+      compileMutatePatterns([SRC_TS])
+    );
+    // Committed state says this branch changed nothing, so the gate used to
+    // print "0 mutate targets" and exit 0 while Stryker, pointed at the same
+    // tree, had a changed target in front of it. That empty is the false green
+    // this whole file exists to refuse.
+    expect(scope.changed).toBe(1);
+    expect(scope.selectedFiles).toBe(1);
+    expect(scope.selected).toEqual(["src/a.ts:1-1"]);
+  });
+
+  it("prefers the remote-tracking ref over a stale local branch of the same name", () => {
+    // #3889 read `gate.since || "main"` and concluded the gate diffs against
+    // the LOCAL `main`, so a stale local branch would drag in everyone else's
+    // files. It does not: `origin/<ref>` is probed first and only falls back to
+    // the local name. Pinned here so the claim is settled by measurement rather
+    // than by reading one line, and so the preference cannot be dropped
+    // silently later.
+    const stale = git(root, ["rev-parse", "HEAD"]);
+    write(root, "src/a.ts", "export const a = 1;\nexport const b = 1;\n");
+    commit(root, "advance the integration branch");
+    const advanced = git(root, ["rev-parse", "HEAD"]);
+
+    git(root, ["checkout", "-q", "-b", TOPIC]);
+    git(root, ["update-ref", "refs/remotes/origin/main", advanced]);
+    git(root, ["branch", "-f", "main", stale]);
+    write(root, "src/b.ts", SRC_B);
+    commit(root, TOPIC);
+
+    expect(git(root, ["merge-base", "main", "HEAD"])).toBe(stale);
+    expect(resolveDiffBase(root, "main")).toBe(advanced);
+  });
+
   it("names a mutate target whose diff contains only deleted lines", () => {
     write(root, "src/a.ts", "one\ntwo\nthree\n");
-    commit(root, "widen source");
+    commit(root, WIDEN);
     git(root, ["checkout", "-q", "-b", TOPIC]);
     write(root, "src/a.ts", "one\nthree\n");
     commit(root, TOPIC);

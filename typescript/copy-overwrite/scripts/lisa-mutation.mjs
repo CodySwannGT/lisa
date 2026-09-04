@@ -1447,6 +1447,15 @@ export const parseChangedLineRanges = patch => {
 
 /**
  * Stryker mutation ranges for one changed file.
+ *
+ * The diff runs against the WORKING TREE, not `base...HEAD`. Stryker mutates
+ * the files on disk, so a window derived from committed state describes lines
+ * that may no longer be where it says they are: any uncommitted edit above the
+ * change shifts the numbering out from under the window, and the run then
+ * mutates whatever now occupies those lines — measured once as 37 lines of pure
+ * comment, scored, and reported as a verdict about the change. It could as
+ * easily have produced a pass. Diffing what Stryker actually reads is what
+ * makes the window and the subject the same thing.
  * @param {string} cwd - Project root.
  * @param {string} base - Merge-base sha.
  * @param {string} file - Repository-relative path.
@@ -1454,14 +1463,7 @@ export const parseChangedLineRanges = patch => {
  */
 export const selectChangedLineRanges = (cwd, base, file) =>
   parseChangedLineRanges(
-    git(cwd, [
-      "diff",
-      "--unified=0",
-      "--diff-filter=ACMR",
-      `${base}...HEAD`,
-      "--",
-      file,
-    ])
+    git(cwd, ["diff", "--unified=0", "--diff-filter=ACMR", base, "--", file])
   ).map(({ start, end }) => `${file}:${start}-${end}`);
 
 /**
@@ -1475,12 +1477,11 @@ export const selectChangedLineRanges = (cwd, base, file) =>
  *   files no mutation tool here reaches.
  */
 export const selectChangedTargets = (cwd, base, patterns) => {
-  const changed = git(cwd, [
-    "diff",
-    "--name-only",
-    "--diff-filter=ACMRD",
-    `${base}...HEAD`,
-  ])
+  // Working tree, not `base...HEAD`, for the same reason the line ranges are:
+  // a target whose only change is uncommitted is invisible to committed state,
+  // so the gate printed "0 mutate targets" and exited 0 while Stryker, pointed
+  // at the same tree, had a changed target in front of it.
+  const changed = git(cwd, ["diff", "--name-only", "--diff-filter=ACMRD", base])
     .split("\n")
     .map(file => file.trim())
     .filter(Boolean);
@@ -2177,6 +2178,11 @@ export const reportRun = (cwd, result, scored) => {
 export const runGate = (cwd = process.cwd(), argv = []) => {
   const gate = readGate(cwd);
   const enabled = envFlag("MUTATION_ENABLED") ?? gate.enabled === true;
+  // Reads like the LOCAL branch and is not: `resolveDiffBase` probes
+  // `origin/<since>` first and only falls back to the local name, so a stale
+  // local `main` does not drag every commit it is missing into the diff. Said
+  // here because the line alone has already been read the other way and filed
+  // as a defect; the behaviour is pinned by a test rather than by this note.
   const since = process.env.MUTATION_SINCE || gate.since || "main";
 
   if (!enabled) {

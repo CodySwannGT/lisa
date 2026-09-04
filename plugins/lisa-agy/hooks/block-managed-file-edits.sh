@@ -719,6 +719,20 @@ def shell_script_operand(args):
             # not a script file.
             if not token.startswith("--") and "c" in token[1:]:
                 return None
+            # `-n` is noexec: the shell READS and parses the file, then exits
+            # without executing a line of it. `bash -n <file>` is the one shape
+            # that puts a path at a command position while provably running
+            # nothing — the exact seam between reading and running, and this
+            # walk got it wrong (CodySwannGT/lisa#3781). Here that meant a
+            # syntax check of any script mentioning a managed path was refused
+            # as though it were about to write one.
+            #
+            # `bash <file>` still executes and is still refused. Noexec is the
+            # distinction, not the program.
+            if token == "--noexec" or (
+                not token.startswith("--") and "n" in token[1:]
+            ):
+                return None
             continue
         return token
     return None
