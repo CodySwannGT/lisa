@@ -32,3 +32,13 @@ Asking after the research answered the question is also a violation. When gather
 ## Reporting
 
 Record settled decisions in a short clause, such as "auto-merge on, per standing preference" or "scoped app-wide, because the Android finding decides it." This gives the operator a chance to correct the decision without requiring an avoidable question first.
+
+## Re-read the instruction file from disk before escalating
+
+This rule is delivered at session start; the re-read it requires happens at the escalation boundary. Re-reading at session start would re-read the same moment the context was built from.
+
+Before forming an escalation, handing a decision back, or re-opening a question that may already be settled, open `AGENTS.md` (or `CLAUDE.md`) from disk and read its `## Standing rulings` section. If the file has no such heading, re-read the file.
+
+The instruction is to open the file rather than to assess the context, because context completeness is not observable from inside. An instruction file is injected at session start and can arrive shortened, and a cut landing on a section boundary is indistinguishable from a document that never carried that section. Rulings are also written after sessions begin, so an injected copy is a snapshot of the moment the session started.
+
+This is a pointer, not a copy. It stays correct as rulings accumulate and survives a shortened copy of the file it points at, because it does not travel inside that file.
