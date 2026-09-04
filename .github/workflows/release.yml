@@ -1426,6 +1426,18 @@ jobs:
 
       - name: Check Sentry Configuration
         id: check_config
+        # Deliberately non-blocking. The misconfiguration detected below is a real
+        # defect and is still reported as an error annotation, but it must not fail
+        # the job. `.github/` is not in the npm files allowlist, so consumers take
+        # this workflow at `@main` - a fail-closed guard here goes live fleet-wide
+        # the instant it merges and takes down every consumer's release on every
+        # branch. Worse, a failed release job makes deploy jobs gated on it skip
+        # silently on consumers that have not picked up the deploy-skip fix, so a
+        # Sentry misconfiguration silently stops shipping deployed artifacts.
+        # `continue-on-error` keeps the step rendered as failed - the loudest
+        # signal Actions offers that does not block - while the run concludes
+        # successfully and the release ships.
+        continue-on-error: true
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
@@ -1438,13 +1450,21 @@ jobs:
           # `workflow_call` interface this workflow declares. They used to be read
           # from `vars.*` while being declared as secrets, so a caller passing them
           # as secrets had no effect on this job. A consumer configured only through
-          # the variable channel must fail loudly here: the alternative is the guard
-          # below seeing empty strings, skipping the upload, and reporting a green
-          # release whose only symptom is unsymbolicated stack traces days later.
+          # the variable channel must still be told loudly: the alternative is the
+          # guard below seeing empty strings, skipping the upload, and reporting a
+          # green release whose only symptom is unsymbolicated stack traces days
+          # later. The skip is therefore made explicit rather than implicit -
+          # `configured=false` is written before the exit, which is safe because
+          # `$GITHUB_OUTPUT` is a file and lines written to it survive a non-zero
+          # exit code.
           if { [ -z "$SENTRY_ORG" ] && [ -n "$SENTRY_ORG_VAR" ]; } ||
              { [ -z "$SENTRY_PROJECT" ] && [ -n "$SENTRY_PROJECT_VAR" ]; }; then
-            echo "::error::Sentry org/project are set as repository variables but not passed as secrets. This workflow reads them from secrets - pass SENTRY_ORG and SENTRY_PROJECT in the caller's secrets block."
-            echo "❌ Sentry configured through repository variables, which this workflow does not read - pass SENTRY_ORG and SENTRY_PROJECT as secrets" >> $GITHUB_STEP_SUMMARY
+            echo "::error::Sentry org/project are set as repository variables but not passed as secrets. This workflow reads them from secrets - pass SENTRY_ORG and SENTRY_PROJECT in the caller's secrets block. The Sentry release was SKIPPED - stack traces will be unsymbolicated - but the release itself was not blocked."
+            echo "❌ Sentry configured through repository variables, which this workflow does not read - pass SENTRY_ORG and SENTRY_PROJECT as secrets. Sentry release skipped; the release and its deploys were not blocked." >> $GITHUB_STEP_SUMMARY
+            echo "configured=false" >> $GITHUB_OUTPUT
+            # Set default outputs for the skipped upload
+            echo "created=false" >> $GITHUB_OUTPUT
+            echo "url=" >> $GITHUB_OUTPUT
             exit 1
           fi
 
