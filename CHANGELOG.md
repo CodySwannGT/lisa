@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.35.1](https://github.com/CodySwannGT/lisa/compare/v4.35.0...v4.35.1) (2026-09-04)
+
+
+### Bug Fixes
+
+* close managed command guard gaps ([54e0c8b](https://github.com/CodySwannGT/lisa/commit/54e0c8bf0604a503f7731a92598156a38c044805)), closes [CodySwannGT/lisa#3795](https://github.com/CodySwannGT/lisa/issues/3795)
+* close reviewer found guard gaps ([e23c734](https://github.com/CodySwannGT/lisa/commit/e23c734890f5064478b46b7039ab8698e9da6aa5)), closes [CodySwannGT/lisa#3795](https://github.com/CodySwannGT/lisa/issues/3795) [CodySwannGT/lisa#3795](https://github.com/CodySwannGT/lisa/issues/3795)
+* harden Lisa managed runtime paths ([abf34cd](https://github.com/CodySwannGT/lisa/commit/abf34cdd28e7d059da83186f06701c89631bc882)), closes [CodySwannGT/lisa#3795](https://github.com/CodySwannGT/lisa/issues/3795)
+* harden parity safety classification ([c64f9c8](https://github.com/CodySwannGT/lisa/commit/c64f9c8c6a293a9e66c7f3f87c0fd38ab3104b4f)), closes [CodySwannGT/lisa#3795](https://github.com/CodySwannGT/lisa/issues/3795)
+
 ## [4.35.0](https://github.com/CodySwannGT/lisa/compare/v4.34.21...v4.35.0) (2026-09-04)
 
 
