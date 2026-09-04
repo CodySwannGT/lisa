@@ -186,7 +186,9 @@ rule — never hardcode status/label strings. The relevant repair roles:
 
 In addition to the lifecycle roles above, the build lifecycle defines the **`human_needed` marker** — an additive label (`jira.labels.human_needed` / `github.labels.build.human_needed` / `linear.labels.build.human_needed`, default `Human Needed` / `human-needed`) that rides alongside `blocked` when the block needs human-only input no agent or retry can supply (see `config-resolution` "Build markers"). repair-intake's interaction with the marker is asymmetric and is the whole point of the distinction below:
 
-- The blocks repair-intake **itself writes** are the auto-recoverable kind — it files a build-ready fix ticket and moves the item `blocked` *blocked by that ticket*, expecting the next cycle to self-heal. Those are **not** `human_needed`; if such an item arrives already carrying a stale `human_needed` marker, repair-intake **clears** it (the block is no longer waiting on a human).
+- The blocks repair-intake **itself writes** are the auto-recoverable kind — it files a build-ready fix ticket and moves the item `blocked` *blocked by that ticket*, expecting the next cycle to self-heal. Those are **not** `human_needed`; if such an item arrives carrying a `human_needed` marker **this skill applied on an earlier cycle**, repair-intake **clears** it (the block is no longer waiting on a human).
+- **Never remove a `human_needed` marker this skill did not apply.** "Stale" is a judgment about the block's kind, not about who applied the marker or when — so without this rule an operator's deliberate hold, applied *after* correcting a wrong transition, is indistinguishable from a leftover the sweep is designed to clear, and gets swept. Establish provenance from the label event's actor (`rejection-detection` **Automation-reversal memory** reads the same surfaces); if provenance is not readable, **leave the marker in place**. Removing a human's hold is unrecoverable within the loop; leaving a stale one costs a cycle and is visible.
+- The marker is consulted **before **any** repair transition**, not only before Class C. Class C's hard stop is the strictest reading of it, but a marker that is honoured on one classification path and ignored on the other three is not a guard — and Class A, dependency clearing, is exactly the path an operator reverting a wrongly-cleared blocker is trying to protect. Match it robustly (hyphen/underscore, case-insensitive, label set and note prose) wherever it is read.
 - The blocks the **vendor agent** writes when repair-intake re-dispatches it (its pre-flight gate) carry `human_needed` already — the agent owns that marker. repair-intake leaves it in place.
 
 Resolve with the standard role-read pattern (local overrides global, default fallback):
@@ -304,6 +306,16 @@ Apply per candidate. Continue through the ordered list until every candidate ins
 `max_candidates` cap has been evaluated. Each candidate may trigger a write (lifecycle transition,
 native close/archive/complete, re-dispatch, or refreshed note), be recorded read-only, or be
 recorded under Errors. Do not stop after the first write; the cap is the batch boundary.
+
+**Before any lifecycle write on a candidate, classify it for `automation-reversal`** per
+`rejection-detection` **Automation-reversal memory** — a role change this skill made that a human
+then moved back. This runs once per candidate at the top of the walk, ahead of the branches below,
+because it wraps every repair path rather than belonging to one: a reversed rollup reconciliation
+involves no dependency link at all, and a reversed Class-B re-check is the same shape as a reversed
+Class-A clearing. Detection is a pure read and `unknown` **never blocks the sweep** — an item whose
+history or authorship cannot be read is judged by the normal rules below, treated as neither a
+reversal nor a clearance. A candidate classified `automation-reversal` skips the branches below and
+is handled per Loop prevention.
 
 ### Build `claimed` (stalled in-progress) → diagnose blocker, else resume in place
 
@@ -478,9 +490,13 @@ re-issued against an unchanged conflicting head.
    new fix ticket (vendor-native: JIRA issue link `is blocked by`; GitHub/Linear `Blocked by:` line
    + label). Post a `[lisa-repair-intake]` note naming what it is blocked by and why. This block is
    **auto-recoverable** — the fix ticket will build and close on its own — so do **not** add the
-   `human_needed` marker, and if the item already carries a stale `human_needed` label, remove it
-   here (it is no longer waiting on a human). The `human_needed` marker is reserved for blocks a
-   human must clear; this one a later cycle clears automatically.
+   `human_needed` marker, and if the item carries a `human_needed` label **this skill applied on an
+   earlier cycle**, remove it here (it is no longer waiting on a human). The `human_needed` marker
+   is reserved for blocks a human must clear; this one a later cycle clears automatically.
+   **A marker this skill did not apply is never removed here** — see the marker's provenance rule
+   above. The block's kind says the *block* self-heals; it says nothing about why a human put a
+   hold on the item, and an operator's hold applied after correcting a wrong transition looks
+   identical to a leftover unless provenance is checked.
 3. **Record it** as a repair write. Do **not** dispatch the vendor agent for this item this cycle.
 
 The item now sits in `blocked`; once the fix ticket reaches a terminal state, the **Build
@@ -1026,6 +1042,14 @@ layer, and test ancestry against the remote.
   "no PR found" is `no-pr` and stays blocking.
 - **Human override** — an explicit human statement on this item that the dependency is satisfied
   clears it and outranks a failed containment check. Name it in the run record.
+- **Human hold** — the override runs in both directions. `human_needed` is checked here as well as
+  in Class C: an item carrying it is left `blocked` and recorded `skipped: human_needed`, without
+  running the containment check. Class A is the path an operator reverting a wrongly-cleared
+  blocker is protecting, so a marker honoured only on Class C is not honoured where it is most
+  often meant. Match it robustly (hyphen/underscore, case-insensitive, label set and note prose).
+  Symmetrically, an explicit human statement that the dependency is **not** satisfied keeps the
+  item blocked and outranks a *passing* containment check — the contract has an input channel for
+  "you may now proceed" and it needs one for "your reasoning was wrong".
 
 **A lifecycle status name is never the test.** `done`, `on-stg`, `on-dev` and `code-review` are
 labels that correlate with containment in a single-trunk workflow and come apart from it in a
@@ -1139,12 +1163,33 @@ cron tick.
   self-block** (so a human filling in one of several missing sections changes the fingerprint and
   triggers a re-check next cycle, rather than being suppressed as a no-op), terminal/open state,
   rollup child tally, and a timestamp.
+- The fingerprint also carries **authorship and an overturn bit**: the actor class of the most
+  recent lifecycle role change (`automation` / `human` / `unknown`), and whether that change
+  **reversed** a transition this skill made — the `automation-reversal` classification from
+  `rejection-detection` **Automation-reversal memory**. Without these the fingerprint records only
+  *what* the state is, never *who* set it or *whether the last automated decision was overturned*,
+  and those are the only fields that separate "the world moved on" from "a human told me I was
+  wrong".
 - Before writing a note or re-attempting a `blocked` item, compute the current fingerprint. If
   an identical fingerprint was already posted within the **backoff window**, skip the item
   silently (record as `still_blocked` / `active`, no write).
 - Backoff window default = `stale_after` (2h). `force=true` bypasses backoff for a manual run.
-- A *changed* fingerprint (new blocker state, new answers, new verdict) always warrants a fresh
-  note + re-attempt — backoff suppresses only no-op repeats.
+- A *changed* fingerprint (new blocker state, new answers, new verdict) warrants a fresh note +
+  re-attempt — backoff suppresses only no-op repeats.
+- **A change whose only cause is a human overturn is not a warrant.** Where the overturn bit is
+  set and no evidence postdates the reversal, the changed fingerprint is **not on its own a
+  warrant** to re-attempt: do not re-apply the reversed classification, leave the item where the
+  human put it, ensure `human_needed`, and record the outcome naming the **reversed transition**
+  and the classification that produced it. Re-attempt only on evidence postdating the reversal —
+  a blocker state change or a human comment supplying what was missing — cited in the run record.
+  Without this qualifier the revert *itself* changes the fingerprint and releases backoff, so the
+  faster a reviewer corrects a wrong transition, the sooner it returns.
+- **This inversion is signed per path.** It applies to the paths that decide whether to re-make a
+  lifecycle transition — Class A/B/C/D clearing and rollup reconciliation. It does **not** touch
+  the staleness model: there a human comment counts as forward progress and resets the staleness
+  clock, so an objecting comment already makes the item look active and this skill leaves it
+  alone. That reading is protective; a single global "human activity no longer counts" would
+  switch it off while reading like a tightening.
 
 ## Lifecycle ownership guard
 
@@ -1261,6 +1306,12 @@ Report outcomes in these buckets:
 - `normalized_ready` — GitHub issues missing official lifecycle labels that were classified and
   given the configured PRD/build `ready` label so normal intake can claim them.
 - `still_blocked` — examined and intentionally left `blocked`, with the active reason.
+- `reversal_suppressed` — a repair this skill previously made was reversed by a human, so the
+  classification was **not** re-applied. Name the **reversed transition** (role, direction, and
+  when), the classification that produced it, and that the item now carries `human_needed`. This
+  bucket is never merged into `still_blocked`: "I declined to act because I was overruled" and "I
+  examined it and the blocker stands" are different facts about the loop, and only the first tells
+  an operator their correction was received.
 - `active` — skipped because current work is not stale (or within backoff).
 - `errors` — items that failed evaluation, with the error.
 
@@ -1280,7 +1331,7 @@ to each item* — the two never merge in the one-line summary.
 | Nothing actionable — the idle case (walk step 5): examined N, all active or in backoff — including a fix ticket suppressed by a prior decline (`rejection-detection` **Proposal rejection memory**), which the summary names in its suppression count | `nothing-needed` |
 | Repairs applied **and confirmed** this cycle — `resumed` / `resynced` / `recovered` / `unblocked` / `closed_out` / `rolled_up` / `relinked` / `normalized_ready` | `change-proved` |
 | Repair produced new work for a human to pick up — e.g. an unmergeable PR or failed deploy filed as a **build-ready fix ticket** and left `blocked` | `candidate-proposed` |
-| A repair reached an autonomy boundary needing a human (a protected-deploy approval before it can proceed) | `approval-requested` |
+| A repair reached an autonomy boundary needing a human (a protected-deploy approval before it can proceed), **or a repair this loop previously made was reversed by a human** and is therefore suppressed and escalated to `human_needed` (`reversal_suppressed`) rather than re-attempted | `approval-requested` |
 | The loop itself could not run — the queue is unreadable, tracker credentials are revoked, or an open-and-closed rejection-memory / blocker-marker search is unreadable and therefore must not fall through to `nothing-needed` | `recovery-required` |
 | The runbook's **Retirement condition** tripped | `policy-obsolete` — **never reached by design for this loop** (see Retirement evaluation below) |
 
@@ -1343,6 +1394,12 @@ stuck work accumulates), or interleaved on a longer cadence.
   do."
 - Never re-dispatch a `blocked` build item unless every parsed blocker is cleared (conservative
   dependency clearing).
+- Never re-make a transition a human reversed. Classify every candidate for `automation-reversal`
+  before any lifecycle write (`rejection-detection`), and on a hit leave the item where the human
+  put it with `human_needed`, naming the reversed transition in the run record. Re-attempt only on
+  evidence postdating the reversal.
+- Never remove a `human_needed` marker this skill did not apply, and consult the marker before
+  **any** repair transition rather than only before Class C.
 - Repair every materially actionable candidate inside the `max_candidates` cap; default cap is 100.
 - Default GitHub `intake_mode` is `both` when both PRD and build namespaces exist.
 - Honor the backoff window — never re-post an identical `[lisa-repair-intake]` note within it

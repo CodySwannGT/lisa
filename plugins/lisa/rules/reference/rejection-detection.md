@@ -162,3 +162,72 @@ Naming the decline date, the recurrence date, and the recurrence reference in bo
 ### Concurrency honesty
 
 The search-then-write here is **not** an atomic claim: two truly concurrent runs can each miss the other's in-flight proposal and file a transient duplicate. It therefore guarantees **convergence, not mutual exclusion** — the duplicate is found and closed by the next run's marker search, and because the key is a stable content hash, a duplicate never multiplies. State this rather than implying a lock; a cross-run locking protocol would be disproportionate to the risk.
+
+## Automation-reversal memory (repair-side — a human undoing a transition this flow made)
+
+Both sections above remember something a **human or QA did to work**: claim-time memory reads an item bounced backward through the review lanes; proposal-time memory reads a proposal closed as *not planned*. This third section remembers something a human did **to the flow itself** — an automated repair moved an item's lifecycle role, and a human moved it straight back.
+
+Every loop that writes a lifecycle role as a **repair** rather than as a claim consults this section before re-making a transition. `lisa-repair-intake` is the first consumer and the skill this contract was written from.
+
+The failure it exists to stop is not forgetfulness, it is **inversion**. A loop with a state-only recurrence brake reads the human's revert as *changed state*, and changed state is normally a reason to look again — so the correction becomes the trigger. That inverts the assumption every operator brings to an unattended fleet: the more promptly a reviewer undoes a wrong transition, the sooner it comes back. A mechanism in which human correction is indistinguishable from new state converts your best reviewers into the loop's most reliable trigger.
+
+### Why this is a third classification, not a wider `rejection-reclaim`
+
+`rejection-reclaim` is anchored on the **ready** lane — an item that reached a `review`/`done`-ward lane and is now back in `$READY`. A reversed repair lands in the **blocked** lane instead: automation moved `$BLOCKED → $READY`, and a human moved it back to `$BLOCKED`. Widening `rejection-reclaim` to cover that would fire it on a lane it was never written for, and its response is wrong for this case anyway — reflecting on rejection evidence and handing it into a re-implementation is what you do when the work was rejected, not when a human said *stop doing that*. The two are **orthogonal** and are **never merged into `rejection-reclaim`**: one teaches a re-implementation, the other withdraws a decision.
+
+### Seam — before any lifecycle write, not at claim
+
+Detection runs at the **top of the repair walk for each candidate item, BEFORE the loop writes any lifecycle role**. The reasoning is the claim-time seam's: a write overwrites the current lane, and the signal depends on reading the current lane against history. Detection is a pure read — idempotent, headless-safe, no side effects.
+
+### Classification
+
+Detection is a pure read of the item's transition history **and its authorship** (via the vendor access layers). It returns exactly one:
+
+| Classification | Condition |
+|---|---|
+| `automation-reversal` | History shows a lifecycle role change **authored by** this flow, and a later **backward** move of that same role **authored by** a human, with no automation move after it. |
+| `no-reversal` | History shows no such pair — the flow made no prior transition, or its transition still stands, or the later move was itself automation. |
+| `unknown` | The vendor history query failed, was inconclusive, or **did not expose authorship**. |
+
+### Authorship is the whole signal — a backward move alone proves nothing
+
+The state-only reading is what fails today, so a backward move is **not** sufficient: an item can return to `$BLOCKED` because a genuine new blocker appeared, which is the world moving on and is a legitimate reason to look again. What distinguishes a correction is **who moved it, and against what**. Read authorship from the same history surfaces:
+
+- **GitHub** — timeline `LabeledEvent` / `UnlabeledEvent` nodes carry an `actor`; read them through `lisa-github-read-issue`'s Label-Event History surface.
+- **JIRA** — `lisa-atlassian-access operation: changelog key:<K>`; each changelog entry carries an `author` alongside its `from`/`to` status items.
+- **Linear** — `lisa-linear-access operation: history id:<ID>`; each history node carries an `actor` alongside `fromState` / `toState`.
+
+An actor is **this flow** when it is the configured automation identity, or when the flow's own marker note (`[lisa-repair-intake]`) sits at that transition's timestamp. Any other actor is a human. Where the surface does not expose an actor at all, the result is `unknown` — never an assumed human.
+
+**A marker and a transition on the same item say nothing until you know their order.** A hold label, a comment and a lane move routinely coexist on a reversed item, and co-occurrence reads equally well in both directions — a label applied *before* a transition guards it, the same label applied *after* records that the transition was undone. Sourcing the facts, attributing them correctly and reading the artifact all pass cleanly on an invented sequence; only ordering disconfirms it. Compare timestamps explicitly and treat an unorderable pair as `unknown`.
+
+### Lane names are configuration here too
+
+The lanes compared ALWAYS come from `.lisa.config.json` — `github.labels.build.blocked` and `github.labels.build.ready` on GitHub, the JIRA status and Linear state equivalents — resolved per `config-resolution` against the `src/sync/registry.ts` `BUILD_LABEL_DEFAULTS` (`blocked: status:blocked`) fallback. **Never hardcode** a lane string; a project that renames its blocked lane must still detect reversals.
+
+### Never block the sweep
+
+`unknown` is a first-class result here exactly as it is at claim time, but the safe direction is the opposite one and must be stated so it is not "simplified" later. At claim time an unreadable history degrades to *implement the item anyway*, because reflection is a bonus. Here an unreadable history degrades to **neither a reversal nor a clearance**: the item is evaluated by the loop's normal rules, unchanged, and the run **never blocks the sweep** on a failed detection. `unknown` must not be read as "no reversal, proceed to re-attempt" any more than as "reversal, suppress" — it removes the signal, it does not supply one.
+
+### Learning-loop exclusion
+
+The same learning-loop exclusion applies, for the same reason and by the same markers: an item carrying `[lisa-learning-drop]`, `[lisa-learning-pr]`, `[lisa-learning-upstream-handoff]` or the `learning:needs-triage` label is never classified `automation-reversal`, no matter how it moved. The flow must not remember being corrected about its own learning artifacts.
+
+### The rule — a reversal raises the bar, it never resets the clock
+
+On `automation-reversal`:
+
+1. **Do not re-apply the classification that was reversed.** The reversal is the strongest available evidence that the classification was wrong, and re-deriving it from the same facts reaches the same wrong answer.
+2. **Leave the item where the human put it** and ensure the `human_needed` marker is present. A decision that was overturned needs a person, not another cycle.
+3. **Name it in the run record** — the reversed transition, and the classification that produced it. A suppression nobody can see is indistinguishable from a loop that found nothing.
+4. **Re-attempt only on evidence that postdates the reversal** — a blocker state change, or a human comment supplying what was missing. This mirrors the re-proposal rule the proposal half already enforces: the memory is durable, not permanent, and new evidence reopens it. Cite that evidence in the run record.
+
+A changed lifecycle role is therefore **no longer sufficient on its own** to warrant a fresh attempt. The consuming loop's recurrence brake must be able to tell "the state changed because the world moved" from "the state changed because a human undid me", which means carrying **authorship and an overturn bit**, not state alone.
+
+### The fix is signed per path — do not apply one sign globally
+
+This is the trap in implementing this section, and it will not be caught in review because the wrong version reads as tightening.
+
+On a **repair-transition** path, human activity must **stop** being a warrant to re-attempt — that is this whole contract. On a **staleness** path, a human comment is counted as forward progress and *suppresses* action, which means an objecting comment already protects the item. That protection is correct and a global "human activity no longer counts" switches it off while everyone believes a hole was closed.
+
+So: apply the inversion **only** where the loop is deciding whether to re-make a transition. Leave every keep-alive and staleness reading exactly as it is. Any consumer of this section states which of its paths are signed which way.

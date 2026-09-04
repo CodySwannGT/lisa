@@ -1402,12 +1402,190 @@ def nested_operands(argv):
 inspected_files = set()
 
 
-def file_operands(argv):
-    """Files this command names, in the order they appear.
+# Interpreters whose OPERAND is a program they run. Broader than a shell list
+# because `file_creation` recognises a creation in any language — the
+# `node wrapper.mjs` that speaks HTTP directly is exactly the shape #3484
+# measured as a fail-open, so narrowing this to shells would reopen it.
+EXECUTING_INTERPRETERS = {
+    "bash", "dash", "ksh", "sh", "zsh",
+    "bun", "deno", "node", "nodejs", "perl", "php",
+    "python", "python3", "ruby", "ts-node", "tsx",
+}
 
-    Every token is offered, and the ones that name a readable regular file are
-    kept. Deciding WHICH programs execute their operands is the unbounded
-    question this file already refuses to ask, so it is not asked here either.
+# `.` and its `source` alias run the named file in the CURRENT shell.
+SOURCE_BUILTINS = {"source", "."}
+
+# Wrappers that run what FOLLOWS them without changing what it is, mapped to
+# (options whose value is a SEPARATE token, positional operands consumed).
+# The positional count is why this is a table: `timeout 5 bash create.sh` puts
+# an operand between the wrapper and the interpreter, so a walk that steps over
+# `-flags` only stops at `5` and never reaches the interpreter.
+EXEC_WRAPPERS = {
+    "builtin": (frozenset(), 0),
+    "command": (frozenset(), 0),
+    "exec": (frozenset({"-a"}), 0),
+    "env": (frozenset({"-u", "--unset", "-C", "--chdir", "--argv0"}), 0),
+    "nice": (frozenset({"-n", "--adjustment"}), 0),
+    "nohup": (frozenset(), 0),
+    "setsid": (frozenset(), 0),
+    "stdbuf": (frozenset({"-i", "-o", "-e"}), 0),
+    "sudo": (frozenset({"-u", "--user", "-g", "--group", "-C", "--close-from"}), 0),
+    "time": (frozenset(), 0),
+    "timeout": (frozenset({"-k", "--kill-after", "-s", "--signal"}), 1),
+}
+
+# Interpreter options that mean "no script file follows": a command string or a
+# module name, both of which the guard reads by other means or not at all.
+NO_SCRIPT_OPTIONS = {"-c", "-e", "-m", "--eval", "--command", "--module"}
+
+# Programs that READ their operands and never execute them as programs.
+#
+# This is an allowlist of readers rather than the inverse, and the asymmetry is
+# deliberate. An UNKNOWN program with a file operand is still followed, because
+# whether it executes that operand is genuinely unknowable from the command —
+# and a probe in this guard's own suite drives it with a runner nobody
+# enumerated precisely so a fix keyed on a list of interpreters fails. Failing
+# closed on the unknown keeps that coverage.
+#
+# What the list buys is the measured population of #3705, every member of which
+# is a well-known inspector: `git diff`, `grep -n`, `wc -l`, a `git grep`
+# PATHSPEC, `sed -n '1,50p'`, and a test run. `git` is here wholesale because no
+# git subcommand executes a named file as a program — `git commit -F <file>` and
+# `git grep -- <pathspec>` both take the path as data.
+#
+# Test runners are here on purpose and it is the one entry worth arguing about.
+# `vitest <file>` does run that file, so the executes-rule would follow it — but
+# running a test is not filing an issue, and refusing a test run is the sharpest
+# harm #3705 records, because it can block the verification of a fix while
+# saying nothing about why.
+#
+# RESIDUAL, stated rather than hidden: a reader NOT on this list is still
+# followed and can still over-refuse. The set of read-only tools is unbounded,
+# so this closes the measured population and not the class. Add names here as
+# they are measured; do not invert the default to close it by fiat, or the
+# executed-script reach that #3484 bought is lost.
+READ_ONLY_PROGRAMS = {
+    "awk", "bat", "cat", "cksum", "cmp", "column", "comm", "cut", "diff",
+    "du", "file", "fold", "git", "grep", "head", "hexdump", "jest", "jq",
+    "less", "ls", "md5", "md5sum", "more", "nl", "od", "pytest", "rg",
+    "sed", "sha1sum", "sha256sum", "shellcheck", "shfmt", "sort", "stat",
+    "strings", "tail", "tee", "uniq", "vitest", "wc", "xxd", "yamllint",
+}
+
+
+def executing_command(argv):
+    """The program this command runs, and the tokens after it.
+
+    Steps over leading variable assignments and over wrappers that do not
+    change what runs. Reading a wrapper as the command is how a payload hides
+    from a classifier that inspects only a segment's first word.
+
+    Args:
+        argv: One command's tokens.
+
+    Returns:
+        A triple (token, program, args); (None, None, []) when none is named.
+        The raw token is carried alongside the basename because a script run by
+        bare path — `./create.sh`, relying on its shebang — has no interpreter
+        to recognise, and the command word IS the thing being executed.
+    """
+    index = 0
+    while index < len(argv):
+        token = argv[index]
+        if "=" in token and not token.startswith(("=", "-")):
+            index += 1
+            continue
+        program = basename(token)
+        if program not in EXEC_WRAPPERS:
+            return (token, program, argv[index + 1 :])
+        separate, positional = EXEC_WRAPPERS[program]
+        index += 1
+        while index < len(argv) and argv[index].startswith("-"):
+            option = argv[index]
+            if option == "--":
+                index += 1
+                break
+            index += 2 if option in separate else 1
+        index += positional
+    return (None, None, [])
+
+
+def executed_operand(argv):
+    """The path this command EXECUTES, or None.
+
+    THIS IS THE COMMAND-POSITION QUESTION, and declining to ask it is what
+    #3705 records: the guard opened any readable file any token named, then
+    justified a refusal from that FILE's contents rather than from the
+    COMMAND's behaviour. Measured refusals included `git diff`, `grep -n`,
+    `wc -l`, a `git grep` PATHSPEC and a test run — every one of them read-only,
+    and one of them blocked running the tests that would have proved a fix.
+
+    `parity-safety-net.sh` already states the rule this restores, and names the
+    opposite as the known-wrong fix (`origin/main`, lines 337-346 and 704-705):
+    "Only a COMMAND POSITION can execute something. A path anywhere else is an
+    argument, and an argument is data." `block-no-verify.sh:495-513`
+    (`strip_command_prefix`) implements the same split with a fail-closed third
+    state. Both live in this directory; this guard was the one that declined.
+
+    NOT narrowed to shells, and NOT narrowed to an enumerated interpreter list.
+    `file_creation` recognises a creation in any language, so `node wrapper.mjs`
+    must still be followed — a measured fail-open in #3484 — and this guard's
+    own suite drives it with a runner nobody enumerated, precisely so a fix
+    keyed on such a list fails. So the default for an unrecognised program is to
+    FOLLOW, and only a known reader is exempt. A script run by bare path with no
+    interpreter at all (`./create.sh`, via its shebang) is followed too: there
+    the command word is itself the thing being executed.
+
+    Reading a REQUEST PAYLOAD is a separate question with a separate answer:
+    `payload_text` resolves `--data-binary @file` and friends by flag name, so
+    narrowing this walk does not stop a creation whose body lives in a file
+    from being seen.
+
+    Args:
+        argv: One command's tokens.
+
+    Returns:
+        The operand token naming a program that will run, or None.
+    """
+    token, program, args = executing_command(argv)
+    if program is None:
+        return None
+    # A reader takes its operands as data. This is the #3705 population.
+    if program in READ_ONLY_PROGRAMS:
+        return None
+    if program in SOURCE_BUILTINS:
+        return args[0] if args else None
+    # A command word that is ITSELF a readable file is being executed by its
+    # shebang — `./create.sh` names no interpreter and runs all the same.
+    if program not in EXECUTING_INTERPRETERS and resolve_operand(token) is not None:
+        return token
+    # `bash < create.sh` runs that file as surely as `bash create.sh` does, and
+    # `<` is not a segment boundary, so the pair survives in one argv.
+    for index, argument in enumerate(args):
+        if argument == "<" and index + 1 < len(args):
+            return args[index + 1]
+    # Reached by a known interpreter AND by a program this parser cannot name.
+    # The unknown case is followed on purpose — see READ_ONLY_PROGRAMS.
+    for argument in args:
+        if argument == "--":
+            continue
+        if argument.startswith("-"):
+            # A command string or a module name; no script file follows.
+            head = argument.split("=", 1)[0]
+            if argument in NO_SCRIPT_OPTIONS or head in NO_SCRIPT_OPTIONS:
+                return None
+            continue
+        return argument
+    return None
+
+
+def file_operands(argv):
+    """The file this command EXECUTES, if it executes one.
+
+    Deciding WHICH programs execute their operands is the question this file
+    used to refuse to ask, and refusing it is what made the guard read a path
+    quoted as prose inside a `--body-file` markdown and attribute its contents
+    to the command. It is answered in `executed_operand` now.
 
     Args:
         argv: One command's tokens.
@@ -1416,7 +1594,8 @@ def file_operands(argv):
         Existing paths, deduplicated across the whole scan and capped.
     """
     paths = []
-    for token in argv:
+    operand = executed_operand(argv)
+    for token in [operand] if operand is not None else []:
         if len(paths) >= FILE_OPERANDS_PER_SEGMENT:
             break
         path = resolve_operand(token)

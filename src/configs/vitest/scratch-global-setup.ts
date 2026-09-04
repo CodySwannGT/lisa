@@ -91,18 +91,52 @@ import {
  */
 export const MAX_NAMESPACE_ENTRIES = 512;
 
+/**
+ * Why one entry could not be bound to an owner.
+ *
+ * `unrecognised` used to be a single word covering four different conditions,
+ * and the refusal reported none of them. That mattered because the conditions
+ * have opposite causes and opposite remedies: `marker-absent` on a root that
+ * acquires a marker moments later is a run allocating right now, while the same
+ * word on a root that keeps it is a writer that never wrote one at all. An
+ * operator — and the next person to read the failure — cannot tell those apart
+ * from a count.
+ */
+export type UnrecognisedReason =
+  /** No owner marker exists at the expected path */
+  | "marker-absent"
+  /** A marker exists but is unreadable, oversized, a symlink, or invalid */
+  | "marker-unreadable"
+  /** A valid marker describes a different path, device, or inode */
+  | "identity-mismatch"
+  /** The entry is a symlink or is not a directory */
+  | "not-a-directory";
+
+/** One unrecognised entry, paired with the reason it could not be bound. */
+export interface UnrecognisedEntry {
+  /** Direct child basename */
+  readonly name: string;
+  /** Why the entry could not be bound to an owner */
+  readonly reason: UnrecognisedReason;
+}
+
 /** What an inspection of the namespace found. */
 export interface NamespaceResidue {
   /** Entries whose owning process is gone but which were not removed */
   readonly orphaned: readonly string[];
   /** Entries whose exact dead ownership cannot be established */
   readonly unrecognised: readonly string[];
+  /** The same entries, each carrying why it could not be bound */
+  readonly unrecognisedDetail: readonly UnrecognisedEntry[];
   /** Total entries present */
   readonly total: number;
 }
 
 /** Namespace-inspection disposition for one direct child. */
-type NamespaceEntryDisposition = "live" | "orphaned" | "unrecognised";
+type NamespaceEntryDisposition =
+  | { readonly kind: "live" }
+  | { readonly kind: "orphaned" }
+  | { readonly kind: "unrecognised"; readonly reason: UnrecognisedReason };
 
 /**
  * Verify that a durable marker names the physical root and namespace inspected.
@@ -145,17 +179,33 @@ function classifyNamespaceEntry(
   birth: (pid: number) => string | undefined
 ): NamespaceEntryDisposition {
   const root = path.join(dir, name);
+  const shape = lstatSync(root, { throwIfNoEntry: false });
+  if (shape === undefined || shape.isSymbolicLink() || !shape.isDirectory()) {
+    return { kind: "unrecognised", reason: "not-a-directory" };
+  }
   try {
     const owner = readScratchOwnerRecord(root);
-    if (!markerMatchesInspectedPath(dir, root, owner)) return "unrecognised";
+    if (!markerMatchesInspectedPath(dir, root, owner)) {
+      return { kind: "unrecognised", reason: "identity-mismatch" };
+    }
     return classifyScratchOwner(owner, {
       isProcessAlive: alive,
       processBirthFingerprint: birth,
     }) === "preserve"
-      ? "live"
-      : "orphaned";
-  } catch {
-    return "unrecognised";
+      ? { kind: "live" }
+      : { kind: "orphaned" };
+  } catch (error) {
+    // ENOENT is the marker being absent, which is a DIFFERENT condition from a
+    // marker that exists and cannot be trusted — see `UnrecognisedReason`. The
+    // two were one word until now, and separating them is the whole point of
+    // this classification.
+    return {
+      kind: "unrecognised",
+      reason:
+        (error as NodeJS.ErrnoException).code === "ENOENT"
+          ? "marker-absent"
+          : "marker-unreadable",
+    };
   }
 }
 
@@ -182,14 +232,18 @@ export const inspectNamespace = (
     name,
     disposition: classifyNamespaceEntry(dir, name, alive, birth),
   }));
+  const unrecognisedDetail = classified.flatMap(entry =>
+    entry.disposition.kind === "unrecognised"
+      ? [{ name: entry.name, reason: entry.disposition.reason }]
+      : []
+  );
 
   return {
     orphaned: classified
-      .filter(entry => entry.disposition === "orphaned")
+      .filter(entry => entry.disposition.kind === "orphaned")
       .map(entry => entry.name),
-    unrecognised: classified
-      .filter(entry => entry.disposition === "unrecognised")
-      .map(entry => entry.name),
+    unrecognised: unrecognisedDetail.map(entry => entry.name),
+    unrecognisedDetail,
     total: entries.length,
   };
 };
@@ -201,6 +255,63 @@ export const inspectNamespace = (
  */
 const sample = (names: readonly string[]): string =>
   names.slice(0, 5).join(", ") + (names.length > 5 ? ", …" : "");
+
+/**
+ * What each reason means, and what it points the reader at.
+ *
+ * Written as consequences rather than as restatements of the enum, because the
+ * failure is read by someone deciding what to do next. Each line names a cause
+ * that produces it and separates the transient case from the durable one — the
+ * distinction the single word `unrecognised` used to hide.
+ */
+const UNRECOGNISED_EXPLANATIONS: Readonly<Record<UnrecognisedReason, string>> =
+  {
+    "marker-absent":
+      "no owner marker at all. A root is briefly in this state while a run " +
+      "allocates it, so a few here during concurrent activity are a race with " +
+      "an allocation in flight; the same roots still present on a later run " +
+      "were written by something that never wrote a marker — a Lisa older than " +
+      "the owner-marker contract, or another tool sharing this directory",
+    "marker-unreadable":
+      "a marker is present but cannot be trusted — unparseable, oversized, a " +
+      "symlink, or failing schema validation. Suspect a partially written " +
+      "marker or a writer disagreeing about the format",
+    "identity-mismatch":
+      "a valid marker describes a different path, device, or inode than the one " +
+      "inspected. Suspect a moved, restored, or recreated directory",
+    "not-a-directory":
+      "the entry is a symlink or not a directory, so it cannot be a run root " +
+      "at all. Suspect something other than Lisa writing into this namespace",
+  };
+
+/**
+ * Group unrecognised entries by cause so the reader sees which one applies.
+ * @param detail - Unrecognised entries paired with their reasons
+ * @returns One indented line per reason present, each with a bounded sample.
+ */
+const describeUnrecognisedReasons = (
+  detail: readonly UnrecognisedEntry[]
+): string => {
+  const order: readonly UnrecognisedReason[] = [
+    "marker-absent",
+    "marker-unreadable",
+    "identity-mismatch",
+    "not-a-directory",
+  ];
+  return order
+    .flatMap(reason => {
+      const names = detail
+        .filter(entry => entry.reason === reason)
+        .map(entry => entry.name);
+      return names.length === 0
+        ? []
+        : [
+            `  ${reason} (${String(names.length)}): ${sample(names)} — ` +
+              `${UNRECOGNISED_EXPLANATIONS[reason]}.`,
+          ];
+    })
+    .join("\n");
+};
 
 /** Safe operator recovery when automatic deletion authority is unavailable. */
 const MANUAL_RECOVERY_GUIDANCE =
@@ -238,9 +349,10 @@ export const describeResidueFailure = (
   if (residue.unrecognised.length > 0) {
     return (
       `Test scratch namespace ${dir} holds ${String(residue.unrecognised.length)} ` +
-      `root(s) without valid owner-marker authority: ${sample(residue.unrecognised)}. ` +
+      `root(s) without valid owner-marker authority. ` +
       `Lisa preserved the uncertain residue instead of deleting a path that ` +
-      `cannot be bound to a token and process-birth fingerprint. ` +
+      `cannot be bound to a token and process-birth fingerprint.\n` +
+      `${describeUnrecognisedReasons(residue.unrecognisedDetail)}\n` +
       `There are ${String(residue.total)} entries in total; the historical ` +
       `accumulating-residue ceiling is ${String(MAX_NAMESPACE_ENTRIES)}. ${MANUAL_RECOVERY_GUIDANCE}`
     );

@@ -2,6 +2,56 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.34.11](https://github.com/CodySwannGT/lisa/compare/v4.34.10...v4.34.11) (2026-09-04)
+
+
+### Bug Fixes
+
+* **guard:** make nightly scope sorts explicit ([f512144](https://github.com/CodySwannGT/lisa/commit/f512144737f68a8a4e70dfe45383efc7c152bc47)), closes [CodySwannGT/lisa#3758](https://github.com/CodySwannGT/lisa/issues/3758)
+* **guard:** pin nightly scope ordering ([c7a5032](https://github.com/CodySwannGT/lisa/commit/c7a503219cd84f5ac62d1d34dec740f9a4526235)), closes [CodySwannGT/lisa#3758](https://github.com/CodySwannGT/lisa/issues/3758)
+
+### [4.34.10](https://github.com/CodySwannGT/lisa/compare/v4.34.9...v4.34.10) (2026-09-04)
+
+### [4.34.9](https://github.com/CodySwannGT/lisa/compare/v4.34.8...v4.34.9) (2026-09-04)
+
+### [4.34.8](https://github.com/CodySwannGT/lisa/compare/v4.34.7...v4.34.8) (2026-09-04)
+
+
+### Bug Fixes
+
+* **gate:** say WHICH condition left the review evidence unsatisfied ([7c6d4b6](https://github.com/CodySwannGT/lisa/commit/7c6d4b650134fb46f975f5bce8cfdb8b455785a0)), closes [CodySwannGT/lisa#3706](https://github.com/CodySwannGT/lisa/issues/3706) [#3716](https://github.com/CodySwannGT/lisa/issues/3716) [#3600](https://github.com/CodySwannGT/lisa/issues/3600) [#3600](https://github.com/CodySwannGT/lisa/issues/3600) [#3600](https://github.com/CodySwannGT/lisa/issues/3600) [#3221](https://github.com/CodySwannGT/lisa/issues/3221) [#3600](https://github.com/CodySwannGT/lisa/issues/3600) [CodySwannGT/lisa#3716](https://github.com/CodySwannGT/lisa/issues/3716)
+* **hooks:** stop the filing guard attributing a file's contents to a reader ([967842f](https://github.com/CodySwannGT/lisa/commit/967842f0b895c8b70132d561fa6dfb4ae8c44b42)), closes [CodySwannGT/lisa#3705](https://github.com/CodySwannGT/lisa/issues/3705)
+* **release:** keep the Sentry guard loud without blocking every release ([acfed29](https://github.com/CodySwannGT/lisa/commit/acfed296ba3898f1f2b83c69d999e3e7b4edaf77)), closes [#3467](https://github.com/CodySwannGT/lisa/issues/3467) [#3738](https://github.com/CodySwannGT/lisa/issues/3738) [CodySwannGT/lisa#3745](https://github.com/CodySwannGT/lisa/issues/3745) [CodySwannGT/lisa#3745](https://github.com/CodySwannGT/lisa/issues/3745)
+* **repair-intake:** remember a reversed transition instead of retrying it ([cf694fe](https://github.com/CodySwannGT/lisa/commit/cf694fe12843e1f695c1c509d62cf302c6ac078e)), closes [CodySwannGT/lisa#3646](https://github.com/CodySwannGT/lisa/issues/3646)
+* **rules:** re-read the instruction file from disk before escalating ([c275583](https://github.com/CodySwannGT/lisa/commit/c2755835b2692f08663cb91a1527312d11378d0b)), closes [#3592](https://github.com/CodySwannGT/lisa/issues/3592) [CodySwannGT/lisa#3592](https://github.com/CodySwannGT/lisa/issues/3592)
+
+### [4.34.7](https://github.com/CodySwannGT/lisa/compare/v4.34.6...v4.34.7) (2026-09-04)
+
+
+### Bug Fixes
+
+* **drive-pr-to-merge:** do not arm auto-merge before a review exists ([bb4949d](https://github.com/CodySwannGT/lisa/commit/bb4949d5f8a02bde5e7a43954474919cb2f1c70e)), closes [#3221](https://github.com/CodySwannGT/lisa/issues/3221) [CodySwannGT/lisa#3439](https://github.com/CodySwannGT/lisa/issues/3439)
+* **maestro:** surface the Android emulator's FATAL instead of a boot timeout ([9b1d7e0](https://github.com/CodySwannGT/lisa/commit/9b1d7e0e9f18f18c9db0c7b9d91dbb4963ef8eb9)), closes [#3470](https://github.com/CodySwannGT/lisa/issues/3470) [#3699](https://github.com/CodySwannGT/lisa/issues/3699) [#3699](https://github.com/CodySwannGT/lisa/issues/3699) [#3699](https://github.com/CodySwannGT/lisa/issues/3699) [CodySwannGT/lisa#3470](https://github.com/CodySwannGT/lisa/issues/3470)
+
+### [4.34.6](https://github.com/CodySwannGT/lisa/compare/v4.34.5...v4.34.6) (2026-09-04)
+
+
+### Bug Fixes
+
+* **bootstrap:** never write a config filename that outranks the project's own ([d18fe13](https://github.com/CodySwannGT/lisa/commit/d18fe135f476bb4307e8d6ddd273a114e0f43a21)), closes [#3069](https://github.com/CodySwannGT/lisa/issues/3069) [#2374](https://github.com/CodySwannGT/lisa/issues/2374) [CodySwannGT/lisa#3501](https://github.com/CodySwannGT/lisa/issues/3501)
+* **ci:** fail the deploy when the release does not succeed ([c1b2c17](https://github.com/CodySwannGT/lisa/commit/c1b2c17880a137f55b028fd6a467d8e67210bc77)), closes [CodySwannGT/lisa#3467](https://github.com/CodySwannGT/lisa/issues/3467)
+* **hooks:** make two guards see the scripts they run, without following data ([a7f3e41](https://github.com/CodySwannGT/lisa/commit/a7f3e41b16642dbc131af2b7574802659df2cbee)), closes [CodySwannGT/lisa#3543](https://github.com/CodySwannGT/lisa/issues/3543)
+* **lighthouse:** assert the forced-reflow median per URL, not a per-run maximum ([e56a759](https://github.com/CodySwannGT/lisa/commit/e56a7590eff0fb70138ab94b9a16f61999251b09)), closes [CodySwannGT/lisa#3545](https://github.com/CodySwannGT/lisa/issues/3545)
+* **scratch:** say WHICH condition made a namespace entry unrecognised ([69c55e4](https://github.com/CodySwannGT/lisa/commit/69c55e4bb4bf59773fddc1f971c6972d1af75f88)), closes [CodySwannGT/lisa#3572](https://github.com/CodySwannGT/lisa/issues/3572)
+* **test-node:** prune excluded trees from the collect() walk ([0146cd5](https://github.com/CodySwannGT/lisa/commit/0146cd59e6369bbb2d925d472fc8d2f682b78ed1)), closes [CodySwannGT/lisa#3417](https://github.com/CodySwannGT/lisa/issues/3417)
+
+### [4.34.5](https://github.com/CodySwannGT/lisa/compare/v4.34.4...v4.34.5) (2026-09-04)
+
+
+### Bug Fixes
+
+* **gates:** stamp the copy of the registry the gates actually ran ([7929bf7](https://github.com/CodySwannGT/lisa/commit/7929bf73f430d3f403d135b67136d58e721b7ab9)), closes [CodySwannGT/lisa#3643](https://github.com/CodySwannGT/lisa/issues/3643)
+
 ### [4.34.4](https://github.com/CodySwannGT/lisa/compare/v4.34.3...v4.34.4) (2026-09-04)
 
 

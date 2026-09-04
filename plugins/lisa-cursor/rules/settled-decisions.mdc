@@ -58,3 +58,23 @@ honored.
 When you take a settled decision, make it auditable in one clause — "auto-merge on, per your standing
 preference", "scoped app-wide, because the Android finding decides it". That gives the operator the
 chance to correct it without requiring them to answer first.
+
+## Before you escalate, re-read the instruction file from disk
+
+**This rule is delivered at session start; the re-read it demands happens at the escalation
+boundary.** Re-reading at session start would re-read the same moment your context was built from
+and buys nothing.
+
+So before you form an escalation, hand a decision back, or re-open a question that may already be
+settled: **open `AGENTS.md` (or `CLAUDE.md`) from disk and read its `## Standing rulings` section.**
+If the file has no such heading, re-read the file.
+
+The instruction is to open the file — not to "check whether your context looks complete", because
+**context completeness is not observable from inside.** An instruction file is injected at session
+start and can arrive shortened, and the cut can land on a clean section boundary, where a truncated
+document is indistinguishable from one that never had that section: your copy ends tidily, so you
+conclude you read all of it. Rulings are also written *after* sessions begin — your copy is a
+snapshot of the moment you started, and nothing tells you when it stops being current.
+
+This is a **pointer, not a copy**. It stays correct as rulings accumulate, and it survives a
+shortened copy of the file it points at precisely because it does not travel inside that file.

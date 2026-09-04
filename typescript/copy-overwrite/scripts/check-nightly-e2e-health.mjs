@@ -313,6 +313,13 @@ export const FLOW_COUNT_ARTIFACT_PATTERN =
 export const SCOPE_ARTIFACT_PATTERN =
   /^maestro-(?<platform>[a-z0-9]+)-scope-(?<scope>full|filtered)$/;
 
+/** Locale-independent code-point ordering required by Sonar's string-sort rule. */
+function compareStrings(left, right) {
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+}
+
 /** The label that identifies a tracking issue this reporter owns. */
 export const TRACKING_ISSUE_LABEL = "nightly-e2e";
 
@@ -988,11 +995,11 @@ export function readSuiteScope(artifacts) {
   const platforms = Object.keys(counts);
   return Object.freeze({
     readable: true,
-    filtered: Object.freeze(filtered.sort()),
+    filtered: Object.freeze(filtered.sort(compareStrings)),
     // Tracked as well as `filtered`, because "the run asserted it was UNFILTERED"
     // and "the run said nothing" are different facts and only one of them is
     // grounds to stop asking. Every pre-adoption run is the second.
-    full: Object.freeze(full.sort()),
+    full: Object.freeze(full.sort(compareStrings)),
     counts: Object.freeze({ ...counts }),
     // `null`, not 0, when nothing was published. Zero is a READING — the arm ran
     // and tested nothing — and rendering "no evidence" as that reading is the
@@ -1050,7 +1057,7 @@ export function assessSuiteScope(suite, scope) {
   // happened to work.
   const dead = Object.keys(scope.counts)
     .filter(platform => scope.counts[platform] === 0)
-    .sort();
+    .sort(compareStrings);
   if (dead.length > 0) {
     return {
       reason: ZERO_FLOWS_REASON,
