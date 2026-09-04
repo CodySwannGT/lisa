@@ -16,6 +16,10 @@
         "matcher": "Bash"
       },
       {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/discharge-work-item-gates.sh",
+        "matcher": "Bash"
+      },
+      {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/threshold-ratchet.sh",
         "matcher": "Edit|Write|NotebookEdit|Bash"
       }
