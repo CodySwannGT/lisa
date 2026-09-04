@@ -26,6 +26,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   classifyRef,
   findWorkflowRefs,
+  violatesRefPolicy,
 } from "../../../scripts/check-template-workflow-refs.mjs";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils";
@@ -43,6 +44,12 @@ const REUSABLE = ".github/workflows/nightly-e2e-report.yml";
 
 /** Stand-in body for the reusable, so its presence at a ref is what varies. */
 const REUSABLE_BODY = "name: reusable\n";
+
+/** A second reusable path, for the multi-reference and folded-scalar cases. */
+const REUSABLE_A = ".github/workflows/a.yml";
+
+/** A tag that resolves in the fixture repo, used for the policy cases. */
+const PIN_TAG = "v1.0.0";
 
 /**
  * A caller template referencing the reusable at `ref`.
@@ -161,9 +168,126 @@ describe("findWorkflowRefs", () => {
       "    uses: CodySwannGT/lisa/.github/workflows/b.yml@v3.1.0",
     ].join("\n");
     expect(findWorkflowRefs(yaml)).toEqual([
-      { line: 1, ref: "main", target: ".github/workflows/a.yml" },
+      { line: 1, ref: "main", target: REUSABLE_A },
       { line: 2, ref: "v3.1.0", target: ".github/workflows/b.yml" },
     ]);
+  });
+
+  it("finds a reference written as a FOLDED scalar, on its own line", () => {
+    // A shipped template pinned to a SHA was written this way and was
+    // invisible to this gate for its whole life: the per-line scan looked for
+    // `uses: CodySwannGT/...` and a folded `uses:` has nothing after the colon,
+    // so the file reported ZERO references and passed. A parser that quietly
+    // sees nothing is the same false green the gate exists to prevent.
+    const yaml = [
+      "jobs:",
+      "  track:",
+      "    uses: >-",
+      "      CodySwannGT/lisa/.github/workflows/nightly-e2e-tracking.yml@main",
+      "    secrets: inherit",
+    ].join("\n");
+    expect(findWorkflowRefs(yaml)).toEqual([
+      {
+        line: 4,
+        ref: "main",
+        target: ".github/workflows/nightly-e2e-tracking.yml",
+      },
+    ]);
+  });
+
+  it("finds a reference under every block-scalar spelling", () => {
+    // Every spelling YAML permits for the header, including an explicit
+    // indentation indicator on EITHER side of the chomping indicator. A header
+    // this parser fails to recognise is a reference it never scans for, which
+    // is indistinguishable from a template that has none.
+    for (const marker of [
+      ">",
+      ">-",
+      ">+",
+      "|",
+      "|-",
+      "|+",
+      ">1",
+      "|9",
+      ">2-",
+      ">3+",
+      "|4-",
+      "|5+",
+      ">-6",
+      ">+7",
+      "|-8",
+      "|+1",
+    ]) {
+      const yaml = [
+        `    uses: ${marker}`,
+        "      CodySwannGT/lisa/.github/workflows/a.yml@main",
+      ].join("\n");
+      expect(findWorkflowRefs(yaml), `spelling ${marker}`).toEqual([
+        { line: 2, ref: "main", target: REUSABLE_A },
+      ]);
+    }
+  });
+
+  it("still FLAGS a bad ref hidden behind an indentation indicator", () => {
+    // Finding the reference is only half the gate. The spelling that hid a raw
+    // SHA from every sweep must end in a VERDICT, not merely in a parse — a
+    // parser that matches everything and reports nothing actionable would
+    // satisfy a found-it assertion while leaving the defect shipping.
+    for (const marker of [">2-", ">-2", "|3+", "|+3"]) {
+      const yaml = [
+        "jobs:",
+        "  track:",
+        `    uses: ${marker}`,
+        "      CodySwannGT/lisa/.github/workflows/a.yml@08628ca0d2db045d3b0d87fcad8e444565836ff9",
+      ].join("\n");
+      const refs = findWorkflowRefs(yaml);
+      expect(refs, `spelling ${marker}`).toEqual([
+        {
+          line: 4,
+          ref: "08628ca0d2db045d3b0d87fcad8e444565836ff9",
+          target: REUSABLE_A,
+        },
+      ]);
+      expect(violatesRefPolicy(refs[0]), `verdict ${marker}`).toBe(true);
+    }
+  });
+
+  it("stops a folded scan at the next key rather than reading the whole file", () => {
+    // Over-scanning would attribute a LATER job's reference to this one, and
+    // report a line number pointing at the wrong job.
+    const yaml = [
+      "  a:",
+      "    uses: >-",
+      "      CodySwannGT/lisa/.github/workflows/a.yml@main",
+      "  b:",
+      "    uses: CodySwannGT/lisa/.github/workflows/b.yml@main",
+    ].join("\n");
+    expect(findWorkflowRefs(yaml)).toEqual([
+      { line: 3, ref: "main", target: REUSABLE_A },
+      { line: 5, ref: "main", target: ".github/workflows/b.yml" },
+    ]);
+  });
+});
+
+describe("violatesRefPolicy", () => {
+  it("accepts the moving ref", () => {
+    expect(violatesRefPolicy({ ref: "main" })).toBe(false);
+  });
+
+  it("rejects a tag, which goes stale without ever failing", () => {
+    expect(violatesRefPolicy({ ref: "v3.35.0" })).toBe(true);
+  });
+
+  it("rejects a SHA, which a history rewrite makes unreachable", () => {
+    expect(
+      violatesRefPolicy({
+        ref: "08628ca0d2db045d3b0d87fcad8e444565836ff9",
+      })
+    ).toBe(true);
+  });
+
+  it("rejects any other branch, so only `main` passes", () => {
+    expect(violatesRefPolicy({ ref: "develop" })).toBe(true);
   });
 });
 
@@ -254,6 +378,56 @@ describe("check-template-workflow-refs CLI", () => {
     const result = run(["--root", root]);
     expect(result.code).toBe(1);
     expect(result.stdout).toContain("does not exist at that ref");
+  });
+
+  it("exits 1 on a pin that resolves perfectly but does not track @main", () => {
+    // The case the gate used to call clean, and the one that matters most: the
+    // tag exists, the reusable exists in its tree, so every resolution check
+    // passes. It is healthy today and will go stale in silence — which is why
+    // resolvability alone was never enough to judge a reference by.
+    const root = tempRepo({
+      [REUSABLE]: REUSABLE_BODY,
+      [TEMPLATE]: callerTemplate(PIN_TAG),
+    });
+    boundedExecFileSync({
+      label: "git tag",
+      command: GIT,
+      args: ["tag", PIN_TAG],
+      cwd: root,
+      env: cleanGitEnv(process.env),
+    });
+
+    const result = run(["--root", root]);
+    expect(result.code).toBe(1);
+    expect(result.stdout).toContain("must track @main");
+    expect(result.stdout).not.toContain("does not exist at that ref");
+  });
+
+  it("exits 1 on a folded-scalar pin the line-based scan could not see", () => {
+    // Regression guard for the two defects together: the reference is written
+    // as a folded scalar AND pinned. Before the parser fix this template
+    // reported zero references and the run exited 0.
+    const root = tempRepo({
+      [REUSABLE]: REUSABLE_BODY,
+      [TEMPLATE]: [
+        "jobs:",
+        "  report:",
+        "    uses: >-",
+        `      CodySwannGT/lisa/${REUSABLE}@${PIN_TAG}`,
+        "",
+      ].join("\n"),
+    });
+    boundedExecFileSync({
+      label: "git tag",
+      command: GIT,
+      args: ["tag", PIN_TAG],
+      cwd: root,
+      env: cleanGitEnv(process.env),
+    });
+
+    const result = run(["--root", root]);
+    expect(result.code).toBe(1);
+    expect(result.stdout).toContain("must track @main");
   });
 
   it("exits 2 rather than 0 when it discovers no templates at all", () => {
