@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.37.0](https://github.com/CodySwannGT/lisa/compare/v4.36.2...v4.37.0) (2026-09-04)
+
+
+### Features
+
+* **ci:** report when Lisa's own self-dependency pin stops tracking ([13d1de6](https://github.com/CodySwannGT/lisa/commit/13d1de6c6371856b86e7e9a8daede520b3581bd4)), closes [#2279](https://github.com/CodySwannGT/lisa/issues/2279) [#3662](https://github.com/CodySwannGT/lisa/issues/3662) [#3684](https://github.com/CodySwannGT/lisa/issues/3684) [CodySwannGT/lisa#3768](https://github.com/CodySwannGT/lisa/issues/3768)
+
+
+### Bug Fixes
+
+* **hooks:** refuse to arm auto-merge on a PR blocked only by review ([3eb0c7d](https://github.com/CodySwannGT/lisa/commit/3eb0c7defb23f84218260a0e84656aa4e548af24)), closes [#3720](https://github.com/CodySwannGT/lisa/issues/3720) [#3720](https://github.com/CodySwannGT/lisa/issues/3720) [#3753](https://github.com/CodySwannGT/lisa/issues/3753) [CodySwannGT/lisa#3806](https://github.com/CodySwannGT/lisa/issues/3806)
+
 ### [4.36.2](https://github.com/CodySwannGT/lisa/compare/v4.36.1...v4.36.2) (2026-09-04)
 
 
