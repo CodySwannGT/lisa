@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.34.3](https://github.com/CodySwannGT/lisa/compare/v4.34.2...v4.34.3) (2026-09-04)
+
+
+### Bug Fixes
+
+* **ci:** name the missing gate runner instead of dying at exit 127 ([1f3c8a4](https://github.com/CodySwannGT/lisa/commit/1f3c8a4d403d5473d420f0b9553c9e88d8993a67)), closes [#2789](https://github.com/CodySwannGT/lisa/issues/2789) [#3693](https://github.com/CodySwannGT/lisa/issues/3693) [CodySwannGT/lisa#3537](https://github.com/CodySwannGT/lisa/issues/3537)
+
 ### [4.34.2](https://github.com/CodySwannGT/lisa/compare/v4.34.1...v4.34.2) (2026-09-04)
 
 ### [4.34.1](https://github.com/CodySwannGT/lisa/compare/v4.34.0...v4.34.1) (2026-09-04)
