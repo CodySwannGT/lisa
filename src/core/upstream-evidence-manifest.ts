@@ -769,7 +769,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/enforce-verification-gate.sh":
       "29885d07ff6da70f193ea0f0691d63f324deb79fbd7ede519596415875d94458",
     "plugins/src/base/hooks/enforcement-vintage.mjs":
-      "ddd8d27b6aa1e93e489f4c229f501380c9718b0bb9e2b4f0b3d9450168868f77",
+      "06599ee8b5ae9e24125b12b5d79f0c704a71535efe3f27705b2db7e53a0c6ba1",
     "plugins/src/base/hooks/enforcement-vintage.sh":
       "e23cb84a0035c86805ce7aada15adae6634a5a8cb68a9e2ba677ab1953721b97",
     "plugins/src/base/hooks/failure-signature-index.mjs":

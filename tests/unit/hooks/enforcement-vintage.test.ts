@@ -40,6 +40,8 @@ import {
 const STALE_VERSION = "4.32.2";
 /** The version sitting unreachable on the same fabricated disk. */
 const NEWEST_VERSION = "4.35.1";
+/** A session copy newer than anything released on the fabricated disk. */
+const AHEAD_VERSION = "4.36.0";
 /** The vintage a `lisa apply` receipt records for the host guard tree. */
 const TREE_VERSION = "4.23.26";
 /** Row label for the tree the repository hook dispatcher would resolve. */
@@ -156,13 +158,30 @@ describe("enforcement-vintage: a current session does not", () => {
     // staleness here would make the signal permanently true and therefore
     // permanently ignored.
     const context = contextFor({
-      pluginRoot: pluginCopy("4.36.0"),
+      pluginRoot: pluginCopy(AHEAD_VERSION),
       projectDir: scratch("empty"),
       configDir: configDir(NEWEST_VERSION),
     });
 
-    expect(context).toContain("CURRENT");
     expect(context).not.toContain("STALE");
+  });
+
+  it("reports AHEAD as its own state, not as current", () => {
+    // A session ahead of every released copy runs code no other session on the
+    // machine has. Folding that into CURRENT is the mirror of the stale
+    // reading — behaviour observed here gets reported as how Lisa behaves,
+    // when it exists nowhere else yet. The running copy is therefore excluded
+    // from the reference maximum, or it would select itself and report current.
+    const context = contextFor({
+      pluginRoot: pluginCopy(AHEAD_VERSION),
+      projectDir: scratch("empty"),
+      configDir: configDir(NEWEST_VERSION),
+    });
+
+    expect(context).toContain("AHEAD");
+    expect(context).not.toContain("CURRENT");
+    expect(context).toContain(`lisa ${AHEAD_VERSION}`);
+    expect(context).toContain(`lisa ${NEWEST_VERSION}`);
   });
 
   it("counts the running copy as evidence of what is on the disk", () => {

@@ -267,18 +267,40 @@ export function localCopies(projectDir, configDir) {
 export function resolveState(where) {
   const running = runningCopy(where.hooksDir);
   const tree = repositoryTree(where.projectDir);
-  const newest = newestOf([
+
+  // Two maxima, and the split is what lets AHEAD exist as its own answer.
+  //
+  // `reference` deliberately EXCLUDES the running copy, because a session
+  // cannot be evidence about itself: folding it in makes an ahead session
+  // select itself as the newest thing on the disk, which collapses "ahead of
+  // every other copy here" into "current" and loses the distinction entirely.
+  //
+  // `newest` includes it, because the reported ROW answers a different
+  // question — what is the newest Lisa on this disk — and on a machine where
+  // the session copy is the only dateable one, excluding it would leave that
+  // row empty and make a current session indistinguishable from an undateable
+  // one. Same numbers, two questions, and only the first may be self-referential.
+  const reference = newestOf([
     ...localCopies(where.projectDir, where.configDir),
-    { version: running.version, source: running.source },
     ...(tree ? [{ version: tree.version, source: tree.tree }] : []),
   ]);
+  const newest = newestOf([
+    ...(reference ? [reference] : []),
+    { version: running.version, source: running.source },
+  ]);
   const behind = Boolean(
-    newest && running.version && isOlder(running.version, newest.version)
+    reference && running.version && isOlder(running.version, reference.version)
   );
+  const ahead = Boolean(
+    reference && running.version && isOlder(reference.version, running.version)
+  );
+  // Measured against the disk maximum rather than against the session copy: a
+  // session running an OLDER build than the tree it polices would otherwise
+  // report a nine-minor-old tree as fine.
   const treeBehind = Boolean(
     tree && newest && tree.version && isOlder(tree.version, newest.version)
   );
-  return { running, tree, newest, behind, treeBehind };
+  return { running, tree, reference, newest, behind, ahead, treeBehind };
 }
 
 /** What a stale session must do differently, stated as actions. */
@@ -318,10 +340,22 @@ export function renderBlock(state) {
   if (state.behind || !state.running.version || state.treeBehind) {
     lines.push(
       state.behind
-        ? `STALE — this session executes lisa ${state.running.version} while lisa ${state.newest.version} is already on this machine. Act on that:`
+        ? `STALE — this session executes lisa ${state.running.version} while lisa ${state.reference.version} is already on this machine. Act on that:`
         : "UNPROVEN — this session cannot be shown to be current. Treat it as stale:"
     );
     CONSEQUENCES.forEach(line => lines.push(`- ${line}`));
+  } else if (state.ahead) {
+    // Not an alarm, and not the same as current. A session ahead of every
+    // released copy is running code no other session on this machine has, so
+    // guard behaviour observed here is evidence about an UNRELEASED build —
+    // which is the mirror of the stale reading and produces the same class of
+    // wrong report, in the other direction.
+    lines.push(
+      `AHEAD — this session executes lisa ${state.running.version}, newer than lisa ` +
+        `${state.reference.version} at ${state.reference.source}. Nothing here is stale, but ` +
+        "behaviour you observe may not exist yet for anyone else: do not report it as how " +
+        "Lisa behaves, and say which version you were on."
+    );
   } else {
     lines.push(
       "CURRENT — no newer Lisa is on this disk, so guard behaviour and skill contracts " +

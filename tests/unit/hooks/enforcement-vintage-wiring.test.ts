@@ -20,8 +20,28 @@ import { shouldShipScript } from "../../../scripts/lib/per-agent-hook-filter.mjs
 const SCRIPT = "enforcement-vintage.sh";
 /** The renderer that ships beside it. */
 const RENDERER = "enforcement-vintage.mjs";
+/** Directory holding the generated per-agent plugin payloads. */
+const PLUGINS = "plugins";
+/** Directory each payload keeps its hook scripts in. */
+const HOOKS = "hooks";
+/** The Copilot variant's manifest, read for its event coverage. */
+const COPILOT_MANIFEST = "plugins/lisa-copilot/.claude-plugin/plugin.json";
 /** Events a session opens with. Both must fire, or subagents go untold. */
 const SESSION_EVENTS = ["SessionStart", "SubagentStart"] as const;
+/** The agent slugs the ship-list is keyed by. */
+type Agent = "claude" | "codex" | "cursor" | "agy" | "copilot";
+/** Which agents receive this hook, and which are a documented gap. */
+const FAN_OUT: readonly (readonly [Agent, boolean])[] = [
+  ["claude", true],
+  ["codex", true],
+  ["cursor", true],
+  ["copilot", true],
+  // agy has no session-start event at all, so it cannot receive this. The
+  // compensating rung is shared rather than agent-layer: the Bash enforcement
+  // dispatcher names the producing copy and its vintage in every refusal, and
+  // `lisa doctor` reports the same resolution on every agent.
+  ["agy", false],
+];
 
 /** A single registered hook command, as the plugin manifests carry it. */
 type HookEntry = { type?: string; command?: string };
@@ -81,36 +101,61 @@ describe("enforcement-vintage: registration", () => {
 });
 
 describe("enforcement-vintage: agent fan-out", () => {
-  it.each([
-    ["claude", true],
-    ["codex", true],
-    ["cursor", true],
-    ["copilot", true],
-    // agy has no session-start event at all, so it cannot receive this. The
-    // compensating rung is shared rather than agent-layer: the Bash enforcement
-    // dispatcher names the producing copy and its vintage in every refusal, and
-    // `lisa doctor` reports the same resolution on every agent.
-    ["agy", false],
-  ])("ships to %s: %s", (agent, expected) => {
-    expect(shouldShipScript(SCRIPT, agent as string)).toBe(expected);
+  it.each(FAN_OUT)("ships to %s: %s", (agent, expected) => {
+    expect(shouldShipScript(SCRIPT, agent)).toBe(expected);
   });
 
   it.each(["lisa", "lisa-cursor", "lisa-copilot"])(
     "materializes both files into the %s payload",
     plugin => {
-      expect(existsSync(path.join("plugins", plugin, "hooks", SCRIPT))).toBe(
-        true
-      );
+      expect(existsSync(path.join(PLUGINS, plugin, HOOKS, SCRIPT))).toBe(true);
       // The wrapper alone is inert: it exits 0 when the renderer is absent, so
       // a payload carrying only the script would be silent rather than broken.
-      expect(existsSync(path.join("plugins", plugin, "hooks", RENDERER))).toBe(
+      expect(existsSync(path.join(PLUGINS, plugin, HOOKS, RENDERER))).toBe(
         true
       );
     }
   );
 
+  it("reaches the Cursor payload on BOTH session events", () => {
+    // Cursor's schema is flat per-event arrays under camelCase names, so the
+    // Claude-shaped reader above cannot see it. Read as measured, not assumed:
+    // the ship rule says "cursor: true" and says nothing about which events
+    // survive the generator.
+    const hooks = JSON.parse(
+      readFileSync(
+        path.join(PLUGINS, "lisa-cursor", HOOKS, "hooks.json"),
+        "utf8"
+      )
+    ) as { hooks?: Record<string, { command?: string }[] | undefined> };
+    const commandsOn = (event: string): string[] =>
+      (hooks.hooks?.[event] ?? []).map(entry => entry.command ?? "");
+
+    expect(commandsOn("sessionStart")).toContain(
+      `\${CURSOR_PLUGIN_ROOT}/hooks/${SCRIPT}`
+    );
+    expect(commandsOn("subagentStart")).toContain(
+      `\${CURSOR_PLUGIN_ROOT}/hooks/${SCRIPT}`
+    );
+  });
+
+  it("reaches a Copilot SESSION but not a Copilot SUB-AGENT", () => {
+    // Copilot has no SubagentStart event, so its sub-agents are never told
+    // their vintage. That is a documented gap, and pinning it here is what
+    // keeps the wiki row honest — the ship rule is a flat per-agent boolean and
+    // cannot express it, which is exactly how the row came to overstate the
+    // coverage in the first place.
+    const hooks = JSON.parse(readFileSync(COPILOT_MANIFEST, "utf8")) as {
+      hooks?: Record<string, unknown>;
+    };
+    const sessionCommands = commandsFor(COPILOT_MANIFEST, "sessionStart");
+
+    expect(sessionCommands).toContain(`\${CLAUDE_PLUGIN_ROOT}/hooks/${SCRIPT}`);
+    expect(Object.keys(hooks.hooks ?? {})).not.toContain("subagentStart");
+  });
+
   it("stays out of the agy payload, matching its ship rule", () => {
-    expect(existsSync(path.join("plugins", "lisa-agy", "hooks", SCRIPT))).toBe(
+    expect(existsSync(path.join(PLUGINS, "lisa-agy", HOOKS, SCRIPT))).toBe(
       false
     );
   });
