@@ -460,6 +460,50 @@ passed off as success.
   `blocked:unreviewed`. This fallback lives inside the gated section above —
   with `auto_merge=false` it never fires; the PR remains open awaiting a human.
 
+### The mergeability gate — never arm a PR that cannot merge
+
+The arm gate above asks *did the review context do work?* This one asks a
+different question — *is there a verdict standing in the way?* — and they are
+not the same. A `CHANGES_REQUESTED` review unambiguously **did work**, so it
+sails through the arm gate and the latch goes on over the top of it.
+
+**Read `reviewDecision` explicitly. Never infer it from a check count.**
+
+```bash
+gh pr view <pr> --json reviewDecision,reviewThreads \
+  --jq '{decision: .reviewDecision, unresolved: [.reviewThreads[]? | select(.isResolved == false)] | length}'
+```
+
+`reviewDecision` is **not part of `statusCheckRollup`**. That is the whole reason
+this stayed invisible: a failing-check count reads **zero** on a PR that can
+never merge, and the checks tab is entirely green. Any rule keyed on "no red
+checks" is satisfied by exactly the PR this gate exists to catch (#3720).
+
+**Do not arm while `reviewDecision == CHANGES_REQUESTED`.** Arming is a claim
+that this PR will merge, and that claim is false here. Clear the verdict through
+step (e) first — which discriminates a live objection from a stranded one by
+unresolved thread count, not by `reviewDecision` — and arm afterwards.
+
+**Two ruleset settings decide whether a standing verdict ever clears itself, and
+in this repository both say no.** Verify them for the repo you are in rather
+than assuming, with `gh api repos/<owner>/<repo>/rulesets`:
+
+- `dismiss_stale_reviews_on_push: false` — the review stays attached to the
+  commit it was made on, so **pushing the fix never clears it**. The intuition
+  that a new head resets the verdict is wrong here.
+- `required_approving_review_count: 0` — no approval is required to merge, so a
+  standing `CHANGES_REQUESTED` is not holding a slot for a review that would
+  otherwise arrive. Nothing is scheduled to clear it.
+
+Together those mean the block is **indefinite, not slow**. Waiting is not a
+strategy; something has to act.
+
+**Unresolved threads block independently of the verdict.** This repository sets
+`required_review_thread_resolution: true`, so a PR can have a clear
+`reviewDecision` and still be unmergeable on threads alone — a second blocker
+that is equally absent from the check rollup. Read both, and name whichever one
+is standing; reporting the wrong one sends the operator to the wrong place.
+
 ## 2. The watch loop
 
 Poll the live state each iteration:
@@ -1078,6 +1122,14 @@ Loop until one of:
   the one thing nobody would then do is investigate it. Usually a missing
   `issues: read` / label-read permission, which is fixable and invisible from
   the merge outcome alone.
+- **`blocked:armed-unmergeable`** — the PR is OPEN, auto-merge is ON, every check
+  is green, and it still cannot merge: `reviewDecision == CHANGES_REQUESTED`, or
+  unresolved review threads under `required_review_thread_resolution`. Report the
+  PR URL, **which** of the two is standing, and that it will not clear itself.
+  For example: *"PR #123 looks ready — every check is green and auto-merge is on
+  — but a review asked for changes and that is still on record, so it will sit
+  there forever. Someone needs to clear that review or resolve the open
+  comments."* Never report this PR as merging.
 - **`CLOSED`** → report (PR was closed without merge).
 - **Hard block needing a human**: an unresolvable conflict, a failing check that
   needs design input, or genuine unresolved human objection (not a bot gate). Stop
@@ -1086,6 +1138,44 @@ Loop until one of:
   hollow third-party review that is the *sole* remaining gate, and only once the
   adversarial-review substitute is posted (step d); it never extends to any
   other gate.
+
+### Before you stop: never leave a PR armed and unmergeable in silence
+
+**This applies at every exit that leaves the PR OPEN** — not only the terminal
+states above, but any point where this run concludes it is finished, hands back,
+or gives up. Re-read, from the live PR, immediately before reporting:
+
+```bash
+gh pr view <pr> --json state,autoMergeRequest,reviewDecision,reviewThreads \
+  --jq '{state, armed: (.autoMergeRequest != null), decision: .reviewDecision,
+         unresolved: [.reviewThreads[]? | select(.isResolved == false)] | length}'
+```
+
+If `state == OPEN` and `armed` and either `decision == "CHANGES_REQUESTED"` or
+`unresolved > 0`, the outcome is **`blocked:armed-unmergeable`** — never a
+success, and never silence.
+
+**Why this exists rather than trusting the loop.** While the loop runs this is
+already covered: the watch poll reads `reviewDecision` and step (e) handles it.
+The failure is a run that **stops** while the PR is armed and blocked — the
+session ends, or the agent decides the work is done because arming looked like
+completion. Measured (#3720): three PRs were left armed, green and permanently
+unmergeable, and every one was found only because a person queried
+`reviewDecision` by hand. An agent that arms auto-merge and reports "armed, will
+merge" is reporting something false and has no reason to know it.
+
+**Arming is not completion.** It is a claim about the future that this check is
+what makes honest. The claim costs nothing when true — one read, and the report
+says merging — and when false it is the only thing standing between a parked PR
+and nobody noticing for hours.
+
+**Read the two fields; do not substitute a check count.** Zero failing checks is
+the symptom, not the signal — that is precisely why this class was invisible.
+
+In `on_blocker=report` mode the same condition returns the existing
+`blocked:changes_requested` classification rather than this terminal state: that
+mode returns a blocker for the caller to act on, and does not drive. The two
+names describe the same PR seen from the two modes.
 
 At every terminal state, release the babysitter lease
 (`gh pr edit <pr> --remove-label "lisa:babysitter-on-duty"`) so the CI
