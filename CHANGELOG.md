@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.34.17](https://github.com/CodySwannGT/lisa/compare/v4.34.16...v4.34.17) (2026-09-04)
+
+
+### Bug Fixes
+
+* **rails:** say why the deploy template withholds production ([193b4b2](https://github.com/CodySwannGT/lisa/commit/193b4b2a98d94e14dbaf27a5b3296c3ee950f98a)), closes [#3743](https://github.com/CodySwannGT/lisa/issues/3743) [CodySwannGT/lisa#3743](https://github.com/CodySwannGT/lisa/issues/3743)
+
 ### [4.34.16](https://github.com/CodySwannGT/lisa/compare/v4.34.15...v4.34.16) (2026-09-04)
 
 
