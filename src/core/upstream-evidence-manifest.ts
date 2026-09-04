@@ -959,7 +959,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/local-ci-first.md":
       "4db796a9e159d25e5edd0d8d8d713b6556a3024a96e3882a50e19928b0e81a18",
     "plugins/src/base/rules/reference/measurement-integrity.md":
-      "d43e528599c3399d938bbd85b8dc8df72dbbe100ad395a93655f3b263d683bf4",
+      "f628573c591e2cbbbbedd22821d40a3687dc14dba3aba5aebdc75c37ebd62494",
     "plugins/src/base/rules/reference/not-blocked-just-waiting.md":
       "bef69d0cefa92e2b8ca589bb27f8e92749140e662d54110e12f0a47890e69f14",
     "plugins/src/base/rules/reference/observability-audit.md":
