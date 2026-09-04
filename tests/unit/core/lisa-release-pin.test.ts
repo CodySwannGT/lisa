@@ -198,16 +198,13 @@ describe("resolveTagCommitFromGit against a real repository", () => {
    * @returns Trimmed stdout
    */
   function git(...args: readonly string[]): string {
-    return String(
-      boundedExecFileSync({
-        label: `git ${args[0] ?? ""}`,
-        command: GIT,
-        args: [...args],
-        cwd: repo,
-        env: cleanGitEnv(),
-        encoding: "utf8",
-      }) ?? ""
-    ).trim();
+    return boundedExecFileSync({
+      label: `git ${args[0] ?? ""}`,
+      command: GIT,
+      args: [...args],
+      cwd: repo,
+      env: cleanGitEnv(),
+    }).trim();
   }
 
   beforeEach(async () => {

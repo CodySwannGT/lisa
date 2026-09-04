@@ -310,13 +310,15 @@ describe("EnsurePinnedReusableWorkflowRefsMigration", () => {
       // continues, warns, and `lisa doctor` reports the refs it seeded.
       await seedFreshInstall();
       const warnings: string[] = [];
-      const ctx = {
-        ...context(),
-        logger: {
-          ...new SilentLogger(),
-          warn: (m: string) => warnings.push(m),
-        },
-      } as MigrationContext;
+      const logger = new SilentLogger();
+      // Replaces the one method under observation rather than rebuilding the
+      // logger: a hand-built stand-in would satisfy the type today and go on
+      // satisfying it after ILogger grows a method it silently does not
+      // implement.
+      logger.warn = (message: string): void => {
+        warnings.push(message);
+      };
+      const ctx: MigrationContext = { ...context(), logger };
 
       await expect(
         new EnsurePinnedReusableWorkflowRefsMigration(
