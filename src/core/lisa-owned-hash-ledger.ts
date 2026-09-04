@@ -432,6 +432,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "b456ad79aae18ea3af4ae462327653a88ab865ec31c84aa233c3ded512acff32",
     "b4cc14d5dc02c790ea3e51b0134b9c3d5e4a0e8ef08a652817f7485a0badde17",
     "c64765cb502797daa163dbb6cad723b633a7c527dffeb6bd99cca4989a63fcf4",
+    "c9604929b1f5d3fee39ef7c3619f89002accf27712dbd38f25b6a7a0ceb0025a",
     "d7d88e44763694bed5eae998cd3663922c957e49f9f9621d9201f0417a4128ad",
     "d922508529c0ffd6b8411d7fc618b3d14ceb70901746adfbcf49e46eb685d6b9",
     "e0f4f2b11bea5497af12bae0d52902eb3d02b4ec3a7ae8e07236fb09b59cf560",
@@ -752,6 +753,12 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "cd47e1a54ce35a6446ed67d66f93d022445e94560e7238e6e031f199240e5e92",
     "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "f21cdcb54b353714a92c2d1e25fd6b76318e8e8d7cb90cdb016f174923c532ef",
+  ]),
+  "scripts/lisa-hooks/worktree-binding-guard.mjs": Object.freeze([
+    "bc1118b05eaea3fc7b3409c96979d64e3dee0907118f3e84d735163f473f632a",
+  ]),
+  "scripts/lisa-hooks/worktree-binding-guard.sh": Object.freeze([
+    "662652c09e5eb70f14db61136ea1206e9b337fce49dcabc774a45a07a0fd718f",
   ]),
   "scripts/lisa-lint-staged-preflight.mjs": Object.freeze([
     "ce4bc224a102e3ac2bc29d8f2038eefd619129d4639c25954c93f05011f7f977",
@@ -1458,6 +1465,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "b456ad79aae18ea3af4ae462327653a88ab865ec31c84aa233c3ded512acff32",
     "b4cc14d5dc02c790ea3e51b0134b9c3d5e4a0e8ef08a652817f7485a0badde17",
     "c64765cb502797daa163dbb6cad723b633a7c527dffeb6bd99cca4989a63fcf4",
+    "c9604929b1f5d3fee39ef7c3619f89002accf27712dbd38f25b6a7a0ceb0025a",
     "d7d88e44763694bed5eae998cd3663922c957e49f9f9621d9201f0417a4128ad",
     "d922508529c0ffd6b8411d7fc618b3d14ceb70901746adfbcf49e46eb685d6b9",
     "e0f4f2b11bea5497af12bae0d52902eb3d02b4ec3a7ae8e07236fb09b59cf560",
@@ -1732,6 +1740,12 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "cd47e1a54ce35a6446ed67d66f93d022445e94560e7238e6e031f199240e5e92",
     "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "f21cdcb54b353714a92c2d1e25fd6b76318e8e8d7cb90cdb016f174923c532ef",
+  ]),
+  "scripts/lisa-hooks/worktree-binding-guard.mjs": Object.freeze([
+    "bc1118b05eaea3fc7b3409c96979d64e3dee0907118f3e84d735163f473f632a",
+  ]),
+  "scripts/lisa-hooks/worktree-binding-guard.sh": Object.freeze([
+    "662652c09e5eb70f14db61136ea1206e9b337fce49dcabc774a45a07a0fd718f",
   ]),
   "scripts/lisa-lint-staged-preflight.mjs": Object.freeze([
     "ce4bc224a102e3ac2bc29d8f2038eefd619129d4639c25954c93f05011f7f977",

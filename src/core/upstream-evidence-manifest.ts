@@ -41,7 +41,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
-      "531ef11fc42705826d5fa6fe80a972218411fdf5915a69f9c84d620968fdca8b",
+      "c9604929b1f5d3fee39ef7c3619f89002accf27712dbd38f25b6a7a0ceb0025a",
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "d8b46b3a773c0dc7c6cfc55584c3a7a06dd9c83a21599faa3786fca368e443ee",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
@@ -66,6 +66,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "c0aa42f5e0a15a5d1938369129d0b7f726a4db1a80389d427e6f9647d7cf97fa",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
+    "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
+      "bc1118b05eaea3fc7b3409c96979d64e3dee0907118f3e84d735163f473f632a",
+    "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh":
+      "662652c09e5eb70f14db61136ea1206e9b337fce49dcabc774a45a07a0fd718f",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
       "ce4bc224a102e3ac2bc29d8f2038eefd619129d4639c25954c93f05011f7f977",
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
@@ -105,7 +109,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/github-rulesets/protect-tags.json":
       "387f824e3ea58a803223e42e08326504a39e6a7a0c650a0bbfdfb4653854b722",
     "all/merge/.claude/settings.json":
-      "76b8d2476c4226a29b769744c4ed48f5e24412b70c73e43ebb39518b0b5842d7",
+      "c5e65ab938ed7b92680fb8de9eaca4c5a2ca3db3068317812a5706d51cfe9fee",
     "cdk/copy-overwrite/.github/workflows/.keep":
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "cdk/copy-overwrite/eslint.cdk.ts":
@@ -812,6 +816,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "fcaac3917b7cafc9b8c853644d16a0598b3df0ef6d117af0ad03c4251c60a294",
     "plugins/src/base/hooks/withdrawn-rulings.sh":
       "5dbf429b6ec73c3c29fb96008efa1015feaa4812c1b4bb26aaa5d0b904a0ff9c",
+    "plugins/src/base/hooks/worktree-binding-guard.mjs":
+      "c7c21ecb9f9121a887433db2c3c87f65bf3c3691f8dc5a7de4d0842e0f7167a6",
+    "plugins/src/base/hooks/worktree-binding-guard.sh":
+      "db57cb8a5b1d6b644e0dbc28a2ce77b2eb00e30695a6270323ac5f1cf494e46d",
     "plugins/src/base/rules/eager/automation-runbook-contract.md":
       "0442c478cac32b2522534309bda96a30e1cd268b9041d2b6a7a63d08a5c49920",
     "plugins/src/base/rules/eager/base-rules.md":
@@ -2247,7 +2255,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/merge/.claude/settings.json":
       "16c30d17bc6941a1ffa7fce54a5ab2e87101f7ea77a69b1d695eccd07e156ab7",
     "scripts/build-plugins.sh":
-      "3054f3ec52f585be0561f6569c44f6a95fdb684be654940e24bf481aedc4b163",
+      "3d22c66560a9beb476931d4ba5af0321bcef44df5d96ae58ae4b1fe432e6662f",
     "scripts/check-deletion-basis.mjs":
       "ee4b073378cc9ad200293f5528ea820aaa168417144c21853274dc087f92f378",
     "scripts/check-delivery-deletion-conflicts.mjs":
@@ -2391,7 +2399,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-enforcement-census.mjs":
       "41490f30f30cbb5ff05454a52caa1d3286db225667847eee22b7b994809e64d4",
     "scripts/lisa-enforcement-fallback.sh":
-      "dc7fab3f4ed5b920bf0b549a489038025a372c2bca5651cfcaf1f50a2d6ffa79",
+      "adbcb0585d0dc0bd0f21aab3512aa512ba21daef4259f6244ee4d85a3feff1b5",
     "scripts/lisa-github-environments.sh":
       "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
     "scripts/lisa-github-repo-settings.sh":
@@ -2441,7 +2449,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "9b57722adfc8ad89cb5801956bbb2b00df5d3c847a9681e431107178eea2872d",
+      "3f854821430aa1040a79269f416bf996fb448fadc724ce40cf1c111c7c22b613",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -2790,6 +2798,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py": true,
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh": true,
+    "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs": true,
+    "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh": true,
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs": true,
     "all/copy-overwrite/scripts/lisa-postinstall.mjs": true,
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs": true,
@@ -4045,6 +4055,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/hooks/threshold-ratchet.sh": true,
     "plugins/lisa-copilot/hooks/withdrawn-rulings.mjs": true,
     "plugins/lisa-copilot/hooks/withdrawn-rulings.sh": true,
+    "plugins/lisa-copilot/hooks/worktree-binding-guard.mjs": true,
+    "plugins/lisa-copilot/hooks/worktree-binding-guard.sh": true,
     "plugins/lisa-copilot/rules/eager/automation-runbook-contract.md": true,
     "plugins/lisa-copilot/rules/eager/base-rules.md": true,
     "plugins/lisa-copilot/rules/eager/bdd-e2e-coverage.md": true,
@@ -4539,6 +4551,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/hooks/threshold-ratchet.sh": true,
     "plugins/lisa-cursor/hooks/withdrawn-rulings.mjs": true,
     "plugins/lisa-cursor/hooks/withdrawn-rulings.sh": true,
+    "plugins/lisa-cursor/hooks/worktree-binding-guard.mjs": true,
+    "plugins/lisa-cursor/hooks/worktree-binding-guard.sh": true,
     "plugins/lisa-cursor/mcp.json": true,
     "plugins/lisa-cursor/rules/automation-runbook-contract-reference.mdc": true,
     "plugins/lisa-cursor/rules/automation-runbook-contract.mdc": true,
@@ -7154,6 +7168,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/hooks/track-plan-sessions.sh": true,
     "plugins/lisa/hooks/withdrawn-rulings.mjs": true,
     "plugins/lisa/hooks/withdrawn-rulings.sh": true,
+    "plugins/lisa/hooks/worktree-binding-guard.mjs": true,
+    "plugins/lisa/hooks/worktree-binding-guard.sh": true,
     "plugins/lisa/rules/eager/automation-runbook-contract.md": true,
     "plugins/lisa/rules/eager/base-rules.md": true,
     "plugins/lisa/rules/eager/bdd-e2e-coverage.md": true,
@@ -7835,6 +7851,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/hooks/track-plan-sessions.sh": true,
     "plugins/src/base/hooks/withdrawn-rulings.mjs": true,
     "plugins/src/base/hooks/withdrawn-rulings.sh": true,
+    "plugins/src/base/hooks/worktree-binding-guard.mjs": true,
+    "plugins/src/base/hooks/worktree-binding-guard.sh": true,
     "plugins/src/base/rules/eager/automation-runbook-contract.md": true,
     "plugins/src/base/rules/eager/base-rules.md": true,
     "plugins/src/base/rules/eager/bdd-e2e-coverage.md": true,
@@ -10069,6 +10087,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/withdrawn-rulings-wiring.test.ts": true,
     "tests/unit/hooks/withdrawn-rulings.test.ts": true,
     "tests/unit/hooks/work-item-wiring.test.ts": true,
+    "tests/unit/hooks/worktree-binding-guard.test.ts": true,
     "tests/unit/hooks/worktree-create-failure.test.ts": true,
     "tests/unit/hooks/worktree-create.test.ts": true,
     "tests/unit/migrations/ensure-audit-ignore-local-exclusions-esbuild.test.ts": true,
