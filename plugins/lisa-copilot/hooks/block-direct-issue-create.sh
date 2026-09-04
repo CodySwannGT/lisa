@@ -1685,7 +1685,28 @@ def scan(text, depth, from_file=False):
         # waved through: an unbalanced quote inside a script is the identical
         # two-character trick moved one file away, and skipping it would hand
         # the bypass straight back.
-        if from_file and text_declares_readiness(text):
+        #
+        # The declaration check is NOT gated on `from_file`, and that is the
+        # #3727 fix. Tokenisation is what feeds every argv-based check below,
+        # so when it throws, a TYPED command was previously judged with no
+        # declaration consulted at all — not its `--body-file`, not even a
+        # plain `--label <ready role>` sitting in argv. A correctly declared
+        # filing was refused for the unrelated reason that its command happened
+        # not to lex, and told "this filing declares no readiness", which was
+        # false. Reading the text here is the only check available once `shlex`
+        # has failed.
+        #
+        # It cannot reopen the bypass the paragraph above defends. That bypass
+        # is an UNDECLARED create hiding behind a quote, and an undeclared
+        # create has no marker and no `--label <ready role>` for
+        # `text_declares_readiness` to match — which is asserted, not assumed,
+        # by the rejection controls covering a bare create, the role mentioned
+        # in prose, and the role appearing inside a URL.
+        #
+        # A marker in a SEPARATE `--body-file` stays refused, because finding
+        # that operand needs the tokenisation that just failed. That case is
+        # reachable by declaring inline instead, which this change makes work.
+        if text_declares_readiness(text):
             return None
         if UNPARSEABLE_CREATION.search(text):
             return (
