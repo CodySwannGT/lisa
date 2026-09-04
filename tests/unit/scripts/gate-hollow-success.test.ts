@@ -170,9 +170,26 @@ describe("diagnoseHollowSuccess: exit 0 is not the observation", () => {
   it("names the root the run used, so the wrong tree is visible", () => {
     // Direction 3 of the issue, delivered where it is asked for: several agents
     // lost time inferring which checkout an empty run had executed in.
-    expect(
-      (diagnoseHollowSuccess(VITEST_EMPTY) as Diagnosis).evidence.join("\n")
-    ).toContain(ROOT);
+    const evidence = (
+      diagnoseHollowSuccess(VITEST_EMPTY, "/repo/elsewhere") as Diagnosis
+    ).evidence.join("\n");
+
+    // The tool's own header wins over the injected cwd, and says so.
+    expect(evidence).toContain(`the run's root was ${ROOT}`);
+    expect(evidence).toContain("as the tool reported it");
+  });
+
+  it("still names a root when the tool printed none", () => {
+    // jest prints no header at all, and on CI the vitest header did not reach
+    // the captured transcript either — measured. A root line that appears only
+    // when the tool volunteers one does not satisfy "make the run state its
+    // root"; it is the same defect one field over.
+    const evidence = (
+      diagnoseHollowSuccess(JEST_EMPTY, "/repo/consumer") as Diagnosis
+    ).evidence.join("\n");
+
+    expect(evidence).toContain("the run's root was /repo/consumer");
+    expect(evidence).toContain("the tool printed none");
   });
 
   it("tells the operator the two things that are actually true", () => {

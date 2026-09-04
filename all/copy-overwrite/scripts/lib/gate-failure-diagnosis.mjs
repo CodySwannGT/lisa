@@ -245,18 +245,29 @@ const ZERO_WORK_SIGNATURES = Object.freeze([
 const RUN_ROOT_PATTERN = /^[ \t]*RUN[ \t]+v\S+[ \t]+(\S+)/m;
 
 /**
- * The root this run used, when the runner printed one.
+ * Where this run happened — always answered, never omitted.
  *
- * Quoted into the evidence because the question an operator asks first of an
- * empty run is WHICH TREE it ran in, and several agents lost time inferring it
- * from an absent file count (CodySwannGT/lisa#3715, direction 3). The runner
- * already prints it; nothing was reading it back.
+ * The question an operator asks first of an empty run is WHICH TREE it ran in,
+ * and several agents lost time inferring it from an absent file count
+ * (CodySwannGT/lisa#3715, direction 3).
+ *
+ * Two sources, and the line says which one it used. The tool's own header is
+ * preferred because it is the tool's account of itself; the gate's working
+ * directory is the fallback because it is a fact the runner always has. An
+ * earlier version quoted ONLY the header and fell silent when it was absent —
+ * measured on CI, where the header did not appear in the captured transcript
+ * and jest never prints one at all. A direction that reads "make the run state
+ * its root" is not satisfied by a line that appears when the tool feels like
+ * it; that is the same defect one field over.
  * @param {string} output The command's combined output.
- * @returns {string|null} An evidence line, or null when no root was printed.
+ * @param {string} cwd The directory the gate command ran in.
+ * @returns {string} An evidence line naming the root and its source.
  */
-function rootLine(output) {
+function rootLine(output, cwd) {
   const match = RUN_ROOT_PATTERN.exec(output);
-  return match ? `the run's project root was ${match[1]}` : null;
+  return match
+    ? `the run's root was ${match[1]}, as the tool reported it`
+    : `the run's root was ${cwd}, the directory the gate ran in — the tool printed none`;
 }
 
 /**
@@ -294,10 +305,13 @@ const ZERO_WORK_REMEDY =
  * @param {string|null|undefined} output The command's combined output, or null
  *   when the runner could not capture it. An uncaptured success stays a
  *   success — capture is on by default, and its loss is not evidence.
+ * @param {string} [cwd] The directory the gate command ran in, quoted when the
+ *   tool printed no root of its own. Defaults to this process's; injected by
+ *   tests so a fixture needs no directory on disk.
  * @returns {Diagnosis|null} The verdict, or null when the output carries no
  *   positive statement that nothing ran.
  */
-export function diagnoseHollowSuccess(output) {
+export function diagnoseHollowSuccess(output, cwd = process.cwd()) {
   // A type-contract check at the module boundary, and deliberately the only
   // guard here: an EMPTY transcript states nothing, so the search below
   // already answers null for it and a second check on its length would be a
@@ -318,11 +332,7 @@ export function diagnoseHollowSuccess(output) {
     .map(line => line.trim())
     .filter(line => empty.states.test(line));
   return {
-    evidence: capped(
-      [...stated, rootLine(output), ZERO_WORK_REMEDY].filter(
-        line => line !== null
-      )
-    ),
+    evidence: capped([...stated, rootLine(output, cwd), ZERO_WORK_REMEDY]),
     kind: DIAGNOSIS.NO_TESTS_RAN,
     proves: ATTRIBUTION[DIAGNOSIS.NO_TESTS_RAN] ?? null,
     summary:
