@@ -159,7 +159,7 @@ jobs:
 
       - name: 🥟 Setup Bun
         if: ${{ inputs.package_manager == 'bun' }}
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           # Pinned, not `latest`. This job runs a DESTRUCTIVE verb, and a
           # toolchain that can change without a commit is a change nobody

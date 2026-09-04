@@ -2,6 +2,8 @@
 
 Eager head: [eager/falsifiable-checks.md](../eager/falsifiable-checks.md).
 
+Sibling rule, opposite direction: [`control-reachability`](control-reachability.md) covers a check a **work item prescribed** rather than one you authored. There the control does not fail to bite — it bites in the wrong direction, and the cost is a correct fix reverted rather than a defect shipped.
+
 ## Why this rule exists
 
 The `verification` rule prevents the failure "I claimed it works without using it." This rule prevents a subtler one, one layer down: **I used a check, the check said clean, and the check was incapable of saying anything else.**

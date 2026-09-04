@@ -121,6 +121,32 @@ describe("declaredChecksDriftFinding", () => {
 
     expect(finding.status).toBe("fail");
     expect(finding.reason).toContain("declared-not-enforced");
+    // The gate id, not only the derived context. They are different strings,
+    // and the settings file contains only the first — a line naming just the
+    // context sends the operator looking for text that is not in the file.
+    expect(finding.reason).toContain("type-correctness");
+  });
+
+  it("does not report a gate declared required with an await: as unenforced", async () => {
+    // `contextsFor` derives ONLY the awaited signal's name for such a gate —
+    // it gets no job leg, so nothing posts its facade context. Reporting the
+    // facade name as a contradiction told the operator to require a string no
+    // run can post, which is the permanent wait this check exists to prevent.
+    const finding = await run(
+      await projectWith({
+        "code-review": {
+          "pull-request": {
+            level: "required",
+            await: "CodeRabbit",
+            posted_by: 347564,
+            evidence: { reviewer: true, proof: ["Review completed"] },
+          },
+        },
+      }),
+      liveRequiring(["CodeRabbit"])
+    );
+
+    expect(finding.status).toBe("pass");
   });
 
   it("warns rather than fails when protection requires an undeclared gate's context", async () => {
@@ -238,5 +264,39 @@ describe("declaredChecksFinding", () => {
     );
 
     expect(finding.status).toBe("pass");
+  });
+
+  it("warns when a ruleset requires the facade name of an awaiting gate", () => {
+    // The bite this asserts is the consumer's, not the comparator's: the
+    // verdict list this finding acts on used to be hand-copied here, so a
+    // verdict the comparator added reached the JSON payload and left the
+    // status at `pass`.
+    const finding = declaredChecksFinding(
+      classifyDeclarationDrift({
+        surface: "live-ruleset",
+        owners: new Map([
+          [
+            "🔍 Quality Checks / 👁️ Code Review",
+            {
+              gateId: "code-review",
+              declaration: "required" as const,
+              legalAtMerge: true,
+              retired: null,
+              awaitedInstead: "CodeRabbit",
+            },
+          ],
+        ]),
+        enforced: [
+          {
+            context: "🔍 Quality Checks / 👁️ Code Review",
+            ruleset: "base",
+            source: "the repository's live rulesets",
+          },
+        ],
+      })
+    );
+
+    expect(finding.status).toBe("warn");
+    expect(finding.reason).toContain("enforced-awaited-elsewhere");
   });
 });

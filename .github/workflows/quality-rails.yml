@@ -80,6 +80,72 @@ on:
         required: false
 
 jobs:
+  # ─── Which Lisa ran this ─────────────────────────────────────────────────
+  # A CONSUMER RUNS TWO LISAS AT ONCE. Its `package.json` pins
+  # `@codyswann/lisa` at a version and that pinned copy governs the local
+  # pre-push gate; its CI calls this reusable workflow at a floating ref and
+  # THAT governs everything below. So a push-gate observation and a CI
+  # observation are claims about different code at different versions, and
+  # knowing the pin says nothing about what CI ran.
+  #
+  # The consequence that made this a job rather than a note: a floating ref
+  # means CI behaviour changes with NO COMMIT IN THE CONSUMING REPOSITORY, so a
+  # true, well-evidenced warning about gate behaviour can go stale with nothing
+  # in either repository able to notice. One such warning circulated for a day
+  # after the behaviour it described had been repaired upstream. Nothing was
+  # wrong with it except elapsed time, and no artifact carried a version the
+  # claim could have been checked against.
+  #
+  # ITS OWN JOB, NOT A STEP INSIDE A GATE. Every gate job below can be skipped
+  # by a plan, fail early, or stand down; a stamp inside one is present exactly
+  # when that gate ran. This job has no `needs` and no `if`, so the identity is
+  # on the run whether the gates passed, failed, or were optional.
+  #
+  # REPORT ONLY. It cannot fail a run and is not a branch-protection context:
+  # a stamp that could redden CI would be a new gate nobody declared, shipped
+  # to a fleet where every project reports.
+  lisa_identity:
+    permissions:
+      contents: read
+    name: 🔖 Which Lisa Ran This
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔖 Report which Lisa is running
+        # Resolved through the same three-candidate search every gate job
+        # below uses, in the same order, deliberately: the point of the stamp
+        # is to name the copy that will actually produce the verdicts, and a
+        # different search order would name a different file.
+        #
+        # `|| true` and `set -uo pipefail` without `-e`: the registry this
+        # resolves is whatever copy the project happens to have installed, and
+        # an older one exits non-zero on a subcommand it has never heard of.
+        # A reporter that failed on that would be a required-looking red on
+        # every project mid-upgrade.
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -uo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then
+            # The wrapper's identity is all this path can honestly claim. It
+            # deliberately does NOT render the full stamp with `unknown` in
+            # every field, because that reads like a stamp that resolved and
+            # found nothing rather than one that could not be produced.
+            echo "::warning title=Lisa identity unavailable::This project ships no gate registry, so nothing can name the enforcement bytes that produced the reports below. The workflow that ran them is ${WORKFLOW_REF}@${WORKFLOW_SHA}."
+            exit 0
+          fi
+          node "$RESOLVER" identity --format=github || true
+
   lint:
     permissions:
       contents: read
@@ -93,7 +159,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: 💎 Setup Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
           bundler-cache: true
 
@@ -380,7 +446,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: 💎 Setup Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
           bundler-cache: true
 
@@ -420,7 +486,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: 💎 Setup Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
           bundler-cache: true
 
@@ -485,7 +551,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: 💎 Setup Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
           bundler-cache: true
 
@@ -554,7 +620,7 @@ jobs:
           fetch-depth: 0
 
       - name: 💎 Setup Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
           bundler-cache: true
 
@@ -594,7 +660,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: 💎 Setup Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
           bundler-cache: true
 
@@ -785,7 +851,7 @@ jobs:
           persist-credentials: false
 
       - name: 🔧 Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -1035,7 +1101,7 @@ jobs:
 
       - name: 📜 Run FOSSA license scan
         if: steps.check_fossa.outputs.has_token == 'true'
-        uses: fossas/fossa-action@v1.8.0
+        uses: fossas/fossa-action@c414b9ad82eaad041e47a7cf62a4f02411f427a0 # v1.8.0
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
 

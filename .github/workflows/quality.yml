@@ -294,6 +294,73 @@ concurrency:
 # Never widen this floor — grant a job its minimal scope at the job level.
 
 jobs:
+  # ─── Which Lisa ran this ─────────────────────────────────────────────────
+  # A CONSUMER RUNS TWO LISAS AT ONCE. Its `package.json` pins
+  # `@codyswann/lisa` at a version and that pinned copy governs the local
+  # pre-push gate; its CI calls this reusable workflow at a floating ref and
+  # THAT governs everything below. So a push-gate observation and a CI
+  # observation are claims about different code at different versions, and
+  # knowing the pin says nothing about what CI ran.
+  #
+  # The consequence that made this a job rather than a note: a floating ref
+  # means CI behaviour changes with NO COMMIT IN THE CONSUMING REPOSITORY, so a
+  # true, well-evidenced warning about gate behaviour can go stale with nothing
+  # in either repository able to notice. One such warning circulated for a day
+  # after the behaviour it described had been repaired upstream. Nothing was
+  # wrong with it except elapsed time, and no artifact carried a version the
+  # claim could have been checked against.
+  #
+  # ITS OWN JOB, NOT A STEP INSIDE A GATE. Every gate job below can be skipped
+  # by a plan, fail early, or stand down; a stamp inside one is present exactly
+  # when that gate ran. This job has no `needs` and no `if`, so the identity is
+  # on the run whether the gates passed, failed, or were optional.
+  #
+  # REPORT ONLY. It cannot fail a run and is not a branch-protection context:
+  # a stamp that could redden CI would be a new gate nobody declared, shipped
+  # to a fleet where every project reports.
+  lisa_identity:
+    permissions:
+      contents: read
+    name: 🔖 Which Lisa Ran This
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔖 Report which Lisa is running
+        # Resolved through the same three-candidate search every gate job
+        # below uses, in the same order, deliberately: the point of the stamp
+        # is to name the copy that will actually produce the verdicts, and a
+        # different search order would name a different file.
+        #
+        # `|| true` and `set -uo pipefail` without `-e`: the registry this
+        # resolves is whatever copy the project happens to have installed, and
+        # an older one exits non-zero on a subcommand it has never heard of.
+        # A reporter that failed on that would be a required-looking red on
+        # every project mid-upgrade.
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -uo pipefail
+          RESOLVER=""
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+          if [ -z "$RESOLVER" ]; then
+            # The wrapper's identity is all this path can honestly claim. It
+            # deliberately does NOT render the full stamp with `unknown` in
+            # every field, because that reads like a stamp that resolved and
+            # found nothing rather than one that could not be produced.
+            echo "::warning title=Lisa identity unavailable::This project ships no gate registry, so nothing can name the enforcement bytes that produced the reports below. The workflow that ran them is ${WORKFLOW_REF}@${WORKFLOW_SHA}."
+            exit 0
+          fi
+          node "$RESOLVER" identity --format=github || true
+        working-directory: ${{ inputs.working_directory || '.' }}
+
   gate_plan:
     permissions:
       contents: read
@@ -580,7 +647,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: matrix.action == 'run' && inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -696,7 +763,25 @@ jobs:
       contents: read
     name: 🧹 Lint
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Raised 15 -> 30. A consuming repo in the portfolio measured eight runs of
+    # this job in a single day at 12m07s, 13m46s, 13m57s, 13m59s, 14m20s,
+    # 14m31s, 14m42s, and one cancellation at 15m15s — 81-98% of a 15-minute
+    # budget, with the one clean success clearing by 18 seconds. The cancelled
+    # run wrote its last log line 22 milliseconds before the kill, so the
+    # linter had finished all of its work and passed; the ceiling took the
+    # process before it could exit zero.
+    #
+    # `timeout-minutes` is a resource limit, not a quality threshold: raising
+    # it relaxes no rule and moves no gate. What it buys is attributability. A
+    # job at 98% of its budget fails intermittently on innocent commits, and a
+    # killed job renders as a FAILED job — so the cost is not the cancelled run
+    # but the debugging spent on a code bug that does not exist, plus the
+    # merged PR whose release run concluded `cancelled` and never deployed.
+    #
+    # 30 is 2x the worst measured run. The number lives here because a
+    # consumer that declares no lint job of its own cannot override it: the
+    # ceiling is only editable in this shared workflow.
+    timeout-minutes: 30
     needs: [gate_plan]
     if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',lint,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"lint":"skip"')) }}
 
@@ -714,7 +799,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -981,7 +1066,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -1159,7 +1244,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -1421,7 +1506,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: steps.gates_declared.outputs.declared == 'true' && inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -1754,7 +1839,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: (steps.check_script.outputs.exists == 'true' || steps.gate.outputs.configured == 'true') && inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -2013,7 +2098,7 @@ jobs:
       # reason that has nothing to do with the property.
       - name: 🍞 Setup Bun
         if: steps.gate.outputs.configured == 'true' && inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -2271,7 +2356,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: steps.gate.outputs.configured == 'true' && inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -2462,7 +2547,7 @@ jobs:
           persist-credentials: false
 
       - name: 🔧 Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -2695,7 +2780,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -3012,6 +3097,14 @@ jobs:
     permissions:
       contents: read
     name: 🧬 Mutation Testing Gate
+    # #3668. The gate names its outcome at every exit; these carry that name out
+    # of the job so `test_mutation_measured` can RENDER it. Coalesced across the
+    # two steps that can run the gate — the declared-gate path and the fallback
+    # — because exactly one of them runs and the other contributes an empty
+    # string.
+    outputs:
+      mutation_outcome: ${{ steps.gate_run.outputs.mutation_outcome || steps.gate_run_fallback.outputs.mutation_outcome }}
+      mutation_measured: ${{ steps.gate_run.outputs.mutation_measured || steps.gate_run_fallback.outputs.mutation_measured }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     needs: [gate_plan]
@@ -3033,7 +3126,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -3216,6 +3309,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: 🧬 Run mutation-testing gate (diff-only, self-skips when disabled)
+        id: gate_run_fallback
         # FALLBACK — unchanged behavior for a project with no `gates` block, and
         # for one whose block does not name this gate.
         #
@@ -3288,6 +3382,82 @@ jobs:
           esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
+  # ---------------------------------------------------------------------------
+  # #3668 — the mutation gate's version of a waived review rendering as a pass.
+  # ---------------------------------------------------------------------------
+  # `🧬 Mutation Testing Gate` exits 0 for a run that generated mutants and
+  # exits 0 for a run that generated none, so `gh pr checks` printed
+  #
+  #     🔍 Quality Checks / 🧬 Mutation Testing Gate   pass
+  #
+  # for a pull request nothing had measured. Measured on #3664: a 400-line
+  # change to a shipped guard script, `nothing-to-mutate`, green. The gate's own
+  # log was honest and had been for months — `lisa-mutation.mjs` says above
+  # `OUTCOMES` that "both exit 0, and only the marker says which one happened".
+  # A marker in a log is not a control.
+  #
+  # THIS JOB IS THE RENDERING, and its ABSENCE is the signal. It runs only when
+  # the gate reported that mutants existed, so a run that measured nothing
+  # leaves it `skipped` — which `gh pr checks` prints as `skipping`, visibly
+  # unlike `pass`, while contributing no failure to any exit code.
+  #
+  # WHY A JOB AND NOT A PUBLISHED CHECK RUN. #3664 solved the same problem by
+  # having the guard choose a `neutral` check-run conclusion, which needs
+  # `checks: write`. That is not available here and must not be added:
+  # `quality.yml` is `workflow_call`-only and consumed fleet-wide via `@main`,
+  # and a called workflow may only DOWNGRADE its caller's grant — asking for
+  # more is a `startup_failure` for the entire run (#2049). That constraint is
+  # why `review-evidence.yml` is a standalone workflow rather than a job here.
+  # A skipped job needs no permission at all, so this reaches the same layer
+  # for free.
+  #
+  # NEVER MAKE THIS A REQUIRED CONTEXT. Being skipped is its normal, correct
+  # state on any pull request that touches no mutate target, and branch
+  # protection cannot see a skipped context as satisfied — requiring it would
+  # block every such pull request forever. It is registered in
+  # `SECONDARY_PROVER_JOBS` for exactly that reason: it is not the job a ruleset
+  # matches for `test-meaningfulness`.
+  test_mutation_measured:
+    permissions: {}
+    name: 🧬 Did the mutation gate measure anything?
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [test_mutation]
+    # NO `skip_jobs` token, and that is deliberate rather than an omission.
+    #
+    # This job is silenced by the `needs` chain: every route that stops
+    # `test_mutation` — the token, a `"test_mutation":"skip"` plan, a cancelled
+    # run — leaves `needs.test_mutation.result` something other than `success`,
+    # and this job is skipped with it. Restating the token here would buy no
+    # additional control and would COST one: the shipped registry derives
+    # `SKIP_JOB_TOKENS` from these conditions, so a second job on the token
+    # flips `gateForSkipJob("test:mutation")` from `replaceable` to `partial` —
+    # changing what the token advertises to every consumer, to restate a
+    # silencing that already holds.
+    #
+    # No `always()`: a FAILED gate is already red and says so itself, and a
+    # green row beside a red gate would be its own confusion. The condition is
+    # deliberately POSITIVE — the job runs only on a proven measurement, so an
+    # unrecognised or missing outcome leaves it skipped rather than green.
+    # Inverting it to `!= 'false'` would restore the false green while looking
+    # like a simplification.
+    if: ${{ !cancelled() && needs.test_mutation.result == 'success' && needs.test_mutation.outputs.mutation_measured == 'true' }}
+
+    steps:
+      - name: 🧬 Say what was measured
+        env:
+          MUTATION_OUTCOME: ${{ needs.test_mutation.outputs.mutation_outcome }}
+        run: |
+          set -eu
+          echo "✅ ${MUTATION_OUTCOME} — Stryker generated mutants against this change and produced a score."
+          {
+            echo "## 🧬 The mutation gate measured this change"
+            echo
+            echo "Outcome: \`${MUTATION_OUTCOME}\`"
+            echo
+            echo "This job runs ONLY when mutants were generated. When it is \`skipping\`, the mutation gate examined nothing on this pull request — its green says the run ended cleanly, not that your tests were shown to catch anything."
+          } >> "$GITHUB_STEP_SUMMARY"
+
   test_integration:
     permissions:
       contents: read
@@ -3330,7 +3500,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -3756,7 +3926,7 @@ jobs:
 
       - name: 📱 Run Maestro Cloud tests
         if: steps.gate.outputs.configured == 'false' && (steps.check_maestro.outputs.has_token == 'true' && steps.check_project_id.outputs.has_project_id == 'true' && steps.check_app_file.outputs.has_app_file == 'true')
-        uses: mobile-dev-inc/action-maestro-cloud@v2.0.1
+        uses: mobile-dev-inc/action-maestro-cloud@6e47427f9f7cb53f5582d2d7fc1eee5c4c97d9be # v2.0.1
         with:
           api-key: ${{ secrets.MAESTRO_API_KEY }}
           project-id: ${{ inputs.maestro_project_id }}
@@ -3805,7 +3975,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -3983,7 +4153,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -4226,13 +4396,14 @@ jobs:
   # workflow ran it — so adopters had to wire it by hand and none did. This job
   # is that wiring.
   #
-  # OFFLINE arm on purpose. The `:remote` arm reads the live ruleset over the
-  # network with `gh`, and the enforced pull-request path may not depend on
-  # network or auth: a flaky gate gets skipped, and a skipped gate is the exact
-  # false-green class this check exists to refuse. Two snapshots in one repo
-  # cannot see a ruleset edited in the admin console, so the remote arm runs on
-  # a schedule instead — `.github/workflows/required-checks-drift.yml`, shipped
-  # create-only beside this workflow's caller.
+  # OFFLINE, and now offline everywhere. The guard used to carry a `:remote`
+  # arm that read the live ruleset over the network with `gh`; it needed an
+  # `administration:read` token, which meant a standing repository secret in
+  # every consumer to detect a rare event. Both the arm and the scheduled
+  # workflow that ran it were removed (#3599). Two snapshots in one repo still
+  # cannot see a ruleset edited in the admin console — that drift is now
+  # discovered by consequence rather than by check, which is the accepted
+  # trade. Do not wire a cheaper replacement here.
   #
   # Both `[ ! -f ]` guards below are load-bearing, and they are why this cannot
   # redden a repository for a reason unrelated to skipped checks: a project
@@ -4284,7 +4455,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -4706,7 +4877,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -5119,7 +5290,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -5395,7 +5566,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -5623,7 +5794,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -5811,7 +5982,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -5999,7 +6170,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -6196,7 +6367,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -6426,7 +6597,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -6821,7 +6992,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: steps.gate.outputs.configured == 'true' && inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -6938,7 +7109,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: inputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -7441,7 +7612,7 @@ jobs:
       - name: 📊 SonarCloud Scan
         if: steps.gate.outputs.configured == 'false' && (steps.check_sonar.outputs.has_token == 'true')
         id: sonar_scan
-        uses: SonarSource/sonarqube-scan-action@v6.0.0
+        uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
@@ -7681,7 +7852,7 @@ jobs:
 
       - name: 🍞 Setup Bun
         if: steps.gate.outputs.configured == 'false' && (inputs.package_manager == 'bun')
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.3.8'
 
@@ -7699,7 +7870,7 @@ jobs:
 
       - name: 🛡️ Run Snyk to check for vulnerabilities
         if: steps.gate.outputs.configured == 'false' && (steps.check_snyk.outputs.has_token == 'true')
-        uses: snyk/actions/node@master
+        uses: snyk/actions/node@12140f4059e244892ae643824a95459a102120dd # master (untagged, 2026-08-03)
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
@@ -8097,7 +8268,7 @@ jobs:
 
       - name: 📜 Run FOSSA license scan
         if: steps.gate.outputs.configured == 'false' && (steps.check_fossa.outputs.has_token == 'true')
-        uses: fossas/fossa-action@main
+        uses: fossas/fossa-action@fd2efee83cb65c9525e431ad55986fbd49771910 # main (untagged, 2026-08-28)
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
           # Optional: specify the team

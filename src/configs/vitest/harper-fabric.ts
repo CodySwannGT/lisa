@@ -6,24 +6,28 @@
  */
 import type { ViteUserConfig } from "vitest/config";
 import {
+  coverageGlobalSetup,
   defaultCoverageExclusions,
   defaultTestExclusions,
   defaultThresholds,
   mapThresholds,
   mergeThresholds,
   mergeVitestConfigs,
+  resolveMaxWorkers,
   scratchGlobalSetup,
   scratchSetupFiles,
 } from "./base.js";
 import type { PortableThresholds } from "./base.js";
 
 export {
+  coverageGlobalSetup,
   defaultCoverageExclusions,
   defaultTestExclusions,
   defaultThresholds,
   mapThresholds,
   mergeThresholds,
   mergeVitestConfigs,
+  resolveMaxWorkers,
   scratchGlobalSetup,
   scratchSetupFiles,
 };
@@ -49,8 +53,10 @@ export const getHarperFabricVitestConfig = ({
 }: HarperFabricVitestOptions = {}): ViteUserConfig => ({
   test: {
     setupFiles: [...scratchSetupFiles()],
-    globalSetup: [...scratchGlobalSetup()],
+    globalSetup: [...scratchGlobalSetup(), ...coverageGlobalSetup()],
     sequence: { setupFiles: "list", hooks: "stack" },
+    // Bounded so k concurrent runs do not claim k x cores. See resolveMaxWorkers.
+    maxWorkers: resolveMaxWorkers(),
     globals: true,
     environment: "node",
     include: ["tests/**/*.test.ts", "src/**/*.test.ts"],

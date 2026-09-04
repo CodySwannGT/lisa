@@ -102,6 +102,26 @@ const SCRIPT_RULES = {
     agy: false, // no full rules tree on agy; AGENTS.md carries only bounded bridges
     copilot: true, // conservative default; conditionally stripped if rules-auto-load probe positive
   },
+  // Ships wherever the agent has a session-start event, on the same reasoning
+  // as `secrets-preflight.sh` and NOT on `inject-rules.sh`'s. Cursor strips
+  // rule injection because rules are also delivered as native `rules/*.mdc`, so
+  // injecting would double-deliver; a RESOLVED CONFIG has no second delivery
+  // path on any agent — it is computed per session from two files on disk and
+  // is never emitted as a static artifact — so that reason does not transfer
+  // and Cursor gets it.
+  //
+  // Documented gap: agy has no SessionStart event at all, so agy sessions get
+  // no injected config. The compensating rung is the same one AGENTS.md
+  // requires when a harness cannot represent a control — shared rather than
+  // agent-layer: the gate runner refuses a config it cannot read, and
+  // `lisa doctor` exits non-zero on a broken one, on every agent.
+  "inject-resolved-config.sh": {
+    claude: true,
+    codex: true,
+    cursor: true,
+    agy: false,
+    copilot: true,
+  },
   "inject-flow-context.sh": {
     claude: true,
     codex: true,

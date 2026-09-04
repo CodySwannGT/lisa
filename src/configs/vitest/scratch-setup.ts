@@ -26,6 +26,11 @@
  *
  * The work is done once per process, not once per test file, even though Vitest
  * re-executes setup files for each file.
+ *
+ * A run supervised by `lisa-test-run` inherits its suite lease from the
+ * environment. A direct `vitest` invocation has no lease and mints its own
+ * rather than refusing — see `acquireSuiteLease` for why refusing was the wrong
+ * failure mode for a module that runs during collection.
  * @see {@link module:configs/vitest/scratch} for why the root is shaped this way
  * @module configs/vitest/scratch-setup
  */
@@ -33,6 +38,7 @@ import { env } from "node:process";
 
 import {
   SCRATCH_SUPERVISION_LEASE_ENV,
+  createScratchSupervisionLease,
   createSupervisedWorkerScope,
   parseScratchSupervisionLease,
   removeSupervisedWorkerScope,
@@ -40,6 +46,12 @@ import {
   type SupervisedWorkerScope,
 } from "./scratch-supervision.js";
 import { assertScratchRouteProfile } from "./scratch-route-profile.js";
+import {
+  materializeOwnedScratchRunRoot,
+  prepareOwnedScratchRunRoot,
+  removeOwnedScratchRunRoot,
+  type ScratchRunRootIntentV1,
+} from "./scratch-run-root-intent.js";
 
 /**
  * Signals a worker is reaped with, each of which skips `exit` by default.
@@ -67,6 +79,21 @@ const RUN_ROOT_KEY = "__lisaScratchRunRoot__";
 /** Key holding the authority/token handle while preserving the path memo ABI. */
 const RUN_ROOT_HANDLE_KEY = "__lisaScratchWorkerScopeV1__";
 
+/**
+ * Warning printed once when a run mints its own lease instead of inheriting one.
+ *
+ * It names the wrapper, because adopting the wrapper is the fix, and it names
+ * what is actually given up — the detached reaper, and nothing else — so the
+ * line cannot be read as "your scratch directories are unbounded now".
+ */
+const UNSUPERVISED_WARNING =
+  "lisa scratch: no supervised lease in the environment, so this run is " +
+  "self-supervised. Fixture directories are still bounded to a run root this " +
+  "process owns and removed on exit; what is missing is the detached reaper " +
+  "that reclaims the root after a SIGKILL, which the next run's startup sweep " +
+  "recovers instead. Run through `lisa-test-run --profile <profile> " +
+  "--adapter vitest -- vitest ...` for a supervised run.\n";
+
 /** `globalThis` widened with the memo slot this module owns. */
 type ScratchGlobal = typeof globalThis & {
   /** Run root allocated by the first execution of this module in the process */
@@ -88,12 +115,19 @@ type ScratchGlobal = typeof globalThis & {
  * never be the thing that decides how this process ends. The failure is still
  * reported, because a silent one is how the leak this file exists to close
  * came back the first time.
+ *
+ * The suite root is removed only when this process minted its own lease. Under
+ * a wrapper the suite root belongs to `lisa-test-run`, which reclaims it for
+ * every worker at once; a worker removing it there would pull the directory out
+ * from under its siblings.
  * @param worker - This worker's supervised scope
  * @param lease - The suite lease the scope was created under
+ * @param ownedSuiteRoot - Suite root this process minted, when self-supervised
  */
 const teardownWorkerScope = (
   worker: SupervisedWorkerScope,
-  lease: ScratchSupervisionLeaseV1
+  lease: ScratchSupervisionLeaseV1,
+  ownedSuiteRoot?: ScratchRunRootIntentV1
 ): void => {
   try {
     removeSupervisedWorkerScope(worker, lease);
@@ -102,6 +136,64 @@ const teardownWorkerScope = (
       `lisa scratch worker teardown failed: ${error instanceof Error ? error.message : String(error)}\n`
     );
   }
+  if (ownedSuiteRoot === undefined) return;
+  try {
+    removeOwnedScratchRunRoot(ownedSuiteRoot);
+  } catch (error) {
+    process.stderr.write(
+      `lisa scratch suite teardown failed: ${error instanceof Error ? error.message : String(error)}\n`
+    );
+  }
+};
+
+/** A usable suite lease, plus the suite root this process must reclaim itself. */
+export interface AcquiredSuiteLease {
+  readonly lease: ScratchSupervisionLeaseV1;
+  /** Set only when this process minted the lease and therefore owns the root. */
+  readonly ownedSuiteRoot?: ScratchRunRootIntentV1;
+}
+
+/**
+ * Obtain the suite lease, minting one when the environment carries none.
+ *
+ * An inherited lease is the supervised case and is preferred whenever it is
+ * present. Its absence means someone ran `vitest` directly, which is an
+ * ordinary thing to do — from an editor, a watch mode, a CI step that predates
+ * the wrapper — and it used to throw out of a `setupFiles` module. A throw
+ * there fails collection, so the suite reports zero tests and a gate goes red
+ * having evaluated nothing. That is a worse outcome than an unsupervised run:
+ * it looks like a verdict and is not one.
+ *
+ * So the unsupervised caller gets the same lifecycle, self-supervised. The
+ * minted lease is a real lease over a real owned root, which keeps the rest of
+ * this file — and the leak guard in `scratch-leak-setup`, which requires a
+ * `worker-` scope — on exactly one code path. The single capability the wrapper
+ * adds is the detached reaper covering `SIGKILL`; without it, reclaim-on-start
+ * recovers the residue at the next run, which is the documented fallback.
+ *
+ * Exported for its own unit case. `installScratchRoot()` cannot stand in for
+ * it: that function registers `exit` and signal handlers on the process it is
+ * called from, so a case that drove the unsupervised branch through it would
+ * leave a handler behind pointing at a root the case had already cleaned up,
+ * and every later suite in the same worker would inherit the noise.
+ * @returns The lease to run under, and the suite root to reclaim if self-owned.
+ */
+export const acquireSuiteLease = (): AcquiredSuiteLease => {
+  const rawLease = env[SCRATCH_SUPERVISION_LEASE_ENV];
+  if (rawLease !== undefined && rawLease !== "") {
+    return { lease: parseScratchSupervisionLease(rawLease) };
+  }
+
+  const intent = prepareOwnedScratchRunRoot();
+  const lease = (() => {
+    process.stderr.write(UNSUPERVISED_WARNING);
+    materializeOwnedScratchRunRoot(intent);
+    return createScratchSupervisionLease(intent, {
+      suiteLabel: intent.suiteLabel,
+      registeredPrefixes: intent.registeredPrefixes,
+    });
+  })();
+  return { lease, ownedSuiteRoot: intent };
 };
 
 /**
@@ -121,15 +213,17 @@ export const installScratchRoot = (): string => {
     return existing;
   }
 
-  const rawLease = env[SCRATCH_SUPERVISION_LEASE_ENV];
-  if (rawLease === undefined || rawLease === "") {
-    throw new Error(
-      "Lisa Vitest scratch requires a supervised lease. Run the suite through `lisa-test-run --profile <profile> --adapter vitest -- vitest ...`."
-    );
-  }
-  const lease = parseScratchSupervisionLease(rawLease);
+  const { lease, ownedSuiteRoot } = acquireSuiteLease();
   const worker = (() => {
-    assertScratchRouteProfile(lease);
+    // Only an INHERITED lease is worth asserting against. The check exists to
+    // catch a Vitest environment that disagrees with the profile the wrapper
+    // froze before collection — two independent sources that must agree. A
+    // self-minted lease is derived from that same environment one line earlier,
+    // so the comparison is vacuous, and it does not merely pass vacuously: the
+    // assertion demands `LISA_TEST_SCRATCH_SUITE` be set, which is the
+    // wrapper's job, so an unsupervised run fails it every time. Running it
+    // here would trade one collection-time throw for another.
+    if (ownedSuiteRoot === undefined) assertScratchRouteProfile(lease);
     return createSupervisedWorkerScope(lease);
   })();
   const root = worker.path;
@@ -142,7 +236,7 @@ export const installScratchRoot = (): string => {
 
   // Covers an ordinary exit, including one where tests failed.
   process.once("exit", () => {
-    teardownWorkerScope(worker, lease);
+    teardownWorkerScope(worker, lease, ownedSuiteRoot);
   });
 
   // And covers the exit this suite ACTUALLY takes, which is not an ordinary
@@ -165,7 +259,7 @@ export const installScratchRoot = (): string => {
   // buys the cleanup, not a different lifecycle.
   for (const signal of REAPING_SIGNALS) {
     process.once(signal, () => {
-      teardownWorkerScope(worker, lease);
+      teardownWorkerScope(worker, lease, ownedSuiteRoot);
       process.removeAllListeners(signal);
       process.kill(process.pid, signal);
     });

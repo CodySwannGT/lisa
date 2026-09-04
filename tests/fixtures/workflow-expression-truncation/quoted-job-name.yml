@@ -1,0 +1,39 @@
+# Bite control for tests/integration/workflow-expression-not-truncated.test.ts.
+#
+# This is the job header that shipped the truncation defect, preserved verbatim
+# from `.github/workflows/reusable-auto-update-pr-branches-dispatch.yml` at the
+# moment that workflow was deleted. The workflow is gone; the defect class is
+# not, so the shape it took is kept here as the control's subject.
+#
+# The control asserts this file is clean, strips the double quotes, and requires
+# the detector to catch the truncation the stripped form produces. Do not
+# "tidy" the quoting away — removing it is the mutation, and the test performs
+# it in memory.
+#
+# Excluded from the shipped-workflow sweep by the `tests/` filter, so it is
+# never mistaken for a workflow this repository ships.
+
+name: Truncation control (fixture)
+
+on:
+  workflow_call:
+    inputs:
+      action:
+        required: true
+        type: string
+      pr_number:
+        required: false
+        type: number
+        default: 0
+      ref_name:
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  update-pr-branches:
+    name: "${{ inputs.action == 'auto-update-pr-branch' && format('Update PR #{0}', inputs.pr_number) || format('Update open PRs targeting {0}', inputs.ref_name) }}"
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op
+        run: 'echo control'

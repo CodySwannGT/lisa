@@ -172,6 +172,31 @@ for guard in block-no-verify parity-safety-net block-shell-json-parsing \
     chmod +x "$HOST_GUARD_DIR/$guard.sh"
   fi
 done
+# Companions: files a guard resolves as a SIBLING OF ITSELF at run time.
+#
+# The loop above appends `.sh` to every roster entry, so it can only ever
+# deliver a guard's shell half. `parity-safety-net.sh` resolves its heredoc
+# classifier at `$(dirname "${BASH_SOURCE[0]}")/parity-safety-net-heredoc.py`,
+# and that literal `.sh` was an extension filter no roster entry could get past:
+# the plugin trees all carry the classifier, the host tree carried seven `.sh`
+# files and nothing else, and the sibling lookup in an applied host checkout
+# therefore failed on every machine. The guard fails closed, correctly, so the
+# consequence was that EVERY heredoc was blocked in every host project that had
+# taken these hooks — permanently, and not fixable by installing anything
+# (issue #3483).
+#
+# Enumerated rather than globbed, for the reason the roster itself is: a file
+# appearing in `plugins/src/base/hooks/` is not by itself a decision to ship it
+# to hosts. What makes this list safe is that it is not the only thing holding
+# the property — `tests/unit/hooks/shipped-hook-companions.test.ts` reads the
+# sibling references back out of the shipped scripts, so a companion added to a
+# guard and not added here fails as a missing dependency rather than waiting to
+# be discovered as a permanent block downstream.
+for companion in parity-safety-net-heredoc.py; do
+  if [ -f "$SRC_DIR/base/hooks/$companion" ]; then
+    materialize "$SRC_DIR/base/hooks/$companion" "$HOST_GUARD_DIR/$companion"
+  fi
+done
 # The Sonar hook wrapper, which ships alongside the guards but is not one.
 #
 # The guards above are dispatched by lisa-enforcement-fallback.sh and take a tool

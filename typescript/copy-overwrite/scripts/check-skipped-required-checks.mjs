@@ -12,7 +12,7 @@
  * yours to edit).
  *
  * Usage:
- *   node scripts/check-skipped-required-checks.mjs [rootDir] [--remote] [--json]
+ *   node scripts/check-skipped-required-checks.mjs [rootDir] [--json]
  *   node scripts/check-skipped-required-checks.mjs --vacuity [--fail-on-vacuous]
  *   node scripts/check-skipped-required-checks.mjs --pr=1234 [--repo=OWNER/NAME]
  *
@@ -31,7 +31,7 @@
  *
  * Two of the three live here:
  *
- *  - **Skipped** (`--remote` / offline arm, below): GitHub counts a `skipped`
+ *  - **Skipped** (the offline arm, below): GitHub counts a `skipped`
  *    required check as SATISFIED, so a `skip_jobs` token makes the gate
  *    decorative. Static, offline, BLOCKING.
  *  - **Vacuous** (`--pr` arm): the check really ran and really reported
@@ -40,11 +40,15 @@
  *
  * ## Where this runs
  *
- * Lisa's `quality.yml` runs the OFFLINE arm on every pull request, and the
- * shipped `required-checks-drift.yml` runs `--remote` on a weekly schedule.
- * That split is deliberate and is argued under "Why this is a DECLARATION
- * guard" below: the enforced PR path may not depend on network or `gh` auth,
- * and the snapshot it enforces may not be allowed to rot unwatched.
+ * Lisa's `quality.yml` runs this on every pull request. EVERY arm is offline:
+ * nothing here reads a live ruleset, needs a token, or touches the network for
+ * the required-context rules. That is a deliberate reduction (#3599) — the
+ * scheduled arm that used to re-read the ruleset was removed along with the
+ * `administration:read` credential it required, which sat as a standing repo
+ * secret in every consumer to detect a rare event. If the committed snapshot
+ * and the live ruleset drift apart, that is now discovered by consequence
+ * rather than by check, and that is the accepted trade. Do not reintroduce a
+ * cheaper detector for it.
  *
  * ## `enforcement`
  *
@@ -73,13 +77,26 @@
  * assert.
  *
  * So `required_contexts` is treated as a cache of a live fetch, not as
- * testimony. It is trusted only while `ruleset.baseline_fetched_at` carries a
- * parseable timestamp no older than SNAPSHOT_MAX_AGE_DAYS. Untranscribed or
- * expired, the guard REFUSES to answer: every rule that depends on
- * `required_contexts` is skipped, no ✅ is printed, and the report says NOT
- * CHECKED and why. The rules that do NOT read `required_contexts` — an
- * undeclared token, a token written with whitespace — still run, because they
- * are true regardless of what the ruleset requires.
+ * testimony. Trust is a function of PRESENCE: it is believed while
+ * `ruleset.baseline_fetched_at` carries a parseable timestamp, and refused when
+ * that stamp is empty or unreadable. Untranscribed, the guard REFUSES to
+ * answer: every rule that depends on `required_contexts` is skipped, no ✅ is
+ * printed, and the report says NOT CHECKED and why. The rules that do NOT read
+ * `required_contexts` — an undeclared token, a token written with whitespace —
+ * still run, because they are true regardless of what the ruleset requires.
+ *
+ * NOTHING EXPIRES, and that is a decided constraint (#3599), not an oversight.
+ * A ninety-day ceiling used to sit here, and it was coherent only while a
+ * scheduled arm existed that could re-read the ruleset and re-stamp the file.
+ * With that arm removed, a deadline is an obligation with no way to discharge
+ * it: somebody would have to re-transcribe every consumer's snapshot every
+ * quarter forever, or the guard silently goes NOT CHECKED. A guard that
+ * reliably expires into "not checked" is worse than one answering from a stamp
+ * somebody wrote once, because the first looks healthy right up until it has
+ * been quietly inert for a quarter. A softer form — believe it, but warn past N
+ * days — is the same substitution and is refused for the same reason: it
+ * recreates the recurring manual obligation and adds a signal nobody can act
+ * on. Non-empty believed. Empty refused. Nothing expiring.
  *
  * Refusal is exit 1, so an explicit `npm run check:skipped-required-checks`
  * cannot be mistaken for a pass. Under `"enforcement": "warn"` — which is what
@@ -114,16 +131,18 @@
  * authoritative alone; the coherence rules below are what stop either rotting
  * into decoration.
  *
- * That mutual policing has one blind spot, and `--remote` exists for it: two
- * snapshots in one repo can only catch each other drifting from the CODE.
+ * That mutual policing has one blind spot, and it is now UNCOVERED ON PURPOSE:
+ * two snapshots in one repo can only catch each other drifting from the CODE.
  * Neither can see the ruleset itself change in the admin console — which is
- * exactly how acmeorgd's list silently went from ten contexts to eleven, with every
- * test still green, because the "independent" transcription was made from the
- * same reading at the same moment.
+ * exactly how one repository's list silently went from ten contexts to eleven,
+ * with every test still green, because the "independent" transcription was made
+ * from the same reading at the same moment.
  *
- * `--remote` is opt-in so the ENFORCED path stays offline. A guard that needed
- * network and `gh` auth on every run would flake, and a flaky guard gets
- * skipped — which reintroduces exactly the false-green class this file refuses.
+ * A scheduled arm used to close that gap by reading the live ruleset, and it
+ * was removed (#3599) because closing it cost a permanent `administration:read`
+ * token in every consumer. The blind spot is the price of not holding that
+ * credential. It is stated here rather than hidden, and it is not an invitation
+ * to build a lighter-weight version of the same thing.
  *
  * ## `--pr` — the VACUOUS arm, and why it only ever reports
  *
@@ -148,8 +167,8 @@
  * ## `--vacuity` — why a flag nobody passes is the same defect
  *
  * MEASURED (CodySwannGT/lisa#2928): for the whole life of this arm, NOTHING
- * INVOKED IT. `quality.yml` ran the offline arm with no `--pr`, the shipped
- * `required-checks-drift.yml` ran `--remote`, and the package script named
+ * INVOKED IT. `quality.yml` ran the offline arm with no `--pr`, the then-shipped
+ * scheduled drift workflow ran its own arm, and the package script named
  * `check:vacuous-required-checks` was a bare invocation — so the command named
  * for the vacuous check reported on SKIPS and said nothing about vacuity unless
  * a caller happened to remember `-- --pr=1234`. A rule that runs only when
@@ -271,18 +290,6 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 export const DECLARATION_PATH = ".github/required-checks.json";
 
 /**
- * How long a transcribed `required_contexts` snapshot stays trustworthy.
- *
- * A SOURCE CONSTANT, not an input: a ceiling somebody can widen from a config
- * file fails open on exactly the runs nobody tests. Rulesets are edited in an
- * admin console with no signal in the repository, so an old transcription is
- * not evidence — it is a memory of evidence. Ninety days is long enough that
- * the weekly `--remote` run refreshes it many times over, and short enough that
- * an abandoned repository stops being told its skips are fine.
- */
-export const SNAPSHOT_MAX_AGE_DAYS = 90;
-
-/**
  * Matches a `skip_jobs:` key and captures everything after the colon.
  *
  * The `^` anchor is load-bearing, not decoration. Without it the naive form
@@ -331,7 +338,6 @@ export const VIOLATIONS = Object.freeze({
   stale: "declaration_overstates_requirement",
   orphaned: "orphaned_exemption",
   badExemption: "exemption_without_valid_ticket",
-  remoteDrift: "ruleset_snapshot_drift",
   whitespace: "whitespace_in_skip_token",
   vacuous: "vacuous_required_check",
   unproven: "unproven_required_check",
@@ -399,15 +405,8 @@ const ENFORCEMENT_MODES = Object.freeze(["error", "warn"]);
  * both that a context is ruleset-required AND that a token it actually skips
  * silences it; that is a reviewed state, and shipping past it is the exact
  * defect this file exists to refuse.
- *
- * `ruleset_snapshot_drift` blocks for the same reason: it only fires under an
- * explicit `--remote` on a repository that filled in its ruleset ids, and it is
- * measured against live truth rather than inferred from a seed.
  */
-const ALWAYS_BLOCKING = Object.freeze([
-  VIOLATIONS.suppressesRequired,
-  VIOLATIONS.remoteDrift,
-]);
+const ALWAYS_BLOCKING = Object.freeze([VIOLATIONS.suppressesRequired]);
 
 /**
  * Violation kinds that NEVER fail the build, in any enforcement mode.
@@ -487,6 +486,61 @@ export const SETTLE_INTERVAL_SECONDS = 15;
 
 /** Enables the blocking review-evidence policy. */
 const REQUIRE_REVIEW_EVIDENCE_FLAG = "--require-review-evidence";
+
+/**
+ * Selects how many recently merged pull requests the waive-rate sample reads.
+ *
+ * Zero — the shipped default — disables the sample entirely, so no repository
+ * acquires a network read it did not ask for. The workflow that ships with Lisa
+ * passes a value, because the number is the point: `.github/workflows/
+ * review-evidence.yml` recorded "of the last 40 merged pull requests, 39 waive"
+ * in a COMMENT, where it changed nothing for eight months. A rate that an
+ * operator reads at merge time is a different artefact from a rate somebody
+ * once measured.
+ */
+const WAIVE_RATE_SAMPLE_FLAG = "--waive-rate-sample";
+
+/**
+ * The one call the waive-rate sample makes.
+ *
+ * Kept beside the flag rather than inline in the reader so the network shape is
+ * visible without reading a function: merged pull requests, newest first, each
+ * with its head commit's rollup contexts. `StatusContext` and `CheckRun` are
+ * both selected because a review bot may report as either and the description —
+ * `description` on one, `title` on the other — is the only field that separates
+ * a review from a waiver.
+ */
+const RECENT_MERGED_CHECKS_QUERY = [
+  "query($owner:String!,$name:String!,$limit:Int!){",
+  "repository(owner:$owner,name:$name){",
+  "pullRequests(states:MERGED,first:$limit,orderBy:{field:UPDATED_AT,direction:DESC}){",
+  "nodes{number commits(last:1){nodes{commit{statusCheckRollup{contexts(last:100){",
+  "nodes{__typename",
+  " ... on StatusContext{context state description}",
+  " ... on CheckRun{name conclusion title}",
+  "}}}}}}}}}}",
+].join("");
+
+/**
+ * The flag that used to select the live-ruleset drift mode, retired with it.
+ *
+ * Kept as an explicit rejection rather than left to the argument parser. Every
+ * unrecognised `--*` argument is discarded before the positional read, so a
+ * caller that still selects the retired mode would otherwise get the ordinary
+ * offline run and an exit code of zero — a caller asking for a live comparison
+ * and being told "pass" by something that never looked. Retiring a mode
+ * silently is how a removed control keeps reporting success.
+ */
+const RETIRED_REMOTE_FLAG = "--remote";
+
+/**
+ * What a caller that still selects the retired mode is told.
+ *
+ * Names the flag only to say it is gone: the caller has to be able to find the
+ * thing it must delete. It is deliberately not a suggestion to run anything —
+ * there is no live-ruleset mode left to point at.
+ */
+const RETIRED_REMOTE_MESSAGE = `check-skipped-required-checks: \`${RETIRED_REMOTE_FLAG}\` was retired together with the live-ruleset drift arm and the standing \`administration:read\` token it required (CodySwannGT/lisa#3599). There is no live comparison left to run, so this invocation would otherwise have reported success without performing the check that was asked for. Drop the flag, and drop the \`check:skipped-required-checks:remote\` npm script that passes it.`;
 
 /** Matches the `GITHUB_REF` a `pull_request` event run carries. */
 const REF_PULL = /^refs\/pull\/(\d+)\/(?:merge|head)$/u;
@@ -829,11 +883,19 @@ export function collectSkipJobTokens(rootDir, workflows) {
  * the state Lisa's seeds ship in, and the seeds are a GUESS — a guess that was
  * measured wrong (#2476). No stamp, no answer.
  *
+ * Trust is PRESENCE, not freshness (#3599). There is no age ceiling here and
+ * there must not be one: the scheduled arm that could re-read a live ruleset
+ * and re-stamp this file is gone, so an expiry would be a deadline nobody can
+ * meet, and the guard would go quietly inert rather than loudly wrong. A
+ * warning past N days is the same mistake wearing a softer hat — it recreates
+ * the obligation and emits a signal no operator can discharge. The protection
+ * that matters is the REFUSAL on an untranscribed snapshot, and that is what
+ * the two arms below preserve.
+ *
  * @param {object} declaration - The per-repo declaration
- * @param {number} [now] - Current epoch milliseconds, injectable for tests
  * @returns {{trusted: boolean, reason: string}} Whether to believe the snapshot, and why not
  */
-export function snapshotTrust(declaration, now = Date.now()) {
+export function snapshotTrust(declaration) {
   const stamp = declaration.ruleset?.baseline_fetched_at;
   if (typeof stamp !== "string" || stamp.trim() === "") {
     return {
@@ -841,18 +903,10 @@ export function snapshotTrust(declaration, now = Date.now()) {
       reason: `\`ruleset.baseline_fetched_at\` is empty, so \`required_contexts\` has never been transcribed from a live ruleset. Lisa's seed ships a GUESS, and the guess was measured WRONG once in this fleet (#2476): in that repository it named a context no ruleset required and omitted six that were. It names no context here on purpose — what is required is a per-repository fact. Transcribe the real list, stamp the date, and this guard starts answering.`,
     };
   }
-  const fetchedAt = Date.parse(stamp);
-  if (Number.isNaN(fetchedAt)) {
+  if (Number.isNaN(Date.parse(stamp))) {
     return {
       trusted: false,
       reason: `\`ruleset.baseline_fetched_at\` is ${JSON.stringify(stamp)}, which is not a date this can read. Use an ISO-8601 timestamp, e.g. "2026-08-13".`,
-    };
-  }
-  const ageDays = (now - fetchedAt) / 86_400_000;
-  if (ageDays > SNAPSHOT_MAX_AGE_DAYS) {
-    return {
-      trusted: false,
-      reason: `\`required_contexts\` was last transcribed ${Math.floor(ageDays)} days ago, past the ${SNAPSHOT_MAX_AGE_DAYS}-day ceiling. Rulesets are edited in an admin console with no signal in this repository, so a stale transcription is a memory of evidence rather than evidence.`,
     };
   }
   return { trusted: true, reason: "" };
@@ -1264,13 +1318,18 @@ export function reviewGateState(reading, vocabulary = {}) {
  * @param {object} declaration - The per-repo declaration
  * @param {ReadonlyArray<{name: string, state: string, description?: string}>} checks - The checks
  * @param {{headSha?: string}} [options] - `headSha` is cited in every finding
- * @returns {{violations: object[], states: Record<string, string>, checked: number}} Findings, per-check state, and how many were examined
+ * @returns {{violations: object[], states: Record<string, string>, descriptions: Record<string, string>, checked: number}} Findings, per-check state, the description each verdict was read from, and how many were examined
  */
 export function evaluateReviewGate(declaration, checks, options = {}) {
   const declared = declaration.evidence_bearing_checks ?? {};
   const at = citeHeadSha(options.headSha);
   const violations = [];
   const states = {};
+  // Carried out with the states because the RENDERED verdict quotes it. A title
+  // that said only "WAIVED" would tell an operator that something was waived
+  // and not which vendor sentence did the waiving, which is the fact that says
+  // whether to wait for the entitlement or merge on the waiver.
+  const descriptions = {};
   let checked = 0;
 
   for (const [name, entry] of Object.entries(declared)) {
@@ -1288,6 +1347,13 @@ export function evaluateReviewGate(declaration, checks, options = {}) {
       vocabulary
     );
     states[name] = verdict.state;
+    // Assigned ONLY when the check reported. An absent check with a `""`
+    // description entry renders as `CodeRabbit reported ""` — a sentence that
+    // says it reported. MEASURED on this fix's own first commit, where the
+    // published verdict read exactly that. Absence is not a quiet report, and
+    // the whole file turns on the two being different facts.
+    if (found !== undefined)
+      descriptions[name] = String(found.description ?? "");
     if (verdict.state === REVIEW_GATE_STATES.satisfied) continue;
     violations.push({
       kind:
@@ -1300,7 +1366,295 @@ export function evaluateReviewGate(declaration, checks, options = {}) {
     });
   }
 
-  return { violations, states, checked };
+  return { violations, states, descriptions, checked };
+}
+
+/**
+ * The check-run conclusion each review-gate verdict is published under.
+ *
+ * THIS IS THE WHOLE POINT OF #3639. Before this map existed the gate's three
+ * verdicts all reached a merge decision through the same rendering: the job
+ * exited 0 for `satisfied` AND for `waived`, so `gh pr checks` printed
+ *
+ *     🕵️ Did the required review checks do any work?   pass
+ *
+ * for a pull request nothing had read, character for character what it prints
+ * for one a reviewer completed. The distinction lived in the run log, and the
+ * file's own header had already measured how little that is worth: of the last
+ * 40 merged pull requests, 39 waived. A waiver that applies to 39 of 40 merges
+ * is the default path, and the default path rendering as the success path
+ * reproduces — on the guard's own green — the exact indistinguishability the
+ * guard exists to remove.
+ *
+ * `neutral` is the mechanism because it is the one conclusion that is NOT a
+ * pass and NOT a failure. `gh pr checks` buckets NEUTRAL as `skipping`, so the
+ * row reads differently at a glance, while contributing neither a failure to
+ * gh's exit code nor a satisfied context to branch protection. The waiver keeps
+ * its rationale — a pull request author cannot fix a vendor's billing state,
+ * and reddening every PR on it would be a worse gate — and loses only its
+ * disguise.
+ */
+export const REVIEW_VERDICT_CONCLUSIONS = Object.freeze({
+  satisfied: "success",
+  waived: "neutral",
+  unsatisfied: "failure",
+  uninspected: "failure",
+});
+
+/** GitHub truncates a check-run output title past this many characters. */
+export const REVIEW_VERDICT_TITLE_LIMIT = 255;
+
+/**
+ * Flattens a title to one line and fits it in a check-run output title.
+ *
+ * Single-line is a correctness requirement, not tidiness: this string is
+ * written to `$GITHUB_OUTPUT` as `key=value`, where a newline in the value ends
+ * the assignment and the remainder is parsed as further output keys. A vendor
+ * description is arbitrary text from outside this repository.
+ *
+ * @param {string} text - The composed title
+ * @returns {string} One line, at most {@link REVIEW_VERDICT_TITLE_LIMIT} chars
+ */
+function fitTitle(text) {
+  const flat = String(text).replace(/\s+/gu, " ").trim();
+  return flat.length <= REVIEW_VERDICT_TITLE_LIMIT
+    ? flat
+    : `${flat.slice(0, REVIEW_VERDICT_TITLE_LIMIT - 1)}…`;
+}
+
+/**
+ * The waive-rate sentence appended to a verdict title, or nothing.
+ *
+ * @param {{waived: number, sampled: number}|undefined} rate - A sampled tally
+ * @returns {string} The sentence, or an empty string when nothing was sampled
+ */
+function waiveRateSuffix(rate) {
+  return rate === undefined || rate.sampled === 0
+    ? ""
+    : ` · waived on ${rate.waived} of the last ${rate.sampled} merged pull requests`;
+}
+
+/**
+ * Renders one merge-time verdict for every declared evidence-bearing check.
+ *
+ * Worst-wins across the declared checks, in the order `unsatisfied` > `waived`
+ * > `satisfied`. One waived check among four satisfied ones still means this
+ * pull request has an unreviewed arm, and a verdict that averaged them would be
+ * the summary that hides the finding.
+ *
+ * Pure, and deliberately separate from the publishing step, so the property
+ * that matters — a waiver and a satisfaction never render the same — is
+ * testable without a GitHub API.
+ *
+ * @param {{states?: Record<string, string>, descriptions?: Record<string, string>, refusal?: {kind: string}|null, waiveRate?: {waived: number, sampled: number}}} reading -
+ *   The gate's per-check states, the descriptions they were read from, any
+ *   refusal, and an optional sampled waive rate
+ * @returns {{verdict: string, conclusion: string, title: string}} What to publish
+ */
+export function reviewGateVerdict(reading = {}) {
+  const states = reading.states ?? {};
+  const descriptions = reading.descriptions ?? {};
+  const names = Object.keys(states);
+  const suffix = waiveRateSuffix(reading.waiveRate);
+
+  if (reading.refusal || names.length === 0) {
+    return {
+      verdict: "uninspected",
+      conclusion: REVIEW_VERDICT_CONCLUSIONS.uninspected,
+      title: fitTitle(
+        `NOT INSPECTED — no review evidence was read${reading.refusal ? ` (${reading.refusal.kind})` : ""}. NOBODY LOOKED is not the same fact as a clean review.`
+      ),
+    };
+  }
+
+  /**
+   * Names one check alongside the exact description its verdict was read from.
+   *
+   * A check with no entry never REPORTED, and says so. `reported ""` for a
+   * check that posted nothing is the one phrasing this whole file exists to
+   * refuse: it makes absence look like a quiet answer.
+   *
+   * @param {string} name - The declared check name
+   * @returns {string} `<name> reported "<description>"`, or that it posted none
+   */
+  const quote = name =>
+    Object.hasOwn(descriptions, name)
+      ? `${name} reported ${JSON.stringify(descriptions[name])}`
+      : `${name} posted NO review status at all`;
+
+  const unsatisfied = names.filter(
+    name => states[name] === REVIEW_GATE_STATES.unsatisfied
+  );
+  if (unsatisfied.length > 0) {
+    return {
+      verdict: REVIEW_GATE_STATES.unsatisfied,
+      conclusion: REVIEW_VERDICT_CONCLUSIONS.unsatisfied,
+      title: fitTitle(
+        `UNREVIEWED — review evidence unsatisfied: ${unsatisfied.map(quote).join("; ")}${suffix}`
+      ),
+    };
+  }
+
+  const waived = names.filter(
+    name => states[name] === REVIEW_GATE_STATES.waived
+  );
+  if (waived.length > 0) {
+    return {
+      verdict: REVIEW_GATE_STATES.waived,
+      conclusion: REVIEW_VERDICT_CONCLUSIONS.waived,
+      title: fitTitle(
+        `WAIVED — this pull request is UNREVIEWED and merging it is a decision taken on that basis: ${waived.map(quote).join("; ")}${suffix}`
+      ),
+    };
+  }
+
+  return {
+    verdict: REVIEW_GATE_STATES.satisfied,
+    conclusion: REVIEW_VERDICT_CONCLUSIONS.satisfied,
+    title: fitTitle(`REVIEWED — ${names.map(quote).join("; ")}${suffix}`),
+  };
+}
+
+/**
+ * Counts how a sample of pull requests ended up, worst-wins per pull request.
+ *
+ * A pull request whose declared checks produced no state at all is not counted
+ * as reviewed OR waived — it is not counted. A denominator that quietly absorbs
+ * unreadable pull requests reports a lower waive rate than the truth, which is
+ * the direction that makes the number reassuring rather than useful.
+ *
+ * @param {ReadonlyArray<Record<string, string>>} samples - One states map per pull request
+ * @returns {{sampled: number, waived: number, satisfied: number, unsatisfied: number}} The tally
+ */
+export function summarizeWaiveRate(samples) {
+  const tally = { sampled: 0, waived: 0, satisfied: 0, unsatisfied: 0 };
+  for (const states of samples) {
+    const values = Object.values(states ?? {});
+    if (values.length === 0) continue;
+    tally.sampled += 1;
+    if (values.includes(REVIEW_GATE_STATES.unsatisfied)) tally.unsatisfied += 1;
+    else if (values.includes(REVIEW_GATE_STATES.waived)) tally.waived += 1;
+    else tally.satisfied += 1;
+  }
+  return tally;
+}
+
+/**
+ * Reads the declared evidence-bearing rows for recently merged pull requests.
+ *
+ * ONE GraphQL call, not one REST call per pull request. A per-PR loop is ~2N
+ * network reads inside a job that is already spending five minutes waiting for
+ * a review bot to settle, and a sampler that can time the job out would be
+ * deleted rather than read.
+ *
+ * `orderBy: UPDATED_AT` rather than a merge timestamp, and the difference is
+ * worth naming: this is "recently touched merged pull requests", a proxy for
+ * "recently merged" that the single-call shape buys. The number it produces is
+ * an order-of-magnitude reading of how often the waiver is the path — which is
+ * what an operator needs — not an audit figure.
+ *
+ * @param {number} limit - How many merged pull requests to read
+ * @param {string} [repo] - `OWNER/NAME`; defaults to the current repository
+ * @returns {Array<Array<{name: string, state: string, description: string}>>} Rows per pull request
+ * @throws {Error} When the slug cannot be resolved or `gh` cannot answer
+ */
+export function fetchRecentMergedChecks(limit, repo) {
+  const slug = resolveRepoSlug(repo);
+  if (slug === undefined) {
+    throw new Error(
+      "check-skipped-required-checks: the waive-rate sample needs an OWNER/NAME. Pass `--repo=OWNER/NAME`, or set GITHUB_REPOSITORY."
+    );
+  }
+  const [owner, name] = slug.split("/");
+  const raw = boundedExecFileSync(
+    "gh",
+    [
+      "api",
+      "graphql",
+      "-f",
+      `query=${RECENT_MERGED_CHECKS_QUERY}`,
+      "-F",
+      `owner=${owner}`,
+      "-F",
+      `name=${name}`,
+      "-F",
+      `limit=${limit}`,
+    ],
+    { encoding: "utf8" }
+  );
+  const nodes = JSON.parse(raw)?.data?.repository?.pullRequests?.nodes ?? [];
+  return nodes.map(node =>
+    (
+      node?.commits?.nodes?.[0]?.commit?.statusCheckRollup?.contexts?.nodes ??
+      []
+    ).map(context =>
+      context?.__typename === "CheckRun"
+        ? normalizeCheckRow(context.name, context.conclusion, context.title)
+        : normalizeCheckRow(
+            context?.context,
+            context?.state,
+            context?.description
+          )
+    )
+  );
+}
+
+/**
+ * Samples how often the review gate waives, best-effort and never fatal.
+ *
+ * A failed sample must never change the verdict. The rate is CONTEXT for a
+ * decision the gate has already made from this pull request's own evidence, so
+ * an unreachable API costs an operator one sentence rather than a red build —
+ * and the absent sentence is the honest rendering of "not measured", which is
+ * what the caller prints in its place.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {number} limit - How many merged pull requests to read; 0 disables
+ * @param {string} [repo] - `OWNER/NAME`; defaults to the current repository
+ * @param {(limit: number, repo?: string) => Array<Array<object>>} [fetch] - Injection seam
+ * @returns {{sampled: number, waived: number, satisfied: number, unsatisfied: number}|undefined} The tally, or undefined when it could not be taken
+ */
+export function sampleWaiveRate(declaration, limit, repo, fetch) {
+  if (!Number.isInteger(limit) || limit <= 0) return undefined;
+  try {
+    const perPullRequest = (fetch ?? fetchRecentMergedChecks)(limit, repo);
+    return summarizeWaiveRate(
+      perPullRequest.map(
+        checks => evaluateReviewGate(declaration, checks).states
+      )
+    );
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Publishes the verdict where a workflow step can read it.
+ *
+ * `$GITHUB_OUTPUT` rather than stdout because the consumer is the next step in
+ * the job, which turns it into a check run — the surface a merge decision
+ * actually consults. Best-effort for the same reason the step summary is:
+ * losing the rendering must not invert the exit code the guard worked to earn.
+ *
+ * @param {{verdict: string, conclusion: string, title: string}} verdict - What to publish
+ * @param {NodeJS.ProcessEnv} [env] - Environment, injectable for tests
+ * @returns {boolean} True when the outputs were written
+ */
+export function writeVerdictOutputs(verdict, env = process.env) {
+  const target = env.GITHUB_OUTPUT;
+  if (target === undefined || target === "") return false;
+  try {
+    appendFileSync(
+      target,
+      `review_evidence_verdict=${verdict.verdict}\nreview_evidence_conclusion=${verdict.conclusion}\nreview_evidence_title=${verdict.title}\n`
+    );
+    return true;
+  } catch (error) {
+    console.error(
+      `[skipped-required-checks] review verdict outputs not written: ${error.message}`
+    );
+    return false;
+  }
 }
 
 /**
@@ -1898,64 +2252,23 @@ export function vacuityRefusal(input) {
 }
 
 /**
- * Fetches the live required contexts for every declared ruleset.
+ * Reads a `--name=<integer>` flag, falling back when absent or unreadable.
  *
- * @param {object} ruleset - `{ repo, ids }` from the declaration
- * @returns {string[]} Live contexts across all declared rulesets
- * @throws {Error} When `gh` is unavailable or the API cannot be read
+ * Separate from the seconds reader because the fallback for an unreadable value
+ * differs in kind: a bad timeout should still wait, while a bad sample size must
+ * NOT silently become the shipped default and start making network calls a
+ * caller did not ask for. Both clamp at zero.
+ *
+ * @param {ReadonlyArray<string>} argv - CLI arguments
+ * @param {string} name - The flag, including its leading dashes
+ * @param {number} fallback - Value to use when the flag is absent or unreadable
+ * @returns {number} A non-negative integer
  */
-export function fetchLiveRequiredContexts(ruleset) {
-  if (
-    !ruleset?.repo ||
-    !Array.isArray(ruleset.ids) ||
-    ruleset.ids.length === 0
-  ) {
-    throw new Error(
-      `check-skipped-required-checks: --remote needs \`ruleset.repo\` and \`ruleset.ids\` in ${DECLARATION_PATH}.`
-    );
-  }
-  const contexts = [];
-  for (const id of ruleset.ids) {
-    const raw = boundedExecFileSync(
-      "gh",
-      [
-        "api",
-        `repos/${ruleset.repo}/rulesets/${id}`,
-        "--jq",
-        '.rules[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context',
-      ],
-      { encoding: "utf8" }
-    );
-    for (const line of raw.split("\n").map(value => value.trim())) {
-      if (line !== "" && !contexts.includes(line)) contexts.push(line);
-    }
-  }
-  return contexts;
-}
-
-/**
- * Diffs the committed snapshot against the live ruleset, in BOTH directions.
- *
- * Both directions matter. A context added in the admin console makes the
- * snapshot UNDER-detect (acmeorgd's ten-to-eleven drift, unnoticed for a day with
- * every test green). A context removed there makes it OVER-detect, and the
- * obvious fix for a false alarm is to weaken the guard.
- *
- * @param {ReadonlyArray<string>} snapshot - Committed contexts
- * @param {ReadonlyArray<string>} live - Contexts from the API
- * @returns {object[]} Drift violations
- */
-export function compareRulesetBaseline(snapshot, live) {
-  const added = live.filter(context => !snapshot.includes(context));
-  const removed = snapshot.filter(context => !live.includes(context));
-  if (added.length === 0 && removed.length === 0) return [];
-  return [
-    {
-      kind: VIOLATIONS.remoteDrift,
-      token: null,
-      message: `\`required_contexts\` has drifted from the live ruleset.${added.length ? `\n  Live but not committed (the snapshot UNDER-detects): ${added.map(name => `"${name}"`).join(", ")}` : ""}${removed.length ? `\n  Committed but not live (the snapshot OVER-detects): ${removed.map(name => `"${name}"`).join(", ")}` : ""}\n  Update the snapshot and re-read what it now implies about the skip declarations.`,
-    },
-  ];
+function readIntegerFlag(argv, name, fallback) {
+  const raw = readFlagValue(argv, name);
+  if (raw === undefined) return fallback;
+  const value = Number(raw);
+  return Number.isInteger(value) && value >= 0 ? value : fallback;
 }
 
 /**
@@ -2009,8 +2322,19 @@ export function inspectVacuity(argv, declaration, options = {}) {
     violations: [],
     settled: false,
   };
+  /**
+   * Attaches the published verdict to a refusal, which must not render as green.
+   *
+   * @param {{kind: string, reason: string}|null} refusal - Why nothing was read
+   * @returns {object} The refusal result, verdict included
+   */
+  const refused = refusal => ({
+    ...empty,
+    refusal,
+    verdict: reviewGateVerdict({ refusal }),
+  });
   if (pr === undefined) {
-    return { ...empty, refusal: vacuityRefusal({ declaration, pr }) };
+    return refused(vacuityRefusal({ declaration, pr }));
   }
 
   const repo = readFlagValue(argv, "--repo");
@@ -2033,16 +2357,15 @@ export function inspectVacuity(argv, declaration, options = {}) {
       headSha: options.headSha,
     });
   } catch (error) {
-    return { ...empty, refusal: vacuityRefusal({ declaration, pr, error }) };
+    return refused(vacuityRefusal({ declaration, pr, error }));
   }
 
   const refusal = vacuityRefusal({ declaration, pr, checks: read.checks });
   if (refusal !== null) {
     return {
-      ...empty,
+      ...refused(refusal),
       headSha: read.headSha,
       settled: read.settled,
-      refusal,
     };
   }
   const evaluated = evaluateVacuousChecks(declaration, read.checks, {
@@ -2056,6 +2379,20 @@ export function inspectVacuity(argv, declaration, options = {}) {
   const gate = evaluateReviewGate(declaration, read.checks, {
     headSha: read.headSha,
   });
+  // Sampled ONLY when this pull request is itself waived. The rate answers
+  // "is this the exception or the rule?", a question that only arises once a
+  // waiver is on the table, and every other run keeps the sampler's network
+  // call — and its failure modes — out of the job entirely.
+  const waiveRate = Object.values(gate.states).includes(
+    REVIEW_GATE_STATES.waived
+  )
+    ? sampleWaiveRate(
+        declaration,
+        readIntegerFlag(argv, WAIVE_RATE_SAMPLE_FLAG, 0),
+        repo,
+        options.sampleChecks
+      )
+    : undefined;
   return {
     pr,
     prSource: source,
@@ -2063,6 +2400,13 @@ export function inspectVacuity(argv, declaration, options = {}) {
     checked: evaluated.checked,
     violations: [...evaluated.violations, ...gate.violations],
     gateStates: gate.states,
+    gateDescriptions: gate.descriptions,
+    waiveRate,
+    verdict: reviewGateVerdict({
+      states: gate.states,
+      descriptions: gate.descriptions,
+      waiveRate,
+    }),
     settled: read.settled,
     refusal: null,
   };
@@ -2071,17 +2415,18 @@ export function inspectVacuity(argv, declaration, options = {}) {
 /**
  * Runs the guard.
  *
- * `--remote` reads the ruleset live, so it does not need the cache to be
- * trustworthy — it is the thing that MAKES it trustworthy. Under `--remote` the
- * required-context rules therefore run regardless of the stamp, and any
- * disagreement surfaces as `ruleset_snapshot_drift` rather than as a verdict
- * about skips.
+ * Every arm is OFFLINE. There is no network read and no token anywhere in this
+ * path: the required-context rules answer from the committed snapshot when
+ * {@link snapshotTrust} believes it, and refuse when it does not.
  *
  * @param {ReadonlyArray<string>} argv - CLI arguments
  * @param {object} [options] - Injection seams forwarded to {@link inspectVacuity}
  * @returns {{violations: object[], checked: number, tokens: string[], enforcement: string, trust: {trusted: boolean, reason: string}, recipe: string, pr: string|undefined, evidenceChecked: number, vacuity: object|undefined}} The result
  */
 export function runGuard(argv, options = {}) {
+  if (argv.includes(RETIRED_REMOTE_FLAG)) {
+    throw new Error(RETIRED_REMOTE_MESSAGE);
+  }
   if (
     argv.includes(REQUIRE_REVIEW_EVIDENCE_FLAG) &&
     !argv.includes("--vacuity") &&
@@ -2095,26 +2440,11 @@ export function runGuard(argv, options = {}) {
   const rootDir = positional[0] ?? process.cwd();
   const declaration = loadDeclaration(rootDir);
   const collected = collectSkipJobTokens(rootDir, declaration.workflows);
-  const remote = argv.includes("--remote");
-  const live = remote
-    ? fetchLiveRequiredContexts(declaration.ruleset)
-    : undefined;
-  const trust = remote
-    ? { trusted: true, reason: "" }
-    : snapshotTrust(declaration);
-  const result = evaluateSkippedRequiredChecks(
-    live === undefined
-      ? declaration
-      : { ...declaration, required_contexts: live },
-    collected.tokens,
-    { trustRequiredContexts: trust.trusted }
-  );
+  const trust = snapshotTrust(declaration);
+  const result = evaluateSkippedRequiredChecks(declaration, collected.tokens, {
+    trustRequiredContexts: trust.trusted,
+  });
   const violations = [...collected.violations, ...result.violations];
-  if (live !== undefined) {
-    violations.push(
-      ...compareRulesetBaseline(declaration.required_contexts, live)
-    );
-  }
 
   // The vacuity arm is layered ON TOP of the offline run rather than replacing
   // it: it is a third variant of one family, so it belongs in one report. Its
@@ -2136,6 +2466,8 @@ export function runGuard(argv, options = {}) {
     recipe: transcriptionRecipe(declaration),
     pr: vacuity?.pr,
     evidenceChecked: vacuity?.checked ?? 0,
+    verdict: vacuity?.verdict,
+    waiveRate: vacuity?.waiveRate,
     vacuity,
   };
 }
@@ -2196,6 +2528,11 @@ function main(argv) {
       : !warnOnly || ALWAYS_BLOCKING.includes(violation.kind);
   };
   const blocking = result.violations.filter(blocks);
+  // Published BEFORE the report and before the exit code, because it is the only
+  // artefact of this run that a merge decision reads. A verdict computed after a
+  // `return` on some branch is a verdict that exists on the happy path only.
+  const verdict = result.verdict;
+  if (verdict !== undefined) writeVerdictOutputs(verdict);
   const refusal = result.vacuity?.refusal ?? null;
   const refusalBlocks =
     refusal !== null && (!warnOnly || requireReviewEvidence);
@@ -2224,6 +2561,22 @@ function main(argv) {
 
   const lines = ["## 🔒 Required checks that prove nothing", ""];
 
+  // The verdict is the FIRST line of the report and not a footnote, and it is
+  // the same string published to the check run, so the two surfaces cannot
+  // drift into disagreeing about what this run concluded.
+  if (verdict !== undefined) {
+    lines.push(
+      `**${verdict.title}**`,
+      "",
+      `Published as check-run conclusion \`${verdict.conclusion}\`. A \`neutral\` conclusion is how a WAIVED pull request is kept out of the shape a satisfied one prints — the waiver still blocks nothing, and it no longer looks like a review.`,
+      "",
+      result.waiveRate === undefined
+        ? "The waive rate over recently merged pull requests was NOT sampled on this run, so no rate is claimed here."
+        : `Recently merged pull requests sampled: ${result.waiveRate.sampled} — ${result.waiveRate.satisfied} reviewed, ${result.waiveRate.waived} waived, ${result.waiveRate.unsatisfied} unsatisfied.`,
+      ""
+    );
+  }
+
   // The refusal comes FIRST and replaces the verdict. Printing "✅ none
   // silences a required check" from a snapshot nobody transcribed is the one
   // outcome that is worse than never running: it is a confident wrong answer,
@@ -2237,8 +2590,6 @@ function main(argv) {
       "```",
       result.recipe,
       "```",
-      "",
-      `Meanwhile \`--remote\` answers WITHOUT the cache, because it reads the ruleset live: \`npm run check:skipped-required-checks:remote\`.`,
       ""
     );
     process.stderr.write(

@@ -47,6 +47,14 @@ export const OWNERSHIP_HEADER = [
  * listed makes `materialize` throw, so wiring a new generated asset through
  * here is a decision someone has to make — the alternative is a silent
  * pass-through that reintroduces the headerless copy this module exists to end.
+ *
+ * `.py` is here because a guard's dependency does not have to share the guard's
+ * language. `parity-safety-net.sh` resolves its heredoc classifier as a sibling
+ * of itself, and that classifier is Python; with `.py` absent from this map the
+ * companion could not have been materialized even once someone named it, so the
+ * closed map was the second of the two extension filters that kept it out of
+ * the shipped tree (issue #3483). A `#` comment above a module docstring is a
+ * comment, not a statement, so stamping the header leaves `__doc__` intact.
  */
 const COMMENT_PREFIX = new Map([
   [".sh", "#"],
@@ -54,6 +62,7 @@ const COMMENT_PREFIX = new Map([
   [".mjs", "//"],
   [".cjs", "//"],
   [".js", "//"],
+  [".py", "#"],
 ]);
 
 /**

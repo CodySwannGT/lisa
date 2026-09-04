@@ -45,6 +45,8 @@ For full functionality, configure the following secrets:
 |--------|---------|--------------|
 | `EXPO_TOKEN` | EAS builds and updates | Mobile deployment |
 | `SENTRY_AUTH_TOKEN` | Error tracking | Release monitoring |
+| `SENTRY_ORG` | Sentry organization slug | Release monitoring |
+| `SENTRY_PROJECT` | Sentry project slug | Release monitoring |
 | `SONAR_TOKEN` | Code quality analysis | Security scanning |
 | `SNYK_TOKEN` | Vulnerability scanning | Security scanning |
 
@@ -306,19 +308,6 @@ This workflow is read-only — it does not modify code or create PRs. It only re
 
 3. The workflow auto-enables once all three variables and both secrets are set. No feature flag needed.
 
-### Auto-update PR Branches (`auto-update-pr-branches.yml`)
-
-**Triggers**: Push to `main`, `staging`, or `dev`
-
-Automatically updates all open pull requests targeting the pushed branch by merging the latest base branch changes into PR branches. Uses [`chinthakagodawita/autoupdate`](https://github.com/chinthakagodawita/autoupdate) (v1.7.0).
-
-- Updates all open PRs (including drafts) targeting the updated branch
-- Skips PRs with merge conflicts (does not fail the workflow)
-- Retries up to 5 times on transient failures
-- No additional secrets required (uses `GITHUB_TOKEN`)
-
-**Note**: The merge commit will be attributed to `github-actions[bot]`. To attribute it to a specific user, add a PAT as a repository secret and update the workflow.
-
 ### Load Testing (`load-test.yml`)
 
 **Type**: Reusable workflow
@@ -548,8 +537,6 @@ Variables are non-sensitive configuration values. Set them in **Settings** > **S
 | `JIRA_BASE_URL` | Jira instance base URL (enables Jira triage workflow) | `https://company.atlassian.net` |
 | `JIRA_USER_EMAIL` | Email associated with the Jira API token | `user@company.com` |
 | `JIRA_PROJECT_KEY` | Jira project key for ticket queries | `PROJ` |
-| `SENTRY_ORG` | Sentry organization slug | `my-company` |
-| `SENTRY_PROJECT` | Sentry project slug | `frontend-app` |
 
 ## External Service Setup
 
@@ -651,7 +638,6 @@ with:
 │   ├── claude-nightly-test-improvement.yml     # Nightly test quality
 │   ├── claude-nightly-test-coverage.yml        # Nightly test coverage
 │   ├── claude-nightly-code-complexity.yml      # Nightly code complexity
-│   ├── auto-update-pr-branches.yml            # Auto-update PRs from base
 │   └── .env.example                            # Secrets template
 └── k6/
     ├── scripts/                            # Test scripts

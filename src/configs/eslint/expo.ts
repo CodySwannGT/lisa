@@ -36,6 +36,7 @@ import {
   getTsFilesOverride,
   getTsTestFilesOverride,
 } from "./typescript.js";
+import { getViewGateConfigs } from "./view-gate.js";
 
 // Re-export for downstream configs
 export {
@@ -417,13 +418,9 @@ export function getExpoConfig({
       },
     },
 
-    // View component rules
-    {
-      files: ["**/*View.tsx", "**/*View.jsx"],
-      rules: {
-        "component-structure/no-return-in-view": "error",
-      },
-    },
+    // View gate: no statements, no hooks. See `view-gate.ts` for why it is
+    // stated as those two properties and not as "Views are pure functions".
+    ...getViewGateConfigs(sourceRoot),
 
     // View memo requirement (excluding UI components)
     {

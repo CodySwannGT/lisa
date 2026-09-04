@@ -74,8 +74,40 @@ interface GuardModule {
   ): {
     violations: Violation[];
     states: Record<string, string>;
+    descriptions: Record<string, string>;
     checked: number;
   };
+  readonly REVIEW_VERDICT_CONCLUSIONS: Record<string, string>;
+  readonly REVIEW_VERDICT_TITLE_LIMIT: number;
+  reviewGateVerdict(reading?: {
+    states?: Record<string, string>;
+    descriptions?: Record<string, string>;
+    refusal?: { kind: string } | null;
+    waiveRate?: { waived: number; sampled: number };
+  }): { verdict: string; conclusion: string; title: string };
+  summarizeWaiveRate(samples: readonly Record<string, string>[]): {
+    sampled: number;
+    waived: number;
+    satisfied: number;
+    unsatisfied: number;
+  };
+  sampleWaiveRate(
+    declaration: Record<string, unknown>,
+    limit: number,
+    repo?: string,
+    fetch?: (limit: number, repo?: string) => CheckRow[][]
+  ):
+    | {
+        sampled: number;
+        waived: number;
+        satisfied: number;
+        unsatisfied: number;
+      }
+    | undefined;
+  writeVerdictOutputs(
+    verdict: { verdict: string; conclusion: string; title: string },
+    env?: NodeJS.ProcessEnv
+  ): boolean;
 }
 
 /** The measured CodeRabbit context name. */
@@ -534,6 +566,291 @@ describe("vacuous required checks", () => {
     });
   });
 
+  describe("a waived gate must not render the way a satisfied one renders (#3639)", () => {
+    // MEASURED 2026-09-03. `Review rate limited` is an EXPLICIT waiver with a
+    // written rationale, and that rationale stands: a pull-request author
+    // cannot fix a vendor's billing state, and a gate that reddened every pull
+    // request on one would be worse than no gate. What was defective is that
+    // "loud and nonblocking" was not loud. The job exited 0 for a waiver and 0
+    // for a satisfaction, so at the only layer a merge decision consults:
+    //
+    //     🕵️ Did the required review checks do any work?   pass
+    //     CodeRabbit                                        pass
+    //
+    // Both hollow. Seven pull requests merged on that pair in one afternoon
+    // (#3632, #3633, #3634, #3636, #3637, #3647) and shipped in v4.33.0 and
+    // v4.33.1. The guard's own header had already measured 39 of the last 40
+    // merged pull requests waiving — a default path wearing the success path's
+    // clothes.
+
+    it("gives a WAIVED verdict a different conclusion from a SATISFIED one", () => {
+      // THE regression. Before #3639 there was no verdict to compare: both
+      // states left the job at exit 0 and there was nothing else to read.
+      const waived = mod.reviewGateVerdict({
+        states: { [CODERABBIT]: mod.REVIEW_GATE_STATES.waived },
+        descriptions: { [CODERABBIT]: RATE_LIMITED },
+      });
+      const satisfied = mod.reviewGateVerdict({
+        states: { [CODERABBIT]: mod.REVIEW_GATE_STATES.satisfied },
+        descriptions: { [CODERABBIT]: COMPLETED },
+      });
+
+      expect(waived.conclusion).not.toBe(satisfied.conclusion);
+      expect(waived.conclusion).toBe("neutral");
+      expect(satisfied.conclusion).toBe("success");
+    });
+
+    it("says WAIVED and UNREVIEWED in the title, not only in the log", () => {
+      // A log is not a control. The title is what a check run renders, which is
+      // what somebody reads at the moment they decide to merge.
+      const waived = mod.reviewGateVerdict({
+        states: { [CODERABBIT]: mod.REVIEW_GATE_STATES.waived },
+        descriptions: { [CODERABBIT]: RATE_LIMITED },
+      });
+
+      expect(waived.verdict).toBe(mod.REVIEW_GATE_STATES.waived);
+      expect(waived.title).toContain("WAIVED");
+      expect(waived.title).toContain("UNREVIEWED");
+      expect(waived.title).toContain(RATE_LIMITED);
+    });
+
+    it("keeps the waiver NONBLOCKING while making it visible", () => {
+      // The fence keeps its reason. `neutral` is neither a pass nor a failure:
+      // `gh pr checks` buckets it as `skipping`, contributing no failure to its
+      // exit code and no satisfied context to branch protection.
+      expect(mod.REVIEW_VERDICT_CONCLUSIONS.waived).toBe("neutral");
+      expect(mod.REVIEW_VERDICT_CONCLUSIONS.waived).not.toBe("failure");
+      expect(mod.NEVER_BLOCKING).toContain(mod.VIOLATIONS.reviewWaived);
+    });
+
+    it("renders every non-satisfied state as its own conclusion", () => {
+      // Four states, four renderings. Collapsing any pair reintroduces exactly
+      // the indistinguishability this fixes, one state over.
+      const conclusions = [
+        mod.reviewGateVerdict({
+          states: { [CODERABBIT]: mod.REVIEW_GATE_STATES.satisfied },
+        }).conclusion,
+        mod.reviewGateVerdict({
+          states: { [CODERABBIT]: mod.REVIEW_GATE_STATES.waived },
+        }).conclusion,
+        mod.reviewGateVerdict({
+          states: { [CODERABBIT]: mod.REVIEW_GATE_STATES.unsatisfied },
+        }).conclusion,
+      ];
+
+      expect(conclusions).toEqual(["success", "neutral", "failure"]);
+    });
+
+    it("does not render a refusal as anything a merge could read as clean", () => {
+      // NOBODY LOOKED and THE REVIEW WAS FAKE are opposite facts, and neither
+      // is a pass.
+      const refused = mod.reviewGateVerdict({
+        refusal: { kind: "vacuity_unresolved_pr" },
+      });
+
+      expect(refused.verdict).toBe("uninspected");
+      expect(refused.conclusion).toBe("failure");
+      expect(refused.title).toContain("NOT INSPECTED");
+      expect(refused.title).toContain("vacuity_unresolved_pr");
+    });
+
+    it("takes the WORST state when one check waives and another satisfies", () => {
+      const mixed = mod.reviewGateVerdict({
+        states: {
+          [CODERABBIT]: mod.REVIEW_GATE_STATES.satisfied,
+          Other: mod.REVIEW_GATE_STATES.waived,
+        },
+        descriptions: { [CODERABBIT]: COMPLETED, Other: RATE_LIMITED },
+      });
+
+      expect(mixed.conclusion).toBe("neutral");
+      expect(mixed.title).toContain("Other");
+    });
+
+    it("fails CLOSED at the rendering layer for an unrecognised description", () => {
+      // The allowlist arm, pinned where it is now VISIBLE. Four distinct
+      // vacuous descriptions appeared in one afternoon; enumerating bad strings
+      // goes stale, so anything that is not positively a known-good "a review
+      // ran" form has to render as a failure, not as a pass.
+      const gate = mod.evaluateReviewGate(declarationWith(), [
+        {
+          name: CODERABBIT,
+          state: "SUCCESS",
+          description:
+            "Review skipped: reviews are disabled for this base branch",
+        },
+      ]);
+      const rendered = mod.reviewGateVerdict({
+        states: gate.states,
+        descriptions: gate.descriptions,
+      });
+
+      expect(gate.states[CODERABBIT]).toBe(mod.REVIEW_GATE_STATES.unsatisfied);
+      expect(rendered.conclusion).toBe("failure");
+      expect(rendered.title).toContain("UNREVIEWED");
+      expect(rendered.title).toContain("disabled for this base branch");
+    });
+
+    it("does not say a check REPORTED when it posted nothing", () => {
+      // MEASURED on this fix's own first commit: the published verdict read
+      // `UNREVIEWED — review evidence unsatisfied: CodeRabbit reported ""`,
+      // which asserts a report that never happened. `absent` and `reported an
+      // empty description` are different facts and the file turns on the
+      // difference — a verdict that blurs them reintroduces the collapse one
+      // layer out from where it was just fixed.
+      const gate = mod.evaluateReviewGate(declarationWith(), []);
+      const rendered = mod.reviewGateVerdict({
+        states: gate.states,
+        descriptions: gate.descriptions,
+      });
+
+      expect(gate.states[CODERABBIT]).toBe(mod.REVIEW_GATE_STATES.unsatisfied);
+      expect(rendered.title).toContain("posted NO review status at all");
+      expect(rendered.title).not.toContain('reported ""');
+    });
+
+    it("still quotes a genuinely EMPTY description as a report", () => {
+      // The negative control for the case above. A check that reported and said
+      // nothing has still reported, and must not be rendered as absent.
+      const gate = mod.evaluateReviewGate(declarationWith(), [
+        { name: CODERABBIT, state: "SUCCESS", description: "" },
+      ]);
+      const rendered = mod.reviewGateVerdict({
+        states: gate.states,
+        descriptions: gate.descriptions,
+      });
+
+      expect(rendered.title).toContain('reported ""');
+      expect(rendered.title).not.toContain("posted NO review status");
+    });
+
+    it("carries the description a verdict was read from, not just the state", () => {
+      // Without this a title could say WAIVED and not say by which sentence,
+      // which is the fact that decides whether to wait for the entitlement.
+      const gate = mod.evaluateReviewGate(declarationWith(), [
+        { name: CODERABBIT, state: "SUCCESS", description: MANUAL_REQUIRED },
+      ]);
+
+      expect(gate.descriptions[CODERABBIT]).toBe(MANUAL_REQUIRED);
+    });
+
+    it("flattens a title to ONE line and fits a check-run output title", () => {
+      // Correctness, not tidiness. This string is written to `$GITHUB_OUTPUT`
+      // as `key=value`, and a description is arbitrary vendor text: a newline
+      // in it would end the assignment and let the remainder be parsed as more
+      // output keys.
+      const hostile = mod.reviewGateVerdict({
+        states: { [CODERABBIT]: mod.REVIEW_GATE_STATES.waived },
+        descriptions: {
+          [CODERABBIT]: `Review rate limited\nreview_evidence_conclusion=success\n${"x".repeat(400)}`,
+        },
+      });
+
+      expect(hostile.title).not.toContain("\n");
+      expect(hostile.title.length).toBeLessThanOrEqual(
+        mod.REVIEW_VERDICT_TITLE_LIMIT
+      );
+    });
+  });
+
+  describe("the waive rate is emitted, not commented (#3639)", () => {
+    // The 39-of-40 number already existed — in a comment at the top of the
+    // workflow — and changed nothing for the eight months it sat there. A rate
+    // an operator reads at merge time is a different artefact from a rate
+    // somebody once measured.
+
+    it("counts worst-wins per pull request", () => {
+      const tally = mod.summarizeWaiveRate([
+        { [CODERABBIT]: "satisfied" },
+        { [CODERABBIT]: "waived" },
+        { [CODERABBIT]: "waived" },
+        { [CODERABBIT]: "satisfied", Other: "unsatisfied" },
+      ]);
+
+      expect(tally).toEqual({
+        sampled: 4,
+        satisfied: 1,
+        waived: 2,
+        unsatisfied: 1,
+      });
+    });
+
+    it("does not count a pull request it could read nothing for", () => {
+      // A denominator that absorbs unreadable pull requests reports a LOWER
+      // waive rate than the truth — the direction that makes the number
+      // reassuring instead of useful.
+      const tally = mod.summarizeWaiveRate([{}, { [CODERABBIT]: "waived" }]);
+
+      expect(tally.sampled).toBe(1);
+      expect(tally.waived).toBe(1);
+    });
+
+    it("appends the rate to a waived title", () => {
+      const waived = mod.reviewGateVerdict({
+        states: { [CODERABBIT]: mod.REVIEW_GATE_STATES.waived },
+        descriptions: { [CODERABBIT]: RATE_LIMITED },
+        waiveRate: { waived: 39, sampled: 40 },
+      });
+
+      expect(waived.title).toContain("39 of the last 40");
+    });
+
+    it("claims no rate at all when nothing was sampled", () => {
+      const waived = mod.reviewGateVerdict({
+        states: { [CODERABBIT]: mod.REVIEW_GATE_STATES.waived },
+        descriptions: { [CODERABBIT]: RATE_LIMITED },
+        waiveRate: { waived: 0, sampled: 0 },
+      });
+
+      expect(waived.title).not.toContain("of the last");
+    });
+
+    it("is OFF unless a positive sample size is asked for", () => {
+      const thrower = (): CheckRow[][] => {
+        throw new Error("the sampler must not have been called");
+      };
+
+      expect(
+        mod.sampleWaiveRate(declarationWith(), 0, undefined, thrower)
+      ).toBe(undefined);
+      expect(
+        mod.sampleWaiveRate(declarationWith(), -1, undefined, thrower)
+      ).toBe(undefined);
+    });
+
+    it("summarises a sample through the same gate the verdict uses", () => {
+      const tally = mod.sampleWaiveRate(declarationWith(), 3, undefined, () => [
+        [{ name: CODERABBIT, state: "SUCCESS", description: COMPLETED }],
+        [{ name: CODERABBIT, state: "SUCCESS", description: RATE_LIMITED }],
+        [{ name: CODERABBIT, state: "SUCCESS", description: MANUAL_REQUIRED }],
+      ]);
+
+      expect(tally).toEqual({
+        sampled: 3,
+        satisfied: 1,
+        waived: 2,
+        unsatisfied: 0,
+      });
+    });
+
+    it("never lets a failed sample change the verdict", () => {
+      // The rate is CONTEXT for a decision already taken from this pull
+      // request's own evidence. An unreachable API costs one sentence, not a
+      // red build — and the missing sentence is the honest rendering of "not
+      // measured".
+      const tally = mod.sampleWaiveRate(
+        declarationWith(),
+        40,
+        undefined,
+        () => {
+          throw new Error("gh: API rate limit exceeded");
+        }
+      );
+
+      expect(tally).toBe(undefined);
+    });
+  });
+
   describe("this arm REPORTS and never blocks", () => {
     it("lists both vacuity kinds as never-blocking", () => {
       // Gating is downstream of an open owner decision, and a new blocking
@@ -545,7 +862,6 @@ describe("vacuous required checks", () => {
     it("never lets a kind be both always-blocking and never-blocking", () => {
       for (const kind of mod.NEVER_BLOCKING) {
         expect(mod.VIOLATIONS.suppressesRequired).not.toBe(kind);
-        expect(mod.VIOLATIONS.remoteDrift).not.toBe(kind);
       }
     });
   });

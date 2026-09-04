@@ -46,6 +46,24 @@ export interface ContextOwner {
    * is a permanent wait however the gate is declared.
    */
   readonly retired: RetiredRename | null;
+  /**
+   * The external signal this gate's merge declaration awaits INSTEAD of this
+   * context, or null.
+   *
+   * Non-null on exactly one kind of key: the facade-derived
+   * `<caller chain> / <label>` string of a gate whose merge-moment declaration
+   * is an `await`. That declaration promises the awaited signal's own name as
+   * the merge condition — `contextsFor` derives only that name for such a gate
+   * — so the facade string is a context this declaration never asked for.
+   *
+   * Without this field the two derivations of the same promise disagree: this
+   * map would report a gate declared `required` with `await:` as promising a
+   * facade context, a ruleset would (rightly) not require it, and the operator
+   * would be told to start requiring a string that, for a gate with no
+   * hand-written job, nothing will ever post — the permanent-pending trap,
+   * manufactured by the check written to find it.
+   */
+  readonly awaitedInstead: string | null;
 }
 
 /** One label the shipped registry records as renamed away. */
@@ -157,6 +175,7 @@ export function contextOwners(options: {
           declaration: asDeclaration(hit?.level),
           legalAtMerge: definition.moments.includes(family),
           retired: null,
+          awaitedInstead: hit?.mode === "await" ? hit.awaits : null,
         },
       ] as const;
     }
@@ -172,6 +191,9 @@ export function contextOwners(options: {
               legalAtMerge:
                 registry.REGISTRY[hit.id]?.moments.includes(family) === true,
               retired: null,
+              // The awaited signal's own name IS what the declaration
+              // promises, so nothing is awaited instead of it.
+              awaitedInstead: null,
             },
           ] as const,
         ]
@@ -229,6 +251,9 @@ function retiredOwners(
             label,
             replacement: `${workflowName} / ${definition.label}`,
           },
+          // A retired name is dead however the gate is declared, and the
+          // retirement verdict already outranks every declaration branch.
+          awaitedInstead: null,
         },
       ])
   );

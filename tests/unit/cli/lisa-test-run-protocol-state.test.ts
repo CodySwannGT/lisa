@@ -76,7 +76,15 @@ describe("lisa-test-run protocol entry refusal", () => {
     expect(result.status).toBe(2);
   });
 
-  it("makes raw unsupervised Lisa Vitest setup fail actionably", () => {
+  // This asserted the opposite contract until CodySwannGT/lisa#3666: the raw
+  // unsupervised payload was REFUSED, exit 1, marker never written. In a real
+  // consumer that refusal ran inside a `setupFiles` module, so it failed
+  // COLLECTION and the run reported `Tests no tests` — red having evaluated
+  // nothing. What is still worth pinning is that the payload runs and that the
+  // wrapper is named in what it prints, so the case is inverted rather than
+  // dropped. Its end-to-end counterpart is
+  // tests/integration/vitest-unsupervised-direct-run.
+  it("runs raw unsupervised Lisa Vitest setup and names the wrapper", () => {
     const base = temporaryTestRunDirectory(
       "lisa-test-run-raw-",
       registerTestRunDirectory
@@ -84,6 +92,8 @@ describe("lisa-test-run protocol entry refusal", () => {
     const marker = path.join(base, PAYLOAD_MARKER);
     const inherited = { ...process.env };
     delete inherited["LISA_TEST_RUN_LEASE"];
+    delete inherited["LISA_TEST_SCRATCH_SUITE"];
+    delete inherited["LISA_TEST_SCRATCH_PREFIXES"];
     const result = boundedSpawnSync({
       label: "raw unsupervised scratch setup",
       command: process.execPath,
@@ -98,11 +108,15 @@ describe("lisa-test-run protocol entry refusal", () => {
         LISA_TEST_RUN_MARKER: marker,
       },
     });
-    expect(result.status).toBe(1);
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stderr).toContain("self-supervised");
     expect(result.stderr).toContain(
       "lisa-test-run --profile <profile> --adapter vitest -- vitest"
     );
-    expect(fs.existsSync(marker)).toBe(false);
+    // The marker is the payload's own proof that it executed. Under the old
+    // refusal it was never written, which is exactly the `Tests no tests`
+    // shape reduced to one process.
+    expect(fs.existsSync(marker)).toBe(true);
   });
 });
 

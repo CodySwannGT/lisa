@@ -1,6 +1,6 @@
 {
   "name": "lisa",
-  "version": "4.29.10",
+  "version": "4.34.0",
   "description": "Universal governance — agents, skills, commands, hooks, and rules for all projects",
   "author": {
     "name": "Cody Swann"
@@ -198,6 +198,15 @@
         "hooks": [
           {
             "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-resolved-config.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/setup-jira-cli.sh"
           }
         ]
@@ -228,6 +237,15 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject-resolved-config.sh"
           }
         ]
       },

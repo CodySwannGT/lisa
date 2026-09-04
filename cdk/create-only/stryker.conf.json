@@ -1,0 +1,44 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "_comment": "CDK owns this child-stack override because conventional CDK source lives in lib/ and bin/. Inheriting TypeScript's src-only mutate list makes the mutation gate inert in a CDK repository with no src/ directory. src remains eligible for hybrid repositories.",
+  "testRunner": "vitest",
+  "reporters": [
+    "clear-text",
+    "progress",
+    "html"
+  ],
+  "coverageAnalysis": "perTest",
+  "ignoreStatic": true,
+  "incremental": true,
+  "_concurrencyComment": "Stryker calibrates each mutant's budget in one serial dry-run process, then spends it in the concurrent mutant phase. Lisa's matched-mutant control measured 53 timeouts in a 102-mutant range at 17 workers; the same range at 4 workers produced zero timeouts and revealed that 41 of those clock-based kills were real survivors. Four is the measured correctness calibration, not a throughput guess.",
+  "concurrency": 4,
+  "_timeoutsComment": "Both budgets below are liveness bounds chosen explicitly so a slow or busy machine is not misreported as a weak mutation score.",
+  "_timeoutMSComment": "timeoutMS adds one minute beyond each mutant's measured test runtime. It is a liveness bound for a wedged mutant, not a performance target.",
+  "timeoutMS": 60000,
+  "_dryRunTimeoutMinutesComment": "dryRunTimeoutMinutes gives the unmutated suite twenty minutes to finish before the gate reports that no mutation score was produced.",
+  "dryRunTimeoutMinutes": 20,
+  "mutate": [
+    "lib/**/*.ts",
+    "bin/**/*.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "!lib/**/*.spec.ts",
+    "!lib/**/*.test.ts",
+    "!lib/**/*.d.ts",
+    "!bin/**/*.spec.ts",
+    "!bin/**/*.test.ts",
+    "!bin/**/*.d.ts",
+    "!src/**/*.spec.ts",
+    "!src/**/*.spec.tsx",
+    "!src/**/*.test.ts",
+    "!src/**/*.test.tsx",
+    "!src/**/*.d.ts",
+    "!src/**/*.stories.tsx"
+  ],
+  "_thresholdsOwner": "Owned by .lisa.config.json quality.mutation.strykerThresholds. Every other key in this file is Stryker's own and is yours to edit; thresholds is not — lisa sync writes it from that config key. Change the config, not this line.",
+  "thresholds": {
+    "high": 80,
+    "low": 60,
+    "break": 60
+  }
+}

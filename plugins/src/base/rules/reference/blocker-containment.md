@@ -1,0 +1,105 @@
+# Blocker Containment
+
+An `is blocked by` link is a **development** dependency. It asks one question: *does the dependent have the blocker's code on the branch it will be built from?* This rule makes that the test, replacing the lifecycle-status-name checks that three Lisa surfaces had each grown independently.
+
+It is a **single vendor-neutral contract** consumed by `lisa-repair-intake` (Class A dependency clearing), `lisa-intake-explain` (dependency hold gate), and `lisa-ticket-triage` (Phase 1.5 open-blocker gate). Each cites this slug rather than re-implementing the test, exactly as they cite `leaf-only-lifecycle` and `repo-scope-split`. That is what keeps the three from drifting apart again.
+
+## The failure this replaces
+
+Before this rule, all three surfaces tested a **status name** and each picked a different threshold, so the same dependency could be simultaneously cleared by one surface and held by another.
+
+`lisa-repair-intake` tested too loosely — any env-staged `done` role cleared the dependency, on the stated reasoning that `On Dev`, `On Stg` and production `Done` all mean *"the blocker's code is merged and deployed to ≥1 environment"*, and that an `is blocked by` link *"is satisfied once the blocker's code is in trunk."* The first clause names the right idea. The second substitutes a weaker one for it: in a `dev → staging → main` promotion workflow, "deployed to ≥1 environment" and "in trunk" are different facts. `main` is the trailing branch, so a blocker at `On Stg` is on `staging` and absent from `main`. A dependent building from `main` was dispatched without it. That surface also cleared on a post-build `review` role, where the code is merged to no branch at all.
+
+`lisa-ticket-triage` tested too strictly — a blocker not at the production terminal raised an automatic `BLOCKED` verdict, stranding dependents behind work already merged where they needed it.
+
+Both are the same defect. **A lifecycle status name is never the test** — not `status:done`, not `status:on-stg`, not `status:on-dev`, and least of all `status:code-review`, where the code is merged to no branch at all. The status name is a **proxy** for branch containment that holds in a single-trunk workflow and breaks in a promotion workflow, and the two surfaces broke in opposite directions because they picked opposite ends of the same bad proxy. Correcting either one alone by moving its threshold re-opens the other's bug — which is why this is one predicate rather than three tuned lists.
+
+Notably, the correct predicate was already in the tree. `lisa-ticket-triage`'s own `DUPLICATE_ALREADY_FIXED` bullet, four lines below its defective gate, already required *"empirical evidence that the canonical fix is present on the relevant base branch. Never emit this verdict from a name/label match alone."* This rule generalizes that sentence to the gate above it.
+
+## The predicate
+
+### 1. Resolve the dependent's base branch
+
+Take the **dependent's** `## Target Backend Environment`, resolve it under the existing grammar (`config-resolution`, `pre-flight-autofill` — human-confirmed wins, then validated `Inferred:`, then `Assumption:`), and map that exact key forward through `.lisa.config.json` `deploy.branches`.
+
+**Never read the rendered `Branch Plan` section as input.** `derived-branch-plan` is explicit that the rendered branches exist for humans and are recomputed for machines: *"The rendered branches are never read as input by any flow, at any phase — a surface that needs the base branch derives it again from the environment."* Reading the rendered section would make a hand-edited ticket able to redirect the containment test.
+
+The key must map uniquely, and the mapped branch must exist on the remote. Neither condition is assumed.
+
+### 2. Resolve the blocker's merge commit
+
+The commit that landed the blocker's PR, obtained through the vendor access layer (`integration-access-layer`), never a direct vendor API call:
+
+- **GitHub** — the merge commit of the PR linked from the blocker issue.
+- **JIRA** — the merge commit of the PR on the blocker's development panel / linked PR records.
+- **Linear** — the merge commit of the PR attached to the blocker Issue.
+
+An unmerged PR has no merge commit and is not a candidate. A blocker with several merged PRs requires **all** of them contained.
+
+### 3. Test ancestry against the remote
+
+```bash
+git fetch origin <base> --quiet
+git merge-base --is-ancestor <blocker-merge-sha> origin/<base>
+```
+
+Exit `0` → contained. Exit `1` → not contained. Any other exit → not computable, which is **not** the same as not contained; both block, but the run record distinguishes them so an operator can tell a genuine dependency from a broken lookup.
+
+### 4. Verdict
+
+**Cleared** iff every resolved merge commit is an ancestor of the resolved base branch. Otherwise **still blocking**.
+
+## Fail closed
+
+**Never fail open on an unresolvable ancestry check.** Each of these leaves the dependency blocking, and each is named distinctly in the run record:
+
+| Condition | Verdict | Run-record reason |
+|---|---|---|
+| Blocker has no linked PR | still blocking | `no-pr` |
+| Linked PR is open or closed unmerged | still blocking | `pr-not-merged` |
+| Blocker inaccessible (deleted, cross-org, permission denied) | still blocking | `blocker-inaccessible` |
+| Dependent's environment not derivable or non-unique | still blocking | `base-branch-underivable` |
+| Mapped branch absent from the remote | still blocking | `base-branch-missing` |
+| Ancestry query errored | still blocking | `containment-not-computable` |
+| Merge commit resolved, not an ancestor | still blocking | `not-contained` |
+
+The asymmetry is deliberate and is the same one the consuming surfaces already state: a false negative (left blocked) costs one cycle and an operator can see it sitting there. A false positive (re-dispatched into a prerequisite that is not on the branch) is **invisible** — the item moves to `ready`, which looks exactly like a repair that worked, and the failure surfaces days later as work that began before its dependency existed. Prefer the visible failure. When in doubt, stay blocked.
+
+## The one carve-out: a blocker that ships no code
+
+Not every dependency delivers code. A decision, a doc change, or a config-only item can legitimately block work and will never have a merge commit on any branch. Requiring containment of a non-existent artifact would strand those dependents permanently — the same bug, in a new place.
+
+A blocker is cleared under this carve-out when **all** of the following hold:
+
+1. it is **closed as completed** (not `not planned` — see `rejection-detection`, where *not planned* is a durable decline);
+2. it **positively declares no code deliverable** — `## Target Backend Environment` reading `None — no runtime behavior change: doc-only` (or `config-only` / `type-only`), per the grammar `derived-branch-plan` already defines;
+3. it has **no linked merged PR**. If it has one, the normal containment test applies regardless of what the section declares — the code is the authority over the prose.
+
+This is a **positive determination, never an absence.** "I could not find a PR" is `no-pr` in the fail-closed table above. "The item declares that it ships no code" is this carve-out. Collapsing the two converts a narrow carve-out into a universal bypass, and it is the single most likely way for this rule to be implemented wrongly.
+
+An Epic or container blocker declaring `None — container: state rolls up from children` is **not** covered: resolve containment against its children, or treat it as `blocker-inaccessible` if the children cannot be enumerated.
+
+## Human override
+
+An explicit human statement on the dependent — in the body or in a comment — that the dependency is satisfied clears it, and outranks a failed containment check. The run record names the override and the comment it came from.
+
+This is the sanctioned escape hatch for the cases the predicate genuinely cannot reach: a cross-repository blocker (two repositories have no shared ancestry, so containment is undefined), a dependency on work tracked outside any connected system, or a vendor whose PR linkage is unreadable. It is the **only** escape hatch. An automation may never synthesize one on its own behalf.
+
+## Ancestry here, but never for a deployment question
+
+`deployed-state-readback` states that git ancestry, a merge check and `cdk synth` are never evidence that something is deployed. That is not a contradiction of the predicate above; the two rules answer different questions and each uses the test appropriate to its own.
+
+| Rule | Question | Ancestry |
+|---|---|---|
+| this rule | **Development** — is the blocker's code on the branch I will build from? | Correct and sufficient |
+| `deployed-state-readback` | **Deployment** — is this live? | Provably insufficient |
+
+An `is blocked by` link is satisfied once the code you need is on your base branch; whether it has reached production is irrelevant to whether you can build against it — that is the whole point of the #1112 case this rule preserves. A "this already exists, do not build it" claim is satisfied only by reading the running system back, because a discarded pipeline execution leaves a commit merged and unshipped while `git log` still reports it present.
+
+**Neither test may be used to answer the other's question.** A surface that needs both runs both.
+
+## What this rule does not do
+
+It does not decide **when** a dependency edge should exist, dissolve an edge once satisfied, or govern what a surface does after clearing — re-dispatch, re-validation, and lifecycle transitions remain the consuming skill's business. It governs exactly one question: given an edge, is it satisfied.
+
+It also carries no memory of its own prior verdicts. A surface that re-runs this predicate after a human reversed a transition it produced will reach the same answer from the same facts; making that reversal durable is a separate concern belonging to the consuming skill's loop-prevention contract, not to this predicate.

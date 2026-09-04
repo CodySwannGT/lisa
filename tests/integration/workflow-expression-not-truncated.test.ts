@@ -144,11 +144,20 @@ describe("shipped workflow expressions", () => {
 describe("the detector bites", () => {
   // Mirror-and-mutate. The sweep above passes on a clean tree, which is also
   // what a detector that can never fire would do. This reintroduces the exact
-  // defect into the exact file it shipped in and requires the detector to catch
-  // it — so a green sweep means "checked and clean", not "checked nothing".
+  // defect into the exact shape it shipped in and requires the detector to
+  // catch it — so a green sweep means "checked and clean", not "checked
+  // nothing".
+  //
+  // The subject was the shipped dispatch handler until the auto-update-PR-
+  // branches subsystem was removed wholesale (CodySwannGT/lisa#3590). The
+  // workflow is gone; the defect class it demonstrated is not, and it was the
+  // ONLY shipped workflow carrying a ` #` inside an expression — so deleting it
+  // would have left this control with no subject and the detector with no proof
+  // that it bites. The job header is therefore preserved verbatim as a fixture,
+  // excluded from the sweep above by its `tests/` prefix.
   const SUBJECT = path.join(
     REPO_ROOT,
-    ".github/workflows/reusable-auto-update-pr-branches-dispatch.yml"
+    "tests/fixtures/workflow-expression-truncation/quoted-job-name.yml"
   );
 
   it("catches the unquoted job name that broke CodySwannGT/lisa#3512", () => {

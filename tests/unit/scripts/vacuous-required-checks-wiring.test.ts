@@ -6,8 +6,8 @@
  * request it produces exactly the right finding, and has since #2497.
  *
  * MEASURED (CodySwannGT/lisa#2928): **nothing invoked it.** `quality.yml` ran
- * the guard's OFFLINE arm with no `--pr`, the shipped `required-checks-drift.yml`
- * ran `--remote`, and the package script named `check:vacuous-required-checks`
+ * the guard's OFFLINE arm with no `--pr`, a then-shipped scheduled drift
+ * workflow ran its own arm, and the package script named `check:vacuous-required-checks`
  * was a bare invocation — so the command named for the vacuous check reported on
  * SKIPS and said nothing about vacuity unless a caller happened to remember
  * `-- --pr=1234`. `declared-but-uncallable`: the family the guard exists to
@@ -80,6 +80,20 @@ const FAIL_ON_VACUOUS = "--fail-on-vacuous";
 
 /** Turns an unsatisfied review-evidence finding into a build failure. */
 const REQUIRE_REVIEW_EVIDENCE = "--require-review-evidence";
+
+/**
+ * The two copies of the review-evidence workflow, and why there are two.
+ *
+ * `typescript/create-only/...` is the seed a consumer receives once and then
+ * owns; `.github/workflows/...` is the same workflow pointed at Lisa itself,
+ * because Lisa is the repository the defect was measured on. Every wiring
+ * assertion runs against BOTH — a fix that reached only the seed would leave
+ * the repository that found the defect still carrying it.
+ */
+const REVIEW_EVIDENCE_WORKFLOWS: readonly (readonly [string, string])[] = [
+  ["typescript/create-only/.github/workflows/review-evidence.yml", "seed"],
+  [".github/workflows/review-evidence.yml", "Lisa's own"],
+];
 
 /** Disables the settle wait, so a unit test never sleeps. */
 const NO_WAIT = "--settle-timeout=0";
@@ -353,41 +367,112 @@ describe("the vacuity arm, as something that actually runs", () => {
       expect(command).toContain(SCRIPT_REL);
     });
 
-    it.each([
-      ["typescript/create-only/.github/workflows/review-evidence.yml", "seed"],
-      [".github/workflows/review-evidence.yml", "Lisa's own"],
-    ])("%s runs the arm on every pull request", relative => {
-      const workflow = loadWorkflow(path.join(REPO_ROOT, relative));
-      // `on: pull_request` is the whole point: a schedule would reproduce
-      // `required-checks-drift.yml`, which is what the arm was NOT.
-      expect(workflow.on?.pull_request).toBeDefined();
-      const steps = workflow.jobs?.vacuity?.steps ?? [];
-      const step = steps.find(candidate =>
-        candidate.run?.includes("--vacuity")
-      );
-      expect(
-        step,
-        `${relative} must run the guard with --vacuity`
-      ).toBeTruthy();
-    });
+    it.each(REVIEW_EVIDENCE_WORKFLOWS)(
+      "%s runs the arm on every pull request",
+      relative => {
+        const workflow = loadWorkflow(path.join(REPO_ROOT, relative));
+        // `on: pull_request` is the whole point: a schedule would reproduce
+        // a scheduled workflow, which is what the arm was NOT.
+        expect(workflow.on?.pull_request).toBeDefined();
+        const steps = workflow.jobs?.vacuity?.steps ?? [];
+        const step = steps.find(candidate =>
+          candidate.run?.includes("--vacuity")
+        );
+        expect(
+          step,
+          `${relative} must run the guard with --vacuity`
+        ).toBeTruthy();
+      }
+    );
 
-    it.each([
-      ["typescript/create-only/.github/workflows/review-evidence.yml", "seed"],
-      [".github/workflows/review-evidence.yml", "Lisa's own"],
-    ])("%s grants the scopes reading checks needs", relative => {
-      // `gh pr checks` resolves the rollup via `checkSuite.workflowRun`, so
-      // without `actions: read` it exits non-zero with EMPTY stdout — a failure
-      // that reads as a content bug and never says "permission". The fallback
-      // route needs the other two.
-      const workflow = loadWorkflow(
-        path.join(REPO_ROOT, relative)
-      ) as unknown as {
-        permissions?: Record<string, string>;
-      };
-      expect(workflow.permissions?.actions).toBe("read");
-      expect(workflow.permissions?.checks).toBe("read");
-      expect(workflow.permissions?.statuses).toBe("read");
-    });
+    it.each(REVIEW_EVIDENCE_WORKFLOWS)(
+      "%s grants the scopes reading checks needs",
+      relative => {
+        // `gh pr checks` resolves the rollup via `checkSuite.workflowRun`, so
+        // without `actions: read` it exits non-zero with EMPTY stdout — a failure
+        // that reads as a content bug and never says "permission". The fallback
+        // route needs the other two.
+        const workflow = loadWorkflow(
+          path.join(REPO_ROOT, relative)
+        ) as unknown as {
+          permissions?: Record<string, string>;
+        };
+        expect(workflow.permissions?.actions).toBe("read");
+        // `write` since #3639 — the verdict-publishing step creates a check run,
+        // and `checks: write` subsumes the read this arm needs. Asserted as a
+        // membership rather than an equality so a repository that has not taken
+        // the publishing step is still held to the read.
+        expect(["read", "write"]).toContain(workflow.permissions?.checks);
+        expect(workflow.permissions?.statuses).toBe("read");
+      }
+    );
+
+    it.each(REVIEW_EVIDENCE_WORKFLOWS)(
+      "%s publishes the verdict as its own check run (#3639)",
+      relative => {
+        // The defect this pins: the job exits 0 for a SATISFIED gate and 0 for a
+        // WAIVED one, so `gh pr checks` printed `pass` for a pull request nothing
+        // read. Measured on this repository, 39 of the last 40 merged pull
+        // requests took the waived path — the disguise was the DEFAULT rendering.
+        // A step that republishes the guard's chosen conclusion is the only thing
+        // that reaches the layer a merge decision consults.
+        const full = path.join(REPO_ROOT, relative);
+        const workflow = loadWorkflow(full) as unknown as {
+          permissions?: Record<string, string>;
+          jobs?: {
+            vacuity?: {
+              steps?: {
+                name?: string;
+                id?: string;
+                run?: string;
+                if?: string;
+                env?: Record<string, string>;
+              }[];
+            };
+          };
+        };
+        const steps = workflow.jobs?.vacuity?.steps ?? [];
+        const guard = steps.find(step => step.run?.includes("--vacuity"));
+        const publish = steps.find(step => step.run?.includes("check-runs"));
+        // The whole step, `if` + `env` + `run`, because the wiring is spread
+        // across all three: the expression is read in `env`, the shell reads the
+        // variable in `run`, and `if` gates on the same output.
+        const wiring = JSON.stringify(publish ?? {});
+
+        expect(
+          guard?.id,
+          `${relative}: the guard step needs an id for the publisher to read its outputs`
+        ).toBe("review_evidence");
+        expect(
+          publish,
+          `${relative}: nothing republishes the verdict as a check run`
+        ).toBeTruthy();
+        // `always()` because the guard step exits non-zero on an unsatisfied
+        // gate, which is exactly the run whose verdict most needs publishing.
+        expect(publish?.if).toContain("always()");
+        // The conclusion comes from the GUARD, never from a literal in YAML. A
+        // hardcoded `success` here would be the defect rewritten one layer out.
+        expect(wiring).toContain(
+          "steps.review_evidence.outputs.review_evidence_conclusion"
+        );
+        expect(publish?.run).toContain('conclusion="$VERDICT_CONCLUSION"');
+        expect(publish?.run).not.toMatch(
+          /conclusion=(success|neutral|failure)\b/u
+        );
+        expect(workflow.permissions?.checks).toBe("write");
+      }
+    );
+
+    it.each(REVIEW_EVIDENCE_WORKFLOWS)(
+      "%s asks for the waive rate it used to keep in a comment",
+      relative => {
+        const workflow = loadWorkflow(path.join(REPO_ROOT, relative));
+        const steps = workflow.jobs?.vacuity?.steps ?? [];
+        const guard = steps.find(step => step.run?.includes("--vacuity"));
+
+        expect(guard?.run).toContain("--waive-rate-sample=");
+      }
+    );
   });
 
   describe("it resolves the pull request itself", () => {

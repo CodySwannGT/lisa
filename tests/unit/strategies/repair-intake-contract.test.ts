@@ -177,6 +177,62 @@ describe("repair-intake contract", () => {
       expect(skill).toMatch(/build Epic\/Story container/);
     });
 
+    describe("Class A clears a dependency by containment, not by status name", () => {
+      // Scoped to Class A deliberately. The status-role vocabulary appears all
+      // over the skill for other purposes; a whole-file match would pass while
+      // the dependency gate itself still reasoned by label.
+      const classA = skill.slice(
+        skill.indexOf("### Class A — dependency blockers"),
+        skill.indexOf("### Class B")
+      );
+
+      it("delegates to the shared blocker-containment rule", () => {
+        expect(classA).toContain("blocker-containment");
+        expect(classA).toMatch(/do not restate its resolution steps/i);
+      });
+
+      it("resolves the base branch from the environment, not a rendered Branch Plan", () => {
+        expect(classA).toContain("deploy.branches");
+        expect(classA).toMatch(/never by\s+reading a rendered `Branch Plan`/i);
+      });
+
+      // Direction 1 — the defect this change fixes. A blocker that reached an
+      // environment but not this item's branch must NOT clear.
+      it("does not clear on a bare env-staged status name", () => {
+        expect(classA).not.toMatch(/shipped to any environment/i);
+        expect(classA).not.toContain("env-staged `done` role");
+        expect(classA).toMatch(/A lifecycle status name is never the test/i);
+        expect(classA).toMatch(/`main` is the trailing branch/i);
+        expect(classA).toMatch(/merged to nothing/i);
+      });
+
+      // Direction 2 — the #1112 regression guard. Tightening the predicate must
+      // not re-introduce a production-terminal check that strands dependents
+      // behind work already merged where they need it.
+      it("clears a contained blocker immediately, without waiting for production", () => {
+        expect(classA).toMatch(
+          /clears \*\*immediately\*\*, with no wait for production/i
+        );
+        expect(classA).toMatch(/never stranded\s+behind work already merged/i);
+      });
+
+      it("fails closed, and names the reason in the run record", () => {
+        expect(classA).toMatch(/not computable/i);
+        expect(classA).toMatch(/still blocking/i);
+        expect(classA).toMatch(/reason key in the run\s+record/i);
+      });
+
+      it("keeps the no-code carve-out positive, never an absence", () => {
+        expect(classA).toMatch(/positive determination, never an absence/i);
+        expect(classA).toMatch(/"no PR found" is `no-pr` and stays blocking/i);
+      });
+
+      it("states why a false positive is worse than a false negative", () => {
+        expect(classA).toMatch(/false-positive is \*\*invisible\*\*/i);
+        expect(classA).toMatch(/looks exactly like a repair that worked/i);
+      });
+    });
+
     describe("Class C is fenced against human_needed", () => {
       // Scoped to the Class C section deliberately. `human_needed` appears
       // elsewhere in the skill as a marker to apply, preserve, or clear, and a

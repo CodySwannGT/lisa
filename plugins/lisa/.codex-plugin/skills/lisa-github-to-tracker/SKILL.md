@@ -261,7 +261,14 @@ Identical to `lisa-notion-to-tracker` Phase 2 / `lisa-confluence-to-tracker` / `
 
 **2b. Live product walkthrough.** If the PRD touches existing user-facing surfaces, invoke `lisa-product-walkthrough` against `E2E_BASE_URL` using the test user from config.
 
-Skip 2b only when the work is purely backend with no user-visible surface, or affects a screen that does not yet exist.
+Skip the *walkthrough* only when the work has no user-visible surface, or affects a screen that does not yet exist in dev/prod — and when you skip it, run 2c instead. Skipping 2b never means authoring the ticket with no live-state grounding.
+
+**2c. Deployed-state readback — required whenever 2b does not apply.** Per the `blocker-containment`-style shared-slug precedent, cite the `deployed-state-readback` rule for the full contract; do not restate its routing table here.
+
+2b is waived for work with no user-visible surface. That waiver is about the **observation method**, not about whether to observe: backend, infrastructure, CI-config and dependency work all have live state, it is simply not visible through a browser. So the skip selects a **different probe**, never no probe — describe the deployed resource, call the deployed endpoint, read the configuration the last pipeline run used, read the *installed* artifact. For each thing the candidate tickets would create or change, confirm it is genuinely **absent from the deployed environment** before authoring a ticket for it, and record what was probed and what came back.
+
+**Git ancestry, a merge check and `cdk synth` are never deployment evidence** — a discarded pipeline execution leaves a commit merged and unshipped, and all three still report "present". **An unanswerable probe is not a "no"**: when the state cannot be read back, record that the check could not be performed rather than defaulting to absent.
+
 
 Walkthrough findings are surfaced back to product via the orchestrating intake skill (`lisa-github-prd-intake`), which posts them as a comment on the PRD issue. This skill itself does NOT post to GitHub — it only reads. The walkthrough section is also inherited onto the resulting Epic / Stories under a `## Current Product` subsection.
 
