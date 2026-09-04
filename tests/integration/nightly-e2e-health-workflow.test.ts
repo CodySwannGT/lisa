@@ -239,7 +239,28 @@ describe("the caller template", () => {
       "reopened",
       "labeled",
       "unlabeled",
+      "edited",
     ]);
+  });
+
+  it("re-evaluates on edited, because the BODY is half the waiver", () => {
+    // Issues #3476 / #3485. A valid bypass needs TWO pieces of evidence and
+    // the guard re-checks both every time it runs: the label, and a
+    // `Nightly-E2E-Bypass: <ticket> <reason>` line in the pull-request BODY.
+    //
+    // `labeled`/`unlabeled` mean deleting the label re-fires the gate. Without
+    // `edited`, deleting the BODY line fires nothing — a body rewrite raises
+    // `edited` and nothing else — so the previous SUCCESS check-run stands on
+    // evidence that is gone. A check-run is point-in-time by construction: no
+    // event, no re-read.
+    //
+    // This is NOT fixed by the guard reading live state, which it already
+    // does. A live read only happens when something invokes the guard, and the
+    // body edit invokes nothing. The reading is current; the reading never
+    // happens. Measured on a caller repo in the portfolio: 49m47s of a green
+    // required check vouching for a waiver no longer in the pull request, with
+    // the merge landing inside that window.
+    expect(pullRequest.types).toContain("edited");
   });
 
   it("carries NO paths filter — a suppressible required context blocks forever", () => {
