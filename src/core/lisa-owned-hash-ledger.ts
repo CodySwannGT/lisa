@@ -219,6 +219,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/check-npm-publish-landed.mjs": Object.freeze([
     "2be5dbf57f3c23d8eacac06930637b9695ef292a58199247bc81ea2e242969b4",
+    "7a2838530ca2dbfb18b7dfb7be446a92f01c1c87f7035740a300845b95ef82d5",
     "e8f70dce15f9dce2b1758fa657d9a279cecc9f8c2a7b69a3bfca86ec37eb2e3f",
   ]),
   "scripts/check-orphaned-branches.mjs": Object.freeze([
@@ -347,6 +348,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "4e7aa66fe26ebc86827b1f3e426853ed7fb10e6fa1cf1e024655c3c44eab8641",
     "5625915bbfee5ee0025c11a33ae5dac2d3a29c73cf666d2c03c5a8b7cdf4f76a",
     "7b468877e677a42987aca539e2f5e9a5fc2a2d243289b0badd8fa87c7bd8ddd0",
+    "ad8e20fbc7519cfdcb6a656a5b0dabf17b7acef2de56ba700b1c53e7ba7891cc",
   ]),
   "scripts/lib/placeholder-expiry.mjs": Object.freeze([
     "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
@@ -784,8 +786,10 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "235c541534fc0eca510135ac39b9fbd196965fbeb54d42a09fbf052da1c925cd",
     "242ac60aa8d77842e3704c5568b426084d9f2643ec9bce2a0601f66497835093",
     "2d166a07c9809800771c7f41e515bff8d66c23aeeae2838dd52d5f2547037422",
+    "305b0567b309eba1176d3ff003fe32e87731497130cddd1281bdbcd0dd08f733",
     "36f96d5be341004417d005746baeef902b610c5708b75c4a3fbbf84cf05b478c",
     "3af4be8de1763d04042cdccd33aab4d82b8c6e5fb2de97efe56ba9049a70feca",
+    "495689f32edb11fe3641575668e7b642f4d6126a2b7eac2e245d0a31d87128b4",
     "59f78a0895c4d3c68a0b74ac879abfb3220f1866ee48b9540f70388d77292555",
     "5c65c8db73c5465cef810789ef71abe405df4d5d5db64f78923e5050656f13c8",
     "670f7059a0694b5f829252c056eec31f18e926a5137b652cb77f9e29a5a7ab73",
@@ -869,6 +873,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "9b3dda4a697bc23d8e71a0f00cf6204c80f5670724b843764af4fe8ecd9b2df2",
     "9e1db1f28cc7ee4b66b08c2fd2ee0ebf98054786d5902245941641e98783bf47",
     "9e5db767677bc9fb07a97109e9036d1ffeda6018c6e678f5c28c55a6c516c234",
+    "9fc4267020b6341f74dabebb17123206293280b58cf114932f05a8234426445c",
     "a72fb2fe7fca56d8978df504a1b1c30165c76eb8b1e324b1181d5711cdf990eb",
     "ab0dede91c5c8a07984ae13aa48ec70cdcd2fa691b59617bc4b57998dc79a51c",
     "ad41c9097e9688f1ad48fe2cb27197d642124c52511267d43f1257539d8bb082",
@@ -1190,6 +1195,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/check-npm-publish-landed.mjs": Object.freeze([
     "2be5dbf57f3c23d8eacac06930637b9695ef292a58199247bc81ea2e242969b4",
+    "7a2838530ca2dbfb18b7dfb7be446a92f01c1c87f7035740a300845b95ef82d5",
     "e8f70dce15f9dce2b1758fa657d9a279cecc9f8c2a7b69a3bfca86ec37eb2e3f",
   ]),
   "scripts/check-orphaned-branches.mjs": Object.freeze([
@@ -1315,6 +1321,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "4e7aa66fe26ebc86827b1f3e426853ed7fb10e6fa1cf1e024655c3c44eab8641",
     "5625915bbfee5ee0025c11a33ae5dac2d3a29c73cf666d2c03c5a8b7cdf4f76a",
     "7b468877e677a42987aca539e2f5e9a5fc2a2d243289b0badd8fa87c7bd8ddd0",
+    "ad8e20fbc7519cfdcb6a656a5b0dabf17b7acef2de56ba700b1c53e7ba7891cc",
   ]),
   "scripts/lib/placeholder-expiry.mjs": Object.freeze([
     "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
@@ -1689,8 +1696,10 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "235c541534fc0eca510135ac39b9fbd196965fbeb54d42a09fbf052da1c925cd",
     "242ac60aa8d77842e3704c5568b426084d9f2643ec9bce2a0601f66497835093",
     "2d166a07c9809800771c7f41e515bff8d66c23aeeae2838dd52d5f2547037422",
+    "305b0567b309eba1176d3ff003fe32e87731497130cddd1281bdbcd0dd08f733",
     "36f96d5be341004417d005746baeef902b610c5708b75c4a3fbbf84cf05b478c",
     "3af4be8de1763d04042cdccd33aab4d82b8c6e5fb2de97efe56ba9049a70feca",
+    "495689f32edb11fe3641575668e7b642f4d6126a2b7eac2e245d0a31d87128b4",
     "59f78a0895c4d3c68a0b74ac879abfb3220f1866ee48b9540f70388d77292555",
     "5c65c8db73c5465cef810789ef71abe405df4d5d5db64f78923e5050656f13c8",
     "670f7059a0694b5f829252c056eec31f18e926a5137b652cb77f9e29a5a7ab73",
@@ -1768,6 +1777,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "9b3dda4a697bc23d8e71a0f00cf6204c80f5670724b843764af4fe8ecd9b2df2",
     "9e1db1f28cc7ee4b66b08c2fd2ee0ebf98054786d5902245941641e98783bf47",
     "9e5db767677bc9fb07a97109e9036d1ffeda6018c6e678f5c28c55a6c516c234",
+    "9fc4267020b6341f74dabebb17123206293280b58cf114932f05a8234426445c",
     "a72fb2fe7fca56d8978df504a1b1c30165c76eb8b1e324b1181d5711cdf990eb",
     "ab0dede91c5c8a07984ae13aa48ec70cdcd2fa691b59617bc4b57998dc79a51c",
     "ad41c9097e9688f1ad48fe2cb27197d642124c52511267d43f1257539d8bb082",

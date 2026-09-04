@@ -484,7 +484,9 @@ describe("in-process CLI: sweep", () => {
     // close happened" passes in that world; asserting the run also finished
     // cleanly is what distinguishes "skipped it" from "tried and was caught".
     expect(result.exitCode).toBeUndefined();
-    expect(result.stdout).toContain(`completed acme/code#42 -> ${TERMINAL}`);
+    expect(result.stdout).toContain(
+      `work-item completed: acme/code#42 -> ${TERMINAL}`
+    );
     expect(result.stdout).not.toContain("acme/code#43 ->");
 
     const invocations = readFileSync(log, "utf8")
@@ -524,7 +526,9 @@ describe("in-process CLI: sweep", () => {
       FAKE_GH_LOG: log,
       FAKE_GH_TIMELINE_JSON: SWEPT_TIMELINE,
     });
-    expect(result.stdout).toContain(`completed acme/code#42 -> ${TERMINAL}`);
+    expect(result.stdout).toContain(
+      `work-item completed: acme/code#42 -> ${TERMINAL}`
+    );
     expect(readFileSync(log, "utf8")).toContain(ISSUE_CLOSE);
   });
 

@@ -204,6 +204,10 @@ export async function main(argv, injected = {}) {
   const attempts = Number(option(argv, "--attempts", String(DEFAULT_ATTEMPTS)));
   const delayMs = Number(option(argv, "--delay-ms", String(DEFAULT_DELAY_MS)));
 
+  if (!Number.isSafeInteger(attempts) || attempts <= 0) {
+    throw new Error("--attempts must be a positive safe integer");
+  }
+
   const { verdict, detail, urls } = await verifyPublish({
     packageName,
     version,

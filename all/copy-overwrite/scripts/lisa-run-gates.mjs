@@ -711,6 +711,9 @@ function verdictFor(gate, { proved, blockedBy, exec, siblings }) {
  *   history instead of having to terminate a real run an hour ago. Defaults to
  *   reading them, and the default is evaluated HERE — before any gate runs —
  *   so a run cannot read back the mark it is about to write.
+ * @param {function({kind: string, gateId: string}): boolean} [options.recordKill]
+ *   Kill-marker writer, injectable so marker cardinality can be proved without
+ *   writing to the host's shared marker directory.
  * @returns {GateRun} What every declared gate at this moment produced.
  */
 export function runGates({
@@ -721,6 +724,7 @@ export function runGates({
   out = line => console.log(line),
   scripts = null,
   priorKills = recentKillMarks(),
+  recordKill = recordKillMark,
 }) {
   const resolved = resolveMoment({ gates, moment, runner, scripts });
   const results = [];
@@ -813,8 +817,8 @@ export function runGates({
   };
   // Left for a LATER run, because this one already knows. The note only ever
   // helps a different run whose own output carries no trace of the machine.
-  for (const entry of result.killed) {
-    recordKillMark({ kind: STATE.KILLED, gateId: entry.id });
+  for (const entry of result.killed.filter(entry => entry.provedBy === null)) {
+    recordKill({ kind: STATE.KILLED, gateId: entry.id });
   }
   for (const line of summarise(result, priorKills)) out(line);
   return result;
