@@ -901,6 +901,7 @@ follow_scan() {
         redirected=""
         heredoc=0
         stdin_mode=0
+        noexec=0
         j=$((i + 1))
         while [ "$j" -lt "$n" ]; do
           follow_unwrap "${toks[j]}"
@@ -931,13 +932,35 @@ follow_scan() {
                 *) j=$((j + 1)) ;;
               esac
               ;;
+            # `-n` is NOEXEC: the shell reads and parses its operand, then exits
+            # without running a line of it. So a syntax check is the one shape
+            # that puts a path at a command position while provably executing
+            # nothing, and following it reads a file the command never runs.
+            #
+            # This guard hit that on ITSELF: its pattern list is destructive
+            # command literals living inside the guard, so `bash -n` on its own
+            # source was refused by its own patterns — and the same held for any
+            # file documenting destructive commands. See CodySwannGT/lisa#3803.
+            #
+            # `bash <file>` still executes and is still followed. Noexec is the
+            # distinction, not the program: this is not a read-only exemption.
+            --noexec) noexec=1; break ;;
             --*) j=$((j + 1)) ;;
             -*c*) inline=1; j=$((j + 1)) ;;
+            -*n*) noexec=1; break ;;
             -s | -[a-zA-Z]*s[a-zA-Z]*) stdin_mode=1; j=$((j + 1)) ;;
             -*) j=$((j + 1)) ;;
             *) break ;;
           esac
         done
+        if [ "$noexec" -eq 1 ]; then
+          # Nothing runs, so there is no script to follow and nothing to fail
+          # closed about. Checked before the heredoc and dispatcher arms: those
+          # decide WHICH text to read, and here there is no execution at all.
+          cmd_pos=0
+          i=$((j + 1))
+          continue
+        fi
         if [ "$heredoc" -eq 1 ] && [ "$inline" -eq 0 ]; then
           cmd_pos=0
           i=$((j + 1))

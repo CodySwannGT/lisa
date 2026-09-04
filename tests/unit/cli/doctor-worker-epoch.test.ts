@@ -23,7 +23,7 @@ async function getTempDir(): Promise<string> {
 }
 
 afterEach(async () => {
-  for (const restore of envRestores.toReversed()) {
+  for (const restore of envRestores.slice().reverse()) {
     restore();
   }
   envRestores = [];

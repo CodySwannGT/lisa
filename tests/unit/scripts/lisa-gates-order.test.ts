@@ -60,7 +60,10 @@ describe("execution order", () => {
           .map(([id]) => [id, { [moment]: "required" }])
       );
       const resolved = resolveMoment({ gates, moment });
-      const lastRewriter = resolved.findLastIndex(gate => gate.mayRewrite);
+      const lastRewriter = resolved.reduce(
+        (last, gate, index) => (gate.mayRewrite ? index : last),
+        -1
+      );
       const firstVerifier = resolved.findIndex(gate => !gate.mayRewrite);
       expect(resolved.length, moment).toBeGreaterThan(1);
       expect(lastRewriter, moment).toBeLessThan(firstVerifier);
@@ -105,7 +108,10 @@ describe("execution order", () => {
       const resolved = resolveMoment({ gates, moment }).filter(
         gate => !gate.mayRewrite
       );
-      const lastCheap = resolved.findLastIndex(gate => !gate.costly);
+      const lastCheap = resolved.reduce(
+        (last, gate, index) => (gate.costly ? last : index),
+        -1
+      );
       const firstCostly = resolved.findIndex(gate => gate.costly);
       if (firstCostly === -1) continue;
       expect(firstCostly, moment).toBeGreaterThan(lastCheap);

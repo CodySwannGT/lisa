@@ -428,7 +428,7 @@ function moduleSuffixIndex(graph: ModuleGraph): ModuleSuffixIndex {
  * @param roots - Where to start
  * @returns The transitive closure
  */
-function reachableFrom(
+export function reachableFrom(
   graph: ModuleGraph,
   roots: ReadonlySet<string>
 ): ReadonlySet<string> {

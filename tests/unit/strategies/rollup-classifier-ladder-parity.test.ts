@@ -23,9 +23,9 @@ describe("closed authored and generated tracker-sync parity", () => {
       file.endsWith("/skills/lisa-tracker-sync/SKILL.md")
     );
     expect(discovered).toEqual(
-      [...TRACKER_SYNC_SURFACES].toSorted((left, right) =>
-        left.localeCompare(right)
-      )
+      [...TRACKER_SYNC_SURFACES]
+        .slice()
+        .sort((left, right) => left.localeCompare(right))
     );
   });
 
@@ -60,9 +60,9 @@ describe("closed real GitHub rollup caller parity", () => {
       file.endsWith("/skills/lisa-github-sync/SKILL.md")
     );
     expect(discovered).toEqual(
-      [...GITHUB_SYNC_SURFACES].toSorted((left, right) =>
-        left.localeCompare(right)
-      )
+      [...GITHUB_SYNC_SURFACES]
+        .slice()
+        .sort((left, right) => left.localeCompare(right))
     );
   });
 

@@ -75,6 +75,15 @@ export function buildLearningsMergeDriverCommand(invocation: string): string {
 }
 
 /**
+ * The withdrawal-tombstone ledger, bound to git's built-in union driver.
+ *
+ * Fixed rather than derived from `learnings.file`, because the hook that reads
+ * it is materialized into every plugin payload and has no way to resolve a
+ * project's configuration from there. One path, known to both writers.
+ */
+export const WITHDRAWN_RULINGS_LEDGER = ".lisa/WITHDRAWN.jsonl";
+
+/**
  * Build the `.gitattributes` line binding one ledger path to the driver.
  * @param ledgerPath - Project-relative learnings file path
  * @returns Single `.gitattributes` line, without a trailing newline
@@ -133,6 +142,15 @@ export function renderLearningsGitattributesBlock(ledgerPath: string): string {
     "# it needs the same union merge, or a merge could destroy the very content",
     "# it exists to preserve.",
     buildLearningsAttributeLine(resolveLearningsOverflowFile(ledgerPath)),
+    "",
+    "# Withdrawal tombstones, appended by every agent that retracts a claim it",
+    "# circulated (CodySwannGT/lisa#3752). A sibling of the ledger above — same",
+    "# concurrent writers on their own branches — but one JSON object per line",
+    "# and append-only, so git's BUILT-IN union driver reconstructs concurrent",
+    "# appends exactly. No bespoke driver, and nothing machine-local to register.",
+    "# A default line merge here would drop a retraction, which is the one",
+    "# failure this ledger exists to make impossible.",
+    `${WITHDRAWN_RULINGS_LEDGER} merge=union`,
     "",
     GITATTRIBUTES_END_MARKER,
     "",

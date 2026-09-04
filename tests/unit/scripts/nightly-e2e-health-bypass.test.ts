@@ -143,7 +143,9 @@ describe("nightly e2e gate — truth table rows 21-25", () => {
       // it. A documented shape the code does not emit is worse than none.
       const decision = bypassWith({ prNumber: 123, label: LABEL });
       expect(
-        Object.keys(decision).toSorted((a, b) => a.localeCompare(b))
+        Object.keys(decision)
+          .slice()
+          .sort((a, b) => a.localeCompare(b))
       ).toEqual([
         "actor",
         "actorPermission",
@@ -333,7 +335,7 @@ describe("nightly e2e gate — truth table rows 21-25", () => {
         // A denylist admits any role GitHub adds tomorrow. Two roles in, and a
         // role nobody has heard of stays out.
         expect(
-          [...mod.BYPASS_PERMISSIONS].toSorted((a, b) => a.localeCompare(b))
+          [...mod.BYPASS_PERMISSIONS].slice().sort((a, b) => a.localeCompare(b))
         ).toEqual(["admin", "maintain"]);
         expect(bypassWith({ actorPermission: "some_future_role" }).valid).toBe(
           false

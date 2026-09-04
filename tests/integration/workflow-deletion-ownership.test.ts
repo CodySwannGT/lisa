@@ -20,6 +20,7 @@ const WORKFLOWS = path.join(".github", "workflows");
 
 /** Manifest file name the fixture rewrites per case. */
 const DELETIONS_JSON = "deletions.json";
+const NEEDS_REVIEW = "needs-review";
 
 /**
  * A non-workflow path `createMockLisaDir` declares for deletion.
@@ -119,8 +120,16 @@ describe("ownership gate on .github/workflows deletions", () => {
     await createExpoProject(destDir);
 
     await fs.ensureDir(path.join(lisaDir, "expo"));
+    // Every path carries a basis so the OWNERSHIP header stays the only thing
+    // under test here. Without one the basis gate keeps the path first
+    // (CodySwannGT/lisa#3700) and these cases would pass for the wrong reason.
     await fs.writeJson(path.join(lisaDir, "expo", DELETIONS_JSON), {
       paths: [HOST_AUTHORED, LISA_SEEDED, LISA_MANAGED],
+      basis: {
+        [HOST_AUTHORED]: NEEDS_REVIEW,
+        [LISA_SEEDED]: NEEDS_REVIEW,
+        [LISA_MANAGED]: NEEDS_REVIEW,
+      },
     });
 
     await fs.ensureDir(path.join(destDir, WORKFLOWS));

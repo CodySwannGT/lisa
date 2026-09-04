@@ -146,7 +146,10 @@ export function runSupervisor(
  */
 export function namespaceEntries(namespace: string): readonly string[] {
   if (!fs.existsSync(namespace)) return [];
-  return fs.readdirSync(namespace).toSorted((a, b) => a.localeCompare(b));
+  return fs
+    .readdirSync(namespace)
+    .slice()
+    .sort((a, b) => a.localeCompare(b));
 }
 
 /**

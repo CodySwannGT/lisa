@@ -31,11 +31,29 @@
         ]
       },
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/discharge-work-item-gates.sh"
+          }
+        ]
+      },
+      {
         "matcher": "Edit|Write|NotebookEdit|Bash",
         "hooks": [
           {
             "type": "command",
             "command": "${PLUGIN_ROOT}/hooks/threshold-ratchet.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Edit|Write|Read|Task|Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/withdrawn-rulings.sh --hook"
           }
         ]
       }
@@ -62,7 +80,15 @@
           },
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/hooks/block-direct-issue-create.sh"
+            "command": "${PLUGIN_ROOT}/hooks/block-blind-automerge.sh"
+          },
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/block-host-name-leak.sh"
+          },
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/block-managed-file-edits.sh"
           }
         ]
       },
@@ -72,6 +98,10 @@
           {
             "type": "command",
             "command": "${PLUGIN_ROOT}/hooks/block-instruction-file-edits.sh"
+          },
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/block-managed-file-edits.sh"
           }
         ]
       },
@@ -81,6 +111,15 @@
           {
             "type": "command",
             "command": "${PLUGIN_ROOT}/hooks/enforce-verification-gate.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/block-direct-issue-create.sh"
           }
         ]
       }
@@ -120,6 +159,15 @@
         "hooks": [
           {
             "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/withdrawn-rulings.sh --session-start"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
             "command": "${PLUGIN_ROOT}/hooks/inject-resolved-config.sh"
           }
         ]
@@ -150,6 +198,15 @@
           {
             "type": "command",
             "command": "${PLUGIN_ROOT}/hooks/inject-rules.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/withdrawn-rulings.sh --session-start"
           }
         ]
       },

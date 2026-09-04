@@ -96,8 +96,14 @@ describe("deletion guard for locally referenced workflows", () => {
     // Mirror the real expo manifest pair: one path a consumer still calls, one
     // genuinely orphaned. Both are listed for deletion.
     await fs.ensureDir(path.join(lisaDir, "expo"));
+    // A basis is required for a path to be deletable at all
+    // (CodySwannGT/lisa#3700): a manifest that does not say why a path may go
+    // does not authorise removing it. This fixture is about the reference
+    // guard, so both paths carry one and the reference guard stays the only
+    // thing deciding.
     await fs.writeJson(path.join(lisaDir, "expo", "deletions.json"), {
       paths: [BUILD_YML, LIGHTHOUSE_YML],
+      basis: { [BUILD_YML]: "needs-review", [LIGHTHOUSE_YML]: "needs-review" },
     });
 
     await fs.ensureDir(path.join(destDir, WORKFLOWS));

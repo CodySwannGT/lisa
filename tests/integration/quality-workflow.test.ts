@@ -1138,10 +1138,15 @@ describe("release and deploy workflows", () => {
     );
     expect(run).toContain("exit 1");
     expect(run).toContain('select(.code == "already_exists")');
-    expect(run).toContain("releases/tags/${{ needs.version.outputs.tag }}");
-    expect(run).toContain(
-      '[ "$TARGET" != "${{ needs.version.outputs.release_commit }}" ]'
-    );
+    // The tag and commit reach this step through `env:` since #3717; what this
+    // test guards is the idempotent-rerun behaviour, not the spelling of the
+    // expression, so the assertions follow the values to their new form.
+    expect(createRelease?.env).toMatchObject({
+      RELEASE_TAG: "${{ needs.version.outputs.tag }}",
+      RELEASE_COMMIT: "${{ needs.version.outputs.release_commit }}",
+    });
+    expect(run).toContain("releases/tags/$RELEASE_TAG");
+    expect(run).toContain('[ "$TARGET" != "$RELEASE_COMMIT" ]');
     expect(run).toContain("jq -e -r '.html_url'");
     expect(run).toContain("jq -e -r '.id'");
     expect(run).toContain("jq -e -r '.upload_url'");
