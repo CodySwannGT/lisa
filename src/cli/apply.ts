@@ -212,7 +212,7 @@ function buildApplyConfig(parts: {
  * @param parts.harness - Resolved harness for this invocation
  * @param parts.persistence - Inputs deciding whether config must be written
  * @param parts.stalePaths - Managed files this apply left out of date
- * @param parts.deletedWorkflowPaths - Workflow files this apply removed
+ * @param parts.deletedPaths - Files this apply removed
  */
 async function finalizeSuccessfulApply(parts: {
   destDir: string;
@@ -221,7 +221,7 @@ async function finalizeSuccessfulApply(parts: {
   harness: Harness;
   persistence: ProjectConfigPersistenceInput;
   stalePaths: readonly string[];
-  deletedWorkflowPaths: readonly string[];
+  deletedPaths: readonly string[];
 }): Promise<void> {
   const {
     destDir,
@@ -230,7 +230,7 @@ async function finalizeSuccessfulApply(parts: {
     harness,
     persistence,
     stalePaths,
-    deletedWorkflowPaths,
+    deletedPaths,
   } = parts;
   // Ensure every applied project carries a .lisa.config.json. A missing file is
   // always backfilled with the resolved harness (the default when no --harness
@@ -261,11 +261,11 @@ async function finalizeSuccessfulApply(parts: {
     // upstream fixes. Doctor reads the receipt, so the finding outlives the
     // install (CodySwannGT/lisa#3033).
     stalePaths,
-    // Same argument as stalePaths, one degree worse. A workflow Lisa removed
-    // leaves nothing on disk to notice and cannot fail a check afterwards, so
-    // the receipt is the only place the removal is still recorded once the
-    // install output is gone (CodySwannGT/lisa#3656).
-    deletedWorkflowPaths,
+    // Same argument as stalePaths, one degree worse. A file Lisa removed leaves
+    // nothing on disk to notice, and a removed workflow cannot fail a check
+    // afterwards either, so the receipt is the only place the removal is still
+    // recorded once the install output is gone (CodySwannGT/lisa#3656).
+    deletedPaths,
   });
 }
 
@@ -412,7 +412,7 @@ export async function runApply(
           resolvedHarness: harness,
         },
         stalePaths: result.stalePaths,
-        deletedWorkflowPaths: result.deletedWorkflowPaths,
+        deletedPaths: result.deletedPaths,
       });
     }
 
