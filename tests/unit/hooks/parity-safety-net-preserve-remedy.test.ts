@@ -118,6 +118,7 @@ const SAFE_REMEDY_FRAGMENTS: readonly string[] = [
   "lisa-preserve-",
   "mktemp",
   "git apply",
+  "git diff --binary HEAD",
   "shared by every worktree",
 ];
 
