@@ -182,6 +182,23 @@ jobs:
       # guards it observed and exits 2 at zero.
       - name: Check every driven shell guard was seen refusing
         run: bun run check:shell-guard-refusals
+      # #3768: `lisa apply` refreshes the `@codyswann/lisa` pin in every host
+      # repository and deliberately skips doing so here — applying to a manifest
+      # whose own name is `@codyswann/lisa` is restricted to security pins. So
+      # the one repository whose pin no automation corrects is the one that
+      # ships the automation, and it rotted two majors twice (#2279, #3662),
+      # each time found only because a human read a version string. This is that
+      # reader. Like its neighbours it belongs here rather than in the shared
+      # registry: only this repository has a self-pin to rot.
+      #
+      # It compares against the npm registry and says so in its verdict line —
+      # the session plugin cache and the marketplace clone can each name a
+      # different version, and neither is what `bun install` resolves. No
+      # `--registry` or `--manifest` override: a step pointed at a fixture would
+      # be green for a reason unrelated to what it checks, which is exactly the
+      # defect class this campaign keeps finding.
+      - name: Check the self-dependency pin still resolves the current release
+        run: bun run check:self-pin
       # `Check canonical project learnings budget` used to live here, and this
       # is where #2932's defect was: the `learnings_budget` skip token reaches
       # `quality.yml` and `quality-rails.yml`, and could not reach this step —
