@@ -249,9 +249,25 @@ describe("release.yml version handling (#3717)", () => {
     it("proves the harness delivers a payload a vulnerable line would run", () => {
       // Simulate what Actions does: substitute the expression into the script
       // text before bash ever sees it. This is the defect, reproduced.
+      //
+      // The payload ends in `#` so the rest of the line is a comment. The
+      // interpolation point here is MID-LINE — `--skip.tag` follows it — so a
+      // payload of `1.2.3; touch pwned` yields `touch pwned --skip.tag`, and
+      // whether the side effect fires then depends on how the platform's
+      // `touch` treats a trailing token that looks like a long option. On BSD
+      // (Darwin) it is a second filename and `pwned` is created; on the Linux
+      // runner it is not, so this control passed locally and failed in CI —
+      // proving different things in different places, which is close to
+      // proving nothing.
+      //
+      // Commenting out the tail makes the control depend only on the
+      // injection, which is what it exists to demonstrate. It is also what a
+      // real attacker would write, for the same reason. The sibling control in
+      // `publish-npm-injection.test.ts` never had this problem because its
+      // interpolation point is at end-of-line, so nothing trails the payload.
       const substituted = PRE_FIX_RELEASE_AS.replace(
         "${{ steps.version.outputs.version }}",
-        "1.2.3; touch pwned"
+        "1.2.3; touch pwned #"
       );
 
       expect(runStep(substituted, {}).executed).toBe(true);
