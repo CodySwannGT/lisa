@@ -37,7 +37,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs":
       "5d587fd849cef02e9706d084ac2b508f3885da0ba59b76311e3b666f4fbff01e",
     "all/copy-overwrite/scripts/lisa-cross-worktree-guard.mjs":
-      "41b92e1e94a8ee9ad0235359dbd83566a49b17db60da933835057dc77008ab87",
+      "e0ef99ef1df32f76601a2106a2b68b3c31a126e0b48e8b8ceaba1a7476c32900",
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
@@ -51,13 +51,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
       "699ec1a7470583916f3d36e301c4d4b6f52741f8e111e5528074bea05e3ee25c",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "412209ea2329a64737eeffa4ffc9b6f9371f14cf86419fd0626361a99188a3f8",
+      "500b5d5770cf7a6bf5588effe6db462fe0a4646d1de3e8b799115279af1b2662",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
-      "a634e07f303331e529e0836e6d8f48255d16af4f2dadab793e8ebd05e3feed47",
+      "2bc98db04ded8aa64af5d894f485173fbfad81976cbd0c6938de6910acfbd577",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "8be7f21ef757597ab23180d68c3bf22db8272c42f889b8883b16703744d4d2e7",
+      "e987dd924dbbdc35eddf607a27372bfac6cf743c9ddb888d8a81b4b128c10908",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "234cb82cc9033bd04940a553d4ddc95b078e585e41777d6529d887676edc40b1",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
@@ -735,7 +735,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "3e8e54a608e57b57e3fd372ad5b9a7b2794ce4934a67e36f374c8a06dc16e69e",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "3281674ef860e25754c4094eda63eac40ccd8efece8babdcff0a56d022e4f00d",
+      "99a827f05f60afc0182791332bb6fca9d96d63d83fe27b6ba32bc3e540533215",
     "plugins/src/base/hooks/block-host-name-leak.agy.sh":
       "9522a2db621178d9cee5bf70ff3948251c5043868f372924bfee19126dbd1c41",
     "plugins/src/base/hooks/block-host-name-leak.mjs":
@@ -749,11 +749,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.agy.sh":
       "19cda51fcc113f0b3c184d8907913ab4b49ecb81db80ce7909639194bc9c52d6",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
-      "071ac9bfdba975c6f9c6b763a8adf5cf482016bde0c2dbae45fd2562d1b6de3b",
+      "049fe1451b6d0b32b78afe8abc1c79ec09c33a9f0e2a10a3b864b63139375f49",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
-      "b3d54e9321d236a3202ebe5cc35c75e7b5b5794ef7f6eb032550aa368a116ea4",
+      "452466fc87be994084017165a045a5fca77a357d71407d0524980c8bdd975c29",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "bf35051fd263066723ec60d7c3fba1a5f39a3edd7589b361e63fdaf307118d6a",
+      "75b1b0cff2776687b2441bf73a8cd253e03a6d1fbdc83d2d9cb38b781a2ce519",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":
@@ -2169,7 +2169,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-contents/Gemfile":
       "1250d4cff8575cecfde3c9491c4eb1fe4d0e6aac6d5febd54a60635d3644faaa",
     "rails/copy-contents/scripts/lisa-mutation.sh":
-      "c2a0dd73311c14b45cefe824b0663fdb00eb466ce4a84c7afbfc006d60944566",
+      "dfe6e7a208fe72d02355548d9aba8484748b7d95eca0bf989043008311af29c4",
     "rails/copy-overwrite/.rubocop.yml":
       "641857d3540f8b5a4524e3815ce4e1162ab4010b0d8663b1edb2abdad41dbf09",
     "rails/copy-overwrite/.versionrc":
@@ -2533,7 +2533,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "dfd2fef680de5ef03e63075e8a61c62ca4d95cdfdff6201939b79c748d3397f6",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "aed203fd2225ce300290bc562f2782a19961d9d0401bc057f49fd489fdc35a29",
+      "ad97de4cea9ca61b10d637ef093e1697e434942d14d92e3e59955b9a81304a4c",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "47bc8b91e38535e694f43d9d3b76c4589ae2796e4ce9e875ab6b09a273e0c93a",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -2543,7 +2543,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
-      "f719ca6ad02b1b62bfff329b66a1382cc58705f4ee4e6f7497216504321a906a",
+      "0fe73e162ece6c4a8270b0d5d675d6927a62962e0ae9275239c6acfacd0ef6c8",
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-action.mjs":
       "640b65e1caba4ba33e19e4a1ff49f869a99c15eb7d59a88498a5b2466acf438e",
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-github-jira.mjs":
@@ -9978,6 +9978,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-direct-issue-create-file-reach.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-mcp-substrate.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-missing-interpreter.test.ts": true,
+    "tests/unit/hooks/block-direct-issue-create-noexec.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-remediation-executability.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-state-declaration.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create.test.ts": true,
@@ -10117,6 +10118,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/plugins/hook-registration-agreement.test.ts": true,
     "tests/unit/plugins/hook-registration.test.ts": true,
     "tests/unit/plugins/support/hook-registration-fixture.ts": true,
+    "tests/unit/scripts/absent-required-checks.test.ts": true,
     "tests/unit/scripts/ast-grep-enforcement.test.ts": true,
     "tests/unit/scripts/bdd-adoption.test.ts": true,
     "tests/unit/scripts/bdd-discovery.test.ts": true,
