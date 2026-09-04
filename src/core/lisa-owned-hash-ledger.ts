@@ -404,6 +404,11 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "5d587fd849cef02e9706d084ac2b508f3885da0ba59b76311e3b666f4fbff01e",
     "99422b4912cd660ddeb5ec5ab9fc333e57fa5763e711117a00b06dd2eda0bbb7",
   ]),
+  "scripts/lisa-cross-worktree-guard.mjs": Object.freeze([
+    "3967e4eb189c043e8702ca5cff40c4612ed77027a053e23635eeb367a436cb9d",
+    "41b92e1e94a8ee9ad0235359dbd83566a49b17db60da933835057dc77008ab87",
+    "d8625e2d339ac512350203e29e70f7b20546bf5248cf952aafd997389feb230f",
+  ]),
   "scripts/lisa-destructive-guard.mjs": Object.freeze([
     "4fb431a3c58f443e303d613934d023d9e95ddae5c42710bb7009f7c080c82a64",
     "66ade2c9cc0554c4934ed94a44563fd9d648b37cacfa9a5d31f17ac4f181e5a3",
@@ -1417,6 +1422,11 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lisa-commit-msg-gates.mjs": Object.freeze([
     "5d587fd849cef02e9706d084ac2b508f3885da0ba59b76311e3b666f4fbff01e",
+  ]),
+  "scripts/lisa-cross-worktree-guard.mjs": Object.freeze([
+    "3967e4eb189c043e8702ca5cff40c4612ed77027a053e23635eeb367a436cb9d",
+    "41b92e1e94a8ee9ad0235359dbd83566a49b17db60da933835057dc77008ab87",
+    "d8625e2d339ac512350203e29e70f7b20546bf5248cf952aafd997389feb230f",
   ]),
   "scripts/lisa-destructive-guard.mjs": Object.freeze([
     "4fb431a3c58f443e303d613934d023d9e95ddae5c42710bb7009f7c080c82a64",
