@@ -37,7 +37,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs":
       "5d587fd849cef02e9706d084ac2b508f3885da0ba59b76311e3b666f4fbff01e",
     "all/copy-overwrite/scripts/lisa-cross-worktree-guard.mjs":
-      "41b92e1e94a8ee9ad0235359dbd83566a49b17db60da933835057dc77008ab87",
+      "e0ef99ef1df32f76601a2106a2b68b3c31a126e0b48e8b8ceaba1a7476c32900",
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
