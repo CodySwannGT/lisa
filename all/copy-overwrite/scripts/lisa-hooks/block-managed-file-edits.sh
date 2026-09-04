@@ -418,11 +418,17 @@ EOF
     # what a tokenizer is for.
     #
     # The analyzer is read into a variable by `read -d ''` rather than run
-    # inside a `$(python3 - <<'PY' … PY)`. Bash has to find the closing paren of
-    # a command substitution by re-scanning its text, and a heredoc body nested
-    # there is scanned too: the lone backtick in `re.compile(r"[$`]")` below
-    # reads as an unterminated backtick substitution and the whole script fails
-    # to parse. Keeping the heredoc out of the substitution is the fix.
+    # inside a command substitution wrapping a here-document. Bash finds the
+    # closing paren of a command substitution by re-scanning its text, and a
+    # here-document body nested there is scanned too: the lone backtick in
+    # `re.compile(r"[$`]")` below then reads as an unterminated backtick
+    # substitution and the whole script fails to parse. Keeping the
+    # here-document out of the substitution is the fix. This is also the shape
+    # `block-direct-issue-create.sh` already uses for its own classifier.
+    #
+    # The delimiter is deliberately not spelled out in this comment: a tool that
+    # greps for here-document starts would otherwise match the prose and read
+    # the wrong span.
     analyzer=''
     IFS= read -r -d '' analyzer <<'PY' || true
 import os

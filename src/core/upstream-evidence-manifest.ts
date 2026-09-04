@@ -41,11 +41,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "e79015d5bd978be6a99506832551c8cab71515d32a68b14bf83457deb3327417",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "2832037d6c8d7930a111519dee0cca0ed0110deba3988f8e713bb9203de254df",
+      "84bb3e15166be4764f10ed3fe6239cfd2ece45d4333343e0d9cf6dd295ab5b42",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
-      "4ada2bd17d423e563aa57c623363b250f6dd31c64d036bcb02a7ae3968a6ebb5",
+      "fe934dd76a1270e00b8ce7d10f6f24a5d34a8fdc205bb51642c8725d0f3d6d1d",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
       "220e16d26cefff69cb26de5c33491a5d4c67c9905032a87e07f14580dbb580be",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
@@ -721,13 +721,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "2adaf15910b6d00e69c202d263d407a21b31c0afce0039c6c042e51c278d2325",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "3c4f97a612495c0216092a37d392a03d2fd19a3272aab216868ff1030f270dd8",
+      "aff23b92a9aeaf5d284384935fc1da64ae72c3bbda7bc16485d0fd45385479fc",
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
       "d47314b66d6ce85f77d6e058f861eede4462b2b0a33d54e82ff1c931167ec3f7",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
-      "67433a8a2f6d3e471db5e9d598c366e883657685af996b8d4db65346a2b848f2",
+      "7724a27f0aa148d2a1011b55ffe41b78297269b65189886b6f6a7b4f1ef4a580",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
       "587cdd14ac9ecaa725da33f8f5b6adebdaeb3ad603650748d9ae1e6fd9f57973",
     "plugins/src/base/hooks/block-no-verify.sh":
@@ -9813,6 +9813,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/helpers/unbounded-spawn-conformance.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-bypasses.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-cross-repo.test.ts": true,
+    "tests/unit/hooks/block-direct-issue-create-data-paths.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-declarations.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-file-reach.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-missing-interpreter.test.ts": true,
