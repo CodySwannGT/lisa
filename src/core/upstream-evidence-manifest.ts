@@ -249,7 +249,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
       "da5cc02794a5972fc3ac72650b3783b5af7ed909ab92c1a8de5e925bae873d0d",
     "expo/copy-overwrite/scripts/check-lighthouse-details.mjs":
-      "72ae7722f890160e98cce6157a96a986cab2b6bd7e12708b980801100449dd5e",
+      "6a836272c43592f2ffd2f622656ee011b80099fe368cf46e2ee35384d5128c3d",
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs":
       "8c96523e2e5df9ef79b7936afd79ab56d032f608681201e2a989b0b95da6c80b",
     "expo/copy-overwrite/scripts/lib/bounded-spawn.mjs":
