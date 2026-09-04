@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.34.5](https://github.com/CodySwannGT/lisa/compare/v4.34.4...v4.34.5) (2026-09-04)
+
+
+### Bug Fixes
+
+* **gates:** stamp the copy of the registry the gates actually ran ([7929bf7](https://github.com/CodySwannGT/lisa/commit/7929bf73f430d3f403d135b67136d58e721b7ab9)), closes [CodySwannGT/lisa#3643](https://github.com/CodySwannGT/lisa/issues/3643)
+
 ### [4.34.4](https://github.com/CodySwannGT/lisa/compare/v4.34.3...v4.34.4) (2026-09-04)
 
 
