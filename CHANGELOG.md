@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.42.0](https://github.com/CodySwannGT/lisa/compare/v4.41.1...v4.42.0) (2026-09-04)
+
+
+### Features
+
+* **hooks:** refuse to act while the session's worktree binding is in dispute ([4a8e73e](https://github.com/CodySwannGT/lisa/commit/4a8e73ebac8f36cd666093c46dc0be17112c1027)), closes [CodySwannGT/lisa#3864](https://github.com/CodySwannGT/lisa/issues/3864)
+
+
+### Bug Fixes
+
+* **hooks:** drop the invariant exit code from the EnterWorktree recorder ([6777c22](https://github.com/CodySwannGT/lisa/commit/6777c22b612e6c391cb06280db4c4a22371089a9)), closes [CodySwannGT/lisa#3864](https://github.com/CodySwannGT/lisa/issues/3864)
+* **work-item:** read the issue number a GitHub branch encodes ([bb92900](https://github.com/CodySwannGT/lisa/commit/bb92900dae44ca22b404e8cf8c7913d0c56306c1)), closes [owner/repo#123](https://github.com/owner/repo/issues/123) [#3712](https://github.com/CodySwannGT/lisa/issues/3712) [#3861](https://github.com/CodySwannGT/lisa/issues/3861) [CodySwannGT/lisa#3712](https://github.com/CodySwannGT/lisa/issues/3712) [CodySwannGT/lisa#3859](https://github.com/CodySwannGT/lisa/issues/3859) [CodySwannGT/lisa#3861](https://github.com/CodySwannGT/lisa/issues/3861)
+
 ### [4.41.1](https://github.com/CodySwannGT/lisa/compare/v4.41.0...v4.41.1) (2026-09-04)
 
 ## [4.41.0](https://github.com/CodySwannGT/lisa/compare/v4.40.1...v4.41.0) (2026-09-04)
