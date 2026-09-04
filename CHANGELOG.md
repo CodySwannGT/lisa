@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.35.2](https://github.com/CodySwannGT/lisa/compare/v4.35.1...v4.35.2) (2026-09-04)
+
+
+### Bug Fixes
+
+* announce every declared deletion, not only the workflows ([50d6dbe](https://github.com/CodySwannGT/lisa/commit/50d6dbebd1ddf1c932087e03c027611e4abad72c)), closes [CodySwannGT/lisa#3656](https://github.com/CodySwannGT/lisa/issues/3656) [#3033](https://github.com/CodySwannGT/lisa/issues/3033) [#3599](https://github.com/CodySwannGT/lisa/issues/3599) [CodySwannGT/lisa#3713](https://github.com/CodySwannGT/lisa/issues/3713)
+
 ### [4.35.1](https://github.com/CodySwannGT/lisa/compare/v4.35.0...v4.35.1) (2026-09-04)
 
 
