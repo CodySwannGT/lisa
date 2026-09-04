@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.34.8](https://github.com/CodySwannGT/lisa/compare/v4.34.7...v4.34.8) (2026-09-04)
+
+
+### Bug Fixes
+
+* **gate:** say WHICH condition left the review evidence unsatisfied ([7c6d4b6](https://github.com/CodySwannGT/lisa/commit/7c6d4b650134fb46f975f5bce8cfdb8b455785a0)), closes [CodySwannGT/lisa#3706](https://github.com/CodySwannGT/lisa/issues/3706) [#3716](https://github.com/CodySwannGT/lisa/issues/3716) [#3600](https://github.com/CodySwannGT/lisa/issues/3600) [#3600](https://github.com/CodySwannGT/lisa/issues/3600) [#3600](https://github.com/CodySwannGT/lisa/issues/3600) [#3221](https://github.com/CodySwannGT/lisa/issues/3221) [#3600](https://github.com/CodySwannGT/lisa/issues/3600) [CodySwannGT/lisa#3716](https://github.com/CodySwannGT/lisa/issues/3716)
+* **hooks:** stop the filing guard attributing a file's contents to a reader ([967842f](https://github.com/CodySwannGT/lisa/commit/967842f0b895c8b70132d561fa6dfb4ae8c44b42)), closes [CodySwannGT/lisa#3705](https://github.com/CodySwannGT/lisa/issues/3705)
+* **release:** keep the Sentry guard loud without blocking every release ([acfed29](https://github.com/CodySwannGT/lisa/commit/acfed296ba3898f1f2b83c69d999e3e7b4edaf77)), closes [#3467](https://github.com/CodySwannGT/lisa/issues/3467) [#3738](https://github.com/CodySwannGT/lisa/issues/3738) [CodySwannGT/lisa#3745](https://github.com/CodySwannGT/lisa/issues/3745) [CodySwannGT/lisa#3745](https://github.com/CodySwannGT/lisa/issues/3745)
+* **repair-intake:** remember a reversed transition instead of retrying it ([cf694fe](https://github.com/CodySwannGT/lisa/commit/cf694fe12843e1f695c1c509d62cf302c6ac078e)), closes [CodySwannGT/lisa#3646](https://github.com/CodySwannGT/lisa/issues/3646)
+* **rules:** re-read the instruction file from disk before escalating ([c275583](https://github.com/CodySwannGT/lisa/commit/c2755835b2692f08663cb91a1527312d11378d0b)), closes [#3592](https://github.com/CodySwannGT/lisa/issues/3592) [CodySwannGT/lisa#3592](https://github.com/CodySwannGT/lisa/issues/3592)
+
 ### [4.34.7](https://github.com/CodySwannGT/lisa/compare/v4.34.6...v4.34.7) (2026-09-04)
 
 
