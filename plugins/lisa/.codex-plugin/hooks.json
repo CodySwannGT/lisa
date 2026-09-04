@@ -31,6 +31,15 @@
         ]
       },
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/discharge-work-item-gates.sh"
+          }
+        ]
+      },
+      {
         "matcher": "Edit|Write|NotebookEdit|Bash",
         "hooks": [
           {

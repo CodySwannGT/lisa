@@ -80,6 +80,25 @@ const SCRIPT_RULES = {
     agy: true,
     copilot: true,
   },
+  // Fires after a `gh pr create` / `gh pr edit` and checks the two work-item
+  // gates a push could not reach. Nothing in it is Claude-specific: it reads a
+  // shell command out of the tool payload and runs a node script.
+  //
+  // Documented gap: agy gets it nowhere, and not through this table. agy's
+  // plugin hooks are wired by the AGY_PLUGIN_HOOKS map in
+  // `generate-agy-plugin-artifacts.mjs`, which carries PreToolUse
+  // `run_command` entries only — there is no PostToolUse surface to attach to,
+  // so the flag below is documentation rather than a switch. The compensating
+  // rung is shared rather than agent-layer, which is the layer AGENTS.md
+  // requires: the pre-push report names both gates as UNRESOLVED with the
+  // discharge command on every agent, and CI enforces both regardless.
+  "discharge-work-item-gates.sh": {
+    claude: true,
+    codex: true,
+    cursor: true,
+    agy: false,
+    copilot: true,
+  },
   // Portable everywhere the agent has a session-start event, because the
   // question it answers — can this agent reach the credentials its work needs
   // — is not vendor-specific. It only reads config and asks the provider for
