@@ -313,9 +313,11 @@ export const FLOW_COUNT_ARTIFACT_PATTERN =
 export const SCOPE_ARTIFACT_PATTERN =
   /^maestro-(?<platform>[a-z0-9]+)-scope-(?<scope>full|filtered)$/;
 
-/** Locale-aware alphabetical ordering required by Sonar's string-sort rule. */
+/** Locale-independent code-point ordering required by Sonar's string-sort rule. */
 function compareStrings(left, right) {
-  return left.localeCompare(right);
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
 }
 
 /** The label that identifies a tracking issue this reporter owns. */
