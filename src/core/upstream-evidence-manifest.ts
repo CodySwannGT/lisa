@@ -2340,6 +2340,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "a37de43abd0c9840d0caab4e211a066c4dcf4fd76bbbf12a84b6a402300f99a1",
     "scripts/lib/gitattributes-merge-drivers.mjs":
       "bf43913f423f5774a69b60f2541f7a49c173aabd4855e2c30cbe2984806a182b",
+    "scripts/lib/hook-registration-audit.mjs":
+      "f282fccded9cf954e034de2d81a348ad5addb444694baa09da540f0cb89a5189",
     "scripts/lib/invoked-as-script.mjs":
       "4711b3e900dc85c000c287dd6a675f519fd0f5f288508ae1d5acefdab136ad4e",
     "scripts/lib/mutation-performance-reporter.mjs":
@@ -8630,6 +8632,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/internal-opencode-skill-policy.json": true,
     "scripts/lib/bounded-spawn.mjs": true,
     "scripts/lib/gitattributes-merge-drivers.mjs": true,
+    "scripts/lib/hook-registration-audit.mjs": true,
     "scripts/lib/invoked-as-script.mjs": true,
     "scripts/lib/mutation-performance-reporter.mjs": true,
     "scripts/lib/nest-plugin-commands.mjs": true,
@@ -10027,6 +10030,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/settings-installer.test.ts": true,
     "tests/unit/opencode/skills-installer.test.ts": true,
     "tests/unit/plugins/container-view-pattern-parity.test.ts": true,
+    "tests/unit/plugins/hook-registration.test.ts": true,
+    "tests/unit/plugins/support/hook-registration-fixture.ts": true,
     "tests/unit/scripts/ast-grep-enforcement.test.ts": true,
     "tests/unit/scripts/bdd-adoption.test.ts": true,
     "tests/unit/scripts/bdd-discovery.test.ts": true,
