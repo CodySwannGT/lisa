@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.36.2](https://github.com/CodySwannGT/lisa/compare/v4.36.1...v4.36.2) (2026-09-04)
+
+
+### Bug Fixes
+
+* merge the evidence manifest instead of conflicting on one entry ([25871f0](https://github.com/CodySwannGT/lisa/commit/25871f0c4da58a496c0879d3b4497ce183133d71)), closes [CodySwannGT/lisa#3822](https://github.com/CodySwannGT/lisa/issues/3822)
+
 ### [4.36.1](https://github.com/CodySwannGT/lisa/compare/v4.36.0...v4.36.1) (2026-09-04)
 
 ## [4.36.0](https://github.com/CodySwannGT/lisa/compare/v4.35.5...v4.36.0) (2026-09-04)
