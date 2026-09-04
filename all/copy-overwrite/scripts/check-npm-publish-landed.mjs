@@ -76,7 +76,13 @@ const VERDICT_PREFIX = "npm-publish-landed:";
  * @returns {string} The exact-version manifest URL.
  */
 export function exactVersionUrl(registry, name, version) {
-  return `${registry.replace(/\/+$/u, "")}/${name}/${version}`;
+  // Trailing slashes trimmed without a regex: `/\/+$/` is a super-linear
+  // pattern the shipped ruleset rejects outright, and an origin arriving from
+  // configuration is exactly the kind of attacker-adjacent input that rule
+  // exists for.
+  let origin = registry;
+  while (origin.endsWith("/")) origin = origin.slice(0, -1);
+  return `${origin}/${name}/${version}`;
 }
 
 /**
