@@ -122,7 +122,8 @@ describe("the pin that actually shipped", () => {
     expect(
       pinned
         .map((f: { ref: string }) => f.ref)
-        .toSorted((a: string, b: string) => a.localeCompare(b))
+        .slice()
+        .sort((a: string, b: string) => a.localeCompare(b))
     ).toEqual(["v1.0.0", "v2.0.0"]);
   });
 });

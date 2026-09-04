@@ -243,7 +243,7 @@ describe("doctor skip_jobs migration", () => {
       await writeCaller(caller("lint"), "ci.yml");
       await writeCaller(caller("dead_code"), "nightly.yml");
       const files = (await skipJobCallers(project)).map(entry => entry.file);
-      expect(files.toSorted((a, b) => a.localeCompare(b))).toEqual([
+      expect(files.slice().sort((a, b) => a.localeCompare(b))).toEqual([
         ".github/workflows/ci.yml",
         ".github/workflows/nightly.yml",
       ]);

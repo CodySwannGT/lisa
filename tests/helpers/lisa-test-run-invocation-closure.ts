@@ -196,14 +196,17 @@ export function requireExactInvocationClosure(
         detachedAuthorities.has(row.sid)
     )
     .map(row => row.pid)
-    .toSorted((left, right) => left - right);
+    .slice()
+    .sort((left, right) => left - right);
   const expected = [
     wrapper.pid,
     reaper.pid,
     bootstrap.pid,
     payload.pid,
     ...helpers.map(row => row.pid),
-  ].toSorted((left, right) => left - right);
+  ]
+    .slice()
+    .sort((left, right) => left - right);
   if (
     observed.length !== expected.length ||
     observed.some((pid, index) => pid !== expected[index])

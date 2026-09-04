@@ -33,8 +33,9 @@ function exactIdentities(
   expect(
     capture.identities
       .map(value => value.pid)
-      .toSorted((left, right) => left - right)
-  ).toEqual(expectedPids.toSorted((left, right) => left - right));
+      .slice()
+      .sort((left, right) => left - right)
+  ).toEqual(expectedPids.slice().sort((left, right) => left - right));
   return capture.identities;
 }
 

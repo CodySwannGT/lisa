@@ -214,7 +214,8 @@ describe("block-managed-file-edits.sh apply_patch arm", () => {
       [...source.matchAll(/\*\*\* (?:(Add|Update|Delete) File|(Move) to): /g)]
         .map(match => (match[1] ?? match[2]) as string)
         .filter((value, index, all) => all.indexOf(value) === index)
-        .toSorted((a, b) => a.localeCompare(b));
+        .slice()
+        .sort((a, b) => a.localeCompare(b));
 
     const guardHeaders = headers(readFileSync(GUARD, "utf-8"));
     const helperHeaders = headers(
