@@ -71,7 +71,10 @@ function sha256(relative: string): string {
 describe("legacy #2448 compatibility", () => {
   // These digests track whatever the legacy reporter is on main, and are
   // refreshed only when main deliberately changes it under its own review --
-  // most recently "publish the tracking issue best-effort, exit on the suite".
+  // most recently "track @main in every seeded template", which repointed the
+  // caller's `uses:` from `@v3.35.0` and replaced the comment instructing that
+  // pin. The reusable's own digest is UNCHANGED by that commit, which is the
+  // point: the caller moved, the reporter did not.
   // The lock they enforce is that the CONFIGURABLE tracking work on this branch
   // leaves the legacy per-suite reporter untouched, so a digest that moves
   // because of a commit on this branch is the failure it exists to catch. The
@@ -82,7 +85,7 @@ describe("legacy #2448 compatibility", () => {
       "f051b15f2cbe84af09a39dd1f4e5607cff24a4795b85a00a60fb05cda42a00ac"
     );
     expect(sha256(LEGACY_CALLER_REL)).toBe(
-      "721009809c862b50c4cb5b679307c82cdc1c377914052c323b77d2339c1e6357"
+      "6c2cdc22f0da74329ba4eb39f1b4ea8d9e6bf73924f0f874ac4453308b4e51c8"
     );
   });
 

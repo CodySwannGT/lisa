@@ -142,14 +142,17 @@ describe("the reporting half cannot fail the merge gate (§10.4)", () => {
     expect(on).not.toHaveProperty("pull_request");
   });
 
-  it("the report caller pins an immutable ref, like the gate caller", () => {
+  it("the report caller tracks `@main`, like the gate caller", () => {
+    // The premise held — the two halves must move together — but the pin was
+    // the wrong way to get it. Pinning froze this caller at `@v3.35.0` while
+    // the gate moved on, producing exactly the divergence it was meant to
+    // prevent. What actually detects a mismatch is the contract-version
+    // assertion below, not the ref.
     const uses = reportCaller.jobs.report.uses ?? "";
     expect(uses).toContain(
       "CodySwannGT/lisa/.github/workflows/nightly-e2e-report.yml@"
     );
-    const ref = uses.split("@")[1];
-    expect(ref).not.toBe("main");
-    expect(ref).toMatch(/^(v\d+\.\d+\.\d+|[0-9a-f]{40})$/);
+    expect(uses.split("@")[1]).toBe("main");
   });
 
   it("the reporter asserts the guard's contract major, like the gate", () => {

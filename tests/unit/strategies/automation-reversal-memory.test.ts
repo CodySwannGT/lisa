@@ -59,12 +59,39 @@ describe("automation-reversal memory (repair-side rejection-detection)", () => {
     });
 
     it("keys on authorship, not merely on a backward move", () => {
-      // An item can return to blocked because a real new blocker appeared.
-      // That is the world moving on and must stay a legitimate warrant.
       for (const doc of [eager, reference]) {
         expect(doc).toMatch(/authored by/i);
       }
       expect(reference).toMatch(/backward/i);
+    });
+
+    it("names the negative classification alongside the positive one", () => {
+      for (const doc of [eager, reference]) {
+        expect(doc).toContain("no-reversal");
+      }
+    });
+
+    // The two controls below are what stop this predicate from degenerating.
+    // A classification that only ever says "reversal" is satisfied by a rule
+    // that suppresses everything, and a suppress-everything rule reads as a
+    // hardening while switching the loop off. Each acceptance case above is
+    // paired with one of these.
+
+    it("CONTROL: the loop's own backward move is not a reversal", () => {
+      // Without this, the skill reads its own transitions as human
+      // corrections and suppresses itself into doing nothing at all.
+      expect(reference).toMatch(/the later move was itself automation/i);
+      expect(eager).toMatch(/with no automation move after it/i);
+    });
+
+    it("CONTROL: a genuine new blocker stays a legitimate warrant", () => {
+      // A predicate keyed on DIRECTION rather than authorship would suppress
+      // this too — the item returned to blocked because the world moved on,
+      // not because anyone was overruled — and the loop would stop responding
+      // to real blockers while looking like it had been tightened.
+      expect(reference).toMatch(/genuine new blocker appeared/i);
+      expect(reference).toMatch(/world moving on/i);
+      expect(eager).toMatch(/real new blocker appeared/i);
     });
 
     it("requires the order of the two events to be established, never inferred from co-occurrence", () => {

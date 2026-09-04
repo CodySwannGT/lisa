@@ -54,6 +54,11 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { DIAGNOSIS, diagnoseFailure } from "./lib/gate-failure-diagnosis.mjs";
+import {
+  killMarkNote,
+  recentKillMarks,
+  recordKillMark,
+} from "./lib/kill-marks.mjs";
 import { boundedSpawnSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import {
@@ -506,9 +511,13 @@ function classifyStatic(gate) {
  * gate is failing. A summary that hides a failure under a green headline is
  * the same defect as a check that reports success without running.
  * @param {GateRun} result The result of `runGates`.
+ * @param {Array<object>} [priorKills] Marks left by EARLIER runs, captured
+ *   before this run started. Passed in rather than read here so this function
+ *   stays a pure rendering of its inputs, and so a run can never report its
+ *   own kill back to itself as prior context.
  * @returns {string[]} Summary lines.
  */
-function summarise(result) {
+function summarise(result, priorKills = []) {
   const lines = [];
   const truly = result.failed.filter(entry => entry.state === STATE.FAILED);
   const byLevel = level => truly.filter(entry => entry.level === level);
@@ -541,6 +550,13 @@ function summarise(result) {
     lines.push(
       `❓ ${entry.level} gate NOT PROVED: ${entry.id} — ${entry.detail}`
     );
+  }
+
+  // Only alongside a result that went wrong. Attached to a clean pass it would
+  // be noise on every run for an hour after any kill, and a note nobody reads
+  // is a note that cannot help the one time it matters.
+  if (result.failed.length > 0 || result.notRun.length > 0) {
+    for (const line of killMarkNote(priorKills)) lines.push(line);
   }
   // Two different sentences on purpose. Rendering these as one "skipped"
   // bucket is what makes an early failure produce a report whose later gates
@@ -690,6 +706,11 @@ function verdictFor(gate, { proved, blockedBy, exec, siblings }) {
  * @param {Record<string, string>|null} [options.scripts] The project's package
  *   scripts, from `projectScripts`. `null` means unknown, and an unknown
  *   manifest resolves exactly as it did before `shippedAs` was consulted.
+ * @param {Array<object>} [options.priorKills] Marks left by EARLIER runs.
+ *   Injected for the same reason `exec` is: a test states the machine's recent
+ *   history instead of having to terminate a real run an hour ago. Defaults to
+ *   reading them, and the default is evaluated HERE — before any gate runs —
+ *   so a run cannot read back the mark it is about to write.
  * @returns {GateRun} What every declared gate at this moment produced.
  */
 export function runGates({
@@ -699,6 +720,7 @@ export function runGates({
   exec,
   out = line => console.log(line),
   scripts = null,
+  priorKills = recentKillMarks(),
 }) {
   const resolved = resolveMoment({ gates, moment, runner, scripts });
   const results = [];
@@ -789,7 +811,12 @@ export function runGates({
     skipped: bucket(STATE.SKIPPED),
     notRun: bucket(STATE.NOT_RUN),
   };
-  for (const line of summarise(result)) out(line);
+  // Left for a LATER run, because this one already knows. The note only ever
+  // helps a different run whose own output carries no trace of the machine.
+  for (const entry of result.killed) {
+    recordKillMark({ kind: STATE.KILLED, gateId: entry.id });
+  }
+  for (const line of summarise(result, priorKills)) out(line);
   return result;
 }
 

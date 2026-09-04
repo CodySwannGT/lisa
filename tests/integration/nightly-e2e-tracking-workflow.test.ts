@@ -245,13 +245,17 @@ describe("combined tracking workflow authority", () => {
     expect(read(CALLER_REL)).toContain("secrets: inherit");
   });
 
-  it("pins the reusable to an immutable release ref", () => {
+  it("tracks the reusable at `@main`", () => {
+    // This accepted a tag or a raw SHA, and the caller carried a SHA. That is
+    // the worse of the two: a history rewrite makes the commit unreachable,
+    // the workflow cannot load, zero jobs are created, and the check reads as
+    // ABSENT rather than red.
     const caller = workflow(CALLER_REL);
     const job = Object.values(caller.jobs).find(value => value.uses);
     const uses = job?.uses ?? "";
     expect(uses).toContain(
       "CodySwannGT/lisa/.github/workflows/nightly-e2e-tracking.yml@"
     );
-    expect(uses.split("@")[1]).toMatch(/^(v\d+\.\d+\.\d+|[0-9a-f]{40})$/);
+    expect(uses.split("@")[1]).toBe("main");
   });
 });

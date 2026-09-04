@@ -81,6 +81,31 @@ const TEMPLATE_RE = /^[^/]+\/[^/]+\/\.github\/workflows\/[^/]+\.ya?ml$/;
 /** `uses: CodySwannGT/lisa/<path>@<ref>` — the reference this gate verifies. */
 const USES_RE = /uses:\s*CodySwannGT\/lisa\/([^\s@]+)@([^\s"'#]+)/g;
 
+/**
+ * `uses:` introducing a YAML block scalar — `>`, `>-`, `|`, `|+` and friends.
+ *
+ * A folded `uses:` puts the reference on a CONTINUATION line, so a per-line
+ * scan for `uses: CodySwannGT/...` finds nothing at all and the template reads
+ * as having no references. That is not a cosmetic gap: a shipped template
+ * pinned to a SHA sat unseen by this gate precisely because it was written this
+ * way, and every sweep run against it — including one done by hand — reported
+ * the file clean. A parser that silently sees nothing is the same false green
+ * this gate exists to prevent, one level up.
+ *
+ * The header may also carry an explicit INDENTATION indicator — a single digit
+ * `1`-`9` — and YAML permits it on either side of the chomping indicator, so
+ * `>2-` and `>-2` are both well-formed. Matching only the chomping indicator
+ * reproduces the very blind spot above in a narrower form: the header fails to
+ * match, the continuation scan never runs, and the reference is invisible
+ * again. The digit class is `1`-`9` rather than `\d` because `0` is not a legal
+ * indentation indicator and the indicator is exactly one digit wide.
+ */
+const USES_BLOCK_RE =
+  /^(\s*)uses:\s*[>|](?:[-+][1-9]?|[1-9][-+]?)?\s*(?:#.*)?$/;
+
+/** The reference itself, unanchored, for continuation lines. */
+const BARE_REF_RE = /CodySwannGT\/lisa\/([^\s@]+)@([^\s"'#]+)/g;
+
 /** The moving ref, resolvable against the working tree with no history. */
 const MOVING_REF = "main";
 
@@ -107,11 +132,57 @@ export function findWorkflowRefs(content) {
     // A fresh lastIndex per line: the regex is global and shared.
     USES_RE.lastIndex = 0;
     let match;
+    let matchedInline = false;
     while ((match = USES_RE.exec(lines[index])) !== null) {
+      matchedInline = true;
       refs.push({ line: index + 1, ref: match[2], target: match[1] });
+    }
+    if (matchedInline) continue;
+
+    // A folded `uses:` carries its value on the following, more-indented
+    // lines. The reported line is where the reference text actually sits, so a
+    // reader can jump straight to the token rather than to the key above it.
+    const block = USES_BLOCK_RE.exec(lines[index]);
+    if (block === null) continue;
+    const keyIndent = block[1].length;
+    for (let next = index + 1; next < lines.length; next++) {
+      const line = lines[next];
+      if (line.trim() === "") continue;
+      const indent = line.length - line.trimStart().length;
+      if (indent <= keyIndent) break;
+      BARE_REF_RE.lastIndex = 0;
+      let inner;
+      while ((inner = BARE_REF_RE.exec(line)) !== null) {
+        refs.push({ line: next + 1, ref: inner[2], target: inner[1] });
+      }
     }
   }
   return refs;
+}
+
+/**
+ * Whether a reference violates the standing rule that every consumer-facing
+ * reference to a Lisa reusable workflow tracks `@main`.
+ *
+ * The rule is a decision, not a preference, and both alternatives to it fail
+ * SILENTLY, which is why this is enforced rather than documented:
+ *
+ *   - a tag pin goes stale without ever failing. Two templates sat on a tag a
+ *     full major version behind; nothing went red, they simply stopped
+ *     receiving anything.
+ *   - a SHA pin is worse, because a history rewrite makes the commit
+ *     unreachable and GitHub Actions then cannot LOAD the workflow. Zero jobs
+ *     are created, so the required context is ABSENT rather than red, and
+ *     pull requests block forever waiting on a verdict that will never arrive.
+ *     That has already happened here once and needed an admin override.
+ *
+ * `@main` breaking is the loud failure, and the sanctioned response to it is to
+ * fix the reusable workflow upstream rather than to freeze a consumer.
+ * @param {{ ref: string }} reference - the parsed reference.
+ * @returns {boolean} true when the reference is pinned rather than tracking.
+ */
+export function violatesRefPolicy(reference) {
+  return reference.ref !== MOVING_REF;
 }
 
 /**
@@ -228,6 +299,7 @@ export function buildReport(results, opts) {
   const unverifiable = results.filter(
     result => result.verdict === "unverifiable"
   );
+  const pinned = results.filter(result => result.policy === "pinned");
   return {
     results,
     root: opts.root,
@@ -236,6 +308,7 @@ export function buildReport(results, opts) {
       checked: opts.checked,
       missing: missing.length,
       ok: opts.checked - results.length,
+      pinned: pinned.length,
       templates: opts.templates,
       unverifiable: unverifiable.length,
     },
@@ -251,15 +324,35 @@ export function buildReport(results, opts) {
  */
 function humanReport(report) {
   const { summary } = report;
-  if (summary.missing === 0 && summary.unverifiable === 0) {
-    return `✓ ${summary.checked} workflow reference(s) across ${summary.templates} caller template(s) all resolve`;
+  if (
+    summary.missing === 0 &&
+    summary.unverifiable === 0 &&
+    summary.pinned === 0
+  ) {
+    return `✓ ${summary.checked} workflow reference(s) across ${summary.templates} caller template(s) all resolve and track @${MOVING_REF}`;
   }
-  const lines = report.results.map(result =>
-    result.verdict === "missing"
-      ? `✗ ${result.file}:${result.line}\n    ${result.target}@${result.ref} — target does not exist at that ref`
-      : `? ${result.file}:${result.line}\n    ${result.target}@${result.ref} — ref not present in this clone, cannot verify`
+  const describe = result => {
+    if (result.verdict === "missing")
+      return "target does not exist at that ref";
+    if (result.verdict === "unverifiable")
+      return "ref not present in this clone, cannot verify";
+    return `pinned, but every consumer reference must track @${MOVING_REF}`;
+  };
+  const lines = report.results.map(
+    result =>
+      `${result.verdict === "unverifiable" ? "?" : "✗"} ${result.file}:${result.line}\n    ${result.target}@${result.ref} — ${describe(result)}`
   );
   const tail = [];
+  if (summary.pinned > 0) {
+    tail.push(
+      `${summary.pinned} reference(s) are pinned rather than tracking @${MOVING_REF}.`,
+      "Both ways of pinning fail silently: a tag quietly stops receiving",
+      "anything, and a SHA becomes unreachable after a history rewrite, so the",
+      "workflow cannot load, zero jobs run, and the required check is ABSENT",
+      "rather than red — which blocks pull requests on a verdict that never",
+      `arrives. Repoint these at @${MOVING_REF}; when @${MOVING_REF} breaks, fix it upstream.`
+    );
+  }
   if (summary.missing > 0) {
     tail.push(
       `${summary.missing} reference(s) name a target that does not exist at the pinned ref.`,
@@ -347,8 +440,18 @@ export function main(argv, io = {}) {
       for (const reference of findWorkflowRefs(content)) {
         checked += 1;
         const verdict = classifyRef(opts.root, reference);
-        if (verdict !== "ok") {
-          results.push({ ...reference, file, verdict });
+        const pinned = violatesRefPolicy(reference);
+        // Resolution and policy are independent questions, and a pinned ref
+        // that resolves today is exactly the case worth reporting: it is
+        // healthy right now and will fail silently later. Reporting only
+        // unresolvable refs would call it clean.
+        if (verdict !== "ok" || pinned) {
+          results.push({
+            ...reference,
+            file,
+            policy: pinned ? "pinned" : "tracking",
+            verdict,
+          });
         }
       }
     }
@@ -368,7 +471,7 @@ export function main(argv, io = {}) {
   if (report.summary.unverifiable > 0) {
     return 2;
   }
-  return report.summary.missing === 0 ? 0 : 1;
+  return report.summary.missing === 0 && report.summary.pinned === 0 ? 0 : 1;
 }
 
 if (invokedAsScript(import.meta.url)) {

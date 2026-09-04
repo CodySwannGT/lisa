@@ -1,19 +1,10 @@
 /** CodeRabbit RED authority contract for the nightly tracking workflows. */
 import yaml from "js-yaml";
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
-import process from "node:process";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
-
-import {
-  boundedExecFileSync,
-  ChildFailure,
-} from "../helpers/io-latency-budget.js";
-import { cleanGitEnv } from "../helpers/test-utils.js";
-import { resolveGit } from "../support/git-executable.js";
 
 const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -23,7 +14,6 @@ const REPO_ROOT = path.resolve(
 const REUSABLE_REL = ".github/workflows/nightly-e2e-tracking.yml";
 const CALLER_REL =
   "expo/create-only/.github/workflows/nightly-e2e-tracking.yml";
-const GIT = resolveGit();
 
 /** Relevant parsed shape of the tracking workflows. */
 interface TrackingWorkflow {
@@ -58,82 +48,21 @@ function workflow(relative: string): TrackingWorkflow {
   return yaml.load(read(relative)) as TrackingWorkflow;
 }
 
-/**
- * Decide whether cat-file proved this exact pinned commit is absent.
- * @param error - Failure returned by the bounded git child
- * @param commit - Exact forty-character commit
- * @returns Whether the failure is the expected missing-object diagnosis
+/*
+ * REMOVED with the SHA pin: `committedFile`, `isMissingCommit` and
+ * `catFileFailure`, along with the test that exercised them.
+ *
+ * They resolved the caller's pinned forty-character commit — fetching it
+ * shallowly when the local clone lacked the object — so the reusable's bytes at
+ * that commit could be compared against the working tree. Every one of them
+ * existed to serve a pin, and the caller now tracks `@main`.
+ *
+ * The deleted test asserted that the fetch fallback fired only after `cat-file`
+ * proved the exact commit absent. That was worth asserting while a pin existed.
+ * With no pin anywhere in the templates it would have exercised nothing but
+ * these helpers — a test whose subject is its own scaffolding, which reads as
+ * coverage and proves nothing about what ships.
  */
-function isMissingCommit(error: unknown, commit: string): boolean {
-  return (
-    error instanceof ChildFailure &&
-    error.exitCode === 128 &&
-    error.stderr.trim() === `fatal: Not a valid object name ${commit}^{commit}`
-  );
-}
-
-/**
- * Capture a cat-file failure without invoking the fetch fallback.
- * @param commit - Exact forty-character commit
- * @param cwd - Directory in which git should inspect the object database
- * @returns The bounded child failure
- */
-function catFileFailure(commit: string, cwd: string): ChildFailure {
-  try {
-    boundedExecFileSync({
-      label: "git reject unavailable pinned reusable",
-      command: GIT,
-      args: ["cat-file", "-e", `${commit}^{commit}`],
-      cwd,
-      env: cleanGitEnv(process.env),
-    });
-  } catch (error) {
-    if (error instanceof ChildFailure) return error;
-    throw error;
-  }
-  throw new Error("expected git cat-file to reject the unavailable commit");
-}
-
-/**
- * Read one file from an immutable local commit.
- * @param commit - Exact forty-character commit
- * @param relative - Repository-relative path
- * @returns Committed UTF-8 file contents
- */
-function committedFile(commit: string, relative: string): string {
-  try {
-    boundedExecFileSync({
-      label: "git locate pinned reusable",
-      command: GIT,
-      args: ["cat-file", "-e", `${commit}^{commit}`],
-      cwd: REPO_ROOT,
-      env: cleanGitEnv(process.env),
-    });
-  } catch (error) {
-    if (!isMissingCommit(error, commit)) throw error;
-    boundedExecFileSync({
-      label: "git fetch pinned reusable",
-      command: GIT,
-      args: [
-        "fetch",
-        "--no-tags",
-        "--no-write-fetch-head",
-        "--depth=1",
-        "origin",
-        commit,
-      ],
-      cwd: REPO_ROOT,
-      env: cleanGitEnv(process.env),
-    });
-  }
-  return boundedExecFileSync({
-    label: "git show pinned reusable",
-    command: GIT,
-    args: ["show", `${commit}:${relative}`],
-    cwd: REPO_ROOT,
-    env: cleanGitEnv(process.env),
-  });
-}
 
 /**
  * Read the named properties passed to the actual workflow-run API call.
@@ -169,22 +98,6 @@ function workflowRunOptions(script: string): readonly string[] {
 }
 
 describe("nightly tracking review authority", () => {
-  it("fetches only after the exact pinned commit is missing", () => {
-    const absent = "f".repeat(40);
-    const outside = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-nightly-pin-"));
-
-    try {
-      expect(isMissingCommit(catFileFailure(absent, REPO_ROOT), absent)).toBe(
-        true
-      );
-      expect(isMissingCommit(catFileFailure(absent, outside), absent)).toBe(
-        false
-      );
-    } finally {
-      fs.rmSync(outside, { recursive: true, force: true });
-    }
-  });
-
   it("accepts only scheduled workflow-run events from the caller", () => {
     const caller = workflow(CALLER_REL);
     const track = caller.jobs.track;
@@ -219,15 +132,25 @@ describe("nightly tracking review authority", () => {
     ]);
   });
 
-  it("pins the remote reusable to immutable identical workflow bytes", () => {
+  it("tracks the remote reusable at `@main`, never a commit", () => {
+    // This asserted a forty-character SHA, and compared that commit's copy of
+    // the reusable byte-for-byte against the working tree. Both halves are gone
+    // deliberately, and the second cannot be ported: with `@main` there is no
+    // commit to resolve, and comparing a feature branch's working tree against
+    // `origin/main` would be flaky by construction.
+    //
+    // What replaced the guarantee is not a weaker version of it. A SHA pin is
+    // immutable right up to the moment history is rewritten, and then the
+    // commit is unreachable, Actions cannot load the workflow, zero jobs run,
+    // and the required check is ABSENT rather than red — every pull request
+    // blocks on a verdict that never arrives. That happened here. Tracking
+    // `@main` trades byte-identity for a failure that is loud.
     const caller = workflow(CALLER_REL);
     const uses = caller.jobs.track?.uses ?? "";
     const prefix =
       "CodySwannGT/lisa/.github/workflows/nightly-e2e-tracking.yml@";
 
     expect(uses.startsWith(prefix)).toBe(true);
-    const commit = uses.slice(prefix.length);
-    expect(commit).toMatch(/^[0-9a-f]{40}$/u);
-    expect(committedFile(commit, REUSABLE_REL)).toBe(read(REUSABLE_REL));
+    expect(uses.slice(prefix.length)).toBe("main");
   });
 });
