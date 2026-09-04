@@ -1,6 +1,6 @@
 {
   "name": "lisa-wiki",
-  "version": "4.34.20",
+  "version": "4.34.21",
   "description": "LLM Wiki — a distributable, git-native markdown knowledge base for Claude Code and Codex",
   "author": {
     "name": "Cody Swann"
