@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.37.2](https://github.com/CodySwannGT/lisa/compare/v4.37.1...v4.37.2) (2026-09-04)
+
+
+### Bug Fixes
+
+* **ci:** satisfy typed reliability analysis in managed guards ([ed6f706](https://github.com/CodySwannGT/lisa/commit/ed6f7063d4dcb737dae3c7c47300169abc710a6f)), closes [CodySwannGT/lisa#3839](https://github.com/CodySwannGT/lisa/issues/3839)
+
 ### [4.37.1](https://github.com/CodySwannGT/lisa/compare/v4.37.0...v4.37.1) (2026-09-04)
 
 
