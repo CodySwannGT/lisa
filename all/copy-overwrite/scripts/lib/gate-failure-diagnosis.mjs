@@ -138,6 +138,28 @@ const NO_TESTS_PATTERN = /^[ \t]*No test files found/m;
 const SUMMARY_PATTERN = /^[ \t]*Test Files[ \t]+/m;
 
 /**
+ * Did this transcript come from a run that executed no test files at all?
+ *
+ * Exported because the caller needs it on the path this module cannot see.
+ * Everything else here runs only once a command has already failed, which is
+ * exactly the wrong side for the defect in CodySwannGT/lisa#3715: a runner
+ * invoked with `--passWithNoTests` collects nothing and exits **0**, so the
+ * runner reports success and the diagnosis below is never reached. The gate
+ * then records PASSED for a suite that ran nothing.
+ *
+ * Both halves are load-bearing, and the second one is why this is a shared
+ * predicate rather than a bare `includes`. A transcript that captures a nested
+ * runner can carry a child's `No test files found` while its own 826 files ran
+ * perfectly well; requiring the summary line to be ABSENT is what stops this
+ * being the same non-measurement defect in mirror image.
+ * @param {string} output The command's combined output.
+ * @returns {boolean} True when the transcript states it ran nothing and reached no verdict.
+ */
+export function ranNoTests(output) {
+  return NO_TESTS_PATTERN.test(output) && !SUMMARY_PATTERN.test(output);
+}
+
+/**
  * Prefixes a tool uses to say why it stopped, rather than what it measured.
  *
  * Matched by string comparison rather than by a regex. The shipped ruleset
@@ -711,7 +733,7 @@ function classify(output, code, load, read) {
   // Directly below interference and above every measurement signature: a run
   // that executed no test files measured nothing, so its timeouts, its FAIL
   // lines and above all its coverage numbers are artefacts of not having run.
-  if (NO_TESTS_PATTERN.test(output) && !SUMMARY_PATTERN.test(output)) {
+  if (ranNoTests(output)) {
     return noTestsVerdict(output);
   }
 
