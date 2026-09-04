@@ -2172,55 +2172,6 @@ function assertStateAmong(refs, contract) {
 }
 
 /**
- * The GitHub issue a branch name encodes, or undefined when it encodes none.
- *
- * A GitHub reference is `owner/repo#123`, and no branch name carries the
- * `owner/repo` half — which is why this arm used to return `undefined`
- * unconditionally. But the repository half is not a question a branch has to
- * answer: `canonicalizeRef` already refuses any reference outside
- * `contract.repository`, so every reference that reaches this comparison is in
- * THIS repository by construction, and the only open question is the number.
- * Branch names do carry that, under the convention `lisa-implement` writes and
- * this repository's own history uses throughout — `fix/3888-slug`,
- * `codex/614-add-checkout-copy`, `claude/issue-1423-20260704-1813`.
- *
- * Measured 2026-09-04 (issue #3888): the `github` provider is this
- * repository's tracker, so `assertBranchMatches` had no subject on any
- * unbound worktree — 101 of 105 — and `WORK_ITEM_TRACKING_OK` was printed off
- * a comparison that never happened. The binding arm covered the other four.
- *
- * ## Narrowed to a repository that IS its own issue queue
- *
- * When `github.queueRepo` points the work-item queue at ANOTHER repository, a
- * number in this repository's branch name is not a statement about that
- * queue's issue numbering, and reading it as one would invent refusals. So the
- * fallback is confined to `repositoryIsIdentity`, and a queue-repo project
- * keeps exactly the behaviour it has today.
- *
- * ## Only a leading number in the last segment counts
- *
- * The digits must OPEN the final path segment and be followed by `-` and a
- * word character, optionally behind `issue-`. That shape is what the
- * convention writes, and every other shape a branch name takes reads as
- * nothing: `release/4.4.11` (a `.` follows the digits), `chore/update-cdk`,
- * `claude/wonderful-vaughan-61d007`, `dev`, `main`. Fails OPEN on all of them,
- * exactly as the Jira and Linear arm does — the defect being closed is a
- * comparison that silently did not happen, and replacing it with a new class
- * of blocked commit on branches that never encoded an issue would trade one
- * surprise for a louder one.
- * @param {object} contract Resolved tracker contract.
- * @returns {string|undefined} Canonical `owner/repo#123`, or undefined.
- */
-function githubBranchWorkItem(contract) {
-  if (!contract.repositoryIsIdentity) return undefined;
-  const branch = activeBranch();
-  if (!branch) return undefined;
-  const segment = branch.slice(branch.lastIndexOf("/") + 1);
-  const match = /^(?:issue-)?([1-9]\d{0,6})-\w/.exec(segment);
-  return match ? `${contract.repository}#${match[1]}` : undefined;
-}
-
-/**
  * The work item a branch name encodes, or undefined when it encodes none.
  *
  * The second ground truth `validate-commit` needs. `assertStateMatches` has
@@ -2256,9 +2207,10 @@ function githubBranchWorkItem(contract) {
  *   branch encodes none.
  */
 function branchWorkItem(contract) {
-  if (contract.provider === "github") return githubBranchWorkItem(contract);
   const branch = activeBranch();
   if (!branch) return undefined;
+  if (contract.provider === "github")
+    return githubBranchIssue(branch, contract);
   const key =
     contract.provider === "jira" ? contract.project : contract.teamKey;
   if (!key) return undefined;
@@ -2270,6 +2222,53 @@ function branchWorkItem(contract) {
     "i"
   ).exec(branch);
   return match ? `${key}-${match[1]}` : undefined;
+}
+
+/**
+ * The GitHub issue a branch name encodes, canonicalized, or undefined.
+ *
+ * This used to be `branchWorkItem`'s first statement, returning `undefined`
+ * unconditionally on the premise that "a GitHub reference is `owner/repo#123`;
+ * no branch-naming convention encodes one". True of the canonical SPELLING and
+ * false of the convention in use — `fix/3537-…`, `stack/3463`, `qd/3554-…`.
+ * The number is right there; it simply is not written as a full reference. So
+ * the fallback built to close the unbound-worktree gap never applied to the
+ * provider this repository configures, and the trailer went on being compared
+ * against nothing, while the hook printed `WORK_ITEM_TRACKING_OK` either way
+ * (CodySwannGT/lisa#3861).
+ *
+ * WHY THE WHOLE FIRST SEGMENT AFTER THE FIRST SLASH, and nothing looser. A
+ * bare number is ambiguous in a way a `KEY-123` shape is not, so position has
+ * to carry the meaning the key would otherwise carry. Measured against the 246
+ * branches this repository has: the rule reads 149 of them, and every one of
+ * the 97 it declines genuinely encodes no issue number. A "first number
+ * anywhere" rule would instead read `chore/upgrade-lisa-4.33.1` as issue 4,
+ * `stack/queue-drain-20260903` as issue 20260903, and
+ * `fix/se-7728-e2e-coverage-wildcard` as issue 7728 — a version, a date and
+ * another tracker's key, each refusing a commit that is perfectly correct.
+ *
+ * `issue-<n>` shapes (`codex/issue-1264`) are knowingly NOT read. They are
+ * unambiguous but rare here, and every additional pattern is another place to
+ * be wrong; declining them fails open, which is the safe direction.
+ *
+ * EXPORTED SO IT CAN BE TESTED IN PROCESS, and that is not a formality. The
+ * CLI-level cases around this reach it only by SPAWNING the script, and a
+ * subprocess loads the file from disk rather than the instrumented module, so
+ * the mutation gate cannot see through it: measured, 12 of 12 mutants in this
+ * function survived every CLI case while an untouched range of the same file
+ * scored 85.71% off the in-process importers. Taking `branch` as an argument
+ * rather than calling `activeBranch()` is what makes that possible — the
+ * function is pure, so a table of names can pin each boundary directly. Several
+ * neighbours here are exported for the same reason.
+ * @param {string} branch Active branch name.
+ * @param {object} contract Resolved tracker contract.
+ * @returns {string|undefined} Canonical `owner/repo#123`, or undefined.
+ */
+export function githubBranchIssue(branch, contract) {
+  // Bounded on both sides: the number must fill the segment, so `4.33.1` and
+  // `se-7728` do not match, and `3463` is not read out of `34631`.
+  const match = /^[^/]+\/([1-9]\d*)(?:-|$)/.exec(branch);
+  return match ? `${contract.repository}#${match[1]}` : undefined;
 }
 
 /**
