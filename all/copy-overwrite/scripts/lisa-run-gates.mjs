@@ -54,6 +54,11 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { DIAGNOSIS, diagnoseFailure } from "./lib/gate-failure-diagnosis.mjs";
+import {
+  killMarkNote,
+  recentKillMarks,
+  recordKillMark,
+} from "./lib/kill-marks.mjs";
 import { boundedSpawnSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import {
@@ -506,9 +511,13 @@ function classifyStatic(gate) {
  * gate is failing. A summary that hides a failure under a green headline is
  * the same defect as a check that reports success without running.
  * @param {GateRun} result The result of `runGates`.
+ * @param {Array<object>} [priorKills] Marks left by EARLIER runs, captured
+ *   before this run started. Passed in rather than read here so this function
+ *   stays a pure rendering of its inputs, and so a run can never report its
+ *   own kill back to itself as prior context.
  * @returns {string[]} Summary lines.
  */
-function summarise(result) {
+function summarise(result, priorKills = []) {
   const lines = [];
   const truly = result.failed.filter(entry => entry.state === STATE.FAILED);
   const byLevel = level => truly.filter(entry => entry.level === level);
@@ -541,6 +550,13 @@ function summarise(result) {
     lines.push(
       `❓ ${entry.level} gate NOT PROVED: ${entry.id} — ${entry.detail}`
     );
+  }
+
+  // Only alongside a result that went wrong. Attached to a clean pass it would
+  // be noise on every run for an hour after any kill, and a note nobody reads
+  // is a note that cannot help the one time it matters.
+  if (result.failed.length > 0 || result.notRun.length > 0) {
+    for (const line of killMarkNote(priorKills)) lines.push(line);
   }
   // Two different sentences on purpose. Rendering these as one "skipped"
   // bucket is what makes an early failure produce a report whose later gates
@@ -690,6 +706,14 @@ function verdictFor(gate, { proved, blockedBy, exec, siblings }) {
  * @param {Record<string, string>|null} [options.scripts] The project's package
  *   scripts, from `projectScripts`. `null` means unknown, and an unknown
  *   manifest resolves exactly as it did before `shippedAs` was consulted.
+ * @param {Array<object>} [options.priorKills] Marks left by EARLIER runs.
+ *   Injected for the same reason `exec` is: a test states the machine's recent
+ *   history instead of having to terminate a real run an hour ago. Defaults to
+ *   reading them, and the default is evaluated HERE — before any gate runs —
+ *   so a run cannot read back the mark it is about to write.
+ * @param {function({kind: string, gateId: string}): boolean} [options.recordKill]
+ *   Kill-marker writer, injectable so marker cardinality can be proved without
+ *   writing to the host's shared marker directory.
  * @returns {GateRun} What every declared gate at this moment produced.
  */
 export function runGates({
@@ -699,6 +723,8 @@ export function runGates({
   exec,
   out = line => console.log(line),
   scripts = null,
+  priorKills = recentKillMarks(),
+  recordKill = recordKillMark,
 }) {
   const resolved = resolveMoment({ gates, moment, runner, scripts });
   const results = [];
@@ -789,7 +815,12 @@ export function runGates({
     skipped: bucket(STATE.SKIPPED),
     notRun: bucket(STATE.NOT_RUN),
   };
-  for (const line of summarise(result)) out(line);
+  // Left for a LATER run, because this one already knows. The note only ever
+  // helps a different run whose own output carries no trace of the machine.
+  for (const entry of result.killed.filter(entry => entry.provedBy === null)) {
+    recordKill({ kind: STATE.KILLED, gateId: entry.id });
+  }
+  for (const line of summarise(result, priorKills)) out(line);
   return result;
 }
 
@@ -1291,9 +1322,10 @@ function inputsDigest() {
  * @param {object|null} options.gates The gates block that was executed.
  * @param {string} [options.runner] The task-runner prefix.
  * @param {Record<string,string>|null} [options.scripts] Project scripts.
+ * @param {object} options.identity Lisa artifact identity captured at run start.
  * @returns {object} The contract binding.
  */
-function evidenceContract({ moment, gates, runner, scripts = null }) {
+function evidenceContract({ moment, gates, runner, scripts = null, identity }) {
   return {
     moment,
     runner: runner ?? null,
@@ -1306,7 +1338,7 @@ function evidenceContract({ moment, gates, runner, scripts = null }) {
     // produced the verdict — a fact a workflow ref cannot carry, because the
     // wrapper's identity and the enforcement's identity are independent when
     // the enforcement is a file living in the consuming repository.
-    ...lisaIdentity(),
+    ...identity,
     inputs_digest: inputsDigest(),
   };
 }
@@ -1453,6 +1485,7 @@ function gateEvidence(outcome, observedAt) {
  * @param {string} [options.runner] The task-runner prefix.
  * @param {Record<string,string>|null} [options.scripts] Project scripts.
  * @param {string} options.observedAt When the run began, ISO-8601.
+ * @param {object} [options.identity] Lisa identity captured for this run.
  * @returns {object} The evidence envelope.
  */
 export function evidenceDocument({
@@ -1463,6 +1496,7 @@ export function evidenceDocument({
   runner = undefined,
   scripts = null,
   observedAt,
+  identity = lisaIdentity(),
 }) {
   const observations = (result?.results ?? []).map(outcome =>
     gateEvidence(outcome, observedAt)
@@ -1471,7 +1505,7 @@ export function evidenceDocument({
     schema: EVIDENCE_SCHEMA,
     verdict,
     subject: evidenceSubject(),
-    contract: evidenceContract({ gates, moment, runner, scripts }),
+    contract: evidenceContract({ gates, moment, runner, scripts, identity }),
     producer: evidenceProducer(),
     observed_at: observedAt,
     gates: observations,
@@ -1613,7 +1647,8 @@ function main() {
   // defect this line exists to close: the local hook runs the version this
   // project PINNED, while CI runs a floating ref, so two reports about "the
   // gate" are routinely claims about different code.
-  console.log(formatIdentityLine(lisaIdentity()));
+  const identity = lisaIdentity();
+  console.log(formatIdentityLine(identity));
 
   /**
    * Record this run, and refuse to report a verdict we could not record.
@@ -1646,6 +1681,7 @@ function main() {
         runner: parts.runner,
         scripts: parts.scripts ?? null,
         verdict,
+        identity,
       })
     );
     if (written) return code;

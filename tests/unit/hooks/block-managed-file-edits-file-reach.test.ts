@@ -25,7 +25,7 @@
  * in-tree reports ALLOW for everything and proves nothing.
  * @module tests/unit/hooks/block-managed-file-edits-file-reach
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { beforeAll, describe, expect, it } from "vitest";
@@ -124,6 +124,8 @@ describe("block-managed-file-edits.sh reach", () => {
       ["sh", () => `sh ${redirectScript}`],
       ["source", () => `source ${redirectScript}`],
       ["an absolute interpreter path", () => `/bin/bash ${redirectScript}`],
+      ["a bare script path", () => redirectScript],
+      ["a bare script path behind sudo", () => `sudo -- ${redirectScript}`],
       [
         "a wrapper with its own operand",
         () => `nice -n 5 bash ${redirectScript}`,
@@ -136,12 +138,66 @@ describe("block-managed-file-edits.sh reach", () => {
       expect(run(`bash ${execChain}`)).toBe(EXIT_BLOCKED);
     });
 
+    it("refuses a managed write inside a shell command string", () => {
+      expect(run(`bash -c 'echo tampered > ${MANAGED}'`)).toBe(EXIT_BLOCKED);
+    });
+
+    it("refuses a managed write after shell -c --", () => {
+      expect(run(`bash -c -- 'echo tampered > ${MANAGED}'`)).toBe(EXIT_BLOCKED);
+    });
+
+    it("recurses through nested shell command strings", () => {
+      expect(run(`bash -c "sh -c 'echo tampered > ${MANAGED}'"`)).toBe(
+        EXIT_BLOCKED
+      );
+    });
+
+    it("recurses through nested shell -c -- command strings", () => {
+      expect(run(`bash -c "sh -c -- 'echo tampered > ${MANAGED}'"`)).toBe(
+        EXIT_BLOCKED
+      );
+    });
+
     it("names the managed file in the refusal", () => {
       const { stderr } = runGuard(GUARD, bash(`bash ${redirectScript}`), {
         cwd: host,
         env: { CLAUDE_PROJECT_DIR: host, LISA_ALLOW_MANAGED_FILE_WRITE: "" },
       });
       expect(stderr).toContain(MANAGED);
+    });
+
+    it("announces analyzer failures instead of silently allowing them", () => {
+      const fakeBin = path.join(host, "failing-analyzer-bin");
+      mkdirSync(fakeBin, { recursive: true });
+      const fakePython = path.join(fakeBin, "python3");
+      writeFileSync(
+        fakePython,
+        [
+          "#!/bin/sh",
+          'echo "deliberate analyzer failure" >&2',
+          "exit 7",
+          "",
+        ].join("\n")
+      );
+      chmodSync(fakePython, 0o755);
+
+      const { status, stderr } = runGuard(
+        GUARD,
+        bash(`bash ${redirectScript}`),
+        {
+          cwd: host,
+          env: {
+            CLAUDE_PROJECT_DIR: host,
+            LISA_ALLOW_MANAGED_FILE_WRITE: "",
+            PATH: `${fakeBin}:${process.env.PATH ?? ""}`,
+          },
+        }
+      );
+
+      expect(status).toBe(EXIT_ALLOWED);
+      expect(stderr).toContain("Bash analyzer failed (exit 7)");
+      expect(stderr).toContain("deliberate analyzer failure");
+      expect(stderr).toContain("write protection is NOT active");
     });
   });
 

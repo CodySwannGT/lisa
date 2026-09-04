@@ -13,6 +13,7 @@ const CHECKER = path.join(
   REPO_ROOT,
   "expo/copy-overwrite/scripts/check-lighthouse-details.mjs"
 );
+const REPORT_DIRECTORY = ".lighthouseci";
 const EXAMPLE_URL = "http://localhost/example.html";
 const OTHER_URL = "http://localhost/privacy-policy.html";
 
@@ -27,7 +28,7 @@ function projectWithReports(
   maximum?: number
 ): string {
   const project = mkdtempSync(path.join(tmpdir(), "lisa-lighthouse-details-"));
-  const reportDirectory = path.join(project, ".lighthouseci");
+  const reportDirectory = path.join(project, REPORT_DIRECTORY);
   mkdirSync(reportDirectory);
   reports.forEach((report, index) => {
     writeFileSync(
@@ -292,6 +293,25 @@ describe("Lighthouse detail budget", () => {
     );
   });
 
+  it("collects a malformed JSON report without masking later report failures", () => {
+    const project = projectWithReports([report(1), {}], 100);
+    writeFileSync(
+      path.join(project, REPORT_DIRECTORY, "lhr-1-malformed.json"),
+      "{not-json",
+      "utf8"
+    );
+
+    const result = run(project);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "lhr-1-malformed.json is not a valid Lighthouse result"
+    );
+    expect(result.stderr).toContain(
+      "lhr-1.json: missing forced-reflow-insight audit"
+    );
+  });
+
   it("fails closed when detail evidence has no aggregate table", () => {
     const noAggregate = report(1);
     noAggregate.audits["forced-reflow-insight"].details.items = [];
@@ -315,7 +335,7 @@ describe("Lighthouse detail budget", () => {
 
   it("fails closed when Lighthouse produced no reports", () => {
     const project = mkdtempSync(path.join(tmpdir(), "lisa-lighthouse-empty-"));
-    mkdirSync(path.join(project, ".lighthouseci"));
+    mkdirSync(path.join(project, REPORT_DIRECTORY));
 
     const result = run(project);
 

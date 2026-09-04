@@ -114,6 +114,58 @@ describe("block-direct-issue-create.sh bypass classes", () => {
 
       expect(status).toBe(EXIT_ALLOWED);
     });
+
+    /**
+     * #3727. The rows above and the rows below are the SAME branch with one
+     * variable flipped: whether a declaration is present. Tokenisation is what
+     * feeds every argv-based check, so when it threw, no declaration was
+     * consulted at all — not a `--body-file`, not even a plain `--label` in
+     * argv — and a correctly declared filing was refused with "this filing
+     * declares no readiness", which was false.
+     *
+     * Both halves are required. Asserting only that a declared command is
+     * allowed is satisfied by a guard that allows everything unparseable,
+     * which is the fail-open this whole suite exists to prevent.
+     */
+    it.each([
+      [
+        "the build-ready role as a label flag",
+        `gh issue create --label status:ready --title x #'`,
+      ],
+      [
+        "the human-gate marker inline",
+        `gh issue create --title x --body 'held ${GATE_MARKER}' #'`,
+      ],
+    ])("allows an unparseable command declaring %s", (_label, command) => {
+      const { status } = runHook(bash(command));
+
+      expect(status).toBe(EXIT_ALLOWED);
+    });
+
+    /**
+     * The rejection controls for the case above. Reading raw unparseable text
+     * must not degrade into "the role string appears somewhere" — a build-ready
+     * role is an ordinary word that shows up in prose about the queue, and in
+     * any link that filters on the label. A role named in prose is not a role
+     * applied, and that rule has to survive tokenisation failing.
+     */
+    it.each([
+      [
+        "the role only in prose",
+        `gh issue create --title 'the status:ready lane is backed up' #'`,
+      ],
+      [
+        "the role only inside a URL",
+        `gh issue create --title x --body 'see /issues?q=label%3Astatus%3Aready' #'`,
+      ],
+    ])(
+      "still refuses an unparseable command mentioning %s",
+      (_label, command) => {
+        const { status } = runHook(bash(command));
+
+        expect(status).toBe(EXIT_BLOCKED);
+      }
+    );
   });
 
   describe("DP5 — dispatch through another interpreter", () => {

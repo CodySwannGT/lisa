@@ -88,10 +88,13 @@ permissions:
 jobs:
   report:
     name: 🌙 Nightly E2E Report
-    # PIN AN IMMUTABLE REF, for the same reason the gate caller does: the two
-    # halves must speak the same contract major, and `@main` can change between
-    # a report and the gate reading the same night.
-    uses: CodySwannGT/lisa/.github/workflows/nightly-e2e-report.yml@v3.35.0
+    # TRACK `@main`, for the same reason the gate caller does — see the longer
+    # note there. The two halves must speak the same contract major, and
+    # tracking is what keeps them together: pinning this one froze it at
+    # `@v3.35.0` while the gate moved on, which is the divergence the pin was
+    # supposed to prevent. The contract-version assertion, not the ref, is what
+    # detects a mismatch. Enforced by `scripts/check-template-workflow-refs.mjs`.
+    uses: CodySwannGT/lisa/.github/workflows/nightly-e2e-report.yml@main
     with:
       branch: dev
       # The status-check context the GATE publishes, used to MEASURE whether it

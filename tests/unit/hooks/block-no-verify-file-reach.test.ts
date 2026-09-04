@@ -77,6 +77,9 @@ const EXEC_CHAIN = script(dir, "outer-exec.sh", [`bash ${BYPASS_SCRIPT}`]);
 const DATA_CHAIN = script(dir, "outer-data.sh", [
   `grep -n commit ${BYPASS_SCRIPT}`,
 ]);
+/** A home-relative execution target, for the shell's ordinary `~/...` form. */
+const homeFixtureDir = scratchDir("no-verify-home");
+const HOME_BYPASS_SCRIPT = script(homeFixtureDir, "nv-home.sh", [LONG_BYPASS]);
 
 describe("block-no-verify.sh reach", () => {
   describe("refuses a bypass inside a file the command executes", () => {
@@ -95,8 +98,20 @@ describe("block-no-verify.sh reach", () => {
       ["a wrapper with its own operand", `nice -n 5 bash ${BYPASS_SCRIPT}`],
       ["a timeout wrapper", `timeout 5 bash ${BYPASS_SCRIPT}`],
       ["stdin redirection", `bash < ${BYPASS_SCRIPT}`],
+      ["stdin redirection after -x", `bash -x < ${BYPASS_SCRIPT}`],
+      ["stdin redirection after -e", `bash -e < ${BYPASS_SCRIPT}`],
+      ["stdin redirection after --", `bash -- < ${BYPASS_SCRIPT}`],
     ])(REFUSES, (_label, command) => {
       expect(run(command)).toBe(EXIT_BLOCKED);
+    });
+
+    it("expands a leading tilde before resolving the executed script", () => {
+      const { status } = runGuard(GUARD, bash("bash ~/nv-home.sh"), {
+        env: { HOME: homeFixtureDir },
+      });
+
+      expect(status).toBe(EXIT_BLOCKED);
+      expect(HOME_BYPASS_SCRIPT).toContain(homeFixtureDir);
     });
 
     it("refuses the short cluster inside an executed script", () => {
@@ -123,6 +138,12 @@ describe("block-no-verify.sh reach", () => {
 
     it("allows executing this guard's own source", () => {
       expect(run(`bash ${GUARD}`)).toBe(EXIT_ALLOWED);
+    });
+
+    it("does not treat stdin as a script when -c already supplied the command", () => {
+      expect(run(`bash -c 'cat >/dev/null' < ${BYPASS_SCRIPT}`)).toBe(
+        EXIT_ALLOWED
+      );
     });
   });
 

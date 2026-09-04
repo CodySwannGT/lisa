@@ -145,11 +145,26 @@ jobs:
   health:
     name: 🌙 Nightly E2E Health
     needs: policy
-    # PIN AN IMMUTABLE REF. `@main` is not a supported pin for a merge gate: the
-    # thing that decides whether code may merge must not change under you
-    # between two runs of the same PR. Better still, pin the tag's commit SHA
-    # and keep the tag in a trailing comment.
-    uses: CodySwannGT/lisa/.github/workflows/nightly-e2e-health.yml@v3.35.0
+    # TRACK `@main`. Never pin this, not to a tag and not to a SHA.
+    #
+    # The instruction here used to say the opposite, on the reasoning that a
+    # merge gate must not change under you between two runs of one PR. That
+    # reasoning is real but it buys stability with a worse failure, because
+    # BOTH ways of pinning fail SILENTLY:
+    #
+    #   - a tag stops receiving anything and never goes red. This very line sat
+    #     on `@v3.35.0` while Lisa shipped 4.x — a full major behind, for
+    #     months, with nothing to show for it.
+    #   - a SHA becomes unreachable the moment history is rewritten. Actions
+    #     then cannot LOAD the workflow, so it creates zero jobs and the
+    #     required check is ABSENT rather than red. GitHub holds every pull
+    #     request waiting on a verdict that will never arrive; recovering it
+    #     needs an admin override. That has already happened here.
+    #
+    # `@main` breaking is the loud failure, and the sanctioned fix is to repair
+    # the reusable workflow upstream — not to freeze this caller. Enforced by
+    # `scripts/check-template-workflow-refs.mjs`.
+    uses: CodySwannGT/lisa/.github/workflows/nightly-e2e-health.yml@main
     with:
       branch: dev
       # Structured JSON, schema-validated before any API call. Duplicated

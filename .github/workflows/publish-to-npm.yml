@@ -181,5 +181,25 @@ jobs:
         # npm publish is required for OIDC provenance - bun publish doesn't support --provenance yet
         # Configure trusted publisher at: https://www.npmjs.com/package/<package-name>/access
 
+      # The publish command exiting zero is not the same fact as the version
+      # being installable, and CodySwannGT/lisa#3684 is the gap between them:
+      # v4.33.7 was tagged, GitHub-released and provenance-attested while
+      # registry.npmjs.org returned 404 for it, and nothing noticed for a day.
+      #
+      # Asks the EXACT-VERSION endpoint, never dist-tags.latest. `latest` lags a
+      # successful publish by several minutes (CodySwannGT/lisa#3685), so
+      # verifying against it would report a false miss for a publish that landed
+      # — and a check that cries wolf is a check somebody deletes.
+      #
+      # Blocks on "could not ask the registry" as well as on "the registry says
+      # no". Nothing was proved in either case, and reporting success for an
+      # input never examined is the defect one layer up.
+      - name: Verify the publish reached the registry
+        run: |
+          package_name="$(node -p "require('./package.json').name")"
+          node scripts/check-npm-publish-landed.mjs \
+            --package "$package_name" \
+            --version "${{ inputs.version }}"
+
       - name: Notify on success
-        run: echo "Successfully published version ${{ inputs.version }} to npm with provenance"
+        run: echo "Successfully published and verified version ${{ inputs.version }} on npm with provenance"

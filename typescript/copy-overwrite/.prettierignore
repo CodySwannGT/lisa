@@ -69,6 +69,7 @@ scripts/check-orphaned-branches.mjs
 scripts/check-e2e-coverage.mjs
 scripts/check-lighthouse-details.mjs
 scripts/check-nightly-e2e-health.mjs
+scripts/check-npm-publish-landed.mjs
 scripts/check-release-package-identity.mjs
 scripts/check-skipped-required-checks.mjs
 scripts/check-state-classification.mjs

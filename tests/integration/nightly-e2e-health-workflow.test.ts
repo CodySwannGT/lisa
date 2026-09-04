@@ -126,12 +126,21 @@ describe("the required status-check context identity", () => {
     );
   });
 
-  it("the caller PINS AN IMMUTABLE REF — `@main` is not a pin for a merge gate", () => {
-    // The thing that decides whether code may merge must not change under you
-    // between two runs of the same PR (Appendix A5).
+  it("the caller TRACKS `@main` — a merge gate is not exempt from the rule", () => {
+    // This asserted the opposite, on the reasoning that the thing deciding
+    // whether code may merge must not change under you between two runs of one
+    // PR. That reasoning is real, and it buys stability with a worse failure:
+    // both ways of pinning fail SILENTLY. A tag stops receiving anything and
+    // never goes red — this very caller sat on `@v3.35.0` while Lisa shipped
+    // 4.x. A SHA becomes unreachable after a history rewrite, so Actions cannot
+    // load the workflow, zero jobs run, and the gate is ABSENT rather than red,
+    // blocking every PR on a verdict that never arrives.
+    //
+    // A merge gate is where that matters MOST, not where it is excused: an
+    // absent gate does not fail closed, it hangs. `@main` breaking is loud, and
+    // the sanctioned response is to fix the reusable upstream.
     const ref = (caller.jobs.health.uses ?? "").split("@")[1];
-    expect(ref).not.toBe("main");
-    expect(ref).toMatch(/^(v\d+\.\d+\.\d+|[0-9a-f]{40})$/);
+    expect(ref).toBe("main");
   });
 });
 
