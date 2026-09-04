@@ -166,7 +166,7 @@ if [ -d "$SRC_DIR/base/hooks" ]; then
 fi
 for guard in block-no-verify parity-safety-net block-shell-json-parsing \
   block-instruction-file-edits block-direct-issue-create \
-  block-managed-file-edits; do
+  block-managed-file-edits block-blind-automerge; do
   if [ -f "$SRC_DIR/base/hooks/$guard.sh" ]; then
     materialize "$SRC_DIR/base/hooks/$guard.sh" "$HOST_GUARD_DIR/$guard.sh"
     chmod +x "$HOST_GUARD_DIR/$guard.sh"

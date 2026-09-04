@@ -208,6 +208,12 @@ example/
 .cdk.staging
 cdk.out
 
+# Two-snapshot local temp-growth measurement. It records machine paths, inode
+# identity and live process ownership, so it is runtime evidence, not source.
+# Keep this above EASINCLUDE: remote build uploads must not receive local
+# machine/process evidence.
+.lisa/tmpdir-growth.json
+
 ### EASINCLUDE! ###
 ### BELOW THIS LINE WILL NOT BE IGNORED BY EAS ###
 # aws-exports.js This should be ignored but is needed for eas update

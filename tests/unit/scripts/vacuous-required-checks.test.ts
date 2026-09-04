@@ -307,6 +307,27 @@ describe("vacuous required checks", () => {
       expect(result.checked).toBe(1);
     });
 
+    it("normalizes malformed evidence vocabularies without throwing", () => {
+      for (const entry of [null, true, "not-an-object"]) {
+        const result = mod.evaluateVacuousChecks(
+          declarationWith({
+            evidence_bearing_checks: { [CODERABBIT]: entry },
+          }),
+          [
+            {
+              name: CODERABBIT,
+              state: "SUCCESS",
+              description: RATE_LIMITED,
+            },
+          ]
+        );
+
+        expect(result.violations.map(violation => violation.kind)).toEqual([
+          mod.VIOLATIONS.vacuous,
+        ]);
+      }
+    });
+
     it("says branch protection recorded it when the check is ruleset-required", () => {
       const [violation] = mod.evaluateVacuousChecks(declarationWith(), [
         {

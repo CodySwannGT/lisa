@@ -288,9 +288,9 @@ async function initGitRepoWithRetry(repoDir, attempts = 4) {
  */
 async function snapshotAutomationDir(dir) {
   const files = await fs.readdir(dir, { withFileTypes: true });
-  const sortedFiles = files.toSorted((left, right) =>
-    left.name.localeCompare(right.name)
-  );
+  const sortedFiles = files
+    .slice()
+    .sort((left, right) => left.name.localeCompare(right.name));
   const snapshot = {};
   for (const entry of sortedFiles) {
     if (!entry.isDirectory()) {

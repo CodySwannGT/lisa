@@ -21,9 +21,9 @@ describe("closed stable-reviewer generated parity", () => {
     );
 
     expect(discovered).toEqual(
-      [...REVIEW_SKILL_SURFACES].toSorted((left, right) =>
-        left.localeCompare(right)
-      )
+      [...REVIEW_SKILL_SURFACES]
+        .slice()
+        .sort((left, right) => left.localeCompare(right))
     );
   });
 

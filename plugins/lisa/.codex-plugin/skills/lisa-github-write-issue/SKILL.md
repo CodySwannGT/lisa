@@ -276,6 +276,17 @@ Held for a human product call: <reason>.
 <!-- [lisa-human-gate] reason=<short-slug> -->
 ```
 
+**Stamp both surfaces, not just the marker.** Also apply the configured `human_needed` marker
+label (`github.labels.build.human_needed`, default `human-needed`) to the issue, via `gh issue edit`/`gh issue create --label`. The marker in the body and the label say the same thing,
+and a filing that carries only one of them is a **half-armed gate**: sweeps that read the body
+honour it, and sweeps that read labels do not. That is not hypothetical — the repair sweep that
+normalizes items carrying no lifecycle label keys on the *absence* of `human_needed`, so a
+marker-only hold was its population by construction and got promoted into the build queue (#3805).
+The marker remains the authoritative declaration; the label is what makes the hold visible to a
+person scanning a board and to any path that has not yet been routed through the shared reader.
+If the label does not exist in the tracker, create it, or record that it could not be applied and
+proceed — the marker still holds. Never file the label *instead of* the marker.
+
 If a leaf arrives with `build_ready` omitted or `false` **and** no `human_gate`, do not create it: report the incomplete handoff and name both ways to resolve it (`build_ready: true`, or a `human_gate` reason). Containers are exempt — their state rolls up from children, so they need neither.
 
 ## Phase 5.5 — Validate (Pre-write Gate)

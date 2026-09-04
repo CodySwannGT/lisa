@@ -134,7 +134,9 @@ function authorityOverwriteControls(
     { payload: changedBirth(payload) },
     { companions: [changedPid(companion), ...companions.slice(1)] },
     { companions: [changedBirth(companion), ...companions.slice(1)] },
-    ...(companions.length < 2 ? [] : [{ companions: companions.toReversed() }]),
+    ...(companions.length < 2
+      ? []
+      : [{ companions: companions.slice().reverse() }]),
     { reaper: changedPid(reaper) },
     { reaper: changedBirth(reaper) },
   ];

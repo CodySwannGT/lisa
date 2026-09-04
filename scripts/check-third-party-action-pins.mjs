@@ -433,8 +433,12 @@ export function parseArgs(argv) {
     } else if (arg === "--warn") {
       warn = true;
     } else if (arg === "--root") {
-      const next = argv[i + 1];
-      if (next === undefined || next.startsWith("--")) {
+      const valueAt = i + 1;
+      if (valueAt >= argv.length || !Object.hasOwn(argv, valueAt)) {
+        throw new UsageError("--root requires a value");
+      }
+      const next = argv[valueAt];
+      if (next.startsWith("--")) {
         throw new UsageError("--root requires a value");
       }
       root = next;

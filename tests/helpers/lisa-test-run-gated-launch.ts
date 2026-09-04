@@ -52,7 +52,8 @@ function namespaceNames(base: string): readonly string[] {
   return fs.existsSync(namespace)
     ? fs
         .readdirSync(namespace)
-        .toSorted((left, right) => left.localeCompare(right))
+        .slice()
+        .sort((left, right) => left.localeCompare(right))
     : [];
 }
 
