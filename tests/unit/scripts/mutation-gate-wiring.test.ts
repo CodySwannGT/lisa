@@ -370,11 +370,12 @@ describe("a run that measured NOTHING must not render as a pass (#3668)", () => 
       ).toBe(1);
 
       const written = fs.readFileSync(output, "utf8");
-      expect(written).toContain(
-        `mutation_outcome=${gate.OUTCOMES.nothingToMutate}`
+      expect(written).toBe(
+        `mutation_outcome=${gate.OUTCOMES.nothingToMutate}\n` +
+          `mutation_measured=false\n` +
+          `mutation_outcome=${gate.OUTCOMES.scoped}\n` +
+          `mutation_measured=true\n`
       );
-      expect(written).toContain("mutation_measured=false");
-      expect(written).toContain("mutation_measured=true");
     } finally {
       fs.rmSync(scratch, { recursive: true, force: true });
     }
@@ -387,6 +388,25 @@ describe("a run that measured NOTHING must not render as a pass (#3668)", () => 
     expect(
       gate.finish(gate.OUTCOMES.scoped, 7, false, { GITHUB_OUTPUT: "" })
     ).toBe(7);
+  });
+
+  it("defaults an outcome with no concrete report to unmeasured", () => {
+    const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "mutation-default-"));
+    const saved = process.env.GITHUB_OUTPUT;
+    try {
+      const output = path.join(scratch, "out.txt");
+      process.env.GITHUB_OUTPUT = output;
+
+      expect(gate.finish(gate.OUTCOMES.nothingToMutate, 0)).toBe(0);
+      expect(fs.readFileSync(output, "utf8")).toBe(
+        `mutation_outcome=${gate.OUTCOMES.nothingToMutate}\n` +
+          "mutation_measured=false\n"
+      );
+    } finally {
+      if (saved === undefined) delete process.env.GITHUB_OUTPUT;
+      else process.env.GITHUB_OUTPUT = saved;
+      fs.rmSync(scratch, { recursive: true, force: true });
+    }
   });
 
   it("routes EVERY exit in runGate through finish, with no bare return", () => {
