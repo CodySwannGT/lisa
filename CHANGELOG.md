@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.34.16](https://github.com/CodySwannGT/lisa/compare/v4.34.15...v4.34.16) (2026-09-04)
+
+
+### Bug Fixes
+
+* **drive-pr-to-merge:** report a PR that is armed, green, and cannot merge ([5add70c](https://github.com/CodySwannGT/lisa/commit/5add70cf36f89412a2e62050968c31af6e0aed06)), closes [#3720](https://github.com/CodySwannGT/lisa/issues/3720) [#3686](https://github.com/CodySwannGT/lisa/issues/3686) [#3697](https://github.com/CodySwannGT/lisa/issues/3697) [CodySwannGT/lisa#3720](https://github.com/CodySwannGT/lisa/issues/3720)
+* harden managed guard execution ([0d9f5eb](https://github.com/CodySwannGT/lisa/commit/0d9f5ebd629afd05f8caf65585d337dfe7557778)), closes [CodySwannGT/lisa#3761](https://github.com/CodySwannGT/lisa/issues/3761)
+
 ### [4.34.15](https://github.com/CodySwannGT/lisa/compare/v4.34.14...v4.34.15) (2026-09-04)
 
 
