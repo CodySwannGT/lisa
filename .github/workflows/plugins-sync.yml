@@ -169,6 +169,20 @@ jobs:
       # and exits 2 at zero.
       - name: Check no multi-step transform is guarded only whole-output
         run: bun run check:whole-output-guards
+      # #3848: `gh pr view --repo OWNER/NAME` with no positional argument is a
+      # USAGE ERROR, not a lookup that returned no rows, and the work-item
+      # validator read that exit 1 as "this branch has no pull request" — so the
+      # two gates needing the pull request went unchecked on every push. The
+      # call was fixed in #3833; this step refuses the SHAPE. What separates a
+      # correct `if (status !== 0) return undefined;` from a catastrophic one is
+      # direction, not syntax, so every probe that spends a failure as an
+      # absence has to say at the line whether the absence makes the gate
+      # stricter or changes nothing — and `fail-open` is refused rather than
+      # excused. Like its neighbours it refuses to pass an inspection it did not
+      # perform: it prints how many sites it parsed, names the surfaces it does
+      # NOT read, and exits 2 at zero.
+      - name: Check no probe spends a failure as an absence
+        run: bun run check:probe-absence-direction
       # #3190: a shell guard cannot be mutation-tested — #3111 established that
       # Stryker cannot instrument shell at all — so its driving test is the only
       # bite evidence it can have, and nine guards had a driving test whose every

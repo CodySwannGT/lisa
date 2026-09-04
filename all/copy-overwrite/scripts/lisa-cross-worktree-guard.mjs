@@ -107,6 +107,10 @@ function probe(args, cwd) {
       stdio: ["ignore", "pipe", "ignore"],
     }).trim();
   } catch {
+    // probe-direction: fail-closed — every consumer reads null as "not proven
+    // safe": `isIntegrationContent` and `declaresItselfGenerated` return false,
+    // and `integrationRef` yields null, each of which makes the guard FIRE.
+    // A git that cannot answer costs a false report, never a silent pass.
     return null;
   }
 }

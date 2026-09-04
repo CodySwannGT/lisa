@@ -617,6 +617,17 @@ gh api "repos/<owner>/<repo>/actions/runs?head_sha=<head>" --jq .total_count
 problem. If CI were merely slow you would see runs QUEUED, not absent. Resolve
 the conflict and the runs appear; nothing else will make them appear.
 
+**`<head>` must be the FULL 40-character SHA.** `head_sha=` does not match a
+prefix and does not reject one: an abbreviated SHA returns a clean
+`total_count: 0` — not a 404, not a validation error, an absence shaped exactly
+like "no workflow ran". Measured on one pull request's own head: `77f223b9d` →
+`total_count 0`, `77f223b9d8ffe7b172e9cac48b068b3bcac304c3` → `total_count 4`.
+Take the SHA from `gh pr view <pr> --json headRefOid --jq .headRefOid`, never
+from `git log --oneline` or a truncated line in a log or a UI. Copying a short
+SHA here makes EVERY pull request read as having no CI, and the natural next
+action — rebase and force-push — throws away the live run you could not see
+(#3848).
+
 **`mergeable` is computed asynchronously.** GitHub returns `null` while it is
 still working it out, so a single read on a freshly-opened PR can say `null` on
 a perfectly clean branch. Treat `null` as "cannot tell yet" and re-read — never

@@ -143,9 +143,18 @@ export function showAtRevision(root, revision, relative) {
 
 /**
  * List the feature files that existed at a revision.
+ *
+ * Three-state on purpose. `git ls-tree` exits 0 with EMPTY output for a
+ * revision that genuinely holds no features, so a non-zero exit is always
+ * "could not ask" and never "there were none". Handing both back as `[]` let
+ * one failed listing read as an empty baseline, and an empty `before` set
+ * produces no `scenario-deleted` and no `coverage-regression` finding at all —
+ * so the gate reported that nothing regressed having compared against nothing.
+ * That is the same hole `loadBaseline` already closes for the coverage map,
+ * left open on the feature files beside it.
  * @param {string} root - Repo root.
  * @param {string} revision - Commit-ish.
- * @returns {string[]} Repo-relative feature paths.
+ * @returns {{ok: boolean, files: string[]}} Listing, and whether it was taken.
  */
 function featureFilesAt(root, revision) {
   const result = git(root, [
@@ -156,11 +165,16 @@ function featureFilesAt(root, revision) {
     "--",
     "bdd/features",
   ]);
-  if (!result.ok) return [];
-  return result.stdout
-    .split("\n")
-    .map(line => line.trim())
-    .filter(line => line.endsWith(".feature"));
+  // probe-direction: fail-closed — `ok: false` reaches `loadBaseline`, which
+  // records the baseline UNAVAILABLE instead of empty.
+  if (!result.ok) return { ok: false, files: [] };
+  return {
+    ok: true,
+    files: result.stdout
+      .split("\n")
+      .map(line => line.trim())
+      .filter(line => line.endsWith(".feature")),
+  };
 }
 
 /**
@@ -198,12 +212,17 @@ export function loadBaseline(root, revision, headPlatforms = new Set()) {
       error = `bdd/coverage-map.json at that revision is not valid JSON: ${parseError.message}`;
     }
   }
+  const listing = featureFilesAt(root, revision);
   if (binary === null) {
     error = "git was not found, so no base revision could be read";
   } else if (!revisionExists) {
     error = "the requested base does not name a readable commit";
+  } else if (!listing.ok) {
+    error =
+      "the base revision's feature files could not be listed, so no scenario " +
+      "from it could be compared";
   }
-  const documents = featureFilesAt(root, revision)
+  const documents = listing.files
     .map(file => ({ file, source: showAtRevision(root, revision, file) }))
     .filter(document => document.source !== null);
   const platforms = new Set([

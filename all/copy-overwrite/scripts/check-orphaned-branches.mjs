@@ -72,6 +72,10 @@ function run(command, args) {
     encoding: "utf8",
     maxBuffer: 8 * 1024 * 1024,
   });
+  // probe-direction: fail-closed — every caller of this helper refuses on
+  // undefined (`EXIT.UNAVAILABLE`, "This is NOT a clean result") instead of
+  // reporting a clean tree, so losing the answer costs a refusal, never a
+  // missed orphan.
   if (result.error || result.status !== 0) return undefined;
   return result.stdout.trim();
 }
@@ -122,6 +126,9 @@ export function branchesWithPullRequests() {
         : []
     );
   } catch {
+    // probe-direction: fail-closed — unparseable output is not an empty pull-
+    // request set. `main` turns undefined into EXIT.UNAVAILABLE, so a branch is
+    // never called orphaned because the listing could not be read.
     return undefined;
   }
 }
