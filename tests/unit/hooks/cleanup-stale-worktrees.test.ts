@@ -8,7 +8,13 @@
  * as "clean" — an unreadable worktree state must never be swept.
  * @module tests/unit/hooks/cleanup-stale-worktrees
  */
-import { copyFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  writeFileSync,
+} from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
@@ -127,16 +133,20 @@ async function createRepoWithPushedWorktree(): Promise<{
  * @param root - Primary repo root
  */
 function deliverGuard(root: string): void {
+  const source = path.resolve("all/copy-overwrite/scripts");
   const dest = path.join(root, "scripts");
-  mkdirSync(path.join(dest, "lib"), { recursive: true });
+
+  mkdirSync(dest, { recursive: true });
   copyFileSync(
-    path.resolve("all/copy-overwrite/scripts/lisa-worktree-guard.mjs"),
+    path.join(source, "lisa-worktree-guard.mjs"),
     path.join(dest, "lisa-worktree-guard.mjs")
   );
-  copyFileSync(
-    path.resolve("all/copy-overwrite/scripts/lib/invoked-as-script.mjs"),
-    path.join(dest, "lib", "invoked-as-script.mjs")
-  );
+  // The shared `lib/` is copied WHOLE rather than by naming the modules the
+  // guard imports: a fixture that lists them is a second copy of the guard's
+  // dependency set, and it reports clean for the entire period it is wrong.
+  cpSync(path.join(source, "lib"), path.join(dest, "lib"), {
+    recursive: true,
+  });
 }
 
 /**
