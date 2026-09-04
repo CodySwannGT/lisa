@@ -2413,7 +2413,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-ruleset-reach.mjs":
       "e51b12092062379e7317b368c89a789e2067ec302388e557ea84a29a35ffc238",
     "scripts/lisa-update-local.sh":
-      "c811f9e10dbcb38499a9791c1ae9051460b347051d04a1d2046925bab9a53c96",
+      "eb031a6bb4735e5096ac52efc3ef027233485c86524a83cd7f258d0b6f7b985b",
     "scripts/lisa-work-item.mjs":
       "51081847e980f314a764c2e50a7a121b1ced9ef4b980f33898057de4c7b852e6",
     "scripts/materialize-copy-overwrite.mjs":

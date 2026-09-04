@@ -9,13 +9,22 @@
  * fallback value.
  * @module tests/unit/core/lisa-release-pin
  */
-import { describe, expect, it } from "vitest";
+import fs from "fs-extra";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { ReleasePinDependencies } from "../../../src/core/lisa-release-pin.js";
 import {
   UnresolvableReleasePinError,
   resolveReleasePin,
+  resolveTagCommitFromGit,
 } from "../../../src/core/lisa-release-pin.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import { cleanGitEnv, resolveGit } from "../../support/git-executable.js";
+
+/** Git executable resolved the way every other fixture repo test resolves it. */
+const GIT = resolveGit();
 
 /** A full-length commit SHA, standing in for a real release commit. */
 const SHA = "0123456789abcdef0123456789abcdef01234567";
@@ -177,5 +186,62 @@ describe("the failing arm", () => {
     await expect(
       resolveReleasePin("/lisa", deps({ readStampedTag: () => "main" }))
     ).rejects.toThrow(/which is not a release tag/u);
+  });
+});
+
+describe("resolveTagCommitFromGit against a real repository", () => {
+  let repo: string;
+
+  /**
+   * Run one git command inside the fixture repository.
+   * @param args - Arguments after the git executable
+   * @returns Trimmed stdout
+   */
+  function git(...args: readonly string[]): string {
+    return String(
+      boundedExecFileSync({
+        label: `git ${args[0] ?? ""}`,
+        command: GIT,
+        args: [...args],
+        cwd: repo,
+        env: cleanGitEnv(),
+        encoding: "utf8",
+      }) ?? ""
+    ).trim();
+  }
+
+  beforeEach(async () => {
+    repo = await fs.mkdtemp(path.join(os.tmpdir(), "lisa-tagpin-"));
+    git("init");
+    git("config", "user.email", "test@example.com");
+    git("config", "user.name", "Test");
+    git("commit", "--allow-empty", "-m", "release");
+    git("tag", "v4.4.11");
+  });
+
+  afterEach(async () => {
+    await fs.remove(repo);
+  });
+
+  it("answers the TAG's commit, in full", async () => {
+    // The stubs above prove the resolver's shape. This proves the one
+    // implementation that ever talks to git reads a TAG rather than a branch
+    // and hands back all forty characters of the commit it names.
+    const sha = await resolveTagCommitFromGit(repo, "v4.4.11");
+    expect(sha).toMatch(/^[0-9a-f]{40}$/u);
+    expect(sha).toBe(git("rev-parse", "v4.4.11^{commit}"));
+  });
+
+  it("answers null for a tag that is not there, rather than guessing", async () => {
+    expect(await resolveTagCommitFromGit(repo, "v9.9.9")).toBeNull();
+  });
+
+  it("answers null for a directory that is not a repository", async () => {
+    const empty = await fs.mkdtemp(path.join(os.tmpdir(), "lisa-norepo-"));
+    try {
+      expect(await resolveTagCommitFromGit(empty, "v4.4.11")).toBeNull();
+    } finally {
+      await fs.remove(empty);
+    }
   });
 });
