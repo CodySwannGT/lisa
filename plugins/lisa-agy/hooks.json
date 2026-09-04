@@ -51,6 +51,19 @@
       }
     ]
   },
+  "lisa-block-managed-file-edits": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$HOME/.gemini/config/plugins/lisa/hooks/block-managed-file-edits.agy.sh\""
+          }
+        ]
+      }
+    ]
+  },
   "lisa-block-direct-issue-create": {
     "PreToolUse": [
       {
