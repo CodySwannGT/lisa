@@ -123,13 +123,18 @@ function diagnose(
   files: Record<string, string> = {}
 ): Diagnosis {
   return diagnoseFailure(output, 1, null, (path: string) =>
-    Object.hasOwn(files, path) ? files[path] : null
+    // `hasOwnProperty.call` rather than `Object.hasOwn`, which is ES2022. The
+    // call site is what moves; raising the shipped `lib` target so one line
+    // compiles would change the compilation target for every consumer.
+    Object.prototype.hasOwnProperty.call(files, path) ? files[path] : null
   ) as Diagnosis;
 }
 
 describe("terminatedDocComments: what counts as a block that ends early", () => {
   it("finds the block a path example closed, and where it really ends", () => {
-    const [broken] = terminatedDocComments(brokenSource()) as Broken[];
+    const found = terminatedDocComments(brokenSource()) as Broken[];
+    expect(found).toHaveLength(1);
+    const [broken] = found as [Broken];
     expect(broken.opensAt).toBe(3);
     expect(broken.endsAt).toBe(5);
     expect(broken.realEndsAt).toBe(8);
