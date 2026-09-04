@@ -17,7 +17,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-state-classification.mjs":
       "a72910f9885629dd6d8a739b900f5603e4b53d68ece64100a2a5647016b58e1e",
     "all/copy-overwrite/scripts/check-third-party-action-pins.mjs":
-      "79117b039e0d7df001e60835ad3538126ba88273bc5fa3c1d30d8e8e704e77cc",
+      "9f441b6b8697f0a64abd29125eb7881ebdb0c8d47487bdd18ff09633eb3dab19",
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs":
       "95f91f2a74ed4e523d064d5d374eadd1c1114f03a3a4fa41532c9b0fd32089de",
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
@@ -2269,7 +2269,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-template-workflow-refs.mjs":
       "89176394a933d0a42c39ab1805a45e782a2f3e1893d707ac1afb439062397088",
     "scripts/check-third-party-action-pins.mjs":
-      "f61b310333d4734225482906708bba90582882b5312ba39701a43cf6960706db",
+      "c085949d734edfef2807a95bc7c4814485e30f7bfad4d5054586aa264a5d42b4",
     "scripts/check-ui-demo-data.mjs":
       "82a5ed89ae830482dbaab99e2f8eeededcde60a7dd6ac145f191b4ac8394c85b",
     "scripts/check-whole-output-guards.mjs":
@@ -2511,7 +2511,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "dfd2fef680de5ef03e63075e8a61c62ca4d95cdfdff6201939b79c748d3397f6",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "2155fef86b5253faaa0a10b285abb07568fbc4b850021a0259081457f95237e3",
+      "cebfb61c953142ed6f52a0de07580dc2cd0c2c69262028750d2a3414c52524d6",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "47bc8b91e38535e694f43d9d3b76c4589ae2796e4ce9e875ab6b09a273e0c93a",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
