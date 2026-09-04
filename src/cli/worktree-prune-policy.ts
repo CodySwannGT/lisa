@@ -90,7 +90,8 @@ export const BLOCKER_EXPLANATIONS: Readonly<Record<WorktreeBlocker, string>> =
     "unpushed-commits":
       "it holds commits that exist on no remote — push them first",
     "uncommitted-changes":
-      "it holds uncommitted work — commit and push, or stash it, first",
+      "it holds uncommitted work — commit and push it first, or save a patch " +
+      "under your own TMPDIR; never the shared stash",
     unreadable: "git could not report on it, so nothing about it was proven",
   });
 
