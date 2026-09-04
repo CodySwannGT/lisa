@@ -31,6 +31,7 @@ import { renderDoctorResult } from "./doctor-render.js";
 import type { GateReport } from "./gate-report-types.js";
 import { checkSkipJobsMigration } from "./doctor-skip-jobs-migration.js";
 import { checkTwoChannelDrift } from "./doctor-two-channel-drift.js";
+import { checkNightlyE2eBypassArming } from "./doctor-nightly-e2e-bypass-arming.js";
 import { checkNightlyE2eGuard } from "./doctor-nightly-e2e-guard.js";
 import { checkWiki } from "./doctor-wiki.js";
 import { checkDeclaredContexts } from "./doctor-declared-contexts.js";
@@ -383,6 +384,15 @@ export async function runDoctor(
     // untrusted project JavaScript. A current managed copy sitting unused next
     // to an older renamed fork must not make either check look green (#2519).
     await checkNightlyE2eGuard(resolvedTarget),
+    // Same caller, the other half of the question. The guard check proves the
+    // file the caller INVOKES is the shipped one at a compatible contract; this
+    // asks whether that caller is ever invoked at the moment it matters. A
+    // bypass waiver's evidence is its label AND a body line, and a caller that
+    // does not subscribe to `edited` never re-runs when the body line is
+    // deleted — so the SUCCESS it already reported stands on evidence that is
+    // gone (#3476, #3485). The migration repairs this on upgrade; nothing but
+    // this check sees a consumer who later edits it back out.
+    await checkNightlyE2eBypassArming(resolvedTarget),
     await checkApplyFailure(resolvedTarget),
     // Immediately after the recorded-failure check, because they are the two
     // halves of the same operator question. That one reports that an apply DID

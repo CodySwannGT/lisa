@@ -228,7 +228,7 @@ export async function detectHealthProjectShape(
     ...(tsconfig || hasDependency("typescript") ? ["typescript" as const] : []),
     ...(app || eas || hasDependency("expo") ? ["expo" as const] : []),
     ...(nest || hasPrefix("@nestjs") ? ["nestjs" as const] : []),
-    ...(cdk || hasPrefix("aws-cdk") ? ["cdk" as const] : []),
+    ...(cdk ? ["cdk" as const] : []),
     ...(harper ? ["harper-fabric" as const] : []),
     ...(hasDependency("phaser") ? ["phaser" as const] : []),
     ...(publishable ? ["npm-package" as const] : []),
