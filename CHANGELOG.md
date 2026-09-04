@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.34.12](https://github.com/CodySwannGT/lisa/compare/v4.34.11...v4.34.12) (2026-09-04)
+
+
+### Bug Fixes
+
+* **ci:** read the block header YAML actually allows, not half of it ([e5fa039](https://github.com/CodySwannGT/lisa/commit/e5fa03971c047569e2d04db723201ede6ef5b891)), closes [CodySwannGT/lisa#3488](https://github.com/CodySwannGT/lisa/issues/3488)
+* **ci:** track [@main](https://github.com/main) in every seeded template, and see the refs that hid ([1be51e3](https://github.com/CodySwannGT/lisa/commit/1be51e3959acf3a4564abcac47d4487d5fe76a89)), closes [CodySwannGT/lisa#3488](https://github.com/CodySwannGT/lisa/issues/3488)
+* **gates:** let a killed run leave a note for a later, unrelated failure ([602e966](https://github.com/CodySwannGT/lisa/commit/602e966a5cb70b9694ff3742e90a81adac99c42a)), closes [#3657](https://github.com/CodySwannGT/lisa/issues/3657) [#3653](https://github.com/CodySwannGT/lisa/issues/3653) [CodySwannGT/lisa#3653](https://github.com/CodySwannGT/lisa/issues/3653)
+
 ### [4.34.11](https://github.com/CodySwannGT/lisa/compare/v4.34.10...v4.34.11) (2026-09-04)
 
 
