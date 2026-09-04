@@ -1243,6 +1243,44 @@ export const REVIEW_GATE_STATES = Object.freeze({
 });
 
 /**
+ * WHICH condition produced the state, as stable tokens.
+ *
+ * The state is the gate's SEVERITY and stays three-valued; this is what the
+ * gate OBSERVED, and it is six-valued because `unsatisfied` is reached from
+ * four structurally different situations:
+ *
+ * | condition      | what actually happened            | operator's next move  |
+ * |----------------|-----------------------------------|-----------------------|
+ * | `absent`       | nobody reviewed                   | investigate the silence |
+ * | `objected`     | a review ran and objected         | READ THE OBJECTION    |
+ * | `pending`      | the reviewer is late              | wait, then re-run     |
+ * | `unrecognised` | the reviewer said something new   | classify the phrase   |
+ *
+ * All four published one word, so an operator handed `unsatisfied` had to guess
+ * between four situations whose correct responses have nothing in common — and
+ * three of those guesses are wrong. That collapse is why CodySwannGT/lisa#3706,
+ * #3716 and #3600 each described a different defect and each was partly right:
+ * they are four faces of one impoverished vocabulary.
+ *
+ * The second row is the sharpest. This file states that a review which
+ * "RAN AND OBJECTED is the case this gate exists to let through to a human" —
+ * and then reported it identically to nobody-reviewed. Blocking is correct
+ * there, so no exit code was ever wrong; what was missing is any way to tell
+ * the operator which of the four they were looking at.
+ *
+ * SEVERITY IS DELIBERATELY UNCHANGED HERE. See `reviewGateState` for why
+ * `pending` keeps blocking.
+ */
+export const REVIEW_GATE_CONDITIONS = Object.freeze({
+  satisfied: "satisfied",
+  waived: "waived",
+  absent: "absent",
+  objected: "objected",
+  pending: "pending",
+  unrecognised: "unrecognised",
+});
+
+/**
  * Normalises a description for whole-string comparison.
  *
  * @param {string|undefined} description - The status description
@@ -1262,14 +1300,32 @@ function normalizeDescription(description) {
  * review-ran-and-objected path has no live example here, and a path with no
  * example and no test is a path nobody has watched work.
  *
+ * SEVERITY IS DELIBERATELY UNCHANGED. CodySwannGT/lisa#3600 reads the gate as
+ * "backwards" — harsh on a late reviewer, lenient on a hollow one — and asks
+ * for the two to be reconciled. Only half of that survives the invariant the
+ * gate exists to enforce, which is THAT A REVIEW ACTUALLY HAPPENED:
+ *
+ * - `pending` means the review has not happened YET, so blocking is correct.
+ *   Making it report-only would let a pull request merge unreviewed whenever a
+ *   reviewer ran slow, which is the exact outcome this gate exists to prevent.
+ * - The asymmetry #3600 names is real, but it points the other way: the lenient
+ *   side is the hollow green, and that leniency is the owner's explicit ruling
+ *   on #3221 (a vendor billing state nobody on the pull request can act on).
+ *
+ * So the response stays proportional by making the gate SAY which condition it
+ * observed, not by lowering what it does about lateness. Reversing the severity
+ * would trade a false red for a silent merge, and this file has a whole
+ * vocabulary of evidence that the silent direction is the expensive one.
+ *
  * @param {{present: boolean, state?: string, description?: string}} reading - One check
  * @param {{waive?: readonly string[], satisfy?: readonly string[]}} [vocabulary] - Per-check extensions
- * @returns {{state: string, why: string}} The gate state and a one-line reason
+ * @returns {{state: string, condition: string, why: string}} Severity, the condition observed, and a one-line reason
  */
 export function reviewGateState(reading, vocabulary = {}) {
   if (!reading.present) {
     return {
       state: REVIEW_GATE_STATES.unsatisfied,
+      condition: REVIEW_GATE_CONDITIONS.absent,
       why: "did not report on this pull request at all. ABSENT is not the same as waived: nothing said it could not review, so nothing accounts for the silence. A guard that read absence as permission would pass forever the first time it looked at the wrong commit.",
     };
   }
@@ -1278,19 +1334,22 @@ export function reviewGateState(reading, vocabulary = {}) {
   if (state === "FAILURE" || state === "ERROR") {
     return {
       state: REVIEW_GATE_STATES.unsatisfied,
-      why: `reported ${state}${text === "" ? "" : ` — ${JSON.stringify(reading.description ?? "")}`}. A review that RAN AND OBJECTED is the case this gate exists to let through to a human, and it is the one thing no waiver covers.`,
+      condition: REVIEW_GATE_CONDITIONS.objected,
+      why: `reported ${state}${text === "" ? "" : ` — ${JSON.stringify(reading.description ?? "")}`}. A review that RAN AND OBJECTED is the case this gate exists to let through to a human, and it is the one thing no waiver covers. READ THE OBJECTION: this is the one condition here where a review did happen.`,
     };
   }
   if (state !== "SUCCESS") {
     return {
       state: REVIEW_GATE_STATES.unsatisfied,
-      why: `is still ${state === "" ? "unreported" : state} after the settle window. An unsettled check has not said anything yet, and the gate does not guess on its behalf.`,
+      condition: REVIEW_GATE_CONDITIONS.pending,
+      why: `is still ${state === "" ? "unreported" : state} after the settle window. An unsettled check has not said anything yet, and the gate does not guess on its behalf. This is LATENESS, not a verdict about the code — wait for the reviewer to settle, then RE-RUN THIS JOB. Do NOT re-request the review: a re-request OVERWRITES the existing commit status rather than adding to it, so under throttle it destroys a real review one-way and replaces a substantive objection with a rate-limit string.`,
     };
   }
   const satisfies = [...REVIEW_SATISFACTIONS, ...(vocabulary.satisfy ?? [])];
   if (satisfies.some(phrase => text === normalizeDescription(phrase))) {
     return {
       state: REVIEW_GATE_STATES.satisfied,
+      condition: REVIEW_GATE_CONDITIONS.satisfied,
       why: `reported ${JSON.stringify(reading.description ?? "")}, which is a review that ran.`,
     };
   }
@@ -1298,11 +1357,13 @@ export function reviewGateState(reading, vocabulary = {}) {
   if (waivers.some(phrase => text === normalizeDescription(phrase))) {
     return {
       state: REVIEW_GATE_STATES.waived,
+      condition: REVIEW_GATE_CONDITIONS.waived,
       why: `reported ${JSON.stringify(reading.description ?? "")} — the check saying, in its own words, that it could not review. WAIVED, not satisfied: this pull request is UNREVIEWED and merging it is a decision taken on that basis. The waiver clears the moment the entitlement behind it is fixed, at which point this gate starts biting with no code change.`,
     };
   }
   return {
     state: REVIEW_GATE_STATES.unsatisfied,
+    condition: REVIEW_GATE_CONDITIONS.unrecognised,
     why: `reported SUCCESS with the description ${JSON.stringify(reading.description ?? "")}, which is neither a review that ran nor one of the named waivers. An UNRECOGNISED description is surfaced rather than waived — a gate that waived on "anything that is not a completed review" would waive a genuine failure and every phrase the vendor has not invented yet. If this string is legitimate, add it to \`evidence_bearing_checks\` under \`satisfy\` or \`waive\`, deliberately and by name.`,
   };
 }
@@ -1360,6 +1421,11 @@ export function evaluateReviewGate(declaration, checks, options = {}) {
         verdict.state === REVIEW_GATE_STATES.waived
           ? VIOLATIONS.reviewWaived
           : VIOLATIONS.reviewUnsatisfied,
+      // WHICH of the four unsatisfying conditions this was. The `kind` carries
+      // severity and cannot distinguish them — it is the same token for a
+      // review that objected and for one that never ran. Anything rendering
+      // this violation can now say which, without re-parsing the prose.
+      condition: verdict.condition,
       token: name,
       contexts: [name],
       message: `\`${name}\` ${verdict.why}${at}`,
