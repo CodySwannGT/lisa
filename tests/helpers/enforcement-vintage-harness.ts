@@ -38,6 +38,8 @@ const MANIFEST = "plugin.json";
 const GUARD = "block-no-verify.sh";
 /** The monorepo's own guard tree, relative to a project root. */
 const PLUGIN_TREE = ["plugins", "lisa"];
+/** A guard body that resolves and does nothing. */
+const NO_OP_GUARD = "#!/usr/bin/env bash\nexit 0\n";
 
 /** The envelope a context-injection hook emits. */
 export type HookOutput = {
@@ -152,7 +154,7 @@ export function hostProject(version: string): string {
   mkdirSync(path.join(root, "scripts", "lisa-hooks"), { recursive: true });
   writeFileSync(
     path.join(root, "scripts", "lisa-hooks", GUARD),
-    "#!/usr/bin/env bash\nexit 0\n",
+    NO_OP_GUARD,
     "utf8"
   );
   if (version) {
@@ -185,7 +187,7 @@ export function bothTreesProject(
   mkdirSync(path.join(root, ...PLUGIN_TREE, HOOKS), { recursive: true });
   writeFileSync(
     path.join(root, ...PLUGIN_TREE, HOOKS, GUARD),
-    "#!/usr/bin/env bash\nexit 0\n",
+    NO_OP_GUARD,
     "utf8"
   );
   mkdirSync(path.join(root, ...PLUGIN_TREE, MANIFEST_DIR), {
@@ -194,6 +196,33 @@ export function bothTreesProject(
   writeFileSync(
     path.join(root, ...PLUGIN_TREE, MANIFEST_DIR, MANIFEST),
     JSON.stringify({ name: "lisa", version: pluginVersion }),
+    "utf8"
+  );
+  return root;
+}
+
+/**
+ * A monorepo checkout carrying ONLY its own `plugins/lisa/hooks/` tree.
+ *
+ * The other half of the repair split: `lisa apply` wrote the host tree and can
+ * rewrite it, but this tree IS the checkout's source, so only moving the branch
+ * refreshes it. A fixture for each is what stops the two remedies being tested
+ * as one.
+ * @param version - Version the plugin manifest declares
+ * @returns Absolute path to the project root
+ */
+export function pluginTreeProject(version: string): string {
+  const root = scratch("monorepo");
+  mkdirSync(path.join(root, ...PLUGIN_TREE, HOOKS), { recursive: true });
+  writeFileSync(
+    path.join(root, ...PLUGIN_TREE, HOOKS, GUARD),
+    NO_OP_GUARD,
+    "utf8"
+  );
+  mkdirSync(path.join(root, ...PLUGIN_TREE, MANIFEST_DIR), { recursive: true });
+  writeFileSync(
+    path.join(root, ...PLUGIN_TREE, MANIFEST_DIR, MANIFEST),
+    JSON.stringify({ name: "lisa", version }),
     "utf8"
   );
   return root;
