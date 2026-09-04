@@ -2301,7 +2301,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/cleanup-local-merged-branches.sh":
       "1f9bc0419187b3cdf0182106588e35dc1068d921be74331aab3737a9de25de57",
     "scripts/cleanup-worktrees.sh":
-      "5215cdecc7683e8501d23eec632d0c138bbf60f12c09b0a357451a557d8ec176",
+      "eb074db38cada0040bce61b27a938ac9a42a834978a074935bf3258fbdee44cb",
     "scripts/copy-codex-scripts.mjs":
       "2d7082d5033088c85f66995aee9e3ee1e7751435e65bfde8e1cb002e6689d476",
     "scripts/copy-opencode-plugin-templates.mjs":
@@ -10150,6 +10150,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/check-whole-output-guards.test.ts": true,
     "tests/unit/scripts/check-workflow-package-contracts.test.ts": true,
     "tests/unit/scripts/check-workflow-package-paths.test.ts": true,
+    "tests/unit/scripts/cleanup-worktrees-apply.test.ts": true,
+    "tests/unit/scripts/cleanup-worktrees-unreadable.test.ts": true,
     "tests/unit/scripts/codex-hook-filter.test.ts": true,
     "tests/unit/scripts/command-envelope.test.ts": true,
     "tests/unit/scripts/conflict-prover-markers-and-index.test.ts": true,
