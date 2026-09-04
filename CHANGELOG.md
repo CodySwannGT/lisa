@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.38.2](https://github.com/CodySwannGT/lisa/compare/v4.38.1...v4.38.2) (2026-09-04)
+
+
+### Bug Fixes
+
+* **hooks:** enforce the filing contract on the MCP substrate, not just Bash ([5f66795](https://github.com/CodySwannGT/lisa/commit/5f667959b9a5e9dc914c151b18deb46b610c77bd)), closes [#3753](https://github.com/CodySwannGT/lisa/issues/3753) [CodySwannGT/lisa#3753](https://github.com/CodySwannGT/lisa/issues/3753)
+
 ### [4.38.1](https://github.com/CodySwannGT/lisa/compare/v4.38.0...v4.38.1) (2026-09-04)
 
 
