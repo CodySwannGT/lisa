@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.38.6](https://github.com/CodySwannGT/lisa/compare/v4.38.5...v4.38.6) (2026-09-04)
+
+
+### Bug Fixes
+
+* **work-item:** defer the commit gate when the push range has no subject ([d046fdc](https://github.com/CodySwannGT/lisa/commit/d046fdc808fec01cec9aaf2eb909babf7fde5f01)), closes [CodySwannGT/lisa#3851](https://github.com/CodySwannGT/lisa/issues/3851)
+
 ### [4.38.5](https://github.com/CodySwannGT/lisa/compare/v4.38.4...v4.38.5) (2026-09-04)
 
 
