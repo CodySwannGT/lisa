@@ -1,4 +1,5 @@
 import { EnsureAuditIgnoreLocalExclusionsMigration } from "./ensure-audit-ignore-local-exclusions.js";
+import { EnsureDeployOutcomeGuardMigration } from "./ensure-deploy-outcome-guard.js";
 import { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-mock-accessibility-manager.js";
 import { EnsureLearningsGitattributesMigration } from "./ensure-learnings-gitattributes.js";
 import { EnsureLearningsMergeDriverMigration } from "./ensure-learnings-merge-driver.js";
@@ -31,6 +32,7 @@ export type {
   MigrationResult,
 } from "./migration.interface.js";
 export { EnsureAuditIgnoreLocalExclusionsMigration } from "./ensure-audit-ignore-local-exclusions.js";
+export { EnsureDeployOutcomeGuardMigration } from "./ensure-deploy-outcome-guard.js";
 export { EnsureJestRnMockAccessibilityManagerMigration } from "./ensure-jest-rn-mock-accessibility-manager.js";
 export { EnsureLearningsGitattributesMigration } from "./ensure-learnings-gitattributes.js";
 export { EnsureLearningsMergeDriverMigration } from "./ensure-learnings-merge-driver.js";
@@ -66,6 +68,7 @@ export class MigrationRegistry {
       new EnsureTsconfigLocalIncludesMigration(),
       new EnsureTsconfigLocalFilesFallbackMigration(),
       new EnsureAuditIgnoreLocalExclusionsMigration(),
+      new EnsureDeployOutcomeGuardMigration(),
       new EnsureJestRnMockAccessibilityManagerMigration(),
       new EnsureLearningsGitattributesMigration(),
       new EnsureLearningsMergeDriverMigration(),
