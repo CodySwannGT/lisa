@@ -1,0 +1,32 @@
+id: no-day-truncating-file-age-predicate
+snapshots:
+  /usr/bin/find "$TMPDIR" -maxdepth 1 -mtime +2 -print:
+    labels:
+      - source: -mtime
+        style: primary
+        start: 36
+        end: 42
+  find . -atime +7 -print:
+    labels:
+      - source: -atime
+        style: primary
+        start: 7
+        end: 13
+  find . -ctime +1 -exec rm {} +:
+    labels:
+      - source: -ctime
+        style: primary
+        start: 7
+        end: 13
+  find . -mtime +2 -delete:
+    labels:
+      - source: -mtime
+        style: primary
+        start: 7
+        end: 13
+  xargs find -mtime +30 -print:
+    labels:
+      - source: -mtime
+        style: primary
+        start: 11
+        end: 17
