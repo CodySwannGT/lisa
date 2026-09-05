@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.45.3](https://github.com/CodySwannGT/lisa/compare/v4.45.2...v4.45.3) (2026-09-05)
+
+
+### Bug Fixes
+
+* **gates:** refuse to report a quarantine finding from a tree that never resolved ([2ea6637](https://github.com/CodySwannGT/lisa/commit/2ea6637b26ba972209f047c1af953e61cda5a351)), closes [CodySwannGT/lisa#3913](https://github.com/CodySwannGT/lisa/issues/3913)
+
 ### [4.45.2](https://github.com/CodySwannGT/lisa/compare/v4.45.1...v4.45.2) (2026-09-05)
 
 
