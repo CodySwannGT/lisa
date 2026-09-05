@@ -3173,24 +3173,67 @@ function currentRepository() {
   return safeJson(result.stdout, "GitHub repository").nameWithOwner;
 }
 
+/**
+ * The pull request a check is about, by number or by the branch in hand.
+ *
+ * `gh pr view` will not infer the current branch once `--repo` is given — it
+ * exits non-zero with "argument required when using the --repo flag" — and
+ * `currentRepository()` resolves in every normal checkout, so `--repo` was
+ * always present. The push path passes no number, so every push made an
+ * invalid call, `allowFailure` turned the usage error into `undefined`, and
+ * the caller concluded no pull request existed.
+ *
+ * That is why gates 4 and 5 were never checked at push time. Not deferred
+ * until a pull request existed — never looked up at all, so the deferral
+ * notice was emitted unconditionally: true by accident before a pull request
+ * existed, false afterwards, and determined in neither case (#3791). The CI
+ * path passed `--pr-number` and so called `gh` correctly, which is why CI
+ * caught what every push had waved through.
+ *
+ * Naming the selector positionally is what makes the lookup resolve while
+ * keeping `--repo` explicit. With no number and no branch — a detached HEAD —
+ * there is genuinely nothing to resolve by, so `--repo` is withheld rather
+ * than sent without the argument it requires.
+ * @param {string|number} [number] Explicit pull-request number, when known.
+ * @param {string} [repository] `owner/name` the pull request belongs to.
+ * @returns {object|undefined} The pull request, or undefined when none resolves.
+ */
+/**
+ * The argv for one `gh pr view`, with the selector it cannot do without.
+ *
+ * Extracted and exported because every other test of this file drives the CLI
+ * as a SUBPROCESS, so nothing in-process ever covers argv construction — the
+ * mutation gate reported seven surviving mutants here and no assertion reachable
+ * from a spawned process could have killed one. Argument shape is exactly what
+ * was wrong in #3791, so it is the part that has to be directly testable.
+ * @param {string|number} [number] Explicit pull-request number, when known.
+ * @param {string} [branch] Branch to resolve by when no number is given.
+ * @param {string} [repository] `owner/name` the pull request belongs to.
+ * @param {string} [fields] Comma-separated `gh pr view --json` fields.
+ * @returns {string[]} Arguments for `gh`.
+ */
+export function pullRequestViewArgs(
+  number,
+  branch,
+  repository,
+  fields = "url,body,state"
+) {
+  const selector = number ?? branch;
+  const args = ["pr", "view"];
+  if (selector) args.push(String(selector));
+  // `--repo` is withheld without a selector rather than sent alone: `gh` treats
+  // that as a usage error, not as "look it up from the branch".
+  if (repository && selector) args.push("--repo", repository);
+  args.push("--json", fields);
+  return args;
+}
+
 function currentPullRequest(
   number,
   repository = currentRepository(),
   fields = "url,body,state"
 ) {
-  const args = ["pr", "view"];
-  if (number) args.push(String(number));
-  // `--repo` ONLY alongside a number, because `gh pr view --repo <r>` with no
-  // positional argument is a USAGE ERROR — "argument required when using the
-  // --repo flag" — not a lookup that returns nothing. It exits 1, this
-  // function reads that as "no pull request exists", and the push then takes
-  // the deferral branch on every branch that HAS one. Measured on this
-  // repository: an open pull request, and the push reporting gates 4 and 5 as
-  // unchecked because the flag combination could never have found it. Without
-  // a number `gh` resolves the pull request from the current branch's remote,
-  // which is the answer this caller wants and the only one it can get.
-  if (number && repository) args.push("--repo", repository);
-  args.push("--json", fields);
+  const args = pullRequestViewArgs(number, activeBranch(), repository, fields);
   const result = run("gh", args, { allowFailure: true });
   return result.status === 0
     ? safeJson(result.stdout, "GitHub pull request")

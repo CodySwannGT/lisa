@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.45.10](https://github.com/CodySwannGT/lisa/compare/v4.45.9...v4.45.10) (2026-09-05)
+
+
+### Bug Fixes
+
+* **tests:** survive the temp-dir removal race, and name it when it happens ([d96b1bf](https://github.com/CodySwannGT/lisa/commit/d96b1bf8d72df4aeaf429d8a90ee25e0ec22d63f)), closes [#3877](https://github.com/CodySwannGT/lisa/issues/3877) [#3966](https://github.com/CodySwannGT/lisa/issues/3966) [CodySwannGT/lisa#3877](https://github.com/CodySwannGT/lisa/issues/3877)
+
+### [4.45.9](https://github.com/CodySwannGT/lisa/compare/v4.45.8...v4.45.9) (2026-09-05)
+
+
+### Bug Fixes
+
+* **work-item:** look the pull request up, instead of reporting it absent ([6d90900](https://github.com/CodySwannGT/lisa/commit/6d90900e22fef961f5054602a1c97db11a769558)), closes [#3791](https://github.com/CodySwannGT/lisa/issues/3791) [CodySwannGT/lisa#3791](https://github.com/CodySwannGT/lisa/issues/3791)
+
 ### [4.45.8](https://github.com/CodySwannGT/lisa/compare/v4.45.7...v4.45.8) (2026-09-05)
 
 
