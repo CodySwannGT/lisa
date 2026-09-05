@@ -89,9 +89,18 @@ const packageJson = (): string => read("package.json");
 const scripts = (): Record<string, string> =>
   (JSON.parse(packageJson()) as { scripts: Record<string, string> }).scripts;
 
+/**
+ * The body of the aggregate script.
+ *
+ * Empty when `package.json` declares no such script — which every assertion
+ * below reports as a failure rather than silently passing over.
+ * @returns The aggregate's command line, or the empty string when it is absent
+ */
+const aggregateBody = (): string => scripts()[AGGREGATE] ?? "";
+
 describe("the aggregate delegates without blinding its own guard", () => {
   it("runs the ordering-aware runner", () => {
-    expect(scripts()[AGGREGATE]).toContain(`node ${RUNNER}`);
+    expect(aggregateBody()).toContain(`node ${RUNNER}`);
   });
 
   it("still lists every sub-check name in the script body", () => {
@@ -103,7 +112,7 @@ describe("the aggregate delegates without blinding its own guard", () => {
     // could join the aggregate unannounced.
     const referenced = [
       ...new Set(
-        [...scripts()[AGGREGATE].matchAll(/\bcheck:[a-z0-9-]+/gu)].map(
+        [...aggregateBody().matchAll(/\bcheck:[a-z0-9-]+/gu)].map(
           match => match[0]
         )
       ),
