@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 119,
-  "$names": 1082,
+  "$modules": 122,
+  "$names": 1126,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -94,6 +94,7 @@
       "DIAGNOSIS",
       "declaredFailure",
       "diagnoseFailure",
+      "diagnoseHollowSuccess",
       "machineLoad",
       "ranNoTests",
       "tempRootPopulation",
@@ -699,6 +700,29 @@
       "candidateSuites",
       "main"
     ],
+    "scripts/check-shipped-surface-removals.mjs": [
+      "LEDGER_PATH",
+      "buildReport",
+      "classifyRemovedPath",
+      "countImporters",
+      "deliveryView",
+      "findContradictedLedger",
+      "findGoverningDeletion",
+      "findRemovedExports",
+      "findRemovedPaths",
+      "findUnresolvedImports",
+      "humanReport",
+      "loadLedger",
+      "main",
+      "parseArgs",
+      "readDeletionManifests",
+      "removalRelease",
+      "resolveBaseline",
+      "scan",
+      "shippedFilesAt",
+      "shippedParts",
+      "viewExports"
+    ],
     "scripts/check-template-workflow-refs.mjs": [
       "UsageError",
       "buildReport",
@@ -907,6 +931,19 @@
       "parseTrace",
       "tracerIndex"
     ],
+    "scripts/lib/shipped-surface.mjs": [
+      "BINDABLE_ROOT",
+      "EXECUTABLE_EXTENSIONS",
+      "clauseExportedName",
+      "clauseImportedName",
+      "hasUsableNote",
+      "indexRemovals",
+      "isConsumerBindable",
+      "parseNamedExports",
+      "parseRelativeNamedImports",
+      "removalKey",
+      "resolveRelative"
+    ],
     "scripts/lib/upstream-manifest-staleness.mjs": [
       "describeStaleManifest",
       "diagnoseStaleManifest",
@@ -1046,6 +1083,18 @@
       "probeWithRetry",
       "reconcile",
       "registryUrl"
+    ],
+    "scripts/remedy-conformance.mjs": [
+      "FORBIDDEN_REMEDY_OPERATIONS",
+      "REMEDY_SWEEP_VERDICTS",
+      "REMEDY_VERDICTS",
+      "classifyRemedy",
+      "extractRemedyCommands",
+      "formatRemedyConformanceReport",
+      "guardChainClassifier",
+      "invokedAsScript",
+      "remedyConformanceExitCode",
+      "sweepRemedyConformance"
     ],
     "scripts/run-artifact-checks.mjs": [
       "CHECK_BUDGET_MS",
@@ -1269,6 +1318,7 @@
       "stripMutationRange",
       "timeoutAccounting",
       "uninstrumentableGuards",
+      "unmeasuredAnnotation",
       "watchdogScript"
     ],
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-action.mjs": [
