@@ -10917,6 +10917,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "wiki/decisions/2026-08-12-in-session-ticket-ready-role.md": true,
     "wiki/decisions/2026-08-12-ratchet-policy.md": true,
     "wiki/decisions/2026-08-19-guard-mutation-gate.md": true,
+    "wiki/decisions/2026-09-04-state-change-without-inverse.md": true,
     "wiki/documentation/assets/lisa-architecture.svg": true,
     "wiki/documentation/claude/overinstructions.md": true,
     "wiki/documentation/claude/review.md": true,
