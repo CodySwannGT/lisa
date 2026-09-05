@@ -167,6 +167,51 @@ describe("a deploy job that skips on a failed release (#3740)", () => {
     });
   });
 
+  describe("a deploy that needs more than one release job", () => {
+    /** A second release-like upstream, so `needs:` carries two of them. */
+    const SECONDARY: DependenceJob = {
+      id: "release_secondary",
+      name: "Release Secondary",
+      needs: [],
+      ifCondition: "",
+    };
+
+    it("flags the job when the SECOND release listed is the one that gates it", () => {
+      // `!cancelled()` suppresses the implicit skip a failed need would cause,
+      // so the FIRST release is genuinely independent of this condition while
+      // the second explicitly gates it. A search that stops at the first
+      // release-like `needs:` entry therefore answers `independent` for the whole
+      // job, and the skipped deploy is never reported. Which release gates the
+      // job is not the order `needs:` happens to list them in.
+      const job: DependenceJob = {
+        id: "deploy",
+        name: "Deploy",
+        needs: ["release", "release_secondary"],
+        ifCondition:
+          "!cancelled() && needs.release_secondary.result == 'success'",
+      };
+
+      expect(
+        deployJobsSkippedByFailedRelease([RELEASE, SECONDARY, job])
+      ).toEqual([{ job, release: "release_secondary" }]);
+    });
+
+    it("still reports nothing when NO release gates the job", () => {
+      // The negative control. Searching every release must not become a way to
+      // find a dependence that is not there.
+      const job: DependenceJob = {
+        id: "deploy",
+        name: "Deploy",
+        needs: ["release", "release_secondary"],
+        ifCondition: "!cancelled()",
+      };
+
+      expect(
+        deployJobsSkippedByFailedRelease([RELEASE, SECONDARY, job])
+      ).toEqual([]);
+    });
+  });
+
   describe("which jobs are even asked about", () => {
     it("recognises a release job by id or name", () => {
       expect(isReleaseJob(RELEASE)).toBe(true);

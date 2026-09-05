@@ -318,11 +318,17 @@ export function deployJobsSkippedByFailedRelease(
   const releases = new Set(jobs.filter(isReleaseJob).map(job => job.id));
   return jobs.flatMap(job => {
     if (releases.has(job.id) || !isDeployJob(job)) return [];
-    const release = job.needs.find(id => releases.has(id));
+    // Every release-like upstream, not merely the first. A deploy that needs
+    // two of them gates on ONE, and which one is not the order `needs:` happens
+    // to list. Taking the first and stopping reported `independent` whenever the
+    // gating release was listed second — the defect silently unreported, and the
+    // migration declining to repair it (CodeRabbit on CodySwannGT/lisa#3740).
+    const release = job.needs.find(
+      id =>
+        releases.has(id) &&
+        releaseDependence(job, id).kind === "skips-on-failed-release"
+    );
     if (release === undefined) return [];
-    const dependence = releaseDependence(job, release);
-    return dependence.kind === "skips-on-failed-release"
-      ? [{ job, release }]
-      : [];
+    return [{ job, release }];
   });
 }
