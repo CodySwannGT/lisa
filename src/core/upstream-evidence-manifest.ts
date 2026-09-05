@@ -67,7 +67,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
-      "e121219bbee1960a6bf88d1e2ba0b50587d63013e7872c56619c04182e8a7561",
+      "2d094120f2c1748144f1c0e5757a60ecc7c6ae3e4f57fa54ab6a15c5a9e1868f",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh":
       "662652c09e5eb70f14db61136ea1206e9b337fce49dcabc774a45a07a0fd718f",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
@@ -817,7 +817,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/withdrawn-rulings.sh":
       "5dbf429b6ec73c3c29fb96008efa1015feaa4812c1b4bb26aaa5d0b904a0ff9c",
     "plugins/src/base/hooks/worktree-binding-guard.mjs":
-      "d3174838af66cfbebea20a75e1ef7642b88cde308dc129ddb4d76d2f44694a76",
+      "fb84478a3f01084cd7b4d73975a0a16f0ba17e32fb0535ea7a383ebcedd75fb0",
     "plugins/src/base/hooks/worktree-binding-guard.sh":
       "db57cb8a5b1d6b644e0dbc28a2ce77b2eb00e30695a6270323ac5f1cf494e46d",
     "plugins/src/base/rules/eager/automation-runbook-contract.md":
@@ -10111,12 +10111,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/support/direct-issue-create.ts": true,
     "tests/unit/hooks/support/executed-script-reach.ts": true,
     "tests/unit/hooks/support/sonar-secrets-fixtures.ts": true,
+    "tests/unit/hooks/support/worktree-binding.ts": true,
     "tests/unit/hooks/track-plan-sessions.test.ts": true,
     "tests/unit/hooks/typecheck-hook-placement.test.ts": true,
     "tests/unit/hooks/verification-failure-mode-fixtures.test.ts": true,
     "tests/unit/hooks/withdrawn-rulings-wiring.test.ts": true,
     "tests/unit/hooks/withdrawn-rulings.test.ts": true,
     "tests/unit/hooks/work-item-wiring.test.ts": true,
+    "tests/unit/hooks/worktree-binding-guard-script-reach.test.ts": true,
     "tests/unit/hooks/worktree-binding-guard.test.ts": true,
     "tests/unit/hooks/worktree-create-failure.test.ts": true,
     "tests/unit/hooks/worktree-create.test.ts": true,

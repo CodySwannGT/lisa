@@ -47,7 +47,13 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
@@ -146,6 +152,258 @@ function mainCheckout(cwd) {
   // than returned as a quiet null (#3848).
   say("git could not resolve the main checkout, so this claim is NOT recorded");
   return null;
+}
+
+/**
+ * How much of an executed script this guard will read, in bytes.
+ *
+ * A generated fixture can be megabytes, and a guard that reads all of it on
+ * every Bash call is a guard someone switches off.
+ */
+const SCRIPT_READ_LIMIT = 256 * 1024;
+
+/**
+ * Programs that take their operands as DATA and never execute them.
+ *
+ * The same split `block-direct-issue-create.sh` makes, and for the same reason
+ * it had to: a guard that opens every file a command names, then judges the
+ * COMMAND by that FILE's contents, refuses ordinary inspection. Reading a
+ * script that visits another worktree is not visiting it.
+ *
+ * The list is an exemption, not an allowlist. Anything unrecognised is
+ * FOLLOWED, because an interpreter roster fails open on the runner nobody
+ * enumerated.
+ */
+const READ_ONLY_PROGRAMS = new Set([
+  "awk",
+  "basename",
+  "cat",
+  "cksum",
+  "cmp",
+  "comm",
+  "cut",
+  "diff",
+  "dirname",
+  "du",
+  "file",
+  "find",
+  "grep",
+  "egrep",
+  "fgrep",
+  "head",
+  "less",
+  "ls",
+  "md5",
+  "md5sum",
+  "more",
+  "nl",
+  "od",
+  "realpath",
+  "rg",
+  "sed",
+  "sha1sum",
+  "sha256sum",
+  "sort",
+  "stat",
+  "strings",
+  "tail",
+  "tee",
+  "tr",
+  "uniq",
+  "wc",
+  "xxd",
+]);
+
+/** Interpreters whose first non-option operand is the file they run. */
+const EXECUTING_INTERPRETERS = new Set([
+  "bash",
+  "dash",
+  "ksh",
+  "node",
+  "perl",
+  "python",
+  "python3",
+  "ruby",
+  "sh",
+  "zsh",
+  "bun",
+  "deno",
+  "tsx",
+]);
+
+/** Shell builtins that run a file in the CURRENT shell. */
+const SOURCE_BUILTINS = new Set([".", "source"]);
+
+/** Where one command ends and the next begins. */
+const COMMAND_SEPARATORS = /\|\||&&|[;|&\n]/u;
+
+/**
+ * Split a command into tokens, honouring simple quoting.
+ *
+ * Deliberately simple, and the guard fails OPEN when it is not enough — see
+ * {@link scriptReachingForeignTree}. A tokeniser that guessed would be worse
+ * than one that says it does not know.
+ */
+function tokenise(segment) {
+  const tokens = segment.match(/"[^"]*"|'[^']*'|[^\s]+/gu) ?? [];
+  return tokens.map(token => token.replace(/^["']|["']$/gu, ""));
+}
+
+/**
+ * The path this command EXECUTES, or null.
+ *
+ * The command-position question. A path anywhere else is an argument, and an
+ * argument is data.
+ */
+function executedPath(segment) {
+  const tokens = tokenise(segment);
+  if (tokens.length === 0) return null;
+  const [head, ...rest] = tokens;
+  const program = head.split("/").pop() ?? "";
+  if (READ_ONLY_PROGRAMS.has(program)) return null;
+  if (SOURCE_BUILTINS.has(program)) return rest[0] ?? null;
+  if (!EXECUTING_INTERPRETERS.has(program)) {
+    // A command word that is itself a file runs by its shebang.
+    return head.includes("/") ? head : null;
+  }
+  // A known interpreter: the first operand that is not an option.
+  const operand = rest.find(token => !token.startsWith("-"));
+  return operand ?? null;
+}
+
+/**
+ * A worktree root other than `bound` that this text reaches into, or null.
+ *
+ * ## Why this does not enumerate `cd`
+ *
+ * The redirect spellings — `cd`, `git -C`, `--work-tree`, `--git-dir`, a
+ * subshell, `env -C`, a variable holding the path — are an open set, and
+ * enumerating them is the failure this arm exists to end
+ * (CodySwannGT/lisa#3927 states it for the sibling guard). So the question is
+ * inverted the same way the filing guard inverted its own: not *which syntax
+ * moves*, which is unbounded, but *which tokens name a directory in another
+ * worktree*, which is bounded by the file.
+ *
+ * A path only has to RESOLVE. How it arrived does not matter, which is what
+ * makes an unenumerated spelling reach the same verdict as `cd`.
+ *
+ * ## Why comments are stripped first
+ *
+ * A script that merely MENTIONS a sibling worktree — a usage line, a comment,
+ * a log message — would otherwise be refused for describing the thing rather
+ * than doing it. Prose about a subject is the likeliest text to contain the
+ * subject's shapes, and the population that writes it is the people
+ * documenting the guard. A parity classifier elsewhere in this repository was
+ * fooled by exactly that and was caught only by a known-answer control.
+ */
+function foreignTreeIn(text, bound, cwd) {
+  const code = text
+    .split("\n")
+    .map(line => line.replace(/^\s*#.*$/u, ""))
+    .join("\n");
+  for (const raw of code.match(/[^\s'";|&()<>]+/gu) ?? []) {
+    const token = raw.replace(/^["']|["']$/gu, "");
+    if (!token.includes("/")) continue;
+    const candidate = isAbsolute(token) ? token : join(cwd, token);
+    let root;
+    try {
+      if (!statSync(candidate).isDirectory()) continue;
+      root = worktreeRoot(realpathSync(candidate));
+    } catch {
+      continue;
+    }
+    if (root && root !== bound) return root;
+  }
+  return null;
+}
+
+/**
+ * The foreign worktree an executed script reaches, or null.
+ *
+ * ## Why this arm exists at all
+ *
+ * The check above compares `payload.cwd` against the bound root, and that is
+ * the right comparison — but **`payload.cwd` is sampled before the child
+ * process runs**. A script that changes directory internally moves AFTER the
+ * guard has measured. The guard is not wrong about the target; it is right
+ * about a target that stops being the target one instruction later.
+ *
+ * A measurement taken before execution cannot bind what execution does
+ * (CodySwannGT/lisa#3924). So the only thing left is to read what is about to
+ * run.
+ *
+ * ## What this arm does NOT cover, stated rather than implied
+ *
+ * An INLINE redirect — `cd B && git status`, `git -C B status` — is not
+ * refused here. Those are already refused by the runtime's own worktree
+ * isolation, and duplicating a control is how two controls drift into
+ * disagreeing. The scripted form is the one neither covers, and it is the only
+ * cell this arm fills.
+ *
+ * ## A relative script path is resolved against `payload.cwd`, and that is a
+ * KNOWN limitation shared with `parity-safety-net.sh`
+ *
+ * CodySwannGT/lisa#3933, filed against that guard, is the same defect: a
+ * relative token is resolved against the hook process's working directory, not
+ * against the directory the command will have once it runs its own leading
+ * `cd`. So `cd <other tree> && bash scripts/foo.sh` reads THIS tree's copy of
+ * `scripts/foo.sh` and reports on it with full confidence.
+ *
+ * It matters here for the same reason it matters there: on a machine running
+ * many worktrees of one repository, every tree holds its own copy of every
+ * script at the same relative path, and they differ by whatever each lane is
+ * doing. A confident scan of the wrong copy is wrong in both directions, and
+ * the silent one — the copy that will run reaches out, the copy that was read
+ * does not — is the direction this arm exists to prevent.
+ *
+ * NOT fixed here on purpose. #3933 is assigned and its options (honour a
+ * leading `cd`, or fail closed when the effective cwd is uncertain) belong in
+ * one place rather than two: a second implementation of the same resolution is
+ * how two guards drift into disagreeing about which file a command runs.
+ * When that lands, this call site should adopt whatever it produces.
+ *
+ * The exposure here is narrower than there. This arm is reached only after the
+ * session has been confirmed to be in its bound worktree, so the common case
+ * is a relative path resolving inside the tree the session is actually in.
+ *
+ * Fails OPEN and says so, like every other undecidable case in this file.
+ */
+function scriptReachingForeignTree(payload, bound) {
+  const command = payload.tool_input?.command;
+  if (typeof command !== "string" || !command) return null;
+  for (const segment of command.split(COMMAND_SEPARATORS)) {
+    const named = executedPath(segment);
+    if (!named) continue;
+    const path = isAbsolute(named) ? named : join(payload.cwd, named);
+    let text;
+    try {
+      if (statSync(path).size > SCRIPT_READ_LIMIT) {
+        say(`${path} is too large to inspect; NOT enforcing on it`);
+        continue;
+      }
+      text = readFileSync(path, "utf8");
+    } catch {
+      // Not a readable file: nothing was executed that this can read.
+      continue;
+    }
+    const foreign = foreignTreeIn(text, bound, payload.cwd);
+    if (foreign) return { script: path, foreign };
+  }
+  return null;
+}
+
+function reachesOut(script, foreign, bound) {
+  return refuse([
+    "worktree-binding-guard: this command runs a script that reaches into",
+    "another worktree.",
+    `  script:    ${script}`,
+    `  reaches:   ${foreign}`,
+    `  bound to:  ${bound}`,
+    "The directory change lives inside the file, so it happens after this",
+    "guard has measured where the session is. Run the work from the tree it",
+    "belongs to, or acknowledge the move:",
+    acceptanceLine(foreign),
+  ]);
 }
 
 function stateFile(sessionId) {
@@ -328,6 +586,10 @@ function evaluate(payload) {
     return 0;
   }
   if (state.boundRoot !== observed) return displaced(state.boundRoot, observed);
+  // Last, and only once the session is provably where it should be: a script
+  // that moves somewhere else after this check has already run.
+  const reach = scriptReachingForeignTree(payload, observed);
+  if (reach) return reachesOut(reach.script, reach.foreign, observed);
   return 0;
 }
 
