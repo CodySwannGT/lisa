@@ -82,9 +82,15 @@ const readSkill = (root: string, slug: string): string =>
  */
 const readRule = (
   root: string,
-  group: "eager" | "reference",
+  group: "eager" | "reference" | "index",
   slug: string
 ): string => {
+  // #3992: a demoted rule has no head; the always-on index carries its pointer.
+  if (group === "index") {
+    return root.includes("lisa-cursor")
+      ? readFileSync(path.resolve(root, "00-rule-index.mdc"), "utf8")
+      : readFileSync(path.resolve(root, "eager", "00-rule-index.md"), "utf8");
+  }
   if (root.includes("lisa-cursor")) {
     return readFileSync(
       path.resolve(
@@ -99,13 +105,12 @@ const readRule = (
 
 describe("derived-branch-plan rule contract", () => {
   describe.each(RULE_ROOTS)("%s", root => {
-    const eager = readRule(root, "eager", SLUG);
+    const eager = readRule(root, "reference", SLUG);
     const reference = readRule(root, "reference", SLUG);
 
-    it("ships as a paired rule pointing the head at the body", () => {
-      expect(eager.length).toBeGreaterThan(500);
+    it("stays reachable from the eager rule index", () => {
       expect(reference.length).toBeGreaterThan(2000);
-      expect(eager).toContain(`reference/${SLUG}.md`);
+      expect(readRule(root, "index", SLUG)).toContain(`reference/${SLUG}.md`);
     });
 
     it("names the section and both rendered fields", () => {

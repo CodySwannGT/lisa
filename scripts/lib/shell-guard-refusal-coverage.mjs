@@ -117,26 +117,25 @@ export function guardPopulation(root) {
     .filter(file => file.length > 0)
     .filter(file => !NOT_GUARDS.some(prefix => file.startsWith(prefix)))
     .sort((left, right) => left.localeCompare(right));
-  return tracked.flatMap(file => {
-    let bytes;
-    try {
-      bytes = readFileSync(path.join(root, file));
-    } catch {
-      return [];
-    }
+  return tracked.map(file => {
+    // probe-direction: fail-closed — an unreadable TRACKED guard RAISES rather
+    // than dropping out of the roster. `git ls-files` has already proved the
+    // path is tracked, so a read failure is "could not ask", and the previous
+    // `catch { return []; }` spent it as "this guard does not exist" — which
+    // silently shrinks the population the coverage check is measured against,
+    // so a guard stops being covered with nothing saying so. This is the
+    // population, not a sample: it must be all of it or an error.
+    const bytes = readFileSync(path.join(root, file));
     const source = bytes.toString("utf8");
-    return [
-      {
-        path: file,
-        sha256: createHash("sha256").update(bytes).digest("hex"),
-        size: bytes.length,
-        canRefuse: /\bexit[ \t]+[1-9]\d*\b/u.test(source),
-        toolBoundary:
-          (file.includes("/hooks/") ||
-            /tool_input|"file_path"/u.test(source)) &&
-          /\bexit[ \t]+2\b/u.test(source),
-      },
-    ];
+    return {
+      path: file,
+      sha256: createHash("sha256").update(bytes).digest("hex"),
+      size: bytes.length,
+      canRefuse: /\bexit[ \t]+[1-9]\d*\b/u.test(source),
+      toolBoundary:
+        (file.includes("/hooks/") || /tool_input|"file_path"/u.test(source)) &&
+        /\bexit[ \t]+2\b/u.test(source),
+    };
   });
 }
 

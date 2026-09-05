@@ -10,11 +10,21 @@
 #      ~/.codex/worktrees, .lisa-worktrees, /tmp) OR its branch matches an
 #      agent naming pattern (claude/*, worktree-*, codex/*) OR its branch is
 #      fully merged into an environment branch (main/dev/staging).
-#   3. No modified/staged TRACKED files ("real work" is never deleted).
+#   3. Git could actually REPORT on it, and reported no modified/staged TRACKED
+#      files ("real work" is never deleted). "I looked and it was clean" and "I
+#      could not look" are different answers: a `git status` that FAILS is kept
+#      in its own bucket, never treated as clean. This mirrors the TypeScript
+#      entitlement rule (src/cli/worktree-prune-policy.ts), which blocks on
+#      `unreadable` rather than defaulting an unproven worktree to eligible.
 #   4. Its HEAD commit is reachable from some remote ref (nothing unpushed).
 #   5. It is older than --min-age-days (default 7) by directory mtime.
+#   6. Its uncommitted content is reachable from some commit — asked of the
+#      bytes, not of the tracking state, by lisa-worktree-guard.
 #   Untracked-only dirt (node_modules, .env.local, build output) blocks
-#   removal by default; pass --force-untracked to treat it as junk.
+#   removal by default; pass --force-untracked to treat it as junk. Even then
+#   the content gate stands: --force-untracked means "untracked files are not
+#   by themselves work", not "delete bytes that exist in no commit"
+#   (CodySwannGT/lisa#3863).
 #
 # DRY-RUN BY DEFAULT. Nothing is deleted until you pass --apply.
 #
@@ -46,7 +56,12 @@ while [ $# -gt 0 ]; do
       fi
       MIN_AGE_DAYS="$1" ;;
     --delete-branches) DELETE_BRANCHES=1 ;;
-    -h|--help) sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    # Print the whole leading comment block, not a hardcoded line count. `2,30p`
+    # silently stopped covering the last option the moment the header grew by
+    # six lines, and nothing reported it — the help text is not asserted
+    # anywhere, so the only symptom is an operator who never learns an option
+    # exists. Stop at the first non-comment line instead, which cannot drift.
+    -h|--help) sed -n '2,${/^[^#]/q;p;}' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) REPO="$1" ;;
   esac
   shift
@@ -60,7 +75,22 @@ fi
 
 NOW=$(date +%s)
 MIN_AGE_SECS=$((MIN_AGE_DAYS * 86400))
-REMOVED=0 KEPT_DIRTY=0 KEPT_UNPUSHED=0 KEPT_YOUNG=0 KEPT_UNTRACKED=0 ORPHANS=0 ERRORS=0
+REMOVED=0 KEPT_DIRTY=0 KEPT_UNPUSHED=0 KEPT_YOUNG=0 KEPT_UNTRACKED=0 KEPT_UNREADABLE=0 ORPHANS=0 ERRORS=0
+KEPT_UNREACHABLE=0
+
+# Content-reachability guard. Absent node or an unresolvable script leaves the
+# older gates in charge rather than silently widening what this script deletes.
+GUARD=""
+for candidate in \
+  "$REPO/scripts/lisa-worktree-guard.mjs" \
+  "$REPO/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-worktree-guard.mjs" \
+  "$REPO/all/copy-overwrite/scripts/lisa-worktree-guard.mjs"; do
+  if [ -f "$candidate" ]; then
+    GUARD="$candidate"
+    break
+  fi
+done
+command -v node > /dev/null 2>&1 || GUARD=""
 
 log() { printf '%s\n' "$*"; }
 act() { if [ "$APPLY" = 1 ]; then log "REMOVE  $*"; else log "WOULD-REMOVE  $*"; fi; }
@@ -137,7 +167,23 @@ process_worktree() {
     return
   fi
 
-  if [ -n "$(git -C "$wt" status --porcelain --untracked-files=no 2>/dev/null)" ]; then
+  # Capture the OUTPUT and the EXIT STATUS separately. Written as
+  # `[ -n "$(git ... 2>/dev/null)" ]` — the way this and the untracked check
+  # below both used to be — a FAILED git collapses to the empty string, `-n ""`
+  # is false, and an unreadable worktree takes the same branch as a spotless
+  # one: it falls through every KEEP predicate to removal. A short/corrupt index
+  # (what a SIGKILLed git leaves behind, and the ordinary outcome of the
+  # concurrency pressure this script exists to relieve) reaches exactly that
+  # state: `git status` exits 128 while the ref queries below still answer.
+  local tracked_status tracked_rc
+  tracked_status=$(git -C "$wt" status --porcelain --untracked-files=no 2>/dev/null)
+  tracked_rc=$?
+  if [ "$tracked_rc" -ne 0 ]; then
+    KEPT_UNREADABLE=$((KEPT_UNREADABLE + 1))
+    log "KEEP (git could not report on it — unreadable, so nothing was proven)  $wt"
+    return
+  fi
+  if [ -n "$tracked_status" ]; then
     KEPT_DIRTY=$((KEPT_DIRTY + 1))
     log "KEEP (modified tracked files)  $wt"
     return
@@ -149,8 +195,24 @@ process_worktree() {
     return
   fi
 
+  # Content gate: bytes that exist in no commit are never junk, whatever
+  # --force-untracked says about tracking state.
+  if [ -n "$GUARD" ] && ! node "$GUARD" check "$wt" > /dev/null 2>&1; then
+    KEPT_UNREACHABLE=$((KEPT_UNREACHABLE + 1))
+    log "KEEP (holds content that exists in no commit)  $wt"
+    return
+  fi
+
   local force_flag=()
-  if [ -n "$(git -C "$wt" status --porcelain 2>/dev/null)" ]; then
+  local full_status full_rc
+  full_status=$(git -C "$wt" status --porcelain 2>/dev/null)
+  full_rc=$?
+  if [ "$full_rc" -ne 0 ]; then
+    KEPT_UNREADABLE=$((KEPT_UNREADABLE + 1))
+    log "KEEP (git could not report on it — unreadable, so nothing was proven)  $wt"
+    return
+  fi
+  if [ -n "$full_status" ]; then
     if [ "$FORCE_UNTRACKED" = 1 ]; then
       force_flag=(--force)
     else
@@ -162,7 +224,12 @@ process_worktree() {
 
   act "$wt  [branch: ${branch:-detached}]"
   if [ "$APPLY" = 1 ]; then
-    if git -C "$REPO" worktree remove "${force_flag[@]}" "$wt" 2>/dev/null; then
+    # `${arr[@]+"${arr[@]}"}` rather than a plain `"${force_flag[@]}"`. Under
+    # `set -u`, bash before 4.4 — which includes the 3.2.57 that ships as
+    # /bin/bash on macOS, where this script mostly runs — treats an EMPTY array
+    # expansion as an unbound variable and aborts. The abort landed on the first
+    # removal candidate, so `--apply` exited 1 with no summary at all.
+    if git -C "$REPO" worktree remove ${force_flag[@]+"${force_flag[@]}"} "$wt" 2>/dev/null; then
       REMOVED=$((REMOVED + 1))
       if [ "$DELETE_BRANCHES" = 1 ] && [ -n "$branch" ] && ! is_env_branch "$branch"; then
         git -C "$REPO" branch -D "$branch" >/dev/null 2>&1 || true
@@ -199,24 +266,43 @@ while IFS= read -r line; do
 done < <(git -C "$REPO" worktree list --porcelain; echo)
 
 # Orphan directories under .claude/worktrees that git no longer tracks.
+#
+# This is the same "a failed read looks like a benign answer" hazard the status
+# guards above fix, with a worse ending: the removal here is `rm -rf`, which
+# bypasses `git worktree remove`'s own refusal to delete a dirty worktree. So
+# the enumeration is done ONCE, up front, with its exit status checked. An empty
+# result from a FAILED `git worktree list` would make `grep` match nothing, `!`
+# invert to true, and a live registered worktree be deleted outright — and empty
+# output from a killed git is the ordinary outcome of the very concurrency
+# pressure this script exists to relieve. Nothing proven means nothing swept.
 wtroot="$REPO/.claude/worktrees"
 if [ -d "$wtroot" ]; then
-  for d in "$wtroot"/*/; do
-    d=${d%/}
-    [ -d "$d" ] || continue
-    if ! git -C "$REPO" worktree list --porcelain | grep -qF "worktree $d"; then
-      if dir_age_ok "$d"; then
-        ORPHANS=$((ORPHANS + 1))
-        act "(orphan dir, not a registered worktree)  $d"
-        [ "$APPLY" = 1 ] && rm -rf "$d"
+  registered=$(git -C "$REPO" worktree list --porcelain 2>/dev/null)
+  registered_rc=$?
+  if [ "$registered_rc" -ne 0 ]; then
+    log "SKIP orphan sweep (git could not enumerate worktrees — nothing was proven)"
+  else
+    for d in "$wtroot"/*/; do
+      d=${d%/}
+      [ -d "$d" ] || continue
+      # `-x` anchors the whole line. A substring match let a registered
+      # `…/wt-280` mark a genuine orphan `…/wt-28` as registered forever; that
+      # direction only ever keeps too much, but the prefix collision is real and
+      # this repository has that collision class on record.
+      if ! printf '%s\n' "$registered" | grep -qxF "worktree $d"; then
+        if dir_age_ok "$d"; then
+          ORPHANS=$((ORPHANS + 1))
+          act "(orphan dir, not a registered worktree)  $d"
+          [ "$APPLY" = 1 ] && rm -rf "$d"
+        fi
       fi
-    fi
-  done
+    done
+  fi
 fi
 
 log ""
 log "=== summary ==="
 log "removed (or would remove): $REMOVED   orphan dirs: $ORPHANS"
-log "kept: $KEPT_DIRTY modified-tracked, $KEPT_UNPUSHED unpushed, $KEPT_UNTRACKED untracked-only, $KEPT_YOUNG too-young   errors: $ERRORS"
+log "kept: $KEPT_DIRTY modified-tracked, $KEPT_UNPUSHED unpushed, $KEPT_UNTRACKED untracked-only, $KEPT_UNREACHABLE uncommitted-content, $KEPT_YOUNG too-young, $KEPT_UNREADABLE unreadable   errors: $ERRORS"
 [ "$APPLY" = 0 ] && log "(dry run — rerun with --apply to delete)"
 exit 0

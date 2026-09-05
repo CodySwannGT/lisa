@@ -137,16 +137,6 @@
       "id": "GHSA-j759-j44w-7fr8",
       "package": "@xmldom/xmldom",
       "reason": "XML node injection via unvalidated comment serialization. Transitive via expo > @expo/config-plugins > @expo/plist; only serializes developer-authored plist files at build/prebuild time, no runtime code path serializes attacker-controlled XML."
-    },
-    {
-      "id": "GHSA-v39h-62p7-jpjc",
-      "package": "fast-uri",
-      "reason": "Host confusion via percent-encoded authority delimiters in fast-uri parser. Reachable transitively via eslint > @eslint/eslintrc > ajv > fast-uri and (in CDK projects) via aws-cdk-lib's bundled JSON Schema validator. aws-cdk-lib is invoked only at build/synth/deploy time \u2014 its ajv usage validates CloudFormation/CDK schemas authored by the developer, not attacker-controlled URIs. No runtime/production code path passes attacker-controlled URIs through ajv schema validation that relies on fast-uri parsing."
-    },
-    {
-      "id": "GHSA-q3j6-qgpj-74h6",
-      "package": "fast-uri",
-      "reason": "Path traversal via percent-encoded dot segments in fast-uri parser. Reachable transitively via eslint > @eslint/eslintrc > ajv > fast-uri and (in CDK projects) via aws-cdk-lib's bundled JSON Schema validator. aws-cdk-lib is invoked only at build/synth/deploy time \u2014 its ajv usage validates CloudFormation/CDK schemas authored by the developer, not attacker-controlled URIs. No runtime/production code path passes attacker-controlled URIs through ajv schema validation that relies on fast-uri parsing."
     }
   ]
 }

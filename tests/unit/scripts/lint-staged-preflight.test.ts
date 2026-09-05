@@ -31,6 +31,7 @@ import { trackedHookCopies } from "../../helpers/hook-roster.js";
 import {
   configPathFrom,
   executableOf,
+  invokedAsScript,
   tasksOf,
 } from "../../../all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs";
 
@@ -331,6 +332,22 @@ describe("lint-staged preflight — task parsing", () => {
     expect(tasksOf(["a"])).toHaveProperty("problem");
     expect(tasksOf(null)).toHaveProperty("problem");
     expect(tasksOf({ "*.ts": 7 })).toHaveProperty("problem");
+  });
+});
+
+describe("lint-staged preflight — CLI entry detection", () => {
+  it("treats a missing process entry path as not invoked", () => {
+    const [entryPath] = process.argv.splice(1, 1);
+
+    try {
+      expect(invokedAsScript(import.meta.url)).toBe(false);
+    } finally {
+      if (entryPath !== undefined) process.argv.splice(1, 0, entryPath);
+    }
+  });
+
+  it("treats an empty explicit entry path as not invoked", () => {
+    expect(invokedAsScript(import.meta.url, "")).toBe(false);
   });
 });
 

@@ -56,6 +56,16 @@ const config: ViteUserConfig = {
     // known residue without turning existing fixture conventions into false
     // failures; a new prefix outside these families remains a red leak.
     globalSetup: [
+      // Admission first, and for the same reason `maxWorkers` below defers to
+      // the resolver rather than restating it: this file names its global setup
+      // literally instead of calling `scratchGlobalSetup()`, so a control added
+      // there reaches every downstream project and not the repository that
+      // ships it. Lisa is the machine's largest single source of concurrent
+      // runs; it must be inside its own bound, not exempt from it.
+      path.resolve(
+        import.meta.dirname,
+        "src/configs/vitest/fleet-admission-global-setup.ts"
+      ),
       path.resolve(
         import.meta.dirname,
         "src/configs/vitest/scratch-global-setup.ts"

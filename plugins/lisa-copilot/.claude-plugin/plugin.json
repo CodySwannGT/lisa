@@ -1,6 +1,6 @@
 {
   "name": "lisa",
-  "version": "4.42.2",
+  "version": "4.49.0",
   "description": "Universal governance — agents, skills, commands, hooks, and rules for all projects",
   "author": {
     "name": "Cody Swann"
@@ -200,6 +200,15 @@
         "hooks": [
           {
             "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforcement-vintage.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/setup-jira-cli.sh"
           }
         ]
@@ -210,6 +219,14 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/secrets-preflight.sh"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-binding-guard.sh"
           }
         ]
       }

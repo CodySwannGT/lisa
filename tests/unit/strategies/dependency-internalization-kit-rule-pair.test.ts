@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const EAGER = "plugins/src/base/rules/eager/dependency-internalization-kit.md";
+const EAGER =
+  "plugins/src/base/rules/reference/dependency-internalization-kit.md";
+const INDEX = "plugins/src/base/rules/eager/00-rule-index.md";
 const REFERENCE =
   "plugins/src/base/rules/reference/dependency-internalization-kit.md";
 const DECOMPOSITION =
@@ -54,8 +56,8 @@ describe("dependency-internalization-kit eager/reference rule pair", () => {
     const reference = readFileSync(REFERENCE, "utf8");
 
     expect(eager).toContain("# Dependency Internalization Kit (load-bearing)");
-    expect(eager).toContain(
-      "[reference/dependency-internalization-kit.md](../reference/dependency-internalization-kit.md)"
+    expect(readFileSync(INDEX, "utf8")).toContain(
+      "reference/dependency-internalization-kit.md"
     );
     expect(reference).toContain("# Dependency Internalization Kit");
   });

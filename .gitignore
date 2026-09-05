@@ -165,9 +165,10 @@ tasks.json
 **/.claude/.lisa-plugins-synced
 **/.claude/.lisa-marketplace-heal-v2
 
-# Second agent worktree root — see the full rationale on the same entry in
-# all/copy-contents/gitignore. Must stay above `### EASINCLUDE! ###`.
+# Agent worktree roots — see the full rationale on the same entry in
+# all/copy-contents/gitignore. Both must stay above `### EASINCLUDE! ###`.
 .worktrees/
+worktrees/
 .roo
 .roo/
 .roomodes
@@ -293,3 +294,8 @@ output/
 # a tracked sandbox would nest copies of itself on every run.
 .stryker-tmp/
 reports/mutation/
+
+# Produced in-run by `check:shell-guard-refusals --trace-out`. Never committed:
+# a stale trace reports a guard as evidenced long after its driving test was
+# deleted, which is the false claim of CodySwannGT/lisa#3931 with a longer half-life.
+.lisa/shell-guard-trace.jsonl

@@ -229,6 +229,30 @@ fi
 gh pr view <pr> --json autoMergeRequest -q .autoMergeRequest   # must print null
 ```
 
+**Then declare the hold**, so the deliberate case stays distinguishable from the
+defect. `/lisa:queue-status`'s arming sweep (#3903) reports every open PR whose
+`autoMergeRequest` is `null`, because a green unarmed PR waits forever and no
+other surface says so. An undeclared deliberate hold appears there as a finding
+on every run, and a report that is wrong every run is one operators learn to
+ignore:
+
+```bash
+gh pr edit <pr> --add-label "lisa:auto-merge-off"
+```
+
+Where that label does not exist in the repo, put the marker in the PR body
+instead — the sweep reads either spelling — and **give it a reason**, because
+the sweep prints one and prints `no reason declared` when it cannot:
+
+```text
+<!-- [lisa-auto-merge-off] reason=<why a human owns this merge> -->
+```
+
+Declaring the hold **suppresses it from the findings, not from the report**: the
+sweep still counts and names every held PR. That is deliberate — a label that
+turned a red sweep green and left no trace would be a bypass wearing the costume
+of a fix.
+
 If the disarm fails or the re-read still shows an armed `autoMergeRequest`,
 **fail closed**: treat the PR as a hard block (section 4) and report that the
 `awaiting-human` state was NOT reached — never proceed to a state in which the
@@ -616,6 +640,17 @@ gh api "repos/<owner>/<repo>/actions/runs?head_sha=<head>" --jq .total_count
 `mergeable == CONFLICTING` **and** `total_count == 0` is a conflict, not a CI
 problem. If CI were merely slow you would see runs QUEUED, not absent. Resolve
 the conflict and the runs appear; nothing else will make them appear.
+
+**`<head>` must be the FULL 40-character SHA.** `head_sha=` does not match a
+prefix and does not reject one: an abbreviated SHA returns a clean
+`total_count: 0` — not a 404, not a validation error, an absence shaped exactly
+like "no workflow ran". Measured on one pull request's own head: `77f223b9d` →
+`total_count 0`, `77f223b9d8ffe7b172e9cac48b068b3bcac304c3` → `total_count 4`.
+Take the SHA from `gh pr view <pr> --json headRefOid --jq .headRefOid`, never
+from `git log --oneline` or a truncated line in a log or a UI. Copying a short
+SHA here makes EVERY pull request read as having no CI, and the natural next
+action — rebase and force-push — throws away the live run you could not see
+(#3848).
 
 **`mergeable` is computed asynchronously.** GitHub returns `null` while it is
 still working it out, so a single read on a freshly-opened PR can say `null` on

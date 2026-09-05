@@ -10,12 +10,43 @@
  * nothing about a 100,000-entry one.
  *
  * So it is separated by FILE rather than scaled down, and excluded from the
- * pre-push task while remaining in the full suite CI runs — the same treatment,
- * for the same reason, that the mutation performance and gate-bite suites
- * already receive through `test:integration:push`. Building three independent
- * 100,000-entry roots writes 300,000 real entries into the shared platform temp
- * root, which on a machine running many concurrent agents is not merely slow
- * but is itself a load spike every other lane pays for.
+ * pre-push task — the same treatment, for the same reason, that the mutation
+ * performance and gate-bite suites already receive through
+ * `test:integration:push`. Building three independent 100,000-entry roots
+ * writes 300,000 real entries into the shared platform temp root, which on a
+ * machine running many concurrent agents is not merely slow but is itself a
+ * load spike every other lane pays for.
+ *
+ * ## Where this case actually runs, corrected
+ *
+ * This header used to say the case stayed "in the full suite CI runs". It did
+ * not, and never had. CI collects the file and then SKIPS the case: it is
+ * `it.runIf(process.platform === "darwin")` and every CI runner is
+ * `ubuntu-latest`. Removing it from the pre-push task therefore removed the
+ * only AUTOMATED surface that had ever executed it, leaving only a developer
+ * running the full local suite on a Mac by hand (CodySwannGT/lisa#3935). A
+ * skipped case is a green case, which is why nothing reported the loss.
+ *
+ * The automated surface is now
+ * `.github/workflows/nightly-tmpdir-growth-benchmark.yml` — nightly, on
+ * `macos-latest`, off the critical path. Because a green suite is compatible
+ * with this case being skipped, that lane does not merely run the file: it
+ * emits a vitest JSON report and `scripts/check-test-case-executed.mjs` asserts
+ * this case was present, PASSED, and consumed real time. Run it locally with
+ * `bun run test tests/unit/scripts/measure-tmpdir-growth-performance.test.ts`.
+ *
+ * ## The darwin guard is deliberate now, and was not before
+ *
+ * It was inherited, not required. This case and `darwinBirthBatchingEvidence`
+ * were written in the same commit and the same helper file; that sibling
+ * genuinely needs darwin (BSD `ps -o lstart=`, a `darwin:` birth fingerprint)
+ * and this one does not — the helper is filesystem and `spawnSync` only, and
+ * `scripts/measure-tmpdir-growth.mjs` supports linux explicitly through
+ * `/proc`. It stays on darwin for two reasons that survive that finding: the
+ * 5,000 ms budget is calibrated against darwin samples (169.97 / 170.94 /
+ * 527.62 ms) and no Linux figure has ever been measured, and the corpus cost is
+ * no cheaper on a 2-core hosted runner, so a Linux lane on every pull request
+ * would hand back the cost the exclusion exists to remove.
  *
  * Everything else about the command — including the entry-cap refusal branch,
  * which now proves itself on a 501-entry root — stays in the unit suite next to
@@ -26,6 +57,7 @@ import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { fsLatencyBudgetMs } from "../../helpers/fs-latency-budget.js";
 import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 import { darwinTmpdirGrowthPerformance } from "../../helpers/tmpdir-growth-darwin-performance.js";
 
@@ -41,7 +73,11 @@ afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
     fs.rmSync(directory, { force: true, recursive: true });
   }
-}, ioLatencyBudgetMs(REAL_FIXTURE_CLEANUP_BASE_MS));
+  // Scaled by the FILESYSTEM proxy, not the spawn one: this hook spawns
+  // nothing at all, and its entire cost is ~300,000 unlinks. See
+  // CodySwannGT/lisa#3936 — a spawn-derived budget reported a quiet box at
+  // load 25 while a real corpus deletion in the same instant did not.
+}, fsLatencyBudgetMs(REAL_FIXTURE_CLEANUP_BASE_MS));
 
 describe("temp growth command-route performance", () => {
   it.runIf(process.platform === "darwin")(

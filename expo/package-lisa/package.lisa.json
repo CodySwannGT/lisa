@@ -1,67 +1,67 @@
 {
   "force": {
     "scripts": {
-      "setup:deploy-key": "setup-deploy-key",
-      "lighthouse:check": "lhci autorun --collect.settings.chromeFlags='--no-sandbox --disable-gpu --headless' --assert.assertions.forced-reflow-insight=off && node scripts/check-lighthouse-details.mjs",
-      "playwright:build": "expo export --platform web",
-      "playwright:test": "bun run playwright:build && lisa-test-run --profile expo --adapter direct -- playwright test",
-      "playwright:test:ui": "bun run playwright:build && lisa-test-run --profile expo --adapter direct -- playwright test --ui",
-      "maestro:test": "lisa-test-run --profile expo --adapter direct -- maestro test .maestro/flows",
-      "maestro:test:ios": "lisa-test-run --profile expo --adapter direct -- maestro test -p ios .maestro/flows",
-      "maestro:test:android": "lisa-test-run --profile expo --adapter direct -- maestro test -p android .maestro/flows",
-      "maestro:test:smoke": "lisa-test-run --profile expo --adapter direct -- maestro test -p ios --include-tags=smoke .maestro/flows",
-      "maestro:studio": "maestro studio",
-      "maestro:classify": "node scripts/classify-maestro-failures.mjs",
       "bdd:coverage": "node scripts/check-bdd-coverage.mjs",
       "bdd:coverage:write": "node scripts/check-bdd-coverage.mjs --write",
       "bdd:matrix": "node scripts/bdd-matrix.mjs --write",
-      "start:local": "cp .env.localhost .env.local && STAGE=local expo start",
-      "start:dev": "cp .env.development .env.local && STAGE=development expo start",
-      "start:staging": "cp .env.staging .env.local && STAGE=staging expo start",
-      "start:production": "cp .env.production .env.local && STAGE=production expo start",
-      "start:simulator:ios:local": "cp .env.localhost .env.local && STAGE=local expo start --ios",
-      "start:simulator:ios:dev": "cp .env.development .env.local && STAGE=development expo start --ios",
-      "start:simulator:ios:staging": "cp .env.staging .env.local && STAGE=staging expo start --ios",
-      "start:simulator:ios:production": "cp .env.production .env.local && STAGE=production expo start --ios",
-      "start:simulator:android:local": "cp .env.localhost .env.local && STAGE=local expo start --android",
-      "start:simulator:android:dev": "cp .env.development .env.local && STAGE=development expo start --android",
-      "start:simulator:android:staging": "cp .env.staging .env.local && STAGE=staging expo start --android",
-      "start:simulator:android:production": "cp .env.production .env.local && STAGE=production expo start --android",
-      "build-and-run:simulator:ios:local": "cp .env.localhost .env.local && STAGE=local expo run:ios",
-      "build-and-run:simulator:ios:dev": "cp .env.development .env.local && STAGE=development expo run:ios",
-      "build-and-run:simulator:ios:staging": "cp .env.staging .env.local && STAGE=staging expo run:ios",
-      "build-and-run:simulator:ios:production": "cp .env.production .env.local && STAGE=production expo run:ios",
-      "build-and-run:simulator:android:local": "cp .env.localhost .env.local && STAGE=local expo run:android",
-      "build-and-run:simulator:android:dev": "cp .env.development .env.local && STAGE=development expo run:android",
-      "build-and-run:simulator:android:staging": "cp .env.staging .env.local && STAGE=staging expo run:android",
-      "build-and-run:simulator:android:production": "cp .env.production .env.local && STAGE=production expo run:android",
       "build-and-run:local:android": "expo run:android",
       "build-and-run:local:ios": "expo run:ios",
-      "fetch:graphql:schema:dev": "./scripts/fetch-graphql-schema.sh development",
-      "fetch:graphql:schema:staging": "./scripts/fetch-graphql-schema.sh staging",
-      "fetch:graphql:schema:production": "./scripts/fetch-graphql-schema.sh production",
-      "export:web": "expo export --platform web --source-maps",
-      "pre-build:eas": "cat .gitignore > .easignore && cat .easignore.extra >> .easignore",
-      "eas:login": "eas login",
-      "eas:whoami": "eas whoami",
+      "build-and-run:simulator:android:dev": "cp .env.development .env.local && STAGE=development expo run:android",
+      "build-and-run:simulator:android:local": "cp .env.localhost .env.local && STAGE=local expo run:android",
+      "build-and-run:simulator:android:production": "cp .env.production .env.local && STAGE=production expo run:android",
+      "build-and-run:simulator:android:staging": "cp .env.staging .env.local && STAGE=staging expo run:android",
+      "build-and-run:simulator:ios:dev": "cp .env.development .env.local && STAGE=development expo run:ios",
+      "build-and-run:simulator:ios:local": "cp .env.localhost .env.local && STAGE=local expo run:ios",
+      "build-and-run:simulator:ios:production": "cp .env.production .env.local && STAGE=production expo run:ios",
+      "build-and-run:simulator:ios:staging": "cp .env.staging .env.local && STAGE=staging expo run:ios",
       "eas:deploy:dev": "eas build --profile dev --non-interactive",
-      "eas:deploy:staging": "eas build --profile staging --non-interactive",
       "eas:deploy:production": "eas build --profile production --non-interactive",
+      "eas:deploy:staging": "eas build --profile staging --non-interactive",
+      "eas:login": "eas login",
       "eas:publish:dev": "eas update --channel dev --environment development --non-interactive",
-      "eas:publish:staging": "eas update --channel staging --environment preview --non-interactive",
       "eas:publish:production": "eas update --channel production --environment production --non-interactive",
-      "security:zap": "bash scripts/zap-baseline.sh",
-      "test": "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest",
-      "test:unit": "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
-      "test:integration:lisa": "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
-      "test:cov": "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --coverage",
-      "test:cov:unit": "LISA_COVERAGE_SCOPE=unit NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --coverage --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
-      "test:mutation": "LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\",\"worker-\"]' lisa-test-run --profile expo --adapter direct -- node scripts/lisa-mutation.mjs",
-      "test:watch": "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --watch",
-      "lint:lisa": "oxlint && eslint . --quiet",
+      "eas:publish:staging": "eas update --channel staging --environment preview --non-interactive",
+      "eas:whoami": "eas whoami",
+      "export:web": "expo export --platform web --source-maps",
+      "fetch:graphql:schema:dev": "./scripts/fetch-graphql-schema.sh development",
+      "fetch:graphql:schema:production": "./scripts/fetch-graphql-schema.sh production",
+      "fetch:graphql:schema:staging": "./scripts/fetch-graphql-schema.sh staging",
+      "lighthouse:check": "lhci autorun --collect.settings.chromeFlags='--no-sandbox --disable-gpu --headless' --assert.assertions.forced-reflow-insight=off && node scripts/check-lighthouse-details.mjs",
       "lint:fix": "oxlint --fix && eslint . --fix",
+      "lint:lisa": "oxlint && eslint . --quiet",
+      "maestro:classify": "node scripts/classify-maestro-failures.mjs",
+      "maestro:studio": "maestro studio",
+      "maestro:test": "lisa-test-run --profile expo --adapter direct -- maestro test .maestro/flows",
+      "maestro:test:android": "lisa-test-run --profile expo --adapter direct -- maestro test -p android .maestro/flows",
+      "maestro:test:ios": "lisa-test-run --profile expo --adapter direct -- maestro test -p ios .maestro/flows",
+      "maestro:test:smoke": "lisa-test-run --profile expo --adapter direct -- maestro test -p ios --include-tags=smoke .maestro/flows",
+      "playwright:build": "expo export --platform web",
+      "playwright:test": "bun run playwright:build && lisa-test-run --profile expo --adapter direct -- playwright test",
+      "playwright:test:ui": "bun run playwright:build && lisa-test-run --profile expo --adapter direct -- playwright test --ui",
+      "pre-build:eas": "cat .gitignore > .easignore && cat .easignore.extra >> .easignore",
+      "security:zap": "bash scripts/zap-baseline.sh",
+      "setup:deploy-key": "setup-deploy-key",
       "start:atlas": "cp .env.development .env.local && STAGE=development EXPO_ATLAS=true expo start",
-      "test:node": "LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile expo --adapter direct -- node scripts/lisa-test-node.mjs"
+      "start:dev": "cp .env.development .env.local && STAGE=development expo start",
+      "start:local": "cp .env.localhost .env.local && STAGE=local expo start",
+      "start:production": "cp .env.production .env.local && STAGE=production expo start",
+      "start:simulator:android:dev": "cp .env.development .env.local && STAGE=development expo start --android",
+      "start:simulator:android:local": "cp .env.localhost .env.local && STAGE=local expo start --android",
+      "start:simulator:android:production": "cp .env.production .env.local && STAGE=production expo start --android",
+      "start:simulator:android:staging": "cp .env.staging .env.local && STAGE=staging expo start --android",
+      "start:simulator:ios:dev": "cp .env.development .env.local && STAGE=development expo start --ios",
+      "start:simulator:ios:local": "cp .env.localhost .env.local && STAGE=local expo start --ios",
+      "start:simulator:ios:production": "cp .env.production .env.local && STAGE=production expo start --ios",
+      "start:simulator:ios:staging": "cp .env.staging .env.local && STAGE=staging expo start --ios",
+      "start:staging": "cp .env.staging .env.local && STAGE=staging expo start",
+      "test:cov:lisa": "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --coverage",
+      "test:cov:unit:lisa": "LISA_COVERAGE_SCOPE=unit NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --coverage --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
+      "test:integration:lisa": "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
+      "test:lisa": "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest",
+      "test:mutation": "LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\",\"worker-\"]' lisa-test-run --profile expo --adapter direct -- node scripts/lisa-mutation.mjs",
+      "test:node": "LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile expo --adapter direct -- node scripts/lisa-test-node.mjs",
+      "test:unit:lisa": "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
+      "test:watch:lisa": "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --watch"
     },
     "dependencies": {
       "@apollo/client": "^3.10.8",
@@ -182,8 +182,13 @@
       "jest-expo": "~57.0.1"
     },
     "scripts": {
+      "lint": "$npm_execpath run lint:lisa",
+      "test": "$npm_execpath run test:lisa",
+      "test:cov": "$npm_execpath run test:cov:lisa",
+      "test:cov:unit": "$npm_execpath run test:cov:unit:lisa",
       "test:integration": "$npm_execpath run test:integration:lisa",
-      "lint": "$npm_execpath run lint:lisa"
+      "test:unit": "$npm_execpath run test:unit:lisa",
+      "test:watch": "$npm_execpath run test:watch:lisa"
     }
   },
   "remove": {
@@ -201,13 +206,38 @@
   },
   "adopt": {
     "scripts": {
+      "lint": [
+        "oxlint && eslint . --quiet",
+        "eslint . --quiet"
+      ],
+      "test": [
+        "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest",
+        "NODE_ENV=test lisa-test-run --profile expo -- jest",
+        "NODE_ENV=test lisa-test-run -- jest"
+      ],
+      "test:cov": [
+        "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --coverage",
+        "NODE_ENV=test lisa-test-run --profile expo -- jest --coverage",
+        "NODE_ENV=test lisa-test-run -- jest --coverage"
+      ],
+      "test:cov:unit": [
+        "LISA_COVERAGE_SCOPE=unit NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --coverage --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
+        "LISA_COVERAGE_SCOPE=unit NODE_ENV=test lisa-test-run --profile expo -- jest --coverage --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
+        "LISA_COVERAGE_SCOPE=unit NODE_ENV=test lisa-test-run -- jest --coverage --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\""
+      ],
       "test:integration": [
         "NODE_ENV=test jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
         "NODE_ENV=test jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests"
       ],
-      "lint": [
-        "oxlint && eslint . --quiet",
-        "eslint . --quiet"
+      "test:unit": [
+        "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
+        "NODE_ENV=test lisa-test-run --profile expo -- jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
+        "NODE_ENV=test lisa-test-run -- jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\""
+      ],
+      "test:watch": [
+        "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --watch",
+        "NODE_ENV=test lisa-test-run --profile expo -- jest --watch",
+        "NODE_ENV=test lisa-test-run -- jest --watch"
       ]
     }
   }

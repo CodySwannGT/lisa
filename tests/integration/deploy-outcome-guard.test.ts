@@ -40,7 +40,7 @@ import {
   jobRuns,
   type JobResult,
   type RunScenario,
-} from "./deploy-outcome-guard-helper.js";
+} from "../../src/core/github-actions-condition.js";
 
 /** Repository root, resolved from this file rather than from cwd. */
 const ROOT = path.resolve(__dirname, "../..");

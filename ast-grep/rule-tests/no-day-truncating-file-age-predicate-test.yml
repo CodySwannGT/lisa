@@ -1,0 +1,26 @@
+id: no-day-truncating-file-age-predicate
+valid:
+  # The eight shipped hook sites, in the form they actually carry. `-mmin` is
+  # minute-granularity and is not truncated to days, so these are correct as
+  # written and must stay green — this arm is what makes a future edit to
+  # `-mtime` a failure rather than a silent change of question.
+  - 'find "$dir" -maxdepth 1 -mmin +1440 -print'
+  - 'find . -mmin +2880 -delete'
+  - 'find "$TMPDIR" -maxdepth 1 -name "cdk.*" -mmin +360'
+  # `! -newermt` is the other sanctioned form and is exact, not truncated.
+  - 'find . ! -newermt "2026-09-03T00:00:00Z" -print'
+  # Flags whose names merely start the same way are not day-truncating. A rule
+  # that matched them would be refusing correct code, and an over-broad rule
+  # gets disabled rather than obeyed.
+  - 'find . -mmin +1440 -mount -print'
+  - 'find . -maxdepth 1 -type f -print'
+invalid:
+  # THE BITE. Each of the three is truncated to whole days, so `+2` means
+  # "older than three days" and the 49h-71h band is silently dropped.
+  - 'find . -mtime +2 -delete'
+  - 'find . -atime +7 -print'
+  - 'find . -ctime +1 -exec rm {} +'
+  # Still wrong when `find` is not the literal command name — this is why the
+  # rule matches the flag rather than the invocation.
+  - '/usr/bin/find "$TMPDIR" -maxdepth 1 -mtime +2 -print'
+  - 'xargs find -mtime +30 -print'

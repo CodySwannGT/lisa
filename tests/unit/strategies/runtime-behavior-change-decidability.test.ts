@@ -73,7 +73,8 @@ describe("the rule persists the behavioral flag instead of asserting it", () => 
     });
 
     it("treats an absent section as underivable, never as false", () => {
-      for (const tier of ["eager", "reference"] as const) {
+      // #3992: one copy per root now — the head folded into the body.
+      for (const tier of ["reference"] as const) {
         const content = readRule(root, tier);
 
         expect(content).toMatch(/underivable/i);

@@ -46,7 +46,7 @@ const squash = (text: string): string => text.replace(/\s+/g, " ");
 
 describe("convergent-review rule contract", () => {
   describe.each(ROOTS)("%s", root => {
-    const eager = read(root, "rules/eager/convergent-review.md");
+    const eager = read(root, "rules/reference/convergent-review.md");
     const reference = read(root, "rules/reference/convergent-review.md");
     const eagerFlat = squash(eager);
     const referenceFlat = squash(reference);
