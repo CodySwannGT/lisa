@@ -29,7 +29,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { afterEach, describe, expect, it } from "vitest";
-import { findConflictBlocks } from "../../../all/copy-overwrite/scripts/check-conflict-markers.mjs";
+import {
+  findConflictBlocks,
+  parseArgs,
+} from "../../../all/copy-overwrite/scripts/check-conflict-markers.mjs";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils";
 import { resolveGit } from "../../support/git-executable.js";
@@ -278,6 +281,7 @@ describe("check-conflict-markers CLI", () => {
 
   it("exits 2 when a flag is missing its value", () => {
     expect(run(["--root"]).code).toBe(2);
+    expect(() => parseArgs(["--root"])).toThrowError("--root requires a value");
   });
 
   it("exits 2 when --root is not a directory", () => {
