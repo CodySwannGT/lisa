@@ -9812,6 +9812,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/coderabbit-labeling-scope.test.ts": true,
     "tests/unit/config/conflict-prover-consumer-layouts.test.ts": true,
     "tests/unit/config/coverage-include-guard.test.ts": true,
+    "tests/unit/config/coverage-publish-reclaim.test.ts": true,
     "tests/unit/config/coverage-scratch-isolation.test.ts": true,
     "tests/unit/config/coverage-unit-scope-thresholds.test.ts": true,
     "tests/unit/config/coverage-unit-script-runner-parity.test.ts": true,
