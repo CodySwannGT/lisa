@@ -79,6 +79,12 @@ describe("resolveMoment", () => {
         // reached through. Only a gate proved outside the quality facade does;
         // everything else takes the caller-wide chain, unchanged.
         callerChain: null,
+        // Null unless this moment said how its prover prints a MEASURED
+        // failure. Without one, a prover whose output the shipped classifier
+        // cannot read reports UNPROVABLE — the word this fleet reads as
+        // "re-run it" — for a run that measured the property and found it
+        // wanting (CodySwannGT/lisa#3974).
+        failureShape: null,
         // Lint rewrites the tree when pointed at a `--fix` task, so it sorts
         // ahead of every gate that verifies the tree. See lisa-gates-order.
         mayRewrite: true,
