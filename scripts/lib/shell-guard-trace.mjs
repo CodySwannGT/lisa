@@ -55,6 +55,14 @@
  * It NEVER throws and never changes a return value: a tracer that can break the
  * suite it observes would be turned off, and then this whole control is prose.
  *
+ * Each record carries the `sha256` that matched, not only the guard path. A
+ * consumer reading a trace some other step produced cannot otherwise tell an
+ * observation of THIS guard from an observation of the version it replaced, and
+ * a guard that inherits its predecessor's coverage is the stale-evidence shape
+ * this repository keeps closing (CodySwannGT/lisa#3931). The judge in
+ * `shell-guard-refusal-coverage.mjs` does not need it — it hashes the tree
+ * itself in the same process — so the field is additive and ignored there.
+ *
  * @module scripts/lib/shell-guard-trace
  */
 import { appendFileSync, readFileSync, statSync } from "node:fs";
@@ -98,12 +106,15 @@ function install(trace, index) {
    * @param {string} origin - Test frame that started it.
    * @returns {void}
    */
-  const record = (script, status, origin) => {
+  const record = (script, status, origin, sha256) => {
     const key = `${script}:${String(status)}`;
     if (seen.has(key)) return;
     seen.add(key);
     try {
-      appendFileSync(trace, `${JSON.stringify({ script, status, origin })}\n`);
+      appendFileSync(
+        trace,
+        `${JSON.stringify({ script, status, origin, sha256 })}\n`
+      );
     } catch {
       /* A trace that cannot be written must not fail the suite. */
     }
@@ -138,7 +149,7 @@ function install(trace, index) {
    * @param {unknown} command - First argument of the child start.
    * @param {unknown} args - Second argument: an argv array, or the options.
    * @param {unknown} third - Third argument, when the second was an argv array.
-   * @returns {string[]} Repository-relative guard paths.
+   * @returns {{guard: string, sha256: string}[]} Guards, each with the digest that matched.
    */
   const matched = (command, args, third) => {
     if (typeof command !== "string") return [];
@@ -157,7 +168,8 @@ function install(trace, index) {
       typeof (/** @type {{cwd?: unknown}} */ (options).cwd) === "string"
         ? /** @type {{cwd: string}} */ (options).cwd
         : process.cwd();
-    const hits = new Set();
+    /** @type {Map<string, string>} */
+    const hits = new Map();
     for (const token of tokens) {
       if (!token || token.length > MAX_PATH_LENGTH) continue;
       const absolute = path.isAbsolute(token)
@@ -179,12 +191,14 @@ function install(trace, index) {
         const digest = createHash("sha256")
           .update(readFileSync(absolute))
           .digest("hex");
-        for (const guard of inventory.byHash[digest] ?? []) hits.add(guard);
+        for (const guard of inventory.byHash[digest] ?? []) {
+          hits.set(guard, digest);
+        }
       } catch {
         continue;
       }
     }
-    return [...hits];
+    return [...hits].map(([guard, sha256]) => ({ guard, sha256 }));
   };
 
   /**
@@ -213,7 +227,9 @@ function install(trace, index) {
       const guards = matched(command, args, options);
       if (guards.length > 0) {
         const where = origin();
-        for (const guard of guards) record(guard, result.status, where);
+        for (const hit of guards) {
+          record(hit.guard, result.status, where, hit.sha256);
+        }
       }
     } catch {
       /* Never let observation change the observed. */
@@ -234,7 +250,9 @@ function install(trace, index) {
           const guards = matched(command, args, options);
           if (guards.length === 0) return;
           const where = origin();
-          for (const guard of guards) record(guard, status, where);
+          for (const hit of guards) {
+            record(hit.guard, status, where, hit.sha256);
+          }
         } catch {
           /* Never let observation change the observed. */
         }

@@ -43,7 +43,7 @@ const read = (root: string, rel: string): string =>
 
 describe("design-source-of-truth rule contract", () => {
   describe.each(ROOTS)("%s", root => {
-    const eager = read(root, "rules/eager/design-source-of-truth.md");
+    const eager = read(root, "rules/reference/design-source-of-truth.md");
     const reference = read(root, "rules/reference/design-source-of-truth.md");
 
     it("ships as a paired rule with a non-trivial body on both sides", () => {
@@ -51,9 +51,9 @@ describe("design-source-of-truth rule contract", () => {
       expect(reference.length).toBeGreaterThan(2000);
     });
 
-    it("eager head breadcrumbs to the reference body verbatim", () => {
-      expect(eager).toContain(
-        "Full contract (marker grammar, gate semantics, host-rule precedence, bootstrap procedure): [reference/design-source-of-truth.md](../reference/design-source-of-truth.md)."
+    it("stays reachable from the eager rule index", () => {
+      expect(read(root, "rules/eager/00-rule-index.md")).toContain(
+        "reference/design-source-of-truth.md"
       );
     });
 

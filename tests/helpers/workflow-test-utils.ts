@@ -14,6 +14,13 @@ export interface WorkflowStep {
 
 /** Shape of a single job inside a workflow's `jobs:` map. */
 export interface WorkflowJob {
+  /**
+   * The display name GitHub renders as the job's check row.
+   *
+   * Load-bearing rather than cosmetic: the row's name composes with its
+   * conclusion into what a reader believes, so it is assertable (#3917).
+   */
+  name?: string;
   steps?: WorkflowStep[];
   if?: string;
   uses?: string;

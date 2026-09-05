@@ -126,6 +126,26 @@ bash -e -o pipefail -c 'node -e "process.exit(1)" | tee /dev/null' -> 1
 
 `scripts/check-pipeline-status-reads.mjs` sweeps shipped shell scripts and workflow `run:` blocks for the pattern. It reports **how many pipelines it inspected** and exits 2 — not 0 — when that count is zero, because an empty inspection and a clean tree otherwise print the same tick.
 
+### A guard that reports OK when its comparison had no subject
+
+Not "the guard is wrong" — the guard did not run against anything, and said OK. Six instances were catalogued in one sweep (`#3888`), and this was the one still live:
+
+```text
+✓ no leftover conflict markers in 0 tracked files
+```
+
+That is a **required push gate** reporting on bytes nobody read. `git ls-files` in a repository with nothing tracked succeeds and prints nothing, so the scan loop ran zero times and the verdict came out the same as a clean tree's. Siblings in the same family: a type gate that compiled 0 of 1375 test files and reported success; a gate runner that recorded PASSED off an exit code, never the output; a review gate that went green off a review that never started.
+
+The distinguishing property is always the same. The guard had a **subject count** available and did not check it, or had a **reason string** available and did not read it. So:
+
+> **A guard that can report success must be able to state what it examined, and must fail closed when that count is zero.** A subject count of zero is not a pass.
+
+A guard with genuinely nothing to do is not the defect — it satisfies the rule by SAYING so (`not-adopted`, `nothing to register`) rather than printing a tick. The defect is a tick that cannot be told apart from a satisfied comparison.
+
+#### The executable half
+
+`scripts/check-empty-subject-guards.mjs` runs every root-scoped guard against an **empty git repository** and reports any that prints a success line and exits 0 anyway. It measures by executing rather than by reading, because a static heuristic that misses one reports a clean tree — the very failure being swept for. It prints how many guards it probed, how many declare no root override and so could not be, and exits 2 at zero probed.
+
 ## What a negative result is scoped to
 
 A clean result is a statement about what the check can perceive, not about the code. State the boundary:

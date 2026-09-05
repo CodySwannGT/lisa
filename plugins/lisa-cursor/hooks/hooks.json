@@ -101,10 +101,16 @@
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/inject-resolved-config.sh"
       },
       {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/enforcement-vintage.sh"
+      },
+      {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/setup-jira-cli.sh"
       },
       {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/secrets-preflight.sh"
+      },
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/worktree-binding-guard.sh"
       }
     ],
     "subagentStart": [
@@ -113,6 +119,9 @@
       },
       {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/inject-resolved-config.sh"
+      },
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/enforcement-vintage.sh"
       },
       {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/enforce-verification-gate.sh"

@@ -349,7 +349,7 @@ session found 13 of 13 issues filed this way, none of them through Lisa's
 filing path. The rule saying not to do this already existed — it did not bind,
 so it is now enforced here.
 
-FILE IT THE SANCTIONED WAY — one of these two, always explicit:
+FILE IT THE SANCTIONED WAY — one of these three, always explicit:
 
 1. The item is complete enough to build. Use the filing flow, not the CLI:
 
@@ -371,17 +371,35 @@ FILE IT THE SANCTIONED WAY — one of these two, always explicit:
      Held for a human product call: <reason>.
      <!-- [lisa-human-gate] reason=<short-slug> -->
 
+3. The item is a CONTAINER — an Epic, or any item whose state rolls up from
+   its children. It is neither of the two above and must not pretend to be:
+   \`leaf-only-lifecycle\` FORBIDS the build-ready role on a container, and a
+   human gate it does not have is a durable false hold. It declares the third
+   thing instead — the canonical container line, in place of a Target Backend
+   Environment:
+
+     ## Target Backend Environment
+
+     None — container: state rolls up from children
+
+   That declaration is refused alongside a by-design leaf type
+   (\`type:Bug\` / \`type:Task\` / \`type:Sub-task\` / \`type:Improvement\`):
+   an item cannot be a container and a leaf at once.
+
 Filed, not ready, and no \`human_gate\` is the incomplete-handoff case, and
 \`build_ready: false\` with no reason is the same omission with a value
 attached. See the \`ready-role-filing\` rule for the full contract.
 
-If you must run the CLI directly, the command has to carry one of the two
+If you must run the CLI directly, the command has to carry one of the three
 declarations itself:
 
 $(declaration_hint)
 
    Or a \`[lisa-human-gate]\` marker in the body it submits, when a human
    product call really is pending.
+
+   Or, for a container, \`None — container: state rolls up from children\` in
+   that body, and no by-design leaf type on the command.
 
 WHERE THE DECLARATION IS READ FROM: argv, the request payload — inline, in a
 \`--data-binary @file\`, or piped in over stdin — and the contents of a script
@@ -479,6 +497,82 @@ project_dir = os.environ.get("LISA_GUARD_PROJECT_DIR", "")
 OVERRIDE_NAME = "LISA_ALLOW_DIRECT_ISSUE_CREATE"
 HUMAN_GATE_MARKER = "[lisa-human-gate]"
 
+# Decoration a hold declaration may sit behind, and nothing more: whitespace,
+# blockquote arrows, list bullets or numbers, emphasis, an opening HTML
+# comment. One character class plus two optional groups, deliberately not a
+# nested quantifier — this runs over untrusted issue bodies.
+HUMAN_GATE_DECORATION = re.compile(r"^[ \t>*_+#-]*(?:\d+[.)][ \t]*)?(?:<!--[ \t]*)?[ \t]*")
+HUMAN_GATE_FENCE = re.compile(r"```.*?```", re.DOTALL)
+HUMAN_GATE_CODE_SPAN = re.compile(r"`[^`\n]*`")
+
+
+def declares_human_gate(text):
+    """Whether a text DECLARES a hold rather than mentioning one.
+
+    The comment this replaces said the marker is matched anywhere because it
+    "has no other meaning, so its presence in the title or body IS the
+    declaration". That was true when written and is false now: the marker
+    acquired a second meaning -- being discussed -- the moment the feature
+    became something people file tickets about, and a ticket about the marker
+    then declares a hold on itself (CodySwannGT/lisa#3815).
+
+    A declaration is POSITIONAL: the marker leads its line, behind at most the
+    decoration above, with fenced blocks and inline code spans removed first
+    because that is how the marker is written ABOUT. The same rule the intake
+    matcher applies, so the two surfaces cannot disagree about one body.
+
+    NOTE the direction here differs from the intake matcher's. There a match
+    HOLDS an item, so a false positive parks work. Here a match ADMITS a
+    filing, so a false positive is a hole -- which makes this the tightening
+    direction on both sides at once.
+
+    Args:
+        text: Any candidate text -- one argv value, a body file, a payload.
+
+    Returns:
+        True when some line of the text declares a hold.
+    """
+    if not text:
+        return False
+    body = HUMAN_GATE_CODE_SPAN.sub("", HUMAN_GATE_FENCE.sub("", str(text)))
+    for line in body.split("\n"):
+        if HUMAN_GATE_DECORATION.sub("", line, count=1).startswith(
+            HUMAN_GATE_MARKER
+        ):
+            return True
+        if _comment_carries_marker(line):
+            return True
+    return False
+
+
+def _comment_carries_marker(line):
+    """Whether an HTML comment on this line carries the marker.
+
+    The second accepted form, and the one this guard needs most: its inputs
+    are not markdown documents. A `--body` value is a single line, and a shell
+    script writes its declaration as `# <!-- ... -->`, so a purely
+    line-leading rule would refuse two declarations people have already
+    written -- both of which are in this repository's own test corpus.
+
+    It is not a loosening. An HTML comment is invisible when rendered, so
+    nobody wraps one around the marker in order to TALK about it; a quotation
+    has to be visible to be a quotation. Measured over this repository's 42
+    matching issue bodies, adding this branch changes not one verdict.
+
+    Args:
+        line: One line of text.
+
+    Returns:
+        True when some comment on the line contains the marker.
+    """
+    segments = line.split("<!--")
+    for segment in segments[1:]:
+        close = segment.find("-->")
+        inside = segment if close == -1 else segment[:close]
+        if HUMAN_GATE_MARKER in inside:
+            return True
+    return False
+
 # ---------------------------------------------------------------------------
 # WHY THIS IS A TOKEN SCAN AND NOT A PROGRAM RESOLVER
 #
@@ -531,6 +625,78 @@ UNPARSEABLE_CREATION = re.compile(
 
 BODY_FILE_FLAGS = {"--body-file", "-F", "--input", "--data-binary"}
 LABEL_FLAGS = {"--label", "--labels", "--add-label", "--status", "--state"}
+
+# ---------------------------------------------------------------------------
+# THE THIRD DECLARATION: THIS ITEM IS A CONTAINER
+#
+# The two declarations above are both illegitimate for a container, and the
+# rules say so in as many words. `leaf-only-lifecycle` FORBIDS the build-ready
+# role on an Epic — its state rolls up from its children, and a hand-applied
+# role on a parent is the exact input that rule's claim-time arm exists to
+# reject. `lisa-github-write-issue` says a container needs no human gate.
+# So a guard with only those two arms could be satisfied for a container only
+# by writing something untrue, and BOTH untruths corrupt data another control
+# reads: a stamped role puts a container in the build lane, and a fabricated
+# hold marker is a state change with no inverse that reads to every later
+# observer as a real product hold. A guard that can only be obeyed by lying is
+# worse than one that simply refuses, because the lie is indistinguishable from
+# a correct filing afterwards.
+#
+# WHY NOT `--label type:Epic`
+#
+# Because a declared type is a CLAIM, and one that costs a leaf nothing: the
+# item it produces still looks buildable, so the exemption would be a free
+# bypass of the readiness requirement for anything willing to mistype itself.
+# That is the shape of this repository's measured case where an allowlist added
+# to harden a guard became the way around it.
+#
+# WHAT IS READ INSTEAD
+#
+# The canonical container declaration the `derived-branch-plan` rule already
+# defines and `lisa-github-write-issue` already stamps, in place of a Target
+# Backend Environment:
+#
+#   None — container: state rolls up from children
+#
+# It is a marker with no other meaning, so it is matched wherever the payload
+# reaches — the asymmetry `HUMAN_GATE_MARKER` gets, and for the related
+# reason. Reading the declaration the writer already emits is also what keeps
+# the guard and the skill from drifting apart a second time: there is one
+# string, defined in one rule, and both read it.
+#
+# It is self-limiting in a way a type label is not. Writing it costs the item
+# its Target Backend Environment and its Branch Plan — the two fields a leaf
+# needs to be built at all — so the declaration is only useful to something
+# that actually is a container. A leaf that writes it does not smuggle a
+# buildable item past the gate; it files an unbuildable one, in the lane
+# `leaf-only-lifecycle` and `lisa-repair-intake` already sweep.
+#
+# The WHOLE canonical value, `None` included, not just the distinctive tail.
+# Dropping the leading half would match ordinary prose about how a container's
+# state behaves — including a bug report ABOUT this guard — and a declaration
+# that ordinary prose satisfies is not a declaration. Whitespace-tolerant
+# because a body file may wrap the line; dash-tolerant because an author
+# retyping it by hand will not always reach for the em dash.
+CONTAINER_DECLARATION = re.compile(
+    r"None\s*[\u2014\u2013-]\s*container:\s*state\s+rolls\s+up\s+from\s+children",
+    re.IGNORECASE,
+)
+# The checkable half of "is it really a container". Provenance is unobservable
+# here, as the header notes, but a CONTRADICTION is not: an item cannot be a
+# container and a by-design leaf at once. Quoted from `leaf-only-lifecycle` —
+# "the by-design leaf types (Bug, Task, Sub-task, Improvement)". Story and
+# Spike are deliberately ABSENT: the same rule's childless-parent exception
+# makes them leaf-or-container depending on child work, and a decomposition
+# legitimately files a parent Story before the children that make it one.
+BY_DESIGN_LEAF_TYPES = {"bug", "task", "sub-task", "subtask", "improvement"}
+# Where a declared type can land on the created item. The label spellings are
+# GitHub's `type:<value>` convention; `--type` and its aliases are the JIRA and
+# Linear clients' spelling. Read with the same positional discipline as the
+# build-ready role — a type named in a title or body is not a type applied.
+TYPE_FLAGS = {
+    "--label", "--labels", "--add-label",
+    "--type", "--issue-type", "--issuetype",
+}
 POST_METHOD_FLAGS = {"-X", "--request", "--method"}
 POST_PAYLOAD_FLAGS = {
     "-d", "--data", "--data-raw", "--data-binary",
@@ -1136,7 +1302,7 @@ def text_declares_readiness(text):
     Returns:
         True when the text declares build-ready or a human gate.
     """
-    if HUMAN_GATE_MARKER in text:
+    if declares_human_gate(text):
         return True
     for role in (ready_role, upstream_ready_role, default_ready_role):
         if not role:
@@ -1180,7 +1346,7 @@ def scope_declaration(text, state_role_ok):
     Returns:
         True when the text carries a whole-scope declaration.
     """
-    if HUMAN_GATE_MARKER in text:
+    if declares_human_gate(text):
         return True
     return bool(state_role_ok and LIFECYCLE_ROLE_READY.search(text))
 
@@ -1410,20 +1576,23 @@ def declares_readiness(raw_args, roles, extra="", state_role_ok=False):
             candidates = [part.strip().strip("'\"") for part in raw.split(",")]
             if role in candidates:
                 return True
-    # The human-gate marker is matched anywhere, and that asymmetry is
-    # deliberate: it is a marker with no other meaning, so its presence in the
-    # title or body IS the declaration. The build-ready role is an ordinary
-    # string that appears in prose about the queue all the time.
-    if HUMAN_GATE_MARKER in " ".join(args):
+    # Checked per ARGV VALUE rather than against `" ".join(args)`, and that is
+    # what makes the positional rule mean anything here. Joining first destroys
+    # position: after a join, no value's line start survives except the first
+    # argument's, so "the marker leads its line" would be decided by argument
+    # order. A `--title` value is its own single line, which is exactly the
+    # unit the rule is about -- and titles must keep being read, since this
+    # guard reads them and the intake matcher does not.
+    if any(declares_human_gate(value) for value in args):
         return True
     for path in body_file_paths(args):
         try:
             with open(path, encoding="utf-8", errors="replace") as handle:
-                if HUMAN_GATE_MARKER in handle.read():
+                if declares_human_gate(handle.read()):
                     return True
         except OSError:
             continue
-    if extra and HUMAN_GATE_MARKER in extra:
+    if declares_human_gate(extra):
         return True
     # The state-based path. Scoped by `state_role_ok` rather than checked
     # unconditionally, so this adds a compliant command where none existed and
@@ -1432,6 +1601,65 @@ def declares_readiness(raw_args, roles, extra="", state_role_ok=False):
         if LIFECYCLE_ROLE_READY.search(" ".join(args)):
             return True
         if extra and text_declares_readiness(extra):
+            return True
+    return False
+
+
+def declares_leaf_type(args):
+    """Whether the filing declares a by-design leaf type as a flag value.
+
+    Read only from positions that reach the created item, and never from a
+    title or body — the same discipline the build-ready role is held to, for
+    the same reason: a type named in prose is not a type applied.
+
+    Args:
+        args: The creating command's arguments, already scoped to the flags.
+
+    Returns:
+        True when a Bug / Task / Sub-task / Improvement is declared.
+    """
+    for raw in flag_values(args, TYPE_FLAGS):
+        for part in raw.split(","):
+            value = part.strip().strip("'\"").lower()
+            if value.startswith("type:"):
+                value = value[len("type:") :]
+            if value in BY_DESIGN_LEAF_TYPES:
+                return True
+    return False
+
+
+def declares_container(raw_args, texts=()):
+    """Whether the create declares the item a container.
+
+    A container is neither build-ready nor human-gated by construction, so this
+    is the third accepted declaration rather than a third way to satisfy the
+    first two. See the CONTAINER_DECLARATION block for why it reads the
+    canonical declaration and not a `type:Epic` claim.
+
+    Args:
+        raw_args: The creating command's arguments.
+        texts: Payload or script text this command submits or runs.
+
+    Returns:
+        True when the container declaration is present and uncontradicted.
+    """
+    args = before_end_of_options(raw_args)
+    # The contradiction check comes FIRST, so a filing that declares itself
+    # both a container and a by-design leaf is refused rather than allowed on
+    # the strength of the half that suits it.
+    if declares_leaf_type(args):
+        return False
+    if CONTAINER_DECLARATION.search(" ".join(args)):
+        return True
+    for path in body_file_paths(args):
+        try:
+            with open(path, encoding="utf-8", errors="replace") as handle:
+                if CONTAINER_DECLARATION.search(handle.read()):
+                    return True
+        except OSError:
+            continue
+    for text in texts:
+        if text and CONTAINER_DECLARATION.search(text):
             return True
     return False
 
@@ -1882,6 +2110,15 @@ def scan(text, depth, from_file=False):
             roles, target = roles_for(target_repository(args))
             state_role_ok = tracker in STATE_ROLE_TRACKERS and target is None
             if declares_readiness(args, roles, submitted, state_role_ok):
+                continue
+            # The container arm. Checked after readiness, so it adds a
+            # compliant filing where none existed and takes none away where one
+            # already did. `text` joins the scan only for a creation found
+            # INSIDE a file, where the declaration lives in the same file as
+            # the create it answers for.
+            if declares_container(
+                args, (submitted, text) if from_file else (submitted,)
+            ):
                 continue
             # `LIFECYCLE_ROLE=ready curl …` puts the declaration BEFORE the
             # client, which is where an inline assignment has to go, so the

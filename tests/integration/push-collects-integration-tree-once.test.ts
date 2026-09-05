@@ -216,10 +216,17 @@ function stageProject(options: { readonly withCovUnit: boolean }): {
     typecheck: "true",
     "test:cov": PINNED["test:cov"] ?? "",
     "test:integration": PINNED["test:integration"] ?? "",
-    // The reserved base the host-facing name delegates to; a consumer receives
-    // both, and staging only the delegation would collect nothing.
+    // The reserved base each host-facing name delegates to; a consumer receives
+    // both, and staging only the delegation would collect nothing. Every
+    // host-facing test script is a governed pair now, not just this one.
+    "test:cov:lisa": PINNED["test:cov:lisa"] ?? "",
     "test:integration:lisa": PINNED["test:integration:lisa"] ?? "",
-    ...(options.withCovUnit ? { [COV_UNIT]: PINNED[COV_UNIT] ?? "" } : {}),
+    ...(options.withCovUnit
+      ? {
+          [COV_UNIT]: PINNED[COV_UNIT] ?? "",
+          [`${COV_UNIT}:lisa`]: PINNED[`${COV_UNIT}:lisa`] ?? "",
+        }
+      : {}),
   };
   const manifest = `${JSON.stringify({ name: "fixture", private: true, scripts }, null, 2)}\n`;
 

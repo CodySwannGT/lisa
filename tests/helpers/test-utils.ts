@@ -1,4 +1,5 @@
 import * as fs from "fs-extra";
+import { rm } from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
 import { renderLearningsFile } from "../../src/core/learnings-writer.js";
@@ -30,13 +31,74 @@ export async function createTempDir(): Promise<string> {
 }
 
 /**
- * Clean up a temporary directory
- * @param dir - Directory path to remove
+ * How many times a removal retries before giving up.
+ *
+ * Node retries only on the errors a CONCURRENT writer produces — `EBUSY`,
+ * `EMFILE`, `ENFILE`, `ENOTEMPTY`, `EPERM` — so a genuinely undeletable
+ * directory still fails, and fails on the first pass for every other errno. The
+ * cost is paid only when a race actually occurs.
  */
-export async function cleanupTempDir(dir: string): Promise<void> {
-  if (dir && (await fs.pathExists(dir))) {
-    await fs.remove(dir);
-  }
+const TEMP_REMOVAL_MAX_RETRIES = 10;
+
+/** Base wait between removal attempts; Node lengthens it linearly per try. */
+const TEMP_REMOVAL_RETRY_DELAY_MS = 100;
+
+/**
+ * Clean up a temporary directory.
+ *
+ * ## Why this is not `fs-extra`'s `remove`
+ *
+ * `fs-extra`'s `remove` is `fs.rm(path, { recursive: true, force: true })` —
+ * read from the installed source, not assumed — and it passes NO `maxRetries`,
+ * so Node's default of zero applies and the first collision propagates. Under
+ * concurrent I/O that surfaced as a hook error in a test that has nothing to do
+ * with the branch being pushed:
+ *
+ * ```
+ * ENOTEMPTY: directory not empty, rmdir
+ *   '…/lisa-scratch/run-…/worker-…/lisa-test-…/.git'
+ * ```
+ *
+ * A `.git` directory is the likeliest place for it: the fixture's `git init`
+ * leaves loose objects, index locks and a `hooks/` tree, and something else on
+ * the machine — another worker, an OS scanner walking ~108 worktrees — can
+ * create an entry between the readdir that found the directory empty and the
+ * `rmdir` that removes it. Measured during that window: load 121 with the top
+ * ten processes summing to ~465% of 1000%, so **not CPU saturation but ~121
+ * processes blocked on I/O** (CodySwannGT/lisa#3877).
+ *
+ * ## Why retrying is the right fix and not a papering-over
+ *
+ * The failure is a race with a writer that has already stopped, not a defect in
+ * the directory or the test. Retrying is what the platform provides for exactly
+ * this errno set, and it converges: whoever created the entry is not coming
+ * back. The alternative on offer — excusing the failure at the gate — would be
+ * a general mechanism for ignoring red, keyed on a string any author could
+ * produce. This makes the test survive the condition instead.
+ *
+ * The `pathExists` probe it replaces is gone on purpose. `force: true` already
+ * ignores a missing path, and the probe cost one extra stat per case in the
+ * contended condition this exists to survive.
+ * The removal is injectable for one reason: the property that matters — "it
+ * ASKS for retries" — is otherwise only observable by staging a real race, and
+ * a timing-dependent test written to fix load-sensitive tests would be the
+ * defect in mirror image. The retrying itself is Node's, not this function's,
+ * so asserting the request is asserting everything this code decides.
+ * @param dir - Directory path to remove
+ * @param remove - Removal implementation; injected only by the test that pins
+ *   the retry request.
+ */
+export async function cleanupTempDir(
+  dir: string,
+  remove: typeof rm = rm
+): Promise<void> {
+  if (!dir) return;
+  await remove(dir, {
+    force: true,
+    maxRetries: TEMP_REMOVAL_MAX_RETRIES,
+    recursive: true,
+    retryDelay: TEMP_REMOVAL_RETRY_DELAY_MS,
+  });
 }
 
 /**

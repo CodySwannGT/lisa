@@ -54,9 +54,10 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  declaredFailure,
   DIAGNOSIS,
   diagnoseFailure,
-  ranNoTests,
+  diagnoseHollowSuccess,
 } from "./lib/gate-failure-diagnosis.mjs";
 import {
   killMarkNote,
@@ -217,6 +218,10 @@ export const CONDITIONAL_FLOOR = Object.freeze({
  * @property {number|null} code Exit code; null when nothing ran or was killed.
  * @property {string|null} [diagnosis] Which failure this was, from `DIAGNOSIS`.
  * @property {string[]} [evidence] Concrete lines backing the diagnosis.
+ * @property {string|null} [proves] Whose property the failure belongs to, from
+ *   `ATTRIBUTION`; absent unless a diagnosis attributed it.
+ * @property {string|null} provedBy The gate whose run proved this one, when
+ *   they share a command. Always set: `runMoment` stamps it on every outcome.
  */
 
 /**
@@ -423,40 +428,36 @@ function stateFor(kind) {
   return kind === DIAGNOSIS.KILLED ? STATE.KILLED : STATE.UNPROVABLE;
 }
 
-function execute(gate, exec) {
+function execute(gate, exec, declarations) {
   const { code, output } = normaliseExec(exec(gate.command, gate));
   if (code === 0) {
-    // A zero exit is not by itself a measurement. A runner invoked with
-    // `--passWithNoTests` — still shipped in the integration scripts of three
-    // package templates — collects nothing and exits 0, so the whole diagnosis
-    // below is unreachable on the one path that needs it and the gate records
-    // PASSED for a suite that ran nothing (CodySwannGT/lisa#3715).
+    // Exit 0 is ADJACENT to "the property holds"; it is not the observation.
+    // A command that exited 0 while its own output says it collected zero
+    // test files proved nothing, and until this read the runner returned
+    // PASSED here without ever looking at the transcript — which is why every
+    // zero-collection pattern in the diagnosis module was reachable only from
+    // the failure branch, the one branch that could never carry this event
+    // (CodySwannGT/lisa#3715).
     //
-    // Deliberately narrow. This does NOT fire on "collected zero"; it fires
-    // only when the runner POSITIVELY SAYS it ran nothing and reached no
-    // verdict. A gate whose output carries no such statement — every non-test
-    // gate — still passes, which is what keeps the blast radius off them. And
-    // an interactive filtered run is not a gate invocation: a project that
-    // declared this gate declared that work exists for it.
-    if (ranNoTests(output)) {
+    // Silence still passes. The verdict requires the tool to have SAID it ran
+    // nothing, so a gate whose command reports no count at all is untouched.
+    const hollow = diagnoseHollowSuccess(output);
+    if (!hollow) {
       return {
-        state: STATE.UNPROVABLE,
-        detail:
-          `${gate.command} (exit 0) — the runner reported it executed ZERO ` +
-          `test files, so this run measured nothing. A zero exit here is the ` +
-          `runner being told not to mind an empty collection, not evidence ` +
-          `the property holds`,
+        state: STATE.PASSED,
+        detail: gate.command,
         code: 0,
-        diagnosis: DIAGNOSIS.NO_TESTS_RAN,
+        diagnosis: null,
         evidence: [],
       };
     }
     return {
-      state: STATE.PASSED,
-      detail: gate.command,
+      state: stateFor(hollow.kind),
+      detail: `${gate.command} (exit 0) — ${hollow.summary}`,
       code: 0,
-      diagnosis: null,
-      evidence: [],
+      diagnosis: hollow.kind,
+      evidence: hollow.evidence,
+      proves: hollow.proves,
     };
   }
   const shown = typeof code === "number" ? code : "terminated";
@@ -466,7 +467,11 @@ function execute(gate, exec) {
   // reads exactly like a real gate failure — which is how one `exit 1` came to
   // have three distinct causes with re-running a rational response to all of
   // them (CodySwannGT/lisa#2897).
-  const diagnosis = diagnoseFailure(output, code);
+  const diagnosis = withDeclarations(
+    diagnoseFailure(output, code),
+    output,
+    declarations
+  );
   return {
     state: stateFor(diagnosis.kind),
     detail: `${gate.command} (exit ${shown}) — ${diagnosis.summary}`,
@@ -474,6 +479,53 @@ function execute(gate, exec) {
     diagnosis: diagnosis.kind,
     evidence: diagnosis.evidence,
     proves: diagnosis.proves,
+  };
+}
+
+/**
+ * Give a shape the project declared its say, but only where nothing else did.
+ *
+ * The shipped classifier knows a fixed set of transcript forms, and every
+ * prover outside that set lands in the residual bucket wearing `UNPROVABLE` —
+ * the word this fleet reads as "the box, re-run it". Enumerating other tools'
+ * output in a module every consumer installs cannot converge, so a project
+ * declares its own prover's measured-failure shape instead
+ * (CodySwannGT/lisa#3974).
+ *
+ * **Consulted ONLY on `undiagnosed`, and that is the entire safety argument.**
+ * A killed, refused, interfered-with or zero-test run is classified before any
+ * content signature is read, so it can never reach this function — a
+ * declaration cannot promote non-measurement into a failure. The guarantee is
+ * structural rather than a matter of where a line was inserted, which is what
+ * the constraint carried in from CodySwannGT/lisa#3946 asks for.
+ *
+ * **A declaration that matched nothing is REPORTED rather than dropped.** A
+ * mechanism wired to a field nothing reads passes exactly the way the current
+ * absence passes: silently. A typo'd shape and no shape at all must not look
+ * the same to the operator who wrote one.
+ * @param {object} diagnosis What the shipped classifier decided.
+ * @param {string|null|undefined} output The command's combined output.
+ * @param {Array<{gate: string, shape: string[]}>} declarations What the gates
+ *   sharing this prover declared.
+ * @returns {object} The diagnosis as it should read.
+ */
+function withDeclarations(diagnosis, output, declarations) {
+  if (diagnosis.kind !== DIAGNOSIS.UNDIAGNOSED) return diagnosis;
+  if (!Array.isArray(declarations) || declarations.length === 0) {
+    return diagnosis;
+  }
+  const declared = declaredFailure(output, declarations);
+  if (declared) return declared;
+  const count = declarations.reduce(
+    (total, entry) => total + (entry.shape?.length ?? 0),
+    0
+  );
+  return {
+    ...diagnosis,
+    summary:
+      `${diagnosis.summary}. ${count} declared failure shape(s) from ` +
+      `${declarations.map(entry => entry.gate).join(", ")} were consulted ` +
+      `and none matched, so the declaration did not help here`,
   };
 }
 
@@ -658,7 +710,7 @@ function summarise(result, priorKills = []) {
  * @param {{proved: Map<string, object>, blockedBy: string|null, exec: Function}} ctx Run state.
  * @returns {{outcome: object, shared: object|undefined, ran: boolean}} The verdict.
  */
-function verdictFor(gate, { proved, blockedBy, exec, siblings }) {
+function verdictFor(gate, { proved, blockedBy, exec, siblings, declarations }) {
   const own = classifyStatic(gate);
   if (own) return { outcome: own, shared: undefined, ran: false };
 
@@ -704,7 +756,7 @@ function verdictFor(gate, { proved, blockedBy, exec, siblings }) {
       ran: false,
     };
   }
-  const raw = execute(gate, exec);
+  const raw = execute(gate, exec, declarations);
   return {
     outcome: attributed(gate, raw, siblings),
     raw,
@@ -768,12 +820,23 @@ export function runGates({
   // the failure belongs to — `coverage-adequacy` runs `test:cov` and
   // `test-correctness` is the one the timeout indicts.
   const sharers = new Map();
+  // Declared failure shapes, keyed the same way and for the same reason: one
+  // command runs once, and the shape that explains its output may have been
+  // declared by a gate other than the one that happened to run it.
+  const declaredShapes = new Map();
   for (const gate of resolved) {
     if (!gate.command) continue;
     sharers.set(
       gate.command,
       (sharers.get(gate.command) ?? new Set()).add(gate.id)
     );
+    if (!Array.isArray(gate.failureShape) || gate.failureShape.length === 0) {
+      continue;
+    }
+    declaredShapes.set(gate.command, [
+      ...(declaredShapes.get(gate.command) ?? []),
+      { gate: gate.id, shape: gate.failureShape },
+    ]);
   }
 
   // One command proves every gate that names it, so it runs once.
@@ -796,6 +859,7 @@ export function runGates({
       blockedBy,
       exec,
       siblings: sharers.get(gate.command) ?? new Set(),
+      declarations: declaredShapes.get(gate.command) ?? [],
     });
 
     // Only what this iteration actually executed is shareable, and `ran` says
@@ -1287,9 +1351,13 @@ function gitRev(spec) {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
     });
+    // probe-direction: neutral — the value is a subject field in the run record.
+    // No gate reads it; an unresolved revision is printed as unknown.
     if (child.error || child.status !== 0) return null;
     return String(child.stdout ?? "").trim() || null;
   } catch {
+    // probe-direction: neutral — same field, same reason: a killed `git` is
+    // recorded as an unknown revision and gates no verdict.
     // A killed `git` is not an answer about the tree, and this module's own
     // doctrine is that an unknown answer is recorded as unknown.
     return null;

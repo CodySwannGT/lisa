@@ -74,7 +74,6 @@ const expectRefusalSchema = (section: string): void => {
 describe("env-keyed `done` promotion completeness", () => {
   describe.each(ROOTS)("%s", root => {
     const reference = read(root, "rules/reference/config-resolution.md");
-    const eager = read(root, "rules/eager/config-resolution.md");
     const repairIntake = read(root, "skills/lisa-repair-intake/SKILL.md");
 
     describe("config-resolution reference", () => {
@@ -162,11 +161,14 @@ describe("env-keyed `done` promotion completeness", () => {
       });
     });
 
-    describe("config-resolution eager rule", () => {
+    // #3992 moved this gate out of the always-on head into the reference body:
+    // it is tracker-write mechanics, consulted when a flow writes an env-keyed
+    // `done`, not on every session. The head keeps the resolution pointer.
+    describe("config-resolution reference — promotion completeness", () => {
       const gate = slice(
-        eager,
+        reference,
         "## Env-keyed `done` — promotion completeness",
-        "Full reference:"
+        "---"
       );
 
       it("carries the gate, not only the forward env → base branch grammar", () => {

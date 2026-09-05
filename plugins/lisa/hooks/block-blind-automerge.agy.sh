@@ -7,9 +7,10 @@
 # adapter only translates protocols; all classification — which commands arm
 # auto-merge, and what GitHub says about the PR's review gate — stays in the
 # canonical block-blind-automerge.sh beside it (same delegation pattern as
-# block-shell-json-parsing.agy.sh). Fail-open on missing runtimes, matching the
-# canonical guard's own degrade-loudly path: a guard that cannot read the PR
-# cannot tell an honest arming from a blind one.
+# block-shell-json-parsing.agy.sh) — including which commands re-target a pull
+# request onto a base ref no ruleset covers. Fail-open on missing runtimes,
+# matching the canonical guard's own degrade-loudly path: a guard that cannot
+# read the PR cannot tell an honest arming from a blind one.
 set -uo pipefail
 
 allow() {
@@ -50,5 +51,5 @@ else
 fi
 
 [ "$canonical_status" -eq 0 ] && allow
-[ -n "$canonical_output" ] || canonical_output="Blocked: arming auto-merge on a PR whose reviewDecision is CHANGES_REQUESTED."
+[ -n "$canonical_output" ] || canonical_output="Blocked: this command would arm auto-merge on a PR that cannot merge, or move a failing PR onto a base with no required checks."
 deny "$canonical_output"

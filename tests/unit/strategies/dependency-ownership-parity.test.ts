@@ -17,6 +17,7 @@
  *
  * @module tests/unit/strategies/dependency-ownership-parity
  */
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -68,8 +69,10 @@ describe("six-agent parity for the dependency-ownership layer", () => {
   it.each(NESTED_RULE_ROOTS)(
     "mirrors all three rule pairs byte-faithfully into %s",
     root => {
+      // #3992 demoted all three of these rules, folding each head into its
+      // body. One tier carries them now; the parity obligation is unchanged.
       for (const rule of RULES) {
-        for (const tier of ["eager", "reference"] as const) {
+        for (const tier of ["reference"] as const) {
           const relative = `rules/${tier}/${rule}.md`;
 
           expect(read(path.join(root, relative))).toBe(
@@ -77,25 +80,34 @@ describe("six-agent parity for the dependency-ownership layer", () => {
           );
         }
       }
+      // The pointer that replaced the three heads has to fan out too, or the
+      // bodies are unreachable on this agent.
+      expect(read(path.join(root, "rules/eager/00-rule-index.md"))).toBe(
+        read("plugins/src/base/rules/eager/00-rule-index.md")
+      );
     }
   );
 
   it("flattens all three rule pairs into Cursor's native .mdc rules", () => {
     for (const rule of RULES) {
       const title = RULE_TITLES[rule];
-      const eager = read(`plugins/lisa-cursor/rules/${rule}.mdc`);
+      const index = read("plugins/lisa-cursor/rules/00-rule-index.mdc");
       const reference = read(`plugins/lisa-cursor/rules/${rule}-reference.mdc`);
 
       // Flattening rewrites frontmatter and link targets, so the body — not the
-      // bytes — is what has to survive. The rewritten breadcrumb is the
-      // load-bearing part: an eager head that lost its pointer to the reference
-      // body is a dead end for the agent reading it.
-      expect(eager).toContain("alwaysApply: true");
-      expect(eager).toContain(`# ${title} (load-bearing)`);
-      expect(eager).toContain(`${rule}-reference.mdc`);
+      // bytes — is what has to survive. The rewritten pointer is the
+      // load-bearing part: a body nothing points at is a dead end for the agent.
+      // #3992 moved that pointer from a per-rule head to the one always-on
+      // index, so the index is what must carry it and be always-on.
+      expect(index).toContain("alwaysApply: true");
+      expect(index).toContain(`${rule}-reference.mdc`);
       expect(reference).toContain("alwaysApply: false");
       expect(reference).toContain(`# ${title}\n`);
+      // The folded head keeps its own title inside the body it moved into.
+      expect(reference).toContain(`# ${title} (load-bearing)`);
       expect(reference).toContain("## Agent parity");
+      // Nothing recreates the retired always-on head.
+      expect(existsSync(`plugins/lisa-cursor/rules/${rule}.mdc`)).toBe(false);
     }
   });
 
@@ -105,7 +117,7 @@ describe("six-agent parity for the dependency-ownership layer", () => {
     // the variant. It reaches the same content through the shared mirror, and it
     // carries the planning skill (asserted below) unchanged.
     expect(() =>
-      read("plugins/lisa-agy/rules/eager/dependency-trust-classes.md")
+      read("plugins/lisa-agy/rules/reference/dependency-trust-classes.md")
     ).toThrow();
     expect(
       flat(
@@ -348,7 +360,7 @@ describe("the temporary/experimental sign-off contract is stated once", () => {
     read("plugins/src/base/rules/reference/dependency-trust-classes.md")
   );
   const eager = flat(
-    read("plugins/src/base/rules/eager/dependency-trust-classes.md")
+    read("plugins/src/base/rules/reference/dependency-trust-classes.md")
   );
   const guide = flat(read(OPERATOR_DOC));
   const scaffold = flat(read(SCAFFOLD));

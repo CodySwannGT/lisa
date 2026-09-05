@@ -1,0 +1,50 @@
+# This file is managed by Lisa and IS replaced on each `lisa` run.
+# Do not edit directly — durable changes belong upstream in Lisa.
+
+id: no-day-truncating-file-age-predicate
+language: bash
+severity: error
+message: |
+  `-mtime`, `-atime` and `-ctime` do NOT mean "older than N days".
+
+  `find` divides the file's age by 86400 and DISCARDS the remainder, so
+  `-mtime +N` matches only files older than N+1 days. Measured on this
+  repository's own platform with fixtures stamped at known ages:
+
+    age    -mtime +2   -mmin +2880
+    47h        no          no
+    49h        NO          yes   <- the whole disagreement
+    71h        NO          yes
+    73h        yes         yes
+
+  The 49h-71h band is silently dropped. The failure direction is what makes
+  this worth a rule: the under-selection reports "nothing to do", and nobody
+  questions an empty result from a cleanup predicate, so it prevents needed
+  work instead of causing visible harm. Reported once as a broken `find`; it
+  is not. `find` is answering a different question than the flag appears to
+  ask, which is exactly why it survives review.
+
+  Write the question you mean:
+
+    older than N days   ->  -mmin +$((N * 1440))
+    older than N days   ->  ! -newermt "<an ISO timestamp N days back>"
+    older than N hours  ->  -mmin +$((N * 60))
+
+  `-mmin` is minute-granularity and is not truncated to days, so it means
+  what it reads. `-newermt` is exact but needs a timestamp, and the two
+  `date` implementations disagree on how to produce one: `date -v-2d` is
+  BSD/macOS and `date -d '2 days ago'` is GNU/Linux. Prefer `-mmin` in any
+  script that runs on both.
+note: |
+  This rule matches the flag itself rather than a `find` invocation, so it
+  still fires through `/usr/bin/find`, `$FIND`, and `xargs find`. There are
+  no legitimate uses in this repository: every shipped age predicate already
+  uses `-mmin`, and this rule exists to keep it that way, because `-mtime` is
+  the form a maintainer reaches for by reflex and the shell hooks that carry
+  these predicates are copied across five per-agent plugin variants, so one
+  wrong edit lands in eight files at once.
+
+  See CodySwannGT/lisa#3905.
+rule:
+  kind: word
+  regex: ^-(mtime|atime|ctime)$

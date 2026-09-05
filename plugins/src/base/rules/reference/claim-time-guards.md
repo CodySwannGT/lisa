@@ -1,5 +1,42 @@
 # Claim-Time Guards
 
+> Demoted from the always-on eager tier by CodySwannGT/lisa#3992. The
+> section below is the former eager head, preserved verbatim; the full
+> contract follows it. Reachable on demand via `rules/eager/00-rule-index.md`.
+
+## Claim-Time Guards (load-bearing)
+
+Two guards that run when build-intake claims a ready item, both from failures observed in the fleet: an item built twice because it had already shipped, and a loop burning cycles re-attempting an item that was never going to succeed.
+
+**One vendor-neutral contract, cited by every build-intake arm** (the `leaf-only-lifecycle` / `repo-scope-split` / `rejection-detection` / `claim-archaeology` precedent: one shared slug, never three divergent implementations).
+
+## When they run
+
+Inside build-intake step `3b`, after `rejection-detection` and `claim-archaeology`, still before the `$READY → $CLAIMED` transition. The `two-failed-attempts` valve runs first — it is cheaper and it is the only pass that can stop the claim outright.
+
+## `already-implemented` → `verify-and-close`
+
+A ready item may already be implemented, because agents ship without transitioning. Before implementing, probe for the item's **own** key:
+
+```bash
+git log --all --grep "<key>" --format='%H %aI %s' -n 10
+gh pr list --repo <org>/<repo> --state all --search "<key>" --json number,state,mergedAt,url
+```
+
+On a hit, do not build it twice — switch `3c` to **verify-and-close**: verify what shipped against this item's acceptance criteria, post evidence naming the shipping PR/commit, then run the ordinary `3d` transition and rollup. If the shipped change only partially satisfies the criteria, implement the remaining gap instead of closing.
+
+Distinct from `claim-archaeology` (finds a **different** ancestor issue) and from `DUPLICATE_ALREADY_FIXED` (a **different** canonical issue). Unreadable history degrades to "no hit"; the guard never blocks the claim.
+
+## `two-failed-attempts` → blocked
+
+Every non-success terminal outcome records a durable marker on the item — a visible line plus `<!-- [lisa-build-attempt] n=<N> outcome=<outcome> measures=<work|machine> -->` (match on the marker, never the title). A cron holds no memory between cycles, so the item carries the count.
+
+**Two filters before counting.** Count a marker only when it is `measures=work` — a run terminated by a signal, or whose outcome was `recovery-required`, measures the box and not the item — and only when it was recorded **after the item most recently entered the ready lane**. An unlabelled marker counts as `work`; an unreadable lane history falls back to counting every `work` marker. Both defaults keep the valve shut rather than open (CodySwannGT/lisa#3854).
+
+With **two or more** surviving markers at claim time: do not claim. Move the item to the configured `blocked` role (resolved per `config-resolution`, never hardcoded), post an operator-readable comment naming both attempts and what a human must decide or supply, and **stop the loop** for this cycle. Recovery is deliberate and it works — a human or a `lisa-repair-intake` cycle with the blocker provably cleared returns it to the queue, which ends the period the old markers describe without deleting them.
+
+---
+
 Two guards that run when build-intake claims a ready item. Both come from acmeorgb's hand-rolled `sprint-loop` and both address failures actually observed there — an item built twice because it had already shipped, and a loop burning cycles re-attempting an item that was never going to succeed.
 
 It is a **single vendor-neutral contract** consumed by all three build-intake skills (`lisa-github-build-intake`, `lisa-jira-build-intake`, `lisa-linear-build-intake`). Each arm cites this slug in its claim step rather than growing its own copy, exactly as the arms cite `leaf-only-lifecycle`, `repo-scope-split`, `rejection-detection`, and `claim-archaeology`. One slug is what keeps a guard that fires on GitHub from being absent on Linear.

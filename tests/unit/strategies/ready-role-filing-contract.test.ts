@@ -83,12 +83,12 @@ const HUMAN_GATE = "human_gate";
 
 describe("ready-role-filing rule contract", () => {
   describe.each(ROOTS)("%s", root => {
-    const eager = read(root, "rules/eager/ready-role-filing.md");
+    const eager = read(root, "rules/reference/ready-role-filing.md");
     const reference = read(root, "rules/reference/ready-role-filing.md");
 
-    it("eager head breadcrumbs to the reference body", () => {
-      expect(eager).toContain(
-        "[reference/ready-role-filing.md](../reference/ready-role-filing.md)"
+    it("stays reachable from the eager rule index", () => {
+      expect(read(root, "rules/eager/00-rule-index.md")).toContain(
+        "reference/ready-role-filing.md"
       );
     });
 
@@ -128,12 +128,12 @@ describe("ready-role-filing rule contract", () => {
 
 describe("claim-time-guards rule contract", () => {
   describe.each(ROOTS)("%s", root => {
-    const eager = read(root, "rules/eager/claim-time-guards.md");
+    const eager = read(root, "rules/reference/claim-time-guards.md");
     const reference = read(root, "rules/reference/claim-time-guards.md");
 
-    it("eager head breadcrumbs to the reference body", () => {
-      expect(eager).toContain(
-        "[reference/claim-time-guards.md](../reference/claim-time-guards.md)"
+    it("stays reachable from the eager rule index", () => {
+      expect(read(root, "rules/eager/00-rule-index.md")).toContain(
+        "reference/claim-time-guards.md"
       );
     });
 

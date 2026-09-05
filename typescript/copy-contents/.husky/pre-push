@@ -171,6 +171,51 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 1
 fi
 
+# The DEPENDENCY TREE is proved here too, for the same reason and one worse
+# consequence (CodySwannGT/lisa#3913).
+#
+# Every gate below resolves its tool out of `node_modules` — knip, vitest, tsc.
+# An empty tree does not stop those gates; it makes them answer from nothing,
+# and an empty answer is not silent. Upstream, the `type-correctness` gate is
+# what showed this belongs here rather than inside each gate: with no compiler
+# to run it parsed zero diagnostics, concluded from that emptiness that every
+# quarantined file now compiles, and instructed a reader to delete the
+# quarantine entries protecting them — a destructive edit ordered by a control
+# whose inputs never resolved. Its sibling `knip:check` reports unlisted
+# binaries from the identical cause. That one merely LOOKS odd and nobody acts
+# on it, which is exactly why it went unfixed while the dangerous one hid
+# behind it.
+#
+# So this is not a convenience check for a missing install. Absence of the
+# dependencies and absence of findings must not produce the same observable. A
+# check that cannot RUN is not a skip and not a pass — it blocks.
+if [ -f package.json ]; then
+  LISA_DECLARED_DEPS="$(jq -r '((.dependencies // {}) + (.devDependencies // {})) | length' package.json 2>/dev/null)"
+  # A non-numeric or absent answer counts as zero: this guard may not be the
+  # thing that blocks a push over an unreadable package.json.
+  case "$LISA_DECLARED_DEPS" in
+    "" | *[!0-9]*) LISA_DECLARED_DEPS=0 ;;
+  esac
+  # `ls -A` covers absent and present-but-empty in one test, which is the
+  # distinction the gates themselves cannot make.
+  if [ "$LISA_DECLARED_DEPS" -gt 0 ] && [ -z "$(ls -A node_modules 2>/dev/null)" ]; then
+    echo "❌ Push blocked: CANNOT MEASURE — dependencies are not installed."
+    echo ""
+    echo "   package.json declares $LISA_DECLARED_DEPS dependencies and node_modules is"
+    echo "   absent or empty, so the gates below cannot resolve the tools they"
+    echo "   run: tsc, knip and vitest."
+    echo ""
+    echo "   This is NOT a finding about your code, and nothing below it is"
+    echo "   either."
+    echo ""
+    echo "To fix:"
+    echo "  bun install --frozen-lockfile   # or your package manager's equivalent"
+    echo ""
+    exit 1
+  fi
+  unset LISA_DECLARED_DEPS
+fi
+
 # BEGIN: push destination guard
 # ---------------------------------------------------------------------------
 # Refuse a push whose RESOLVED destination is a deploy branch it was not aimed
@@ -946,7 +991,7 @@ fi
 # measured, and the honest command for such a project is still `test:cov` —
 # slower, but answering to the floor that was configured for what it runs.
 COVERAGE_SCRIPT="test:cov"
-if node -e 'const s=require("./package.json").scripts||{};const u=s["test:cov:unit"];const marker=/^(?:env(?:\s+-\S+)*\s+)?(?:[A-Za-z_][A-Za-z0-9_]*=\S+\s+)*LISA_COVERAGE_SCOPE=unit(?:\s|$)/;process.exit(typeof u==="string"&&marker.test(u.trim())?0:1)' >/dev/null 2>&1; then
+if node -e 'const s=require("./package.json").scripts||{};const resolve=(k,d)=>{const v=s[k];const hop=/^\$npm_execpath\s+run\s+(\S+)$/.exec((v||"").trim());return hop&&d<4?resolve(hop[1],d+1):v;};const u=resolve("test:cov:unit",0);const marker=/^(?:env(?:\s+-\S+)*\s+)?(?:[A-Za-z_][A-Za-z0-9_]*=\S+\s+)*LISA_COVERAGE_SCOPE=unit(?:\s|$)/;process.exit(typeof u==="string"&&marker.test(u.trim())?0:1)' >/dev/null 2>&1; then
   COVERAGE_SCRIPT="test:cov:unit"
 fi
 

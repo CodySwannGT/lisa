@@ -18,6 +18,7 @@ import {
   scratchPathIdentity,
 } from "../../../src/configs/vitest/scratch-owner.js";
 import {
+  CDK_CASE_BUDGET_MS,
   captureLiveCdkRun,
   runCdk,
   startWaitingCdkRun,
@@ -29,7 +30,7 @@ import {
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import { createPackageLisaApplyHarness } from "../../helpers/package-lisa-apply-harness.js";
 
-useIoLatencyBudget();
+useIoLatencyBudget(CDK_CASE_BUDGET_MS);
 
 const temporaryDirectories: string[] = [];
 const INTEGRATION = "test:integration";
@@ -56,7 +57,10 @@ describe("AWS CDK default synth scratch lifecycle", () => {
   it.each(CDK_ARMS)("owns and removes cdk.out after %s", (arm, expected) => {
     const result = runCdk(arm);
     temporaryDirectories.push(result.scratchBase);
-    expect(result.assembly).toBeDefined();
+    // The diagnosis, not a bare toBeDefined: this assertion fails CI-only, and
+    // "expected undefined to be defined" names none of the causes that produce
+    // a missing marker. See CdkRunResult.diagnosis.
+    expect(result.assembly, result.diagnosis).toBeDefined();
     expect(path.basename(result.assembly as string)).toMatch(/^cdk\.out/u);
     expect(result.assembly).toContain(`${SCRATCH_NAMESPACE}${path.sep}run-`);
     expect(result.assembly).toContain(`${path.sep}worker-`);
@@ -73,8 +77,10 @@ describe("AWS CDK default synth scratch lifecycle", () => {
     const sibling = startWaitingCdkRun(base, "sibling");
     try {
       const [killedAssembly, siblingAssembly] = await Promise.all([
-        waitForCdkAssembly(killed.marker),
-        waitForCdkAssembly(sibling.marker),
+        // The children are passed so a timeout here can say whether they were
+        // still running or had already died — opposite investigations.
+        waitForCdkAssembly(killed.marker, killed.child),
+        waitForCdkAssembly(sibling.marker, sibling.child),
       ]);
       const killedControl = captureLiveCdkRun(killedAssembly);
       const siblingControl = captureLiveCdkRun(siblingAssembly);

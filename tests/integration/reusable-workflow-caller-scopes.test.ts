@@ -144,6 +144,7 @@ const BASELINE: Readonly<Record<string, ScopeMap>> = {
   "quality.yml": { contents: "read" },
   "release-rails.yml": { contents: "write" },
   "release.yml": { contents: "write", "pull-requests": "read" },
+  "sentry-deploy.yml": { contents: "read" },
   // `reusable-auto-update-pr-branches.yml` and its `-dispatch` counterpart were
   // removed with the whole subsystem (CodySwannGT/lisa#3590). Their entries go
   // with them: the "keeps the baseline in step" case below fails on an entry

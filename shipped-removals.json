@@ -1,0 +1,57 @@
+{
+  "$comment": [
+    "Removal ledger for shipped surfaces (CodySwannGT/lisa#3849). Enforced by",
+    "`bun run check:shipped-surface-removals`.",
+    "",
+    "The copy lanes overwrite and never delete, and deepMergeWithArrayUnion",
+    "unions. So a template edit can ADD to a host's tree and can never remove",
+    "from it: the only mechanisms that reach an installed base are a",
+    "deletions.json entry and a migration under src/migrations/.",
+    "",
+    "A removal therefore gets one of two dispositions, and they are opposites:",
+    "  PROPAGATE - a deletions.json entry, for a path no host could have bound",
+    "    to. The manifest is the record; nothing goes in this file.",
+    "  RETAIN AND NOTIFY - an entry here, for a consumer-bindable executable",
+    "    under scripts/ and for every removed named export. Propagating those",
+    "    would delete a working host capability, which is how the ticket that",
+    "    created this file was first mis-diagnosed.",
+    "",
+    "Entry shape: { path, export?, issue?, note }. `path` is repo-relative,",
+    "inside a delivery lane. Omit `export` for a whole-file removal. `note` is",
+    "the consumer-facing part and must say what a host should DO - a blank one",
+    "is treated as no entry at all.",
+    "",
+    "`baseline` is the window's lower bound: the first tag of the supported",
+    "major line. Advancing it retires obligations, so it is deliberately a",
+    "reviewable one-line edit here rather than something derived from a clock.",
+    "Entries are never pruned when the baseline moves past them - they are the",
+    "historical record a host on an older release still needs."
+  ],
+  "baseline": "v4.0.0",
+  "removals": [
+    {
+      "export": "fetchNewestRun",
+      "issue": "CodySwannGT/lisa#3418",
+      "note": "Renamed to `fetchRunCandidates` in v4.26.1 and its shape changed with it: it reads a bounded page of runs (RUN_CANDIDATE_PAGE_SIZE) instead of `per_page: 1`, because scoring the newest run rather than the newest CONCLUSIVE one let a displaced, cancelled run overwrite the verdict of a run that tested everything. A host importing `fetchNewestRun` should import `fetchRunCandidates` and select with `runProducedEvidence(run, jobs)`; there is no drop-in single-run replacement, and asking for one would reintroduce the defect.",
+      "path": "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs"
+    },
+    {
+      "export": "SNAPSHOT_MAX_AGE_DAYS",
+      "issue": "CodySwannGT/lisa#3599",
+      "note": "Removed in v4.31.0 together with the live-ruleset drift arm and the standing `administration:read` token it required. The constant only ever bounded the age of a snapshot that arm compared against, so with the arm gone it has no reading. A host that imported it - reported at least once, from a host-owned `scripts/check-required-checks-baseline.mjs` that Lisa never shipped - should drop the age check and the `--remote` npm scripts that fed it, or declare a fork of this script keeping the constant. The importer is NOT deleted for you: it is host-owned and may be wired to npm scripts, a workflow, and tests.",
+      "path": "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs"
+    },
+    {
+      "export": "compareRulesetBaseline",
+      "issue": "CodySwannGT/lisa#3599",
+      "note": "Removed in v4.31.0 with the live-ruleset drift arm. It compared the declared required contexts against the live ruleset over the GitHub API, which needs `administration:read` and therefore a personal access token in a permanent repository secret. There is no replacement by design - the remaining check reads the reviewed snapshot in `.github/required-checks.json`. A host calling it should delete the call and keep the snapshot transcribed.",
+      "path": "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs"
+    },
+    {
+      "export": "fetchLiveRequiredContexts",
+      "issue": "CodySwannGT/lisa#3599",
+      "note": "Removed in v4.31.0 with the live-ruleset drift arm, for the same reason as `compareRulesetBaseline`: it was the API call that required `administration:read`. A host calling it should delete the call; the required contexts now come from `.github/required-checks.json`, transcribed byte for byte.",
+      "path": "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs"
+    }
+  ]
+}

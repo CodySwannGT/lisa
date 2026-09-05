@@ -57,7 +57,24 @@
  *   0 — no tracked file carries a conflict block.
  *   1 — ≥1 tracked file carries a conflict block.
  *   2 — operational/usage error: unknown flag, a flag missing its value,
- *       `--root` absent or not a git repository, or git being unavailable.
+ *       `--root` absent or not a git repository, git being unavailable, or
+ *       ZERO tracked files enumerated.
+ *
+ * ## Zero tracked files is exit 2, not a green tick (issue #3888)
+ *
+ * The cwd anchoring above closes the case where the enumeration is scoped to a
+ * SUBDIRECTORY. It does not close the case where the enumeration returns
+ * NOTHING, and that case reported `✓ no leftover conflict markers in 0 tracked
+ * files` and exit 0 — a required push gate printing a success line for a
+ * comparison that had no subject. The count was in hand the whole time and
+ * nothing read it.
+ *
+ * An empty enumeration is not a clean repository: it is a repository whose
+ * files this gate never saw. A push carries commits, and a commit carries a
+ * tracked file, so zero here means the scan was mis-scoped, `git` answered
+ * from somewhere else, or the repository is not the one being pushed. Each of
+ * those is an operational failure of the scan, which is exit 2 — the same
+ * stance `check-workflow-package-paths` takes with the same words.
  *
  * @module all/copy-overwrite/scripts/check-conflict-markers
  */
@@ -429,8 +446,11 @@ export function parseArgs(argv) {
     if (arg === "--json") {
       json = true;
     } else if (arg === "--root") {
+      if (i + 1 >= argv.length) {
+        throw new UsageError("--root requires a value");
+      }
       const next = argv[i + 1];
-      if (next === undefined || next.startsWith("--")) {
+      if (next.startsWith("--")) {
         throw new UsageError("--root requires a value");
       }
       root = next;
@@ -461,6 +481,12 @@ export function main(argv, io = {}) {
       throw new UsageError(`--root is not a directory: ${opts.root}`);
     }
     files = listTrackedFiles(opts.root);
+    if (files.length === 0) {
+      throw new UsageError(
+        `git ls-files named no tracked file under ${opts.root}; a scan of ` +
+          `nothing is not a pass`
+      );
+    }
   } catch (error) {
     err.write(`error: ${error.message}\n`);
     return 2;

@@ -128,15 +128,28 @@ const readRule = (
   return readFileSync(path.resolve(root, group, `${slug}.md`), "utf8");
 };
 
+/**
+ * Read the eager rule index, which is what points at a demoted rule's body.
+ * Cursor flattens the tier, so the index lands beside the rules as `.mdc`.
+ * @param root - Plugin rules root
+ * @returns Index contents
+ */
+const readRuleIndex = (root: string): string =>
+  root.includes("lisa-cursor")
+    ? readFileSync(path.resolve(root, "00-rule-index.mdc"), "utf8")
+    : readFileSync(path.resolve(root, "eager", "00-rule-index.md"), "utf8");
+
 describe("control-reachability rule contract", () => {
   describe.each(RULE_ROOTS)("%s", root => {
-    const eager = readRule(root, "eager", SLUG);
+    // #3992 demoted this rule out of the always-on tier. The former head is
+    // folded verbatim into the body, so both names read the one surviving
+    // content surface and every content assertion below still has its subject.
+    const eager = readRule(root, "reference", SLUG);
     const reference = readRule(root, "reference", SLUG);
 
-    it("ships as a paired rule pointing the head at the body", () => {
-      expect(eager.length).toBeGreaterThan(500);
+    it("stays reachable from the eager rule index", () => {
       expect(reference.length).toBeGreaterThan(2000);
-      expect(eager).toContain(`reference/${SLUG}.md`);
+      expect(readRuleIndex(root)).toContain(`reference/${SLUG}.md`);
     });
 
     it("states the cost that makes this rule different — a correct fix reverted", () => {

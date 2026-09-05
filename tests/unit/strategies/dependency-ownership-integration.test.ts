@@ -149,7 +149,7 @@ describe("the dependency-ownership layer speaks one vocabulary", () => {
 
   it("routes every surface to the same record path", () => {
     for (const surface of [
-      read("plugins/src/base/rules/eager/dependency-decision-records.md"),
+      read("plugins/src/base/rules/reference/dependency-decision-records.md"),
       read("plugins/src/base/rules/reference/dependency-decision-records.md"),
       read(TRUST_CLASS_EAGER),
       read(DECOMPOSITION),
