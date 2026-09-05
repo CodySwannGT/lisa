@@ -178,6 +178,8 @@ function keychainServiceNames() {
       ([, name]) => name
     );
   } catch {
+    // probe-direction: neutral — the names only enrich a diagnostic message on a
+    // path that has already failed; no verdict reads them.
     // A locked, absent, or oversized keychain leaves the list empty.
     return [];
   }
@@ -253,6 +255,8 @@ export function providerCliPresent(prefix) {
       ).trim()
     );
   } catch {
+    // probe-direction: neutral — PATH presence is reported in the explanation of
+    // an already-failing lookup; it gates nothing on its own.
     return false;
   }
 }

@@ -2764,7 +2764,16 @@ export class Lisa {
     console.log(notices.join("\n\n"));
     console.log("");
     console.log(
-      "  After this one-time change, quality/release workflow updates will be automatic."
+      "  Write `@main` as shown. The next `lisa apply` rewrites it to the commit"
+    );
+    console.log(
+      "  your installed Lisa's version tag names and keeps it there, so this is a"
+    );
+    console.log(
+      "  one-time edit and the ref is maintained for you from then on. Until that"
+    );
+    console.log(
+      "  apply runs, `lisa doctor` will correctly report the ref as still mutable."
     );
     console.log("");
   }

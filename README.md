@@ -283,6 +283,10 @@ You do not have to configure any of this. A run discovers how many sibling runs 
 
 A smaller pool is not automatically safer, which is why the floor is a proportion rather than a small constant and why the divisor stops at two workers. Below that a suite serialises, every file waits behind every other file, and per-test time budgets start expiring even as machine load falls — trading a visible failure for a subtler one.
 
+Worker count is not the only thing several runs contend over. Coverage runs write their working files to disk while they measure, and a shared location means the second run to start wipes the first one's files out from under it — so the first run finishes having measured nothing, after paying the full cost of the attempt. Lisa gives every run its own directory under `coverage/`, named after the run, so no run can reach another's files and none of them has to negotiate for the space. Your finished coverage reports land in that per-run directory rather than directly in `coverage/`.
+
+- **`LISA_COVERAGE_REPORTS_DIR`** — put the reports at a fixed path instead. For somewhere only one run happens at a time and something downstream expects to find the report in a known place, such as a CI job that uploads `coverage/lcov.info`.
+
 > **Prompt for your coding agent**
 > "Show me how this project's test worker pool is sized — find the resolver, tell me what each of the three layers would give on this machine right now, and how many sibling runs it currently detects."
 

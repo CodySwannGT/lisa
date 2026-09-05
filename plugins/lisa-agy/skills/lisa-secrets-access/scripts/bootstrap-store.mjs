@@ -218,6 +218,9 @@ export function hasBootstrap(key, deps = {}) {
       );
       return true;
     } catch {
+      // probe-direction: fail-closed — false means "no bootstrap value proven
+      // present", which makes the setup flow ASK for one. A keychain that cannot
+      // be queried costs a redundant prompt, never a skipped bootstrap.
       return false;
     }
   }
