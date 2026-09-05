@@ -394,7 +394,10 @@ describe("check:artifacts states its verdict last", () => {
     const { code, line } = lastLine([0, 0, 0, 0]);
 
     expect(code).toBe(0);
-    expect(line).toContain("all 5 generated-artifact checks passed");
+    // Six since CodySwannGT/lisa#3932 added `check:merge-coverage`. Hardcoded
+    // per the Test Isolation house rule: deriving it from the script would
+    // make the assertion agree with whatever the script happens to say.
+    expect(line).toContain("all 6 generated-artifact checks passed");
   });
 
   it("names the failing check last, where a reader is already looking", () => {
