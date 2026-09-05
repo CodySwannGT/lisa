@@ -359,6 +359,8 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lib/gate-failure-diagnosis.mjs": Object.freeze([
     "041094be579c3aefdf9f7b384e24ca23cd860c984c9094ffeb55b1542829bc39",
+    "0878aab967aea0c237fbb56f6fbd188c19b423f58ce6c337d8956bbcf51c0ae1",
+    "11448d7aa4a956eb70a40f70c94f1e65c72e3b16287c92218da481d42166a3ac",
     "28600bd3ce643d80aefcc696c4e9607f83410ab926738d9baa7db694d78563ea",
     "3e9a5911c9b4b4f3c0dd6aef4ecc7accb762edf6e62eea66252248f7c02684f4",
     "43dc203de647ebdcd0e3e1878240423e3895b588372002c79ffed3348e4f08a3",
@@ -1477,6 +1479,8 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lib/gate-failure-diagnosis.mjs": Object.freeze([
     "041094be579c3aefdf9f7b384e24ca23cd860c984c9094ffeb55b1542829bc39",
+    "0878aab967aea0c237fbb56f6fbd188c19b423f58ce6c337d8956bbcf51c0ae1",
+    "11448d7aa4a956eb70a40f70c94f1e65c72e3b16287c92218da481d42166a3ac",
     "28600bd3ce643d80aefcc696c4e9607f83410ab926738d9baa7db694d78563ea",
     "3e9a5911c9b4b4f3c0dd6aef4ecc7accb762edf6e62eea66252248f7c02684f4",
     "43dc203de647ebdcd0e3e1878240423e3895b588372002c79ffed3348e4f08a3",
