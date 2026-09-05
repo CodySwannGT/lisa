@@ -172,12 +172,15 @@ describe("EnsurePinnedReusableWorkflowRefsMigration — vouched callees", () => 
     const migration = new EnsurePinnedReusableWorkflowRefsMigration(deps());
     await migration.apply(context());
 
-    const after = await read(CI);
-    expect(after).toContain(`${QUALITY}@${SHA} # v4.4.11`);
-    expect(after).toContain(
-      `    uses: CodySwannGT/lisa/.github/workflows/${UNVOUCHED}@main`
+    // Asserted as a WHOLE DOCUMENT rather than by substring. `toContain` on
+    // the unvouched line still passes if an inline comment is appended to it,
+    // while this case claims the line survives byte for byte — and "preserved
+    // exactly" is the property the exemption actually promises.
+    expect(await read(CI)).toBe(
+      `name: CI\non:\n  pull_request:\njobs:\n` +
+        `  quality:\n    uses: CodySwannGT/lisa/.github/workflows/${QUALITY}@${SHA} # v4.4.11\n` +
+        `  sentry:\n    uses: CodySwannGT/lisa/.github/workflows/${UNVOUCHED}@main\n`
     );
-    expect(after).not.toContain(`${UNVOUCHED}@${SHA}`);
   });
 
   it("stays settled after applying, so a second run is a no-op", async () => {
@@ -192,10 +195,17 @@ describe("EnsurePinnedReusableWorkflowRefsMigration — vouched callees", () => 
     );
 
     const migration = new EnsurePinnedReusableWorkflowRefsMigration(deps());
-    await migration.apply(context());
+
+    // The first pass must actually have DONE something, or everything below is
+    // vacuous: a migration that never applied at all satisfies it trivially.
+    expect((await migration.apply(context())).action).toBe("applied");
     const afterFirst = await read(CI);
 
+    // Run the second pass for real rather than inferring it from `applies()`.
+    // A defect living in `apply()`'s OWN no-op branch would survive an
+    // assertion that only ever asked the predicate.
     expect(await migration.applies(context())).toBe(false);
+    expect((await migration.apply(context())).action).toBe("noop");
     expect(await read(CI)).toBe(afterFirst);
   });
 });
