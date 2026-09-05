@@ -276,6 +276,155 @@ resolve_vintages() {
     plugin_tree_version="$json_version"
   fi
   note_version "$plugin_tree_version" "$plugin_tree"
+
+  # The channel this dispatcher races. Deliberately NOT folded into
+  # `note_version`: the newest-on-disk maximum answers "is this copy behind
+  # something local", and the plugin channel's age is a separate question
+  # about a copy that runs in parallel rather than instead.
+  resolve_plugin_channel || true
+}
+
+# ---------------------------------------------------------------------------
+# The other channel
+#
+# YOU CANNOT RETIRE A REFUSAL BY SHIPPING A FIX.
+#
+# These guards reach an agent by two independent channels: this dispatcher,
+# registered in `.claude/settings.json`, and the plugin manifest, which
+# registers the same guards individually. An agent sees the UNION of the two
+# verdicts, so a TIGHTENING on either channel takes effect at once while a
+# RELAXATION is inert until the slower channel catches up — the stale copy goes
+# on refusing, and its refusal wins. What the operator sees is a guard blocking
+# something `main` already permits, which reads as the guard being WRONG rather
+# than OLD, and the move that reading suggests is to route around it.
+#
+# The two channels are two different files refreshed by two different
+# mechanisms: `scripts/lisa-hooks/` when `lisa apply` runs, the plugin's own
+# `hooks/` when the plugin updates. They drift. Measured on one machine on one
+# day, two checkouts of the SAME repository resolved plugin 4.32.2 and 4.47.0.
+#
+# `plugin_tree` above cannot see any of that: it is repo-relative, so it exists
+# only inside the Lisa monorepo, and in a host project the plugin actually in
+# force is somewhere else entirely. The vintage machinery written for #3205
+# was therefore blind to the channel it races. This resolves it properly, from
+# the record the runtime itself keeps.
+#
+# WHAT THIS RECORD CAN AND CANNOT ANSWER. The header above explains why a
+# previous stand-down keyed on `installed_plugins.json` was removed: the record
+# is project-blind as it was read then, enablement-blind (`enabledPlugins` can
+# switch a plugin off without removing its entry), and session-blind (hooks load
+# at session start; the record is rewritten on any install). Those defeat a
+# LIVENESS question — "are the plugin's guards running in this session?" — and
+# nothing on disk answers that one.
+#
+# This asks a different question: "what VINTAGE is the plugin installed for this
+# project?" The record answers that directly, and the project-blindness is
+# resolved by keying the lookup on this repo root rather than on the plugin name.
+# The remaining two blindnesses bound the claim rather than break it: a skew
+# reported here is a real difference between two copies on disk, but a disabled
+# or not-yet-loaded plugin may mean those copies are not both firing right now.
+# So the wording below reports what is INSTALLED and what the union WOULD mean,
+# and never asserts that both channels are live. Reporting is also why this may
+# use the record at all where a stand-down may not: an over-reported skew costs
+# a line of notice, while an over-confident stand-down costs enforcement.
+plugin_channel_version=""
+plugin_channel_path=""
+
+# Resolve the vintage of the guard channel the PLUGIN MANIFEST runs.
+#
+# `plugins/installed_plugins.json` records installs PER PROJECT DIRECTORY —
+# which is exactly why one checkout sits versions behind another on the same
+# disk — so the lookup is keyed on this repo root, not on the machine.
+#
+# A record is claimed only when its `installPath` sits under a `lisa/lisa/`
+# marketplace cache. A locally-installed plugin does not match and is left
+# UNRESOLVED on purpose: reporting "agree" about a copy that was never read is
+# the failure this whole section exists to end, and an honest "I could not
+# tell" is the safe direction.
+#
+# `grep` does the scanning because the record runs to tens of thousands of
+# lines; the bash loop then sees a handful. Called only from resolve_vintages,
+# so it inherits that latch and never runs on the silent allow path.
+resolve_plugin_channel() {
+  local config_dir="${CLAUDE_CONFIG_DIR-}"
+  [ -n "$config_dir" ] || config_dir="${HOME-}/.claude"
+  local record="$config_dir/plugins/installed_plugins.json"
+  [ -f "$record" ] || return 1
+
+  local install_pattern="^[[:space:]]*\"installPath\"[[:space:]]*:[[:space:]]*\"(.*/lisa/lisa/[^\"]+)\""
+  local version_pattern="^[[:space:]]*\"version\"[[:space:]]*:[[:space:]]*\"([^\"]+)\""
+  local line
+  local candidate=""
+  while IFS= read -r line || [ -n "$line" ]; do
+    # `grep -A` separates non-adjacent groups with `--`. A candidate must not
+    # survive across that boundary or one plugin's installPath answers for
+    # another plugin's version.
+    if [ "$line" = "--" ]; then
+      candidate=""
+      continue
+    fi
+    if [[ "$line" =~ $install_pattern ]]; then
+      candidate="${BASH_REMATCH[1]}"
+      continue
+    fi
+    if [ -n "$candidate" ] && [[ "$line" =~ $version_pattern ]]; then
+      plugin_channel_path="$candidate"
+      plugin_channel_version="${BASH_REMATCH[1]}"
+      return 0
+    fi
+  done < <(grep -F -A4 "\"projectPath\": \"$repo_root\"," "$record" 2>/dev/null)
+  return 1
+}
+
+# Verdict of the last classify_channel_skew call: agree | skew | undetermined.
+#
+# Three answers, never two. "The channels agree" and "I could not read one of
+# them" are DIFFERENT facts, and collapsing them is how a probe reports success
+# while measuring nothing.
+channel_skew_verdict="undetermined"
+channel_skew_line=""
+
+# Compare the vintage of the channel this dispatcher runs against the vintage
+# of the channel the plugin manifest runs.
+classify_channel_skew() {
+  local mine=""
+  if [ "$host_tree_used" -eq 1 ]; then
+    mine="$host_tree_version"
+  elif [ "$plugin_tree_used" -eq 1 ]; then
+    mine="$plugin_tree_version"
+  fi
+
+  if [ -z "$mine" ] || [ -z "$plugin_channel_version" ]; then
+    channel_skew_verdict="undetermined"
+    channel_skew_line="  cross-channel vintage UNDETERMINED — this dispatcher's guards could not be
+    compared with the plugin manifest's copies. Not agreement: an unread copy
+    can be any age, and a relaxation shipped to one channel stays inert until
+    the other catches up.
+"
+    return 0
+  fi
+
+  if [ "$mine" = "$plugin_channel_version" ]; then
+    channel_skew_verdict="agree"
+    channel_skew_line=""
+    return 0
+  fi
+
+  channel_skew_verdict="skew"
+  # The sentence is kept whole on one line on purpose: it is the finding, and
+  # an operator greps for it.
+  channel_skew_line="  cross-channel vintage SKEW — this dispatcher runs lisa $mine; the plugin
+    installed for this project is lisa $plugin_channel_version at $plugin_channel_path.
+    When both fire on one tool call the agent sees the UNION of their verdicts,
+    which means:
+      YOU CANNOT RETIRE A REFUSAL BY SHIPPING A FIX.
+    A relaxation on the newer channel does nothing until the older one is
+    refreshed, so a block you cannot explain from \`main\` is the older copy
+    still enforcing.
+      repair: refresh both — \`npx @codyswann/lisa apply\` for this checkout's
+      guards, and update the installed plugin for the manifest's copies.
+"
+  return 0
 }
 
 # Description of the last describe_vintage call.
@@ -613,8 +762,10 @@ if [ "$notice_due" -eq 1 ]; then
   if [ "$plugin_tree_used" -eq 1 ]; then
     note_tree_staleness "$plugin_tree" "$plugin_tree_version" "$PLUGIN_REPAIR"
   fi
+  classify_channel_skew
 
-  if [ -n "$stale_notice" ] || [ -n "$shadowed" ] || [ -n "$missing" ]; then
+  if [ -n "$stale_notice" ] || [ -n "$shadowed" ] || [ -n "$missing" ] || \
+    [ -n "$channel_skew_line" ]; then
     # Claim the session BEFORE printing. A failed `mkdir` suppresses this copy
     # only when another process left the expected real directory behind. Every
     # other failure leaves the claim unproven and prints, so an unwritable state
@@ -649,6 +800,9 @@ if [ "$notice_due" -eq 1 ]; then
         fi
         if [ -n "$missing" ]; then
           printf '  unresolved guards: %s (no copy was dispatched)\n' "$missing"
+        fi
+        if [ -n "$channel_skew_line" ]; then
+          printf '%s' "$channel_skew_line"
         fi
       } >&2
     fi
