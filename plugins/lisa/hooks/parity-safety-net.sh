@@ -182,13 +182,73 @@ EOF
 # captures everything at risk. `HEAD` includes staged and unstaged changes, and
 # `--binary` keeps binary edits recoverable rather than emitting a text-only
 # placeholder that cannot be applied.
+#
+# Three corrections from issue #3696, each found by EXECUTING the text below
+# rather than reading it:
+#
+# 1. It preserved but never RECOVERED. The text taught how to save the work and
+#    how to restore it later, and stopped there — so an agent that followed it
+#    exactly and successfully was returned to the identical refusal, because the
+#    tree was still dirty. A remedy that does not clear the wall it is printed
+#    at is a detour, and #3722 shipped only half the path. The discard branch
+#    below is the other half, and every command in it is one THIS GUARD ALREADY
+#    PERMITS: mixed `git reset`, `git diff`, and `git apply` are matched by no
+#    guard in this file. Nothing was loosened to make room for it — a blind
+#    `git reset --hard` on a dirty tree is still refused, unconditionally.
+#
+#    That the operator must first WRITE DOWN what they are discarding is the
+#    feature, not a cost. It is a better acknowledgement than a marker the guard
+#    could look for, because a marker agents can type is a marker agents learn
+#    to type reflexively; this one cannot be satisfied without producing the
+#    artifact that makes the discard reversible.
+#
+# 2. It did not run as printed. `[-- <path>]` is conventional notation for an
+#    optional argument, but bash expands `[...]` as a glob, so pasting the line
+#    verbatim failed with `bash: path: No such file or directory` and wrote no
+#    patch at all. Guard remedies are unreviewed prose that agents execute
+#    literally, so the optional part is now prose and every line is runnable.
+#
+# 3. `mktemp` was silently a no-op. BSD/macOS mktemp substitutes only TRAILING
+#    `X`s, so the `.patch` suffix meant the template came back as the literal
+#    string `lisa-preserve-XXXXXX.patch` — one FIXED filename, where successive
+#    preserves overwrite each other, in the exact place the comment above claims
+#    uniqueness. The suffix is gone rather than spelled portably: GNU mktemp
+#    offers `--suffix` and BSD does not, and a patch file does not need an
+#    extension. The regression test asserts the produced name DIFFERS from the
+#    template, because asserting that the word `mktemp` appears is what let this
+#    ship.
+#
+# NO APOSTROPHES IN THE BODY BELOW. It is a quoted heredoc nested inside a `$( )`
+# command substitution, and bash tracks quote state through the body when it
+# scans for the closing paren — so a single `'` (in "the agent's TMPDIR", say)
+# poisons the parse from there to the next quote and the whole file stops being
+# valid shell, with the reported error landing hundreds of lines away in
+# untouched code. Every guidance body in this file avoids them for this reason.
+# Write "of this session" rather than a possessive.
 PRESERVE_GUIDANCE="$(
   cat <<'EOF'
-Preserve the work first, per-worktree:
+Preserve the work first, per-worktree. `mktemp` names the file, so nothing has
+to invent one, and it lands in the TMPDIR of this session, where no sibling
+agent can reach it:
 
-  git diff --binary HEAD [-- <path>] > "$(mktemp "${TMPDIR:-/tmp}/lisa-preserve-XXXXXX.patch")"
+  patch="$(mktemp "${TMPDIR:-/tmp}/lisa-preserve-XXXXXX")"
+  git diff --binary HEAD > "$patch"
 
-and restore it later with `git apply <that file>`.
+Add `-- <path>` before the `>` to scope the capture to one path. Restore it
+later with `git apply "$patch"`.
+
+If the work is NOT yours -- a concurrent agent dirtied this worktree and your
+judgement is "none of this is mine" -- that same capture is how you return the
+tree to HEAD:
+
+  git reset
+  git diff --binary HEAD > "$patch"
+  git apply -R "$patch"
+
+`git reset` clears staged and unmerged entries first, so the capture sees the
+whole tree as one diff; reversing it leaves the tree at HEAD with "$patch" as
+the record of what you discarded. Untracked files survive, exactly as they
+survive `git reset --hard`.
 
 Do NOT reach for `git stash`. One stash stack is shared by every worktree of a
 clone, so a concurrently running agent can consume the entry you just pushed.
@@ -1811,23 +1871,45 @@ $DESTRUCTIVE_GUIDANCE"
 fi
 
 # 5. `git switch` discards: `--discard-changes` and its `-f/--force` aliases.
+#    Carries the same guidance as guards 3 and 4 (issue #3696). It discards the
+#    same uncommitted work by the same mechanism, so a refusal that named no
+#    remedy left the reader to invent one — and the one they invent is the
+#    stash, which is the single thing $PRESERVE_GUIDANCE exists to steer off.
 if matches "${GIT_CMD}switch${GIT_TOKENS}"'(--discard-changes|--force|-f)([[:space:]]|=|$)'; then
-  block "git switch discarding local changes (--discard-changes/-f/--force)"
+  block "git switch discarding local changes (--discard-changes/-f/--force)" "$PRESERVE_GUIDANCE
+
+$DESTRUCTIVE_GUIDANCE"
 fi
 
 # 6. `git restore` defaults to overwriting the WORKTREE — a silent discard. Only
 #    the pure staging-area form is safe: `--staged` present and `--worktree`
 #    absent. Two conditions, because an ERE has no lookahead: `--staged
 #    --worktree` still discards, so `--worktree` blocks regardless of `--staged`.
+#    Carries the same guidance as guards 3 and 4 (issue #3696). The permitted
+#    alternative this reason names — `git restore --staged <path>` — is real,
+#    but it only unstages; it leaves the worktree exactly as dirty as it found
+#    it. So the operator who reached for `git restore` to CLEAN a tree is told
+#    of an operation that does not do what they came for, and was told nothing
+#    about what does. This is the refusal #3696 was filed from.
 if matches "${GIT_CMD}"'restore([[:space:]]|$)'; then
   if matches "${GIT_CMD}"'restore[^;&|]*--worktree' \
     || ! matches "${GIT_CMD}"'restore[^;&|]*--staged'; then
-    block "git restore overwriting worktree files (only 'git restore --staged <path>' without --worktree is allowed)"
+    block "git restore overwriting worktree files (only 'git restore --staged <path>' without --worktree is allowed)" "$PRESERVE_GUIDANCE
+
+$DESTRUCTIVE_GUIDANCE"
   fi
 fi
 
 # 7. `git stash drop` / `git stash clear` destroy stashed work. push/pop/list/
-#    apply — the safe alternatives the reset guard recommends — stay allowed.
+#    apply stay ALLOWED — this guard moves no verdict on them — but they are no
+#    longer RECOMMENDED anywhere in this file, and this comment used to say the
+#    opposite (issue #3692). It called them "the safe alternatives the reset
+#    guard recommends", which stopped being true when #3722 rewrote guards 3
+#    and 4 to point at $PRESERVE_GUIDANCE instead. A stale comment endorsing
+#    the stash is the same hazard as a stale message doing it: the next reader
+#    takes the file's word for what the file does. See $PRESERVE_GUIDANCE for
+#    why one stack shared by every worktree of a clone makes push/pop unsafe
+#    under this project's concurrency.
 if matches "${GIT_CMD}"'stash[[:space:]]+(drop|clear)([[:space:]]|$)'; then
   block "git stash drop/clear destroys stashed work"
 fi

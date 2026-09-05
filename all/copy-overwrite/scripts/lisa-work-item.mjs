@@ -3143,6 +3143,50 @@ function alreadyTraced(result) {
 }
 
 /**
+ * Why a push with nothing of its own to trace still passed.
+ *
+ * The symmetric clause to {@link alreadyTraced}, and the reason it exists is
+ * the same defect one state along. A back-merge push whose range holds only
+ * merge commits takes the deferral added for CodySwannGT/lisa#3851 and prints:
+ *
+ * ```
+ * WORK_ITEM_TRACKING_OK 0 commit(s), PR body, and tracker backlink
+ * ```
+ *
+ * A push whose range was simply EMPTY prints the same bytes. Both are true;
+ * they are not the same fact. One says "the subject is one level up, at the
+ * pull request whose range carries it", the other says "there was nothing to
+ * look at". A reader cannot tell them apart, and the only thing that separates
+ * them — the range — is not in the output (CodySwannGT/lisa#3886). Attribution
+ * required measuring the range by hand and reading the source, neither of which
+ * an operator reading a push transcript has.
+ *
+ * `alreadyTraced` renders nothing here: it fires only for `protectedExempt`,
+ * and a back-merge onto a feature branch has none. So the zero went unexplained.
+ *
+ * ## Why `relevant === 0 && mergeExempt > 0` is the whole condition
+ *
+ * The deferral itself is `rangeIsPartial && relevant === 0 && mergeExempt > 0`.
+ * This renders only on the push path, where the range is ALWAYS a subset of the
+ * pull request's — `reportPushGroup` passes `rangeIsPartial: true`
+ * unconditionally, and says why. `validate-pr` reads the full `base..head`
+ * range and does not defer, which is why its success line does not carry this.
+ *
+ * ## This adds a sentence and relaxes nothing
+ *
+ * The verdict, the exit status and every gate are untouched: a clause is
+ * appended to a line that already said OK. A diagnostic fix that also softened
+ * enforcement would not be a diagnostic fix.
+ * @param {object} result Commit-side result.
+ * @returns {string} A clause to append, or the empty string.
+ */
+function carriedByPullRequest(result) {
+  return result.relevant === 0 && result.mergeExempt > 0
+    ? ` (${result.mergeExempt} merge commit(s); this push introduces no authored work, so the pull request's own range carries the requirement)`
+    : "";
+}
+
+/**
  * What a successful run actually proved, in its own words.
  *
  * A `trailer` run that printed "and tracker backlink" would be claiming a
@@ -3173,24 +3217,67 @@ function currentRepository() {
   return safeJson(result.stdout, "GitHub repository").nameWithOwner;
 }
 
+/**
+ * The pull request a check is about, by number or by the branch in hand.
+ *
+ * `gh pr view` will not infer the current branch once `--repo` is given — it
+ * exits non-zero with "argument required when using the --repo flag" — and
+ * `currentRepository()` resolves in every normal checkout, so `--repo` was
+ * always present. The push path passes no number, so every push made an
+ * invalid call, `allowFailure` turned the usage error into `undefined`, and
+ * the caller concluded no pull request existed.
+ *
+ * That is why gates 4 and 5 were never checked at push time. Not deferred
+ * until a pull request existed — never looked up at all, so the deferral
+ * notice was emitted unconditionally: true by accident before a pull request
+ * existed, false afterwards, and determined in neither case (#3791). The CI
+ * path passed `--pr-number` and so called `gh` correctly, which is why CI
+ * caught what every push had waved through.
+ *
+ * Naming the selector positionally is what makes the lookup resolve while
+ * keeping `--repo` explicit. With no number and no branch — a detached HEAD —
+ * there is genuinely nothing to resolve by, so `--repo` is withheld rather
+ * than sent without the argument it requires.
+ * @param {string|number} [number] Explicit pull-request number, when known.
+ * @param {string} [repository] `owner/name` the pull request belongs to.
+ * @returns {object|undefined} The pull request, or undefined when none resolves.
+ */
+/**
+ * The argv for one `gh pr view`, with the selector it cannot do without.
+ *
+ * Extracted and exported because every other test of this file drives the CLI
+ * as a SUBPROCESS, so nothing in-process ever covers argv construction — the
+ * mutation gate reported seven surviving mutants here and no assertion reachable
+ * from a spawned process could have killed one. Argument shape is exactly what
+ * was wrong in #3791, so it is the part that has to be directly testable.
+ * @param {string|number} [number] Explicit pull-request number, when known.
+ * @param {string} [branch] Branch to resolve by when no number is given.
+ * @param {string} [repository] `owner/name` the pull request belongs to.
+ * @param {string} [fields] Comma-separated `gh pr view --json` fields.
+ * @returns {string[]} Arguments for `gh`.
+ */
+export function pullRequestViewArgs(
+  number,
+  branch,
+  repository,
+  fields = "url,body,state"
+) {
+  const selector = number ?? branch;
+  const args = ["pr", "view"];
+  if (selector) args.push(String(selector));
+  // `--repo` is withheld without a selector rather than sent alone: `gh` treats
+  // that as a usage error, not as "look it up from the branch".
+  if (repository && selector) args.push("--repo", repository);
+  args.push("--json", fields);
+  return args;
+}
+
 function currentPullRequest(
   number,
   repository = currentRepository(),
   fields = "url,body,state"
 ) {
-  const args = ["pr", "view"];
-  if (number) args.push(String(number));
-  // `--repo` ONLY alongside a number, because `gh pr view --repo <r>` with no
-  // positional argument is a USAGE ERROR — "argument required when using the
-  // --repo flag" — not a lookup that returns nothing. It exits 1, this
-  // function reads that as "no pull request exists", and the push then takes
-  // the deferral branch on every branch that HAS one. Measured on this
-  // repository: an open pull request, and the push reporting gates 4 and 5 as
-  // unchecked because the flag combination could never have found it. Without
-  // a number `gh` resolves the pull request from the current branch's remote,
-  // which is the answer this caller wants and the only one it can get.
-  if (number && repository) args.push("--repo", repository);
-  args.push("--json", fields);
+  const args = pullRequestViewArgs(number, activeBranch(), repository, fields);
   const result = run("gh", args, { allowFailure: true });
   return result.status === 0
     ? safeJson(result.stdout, "GitHub pull request")
@@ -4433,6 +4520,28 @@ export function unresolvedPushReport(result, label) {
 }
 
 /**
+ * The success line a pushed ref with an open pull request prints.
+ *
+ * Exported for one reason, and it is the acceptance criterion rather than a
+ * convenience: CodySwannGT/lisa#3886's third scenario is an INEQUALITY between
+ * the empty-range line and the merge-only line, and nothing can assert that
+ * unless something can produce both. A test that read one of them out of a
+ * subprocess transcript would pin the shape it happened to reproduce and say
+ * nothing about the other — which is how two states came to share a sentence in
+ * the first place.
+ * @param {object} result Commit-side result.
+ * @param {string} label Prefix naming the ref, empty for a single-ref push.
+ * @returns {string} The success line.
+ */
+export function pushSuccessLine(result, label) {
+  return (
+    `WORK_ITEM_TRACKING_OK ${label}${result.relevant} commit(s)` +
+    `${alreadyTraced(result)}${carriedByPullRequest(result)}, ` +
+    `${provedHere(result.contract)}`
+  );
+}
+
+/**
  * Report one pushed ref's outcome, refusing when it did not prove out.
  * @param {{result?: object, error?: Error}} outcome Commit-side outcome.
  * @param {object|undefined} pr The pull request this ref is about, if any.
@@ -4445,9 +4554,7 @@ function reportPushGroup(outcome, pr, label) {
     // remote default branch. So a commit side with nothing in it means "no
     // subject in THIS push", never "no subject in the pull request".
     validatePrData(outcome, pr.url, pr.body, true);
-    console.log(
-      `WORK_ITEM_TRACKING_OK ${label}${outcome.result.relevant} commit(s)${alreadyTraced(outcome.result)}, ${provedHere(outcome.result.contract)}`
-    );
+    console.log(pushSuccessLine(outcome.result, label));
     return;
   }
   // No pull request means gates 4 and 5 cannot be CHECKED here. They are
