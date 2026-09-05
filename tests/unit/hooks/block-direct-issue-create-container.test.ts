@@ -193,7 +193,7 @@ describe("block-direct-issue-create.sh container arm", () => {
       ],
       [
         "the rule that requires it",
-        "plugins/src/base/rules/eager/ready-role-filing.md",
+        "plugins/src/base/rules/reference/ready-role-filing.md",
       ],
       [
         "the writer that stamps it",
@@ -212,7 +212,7 @@ describe("block-direct-issue-create.sh container arm", () => {
         "plugins/src/base/hooks/block-direct-issue-create.sh"
       );
       const rule = readSource(
-        "plugins/src/base/rules/eager/leaf-only-lifecycle.md"
+        "plugins/src/base/rules/reference/leaf-only-lifecycle.md"
       );
 
       expect(rule).toContain(

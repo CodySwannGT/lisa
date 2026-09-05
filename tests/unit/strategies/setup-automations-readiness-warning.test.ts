@@ -187,7 +187,10 @@ const proseOnly = (text: string): string =>
 
 /** The rule pairs the readiness vocabulary distinguishes, both fanned surfaces. */
 const RRR_RULE_SLUGS = ["readiness-rubric", "convergent-review"] as const;
-const RULE_TIERS = ["eager", "reference"] as const;
+// #3992 demoted both of these rules, folding each head into its body, so the
+// parity backstop sweeps the one tier that carries them. The index that
+// replaced their heads is asserted separately below.
+const RULE_TIERS = ["reference"] as const;
 
 describe("RRR rubric six-agent parity backstop (#1859)", () => {
   describe.each(RRR_RULE_SLUGS)("rule pair %s", slug => {
@@ -207,6 +210,22 @@ describe("RRR rubric six-agent parity backstop (#1859)", () => {
         const cursor = read(`${CURSOR_ROOT}/rules/${cursorName}`);
         expect(proseOnly(cursor)).toBe(proseOnly(source));
       });
+    });
+
+    it("stays reachable from the eager index on every agent root", () => {
+      // Without this, the tier sweep above would pass on a body that nothing
+      // points at — the exact failure the pairing gate exists to prevent.
+      const indexRel = "rules/eager/00-rule-index.md";
+      for (const root of [SRC, CLAUDE_ROOT, COPILOT_ROOT]) {
+        expect(read(`${root}/${indexRel}`)).toContain(`reference/${slug}.md`);
+      }
+      expect(read(`${CURSOR_ROOT}/rules/00-rule-index.mdc`)).toContain(
+        `${slug}-reference.mdc`
+      );
+      // Nothing recreates the retired always-on head.
+      expect(
+        existsSync(path.resolve(CLAUDE_ROOT, `rules/eager/${slug}.md`))
+      ).toBe(false);
     });
   });
 

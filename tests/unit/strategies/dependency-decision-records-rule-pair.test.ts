@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const EAGER = "plugins/src/base/rules/eager/dependency-decision-records.md";
+const EAGER = "plugins/src/base/rules/reference/dependency-decision-records.md";
+const INDEX = "plugins/src/base/rules/eager/00-rule-index.md";
 const REFERENCE =
   "plugins/src/base/rules/reference/dependency-decision-records.md";
 
@@ -12,8 +13,8 @@ describe("dependency-decision-records eager/reference rule pair", () => {
 
     expect(eager).toContain("# Dependency Decisions (load-bearing)");
     expect(eager).toContain(".lisa/DEPENDENCY_DECISIONS.md");
-    expect(eager).toContain(
-      "[reference/dependency-decision-records.md](../reference/dependency-decision-records.md)"
+    expect(readFileSync(INDEX, "utf8")).toContain(
+      "reference/dependency-decision-records.md"
     );
     expect(eager).toContain("`_Not yet decided_`");
 
