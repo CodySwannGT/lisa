@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.45.12](https://github.com/CodySwannGT/lisa/compare/v4.45.11...v4.45.12) (2026-09-05)
+
+
+### Bug Fixes
+
+* **merge-driver:** print a remedy the safety guard permits ([6cb50a9](https://github.com/CodySwannGT/lisa/commit/6cb50a907da48ab73361c6df14070ea38efd69f0)), closes [#3722](https://github.com/CodySwannGT/lisa/issues/3722) [#3722](https://github.com/CodySwannGT/lisa/issues/3722) [CodySwannGT/lisa#3692](https://github.com/CodySwannGT/lisa/issues/3692)
+* **work-item:** say why a zero-commit push passed, so a deferral is not an emptiness ([0f5a94e](https://github.com/CodySwannGT/lisa/commit/0f5a94eb397ecbfa240298062708ba4f3286d4d9)), closes [#3869](https://github.com/CodySwannGT/lisa/issues/3869) [CodySwannGT/lisa#3886](https://github.com/CodySwannGT/lisa/issues/3886)
+
 ### [4.45.11](https://github.com/CodySwannGT/lisa/compare/v4.45.10...v4.45.11) (2026-09-05)
 
 
