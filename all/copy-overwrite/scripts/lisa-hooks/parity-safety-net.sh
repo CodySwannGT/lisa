@@ -1830,7 +1830,15 @@ if matches "${GIT_CMD}"'restore([[:space:]]|$)'; then
 fi
 
 # 7. `git stash drop` / `git stash clear` destroy stashed work. push/pop/list/
-#    apply — the safe alternatives the reset guard recommends — stay allowed.
+#    apply stay ALLOWED — this guard moves no verdict on them — but they are no
+#    longer RECOMMENDED anywhere in this file, and this comment used to say the
+#    opposite (issue #3692). It called them "the safe alternatives the reset
+#    guard recommends", which stopped being true when #3722 rewrote guards 3
+#    and 4 to point at $PRESERVE_GUIDANCE instead. A stale comment endorsing
+#    the stash is the same hazard as a stale message doing it: the next reader
+#    takes the file's word for what the file does. See $PRESERVE_GUIDANCE for
+#    why one stack shared by every worktree of a clone makes push/pop unsafe
+#    under this project's concurrency.
 if matches "${GIT_CMD}"'stash[[:space:]]+(drop|clear)([[:space:]]|$)'; then
   block "git stash drop/clear destroys stashed work"
 fi
