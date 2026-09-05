@@ -281,6 +281,12 @@ resolve_vintages() {
 # Description of the last describe_vintage call.
 vintage_label=""
 
+# Whether that copy could NOT be shown current — stale, or undateable. Kept as a
+# flag rather than re-read out of the label, because a refusal has to branch on
+# it and matching on the word "STALE" inside prose is the kind of coupling that
+# breaks the first time the wording is improved.
+vintage_is_stale=0
+
 # A one-line description of a copy's age, used by both the notice and the
 # attribution line.
 #
@@ -291,10 +297,13 @@ vintage_label=""
 describe_vintage() {
   if [ -z "$1" ]; then
     vintage_label="vintage unknown"
+    vintage_is_stale=1
   elif [ -n "$newest_version" ] && version_older "$1" "$newest_version"; then
     vintage_label="lisa $1, STALE — $newest_version is on this machine"
+    vintage_is_stale=1
   else
     vintage_label="lisa $1"
+    vintage_is_stale=0
   fi
 }
 
@@ -667,6 +676,46 @@ while [ "$index" -lt "$guard_count" ]; do
     else
       printf 'Guard %s exited %s — non-blocking error from %s (%s)\n' \
         "${guard_names[$index]}" "$guard_status" "$script" "$vintage_label" >&2
+    fi
+    # A verdict from a copy that cannot be shown current states its own limit,
+    # here, attached to the verdict rather than to the session.
+    #
+    # WHY THIS IS NOT THE VINTAGE SUFFIX AGAIN. The suffix names a version; it
+    # does not say what follows from it, and a version number is not an
+    # instruction. The session-start notice DOES say what follows — and it is
+    # rate-limited per session, so a long-running session receives it once, at
+    # the beginning. One session measured 2026-09-04 had its notice written
+    # 34 hours before the refusals it existed to explain, and its vintage was
+    # computed at start, when there was nothing yet to report: a session that
+    # begins current and goes stale while running is told nothing, ever
+    # (CodySwannGT/lisa#3942).
+    #
+    # So the failure was never that the warning was ignored. It was delivered
+    # to a session, once, and the thing it warns about happens to a COMMAND.
+    # This block is keyed to the event instead: every refusal a
+    # not-provably-current copy emits carries what the reader has to know to
+    # avoid acting on it.
+    #
+    # The last line is the load-bearing one and is the reason this is not
+    # advisory prose. A refusal from a stale copy is indistinguishable from a
+    # refusal from current source, so an agent that re-runs it to check gets a
+    # SECOND confirmation of the same wrong thing — the observation is fresh
+    # and its subject is not. Two tickets were filed on 2026-09-04 against
+    # behaviour fixed the previous day, one of them re-verified live
+    # specifically to avoid citing a stale observation.
+    if [ "$vintage_is_stale" -eq 1 ]; then
+      {
+        printf '\nTHIS VERDICT MAY NOT REFLECT CURRENT SOURCE — the copy that produced it\n'
+        printf 'is not provably current (%s).\n' "$vintage_label"
+        if [ "${guard_trees[$index]}" = "host" ]; then
+          printf '  repair: %s\n' "$HOST_REPAIR"
+        else
+          printf '  repair: %s\n' "$PLUGIN_REPAIR"
+        fi
+        printf 'Before filing a defect on this behaviour, read the guard on your\n'
+        printf 'integration branch. Re-running the command confirms nothing: it asks\n'
+        printf 'the same stale copy again.\n'
+      } >&2
     fi
   fi
   # 2 is the ONLY status Claude Code treats as a refusal. Every other non-zero
