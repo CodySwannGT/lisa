@@ -381,6 +381,29 @@ resolve_plugin_channel() {
 # Three answers, never two. "The channels agree" and "I could not read one of
 # them" are DIFFERENT facts, and collapsing them is how a probe reports success
 # while measuring nothing.
+#
+# THIS PROBE REPORTS. IT NEVER BLOCKS. A permitted command stays permitted
+# whatever the verdict, and the finding goes into the once-per-session notice.
+# That is a decision, not an oversight, so here is the reasoning for whoever
+# comes to change it:
+#
+#   - The two error directions have asymmetric costs. An over-reported skew
+#     costs a line of notice; an over-confident stand-down costs enforcement.
+#     When the costs are that lopsided the direction is settled without needing
+#     to argue about likelihood.
+#   - Failing closed on `undetermined` would refuse work on every host with no
+#     `installed_plugins.json` — containers, fresh clones, non-Claude runtimes.
+#     That is a large population with nothing wrong with it, and refusing them
+#     is a bigger fault than the one being detected.
+#   - What is detected is two copies at different AGES, not a compromised
+#     guard. Blocking on it turns a diagnostic into an outage.
+#   - And the practical argument, which beats the principled one: skew is the
+#     common case on a developer machine right now, so as a blocker this would
+#     be a permanent stop-work and the first response would be to switch it
+#     off. A blocker everyone turns off protects nothing.
+#
+# Pinned by the test named "lets a permitted command through whatever the
+# verdict is", which asserts exit 0 on both the skew and undetermined arms.
 channel_skew_verdict="undetermined"
 channel_skew_line=""
 
