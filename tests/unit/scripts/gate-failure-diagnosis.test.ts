@@ -200,6 +200,14 @@ describe("diagnoseFailure: when it cannot tell", () => {
   });
 
   it("quotes the last meaningful lines when nothing is recognised", () => {
+    // This fixture became a BOUNDARY case with CodySwannGT/lisa#3946, which
+    // taught the classifier to recognise type errors. It still belongs here,
+    // and now says more than it used to: `tsc: error TS2307: ...` carries no
+    // parenthesised `(line,col)` position, so it is a sentence ABOUT a type
+    // error rather than a compiler reporting one. Recognising it would be the
+    // module treating talk as measurement. A transcript with the real
+    // position, or the quarantine wrapper's own file list, classifies as
+    // `type-errors` instead — see gate-diagnosis-type-errors.test.ts.
     const verdict: Diagnosis = diagnoseFailure(
       "tsc: error TS2307: Cannot find module './missing'\n\n"
     );

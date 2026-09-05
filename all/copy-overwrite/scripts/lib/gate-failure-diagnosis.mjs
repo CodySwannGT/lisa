@@ -56,6 +56,8 @@ export const DIAGNOSIS = Object.freeze({
   NO_TESTS_RAN: "no-tests-ran",
   /** A doc comment ended early, so everything below it was parsed as code. */
   COMMENT_TERMINATED: "comment-terminated",
+  /** A type checker ran and reported errors in named files. */
+  TYPE_ERRORS: "type-errors",
   /** Output was read and matched nothing this module knows. */
   UNDIAGNOSED: "undiagnosed",
   /** No output was available to read, so nothing can be said. */
@@ -64,6 +66,58 @@ export const DIAGNOSIS = Object.freeze({
 
 /** `Test timed out in 60000ms.` / `Hook timed out in 60000ms.` from vitest. */
 const TIMEOUT_PATTERN = /(Test|Hook) timed out in (\d+)ms/g;
+
+/**
+ * `src/thing.ts(12,34): error TS2307: ...` — tsc's own diagnostic line.
+ *
+ * Anchored on the `(line,col): error TS` core rather than on anything about
+ * the path, because the path is the part that varies and the part a transcript
+ * may have prefixed. Requiring the parenthesised position is what keeps this
+ * from matching prose that merely mentions a TS code: a sentence reading
+ * "error TS2307: Cannot find module" is a HUMAN talking about a type error,
+ * and this module's whole job is to stop treating talk as measurement.
+ */
+const TSC_ERROR_PATTERN =
+  /^[ \t]*(?<file>[^\s(][^(\n]*?)\(\d+,\d+\): error TS\d+:/gmu;
+
+/**
+ * The test-quarantine wrapper's own two failure headers.
+ *
+ * `scripts/check-typecheck-tests.mjs` exits 1 on either, and both are measured
+ * type-correctness failures naming exact files:
+ *
+ *   ❌ 1 file(s) outside the quarantine have type errors:
+ *   ❌ 2 quarantined file(s) now type-check and must leave the list:
+ *
+ * The second is included even though CodySwannGT/lisa#3946 only reports the
+ * first, because it is the identical defect one fix away: the moment somebody
+ * repairs a quarantined file, that branch exits 1 with a named file list and
+ * — without this — lands in the residual bucket wearing `UNPROVABLE`, which is
+ * the word this fleet reads as "re-run it".
+ */
+const QUARANTINE_FAILURE_PATTERN =
+  /^[ \t]*\u274C[ \t]*\d+ (?:file\(s\) outside the quarantine have type errors|quarantined file\(s\) now type-check and must leave the list):[ \t]*$/gmu;
+
+/**
+ * One file the quarantine wrapper listed under a header, e.g. `   path.ts (1)`.
+ *
+ * Indentation is the delimiter because that is what the wrapper emits, and the
+ * trailing count is optional because only the offenders branch prints one.
+ */
+const QUARANTINE_FILE_PATTERN =
+  /^[ \t]+(\S+\.[cm]?[jt]sx?)(?:[ \t]+\(\d+\))?[ \t]*$/u;
+
+/**
+ * Task-runner chain lines that repeat the exit code and say nothing else.
+ *
+ * `error: script "typecheck" exited with code 1` is what a package manager
+ * prints on its way out. It carries no information the exit code did not, and
+ * on a failing chain there is one PER LINK — which is how the three-line tail
+ * in CodySwannGT/lisa#3946 came to be two of these plus a fragment of an
+ * unrelated sentence.
+ */
+const RUNNER_CHAIN_PATTERN =
+  /^[ \t]*error: script ".*" exited with code \d+[ \t]*$/u;
 
 /**
  * `ERROR: Coverage for statements (85.1%) does not meet global threshold (86%)`
@@ -254,6 +308,13 @@ export const ATTRIBUTION = Object.freeze({
   timeout: "test-correctness",
   assertion: "test-correctness",
   threshold: "coverage-adequacy",
+  // A type checker that reported errors DID measure the property
+  // `type-correctness` names, and found it wanting. Before
+  // CodySwannGT/lisa#3946 this landed in the residual bucket and reported
+  // `UNPROVABLE` — the word this fleet reads as "the box, re-run it" — so a
+  // named, one-line, single-file defect was routed into the re-run path while
+  // the transcript six lines above already said which file.
+  "type-errors": "type-correctness",
 });
 
 /** How many named examples a summary carries before it says "and N more". */
@@ -339,12 +400,64 @@ function findFailures(output) {
  * @returns {string[]} Up to `TAIL_LINES` trimmed lines, oldest first.
  */
 function tailLines(output) {
-  return output
+  const lines = output
     .split("\n")
     .map(line => line.trim())
-    .filter(line => line.length > 0)
+    .filter(line => line.length > 0);
+  // Drop the task runner's own exit chain BEFORE taking the tail rather than
+  // widening the tail past it. Widening quotes more lines of everything; this
+  // spends the same three lines on lines that carry something. If every
+  // surviving line was chain noise the unfiltered tail is used, because three
+  // useless lines still beat none.
+  const meaningful = lines.filter(line => !RUNNER_CHAIN_PATTERN.test(line));
+  return (meaningful.length > 0 ? meaningful : lines)
     .slice(-TAIL_LINES)
     .map(line => line.slice(0, MAX_TAIL));
+}
+
+/**
+ * Every file a type checker's output names as having errors.
+ *
+ * Two sources, unioned: tsc's own diagnostic lines, and the file list the test
+ * quarantine wrapper prints under its own header. The wrapper's list is read
+ * by walking forward from the header until the indentation stops, which is
+ * exactly how the wrapper emits it.
+ * @param {string} output The gate command's combined output.
+ * @returns {string[]} Distinct file paths, in the order first seen.
+ */
+function findTypeErrorFiles(output) {
+  const lines = output.split("\n");
+  const files = [...output.matchAll(TSC_ERROR_PATTERN)].map(match =>
+    (match.groups?.file ?? "").trim()
+  );
+  for (const [index, line] of lines.entries()) {
+    if (!new RegExp(QUARANTINE_FAILURE_PATTERN.source, "u").test(line))
+      continue;
+    for (const listed of lines.slice(index + 1)) {
+      const match = QUARANTINE_FILE_PATTERN.exec(listed);
+      if (match === null) break;
+      files.push(match[1] ?? "");
+    }
+  }
+  return [...new Set(files.filter(file => file.length > 0))];
+}
+
+/**
+ * A verdict for a type checker that ran and found errors.
+ *
+ * FAILED rather than UNPROVABLE, and that is the whole point of it: the
+ * checker reached the code, read it, and reported on it. `UNPROVABLE` is
+ * reserved for runs that established nothing, and spending it here sent a
+ * one-file defect down the re-run path (CodySwannGT/lisa#3946).
+ * @param {string[]} files Files the transcript named.
+ * @returns {Diagnosis} The verdict.
+ */
+function typeErrorsVerdict(files) {
+  return {
+    kind: DIAGNOSIS.TYPE_ERRORS,
+    summary: `a type checker reported errors in ${files.length} file(s)`,
+    evidence: capped(files),
+  };
 }
 
 /**
@@ -772,6 +885,17 @@ function classify(output, code, load, read) {
       evidence: capped(misses),
     };
   }
+
+  // LAST among the content signatures, and that placement is the safety
+  // argument for the whole change. Everything above it is a shape this module
+  // already recognised and already ruled on, so nothing here can change a
+  // verdict that is currently correct — this can only take cases that would
+  // otherwise fall through to the residual bucket below. It sits below the
+  // kill, refusal, interference and zero-tests guards for the same reason
+  // every content signature does: a `tsc` transcript from a run the machine
+  // took away is still not a measurement, and must still report UNPROVABLE.
+  const typeErrorFiles = findTypeErrorFiles(output);
+  if (typeErrorFiles.length > 0) return typeErrorsVerdict(typeErrorFiles);
 
   return {
     kind: DIAGNOSIS.UNDIAGNOSED,

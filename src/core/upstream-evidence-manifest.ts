@@ -23,7 +23,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
-      "ca4f5084989115c7fe87ce3b8d895938146af6b1d01e11b9b342519d09832d6a",
+      "0878aab967aea0c237fbb56f6fbd188c19b423f58ce6c337d8956bbcf51c0ae1",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lib/kill-marks.mjs":
@@ -10232,6 +10232,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/floor-collisions.test.ts": true,
     "tests/unit/scripts/gate-diagnosis-comment-terminated.test.ts": true,
     "tests/unit/scripts/gate-diagnosis-no-tests-ran.test.ts": true,
+    "tests/unit/scripts/gate-diagnosis-type-errors.test.ts": true,
     "tests/unit/scripts/gate-failure-diagnosis.test.ts": true,
     "tests/unit/scripts/gate-killed-under-load.test.ts": true,
     "tests/unit/scripts/gate-resource-refused.test.ts": true,
@@ -10306,6 +10307,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-run-gates-shared-prover.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-shipped-as.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-supervisor-verdict.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-type-errors.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-unproved.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-zero-collection.test.ts": true,
     "tests/unit/scripts/lisa-run-gates.test.ts": true,
