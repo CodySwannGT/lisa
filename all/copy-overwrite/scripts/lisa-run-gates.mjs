@@ -1287,9 +1287,13 @@ function gitRev(spec) {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
     });
+    // probe-direction: neutral — the value is a subject field in the run record.
+    // No gate reads it; an unresolved revision is printed as unknown.
     if (child.error || child.status !== 0) return null;
     return String(child.stdout ?? "").trim() || null;
   } catch {
+    // probe-direction: neutral — same field, same reason: a killed `git` is
+    // recorded as an unknown revision and gates no verdict.
     // A killed `git` is not an answer about the tree, and this module's own
     // doctrine is that an unknown answer is recorded as unknown.
     return null;

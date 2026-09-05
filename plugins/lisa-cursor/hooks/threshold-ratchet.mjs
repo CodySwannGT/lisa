@@ -121,6 +121,10 @@ function git(args, cwd) {
       timeout: 30_000,
     });
   } catch {
+    // probe-direction: fail-closed — null never reaches a verdict as "no
+    // weakening found". `changePlan` turns it into `undeterminable`, which
+    // REFUSES, and `isPromotion` falls to the strict reading that keeps the
+    // allow list pinned to the baseline.
     return null;
   }
 }
@@ -166,6 +170,8 @@ function resolvePlan(mode, root, baseRef, onlyFiles) {
       try {
         return fs.readFileSync(path.join(root, f), "utf-8");
       } catch {
+        // probe-direction: fail-closed — an unreadable current file compares as
+        // absent against the baseline, which is the strict side of the ratchet.
         return null;
       }
     },
