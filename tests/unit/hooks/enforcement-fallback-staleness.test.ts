@@ -133,6 +133,103 @@ describe("the repair a stale tree is told to run", () => {
   });
 });
 
+/** The heading a not-provably-current copy prints above its caveat. */
+const CAVEAT = "THIS VERDICT MAY NOT REFLECT CURRENT SOURCE";
+
+describe("a refusal from a copy that cannot be shown current", () => {
+  // The preventive notice above is rate-limited PER SESSION, so a long-running
+  // session receives it once, at the start. One session measured 2026-09-04 had
+  // its notice written 34 hours before the refusals it existed to explain — and
+  // its vintage was computed at start, when there was nothing yet to report, so
+  // a session that begins current and goes stale while running is told nothing
+  // at all (CodySwannGT/lisa#3942).
+  //
+  // These cases cover the other half: the warning keyed to the EVENT rather
+  // than to the session, because staleness happens to a command.
+  /**
+   * A checkout whose host tree is behind a current plugin tree beside it.
+   * @returns The scratch root, ready to hand to `runFallback`.
+   */
+  function staleHostTree(): string {
+    const root = scratchRoot();
+
+    installRealGuards(path.join(root, HOST_TREE));
+    dateHostTree(root, BEHIND);
+    installRealGuards(path.join(root, PLUGIN_TREE));
+    datePluginTree(root, CURRENT);
+    return root;
+  }
+
+  it("states that the verdict may not reflect current source", () => {
+    const { status, output } = runFallback(BYPASS, staleHostTree());
+
+    expect(status).toBe(BLOCKED);
+    expect(output).toContain(CAVEAT);
+  });
+
+  it("tells the reader that re-running proves nothing", () => {
+    // The load-bearing line. A refusal from a stale copy is indistinguishable
+    // from one from current source, so the natural check — run it again —
+    // returns a SECOND confirmation of the same wrong thing. Two tickets were
+    // filed on 2026-09-04 against behaviour fixed the day before, one of them
+    // re-verified live precisely to avoid citing a stale observation.
+    const { output } = runFallback(BYPASS, staleHostTree());
+
+    expect(output).toContain("Re-running the command confirms nothing");
+    expect(output).toContain("read the guard on your");
+  });
+
+  it("names the repair for the tree that actually refused", () => {
+    // Printing one repair for both trees hands half the fleet an instruction
+    // that changes nothing (CodySwannGT/lisa#3191), and the refusal path can
+    // get this wrong independently of the notice path.
+    // The REFUSING tree has to be the stale one, which the obvious fixture gets
+    // wrong: `BYPASS` is refused by block-no-verify, so leaving that guard in a
+    // current host tree produces a refusal from a copy that IS current and no
+    // caveat at all. Every guard therefore lives in the stale plugin tree here.
+    // Staleness is only ever claimed against newer evidence on the same disk,
+    // so a lone BEHIND tree is not stale — it is the newest thing there is.
+    // The host tree is therefore DATED current while holding no guards, which
+    // supplies that evidence without moving the refusal into a current copy.
+    const root = scratchRoot();
+
+    dateHostTree(root, CURRENT);
+    installRealGuards(path.join(root, PLUGIN_TREE));
+    datePluginTree(root, BEHIND);
+
+    const { output } = runFallback(BYPASS, root);
+
+    // Asserted on the text AFTER the caveat's own heading, not on the whole
+    // output. The session-start notice prints this same repair string, so a
+    // bare `toContain` passes against the unfixed guard — this test was written
+    // that way first and proved nothing until running it against the pre-fix
+    // code showed it green.
+    const caveat = output.split(CAVEAT);
+
+    expect(caveat).toHaveLength(2);
+    expect(caveat[1]).toContain("update this checkout");
+    expect(caveat[1]).not.toContain("npx @codyswann/lisa apply");
+  });
+
+  it("says none of it when the refusing copy is current", () => {
+    // The over-breadth control, and the one that must pass BEFORE and AFTER.
+    // Attaching the caveat to every refusal would train readers to skip it,
+    // which is the failure mode the caveat exists to escape — so a current
+    // copy's refusal has to stay exactly as terse as it was.
+    const root = scratchRoot();
+
+    installRealGuards(path.join(root, PLUGIN_TREE));
+    datePluginTree(root, CURRENT);
+
+    const { status, output } = runFallback(BYPASS, root);
+
+    expect(status).toBe(BLOCKED);
+    expect(output).toMatch(/Refused by /u);
+    expect(output).not.toContain(CAVEAT);
+    expect(output).not.toContain("Re-running the command confirms nothing");
+  });
+});
+
 describe("one tree shadowing another", () => {
   it("names the guards whose second copy never runs", () => {
     // Two copies of a guard on one disk are two vintages of it more often than
