@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.45.2](https://github.com/CodySwannGT/lisa/compare/v4.45.1...v4.45.2) (2026-09-05)
+
+
+### Bug Fixes
+
+* **hooks:** a refusal from a copy that cannot be shown current says so ([991f274](https://github.com/CodySwannGT/lisa/commit/991f2747e87543b72dc9d97cf7e0fb48dc66f5fc)), closes [#3191](https://github.com/CodySwannGT/lisa/issues/3191) [#3714](https://github.com/CodySwannGT/lisa/issues/3714) [CodySwannGT/lisa#3942](https://github.com/CodySwannGT/lisa/issues/3942)
+
 ### [4.45.1](https://github.com/CodySwannGT/lisa/compare/v4.45.0...v4.45.1) (2026-09-05)
 
 ## [4.45.0](https://github.com/CodySwannGT/lisa/compare/v4.44.1...v4.45.0) (2026-09-05)
