@@ -785,6 +785,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lisa-hooks/worktree-binding-guard.mjs": Object.freeze([
     "248939a111ad7d03d19ae210e5d76cb13613815719610ef22df9a5199f0631e8",
+    "2d094120f2c1748144f1c0e5757a60ecc7c6ae3e4f57fa54ab6a15c5a9e1868f",
     "5fe074e29a332c8c4c83a1bdf3bdc766675203178810e0977e7d270ef680636a",
     "6b0c13bf89dd62577baebb7e6e8ff7a0bbcb1e83b32c5a1b878a64c76d83d822",
     "822e4f9d2c3ad8fb184ff7fc880f6811004852fb731c7878b5a8a1a9532bceb8",
@@ -1815,6 +1816,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lisa-hooks/worktree-binding-guard.mjs": Object.freeze([
     "248939a111ad7d03d19ae210e5d76cb13613815719610ef22df9a5199f0631e8",
+    "2d094120f2c1748144f1c0e5757a60ecc7c6ae3e4f57fa54ab6a15c5a9e1868f",
     "5fe074e29a332c8c4c83a1bdf3bdc766675203178810e0977e7d270ef680636a",
     "6b0c13bf89dd62577baebb7e6e8ff7a0bbcb1e83b32c5a1b878a64c76d83d822",
     "822e4f9d2c3ad8fb184ff7fc880f6811004852fb731c7878b5a8a1a9532bceb8",
