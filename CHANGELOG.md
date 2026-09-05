@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.47.0](https://github.com/CodySwannGT/lisa/compare/v4.46.0...v4.47.0) (2026-09-05)
+
+
+### Features
+
+* **gates:** let a gate say how its own prover's failure reads ([85c989c](https://github.com/CodySwannGT/lisa/commit/85c989ccc9e1f72e6f731f3ba0363b9fc0ce5335)), closes [#3946](https://github.com/CodySwannGT/lisa/issues/3946) [#3957](https://github.com/CodySwannGT/lisa/issues/3957) [#3981](https://github.com/CodySwannGT/lisa/issues/3981) [#3946](https://github.com/CodySwannGT/lisa/issues/3946) [CodySwannGT/lisa#3974](https://github.com/CodySwannGT/lisa/issues/3974)
+
 ## [4.46.0](https://github.com/CodySwannGT/lisa/compare/v4.45.17...v4.46.0) (2026-09-05)
 
 
