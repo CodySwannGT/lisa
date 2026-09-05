@@ -2244,6 +2244,7 @@ describe("PackageLisaStrategy", () => {
         overrides: Record<string, string>;
       };
       defaults: {
+        scripts: Record<string, string>;
         dependencies: Record<string, string>;
         devDependencies: Record<string, string>;
       };
@@ -2251,10 +2252,10 @@ describe("PackageLisaStrategy", () => {
       return fs.readJsonSync(expoSource);
     }
 
-    it("pins each platform-specific Maestro command to its intended device type", () => {
+    it("defaults each platform-specific Maestro command to its intended device type", () => {
       const template = readExpoTemplate();
 
-      expect(template.force.scripts).toMatchObject(expectedMaestroScripts);
+      expect(template.defaults.scripts).toMatchObject(expectedMaestroScripts);
     });
 
     it("repairs the fast-xml-parser advisory floor during full and postinstall applies", async () => {
@@ -2297,19 +2298,20 @@ describe("PackageLisaStrategy", () => {
       expect(content.overrides["fast-xml-parser"]).toBe(patchedFloor);
     });
 
-    it("repairs unpinned Maestro commands when applying the Expo template", async () => {
+    it("preserves host-customized Maestro commands when applying the Expo template", async () => {
       await createExpoProject(projectDir);
       const destPath = path.join(projectDir, "package.json");
+      const hostMaestroScripts = {
+        "maestro:test": "maestro test custom-flows",
+        "maestro:test:ios": "maestro test .maestro/flows",
+        "maestro:test:android": "maestro test .maestro/flows",
+        "maestro:test:smoke":
+          "maestro test --include-tags=smoke .maestro/flows",
+      };
       await fs.writeJson(destPath, {
         dependencies: {},
         devDependencies: {},
-        scripts: {
-          "maestro:test": "maestro test custom-flows",
-          "maestro:test:ios": "maestro test .maestro/flows",
-          "maestro:test:android": "maestro test .maestro/flows",
-          "maestro:test:smoke":
-            "maestro test --include-tags=smoke .maestro/flows",
-        },
+        scripts: hostMaestroScripts,
       });
 
       await strategy.apply(
@@ -2320,7 +2322,7 @@ describe("PackageLisaStrategy", () => {
       );
 
       const content = await fs.readJson(destPath);
-      expect(content.scripts).toMatchObject(expectedMaestroScripts);
+      expect(content.scripts).toMatchObject(hostMaestroScripts);
     });
 
     it("keeps SDK-version-coupled packages in defaults, not force", () => {
