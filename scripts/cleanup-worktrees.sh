@@ -18,8 +18,13 @@
 #      `unreadable` rather than defaulting an unproven worktree to eligible.
 #   4. Its HEAD commit is reachable from some remote ref (nothing unpushed).
 #   5. It is older than --min-age-days (default 7) by directory mtime.
+#   6. Its uncommitted content is reachable from some commit — asked of the
+#      bytes, not of the tracking state, by lisa-worktree-guard.
 #   Untracked-only dirt (node_modules, .env.local, build output) blocks
-#   removal by default; pass --force-untracked to treat it as junk.
+#   removal by default; pass --force-untracked to treat it as junk. Even then
+#   the content gate stands: --force-untracked means "untracked files are not
+#   by themselves work", not "delete bytes that exist in no commit"
+#   (CodySwannGT/lisa#3863).
 #
 # DRY-RUN BY DEFAULT. Nothing is deleted until you pass --apply.
 #
@@ -51,7 +56,12 @@ while [ $# -gt 0 ]; do
       fi
       MIN_AGE_DAYS="$1" ;;
     --delete-branches) DELETE_BRANCHES=1 ;;
-    -h|--help) sed -n '2,33p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    # Print the whole leading comment block, not a hardcoded line count. `2,30p`
+    # silently stopped covering the last option the moment the header grew by
+    # six lines, and nothing reported it — the help text is not asserted
+    # anywhere, so the only symptom is an operator who never learns an option
+    # exists. Stop at the first non-comment line instead, which cannot drift.
+    -h|--help) sed -n '2,${/^[^#]/q;p;}' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) REPO="$1" ;;
   esac
   shift
@@ -66,6 +76,21 @@ fi
 NOW=$(date +%s)
 MIN_AGE_SECS=$((MIN_AGE_DAYS * 86400))
 REMOVED=0 KEPT_DIRTY=0 KEPT_UNPUSHED=0 KEPT_YOUNG=0 KEPT_UNTRACKED=0 KEPT_UNREADABLE=0 ORPHANS=0 ERRORS=0
+KEPT_UNREACHABLE=0
+
+# Content-reachability guard. Absent node or an unresolvable script leaves the
+# older gates in charge rather than silently widening what this script deletes.
+GUARD=""
+for candidate in \
+  "$REPO/scripts/lisa-worktree-guard.mjs" \
+  "$REPO/node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-worktree-guard.mjs" \
+  "$REPO/all/copy-overwrite/scripts/lisa-worktree-guard.mjs"; do
+  if [ -f "$candidate" ]; then
+    GUARD="$candidate"
+    break
+  fi
+done
+command -v node > /dev/null 2>&1 || GUARD=""
 
 log() { printf '%s\n' "$*"; }
 act() { if [ "$APPLY" = 1 ]; then log "REMOVE  $*"; else log "WOULD-REMOVE  $*"; fi; }
@@ -170,6 +195,14 @@ process_worktree() {
     return
   fi
 
+  # Content gate: bytes that exist in no commit are never junk, whatever
+  # --force-untracked says about tracking state.
+  if [ -n "$GUARD" ] && ! node "$GUARD" check "$wt" > /dev/null 2>&1; then
+    KEPT_UNREACHABLE=$((KEPT_UNREACHABLE + 1))
+    log "KEEP (holds content that exists in no commit)  $wt"
+    return
+  fi
+
   local force_flag=()
   local full_status full_rc
   full_status=$(git -C "$wt" status --porcelain 2>/dev/null)
@@ -270,6 +303,6 @@ fi
 log ""
 log "=== summary ==="
 log "removed (or would remove): $REMOVED   orphan dirs: $ORPHANS"
-log "kept: $KEPT_DIRTY modified-tracked, $KEPT_UNPUSHED unpushed, $KEPT_UNTRACKED untracked-only, $KEPT_YOUNG too-young, $KEPT_UNREADABLE unreadable   errors: $ERRORS"
+log "kept: $KEPT_DIRTY modified-tracked, $KEPT_UNPUSHED unpushed, $KEPT_UNTRACKED untracked-only, $KEPT_UNREACHABLE uncommitted-content, $KEPT_YOUNG too-young, $KEPT_UNREADABLE unreadable   errors: $ERRORS"
 [ "$APPLY" = 0 ] && log "(dry run — rerun with --apply to delete)"
 exit 0

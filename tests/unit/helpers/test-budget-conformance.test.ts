@@ -13,7 +13,9 @@
  * subprocess measures the machine (CodySwannGT/lisa#2822), so the next box
  * invalidates it again — this one has been re-derived three times already. It
  * is `ioLatencyBudgetMs`, which is clamped at 1 from below and can therefore
- * only ever widen a base, never tighten one.
+ * only ever widen a base, never tighten one — or, where the guarded work is
+ * filesystem deletion rather than process spawning, `fsLatencyBudgetMs`, which
+ * scales on a measurement of the deletion itself (CodySwannGT/lisa#3936).
  *
  * ## Why the scan is not keyed on one spelling
  *
@@ -125,6 +127,17 @@ const TRAILING_SAMPLE = `}, ${"40_000"});`;
 const OPTIONS_SAMPLE = `it("x", { timeout: ${"20_000"} }, () => {`;
 
 /**
+ * Every call that turns a bare number into a machine-scaled budget.
+ *
+ * Two, not one: `fsLatencyBudgetMs` scales on measured deletion cost for the
+ * hooks whose work is filesystem deletion rather than process spawning
+ * (CodySwannGT/lisa#3936). A scan that recognised only the spawn calibrator
+ * would flag a constant correctly routed through the other, which is a guard
+ * telling an author to undo the fix they just made.
+ */
+const CALIBRATORS = ["ioLatencyBudgetMs", "fsLatencyBudgetMs"] as const;
+
+/**
  * Find every uncalibrated per-case budget in one suite's source.
  *
  * Line-oriented and syntactic on purpose. Parsing would report the same thing
@@ -159,9 +172,13 @@ function bareBudgets(name: string, source: string): readonly string[] {
     .map(match => ({ name: match[1] ?? "", from: match[2] ?? "" }))
     .filter(
       binding =>
-        // Anything routed through the calibrator IS calibrated; that is the
+        // Anything routed through a calibrator IS calibrated; that is the
         // remedy this guard exists to demand, not another way to fail it.
-        !binding.from.includes("ioLatencyBudgetMs")
+        // BOTH calibrators count. `fsLatencyBudgetMs` is the deletion-cost
+        // one (CodySwannGT/lisa#3936); recognising only the spawn one would
+        // have flagged a constant correctly routed through the other, which
+        // is a guard telling an author to undo the fix they just made.
+        !CALIBRATORS.some(calibrator => binding.from.includes(calibrator))
     );
   for (let hop = 0; hop < derived.length; hop += 1) {
     const before = named.size;
@@ -306,6 +323,7 @@ describe("no test suite hands vitest an uncalibrated budget", () => {
       "const SLOW_MS = ioLatencyBudgetMs(30_000);",
       "  }, SLOW_MS);",
       "  }, ioLatencyBudgetMs(30_000));",
+      "  }, fsLatencyBudgetMs(30_000));",
       "  { timeout: ioLatencyBudgetMs(20_000) },",
       "  }, 0);",
       "        graceFor({ first_seen: RECENTLY, grace_days: 14 }, 7)",
@@ -340,8 +358,10 @@ describe("no test suite hands vitest an uncalibrated budget", () => {
     expect(
       offenders,
       "A per-case budget overrides the file-level one silently. Wrap it in " +
-        "ioLatencyBudgetMs(...) so it scales with the machine, or drop it " +
-        "where the file already calls useIoLatencyBudget()."
+        "ioLatencyBudgetMs(...) so it scales with the machine — or in " +
+        "fsLatencyBudgetMs(...) when the guarded work is filesystem deletion " +
+        "rather than process spawning — or drop it where the file already " +
+        "calls useIoLatencyBudget()."
     ).toEqual([]);
   });
 
