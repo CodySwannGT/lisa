@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.45.6](https://github.com/CodySwannGT/lisa/compare/v4.45.5...v4.45.6) (2026-09-05)
+
+
+### Bug Fixes
+
+* **ci:** name the review-evidence check for the gate, not as a question ([f1b7bb6](https://github.com/CodySwannGT/lisa/commit/f1b7bb631236077083abb7aabd69e44080cec058)), closes [CodySwannGT/lisa#3917](https://github.com/CodySwannGT/lisa/issues/3917)
+* **hooks:** refuse to delete a worktree holding work that exists in no commit ([06c2e5a](https://github.com/CodySwannGT/lisa/commit/06c2e5ae882b3edeaa2bfaedb9581091ac295755)), closes [CodySwannGT/lisa#3863](https://github.com/CodySwannGT/lisa/issues/3863)
+* **scripts:** derive the cleanup-worktrees help range instead of hardcoding it ([8b1c04f](https://github.com/CodySwannGT/lisa/commit/8b1c04fd5bce6a8216c72a72fd66fb79ca1588d7)), closes [CodySwannGT/lisa#3863](https://github.com/CodySwannGT/lisa/issues/3863)
+* **worktrees:** stop an unreadable worktree reading as an empty one ([f9d7185](https://github.com/CodySwannGT/lisa/commit/f9d718580cb614e6fe8c7bfdf84bd4738cb80aee)), closes [CodySwannGT/lisa#3863](https://github.com/CodySwannGT/lisa/issues/3863)
+
 ### [4.45.5](https://github.com/CodySwannGT/lisa/compare/v4.45.4...v4.45.5) (2026-09-05)
 
 
