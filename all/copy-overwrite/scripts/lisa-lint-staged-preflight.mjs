@@ -376,7 +376,7 @@ export const run = async (argv, cwd) => {
  * @returns {boolean} Whether the CLI body should run.
  */
 export const invokedAsScript = (moduleUrl, argv1 = process.argv[1]) => {
-  if (argv1 === undefined || argv1 === "") return false;
+  if (typeof argv1 !== "string" || argv1.length === 0) return false;
   try {
     return realpathSync(argv1) === realpathSync(fileURLToPath(moduleUrl));
   } catch {
