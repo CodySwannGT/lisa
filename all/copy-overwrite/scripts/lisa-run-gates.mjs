@@ -217,6 +217,10 @@ export const CONDITIONAL_FLOOR = Object.freeze({
  * @property {number|null} code Exit code; null when nothing ran or was killed.
  * @property {string|null} [diagnosis] Which failure this was, from `DIAGNOSIS`.
  * @property {string[]} [evidence] Concrete lines backing the diagnosis.
+ * @property {string|null} [proves] Whose property the failure belongs to, from
+ *   `ATTRIBUTION`; absent unless a diagnosis attributed it.
+ * @property {string|null} provedBy The gate whose run proved this one, when
+ *   they share a command. Always set: `runMoment` stamps it on every outcome.
  */
 
 /**
