@@ -57,7 +57,7 @@ import {
   declaredFailure,
   DIAGNOSIS,
   diagnoseFailure,
-  ranNoTests,
+  diagnoseHollowSuccess,
 } from "./lib/gate-failure-diagnosis.mjs";
 import {
   killMarkNote,
@@ -218,6 +218,10 @@ export const CONDITIONAL_FLOOR = Object.freeze({
  * @property {number|null} code Exit code; null when nothing ran or was killed.
  * @property {string|null} [diagnosis] Which failure this was, from `DIAGNOSIS`.
  * @property {string[]} [evidence] Concrete lines backing the diagnosis.
+ * @property {string|null} [proves] Whose property the failure belongs to, from
+ *   `ATTRIBUTION`; absent unless a diagnosis attributed it.
+ * @property {string|null} provedBy The gate whose run proved this one, when
+ *   they share a command. Always set: `runMoment` stamps it on every outcome.
  */
 
 /**
@@ -427,37 +431,33 @@ function stateFor(kind) {
 function execute(gate, exec, declarations) {
   const { code, output } = normaliseExec(exec(gate.command, gate));
   if (code === 0) {
-    // A zero exit is not by itself a measurement. A runner invoked with
-    // `--passWithNoTests` — still shipped in the integration scripts of three
-    // package templates — collects nothing and exits 0, so the whole diagnosis
-    // below is unreachable on the one path that needs it and the gate records
-    // PASSED for a suite that ran nothing (CodySwannGT/lisa#3715).
+    // Exit 0 is ADJACENT to "the property holds"; it is not the observation.
+    // A command that exited 0 while its own output says it collected zero
+    // test files proved nothing, and until this read the runner returned
+    // PASSED here without ever looking at the transcript — which is why every
+    // zero-collection pattern in the diagnosis module was reachable only from
+    // the failure branch, the one branch that could never carry this event
+    // (CodySwannGT/lisa#3715).
     //
-    // Deliberately narrow. This does NOT fire on "collected zero"; it fires
-    // only when the runner POSITIVELY SAYS it ran nothing and reached no
-    // verdict. A gate whose output carries no such statement — every non-test
-    // gate — still passes, which is what keeps the blast radius off them. And
-    // an interactive filtered run is not a gate invocation: a project that
-    // declared this gate declared that work exists for it.
-    if (ranNoTests(output)) {
+    // Silence still passes. The verdict requires the tool to have SAID it ran
+    // nothing, so a gate whose command reports no count at all is untouched.
+    const hollow = diagnoseHollowSuccess(output);
+    if (!hollow) {
       return {
-        state: STATE.UNPROVABLE,
-        detail:
-          `${gate.command} (exit 0) — the runner reported it executed ZERO ` +
-          `test files, so this run measured nothing. A zero exit here is the ` +
-          `runner being told not to mind an empty collection, not evidence ` +
-          `the property holds`,
+        state: STATE.PASSED,
+        detail: gate.command,
         code: 0,
-        diagnosis: DIAGNOSIS.NO_TESTS_RAN,
+        diagnosis: null,
         evidence: [],
       };
     }
     return {
-      state: STATE.PASSED,
-      detail: gate.command,
+      state: stateFor(hollow.kind),
+      detail: `${gate.command} (exit 0) — ${hollow.summary}`,
       code: 0,
-      diagnosis: null,
-      evidence: [],
+      diagnosis: hollow.kind,
+      evidence: hollow.evidence,
+      proves: hollow.proves,
     };
   }
   const shown = typeof code === "number" ? code : "terminated";
