@@ -46,10 +46,6 @@ Two deliberate exceptions, both of which stay out of published artifacts:
 and third-party product names (Google's Gemini, Antigravity) are not host
 projects.
 
-Measured 2026-08-17: 135 tracked files named a client, and 48 files in the
-published tarball did. It was cleaned up in one pass, which is a one-time fix to
-a recurring habit — the habit is what this rule is for.
-
 When updating package.json, always check if there's a corresponding `package.lisa.json` template file. Update both together:
 
 - **package.lisa.json** (source): Defines governance rules in `force`, `defaults`, and `merge` sections
@@ -100,24 +96,6 @@ Lisa-specific skills (like `lisa-integration-test`, `lisa-learn`, `lisa-review-p
 
 When creating tasks, do not include `/coding-philosophy` in the `skills` array of task metadata. The coding philosophy is distributed as a generated Lisa rule and does not need to be explicitly invoked.
 
-## Test Isolation
-
-Tests should not call other functions under test to compute expected values, as this creates coupling. Use hardcoded known values instead.
-
-Example:
-
-```typescript
-// Wrong - creates coupling between tests
-it("fibonacciSequence(5) returns correct sequence", () => {
-  const expected = [fibonacci(0), fibonacci(1), fibonacci(2), fibonacci(3), fibonacci(4)];
-  expect(fibonacciSequence(5)).toEqual(expected);
-});
-
-// Correct - uses hardcoded known values
-it("fibonacciSequence(5) returns correct sequence", () => {
-  expect(fibonacciSequence(5)).toEqual([0n, 1n, 1n, 2n, 3n]);
-});
-```
 ## Agent Team Workflows
 
 When working with agent teams, follow these patterns to handle platform behaviors:
@@ -159,10 +137,6 @@ This is a platform convention for spawning plugin agents via the Agent Team API.
 
 ## File Operations
 
-### Plan Archival
-
-When archiving plan files, always use `mv` via Bash, never Write or Edit tools. Write and Edit overwrite file contents, which loses the `## Sessions` table that tracks session IDs. Only `mv` preserves the complete file contents during relocation.
-
 ### Barrel Export Pre-commit Constraint
 
 Cannot make "deletion-only" commits when barrel exports (index.ts files) reference the deleted files. Pre-commit hooks run lint/typecheck which will fail on broken imports.
@@ -170,26 +144,6 @@ Cannot make "deletion-only" commits when barrel exports (index.ts files) referen
 Solution: Combine deletion of old file + creation of new file in the same atomic commit.
 
 Example: Deleting `src/utils/fibonacci.ts` alone fails because `src/utils/index.ts` exports `export * from './fibonacci.js'`. Instead, delete the old implementation and add the new implementation in a single commit.
-
-## TypeScript Type System
-
-### readonly is Compile-Time Only
-
-TypeScript's `readonly` modifier (e.g., `readonly bigint[]`) is a compile-time constraint only and has no runtime representation.
-
-Do NOT test runtime immutability with `Object.isFrozen()` for readonly types — TypeScript types are erased at runtime.
-
-Runtime immutability tests (`Object.freeze()`, `Object.isFrozen()`) are separate from TypeScript readonly type checks.
-
-## Test Assertion Preservation During Rewrites
-
-When rewriting or replacing a module from scratch, always review the old test file before deletion. Preserve assertion patterns that validate non-obvious behavior, especially:
-
-- Error message content verification (`expect(error.message).toContain(...)`)
-- Edge case and boundary condition assertions
-- Type-level assertions (e.g., `typeof` checks on return values)
-
-Do not assume new tests cover everything the old tests did. Compare old and new test coverage before marking the rewrite complete.
 
 ## TDD RED Phase with Deleted Source
 

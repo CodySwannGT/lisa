@@ -86,7 +86,10 @@
     "code-style": {
       "commit": {
         "level": "required",
-        "run": "lint:staged"
+        "run": "lint:staged",
+        "failure_shape": [
+          "✖ eslint"
+        ]
       },
       "pull-request": "required"
     },
@@ -144,7 +147,12 @@
       "pull-request": "required"
     },
     "artifact-freshness": {
-      "commit": "required",
+      "commit": {
+        "level": "required",
+        "failure_shape": [
+          "check:artifacts FAILED, and these are the checks that failed:"
+        ]
+      },
       "pull-request": "optional"
     },
     "learnings-budget": {
@@ -206,7 +214,10 @@
     "x-plugin-artifact-sync": {
       "push": {
         "level": "required",
-        "run": "check:plugins"
+        "run": "check:plugins",
+        "failure_shape": [
+          "✗ Generated plugin artifacts are out of sync with plugins/src."
+        ]
       }
     }
   },

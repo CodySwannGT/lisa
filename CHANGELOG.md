@@ -2,6 +2,52 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.49.0](https://github.com/CodySwannGT/lisa/compare/v4.48.0...v4.49.0) (2026-09-05)
+
+
+### Features
+
+* **scratch:** reclaim completed synthesis assemblies the sweep cannot own ([fd66e8e](https://github.com/CodySwannGT/lisa/commit/fd66e8e182faa68b59699dceb1545a7019aff1a6)), closes [CodySwannGT/lisa#3870](https://github.com/CodySwannGT/lisa/issues/3870)
+
+
+### Bug Fixes
+
+* **vitest:** bound fleet demand with admission control and an honest denominator ([2c552c4](https://github.com/CodySwannGT/lisa/commit/2c552c4006fe1bf18ca2b92eeac28f68ffcbcd58)), closes [#3032](https://github.com/CodySwannGT/lisa/issues/3032) [CodySwannGT/lisa#3941](https://github.com/CodySwannGT/lisa/issues/3941)
+* **worktrees:** stop cleanup deleting worktrees it could not read ([dc331ba](https://github.com/CodySwannGT/lisa/commit/dc331ba79b5b8175fb1180302ae4be62240476a3)), closes [#3810](https://github.com/CodySwannGT/lisa/issues/3810) [CodySwannGT/lisa#3810](https://github.com/CodySwannGT/lisa/issues/3810) [CodySwannGT/lisa#3810](https://github.com/CodySwannGT/lisa/issues/3810)
+
+## [4.48.0](https://github.com/CodySwannGT/lisa/compare/v4.47.0...v4.48.0) (2026-09-05)
+
+
+### Features
+
+* **rules:** shrink the host-rules pointer to one actionable instruction ([fbd278e](https://github.com/CodySwannGT/lisa/commit/fbd278e1d22c9a4ea7100a360a633895a00c3d9e)), closes [CodySwannGT/lisa#3991](https://github.com/CodySwannGT/lisa/issues/3991)
+
+## [4.47.0](https://github.com/CodySwannGT/lisa/compare/v4.46.0...v4.47.0) (2026-09-05)
+
+
+### Features
+
+* **gates:** let a gate say how its own prover's failure reads ([85c989c](https://github.com/CodySwannGT/lisa/commit/85c989ccc9e1f72e6f731f3ba0363b9fc0ce5335)), closes [#3946](https://github.com/CodySwannGT/lisa/issues/3946) [#3957](https://github.com/CodySwannGT/lisa/issues/3957) [#3981](https://github.com/CodySwannGT/lisa/issues/3981) [#3946](https://github.com/CodySwannGT/lisa/issues/3946) [CodySwannGT/lisa#3974](https://github.com/CodySwannGT/lisa/issues/3974)
+
+## [4.46.0](https://github.com/CodySwannGT/lisa/compare/v4.45.17...v4.46.0) (2026-09-05)
+
+
+### Features
+
+* **hooks:** tell a session which copy of Lisa it is actually running ([eeec2a3](https://github.com/CodySwannGT/lisa/commit/eeec2a3a08d4fe3a0cf3516e5388a80ae836ab15)), closes [CodySwannGT/lisa#3714](https://github.com/CodySwannGT/lisa/issues/3714)
+* **hooks:** tell a session which copy of Lisa it is actually running ([8b904a5](https://github.com/CodySwannGT/lisa/commit/8b904a51757bdc913bd557b8982a2a4739012d52)), closes [CodySwannGT/lisa#3714](https://github.com/CodySwannGT/lisa/issues/3714)
+* **queue-status:** report open pull requests whose auto-merge is unset ([aabd27d](https://github.com/CodySwannGT/lisa/commit/aabd27dbf94e8939065f330311313d264268f135)), closes [#3806](https://github.com/CodySwannGT/lisa/issues/3806) [#3903](https://github.com/CodySwannGT/lisa/issues/3903) [CodySwannGT/lisa#3903](https://github.com/CodySwannGT/lisa/issues/3903)
+
+
+### Bug Fixes
+
+* **hooks:** report AHEAD as its own state, and fix the tests-typecheck error ([1975803](https://github.com/CodySwannGT/lisa/commit/19758034cbe3e03810c9388e753d5d32e8846b7c)), closes [CodySwannGT/lisa#3714](https://github.com/CodySwannGT/lisa/issues/3714)
+
+
+### Documentation
+
+* apply the owner's deletions to Lisa's own rules and reference files ([442fc24](https://github.com/CodySwannGT/lisa/commit/442fc24fc235a6efd8bca98d3d4ff48120506835)), closes [#1790](https://github.com/CodySwannGT/lisa/issues/1790) [CodySwannGT/lisa#3987](https://github.com/CodySwannGT/lisa/issues/3987)
+
 ### [4.45.17](https://github.com/CodySwannGT/lisa/compare/v4.45.16...v4.45.17) (2026-09-05)
 
 

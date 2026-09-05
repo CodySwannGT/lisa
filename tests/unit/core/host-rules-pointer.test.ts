@@ -28,6 +28,16 @@ import {
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const HOST_PROSE = "# My Project\n\nWe deploy on Fridays. Deal with it.\n";
+/** A legacy rules path outside `.claude/rules/`, which Claude auto-loads nothing from. */
+const CUSTOM_RULES_FILE = "rules/CUSTOM.md";
+
+/**
+ * Whether any line of a block is an `@` import directive.
+ * @param block - The emitted pointer block.
+ * @returns True when a line starts with `@`, leading whitespace aside.
+ */
+const hasImportDirective = (block: string): boolean =>
+  block.split("\n").some(line => line.trimStart().startsWith("@"));
 
 describe("core/host-rules pointer", () => {
   let dir: string;
@@ -59,14 +69,36 @@ describe("core/host-rules pointer", () => {
   });
 
   describe("pointer block content", () => {
-    it("names the canonical directory and declares host ownership", () => {
+    it("names the canonical directory and instructs the reader to read it", () => {
       const block = buildHostRulesPointer();
 
       expect(block.startsWith(LISA_HOST_RULES_START_MARKER)).toBe(true);
       expect(block.endsWith(LISA_HOST_RULES_END_MARKER)).toBe(true);
       expect(block).toContain(HOST_RULES_DIR);
-      expect(block).toMatch(/host-authored/iu);
-      expect(block).toMatch(/never writes\s+rule bodies/iu);
+      // The instruction verb is the load-bearing part, not the path. A block
+      // that names the directory without telling anyone to read it is what an
+      // import-directive-only form degrades to on the five agents that do not
+      // parse `@` — measured inert even on Claude, which does.
+      expect(block).toMatch(/read every file under/iu);
+    });
+
+    it("carries no import directive, which only Claude parses and only for files", () => {
+      const block = buildHostRulesPointer(LEGACY_PROJECT_RULES_FILE);
+
+      // `@.agents/rules/` loads nothing: `@path` is Claude Code syntax the other
+      // five agents ignore, and it resolves files rather than directories even
+      // there. Emitting one would put a line that instructs no agent into every
+      // host's AGENTS.md forever.
+      expect(hasImportDirective(block)).toBe(false);
+    });
+
+    it("stays short enough to earn its place in every session's context", () => {
+      // The block is loaded by every agent in every session. The retired prose
+      // form was 20 lines; this pins the shape, not a byte count.
+      expect(buildHostRulesPointer().split("\n")).toHaveLength(5);
+      expect(
+        buildHostRulesPointer(LEGACY_PROJECT_RULES_FILE).split("\n")
+      ).toHaveLength(7);
     });
 
     it("carries no transition paragraph when no legacy rules file exists", () => {
@@ -77,8 +109,22 @@ describe("core/host-rules pointer", () => {
       const block = buildHostRulesPointer(LEGACY_PROJECT_RULES_FILE);
 
       expect(block).toContain(LEGACY_PROJECT_RULES_FILE);
-      expect(block).toMatch(/auto-load/iu);
-      expect(block).toMatch(/human-gated/iu);
+      // The caveat is the half of the retired transition paragraph that had to
+      // survive the trim: `.agents/rules/` auto-loads nowhere, but a legacy path
+      // can, and an unqualified "also read it" reintroduces the double-load this
+      // block exists to prevent.
+      expect(block).toMatch(/unless your runtime auto-loads it/iu);
+      expect(block).toMatch(/Claude Code auto-loads/iu);
+    });
+
+    it("qualifies the caveat by runtime, not by path, so a custom path stays true", () => {
+      // `projectRulesFile` can point outside `.claude/rules/`, where Claude Code
+      // auto-loads nothing. Naming that directory as the reason would make the
+      // sentence false for such a host.
+      const block = buildHostRulesPointer(CUSTOM_RULES_FILE);
+
+      expect(block).toContain(CUSTOM_RULES_FILE);
+      expect(block).toMatch(/unless your runtime auto-loads it/iu);
     });
 
     it("round-trips through the stripper", () => {
@@ -174,7 +220,7 @@ describe("core/host-rules pointer", () => {
     });
 
     it("names a custom projectRulesFile instead of the default when configured", async () => {
-      const custom = "rules/CUSTOM.md";
+      const custom = CUSTOM_RULES_FILE;
       await fs.outputFile(path.join(dir, custom), "custom", "utf8");
       await fs.writeJson(path.join(dir, ".lisa.config.json"), {
         projectRulesFile: custom,
