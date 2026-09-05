@@ -259,6 +259,31 @@ describe("diagnoseFailure: evidence stays readable", () => {
     expect(verdict.evidence.at(-1)).toBe("…and 4 more");
   });
 
+  it("keeps the same ceiling when a temp-root reading is also attached", () => {
+    // The case above passes `null`, so it CANNOT see the defect it is named
+    // for: the temp-root line was appended AFTER the cap, making the timeout
+    // verdict the only one able to exceed MAX_EVIDENCE + 1. A non-null
+    // reading is what exposes that, which is why this case exists alongside
+    // rather than instead of the suppressed one.
+    const many = Array.from(
+      { length: 9 },
+      (_unused, index) => ` FAIL  tests/unit/suite-${index}.test.ts > case`
+    ).join("\n");
+    const verdict: Diagnosis = diagnoseFailure(
+      `${many}\n${TIMEOUT_LINE}`,
+      undefined,
+      undefined,
+      undefined,
+      { entries: 1234, inodeBytes: 65536 }
+    );
+
+    // Same ceiling as the suppressed case: four named suites, the dropped
+    // count, and the temp-root line — not five suites plus all of that.
+    expect(verdict.evidence).toHaveLength(6);
+    expect(verdict.evidence.at(-1)).toContain("shared temp root at diagnosis");
+    expect(verdict.evidence).toContain("…and 5 more");
+  });
+
   it("does not repeat a suite that failed more than once", () => {
     // Temp-root reading suppressed for the same reason as the cap case above:
     // this asserts dedup of NAMED SUITES, and an exact-equality assertion

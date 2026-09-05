@@ -288,13 +288,10 @@ const TAIL_LINES = 3;
  * @param {string[]} items Every item found.
  * @returns {string[]} At most `MAX_EVIDENCE + 1` lines.
  */
-function capped(items) {
+function capped(items, limit = MAX_EVIDENCE) {
   const unique = [...new Set(items)];
-  if (unique.length <= MAX_EVIDENCE) return unique;
-  return [
-    ...unique.slice(0, MAX_EVIDENCE),
-    `…and ${unique.length - MAX_EVIDENCE} more`,
-  ];
+  if (unique.length <= limit) return unique;
+  return [...unique.slice(0, limit), `…and ${unique.length - limit} more`];
 }
 
 /**
@@ -365,12 +362,21 @@ function tailLines(output) {
  */
 function timeoutVerdict(timeouts, suites, tempRoot) {
   const budget = Math.max(...timeouts.budgets);
+  // Reserve the temp-root line's slot BEFORE capping the suites, so this
+  // verdict carries the same MAX_EVIDENCE + 1 ceiling as every other one.
+  // Appending after the cap made this the only verdict that could reach
+  // MAX_EVIDENCE + 2, and the cap test could not see it because that test
+  // suppresses the reading.
+  const tempEvidence = tempRootEvidence(tempRoot ?? null);
   return {
     kind: DIAGNOSIS.TIMEOUT,
     summary:
       `${timeouts.count} test(s)/hook(s) exceeded the ${budget}ms budget, ` +
       `so the suite did not finish — this is NOT a coverage shortfall`,
-    evidence: [...capped(suites), ...tempRootEvidence(tempRoot ?? null)],
+    evidence: [
+      ...capped(suites, MAX_EVIDENCE - tempEvidence.length),
+      ...tempEvidence,
+    ],
   };
 }
 
@@ -861,7 +867,15 @@ function classify(output, code, load, read, tempRoot) {
   const misses = findThresholdMisses(output);
 
   if (timeouts.count > 0)
-    return timeoutVerdict(timeouts, failures.suites, tempRoot);
+    return timeoutVerdict(
+      timeouts,
+      failures.suites,
+      // Resolved HERE and nowhere else: this is the only consumer, and it is
+      // the last point at which `undefined` (measure it) and `null` (suppress
+      // it) are still distinguishable. Do not "simplify" this to `??` — that
+      // collapses the two and makes every suppressed test read the real box.
+      tempRoot === undefined ? tempRootPopulation() : tempRoot
+    );
 
   if ((failures.tally ?? 0) > 0 || failures.suites.length > 0) {
     const count = failures.tally ?? failures.suites.length;
@@ -1175,9 +1189,25 @@ function findTerminatedComments(output, read) {
  *   transcript named, returning null when it cannot be read. Defaults to the
  *   real filesystem; injected by tests so a fixture needs no files on disk.
  * @param {TempRootReading|null} [tempRoot] The shared temp root's population,
- *   for a timeout's evidence line. Defaults to measuring this machine; pass
- *   `null` to suppress the line, or a fixed reading to make output
+ *   for a timeout's evidence line. OMIT to measure this machine — but the
+ *   measurement is taken lazily, only on the timeout path that consumes it.
+ *   Pass `null` to suppress the line, or a fixed reading to make output
  *   deterministic.
+ *
+ *   This is deliberately NOT a default parameter. A default is evaluated on
+ *   every call that omits the argument, so `tempRoot = tempRootPopulation()`
+ *   ran a `readdirSync` plus a `statSync` over the shared temp root for every
+ *   assertion failure, coverage miss and kill — none of which use the reading.
+ *   On a box whose temp root holds tens of thousands of entries that is not
+ *   free, and the irony is total: this was added by the change about temp-root
+ *   churn. Nothing in the suite could catch it, because cost is not asserted.
+ *
+ *   Making the default lazier does NOT work, and that is the trap: a default
+ *   parameter cannot distinguish OMITTED from EXPLICITLY NULL, because both
+ *   arrive as `undefined`/`null` at different points and only `undefined`
+ *   triggers a default. `null` is the documented suppression that keeps test
+ *   output deterministic, so it must survive. Hence the resolution moved to
+ *   the single consuming call site, where the two are still distinguishable.
  * @returns {Diagnosis} What the failure was, and whose it was.
  */
 export function diagnoseFailure(
@@ -1185,7 +1215,7 @@ export function diagnoseFailure(
   code,
   load = machineLoad(),
   read = readSourceFile,
-  tempRoot = tempRootPopulation()
+  tempRoot
 ) {
   const verdict = classify(output, code, load, read, tempRoot);
   return { ...verdict, proves: ATTRIBUTION[verdict.kind] ?? null };
