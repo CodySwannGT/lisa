@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.43.0](https://github.com/CodySwannGT/lisa/compare/v4.42.7...v4.43.0) (2026-09-05)
+
+
+### Features
+
+* **doctor:** repair and report a deploy job that skips on a failed release ([a7b3d76](https://github.com/CodySwannGT/lisa/commit/a7b3d76040ef572beb49da3352043f53db3c901a)), closes [#3467](https://github.com/CodySwannGT/lisa/issues/3467) [#3467](https://github.com/CodySwannGT/lisa/issues/3467) [CodySwannGT/lisa#3740](https://github.com/CodySwannGT/lisa/issues/3740)
+
+
+### Bug Fixes
+
+* **doctor:** evaluate every release a deploy needs, not only the first ([8e8e8ff](https://github.com/CodySwannGT/lisa/commit/8e8e8ff7cf7ac4ca625782c7f369130fa295cf12)), closes [CodySwannGT/lisa#3740](https://github.com/CodySwannGT/lisa/issues/3740)
+* **gates:** put the 100k temp-scan benchmark back on an automated surface ([a2a5e98](https://github.com/CodySwannGT/lisa/commit/a2a5e989bb10ba0d0d4ae69e10c561f46774fe33)), closes [CodySwannGT/lisa#3935](https://github.com/CodySwannGT/lisa/issues/3935)
+* **gates:** resolve execution advice through a Map, not a bare object ([4e5e03c](https://github.com/CodySwannGT/lisa/commit/4e5e03cfe3665965450b435b64ecc51d6d0d40ff)), closes [CodySwannGT/lisa#3935](https://github.com/CodySwannGT/lisa/issues/3935)
+* **tests:** drop the ignored createTempDir prefix argument ([7f42737](https://github.com/CodySwannGT/lisa/commit/7f427378bf9d53d376144ed9f669c113b31ba474)), closes [CodySwannGT/lisa#3740](https://github.com/CodySwannGT/lisa/issues/3740)
+
 ### [4.42.7](https://github.com/CodySwannGT/lisa/compare/v4.42.6...v4.42.7) (2026-09-05)
 
 
