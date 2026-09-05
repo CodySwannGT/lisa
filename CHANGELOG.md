@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.50.2](https://github.com/CodySwannGT/lisa/compare/v4.50.1...v4.50.2) (2026-09-05)
+
+
+### Bug Fixes
+
+* **package:** preserve host test node wrappers ([85e79ed](https://github.com/CodySwannGT/lisa/commit/85e79ed0fedc2b32e1560d43500d4b65eb23f23a)), closes [CodySwannGT/lisa#4041](https://github.com/CodySwannGT/lisa/issues/4041)
+
 ### [4.50.1](https://github.com/CodySwannGT/lisa/compare/v4.50.0...v4.50.1) (2026-09-05)
 
 
