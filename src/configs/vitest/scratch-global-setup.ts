@@ -56,6 +56,7 @@ import {
   readScratchOwnerRecord,
   type ScratchOwnerRecordV1,
 } from "./scratch-owner.js";
+import { describeTmpdirTrustFailure } from "./scratch-tmpdir-trust.js";
 
 /**
  * Upper bound on entries the namespace may hold that **nobody owns**.
@@ -578,22 +579,36 @@ export const announceRefusal = (
 };
 
 /**
- * Reclaims residue from previous runs, then refuses to start into a namespace
- * that is accumulating.
- *
- * A refusal speaks twice — a banner before collection and a summary line at
- * exit — and the two are not redundant. They are the top and the bottom of a
- * transcript nobody reads in full.
- * @throws {Error} When residue is present that the sweep cannot or did not reclaim.
+ * Why the namespace must be refused, or `undefined` when it is usable.
+ * @returns Refusal text, or undefined
  */
-export const setup = (): void => {
+const describeNamespaceFailure = (): string | undefined => {
   // The namespace directory is not created here. `createRunRoot` makes it
   // recursively in whichever worker allocates first, and both the sweep and the
   // inspection treat an absent namespace as an empty one — so creating it would
   // be a side effect ahead of the audit that buys nothing.
   const dir = scratchNamespaceDir();
-  const residue = auditNamespace();
-  const failure = describeResidueFailure(dir, residue);
+
+  return describeResidueFailure(dir, auditNamespace());
+};
+
+/**
+ * Refuses to start into an untrusted temp root or an accumulating namespace.
+ *
+ * A refusal speaks twice — a banner before collection and a summary line at
+ * exit — and the two are not redundant. They are the top and the bottom of a
+ * transcript nobody reads in full.
+ *
+ * The TMPDIR trust check runs FIRST, and the order is load-bearing rather than
+ * arbitrary. An untrusted root is the more fundamental fault: it is a property
+ * of the environment the run was launched in, it is what every rung of the
+ * namespace audit is then inspected THROUGH, and it is the one whose absence
+ * of a message cost four separate investigations (CodySwannGT/lisa#3691).
+ * Reporting a namespace symptom first would name the second-order fact.
+ * @throws {Error} When the temp root is untrusted, or residue the sweep cannot or did not reclaim is present.
+ */
+export const setup = (): void => {
+  const failure = describeTmpdirTrustFailure() ?? describeNamespaceFailure();
 
   if (failure !== undefined) {
     // Both halves of the announcement happen before the throw, because the

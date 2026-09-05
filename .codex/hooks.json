@@ -1,0 +1,19 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Edit|Write|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/scripts/lisa-enforcement-fallback.sh\"",
+            "_lisaManaged": true,
+            "_lisaId": "enforcement-fallback",
+            "timeout": 30,
+            "statusMessage": "Checking Lisa enforcement policy"
+          }
+        ]
+      }
+    ]
+  }
+}

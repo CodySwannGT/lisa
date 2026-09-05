@@ -42,12 +42,12 @@ const plain = (doc: string): string => doc.replace(/[*`]/g, "");
 
 describe("blocker-containment rule contract", () => {
   describe.each(ROOTS)("%s", root => {
-    const eager = read(root, "rules/eager/blocker-containment.md");
+    const eager = read(root, "rules/reference/blocker-containment.md");
     const reference = read(root, "rules/reference/blocker-containment.md");
 
-    it("eager head breadcrumbs to the reference body", () => {
-      expect(eager).toContain(
-        "[reference/blocker-containment.md](../reference/blocker-containment.md)"
+    it("stays reachable from the eager rule index", () => {
+      expect(read(root, "rules/eager/00-rule-index.md")).toContain(
+        "reference/blocker-containment.md"
       );
     });
 

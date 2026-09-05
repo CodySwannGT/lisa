@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const EAGER = "plugins/src/base/rules/eager/dependency-trust-classes.md";
+const EAGER = "plugins/src/base/rules/reference/dependency-trust-classes.md";
+const INDEX = "plugins/src/base/rules/eager/00-rule-index.md";
 const REFERENCE =
   "plugins/src/base/rules/reference/dependency-trust-classes.md";
 const DECOMPOSITION =
@@ -37,8 +38,8 @@ describe("dependency-trust-classes eager/reference rule pair", () => {
     const reference = readFileSync(REFERENCE, "utf8");
 
     expect(eager).toContain("# Dependency Trust Classes (load-bearing)");
-    expect(eager).toContain(
-      "[reference/dependency-trust-classes.md](../reference/dependency-trust-classes.md)"
+    expect(readFileSync(INDEX, "utf8")).toContain(
+      "reference/dependency-trust-classes.md"
     );
     expect(reference).toContain("# Dependency Trust Classes");
   });

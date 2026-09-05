@@ -90,13 +90,14 @@ const read = (root: string, rel: string): string =>
 
 describe("reset-seed-coverage rule contract", () => {
   describe.each(ROOTS)("%s", root => {
-    const eager = read(root, "rules/eager/reset-seed-coverage.md");
+    const eager = read(root, "rules/reference/reset-seed-coverage.md");
     const reference = read(root, "rules/reference/reset-seed-coverage.md");
 
-    it("ships as a paired rule with a non-trivial body on both sides", () => {
-      expect(eager.length).toBeGreaterThan(500);
+    it("stays reachable from the eager rule index", () => {
       expect(reference.length).toBeGreaterThan(2000);
-      expect(eager).toContain("reference/reset-seed-coverage.md");
+      expect(read(root, "rules/eager/00-rule-index.md")).toContain(
+        "reference/reset-seed-coverage.md"
+      );
     });
 
     it("names all four policies in the eager head", () => {

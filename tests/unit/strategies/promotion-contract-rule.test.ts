@@ -31,8 +31,10 @@ const RULE_PAIR_ROOTS = [
   "plugins/lisa-copilot",
 ] as const;
 
+// #3992 demoted this rule, so Cursor no longer gets an always-on
+// `promotion-contract.mdc`; the content lives in the reference projection and
+// the always-on `00-rule-index.mdc` points at it.
 const CURSOR_RULE_PATHS = [
-  "plugins/lisa-cursor/rules/promotion-contract.mdc",
   "plugins/lisa-cursor/rules/promotion-contract-reference.mdc",
 ] as const;
 
@@ -60,14 +62,14 @@ const read = (relativePath: string): string =>
   readFileSync(path.resolve(relativePath), "utf8");
 
 describe.each(RULE_PAIR_ROOTS)("promotion-contract rule pair (%s)", root => {
-  const eager = read(path.join(root, "rules/eager/promotion-contract.md"));
+  const eager = read(path.join(root, "rules/reference/promotion-contract.md"));
   const reference = read(
     path.join(root, "rules/reference/promotion-contract.md")
   );
 
-  it("eager head breadcrumbs to the reference body", () => {
-    expect(eager).toContain(
-      "[reference/promotion-contract.md](../reference/promotion-contract.md)"
+  it("stays reachable from the eager rule index", () => {
+    expect(read(path.join(root, "rules/eager/00-rule-index.md"))).toContain(
+      "reference/promotion-contract.md"
     );
   });
 

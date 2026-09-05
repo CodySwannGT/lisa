@@ -69,7 +69,7 @@ const squash = (text: string): string => text.replace(/\s+/g, " ");
 
 describe("readiness-rubric rule contract", () => {
   describe.each(ROOTS)("%s", root => {
-    const eager = read(root, "rules/eager/readiness-rubric.md");
+    const eager = read(root, "rules/reference/readiness-rubric.md");
     const reference = read(root, "rules/reference/readiness-rubric.md");
     const eagerFlat = squash(eager);
     const referenceFlat = squash(reference);
@@ -79,9 +79,9 @@ describe("readiness-rubric rule contract", () => {
       expect(reference.length).toBeGreaterThan(2000);
     });
 
-    it("eager head breadcrumbs to the reference body verbatim", () => {
-      expect(eager).toContain(
-        "Full rubric (eight-dimension table, seven ship blockers, consequence ordering, worked example): [reference/readiness-rubric.md](../reference/readiness-rubric.md)."
+    it("stays reachable from the eager rule index", () => {
+      expect(read(root, "rules/eager/00-rule-index.md")).toContain(
+        "reference/readiness-rubric.md"
       );
     });
 

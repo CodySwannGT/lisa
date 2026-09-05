@@ -29,7 +29,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { afterEach, describe, expect, it } from "vitest";
-import { findConflictBlocks } from "../../../all/copy-overwrite/scripts/check-conflict-markers.mjs";
+import {
+  findConflictBlocks,
+  parseArgs,
+} from "../../../all/copy-overwrite/scripts/check-conflict-markers.mjs";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { cleanGitEnv } from "../../helpers/test-utils";
 import { resolveGit } from "../../support/git-executable.js";
@@ -278,6 +281,7 @@ describe("check-conflict-markers CLI", () => {
 
   it("exits 2 when a flag is missing its value", () => {
     expect(run(["--root"]).code).toBe(2);
+    expect(() => parseArgs(["--root"])).toThrowError("--root requires a value");
   });
 
   it("exits 2 when --root is not a directory", () => {
@@ -323,5 +327,48 @@ describe("the default root is the working directory", () => {
 describe("the Lisa repository itself is marker-free", () => {
   it("exits 0 against the real tracked tree", () => {
     expect(run([]).code).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// #3888: a guard that reports OK when its comparison had no subject.
+//
+// The cwd-anchored default (above) closes the case where the enumeration is
+// scoped to a SUBDIRECTORY. It never closed the case where the enumeration
+// returns NOTHING. `git ls-files` inside a repository with no tracked paths
+// succeeds and prints nothing, so the scan loop ran zero times and the gate
+// printed `✓ no leftover conflict markers in 0 tracked files`, exit 0 — the
+// count was in hand and nothing read it. `conflict-residue` is a REQUIRED push
+// gate, so that green is a merge-governing statement about bytes nobody read.
+//
+// Bite: against the pre-fix source this case fails on the first assertion with
+// `expected 0 to be 2`, which is the whole defect in one line.
+// ---------------------------------------------------------------------------
+describe("zero tracked files is an operational failure, not a clean scan", () => {
+  it("exits 2 rather than reporting a clean scan of nothing", () => {
+    const root = tempRepo({});
+
+    const { code, stdout } = run(["--root", root]);
+
+    expect(code).toBe(2);
+    expect(stdout).not.toContain("no leftover conflict markers");
+  });
+
+  it("says so in --json mode too, rather than emitting a zero-scan report", () => {
+    const root = tempRepo({});
+
+    const { code, stdout } = run(["--root", root, "--json"]);
+
+    expect(code).toBe(2);
+    expect(stdout).toBe("");
+  });
+
+  it("still passes a repository that tracks exactly one clean file", () => {
+    // The complement, so the refusal above is proven to key on ZERO rather
+    // than on "few" — a guard that refused any small scan would be a different
+    // and much louder defect.
+    const root = tempRepo({ "README.md": "# clean\n" });
+
+    expect(run(["--root", root]).code).toBe(0);
   });
 });

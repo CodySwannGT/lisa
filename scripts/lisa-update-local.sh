@@ -193,6 +193,7 @@ while IFS=$'\t' read -r project_path target_branch; do
         echo -e "  ${YELLOW}→${NC} $ref"
       done
       log_warning "Update them to use CodySwannGT/lisa/.github/workflows/...@main"
+      log_warning "Write @main; the next 'lisa apply' pins it at the commit your installed version's tag names and keeps it there"
       log_warning "Note: secrets: inherit must be replaced with explicit secret passing for external workflows"
     fi
   fi

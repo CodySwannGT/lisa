@@ -468,19 +468,78 @@ describe("naming the floor a verdict was judged against", () => {
     expect(verdict.message).not.toContain("break threshold of 0");
   });
 
-  it("says no floor was applied when the run produced no score", () => {
-    // A floor is declared, but an empty tally scores NaN: there is nothing to
-    // judge against it, and claiming it cleared 32 would be a fabrication.
+  it("calls a run that produced no score NOT-MEASURED, not a floorless pass", () => {
+    // THE BITE for CodySwannGT/lisa#3968. An empty tally scores NaN, and this
+    // arm used to answer it with the FLOOR sentence — "no floor was applied" —
+    // while returning `measured: true` and `failed: false`. That composes into
+    // a benign footnote on a pass, and it is the reassuring reading of two
+    // opposite facts: "I measured zero" and "I measured nothing".
     const verdict = judgeTimeoutAccounting(
-      { killed: 0, timedOut: 0, survived: 0, noCoverage: 0 },
+      { killed: 0, timedOut: 0, survived: 0, noCoverage: 0, errors: 12 },
+      32,
+      DEFAULT_TIMEOUT_SHARE_CEILING_PCT
+    );
+
+    expect(verdict.measured).toBe(false);
+    expect(verdict.message).toContain(OUTCOMES.notMeasured);
+    expect(verdict.message).toContain(
+      "READ THIS AS NOT MEASURED, NEVER AS NOTHING TO MEASURE."
+    );
+    expect(verdict.message).toContain("against 12 errored mutant(s)");
+    expect(verdict.message).not.toContain(OUTCOMES.clearedBreakThreshold);
+    expect(verdict.message).not.toContain(OUTCOMES.noFloorApplied);
+  });
+
+  it("REPORT-ONLY: a not-measured run does not fail, and says the floor was not applied", () => {
+    // The direction is chosen, not inherited. A change whose mutants all error
+    // is not evidence that any test is weak, and failing a push for it would
+    // red-wall a frequent, benign state. The refusal lives on `measured`, which
+    // is what composes into a coverage claim, not on the exit code.
+    const verdict = judgeTimeoutAccounting(
+      { killed: 0, timedOut: 0, survived: 0, noCoverage: 0, errors: 12 },
       32,
       DEFAULT_TIMEOUT_SHARE_CEILING_PCT
     );
 
     expect(verdict.failed).toBe(false);
-    expect(verdict.message).toContain(OUTCOMES.noFloorApplied);
-    expect(verdict.message).toContain("no score to");
-    expect(verdict.message).not.toContain(OUTCOMES.clearedBreakThreshold);
+    expect(verdict.message).toContain(
+      "A break threshold of 32 is declared and was NOT applied"
+    );
+    expect(verdict.message).toContain("mutation_measured=false");
+  });
+
+  it("says no score exists to judge when no floor is declared either", () => {
+    // Both unknowns at once. Naming a floor of 0 here would be a fabrication,
+    // and so would a score.
+    const verdict = judgeTimeoutAccounting(
+      { killed: 0, timedOut: 0, survived: 0, noCoverage: 0, errors: 0 },
+      null,
+      DEFAULT_TIMEOUT_SHARE_CEILING_PCT
+    );
+
+    expect(verdict.measured).toBe(false);
+    expect(verdict.message).toContain(OUTCOMES.notMeasured);
+    expect(verdict.message).toContain("against 0 errored mutant(s)");
+    expect(verdict.message).not.toContain("break threshold of 0");
+  });
+
+  it("CONTROL: a run that DID score still reports measured, verbatim", () => {
+    // The untouched branch, pinned by its exact text rather than by differing
+    // from the one above. A fix that flipped every run to NOT-MEASURED would
+    // satisfy an inequality and destroy the gate.
+    const verdict = judgeTimeoutAccounting(
+      { killed: 3338, timedOut: 117, survived: 1027, noCoverage: 1371 },
+      32,
+      DEFAULT_TIMEOUT_SHARE_CEILING_PCT
+    );
+
+    expect(verdict.measured).toBe(true);
+    expect(verdict.failed).toBe(false);
+    expect(verdict.message).toContain(OUTCOMES.clearedBreakThreshold);
+    expect(verdict.message).toContain(
+      '57.03 against a break threshold of 32 — "thresholds.break" in your'
+    );
+    expect(verdict.message).not.toContain(OUTCOMES.notMeasured);
   });
 
   it("names the floor end to end on a transcript that cleared it", () => {

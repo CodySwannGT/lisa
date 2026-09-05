@@ -1,0 +1,69 @@
+name: Record Sentry Deployment
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment that received the release'
+        required: true
+        type: string
+      version:
+        description: 'Existing Sentry release version that was deployed'
+        required: true
+        type: string
+      deployed:
+        description: 'Positive caller evidence that new code was deployed, not a no-op'
+        required: true
+        type: boolean
+    secrets:
+      SENTRY_AUTH_TOKEN:
+        description: 'Sentry API authentication token'
+        required: false
+      SENTRY_ORG:
+        description: 'Sentry organization slug'
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  sentry_deploy:
+    name: Record Sentry deploy
+    if: inputs.deployed == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check Sentry configuration
+        id: config
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+        run: |
+          if [ -z "$SENTRY_AUTH_TOKEN" ] || [ -z "$SENTRY_ORG" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Sentry configuration is incomplete; no deployment record was written."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Record deployment
+        if: steps.config.outputs.configured == 'true'
+        env:
+          DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+        run: |
+          set -euo pipefail
+          organization=$(jq -rn --arg value "$SENTRY_ORG" '$value | @uri')
+          version=$(jq -rn --arg value "$RELEASE_VERSION" '$value | @uri')
+          payload=$(jq -n --arg environment "$DEPLOY_ENVIRONMENT" '{environment: $environment}')
+
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data "$payload" \
+            "https://sentry.io/api/0/organizations/${organization}/releases/${version}/deploys/"
+
+          echo "Recorded Sentry deployment for $RELEASE_VERSION in $DEPLOY_ENVIRONMENT."

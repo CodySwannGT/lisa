@@ -31,6 +31,17 @@ export const UNDECLARED_CREATE = 'gh issue create --title "x"';
 export const GATE_MARKER = "<!-- [lisa-human-gate] reason=pricing -->";
 /** A non-default build-ready role, to prove the guard reads it from config. */
 export const CUSTOM_ROLE = "state:queued";
+/**
+ * The canonical container declaration, verbatim.
+ *
+ * Defined once by the `derived-branch-plan` rule as the Target Backend
+ * Environment value that marks a container, and stamped by
+ * `lisa-github-write-issue` on every container it writes. The guard reads that
+ * one string rather than a declared `type:Epic`, so there is nothing here for
+ * the guard, the rule and the writer to drift apart on.
+ */
+export const CONTAINER_DECLARATION =
+  "None — container: state rolls up from children";
 
 /** The default config: a GitHub tracker with the stock build-ready label. */
 export const DEFAULT_CONFIG: Record<string, unknown> = {

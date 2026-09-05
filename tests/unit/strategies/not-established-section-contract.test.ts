@@ -37,7 +37,7 @@ const read = (root: string, rel: string): string =>
 describe("Not-established section contract (BCE-3)", () => {
   describe.each(ROOTS)("%s", root => {
     const reference = read(root, "rules/reference/claim-evidence-mapping.md");
-    const eager = read(root, "rules/eager/claim-evidence-mapping.md");
+    const eager = read(root, "rules/reference/claim-evidence-mapping.md");
     const verification = read(root, "rules/reference/verification.md");
     const trackerEvidence = read(root, "skills/lisa-tracker-evidence/SKILL.md");
 

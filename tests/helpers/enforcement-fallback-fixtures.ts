@@ -260,12 +260,23 @@ export function scratchTmpdir(): string {
  * @param projectDir Value of CLAUDE_PROJECT_DIR.
  * @param tmpDir TMPDIR for the session notice marker; a fresh one per call
  *   unless a case deliberately shares one to exercise the rate limit.
+ * @param overrides Extra environment applied after the fixed values below.
+ *
+ *   This exists for the one class of case that cannot be expressed any other
+ *   way. The dispatcher's trust chain reads directory modes through `stat`, and
+ *   which spelling of `stat` answers is decided by the platform the suite
+ *   happens to run on — so a case exercising only the local platform's branch
+ *   is green on the other platform's branch by never evaluating it. Putting a
+ *   `stat` shim on `PATH` drives BOTH branches of the real, unmodified script
+ *   from either platform, which is why this is applied last and left
+ *   unrestricted.
  * @returns Exit status and combined output.
  */
 export function runFallback(
   payload: unknown,
   projectDir: string,
-  tmpDir: string = scratchRoot()
+  tmpDir: string = scratchRoot(),
+  overrides: Readonly<Record<string, string>> = {}
 ): Run {
   const result = boundedSpawnSync({
     label: "lisa-enforcement-fallback.sh",
@@ -279,6 +290,7 @@ export function runFallback(
       CLAUDE_PROJECT_DIR: projectDir,
       CLAUDE_CONFIG_DIR: NO_CONFIG,
       TMPDIR: tmpDir,
+      ...overrides,
     },
   });
 

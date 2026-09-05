@@ -49,7 +49,7 @@ describe("Security two-bucket contract (BCE-5)", () => {
     const review = read(root, "skills/lisa-security-review/SKILL.md");
     const zap = read(root, "skills/lisa-security-zap-scan/SKILL.md");
     const reference = read(root, "rules/reference/claim-evidence-mapping.md");
-    const eager = read(root, "rules/eager/claim-evidence-mapping.md");
+    const eager = read(root, "rules/reference/claim-evidence-mapping.md");
 
     describe("the security-review skill owns the bar", () => {
       it("renders two named buckets instead of a flat vulnerability list", () => {

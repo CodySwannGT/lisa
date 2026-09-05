@@ -28,6 +28,12 @@
  * proof that none is takeable *right now*. Deleting a worktree that holds
  * uncommitted work permanently forecloses the only window in which its own
  * case was detectable.
+ *
+ * That limit is now held open from the other end by
+ * `lisa-worktree-guard.mjs` (CodySwannGT/lisa#3863), which refuses to remove a
+ * worktree whose uncommitted bytes exist in no commit. The two are one control
+ * read in two directions: this file needs the original to still be there, and
+ * that one is what keeps it there.
  */
 
 import { execFileSync } from "node:child_process";
@@ -107,6 +113,10 @@ function probe(args, cwd) {
       stdio: ["ignore", "pipe", "ignore"],
     }).trim();
   } catch {
+    // probe-direction: fail-closed — every consumer reads null as "not proven
+    // safe": `isIntegrationContent` and `declaresItselfGenerated` return false,
+    // and `integrationRef` yields null, each of which makes the guard FIRE.
+    // A git that cannot answer costs a false report, never a silent pass.
     return null;
   }
 }

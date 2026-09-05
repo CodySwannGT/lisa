@@ -155,6 +155,7 @@
  * @module scripts/lisa-mutation
  */
 import { execFileSync, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -195,7 +196,95 @@ export const OUTCOMES = Object.freeze({
   inflatedByTimeouts: "mutation-gate: score-below-break-without-timeouts",
   clearedBreakThreshold: "mutation-gate: cleared-break-threshold",
   noFloorApplied: "mutation-gate: no-floor-applied",
+  notMeasured: "mutation-gate: not-measured",
 });
+
+/**
+ * The one-line denial a green-but-unmeasured job puts on the check list.
+ *
+ * Exported so the exact wording is assertable, and built here rather than in
+ * the workflow because the workflow cannot see WHICH exit happened.
+ *
+ * It deliberately avoids the words "mutation score", even in a negation.
+ * `tests/integration/mutation-gate-diff-bite.test.ts` asserts that a
+ * nothing-to-mutate run's output does not match /mutation score/i, and that
+ * control is right: a run that scored nothing must not put the phrase in front
+ * of a reader at all, because a skim keeps the noun and drops the "no". The
+ * first draft of this line read "no mutation score was produced" and failed it.
+ * @param {string} outcome - The {@link OUTCOMES} marker this run ended on.
+ * @returns {string} A GitHub Actions warning command, one line.
+ */
+export const unmeasuredAnnotation = outcome =>
+  `::warning title=Mutation gate measured nothing::${outcome} — no mutant was ` +
+  "executed, so this job's green says the run ended cleanly, NOT that mutation " +
+  "coverage was verified. Read it as NOT MEASURED, never as nothing to " +
+  'measure. Change a file this project\'s Stryker "mutate" list selects to get ' +
+  "a measurement.";
+
+/**
+ * Put the denial where a reader of the check list will meet it.
+ *
+ * ## Why an annotation and not a conclusion — CodySwannGT/lisa#3968
+ *
+ * The honest answer would be a `neutral` check-run conclusion, and it is not
+ * available: `test_mutation` in `quality.yml` runs under `contents: read`, and
+ * `quality.yml` is `workflow_call`-only, where asking for `checks: write` is a
+ * `startup_failure` for the caller's entire run (#2049). So the job's row will
+ * read `pass`, and the only thing that can travel with it is an annotation —
+ * the same device the `gates.unproven` family already uses one job away.
+ *
+ * REPORT-ONLY, and that is the decision rather than an accident: this returns
+ * nothing and touches no exit code. A gate that failed a push because a change
+ * touched no mutate target would red-wall every docs-only branch, which is the
+ * frequent, benign state this whole file exists to make legible rather than to
+ * punish. The fail-CLOSED half of the fix is `mutation_measured`, which is the
+ * signal that actually composes into a coverage claim.
+ *
+ * `disabled` is the one outcome excluded, and it is excluded for a reason that
+ * does not generalise: an opt-out is a decision somebody recorded, not a
+ * question this gate failed to evaluate, and its own exit already prints a
+ * notice naming itself. Every other unmeasured exit annotates, including ones
+ * added later — the condition is `measured !== true`, not a roster.
+ * @param {string} outcome - The {@link OUTCOMES} marker this run ended on.
+ * @param {number} code - The exit code being returned.
+ * @param {boolean} measured - Whether this run produced a score.
+ * @param {NodeJS.ProcessEnv} env - Environment, injectable for tests.
+ * @returns {void}
+ */
+const annotateUnmeasured = (outcome, code, measured, env) => {
+  const onCi = env.GITHUB_ACTIONS === "true";
+  const greenAndUnmeasured = code === 0 && measured !== true;
+  const optedOut = outcome === OUTCOMES.disabled;
+  if (onCi && greenAndUnmeasured && !optedOut) {
+    console.log(unmeasuredAnnotation(outcome));
+  }
+};
+
+/**
+ * Append the outcome pair to `$GITHUB_OUTPUT`, when there is one to append to.
+ *
+ * Best-effort by construction: it returns nothing, so no failure in here has a
+ * value the caller could mistake for an exit code. A lost output line must
+ * never change the code the gate worked to earn.
+ * @param {string} outcome - The {@link OUTCOMES} marker this run ended on.
+ * @param {boolean} measured - Whether this run produced a score.
+ * @param {NodeJS.ProcessEnv} env - Environment, injectable for tests.
+ * @returns {void}
+ */
+const writeOutcomeOutputs = (outcome, measured, env) => {
+  const target = env.GITHUB_OUTPUT;
+  if (target === undefined || target === "") return;
+  try {
+    fs.appendFileSync(
+      target,
+      `mutation_outcome=${outcome}\nmutation_measured=${measured === true}\n`
+    );
+  } catch (error) {
+    console.error(
+      `[mutation-gate] outcome outputs not written: ${error.message}`
+    );
+  }
+};
 
 /**
  * Publishes the outcome where the workflow can render it, then returns the code.
@@ -224,18 +313,8 @@ export const OUTCOMES = Object.freeze({
  * @returns {number} `code`, unchanged
  */
 export const finish = (outcome, code, measured = false, env = process.env) => {
-  const target = env.GITHUB_OUTPUT;
-  if (target === undefined || target === "") return code;
-  try {
-    fs.appendFileSync(
-      target,
-      `mutation_outcome=${outcome}\nmutation_measured=${measured === true}\n`
-    );
-  } catch (error) {
-    console.error(
-      `[mutation-gate] outcome outputs not written: ${error.message}`
-    );
-  }
+  annotateUnmeasured(outcome, code, measured, env);
+  writeOutcomeOutputs(outcome, measured, env);
   return code;
 };
 
@@ -444,6 +523,242 @@ export const uninstrumentableGuards = files =>
       (extension === "" && normalized.startsWith(".husky/"))
     );
   });
+
+/**
+ * Environment variable naming the shell-guard evidence trace to read.
+ *
+ * The same variable the tracer writes to, so a project that already produces a
+ * trace hands it to this gate without a second contract.
+ */
+export const SHELL_EVIDENCE_TRACE_VAR = "LISA_SHELL_GUARD_TRACE";
+
+/** Where this gate looks for a trace nobody named explicitly. */
+export const DEFAULT_SHELL_EVIDENCE_FILE = ".lisa/shell-guard-trace.jsonl";
+
+/**
+ * What the evidence source says about one shell guard.
+ *
+ * `notComputed` is the load-bearing member and the reason this vocabulary
+ * exists. Until CodySwannGT/lisa#3931 this branch printed "Check that one
+ * exists; nothing here did" as a STRING LITERAL, unconditionally — prose
+ * asserting a search that never ran. The two answers it collapsed have opposite
+ * meanings: "I looked and found nothing" is a finding a reviewer must act on,
+ * and "I did not look" is a gap in this gate. A vocabulary without a word for
+ * the second inevitably prints the first.
+ * @type {Readonly<Record<string, string>>}
+ */
+export const SHELL_EVIDENCE = Object.freeze({
+  evidenced: "evidenced",
+  allowOnly: "allow-only",
+  unevidenced: "unevidenced",
+  stale: "stale-observation",
+  notComputed: "not-computed",
+});
+
+/**
+ * Parse a shell-guard trace into the statuses observed per script.
+ *
+ * The trace is JSONL, one `{script, status, origin, sha256?}` record per
+ * guard/status pair, appended by the tracer the suites load. Unparseable lines
+ * are skipped rather than fatal: a trace is an observation log written during a
+ * test run, and one torn append must not turn every other observation into a
+ * refusal to answer.
+ *
+ * This deliberately re-derives only the narrow question this gate asks — "what
+ * did the run see THIS file do" — rather than the full population judgement in
+ * `scripts/lib/shell-guard-refusal-coverage.mjs`, which needs the tracked-guard
+ * roster and is not shipped to consumers. The two must agree on the record
+ * shape and nothing else.
+ * @param {string} jsonl - Raw trace content.
+ * @returns {Map<string, {statuses: Set<number>, hashes: Set<string>}>} Observations by script.
+ */
+export const parseShellGuardTrace = jsonl => {
+  /** @type {Map<string, {statuses: Set<number>, hashes: Set<string>}>} */
+  const observed = new Map();
+  for (const line of String(jsonl ?? "").split("\n")) {
+    if (line.trim().length === 0) continue;
+    let record;
+    try {
+      record = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (typeof record?.script !== "string") continue;
+    const script = normalizePath(record.script);
+    const entry = observed.get(script) ?? {
+      statuses: new Set(),
+      hashes: new Set(),
+    };
+    if (typeof record.status === "number") entry.statuses.add(record.status);
+    if (typeof record.sha256 === "string") entry.hashes.add(record.sha256);
+    observed.set(script, entry);
+  }
+  return observed;
+};
+
+/**
+ * The sha256 of a file on disk, or null when it cannot be read.
+ * @param {string} cwd - Project root.
+ * @param {string} file - Repository-relative path.
+ * @returns {string | null} Hex digest, or null.
+ */
+export const fileDigest = (cwd, file) => {
+  try {
+    return createHash("sha256")
+      .update(fs.readFileSync(path.join(cwd, file)))
+      .digest("hex");
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Load the shell-guard evidence source, or report that there is none.
+ *
+ * Absence is a first-class answer, not an error. Most consumers of this gate
+ * never wire a tracer, and a gate that treated "no trace here" as "no test
+ * anywhere" would reproduce exactly the defect it is fixing.
+ * @param {string} cwd - Project root.
+ * @param {NodeJS.ProcessEnv} [environment] - Environment to read.
+ * @returns {{source: string, observed: ReturnType<typeof parseShellGuardTrace>} | {source: null, reason: string}}
+ *   The observations, or why none could be loaded.
+ */
+export const readShellGuardEvidence = (cwd, environment = process.env) => {
+  const named = environment[SHELL_EVIDENCE_TRACE_VAR];
+  const candidate =
+    named && named.length > 0 ? named : DEFAULT_SHELL_EVIDENCE_FILE;
+  const resolved = path.isAbsolute(candidate)
+    ? candidate
+    : path.join(cwd, candidate);
+  let raw;
+  try {
+    raw = fs.readFileSync(resolved, "utf8");
+  } catch {
+    return {
+      source: null,
+      reason: named
+        ? `${SHELL_EVIDENCE_TRACE_VAR} names ${candidate}, which could not be read`
+        : `no trace at ${DEFAULT_SHELL_EVIDENCE_FILE} and ${SHELL_EVIDENCE_TRACE_VAR} is unset`,
+    };
+  }
+  return { source: resolved, observed: parseShellGuardTrace(raw) };
+};
+
+/**
+ * What one run observed a single shell guard doing.
+ *
+ * A hash recorded beside an observation is checked against the file as it
+ * stands now: an observation of a DIFFERENT version of the guard is evidence
+ * about that version and about nothing else, so a drifted guard reports as
+ * stale rather than inheriting its predecessor's coverage. A trace whose
+ * records carry no hash cannot be checked this way and is taken at face value —
+ * which is stated here rather than assumed, because it is the one place this
+ * classification can be too generous.
+ * @param {object} input - Everything the classification depends on.
+ * @param {string} input.file - Repository-relative guard path.
+ * @param {ReturnType<typeof parseShellGuardTrace> | null} input.observed - Observations, or null.
+ * @param {string | null} input.currentDigest - The guard's digest now, or null.
+ * @returns {{state: string, detail: string}} The verdict and its sentence.
+ */
+export const classifyShellGuardEvidence = ({
+  file,
+  observed,
+  currentDigest,
+}) => {
+  if (observed === null) {
+    return {
+      state: SHELL_EVIDENCE.notComputed,
+      detail: "driving-test evidence was NOT COMPUTED here",
+    };
+  }
+  const entry = observed.get(normalizePath(file));
+  if (entry === undefined) {
+    return {
+      state: SHELL_EVIDENCE.unevidenced,
+      detail: "UNEVIDENCED — the run observed no test executing it",
+    };
+  }
+  if (
+    entry.hashes.size > 0 &&
+    currentDigest !== null &&
+    !entry.hashes.has(currentDigest)
+  ) {
+    return {
+      state: SHELL_EVIDENCE.stale,
+      detail:
+        "UNEVIDENCED — the only observations are of a different version of this file",
+    };
+  }
+  const statuses = [...entry.statuses].sort((left, right) => left - right);
+  const refusals = statuses.filter(status => status !== 0);
+  if (refusals.length === 0) {
+    return {
+      state: SHELL_EVIDENCE.allowOnly,
+      detail:
+        "ALLOWS-ONLY — driven, but never observed refusing; replace it with `exit 0` and its suite still passes",
+    };
+  }
+  if (!statuses.includes(0)) {
+    return {
+      state: SHELL_EVIDENCE.allowOnly,
+      detail: `REFUSES-ONLY — observed exiting ${refusals.join("/")} but never allowing ordinary work; the control on the other side is missing`,
+    };
+  }
+  return {
+    state: SHELL_EVIDENCE.evidenced,
+    detail: `evidenced — driven to exit ${refusals.join("/")} and exit 0`,
+  };
+};
+
+/**
+ * Describe the driving-test evidence for every uninstrumentable file.
+ * @param {readonly string[]} files - Repository-relative guard paths.
+ * @param {{source: string, observed: ReturnType<typeof parseShellGuardTrace>} | {source: null, reason: string}} evidence
+ *   The loaded evidence source, or the reason there is none.
+ * @param {(file: string) => string | null} digestOf - Current digest lookup.
+ * @returns {{lines: string[], verdicts: {file: string, state: string}[], summary: string}}
+ *   Per-file lines, the verdicts behind them, and the closing sentence.
+ */
+export const describeShellGuardEvidence = (files, evidence, digestOf) => {
+  const observed = evidence.source === null ? null : evidence.observed;
+  const verdicts = files.map(file => ({
+    file,
+    ...classifyShellGuardEvidence({
+      file,
+      observed,
+      currentDigest: digestOf(file),
+    }),
+  }));
+  const lines = verdicts.map(
+    verdict => `   • ${verdict.file} — ${verdict.detail}`
+  );
+  return { lines, verdicts, summary: shellEvidenceSummary(verdicts, evidence) };
+};
+
+/**
+ * The one sentence that replaces the unconditional claim.
+ * @param {{file: string, state: string}[]} verdicts - Per-file verdicts.
+ * @param {{source: string} | {source: null, reason: string}} evidence - Evidence source.
+ * @returns {string} The closing sentence.
+ */
+const shellEvidenceSummary = (verdicts, evidence) => {
+  if (evidence.source === null) {
+    return (
+      "   This gate did NOT check whether those tests exist: " +
+      `${"reason" in evidence ? evidence.reason : "no evidence source"}.\n` +
+      '   Read the line above as "not measured", never as "nothing exists".'
+    );
+  }
+  const unproven = verdicts.filter(
+    verdict => verdict.state !== SHELL_EVIDENCE.evidenced
+  );
+  return unproven.length === 0
+    ? `   Checked against ${evidence.source}: every file above was observed being driven\n` +
+        "   to a refusal AND to an allow."
+    : `   Checked against ${evidence.source}: ${unproven.length} of ${verdicts.length} file(s) above\n` +
+        "   have NO driving-test evidence in this run. A shell guard nothing drives onto a\n" +
+        "   refusal path can fail open silently and no gate here will see it.";
+};
 
 /**
  * Whether Stryker can parse a file at all, by extension.
@@ -883,6 +1198,67 @@ const unmeasuredBlock = () =>
   "   MUTATION_CAPTURE=0 to say out loud that this run is not being accounted for.";
 
 /**
+ * The verdict for a run that executed no mutant at all.
+ *
+ * ## The defect this closes — CodySwannGT/lisa#3968
+ *
+ * "I looked and found nothing" and "I did not look" are opposite facts, and a
+ * vocabulary missing the second inevitably prints the first. A tally of all
+ * zeros scores `NaN`, and this file used to hand that to the FLOOR sentence:
+ * the run was reported as one where "no floor was applied", `measured` stayed
+ * `true`, and the exit stayed 0. Three surfaces then said the same wrong thing
+ * — the pre-push block read as a benign footnote on a pass, `mutation_measured`
+ * went out as `true`, and the one job whose entire purpose is to distinguish a
+ * measured run RENDERED GREEN saying "Stryker generated mutants against this
+ * change and produced a score."
+ *
+ * The reachable cause is not exotic. Stryker excludes errored mutants from
+ * every denominator, so a change where every mutant fails to compile — a mutant
+ * whose source no longer parses yields zero tests, not failures — lands here
+ * with `errors` set and everything else zero. So does a run whose generated
+ * mutants were all discarded. Both are runs that measured nothing while looking
+ * exactly like a run that measured zero.
+ *
+ * ## This surface is REPORT-ONLY, deliberately
+ *
+ * It never changes an exit code: a gate that failed a push because a mutant
+ * would not compile is a throughput governor masquerading as a correctness
+ * guard, and `nothing-to-mutate` states are frequent and benign here. What it
+ * does instead is refuse to report a measurement — {@link judgeTimeoutAccounting}
+ * returns `measured: false` from this arm, which is a fail-CLOSED answer on the
+ * one signal that composes into a coverage claim. Report-only on the code,
+ * fail-closed on the claim.
+ * @param {{killed: number, timedOut: number, survived: number,
+ *   noCoverage: number, errors?: number}} tally - From
+ *   {@link parseMutantTally}.
+ * @param {number|null} breakThreshold - `thresholds.break`, or null.
+ * @returns {string} The block, appended to the accounting report.
+ */
+const notMeasuredBlock = (tally, breakThreshold) => {
+  const errored = Number.isFinite(tally.errors) ? tally.errors : 0;
+  const floorNote =
+    breakThreshold === null
+      ? '   Your Stryker config declares no "thresholds.break", and there is no score to\n' +
+        "   judge against one anyway.\n"
+      : `   A break threshold of ${breakThreshold} is declared and was NOT applied, because a\n` +
+        "   floor needs a number to compare against.\n";
+  return (
+    `\n⚪ ${OUTCOMES.notMeasured}\n` +
+    `   NO mutant produced a verdict on this run: 0 killed, 0 timed out, 0 survived\n` +
+    `   and 0 without coverage, against ${errored} errored mutant(s). Stryker excludes an\n` +
+    `   errored mutant from every denominator — it never ran, so it was neither\n` +
+    `   caught nor missed — which leaves nothing to take a score of.\n` +
+    `   READ THIS AS NOT MEASURED, NEVER AS NOTHING TO MEASURE. Mutate targets\n` +
+    `   changed and Stryker was invoked; what did not happen is the measurement.\n` +
+    `   Nothing here is a verdict about your tests, in either direction.\n` +
+    `${floorNote}` +
+    `   This gate does NOT fail the run for it, and reports mutation_measured=false\n` +
+    `   so no check row may claim this change was measured. Read Stryker's own\n` +
+    `   output above for why the mutants errored, then re-run for a score.`
+  );
+};
+
+/**
  * The floor a completed run was judged against, named with its value.
  *
  * ## The defect this closes
@@ -898,13 +1274,14 @@ const unmeasuredBlock = () =>
  *
  * ## Where no floor was applied it says so, rather than inventing one
  *
- * Two arms reach this with nothing to name, and `0` would be a fabrication in
- * both: a project that declared no `thresholds.break` has not asked for a floor
- * (see {@link resolveBreakThreshold}, which returns null and not zero for
- * exactly this reason), and a run whose tally produced no score has nothing to
- * judge against the floor it did declare. Both say NO floor was applied, which
- * is the same answer this gate's `nothing-to-mutate` and `no-diff-base` exits
- * already give: nothing was measured, so nothing passed.
+ * A project that declared no `thresholds.break` has not asked for a floor (see
+ * {@link resolveBreakThreshold}, which returns null and not zero for exactly
+ * this reason), so this says NO floor was applied rather than naming one.
+ *
+ * A run that produced no score at all never reaches here: it is answered by
+ * {@link notMeasuredBlock} above, which is a statement about the RUN and not
+ * about the floor. Routing it through a floor sentence was the older shape and
+ * it read as a benign footnote to a passing verdict — see CodySwannGT/lisa#3968.
  *
  * This is reporting only. It changes no threshold and gates nothing — the arm
  * that fails a run is below, and it is untouched.
@@ -922,13 +1299,6 @@ const clearedFloorBlock = (tally, accounting, breakThreshold) => {
       "   to this run. The scores above are reported, not cleared — nothing here says\n" +
       "   they are good enough, because nothing said what good enough is."
     );
-  if (!Number.isFinite(accounting.withoutTimeouts))
-    return (
-      `\n⚪ ${OUTCOMES.noFloorApplied}\n` +
-      `   A break threshold of ${breakThreshold} is declared, but this run produced no score to\n` +
-      "   judge against it, so NO floor was applied. Nothing here is a verdict about\n" +
-      "   your tests."
-    );
   return (
     `\n✅ ${OUTCOMES.clearedBreakThreshold}\n` +
     `   Without crediting the ${tally.timedOut} timed-out mutant(s), this run scores\n` +
@@ -941,7 +1311,13 @@ const clearedFloorBlock = (tally, accounting, breakThreshold) => {
 /**
  * Judge a completed run on what it can prove, rather than on what it counted.
  *
- * Two verdicts, and neither can turn a red run green — both are checks the gate
+ * Three answers, not two. A run that executed no mutant is NOT-MEASURED and is
+ * answered by {@link notMeasuredBlock}; the two below are verdicts about a run
+ * that produced a score. Collapsing the first into the third is CodySwannGT/lisa#3968:
+ * a green row then composes into "mutation coverage was verified here", a claim
+ * nobody proved.
+ *
+ * Neither verdict below can turn a red run green — both are checks the gate
  * applies IN ADDITION to Stryker's own, on a run Stryker already judged:
  *
  * - the score recomputed without crediting timeouts is under the project's
@@ -949,15 +1325,27 @@ const clearedFloorBlock = (tally, accounting, breakThreshold) => {
  *   helped it;
  * - the timed-out share of detected mutants is over the ceiling, so the score is
  *   more a property of the machine than of the tests, whatever its value.
- * @param {{killed: number, timedOut: number}} tally - The counts.
+ * @param {{killed: number, timedOut: number, survived?: number,
+ *   noCoverage?: number, errors?: number}} tally - The counts.
  * @param {number|null} breakThreshold - `thresholds.break`, or null.
  * @param {number} ceiling - The share ceiling in force.
  * @returns {{failed: boolean, measured: boolean, message: string}} The block,
- *   whether a tally was read, and whether it fails.
+ *   whether this run produced a score, and whether it fails.
  */
 export const judgeTimeoutAccounting = (tally, breakThreshold, ceiling) => {
   const accounting = timeoutAccounting(tally);
   const report = accountingBlock(tally, accounting, ceiling);
+
+  // FIRST, because every arm below reads a score this run does not have, and
+  // the two that guard for it would fall through to the third — which reported
+  // a floor that was not applied and called that a measured pass (#3968).
+  if (!Number.isFinite(accounting.withoutTimeouts)) {
+    return {
+      failed: false,
+      measured: false,
+      message: `${report}${notMeasuredBlock(tally, breakThreshold)}`,
+    };
+  }
 
   if (
     breakThreshold !== null &&
@@ -1105,13 +1493,66 @@ const dryRunTimeoutVerdict = budgets => ({
 });
 
 /**
+ * How many scored ranges the verdict lists before it stops naming them.
+ *
+ * The list is what makes the verdict self-identifying, so it has to be long
+ * enough to recognise the change by and short enough that nobody scrolls past
+ * the verdict to reach it.
+ * @type {number}
+ */
+const SCORED_RANGES_LISTED = 10;
+
+/**
+ * What this run scored, in the run's own terms.
+ *
+ * ## Why a verdict has to name its subject
+ *
+ * CodySwannGT/lisa#3878. The parser tests feed this module Stryker's exact
+ * wording, and when the unit suite runs inside a push the vendor's line reaches
+ * the same transcript a real gate writes to. Three readers in a row read a
+ * FIXTURE line as a real verdict about their branch and went off to strengthen
+ * tests for a score nothing had measured. Nothing in the vendor's wording says
+ * which run produced it, and no amount of care fixes that from the reading end.
+ *
+ * The discriminator that survives a wording edit is not a marker anyone has to
+ * spot: it is that a real verdict can name the ranges it scored and a stand-in
+ * transcript cannot, because a stand-in never scoped a change. So the verdict
+ * carries its own subject, and a reader's test becomes "does this name MY
+ * files?" rather than "does this look real?".
+ * @param {readonly string[]|null|undefined} scored - Scored `path:start-end`
+ *   ranges, `null` for a whole-list run that scoped no diff, or `undefined`
+ *   from a caller that is not the gate and therefore knows of no subject.
+ * @returns {string} The block naming the subject, or "" when it is unknown.
+ */
+const scoredSubjectNote = scored => {
+  if (scored === null) {
+    return (
+      `\n   Scored: every pattern in the project's mutate list ` +
+      `(${WHOLE_LIST_FLAG}), not a diff.`
+    );
+  }
+  // Not reachable from the gate, which always knows its scope. It IS reachable
+  // from a direct call to the exported classifier, and inventing a subject
+  // there would be the same lie in the other direction.
+  if (!Array.isArray(scored) || scored.length === 0) return "";
+  const listed = scored.slice(0, SCORED_RANGES_LISTED);
+  const rest =
+    scored.length > listed.length
+      ? `\n     …and ${scored.length - listed.length} more`
+      : "";
+  const lines = listed.map(range => `     • ${range}`).join("\n");
+  return `\n   Scored ${scored.length} changed line range(s) from THIS change:\n${lines}${rest}`;
+};
+
+/**
  * The block printed when a completed run scored under `thresholds.break`.
  * @param {readonly string[]} broke - `[, score, threshold]` from Stryker.
  * @param {string} output - Stryker's combined output.
  * @param {{timeoutMS: number, inherited: string[]}} budgets - Budgets in force.
+ * @param {readonly string[]|null|undefined} scored - What the run scored.
  * @returns {{outcome: string, message: string}} The marker and the block.
  */
-const scoreBelowBreakVerdict = (broke, output, budgets) => {
+const scoreBelowBreakVerdict = (broke, output, budgets, scored) => {
   const timedOut = timedOutMutants(output);
   const clockNote =
     timedOut > 0
@@ -1126,7 +1567,7 @@ const scoreBelowBreakVerdict = (broke, output, budgets) => {
     `   threshold of ${broke[2]}. This one IS a verdict about your tests.`;
   return {
     outcome: OUTCOMES.scoreBelowBreak,
-    message: `${verdict}${clockNote}`,
+    message: `${verdict}${clockNote}${scoredSubjectNote(scored)}`,
   };
 };
 
@@ -1180,9 +1621,12 @@ const runFailedVerdict = (output, budgets) => {
  *   when this machine could not capture it.
  * @param {{timeoutMS: number, dryRunTimeoutMinutes: number,
  *   inherited: string[]}} budgets - From `resolveTimeoutBudgets`.
+ * @param {readonly string[]|null} [scored] - What the run scored: the
+ *   `path:start-end` ranges, or `null` for a whole-list run. Passed by the gate
+ *   so the verdict names its own subject; see {@link scoredSubjectNote}.
  * @returns {{outcome: string, message: string}} The marker and the block.
  */
-export const classifyStrykerFailure = (output, budgets) => {
+export const classifyStrykerFailure = (output, budgets, scored) => {
   if (typeof output !== "string" || output.length === 0) {
     return runFailedVerdict(null, budgets);
   }
@@ -1190,7 +1634,7 @@ export const classifyStrykerFailure = (output, budgets) => {
     return dryRunTimeoutVerdict(budgets);
   }
   const broke = BREAK_THRESHOLD_PATTERN.exec(output);
-  if (broke) return scoreBelowBreakVerdict(broke, output, budgets);
+  if (broke) return scoreBelowBreakVerdict(broke, output, budgets, scored);
   return runFailedVerdict(output, budgets);
 };
 
@@ -1349,6 +1793,10 @@ export const selectUninstrumentableMutateTargets = (cwd, patterns) => {
       .filter(file => file && isMutateTarget(file, patterns))
       .filter(file => !isStrykerParseable(file));
   } catch {
+    // probe-direction: neutral — this pre-empts a Stryker crash with a better
+    // message; it does not authorise anything. When the index cannot be read the
+    // run proceeds and Stryker still aborts on the same file, so the empty list
+    // costs a worse error, not a weaker gate.
     // Same reasoning as the count above: an unreadable index says nothing
     // about the config, and blocking a push on it would be a lie about why.
     return [];
@@ -2070,9 +2518,11 @@ export const WHOLE_LIST_FLAG = "--all";
  * failed on. See {@link timeoutAccounting}.
  * @param {string} cwd - Project root.
  * @param {{code: number, output: string|null, killedBy?: string}} result - From `runStryker`.
+ * @param {readonly string[]|null} [scored] - What the run scored, forwarded to
+ *   the failure classification so the verdict names its own subject.
  * @returns {{code: number, measured: boolean}} The exit code and whether a score was produced.
  */
-export const reportRun = (cwd, result) => {
+export const reportRun = (cwd, result, scored) => {
   const accounting = accountForTimeouts(result.output, cwd);
   if (result.killedBy === CHILD_DEADLINE) {
     // A gate that ran and failed measured something; a gate that was KILLED
@@ -2089,7 +2539,8 @@ export const reportRun = (cwd, result) => {
     // guess — which it did, out loud, as "mutation score below threshold", for
     // dry runs that never computed a score at all.
     console.error(
-      classifyStrykerFailure(result.output, resolveTimeoutBudgets(cwd)).message
+      classifyStrykerFailure(result.output, resolveTimeoutBudgets(cwd), scored)
+        .message
     );
     // A failure that produced no table produced no score either — a dry run
     // killed by the clock is the common case — so the unmeasured warning would
@@ -2183,7 +2634,7 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
       `🧬 ${OUTCOMES.wholeList} — Stryker over every pattern in ` +
         `${declaration.source}, with no diff scoping.`
     );
-    const reported = reportRun(cwd, runStryker(cwd, []));
+    const reported = reportRun(cwd, runStryker(cwd, []), null);
     return finish(OUTCOMES.wholeList, reported.code, reported.measured);
   }
 
@@ -2224,20 +2675,24 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
     // Always name the blind part of the diff, even when another selected target
     // lets Stryker continue. A mixed run measures only the selected files; its
     // score is not evidence about a shell guard changed beside them.
-    const blind = scope.uninstrumentable.map(file => `   • ${file}`).join("\n");
+    const evidence = describeShellGuardEvidence(
+      scope.uninstrumentable,
+      readShellGuardEvidence(cwd),
+      file => fileDigest(cwd, file)
+    );
     console.log(
       `⚪ ${OUTCOMES.uninstrumentableLanguage}\n` +
         `   ${scope.changed} file(s) changed vs ${since}; ${scope.selectedFiles} of them are mutate targets\n` +
         `   under the patterns from ${declaration.source}, and ${scope.uninstrumentable.length} of them\n` +
         `   ${scope.uninstrumentable.length === 1 ? "is" : "are"} in a language Stryker cannot instrument in ANY configuration:\n` +
-        `${blind}\n` +
+        `${evidence.lines.join("\n")}\n` +
         "   NO mutant COULD be generated for these files. The mutation result\n" +
         "   below, if one runs, covers only the selected targets and says nothing\n" +
         "   for these files, so this gate is silent about them by construction —\n" +
         "   adding them to `mutate` would abort the run, not measure them.\n" +
         "   Their only evidence is a driving test that runs the script against a\n" +
         "   payload table and asserts the blocked/allowed verdict, with a control\n" +
-        "   on both sides. Check that one exists; nothing here did."
+        `   on both sides.\n${evidence.summary}`
     );
     if (scope.selected.length === 0 && scope.noCurrentLines.length === 0)
       return finish(OUTCOMES.uninstrumentableLanguage, 0);
@@ -2292,7 +2747,11 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
   );
   for (const file of scope.selected) console.log(`   • ${file}`);
 
-  const reported = reportRun(cwd, runStryker(cwd, scope.selected));
+  const reported = reportRun(
+    cwd,
+    runStryker(cwd, scope.selected),
+    scope.selected
+  );
   return finish(OUTCOMES.scoped, reported.code, reported.measured);
 };
 

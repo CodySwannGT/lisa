@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const versionCache: { value?: string } = {};
 const releaseTagCache: { value?: string | null } = {};
+const releaseCommitCache: { value?: string | null } = {};
 
 /**
  * Find the nearest package.json by walking from a compiled/source module path.
@@ -80,4 +81,41 @@ export function getPackageReleaseTag(): string | null {
       ? releaseTag.trim()
       : null;
   return releaseTagCache.value;
+}
+
+/**
+ * Read the release commit stamped into the published package.
+ *
+ * `publish-to-npm.yml` checks the release tag out and stamps this field, and
+ * `check-release-package-identity.mjs` refuses to publish unless the tag
+ * resolves to exactly this commit. So in an installed copy this value is not
+ * "the commit the build happened to run on" — it is the commit the installed
+ * version's TAG points at, proved at release time.
+ *
+ * That is what makes a workflow ref pinned at it describe the same Lisa as the
+ * package pin beside it, with no network call at apply time.
+ *
+ * Source checkouts do not carry this field because their release tag does not
+ * exist yet; the pin resolver falls back to local git there.
+ * @returns Stamped release commit, or null in an unstamped checkout
+ */
+export function getPackageReleaseCommit(): string | null {
+  if (releaseCommitCache.value !== undefined) {
+    return releaseCommitCache.value;
+  }
+
+  const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+  const packageJsonPath = findPackageJson(moduleDir);
+  if (!packageJsonPath) {
+    throw new Error("Unable to locate package.json for Lisa release commit");
+  }
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
+    lisaReleaseCommit?: unknown;
+  };
+  const releaseCommit = packageJson.lisaReleaseCommit;
+  releaseCommitCache.value =
+    typeof releaseCommit === "string" && releaseCommit.trim() !== ""
+      ? releaseCommit.trim()
+      : null;
+  return releaseCommitCache.value;
 }

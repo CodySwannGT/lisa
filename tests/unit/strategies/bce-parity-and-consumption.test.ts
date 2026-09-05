@@ -48,7 +48,7 @@ const BCE_SKILLS = [
 ] as const;
 
 const BCE_RULES = [
-  "rules/eager/claim-evidence-mapping.md",
+  "rules/reference/claim-evidence-mapping.md",
   "rules/reference/claim-evidence-mapping.md",
   "rules/reference/verification.md",
   "rules/reference/config-resolution.md",

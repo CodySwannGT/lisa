@@ -44,7 +44,7 @@ const read = (root: string, rel: string): string =>
 
 describe("automation-runbook-contract rule contract", () => {
   describe.each(ROOTS)("%s", root => {
-    const eager = read(root, "rules/eager/automation-runbook-contract.md");
+    const eager = read(root, "rules/reference/automation-runbook-contract.md");
     const reference = read(
       root,
       "rules/reference/automation-runbook-contract.md"
@@ -55,9 +55,9 @@ describe("automation-runbook-contract rule contract", () => {
       expect(reference.length).toBeGreaterThan(2000);
     });
 
-    it("eager head breadcrumbs to the reference body verbatim", () => {
-      expect(eager).toContain(
-        "Full contract (template, outcome definitions, escalation packet, retirement): [reference/automation-runbook-contract.md](../reference/automation-runbook-contract.md)."
+    it("stays reachable from the eager rule index", () => {
+      expect(read(root, "rules/eager/00-rule-index.md")).toContain(
+        "reference/automation-runbook-contract.md"
       );
     });
 

@@ -5,6 +5,58 @@ alwaysApply: false
 
 # Deployed-State Readback
 
+> Demoted from the always-on eager tier by CodySwannGT/lisa#3992. The
+> section below is the former eager head, preserved verbatim; the full
+> contract follows it. Reachable on demand via `rules/eager/00-rule-index.md`.
+
+## Deployed-State Readback (load-bearing)
+
+**A build ticket asserts that something is missing from a running system. That assertion must come from reading the running system, never from reading the source.** Source tells you what the code says; only the environment tells you what is deployed. A ticket authored from source alone specifies work against a system it has not observed.
+
+**One vendor-neutral contract, cited by** the Phase 2 research step of `lisa-notion-to-tracker`, `lisa-github-to-tracker`, `lisa-linear-to-tracker`, and `lisa-confluence-to-tracker` (the `leaf-only-lifecycle` / `repo-scope-split` precedent: one shared slug, never four divergent forks).
+
+## The waiver this replaces was scoped to the wrong axis
+
+Phase 2 has two halves — codebase research and a live product walkthrough — and the walkthrough was waived for work that is *"purely backend with no user-visible surface."*
+
+"Is it user-facing?" is a question about the **observation method**: browser, API client, or resource readback. It was being used to answer a different question — **"should we observe live state at all?"** Backend, infrastructure, CI, and dependency work all have live state. It simply is not visible through a browser. Waiving the browser step correctly, and live grounding along with it, is what let tickets be authored for work that had already shipped.
+
+So the skip is **not** "no live check". It is **a different probe**.
+
+## Routing
+
+| The work | Probe |
+|---|---|
+| User-facing surface | `lisa-product-walkthrough` against the running app |
+| HTTP / API backend | Call the deployed endpoint and read the response |
+| Infrastructure / IaC | **Describe the deployed resource in the account** |
+| CI / workflow config | Read the config the running pipeline actually used |
+| Dependency / package pin | Read the **installed** artifact, and the registry |
+| Screen that does not exist yet | No probe; record why |
+
+## What is never accepted as evidence of deployment
+
+**Git ancestry, a merge check, and `cdk synth` are not deployment evidence.** A commit can be an ancestor of the default branch and never have shipped: a pipeline running `executionMode: SUPERSEDED` discards queued executions, so an intermediate commit's deploy is silently dropped. `git log`, a merge check, and a synth all report "present" while the environment does not have it.
+
+Read the deployed thing back. Do not infer it from anything upstream of the deploy.
+
+**This does not conflict with `blocker-containment`, which requires exactly the ancestry test this rule rejects.** The two answer different questions and both are right:
+
+- `blocker-containment` asks a **development** question — *is the blocker's code on the branch I will build from?* Ancestry is the correct and sufficient test.
+- This rule asks a **deployment** question — *is this live?* Ancestry is provably insufficient, per the discarded-execution case above.
+
+Neither may be used to answer the other's question.
+
+## An unanswerable probe is not a "no"
+
+If the deployed state cannot be read back — no credentials, no such environment, the resource is not addressable — **record that the check could not be performed**. Absence of evidence is not evidence of absence, and defaulting an unreadable probe to "not deployed" reintroduces the whole defect while appearing to satisfy the rule.
+
+## Record the readback on the ticket
+
+Write what was probed, how, and what came back. Claim-time triage then inherits evidence instead of re-deriving it from source — which is the same mistake one stage later.
+
+---
+
 A build ticket is a claim about a running system: *this is missing, build it.* The claim is only as good as the observation behind it, and until this rule the observation was optional for everything that did not render in a browser.
 
 It is a **single vendor-neutral contract** consumed by the Phase 2 research step of `lisa-notion-to-tracker`, `lisa-github-to-tracker`, `lisa-linear-to-tracker`, and `lisa-confluence-to-tracker`. Each cites this slug rather than restating the routing, exactly as they would cite `leaf-only-lifecycle` or `repo-scope-split`. Phase 2 had already forked into four near-identical copies; this is what stops them drifting further.

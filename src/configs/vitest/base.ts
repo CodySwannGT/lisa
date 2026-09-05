@@ -12,6 +12,7 @@
  */
 import { existsSync, readdirSync } from "node:fs";
 import { availableParallelism } from "node:os";
+import { basename, join } from "node:path";
 import { env } from "node:process";
 import { fileURLToPath } from "node:url";
 
@@ -20,6 +21,10 @@ import { isUnitCoverageScope } from "../coverage-scope.js";
 import { isInsideWorktree } from "../worktrees.js";
 import { scratchNamespaceDir } from "./scratch-namespace-authority.js";
 import { parseScratchRunRootName } from "./scratch-owner.js";
+import {
+  SCRATCH_SUPERVISION_LEASE_ENV,
+  parseScratchSupervisionLease,
+} from "./scratch-supervision.js";
 
 /** Vite UserConfig augmented with Vitest's `test` property */
 type UserConfig = ViteUserConfig;
@@ -240,39 +245,160 @@ const positiveInteger = (raw: string | undefined): number | null => {
  * before or after this run registers its own root, and both orders must give
  * the same count. The result adds one back for this run.
  * @param deps - Injectable seams so tests state a fleet instead of spawning one.
- * @param deps.namespaceDir - Directory holding run roots.
+ * @param deps.namespaceDir - One directory holding run roots; overrides the candidates.
+ * @param deps.namespaceDirs - Every directory worth counting.
  * @param deps.readDir - Directory lister.
  * @param deps.isAlive - Process-liveness probe.
  * @param deps.self - This process's id.
+ * @param deps.selfBasename - This run's own root basename, when supervised.
  * @returns Live run count including this one; 1 when nothing else is detected.
  */
 export function discoverFleetConcurrency(
   deps: {
     namespaceDir?: () => string;
+    namespaceDirs?: () => readonly string[];
     readDir?: (dir: string) => readonly string[];
     isAlive?: (pid: number) => boolean;
     self?: number;
+    selfBasename?: () => string | undefined;
   } = {}
 ): number {
   const {
-    namespaceDir = scratchNamespaceDir,
+    namespaceDir,
+    namespaceDirs = namespaceDir === undefined
+      ? candidateNamespaceDirs
+      : () => [namespaceDir()],
     readDir = (dir: string) => readdirSync(dir),
     isAlive = defaultIsAlive,
     self = process.pid,
+    selfBasename = ownRunRootBasename,
   } = deps;
+  return (
+    liveFleetRunRootNames({ namespaceDirs, readDir, isAlive }).filter(
+      name => !isOwnRunRoot(name, self, selfBasename())
+    ).length + 1
+  );
+}
+
+/**
+ * Every namespace a sibling run might have registered itself in.
+ *
+ * `scratchNamespaceDir()` is built on `os.tmpdir()`, which is `TMPDIR` when the
+ * environment sets one. Two agents with different `TMPDIR` values therefore
+ * enumerate different directories and each sees only its own cohort — a real,
+ * measured undercount, and the largest of the four named in #3941. The fix is
+ * not to relocate the scratch namespace, which the authority owns and which
+ * other machinery depends on: it is to LOOK in more than one place when
+ * counting. Reading a namespace that does not exist costs one `ENOENT`.
+ *
+ * `/tmp` is the platform default `os.tmpdir()` falls back to when `TMPDIR` is
+ * unset, so it is where a run with a plain environment registers. Including it
+ * makes a `TMPDIR`-carrying run see a plain one and vice versa. Windows has no
+ * such stable second location, so there the list is the resolved one alone.
+ * @returns Namespace directories to count, without duplicates.
+ */
+function candidateNamespaceDirs(): readonly string[] {
+  const resolved = scratchNamespaceDir();
+  if (process.platform === "win32") return [resolved];
+  const fallback = join("/tmp", basename(resolved));
+  return resolved === fallback ? [resolved] : [resolved, fallback];
+}
+
+/**
+ * This run's own scratch root basename, when it is supervised.
+ *
+ * The config factory runs inside the PAYLOAD process, whose pid is not the pid
+ * the run root is named for — the supervisor allocates the root before it forks
+ * the bootstrap that launches the payload. So `process.pid` never matches the
+ * run's own root, and a pid-only exclusion counts this run's root as a sibling
+ * and then adds one more for itself. The lease is the only thing in the payload
+ * that names the root, so it is what identifies it.
+ * @returns The run root basename, or undefined when this run is unsupervised.
+ */
+export function ownRunRootBasename(): string | undefined {
+  const raw = env[SCRATCH_SUPERVISION_LEASE_ENV];
+  if (raw === undefined) return undefined;
   try {
-    const siblings = readDir(namespaceDir())
-      .slice(0, MAX_DISCOVERY_ENTRIES)
-      .map(name => parseScratchRunRootName(name))
-      .filter(owner => owner !== undefined)
-      .filter(owner => owner.pid !== self)
-      .filter(owner => isAlive(owner.pid));
-    return siblings.length + 1;
+    return parseScratchSupervisionLease(raw).suiteRootBasename;
   } catch {
-    // Absent namespace, unreadable directory, or a platform that refuses the
-    // probe. None of these is evidence of a fleet, and none may stop a run.
-    return 1;
+    return undefined;
   }
+}
+
+/**
+ * Whether one run-root basename belongs to this run.
+ * @param name - Candidate run-root basename.
+ * @param self - This process's id.
+ * @param ownBasename - This run's own root basename, when it has one.
+ * @returns Whether the entry is this run rather than a sibling.
+ */
+function isOwnRunRoot(
+  name: string,
+  self: number,
+  ownBasename: string | undefined
+): boolean {
+  if (ownBasename !== undefined && name === ownBasename) return true;
+  return parseScratchRunRootName(name)?.pid === self;
+}
+
+/**
+ * Names of every live run root across the namespaces worth counting.
+ *
+ * Fails open per namespace rather than per call: one unreadable directory must
+ * not erase the count from a readable one. An empty result means "no evidence
+ * of siblings", which yields the floor — the behaviour that shipped.
+ * @param deps - Injected seams; every one defaults to the real machine.
+ * @param deps.namespaceDirs - Directories to enumerate.
+ * @param deps.readDir - Directory lister.
+ * @param deps.isAlive - Process-liveness probe.
+ * @returns Live run-root basenames, de-duplicated across namespaces.
+ */
+export function liveFleetRunRootNames(
+  deps: {
+    namespaceDirs?: () => readonly string[];
+    readDir?: (dir: string) => readonly string[];
+    isAlive?: (pid: number) => boolean;
+  } = {}
+): readonly string[] {
+  const {
+    namespaceDirs = candidateNamespaceDirs,
+    readDir = (dir: string) => readdirSync(dir),
+    isAlive = defaultIsAlive,
+  } = deps;
+  const names = namespaceDirs().flatMap(dir => {
+    try {
+      return [...readDir(dir)];
+    } catch {
+      // Absent namespace, unreadable directory, or a platform that refuses the
+      // probe. None of these is evidence of a fleet, and none may stop a run.
+      return [];
+    }
+  });
+  return [...new Set(names)].filter(name => {
+    const owner = parseScratchRunRootName(name);
+    if (owner === undefined) return false;
+    try {
+      return isAlive(owner.pid);
+    } catch {
+      return false;
+    }
+  });
+}
+
+/**
+ * The pool one run gets when a fleet of the stated size shares the machine.
+ *
+ * Extracted so admission control can ask what a run would be given without
+ * re-deriving the arithmetic. Never below {@link MIN_FLEET_WORKERS}, which is
+ * exactly why the product `fleetShare(cores, fleet) * fleet` grows without
+ * bound in `fleet` and why pool sizing alone cannot bound the fleet
+ * (CodySwannGT/lisa#3941).
+ * @param cores - Logical cores available.
+ * @param fleet - How many runs share the machine.
+ * @returns Workers for one run.
+ */
+export function fleetShare(cores: number, fleet: number): number {
+  return Math.max(MIN_FLEET_WORKERS, Math.floor(cores / 2 / fleet));
 }
 
 /**
@@ -294,15 +420,24 @@ function defaultIsAlive(pid: number): boolean {
 }
 
 /**
- * Upper bound on namespace entries inspected during discovery.
+ * Why discovery no longer truncates its listing.
  *
- * The namespace is swept by other machinery and is normally tiny — two entries
- * while this was written. The bound exists because this code runs on the config
- * path of every test run in every downstream project, and an unbounded
- * `readdir` over a directory that has pathologically grown is exactly the shape
- * that turned a shared temp directory into a 24.8 MB inode once already.
+ * A `.slice(0, 4_096)` used to bound the entries inspected, and the stated
+ * reason was that an unbounded `readdir` over a pathologically grown directory
+ * is the shape that once turned a shared temp directory into a 24.8 MB inode.
+ * The concern is real; the slice did not address it. `readdirSync` materialises
+ * the WHOLE listing before anything can slice it, so the expensive part had
+ * already happened — the bound removed only the per-name regex, and bought that
+ * saving by silently undercounting the fleet the moment the namespace held more
+ * than 4,096 entries. This namespace has been measured holding 3,730
+ * (CodySwannGT/lisa#3032), so the undercount was reachable rather than
+ * theoretical, and it undercounts hardest exactly when the fleet is largest.
+ *
+ * A bound that protects nothing and corrupts the count is worse than no bound,
+ * so the listing is now counted in full. The real protection against a grown
+ * namespace lives where the reading happens — `MAX_SCRATCH_NAMESPACE_SCAN_ENTRIES`
+ * in the scratch authority — not here.
  */
-const MAX_DISCOVERY_ENTRIES = 4_096;
 
 /**
  * Resolves the Vitest worker-pool cap for this run.
@@ -366,8 +501,7 @@ export function resolveMaxWorkers(
   const fleet = stated ?? discover();
   if (fleet <= 1) return DEFAULT_MAX_WORKERS;
 
-  const share = Math.floor(cores / 2 / fleet);
-  return Math.max(MIN_FLEET_WORKERS, share);
+  return fleetShare(cores, fleet);
 }
 
 /**
@@ -407,10 +541,18 @@ export function scratchSetupFiles(): readonly string[] {
 
 /**
  * Global setup that reclaims residue before a run and audits the namespace after it.
+ *
+ * Admission runs FIRST, and the order is load-bearing: it is the only hook that
+ * can decline to start work, and holding a run before the namespace sweep keeps
+ * a queued run from doing filesystem work it may not get to use. Vitest runs
+ * `globalSetup` entries in order, so the array order is the contract.
  * @returns Absolute paths to spread into `test.globalSetup`.
  */
 export function scratchGlobalSetup(): readonly string[] {
-  return [resolveSiblingModule("scratch-global-setup")];
+  return [
+    resolveSiblingModule("fleet-admission-global-setup"),
+    resolveSiblingModule("scratch-global-setup"),
+  ];
 }
 
 /**
@@ -546,3 +688,11 @@ export const mergeVitestConfigs = (...configs: UserConfig[]): UserConfig => {
     };
   }, {} as UserConfig);
 };
+
+export {
+  COVERAGE_REPORTS_DIR_ENV,
+  COVERAGE_RUNS_DIR,
+  coverageReportsDirectory,
+  coverageRunDirectory,
+  resetCoverageReportsDirectory,
+} from "./coverage-reports-directory.js";
