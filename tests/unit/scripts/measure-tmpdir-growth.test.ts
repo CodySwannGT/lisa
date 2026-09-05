@@ -6,21 +6,20 @@ import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  boundedEntryCap,
   buildGrowthReport,
   canonicalizeTmpPrefix,
   collectBoundedEntryNames,
   DEFAULT_TMPDIR_GROWTH_ARTIFACT,
   processBirthFingerprintSnapshot,
 } from "../../../scripts/measure-tmpdir-growth.mjs";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { fsLatencyBudgetMs } from "../../helpers/fs-latency-budget.js";
 import {
-  boundedSpawnSync,
-  ioLatencyBudgetMs,
-} from "../../helpers/io-latency-budget.js";
-import {
-  darwinBirthBatchingEvidence,
-  darwinTmpdirGrowthPerformance,
-  verifyDarwinTmpdirGrowthOverCap,
-} from "../../helpers/tmpdir-growth-darwin-performance.js";
+  BOUNDARY_ENTRY_CAP,
+  verifyTmpdirGrowthCapBoundary,
+} from "../../helpers/tmpdir-growth-cap-boundary.js";
+import { darwinBirthBatchingEvidence } from "../../helpers/tmpdir-growth-darwin-performance.js";
 
 const INVALID_RUN_NAME = "run-1-1-invalid";
 const ENTRY_RUN_NAME = "run-1-1-entry";
@@ -30,18 +29,6 @@ const SCRATCH_NAMESPACE = "lisa-scratch";
 const OWNER_FILE = ".lisa-scratch-owner.json";
 const GROUPING_VERSION = "mkdtemp-prefix-v1";
 const REAL_FIXTURE_CLEANUP_BASE_MS = 120_000;
-/**
- * Own budget for the one case that builds the real 100k-entry corpora.
- *
- * The shared 120s liveness budget measures the FIXTURE here, not the code: this
- * case creates roughly 600,000 real directory entries across a warmup root,
- * three measured roots and one over-cap root, then runs the script over each.
- * The performance claim this case actually makes is the per-command 5,000ms
- * budget asserted below, and that number is untouched — only the wall clock
- * around the corpus construction is widened, in units of the machine via the
- * measured spawn slowdown rather than as another guessed constant.
- */
-const REAL_CORPUS_BASE_MS = 300_000;
 const temporaryDirectories: string[] = [];
 
 /** Import the runner only after selecting a child process's platform temp root. */
@@ -228,7 +215,11 @@ afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
     fs.rmSync(directory, { force: true, recursive: true });
   }
-}, ioLatencyBudgetMs(REAL_FIXTURE_CLEANUP_BASE_MS));
+  // Deletion-dominated teardown: scaled by the filesystem proxy rather
+  // than the spawn one (CodySwannGT/lisa#3936). #3925 shrank the corpus so
+  // this budget no longer bites in practice; the mismatch it was derived
+  // from survived that fix, which is what this line repairs.
+}, fsLatencyBudgetMs(REAL_FIXTURE_CLEANUP_BASE_MS));
 
 const snapshot = (at: number, names: readonly string[]) => ({
   schemaVersion: 1,
@@ -413,94 +404,36 @@ describe("temp growth measurement", () => {
     }
   );
 
-  it.runIf(process.platform === "darwin")(
-    "records real 100k command-route timings and refuses a real over-cap root",
-    () => {
-      const trace = darwinTmpdirGrowthPerformance(SCRIPT, directory => {
-        temporaryDirectories.push(directory);
-      });
-      const tracePath = path.join(
-        temporaryDirectories[0] as string,
-        "perf-trace.json"
-      );
-      fs.writeFileSync(
-        tracePath,
-        `${JSON.stringify(trace, null, 2)}\n`,
-        "utf8"
-      );
-      const warmupReport = JSON.parse(trace.warmup.stdout);
-      expect(trace.warmup).toEqual({
-        root: {
-          rootIndex: 0,
-          canonicalPath: expect.any(String),
-          dev: expect.any(Number),
-          ino: expect.any(Number),
-        },
-        trial: 0,
-        commandElapsedMs: expect.any(Number),
-        budgetMs: 5_000,
-        count: 100_000,
-        created: 0,
-        removed: 0,
-        unreclaimed: 0,
-        reportElapsedMs: null,
-        rateEntriesPerDay: null,
-        topPrefixes: [{ prefix: "entry-*", count: 100_000 }],
-        ownership: {
-          total: 0,
-          owned: 0,
-          live: 0,
-          unowned: 0,
-          created: 0,
-          removed: 0,
-          unreclaimed: 0,
-          newlyUnowned: 0,
-        },
-        violations: [],
-        artifact: {
-          path: expect.any(String),
-          snapshotCount: 1,
-          latestEntryCount: 100_000,
-          report: warmupReport,
-        },
-        status: 0,
-        stdout: expect.any(String),
-        stderr: "",
-      });
-      expect(trace.warmup.commandElapsedMs).toBeLessThanOrEqual(5_000);
-      expect(warmupReport).toEqual(trace.warmup.artifact.report);
-      expect(trace.measuredRootSchedule).toEqual([0, 1, 2, 0, 1]);
-      expect(trace.trials).toHaveLength(5);
-      expect(new Set(trace.trials.map(trial => trial.root.rootIndex))).toEqual(
-        new Set([0, 1, 2])
-      );
-      expect(trace.trials.every(trial => trial.commandElapsedMs <= 5_000)).toBe(
-        true
-      );
-      expect(
-        trace.trials.every(
-          trial =>
-            trial.count === 100_000 &&
-            trial.status === 0 &&
-            trial.stderr === "" &&
-            trial.artifact.latestEntryCount === 100_000
-        )
-      ).toBe(true);
-      expect(JSON.parse(fs.readFileSync(tracePath, "utf8"))).toEqual(trace);
-      const overCap = verifyDarwinTmpdirGrowthOverCap(SCRIPT, directory => {
-        temporaryDirectories.push(directory);
-      });
-      expect(overCap).toEqual(
-        expect.objectContaining({
-          entryCount: 200_001,
-          status: 2,
-          validArtifactBytesPreserved: true,
-          timeoutBehavior: "not-established",
-        })
-      );
-    },
-    ioLatencyBudgetMs(REAL_CORPUS_BASE_MS)
+  it("clamps an injected entry cap so it can only ever lower the bound", () => {
+    expect(boundedEntryCap(undefined)).toBe(200_000);
+    expect(boundedEntryCap(500)).toBe(500);
+    expect(boundedEntryCap(199_999)).toBe(199_999);
+    expect(boundedEntryCap(200_000)).toBe(200_000);
+    expect(boundedEntryCap(200_001)).toBe(200_000);
+    expect(boundedEntryCap(Number.MAX_SAFE_INTEGER)).toBe(200_000);
+  });
+
+  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    "refuses %p as an injected entry cap",
+    invalid => {
+      expect(() => boundedEntryCap(invalid)).toThrow(/positive integer/u);
+    }
   );
+
+  it("refuses a real root one entry past the cap, preserving prior evidence", () => {
+    const trace = verifyTmpdirGrowthCapBoundary(SCRIPT, directory => {
+      temporaryDirectories.push(directory);
+    });
+
+    expect(trace).toEqual(
+      expect.objectContaining({
+        entryCount: BOUNDARY_ENTRY_CAP + 1,
+        status: 2,
+        validArtifactBytesPreserved: true,
+        timeoutBehavior: "not-established",
+      })
+    );
+  });
 
   it("refuses an injected iterable past the 200,000-entry cap", () => {
     const names = function* () {

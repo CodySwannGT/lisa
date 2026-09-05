@@ -68,6 +68,13 @@ export const REVIEW_SKIPPED_PR = {
       state: "SUCCESS",
       description: "Review skipped: reviews are disabled for this base branch",
     },
+    // BYTE-EXACT AS MEASURED, and deliberately not renamed. #3917 renamed this
+    // job to `🕵️ Review evidence gate` precisely because the question-shaped
+    // name below composes with `FAILURE` into "the review checks did no work" —
+    // but that IS what PR #3720 reported at the time, and this fixture is a
+    // recording of it. Updating the string here would fabricate a measurement.
+    // The name is incidental to what this fixture proves: the failing-check
+    // COUNT is 2, and this guard reads no conclusions at all.
     {
       name: "Did the required review checks do any work?",
       conclusion: "FAILURE",
@@ -192,3 +199,130 @@ export const bash = (command: string) => ({
   tool_name: "Bash",
   tool_input: { command },
 });
+
+/**
+ * The branch rules GitHub returns for a ref two rulesets cover.
+ *
+ * Trimmed from the live response for this repository's default branch, which
+ * carries fifteen required contexts across two rulesets. Two are enough to pin
+ * the property; the shape — `parameters.required_status_checks[].context` — is
+ * verbatim, because that nesting is the only thing separating a ref with gates
+ * from a ref without them.
+ */
+export const COVERED_RULES = [
+  { ruleset_id: 11912821, type: "deletion" },
+  { ruleset_id: 11912821, type: "non_fast_forward" },
+  { ruleset_id: 11912821, type: "pull_request" },
+  {
+    ruleset_id: 18805189,
+    type: "required_status_checks",
+    parameters: {
+      required_status_checks: [
+        { context: "🔍 Quality Checks / 🔗 Work-Item Traceability" },
+        { context: "🧩 Plugin artifacts match source" },
+      ],
+      strict_required_status_checks_policy: false,
+    },
+  },
+];
+
+/**
+ * What GitHub returns for a ref no ruleset covers — a stack base, or any
+ * ordinary feature branch. Read live for `stack/queue-drain-20260904-b`: `[]`.
+ */
+export const UNCOVERED_RULES: readonly unknown[] = [];
+
+/**
+ * A `required_status_checks` rule that enforces nothing.
+ *
+ * A guard counting RULES rather than CONTEXTS reports this ref as protected.
+ * Nothing in it can block a merge.
+ */
+export const VACUOUS_RULES = [
+  {
+    ruleset_id: 1,
+    type: "required_status_checks",
+    parameters: { required_status_checks: [] },
+  },
+];
+
+/** The stack base every fixture below batches onto. */
+export const STACK_BASE = "stack/queue-drain-20260904-b";
+
+/** A wholly green PR sitting on a stack base — nothing red, nothing enforced. */
+export const STACK_BASED_PR = {
+  number: 3922,
+  reviewDecision: null,
+  state: "OPEN",
+  url: "https://github.com/o/r/pull/3922",
+  baseRefName: STACK_BASE,
+  statusCheckRollup: [{ name: "quality checks", conclusion: "SUCCESS" }],
+};
+
+/** The same PR on the default branch, where the rulesets do apply. */
+export const COVERED_PR = { ...STACK_BASED_PR, baseRefName: "main" };
+
+/**
+ * The PR as CodySwannGT/lisa#3922 measured it: on a covered base, blocked by
+ * two genuinely failing REQUIRED checks, one of which arrives as a check-run
+ * and one as a commit status — so a guard reading only one shape reports it
+ * clean.
+ */
+export const CHECK_BLOCKED_PR = {
+  number: 3922,
+  reviewDecision: null,
+  state: "OPEN",
+  url: "https://github.com/o/r/pull/3922",
+  baseRefName: "main",
+  statusCheckRollup: [
+    {
+      name: "🔍 Quality Checks / 🔗 Work-Item Traceability",
+      conclusion: "FAILURE",
+    },
+    { context: "🧩 Plugin artifacts match source", state: "ERROR" },
+    { name: "🔍 Quality Checks / 🧹 Lint", conclusion: "SUCCESS" },
+  ],
+};
+
+/** The arming and re-targeting commands the fleet actually runs. */
+export const RETARGET = `gh pr edit 3922 --base ${STACK_BASE}`;
+
+/**
+ * A fake `gh` that answers the PR question and the ruleset question separately.
+ *
+ * One fixed payload cannot express this defect: the whole point is that the
+ * pull request reads exactly the same whether its base has fifteen required
+ * checks or none, and only a SECOND question — asked of a different endpoint —
+ * tells them apart. A fake that returned one body would make the two cases
+ * indistinguishable in the suite as well as in production.
+ * @param answers - What each endpoint should return.
+ * @param answers.pr - The pull-request payload for `pr view` / `api graphql`.
+ * @param answers.rules - The rules payload for `rules/branches/<ref>`.
+ * @param answers.rulesExitCode - Exit status for the rules call only.
+ * @returns The bin directory and the path of its call log.
+ */
+export const routingGh = (answers: {
+  readonly pr?: unknown;
+  readonly rules?: unknown;
+  readonly rulesExitCode?: number;
+}): { bin: string; callLog: string } => {
+  const bin = mkdtempSync(path.join(tmpdir(), "lisa-automerge-gh-"));
+  const callLog = path.join(bin, CALL_LOG);
+  const script = [
+    "#!/usr/bin/env bash",
+    `printf '%s\\n' "$*" >> ${JSON.stringify(callLog)}`,
+    'case "$*" in',
+    "  *rules/branches/*)",
+    `    printf '%s' ${JSON.stringify(JSON.stringify(answers.rules ?? UNCOVERED_RULES))}`,
+    `    exit ${answers.rulesExitCode ?? 0}`,
+    "    ;;",
+    "esac",
+    `printf '%s' ${JSON.stringify(JSON.stringify(answers.pr ?? STACK_BASED_PR))}`,
+    "exit 0",
+    "",
+  ].join("\n");
+  const ghPath = path.join(bin, "gh");
+  writeFileSync(ghPath, script, "utf-8");
+  chmodSync(ghPath, 0o755);
+  return { bin, callLog };
+};

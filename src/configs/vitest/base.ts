@@ -546,3 +546,11 @@ export const mergeVitestConfigs = (...configs: UserConfig[]): UserConfig => {
     };
   }, {} as UserConfig);
 };
+
+export {
+  COVERAGE_REPORTS_DIR_ENV,
+  COVERAGE_RUNS_DIR,
+  coverageReportsDirectory,
+  coverageRunDirectory,
+  resetCoverageReportsDirectory,
+} from "./coverage-reports-directory.js";

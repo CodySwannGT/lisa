@@ -105,7 +105,10 @@
       "pull-request": "required"
     },
     "test-correctness": {
-      "push": "required",
+      "push": {
+        "level": "required",
+        "run": "test:cov:unit:push"
+      },
       "pull-request": "required",
       "run": "test:cov:unit"
     },
@@ -118,7 +121,10 @@
     },
     "coverage-adequacy": {
       "run": "test:cov:unit",
-      "push": "required"
+      "push": {
+        "level": "required",
+        "run": "test:cov:unit:push"
+      }
     },
     "structural-rules": {
       "run": "sg:scan",
@@ -195,6 +201,12 @@
       "push": {
         "level": "required",
         "run": "check:withdrawn-rulings"
+      }
+    },
+    "x-plugin-artifact-sync": {
+      "push": {
+        "level": "required",
+        "run": "check:plugins"
       }
     }
   },

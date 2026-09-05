@@ -71,6 +71,8 @@ function git(args, cwd) {
  */
 export function inspectMergeDrivers(root) {
   const toplevel = git(["rev-parse", "--show-toplevel"], root);
+  // probe-direction: fail-closed — undefined is rendered by `main` as exit 2,
+  // the operational-error code, not as a checkout with nothing to register.
   if (!toplevel.ok || toplevel.stdout === "") return undefined;
   let contents = "";
   try {

@@ -13,16 +13,18 @@
  * The plugin snapshots config at init from the process cwd, so each case
  * chdirs and re-imports the template with a cache-busting query.
  */
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
-
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import {
-  boundedSpawnSync,
-  useIoLatencyBudget,
-} from "../../helpers/io-latency-budget.js";
+  bashVerdict,
+  LINEAR_CALLER,
+  LINEAR_MUTATION,
+  opencodeVerdicts,
+  project,
+  UNDECLARED_SCRIPT,
+  UPSTREAM_REPO,
+} from "./support/filing-parity.js";
 
 // The bounded children below are handed a base that only fits under a case
 // budget scaling with the same machine they do. Without this call the case
@@ -31,20 +33,13 @@ import {
 // this tree, in the run that fixed CodySwannGT/lisa#3202.
 useIoLatencyBudget();
 
-const HOOK_PATH = path.resolve(
-  "plugins/src/base/hooks/block-direct-issue-create.sh"
-);
-const PLUGIN_PATH = path.resolve(
-  "src/opencode/plugin-templates/lisa-block-direct-issue-create.ts"
-);
-const BUN_PATH = boundedSpawnSync({
-  label: "which bun",
-  command: "/usr/bin/which",
-  args: ["bun"],
-}).stdout.trim();
-
-const UPSTREAM_REPO = "up-org/up-repo";
 const CUSTOM_ROLE = "state:queued";
+
+/**
+ * The canonical container declaration, verbatim — defined by
+ * `derived-branch-plan` and stamped by every Lisa writer.
+ */
+const CONTAINER_DECLARATION = "None — container: state rolls up from children";
 
 /** A GitHub-tracked caller that renamed its ready lane. */
 const GITHUB_CALLER = {
@@ -63,25 +58,6 @@ const JIRA_CALLER = {
   jira: { workflow: { ready: "Ready for Development" } },
   hardening: { upstreamRepo: UPSTREAM_REPO },
 };
-
-/** A Linear-tracked caller, whose ready role is also a workflow state. */
-const LINEAR_CALLER = {
-  tracker: "linear",
-  linear: { workflow: { ready: "Ready" } },
-  hardening: { upstreamRepo: UPSTREAM_REPO },
-};
-
-/** The GraphQL body a hand-rolled Linear creation submits. */
-const LINEAR_MUTATION =
-  '{"query":"mutation{issueCreate(input:{title:\\"x\\"}){success}}"}';
-
-/** A script that files a Linear issue and declares nothing about it. */
-const UNDECLARED_SCRIPT = [
-  "#!/usr/bin/env bash",
-  "curl -sS -X POST https://api.linear.app/graphql \\",
-  `  -d '${LINEAR_MUTATION}'`,
-  "",
-].join("\n");
 
 /** One command, its project config, and the verdict both guards must reach. */
 const CASES: readonly {
@@ -152,6 +128,7 @@ const CASES: readonly {
     },
     expected: "allow",
   },
+
   {
     label: "a mutation submitted from a payload file",
     config: LINEAR_CALLER,
@@ -235,93 +212,27 @@ const CASES: readonly {
     },
     expected: "deny",
   },
+  // The container arm. A container is neither build-ready nor human-gated, so
+  // before it existed the guard could be satisfied for one only by writing
+  // something untrue. A parity break here would mean an Epic is fileable on
+  // one agent and not on another.
+  {
+    label: "a container filing carrying the container declaration",
+    config: GITHUB_CALLER,
+    command:
+      'gh issue create --title "Rollup" --label "type:Epic" ' +
+      `--body "${CONTAINER_DECLARATION}"`,
+    expected: "allow",
+  },
+  {
+    label: "a leaf claiming to be a container",
+    config: GITHUB_CALLER,
+    command:
+      'gh issue create --title "Crash on save" --label "type:Bug" ' +
+      `--body "${CONTAINER_DECLARATION}"`,
+    expected: "deny",
+  },
 ];
-
-/**
- * A throwaway project directory carrying a Lisa config.
- * @param config - The config to write.
- * @param files - Extra fixture files to write, keyed by name.
- * @returns The directory path.
- */
-const project = (
-  config: Record<string, unknown>,
-  files: Readonly<Record<string, string>> = {}
-): string => {
-  const dir = mkdtempSync(path.join(tmpdir(), "lisa-issue-parity-"));
-  writeFileSync(
-    path.join(dir, ".lisa.config.json"),
-    JSON.stringify(config),
-    "utf-8"
-  );
-  for (const [name, body] of Object.entries(files))
-    writeFileSync(path.join(dir, name), body, "utf-8");
-  return dir;
-};
-
-/**
- * The bash guard's verdict.
- * @param command - The intercepted shell command.
- * @param cwd - The project directory.
- * @returns "allow" or "deny".
- */
-const bashVerdict = (command: string, cwd: string): string => {
-  const result = boundedSpawnSync({
-    label: "the block-direct-issue-create bash guard",
-    command: "/bin/bash",
-    args: [HOOK_PATH],
-    cwd,
-    env: {
-      ...process.env,
-      CLAUDE_PROJECT_DIR: "",
-      LISA_ALLOW_DIRECT_ISSUE_CREATE: "",
-    },
-    input: JSON.stringify({ tool_name: "Bash", tool_input: { command } }),
-  });
-  return result.status === 2 ? "deny" : "allow";
-};
-
-/**
- * Every OpenCode verdict, from a single Bun process.
- * @param cases - The directory and command for each case, in order.
- * @returns One "allow" / "deny" per case, in the same order.
- */
-const opencodeVerdicts = (
-  cases: readonly { readonly dir: string; readonly command: string }[]
-): readonly string[] => {
-  const program = `
-    const cases = JSON.parse(process.env.TEST_CASES);
-    const verdicts = [];
-    for (const [index, item] of cases.entries()) {
-      process.chdir(item.dir);
-      const imported = await import(process.env.PLUGIN_URL + "?case=" + index);
-      const plugin = await imported.LisaBlockDirectIssueCreate();
-      try {
-        await plugin["tool.execute.before"](
-          { tool: "bash" },
-          { args: { command: item.command } }
-        );
-        verdicts.push("allow");
-      } catch {
-        verdicts.push("deny");
-      }
-    }
-    console.log(JSON.stringify(verdicts));
-  `;
-  const result = boundedSpawnSync({
-    label: "bun evaluating every OpenCode plugin case",
-    command: BUN_PATH,
-    args: ["-e", program],
-    baseMs: 30_000,
-    env: {
-      ...process.env,
-      PLUGIN_URL: `file://${PLUGIN_PATH}`,
-      TEST_CASES: JSON.stringify(cases),
-      LISA_ALLOW_DIRECT_ISSUE_CREATE: "",
-    },
-  });
-  expect(result.status, result.stderr).toBe(0);
-  return JSON.parse(result.stdout.trim()) as readonly string[];
-};
 
 describe("cross-repo filing parity: bash guard vs OpenCode port", () => {
   const directories = CASES.map(entry => project(entry.config, entry.files));

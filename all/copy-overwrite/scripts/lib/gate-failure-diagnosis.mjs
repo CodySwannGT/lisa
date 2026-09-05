@@ -29,8 +29,8 @@
  * measurement when the suite that produced it finished.
  * @module lib/gate-failure-diagnosis
  */
-import { readFileSync } from "node:fs";
-import { availableParallelism, loadavg } from "node:os";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { availableParallelism, loadavg, tmpdir } from "node:os";
 
 /** Default load-average source for {@link machineLoad}. */
 const osLoadavg = () => loadavg();
@@ -56,6 +56,8 @@ export const DIAGNOSIS = Object.freeze({
   NO_TESTS_RAN: "no-tests-ran",
   /** A doc comment ended early, so everything below it was parsed as code. */
   COMMENT_TERMINATED: "comment-terminated",
+  /** A type checker ran and reported errors in named files. */
+  TYPE_ERRORS: "type-errors",
   /** Output was read and matched nothing this module knows. */
   UNDIAGNOSED: "undiagnosed",
   /** No output was available to read, so nothing can be said. */
@@ -64,6 +66,58 @@ export const DIAGNOSIS = Object.freeze({
 
 /** `Test timed out in 60000ms.` / `Hook timed out in 60000ms.` from vitest. */
 const TIMEOUT_PATTERN = /(Test|Hook) timed out in (\d+)ms/g;
+
+/**
+ * `src/thing.ts(12,34): error TS2307: ...` — tsc's own diagnostic line.
+ *
+ * Anchored on the `(line,col): error TS` core rather than on anything about
+ * the path, because the path is the part that varies and the part a transcript
+ * may have prefixed. Requiring the parenthesised position is what keeps this
+ * from matching prose that merely mentions a TS code: a sentence reading
+ * "error TS2307: Cannot find module" is a HUMAN talking about a type error,
+ * and this module's whole job is to stop treating talk as measurement.
+ */
+const TSC_ERROR_PATTERN =
+  /^[ \t]*(?<file>[^\s(][^(\n]*?)\(\d+,\d+\): error TS\d+:/gmu;
+
+/**
+ * The test-quarantine wrapper's own two failure headers.
+ *
+ * `scripts/check-typecheck-tests.mjs` exits 1 on either, and both are measured
+ * type-correctness failures naming exact files:
+ *
+ *   ❌ 1 file(s) outside the quarantine have type errors:
+ *   ❌ 2 quarantined file(s) now type-check and must leave the list:
+ *
+ * The second is included even though CodySwannGT/lisa#3946 only reports the
+ * first, because it is the identical defect one fix away: the moment somebody
+ * repairs a quarantined file, that branch exits 1 with a named file list and
+ * — without this — lands in the residual bucket wearing `UNPROVABLE`, which is
+ * the word this fleet reads as "re-run it".
+ */
+const QUARANTINE_FAILURE_PATTERN =
+  /^[ \t]*\u274C[ \t]*\d+ (?:file\(s\) outside the quarantine have type errors|quarantined file\(s\) now type-check and must leave the list):[ \t]*$/gmu;
+
+/**
+ * One file the quarantine wrapper listed under a header, e.g. `   path.ts (1)`.
+ *
+ * Indentation is the delimiter because that is what the wrapper emits, and the
+ * trailing count is optional because only the offenders branch prints one.
+ */
+const QUARANTINE_FILE_PATTERN =
+  /^[ \t]+(\S+\.[cm]?[jt]sx?)(?:[ \t]+\(\d+\))?[ \t]*$/u;
+
+/**
+ * Task-runner chain lines that repeat the exit code and say nothing else.
+ *
+ * `error: script "typecheck" exited with code 1` is what a package manager
+ * prints on its way out. It carries no information the exit code did not, and
+ * on a failing chain there is one PER LINK — which is how the three-line tail
+ * in CodySwannGT/lisa#3946 came to be two of these plus a fragment of an
+ * unrelated sentence.
+ */
+const RUNNER_CHAIN_PATTERN =
+  /^[ \t]*error: script ".*" exited with code \d+[ \t]*$/u;
 
 /**
  * `ERROR: Coverage for statements (85.1%) does not meet global threshold (86%)`
@@ -107,6 +161,85 @@ const COVERAGE_SCRATCH_ENOENT =
  */
 const COVERAGE_DIR_REMOVED =
   /Something removed the coverage directory "([^"\n]+)"/g;
+
+/**
+ * A removal that lost a race with a concurrent writer, inside managed scratch.
+ *
+ * Three conditions, all required, and the third is what keeps this honest.
+ *
+ * 1. **An errno a concurrent writer produces.** `ENOTEMPTY`, `EBUSY` and
+ *    `EPERM` are what a removal reports when something else is holding or
+ *    filling the directory. A plain `ENOENT` is deliberately absent: it is
+ *    already the coverage-deletion signature above, and on its own it is more
+ *    often a genuine missing-file bug.
+ * 2. **A removal syscall.** `rmdir`, `unlink` or `rename` — the operations that
+ *    can lose to a writer. Without this the pattern would swallow an `EPERM`
+ *    from an ordinary permission defect.
+ * 3. **A path inside the MANAGED SCRATCH namespace.** This is the grounding
+ *    clause. A failure about some other directory is a fact about the code, and
+ *    a diagnosis that claimed it was the machine would be this module's own
+ *    defect: an environment excuse issued over a real bug.
+ *
+ * Measured on CodySwannGT/lisa#3877, in a test unreachable from the branch that
+ * was pushing:
+ *
+ * ```
+ * ENOTEMPTY: directory not empty, rmdir
+ *   '…/lisa-scratch/run-35247-…/worker-14451-…/lisa-test-ylEKHM/.git'
+ * ```
+ *
+ * The point of naming it is not to excuse it — an INTERFERENCE verdict blocks
+ * the push exactly as FAILED does. The point is that the author can tell an
+ * environment-sensitive failure from a code failure WITHOUT spending a second
+ * ten-minute cycle to find out, and that the retry which used to be the only
+ * way to answer the question is itself the load that caused it.
+ *
+ * Horizontal-only `[^\n]` for the reason {@link FAIL_PATTERN} gives: this
+ * parses a multi-megabyte transcript inside a git hook.
+ */
+const SCRATCH_REMOVAL_RACE =
+  /\b(?:ENOTEMPTY|EBUSY|EPERM)\b[^\n]*?\b(?:rmdir|unlink|rename)\b[^\n]*?(lisa-scratch[^'"\n]*)/g;
+
+/**
+ * Every removal-race line this transcript carries.
+ * @param {string} output The command's combined output.
+ * @returns {string[]} The scratch paths named, deduplicated, in order.
+ */
+function findScratchRaces(output) {
+  return [
+    ...new Set([...output.matchAll(SCRATCH_REMOVAL_RACE)].map(hit => hit[1])),
+  ];
+}
+
+/**
+ * The verdict for a run whose own cleanup lost a race with a concurrent writer.
+ *
+ * A sibling of {@link interferenceVerdict} rather than the same sentence: there
+ * the other process DELETED files this run needed, here it CREATED one inside a
+ * directory this run was removing. Same family, opposite direction, and an
+ * operator handed the coverage sentence for this would go looking for a second
+ * coverage run that does not exist.
+ *
+ * The remedy names the durable fix rather than "re-run it", because re-running
+ * is what makes this expensive: the retry costs another full cycle and adds the
+ * load that raises the chance a DIFFERENT load-sensitive test fails instead —
+ * measured as two attempts failing on two different files.
+ * @param {string[]} paths The scratch paths the race named.
+ * @returns {Diagnosis} The verdict.
+ */
+function scratchRaceVerdict(paths) {
+  return {
+    kind: DIAGNOSIS.INTERFERENCE,
+    summary:
+      `a removal inside this run's managed scratch lost a race with a ` +
+      `concurrent writer, so a cleanup hook threw and the test it belonged to ` +
+      `was reported as failing. That is a fact about machine I/O contention, ` +
+      `NOT about the code under test — the failing file need not be reachable ` +
+      `from your diff at all. Removal helpers take maxRetries for exactly this ` +
+      `errno set; a helper that omits it fails on the first collision`,
+    evidence: capped(paths),
+  };
+}
 
 /**
  * A failing suite header: ` FAIL  tests/unit/foo.test.ts > does a thing`.
@@ -254,6 +387,13 @@ export const ATTRIBUTION = Object.freeze({
   timeout: "test-correctness",
   assertion: "test-correctness",
   threshold: "coverage-adequacy",
+  // A type checker that reported errors DID measure the property
+  // `type-correctness` names, and found it wanting. Before
+  // CodySwannGT/lisa#3946 this landed in the residual bucket and reported
+  // `UNPROVABLE` — the word this fleet reads as "the box, re-run it" — so a
+  // named, one-line, single-file defect was routed into the re-run path while
+  // the transcript six lines above already said which file.
+  "type-errors": "type-correctness",
 });
 
 /** How many named examples a summary carries before it says "and N more". */
@@ -288,13 +428,10 @@ const TAIL_LINES = 3;
  * @param {string[]} items Every item found.
  * @returns {string[]} At most `MAX_EVIDENCE + 1` lines.
  */
-function capped(items) {
+function capped(items, limit = MAX_EVIDENCE) {
   const unique = [...new Set(items)];
-  if (unique.length <= MAX_EVIDENCE) return unique;
-  return [
-    ...unique.slice(0, MAX_EVIDENCE),
-    `…and ${unique.length - MAX_EVIDENCE} more`,
-  ];
+  if (unique.length <= limit) return unique;
+  return [...unique.slice(0, limit), `…and ${unique.length - limit} more`];
 }
 
 /**
@@ -339,28 +476,99 @@ function findFailures(output) {
  * @returns {string[]} Up to `TAIL_LINES` trimmed lines, oldest first.
  */
 function tailLines(output) {
-  return output
+  const lines = output
     .split("\n")
     .map(line => line.trim())
-    .filter(line => line.length > 0)
+    .filter(line => line.length > 0);
+  // Drop the task runner's own exit chain BEFORE taking the tail rather than
+  // widening the tail past it. Widening quotes more lines of everything; this
+  // spends the same three lines on lines that carry something. If every
+  // surviving line was chain noise the unfiltered tail is used, because three
+  // useless lines still beat none.
+  const meaningful = lines.filter(line => !RUNNER_CHAIN_PATTERN.test(line));
+  return (meaningful.length > 0 ? meaningful : lines)
     .slice(-TAIL_LINES)
     .map(line => line.slice(0, MAX_TAIL));
 }
 
 /**
- * A timeout verdict, worded so it can never be mistaken for a coverage miss.
- * @param {{count: number, budgets: number[]}} timeouts What was found.
- * @param {string[]} suites Suites the output named as failing.
+ * Every file a type checker's output names as having errors.
+ *
+ * Two sources, unioned: tsc's own diagnostic lines, and the file list the test
+ * quarantine wrapper prints under its own header. The wrapper's list is read
+ * by walking forward from the header until the indentation stops, which is
+ * exactly how the wrapper emits it.
+ * @param {string} output The gate command's combined output.
+ * @returns {string[]} Distinct file paths, in the order first seen.
+ */
+function findTypeErrorFiles(output) {
+  const lines = output.split("\n");
+  const files = [...output.matchAll(TSC_ERROR_PATTERN)].map(match =>
+    (match.groups?.file ?? "").trim()
+  );
+  for (const [index, line] of lines.entries()) {
+    if (!new RegExp(QUARANTINE_FAILURE_PATTERN.source, "u").test(line))
+      continue;
+    for (const listed of lines.slice(index + 1)) {
+      const match = QUARANTINE_FILE_PATTERN.exec(listed);
+      if (match === null) break;
+      files.push(match[1] ?? "");
+    }
+  }
+  return [...new Set(files.filter(file => file.length > 0))];
+}
+
+/**
+ * A verdict for a type checker that ran and found errors.
+ *
+ * FAILED rather than UNPROVABLE, and that is the whole point of it: the
+ * checker reached the code, read it, and reported on it. `UNPROVABLE` is
+ * reserved for runs that established nothing, and spending it here sent a
+ * one-file defect down the re-run path (CodySwannGT/lisa#3946).
+ * @param {string[]} files Files the transcript named.
  * @returns {Diagnosis} The verdict.
  */
-function timeoutVerdict(timeouts, suites) {
+function typeErrorsVerdict(files) {
+  return {
+    kind: DIAGNOSIS.TYPE_ERRORS,
+    summary: `a type checker reported errors in ${files.length} file(s)`,
+    evidence: capped(files),
+  };
+}
+
+/**
+ * A timeout verdict, worded so it can never be mistaken for a coverage miss.
+ *
+ * Carries the shared temp root's population, because a blown wall-clock budget
+ * is the one signature that gives no hint of its own cause. A saturated
+ * platform temp root makes every `mkdtemp` on the box slow, and the lane that
+ * pays is whichever one happened to create fixtures — so it presents as a
+ * single flaky-looking test in a suite that has nothing to do with the
+ * producer. The reading is attached here and nowhere else for that reason: on
+ * an assertion failure or a coverage miss it would be noise.
+ * @param {{count: number, budgets: number[]}} timeouts What was found.
+ * @param {string[]} suites Suites the output named as failing.
+ * @param {TempRootReading|null} [tempRoot] The temp root's population at
+ *   diagnosis time. Omitted or null when it could not be read.
+ * @returns {Diagnosis} The verdict.
+ */
+function timeoutVerdict(timeouts, suites, tempRoot) {
   const budget = Math.max(...timeouts.budgets);
+  // Reserve the temp-root line's slot BEFORE capping the suites, so this
+  // verdict carries the same MAX_EVIDENCE + 1 ceiling as every other one.
+  // Appending after the cap made this the only verdict that could reach
+  // MAX_EVIDENCE + 2, and the cap test could not see it because that test
+  // suppresses the reading.
+  const tempEvidence = tempRootEvidence(tempRoot ?? null);
   return {
     kind: DIAGNOSIS.TIMEOUT,
     summary:
       `${timeouts.count} test(s)/hook(s) exceeded the ${budget}ms budget, ` +
       `so the suite did not finish — this is NOT a coverage shortfall`,
-    evidence: capped(suites),
+    evidence: [
+      ...capped(suites, MAX_EVIDENCE - tempEvidence.length),
+      ...tempEvidence,
+    ],
   };
 }
 
@@ -628,6 +836,102 @@ function loadEvidence(load) {
 }
 
 /**
+ * List the platform temp root's direct children.
+ *
+ * Deliberately NOT recursive. The cost being measured is the width of one
+ * directory — what `mkdtemp` and every `readdir` on that path must walk — and
+ * descending into tens of thousands of entries to diagnose a failure would
+ * itself be the expensive operation this line exists to warn about.
+ * @returns {string[]} Direct children of the platform temp root.
+ */
+function defaultTempRootEntries() {
+  return readdirSync(tmpdir());
+}
+
+/**
+ * Read the platform temp root's own inode size.
+ * @returns {number} Size in bytes of the directory inode itself.
+ */
+function defaultTempRootInodeBytes() {
+  return statSync(tmpdir()).size;
+}
+
+/**
+ * How crowded the shared platform temp root is, or `null` when unreadable.
+ * @typedef {object} TempRootReading
+ * @property {number} entries Direct children of the platform temp root.
+ * @property {number} inodeBytes Size of the directory's own inode.
+ */
+
+/**
+ * Measure the shared platform temp root.
+ *
+ * Both numbers are taken because they answer different questions and only one
+ * of them is repairable by deleting things. The ENTRY COUNT is the current
+ * population. The INODE SIZE is what that population did to the directory, and
+ * a directory inode does not shrink when its entries are removed — so a root
+ * that once held tens of thousands of names stays expensive to walk after a
+ * prune, and a report that showed only the count would say "cleaned up" about
+ * a directory that is still slow.
+ *
+ * Injected for the same reason {@link machineLoad} is: a test must be able to
+ * state a population rather than inherit whatever the test machine's temp root
+ * happened to contain, which is shared with every other process on the box.
+ * @param {() => string[]} [readEntries] Lists the temp root's children.
+ * @param {() => number} [readInodeBytes] Reads the temp root's own inode size.
+ * @returns {TempRootReading|null} The reading, or null when either source fails.
+ */
+export function tempRootPopulation(
+  readEntries = defaultTempRootEntries,
+  readInodeBytes = defaultTempRootInodeBytes
+) {
+  try {
+    const entries = readEntries().length;
+    const inodeBytes = readInodeBytes();
+    if (!Number.isFinite(entries) || !Number.isFinite(inodeBytes)) return null;
+    return { entries, inodeBytes };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Turn a temp-root reading into the line that lets an operator rule crowding
+ * in or out.
+ *
+ * REPORTS, NEVER JUDGES — and that is a measured decision rather than caution.
+ * A crowded platform temp root makes `mkdtemp` pathologically slow, which
+ * surfaces as one slow test in an unrelated lane and never as "the filesystem
+ * is the problem", so the number belongs beside a timeout. But the threshold
+ * at which it starts costing anything is NOT KNOWN: 16.5k entries measured at
+ * a 1.0x `mkdtemp` penalty against a nested directory — i.e. none at all — on
+ * the same platform where ~46k was reported harmful. Nothing measured in
+ * between.
+ *
+ * Guessing a boundary in that gap would produce a detector that fires on the
+ * ordinary state of a busy workstation, and a check that cries wolf on a
+ * healthy machine is worse than no check: it trains its own readers to skip
+ * the line. So this prints what it saw and names both calibration points,
+ * leaving the reader to decide — and accumulates the evidence a later change
+ * can set a real threshold from.
+ * @param {TempRootReading|null} tempRoot The reading, or null when unavailable.
+ * @returns {string[]} Zero or one evidence line.
+ */
+function tempRootEvidence(tempRoot) {
+  if (tempRoot === null) return [];
+  const kb = Math.round(tempRoot.inodeBytes / 1024);
+  return [
+    `shared temp root at diagnosis: ${tempRoot.entries} entries, ` +
+      `${kb} KB directory inode. A crowded platform temp root slows every ` +
+      `mkdtemp on the box and shows up as one slow test in an unrelated ` +
+      `lane, so this is a candidate cause to rule in or out — not a verdict. ` +
+      `No threshold is asserted because none is known: ~16.5k entries ` +
+      `measured NO penalty and ~46k was reported harmful, with nothing ` +
+      `measured between. The inode size is the part a prune does not fix.`,
+  ];
+}
+
+/**
  * Runnable work per core above which the box is treated as saturated.
  *
  * Two, not one. A load average equal to the core count is a machine that is
@@ -707,7 +1011,7 @@ function emptyTranscriptVerdict() {
  * @param {LoadReading|null} load The machine's load at diagnosis time.
  * @returns {object} What the failure was, before it is attributed.
  */
-function classify(output, code, load, read) {
+function classify(output, code, load, read, tempRoot) {
   if (wasKilled(code)) return killedVerdict(code ?? null, load);
 
   if (typeof output !== "string") return unavailableVerdict();
@@ -729,6 +1033,14 @@ function classify(output, code, load, read) {
   // the coverage one either way.
   const interference = findInterference(output);
   if (interference.length > 0) return interferenceVerdict(interference);
+
+  // Beside coverage interference and above every content signature, for the
+  // same reason: the run was interfered with from outside, so the assertion
+  // the transcript reports describes the interference rather than the code.
+  // Below it rather than above only because coverage deletion is the more
+  // specific claim when a transcript somehow carries both.
+  const races = findScratchRaces(output);
+  if (races.length > 0) return scratchRaceVerdict(races);
 
   // Directly below interference and above every measurement signature: a run
   // that executed no test files measured nothing, so its timeouts, its FAIL
@@ -754,7 +1066,16 @@ function classify(output, code, load, read) {
   const failures = findFailures(output);
   const misses = findThresholdMisses(output);
 
-  if (timeouts.count > 0) return timeoutVerdict(timeouts, failures.suites);
+  if (timeouts.count > 0)
+    return timeoutVerdict(
+      timeouts,
+      failures.suites,
+      // Resolved HERE and nowhere else: this is the only consumer, and it is
+      // the last point at which `undefined` (measure it) and `null` (suppress
+      // it) are still distinguishable. Do not "simplify" this to `??` — that
+      // collapses the two and makes every suppressed test read the real box.
+      tempRoot === undefined ? tempRootPopulation() : tempRoot
+    );
 
   if ((failures.tally ?? 0) > 0 || failures.suites.length > 0) {
     const count = failures.tally ?? failures.suites.length;
@@ -772,6 +1093,17 @@ function classify(output, code, load, read) {
       evidence: capped(misses),
     };
   }
+
+  // LAST among the content signatures, and that placement is the safety
+  // argument for the whole change. Everything above it is a shape this module
+  // already recognised and already ruled on, so nothing here can change a
+  // verdict that is currently correct — this can only take cases that would
+  // otherwise fall through to the residual bucket below. It sits below the
+  // kill, refusal, interference and zero-tests guards for the same reason
+  // every content signature does: a `tsc` transcript from a run the machine
+  // took away is still not a measurement, and must still report UNPROVABLE.
+  const typeErrorFiles = findTypeErrorFiles(output);
+  if (typeErrorFiles.length > 0) return typeErrorsVerdict(typeErrorFiles);
 
   return {
     kind: DIAGNOSIS.UNDIAGNOSED,
@@ -1067,14 +1399,35 @@ function findTerminatedComments(output, read) {
  * @param {(path: string) => string|null} [read] Reads a source file the
  *   transcript named, returning null when it cannot be read. Defaults to the
  *   real filesystem; injected by tests so a fixture needs no files on disk.
+ * @param {TempRootReading|null} [tempRoot] The shared temp root's population,
+ *   for a timeout's evidence line. OMIT to measure this machine — but the
+ *   measurement is taken lazily, only on the timeout path that consumes it.
+ *   Pass `null` to suppress the line, or a fixed reading to make output
+ *   deterministic.
+ *
+ *   This is deliberately NOT a default parameter. A default is evaluated on
+ *   every call that omits the argument, so `tempRoot = tempRootPopulation()`
+ *   ran a `readdirSync` plus a `statSync` over the shared temp root for every
+ *   assertion failure, coverage miss and kill — none of which use the reading.
+ *   On a box whose temp root holds tens of thousands of entries that is not
+ *   free, and the irony is total: this was added by the change about temp-root
+ *   churn. Nothing in the suite could catch it, because cost is not asserted.
+ *
+ *   Making the default lazier does NOT work, and that is the trap: a default
+ *   parameter cannot distinguish OMITTED from EXPLICITLY NULL, because both
+ *   arrive as `undefined`/`null` at different points and only `undefined`
+ *   triggers a default. `null` is the documented suppression that keeps test
+ *   output deterministic, so it must survive. Hence the resolution moved to
+ *   the single consuming call site, where the two are still distinguishable.
  * @returns {Diagnosis} What the failure was, and whose it was.
  */
 export function diagnoseFailure(
   output,
   code,
   load = machineLoad(),
-  read = readSourceFile
+  read = readSourceFile,
+  tempRoot
 ) {
-  const verdict = classify(output, code, load, read);
+  const verdict = classify(output, code, load, read, tempRoot);
   return { ...verdict, proves: ATTRIBUTION[verdict.kind] ?? null };
 }

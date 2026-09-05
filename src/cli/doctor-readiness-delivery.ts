@@ -30,6 +30,7 @@ import {
   type CredentialFindings,
   detectCredentialFindings,
 } from "./doctor-readiness-credentials.js";
+import { deployOutcomeObservations } from "./doctor-readiness-deploy-outcome.js";
 import { informationalFindings } from "./doctor-readiness-shared.js";
 import {
   assessReleasePaths,
@@ -59,6 +60,17 @@ interface ReleasePathSummary {
   readonly unresolved: readonly string[];
   readonly cleanCount: number;
   readonly publishStepCount: number;
+  /**
+   * Deploy jobs that go SILENT when their release fails (#3740).
+   *
+   * Carried on this summary rather than added at one call site because it has
+   * to reach EVERY record shape below. A repository whose release paths are
+   * clean, or whose workflows publish nothing this parser can see, is exactly
+   * the repository where this observation would otherwise be dropped — and
+   * dropping a finding on the healthy path is how a check ends up reporting
+   * nothing in the case it was written for.
+   */
+  readonly deployOutcomeObservations: readonly string[];
 }
 
 /**
@@ -82,6 +94,7 @@ function summarizeReleasePaths(
     )
   );
   return {
+    deployOutcomeObservations: deployOutcomeObservations(workflows),
     violations: [
       ...outcomes.flatMap(outcome =>
         outcome.kind === "violation" ? [outcome.evidence] : []
@@ -256,19 +269,20 @@ function credentialFinding(
 /**
  * Build the SKIP record for a repository whose release paths could not be
  * settled from the workflow files alone.
- * @param reasons - Stated reasons, one per unsettled release path
+ * @param summary - What the release paths established
  * @param credentials - The credential half of the assessment
  * @returns The SKIP dimension record
  */
 function unresolvedRecord(
-  reasons: readonly string[],
+  summary: ReleasePathSummary,
   credentials: CredentialFindings
 ): ReadinessDimensionRecord {
   return {
     id: DELIVERY_AUTHORITY_DIMENSION_ID,
     status: "SKIP",
     findings: [
-      { reason: reasons.join(" | "), skip: true },
+      { reason: summary.unresolved.join(" | "), skip: true },
+      ...informationalFindings(summary.deployOutcomeObservations),
       ...informationalFindings(credentials.informational),
     ],
   };
@@ -300,6 +314,7 @@ function cleanRecord(
           "static cloud keys.",
         checked: [RELEASE_BLOCKER_ID, CREDENTIAL_BLOCKER_ID],
       },
+      ...informationalFindings(summary.deployOutcomeObservations),
       ...informationalFindings(credentials.informational),
     ],
   };
@@ -331,6 +346,7 @@ function violationRecord(
       // settled offline: dropping those reasons is #1898's defect one layer in.
       // They carry no `blocker` key, so they add nothing to the verdict.
       ...informationalFindings(summary.unresolved),
+      ...informationalFindings(summary.deployOutcomeObservations),
       ...informationalFindings(credentials.informational),
     ],
   };
@@ -359,11 +375,13 @@ function noWorkflowsRecord(): ReadinessDimensionRecord {
 /**
  * Build the SKIP record for a repository whose workflows publish nothing.
  * @param workflows - Parsed workflows
+ * @param summary - What the release paths established
  * @param credentials - The credential half of the assessment
  * @returns The SKIP dimension record
  */
 function noReleasePathRecord(
   workflows: readonly ParsedWorkflow[],
+  summary: ReleasePathSummary,
   credentials: CredentialFindings
 ): ReadinessDimensionRecord {
   return {
@@ -378,6 +396,7 @@ function noReleasePathRecord(
           "assessed and found nothing over-authorized.",
         skip: true,
       },
+      ...informationalFindings(summary.deployOutcomeObservations),
       ...informationalFindings(credentials.informational),
     ],
   };
@@ -410,10 +429,10 @@ export async function assessDeliveryAuthorityDimension(
     return violationRecord(summary, credentials);
   }
   if (summary.unresolved.length > 0) {
-    return unresolvedRecord(summary.unresolved, credentials);
+    return unresolvedRecord(summary, credentials);
   }
   if (summary.publishStepCount === 0) {
-    return noReleasePathRecord(workflows, credentials);
+    return noReleasePathRecord(workflows, summary, credentials);
   }
   return cleanRecord(summary, workflows, credentials);
 }

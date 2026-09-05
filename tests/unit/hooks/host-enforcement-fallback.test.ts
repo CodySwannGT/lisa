@@ -86,6 +86,7 @@ const GUARDS = [
   "block-instruction-file-edits",
   "block-direct-issue-create",
   "block-managed-file-edits",
+  "worktree-binding-guard",
 ] as const;
 
 /**
@@ -98,7 +99,10 @@ const GUARDS = [
  * same reason it does above — the guard hands a command to this parser and acts
  * on the answer, so a stale copy is a guard with different behaviour.
  */
-const COMPANIONS = ["parity-safety-net-heredoc.py"] as const;
+const COMPANIONS = [
+  "parity-safety-net-heredoc.py",
+  "worktree-binding-guard.mjs",
+] as const;
 
 /**
  * Everything the build materializes into `all/copy-overwrite/scripts/`.
@@ -106,10 +110,10 @@ const COMPANIONS = ["parity-safety-net-heredoc.py"] as const;
  * `sonar-secrets.sh` ships beside the guards but is not dispatched like one, so
  * it stays out of `GUARDS` above — and had no byte-equality pin at all until
  * the ownership stamp gave every generated copy a reason to be enumerated in
- * one place. The dispatcher is here for the same reason: these seven plus the
- * six ratchet copies are the thirteen assets #2547 is about, and a fourteenth
- * added to the build without appearing here is the failure this list exists to
- * make loud.
+ * one place. The dispatcher is here for the same reason: the shipped guards,
+ * their companions, and the ratchet copies are the assets #2547 is about, and
+ * one added to the build without appearing here is the failure this list
+ * exists to make loud.
  */
 const MATERIALIZED: readonly { shipped: string; source: string }[] = [
   ...GUARDS.map(guard => ({

@@ -47,6 +47,70 @@
  * `.opencode/plugin/`. It is intentionally excluded from this repo's tsconfig
  * and eslint config — it runs under OpenCode's Bun runtime, not here.
  */
+/**
+ * Where one command ends and the next begins.
+ *
+ * Only used to decide which segment a filename belongs to, never to decide the
+ * verdict — the raw command text is still matched whole, so a separator this
+ * misses cannot hide a creation.
+ */
+const COMMAND_SEPARATORS = /\|\||&&|[;|&\n]/u;
+
+/**
+ * Shells whose `-n` means "parse it, execute none of it".
+ */
+const NOEXEC_SHELLS = new Set(["bash", "dash", "ksh", "sh", "zsh"]);
+
+/**
+ * Whether a command segment is a shell syntax check.
+ *
+ * ## Why this exists in a guard that otherwise reads raw text
+ *
+ * CodySwannGT/lisa#3781 found `bash -n <file>` to be the one shape that puts a
+ * path in a command position while provably executing nothing, and the
+ * canonical guard got it wrong in both directions: a creation-shaped file
+ * earned a false refusal, and a file carrying a human-gate marker earned a
+ * false ALLOW — adjudicating as "declared" a command that filed nothing. The
+ * silent direction is the worse one. CodySwannGT/lisa#3885 found the arm had
+ * reached the canonical guard and not this port.
+ *
+ * The distinction is noexec, not the program: `bash <file>` still runs the file
+ * and is still refused.
+ *
+ * ## Why the LAST shell token, not the first
+ *
+ * `nice -n 5 bash -n script.sh` is in the canonical guard's own table, and it
+ * carries two `-n` flags belonging to different programs. Reading the first
+ * token would see `nice`, conclude "not a shell", and follow the file; reading
+ * any `-n` anywhere would let `nice -n 5 bash script.sh` masquerade as a syntax
+ * check, which is a real bypass. So the shell is located first and only its own
+ * options are read.
+ * @param segment One command, already split on shell separators.
+ * @returns Whether the segment parses a file instead of running it.
+ */
+const isSyntaxCheck = (segment: string): boolean => {
+  const tokens = segment
+    .trim()
+    .split(/[\s'"]+/u)
+    .filter(Boolean);
+  const shellAt = tokens.reduce(
+    (last, token, index) =>
+      NOEXEC_SHELLS.has(token.split("/").pop() ?? "") ? index : last,
+    -1
+  );
+  if (shellAt === -1) return false;
+  for (const token of tokens.slice(shellAt + 1)) {
+    // Options only. The first operand ends the option list, and a path is not
+    // an option however it is spelled.
+    if (!token.startsWith("-")) return false;
+    if (token === "--noexec") return true;
+    // `-c` takes a command STRING, so nothing after it is a file this guard
+    // should reason about positionally; `-en` is a cluster carrying noexec.
+    if (!token.startsWith("--") && token.slice(1).includes("n")) return true;
+  }
+  return false;
+};
+
 export /**
  *
  */
@@ -95,6 +159,41 @@ const LisaBlockDirectIssueCreate = async () => {
    */
   const LIFECYCLE_ROLE_READY =
     /(?:^|[^\w.-])(?:lifecycle_role|LIFECYCLE_ROLE)["']?\s*[:=]\s*["']?ready\b|(?:^|[^\w.-])--role[=\s]+["']?ready\b/;
+  /**
+   * The third declaration: this item is a CONTAINER.
+   *
+   * A container is neither build-ready nor human-gated. `leaf-only-lifecycle`
+   * FORBIDS the build-ready role on an Epic, and a human gate it does not have
+   * is a durable false hold — so a guard with only the two arms above could be
+   * satisfied for a container only by writing something untrue, and both
+   * untruths corrupt data another control reads.
+   *
+   * It keys on the canonical container line that `derived-branch-plan` defines
+   * and `lisa-github-write-issue` already stamps, NOT on a declared
+   * `type:Epic`. A declared type is a claim that costs a leaf nothing and
+   * leaves it looking buildable; the container line costs the item its Target
+   * Backend Environment and Branch Plan, so it is only useful to something
+   * that actually is a container.
+   *
+   * Matched as the WHOLE canonical value, `None` included: the tail alone
+   * would match ordinary prose about how a container's state behaves, and a
+   * declaration that ordinary prose satisfies is not a declaration.
+   * Whitespace-tolerant because a body file may wrap the line; dash-tolerant
+   * because an author retyping it by hand will not always reach for the em
+   * dash.
+   */
+  const CONTAINER_DECLARATION =
+    /None\s*[\u2014\u2013-]\s*container:\s*state\s+rolls\s+up\s+from\s+children/i;
+  /**
+   * The checkable half of "is it really a container": an item cannot be a
+   * container and a by-design leaf at once. The types are quoted from
+   * `leaf-only-lifecycle`. Story and Spike are deliberately absent — that
+   * rule's childless-parent exception makes them leaf-or-container depending
+   * on child work, and a decomposition legitimately files a parent Story
+   * before the children that make it one.
+   */
+  const LEAF_TYPE_FLAG =
+    /--(?:label|labels|add-label|type|issue-type|issuetype)(?:=|\s+)(['"]?)(?:type:)?(bug|task|sub-?task|improvement)\1(?=[\s,]|$)/i;
   /** A creation verb, and a tracker endpoint to send it to. */
   const GRAPHQL_CREATE = /createIssue|issueCreate/;
   const TRACKER_ENDPOINT =
@@ -261,6 +360,14 @@ const LisaBlockDirectIssueCreate = async () => {
     const found: { path: string; text: string }[] = [];
     const seen = new Set<string>();
     const candidates = text
+      .split(COMMAND_SEPARATORS)
+      // A syntax check READS its operand and runs not one line of it, so the
+      // file it names is not a file this command executes. Dropped per SEGMENT
+      // rather than per command, which is what keeps `bash -n x.sh && bash x.sh`
+      // refused: the second segment names the same path and is harvested
+      // normally. See {@link isSyntaxCheck}.
+      .filter(segment => !isSyntaxCheck(segment))
+      .join(" ")
       .split(/[\s'"]+/)
       // `curl -d@payload.json` is one word, and the path is the half after the
       // `@`. Both halves are offered rather than guessing which flag it was.
@@ -415,7 +522,11 @@ const LisaBlockDirectIssueCreate = async () => {
             .some(candidate => against.includes(candidate))
         ) ||
         text.includes(HUMAN_GATE_MARKER) ||
-        (roleOk && LIFECYCLE_ROLE_READY.test(text));
+        (roleOk && LIFECYCLE_ROLE_READY.test(text)) ||
+        // The container arm. The contradiction check comes first, so a filing
+        // declaring itself both a container and a by-design leaf is refused
+        // rather than allowed on the strength of the half that suits it.
+        (!LEAF_TYPE_FLAG.test(text) && CONTAINER_DECLARATION.test(text));
       const declares = (text: string): boolean =>
         declaresFor(text, roles, stateRoleOk);
       // A creation the command does not spell out itself, because it lives in

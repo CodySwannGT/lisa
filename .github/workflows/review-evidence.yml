@@ -90,6 +90,26 @@
 # seven pull requests (#3632, #3633, #3634, #3636, #3637, #3647 and the release
 # they shipped in) merged unreviewed under a green pair of checks.
 #
+# AND A PULL REQUEST SPEAKS FOR ONE COMMIT ONLY (#3658). Everything above judges
+# this pull request's HEAD, which is the one commit a batch integration pull
+# request does not speak for: its head carries the MERGES of every constituent
+# and none of their review statuses. MEASURED 2026-09-03 on one queue drain —
+# four constituents based on a batching branch each reported `Review skipped:
+# reviews are disabled for this base branch`, each one's own run of this workflow
+# went red, and every one of those reds landed on a branch outside the rulesets'
+# ref conditions, so nothing was watching. The integration pull request that
+# carried all four into the default branch was the one place a ruleset applied,
+# and it read only itself. `--require-review-evidence` now also enumerates what
+# this pull request CARRIES — through its merge commits, never through a branch
+# NAME, because a name is an allowlist the convention can rename its way out of
+# — reads each constituent at its OWN head, and renders a batch carrying an
+# unreviewed constituent `neutral` instead of `success`. Capped at `neutral`
+# deliberately: the constituents' own runs already reached the failing verdict
+# where their diffs live, and reddening the batch too would fail an author for a
+# diff they did not write. Failing to READ the batch renders `neutral` as well —
+# an unread batch is not a reviewed one. An ordinary pull request has no merge
+# commits, enumerates an empty batch, and is untouched.
+#
 # AND THE RATE IS NOW EMITTED, not commented. `--waive-rate-sample=40` samples
 # recently merged pull requests and prints the tally in the job summary and in
 # the verdict title, so the 39-of-40 shape is re-measured on every waived run
@@ -150,7 +170,32 @@ concurrency:
 
 jobs:
   vacuity:
-    name: 🕵️ Did the required review checks do any work?
+    # DECLARATIVE, NOT A QUESTION (#3917). This was `🕵️ Did the required review
+    # checks do any work?`, and an unsatisfied verdict exits non-zero, so the
+    # row rendered `Did the required review checks do any work?  fail`. A yes/no
+    # question answered `fail` composes to "NO" — the row asserted that the
+    # review checks did no work at exactly the moment the verdict below said
+    # `UNDETERMINED — ... is NOT reporting that nobody reviewed`. MEASURED: a
+    # reader who was hunting this class of defect read the row, believed the
+    # negative, and ranked "the review genuinely did no work" first among the
+    # explanations. A question-shaped name cannot safely carry more than two
+    # outcomes, and the settle-timeout gives this gate a third.
+    #
+    # AND THE OBVIOUS REPLACEMENT WOULD BE A NEW FALSE CLAIM. `Required review
+    # checks did work` reads true on a failure but FALSE on a pass: this job
+    # exits 0 for a SATISFIED gate and for a WAIVED one alike, and the waiver
+    # covers 39 of the last 40 merged pull requests, so the pass path would
+    # assert work on the very pull requests nothing reviewed. That is the same
+    # defect one square over. The name therefore describes the GATE and asserts
+    # nothing about the review; the verdict itself is published next door as
+    # `🕵️ Review evidence verdict`, which is where the three-valued answer
+    # belongs and already renders correctly.
+    #
+    # Only the name changed. Severity, exit codes, the wait, and the verdict
+    # vocabulary are all untouched — see `tests/unit/scripts/review-evidence-check-name.test.ts`,
+    # which asserts both that this row cannot compose into a false negative and
+    # that a genuinely unreviewed pull request is still a failure.
+    name: 🕵️ Review evidence gate
     runs-on: ubuntu-latest
     # The guard waits for the declared checks to settle before judging them, and
     # its default ceiling is five minutes. This leaves room for the wait plus
