@@ -293,3 +293,8 @@ output/
 # a tracked sandbox would nest copies of itself on every run.
 .stryker-tmp/
 reports/mutation/
+
+# Produced in-run by `check:shell-guard-refusals --trace-out`. Never committed:
+# a stale trace reports a guard as evidenced long after its driving test was
+# deleted, which is the false claim of CodySwannGT/lisa#3931 with a longer half-life.
+.lisa/shell-guard-trace.jsonl

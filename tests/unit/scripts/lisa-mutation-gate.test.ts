@@ -115,6 +115,15 @@ const DOC = "docs/notes.md";
  */
 const GUARD_SH = "scripts/block-something.sh";
 
+/** Where the gate looks for what a run observed shell guards doing. */
+const TRACE_FILE = ".lisa/shell-guard-trace.jsonl";
+
+/** The test frame a trace record names; irrelevant to every assertion. */
+const TRACE_ORIGIN = "t.test.ts:1";
+
+/** The summary phrase that appears when some file above lacks evidence. */
+const NO_EVIDENCE = "NO driving-test evidence";
+
 /** A shell path used where only the extension is the subject. */
 const ANY_SH = "scripts/guard.sh";
 
@@ -1377,6 +1386,75 @@ describe("the gate end to end", () => {
     expect(output()).toContain(GUARD_SH);
     expect(output()).toContain("NO mutant COULD be generated");
     expect(output()).toContain("driving test");
+  });
+
+  it("says it did NOT check when no evidence source exists, not that none does", () => {
+    // The defect, end to end. This branch used to close with the string
+    // literal "Check that one exists; nothing here did" — prose asserting a
+    // search that never ran (CodySwannGT/lisa#3931). With no trace to read,
+    // the honest answer is that the question was not asked.
+    scenario([SRC_TS], [GUARD_SH]);
+    fakeStryker(root, 0);
+
+    expect(runGate(root)).toBe(0);
+    expect(output()).toContain("NOT COMPUTED");
+    expect(output()).toContain('never as "nothing exists"');
+    expect(output()).not.toContain("Check that one exists; nothing here did");
+  });
+
+  it("names a shell guard the run drove to both verdicts as evidenced", () => {
+    // The first arm. A guard whose suite drives it onto a refusal AND onto an
+    // allow has the only evidence a shell guard can have, and the gate now
+    // reports that rather than denying it.
+    scenario([SRC_TS], [GUARD_SH]);
+    write(
+      root,
+      TRACE_FILE,
+      `${JSON.stringify({ script: GUARD_SH, status: 2, origin: TRACE_ORIGIN })}\n` +
+        `${JSON.stringify({ script: GUARD_SH, status: 0, origin: TRACE_ORIGIN })}\n`
+    );
+    fakeStryker(root, 0);
+
+    expect(runGate(root)).toBe(0);
+    expect(output()).toContain(`${GUARD_SH} — evidenced`);
+    expect(output()).toContain("was observed being driven");
+    expect(output()).not.toContain(NO_EVIDENCE);
+  });
+
+  it("still refuses a shell guard the run never drove", () => {
+    // THE REJECTION CONTROL. A check that learned to recognise the case above
+    // and stopped refusing this one would have moved the defect, in the
+    // direction that reads as green. Same diff, same gate, a trace that is
+    // about a different guard.
+    scenario([SRC_TS], [GUARD_SH]);
+    write(
+      root,
+      TRACE_FILE,
+      `${JSON.stringify({ script: "scripts/elsewhere.sh", status: 2, origin: TRACE_ORIGIN })}\n`
+    );
+    fakeStryker(root, 0);
+
+    expect(runGate(root)).toBe(0);
+    expect(output()).toContain(`${GUARD_SH} — UNEVIDENCED`);
+    expect(output()).toContain(NO_EVIDENCE);
+    expect(output()).not.toContain(`${GUARD_SH} — evidenced`);
+  });
+
+  it("refuses a shell guard the run only ever drove onto its allow path", () => {
+    // The deceptive half of CodySwannGT/lisa#3190: a guard with a green
+    // allows-only suite reads as covered. Replace it with `exit 0` and the
+    // suite still passes, so it is not evidence that it can refuse.
+    scenario([SRC_TS], [GUARD_SH]);
+    write(
+      root,
+      TRACE_FILE,
+      `${JSON.stringify({ script: GUARD_SH, status: 0, origin: TRACE_ORIGIN })}\n`
+    );
+    fakeStryker(root, 0);
+
+    expect(runGate(root)).toBe(0);
+    expect(output()).toContain("ALLOWS-ONLY");
+    expect(output()).toContain(NO_EVIDENCE);
   });
 
   it("keeps calling a change it merely did not select nothing-to-mutate", () => {
