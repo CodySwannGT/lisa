@@ -1,34 +1,34 @@
 {
   "force": {
     "scripts": {
-      "setup:deploy-key": "setup-deploy-key",
-      "lint:lisa": "oxlint && eslint . --quiet",
-      "format:check:lisa": "prettier --check .",
+      "check:conflict-markers": "node scripts/check-conflict-markers.mjs",
+      "check:skipped-required-checks": "node scripts/check-skipped-required-checks.mjs",
+      "check:third-party-action-pins": "node scripts/check-third-party-action-pins.mjs --warn",
+      "check:vacuous-required-checks": "node scripts/check-skipped-required-checks.mjs --vacuity",
+      "check:verification": "node scripts/check-verification-coverage.mjs",
+      "check:work-item": "node scripts/lisa-work-item.mjs validate-pr",
+      "check:work-item:push": "node scripts/lisa-work-item.mjs validate-push",
       "format": "prettier --check . --write",
-      "test": "lisa-test-run --profile typescript --adapter vitest -- vitest run",
-      "test:unit": "lisa-test-run --profile typescript --adapter vitest -- vitest run --exclude='**/integration/**'",
-      "test:integration:lisa": "lisa-test-run --profile typescript --adapter vitest -- vitest run '.integration.' 'integration/'",
-      "test:cov": "lisa-test-run --profile typescript --adapter vitest -- vitest run --coverage",
-      "test:cov:unit": "LISA_COVERAGE_SCOPE=unit lisa-test-run --profile typescript --adapter vitest -- vitest run --coverage --exclude='**/integration/**'",
-      "test:mutation": "LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\",\"worker-\"]' lisa-test-run --profile typescript --adapter direct -- node scripts/lisa-mutation.mjs",
-      "test:watch": "lisa-test-run --profile typescript --adapter vitest -- vitest",
-      "lint:fix": "oxlint --fix && eslint . --fix",
-      "lint:slow:lisa": "eslint . --config eslint.slow.config.ts --quiet",
-      "typecheck:lisa": "tsc --noEmit",
+      "format:check:lisa": "prettier --check .",
       "knip:check:lisa": "knip",
       "knip:fix": "knip --fix",
+      "lint:fix": "oxlint --fix && eslint . --fix",
+      "lint:lisa": "oxlint && eslint . --quiet",
+      "lint:slow:lisa": "eslint . --config eslint.slow.config.ts --quiet",
+      "nightly:health": "node scripts/check-nightly-e2e-health.mjs",
+      "prepare": "node -e \"if (process.env.INIT_CWD?.includes('.serverless')) process.exit(0); process.exit(1);\" || husky install || true",
+      "setup:deploy-key": "setup-deploy-key",
       "sg:scan:lisa": "ast-grep scan",
       "sg:test": "ast-grep test",
-      "prepare": "node -e \"if (process.env.INIT_CWD?.includes('.serverless')) process.exit(0); process.exit(1);\" || husky install || true",
-      "nightly:health": "node scripts/check-nightly-e2e-health.mjs",
-      "check:skipped-required-checks": "node scripts/check-skipped-required-checks.mjs",
-      "check:vacuous-required-checks": "node scripts/check-skipped-required-checks.mjs --vacuity",
+      "test:cov:lisa": "lisa-test-run --profile typescript --adapter vitest -- vitest run --coverage",
+      "test:cov:unit:lisa": "LISA_COVERAGE_SCOPE=unit lisa-test-run --profile typescript --adapter vitest -- vitest run --coverage --exclude='**/integration/**'",
+      "test:integration:lisa": "lisa-test-run --profile typescript --adapter vitest -- vitest run '.integration.' 'integration/'",
+      "test:lisa": "lisa-test-run --profile typescript --adapter vitest -- vitest run",
+      "test:mutation": "LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\",\"worker-\"]' lisa-test-run --profile typescript --adapter direct -- node scripts/lisa-mutation.mjs",
       "test:node": "LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile typescript --adapter direct -- node scripts/lisa-test-node.mjs",
-      "check:work-item": "node scripts/lisa-work-item.mjs validate-pr",
-      "check:conflict-markers": "node scripts/check-conflict-markers.mjs",
-      "check:third-party-action-pins": "node scripts/check-third-party-action-pins.mjs --warn",
-      "check:work-item:push": "node scripts/lisa-work-item.mjs validate-push",
-      "check:verification": "node scripts/check-verification-coverage.mjs"
+      "test:unit:lisa": "lisa-test-run --profile typescript --adapter vitest -- vitest run --exclude='**/integration/**'",
+      "test:watch:lisa": "lisa-test-run --profile typescript --adapter vitest -- vitest",
+      "typecheck:lisa": "tsc --noEmit"
     },
     "devDependencies": {
       "eslint-plugin-oxlint": "^1.62.0",
@@ -77,14 +77,19 @@
     },
     "scripts": {
       "build": "tsc",
-      "postinstall": "[ -n \"$CI\" ] || LISA_BOOTSTRAP=1 node node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-postinstall.mjs || true",
-      "test:integration": "$npm_execpath run test:integration:lisa",
-      "lint": "$npm_execpath run lint:lisa",
       "format:check": "$npm_execpath run format:check:lisa",
-      "lint:slow": "$npm_execpath run lint:slow:lisa",
-      "typecheck": "$npm_execpath run typecheck:lisa",
       "knip:check": "$npm_execpath run knip:check:lisa",
-      "sg:scan": "$npm_execpath run sg:scan:lisa"
+      "lint": "$npm_execpath run lint:lisa",
+      "lint:slow": "$npm_execpath run lint:slow:lisa",
+      "postinstall": "[ -n \"$CI\" ] || LISA_BOOTSTRAP=1 node node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-postinstall.mjs || true",
+      "sg:scan": "$npm_execpath run sg:scan:lisa",
+      "test": "$npm_execpath run test:lisa",
+      "test:cov": "$npm_execpath run test:cov:lisa",
+      "test:cov:unit": "$npm_execpath run test:cov:unit:lisa",
+      "test:integration": "$npm_execpath run test:integration:lisa",
+      "test:unit": "$npm_execpath run test:unit:lisa",
+      "test:watch": "$npm_execpath run test:watch:lisa",
+      "typecheck": "$npm_execpath run typecheck:lisa"
     },
     "engines": {
       "npm": "please-use-bun",
@@ -116,6 +121,37 @@
   },
   "adopt": {
     "scripts": {
+      "format:check": [
+        "prettier --check ."
+      ],
+      "knip:check": [
+        "knip"
+      ],
+      "lint": [
+        "oxlint && eslint . --quiet",
+        "eslint . --quiet"
+      ],
+      "lint:slow": [
+        "eslint . --config eslint.slow.config.ts --quiet"
+      ],
+      "sg:scan": [
+        "ast-grep scan"
+      ],
+      "test": [
+        "lisa-test-run --profile typescript --adapter vitest -- vitest run",
+        "lisa-test-run --profile typescript -- vitest run",
+        "lisa-test-run -- vitest run"
+      ],
+      "test:cov": [
+        "lisa-test-run --profile typescript --adapter vitest -- vitest run --coverage",
+        "lisa-test-run --profile typescript -- vitest run --coverage",
+        "lisa-test-run -- vitest run --coverage"
+      ],
+      "test:cov:unit": [
+        "LISA_COVERAGE_SCOPE=unit lisa-test-run --profile typescript --adapter vitest -- vitest run --coverage --exclude='**/integration/**'",
+        "LISA_COVERAGE_SCOPE=unit lisa-test-run --profile typescript -- vitest run --coverage --exclude='**/integration/**'",
+        "LISA_COVERAGE_SCOPE=unit lisa-test-run -- vitest run --coverage --exclude='**/integration/**'"
+      ],
       "test:integration": [
         "lisa-test-run --profile typescript --adapter vitest -- vitest run '.integration.' 'integration/' --passWithNoTests",
         "lisa-test-run --profile typescript --adapter vitest -- vitest run '.integration.' 'integration/'",
@@ -130,24 +166,18 @@
         "NODE_ENV=test jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
         "NODE_ENV=test jest --testPathPatterns=\"\\.integration\\.test\\.(ts|tsx)$\" --passWithNoTests"
       ],
-      "lint": [
-        "oxlint && eslint . --quiet",
-        "eslint . --quiet"
+      "test:unit": [
+        "lisa-test-run --profile typescript --adapter vitest -- vitest run --exclude='**/integration/**'",
+        "lisa-test-run --profile typescript -- vitest run --exclude='**/integration/**'",
+        "lisa-test-run -- vitest run --exclude='**/integration/**'"
       ],
-      "format:check": [
-        "prettier --check ."
-      ],
-      "lint:slow": [
-        "eslint . --config eslint.slow.config.ts --quiet"
+      "test:watch": [
+        "lisa-test-run --profile typescript --adapter vitest -- vitest",
+        "lisa-test-run --profile typescript -- vitest",
+        "lisa-test-run -- vitest"
       ],
       "typecheck": [
         "tsc --noEmit"
-      ],
-      "knip:check": [
-        "knip"
-      ],
-      "sg:scan": [
-        "ast-grep scan"
       ]
     }
   }

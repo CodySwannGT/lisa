@@ -7,11 +7,16 @@
       "tsx": "^4.20.6"
     },
     "scripts": {
+      "lint": "$npm_execpath run lint:lisa",
       "migration:generate": "tsx ./node_modules/typeorm/cli.js migration:generate -d typeorm.config.ts src/database/migrations/$npm_config_name",
-      "migration:run": "tsx ./node_modules/typeorm/cli.js migration:run -d typeorm.config.ts",
       "migration:revert": "tsx ./node_modules/typeorm/cli.js migration:revert -d typeorm.config.ts",
+      "migration:run": "tsx ./node_modules/typeorm/cli.js migration:run -d typeorm.config.ts",
+      "test": "$npm_execpath run test:lisa",
+      "test:cov": "$npm_execpath run test:cov:lisa",
+      "test:cov:unit": "$npm_execpath run test:cov:unit:lisa",
       "test:integration": "$npm_execpath run test:integration:lisa",
-      "lint": "$npm_execpath run lint:lisa"
+      "test:unit": "$npm_execpath run test:unit:lisa",
+      "test:watch": "$npm_execpath run test:watch:lisa"
     },
     "dependencies": {
       "class-validator": "^0.14.3",
@@ -20,37 +25,37 @@
   },
   "force": {
     "scripts": {
-      "setup:deploy-key": "setup-deploy-key",
+      "deploy:dev": "sls deploy --stage dev",
+      "deploy:production": "sls deploy --stage production",
+      "deploy:staging": "sls deploy --stage staging",
+      "fetch:graphql:schema:dev": "./scripts/fetch-graphql-schema.sh development",
+      "fetch:graphql:schema:production": "./scripts/fetch-graphql-schema.sh production",
+      "fetch:graphql:schema:staging": "./scripts/fetch-graphql-schema.sh staging",
       "k6": "./scripts/k6-run.sh",
-      "k6:smoke": "./scripts/k6-run.sh --scenario smoke",
-      "k6:load": "./scripts/k6-run.sh --scenario load",
-      "k6:stress": "./scripts/k6-run.sh --scenario stress",
-      "k6:spike": "./scripts/k6-run.sh --scenario spike",
-      "k6:soak": "./scripts/k6-run.sh --scenario soak",
-      "k6:docker:smoke": "./scripts/k6-run.sh --scenario smoke --docker",
       "k6:docker:load": "./scripts/k6-run.sh --scenario load --docker",
-      "start:local": "IS_OFFLINE=true sls offline start --noTimeout",
+      "k6:docker:smoke": "./scripts/k6-run.sh --scenario smoke --docker",
+      "k6:load": "./scripts/k6-run.sh --scenario load",
+      "k6:smoke": "./scripts/k6-run.sh --scenario smoke",
+      "k6:soak": "./scripts/k6-run.sh --scenario soak",
+      "k6:spike": "./scripts/k6-run.sh --scenario spike",
+      "k6:stress": "./scripts/k6-run.sh --scenario stress",
+      "lint:fix": "oxlint --fix && eslint . --fix",
+      "lint:lisa": "oxlint && eslint . --quiet",
+      "security:zap": "bash scripts/zap-baseline.sh",
+      "setup:deploy-key": "setup-deploy-key",
       "start:dev": "IS_OFFLINE=true sls offline start --stage dev",
       "start:docker": "docker compose up",
       "start:docker:build": "docker compose up --build",
       "start:docker:down": "docker compose down",
-      "fetch:graphql:schema:dev": "./scripts/fetch-graphql-schema.sh development",
-      "fetch:graphql:schema:staging": "./scripts/fetch-graphql-schema.sh staging",
-      "fetch:graphql:schema:production": "./scripts/fetch-graphql-schema.sh production",
-      "deploy:dev": "sls deploy --stage dev",
-      "deploy:staging": "sls deploy --stage staging",
-      "deploy:production": "sls deploy --stage production",
-      "security:zap": "bash scripts/zap-baseline.sh",
-      "test": "lisa-test-run --profile nestjs --adapter vitest -- vitest run",
-      "test:unit": "lisa-test-run --profile nestjs --adapter vitest -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*'",
+      "start:local": "IS_OFFLINE=true sls offline start --noTimeout",
+      "test:cov:lisa": "lisa-test-run --profile nestjs --adapter vitest -- vitest run --coverage",
+      "test:cov:unit:lisa": "LISA_COVERAGE_SCOPE=unit lisa-test-run --profile nestjs --adapter vitest -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'",
       "test:integration:lisa": "lisa-test-run --profile nestjs --adapter vitest -- vitest run '.integration.' 'integration/'",
-      "test:cov": "lisa-test-run --profile nestjs --adapter vitest -- vitest run --coverage",
-      "test:cov:unit": "LISA_COVERAGE_SCOPE=unit lisa-test-run --profile nestjs --adapter vitest -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'",
+      "test:lisa": "lisa-test-run --profile nestjs --adapter vitest -- vitest run",
       "test:mutation": "LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\",\"worker-\"]' lisa-test-run --profile nestjs --adapter direct -- node scripts/lisa-mutation.mjs",
-      "test:watch": "lisa-test-run --profile nestjs --adapter vitest -- vitest",
-      "lint:lisa": "oxlint && eslint . --quiet",
-      "lint:fix": "oxlint --fix && eslint . --fix",
-      "test:node": "LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile nestjs --adapter direct -- node scripts/lisa-test-node.mjs"
+      "test:node": "LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile nestjs --adapter direct -- node scripts/lisa-test-node.mjs",
+      "test:unit:lisa": "lisa-test-run --profile nestjs --adapter vitest -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*'",
+      "test:watch:lisa": "lisa-test-run --profile nestjs --adapter vitest -- vitest"
     },
     "dependencies": {
       "@apollo/server": "^5.4.0",
@@ -109,6 +114,25 @@
   },
   "adopt": {
     "scripts": {
+      "lint": [
+        "oxlint && eslint . --quiet",
+        "eslint . --quiet"
+      ],
+      "test": [
+        "lisa-test-run --profile nestjs --adapter vitest -- vitest run",
+        "lisa-test-run --profile nestjs -- vitest run",
+        "lisa-test-run -- vitest run"
+      ],
+      "test:cov": [
+        "lisa-test-run --profile nestjs --adapter vitest -- vitest run --coverage",
+        "lisa-test-run --profile nestjs -- vitest run --coverage",
+        "lisa-test-run -- vitest run --coverage"
+      ],
+      "test:cov:unit": [
+        "LISA_COVERAGE_SCOPE=unit lisa-test-run --profile nestjs --adapter vitest -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'",
+        "LISA_COVERAGE_SCOPE=unit lisa-test-run --profile nestjs -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'",
+        "LISA_COVERAGE_SCOPE=unit lisa-test-run -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'"
+      ],
       "test:integration": [
         "lisa-test-run --profile nestjs --adapter vitest -- vitest run '.integration.' 'integration/' --passWithNoTests",
         "lisa-test-run --profile nestjs --adapter vitest -- vitest run '.integration.' 'integration/'",
@@ -123,9 +147,15 @@
         "vitest run tests/integration",
         "vitest run tests/integration --passWithNoTests"
       ],
-      "lint": [
-        "oxlint && eslint . --quiet",
-        "eslint . --quiet"
+      "test:unit": [
+        "lisa-test-run --profile nestjs --adapter vitest -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*'",
+        "lisa-test-run --profile nestjs -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*'",
+        "lisa-test-run -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*'"
+      ],
+      "test:watch": [
+        "lisa-test-run --profile nestjs --adapter vitest -- vitest",
+        "lisa-test-run --profile nestjs -- vitest",
+        "lisa-test-run -- vitest"
       ]
     }
   }

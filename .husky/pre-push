@@ -834,7 +834,7 @@ fi
 # measured, and the honest command for such a project is still `test:cov` —
 # slower, but answering to the floor that was configured for what it runs.
 COVERAGE_SCRIPT="test:cov"
-if node -e 'const s=require("./package.json").scripts||{};const u=s["test:cov:unit"];const marker=/^(?:env(?:\s+-\S+)*\s+)?(?:[A-Za-z_][A-Za-z0-9_]*=\S+\s+)*LISA_COVERAGE_SCOPE=unit(?:\s|$)/;process.exit(typeof u==="string"&&marker.test(u.trim())?0:1)' >/dev/null 2>&1; then
+if node -e 'const s=require("./package.json").scripts||{};const resolve=(k,d)=>{const v=s[k];const hop=/^\$npm_execpath\s+run\s+(\S+)$/.exec((v||"").trim());return hop&&d<4?resolve(hop[1],d+1):v;};const u=resolve("test:cov:unit",0);const marker=/^(?:env(?:\s+-\S+)*\s+)?(?:[A-Za-z_][A-Za-z0-9_]*=\S+\s+)*LISA_COVERAGE_SCOPE=unit(?:\s|$)/;process.exit(typeof u==="string"&&marker.test(u.trim())?0:1)' >/dev/null 2>&1; then
   COVERAGE_SCRIPT="test:cov:unit"
 fi
 

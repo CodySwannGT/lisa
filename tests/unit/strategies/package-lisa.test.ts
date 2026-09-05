@@ -34,10 +34,15 @@ describe("Phaser package template controls", () => {
     path.resolve("phaser/package-lisa/package.lisa.json")
   ) as { readonly force?: { readonly scripts?: Record<string, string> } };
 
-  it("ships the exact supervised Vitest scripts", () => {
+  it("ships the exact supervised Vitest scripts on the reserved bases", () => {
+    // The values are unchanged; only the keys moved. These are governed PAIRS
+    // now — Lisa forces `<key>:lisa` and merely defaults `<key>` to invoke it,
+    // so a host can chain onto the host-facing name without an apply erasing
+    // it. Asserting the host-facing key here would re-assert the defect.
     expect(template.force?.scripts).toMatchObject({
-      test: "lisa-test-run --profile phaser --adapter vitest -- vitest run",
-      "test:cov":
+      "test:lisa":
+        "lisa-test-run --profile phaser --adapter vitest -- vitest run",
+      "test:cov:lisa":
         "lisa-test-run --profile phaser --adapter vitest -- vitest run --coverage",
     });
   });
