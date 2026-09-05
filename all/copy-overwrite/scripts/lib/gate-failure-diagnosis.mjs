@@ -58,6 +58,8 @@ export const DIAGNOSIS = Object.freeze({
   COMMENT_TERMINATED: "comment-terminated",
   /** A type checker ran and reported errors in named files. */
   TYPE_ERRORS: "type-errors",
+  /** The prover printed a failure shape the project declared for its gate. */
+  DECLARED_FAILURE: "declared-failure",
   /** Output was read and matched nothing this module knows. */
   UNDIAGNOSED: "undiagnosed",
   /** No output was available to read, so nothing can be said. */
@@ -1270,7 +1272,11 @@ function classify(output, code, load, read, tempRoot) {
 
   return {
     kind: DIAGNOSIS.UNDIAGNOSED,
-    summary: "no recognised failure signature; the command's last lines follow",
+    summary:
+      "no recognised failure signature: Lisa could not read this tool's " +
+      "output, so nothing here is a verdict about the code. Re-run this one " +
+      "check on its own — the tool names what the classifier could not. The " +
+      "command's last lines follow",
     evidence: capped(tailLines(output)),
   };
 }
@@ -1545,6 +1551,81 @@ function findTerminatedComments(output, read) {
 }
 
 /**
+ * The verdict for a transcript carrying a failure shape the project declared.
+ *
+ * ## Why the shapes come from OUTSIDE this module
+ *
+ * Everything above this function recognises a fixed set of transcript forms,
+ * and every content signature among them is a vitest or `tsc` form. A prover
+ * that prints anything else falls into the residual bucket wearing
+ * `UNPROVABLE` — the word this fleet reads as *"the box, re-run it somewhere
+ * quieter"* — so a run that genuinely measured a property and found it wanting
+ * is routed into the re-run path.
+ *
+ * The tempting repair is one more entry in the table. It does not converge:
+ * every project points its gates at provers this module has never seen, so
+ * each new one re-introduces the defect once and the cost is paid by whoever
+ * hits it first. Measured on one repository (CodySwannGT/lisa#3974), four
+ * distinct provers hit it — and a Lisa-repo-specific pattern in a module every
+ * consumer installs is the same objection that keeps a Lisa-repo-specific gate
+ * out of the shipped registry.
+ *
+ * So the project that owns the prover says how its output reads as measured,
+ * and this module carries the MECHANISM and none of the vocabulary. Nothing
+ * below names a tool, a script, or an artifact.
+ *
+ * ## Why the shapes are literal substrings and not patterns
+ *
+ * A declaration is untrusted input compiled from configuration, and this
+ * function parses a multi-megabyte transcript inside a git hook. A regular
+ * expression from config would be an operator-authored ReDoS with a
+ * transcript-sized haystack — see `SCRATCH_REMOVAL_RACE` and `PATH_DELIMITER`
+ * for how carefully this module already avoids that shape in patterns it wrote
+ * itself. A literal substring cannot backtrack, needs no escaping, and is what
+ * an operator copying a line out of a failed transcript would write anyway.
+ *
+ * ## Why this is consulted separately rather than folded into `classify`
+ *
+ * The runner calls it ONLY when the shipped classifier has already returned
+ * `undiagnosed`. That placement is the whole safety argument: a killed,
+ * refused, interfered-with or zero-test run never reaches a content signature
+ * at all, so a declaration cannot promote non-measurement into a failure. The
+ * guarantee is structural rather than a matter of where a line was inserted.
+ * @param {string|null|undefined} output The command's combined output.
+ * @param {Array<{gate: string, shape: string[]}>|null|undefined} declarations
+ *   What each gate sharing this prover declared its failure looks like.
+ * @returns {Diagnosis|null} The verdict, or null when nothing declared matched.
+ */
+export function declaredFailure(output, declarations) {
+  if (typeof output !== "string" || output.length === 0) return null;
+  if (!Array.isArray(declarations)) return null;
+
+  const lines = output.split("\n");
+  for (const declaration of declarations) {
+    const shapes = declaration?.shape;
+    if (!Array.isArray(shapes)) continue;
+    const matched = lines.filter(line =>
+      shapes.some(
+        shape =>
+          typeof shape === "string" && shape !== "" && line.includes(shape)
+      )
+    );
+    if (matched.length === 0) continue;
+    const gate = declaration.gate ?? null;
+    return {
+      kind: DIAGNOSIS.DECLARED_FAILURE,
+      summary:
+        `the prover printed a failure shape ${gate ?? "this project"} ` +
+        `declared, so it ran and found this property wanting. That is a ` +
+        `verdict about the code, not about the machine`,
+      evidence: capped(matched.map(line => line.trim())),
+      proves: gate,
+    };
+  }
+  return null;
+}
+
+/**
  * Classify a failure and say whose property it belongs to.
  *
  * Attribution is separated from classification on purpose. Reading a
@@ -1592,5 +1673,11 @@ export function diagnoseFailure(
   tempRoot
 ) {
   const verdict = classify(output, code, load, read, tempRoot);
-  return { ...verdict, proves: ATTRIBUTION[verdict.kind] ?? null };
+  // A verdict that already knows whose property it is keeps that answer. The
+  // static table maps a KIND to a gate, which cannot express a failure whose
+  // owner is whichever gate declared the shape that matched.
+  return {
+    ...verdict,
+    proves: verdict.proves ?? ATTRIBUTION[verdict.kind] ?? null,
+  };
 }
