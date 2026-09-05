@@ -2301,7 +2301,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-cursor-plugin-artifacts.mjs":
       "45d3bde7b6c55310f0d9436dd68a1bdeefb6fa817be4d15ef745421b39a2cf47",
     "scripts/generate-export-surface.mjs":
-      "2f0e1910aaa60ce66e3f9ce7f9a5694ae4b39cff97c394497b85c29a077e9865",
+      "f9af22c8809e93e09a1b2dbbdbd23356890b3460524bd8752731ff454d5f13c0",
     "scripts/generate-lisa-owned-hash-ledger.mjs":
       "987ed2f9cedefcb70778a6c6ad0f3fffd114fedc7e8bf62d6456b2d2e8e2de76",
     "scripts/generate-nightly-e2e-guard-certificate.mjs":

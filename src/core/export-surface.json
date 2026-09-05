@@ -2,7 +2,7 @@
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
   "$modules": 122,
-  "$names": 1132,
+  "$names": 1139,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -789,8 +789,12 @@
     "scripts/detect-stale-workflow-inputs.mjs": [
       "UsageError",
       "buildReport",
+      "diffStaleKeys",
+      "extractCallerJobs",
+      "extractDeclaredInputs",
       "main",
-      "parseArgs"
+      "parseArgs",
+      "parseReusableReference"
     ],
     "scripts/downstream-name-digest.mjs": [
       "entryFor",
@@ -1357,8 +1361,11 @@
     "typescript/copy-overwrite/scripts/reconcile-nightly-e2e-tracking.mjs": [
       "CONDITION_MARKER",
       "TRACKED_SUITE_LABELS",
+      "TRACKING_DESTINATIONS",
+      "buildProviderDispatch",
       "planCombinedTracking",
-      "reconcileCombinedTracking"
+      "reconcileCombinedTracking",
+      "resolveNightlyTrackingConfig"
     ],
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs": [
       "applyAllowList",

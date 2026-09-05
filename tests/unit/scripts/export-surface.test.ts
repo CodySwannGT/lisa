@@ -100,6 +100,80 @@ describe("reading exports out of a module", () => {
     expect(exportedNames(source)).toEqual(["Real"]);
   });
 
+  it("reads a MULTILINE brace list, which the line-at-a-time reader could not see", () => {
+    // The reader matched a brace list only when the whole list sat on one
+    // line, so a multiline `export { … }` block contributed NOTHING to the
+    // artifact — and removing one of its names was therefore never reported,
+    // while the check went on passing (CodySwannGT/lisa#4006). Measured
+    // against `typescript/copy-overwrite/scripts/reconcile-nightly-e2e-tracking.mjs`,
+    // whose three re-exports were absent from its recorded entry.
+    const source = [
+      "export {",
+      "  TRACKING_DESTINATIONS,",
+      "  buildProviderDispatch,",
+      "  resolveNightlyTrackingConfig,",
+      "};",
+    ].join("\n");
+
+    expect(exportedNames(source)).toEqual([
+      "TRACKING_DESTINATIONS",
+      "buildProviderDispatch",
+      "resolveNightlyTrackingConfig",
+    ]);
+  });
+
+  it("records the EXPORTED name of an alias split across lines", () => {
+    const source = [
+      "export {",
+      "  local as",
+      "    Public,",
+      "} from './m';",
+    ].join("\n");
+
+    expect(exportedNames(source)).toEqual(["Public"]);
+  });
+
+  it("ignores comments inside a multiline brace list", () => {
+    // A commented-out name is not on the surface. Recording it would put a
+    // name in the artifact that no consumer can import, and its later deletion
+    // would render as a removed export that never existed.
+    const source = [
+      "export {",
+      "  kept, // trailing note",
+      "  // dropped,",
+      "  /* alsoDropped, */",
+      "};",
+    ].join("\n");
+
+    expect(exportedNames(source)).toEqual(["kept"]);
+  });
+
+  it("ignores a MULTILINE brace list that is not at line start", () => {
+    // Same anchor rule as the single-line form: an indented or quoted block is
+    // not a declaration, and the multiline reader must not relax that.
+    const source = [
+      "  export {",
+      "    Indented,",
+      "  };",
+      "export {",
+      "  Real,",
+      "};",
+    ].join("\n");
+
+    expect(exportedNames(source)).toEqual(["Real"]);
+  });
+
+  it("reads a namespace re-export, which names a binding consumers can import", () => {
+    // `export * as ns from "mod"` puts `ns` on the surface. `export * from`
+    // has no name of its own and stays invisible, as before.
+    const source = [
+      'export * as helpers from "./helpers.mjs";',
+      'export * from "./everything.mjs";',
+    ].join("\n");
+
+    expect(exportedNames(source)).toEqual(["helpers"]);
+  });
+
   it("omits a default export, which has no name to compare", () => {
     expect(exportedNames("export default function () {}")).toEqual([]);
   });
