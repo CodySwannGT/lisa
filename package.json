@@ -65,7 +65,7 @@
     "check:empty-subject-guards": "node scripts/check-empty-subject-guards.mjs",
     "check:cwd-resolution-corpus": "node scripts/check-cwd-resolution-corpus.mjs",
     "check:probe-absence-direction": "node scripts/check-probe-absence-direction.mjs",
-    "check:shell-guard-refusals": "bun run build && $npm_execpath run lisa-test-run -- --adapter direct -- node scripts/check-shell-guard-refusal-coverage.mjs",
+    "check:shell-guard-refusals": "bun run build && $npm_execpath run lisa-test-run -- --adapter direct -- node scripts/check-shell-guard-refusal-coverage.mjs --trace-out .lisa/shell-guard-trace.jsonl",
     "check:workflow-inputs": "node scripts/detect-stale-workflow-inputs.mjs --project . --project typescript/create-only --project rails/create-only --json",
     "check:conflict-markers": "node all/copy-overwrite/scripts/check-conflict-markers.mjs",
     "check:vacuous-required-checks": "node typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs --vacuity",
