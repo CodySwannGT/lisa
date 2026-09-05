@@ -307,6 +307,11 @@ function foreignTreeIn(text, bound, cwd) {
   for (const raw of code.match(/[^\s'";|&()<>]+/gu) ?? []) {
     const token = raw.replace(/^["']|["']$/gu, "");
     if (!token.includes("/")) continue;
+    // A null base means an unliteral `cd` left the directory this script runs
+    // from unknown. An ABSOLUTE token is unambiguous either way; a relative one
+    // is exactly the thing that cannot be placed, so it is skipped rather than
+    // resolved against a directory picked for having been handy.
+    if (!isAbsolute(token) && cwd === null) continue;
     const candidate = isAbsolute(token) ? token : join(cwd, token);
     let root;
     try {
@@ -318,6 +323,63 @@ function foreignTreeIn(text, bound, cwd) {
     if (root && root !== bound) return root;
   }
   return null;
+}
+
+/**
+ * A `cd` target this guard cannot turn into a literal directory.
+ *
+ * Mirrors `parity-safety-net.sh`'s `follow_cd` test exactly, and the mirror is
+ * the point: two spellings of one rule are how the guards drift.
+ */
+const UNLITERAL_CD_TARGET = /[$`*?[{]/u;
+
+/**
+ * The literal target of a leading `cd`, `""` for a bare `cd`, or null when the
+ * segment does not change directory.
+ *
+ * A bare `cd` is `cd "$HOME"`. Leaving the previous directory in place for it
+ * would resolve later tokens from a directory the shell has already left.
+ * @param segment - One statement from the command
+ * @returns The target text, or null when this segment is not a `cd`
+ */
+function cdTarget(segment) {
+  const tokens = tokenise(segment);
+  if (tokens.length === 0 || tokens[0] !== "cd") return null;
+  return tokens[1] ?? "";
+}
+
+/**
+ * Apply one `cd` to the directory currently in force.
+ *
+ * Contract points 1-4 of `cwd-resolution-corpus.json`: a literal target
+ * REPLACES the directory rather than joining a list of candidates — the
+ * ordering was #3933's entire defect; a relative target composes against the
+ * directory in force; a target that is not literal text yields unknown; and
+ * unknown is sticky only until the next resolvable `cd`, because this returns
+ * a fresh answer for each one.
+ * @param current - Directory in force, or null when it is already unknown
+ * @param target - Literal `cd` target, `""` for a bare `cd`
+ * @returns The new directory, or null when it cannot be known
+ */
+function applyCd(current, target) {
+  const home = homedir();
+  let value = target === "" ? home : target;
+  if (value === "~") value = home;
+  else if (value.startsWith("~/")) value = join(home, value.slice(2));
+  if (
+    value === "" ||
+    value.startsWith("-") ||
+    UNLITERAL_CD_TARGET.test(value)
+  ) {
+    return null;
+  }
+  if (!isAbsolute(value) && current === null) return null;
+  const next = isAbsolute(value) ? resolve(value) : resolve(current, value);
+  try {
+    return statSync(next).isDirectory() ? next : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -343,41 +405,71 @@ function foreignTreeIn(text, bound, cwd) {
  * disagreeing. The scripted form is the one neither covers, and it is the only
  * cell this arm fills.
  *
- * ## A relative script path is resolved against `payload.cwd`, and that is a
- * KNOWN limitation shared with `parity-safety-net.sh`
+ * ## A relative script path is resolved against the cwd the command will have
  *
- * CodySwannGT/lisa#3933, filed against that guard, is the same defect: a
- * relative token is resolved against the hook process's working directory, not
- * against the directory the command will have once it runs its own leading
- * `cd`. So `cd <other tree> && bash scripts/foo.sh` reads THIS tree's copy of
- * `scripts/foo.sh` and reports on it with full confidence.
+ * A leading `cd` establishes the directory this guard resolves relative tokens
+ * from, because that is the directory the shell will be in once the command
+ * runs. Resolving against `payload.cwd` instead was CodySwannGT/lisa#3933's
+ * defect, inherited here knowingly and fixed in CodySwannGT/lisa#3952: on a
+ * machine running many worktrees of one repository, every tree holds its own
+ * copy of every script at the same relative path, and they differ by whatever
+ * each lane is doing.
  *
- * It matters here for the same reason it matters there: on a machine running
- * many worktrees of one repository, every tree holds its own copy of every
- * script at the same relative path, and they differ by whatever each lane is
- * doing. A confident scan of the wrong copy is wrong in both directions, and
- * the silent one — the copy that will run reaches out, the copy that was read
- * does not — is the direction this arm exists to prevent.
+ * ## One contract, two implementations, and why that is the honest answer
  *
- * NOT fixed here on purpose. #3933 is assigned and its options (honour a
- * leading `cd`, or fail closed when the effective cwd is uncertain) belong in
- * one place rather than two: a second implementation of the same resolution is
- * how two guards drift into disagreeing about which file a command runs.
- * When that lands, this call site should adopt whatever it produces.
+ * `parity-safety-net.sh` answers this same question — "which file will this
+ * command actually execute?" — in POSIX shell, where `follow_cd` mutates
+ * file-scope state that `follow_locate` reads. This guard is Node. **There is
+ * no call that reaches from here into a shell function's file-scope state**, so
+ * the duplication is not a factoring somebody skipped; it is one idea that
+ * cannot cross a language boundary as a function call.
  *
- * The exposure here is narrower than there. This arm is reached only after the
- * session has been confirmed to be in its bound worktree, so the common case
- * is a relative path resolving inside the tree the session is actually in.
+ * What binds the two is a written contract and a corpus of rows that BOTH
+ * guards are driven over in CI, so a divergence fails a test on the commit that
+ * causes it rather than surfacing later as a wrong verdict. Contract and corpus
+ * live in `tests/unit/hooks/support/cwd-resolution-corpus.json`.
+ *
+ * This is explicitly NOT unification, and CodySwannGT/lisa#3952 records it as
+ * such: two implementations remain. **A behaviour with no row in the corpus is
+ * free to diverge — add a row when you add a branch.**
+ *
+ * ## The two guards agree on the RESOLUTION, not on the verdict
+ *
+ * When the effective directory cannot be known, both guards decline to resolve
+ * the token. What they then do differs, and that difference is deliberate:
+ * `parity-safety-net.sh` refuses, because a destructive command it cannot see
+ * is the thing it exists to stop. This guard fails open, which is the doctrine
+ * every other undecidable case in this file follows. The corpus asserts the
+ * resolved path, not the exit code, precisely so that one contract can bind two
+ * guards whose fail directions are correctly different.
  *
  * Fails OPEN and says so, like every other undecidable case in this file.
  */
 function scriptReachingForeignTree(payload, bound) {
   const command = payload.tool_input?.command;
   if (typeof command !== "string" || !command) return null;
+  let cwd = payload.cwd;
   for (const segment of command.split(COMMAND_SEPARATORS)) {
+    const target = cdTarget(segment);
+    if (target !== null) {
+      cwd = applyCd(cwd, target);
+      continue;
+    }
     const named = executedPath(segment);
     if (!named) continue;
-    const path = isAbsolute(named) ? named : join(payload.cwd, named);
+    if (!isAbsolute(named) && cwd === null) {
+      // Contract point 3: the effective directory is unknown, so WHICH copy of
+      // a same-named script would run is unknown too. Declining to resolve is
+      // the half shared with parity-safety-net.sh; failing open rather than
+      // refusing is this guard's own doctrine, and the corpus binds the two
+      // guards on the resolution precisely so it does not have to bind them
+      // on a verdict one of them would be wrong to reach.
+      say(
+        `cannot tell which directory ${named} would run from; NOT enforcing on it`
+      );
+      continue;
+    }
+    const path = isAbsolute(named) ? resolve(named) : resolve(cwd, named);
     let text;
     try {
       if (statSync(path).size > SCRIPT_READ_LIMIT) {
@@ -389,7 +481,7 @@ function scriptReachingForeignTree(payload, bound) {
       // Not a readable file: nothing was executed that this can read.
       continue;
     }
-    const foreign = foreignTreeIn(text, bound, payload.cwd);
+    const foreign = foreignTreeIn(text, bound, cwd);
     if (foreign) return { script: path, foreign };
   }
   return null;

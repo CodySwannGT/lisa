@@ -22,7 +22,7 @@ So the same vendor-neutral `lisa-tracker-write` call produced a different lifecy
 
 The safe direction is the implicit one. A ticket that reaches a build queue by accident is worse than one that waits, because the queue is what agents act on autonomously.
 
-## Every filing declares one of two things
+## Every filing declares one of two things — three, counting containers
 
 A writer accepts a filing only when it carries **one** of:
 
@@ -37,6 +37,24 @@ A writer accepts a filing only when it carries **one** of:
 Filed, not ready, and no `human_gate` is the **incomplete handoff** case: the writer rejects it and names the two ways to resolve it. `build_ready: false` without a `human_gate` reason is the same failure spelled differently — it is not a gate, it is an omission with a value attached.
 
 `build_ready` remains strictly subordinate to `leaf-only-lifecycle`: a container is never build-ready regardless of what a caller passes, and a container needs no `human_gate` because its state rolls up from its children rather than being claimed.
+
+### The container declaration, on the direct-CLI path
+
+That exemption used to live only in writer prose, which meant the guard below — the thing that actually runs — had no arm for it. A container could satisfy the guard only by declaring a build-ready role `leaf-only-lifecycle` forbids on it, or a human gate it does not have. **A guard that can only be obeyed by writing something untrue is worse than one that simply refuses**, because the lie is indistinguishable from a correct filing afterwards, and both available lies corrupt data another control reads: a stamped role puts a container in the lane build-intake claims from, and a fabricated hold marker is a state change with no inverse.
+
+So a container filed directly through a tracker CLI declares a **third** thing — the canonical container line the `derived-branch-plan` rule already defines and every writer already stamps in place of a Target Backend Environment:
+
+```text
+## Target Backend Environment
+
+None — container: state rolls up from children
+```
+
+**Not `--label type:Epic`.** A declared type is a claim, and one that costs a leaf nothing: the item it produces still looks buildable, so keying the exemption on it would hand any item willing to mistype itself a free bypass of the readiness requirement — the shape of the measured case where an allowlist added to harden a guard became the way around it. The container line is self-limiting instead: writing it costs the item the Target Backend Environment and Branch Plan a leaf needs to be built at all, so it is only useful to something that actually is a container.
+
+The declaration is refused alongside a **by-design leaf type** declared as a flag value (`type:Bug` / `type:Task` / `type:Sub-task` / `type:Improvement`, or the `--type` spelling on a state-based tracker) — an item cannot be a container and a leaf at once. Story and Spike are deliberately not in that set: `leaf-only-lifecycle`'s childless-parent exception makes them leaf-or-container depending on child work, and a decomposition legitimately files a parent Story before the children that make it one.
+
+One string, defined in one rule, read by the guard and stamped by the writers — which is what keeps this exemption from drifting back into prose only.
 
 ## Complete defects found during other work are filed build-ready
 
@@ -60,7 +78,7 @@ The rule shipped as prose first, and prose did not hold. A conformance audit of 
 
 The control is the PreToolUse Bash guard `block-direct-issue-create.sh`, shipped to every agent variant (Claude, Codex, Cursor, Copilot, agy, OpenCode) and to the host `scripts/lisa-hooks/` fallback. It refuses a direct tracker-creation command — `gh issue create`, `gh api` POST to an issues endpoint, `gh api graphql createIssue`, `linear issue create`, `jira issue create`, `acli … create`, and equivalent `curl` posts — when the command carries **no readiness declaration**.
 
-What it checks is the artifact, not the caller. A Bash-level hook cannot observe call provenance: any provenance signal is settable by the very agent being governed, so a guard built on one would be theatre. So the guard asks whether the command about to run produces a correctly declared item — the configured build-ready role is applied, or a `[lisa-human-gate]` marker is present (inline, or in the `--body-file` the create is about to submit). That is precisely the machine-checkable content of this rule, and it lets the three writers through by construction, because they always stamp one.
+What it checks is the artifact, not the caller. A Bash-level hook cannot observe call provenance: any provenance signal is settable by the very agent being governed, so a guard built on one would be theatre. So the guard asks whether the command about to run produces a correctly declared item — the configured build-ready role is applied, or a `[lisa-human-gate]` marker is present, or the container declaration is (each read inline, or in the `--body-file` the create is about to submit). That is precisely the machine-checkable content of this rule, and it lets the three writers through by construction, because they always stamp one.
 
 Two ways out, both deliberate:
 
