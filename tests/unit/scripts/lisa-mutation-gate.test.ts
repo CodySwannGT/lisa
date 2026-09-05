@@ -24,6 +24,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -51,7 +52,10 @@ import {
   stripMutationRange,
   uninstrumentableGuards,
 } from "../../../typescript/copy-overwrite/scripts/lisa-mutation.mjs";
-import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import {
+  boundedExecFileSync,
+  boundedSpawnSync,
+} from "../../helpers/io-latency-budget.js";
 
 /** The Stryker config file name this gate reads its `mutate` list from. */
 const STRYKER_CONF = "stryker.conf.json";
@@ -256,7 +260,46 @@ const newRepo = (): string => {
  * @param root - Repository root
  * @param exitCode - Status the stand-in should exit with
  */
-const fakeStryker = (root: string, exitCode: number, transcript = ""): void => {
+const fakeStryker = (root: string, exitCode: number): void => {
+  writeStandIn(root, exitCode, "");
+};
+
+/**
+ * The gate's own entry point, run the way the CLI runs it.
+ *
+ * A real path to the real module: driving the shipped entry point is what makes
+ * {@link fakeStrykerPrinting}'s isolation true rather than asserted, because the
+ * child that inherits the pipe is the same program the hook runs.
+ */
+const GATE_ENTRY = fileURLToPath(
+  new URL(
+    "../../../typescript/copy-overwrite/scripts/lisa-mutation.mjs",
+    import.meta.url
+  )
+);
+
+/** One captured gate run: its status, and everything both streams carried. */
+interface CapturedGateRun {
+  /** Exit code the gate returned. */
+  readonly code: number;
+  /** stdout and stderr, the gate's own and its child's, concatenated. */
+  readonly output: string;
+}
+
+/** Drives a printing stand-in, and is the only way to reach one. */
+type DriveGate = (argv?: readonly string[]) => CapturedGateRun;
+
+/**
+ * Write the stand-in Stryker binary the gate will find and run.
+ * @param root - Repository root
+ * @param exitCode - Status the stand-in should exit with
+ * @param transcript - Lines the stand-in prints, or "" for a silent one
+ */
+const writeStandIn = (
+  root: string,
+  exitCode: number,
+  transcript: string
+): void => {
   const bin = path.join(root, "node_modules", ".bin");
   fs.mkdirSync(bin, { recursive: true });
   const printed =
@@ -271,26 +314,55 @@ const fakeStryker = (root: string, exitCode: number, transcript = ""): void => {
 };
 
 /**
- * A stand-in that prints a Stryker transcript before exiting.
+ * A stand-in that prints a Stryker transcript, and the only way to drive it.
  *
- * The gate reads Stryker's output to say WHICH failure it was, so a stand-in
- * that prints nothing can only ever exercise the "could not be captured" arm.
+ * ## Why this returns a runner instead of returning nothing
+ *
+ * CodySwannGT/lisa#3878. The gate streams Stryker's output while keeping a copy
+ * to diagnose from — `{ child; } 2>&1 | tee "$log"` — so a stand-in's every
+ * line goes to the log AND to whatever file descriptor the gate inherited.
+ * Driven in-process by `runGate`, that descriptor is this worker's own stdout,
+ * and the console spy these cases assert through never sees it: the gate's
+ * `console.log` is captured, the CHILD's bytes go straight past it into the
+ * push transcript.
+ *
+ * What landed there was `ERROR Final mutation score 12.34 under breaking
+ * threshold 32, setting exit code to 1 (failure).` — byte-identical to a real
+ * Stryker break, because the fidelity is the point of the fixture. Three
+ * readers in a row took it for a verdict about their own branch.
+ *
+ * So the transcript and the runner arrive together. A case that installs a
+ * printing stand-in gets back the only thing that can drive it, and that thing
+ * runs the gate in a child whose stdout and stderr are pipes this test owns.
+ * The bytes cannot reach a shared stream because nothing connects them to one
+ * — not because anyone remembered to mark them.
  * @param root - Repository root
  * @param exitCode - Status the stand-in should exit with
  * @param transcript - Lines the stand-in prints on stdout
+ * @returns The runner that drives this stand-in with its output captured
  */
 const fakeStrykerPrinting = (
   root: string,
   exitCode: number,
   transcript: string
-): void => {
-  const bin = path.join(root, "node_modules", ".bin");
-  fs.mkdirSync(bin, { recursive: true });
-  fs.writeFileSync(
-    path.join(bin, "stryker"),
-    `#!/bin/sh\ncat <<'TRANSCRIPT'\n${transcript}\nTRANSCRIPT\nexit ${exitCode}\n`
-  );
-  fs.chmodSync(path.join(bin, "stryker"), 0o755);
+): DriveGate => {
+  writeStandIn(root, exitCode, transcript);
+  return (argv: readonly string[] = []) => {
+    const env = Object.fromEntries(
+      Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_"))
+    );
+    const outcome = boundedSpawnSync({
+      label: "lisa-mutation gate",
+      command: process.execPath,
+      args: [GATE_ENTRY, ...argv],
+      cwd: root,
+      env: { ...env, GIT_CONFIG_NOSYSTEM: "1", HOME: root },
+    });
+    return {
+      code: outcome.status ?? 1,
+      output: `${outcome.stdout}${outcome.stderr}`,
+    };
+  };
 };
 
 /**
@@ -1138,11 +1210,12 @@ describe("the gate end to end", () => {
     // Before this change the gate returned Stryker's 0 straight through.
     scenario([SRC_TS], [GUARD_TS]);
     write(root, STRYKER_CONF, thresholded([SRC_TS], 32));
-    fakeStryker(root, 0, INFLATED_TABLE);
+    const driveGate = fakeStrykerPrinting(root, 0, INFLATED_TABLE);
 
-    expect(runGate(root)).toBe(1);
-    expect(output()).toContain(OUTCOMES.inflatedByTimeouts);
-    expect(output()).toContain("20.00 against a break threshold of 32");
+    const run = driveGate();
+    expect(run.code).toBe(1);
+    expect(run.output).toContain(OUTCOMES.inflatedByTimeouts);
+    expect(run.output).toContain("20.00 against a break threshold of 32");
   });
 
   it("passes the same run when nothing was decided by the clock", () => {
@@ -1151,24 +1224,26 @@ describe("the gate end to end", () => {
     // case above would be satisfied by a gate that failed every run.
     scenario([SRC_TS], [GUARD_TS]);
     write(root, STRYKER_CONF, thresholded([SRC_TS], 32));
-    fakeStryker(root, 0, HONEST_TABLE);
+    const driveGate = fakeStrykerPrinting(root, 0, HONEST_TABLE);
 
-    expect(runGate(root)).toBe(0);
-    expect(output()).toContain(OUTCOMES.timeoutAccounting);
-    expect(output()).not.toContain(OUTCOMES.inflatedByTimeouts);
+    const run = driveGate();
+    expect(run.code).toBe(0);
+    expect(run.output).toContain(OUTCOMES.timeoutAccounting);
+    expect(run.output).not.toContain(OUTCOMES.inflatedByTimeouts);
   });
 
   it("reports the timeout accounting on a run it lets through", () => {
     scenario([SRC_TS], [GUARD_TS]);
     write(root, STRYKER_CONF, thresholded([SRC_TS], 10));
-    fakeStryker(root, 0, INFLATED_TABLE);
+    const driveGate = fakeStrykerPrinting(root, 0, INFLATED_TABLE);
 
-    expect(runGate(root)).toBe(0);
+    const run = driveGate();
+    expect(run.code).toBe(0);
     // Both numbers, so a reader can tell how much of the score is load-dependent
     // without going and doing the arithmetic themselves.
-    expect(output()).toContain("20 of 40 detected");
-    expect(output()).toContain("40.00");
-    expect(output()).toContain("20.00");
+    expect(run.output).toContain("20 of 40 detected");
+    expect(run.output).toContain("40.00");
+    expect(run.output).toContain("20.00");
   });
 
   it("adds the honest recomputation to a failure that produced a score", () => {
@@ -1177,11 +1252,16 @@ describe("the gate end to end", () => {
     // still Stryker's verdict, and this is the accounting beneath it.
     scenario([SRC_TS], [GUARD_TS]);
     write(root, STRYKER_CONF, thresholded([SRC_TS], 32));
-    fakeStryker(root, 1, `${INFLATED_TABLE}\n${BREAK_LINE}`);
+    const driveGate = fakeStrykerPrinting(
+      root,
+      1,
+      `${INFLATED_TABLE}\n${BREAK_LINE}`
+    );
 
-    expect(runGate(root)).toBe(1);
-    expect(output()).toContain(OUTCOMES.scoreBelowBreak);
-    expect(output()).toContain(OUTCOMES.timeoutAccounting);
+    const run = driveGate();
+    expect(run.code).toBe(1);
+    expect(run.output).toContain(OUTCOMES.scoreBelowBreak);
+    expect(run.output).toContain(OUTCOMES.timeoutAccounting);
   });
 
   it("stays quiet about an unmeasured share on a failure that scored nothing", () => {
@@ -1189,11 +1269,12 @@ describe("the gate end to end", () => {
     // account for. The unmeasured warning on top of it would be noise over a
     // failure that has already explained itself.
     scenario([SRC_TS], [GUARD_TS]);
-    fakeStryker(root, 1, DRY_RUN_TIMEOUT_LINE);
+    const driveGate = fakeStrykerPrinting(root, 1, DRY_RUN_TIMEOUT_LINE);
 
-    expect(runGate(root)).toBe(1);
-    expect(output()).toContain(OUTCOMES.dryRunTimeout);
-    expect(output()).not.toContain(OUTCOMES.timeoutUnmeasured);
+    const run = driveGate();
+    expect(run.code).toBe(1);
+    expect(run.output).toContain(OUTCOMES.dryRunTimeout);
+    expect(run.output).not.toContain(OUTCOMES.timeoutUnmeasured);
   });
 
   it("mutates the whole list under --all, with no --mutate override", () => {
@@ -1201,14 +1282,15 @@ describe("the gate end to end", () => {
     // narrow the whole-list run to whatever was passed. The absence of the flag
     // IS the whole-list scope.
     scenario([SRC_TS], [DOC]);
-    fakeStryker(root, 0, HONEST_TABLE);
+    const driveGate = fakeStrykerPrinting(root, 0, HONEST_TABLE);
 
-    expect(runGate(root, [WHOLE_LIST_FLAG])).toBe(0);
+    const run = driveGate([WHOLE_LIST_FLAG]);
+    expect(run.code).toBe(0);
     expectStrykerArgv(root, ["run"]);
-    expect(output()).toContain(OUTCOMES.wholeList);
+    expect(run.output).toContain(OUTCOMES.wholeList);
     // The diff is irrelevant under --all: this branch changed no mutate target
     // at all, and the run still happened.
-    expect(output()).not.toContain(OUTCOMES.nothingToMutate);
+    expect(run.output).not.toContain(OUTCOMES.nothingToMutate);
   });
 
   it("accounts for a --all run the same way it accounts for a scoped one", () => {
@@ -1217,19 +1299,20 @@ describe("the gate end to end", () => {
     // to be worth anything, and it used to bypass the accounting entirely.
     scenario([SRC_TS], [DOC]);
     write(root, STRYKER_CONF, thresholded([SRC_TS], 32));
-    fakeStryker(root, 0, INFLATED_TABLE);
+    const driveGate = fakeStrykerPrinting(root, 0, INFLATED_TABLE);
 
-    expect(runGate(root, [WHOLE_LIST_FLAG])).toBe(1);
-    expect(output()).toContain(OUTCOMES.inflatedByTimeouts);
+    const run = driveGate([WHOLE_LIST_FLAG]);
+    expect(run.code).toBe(1);
+    expect(run.output).toContain(OUTCOMES.inflatedByTimeouts);
   });
 
   it("still runs the diff when no --all is passed", () => {
     // The default has to stay the diff-only gate. A flag read as "present
     // unless proven absent" would put a whole-list run on every push.
     scenario([SRC_TS], [GUARD_TS]);
-    fakeStryker(root, 0, HONEST_TABLE);
+    const driveGate = fakeStrykerPrinting(root, 0, HONEST_TABLE);
 
-    expect(runGate(root, [])).toBe(0);
+    expect(driveGate([]).code).toBe(0);
     expectStrykerArgv(root, ["run", "--mutate", GUARD_RANGE]);
   });
 
@@ -1495,28 +1578,146 @@ describe("the gate end to end", () => {
       STRYKER_CONF,
       JSON.stringify({ mutate: [SRC_TS], dryRunTimeoutMinutes: 20 })
     );
-    fakeStrykerPrinting(
+    const driveGate = fakeStrykerPrinting(
       root,
       1,
       `INFO DryRunExecutor Starting initial test run\n${DRY_RUN_TIMEOUT_LINE}`
     );
 
-    expect(runGate(root)).toBe(1);
-    expect(output()).toContain(OUTCOMES.dryRunTimeout);
-    expect(output()).toContain("20 minute(s)");
-    expect(output()).not.toContain(OUTCOMES.scoreBelowBreak);
+    const run = driveGate();
+    expect(run.code).toBe(1);
+    expect(run.output).toContain(OUTCOMES.dryRunTimeout);
+    expect(run.output).toContain("20 minute(s)");
+    expect(run.output).not.toContain(OUTCOMES.scoreBelowBreak);
   });
 
   it("still reports a real score failure as a score failure", () => {
     // The other side of the same control. Softening the timeout case is only
     // safe if the case it was masking still lands.
     scenario([SRC_TS], [GUARD_TS]);
-    fakeStrykerPrinting(root, 1, BREAK_LINE);
+    const driveGate = fakeStrykerPrinting(root, 1, BREAK_LINE);
 
-    expect(runGate(root)).toBe(1);
-    expect(output()).toContain(OUTCOMES.scoreBelowBreak);
-    expect(output()).toContain("12.34");
-    expect(output()).not.toContain(OUTCOMES.dryRunTimeout);
+    const run = driveGate();
+    expect(run.code).toBe(1);
+    expect(run.output).toContain(OUTCOMES.scoreBelowBreak);
+    expect(run.output).toContain("12.34");
+    expect(run.output).not.toContain(OUTCOMES.dryRunTimeout);
+    // AC3: a real verdict names the ranges it scored. A fixture transcript
+    // never scoped a change, so it cannot produce this half however faithfully
+    // it reproduces the vendor's wording.
+    expect(run.output).toContain("Scored 1 changed line range(s)");
+    expect(run.output).toContain(GUARD_RANGE);
+  });
+});
+
+describe("a fixture verdict cannot reach a shared stream", () => {
+  /** This file's own source, which is the subject of the guard below. */
+  const source = fs.readFileSync(fileURLToPath(import.meta.url), "utf8");
+
+  /**
+   * Every `it(...)` body in this file, split on the case opener.
+   * @returns One entry per case, its own source
+   */
+  const cases = (): string[] => source.split(/\n {2}it\(/u).slice(1);
+
+  it("drives every printing stand-in through the captured runner", () => {
+    // THE ENFORCEMENT for CodySwannGT/lisa#3878, and the reason the fix is not
+    // a marker on a string. The gate tees its child's output to the descriptor
+    // it inherited, so a printing stand-in driven by an in-process `runGate`
+    // writes Stryker's exact wording onto this worker's real stdout — past the
+    // console spy, into the push transcript, indistinguishable from a verdict
+    // about the reader's own branch. Three readers took it for one.
+    //
+    // A case can only fail this by reaching for `runGate` after asking for a
+    // transcript, which is the exact move that reintroduces the defect. Naming
+    // it here means the next person is stopped by a test rather than by a
+    // reviewer who happens to remember.
+    const offenders = cases().filter(
+      body => body.includes("fakeStrykerPrinting(") && /\brunGate\(/u.test(body)
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps the silent stand-in silent, so it has no transcript to leak", () => {
+    // The other half of the invariant. `fakeStryker` cannot print, so the cases
+    // that still drive the gate in-process have nothing to put on the stream —
+    // which is what makes converting only the printing cases sufficient rather
+    // than merely convenient.
+    expect(source).toContain(
+      "const fakeStryker = (root: string, exitCode: number): void => {"
+    );
+  });
+
+  it("still feeds the parser the vendor's exact wording", () => {
+    // The fixture's purpose has to survive its isolation: a stand-in that no
+    // longer matches what Stryker prints would be a worse defect than the one
+    // this ticket is about. Byte-exact, asserted against the literal rather
+    // than against the constant, so editing the constant cannot quietly move
+    // what "exact" means.
+    expect(BREAK_LINE).toBe(
+      "ERROR Final mutation score 12.34 under breaking threshold 32, " +
+        "setting exit code to 1 (failure)."
+    );
+    expect(
+      classifyStrykerFailure(BREAK_LINE, {
+        timeoutMS: 5000,
+        dryRunTimeoutMinutes: 5,
+        inherited: [],
+      }).outcome
+    ).toBe(OUTCOMES.scoreBelowBreak);
+  });
+});
+
+describe("a real verdict names what it scored", () => {
+  /** Budgets where the budgets are not the subject. */
+  const budgets = {
+    timeoutMS: 5000,
+    dryRunTimeoutMinutes: 5,
+    inherited: [] as string[],
+  };
+
+  it("lists the changed line ranges a scoped run measured", () => {
+    // AC3. The discriminator that survives a wording edit: a real verdict can
+    // name the ranges it scored, and a stand-in transcript cannot, because a
+    // stand-in never scoped a change. A reader's question stops being "does
+    // this look real?" and becomes "does this name MY files?".
+    const message = classifyStrykerFailure(BREAK_LINE, budgets, [
+      "src/a.ts:1-3",
+      "src/b.ts:5-5",
+    ]).message;
+    expect(message).toContain(
+      "Scored 2 changed line range(s) from THIS change"
+    );
+    expect(message).toContain("• src/a.ts:1-3");
+    expect(message).toContain("• src/b.ts:5-5");
+  });
+
+  it("says so plainly when the run scoped no diff at all", () => {
+    // `--all` scores the whole mutate list, so there are no change-derived
+    // ranges to name. Saying that is still naming the subject; printing
+    // nothing would leave the verdict as anonymous as the fixture.
+    expect(classifyStrykerFailure(BREAK_LINE, budgets, null).message).toContain(
+      "Scored: every pattern in the project's mutate list (--all), not a diff."
+    );
+  });
+
+  it("names nothing rather than inventing a subject it was not given", () => {
+    // The direct classifier call has no scope, and guessing one would be the
+    // same lie in the other direction. Reachable only from a caller that is
+    // not the gate: the gate always knows what it scoped.
+    expect(classifyStrykerFailure(BREAK_LINE, budgets).message).not.toContain(
+      "Scored"
+    );
+  });
+
+  it("leaves a timeout verdict alone, which measured no score to attribute", () => {
+    // The control. A dry run killed by the clock produced no score, so there is
+    // nothing for a subject line to be about, and adding one would suggest the
+    // run reached the change.
+    expect(
+      classifyStrykerFailure(DRY_RUN_TIMEOUT_LINE, budgets, ["src/a.ts:1-1"])
+        .message
+    ).not.toContain("Scored");
   });
 });
 
