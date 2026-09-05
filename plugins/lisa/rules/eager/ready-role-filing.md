@@ -6,10 +6,11 @@ Filing a work item without the ready role is an **incomplete handoff** — build
 
 **An omitted `build_ready` is NOT build-ready on JIRA, GitHub, and Linear alike.** Ready is an explicit claim, never an accident of which tracker a project configured. This is a **breaking change** for GitHub and Linear callers, which previously treated omission as ready; `lisa-github-validate-issue` F4's compensating omitted → `true` normalization is removed with it.
 
-## Every filing declares one of two things
+## Every filing declares one of three things
 
 - **`build_ready: true`** — complete enough to build; enters the ready lane for auto-pickup. Required for any complete defect found during other work, so it is claimable next cycle with no human flipping status.
 - **`human_gate: "<why a human must judge this first>"`** — deliberately held outside the queue. The writer stamps a visible line plus `<!-- [lisa-human-gate] reason=<short-slug> -->` so the hold is auditable.
+- **The container declaration** — `None — container: state rolls up from children`, the canonical line `derived-branch-plan` defines and every writer stamps in place of a Target Backend Environment. A container is never build-ready (`leaf-only-lifecycle`) and needs no gate, so it declares the third thing instead. Deliberately **not** keyed on `--label type:Epic`: a declared type is a claim that costs a leaf nothing and leaves it looking buildable, where the container line costs the item the environment and Branch Plan a leaf needs to be built. It is refused alongside a by-design leaf type (`type:Bug` / `type:Task` / `type:Sub-task` / `type:Improvement`) — an item cannot be a container and a leaf at once.
 
 Filed, not ready, and no `human_gate` is the **incomplete handoff** case — writers reject it and name both ways to resolve it. `build_ready: false` with no reason is the same omission with a value attached. `build_ready` stays subordinate to `leaf-only-lifecycle`: a container is never build-ready and needs no gate.
 
@@ -21,7 +22,7 @@ Filed, not ready, and no `human_gate` is the **incomplete handoff** case — wri
 
 ## This rule is enforced
 
-The PreToolUse guard `block-direct-issue-create.sh` refuses a direct tracker-creation command (`gh issue create`, `gh api` POST to an issues endpoint, `linear`/`jira`/`acli` creates, equivalent `curl` posts) that carries **no readiness declaration** — no configured build-ready role and no `[lisa-human-gate]` marker. It shipped because this rule as prose did not bind: 13 of 13 issues filed during the session that merged it bypassed it, several by the agent that wrote it, while the one obligation backed by a git hook was honored 50 of 50 times. It stands down where no tracker is configured, and for an operator who set `LISA_ALLOW_DIRECT_ISSUE_CREATE` **in the ambient environment** — never from an inline assignment on the refused command.
+The PreToolUse guard `block-direct-issue-create.sh` refuses a direct tracker-creation command (`gh issue create`, `gh api` POST to an issues endpoint, `linear`/`jira`/`acli` creates, equivalent `curl` posts) that carries **none of the three declarations** — no configured build-ready role, no `[lisa-human-gate]` marker, and no container declaration. It shipped because this rule as prose did not bind: 13 of 13 issues filed during the session that merged it bypassed it, several by the agent that wrote it, while the one obligation backed by a git hook was honored 50 of 50 times. It stands down where no tracker is configured, and for an operator who set `LISA_ALLOW_DIRECT_ISSUE_CREATE` **in the ambient environment** — never from an inline assignment on the refused command.
 
 **The role is the TARGET repository's, not the caller's.** A creation addressed at another repository — `--repo` / `-R`, or a `repos/<org>/<repo>/issues` endpoint — is judged against that repository's build-ready role: `hardening.upstreamReadyRole` (default `status:ready`) when the target is `hardening.upstreamRepo`, and the stock `status:ready` otherwise. A creation naming no repository, or naming the project's own `github.org`/`github.repo`, is judged against the project's own role exactly as before. A declaration is required either way; only its vocabulary changes.
 
