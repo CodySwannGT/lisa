@@ -998,6 +998,15 @@ describe("the gate end to end", () => {
     });
     delete process.env.MUTATION_ENABLED;
     delete process.env.MUTATION_SINCE;
+    // The cases below assert the gate's EXACT output, and one line of that
+    // output is conditional on the environment rather than on the tree: the
+    // `::warning` denial `finish` emits only under GitHub Actions. Left to the
+    // ambient value these cases pass locally and fail on the runner — measured
+    // on CodySwannGT/lisa#3988, four of them at once. Pinning it makes the
+    // assertions a statement about the code; the annotation itself is asserted
+    // in `mutation-gate-wiring.test.ts`, where the environment is injected, and
+    // end to end by the last case in this suite.
+    vi.stubEnv("GITHUB_ACTIONS", "");
   });
 
   afterEach(() => {
@@ -1345,6 +1354,35 @@ describe("the gate end to end", () => {
         "   NO mutant was generated and NO score was computed. Nothing was measured,\n" +
         "   so nothing passed — do not read this as evidence about your tests."
     );
+  });
+
+  it("adds the check-list denial to that same output under GitHub Actions", () => {
+    // The other half of pinning GITHUB_ACTIONS in `beforeEach`. Neutralising an
+    // environment variable to make the cases above deterministic would other-
+    // wise mean the conditional line is asserted nowhere END TO END, and a
+    // suite that stops seeing an output line is how the line stops being
+    // emitted — the same "nobody checked" shape this whole change is about.
+    vi.stubEnv("GITHUB_ACTIONS", "true");
+    scenario([SRC_TS], [DOC]);
+    fakeStryker(root, 0);
+
+    expect(runGate(root)).toBe(0);
+    expect(output()).toBe(
+      "⚪ mutation-gate: nothing-to-mutate\n" +
+        "   1 file(s) changed vs main; 0 of them are mutate targets\n" +
+        "   under the patterns from stryker.conf.json.\n" +
+        "   NO mutant was generated and NO score was computed. Nothing was measured,\n" +
+        "   so nothing passed — do not read this as evidence about your tests.\n" +
+        "::warning title=Mutation gate measured nothing::mutation-gate: " +
+        "nothing-to-mutate — no mutant was executed, so this job's green says " +
+        "the run ended cleanly, NOT that mutation coverage was verified. Read " +
+        "it as NOT MEASURED, never as nothing to measure. Change a file this " +
+        'project\'s Stryker "mutate" list selects to get a measurement.'
+    );
+    // The integration suite forbids the phrase in this output and is right to:
+    // a skim keeps the noun and drops the negation. Restated here so a reword
+    // fails in the file being reworded.
+    expect(output()).not.toMatch(/mutation score/iu);
   });
 
   it("names a mutate target whose only changed line was deleted", () => {

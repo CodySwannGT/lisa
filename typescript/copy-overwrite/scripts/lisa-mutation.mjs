@@ -204,15 +204,22 @@ export const OUTCOMES = Object.freeze({
  *
  * Exported so the exact wording is assertable, and built here rather than in
  * the workflow because the workflow cannot see WHICH exit happened.
+ *
+ * It deliberately avoids the words "mutation score", even in a negation.
+ * `tests/integration/mutation-gate-diff-bite.test.ts` asserts that a
+ * nothing-to-mutate run's output does not match /mutation score/i, and that
+ * control is right: a run that scored nothing must not put the phrase in front
+ * of a reader at all, because a skim keeps the noun and drops the "no". The
+ * first draft of this line read "no mutation score was produced" and failed it.
  * @param {string} outcome - The {@link OUTCOMES} marker this run ended on.
  * @returns {string} A GitHub Actions warning command, one line.
  */
 export const unmeasuredAnnotation = outcome =>
-  `::warning title=Mutation gate measured nothing::${outcome} — no mutation ` +
-  "score was produced, so this job's green says the run ended cleanly, NOT " +
-  "that mutation coverage was verified. Read it as NOT MEASURED, never as " +
-  'nothing to measure. Change a file this project\'s Stryker "mutate" list ' +
-  "selects to get a measurement.";
+  `::warning title=Mutation gate measured nothing::${outcome} — no mutant was ` +
+  "executed, so this job's green says the run ended cleanly, NOT that mutation " +
+  "coverage was verified. Read it as NOT MEASURED, never as nothing to " +
+  'measure. Change a file this project\'s Stryker "mutate" list selects to get ' +
+  "a measurement.";
 
 /**
  * Put the denial where a reader of the check list will meet it.

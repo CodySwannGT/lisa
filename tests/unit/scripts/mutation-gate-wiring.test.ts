@@ -653,12 +653,17 @@ describe("a run that EXECUTED no mutant must not report a measurement (#3968)", 
       expect(log).toHaveBeenCalledTimes(1);
       expect(log.mock.calls[0]?.[0]).toBe(
         "::warning title=Mutation gate measured nothing::mutation-gate: " +
-          "nothing-to-mutate — no mutation score was produced, so this job's " +
-          "green says the run ended cleanly, NOT that mutation coverage was " +
+          "nothing-to-mutate — no mutant was executed, so this job's green " +
+          "says the run ended cleanly, NOT that mutation coverage was " +
           "verified. Read it as NOT MEASURED, never as nothing to measure. " +
           'Change a file this project\'s Stryker "mutate" list selects to get ' +
           "a measurement."
       );
+      // The phrase "mutation score" is absent on purpose, even as a negation:
+      // the integration suite forbids it in a nothing-to-mutate run's output,
+      // and a skim keeps the noun and drops the "no". Asserted here so the
+      // constraint is visible at the line someone would edit.
+      expect(log.mock.calls[0]?.[0]).not.toMatch(/mutation score/iu);
     } finally {
       log.mockRestore();
     }
