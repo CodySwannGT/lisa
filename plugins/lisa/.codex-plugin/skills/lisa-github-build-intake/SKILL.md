@@ -332,6 +332,10 @@ other gate's verdict — however conclusive — may promote an item a person par
 4. **Name it in the cycle summary** via `summarizeHumanGateHolds([...])`, so the record
    distinguishes "nothing was eligible" from "something eligible was held for a person". A lane
    mutation nobody can see afterwards is the same class of problem this gate exists to fix.
+   Report alongside it what the precision rule SKIPPED, via `summarizeHumanGateMentions(n)`
+   — the marker occurrences that were mentions rather than declarations (CodySwannGT/lisa#3815).
+   A rule that quietly declines to honour half the occurrences it sees reads exactly like a
+   rule that saw none, so the count is printed even when it is zero.
 5. **Continue to the next candidate.** A held item does not end the cycle.
 
 

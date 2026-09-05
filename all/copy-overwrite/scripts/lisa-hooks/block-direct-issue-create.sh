@@ -497,6 +497,82 @@ project_dir = os.environ.get("LISA_GUARD_PROJECT_DIR", "")
 OVERRIDE_NAME = "LISA_ALLOW_DIRECT_ISSUE_CREATE"
 HUMAN_GATE_MARKER = "[lisa-human-gate]"
 
+# Decoration a hold declaration may sit behind, and nothing more: whitespace,
+# blockquote arrows, list bullets or numbers, emphasis, an opening HTML
+# comment. One character class plus two optional groups, deliberately not a
+# nested quantifier — this runs over untrusted issue bodies.
+HUMAN_GATE_DECORATION = re.compile(r"^[ \t>*_+#-]*(?:\d+[.)][ \t]*)?(?:<!--[ \t]*)?[ \t]*")
+HUMAN_GATE_FENCE = re.compile(r"```.*?```", re.DOTALL)
+HUMAN_GATE_CODE_SPAN = re.compile(r"`[^`\n]*`")
+
+
+def declares_human_gate(text):
+    """Whether a text DECLARES a hold rather than mentioning one.
+
+    The comment this replaces said the marker is matched anywhere because it
+    "has no other meaning, so its presence in the title or body IS the
+    declaration". That was true when written and is false now: the marker
+    acquired a second meaning -- being discussed -- the moment the feature
+    became something people file tickets about, and a ticket about the marker
+    then declares a hold on itself (CodySwannGT/lisa#3815).
+
+    A declaration is POSITIONAL: the marker leads its line, behind at most the
+    decoration above, with fenced blocks and inline code spans removed first
+    because that is how the marker is written ABOUT. The same rule the intake
+    matcher applies, so the two surfaces cannot disagree about one body.
+
+    NOTE the direction here differs from the intake matcher's. There a match
+    HOLDS an item, so a false positive parks work. Here a match ADMITS a
+    filing, so a false positive is a hole -- which makes this the tightening
+    direction on both sides at once.
+
+    Args:
+        text: Any candidate text -- one argv value, a body file, a payload.
+
+    Returns:
+        True when some line of the text declares a hold.
+    """
+    if not text:
+        return False
+    body = HUMAN_GATE_CODE_SPAN.sub("", HUMAN_GATE_FENCE.sub("", str(text)))
+    for line in body.split("\n"):
+        if HUMAN_GATE_DECORATION.sub("", line, count=1).startswith(
+            HUMAN_GATE_MARKER
+        ):
+            return True
+        if _comment_carries_marker(line):
+            return True
+    return False
+
+
+def _comment_carries_marker(line):
+    """Whether an HTML comment on this line carries the marker.
+
+    The second accepted form, and the one this guard needs most: its inputs
+    are not markdown documents. A `--body` value is a single line, and a shell
+    script writes its declaration as `# <!-- ... -->`, so a purely
+    line-leading rule would refuse two declarations people have already
+    written -- both of which are in this repository's own test corpus.
+
+    It is not a loosening. An HTML comment is invisible when rendered, so
+    nobody wraps one around the marker in order to TALK about it; a quotation
+    has to be visible to be a quotation. Measured over this repository's 42
+    matching issue bodies, adding this branch changes not one verdict.
+
+    Args:
+        line: One line of text.
+
+    Returns:
+        True when some comment on the line contains the marker.
+    """
+    segments = line.split("<!--")
+    for segment in segments[1:]:
+        close = segment.find("-->")
+        inside = segment if close == -1 else segment[:close]
+        if HUMAN_GATE_MARKER in inside:
+            return True
+    return False
+
 # ---------------------------------------------------------------------------
 # WHY THIS IS A TOKEN SCAN AND NOT A PROGRAM RESOLVER
 #
@@ -583,7 +659,7 @@ LABEL_FLAGS = {"--label", "--labels", "--add-label", "--status", "--state"}
 #   None — container: state rolls up from children
 #
 # It is a marker with no other meaning, so it is matched wherever the payload
-# reaches — exactly the asymmetry `HUMAN_GATE_MARKER` gets, and for the same
+# reaches — the asymmetry `HUMAN_GATE_MARKER` gets, and for the related
 # reason. Reading the declaration the writer already emits is also what keeps
 # the guard and the skill from drifting apart a second time: there is one
 # string, defined in one rule, and both read it.
@@ -1226,7 +1302,7 @@ def text_declares_readiness(text):
     Returns:
         True when the text declares build-ready or a human gate.
     """
-    if HUMAN_GATE_MARKER in text:
+    if declares_human_gate(text):
         return True
     for role in (ready_role, upstream_ready_role, default_ready_role):
         if not role:
@@ -1270,7 +1346,7 @@ def scope_declaration(text, state_role_ok):
     Returns:
         True when the text carries a whole-scope declaration.
     """
-    if HUMAN_GATE_MARKER in text:
+    if declares_human_gate(text):
         return True
     return bool(state_role_ok and LIFECYCLE_ROLE_READY.search(text))
 
@@ -1500,20 +1576,23 @@ def declares_readiness(raw_args, roles, extra="", state_role_ok=False):
             candidates = [part.strip().strip("'\"") for part in raw.split(",")]
             if role in candidates:
                 return True
-    # The human-gate marker is matched anywhere, and that asymmetry is
-    # deliberate: it is a marker with no other meaning, so its presence in the
-    # title or body IS the declaration. The build-ready role is an ordinary
-    # string that appears in prose about the queue all the time.
-    if HUMAN_GATE_MARKER in " ".join(args):
+    # Checked per ARGV VALUE rather than against `" ".join(args)`, and that is
+    # what makes the positional rule mean anything here. Joining first destroys
+    # position: after a join, no value's line start survives except the first
+    # argument's, so "the marker leads its line" would be decided by argument
+    # order. A `--title` value is its own single line, which is exactly the
+    # unit the rule is about -- and titles must keep being read, since this
+    # guard reads them and the intake matcher does not.
+    if any(declares_human_gate(value) for value in args):
         return True
     for path in body_file_paths(args):
         try:
             with open(path, encoding="utf-8", errors="replace") as handle:
-                if HUMAN_GATE_MARKER in handle.read():
+                if declares_human_gate(handle.read()):
                     return True
         except OSError:
             continue
-    if extra and HUMAN_GATE_MARKER in extra:
+    if declares_human_gate(extra):
         return True
     # The state-based path. Scoped by `state_role_ok` rather than checked
     # unconditionally, so this adds a compliant command where none existed and

@@ -116,6 +116,50 @@ export /**
  */
 const LisaBlockDirectIssueCreate = async () => {
   const HUMAN_GATE_MARKER = "[lisa-human-gate]";
+
+  /**
+   * Decoration a hold declaration may sit behind, and nothing more.
+   *
+   * The OpenCode port of the rule the bash guard applies
+   * (CodySwannGT/lisa#3815). This is a TWELFTH copy of a predicate that ticket
+   * inventoried at eleven, and it is named here because the cross-repo parity
+   * suite compares this port's verdict with the bash guard's on every case — so
+   * a precision change landing on one and not the other is a parity break
+   * rather than a silent divergence. That suite is what found it.
+   */
+  const HUMAN_GATE_DECORATION =
+    /^[ \t>*_+#-]*(?:\d+[.)][ \t]*)?(?:<!--[ \t]*)?[ \t]*/u;
+
+  /**
+   * Whether a text DECLARES a hold rather than merely mentioning one.
+   *
+   * The bare `includes` this replaces read a body that DISCUSSES the marker as
+   * a body that declares a hold. A declaration is positional: the marker leads
+   * its line behind at most the decoration above, or sits inside an HTML
+   * comment on that line, with fenced blocks and inline code spans removed
+   * first because that is how the marker gets written about.
+   */
+  const declaresHumanGate = (text: string): boolean => {
+    if (!text) return false;
+    const body = text
+      .replace(/```[\s\S]*?```/gu, "")
+      .replace(/`[^`\n]*`/gu, "");
+    return body.split("\n").some(line => {
+      if (
+        line.replace(HUMAN_GATE_DECORATION, "").startsWith(HUMAN_GATE_MARKER)
+      ) {
+        return true;
+      }
+      return line
+        .split("<!--")
+        .slice(1)
+        .some(segment => {
+          const close = segment.indexOf("-->");
+          const inside = close === -1 ? segment : segment.slice(0, close);
+          return inside.includes(HUMAN_GATE_MARKER);
+        });
+    });
+  };
   /**
    * A label / workflow-state assignment and its value.
    *
@@ -521,7 +565,7 @@ const LisaBlockDirectIssueCreate = async () => {
             .map(part => part.trim())
             .some(candidate => against.includes(candidate))
         ) ||
-        text.includes(HUMAN_GATE_MARKER) ||
+        declaresHumanGate(text) ||
         (roleOk && LIFECYCLE_ROLE_READY.test(text)) ||
         // The container arm. The contradiction check comes first, so a filing
         // declaring itself both a container and a by-design leaf is refused
