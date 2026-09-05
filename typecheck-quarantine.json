@@ -247,7 +247,6 @@
     "tests/unit/scripts/lisa-gates-validate-ungoverned.test.ts",
     "tests/unit/scripts/lisa-gates.test.ts",
     "tests/unit/scripts/lisa-mutation-sandbox.test.ts",
-    "tests/unit/scripts/lisa-mutation-timeout-accounting.test.ts",
     "tests/unit/scripts/lisa-reconcile-policy-awaited-scope.test.ts",
     "tests/unit/scripts/lisa-reconcile-policy-declarative.test.ts",
     "tests/unit/scripts/lisa-reconcile-policy-fixtures.ts",
