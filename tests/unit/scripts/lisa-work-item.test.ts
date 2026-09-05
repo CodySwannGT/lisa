@@ -3522,7 +3522,19 @@ describe("deferred gates 4 and 5 (#3791)", () => {
     // the fake refuses the flag combination exactly as real `gh` does, so a
     // caller that reintroduces it fails here rather than in a year of pushes
     // that silently checked three gates out of five.
-    expect(readFileSync(log, "utf8")).toContain("pr view --json");
+    //
+    // Asserted as the PROPERTY rather than one spelling of it. The defect is
+    // `--repo` with nothing to view; naming the branch positionally is a
+    // different, valid way to ask, and pinning a single literal invocation
+    // would refuse the valid shape as loudly as the broken one.
+    const lookups = readFileSync(log, "utf8")
+      .split("\n")
+      .filter(line => line.startsWith("pr view"));
+
+    expect(lookups.length).toBeGreaterThan(0);
+    for (const lookup of lookups) {
+      expect(lookup).not.toMatch(/^pr view\s+--repo\b/u);
+    }
   });
 
   it("answers 3 rather than 1 when there is no pull request to discharge", () => {
