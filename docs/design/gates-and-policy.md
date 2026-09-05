@@ -773,5 +773,3 @@ guess.
   no resolve block. `gates.traceability` is therefore still inert for a Rails
   consumer, exactly as #2680 describes. Converting that workflow means bringing
   the façade to it, not bolting a second on/off mechanism onto one job.
-
-<!-- Experiment marker for CodySwannGT/lisa#4018 (arm A). Removed with the branch. -->
