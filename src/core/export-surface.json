@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 115,
-  "$names": 1050,
+  "$modules": 117,
+  "$names": 1057,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -716,6 +716,10 @@
       "main",
       "parseArgs"
     ],
+    "scripts/check-typecheck-tests.mjs": [
+      "main",
+      "rootFrom"
+    ],
     "scripts/check-ui-demo-data.mjs": [
       "extractUiCatalogProgram",
       "inspectUiDemoData"
@@ -831,6 +835,13 @@
       "boundedSpawnSync",
       "isChildTimeout",
       "rethrowIfChildTimeout"
+    ],
+    "scripts/lib/dependency-tree.mjs": [
+      "CANNOT_MEASURE",
+      "INSTALL_COMMAND",
+      "cannotMeasure",
+      "missingDependencies",
+      "ranVacuously"
     ],
     "scripts/lib/gitattributes-merge-drivers.mjs": [
       "mergeDriversIn"
