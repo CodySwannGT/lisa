@@ -46,8 +46,27 @@
  * @module scripts/generate-export-surface
  */
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+
+/**
+ * Fixed absolute git locations, in the order they are tried.
+ *
+ * A bare `"git"` resolves through `PATH`, which any directory early on it can
+ * decide — and this script's whole purpose is to be trusted about what a
+ * release removed. The same ordered candidate list the other shipped checks
+ * use, so one repository resolves one git.
+ */
+const GIT_LOCATIONS = [
+  "/Library/Developer/CommandLineTools/usr/bin/git",
+  "/Applications/Xcode.app/Contents/Developer/usr/bin/git",
+  "/usr/bin/git",
+  "/usr/local/bin/git",
+  "/opt/homebrew/bin/git",
+];
+
+/** Absolute git path: the first candidate that exists. */
+const GIT_BIN = GIT_LOCATIONS.find(candidate => existsSync(candidate)) ?? "git";
 
 /** Directories inside the `files` allowlist that ship executable `.mjs`. */
 const SHIPPED_ROOTS = [
@@ -98,7 +117,7 @@ const BRACE_LIST = /^export\s*\{([^}]*)\}/;
  * @returns {string[]} Repo-relative paths, sorted.
  */
 export function shippedScripts(cwd = process.cwd()) {
-  const listed = execFileSync("git", ["ls-files"], {
+  const listed = execFileSync(GIT_BIN, ["ls-files"], {
     cwd,
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
@@ -239,7 +258,7 @@ export function changelogSection(removals) {
  */
 function surfaceAt(ref, cwd) {
   try {
-    const source = execFileSync("git", ["show", `${ref}:${ARTIFACT}`], {
+    const source = execFileSync(GIT_BIN, ["show", `${ref}:${ARTIFACT}`], {
       cwd,
       encoding: "utf8",
       maxBuffer: 64 * 1024 * 1024,
@@ -260,17 +279,59 @@ function surfaceAt(ref, cwd) {
 }
 
 /**
+ * Classify what an argument vector asks `--removed-since` to do.
+ *
+ * Three outcomes, and the point of the function is that they are three rather
+ * than two. "Compare against this revision" and "generate the artifact" are
+ * the two intended paths; "the flag is present but its operand is missing or
+ * is itself a flag" used to collapse into the second, which is how a typo came
+ * to read as `no exports removed`.
+ *
+ * An operand starting with `-` is refused rather than passed to git: it is
+ * far likelier to be the next flag — `--removed-since --check` consumed
+ * `--check` as the revision — than a revision anyone meant.
+ * @param {string[]} argv Arguments after the script name.
+ * @returns {{mode: "generate"}|{mode: "compare", operand: string}|{mode: "refuse", got: string}}
+ *   What was asked for.
+ */
+export function removedSinceOperand(argv) {
+  const index = argv.indexOf("--removed-since");
+  if (index === -1) return { mode: "generate" };
+
+  const operand = argv[index + 1];
+  if (operand === undefined || operand === "") {
+    return { mode: "refuse", got: "nothing" };
+  }
+  if (operand.startsWith("-")) {
+    return { mode: "refuse", got: `the flag "${operand}"` };
+  }
+  return { mode: "compare", operand };
+}
+
+/**
  * CLI.
  * @returns {number} Exit code.
  */
 function main() {
   const cwd = process.cwd();
   const argv = process.argv.slice(2);
-  const since = argv.includes("--removed-since")
-    ? argv[argv.indexOf("--removed-since") + 1]
-    : null;
+  const request = removedSinceOperand(argv);
 
-  if (since) {
+  if (request.mode === "refuse") {
+    // Exit 2, and on stderr, because the alternative was exit 0 with the
+    // artifact rewritten: a trailing `--removed-since` left the operand
+    // undefined, the comparison branch was skipped, and control fell through
+    // to generation — the one branch that produces a reassuring exit code.
+    // A caller that asked "did this release remove any public export?" was
+    // handed an all-clear for a comparison nobody performed.
+    process.stderr.write(
+      `--removed-since requires a git revision as its next argument; got ${request.got}. Nothing was compared, and this is NOT a clean result.\n`
+    );
+    return 2;
+  }
+
+  if (request.mode === "compare") {
+    const since = request.operand;
     const before = surfaceAt(since, cwd);
     if (before === null) {
       // Exit 2, not 0. "I could not compare" and "nothing was removed" are
