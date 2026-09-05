@@ -83,7 +83,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "4d054e3b7a266d69108f7cec12ee02e6a302670ff5932dc398cb0c5069b2a44f",
+      "32ef2cf49e6d219721fd9cc8f10240fb42a62728488a7586d10075b9a2d581ce",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -1153,7 +1153,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "ab7bb855fd3ebe321e41b0143815f202b70f6ba38f6678791d6d9e933e0c3fd8",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "efde3453026575b7f08df34b716541e46e9a3244e4a9b40ef2ae9f6cd3909c97",
+      "04e0ca40b1b1950af78a8bd965f7f5cad0dd16850d31990f039ae5ee94aa259e",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
