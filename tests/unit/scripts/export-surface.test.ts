@@ -5,6 +5,7 @@ import {
   boundedExecFileSync,
   boundedSpawnSync,
 } from "../../helpers/io-latency-budget.js";
+import { resolveGit } from "../../support/git-executable.js";
 
 import {
   changelogSection,
@@ -12,6 +13,7 @@ import {
   exportedNames,
   parseArtifact,
   removedExports,
+  removedSinceOperand,
   renderArtifact,
   shippedScripts,
 } from "../../../scripts/generate-export-surface.mjs";
@@ -41,6 +43,12 @@ type Surface = Record<string, string[]>;
 
 /** A file path used across the comparison cases. */
 const MODULE = "all/copy-overwrite/scripts/example.mjs";
+
+/** The comparison flag, named once so every case spells it identically. */
+const SINCE_FLAG = "--removed-since";
+
+/** The staleness flag, and the stand-in for "a flag is not a revision". */
+const CHECK_FLAG = "--check";
 
 describe("reading exports out of a module", () => {
   it.each([
@@ -231,9 +239,9 @@ describe("an unanswerable comparison is not a pass", () => {
     // streams, and the failure would then read as a content mismatch rather
     // than as a kill.
     const outcome = boundedSpawnSync({
-      label: "generate-export-surface --removed-since",
+      label: `generate-export-surface ${SINCE_FLAG}`,
       command: process.execPath,
-      args: [script, "--removed-since", ref],
+      args: [script, SINCE_FLAG, ref],
       cwd: REPO,
     });
     return { code: outcome.status ?? -1, out: outcome.stdout ?? "" };
@@ -267,7 +275,107 @@ describe("an unanswerable comparison is not a pass", () => {
   });
 });
 
+describe("a `--removed-since` with no revision is not a pass", () => {
+  const script = path.join(REPO, "scripts", "generate-export-surface.mjs");
+
+  /**
+   * Run the CLI with a raw argv tail and report how it exited.
+   * @param args - Argument vector handed to the script
+   * @returns The exit code and combined output
+   */
+  const runWith = (args: readonly string[]): { code: number; out: string } => {
+    const outcome = boundedSpawnSync({
+      label: `generate-export-surface ${args.join(" ")}`,
+      command: process.execPath,
+      args: [script, ...args],
+      cwd: REPO,
+    });
+    return {
+      code: outcome.status ?? -1,
+      out: `${outcome.stdout ?? ""}${outcome.stderr ?? ""}`,
+    };
+  };
+
+  it("exits 2, not 0, when the flag carries no revision", () => {
+    // The defect this block exists against. A trailing `--removed-since`
+    // left `since` undefined, control fell through to the generation branch,
+    // the artifact was written and the process exited 0 — so a mistyped flag
+    // was indistinguishable from a genuine "no exports removed". The caller
+    // asked a question and was handed a reassuring exit code for an answer
+    // nobody computed.
+    const result = runWith([SINCE_FLAG]);
+
+    expect(result.code).toBe(2);
+    expect(result.code).not.toBe(0);
+  });
+
+  it("does not silently regenerate the artifact instead of comparing", () => {
+    // The specific fall-through: generation is the branch that produces the
+    // reassuring exit code, so reaching it at all is the failure. Naming the
+    // refusal in words keeps a human reading a log from reading the exit as
+    // an all-clear.
+    expect(runWith([SINCE_FLAG]).out).toContain("requires a git revision");
+  });
+
+  it("says the next flag is not the revision it was asked for", () => {
+    // `--removed-since --check` consumed `--check` as the revision and then
+    // reported "no surface recorded at --check" — true, useless, and about
+    // the wrong thing. The operand is what is wrong, and it says so.
+    const result = runWith([SINCE_FLAG, CHECK_FLAG]);
+
+    expect(result.code).toBe(2);
+    expect(result.out).toContain("requires a git revision");
+    expect(result.out).toContain(CHECK_FLAG);
+  });
+
+  it.each([
+    ["a missing operand", []],
+    ["an empty operand", [""]],
+    ["a flag in the operand position", [CHECK_FLAG]],
+    ["a short flag in the operand position", ["-n"]],
+  ])("reads %s as a refusal", (_label, tail) => {
+    expect(removedSinceOperand([SINCE_FLAG, ...tail]).mode).toBe("refuse");
+  });
+
+  it("reads a revision as the revision", () => {
+    // The passing arm. Without it, "always refuse" would satisfy every case
+    // above and the comparison path would be unreachable.
+    expect(removedSinceOperand([SINCE_FLAG, "HEAD~1"])).toEqual({
+      mode: "compare",
+      operand: "HEAD~1",
+    });
+  });
+
+  it("reads an absent flag as the generation path, not a refusal", () => {
+    // `bun run build:export-surface` passes no flag at all, and must still
+    // reach generation.
+    expect(removedSinceOperand([CHECK_FLAG]).mode).toBe("generate");
+  });
+});
+
 describe("it names the removal that caused this ticket", () => {
+  const HISTORICAL = ["c32f33010f", "f13bb00ec7"] as const;
+
+  it("has the history it compares against", () => {
+    // A shallow checkout (`fetch-depth: 1`) would not carry these commits,
+    // and the comparison below would then fail on an opaque git error that
+    // reads as a broken assertion rather than as missing history. The
+    // workflow currently uses `fetch-depth: 0`, so this guard is latent — it
+    // exists to put the diagnosis in the failure message on the day that
+    // changes.
+    const missing = HISTORICAL.filter(
+      ref =>
+        boundedSpawnSync({
+          label: `git cat-file -e ${ref}`,
+          command: resolveGit(),
+          args: ["cat-file", "-e", `${ref}^{commit}`],
+          cwd: REPO,
+        }).status !== 0
+    );
+
+    expect(missing).toEqual([]);
+  });
+
   it("reports SNAPSHOT_MAX_AGE_DAYS removed by the real commit", () => {
     // Not a fixture. This is the historical event #3718 is about: the commit
     // that removed the required-checks drift arm (#3599) also removed three
@@ -278,7 +386,7 @@ describe("it names the removal that caused this ticket", () => {
     const at = (ref: string): string =>
       boundedExecFileSync({
         label: `git show ${ref}`,
-        command: "/usr/bin/git",
+        command: resolveGit(),
         args: ["show", `${ref}:${file}`],
         cwd: REPO,
       });
