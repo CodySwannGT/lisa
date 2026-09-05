@@ -244,11 +244,18 @@ later with `git apply "$patch"`.
 
 If the work is NOT yours -- a concurrent agent dirtied this worktree and your
 judgement is "none of this is mine" -- that same capture is how you return the
-tree to HEAD:
+tree to HEAD. This block is self-contained; paste it as it stands:
 
+  patch="$(mktemp "${TMPDIR:-/tmp}/lisa-preserve-XXXXXX")"
   git reset
   git diff --binary HEAD > "$patch"
   git apply -R "$patch"
+
+It names the file itself rather than inheriting one from the block above,
+because the two blocks are alternatives and only one of them gets run. A remedy
+printed at the moment an agent is blocked is followed literally; one that
+depends on a variable the reader never set fails on its first line, and the
+guard that printed it stops being believed.
 
 `git reset` clears staged and unmerged entries first, so the capture sees the
 whole tree as one diff; reversing it leaves the tree at HEAD with "$patch" as

@@ -2225,11 +2225,28 @@ if [ -n "$structured_call" ]; then
     exit 0
   fi
 
+  # A PACKED label string counts. Exact equality against the flattened value
+  # list reads `labels: ["status:ready"]` and nothing else, but the same
+  # compliant filing spelled `labels: "status:ready,type:Bug"` — the shape
+  # `gh issue create --label` takes, and the shape several MCP servers pass
+  # through verbatim — carries no value equal to the role, so the guard
+  # refused a filing that had declared exactly what it demanded. A false
+  # positive in a guard costs more than a miss: it teaches the operator that
+  # the guard is wrong, and the next refusal is argued with rather than
+  # obeyed.
+  #
+  # Split on the DELIMITERS a packed list uses (comma, semicolon, newline) and
+  # trimmed, never on a `contains` match. `contains` would accept a body that
+  # merely mentions the role in prose — "do not mark this status:ready" — and
+  # that is a fail-open on the one question this path exists to answer.
   structured_declaration="$(
     printf '%s' "$input" |
       jq -r --arg role "$ready_role" '
         [(.tool_input // {}) | .. | strings] as $values
-        | if ($values | index($role)) then "role"
+        | ($values + ($values
+            | map(splits("[,;\n]"))
+            | map(sub("^\\s+"; "") | sub("\\s+$"; "")))) as $atoms
+        | if ($atoms | index($role)) then "role"
           elif ($values | map(select(contains("[lisa-human-gate]"))) | length) > 0 then "gate"
           else "" end
       ' 2>/dev/null || printf 'UNREADABLE'

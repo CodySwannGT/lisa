@@ -156,8 +156,53 @@ describe("block-direct-issue-create.sh substrates", () => {
           body: "Held. <!-- [lisa-human-gate] reason=pricing -->",
         }),
       ],
+      // A PACKED label string is the same declaration, and the shape
+      // `gh issue create --label` takes — several MCP servers pass it through
+      // verbatim. Matching by exact equality against the flattened value list
+      // read only the array spelling, so a filing that had declared precisely
+      // what the guard demanded was refused for how it spelled it. A false
+      // positive costs more than a miss here: it teaches the operator the
+      // guard is wrong, and the next refusal gets argued with.
+      [
+        "the ready role packed into one comma-separated string",
+        mcp("mcp__github__create_issue", {
+          owner: "o",
+          repo: "r",
+          title: "x",
+          labels: "status:ready,type:Bug",
+        }),
+      ],
+      [
+        "the same packing with a space after the comma",
+        mcp("mcp__github__create_issue", {
+          title: "x",
+          labels: "type:Bug, status:ready",
+        }),
+      ],
+      [
+        "a semicolon-packed list",
+        mcp("mcp__github__create_issue", {
+          title: "x",
+          labels: "type:Bug;status:ready",
+        }),
+      ],
     ])(ALLOWS, (_label, payload) => {
       expect(run(payload)).toBe(EXIT_ALLOWED);
+    });
+
+    // The boundary the split must not cross. Splitting on delimiters admits a
+    // packed list; a `contains` match would also admit a body that merely
+    // MENTIONS the role, which is a fail-open on the one question this path
+    // exists to answer.
+    it("still refuses prose that only names the role", () => {
+      expect(
+        run(
+          mcp("mcp__github__create_issue", {
+            title: "x",
+            body: "do not mark this status:ready until pricing is settled",
+          })
+        )
+      ).toBe(EXIT_BLOCKED);
     });
   });
 

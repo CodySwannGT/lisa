@@ -538,6 +538,16 @@ SOURCE_BUILTINS = {"source", "."}
 FOLLOW_WRAPPERS = {
     "builtin": (frozenset(), 0),
     "command": (frozenset(), 0),
+    # `env bash edit.sh` runs `bash edit.sh`. Its absence here was the one
+    # wrapper on this list a caller reaches for without thinking about
+    # wrappers at all, because `env VAR=value <cmd>` is how a one-off
+    # environment override is spelled. Those `VAR=value` operands need no
+    # positional count: the walk below re-enters its assignment skip on the
+    # next iteration and steps over as many as are present.
+    "env": (
+        frozenset({"-C", "--chdir", "-P", "-S", "--split-string", "-u", "--unset"}),
+        0,
+    ),
     "exec": (frozenset({"-a"}), 0),
     "nice": (frozenset({"-n", "--adjustment"}), 0),
     "nohup": (frozenset(), 0),
