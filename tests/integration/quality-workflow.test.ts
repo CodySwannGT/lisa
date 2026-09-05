@@ -716,7 +716,7 @@ describe("quality.yml reusable workflow", () => {
       }
     });
 
-    it("fetches only the exact export-removal witnesses for Lisa unit tests", () => {
+    it("fetches export-removal ancestry and exact witnesses for Lisa unit tests", () => {
       const steps = workflow.jobs.test_unit?.steps ?? [];
       const fetch = steps.find(
         step => step.name === "📎 Fetch export-removal witness history"
@@ -726,6 +726,10 @@ describe("quality.yml reusable workflow", () => {
       expect(fetch?.if).toContain("github.repository == 'CodySwannGT/lisa'");
       expect(fetch?.env?.GH_TOKEN).toBe("${{ github.token }}");
       expect(fetch?.run).toContain("credential.helper");
+      expect(fetch?.run).toContain("--unshallow --filter=blob:none --no-tags");
+      expect(fetch?.run).toContain(
+        '"+${GITHUB_SHA}:refs/lisa-test-witnesses/export-head"'
+      );
       expect(fetch?.run).toContain("refs/tags/v3.0.0:refs/tags/v3.0.0");
       expect(fetch?.run).toContain("refs/tags/v4.0.0:refs/tags/v4.0.0");
       expect(fetch?.run).toContain(

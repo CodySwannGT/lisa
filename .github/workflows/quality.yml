@@ -3213,11 +3213,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # The export-surface unit test proves the real removal that motivated
-          # #3718. Keep the checkout shallow while making only its immutable
-          # historical commit and release witnesses available to the tests.
+          # #3718. The gate verifies that each release baseline is an ancestor
+          # of HEAD, so isolated tag objects are insufficient in a depth-1
+          # checkout. Fetch the commit ancestry while filtering historical
+          # blobs, then pin the immutable release and export witnesses.
           git -c credential.helper= \
             -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' \
-            fetch --no-tags origin \
+            fetch --unshallow --filter=blob:none --no-tags origin \
+            "+${GITHUB_SHA}:refs/lisa-test-witnesses/export-head" \
             refs/tags/v3.0.0:refs/tags/v3.0.0 \
             refs/tags/v4.0.0:refs/tags/v4.0.0 \
             c32f33010f5e58879381b0d4c370c630bb179acc:refs/lisa-test-witnesses/export-before \
