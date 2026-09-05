@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.45.14](https://github.com/CodySwannGT/lisa/compare/v4.45.13...v4.45.14) (2026-09-05)
+
+
+### Bug Fixes
+
+* **gates:** a type checker that found errors is a measurement, not an unknown ([12a65ea](https://github.com/CodySwannGT/lisa/commit/12a65eaa3c656bce07bde2ee0c9db5a810b04c7e)), closes [#2961](https://github.com/CodySwannGT/lisa/issues/2961) [CodySwannGT/lisa#3946](https://github.com/CodySwannGT/lisa/issues/3946)
+* **hooks:** give the dirty-worktree refusal a remedy that runs and recovers ([6180a47](https://github.com/CodySwannGT/lisa/commit/6180a4737f10b7a7742b870f0ae812b8172db10e)), closes [#3722](https://github.com/CodySwannGT/lisa/issues/3722) [#2906](https://github.com/CodySwannGT/lisa/issues/2906) [#2940](https://github.com/CodySwannGT/lisa/issues/2940) [CodySwannGT/lisa#3696](https://github.com/CodySwannGT/lisa/issues/3696)
+
 ### [4.45.13](https://github.com/CodySwannGT/lisa/compare/v4.45.12...v4.45.13) (2026-09-05)
 
 ### [4.45.12](https://github.com/CodySwannGT/lisa/compare/v4.45.11...v4.45.12) (2026-09-05)
