@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.45.7](https://github.com/CodySwannGT/lisa/compare/v4.45.6...v4.45.7) (2026-09-05)
+
+
+### Bug Fixes
+
+* **tests:** scale deletion-dominated budgets on a filesystem proxy ([778a080](https://github.com/CodySwannGT/lisa/commit/778a080f2c75feb41e1c473ff8dede6f5e88a434)), closes [#3925](https://github.com/CodySwannGT/lisa/issues/3925) [CodySwannGT/lisa#3936](https://github.com/CodySwannGT/lisa/issues/3936)
+
 ### [4.45.6](https://github.com/CodySwannGT/lisa/compare/v4.45.5...v4.45.6) (2026-09-05)
 
 
