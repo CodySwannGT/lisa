@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.44.0](https://github.com/CodySwannGT/lisa/compare/v4.43.1...v4.44.0) (2026-09-05)
+
+
+### Features
+
+* **artifacts:** make generated-artifact merge coverage checkable ([8376d57](https://github.com/CodySwannGT/lisa/commit/8376d57a509cd2480fb3b994d07d7f354e07886e)), closes [CodySwannGT/lisa#3932](https://github.com/CodySwannGT/lisa/issues/3932)
+
+
+### Bug Fixes
+
+* **hooks:** read the script a command is about to run, not just where it starts ([0aa4e23](https://github.com/CodySwannGT/lisa/commit/0aa4e23740bb5e781736f28fa722ed4a799310e4)), closes [CodySwannGT/lisa#3927](https://github.com/CodySwannGT/lisa/issues/3927) [CodySwannGT/lisa#3924](https://github.com/CodySwannGT/lisa/issues/3924)
+* **work-item:** tell an unbounded push range from a traceability failure ([adcf2b0](https://github.com/CodySwannGT/lisa/commit/adcf2b01c5f948ee738074f53bb887ccaf627d67)), closes [CodySwannGT/lisa#3719](https://github.com/CodySwannGT/lisa/issues/3719) [CodySwannGT/lisa#3719](https://github.com/CodySwannGT/lisa/issues/3719)
+
 ### [4.43.1](https://github.com/CodySwannGT/lisa/compare/v4.43.0...v4.43.1) (2026-09-05)
 
 ## [4.43.0](https://github.com/CodySwannGT/lisa/compare/v4.42.7...v4.43.0) (2026-09-05)
