@@ -1,0 +1,706 @@
+#!/usr/bin/env node
+/**
+ * Reconcile the worktree a session was TOLD it is in against the one it is
+ * ACTUALLY operating in, and refuse to act while the two disagree.
+ *
+ * WHAT WENT WRONG. `EnterWorktree` reported "the session is now working in the
+ * worktree" for a tree that Bash never moved to and that Edit then refused by
+ * name (CodySwannGT/lisa#3864). Three subsystems, three answers, and the one
+ * that answered affirmatively was the wrong one. A refusal teaches you
+ * something; a success message that is not true is a confirmation — it removes
+ * the reason to check and sends the agent forward confidently in the wrong
+ * place. Acting on that confirmation, one session ran an install that landed in
+ * a different agent's active worktree. The next such command is a `git commit`
+ * or a file write, and that tree held eighteen modified tracked files.
+ *
+ * The displacement is also mutual: whoever calls `EnterWorktree` last wins for
+ * every session whose own binding never took, so each agent repairing itself
+ * displaces the others. That is why "just re-enter your worktree" is not a
+ * remedy — it is the mechanism.
+ *
+ * WHAT THIS FIXES AND WHAT IT CANNOT. Lisa does not own `EnterWorktree`, so it
+ * cannot make that call itself return failure. What it can do is make the
+ * false confirmation cost nothing: the FIRST action taken on the strength of it
+ * is refused, and the refusal names the worktree the session is really bound
+ * to. The gap is stated rather than hidden — the acceptance criterion asking
+ * `EnterWorktree` to fail is met one tool call later, by the guard, not by the
+ * tool.
+ *
+ * WHY BLOCKING AND NOT A WARNING. The failure mode is that nothing feels wrong.
+ * There is no symptom to notice, so an advisory line scrolls past exactly when
+ * it matters. A refusal is the only form of this check the agent cannot read
+ * past.
+ *
+ * WHY AN EXPLICIT ACKNOWLEDGEMENT AND NOT "BLOCK ONCE". A guard that blocks the
+ * first attempt and lets the retry through is defeated by a blind retry, which
+ * is the single most likely next action. So the block stands until the session
+ * states, in the acknowledgement, the absolute path it now intends to work in.
+ * A path that does not match what the session is actually in is refused too —
+ * that is the rejection control, and it is what stops a stale acknowledgement
+ * copied from another agent's transcript from silently rebinding this one.
+ *
+ * FAILING OPEN, LOUDLY. Anything this cannot determine — no session id, no
+ * cwd, not a git repository, an unreadable state file — exits 0 with a line on
+ * stderr. A guard that cannot read its input cannot tell a displacement from a
+ * directory listing, and one that wedges every tool call is switched off within
+ * the hour. Silence is the only outcome that is never acceptable.
+ */
+
+import { execFileSync } from "node:child_process";
+import {
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { homedir } from "node:os";
+import { dirname, isAbsolute, join, resolve } from "node:path";
+
+/** Tools whose effect on the wrong worktree is not undoable by re-reading. */
+const GUARDED_TOOLS = new Set(["Bash", "Write", "Edit", "MultiEdit"]);
+
+/**
+ * The literal an agent echoes to rebind this session deliberately.
+ *
+ * A shell line rather than a flag on this script, because the only surface the
+ * agent has for saying so is a Bash command, and it must be one this guard sees
+ * on its own PreToolUse pass — which is exactly where a command string arrives.
+ */
+const ACCEPT_PREFIX = "lisa-worktree-binding: accept";
+
+/**
+ * Resolve a path the way git reports one.
+ *
+ * `git rev-parse --show-toplevel` answers with symlinks resolved, and on macOS
+ * every temporary directory is a symlink — `/var/…` is `/private/var/…`. A
+ * comparison between git's answer and a path handed in by a tool would then
+ * differ by that prefix alone and read as a displacement, which is a false
+ * accusation in exactly the state the guard is supposed to be trusted in. A
+ * path that does not exist yet cannot be resolved and is returned as given.
+ * @param value - Absolute path to normalize
+ * @returns The path with symlinks resolved where possible
+ */
+function realpath(value) {
+  try {
+    return realpathSync(value);
+  } catch {
+    return value;
+  }
+}
+
+function say(message) {
+  process.stderr.write(`worktree-binding-guard: ${message}\n`);
+}
+
+/** Run git, returning trimmed stdout, or null when it exits non-zero. */
+function git(args, cwd) {
+  try {
+    return execFileSync("git", args, {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    // probe-direction: neutral — this helper REPORTS, it does not decide. Both
+    // callers below read null and each one says out loud what it could not do
+    // before returning, so no gate outcome follows from this null silently
+    // (#3848). Keep that true: a caller added here that spends null as an
+    // answer has to say so at its own line.
+    return null;
+  }
+}
+
+/**
+ * The worktree root containing `cwd`, or null when `cwd` is not in a repo.
+ *
+ * `--show-toplevel` exits non-zero for two OPPOSITE reasons and hands back the
+ * same nothing for both: `cwd` is outside any repository — a real absence, and
+ * a call there is genuinely none of this guard's business — or git could not
+ * answer at all, where the binding is unproven rather than inapplicable. Only
+ * the second is a withdrawal of enforcement, and it is the one that must not
+ * pass for the first. `git --version` succeeds wherever git can run, so its
+ * failure is what separates them.
+ * @param {string} cwd Directory the tool call runs in.
+ * @returns {string|null} Absolute worktree root, or null.
+ */
+function worktreeRoot(cwd) {
+  const top = git(["rev-parse", "--show-toplevel"], cwd);
+  if (top) return resolve(top);
+  if (git(["--version"], cwd) === null) {
+    say("git could not be run here, so the worktree binding is NOT enforced");
+  }
+  return null;
+}
+
+/**
+ * The MAIN checkout's root, which is where `.claude/worktrees/` lives.
+ *
+ * `--git-common-dir` is shared by every linked worktree, so its parent is the
+ * main checkout no matter which worktree asks.
+ */
+function mainCheckout(cwd) {
+  const common = git(
+    ["rev-parse", "--path-format=absolute", "--git-common-dir"],
+    cwd
+  );
+  if (common) return dirname(resolve(common));
+  // Reached only for an `EnterWorktree` naming a worktree, which means a
+  // repository was already in hand — so failing here is "could not ask", and
+  // the consequence is that the claim goes unrecorded and the NEXT call's
+  // displacement check has nothing to compare against. Said out loud rather
+  // than returned as a quiet null (#3848).
+  say("git could not resolve the main checkout, so this claim is NOT recorded");
+  return null;
+}
+
+/**
+ * How much of an executed script this guard will read, in bytes.
+ *
+ * A generated fixture can be megabytes, and a guard that reads all of it on
+ * every Bash call is a guard someone switches off.
+ */
+const SCRIPT_READ_LIMIT = 256 * 1024;
+
+/**
+ * Programs that take their operands as DATA and never execute them.
+ *
+ * The same split `block-direct-issue-create.sh` makes, and for the same reason
+ * it had to: a guard that opens every file a command names, then judges the
+ * COMMAND by that FILE's contents, refuses ordinary inspection. Reading a
+ * script that visits another worktree is not visiting it.
+ *
+ * The list is an exemption, not an allowlist. Anything unrecognised is
+ * FOLLOWED, because an interpreter roster fails open on the runner nobody
+ * enumerated.
+ */
+const READ_ONLY_PROGRAMS = new Set([
+  "awk",
+  "basename",
+  "cat",
+  "cksum",
+  "cmp",
+  "comm",
+  "cut",
+  "diff",
+  "dirname",
+  "du",
+  "file",
+  "find",
+  "grep",
+  "egrep",
+  "fgrep",
+  "head",
+  "less",
+  "ls",
+  "md5",
+  "md5sum",
+  "more",
+  "nl",
+  "od",
+  "realpath",
+  "rg",
+  "sed",
+  "sha1sum",
+  "sha256sum",
+  "sort",
+  "stat",
+  "strings",
+  "tail",
+  "tee",
+  "tr",
+  "uniq",
+  "wc",
+  "xxd",
+]);
+
+/** Interpreters whose first non-option operand is the file they run. */
+const EXECUTING_INTERPRETERS = new Set([
+  "bash",
+  "dash",
+  "ksh",
+  "node",
+  "perl",
+  "python",
+  "python3",
+  "ruby",
+  "sh",
+  "zsh",
+  "bun",
+  "deno",
+  "tsx",
+]);
+
+/** Shell builtins that run a file in the CURRENT shell. */
+const SOURCE_BUILTINS = new Set([".", "source"]);
+
+/** Where one command ends and the next begins. */
+const COMMAND_SEPARATORS = /\|\||&&|[;|&\n]/u;
+
+/**
+ * Split a command into tokens, honouring simple quoting.
+ *
+ * Deliberately simple, and the guard fails OPEN when it is not enough — see
+ * {@link scriptReachingForeignTree}. A tokeniser that guessed would be worse
+ * than one that says it does not know.
+ */
+function tokenise(segment) {
+  const tokens = segment.match(/"[^"]*"|'[^']*'|[^\s]+/gu) ?? [];
+  return tokens.map(token => token.replace(/^["']|["']$/gu, ""));
+}
+
+/**
+ * The path this command EXECUTES, or null.
+ *
+ * The command-position question. A path anywhere else is an argument, and an
+ * argument is data.
+ */
+function executedPath(segment) {
+  const tokens = tokenise(segment);
+  if (tokens.length === 0) return null;
+  const [head, ...rest] = tokens;
+  const program = head.split("/").pop() ?? "";
+  if (READ_ONLY_PROGRAMS.has(program)) return null;
+  if (SOURCE_BUILTINS.has(program)) return rest[0] ?? null;
+  if (!EXECUTING_INTERPRETERS.has(program)) {
+    // A command word that is itself a file runs by its shebang.
+    return head.includes("/") ? head : null;
+  }
+  // A known interpreter: the first operand that is not an option.
+  const operand = rest.find(token => !token.startsWith("-"));
+  return operand ?? null;
+}
+
+/**
+ * A worktree root other than `bound` that this text reaches into, or null.
+ *
+ * ## Why this does not enumerate `cd`
+ *
+ * The redirect spellings — `cd`, `git -C`, `--work-tree`, `--git-dir`, a
+ * subshell, `env -C`, a variable holding the path — are an open set, and
+ * enumerating them is the failure this arm exists to end
+ * (CodySwannGT/lisa#3927 states it for the sibling guard). So the question is
+ * inverted the same way the filing guard inverted its own: not *which syntax
+ * moves*, which is unbounded, but *which tokens name a directory in another
+ * worktree*, which is bounded by the file.
+ *
+ * A path only has to RESOLVE. How it arrived does not matter, which is what
+ * makes an unenumerated spelling reach the same verdict as `cd`.
+ *
+ * ## Why comments are stripped first
+ *
+ * A script that merely MENTIONS a sibling worktree — a usage line, a comment,
+ * a log message — would otherwise be refused for describing the thing rather
+ * than doing it. Prose about a subject is the likeliest text to contain the
+ * subject's shapes, and the population that writes it is the people
+ * documenting the guard. A parity classifier elsewhere in this repository was
+ * fooled by exactly that and was caught only by a known-answer control.
+ */
+function foreignTreeIn(text, bound, cwd) {
+  const code = text
+    .split("\n")
+    .map(line => line.replace(/^\s*#.*$/u, ""))
+    .join("\n");
+  for (const raw of code.match(/[^\s'";|&()<>]+/gu) ?? []) {
+    const token = raw.replace(/^["']|["']$/gu, "");
+    if (!token.includes("/")) continue;
+    // A null base means an unliteral `cd` left the directory this script runs
+    // from unknown. An ABSOLUTE token is unambiguous either way; a relative one
+    // is exactly the thing that cannot be placed, so it is skipped rather than
+    // resolved against a directory picked for having been handy.
+    if (!isAbsolute(token) && cwd === null) continue;
+    const candidate = isAbsolute(token) ? token : join(cwd, token);
+    let root;
+    try {
+      if (!statSync(candidate).isDirectory()) continue;
+      root = worktreeRoot(realpathSync(candidate));
+    } catch {
+      continue;
+    }
+    if (root && root !== bound) return root;
+  }
+  return null;
+}
+
+/**
+ * A `cd` target this guard cannot turn into a literal directory.
+ *
+ * Mirrors `parity-safety-net.sh`'s `follow_cd` test exactly, and the mirror is
+ * the point: two spellings of one rule are how the guards drift.
+ */
+const UNLITERAL_CD_TARGET = /[$`*?[{]/u;
+
+/**
+ * The literal target of a leading `cd`, `""` for a bare `cd`, or null when the
+ * segment does not change directory.
+ *
+ * A bare `cd` is `cd "$HOME"`. Leaving the previous directory in place for it
+ * would resolve later tokens from a directory the shell has already left.
+ * @param segment - One statement from the command
+ * @returns The target text, or null when this segment is not a `cd`
+ */
+function cdTarget(segment) {
+  const tokens = tokenise(segment);
+  if (tokens.length === 0 || tokens[0] !== "cd") return null;
+  return tokens[1] ?? "";
+}
+
+/**
+ * Apply one `cd` to the directory currently in force.
+ *
+ * Contract points 1-4 of `cwd-resolution-corpus.json`: a literal target
+ * REPLACES the directory rather than joining a list of candidates — the
+ * ordering was #3933's entire defect; a relative target composes against the
+ * directory in force; a target that is not literal text yields unknown; and
+ * unknown is sticky only until the next resolvable `cd`, because this returns
+ * a fresh answer for each one.
+ * @param current - Directory in force, or null when it is already unknown
+ * @param target - Literal `cd` target, `""` for a bare `cd`
+ * @returns The new directory, or null when it cannot be known
+ */
+function applyCd(current, target) {
+  const home = homedir();
+  let value = target === "" ? home : target;
+  if (value === "~") value = home;
+  else if (value.startsWith("~/")) value = join(home, value.slice(2));
+  if (
+    value === "" ||
+    value.startsWith("-") ||
+    UNLITERAL_CD_TARGET.test(value)
+  ) {
+    return null;
+  }
+  if (!isAbsolute(value) && current === null) return null;
+  const next = isAbsolute(value) ? resolve(value) : resolve(current, value);
+  try {
+    return statSync(next).isDirectory() ? next : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The foreign worktree an executed script reaches, or null.
+ *
+ * ## Why this arm exists at all
+ *
+ * The check above compares `payload.cwd` against the bound root, and that is
+ * the right comparison — but **`payload.cwd` is sampled before the child
+ * process runs**. A script that changes directory internally moves AFTER the
+ * guard has measured. The guard is not wrong about the target; it is right
+ * about a target that stops being the target one instruction later.
+ *
+ * A measurement taken before execution cannot bind what execution does
+ * (CodySwannGT/lisa#3924). So the only thing left is to read what is about to
+ * run.
+ *
+ * ## What this arm does NOT cover, stated rather than implied
+ *
+ * An INLINE redirect — `cd B && git status`, `git -C B status` — is not
+ * refused here. Those are already refused by the runtime's own worktree
+ * isolation, and duplicating a control is how two controls drift into
+ * disagreeing. The scripted form is the one neither covers, and it is the only
+ * cell this arm fills.
+ *
+ * ## A relative script path is resolved against the cwd the command will have
+ *
+ * A leading `cd` establishes the directory this guard resolves relative tokens
+ * from, because that is the directory the shell will be in once the command
+ * runs. Resolving against `payload.cwd` instead was CodySwannGT/lisa#3933's
+ * defect, inherited here knowingly and fixed in CodySwannGT/lisa#3952: on a
+ * machine running many worktrees of one repository, every tree holds its own
+ * copy of every script at the same relative path, and they differ by whatever
+ * each lane is doing.
+ *
+ * ## One contract, two implementations, and why that is the honest answer
+ *
+ * `parity-safety-net.sh` answers this same question — "which file will this
+ * command actually execute?" — in POSIX shell, where `follow_cd` mutates
+ * file-scope state that `follow_locate` reads. This guard is Node. **There is
+ * no call that reaches from here into a shell function's file-scope state**, so
+ * the duplication is not a factoring somebody skipped; it is one idea that
+ * cannot cross a language boundary as a function call.
+ *
+ * What binds the two is a written contract and a corpus of rows that BOTH
+ * guards are driven over in CI, so a divergence fails a test on the commit that
+ * causes it rather than surfacing later as a wrong verdict. Contract and corpus
+ * live in `tests/unit/hooks/support/cwd-resolution-corpus.json`.
+ *
+ * This is explicitly NOT unification, and CodySwannGT/lisa#3952 records it as
+ * such: two implementations remain. **A behaviour with no row in the corpus is
+ * free to diverge — add a row when you add a branch.**
+ *
+ * ## The two guards agree on the RESOLUTION, not on the verdict
+ *
+ * When the effective directory cannot be known, both guards decline to resolve
+ * the token. What they then do differs, and that difference is deliberate:
+ * `parity-safety-net.sh` refuses, because a destructive command it cannot see
+ * is the thing it exists to stop. This guard fails open, which is the doctrine
+ * every other undecidable case in this file follows. The corpus asserts the
+ * resolved path, not the exit code, precisely so that one contract can bind two
+ * guards whose fail directions are correctly different.
+ *
+ * Fails OPEN and says so, like every other undecidable case in this file.
+ */
+function scriptReachingForeignTree(payload, bound) {
+  const command = payload.tool_input?.command;
+  if (typeof command !== "string" || !command) return null;
+  let cwd = payload.cwd;
+  for (const segment of command.split(COMMAND_SEPARATORS)) {
+    const target = cdTarget(segment);
+    if (target !== null) {
+      cwd = applyCd(cwd, target);
+      continue;
+    }
+    const named = executedPath(segment);
+    if (!named) continue;
+    if (!isAbsolute(named) && cwd === null) {
+      // Contract point 3: the effective directory is unknown, so WHICH copy of
+      // a same-named script would run is unknown too. Declining to resolve is
+      // the half shared with parity-safety-net.sh; failing open rather than
+      // refusing is this guard's own doctrine, and the corpus binds the two
+      // guards on the resolution precisely so it does not have to bind them
+      // on a verdict one of them would be wrong to reach.
+      say(
+        `cannot tell which directory ${named} would run from; NOT enforcing on it`
+      );
+      continue;
+    }
+    const path = isAbsolute(named) ? resolve(named) : resolve(cwd, named);
+    let text;
+    try {
+      if (statSync(path).size > SCRIPT_READ_LIMIT) {
+        say(`${path} is too large to inspect; NOT enforcing on it`);
+        continue;
+      }
+      text = readFileSync(path, "utf8");
+    } catch {
+      // Not a readable file: nothing was executed that this can read.
+      continue;
+    }
+    const foreign = foreignTreeIn(text, bound, cwd);
+    if (foreign) return { script: path, foreign };
+  }
+  return null;
+}
+
+function reachesOut(script, foreign, bound) {
+  return refuse([
+    "worktree-binding-guard: this command runs a script that reaches into",
+    "another worktree.",
+    `  script:    ${script}`,
+    `  reaches:   ${foreign}`,
+    `  bound to:  ${bound}`,
+    "The directory change lives inside the file, so it happens after this",
+    "guard has measured where the session is. Run the work from the tree it",
+    "belongs to, or acknowledge the move:",
+    acceptanceLine(foreign),
+  ]);
+}
+
+function stateFile(sessionId) {
+  const home = process.env.LISA_STATE_HOME || join(homedir(), ".lisa");
+  return join(home, "worktree-binding", `${sessionId}.json`);
+}
+
+function readState(sessionId) {
+  try {
+    return JSON.parse(readFileSync(stateFile(sessionId), "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function writeState(sessionId, state) {
+  const file = stateFile(sessionId);
+  try {
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, `${JSON.stringify(state, null, 2)}\n`);
+    return true;
+  } catch (error) {
+    say(`could not record the binding (${error.message}); NOT enforcing`);
+    return false;
+  }
+}
+
+/**
+ * The worktree `EnterWorktree` claims the session moved to.
+ *
+ * `path` is given verbatim; `name` resolves under the main checkout's
+ * `.claude/worktrees/`, which is where the tool creates one. A call carrying
+ * neither is a generated name this guard cannot predict, so it returns null and
+ * the claim is simply not recorded — an unrecorded claim degrades to the plain
+ * displacement check rather than to a false accusation.
+ */
+function claimedRoot(toolInput, cwd) {
+  const path = toolInput?.path;
+  if (typeof path === "string" && path.trim()) {
+    return realpath(resolve(isAbsolute(path) ? path : join(cwd, path)));
+  }
+  const name = toolInput?.name;
+  if (typeof name === "string" && name.trim()) {
+    const main = mainCheckout(cwd);
+    return main
+      ? realpath(join(main, ".claude", "worktrees", name.trim()))
+      : null;
+  }
+  return null;
+}
+
+/**
+ * Record what `EnterWorktree` just claimed, for the next tool call to check.
+ *
+ * Returns nothing on purpose. This runs on PostToolUse, where the tool has
+ * already happened and there is no call left to refuse, so every path through
+ * it is an allow — and a function whose only answer is "allow" should not be
+ * spelled as one that computes an exit code.
+ */
+function recordClaim(payload, observed) {
+  const claimed = claimedRoot(payload.tool_input, payload.cwd);
+  if (!claimed || claimed === observed) return;
+  const previous = readState(payload.session_id);
+  writeState(payload.session_id, {
+    boundRoot: previous?.boundRoot ?? observed,
+    claimedRoot: claimed,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+function refuse(lines) {
+  process.stderr.write(`${lines.join("\n")}\n`);
+  return 2;
+}
+
+function acceptanceLine(observed) {
+  return `  echo '${ACCEPT_PREFIX} ${observed}'`;
+}
+
+/**
+ * Handle an acknowledgement line, or return null when the command is not one.
+ *
+ * The path is compared against what the session is measurably in, not against
+ * what it says it wants. An acknowledgement naming somewhere else is the case
+ * this is for: it means the operator is reasoning about a tree they are not in.
+ */
+function handleAcceptance(payload, observed) {
+  const command = payload.tool_input?.command;
+  if (typeof command !== "string" || !command.includes(ACCEPT_PREFIX))
+    return null;
+  const stated = command.slice(
+    command.indexOf(ACCEPT_PREFIX) + ACCEPT_PREFIX.length
+  );
+  const match = /([^\s'"]+)/.exec(stated);
+  const path = match ? realpath(resolve(match[1])) : null;
+  if (path !== observed) {
+    return refuse([
+      `worktree-binding-guard: this acknowledgement names ${path ?? "no path"},`,
+      `but this session is operating in ${observed}. Not rebinding.`,
+      `If ${observed} is where you mean to work, acknowledge that path:`,
+      acceptanceLine(observed),
+    ]);
+  }
+  writeState(payload.session_id, {
+    boundRoot: observed,
+    claimedRoot: null,
+    updatedAt: new Date().toISOString(),
+  });
+  say(`bound to ${observed}`);
+  return 0;
+}
+
+/** Refusal text for a switch that reported success without taking effect. */
+function unconfirmedSwitch(claimed, observed) {
+  return refuse([
+    `worktree-binding-guard: EnterWorktree reported success for`,
+    `  ${claimed}`,
+    `but this session is still operating in`,
+    `  ${observed}`,
+    "The switch did not take effect. Anything run now lands in the second",
+    "path, not the first — including installs, commits, and file writes, and",
+    "that tree may hold another agent's uncommitted work.",
+    "",
+    "Use absolute paths under the tree you actually want, or acknowledge that",
+    "you intend to keep working where you are:",
+    acceptanceLine(observed),
+  ]);
+}
+
+/** Refusal text for a binding that moved without this session asking. */
+function displaced(bound, observed) {
+  return refuse([
+    "worktree-binding-guard: this session's worktree changed underneath it.",
+    `  bound to:  ${bound}`,
+    `  now in:    ${observed}`,
+    "Concurrent sessions share one worktree binding, so another agent's",
+    "EnterWorktree can move this one. Commands run now land in the second",
+    "path. If you moved deliberately, say so:",
+    acceptanceLine(observed),
+  ]);
+}
+
+function evaluate(payload) {
+  const sessionId = payload.session_id;
+  const cwd = payload.cwd;
+  if (typeof sessionId !== "string" || !sessionId || typeof cwd !== "string") {
+    say("payload carries no session id or cwd; binding is NOT enforced");
+    return 0;
+  }
+  const observed = worktreeRoot(cwd);
+  if (!observed) return 0;
+
+  if (payload.tool_name === "EnterWorktree") {
+    recordClaim(payload, observed);
+    return 0;
+  }
+  if (!GUARDED_TOOLS.has(payload.tool_name)) return 0;
+
+  const accepted = handleAcceptance(payload, observed);
+  if (accepted !== null) return accepted;
+
+  const state = readState(sessionId);
+  if (!state?.boundRoot) {
+    writeState(sessionId, {
+      boundRoot: observed,
+      claimedRoot: null,
+      updatedAt: new Date().toISOString(),
+    });
+    return 0;
+  }
+  if (state.claimedRoot && state.claimedRoot !== observed) {
+    return unconfirmedSwitch(state.claimedRoot, observed);
+  }
+  if (state.claimedRoot === observed) {
+    writeState(sessionId, {
+      boundRoot: observed,
+      claimedRoot: null,
+      updatedAt: new Date().toISOString(),
+    });
+    return 0;
+  }
+  if (state.boundRoot !== observed) return displaced(state.boundRoot, observed);
+  // Last, and only once the session is provably where it should be: a script
+  // that moves somewhere else after this check has already run.
+  const reach = scriptReachingForeignTree(payload, observed);
+  if (reach) return reachesOut(reach.script, reach.foreign, observed);
+  return 0;
+}
+
+function main() {
+  let raw = "";
+  try {
+    raw = readFileSync(0, "utf8");
+  } catch {
+    say("could not read the hook payload; binding is NOT enforced");
+    return 0;
+  }
+  let payload;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    say("hook payload was not JSON; binding is NOT enforced");
+    return 0;
+  }
+  return evaluate(payload);
+}
+
+process.exit(main());

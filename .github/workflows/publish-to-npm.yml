@@ -51,23 +51,52 @@ jobs:
   publish:
     name: Publish to npm
     runs-on: ubuntu-latest
+    # Job-level so every step below reads these from the environment instead of
+    # having them substituted into its script. A `${{ }}` expression is
+    # substituted by Actions BEFORE the shell parses the script, so an
+    # interpolated value is shell SOURCE TEXT rather than an argument - and
+    # `tag`, `version` and `package_manager` are all free-text `type: string`
+    # inputs that reach `git checkout`, `npm version` and a bare command name.
+    # Paired with the shape gates in Validate inputs below (#3717).
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_COMMIT: ${{ inputs.release_commit }}
+      PACKAGE_MANAGER: ${{ inputs.package_manager }}
     steps:
       - name: Validate inputs
         run: |
-          if [ -z "${{ inputs.tag }}" ]; then
+          if [ -z "$RELEASE_TAG" ]; then
             echo "::error::Tag input is empty - cannot publish without a version tag"
             echo "This usually means the version job was skipped (e.g., promotion merge detected)"
             exit 1
           fi
-          if [ -z "${{ inputs.version }}" ]; then
+          if [ -z "$RELEASE_VERSION" ]; then
             echo "::error::Version input is empty - cannot publish without a version"
             exit 1
           fi
-          if ! printf '%s' "${{ inputs.release_commit }}" | grep -Eq '^[0-9a-f]{40}$'; then
+          if ! printf '%s' "$RELEASE_COMMIT" | grep -Eq '^[0-9a-f]{40}$'; then
             echo "::error::Release commit input must be a full 40-hex SHA"
             exit 1
           fi
-          echo "✅ Inputs validated: tag=${{ inputs.tag }}, version=${{ inputs.version }}, release_commit=${{ inputs.release_commit }}"
+          # Shape gates, so a value carrying shell metacharacters is refused
+          # before it reaches `git checkout`, `npm version`, or a command name.
+          if ! printf '%s' "$RELEASE_TAG" | grep -Eq '^v?[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$'; then
+            echo "::error::Tag input is not a valid version tag"
+            exit 1
+          fi
+          if ! printf '%s' "$RELEASE_VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$'; then
+            echo "::error::Version input is not a valid semantic version"
+            exit 1
+          fi
+          case "$PACKAGE_MANAGER" in
+            npm|yarn|pnpm|bun) ;;
+            *)
+              echo "::error::Unsupported package manager: must be npm, yarn, pnpm or bun"
+              exit 1
+              ;;
+          esac
+          echo "✅ Inputs validated: tag=$RELEASE_TAG, version=$RELEASE_VERSION, release_commit=$RELEASE_COMMIT"
 
       - name: Checkout
         uses: actions/checkout@v6
@@ -76,12 +105,12 @@ jobs:
 
       - name: Wait for tag to be available
         run: |
-          echo "Waiting for tag ${{ inputs.tag }} to be available..."
+          echo "Waiting for tag $RELEASE_TAG to be available..."
           for i in {1..30}; do
             git fetch --tags
-            if git tag --list | grep -q "^${{ inputs.tag }}$"; then
-              echo "Tag ${{ inputs.tag }} is now available"
-              git checkout ${{ inputs.tag }}
+            if git tag --list | grep -qx "$RELEASE_TAG"; then
+              echo "Tag $RELEASE_TAG is now available"
+              git checkout "$RELEASE_TAG"
               break
             fi
             echo "Attempt $i/30: Tag not found yet, waiting 10 seconds..."
@@ -89,16 +118,16 @@ jobs:
           done
 
           # Final check
-          if [ "$(git describe --exact-match --tags 2>/dev/null)" != "${{ inputs.tag }}" ]; then
-            echo "Error: Tag ${{ inputs.tag }} is still not available after 5 minutes"
+          if [ "$(git describe --exact-match --tags 2>/dev/null)" != "$RELEASE_TAG" ]; then
+            echo "Error: Tag $RELEASE_TAG is still not available after 5 minutes"
             exit 1
           fi
 
       - name: Validate checked-out release identity
         run: |
           node scripts/check-release-package-identity.mjs checkout \
-            --release-commit "${{ inputs.release_commit }}" \
-            --tag "${{ inputs.tag }}"
+            --release-commit "$RELEASE_COMMIT" \
+            --tag "$RELEASE_TAG"
 
       - name: Setup bun
         if: inputs.package_manager == 'bun'
@@ -127,33 +156,37 @@ jobs:
             core.setSecret(token);
 
       - name: Configure npm with OIDC Token
+        env:
+          # Interpolating a token into the script would put the credential
+          # itself into shell source, where a stray metacharacter changes what
+          # the line does. It is registered as a secret above, so it is masked
+          # in logs either way — this is about the shell, not the log.
+          NPM_OIDC_TOKEN: ${{ steps.npm-oidc.outputs.npm-token }}
         run: |
-          echo "//registry.npmjs.org/:_authToken=${{ steps.npm-oidc.outputs.npm-token }}" >> ~/.npmrc
+          echo "//registry.npmjs.org/:_authToken=$NPM_OIDC_TOKEN" >> ~/.npmrc
           npm config set registry https://registry.npmjs.org
 
       - name: Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+          if [ "$PACKAGE_MANAGER" = "npm" ]; then
             npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
             yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
             bun install --frozen-lockfile
           fi
 
       - name: Update package version
         run: |
           # Update package.json to match the release version
-          VERSION="${{ inputs.version }}"
+          VERSION="$RELEASE_VERSION"
           if [ -n "$VERSION" ]; then
             echo "Updating package.json to version $VERSION"
-            npm version $VERSION --no-git-tag-version --allow-same-version
+            npm version "$VERSION" --no-git-tag-version --allow-same-version
           fi
 
       - name: Stamp immutable release identity
         run: |
-          RELEASE_COMMIT="${{ inputs.release_commit }}"
-          RELEASE_TAG="${{ inputs.tag }}"
           npm pkg set lisaReleaseCommit="$RELEASE_COMMIT"
           npm pkg set gitHead="$RELEASE_COMMIT"
           # The tag, not the commit, is what a consumer gets pinned at. The two
@@ -164,20 +197,23 @@ jobs:
           npm pkg set lisaReleaseTag="$RELEASE_TAG"
 
       - name: Build package
-        run: ${{ inputs.package_manager }} run build
+        run: |
+          "$PACKAGE_MANAGER" run build
 
       - name: Pack and validate release candidate
         id: release_package
         run: |
           pack_destination="$RUNNER_TEMP/lisa-release-package"
           node scripts/check-release-package-identity.mjs pack \
-            --version "${{ inputs.version }}" \
-            --release-commit "${{ inputs.release_commit }}" \
-            --tag "${{ inputs.tag }}" \
+            --version "$RELEASE_VERSION" \
+            --release-commit "$RELEASE_COMMIT" \
+            --tag "$RELEASE_TAG" \
             --pack-destination "$pack_destination"
 
       - name: Publish to npm with OIDC
-        run: npm publish "${{ steps.release_package.outputs.tarball }}" --access public --provenance
+        env:
+          RELEASE_TARBALL: ${{ steps.release_package.outputs.tarball }}
+        run: npm publish "$RELEASE_TARBALL" --access public --provenance
         # npm publish is required for OIDC provenance - bun publish doesn't support --provenance yet
         # Configure trusted publisher at: https://www.npmjs.com/package/<package-name>/access
 
@@ -199,7 +235,7 @@ jobs:
           package_name="$(node -p "require('./package.json').name")"
           node scripts/check-npm-publish-landed.mjs \
             --package "$package_name" \
-            --version "${{ inputs.version }}"
+            --version "$RELEASE_VERSION"
 
       - name: Notify on success
-        run: echo "Successfully published and verified version ${{ inputs.version }} on npm with provenance"
+        run: echo "Successfully published and verified version $RELEASE_VERSION on npm with provenance"

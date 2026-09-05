@@ -303,7 +303,7 @@ describe("the mutation gate's own behavior is unchanged by supervision", () => {
   it("still mutates only changed Ruby subjects, diff-only, against the same base", () => {
     const source = read(MUTATION_SCRIPT);
     expect(source).toContain(
-      `git diff --name-only --diff-filter=ACMR "\${BASE}...HEAD" -- 'app/**/*.rb' 'lib/**/*.rb'`
+      `git diff --name-only --diff-filter=ACMR "\${BASE}" -- 'app/**/*.rb' 'lib/**/*.rb'`
     );
     expect(source).toContain('exec bundle exec mutant run --since "$SINCE"');
   });

@@ -23,6 +23,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  githubBranchIssue,
   noPullRequestToDischarge,
   postDischargeBacklinks,
   textContainsBacklink,
@@ -2888,10 +2889,11 @@ describe("commit identity fallback: the branch when no binding exists", () => {
     }
   });
 
-  it("reads no branch reference for the GitHub provider", () => {
-    // A GitHub reference is `owner/repo#123`. No branch-naming convention
-    // encodes one, so a branch segment that merely LOOKS like a key must not
-    // become a comparison the GitHub path never had.
+  it("reads no KEY-shaped branch segment for the GitHub provider", () => {
+    // A GitHub reference is `owner/repo#123`, so a branch segment shaped like
+    // ANOTHER tracker's key (`lin-12`) names nothing here and must not become
+    // a comparison the GitHub path never had. A bare issue number is a
+    // different matter and IS read — see the GitHub cases below (#3861).
     const fixture = createFixture(githubConfig());
     git(
       fixture.root,
@@ -2972,6 +2974,237 @@ describe("commit identity fallback: the branch when no binding exists", () => {
     });
     expect(reached.status).toBe(1);
     expect(reached.stderr).toContain("Linear");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The same fallback, for the provider it never reached.
+//
+// `branchWorkItem` returned `undefined` on its FIRST statement for the GitHub
+// provider, on the premise that "no branch-naming convention encodes a GitHub
+// reference". That is true of the canonical `owner/repo#123` spelling and
+// false of the convention actually in use — `fix/3537-…`, `stack/3463`. The
+// number is right there, just not spelled as a full reference. So on a GitHub
+// repository the trailer was compared against the binding or against nothing,
+// and on the machine that found this 4 of 105 worktrees carried a binding
+// (CodySwannGT/lisa#3861).
+//
+// The number is read ONLY as the whole first path segment after the first
+// slash. That is what separates an issue number from a version (`4.33.1`), a
+// date stamp (`20260903`), and another tracker's key (`se-7728`) — every one
+// of which appears in this repository's own branch list, and every one of
+// which a looser "first number anywhere" rule would misread as an issue and
+// refuse. The cases below pin each of those apart individually, because a
+// single passing case cannot show WHICH rule produced it.
+// ---------------------------------------------------------------------------
+describe("commit identity fallback on GitHub (#3861)", () => {
+  const REPOSITORY = "acme/widgets";
+  const MATCHING = `${REPOSITORY}#42`;
+
+  /** A GitHub fixture checked out on `branch`. */
+  function githubOn(branch: string): Fixture {
+    const fixture = createFixture(githubConfig());
+    git(fixture.root, ["switch", "-q", "-c", branch], fixture.env);
+    return fixture;
+  }
+
+  /**
+   * Run `validate-commit` over a well-formed message carrying `ref`.
+   * @param fixture The fixture to run in.
+   * @param ref The reference the trailer names.
+   * @param env Extra environment entries.
+   * @returns The completed command result.
+   */
+  function validateOn(
+    fixture: Fixture,
+    ref: string,
+    env: NodeJS.ProcessEnv = {}
+  ): CommandResult {
+    const file = path.join(fixture.root, "COMMIT_EDITMSG");
+    writeFileSync(file, `chore: a change\n\nWork-Item: ${ref}\n`);
+    return command(fixture, ["validate-commit", file], { env });
+  }
+
+  it("refuses a trailer naming a different issue than the branch encodes", () => {
+    // Before this, the identical case exited 0 and printed
+    // `WORK_ITEM_TRACKING_OK` — a live, in-scope, perfectly valid reference to
+    // work this branch is not doing, on its way into history.
+    const fixture = githubOn("fix/99-a-different-ticket");
+
+    const refused = validateOn(fixture, MATCHING);
+
+    expect(refused.status).toBe(1);
+    expect(refused.stderr).toContain("does not match this branch's work item");
+    expect(refused.stderr).toContain(`${REPOSITORY}#99`);
+  });
+
+  it("accepts the trailer the branch encodes", () => {
+    const fixture = githubOn("fix/42-the-real-ticket");
+
+    expect(validateOn(fixture, MATCHING).status).toBe(0);
+  });
+
+  it("reads a bare number that is the whole segment, with no slug after it", () => {
+    // `stack/3463` in the wild: nothing follows the number.
+    const fixture = githubOn("stack/99");
+
+    expect(validateOn(fixture, MATCHING).status).toBe(1);
+  });
+
+  it("does not read a version as an issue number", () => {
+    // `chore/upgrade-lisa-4.33.1`. A "first number anywhere" rule reads 4 here
+    // and refuses every dependency bump in the repository.
+    const fixture = githubOn("chore/upgrade-lisa-4.33.1");
+
+    expect(validateOn(fixture, MATCHING).status).toBe(0);
+  });
+
+  it("does not read a date stamp as an issue number", () => {
+    // `stack/queue-drain-20260903`. There is no issue 20260903.
+    const fixture = githubOn("stack/queue-drain-20260903");
+
+    expect(validateOn(fixture, MATCHING).status).toBe(0);
+  });
+
+  it("does not read another tracker's key as an issue number", () => {
+    // `fix/se-7728-…` names an SE ticket. Whatever GitHub issue it maps to, it
+    // is not 7728, so reading it would attribute the commit to a coincidence.
+    const fixture = githubOn("fix/se-7728-e2e-coverage-wildcard");
+
+    expect(validateOn(fixture, MATCHING).status).toBe(0);
+  });
+
+  it("fails open on a branch that encodes no number at all", () => {
+    // The deliberate fail-open. Replacing a comparison that silently did not
+    // happen with a new class of blocked commit on every unnumbered branch
+    // would trade one surprise for a louder one.
+    const fixture = githubOn("chore/bump-deps");
+
+    expect(validateOn(fixture, MATCHING).status).toBe(0);
+  });
+
+  it("keeps the binding authoritative over a disagreeing branch", () => {
+    // The documented escape for a branch deliberately retargeted to another
+    // ticket — a shape this repository's own history contains, where five
+    // commits on a branch named for one issue all declared another.
+    const fixture = githubOn("fix/99-branch-says-99");
+    const file = stateFilePath(fixture);
+    mkdirSync(path.dirname(file), { recursive: true });
+    writeFileSync(
+      file,
+      `${JSON.stringify({
+        branch: git(fixture.root, ["branch", "--show-current"], fixture.env),
+        provider: "github",
+        ref: MATCHING,
+        version: 1,
+      })}\n`
+    );
+
+    expect(validateOn(fixture, MATCHING).status).toBe(0);
+  });
+
+  it("reaches the branch verdict without contacting the tracker", () => {
+    // The property that lets this run on every single commit. An unparseable
+    // tracker payload is a transport that cannot answer; a branch-mismatch
+    // verdict under it is only reachable if the comparison completed before
+    // any tracker call.
+    const dead = { FAKE_GH_ISSUE_JSON: "not json at all" };
+    const refused = validateOn(
+      githubOn("fix/99-a-different-ticket"),
+      MATCHING,
+      dead
+    );
+
+    expect(refused.status).toBe(1);
+    expect(refused.stderr).toContain("does not match this branch's work item");
+
+    // The counter-control: with the SAME dead payload and an AGREEING trailer,
+    // the run gets far enough to ask GitHub and fails there instead. Without
+    // it, the assertion above would also pass for a build that refused
+    // everything before doing any work at all.
+    const reached = validateOn(
+      githubOn("fix/42-the-real-ticket"),
+      MATCHING,
+      dead
+    );
+
+    expect(reached.status).toBe(1);
+    expect(reached.stderr).not.toContain(
+      "does not match this branch's work item"
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The branch reader itself, in process.
+//
+// The CLI cases above reach this function only by SPAWNING the script, and a
+// subprocess loads the file from disk rather than the instrumented module. The
+// mutation gate therefore cannot see through them: measured, 12 of 12 mutants
+// in `githubBranchIssue` survived the full CLI set, while an untouched range of
+// the same file scored 85.71% off the in-process importers. The CLI cases prove
+// the wiring; these prove the rule, and only these can prove it.
+//
+// Each row exists to defeat a specific way the pattern could be wrong, so the
+// table is a list of decisions rather than a list of examples.
+// ---------------------------------------------------------------------------
+describe("githubBranchIssue, in process (#3861)", () => {
+  const CONTRACT = { provider: "github", repository: "acme/widgets" };
+
+  it.each([
+    // Reads the number, and reads ALL of it — `\d*` collapsing to `\d` would
+    // yield 386, and `\d*` widening to `\D*` would match nothing at all.
+    ["fix/3861-github-branch-work-item", "acme/widgets#3861"],
+    // The number may end the branch, so the terminator is `-` OR end-of-input.
+    // Dropping the `$` alternative loses this one.
+    ["stack/3463", "acme/widgets#3463"],
+    // ...and it may be followed by a slug, so dropping the `-` alternative
+    // loses this one instead. The pair pins both halves.
+    ["qd/3554-release-commit-reachability", "acme/widgets#3554"],
+    // A single-character prefix still counts: `[^/]+` must not become `[^/]`.
+    ["x/12-short-prefix", "acme/widgets#12"],
+  ])("reads %s as %s", (branch, expected) => {
+    expect(githubBranchIssue(branch, CONTRACT)).toBe(expected);
+  });
+
+  it.each([
+    // A version. The single most common false positive a looser rule creates,
+    // because every dependency bump in the repository carries one.
+    ["chore/upgrade-lisa-4.33.1"],
+    // A date stamp. There is no issue 20260903.
+    ["stack/queue-drain-20260903"],
+    // Another tracker's key. Whatever GitHub issue it maps to is not 7728.
+    ["fix/se-7728-e2e-coverage-wildcard"],
+    // Nothing numeric at all.
+    ["chore/bump-deps"],
+    // No slash, so no segment to read — a bare branch name is not a number.
+    ["main"],
+    ["driveorph-3559-work"],
+    // The number is not the FIRST segment. Losing the `^` anchor would find
+    // `fix/99` inside this and misattribute the commit.
+    ["wip/fix/99-nested"],
+    // A leading zero is not an issue number; `[1-9]` must not widen to `[0-9]`.
+    ["fix/0912-leading-zero"],
+    // `issue-<n>` is knowingly not read — recorded as a decision, not an
+    // oversight, so a later reader does not "fix" it by accident.
+    ["codex/issue-1264"],
+    // Empty and slash-only inputs must not throw.
+    [""],
+    ["/"],
+  ])("declines %s", branch => {
+    expect(githubBranchIssue(branch, CONTRACT)).toBeUndefined();
+  });
+
+  it("canonicalizes against the configured repository, not the branch", () => {
+    // The number comes from the branch; the owner/repo must come from the
+    // contract, or a reference could be minted for a repository nobody
+    // configured.
+    expect(
+      githubBranchIssue("fix/7-x", {
+        provider: "github",
+        repository: "other/repo",
+      })
+    ).toBe("other/repo#7");
   });
 });
 
@@ -3393,5 +3626,160 @@ describe("discharge decisions (#3791)", () => {
 
     expect(posted).toEqual([]);
     expect(changed).toBe(false);
+  });
+});
+
+/**
+ * A branch whose ancestry stopped being reachable from `origin`.
+ *
+ * The new-branch lane scopes itself with `--not --remotes=origin`, which is
+ * correct only while reachability is stable. A history rewrite gives every
+ * commit a new object id, so a branch created before the rewrite shares nothing
+ * with the rewritten remote: the exclusion set removes NOTHING and the whole
+ * history falls into scope. The gate then refuses on somebody else's old commit
+ * — with a message about an unrelated work item, and nothing pointing at the
+ * scope being wrong (CodySwannGT/lisa#3719).
+ *
+ * These cases assert on WHICH COMMITS ENTER THE VALIDATED SET, not on whether
+ * the push succeeds, because a push that succeeds for the wrong reason looks
+ * exactly like one that succeeds for the right one.
+ */
+describe("a branch whose ancestry the remote no longer reaches", () => {
+  /**
+   * Publish a base, branch from it, then rewrite the remote into a disjoint
+   * history — the identifier-scrub shape.
+   * @param fixture - Disposable repository
+   * @param ancestorMessage - Commit message for the ancestor left behind
+   * @returns The branch tip to push
+   */
+  function afterRewrite(fixture: Fixture, ancestorMessage: string): string {
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    git(
+      fixture.root,
+      ["update-ref", "refs/remotes/origin/main", base],
+      fixture.env
+    );
+    setOriginHead(fixture);
+    // Authored BEFORE the rewrite and already published at the time; it is the
+    // commit the author never touched and should never be re-validated.
+    git(
+      fixture.root,
+      ["commit", "-q", "--allow-empty", "-m", ancestorMessage],
+      fixture.env
+    );
+    const head = commit(
+      fixture,
+      "feat: finished work\n\nWork-Item: acme/widgets#42"
+    );
+    // The rewrite: every commit gets a new object id, so origin's history and
+    // this branch's history now share nothing at all.
+    git(fixture.root, ["switch", "-q", "--orphan", "rewritten"], fixture.env);
+    git(
+      fixture.root,
+      ["commit", "-q", "--allow-empty", "-m", "chore: rewritten history"],
+      fixture.env
+    );
+    const rewritten = git(fixture.root, ["rev-parse", "HEAD"], fixture.env);
+    git(
+      fixture.root,
+      ["update-ref", "refs/remotes/origin/main", rewritten],
+      fixture.env
+    );
+    git(fixture.root, ["switch", "-q", "feature/tracked"], fixture.env);
+    return head;
+  }
+
+  /**
+   * Push a tip as a brand-new branch.
+   * @param fixture - Disposable repository
+   * @param head - Branch tip being pushed
+   * @param extra - Environment entries layered over the fixture's
+   * @returns What the run printed and the status it exited with
+   */
+  function pushNewBranch(
+    fixture: Fixture,
+    head: string,
+    extra: NodeJS.ProcessEnv = {}
+  ): CommandResult {
+    return command(fixture, ["validate-push", "origin"], {
+      env: { FAKE_GH_PR_MISSING: "1", ...extra },
+      input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${ZERO_OID}\n`,
+    });
+  }
+
+  it("reports the unreachable ancestry rather than an ancestor's closed work item", () => {
+    const fixture = createFixture();
+    // Issue 99 is CLOSED in the fake tracker. This is the refusal actually
+    // observed: an old commit, a work item long since closed, and an author
+    // with no idea why either is being mentioned.
+    const head = afterRewrite(
+      fixture,
+      "fix: an older change by someone else\n\nWork-Item: acme/widgets#99"
+    );
+
+    const result = pushNewBranch(fixture, head);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("no longer reachable");
+    expect(result.stderr).toContain("cherry-pick");
+    // The misdirection is the defect. A refusal that still argues about the old
+    // commit's work item has not been fixed, it has been decorated.
+    expect(result.stderr).not.toContain("acme/widgets#99");
+  });
+
+  it("validates only the commits an ordinary new branch introduces", () => {
+    // The control that gives the case above its meaning: without it, a guard
+    // that reported "unreachable ancestry" for every push would pass.
+    const fixture = createFixture();
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    git(
+      fixture.root,
+      ["update-ref", "refs/remotes/origin/main", base],
+      fixture.env
+    );
+    setOriginHead(fixture);
+    const head = commit(
+      fixture,
+      "feat: tracked change\n\nWork-Item: acme/widgets#42"
+    );
+
+    const result = pushNewBranch(fixture, head);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("1 commit(s)");
+  });
+
+  it("still refuses a branch whose own commit carries no work item", () => {
+    // The negative control. The diagnosis must not become a way past the gate.
+    const fixture = createFixture();
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    git(
+      fixture.root,
+      ["update-ref", "refs/remotes/origin/main", base],
+      fixture.env
+    );
+    setOriginHead(fixture);
+    const head = commit(fixture, "feat: untraceable change");
+
+    const result = pushNewBranch(fixture, head);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).not.toContain("no longer reachable");
+  });
+
+  it("does not diagnose a rewrite when the remote has no refs at all", () => {
+    // A repository's FIRST push legitimately carries its root commit, and the
+    // exclusion set is empty because nothing has been published yet — not
+    // because history moved underneath it. Reading that as a rewrite would
+    // make a new repository unpushable, which is the same defect inverted.
+    const fixture = createFixture();
+    const head = commit(
+      fixture,
+      "feat: first ever change\n\nWork-Item: acme/widgets#42"
+    );
+
+    const result = pushNewBranch(fixture, head);
+
+    expect(result.stderr).not.toContain("no longer reachable");
   });
 });

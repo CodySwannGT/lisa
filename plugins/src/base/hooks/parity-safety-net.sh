@@ -405,7 +405,12 @@ readonly FOLLOW_MAX_TOTAL_BYTES=524288
 readonly FOLLOW_MAX_FILES=8
 readonly FOLLOW_MAX_DEPTH=3
 
-follow_bases=""
+# Effective working directory established by a literal `cd` in the command, and
+# the flag that says a `cd` happened whose target could NOT be read literally.
+# Empty + 0 means no `cd` has been seen and the session's own cwd governs.
+follow_cwd=""
+follow_cwd_unknown=0
+follow_normalized=""
 follow_paths=$'\n'
 follow_names=""
 follow_count=0
@@ -420,6 +425,10 @@ see is the thing it exists to stop.
 
 - Name the script by a LITERAL path that exists and is readable — \`bash
   ./scripts/x.sh\` rather than \`bash \"\$SCRIPT\"\` — and the guard can classify it.
+- A leading \`cd\` the guard cannot read literally — \`cd \"\$DIR\" && bash x.sh\` —
+  leaves it unable to say WHICH copy of \`x.sh\` would run, and a same-named file
+  in another directory is a different file. Spell the directory out, or give the
+  script its full path.
 - A file past the inspection cap is refused rather than half-scanned, because a
   truncated scan reports a confident ALLOW about text it never read. Split it,
   or run it manually outside the agent.
@@ -550,15 +559,77 @@ follow_split() {
   '
 }
 
-# Record a literal `cd` target as an additional base for resolving a relative
-# executed path, so `cd sub && ./run.sh` resolves the way the shell will.
-follow_add_base() {
-  local d="$1"
+# Collapse `.`, `..` and empty segments so the path a verdict NAMES is the one a
+# reader recognises. Purely lexical, and it cannot move a verdict: every
+# component has already been proven to exist by the `-d` test that follows, and
+# the `-f`/`-r` tests are applied to the collapsed path either way.
+follow_normalize() {
+  local p="$1" out="" seg
+  local IFS=/
+  set -f
+  # The word split is the point: `$p` is being addressed one path segment at a
+  # time, and the glob guard above keeps a literal `*` from expanding.
+  # shellcheck disable=SC2086
+  for seg in $p; do
+    case "$seg" in
+      "" | .) ;;
+      ..) out="${out%/*}" ;;
+      *) out="$out/$seg" ;;
+    esac
+  done
+  set +f
+  follow_normalized="${out:-/}"
+}
+
+# Track the working directory a literal `cd` establishes, so a relative executed
+# path resolves against the directory the command will actually have.
+#
+# This REPLACES the session's own cwd rather than adding to it. It used to be an
+# extra base appended AFTER `$PWD`, so `$PWD` always won and
+# `cd <other-checkout> && bash scripts/x.sh` was classified against the session
+# checkout's same-named copy. That is not a resolution failure — it succeeds,
+# against a real and readable file, and the verdict is reported with full
+# confidence about text nobody was about to run (CodySwannGT/lisa#3933). Two
+# checkouts of one repository differ by exactly the work in flight, which is the
+# entire point of the second one, so the copy that would RUN is the only copy
+# whose verdict means anything. Wrong in both directions, and the expensive
+# direction is silent: the dangerous line sits in the copy that would run and
+# the guard reads the pristine one.
+#
+# A target this hook cannot turn into a literal directory marks the cwd UNKNOWN
+# instead of leaving a stale one in place. `follow_locate` then refuses a
+# relative token rather than guessing, which is the honest-refusal doctrine the
+# rest of this block already follows: a confident scan of the wrong file is
+# strictly worse than saying it could not tell.
+follow_cd() {
+  local d="$1" home="${HOME:-}"
+  # The tilde arms are LITERAL text — the unexpanded spelling the hook was
+  # handed — for the reason follow_locate's arms document.
+  # shellcheck disable=SC2088
   case "$d" in
-    "" | -* | *'$'* | *'*'* | *'?'*) return 0 ;;
+    '~') d="$home" ;;
+    '~/'*) d="$home/${d#'~/'}" ;;
   esac
-  [ -d "$d" ] || return 0
-  follow_bases="$follow_bases"$'\n'"$d"
+  case "$d" in
+    "" | -* | *'$'* | *'*'* | *'?'* | *'`'* | *'{'* | *'['*)
+      follow_cwd=""
+      follow_cwd_unknown=1
+      return 0
+      ;;
+  esac
+  case "$d" in
+    /*) ;;
+    *) d="${follow_cwd:-$PWD}/$d" ;;
+  esac
+  follow_normalize "$d"
+  d="$follow_normalized"
+  if [ -d "$d" ]; then
+    follow_cwd="$d"
+    follow_cwd_unknown=0
+  else
+    follow_cwd=""
+    follow_cwd_unknown=1
+  fi
 }
 
 # Resolve one executed-file operand to a readable regular file, or fail.
@@ -571,6 +642,7 @@ follow_add_base() {
 # this hook cannot evaluate.
 follow_locate() {
   local token="$1" home="${HOME:-}" tmp="${TMPDIR:-/tmp}" proj="${CLAUDE_PROJECT_DIR:-$PWD}" base
+  local cwd="${follow_cwd:-$PWD}"
   follow_located=""
   tmp="${tmp%/}"
   [ -n "$tmp" ] || tmp="/tmp"
@@ -584,8 +656,14 @@ follow_locate() {
     '${TMPDIR}' | '${TMPDIR}'/*) token="$tmp${token#'${TMPDIR}'}" ;;
     '$HOME' | '$HOME'/*) token="$home${token#'$HOME'}" ;;
     '${HOME}' | '${HOME}'/*) token="$home${token#'${HOME}'}" ;;
-    '$PWD' | '$PWD'/*) token="$PWD${token#'$PWD'}" ;;
-    '${PWD}' | '${PWD}'/*) token="$PWD${token#'${PWD}'}" ;;
+    '$PWD' | '$PWD'/*)
+      [ "$follow_cwd_unknown" -eq 0 ] || return 1
+      token="$cwd${token#'$PWD'}"
+      ;;
+    '${PWD}' | '${PWD}'/*)
+      [ "$follow_cwd_unknown" -eq 0 ] || return 1
+      token="$cwd${token#'${PWD}'}"
+      ;;
     '$CLAUDE_PROJECT_DIR' | '$CLAUDE_PROJECT_DIR'/*) token="$proj${token#'$CLAUDE_PROJECT_DIR'}" ;;
     '${CLAUDE_PROJECT_DIR}' | '${CLAUDE_PROJECT_DIR}'/*) token="$proj${token#'${CLAUDE_PROJECT_DIR}'}" ;;
   esac
@@ -597,13 +675,26 @@ follow_locate() {
       return 0
       ;;
   esac
+  # Past this point the token is RELATIVE, so which directory it is resolved
+  # from decides which file the verdict is about.
+  if [ "$follow_cwd_unknown" -eq 1 ]; then
+    return 1
+  fi
+  if [ -n "$follow_cwd" ]; then
+    # A literal `cd` names the directory the shell will be in. It is the only
+    # candidate — falling back to `$PWD` here is what made the guard report
+    # confidently about a same-named file in another checkout.
+    [ -f "$follow_cwd/$token" ] && [ -r "$follow_cwd/$token" ] || return 1
+    follow_located="$follow_cwd/$token"
+    return 0
+  fi
   while IFS= read -r base; do
     [ -n "$base" ] || continue
     if [ -f "$base/$token" ] && [ -r "$base/$token" ]; then
       follow_located="$base/$token"
       return 0
     fi
-  done <<<"$PWD"$'\n'"$proj$follow_bases"
+  done <<<"$PWD"$'\n'"$proj"
   return 1
 }
 
@@ -636,7 +727,15 @@ follow_take() {
   follow_names="$follow_names $path"
   followed_text="$followed_text"$'\n'"$content"
   if [ "$depth" -lt "$FOLLOW_MAX_DEPTH" ]; then
+    # A `cd` inside the followed script governs what THAT script goes on to
+    # execute, and nothing after it in the command that ran the script — the
+    # child inherits this directory but cannot change the parent's. Saving and
+    # restoring is what keeps a nested `cd` from silently re-pointing the rest
+    # of the outer walk.
+    local saved_cwd="$follow_cwd" saved_unknown="$follow_cwd_unknown"
     follow_scan "$content" "$((depth + 1))"
+    follow_cwd="$saved_cwd"
+    follow_cwd_unknown="$saved_unknown"
   fi
 }
 
@@ -861,7 +960,11 @@ follow_scan() {
         cd)
           if [ $((i + 1)) -lt "$n" ]; then
             follow_unwrap "${toks[i + 1]}"
-            follow_add_base "$follow_unwrapped"
+            follow_cd "$follow_unwrapped"
+          else
+            # A bare `cd` is `cd "$HOME"`, and leaving the previous directory in
+            # place would resolve later tokens from a directory the shell left.
+            follow_cd "${HOME:-}"
           fi
           cmd_pos=0
           i=$((i + 1))
@@ -901,6 +1004,7 @@ follow_scan() {
         redirected=""
         heredoc=0
         stdin_mode=0
+        noexec=0
         j=$((i + 1))
         while [ "$j" -lt "$n" ]; do
           follow_unwrap "${toks[j]}"
@@ -931,13 +1035,35 @@ follow_scan() {
                 *) j=$((j + 1)) ;;
               esac
               ;;
+            # `-n` is NOEXEC: the shell reads and parses its operand, then exits
+            # without running a line of it. So a syntax check is the one shape
+            # that puts a path at a command position while provably executing
+            # nothing, and following it reads a file the command never runs.
+            #
+            # This guard hit that on ITSELF: its pattern list is destructive
+            # command literals living inside the guard, so `bash -n` on its own
+            # source was refused by its own patterns — and the same held for any
+            # file documenting destructive commands. See CodySwannGT/lisa#3803.
+            #
+            # `bash <file>` still executes and is still followed. Noexec is the
+            # distinction, not the program: this is not a read-only exemption.
+            --noexec) noexec=1; break ;;
             --*) j=$((j + 1)) ;;
             -*c*) inline=1; j=$((j + 1)) ;;
+            -*n*) noexec=1; break ;;
             -s | -[a-zA-Z]*s[a-zA-Z]*) stdin_mode=1; j=$((j + 1)) ;;
             -*) j=$((j + 1)) ;;
             *) break ;;
           esac
         done
+        if [ "$noexec" -eq 1 ]; then
+          # Nothing runs, so there is no script to follow and nothing to fail
+          # closed about. Checked before the heredoc and dispatcher arms: those
+          # decide WHICH text to read, and here there is no execution at all.
+          cmd_pos=0
+          i=$((j + 1))
+          continue
+        fi
         if [ "$heredoc" -eq 1 ] && [ "$inline" -eq 0 ]; then
           cmd_pos=0
           i=$((j + 1))
@@ -1924,7 +2050,7 @@ while IFS= read -r git_stmt; do
     continue
   fi
   if scan -E "$git_stmt" "$GIT_CONTROL_PLANE"; then
-    block "recursive forced delete of the git control plane (.git holds every commit, branch and stash not already pushed; nothing in the working tree can rebuild it). Delete a specific ignored artifact instead, or re-clone if the checkout is genuinely to be discarded."
+    block "recursive forced delete of the git control plane (.git holds every commit, branch and stash not already pushed; nothing in the working tree can rebuild it). Delete a specific ignored artifact instead. Re-cloning is NOT a like-for-like replacement: every linked worktree stores a pointer into this .git, so discarding it discards each of them and any uncommitted work they hold — check \`git worktree list\` before treating the checkout as disposable."
   fi
 done <<<"$git_segments"
 
