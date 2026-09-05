@@ -3437,6 +3437,10 @@ describe("githubBranchIssue, in process (#3861)", () => {
     ["qd/3554-release-commit-reachability", "acme/widgets#3554"],
     // A single-character prefix still counts: `[^/]+` must not become `[^/]`.
     ["x/12-short-prefix", "acme/widgets#12"],
+    // Eight digits that are NOT a date. The date rule must be a date rule and
+    // not a length bound, or it starts refusing real numbers on the day the
+    // fleet reaches them.
+    ["fix/20261345-not-a-date", "acme/widgets#20261345"],
   ])("reads %s as %s", (branch, expected) => {
     expect(githubBranchIssue(branch, CONTRACT)).toBe(expected);
   });
@@ -3447,6 +3451,12 @@ describe("githubBranchIssue, in process (#3861)", () => {
     ["chore/upgrade-lisa-4.33.1"],
     // A date stamp. There is no issue 20260903.
     ["stack/queue-drain-20260903"],
+    // The SAME date stamp, moved to the front of the segment, where it fills
+    // the segment exactly and every bound above is satisfied. The trailing
+    // form above is declined for free; this one has to be declined on purpose,
+    // and without it a dated branch refuses every correct commit on it.
+    ["release/20260903-cutover"],
+    ["stack/19991231"],
     // Another tracker's key. Whatever GitHub issue it maps to is not 7728.
     ["fix/se-7728-e2e-coverage-wildcard"],
     // Nothing numeric at all.

@@ -2405,7 +2405,26 @@ export function githubBranchIssue(branch, contract) {
   // Bounded on both sides: the number must fill the segment, so `4.33.1` and
   // `se-7728` do not match, and `3463` is not read out of `34631`.
   const match = /^[^/]+\/([1-9]\d*)(?:-|$)/.exec(branch);
-  return match ? `${contract.repository}#${match[1]}` : undefined;
+  if (!match) return undefined;
+  // A LEADING date stamp escapes every other bound this rule has. The comment
+  // above already declines `stack/queue-drain-20260903`, but only because the
+  // digits trail there; `release/20260903-cutover` puts the same stamp at the
+  // front of the segment, where it fills it exactly and reads as issue
+  // 20260903. Nothing else here can tell the two apart, because by shape they
+  // are the same token in the same position.
+  //
+  // Matched as a DATE rather than as "too many digits": a length bound would
+  // be a guess about how many issues this fleet will ever file, and would
+  // start refusing real numbers on the day it is wrong. `YYYYMMDD` with a
+  // real month and a real day is narrow enough that the only issue number it
+  // can cost is one no repository will reach.
+  //
+  // Declining fails OPEN — the trailer is then compared against nothing, which
+  // is the state this whole fallback was built to improve on but is still
+  // strictly safer than refusing a commit that is perfectly correct.
+  if (/^(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])$/.test(match[1]))
+    return undefined;
+  return `${contract.repository}#${match[1]}`;
 }
 
 /**
@@ -3683,6 +3702,12 @@ function backlink(args) {
  * and the undercount is clean, plausible and well-formed, which is why it
  * survived. Anything in this fleet that counts or verifies trailers has to
  * scan the body (CodySwannGT/lisa#3859).
+ * CRLF needs nothing here, and a relayed review finding that said otherwise
+ * was refuted rather than acted on. ECMAScript counts CR as a LineTerminator,
+ * so `$` under `m` matches BEFORE the `\r` of a CRLF pair, not between it and
+ * the `\n` — the terminator has no carriage return left to admit. The case is
+ * pinned in `work-item-cli-writes.test.ts` so the refutation is a control
+ * rather than a paragraph.
  * @param {string} body A commit message body.
  * @param {string} repository `owner/name` the item must belong to.
  * @returns {number[]} Declared issue numbers, de-duplicated, in first-seen order.
@@ -4582,15 +4607,31 @@ function resolvedBranchRev(branch) {
  *
  * Reachability is also what confirms the work actually landed, rather than
  * trusting a pull request's `baseRefName` to say where it went.
+ *
+ * UNRESOLVABLE branches are reported, never silently dropped. A configured
+ * deploy branch that resolves to no commit is a branch the sweep did not look
+ * at, and a `continue` past it turns part of an absence claim into evidence
+ * never read — the same shape as the truncated log below, which this function
+ * already refuses over. It is not fatal on its own, because a project may
+ * configure `dev` or `staging` in a clone that has only ever fetched `main`
+ * and the sweep is still useful there; what it may not do is let the omission
+ * go unsaid. When NOTHING resolved there is no evidence at all, and the run
+ * refuses rather than reporting a clean queue.
  * @param {string} repository `owner/name` the items belong to.
  * @param {object} contract Resolved tracker contract.
- * @returns {Map<number, string[]>} Issue number to declaring commits.
+ * @returns {{declarations: Map<number, string[]>, unresolved: string[]}} Issue
+ *   number to declaring commits, and the deploy branches that resolved to
+ *   nothing.
  */
 function deployedDeclarations(repository, contract) {
   const declarations = new Map();
+  const unresolved = [];
   for (const branch of contract.deployBranches.keys()) {
     const rev = resolvedBranchRev(branch);
-    if (!rev) continue;
+    if (!rev) {
+      unresolved.push(branch);
+      continue;
+    }
     const result = run("git", ["log", rev, "-z", "--format=%H%n%B"], {
       allowFailure: true,
       maxBuffer: DECLARATION_LOG_MAX_BYTES,
@@ -4618,7 +4659,31 @@ function deployedDeclarations(repository, contract) {
       ]);
     }
   }
-  return declarations;
+  if (
+    unresolved.length > 0 &&
+    unresolved.length === contract.deployBranches.size
+  ) {
+    throw new TrackingError(
+      `no configured deploy branch resolves to a commit (${unresolved.join(", ")}), so no absence of drift can be reported.\n` +
+        `Fetch them (\`git fetch origin\`) or correct \`deploy.branches\` in .lisa.config.json; ` +
+        `a deploy branch the sweep could not read is not an empty one.`
+    );
+  }
+  return { declarations, unresolved };
+}
+
+/**
+ * The sentence a report owes its reader when part of the evidence was missing.
+ * @param {string[]} unresolved Deploy branches that resolved to no commit.
+ * @returns {string} A qualifying line, or the empty string when nothing was.
+ */
+function describeUnresolvedBranches(unresolved) {
+  if (unresolved.length === 0) return "";
+  return (
+    `\nNOT examined: ${unresolved.join(", ")} — configured as a deploy branch ` +
+    `but resolving to no commit here, so anything shipped only there is ` +
+    `outside this result.`
+  );
 }
 
 /**
@@ -4651,7 +4716,10 @@ function sweep(args) {
       else subjects.set(issue.number, { ...issue, roles: [role] });
     }
   }
-  const declarations = deployedDeclarations(repository, contract);
+  const { declarations, unresolved } = deployedDeclarations(
+    repository,
+    contract
+  );
   const apply = args.includes("--apply");
   // Named in every report, clean or not. The old clean-result sentence spoke
   // only of the claimed role while the subject list excluded the ready lane
@@ -4689,14 +4757,16 @@ function sweep(args) {
     console.log(
       `No drift: every open item carrying ${examined} is genuinely in flight.\n` +
         `Examined ${subjects.size} item(s) across ${roles.length} lifecycle role(s); ` +
-        `no role outside ${examined} was queried.`
+        `no role outside ${examined} was queried.` +
+        describeUnresolvedBranches(unresolved)
     );
     return;
   }
   if (!apply) {
     console.log(
       `\n${drifted} open item(s) carrying ${examined} are declared by a commit on a deploy branch. ` +
-        `Re-run with --apply to complete them.`
+        `Re-run with --apply to complete them.` +
+        describeUnresolvedBranches(unresolved)
     );
   }
 }

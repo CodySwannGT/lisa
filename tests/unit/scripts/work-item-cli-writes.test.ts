@@ -690,6 +690,48 @@ describe("in-process CLI: sweep", () => {
     const fixture = offlineFixture();
     expect(cli(fixture, ["sweep"]).stdout).toContain("No drift");
   });
+
+  // The sweep's whole output is an absence claim, and the deploy branches are
+  // the only evidence behind it. A branch that resolves to no commit — a
+  // shallow clone, no `origin`, a renamed or never-fetched branch — used to be
+  // skipped silently, so the run reported "No drift" over the whole queue
+  // having read less than it claimed, or nothing at all. That is the same
+  // shape as the truncated-log defect the same function already refuses over.
+  it("refuses when NO configured deploy branch resolves, rather than reporting an absence", () => {
+    const fixture = createFixture({
+      ...githubConfig("trailer"),
+      deploy: { branches: { production: "release/never-fetched" } },
+    });
+    const result = cli(fixture, ["sweep"], {
+      FAKE_GH_LIST_JSON: JSON.stringify([{ number: 42, title: "a leaf" }]),
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(
+      "no configured deploy branch resolves to a commit (release/never-fetched)"
+    );
+    expect(result.stdout).not.toContain("No drift");
+  });
+
+  // Not fatal when SOME evidence was read — a clone that has only ever fetched
+  // `main` is an ordinary state and the sweep is still useful in it. What the
+  // report may not do is stay silent about the branch it could not open, which
+  // is what turns a narrower answer into a wrong one.
+  it("names the deploy branch it could not read in an otherwise clean report", () => {
+    const fixture = createFixture({
+      ...githubConfig("trailer"),
+      deploy: {
+        branches: { dev: "release/never-fetched", production: "main" },
+      },
+    });
+    const result = cli(fixture, ["sweep"], {
+      FAKE_GH_LIST_JSON: JSON.stringify([{ number: 42, title: "a leaf" }]),
+    });
+
+    expect(result.exitCode).toBeUndefined();
+    expect(result.stdout).toContain("No drift");
+    expect(result.stdout).toContain("NOT examined: release/never-fetched");
+  });
 });
 
 /**
@@ -866,6 +908,20 @@ describe("declaredWorkItemNumbers and shippedDeclarations (#3907)", () => {
     ]) {
       expect(declaredWorkItemNumbers(body, REPOSITORY), body).toEqual([]);
     }
+  });
+
+  // A CRLF body. Standing refutation of a relayed review finding that claimed
+  // this line was missed: ECMAScript counts CR as a LineTerminator, so `$`
+  // under `m` matches BEFORE the `\r`, and the terminator never has to admit
+  // one. Kept as a control rather than a comment — the claim is cheap to make
+  // again, and this is what answers it.
+  it("reads a trailer terminated by CRLF", () => {
+    expect(
+      declaredWorkItemNumbers(
+        "fix: a change\r\n\r\nWork-Item: acme/code#42\r\nCo-authored-by: Claude <x@y.z>\r\n",
+        REPOSITORY
+      )
+    ).toEqual([42]);
   });
 
   it("reads no issue number zero or leading zero", () => {
