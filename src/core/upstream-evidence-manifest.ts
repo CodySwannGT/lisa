@@ -2458,6 +2458,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "ff407babbd01123cbb2a55c194abe79b94b31ef6f6f4ab4142c64aa221d443b2",
     "scripts/remote-agent-aws-setup.sh":
       "f181062436c214c95fe15be8000cce18de0b553b3dab06b822a4fe55cb285ca6",
+    "scripts/run-artifact-checks.mjs":
+      "2992d673bb3c1ebfa50bda9ed323b8410afdab2ffc925eee6eab19fcab312a90",
     "scripts/setup-deploy-key.sh":
       "2bed19346810b7af18a5225fd463c4d553a7bcc7b2f11a21bd47b93e6b5e1719",
     "scripts/test-intent-routing.sh":
@@ -2504,6 +2506,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "1885cc0f655a5a336078db510ceb8854582c628cb813c14fd052a1f6aa3bab07",
     "typescript/copy-contents/.husky/post-checkout":
       "f3abc4528e12d3ad2bc48b236d19f105e2817595c744156a558c62ae5551ccfb",
+    "typescript/copy-contents/.husky/post-merge":
+      "8155564c7aed71d04bada189d66623e32a00d80598a8194782b6ecabec5134c0",
     "typescript/copy-contents/.husky/pre-commit":
       "d5f85c0b5d9a0277389c1ae96aec30db603ee38637d4ab749a659bb031d06d93",
     "typescript/copy-contents/.husky/pre-push":
@@ -2764,6 +2768,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".gitignore": true,
     ".gitleaksignore": true,
     ".husky/commit-msg": true,
+    ".husky/post-merge": true,
     ".husky/pre-commit": true,
     ".husky/pre-push": true,
     ".husky/prepare-commit-msg": true,
@@ -8758,6 +8763,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/probes/wave3-verification.sh": true,
     "scripts/reconcile-release-tags.mjs": true,
     "scripts/remote-agent-aws-setup.sh": true,
+    "scripts/run-artifact-checks.mjs": true,
     "scripts/setup-deploy-key.sh": true,
     "scripts/test-intent-routing.sh": true,
     "scripts/two-channel-couplings.json": true,
@@ -9815,6 +9821,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/codex/skills-installer.test.ts": true,
     "tests/unit/codex/skills-less-plugin-noop.test.ts": true,
     "tests/unit/codex/source-authored-openai-yaml.test.ts": true,
+    "tests/unit/config/artifact-staleness-moments.test.ts": true,
     "tests/unit/config/ast-grep-rule-tests.test.ts": true,
     "tests/unit/config/ast-grep-template.test.ts": true,
     "tests/unit/config/bite-exclusion-vs-env-gate.test.ts": true,
@@ -10416,6 +10423,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/required-check-promotions.wiring.test.ts": true,
     "tests/unit/scripts/review-evidence-check-name.test.ts": true,
     "tests/unit/scripts/review-gate-conditions.test.ts": true,
+    "tests/unit/scripts/run-artifact-checks.test.ts": true,
     "tests/unit/scripts/schema-validate-keyword-forms.test.ts": true,
     "tests/unit/scripts/schema-validate-prototype-keywords.test.ts": true,
     "tests/unit/scripts/security-floors.test.ts": true,
@@ -10862,6 +10870,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "typecheck-quarantine.json": true,
     "typescript/copy-contents/.husky/commit-msg": true,
     "typescript/copy-contents/.husky/post-checkout": true,
+    "typescript/copy-contents/.husky/post-merge": true,
     "typescript/copy-contents/.husky/pre-commit": true,
     "typescript/copy-contents/.husky/pre-push": true,
     "typescript/copy-contents/.husky/prepare-commit-msg": true,
