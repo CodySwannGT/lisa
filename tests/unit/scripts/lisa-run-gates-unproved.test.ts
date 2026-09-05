@@ -30,6 +30,7 @@ import {
   RUNNER,
   sink,
 } from "./lisa-run-gates-fixtures.js";
+import { coverageRunDirectory } from "../../../src/configs/vitest/coverage-reports-directory.js";
 
 const COVERAGE = "coverage-adequacy";
 const TASK = "test:cov:unit";
@@ -126,5 +127,83 @@ describe("runGates: a real shortfall still reads as FAILED", () => {
     expect(entry?.state).toBe(STATE.FAILED);
     expect(transcript).toContain(`required gate FAILED: ${COVERAGE}`);
     expect(entry?.detail).toContain("below the declared floor");
+  });
+});
+
+/**
+ * The same honesty, at the directory the isolation fix moved the scratch to.
+ *
+ * CodySwannGT/lisa#3911 isolated `coverage.reportsDirectory` per run so two
+ * runs in one checkout stop deleting each other's scratch. The ticket makes
+ * the diagnosis an acceptance criterion of that fix rather than a bystander of
+ * it: the only reason the collision was diagnosable was that the gate said
+ * UNPROVABLE rather than FAILED and named the directory, and marked the
+ * downstream gate NOT-RUN with verdict UNKNOWN rather than letting silence
+ * read as a pass. A fix that made the failure disappear AND erased that
+ * distinction would have traded a diagnosable failure for a silent one.
+ *
+ * The path here is BUILT from the shipped helper rather than transcribed, so
+ * these cases fail if a future change to the run-directory shape outruns the
+ * classifier — which is exactly the drift that would erase the distinction
+ * quietly. The classifier is keyed on the scratch FILENAME and deliberately
+ * not on the directory (`COVERAGE_SCRATCH_ENOENT`), and that is the property
+ * being bought.
+ */
+describe("runGates: the diagnosis survives per-run scratch isolation", () => {
+  const ISOLATED_SCRATCH = `/repo/${coverageRunDirectory(4242, 1756000000000, "9f3c")}/.tmp/coverage-2.json`;
+
+  const ISOLATED_ENOENT =
+    "Serialized Error: { errno: -2, code: 'ENOENT', syscall: 'open', " +
+    `path: '${ISOLATED_SCRATCH}' }`;
+
+  it("still reads UNPROVABLE rather than FAILED", () => {
+    const { entry, transcript } = runWith(ISOLATED_ENOENT);
+
+    expect(entry?.state).toBe(STATE.UNPROVABLE);
+    expect(transcript).not.toContain(`required gate FAILED: ${COVERAGE}`);
+  });
+
+  it("still names the directory the run lost", () => {
+    expect(runWith(ISOLATED_ENOENT).transcript).toContain(ISOLATED_SCRATCH);
+  });
+
+  it("still refuses to attribute it to a coverage shortfall", () => {
+    expect(runWith(ISOLATED_ENOENT).entry?.detail).toContain(
+      "NOT a coverage shortfall"
+    );
+  });
+
+  it("still marks a downstream gate NOT-RUN with verdict UNKNOWN", () => {
+    // The second half of the property: "never ran" must not read as "passed".
+    const { lines, out } = sink();
+    const result: GateRun = runGates({
+      gates: {
+        [COVERAGE]: { [COMMIT]: { level: "required", run: TASK } },
+        "test-integration": {
+          [COMMIT]: { level: "required", run: "test:integration" },
+        },
+      },
+      moment: COMMIT,
+      runner: RUNNER,
+      exec: (command: string) =>
+        command.includes(TASK) ? { code: 1, output: ISOLATED_ENOENT } : 0,
+      out,
+    });
+
+    const downstream = result.results.find(
+      (row: { id: string }) => row.id === "test-integration"
+    );
+    expect(downstream?.state).toBe(STATE.NOT_RUN);
+    expect(result.passed.map((row: { id: string }) => row.id)).not.toContain(
+      "test-integration"
+    );
+    expect(lines.join("\n")).toContain("UNKNOWN");
+  });
+
+  it("still reads FAILED when a run at that directory really missed the floor", () => {
+    // The control, restated at the new path. If isolation had turned every
+    // coverage failure into UNPROVABLE, the gate would have stopped being able
+    // to say the one thing it exists to say.
+    expect(runWith(REAL_SHORTFALL).entry?.state).toBe(STATE.FAILED);
   });
 });

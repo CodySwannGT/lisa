@@ -155,8 +155,18 @@ export function windowsTreeExists(pid, probe = process.kill) {
   try {
     probe(pid, 0);
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    // probe-direction: fail-closed — only an ESRCH-shaped error proves the
+    // process is gone. A blanket `return false` reported EPERM, and every other
+    // failure to ask, as "the tree exited": `killWindowsTree` then returns
+    // without killing anything and `waitForTreeExit` stops waiting, so a live
+    // tree is left behind and recorded as reaped. That is the exact rule
+    // `killTree` states two functions below — "Only ESRCH proves absence.
+    // EPERM and every other error leave cleanup authority uncertain and must
+    // fail the supervisor closed" — which the POSIX sibling followed and this
+    // one did not.
+    if (isAbsentProcessError(error)) return false;
+    throw error;
   }
 }
 

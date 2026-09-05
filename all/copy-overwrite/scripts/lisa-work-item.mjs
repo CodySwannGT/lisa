@@ -1110,10 +1110,15 @@ function configAt(ref) {
   const result = run("git", ["show", `${ref}:.lisa.config.json`], {
     allowFailure: true,
   });
+  // probe-direction: fail-closed — an empty config grants no deploy-chain
+  // exemption, so a config that cannot be read at the base makes the gate
+  // stricter, never looser.
   if (result.status !== 0) return {};
   try {
     return JSON.parse(result.stdout);
   } catch {
+    // probe-direction: fail-closed — same as above: unparseable config, no
+    // exemption granted.
     return {};
   }
 }
@@ -2426,6 +2431,8 @@ function remoteDefaultRef(remote) {
     ["symbolic-ref", "--quiet", `refs/remotes/${remote}/HEAD`],
     { allowFailure: true }
   );
+  // probe-direction: fail-closed — no ref means no range exclusion, so the
+  // commit range examined grows rather than shrinks (#1956).
   if (symref.status !== 0) return undefined;
   const target = symref.stdout.trim();
   if (!target.startsWith(`refs/remotes/${remote}/`)) return undefined;
@@ -2453,8 +2460,11 @@ function remoteDefaultRef(remote) {
  * the rule is unchanged and now applied to the unit it was always about.
  * @param {string} input The pre-push stdin stream.
  * @param {string} remote Remote being pushed to.
- * @returns {{localRef: string|undefined, commits: string[]}[]} One entry per
- *   ref update that introduces commits.
+ * @returns {{localRef: string|undefined, commits: string[], scope: string[]}[]}
+ *   One entry per ref update that introduces commits. `scope` is the rev-list
+ *   argument vector the commit list came from, kept so a later question about
+ *   the same range — see {@link ancestryUnreachable} — is asked of the range
+ *   itself rather than re-derived from a list that has already lost its bounds.
  */
 function parsePushGroups(input, remote) {
   const groups = [];
@@ -2481,14 +2491,15 @@ function parsePushGroups(input, remote) {
     groups.push({
       localRef,
       commits: git(args).split("\n").filter(Boolean),
+      scope: args,
     });
   }
   if (groups.length === 0 && input.trim() === "") {
+    const args = ["rev-list", "HEAD", "--not", `--remotes=${remote}`];
     groups.push({
       localRef: undefined,
-      commits: git(["rev-list", "HEAD", "--not", `--remotes=${remote}`])
-        .split("\n")
-        .filter(Boolean),
+      commits: git(args).split("\n").filter(Boolean),
+      scope: args,
     });
   }
   return groups;
@@ -3152,6 +3163,12 @@ function currentRepository() {
   const result = run("gh", ["repo", "view", "--json", "nameWithOwner"], {
     allowFailure: true,
   });
+  // probe-direction: neutral — undefined omits `--repo`, which is the CORRECT
+  // call shape: `gh` then resolves the repository from the current branch's
+  // remote. Note the asymmetry that #3848 turns on — this call SUCCEEDING is
+  // what supplied the `--repo` value that broke `currentPullRequest` before
+  // #3833, so it was upstream of that defect rather than beside it. Neutral
+  // is a fact about the code as it stands, not a property of the call site.
   if (result.status !== 0) return undefined;
   return safeJson(result.stdout, "GitHub repository").nameWithOwner;
 }
@@ -4223,14 +4240,100 @@ function validateCommit(args) {
  * that answer into silence.
  * @param {string} input The pre-push stdin stream.
  * @param {string} remote Remote being pushed to.
- * @returns {{localRef: string|undefined, commits: string[]}[]} Groups to check.
+ * @returns {{localRef: string|undefined, commits: string[], scope: string[]}[]}
+ *   Groups to check.
  */
 function pushGroups(input, remote) {
   const parsed = parsePushGroups(input, remote);
   const carrying = parsed.filter(group => group.commits.length > 0);
   return carrying.length > 0
     ? carrying
-    : [{ localRef: parsed[0]?.localRef, commits: [] }];
+    : [{ localRef: parsed[0]?.localRef, commits: [], scope: [] }];
+}
+
+/**
+ * Whether this range reaches back to the beginning of history.
+ *
+ * THE QUESTION THIS ANSWERS IS "IS MY SCOPE STILL VALID", not "is this commit
+ * traceable", and that is the whole of CodySwannGT/lisa#3719. The new-branch
+ * lane bounds itself with `--not --remotes=<remote>`, which is exact while
+ * reachability holds and silently unbounded the moment it does not. A history
+ * rewrite gives every commit a new object id, so a branch created before one
+ * shares NOTHING with the rewritten remote: the exclusion set removes nothing,
+ * the entire history falls into the range, and the gate then refuses on a
+ * stranger's years-old commit whose work item closed long ago. It computes a
+ * correct answer to the wrong question, and nothing in the refusal says so.
+ *
+ * A ROOT COMMIT IN RANGE IS THE DISCRIMINATOR, and it is deliberately not a
+ * size heuristic. A range that legitimately belongs to one branch begins at a
+ * base the remote can still reach, so the walk stops there — reaching a
+ * parentless commit means it did not stop anywhere, which is the unbounded case
+ * itself rather than a proxy for it. A long branch stays a long branch.
+ *
+ * `--max-parents=0` re-asks the range's OWN rev-list, so the answer costs one
+ * git call whatever the history's size. Filtering the returned commit list
+ * instead would spawn one child per commit — thousands of them in exactly the
+ * case this detects, inside a push gate.
+ * @param {{commits: string[], scope: string[]}} group One pushed ref's range.
+ * @param {string} remote Remote being pushed to.
+ * @returns {boolean} True when the range runs to a parentless commit.
+ */
+export function ancestryUnreachable(group, remote) {
+  if (group.commits.length === 0 || group.scope.length === 0) return false;
+  // A repository's FIRST push carries its root commit legitimately: nothing is
+  // published yet, so the exclusion set is empty because there is nothing to
+  // exclude, not because history moved. Reading that as a rewrite would make
+  // every new repository unpushable — the same defect, inverted.
+  // `--format` is presentation only, and deliberately not asserted on: this
+  // reads the ANSWER's emptiness, not its shape, so emptying the format still
+  // prints for-each-ref's default line for each ref and still prints nothing
+  // for none. A hand-run mutant emptying it survives, and is equivalent rather
+  // than a test gap — the ref pattern beside it is the argument that decides
+  // the answer, and a mutant emptying THAT is killed.
+  const published = git([
+    "for-each-ref",
+    "--count=1",
+    "--format=%(refname)",
+    `refs/remotes/${remote}/`,
+  ]);
+  if (published === "") return false;
+  return git([...group.scope, "--max-parents=0"]) !== "";
+}
+
+/**
+ * The refusal for a range whose base the remote can no longer reach.
+ *
+ * Deliberately says NOTHING about work items. The defect being repaired is that
+ * this push was refused over a stranger's closed ticket, so a message that
+ * still argues about tickets — even the right ones — reproduces the
+ * misdirection at a different address. `selfExplanatory` suppresses the
+ * five-gate checklist for the same reason it is suppressed on the
+ * push-destination refusal: no gate here is cleared by naming a ticket.
+ * @param {string|undefined} localRef The ref being pushed.
+ * @returns {TrackingError} The refusal to raise.
+ */
+export function unreachableAncestryRefusal(localRef) {
+  const branch = localRef
+    ? pushedBranchName(localRef) || localRef
+    : "this branch";
+  const error = new TrackingError(
+    `The commits on ${branch} are no longer reachable from "origin", so this ` +
+      `push cannot tell which of them the branch actually adds.\n\n` +
+      `WHAT HAPPENED: the shared history was rewritten after this branch was ` +
+      `created. Rewriting gives every commit a new identity, so nothing this ` +
+      `branch was built on still exists on the remote — and the check that ` +
+      `normally asks "what is new here?" gets the whole history back instead.\n\n` +
+      `WHY IT IS NOT REFUSING YOUR WORK: the commits it would otherwise ` +
+      `complain about are other people's, from before the rewrite. Nothing is ` +
+      `wrong with what you wrote.\n\n` +
+      `WHAT TO DO: copy your commits onto the current branch instead of ` +
+      `pushing this one as it stands — \`git cherry-pick\` each of your own ` +
+      `commits onto a fresh branch taken from an up-to-date "main", then push ` +
+      `that. Merging "main" into this branch does NOT help: a merge adds a ` +
+      `parent, it cannot make the old commits exist on the remote again.`
+  );
+  error.selfExplanatory = true;
+  return error;
 }
 
 /**
@@ -4379,6 +4482,12 @@ function validatePush(args) {
   const pr = currentPullRequest();
   const target = prTargetGroup(groups, pr);
   for (const group of groups) {
+    // BEFORE the commits are judged, not after: every verdict below is computed
+    // over a range, and a range this wide is not evidence about anything. The
+    // order is the fix — judging first and diagnosing afterwards is what
+    // produced a refusal naming a stranger's closed ticket (#3719).
+    if (ancestryUnreachable(group, remote))
+      throw unreachableAncestryRefusal(group.localRef);
     const outcome = commitOutcome(group.commits, configRef, remote);
     reportPushGroup(
       outcome,

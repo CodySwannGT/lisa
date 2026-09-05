@@ -43,6 +43,8 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
 
 ## Decisions
 
+- [2026-09-04 — State Changes Must Carry Their Own Inverse](decisions/2026-09-04-state-change-without-inverse.md)
+  - Census of controls that apply durable state with nothing to lift it, the self-voiding controls worth copying, the settled grandfathered-contexts ruling, and the missing-versus-forbidden distinction an audit must record.
 - [2026-08-19 — Mutation Gate Scoped at the Guard Scripts](decisions/2026-08-19-guard-mutation-gate.md)
 - [2026-08-12 — Credential-Provider Substrate Precedence](decisions/2026-08-12-credential-substrate-precedence.md)
 - [2026-08-12 — In-Session Filed Tickets and the Ready Role](decisions/2026-08-12-in-session-ticket-ready-role.md)

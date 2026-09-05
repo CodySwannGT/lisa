@@ -17,6 +17,7 @@ type UserConfig = ViteUserConfig;
 
 import {
   coverageGlobalSetup,
+  coverageReportsDirectory,
   defaultCoverageExclusions,
   defaultTestExclusions,
   defaultThresholds,
@@ -39,6 +40,7 @@ export const CDK_SCRATCH_SUITE = "cdk";
 // Re-export base utilities for entry-point configs
 export {
   coverageGlobalSetup,
+  coverageReportsDirectory,
   defaultCoverageExclusions,
   defaultTestExclusions,
   defaultThresholds,
@@ -92,6 +94,9 @@ export const getCdkVitestConfig = ({
     testTimeout: 10000,
     coverage: {
       provider: "v8",
+      // Per-run, so a sibling run in this checkout cannot delete this
+      // run's live scratch. See configs/vitest/coverage-reports-directory.
+      reportsDirectory: coverageReportsDirectory(),
       include: ["lib/**/*.ts", "util/**/*.ts"],
       exclude: [...defaultCoverageExclusions],
       thresholds: mapThresholds(

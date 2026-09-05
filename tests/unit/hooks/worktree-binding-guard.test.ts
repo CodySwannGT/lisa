@@ -17,152 +17,22 @@
  * "the block clears itself" are told apart.
  * @module tests/unit/hooks/worktree-binding-guard
  */
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
-import { cleanGitEnv, resolveGit } from "../../support/git-executable.js";
-
-const GUARD_PATH = path.resolve(
-  "plugins/src/base/hooks/worktree-binding-guard.mjs"
-);
-const GIT_PATH = resolveGit();
-
-/** Claude's refusal code. Anything else lets the tool call through. */
-const BLOCKED = 2;
-const ALLOWED = 0;
-
-const SESSION = "session-under-test";
-/** Git's quiet flag, named because the fixture repeats it. */
-const QUIET = "-q";
-/** This guard's spawn label, named because every case spawns it. */
-const GUARD_LABEL = "worktree-binding-guard";
-
-let tempDirs: string[] = [];
-
-afterEach(() => {
-  for (const dir of tempDirs) {
-    rmSync(dir, { force: true, recursive: true });
-  }
-  tempDirs = [];
-});
-
-/** Absolute paths of one fixture repository and its two linked worktrees. */
-interface Fixture {
-  /** The main checkout. */
-  readonly main: string;
-  /** The worktree a session binds to first. */
-  readonly a: string;
-  /** The worktree it is told, falsely, that it moved to. */
-  readonly b: string;
-  /** Where the guard keeps its per-session binding. */
-  readonly state: string;
-}
-
-/**
- * Run git in a fixture directory, failing loudly on a non-zero exit.
- * @param cwd - Directory to run in
- * @param args - Git arguments
- */
-function git(cwd: string, args: readonly string[]): void {
-  const result = boundedSpawnSync({
-    label: `git ${args[0]}`,
-    command: GIT_PATH,
-    args: [...args],
-    cwd,
-    env: cleanGitEnv(),
-  });
-  if (result.status !== 0) {
-    throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
-  }
-}
-
-/**
- * A repository with two linked worktrees and an empty guard state directory.
- * @returns Absolute paths of the fixture pieces
- */
-function buildFixture(): Fixture {
-  const root = mkdtempSync(path.join(tmpdir(), "lisa-wtb-"));
-  const main = path.join(root, "main");
-  const state = path.join(root, "state");
-  const a = path.join(root, "wt-a");
-  const b = path.join(root, "wt-b");
-
-  tempDirs.push(root);
-  git(root, ["init", QUIET, "main"]);
-  git(main, ["config", "user.email", "t@example.invalid"]);
-  git(main, ["config", "user.name", "Test"]);
-  writeFileSync(path.join(main, "seed.txt"), "seed\n");
-  git(main, ["add", "seed.txt"]);
-  git(main, ["commit", QUIET, "-m", "seed"]);
-  git(main, ["worktree", "add", QUIET, "-b", "branch-a", a]);
-  git(main, ["worktree", "add", QUIET, "-b", "branch-b", b]);
-
-  return { main, a, b, state };
-}
-
-/** One hook envelope: what the session is about to do, and from where. */
-interface Call {
-  readonly cwd: string;
-  readonly tool?: string;
-  readonly input?: Record<string, unknown>;
-  readonly session?: string;
-  readonly state: string;
-}
-
-/**
- * Feed one hook envelope to the guard.
- * @param call - What the session is about to do, and from where
- * @returns The completed spawn result
- */
-function runGuard(call: Call) {
-  const payload = {
-    session_id: call.session ?? SESSION,
-    cwd: call.cwd,
-    tool_name: call.tool ?? "Bash",
-    tool_input: call.input ?? { command: "echo hello" },
-  };
-  return boundedSpawnSync({
-    label: GUARD_LABEL,
-    command: process.execPath,
-    args: [GUARD_PATH],
-    cwd: call.cwd,
-    env: { ...cleanGitEnv(), LISA_STATE_HOME: call.state },
-    input: JSON.stringify(payload),
-  });
-}
-
-/**
- * Feed a raw envelope, for the malformed-input cases.
- * @param raw - Exact stdin bytes
- * @param cwd - Directory to run the guard in
- * @param state - Guard state home
- * @returns The completed spawn result
- */
-function runRaw(raw: string, cwd: string, state: string) {
-  return boundedSpawnSync({
-    label: GUARD_LABEL,
-    command: process.execPath,
-    args: [GUARD_PATH],
-    cwd,
-    env: { ...cleanGitEnv(), LISA_STATE_HOME: state },
-    input: raw,
-  });
-}
-
-/**
- * Bind the session to a worktree, the way its first tool call would.
- * @param fixture - The repository under test
- * @param worktree - Worktree the session is to be bound to
- */
-function bindTo(fixture: Fixture, worktree: string): void {
-  expect(runGuard({ cwd: worktree, state: fixture.state }).status).toBe(
-    ALLOWED
-  );
-}
+import {
+  ALLOWED,
+  BLOCKED,
+  bindTo,
+  buildFixture,
+  runGuard,
+  runRaw,
+  SESSION,
+  trackTempDir,
+} from "./support/worktree-binding.js";
 
 describe("worktree-binding-guard", () => {
   it("records the binding on the first guarded call and allows it", () => {
@@ -330,7 +200,7 @@ describe("worktree-binding-guard", () => {
   it("stays quiet outside a git repository", () => {
     const fixture = buildFixture();
     const outside = mkdtempSync(path.join(tmpdir(), "lisa-wtb-out-"));
-    tempDirs.push(outside);
+    trackTempDir(outside);
     expect(runGuard({ cwd: outside, state: fixture.state }).status).toBe(
       ALLOWED
     );
