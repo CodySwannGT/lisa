@@ -123,6 +123,59 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 1
 fi
 
+# The DEPENDENCY TREE is proved here too, for the same reason and one worse
+# consequence (CodySwannGT/lisa#3913).
+#
+# Every gate below resolves its tool out of `node_modules` — knip, vitest, tsc.
+# An empty tree does not stop those gates; it makes them answer from nothing,
+# and an empty answer is not silent. The `type-correctness` gate is what showed
+# this belongs here rather than inside each gate: with no compiler to run it
+# parsed zero diagnostics, concluded from that emptiness that all 370
+# quarantined files now compile, and printed
+#
+#   ❌ 370 quarantined file(s) now type-check and must leave the list:
+#   Remove them from typecheck-quarantine.json.
+#
+# Following that instruction deletes 370 live quarantine entries on the word of
+# a checker that compiled nothing — a destructive edit ordered by a control
+# whose inputs never resolved. Its sibling `knip:check` reports "Unlisted
+# binaries: commitlint, lint-staged" from the identical cause. That one merely
+# LOOKS odd and nobody acts on it, which is exactly why it went unfixed while
+# the dangerous one hid behind it.
+#
+# So this is not a convenience check for a missing install. Absence of the
+# dependencies and absence of findings must not produce the same observable. A
+# check that cannot RUN is not a skip and not a pass — it blocks.
+if [ -f package.json ]; then
+  LISA_DECLARED_DEPS="$(jq -r '((.dependencies // {}) + (.devDependencies // {})) | length' package.json 2>/dev/null)"
+  # A non-numeric or absent answer counts as zero: this guard may not be the
+  # thing that blocks a push over an unreadable package.json.
+  case "$LISA_DECLARED_DEPS" in
+    "" | *[!0-9]*) LISA_DECLARED_DEPS=0 ;;
+  esac
+  # `ls -A` covers absent and present-but-empty in one test, which is the
+  # distinction the gates themselves cannot make.
+  if [ "$LISA_DECLARED_DEPS" -gt 0 ] && [ -z "$(ls -A node_modules 2>/dev/null)" ]; then
+    echo "❌ Push blocked: CANNOT MEASURE — dependencies are not installed."
+    echo ""
+    echo "   package.json declares $LISA_DECLARED_DEPS dependencies and node_modules is"
+    echo "   absent or empty, so the gates below cannot resolve the tools they"
+    echo "   run: tsc, knip and vitest."
+    echo ""
+    echo "   This is NOT a finding about your code, and nothing below it is"
+    echo "   either. In particular it is NOT a report that quarantined files"
+    echo "   now type-check: do not remove entries from"
+    echo "   typecheck-quarantine.json on the strength of a run that compiled"
+    echo "   nothing."
+    echo ""
+    echo "To fix:"
+    echo "  bun install --frozen-lockfile   # or your package manager's equivalent"
+    echo ""
+    exit 1
+  fi
+  unset LISA_DECLARED_DEPS
+fi
+
 # BEGIN: push destination guard
 # ---------------------------------------------------------------------------
 # Refuse a push whose RESOLVED destination is a deploy branch it was not aimed

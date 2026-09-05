@@ -289,6 +289,22 @@ proceed — the marker still holds. Never file the label *instead of* the marker
 
 If a leaf arrives with `build_ready` omitted or `false` **and** no `human_gate`, do not create it: report the incomplete handoff and name both ways to resolve it (`build_ready: true`, or a `human_gate` reason). Containers are exempt — their state rolls up from children, so they need neither.
 
+**The container exemption is executable, not prose.** It used to live only in the sentence above,
+which meant the `block-direct-issue-create.sh` guard — the control that actually runs on the CLI
+path — had no arm for it, and a container could satisfy that guard only by declaring a build-ready
+role `leaf-only-lifecycle` forbids on it or a human gate it does not have. A container now declares
+a **third** thing, and this skill already writes it: the canonical Target Backend Environment value
+`None — container: state rolls up from children`, defined once by `derived-branch-plan`. The guard
+reads that one string, so there is nothing for the skill and the guard to disagree about.
+
+Two consequences for a container written from here. Render the Target Backend Environment section
+with that exact value — an absent section reads as *underivable*, not exempt, and leaves the guard
+nothing to read. And do not put a **by-design leaf type** (`type:Bug` / `type:Task` /
+`type:Sub-task` / `type:Improvement`) on a filing carrying that declaration: an item cannot be a
+container and a leaf at once, and the guard refuses the combination. `type:Story` and `type:Spike`
+are not in that set, because `leaf-only-lifecycle`'s childless-parent exception makes them
+leaf-or-container depending on child work.
+
 ## Phase 5.5 — Validate (Pre-write Gate)
 
 Before any write, invoke `lisa-github-validate-issue` with the full proposed spec assembled from Phases 2 / 3 / 4 / 5. Pass it as a YAML block per the `lisa-github-validate-issue` schema, including `runtime_behavior_change`, `authenticated_surface`, and `artifacts_attached` flags so the right gates run.
