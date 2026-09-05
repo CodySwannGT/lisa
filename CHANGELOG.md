@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.46.0](https://github.com/CodySwannGT/lisa/compare/v4.45.17...v4.46.0) (2026-09-05)
+
+
+### Features
+
+* **hooks:** tell a session which copy of Lisa it is actually running ([eeec2a3](https://github.com/CodySwannGT/lisa/commit/eeec2a3a08d4fe3a0cf3516e5388a80ae836ab15)), closes [CodySwannGT/lisa#3714](https://github.com/CodySwannGT/lisa/issues/3714)
+* **hooks:** tell a session which copy of Lisa it is actually running ([8b904a5](https://github.com/CodySwannGT/lisa/commit/8b904a51757bdc913bd557b8982a2a4739012d52)), closes [CodySwannGT/lisa#3714](https://github.com/CodySwannGT/lisa/issues/3714)
+* **queue-status:** report open pull requests whose auto-merge is unset ([aabd27d](https://github.com/CodySwannGT/lisa/commit/aabd27dbf94e8939065f330311313d264268f135)), closes [#3806](https://github.com/CodySwannGT/lisa/issues/3806) [#3903](https://github.com/CodySwannGT/lisa/issues/3903) [CodySwannGT/lisa#3903](https://github.com/CodySwannGT/lisa/issues/3903)
+
+
+### Bug Fixes
+
+* **hooks:** report AHEAD as its own state, and fix the tests-typecheck error ([1975803](https://github.com/CodySwannGT/lisa/commit/19758034cbe3e03810c9388e753d5d32e8846b7c)), closes [CodySwannGT/lisa#3714](https://github.com/CodySwannGT/lisa/issues/3714)
+
+
+### Documentation
+
+* apply the owner's deletions to Lisa's own rules and reference files ([442fc24](https://github.com/CodySwannGT/lisa/commit/442fc24fc235a6efd8bca98d3d4ff48120506835)), closes [#1790](https://github.com/CodySwannGT/lisa/issues/1790) [CodySwannGT/lisa#3987](https://github.com/CodySwannGT/lisa/issues/3987)
+
 ### [4.45.17](https://github.com/CodySwannGT/lisa/compare/v4.45.16...v4.45.17) (2026-09-05)
 
 
