@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 118,
-  "$names": 1069,
+  "$modules": 119,
+  "$names": 1082,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -92,6 +92,7 @@
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs": [
       "ATTRIBUTION",
       "DIAGNOSIS",
+      "declaredFailure",
       "diagnoseFailure",
       "machineLoad",
       "ranNoTests",
@@ -182,6 +183,7 @@
       "EVIDENCE_STATUS",
       "EXECUTOR_VERDICTS",
       "FACADE_CLASSES",
+      "FAILURE_SHAPE_FIELD",
       "GATE_FIELDS",
       "GATE_REUSE_CLASS",
       "HARDCODED_INVOCATIONS",
@@ -348,6 +350,7 @@
       "noPullRequestToDischarge",
       "postDischargeBacklinks",
       "pullRequestViewArgs",
+      "pushSuccessLine",
       "resetGhVersionCheck",
       "run",
       "runCli",
@@ -1044,6 +1047,15 @@
       "reconcile",
       "registryUrl"
     ],
+    "scripts/run-artifact-checks.mjs": [
+      "CHECK_BUDGET_MS",
+      "FAILURE_HEADER",
+      "NO_OUTPUT_NOTE",
+      "TIMEOUT_NOTE",
+      "renderReport",
+      "runArtifactChecks",
+      "runCheck"
+    ],
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs": [
       "ABSOLUTE_MAX_API_ATTEMPTS",
       "ABSOLUTE_MAX_API_PAGES",
@@ -1130,6 +1142,7 @@
       "DESCRIPTION_VERDICTS",
       "ENTITLEMENT_WAIVERS",
       "NEVER_BLOCKING",
+      "REPORT_ONLY",
       "REVIEW_DESCRIPTION_DEFAULTS",
       "REVIEW_GATE_BLOCKING",
       "REVIEW_GATE_CONDITIONS",
@@ -1145,6 +1158,7 @@
       "checksSettled",
       "citeHeadSha",
       "classifyCheckDescription",
+      "cliPolicy",
       "collectSkipJobTokens",
       "declaredEvidenceChecks",
       "evaluateAbsentRequiredChecks",
@@ -1178,6 +1192,7 @@
       "transcriptionRecipe",
       "unquoteScalar",
       "vacuityRefusal",
+      "violationBlocks",
       "writeVerdictOutputs"
     ],
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs": [

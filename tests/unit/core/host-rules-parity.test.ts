@@ -111,6 +111,28 @@ describe("core/host-rules parity across supported agents", () => {
       }
     );
 
+    it.each(AGENTS)(
+      "%s receives an instruction it can act on, not just a path",
+      async harness => {
+        await fs.writeJson(path.join(dir, CONFIG_FILENAME), { harness });
+
+        await migrateInstructionFiles(dir);
+
+        const block = extractPointerBlock(
+          await fs.readFile(path.join(dir, AGENTS_MD), "utf8")
+        );
+        // Plain prose is the only form all six agents act on. `@path` is Claude
+        // Code syntax; the other five do not parse it, and it resolves files
+        // rather than directories even on Claude, so an `@.agents/rules/` line
+        // loads nothing anywhere. A block naming the directory without telling
+        // anyone to read it delivers the path and no instruction.
+        expect(block).toMatch(/read every file under/iu);
+        expect(
+          block.split("\n").some(line => line.trimStart().startsWith("@"))
+        ).toBe(false);
+      }
+    );
+
     it("emits byte-identical pointer blocks for every agent", async () => {
       const blocks = await Promise.all(
         AGENTS.map(async harness => {

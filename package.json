@@ -59,7 +59,7 @@
     "generate:two-channel-couplings": "bun scripts/generate-two-channel-couplings.ts",
     "check:two-channel-couplings": "bun scripts/generate-two-channel-couplings.ts --check",
     "check:deletion-basis": "node scripts/check-deletion-basis.mjs",
-    "check:artifacts": "failed=''; bun run check:upstream-evidence-manifest || failed=\"$failed upstream-evidence-manifest\"; bun run check:lisa-owned-hash-ledger || failed=\"$failed lisa-owned-hash-ledger\"; bun run check:nightly-guard-certificate || failed=\"$failed nightly-guard-certificate\"; bun run check:two-channel-couplings || failed=\"$failed two-channel-couplings\"; bun run check:deletion-basis || failed=\"$failed deletion-basis\"; bun run check:export-surface || failed=\"$failed export-surface\"; bun run check:merge-coverage || failed=\"$failed merge-coverage\"; if [ -n \"$failed\" ]; then echo \"check:artifacts FAILED, and these are the checks that failed:$failed\"; exit 1; fi; echo \"check:artifacts OK - all 7 generated-artifact checks passed.\"",
+    "check:artifacts": "node scripts/run-artifact-checks.mjs check:upstream-evidence-manifest check:lisa-owned-hash-ledger check:nightly-guard-certificate check:two-channel-couplings check:deletion-basis check:export-surface check:merge-coverage",
     "refresh:upstream-public-commits": "node scripts/generate-upstream-evidence-manifest.mjs --refresh-public-commits",
     "check:rules-pairing": "bash scripts/check-rules-pairing.sh",
     "check:pipeline-status-reads": "node scripts/check-pipeline-status-reads.mjs",
@@ -178,7 +178,7 @@
     "zod-validation-error": "^4.0.0"
   },
   "name": "@codyswann/lisa",
-  "version": "4.45.10",
+  "version": "4.48.0",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {

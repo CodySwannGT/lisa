@@ -2,6 +2,83 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.48.0](https://github.com/CodySwannGT/lisa/compare/v4.47.0...v4.48.0) (2026-09-05)
+
+
+### Features
+
+* **rules:** shrink the host-rules pointer to one actionable instruction ([fbd278e](https://github.com/CodySwannGT/lisa/commit/fbd278e1d22c9a4ea7100a360a633895a00c3d9e)), closes [CodySwannGT/lisa#3991](https://github.com/CodySwannGT/lisa/issues/3991)
+
+## [4.47.0](https://github.com/CodySwannGT/lisa/compare/v4.46.0...v4.47.0) (2026-09-05)
+
+
+### Features
+
+* **gates:** let a gate say how its own prover's failure reads ([85c989c](https://github.com/CodySwannGT/lisa/commit/85c989ccc9e1f72e6f731f3ba0363b9fc0ce5335)), closes [#3946](https://github.com/CodySwannGT/lisa/issues/3946) [#3957](https://github.com/CodySwannGT/lisa/issues/3957) [#3981](https://github.com/CodySwannGT/lisa/issues/3981) [#3946](https://github.com/CodySwannGT/lisa/issues/3946) [CodySwannGT/lisa#3974](https://github.com/CodySwannGT/lisa/issues/3974)
+
+## [4.46.0](https://github.com/CodySwannGT/lisa/compare/v4.45.17...v4.46.0) (2026-09-05)
+
+
+### Features
+
+* **hooks:** tell a session which copy of Lisa it is actually running ([eeec2a3](https://github.com/CodySwannGT/lisa/commit/eeec2a3a08d4fe3a0cf3516e5388a80ae836ab15)), closes [CodySwannGT/lisa#3714](https://github.com/CodySwannGT/lisa/issues/3714)
+* **hooks:** tell a session which copy of Lisa it is actually running ([8b904a5](https://github.com/CodySwannGT/lisa/commit/8b904a51757bdc913bd557b8982a2a4739012d52)), closes [CodySwannGT/lisa#3714](https://github.com/CodySwannGT/lisa/issues/3714)
+* **queue-status:** report open pull requests whose auto-merge is unset ([aabd27d](https://github.com/CodySwannGT/lisa/commit/aabd27dbf94e8939065f330311313d264268f135)), closes [#3806](https://github.com/CodySwannGT/lisa/issues/3806) [#3903](https://github.com/CodySwannGT/lisa/issues/3903) [CodySwannGT/lisa#3903](https://github.com/CodySwannGT/lisa/issues/3903)
+
+
+### Bug Fixes
+
+* **hooks:** report AHEAD as its own state, and fix the tests-typecheck error ([1975803](https://github.com/CodySwannGT/lisa/commit/19758034cbe3e03810c9388e753d5d32e8846b7c)), closes [CodySwannGT/lisa#3714](https://github.com/CodySwannGT/lisa/issues/3714)
+
+
+### Documentation
+
+* apply the owner's deletions to Lisa's own rules and reference files ([442fc24](https://github.com/CodySwannGT/lisa/commit/442fc24fc235a6efd8bca98d3d4ff48120506835)), closes [#1790](https://github.com/CodySwannGT/lisa/issues/1790) [CodySwannGT/lisa#3987](https://github.com/CodySwannGT/lisa/issues/3987)
+
+### [4.45.17](https://github.com/CodySwannGT/lisa/compare/v4.45.16...v4.45.17) (2026-09-05)
+
+
+### Bug Fixes
+
+* **codex:** track .codex/hooks.json instead of ignoring it ([dfea5a9](https://github.com/CodySwannGT/lisa/commit/dfea5a970f2aa4420016ebffbcc42387cc8e0d20)), closes [#3700](https://github.com/CodySwannGT/lisa/issues/3700) [CodySwannGT/lisa#3867](https://github.com/CodySwannGT/lisa/issues/3867)
+
+### [4.45.16](https://github.com/CodySwannGT/lisa/compare/v4.45.15...v4.45.16) (2026-09-05)
+
+### [4.45.15](https://github.com/CodySwannGT/lisa/compare/v4.45.14...v4.45.15) (2026-09-05)
+
+
+### Bug Fixes
+
+* **artifacts:** put the failing check's words last, and let a merge be seen ([6fc67b1](https://github.com/CodySwannGT/lisa/commit/6fc67b1eb6551c3d0de00a54cbdd6d561263165a)), closes [CodySwannGT/lisa#3876](https://github.com/CodySwannGT/lisa/issues/3876) [CodySwannGT/lisa#3876](https://github.com/CodySwannGT/lisa/issues/3876)
+* **mutation:** build the scored-subject block as one template literal ([b43d198](https://github.com/CodySwannGT/lisa/commit/b43d198c9ae24d66415d42561c1fa4eee6dc5447)), closes [CodySwannGT/lisa#3878](https://github.com/CodySwannGT/lisa/issues/3878)
+* **mutation:** stop a parser fixture from printing a real-looking verdict ([4f66aa4](https://github.com/CodySwannGT/lisa/commit/4f66aa49eb6b32628b211f677314413ba6fe49e6)), closes [CodySwannGT/lisa#3878](https://github.com/CodySwannGT/lisa/issues/3878)
+* **tests:** read the aggregate script body through one defined-or-empty helper ([560cfbc](https://github.com/CodySwannGT/lisa/commit/560cfbca005aceeef6d611201ed9a51d7f763bd9)), closes [CodySwannGT/lisa#3811](https://github.com/CodySwannGT/lisa/issues/3811) [CodySwannGT/lisa#3876](https://github.com/CodySwannGT/lisa/issues/3876)
+
+### [4.45.14](https://github.com/CodySwannGT/lisa/compare/v4.45.13...v4.45.14) (2026-09-05)
+
+
+### Bug Fixes
+
+* **gates:** a type checker that found errors is a measurement, not an unknown ([12a65ea](https://github.com/CodySwannGT/lisa/commit/12a65eaa3c656bce07bde2ee0c9db5a810b04c7e)), closes [#2961](https://github.com/CodySwannGT/lisa/issues/2961) [CodySwannGT/lisa#3946](https://github.com/CodySwannGT/lisa/issues/3946)
+* **hooks:** give the dirty-worktree refusal a remedy that runs and recovers ([6180a47](https://github.com/CodySwannGT/lisa/commit/6180a4737f10b7a7742b870f0ae812b8172db10e)), closes [#3722](https://github.com/CodySwannGT/lisa/issues/3722) [#2906](https://github.com/CodySwannGT/lisa/issues/2906) [#2940](https://github.com/CodySwannGT/lisa/issues/2940) [CodySwannGT/lisa#3696](https://github.com/CodySwannGT/lisa/issues/3696)
+
+### [4.45.13](https://github.com/CodySwannGT/lisa/compare/v4.45.12...v4.45.13) (2026-09-05)
+
+### [4.45.12](https://github.com/CodySwannGT/lisa/compare/v4.45.11...v4.45.12) (2026-09-05)
+
+
+### Bug Fixes
+
+* **merge-driver:** print a remedy the safety guard permits ([6cb50a9](https://github.com/CodySwannGT/lisa/commit/6cb50a907da48ab73361c6df14070ea38efd69f0)), closes [#3722](https://github.com/CodySwannGT/lisa/issues/3722) [#3722](https://github.com/CodySwannGT/lisa/issues/3722) [CodySwannGT/lisa#3692](https://github.com/CodySwannGT/lisa/issues/3692)
+* **work-item:** say why a zero-commit push passed, so a deferral is not an emptiness ([0f5a94e](https://github.com/CodySwannGT/lisa/commit/0f5a94eb397ecbfa240298062708ba4f3286d4d9)), closes [#3869](https://github.com/CodySwannGT/lisa/issues/3869) [CodySwannGT/lisa#3886](https://github.com/CodySwannGT/lisa/issues/3886)
+
+### [4.45.11](https://github.com/CodySwannGT/lisa/compare/v4.45.10...v4.45.11) (2026-09-05)
+
+
+### Bug Fixes
+
+* **gates:** give the plugin-sync prover a local push moment ([7e130e3](https://github.com/CodySwannGT/lisa/commit/7e130e36a695f33eb7396d0ae8acecf785692048)), closes [CodySwannGT/lisa#3891](https://github.com/CodySwannGT/lisa/issues/3891)
+
 ### [4.45.10](https://github.com/CodySwannGT/lisa/compare/v4.45.9...v4.45.10) (2026-09-05)
 
 
