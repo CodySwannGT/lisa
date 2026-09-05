@@ -10059,6 +10059,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/migrations/ensure-lisa-postinstall.test.ts": true,
     "tests/unit/migrations/ensure-nightly-e2e-workflow-pins.test.ts": true,
     "tests/unit/migrations/ensure-oxlint-base-configs.test.ts": true,
+    "tests/unit/migrations/ensure-pinned-reusable-workflow-refs-vouched.test.ts": true,
     "tests/unit/migrations/ensure-pinned-reusable-workflow-refs.test.ts": true,
     "tests/unit/migrations/ensure-playwright-dedicated-caller.test.ts": true,
     "tests/unit/migrations/ensure-push-default-safe.test.ts": true,

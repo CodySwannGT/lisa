@@ -268,7 +268,20 @@ export class EnsurePinnedReusableWorkflowRefsMigration implements Migration {
         // guard exists to prevent.
         const shouldPin = (workflow: string): boolean =>
           vouched.size === 0 || vouched.has(workflow);
-        if (refs.every(reference => isPinnedAt(reference, pin))) return [];
+        // Only references this release will actually pin count toward
+        // "already settled". An unvouched reference is deliberately left
+        // mutable, so it is never `isPinnedAt` — reading it as unsettled made
+        // this file report a change on EVERY apply, rewriting byte-identical
+        // content and logging a pin that did not happen. That is the exact
+        // idempotency the migration otherwise guarantees.
+        if (
+          refs.every(
+            reference =>
+              !shouldPin(reference.workflow) || isPinnedAt(reference, pin)
+          )
+        ) {
+          return [];
+        }
         return [
           {
             relative,
