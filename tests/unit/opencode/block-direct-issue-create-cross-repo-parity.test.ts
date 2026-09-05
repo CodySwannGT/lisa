@@ -35,6 +35,12 @@ useIoLatencyBudget();
 
 const CUSTOM_ROLE = "state:queued";
 
+/**
+ * The canonical container declaration, verbatim — defined by
+ * `derived-branch-plan` and stamped by every Lisa writer.
+ */
+const CONTAINER_DECLARATION = "None — container: state rolls up from children";
+
 /** A GitHub-tracked caller that renamed its ready lane. */
 const GITHUB_CALLER = {
   tracker: "github",
@@ -204,6 +210,26 @@ const CASES: readonly {
       "cross.sh":
         '# lifecycle_role: ready\ngh issue create --repo other-org/other-repo --title "x"\n',
     },
+    expected: "deny",
+  },
+  // The container arm. A container is neither build-ready nor human-gated, so
+  // before it existed the guard could be satisfied for one only by writing
+  // something untrue. A parity break here would mean an Epic is fileable on
+  // one agent and not on another.
+  {
+    label: "a container filing carrying the container declaration",
+    config: GITHUB_CALLER,
+    command:
+      'gh issue create --title "Rollup" --label "type:Epic" ' +
+      `--body "${CONTAINER_DECLARATION}"`,
+    expected: "allow",
+  },
+  {
+    label: "a leaf claiming to be a container",
+    config: GITHUB_CALLER,
+    command:
+      'gh issue create --title "Crash on save" --label "type:Bug" ' +
+      `--body "${CONTAINER_DECLARATION}"`,
     expected: "deny",
   },
 ];
