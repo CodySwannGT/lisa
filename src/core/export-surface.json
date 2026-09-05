@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 117,
-  "$names": 1057,
+  "$modules": 118,
+  "$names": 1068,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -353,6 +353,11 @@
       "textContainsBacklink",
       "unreachableAncestryRefusal",
       "unresolvedPushReport"
+    ],
+    "all/copy-overwrite/scripts/lisa-worktree-guard.mjs": [
+      "classifyWorktree",
+      "main",
+      "recordRemoval"
     ],
     "expo/copy-overwrite/scripts/bdd-matrix.mjs": [
       "renderMatrix"
@@ -1193,12 +1198,15 @@
     ],
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs": [
       "DEFAULT_CHILD_DEADLINE_MS",
+      "DEFAULT_SHELL_EVIDENCE_FILE",
       "DEFAULT_TEMP_DIR_NAME",
       "DEFAULT_TIMEOUT_SHARE_CEILING_PCT",
       "FALLBACK_MUTATE",
       "JSON_CONFIG_NAMES",
       "MIN_DETECTED_FOR_SHARE",
       "OUTCOMES",
+      "SHELL_EVIDENCE",
+      "SHELL_EVIDENCE_TRACE_VAR",
       "STRYKER_DEFAULT_DRY_RUN_TIMEOUT_MINUTES",
       "STRYKER_DEFAULT_TIMEOUT_MS",
       "STRYKER_PARSED_EXTENSIONS",
@@ -1207,10 +1215,13 @@
       "WHOLE_LIST_FLAG",
       "accountForTimeouts",
       "childDeadlineBlock",
+      "classifyShellGuardEvidence",
       "classifyStrykerFailure",
       "compileMutatePatterns",
       "countMutateTargetsInRepo",
+      "describeShellGuardEvidence",
       "envFlag",
+      "fileDigest",
       "finish",
       "globToRegExp",
       "isMutateTarget",
@@ -1220,8 +1231,10 @@
       "parseChangedLineRanges",
       "parseMutantTally",
       "parseSandboxOwner",
+      "parseShellGuardTrace",
       "processIsAlive",
       "readGate",
+      "readShellGuardEvidence",
       "reclaimAbandonedSandboxes",
       "reportRun",
       "resolveBreakThreshold",
