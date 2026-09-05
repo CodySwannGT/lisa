@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.45.8](https://github.com/CodySwannGT/lisa/compare/v4.45.7...v4.45.8) (2026-09-05)
+
+
+### Bug Fixes
+
+* **hooks:** check the binding guard's first call instead of trusting it ([3fba190](https://github.com/CodySwannGT/lisa/commit/3fba190ff5b26f3bd65f1bf50d939ce96b8c81d2)), closes [#3864](https://github.com/CodySwannGT/lisa/issues/3864) [#3712](https://github.com/CodySwannGT/lisa/issues/3712) [#3955](https://github.com/CodySwannGT/lisa/issues/3955) [#3955](https://github.com/CodySwannGT/lisa/issues/3955) [#3864](https://github.com/CodySwannGT/lisa/issues/3864) [CodySwannGT/lisa#3955](https://github.com/CodySwannGT/lisa/issues/3955)
+* **mutation:** compute the shell-guard evidence verdict instead of asserting it ([86b495e](https://github.com/CodySwannGT/lisa/commit/86b495eb400b7e05c3ed74aa47260546153a9448)), closes [#3863](https://github.com/CodySwannGT/lisa/issues/3863) [#3961](https://github.com/CodySwannGT/lisa/issues/3961) [#3054](https://github.com/CodySwannGT/lisa/issues/3054) [CodySwannGT/lisa#3931](https://github.com/CodySwannGT/lisa/issues/3931)
+
 ### [4.45.7](https://github.com/CodySwannGT/lisa/compare/v4.45.6...v4.45.7) (2026-09-05)
 
 
