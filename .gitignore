@@ -165,9 +165,10 @@ tasks.json
 **/.claude/.lisa-plugins-synced
 **/.claude/.lisa-marketplace-heal-v2
 
-# Second agent worktree root — see the full rationale on the same entry in
-# all/copy-contents/gitignore. Must stay above `### EASINCLUDE! ###`.
+# Agent worktree roots — see the full rationale on the same entry in
+# all/copy-contents/gitignore. Both must stay above `### EASINCLUDE! ###`.
 .worktrees/
+worktrees/
 .roo
 .roo/
 .roomodes
