@@ -6,7 +6,7 @@
     "lisa-test-run": "bun run build && node dist/cli/lisa-test-run.js --profile lisa",
     "test:integration": "$npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration",
     "test:integration:push": "$npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration --exclude='**/mutation-gate-bite.test.ts' --exclude='**/mutation-gate-diff-bite.test.ts' --exclude='**/mutation-sigterm-control.test.ts' --exclude='**/mutation-performance-fixture.test.ts' --exclude='**/mutation-performance-packed-apply.test.ts'",
-    "postinstall": "bash ./scripts/install-claude-plugins.sh || true; node ./scripts/install-generated-artifact-merge-driver.mjs || true; tsc || true",
+    "postinstall": "bash ./scripts/install-claude-plugins.sh || true; node ./scripts/install-generated-artifact-merge-driver.mjs || true; [ ! -f tsconfig.json ] || tsc -p tsconfig.json || true",
     "pretest": "bun run build",
     "test": "$npm_execpath run lisa-test-run -- --adapter vitest -- vitest run",
     "test:unit": "$npm_execpath run lisa-test-run -- --adapter vitest -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*'",

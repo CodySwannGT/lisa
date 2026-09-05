@@ -9903,6 +9903,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/plugin-sync-push-gate-wired.test.ts": true,
     "tests/unit/config/postinstall-ci-guard.test.ts": true,
     "tests/unit/config/postinstall-cloud-session-guard.test.ts": true,
+    "tests/unit/config/postinstall-tsc-stays-in-package.test.ts": true,
     "tests/unit/config/process-tree-runner-common-delivery.test.ts": true,
     "tests/unit/config/rails-scratch-supervisor-routes.test.ts": true,
     "tests/unit/config/rails-template.test.ts": true,
