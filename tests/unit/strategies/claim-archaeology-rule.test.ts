@@ -32,12 +32,12 @@ const read = (root: string, rel: string): string =>
 
 describe("claim-archaeology rule contract", () => {
   describe.each(ROOTS)("%s", root => {
-    const eager = read(root, "rules/eager/claim-archaeology.md");
+    const eager = read(root, "rules/reference/claim-archaeology.md");
     const reference = read(root, "rules/reference/claim-archaeology.md");
 
-    it("eager head breadcrumbs to the reference body", () => {
-      expect(eager).toContain(
-        "[reference/claim-archaeology.md](../reference/claim-archaeology.md)"
+    it("stays reachable from the eager rule index", () => {
+      expect(read(root, "rules/eager/00-rule-index.md")).toContain(
+        "reference/claim-archaeology.md"
       );
     });
 

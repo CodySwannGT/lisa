@@ -136,19 +136,20 @@ describe("lisa-implement environment resolution", () => {
 describe("configuration and autofill rules", () => {
   describe.each(RULE_ROOTS)("%s", root => {
     const referenceConfig = readRule(root, "reference", "config-resolution");
-    const eagerConfig = readRule(root, "eager", "config-resolution");
     const referenceAutofill = readRule(
       root,
       "reference",
       "pre-flight-autofill"
     );
-    const eagerAutofill = readRule(root, "eager", "pre-flight-autofill");
+    const eagerAutofill = readRule(root, "reference", "pre-flight-autofill");
 
     it("pins the same contract in both reference sections and eager config", () => {
       expect(referenceConfig.match(/### Env → base branch/g)).toHaveLength(2);
       expect(referenceConfig).toMatch(/forward/i);
       expect(referenceConfig).toMatch(/inverse|reverse/i);
-      for (const content of [referenceConfig, eagerConfig]) {
+      // #3992 moved the env grammar out of the always-on config-resolution head
+      // into its reference body: it is tracker-write mechanics. One copy now.
+      for (const content of [referenceConfig]) {
         expectGrammar(content);
         expectSignalRules(content);
         expect(content).toContain(DEPLOY_MAP);

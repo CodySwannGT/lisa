@@ -92,7 +92,8 @@
     "verify:health-consumer": "bun run build:dist && node scripts/verify-health-consumer-built.mjs",
     "measure:tmpdir-growth": "node scripts/measure-tmpdir-growth.mjs",
     "lint:staged": "lint-staged --config .lintstagedrc.json",
-    "check:merge-coverage": "node scripts/check-generated-artifact-merge-coverage.mjs"
+    "check:merge-coverage": "node scripts/check-generated-artifact-merge-coverage.mjs",
+    "check:eager-rule-budget": "node scripts/check-eager-rule-budget.mjs"
   },
   "engines": {
     "npm": "please-use-bun",

@@ -332,7 +332,7 @@ describe("legacy OS-keychain fallbacks carry a removal date", () => {
       // surviving rungs look like a contradiction rather than a ramp.
       const eager = read(
         root,
-        "rules/eager/credential-substrate-precedence.md"
+        "rules/reference/credential-substrate-precedence.md"
       );
       expect(eager).toContain(KEYCHAIN_REMOVAL_DATE);
       expect(eager).toMatch(/removal date/i);

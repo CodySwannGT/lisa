@@ -103,10 +103,15 @@ function valveBullet(content: string): string {
   return end === -1 ? rest : rest.slice(0, end);
 }
 
+/** The one surface carrying the claim-time-guards contract since #3992. */
+const CLAIM_TIME_GUARDS = "rules/reference/claim-time-guards.md";
+
 describe("the attempt valve distinguishes the machine from the work", () => {
   describe.each(ROOTS)("%s", root => {
-    const eager = read(root, "rules/eager/claim-time-guards.md");
-    const reference = read(root, "rules/reference/claim-time-guards.md");
+    // #3992 demoted claim-time-guards: the head is folded into the body, so
+    // both names read the one surviving surface.
+    const reference = read(root, CLAIM_TIME_GUARDS);
+    const eager = reference;
 
     it("carries a measures= field on the marker", () => {
       // Without this field there is nowhere for the distinction to live, and
@@ -143,8 +148,10 @@ describe("the attempt valve distinguishes the machine from the work", () => {
 
 describe("the attempt valve scopes its count so recovery works", () => {
   describe.each(ROOTS)("%s", root => {
-    const eager = read(root, "rules/eager/claim-time-guards.md");
-    const reference = read(root, "rules/reference/claim-time-guards.md");
+    // #3992 demoted claim-time-guards: the head is folded into the body, so
+    // both names read the one surviving surface.
+    const reference = read(root, CLAIM_TIME_GUARDS);
+    const eager = reference;
 
     it("counts only markers recorded after the item re-entered the ready lane", () => {
       for (const doc of [eager, reference]) {

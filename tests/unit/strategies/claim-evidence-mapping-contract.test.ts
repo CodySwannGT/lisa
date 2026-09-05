@@ -43,7 +43,7 @@ const read = (root: string, rel: string): string =>
 
 describe("claim-evidence-mapping rule contract", () => {
   describe.each(ROOTS)("%s", root => {
-    const eager = read(root, "rules/eager/claim-evidence-mapping.md");
+    const eager = read(root, "rules/reference/claim-evidence-mapping.md");
     const reference = read(root, "rules/reference/claim-evidence-mapping.md");
 
     it("ships as a paired rule with a non-trivial body on both sides", () => {
@@ -51,9 +51,9 @@ describe("claim-evidence-mapping rule contract", () => {
       expect(reference.length).toBeGreaterThan(2000);
     });
 
-    it("eager head breadcrumbs to the reference body verbatim", () => {
-      expect(eager).toContain(
-        "Full contract (claim-boundary taxonomy, core inequality, worked example, field names): [reference/claim-evidence-mapping.md](../reference/claim-evidence-mapping.md)."
+    it("stays reachable from the eager rule index", () => {
+      expect(read(root, "rules/eager/00-rule-index.md")).toContain(
+        "reference/claim-evidence-mapping.md"
       );
     });
 

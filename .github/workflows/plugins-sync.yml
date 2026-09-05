@@ -147,6 +147,17 @@ jobs:
         run: bun run check:plugins
       - name: Check rules eager/reference pairing
         run: bun run check:rules-pairing
+      # #3992: the eager rule tier is injected at SessionStart AND SubagentStart,
+      # so a lead plus ten teammates pays it eleven times before any work. It was
+      # cut from 190,237 to 26,540 bytes in May 2026 and had regrown to 201,083
+      # by September — 7.6x the post-cleanup figure and larger than the payload
+      # the cleanup removed. Every addition was individually defensible; nothing
+      # measured the sum, so nobody saw it happen. Like its neighbours the gate
+      # refuses to pass an inspection it did not perform: it prints the files and
+      # bytes it measured per plugin root and exits 2 rather than reporting a
+      # passing zero for a directory it could not read.
+      - name: Check eager rule budget
+        run: bun run check:eager-rule-budget
       # #3090: a shell pipeline's exit status is its LAST stage's, so a gate
       # piped into `tail`/`head`/`tee` reports the pager's success and a FAILED
       # gate is recorded as passing. It is not hypothetical here — the

@@ -52,17 +52,24 @@ const read = (root: string, rel: string): string =>
 
 describe("bdd-e2e-coverage rule contract", () => {
   describe.each(ROOTS)("%s", root => {
-    const eager = read(root, "rules/eager/bdd-e2e-coverage.md");
     const reference = read(root, "rules/reference/bdd-e2e-coverage.md");
+    // #3992 folded the eager head into the body under its own H2, above a
+    // horizontal rule. The vendor-neutrality assertions below are scoped to
+    // that section deliberately: the full contract names runners as examples,
+    // and the property being pinned is that the SUMMARY mandates none.
+    const eager = reference.slice(
+      reference.indexOf("## BDD Behavior Contract"),
+      reference.indexOf("\n---\n")
+    );
 
     it("ships as a paired rule with a non-trivial body on both sides", () => {
       expect(eager.length).toBeGreaterThan(500);
       expect(reference.length).toBeGreaterThan(2000);
     });
 
-    it("eager head breadcrumbs to the reference body verbatim", () => {
-      expect(eager).toContain(
-        "Full contract (coverage-map schema, gate semantics, bootstrap procedure, per-flow obligations): [reference/bdd-e2e-coverage.md](../reference/bdd-e2e-coverage.md)."
+    it("stays reachable from the eager rule index", () => {
+      expect(read(root, "rules/eager/00-rule-index.md")).toContain(
+        "reference/bdd-e2e-coverage.md"
       );
     });
 

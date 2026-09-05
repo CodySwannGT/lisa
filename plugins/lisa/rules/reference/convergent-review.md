@@ -1,5 +1,36 @@
 # Convergent Review
 
+> Demoted from the always-on eager tier by CodySwannGT/lisa#3992. The
+> section below is the former eager head, preserved verbatim; the full
+> contract follows it. Reachable on demand via `rules/eager/00-rule-index.md`.
+
+## Convergent Review
+
+Review exists to get correct work merged, not to keep a PR in review orbit.
+
+- Block only concrete correctness, security, data-loss, or contract-violation
+  failures. Lint-owned style, formatting, taste, and speculative improvements
+  are non-blocking unless the work item or repository rules make them release
+  criteria.
+- Every finding must state severity, blocking yes/no, a concrete failure
+  scenario, evidence, and the smallest actionable fix — plus
+  `invariant_violated` (the property at risk) and `machinery_to_remove` (what
+  becomes deletable, or `none`), required for `readiness-rubric` findings and
+  recommended elsewhere.
+- Present findings highest-consequence first, by severity and blast radius, not
+  by discovery order. Report section order stays stable.
+- A blocking finding without a concrete failure scenario is malformed by
+  contract; downgrade it to non-blocking and ask for evidence.
+- Resolve each finding as `fixed`, `deferred`, or `pushed-back`. If the reviewer
+  cannot refute a pushback with fresh evidence, the author's disposition stands.
+- After suggestion implementation completes and gates pass, review does not
+  reopen absent new evidence: a relevant new commit, a failed gate, a newly cited
+  failure scenario, or a scope change.
+- Irreconcilable blocking disagreement becomes a blocked work item with both
+  positions summarized for the operator, not an endless loop.
+
+---
+
 Review exists to get correct work merged, not to keep a PR in review orbit.
 Apply this contract to every product, quality, local, bot-parity, and suggestion
 implementation pass.
