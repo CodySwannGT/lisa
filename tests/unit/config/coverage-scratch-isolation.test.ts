@@ -29,7 +29,8 @@
  * it.
  * @module tests/unit/config/coverage-scratch-isolation
  */
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { spawn, type ChildProcessByStdio } from "node:child_process";
+import type { Readable } from "node:stream";
 import * as fs from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
@@ -83,7 +84,11 @@ interface ChildOutcome {
  * @returns Its exit status and complete output.
  */
 function collectChild(
-  child: ChildProcessWithoutNullStreams
+  // The exact type `spawn` returns for `stdio: ["ignore", "pipe", "pipe"]` —
+  // stdin null, both readable ends piped. `ChildProcessWithoutNullStreams` is
+  // the wrong one, and only `tsconfig.tests.json` says so, because that is the
+  // project which compiles this file.
+  child: ChildProcessByStdio<null, Readable, Readable>
 ): Promise<ChildOutcome> {
   const out: string[] = [];
   const err: string[] = [];
@@ -92,7 +97,7 @@ function collectChild(
   child.stdout.on("data", (chunk: string) => out.push(chunk));
   child.stderr.on("data", (chunk: string) => err.push(chunk));
   return new Promise(resolve => {
-    child.on("close", code => {
+    child.on("close", (code: number | null) => {
       resolve({ code, stderr: err.join(""), stdout: out.join("") });
     });
   });
