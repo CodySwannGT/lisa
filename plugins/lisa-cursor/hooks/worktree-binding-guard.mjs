@@ -102,14 +102,35 @@ function git(args, cwd) {
       stdio: ["ignore", "pipe", "ignore"],
     }).trim();
   } catch {
+    // probe-direction: neutral — this helper REPORTS, it does not decide. Both
+    // callers below read null and each one says out loud what it could not do
+    // before returning, so no gate outcome follows from this null silently
+    // (#3848). Keep that true: a caller added here that spends null as an
+    // answer has to say so at its own line.
     return null;
   }
 }
 
-/** The worktree root containing `cwd`, or null when `cwd` is not in a repo. */
+/**
+ * The worktree root containing `cwd`, or null when `cwd` is not in a repo.
+ *
+ * `--show-toplevel` exits non-zero for two OPPOSITE reasons and hands back the
+ * same nothing for both: `cwd` is outside any repository — a real absence, and
+ * a call there is genuinely none of this guard's business — or git could not
+ * answer at all, where the binding is unproven rather than inapplicable. Only
+ * the second is a withdrawal of enforcement, and it is the one that must not
+ * pass for the first. `git --version` succeeds wherever git can run, so its
+ * failure is what separates them.
+ * @param {string} cwd Directory the tool call runs in.
+ * @returns {string|null} Absolute worktree root, or null.
+ */
 function worktreeRoot(cwd) {
   const top = git(["rev-parse", "--show-toplevel"], cwd);
-  return top ? resolve(top) : null;
+  if (top) return resolve(top);
+  if (git(["--version"], cwd) === null) {
+    say("git could not be run here, so the worktree binding is NOT enforced");
+  }
+  return null;
 }
 
 /**
@@ -123,7 +144,14 @@ function mainCheckout(cwd) {
     ["rev-parse", "--path-format=absolute", "--git-common-dir"],
     cwd
   );
-  return common ? dirname(resolve(common)) : null;
+  if (common) return dirname(resolve(common));
+  // Reached only for an `EnterWorktree` naming a worktree, which means a
+  // repository was already in hand — so failing here is "could not ask", and
+  // the consequence is that the claim goes unrecorded and the NEXT call's
+  // displacement check has nothing to compare against. Said out loud rather
+  // than returned as a quiet null (#3848).
+  say("git could not resolve the main checkout, so this claim is NOT recorded");
+  return null;
 }
 
 /**

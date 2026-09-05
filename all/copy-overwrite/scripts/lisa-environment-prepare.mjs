@@ -219,6 +219,8 @@ function spawnExec(argv) {
     // Not dead code: a non-timeout `spawnSync` failure — `ENOENT` for a runner
     // that is not installed — still arrives on the result rather than as a
     // throw, and it means the verb did not run, which is the same verdict.
+    // probe-direction: fail-closed — null means the verb did not run, and the
+    // caller renders that as a refusal rather than as a passing verb.
     if (child.error) return null;
     return child.status;
   } catch (error) {

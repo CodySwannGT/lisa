@@ -63,6 +63,7 @@
     "check:pipeline-status-reads": "node scripts/check-pipeline-status-reads.mjs",
     "check:whole-output-guards": "node scripts/check-whole-output-guards.mjs",
     "check:empty-subject-guards": "node scripts/check-empty-subject-guards.mjs",
+    "check:probe-absence-direction": "node scripts/check-probe-absence-direction.mjs",
     "check:shell-guard-refusals": "bun run build && $npm_execpath run lisa-test-run -- --adapter direct -- node scripts/check-shell-guard-refusal-coverage.mjs",
     "check:workflow-inputs": "node scripts/detect-stale-workflow-inputs.mjs --project . --project typescript/create-only --project rails/create-only --json",
     "check:conflict-markers": "node all/copy-overwrite/scripts/check-conflict-markers.mjs",
@@ -173,7 +174,7 @@
     "zod-validation-error": "^4.0.0"
   },
   "name": "@codyswann/lisa",
-  "version": "4.42.4",
+  "version": "4.42.7",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {
