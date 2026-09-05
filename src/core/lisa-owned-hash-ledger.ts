@@ -632,6 +632,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "014510942610f36b17f006dee4b96c7737abad3e3acc4f5b416ab6d52403c793",
     "0e4a69c6f072cdf8c77931dd846348cf3f08ea0f47c6c0b0f5c4828cde5a8daa",
     "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
+    "18e66768f5e2bc83c00566175977e7af145517322c7c933f0216b7bbe26e0c3d",
     "1b28c764662b60ab3fe4e689f44e34cd4ecb80aef952dbbb954cc1ddaacd132d",
     "22184f1dd1b96e818741bd4ae659446299535d7ce594817155edebac4172a7ba",
     "2832037d6c8d7930a111519dee0cca0ed0110deba3988f8e713bb9203de254df",
@@ -652,6 +653,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "8d1f04ef5c5da9db9190e22b37a435e118e39d6e7deafc5402b4593c8e9db2b2",
     "8df0ebd0d9b248d74683ed3a39da84c7348dd8ca08d0bb651f69f1987b554412",
     "8e1a04254f214c7de4ac252f0aec0f520aae617b87c7b306df6f08c6d2e8cf76",
+    "d3d8598080c3b4512957588d6d280facca2da6bf18a5a985b1f2c0d53a7c34aa",
   ]),
   "scripts/lisa-hooks/block-instruction-file-edits.sh": Object.freeze([
     "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
@@ -1677,6 +1679,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "014510942610f36b17f006dee4b96c7737abad3e3acc4f5b416ab6d52403c793",
     "0e4a69c6f072cdf8c77931dd846348cf3f08ea0f47c6c0b0f5c4828cde5a8daa",
     "17c442bf60259d8183c7359bc54f992e8b7f305798704af1ed33f3e22e1a6006",
+    "18e66768f5e2bc83c00566175977e7af145517322c7c933f0216b7bbe26e0c3d",
     "1b28c764662b60ab3fe4e689f44e34cd4ecb80aef952dbbb954cc1ddaacd132d",
     "22184f1dd1b96e818741bd4ae659446299535d7ce594817155edebac4172a7ba",
     "2832037d6c8d7930a111519dee0cca0ed0110deba3988f8e713bb9203de254df",
@@ -1697,6 +1700,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "8d1f04ef5c5da9db9190e22b37a435e118e39d6e7deafc5402b4593c8e9db2b2",
     "8df0ebd0d9b248d74683ed3a39da84c7348dd8ca08d0bb651f69f1987b554412",
     "8e1a04254f214c7de4ac252f0aec0f520aae617b87c7b306df6f08c6d2e8cf76",
+    "d3d8598080c3b4512957588d6d280facca2da6bf18a5a985b1f2c0d53a7c34aa",
   ]),
   "scripts/lisa-hooks/block-instruction-file-edits.sh": Object.freeze([
     "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
