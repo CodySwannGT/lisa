@@ -1116,10 +1116,15 @@ function configAt(ref) {
   const result = run("git", ["show", `${ref}:.lisa.config.json`], {
     allowFailure: true,
   });
+  // probe-direction: fail-closed — an empty config grants no deploy-chain
+  // exemption, so a config that cannot be read at the base makes the gate
+  // stricter, never looser.
   if (result.status !== 0) return {};
   try {
     return JSON.parse(result.stdout);
   } catch {
+    // probe-direction: fail-closed — same as above: unparseable config, no
+    // exemption granted.
     return {};
   }
 }
@@ -2432,6 +2437,8 @@ function remoteDefaultRef(remote) {
     ["symbolic-ref", "--quiet", `refs/remotes/${remote}/HEAD`],
     { allowFailure: true }
   );
+  // probe-direction: fail-closed — no ref means no range exclusion, so the
+  // commit range examined grows rather than shrinks (#1956).
   if (symref.status !== 0) return undefined;
   const target = symref.stdout.trim();
   if (!target.startsWith(`refs/remotes/${remote}/`)) return undefined;
@@ -3158,6 +3165,12 @@ function currentRepository() {
   const result = run("gh", ["repo", "view", "--json", "nameWithOwner"], {
     allowFailure: true,
   });
+  // probe-direction: neutral — undefined omits `--repo`, which is the CORRECT
+  // call shape: `gh` then resolves the repository from the current branch's
+  // remote. Note the asymmetry that #3848 turns on — this call SUCCEEDING is
+  // what supplied the `--repo` value that broke `currentPullRequest` before
+  // #3833, so it was upstream of that defect rather than beside it. Neutral
+  // is a fact about the code as it stands, not a property of the call site.
   if (result.status !== 0) return undefined;
   return safeJson(result.stdout, "GitHub repository").nameWithOwner;
 }

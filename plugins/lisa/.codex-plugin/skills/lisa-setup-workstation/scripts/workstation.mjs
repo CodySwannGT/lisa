@@ -66,6 +66,9 @@ export function locate(name, exec = boundedChildOutput) {
       exec("command", ["-v", name], { encoding: "utf8", shell: true })
     ).trim();
   } catch {
+    // probe-direction: fail-closed — null means "not proven present", and the
+    // setup flow responds by installing. A probe that cannot answer costs a
+    // redundant install, never a missing tool reported as present.
     return null;
   }
 }
