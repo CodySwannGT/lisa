@@ -43,6 +43,7 @@ import {
   ioLatencyBudgetMs,
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
+import { cleanGitEnv } from "../support/git-executable.js";
 
 // The bounded children below are handed a base that only fits under a case
 // budget scaling with the same machine they do. Without this call the case
@@ -167,9 +168,11 @@ function stageStubPackageManager(root: string): void {
  * git command at the REAL checkout — where it would succeed, against the wrong
  * repository, and the test would pass for a reason unrelated to what it checks.
  */
-const FIXTURE_GIT_ENV = Object.fromEntries(
-  Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_"))
-) as NodeJS.ProcessEnv;
+// `LISA_PUSHED_REFS_FILE` is stripped alongside them by `cleanGitEnv`. It is
+// not git's, but the same pre-push hook injects it and it carries the same
+// hazard: it names the REAL push's refs, so a fixture that inherits it runs a
+// push guard against a range nobody gave this test (CodySwannGT/lisa#3874).
+const FIXTURE_GIT_ENV: NodeJS.ProcessEnv = cleanGitEnv();
 
 /**
  * Runs one git command inside the fixture, refusing to continue on failure.
