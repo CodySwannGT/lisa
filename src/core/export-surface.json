@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 112,
-  "$names": 1017,
+  "$modules": 115,
+  "$names": 1050,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -95,6 +95,7 @@
       "diagnoseFailure",
       "machineLoad",
       "ranNoTests",
+      "tempRootPopulation",
       "terminatedDocComments"
     ],
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs": [
@@ -333,6 +334,7 @@
     "all/copy-overwrite/scripts/lisa-work-item.mjs": [
       "TrackerUnreachableError",
       "WORK_ITEM_CONTRACT_VERSION",
+      "ancestryUnreachable",
       "assertGhVersion",
       "carriesLabel",
       "competingLifecycleRoles",
@@ -349,6 +351,7 @@
       "run",
       "runCli",
       "textContainsBacklink",
+      "unreachableAncestryRefusal",
       "unresolvedPushReport"
     ],
     "expo/copy-overwrite/scripts/bdd-matrix.mjs": [
@@ -578,6 +581,19 @@
       "main",
       "sweep"
     ],
+    "scripts/check-generated-artifact-merge-coverage.mjs": [
+      "AGGREGATE_CHECK",
+      "DISPOSITION",
+      "DRIVER",
+      "GENERATED_ARTIFACTS",
+      "NON_ARTIFACT_CHECKS",
+      "driverCanStructure",
+      "inspectGeneratedArtifacts",
+      "judgeArtifact",
+      "main",
+      "mapsToDriver",
+      "undeclaredChecks"
+    ],
     "scripts/check-merge-driver-registration.mjs": [
       "inspectMergeDrivers",
       "runCheckMergeDrivers"
@@ -613,6 +629,23 @@
       "statusReadReason",
       "sweep",
       "workflowRunSources"
+    ],
+    "scripts/check-probe-absence-direction.mjs": [
+      "BLIND_SPOTS",
+      "PERMITTED_DIRECTIONS",
+      "SCANNED_ROOTS",
+      "absenceBranches",
+      "annotationWindow",
+      "collectFiles",
+      "enclosingFunctionStart",
+      "formatReport",
+      "inspectSource",
+      "main",
+      "nextCodeLine",
+      "probesSomethingExternal",
+      "readDirection",
+      "refusalFor",
+      "sweep"
     ],
     "scripts/check-release-package-identity.mjs": [
       "assertCheckoutIdentity",
@@ -665,6 +698,12 @@
       "main",
       "parseArgs",
       "violatesRefPolicy"
+    ],
+    "scripts/check-test-case-executed.mjs": [
+      "checkTestCasesExecuted",
+      "executionFailure",
+      "parseArguments",
+      "reportedCases"
     ],
     "scripts/check-third-party-action-pins.mjs": [
       "UsageError",
