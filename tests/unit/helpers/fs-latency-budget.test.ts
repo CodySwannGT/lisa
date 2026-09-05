@@ -33,7 +33,10 @@ import {
   QUIET_UNLINK_LATENCY_US,
   workerFsSlowdown,
 } from "../../helpers/fs-latency-budget.js";
-import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
+import {
+  slowdownFactorFrom,
+  useIoLatencyBudget,
+} from "../../helpers/io-latency-budget.js";
 
 // One case here deletes a real corpus, which is the only honest way to check
 // that the probe stands for the operation it claims to. Measured at 1.1s with
@@ -174,6 +177,77 @@ describe("the probe stands for the operation it is a proxy for", () => {
 
     expect(ratio).toBeGreaterThan(1 / AGREEMENT_TOLERANCE);
     expect(ratio).toBeLessThan(AGREEMENT_TOLERANCE);
+  });
+});
+
+/**
+ * One paired observation, recorded rather than re-measured.
+ *
+ * Taken 2026-09-05 on an 18-core arm64 box at a 1-minute load average of 16.36
+ * with `ps aux | grep -c '[v]itest'` = 1: a `node -e ""` spawn median, a
+ * 20-entry probe, and a real 5,000-entry `rmSync`, timed in that order in the
+ * same instant.
+ *
+ * Hard-coded because the CLAIM is about this observation. Re-measuring here
+ * would test whichever box the suite happens to run on, and the failure this
+ * pins is not reproducible on demand — the load-bearing evidence in
+ * CodySwannGT/lisa#3936 is a budget blown at a 1-minute load average of 19.5,
+ * which is what rules out "the box was simply busy" and makes the under-scaling
+ * claim falsifiable rather than a story about contention.
+ */
+const OBSERVED = {
+  loadAverage1: 16.36,
+  spawnMedianMs: 22.81,
+  probePerEntryUs: 57.7,
+  realPerEntryUs: 103.9,
+} as const;
+
+/** How slow the filesystem actually was: 103.9us against a 30us reference. */
+const OBSERVED_FILESYSTEM_SLOWDOWN = 3.46;
+
+describe("the shape the ticket was filed on", () => {
+  /**
+   * The whole defect in one assertion: a deletion-dominated cost running 3.46x
+   * slow, against a spawn-derived factor that called the box 1.27x — generous
+   * enough that the budget it derives is the one that gets blown. Pure over a
+   * recorded observation, so it cannot flake and cannot be re-derived from
+   * whichever machine runs it.
+   */
+  it("the spawn factor under-reports a slow filesystem and the probe does not", () => {
+    const spawnFactor = slowdownFactorFrom(OBSERVED.spawnMedianMs);
+    const probeFactor = fsSlowdownFactorFrom(OBSERVED.probePerEntryUs);
+
+    expect(spawnFactor).toBeCloseTo(1.27, 2);
+    expect(probeFactor).toBeCloseTo(1.92, 2);
+    // The spawn proxy is off by more than a factor of two against what the
+    // filesystem was actually doing; the probe is inside a factor of two.
+    expect(OBSERVED_FILESYSTEM_SLOWDOWN / spawnFactor).toBeGreaterThan(2.5);
+    expect(OBSERVED_FILESYSTEM_SLOWDOWN / probeFactor).toBeLessThan(2);
+  });
+
+  it("derives the wider budget for the same base, at that observation", () => {
+    const spawnBudgetMs = Math.round(
+      120_000 * slowdownFactorFrom(OBSERVED.spawnMedianMs)
+    );
+    const probeBudgetMs = Math.round(
+      120_000 * fsSlowdownFactorFrom(OBSERVED.probePerEntryUs)
+    );
+
+    expect(probeBudgetMs).toBeGreaterThan(spawnBudgetMs);
+    // Not merely wider: wider by more than half again, which is the difference
+    // between a budget the teardown fits in and one it does not.
+    expect(probeBudgetMs / spawnBudgetMs).toBeGreaterThan(1.5);
+  });
+
+  it("records the machine state the observation was taken under", () => {
+    // A timing figure without its conditions is the failure the sibling module
+    // opens by describing. If this constant is ever re-recorded, its load
+    // average moves with it.
+    expect(OBSERVED.loadAverage1).toBeGreaterThan(0);
+    expect(OBSERVED.realPerEntryUs / QUIET_UNLINK_LATENCY_US).toBeCloseTo(
+      OBSERVED_FILESYSTEM_SLOWDOWN,
+      2
+    );
   });
 });
 
