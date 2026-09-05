@@ -206,6 +206,14 @@
             "command": "${PLUGIN_ROOT}/hooks/secrets-preflight.sh"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/worktree-binding-guard.sh"
+          }
+        ]
       }
     ],
     "SubagentStart": [

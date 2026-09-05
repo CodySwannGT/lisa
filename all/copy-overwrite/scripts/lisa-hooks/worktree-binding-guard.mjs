@@ -551,6 +551,63 @@ function claimedRoot(toolInput, cwd) {
 }
 
 /**
+ * Record where the session STARTED, so its first guarded call is checked
+ * against a baseline rather than establishing one.
+ *
+ * ## Why the first call could not be checked before
+ *
+ * It established the baseline instead of testing one, which is
+ * trust-on-first-use — and TOFU is only as safe as its first use. Here the
+ * first use is assigned by the harness, unasked (CodySwannGT/lisa#3864), so the
+ * one moment the guard trusted was the moment the session had least control
+ * over. A session already sitting in a foreign worktree when it first acted
+ * bound to that tree and was never refused, and every later call was then
+ * checked faithfully against the wrong baseline — defending the session INTO
+ * the wrong worktree rather than out of it (CodySwannGT/lisa#3955).
+ *
+ * ## Why an earlier observation separates what a cleverer check cannot
+ *
+ * At the first guarded call, "I was displaced before I acted" and "I
+ * legitimately started here" present identically: one session id, one observed
+ * root, no prior state. No comparison can tell them apart, because the
+ * information is not in the hook's inputs at that instant.
+ *
+ * At session start it is. The displacement mechanism actually observed is a
+ * PEER's `EnterWorktree` moving this session (CodySwannGT/lisa#3712), which
+ * happens during the session — after it has started. A baseline taken at start
+ * is therefore recorded BEFORE the event that moves it, and the first guarded
+ * call becomes an ordinary comparison against a baseline that already exists.
+ * It reaches the same refusal a later displacement produces, because by then it
+ * is one.
+ *
+ * ## What this does NOT achieve
+ *
+ * #3955 asks for a baseline from the ASSIGNER rather than from observation.
+ * That is not what this is and Lisa cannot build it: Lisa does not own
+ * `EnterWorktree`, and nothing the harness writes names a session's assigned
+ * worktree in a form a hook can read. This is still an observation, just an
+ * earlier one. It closes the window between session start and the first guarded
+ * call; it leaves open a session LAUNCHED already displaced, where start
+ * observes the foreign tree and trust-on-first-use still applies.
+ *
+ * Returns nothing on purpose, like its sibling below: SessionStart has no call
+ * to refuse, so every path through it allows.
+ * @param sessionId - The session this baseline belongs to
+ * @param observed - The worktree root the session started in
+ */
+function recordBaseline(sessionId, observed) {
+  // Never overwrite. A resumed session, a reconnect, or anything else that
+  // fires the event twice must not be able to launder a displaced binding into
+  // a fresh baseline — which is the whole failure this exists to close.
+  if (readState(sessionId)?.boundRoot) return;
+  writeState(sessionId, {
+    boundRoot: observed,
+    claimedRoot: null,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+/**
  * Record what `EnterWorktree` just claimed, for the next tool call to check.
  *
  * Returns nothing on purpose. This runs on PostToolUse, where the tool has
@@ -651,6 +708,10 @@ function evaluate(payload) {
   const observed = worktreeRoot(cwd);
   if (!observed) return 0;
 
+  if (payload.hook_event_name === "SessionStart") {
+    recordBaseline(sessionId, observed);
+    return 0;
+  }
   if (payload.tool_name === "EnterWorktree") {
     recordClaim(payload, observed);
     return 0;
@@ -662,6 +723,13 @@ function evaluate(payload) {
 
   const state = readState(sessionId);
   if (!state?.boundRoot) {
+    // No baseline means SessionStart did not run for this session — an older
+    // install, a runtime that fires no such event, a harness that skips it.
+    // Absence of a baseline is absence of evidence, not evidence of
+    // displacement, so this records one exactly as it always did rather than
+    // refusing. Treating it as a refusal would turn a floor into a wall on
+    // every surface where the event does not fire, and a wall gets switched
+    // off, which costs the whole guard.
     writeState(sessionId, {
       boundRoot: observed,
       claimedRoot: null,
