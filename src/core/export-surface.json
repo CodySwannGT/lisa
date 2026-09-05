@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 110,
-  "$names": 981,
+  "$modules": 112,
+  "$names": 1017,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -20,8 +20,13 @@
       "branchesAhead",
       "branchesWithPullRequests",
       "defaultBranch",
+      "divergences",
       "main",
-      "orphanedBranches"
+      "mergedRoute",
+      "orphanedBranches",
+      "refInBranchName",
+      "workItemRef",
+      "workItemStates"
     ],
     "all/copy-overwrite/scripts/check-release-package-identity.mjs": [
       "assertCheckoutIdentity",
@@ -89,6 +94,7 @@
       "DIAGNOSIS",
       "diagnoseFailure",
       "machineLoad",
+      "ranNoTests",
       "terminatedDocComments"
     ],
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs": [
@@ -331,15 +337,19 @@
       "carriesLabel",
       "competingLifecycleRoles",
       "deployBranchEnvironments",
+      "githubBranchIssue",
       "githubFailure",
       "githubFailureReason",
       "labelNamesOf",
       "mergedBaseDecision",
       "mergedPullRequestsIn",
+      "noPullRequestToDischarge",
+      "postDischargeBacklinks",
       "resetGhVersionCheck",
       "run",
       "runCli",
-      "textContainsBacklink"
+      "textContainsBacklink",
+      "unresolvedPushReport"
     ],
     "expo/copy-overwrite/scripts/bdd-matrix.mjs": [
       "renderMatrix"
@@ -557,6 +567,16 @@
       "parseArgs",
       "remediationFor",
       "scanContents"
+    ],
+    "scripts/check-empty-subject-guards.mjs": [
+      "UsageError",
+      "claimsSuccess",
+      "createEmptyRepository",
+      "declaredRootForm",
+      "discoverGuards",
+      "formatReport",
+      "main",
+      "sweep"
     ],
     "scripts/check-merge-driver-registration.mjs": [
       "inspectMergeDrivers",
@@ -776,6 +796,17 @@
     "scripts/lib/gitattributes-merge-drivers.mjs": [
       "mergeDriversIn"
     ],
+    "scripts/lib/hook-registration-audit.mjs": [
+      "REPO_ROOT",
+      "auditHookRegistration",
+      "classifyHookFile",
+      "enumeratePorts",
+      "enumerateStacks",
+      "formatAudit",
+      "readDispatcherGuards",
+      "readManifestSurfaces",
+      "surfaceAgent"
+    ],
     "scripts/lib/invoked-as-script.mjs": [
       "invokedAsScript"
     ],
@@ -882,6 +913,7 @@
       "MAX_UNIQUE_PREFIXES",
       "TMPDIR_GROUPING_VERSION",
       "TMPDIR_GROWTH_SCHEMA_VERSION",
+      "boundedEntryCap",
       "buildGrowthReport",
       "buildTmpdirSnapshot",
       "canonicalizeTmpPrefix",
@@ -1036,6 +1068,8 @@
       "validateSuites"
     ],
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs": [
+      "CARRIED_MERGE_COMMIT_LIMIT",
+      "CARRIED_PULL_REQUEST_LIMIT",
       "DECLARATION_PATH",
       "DESCRIPTION_VERDICTS",
       "ENTITLEMENT_WAIVERS",
@@ -1051,14 +1085,18 @@
       "SETTLE_TIMEOUT_SECONDS",
       "VACUITY_REFUSALS",
       "VIOLATIONS",
+      "assertCompleteCommitList",
       "checksSettled",
       "citeHeadSha",
       "classifyCheckDescription",
       "collectSkipJobTokens",
       "declaredEvidenceChecks",
+      "evaluateAbsentRequiredChecks",
+      "evaluateCarriedReview",
       "evaluateReviewGate",
       "evaluateSkippedRequiredChecks",
       "evaluateVacuousChecks",
+      "fetchCarriedPullRequests",
       "fetchChecksForCommit",
       "fetchChecksViaApi",
       "fetchPullRequestChecks",
@@ -1068,6 +1106,8 @@
       "loadDeclaration",
       "mergeCheckRows",
       "newestCheckRuns",
+      "noWorkClaimIsCertain",
+      "readCarriedReview",
       "readFlagValue",
       "readSkipJobs",
       "resolveHeadSha",

@@ -78,7 +78,7 @@ function shippedScripts(): string[] {
       .filter(entry => entry.endsWith(".mjs"))
       .filter(entry => tracked.has(`${dir}/${entry}`))
   );
-  return [...new Set(found)].toSorted((a, b) => a.localeCompare(b));
+  return [...new Set(found)].slice().sort((a, b) => a.localeCompare(b));
 }
 
 /**

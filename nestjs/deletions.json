@@ -14,5 +14,16 @@
   "keep": [
     ".github/workflows/zap-baseline-nestjs.yml",
     ".github/workflows/load-test.yml"
-  ]
+  ],
+  "basis": {
+    ".claude/skills/nestjs-graphql": "needs-review",
+    ".claude/skills/nestjs-rules": "needs-review",
+    ".claude/skills/security-zap-scan": "needs-review",
+    ".claude/skills/typeorm-patterns": "needs-review",
+    ".github/workflows/zap-baseline.yml": "needs-review",
+    "jest.config.ts": "needs-review",
+    "jest.config.local.ts": "needs-review",
+    "jest.nestjs.ts": "needs-review",
+    "jest.thresholds.json": "needs-review"
+  }
 }

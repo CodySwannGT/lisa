@@ -341,8 +341,10 @@ export const VIOLATIONS = Object.freeze({
   whitespace: "whitespace_in_skip_token",
   vacuous: "vacuous_required_check",
   unproven: "unproven_required_check",
+  absent: "absent_required_check",
   reviewWaived: "review_evidence_waived",
   reviewUnsatisfied: "review_evidence_unsatisfied",
+  reviewCarried: "review_evidence_carried_unreviewed",
 });
 
 /**
@@ -378,6 +380,47 @@ export const REVIEW_DESCRIPTION_DEFAULTS = Object.freeze({
     "billing",
   ]),
 });
+
+/**
+ * `no_work` phrases whose presence does NOT establish that no review happened.
+ *
+ * The rest of `no_work` is safe to speak plainly about: `review skipped`,
+ * `review queued`, `waiting` and the others describe a vendor saying it did not
+ * start. `rate limited` turned out not to. Measured on CodySwannGT/lisa#3762 —
+ * the check reported `success` with the description `Review rate limited` and
+ * the vendor HAD reviewed, posting `CHANGES_REQUESTED` with a comment that
+ * found a real defect.
+ *
+ * Moving the phrase between the two lists would not help, and the reason bounds
+ * what any change here can achieve: **the description is not a function of
+ * whether a review happened.** `proof` is matched whole-string, so a
+ * reviewed-and-objected pull request still carrying `Review rate limited` can
+ * never reach it. Settling the question needs a second input — `reviews` /
+ * `reviewThreads` — which this script does not read and deliberately does not
+ * fetch: that would make the claim checkable at the cost of turning a
+ * description classifier into a network client (CodySwannGT/lisa#3827).
+ *
+ * So the phrase stays in `no_work` — denying credit on it remains correct and
+ * remains the safe direction — and only the WORDING changes. For these phrases
+ * the report says what it can support and stops instructing a conclusion it
+ * cannot.
+ */
+const AMBIGUOUS_NO_WORK = Object.freeze(["rate limited"]);
+
+/**
+ * Whether a `no_work` description can be reported as proof that nothing ran.
+ *
+ * Matched as a substring, exactly as `no_work` itself is, so the two always
+ * agree about what a description contains.
+ * @param {string | undefined} description - Description the check reported
+ * @returns {boolean} True when "it did no work" is a claim the text supports
+ */
+export function noWorkClaimIsCertain(description) {
+  const text = String(description ?? "")
+    .trim()
+    .toLowerCase();
+  return !AMBIGUOUS_NO_WORK.some(phrase => text.includes(phrase));
+}
 
 /**
  * Verdicts `classifyCheckDescription` returns.
@@ -433,6 +476,12 @@ export const NEVER_BLOCKING = Object.freeze([
   // operator must see that — and it never fails the build, which is the whole
   // content of the owner's ruling on CodySwannGT/lisa#3221.
   VIOLATIONS.reviewWaived,
+  // A carried finding is about ANOTHER pull request. Reddening this one for a
+  // condition its own author cannot reach would punish the batch for the
+  // constituent, and #3658 is a VISIBILITY defect, not an enforcement one: the
+  // constituents' own gates already went red, on branches no ruleset watches.
+  // What was missing was that the batch rendered green anyway.
+  VIOLATIONS.reviewCarried,
 ]);
 
 /**
@@ -1298,15 +1347,21 @@ export function evaluateVacuousChecks(declaration, checks, options = {}) {
  * @param {string} name - Check context name
  * @param {boolean} trustRequired - Whether the ruleset snapshot is trusted
  * @param {ReadonlySet<string>} required - Required-context snapshot
+ * @param {boolean} certain - Whether the description supports "no review happened"
  * @returns {string} Sentence appended to a finding
  */
-function evidenceRequiredNote(name, trustRequired, required) {
+function evidenceRequiredNote(name, trustRequired, required, certain) {
   if (!trustRequired) {
     return " Whether it is ruleset-required is NOT KNOWN here — `required_contexts` has not been transcribed, so this cannot say what the merge gate recorded.";
   }
-  return required.has(name)
-    ? " This context IS ruleset-required, so branch protection recorded a satisfied review gate for a review that did not happen."
-    : " This context is not in `required_contexts`, so no merge gate was falsified — but nothing reviewed this either.";
+  if (required.has(name)) {
+    return certain
+      ? " This context IS ruleset-required, so branch protection recorded a satisfied review gate for a review that did not happen."
+      : " This context IS ruleset-required, so branch protection recorded a satisfied review gate on evidence that does not establish a review happened.";
+  }
+  return certain
+    ? " This context is not in `required_contexts`, so no merge gate was falsified — but nothing reviewed this either."
+    : " This context is not in `required_contexts`, so no merge gate was falsified — and this does not say whether anything reviewed it.";
 }
 
 /**
@@ -1337,23 +1392,116 @@ function evaluateEvidenceBearingCheck(name, entry, checks, context) {
     return null;
   }
 
+  // Whether "it did no work" is a claim this description can support. A
+  // `rate limited` string cannot (CodySwannGT/lisa#3762), so every sentence
+  // below that would otherwise assert it is softened for that case.
+  const certain = noWorkClaimIsCertain(found.description);
   const requiredNote = evidenceRequiredNote(
     name,
     context.trustRequired,
-    context.required
+    context.required,
+    certain
   );
   if (verdict === DESCRIPTION_VERDICTS.noWork && state === "SUCCESS") {
     return {
       kind: VIOLATIONS.vacuous,
       token: name,
       contexts: [name],
-      message: `\`${name}\` reported ${state} with the description ${JSON.stringify(found.description ?? "")}, which says it DID NO WORK.${context.at}${requiredNote} \`gh pr checks\` prints \`pass\` for this exactly as it does for a real review — the description is the only thing that tells them apart. Treat this PR as UNREVIEWED.`,
+      message: certain
+        ? `\`${name}\` reported ${state} with the description ${JSON.stringify(found.description ?? "")}, which says it DID NO WORK.${context.at}${requiredNote} \`gh pr checks\` prints \`pass\` for this exactly as it does for a real review, and shows neither \`reviews\` nor \`reviewThreads\`. Treat this PR as UNREVIEWED.`
+        : `\`${name}\` reported ${state} with the description ${JSON.stringify(found.description ?? "")}, which proves neither that it reviewed anything nor that it did not — this vendor has reported this same description on a pull request it HAD reviewed and objected to (CodySwannGT/lisa#3762).${context.at}${requiredNote} \`gh pr checks\` prints \`pass\` for this exactly as it does for a real review, and cannot tell them apart. Read \`reviews\` and \`reviewThreads\` — which \`gh pr checks\` does not show — before treating this PR as reviewed OR as unreviewed.`,
     };
   }
   return {
     kind: VIOLATIONS.unproven,
     token: name,
     message: `\`${name}\` reported ${state} with the description ${JSON.stringify(found.description ?? "")}, which proves neither that it reviewed anything nor that it did not.${context.at}${requiredNote} Read the check itself before treating this PR as reviewed, or add the phrase to \`evidence_bearing_checks.${name}.proof\` once you have confirmed what it means.`,
+  };
+}
+
+/**
+ * Every required context that posted NO check-run at all.
+ *
+ * The third member of the family this file's header names, and the one that was
+ * missing. **Skipped** is a check that ran and declined to prove anything;
+ * **vacuous** is one that ran, reported success, and did no work; **absent** is
+ * one that never reported. All three satisfy a merge gate without evidence, and
+ * absence is the quietest because it produces no row for anyone to read.
+ *
+ * MEASURED (CodySwannGT/lisa#3580, on PR #3573): 15 required contexts, 2
+ * reported, 13 absent. The three workflow runs that would have posted them sat
+ * at `conclusion: action_required` with `created_at == updated_at` — parked,
+ * never executed. The pull request rendered as "CI running" for 26 hours.
+ *
+ * **Why the vacuity arm could not see it.** {@link evaluateVacuousChecks}
+ * iterates `evidence_bearing_checks`, which held ONE name on that repository.
+ * `required_contexts` held fifteen. This file already knew the full required
+ * set and spent it only on an annotation — "This context IS ruleset-required" —
+ * attached to findings about the one. Nothing ever walked the fifteen to ask
+ * which of them said nothing. The data was here; the question was not.
+ *
+ * Three properties, each load-bearing:
+ *
+ * - **Absent is not pending.** A check in flight has posted a row and will post
+ *   a verdict; an absent one never will. Folding them together is the confusion
+ *   that made the stall invisible, so this must not make it in reverse — only a
+ *   context with no row at all counts, whatever state the rows carry.
+ * - **No snapshot, no finding.** Without `required_contexts` this cannot know
+ *   what was required, and a guard that invented the set would fire on every
+ *   repository that has not transcribed one. Absence of knowledge is not
+ *   knowledge of absence — the same distinction the arm exists to enforce,
+ *   pointed at itself.
+ * - **The parked-run lookup is an ENRICHMENT, never a precondition.** It names
+ *   the approval gate when it can, because "absent" alone sends an operator
+ *   hunting a broken workflow. But a finding that only reports when it can also
+ *   explain would report nothing wherever the explanation is unavailable, which
+ *   is the silent failure this was written to end.
+ * @param {object} declaration - The per-repo declaration
+ * @param {ReadonlyArray<{name: string}>} checks - Rows read for the head SHA
+ * @param {object} [options] - `headSha` to cite, `parkedRuns` to explain with
+ * @returns {{violations: object[], checked: number, absent: string[]}} Findings
+ */
+export function evaluateAbsentRequiredChecks(
+  declaration,
+  checks,
+  options = {}
+) {
+  const required = declaration.required_contexts;
+  if (!Array.isArray(required))
+    return { violations: [], checked: 0, absent: [] };
+
+  const at = citeHeadSha(options.headSha);
+  const parked = (options.parkedRuns ?? []).filter(
+    run => String(run?.conclusion ?? "") === "action_required"
+  );
+  // Named once for every finding rather than per context: a parked run posts no
+  // check-run, so nothing ties one run to one absent context. Reporting the
+  // whole parked set against each is honest about that; pretending to a mapping
+  // this data cannot support would be a worse answer than an imprecise one.
+  const approval =
+    parked.length === 0
+      ? ""
+      : ` A workflow run for this head is parked at \`action_required\` and will never complete on its own: ${parked
+          .map(
+            run => `${JSON.stringify(String(run.name ?? ""))} (run ${run.id})`
+          )
+          .join(
+            ", "
+          )}. Approve it with \`gh api -X POST repos/<owner>/<repo>/actions/runs/<id>/approve\`, or the context stays absent indefinitely.`;
+
+  const absent = required.filter(
+    name => checks.find(check => check.name === name) === undefined
+  );
+
+  return {
+    checked: required.length,
+    absent,
+    violations: absent.map(name => ({
+      kind: VIOLATIONS.absent,
+      token: name,
+      contexts: [name],
+      message: `\`${name}\` is ruleset-required but did not report on this pull request at all.${at} It posted NO check-run — not pending, not failing, ABSENT. \`gh pr checks\` prints no line for it and the pull request page renders it exactly as one still in flight, so every surface says "wait" and none says "broken".${approval} (If the context was renamed, fix \`required_contexts\`; names are compared byte for byte.)`,
+    })),
   };
 }
 
@@ -1723,6 +1871,103 @@ export function evaluateReviewGate(declaration, checks, options = {}) {
 }
 
 /**
+ * How many carried pull requests this will account for before it gives up.
+ *
+ * A cap that SILENTLY truncates is the fail-open this file exists to refuse, so
+ * exceeding it is reported as "not read" rather than as the part that was read.
+ * Fifty is well above any batch observed here — the drain that produced #3658
+ * carried seven — and it exists so a pathological history cannot turn one job
+ * into hundreds of API reads.
+ */
+export const CARRIED_PULL_REQUEST_LIMIT = 50;
+
+/** Why a carried finding matters, appended to every one of them. */
+const CARRIED_WHY =
+  "A batch integration pull request is the only place this gap is enforceable. The constituent's own review gate ran on its own pull request, whose base branch no ruleset watches, so its red changed nothing; merging this one carries that unreviewed diff into the default branch. Read the constituent before recording this batch as reviewed.";
+
+/**
+ * Runs the review gate over the pull requests THIS pull request carries.
+ *
+ * ## Why a batch needs its own arm (#3658)
+ *
+ * {@link evaluateReviewGate} reads one commit: this pull request's head. That is
+ * the right commit for the pull request's own diff and the wrong one for a
+ * batch, because a stack integration pull request's head carries the merges of
+ * every constituent and none of their review statuses. MEASURED 2026-09-03 on
+ * one queue drain: four constituents based on a batching branch each reported
+ * `Review skipped: reviews are disabled for this base branch`, each one's own
+ * review-evidence run went red, and every one of those reds landed on a branch
+ * outside the rulesets' ref conditions — so nothing was watching. The
+ * integration pull request that carried all of them into the default branch was
+ * the one place a ruleset applied, and it read only itself.
+ *
+ * Pure, and injected with already-read rows, so the property that matters — a
+ * batch carrying an unreviewed constituent never renders as a reviewed one — is
+ * testable without a GitHub API.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {ReadonlyArray<{number: number|string, headSha?: string, checks?: ReadonlyArray<object>, unreadable?: string}>} carried -
+ *   One entry per carried pull request; `unreadable` marks one whose evidence
+ *   could not be fetched, which counts AGAINST the batch rather than for it
+ * @returns {{violations: object[], unreviewed: string[], reviewed: number}} Findings and the tally
+ */
+export function evaluateCarriedReview(declaration, carried) {
+  const declared = Object.entries(declaration.evidence_bearing_checks ?? {});
+  const violations = [];
+  const unreviewed = [];
+  let reviewed = 0;
+
+  for (const constituent of carried) {
+    const label = `#${constituent.number}`;
+    if (constituent.unreadable) {
+      unreviewed.push(label);
+      violations.push({
+        kind: VIOLATIONS.reviewCarried,
+        token: label,
+        contexts: [],
+        message: `This pull request CARRIES ${label}, whose review evidence could NOT be read (${constituent.unreadable}). An unread constituent is not a reviewed one. ${CARRIED_WHY}`,
+      });
+      continue;
+    }
+    const failing = [];
+    for (const [name, entry] of declared) {
+      const vocabulary =
+        typeof entry === "object" && entry !== null ? entry : {};
+      const found = (constituent.checks ?? []).find(
+        check => check.name === name
+      );
+      const verdict = reviewGateState(
+        found === undefined
+          ? { present: false }
+          : {
+              present: true,
+              state: found.state,
+              description: found.description,
+            },
+        vocabulary
+      );
+      if (verdict.state !== REVIEW_GATE_STATES.satisfied)
+        failing.push({ name, verdict });
+    }
+    if (failing.length === 0) {
+      reviewed += 1;
+      continue;
+    }
+    unreviewed.push(label);
+    for (const { name, verdict } of failing) {
+      violations.push({
+        kind: VIOLATIONS.reviewCarried,
+        token: label,
+        contexts: [name],
+        message: `This pull request CARRIES ${label}, whose \`${name}\` ${verdict.why}${citeHeadSha(constituent.headSha)} ${CARRIED_WHY}`,
+      });
+    }
+  }
+
+  return { violations, unreviewed, reviewed };
+}
+
+/**
  * The check-run conclusion each review-gate verdict is published under.
  *
  * THIS IS THE WHOLE POINT OF #3639. Before this map existed the gate's three
@@ -1788,6 +2033,27 @@ function waiveRateSuffix(rate) {
 }
 
 /**
+ * The carried-batch sentence appended to a verdict title, or nothing.
+ *
+ * NUMBERS ONLY, no vendor descriptions. The title is capped at
+ * {@link REVIEW_VERDICT_TITLE_LIMIT}, and one quoted skip string is long enough
+ * to push the constituent list out of it — which would lose exactly the fact
+ * this exists to render. The quotes live in the findings, where nothing
+ * truncates them.
+ *
+ * @param {{unreviewed?: readonly string[], unread?: string}|undefined} carried - The carried tally
+ * @returns {string} The sentence, or an empty string when the batch is accounted for
+ */
+function carriedSuffix(carried) {
+  if (carried === undefined) return "";
+  if (carried.unread !== undefined && carried.unread !== "")
+    return " · the pull requests this one CARRIES could NOT be enumerated, so nothing accounts for their review";
+  const unreviewed = carried.unreviewed ?? [];
+  if (unreviewed.length === 0) return "";
+  return ` · carries ${unreviewed.length} UNREVIEWED pull request${unreviewed.length === 1 ? "" : "s"}: ${unreviewed.join(", ")}`;
+}
+
+/**
  * Renders one merge-time verdict for every declared evidence-bearing check.
  *
  * Worst-wins across the declared checks, in the order `unsatisfied` > `waived`
@@ -1807,9 +2073,14 @@ function waiveRateSuffix(rate) {
  * the one path where it mattered, a red check blocking a merge, was the one
  * path that never said it. The conditions are carried here for that reason.
  *
- * @param {{states?: Record<string, string>, conditions?: Record<string, string>, descriptions?: Record<string, string>, refusal?: {kind: string}|null, waiveRate?: {waived: number, sampled: number}}} reading -
+ * AND SO IS WHAT THE PULL REQUEST CARRIES (#3658), for the same reason one step
+ * out: every state above is read from THIS pull request's head, which is the
+ * one commit a batch integration pull request does not speak for.
+ *
+ * @param {{states?: Record<string, string>, conditions?: Record<string, string>, descriptions?: Record<string, string>, refusal?: {kind: string}|null, waiveRate?: {waived: number, sampled: number}, carried?: {unreviewed?: readonly string[], reviewed?: number, unread?: string}}} reading -
  *   The gate's per-check states and conditions, the descriptions they were read
- *   from, any refusal, and an optional sampled waive rate
+ *   from, any refusal, an optional sampled waive rate, and the tally for the
+ *   pull requests this one CARRIES
  * @returns {{verdict: string, conclusion: string, title: string}} What to publish
  */
 export function reviewGateVerdict(reading = {}) {
@@ -1817,7 +2088,8 @@ export function reviewGateVerdict(reading = {}) {
   const conditions = reading.conditions ?? {};
   const descriptions = reading.descriptions ?? {};
   const names = Object.keys(states);
-  const suffix = waiveRateSuffix(reading.waiveRate);
+  const carried = carriedSuffix(reading.carried);
+  const suffix = `${carried}${waiveRateSuffix(reading.waiveRate)}`;
 
   if (reading.refusal || names.length === 0) {
     return {
@@ -1888,6 +2160,28 @@ export function reviewGateVerdict(reading = {}) {
       conclusion: REVIEW_VERDICT_CONCLUSIONS.waived,
       title: fitTitle(
         `WAIVED — this pull request is UNREVIEWED and merging it is a decision taken on that basis: ${waived.map(quote).join("; ")}${suffix}`
+      ),
+    };
+  }
+
+  // #3658. Everything above judged THIS pull request's own head commit, which
+  // is the only commit a batch integration pull request does not speak for. A
+  // batch whose own review completed while it carries constituents nothing read
+  // is the exact indistinguishability #3639 removed one level down: green here
+  // and green for a fully reviewed pull request, character for character.
+  //
+  // It renders `waived`, never `unsatisfied`, and the cap is deliberate. The
+  // constituents' own gates already reached the failing verdict on their own
+  // pull requests; re-failing the batch would redden every integration pull
+  // request for a vendor condition its author cannot reach, which is the
+  // "gate that gets deleted" failure this file names twice already. The batch
+  // stops looking reviewed without acquiring the power to block.
+  if (carried !== "") {
+    return {
+      verdict: REVIEW_GATE_STATES.waived,
+      conclusion: REVIEW_VERDICT_CONCLUSIONS.waived,
+      title: fitTitle(
+        `CARRIED UNREVIEWED — this pull request's own review ran, but the work it carries was not reviewed with it${suffix}`
       ),
     };
   }
@@ -2010,6 +2304,193 @@ export function sampleWaiveRate(declaration, limit, repo, fetch) {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * How many merge commits this will look behind before giving up on the batch.
+ *
+ * Each one costs a REST read, and an ordinary pull request has none, so the
+ * ceiling only ever binds on a history nobody could review by hand either.
+ */
+export const CARRIED_MERGE_COMMIT_LIMIT = 200;
+
+/**
+ * Refuses a commit list that the pull-request endpoint silently truncated.
+ *
+ * `GET /repos/{owner}/{repo}/pulls/{pr}/commits` stops at **250 commits** and
+ * does not paginate past it — `--paginate` gets the same 250. A caller that
+ * reads the short list and carries on has enumerated a PARTIAL batch and cannot
+ * tell that it did, which is precisely the fail-open this whole file exists to
+ * refuse: the missing merge commits are constituents nobody accounted for, and
+ * the batch would render as though they had been.
+ *
+ * So the count is checked against the pull request's own `commits` figure,
+ * which comes from a different endpoint and is not subject to the ceiling. A
+ * mismatch is reported as UNREAD, never as the part that was read. An
+ * unreadable figure is also unread — without it there is no way to tell a
+ * complete list from a truncated one, and guessing in the permissive direction
+ * is the whole defect.
+ *
+ * Pure and exported so the refusal can be exercised without a 251-commit pull
+ * request, which is not a fixture anybody can reasonably build.
+ *
+ * @param {string|number} pr - The pull request, named in the message
+ * @param {number} enumerated - How many commits the list endpoint returned
+ * @param {unknown} declared - The pull request's own commit count
+ * @returns {void}
+ * @throws {Error} When the counts disagree or the declared count is unreadable
+ */
+export function assertCompleteCommitList(pr, enumerated, declared) {
+  // `Number("")` is 0, not NaN — an empty answer from `gh` would otherwise read
+  // as "this pull request has zero commits" and produce the TRUNCATED message
+  // for what is really an unreadable count. Two different facts, two messages.
+  const raw = String(declared ?? "").trim();
+  const total = raw === "" ? Number.NaN : Number(raw);
+  if (!Number.isInteger(total) || total < 0) {
+    throw new Error(
+      `could not read how many commits PR ${pr} has (${JSON.stringify(declared)}), so nothing can tell a complete commit list from a truncated one`
+    );
+  }
+  if (enumerated !== total) {
+    throw new Error(
+      `enumerated ${enumerated} of the ${total} commits on PR ${pr} — \`/pulls/{pr}/commits\` stops at 250 even under --paginate, so this batch is TRUNCATED and cannot be accounted for`
+    );
+  }
+}
+
+/**
+ * Enumerates the pull requests this pull request CARRIES.
+ *
+ * The merge commits in a pull request's own commit list are what a batch is
+ * made of, and `/commits/{sha}/pulls` resolves each one to the pull request it
+ * brought in, head SHA included. MEASURED 2026-09-03 against the integration
+ * pull request that surfaced #3658: every constituent resolved, including one
+ * reached through a back-merge of the batching branch into a constituent
+ * branch, which deduplicates against the constituent it already found.
+ *
+ * NO BRANCH-NAME MATCHING ANYWHERE, deliberately. Matching a batching-branch
+ * pattern would be an allowlist of bases, which is the shape the convention can
+ * rename its way out of without anybody noticing. Merge commits are what
+ * carrying actually IS, so this generalises to any batched pull request and
+ * cannot be dodged by naming the branch something else.
+ *
+ * A pull request that merged its own base back in yields merge commits that
+ * resolve to ITSELF, which is filtered out — so an ordinary pull request
+ * reports an empty batch rather than a false one.
+ *
+ * @param {string|number} pr - The pull request whose carried work to enumerate
+ * @param {string} [repo] - `OWNER/NAME`; defaults to the current repository
+ * @returns {Array<{number: number, headSha: string}>} One entry per carried pull request
+ * @throws {Error} When the slug cannot be resolved, `gh` cannot answer, the commit list was truncated (see {@link assertCompleteCommitList}), or the batch exceeds {@link CARRIED_MERGE_COMMIT_LIMIT}
+ */
+export function fetchCarriedPullRequests(pr, repo) {
+  const slug = resolveRepoSlug(repo);
+  if (slug === undefined) {
+    throw new Error(
+      `check-skipped-required-checks: cannot enumerate what PR ${pr} carries without an OWNER/NAME. Pass \`--repo=OWNER/NAME\`, or set GITHUB_REPOSITORY.`
+    );
+  }
+  // Read BEFORE the list, so a pull request that grows mid-read is caught by
+  // the comparison rather than hidden by it.
+  const declaredCommits = boundedExecFileSync(
+    "gh",
+    ["api", `repos/${slug}/pulls/${pr}`, "--jq", ".commits"],
+    { encoding: "utf8" }
+  ).trim();
+  const commits = ghApiPaginatedArray(
+    `repos/${slug}/pulls/${pr}/commits?per_page=100`,
+    "[.[] | {sha: .sha, parents: (.parents | length)}]"
+  );
+  assertCompleteCommitList(pr, commits.length, declaredCommits);
+  const merges = commits
+    .filter(row => Number(row?.parents) > 1)
+    .map(row => String(row?.sha));
+  // Applied only to a list already proven COMPLETE. A ceiling checked against a
+  // truncated list is a ceiling that never fires.
+  if (merges.length > CARRIED_MERGE_COMMIT_LIMIT) {
+    throw new Error(
+      `PR ${pr} contains ${merges.length} merge commits, past the ${CARRIED_MERGE_COMMIT_LIMIT} this will look behind`
+    );
+  }
+  const carried = new Map();
+  for (const sha of merges) {
+    const rows = ghApiPaginatedArray(
+      `repos/${slug}/commits/${sha}/pulls?per_page=100`,
+      "[.[] | {number: .number, headSha: .head.sha}]"
+    );
+    for (const row of rows) {
+      const number = row?.number;
+      const headSha = row?.headSha;
+      if (number === undefined || headSha === undefined) continue;
+      if (String(number) === String(pr)) continue;
+      if (!carried.has(number)) carried.set(number, { number, headSha });
+    }
+  }
+  return [...carried.values()];
+}
+
+/**
+ * Reads and judges the review evidence for everything this pull request carries.
+ *
+ * FAILING TO READ IS NOT PASSING. Every error path here — an unresolvable
+ * repository, an unreadable commit, a batch past the cap — reports the batch as
+ * UNREAD, which renders the same way an unreviewed one does. That is the
+ * "refusing to report a clean scan that never ran" shape already in this tree,
+ * applied to the one arm whose silence would otherwise read as approval.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {string|number} pr - The pull request under inspection
+ * @param {string} [repo] - `OWNER/NAME`; defaults to the current repository
+ * @param {{fetchCarried?: Function, fetchCarriedChecks?: Function}} [options] - Injection seams
+ * @returns {{violations: object[], unreviewed: string[], reviewed: number, unread?: string}} Findings and the tally
+ */
+export function readCarriedReview(declaration, pr, repo, options = {}) {
+  const enumerate = options.fetchCarried ?? fetchCarriedPullRequests;
+  const readChecks = options.fetchCarriedChecks ?? fetchChecksForCommit;
+  /**
+   * Renders "the batch was not read" as a finding, never as an empty one.
+   *
+   * @param {string} why - What stopped the read
+   * @returns {{violations: object[], unreviewed: string[], reviewed: number, unread: string}} The unread result
+   */
+  const unread = why => ({
+    violations: [
+      {
+        kind: VIOLATIONS.reviewCarried,
+        token: "carried",
+        contexts: [],
+        message: `The pull requests this one CARRIES could not be enumerated (${why}), so this run cannot say whether the work it brings was reviewed. Refusing to report a clean batch nothing read. ${CARRIED_WHY}`,
+      },
+    ],
+    unreviewed: [],
+    reviewed: 0,
+    unread: why,
+  });
+
+  let listed;
+  try {
+    listed = enumerate(pr, repo);
+  } catch (error) {
+    return unread(error instanceof Error ? error.message : String(error));
+  }
+  if (listed.length > CARRIED_PULL_REQUEST_LIMIT) {
+    return unread(
+      `PR ${pr} carries ${listed.length} pull requests, past the ${CARRIED_PULL_REQUEST_LIMIT} this will account for`
+    );
+  }
+  return evaluateCarriedReview(
+    declaration,
+    listed.map(entry => {
+      try {
+        return { ...entry, checks: readChecks(entry.headSha, repo) };
+      } catch (error) {
+        return {
+          ...entry,
+          unreadable: error instanceof Error ? error.message : String(error),
+        };
+      }
+    })
+  );
 }
 
 /**
@@ -2756,6 +3237,14 @@ export function inspectVacuity(argv, declaration, options = {}) {
     trustRequiredContexts: options.trustRequiredContexts,
     headSha: read.headSha,
   });
+  // Evaluated on the same rows the vacuity arm just read, so the absence arm
+  // costs no extra fetch. It runs on EVERY invocation for the reason the review
+  // gate does: a finding computed only when somebody opted in is invisible on
+  // exactly the repositories that have not opted in yet.
+  const absent = evaluateAbsentRequiredChecks(declaration, read.checks, {
+    headSha: read.headSha,
+    parkedRuns: options.parkedRuns,
+  });
   // The gate is evaluated on EVERY run, not only when a caller asked it to
   // block. Its findings are what make a waiver visible, and a waiver that is
   // only computed when somebody opted in would be invisible on exactly the
@@ -2768,6 +3257,15 @@ export function inspectVacuity(argv, declaration, options = {}) {
     // downstream sees a check row that looks identical either way (#3716).
     waitExpired: read.settled === false,
   });
+  // #3658. Everything above judged ONE commit — this pull request's head — and
+  // that is the one commit a batch integration pull request does not speak for.
+  // Armed by the same flag as the gate itself, because this IS the gate,
+  // applied to what the pull request CARRIES rather than to what it changes. A
+  // pull request with no merge commits enumerates an empty batch and pays one
+  // read for the privilege, so the ordinary case is untouched.
+  const carried = requireReviewEvidence
+    ? readCarriedReview(declaration, pr, repo, options)
+    : undefined;
   // Sampled ONLY when this pull request is itself waived. The rate answers
   // "is this the exception or the rule?", a question that only arises once a
   // waiver is on the table, and every other run keeps the sampler's network
@@ -2787,16 +3285,24 @@ export function inspectVacuity(argv, declaration, options = {}) {
     prSource: source,
     headSha: read.headSha,
     checked: evaluated.checked,
-    violations: [...evaluated.violations, ...gate.violations],
+    violations: [
+      ...evaluated.violations,
+      ...absent.violations,
+      ...gate.violations,
+      ...(carried?.violations ?? []),
+    ],
+    absent: absent.absent,
     gateStates: gate.states,
     gateConditions: gate.conditions,
     gateDescriptions: gate.descriptions,
     waiveRate,
+    carried,
     verdict: reviewGateVerdict({
       states: gate.states,
       conditions: gate.conditions,
       descriptions: gate.descriptions,
       waiveRate,
+      carried,
     }),
     settled: read.settled,
     refusal: null,
@@ -2956,7 +3462,21 @@ function violationBlocks(violation, policy) {
   if (REVIEW_GATE_BLOCKING.includes(violation.kind)) {
     return policy.requireReviewEvidence;
   }
-  if (violation.kind === VIOLATIONS.reviewWaived) return false;
+  // A named waiver is report-only under every flag. `--fail-on-vacuous`
+  // governs checks that claimed success without proving work; it must not
+  // turn a vendor entitlement waiver into a failure through a shared array.
+  //
+  // A carried finding (#3658) is report-only for a second reason on top of
+  // that one: it is about ANOTHER pull request, whose own gate already
+  // reached its own verdict on its own diff. `--fail-on-vacuous` asks "did
+  // the checks on THIS pull request prove their work?", and answering it with
+  // a constituent's condition would fail an author for a diff they did not
+  // write and cannot change.
+  if (
+    violation.kind === VIOLATIONS.reviewWaived ||
+    violation.kind === VIOLATIONS.reviewCarried
+  )
+    return false;
   if (NEVER_BLOCKING.includes(violation.kind)) return policy.failOnVacuous;
   return !policy.warnOnly || ALWAYS_BLOCKING.includes(violation.kind);
 }

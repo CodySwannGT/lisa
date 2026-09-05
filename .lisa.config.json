@@ -105,7 +105,10 @@
       "pull-request": "required"
     },
     "test-correctness": {
-      "push": "required",
+      "push": {
+        "level": "required",
+        "run": "test:cov:unit:push"
+      },
       "pull-request": "required",
       "run": "test:cov:unit"
     },
@@ -118,7 +121,10 @@
     },
     "coverage-adequacy": {
       "run": "test:cov:unit",
-      "push": "required"
+      "push": {
+        "level": "required",
+        "run": "test:cov:unit:push"
+      }
     },
     "structural-rules": {
       "run": "sg:scan",
@@ -166,7 +172,9 @@
         "posted_by": 347564,
         "evidence": {
           "reviewer": true,
-          "proof": ["Review completed"]
+          "proof": [
+            "Review completed"
+          ]
         }
       }
     },
@@ -187,6 +195,12 @@
       "push": {
         "level": "required",
         "run": "check:failure-signatures"
+      }
+    },
+    "x-withdrawn-rulings": {
+      "push": {
+        "level": "required",
+        "run": "check:withdrawn-rulings"
       }
     }
   },

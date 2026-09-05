@@ -397,6 +397,39 @@ export interface DeletionsConfig {
    * to any other path is recorded and unused.
    */
   readonly force?: Readonly<Record<string, string>>;
+  /**
+   * Why each declared path may be removed, keyed by that path.
+   *
+   * `deletions.json` authorises a removal by the path being LISTED, and nothing
+   * else — the manifest cannot see whether Lisa put that file in a given
+   * consumer's repository, because ownership is a per-consumer fact and this is
+   * a repo-side artifact. CodySwannGT/lisa#3656 closed the gap for
+   * `.github/workflows/` by reading each workflow's own ownership header, which
+   * covers 42 of 255 declared paths.
+   *
+   * The obvious rule for the other 213 — delete only what Lisa still ships —
+   * was measured and fails on 95% of them: 11 are attributable to a lane Lisa
+   * ships today and 202 are not, because the 202 ARE the point. They are skill
+   * trees Lisa renamed, and stranding them leaves every consumer carrying dead
+   * directories forever. So ownership stops being inferred and starts being
+   * declared, one of:
+   *
+   * - `owned` — Lisa installs this path today.
+   * - `legacy: <reason>` — Lisa shipped it once and no longer does; the reason
+   *   names the version or ticket.
+   * - `needs-review` — declared before this field existed. Authorises removal
+   *   exactly as before, so no consumer sees a behaviour change, while staying
+   *   countable as debt rather than passing as classified.
+   *
+   * An ABSENT basis means "I cannot tell", which is deliberately distinct from
+   * "not owned": the uncertain case keeps the file and says so. A path wrongly
+   * kept is visible and fixable; a path wrongly deleted is gone from someone
+   * else's repository with no undo.
+   *
+   * A `force` entry is itself a basis and outranks this map.
+   * @see core/deletion-basis
+   */
+  readonly basis?: Readonly<Record<string, string>>;
 }
 
 /**

@@ -22,7 +22,13 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { textContainsBacklink } from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
+import {
+  githubBranchIssue,
+  noPullRequestToDischarge,
+  postDischargeBacklinks,
+  textContainsBacklink,
+  unresolvedPushReport,
+} from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
 import {
   boundedSpawnSync,
   ioLatencyBudgetMs,
@@ -191,6 +197,10 @@ case "\${1:-} \${2:-}" in
       printf '%s\\n' '{"number":43,"state":"OPEN","labels":[{"name":"status:in-progress"},{"name":"type:Bug"}],"comments":[],"closedByPullRequestsReferences":[]}'
     elif [ "\${3:-}" = "99" ]; then
       printf '%s\\n' '{"number":99,"state":"CLOSED","labels":[{"name":"status:done"},{"name":"type:Task"}],"comments":[],"closedByPullRequestsReferences":[]}'
+    elif [ -n "\${FAKE_GH_POSTED_FILE:-}" ] && [ -f "$FAKE_GH_POSTED_FILE" ]; then
+      # The item AFTER the managed backlink comment was written, so a re-read
+      # can observe a write the first read could not have seen.
+      printf '%s\\n' "\${FAKE_GH_ISSUE_AFTER_POST_JSON:-$FAKE_GH_ISSUE_JSON}"
     else
       printf '%s\\n' "$FAKE_GH_ISSUE_JSON"
     fi
@@ -207,6 +217,19 @@ case "\${1:-} \${2:-}" in
     esac
     ;;
   "pr view")
+    # Real gh refuses \`--repo\` with no positional argument. A fake that
+    # answered anyway would let a caller ship a flag combination that can never
+    # find a pull request, and every assertion here would still pass.
+    case " $* " in
+      *" --repo "*)
+        case "\${3:-}" in
+          -*|"")
+            echo "argument required when using the --repo flag" >&2
+            exit 1
+            ;;
+        esac
+        ;;
+    esac
     [ "\${FAKE_GH_PR_MISSING:-0}" != "1" ] || exit 1
     printf '%s\\n' "$FAKE_GH_PR_JSON"
     ;;
@@ -218,6 +241,7 @@ case "\${1:-} \${2:-}" in
     printf '%s\\n' "\${FAKE_GH_COMMENTS_JSON:-[]}"
     ;;
   "api --method")
+    [ -z "\${FAKE_GH_POSTED_FILE:-}" ] || printf 'posted\\n' > "$FAKE_GH_POSTED_FILE"
     printf '%s\\n' '{"id":1}'
     ;;
   *) echo "unexpected gh invocation: $*" >&2; exit 70 ;;
@@ -1624,7 +1648,13 @@ describe("merge lane (#1956 R2): push-range base-branch exemption", () => {
     });
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("WORK_ITEM_TRACKING_OK 1 commit(s)");
+    // Not `WORK_ITEM_TRACKING_OK`: this push carries a work item and no pull
+    // request exists, so gates 4 and 5 went unchecked. The exemption being
+    // asserted here is gate 3's, and it is proved by the commit count and the
+    // clean exit — not by a headline claiming a check nobody made (#3791).
+    expect(result.stdout).toContain(
+      "WORK_ITEM_TRACKING_INCOMPLETE 1 commit(s)"
+    );
   });
 
   it("stays strict when the remote default branch cannot be resolved (no origin/HEAD symref)", () => {
@@ -2859,10 +2889,11 @@ describe("commit identity fallback: the branch when no binding exists", () => {
     }
   });
 
-  it("reads no branch reference for the GitHub provider", () => {
-    // A GitHub reference is `owner/repo#123`. No branch-naming convention
-    // encodes one, so a branch segment that merely LOOKS like a key must not
-    // become a comparison the GitHub path never had.
+  it("reads no KEY-shaped branch segment for the GitHub provider", () => {
+    // A GitHub reference is `owner/repo#123`, so a branch segment shaped like
+    // ANOTHER tracker's key (`lin-12`) names nothing here and must not become
+    // a comparison the GitHub path never had. A bare issue number is a
+    // different matter and IS read — see the GitHub cases below (#3861).
     const fixture = createFixture(githubConfig());
     git(
       fixture.root,
@@ -2943,5 +2974,657 @@ describe("commit identity fallback: the branch when no binding exists", () => {
     });
     expect(reached.status).toBe(1);
     expect(reached.stderr).toContain("Linear");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The same fallback, for the provider it never reached.
+//
+// `branchWorkItem` returned `undefined` on its FIRST statement for the GitHub
+// provider, on the premise that "no branch-naming convention encodes a GitHub
+// reference". That is true of the canonical `owner/repo#123` spelling and
+// false of the convention actually in use — `fix/3537-…`, `stack/3463`. The
+// number is right there, just not spelled as a full reference. So on a GitHub
+// repository the trailer was compared against the binding or against nothing,
+// and on the machine that found this 4 of 105 worktrees carried a binding
+// (CodySwannGT/lisa#3861).
+//
+// The number is read ONLY as the whole first path segment after the first
+// slash. That is what separates an issue number from a version (`4.33.1`), a
+// date stamp (`20260903`), and another tracker's key (`se-7728`) — every one
+// of which appears in this repository's own branch list, and every one of
+// which a looser "first number anywhere" rule would misread as an issue and
+// refuse. The cases below pin each of those apart individually, because a
+// single passing case cannot show WHICH rule produced it.
+// ---------------------------------------------------------------------------
+describe("commit identity fallback on GitHub (#3861)", () => {
+  const REPOSITORY = "acme/widgets";
+  const MATCHING = `${REPOSITORY}#42`;
+
+  /** A GitHub fixture checked out on `branch`. */
+  function githubOn(branch: string): Fixture {
+    const fixture = createFixture(githubConfig());
+    git(fixture.root, ["switch", "-q", "-c", branch], fixture.env);
+    return fixture;
+  }
+
+  /**
+   * Run `validate-commit` over a well-formed message carrying `ref`.
+   * @param fixture The fixture to run in.
+   * @param ref The reference the trailer names.
+   * @param env Extra environment entries.
+   * @returns The completed command result.
+   */
+  function validateOn(
+    fixture: Fixture,
+    ref: string,
+    env: NodeJS.ProcessEnv = {}
+  ): CommandResult {
+    const file = path.join(fixture.root, "COMMIT_EDITMSG");
+    writeFileSync(file, `chore: a change\n\nWork-Item: ${ref}\n`);
+    return command(fixture, ["validate-commit", file], { env });
+  }
+
+  it("refuses a trailer naming a different issue than the branch encodes", () => {
+    // Before this, the identical case exited 0 and printed
+    // `WORK_ITEM_TRACKING_OK` — a live, in-scope, perfectly valid reference to
+    // work this branch is not doing, on its way into history.
+    const fixture = githubOn("fix/99-a-different-ticket");
+
+    const refused = validateOn(fixture, MATCHING);
+
+    expect(refused.status).toBe(1);
+    expect(refused.stderr).toContain("does not match this branch's work item");
+    expect(refused.stderr).toContain(`${REPOSITORY}#99`);
+  });
+
+  it("accepts the trailer the branch encodes", () => {
+    const fixture = githubOn("fix/42-the-real-ticket");
+
+    expect(validateOn(fixture, MATCHING).status).toBe(0);
+  });
+
+  it("reads a bare number that is the whole segment, with no slug after it", () => {
+    // `stack/3463` in the wild: nothing follows the number.
+    const fixture = githubOn("stack/99");
+
+    expect(validateOn(fixture, MATCHING).status).toBe(1);
+  });
+
+  it("does not read a version as an issue number", () => {
+    // `chore/upgrade-lisa-4.33.1`. A "first number anywhere" rule reads 4 here
+    // and refuses every dependency bump in the repository.
+    const fixture = githubOn("chore/upgrade-lisa-4.33.1");
+
+    expect(validateOn(fixture, MATCHING).status).toBe(0);
+  });
+
+  it("does not read a date stamp as an issue number", () => {
+    // `stack/queue-drain-20260903`. There is no issue 20260903.
+    const fixture = githubOn("stack/queue-drain-20260903");
+
+    expect(validateOn(fixture, MATCHING).status).toBe(0);
+  });
+
+  it("does not read another tracker's key as an issue number", () => {
+    // `fix/se-7728-…` names an SE ticket. Whatever GitHub issue it maps to, it
+    // is not 7728, so reading it would attribute the commit to a coincidence.
+    const fixture = githubOn("fix/se-7728-e2e-coverage-wildcard");
+
+    expect(validateOn(fixture, MATCHING).status).toBe(0);
+  });
+
+  it("fails open on a branch that encodes no number at all", () => {
+    // The deliberate fail-open. Replacing a comparison that silently did not
+    // happen with a new class of blocked commit on every unnumbered branch
+    // would trade one surprise for a louder one.
+    const fixture = githubOn("chore/bump-deps");
+
+    expect(validateOn(fixture, MATCHING).status).toBe(0);
+  });
+
+  it("keeps the binding authoritative over a disagreeing branch", () => {
+    // The documented escape for a branch deliberately retargeted to another
+    // ticket — a shape this repository's own history contains, where five
+    // commits on a branch named for one issue all declared another.
+    const fixture = githubOn("fix/99-branch-says-99");
+    const file = stateFilePath(fixture);
+    mkdirSync(path.dirname(file), { recursive: true });
+    writeFileSync(
+      file,
+      `${JSON.stringify({
+        branch: git(fixture.root, ["branch", "--show-current"], fixture.env),
+        provider: "github",
+        ref: MATCHING,
+        version: 1,
+      })}\n`
+    );
+
+    expect(validateOn(fixture, MATCHING).status).toBe(0);
+  });
+
+  it("reaches the branch verdict without contacting the tracker", () => {
+    // The property that lets this run on every single commit. An unparseable
+    // tracker payload is a transport that cannot answer; a branch-mismatch
+    // verdict under it is only reachable if the comparison completed before
+    // any tracker call.
+    const dead = { FAKE_GH_ISSUE_JSON: "not json at all" };
+    const refused = validateOn(
+      githubOn("fix/99-a-different-ticket"),
+      MATCHING,
+      dead
+    );
+
+    expect(refused.status).toBe(1);
+    expect(refused.stderr).toContain("does not match this branch's work item");
+
+    // The counter-control: with the SAME dead payload and an AGREEING trailer,
+    // the run gets far enough to ask GitHub and fails there instead. Without
+    // it, the assertion above would also pass for a build that refused
+    // everything before doing any work at all.
+    const reached = validateOn(
+      githubOn("fix/42-the-real-ticket"),
+      MATCHING,
+      dead
+    );
+
+    expect(reached.status).toBe(1);
+    expect(reached.stderr).not.toContain(
+      "does not match this branch's work item"
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The branch reader itself, in process.
+//
+// The CLI cases above reach this function only by SPAWNING the script, and a
+// subprocess loads the file from disk rather than the instrumented module. The
+// mutation gate therefore cannot see through them: measured, 12 of 12 mutants
+// in `githubBranchIssue` survived the full CLI set, while an untouched range of
+// the same file scored 85.71% off the in-process importers. The CLI cases prove
+// the wiring; these prove the rule, and only these can prove it.
+//
+// Each row exists to defeat a specific way the pattern could be wrong, so the
+// table is a list of decisions rather than a list of examples.
+// ---------------------------------------------------------------------------
+describe("githubBranchIssue, in process (#3861)", () => {
+  const CONTRACT = { provider: "github", repository: "acme/widgets" };
+
+  it.each([
+    // Reads the number, and reads ALL of it — `\d*` collapsing to `\d` would
+    // yield 386, and `\d*` widening to `\D*` would match nothing at all.
+    ["fix/3861-github-branch-work-item", "acme/widgets#3861"],
+    // The number may end the branch, so the terminator is `-` OR end-of-input.
+    // Dropping the `$` alternative loses this one.
+    ["stack/3463", "acme/widgets#3463"],
+    // ...and it may be followed by a slug, so dropping the `-` alternative
+    // loses this one instead. The pair pins both halves.
+    ["qd/3554-release-commit-reachability", "acme/widgets#3554"],
+    // A single-character prefix still counts: `[^/]+` must not become `[^/]`.
+    ["x/12-short-prefix", "acme/widgets#12"],
+  ])("reads %s as %s", (branch, expected) => {
+    expect(githubBranchIssue(branch, CONTRACT)).toBe(expected);
+  });
+
+  it.each([
+    // A version. The single most common false positive a looser rule creates,
+    // because every dependency bump in the repository carries one.
+    ["chore/upgrade-lisa-4.33.1"],
+    // A date stamp. There is no issue 20260903.
+    ["stack/queue-drain-20260903"],
+    // Another tracker's key. Whatever GitHub issue it maps to is not 7728.
+    ["fix/se-7728-e2e-coverage-wildcard"],
+    // Nothing numeric at all.
+    ["chore/bump-deps"],
+    // No slash, so no segment to read — a bare branch name is not a number.
+    ["main"],
+    ["driveorph-3559-work"],
+    // The number is not the FIRST segment. Losing the `^` anchor would find
+    // `fix/99` inside this and misattribute the commit.
+    ["wip/fix/99-nested"],
+    // A leading zero is not an issue number; `[1-9]` must not widen to `[0-9]`.
+    ["fix/0912-leading-zero"],
+    // `issue-<n>` is knowingly not read — recorded as a decision, not an
+    // oversight, so a later reader does not "fix" it by accident.
+    ["codex/issue-1264"],
+    // Empty and slash-only inputs must not throw.
+    [""],
+    ["/"],
+  ])("declines %s", branch => {
+    expect(githubBranchIssue(branch, CONTRACT)).toBeUndefined();
+  });
+
+  it("canonicalizes against the configured repository, not the branch", () => {
+    // The number comes from the branch; the owner/repo must come from the
+    // contract, or a reference could be minted for a repository nobody
+    // configured.
+    expect(
+      githubBranchIssue("fix/7-x", {
+        provider: "github",
+        repository: "other/repo",
+      })
+    ).toBe("other/repo#7");
+  });
+});
+
+/**
+ * The two gates that live OUTSIDE the commits — gate 4 (the `Work-Item:` line
+ * in the pull-request BODY) and gate 5 (the managed backlink on the item) —
+ * and what happens at the two moments they are reachable.
+ *
+ * A push cannot check either one, because both are properties of a pull
+ * request and the push is what makes the pull request possible. The old
+ * behaviour reported that as `WORK_ITEM_TRACKING_OK` with the reason appended,
+ * which is a finding delivered inside a success: the push exited 0, the branch
+ * landed, and CI went red on requirements nobody was asked to resolve
+ * (CodySwannGT/lisa#3791).
+ */
+describe("deferred gates 4 and 5 (#3791)", () => {
+  const PR_URL = "https://github.com/acme/code/pull/7";
+
+  /** Seed a bound branch on a published base, and return its tracked head. */
+  function trackedPush(fixture: Fixture): { base: string; head: string } {
+    const base = publishedBase(fixture);
+    setOriginHead(fixture);
+    const head = commit(
+      fixture,
+      "feat: tracked change\n\nWork-Item: acme/widgets#42"
+    );
+    return { base, head };
+  }
+
+  /** A fake `gh pr view` payload for a pull request over the given commits. */
+  function prPayload(body: string, oids: string[]): string {
+    return JSON.stringify({
+      body,
+      commits: oids.map(oid => ({ oid })),
+      state: "OPEN",
+      url: PR_URL,
+    });
+  }
+
+  /** The issue payload once the managed backlink comment exists on it. */
+  function issueWithBacklink(): string {
+    return JSON.stringify({
+      closedByPullRequestsReferences: [],
+      comments: [{ body: `[lisa-pr-link] ${PR_URL}` }],
+      labels: [
+        { name: "repo:identity" },
+        { name: "status:in-progress" },
+        { name: "type:Bug" },
+      ],
+      number: 42,
+      state: "OPEN",
+      url: "https://github.com/acme/widgets/issues/42",
+    });
+  }
+
+  it("reports a push that could not check gates 4 and 5 as incomplete, not OK", () => {
+    const fixture = createFixture();
+    const { base, head } = trackedPush(fixture);
+
+    const pushed = pushRange(fixture, base, head);
+
+    // Exit 0 on purpose and stated as such: a pull request cannot exist for a
+    // branch the remote has never seen, so refusing here would make the first
+    // push of every branch impossible. What changes is the report.
+    expect(pushed.status).toBe(0);
+    expect(pushed.stdout).not.toContain("WORK_ITEM_TRACKING_OK");
+    expect(pushed.stdout).toContain(
+      "WORK_ITEM_TRACKING_INCOMPLETE 1 commit(s)"
+    );
+    expect(pushed.stdout).toContain("2 of 5 gates NOT CHECKED");
+    expect(pushed.stdout).toContain("UNRESOLVED gate 4");
+    expect(pushed.stdout).toContain("UNRESOLVED gate 5");
+    // The remedy is named, not described: an open item with no command against
+    // it is a complaint.
+    expect(pushed.stdout).toContain(
+      "node scripts/lisa-work-item.mjs discharge-pr-gates"
+    );
+    // The exact line the body needs, so gate 4 is satisfiable by copying it.
+    expect(pushed.stdout).toContain("Work-Item: acme/widgets#42");
+  });
+
+  it("keeps gate 5 off the checklist under the trailer level, where it is not required", () => {
+    const fixture = createFixture({
+      ...githubConfig(),
+      workItem: { verify: "trailer" },
+    });
+    const { base, head } = trackedPush(fixture);
+
+    const pushed = pushRange(fixture, base, head);
+
+    expect(pushed.status).toBe(0);
+    expect(pushed.stdout).toContain("UNRESOLVED gate 4");
+    expect(pushed.stdout).not.toContain("UNRESOLVED gate 5");
+    expect(pushed.stdout).toContain('workItem.verify is "trailer"');
+  });
+
+  it("separates a range with nothing to trace from one whose gates went unchecked", () => {
+    const fixture = createFixture();
+    const base = publishedBase(fixture);
+    setOriginHead(fixture);
+    const head = commit(fixture, `chore(release): 1.2.3 [skip${" "}ci]`);
+
+    const pushed = pushRange(fixture, base, head);
+
+    // A release commit has no work item for a body to declare or a tracker to
+    // link. Those gates have NOTHING to check, which is a different fact from
+    // something unchecked — and putting an unresolvable item on every release
+    // push is how a checklist teaches its reader to skip it.
+    expect(pushed.status).toBe(0);
+    expect(pushed.stdout).toContain("WORK_ITEM_TRACKING_OK 0 commit(s)");
+    expect(pushed.stdout).toContain("names no work item");
+    expect(pushed.stdout).not.toContain("UNRESOLVED");
+  });
+
+  it("discharges both gates at the pull request, posting the backlink itself", () => {
+    const fixture = createFixture();
+    const { head } = trackedPush(fixture);
+    const log = path.join(fixture.root, "gh.log");
+
+    // The item carries NO backlink until this command writes one, and the fake
+    // tracker only starts reporting it once the write has happened. That is
+    // what makes gate 5 depend on the posting AND on the re-read: the payload
+    // cached by the first pass predates the comment, so validating against it
+    // would report a backlink missing that this command had just created.
+    const discharged = command(fixture, ["discharge-pr-gates"], {
+      env: {
+        FAKE_GH_ISSUE_AFTER_POST_JSON: issueWithBacklink(),
+        FAKE_GH_LOG: log,
+        FAKE_GH_POSTED_FILE: path.join(fixture.root, "posted"),
+        FAKE_GH_PR_JSON: prPayload("Work-Item: acme/widgets#42", [head]),
+      },
+    });
+
+    expect(discharged.stderr).toBe("");
+    expect(discharged.status).toBe(0);
+    expect(discharged.stdout).toContain("work-item backlink created");
+    expect(discharged.stdout).toContain(
+      "gates 4 and 5 discharged at the pull request"
+    );
+    // The positive control for the posting half. Asserting only on the printed
+    // word would pass for a command that reported a write it never made.
+    expect(readFileSync(log, "utf8")).toContain("api --method POST");
+  });
+
+  it("refuses a pull request body that references the item without declaring it", () => {
+    const fixture = createFixture();
+    const { head } = trackedPush(fixture);
+
+    // `Refs #42` is the repository's own non-closing convention, and it is
+    // exactly what gate 4 does not accept. Catching it here is the whole point:
+    // this is the same refusal CI issues, one cycle earlier.
+    const discharged = command(fixture, ["discharge-pr-gates"], {
+      env: {
+        FAKE_GH_ISSUE_JSON: issueWithBacklink(),
+        FAKE_GH_PR_JSON: prPayload("Refs #42", [head]),
+      },
+    });
+
+    expect(discharged.status).toBe(1);
+    expect(discharged.stderr).toContain(
+      "No Work-Item trailer anywhere in the pull request body"
+    );
+  });
+
+  it("finds the branch's pull request, so a declared push checks all five gates", () => {
+    // `gh pr view --repo <r>` with no positional argument is a usage error, so
+    // the lookup that asked that way exited 1 and every push read "no pull
+    // request exists" — including the ones that had one. That turned the
+    // deferral this ticket is about from a first-push condition into the
+    // permanent state of every push in the repository.
+    const fixture = createFixture();
+    const base = publishedBase(fixture);
+    setOriginHead(fixture);
+    const head = commit(
+      fixture,
+      "feat: tracked change\n\nWork-Item: acme/widgets#42"
+    );
+    const log = path.join(fixture.root, "gh.log");
+
+    const pushed = command(fixture, ["validate-push", "origin"], {
+      env: {
+        FAKE_GH_ISSUE_JSON: issueWithBacklink(),
+        FAKE_GH_LOG: log,
+        FAKE_GH_PR_JSON: prPayload("Work-Item: acme/widgets#42", [head]),
+      },
+      input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${base}\n`,
+    });
+
+    expect(pushed.status).toBe(0);
+    expect(pushed.stdout).toContain("WORK_ITEM_TRACKING_OK 1 commit(s)");
+    expect(pushed.stdout).toContain("PR body, and tracker backlink");
+    expect(pushed.stdout).not.toContain("WORK_ITEM_TRACKING_INCOMPLETE");
+    // The shape of the lookup is the subject, not an implementation detail:
+    // the fake refuses the flag combination exactly as real `gh` does, so a
+    // caller that reintroduces it fails here rather than in a year of pushes
+    // that silently checked three gates out of five.
+    expect(readFileSync(log, "utf8")).toContain("pr view --json");
+  });
+
+  it("answers 3 rather than 1 when there is no pull request to discharge", () => {
+    const fixture = createFixture();
+    trackedPush(fixture);
+
+    const discharged = command(fixture, ["discharge-pr-gates"], {
+      env: { FAKE_GH_PR_MISSING: "1" },
+    });
+
+    // Not a violation: nothing was found wanting, there was nothing to check.
+    // A caller that fires this automatically after any `gh pr` command — the
+    // PostToolUse hook does, including after ones that failed — has only the
+    // status to go on, so the two answers may not share a code.
+    expect(discharged.status).toBe(3);
+    expect(discharged.stderr).toContain("no pull request for this branch");
+  });
+
+  it("contacts no tracker under the trailer level, and still checks gate 4", () => {
+    const fixture = createFixture({
+      ...githubConfig(),
+      workItem: { verify: "trailer" },
+    });
+    const { head } = trackedPush(fixture);
+    const log = path.join(fixture.root, "gh.log");
+
+    const discharged = command(fixture, ["discharge-pr-gates"], {
+      env: {
+        FAKE_GH_LOG: log,
+        FAKE_GH_PR_JSON: prPayload("Work-Item: acme/widgets#42", [head]),
+      },
+    });
+
+    expect(discharged.status).toBe(0);
+    expect(discharged.stdout).not.toContain("work-item backlink");
+    expect(readFileSync(log, "utf8")).not.toContain("api --method");
+  });
+});
+
+/**
+ * The wording of the incomplete-push report, asserted in-process.
+ *
+ * The subprocess cases above prove the WIRING — that a push with no pull
+ * request reaches this report rather than a success line. They cannot prove
+ * the WORDS: the push path runs the validator as a child, so a mutation run
+ * records no coverage for anything inside it and scores every line of this
+ * text as unreached. These cases are what make the text load-bearing, and the
+ * text IS the fix (CodySwannGT/lisa#3791) — a checklist whose remedy line went
+ * missing would leave exactly the finding-with-no-action the ticket is about.
+ */
+describe("unresolvedPushReport wording (#3791)", () => {
+  const FULL = {
+    lifecycle: { claimed: "status:in-progress", ready: "status:ready" },
+    verify: "full",
+  };
+  const TRAILER = { ...FULL, verify: "trailer" };
+
+  /**
+   * A commit-side result naming the given work items.
+   * @param refs - Work items the range carries.
+   * @param overrides - Fields to replace on the synthetic result.
+   */
+  function result(
+    refs: string[],
+    overrides: Record<string, unknown> = {}
+  ): Record<string, unknown> {
+    return {
+      contract: FULL,
+      protectedExempt: 0,
+      refs,
+      relevant: refs.length,
+      ...overrides,
+    };
+  }
+
+  it("opens with a token that is not a pass, and counts what went unchecked", () => {
+    const report = unresolvedPushReport(result(["acme/widgets#42"]), "");
+
+    expect(report.startsWith("WORK_ITEM_TRACKING_INCOMPLETE")).toBe(true);
+    expect(report).not.toContain("WORK_ITEM_TRACKING_OK");
+    expect(report).toContain("1 commit(s)");
+    expect(report).toContain("gates 1-3 proved here, 2 of 5 gates NOT CHECKED");
+  });
+
+  it("names both unmet gates, the line that satisfies gate 4, and the remedy", () => {
+    const report = unresolvedPushReport(result(["acme/widgets#42"]), "");
+
+    expect(report).toContain("UNRESOLVED gate 4");
+    expect(report).toContain("UNRESOLVED gate 5");
+    expect(report).toContain("on its own line:");
+    expect(report).not.toContain("on its own lines:");
+    expect(report).toContain("Work-Item: acme/widgets#42");
+    expect(report).toContain("`Refs #n` and `Closes #n` do NOT satisfy it.");
+    expect(report).toContain(
+      "Discharge both the moment the pull request exists — it evaluates them and"
+    );
+    expect(report).toContain(
+      "posts what it can, so neither waits for CI to reveal it:"
+    );
+    expect(report).toContain("[lisa-pr-link]");
+    expect(report).toContain(
+      "node scripts/lisa-work-item.mjs discharge-pr-gates"
+    );
+    // The five-gate checklist still travels with it: this report replaces the
+    // success line, and dropping the summary would trade one omission for
+    // another.
+    expect(report).toContain("All five gates, and when each one bites:");
+  });
+
+  it("states gate 5 as inapplicable under the trailer level, not as open work", () => {
+    const report = unresolvedPushReport(
+      result(["acme/widgets#42"], { contract: TRAILER }),
+      ""
+    );
+
+    expect(report).toContain("UNRESOLVED gate 4");
+    expect(report).not.toContain("UNRESOLVED gate 5");
+    expect(report).toContain("n/a         gate 5");
+    expect(report).toContain('workItem.verify is "trailer"');
+  });
+
+  it("declares every item a multi-item range names, one line each", () => {
+    const report = unresolvedPushReport(
+      result(["acme/widgets#42", "acme/widgets#43"]),
+      ""
+    );
+
+    expect(report).toContain("on its own lines:");
+    // One line each, indented to the same column — a body that has to be
+    // copied out of this report needs the shape, not just the two strings.
+    expect(report).toContain(
+      "Work-Item: acme/widgets#42\n     Work-Item: acme/widgets#43"
+    );
+    expect(report).toContain(
+      "not a clean bill of health for acme/widgets#42, acme/widgets#43"
+    );
+    expect(report).toContain("This range names 2 work items");
+  });
+
+  it("carries the ref label and the already-traced count when there is one", () => {
+    const report = unresolvedPushReport(
+      result(["acme/widgets#42"], { protectedExempt: 3 }),
+      "refs/heads/feature/x: "
+    );
+
+    expect(report).toContain(
+      "WORK_ITEM_TRACKING_INCOMPLETE refs/heads/feature/x: 1 commit(s)"
+    );
+    expect(report).toContain("3 already on a deploy-chain branch");
+  });
+});
+
+/**
+ * The two halves of the discharge that are values rather than round trips.
+ *
+ * `discharge-pr-gates` itself is only reachable through a spawned child, so a
+ * mutation run sees no coverage for anything it decides. These two are the
+ * decisions worth pinning in-process: the exit code that separates "nothing to
+ * check" from "a requirement is unmet", and the answer that decides whether
+ * gate 5 is verified against a payload fetched BEFORE the backlink was written.
+ */
+describe("discharge decisions (#3791)", () => {
+  const FULL = { provider: "github", verify: "full" };
+  const TRAILER = { provider: "github", verify: "trailer" };
+  const PR = "https://github.com/acme/code/pull/7";
+
+  it("answers 3 for a missing pull request, which is not a violation code", () => {
+    const error = noPullRequestToDischarge() as Error & {
+      exitCode?: number;
+      selfExplanatory?: boolean;
+    };
+
+    // 1 would tell a caller that a work-item requirement was found unmet. No
+    // requirement was even evaluated.
+    expect(error.exitCode).toBe(3);
+    expect(error.selfExplanatory).toBe(true);
+    expect(error.message).toContain("no pull request for this branch");
+    expect(error.message).toContain(
+      "Open the pull request, then run it again."
+    );
+  });
+
+  it("reports a write as a change, so the verification re-reads the tracker", () => {
+    const posted: string[] = [];
+
+    const changed = postDischargeBacklinks(
+      ["acme/widgets#42", "acme/widgets#43"],
+      PR,
+      FULL,
+      (ref: string) => {
+        posted.push(ref);
+        return ref.endsWith("42") ? "unchanged" : "created";
+      }
+    );
+
+    expect(posted).toEqual(["acme/widgets#42", "acme/widgets#43"]);
+    // One unchanged and one created is still a change: verifying gate 5 against
+    // the payload cached before that write would report the backlink missing.
+    expect(changed).toBe(true);
+  });
+
+  it("reports no change when every backlink was already correct", () => {
+    const changed = postDischargeBacklinks(["acme/widgets#42"], PR, FULL, () =>
+      String("unchanged")
+    );
+
+    expect(changed).toBe(false);
+  });
+
+  it("writes nothing under the trailer level, which contacts no tracker", () => {
+    const posted: string[] = [];
+
+    const changed = postDischargeBacklinks(
+      ["acme/widgets#42"],
+      PR,
+      TRAILER,
+      (ref: string) => {
+        posted.push(ref);
+        return "created";
+      }
+    );
+
+    expect(posted).toEqual([]);
+    expect(changed).toBe(false);
   });
 });

@@ -98,7 +98,8 @@ export function shippedMjsOnDisk(root: string): readonly string[] {
     .map(entry => path.join(root, entry.name, COPY_OVERWRITE))
     .filter(dir => fs.existsSync(dir))
     .flatMap(dir => walkMjs(root, dir))
-    .toSorted(byPath);
+    .slice()
+    .sort(byPath);
 }
 
 /**

@@ -53,7 +53,11 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { DIAGNOSIS, diagnoseFailure } from "./lib/gate-failure-diagnosis.mjs";
+import {
+  DIAGNOSIS,
+  diagnoseFailure,
+  ranNoTests,
+} from "./lib/gate-failure-diagnosis.mjs";
 import {
   killMarkNote,
   recentKillMarks,
@@ -422,6 +426,31 @@ function stateFor(kind) {
 function execute(gate, exec) {
   const { code, output } = normaliseExec(exec(gate.command, gate));
   if (code === 0) {
+    // A zero exit is not by itself a measurement. A runner invoked with
+    // `--passWithNoTests` — still shipped in the integration scripts of three
+    // package templates — collects nothing and exits 0, so the whole diagnosis
+    // below is unreachable on the one path that needs it and the gate records
+    // PASSED for a suite that ran nothing (CodySwannGT/lisa#3715).
+    //
+    // Deliberately narrow. This does NOT fire on "collected zero"; it fires
+    // only when the runner POSITIVELY SAYS it ran nothing and reached no
+    // verdict. A gate whose output carries no such statement — every non-test
+    // gate — still passes, which is what keeps the blast radius off them. And
+    // an interactive filtered run is not a gate invocation: a project that
+    // declared this gate declared that work exists for it.
+    if (ranNoTests(output)) {
+      return {
+        state: STATE.UNPROVABLE,
+        detail:
+          `${gate.command} (exit 0) — the runner reported it executed ZERO ` +
+          `test files, so this run measured nothing. A zero exit here is the ` +
+          `runner being told not to mind an empty collection, not evidence ` +
+          `the property holds`,
+        code: 0,
+        diagnosis: DIAGNOSIS.NO_TESTS_RAN,
+        evidence: [],
+      };
+    }
     return {
       state: STATE.PASSED,
       detail: gate.command,

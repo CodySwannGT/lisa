@@ -99,9 +99,13 @@ describe("every façade job resolves at the caller's moment", () => {
       Object.keys(workflowIn(file).jobs)
         .filter(job => resolveStep(job, file) !== undefined)
         .map(job => `${path.basename(file)}:${job}`)
-    ).toSorted(byName);
+    )
+      .slice()
+      .sort(byName);
     expect(withGateStep).toEqual(
-      CONVERTED.map(c => `${path.basename(c.file)}:${c.job}`).toSorted(byName)
+      CONVERTED.map(c => `${path.basename(c.file)}:${c.job}`)
+        .slice()
+        .sort(byName)
     );
   });
 });

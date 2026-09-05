@@ -249,9 +249,9 @@ describe("the trace", () => {
 
     const observed = parseTrace(`${first}\nnot json\n${second}\n`);
 
-    const seen = [...(observed.get("a.sh")?.statuses ?? [])].toSorted(
-      (left, right) => left - right
-    );
+    const seen = [...(observed.get("a.sh")?.statuses ?? [])]
+      .slice()
+      .sort((left, right) => left - right);
 
     expect(seen).toEqual([0, 2]);
   });

@@ -108,6 +108,46 @@ if [ -f ".lintstagedrc.json" ]; then
 fi
 
 # ---------------------------------------------------------------------------
+# Cross-worktree staged-blob guard.
+#
+# Refuses a commit that stages a NEW file byte-identical to uncommitted work
+# sitting in a different linked worktree. Where several agents share one
+# repository through worktrees, one agent's in-progress file can be committed
+# by another: the file is real, the branch is real, the commit succeeds and
+# every other gate passes, so nothing reports it. Confirmed once — a 284-line
+# test file staged in one worktree, committed an hour later from elsewhere,
+# byte-identical, under a reworded subject.
+#
+# HERE RATHER THAN IN THE GATE REGISTRY, deliberately. This is a property of
+# the machine — which other worktrees exist and what is sitting in them —
+# not of the project, so there is no task a project could declare to prove it.
+# It also has to run on EVERY commit: the whole failure mode is that nobody
+# notices, so a check that waits to be invoked is a check that was not running
+# on the commit where it mattered.
+#
+# Fails OPEN when the script is missing, unlike the lint-staged preflight
+# above. That preflight guards a tool that reports success for work it did not
+# do, so skipping it cannot be read as a pass. This one only ever adds a
+# refusal — a repository without it is exactly as safe as it was before the
+# guard existed, and blocking every commit in a project that has not yet
+# re-applied templates would be a worse trade than the window it closes.
+# ---------------------------------------------------------------------------
+CROSS_WORKTREE_GUARD="node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-cross-worktree-guard.mjs"
+if [ ! -f "$CROSS_WORKTREE_GUARD" ]; then
+  CROSS_WORKTREE_GUARD="scripts/lisa-cross-worktree-guard.mjs"
+fi
+if [ ! -f "$CROSS_WORKTREE_GUARD" ]; then
+  CROSS_WORKTREE_GUARD="all/copy-overwrite/scripts/lisa-cross-worktree-guard.mjs"
+fi
+if [ -f "$CROSS_WORKTREE_GUARD" ] && command -v node >/dev/null 2>&1; then
+  node "$CROSS_WORKTREE_GUARD"
+  CROSS_WORKTREE_GUARD_STATUS=$?
+  if [ $CROSS_WORKTREE_GUARD_STATUS -ne 0 ]; then
+    exit $CROSS_WORKTREE_GUARD_STATUS
+  fi
+fi
+
+# ---------------------------------------------------------------------------
 # Gate-driven checks.
 #
 # A gate is a PROPERTY the project must hold; `.lisa.config.json` names the task

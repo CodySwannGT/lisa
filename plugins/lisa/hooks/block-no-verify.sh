@@ -24,6 +24,13 @@
 #      `source`, `.`, `bash < nv.sh`, and an interpreter a `find -exec` or
 #      `xargs` puts at a command position.
 #
+# NOT vector 11: `bash -n nv.sh`. `-n` is noexec — the shell reads and parses
+# the file, then exits without running a line — so a syntax check is the one
+# shape that puts a path at a command position while executing nothing. It used
+# to be refused, which made `bash -n` unusable on this file, on every husky
+# hook, and on most of this repository (#3781). The distinction is noexec, not
+# the program: `bash nv.sh` still executes and is still refused.
+#
 # The line below is what lets `lisa apply` tell a downstream copy of this guard
 # that is BEHIND from one that is AHEAD. Byte comparison cannot: both look like
 # "differs from mine", and guessing "behind" is how a fork's stronger guard gets
@@ -1031,6 +1038,10 @@ def resolve_script(token):
 
 SHELL_COMMAND_STRING = object()
 SHELL_STDIN = object()
+# `-n` / `--noexec`: the shell READS and parses its operand, then exits without
+# executing a line of it. Distinct from the two above because nothing runs at
+# all — there is no payload to scan and no stdin script to wait for.
+SHELL_NOEXEC = object()
 
 
 def shell_execution_operand(args):
@@ -1061,12 +1072,25 @@ def shell_execution_operand(args):
             index += 1
             continue
         if token.startswith("--"):
+            if token == "--noexec":
+                return SHELL_NOEXEC
             if token not in SHELL_LONG_OPTIONS_NO_VALUE:
                 opaque_option_seen = True
             index += 1
             continue
         if "c" in token[1:]:
             return SHELL_COMMAND_STRING
+        # `-n` is noexec. `bash -n <file>` is the one shape that puts a path at
+        # a command position while provably executing nothing, so it is the
+        # exact seam between reading and running — and reach got it wrong in
+        # BOTH directions (CodySwannGT/lisa#3781). Here it meant a syntax check
+        # of any file merely DISCUSSING the bypass was refused, which is most of
+        # this repository's own guards and every husky hook.
+        #
+        # `bash <file>` still executes and is still refused. Noexec is the
+        # distinction, not the program: this is not a read-only exemption.
+        if "n" in token[1:]:
+            return SHELL_NOEXEC
         index += 1
     return args[index] if index < len(args) else SHELL_STDIN
 
@@ -1110,6 +1134,10 @@ def executed_scripts(tokens):
                     previous_shell_awaiting_stdin = True
                     continue
                 if operand is SHELL_COMMAND_STRING:
+                    continue
+                if operand is SHELL_NOEXEC:
+                    # Nothing runs, so there is nothing to follow and nothing
+                    # to fail closed about.
                     continue
             else:
                 continue

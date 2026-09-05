@@ -93,18 +93,28 @@ export function populatedTmpdirRoot(
  * @param root - Exact platform temp root selected before process start
  * @param artifact - Rolling artifact path
  * @param nowMs - Deterministic observation time
+ * @param args - Node arguments overriding the default direct CLI invocation
  * @returns Command transport and timing facts
  */
 export function timedTmpdirMeasurement(
   script: string,
   root: string,
   artifact: string,
-  nowMs: number
+  nowMs: number,
+  args?: readonly string[]
 ): TimedTmpdirMeasurement {
   const started = performance.now();
   const result = spawnSync(
     process.execPath,
-    [script, "--root", root, "--artifact", artifact, "--now-ms", String(nowMs)],
+    args ?? [
+      script,
+      "--root",
+      root,
+      "--artifact",
+      artifact,
+      "--now-ms",
+      String(nowMs),
+    ],
     {
       encoding: "utf8",
       killSignal: "SIGKILL",
