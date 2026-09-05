@@ -31,8 +31,14 @@ COMMAND="$(printf '%s' "$JSON_INPUT" | jq -r '.tool_input.command // empty' 2>/d
 
 # `gh pr create` opens one; `gh pr edit` is the other way a body comes to carry
 # — or lose — its declaration. Both change the answer to gate 4.
+#
+# `gh pr reopen` is here because a work item can hold more than one pull
+# request, and a reopened one is a named case: it was closed, so nothing has
+# discharged its gates since, and it is now live again with no CI run to reveal
+# that. Its backlink no longer displaces anyone else's, so re-running the
+# discharge for it is free (CodySwannGT/lisa#3916).
 case "$COMMAND" in
-  *"gh pr create"* | *"gh pr edit"*) ;;
+  *"gh pr create"* | *"gh pr edit"* | *"gh pr reopen"*) ;;
   *) exit 0 ;;
 esac
 
