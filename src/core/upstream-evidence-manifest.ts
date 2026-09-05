@@ -49,7 +49,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "c73eac2c0759e58231c06a76d4d72b65079e3eb4aab14e335937a56babe31ab5",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
-      "699ec1a7470583916f3d36e301c4d4b6f52741f8e111e5528074bea05e3ee25c",
+      "3f58a1bc31a36ae1720591013cd59fd3e9046c865aae2a795b29a2405aefb6a1",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "500b5d5770cf7a6bf5588effe6db462fe0a4646d1de3e8b799115279af1b2662",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -733,9 +733,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/commands/wiki/install.md":
       "51392cf053c17edd549bfbaba5d19ce669dc79021aafa7cfa100324ad38de11f",
     "plugins/src/base/hooks/block-blind-automerge.agy.sh":
-      "c1adfe6de5858d5229c136987ffde6ab1b7223139dd0fb82beadc980fb324896",
+      "7a1263ea15df37a24d959944a9b9bfe579df189abf8e697f967bbaba9d3ffc90",
     "plugins/src/base/hooks/block-blind-automerge.sh":
-      "b8dbe3374232ff4a84bba27ab2fcb94b92209cc9dc82d4d5466330c1577eafdd",
+      "943a362d5fd879911710689d3d317c78ce7d74718836af8f51b7ddc204c7e751",
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "3e8e54a608e57b57e3fd372ad5b9a7b2794ce4934a67e36f374c8a06dc16e69e",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
@@ -10024,6 +10024,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/helpers/staged-dependency-conformance.test.ts": true,
     "tests/unit/helpers/test-budget-conformance.test.ts": true,
     "tests/unit/helpers/unbounded-spawn-conformance.test.ts": true,
+    "tests/unit/hooks/block-blind-automerge-uncovered-base.test.ts": true,
     "tests/unit/hooks/block-blind-automerge.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-bypasses.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-cross-repo.test.ts": true,
