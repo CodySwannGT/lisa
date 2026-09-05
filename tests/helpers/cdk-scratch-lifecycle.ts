@@ -16,7 +16,11 @@ import {
   type ScratchOwnerRecordV1,
   type ScratchPathIdentity,
 } from "../../src/configs/vitest/scratch-owner.js";
-import { boundedSpawnSync, ioLatencyBudgetMs } from "./io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  ioLatencyBudgetMs,
+  workerSpawnSlowdown,
+} from "./io-latency-budget.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 const NODE_DEFAULT_MAX_BUFFER = 1024 * 1024;
@@ -42,6 +46,19 @@ export interface CdkRunResult {
   readonly run: SpawnSyncReturns<string>;
   readonly assembly: string | undefined;
   readonly scratchBase: string;
+  /**
+   * What the child actually did, for use as an assertion message.
+   *
+   * A missing marker has several causes that the marker's absence cannot tell
+   * apart: the budget expired and `spawnSync` killed the child, the child died
+   * on its own, or it ran to completion and simply wrote nothing. Bare
+   * `expect(assembly).toBeDefined()` reports "expected undefined to be defined"
+   * for all three, which is why a CI-only failure here was unreadable from the
+   * log. `killSignal` is SIGKILL, so a budget kill is indistinguishable from
+   * the deliberate `sigkill` arm on the signal alone — the status, the error
+   * and the child's own stderr are the only things that separate them.
+   */
+  readonly diagnosis: string;
 }
 
 /** Observable process result collected from the wrapper's OS exit event. */
@@ -165,7 +182,32 @@ export function runCdk(arm: string, base?: string): CdkRunResult {
       ? fs.readFileSync(marker, "utf8")
       : undefined,
     scratchBase,
+    diagnosis: describeCdkRun(arm, run),
   };
+}
+
+/**
+ * Describe what one arm's child did, in terms that separate its failure modes.
+ *
+ * Deliberately names the budget alongside the outcome. The budget is scaled by
+ * this worker's measured spawn slowdown, capped at `MAX_SPAWN_SLOWDOWN`, and a
+ * box past that cap is expected to fail rather than be given more room — so
+ * "was it slow, or was it broken?" is the first question a reader has, and the
+ * message should answer it without a second CI run.
+ * @param arm - Fixture lifecycle arm
+ * @param run - The finished child
+ * @returns One-line cause, with a stderr tail when the child said anything
+ */
+function describeCdkRun(arm: string, run: SpawnSyncReturns<string>): string {
+  const budget = ioLatencyBudgetMs(30_000);
+  const stderr = (run.stderr ?? "").trim().split("\n").slice(-8).join("\n");
+  return [
+    `real CDK synth arm "${arm}" wrote no assembly marker.`,
+    `status=${String(run.status)} signal=${String(run.signal)}`,
+    `error=${run.error === undefined ? "none" : run.error.message}`,
+    `budget=${budget}ms (30000ms base x ${workerSpawnSlowdown()}x measured slowdown)`,
+    stderr === "" ? "child stderr was empty" : `child stderr tail:\n${stderr}`,
+  ].join(" ");
 }
 
 /**
@@ -191,16 +233,32 @@ export function startWaitingCdkRun(base: string, label: string): WaitingCdkRun {
 /**
  * Wait for a complete assembly marker from a live CDK worker.
  * @param marker - Parent-owned marker path
+ * @param child - The worker being waited on, so a timeout can report whether it
+ *   was still running at the deadline or had already exited
  * @returns Real assembly directory
  */
-export async function waitForCdkAssembly(marker: string): Promise<string> {
-  const deadline = Date.now() + ioLatencyBudgetMs(20_000);
+export async function waitForCdkAssembly(
+  marker: string,
+  child?: ChildProcess
+): Promise<string> {
+  const budget = ioLatencyBudgetMs(20_000);
+  const deadline = Date.now() + budget;
   while (Date.now() < deadline) {
     if (fs.existsSync(marker)) return fs.readFileSync(marker, "utf8");
     await new Promise(resolve => setTimeout(resolve, 25));
   }
+  // A live child and a dead one produce the same silence here, and the two
+  // want opposite investigations: still running means the budget was short,
+  // already exited means the worker failed before it could write.
+  const fate =
+    child === undefined
+      ? "child not supplied"
+      : child.exitCode === null && child.signalCode === null
+        ? "child still running at the deadline, so it was too slow rather than broken"
+        : `child already exited: code=${String(child.exitCode)} signal=${String(child.signalCode)}`;
   throw new Error(
-    `CDK assembly marker did not appear: ${path.basename(marker)}`
+    `CDK assembly marker did not appear: ${path.basename(marker)} ` +
+      `after ${budget}ms (20000ms base x ${workerSpawnSlowdown()}x measured slowdown). ${fate}`
   );
 }
 
