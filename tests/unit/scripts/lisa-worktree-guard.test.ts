@@ -263,6 +263,43 @@ describe("lisa-worktree-guard", () => {
     expect(result.status).toBe(OK);
   });
 
+  it("refuses a worktree whose index it cannot read", async () => {
+    const { worktree } = await fixture();
+    // A corrupt index makes `git diff --cached` fail while `rev-parse` and
+    // `worktree list` still answer, so the guard identifies the worktree and
+    // then cannot enumerate its candidate paths. Before unreadability
+    // propagated, that failure arrived as an EMPTY candidate list and the
+    // worktree was classified `safe` — a deletion authorised by a probe that
+    // never ran.
+    const indexFile = path.join(worktree, ".git");
+    const gitDir = readFileSync(indexFile, "utf8")
+      .replace("gitdir: ", "")
+      .trim();
+    writeFileSync(path.join(gitDir, "index"), "not an index\n");
+
+    const verdict = classifyWorktree(worktree) as {
+      ok: boolean;
+      reason: string;
+    };
+
+    expect(verdict.ok).toBe(false);
+    expect(verdict.reason).toBe("unreadable");
+  });
+
+  it("allows the same worktree once its index reads again", async () => {
+    // The rejection control for the case above: byte-for-byte the same
+    // fixture, differing only in whether the index is readable.
+    const { worktree } = await fixture();
+
+    const verdict = classifyWorktree(worktree) as {
+      ok: boolean;
+      reason: string;
+    };
+
+    expect(verdict.ok).toBe(true);
+    expect(verdict.reason).toBe("safe");
+  });
+
   it("classifies a path that is not a worktree without throwing", async () => {
     const tempDir = await createTempDir();
     tempDirs.push(tempDir);

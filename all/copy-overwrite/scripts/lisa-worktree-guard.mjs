@@ -118,6 +118,11 @@ function gitOrNull(args, cwd) {
   try {
     return git(args, cwd);
   } catch {
+    // probe-direction: fail-closed — no caller spends this null as an answer.
+    // `candidatePaths`, `indexBlobs` and `candidateBlobs` each propagate it,
+    // and `classifyWorktree` turns it into UNREADABLE, which REFUSES the
+    // removal. A git that cannot answer costs a false refusal, never a
+    // silent deletion.
     return null;
   }
 }
@@ -136,32 +141,41 @@ function splitZ(out) {
  *
  * Staged additions, unstaged modifications and untracked files are all at risk;
  * ignored files are not (that is what makes build output cheap to delete).
+ *
+ * Returns `null` when any of the three probes failed. An empty list means
+ * "git looked and found nothing"; `null` means "git could not look", and the
+ * two must never collapse into each other — collapsing them is what lets an
+ * unreadable worktree be deleted as though it were empty.
  * @param {string} wt - Worktree path.
- * @returns {string[]} Candidate repo-relative paths.
+ * @returns {string[] | null} Candidate repo-relative paths, or `null`.
  */
 function candidatePaths(wt) {
-  const staged = splitZ(
-    gitOrNull(["diff", "--cached", "--name-only", "--no-renames", "-z"], wt)
+  const staged = gitOrNull(
+    ["diff", "--cached", "--name-only", "--no-renames", "-z"],
+    wt
   );
-  const unstaged = splitZ(
-    gitOrNull(["diff", "--name-only", "--no-renames", "-z"], wt)
+  const unstaged = gitOrNull(["diff", "--name-only", "--no-renames", "-z"], wt);
+  const untracked = gitOrNull(
+    ["ls-files", "--others", "--exclude-standard", "-z"],
+    wt
   );
-  const untracked = splitZ(
-    gitOrNull(["ls-files", "--others", "--exclude-standard", "-z"], wt)
-  );
-  return [...new Set([...staged, ...unstaged, ...untracked])];
+  if (staged === null || unstaged === null || untracked === null) return null;
+  return [
+    ...new Set([...splitZ(staged), ...splitZ(unstaged), ...splitZ(untracked)]),
+  ];
 }
 
 /**
  * Index blob ids for the given paths, keyed by path.
  * @param {string} wt - Worktree path.
  * @param {string[]} paths - Candidate repo-relative paths.
- * @returns {Map<string, string>} Path to staged blob id.
+ * @returns {Map<string, string> | null} Path to staged blob id, or `null`.
  */
 function indexBlobs(wt, paths) {
   const entries = new Map();
   if (paths.length === 0) return entries;
   const raw = gitOrNull(["ls-files", "-s", "-z", "--", ...paths], wt);
+  if (raw === null) return null;
   for (const line of splitZ(raw)) {
     const tab = line.indexOf("\t");
     if (tab === -1) continue;
@@ -178,20 +192,26 @@ function indexBlobs(wt, paths) {
  * the WORKING blob (what is on disk). They differ for a file staged and then
  * edited again, and losing either is losing work.
  * @param {string} wt - Worktree path.
- * @returns {{path: string, blob: string, source: string}[]} Candidate blobs.
+ * @returns {{path: string, blob: string, source: string}[] | null} Candidate
+ *   blobs, or `null` when the worktree could not be read.
  */
 function candidateBlobs(wt) {
   const paths = candidatePaths(wt);
+  if (paths === null) return null;
   const staged = indexBlobs(wt, paths);
+  if (staged === null) return null;
   const found = [];
   for (const rel of paths) {
     const stagedBlob = staged.get(rel);
     if (stagedBlob)
       found.push({ path: rel, blob: stagedBlob, source: "index" });
     if (!existsSync(path.join(wt, rel))) continue;
-    const hashed = gitOrNull(["hash-object", "--", rel], wt)?.trim();
-    if (hashed && hashed !== stagedBlob) {
-      found.push({ path: rel, blob: hashed, source: "worktree" });
+    const hashed = gitOrNull(["hash-object", "--", rel], wt);
+    // A file that is on disk but cannot be hashed is unread, not unchanged.
+    if (hashed === null) return null;
+    const id = hashed.trim();
+    if (id && id !== stagedBlob) {
+      found.push({ path: rel, blob: id, source: "worktree" });
     }
   }
   return found;
@@ -263,6 +283,9 @@ export function classifyWorktree(target) {
     return { ok: false, reason: PRIMARY_CHECKOUT, identity, atRisk: [] };
   }
   const blobs = candidateBlobs(identity.worktree);
+  if (blobs === null) {
+    return { ok: false, reason: UNREADABLE, identity, atRisk: [] };
+  }
   const reachable = reachableBlobs(
     identity.worktree,
     new Set(blobs.map(entry => entry.blob))
