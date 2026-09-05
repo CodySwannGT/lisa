@@ -272,6 +272,9 @@ function stubGh(rows: readonly CheckRow[] | null, laterPage = false): string {
 case "$1:$2" in
   pr:view) printf '%s\n' ${JSON.stringify(HEAD_A)} ;;
   pr:checks) ${rows === null ? "exit 1" : `cat ${JSON.stringify(payload)}`} ;;
+  api:*/pulls/*/commits*) printf '%s\n' '[]' ;;
+  api:*/commits/*/pulls*) printf '%s\n' '[]' ;;
+  api:*/pulls/*) printf '%s\n' '0' ;;
   api:*status*) ${apiAnswer} ;;
   api:*check-runs*) ${rows === null ? "exit 1" : "printf '%s\\n' '[]'"} ;;
   *) exit 1 ;;
@@ -813,6 +816,16 @@ describe("the vacuity arm, as something that actually runs", () => {
               : [coderabbit(REVIEWED)];
           },
           headSha: () => HEAD_A,
+          // `--require-review-evidence` also enumerates what this pull request
+          // CARRIES (#3658), which reads GitHub. This case is about the SETTLE
+          // loop and installs no `gh`, so without a seam the carried arm
+          // resolves whatever repository the working directory points at and
+          // reports "I could not read the batch" — a finding that is correct
+          // behaviour and has nothing to do with what is being asserted here.
+          // MEASURED: it passed locally, where `gh` is authenticated, and
+          // failed in CI, where it is not. An empty batch is what a settle test
+          // means.
+          fetchCarried: () => [],
         }
       );
 

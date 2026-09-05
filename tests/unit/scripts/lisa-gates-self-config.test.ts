@@ -347,6 +347,74 @@ describe("check:artifacts consolidates every derived-artifact check", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// #3888: the composition's LAST line must state the verdict.
+//
+// Five `--check` scripts run in sequence, each printing its own diagnosis. The
+// wrapper's exit code was always right, but its final line was the innocuous
+// tail of whichever check happened to run last — so a reader (or an agent
+// scrolling to the end of a long gate log) saw a benign summary sitting under
+// real failures that had scrolled away. A verdict that can only be recovered
+// by reading upward is a verdict the reader does not have.
+//
+// So the composition ends by naming what happened: on success the COUNT it
+// proved, on failure the names of the checks that failed.
+// ---------------------------------------------------------------------------
+describe("check:artifacts states its verdict last", () => {
+  /**
+   * Run the stubbed composition and return its exit code and final line.
+   * @param exits - Exit codes for the manifest, ledger, certificate and
+   *   two-channel checks, in that order
+   * @returns The exit code and the last non-empty line of stdout
+   */
+  function lastLine(exits: readonly [number, number, number, number]): {
+    code: number;
+    line: string;
+  } {
+    const log = path.join(scratchDirectory(), "ran.log");
+    const command = composeWithStubs(log, ...exits);
+    let stdout = "";
+    let code = 0;
+    try {
+      stdout = boundedExecFileSync({
+        label: "check:artifacts verdict under /bin/sh",
+        command: "/bin/sh",
+        args: ["-c", command],
+      });
+    } catch (error) {
+      const failure = error as { exitCode?: number; stdout?: string };
+      code = failure.exitCode ?? -1;
+      stdout = failure.stdout ?? "";
+    }
+    const lines = stdout.split("\n").filter(entry => entry.trim() !== "");
+    return { code, line: lines[lines.length - 1] ?? "" };
+  }
+
+  it("names the count it proved when every check passes", () => {
+    const { code, line } = lastLine([0, 0, 0, 0]);
+
+    expect(code).toBe(0);
+    expect(line).toContain("all 5 generated-artifact checks passed");
+  });
+
+  it("names the failing check last, where a reader is already looking", () => {
+    const { code, line } = lastLine([0, 1, 0, 0]);
+
+    expect(code).toBe(1);
+    expect(line).toContain("FAILED");
+    expect(line).toContain("lisa-owned-hash-ledger");
+    expect(line).not.toContain("upstream-evidence-manifest");
+  });
+
+  it("names every failing check, not just the first", () => {
+    const { code, line } = lastLine([1, 0, 1, 0]);
+
+    expect(code).toBe(1);
+    expect(line).toContain("upstream-evidence-manifest");
+    expect(line).toContain("nightly-guard-certificate");
+  });
+});
+
 describe("Lisa's own gates and policy blocks", () => {
   it("validate clean against the registry Lisa ships", () => {
     const config = parsedConfig();
