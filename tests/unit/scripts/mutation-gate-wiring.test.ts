@@ -43,6 +43,42 @@ import {
 } from "../../../vitest.config.mutation";
 
 const ROOT = path.resolve(__dirname, "..", "..", "..");
+
+/**
+ * Stryker's clear-text table, drawn around one `All files` row.
+ *
+ * The separators, the header and the column order are the format the tally
+ * parser has to survive, so they are transcribed rather than approximated —
+ * and they live here once because two suites below need the same scaffolding
+ * around different rows.
+ * @param row - The `All files` row, already padded.
+ * @returns The whole table, as Stryker prints it.
+ */
+const clearTextTable = (row: string): string =>
+  [
+    "-----------|------------------|----------|-----------|------------|----------|----------|",
+    "           | % Mutation score |          |           |            |          |          |",
+    "File       |  total | covered | # killed | # timeout | # survived | # no cov | # errors |",
+    "-----------|--------|---------|----------|-----------|------------|----------|----------|",
+    row,
+    "-----------|--------|---------|----------|-----------|------------|----------|----------|",
+  ].join("\n");
+
+/** One killed mutant and nothing else: a run that really did measure. */
+const ONE_KILLED_TABLE = clearTextTable(
+  "All files  |  100.00 |   100.00 |     1 |       0 |       0 |     0 |      0 |"
+);
+
+/**
+ * Every mutant errored: a run that executed none of them.
+ *
+ * Stryker excludes an errored mutant from every denominator, so this row
+ * scores NaN — which is the shape #3968 is about, and it is NOT the same fact
+ * as a run with no mutants to generate.
+ */
+const ALL_ERRORED_TABLE = clearTextTable(
+  "All files  |  NaN |   NaN |     0 |       0 |       0 |     0 |      9 |"
+);
 const CONF_REL = "stryker.conf.json";
 
 /** The gate source, read for the every-exit-is-named assertion (#3668). */
@@ -331,14 +367,7 @@ describe("a run that measured NOTHING must not render as a pass (#3668)", () => 
     });
     const measured = gate.reportRun(ROOT, {
       code: 0,
-      output: [
-        "-----------|------------------|----------|-----------|------------|----------|----------|",
-        "           | % Mutation score |          |           |            |          |          |",
-        "File       |  total | covered | # killed | # timeout | # survived | # no cov | # errors |",
-        "-----------|--------|---------|----------|-----------|------------|----------|----------|",
-        "All files  |  100.00 |   100.00 |     1 |       0 |       0 |     0 |      0 |",
-        "-----------|--------|---------|----------|-----------|------------|----------|----------|",
-      ].join("\n"),
+      output: ONE_KILLED_TABLE,
     });
 
     expect(unmeasured.measured).toBe(false);
@@ -540,5 +569,152 @@ describe("the renderer job, and why its ABSENCE is the signal (#3668)", () => {
     expect(quality.jobs[RENDERER]?.name).not.toBe(
       quality.jobs.test_mutation?.name
     );
+  });
+});
+
+describe("a run that EXECUTED no mutant must not report a measurement (#3968)", () => {
+  // #3668 gave this gate a word for "nothing to mutate" and a check row that
+  // skips when it fires. #3968 is the hole underneath it: a run where mutate
+  // targets DID change, Stryker WAS invoked, and no mutant ever produced a
+  // verdict. Stryker excludes errored mutants from every denominator, so that
+  // run's `All files` row is all zeros — which scored NaN, took the floor
+  // sentence, and went out as `mutation_measured=true`. The one job whose
+  // entire purpose is to say whether anything was measured then rendered green
+  // with "Stryker generated mutants against this change and produced a score."
+
+  it("reports measured=false for a zero-exit run that produced no score", () => {
+    // THE BITE. Stryker exits 0 — it has no score to compare to a threshold —
+    // so the gate exits 0 too, and pre-fix it also said it had measured.
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    try {
+      const reported = gate.reportRun(ROOT, {
+        code: 0,
+        output: ALL_ERRORED_TABLE,
+      });
+
+      expect(reported.measured).toBe(false);
+      expect(reported.code).toBe(0);
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it("CONTROL: a zero-exit run that DID score still reports measured", () => {
+    // The untouched branch, pinned so a fix that reports `false` for every run
+    // cannot pass. An inequality between the two would not have caught that.
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    try {
+      const reported = gate.reportRun(ROOT, {
+        code: 0,
+        output: ONE_KILLED_TABLE,
+      });
+
+      expect(reported.measured).toBe(true);
+      expect(reported.code).toBe(0);
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it("writes mutation_measured=false through to the workflow output", () => {
+    // End to end, because `measured` is only interesting where the workflow
+    // reads it: this file is what decides whether the "did it measure
+    // anything?" row renders green or skips.
+    const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "mutation-3968-"));
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    try {
+      const out = path.join(scratch, "out.txt");
+      const reported = gate.reportRun(ROOT, {
+        code: 0,
+        output: ALL_ERRORED_TABLE,
+      });
+      gate.finish(gate.OUTCOMES.scoped, reported.code, reported.measured, {
+        GITHUB_OUTPUT: out,
+      });
+
+      expect(fs.readFileSync(out, "utf8")).toBe(
+        `mutation_outcome=${gate.OUTCOMES.scoped}\nmutation_measured=false\n`
+      );
+    } finally {
+      log.mockRestore();
+      fs.rmSync(scratch, { recursive: true, force: true });
+    }
+  });
+
+  it("prints the denial verbatim as a check-list annotation", () => {
+    // EXACT value, not `toContain`: this is a string this file renders, and a
+    // substring assertion cannot see a trailing clause appended after it.
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    try {
+      gate.finish(gate.OUTCOMES.nothingToMutate, 0, false, {
+        GITHUB_ACTIONS: "true",
+      });
+
+      expect(log).toHaveBeenCalledTimes(1);
+      expect(log.mock.calls[0]?.[0]).toBe(
+        "::warning title=Mutation gate measured nothing::mutation-gate: " +
+          "nothing-to-mutate — no mutation score was produced, so this job's " +
+          "green says the run ended cleanly, NOT that mutation coverage was " +
+          "verified. Read it as NOT MEASURED, never as nothing to measure. " +
+          'Change a file this project\'s Stryker "mutate" list selects to get ' +
+          "a measurement."
+      );
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it("REPORT-ONLY: annotating never changes the code finish returns", () => {
+    // The direction, pinned. A correctness guard fails closed; this is a
+    // report about what a green row may be read to mean, and a gate that
+    // reddened every docs-only branch would be reverted within the week.
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    try {
+      expect(
+        gate.finish(gate.OUTCOMES.nothingToMutate, 0, false, {
+          GITHUB_ACTIONS: "true",
+        })
+      ).toBe(0);
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it("stays silent off CI, on a measured run, and on a failing run", () => {
+    // Three separate reasons not to annotate, each asserted on its own so a
+    // fix that collapses them cannot pass by satisfying one.
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    try {
+      gate.finish(gate.OUTCOMES.nothingToMutate, 0, false, {});
+      expect(log, "annotated outside GitHub Actions").not.toHaveBeenCalled();
+
+      gate.finish(gate.OUTCOMES.scoped, 0, true, { GITHUB_ACTIONS: "true" });
+      expect(log, "annotated a measured run").not.toHaveBeenCalled();
+
+      gate.finish(gate.OUTCOMES.runFailed, 1, false, {
+        GITHUB_ACTIONS: "true",
+      });
+      expect(log, "annotated a run that is already red").not.toHaveBeenCalled();
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it("annotates every unmeasured zero-exit outcome except the opt-out", () => {
+    // A roster would rot: an outcome added next year would join the silent set
+    // by default. The condition is `measured !== true`, so this asserts the
+    // population rather than a list — and names the single exclusion, which is
+    // a recorded decision rather than an unevaluated question.
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    try {
+      for (const outcome of Object.values(gate.OUTCOMES)) {
+        log.mockClear();
+        gate.finish(outcome, 0, false, { GITHUB_ACTIONS: "true" });
+        const expected = outcome === gate.OUTCOMES.disabled ? 0 : 1;
+        expect(log, `outcome ${outcome}`).toHaveBeenCalledTimes(expected);
+      }
+    } finally {
+      log.mockRestore();
+    }
   });
 });

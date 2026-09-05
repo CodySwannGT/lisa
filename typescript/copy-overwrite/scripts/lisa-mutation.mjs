@@ -196,7 +196,88 @@ export const OUTCOMES = Object.freeze({
   inflatedByTimeouts: "mutation-gate: score-below-break-without-timeouts",
   clearedBreakThreshold: "mutation-gate: cleared-break-threshold",
   noFloorApplied: "mutation-gate: no-floor-applied",
+  notMeasured: "mutation-gate: not-measured",
 });
+
+/**
+ * The one-line denial a green-but-unmeasured job puts on the check list.
+ *
+ * Exported so the exact wording is assertable, and built here rather than in
+ * the workflow because the workflow cannot see WHICH exit happened.
+ * @param {string} outcome - The {@link OUTCOMES} marker this run ended on.
+ * @returns {string} A GitHub Actions warning command, one line.
+ */
+export const unmeasuredAnnotation = outcome =>
+  `::warning title=Mutation gate measured nothing::${outcome} — no mutation ` +
+  "score was produced, so this job's green says the run ended cleanly, NOT " +
+  "that mutation coverage was verified. Read it as NOT MEASURED, never as " +
+  'nothing to measure. Change a file this project\'s Stryker "mutate" list ' +
+  "selects to get a measurement.";
+
+/**
+ * Put the denial where a reader of the check list will meet it.
+ *
+ * ## Why an annotation and not a conclusion — CodySwannGT/lisa#3968
+ *
+ * The honest answer would be a `neutral` check-run conclusion, and it is not
+ * available: `test_mutation` in `quality.yml` runs under `contents: read`, and
+ * `quality.yml` is `workflow_call`-only, where asking for `checks: write` is a
+ * `startup_failure` for the caller's entire run (#2049). So the job's row will
+ * read `pass`, and the only thing that can travel with it is an annotation —
+ * the same device the `gates.unproven` family already uses one job away.
+ *
+ * REPORT-ONLY, and that is the decision rather than an accident: this returns
+ * nothing and touches no exit code. A gate that failed a push because a change
+ * touched no mutate target would red-wall every docs-only branch, which is the
+ * frequent, benign state this whole file exists to make legible rather than to
+ * punish. The fail-CLOSED half of the fix is `mutation_measured`, which is the
+ * signal that actually composes into a coverage claim.
+ *
+ * `disabled` is the one outcome excluded, and it is excluded for a reason that
+ * does not generalise: an opt-out is a decision somebody recorded, not a
+ * question this gate failed to evaluate, and its own exit already prints a
+ * notice naming itself. Every other unmeasured exit annotates, including ones
+ * added later — the condition is `measured !== true`, not a roster.
+ * @param {string} outcome - The {@link OUTCOMES} marker this run ended on.
+ * @param {number} code - The exit code being returned.
+ * @param {boolean} measured - Whether this run produced a score.
+ * @param {NodeJS.ProcessEnv} env - Environment, injectable for tests.
+ * @returns {void}
+ */
+const annotateUnmeasured = (outcome, code, measured, env) => {
+  const onCi = env.GITHUB_ACTIONS === "true";
+  const greenAndUnmeasured = code === 0 && measured !== true;
+  const optedOut = outcome === OUTCOMES.disabled;
+  if (onCi && greenAndUnmeasured && !optedOut) {
+    console.log(unmeasuredAnnotation(outcome));
+  }
+};
+
+/**
+ * Append the outcome pair to `$GITHUB_OUTPUT`, when there is one to append to.
+ *
+ * Best-effort by construction: it returns nothing, so no failure in here has a
+ * value the caller could mistake for an exit code. A lost output line must
+ * never change the code the gate worked to earn.
+ * @param {string} outcome - The {@link OUTCOMES} marker this run ended on.
+ * @param {boolean} measured - Whether this run produced a score.
+ * @param {NodeJS.ProcessEnv} env - Environment, injectable for tests.
+ * @returns {void}
+ */
+const writeOutcomeOutputs = (outcome, measured, env) => {
+  const target = env.GITHUB_OUTPUT;
+  if (target === undefined || target === "") return;
+  try {
+    fs.appendFileSync(
+      target,
+      `mutation_outcome=${outcome}\nmutation_measured=${measured === true}\n`
+    );
+  } catch (error) {
+    console.error(
+      `[mutation-gate] outcome outputs not written: ${error.message}`
+    );
+  }
+};
 
 /**
  * Publishes the outcome where the workflow can render it, then returns the code.
@@ -225,18 +306,8 @@ export const OUTCOMES = Object.freeze({
  * @returns {number} `code`, unchanged
  */
 export const finish = (outcome, code, measured = false, env = process.env) => {
-  const target = env.GITHUB_OUTPUT;
-  if (target === undefined || target === "") return code;
-  try {
-    fs.appendFileSync(
-      target,
-      `mutation_outcome=${outcome}\nmutation_measured=${measured === true}\n`
-    );
-  } catch (error) {
-    console.error(
-      `[mutation-gate] outcome outputs not written: ${error.message}`
-    );
-  }
+  annotateUnmeasured(outcome, code, measured, env);
+  writeOutcomeOutputs(outcome, measured, env);
   return code;
 };
 
@@ -1120,6 +1191,67 @@ const unmeasuredBlock = () =>
   "   MUTATION_CAPTURE=0 to say out loud that this run is not being accounted for.";
 
 /**
+ * The verdict for a run that executed no mutant at all.
+ *
+ * ## The defect this closes — CodySwannGT/lisa#3968
+ *
+ * "I looked and found nothing" and "I did not look" are opposite facts, and a
+ * vocabulary missing the second inevitably prints the first. A tally of all
+ * zeros scores `NaN`, and this file used to hand that to the FLOOR sentence:
+ * the run was reported as one where "no floor was applied", `measured` stayed
+ * `true`, and the exit stayed 0. Three surfaces then said the same wrong thing
+ * — the pre-push block read as a benign footnote on a pass, `mutation_measured`
+ * went out as `true`, and the one job whose entire purpose is to distinguish a
+ * measured run RENDERED GREEN saying "Stryker generated mutants against this
+ * change and produced a score."
+ *
+ * The reachable cause is not exotic. Stryker excludes errored mutants from
+ * every denominator, so a change where every mutant fails to compile — a mutant
+ * whose source no longer parses yields zero tests, not failures — lands here
+ * with `errors` set and everything else zero. So does a run whose generated
+ * mutants were all discarded. Both are runs that measured nothing while looking
+ * exactly like a run that measured zero.
+ *
+ * ## This surface is REPORT-ONLY, deliberately
+ *
+ * It never changes an exit code: a gate that failed a push because a mutant
+ * would not compile is a throughput governor masquerading as a correctness
+ * guard, and `nothing-to-mutate` states are frequent and benign here. What it
+ * does instead is refuse to report a measurement — {@link judgeTimeoutAccounting}
+ * returns `measured: false` from this arm, which is a fail-CLOSED answer on the
+ * one signal that composes into a coverage claim. Report-only on the code,
+ * fail-closed on the claim.
+ * @param {{killed: number, timedOut: number, survived: number,
+ *   noCoverage: number, errors?: number}} tally - From
+ *   {@link parseMutantTally}.
+ * @param {number|null} breakThreshold - `thresholds.break`, or null.
+ * @returns {string} The block, appended to the accounting report.
+ */
+const notMeasuredBlock = (tally, breakThreshold) => {
+  const errored = Number.isFinite(tally.errors) ? tally.errors : 0;
+  const floorNote =
+    breakThreshold === null
+      ? '   Your Stryker config declares no "thresholds.break", and there is no score to\n' +
+        "   judge against one anyway.\n"
+      : `   A break threshold of ${breakThreshold} is declared and was NOT applied, because a\n` +
+        "   floor needs a number to compare against.\n";
+  return (
+    `\n⚪ ${OUTCOMES.notMeasured}\n` +
+    `   NO mutant produced a verdict on this run: 0 killed, 0 timed out, 0 survived\n` +
+    `   and 0 without coverage, against ${errored} errored mutant(s). Stryker excludes an\n` +
+    `   errored mutant from every denominator — it never ran, so it was neither\n` +
+    `   caught nor missed — which leaves nothing to take a score of.\n` +
+    `   READ THIS AS NOT MEASURED, NEVER AS NOTHING TO MEASURE. Mutate targets\n` +
+    `   changed and Stryker was invoked; what did not happen is the measurement.\n` +
+    `   Nothing here is a verdict about your tests, in either direction.\n` +
+    `${floorNote}` +
+    `   This gate does NOT fail the run for it, and reports mutation_measured=false\n` +
+    `   so no check row may claim this change was measured. Read Stryker's own\n` +
+    `   output above for why the mutants errored, then re-run for a score.`
+  );
+};
+
+/**
  * The floor a completed run was judged against, named with its value.
  *
  * ## The defect this closes
@@ -1135,13 +1267,14 @@ const unmeasuredBlock = () =>
  *
  * ## Where no floor was applied it says so, rather than inventing one
  *
- * Two arms reach this with nothing to name, and `0` would be a fabrication in
- * both: a project that declared no `thresholds.break` has not asked for a floor
- * (see {@link resolveBreakThreshold}, which returns null and not zero for
- * exactly this reason), and a run whose tally produced no score has nothing to
- * judge against the floor it did declare. Both say NO floor was applied, which
- * is the same answer this gate's `nothing-to-mutate` and `no-diff-base` exits
- * already give: nothing was measured, so nothing passed.
+ * A project that declared no `thresholds.break` has not asked for a floor (see
+ * {@link resolveBreakThreshold}, which returns null and not zero for exactly
+ * this reason), so this says NO floor was applied rather than naming one.
+ *
+ * A run that produced no score at all never reaches here: it is answered by
+ * {@link notMeasuredBlock} above, which is a statement about the RUN and not
+ * about the floor. Routing it through a floor sentence was the older shape and
+ * it read as a benign footnote to a passing verdict — see CodySwannGT/lisa#3968.
  *
  * This is reporting only. It changes no threshold and gates nothing — the arm
  * that fails a run is below, and it is untouched.
@@ -1159,13 +1292,6 @@ const clearedFloorBlock = (tally, accounting, breakThreshold) => {
       "   to this run. The scores above are reported, not cleared — nothing here says\n" +
       "   they are good enough, because nothing said what good enough is."
     );
-  if (!Number.isFinite(accounting.withoutTimeouts))
-    return (
-      `\n⚪ ${OUTCOMES.noFloorApplied}\n` +
-      `   A break threshold of ${breakThreshold} is declared, but this run produced no score to\n` +
-      "   judge against it, so NO floor was applied. Nothing here is a verdict about\n" +
-      "   your tests."
-    );
   return (
     `\n✅ ${OUTCOMES.clearedBreakThreshold}\n` +
     `   Without crediting the ${tally.timedOut} timed-out mutant(s), this run scores\n` +
@@ -1178,7 +1304,13 @@ const clearedFloorBlock = (tally, accounting, breakThreshold) => {
 /**
  * Judge a completed run on what it can prove, rather than on what it counted.
  *
- * Two verdicts, and neither can turn a red run green — both are checks the gate
+ * Three answers, not two. A run that executed no mutant is NOT-MEASURED and is
+ * answered by {@link notMeasuredBlock}; the two below are verdicts about a run
+ * that produced a score. Collapsing the first into the third is CodySwannGT/lisa#3968:
+ * a green row then composes into "mutation coverage was verified here", a claim
+ * nobody proved.
+ *
+ * Neither verdict below can turn a red run green — both are checks the gate
  * applies IN ADDITION to Stryker's own, on a run Stryker already judged:
  *
  * - the score recomputed without crediting timeouts is under the project's
@@ -1186,15 +1318,27 @@ const clearedFloorBlock = (tally, accounting, breakThreshold) => {
  *   helped it;
  * - the timed-out share of detected mutants is over the ceiling, so the score is
  *   more a property of the machine than of the tests, whatever its value.
- * @param {{killed: number, timedOut: number}} tally - The counts.
+ * @param {{killed: number, timedOut: number, survived?: number,
+ *   noCoverage?: number, errors?: number}} tally - The counts.
  * @param {number|null} breakThreshold - `thresholds.break`, or null.
  * @param {number} ceiling - The share ceiling in force.
  * @returns {{failed: boolean, measured: boolean, message: string}} The block,
- *   whether a tally was read, and whether it fails.
+ *   whether this run produced a score, and whether it fails.
  */
 export const judgeTimeoutAccounting = (tally, breakThreshold, ceiling) => {
   const accounting = timeoutAccounting(tally);
   const report = accountingBlock(tally, accounting, ceiling);
+
+  // FIRST, because every arm below reads a score this run does not have, and
+  // the two that guard for it would fall through to the third — which reported
+  // a floor that was not applied and called that a measured pass (#3968).
+  if (!Number.isFinite(accounting.withoutTimeouts)) {
+    return {
+      failed: false,
+      measured: false,
+      message: `${report}${notMeasuredBlock(tally, breakThreshold)}`,
+    };
+  }
 
   if (
     breakThreshold !== null &&
