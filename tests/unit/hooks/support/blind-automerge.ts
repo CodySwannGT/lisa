@@ -68,6 +68,13 @@ export const REVIEW_SKIPPED_PR = {
       state: "SUCCESS",
       description: "Review skipped: reviews are disabled for this base branch",
     },
+    // BYTE-EXACT AS MEASURED, and deliberately not renamed. #3917 renamed this
+    // job to `🕵️ Review evidence gate` precisely because the question-shaped
+    // name below composes with `FAILURE` into "the review checks did no work" —
+    // but that IS what PR #3720 reported at the time, and this fixture is a
+    // recording of it. Updating the string here would fabricate a measurement.
+    // The name is incidental to what this fixture proves: the failing-check
+    // COUNT is 2, and this guard reads no conclusions at all.
     {
       name: "Did the required review checks do any work?",
       conclusion: "FAILURE",
