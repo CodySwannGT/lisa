@@ -59,21 +59,7 @@ Resolved path for this project: `.lisa/PROJECT_LEARNINGS.md`.
 <!-- LISA_HOST_RULES_START -->
 ## Host Rules
 
-This project's durable, host-authored operating rules live in `.agents/rules/`.
-Read those files when you need this project's standing rules. They are not
-injected at session start, so consult them on demand — which also means every
-agent reads them through this one pointer and no agent loads them twice.
-
-**Ownership.** The host owns every file in `.agents/rules/`. Lisa never writes
-rule bodies there; Lisa's own rules ship through its per-agent plugins. This
-marked block is the only Lisa-managed content in this file — everything outside
-the markers belongs to the host and is never touched.
-
-**Transition.** This project still has host rules at `.claude/rules/PROJECT_RULES.md`.
-They remain authoritative and are left exactly as written — Lisa does not
-move, rewrite, or delete them. Agents whose runtime auto-loads that path
-(Claude Code auto-loads `.claude/rules/`) already have that content and must
-not read it a second time; every other agent should read it alongside
-`.agents/rules/`. Reclassifying or relocating it is a human-gated
-decision, never an automated rewrite.
+Read every file under `.agents/rules/` for this project's standing rules.
+Also read `.claude/rules/PROJECT_RULES.md`, unless your runtime auto-loads it —
+Claude Code auto-loads `.claude/rules/`.
 <!-- LISA_HOST_RULES_END -->
