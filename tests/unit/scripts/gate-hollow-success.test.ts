@@ -47,6 +47,9 @@ const INTEGRATION = "test-integration";
 /** The project root the measured runs printed, quoted back as evidence. */
 const ROOT = "/repo/consumer";
 
+/** A root with a space in it — legal on every platform this gate runs on. */
+const SPACED_ROOT = "/repo/consumer project";
+
 /** vitest 4.1.9, `--passWithNoTests`, no test files present. Measured. */
 const VITEST_EMPTY = [
   "",
@@ -176,6 +179,24 @@ describe("diagnoseHollowSuccess: exit 0 is not the observation", () => {
 
     // The tool's own header wins over the injected cwd, and says so.
     expect(evidence).toContain(`the run's root was ${ROOT}`);
+    expect(evidence).toContain("as the tool reported it");
+  });
+
+  it("names a root that contains a space in full, not up to the space", () => {
+    // A truncated root is worse than an absent one. `/repo/consumer project`
+    // reported as `/repo/consumer` names a DIFFERENT tree that also exists, so
+    // the operator inspects the wrong checkout with no sign anything is off —
+    // the exact guessing this line was added to end.
+    const evidence = (
+      diagnoseHollowSuccess(
+        VITEST_EMPTY.replace(ROOT, SPACED_ROOT),
+        "/repo/elsewhere"
+      ) as Diagnosis
+    ).evidence.join("\n");
+
+    expect(evidence).toContain(`the run's root was ${SPACED_ROOT}`);
+    // And it is the tool's answer that was widened, not the cwd fallback
+    // standing in for a header the pattern failed to read.
     expect(evidence).toContain("as the tool reported it");
   });
 

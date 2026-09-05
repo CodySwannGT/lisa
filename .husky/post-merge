@@ -1,0 +1,116 @@
+# Report generated-artifact staleness the moment a MERGE creates it.
+#
+# WHY THIS HOOK EXISTS AT ALL
+#
+# `git merge` does not run `pre-commit`. Measured against a throwaway
+# repository with all five hooks installed and echoing their own name
+# (CodySwannGT/lisa#3876):
+#
+#   plain commit  → pre-commit, prepare-commit-msg, commit-msg, post-commit
+#   git merge     → prepare-commit-msg, commit-msg, post-merge
+#
+# `pre-commit` is absent from the merge line, and it is the hook that runs the
+# gate registry at the `commit` moment. So a project declaring
+# `artifact-freshness` at `commit` has that gate skipped by exactly the event
+# most likely to stale a generated artifact: a merge that moves the tracked
+# files the artifact derives from.
+#
+# The staleness was still caught — by the pre-push suite, roughly ten minutes
+# later, after the branch had been worked on further. The ticket measured three
+# such stalls on one branch in one session, about thirty minutes of gate time
+# for a change whose own tests were green throughout. The regeneration takes
+# seconds. The cost is entirely in the finding out.
+#
+# `post-merge` is the one hook git DOES run there, and nothing in Lisa had ever
+# used it.
+#
+# WHY IT REPORTS AND NEVER BLOCKS
+#
+# There is nothing left to block. The merge commit already exists by the time
+# this runs, and git ignores this hook's exit code entirely — so a non-zero exit
+# would buy no enforcement and would only look like one. This hook exists to
+# move a discovery earlier, not to add a gate. The gates at commit, push and
+# pull-request are unchanged and still refuse.
+#
+# WHY IT ASKS THE REGISTRY RATHER THAN NAMING A COMMAND
+#
+# Which files are generated is project-specific, which is why
+# `artifact-freshness` ships `declareOnly`. Hard-coding `check:artifacts` here
+# would name a script most projects do not have and would run one project's
+# prover in every project. Instead this asks the gate registry what THIS
+# project declared, and stands down in silence when the answer is nothing —
+# which is the correct answer for a project that has no generated artifacts.
+#
+# A `post-merge` MOMENT in the registry proper was considered and is the purer
+# shape: a gate would then declare that it runs here, the way it declares
+# `commit`. It is not done in this change because a new moment touches the
+# moment vocabulary, validation, the runner, doctor, and their suites — a
+# larger change than the discovery-timing defect being fixed. This hook reuses
+# the declaration a project already made instead of inventing a second place to
+# declare it.
+
+# CI merges through the forge, not through a working copy, and the gates run
+# there in their own right. Running this there would add seconds to every job
+# to re-report something a required check already refuses.
+if [ -n "${CI:-}" ]; then
+  exit 0
+fi
+
+# THIS REPOSITORY'S ORDER, and it is deliberately not the template's. Lisa
+# carries `node_modules/@codyswann/lisa` — its own published self — so a
+# resolver that looked there first would run the LAST RELEASE's registry
+# against this working tree and report about code that is not the code here.
+# `.husky/pre-push` diverges from its template for the same reason.
+LISA_GATES="scripts/lisa-gates.mjs"
+if [ ! -f "$LISA_GATES" ]; then
+  LISA_GATES="all/copy-overwrite/scripts/lisa-gates.mjs"
+fi
+
+if [ ! -f "$LISA_GATES" ] || ! command -v node >/dev/null 2>&1; then
+  exit 0
+fi
+
+# The earliest moment the project declares this gate at, because the property
+# is one property and its prover does not change with the moment. A project
+# that declares it only at `pull-request` still wants to know now.
+LISA_ARTIFACT_CHECK=""
+for LISA_MOMENT in commit push pull-request; do
+  LISA_ARTIFACT_CHECK="$(
+    node "$LISA_GATES" list --moment="$LISA_MOMENT" 2>/dev/null |
+      awk '$2 == "artifact-freshness" { $1 = ""; $2 = ""; sub(/^[[:space:]]+/, ""); print; exit }'
+  )"
+  if [ -n "$LISA_ARTIFACT_CHECK" ]; then
+    break
+  fi
+done
+
+if [ -z "$LISA_ARTIFACT_CHECK" ]; then
+  exit 0
+fi
+
+if sh -c "$LISA_ARTIFACT_CHECK" >/dev/null 2>&1; then
+  exit 0
+fi
+
+echo ""
+echo "⚠️  This merge left a generated artifact stale."
+echo ""
+echo "   The merge moved tracked files that a generated artifact derives from,"
+echo "   so the artifact now describes bytes that are no longer there. Nothing"
+echo "   is blocked yet — but the commit, push and pull-request gates will all"
+echo "   refuse until it is regenerated, and the push gate is the expensive"
+echo "   place to find out."
+echo ""
+echo "   Not every merge does this. This one did."
+echo ""
+echo "   See what is stale:"
+echo "     $LISA_ARTIFACT_CHECK"
+echo ""
+echo "   Then regenerate, in that order, AFTER 'git add' of the real changes —"
+echo "   the generators read TRACKED files, so regenerating first silently"
+echo "   omits whatever the commit is about to add."
+echo ""
+
+# Deliberately zero. See "WHY IT REPORTS AND NEVER BLOCKS" above: git ignores
+# this exit code, so a non-zero one would be a refusal that refuses nothing.
+exit 0
