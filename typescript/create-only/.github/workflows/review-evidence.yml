@@ -43,6 +43,26 @@
 # a gate that reddens every pull request on a vendor's billing state gets
 # deleted, and then nothing is watching at all.
 #
+# AND A PULL REQUEST SPEAKS FOR ONE COMMIT ONLY (#3658). Everything above judges
+# this pull request's HEAD, which is the one commit a batch integration pull
+# request does not speak for: its head carries the MERGES of every constituent
+# and none of their review statuses. MEASURED 2026-09-03 on one queue drain —
+# four constituents based on a batching branch each reported `Review skipped:
+# reviews are disabled for this base branch`, each one's own run of this workflow
+# went red, and every one of those reds landed on a branch outside the rulesets'
+# ref conditions, so nothing was watching. The integration pull request that
+# carried all four into the default branch was the one place a ruleset applied,
+# and it read only itself. `--require-review-evidence` now also enumerates what
+# this pull request CARRIES — through its merge commits, never through a branch
+# NAME, because a name is an allowlist the convention can rename its way out of
+# — reads each constituent at its OWN head, and renders a batch carrying an
+# unreviewed constituent `neutral` instead of `success`. Capped at `neutral`
+# deliberately: the constituents' own runs already reached the failing verdict
+# where their diffs live, and reddening the batch too would fail an author for a
+# diff they did not write. Failing to READ the batch renders `neutral` as well —
+# an unread batch is not a reviewed one. An ordinary pull request has no merge
+# commits, enumerates an empty batch, and is untouched.
+#
 # `--waive-rate-sample=<N>` samples recently merged pull requests and reports
 # how many of them waived, in the job summary and in the verdict title. It runs
 # ONLY when this pull request is itself waived, is one GraphQL call, and is

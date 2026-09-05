@@ -173,7 +173,9 @@ describe("the reusable workflow's contract", () => {
 
   it("exposes the verdict and the audit record as outputs", () => {
     expect(
-      Object.keys(call.outputs).toSorted((a, b) => a.localeCompare(b))
+      Object.keys(call.outputs)
+        .slice()
+        .sort((a, b) => a.localeCompare(b))
     ).toEqual(["audit_json", "blocked", "verdict"]);
   });
 

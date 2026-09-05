@@ -347,6 +347,77 @@ describe("check:artifacts consolidates every derived-artifact check", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// #3888: the composition's LAST line must state the verdict.
+//
+// Five `--check` scripts run in sequence, each printing its own diagnosis. The
+// wrapper's exit code was always right, but its final line was the innocuous
+// tail of whichever check happened to run last — so a reader (or an agent
+// scrolling to the end of a long gate log) saw a benign summary sitting under
+// real failures that had scrolled away. A verdict that can only be recovered
+// by reading upward is a verdict the reader does not have.
+//
+// So the composition ends by naming what happened: on success the COUNT it
+// proved, on failure the names of the checks that failed.
+// ---------------------------------------------------------------------------
+describe("check:artifacts states its verdict last", () => {
+  /**
+   * Run the stubbed composition and return its exit code and final line.
+   * @param exits - Exit codes for the manifest, ledger, certificate and
+   *   two-channel checks, in that order
+   * @returns The exit code and the last non-empty line of stdout
+   */
+  function lastLine(exits: readonly [number, number, number, number]): {
+    code: number;
+    line: string;
+  } {
+    const log = path.join(scratchDirectory(), "ran.log");
+    const command = composeWithStubs(log, ...exits);
+    let stdout = "";
+    let code = 0;
+    try {
+      stdout = boundedExecFileSync({
+        label: "check:artifacts verdict under /bin/sh",
+        command: "/bin/sh",
+        args: ["-c", command],
+      });
+    } catch (error) {
+      const failure = error as { exitCode?: number; stdout?: string };
+      code = failure.exitCode ?? -1;
+      stdout = failure.stdout ?? "";
+    }
+    const lines = stdout.split("\n").filter(entry => entry.trim() !== "");
+    return { code, line: lines[lines.length - 1] ?? "" };
+  }
+
+  it("names the count it proved when every check passes", () => {
+    const { code, line } = lastLine([0, 0, 0, 0]);
+
+    expect(code).toBe(0);
+    // Six since CodySwannGT/lisa#3932 added `check:merge-coverage`. Hardcoded
+    // per the Test Isolation house rule: deriving it from the script would
+    // make the assertion agree with whatever the script happens to say.
+    expect(line).toContain("all 6 generated-artifact checks passed");
+  });
+
+  it("names the failing check last, where a reader is already looking", () => {
+    const { code, line } = lastLine([0, 1, 0, 0]);
+
+    expect(code).toBe(1);
+    expect(line).toContain("FAILED");
+    expect(line).toContain("lisa-owned-hash-ledger");
+    expect(line).not.toContain("upstream-evidence-manifest");
+  });
+
+  it("names every failing check, not just the first", () => {
+    const { code, line } = lastLine([1, 0, 1, 0]);
+
+    expect(code).toBe(1);
+    expect(line).toContain("upstream-evidence-manifest");
+    expect(line).toContain("nightly-guard-certificate");
+  });
+});
+
 describe("Lisa's own gates and policy blocks", () => {
   it("validate clean against the registry Lisa ships", () => {
     const config = parsedConfig();
@@ -447,22 +518,94 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
    */
   const PUSH = "push";
 
-  /** The one pass that proves both correctness and coverage at push. */
-  const SPLIT_COVERAGE_TASK = "test:cov:unit";
+  /** The two gates one push pass proves together, in sorted order. */
+  const COVERAGE_PROVER_GATES = ["coverage-adequacy", "test-correctness"];
+
+  /**
+   * Resolve the single pass that proves both correctness and coverage at push.
+   *
+   * Derived from the configuration rather than written here, so a deliberate
+   * rename of the push task does not read as a regression. What must not
+   * change is the shape: exactly these two gates, sharing exactly ONE task.
+   * @returns The push task both provers resolve to
+   */
+  function splitCoverageTask(): string {
+    const covering = gatesAt(parsedConfig(), PUSH).filter(entry =>
+      COVERAGE_PROVER_GATES.includes(entry.id)
+    );
+    expect(
+      covering
+        .map(entry => entry.id)
+        .toSorted((left, right) => left.localeCompare(right))
+    ).toEqual(COVERAGE_PROVER_GATES);
+    const tasks = [...new Set(covering.map(entry => entry.task))];
+    // One task, not two: the same run proves both properties, and the pre-push
+    // step stands down only when both are declared against it.
+    expect(tasks).toHaveLength(1);
+    const [task] = tasks;
+    if (typeof task !== "string")
+      throw new Error("Push coverage prover resolves to no task");
+    return task;
+  }
 
   it("keeps the coverage prover out of the integration directory", () => {
-    const covering = gatesAt(parsedConfig(), PUSH).filter(entry =>
-      ["coverage-adequacy", "test-correctness"].includes(entry.id)
-    );
-    expect(covering.map(entry => entry.task)).toEqual([
-      SPLIT_COVERAGE_TASK,
-      SPLIT_COVERAGE_TASK,
-    ]);
     // The exclusion is the property; the LISA_COVERAGE_SCOPE=unit prefix the
     // script also carries is what gives the narrower run its own threshold
     // block, and is asserted where that mechanism lives.
-    expect(script(SPLIT_COVERAGE_TASK)).toContain(
+    expect(script(splitCoverageTask())).toContain(
       "vitest run --coverage --exclude='**/integration/**'"
+    );
+  });
+
+  /**
+   * The temp-growth BENCHMARK must not run inside the pre-push pass.
+   *
+   * It builds three real 100,000-entry corpora in the shared platform temp
+   * root — 300,000 entries — and asserts wall-clock command latency. On a
+   * machine running many concurrent agents that is both the slowest file in
+   * the suite and a load spike every other lane pays for, and it failed the
+   * push gate on branches whose diffs could not reach it.
+   *
+   * It is excluded by FILE, exactly as the mutation performance suites are
+   * excluded from `test:integration:push`. Without this assertion the split
+   * would be free to rot back silently.
+   *
+   * ## What this case does NOT establish, corrected
+   *
+   * This case once carried a comment reading "the benchmark still runs
+   * somewhere: the PR-moment prover must NOT exclude it". The assertion below
+   * is true and that inference was false, and CodySwannGT/lisa#3935 is what it
+   * cost. The benchmark is `it.runIf(process.platform === "darwin")` and every
+   * CI runner is `ubuntu-latest`, so the pull-request prover collected the file
+   * and skipped the case — before this split and after it. Not excluding a file
+   * is not running it, and a skipped case is a green case, so nothing said so.
+   *
+   * An assertion about a configuration is not an assertion about execution. The
+   * pull-request half below is therefore kept for what it genuinely pins — that
+   * the split RELOCATED the exclusion rather than spreading it — and is no
+   * longer read as coverage. Execution now has a surface of its own and a proof
+   * of its own: `.github/workflows/nightly-tmpdir-growth-benchmark.yml` runs it
+   * on darwin nightly and `scripts/check-test-case-executed.mjs` asserts from
+   * the run's vitest JSON report that the case was present, passed, and timed.
+   * `tests/unit/config/tmpdir-growth-benchmark-scheduled.test.ts` keeps that
+   * lane pointed at this file and pinned to a runner the guard admits.
+   */
+  it("keeps the 100k temp-growth benchmark out of the push pass", () => {
+    const pushTask = splitCoverageTask();
+
+    expect(script(pushTask)).toContain(
+      "--exclude='**/measure-tmpdir-growth-performance.test.ts'"
+    );
+    // The PR-moment prover carries no exclusion of its own. That proves the
+    // exclusion was relocated rather than duplicated; it does NOT prove the
+    // benchmark executes there, and the platform guard means it does not.
+    const prTask = gatesAt(parsedConfig(), "pull-request").find(
+      entry => entry.id === "test-correctness"
+    )?.task;
+    expect(prTask).toBeDefined();
+    expect(prTask).not.toBe(pushTask);
+    expect(script(prTask as string)).not.toContain(
+      "measure-tmpdir-growth-performance"
     );
   });
 

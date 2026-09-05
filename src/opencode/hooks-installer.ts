@@ -109,6 +109,7 @@ const NO_VERIFY_DENY_PATTERNS: Readonly<Record<string, "deny">> = {
  * in a source checkout and is missing from every installed copy.
  */
 const PLUGIN_SUPPORT_FILES = [
+  "block-managed-file-edits.sh",
   "block-no-verify.sh",
   "parity-safety-net.sh",
   "parity-safety-net-heredoc.py",

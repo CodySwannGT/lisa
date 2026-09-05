@@ -29,13 +29,18 @@ const SGSCAN = "lisa-sg-scan-on-edit.ts";
 const MIGRATION = "lisa-block-migration-edits.ts";
 const RUBOCOP = "lisa-rubocop-on-edit.ts";
 const INSTR = "lisa-block-instruction-file-edits.ts";
+const MANAGED = "lisa-block-managed-file-edits.ts";
 const ISSUE = "lisa-block-direct-issue-create.ts";
 const NO_VERIFY = "lisa-block-no-verify.ts";
 const BASE_RULES = "base-rules.md";
 
 /** Emit order per stack, named so the assertions stay one line each. */
-const TS_PLUGINS = [ISSUE, INSTR, NO_VERIFY, SUPPR, LINT, PARITY, SESS, SGSCAN];
-const RAILS_PLUGINS = [ISSUE, INSTR, NO_VERIFY, PARITY, RUBOCOP, SESS, SGSCAN];
+/** Guards every project gets, in the order the installer lists them. */
+const UNIVERSAL = [ISSUE, INSTR, MANAGED, NO_VERIFY];
+/** The tail every roster shares. */
+const TAIL = [SESS, SGSCAN];
+const TS_PLUGINS = [...UNIVERSAL, SUPPR, LINT, PARITY, ...TAIL];
+const RAILS_PLUGINS = [...UNIVERSAL, PARITY, RUBOCOP, ...TAIL];
 
 describe("opencode/hooks-installer", () => {
   let tempDir: string;
@@ -315,9 +320,10 @@ describe("opencode/hooks-installer", () => {
       const result = await installHooks(lisaDir, destDir, ["typescript"], []);
       const files = await listInstalledPluginFiles(destDir);
       expect(result.pluginCount).toBe(files.length);
-      // Plus the three canonical support scripts, which are not `lisa-*.ts` and
-      // so are managed without being listed as plugins.
-      expect(result.managedFiles).toHaveLength(files.length + 3);
+      // Plus the four canonical support scripts, managed without being
+      // listed as plugins. Four since #3750: the managed-file guard is a
+      // shell-out, so its script is staged beside the plugin.
+      expect(result.managedFiles).toHaveLength(files.length + 4);
     });
   });
 

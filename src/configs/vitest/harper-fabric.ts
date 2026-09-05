@@ -7,6 +7,7 @@
 import type { ViteUserConfig } from "vitest/config";
 import {
   coverageGlobalSetup,
+  coverageReportsDirectory,
   defaultCoverageExclusions,
   defaultTestExclusions,
   defaultThresholds,
@@ -21,6 +22,7 @@ import type { PortableThresholds } from "./base.js";
 
 export {
   coverageGlobalSetup,
+  coverageReportsDirectory,
   defaultCoverageExclusions,
   defaultTestExclusions,
   defaultThresholds,
@@ -64,6 +66,9 @@ export const getHarperFabricVitestConfig = ({
     testTimeout: 10000,
     coverage: {
       provider: "v8",
+      // Per-run, so a sibling run in this checkout cannot delete this
+      // run's live scratch. See configs/vitest/coverage-reports-directory.
+      reportsDirectory: coverageReportsDirectory(),
       include: ["src/**/*.ts"],
       exclude: [
         ...defaultCoverageExclusions,

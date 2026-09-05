@@ -51,7 +51,7 @@
  * @module inject-resolved-config
  */
 import { existsSync, readFileSync, realpathSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** Committed, project-wide configuration. */
@@ -799,13 +799,32 @@ export function buildContext(projectDir) {
       ? `${MAIN_CONFIG} + ${LOCAL_CONFIG} (local wins where they overlap)`
       : `${MAIN_CONFIG} (no local override file)`;
 
+  // The block used to say "this project's" — a possessive with no referent
+  // anywhere in its text, so two repositories emitted blocks that were
+  // character-identical except for the values. An agent standing in one
+  // directory while doing work governed by another read something perfectly
+  // true about the directory and wrong about the work, and the next sentence
+  // told it not to open the files that would have shown the difference. Six
+  // independent agent cycles reached the same false conclusion from one such
+  // block (CodySwannGT/lisa#3765).
+  //
+  // `basename` rather than the git remote: naming the subject must not cost a
+  // subprocess on a hook that runs at every session and subagent start, and it
+  // must not fail in a directory that is not a git checkout. The absolute path
+  // beside it is the unambiguous identifier; the basename is the short name a
+  // reader actually compares against the work in front of them.
+  const subject = basename(projectDir) || projectDir;
+
   return block(
-    `These are this project's EFFECTIVE Lisa configuration values, already resolved from ${sources}.\n` +
-      `Act on them directly. Do not re-read the config files to learn them, and do not act ` +
-      `against them. A line marked [Lisa built-in default] is NOT something this project ` +
-      `declared. A key whose NAME is identity- or credential-shaped is withheld and counted, ` +
-      `and a VALUE matching a known credential shape is replaced with ${REDACTED}: a ` +
-      `best-effort filter, not proof that anything it left alone is safe to repeat.\n\n` +
+    `These are the EFFECTIVE Lisa configuration values for ${subject}, resolved from ${sources} ` +
+      `at ${projectDir}.\n` +
+      `Act on them directly and do not act against them. They describe THAT directory: if your ` +
+      `work targets a different repository, read that repository's config rather than these. For ` +
+      `work in ${subject}, do not re-read the config files to learn these values. A line marked ` +
+      `[Lisa built-in default] is NOT something ${subject} declared. A key whose NAME is identity- ` +
+      `or credential-shaped is withheld and counted, and a VALUE matching a known credential shape ` +
+      `is replaced with ${REDACTED}: a best-effort filter, not proof that anything it left alone ` +
+      `is safe to repeat.\n\n` +
       renderBody(resolved)
   );
 }

@@ -169,6 +169,37 @@ jobs:
       # and exits 2 at zero.
       - name: Check no multi-step transform is guarded only whole-output
         run: bun run check:whole-output-guards
+      # #3848: `gh pr view --repo OWNER/NAME` with no positional argument is a
+      # USAGE ERROR, not a lookup that returned no rows, and the work-item
+      # validator read that exit 1 as "this branch has no pull request" — so the
+      # two gates needing the pull request went unchecked on every push. The
+      # call was fixed in #3833; this step refuses the SHAPE. What separates a
+      # correct `if (status !== 0) return undefined;` from a catastrophic one is
+      # direction, not syntax, so every probe that spends a failure as an
+      # absence has to say at the line whether the absence makes the gate
+      # stricter or changes nothing — and `fail-open` is refused rather than
+      # excused. Like its neighbours it refuses to pass an inspection it did not
+      # perform: it prints how many sites it parsed, names the surfaces it does
+      # NOT read, and exits 2 at zero.
+      - name: Check no probe spends a failure as an absence
+        run: bun run check:probe-absence-direction
+      # #3888: a guard that reports OK when its comparison had no subject. The
+      # instance that motivated it is a REQUIRED push gate — the conflict-marker
+      # prover printed `✓ no leftover conflict markers in 0 tracked files` and
+      # exited 0, a merge-governing green over bytes nobody read. The count was
+      # in hand and nothing read it, which is the whole class: an empty subject
+      # set and a satisfied comparison rendered identically.
+      #
+      # Measured by RUNNING each root-scoped guard against an empty git
+      # repository rather than by reading it, because a static heuristic that
+      # misses one reports a clean tree — the very failure being swept for. A
+      # guard that states its subject was ABSENT (`not-adopted`, "nothing to
+      # register") passes: it said what it examined. Like its neighbours it
+      # refuses to pass an inspection it did not perform: it prints how many
+      # guards it probed, and how many declare no root override and so could
+      # not be, and exits 2 at zero probed.
+      - name: Check no guard reports OK on an empty subject
+        run: bun run check:empty-subject-guards
       # #3190: a shell guard cannot be mutation-tested — #3111 established that
       # Stryker cannot instrument shell at all — so its driving test is the only
       # bite evidence it can have, and nine guards had a driving test whose every
@@ -182,6 +213,23 @@ jobs:
       # guards it observed and exits 2 at zero.
       - name: Check every driven shell guard was seen refusing
         run: bun run check:shell-guard-refusals
+      # #3768: `lisa apply` refreshes the `@codyswann/lisa` pin in every host
+      # repository and deliberately skips doing so here — applying to a manifest
+      # whose own name is `@codyswann/lisa` is restricted to security pins. So
+      # the one repository whose pin no automation corrects is the one that
+      # ships the automation, and it rotted two majors twice (#2279, #3662),
+      # each time found only because a human read a version string. This is that
+      # reader. Like its neighbours it belongs here rather than in the shared
+      # registry: only this repository has a self-pin to rot.
+      #
+      # It compares against the npm registry and says so in its verdict line —
+      # the session plugin cache and the marketplace clone can each name a
+      # different version, and neither is what `bun install` resolves. No
+      # `--registry` or `--manifest` override: a step pointed at a fixture would
+      # be green for a reason unrelated to what it checks, which is exactly the
+      # defect class this campaign keeps finding.
+      - name: Check the self-dependency pin still resolves the current release
+        run: bun run check:self-pin
       # `Check canonical project learnings budget` used to live here, and this
       # is where #2932's defect was: the `learnings_budget` skip token reaches
       # `quality.yml` and `quality-rails.yml`, and could not reach this step —

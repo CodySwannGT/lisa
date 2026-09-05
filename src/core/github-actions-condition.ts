@@ -3,23 +3,35 @@
  * syntax that Lisa's deploy workflows use in a job-level `if:`, plus the rule
  * that turns the result into "this job RAN" or "this job was SKIPPED".
  *
- * It exists because the defect in #3467 is invisible to any test that only
+ * It exists because the defect in #3467 is invisible to anything that only
  * reads the YAML for the presence or absence of a substring. What went wrong
  * was a job OUTCOME — a deploy that was skipped rather than failed — and an
- * outcome is what has to be asserted. Lisa never runs the stack templates'
- * deploy workflows itself, so no observation of this repository's own CI can
- * stand in for that; the expression has to be evaluated against a scenario.
+ * outcome is what has to be established. Lisa never runs a host's deploy
+ * workflow itself, so no observation of CI can stand in for that; the
+ * expression has to be evaluated against a scenario.
+ *
+ * ## Why this is production code and not a test helper
+ *
+ * It began as one, under `tests/integration/`. It moved here when #3740 needed
+ * the same question answered in a host repository — *would this job skip
+ * because the release failed?* — by `lisa doctor` and by the migration that
+ * repairs an already-seeded `deploy.yml`. Reimplementing GitHub's implicit
+ * `success()` rule a second time in `src/` would have put two subtly different
+ * copies of one semantics in the tree, which is the drift this repository
+ * repeatedly pays for. There is one implementation, and the test that made it
+ * imports it from here.
  *
  * The evaluator THROWS on anything outside the supported subset rather than
  * guessing. An expression it cannot parse must never quietly evaluate to a
- * plausible-looking boolean: that would reintroduce, inside the test, exactly
- * the failure mode the test exists to catch.
+ * plausible-looking boolean: a caller that cannot read a condition must say so,
+ * because reporting a confident verdict about an expression nobody understood
+ * is the failure mode this whole family of checks exists to catch.
  *
  * Supported: `&&`, `||`, `!`, `==`, `!=`, parentheses, single-quoted strings,
  * `true`/`false`, the status functions `always()` / `cancelled()` / `success()`
  * / `failure()`, the string functions `startsWith()` / `contains()`, and
  * context paths under `needs.`, `github.` and `inputs.`.
- * @module tests/integration/deploy-outcome-guard-helper
+ * @module core/github-actions-condition
  */
 
 /** The four conclusions a `needs` job can report to a dependent job. */
@@ -90,7 +102,7 @@ function headToken(text: string): string {
  * @param source - Raw `if:` text, with any `${{ }}` wrapper already stripped
  * @returns The token list
  */
-function tokenize(source: string): readonly string[] {
+export function tokenize(source: string): readonly string[] {
   const text = source.trimStart();
   if (text === "") {
     return [];

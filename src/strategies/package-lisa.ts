@@ -1061,6 +1061,16 @@ function locateLisaPin(packageJson: Record<string, unknown>): {
  *
  * Lisa applying to its own repository never reaches here: that path is
  * restricted to security pins, and a package cannot depend on itself.
+ *
+ * The consequence, recorded because it was twice discovered rather than read
+ * (#3768): Lisa's own manifest DOES carry a `@codyswann/lisa` devDependency —
+ * the fixture its templates resolve against — and this phase is the only thing
+ * that would keep such a pin current. Skipping it here means **the single
+ * repository whose pin no automation will ever correct is the one that ships
+ * the automation.** That pin rotted two majors twice, in #2279 and again in
+ * #3662, each time found only because somebody read a version string. The
+ * reader that replaces them is `scripts/check-self-dependency-pin.mjs`, run as
+ * a required CI step; this exemption stays as written, and is now watched.
  * @param packageJson - The manifest as the merge phases left it
  * @param applyingVersion - Version of the Lisa performing this apply
  * @returns The manifest with the pin aligned, plus operator-visible notes

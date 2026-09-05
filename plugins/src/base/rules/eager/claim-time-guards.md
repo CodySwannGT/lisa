@@ -23,8 +23,10 @@ Distinct from `claim-archaeology` (finds a **different** ancestor issue) and fro
 
 ## `two-failed-attempts` → blocked
 
-Every non-success terminal outcome records a durable marker on the item — a visible line plus `<!-- [lisa-build-attempt] n=<N> outcome=<outcome> -->` (match on the marker, never the title). A cron holds no memory between cycles, so the item carries the count.
+Every non-success terminal outcome records a durable marker on the item — a visible line plus `<!-- [lisa-build-attempt] n=<N> outcome=<outcome> measures=<work|machine> -->` (match on the marker, never the title). A cron holds no memory between cycles, so the item carries the count.
 
-With **two or more** markers at claim time: do not claim. Move the item to the configured `blocked` role (resolved per `config-resolution`, never hardcoded), post an operator-readable comment naming both attempts and what a human must decide or supply, and **stop the loop** for this cycle. Recovery is deliberate — a human or a `lisa-repair-intake` cycle with the blocker provably cleared returns it to the queue.
+**Two filters before counting.** Count a marker only when it is `measures=work` — a run terminated by a signal, or whose outcome was `recovery-required`, measures the box and not the item — and only when it was recorded **after the item most recently entered the ready lane**. An unlabelled marker counts as `work`; an unreadable lane history falls back to counting every `work` marker. Both defaults keep the valve shut rather than open (CodySwannGT/lisa#3854).
+
+With **two or more** surviving markers at claim time: do not claim. Move the item to the configured `blocked` role (resolved per `config-resolution`, never hardcoded), post an operator-readable comment naming both attempts and what a human must decide or supply, and **stop the loop** for this cycle. Recovery is deliberate and it works — a human or a `lisa-repair-intake` cycle with the blocker provably cleared returns it to the queue, which ends the period the old markers describe without deleting them.
 
 Full contract (probe bounds, verify-and-close steps, partial-hit handling, marker mechanics): [reference/claim-time-guards.md](../reference/claim-time-guards.md).

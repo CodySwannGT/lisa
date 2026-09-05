@@ -179,9 +179,14 @@ describe("process-tree gate deadline", () => {
       })
     ).toBe(true);
     expect(probes).toEqual([[42, 0]]);
+    // ESRCH, not a bare Error. Until #3848 this branch swallowed EVERY throw as
+    // "the tree is gone", so an EPERM — a probe that could not ask — read as an
+    // absence and left a live tree behind, recorded as reaped. Only the
+    // absent-process code proves absence now, exactly as `posixTreeExists` and
+    // `killTree` in the same file already required.
     expect(
       windowsTreeExists(43, () => {
-        throw new Error("absent");
+        throw Object.assign(new Error("absent"), { code: "ESRCH" });
       })
     ).toBe(false);
   });

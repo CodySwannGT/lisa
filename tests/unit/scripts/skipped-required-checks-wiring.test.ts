@@ -309,10 +309,17 @@ describe("check-skipped-required-checks, as a shipped CI job", () => {
       expect(violations.map(violation => violation.kind)).toEqual([
         mod.VIOLATIONS.vacuous,
       ]);
+      // Asserts the CLAIM, not the wording. Trust is granted, so the finding
+      // must still say the merge gate was satisfied — but `Review rate limited`
+      // cannot establish that no review happened (CodySwannGT/lisa#3762), so it
+      // must not instruct that conclusion, and must point at what settles it.
       expect(violations[0].message).toContain(
-        "branch protection recorded a satisfied review gate for a review that did not happen"
+        "branch protection recorded a satisfied review gate"
       );
-      expect(violations[0].message).toContain("Treat this PR as UNREVIEWED");
+      expect(violations[0].message).not.toMatch(
+        /treat this pr as unreviewed/iu
+      );
+      expect(violations[0].message).toContain("reviewThreads");
       expect(violations[0].message).not.toContain(NOT_KNOWN);
     });
 

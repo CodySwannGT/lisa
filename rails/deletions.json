@@ -15,5 +15,22 @@
     ".github/workflows/claude-nightly-test-coverage.yml",
     ".github/workflows/claude-nightly-test-improvement.yml",
     ".github/workflows/claude-sync-down-branches.yml"
-  ]
+  ],
+  "basis": {
+    ".overcommit.yml": "needs-review",
+    ".claude/skills/action-controller-best-practices": "needs-review",
+    ".claude/skills/action-view-best-practices": "needs-review",
+    ".claude/skills/active-record-model-best-practices": "needs-review",
+    ".claude/skills/plan-add-test-coverage": "needs-review",
+    ".claude/skills/plan-fix-linter-error": "needs-review",
+    ".claude/skills/plan-lower-code-complexity": "needs-review",
+    ".claude/skills/plan-reduce-max-lines": "needs-review",
+    ".claude/skills/plan-reduce-max-lines-per-function": "needs-review",
+    ".claude/rules/rails-conventions.md": "needs-review",
+    ".github/workflows/claude-code-review-response.yml": "needs-review",
+    ".github/workflows/claude-nightly-code-complexity.yml": "needs-review",
+    ".github/workflows/claude-nightly-test-coverage.yml": "needs-review",
+    ".github/workflows/claude-nightly-test-improvement.yml": "needs-review",
+    ".github/workflows/claude-sync-down-branches.yml": "needs-review"
+  }
 }
