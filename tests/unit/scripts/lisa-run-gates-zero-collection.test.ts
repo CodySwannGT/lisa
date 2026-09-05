@@ -142,8 +142,18 @@ describe("runGates: a zero exit is not by itself a measurement", () => {
   it("tells the operator that the zero exit is the runner being permissive", () => {
     // Without this the reader sees NOT PROVED against a command that exited 0
     // and reasonably concludes the runner is broken.
-    expect(runWith(RAN_NOTHING).entry?.detail).toContain("executed ZERO");
-    expect(runWith(RAN_NOTHING).entry?.detail).toContain("exit 0");
+    //
+    // The wording is `collected ZERO`, not `executed ZERO`: two branches
+    // implemented CodySwannGT/lisa#3715 at once, and the one that survived the
+    // merge is `diagnoseHollowSuccess`, whose signature set has the other's
+    // predicate as its first entry and adds jest. Same verdict (UNPROVABLE,
+    // NO_TESTS_RAN), and it additionally NAMES THE TOOL that said so, which is
+    // asserted below so the merge cannot quietly cost that.
+    const detail = runWith(RAN_NOTHING).entry?.detail;
+
+    expect(detail).toContain("collected ZERO");
+    expect(detail).toContain("exit 0");
+    expect(detail).toContain("vitest");
   });
 
   describe("controls — this is not a blanket rule about empty collections", () => {

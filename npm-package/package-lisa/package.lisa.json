@@ -1,17 +1,17 @@
 {
   "force": {
     "scripts": {
+      "prepare": "$npm_execpath run build && husky install || true",
       "prepublishOnly": "$npm_execpath run build",
       "setup:deploy-key": "setup-deploy-key",
-      "test": "lisa-test-run --profile npm-package --adapter vitest -- vitest run",
-      "test:unit": "lisa-test-run --profile npm-package --adapter vitest -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*'",
+      "test:cov:lisa": "lisa-test-run --profile npm-package --adapter vitest -- vitest run --coverage",
+      "test:cov:unit:lisa": "LISA_COVERAGE_SCOPE=unit lisa-test-run --profile npm-package --adapter vitest -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'",
       "test:integration:lisa": "lisa-test-run --profile npm-package --adapter vitest -- vitest run '.integration.' 'integration/'",
-      "test:cov": "lisa-test-run --profile npm-package --adapter vitest -- vitest run --coverage",
-      "test:cov:unit": "LISA_COVERAGE_SCOPE=unit lisa-test-run --profile npm-package --adapter vitest -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'",
+      "test:lisa": "lisa-test-run --profile npm-package --adapter vitest -- vitest run",
       "test:mutation": "LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\",\"worker-\"]' lisa-test-run --profile npm-package --adapter direct -- node scripts/lisa-mutation.mjs",
-      "test:watch": "lisa-test-run --profile npm-package --adapter vitest -- vitest",
       "test:node": "LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile npm-package --adapter direct -- node scripts/lisa-test-node.mjs",
-      "prepare": "$npm_execpath run build && husky install || true"
+      "test:unit:lisa": "lisa-test-run --profile npm-package --adapter vitest -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*'",
+      "test:watch:lisa": "lisa-test-run --profile npm-package --adapter vitest -- vitest"
     },
     "devDependencies": {
       "vite": "^8.0.16",
@@ -29,6 +29,42 @@
     "files": [
       "dist"
     ],
-    "types": "./dist/index.d.ts"
+    "types": "./dist/index.d.ts",
+    "scripts": {
+      "test": "$npm_execpath run test:lisa",
+      "test:cov": "$npm_execpath run test:cov:lisa",
+      "test:cov:unit": "$npm_execpath run test:cov:unit:lisa",
+      "test:unit": "$npm_execpath run test:unit:lisa",
+      "test:watch": "$npm_execpath run test:watch:lisa"
+    }
+  },
+  "adopt": {
+    "scripts": {
+      "test": [
+        "lisa-test-run --profile npm-package --adapter vitest -- vitest run",
+        "lisa-test-run --profile npm-package -- vitest run",
+        "lisa-test-run -- vitest run"
+      ],
+      "test:cov": [
+        "lisa-test-run --profile npm-package --adapter vitest -- vitest run --coverage",
+        "lisa-test-run --profile npm-package -- vitest run --coverage",
+        "lisa-test-run -- vitest run --coverage"
+      ],
+      "test:cov:unit": [
+        "LISA_COVERAGE_SCOPE=unit lisa-test-run --profile npm-package --adapter vitest -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'",
+        "LISA_COVERAGE_SCOPE=unit lisa-test-run --profile npm-package -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'",
+        "LISA_COVERAGE_SCOPE=unit lisa-test-run -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'"
+      ],
+      "test:unit": [
+        "lisa-test-run --profile npm-package --adapter vitest -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*'",
+        "lisa-test-run --profile npm-package -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*'",
+        "lisa-test-run -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*'"
+      ],
+      "test:watch": [
+        "lisa-test-run --profile npm-package --adapter vitest -- vitest",
+        "lisa-test-run --profile npm-package -- vitest",
+        "lisa-test-run -- vitest"
+      ]
+    }
   }
 }

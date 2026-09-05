@@ -26,12 +26,12 @@ const read = (root: string, rel: string): string =>
 
 describe("rejection-detection rule contract", () => {
   describe.each(ROOTS)("%s", root => {
-    const eager = read(root, "rules/eager/rejection-detection.md");
+    const eager = read(root, "rules/reference/rejection-detection.md");
     const reference = read(root, "rules/reference/rejection-detection.md");
 
-    it("eager head breadcrumbs to the reference body", () => {
-      expect(eager).toContain(
-        "[reference/rejection-detection.md](../reference/rejection-detection.md)"
+    it("stays reachable from the eager rule index", () => {
+      expect(read(root, "rules/eager/00-rule-index.md")).toContain(
+        "reference/rejection-detection.md"
       );
     });
 

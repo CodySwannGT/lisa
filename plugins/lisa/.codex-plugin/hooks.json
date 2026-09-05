@@ -194,6 +194,15 @@
         "hooks": [
           {
             "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/enforcement-vintage.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
             "command": "${PLUGIN_ROOT}/hooks/setup-jira-cli.sh"
           }
         ]
@@ -204,6 +213,14 @@
           {
             "type": "command",
             "command": "${PLUGIN_ROOT}/hooks/secrets-preflight.sh"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/worktree-binding-guard.sh"
           }
         ]
       }
@@ -233,6 +250,15 @@
           {
             "type": "command",
             "command": "${PLUGIN_ROOT}/hooks/inject-resolved-config.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/enforcement-vintage.sh"
           }
         ]
       },

@@ -485,6 +485,45 @@ export const NEVER_BLOCKING = Object.freeze([
 ]);
 
 /**
+ * Kinds that stay report-only under EVERY flag, including `--fail-on-vacuous`.
+ *
+ * ## Why this is a named array rather than a condition
+ *
+ * These two are also members of {@link NEVER_BLOCKING}, and that array's own
+ * rule is `return policy.failOnVacuous` — so reaching it would make them block
+ * the moment the flag is passed. They were kept apart by an `if` immediately
+ * above the lookup, which meant **deleting or reordering one line silently
+ * converted two deliberately report-only findings into build failures**, with
+ * nothing in the suite noticing (CodySwannGT/lisa#3902). Naming the set makes
+ * the exemption a value that can be asserted rather than a position that
+ * happens to come first.
+ *
+ * The behaviour is unchanged: same two kinds, same answer, same place in the
+ * order. Only the reason it holds moved from a line's position into a name.
+ *
+ * ## The two policies, which are different and both deliberate
+ *
+ * `reviewWaived` is report-only under the owner's ruling on
+ * CodySwannGT/lisa#3221. A waived pull request is an unreviewed one, the
+ * operator must see it, and it must never fail the build. `--fail-on-vacuous`
+ * governs checks that claimed success without proving work; it must not turn a
+ * vendor entitlement waiver into a failure through a shared array.
+ *
+ * `reviewCarried` (CodySwannGT/lisa#3658) is report-only for a second reason on
+ * top of that one: it is about ANOTHER pull request, whose own gate already
+ * reached its own verdict on its own diff. `--fail-on-vacuous` asks "did the
+ * checks on THIS pull request prove their work?", and answering it with a
+ * constituent's condition would fail an author for a diff they did not write
+ * and cannot change.
+ *
+ * Changing either policy is out of scope here; this records that they hold.
+ */
+export const REPORT_ONLY = Object.freeze([
+  VIOLATIONS.reviewWaived,
+  VIOLATIONS.reviewCarried,
+]);
+
+/**
  * Kinds the review gate blocks on, and only when a caller asks it to.
  *
  * Separate from {@link ALWAYS_BLOCKING} because the gate is opt-in per
@@ -3436,11 +3475,17 @@ function writeGuardError(argv, error) {
 /**
  * Reads the CLI switches that change which findings block.
  *
+ * Exported so a test can prove `--fail-on-vacuous` reaches `failOnVacuous`.
+ * Without that, a case asserting a finding does NOT block under the flag
+ * cannot tell "the flag was live and chose not to block" from "the flag never
+ * arrived" — and the second is the vacuous test this whole file is about
+ * (CodySwannGT/lisa#3902).
+ *
  * @param {ReadonlyArray<string>} argv - Arguments
  * @param {object} result - Guard result
  * @returns {{warnOnly: boolean, failOnVacuous: boolean, requireReviewEvidence: boolean}} Active policy
  */
-function cliPolicy(argv, result) {
+export function cliPolicy(argv, result) {
   return {
     warnOnly: result.enforcement === "warn",
     // The supported alternative to a per-consumer `--json` wrapper.
@@ -3454,29 +3499,20 @@ function cliPolicy(argv, result) {
 /**
  * True when one violation blocks under the active CLI policy.
  *
+ * Exported for the same reason `cliPolicy` is: the property
+ * CodySwannGT/lisa#3902 asks for is a MATRIX — two kinds that must not block
+ * under `--fail-on-vacuous` beside two that must — and a suite that could
+ * produce only one half of it would pass while the other half rotted.
+ *
  * @param {{kind: string}} violation - One violation
  * @param {{warnOnly: boolean, failOnVacuous: boolean, requireReviewEvidence: boolean}} policy - Active policy
  * @returns {boolean} True when the finding blocks
  */
-function violationBlocks(violation, policy) {
+export function violationBlocks(violation, policy) {
   if (REVIEW_GATE_BLOCKING.includes(violation.kind)) {
     return policy.requireReviewEvidence;
   }
-  // A named waiver is report-only under every flag. `--fail-on-vacuous`
-  // governs checks that claimed success without proving work; it must not
-  // turn a vendor entitlement waiver into a failure through a shared array.
-  //
-  // A carried finding (#3658) is report-only for a second reason on top of
-  // that one: it is about ANOTHER pull request, whose own gate already
-  // reached its own verdict on its own diff. `--fail-on-vacuous` asks "did
-  // the checks on THIS pull request prove their work?", and answering it with
-  // a constituent's condition would fail an author for a diff they did not
-  // write and cannot change.
-  if (
-    violation.kind === VIOLATIONS.reviewWaived ||
-    violation.kind === VIOLATIONS.reviewCarried
-  )
-    return false;
+  if (REPORT_ONLY.includes(violation.kind)) return false;
   if (NEVER_BLOCKING.includes(violation.kind)) return policy.failOnVacuous;
   return !policy.warnOnly || ALWAYS_BLOCKING.includes(violation.kind);
 }

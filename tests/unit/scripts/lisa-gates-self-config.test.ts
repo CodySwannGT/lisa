@@ -5,10 +5,18 @@
  * Three properties are load-bearing, none obvious from reading the JSON.
  *
  * `artifact-freshness` must prove every derived artifact. The registry admits
- * one task per gate, so the four `--check` scripts had to be composed — and a
- * composition that stops at the first failure, or lets the second command's
- * exit code overwrite the first's, is a gate reporting green on a stale
- * artifact. All four pass/fail combinations are exercised with stubs.
+ * one task per gate, so the `--check` scripts had to be composed — and a
+ * composition that stops at the first failure, or lets one command's exit code
+ * overwrite another's, is a gate reporting green on a stale artifact. Every
+ * pass/fail combination is exercised with stubs.
+ *
+ * Since CodySwannGT/lisa#3876 that composition is `scripts/run-artifact-checks.mjs`
+ * rather than a `;`-separated shell string, and the sub-check names are
+ * ARGUMENTS in `package.json`. The stubs below therefore drive the shipped
+ * runner with the shipped name list, injecting an exit code per check instead
+ * of substituting shell fragments. They are deliberately in-process: this file
+ * asserts the composition's control flow, and spawning six subprocesses per
+ * case turned a saturated host into a content-shaped failure.
  *
  * Every task the gates block names must exist in the runner. A gate pointing at
  * a renamed script fails as "missing script", which reads like an environment
@@ -25,16 +33,9 @@
  * recomputed from the code under test.
  * @module tests/unit/scripts/lisa-gates-self-config
  */
-import {
-  existsSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   contextsFor,
   HARDCODED_INVOCATIONS,
@@ -44,7 +45,7 @@ import {
   validateGates,
   validatePolicy,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
-import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import { runArtifactChecks } from "../../../scripts/run-artifact-checks.mjs";
 
 /** One gate resolved at one moment, as `resolveMoment` reports it. */
 interface GateEntry {
@@ -80,17 +81,34 @@ const ARTIFACT_GATE = "artifact-freshness";
 const ARTIFACTS_TASK = "check:artifacts";
 
 /** The generator checks `check:artifacts` composes, by task name. */
-const MANIFEST_TASK = "bun run check:upstream-evidence-manifest";
-const LEDGER_TASK = "bun run check:lisa-owned-hash-ledger";
-const CERTIFICATE_TASK = "bun run check:nightly-guard-certificate";
-const TWO_CHANNEL_TASK = "bun run check:two-channel-couplings";
+const MANIFEST_TASK = "check:upstream-evidence-manifest";
+const LEDGER_TASK = "check:lisa-owned-hash-ledger";
+const CERTIFICATE_TASK = "check:nightly-guard-certificate";
+const TWO_CHANNEL_TASK = "check:two-channel-couplings";
+const DELETION_BASIS_TASK = "check:deletion-basis";
+const EXPORT_SURFACE_TASK = "check:export-surface";
+const MERGE_COVERAGE_TASK = "check:merge-coverage";
+
+/** The runner the aggregate hands those names to. */
+const ARTIFACTS_RUNNER = "node scripts/run-artifact-checks.mjs";
 
 /** Stub names, and the order all must appear in however any one exits. */
-const MANIFEST = "manifest";
-const LEDGER = "ledger";
-const CERTIFICATE = "certificate";
-const TWO_CHANNEL = "two-channel";
-const ALL_RAN = [MANIFEST, LEDGER, CERTIFICATE, TWO_CHANNEL];
+/**
+ * Every sub-check the aggregate must run, in order.
+ *
+ * Hardcoded per the Test Isolation house rule rather than derived from the
+ * script under test: derived, the assertion would agree with whatever the
+ * script happens to say, including a script that dropped one.
+ */
+const ALL_RAN = [
+  MANIFEST_TASK,
+  LEDGER_TASK,
+  CERTIFICATE_TASK,
+  TWO_CHANNEL_TASK,
+  DELETION_BASIS_TASK,
+  EXPORT_SURFACE_TASK,
+  MERGE_COVERAGE_TASK,
+];
 
 /** Moment whose required gates become branch-protection contexts. */
 const PULL_REQUEST = "pull-request";
@@ -142,14 +160,6 @@ const REQUIRED_PR_CONTEXTS = [
   ...AWAITED_VENDOR_CONTEXTS,
 ];
 
-const temporaryDirectories: string[] = [];
-
-afterEach(() => {
-  for (const directory of temporaryDirectories.splice(0)) {
-    rmSync(directory, { force: true, recursive: true });
-  }
-});
-
 /**
  * A package.json script, failing loudly rather than silently as `undefined`.
  * @param name - Script name
@@ -183,101 +193,77 @@ function gatesAt(config: ParsedConfig, moment: string): GateEntry[] {
 }
 
 /**
- * A scratch directory this file's `afterEach` will remove.
- * @returns Absolute path to the new directory
- */
-function scratchDirectory(): string {
-  const directory = mkdtempSync(path.join(tmpdir(), "lisa-check-artifacts-"));
-  temporaryDirectories.push(directory);
-  return directory;
-}
-
-/**
- * The shipped `check:artifacts` command with all generators stubbed out.
+ * The sub-check names the shipped aggregate hands to the runner.
  *
- * Only the two invocations are substituted, so the control flow under test is
- * the one that ships rather than a restatement of it.
- * @param log - File each stub appends its name to when it runs
- * @param manifestExit - Exit code the manifest check should report
- * @param ledgerExit - Exit code the ledger check should report
- * @param certificateExit - Exit code the certificate check should report
- * @param twoChannelExit - Exit code the two-channel check should report
- * @returns A shell command equivalent to the real script
+ * Read out of `package.json` rather than restated, so a name dropped from the
+ * script is a name these stubs stop covering — visibly, against the hardcoded
+ * `ALL_RAN` — instead of one they keep proving from a private list.
+ * @returns Every `check:` name the aggregate names, in the order it names them
  */
-function composeWithStubs(
-  log: string,
-  manifestExit: number,
-  ledgerExit: number,
-  certificateExit: number,
-  twoChannelExit: number
-): string {
-  const stub = (name: string, code: number): string =>
-    `sh -c 'printf "%s\\n" ${name} >> ${log}; exit ${code}'`;
-  const composed = script(ARTIFACTS_TASK)
-    .replace(MANIFEST_TASK, stub(MANIFEST, manifestExit))
-    .replace(LEDGER_TASK, stub(LEDGER, ledgerExit))
-    .replace(CERTIFICATE_TASK, stub(CERTIFICATE, certificateExit))
-    .replace(TWO_CHANNEL_TASK, stub(TWO_CHANNEL, twoChannelExit));
-  if (
-    composed.includes(MANIFEST_TASK) ||
-    composed.includes(LEDGER_TASK) ||
-    composed.includes(CERTIFICATE_TASK) ||
-    composed.includes(TWO_CHANNEL_TASK)
-  ) {
+function shippedCheckNames(): string[] {
+  const body = script(ARTIFACTS_TASK);
+  if (!body.includes(ARTIFACTS_RUNNER)) {
+    // The predecessor of this guard looked for the ABSENCE of the tokens it
+    // substituted, which is why it stayed silent when #3876 replaced the shell
+    // composition wholesale: the tokens were absent because the whole form had
+    // changed, so nothing was stubbed and these tests quietly ran the real
+    // checks. This one asserts the form it knows how to drive is still there.
     throw new Error(
-      `${ARTIFACTS_TASK} no longer invokes all checks as \`bun run <task>\`; ` +
-        "the stub substitution below tests nothing until it is updated."
+      `${ARTIFACTS_TASK} no longer delegates to \`${ARTIFACTS_RUNNER}\`; ` +
+        "the stubs below drive that runner, so they test nothing until updated."
     );
   }
-  return composed;
-}
-
-/**
- * The exit code of a shell command.
- * @param command - Command to run under `/bin/sh -c`
- * @returns Its exit status, 0 when it succeeded
- */
-function shellExitCode(command: string): number {
-  let code = 0;
-  try {
-    boundedExecFileSync({
-      label: "check:artifacts composition under /bin/sh",
-      command: "/bin/sh",
-      args: ["-c", command],
-      stdio: "ignore",
-    });
-  } catch (error) {
-    code = (error as { exitCode?: number }).exitCode ?? -1;
+  const names = [
+    ...new Set(
+      [...body.matchAll(/\bcheck:[a-z0-9-]+/gu)].map(match => match[0])
+    ),
+  ].filter(name => name !== ARTIFACTS_TASK);
+  if (names.length === 0) {
+    throw new Error(`${ARTIFACTS_TASK} hands the runner no sub-check to run.`);
   }
-  return code;
+  return names;
 }
 
 /**
- * Run `check:artifacts` with all generators replaced by exit-code stubs.
+ * Run the shipped aggregate with every sub-check replaced by an exit code.
+ *
+ * The composition under test is the shipped one — `runArtifactChecks` with the
+ * shipped name list — and only the sub-processes are replaced.
  * @param manifestExit - Exit code the manifest check should report
  * @param ledgerExit - Exit code the ledger check should report
  * @param certificateExit - Exit code the certificate check should report
  * @param twoChannelExit - Exit code the two-channel check should report
- * @returns The composition's exit code and the order the stubs ran in
+ * @returns The exit code, the names that ran in order, and what was printed
  */
 function runComposition(
   manifestExit: number,
   ledgerExit: number,
   certificateExit: number,
   twoChannelExit: number
-): { code: number; ran: string[] } {
-  const log = path.join(scratchDirectory(), "ran.log");
-  const code = shellExitCode(
-    composeWithStubs(
-      log,
-      manifestExit,
-      ledgerExit,
-      certificateExit,
-      twoChannelExit
-    )
-  );
-  const ran = readFileSync(log, "utf8").split("\n").filter(Boolean);
-  return { code, ran };
+): { code: number; ran: string[]; lines: string[] } {
+  const exits = new Map([
+    [MANIFEST_TASK, manifestExit],
+    [LEDGER_TASK, ledgerExit],
+    [CERTIFICATE_TASK, certificateExit],
+    [TWO_CHANNEL_TASK, twoChannelExit],
+  ]);
+  const ran: { current: readonly string[] } = { current: [] };
+  const { lines, exitCode } = runArtifactChecks(
+    shippedCheckNames(),
+    (name: string) => {
+      ran.current = [...ran.current, name];
+      const code = exits.get(name) ?? 0;
+      return {
+        name,
+        ok: code === 0,
+        timedOut: false,
+        // Non-empty, so a failing stub exercises the ordinary path rather
+        // than the "produced no output at all" one.
+        output: `${name} reported exit ${String(code)}`,
+      };
+    }
+  ) as { lines: string[]; exitCode: number };
+  return { code: exitCode, ran: [...ran.current], lines };
 }
 
 describe("check:artifacts consolidates every derived-artifact check", () => {
@@ -296,16 +282,16 @@ describe("check:artifacts consolidates every derived-artifact check", () => {
     expect(script(ARTIFACTS_TASK)).toContain(LEDGER_TASK);
     expect(script(ARTIFACTS_TASK)).toContain(CERTIFICATE_TASK);
     expect(script(ARTIFACTS_TASK)).toContain(TWO_CHANNEL_TASK);
-    expect(script("check:upstream-evidence-manifest")).toBe(
+    expect(script(MANIFEST_TASK)).toBe(
       "node scripts/generate-upstream-evidence-manifest.mjs --check"
     );
-    expect(script("check:lisa-owned-hash-ledger")).toBe(
+    expect(script(LEDGER_TASK)).toBe(
       "node scripts/generate-lisa-owned-hash-ledger.mjs --check"
     );
-    expect(script("check:nightly-guard-certificate")).toBe(
+    expect(script(CERTIFICATE_TASK)).toBe(
       "node scripts/generate-nightly-e2e-guard-certificate.mjs --check"
     );
-    expect(script("check:two-channel-couplings")).toBe(
+    expect(script(TWO_CHANNEL_TASK)).toBe(
       "bun scripts/generate-two-channel-couplings.ts --check"
     );
   });
@@ -371,30 +357,22 @@ describe("check:artifacts states its verdict last", () => {
     code: number;
     line: string;
   } {
-    const log = path.join(scratchDirectory(), "ran.log");
-    const command = composeWithStubs(log, ...exits);
-    let stdout = "";
-    let code = 0;
-    try {
-      stdout = boundedExecFileSync({
-        label: "check:artifacts verdict under /bin/sh",
-        command: "/bin/sh",
-        args: ["-c", command],
-      });
-    } catch (error) {
-      const failure = error as { exitCode?: number; stdout?: string };
-      code = failure.exitCode ?? -1;
-      stdout = failure.stdout ?? "";
-    }
-    const lines = stdout.split("\n").filter(entry => entry.trim() !== "");
-    return { code, line: lines[lines.length - 1] ?? "" };
+    const { code, lines } = runComposition(...exits);
+    const printed = lines.filter(entry => entry.trim() !== "");
+    return { code, line: printed[printed.length - 1] ?? "" };
   }
 
   it("names the count it proved when every check passes", () => {
     const { code, line } = lastLine([0, 0, 0, 0]);
 
     expect(code).toBe(0);
-    expect(line).toContain("all 5 generated-artifact checks passed");
+    // Seven: six since CodySwannGT/lisa#3932 added `check:merge-coverage`,
+    // and a seventh once CodySwannGT/lisa#3718 added `check:export-surface`.
+    // Both landed on the same line from opposite branches, so the union of
+    // the two is what the script now runs. Hardcoded per the Test Isolation
+    // house rule: deriving it from the script would make the assertion agree
+    // with whatever the script happens to say.
+    expect(line).toContain("all 7 generated-artifact checks passed");
   });
 
   it("names the failing check last, where a reader is already looking", () => {

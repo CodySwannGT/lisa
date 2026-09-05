@@ -5,6 +5,40 @@ alwaysApply: false
 
 # Ready-Role Filing
 
+> Demoted from the always-on eager tier by CodySwannGT/lisa#3992. The
+> section below is the former eager head, preserved verbatim; the full
+> contract follows it. Reachable on demand via `rules/eager/00-rule-index.md`.
+
+## Ready-Role Filing (load-bearing)
+
+Filing a work item without the ready role is an **incomplete handoff** — build-intake scans the ready lane and nothing else, so the item is never picked up. A correct write plus a missing role still loses the work.
+
+## Omitted means NOT ready — on every tracker
+
+**An omitted `build_ready` is NOT build-ready on JIRA, GitHub, and Linear alike.** Ready is an explicit claim, never an accident of which tracker a project configured. This is a **breaking change** for GitHub and Linear callers, which previously treated omission as ready; `lisa-github-validate-issue` F4's compensating omitted → `true` normalization is removed with it.
+
+## Every filing declares one of three things
+
+- **`build_ready: true`** — complete enough to build; enters the ready lane for auto-pickup. Required for any complete defect found during other work, so it is claimable next cycle with no human flipping status.
+- **`human_gate: "<why a human must judge this first>"`** — deliberately held outside the queue. The writer stamps a visible line plus `<!-- [lisa-human-gate] reason=<short-slug> -->` so the hold is auditable.
+- **The container declaration** — `None — container: state rolls up from children`, the canonical line `derived-branch-plan` defines and every writer stamps in place of a Target Backend Environment. A container is never build-ready (`leaf-only-lifecycle`) and needs no gate, so it declares the third thing instead. Deliberately **not** keyed on `--label type:Epic`: a declared type is a claim that costs a leaf nothing and leaves it looking buildable, where the container line costs the item the environment and Branch Plan a leaf needs to be built. It is refused alongside a by-design leaf type (`type:Bug` / `type:Task` / `type:Sub-task` / `type:Improvement`) — an item cannot be a container and a leaf at once.
+
+Filed, not ready, and no `human_gate` is the **incomplete handoff** case — writers reject it and name both ways to resolve it. `build_ready: false` with no reason is the same omission with a value attached. `build_ready` stays subordinate to `leaf-only-lifecycle`: a container is never build-ready and needs no gate.
+
+## The named exception
+
+`lisa-exploratory-qa` files findings not-ready **by design** — its findings are candidate defects whose product significance a human should judge. It is the named human-gate exception, not drift: it pairs `ready=false` with an explicit `human_gate` reason. The sibling `e2e-coverage-gaps` skills are the contrast (a missing test is not a product question, so they file build-ready).
+
+`lisa-repair-intake` sweeps for open items that are neither in the ready role nor marked `[lisa-human-gate]`, and surfaces them rather than promoting them.
+
+## This rule is enforced
+
+The PreToolUse guard `block-direct-issue-create.sh` refuses a direct tracker-creation command (`gh issue create`, `gh api` POST to an issues endpoint, `linear`/`jira`/`acli` creates, equivalent `curl` posts) that carries **none of the three declarations** — no configured build-ready role, no `[lisa-human-gate]` marker, and no container declaration. It shipped because this rule as prose did not bind: 13 of 13 issues filed during the session that merged it bypassed it, several by the agent that wrote it, while the one obligation backed by a git hook was honored 50 of 50 times. It stands down where no tracker is configured, and for an operator who set `LISA_ALLOW_DIRECT_ISSUE_CREATE` **in the ambient environment** — never from an inline assignment on the refused command.
+
+**The role is the TARGET repository's, not the caller's.** A creation addressed at another repository — `--repo` / `-R`, or a `repos/<org>/<repo>/issues` endpoint — is judged against that repository's build-ready role: `hardening.upstreamReadyRole` (default `status:ready`) when the target is `hardening.upstreamRepo`, and the stock `status:ready` otherwise. A creation naming no repository, or naming the project's own `github.org`/`github.repo`, is judged against the project's own role exactly as before. A declaration is required either way; only its vocabulary changes.
+
+---
+
 A work item that is filed but never given the ready role is an **incomplete handoff**. No other agent will ever pick it up: build-intake scans the ready lane and nothing else. The originating failure is small and entirely typical — an agent closed a ticket it could not reproduce, filed the real defect it found beside it, and left the new ticket sitting. The defect was correct, the write succeeded, and the work still died.
 
 This rule makes the ready role an **explicit claim** at every filing site, and makes omission mean the same thing on every tracker.
@@ -27,7 +61,7 @@ So the same vendor-neutral `lisa-tracker-write` call produced a different lifecy
 
 The safe direction is the implicit one. A ticket that reaches a build queue by accident is worse than one that waits, because the queue is what agents act on autonomously.
 
-## Every filing declares one of two things
+## Every filing declares one of two things — three, counting containers
 
 A writer accepts a filing only when it carries **one** of:
 
@@ -42,6 +76,24 @@ A writer accepts a filing only when it carries **one** of:
 Filed, not ready, and no `human_gate` is the **incomplete handoff** case: the writer rejects it and names the two ways to resolve it. `build_ready: false` without a `human_gate` reason is the same failure spelled differently — it is not a gate, it is an omission with a value attached.
 
 `build_ready` remains strictly subordinate to `leaf-only-lifecycle`: a container is never build-ready regardless of what a caller passes, and a container needs no `human_gate` because its state rolls up from its children rather than being claimed.
+
+### The container declaration, on the direct-CLI path
+
+That exemption used to live only in writer prose, which meant the guard below — the thing that actually runs — had no arm for it. A container could satisfy the guard only by declaring a build-ready role `leaf-only-lifecycle` forbids on it, or a human gate it does not have. **A guard that can only be obeyed by writing something untrue is worse than one that simply refuses**, because the lie is indistinguishable from a correct filing afterwards, and both available lies corrupt data another control reads: a stamped role puts a container in the lane build-intake claims from, and a fabricated hold marker is a state change with no inverse.
+
+So a container filed directly through a tracker CLI declares a **third** thing — the canonical container line the `derived-branch-plan` rule already defines and every writer already stamps in place of a Target Backend Environment:
+
+```text
+## Target Backend Environment
+
+None — container: state rolls up from children
+```
+
+**Not `--label type:Epic`.** A declared type is a claim, and one that costs a leaf nothing: the item it produces still looks buildable, so keying the exemption on it would hand any item willing to mistype itself a free bypass of the readiness requirement — the shape of the measured case where an allowlist added to harden a guard became the way around it. The container line is self-limiting instead: writing it costs the item the Target Backend Environment and Branch Plan a leaf needs to be built at all, so it is only useful to something that actually is a container.
+
+The declaration is refused alongside a **by-design leaf type** declared as a flag value (`type:Bug` / `type:Task` / `type:Sub-task` / `type:Improvement`, or the `--type` spelling on a state-based tracker) — an item cannot be a container and a leaf at once. Story and Spike are deliberately not in that set: `leaf-only-lifecycle`'s childless-parent exception makes them leaf-or-container depending on child work, and a decomposition legitimately files a parent Story before the children that make it one.
+
+One string, defined in one rule, read by the guard and stamped by the writers — which is what keeps this exemption from drifting back into prose only.
 
 ## Complete defects found during other work are filed build-ready
 
@@ -65,7 +117,7 @@ The rule shipped as prose first, and prose did not hold. A conformance audit of 
 
 The control is the PreToolUse Bash guard `block-direct-issue-create.sh`, shipped to every agent variant (Claude, Codex, Cursor, Copilot, agy, OpenCode) and to the host `scripts/lisa-hooks/` fallback. It refuses a direct tracker-creation command — `gh issue create`, `gh api` POST to an issues endpoint, `gh api graphql createIssue`, `linear issue create`, `jira issue create`, `acli … create`, and equivalent `curl` posts — when the command carries **no readiness declaration**.
 
-What it checks is the artifact, not the caller. A Bash-level hook cannot observe call provenance: any provenance signal is settable by the very agent being governed, so a guard built on one would be theatre. So the guard asks whether the command about to run produces a correctly declared item — the configured build-ready role is applied, or a `[lisa-human-gate]` marker is present (inline, or in the `--body-file` the create is about to submit). That is precisely the machine-checkable content of this rule, and it lets the three writers through by construction, because they always stamp one.
+What it checks is the artifact, not the caller. A Bash-level hook cannot observe call provenance: any provenance signal is settable by the very agent being governed, so a guard built on one would be theatre. So the guard asks whether the command about to run produces a correctly declared item — the configured build-ready role is applied, or a `[lisa-human-gate]` marker is present, or the container declaration is (each read inline, or in the `--body-file` the create is about to submit). That is precisely the machine-checkable content of this rule, and it lets the three writers through by construction, because they always stamp one.
 
 Two ways out, both deliberate:
 

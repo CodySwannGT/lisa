@@ -38,7 +38,7 @@ const read = (root: string, rel: string): string =>
 
 describe("automation-reversal memory (repair-side rejection-detection)", () => {
   describe.each(ROOTS)("%s", root => {
-    const eager = read(root, "rules/eager/rejection-detection.md");
+    const eager = read(root, "rules/reference/rejection-detection.md");
     const reference = read(root, "rules/reference/rejection-detection.md");
     const repair = read(root, REPAIR_SKILL);
 

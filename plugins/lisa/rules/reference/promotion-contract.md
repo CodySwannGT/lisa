@@ -1,5 +1,26 @@
 # Promotion Contract
 
+> Demoted from the always-on eager tier by CodySwannGT/lisa#3992. The
+> section below is the former eager head, preserved verbatim; the full
+> contract follows it. Reachable on demand via `rules/eager/00-rule-index.md`.
+
+## Promotion Contract (load-bearing)
+
+When implementing a learnings-ladder **promotion ticket** — turning prose
+knowledge into an executable control (lint / ast-grep / type / test / hook /
+`package.lisa.json` force) — the change must be **atomic**: one PR that
+**enables the control**, **fixes the existing violation population**, **ships a
+remediation-teaching diagnostic** (violated invariant + why + concrete fix),
+and **deletes the superseded prose**. A PR missing any of the four is
+**rejected by rule** — promote-without-remove double-pays forever;
+remove-without-diagnostic strands agents.
+
+Eager-tier admission is **demotion-biased** and earned only by repeated-miss
+evidence; the gardener audits the eager tier every run, including Lisa's own
+shipped eager rules.
+
+---
+
 When a learnings-ladder promotion ticket (PRD #1729) is implemented — turning a
 prose learning, rule section, or ledger entry into an **executable control**
 (lint, ast-grep, type constraint, test, hook, or `package.lisa.json` force) —

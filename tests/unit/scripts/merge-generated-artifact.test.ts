@@ -266,6 +266,34 @@ describe("lisa-generated-artifact merge driver", () => {
     return root;
   }
 
+  /**
+   * Build the repository whose two branches change ONE key's value on both
+   * sides — the shape the driver refuses — and run the merge.
+   * @returns The fixture path, the merge's exit status and its combined output
+   */
+  function conflictedRepo(): {
+    root: string;
+    status: number;
+    output: string;
+  } {
+    const root = repo(true);
+    for (const [branch, hash] of [
+      ["charlie", "c1"],
+      ["delta", "d1"],
+    ] as const) {
+      git(root, ["checkout", "main"]);
+      git(root, ["checkout", "-b", branch]);
+      writeArtifacts(root, {
+        manifest: manifest([["a/one.mjs", hash]], [ONE]),
+        ledger: ledger([[ONE_LEDGER, [ONE_HASH, hash]]]),
+      });
+      git(root, ["commit", "-am", branch]);
+    }
+    git(root, ["checkout", "charlie"]);
+    const merge = git(root, ["merge", "delta", "-m", MERGE_MESSAGE]);
+    return { root, status: merge.status, output: merge.output };
+  }
+
   it("mergesWithoutDriver: the same fixtures DO conflict when the driver is unregistered", () => {
     const root = repo(false);
     const merge = git(root, ["merge", "bravo", "-m", MERGE_MESSAGE]);
@@ -350,23 +378,9 @@ describe("lisa-generated-artifact merge driver", () => {
   });
 
   it("controlGenuineConflict: both sides changing one key's value still conflicts", () => {
-    const root = repo(true);
-    for (const [branch, hash] of [
-      ["charlie", "c1"],
-      ["delta", "d1"],
-    ] as const) {
-      git(root, ["checkout", "main"]);
-      git(root, ["checkout", "-b", branch]);
-      writeArtifacts(root, {
-        manifest: manifest([["a/one.mjs", hash]], [ONE]),
-        ledger: ledger([[ONE_LEDGER, [ONE_HASH, hash]]]),
-      });
-      git(root, ["commit", "-am", branch]);
-    }
-    git(root, ["checkout", "charlie"]);
-    const merge = git(root, ["merge", "delta", "-m", MERGE_MESSAGE]);
-    expect(merge.status).not.toBe(0);
-    expect(merge.output).toContain("could not be merged mechanically");
+    const { root, status, output } = conflictedRepo();
+    expect(status).not.toBe(0);
+    expect(output).toContain("could not be merged mechanically");
     expect(git(root, UNMERGED).output).toContain(ARTIFACT);
   });
 
@@ -411,5 +425,146 @@ describe("lisa-generated-artifact merge driver", () => {
       "totally unrelated file contents\n"
     );
     expect(result.ok).toBe(false);
+  });
+
+  /**
+   * Every command this driver prints as "run this" must be a command Lisa's
+   * own guards permit (CodySwannGT/lisa#3692).
+   *
+   * ## The defect
+   *
+   * The driver refused a conflict and instructed `git checkout --theirs --
+   * <path>`. `parity-safety-net` blocks every `git checkout` that discards
+   * worktree state, so the driver's own documented resolution was unrunnable —
+   * two controls issuing contradictory instructions on the most-travelled
+   * recovery route in the repository, at the moment the operator is already
+   * mid-conflict. At the time, the guard's suggested alternative was `git
+   * stash`, which is repo-global and races every other worktree.
+   *
+   * ## Why the commands are extracted from live output
+   *
+   * A hard-coded copy of the remedy would agree with the driver forever and
+   * with the guards only until someone edited the message — which is this
+   * defect reproduced one file over. Extracting from what the driver actually
+   * prints is what makes the control durable.
+   *
+   * ## Scope
+   *
+   * Bounded to the remedies THIS driver prints, which is where the defect
+   * lives. Generalising to every remedy string any Lisa control prints is a
+   * larger piece of work and deliberately not attempted here.
+   */
+  describe("the remedy the driver prints", () => {
+    const HOOK = path.resolve("plugins/lisa/hooks/parity-safety-net.sh");
+    const EXIT_ALLOWED = 0;
+    const EXIT_BLOCKED = 2;
+
+    /**
+     * Command lines the driver printed, one per indented line.
+     * @param output - The merge's combined output
+     * @returns The commands, trimmed
+     */
+    function remedyCommands(output: string): readonly string[] {
+      return output
+        .split("\n")
+        .filter(line => /^ {2,}(?:git|bun) /.test(line))
+        .map(line => line.trim());
+    }
+
+    /**
+     * Ask the shipped guard whether it would permit a command. Nothing runs —
+     * the hook is a classifier over a command string given as PreToolUse JSON.
+     * @param command - The proposed shell command
+     * @returns The hook's exit status
+     */
+    function classify(command: string): number | null {
+      return boundedSpawnSync({
+        label: "parity-safety-net.sh",
+        command: "/bin/bash",
+        args: [HOOK],
+        input: JSON.stringify({
+          tool_name: "Bash",
+          tool_input: { command },
+          cwd: process.cwd(),
+        }),
+        env: process.env,
+      }).status;
+    }
+
+    it("printedRemedyIsNotRefused: every command it prints passes the guards", () => {
+      const { output } = conflictedRepo();
+      const commands = remedyCommands(output);
+
+      // Guards the extraction itself. A regex that silently matched nothing
+      // would make the loop below vacuous, and the case would then pass
+      // against any message at all — including the one this ticket removed.
+      expect(commands.length).toBeGreaterThan(0);
+
+      // The classification comes BEFORE the shape assertion deliberately. Run
+      // against the pre-#3692 driver this is the line that fails, and it fails
+      // by REFUSAL — naming the guard that blocks the driver's own printed
+      // remedy, which is the defect. Assert the shape first and the case goes
+      // red on "the message changed", which is a weaker claim.
+      for (const command of commands) {
+        expect(classify(command), command).toBe(EXIT_ALLOWED);
+      }
+
+      // Then pin the specific replacement, so a future edit cannot satisfy the
+      // loop by dropping the restore step altogether.
+      expect(commands.some(command => command.startsWith("git show"))).toBe(
+        true
+      );
+    });
+
+    it("controlOldRemedyIsStillRefused: the command it used to print is blocked", () => {
+      // ON THE DEFECT. Verbatim the shape the driver printed before #3692.
+      // The guard refuses it today exactly as it did then, which is what made
+      // the driver's own documented resolution unrunnable. If this ever goes
+      // green the guard stopped catching the shape, and the remedy rewrite is
+      // no longer what keeps operators out of a blocked command.
+      expect(
+        classify(
+          `git checkout --theirs -- ${ARTIFACT} && bun run build:upstream-evidence-manifest`
+        )
+      ).toBe(EXIT_BLOCKED);
+    });
+
+    it("controlHarnessStillRefuses: the classifier can still produce a refusal", () => {
+      // Without this, the ALLOWED verdicts above cannot be told apart from a
+      // harness failing open — the hook exiting 0 on every input.
+      expect(classify(`git restore --worktree -- ${ARTIFACT}`)).toBe(
+        EXIT_BLOCKED
+      );
+    });
+
+    it("remedyTakesTheirsAndLeavesOursRecoverable: running it discards nothing", () => {
+      // ON THE FIX, stated plainly rather than dressed up as a defect probe:
+      // the OLD command also resolved the conflict. What this pins is the
+      // acceptance criterion — the chosen side lands in the working tree and
+      // the other side stays retrievable from the index.
+      const { root, output } = conflictedRepo();
+      const theirs = git(root, ["show", `:3:${ARTIFACT}`]).output;
+      const ours = git(root, ["show", `:2:${ARTIFACT}`]).output;
+      expect(ours).not.toBe(theirs);
+
+      const restore = remedyCommands(output).find(command =>
+        command.startsWith("git show")
+      );
+      expect(restore).toBeDefined();
+
+      // Only the restore line runs. The `bun run build:` lines name Lisa's own
+      // generators, which do not exist inside the fixture repository — those
+      // are classified above, not executed.
+      boundedSpawnSync({
+        label: "remedy",
+        command: "/bin/bash",
+        args: ["-c", restore as string],
+        cwd: root,
+        env: cleanGitEnv(),
+      });
+
+      expect(read(root, ARTIFACT)).toBe(theirs);
+      expect(git(root, ["show", `:2:${ARTIFACT}`]).output).toBe(ours);
+    });
   });
 });

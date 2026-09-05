@@ -662,11 +662,40 @@ export function runMergeGeneratedArtifact(
     theirsText,
     options.path
   );
+  // The remedy is spelled with `git show` into a redirect, NOT `git checkout
+  // --theirs --`, and that is load-bearing rather than stylistic
+  // (CodySwannGT/lisa#3692). `parity-safety-net` refuses every `git checkout`
+  // that discards worktree state, so the shape this driver used to print was
+  // one its own sibling guard blocked: an operator following the refusal
+  // faithfully was stopped by a second control, mid-conflict, with the
+  // guard's own suggestion at the time being `git stash` — repo-global, shared
+  // by every worktree, and a race against concurrent agents' work.
+  //
+  // The replacement is strictly safer than the command it replaces rather than
+  // merely permitted: the merge has already staged both sides, so writing one
+  // of them back over the working tree cannot discard anything, which is not
+  // true of `git checkout --theirs --`.
+  //
+  // Keep every command here runnable under the shipped guards. The suite
+  // extracts these lines from live output and classifies each one, so a
+  // reworded remedy that a guard refuses fails the build rather than reaching
+  // an operator.
   if (!result.ok) {
     error(
       `merge-generated-artifact: ${label} could not be merged mechanically — ${result.reason}.\n` +
-        `Both sides are preserved in the index (stages 2 and 3). Resolve by regenerating against the merged tree:\n` +
-        `  git checkout --theirs -- ${label} && bun run build:upstream-evidence-manifest && bun run build:lisa-owned-hash-ledger && git add ${label}\n`
+        `Both sides are preserved in the index — stage 2 is ours, stage 3 is theirs — so\n` +
+        `overwriting the working-tree copy with either one discards nothing. Resolve by\n` +
+        `regenerating against the merged tree:\n` +
+        `\n` +
+        `  git show ":3:${label}" > "${label}"\n` +
+        `  bun run build:upstream-evidence-manifest\n` +
+        `  bun run build:lisa-owned-hash-ledger\n` +
+        `  git add "${label}" src/core/upstream-evidence-manifest.ts src/core/lisa-owned-hash-ledger.ts\n` +
+        `\n` +
+        `Take the other side instead with \`git show ":2:${label}"\`. The redirect truncates\n` +
+        `${label} before git writes, so a failed first command leaves it empty — re-run it,\n` +
+        `or take stage 2; the index still holds both. Do not hand-resolve a generated\n` +
+        `artifact.\n`
     );
     return 1;
   }

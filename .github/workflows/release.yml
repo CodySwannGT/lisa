@@ -7,7 +7,7 @@ on:
   workflow_call:
     inputs:
       environment:
-        description: 'Target environment for the release'
+        description: 'Release channel used for versioning and approval; this does not record a deployment'
         required: true
         type: string
       skip_jobs:
@@ -1309,7 +1309,8 @@ jobs:
 
           ## 📊 Release Information
           - **Version**: ${{ needs.version.outputs.version }}
-          - **Environment**: ${{ inputs.environment }}
+          - **Release Channel**: ${{ inputs.environment }}
+          - **Deployment**: Not recorded by this workflow
           - **Release Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
           - **Release ID**: ${{ needs.release_init.outputs.correlation_id }}
           - **Emergency Release**: ${{ inputs.emergency_release && '⚠️ Yes' || 'No' }}
@@ -1567,7 +1568,6 @@ jobs:
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
         with:
-          environment: ${{ inputs.environment }}
           version: ${{ needs.version.outputs.version }}
           sourcemaps: ${{ inputs.sourcemaps }}
 
@@ -1578,7 +1578,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ Sentry release created successfully" >> $GITHUB_STEP_SUMMARY
           echo "- **Version**: ${{ needs.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Environment**: ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release Channel**: ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployment**: Not recorded by this workflow" >> $GITHUB_STEP_SUMMARY
           if [ -n "${{ inputs.sourcemaps }}" ]; then
             echo "- **Source Maps**: Uploaded from \`${{ inputs.sourcemaps }}\`" >> $GITHUB_STEP_SUMMARY
           fi
@@ -1901,7 +1902,8 @@ jobs:
           ## Release Information
           - **Version**: ${{ needs.version.outputs.version }}
           - **Tag**: ${{ needs.version.outputs.tag }}
-          - **Environment**: ${{ inputs.environment }}
+          - **Release Channel**: ${{ inputs.environment }}
+          - **Deployment**: Not recorded by this workflow
           - **Correlation ID**: ${{ needs.release_init.outputs.correlation_id }}
 
           ## Enterprise Features

@@ -73,6 +73,18 @@ export const FAMILIES = [
     kind: "k6",
   },
   {
+    // #3992. The always-on eager rule tier is concatenated into every session
+    // AND every subagent start, so its byte ceiling is a quality threshold like
+    // any other. `max` because the number is a ceiling: lowering it tightens the
+    // gate and is free, raising it re-authorises context the cleanup removed and
+    // is the change a human has to see. The tier was cut to 26,540 bytes once
+    // and regrew to 201,083 in fourteen weeks with nothing watching it.
+    id: "eager-rules",
+    match: /(^|\/)eager-rules\.thresholds\.json$/,
+    kind: "json-num",
+    direction: "max",
+  },
+  {
     id: "lisa-config",
     match: /(^|\/)\.lisa\.config\.json$/,
     kind: "allow-list",

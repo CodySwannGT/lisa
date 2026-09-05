@@ -43,12 +43,12 @@ const plain = (doc: string): string => doc.replace(/[*`]/g, "");
 
 describe("deployed-state-readback rule contract", () => {
   describe.each(ROOTS)("%s", root => {
-    const eager = read(root, "rules/eager/deployed-state-readback.md");
+    const eager = read(root, "rules/reference/deployed-state-readback.md");
     const reference = read(root, "rules/reference/deployed-state-readback.md");
 
-    it("eager head breadcrumbs to the reference body", () => {
-      expect(eager).toContain(
-        "[reference/deployed-state-readback.md](../reference/deployed-state-readback.md)"
+    it("stays reachable from the eager rule index", () => {
+      expect(read(root, "rules/eager/00-rule-index.md")).toContain(
+        "reference/deployed-state-readback.md"
       );
     });
 
@@ -127,7 +127,7 @@ describe("deployed-state-readback rule contract", () => {
     });
 
     describe("reconciliation with blocker-containment", () => {
-      const bcEager = read(root, "rules/eager/blocker-containment.md");
+      const bcEager = read(root, "rules/reference/blocker-containment.md");
       const bcReference = read(root, "rules/reference/blocker-containment.md");
 
       it("this rule explains why it does not conflict", () => {

@@ -446,8 +446,11 @@ export function parseArgs(argv) {
     if (arg === "--json") {
       json = true;
     } else if (arg === "--root") {
+      if (i + 1 >= argv.length) {
+        throw new UsageError("--root requires a value");
+      }
       const next = argv[i + 1];
-      if (next === undefined || next.startsWith("--")) {
+      if (next.startsWith("--")) {
         throw new UsageError("--root requires a value");
       }
       root = next;

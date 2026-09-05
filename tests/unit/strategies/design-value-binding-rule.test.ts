@@ -80,7 +80,7 @@ const section = (body: string, heading: string): string => {
 
 describe("design-value-binding rule contract", () => {
   describe.each(ROOTS)("%s", root => {
-    const eager = read(root, "rules/eager/design-value-binding.md");
+    const eager = read(root, "rules/reference/design-value-binding.md");
     const reference = read(root, "rules/reference/design-value-binding.md");
 
     it("ships as a paired rule with a non-trivial body on both sides", () => {
@@ -88,9 +88,9 @@ describe("design-value-binding rule contract", () => {
       expect(reference.length).toBeGreaterThan(2000);
     });
 
-    it("eager head breadcrumbs to the reference body verbatim", () => {
-      expect(eager).toContain(
-        "[reference/design-value-binding.md](../reference/design-value-binding.md)"
+    it("stays reachable from the eager rule index", () => {
+      expect(read(root, "rules/eager/00-rule-index.md")).toContain(
+        "reference/design-value-binding.md"
       );
     });
 

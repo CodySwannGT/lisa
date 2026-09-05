@@ -113,6 +113,26 @@ jobs:
       # would fail every consumer's commit.
       - name: Check no path is both delivered and deleted
         run: bun run check:delivery-deletion-conflicts
+      # #3849: the step above asks whether a path is delivered and deleted at
+      # once. This one asks the opposite question, and it is the harder one
+      # here, because removal is structurally harder than addition: the copy
+      # lanes overwrite and `deepMergeWithArrayUnion` unions, so a template
+      # edit can ADD to a host's tree and can never remove from it. A removal
+      # made upstream with neither a deletions entry nor a migration does
+      # nothing downstream, silently, while looking complete in the diff.
+      #
+      # Both surfaces are governed, because both leave a host broken. A shipped
+      # FILE that vanishes is kept forever by every host that ever received it.
+      # A shipped script's named EXPORT that vanishes fails at module link time
+      # in whatever host code imported it - which is the shape that was actually
+      # reported, from a host-owned importer this repository never shipped and
+      # therefore could not have found by scanning its own imports.
+      #
+      # Needs full history: the gate compares HEAD against the baseline tag
+      # pinned in `shipped-removals.json`, so the `fetch-depth: 0` and tags this
+      # job already checks out are load-bearing rather than incidental.
+      - name: Check every removal from a shipped surface is governed
+        run: bun run check:shipped-surface-removals
       # #2960: consumers reference the reusable workflow at `@main` but
       # version-pin the package, so every consumer runs TODAY'S workflow
       # against an OLDER package. #2951 proved the cost — a prover moved
@@ -147,6 +167,17 @@ jobs:
         run: bun run check:plugins
       - name: Check rules eager/reference pairing
         run: bun run check:rules-pairing
+      # #3992: the eager rule tier is injected at SessionStart AND SubagentStart,
+      # so a lead plus ten teammates pays it eleven times before any work. It was
+      # cut from 190,237 to 26,540 bytes in May 2026 and had regrown to 201,083
+      # by September — 7.6x the post-cleanup figure and larger than the payload
+      # the cleanup removed. Every addition was individually defensible; nothing
+      # measured the sum, so nobody saw it happen. Like its neighbours the gate
+      # refuses to pass an inspection it did not perform: it prints the files and
+      # bytes it measured per plugin root and exits 2 rather than reporting a
+      # passing zero for a directory it could not read.
+      - name: Check eager rule budget
+        run: bun run check:eager-rule-budget
       # #3090: a shell pipeline's exit status is its LAST stage's, so a gate
       # piped into `tail`/`head`/`tee` reports the pager's success and a FAILED
       # gate is recorded as passing. It is not hypothetical here — the
@@ -200,6 +231,18 @@ jobs:
       # not be, and exits 2 at zero probed.
       - name: Check no guard reports OK on an empty subject
         run: bun run check:empty-subject-guards
+      # #3952: two guards answer "which file will this command actually execute?"
+      # in two languages — POSIX shell in parity-safety-net.sh, Node in
+      # worktree-binding-guard.mjs — and they cannot share an implementation,
+      # because no call reaches from Node into a shell function's file-scope
+      # state. They share a corpus of rows instead, and that only binds them
+      # while the rows stay adversarial. Rows decay in one direction: a `holds`
+      # row is easy to write and always passes, so a corpus left alone drifts
+      # towards proving the resolver RAN rather than that it BITES. This refuses
+      # a corpus missing either rejection direction, and refuses any contract
+      # point carried only by rows both wrong implementations already pass.
+      - name: Check the cwd-resolution corpus can still bite
+        run: bun run check:cwd-resolution-corpus
       # #3190: a shell guard cannot be mutation-tested — #3111 established that
       # Stryker cannot instrument shell at all — so its driving test is the only
       # bite evidence it can have, and nine guards had a driving test whose every

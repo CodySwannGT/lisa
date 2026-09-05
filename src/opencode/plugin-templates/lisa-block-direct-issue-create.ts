@@ -116,6 +116,50 @@ export /**
  */
 const LisaBlockDirectIssueCreate = async () => {
   const HUMAN_GATE_MARKER = "[lisa-human-gate]";
+
+  /**
+   * Decoration a hold declaration may sit behind, and nothing more.
+   *
+   * The OpenCode port of the rule the bash guard applies
+   * (CodySwannGT/lisa#3815). This is a TWELFTH copy of a predicate that ticket
+   * inventoried at eleven, and it is named here because the cross-repo parity
+   * suite compares this port's verdict with the bash guard's on every case — so
+   * a precision change landing on one and not the other is a parity break
+   * rather than a silent divergence. That suite is what found it.
+   */
+  const HUMAN_GATE_DECORATION =
+    /^[ \t>*_+#-]*(?:\d+[.)][ \t]*)?(?:<!--[ \t]*)?[ \t]*/u;
+
+  /**
+   * Whether a text DECLARES a hold rather than merely mentioning one.
+   *
+   * The bare `includes` this replaces read a body that DISCUSSES the marker as
+   * a body that declares a hold. A declaration is positional: the marker leads
+   * its line behind at most the decoration above, or sits inside an HTML
+   * comment on that line, with fenced blocks and inline code spans removed
+   * first because that is how the marker gets written about.
+   */
+  const declaresHumanGate = (text: string): boolean => {
+    if (!text) return false;
+    const body = text
+      .replace(/```[\s\S]*?```/gu, "")
+      .replace(/`[^`\n]*`/gu, "");
+    return body.split("\n").some(line => {
+      if (
+        line.replace(HUMAN_GATE_DECORATION, "").startsWith(HUMAN_GATE_MARKER)
+      ) {
+        return true;
+      }
+      return line
+        .split("<!--")
+        .slice(1)
+        .some(segment => {
+          const close = segment.indexOf("-->");
+          const inside = close === -1 ? segment : segment.slice(0, close);
+          return inside.includes(HUMAN_GATE_MARKER);
+        });
+    });
+  };
   /**
    * A label / workflow-state assignment and its value.
    *
@@ -159,6 +203,41 @@ const LisaBlockDirectIssueCreate = async () => {
    */
   const LIFECYCLE_ROLE_READY =
     /(?:^|[^\w.-])(?:lifecycle_role|LIFECYCLE_ROLE)["']?\s*[:=]\s*["']?ready\b|(?:^|[^\w.-])--role[=\s]+["']?ready\b/;
+  /**
+   * The third declaration: this item is a CONTAINER.
+   *
+   * A container is neither build-ready nor human-gated. `leaf-only-lifecycle`
+   * FORBIDS the build-ready role on an Epic, and a human gate it does not have
+   * is a durable false hold — so a guard with only the two arms above could be
+   * satisfied for a container only by writing something untrue, and both
+   * untruths corrupt data another control reads.
+   *
+   * It keys on the canonical container line that `derived-branch-plan` defines
+   * and `lisa-github-write-issue` already stamps, NOT on a declared
+   * `type:Epic`. A declared type is a claim that costs a leaf nothing and
+   * leaves it looking buildable; the container line costs the item its Target
+   * Backend Environment and Branch Plan, so it is only useful to something
+   * that actually is a container.
+   *
+   * Matched as the WHOLE canonical value, `None` included: the tail alone
+   * would match ordinary prose about how a container's state behaves, and a
+   * declaration that ordinary prose satisfies is not a declaration.
+   * Whitespace-tolerant because a body file may wrap the line; dash-tolerant
+   * because an author retyping it by hand will not always reach for the em
+   * dash.
+   */
+  const CONTAINER_DECLARATION =
+    /None\s*[\u2014\u2013-]\s*container:\s*state\s+rolls\s+up\s+from\s+children/i;
+  /**
+   * The checkable half of "is it really a container": an item cannot be a
+   * container and a by-design leaf at once. The types are quoted from
+   * `leaf-only-lifecycle`. Story and Spike are deliberately absent — that
+   * rule's childless-parent exception makes them leaf-or-container depending
+   * on child work, and a decomposition legitimately files a parent Story
+   * before the children that make it one.
+   */
+  const LEAF_TYPE_FLAG =
+    /--(?:label|labels|add-label|type|issue-type|issuetype)(?:=|\s+)(['"]?)(?:type:)?(bug|task|sub-?task|improvement)\1(?=[\s,]|$)/i;
   /** A creation verb, and a tracker endpoint to send it to. */
   const GRAPHQL_CREATE = /createIssue|issueCreate/;
   const TRACKER_ENDPOINT =
@@ -486,8 +565,12 @@ const LisaBlockDirectIssueCreate = async () => {
             .map(part => part.trim())
             .some(candidate => against.includes(candidate))
         ) ||
-        text.includes(HUMAN_GATE_MARKER) ||
-        (roleOk && LIFECYCLE_ROLE_READY.test(text));
+        declaresHumanGate(text) ||
+        (roleOk && LIFECYCLE_ROLE_READY.test(text)) ||
+        // The container arm. The contradiction check comes first, so a filing
+        // declaring itself both a container and a by-design leaf is refused
+        // rather than allowed on the strength of the half that suits it.
+        (!LEAF_TYPE_FLAG.test(text) && CONTAINER_DECLARATION.test(text));
       const declares = (text: string): boolean =>
         declaresFor(text, roles, stateRoleOk);
       // A creation the command does not spell out itself, because it lives in

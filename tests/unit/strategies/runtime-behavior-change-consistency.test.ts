@@ -134,7 +134,10 @@ describe("every declaration marker uses the em-dash discriminator", () => {
 
 describe("every rule copy uses the em-dash discriminator", () => {
   describe.each(RULE_ROOTS)("%s", root => {
-    it.each(["eager", "reference"] as const)("%s tier", tier => {
+    // #3992 demoted `derived-branch-plan` out of the eager tier, folding its
+    // head into the reference body. One copy per root now, so the sweep runs
+    // over the tier that has it — still every root, still a universal negative.
+    it.each(["reference"] as const)("%s tier", tier => {
       const spans = markerSpans(readRule(root, tier));
 
       expect(spans.length).toBeGreaterThan(0);
@@ -167,7 +170,10 @@ describe("no copy reads an absent declaration as false", () => {
 
 describe("no rule copy reads an absent declaration as false", () => {
   describe.each(RULE_ROOTS)("%s", root => {
-    it.each(["eager", "reference"] as const)("%s tier", tier => {
+    // #3992 demoted `derived-branch-plan` out of the eager tier, folding its
+    // head into the reference body. One copy per root now, so the sweep runs
+    // over the tier that has it — still every root, still a universal negative.
+    it.each(["reference"] as const)("%s tier", tier => {
       const content = readRule(root, tier);
 
       expect(content).toMatch(/underivable/iu);
