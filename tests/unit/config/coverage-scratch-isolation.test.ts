@@ -37,6 +37,8 @@ import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
+
 import {
   COVERAGE_REPORTS_DIR_ENV,
   COVERAGE_RUNS_DIR,
@@ -51,8 +53,16 @@ const FIXTURE = path.join(
   "tests/helpers/__fixtures__/coverage-scratch-concurrent.ts"
 );
 
-/** Only a hung child can reach this; the barrier itself is event-driven. */
-const CHILD_BUDGET_MS = 120_000;
+/**
+ * Only a hung child can reach this; the barrier itself is event-driven.
+ *
+ * Scaled by {@link ioLatencyBudgetMs} rather than written as a flat number.
+ * This case pays for two real Node startups with a `tsx` bootstrap apiece, and
+ * both scale with the machine — a fixed ceiling would be generous on a quiet
+ * box and a flake on a loaded one, which is the failure mode the budget
+ * conformance guard exists to refuse.
+ */
+const CHILD_BUDGET_MS = ioLatencyBudgetMs(120_000);
 
 /** What one child reported about its own coverage scratch. */
 interface RaceReport {
