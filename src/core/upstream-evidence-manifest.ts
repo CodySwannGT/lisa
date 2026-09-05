@@ -500,6 +500,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "d03bc6d18e20c368d37abd4d1000589cbbfb67afab0ad58da4f18ed73ec65ee9",
     "phaser/copy-overwrite/ast-grep/rule-tests/.gitkeep":
       "fd9b902271d9cbaca0ead2a1e659776db904c10b06ceed7e5bc43fa57b89aba1",
+    "phaser/copy-overwrite/ast-grep/rules/no-day-truncating-file-age-predicate.yml":
+      "6fad69e83ab937f6d929305be46fbe38390cd30c8b525ab0a24a5ac65d377ef6",
     "phaser/copy-overwrite/ast-grep/rules/phaser/no-canvas-renderer.yml":
       "6bd12358ba4147e11758b9b128404fc48964e6d1b7b1a046080c20b6f8d756f7",
     "phaser/copy-overwrite/ast-grep/rules/phaser/no-raw-webgl-context.yml":
@@ -2132,6 +2134,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "c73ab0f02fe764ce2953761272d5302ef1f5cc17f346c70697f2d638a11b5a4d",
     "rails/copy-overwrite/ast-grep/rule-tests/.gitkeep":
       "fd9b902271d9cbaca0ead2a1e659776db904c10b06ceed7e5bc43fa57b89aba1",
+    "rails/copy-overwrite/ast-grep/rules/no-day-truncating-file-age-predicate.yml":
+      "6fad69e83ab937f6d929305be46fbe38390cd30c8b525ab0a24a5ac65d377ef6",
     "rails/copy-overwrite/ast-grep/rules/ruby/no-find-by-sql-without-params.yml":
       "313278315d8c8b0c0b0d905d78d56640c29fa5e367fc020a16d1868f7e44be83",
     "rails/copy-overwrite/ast-grep/rules/ruby/no-params-without-permit.yml":
@@ -2484,6 +2488,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "fd9b902271d9cbaca0ead2a1e659776db904c10b06ceed7e5bc43fa57b89aba1",
     "typescript/copy-overwrite/ast-grep/rules/.gitkeep":
       "5068239f6c760759362d6a1cc83478d77eef0214fa7f4f23c8d1ce4b56f532c0",
+    "typescript/copy-overwrite/ast-grep/rules/no-day-truncating-file-age-predicate.yml":
+      "6fad69e83ab937f6d929305be46fbe38390cd30c8b525ab0a24a5ac65d377ef6",
     "typescript/copy-overwrite/ast-grep/rules/no-inline-component-in-container.yml":
       "cb3c9ba6ee7849f767f9c95423f271447254564dc97122a3c871c8d76c9f688b",
     "typescript/copy-overwrite/ast-grep/rules/no-inline-component-in-view.yml":
@@ -2797,12 +2803,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "ast-grep/rule-tests/__snapshots__/harper-no-empty-conditions-with-sort-snapshot.yml": true,
     "ast-grep/rule-tests/__snapshots__/harper-no-full-table-scan-snapshot.yml": true,
     "ast-grep/rule-tests/__snapshots__/harper-require-statuscode-on-thrown-error-snapshot.yml": true,
+    "ast-grep/rule-tests/__snapshots__/no-day-truncating-file-age-predicate-snapshot.yml": true,
     "ast-grep/rule-tests/__snapshots__/phaser-no-canvas-renderer-snapshot.yml": true,
     "ast-grep/rule-tests/__snapshots__/phaser-no-raw-webgl-context-snapshot.yml": true,
     "ast-grep/rule-tests/harper-no-early-return-in-search-loop-test.yml": true,
     "ast-grep/rule-tests/harper-no-empty-conditions-with-sort-test.yml": true,
     "ast-grep/rule-tests/harper-no-full-table-scan-test.yml": true,
     "ast-grep/rule-tests/harper-require-statuscode-on-thrown-error-test.yml": true,
+    "ast-grep/rule-tests/no-day-truncating-file-age-predicate-test.yml": true,
     "ast-grep/rule-tests/phaser-no-canvas-renderer-test.yml": true,
     "ast-grep/rule-tests/phaser-no-raw-webgl-context-test.yml": true,
     "ast-grep/rules/.gitkeep": true,
@@ -2810,6 +2818,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "ast-grep/rules/harper/no-empty-conditions-with-sort.yml": true,
     "ast-grep/rules/harper/no-full-table-scan.yml": true,
     "ast-grep/rules/harper/require-statuscode-on-thrown-error.yml": true,
+    "ast-grep/rules/no-day-truncating-file-age-predicate.yml": true,
     "ast-grep/rules/no-inline-component-in-container.yml": true,
     "ast-grep/rules/no-inline-component-in-view.yml": true,
     "ast-grep/rules/no-missing-fs-extra-namespace-member-js.yml": true,
@@ -3096,6 +3105,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "phaser/copy-overwrite/.github/workflows/ci.yml": true,
     "phaser/copy-overwrite/.husky/pre-push.verify": true,
     "phaser/copy-overwrite/ast-grep/rule-tests/.gitkeep": true,
+    "phaser/copy-overwrite/ast-grep/rules/no-day-truncating-file-age-predicate.yml": true,
     "phaser/copy-overwrite/ast-grep/rules/phaser/no-canvas-renderer.yml": true,
     "phaser/copy-overwrite/ast-grep/rules/phaser/no-raw-webgl-context.yml": true,
     "phaser/copy-overwrite/ast-grep/utils/.gitkeep": true,
@@ -8468,6 +8478,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "rails/copy-overwrite/.versionrc": true,
     "rails/copy-overwrite/Gemfile.lisa": true,
     "rails/copy-overwrite/ast-grep/rule-tests/.gitkeep": true,
+    "rails/copy-overwrite/ast-grep/rules/no-day-truncating-file-age-predicate.yml": true,
     "rails/copy-overwrite/ast-grep/rules/ruby/no-find-by-sql-without-params.yml": true,
     "rails/copy-overwrite/ast-grep/rules/ruby/no-params-without-permit.yml": true,
     "rails/copy-overwrite/ast-grep/rules/ruby/no-raw-sql-in-where.yml": true,
@@ -9791,6 +9802,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/deploy-release-dependence.test.ts": true,
     "tests/unit/core/enforcement-census-roster.test.ts": true,
     "tests/unit/core/enforcement-census.test.ts": true,
+    "tests/unit/core/find-age-predicate-truncation.test.ts": true,
     "tests/unit/core/fs-extra-namespace-callsites.test.ts": true,
     "tests/unit/core/fs-extra-namespace-members.test.ts": true,
     "tests/unit/core/gate-context-owners.test.ts": true,
@@ -10764,6 +10776,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "typescript/copy-overwrite/.yamllint": true,
     "typescript/copy-overwrite/ast-grep/rule-tests/.gitkeep": true,
     "typescript/copy-overwrite/ast-grep/rules/.gitkeep": true,
+    "typescript/copy-overwrite/ast-grep/rules/no-day-truncating-file-age-predicate.yml": true,
     "typescript/copy-overwrite/ast-grep/rules/no-inline-component-in-container.yml": true,
     "typescript/copy-overwrite/ast-grep/rules/no-inline-component-in-view.yml": true,
     "typescript/copy-overwrite/ast-grep/rules/no-missing-fs-extra-namespace-member-js.yml": true,
@@ -10844,6 +10857,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "wiki/decisions/2026-08-12-ratchet-policy.md": true,
     "wiki/decisions/2026-08-19-guard-mutation-gate.md": true,
     "wiki/decisions/2026-09-04-state-change-without-inverse.md": true,
+    "wiki/decisions/2026-09-05-find-age-predicates.md": true,
     "wiki/documentation/assets/lisa-architecture.svg": true,
     "wiki/documentation/claude/overinstructions.md": true,
     "wiki/documentation/claude/review.md": true,

@@ -366,3 +366,106 @@ describe("ast-grep stack templates", () => {
     );
   });
 });
+
+/**
+ * The four copies of the day-truncating age-predicate rule (#3905).
+ *
+ * Three ship to host projects and the fourth is what Lisa scans itself with.
+ * They are asserted byte-identical for the same reason the `fs-extra` mirrors
+ * are: a rule edited in one channel and not the others protects part of the
+ * fleet to a different standard than the rest, silently.
+ */
+const AGE_PREDICATE_RULES = [
+  "ast-grep/rules/no-day-truncating-file-age-predicate.yml",
+  "typescript/copy-overwrite/ast-grep/rules/no-day-truncating-file-age-predicate.yml",
+  "rails/copy-overwrite/ast-grep/rules/no-day-truncating-file-age-predicate.yml",
+  "phaser/copy-overwrite/ast-grep/rules/no-day-truncating-file-age-predicate.yml",
+] as const;
+
+/**
+ * The header every copy-overwrite template carries and no root mirror does.
+ *
+ * Enforced repo-wide by `tests/unit/templates/template-ownership-header.test.ts`
+ * (#2547); restated here because this suite compares the two channels directly
+ * and has to say which difference between them is sanctioned.
+ */
+const TEMPLATE_OWNERSHIP_HEADER =
+  "# This file is managed by Lisa and IS replaced on each `lisa` run.\n" +
+  "# Do not edit directly — durable changes belong upstream in Lisa.\n\n";
+
+/** Rule id of the day-truncating age-predicate rule. */
+const AGE_PREDICATE_RULE_ID = "no-day-truncating-file-age-predicate";
+
+/**
+ * A sweep written with the truncating flag.
+ *
+ * `+2` reads as "older than two days" and matches only files older than three,
+ * so this script silently skips the 49h-71h band. The measurement behind that
+ * claim lives in `tests/unit/core/find-age-predicate-truncation.test.ts`.
+ */
+const TRUNCATING_SWEEP =
+  '#!/usr/bin/env bash\nfind "$TMPDIR" -maxdepth 1 -name "cdk.*" -mtime +2 -delete\n';
+
+/**
+ * The same sweep asking the question it means.
+ *
+ * Byte-for-byte the violation above apart from the predicate, so the silent
+ * arm cannot pass for a reason the firing arm does not share.
+ */
+const MINUTE_SWEEP =
+  '#!/usr/bin/env bash\nfind "$TMPDIR" -maxdepth 1 -name "cdk.*" -mmin +2880 -delete\n';
+
+describe("the day-truncating age predicate rule (#3905)", () => {
+  it.each(["typescript", "rails", "phaser"] as const)(
+    "%s: flags -mtime in a shipped shell script",
+    stack => {
+      // Reach as much as correctness. The rule is `language: bash`, and a rule
+      // over a language the scanner never classifies is a green control that
+      // proves nothing — the failure mode this repository keeps finding.
+      scanExpectingDiagnostic(
+        stack,
+        "scripts/sweep.sh",
+        TRUNCATING_SWEEP,
+        AGE_PREDICATE_RULE_ID
+      );
+    }
+  );
+
+  it.each(["typescript", "rails", "phaser"] as const)(
+    "%s: stays silent on the -mmin form the shipped hooks use",
+    stack => {
+      // The paired half. Without it, a rule that matched nothing at all would
+      // satisfy a "no diagnostics" assertion exactly as well as a correct one —
+      // and this arm is what makes a future edit of a shipped hook from `-mmin`
+      // to `-mtime` a failure rather than a silent change of question.
+      expect(
+        scanForRule(
+          stack,
+          "scripts/sweep.sh",
+          MINUTE_SWEEP,
+          AGE_PREDICATE_RULE_ID
+        )
+      ).toEqual([]);
+    }
+  );
+
+  it("keeps all four copies identical below the ownership header", () => {
+    const [canonical, ...mirrors] = AGE_PREDICATE_RULES;
+    const expected = readText(canonical);
+
+    // Asserted against the canonical text rather than pairwise, so four copies
+    // that drifted together in the same wrong direction still fail one of the
+    // behavioural arms above instead of agreeing quietly here.
+    //
+    // The shipped copies carry the two-line ownership header that every
+    // copy-overwrite template carries and the root copy does not, so the header
+    // is the only sanctioned difference — spelled out rather than stripped by a
+    // loose prefix trim, which would also hide a real edit made above the id.
+    expect(expected).toContain("regex: ^-(mtime|atime|ctime)$");
+    for (const mirror of mirrors) {
+      expect(readText(mirror), `${mirror} drifted from ${canonical}`).toBe(
+        TEMPLATE_OWNERSHIP_HEADER + expected
+      );
+    }
+  });
+});
