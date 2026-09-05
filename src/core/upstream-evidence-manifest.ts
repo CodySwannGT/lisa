@@ -2555,7 +2555,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "dfd2fef680de5ef03e63075e8a61c62ca4d95cdfdff6201939b79c748d3397f6",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "ad97de4cea9ca61b10d637ef093e1697e434942d14d92e3e59955b9a81304a4c",
+      "ed6f649d68e2d264ce7f4a5cc6c2db42e6725d30005d7dad98b759801bc14b07",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d7415ebdec5af1f99eda98a23757d25ca09b4b04affc4619f810a64fc0aa9941",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -10367,6 +10367,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/mutation-gate-wiring.test.ts": true,
     "tests/unit/scripts/mutation-performance-measure.test.ts": true,
     "tests/unit/scripts/mutation-performance-reporter.test.ts": true,
+    "tests/unit/scripts/never-blocking-under-fail-on-vacuous.test.ts": true,
     "tests/unit/scripts/nightly-e2e-guard-certificate.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-api.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-bypass-label.test.ts": true,
