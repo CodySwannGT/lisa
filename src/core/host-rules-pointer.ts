@@ -11,6 +11,18 @@
  * Pointer only. Lisa never writes rule bodies into `AGENTS.md` or into
  * `.agents/rules/`; that is what distinguishes this block from the legacy
  * `LISA_RULES_START..END` bake that PR #1150 removed.
+ *
+ * The block is a plain-prose instruction, and short on purpose. Every line of
+ * it is loaded into every agent's context in every session, forever, so it
+ * carries the instruction and nothing else: the ownership and transition
+ * explanations it used to carry are Lisa internals that no agent acts on, and
+ * they live in this file's comments now instead of in every host's `AGENTS.md`.
+ *
+ * Prose rather than an import directive, because prose is the only form all six
+ * agents can act on. `@path` is Claude Code syntax that the other five do not
+ * parse, and it resolves files rather than directories even on Claude — an
+ * `@.agents/rules/` line was measured to load nothing at all, producing a block
+ * that reads as instruction-bearing while instructing no one.
  * @module core/host-rules-pointer
  */
 import { HOST_RULES_DIR } from "./project-config.js";
@@ -80,16 +92,8 @@ export function buildHostRulesPointer(legacyRulesFile?: string): string {
     LISA_HOST_RULES_START_MARKER,
     "## Host Rules",
     "",
-    `This project's durable, host-authored operating rules live in \`${HOST_RULES_DIR}/\`.`,
-    "Read those files when you need this project's standing rules. They are not",
-    "injected at session start, so consult them on demand — which also means every",
-    "agent reads them through this one pointer and no agent loads them twice.",
-    "",
-    `**Ownership.** The host owns every file in \`${HOST_RULES_DIR}/\`. Lisa never writes`,
-    "rule bodies there; Lisa's own rules ship through its per-agent plugins. This",
-    "marked block is the only Lisa-managed content in this file — everything outside",
-    "the markers belongs to the host and is never touched.",
-    ...transitionParagraph(legacyRulesFile),
+    `Read every file under \`${HOST_RULES_DIR}/\` for this project's standing rules.`,
+    ...transitionSentence(legacyRulesFile),
     LISA_HOST_RULES_END_MARKER,
   ].join("\n");
 }
@@ -110,24 +114,28 @@ export function stripHostRulesPointer(body: string): string {
 }
 
 /**
- * Lines naming a surviving legacy single-file rules document, so its content
- * stays reachable while the project transitions. Empty when the project has
- * none — the paragraph then disappears on its own.
+ * The clause naming a surviving legacy single-file rules document, so its
+ * content stays reachable while the project transitions. Empty when the project
+ * has none — the sentence then disappears on its own, which is what keeps the
+ * block from sending an agent after a path that is not there.
+ *
+ * The auto-load caveat is the one piece of the retired transition paragraph
+ * that has to survive: `.agents/rules/` is not a native auto-load tree for any
+ * runtime, but a legacy path can be. Claude Code auto-loads `.claude/rules/`,
+ * so an unqualified "also read it" would reintroduce exactly the double-load
+ * this block exists to prevent. It is phrased against the runtime rather than
+ * against the path because `projectRulesFile` may point somewhere Claude does
+ * not auto-load, and naming `.claude/rules/` unconditionally would be false
+ * there.
  * @param legacyRulesFile - Project-relative legacy rules path, if any.
  * @returns Zero or more block lines.
  */
-function transitionParagraph(legacyRulesFile: string | undefined): string[] {
+function transitionSentence(legacyRulesFile: string | undefined): string[] {
   if (legacyRulesFile === undefined) {
     return [];
   }
   return [
-    "",
-    `**Transition.** This project still has host rules at \`${legacyRulesFile}\`.`,
-    "They remain authoritative and are left exactly as written — Lisa does not",
-    "move, rewrite, or delete them. Agents whose runtime auto-loads that path",
-    "(Claude Code auto-loads `.claude/rules/`) already have that content and must",
-    "not read it a second time; every other agent should read it alongside",
-    `\`${HOST_RULES_DIR}/\`. Reclassifying or relocating it is a human-gated`,
-    "decision, never an automated rewrite.",
+    `Also read \`${legacyRulesFile}\`, unless your runtime auto-loads it —`,
+    "Claude Code auto-loads `.claude/rules/`.",
   ];
 }
