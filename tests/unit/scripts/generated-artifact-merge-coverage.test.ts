@@ -89,8 +89,12 @@ describe("the declaration matches this repository", () => {
     expect(inspectGeneratedArtifacts(REPO_ROOT).violations).toEqual([]);
   });
 
-  it("declares four artifacts", () => {
-    expect(GENERATED_ARTIFACTS.length).toBe(4);
+  it("declares five artifacts", () => {
+    // Four when this guard landed; a fifth once CodySwannGT/lisa#3718 added
+    // `src/core/export-surface.json`. Hardcoded per the Test Isolation house
+    // rule, so a silently dropped declaration fails here rather than
+    // agreeing with whatever the declaration happens to hold.
+    expect(GENERATED_ARTIFACTS.length).toBe(5);
   });
 
   it("covers exactly the two the driver can structure", () => {

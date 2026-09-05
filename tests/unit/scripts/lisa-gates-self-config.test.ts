@@ -86,6 +86,7 @@ const LEDGER_TASK = "check:lisa-owned-hash-ledger";
 const CERTIFICATE_TASK = "check:nightly-guard-certificate";
 const TWO_CHANNEL_TASK = "check:two-channel-couplings";
 const DELETION_BASIS_TASK = "check:deletion-basis";
+const EXPORT_SURFACE_TASK = "check:export-surface";
 const MERGE_COVERAGE_TASK = "check:merge-coverage";
 
 /** The runner the aggregate hands those names to. */
@@ -105,6 +106,7 @@ const ALL_RAN = [
   CERTIFICATE_TASK,
   TWO_CHANNEL_TASK,
   DELETION_BASIS_TASK,
+  EXPORT_SURFACE_TASK,
   MERGE_COVERAGE_TASK,
 ];
 
@@ -364,10 +366,13 @@ describe("check:artifacts states its verdict last", () => {
     const { code, line } = lastLine([0, 0, 0, 0]);
 
     expect(code).toBe(0);
-    // Six since CodySwannGT/lisa#3932 added `check:merge-coverage`. Hardcoded
-    // per the Test Isolation house rule: deriving it from the script would
-    // make the assertion agree with whatever the script happens to say.
-    expect(line).toContain("all 6 generated-artifact checks passed");
+    // Seven: six since CodySwannGT/lisa#3932 added `check:merge-coverage`,
+    // and a seventh once CodySwannGT/lisa#3718 added `check:export-surface`.
+    // Both landed on the same line from opposite branches, so the union of
+    // the two is what the script now runs. Hardcoded per the Test Isolation
+    // house rule: deriving it from the script would make the assertion agree
+    // with whatever the script happens to say.
+    expect(line).toContain("all 7 generated-artifact checks passed");
   });
 
   it("names the failing check last, where a reader is already looking", () => {
