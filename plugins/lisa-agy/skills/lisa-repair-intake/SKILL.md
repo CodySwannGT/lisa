@@ -994,7 +994,10 @@ with labels like `build-ready`, or with no Lisa status label at all, that are in
    instead — it says that nothing was changed and how a person resumes the item, which is the
    opposite of what the reconciliation note says and must not be substituted for it. A promotion
    declined silently is invisible, which is the quieter version of the failure this step exists to
-   prevent, so name every held item in the cycle summary via `summarizeHumanGateHolds([...])`.
+   prevent, so name every held item in the cycle summary via `summarizeHumanGateHolds([...])`. Report what the
+   precision rule skipped beside it via `summarizeHumanGateMentions(n)`: the marker
+   occurrences that were mentions rather than declarations (CodySwannGT/lisa#3815),
+   because a rule that silently drops candidates reads like one that found none.
 
 ### Ungated non-ready filing → surface as an incomplete handoff (read-only)
 

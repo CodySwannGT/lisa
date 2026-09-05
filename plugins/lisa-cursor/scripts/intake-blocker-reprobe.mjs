@@ -38,6 +38,139 @@ function normalizeLabels(labels) {
 }
 
 /**
+ * Decoration a declaration may sit behind, and nothing more.
+ *
+ * Whitespace, blockquote arrows, list bullets or numbers, emphasis, and an
+ * opening HTML comment. A single character class plus two optional groups —
+ * deliberately not a nested-quantifier pattern, because this runs over
+ * untrusted work-item bodies and `sonarjs/slow-regex` is right about that
+ * shape.
+ */
+const LEADING_DECORATION =
+  /^[ \t>*_+-]*(?:\d+[.)][ \t]*)?(?:<!--[ \t]*)?[ \t]*/u;
+
+/**
+ * The body with fenced blocks and inline code spans removed.
+ *
+ * Documentation of a declaration is not a declaration, and a fenced example is
+ * how the declaration form gets written ABOUT. The same move
+ * `pr-arming-sweep.mjs` makes for the auto-merge-off marker
+ * (CodySwannGT/lisa#3986), and the same one `block-direct-issue-create.sh`
+ * makes when it strips heredoc bodies before tokenising argv.
+ * @param {unknown} body - The raw item body
+ * @returns {string} The body with quoted and code regions blanked out
+ */
+function declarativeText(body) {
+  return String(body ?? "")
+    .replace(/```[\s\S]*?```/gu, "")
+    .replace(/`[^`\n]*`/gu, "");
+}
+
+/**
+ * Whether an HTML comment on this line carries the marker.
+ *
+ * The second declaration form, and it is not a concession: an HTML comment is
+ * invisible when the body is rendered, so nobody writes one to TALK about the
+ * marker — a quotation has to be visible to be a quotation. Prose about the
+ * marker is written in sentences, code spans and fenced examples, all of which
+ * this rule already excludes.
+ *
+ * Scanned rather than pattern-matched. A regular expression with two lazy
+ * `[^\n]*?` runs around a literal is the ambiguous shape this module avoids
+ * elsewhere, and an indexOf walk is both linear and easier to be sure about.
+ * @param {string} line - One line of the body
+ * @returns {boolean} True when a comment on this line contains the marker
+ */
+function commentCarriesMarker(line) {
+  const segments = line.split("<!--");
+  for (let index = 1; index < segments.length; index += 1) {
+    const close = segments[index].indexOf("-->");
+    const inside =
+      close === -1 ? segments[index] : segments[index].slice(0, close);
+    if (inside.includes(HUMAN_GATE_MARKER)) return true;
+  }
+  return false;
+}
+
+/**
+ * Whether one line DECLARES a hold rather than mentioning one.
+ *
+ * Two accepted forms, and the corpus says they cost nothing to combine:
+ * measured over this repository's 42 matching bodies, line-leading alone and
+ * line-leading-or-comment hold the SAME 29. The comment branch exists because
+ * the filing guard reads inputs that are not markdown documents — a one-line
+ * `--body` string and a shell script — where a declaration legitimately sits
+ * after other text on its line.
+ * @param {string} line - One line of the body
+ * @returns {boolean} True when the line declares a hold
+ */
+function declaresOnLine(line) {
+  if (line.replace(LEADING_DECORATION, "").startsWith(HUMAN_GATE_MARKER)) {
+    return true;
+  }
+  return commentCarriesMarker(line);
+}
+
+/**
+ * Count what a body says about the hold marker, split by what it MEANS.
+ *
+ * ## Why the substring test had to go
+ *
+ * `isHumanGated` asked one question — does the body contain the marker
+ * anywhere — and that form was deliberate, documented, and correct when it was
+ * written: *"it is a marker with no other meaning, so its presence IS the
+ * declaration."* The premise expired. The marker acquired a second meaning —
+ * **being discussed** — the moment the feature became something people file
+ * tickets about, so a sentence quoting it, a Gherkin line naming it, and a
+ * ticket about it all read as declared holds (CodySwannGT/lisa#3815).
+ *
+ * The consequence is not one skipped cycle. `planHumanGateReconciliation`
+ * removes the ready role and applies the human-needed label, so a false
+ * positive rewrites the item's own metadata and every later sweep agrees with
+ * the first. And the affected population GROWS with the documentation: 38
+ * matching bodies measured 2026-09-04, 42 on 2026-09-05.
+ *
+ * ## The rule
+ *
+ * A declaration is POSITIONAL — the marker leads its line, behind at most
+ * blockquote, list, emphasis or opening-comment decoration — evaluated after
+ * code regions are removed. Measured over this repository's 42 matching bodies:
+ * this holds 29 of them and correctly releases the two live ready-lane items
+ * that only discussed the marker.
+ *
+ * The stricter HTML-comment-only rule was measured and REJECTED: it holds only
+ * 18, dropping declarations that carry `human-needed` today. Losing a real hold
+ * is the unsafe direction and would need a retrofit of the tracker.
+ *
+ * ## Why it counts rather than answering yes or no
+ *
+ * A heuristic that silently drops candidates is indistinguishable from one that
+ * found none. Every occurrence this rule declines to honour is counted and
+ * reported, so "the rule demoted 33 mentions" is a fact an operator can read
+ * rather than an absence they must infer.
+ * @param {unknown} body - The item body
+ * @returns {{ total: number, declared: number, demoted: number }} Occurrences,
+ *   those that declare a hold, and those demoted to mentions
+ */
+export function humanGateMentions(body) {
+  const raw = String(body ?? "");
+  const total = raw.split(HUMAN_GATE_MARKER).length - 1;
+  const declared = declarativeText(raw)
+    .split("\n")
+    .filter(line => declaresOnLine(line)).length;
+  return { total, declared, demoted: total - declared };
+}
+
+/**
+ * Whether a body declares a hold, as opposed to discussing one.
+ * @param {unknown} body - The item body
+ * @returns {boolean} True when at least one line declares a hold
+ */
+export function bodyDeclaresHold(body) {
+  return humanGateMentions(body).declared > 0;
+}
+
+/**
  * Whether an item is held for a person, on either surface.
  *
  * Exported deliberately, and it is the ONLY answer to that question anywhere in
@@ -64,7 +197,7 @@ export function isHumanGated(input) {
     return true;
   }
 
-  return String(input.body ?? "").includes(HUMAN_GATE_MARKER);
+  return bodyDeclaresHold(input.body);
 }
 
 /**
@@ -432,6 +565,26 @@ export function formatHumanGateNote() {
  * @param {readonly unknown[]} held - Item references held this cycle
  * @returns {string} One summary line
  */
+/**
+ * Render the cycle-summary line naming what the precision rule DEMOTED.
+ *
+ * The counterpart of {@link summarizeHumanGateHolds}, and it exists for the
+ * same reason: a mutation nobody can see afterwards is the problem this whole
+ * area keeps having. A rule that quietly declines to honour half the marker
+ * occurrences it sees reads exactly like a rule that saw none, so the count is
+ * printed even when it is zero — measured across this repository's matching
+ * bodies, 33 of 62 occurrences are mentions rather than declarations.
+ * @param {unknown} demoted - How many occurrences were mentions, not declarations
+ * @returns {string} One summary line
+ */
+export function summarizeHumanGateMentions(demoted = 0) {
+  const count = Number.isFinite(Number(demoted))
+    ? Math.trunc(Number(demoted))
+    : 0;
+  const shown = count > 0 ? String(count) : "none";
+  return `Marker mentions demoted (not declarations): ${shown}.`;
+}
+
 export function summarizeHumanGateHolds(held = []) {
   const names = (Array.isArray(held) ? held : [])
     .map(item => trimmedString(item))
