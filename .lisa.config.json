@@ -202,6 +202,12 @@
         "level": "required",
         "run": "check:withdrawn-rulings"
       }
+    },
+    "x-plugin-artifact-sync": {
+      "push": {
+        "level": "required",
+        "run": "check:plugins"
+      }
     }
   },
   "policy": {
