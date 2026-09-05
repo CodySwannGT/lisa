@@ -22,7 +22,7 @@
       "test:integration:lisa": "lisa-test-run --profile harper-fabric --adapter vitest -- vitest run '.integration.' 'integration/'",
       "test:lisa": "lisa-test-run --profile harper-fabric --adapter vitest -- vitest run",
       "test:mutation": "LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\",\"worker-\"]' lisa-test-run --profile harper-fabric --adapter direct -- node scripts/lisa-mutation.mjs",
-      "test:node": "LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile harper-fabric --adapter direct -- node scripts/lisa-test-node.mjs",
+      "test:node:lisa": "LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile harper-fabric --adapter direct -- node scripts/lisa-test-node.mjs",
       "test:unit:lisa": "lisa-test-run --profile harper-fabric --adapter vitest -- vitest run --exclude='**/integration/**'",
       "test:watch:lisa": "lisa-test-run --profile harper-fabric --adapter vitest -- vitest",
       "typecheck:lisa": "tsc --noEmit"
@@ -91,6 +91,7 @@
       "test": "$npm_execpath run test:lisa",
       "test:cov": "$npm_execpath run test:cov:lisa",
       "test:cov:unit": "$npm_execpath run test:cov:unit:lisa",
+      "test:node": "$npm_execpath run test:node:lisa",
       "test:unit": "$npm_execpath run test:unit:lisa",
       "test:watch": "$npm_execpath run test:watch:lisa",
       "typecheck": "$npm_execpath run typecheck:lisa",
@@ -135,6 +136,9 @@
         "LISA_COVERAGE_SCOPE=unit lisa-test-run --profile harper-fabric --adapter vitest -- vitest run --coverage --exclude='**/integration/**'",
         "LISA_COVERAGE_SCOPE=unit lisa-test-run --profile harper-fabric -- vitest run --coverage --exclude='**/integration/**'",
         "LISA_COVERAGE_SCOPE=unit lisa-test-run -- vitest run --coverage --exclude='**/integration/**'"
+      ],
+      "test:node": [
+        "LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile harper-fabric --adapter direct -- node scripts/lisa-test-node.mjs"
       ],
       "test:unit": [
         "lisa-test-run --profile harper-fabric --adapter vitest -- vitest run --exclude='**/integration/**'",

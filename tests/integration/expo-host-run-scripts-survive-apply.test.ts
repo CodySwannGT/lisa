@@ -43,7 +43,6 @@ const FORCED_CONTROLS = [
   "check:vacuous-required-checks",
   "test:integration:lisa",
   "test:mutation",
-  "test:node",
 ] as const;
 
 const CUSTOM_BUILD =
@@ -145,7 +144,7 @@ describe("Expo host-facing run commands survive a full apply", () => {
     expect(misclassified).toEqual([]);
   });
 
-  it("keeps the four measured governance controls forced", async () => {
+  it("keeps the three remaining governance controls forced", async () => {
     const host = Object.fromEntries(
       FORCED_CONTROLS.map(key => [key, `host-disabled ${key}`])
     );
