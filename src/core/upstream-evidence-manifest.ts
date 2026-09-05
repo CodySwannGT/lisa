@@ -73,7 +73,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
       "76c568bb393c47ef0e48bf0aaaa092be60ab137e79a5bb39b03cd83decd7b91e",
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
-      "f16196413b0050a805327f9d6d7b55913f9df70c8be4b8805bb9267e9abb4abf",
+      "34d2b7279f4278bd591c16e7de81c9ffb5ce05620389d0213a515df3133f1f34",
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "adbf8dccc221ec83641f1f5358ccafc9ec70a4ea6372ae6ad874603d767d693d",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":

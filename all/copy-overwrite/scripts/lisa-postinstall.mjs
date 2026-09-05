@@ -173,7 +173,27 @@ export function runPostinstall(cwd = process.cwd(), env = process.env) {
     // package manager finish. Unknown throws still escape because converting a
     // broken postinstall module into an apparent apply failure would hide the
     // defect that needs fixing.
-    if (!isChildTimeout(error)) throw error;
+    //
+    // The MARKER is written for an unknown throw too, before it escapes, and
+    // that is not the same decision as the exit code. The invocation this
+    // module is chained into ends in `|| true`, deliberately — a non-zero
+    // postinstall aborts `bun install` outright and strands the project with
+    // no way to install the fix. So the escaping throw reaches nothing that
+    // records it: the stack trace scrolls past once and every later instrument
+    // reads a project whose templates simply were not applied. `lisa doctor`
+    // asks the marker, and the marker was the only durable half. Writing it
+    // here keeps the loud-and-durable contract this module's header states,
+    // without trading it for an install that cannot complete.
+    if (!isChildTimeout(error)) {
+      recordFailure(cwd, {
+        status: null,
+        output:
+          error instanceof Error
+            ? (error.stack ?? error.message)
+            : String(error),
+      });
+      throw error;
+    }
     child = {
       error: Object.assign(
         new Error(
