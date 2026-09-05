@@ -57,6 +57,7 @@ import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { fsLatencyBudgetMs } from "../../helpers/fs-latency-budget.js";
 import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 import { darwinTmpdirGrowthPerformance } from "../../helpers/tmpdir-growth-darwin-performance.js";
 
@@ -72,7 +73,11 @@ afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
     fs.rmSync(directory, { force: true, recursive: true });
   }
-}, ioLatencyBudgetMs(REAL_FIXTURE_CLEANUP_BASE_MS));
+  // Scaled by the FILESYSTEM proxy, not the spawn one: this hook spawns
+  // nothing at all, and its entire cost is ~300,000 unlinks. See
+  // CodySwannGT/lisa#3936 — a spawn-derived budget reported a quiet box at
+  // load 25 while a real corpus deletion in the same instant did not.
+}, fsLatencyBudgetMs(REAL_FIXTURE_CLEANUP_BASE_MS));
 
 describe("temp growth command-route performance", () => {
   it.runIf(process.platform === "darwin")(

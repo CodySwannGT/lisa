@@ -13,6 +13,7 @@ import {
   ioLatencyBudgetMs,
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
+import { fsLatencyBudgetMs } from "../helpers/fs-latency-budget.js";
 import { resolveGit } from "../support/git-executable.js";
 
 // Packing and extracting the real package are external-I/O children. Scale the
@@ -153,9 +154,15 @@ beforeAll(async () => {
   );
 }, ioLatencyBudgetMs(90_000));
 
+// The one hook in this file whose cost is deletion rather than spawning, so
+// it carries its own filesystem-scaled budget instead of inheriting the
+// file-level spawn-scaled one. The cases here really do spawn a packed binary
+// and keep the spawn budget; only the teardown changes (CodySwannGT/lisa#3936).
+const TEARDOWN_BASE_MS = 30_000;
+
 afterAll(() => {
   fs.rmSync(TEST_ROOT, { force: true, recursive: true });
-});
+}, fsLatencyBudgetMs(TEARDOWN_BASE_MS));
 
 /**
  * Run one packed bin payload and retain its observed result.
