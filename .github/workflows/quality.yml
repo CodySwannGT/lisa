@@ -3185,6 +3185,25 @@ jobs:
         uses: actions/checkout@v6
         with:
           persist-credentials: false
+          # Full history for Lisa's own repository, shallow for every caller.
+          #
+          # Several of Lisa's own unit tests read real revisions out of real
+          # history — `git show c32f33010f:...` and `git ls-tree v4.0.0` among
+          # them — because a test about "what this repository removed" has no
+          # honest fixture. On the default shallow checkout those objects are
+          # absent, and the tests fail with `invalid object name` and `could
+          # not list the tree`, which read as test defects rather than as a
+          # missing clone.
+          #
+          # The step below already fetches three specific tags for the same
+          # reason. An allowlist of refs is how this arrived here in the first
+          # place: it needs editing every time a test cites a new revision, and
+          # nothing fails until CI does. Full history needs no maintenance.
+          #
+          # QUOTED '0'/'1', NOT BARE. GitHub expressions treat 0 as FALSY, so
+          # `... && 0 || 1` evaluates to 1 in the true branch — silently the
+          # opposite of what it reads as. Strings are truthy and behave.
+          fetch-depth: ${{ github.repository == 'CodySwannGT/lisa' && '0' || '1' }}
 
       - name: 📎 Fetch retained nightly guard release tags
         if: github.repository == 'CodySwannGT/lisa'

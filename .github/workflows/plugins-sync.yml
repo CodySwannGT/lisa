@@ -31,7 +31,21 @@ jobs:
   plugins-sync:
     name: 🧩 Plugin artifacts match source
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 30, not 15, because `check:shell-guard-refusals` had already grown into
+    # the old ceiling. It runs every suite that can execute a shipped `.sh`
+    # guard, under a tracer, so its cost scales with the traced population
+    # rather than with the diff — and it was finishing at 14m59s against a
+    # 15m budget. Adding one more traced suite pushed it to 15m14s.
+    #
+    # A job that times out reports `cancelled`, NOT `failure`, and its final
+    # step prints nothing. So this presented as an unexplained red on a check
+    # whose own output had been the thing telling us what was wrong — twice
+    # it was read as a genuine coverage failure before the clock was noticed.
+    #
+    # Raising the ceiling is the stopgap. The real cost is that the check
+    # re-runs a large share of the suite; if it approaches 30 minutes, make it
+    # cheaper rather than moving this number again.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
         with:
