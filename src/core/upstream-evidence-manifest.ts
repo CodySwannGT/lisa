@@ -17,7 +17,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-state-classification.mjs":
       "a72910f9885629dd6d8a739b900f5603e4b53d68ece64100a2a5647016b58e1e",
     "all/copy-overwrite/scripts/check-third-party-action-pins.mjs":
-      "9f441b6b8697f0a64abd29125eb7881ebdb0c8d47487bdd18ff09633eb3dab19",
+      "4b6e1d444c50da031b848215913df7bfe87091b5eee2debfb60d5d0c42abe343",
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs":
       "95f91f2a74ed4e523d064d5d374eadd1c1114f03a3a4fa41532c9b0fd32089de",
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
@@ -2257,7 +2257,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-test-case-executed.mjs":
       "99c4e0f4544f67c920d787fe6a7fb801ac37c591b6392791b4e3d1802bec5359",
     "scripts/check-third-party-action-pins.mjs":
-      "c085949d734edfef2807a95bc7c4814485e30f7bfad4d5054586aa264a5d42b4",
+      "39420e981ebd85279dc92f07eed5cb948c17b810a45951b4b3a7c7b3950bb3e5",
     "scripts/check-typecheck-tests.mjs":
       "499d996707e12a323d7575318ea16228eb9cae71ecce5fb369c771399b673866",
     "scripts/check-ui-demo-data.mjs":
