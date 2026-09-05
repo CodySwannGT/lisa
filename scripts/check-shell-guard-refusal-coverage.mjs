@@ -28,9 +28,13 @@
  *
  * CLI:
  *   node scripts/check-shell-guard-refusal-coverage.mjs [--json] [--trace FILE]
+ *                                                       [--trace-out FILE]
  *
  *   --trace FILE   judge an existing trace instead of producing one. Use it in
  *                  CI when the full suite already ran with the tracer imported.
+ *   --trace-out FILE
+ *                  also write the judged trace to FILE, so a later step in the
+ *                  same job can read what this run observed. Never commit it.
  *
  * Exit codes (mirroring the sibling check-* scripts):
  *   0 — every guard the run drove was observed refusing and allowing.
@@ -41,7 +45,7 @@
  * @module scripts/check-shell-guard-refusal-coverage
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
@@ -55,6 +59,9 @@ import {
   parseTrace,
   tracerIndex,
 } from "./lib/shell-guard-refusal-coverage.mjs";
+
+/** The flag naming a file the produced trace should also be written to. */
+const TRACE_OUT_FLAG = "--trace-out";
 
 /** Wall-clock ceiling for the traced vitest run. */
 const RUN_TIMEOUT_MS = 45 * 60_000;
@@ -186,15 +193,53 @@ function produceTrace(root, population) {
 }
 
 /**
+ * Persist the trace this run produced, when the caller asked for it.
+ *
+ * The trace is the only artefact that can tell a LATER step — the mutation
+ * gate's uninstrumentable branch, which until CodySwannGT/lisa#3931 asserted a
+ * search it never ran — which shell guards this run actually drove. Written
+ * only on request, and never committed: a checked-in trace would report a guard
+ * as evidenced long after its driving test was deleted, which is the same false
+ * claim with a longer half-life.
+ *
+ * A write that fails is announced and otherwise ignored. This check's verdict
+ * does not depend on the copy, and refusing the run because a convenience file
+ * could not be written would trade a real signal for a bookkeeping one.
+ * @param {string} root - Repository root.
+ * @param {readonly string[]} args - CLI arguments.
+ * @param {string} trace - The raw JSONL this run produced.
+ * @returns {void}
+ */
+function keepTrace(root, args, trace) {
+  const at = args.indexOf(TRACE_OUT_FLAG);
+  const target = at === -1 ? undefined : args[at + 1];
+  if (target === undefined) return;
+  const resolved = path.isAbsolute(target) ? target : path.join(root, target);
+  try {
+    mkdirSync(path.dirname(resolved), { recursive: true });
+    writeFileSync(resolved, trace);
+  } catch (error) {
+    console.error(
+      `check:shell-guard-refusal-coverage: could not write ${target}: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
+}
+
+/**
  * CLI entry point.
  * @returns {void}
  */
 export function main() {
   const args = process.argv.slice(2);
-  const known = new Set(["--json", "--trace"]);
+  const known = new Set(["--json", "--trace", TRACE_OUT_FLAG]);
+  const valueFlags = new Set(["--trace", TRACE_OUT_FLAG]);
   const unknown = args.find(
     (arg, at) =>
-      arg.startsWith("--") && !known.has(arg) && args[at - 1] !== "--trace"
+      arg.startsWith("--") &&
+      !known.has(arg) &&
+      !valueFlags.has(args[at - 1] ?? "")
   );
   if (unknown) {
     console.error(
@@ -216,6 +261,7 @@ export function main() {
     process.exitCode = 2;
     return;
   }
+  keepTrace(root, args, produced.trace);
   const report = judge({ population, observed: parseTrace(produced.trace) });
   console.log(
     args.includes("--json")

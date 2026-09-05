@@ -13,10 +13,8 @@ import {
   DEFAULT_TMPDIR_GROWTH_ARTIFACT,
   processBirthFingerprintSnapshot,
 } from "../../../scripts/measure-tmpdir-growth.mjs";
-import {
-  boundedSpawnSync,
-  ioLatencyBudgetMs,
-} from "../../helpers/io-latency-budget.js";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { fsLatencyBudgetMs } from "../../helpers/fs-latency-budget.js";
 import {
   BOUNDARY_ENTRY_CAP,
   verifyTmpdirGrowthCapBoundary,
@@ -217,7 +215,11 @@ afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
     fs.rmSync(directory, { force: true, recursive: true });
   }
-}, ioLatencyBudgetMs(REAL_FIXTURE_CLEANUP_BASE_MS));
+  // Deletion-dominated teardown: scaled by the filesystem proxy rather
+  // than the spawn one (CodySwannGT/lisa#3936). #3925 shrank the corpus so
+  // this budget no longer bites in practice; the mismatch it was derived
+  // from survived that fix, which is what this line repairs.
+}, fsLatencyBudgetMs(REAL_FIXTURE_CLEANUP_BASE_MS));
 
 const snapshot = (at: number, names: readonly string[]) => ({
   schemaVersion: 1,

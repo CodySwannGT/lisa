@@ -546,3 +546,106 @@ describe("tempRootPopulation", () => {
     ).toBeNull();
   });
 });
+
+describe("diagnoseFailure: a cleanup that lost a race is not a code failure", () => {
+  // CodySwannGT/lisa#3877. A branch whose own tests were green could not push,
+  // because one test unreachable from its diff threw in an `afterEach` while
+  // another process created an entry inside the directory it was removing. The
+  // author could not tell that from a real regression without spending a second
+  // ten-minute cycle — and the retry is itself the load that caused it.
+  //
+  // The verdict does NOT excuse the failure: INTERFERENCE is in
+  // MEASURED_NOTHING, which renders UNPROVABLE and blocks the push exactly as
+  // FAILED does. What changes is the word, and `proves` going null so the
+  // failure stops indicting `test-correctness`.
+  // The real transcript named the macOS per-user temp root. This fixture uses a
+  // neutral prefix instead, deliberately: `test-scratch-guard` refuses a
+  // hardcoded platform temp root anywhere in a test source — comments included,
+  // as this comment found out — and it cannot tell a string that is only ever
+  // matched against from one something opens. Nothing here depends on the
+  // prefix; the signature's grounding clause looks for `lisa-scratch`.
+  const RACE =
+    "Error: ENOTEMPTY: directory not empty, rmdir " +
+    "'/scratch-root/lisa-scratch/run-35247-1/worker-14451-2/lisa-test-ylEKHM/.git'";
+
+  /** The transcript as the push gate actually rendered it. */
+  const TRANSCRIPT = [
+    " FAIL  tests/unit/cli/doctor-readiness-tracking.test.ts > names `git rm --cached`",
+    RACE,
+    " Test Files  1 failed | 1088 passed (1089)",
+  ].join("\n");
+
+  it("names the contention rather than reporting an assertion", () => {
+    const verdict: Diagnosis = diagnoseFailure(TRANSCRIPT, 1, null, () => null);
+
+    expect(verdict.kind).toBe(DIAGNOSIS.INTERFERENCE);
+    expect(verdict.summary).toContain("lost a race with a concurrent writer");
+    expect(verdict.summary).toContain("NOT about the code under test");
+  });
+
+  it("stops the failure indicting the test-correctness gate", () => {
+    // The half an author acts on. An INTERFERENCE verdict proves nothing about
+    // anybody's property, so it must not name one.
+    expect(diagnoseFailure(TRANSCRIPT, 1, null, () => null).proves).toBeNull();
+  });
+
+  it("says the diff need not reach the failing file", () => {
+    // The reader's actual question, answered without a second full cycle.
+    expect(diagnoseFailure(TRANSCRIPT, 1, null, () => null).summary).toContain(
+      "need not be reachable"
+    );
+  });
+
+  it("quotes the scratch path so the claim is checkable", () => {
+    const verdict: Diagnosis = diagnoseFailure(TRANSCRIPT, 1, null, () => null);
+
+    expect(verdict.evidence.join("\n")).toContain("lisa-test-ylEKHM/.git");
+  });
+
+  it("outranks the FAIL line the same transcript carries", () => {
+    // Precedence, which is the assertion that carries weight here as elsewhere
+    // in this file: the transcript reports a failing test, and reading that is
+    // how machine contention became a code regression.
+    expect(diagnoseFailure(TRANSCRIPT, 1, null, () => null).kind).not.toBe(
+      DIAGNOSIS.ASSERTION
+    );
+  });
+
+  it("leaves an ordinary assertion failure alone", () => {
+    // THE CONTROL. A classifier that called every failure interference would
+    // pass every case above and turn the gate into a rubber stamp.
+    const ordinary = [
+      " FAIL  tests/unit/foo.test.ts > adds two numbers",
+      "AssertionError: expected 1 to be 2",
+      " Test Files  1 failed (1)",
+    ].join("\n");
+
+    expect(diagnoseFailure(ordinary, 1, null, () => null).kind).toBe(
+      DIAGNOSIS.ASSERTION
+    );
+  });
+
+  it("leaves a removal failure OUTSIDE managed scratch alone", () => {
+    // The grounding clause. An errno about some other directory is a fact about
+    // the code, and a diagnosis that called it machine contention would be an
+    // environment excuse issued over a real bug — this module's own defect.
+    const elsewhere =
+      "Error: EPERM: operation not permitted, rmdir '/opt/app/data'";
+
+    expect(diagnoseFailure(elsewhere, 1, null, () => null).kind).not.toBe(
+      DIAGNOSIS.INTERFERENCE
+    );
+  });
+
+  it("leaves a plain ENOENT to the coverage signature that owns it", () => {
+    // ENOENT is deliberately absent from the race errno set: on its own it is
+    // more often a genuine missing-file bug, and where it does mean deletion
+    // the coverage signature above already claims it.
+    const missing =
+      "Error: ENOENT: no such file or directory, rmdir '/tmp/lisa-scratch/x'";
+
+    expect(diagnoseFailure(missing, 1, null, () => null).kind).not.toBe(
+      DIAGNOSIS.INTERFERENCE
+    );
+  });
+});
