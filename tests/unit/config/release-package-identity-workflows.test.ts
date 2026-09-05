@@ -13,6 +13,9 @@ const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../..");
 const RESOLVE_RELEASE_COMMIT_STEP = "Resolve immutable release commit";
 const STAMP_RELEASE_IDENTITY_STEP = "Stamp immutable release identity";
 
+/** The workflow that builds, validates and publishes the release tarball. */
+const PUBLISH_WORKFLOW = "publish-to-npm.yml";
+
 /** Minimal workflow step fields exercised by this contract. */
 interface WorkflowStep {
   /** Environment values passed to the step without shell interpolation. */
@@ -187,7 +190,7 @@ describe("release package identity workflow", () => {
 
   it("requires the exact release commit and establishes version before build", async () => {
     const deploy = await readWorkflow("deploy.yml");
-    const publish = await readWorkflow("publish-to-npm.yml");
+    const publish = await readWorkflow(PUBLISH_WORKFLOW);
     const publishJob = publish.jobs.publish;
     const steps = publishJob.steps ?? [];
 
@@ -262,7 +265,7 @@ describe("release package identity workflow", () => {
   });
 
   it("stamps the release tag and validates it in the packed candidate", async () => {
-    const publish = await readWorkflow("publish-to-npm.yml");
+    const publish = await readWorkflow(PUBLISH_WORKFLOW);
     const publishJob = publish.jobs.publish;
     const stamp = namedStep(publishJob, STAMP_RELEASE_IDENTITY_STEP).run ?? "";
     const pack =
@@ -278,5 +281,25 @@ describe("release package identity workflow", () => {
     expect(publishJob.env?.["RELEASE_TAG"]).toContain("inputs.tag");
     expect(stamp).toContain('npm pkg set lisaReleaseTag="$RELEASE_TAG"');
     expect(pack).toContain('--tag "$RELEASE_TAG"');
+  });
+
+  it("stamps which workflow files the release commit carries", async () => {
+    // `.github/` is not in the npm files allowlist, so the inventory does not
+    // travel with the tarball. Without the stamp a consumer's pinner has no
+    // offline way to tell that a caller it is about to rewrite names a
+    // workflow the release does not contain — and that pin does not fail, it
+    // never loads: zero jobs, zero failures, no missing file named (#4021).
+    const publish = await readWorkflow(PUBLISH_WORKFLOW);
+    const publishJob = publish.jobs.publish;
+    const stamp = namedStep(publishJob, STAMP_RELEASE_IDENTITY_STEP).run ?? "";
+
+    // Listed by the same module that validates it during pack, so the stamp
+    // and the check cannot come to describe different directories.
+    expect(stamp).toContain(
+      "node scripts/check-release-package-identity.mjs workflows"
+    );
+    expect(stamp).toContain(
+      'npm pkg set lisaReleaseWorkflows="$WORKFLOW_INVENTORY" --json'
+    );
   });
 });

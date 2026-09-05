@@ -235,9 +235,12 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "f00bb219855d2eb07d02d95f8fb4c8d4242550d5fc426cdba7097063c6e0616d",
   ]),
   "scripts/check-release-package-identity.mjs": Object.freeze([
+    "0691c0691f1a284bf33b0dc39f6b605f65990cd674a9a8b07662494080af7ccd",
     "314909ba788fd31a36e2d4f42311dcb0887213fd4034af1fe5e960a2eb760546",
     "5b1ddd9134c868a0efd04a49282b0d6c31dfb697cf9463db07a03aceb7ffa0e3",
     "a0f17592d4436de4c240f7c78512537581aa2ed5e89f0caf1fe890694163a873",
+    "a64b5567b96706d5d7f573830cce0e623d7e4c36bb6a47c291aa02bcad79039d",
+    "e61cc7ec4cdc832d406ebedded7d8b586c3f21ac4dd113c72c1aede870a60b55",
     "f4b5c85e0fa5fc8ff4266f901692ae4bbe6b727ee93a69d818ad584073631f77",
   ]),
   "scripts/check-skipped-required-checks.mjs": Object.freeze([
@@ -1407,9 +1410,12 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "f00bb219855d2eb07d02d95f8fb4c8d4242550d5fc426cdba7097063c6e0616d",
   ]),
   "scripts/check-release-package-identity.mjs": Object.freeze([
+    "0691c0691f1a284bf33b0dc39f6b605f65990cd674a9a8b07662494080af7ccd",
     "314909ba788fd31a36e2d4f42311dcb0887213fd4034af1fe5e960a2eb760546",
     "5b1ddd9134c868a0efd04a49282b0d6c31dfb697cf9463db07a03aceb7ffa0e3",
     "a0f17592d4436de4c240f7c78512537581aa2ed5e89f0caf1fe890694163a873",
+    "a64b5567b96706d5d7f573830cce0e623d7e4c36bb6a47c291aa02bcad79039d",
+    "e61cc7ec4cdc832d406ebedded7d8b586c3f21ac4dd113c72c1aede870a60b55",
     "f4b5c85e0fa5fc8ff4266f901692ae4bbe6b727ee93a69d818ad584073631f77",
   ]),
   "scripts/check-skipped-required-checks.mjs": Object.freeze([

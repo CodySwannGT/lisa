@@ -81,6 +81,15 @@ export interface ReusableWorkflowRef {
   readonly comment: string | null;
 }
 
+/**
+ * The reusable workflows a release carries, or null when nobody recorded it.
+ *
+ * Null is "unknown", never "none". A caller is pinned unless the inventory is
+ * known AND says its callee is absent — see `core/lisa-release-callees` for
+ * why an unrecorded inventory must not unpin an entire project.
+ */
+export type ReleaseCallees = ReadonlySet<string> | null;
+
 /** The identity every caller in a project is pinned at. */
 export interface ReleasePin {
   /** Full 40-character commit SHA the version's tag resolves to. */
@@ -151,6 +160,25 @@ export function isPinnedAt(
 }
 
 /**
+ * Whether the release being pinned at actually carries this reference's callee.
+ *
+ * The pin only means anything if the file is there. A `uses:` GitHub cannot
+ * resolve is not a job that fails, it is a workflow that never loads — zero
+ * jobs created, so zero failures, and no message naming the missing file.
+ * Rewriting a caller into that state is strictly worse than leaving it on the
+ * mutable ref it already had.
+ * @param reference - A parsed caller reference
+ * @param callees - The release's inventory, or null when it is unknown
+ * @returns True when the callee is present, or when nobody recorded what is
+ */
+export function isCalleePresent(
+  reference: ReusableWorkflowRef,
+  callees: ReleaseCallees
+): boolean {
+  return callees === null || callees.has(reference.workflow);
+}
+
+/**
  * Whether a reference names anything other than a full commit SHA.
  *
  * This is the question the reporting surface asks, and it is deliberately NOT
@@ -171,14 +199,21 @@ export function isMutableRef(reference: ReusableWorkflowRef): boolean {
  * appending would grow the line on every apply — and what makes the version a
  * reader sees impossible to disagree with the SHA above it.
  *
+ * A caller whose callee is absent from the release is left exactly as it was.
+ * That is the one case where the mutable ref is the better of two bad
+ * options: `@main` runs an unreviewed workflow, while the pin runs nothing at
+ * all and says nothing about why.
+ *
  * Quoting, indentation, and everything else on the line are preserved.
  * @param source - Full text of a workflow file
  * @param pin - The identity every caller must carry
+ * @param callees - The release's inventory, or null when it is unknown
  * @returns The rewritten text, byte-identical to the input when nothing changed
  */
 export function pinReusableWorkflowRefs(
   source: string,
-  pin: ReleasePin
+  pin: ReleasePin,
+  callees: ReleaseCallees = null
 ): string {
   return source
     .split("\n")
@@ -187,6 +222,10 @@ export function pinReusableWorkflowRefs(
       const groups = USES_LINE.exec(line)?.groups;
       if (groups === undefined) return line;
       const { lead, open, workflow } = groups;
+      // A callee the release does not carry is left exactly as it is. The pin
+      // would name a commit the file is absent from, and GitHub answers an
+      // unresolvable `uses:` by never loading the workflow at all.
+      if (callees !== null && !callees.has(workflow ?? "")) return line;
       // The closing quote is reconstructed from the opening one rather than
       // captured: YAML quoting is symmetric, and a separate optional-quote
       // group adjacent to a greedy tail is the ambiguity that makes this

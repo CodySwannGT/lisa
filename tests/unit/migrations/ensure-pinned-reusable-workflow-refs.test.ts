@@ -15,6 +15,11 @@
  *   - **the registry arm** — the migration is in the default registry. A
  *     pinner nothing runs pins nothing, and every other test in this file
  *     constructs it directly and so cannot see that.
+ *
+ * A fourth arm — the caller whose callee the release does not carry, which is
+ * left alone and named out loud — lives in
+ * `pinned-reusable-workflow-absent-callee.test.ts`, split out to keep both
+ * files inside the project max-lines bar.
  * @module tests/unit/migrations/ensure-pinned-reusable-workflow-refs
  */
 import * as fs from "fs-extra";

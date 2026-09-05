@@ -13,7 +13,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-orphaned-branches.mjs":
       "ba88891a0a9be364ae225e133642c719e2b79bf29847a5ddbda66b740b1d9909",
     "all/copy-overwrite/scripts/check-release-package-identity.mjs":
-      "a0f17592d4436de4c240f7c78512537581aa2ed5e89f0caf1fe890694163a873",
+      "a64b5567b96706d5d7f573830cce0e623d7e4c36bb6a47c291aa02bcad79039d",
     "all/copy-overwrite/scripts/check-state-classification.mjs":
       "a72910f9885629dd6d8a739b900f5603e4b53d68ece64100a2a5647016b58e1e",
     "all/copy-overwrite/scripts/check-third-party-action-pins.mjs":
@@ -2237,7 +2237,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-probe-absence-direction.mjs":
       "5dfb12c8ac9a23220219cc8748f1fea03f55bb42c0a9cf045bccfd04a4646652",
     "scripts/check-release-package-identity.mjs":
-      "a0f17592d4436de4c240f7c78512537581aa2ed5e89f0caf1fe890694163a873",
+      "a64b5567b96706d5d7f573830cce0e623d7e4c36bb6a47c291aa02bcad79039d",
     "scripts/check-required-check-promotions.mjs":
       "ae7a3d80beb98d8069af12d2d588e76f73f7a329b1f883ddbe1818bb1b5cafa9",
     "scripts/check-rules-pairing.sh":
@@ -8969,6 +8969,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/lisa-owned-provenance.ts": true,
     "src/core/lisa-owned-templates.ts": true,
     "src/core/lisa-plugin-selection.ts": true,
+    "src/core/lisa-release-callees.ts": true,
     "src/core/lisa-release-pin.ts": true,
     "src/core/lisa-rules-mirror.ts": true,
     "src/core/lisa-skill-sources.ts": true,
@@ -9862,6 +9863,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/lisa-owned-templates-classification.test.ts": true,
     "tests/unit/core/lisa-owned-templates.test.ts": true,
     "tests/unit/core/lisa-plugin-selection.test.ts": true,
+    "tests/unit/core/lisa-release-callees.test.ts": true,
     "tests/unit/core/lisa-release-pin.test.ts": true,
     "tests/unit/core/lisa-skill-sources.test.ts": true,
     "tests/unit/core/nightly-e2e-pull-request-triggers.test.ts": true,
@@ -10069,6 +10071,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/migrations/ensure-tsconfig-local-includes.test.ts": true,
     "tests/unit/migrations/ensure-wiki-source-declared.test.ts": true,
     "tests/unit/migrations/migration-registry.test.ts": true,
+    "tests/unit/migrations/pinned-reusable-workflow-absent-callee.test.ts": true,
     "tests/unit/migrations/postinstall-failure-surfacing.test.ts": true,
     "tests/unit/migrations/prune-retired-claude-deny-rules.test.ts": true,
     "tests/unit/migrations/reconcile-claude-stack-plugins.test.ts": true,

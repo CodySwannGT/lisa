@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 const versionCache: { value?: string } = {};
 const releaseTagCache: { value?: string | null } = {};
 const releaseCommitCache: { value?: string | null } = {};
+const releaseWorkflowsCache: { value?: readonly string[] | null } = {};
 
 /**
  * Find the nearest package.json by walking from a compiled/source module path.
@@ -118,4 +119,48 @@ export function getPackageReleaseCommit(): string | null {
       ? releaseCommit.trim()
       : null;
   return releaseCommitCache.value;
+}
+
+/**
+ * Read the reusable-workflow inventory stamped into the published package.
+ *
+ * `publish-to-npm.yml` stamps this beside the release commit and tag, reading
+ * the `.github/workflows` directory of the tag checkout it is publishing. So
+ * in an installed copy it is the set of reusable workflows that EXIST at the
+ * commit a caller is about to be pinned at — the one fact a consumer cannot
+ * otherwise learn without a network call, because `.github/` is not in the npm
+ * files allowlist and so does not travel with the package.
+ *
+ * It matters because pinning a caller at a commit that does not carry its
+ * callee is not a wrong pin, it is an unloadable one: Actions resolves a job's
+ * `uses:` before it creates any job at all, so the run has zero jobs, zero
+ * failures, and nothing anywhere naming the file that is missing.
+ *
+ * Source checkouts do not carry this field, and neither do packages published
+ * before the stamp existed. Both answer null, which the resolver reads as
+ * "unknown" rather than "empty" — refusing to pin anything on the strength of
+ * a fact nobody recorded would be a worse defect than the one this closes.
+ * @returns Stamped workflow file names, or null when the package carries none
+ */
+export function getPackageReleaseWorkflows(): readonly string[] | null {
+  if (releaseWorkflowsCache.value !== undefined) {
+    return releaseWorkflowsCache.value;
+  }
+
+  const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+  const packageJsonPath = findPackageJson(moduleDir);
+  if (!packageJsonPath) {
+    throw new Error("Unable to locate package.json for Lisa release workflows");
+  }
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
+    lisaReleaseWorkflows?: unknown;
+  };
+  const stamped = packageJson.lisaReleaseWorkflows;
+  const names = Array.isArray(stamped)
+    ? stamped.filter(
+        (name): name is string => typeof name === "string" && name.trim() !== ""
+      )
+    : [];
+  releaseWorkflowsCache.value = names.length > 0 ? Object.freeze(names) : null;
+  return releaseWorkflowsCache.value;
 }

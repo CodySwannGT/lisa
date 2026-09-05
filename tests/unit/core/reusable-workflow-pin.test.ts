@@ -12,6 +12,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   findReusableWorkflowRefs,
+  isCalleePresent,
   isMutableRef,
   isPinnedAt,
   pinReusableWorkflowRefs,
@@ -22,6 +23,9 @@ const SHA = "0123456789abcdef0123456789abcdef01234567";
 
 /** The pin every caller in these fixtures must end up carrying. */
 const PIN = { sha: SHA, version: "4.4.11" } as const;
+
+/** The reusable these fixtures call. */
+const QUALITY = "quality.yml";
 
 /** A caller line for the quality reusable, tracking the mutable default ref. */
 const QUALITY_AT_MAIN =
@@ -37,7 +41,7 @@ describe("finding caller references", () => {
       "jobs:\n  quality:\n    uses: CodySwannGT/lisa/.github/workflows/quality.yml@main\n"
     );
     expect(refs).toEqual([
-      { line: 3, workflow: "quality.yml", ref: "main", comment: null },
+      { line: 3, workflow: QUALITY, ref: "main", comment: null },
     ]);
   });
 
@@ -258,5 +262,32 @@ describe("rewriting", () => {
     const after = pinReusableWorkflowRefs(QUALITY_AT_MAIN, PIN);
     const ref = findReusableWorkflowRefs(after)[0]?.ref ?? "";
     expect(ref).toHaveLength(40);
+  });
+});
+
+describe("a callee the release does not carry", () => {
+  /** The reference every case here asks about. */
+  const [QUALITY_REF] = findReusableWorkflowRefs(QUALITY_AT_MAIN);
+
+  it("counts as present when nobody recorded what the release carries", () => {
+    // Unknown is not empty. The alternative reading unpins every caller in
+    // every project running a Lisa published before the inventory existed.
+    expect(isCalleePresent(QUALITY_REF!, null)).toBe(true);
+  });
+
+  it("counts as absent only when a known inventory omits it", () => {
+    expect(isCalleePresent(QUALITY_REF!, new Set(["gates.yml"]))).toBe(false);
+    expect(isCalleePresent(QUALITY_REF!, new Set([QUALITY]))).toBe(true);
+  });
+
+  it("is left byte-identical by the rewrite rather than pinned", () => {
+    const source = [QUALITY_AT_MAIN, GATES_AT_MAIN, ""].join("");
+    const after = pinReusableWorkflowRefs(source, PIN, new Set([QUALITY]));
+
+    // The one that exists moves; the one that does not stays where it was.
+    // Pinning it would name a commit the file is absent from, and GitHub
+    // answers that by never loading the workflow at all.
+    expect(after).toContain(`quality.yml@${SHA} # v4.4.11`);
+    expect(after).toContain("gates.yml@main");
   });
 });
