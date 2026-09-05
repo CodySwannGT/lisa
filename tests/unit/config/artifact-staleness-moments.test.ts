@@ -66,7 +66,7 @@ const TEMPLATE_HOOK = "typescript/copy-contents/.husky/post-merge";
 const GATE_ID = "artifact-freshness";
 
 /** How many sub-checks the aggregate is expected to name. */
-const SUB_CHECK_COUNT = 6;
+const SUB_CHECK_COUNT = 7;
 
 /**
  * Read a repository file.

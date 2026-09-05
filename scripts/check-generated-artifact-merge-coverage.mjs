@@ -106,6 +106,13 @@ export const GENERATED_ARTIFACTS = Object.freeze([
     reason:
       "nested: a contractVersion / packageVersions / provenances record under each digest, which the driver's flat one-level parser rejects",
   }),
+  Object.freeze({
+    path: "src/core/export-surface.json",
+    check: "check:export-surface",
+    disposition: DISPOSITION.UNSUPPORTED,
+    reason:
+      "nested: a `surface` sub-object mapping each module path to an array of exported names, which the driver's flat one-level parser rejects",
+  }),
 ]);
 
 /**
