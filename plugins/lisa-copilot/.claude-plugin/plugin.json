@@ -212,6 +212,14 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/secrets-preflight.sh"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-binding-guard.sh"
+          }
+        ]
       }
     ],
     "sessionEnd": [
