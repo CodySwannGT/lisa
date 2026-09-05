@@ -10,7 +10,7 @@ import {
   boundedExecFileSync,
   boundedSpawnSync,
 } from "../helpers/io-latency-budget.js";
-import { resolveGit } from "../support/git-executable.js";
+import { cleanGitEnv, resolveGit } from "../support/git-executable.js";
 
 // Derive the repo root from this test file's location so the test is portable
 // across worktrees and CI working directories.
@@ -48,9 +48,11 @@ const PLUGIN_MANIFEST_GIT = PLUGIN_MANIFEST_REL.split(path.sep).join("/");
 // `git init` fails "GIT_WORK_TREE not allowed without specifying GIT_DIR"),
 // which is exactly why the reproduction passed standalone but failed under
 // `git push`. Dropping them makes the temp repos hermetic from the caller.
-const AMBIENT_ENV: NodeJS.ProcessEnv = Object.fromEntries(
-  Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_"))
-);
+// `LISA_PUSHED_REFS_FILE` is stripped alongside them by `cleanGitEnv`. It is
+// not git's, but the same pre-push hook injects it and it carries the same
+// hazard: it names the REAL push's refs, so a fixture that inherits it runs a
+// push guard against a range nobody gave this test (CodySwannGT/lisa#3874).
+const AMBIENT_ENV: NodeJS.ProcessEnv = cleanGitEnv();
 
 // Hermetic git environment: no inherited GIT_* state, and config pinned to
 // /dev/null so the temp repos never read the developer's global/system config

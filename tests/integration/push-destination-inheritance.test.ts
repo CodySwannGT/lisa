@@ -23,7 +23,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
-import { resolveGit } from "../support/git-executable.js";
+import { cleanGitEnv, resolveGit } from "../support/git-executable.js";
 
 const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(THIS_DIR, "..", "..");
@@ -63,9 +63,11 @@ function sorted(names: readonly string[]): readonly string[] {
 // hook, git exports GIT_DIR / GIT_WORK_TREE / GIT_INDEX_FILE into the
 // environment, and inheriting them points every fixture command back at the
 // checkout the suite is running inside.
-const AMBIENT_ENV: NodeJS.ProcessEnv = Object.fromEntries(
-  Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_"))
-);
+// `LISA_PUSHED_REFS_FILE` is stripped alongside them by `cleanGitEnv`. It is
+// not git's, but the same pre-push hook injects it and it carries the same
+// hazard: it names the REAL push's refs, so a fixture that inherits it runs a
+// push guard against a range nobody gave this test (CodySwannGT/lisa#3874).
+const AMBIENT_ENV: NodeJS.ProcessEnv = cleanGitEnv();
 
 /** Hermetic git environment: no inherited state, no developer global config. */
 const GIT_ENV: NodeJS.ProcessEnv = {

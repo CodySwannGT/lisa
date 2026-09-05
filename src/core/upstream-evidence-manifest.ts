@@ -83,7 +83,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "e5e7d4322195d0e675fd62a8630cefa811d2459cea752163787d01cfa65e5ed7",
+      "c47c48a6aaec2954640cc2bf609155a61a4b9a04132ee9c5bef03b61adff3ce1",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -2469,7 +2469,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-contents/.husky/pre-commit":
       "d5f85c0b5d9a0277389c1ae96aec30db603ee38637d4ab749a659bb031d06d93",
     "typescript/copy-contents/.husky/pre-push":
-      "6cf628a77d03703e90fb0fc23545bbdfb45f34b0cf9f0ff792d1a82265b46643",
+      "20cbd929137965bddf19c280d69eec7b214f227b986e15347c9a1d04fac4d3e5",
     "typescript/copy-contents/.husky/prepare-commit-msg":
       "4a719c20da65653f266e7c8a346b5546ad05f1dfa34665fc7fec47e89d2f58d1",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
@@ -10017,6 +10017,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/pre-push-coverage-scope.test.ts": true,
     "tests/unit/hooks/pre-push-deletion-guard.test.ts": true,
     "tests/unit/hooks/pre-push-git-environment.test.ts": true,
+    "tests/unit/hooks/pre-push-pushed-refs-file.test.ts": true,
+    "tests/unit/hooks/pre-push-pushed-tree-scope.test.ts": true,
     "tests/unit/hooks/pre-push-traceability-gate.test.ts": true,
     "tests/unit/hooks/remedy-conformance-live.test.ts": true,
     "tests/unit/hooks/remedy-conformance.test.ts": true,
@@ -10363,6 +10365,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-optional-validation.test.ts": true,
     "tests/unit/scripts/work-item-push-destination.test.ts": true,
     "tests/unit/scripts/work-item-push-merge-defer.test.ts": true,
+    "tests/unit/scripts/work-item-push-refs-file.test.ts": true,
     "tests/unit/scripts/work-item-push-success-attribution.test.ts": true,
     "tests/unit/scripts/work-item-run-and-gh-version.test.ts": true,
     "tests/unit/scripts/work-item-tracker-unreachable.test.ts": true,

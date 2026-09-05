@@ -403,10 +403,18 @@ const GIT_HOOK_ENV_VARS = new Set([
   "GIT_WORK_TREE",
   "GIT_INDEX_FILE",
   "GIT_PREFIX",
+  // Not git's, but the same hazard and the same remedy. The pre-push hook
+  // captures the refs being pushed to a file and exports this so the traceability
+  // gate can read them after some earlier gate has spent git's single-delivery
+  // stdin (CodySwannGT/lisa#3874). The unit suite is ITSELF one of the gates that
+  // runs under that hook, so without this every `validate-push` fixture inherits
+  // the REAL push's refs and validates a range it was never given: 16 tests
+  // across two files, green in isolation and red only inside a push.
+  "LISA_PUSHED_REFS_FILE",
 ]);
 
 /**
- * Return a copy of an environment with git's hook-injected variables removed.
+ * Return a copy of an environment with hook-injected variables removed.
  *
  * When tests run inside a git hook (pre-push runs the unit suite), git exports
  * GIT_DIR / GIT_WORK_TREE / GIT_INDEX_FILE / GIT_PREFIX pointing at the REAL
@@ -414,6 +422,11 @@ const GIT_HOOK_ENV_VARS = new Set([
  * that repository instead of its temp dir — concurrent test workers then race
  * against the same gitdir and fail intermittently. Spawn git (and scripts that
  * call git) with this env instead of the raw process env.
+ *
+ * `LISA_PUSHED_REFS_FILE` is stripped for the same reason and is not git's: it
+ * names the REAL push's refs, and a fixture that inherits it stops being about
+ * its own repository. A test is a claim about the scope it set up, so it must
+ * not silently read the scope it happens to be running inside.
  * @param base - The environment to sanitize (callers pass process.env)
  * @param overrides - Optional extra variables layered on top (e.g. PATH shims)
  * @returns A sanitized environment object safe for spawning git in temp dirs
