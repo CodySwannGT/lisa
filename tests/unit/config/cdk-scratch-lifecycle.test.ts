@@ -18,6 +18,7 @@ import {
   scratchPathIdentity,
 } from "../../../src/configs/vitest/scratch-owner.js";
 import {
+  CDK_CASE_BUDGET_MS,
   captureLiveCdkRun,
   runCdk,
   startWaitingCdkRun,
@@ -29,7 +30,7 @@ import {
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import { createPackageLisaApplyHarness } from "../../helpers/package-lisa-apply-harness.js";
 
-useIoLatencyBudget();
+useIoLatencyBudget(CDK_CASE_BUDGET_MS);
 
 const temporaryDirectories: string[] = [];
 const INTEGRATION = "test:integration";

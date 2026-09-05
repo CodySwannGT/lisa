@@ -68,7 +68,26 @@ const TEST_RUNNER_ARGS = [
  * which would be wrong twice over: that ceiling exists to fail a genuinely slow
  * box, and this box measured 1.75x, so raising it would not have helped anyway.
  */
-const CDK_RUNNER_BUDGET_MS = 120_000;
+export const CDK_RUNNER_BUDGET_MS = 120_000;
+
+/**
+ * Quiet-box budget for one CASE, which must sit ABOVE the child budget.
+ *
+ * Raising the child budget alone achieved nothing, and the reason is worth
+ * keeping: Vitest's own case timeout then expired first, at 78s, killing the
+ * case while the child was still inside a budget that had not yet run out. The
+ * inner guard was raised past the outer one, so the outer one did the killing
+ * and reported `Test timed out` — a message about the case, naming nothing
+ * about the child it was waiting on.
+ *
+ * Two budgets guard one window, and the inner must stay under the outer or the
+ * inner is unreachable. That is what makes this a pair rather than two numbers.
+ *
+ * It also produced the one measurement worth having: the case died at 78s with
+ * the child still running, so the child needs MORE than 78 seconds on CI for
+ * work that costs about three locally.
+ */
+export const CDK_CASE_BUDGET_MS = 180_000;
 
 /**
  * Quiet-box budget for waiting on a marker from an already-started worker.
