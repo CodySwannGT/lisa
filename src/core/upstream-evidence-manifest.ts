@@ -2695,7 +2695,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".claude-pr/.husky/pre-push": true,
     ".claude-pr/CLAUDE.md": true,
     ".claude/README.md": true,
-    ".claude/REFERENCE.0003.md": true,
     ".claude/commands/lisa/analyze-plugin.md": true,
     ".claude/commands/lisa/claude-code-action/create.md": true,
     ".claude/commands/lisa/codex-parity.md": true,
