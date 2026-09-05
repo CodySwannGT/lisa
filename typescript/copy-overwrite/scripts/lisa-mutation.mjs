@@ -1405,6 +1405,10 @@ export const selectUninstrumentableMutateTargets = (cwd, patterns) => {
       .filter(file => file && isMutateTarget(file, patterns))
       .filter(file => !isStrykerParseable(file));
   } catch {
+    // probe-direction: neutral — this pre-empts a Stryker crash with a better
+    // message; it does not authorise anything. When the index cannot be read the
+    // run proceeds and Stryker still aborts on the same file, so the empty list
+    // costs a worse error, not a weaker gate.
     // Same reasoning as the count above: an unreadable index says nothing
     // about the config, and blocking a push on it would be a lie about why.
     return [];

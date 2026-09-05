@@ -136,7 +136,12 @@ The pause is enforced by the GitHub Environment named in `approval_environment`
 (falls back to `environment`, i.e. the branch name):
 
 ```yaml
-uses: CodySwannGT/lisa/.github/workflows/release.yml@main
+# The ref is maintained for you. Lisa rewrites every `uses:` pointing at one of
+# its reusable workflows to the commit your installed version's tag names, on
+# every apply, with the version alongside it as a comment. Do not hand-edit it:
+# a hand-pinned SHA rots, and `@main` would run whatever landed on Lisa's
+# default branch since your run started rather than the Lisa you installed.
+uses: CodySwannGT/lisa/.github/workflows/release.yml@<40-character commit sha> # v<x.y.z>
 with:
   require_approval: true
   approval_environment: 'production'

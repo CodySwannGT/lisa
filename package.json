@@ -12,6 +12,7 @@
     "test:unit": "$npm_execpath run lisa-test-run -- --adapter vitest -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*'",
     "test:cov": "$npm_execpath run lisa-test-run -- --adapter vitest -- vitest run --coverage",
     "test:cov:unit": "LISA_COVERAGE_SCOPE=unit $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*'",
+    "test:cov:unit:push": "LISA_COVERAGE_SCOPE=unit $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run --coverage --exclude='**/integration/**' --exclude='**/*.integration.*' --exclude='**/measure-tmpdir-growth-performance.test.ts'",
     "pretest:mutation": "bun run build",
     "test:mutation": "LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\",\"worker-\"]' $npm_execpath run lisa-test-run -- --adapter direct -- node scripts/lisa-mutation.mjs",
     "test:mutation:full": "LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\",\"worker-\"]' $npm_execpath run lisa-test-run -- --adapter direct -- node scripts/lisa-mutation.mjs --all",
@@ -56,11 +57,13 @@
     "generate:two-channel-couplings": "bun scripts/generate-two-channel-couplings.ts",
     "check:two-channel-couplings": "bun scripts/generate-two-channel-couplings.ts --check",
     "check:deletion-basis": "node scripts/check-deletion-basis.mjs",
-    "check:artifacts": "status=0; bun run check:upstream-evidence-manifest || status=1; bun run check:lisa-owned-hash-ledger || status=1; bun run check:nightly-guard-certificate || status=1; bun run check:two-channel-couplings || status=1; bun run check:deletion-basis || status=1; exit $status",
+    "check:artifacts": "failed=''; bun run check:upstream-evidence-manifest || failed=\"$failed upstream-evidence-manifest\"; bun run check:lisa-owned-hash-ledger || failed=\"$failed lisa-owned-hash-ledger\"; bun run check:nightly-guard-certificate || failed=\"$failed nightly-guard-certificate\"; bun run check:two-channel-couplings || failed=\"$failed two-channel-couplings\"; bun run check:deletion-basis || failed=\"$failed deletion-basis\"; bun run check:merge-coverage || failed=\"$failed merge-coverage\"; if [ -n \"$failed\" ]; then echo \"check:artifacts FAILED, and these are the checks that failed:$failed\"; exit 1; fi; echo \"check:artifacts OK - all 6 generated-artifact checks passed.\"",
     "refresh:upstream-public-commits": "node scripts/generate-upstream-evidence-manifest.mjs --refresh-public-commits",
     "check:rules-pairing": "bash scripts/check-rules-pairing.sh",
     "check:pipeline-status-reads": "node scripts/check-pipeline-status-reads.mjs",
     "check:whole-output-guards": "node scripts/check-whole-output-guards.mjs",
+    "check:empty-subject-guards": "node scripts/check-empty-subject-guards.mjs",
+    "check:probe-absence-direction": "node scripts/check-probe-absence-direction.mjs",
     "check:shell-guard-refusals": "bun run build && $npm_execpath run lisa-test-run -- --adapter direct -- node scripts/check-shell-guard-refusal-coverage.mjs",
     "check:workflow-inputs": "node scripts/detect-stale-workflow-inputs.mjs --project . --project typescript/create-only --project rails/create-only --json",
     "check:conflict-markers": "node all/copy-overwrite/scripts/check-conflict-markers.mjs",
@@ -87,7 +90,8 @@
     "verify:health-agentic": "bun run build:dist && node scripts/verify-health-agentic-built.mjs",
     "verify:health-consumer": "bun run build:dist && node scripts/verify-health-consumer-built.mjs",
     "measure:tmpdir-growth": "node scripts/measure-tmpdir-growth.mjs",
-    "lint:staged": "lint-staged --config .lintstagedrc.json"
+    "lint:staged": "lint-staged --config .lintstagedrc.json",
+    "check:merge-coverage": "node scripts/check-generated-artifact-merge-coverage.mjs"
   },
   "engines": {
     "npm": "please-use-bun",
@@ -171,7 +175,7 @@
     "zod-validation-error": "^4.0.0"
   },
   "name": "@codyswann/lisa",
-  "version": "4.41.1",
+  "version": "4.45.2",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {

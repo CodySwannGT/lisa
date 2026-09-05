@@ -1,0 +1,161 @@
+name: 📅 Temp-scan latency benchmark
+
+# The ONLY automated surface that executes the 100,000-entry temp-scan
+# benchmark in `tests/unit/scripts/measure-tmpdir-growth-performance.test.ts`.
+#
+# ## Why the benchmark needed a lane of its own
+#
+# CodySwannGT/lisa#3925 removed the benchmark from the pre-push task — correctly,
+# it costs 253.39 s and writes 300,000 real entries into the shared platform temp
+# root — on the stated grounds that CI still ran it every pull request. It did
+# not. The case is `it.runIf(process.platform === "darwin")` and every CI runner
+# is `ubuntu-latest`, so CI skipped it, and had skipped it before the move too.
+# What the move actually removed was the only automated surface that had EVER
+# executed it: the darwin pre-push gate (CodySwannGT/lisa#3935). This workflow is
+# that surface, restored off the critical path.
+#
+# ## Why darwin, stated rather than inherited
+#
+# The guard was NOT a platform requirement. It arrived by co-location: the
+# benchmark and a genuinely-darwin sibling — `darwinBirthBatchingEvidence`, which
+# forwards to BSD `ps -o lstart=` and asserts a `darwin:` birth fingerprint —
+# were written in the same commit, in a helper file named for that sibling, and
+# the benchmark inherited its `runIf`. `darwinTmpdirGrowthPerformance` is
+# filesystem and `spawnSync` only, and `scripts/measure-tmpdir-growth.mjs`
+# explicitly supports linux through `/proc`. Nothing in the measured path needs
+# darwin.
+#
+# It still runs on darwin, now on purpose, for two reasons that outlive the
+# accident:
+#
+#  1. **The budget is a darwin figure.** `TMPDIR_GROWTH_COMMAND_BUDGET_MS` is
+#     5,000 ms against calibration samples of 169.97 / 170.94 / 527.62 ms taken
+#     on an 18-core M5 Max. No Linux figure has ever been measured. Asserting a
+#     wall-clock budget on an uncalibrated platform is not coverage, it is a
+#     future flake, and #3935 names that as the blocker to moving it.
+#  2. **The corpus cost does not shrink on Linux.** Building three real
+#     100,000-entry roots is the expensive half, and a 2-core hosted runner does
+#     not do it faster. Putting that on every pull request is the same trade
+#     #3925 rejected for the push gate, paid by every branch instead.
+#
+# If a measured Linux figure ever arrives, drop the `runIf` and move this lane to
+# `ubuntu-latest`; the execution proof below is what will tell you it worked.
+#
+# ## The execution proof is the point
+#
+# The defect this workflow answers was invisible because a skipped case is a
+# green case, and the check written to guard against it asserted only that a
+# task did not EXCLUDE the file. Running the suite is therefore not enough here:
+# the lane emits a vitest JSON report and `scripts/check-test-case-executed.mjs`
+# asserts the named case is present, PASSED, and consumed real time. Move this
+# lane to a non-darwin runner and the job goes red naming the skip, instead of
+# passing while running nothing.
+#
+# NOTE: repo-specific to the Lisa monorepo, NOT a Lisa template — do not move it
+# under plugins/src or the create-only template sets.
+
+on:
+  schedule:
+    # NIGHTLY, 04:25 UTC. Offset off the hour and off the other scheduled lanes
+    # so a macOS runner request does not contend with them.
+    #
+    # Nightly rather than weekly because the quantity measured — command latency
+    # over a fixed 100,000-entry root — moves when `measure-tmpdir-growth.mjs`
+    # moves, which is a per-commit event, unlike the aggregate floor calibration
+    # the weekly mutation lane samples. A week of unnoticed regression here is a
+    # week of pull requests merged against a claim nothing checked.
+    - cron: '25 4 * * *'
+  # Deliberately NO `pull_request:` or `push:` trigger, not even path-filtered.
+  # The benchmark's cost is exactly why it left the push gate; a path filter
+  # would hand that cost back to the pull requests most likely to touch it.
+  # Dispatch it by hand on such a change.
+  workflow_dispatch:
+
+# Never cancel a run in progress on the schedule; a superseded nightly run is a
+# night with no evidence.
+concurrency:
+  group: tmpdir-growth-benchmark-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  temp_scan_latency:
+    name: 📅 100k temp-scan latency
+    # Forks have neither the runner minutes nor the reason.
+    if: github.repository == 'CodySwannGT/lisa'
+    # Darwin by design, not by default — see the header. The pairing between
+    # this runner and the case's `runIf` is asserted in
+    # tests/unit/config/tmpdir-growth-benchmark-scheduled.test.ts, so changing
+    # one without the other fails in milliseconds instead of silently skipping.
+    runs-on: macos-latest
+    # The file measured 253.39 s on an 18-core M5 Max, dominated by writing
+    # 300,000 real entries. A hosted macOS runner is slower and unbenchmarked
+    # here, so this is sized with generous room. `timeout-minutes` is a resource
+    # limit, not a quality threshold: the binding assertion is the 5,000 ms
+    # per-command budget inside the case, and raising this weakens nothing.
+    timeout-minutes: 60
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: '22.21.1'
+
+      - name: 🍞 Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.3.8'
+
+      - name: 📦 Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: 🏗️ Build
+        run: bun run build
+
+      # `bun run test` rather than a bare vitest call: the wrapper supervises the
+      # scratch root, and a case that writes 300,000 real entries is precisely
+      # the one that must not leak them when the run is killed.
+      - name: ⏱️ Run the 100k temp-scan benchmark
+        run: >-
+          bun run test
+          tests/unit/scripts/measure-tmpdir-growth-performance.test.ts
+          --reporter=json
+          --outputFile="$RUNNER_TEMP/benchmark-report.json"
+
+      # The step that makes this lane a surface rather than a claim. A green
+      # suite above is compatible with the case having been skipped; this is not.
+      - name: ✅ Prove the benchmark actually executed
+        run: >-
+          node scripts/check-test-case-executed.mjs
+          --report "$RUNNER_TEMP/benchmark-report.json"
+          --name "temp growth command-route performance records real 100k command-route timings across three independent roots"
+
+      - name: 📤 Upload the measured report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tmpdir-growth-benchmark-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/benchmark-report.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  # A scheduled run nobody reads is the same as no scheduled run. A red run —
+  # including one red because the case was skipped — files an issue.
+  create_issue_on_failure:
+    if: ${{ failure() && github.repository == 'CodySwannGT/lisa' }}
+    needs: temp_scan_latency
+    uses: ./.github/workflows/create-github-issue-on-failure.yml
+    permissions:
+      contents: read
+      issues: write
+    with:
+      workflow_name: 'Temp-scan latency benchmark'
+      failed_job: 'temp_scan_latency'
+      package_manager: 'bun'

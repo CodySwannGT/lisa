@@ -1,6 +1,6 @@
 {
   "name": "lisa",
-  "version": "4.41.1",
+  "version": "4.45.2",
   "description": "Universal governance — agents, skills, commands, hooks, and rules for all projects",
   "author": {
     "name": "Cody Swann"
@@ -107,6 +107,15 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/withdrawn-rulings.sh --hook"
           }
         ]
+      },
+      {
+        "matcher": "EnterWorktree",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-binding-guard.sh"
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -149,6 +158,10 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-managed-file-edits.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-binding-guard.sh"
           }
         ]
       },
@@ -162,6 +175,10 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/block-managed-file-edits.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-binding-guard.sh"
           }
         ]
       },

@@ -44,6 +44,8 @@ const tryGit = args => {
   try {
     return git(args);
   } catch {
+    // probe-direction: neutral — this is wiki ingestion; the empty string becomes
+    // an empty section of a source note and gates nothing.
     return "";
   }
 };
