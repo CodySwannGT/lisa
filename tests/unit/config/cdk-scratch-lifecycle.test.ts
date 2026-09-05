@@ -22,10 +22,15 @@ import {
   runCdk,
   startWaitingCdkRun,
   stopWaitingCdkRun,
+  cdkEnvironment,
   waitForCdkAssembly,
   waitForVitestPid,
   type CdkProcessOutcome,
 } from "../../helpers/cdk-scratch-lifecycle.js";
+import {
+  FLEET_ADMISSION_OFF,
+  FLEET_ADMISSION_VAR,
+} from "../../../src/configs/vitest/fleet-admission.js";
 import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
 import { createPackageLisaApplyHarness } from "../../helpers/package-lisa-apply-harness.js";
 
@@ -53,6 +58,29 @@ const CDK_ARMS = [
 ] as const satisfies readonly (readonly [string, CdkProcessOutcome])[];
 
 describe("AWS CDK default synth scratch lifecycle", () => {
+  it("runs its synth child outside fleet admission", () => {
+    // Pins the fix for a CI failure that looked like a broken synth and was a
+    // starved one. The child inherits the parent environment, so without this
+    // it queues for a worker slot the CALLER already holds — 120_000ms of
+    // admission deadline against this child's 30_000ms budget, which under any
+    // concurrency means SIGKILL before synth begins. All seven arms then fail
+    // together reporting "wrote no assembly marker".
+    //
+    // Asserted on the environment rather than by timing: a wall-clock
+    // assertion passes on a quiet machine, which is exactly the machine this
+    // defect does not appear on.
+    // Paths are inert here: cdkEnvironment only copies them into the child
+    // environment, and this case never spawns one. Named rather than real so
+    // the probe cannot touch a shared writable directory.
+    const environment = cdkEnvironment(
+      "probe-base",
+      "probe-base/marker",
+      "pass"
+    );
+
+    expect(environment[FLEET_ADMISSION_VAR]).toBe(FLEET_ADMISSION_OFF);
+  });
+
   it.each(CDK_ARMS)("owns and removes cdk.out after %s", (arm, expected) => {
     const result = runCdk(arm);
     temporaryDirectories.push(result.scratchBase);

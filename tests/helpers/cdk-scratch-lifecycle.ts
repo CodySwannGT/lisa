@@ -16,6 +16,10 @@ import {
   type ScratchOwnerRecordV1,
   type ScratchPathIdentity,
 } from "../../src/configs/vitest/scratch-owner.js";
+import {
+  FLEET_ADMISSION_OFF,
+  FLEET_ADMISSION_VAR,
+} from "../../src/configs/vitest/fleet-admission.js";
 import { boundedSpawnSync, ioLatencyBudgetMs } from "./io-latency-budget.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
@@ -109,7 +113,7 @@ function cdkArguments(config: string): readonly string[] {
  * @param arm - Fixture lifecycle arm
  * @returns Exact child environment
  */
-function cdkEnvironment(
+export function cdkEnvironment(
   base: string,
   marker: string,
   arm: string
@@ -119,6 +123,21 @@ function cdkEnvironment(
     TMPDIR: base,
     TMP: base,
     TEMP: base,
+    // This child must not queue behind fleet admission. The caller ALREADY
+    // holds the worker slot this child runs inside, so making it wait for a
+    // second one is double-counting one unit of work — and the wait is
+    // 120_000ms (DEFAULT_ADMISSION_DEADLINE_MS) against a 30_000ms child
+    // budget, so under any concurrency the child spends its entire budget
+    // queueing and is SIGKILLed before synth begins.
+    //
+    // Measured in CI: all seven arms failed together with
+    // `status=null signal=SIGKILL ... ETIMEDOUT`, and the child's own stderr
+    // said "waiting for a worker slot — 2 run(s) live". The assertion that
+    // then fires is "wrote no assembly marker", which reads as a broken synth
+    // rather than a starved one. Admission is a LOAD CONTROL, not a safety
+    // guard — see the note on FLEET_ADMISSION_VAR — so disabling it for a
+    // fixture child costs no coverage.
+    [FLEET_ADMISSION_VAR]: FLEET_ADMISSION_OFF,
     LISA_TEST_SCRATCH_PREFIXES: JSON.stringify(["cdk.out"]),
     LISA_TEST_SCRATCH_SUITE: "cdk",
     LISA_CDK_SYNTH_ARM: arm,
