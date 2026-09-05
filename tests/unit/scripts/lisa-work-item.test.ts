@@ -3749,3 +3749,158 @@ describe("discharge decisions (#3791)", () => {
     expect(changed).toBe(false);
   });
 });
+
+/**
+ * A branch whose ancestry stopped being reachable from `origin`.
+ *
+ * The new-branch lane scopes itself with `--not --remotes=origin`, which is
+ * correct only while reachability is stable. A history rewrite gives every
+ * commit a new object id, so a branch created before the rewrite shares nothing
+ * with the rewritten remote: the exclusion set removes NOTHING and the whole
+ * history falls into scope. The gate then refuses on somebody else's old commit
+ * — with a message about an unrelated work item, and nothing pointing at the
+ * scope being wrong (CodySwannGT/lisa#3719).
+ *
+ * These cases assert on WHICH COMMITS ENTER THE VALIDATED SET, not on whether
+ * the push succeeds, because a push that succeeds for the wrong reason looks
+ * exactly like one that succeeds for the right one.
+ */
+describe("a branch whose ancestry the remote no longer reaches", () => {
+  /**
+   * Publish a base, branch from it, then rewrite the remote into a disjoint
+   * history — the identifier-scrub shape.
+   * @param fixture - Disposable repository
+   * @param ancestorMessage - Commit message for the ancestor left behind
+   * @returns The branch tip to push
+   */
+  function afterRewrite(fixture: Fixture, ancestorMessage: string): string {
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    git(
+      fixture.root,
+      ["update-ref", "refs/remotes/origin/main", base],
+      fixture.env
+    );
+    setOriginHead(fixture);
+    // Authored BEFORE the rewrite and already published at the time; it is the
+    // commit the author never touched and should never be re-validated.
+    git(
+      fixture.root,
+      ["commit", "-q", "--allow-empty", "-m", ancestorMessage],
+      fixture.env
+    );
+    const head = commit(
+      fixture,
+      "feat: finished work\n\nWork-Item: acme/widgets#42"
+    );
+    // The rewrite: every commit gets a new object id, so origin's history and
+    // this branch's history now share nothing at all.
+    git(fixture.root, ["switch", "-q", "--orphan", "rewritten"], fixture.env);
+    git(
+      fixture.root,
+      ["commit", "-q", "--allow-empty", "-m", "chore: rewritten history"],
+      fixture.env
+    );
+    const rewritten = git(fixture.root, ["rev-parse", "HEAD"], fixture.env);
+    git(
+      fixture.root,
+      ["update-ref", "refs/remotes/origin/main", rewritten],
+      fixture.env
+    );
+    git(fixture.root, ["switch", "-q", "feature/tracked"], fixture.env);
+    return head;
+  }
+
+  /**
+   * Push a tip as a brand-new branch.
+   * @param fixture - Disposable repository
+   * @param head - Branch tip being pushed
+   * @param extra - Environment entries layered over the fixture's
+   * @returns What the run printed and the status it exited with
+   */
+  function pushNewBranch(
+    fixture: Fixture,
+    head: string,
+    extra: NodeJS.ProcessEnv = {}
+  ): CommandResult {
+    return command(fixture, ["validate-push", "origin"], {
+      env: { FAKE_GH_PR_MISSING: "1", ...extra },
+      input: `refs/heads/feature/tracked ${head} refs/heads/feature/tracked ${ZERO_OID}\n`,
+    });
+  }
+
+  it("reports the unreachable ancestry rather than an ancestor's closed work item", () => {
+    const fixture = createFixture();
+    // Issue 99 is CLOSED in the fake tracker. This is the refusal actually
+    // observed: an old commit, a work item long since closed, and an author
+    // with no idea why either is being mentioned.
+    const head = afterRewrite(
+      fixture,
+      "fix: an older change by someone else\n\nWork-Item: acme/widgets#99"
+    );
+
+    const result = pushNewBranch(fixture, head);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("no longer reachable");
+    expect(result.stderr).toContain("cherry-pick");
+    // The misdirection is the defect. A refusal that still argues about the old
+    // commit's work item has not been fixed, it has been decorated.
+    expect(result.stderr).not.toContain("acme/widgets#99");
+  });
+
+  it("validates only the commits an ordinary new branch introduces", () => {
+    // The control that gives the case above its meaning: without it, a guard
+    // that reported "unreachable ancestry" for every push would pass.
+    const fixture = createFixture();
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    git(
+      fixture.root,
+      ["update-ref", "refs/remotes/origin/main", base],
+      fixture.env
+    );
+    setOriginHead(fixture);
+    const head = commit(
+      fixture,
+      "feat: tracked change\n\nWork-Item: acme/widgets#42"
+    );
+
+    const result = pushNewBranch(fixture, head);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("1 commit(s)");
+  });
+
+  it("still refuses a branch whose own commit carries no work item", () => {
+    // The negative control. The diagnosis must not become a way past the gate.
+    const fixture = createFixture();
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    git(
+      fixture.root,
+      ["update-ref", "refs/remotes/origin/main", base],
+      fixture.env
+    );
+    setOriginHead(fixture);
+    const head = commit(fixture, "feat: untraceable change");
+
+    const result = pushNewBranch(fixture, head);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).not.toContain("no longer reachable");
+  });
+
+  it("does not diagnose a rewrite when the remote has no refs at all", () => {
+    // A repository's FIRST push legitimately carries its root commit, and the
+    // exclusion set is empty because nothing has been published yet — not
+    // because history moved underneath it. Reading that as a rewrite would
+    // make a new repository unpushable, which is the same defect inverted.
+    const fixture = createFixture();
+    const head = commit(
+      fixture,
+      "feat: first ever change\n\nWork-Item: acme/widgets#42"
+    );
+
+    const result = pushNewBranch(fixture, head);
+
+    expect(result.stderr).not.toContain("no longer reachable");
+  });
+});

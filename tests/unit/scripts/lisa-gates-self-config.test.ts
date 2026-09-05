@@ -394,7 +394,10 @@ describe("check:artifacts states its verdict last", () => {
     const { code, line } = lastLine([0, 0, 0, 0]);
 
     expect(code).toBe(0);
-    expect(line).toContain("all 5 generated-artifact checks passed");
+    // Six since CodySwannGT/lisa#3932 added `check:merge-coverage`. Hardcoded
+    // per the Test Isolation house rule: deriving it from the script would
+    // make the assertion agree with whatever the script happens to say.
+    expect(line).toContain("all 6 generated-artifact checks passed");
   });
 
   it("names the failing check last, where a reader is already looking", () => {
@@ -563,9 +566,29 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
    * the suite and a load spike every other lane pays for, and it failed the
    * push gate on branches whose diffs could not reach it.
    *
-   * It is excluded by FILE and still runs in the full suite CI drives, exactly
-   * as the mutation performance suites are excluded from `test:integration:push`.
-   * Without this assertion the split would be free to rot back silently.
+   * It is excluded by FILE, exactly as the mutation performance suites are
+   * excluded from `test:integration:push`. Without this assertion the split
+   * would be free to rot back silently.
+   *
+   * ## What this case does NOT establish, corrected
+   *
+   * This case once carried a comment reading "the benchmark still runs
+   * somewhere: the PR-moment prover must NOT exclude it". The assertion below
+   * is true and that inference was false, and CodySwannGT/lisa#3935 is what it
+   * cost. The benchmark is `it.runIf(process.platform === "darwin")` and every
+   * CI runner is `ubuntu-latest`, so the pull-request prover collected the file
+   * and skipped the case — before this split and after it. Not excluding a file
+   * is not running it, and a skipped case is a green case, so nothing said so.
+   *
+   * An assertion about a configuration is not an assertion about execution. The
+   * pull-request half below is therefore kept for what it genuinely pins — that
+   * the split RELOCATED the exclusion rather than spreading it — and is no
+   * longer read as coverage. Execution now has a surface of its own and a proof
+   * of its own: `.github/workflows/nightly-tmpdir-growth-benchmark.yml` runs it
+   * on darwin nightly and `scripts/check-test-case-executed.mjs` asserts from
+   * the run's vitest JSON report that the case was present, passed, and timed.
+   * `tests/unit/config/tmpdir-growth-benchmark-scheduled.test.ts` keeps that
+   * lane pointed at this file and pinned to a runner the guard admits.
    */
   it("keeps the 100k temp-growth benchmark out of the push pass", () => {
     const pushTask = splitCoverageTask();
@@ -573,9 +596,9 @@ describe("the push moment does not run a nested mutation run inside a suite", ()
     expect(script(pushTask)).toContain(
       "--exclude='**/measure-tmpdir-growth-performance.test.ts'"
     );
-    // The benchmark still runs somewhere: the PR-moment prover must NOT
-    // exclude it, or the split would have deleted the coverage rather than
-    // relocated it.
+    // The PR-moment prover carries no exclusion of its own. That proves the
+    // exclusion was relocated rather than duplicated; it does NOT prove the
+    // benchmark executes there, and the platform guard means it does not.
     const prTask = gatesAt(parsedConfig(), "pull-request").find(
       entry => entry.id === "test-correctness"
     )?.task;

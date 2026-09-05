@@ -2,6 +2,87 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.45.2](https://github.com/CodySwannGT/lisa/compare/v4.45.1...v4.45.2) (2026-09-05)
+
+
+### Bug Fixes
+
+* **hooks:** a refusal from a copy that cannot be shown current says so ([991f274](https://github.com/CodySwannGT/lisa/commit/991f2747e87543b72dc9d97cf7e0fb48dc66f5fc)), closes [#3191](https://github.com/CodySwannGT/lisa/issues/3191) [#3714](https://github.com/CodySwannGT/lisa/issues/3714) [CodySwannGT/lisa#3942](https://github.com/CodySwannGT/lisa/issues/3942)
+
+### [4.45.1](https://github.com/CodySwannGT/lisa/compare/v4.45.0...v4.45.1) (2026-09-05)
+
+## [4.45.0](https://github.com/CodySwannGT/lisa/compare/v4.44.1...v4.45.0) (2026-09-05)
+
+
+### Features
+
+* **gates:** report the shared temp root beside a blown time budget ([c15e54b](https://github.com/CodySwannGT/lisa/commit/c15e54b76503dee2304aca32f350543d4fa84821)), closes [#3906](https://github.com/CodySwannGT/lisa/issues/3906) [CodySwannGT/lisa#3906](https://github.com/CodySwannGT/lisa/issues/3906)
+
+
+### Bug Fixes
+
+* **gates:** bound the timeout verdict's evidence and stop scanning the temp root on every diagnosis ([3e1ef85](https://github.com/CodySwannGT/lisa/commit/3e1ef85998999203a8c9726dc50f805537ac7675)), closes [CodySwannGT/lisa#3906](https://github.com/CodySwannGT/lisa/issues/3906)
+
+### [4.44.1](https://github.com/CodySwannGT/lisa/compare/v4.44.0...v4.44.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* **tests:** publish a run's coverage artifacts and reclaim abandoned ones ([73d273e](https://github.com/CodySwannGT/lisa/commit/73d273ee2c25793e30b4395af4df5d10814dfe26)), closes [#3911](https://github.com/CodySwannGT/lisa/issues/3911) [#3945](https://github.com/CodySwannGT/lisa/issues/3945) [#3911](https://github.com/CodySwannGT/lisa/issues/3911) [#3950](https://github.com/CodySwannGT/lisa/issues/3950) [CodySwannGT/lisa#3950](https://github.com/CodySwannGT/lisa/issues/3950)
+
+## [4.44.0](https://github.com/CodySwannGT/lisa/compare/v4.43.1...v4.44.0) (2026-09-05)
+
+
+### Features
+
+* **artifacts:** make generated-artifact merge coverage checkable ([8376d57](https://github.com/CodySwannGT/lisa/commit/8376d57a509cd2480fb3b994d07d7f354e07886e)), closes [CodySwannGT/lisa#3932](https://github.com/CodySwannGT/lisa/issues/3932)
+
+
+### Bug Fixes
+
+* **hooks:** read the script a command is about to run, not just where it starts ([0aa4e23](https://github.com/CodySwannGT/lisa/commit/0aa4e23740bb5e781736f28fa722ed4a799310e4)), closes [CodySwannGT/lisa#3927](https://github.com/CodySwannGT/lisa/issues/3927) [CodySwannGT/lisa#3924](https://github.com/CodySwannGT/lisa/issues/3924)
+* **work-item:** tell an unbounded push range from a traceability failure ([adcf2b0](https://github.com/CodySwannGT/lisa/commit/adcf2b01c5f948ee738074f53bb887ccaf627d67)), closes [CodySwannGT/lisa#3719](https://github.com/CodySwannGT/lisa/issues/3719) [CodySwannGT/lisa#3719](https://github.com/CodySwannGT/lisa/issues/3719)
+
+### [4.43.1](https://github.com/CodySwannGT/lisa/compare/v4.43.0...v4.43.1) (2026-09-05)
+
+## [4.43.0](https://github.com/CodySwannGT/lisa/compare/v4.42.7...v4.43.0) (2026-09-05)
+
+
+### Features
+
+* **doctor:** repair and report a deploy job that skips on a failed release ([a7b3d76](https://github.com/CodySwannGT/lisa/commit/a7b3d76040ef572beb49da3352043f53db3c901a)), closes [#3467](https://github.com/CodySwannGT/lisa/issues/3467) [#3467](https://github.com/CodySwannGT/lisa/issues/3467) [CodySwannGT/lisa#3740](https://github.com/CodySwannGT/lisa/issues/3740)
+
+
+### Bug Fixes
+
+* **doctor:** evaluate every release a deploy needs, not only the first ([8e8e8ff](https://github.com/CodySwannGT/lisa/commit/8e8e8ff7cf7ac4ca625782c7f369130fa295cf12)), closes [CodySwannGT/lisa#3740](https://github.com/CodySwannGT/lisa/issues/3740)
+* **gates:** put the 100k temp-scan benchmark back on an automated surface ([a2a5e98](https://github.com/CodySwannGT/lisa/commit/a2a5e989bb10ba0d0d4ae69e10c561f46774fe33)), closes [CodySwannGT/lisa#3935](https://github.com/CodySwannGT/lisa/issues/3935)
+* **gates:** resolve execution advice through a Map, not a bare object ([4e5e03c](https://github.com/CodySwannGT/lisa/commit/4e5e03cfe3665965450b435b64ecc51d6d0d40ff)), closes [CodySwannGT/lisa#3935](https://github.com/CodySwannGT/lisa/issues/3935)
+* **tests:** drop the ignored createTempDir prefix argument ([7f42737](https://github.com/CodySwannGT/lisa/commit/7f427378bf9d53d376144ed9f669c113b31ba474)), closes [CodySwannGT/lisa#3740](https://github.com/CodySwannGT/lisa/issues/3740)
+
+### [4.42.7](https://github.com/CodySwannGT/lisa/compare/v4.42.6...v4.42.7) (2026-09-05)
+
+
+### Bug Fixes
+
+* name the direction of the worktree-binding guard's git probe ([8d2cfaf](https://github.com/CodySwannGT/lisa/commit/8d2cfafdaa3ebd93b2deebd3abbdcbd8909c9038)), closes [CodySwannGT/lisa#3848](https://github.com/CodySwannGT/lisa/issues/3848)
+* refuse a probe that spends a failure as an absence ([a012825](https://github.com/CodySwannGT/lisa/commit/a0128255c00119d6bb1710c7c7c82a2489f83a9d)), closes [CodySwannGT/lisa#3848](https://github.com/CodySwannGT/lisa/issues/3848)
+* **tests:** scale the race child budget with the machine ([8e47129](https://github.com/CodySwannGT/lisa/commit/8e47129637abf5a890f48b5bc78427e398f1dd59)), closes [CodySwannGT/lisa#3911](https://github.com/CodySwannGT/lisa/issues/3911)
+* **tests:** type the race child as the shape spawn actually returns ([63cfa83](https://github.com/CodySwannGT/lisa/commit/63cfa833d437e74a704602eb945db0ef63ffdb78)), closes [CodySwannGT/lisa#3911](https://github.com/CodySwannGT/lisa/issues/3911)
+* **vitest:** isolate the coverage reports directory per run ([59ac56a](https://github.com/CodySwannGT/lisa/commit/59ac56a8dd3a19f76a64a8cb92164c60866cf203)), closes [CodySwannGT/lisa#3911](https://github.com/CodySwannGT/lisa/issues/3911)
+
+
+### Documentation
+
+* **readme:** say where coverage reports land now ([7c5bd34](https://github.com/CodySwannGT/lisa/commit/7c5bd345a0217baecac513a1e10b52d87101cc58)), closes [CodySwannGT/lisa#3911](https://github.com/CodySwannGT/lisa/issues/3911)
+
+### [4.42.6](https://github.com/CodySwannGT/lisa/compare/v4.42.5...v4.42.6) (2026-09-05)
+
+
+### Bug Fixes
+
+* **guards:** stop offering re-clone as a like-for-like replacement ([1ffbb2a](https://github.com/CodySwannGT/lisa/commit/1ffbb2adcd95302eb2eb2d27da02d48c58517583)), closes [#3722](https://github.com/CodySwannGT/lisa/issues/3722) [CodySwannGT/lisa#3722](https://github.com/CodySwannGT/lisa/issues/3722)
+
 ### [4.42.5](https://github.com/CodySwannGT/lisa/compare/v4.42.4...v4.42.5) (2026-09-05)
 
 
