@@ -2021,7 +2021,7 @@ while IFS= read -r git_stmt; do
     continue
   fi
   if scan -E "$git_stmt" "$GIT_CONTROL_PLANE"; then
-    block "recursive forced delete of the git control plane (.git holds every commit, branch and stash not already pushed; nothing in the working tree can rebuild it). Delete a specific ignored artifact instead, or re-clone if the checkout is genuinely to be discarded."
+    block "recursive forced delete of the git control plane (.git holds every commit, branch and stash not already pushed; nothing in the working tree can rebuild it). Delete a specific ignored artifact instead. Re-cloning is NOT a like-for-like replacement: every linked worktree stores a pointer into this .git, so discarding it discards each of them and any uncommitted work they hold — check \`git worktree list\` before treating the checkout as disposable."
   fi
   if names_linked_worktree "$git_stmt"; then
     block "recursive forced delete of a linked git worktree. A worktree's index and working files are private to it — only commits are shared — so this destroys any staged or unwritten-to-a-commit work another agent left there, and destroys the evidence that it did (CodySwannGT/lisa#3863). Use 'node scripts/lisa-worktree-guard.mjs remove <path>' instead: it deletes clean and already-committed trees without ceremony, names the files when they exist nowhere else, and records an explicit --force override."

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.42.6](https://github.com/CodySwannGT/lisa/compare/v4.42.5...v4.42.6) (2026-09-05)
+
+
+### Bug Fixes
+
+* **guards:** stop offering re-clone as a like-for-like replacement ([1ffbb2a](https://github.com/CodySwannGT/lisa/commit/1ffbb2adcd95302eb2eb2d27da02d48c58517583)), closes [#3722](https://github.com/CodySwannGT/lisa/issues/3722) [CodySwannGT/lisa#3722](https://github.com/CodySwannGT/lisa/issues/3722)
+
 ### [4.42.5](https://github.com/CodySwannGT/lisa/compare/v4.42.4...v4.42.5) (2026-09-05)
 
 
