@@ -2207,11 +2207,10 @@ function assertStateAmong(refs, contract) {
  *   branch encodes none.
  */
 function branchWorkItem(contract) {
-  // A GitHub reference is `owner/repo#123`; no branch-naming convention
-  // encodes one, so there is nothing here to read.
-  if (contract.provider === "github") return undefined;
   const branch = activeBranch();
   if (!branch) return undefined;
+  if (contract.provider === "github")
+    return githubBranchIssue(branch, contract);
   const key =
     contract.provider === "jira" ? contract.project : contract.teamKey;
   if (!key) return undefined;
@@ -2223,6 +2222,53 @@ function branchWorkItem(contract) {
     "i"
   ).exec(branch);
   return match ? `${key}-${match[1]}` : undefined;
+}
+
+/**
+ * The GitHub issue a branch name encodes, canonicalized, or undefined.
+ *
+ * This used to be `branchWorkItem`'s first statement, returning `undefined`
+ * unconditionally on the premise that "a GitHub reference is `owner/repo#123`;
+ * no branch-naming convention encodes one". True of the canonical SPELLING and
+ * false of the convention in use — `fix/3537-…`, `stack/3463`, `qd/3554-…`.
+ * The number is right there; it simply is not written as a full reference. So
+ * the fallback built to close the unbound-worktree gap never applied to the
+ * provider this repository configures, and the trailer went on being compared
+ * against nothing, while the hook printed `WORK_ITEM_TRACKING_OK` either way
+ * (CodySwannGT/lisa#3861).
+ *
+ * WHY THE WHOLE FIRST SEGMENT AFTER THE FIRST SLASH, and nothing looser. A
+ * bare number is ambiguous in a way a `KEY-123` shape is not, so position has
+ * to carry the meaning the key would otherwise carry. Measured against the 246
+ * branches this repository has: the rule reads 149 of them, and every one of
+ * the 97 it declines genuinely encodes no issue number. A "first number
+ * anywhere" rule would instead read `chore/upgrade-lisa-4.33.1` as issue 4,
+ * `stack/queue-drain-20260903` as issue 20260903, and
+ * `fix/se-7728-e2e-coverage-wildcard` as issue 7728 — a version, a date and
+ * another tracker's key, each refusing a commit that is perfectly correct.
+ *
+ * `issue-<n>` shapes (`codex/issue-1264`) are knowingly NOT read. They are
+ * unambiguous but rare here, and every additional pattern is another place to
+ * be wrong; declining them fails open, which is the safe direction.
+ *
+ * EXPORTED SO IT CAN BE TESTED IN PROCESS, and that is not a formality. The
+ * CLI-level cases around this reach it only by SPAWNING the script, and a
+ * subprocess loads the file from disk rather than the instrumented module, so
+ * the mutation gate cannot see through it: measured, 12 of 12 mutants in this
+ * function survived every CLI case while an untouched range of the same file
+ * scored 85.71% off the in-process importers. Taking `branch` as an argument
+ * rather than calling `activeBranch()` is what makes that possible — the
+ * function is pure, so a table of names can pin each boundary directly. Several
+ * neighbours here are exported for the same reason.
+ * @param {string} branch Active branch name.
+ * @param {object} contract Resolved tracker contract.
+ * @returns {string|undefined} Canonical `owner/repo#123`, or undefined.
+ */
+export function githubBranchIssue(branch, contract) {
+  // Bounded on both sides: the number must fill the segment, so `4.33.1` and
+  // `se-7728` do not match, and `3463` is not read out of `34631`.
+  const match = /^[^/]+\/([1-9]\d*)(?:-|$)/.exec(branch);
+  return match ? `${contract.repository}#${match[1]}` : undefined;
 }
 
 /**

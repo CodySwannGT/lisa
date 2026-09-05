@@ -2,6 +2,54 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.42.5](https://github.com/CodySwannGT/lisa/compare/v4.42.4...v4.42.5) (2026-09-05)
+
+
+### Bug Fixes
+
+* **hooks:** teach the OpenCode filing port that -n executes nothing ([f0b732d](https://github.com/CodySwannGT/lisa/commit/f0b732df6d1d99506923022b322ffa3f87b9a9e4)), closes [CodySwannGT/lisa#3885](https://github.com/CodySwannGT/lisa/issues/3885)
+
+### [4.42.4](https://github.com/CodySwannGT/lisa/compare/v4.42.3...v4.42.4) (2026-09-04)
+
+
+### Bug Fixes
+
+* refuse a guard that reports OK when its comparison had no subject ([6a9682a](https://github.com/CodySwannGT/lisa/commit/6a9682ae78cf3978ce71906b64faad8c2e2ab0e3)), closes [owner/repo#123](https://github.com/owner/repo/issues/123) [acme/widgets#42](https://github.com/acme/widgets/issues/42) [CodySwannGT/lisa#3888](https://github.com/CodySwannGT/lisa/issues/3888)
+
+### [4.42.3](https://github.com/CodySwannGT/lisa/compare/v4.42.2...v4.42.3) (2026-09-04)
+
+
+### Bug Fixes
+
+* account for the pull requests a batch carries in the review verdict ([790fbcb](https://github.com/CodySwannGT/lisa/commit/790fbcba9941198ce69781c47e4fb631a85bd1d7)), closes [CodySwannGT/lisa#3658](https://github.com/CodySwannGT/lisa/issues/3658)
+* **ci:** pin host callers at a commit, and keep the pin moving ([36e8579](https://github.com/CodySwannGT/lisa/commit/36e8579de9762dc6e26dfec9729d88266a21142f)), closes [CodySwannGT/lisa#3893](https://github.com/CodySwannGT/lisa/issues/3893)
+* **ci:** stop telling operators to hand-write a ref Lisa now maintains ([91781fc](https://github.com/CodySwannGT/lisa/commit/91781fc23b56604b4de1620b91104bda1fa09e83)), closes [CodySwannGT/lisa#3893](https://github.com/CodySwannGT/lisa/issues/3893)
+* **migrations:** tell an unreleased Lisa apart from a broken one before aborting ([c750b09](https://github.com/CodySwannGT/lisa/commit/c750b0982a84e87e41594d9d3ef4ca6c050a6062)), closes [CodySwannGT/lisa#3893](https://github.com/CodySwannGT/lisa/issues/3893)
+* **recovery:** resolve a branch's work item before classifying the branch ([15cce22](https://github.com/CodySwannGT/lisa/commit/15cce229be54c3d49ebd90cf778af52de4d00645)), closes [CodySwannGT/lisa#3904](https://github.com/CodySwannGT/lisa/issues/3904)
+* refuse a truncated commit list when enumerating a carried batch ([cb1647a](https://github.com/CodySwannGT/lisa/commit/cb1647a879e2495dd911dd713bac548e47cf9198)), closes [CodySwannGT/lisa#3658](https://github.com/CodySwannGT/lisa/issues/3658)
+
+
+### Documentation
+
+* **migrations:** stop the nightly migration describing a job it no longer has ([12fb9a5](https://github.com/CodySwannGT/lisa/commit/12fb9a5ef3186f098f97256a805fadadc77448cd)), closes [CodySwannGT/lisa#3893](https://github.com/CodySwannGT/lisa/issues/3893)
+
+### [4.42.2](https://github.com/CodySwannGT/lisa/compare/v4.42.1...v4.42.2) (2026-09-04)
+
+### [4.42.1](https://github.com/CodySwannGT/lisa/compare/v4.42.0...v4.42.1) (2026-09-04)
+
+## [4.42.0](https://github.com/CodySwannGT/lisa/compare/v4.41.1...v4.42.0) (2026-09-04)
+
+
+### Features
+
+* **hooks:** refuse to act while the session's worktree binding is in dispute ([4a8e73e](https://github.com/CodySwannGT/lisa/commit/4a8e73ebac8f36cd666093c46dc0be17112c1027)), closes [CodySwannGT/lisa#3864](https://github.com/CodySwannGT/lisa/issues/3864)
+
+
+### Bug Fixes
+
+* **hooks:** drop the invariant exit code from the EnterWorktree recorder ([6777c22](https://github.com/CodySwannGT/lisa/commit/6777c22b612e6c391cb06280db4c4a22371089a9)), closes [CodySwannGT/lisa#3864](https://github.com/CodySwannGT/lisa/issues/3864)
+* **work-item:** read the issue number a GitHub branch encodes ([bb92900](https://github.com/CodySwannGT/lisa/commit/bb92900dae44ca22b404e8cf8c7913d0c56306c1)), closes [owner/repo#123](https://github.com/owner/repo/issues/123) [#3712](https://github.com/CodySwannGT/lisa/issues/3712) [#3861](https://github.com/CodySwannGT/lisa/issues/3861) [CodySwannGT/lisa#3712](https://github.com/CodySwannGT/lisa/issues/3712) [CodySwannGT/lisa#3859](https://github.com/CodySwannGT/lisa/issues/3859) [CodySwannGT/lisa#3861](https://github.com/CodySwannGT/lisa/issues/3861)
+
 ### [4.41.1](https://github.com/CodySwannGT/lisa/compare/v4.41.0...v4.41.1) (2026-09-04)
 
 ## [4.41.0](https://github.com/CodySwannGT/lisa/compare/v4.40.1...v4.41.0) (2026-09-04)

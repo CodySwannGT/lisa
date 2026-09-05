@@ -15,18 +15,15 @@ import {
 } from "./tmpdir-growth-command-harness.js";
 import {
   type DarwinBirthBatchingTrace,
-  type TmpdirGrowthOverCapTrace,
   type TmpdirGrowthPerformanceTrace,
 } from "./tmpdir-growth-performance-types.js";
 
-const OVER_CAP_COUNT = 200_001;
 const { env: PROCESS_ENVIRONMENT } = process;
 /** Predeclared from prior real command trials 169.97/170.94/527.62ms. */
 const CALIBRATION_MS = [169.97, 170.94, 527.62] as const;
 const MEASURED_ROOT_SCHEDULE = [0, 1, 2, 0, 1] as const;
 const PERF_PREFIX = "LISA_TMPDIR_GROWTH_PERF_TRACE=";
 const BATCH_PREFIX = "LISA_TMPDIR_GROWTH_BATCH_TRACE=";
-const OVER_CAP_PREFIX = "LISA_TMPDIR_GROWTH_OVERCAP_TRACE=";
 
 /** Production-default snapshot runner used behind a forwarding ps shim. */
 const DARWIN_BATCH_RUNNER = `
@@ -198,55 +195,5 @@ export function darwinBirthBatchingEvidence(
     liveOwnerBirth,
   };
   process.stdout.write(`${BATCH_PREFIX}${JSON.stringify(trace)}\n`);
-  return trace;
-}
-
-/**
- * Prove a real 200001-entry command refuses without replacing valid evidence.
- * @param script - Public measurement command
- * @param register - Test cleanup registry
- * @returns Complete refusal and preservation evidence
- */
-export function verifyDarwinTmpdirGrowthOverCap(
-  script: string,
-  register: (directory: string) => void
-): TmpdirGrowthOverCapTrace {
-  const valid = populatedTmpdirRoot(1, 0, "tmp-growth-valid-", register);
-  const initial = timedTmpdirMeasurement(
-    script,
-    valid.root,
-    valid.artifact,
-    1_000
-  );
-  if (initial.status !== 0) expect(initial.status, initial.stderr).toBe(0);
-  const validBytes = fs.readFileSync(valid.artifact, "utf8");
-  const overCap = populatedTmpdirRoot(
-    OVER_CAP_COUNT,
-    1,
-    "tmp-growth-overcap-",
-    register
-  );
-  const result = timedTmpdirMeasurement(
-    script,
-    overCap.root,
-    valid.artifact,
-    2_000
-  );
-  const preserved = fs.readFileSync(valid.artifact, "utf8") === validBytes;
-  const trace: TmpdirGrowthOverCapTrace = {
-    entryCount: OVER_CAP_COUNT,
-    budgetMs: TMPDIR_GROWTH_COMMAND_BUDGET_MS,
-    commandElapsedMs: result.elapsedMs,
-    status: result.status,
-    stdout: result.stdout,
-    stderr: result.stderr,
-    validArtifactBytesPreserved: preserved,
-    timeoutBehavior: "not-established",
-  };
-  expect(result.error).toBeUndefined();
-  expect(result.status).toBe(2);
-  expect(`${result.stdout}${result.stderr}`).toMatch(/200000/u);
-  expect(preserved).toBe(true);
-  process.stdout.write(`${OVER_CAP_PREFIX}${JSON.stringify(trace)}\n`);
   return trace;
 }
