@@ -501,7 +501,7 @@ HUMAN_GATE_MARKER = "[lisa-human-gate]"
 # blockquote arrows, list bullets or numbers, emphasis, an opening HTML
 # comment. One character class plus two optional groups, deliberately not a
 # nested quantifier — this runs over untrusted issue bodies.
-HUMAN_GATE_DECORATION = re.compile(r"^[ \t>*_+-]*(?:\d+[.)][ \t]*)?(?:<!--[ \t]*)?[ \t]*")
+HUMAN_GATE_DECORATION = re.compile(r"^[ \t>*_+#-]*(?:\d+[.)][ \t]*)?(?:<!--[ \t]*)?[ \t]*")
 HUMAN_GATE_FENCE = re.compile(r"```.*?```", re.DOTALL)
 HUMAN_GATE_CODE_SPAN = re.compile(r"`[^`\n]*`")
 

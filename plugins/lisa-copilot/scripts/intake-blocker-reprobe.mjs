@@ -40,14 +40,18 @@ function normalizeLabels(labels) {
 /**
  * Decoration a declaration may sit behind, and nothing more.
  *
- * Whitespace, blockquote arrows, list bullets or numbers, emphasis, and an
- * opening HTML comment. A single character class plus two optional groups —
+ * Whitespace, blockquote arrows, list bullets or numbers, emphasis, a comment
+ * hash, and an opening HTML comment. `#` is there on EVIDENCE rather than
+ * taste: a shell script declares a hold as `# <marker> reason=…` — a bare
+ * marker behind a SHELL comment, with no HTML comment anywhere — and that form
+ * is in this repository's own guard fixtures. A single character class plus two
+ * optional groups —
  * deliberately not a nested-quantifier pattern, because this runs over
  * untrusted work-item bodies and `sonarjs/slow-regex` is right about that
  * shape.
  */
 const LEADING_DECORATION =
-  /^[ \t>*_+-]*(?:\d+[.)][ \t]*)?(?:<!--[ \t]*)?[ \t]*/u;
+  /^[ \t>*_+#-]*(?:\d+[.)][ \t]*)?(?:<!--[ \t]*)?[ \t]*/u;
 
 /**
  * The body with fenced blocks and inline code spans removed.

@@ -51,7 +51,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
       "3f58a1bc31a36ae1720591013cd59fd3e9046c865aae2a795b29a2405aefb6a1",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "689c4dc8f1af3964b36b75cd109e3ffda5c67e4ba5f127bb947ee1cfcd8a6f34",
+      "b0693e6c7c73638ce9044c402b80999cebc0e2ada68dbb65dc94f810b732f3e7",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
@@ -741,7 +741,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "3e8e54a608e57b57e3fd372ad5b9a7b2794ce4934a67e36f374c8a06dc16e69e",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "0b844ef191b4f8492ace1910fceb0c322ce8c74ad3143fdd660e99723b3b616d",
+      "5389e0991580eab0354a9b3f66bc8c5ef7935ef2e4187b032d12f80e87da0edf",
     "plugins/src/base/hooks/block-host-name-leak.agy.sh":
       "9522a2db621178d9cee5bf70ff3948251c5043868f372924bfee19126dbd1c41",
     "plugins/src/base/hooks/block-host-name-leak.mjs":
@@ -1077,7 +1077,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
       "defb299d4467829e010fe2c2e6ea50e3b5f9afa87262926c02f9dc12c1722efc",
     "plugins/src/base/scripts/intake-blocker-reprobe.mjs":
-      "53e9c5b86bbb2213a19681d2308a4475e9771e51f90b831b68a220d1320b4835",
+      "3b00c579cd5bb4cea6c49bc807dd19c2b3e5450847f4b015f5ef48a99185e7be",
     "plugins/src/base/scripts/intake-prework-denominator.mjs":
       "0a40cb91ab1c0e810f42d035d9652af3033e97c692b93b911de851991c12eca1",
     "plugins/src/base/scripts/lifecycle-label-trust.mjs":
