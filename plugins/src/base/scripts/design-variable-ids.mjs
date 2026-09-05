@@ -298,6 +298,8 @@ async function callMcp(token, tool, args) {
       .map(part => part.text ?? "")
       .join("");
   } catch {
+    // probe-direction: neutral — this is a design-token lookup for a generator;
+    // no gate reads the result, and null renders as a missing token.
     return null;
   }
 }

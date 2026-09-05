@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.42.7](https://github.com/CodySwannGT/lisa/compare/v4.42.6...v4.42.7) (2026-09-05)
+
+
+### Bug Fixes
+
+* name the direction of the worktree-binding guard's git probe ([8d2cfaf](https://github.com/CodySwannGT/lisa/commit/8d2cfafdaa3ebd93b2deebd3abbdcbd8909c9038)), closes [CodySwannGT/lisa#3848](https://github.com/CodySwannGT/lisa/issues/3848)
+* refuse a probe that spends a failure as an absence ([a012825](https://github.com/CodySwannGT/lisa/commit/a0128255c00119d6bb1710c7c7c82a2489f83a9d)), closes [CodySwannGT/lisa#3848](https://github.com/CodySwannGT/lisa/issues/3848)
+* **tests:** scale the race child budget with the machine ([8e47129](https://github.com/CodySwannGT/lisa/commit/8e47129637abf5a890f48b5bc78427e398f1dd59)), closes [CodySwannGT/lisa#3911](https://github.com/CodySwannGT/lisa/issues/3911)
+* **tests:** type the race child as the shape spawn actually returns ([63cfa83](https://github.com/CodySwannGT/lisa/commit/63cfa833d437e74a704602eb945db0ef63ffdb78)), closes [CodySwannGT/lisa#3911](https://github.com/CodySwannGT/lisa/issues/3911)
+* **vitest:** isolate the coverage reports directory per run ([59ac56a](https://github.com/CodySwannGT/lisa/commit/59ac56a8dd3a19f76a64a8cb92164c60866cf203)), closes [CodySwannGT/lisa#3911](https://github.com/CodySwannGT/lisa/issues/3911)
+
+
+### Documentation
+
+* **readme:** say where coverage reports land now ([7c5bd34](https://github.com/CodySwannGT/lisa/commit/7c5bd345a0217baecac513a1e10b52d87101cc58)), closes [CodySwannGT/lisa#3911](https://github.com/CodySwannGT/lisa/issues/3911)
+
+### [4.42.6](https://github.com/CodySwannGT/lisa/compare/v4.42.5...v4.42.6) (2026-09-05)
+
+
+### Bug Fixes
+
+* **guards:** stop offering re-clone as a like-for-like replacement ([1ffbb2a](https://github.com/CodySwannGT/lisa/commit/1ffbb2adcd95302eb2eb2d27da02d48c58517583)), closes [#3722](https://github.com/CodySwannGT/lisa/issues/3722) [CodySwannGT/lisa#3722](https://github.com/CodySwannGT/lisa/issues/3722)
+
 ### [4.42.5](https://github.com/CodySwannGT/lisa/compare/v4.42.4...v4.42.5) (2026-09-05)
 
 

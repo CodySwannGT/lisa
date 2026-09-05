@@ -270,6 +270,9 @@ export function runProbe(substrate) {
     });
     return true;
   } catch {
+    // probe-direction: fail-closed — false makes the caller behave as if no
+    // substrate existed and fall through to the provider, which is the stricter
+    // path, exactly as the paragraph above states.
     return false;
   }
 }

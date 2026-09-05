@@ -116,7 +116,13 @@ function mappedPaths(root) {
   }
   if (patterns.length === 0) return [];
   const attr = git(["check-attr", "merge", "--", ...patterns], root);
-  if (!attr.ok) return [];
+  // probe-direction: fail-closed — when `check-attr` cannot be asked, fall back
+  // to the patterns `.gitattributes` actually declares. Returning [] instead
+  // made the caller print "nothing in this working tree maps to the driver —
+  // nothing to register" and exit 0, so a git that failed was reported as a
+  // checkout that needs nothing. The fallback costs a redundant registration;
+  // the empty list cost a silently skipped one.
+  if (!attr.ok) return patterns;
   return attr.stdout
     .split("\n")
     .filter(line => line.endsWith(`merge: ${GENERATED_ARTIFACT_DRIVER}`))
