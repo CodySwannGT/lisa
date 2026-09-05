@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.42.5](https://github.com/CodySwannGT/lisa/compare/v4.42.4...v4.42.5) (2026-09-05)
+
+
+### Bug Fixes
+
+* **hooks:** teach the OpenCode filing port that -n executes nothing ([f0b732d](https://github.com/CodySwannGT/lisa/commit/f0b732df6d1d99506923022b322ffa3f87b9a9e4)), closes [CodySwannGT/lisa#3885](https://github.com/CodySwannGT/lisa/issues/3885)
+
 ### [4.42.4](https://github.com/CodySwannGT/lisa/compare/v4.42.3...v4.42.4) (2026-09-04)
 
 
