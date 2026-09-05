@@ -76,6 +76,51 @@ unset LISA_PUSHED_REFS LISA_PUSHED_REF_COUNT LISA_PUSHED_COMMIT_COUNT
 unset LISA_PUSHED_LOCAL_REF LISA_PUSHED_LOCAL_SHA LISA_PUSHED_TAIL
 # END: deletion-only push guard
 
+# BEGIN: pushed refs file
+# ---------------------------------------------------------------------------
+# The pushed refs, kept somewhere every later reader can still find them.
+#
+# READING THE STREAM SPENDS IT. Git delivers `<local ref> <local sha> <remote
+# ref> <remote sha>` on stdin exactly once, and this hook has four readers: the
+# deletion guard above, the destination guard below, `validate-push`, and every
+# declared gate. Each one that reads it replays it — but a replay only reaches
+# the NEXT reader in this file. A gate the runner spawns is a different process
+# started at a different time, and by then whichever gate ran before it may
+# already have drained the stream for good.
+#
+# That is not hypothetical, it is CodySwannGT/lisa#3874: on a project that
+# declares `gates.traceability`, the built-in call below stands down and the
+# work-item check runs from inside the gate runner instead. It found empty
+# stdin, fell back to `git rev-list HEAD --not --remotes=<remote>` — the
+# PUSHER'S branch, not the pushed one — and printed
+# `WORK_ITEM_TRACKING_OK 0 commit(s)` for a branch whose commit carried a
+# perfectly good `Work-Item:` trailer. A green meaning "I had nothing to look
+# at", in the same shape as a green meaning "I looked and it was clean".
+#
+# A named file has none of that ordering. It is written once, read as many
+# times as anything likes, and removed on exit. Stdin is still replayed byte
+# for byte, so nothing that reads the stream today has to change.
+#
+# If no scratch file can be created this stands down without reading a byte and
+# the hook behaves exactly as it did before — the same fail-towards-running
+# direction the deletion guard takes.
+# ---------------------------------------------------------------------------
+LISA_PUSHED_REFS_FILE="$(mktemp "${TMPDIR:-/tmp}/lisa-pushed-refs-file.XXXXXXXX")" || LISA_PUSHED_REFS_FILE=""
+if [ -n "$LISA_PUSHED_REFS_FILE" ]; then
+  cat > "$LISA_PUSHED_REFS_FILE"
+  # Put the stream back for the guards and gates that still read stdin.
+  exec < "$LISA_PUSHED_REFS_FILE"
+  # Exported, because the reader that needs it most is a grandchild process:
+  # the gate runner's `check:work-item:push`. `--refs` names the same file for
+  # anyone invoking the validator directly.
+  export LISA_PUSHED_REFS_FILE
+  # Both traps remove both files, so whichever is installed last still cleans
+  # up everything. A single-file trap here would be silently replaced by the
+  # gate-coverage trap further down and leak this file on every push.
+  trap 'rm -f "$LISA_PUSHED_REFS_FILE" "$LISA_GATE_COVERAGE"' EXIT
+fi
+# END: pushed refs file
+
 WORK_ITEM_SCRIPT="scripts/lisa-work-item.mjs"
 if [ ! -f "$WORK_ITEM_SCRIPT" ]; then
   WORK_ITEM_SCRIPT="all/copy-overwrite/scripts/lisa-work-item.mjs"
@@ -273,11 +318,109 @@ process.stdin.on("data", chunk => { raw += chunk }).on("end", () => {
 ')
 fi
 
+LISA_TRACEABILITY_RAN=""
 if [ "$TRACEABILITY_DECLARED" = "declared" ]; then
   echo "ℹ️  gates.traceability is declared at push; the gate registry decides what runs."
 else
   node "$WORK_ITEM_SCRIPT" validate-push "${1:-origin}" || exit 1
+  LISA_TRACEABILITY_RAN=1
 fi
+
+# BEGIN: pushed-tree scope guard
+# ---------------------------------------------------------------------------
+# Everything below this line reads the FILES IN THIS WORKING TREE — lint,
+# types, tests, dead code. That is correct when the branch being pushed is the
+# branch checked out here, which is the ordinary case and is left untouched.
+#
+# It is wrong the moment it is not. A session pinned to one worktree can only
+# push another worktree's branch cross-tree, and when it does, `eslint .` and
+# `knip` walk the PUSHER'S tree while the push carries a commit from somewhere
+# else — and then print PASSED. A green meaning "I examined a different tree"
+# arrives in the same shape as a green meaning "I examined this and it was
+# clean" (CodySwannGT/lisa#3874). Because the worktree binding makes the
+# cross-tree route the only permitted one for a pinned agent, this is not an
+# edge case; it is the normal path for a growing share of the fleet.
+#
+# REFUSING IS THE HONEST ANSWER AND PASSING IS NOT. An operator told "these
+# gates cannot see the tree you are pushing, push it from that tree" has been
+# given a true statement they can act on; one told PASSED has been given a
+# false one. This adds no bypass and takes nothing away: no gate is skipped,
+# relaxed, or made optional, and the push does not proceed.
+#
+# TRACEABILITY RUNS FIRST, and unconditionally, because it is the one push gate
+# that CAN answer correctly from here: it reads git objects, which every
+# worktree of a repository shares, so the pushed range is fully visible from
+# any tree. Refusing before it ran would throw away the one true answer
+# available at this moment — and its verdict is the one an operator most needs,
+# because a missing work item is fixed by rewriting the commit, not by moving
+# to another terminal.
+#
+# ANCESTOR, NOT EQUALITY. A pushed commit reachable from local `HEAD` is in
+# this tree's history — the ordinary "push something older" case — so only a
+# commit this checkout has never contained is out of scope.
+#
+# WHAT IT DELIBERATELY DOES NOT EXAMINE: deletions (the guard above exits
+# first, and a deleted ref has no tree), and any local ref that is neither
+# `refs/heads/*` nor `HEAD` — a tag push moves a label rather than proposing a
+# tree, and release automation pushes tags for commits that shipped long ago.
+# If the refs file could not be written, or `HEAD` is unborn, this stands down
+# rather than guessing.
+# ---------------------------------------------------------------------------
+LISA_OUT_OF_TREE=""
+if [ -n "$LISA_PUSHED_REFS_FILE" ] && git rev-parse -q --verify HEAD >/dev/null 2>&1; then
+  # The `||` keeps a final line with no trailing newline, exactly as the
+  # deletion guard reads the same stream.
+  while read -r LISA_SCOPE_REF LISA_SCOPE_SHA LISA_SCOPE_TAIL || [ -n "$LISA_SCOPE_REF" ]; do
+    case "$LISA_SCOPE_REF" in
+      refs/heads/* | HEAD) ;;
+      *) continue ;;
+    esac
+    # A zeroed or non-hex local sha is a deletion or an unreadable line, and
+    # neither is a tree this can ask a question about.
+    case "$LISA_SCOPE_SHA" in
+      "" | *[!0-9a-f]*) continue ;;
+    esac
+    case "$LISA_SCOPE_SHA" in
+      *[!0]*) ;;
+      *) continue ;;
+    esac
+    if ! git merge-base --is-ancestor "$LISA_SCOPE_SHA" HEAD >/dev/null 2>&1; then
+      LISA_OUT_OF_TREE="$LISA_OUT_OF_TREE
+     $LISA_SCOPE_REF -> $LISA_SCOPE_SHA"
+    fi
+  done < "$LISA_PUSHED_REFS_FILE"
+fi
+unset LISA_SCOPE_REF LISA_SCOPE_SHA LISA_SCOPE_TAIL
+
+if [ -n "$LISA_OUT_OF_TREE" ]; then
+  # The one gate that can answer correctly from here, run before the refusal so
+  # its verdict is not lost to it. Skipped only when it has already run above.
+  if [ -z "$LISA_TRACEABILITY_RAN" ] && [ -f "$WORK_ITEM_SCRIPT" ]; then
+    node "$WORK_ITEM_SCRIPT" validate-push "${1:-origin}" || exit 1
+  fi
+  echo ""
+  echo "❌ Push refused: the push checks cannot see the commits being pushed."
+  echo ""
+  echo "   Being pushed, but not in this working tree:$LISA_OUT_OF_TREE"
+  echo ""
+  echo "   This checkout is on $(git rev-parse --abbrev-ref HEAD 2>/dev/null)."
+  echo "   The checks after this point read the files in THIS folder — lint,"
+  echo "   types, tests, dead code. Run here they would report on this"
+  echo "   checkout, not on what is leaving the machine, and report it as a"
+  echo "   pass. That pass would be false, and a false pass is worse than no"
+  echo "   answer, so this stops instead of printing one."
+  echo ""
+  echo "   What to do: push each branch from the folder it is checked out in."
+  echo "   These are the folders this repository is checked out into:"
+  git worktree list 2>/dev/null | sed 's/^/     /'
+  echo ""
+  echo "   Work-item traceability above DID examine the pushed commits — it"
+  echo "   reads git history, which every folder shares — so that answer stands."
+  echo ""
+  exit 1
+fi
+unset LISA_OUT_OF_TREE
+# END: pushed-tree scope guard
 
 # Git supplies repository-local GIT_* variables to hooks. Keep them for push
 # validation above, then remove exactly Git's documented local set so nested
@@ -334,7 +477,9 @@ fi
 LISA_GATE_COVERAGE=""
 if [ -f "$GATE_RUNNER" ] && command -v node >/dev/null 2>&1; then
   LISA_GATE_COVERAGE="$(mktemp "${TMPDIR:-/tmp}/lisa-gate-coverage.XXXXXXXX")" || LISA_GATE_COVERAGE=""
-  trap 'rm -f "$LISA_GATE_COVERAGE"' EXIT
+  # Removes the pushed-refs file too: this trap REPLACES the one installed by
+  # the pushed refs file block above, so a single-file body here would leak it.
+  trap 'rm -f "$LISA_GATE_COVERAGE" "$LISA_PUSHED_REFS_FILE"' EXIT
   if [ -n "$LISA_GATE_COVERAGE" ]; then
     node "$GATE_RUNNER" --moment=push --coverage="$LISA_GATE_COVERAGE"
   else

@@ -45,6 +45,8 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
 
 - [2026-09-05 — File Age Is Asked in Minutes, Never in Days](decisions/2026-09-05-find-age-predicates.md)
   - Why `find -mtime +N` means "older than N+1 days", the measured 49h-71h disagreement band, the correction to the "broken instrument" reading, and the `-mmin` / `! -newermt` equivalences the shipped ast-grep rule enforces.
+- [2026-09-04 — An Absence Shaped Like a Verdict](decisions/2026-09-04-absence-shaped-like-a-verdict.md)
+  - Eleven instruments that returned a clean negative without having asked the question, the negative control that refuted the one clean *success*, and the direction rule that separates a probe failing closed by design from an identical-looking one failing open.
 - [2026-09-04 — State Changes Must Carry Their Own Inverse](decisions/2026-09-04-state-change-without-inverse.md)
   - Census of controls that apply durable state with nothing to lift it, the self-voiding controls worth copying, the settled grandfathered-contexts ruling, and the missing-versus-forbidden distinction an audit must record.
 - [2026-08-19 — Mutation Gate Scoped at the Guard Scripts](decisions/2026-08-19-guard-mutation-gate.md)
