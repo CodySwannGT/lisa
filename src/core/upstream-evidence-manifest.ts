@@ -7,7 +7,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-contents/gitignore":
       "66e105ae1b6874e6c587d128a04ff5a5005bf923759fc41cc31d73b9ba44bacf",
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
-      "d30a12d0737381bfc97f2343dca78824a94c1e076848b5e0b18abce18d6f661c",
+      "8a4b2cab9ac32a855e2adc1a7a3c6f7a9ac35dcb75cda2fac7eea144ced50098",
     "all/copy-overwrite/scripts/check-npm-publish-landed.mjs":
       "bba6114e5e4643575749210819acfda207260ac1db5fcb48c33c320c3a9503ca",
     "all/copy-overwrite/scripts/check-orphaned-branches.mjs":
