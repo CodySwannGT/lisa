@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.50.1](https://github.com/CodySwannGT/lisa/compare/v4.50.0...v4.50.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* **package-lisa:** preserve Expo host run commands ([8c657fc](https://github.com/CodySwannGT/lisa/commit/8c657fcb6dd1a87fae8917021e526d19fd0aa231)), closes [CodySwannGT/lisa#4037](https://github.com/CodySwannGT/lisa/issues/4037) [CodySwannGT/lisa#4037](https://github.com/CodySwannGT/lisa/issues/4037)
+
 ## [4.50.0](https://github.com/CodySwannGT/lisa/compare/v4.49.0...v4.50.0) (2026-09-05)
 
 
