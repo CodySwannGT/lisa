@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.45.17](https://github.com/CodySwannGT/lisa/compare/v4.45.16...v4.45.17) (2026-09-05)
+
+
+### Bug Fixes
+
+* **codex:** track .codex/hooks.json instead of ignoring it ([dfea5a9](https://github.com/CodySwannGT/lisa/commit/dfea5a970f2aa4420016ebffbcc42387cc8e0d20)), closes [#3700](https://github.com/CodySwannGT/lisa/issues/3700) [CodySwannGT/lisa#3867](https://github.com/CodySwannGT/lisa/issues/3867)
+
 ### [4.45.16](https://github.com/CodySwannGT/lisa/compare/v4.45.15...v4.45.16) (2026-09-05)
 
 ### [4.45.15](https://github.com/CodySwannGT/lisa/compare/v4.45.14...v4.45.15) (2026-09-05)
