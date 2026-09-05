@@ -63,12 +63,25 @@ const TEST_RUNNER_ARGS = [
  * Until a contention-aware scaler exists, the compensation belongs in the
  * quiet-box base, where it is at least visible and explained.
  *
- * THIS IS A CEILING, NOT A COST. Passing arms return in seconds and never
- * approach it. It is deliberately NOT set by raising `MAX_SPAWN_SLOWDOWN`,
- * which would be wrong twice over: that ceiling exists to fail a genuinely slow
- * box, and this box measured 1.75x, so raising it would not have helped anyway.
+ * NOW SET FROM A COMPLETED RUN, NOT A GUESS. Two earlier raises were anchored
+ * to lower bounds from killed children, which is how a budget gets ratcheted
+ * without ever learning anything. Once the case budget was lifted clear (see
+ * {@link CDK_CASE_BUDGET_MS}) the arms finally FINISHED on CI, at 122.3s wall
+ * on a box measured 1.16x slow — about 105s quiet-equivalent. So this base is
+ * that measurement plus headroom for a more contended run, not an escalation.
+ *
+ * It is deliberately NOT set by raising `MAX_SPAWN_SLOWDOWN`, which would be
+ * wrong twice over: that ceiling exists to fail a genuinely slow box, and this
+ * box measured 1.16-1.75x against a cap of 8, so raising it would have changed
+ * nothing.
+ *
+ * WORTH SAYING OUT LOUD: a case costing ~105s quiet-equivalent is an
+ * integration test living in the unit suite, and no budget makes that untrue.
+ * The durable fix is to stop this nested runner competing with the parent
+ * suite's own workers — by isolating it, or by moving it. These constants buy
+ * a green; they do not buy that.
  */
-export const CDK_RUNNER_BUDGET_MS = 120_000;
+export const CDK_RUNNER_BUDGET_MS = 180_000;
 
 /**
  * Quiet-box budget for one CASE, which must sit ABOVE the child budget.
@@ -84,18 +97,29 @@ export const CDK_RUNNER_BUDGET_MS = 120_000;
  * inner is unreachable. That is what makes this a pair rather than two numbers.
  *
  * It also produced the one measurement worth having: the case died at 78s with
- * the child still running, so the child needs MORE than 78 seconds on CI for
- * work that costs about three locally.
+ * the child still running, so the child needed MORE than 78 seconds on CI for
+ * work that costs about three locally. Lifting this clear let the arms finish
+ * at 122.3s, which is where every other number here now comes from.
+ *
+ * SIZED BY THE MARGIN GUARD, NOT BY THE DEADLINE. `useIoLatencyBudget` fails a
+ * case that merely PASSES if it consumed more than `MARGIN_FRACTION` (0.5) of
+ * this base in quiet-equivalent time — so the operative ceiling on a case is
+ * half of this, not all of it. At 360s that ceiling is 180s against a measured
+ * 106.8s worst arm. Sizing this to the deadline alone would have produced a
+ * second, subtler red: `This case consumed ...` rather than a timeout.
  */
-export const CDK_CASE_BUDGET_MS = 180_000;
+export const CDK_CASE_BUDGET_MS = 360_000;
 
 /**
  * Quiet-box budget for waiting on a marker from an already-started worker.
  *
- * Two thirds of {@link CDK_RUNNER_BUDGET_MS}: the wait begins after the child
- * is spawned, so it covers the same nested boot without the spawn itself.
+ * Equal to {@link CDK_RUNNER_BUDGET_MS} rather than the two thirds it was.
+ * The case that uses this starts TWO nested runners at once, so it is the
+ * heaviest thing in the file, not the lightest — and it was the last to fail,
+ * at 104.7s against a 90s base, after every single-child arm had gone green.
+ * Discounting it for "no spawn to pay for" measured the wrong difference.
  */
-const CDK_MARKER_BUDGET_MS = 90_000;
+const CDK_MARKER_BUDGET_MS = 180_000;
 
 /** Complete result of one synchronous real-CDK arm. */
 export interface CdkRunResult {

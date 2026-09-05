@@ -83,7 +83,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "c4ab573de0def92dd9274bde13ca10b2f255caf3d2944824ca8f1e39e18e7f63",
+      "4ae4e4e25c5fc075824a112a26abae6ab157c2888332c376db928b51530abc0a",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -2423,7 +2423,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "9680993017cf95e318318c92e15989c7a5f425293b013dcdb662f76a8b4c65ed",
+      "0ce47fff41296620105dc1946780420015ac14a735732c0e6f8459b5cca67c61",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -2469,7 +2469,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-contents/.husky/pre-commit":
       "d5f85c0b5d9a0277389c1ae96aec30db603ee38637d4ab749a659bb031d06d93",
     "typescript/copy-contents/.husky/pre-push":
-      "6cf628a77d03703e90fb0fc23545bbdfb45f34b0cf9f0ff792d1a82265b46643",
+      "20cbd929137965bddf19c280d69eec7b214f227b986e15347c9a1d04fac4d3e5",
     "typescript/copy-contents/.husky/prepare-commit-msg":
       "4a719c20da65653f266e7c8a346b5546ad05f1dfa34665fc7fec47e89d2f58d1",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
@@ -10018,6 +10018,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/pre-push-coverage-scope.test.ts": true,
     "tests/unit/hooks/pre-push-deletion-guard.test.ts": true,
     "tests/unit/hooks/pre-push-git-environment.test.ts": true,
+    "tests/unit/hooks/pre-push-pushed-refs-file.test.ts": true,
+    "tests/unit/hooks/pre-push-pushed-tree-scope.test.ts": true,
     "tests/unit/hooks/pre-push-traceability-gate.test.ts": true,
     "tests/unit/hooks/remedy-conformance-live.test.ts": true,
     "tests/unit/hooks/remedy-conformance.test.ts": true,
@@ -10042,6 +10044,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/work-item-wiring.test.ts": true,
     "tests/unit/hooks/worktree-binding-first-call.test.ts": true,
     "tests/unit/hooks/worktree-binding-guard-script-reach.test.ts": true,
+    "tests/unit/hooks/worktree-binding-guard-wrapper.test.ts": true,
     "tests/unit/hooks/worktree-binding-guard.test.ts": true,
     "tests/unit/hooks/worktree-create-failure.test.ts": true,
     "tests/unit/hooks/worktree-create.test.ts": true,
@@ -10363,6 +10366,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-optional-validation.test.ts": true,
     "tests/unit/scripts/work-item-push-destination.test.ts": true,
     "tests/unit/scripts/work-item-push-merge-defer.test.ts": true,
+    "tests/unit/scripts/work-item-push-refs-file.test.ts": true,
     "tests/unit/scripts/work-item-push-success-attribution.test.ts": true,
     "tests/unit/scripts/work-item-run-and-gh-version.test.ts": true,
     "tests/unit/scripts/work-item-tracker-unreachable.test.ts": true,
@@ -10868,6 +10872,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "wiki/decisions/2026-08-12-in-session-ticket-ready-role.md": true,
     "wiki/decisions/2026-08-12-ratchet-policy.md": true,
     "wiki/decisions/2026-08-19-guard-mutation-gate.md": true,
+    "wiki/decisions/2026-09-04-absence-shaped-like-a-verdict.md": true,
     "wiki/decisions/2026-09-04-state-change-without-inverse.md": true,
     "wiki/decisions/2026-09-05-find-age-predicates.md": true,
     "wiki/documentation/assets/lisa-architecture.svg": true,

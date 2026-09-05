@@ -92,7 +92,11 @@ export const GIT_BIN: string = resolveGit();
 export function cleanGitEnv(): NodeJS.ProcessEnv {
   const env = { ...process.env };
   for (const key of Object.keys(env)) {
-    if (key.startsWith("GIT_")) {
+    // `LISA_PUSHED_REFS_FILE` is not git's, but it is injected by the same hook
+    // and carries the same hazard: it names the REAL push's refs, so a fixture
+    // that inherits it stops being about its own repository
+    // (CodySwannGT/lisa#3874).
+    if (key.startsWith("GIT_") || key === "LISA_PUSHED_REFS_FILE") {
       delete env[key];
     }
   }
