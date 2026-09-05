@@ -109,6 +109,85 @@ const COVERAGE_DIR_REMOVED =
   /Something removed the coverage directory "([^"\n]+)"/g;
 
 /**
+ * A removal that lost a race with a concurrent writer, inside managed scratch.
+ *
+ * Three conditions, all required, and the third is what keeps this honest.
+ *
+ * 1. **An errno a concurrent writer produces.** `ENOTEMPTY`, `EBUSY` and
+ *    `EPERM` are what a removal reports when something else is holding or
+ *    filling the directory. A plain `ENOENT` is deliberately absent: it is
+ *    already the coverage-deletion signature above, and on its own it is more
+ *    often a genuine missing-file bug.
+ * 2. **A removal syscall.** `rmdir`, `unlink` or `rename` — the operations that
+ *    can lose to a writer. Without this the pattern would swallow an `EPERM`
+ *    from an ordinary permission defect.
+ * 3. **A path inside the MANAGED SCRATCH namespace.** This is the grounding
+ *    clause. A failure about some other directory is a fact about the code, and
+ *    a diagnosis that claimed it was the machine would be this module's own
+ *    defect: an environment excuse issued over a real bug.
+ *
+ * Measured on CodySwannGT/lisa#3877, in a test unreachable from the branch that
+ * was pushing:
+ *
+ * ```
+ * ENOTEMPTY: directory not empty, rmdir
+ *   '…/lisa-scratch/run-35247-…/worker-14451-…/lisa-test-ylEKHM/.git'
+ * ```
+ *
+ * The point of naming it is not to excuse it — an INTERFERENCE verdict blocks
+ * the push exactly as FAILED does. The point is that the author can tell an
+ * environment-sensitive failure from a code failure WITHOUT spending a second
+ * ten-minute cycle to find out, and that the retry which used to be the only
+ * way to answer the question is itself the load that caused it.
+ *
+ * Horizontal-only `[^\n]` for the reason {@link FAIL_PATTERN} gives: this
+ * parses a multi-megabyte transcript inside a git hook.
+ */
+const SCRATCH_REMOVAL_RACE =
+  /\b(?:ENOTEMPTY|EBUSY|EPERM)\b[^\n]*?\b(?:rmdir|unlink|rename)\b[^\n]*?(lisa-scratch[^'"\n]*)/g;
+
+/**
+ * Every removal-race line this transcript carries.
+ * @param {string} output The command's combined output.
+ * @returns {string[]} The scratch paths named, deduplicated, in order.
+ */
+function findScratchRaces(output) {
+  return [
+    ...new Set([...output.matchAll(SCRATCH_REMOVAL_RACE)].map(hit => hit[1])),
+  ];
+}
+
+/**
+ * The verdict for a run whose own cleanup lost a race with a concurrent writer.
+ *
+ * A sibling of {@link interferenceVerdict} rather than the same sentence: there
+ * the other process DELETED files this run needed, here it CREATED one inside a
+ * directory this run was removing. Same family, opposite direction, and an
+ * operator handed the coverage sentence for this would go looking for a second
+ * coverage run that does not exist.
+ *
+ * The remedy names the durable fix rather than "re-run it", because re-running
+ * is what makes this expensive: the retry costs another full cycle and adds the
+ * load that raises the chance a DIFFERENT load-sensitive test fails instead —
+ * measured as two attempts failing on two different files.
+ * @param {string[]} paths The scratch paths the race named.
+ * @returns {Diagnosis} The verdict.
+ */
+function scratchRaceVerdict(paths) {
+  return {
+    kind: DIAGNOSIS.INTERFERENCE,
+    summary:
+      `a removal inside this run's managed scratch lost a race with a ` +
+      `concurrent writer, so a cleanup hook threw and the test it belonged to ` +
+      `was reported as failing. That is a fact about machine I/O contention, ` +
+      `NOT about the code under test — the failing file need not be reachable ` +
+      `from your diff at all. Removal helpers take maxRetries for exactly this ` +
+      `errno set; a helper that omits it fails on the first collision`,
+    evidence: capped(paths),
+  };
+}
+
+/**
  * A failing suite header: ` FAIL  tests/unit/foo.test.ts > does a thing`.
  *
  * Horizontal whitespace only, never `\s`. Under the `m` flag `^\s*` can consume
@@ -841,6 +920,14 @@ function classify(output, code, load, read, tempRoot) {
   // the coverage one either way.
   const interference = findInterference(output);
   if (interference.length > 0) return interferenceVerdict(interference);
+
+  // Beside coverage interference and above every content signature, for the
+  // same reason: the run was interfered with from outside, so the assertion
+  // the transcript reports describes the interference rather than the code.
+  // Below it rather than above only because coverage deletion is the more
+  // specific claim when a transcript somehow carries both.
+  const races = findScratchRaces(output);
+  if (races.length > 0) return scratchRaceVerdict(races);
 
   // Directly below interference and above every measurement signature: a run
   // that executed no test files measured nothing, so its timeouts, its FAIL
