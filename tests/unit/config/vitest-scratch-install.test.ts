@@ -266,10 +266,13 @@ describe("stack factory wiring", () => {
     expect(files.every(file => fs.existsSync(file))).toBe(true);
   });
 
-  it("resolves a global setup file that exists on disk", () => {
+  it("resolves global setup files that exist on disk", () => {
+    // Two hooks, and the order is the contract: admission may decline to start
+    // work, so it runs before the namespace sweep does any (CodySwannGT/lisa#3941).
     const files = scratchGlobalSetup();
-    expect(files).toHaveLength(1);
-    expect(fs.existsSync(files[0] as string)).toBe(true);
+    expect(files).toHaveLength(2);
+    expect(files[0]).toMatch(/fleet-admission-global-setup\.(?:js|ts)$/u);
+    expect(files.every(file => fs.existsSync(file))).toBe(true);
   });
 
   it.each([
