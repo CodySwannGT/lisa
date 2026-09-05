@@ -194,6 +194,57 @@ export const STATE_FAMILIES = [CONTINUOUS];
 export const GATE_FIELDS = new Set(["run", "needs", "task", "reuse"]);
 
 /**
+ * The per-moment field saying how this gate's prover prints a MEASURED failure.
+ *
+ * `gate-failure-diagnosis.mjs` recognises a fixed set of transcript forms, and
+ * every content signature among them is a vitest or `tsc` form. A prover that
+ * prints anything else lands in the residual bucket wearing `UNPROVABLE` — the
+ * word this fleet reads as "the box, re-run it" — so a run that measured a
+ * property and found it wanting is routed into the re-run path
+ * (CodySwannGT/lisa#3974).
+ *
+ * Enumerating other tools' output in the shipped module cannot converge: every
+ * project points its gates at provers Lisa has never seen. So the project that
+ * OWNS the prover declares how its failure reads, beside the `run:` that names
+ * the prover.
+ *
+ * ## Why per MOMENT and not per gate
+ *
+ * The first draft put it on the gate, reasoning that output shape is a
+ * property of the prover. Two facts overruled that, and the second is the one
+ * with consequences.
+ *
+ * **A gate's prover already varies by moment.** `code-style` runs `lint:staged`
+ * at commit and `lint` at pull-request here; the first prints lint-staged's
+ * `✖ <task>` banner and the second does not. A gate-level shape would assert
+ * one prover's vocabulary for both.
+ *
+ * **The gate level is a CLOSED allowlist and the moment level is open.**
+ * `GATE_FIELDS` is exhaustive, so an older Lisa refuses any gate-level key it
+ * does not know — and refuses the WHOLE gates block with it. Measured against
+ * the packaged resolver this repository's own quality facade resolves first:
+ *
+ * ```
+ * Invalid gates configuration:
+ *   gates."code-style"."failure_shape" is not a moment Lisa knows.
+ * ```
+ *
+ * Every facade then reads `configured=false` and falls through to built-in
+ * behaviour, so declaring a shape would silently un-configure every job in the
+ * repository until the pin caught up. A moment entry's extra keys are ignored
+ * by an older validator instead, which makes the declaration inert there
+ * rather than destructive. Inert-until-upgraded is the safe direction; every
+ * other per-moment field (`await`, `posted_by`, `evidence`, `caller_chain`)
+ * already lives with the same property.
+ *
+ * The value is a list of literal substrings, not patterns. A regular
+ * expression from configuration would be an operator-authored ReDoS run
+ * against a multi-megabyte transcript inside a git hook, and a literal is what
+ * somebody copying a line out of a failed transcript writes anyway.
+ */
+export const FAILURE_SHAPE_FIELD = "failure_shape";
+
+/**
  * The per-declaration field naming the job chain this gate's prover sits under.
  *
  * A gate whose prover lives OUTSIDE the quality facade cannot state its own
@@ -4489,6 +4540,22 @@ function validateGate(id, gate) {
       // as "this is not a moment" and sends the author looking for a moment
       // spelling. The mistake is real but different: the field exists, and it
       // belongs one level down.
+      if (moment === FAILURE_SHAPE_FIELD) {
+        // Named before the generic typo message for the reason the caller
+        // chain is: "this is not a moment" sends the author looking for a
+        // moment spelling, and the mistake is a level, not a spelling.
+        problems.push(
+          `gates."${id}"."${FAILURE_SHAPE_FIELD}" is declared for the whole ` +
+            `gate, but a gate's prover can differ by moment — this ` +
+            `repository runs code-style through "lint:staged" at commit and ` +
+            `"lint" at pull-request, and only the first prints lint-staged's ` +
+            `own banner. Declare it inside the moment whose prover prints ` +
+            `it, e.g. gates."${id}"."${COMMIT}".${FAILURE_SHAPE_FIELD}. ` +
+            `A gate-level key is also refused outright by any older Lisa, ` +
+            `which refuses the whole gates block with it.`
+        );
+        continue;
+      }
       if (moment === CALLER_CHAIN_FIELD) {
         problems.push(
           `gates."${id}"."${CALLER_CHAIN_FIELD}" is declared for the whole ` +
@@ -4513,6 +4580,61 @@ function validateGate(id, gate) {
     problems.push(
       ...validateMoment(id, moment, value, known, interceptor, gate.run)
     );
+  }
+  return problems;
+}
+
+/**
+ * Validate a gate's declared failure shape.
+ *
+ * Three refusals, and all three are the same defect wearing different clothes:
+ * a declaration that looks configured and governs nothing.
+ *
+ * - **Not an array.** A bare string is the natural typo, and it would iterate
+ *   as characters — every transcript containing the letter `c` would match.
+ * - **Empty array.** Reads as "declared" at a glance and matches nothing ever.
+ * - **Empty string.** The declaration that cannot fail: an empty needle is
+ *   contained in every line, so every unrecognised failure would report FAILED
+ *   against whichever gate declared it. That is this mechanism's own inverse
+ *   defect, and shipping it by accident is one keystroke away.
+ * @param {string} id Gate id.
+ * @param {string} moment Moment key.
+ * @param {*} shape The declared value, if any.
+ * @returns {string[]} Problems.
+ */
+function validateFailureShape(id, moment, shape) {
+  if (shape === undefined) return [];
+  const where = `gates."${id}"."${moment}".${FAILURE_SHAPE_FIELD}`;
+  if (!Array.isArray(shape)) {
+    return [
+      `${where} is ${JSON.stringify(shape)}; expected a list of literal ` +
+        `strings this gate's prover prints when it measures the property and ` +
+        `finds it wanting. A bare string would be read one character at a ` +
+        `time, and every transcript contains most characters.`,
+    ];
+  }
+  if (shape.length === 0) {
+    return [
+      `${where} is empty, so it declares nothing while looking configured. ` +
+        `Remove it, or name the line the prover actually prints.`,
+    ];
+  }
+  const problems = [];
+  for (const [index, entry] of shape.entries()) {
+    if (typeof entry !== "string") {
+      problems.push(
+        `${where}[${index}] is ${JSON.stringify(entry)}; expected a literal ` +
+          `string from the prover's own output.`
+      );
+      continue;
+    }
+    if (entry.trim() === "") {
+      problems.push(
+        `${where}[${index}] is blank. An empty needle is contained in every ` +
+          `line, so this would report a measured failure for any output at ` +
+          `all — the inverse of the defect the field exists to fix.`
+      );
+    }
   }
   return problems;
 }
@@ -4620,6 +4742,9 @@ function validateMoment(id, moment, value, known, interceptor, gateRun) {
         `alongside it, or drop the evidence block — it governs nothing here.`
     );
   }
+  problems.push(
+    ...validateFailureShape(id, moment, entry[FAILURE_SHAPE_FIELD])
+  );
   problems.push(...validatePostedBy(id, moment, entry));
   problems.push(...validateCallerChain(id, moment, entry));
   if (!known && !interceptor && !entry.await && !entry.run && !gateRun) {
@@ -5107,7 +5232,7 @@ export function auditConfigKeys(config) {
  *   UNKNOWN, and an unknown manifest resolves exactly as it did before this
  *   option existed — a caller that has not been taught to read the manifest
  *   must not have its answers changed by silence.
- * @returns {Array<{id: string, level: string, mode: string, awaits: string|null, postedBy: number|null, declared: string|null, task: string|null, command: string|null, label: string, work: string|null, alias: {from: string, to: string}|null, evidence: {proof: string[], no_work: string[], on_hollow: string, wait_minutes: number|null, on_timeout: string}|null}>} Resolved provers, sorted by gate id. `declared` is the project's own `run:` — the PROVENANCE of the command, which `task` alone cannot carry because a project may spell its `run:` exactly as the registry default.
+ * @returns {Array<{id: string, level: string, mode: string, awaits: string|null, postedBy: number|null, declared: string|null, task: string|null, command: string|null, label: string, work: string|null, alias: {from: string, to: string}|null, evidence: {proof: string[], no_work: string[], on_hollow: string, wait_minutes: number|null, on_timeout: string}|null, callerChain: string[]|null, failureShape: string[]|null, mayRewrite: boolean, costly: boolean}>} Resolved provers, sorted by gate id. `declared` is the project's own `run:` — the PROVENANCE of the command, which `task` alone cannot carry because a project may spell its `run:` exactly as the registry default.
  */
 export function resolveMoment({
   gates,
@@ -5174,6 +5299,7 @@ export function resolveMoment({
           alias: null,
           evidence: null,
           callerChain: null,
+          failureShape: entry[FAILURE_SHAPE_FIELD] ?? null,
           mayRewrite: false,
           costly: false,
         });
@@ -5265,6 +5391,11 @@ export function resolveMoment({
       // malformed chain at declaration time; `contextsFor` refuses it again at
       // derivation time.
       callerChain: entry.await ? null : (entry[CALLER_CHAIN_FIELD] ?? null),
+      // Carried on every resolved entry, including an awaited one. It describes
+      // what the project SAID about this moment's prover, and the project said
+      // it whatever mode the moment resolves to — the same argument `declared`
+      // makes one field up.
+      failureShape: entry[FAILURE_SHAPE_FIELD] ?? null,
       mayRewrite: definition?.mayRewrite === true,
       costly: definition?.costly === true,
     });
