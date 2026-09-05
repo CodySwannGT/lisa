@@ -43,6 +43,19 @@ const DRIFT_42 = "DRIFT  acme/code#42";
 const OTHER_PR_URL = "https://github.com/acme/code/pull/99";
 
 /**
+ * The tail of the sibling-count line, spelled out here rather than imported.
+ *
+ * A test that built this from the module under test would pass for whatever the
+ * module happened to render; written out, it pins the wording an operator reads
+ * when a write leaves someone else's backlink in place.
+ */
+const LEFT_UNTOUCHED =
+  `, left untouched — an item carries one backlink per pull request, and ` +
+  `discharging one never removes another.`;
+const ONE_SIBLING = `\n  1 other pull request already linked to ${REF}${LEFT_UNTOUCHED}`;
+const TWO_SIBLINGS = `\n  2 other pull requests already linked to ${REF}${LEFT_UNTOUCHED}`;
+
+/**
  * A timeline carrying one merged pull request in the named repository.
  * @param repository - `owner/name` the pull request belongs to.
  * @returns The timeline as JSON text.
@@ -127,7 +140,14 @@ describe("in-process CLI: backlink", () => {
     expect(readFileSync(log, "utf8")).toContain("--method POST");
   });
 
-  it("updates the managed comment rather than adding a second", () => {
+  it("ADDS a second comment rather than repointing another pull request's", () => {
+    // This asserted the opposite, and the opposite was the defect
+    // (CodySwannGT/lisa#3916). A work item can hold more than one pull request
+    // — a fix and its follow-up, a revert and its replacement, a PR reopened
+    // against a different base — and rewriting the managed comment made
+    // satisfying gate 5 for one of them mutually exclusive with satisfying it
+    // for the other. The earlier PR then failed a gate it had already passed,
+    // later and elsewhere, for a reason not in front of whoever was looking.
     const fixture = offlineFixture();
     const log = logPath(fixture);
     const result = cli(
@@ -140,8 +160,82 @@ describe("in-process CLI: backlink", () => {
         FAKE_GH_LOG: log,
       }
     );
-    expect(result.stdout).toContain("backlink updated");
-    expect(readFileSync(log, "utf8")).toContain("--method PATCH");
+    expect(result.stdout).toBe(
+      `work-item backlink created on ${REF}: ${MARKER} ${PR_URL}${ONE_SIBLING}`
+    );
+    const calls = readFileSync(log, "utf8");
+    expect(calls).toContain("--method POST");
+    // The specific write that must never happen: a PATCH aimed at comment 9,
+    // which belongs to pull request 6. Asserting "no PATCH" alone would pass
+    // for a writer that PATCHed some other comment instead.
+    expect(calls).not.toContain("--method PATCH");
+    expect(calls).not.toContain("issues/comments/9");
+  });
+
+  it("says how many other pull requests it left linked, so the write is not silent", () => {
+    // `updated` was the entire signal the old writer gave before it evicted
+    // another pull request's link, and one word cannot distinguish "added" from
+    // "replaced". A tool writing to a surface others write to says what else is
+    // on it.
+    const fixture = offlineFixture();
+    const result = cli(
+      fixture,
+      [BACKLINK, REF_FLAG, REF, PR_URL_FLAG, PR_URL],
+      {
+        FAKE_GH_COMMENTS_JSON: JSON.stringify([
+          { body: `${MARKER} https://github.com/acme/code/pull/6`, id: 9 },
+          { body: `${MARKER} https://github.com/acme/code/pull/8`, id: 10 },
+        ]),
+        FAKE_GH_LOG: logPath(fixture),
+      }
+    );
+    expect(result.stdout).toBe(
+      `work-item backlink created on ${REF}: ${MARKER} ${PR_URL}${TWO_SIBLINGS}`
+    );
+  });
+
+  it("updates ITS OWN comment when the body drifted, without adding a duplicate", () => {
+    // Keyed on the pull request, not on "a managed comment": a comment that
+    // already names THIS pull request is this pull request's, so a rerun
+    // converges on one comment rather than accumulating them.
+    const fixture = offlineFixture();
+    const log = logPath(fixture);
+    const result = cli(
+      fixture,
+      [BACKLINK, REF_FLAG, REF, PR_URL_FLAG, PR_URL],
+      {
+        FAKE_GH_COMMENTS_JSON: JSON.stringify([
+          { body: `${MARKER} ${PR_URL} (stale trailing note)`, id: 11 },
+        ]),
+        FAKE_GH_LOG: log,
+      }
+    );
+    expect(result.stdout).toBe(
+      `work-item backlink updated on ${REF}: ${MARKER} ${PR_URL}`
+    );
+    const calls = readFileSync(log, "utf8");
+    expect(calls).toContain("--method PATCH");
+    expect(calls).toContain("issues/comments/11");
+  });
+
+  it("leaves a second pull request's own comment alone when it is already right", () => {
+    const fixture = offlineFixture();
+    const log = logPath(fixture);
+    const result = cli(
+      fixture,
+      [BACKLINK, REF_FLAG, REF, PR_URL_FLAG, PR_URL],
+      {
+        FAKE_GH_COMMENTS_JSON: JSON.stringify([
+          { body: `${MARKER} https://github.com/acme/code/pull/6`, id: 9 },
+          { body: `${MARKER} ${PR_URL}`, id: 12 },
+        ]),
+        FAKE_GH_LOG: log,
+      }
+    );
+    expect(result.stdout).toBe(
+      `work-item backlink unchanged on ${REF}: ${MARKER} ${PR_URL}${ONE_SIBLING}`
+    );
+    expect(readFileSync(log, "utf8")).not.toContain("--method");
   });
 
   it("writes nothing when the comment already says exactly this", () => {

@@ -2377,10 +2377,22 @@ process.stdout.write(JSON.stringify({ id: 1 }));
     expect(second.stdout).toContain("unchanged");
   });
 
-  it("updates the one managed comment instead of posting a second", () => {
-    // The other rerun shape: same issue, different pull request. An append
-    // would leave two comments, and the second would link a PR this branch is
-    // no longer about.
+  it("keeps BOTH backlinks when one item has two pull requests", () => {
+    // This asserted that the second discharge replaced the first, on the
+    // reasoning that "the second would link a PR this branch is no longer
+    // about". That reasoning treats a work item as having one current pull
+    // request, and it does not: a fix and its follow-up, a revert and its
+    // replacement, a PR reopened against a different base, and work split
+    // across repositories all put two live pull requests on one item
+    // (CodySwannGT/lisa#3916).
+    //
+    // The consequence was not cosmetic. The first pull request had already
+    // passed gate 5; the second discharge made it fail one, later, elsewhere,
+    // with nothing in front of the reader to say why — and the remedy the gate
+    // itself prints is what caused it.
+    //
+    // Asserted against the stored comments rather than the HTTP method,
+    // because the property is what the item ends up holding.
     const fixture = createFixture();
     const store = statefulGh(fixture);
 
@@ -2393,7 +2405,7 @@ process.stdout.write(JSON.stringify({ id: 1 }));
         PR_URL,
       ]).status
     ).toBe(0);
-    const update = command(fixture, [
+    const second = command(fixture, [
       "backlink",
       "--ref",
       "acme/widgets#42",
@@ -2401,8 +2413,38 @@ process.stdout.write(JSON.stringify({ id: 1 }));
       OTHER_PR_URL,
     ]);
 
-    expect(update.status).toBe(0);
-    expect(update.stdout).toContain("updated");
+    expect(second.status).toBe(0);
+    expect(second.stdout.trim()).toBe(
+      `work-item backlink created on acme/widgets#42: [lisa-pr-link] ${OTHER_PR_URL}\n` +
+        `  1 other pull request already linked to acme/widgets#42, left ` +
+        `untouched — an item carries one backlink per pull request, and ` +
+        `discharging one never removes another.`
+    );
+    expect(stored(store)).toEqual([
+      { body: `[lisa-pr-link] ${PR_URL}`, id: 1 },
+      { body: `[lisa-pr-link] ${OTHER_PR_URL}`, id: 2 },
+    ]);
+  });
+
+  it("converges rather than accumulating when the SAME pull request is discharged twice", () => {
+    // The property the old singleton bought, kept: keying on the pull request
+    // is what makes a rerun for one PR idempotent, so "one per pull request"
+    // does not become "one per invocation".
+    const fixture = createFixture();
+    const store = statefulGh(fixture);
+
+    for (let run = 0; run < 3; run += 1) {
+      expect(
+        command(fixture, [
+          "backlink",
+          "--ref",
+          "acme/widgets#42",
+          "--pr-url",
+          OTHER_PR_URL,
+        ]).status
+      ).toBe(0);
+    }
+
     expect(stored(store)).toEqual([
       { body: `[lisa-pr-link] ${OTHER_PR_URL}`, id: 1 },
     ]);
@@ -3726,7 +3768,10 @@ describe("discharge decisions (#3791)", () => {
       FULL,
       (ref: string) => {
         posted.push(ref);
-        return ref.endsWith("42") ? "unchanged" : "created";
+        return {
+          change: ref.endsWith("42") ? "unchanged" : "created",
+          others: 0,
+        };
       }
     );
 
@@ -3737,8 +3782,14 @@ describe("discharge decisions (#3791)", () => {
   });
 
   it("reports no change when every backlink was already correct", () => {
-    const changed = postDischargeBacklinks(["acme/widgets#42"], PR, FULL, () =>
-      String("unchanged")
+    const changed = postDischargeBacklinks(
+      ["acme/widgets#42"],
+      PR,
+      FULL,
+      () => ({
+        change: "unchanged",
+        others: 0,
+      })
     );
 
     expect(changed).toBe(false);
@@ -3753,7 +3804,7 @@ describe("discharge decisions (#3791)", () => {
       TRAILER,
       (ref: string) => {
         posted.push(ref);
-        return "created";
+        return { change: "created", others: 0 };
       }
     );
 

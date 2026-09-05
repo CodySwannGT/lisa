@@ -1844,10 +1844,73 @@ function carriesMarker(body) {
 }
 
 /**
+ * Lisa's managed backlink comments, split by whether one is THIS pull request's.
+ *
+ * The whole defect this exists to remove is in the word "the": the writers used
+ * to look for *a* managed comment and rewrite it, so a work item with a second
+ * pull request against it had the first one's backlink silently repointed. The
+ * earlier pull request then failed a gate it had already passed, for a reason
+ * that was not in front of anyone looking at it, and the tool said `updated` —
+ * which reads as "added a link", not "took someone else's away".
+ *
+ * `[lisa-pr-link]` is a statement about a PAIR: *this pull request is linked to
+ * this item*. Storing a pair in a single slot means every new pair evicts the
+ * last, so the comment is keyed on the pull request it names and a work item
+ * carries one per pull request. Nothing here needs a migration: an item holding
+ * one legacy comment is simply an item where `mine` matches or it does not.
+ *
+ * This is deliberately NOT stack-awareness. A fix and its follow-up, a revert
+ * and its replacement, a pull request reopened or recreated against a different
+ * base, and work split across repositories all put two pull requests on one
+ * item, and none of them involve a stack.
+ * @param {readonly unknown[]} comments Comments as the provider returned them.
+ * @param {string} prUrl The pull request being discharged.
+ * @param {(comment: unknown) => unknown} bodyOf Reads a comment's body.
+ * @returns {{mine: unknown, others: number}} This PR's comment, and how many
+ *   managed comments belong to OTHER pull requests.
+ */
+function partitionBacklinks(comments, prUrl, bodyOf) {
+  const mine = [];
+  let others = 0;
+  for (const comment of comments) {
+    const body = bodyOf(comment);
+    if (!carriesMarker(body)) continue;
+    if (textContainsBacklink(body, prUrl)) mine.push(comment);
+    else others += 1;
+  }
+  return { mine: mine[0], others };
+}
+
+/**
+ * Say what a backlink write did, including what it did NOT touch.
+ *
+ * The sibling count is reported rather than left implicit because a tool that
+ * writes to a shared surface should say what else is on it. `updated` was the
+ * only signal the old writer gave before it evicted another pull request's
+ * link, and one word is not enough to distinguish "added" from "replaced".
+ * Exported so the wording can be asserted without a tracker.
+ * @param {{change: string, others: number}} outcome What the writer did.
+ * @param {string} ref Canonical work-item reference.
+ * @param {string} prUrl Pull request URL.
+ * @returns {string} The operator-readable report.
+ */
+export function backlinkReport(outcome, ref, prUrl) {
+  const line = `work-item backlink ${outcome.change} on ${ref}: ${MARKER} ${prUrl}`;
+  if (!outcome.others) return line;
+  const plural = outcome.others === 1 ? "" : "s";
+  return (
+    `${line}\n  ${outcome.others} other pull request${plural} already linked ` +
+    `to ${ref}, left untouched — an item carries one backlink per pull ` +
+    `request, and discharging one never removes another.`
+  );
+}
+
+/**
  * Establish the backlink on a GitHub issue.
  * @param {string} ref Canonical `owner/repo#number` reference.
  * @param {string} prUrl Pull request URL.
- * @returns {string} What changed: created, updated, or unchanged.
+ * @returns {{change: string, others: number}} What changed, and how many other
+ *   pull requests are linked to this item and were left alone.
  */
 function githubBacklink(ref, prUrl) {
   const [repository, number] = ref.split("#");
@@ -1862,18 +1925,26 @@ function githubBacklink(ref, prUrl) {
   );
   if (listing.status !== 0) throw githubFailure(listing, ref);
   const comments = safeJson(listing.stdout, `GitHub comments on ${ref}`);
-  const managed = (Array.isArray(comments) ? comments : []).find(comment =>
-    carriesMarker(comment?.body)
+  // This listing is the read-before-write, and it is fetched here rather than
+  // passed in for exactly that reason: the version you last wrote is not the
+  // version that is live on a surface other agents also comment on.
+  const { mine, others } = partitionBacklinks(
+    Array.isArray(comments) ? comments : [],
+    prUrl,
+    comment => comment?.body
   );
   const body = backlinkBody(prUrl);
-  if (managed && managed.body === body) return "unchanged";
-  const [method, endpoint] = managed
-    ? ["PATCH", `repos/${repository}/issues/comments/${managed.id}`]
+  if (mine && mine.body === body) return { change: "unchanged", others };
+  // PATCH only ever targets THIS pull request's own comment. A managed comment
+  // naming a different pull request is that pull request's proof of gate 5,
+  // and rewriting it would fail a gate that had already passed.
+  const [method, endpoint] = mine
+    ? ["PATCH", `repos/${repository}/issues/comments/${mine.id}`]
     : ["POST", `repos/${repository}/issues/${number}/comments`];
   run("gh", ["api", "--method", method, endpoint, "--field", `body=${body}`], {
     error: `could not write the backlink comment on ${ref}`,
   });
-  return managed ? "updated" : "created";
+  return { change: mine ? "updated" : "created", others };
 }
 
 /**
@@ -1912,7 +1983,8 @@ function linearGraphql(token, query, variables, context) {
  * @param {string} ref Canonical `KEY-123` identifier.
  * @param {string} prUrl Pull request URL.
  * @param {object} contract Resolved tracker contract.
- * @returns {string} What changed: created, updated, or unchanged.
+ * @returns {{change: string, others: number}} What changed, and how many other
+ *   pull requests are linked to this item and were left alone.
  */
 function linearBacklink(ref, prUrl, contract) {
   const token = readLinearKey(contract.workspace);
@@ -1936,19 +2008,21 @@ function linearBacklink(ref, prUrl, contract) {
     throw new TrackingError(
       `Linear issue ${ref} does not exist or is inaccessible`
     );
-  const managed = (issue.comments?.nodes ?? []).find(comment =>
-    carriesMarker(comment?.body)
+  const { mine, others } = partitionBacklinks(
+    issue.comments?.nodes ?? [],
+    prUrl,
+    comment => comment?.body
   );
   const body = backlinkBody(prUrl);
-  if (managed && managed.body === body) return "unchanged";
-  if (managed) {
+  if (mine && mine.body === body) return { change: "unchanged", others };
+  if (mine) {
     linearGraphql(
       token,
       "mutation($id:String!,$body:String!){commentUpdate(id:$id,input:{body:$body}){success}}",
-      { body, id: managed.id },
+      { body, id: mine.id },
       `Linear backlink update on ${ref}`
     );
-    return "updated";
+    return { change: "updated", others };
   }
   linearGraphql(
     token,
@@ -1956,7 +2030,7 @@ function linearBacklink(ref, prUrl, contract) {
     { body, id: issue.id },
     `Linear backlink comment on ${ref}`
   );
-  return "created";
+  return { change: "created", others };
 }
 
 /**
@@ -1991,7 +2065,8 @@ function jiraCommentDocument(prUrl) {
  * @param {string} ref Canonical `KEY-123` reference.
  * @param {string} prUrl Pull request URL.
  * @param {object} contract Resolved tracker contract.
- * @returns {string} What changed: created, updated, or unchanged.
+ * @returns {{change: string, others: number}} What changed, and how many other
+ *   pull requests are linked to this item and were left alone.
  */
 function jiraBacklink(ref, prUrl, contract) {
   const credentials = jiraCredentials(contract);
@@ -2010,24 +2085,26 @@ function jiraBacklink(ref, prUrl, contract) {
   if (listing.status !== 0)
     throw new TrackingError(`Jira ticket ${ref} comments are inaccessible`);
   const existing = safeJson(listing.stdout, `Jira comments on ${ref}`);
-  const managed = (existing.comments ?? []).find(comment =>
-    carriesMarker(comment?.body)
+  const { mine, others } = partitionBacklinks(
+    existing.comments ?? [],
+    prUrl,
+    comment => comment?.body
   );
   const document = jiraCommentDocument(prUrl);
   const payload = JSON.stringify({ body: document });
-  if (managed && JSON.stringify(managed.body) === JSON.stringify(document))
-    return "unchanged";
+  if (mine && JSON.stringify(mine.body) === JSON.stringify(document))
+    return { change: "unchanged", others };
   secureCurl(
-    [managed ? `${issueUrl}/${encodeURIComponent(managed.id)}` : issueUrl],
+    [mine ? `${issueUrl}/${encodeURIComponent(mine.id)}` : issueUrl],
     [
       ...auth,
-      ["request", managed ? "PUT" : "POST"],
+      ["request", mine ? "PUT" : "POST"],
       ["header", CONTENT_TYPE_JSON],
       [DATA_BINARY, payload],
     ],
     { error: `could not write the backlink comment on ${ref}` }
   );
-  return managed ? "updated" : "created";
+  return { change: mine ? "updated" : "created", others };
 }
 
 /**
@@ -2045,7 +2122,8 @@ function jiraBacklink(ref, prUrl, contract) {
  * @param {string} ref Canonical work-item reference.
  * @param {string} prUrl Pull request URL.
  * @param {object} contract Resolved tracker contract.
- * @returns {string} What changed: created, updated, or unchanged.
+ * @returns {{change: string, others: number}} What changed, and how many other
+ *   pull requests are linked to this item and were left alone.
  */
 function postBacklink(ref, prUrl, contract) {
   if (contract.provider === "github") return githubBacklink(ref, prUrl);
@@ -2862,6 +2940,14 @@ function collect(findings, scope, gate, check) {
  * ticket id in it can never acquire one — that requirement is unreachable from
  * inside the pull request and the message has to say so, rather than leaving a
  * reader to try edits that cannot work.
+ *
+ * The closing sentence used to read "creates that comment or updates the
+ * existing one", and that was the whole problem: the existing one could belong
+ * to a DIFFERENT pull request, so following this printed remedy broke a pull
+ * request that had done nothing wrong (CodySwannGT/lisa#3916). The remedy is
+ * now safe by construction rather than by the reader noticing, and it says so —
+ * a reader who has just been told a gate is unmet needs to know that running
+ * the fix cannot un-fix somebody else.
  * @param {string} ref Canonical work-item reference.
  * @param {string} prUrl Pull request URL.
  * @param {object} contract Resolved tracker contract.
@@ -2876,7 +2962,10 @@ function backlinkAdvice(ref, prUrl, contract) {
     `${branchDerived}The one remedy that needs no new branch is the managed comment ` +
     `\`${MARKER} ${prUrl}\` on ${ref}. Do not post it by hand — run:\n\n` +
     `    ${BACKLINK_COMMAND} --ref ${ref} --pr-url ${prUrl}\n\n` +
-    `which creates that comment or updates the existing one, so running it twice is safe`
+    `which creates that comment, or updates the one already naming THIS pull ` +
+    `request. A backlink belonging to another pull request on ${ref} is left ` +
+    `alone, so running this twice — or for a second pull request against the ` +
+    `same item — is safe`
   );
 }
 
@@ -3525,8 +3614,7 @@ function backlink(args) {
   const prUrl = pullRequestUrlOption(args);
   if (!prUrl)
     throw new TrackingError(`${BACKLINK_COMMAND} requires --pr-url <url>`);
-  const outcome = postBacklink(ref, prUrl, contract);
-  console.log(`work-item backlink ${outcome} on ${ref}: ${MARKER} ${prUrl}`);
+  console.log(backlinkReport(postBacklink(ref, prUrl, contract), ref, prUrl));
 }
 
 /**
@@ -5029,8 +5117,8 @@ export function postDischargeBacklinks(
   let changed = false;
   for (const ref of refs) {
     const outcome = post(ref, prUrl, contract);
-    changed ||= outcome !== "unchanged";
-    console.log(`work-item backlink ${outcome} on ${ref}: ${MARKER} ${prUrl}`);
+    changed ||= outcome.change !== "unchanged";
+    console.log(backlinkReport(outcome, ref, prUrl));
   }
   return changed;
 }

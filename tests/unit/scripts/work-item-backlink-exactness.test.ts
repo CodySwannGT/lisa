@@ -55,6 +55,28 @@ describe("textContainsBacklink", () => {
     expect(textContainsBacklink(`${MARKER} ${PR_123}`, PR_123)).toBe(true);
   });
 
+  it("passes gate 5 for EITHER pull request when an item carries both backlinks", () => {
+    // The second acceptance scenario of CodySwannGT/lisa#3916, asserted on the
+    // comparison the gate actually uses. The reader was always per-pull-request
+    // — it asks "is there a backlink for THIS pull request", not "is the
+    // backlink pointing at this one" — so the whole defect lived in the writer,
+    // and this pins the reader so a later 'simplification' cannot move it.
+    const both = [{ body: `${MARKER} ${PR_12}` }, { body: LINKS_123 }];
+
+    expect(textContainsBacklink(both, PR_12)).toBe(true);
+    expect(textContainsBacklink(both, PR_123)).toBe(true);
+  });
+
+  it("still tells the two backlinks apart, so a superseded PR is distinguishable", () => {
+    // The third acceptance scenario. Two comments on one item are only useful
+    // if each one is attributable; a reader that answered true for any managed
+    // comment would make "both pass" true for the wrong reason.
+    const onlyOldOne = [{ body: `${MARKER} ${PR_12}` }];
+
+    expect(textContainsBacklink(onlyOldOne, PR_12)).toBe(true);
+    expect(textContainsBacklink(onlyOldOne, PR_123)).toBe(false);
+  });
+
   it("searches arrays and objects, as the tracker payloads require", () => {
     expect(textContainsBacklink([{ body: LINKS_123 }], PR_123)).toBe(true);
     expect(textContainsBacklink([{ body: LINKS_123 }], PR_12)).toBe(false);

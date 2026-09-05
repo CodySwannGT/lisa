@@ -125,9 +125,26 @@ describe("discharge-work-item-gates.sh", () => {
     expect(result.status).toBe(EXIT_BLOCKED);
   });
 
+  it("wakes on a reopen, which revives a pull request nothing has discharged since", () => {
+    // A work item can hold more than one pull request, and a reopened one is a
+    // named case: it was closed, so nothing discharged its gates while it was,
+    // and it is live again with no CI run to reveal that. Safe to fire only
+    // because the backlink is now keyed per pull request — before
+    // CodySwannGT/lisa#3916 this would have repointed a sibling PR's link.
+    const dir = project(1);
+
+    const result = runHook("gh pr reopen 7", dir);
+
+    expect(result.status).toBe(EXIT_BLOCKED);
+  });
+
   it.each([
     ["a read", "gh pr view 7 --json body"],
     ["a merge", "gh pr merge 7 --merge --auto"],
+    [
+      "a close, which retires a pull request rather than reviving one",
+      "gh pr close 7",
+    ],
     ["an unrelated command", "git push origin HEAD"],
     ["prose mentioning the token", 'echo "run gh pr creation later"'],
   ])("stays out of the way for %s", (_label, command) => {
