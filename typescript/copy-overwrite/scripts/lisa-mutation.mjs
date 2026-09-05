@@ -155,6 +155,7 @@
  * @module scripts/lisa-mutation
  */
 import { execFileSync, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -444,6 +445,242 @@ export const uninstrumentableGuards = files =>
       (extension === "" && normalized.startsWith(".husky/"))
     );
   });
+
+/**
+ * Environment variable naming the shell-guard evidence trace to read.
+ *
+ * The same variable the tracer writes to, so a project that already produces a
+ * trace hands it to this gate without a second contract.
+ */
+export const SHELL_EVIDENCE_TRACE_VAR = "LISA_SHELL_GUARD_TRACE";
+
+/** Where this gate looks for a trace nobody named explicitly. */
+export const DEFAULT_SHELL_EVIDENCE_FILE = ".lisa/shell-guard-trace.jsonl";
+
+/**
+ * What the evidence source says about one shell guard.
+ *
+ * `notComputed` is the load-bearing member and the reason this vocabulary
+ * exists. Until CodySwannGT/lisa#3931 this branch printed "Check that one
+ * exists; nothing here did" as a STRING LITERAL, unconditionally — prose
+ * asserting a search that never ran. The two answers it collapsed have opposite
+ * meanings: "I looked and found nothing" is a finding a reviewer must act on,
+ * and "I did not look" is a gap in this gate. A vocabulary without a word for
+ * the second inevitably prints the first.
+ * @type {Readonly<Record<string, string>>}
+ */
+export const SHELL_EVIDENCE = Object.freeze({
+  evidenced: "evidenced",
+  allowOnly: "allow-only",
+  unevidenced: "unevidenced",
+  stale: "stale-observation",
+  notComputed: "not-computed",
+});
+
+/**
+ * Parse a shell-guard trace into the statuses observed per script.
+ *
+ * The trace is JSONL, one `{script, status, origin, sha256?}` record per
+ * guard/status pair, appended by the tracer the suites load. Unparseable lines
+ * are skipped rather than fatal: a trace is an observation log written during a
+ * test run, and one torn append must not turn every other observation into a
+ * refusal to answer.
+ *
+ * This deliberately re-derives only the narrow question this gate asks — "what
+ * did the run see THIS file do" — rather than the full population judgement in
+ * `scripts/lib/shell-guard-refusal-coverage.mjs`, which needs the tracked-guard
+ * roster and is not shipped to consumers. The two must agree on the record
+ * shape and nothing else.
+ * @param {string} jsonl - Raw trace content.
+ * @returns {Map<string, {statuses: Set<number>, hashes: Set<string>}>} Observations by script.
+ */
+export const parseShellGuardTrace = jsonl => {
+  /** @type {Map<string, {statuses: Set<number>, hashes: Set<string>}>} */
+  const observed = new Map();
+  for (const line of String(jsonl ?? "").split("\n")) {
+    if (line.trim().length === 0) continue;
+    let record;
+    try {
+      record = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (typeof record?.script !== "string") continue;
+    const script = normalizePath(record.script);
+    const entry = observed.get(script) ?? {
+      statuses: new Set(),
+      hashes: new Set(),
+    };
+    if (typeof record.status === "number") entry.statuses.add(record.status);
+    if (typeof record.sha256 === "string") entry.hashes.add(record.sha256);
+    observed.set(script, entry);
+  }
+  return observed;
+};
+
+/**
+ * The sha256 of a file on disk, or null when it cannot be read.
+ * @param {string} cwd - Project root.
+ * @param {string} file - Repository-relative path.
+ * @returns {string | null} Hex digest, or null.
+ */
+export const fileDigest = (cwd, file) => {
+  try {
+    return createHash("sha256")
+      .update(fs.readFileSync(path.join(cwd, file)))
+      .digest("hex");
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Load the shell-guard evidence source, or report that there is none.
+ *
+ * Absence is a first-class answer, not an error. Most consumers of this gate
+ * never wire a tracer, and a gate that treated "no trace here" as "no test
+ * anywhere" would reproduce exactly the defect it is fixing.
+ * @param {string} cwd - Project root.
+ * @param {NodeJS.ProcessEnv} [environment] - Environment to read.
+ * @returns {{source: string, observed: ReturnType<typeof parseShellGuardTrace>} | {source: null, reason: string}}
+ *   The observations, or why none could be loaded.
+ */
+export const readShellGuardEvidence = (cwd, environment = process.env) => {
+  const named = environment[SHELL_EVIDENCE_TRACE_VAR];
+  const candidate =
+    named && named.length > 0 ? named : DEFAULT_SHELL_EVIDENCE_FILE;
+  const resolved = path.isAbsolute(candidate)
+    ? candidate
+    : path.join(cwd, candidate);
+  let raw;
+  try {
+    raw = fs.readFileSync(resolved, "utf8");
+  } catch {
+    return {
+      source: null,
+      reason: named
+        ? `${SHELL_EVIDENCE_TRACE_VAR} names ${candidate}, which could not be read`
+        : `no trace at ${DEFAULT_SHELL_EVIDENCE_FILE} and ${SHELL_EVIDENCE_TRACE_VAR} is unset`,
+    };
+  }
+  return { source: resolved, observed: parseShellGuardTrace(raw) };
+};
+
+/**
+ * What one run observed a single shell guard doing.
+ *
+ * A hash recorded beside an observation is checked against the file as it
+ * stands now: an observation of a DIFFERENT version of the guard is evidence
+ * about that version and about nothing else, so a drifted guard reports as
+ * stale rather than inheriting its predecessor's coverage. A trace whose
+ * records carry no hash cannot be checked this way and is taken at face value —
+ * which is stated here rather than assumed, because it is the one place this
+ * classification can be too generous.
+ * @param {object} input - Everything the classification depends on.
+ * @param {string} input.file - Repository-relative guard path.
+ * @param {ReturnType<typeof parseShellGuardTrace> | null} input.observed - Observations, or null.
+ * @param {string | null} input.currentDigest - The guard's digest now, or null.
+ * @returns {{state: string, detail: string}} The verdict and its sentence.
+ */
+export const classifyShellGuardEvidence = ({
+  file,
+  observed,
+  currentDigest,
+}) => {
+  if (observed === null) {
+    return {
+      state: SHELL_EVIDENCE.notComputed,
+      detail: "driving-test evidence was NOT COMPUTED here",
+    };
+  }
+  const entry = observed.get(normalizePath(file));
+  if (entry === undefined) {
+    return {
+      state: SHELL_EVIDENCE.unevidenced,
+      detail: "UNEVIDENCED — the run observed no test executing it",
+    };
+  }
+  if (
+    entry.hashes.size > 0 &&
+    currentDigest !== null &&
+    !entry.hashes.has(currentDigest)
+  ) {
+    return {
+      state: SHELL_EVIDENCE.stale,
+      detail:
+        "UNEVIDENCED — the only observations are of a different version of this file",
+    };
+  }
+  const statuses = [...entry.statuses].sort((left, right) => left - right);
+  const refusals = statuses.filter(status => status !== 0);
+  if (refusals.length === 0) {
+    return {
+      state: SHELL_EVIDENCE.allowOnly,
+      detail:
+        "ALLOWS-ONLY — driven, but never observed refusing; replace it with `exit 0` and its suite still passes",
+    };
+  }
+  if (!statuses.includes(0)) {
+    return {
+      state: SHELL_EVIDENCE.allowOnly,
+      detail: `REFUSES-ONLY — observed exiting ${refusals.join("/")} but never allowing ordinary work; the control on the other side is missing`,
+    };
+  }
+  return {
+    state: SHELL_EVIDENCE.evidenced,
+    detail: `evidenced — driven to exit ${refusals.join("/")} and exit 0`,
+  };
+};
+
+/**
+ * Describe the driving-test evidence for every uninstrumentable file.
+ * @param {readonly string[]} files - Repository-relative guard paths.
+ * @param {{source: string, observed: ReturnType<typeof parseShellGuardTrace>} | {source: null, reason: string}} evidence
+ *   The loaded evidence source, or the reason there is none.
+ * @param {(file: string) => string | null} digestOf - Current digest lookup.
+ * @returns {{lines: string[], verdicts: {file: string, state: string}[], summary: string}}
+ *   Per-file lines, the verdicts behind them, and the closing sentence.
+ */
+export const describeShellGuardEvidence = (files, evidence, digestOf) => {
+  const observed = evidence.source === null ? null : evidence.observed;
+  const verdicts = files.map(file => ({
+    file,
+    ...classifyShellGuardEvidence({
+      file,
+      observed,
+      currentDigest: digestOf(file),
+    }),
+  }));
+  const lines = verdicts.map(
+    verdict => `   • ${verdict.file} — ${verdict.detail}`
+  );
+  return { lines, verdicts, summary: shellEvidenceSummary(verdicts, evidence) };
+};
+
+/**
+ * The one sentence that replaces the unconditional claim.
+ * @param {{file: string, state: string}[]} verdicts - Per-file verdicts.
+ * @param {{source: string} | {source: null, reason: string}} evidence - Evidence source.
+ * @returns {string} The closing sentence.
+ */
+const shellEvidenceSummary = (verdicts, evidence) => {
+  if (evidence.source === null) {
+    return (
+      "   This gate did NOT check whether those tests exist: " +
+      `${"reason" in evidence ? evidence.reason : "no evidence source"}.\n` +
+      '   Read the line above as "not measured", never as "nothing exists".'
+    );
+  }
+  const unproven = verdicts.filter(
+    verdict => verdict.state !== SHELL_EVIDENCE.evidenced
+  );
+  return unproven.length === 0
+    ? `   Checked against ${evidence.source}: every file above was observed being driven\n` +
+        "   to a refusal AND to an allow."
+    : `   Checked against ${evidence.source}: ${unproven.length} of ${verdicts.length} file(s) above\n` +
+        "   have NO driving-test evidence in this run. A shell guard nothing drives onto a\n" +
+        "   refusal path can fail open silently and no gate here will see it.";
+};
 
 /**
  * Whether Stryker can parse a file at all, by extension.
@@ -2228,20 +2465,24 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
     // Always name the blind part of the diff, even when another selected target
     // lets Stryker continue. A mixed run measures only the selected files; its
     // score is not evidence about a shell guard changed beside them.
-    const blind = scope.uninstrumentable.map(file => `   • ${file}`).join("\n");
+    const evidence = describeShellGuardEvidence(
+      scope.uninstrumentable,
+      readShellGuardEvidence(cwd),
+      file => fileDigest(cwd, file)
+    );
     console.log(
       `⚪ ${OUTCOMES.uninstrumentableLanguage}\n` +
         `   ${scope.changed} file(s) changed vs ${since}; ${scope.selectedFiles} of them are mutate targets\n` +
         `   under the patterns from ${declaration.source}, and ${scope.uninstrumentable.length} of them\n` +
         `   ${scope.uninstrumentable.length === 1 ? "is" : "are"} in a language Stryker cannot instrument in ANY configuration:\n` +
-        `${blind}\n` +
+        `${evidence.lines.join("\n")}\n` +
         "   NO mutant COULD be generated for these files. The mutation result\n" +
         "   below, if one runs, covers only the selected targets and says nothing\n" +
         "   for these files, so this gate is silent about them by construction —\n" +
         "   adding them to `mutate` would abort the run, not measure them.\n" +
         "   Their only evidence is a driving test that runs the script against a\n" +
         "   payload table and asserts the blocked/allowed verdict, with a control\n" +
-        "   on both sides. Check that one exists; nothing here did."
+        `   on both sides.\n${evidence.summary}`
     );
     if (scope.selected.length === 0 && scope.noCurrentLines.length === 0)
       return finish(OUTCOMES.uninstrumentableLanguage, 0);
