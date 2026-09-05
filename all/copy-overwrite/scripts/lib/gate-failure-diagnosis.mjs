@@ -411,8 +411,15 @@ const ZERO_WORK_SIGNATURES = Object.freeze([
  * than no answer: `/repo/consumer project` reported as `/repo/consumer` names a
  * tree that exists, so the operator checks the wrong one and the line that was
  * added to end that guessing causes it instead.
+ *
+ * The capture is one greedy negated class and the trailing whitespace comes off
+ * in `rootLine` rather than in the pattern. A lazy `(.+?)` followed by `[ \t]*$`
+ * expresses the same intent and is a super-linear backtracking hazard, which
+ * the shipped ruleset rejects outright (`sonarjs/slow-regex`) — this module
+ * reads gate transcripts, which are exactly the untrusted, arbitrarily long
+ * input that makes that rule worth obeying.
  */
-const RUN_ROOT_PATTERN = /^[ \t]*RUN[ \t]+v\S+[ \t]+(.+?)[ \t\r]*$/m;
+const RUN_ROOT_PATTERN = /^[ \t]*RUN[ \t]+v\S+[ \t]+([^\r\n]+)/m;
 
 /**
  * Where this run happened — always answered, never omitted.
@@ -436,7 +443,7 @@ const RUN_ROOT_PATTERN = /^[ \t]*RUN[ \t]+v\S+[ \t]+(.+?)[ \t\r]*$/m;
 function rootLine(output, cwd) {
   const match = RUN_ROOT_PATTERN.exec(output);
   return match
-    ? `the run's root was ${match[1]}, as the tool reported it`
+    ? `the run's root was ${match[1].trimEnd()}, as the tool reported it`
     : `the run's root was ${cwd}, the directory the gate ran in — the tool printed none`;
 }
 
