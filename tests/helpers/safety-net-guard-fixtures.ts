@@ -14,6 +14,7 @@ import type {
   RebaseStateFixture,
   Verdict,
 } from "./safety-net-guard-harness";
+import { READ_TREE_FIXTURES } from "./safety-net-read-tree-fixtures.js";
 import { STDIN_DELETER_FIXTURES } from "./safety-net-stdin-deleter-fixtures";
 import { SUBST_BOUNDARY_FIXTURES } from "./safety-net-subst-fixtures";
 
@@ -350,6 +351,9 @@ export const GIT_STATE_FIXTURES: readonly GitStateFixture[] = [
   // Global options must not dodge the reset guard (security review F1).
   gfx("GS-B4", "dirty", "git -C . reset --hard", BLOCK),
   gfx("GS-A6", "clean", "git -C . reset --hard", ALLOW),
+  // The plumbing spelling of the same discard, with its anti-overblocking
+  // near misses (issue #3978).
+  ...READ_TREE_FIXTURES,
 ];
 
 /**

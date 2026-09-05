@@ -29,6 +29,11 @@
 #     divergence: upstream blocks unconditionally; Lisa allows clean-tree resets.
 #     Residual risk (documented, accepted): the dirty check runs in the hook's
 #     cwd at hook time, so a `cd elsewhere && git reset --hard` evades it.
+#   - `git read-tree` with an update flag AND `--reset` while the working tree
+#     is dirty (issue #3978): the plumbing spelling of the same discard, on the
+#     same condition, printing the same remedy. Index-only `read-tree`, and
+#     `read-tree -m -u` without `--reset` (which git itself refuses rather than
+#     clobber a modified file), stay allowed. Lisa-only guard.
 #   - `git rebase --abort`/`--quit` while the in-progress rebase holds
 #     human-made conflict resolutions (AUTO_MERGE discriminator; issue #1956).
 #     Clean or untouched rebase state stays abortable; the apply backend and a
@@ -1757,6 +1762,45 @@ if matches "${GIT_CMD}"'reset\b.*--(hard|merge)\b'; then
   if git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
     && [ -n "$(git status --porcelain 2>/dev/null)" ]; then
     block "git reset --hard/--merge on a dirty working tree would discard uncommitted changes (commit first, or preserve as below)" "$PRESERVE_GUIDANCE
+
+$DESTRUCTIVE_GUIDANCE"
+  fi
+fi
+
+# 3a. `git read-tree` with BOTH an update flag and `--reset`, on the same dirty
+#     tree — the plumbing spelling of guard 3 (issue #3978). It resets the index
+#     and writes the result into the working tree, discarding tracked
+#     modifications: the identical destruction, reached through a command that
+#     carries no `--hard` and no `reset` subcommand, so every pattern in
+#     guard 3 misses it. A guard an agent can walk around is a guard that stops
+#     the honest caller and not the one looking for a way through, and this
+#     spelling is strictly worse than the blocked one — it discards WITHOUT
+#     preserving, which is exactly the property guard 3's remedy supplies. Both
+#     refusals therefore print the same $PRESERVE_GUIDANCE, so what they teach
+#     cannot drift apart.
+#
+#     `--reset` is the discriminator, not `-u`, and the pairing is deliberate:
+#
+#     - `read-tree` with no update flag touches the INDEX only and destroys
+#       nothing in the working tree, so a blanket `read-tree` block would be
+#       over-broad.
+#     - `read-tree -m -u` (a merge without `--reset`) is safe by git's own
+#       construction: it REFUSES rather than overwrite a locally modified file
+#       ("entry would be overwritten by merge"). `--reset` is precisely the flag
+#       that switches that refusal off.
+#
+#     So the destructive combination is an update flag AND `--reset` together,
+#     in either order. The update flag is matched in the checkout guard's idiom
+#     so a bundled short option (`-iu`) cannot dodge the anchor, with leading
+#     whitespace required so a `--index-output=/tmp/out-u` style value cannot
+#     read as the flag. Same conditional dirty-tree shape and same accepted
+#     residual risk as guard 3: the probe runs in the hook's cwd at hook time.
+readonly GIT_READ_TREE="${GIT_CMD}read-tree"
+if matches "${GIT_READ_TREE}"'[^;&|]*[[:space:]]--reset([[:space:]]|$)' \
+  && matches "${GIT_READ_TREE}"'[^;&|]*[[:space:]](-[[:alnum:]]*u[[:alnum:]]*|--update)([[:space:]]|=|$)'; then
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+    && [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+    block "git read-tree -u --reset on a dirty working tree would discard uncommitted changes (commit first, or preserve as below)" "$PRESERVE_GUIDANCE
 
 $DESTRUCTIVE_GUIDANCE"
   fi
