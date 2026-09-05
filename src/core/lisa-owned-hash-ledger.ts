@@ -458,6 +458,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "68e1b78d5d4471fadbe2eb575ae46221838217290123a9910d76dba0f1c34131",
     "7caa48fcba51e1e4bf21b909e51474be3b929907ffc35896b6de13aac6cb6782",
     "7d333dc10be8c810b9b5aca35ab7f6f60413134414d82bf0cdaedb4e6e3ca8da",
+    "829ffe0db5aa52476ad857aa4495f744f695391564a5928fdc7fc075b639d83c",
     "8dc942ac4edc2017d6b8277296c8f80542e7c024eef1bb65de609979d0ca9a0e",
     "916b2b48a2b55c2090468c48c972b6c7c5fad39fb53956ceffebdd1ff0c69230",
     "9cab71562d01421d57c6719318a4d03a6249a45c1aea434db3ff26e3065eeb66",
@@ -474,6 +475,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "e17c45f7cadf0fb55dd07270776caf211af99b7d4771a4fde75aafe5919e8dbe",
     "e481f9940fa6e7ab9fa6a990ec42e08a6c76023abca80b6ab7bbf545ab185b9e",
     "f1af05100c22592bc4746a1cc74dcaea0782ddc3c44a653c6a33c84785e62e0d",
+    "f558e398ff72a8cd3515316880fa648a679b8bfed3ce04afced136d22f1a4fd8",
   ]),
   "scripts/lisa-environment-prepare.mjs": Object.freeze([
     "0c2c2aeed3a8d843b3019e5263aab26790856c0c33f028925d2f0f795a26872d",
@@ -1594,6 +1596,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "68e1b78d5d4471fadbe2eb575ae46221838217290123a9910d76dba0f1c34131",
     "7caa48fcba51e1e4bf21b909e51474be3b929907ffc35896b6de13aac6cb6782",
     "7d333dc10be8c810b9b5aca35ab7f6f60413134414d82bf0cdaedb4e6e3ca8da",
+    "829ffe0db5aa52476ad857aa4495f744f695391564a5928fdc7fc075b639d83c",
     "8dc942ac4edc2017d6b8277296c8f80542e7c024eef1bb65de609979d0ca9a0e",
     "916b2b48a2b55c2090468c48c972b6c7c5fad39fb53956ceffebdd1ff0c69230",
     "9cab71562d01421d57c6719318a4d03a6249a45c1aea434db3ff26e3065eeb66",
@@ -1610,6 +1613,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "e17c45f7cadf0fb55dd07270776caf211af99b7d4771a4fde75aafe5919e8dbe",
     "e481f9940fa6e7ab9fa6a990ec42e08a6c76023abca80b6ab7bbf545ab185b9e",
     "f1af05100c22592bc4746a1cc74dcaea0782ddc3c44a653c6a33c84785e62e0d",
+    "f558e398ff72a8cd3515316880fa648a679b8bfed3ce04afced136d22f1a4fd8",
   ]),
   "scripts/lisa-environment-prepare.mjs": Object.freeze([
     "0c2c2aeed3a8d843b3019e5263aab26790856c0c33f028925d2f0f795a26872d",
