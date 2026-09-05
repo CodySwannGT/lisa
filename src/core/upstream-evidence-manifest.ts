@@ -2477,7 +2477,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.github/GITHUB_ACTIONS.md":
       "4289146bae8e112049387d4be86941c563b02376a06f0238364aaf3e61c2b127",
     "typescript/copy-overwrite/.lintstagedrc.json":
-      "60bf2d5e86bf9d72f04b8b14368591f104674ff80046fe8bd82e4174ca1523fd",
+      "058f6bb7ce5b734ba3e62774b1f769c94053c574f2b4db3e59515c325e49c0ef",
     "typescript/copy-overwrite/.nvmrc":
       "0775c6feb7638122e8b68d611cd709bf270f7b5adb5d0d2baa9afab8a6c0fc42",
     "typescript/copy-overwrite/.prettierignore":
@@ -9282,6 +9282,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/io-latency-budget.ts": true,
     "tests/helpers/latest-review-identity-fixtures.ts": true,
     "tests/helpers/latest-review-reducer-harness.ts": true,
+    "tests/helpers/lintstaged-globs.ts": true,
     "tests/helpers/lisa-test-run-authority-equality.ts": true,
     "tests/helpers/lisa-test-run-exact-process-cleanup.ts": true,
     "tests/helpers/lisa-test-run-exact-process-state.ts": true,
@@ -9802,6 +9803,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/work-item-traceability-scope-gate.test.ts": true,
     "tests/unit/config/workspace-suite-collection.test.ts": true,
     "tests/unit/config/worktree-exclusion-anchoring.test.ts": true,
+    "tests/unit/configs/ast-grep-language-reach.test.ts": true,
     "tests/unit/configs/lighthouse-collect-config.test.ts": true,
     "tests/unit/configs/lighthouse-detail-budget.test.ts": true,
     "tests/unit/configs/lintstaged-matcher-ordering.test.ts": true,
