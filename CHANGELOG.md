@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.45.4](https://github.com/CodySwannGT/lisa/compare/v4.45.3...v4.45.4) (2026-09-05)
+
+
+### Bug Fixes
+
+* **hooks:** give the direct-issue-create guard a container arm ([4414bbe](https://github.com/CodySwannGT/lisa/commit/4414bbefc8df9e9d88f50332aa670de2cab2b72f)), closes [CodySwannGT/lisa#3910](https://github.com/CodySwannGT/lisa/issues/3910)
+* **hooks:** refuse arming and gate-evaporating re-targets on an uncovered base ([57d9a91](https://github.com/CodySwannGT/lisa/commit/57d9a91dd4c821a4f76da27d923a4a168f674c2a)), closes [#3922](https://github.com/CodySwannGT/lisa/issues/3922) [#3922](https://github.com/CodySwannGT/lisa/issues/3922) [#3753](https://github.com/CodySwannGT/lisa/issues/3753) [CodySwannGT/lisa#3922](https://github.com/CodySwannGT/lisa/issues/3922)
+
 ### [4.45.3](https://github.com/CodySwannGT/lisa/compare/v4.45.2...v4.45.3) (2026-09-05)
 
 
