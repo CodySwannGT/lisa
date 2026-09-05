@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.49.0](https://github.com/CodySwannGT/lisa/compare/v4.48.0...v4.49.0) (2026-09-05)
+
+
+### Features
+
+* **scratch:** reclaim completed synthesis assemblies the sweep cannot own ([fd66e8e](https://github.com/CodySwannGT/lisa/commit/fd66e8e182faa68b59699dceb1545a7019aff1a6)), closes [CodySwannGT/lisa#3870](https://github.com/CodySwannGT/lisa/issues/3870)
+
+
+### Bug Fixes
+
+* **vitest:** bound fleet demand with admission control and an honest denominator ([2c552c4](https://github.com/CodySwannGT/lisa/commit/2c552c4006fe1bf18ca2b92eeac28f68ffcbcd58)), closes [#3032](https://github.com/CodySwannGT/lisa/issues/3032) [CodySwannGT/lisa#3941](https://github.com/CodySwannGT/lisa/issues/3941)
+* **worktrees:** stop cleanup deleting worktrees it could not read ([dc331ba](https://github.com/CodySwannGT/lisa/commit/dc331ba79b5b8175fb1180302ae4be62240476a3)), closes [#3810](https://github.com/CodySwannGT/lisa/issues/3810) [CodySwannGT/lisa#3810](https://github.com/CodySwannGT/lisa/issues/3810) [CodySwannGT/lisa#3810](https://github.com/CodySwannGT/lisa/issues/3810)
+
 ## [4.48.0](https://github.com/CodySwannGT/lisa/compare/v4.47.0...v4.48.0) (2026-09-05)
 
 
