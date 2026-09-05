@@ -41,6 +41,43 @@ const TEST_RUNNER_ARGS = [
   "vitest",
 ] as const;
 
+/**
+ * Quiet-box budget for one whole nested runner: tsx, lisa-test-run, a complete
+ * Vitest, and a real CDK synth.
+ *
+ * WHY THIS IS SO MUCH LARGER THAN THE WORK IT GUARDS. One arm costs about three
+ * seconds on an idle machine, so 30s already looked like tenfold headroom — and
+ * on CI every arm was killed at 52.6s, still running, with nothing wrong.
+ *
+ * `ioLatencyBudgetMs` scales a quiet-box budget by this worker's measured SPAWN
+ * latency, sampled from five quick spawns. That is the right instrument for a
+ * child whose cost IS spawning. This child's cost is a nested Vitest doing CPU
+ * work while the parent suite's own workers saturate the box, and five quick
+ * spawns cannot see core contention: CI measured 1.75x — nowhere near the 8x
+ * ceiling that is supposed to be the "this box is not worth a green" signal —
+ * while the guarded work ran more than twenty times its local cost.
+ *
+ * So the scaler is not wrong, it is measuring the wrong thing, in exactly the
+ * sense `fsLatencyBudgetMs` already documents for deletion-dominated
+ * work: "a spawn-derived budget is measuring something the hook never does."
+ * Until a contention-aware scaler exists, the compensation belongs in the
+ * quiet-box base, where it is at least visible and explained.
+ *
+ * THIS IS A CEILING, NOT A COST. Passing arms return in seconds and never
+ * approach it. It is deliberately NOT set by raising `MAX_SPAWN_SLOWDOWN`,
+ * which would be wrong twice over: that ceiling exists to fail a genuinely slow
+ * box, and this box measured 1.75x, so raising it would not have helped anyway.
+ */
+const CDK_RUNNER_BUDGET_MS = 120_000;
+
+/**
+ * Quiet-box budget for waiting on a marker from an already-started worker.
+ *
+ * Two thirds of {@link CDK_RUNNER_BUDGET_MS}: the wait begins after the child
+ * is spawned, so it covers the same nested boot without the spawn itself.
+ */
+const CDK_MARKER_BUDGET_MS = 90_000;
+
 /** Complete result of one synchronous real-CDK arm. */
 export interface CdkRunResult {
   readonly run: SpawnSyncReturns<string>;
@@ -168,7 +205,7 @@ export function runCdk(arm: string, base?: string): CdkRunResult {
       env: cdkEnvironment(scratchBase, marker, arm),
       killSignal: "SIGKILL",
       maxBuffer: NODE_DEFAULT_MAX_BUFFER,
-      timeout: ioLatencyBudgetMs(30_000),
+      timeout: ioLatencyBudgetMs(CDK_RUNNER_BUDGET_MS),
     }
   );
   if (run.error !== undefined && run.signal === null) {
@@ -199,13 +236,13 @@ export function runCdk(arm: string, base?: string): CdkRunResult {
  * @returns One-line cause, with a stderr tail when the child said anything
  */
 function describeCdkRun(arm: string, run: SpawnSyncReturns<string>): string {
-  const budget = ioLatencyBudgetMs(30_000);
+  const budget = ioLatencyBudgetMs(CDK_RUNNER_BUDGET_MS);
   const stderr = (run.stderr ?? "").trim().split("\n").slice(-8).join("\n");
   return [
     `real CDK synth arm "${arm}" wrote no assembly marker.`,
     `status=${String(run.status)} signal=${String(run.signal)}`,
     `error=${run.error === undefined ? "none" : run.error.message}`,
-    `budget=${budget}ms (30000ms base x ${workerSpawnSlowdown()}x measured slowdown)`,
+    `budget=${budget}ms (${CDK_RUNNER_BUDGET_MS}ms base x ${workerSpawnSlowdown()}x measured slowdown)`,
     stderr === "" ? "child stderr was empty" : `child stderr tail:\n${stderr}`,
   ].join(" ");
 }
@@ -241,7 +278,7 @@ export async function waitForCdkAssembly(
   marker: string,
   child?: ChildProcess
 ): Promise<string> {
-  const budget = ioLatencyBudgetMs(20_000);
+  const budget = ioLatencyBudgetMs(CDK_MARKER_BUDGET_MS);
   const deadline = Date.now() + budget;
   while (Date.now() < deadline) {
     if (fs.existsSync(marker)) return fs.readFileSync(marker, "utf8");
@@ -258,7 +295,7 @@ export async function waitForCdkAssembly(
         : `child already exited: code=${String(child.exitCode)} signal=${String(child.signalCode)}`;
   throw new Error(
     `CDK assembly marker did not appear: ${path.basename(marker)} ` +
-      `after ${budget}ms (20000ms base x ${workerSpawnSlowdown()}x measured slowdown). ${fate}`
+      `after ${budget}ms (${CDK_MARKER_BUDGET_MS}ms base x ${workerSpawnSlowdown()}x measured slowdown). ${fate}`
   );
 }
 
@@ -268,7 +305,7 @@ export async function waitForCdkAssembly(
  * @returns Vitest PID beneath the bootstrap process
  */
 export async function waitForVitestPid(wrapperPid: number): Promise<number> {
-  const deadline = Date.now() + ioLatencyBudgetMs(20_000);
+  const deadline = Date.now() + ioLatencyBudgetMs(CDK_MARKER_BUDGET_MS);
   while (Date.now() < deadline) {
     const rows = boundedSpawnSync({
       label: "CDK wrapper process inventory",
