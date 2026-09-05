@@ -2033,6 +2033,77 @@ readonly GIT_CONTROL_PLANE='(^|[[:space:]='"$qc"'./])\.git([/[:space:]'"$qc"']|$
 # that could not run produced no lines, the loop body never executed, and the
 # guard was skipped with the command ALLOWED. A segmentation that cannot answer
 # must refuse, exactly like a scan that cannot answer.
+# 14b. Linked worktrees, which are the same principle one level out. `.git` is
+# protected because nothing in the working tree can rebuild it; a linked
+# worktree is protected because nothing OUTSIDE it can rebuild what it holds.
+# The asymmetry is exact and it is invisible from the prompt: `.git/refs` and
+# the object store are shared by every worktree of a repository, while
+# `.git/index` and the working files are per-worktree. So `git commit` moves
+# work somewhere a deletion cannot reach, and `git add` does not — a staged file
+# shows green in `git status`, which reads as saved, and dies with the
+# directory.
+#
+# Measured twice in one evening (issue #3863): one worktree lost a 284-line
+# staged test file, and a second lost nothing from the identical event purely
+# because a gate had forced its work into a commit first. Neither deletion
+# announced itself. That is the second reason this is a block rather than a
+# warning — a worktree deletion destroys the only evidence its own case could
+# leave, so there is no after-the-fact detection to fall back on.
+#
+# `git worktree remove` (guard 12) already refuses a dirty tree, and
+# `--force` is already blocked. This closes the spelling that walks around both:
+# `rm -rf` on the directory, which git never sees.
+#
+# Matching is by REGISTERED path — `git worktree list` names them — so an
+# ordinary directory that merely lives near one is untouched. A repository that
+# cannot be read answers "no": this guard adds protection to a shape that was
+# fully allowed a moment ago, and failing it closed would deny every recursive
+# delete on every path outside a repository.
+#
+# The comparison is on WHOLE TOKENS, which is the only spelling that gets both
+# error directions right. Substring containment would let a worktree named
+# `wt-1` claim `rm -rf wt-10`, an over-block on an unrelated directory; and
+# hand-written boundary classes leak the other way, because `rm -rf <wt>/`
+# with one trailing slash ends on a character every such class treats as
+# "inside a path". So every non-path character — quote, space, parenthesis,
+# redirection — is folded to a space first, which makes each argument a
+# space-delimited token regardless of how it was quoted, and the match is then
+# an equality test on that token. A SUBPATH (`rm -rf <wt>/node_modules`) is
+# deliberately not this guard's business: it is not a worktree deletion, and
+# blocking routine cleanup inside a worktree is how a guard gets switched off.
+names_linked_worktree() {
+  local stmt="$1" probe root listed line primary wt rel
+  root="$(git -C "${CLAUDE_PROJECT_DIR:-$PWD}" rev-parse --show-toplevel 2> /dev/null)" || return 1
+  [ -n "$root" ] || return 1
+  listed="$(git -C "$root" worktree list --porcelain 2> /dev/null)" || return 1
+  probe=" $(printf '%s' "$stmt" | tr -c 'A-Za-z0-9_./-' ' ') "
+  primary=""
+  while IFS= read -r line; do
+    case "$line" in
+      worktree\ *) wt="${line#worktree }" ;;
+      *) continue ;;
+    esac
+    # First entry is the primary checkout, which is not a linked worktree.
+    if [ -z "$primary" ]; then
+      primary="$wt"
+      continue
+    fi
+    case "$probe" in
+      *" $wt "* | *" $wt/ "*) return 0 ;;
+    esac
+    rel="${wt#"$primary"/}"
+    [ "$rel" != "$wt" ] || continue
+    # `./` is the same path spelled the way an agent in the project root types
+    # it, and a token comparison is exact, so it has to be spelled here too.
+    case "$probe" in
+      *" $rel "* | *" $rel/ "* | *" ./$rel "* | *" ./$rel/ "*) return 0 ;;
+    esac
+  done <<EOF
+$listed
+EOF
+  return 1
+}
+
 git_segments_status=0
 git_segments="$(printf '%s' "$normalized_command_str" \
   | awk '{ if (/\|[ \t]*$/) printf "%s ", $0; else print }' \
@@ -2054,6 +2125,9 @@ while IFS= read -r git_stmt; do
   fi
   if scan -E "$git_stmt" "$GIT_CONTROL_PLANE"; then
     block "recursive forced delete of the git control plane (.git holds every commit, branch and stash not already pushed; nothing in the working tree can rebuild it). Delete a specific ignored artifact instead. Re-cloning is NOT a like-for-like replacement: every linked worktree stores a pointer into this .git, so discarding it discards each of them and any uncommitted work they hold — check \`git worktree list\` before treating the checkout as disposable."
+  fi
+  if names_linked_worktree "$git_stmt"; then
+    block "recursive forced delete of a linked git worktree. A worktree's index and working files are private to it — only commits are shared — so this destroys any staged or unwritten-to-a-commit work another agent left there, and destroys the evidence that it did (CodySwannGT/lisa#3863). Use 'node scripts/lisa-worktree-guard.mjs remove <path>' instead: it deletes clean and already-committed trees without ceremony, names the files when they exist nowhere else, and records an explicit --force override."
   fi
 done <<<"$git_segments"
 
