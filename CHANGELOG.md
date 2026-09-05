@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.45.0](https://github.com/CodySwannGT/lisa/compare/v4.44.1...v4.45.0) (2026-09-05)
+
+
+### Features
+
+* **gates:** report the shared temp root beside a blown time budget ([c15e54b](https://github.com/CodySwannGT/lisa/commit/c15e54b76503dee2304aca32f350543d4fa84821)), closes [#3906](https://github.com/CodySwannGT/lisa/issues/3906) [CodySwannGT/lisa#3906](https://github.com/CodySwannGT/lisa/issues/3906)
+
+
+### Bug Fixes
+
+* **gates:** bound the timeout verdict's evidence and stop scanning the temp root on every diagnosis ([3e1ef85](https://github.com/CodySwannGT/lisa/commit/3e1ef85998999203a8c9726dc50f805537ac7675)), closes [CodySwannGT/lisa#3906](https://github.com/CodySwannGT/lisa/issues/3906)
+
 ### [4.44.1](https://github.com/CodySwannGT/lisa/compare/v4.44.0...v4.44.1) (2026-09-05)
 
 
