@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.48.0](https://github.com/CodySwannGT/lisa/compare/v4.47.0...v4.48.0) (2026-09-05)
+
+
+### Features
+
+* **rules:** shrink the host-rules pointer to one actionable instruction ([fbd278e](https://github.com/CodySwannGT/lisa/commit/fbd278e1d22c9a4ea7100a360a633895a00c3d9e)), closes [CodySwannGT/lisa#3991](https://github.com/CodySwannGT/lisa/issues/3991)
+
 ## [4.47.0](https://github.com/CodySwannGT/lisa/compare/v4.46.0...v4.47.0) (2026-09-05)
 
 
