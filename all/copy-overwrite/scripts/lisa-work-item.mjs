@@ -2460,8 +2460,11 @@ function remoteDefaultRef(remote) {
  * the rule is unchanged and now applied to the unit it was always about.
  * @param {string} input The pre-push stdin stream.
  * @param {string} remote Remote being pushed to.
- * @returns {{localRef: string|undefined, commits: string[]}[]} One entry per
- *   ref update that introduces commits.
+ * @returns {{localRef: string|undefined, commits: string[], scope: string[]}[]}
+ *   One entry per ref update that introduces commits. `scope` is the rev-list
+ *   argument vector the commit list came from, kept so a later question about
+ *   the same range — see {@link ancestryUnreachable} — is asked of the range
+ *   itself rather than re-derived from a list that has already lost its bounds.
  */
 function parsePushGroups(input, remote) {
   const groups = [];
@@ -2488,14 +2491,15 @@ function parsePushGroups(input, remote) {
     groups.push({
       localRef,
       commits: git(args).split("\n").filter(Boolean),
+      scope: args,
     });
   }
   if (groups.length === 0 && input.trim() === "") {
+    const args = ["rev-list", "HEAD", "--not", `--remotes=${remote}`];
     groups.push({
       localRef: undefined,
-      commits: git(["rev-list", "HEAD", "--not", `--remotes=${remote}`])
-        .split("\n")
-        .filter(Boolean),
+      commits: git(args).split("\n").filter(Boolean),
+      scope: args,
     });
   }
   return groups;
@@ -3139,6 +3143,50 @@ function alreadyTraced(result) {
 }
 
 /**
+ * Why a push with nothing of its own to trace still passed.
+ *
+ * The symmetric clause to {@link alreadyTraced}, and the reason it exists is
+ * the same defect one state along. A back-merge push whose range holds only
+ * merge commits takes the deferral added for CodySwannGT/lisa#3851 and prints:
+ *
+ * ```
+ * WORK_ITEM_TRACKING_OK 0 commit(s), PR body, and tracker backlink
+ * ```
+ *
+ * A push whose range was simply EMPTY prints the same bytes. Both are true;
+ * they are not the same fact. One says "the subject is one level up, at the
+ * pull request whose range carries it", the other says "there was nothing to
+ * look at". A reader cannot tell them apart, and the only thing that separates
+ * them — the range — is not in the output (CodySwannGT/lisa#3886). Attribution
+ * required measuring the range by hand and reading the source, neither of which
+ * an operator reading a push transcript has.
+ *
+ * `alreadyTraced` renders nothing here: it fires only for `protectedExempt`,
+ * and a back-merge onto a feature branch has none. So the zero went unexplained.
+ *
+ * ## Why `relevant === 0 && mergeExempt > 0` is the whole condition
+ *
+ * The deferral itself is `rangeIsPartial && relevant === 0 && mergeExempt > 0`.
+ * This renders only on the push path, where the range is ALWAYS a subset of the
+ * pull request's — `reportPushGroup` passes `rangeIsPartial: true`
+ * unconditionally, and says why. `validate-pr` reads the full `base..head`
+ * range and does not defer, which is why its success line does not carry this.
+ *
+ * ## This adds a sentence and relaxes nothing
+ *
+ * The verdict, the exit status and every gate are untouched: a clause is
+ * appended to a line that already said OK. A diagnostic fix that also softened
+ * enforcement would not be a diagnostic fix.
+ * @param {object} result Commit-side result.
+ * @returns {string} A clause to append, or the empty string.
+ */
+function carriedByPullRequest(result) {
+  return result.relevant === 0 && result.mergeExempt > 0
+    ? ` (${result.mergeExempt} merge commit(s); this push introduces no authored work, so the pull request's own range carries the requirement)`
+    : "";
+}
+
+/**
  * What a successful run actually proved, in its own words.
  *
  * A `trailer` run that printed "and tracker backlink" would be claiming a
@@ -3169,24 +3217,67 @@ function currentRepository() {
   return safeJson(result.stdout, "GitHub repository").nameWithOwner;
 }
 
+/**
+ * The pull request a check is about, by number or by the branch in hand.
+ *
+ * `gh pr view` will not infer the current branch once `--repo` is given — it
+ * exits non-zero with "argument required when using the --repo flag" — and
+ * `currentRepository()` resolves in every normal checkout, so `--repo` was
+ * always present. The push path passes no number, so every push made an
+ * invalid call, `allowFailure` turned the usage error into `undefined`, and
+ * the caller concluded no pull request existed.
+ *
+ * That is why gates 4 and 5 were never checked at push time. Not deferred
+ * until a pull request existed — never looked up at all, so the deferral
+ * notice was emitted unconditionally: true by accident before a pull request
+ * existed, false afterwards, and determined in neither case (#3791). The CI
+ * path passed `--pr-number` and so called `gh` correctly, which is why CI
+ * caught what every push had waved through.
+ *
+ * Naming the selector positionally is what makes the lookup resolve while
+ * keeping `--repo` explicit. With no number and no branch — a detached HEAD —
+ * there is genuinely nothing to resolve by, so `--repo` is withheld rather
+ * than sent without the argument it requires.
+ * @param {string|number} [number] Explicit pull-request number, when known.
+ * @param {string} [repository] `owner/name` the pull request belongs to.
+ * @returns {object|undefined} The pull request, or undefined when none resolves.
+ */
+/**
+ * The argv for one `gh pr view`, with the selector it cannot do without.
+ *
+ * Extracted and exported because every other test of this file drives the CLI
+ * as a SUBPROCESS, so nothing in-process ever covers argv construction — the
+ * mutation gate reported seven surviving mutants here and no assertion reachable
+ * from a spawned process could have killed one. Argument shape is exactly what
+ * was wrong in #3791, so it is the part that has to be directly testable.
+ * @param {string|number} [number] Explicit pull-request number, when known.
+ * @param {string} [branch] Branch to resolve by when no number is given.
+ * @param {string} [repository] `owner/name` the pull request belongs to.
+ * @param {string} [fields] Comma-separated `gh pr view --json` fields.
+ * @returns {string[]} Arguments for `gh`.
+ */
+export function pullRequestViewArgs(
+  number,
+  branch,
+  repository,
+  fields = "url,body,state"
+) {
+  const selector = number ?? branch;
+  const args = ["pr", "view"];
+  if (selector) args.push(String(selector));
+  // `--repo` is withheld without a selector rather than sent alone: `gh` treats
+  // that as a usage error, not as "look it up from the branch".
+  if (repository && selector) args.push("--repo", repository);
+  args.push("--json", fields);
+  return args;
+}
+
 function currentPullRequest(
   number,
   repository = currentRepository(),
   fields = "url,body,state"
 ) {
-  const args = ["pr", "view"];
-  if (number) args.push(String(number));
-  // `--repo` ONLY alongside a number, because `gh pr view --repo <r>` with no
-  // positional argument is a USAGE ERROR — "argument required when using the
-  // --repo flag" — not a lookup that returns nothing. It exits 1, this
-  // function reads that as "no pull request exists", and the push then takes
-  // the deferral branch on every branch that HAS one. Measured on this
-  // repository: an open pull request, and the push reporting gates 4 and 5 as
-  // unchecked because the flag combination could never have found it. Without
-  // a number `gh` resolves the pull request from the current branch's remote,
-  // which is the answer this caller wants and the only one it can get.
-  if (number && repository) args.push("--repo", repository);
-  args.push("--json", fields);
+  const args = pullRequestViewArgs(number, activeBranch(), repository, fields);
   const result = run("gh", args, { allowFailure: true });
   return result.status === 0
     ? safeJson(result.stdout, "GitHub pull request")
@@ -4236,14 +4327,100 @@ function validateCommit(args) {
  * that answer into silence.
  * @param {string} input The pre-push stdin stream.
  * @param {string} remote Remote being pushed to.
- * @returns {{localRef: string|undefined, commits: string[]}[]} Groups to check.
+ * @returns {{localRef: string|undefined, commits: string[], scope: string[]}[]}
+ *   Groups to check.
  */
 function pushGroups(input, remote) {
   const parsed = parsePushGroups(input, remote);
   const carrying = parsed.filter(group => group.commits.length > 0);
   return carrying.length > 0
     ? carrying
-    : [{ localRef: parsed[0]?.localRef, commits: [] }];
+    : [{ localRef: parsed[0]?.localRef, commits: [], scope: [] }];
+}
+
+/**
+ * Whether this range reaches back to the beginning of history.
+ *
+ * THE QUESTION THIS ANSWERS IS "IS MY SCOPE STILL VALID", not "is this commit
+ * traceable", and that is the whole of CodySwannGT/lisa#3719. The new-branch
+ * lane bounds itself with `--not --remotes=<remote>`, which is exact while
+ * reachability holds and silently unbounded the moment it does not. A history
+ * rewrite gives every commit a new object id, so a branch created before one
+ * shares NOTHING with the rewritten remote: the exclusion set removes nothing,
+ * the entire history falls into the range, and the gate then refuses on a
+ * stranger's years-old commit whose work item closed long ago. It computes a
+ * correct answer to the wrong question, and nothing in the refusal says so.
+ *
+ * A ROOT COMMIT IN RANGE IS THE DISCRIMINATOR, and it is deliberately not a
+ * size heuristic. A range that legitimately belongs to one branch begins at a
+ * base the remote can still reach, so the walk stops there — reaching a
+ * parentless commit means it did not stop anywhere, which is the unbounded case
+ * itself rather than a proxy for it. A long branch stays a long branch.
+ *
+ * `--max-parents=0` re-asks the range's OWN rev-list, so the answer costs one
+ * git call whatever the history's size. Filtering the returned commit list
+ * instead would spawn one child per commit — thousands of them in exactly the
+ * case this detects, inside a push gate.
+ * @param {{commits: string[], scope: string[]}} group One pushed ref's range.
+ * @param {string} remote Remote being pushed to.
+ * @returns {boolean} True when the range runs to a parentless commit.
+ */
+export function ancestryUnreachable(group, remote) {
+  if (group.commits.length === 0 || group.scope.length === 0) return false;
+  // A repository's FIRST push carries its root commit legitimately: nothing is
+  // published yet, so the exclusion set is empty because there is nothing to
+  // exclude, not because history moved. Reading that as a rewrite would make
+  // every new repository unpushable — the same defect, inverted.
+  // `--format` is presentation only, and deliberately not asserted on: this
+  // reads the ANSWER's emptiness, not its shape, so emptying the format still
+  // prints for-each-ref's default line for each ref and still prints nothing
+  // for none. A hand-run mutant emptying it survives, and is equivalent rather
+  // than a test gap — the ref pattern beside it is the argument that decides
+  // the answer, and a mutant emptying THAT is killed.
+  const published = git([
+    "for-each-ref",
+    "--count=1",
+    "--format=%(refname)",
+    `refs/remotes/${remote}/`,
+  ]);
+  if (published === "") return false;
+  return git([...group.scope, "--max-parents=0"]) !== "";
+}
+
+/**
+ * The refusal for a range whose base the remote can no longer reach.
+ *
+ * Deliberately says NOTHING about work items. The defect being repaired is that
+ * this push was refused over a stranger's closed ticket, so a message that
+ * still argues about tickets — even the right ones — reproduces the
+ * misdirection at a different address. `selfExplanatory` suppresses the
+ * five-gate checklist for the same reason it is suppressed on the
+ * push-destination refusal: no gate here is cleared by naming a ticket.
+ * @param {string|undefined} localRef The ref being pushed.
+ * @returns {TrackingError} The refusal to raise.
+ */
+export function unreachableAncestryRefusal(localRef) {
+  const branch = localRef
+    ? pushedBranchName(localRef) || localRef
+    : "this branch";
+  const error = new TrackingError(
+    `The commits on ${branch} are no longer reachable from "origin", so this ` +
+      `push cannot tell which of them the branch actually adds.\n\n` +
+      `WHAT HAPPENED: the shared history was rewritten after this branch was ` +
+      `created. Rewriting gives every commit a new identity, so nothing this ` +
+      `branch was built on still exists on the remote — and the check that ` +
+      `normally asks "what is new here?" gets the whole history back instead.\n\n` +
+      `WHY IT IS NOT REFUSING YOUR WORK: the commits it would otherwise ` +
+      `complain about are other people's, from before the rewrite. Nothing is ` +
+      `wrong with what you wrote.\n\n` +
+      `WHAT TO DO: copy your commits onto the current branch instead of ` +
+      `pushing this one as it stands — \`git cherry-pick\` each of your own ` +
+      `commits onto a fresh branch taken from an up-to-date "main", then push ` +
+      `that. Merging "main" into this branch does NOT help: a merge adds a ` +
+      `parent, it cannot make the old commits exist on the remote again.`
+  );
+  error.selfExplanatory = true;
+  return error;
 }
 
 /**
@@ -4343,6 +4520,28 @@ export function unresolvedPushReport(result, label) {
 }
 
 /**
+ * The success line a pushed ref with an open pull request prints.
+ *
+ * Exported for one reason, and it is the acceptance criterion rather than a
+ * convenience: CodySwannGT/lisa#3886's third scenario is an INEQUALITY between
+ * the empty-range line and the merge-only line, and nothing can assert that
+ * unless something can produce both. A test that read one of them out of a
+ * subprocess transcript would pin the shape it happened to reproduce and say
+ * nothing about the other — which is how two states came to share a sentence in
+ * the first place.
+ * @param {object} result Commit-side result.
+ * @param {string} label Prefix naming the ref, empty for a single-ref push.
+ * @returns {string} The success line.
+ */
+export function pushSuccessLine(result, label) {
+  return (
+    `WORK_ITEM_TRACKING_OK ${label}${result.relevant} commit(s)` +
+    `${alreadyTraced(result)}${carriedByPullRequest(result)}, ` +
+    `${provedHere(result.contract)}`
+  );
+}
+
+/**
  * Report one pushed ref's outcome, refusing when it did not prove out.
  * @param {{result?: object, error?: Error}} outcome Commit-side outcome.
  * @param {object|undefined} pr The pull request this ref is about, if any.
@@ -4355,9 +4554,7 @@ function reportPushGroup(outcome, pr, label) {
     // remote default branch. So a commit side with nothing in it means "no
     // subject in THIS push", never "no subject in the pull request".
     validatePrData(outcome, pr.url, pr.body, true);
-    console.log(
-      `WORK_ITEM_TRACKING_OK ${label}${outcome.result.relevant} commit(s)${alreadyTraced(outcome.result)}, ${provedHere(outcome.result.contract)}`
-    );
+    console.log(pushSuccessLine(outcome.result, label));
     return;
   }
   // No pull request means gates 4 and 5 cannot be CHECKED here. They are
@@ -4392,6 +4589,12 @@ function validatePush(args) {
   const pr = currentPullRequest();
   const target = prTargetGroup(groups, pr);
   for (const group of groups) {
+    // BEFORE the commits are judged, not after: every verdict below is computed
+    // over a range, and a range this wide is not evidence about anything. The
+    // order is the fix — judging first and diagnosing afterwards is what
+    // produced a refusal naming a stranger's closed ticket (#3719).
+    if (ancestryUnreachable(group, remote))
+      throw unreachableAncestryRefusal(group.localRef);
     const outcome = commitOutcome(group.commits, configRef, remote);
     reportPushGroup(
       outcome,

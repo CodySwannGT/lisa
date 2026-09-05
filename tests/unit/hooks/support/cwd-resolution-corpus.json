@@ -1,0 +1,192 @@
+{
+  "$comment": [
+    "THE SHARED CWD-RESOLUTION CORPUS. Two guards answer one question — 'which",
+    "file will this command actually execute?' — and this file is what keeps",
+    "their answers the same.",
+    "",
+    "WHY TWO IMPLEMENTATIONS STILL EXIST. parity-safety-net.sh answers it in",
+    "POSIX shell, where follow_cd mutates file-scope state that follow_locate",
+    "reads. worktree-binding-guard.mjs answers it in Node. There is no call that",
+    "reaches from Node into a shell function's file-scope state, so this is not a",
+    "factoring somebody skipped: it is one idea that cannot cross a language",
+    "boundary as a function call. CodySwannGT/lisa#3952 records that plainly,",
+    "including that this is NOT unification and does not meet that ticket's",
+    "stated bar.",
+    "",
+    "WHAT IT BUYS INSTEAD. Drift fails a test on the commit that causes it,",
+    "rather than surfacing later as a wrong verdict found by whoever is unlucky.",
+    "",
+    "THE RESIDUAL, STATED RATHER THAN IMPLIED. A behaviour with no row here is",
+    "free to diverge. ADD A ROW WHEN YOU ADD A BRANCH. The corpus is only as",
+    "good as its rows, and nothing outside this sentence forces a new one.",
+    "",
+    "WHAT THE ROWS ASSERT. The resolved PATH, never the exit code. The two",
+    "guards fail in deliberately opposite directions when resolution is",
+    "impossible — parity-safety-net refuses, because a destructive command it",
+    "cannot see is what it exists to stop; worktree-binding-guard fails open,",
+    "which is the doctrine every undecidable case in that file follows. Binding",
+    "them on the verdict would force one of them to be wrong.",
+    "",
+    "ROWS MUST BITE, ON BOTH SIDES. A resolver can be wrong in two directions",
+    "and they need different rows, so `control` is one of three:",
+    "",
+    "  bites — a PRE-FIX implementation, one that resolves relative tokens",
+    "          against the hook process's own cwd, gets this row wrong. Guards",
+    "          the silent direction: a confident verdict about a file nobody was",
+    "          about to run.",
+    "  wall  — an OVER-EAGER implementation, one that refuses whenever any `cd`",
+    "          was unreadable, gets this row wrong. Guards the loud direction: a",
+    "          fail-closed floor turning into a wall, and a wall gets switched",
+    "          off, which costs the whole guard.",
+    "  holds — pins behaviour that must not change. Passes under both wrong",
+    "          implementations, so it proves the resolver RAN, not that it bites.",
+    "",
+    "scripts/check-cwd-resolution-corpus.mjs refuses a set missing `bites` or",
+    "`wall`, refuses any contract point with no row, and refuses any contract",
+    "point carried only by `holds` rows — a point pinned by nothing that fails",
+    "under a wrong implementation is documented, not pinned."
+  ],
+  "contract": {
+    "1": "A literal `cd` establishes an effective working directory that REPLACES the hook process's cwd for relative tokens. Not an extra candidate and not a fallback ordering — the ordering was #3933's entire defect.",
+    "2": "Relative `cd` targets compose against the directory in force; the last `cd` wins; the result is absolutized and lexically normalised.",
+    "3": "A `cd` whose target is not literal text marks the effective directory UNKNOWN, and a later relative token is NOT resolved. Not literal is: empty, a leading `-`, or containing `$`, a backtick, or a glob metacharacter (`*`, `?`, `[`, `{`). A bare `cd` is `$HOME` and therefore known; `~` and `~/…` expand from `$HOME` first.",
+    "4": "UNKNOWN is sticky only until the next resolvable `cd`. A good `cd` clears it.",
+    "5": "The rule is SCOPED. It bites only a relative token a command declares it executes. Absolute paths are untouched, and a `cd` with no executed file after it is untouched. That scoping is what keeps a fail-closed floor from becoming a wall.",
+    "6": "A nested script's own `cd` is saved and restored around the recursive walk: the child inherits the directory but cannot change the parent's."
+  },
+  "placeholders": {
+    "{session}": "The worktree the session is in — where a pre-fix implementation always resolved.",
+    "{foreign}": "A sibling worktree of the same repository, holding its own copy of the same relative path.",
+    "{nested}": "A subdirectory of {session}.",
+    "{home}": "The value of $HOME for the guard process."
+  },
+  "rows": [
+    {
+      "id": "cd-absolute-into-foreign-checkout",
+      "contract": [1],
+      "control": "bites",
+      "applies": ["shell", "node"],
+      "command": "cd {foreign} && bash run.sh",
+      "expect": { "dir": "{foreign}", "script": "run.sh" },
+      "why": "The defect in one line. A pre-fix implementation names {session}/run.sh, a real and readable file that nobody was about to run."
+    },
+    {
+      "id": "cd-then-relative-interpreter-operand",
+      "contract": [1],
+      "control": "bites",
+      "applies": ["shell", "node"],
+      "command": "cd {foreign} && sh ./run.sh",
+      "expect": { "dir": "{foreign}", "script": "run.sh" },
+      "why": "A leading ./ is still relative. Spelling it explicitly must not change which directory it is relative TO."
+    },
+    {
+      "id": "cd-relative-composes",
+      "contract": [2],
+      "control": "bites",
+      "applies": ["shell", "node"],
+      "command": "cd {session} && cd ../{foreignBase} && bash run.sh",
+      "expect": { "dir": "{foreign}", "script": "run.sh" },
+      "why": "Relative targets compose against the directory in force, so `..` walks out of the first `cd`, not out of the hook's own cwd."
+    },
+    {
+      "id": "cd-last-one-wins",
+      "contract": [2],
+      "control": "bites",
+      "applies": ["shell", "node"],
+      "command": "cd {foreign} && cd {session} && bash run.sh",
+      "expect": { "dir": "{session}", "script": "run.sh" },
+      "why": "A later `cd` replaces an earlier one. An implementation that accumulated bases rather than replacing them would answer {foreign} here and be wrong in the quiet direction."
+    },
+    {
+      "id": "cd-into-nested-subdirectory",
+      "contract": [1, 2],
+      "control": "bites",
+      "applies": ["shell", "node"],
+      "command": "cd {nested} && bash run.sh",
+      "expect": { "dir": "{nested}", "script": "run.sh" },
+      "why": "The wrong copy does not have to live in another repository. A subdirectory of the session's own tree is enough."
+    },
+    {
+      "id": "unliteral-cd-target-marks-unknown",
+      "contract": [3],
+      "control": "bites",
+      "applies": ["shell", "node"],
+      "command": "cd \"$SOMEWHERE\" && bash run.sh",
+      "expect": "unknown",
+      "why": "The fail-closed floor. A pre-fix implementation answers {session}/run.sh with full confidence about a file it has no reason to believe in."
+    },
+    {
+      "id": "glob-cd-target-marks-unknown",
+      "contract": [3],
+      "control": "bites",
+      "applies": ["shell", "node"],
+      "command": "cd {session}/wt-* && bash run.sh",
+      "expect": "unknown",
+      "why": "A glob names a set, and a set is not a directory. Picking the first match would be a guess wearing a resolution's clothes."
+    },
+    {
+      "id": "cd-dash-is-not-literal",
+      "contract": [3],
+      "control": "bites",
+      "applies": ["shell", "node"],
+      "command": "cd - && bash run.sh",
+      "expect": "unknown",
+      "why": "`cd -` is the PREVIOUS directory, which this guard never saw. Correctly uncertain rather than treated as a directory named '-'."
+    },
+    {
+      "id": "bare-cd-is-home-and-therefore-known",
+      "contract": [3],
+      "control": "bites",
+      "applies": ["shell", "node"],
+      "command": "cd && bash run.sh",
+      "expect": { "dir": "{home}", "script": "run.sh" },
+      "why": "A bare `cd` is `cd \"$HOME\"`. Leaving the previous directory in place would resolve later tokens from a directory the shell has left."
+    },
+    {
+      "id": "unknown-cleared-by-next-resolvable-cd",
+      "contract": [4],
+      "control": "bites",
+      "applies": ["shell", "node"],
+      "command": "cd \"$SOMEWHERE\" && cd {foreign} && bash run.sh",
+      "expect": { "dir": "{foreign}", "script": "run.sh" },
+      "why": "Unknown must not poison the rest of the command. A guard that refused everything after one unreadable `cd` would be a wall, and a wall gets switched off."
+    },
+    {
+      "id": "absolute-path-untouched-by-unknown-cwd",
+      "contract": [5],
+      "control": "wall",
+      "applies": ["shell", "node"],
+      "command": "cd \"$SOMEWHERE\" && bash {foreign}/run.sh",
+      "expect": { "dir": "{foreign}", "script": "run.sh" },
+      "why": "An absolute path does not need a cwd. Refusing it because some earlier `cd` was unreadable would be the fail-closed floor turning into a wall."
+    },
+    {
+      "id": "no-cd-resolves-against-session",
+      "contract": [5],
+      "control": "holds",
+      "applies": ["shell", "node"],
+      "command": "bash run.sh",
+      "expect": { "dir": "{session}", "script": "run.sh" },
+      "why": "The unchanged case, and the one most commands take. The fix must be invisible here or it has broken far more than it repaired."
+    },
+    {
+      "id": "unliteral-cd-with-no-executed-file-is-untouched",
+      "contract": [5],
+      "control": "wall",
+      "applies": ["shell", "node"],
+      "command": "cd \"$SOMEWHERE\" && echo hello",
+      "expect": "no-executed-file",
+      "why": "Scope control. An unreadable `cd` only matters when something relative is executed after it; on its own it is an ordinary command and must stay one."
+    },
+    {
+      "id": "nested-script-cd-does-not-leak-to-parent",
+      "contract": [6],
+      "control": "bites",
+      "applies": ["shell"],
+      "why_not_node": "worktree-binding-guard.mjs reads the script a command executes but does not recurse into what THAT script executes, so it has no parent walk for a nested `cd` to leak into. Asserting this against it would test a walk it does not have.",
+      "command": "bash nested.sh && bash run.sh",
+      "expect": { "dir": "{session}", "script": "run.sh" },
+      "why": "nested.sh changes directory internally. The child inherits the parent's directory and cannot change it, so `run.sh` still resolves from {session}. Without save/restore, a `cd` inside a followed file silently re-points the rest of the outer resolution."
+    }
+  ]
+}

@@ -93,6 +93,7 @@ scripts/lisa-run-gates.mjs
 scripts/lisa-schema-validate.mjs
 scripts/lisa-test-node.mjs
 scripts/lisa-work-item.mjs
+scripts/lisa-worktree-guard.mjs
 scripts/nightly-e2e-provider-action.mjs
 scripts/nightly-e2e-provider-github-jira.mjs
 scripts/nightly-e2e-provider-linear-sentry.mjs

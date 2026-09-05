@@ -66,6 +66,14 @@ export interface ParsedWorkflowStep {
 /** One job inside a parsed workflow. */
 export interface ParsedWorkflowJob {
   readonly id: string;
+  /**
+   * The job's display `name:`, or `""` when it declares none.
+   *
+   * Load-bearing for #3740: a host is free to give a deploy job any id it
+   * likes, and the display name is often where the word "Deploy" actually
+   * appears. Classifying on the id alone silently misses those jobs.
+   */
+  readonly name: string;
   /** Repo-relative path of the workflow file declaring this job. */
   readonly workflow: string;
   readonly needs: readonly string[];
@@ -255,6 +263,7 @@ function parseJobs(
     return [
       {
         id,
+        name: typeof job.name === "string" ? job.name.trim() : "",
         workflow: file,
         needs: asStringList(job.needs),
         steps: parseSteps(job.steps),

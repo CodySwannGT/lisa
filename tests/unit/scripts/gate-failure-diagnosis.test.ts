@@ -14,6 +14,7 @@ import { describe, expect, it } from "vitest";
 import {
   DIAGNOSIS,
   diagnoseFailure,
+  tempRootPopulation,
 } from "../../../all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs";
 
 /** One classified failure, typed at the boundary of the untyped `.mjs`. */
@@ -248,19 +249,63 @@ describe("diagnoseFailure: evidence stays readable", () => {
       { length: 9 },
       (_unused, index) => ` FAIL  tests/unit/suite-${index}.test.ts > case`
     ).join("\n");
-    const verdict: Diagnosis = diagnoseFailure(`${many}\n${TIMEOUT_LINE}`);
+    // Temp-root reading suppressed: this case is about the CAP, and a timeout
+    // verdict now also carries the shared temp root's population. Left to its
+    // default that reading comes off the real machine, which would make the
+    // assertion depend on whether this box's temp root happened to be
+    // readable — a coin flip, and the same hazard the load reading is injected
+    // to avoid.
+    const verdict: Diagnosis = diagnoseFailure(
+      `${many}\n${TIMEOUT_LINE}`,
+      undefined,
+      undefined,
+      undefined,
+      null
+    );
 
     expect(verdict.evidence).toHaveLength(6);
     expect(verdict.evidence.at(-1)).toBe("…and 4 more");
   });
 
+  it("keeps the same ceiling when a temp-root reading is also attached", () => {
+    // The case above passes `null`, so it CANNOT see the defect it is named
+    // for: the temp-root line was appended AFTER the cap, making the timeout
+    // verdict the only one able to exceed MAX_EVIDENCE + 1. A non-null
+    // reading is what exposes that, which is why this case exists alongside
+    // rather than instead of the suppressed one.
+    const many = Array.from(
+      { length: 9 },
+      (_unused, index) => ` FAIL  tests/unit/suite-${index}.test.ts > case`
+    ).join("\n");
+    const verdict: Diagnosis = diagnoseFailure(
+      `${many}\n${TIMEOUT_LINE}`,
+      undefined,
+      undefined,
+      undefined,
+      { entries: 1234, inodeBytes: 65536 }
+    );
+
+    // Same ceiling as the suppressed case: four named suites, the dropped
+    // count, and the temp-root line — not five suites plus all of that.
+    expect(verdict.evidence).toHaveLength(6);
+    expect(verdict.evidence.at(-1)).toContain("shared temp root at diagnosis");
+    expect(verdict.evidence).toContain("…and 5 more");
+  });
+
   it("does not repeat a suite that failed more than once", () => {
+    // Temp-root reading suppressed for the same reason as the cap case above:
+    // this asserts dedup of NAMED SUITES, and an exact-equality assertion
+    // would otherwise be hostage to whether the real temp root read.
     const verdict: Diagnosis = diagnoseFailure(
       [
         " FAIL  tests/unit/same.test.ts > one",
         " FAIL  tests/unit/same.test.ts > two",
         TIMEOUT_LINE,
-      ].join("\n")
+      ].join("\n"),
+      undefined,
+      undefined,
+      undefined,
+      null
     );
 
     expect(verdict.evidence).toEqual(["tests/unit/same.test.ts"]);
@@ -388,5 +433,227 @@ describe("diagnoseFailure: a run whose scratch files were deleted under it", () 
         1
       ).kind
     ).toBe(DIAGNOSIS.UNDIAGNOSED);
+  });
+});
+
+describe("diagnoseFailure: the shared temp root beside a timeout", () => {
+  const CROWDED = { entries: 46_000, inodeBytes: 26_000_000 };
+  const QUIET = { entries: 12, inodeBytes: 352 };
+
+  /**
+   * A timeout verdict carrying a stated temp-root reading.
+   * @param reading - The population to report, or null to suppress the line.
+   * @returns The verdict.
+   */
+  const timeoutWith = (
+    reading: { entries: number; inodeBytes: number } | null
+  ): Diagnosis =>
+    diagnoseFailure(
+      TIMEOUT_LINE,
+      undefined,
+      undefined,
+      undefined,
+      reading
+    ) as Diagnosis;
+
+  it("names the entry count and the inode size", () => {
+    // Both numbers, because only one of them a prune can fix.
+    const evidence = timeoutWith(CROWDED).evidence.join("\n");
+    expect(evidence).toContain("46000 entries");
+    expect(evidence).toContain("25391 KB");
+  });
+
+  it("reports a QUIET root too, so the line can rule crowding OUT", () => {
+    // The same principle the load line states about itself: reporting only the
+    // alarming case makes it a rubber stamp for "not my change". A small root
+    // is the evidence that this timeout is somebody's actual bug.
+    expect(timeoutWith(QUIET).evidence.join("\n")).toContain("12 entries");
+  });
+
+  it("asserts no threshold, in either direction", () => {
+    // The calibration gap is real and unmeasured: ~16.5k showed NO mkdtemp
+    // penalty on the platform where ~46k was reported harmful. A verdict word
+    // here would be a guess wearing a number's clothes, and a detector that
+    // fires on an ordinary busy workstation trains its readers to skip it.
+    for (const reading of [CROWDED, QUIET]) {
+      const evidence = timeoutWith(reading).evidence.join("\n");
+      expect(evidence).not.toMatch(/\bexceeds\b|\btoo many\b|\bover the\b/i);
+      expect(evidence).toContain("not a verdict");
+    }
+  });
+
+  it("says the inode is the part a prune does not fix", () => {
+    // A directory inode does not shrink when entries are removed, so "I
+    // cleaned it up" is not the same claim as "it is cheap to walk again".
+    expect(timeoutWith(CROWDED).evidence.join("\n")).toContain(
+      "the part a prune does not fix"
+    );
+  });
+
+  it("adds nothing when the reading is unavailable", () => {
+    expect(timeoutWith(null).evidence).toEqual([]);
+  });
+
+  it("keeps the named suites ahead of the reading", () => {
+    // The suites are what the reader acts on; the temp-root line is context.
+    const verdict = diagnoseFailure(
+      [" FAIL  tests/unit/slow.test.ts > case", TIMEOUT_LINE].join("\n"),
+      undefined,
+      undefined,
+      undefined,
+      CROWDED
+    ) as Diagnosis;
+    expect(verdict.evidence[0]).toBe("tests/unit/slow.test.ts");
+    expect(verdict.evidence).toHaveLength(2);
+  });
+
+  it("attaches to a timeout only, not to an assertion failure", () => {
+    // On a failing assertion the temp root is noise: the run reached a verdict
+    // about the code, and crowding did not produce it.
+    const verdict = diagnoseFailure(
+      " FAIL  tests/unit/broken.test.ts > case",
+      undefined,
+      undefined,
+      undefined,
+      CROWDED
+    ) as Diagnosis;
+    expect(verdict.kind).toBe(DIAGNOSIS.ASSERTION);
+    expect(verdict.evidence.join("\n")).not.toContain("entries");
+  });
+});
+
+describe("tempRootPopulation", () => {
+  it("reads the entry count and the directory inode size", () => {
+    expect(
+      tempRootPopulation(
+        () => ["a", "b", "c"],
+        () => 4096
+      )
+    ).toEqual({ entries: 3, inodeBytes: 4096 });
+  });
+
+  it("returns null rather than guessing when a read throws", () => {
+    // A temp root that cannot be listed is unknown, not empty — and "0
+    // entries" would be a confident wrong answer printed beside a failure.
+    expect(
+      tempRootPopulation(
+        () => {
+          throw new Error("EACCES");
+        },
+        () => 4096
+      )
+    ).toBeNull();
+  });
+
+  it("returns null when the inode size is not a number", () => {
+    expect(
+      tempRootPopulation(
+        () => [],
+        () => Number.NaN
+      )
+    ).toBeNull();
+  });
+});
+
+describe("diagnoseFailure: a cleanup that lost a race is not a code failure", () => {
+  // CodySwannGT/lisa#3877. A branch whose own tests were green could not push,
+  // because one test unreachable from its diff threw in an `afterEach` while
+  // another process created an entry inside the directory it was removing. The
+  // author could not tell that from a real regression without spending a second
+  // ten-minute cycle — and the retry is itself the load that caused it.
+  //
+  // The verdict does NOT excuse the failure: INTERFERENCE is in
+  // MEASURED_NOTHING, which renders UNPROVABLE and blocks the push exactly as
+  // FAILED does. What changes is the word, and `proves` going null so the
+  // failure stops indicting `test-correctness`.
+  // The real transcript named the macOS per-user temp root. This fixture uses a
+  // neutral prefix instead, deliberately: `test-scratch-guard` refuses a
+  // hardcoded platform temp root anywhere in a test source — comments included,
+  // as this comment found out — and it cannot tell a string that is only ever
+  // matched against from one something opens. Nothing here depends on the
+  // prefix; the signature's grounding clause looks for `lisa-scratch`.
+  const RACE =
+    "Error: ENOTEMPTY: directory not empty, rmdir " +
+    "'/scratch-root/lisa-scratch/run-35247-1/worker-14451-2/lisa-test-ylEKHM/.git'";
+
+  /** The transcript as the push gate actually rendered it. */
+  const TRANSCRIPT = [
+    " FAIL  tests/unit/cli/doctor-readiness-tracking.test.ts > names `git rm --cached`",
+    RACE,
+    " Test Files  1 failed | 1088 passed (1089)",
+  ].join("\n");
+
+  it("names the contention rather than reporting an assertion", () => {
+    const verdict: Diagnosis = diagnoseFailure(TRANSCRIPT, 1, null, () => null);
+
+    expect(verdict.kind).toBe(DIAGNOSIS.INTERFERENCE);
+    expect(verdict.summary).toContain("lost a race with a concurrent writer");
+    expect(verdict.summary).toContain("NOT about the code under test");
+  });
+
+  it("stops the failure indicting the test-correctness gate", () => {
+    // The half an author acts on. An INTERFERENCE verdict proves nothing about
+    // anybody's property, so it must not name one.
+    expect(diagnoseFailure(TRANSCRIPT, 1, null, () => null).proves).toBeNull();
+  });
+
+  it("says the diff need not reach the failing file", () => {
+    // The reader's actual question, answered without a second full cycle.
+    expect(diagnoseFailure(TRANSCRIPT, 1, null, () => null).summary).toContain(
+      "need not be reachable"
+    );
+  });
+
+  it("quotes the scratch path so the claim is checkable", () => {
+    const verdict: Diagnosis = diagnoseFailure(TRANSCRIPT, 1, null, () => null);
+
+    expect(verdict.evidence.join("\n")).toContain("lisa-test-ylEKHM/.git");
+  });
+
+  it("outranks the FAIL line the same transcript carries", () => {
+    // Precedence, which is the assertion that carries weight here as elsewhere
+    // in this file: the transcript reports a failing test, and reading that is
+    // how machine contention became a code regression.
+    expect(diagnoseFailure(TRANSCRIPT, 1, null, () => null).kind).not.toBe(
+      DIAGNOSIS.ASSERTION
+    );
+  });
+
+  it("leaves an ordinary assertion failure alone", () => {
+    // THE CONTROL. A classifier that called every failure interference would
+    // pass every case above and turn the gate into a rubber stamp.
+    const ordinary = [
+      " FAIL  tests/unit/foo.test.ts > adds two numbers",
+      "AssertionError: expected 1 to be 2",
+      " Test Files  1 failed (1)",
+    ].join("\n");
+
+    expect(diagnoseFailure(ordinary, 1, null, () => null).kind).toBe(
+      DIAGNOSIS.ASSERTION
+    );
+  });
+
+  it("leaves a removal failure OUTSIDE managed scratch alone", () => {
+    // The grounding clause. An errno about some other directory is a fact about
+    // the code, and a diagnosis that called it machine contention would be an
+    // environment excuse issued over a real bug — this module's own defect.
+    const elsewhere =
+      "Error: EPERM: operation not permitted, rmdir '/opt/app/data'";
+
+    expect(diagnoseFailure(elsewhere, 1, null, () => null).kind).not.toBe(
+      DIAGNOSIS.INTERFERENCE
+    );
+  });
+
+  it("leaves a plain ENOENT to the coverage signature that owns it", () => {
+    // ENOENT is deliberately absent from the race errno set: on its own it is
+    // more often a genuine missing-file bug, and where it does mean deletion
+    // the coverage signature above already claims it.
+    const missing =
+      "Error: ENOENT: no such file or directory, rmdir '/tmp/lisa-scratch/x'";
+
+    expect(diagnoseFailure(missing, 1, null, () => null).kind).not.toBe(
+      DIAGNOSIS.INTERFERENCE
+    );
   });
 });
