@@ -827,6 +827,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "662652c09e5eb70f14db61136ea1206e9b337fce49dcabc774a45a07a0fd718f",
   ]),
   "scripts/lisa-lint-staged-preflight.mjs": Object.freeze([
+    "76c568bb393c47ef0e48bf0aaaa092be60ab137e79a5bb39b03cd83decd7b91e",
     "ce4bc224a102e3ac2bc29d8f2038eefd619129d4639c25954c93f05011f7f977",
   ]),
   "scripts/lisa-mutation.mjs": Object.freeze([
@@ -1913,6 +1914,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "662652c09e5eb70f14db61136ea1206e9b337fce49dcabc774a45a07a0fd718f",
   ]),
   "scripts/lisa-lint-staged-preflight.mjs": Object.freeze([
+    "76c568bb393c47ef0e48bf0aaaa092be60ab137e79a5bb39b03cd83decd7b91e",
     "ce4bc224a102e3ac2bc29d8f2038eefd619129d4639c25954c93f05011f7f977",
   ]),
   "scripts/lisa-mutation.mjs": Object.freeze([
