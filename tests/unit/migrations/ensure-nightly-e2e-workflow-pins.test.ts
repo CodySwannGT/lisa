@@ -11,9 +11,8 @@ import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const HEALTH = path.join(".github", "workflows", "nightly-e2e-health.yml");
 const REPORT = path.join(".github", "workflows", "nightly-e2e-report.yml");
-const RELEASE_COMMIT = "1234567890abcdef1234567890abcdef12345678";
+
 const ORPHAN_PIN = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-const RELEASE_TAG = "v9.8.7";
 
 describe("EnsureNightlyE2EWorkflowPinsMigration", () => {
   let tempDir: string;
@@ -25,10 +24,7 @@ describe("EnsureNightlyE2EWorkflowPinsMigration", () => {
     projectDir = path.join(tempDir, "project");
     await fs.ensureDir(path.join(projectDir, ".github", "workflows"));
     await fs.ensureDir(path.join(projectDir, "scripts"));
-    migration = new EnsureNightlyE2EWorkflowPinsMigration(
-      () => "9.8.7",
-      () => RELEASE_TAG
-    );
+    migration = new EnsureNightlyE2EWorkflowPinsMigration(() => "9.8.7");
   });
 
   afterEach(async () => {
@@ -89,47 +85,60 @@ describe("EnsureNightlyE2EWorkflowPinsMigration", () => {
     );
   }
 
-  it("aligns both callers and the health contract comment", async () => {
+  it("refreshes the health contract comment", async () => {
     await seed();
 
     expect(await migration.applies(context())).toBe(true);
     expect(await migration.apply(context())).toMatchObject({
       action: "applied",
-      changedFiles: [HEALTH, REPORT],
+      changedFiles: [HEALTH],
     });
-    expect(await fs.readFile(path.join(projectDir, HEALTH), "utf8")).toContain(
-      `nightly-e2e-health.yml@${RELEASE_TAG}`
-    );
     expect(await fs.readFile(path.join(projectDir, HEALTH), "utf8")).toContain(
       "contract 1.6.0"
     );
-    expect(await fs.readFile(path.join(projectDir, REPORT), "utf8")).toContain(
-      `nightly-e2e-report.yml@${RELEASE_TAG}`
-    );
   });
 
-  it("replaces a well-formed pin that resolves to nothing", async () => {
+  it("does NOT rewrite the caller's uses: ref — the pinner owns that line", async () => {
+    // It used to, and pinning at a release TAG was the answer at the time.
+    // `ensure-pinned-reusable-workflow-refs` now pins every Lisa caller, these
+    // two included, at the commit the installed version's tag names. Leaving
+    // this arm in place would have the two migrations undo each other on every
+    // apply: content-stable, endlessly reported as "applied", and pinned at
+    // whichever happened to run last.
+    await seed();
+    await migration.apply(context());
+
+    for (const [file, reusable] of [
+      [HEALTH, "nightly-e2e-health.yml"],
+      [REPORT, "nightly-e2e-report.yml"],
+    ] as const) {
+      expect(await fs.readFile(path.join(projectDir, file), "utf8")).toContain(
+        `${reusable}@v4.4.21`
+      );
+    }
+  });
+
+  it("leaves a well-formed pin that resolves to nothing alone, rather than repairing it here", async () => {
+    // An unreachable pin is still a real defect — Actions cannot load the
+    // workflow, so it runs zero jobs and the required check goes ABSENT rather
+    // than red. The repair moved rather than disappeared: the pinner rewrites
+    // any ref, this one included, to the installed version's commit.
     await seed();
     await repin(ORPHAN_PIN);
+    await migration.apply(context());
 
-    expect(await migration.apply(context())).toMatchObject({
-      action: "applied",
-      changedFiles: [HEALTH, REPORT],
-    });
-    for (const file of [HEALTH, REPORT]) {
-      const after = await fs.readFile(path.join(projectDir, file), "utf8");
-      expect(after).toContain(`@${RELEASE_TAG}`);
-      expect(after).not.toContain(ORPHAN_PIN);
-    }
+    expect(await fs.readFile(path.join(projectDir, REPORT), "utf8")).toContain(
+      ORPHAN_PIN
+    );
   });
 
   it("leaves a host-selected branch ref untouched", async () => {
     await seed();
     const healthFile = path.join(projectDir, HEALTH);
-    const before = (await fs.readFile(healthFile, "utf8")).replace(
-      "nightly-e2e-health.yml@v4.4.21",
-      "nightly-e2e-health.yml@main"
-    );
+    const before = (await fs.readFile(healthFile, "utf8"))
+      .replace("nightly-e2e-health.yml@v4.4.21", "nightly-e2e-health.yml@main")
+      .replace("contract 1.5.0", "contract 1.6.0")
+      .replace("# v4.4.21 matches", "# v9.8.7 matches");
     await fs.writeFile(healthFile, before);
     await fs.remove(path.join(projectDir, REPORT));
 
@@ -144,10 +153,19 @@ describe("EnsureNightlyE2EWorkflowPinsMigration", () => {
 
     expect(await migration.apply(context(["expo"], true))).toMatchObject({
       action: "applied",
-      changedFiles: [HEALTH, REPORT],
+      changedFiles: [HEALTH],
     });
     expect(await fs.readFile(path.join(projectDir, HEALTH), "utf8")).toBe(
       before
+    );
+  });
+
+  it("runs BEFORE the pinner, so the pinner has the last word on the ref", async () => {
+    const names = createMigrationRegistry()
+      .getAll()
+      .map(item => item.name);
+    expect(names.indexOf("ensure-nightly-e2e-workflow-pins")).toBeLessThan(
+      names.indexOf("ensure-pinned-reusable-workflow-refs")
     );
   });
 
@@ -170,77 +188,23 @@ describe("EnsureNightlyE2EWorkflowPinsMigration", () => {
       "utf8"
     );
 
-    expect(workflow).toContain('RELEASE_COMMIT="${{ inputs.release_commit }}"');
+    // The published package records the commit it was cut at AND the tag,
+    // and `check-release-package-identity.mjs` refuses to publish unless the
+    // tag resolves to exactly that commit. That assertion is what lets the
+    // pinner treat `lisaReleaseCommit` as "the commit the installed version's
+    // TAG points at" without a network call — so if these stamps stop being
+    // written, every consumer's pin silently stops being derivable.
+    //
+    // The bindings moved from shell assignments to job-level `env:` (#3717),
+    // which is the template-injection fix. The `npm pkg set` lines — the ones
+    // that actually stamp the package — are untouched.
+    expect(workflow).toContain("RELEASE_COMMIT: ${{ inputs.release_commit }}");
     expect(workflow).toContain(
       'npm pkg set lisaReleaseCommit="$RELEASE_COMMIT"'
     );
     expect(workflow).toContain('npm pkg set gitHead="$RELEASE_COMMIT"');
-    expect(workflow).toContain('RELEASE_TAG="${{ inputs.tag }}"');
+    expect(workflow).toContain("RELEASE_TAG: ${{ inputs.tag }}");
     expect(workflow).toContain('npm pkg set lisaReleaseTag="$RELEASE_TAG"');
-  });
-
-  it("refuses to stamp a bare release commit into a caller pin", async () => {
-    await seed();
-    const commitStamped = new EnsureNightlyE2EWorkflowPinsMigration(
-      () => "9.8.7",
-      () => RELEASE_COMMIT
-    );
-
-    expect(await commitStamped.apply(context())).toMatchObject({
-      action: "applied",
-      changedFiles: [HEALTH, REPORT],
-    });
-    for (const file of [HEALTH, REPORT]) {
-      const after = await fs.readFile(path.join(projectDir, file), "utf8");
-      expect(after).toContain(`@${RELEASE_TAG}`);
-      expect(after).not.toContain(RELEASE_COMMIT);
-    }
-  });
-
-  it("re-stamps a host repin with the tag rather than the release commit", async () => {
-    await seed();
-    await repin("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
-    const commitStamped = new EnsureNightlyE2EWorkflowPinsMigration(
-      () => "9.8.7",
-      () => RELEASE_COMMIT
-    );
-
-    await commitStamped.apply(context());
-
-    for (const file of [HEALTH, REPORT]) {
-      const after = await fs.readFile(path.join(projectDir, file), "utf8");
-      expect(after).toContain(`@${RELEASE_TAG}`);
-      expect(after).not.toContain(RELEASE_COMMIT);
-    }
-  });
-
-  it("honours a stamped release tag over the installed version fallback", async () => {
-    await seed();
-    const tagged = new EnsureNightlyE2EWorkflowPinsMigration(
-      () => "9.8.7",
-      () => "v4.30.0"
-    );
-
-    await tagged.apply(context());
-
-    expect(await fs.readFile(path.join(projectDir, HEALTH), "utf8")).toContain(
-      "@v4.30.0"
-    );
-  });
-
-  it("falls back to the installed version tag when nothing is stamped", async () => {
-    await seed();
-    await repin(ORPHAN_PIN);
-    const unstamped = new EnsureNightlyE2EWorkflowPinsMigration(
-      () => "9.8.7",
-      () => null
-    );
-
-    await unstamped.apply(context());
-
-    expect(await fs.readFile(path.join(projectDir, HEALTH), "utf8")).toContain(
-      `@${RELEASE_TAG}`
-    );
   });
 
   /**

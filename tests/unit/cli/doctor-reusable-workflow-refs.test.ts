@@ -1,14 +1,21 @@
 /**
- * Tests the doctor check that keeps callers of Lisa's reusable workflows on the
- * ref their role requires — `@main` for almost all, an immutable pin for the two
- * that are merge gates.
+ * Tests the doctor check that measures whether a repository is still calling
+ * Lisa's reusable workflows at a mutable ref.
  *
- * The bite control is not synthetic: `expo/create-only` shipped
- * `nightly-e2e-health.yml` and `nightly-e2e-report.yml` at `@v2.345.1` while
- * every other caller in every stack tracked `@main`. By the time it was noticed
- * the pin was roughly a thousand releases behind, and nothing had reported
- * anything — which is the whole reason a check has to exist rather than a
- * convention.
+ * This check asserted the opposite rule until CodySwannGT/lisa#3893 — `@main`
+ * for ordinary callers, an immutable ref only for the two that are merge
+ * gates — and the tests below are the inversion of the ones that encoded it.
+ * The reason the rule flipped is not that mutability stopped being convenient:
+ * it is that the pin is now maintained by the updater, so the failure that
+ * made pinning unacceptable (a caller frozen a major behind, reporting
+ * healthily, for months) can no longer happen. `expo/create-only` shipped both
+ * nightly callers at `@v2.345.1` while every other caller tracked `@main`, and
+ * by the time anyone noticed the pin was roughly a thousand releases behind
+ * with nothing having reported anything.
+ *
+ * The check's job here is narrower than the pinner's: it does not care WHICH
+ * commit, only that the ref cannot move. That is what makes "the rollout is
+ * complete" a measurement instead of a claim.
  * @module tests/unit/cli/doctor-reusable-workflow-refs
  */
 
@@ -25,14 +32,17 @@ import {
 
 let target: string;
 
-/** The reusable used for ordinary (non merge-gate) cases. */
+/** The reusable used for ordinary cases. */
 const QUALITY = "quality.yml";
 
-/** Merge-gate reusable checked with immutable refs. */
+/** A reusable that produces a required merge-gate context. */
 const NIGHTLY_E2E_HEALTH = "nightly-e2e-health.yml";
 
-/** Merge-gate reusable checked with immutable refs. */
+/** A reusable that produces a required merge-gate context. */
 const NIGHTLY_E2E_REPORT = "nightly-e2e-report.yml";
+
+/** A full-length commit SHA, the only ref shape that passes. */
+const SHA = "0123456789abcdef0123456789abcdef01234567";
 
 /**
  * Write a workflow file into the fixture project.
@@ -62,16 +72,16 @@ afterEach(async () => {
   await rm(target, { recursive: true, force: true });
 });
 
-describe("callers tracking @main", () => {
-  it("passes when every caller tracks main", async () => {
-    await workflow("ci.yml", caller(QUALITY, "main"));
-    await workflow("deploy.yml", caller("release.yml", "main"));
+describe("callers pinned at a full commit SHA", () => {
+  it("passes when every caller names a 40-character SHA", async () => {
+    await workflow("ci.yml", caller(QUALITY, SHA));
+    await workflow("deploy.yml", caller("release.yml", SHA));
     const result = await checkReusableWorkflowRefs(target);
     expect(result.status).toBe("ok");
   });
 
   it("says how many files it scanned, so a green is not a measured zero", async () => {
-    await workflow("ci.yml", caller(QUALITY, "main"));
+    await workflow("ci.yml", caller(QUALITY, SHA));
     const result = await checkReusableWorkflowRefs(target);
     expect(result.detail).toContain("1 workflow file(s) scanned");
   });
@@ -81,57 +91,76 @@ describe("callers tracking @main", () => {
     expect(result.status).toBe("ok");
     expect(result.detail).toContain("No .github/workflows directory");
   });
+
+  it("does not care WHICH commit — one release behind is not the defect", async () => {
+    // A project a release behind self-heals on its next apply and, in the
+    // meantime, runs a Lisa somebody reviewed. Reporting it here would bury the
+    // repositories that never self-heal in the ones that always do.
+    await workflow("ci.yml", caller(QUALITY, "f".repeat(40)));
+    expect((await checkReusableWorkflowRefs(target)).status).toBe("ok");
+  });
 });
 
-describe("the pin that actually shipped", () => {
-  it("ACCEPTS the expo pin, because that caller is a merge gate", async () => {
-    // My first draft failed this and I unpinned the templates to make it pass,
-    // deleting a deliberate guarantee. Two integration tests caught it:
-    // nightly-e2e-health produces a REQUIRED merge-gate context, and the thing
-    // deciding whether code may merge must not change between two runs of the
-    // same pull request. `@main` is the defect there, not the pin.
-    await workflow(NIGHTLY_E2E_HEALTH, caller(NIGHTLY_E2E_HEALTH, "v2.345.1"));
-    expect((await checkReusableWorkflowRefs(target)).status).toBe("ok");
-  });
-
-  it("accepts a full commit SHA for a merge-gate caller", async () => {
-    await workflow(
-      NIGHTLY_E2E_HEALTH,
-      caller(NIGHTLY_E2E_HEALTH, "a".repeat(40))
-    );
-    expect((await checkReusableWorkflowRefs(target)).status).toBe("ok");
-  });
-
-  it("FAILS a merge-gate caller that tracks @main", async () => {
-    await workflow(NIGHTLY_E2E_REPORT, caller(NIGHTLY_E2E_REPORT, "main"));
+describe("the mutable refs it exists to find", () => {
+  it("FAILS a caller tracking @main", async () => {
+    await workflow("ci.yml", caller(QUALITY, "main"));
     const result = await checkReusableWorkflowRefs(target);
     expect(result.status).toBe("fail");
-    expect(result.detail).toMatch(/merge-gate/i);
+    expect(result.detail).toContain("@main");
   });
 
-  it("fails a SHA pin too, not only a tag", async () => {
-    await workflow("ci.yml", caller(QUALITY, "a".repeat(40)));
+  it("FAILS a merge-gate caller pinned at a version tag", async () => {
+    // The ratified exception this check used to carry: the two nightly callers
+    // were allowed a tag because they back a required merge gate. A tag stopped
+    // being acceptable when it stopped being the only alternative to `@main` —
+    // this very caller sat at `@v2.345.1` for a thousand releases.
+    await workflow(NIGHTLY_E2E_HEALTH, caller(NIGHTLY_E2E_HEALTH, "v2.345.1"));
     expect((await checkReusableWorkflowRefs(target)).status).toBe("fail");
   });
 
-  it("names every pinned caller, not just the first", async () => {
+  it("FAILS a merge-gate caller tracking @main", async () => {
+    await workflow(NIGHTLY_E2E_REPORT, caller(NIGHTLY_E2E_REPORT, "main"));
+    expect((await checkReusableWorkflowRefs(target)).status).toBe("fail");
+  });
+
+  it("FAILS a SHORT SHA and says why, rather than accepting it as a SHA", async () => {
+    // A short SHA is ambiguous by construction, and GitHub APIs have been
+    // measured answering it with an empty result rather than an error — so a
+    // check that accepted 7 hex characters would pass a ref nothing can resolve.
+    await workflow("ci.yml", caller(QUALITY, "0123456"));
+    const result = await checkReusableWorkflowRefs(target);
+    expect(result.status).toBe("fail");
+    expect(result.detail).toContain("SHORT commit SHA");
+  });
+
+  it("FAILS a 39-character SHA — the boundary, not just an obviously short one", async () => {
+    await workflow("ci.yml", caller(QUALITY, "a".repeat(39)));
+    expect((await checkReusableWorkflowRefs(target)).status).toBe("fail");
+  });
+
+  it("FAILS an uppercase SHA, which git will not resolve as written", async () => {
+    await workflow("ci.yml", caller(QUALITY, "A".repeat(40)));
+    expect((await checkReusableWorkflowRefs(target)).status).toBe("fail");
+  });
+
+  it("names every mutable caller, not just the first", async () => {
     await workflow("a.yml", caller(QUALITY, "v1.0.0"));
-    await workflow("b.yml", caller("release.yml", "v2.0.0"));
-    const pinned = await reusableRefFindings(target);
-    expect(pinned).toHaveLength(2);
+    await workflow("b.yml", caller("release.yml", "main"));
+    const findings = await reusableRefFindings(target);
+    expect(findings).toHaveLength(2);
     expect(
-      pinned
+      findings
         .map((f: { ref: string }) => f.ref)
-        .toSorted((a: string, b: string) => a.localeCompare(b))
-    ).toEqual(["v1.0.0", "v2.0.0"]);
+        .slice()
+        .sort((a: string, b: string) => a.localeCompare(b))
+    ).toEqual(["main", "v1.0.0"]);
   });
 });
 
 describe("what it deliberately leaves alone", () => {
-  it("ignores third-party actions, which SHOULD be pinned", async () => {
-    // The opposite rule applies to them, enforced by
-    // doctor-readiness-action-pins. Flagging them here would put doctor in
-    // contradiction with itself.
+  it("ignores third-party actions, which a different check pins", async () => {
+    // doctor-readiness-action-pins owns step-level `uses:`. Flagging them here
+    // would report the same defect twice with two different remedies.
     await workflow(
       "ci.yml",
       "jobs:\n  a:\n    steps:\n      - uses: actions/checkout@v6\n"
@@ -155,12 +184,13 @@ describe("what it deliberately leaves alone", () => {
     expect((await checkReusableWorkflowRefs(target)).status).toBe("ok");
   });
 
-  it("ignores Lisa workflow references in YAML comments", async () => {
+  it("ignores a Lisa reference inside a YAML comment, and still sees the real one", async () => {
     await workflow(
       "ci.yml",
       "jobs:\n  quality:\n    # uses: CodySwannGT/lisa/.github/workflows/quality.yml@v1.2.3\n    uses: CodySwannGT/lisa/.github/workflows/quality.yml@main\n"
     );
-    expect((await checkReusableWorkflowRefs(target)).status).toBe("ok");
+    const findings = await reusableRefFindings(target);
+    expect(findings.map((f: { ref: string }) => f.ref)).toEqual(["main"]);
   });
 });
 
@@ -171,6 +201,14 @@ describe("it survives the files it will actually meet", () => {
       'jobs:\n  a:\n    uses: "CodySwannGT/lisa/.github/workflows/quality.yml@v1.2.3"\n'
     );
     expect((await checkReusableWorkflowRefs(target)).status).toBe("fail");
+  });
+
+  it("reads a pinned caller carrying its version comment", async () => {
+    await workflow(
+      "ci.yml",
+      `jobs:\n  a:\n    uses: CodySwannGT/lisa/.github/workflows/quality.yml@${SHA} # v4.4.11\n`
+    );
+    expect((await checkReusableWorkflowRefs(target)).status).toBe("ok");
   });
 
   it("still audits a file whose YAML is malformed", async () => {

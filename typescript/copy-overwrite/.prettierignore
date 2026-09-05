@@ -73,12 +73,14 @@ scripts/check-npm-publish-landed.mjs
 scripts/check-release-package-identity.mjs
 scripts/check-skipped-required-checks.mjs
 scripts/check-state-classification.mjs
+scripts/check-third-party-action-pins.mjs
 scripts/check-third-party-review-evidence.mjs
 scripts/check-threshold-ratchet.mjs
 scripts/check-verification-coverage.mjs
 scripts/classify-maestro-failures.mjs
 scripts/lisa-command-envelope.mjs
 scripts/lisa-commit-msg-gates.mjs
+scripts/lisa-cross-worktree-guard.mjs
 scripts/lisa-destructive-guard.mjs
 scripts/lisa-environment-prepare.mjs
 scripts/lisa-floor-collisions.mjs

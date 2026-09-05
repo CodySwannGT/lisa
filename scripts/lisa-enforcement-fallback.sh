@@ -5,8 +5,8 @@
 #
 # Every PreToolUse guard — block-no-verify, parity-safety-net,
 # block-shell-json-parsing, block-instruction-file-edits,
-# block-direct-issue-create — is declared in the
-# Lisa plugin. A cloud session
+# block-direct-issue-create, block-blind-automerge, worktree-binding-guard —
+# is declared in the Lisa plugin. A cloud session
 # installs plugins at session start from the marketplace the repository
 # declares, and when that does not happen the container runs with
 # `installed_plugins.json` empty and no enforcement whatsoever.
@@ -313,7 +313,7 @@ plugin_tree_used=0
 
 for guard in block-no-verify parity-safety-net block-shell-json-parsing \
   block-instruction-file-edits block-direct-issue-create \
-  block-managed-file-edits; do
+  block-managed-file-edits block-blind-automerge worktree-binding-guard; do
   if [ -f "$host_tree/$guard.sh" ]; then
     guard_names+=("$guard")
     guard_scripts+=("$host_tree/$guard.sh")

@@ -101,6 +101,17 @@ describe("measurement-integrity rule contract (#3739)", () => {
       expect(reference.toLowerCase()).toContain("the list is open");
     });
 
+    it("carries a second domain for a mode, and says why that matters", () => {
+      // A mode observed through one tool could be a fact about that tool. The
+      // same shape on a different substrate is what makes it a category, and
+      // this assertion exists so the example is not tidied away as a
+      // redundant second illustration — its redundancy is the point.
+      expect(reference).toContain("#### A second domain");
+      expect(reference.toLowerCase()).toContain(
+        "just a description of one tool's behaviour"
+      );
+    });
+
     it("keeps the composition table, which is the payload", () => {
       // A reader who takes only the cheapest check must be told what it cannot
       // see. Both blind spots are named because they point opposite ways.

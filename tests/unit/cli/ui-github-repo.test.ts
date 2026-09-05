@@ -195,7 +195,9 @@ describe("createGithubRepoProbe", () => {
     expect(snyk).toMatchObject({ name: "SNYK_TOKEN", set: false });
     for (const secret of secrets) {
       expect(
-        Object.keys(secret).toSorted((left, right) => left.localeCompare(right))
+        Object.keys(secret)
+          .slice()
+          .sort((left, right) => left.localeCompare(right))
       ).toEqual(["name", "purpose", "set"]);
       expect(JSON.stringify(secret)).not.toMatch(/ghp_|github_pat_|-----BEGIN/);
     }

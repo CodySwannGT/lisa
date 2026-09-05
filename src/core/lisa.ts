@@ -90,6 +90,10 @@ import {
   resolveSafeLearningTarget,
 } from "./learnings-file-safety.js";
 import { APPLY_RECEIPT_DISPLAY_PATH } from "./apply-receipt.js";
+import {
+  basisAuthorisesDeletion,
+  resolveDeletionBasis,
+} from "./deletion-basis.js";
 import { findLocalWorkflowReferences } from "./workflow-reference-guard.js";
 import {
   classifyWorkflowForDeletion,
@@ -599,6 +603,25 @@ export class Lisa {
       for (const relativePath of deletions.paths) {
         if (keepSet.has(relativePath)) {
           logger.info(`Kept (protected): ${relativePath}`);
+          continue;
+        }
+        // "I cannot tell" is a THIRD answer, and it has to be, or the uncertain
+        // case gets silently resolved as one of the other two. A manifest that
+        // does not say why a path may go does not authorise removing it: the
+        // cheap error is keeping a file, because a path wrongly kept is visible
+        // and fixable while a path wrongly deleted is gone from someone else's
+        // repository with no undo (CodySwannGT/lisa#3700).
+        //
+        // This is the runtime fail-safe, and it is deliberately not the same
+        // mechanism as the authoring check. That one refuses an unclassified
+        // entry at commit time; this one protects a consumer whatever manifest
+        // they happen to have, including one authored before either existed.
+        const basis = resolveDeletionBasis(deletions, relativePath);
+        if (!basisAuthorisesDeletion(basis)) {
+          logger.warn(
+            `Kept (no declared basis): ${relativePath} — the manifest lists this path but does not say why it may be removed, so it was not.`
+          );
+          this.counters.skipped++;
           continue;
         }
         await this.processSingleDeletion(
@@ -2741,7 +2764,16 @@ export class Lisa {
     console.log(notices.join("\n\n"));
     console.log("");
     console.log(
-      "  After this one-time change, quality/release workflow updates will be automatic."
+      "  Write `@main` as shown. The next `lisa apply` rewrites it to the commit"
+    );
+    console.log(
+      "  your installed Lisa's version tag names and keeps it there, so this is a"
+    );
+    console.log(
+      "  one-time edit and the ref is maintained for you from then on. Until that"
+    );
+    console.log(
+      "  apply runs, `lisa doctor` will correctly report the ref as still mutable."
     );
     console.log("");
   }

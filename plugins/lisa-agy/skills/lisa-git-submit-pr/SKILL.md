@@ -57,6 +57,7 @@ Add provider-appropriate linkage to the PR title and/or body without changing th
 - **GitHub Issues**:
   - If `work_item_ref` is a GitHub issue URL, `org/repo#<n>`, or `#<n>`, add a dedicated issue reference line to the PR body.
   - Always use a non-closing reference such as `Refs #<n>`, so the merge cannot close the issue before the post-merge deploy, remote verification, health check, and terminal `done` label.
+  - **This rule is what makes the managed backlink mandatory, and neither rule says so on its own.** `Refs` creates no native development link, so gate 5 has nothing to defer to and the `[lisa-pr-link]` comment becomes the only backlink there is. Anyone following the non-closing rule alone will hit gate 5. Separately, `Refs #<n>` does **not** satisfy gate 4 either: the body needs its own `Work-Item: <ref>` line, and `Closes`/`Fixes` do not satisfy it. One `Refs` line, one `Work-Item:` line, one backlink comment — three different requirements that look like one. `discharge-pr-gates` (below) is what checks the last two together.
   - **A non-closing reference does not populate the issue's Development / linked pull requests surface, and no non-closing form does.** That surface *is* the closing-reference mechanism: a closing keyword populates the PR's `closingIssuesReferences`, while `Refs` yields only a `CrossReferencedEvent`. Measured on this repository — a `Refs`-only PR reports `closingIssuesReferences: 0`; a `Closes` PR reports 1. So the ticket-side backlink cannot be delegated to GitHub: the managed `[lisa-pr-link]` comment written by `node scripts/lisa-work-item.mjs backlink` — the one producer, which `lisa-github-sync` and the other vendor sync skills call rather than reimplement — is the **required** backlink under this rule, not a fallback for when native linkage happens to be absent. Two-way linkage (`lisa-implement` step 7a) depends on that comment, and so does the Work-Item Traceability check wherever the project declares `workItem.verify: "full"` — there, a PR carrying a correct `Refs` line still fails the check without it. Post it either way: under the default `trailer` level the check does not read the tracker, but the two-way linkage a human follows is still worth having, and a project can raise its level at any time.
   - For cross-repo issue refs, use the fully qualified non-closing form, for example `Refs CodySwannGT/lisa#614`.
 - **Linear**:
@@ -76,13 +77,17 @@ When updating an existing PR, preserve any existing linkage line unless the new 
 After creating or updating the PR, always make the reverse link durable on the source work item when `work_item_ref` is available:
 
 1. Resolve the live PR URL with `gh pr view <pr-number> --json url --jq .url`.
-2. Run the backlink command. It is the executable form of this requirement — it writes the managed `[lisa-pr-link]` comment on the work item, or updates the one already there, for every tracker Lisa supports:
+2. Discharge the two gates the push could not check. Gate 4 (the `Work-Item:` line in the PR BODY) and gate 5 (the backlink) are both properties of a pull request, so a push before the PR existed reported them as `UNRESOLVED` rather than checked. One command closes both out at the first moment they *are* checkable:
 
    ```bash
-   node scripts/lisa-work-item.mjs backlink --ref <work_item_ref> --pr-url <url>
+   node scripts/lisa-work-item.mjs discharge-pr-gates
    ```
 
-   It is idempotent, so run it on every push rather than deciding whether it is needed. It refuses loudly for a tracker it cannot write, and never silently no-ops. Do not hand-post the comment, and do not describe the posting procedure anywhere: the same file that writes it is the file that checks it, which is what keeps producer and consumer from drifting.
+   It posts (or refreshes) the managed `[lisa-pr-link]` comment on every item the range names — so gate 5 passes without anyone remembering to — and then evaluates gate 4 against the live body, failing here rather than one CI cycle later. Exit 3 means there is no pull request for this branch yet, which is not a violation; exit 1 is a real unmet requirement and the message names it.
+
+   It writes no PR body. Gate 4 is the author's declaration of what the change is for; a command that inserted the line would be answering its own question.
+
+   The narrower `node scripts/lisa-work-item.mjs backlink --ref <work_item_ref> --pr-url <url>` is what it wraps, and remains the right call when you hold a ref and a URL but no checkout of the PR's branch (a sync skill updating a backlink after the fact). Both are idempotent, refuse loudly for a tracker they cannot write, and never silently no-op. Do not hand-post the comment, and do not describe the posting procedure anywhere: the same file that writes it is the file that checks it, which is what keeps producer and consumer from drifting.
 3. Invoke `lisa-tracker-sync` with the original work item ref, milestone `pr-ready`, `pr_url=<url>`, and `tracker_provider=<provider>` when known. That is the progress-note and status side; it is not what satisfies the traceability check.
 4. When the PR later merges, invoke `lisa-tracker-sync` again with milestone `pr-merged`, the same `pr_url`, and the merge SHA when available.
 
@@ -139,6 +144,22 @@ Include in the PR description:
   terminated.** If you cannot create one, say so explicitly rather than ending
   quietly; `node scripts/check-orphaned-branches.mjs` lists branches in this
   state.
+- **treat a branch as stranded work before reading its work item.** Untracked,
+  unpushed, ahead and stale are all properties of the **copy**; whether the
+  **work** survived is only visible in the tracker, and abandonment and
+  uniqueness look identical from inside a checkout. Resolve the item first — one
+  `gh issue view` settles it — and only then classify the branch. A candidate
+  whose item is closed is **superseded**: preserve it, name the merged pull
+  request the work actually took, and never commit, push, or open a pull request
+  for it. Measured: a branch one commit ahead with no pull request, reading as a
+  straightforward "open the PR" recovery, whose item was closed because the
+  behaviour had shipped from a sibling item — the PR would have been a duplicate
+  for a reviewer to untangle. It could not have landed regardless: the commit
+  gate requires a `Work-Item:` trailer naming a **live** item, so working around
+  it means retro-fitting attribution to an unrelated open item, which falsifies
+  the commit's provenance rather than recovering anything.
+  `check-orphaned-branches` reports the three verdicts — `superseded`,
+  `unsubmitted`, `unresolved` — and `unresolved` is not a clean result.
 
 ## Execute
 

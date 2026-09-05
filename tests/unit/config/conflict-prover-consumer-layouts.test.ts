@@ -350,6 +350,15 @@ describe("the fixtures are consumer-shaped, not Lisa-shaped", () => {
     // that quietly reverted to today's cwd-anchored prover would make the
     // root-anchoring cases below pass while proving nothing — the exact
     // vacuous-pass shape this file exists to avoid.
+    //
+    // The resolved root is read out of the REFUSAL rather than out of a JSON
+    // report, because `#3888` changed what a scan of nothing produces. The
+    // pre-move prover walks the package directory, `git ls-files` there lists
+    // nothing, and the prover now exits 2 naming the directory it looked in
+    // instead of printing `✓ … 0 tracked files` and exit 0. The control is
+    // unchanged in substance — it still asserts which directory the fixture
+    // anchored on — and it gets stronger evidence, since a cwd-anchored prover
+    // would find the fixture's tracked files and not refuse at all.
     const root = consumerTree(OLD_RELEASE, true);
     const prover = path.join(root, OLD_RELEASE.candidate);
     const result = spawnSync(process.execPath, [prover, "--json"], {
@@ -357,8 +366,10 @@ describe("the fixtures are consumer-shaped, not Lisa-shaped", () => {
       encoding: "utf8",
       timeout: 60_000,
     });
-    const report = JSON.parse(result.stdout) as { root: string };
-    expect(path.basename(report.root)).toBe("lisa");
+    expect(result.status).toBe(2);
+    const named = /named no tracked file under (\S+);/.exec(result.stderr);
+    expect(named?.[1], result.stderr).toBeDefined();
+    expect(path.basename(named?.[1] ?? "")).toBe("lisa");
   });
 
   it("resolves the host-relative candidate in THIS repository, which is why Lisa never caught it", () => {

@@ -172,8 +172,12 @@ describe.each([
 
     expect(qualityExample).toMatch(/Do not pass `require_approval` or/);
     expect(qualityExample).toMatch(/those inputs to\s+release.yml/);
+    // The ref in the example is deliberately a placeholder for the pinned
+    // form rather than `@main`: since CodySwannGT/lisa#3893 every caller Lisa
+    // writes names a full commit SHA, and a guide that showed `@main` would
+    // document the defect as the recipe.
     expect(actionsGuide).toMatch(
-      /uses: CodySwannGT\/lisa\/\.github\/workflows\/release\.yml@main[\s\S]*require_approval: true[\s\S]*approval_environment: 'production'/
+      /uses: CodySwannGT\/lisa\/\.github\/workflows\/release\.yml@<40-character commit sha> # v<x\.y\.z>[\s\S]*require_approval: true[\s\S]*approval_environment: 'production'/
     );
   });
 });
