@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.45.5](https://github.com/CodySwannGT/lisa/compare/v4.45.4...v4.45.5) (2026-09-05)
+
+
+### Bug Fixes
+
+* **hooks:** bind both cwd-resolving guards to one contract and one corpus ([a41e411](https://github.com/CodySwannGT/lisa/commit/a41e4116581bf94cb98aadfe7886faa2fc4394ae)), closes [#3951](https://github.com/CodySwannGT/lisa/issues/3951) [#3952](https://github.com/CodySwannGT/lisa/issues/3952) [CodySwannGT/lisa#3952](https://github.com/CodySwannGT/lisa/issues/3952)
+
 ### [4.45.4](https://github.com/CodySwannGT/lisa/compare/v4.45.3...v4.45.4) (2026-09-05)
 
 
