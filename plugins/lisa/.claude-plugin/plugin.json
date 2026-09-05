@@ -1,6 +1,6 @@
 {
   "name": "lisa",
-  "version": "4.45.4",
+  "version": "4.45.7",
   "description": "Universal governance — agents, skills, commands, hooks, and rules for all projects",
   "author": {
     "name": "Cody Swann"
@@ -291,6 +291,14 @@
           {
             "type": "command",
             "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code session-start || true"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-binding-guard.sh"
           }
         ]
       }
