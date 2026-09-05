@@ -63,7 +63,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
       "a76959fff54b59af0d46cc8066d75bdfaf8bfd0591505663ab7cfcdf38f34fa6",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "6cefe613e6cf296fc10927ed886981b00e1f627cb98c1ad1de20db5c829ddfd2",
+      "c78524d4f11d1de4887c6df139c809dac05813ead6f1e0261f39b8c54f37263c",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
@@ -797,7 +797,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "f0bc51085b954b4fc9dcda8329069e8c23cc2a3a8bc388d69a1bb43e96af4bda",
+      "24264be94a7636db01c147b1eef6fcb718da802a9fbd4c870962c896a2122b81",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -9465,6 +9465,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/rollup-classifier-ladder-harness.ts": true,
     "tests/helpers/safety-net-guard-fixtures.ts": true,
     "tests/helpers/safety-net-guard-harness.ts": true,
+    "tests/helpers/safety-net-read-tree-fixtures.ts": true,
     "tests/helpers/safety-net-stdin-deleter-fixtures.ts": true,
     "tests/helpers/safety-net-subst-fixtures.ts": true,
     "tests/helpers/shipped-mjs-roster.ts": true,
@@ -10154,6 +10155,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/parity-safety-net-line-continuation.test.ts": true,
     "tests/unit/hooks/parity-safety-net-no-stash-advice.test.ts": true,
     "tests/unit/hooks/parity-safety-net-noexec.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-plumbing-discard.test.ts": true,
     "tests/unit/hooks/parity-safety-net-preserve-remedy.test.ts": true,
     "tests/unit/hooks/parity-safety-net-prose-remedy.test.ts": true,
     "tests/unit/hooks/parity-safety-net-scan-failure.test.ts": true,
