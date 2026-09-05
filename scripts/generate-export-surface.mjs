@@ -250,6 +250,11 @@ function surfaceAt(ref, cwd) {
     // The artifact did not exist at that revision. That is not "no exports
     // were removed" — it is "no comparison is possible", and the two must not
     // render the same, so the caller is told rather than shown an empty list.
+    //
+    // probe-direction: fail-closed — `main` renders this null as exit 2 and
+    // says so in words, which any caller treating non-zero as a block reads
+    // as a refusal. An unreadable revision costs a false block, never a
+    // release that reports zero removals because it could not look.
     return null;
   }
 }

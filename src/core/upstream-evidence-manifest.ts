@@ -2349,7 +2349,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-cursor-plugin-artifacts.mjs":
       "45d3bde7b6c55310f0d9436dd68a1bdeefb6fa817be4d15ef745421b39a2cf47",
     "scripts/generate-export-surface.mjs":
-      "109cf6b1a17a669a296d140e1b4080d94a3958ab26ec0334a90ca405a1542ecd",
+      "c0d12f32423dec5597000bc6fe87ac659ce267e6d720ca5d76e768ecae5eb31f",
     "scripts/generate-lisa-owned-hash-ledger.mjs":
       "987ed2f9cedefcb70778a6c6ad0f3fffd114fedc7e8bf62d6456b2d2e8e2de76",
     "scripts/generate-nightly-e2e-guard-certificate.mjs":
