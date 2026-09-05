@@ -288,8 +288,10 @@ describe("block-blind-automerge.sh", () => {
 
       runHook(bash("gh pr merge --auto --merge"), { ghBin: bin });
 
+      // Exactly one call: the review refusal fires before the base-coverage
+      // question is asked, so a refusal still costs a single round trip.
       expect(readFileSync(callLog, "utf-8").trim()).toBe(
-        "pr view --json number,reviewDecision,state,url"
+        "pr view --json number,reviewDecision,state,url,baseRefName"
       );
     });
 
