@@ -229,6 +229,30 @@ fi
 gh pr view <pr> --json autoMergeRequest -q .autoMergeRequest   # must print null
 ```
 
+**Then declare the hold**, so the deliberate case stays distinguishable from the
+defect. `/lisa:queue-status`'s arming sweep (#3903) reports every open PR whose
+`autoMergeRequest` is `null`, because a green unarmed PR waits forever and no
+other surface says so. An undeclared deliberate hold appears there as a finding
+on every run, and a report that is wrong every run is one operators learn to
+ignore:
+
+```bash
+gh pr edit <pr> --add-label "lisa:auto-merge-off"
+```
+
+Where that label does not exist in the repo, put the marker in the PR body
+instead — the sweep reads either spelling — and **give it a reason**, because
+the sweep prints one and prints `no reason declared` when it cannot:
+
+```text
+<!-- [lisa-auto-merge-off] reason=<why a human owns this merge> -->
+```
+
+Declaring the hold **suppresses it from the findings, not from the report**: the
+sweep still counts and names every held PR. That is deliberate — a label that
+turned a red sweep green and left no trace would be a bypass wearing the costume
+of a fix.
+
 If the disarm fails or the re-read still shows an armed `autoMergeRequest`,
 **fail closed**: treat the PR as a hard block (section 4) and report that the
 `awaiting-human` state was NOT reached — never proceed to a state in which the
