@@ -45,7 +45,9 @@ import {
   cleanupFixtures,
   cleanupTemplates,
   cli,
+  commit,
   createFixture,
+  git,
   issueJson,
   Fixture,
   REF,
@@ -241,10 +243,34 @@ describe("GitHub completion weighs the merged pull request's base branch", () =>
   });
 });
 
+/**
+ * Land a commit on `main` DECLARING item 42, and return to the current branch.
+ *
+ * The sweep's evidence is what a deploy branch's commits declare about
+ * themselves (CodySwannGT/lisa#3907), so an item with no declaration never
+ * reaches the applying arm at all. These cases are about what the applying arm
+ * does with the merge BASE once it is reached, so the declaration is their
+ * premise rather than their subject — without it they would pass for the wrong
+ * reason, having asserted nothing about base weighing.
+ * @param fixture - The repository to commit in.
+ * @returns The declaring commit's object ID.
+ */
+function declareOnMain(fixture: Fixture): string {
+  const branch = git(fixture.root, ["branch", "--show-current"], fixture.env);
+  git(fixture.root, ["switch", "-q", "main"], fixture.env);
+  const sha = commit(
+    fixture,
+    "fix: the work itself\n\nWork-Item: acme/code#42\nCo-authored-by: Claude <noreply@anthropic.com>\n"
+  );
+  git(fixture.root, ["switch", "-q", branch], fixture.env);
+  return sha;
+}
+
 describe("the sweep backstop inherits the same weighing", () => {
   it("does not stamp an item whose only merge targeted a non-deploy base", () => {
     const fixture = createFixture(SWEEP_CONFIG);
     const log = path.join(fixture.root, "gh.log");
+    declareOnMain(fixture);
     const result = cli(fixture, ["sweep", "--apply"], {
       FAKE_GH_LIST_JSON: JSON.stringify([{ number: 42, title: "stacked" }]),
       FAKE_GH_LOG: log,
@@ -268,6 +294,7 @@ describe("the sweep backstop inherits the same weighing", () => {
       deploy: { branches: { dev: DEV_BRANCH, production: "main" } },
     });
     const log = path.join(fixture.root, "gh.log");
+    declareOnMain(fixture);
     const result = cli(fixture, ["sweep", "--apply"], {
       FAKE_GH_ISSUE_JSON: CLAIMED_ISSUE,
       FAKE_GH_LIST_JSON: JSON.stringify([{ number: 42, title: "on dev" }]),

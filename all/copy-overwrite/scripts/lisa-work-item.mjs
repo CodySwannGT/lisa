@@ -326,6 +326,12 @@ export function run(command, args, options = {}) {
     encoding: "utf8",
     env: options.env ?? process.env,
     input: options.input,
+    // Node's default is 1 MiB, and it is silent in exactly the wrong way: an
+    // over-large stdout sets `error` while leaving `status` null, so a caller
+    // passing `allowFailure` and testing `status !== 0` reads "the command
+    // returned nothing" when what happened is "the command was cut off". A
+    // caller that needs more says so; the default stays.
+    maxBuffer: options.maxBuffer,
     timeout: options.timeout ?? CHILD_TIMEOUT_MS,
     // SIGKILL, not the default SIGTERM. `timeout` sends killSignal and then
     // keeps waiting for the child to exit, so a child that traps or ignores
@@ -3524,6 +3530,71 @@ function backlink(args) {
 }
 
 /**
+ * Every work item a commit body DECLARES, by full-body scan.
+ *
+ * A declaration is the commit's own `Work-Item:` line. It is written by the
+ * author of the work, enforced on every non-merge commit by the commit-msg
+ * gate, and says "this commit is that item". A cross-reference says only that
+ * somebody's pull request NAMED the item somewhere, which is a different and
+ * much weaker claim — see `sweepDeclarations` for what that difference cost.
+ *
+ * Scanned with the `m` flag over the WHOLE body rather than read through git's
+ * `%(trailers:key=Work-Item)`, and that is the load-bearing part. Git's trailer
+ * parser only considers the LAST paragraph of a message, and this project's
+ * commits put `Work-Item:` above the trailing co-author block, so the parser
+ * does not see it as a trailer at all. Measured on `origin/main`: the parser
+ * finds 602 distinct issues where a full-body scan finds 835 — it misses 233,
+ * and the undercount is clean, plausible and well-formed, which is why it
+ * survived. Anything in this fleet that counts or verifies trailers has to
+ * scan the body (CodySwannGT/lisa#3859).
+ * @param {string} body A commit message body.
+ * @param {string} repository `owner/name` the item must belong to.
+ * @returns {number[]} Declared issue numbers, de-duplicated, in first-seen order.
+ */
+export function declaredWorkItemNumbers(body, repository) {
+  const escaped = String(repository ?? "").replace(
+    /[.*+?^${}()|[\]\\]/g,
+    "\\$&"
+  );
+  if (!escaped) return [];
+  const pattern = new RegExp(
+    `^[ \\t]*Work-Item:[ \\t]*${escaped}#([1-9]\\d*)[ \\t]*$`,
+    "gim"
+  );
+  const numbers = [];
+  let match;
+  while ((match = pattern.exec(String(body ?? ""))) !== null)
+    numbers.push(Number(match[1]));
+  return [...new Set(numbers)];
+}
+
+/**
+ * Work items declared by commits in a `git log` transcript.
+ *
+ * Pure over the transcript text so the whole attribution can be asserted
+ * without a repository. Records are NUL-separated (`git log -z`) because a
+ * commit body contains newlines and blank lines by construction, and any
+ * newline-based framing would split one commit into several.
+ * @param {string} logText Output of `git log -z --format=%H%n%B`.
+ * @param {string} repository `owner/name` the item must belong to.
+ * @returns {Map<number, string[]>} Issue number to the commits declaring it.
+ */
+export function shippedDeclarations(logText, repository) {
+  const declarations = new Map();
+  for (const record of String(logText ?? "").split("\0")) {
+    if (record.trim() === "") continue;
+    const newline = record.indexOf("\n");
+    const sha = (newline === -1 ? record : record.slice(0, newline)).trim();
+    const body = newline === -1 ? "" : record.slice(newline + 1);
+    for (const number of declaredWorkItemNumbers(body, repository)) {
+      if (!declarations.has(number)) declarations.set(number, []);
+      declarations.get(number).push(sha);
+    }
+  }
+  return declarations;
+}
+
+/**
  * Cross-references on a work item that are MERGED pull requests in one repo.
  *
  * Repo-scoped deliberately. A cross-reference carries no repository constraint,
@@ -4283,17 +4354,42 @@ function complete(args) {
  * Reports by default and only acts under `--apply`, because a sweep that closes
  * things as a side effect of being run is not something anyone will run twice.
  */
-function sweep(args) {
-  const contract = trackerContract();
-  if (contract.provider !== "github") {
-    throw new TrackingError(
-      `no sweep for tracker '${contract.provider}'; only github is supported so far.`
-    );
-  }
-  const repository = currentRepository();
-  if (!repository)
-    throw new TrackingError("could not resolve the current GitHub repository");
-  const claimed = contract.lifecycle.claimed;
+/**
+ * Buffer bound for a deploy branch's commit log.
+ *
+ * Sized against measurement rather than taste: `origin/main` here is 4.6 MiB
+ * of `%H%n%B` across ~1,600 commits, so 64 MiB leaves an order of magnitude of
+ * headroom and still bounds a runaway. It is a ceiling, not a target — and
+ * exceeding it now refuses loudly instead of reading as "no drift".
+ */
+const DECLARATION_LOG_MAX_BYTES = 64 * 1024 * 1024;
+
+/**
+ * The lifecycle roles the sweep examines, in report order.
+ *
+ * Both open lanes, not just the claimed one. An item whose work shipped while
+ * it still carried the ready role is structurally invisible to a claimed-only
+ * subject list — the flow never claimed it, or the claim was reverted, or the
+ * pull request came from a session that never transitioned it. Measured on
+ * this repository: of 122 open ready items, 11 had commits on `origin/main`
+ * carrying their `Work-Item:` trailer, and the sweep reported none of them in
+ * either mode (CodySwannGT/lisa#3907).
+ * @param {object} lifecycle Resolved lifecycle contract.
+ * @returns {string[]} Role names to query, de-duplicated.
+ */
+function sweptRoles(lifecycle) {
+  return [...new Set([lifecycle.ready, lifecycle.claimed])].filter(
+    role => typeof role === "string" && role !== ""
+  );
+}
+
+/**
+ * Open issues carrying one lifecycle role.
+ * @param {string} repository `owner/name` to list from.
+ * @param {string} role The label to filter by.
+ * @returns {object[]} Issues with `number` and `title`.
+ */
+function openIssuesWithRole(repository, role) {
   const listing = run(
     "gh",
     [
@@ -4304,7 +4400,7 @@ function sweep(args) {
       "--state",
       "open",
       "--label",
-      claimed,
+      role,
       "--limit",
       "200",
       "--json",
@@ -4314,33 +4410,157 @@ function sweep(args) {
   );
   if (listing.status !== 0) throw githubFailure(listing, repository);
   const issues = safeJson(listing.stdout, "GitHub issue listing");
+  return Array.isArray(issues) ? issues : [];
+}
+
+/**
+ * The first of `origin/<branch>` and `<branch>` that resolves to a commit.
+ * @param {string} branch Configured deploy branch name.
+ * @returns {string|undefined} A resolvable rev, or undefined.
+ */
+function resolvedBranchRev(branch) {
+  for (const candidate of [`origin/${branch}`, branch]) {
+    const result = run(
+      "git",
+      ["rev-parse", "--verify", "--quiet", `${candidate}^{commit}`],
+      { allowFailure: true }
+    );
+    if (result.status === 0 && result.stdout.trim() !== "") return candidate;
+  }
+  return undefined;
+}
+
+/**
+ * Work items DECLARED by commits reachable from a deploy branch.
+ *
+ * This is the sweep's evidence, and it replaced a timeline cross-reference
+ * scan. The difference is not academic. A cross-reference is created by any
+ * pull request that so much as NAMES `#N` — so one merged land-stack pull
+ * request made every sibling in its batch look shipped, and a single pull
+ * request was counted as evidence for several unrelated items at once.
+ * Measured before this change: of 53 items the sweep reported as drifted, 8
+ * had no commit on `main` declaring them at all — 15%, and every one of the 8
+ * had a live worktree branch open against it. Applying the sweep would have
+ * closed eight in-flight work items, and by this file's own words the closure
+ * "would be indistinguishable from a real one afterwards".
+ *
+ * Reachability is also what confirms the work actually landed, rather than
+ * trusting a pull request's `baseRefName` to say where it went.
+ * @param {string} repository `owner/name` the items belong to.
+ * @param {object} contract Resolved tracker contract.
+ * @returns {Map<number, string[]>} Issue number to declaring commits.
+ */
+function deployedDeclarations(repository, contract) {
+  const declarations = new Map();
+  for (const branch of contract.deployBranches.keys()) {
+    const rev = resolvedBranchRev(branch);
+    if (!rev) continue;
+    const result = run("git", ["log", rev, "-z", "--format=%H%n%B"], {
+      allowFailure: true,
+      maxBuffer: DECLARATION_LOG_MAX_BYTES,
+    });
+    // Loudly, not `continue`. This sweep's whole output is an absence claim,
+    // and a read that failed is not an absence — under the default 1 MiB
+    // buffer the real `origin/main` log (4.6 MiB) was truncated into an
+    // `error` with a null status, and the run reported "No drift" over 194
+    // items while having read nothing. Refusing is the only safe answer,
+    // because the alternative is the tool's most reassuring output being its
+    // least trustworthy one.
+    if (result.error || result.status !== 0) {
+      throw new TrackingError(
+        `could not read the commit log of ${rev}, so no absence of drift can be reported: ` +
+          `${result.error ? result.error.message : result.stderr.trim() || "git log failed"}.\n` +
+          `The sweep reports what a deploy branch declares; a log it could not read is not an empty one.`
+      );
+    }
+    for (const [number, shas] of shippedDeclarations(
+      result.stdout,
+      repository
+    )) {
+      declarations.set(number, [
+        ...new Set([...(declarations.get(number) ?? []), ...shas]),
+      ]);
+    }
+  }
+  return declarations;
+}
+
+/**
+ * Render the commits that declare an item, without printing a wall of hashes.
+ * @param {string[]} shas Declaring commits.
+ * @returns {string} A short, readable citation.
+ */
+function describeDeclarations(shas) {
+  const shown = shas.slice(0, 3).map(sha => sha.slice(0, 9));
+  const rest = shas.length - shown.length;
+  return rest > 0 ? `${shown.join(", ")}, +${rest} more` : shown.join(", ");
+}
+
+function sweep(args) {
+  const contract = trackerContract();
+  if (contract.provider !== "github") {
+    throw new TrackingError(
+      `no sweep for tracker '${contract.provider}'; only github is supported so far.`
+    );
+  }
+  const repository = currentRepository();
+  if (!repository)
+    throw new TrackingError("could not resolve the current GitHub repository");
+  const roles = sweptRoles(contract.lifecycle);
+  const subjects = new Map();
+  for (const role of roles) {
+    for (const issue of openIssuesWithRole(repository, role)) {
+      const existing = subjects.get(issue.number);
+      if (existing) existing.roles.push(role);
+      else subjects.set(issue.number, { ...issue, roles: [role] });
+    }
+  }
+  const declarations = deployedDeclarations(repository, contract);
   const apply = args.includes("--apply");
+  // Named in every report, clean or not. The old clean-result sentence spoke
+  // only of the claimed role while the subject list excluded the ready lane
+  // entirely — a true sentence that answered a narrower question than the one
+  // its reader was asking. An instrument that reports an absence has to say
+  // what it looked at.
+  const examined = roles.map(role => `"${role}"`).join(" and ");
   let drifted = 0;
-  for (const issue of Array.isArray(issues) ? issues : []) {
-    const ref = `${repository}#${issue.number}`;
-    const merged = mergedPullRequestsIn(githubTimeline(ref), repository);
-    if (merged.length === 0) continue;
+  for (const issue of [...subjects.values()].sort(
+    (left, right) => right.number - left.number
+  )) {
+    const shas = declarations.get(issue.number) ?? [];
+    if (shas.length === 0) continue;
     drifted += 1;
-    const evidence = merged.map(number => `#${number}`).join(", ");
+    const ref = `${repository}#${issue.number}`;
     if (!apply) {
-      console.log(`DRIFT  ${ref}  merged: ${evidence}  ${issue.title}`);
+      console.log(
+        `DRIFT  ${ref}  declared by: ${describeDeclarations(shas)}  [${issue.roles.join(", ")}]  ${issue.title}`
+      );
       continue;
     }
-    const outcome = completeWorkItem(ref, contract);
-    // A sweep must not abort on the first item whose merges have not reached a
-    // deploy branch. It reports that item and carries on, which is what makes
-    // the backstop safe to run over a whole queue.
-    console.log(outcome.report);
+    // A sweep must not abort on an item the applying arm refuses — whether it
+    // refuses because the merge reached no deploy branch, or because the
+    // tracker rejected the write. It reports that item and carries on, which
+    // is what makes the backstop safe to run over a whole queue.
+    try {
+      console.log(completeWorkItem(ref, contract).report);
+    } catch (error) {
+      console.log(
+        `work-item NOT completed: ${ref}\n${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   }
   if (drifted === 0) {
     console.log(
-      `No drift: every item carrying "${claimed}" is genuinely in flight.`
+      `No drift: every open item carrying ${examined} is genuinely in flight.\n` +
+        `Examined ${subjects.size} item(s) across ${roles.length} lifecycle role(s); ` +
+        `no role outside ${examined} was queried.`
     );
     return;
   }
   if (!apply) {
     console.log(
-      `\n${drifted} claimed item(s) already have a merged pull request. Re-run with --apply to complete them.`
+      `\n${drifted} open item(s) carrying ${examined} are declared by a commit on a deploy branch. ` +
+        `Re-run with --apply to complete them.`
     );
   }
 }

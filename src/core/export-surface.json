@@ -2,7 +2,7 @@
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
   "$modules": 122,
-  "$names": 1126,
+  "$names": 1128,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -341,6 +341,7 @@
       "assertGhVersion",
       "carriesLabel",
       "competingLifecycleRoles",
+      "declaredWorkItemNumbers",
       "deployBranchEnvironments",
       "githubBranchIssue",
       "githubFailure",
@@ -355,6 +356,7 @@
       "resetGhVersionCheck",
       "run",
       "runCli",
+      "shippedDeclarations",
       "textContainsBacklink",
       "unreachableAncestryRefusal",
       "unresolvedPushReport"

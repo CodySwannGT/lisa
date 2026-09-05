@@ -164,6 +164,18 @@ export function issueJson(overrides: Record<string, unknown> = {}): string {
   });
 }
 
+// `issue list` is answered per LABEL, so a sweep querying one lifecycle role
+// stays distinguishable from one querying both (CodySwannGT/lisa#3907): with a
+// single answer for every label, those two are the same fixture and the
+// ready-lane blind spot cannot be tested at all.
+// `FAKE_GH_LIST_STATUS_READY_JSON` answers the ready lane;
+// `FAKE_GH_LIST_JSON` answers every other label, and the ready lane too when
+// the first is unset.
+//
+// That case sits on ONE line, and the explanation lives out here, because
+// `max-lines` counts lines inside a template literal as code — a `#` comment
+// in this embedded shell is string content to eslint, not a comment — and this
+// file sits exactly on the 300-line cap.
 const GH_SCRIPT = `
 if [ -n "\${FAKE_GH_LOG:-}" ]; then printf '%s\\n' "$*" >> "$FAKE_GH_LOG"; fi
 case "\${1:-}" in
@@ -190,7 +202,7 @@ case "\${1:-} \${2:-}" in
       printf '%s\\n' "$((ISSUE_COUNT + 1))" > "$FAKE_GH_ISSUE_COUNT_FILE"
     fi
     printf '%s\\n' "$ISSUE_JSON" ;;
-  "issue list") printf '%s\\n' "\${FAKE_GH_LIST_JSON:-[]}" ;;
+  "issue list") case " $* " in *" --label status:ready "*) READY_LANE="\${FAKE_GH_LIST_STATUS_READY_JSON:-}" ;; *) READY_LANE="" ;; esac; printf '%s\\n' "\${READY_LANE:-\${FAKE_GH_LIST_JSON:-[]}}" ;;
   "issue edit") printf 'edited\\n' ;;
   "issue close") printf 'closed\\n' ;;
   "api graphql") printf '%s\\n' "$FAKE_GH_HIERARCHY_JSON" ;;
