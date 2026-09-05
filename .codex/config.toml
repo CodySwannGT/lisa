@@ -21,7 +21,7 @@ CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1"
 CLAUDE_DEBUG = "0"
 ENABLE_LSP_TOOL = "1"
 
-# >>> LISA MANAGED MCP SERVERS >>>
+# >>> LISA MANAGED MCP SERVERS v2 >>>
 [mcp_servers."sentry"]
 url = "https://mcp.sentry.dev/mcp"
-# <<< LISA MANAGED MCP SERVERS <<<
+# <<< LISA MANAGED MCP SERVERS v2 <<<
