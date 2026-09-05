@@ -69,6 +69,30 @@ For each inspected queue, report:
 
 The report should stay terminal-first and immediately actionable: observable queue facts first, then the smallest useful next step.
 
+## Pull request arming (#3903)
+
+Alongside the two work queues, report the **arming state of the repo's open pull requests**. A PR whose `autoMergeRequest` is `null` is fully green and permanently unmergeable: every check passes, `mergeStateStatus` is green, nothing complains, and it waits forever. Green-and-unarmed and green-and-waiting read identically on every other surface, so this is the one place that asks the question.
+
+Run the sweep rather than eyeballing the list — an LLM reading PR pages one at a time is exactly the shell-loop-by-prose failure #3512 records:
+
+```bash
+gh pr list --state open --limit 200 \
+  --json number,title,url,isDraft,labels,body,autoMergeRequest \
+  | node "${CLAUDE_PLUGIN_ROOT}/scripts/pr-arming-sweep.mjs"
+```
+
+Report the verdict verbatim, and never translate it into an absence:
+
+- `MEASURED_CLEAN` — a **positive assertion**: N open PRs were read and every one is armed or deliberately unarmed. Say the count. "Nothing to report" is not the same sentence and must not be substituted for it.
+- `UNARMED_PRS_FOUND` — list each PR. The next step is `gh pr merge <n> --auto --merge` **followed by reading the state back** (`gh pr view <n> --json autoMergeRequest`); arming can be silently dropped after the fact, so an arm that was not read back is not a fact.
+- `NOT_MEASURED` — the arming state was **not read** for at least one PR (usually a `--json` selection missing `autoMergeRequest`). This is an unanswered question, not a clean queue. Fix the query and re-run; do **not** report the queue as healthy.
+
+Arming state feeds no queue verdict and gates nothing — this stays a report, per #3903's Out of Scope. Never arm a PR from this skill; `/lisa:queue-status` is read-only.
+
+A PR deliberately left for a human (`lisa-drive-pr-to-merge`'s `auto_merge=false` mode) declares itself with the `lisa:auto-merge-off` label or a `[lisa-auto-merge-off] reason=<text>` body marker. Drafts are excluded — GitHub will not arm a draft.
+
+**Held PRs are suppressed from the findings, never from the report.** Always show the `Held (declared, not merging): N` block and the numbers under it, including when the verdict is `MEASURED_CLEAN`. This is a one-label remedy for a red sweep and it will look like housekeeping to whoever applies it — "4 armed, 0 unarmed" and "4 armed, 0 unarmed, 9 held" describe very different queues, and only the second lets an operator notice the label spreading. Flag it when holds outnumber armed PRs, or when several read `no reason declared`.
+
 ## Highlight semantics
 
 Each queue section may include one or more highlighted items. A highlight is not a raw dump of every issue in that role; it is the single oldest or otherwise most actionable item Lisa can justify surfacing without mutating work.
