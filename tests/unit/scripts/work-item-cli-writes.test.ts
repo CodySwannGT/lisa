@@ -194,28 +194,43 @@ describe("in-process CLI: backlink", () => {
     );
   });
 
-  it("updates ITS OWN comment when the body drifted, without adding a duplicate", () => {
-    // Keyed on the pull request, not on "a managed comment": a comment that
-    // already names THIS pull request is this pull request's, so a rerun
-    // converges on one comment rather than accumulating them.
+  it("does NOT claim a comment that merely carries the marker and this URL", () => {
+    // This case used to assert the opposite — that a body reading
+    // "<marker> <this PR> (stale trailing note)" was Lisa's to PATCH, on the
+    // reasoning that anything naming THIS pull request is this pull request's
+    // comment. That reasoning is a claim about the ITEM being used to authorise
+    // a write to somebody's COMMENT, and the two are not the same claim
+    // (CodySwannGT/lisa#4028).
+    //
+    // The trailing note here is a stand-in for the real shape: prose that
+    // quotes the marker and the URL, up to and including the gate's own printed
+    // remedy, which contains both. Overwriting it replaced whatever else the
+    // author had written with one line. So the write predicate is now an
+    // identity test — the body must BE `<marker> <url>` — and everything else
+    // is left alone and a new managed comment posted beside it.
+    //
+    // The property the old assertion protected, convergence on one comment per
+    // pull request, is unchanged and asserted directly by the rerun cases: what
+    // moved is only WHICH bodies count as Lisa's to converge.
     const fixture = offlineFixture();
     const log = logPath(fixture);
+    const stranger = `${MARKER} ${PR_URL} (stale trailing note)`;
     const result = cli(
       fixture,
       [BACKLINK, REF_FLAG, REF, PR_URL_FLAG, PR_URL],
       {
-        FAKE_GH_COMMENTS_JSON: JSON.stringify([
-          { body: `${MARKER} ${PR_URL} (stale trailing note)`, id: 11 },
-        ]),
+        FAKE_GH_COMMENTS_JSON: JSON.stringify([{ body: stranger, id: 11 }]),
         FAKE_GH_LOG: log,
       }
     );
+    // No sibling line: a comment nobody managed is not counted as a linked
+    // pull request either, because it is the same predicate saying so.
     expect(result.stdout).toBe(
-      `work-item backlink updated on ${REF}: ${MARKER} ${PR_URL}`
+      `work-item backlink created on ${REF}: ${MARKER} ${PR_URL}`
     );
     const calls = readFileSync(log, "utf8");
-    expect(calls).toContain("--method PATCH");
-    expect(calls).toContain("issues/comments/11");
+    expect(calls).not.toContain("--method PATCH");
+    expect(calls).not.toContain("issues/comments/11");
   });
 
   it("leaves a second pull request's own comment alone when it is already right", () => {
