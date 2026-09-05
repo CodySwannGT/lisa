@@ -726,7 +726,9 @@ describe("quality.yml reusable workflow", () => {
       expect(fetch?.if).toContain("github.repository == 'CodySwannGT/lisa'");
       expect(fetch?.env?.GH_TOKEN).toBe("${{ github.token }}");
       expect(fetch?.run).toContain("credential.helper");
-      expect(fetch?.run).toContain("--unshallow --filter=blob:none --no-tags");
+      expect(fetch?.run).toContain(
+        "--deepen=2147483647 --filter=blob:none --no-tags"
+      );
       expect(fetch?.run).toContain(
         '"+${GITHUB_SHA}:refs/lisa-test-witnesses/export-head"'
       );

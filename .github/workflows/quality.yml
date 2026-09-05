@@ -3234,11 +3234,12 @@ jobs:
           # The export-surface unit test proves the real removal that motivated
           # #3718. The gate verifies that each release baseline is an ancestor
           # of HEAD, so isolated tag objects are insufficient in a depth-1
-          # checkout. Fetch the commit ancestry while filtering historical
-          # blobs, then pin the immutable release and export witnesses.
+          # checkout. Deepen to Git's maximum depth (which is also safe when an
+          # earlier witness fetch already completed the repository), filter
+          # historical blobs, then pin the immutable release/export witnesses.
           git -c credential.helper= \
             -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' \
-            fetch --unshallow --filter=blob:none --no-tags origin \
+            fetch --deepen=2147483647 --filter=blob:none --no-tags origin \
             "+${GITHUB_SHA}:refs/lisa-test-witnesses/export-head" \
             refs/tags/v3.0.0:refs/tags/v3.0.0 \
             refs/tags/v4.0.0:refs/tags/v4.0.0 \
