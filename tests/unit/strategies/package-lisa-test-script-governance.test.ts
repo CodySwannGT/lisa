@@ -6,14 +6,14 @@
  * The defect: #3070 converted `test:integration` to the reserved-base pattern
  * #2952 established — Lisa forces `test:integration:lisa`, and merely defaults
  * `test:integration` to invoke it, so the host owns the composition point. Its
- * five siblings were left in `force`, where Lisa's value REPLACES the host's on
- * every apply. `test:integration` was governed correctly and `test:cov` was not,
- * in the same file, for the same reason, with nothing asserting the difference
- * was deliberate.
+ * six siblings were left in `force`, where Lisa's value REPLACES the host's on
+ * every apply. `test:integration` was governed correctly while `test:cov` and
+ * `test:node` were not, in the same files and for the same reason, with nothing
+ * asserting the difference was deliberate.
  *
- * Measured downstream on a consumer upgrade: an apply
- * silently rewrote all six of that repository's test scripts. Two distinct
- * things were destroyed, and neither failure was loud:
+ * Measured on consumer upgrades: an apply silently rewrote the repositories'
+ * host-owned test wrappers. Two distinct things were destroyed, and neither
+ * failure was loud:
  *
  *   - `LISA_TEST_SCRATCH_PREFIXES`, the operator's registry of fixture prefixes
  *     its suites legitimately create. Losing it failed 19 healthy suites
@@ -63,6 +63,7 @@ const HOST_FACING = [
   "test:cov:unit",
   "test:watch",
   "test:integration",
+  "test:node",
 ] as const;
 
 /**
@@ -85,6 +86,7 @@ const CONVERTED = [
   "test:cov",
   "test:cov:unit",
   "test:watch",
+  "test:node",
 ] as const;
 
 /**

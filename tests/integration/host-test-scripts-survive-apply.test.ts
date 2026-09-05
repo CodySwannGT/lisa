@@ -149,7 +149,13 @@ describe("a host's test-script composition survives the shipped apply", () => {
   });
 
   it("keeps an operator scratch registry on every host-facing test script", async () => {
-    const keys = ["test", "test:unit", "test:cov", "test:cov:unit"] as const;
+    const keys = [
+      "test",
+      "test:unit",
+      "test:cov",
+      "test:cov:unit",
+      "test:node",
+    ] as const;
     const host = Object.fromEntries(
       keys.map(key => [key, `${HOST_PREFIXES} ${shippedBase(key)}`])
     );
@@ -169,5 +175,14 @@ describe("a host's test-script composition survives the shipped apply", () => {
 
     expect(scripts["test:cov"]).toBe("$npm_execpath run test:cov:lisa");
     expect(scripts["test:cov:lisa"]).toBe(shippedBase("test:cov"));
+  });
+
+  it("migrates an untouched test:node while preserving its reserved base", async () => {
+    const scripts = await applyShippedTemplates({
+      "test:node": shippedBase("test:node"),
+    });
+
+    expect(scripts["test:node"]).toBe("$npm_execpath run test:node:lisa");
+    expect(scripts["test:node:lisa"]).toBe(shippedBase("test:node"));
   });
 });

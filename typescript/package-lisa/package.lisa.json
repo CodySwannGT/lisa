@@ -25,7 +25,7 @@
       "test:integration:lisa": "lisa-test-run --profile typescript --adapter vitest -- vitest run '.integration.' 'integration/'",
       "test:lisa": "lisa-test-run --profile typescript --adapter vitest -- vitest run",
       "test:mutation": "LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\",\"worker-\"]' lisa-test-run --profile typescript --adapter direct -- node scripts/lisa-mutation.mjs",
-      "test:node": "LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile typescript --adapter direct -- node scripts/lisa-test-node.mjs",
+      "test:node:lisa": "LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile typescript --adapter direct -- node scripts/lisa-test-node.mjs",
       "test:unit:lisa": "lisa-test-run --profile typescript --adapter vitest -- vitest run --exclude='**/integration/**'",
       "test:watch:lisa": "lisa-test-run --profile typescript --adapter vitest -- vitest",
       "typecheck:lisa": "tsc --noEmit"
@@ -87,6 +87,7 @@
       "test:cov": "$npm_execpath run test:cov:lisa",
       "test:cov:unit": "$npm_execpath run test:cov:unit:lisa",
       "test:integration": "$npm_execpath run test:integration:lisa",
+      "test:node": "$npm_execpath run test:node:lisa",
       "test:unit": "$npm_execpath run test:unit:lisa",
       "test:watch": "$npm_execpath run test:watch:lisa",
       "typecheck": "$npm_execpath run typecheck:lisa"
@@ -165,6 +166,9 @@
         "vitest run tests/integration --passWithNoTests",
         "NODE_ENV=test jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests",
         "NODE_ENV=test jest --testPathPatterns=\"\\.integration\\.test\\.(ts|tsx)$\" --passWithNoTests"
+      ],
+      "test:node": [
+        "LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile typescript --adapter direct -- node scripts/lisa-test-node.mjs"
       ],
       "test:unit": [
         "lisa-test-run --profile typescript --adapter vitest -- vitest run --exclude='**/integration/**'",
