@@ -105,6 +105,9 @@
       },
       {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/secrets-preflight.sh"
+      },
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/worktree-binding-guard.sh"
       }
     ],
     "subagentStart": [

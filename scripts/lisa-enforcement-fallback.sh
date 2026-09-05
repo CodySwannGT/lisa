@@ -480,6 +480,25 @@ notice_marker=""
 # non-sticky shared TMPDIR: another user could replace that parent between the
 # checks below. Root- or caller-owned parents are acceptable; any parent that
 # grants group or other write access must also carry the sticky bit.
+#
+# The two `stat` spellings must be asked for the SAME twelve bits, and getting
+# that wrong is invisible because each platform only ever runs its own branch.
+# BSD `%Lp` renders the low NINE bits and drops setuid/setgid/sticky entirely:
+#
+#   stat -f '%Lp' <a 1777 dir>  ->  777    <- sticky gone
+#   stat -f '%p'  <a 1777 dir>  ->  41777  <- sticky present, plus file type
+#   stat -c '%a'  <a 1777 dir>  ->  1777   <- sticky present (GNU includes it)
+#
+# So under `%Lp` the sticky test below is `777 & 1000`, which is zero for every
+# directory on the machine — the exemption was unreachable on macOS and the
+# whole `&& [ ... 8#1000 ] -eq 0` clause was dead code there. The same logical
+# root was therefore trusted on Linux and rejected on macOS, and since CI is
+# Linux the stricter platform was the one nobody specified and nobody tests on
+# (CodySwannGT/lisa#3691).
+#
+# `%p` restores the bit and adds the file type above it, so the mask normalizes
+# both spellings to one value and the arithmetic below has a single meaning:
+# `41777 & 7777` and `1777 & 7777` are both 1777.
 notice_directory_trusted() {
   local directory="$1"
   local directory_stat=""
@@ -487,7 +506,7 @@ notice_directory_trusted() {
   local directory_mode=""
   local directory_mode_value=0
 
-  directory_stat="$(stat -f '%u %Lp' "$directory" 2>/dev/null)" || \
+  directory_stat="$(stat -f '%u %p' "$directory" 2>/dev/null)" || \
     directory_stat="$(stat -c '%u %a' "$directory" 2>/dev/null)" || return 1
   directory_owner="${directory_stat%% *}"
   directory_mode="${directory_stat#* }"
@@ -495,7 +514,7 @@ notice_directory_trusted() {
     *[!0-9:]* | :* | *: ) return 1 ;;
   esac
   [ "$directory_owner" = "0" ] || [ "$directory_owner" = "$notice_uid" ] || return 1
-  directory_mode_value=$((8#$directory_mode))
+  directory_mode_value=$((8#$directory_mode & 8#7777))
   if [ $((directory_mode_value & 8#0022)) -ne 0 ] && \
     [ $((directory_mode_value & 8#1000)) -eq 0 ]; then
     return 1

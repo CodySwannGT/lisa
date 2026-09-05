@@ -1,6 +1,6 @@
 {
   "name": "lisa",
-  "version": "4.45.4",
+  "version": "4.45.8",
   "description": "Universal governance — agents, skills, commands, hooks, and rules for all projects",
   "author": {
     "name": "Cody Swann"
@@ -210,6 +210,14 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/secrets-preflight.sh"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-binding-guard.sh"
           }
         ]
       }

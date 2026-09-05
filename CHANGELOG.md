@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.45.8](https://github.com/CodySwannGT/lisa/compare/v4.45.7...v4.45.8) (2026-09-05)
+
+
+### Bug Fixes
+
+* **hooks:** check the binding guard's first call instead of trusting it ([3fba190](https://github.com/CodySwannGT/lisa/commit/3fba190ff5b26f3bd65f1bf50d939ce96b8c81d2)), closes [#3864](https://github.com/CodySwannGT/lisa/issues/3864) [#3712](https://github.com/CodySwannGT/lisa/issues/3712) [#3955](https://github.com/CodySwannGT/lisa/issues/3955) [#3955](https://github.com/CodySwannGT/lisa/issues/3955) [#3864](https://github.com/CodySwannGT/lisa/issues/3864) [CodySwannGT/lisa#3955](https://github.com/CodySwannGT/lisa/issues/3955)
+* **mutation:** compute the shell-guard evidence verdict instead of asserting it ([86b495e](https://github.com/CodySwannGT/lisa/commit/86b495eb400b7e05c3ed74aa47260546153a9448)), closes [#3863](https://github.com/CodySwannGT/lisa/issues/3863) [#3961](https://github.com/CodySwannGT/lisa/issues/3961) [#3054](https://github.com/CodySwannGT/lisa/issues/3054) [CodySwannGT/lisa#3931](https://github.com/CodySwannGT/lisa/issues/3931)
+
+### [4.45.7](https://github.com/CodySwannGT/lisa/compare/v4.45.6...v4.45.7) (2026-09-05)
+
+
+### Bug Fixes
+
+* **tests:** scale deletion-dominated budgets on a filesystem proxy ([778a080](https://github.com/CodySwannGT/lisa/commit/778a080f2c75feb41e1c473ff8dede6f5e88a434)), closes [#3925](https://github.com/CodySwannGT/lisa/issues/3925) [CodySwannGT/lisa#3936](https://github.com/CodySwannGT/lisa/issues/3936)
+
+### [4.45.6](https://github.com/CodySwannGT/lisa/compare/v4.45.5...v4.45.6) (2026-09-05)
+
+
+### Bug Fixes
+
+* **ci:** name the review-evidence check for the gate, not as a question ([f1b7bb6](https://github.com/CodySwannGT/lisa/commit/f1b7bb631236077083abb7aabd69e44080cec058)), closes [CodySwannGT/lisa#3917](https://github.com/CodySwannGT/lisa/issues/3917)
+* **hooks:** refuse to delete a worktree holding work that exists in no commit ([06c2e5a](https://github.com/CodySwannGT/lisa/commit/06c2e5ae882b3edeaa2bfaedb9581091ac295755)), closes [CodySwannGT/lisa#3863](https://github.com/CodySwannGT/lisa/issues/3863)
+* **scripts:** derive the cleanup-worktrees help range instead of hardcoding it ([8b1c04f](https://github.com/CodySwannGT/lisa/commit/8b1c04fd5bce6a8216c72a72fd66fb79ca1588d7)), closes [CodySwannGT/lisa#3863](https://github.com/CodySwannGT/lisa/issues/3863)
+* **worktrees:** stop an unreadable worktree reading as an empty one ([f9d7185](https://github.com/CodySwannGT/lisa/commit/f9d718580cb614e6fe8c7bfdf84bd4738cb80aee)), closes [CodySwannGT/lisa#3863](https://github.com/CodySwannGT/lisa/issues/3863)
+
+### [4.45.5](https://github.com/CodySwannGT/lisa/compare/v4.45.4...v4.45.5) (2026-09-05)
+
+
+### Bug Fixes
+
+* **hooks:** bind both cwd-resolving guards to one contract and one corpus ([a41e411](https://github.com/CodySwannGT/lisa/commit/a41e4116581bf94cb98aadfe7886faa2fc4394ae)), closes [#3951](https://github.com/CodySwannGT/lisa/issues/3951) [#3952](https://github.com/CodySwannGT/lisa/issues/3952) [CodySwannGT/lisa#3952](https://github.com/CodySwannGT/lisa/issues/3952)
+
 ### [4.45.4](https://github.com/CodySwannGT/lisa/compare/v4.45.3...v4.45.4) (2026-09-05)
 
 

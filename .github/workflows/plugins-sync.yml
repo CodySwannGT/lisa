@@ -200,6 +200,18 @@ jobs:
       # not be, and exits 2 at zero probed.
       - name: Check no guard reports OK on an empty subject
         run: bun run check:empty-subject-guards
+      # #3952: two guards answer "which file will this command actually execute?"
+      # in two languages — POSIX shell in parity-safety-net.sh, Node in
+      # worktree-binding-guard.mjs — and they cannot share an implementation,
+      # because no call reaches from Node into a shell function's file-scope
+      # state. They share a corpus of rows instead, and that only binds them
+      # while the rows stay adversarial. Rows decay in one direction: a `holds`
+      # row is easy to write and always passes, so a corpus left alone drifts
+      # towards proving the resolver RAN rather than that it BITES. This refuses
+      # a corpus missing either rejection direction, and refuses any contract
+      # point carried only by rows both wrong implementations already pass.
+      - name: Check the cwd-resolution corpus can still bite
+        run: bun run check:cwd-resolution-corpus
       # #3190: a shell guard cannot be mutation-tested — #3111 established that
       # Stryker cannot instrument shell at all — so its driving test is the only
       # bite evidence it can have, and nine guards had a driving test whose every
