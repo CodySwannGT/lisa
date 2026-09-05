@@ -2450,6 +2450,117 @@ process.stdout.write(JSON.stringify({ id: 1 }));
     ]);
   });
 
+  /**
+   * Seed the fake tracker with comments nobody managed.
+   * @param store - Path to the comment store.
+   * @param bodies - Bodies to place on the item, in order.
+   */
+  function seed(store: string, bodies: readonly string[]): void {
+    writeFileSync(
+      store,
+      JSON.stringify(bodies.map((body, index) => ({ body, id: index + 1 })))
+    );
+  }
+
+  it("leaves prose that merely mentions the marker and this pull request alone", () => {
+    // The write predicate used to be the READ predicate: marker present plus
+    // the URL as a bare token anywhere in the body. That is the right question
+    // for "is this pull request linked?" and the wrong one for "may I replace
+    // this entire body with one line?" — the first is a claim about the item,
+    // the second a claim about who wrote the comment.
+    const fixture = createFixture();
+    const store = statefulGh(fixture);
+    const prose =
+      `Gate 5 wants [lisa-pr-link] ${PR_URL} on acme/widgets#42. ` +
+      `Notes for whoever picks this up: the unlanded work is on wt-a and wt-b.`;
+    seed(store, [prose]);
+
+    const result = command(fixture, [
+      "backlink",
+      "--ref",
+      "acme/widgets#42",
+      "--pr-url",
+      PR_URL,
+    ]);
+
+    expect(result.status).toBe(0);
+    expect(stored(store)).toEqual([
+      { body: prose, id: 1 },
+      { body: `[lisa-pr-link] ${PR_URL}`, id: 2 },
+    ]);
+  });
+
+  it("leaves the gate's own printed remedy byte-for-byte unchanged", () => {
+    // The remedy the tool prints contains the marker AND the pull request URL
+    // as a bare token on its `--pr-url` line, so pasting a gate failure into a
+    // comment — which is what an operator does to explain why a PR is stuck —
+    // was enough to have that comment claimed and flattened.
+    const fixture = createFixture();
+    const store = statefulGh(fixture);
+    const pasted =
+      `Blocked on gate 5. The one remedy that needs no new branch is the ` +
+      `managed comment \`[lisa-pr-link] ${PR_URL}\` on acme/widgets#42. ` +
+      `Do not post it by hand — run:\n\n` +
+      `    node scripts/lisa-work-item.mjs backlink --ref acme/widgets#42 ` +
+      `--pr-url ${PR_URL}\n\nwhich creates that comment.`;
+    seed(store, [pasted]);
+
+    command(fixture, [
+      "backlink",
+      "--ref",
+      "acme/widgets#42",
+      "--pr-url",
+      PR_URL,
+    ]);
+
+    expect(stored(store)[0]).toEqual({ body: pasted, id: 1 });
+  });
+
+  it("counts pull requests, not mentions, when reporting siblings", () => {
+    // The count is the operator-visible half of the same predicate. Reporting
+    // "1 other pull request already linked" for a prose comment overstates what
+    // is on the item, and it was the line that surfaced the near-miss.
+    const fixture = createFixture();
+    const store = statefulGh(fixture);
+    seed(store, [
+      `triage: gate 5 asks for [lisa-pr-link] ${PR_URL}, still unposted`,
+      `[lisa-pr-link] ${OTHER_PR_URL}`,
+    ]);
+    const third = "https://github.com/acme/code/pull/9";
+
+    const result = command(fixture, [
+      "backlink",
+      "--ref",
+      "acme/widgets#42",
+      "--pr-url",
+      third,
+    ]);
+
+    expect(result.stdout).toContain("1 other pull request already linked");
+    expect(result.stdout).not.toContain("2 other pull requests");
+  });
+
+  it("still updates Lisa's own managed comment in place", () => {
+    // The identity test must not be so strict that a body the provider handed
+    // back with trailing whitespace reads as somebody else's writing.
+    const fixture = createFixture();
+    const store = statefulGh(fixture);
+    seed(store, [`[lisa-pr-link] ${PR_URL}\n`]);
+
+    const result = command(fixture, [
+      "backlink",
+      "--ref",
+      "acme/widgets#42",
+      "--pr-url",
+      PR_URL,
+    ]);
+
+    expect(result.stdout).toContain("updated");
+    expect(stored(store)).toEqual([
+      { body: `[lisa-pr-link] ${PR_URL}`, id: 1 },
+    ]);
+  });
+
   it("writes the comment the traceability check reads", () => {
     // Producer and consumer asserted against each other in one test, because
     // the defect being fixed is precisely that nobody had checked they agree.

@@ -1799,6 +1799,10 @@ function backlinkTokens(text) {
  * field. Exported so the comparison can be asserted directly — a permissive
  * comparison returns `true` rather than throwing, so nothing observable changes
  * without an assertion on the returned boolean.
+ *
+ * READ-ONLY. Its permissiveness is correct here and only here: gate 5 should
+ * pass when a human links the pull request in their own words. It must never
+ * authorise a write — see `managedBacklinkTarget` for why that split exists.
  * @param {unknown} value Comment body, or a structure containing one.
  * @param {string} prUrl The pull request URL that must be linked.
  * @returns {boolean} True when this exact pull request is linked.
@@ -1829,18 +1833,55 @@ function backlinkBody(prUrl) {
 }
 
 /**
- * Whether a comment payload is Lisa's managed backlink comment.
+ * A comment body's visible text, whatever shape the provider returned.
  *
- * Shape-agnostic deliberately: GitHub and Linear return a plain string body,
- * Jira returns an Atlassian Document Format tree. Serialising covers all three
- * without a per-provider walker, and the marker is distinctive enough that a
- * false positive would have to be a comment quoting it verbatim — which is
- * still Lisa's comment to reuse rather than a second one to add.
+ * GitHub and Linear hand back a plain string; Jira hands back an Atlassian
+ * Document Format tree whose prose lives in the `text` field of its leaf nodes.
+ * Collecting those in document order reconstructs what a reader sees, which is
+ * the only thing an identity test can honestly compare. Deliberately NOT
+ * `JSON.stringify`: that would let structure — a link's `href`, a node type —
+ * count as text the author wrote.
  * @param {unknown} body Comment body in whatever shape the provider returned.
- * @returns {boolean} True when this is the managed comment.
+ * @returns {string} The visible text, or the empty string when there is none.
  */
-function carriesMarker(body) {
-  return JSON.stringify(body ?? "").includes(MARKER);
+function bodyText(body) {
+  if (typeof body === "string") return body;
+  if (Array.isArray(body)) return body.map(bodyText).join(" ");
+  if (body && typeof body === "object")
+    return Object.entries(body)
+      .map(([key, value]) =>
+        key === "text" && typeof value === "string" ? value : bodyText(value)
+      )
+      .join(" ");
+  return "";
+}
+
+/**
+ * The pull request a body is Lisa's managed backlink FOR, or null.
+ *
+ * This is an IDENTITY test, and the split from `textContainsBacklink` is the
+ * whole point. That predicate answers "is this pull request linked from this
+ * item?" — the right question for a reader, which should accept a human's link
+ * however they wrote it. Reusing it to authorise a write turned a claim about
+ * the ITEM into a claim about the COMMENT: any prose carrying the marker and
+ * the URL as a bare token was treated as Lisa's to replace wholesale, and the
+ * gate's own printed remedy contains both, so pasting a gate failure into a
+ * comment was enough to have that comment flattened to one line.
+ *
+ * So a body must BE `backlinkBody(...)`, not merely contain its parts.
+ * Whitespace is normalised because a provider may hand back the body it stored
+ * with a trailing newline, and refusing to recognise Lisa's own comment would
+ * make every rerun post a duplicate — the opposite failure, equally wrong.
+ * @param {unknown} body Comment body in whatever shape the provider returned.
+ * @returns {string | null} The pull request URL it links, or null if the body
+ *   is somebody's writing rather than the managed comment.
+ */
+function managedBacklinkTarget(body) {
+  const text = bodyText(body).replace(/\s+/g, " ").trim();
+  const prefix = `${MARKER} `;
+  if (!text.startsWith(prefix)) return null;
+  const target = text.slice(prefix.length);
+  return target && !target.includes(" ") ? target : null;
 }
 
 /**
@@ -1863,6 +1904,12 @@ function carriesMarker(body) {
  * and its replacement, a pull request reopened or recreated against a different
  * base, and work split across repositories all put two pull requests on one
  * item, and none of them involve a stack.
+ *
+ * Both arms run off `managedBacklinkTarget`, so a comment nobody managed is
+ * neither overwritten nor counted. The count is the operator-visible half of
+ * the same predicate: "1 other pull request already linked" said of a prose
+ * comment is a false statement about the item, and it is the line that
+ * surfaced this defect.
  * @param {readonly unknown[]} comments Comments as the provider returned them.
  * @param {string} prUrl The pull request being discharged.
  * @param {(comment: unknown) => unknown} bodyOf Reads a comment's body.
@@ -1873,9 +1920,9 @@ function partitionBacklinks(comments, prUrl, bodyOf) {
   const mine = [];
   let others = 0;
   for (const comment of comments) {
-    const body = bodyOf(comment);
-    if (!carriesMarker(body)) continue;
-    if (textContainsBacklink(body, prUrl)) mine.push(comment);
+    const target = managedBacklinkTarget(bodyOf(comment));
+    if (target === null) continue;
+    if (target === prUrl) mine.push(comment);
     else others += 1;
   }
   return { mine: mine[0], others };
@@ -2037,9 +2084,10 @@ function linearBacklink(ref, prUrl, contract) {
  * The managed comment as an Atlassian Document Format tree.
  *
  * A single text node, so the marker and the URL land in one string — which is
- * what `textContainsBacklink` walks the tree looking for. Splitting them across
- * nodes would write a comment the reader accepts visually and the check
- * rejects.
+ * what `textContainsBacklink` walks the tree looking for, and what
+ * `managedBacklinkTarget` reconstructs when deciding the comment is Lisa's to
+ * update. Splitting them across nodes would write a comment the reader accepts
+ * visually and the check rejects.
  * @param {string} prUrl Pull request URL.
  * @returns {object} The ADF document.
  */
