@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.44.1](https://github.com/CodySwannGT/lisa/compare/v4.44.0...v4.44.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* **tests:** publish a run's coverage artifacts and reclaim abandoned ones ([73d273e](https://github.com/CodySwannGT/lisa/commit/73d273ee2c25793e30b4395af4df5d10814dfe26)), closes [#3911](https://github.com/CodySwannGT/lisa/issues/3911) [#3945](https://github.com/CodySwannGT/lisa/issues/3945) [#3911](https://github.com/CodySwannGT/lisa/issues/3911) [#3950](https://github.com/CodySwannGT/lisa/issues/3950) [CodySwannGT/lisa#3950](https://github.com/CodySwannGT/lisa/issues/3950)
+
 ## [4.44.0](https://github.com/CodySwannGT/lisa/compare/v4.43.1...v4.44.0) (2026-09-05)
 
 
