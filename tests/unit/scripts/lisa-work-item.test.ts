@@ -2414,8 +2414,12 @@ process.stdout.write(JSON.stringify({ id: 1 }));
     ]);
 
     expect(second.status).toBe(0);
-    expect(second.stdout).toContain("created");
-    expect(second.stdout).toContain("1 other pull request already linked");
+    expect(second.stdout.trim()).toBe(
+      `work-item backlink created on acme/widgets#42: [lisa-pr-link] ${OTHER_PR_URL}\n` +
+        `  1 other pull request already linked to acme/widgets#42, left ` +
+        `untouched — an item carries one backlink per pull request, and ` +
+        `discharging one never removes another.`
+    );
     expect(stored(store)).toEqual([
       { body: `[lisa-pr-link] ${PR_URL}`, id: 1 },
       { body: `[lisa-pr-link] ${OTHER_PR_URL}`, id: 2 },

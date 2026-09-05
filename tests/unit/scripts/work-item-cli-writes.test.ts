@@ -36,6 +36,19 @@ const CROSS_REFERENCED = "cross-referenced";
 const OTHER_PR_URL = "https://github.com/acme/code/pull/99";
 
 /**
+ * The tail of the sibling-count line, spelled out here rather than imported.
+ *
+ * A test that built this from the module under test would pass for whatever the
+ * module happened to render; written out, it pins the wording an operator reads
+ * when a write leaves someone else's backlink in place.
+ */
+const LEFT_UNTOUCHED =
+  `, left untouched — an item carries one backlink per pull request, and ` +
+  `discharging one never removes another.`;
+const ONE_SIBLING = `\n  1 other pull request already linked to ${REF}${LEFT_UNTOUCHED}`;
+const TWO_SIBLINGS = `\n  2 other pull requests already linked to ${REF}${LEFT_UNTOUCHED}`;
+
+/**
  * A timeline carrying one merged pull request in the named repository.
  * @param repository - `owner/name` the pull request belongs to.
  * @returns The timeline as JSON text.
@@ -140,7 +153,9 @@ describe("in-process CLI: backlink", () => {
         FAKE_GH_LOG: log,
       }
     );
-    expect(result.stdout).toContain("backlink created");
+    expect(result.stdout).toBe(
+      `work-item backlink created on ${REF}: ${MARKER} ${PR_URL}${ONE_SIBLING}`
+    );
     const calls = readFileSync(log, "utf8");
     expect(calls).toContain("--method POST");
     // The specific write that must never happen: a PATCH aimed at comment 9,
@@ -167,8 +182,9 @@ describe("in-process CLI: backlink", () => {
         FAKE_GH_LOG: logPath(fixture),
       }
     );
-    expect(result.stdout).toContain("2 other pull requests already linked");
-    expect(result.stdout).toContain("left untouched");
+    expect(result.stdout).toBe(
+      `work-item backlink created on ${REF}: ${MARKER} ${PR_URL}${TWO_SIBLINGS}`
+    );
   });
 
   it("updates ITS OWN comment when the body drifted, without adding a duplicate", () => {
@@ -187,7 +203,9 @@ describe("in-process CLI: backlink", () => {
         FAKE_GH_LOG: log,
       }
     );
-    expect(result.stdout).toContain("backlink updated");
+    expect(result.stdout).toBe(
+      `work-item backlink updated on ${REF}: ${MARKER} ${PR_URL}`
+    );
     const calls = readFileSync(log, "utf8");
     expect(calls).toContain("--method PATCH");
     expect(calls).toContain("issues/comments/11");
@@ -207,8 +225,9 @@ describe("in-process CLI: backlink", () => {
         FAKE_GH_LOG: log,
       }
     );
-    expect(result.stdout).toContain("backlink unchanged");
-    expect(result.stdout).toContain("1 other pull request already linked");
+    expect(result.stdout).toBe(
+      `work-item backlink unchanged on ${REF}: ${MARKER} ${PR_URL}${ONE_SIBLING}`
+    );
     expect(readFileSync(log, "utf8")).not.toContain("--method");
   });
 
