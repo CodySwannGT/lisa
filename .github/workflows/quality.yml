@@ -3207,6 +3207,22 @@ jobs:
             refs/tags/v4.17.16:refs/tags/v4.17.16 \
             refs/tags/v4.26.1:refs/tags/v4.26.1
 
+      - name: 📎 Fetch export-removal witness history
+        if: github.repository == 'CodySwannGT/lisa'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The export-surface unit test proves the real removal that motivated
+          # #3718. Keep the checkout shallow while making only its immutable
+          # historical commit and release witnesses available to the tests.
+          git -c credential.helper= \
+            -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' \
+            fetch --no-tags origin \
+            refs/tags/v3.0.0:refs/tags/v3.0.0 \
+            refs/tags/v4.0.0:refs/tags/v4.0.0 \
+            c32f33010f5e58879381b0d4c370c630bb179acc:refs/lisa-test-witnesses/export-before \
+            f13bb00ec73e0ebbb2dfd9f030164d2913dcf98d:refs/lisa-test-witnesses/export-after
+
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v6
         with:

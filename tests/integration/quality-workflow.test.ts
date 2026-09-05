@@ -715,6 +715,27 @@ describe("quality.yml reusable workflow", () => {
         );
       }
     });
+
+    it("fetches only the exact export-removal witnesses for Lisa unit tests", () => {
+      const steps = workflow.jobs.test_unit?.steps ?? [];
+      const fetch = steps.find(
+        step => step.name === "📎 Fetch export-removal witness history"
+      );
+
+      expect(fetch).toBeDefined();
+      expect(fetch?.if).toContain("github.repository == 'CodySwannGT/lisa'");
+      expect(fetch?.env?.GH_TOKEN).toBe("${{ github.token }}");
+      expect(fetch?.run).toContain("credential.helper");
+      expect(fetch?.run).toContain("refs/tags/v3.0.0:refs/tags/v3.0.0");
+      expect(fetch?.run).toContain("refs/tags/v4.0.0:refs/tags/v4.0.0");
+      expect(fetch?.run).toContain(
+        "c32f33010f5e58879381b0d4c370c630bb179acc:refs/lisa-test-witnesses/export-before"
+      );
+      expect(fetch?.run).toContain(
+        "f13bb00ec73e0ebbb2dfd9f030164d2913dcf98d:refs/lisa-test-witnesses/export-after"
+      );
+      expect(fetch?.run).not.toContain("fetch-depth: 0");
+    });
   });
 
   describe("e2e route coverage dependencies", () => {
