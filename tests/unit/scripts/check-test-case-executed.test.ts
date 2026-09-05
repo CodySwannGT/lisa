@@ -121,6 +121,18 @@ describe("executionFailure", () => {
     );
   });
 
+  it("does not resolve advice from an inherited property name", () => {
+    // The status is a string read out of a JSON file this gate did not write.
+    // On an object literal, "constructor" would resolve to something inherited
+    // and be stringified into the message as though it were advice.
+    const failure = executionFailure("t", {
+      status: "constructor",
+      duration: 1,
+    });
+    expect(failure).toContain('the runner reported status "constructor"');
+    expect(failure).not.toContain("function");
+  });
+
   it("fails a case that failed", () => {
     expect(executionFailure("t", { status: "failed", duration: 1 })).toContain(
       "RAN and FAILED"

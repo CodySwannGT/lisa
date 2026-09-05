@@ -56,14 +56,26 @@ import { readFileSync } from "node:fs";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
-/** Statuses vitest reports for a case that did not actually run. */
-const NON_EXECUTED_STATUS_ADVICE = Object.freeze({
-  skipped:
+/**
+ * Statuses vitest reports for a case that did not actually run.
+ *
+ * A Map rather than an object literal because the key is a status string read
+ * out of a JSON file. On an object, a report carrying `"constructor"` or
+ * `"toString"` resolves to something inherited from `Object.prototype` and the
+ * message below stringifies it as though it were advice — an absurd input, but
+ * this gate's whole job is to be right about a file it did not write.
+ */
+const NON_EXECUTED_STATUS_ADVICE = new Map([
+  [
+    "skipped",
     "the case was SKIPPED — a platform guard, a `runIf` condition, or an `it.skip` removed it; a skipped case is a green case and proves nothing",
-  todo: "the case is marked TODO — it has no body to execute",
-  failed:
+  ],
+  ["todo", "the case is marked TODO — it has no body to execute"],
+  [
+    "failed",
     "the case RAN and FAILED — read the failure above; this gate only reports that it was not a passing execution",
-});
+  ],
+]);
 
 /**
  * Parse `--report <path>` and one or more `--name <full test name>` flags.
@@ -132,7 +144,7 @@ export function executionFailure(name, reported, available = []) {
   if (reported === undefined)
     return `"${name}" is ABSENT from the report — nothing in this lane ran it. Either its file was excluded, moved or renamed, or this name is written wrong: vitest's JSON reporter joins suite titles to the case title with a SPACE, while \`vitest list\` prints them with " > ". The report contained ${available.length === 0 ? "no cases at all" : available.map(reportedName => `"${reportedName}"`).join(", ")}.`;
   if (reported.status !== "passed")
-    return `"${name}" did not execute: ${NON_EXECUTED_STATUS_ADVICE[reported.status] ?? `the runner reported status "${reported.status}"`}.`;
+    return `"${name}" did not execute: ${NON_EXECUTED_STATUS_ADVICE.get(reported.status) ?? `the runner reported status "${reported.status}"`}.`;
   if (typeof reported.duration !== "number" || reported.duration <= 0)
     return `"${name}" is reported as passed but consumed no measurable time, so there is no evidence it did any work.`;
   return undefined;
