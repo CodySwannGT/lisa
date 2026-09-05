@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.45.11](https://github.com/CodySwannGT/lisa/compare/v4.45.10...v4.45.11) (2026-09-05)
+
+
+### Bug Fixes
+
+* **gates:** give the plugin-sync prover a local push moment ([7e130e3](https://github.com/CodySwannGT/lisa/commit/7e130e36a695f33eb7396d0ae8acecf785692048)), closes [CodySwannGT/lisa#3891](https://github.com/CodySwannGT/lisa/issues/3891)
+
 ### [4.45.10](https://github.com/CodySwannGT/lisa/compare/v4.45.9...v4.45.10) (2026-09-05)
 
 
