@@ -69,7 +69,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
-      "9c463da32a93903e9c04968b7fa61680ee554ee41fa3eebd9af6337ff95350e5",
+      "8f10bad2ac2549356e613021839d7678b9cea9bf099d3a6c171d4f0f7f909a76",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh":
       "6ab6f70a4a54d3bfb70a5949ce604de884dd738fb2ea45730d1b6c9eef0c7f7b",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
@@ -79,7 +79,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "adbf8dccc221ec83641f1f5358ccafc9ec70a4ea6372ae6ad874603d767d693d",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "7d91ef0e06c53d9d09ddc0b03a22ddd5933e4001ab759c14a964a463df58e635",
+      "853437a0be104fde1eb962f0c5c70b14ea3f4fa8b6973f8d9f6e704a9d3e3611",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -829,7 +829,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/withdrawn-rulings.sh":
       "5dbf429b6ec73c3c29fb96008efa1015feaa4812c1b4bb26aaa5d0b904a0ff9c",
     "plugins/src/base/hooks/worktree-binding-guard.mjs":
-      "d015c5812388aa3611ee305dc8706f48c2c91d117a0f6f2b83efd3424c378afb",
+      "8647522f3941b975ab43df2489af7de37b7024f004af1b32c4c0b3ec5df460c1",
     "plugins/src/base/hooks/worktree-binding-guard.sh":
       "1b851990168b70ef6469c3c35b0ccc4012f1bf6ceee60a0fdec9a2f8d42ec70f",
     "plugins/src/base/rules/eager/00-rule-index.md":
@@ -2547,7 +2547,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
-      "4d9e67c1a288838f6b4fb77191dfaa0659bcf4f2ce7da64d3f8c461a8eac99a7",
+      "7df4fa53fa0c88617afc24c53453ea73b27cab42e25205c4e9f9442deb219172",
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-action.mjs":
       "640b65e1caba4ba33e19e4a1ff49f869a99c15eb7d59a88498a5b2466acf438e",
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-github-jira.mjs":

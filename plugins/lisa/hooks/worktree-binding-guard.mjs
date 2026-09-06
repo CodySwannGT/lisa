@@ -777,14 +777,36 @@ const RUNTIME_ASSUMPTION_TICKET = "CodySwannGT/lisa#3944";
  * @param env - Environment to read
  * @returns The version, `""` when unreadable, or null for another runtime
  */
+const isDigit = ch => ch >= "0" && ch <= "9";
+
+/** @param value - Segment to test @returns Whether it is all digits */
+const allDigits = value => value.length > 0 && [...value].every(isDigit);
+
+/** @param value - Segment to read @returns Its trailing digit run, else `""` */
+const trailingDigits = value => {
+  let start = value.length;
+  while (start > 0 && isDigit(value[start - 1])) start -= 1;
+  return value.slice(start);
+};
+
 function runtimeVersion(env) {
   if (!env.CLAUDECODE) return null;
   const tagged = /claude-code[_-](\d+)[-.](\d+)[-.](\d+)/u.exec(
     env.AI_AGENT ?? ""
   );
   if (tagged) return `${tagged[1]}.${tagged[2]}.${tagged[3]}`;
-  const launched = /(\d+\.\d+\.\d+)\/?$/u.exec(env.CLAUDE_CODE_EXECPATH ?? "");
-  return launched ? launched[1] : "";
+  // Read the version off the final path segment by scanning characters rather
+  // than by regex: an unanchored `\d+\.\d+\.\d+` before `$` backtracks
+  // super-linearly on a long execpath, and the version Claude Code launches
+  // from is always the trailing directory name.
+  const segments = (env.CLAUDE_CODE_EXECPATH ?? "").split("/").filter(Boolean);
+  const trailing = segments.length ? segments[segments.length - 1] : "";
+  const parts = trailing.split(".");
+  if (parts.length < 3) return "";
+  const [major, minor, patch] = parts.slice(-3);
+  const majorDigits = trailingDigits(major);
+  if (!majorDigits || !allDigits(minor) || !allDigits(patch)) return "";
+  return `${majorDigits}.${minor}.${patch}`;
 }
 
 /**

@@ -1636,12 +1636,10 @@ export const selectionBlock = (selection, load) => {
     selection.elapsed === null
       ? "   elapsed: NOT measured"
       : `   elapsed ${selection.elapsed}`;
-  return (
-    `📏 ${OUTCOMES.selectionAccounting}\n` +
-    `${costFractionLine(selection)}\n` +
-    `${elapsed}, at load average ${load}.\n` +
-    SELECTION_NOTE
-  );
+  const heading = `📏 ${OUTCOMES.selectionAccounting}`;
+  const cost = costFractionLine(selection);
+  const measured = `${elapsed}, at load average ${load}.`;
+  return `${heading}\n${cost}\n${measured}\n${SELECTION_NOTE}`;
 };
 
 /**

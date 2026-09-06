@@ -654,11 +654,11 @@ function summarise(result, priorKills = []) {
       `❓ ${result.notRun.length} gate(s) UNKNOWN — never ran, verdict not ` +
         `established: ${result.notRun.map(entry => entry.id).join(", ")}`
     );
+    const whyStopped = result.interrupted
+      ? "The run was interrupted before it reached them."
+      : `${result.blockedBy} failed first and stopped them.`;
     lines.push(
-      `   Each of those may pass or fail; this run does not say which. ` +
-        (result.interrupted
-          ? `The run was interrupted before it reached them.`
-          : `${result.blockedBy} failed first and stopped them.`)
+      `   Each of those may pass or fail; this run does not say which. ${whyStopped}`
     );
   }
   if (result.blocked) {
