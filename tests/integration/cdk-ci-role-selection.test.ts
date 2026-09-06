@@ -159,11 +159,82 @@ describe("the read-only role name is overridable without a secret", () => {
     );
   });
 
+  it("warns, on the pull-request arm, that the escape hatch is in force", () => {
+    // The escape hatch is easier than the fix — nothing provisions the
+    // read-only role, so pointing this variable at the deploy role is the
+    // cheapest way to make a fresh repository go green, and it restores exactly
+    // the over-privilege the split removed. Every other signal stays green
+    // while it does: the identity assertion compares against the role that was
+    // SELECTED, so it confirms the deploy role as correct and ticks it.
+    const result = run.determineEnvironment(
+      "pull_request",
+      "main",
+      DEPLOY_ROLE
+    );
+
+    expect(result.output).toContain(
+      "::warning title=Pull-request validation is holding deploy rights::"
+    );
+    expect(result.output).toContain(
+      "anyone who can open a pull request against this repository can obtain " +
+        "deployment credentials"
+    );
+  });
+
+  it("warns without failing, because the override is legitimate during setup", () => {
+    // A failure here would break the path the template's own comment tells an
+    // adopter to take while they are still provisioning. Visible, not fatal.
+    const result = run.determineEnvironment(
+      "pull_request",
+      "main",
+      DEPLOY_ROLE
+    );
+
+    expect(result.status).toBe(0);
+    expect(output(result, "role_name")).toBe(DEPLOY_ROLE);
+  });
+
+  it("stays quiet when the least-privileged default is in force", () => {
+    // A warning that fires on the good path is one people learn to skim past.
+    const result = run.determineEnvironment("pull_request", "main");
+
+    expect(result.output).not.toContain("::warning");
+    expect(output(result, "role_name")).toBe(READ_ONLY_ROLE);
+  });
+
+  it("stays quiet for a custom read-only role name", () => {
+    const result = run.determineEnvironment("pull_request", "main", "MyCiRole");
+
+    expect(result.output).not.toContain("::warning");
+  });
+
   it("reads the variable through env, not by interpolating it into shell", () => {
     expect(step("env").env ?? {}).toMatchObject({
       CDK_CI_READ_ONLY_ROLE_NAME: "${{ vars.CDK_CI_READ_ONLY_ROLE_NAME }}",
     });
     expect(step("env").run ?? "").not.toContain("vars.");
+  });
+});
+
+describe("the deploy-role warning is scoped to the pull-request arm", () => {
+  it("does not warn when a dispatch legitimately uses the deploy role", () => {
+    // Every non-pull-request trigger is SUPPOSED to hold the deploy role: its
+    // OIDC subject is one a pull-request-only trust policy refuses. Warning
+    // there would train an operator to ignore the annotation that matters.
+    const result = run.determineEnvironment("workflow_dispatch", "main");
+
+    expect(result.output).not.toContain("::warning");
+    expect(output(result, "role_name")).toBe(DEPLOY_ROLE);
+  });
+
+  it("does not warn on dispatch even when the override is set", () => {
+    const result = run.determineEnvironment(
+      "workflow_dispatch",
+      "main",
+      DEPLOY_ROLE
+    );
+
+    expect(result.output).not.toContain("::warning");
   });
 });
 
