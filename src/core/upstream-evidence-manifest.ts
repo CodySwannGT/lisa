@@ -2419,7 +2419,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/merge-generated-artifact.mjs":
       "48555d7d7fa9c66582108c2230a298636c3056aa751e72fb1e8b7693e29e2ad7",
     "scripts/mutation-performance-measure.mjs":
-      "0dc9719648ae7a94ccad57587cef8cd03e8d38bbc33d47c1863b503a7d8350c6",
+      "50fb88594319f604760a12f70fa204019762ebf71c0b22b75054245c4e0796fc",
     "scripts/mutation-performance.schema.json":
       "b99a447bb5b3ff73b22d2a1539a0effedadaa5fc08e546f988f5c4e9e5682499",
     "scripts/plugin-parity-drift.mjs":
@@ -10822,6 +10822,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/utils/json-merge.property.test.ts": true,
     "tests/unit/utils/json-utils.test.ts": true,
     "tests/unit/utils/linked-worktree.test.ts": true,
+    "tests/unit/utils/path-utils.test.ts": true,
     "tests/unit/utils/postinstall-trampoline.test.ts": true,
     "tests/unit/utils/usage-accounting-backward-compatibility.test.ts": true,
     "tests/unit/utils/usage-accounting-integrity.test.ts": true,
