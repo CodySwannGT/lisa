@@ -216,6 +216,80 @@ describe("scanWorkflow", () => {
     expect(couplings[0]?.lanes).toEqual([]);
   });
 
+  it("records the handling tokens a guarded step's own text carries", () => {
+    // CodySwannGT/lisa#3860. `guarded` says the step can tell the path is
+    // missing; it has never said what the step then does. This is the shape
+    // whose narrative got that wrong -- a fallback that resolves a version,
+    // fails loudly when it cannot, and verifies the output afterwards.
+    const couplings = scanWorkflow({
+      workflow: WORKFLOW,
+      text:
+        `${STEP}        run: |\n` +
+        `          if [ -f ${PROVER} ]; then\n` +
+        `            node ${PROVER} | tee out\n` +
+        "          else\n" +
+        '            echo "::error title=Cannot resolve a version::none declared"\n' +
+        "            exit 1\n" +
+        "          fi\n" +
+        '          grep -qE "passed" out\n',
+      lanesFor: NO_LANES,
+    });
+    expect(couplings[0]?.guarded).toBe(true);
+    expect(couplings[0]?.handling).toEqual([
+      "else-branch",
+      "exit-nonzero",
+      "error-annotation",
+    ]);
+  });
+
+  it("records a deliberate documented no-op as the tokens it is written with", () => {
+    const couplings = scanWorkflow({
+      workflow: WORKFLOW,
+      text:
+        `${STEP}        run: |\n` +
+        `          if [ ! -f ${PROVER} ]; then\n` +
+        '            echo "::notice::not applicable in this caller"\n' +
+        "            exit 0\n" +
+        "          fi\n",
+      lanesFor: NO_LANES,
+    });
+    expect(couplings[0]?.handling).toEqual(["exit-zero", "notice-annotation"]);
+  });
+
+  it("reports no handling tokens for a step written without any", () => {
+    const couplings = scanWorkflow({
+      workflow: WORKFLOW,
+      text: STEP + RUN_PROVER,
+      lanesFor: APPLY_LANE,
+    });
+    expect(couplings[0]?.handling).toEqual([]);
+  });
+
+  it("sees failure suppression, which is what refutes the unguarded narrative", () => {
+    const couplings = scanWorkflow({
+      workflow: WORKFLOW,
+      text: `${STEP}        continue-on-error: true\n        run: node ${PROVER} || true\n`,
+      lanesFor: APPLY_LANE,
+    });
+    expect(couplings[0]?.guarded).toBe(false);
+    expect(couplings[0]?.handling).toEqual(["failure-suppression"]);
+  });
+
+  it("unions handling tokens across every step reading one path", () => {
+    const couplings = scanWorkflow({
+      workflow: WORKFLOW,
+      text:
+        `      - name: 🔍 Look\n        run: |\n          if [ -f ${PROVER} ]; then exit 0; fi\n` +
+        `${STEP}        run: node ${PROVER} || true\n`,
+      lanesFor: APPLY_LANE,
+    });
+    expect(couplings).toHaveLength(1);
+    expect(couplings[0]?.handling).toEqual([
+      "exit-zero",
+      "failure-suppression",
+    ]);
+  });
+
   it("orders couplings by path so two scans emit the same bytes", () => {
     const couplings = scanWorkflow({
       workflow: WORKFLOW,

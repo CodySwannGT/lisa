@@ -66,7 +66,6 @@
  * failures that read as normal, and reproducing that here would be perverse.
  * @module core/two-channel-delivery
  */
-
 /**
  * How one artifact reaches a consumer that already exists.
  *
@@ -151,6 +150,26 @@ const REMEDIES: Readonly<Record<CouplingVerdict, CouplingRemedy>> = {
 /** Every verdict, so a count of zero is still a stated zero. */
 const VERDICTS = Object.keys(REMEDIES) as readonly CouplingVerdict[];
 
+/**
+ * Every absence-handling token a step's text may carry, in report order.
+ *
+ * The vocabulary lives here beside the verdicts rather than beside the
+ * patterns that find it, for the same reason the verdicts do: the detail must
+ * be able to say which names it looked for, and a scan that stopped looking
+ * must not be able to render as a step that carries nothing.
+ */
+export const HANDLING_SIGNALS = [
+  "else-branch",
+  "exit-zero",
+  "exit-nonzero",
+  "error-annotation",
+  "notice-annotation",
+  "failure-suppression",
+] as const;
+
+/** One absence-handling token name. */
+export type HandlingSignal = (typeof HANDLING_SIGNALS)[number];
+
 /** Verdicts where nothing Lisa does on its own ever closes the gap. */
 const UNRESTORABLE: ReadonlySet<CouplingVerdict> = new Set<CouplingVerdict>([
   NEVER_DELIVERED,
@@ -176,12 +195,22 @@ export interface CouplingInput {
    * Whether the read sits behind a file-existence test.
    *
    * Not a verdict, and deliberately not one. A guard changes the SHAPE of the
-   * failure rather than its existence: unguarded, an absent path fails the job
-   * loudly; guarded, the step skips and the gate silently proves nothing. The
-   * second is the worse outcome and the one #3050 is about, so it is recorded
-   * on the entry and said in the detail rather than folded into the verdict.
+   * failure rather than its existence, and the shape #3050 is about is the
+   * silent one — so it is recorded on the entry and said in the detail rather
+   * than folded into the verdict.
+   *
+   * It says the step can TELL the path is missing. It does NOT say what the
+   * step then does; see `handling`.
    */
   readonly guarded: boolean;
+  /**
+   * Literal absence-handling tokens present in the step's own text.
+   *
+   * Evidence, not a conclusion. A name here means those characters appear in
+   * the step; it never means the token governs this read. Its job is to stop a
+   * reader completing the sentence the scan refuses to complete.
+   */
+  readonly handling: readonly HandlingSignal[];
 }
 
 /** One coupling, its verdict, and the evidence behind it. */
@@ -283,14 +312,49 @@ function verdictFor(
 }
 
 /**
- * How an absent path shows up, which is not the same as whether it is absent.
+ * What the scan saw about a guard, and what it explicitly did not see.
+ *
+ * This clause used to finish the reader's sentence for them: guarded meant "an
+ * absent path SKIPS rather than fails … nothing reads as broken", asserted as
+ * though observed. It was inferred from one syntactic signal — that the read
+ * sits behind an `-f` test — and it was wrong about the first two steps it was
+ * ever quoted for, both of which fall back, annotate and verify rather than
+ * skip (CodySwannGT/lisa#3860). Generated prose that states a reader's thesis
+ * verbatim is the most persuasive evidence available and the least verified.
+ *
+ * So the consequence is no longer claimed. What is stated is what a guard
+ * establishes (the step can tell the path is missing), what was not read (the
+ * other branch, any fallback, any exit, any post-run verification), and which
+ * literal handling tokens the step's text carries.
  * @param guarded - Whether the read sits behind an existence test
- * @returns One clause describing the failure's shape
+ * @returns One clause describing what was and was not examined
  */
-function absenceShape(guarded: boolean): string {
+function guardShape(guarded: boolean): string {
   return guarded
-    ? "The read is guarded by an existence test, so an absent path SKIPS rather than fails — the step posts no context, and an absent required context is not a red one. Nothing reads as broken."
-    : "The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures.";
+    ? "The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one."
+    : "No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED.";
+}
+
+/**
+ * Which handling tokens the step's text carries, named without interpretation.
+ * @param handling - Signal names the scan found
+ * @returns One clause listing them, or saying none of the known names appear
+ */
+function handlingShape(handling: readonly HandlingSignal[]): string {
+  const quoted = (names: readonly string[]): string =>
+    names.map(name => `\`${name}\``).join(", ");
+  return handling.length === 0
+    ? `The step's text carries none of the tokens this scan can see (${quoted(HANDLING_SIGNALS)}), which is a statement about those names and not about the step's behaviour.`
+    : `The step's text does carry ${quoted(handling)} — located in the step, deliberately NOT related to this read, and enough to make "it skips silently" a claim to check rather than assume.`;
+}
+
+/**
+ * How an absent path shows up, which is not the same as whether it is absent.
+ * @param input - The coupling
+ * @returns Two clauses: what was examined, and what tokens were located
+ */
+function absenceShape(input: CouplingInput): string {
+  return `${guardShape(input.guarded)} ${handlingShape(input.handling)}`;
 }
 
 /**
@@ -305,12 +369,12 @@ function detailFor(input: CouplingInput, verdict: CouplingVerdict): string {
     return `${called} It resolves \`${input.path}\` only after a package-relative candidate, which travels with the installed package — the caller-tree copy is a fallback, not the delivery channel.`;
   }
   if (verdict === APPLY_LAGGED) {
-    return `${called} It reads \`${input.path}\` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the \`lisa apply\` channel (${input.lanes.join(", ")}). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. ${absenceShape(input.guarded)}`;
+    return `${called} It reads \`${input.path}\` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the \`lisa apply\` channel (${input.lanes.join(", ")}). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. ${absenceShape(input)}`;
   }
   if (verdict === NEVER_DELIVERED) {
-    return `${called} It reads \`${input.path}\` from the CALLER's tree, and Lisa ships that path create-only (${input.lanes.join(", ")}) — written once at scaffold time and never refreshed, so an existing consumer NEVER receives it. Fixing it upstream does not mean a bump brings it; adoption is a manual step the consumer must take. ${absenceShape(input.guarded)}`;
+    return `${called} It reads \`${input.path}\` from the CALLER's tree, and Lisa ships that path create-only (${input.lanes.join(", ")}) — written once at scaffold time and never refreshed, so an existing consumer NEVER receives it. Fixing it upstream does not mean a bump brings it; adoption is a manual step the consumer must take. ${absenceShape(input)}`;
   }
-  return `${called} It reads \`${input.path}\` from the CALLER's tree, and Lisa ships no such path in any delivery lane — no apply and no bump ever produces it. Either the consumer authors it or this step proves nothing wherever it is absent. ${absenceShape(input.guarded)}`;
+  return `${called} It reads \`${input.path}\` from the CALLER's tree, and Lisa ships no such path in any delivery lane — no apply and no bump ever produces it. Either the consumer authors it, or whatever the step does where the path is missing runs instead — and that branch is the part this scan does not read. ${absenceShape(input)}`;
 }
 
 /** Anything carrying the stable `<workflow>::<path>` identity. */

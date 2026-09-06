@@ -2317,7 +2317,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-nightly-e2e-guard-certificate.mjs":
       "0407e1e2b98b3f837f4a0cfd85262711dbfa6387ed40f4f9ac81ca447aec2913",
     "scripts/generate-two-channel-couplings.ts":
-      "8c1f5b8d6ac5043dec9789f3ac1fe83d9ba00d1e1eccf9c6a92f274ab8da919e",
+      "eeb2373773da025c04480cf5fcb7a60174e06e9fe70e84af40410cf8f7c40e1b",
     "scripts/generate-upstream-evidence-manifest.mjs":
       "8f18972834d6be9771501c35da30de95539a7e7b3fb3d7605e0bc31477812a5f",
     "scripts/github-status-check.sh":
@@ -2433,7 +2433,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "eea0d6a28e452caaac096aeba3b67b9e33c87d27b6b17b0c9bedeaf21f93c065",
+      "129a75e619afd20d1de0f074ff7064e36bd9ea96a7205927e8b5d4bf1751b50c",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":

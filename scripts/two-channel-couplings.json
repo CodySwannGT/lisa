@@ -24,10 +24,11 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": false,
+      "handling": [],
       "lanes": [
         "typescript/copy-overwrite"
       ],
-      "detail": "`create-github-issue-on-failure.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-provider-action.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+      "detail": "`create-github-issue-on-failure.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-provider-action.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
     },
     {
       "key": "create-jira-issue-on-failure.yml::scripts/nightly-e2e-provider-action.mjs",
@@ -37,10 +38,11 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": false,
+      "handling": [],
       "lanes": [
         "typescript/copy-overwrite"
       ],
-      "detail": "`create-jira-issue-on-failure.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-provider-action.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+      "detail": "`create-jira-issue-on-failure.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-provider-action.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
     },
     {
       "key": "create-linear-issue-on-failure.yml::scripts/nightly-e2e-provider-action.mjs",
@@ -50,10 +52,11 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": false,
+      "handling": [],
       "lanes": [
         "typescript/copy-overwrite"
       ],
-      "detail": "`create-linear-issue-on-failure.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-provider-action.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+      "detail": "`create-linear-issue-on-failure.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-provider-action.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
     },
     {
       "key": "create-sentry-issue-on-failure.yml::scripts/nightly-e2e-provider-action.mjs",
@@ -63,10 +66,11 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": false,
+      "handling": [],
       "lanes": [
         "typescript/copy-overwrite"
       ],
-      "detail": "`create-sentry-issue-on-failure.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-provider-action.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+      "detail": "`create-sentry-issue-on-failure.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-provider-action.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
     },
     {
       "key": "maestro-native-e2e.yml::scripts/classify-maestro-failures.mjs",
@@ -76,10 +80,14 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": false,
+      "handling": [
+        "exit-zero",
+        "failure-suppression"
+      ],
       "lanes": [
         "expo/copy-overwrite"
       ],
-      "detail": "`maestro-native-e2e.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/classify-maestro-failures.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (expo/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+      "detail": "`maestro-native-e2e.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/classify-maestro-failures.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (expo/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `exit-zero`, `failure-suppression` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
     },
     {
       "key": "nightly-e2e-health.yml::scripts/check-nightly-e2e-health.mjs",
@@ -89,10 +97,11 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": false,
+      "handling": [],
       "lanes": [
         "typescript/copy-overwrite"
       ],
-      "detail": "`nightly-e2e-health.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-nightly-e2e-health.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+      "detail": "`nightly-e2e-health.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-nightly-e2e-health.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
     },
     {
       "key": "nightly-e2e-health.yml::scripts/nightly-e2e-suites.schema.json",
@@ -102,10 +111,11 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": false,
+      "handling": [],
       "lanes": [
         "typescript/copy-overwrite"
       ],
-      "detail": "`nightly-e2e-health.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-suites.schema.json` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+      "detail": "`nightly-e2e-health.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-suites.schema.json` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
     },
     {
       "key": "nightly-e2e-report.yml::scripts/check-nightly-e2e-health.mjs",
@@ -115,10 +125,11 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": false,
+      "handling": [],
       "lanes": [
         "typescript/copy-overwrite"
       ],
-      "detail": "`nightly-e2e-report.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-nightly-e2e-health.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+      "detail": "`nightly-e2e-report.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-nightly-e2e-health.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
     },
     {
       "key": "nightly-e2e-tracking.yml::scripts/reconcile-nightly-e2e-tracking.mjs",
@@ -128,10 +139,11 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": false,
+      "handling": [],
       "lanes": [
         "typescript/copy-overwrite"
       ],
-      "detail": "`nightly-e2e-tracking.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/reconcile-nightly-e2e-tracking.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+      "detail": "`nightly-e2e-tracking.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/reconcile-nightly-e2e-tracking.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
     },
     {
       "key": "publish-to-npm.yml::scripts/check-npm-publish-landed.mjs",
@@ -141,10 +153,11 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": false,
+      "handling": [],
       "lanes": [
         "all/copy-overwrite"
       ],
-      "detail": "`publish-to-npm.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-npm-publish-landed.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+      "detail": "`publish-to-npm.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-npm-publish-landed.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
     },
     {
       "key": "publish-to-npm.yml::scripts/check-release-package-identity.mjs",
@@ -154,10 +167,11 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": false,
+      "handling": [],
       "lanes": [
         "all/copy-overwrite"
       ],
-      "detail": "`publish-to-npm.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-release-package-identity.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+      "detail": "`publish-to-npm.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-release-package-identity.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
     },
     {
       "key": "quality-rails.yml::scripts/check-threshold-ratchet.mjs",
@@ -167,11 +181,17 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": false,
+      "handling": [
+        "else-branch",
+        "exit-zero",
+        "exit-nonzero",
+        "error-annotation"
+      ],
       "lanes": [
         "rails/copy-overwrite",
         "typescript/copy-overwrite"
       ],
-      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-threshold-ratchet.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-overwrite, typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-threshold-ratchet.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-overwrite, typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
     },
     {
       "key": "quality-rails.yml::scripts/lisa-mutation.sh",
@@ -181,10 +201,15 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": true,
+      "handling": [
+        "exit-zero",
+        "exit-nonzero",
+        "error-annotation"
+      ],
       "lanes": [
         "rails/copy-contents"
       ],
-      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-mutation.sh` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-contents). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is guarded by an existence test, so an absent path SKIPS rather than fails — the step posts no context, and an absent required context is not a red one. Nothing reads as broken."
+      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-mutation.sh` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-contents). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `exit-zero`, `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
     },
     {
       "key": "quality-rails.yml::scripts/lisa-scratch-run.sh",
@@ -194,10 +219,15 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": true,
+      "handling": [
+        "exit-zero",
+        "exit-nonzero",
+        "error-annotation"
+      ],
       "lanes": [
         "rails/copy-overwrite"
       ],
-      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-scratch-run.sh` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is guarded by an existence test, so an absent path SKIPS rather than fails — the step posts no context, and an absent required context is not a red one. Nothing reads as broken."
+      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-scratch-run.sh` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `exit-zero`, `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
     },
     {
       "key": "quality-rails.yml::scripts/lisa-work-item.mjs",
@@ -207,10 +237,17 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": true,
+      "handling": [
+        "else-branch",
+        "exit-zero",
+        "exit-nonzero",
+        "error-annotation",
+        "notice-annotation"
+      ],
       "lanes": [
         "all/copy-overwrite"
       ],
-      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-work-item.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is guarded by an existence test, so an absent path SKIPS rather than fails — the step posts no context, and an absent required context is not a red one. Nothing reads as broken."
+      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-work-item.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
     },
     {
       "key": "quality.yml::scripts/check-e2e-coverage.mjs",
@@ -220,10 +257,16 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": true,
+      "handling": [
+        "else-branch",
+        "exit-nonzero",
+        "error-annotation",
+        "notice-annotation"
+      ],
       "lanes": [
         "expo/copy-overwrite"
       ],
-      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-e2e-coverage.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (expo/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is guarded by an existence test, so an absent path SKIPS rather than fails — the step posts no context, and an absent required context is not a red one. Nothing reads as broken."
+      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-e2e-coverage.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (expo/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-nonzero`, `error-annotation`, `notice-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
     },
     {
       "key": "quality.yml::scripts/check-learnings-budget.ts",
@@ -233,8 +276,14 @@
       "verdict": "undelivered",
       "remedy": "author-the-artifact",
       "guarded": true,
+      "handling": [
+        "else-branch",
+        "exit-nonzero",
+        "error-annotation",
+        "failure-suppression"
+      ],
       "lanes": [],
-      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-learnings-budget.ts` from the CALLER's tree, and Lisa ships no such path in any delivery lane — no apply and no bump ever produces it. Either the consumer authors it or this step proves nothing wherever it is absent. The read is guarded by an existence test, so an absent path SKIPS rather than fails — the step posts no context, and an absent required context is not a red one. Nothing reads as broken."
+      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-learnings-budget.ts` from the CALLER's tree, and Lisa ships no such path in any delivery lane — no apply and no bump ever produces it. Either the consumer authors it, or whatever the step does where the path is missing runs instead — and that branch is the part this scan does not read. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-nonzero`, `error-annotation`, `failure-suppression` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
     },
     {
       "key": "quality.yml::scripts/check-skipped-required-checks.mjs",
@@ -244,10 +293,15 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": false,
+      "handling": [
+        "exit-zero",
+        "exit-nonzero",
+        "error-annotation"
+      ],
       "lanes": [
         "typescript/copy-overwrite"
       ],
-      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-skipped-required-checks.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-skipped-required-checks.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `exit-zero`, `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
     },
     {
       "key": "quality.yml::scripts/check-state-classification.mjs",
@@ -257,10 +311,16 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": true,
+      "handling": [
+        "else-branch",
+        "exit-nonzero",
+        "error-annotation",
+        "notice-annotation"
+      ],
       "lanes": [
         "all/copy-overwrite"
       ],
-      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-state-classification.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is guarded by an existence test, so an absent path SKIPS rather than fails — the step posts no context, and an absent required context is not a red one. Nothing reads as broken."
+      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-state-classification.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-nonzero`, `error-annotation`, `notice-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
     },
     {
       "key": "quality.yml::scripts/check-threshold-ratchet.mjs",
@@ -270,11 +330,17 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": false,
+      "handling": [
+        "else-branch",
+        "exit-zero",
+        "exit-nonzero",
+        "error-annotation"
+      ],
       "lanes": [
         "rails/copy-overwrite",
         "typescript/copy-overwrite"
       ],
-      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-threshold-ratchet.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-overwrite, typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-threshold-ratchet.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-overwrite, typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
     },
     {
       "key": "quality.yml::scripts/check-verification-coverage.mjs",
@@ -284,10 +350,11 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": false,
+      "handling": [],
       "lanes": [
         "typescript/copy-overwrite"
       ],
-      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-verification-coverage.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-verification-coverage.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
     },
     {
       "key": "quality.yml::scripts/generate-nightly-e2e-guard-certificate.mjs",
@@ -297,8 +364,12 @@
       "verdict": "undelivered",
       "remedy": "author-the-artifact",
       "guarded": true,
+      "handling": [
+        "exit-zero",
+        "notice-annotation"
+      ],
       "lanes": [],
-      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/generate-nightly-e2e-guard-certificate.mjs` from the CALLER's tree, and Lisa ships no such path in any delivery lane — no apply and no bump ever produces it. Either the consumer authors it or this step proves nothing wherever it is absent. The read is guarded by an existence test, so an absent path SKIPS rather than fails — the step posts no context, and an absent required context is not a red one. Nothing reads as broken."
+      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/generate-nightly-e2e-guard-certificate.mjs` from the CALLER's tree, and Lisa ships no such path in any delivery lane — no apply and no bump ever produces it. Either the consumer authors it, or whatever the step does where the path is missing runs instead — and that branch is the part this scan does not read. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `exit-zero`, `notice-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
     },
     {
       "key": "quality.yml::scripts/lisa-floor-collisions.mjs",
@@ -308,10 +379,14 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": false,
+      "handling": [
+        "exit-nonzero",
+        "error-annotation"
+      ],
       "lanes": [
         "all/copy-overwrite"
       ],
-      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-floor-collisions.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is unguarded, so an absent path fails the job loudly. Visible, which makes it the better of the two failures."
+      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-floor-collisions.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
     },
     {
       "key": "quality.yml::scripts/lisa-work-item.mjs",
@@ -321,10 +396,17 @@
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
       "guarded": true,
+      "handling": [
+        "else-branch",
+        "exit-zero",
+        "exit-nonzero",
+        "error-annotation",
+        "notice-annotation"
+      ],
       "lanes": [
         "all/copy-overwrite"
       ],
-      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-work-item.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read is guarded by an existence test, so an absent path SKIPS rather than fails — the step posts no context, and an absent required context is not a red one. Nothing reads as broken."
+      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-work-item.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
     }
   ]
 }

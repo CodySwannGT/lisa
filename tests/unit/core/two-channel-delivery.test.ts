@@ -12,6 +12,7 @@
 import { describe, expect, it } from "vitest";
 import {
   classifyTwoChannelDelivery,
+  HANDLING_SIGNALS,
   resolveDeliveryChannel,
   type CouplingInput,
 } from "../../../src/core/two-channel-delivery.js";
@@ -44,6 +45,7 @@ function coupling(overrides: Partial<CouplingInput> = {}): CouplingInput {
     lanes: [APPLY_LANE],
     packageBacked: false,
     guarded: false,
+    handling: [],
     ...overrides,
   };
 }
@@ -125,25 +127,92 @@ describe("classifyTwoChannelDelivery verdicts", () => {
     expect(report.findings).toHaveLength(0);
   });
 
-  it("says in the detail that a guarded absence skips rather than fails", () => {
+  it("never asserts what a guarded step does with an absent path", () => {
+    // CodySwannGT/lisa#3860. The detail used to end "an absent path SKIPS
+    // rather than fails ... Nothing reads as broken", inferred from the one
+    // syntactic signal the scan reads. The first two steps it was quoted for
+    // both fall back, annotate and verify instead, and the claim was nearly
+    // cited on a public ticket as measured evidence of a third defect.
     const report = classifyTwoChannelDelivery({
       couplings: [coupling({ lanes: [], guarded: true })],
       inspected: MEASURED,
       ratified: {},
     });
-    expect(report.entries[0]?.detail).toContain("SKIPS rather than fails");
-    expect(report.entries[0]?.detail).toContain(
-      "an absent required context is not a red one"
-    );
+    const detail = report.entries[0]?.detail ?? "";
+    expect(detail).not.toContain("SKIPS rather than fails");
+    expect(detail).not.toContain("Nothing reads as broken");
+    expect(detail).not.toContain("the step posts no context");
   });
 
-  it("says in the detail that an unguarded absence fails loudly", () => {
+  it("labels a guarded absence's consequence as unmeasured, and names what to read", () => {
+    const report = classifyTwoChannelDelivery({
+      couplings: [coupling({ lanes: [], guarded: true })],
+      inspected: MEASURED,
+      ratified: {},
+    });
+    const detail = report.entries[0]?.detail ?? "";
+    expect(detail).toContain("NOT MEASURED");
+    expect(detail).toContain("the test's other branch");
+    expect(detail).toContain("any verification of the step's output");
+  });
+
+  it("labels an unguarded absence's consequence as inferred, not observed", () => {
+    // The other arm of the same discipline. "Fails loudly" was equally a
+    // consequence read off one signal -- a `|| true` or `continue-on-error:`
+    // absorbs it, and the scan never looked.
     const report = classifyTwoChannelDelivery({
       couplings: [coupling({ lanes: [], guarded: false })],
       inspected: MEASURED,
       ratified: {},
     });
-    expect(report.entries[0]?.detail).toContain("fails the job loudly");
+    const detail = report.entries[0]?.detail ?? "";
+    expect(detail).toContain("most likely fails the job loudly");
+    expect(detail).toContain("inferred from the missing guard, NOT MEASURED");
+  });
+
+  it("names the handling tokens the step's text carries, without relating them", () => {
+    const report = classifyTwoChannelDelivery({
+      couplings: [
+        coupling({
+          lanes: [],
+          guarded: true,
+          handling: ["else-branch", "exit-nonzero", "error-annotation"],
+        }),
+      ],
+      inspected: MEASURED,
+      ratified: {},
+    });
+    const detail = report.entries[0]?.detail ?? "";
+    expect(detail).toContain(
+      "`else-branch`, `exit-nonzero`, `error-annotation`"
+    );
+    expect(detail).toContain("deliberately NOT related to this read");
+  });
+
+  it("says which token names it looked for when a step carries none", () => {
+    // Otherwise "carries no handling tokens" and "the scan stopped looking"
+    // render identically, which is the failure this whole module is about.
+    const report = classifyTwoChannelDelivery({
+      couplings: [coupling({ lanes: [], guarded: true, handling: [] })],
+      inspected: MEASURED,
+      ratified: {},
+    });
+    const detail = report.entries[0]?.detail ?? "";
+    for (const name of HANDLING_SIGNALS) {
+      expect(detail).toContain(`\`${name}\``);
+    }
+  });
+
+  it("leaves the verdict and remedy untouched by any of the above", () => {
+    const guarded = classifyTwoChannelDelivery({
+      couplings: [
+        coupling({ lanes: [], guarded: true, handling: ["else-branch"] }),
+      ],
+      inspected: MEASURED,
+      ratified: {},
+    });
+    expect(guarded.entries[0]?.verdict).toBe("undelivered");
+    expect(guarded.entries[0]?.remedy).toBe("author-the-artifact");
   });
 });
 

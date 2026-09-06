@@ -241,6 +241,7 @@ interface Ledger {
     readonly verdict: string;
     readonly remedy: string;
     readonly guarded: boolean;
+    readonly handling: readonly string[];
     readonly lanes: readonly string[];
     readonly detail: string;
   }[];
@@ -288,6 +289,7 @@ function toLedger(
         verdict: entry.verdict,
         remedy: entry.remedy,
         guarded: entry.guarded,
+        handling: entry.handling,
         lanes: entry.lanes,
         detail: entry.detail,
       })),
