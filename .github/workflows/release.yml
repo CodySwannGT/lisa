@@ -36,7 +36,11 @@ on:
         type: boolean
         default: false
       release_strategy:
-        description: 'Version strategy: standard-version, semantic, calendar, custom'
+        # The tagging half is stated here because this description is the only
+        # place a consumer choosing a strategy reads before choosing it, and a
+        # strategy that shares one tag namespace across deploy branches fails
+        # in a way that looks like a release problem rather than a config one.
+        description: 'Version strategy: standard-version, semantic, calendar, custom. Every strategy except `custom` scopes its tags per environment — production cuts a clean `vX.Y.Z` and every other environment cuts `vX.Y.Z-<environment>.<epoch>`, so deploy branches cannot collide. `custom` keeps the pinned version verbatim and fails loudly if that tag is already held.'
         required: false
         type: string
         default: 'standard-version'
@@ -627,7 +631,7 @@ jobs:
               ;;
           esac
 
-          # Environment-scoped release tags (standard-version strategy).
+          # Environment-scoped release tags.
           # Tags are repo-global but version counters are branch-local, so
           # before this a version created by one env's release — and carried
           # onto another env's branch by a promote or main->staging sync merge —
@@ -640,17 +644,41 @@ jobs:
           # branch (only the git tag carries the suffix), so standard-version's
           # next-version computation — which reads package.json — is never fed a
           # prerelease string. An explicit `prerelease` input still wins.
-          # Only standard-version is scoped in here; semantic/calendar/custom
-          # keep their prior behavior (below).
+          #
+          # Scoping originally applied only to `standard-version`, which left
+          # `semantic` and `calendar` sharing one `vX.Y.Z` namespace across every
+          # deploy branch (CodySwannGT/lisa#3741). It now covers every strategy
+          # except `custom`: an explicitly pinned version must never be renamed,
+          # so `custom` keeps the clean tag and refuses a collision by name in
+          # the branch below instead of routing around it.
+          #
+          # Tags cut before this change are untouched and are NOT retroactively
+          # attributed to a strategy or an environment — a clean `vX.Y.Z` minted
+          # under the old shared namespace stays exactly what it is. The scheme
+          # applies to newly cut tags only, and because a non-prod tag is
+          # strictly longer than the clean tag it would otherwise have been, no
+          # existing tag name can be reinterpreted by it.
           PRERELEASE_LABEL="$RELEASE_PRERELEASE"
-          if [ -z "$PRERELEASE_LABEL" ] && [ "$RELEASE_STRATEGY" == "standard-version" ]; then
+          if [ -z "$PRERELEASE_LABEL" ] && [ "$RELEASE_STRATEGY" != "custom" ]; then
             case "$RELEASE_ENVIRONMENT" in
               main|master|prod|production) PRERELEASE_LABEL="" ;;
               *) PRERELEASE_LABEL="$RELEASE_ENVIRONMENT" ;;
             esac
           fi
 
-          if [ -n "$PRERELEASE_LABEL" ] && [ "$RELEASE_STRATEGY" != "calendar" ]; then
+          # `calendar` bakes an explicit `prerelease` input into VERSION itself
+          # (`YYYY.MM.DD-<label>.<HHMM>`), so appending a label to the tag as
+          # well would yield `vYYYY.MM.DD-beta.1200-beta.<ts>` — a pinned or
+          # operator-chosen identifier silently renamed. Test VERSION's shape
+          # rather than the strategy name: a VERSION that already carries a
+          # prerelease suffix is already outside the clean namespace and needs
+          # no second one. (`${VERSION#*-}` differs from VERSION only when
+          # VERSION contains a `-`.)
+          if [ "${VERSION#*-}" != "$VERSION" ]; then
+            PRERELEASE_LABEL=""
+          fi
+
+          if [ -n "$PRERELEASE_LABEL" ]; then
             # Non-prod (or explicit prerelease): unique timestamped tag, clean
             # package.json version. The timestamp guarantees tag uniqueness, so
             # no collision guard is needed.
@@ -658,13 +686,28 @@ jobs:
             echo "prerelease=true" >> $GITHUB_OUTPUT
           else
             echo "prerelease=false" >> $GITHUB_OUTPUT
-            # Prod (clean tag) / calendar: guard against cross-branch collisions
-            # on the clean tag — fetch fresh tags (they are repo-global and a
-            # sibling branch may have just created one) and bump patch until the
-            # tag is free. Skipped for "custom" — an explicitly pinned version
-            # must not be silently changed.
-            if [ "$RELEASE_STRATEGY" != "custom" ]; then
-              git fetch --tags --force origin >/dev/null 2>&1 || true
+            # Prod, or a version that already carries its own prerelease
+            # suffix: this tag is clean-shaped, so guard against cross-branch
+            # collisions on it. Tags are repo-global and a sibling branch may
+            # have just created one, so refresh them first.
+            git fetch --tags --force origin >/dev/null 2>&1 || true
+            if [ "$RELEASE_STRATEGY" == "custom" ]; then
+              # An explicitly pinned version is never renamed or bumped, so a
+              # taken tag is an operator error rather than something to route
+              # around: fail naming the tag and the refs that hold it. A tag
+              # already on THIS commit is a rerun of the same release and is
+              # fine — Create GitHub Release is idempotent on it.
+              EXISTING_SHA=$(git rev-list -n 1 "refs/tags/v$VERSION" 2>/dev/null || true)
+              if [ -n "$EXISTING_SHA" ] && [ "$EXISTING_SHA" != "$(git rev-parse HEAD)" ]; then
+                HOLDERS=$(git branch -a --contains "$EXISTING_SHA" --format='%(refname:short)' 2>/dev/null | head -n 5 | tr '\n' ' ' | sed 's/[[:space:]]*$//')
+                if [ -z "$HOLDERS" ]; then
+                  HOLDERS="(no branch contains it)"
+                fi
+                echo "::error::Refusing to release: tag v$VERSION already exists on commit $EXISTING_SHA, held by: $HOLDERS. release_strategy=custom pins an explicit version and this workflow never renames or bumps it — pass a different custom_version."
+                echo "❌ Release refused: tag v$VERSION already exists, held by: $HOLDERS" >> "$GITHUB_STEP_SUMMARY"
+                exit 1
+              fi
+            else
               while git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; do
                 echo "::warning::Tag v$VERSION already exists (released from another branch); bumping patch"
                 VERSION=$(npx semver -i patch "$VERSION")
