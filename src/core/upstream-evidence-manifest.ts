@@ -31,7 +31,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs":
       "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs":
-      "a9b6c722aa7e5748748484ece704d6179850956db5f437dc9ff5d9ad6bd9f704",
+      "cffebe7feca1b5cce7b514bd1b5e991375cbc20607dff70385699e474e36b4d3",
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
       "014a94647efc636cbce961364a82f03c1f3c1e54a55e9d21508fded88dce49c4",
     "all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs":
@@ -77,7 +77,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "adbf8dccc221ec83641f1f5358ccafc9ec70a4ea6372ae6ad874603d767d693d",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "03f444baebafd72f5ecdc2088a599cb990e9e9f3aa79e3b9462904d6e7a560d7",
+      "7d91ef0e06c53d9d09ddc0b03a22ddd5933e4001ab759c14a964a463df58e635",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -10293,6 +10293,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-run-gates-evidence.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-fixtures.ts": true,
     "tests/unit/scripts/lisa-run-gates-floor.test.ts": true,
+    "tests/unit/scripts/lisa-run-gates-interrupted.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-invalid-config.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-kill-context.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-killed.test.ts": true,
@@ -10362,6 +10363,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/plugin-sync-scripts.test.ts": true,
     "tests/unit/scripts/plugin-sync-workflow.test.ts": true,
     "tests/unit/scripts/probe-failure-not-absence.test.ts": true,
+    "tests/unit/scripts/process-tree-runner-interrupt.test.ts": true,
     "tests/unit/scripts/process-tree-runner-verdict-transport.test.ts": true,
     "tests/unit/scripts/process-tree-runner.test.ts": true,
     "tests/unit/scripts/reconcile-release-tags.test.ts": true,

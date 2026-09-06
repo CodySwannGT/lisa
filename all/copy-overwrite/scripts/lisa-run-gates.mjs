@@ -67,6 +67,10 @@ import {
 import { boundedSpawnSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import {
+  interruptionReason,
+  isWatchablePid,
+} from "./lib/process-tree-runner.mjs";
+import {
   compareCodeUnits,
   configurationProblems,
   declarationsAt,
@@ -228,8 +232,11 @@ export const CONDITIONAL_FLOOR = Object.freeze({
  * What running one moment produced.
  * @typedef {object} GateRun
  * @property {string} moment The moment that was run.
- * @property {boolean} blocked Whether a required gate went unproved.
+ * @property {boolean} blocked Whether a required gate went unproved, or the
+ *   run was interrupted before it could reach them all.
  * @property {string|null} blockedBy The first required gate that went unproved.
+ * @property {string|null} interrupted Why the run stopped early, when the
+ *   caller it was proving for went away; `null` on a run that ran to the end.
  * @property {number} total Gates declared at this moment.
  * @property {GateOutcome[]} results Every gate, in execution order.
  * @property {GateOutcome[]} passed Gates that ran and exited zero.
@@ -649,7 +656,9 @@ function summarise(result, priorKills = []) {
     );
     lines.push(
       `   Each of those may pass or fail; this run does not say which. ` +
-        `${result.blockedBy} failed first and stopped them.`
+        (result.interrupted
+          ? `The run was interrupted before it reached them.`
+          : `${result.blockedBy} failed first and stopped them.`)
     );
   }
   if (result.blocked) {
@@ -658,6 +667,19 @@ function summarise(result, priorKills = []) {
         `⏭️  ${result.skipped.length} gate(s) NOT APPLICABLE here — their ` +
           `verdict IS established, there was nothing to run: ` +
           `${result.skipped.map(entry => entry.id).join(", ")}`
+      );
+    }
+    // The headline an interrupted run gets INSTEAD of the completion one
+    // below. Two reports that differ only in their counts are two reports a
+    // reader will conflate, and conflating them is the defect: a chain that
+    // stopped because nobody was left to receive its verdict reads exactly
+    // like a chain that finished, right down to the tally.
+    if (result.interrupted) {
+      lines.push(
+        `🛑 ${result.moment}: INTERRUPTED, not completed — ` +
+          `${result.interrupted}. ${result.passed.length} of ` +
+          `${result.total} gate(s) were proved before it stopped; the rest ` +
+          `were not run. This is NOT a pass.`
       );
     }
     return lines;
@@ -795,6 +817,10 @@ function verdictFor(gate, { proved, blockedBy, exec, siblings, declarations }) {
  * @param {function({kind: string, gateId: string}): boolean} [options.recordKill]
  *   Kill-marker writer, injectable so marker cardinality can be proved without
  *   writing to the host's shared marker directory.
+ * @param {function(): (string|null)} [options.interrupted] Asks, between gates,
+ *   whether the run this chain serves is still there. Injectable for the same
+ *   reason `exec` is: a test states that the caller went away instead of having
+ *   to kill a real hook mid-chain.
  * @returns {GateRun} What every declared gate at this moment produced.
  */
 export function runGates({
@@ -806,6 +832,7 @@ export function runGates({
   scripts = null,
   priorKills = recentKillMarks(),
   recordKill = recordKillMark,
+  interrupted = runInterruption,
 }) {
   const resolved = resolveMoment({ gates, moment, runner, scripts });
   const results = [];
@@ -853,7 +880,34 @@ export function runGates({
   // Each verdict is printed as it is reached, not batched at the end: a push
   // gate can run for minutes, and an operator watching a hook needs to know
   // which gate is being proved right now, not only what the tally was.
+  // Set once, by the first gate boundary at which the run's caller is gone.
+  // Asked between gates rather than only at the start, because the interrupt
+  // this exists for arrives DURING the chain — that is the whole shape of the
+  // incident: a hook killed while the push gates were minutes into running.
+  let interruption = null;
+
   for (const gate of resolved) {
+    interruption ??= interrupted();
+    if (interruption !== null) {
+      // NOT_RUN, not SKIPPED: a skipped gate has a verdict — there was nothing
+      // to run — and these have none. The run stopped before reaching them and
+      // says so, rather than letting an operator read a short report as a
+      // complete one.
+      const detail =
+        `verdict UNKNOWN — never ran; the run was interrupted ` +
+        `(${interruption}) before reaching this gate`;
+      results.push({
+        ...gate,
+        state: STATE.NOT_RUN,
+        detail,
+        code: null,
+        diagnosis: null,
+        evidence: [],
+        provedBy: null,
+      });
+      out(formatLine(STATE.NOT_RUN, gate, detail));
+      continue;
+    }
     const { outcome, shared, ran, raw } = verdictFor(gate, {
       proved,
       blockedBy,
@@ -890,8 +944,13 @@ export function runGates({
   const bucket = state => results.filter(entry => entry.state === state);
   const result = {
     moment,
-    blocked: blockedBy !== null,
+    // An interrupted run blocks for the same reason a failed one does, and it
+    // is important that it blocks WITHOUT a `blockedBy`: no gate failed here.
+    // Borrowing a gate id to explain the stop would send an operator hunting a
+    // regression that does not exist.
+    blocked: blockedBy !== null || interruption !== null,
     blockedBy,
+    interrupted: interruption,
     total: resolved.length,
     results,
     passed: bucket(STATE.PASSED),
@@ -1110,6 +1169,35 @@ const PROCESS_TREE_RUNNER = fileURLToPath(
 );
 
 /**
+ * Who started this run, captured before anything can reparent it.
+ *
+ * A git hook, usually. Read once at load rather than at each use, because the
+ * whole question this answers is whether the value has CHANGED — and a value
+ * re-read at comparison time can only ever equal itself.
+ */
+const LAUNCH_PARENT_PID = process.ppid;
+
+/**
+ * Why this run should stop early, if it should.
+ *
+ * The runner spends nearly all of its life blocked inside a synchronous child,
+ * where a JavaScript signal handler cannot run — registering one there would
+ * suppress the default termination and leave the run alive for the rest of the
+ * chain, which is worse than having none. So the interrupt path is built the
+ * other way round: the supervisor (which IS asynchronous) is told which pids
+ * the run depends on and exits when one dies, the synchronous child returns,
+ * and this check between gates is what stops the chain rather than letting it
+ * proceed to the next gate for a caller that is gone.
+ * @returns {string|null} An operator-readable reason, or null to keep going.
+ */
+function runInterruption() {
+  return interruptionReason({
+    launchParentPid: LAUNCH_PARENT_PID,
+    currentParentPid: process.ppid,
+  });
+}
+
+/**
  * Run a shell command under a process-tree deadline.
  * @param {string} command Shell source.
  * @param {object} options Child options passed to the supervisor.
@@ -1118,9 +1206,16 @@ const PROCESS_TREE_RUNNER = fileURLToPath(
 function runProcessTree(command, options = {}) {
   const timeout = options.timeout ?? GATE_COMMAND_BUDGET_MS;
   const { shell: _shell, ...childOptions } = options;
+  // The supervisor already ends itself when THIS process dies; naming the
+  // process above it is what covers the measured incident, where the hook was
+  // killed and the runner — not the supervisor — was the orphan that kept the
+  // whole chain executing for a caller that no longer existed.
+  const watch = isWatchablePid(LAUNCH_PARENT_PID)
+    ? [`--watch-pid=${LAUNCH_PARENT_PID}`]
+    : [];
   return boundedSpawnSync(
     process.execPath,
-    [PROCESS_TREE_RUNNER, `--timeout-ms=${timeout}`, "--", command],
+    [PROCESS_TREE_RUNNER, `--timeout-ms=${timeout}`, ...watch, "--", command],
     {
       ...childOptions,
       timeout: timeout + PROCESS_TREE_REAP_BUDGET_MS,
