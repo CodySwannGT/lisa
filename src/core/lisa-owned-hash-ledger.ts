@@ -227,6 +227,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "e8f70dce15f9dce2b1758fa657d9a279cecc9f8c2a7b69a3bfca86ec37eb2e3f",
   ]),
   "scripts/check-orphaned-branches.mjs": Object.freeze([
+    "42a107a86032a7f72e9d05a74bd9026c20589b87a15148a00802c1c0c0f65c9d",
     "436fb5d8c3b2a686d4e4c350858cee9b4fd7bb6e3d1f6b37496fc345a45618cd",
     "857b923b3fb19db9755e5a62e54ad14a33862a17051bc63ec65563c1295713c3",
     "a69b68b4e4cc66e00d4b5035329f23c9b4c37790a69231a5202a27e511f6c4ef",
@@ -1078,6 +1079,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "8212fef1d2f32b9496bcbb757a7cd3d505f586b844cbc251810855617528c0ad",
     "83e7f1257bfee293bcdcdafef4272f40fcdca2d9e43ceb9df647c13c8277423d",
     "89a9c4c2f93ed1e318e61f15f66b89e924c624eaf3fbaae8eeb4a94ca7158be5",
+    "89eb480777c22631ca8e21f54a526ad5890ea7ff2746ae7eec93447e0f8a8331",
     "8c3effe804dfbea75011271f9d96eeb125fcbb97dc6397cc2c2dffd935f3aef0",
     "8cd8d102d4b3276f92bb4706274d280c302269fb2f564ca93b1d79cb3ff26841",
     "9208f22d9044f300af0f4a8b32ab7c427cf82b200afbacd58de14cf2704a6797",
@@ -1445,6 +1447,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "e8f70dce15f9dce2b1758fa657d9a279cecc9f8c2a7b69a3bfca86ec37eb2e3f",
   ]),
   "scripts/check-orphaned-branches.mjs": Object.freeze([
+    "42a107a86032a7f72e9d05a74bd9026c20589b87a15148a00802c1c0c0f65c9d",
     "436fb5d8c3b2a686d4e4c350858cee9b4fd7bb6e3d1f6b37496fc345a45618cd",
     "857b923b3fb19db9755e5a62e54ad14a33862a17051bc63ec65563c1295713c3",
     "a69b68b4e4cc66e00d4b5035329f23c9b4c37790a69231a5202a27e511f6c4ef",
@@ -2224,6 +2227,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "8212fef1d2f32b9496bcbb757a7cd3d505f586b844cbc251810855617528c0ad",
     "83e7f1257bfee293bcdcdafef4272f40fcdca2d9e43ceb9df647c13c8277423d",
     "89a9c4c2f93ed1e318e61f15f66b89e924c624eaf3fbaae8eeb4a94ca7158be5",
+    "89eb480777c22631ca8e21f54a526ad5890ea7ff2746ae7eec93447e0f8a8331",
     "8c3effe804dfbea75011271f9d96eeb125fcbb97dc6397cc2c2dffd935f3aef0",
     "8cd8d102d4b3276f92bb4706274d280c302269fb2f564ca93b1d79cb3ff26841",
     "9208f22d9044f300af0f4a8b32ab7c427cf82b200afbacd58de14cf2704a6797",

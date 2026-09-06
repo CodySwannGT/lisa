@@ -11,7 +11,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-npm-publish-landed.mjs":
       "bba6114e5e4643575749210819acfda207260ac1db5fcb48c33c320c3a9503ca",
     "all/copy-overwrite/scripts/check-orphaned-branches.mjs":
-      "ba88891a0a9be364ae225e133642c719e2b79bf29847a5ddbda66b740b1d9909",
+      "42a107a86032a7f72e9d05a74bd9026c20589b87a15148a00802c1c0c0f65c9d",
     "all/copy-overwrite/scripts/check-release-package-identity.mjs":
       "a64b5567b96706d5d7f573830cce0e623d7e4c36bb6a47c291aa02bcad79039d",
     "all/copy-overwrite/scripts/check-state-classification.mjs":
@@ -85,7 +85,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "23b58ea56cb26fbdef204d7bdbc4f18fe097947d64f733381823e900a30ea70c",
+      "89eb480777c22631ca8e21f54a526ad5890ea7ff2746ae7eec93447e0f8a8331",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -10431,6 +10431,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-backlink-exactness.test.ts": true,
     "tests/unit/scripts/work-item-cli-binding.test.ts": true,
     "tests/unit/scripts/work-item-cli-commit.test.ts": true,
+    "tests/unit/scripts/work-item-cli-lane.test.ts": true,
     "tests/unit/scripts/work-item-cli-pull-request.test.ts": true,
     "tests/unit/scripts/work-item-cli-rebase.test.ts": true,
     "tests/unit/scripts/work-item-cli-trackers.test.ts": true,

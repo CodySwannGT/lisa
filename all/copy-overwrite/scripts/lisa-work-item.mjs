@@ -8,6 +8,7 @@
  * commit trailers, pull-request bodies, and the configured tracker.
  */
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   chmodSync,
   existsSync,
@@ -65,6 +66,8 @@ export const WORK_ITEM_CONTRACT_VERSION = "1.0.0";
 const RELEASE_SUBJECT =
   /^chore\(release\): \d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)? \[skip ci\](?: \[skip-cd\])?$/;
 const ZERO_OID = /^0+$/;
+/** `git` pretty-format that prints a commit message body verbatim. */
+const RAW_MESSAGE_FORMAT = "--format=%B";
 const MARKER = "[lisa-pr-link]";
 /**
  * The deploy environment whose done role is terminal — the only one that
@@ -120,6 +123,200 @@ function workItemLineValue(line) {
   const value = line.slice(match[0].length).trim();
   return value === "" ? null : value;
 }
+/**
+ * ## Lane attribution: which agent lane produced this, without saying who
+ *
+ * Every session in this fleet — and the human operator — pushes under ONE git
+ * identity, so `author.login` is a constant across every commit, branch and
+ * pull request. That is correct for accountability (the human IS the author of
+ * all of it) and useless for ROUTING: a green pull request nobody armed, a
+ * branch carrying finished work, an unpushed body found in a worktree sweep —
+ * none of them can be handed back to whoever should finish them, because the
+ * record does not say which lane made them. A survey has to guess from branch
+ * names and file mtimes, and guesses have been wrong in both directions.
+ *
+ * The obvious remedy — record the session URL — is itself a defect: this is a
+ * public repository and a published session identifier is an
+ * identifier-hygiene problem, filed separately. So the requirement is narrower
+ * than "add provenance":
+ *
+ * - it must distinguish WHICH lane to route to;
+ * - it must publish nothing that is itself an identifier;
+ * - it must survive the branch being deleted, which is when routing matters
+ *   most, because pull requests auto-delete their branch on merge;
+ * - and it must not imply the human is not the accountable author.
+ *
+ * A lane id satisfies all four. It is `lane-` followed by twelve hex
+ * characters of a SHA-256 over an owner id the AGENT RUNTIME supplied — never
+ * the id itself. The digest is one-way over a high-entropy input, so it names
+ * no session, no URL, no person and no project; it is a stable handle that
+ * only a live lane can claim, by deriving its own and finding them equal.
+ *
+ * ### Written once, at the source
+ *
+ * The stamp goes on at `prepare-commit-msg`, in the process that is making the
+ * commit, from that process's own environment. An attribution reconstructed
+ * later — from a branch name, a timestamp, a report of a report — loses
+ * fidelity at every hop, and the sweep that motivated this is exactly that
+ * failure. `--if-exists=doNothing` means a rebase, an amend or a cherry-pick
+ * by a DIFFERENT lane preserves the original stamp rather than stealing the
+ * attribution.
+ *
+ * ### One primitive, three surfaces
+ *
+ * `renderLaneTrailer` / `parseLaneId` are deliberately text-in, text-out and
+ * carry no assumption that the text is a commit message. The same pair serves
+ * a commit trailer, a pull-request body marker and a tracker comment footer —
+ * the three places sibling work needs lane attribution — so the fleet has one
+ * token vocabulary rather than three bespoke ones.
+ *
+ * @see CodySwannGT/lisa#3771
+ */
+
+/** Trailer key that carries the lane id in a commit message or PR body. */
+export const LANE_TRAILER = "Lane-Id";
+
+/**
+ * Environment variables consulted, in order, for the caller's owner id.
+ *
+ * Every one is supplied by the surrounding agent runtime. Lisa invents none of
+ * them: an id minted per invocation would differ from the one stamped on the
+ * commit and no lane could ever recognise its own work.
+ *
+ * `CLAUDE_CODE_SESSION_ID` is the variable Claude Code actually exports.
+ * `CLAUDE_SESSION_ID` is kept after it because the sibling list in
+ * `src/cli/worktree-ownership.ts` shipped with only that spelling, and a
+ * receipt written under it must keep resolving.
+ *
+ * A unit test asserts this list equals that one. Two readers of one fact drift
+ * silently otherwise, and the drift is invisible: both halves keep working,
+ * they just stop agreeing about who "mine" is.
+ */
+export const LANE_ID_VARIABLES = Object.freeze([
+  "LISA_OWNER_ID",
+  "CLAUDE_CODE_SESSION_ID",
+  "CLAUDE_SESSION_ID",
+  "CODEX_SESSION_ID",
+]);
+
+/** Fixed, human-readable prefix that makes a lane id greppable. */
+const LANE_PREFIX = "lane-";
+/**
+ * Hex characters of the digest kept.
+ *
+ * Twelve is 48 bits — collision-free at fleet scale by a wide margin, and
+ * short enough to read in a report line without wrapping.
+ */
+const LANE_DIGEST_LENGTH = 12;
+/**
+ * The prefix only: an anchored, fixed-length literal with no quantifier, so it
+ * cannot backtrack over a commit message or pull-request body this script does
+ * not own. Same reasoning as `WORK_ITEM_PREFIX` above; the value is parsed by
+ * character scanning rather than by a second pattern.
+ */
+const LANE_PREFIX_MATCH = /^lane-id:/i;
+
+/**
+ * Derive a lane id from an owner id supplied by the agent runtime.
+ *
+ * One-way by construction. The returned token cannot be turned back into the
+ * owner id, contains no character the owner id contributed, and is therefore
+ * safe to publish on a public repository — which is the whole reason it is a
+ * digest rather than the id.
+ * @param {unknown} ownerId Owner id from the agent runtime.
+ * @returns {string | undefined} The lane id, or undefined when there is no id.
+ */
+export function deriveLaneId(ownerId) {
+  const trimmed = typeof ownerId === "string" ? ownerId.trim() : "";
+  if (trimmed === "") return undefined;
+  const digest = createHash("sha256").update(trimmed, "utf8").digest("hex");
+  return LANE_PREFIX + digest.slice(0, LANE_DIGEST_LENGTH);
+}
+
+/**
+ * Resolve the lane id of the process running this command.
+ *
+ * Undefined is a real answer and a restrictive one: a caller with no id can
+ * never match a stamp, so every attributed commit is somebody else's as far as
+ * it is concerned. "I could not tell" must never resolve in favour of taking
+ * over another lane's work.
+ * @param {NodeJS.ProcessEnv} [env] Environment to read.
+ * @returns {string | undefined} The caller's lane id, or undefined.
+ */
+export function resolveCallerLaneId(env = process.env) {
+  for (const variable of LANE_ID_VARIABLES) {
+    const lane = deriveLaneId(env[variable]);
+    if (lane !== undefined) return lane;
+  }
+  return undefined;
+}
+
+/**
+ * Whether a value has the exact shape this module mints.
+ *
+ * Scanned character by character rather than matched with a quantified
+ * pattern, so the check is linear over untrusted text.
+ * @param {string} value Candidate token.
+ * @returns {boolean} True when the value is a well-formed lane id.
+ */
+function isLaneId(value) {
+  if (!value.startsWith(LANE_PREFIX)) return false;
+  const digest = value.slice(LANE_PREFIX.length);
+  if (digest.length !== LANE_DIGEST_LENGTH) return false;
+  for (const character of digest) {
+    const digit = character >= "0" && character <= "9";
+    const hex = character >= "a" && character <= "f";
+    if (!digit && !hex) return false;
+  }
+  return true;
+}
+
+/**
+ * Render the one marker line every surface uses.
+ *
+ * A commit trailer, a pull-request body line and a tracker comment footer are
+ * the same string here on purpose — see the module note above.
+ * @param {string} laneId Lane id to render.
+ * @returns {string} The marker line, without a trailing newline.
+ */
+export function renderLaneTrailer(laneId) {
+  return `${LANE_TRAILER}: ${laneId}`;
+}
+
+/**
+ * Read a lane id out of arbitrary text.
+ *
+ * Text-in, text-out: a commit message, a pull-request body and a tracker
+ * comment are all just text, and this makes no assumption about which it was
+ * handed.
+ * @param {string} text Commit message, pull-request body or comment body.
+ * @returns {string | undefined} The stamped lane id, or undefined.
+ */
+export function parseLaneId(text) {
+  for (const line of text.split("\n")) {
+    const match = LANE_PREFIX_MATCH.exec(line);
+    if (!match) continue;
+    const value = line.slice(match[0].length).trim();
+    if (isLaneId(value)) return value;
+  }
+  return undefined;
+}
+
+/**
+ * Judge a stamp against the caller.
+ *
+ * A stamp naming somebody else is a hard "theirs" even when the caller has no
+ * lane of its own, for the same reason an unidentified cleaner may not delete
+ * a claimed worktree: an unidentified caller proves nothing.
+ * @param {string | undefined} markerLane Lane id found on the work.
+ * @param {string | undefined} callerLane Lane id of the running process.
+ * @returns {"mine" | "theirs" | "unattributed"} The routing verdict.
+ */
+export function judgeLane(markerLane, callerLane) {
+  if (markerLane === undefined) return "unattributed";
+  return markerLane === callerLane ? "mine" : "theirs";
+}
+
 const GUIDANCE = [
   "Mention the ticket this work relates to, or ask Lisa to create one:",
   "  Work-Item: <configured-project-ticket>",
@@ -1162,7 +1359,7 @@ function cleanedMessage(message) {
  */
 function amendsMergeAtHead(message) {
   if (!isMergeCommit("HEAD", { allowFailure: true })) return false;
-  const current = run("git", ["show", "-s", "--format=%B", "HEAD"], {
+  const current = run("git", ["show", "-s", RAW_MESSAGE_FORMAT, "HEAD"], {
     allowFailure: true,
   });
   // probe-direction: fail-closed — a HEAD whose message cannot be read grants
@@ -2608,7 +2805,7 @@ function validateMessage(message, options = {}) {
 }
 
 function commitMessage(sha) {
-  return git(["show", "-s", "--format=%B", sha]);
+  return git(["show", "-s", RAW_MESSAGE_FORMAT, sha]);
 }
 
 /**
@@ -4981,6 +5178,152 @@ function sweep(args) {
   }
 }
 
+/**
+ * Whether a line is `Key: value` — the shape git recognises as a trailer.
+ *
+ * Character-scanned rather than matched, so it is linear over a commit message
+ * this script does not own.
+ * @param {string} line One line of a commit message.
+ * @returns {boolean} Whether git would read this line as a trailer.
+ */
+function isTrailerLine(line) {
+  const colon = line.indexOf(": ");
+  if (colon <= 0) return false;
+  if (line.slice(colon + 2).trim() === "") return false;
+  for (const character of line.slice(0, colon)) {
+    const letter =
+      (character >= "a" && character <= "z") ||
+      (character >= "A" && character <= "Z");
+    const digit = character >= "0" && character <= "9";
+    if (!letter && !digit && character !== "-") return false;
+  }
+  return true;
+}
+
+/**
+ * Where the lane line goes, so the final trailer paragraph is never split.
+ *
+ * `git interpret-trailers` starts a NEW paragraph whenever the last one holds
+ * any line it does not recognise as a trailer — and the final block of an
+ * agent-authored message routinely ends with a non-trailer signature line. The
+ * split is silent and it costs something real: `Co-Authored-By` stops being in
+ * the last paragraph, which is the only place GitHub reads co-authors from, so
+ * a routing aid would quietly break attribution to fix attribution.
+ *
+ * Scanning back from the end and stopping at the first blank line keeps the
+ * search inside the final paragraph. A message whose tail is prose has no
+ * trailer to sit beside and is left to git, which correctly opens a paragraph
+ * for it.
+ * @param {string[]} lines Message lines, trailing blanks already removed.
+ * @returns {number} Index to insert after, or -1 for "let git decide".
+ */
+function trailerInsertionPoint(lines) {
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    if (lines[index].trim() === "") return -1;
+    if (isTrailerLine(lines[index])) return index;
+  }
+  return -1;
+}
+
+/**
+ * Stamp the caller's lane onto a commit message being prepared.
+ *
+ * Never the reason a commit fails. Attribution is a routing aid; a git that
+ * declines to rewrite trailers is a worse commit message, not a violation, and
+ * refusing the commit over it would make every session's first encounter with
+ * this feature an outage.
+ *
+ * An existing stamp is left alone. On a rebase, an amend or a cherry-pick the
+ * message already carries the ORIGINATING lane's stamp, and the lane doing the
+ * rewrite must not take credit for work it did not start — which is precisely
+ * the guess a survey has to make when nothing is recorded.
+ * @param {string} file Commit message file.
+ * @returns {void}
+ */
+function stampLane(file) {
+  const lane = resolveCallerLaneId();
+  if (lane === undefined) return;
+  const message = readFileSync(file, "utf8");
+  if (message.split("\n").some(line => LANE_PREFIX_MATCH.test(line))) return;
+  const lines = message.split("\n");
+  while (lines.length > 0 && lines[lines.length - 1].trim() === "") lines.pop();
+  const at = trailerInsertionPoint(lines);
+  if (at === -1) {
+    run(
+      "git",
+      [
+        "interpret-trailers",
+        "--in-place",
+        "--if-missing=add",
+        "--trailer",
+        renderLaneTrailer(lane),
+        file,
+      ],
+      { allowFailure: true }
+    );
+    return;
+  }
+  lines.splice(at + 1, 0, renderLaneTrailer(lane));
+  writeFileSync(file, `${lines.join("\n")}\n`);
+}
+
+/**
+ * Answer "which lane does this belong to, and is it mine?".
+ *
+ * With no argument it reports the caller's own lane, which is what a session
+ * needs to recognise its own work later. With `--commit` it reads the message
+ * of a commit — the form that survives branch deletion, because the commit
+ * lives on in the base branch once the pull request has landed. With
+ * `--text-file` it reads any text at all, which is how a pull-request body or
+ * a tracker comment is classified with the same vocabulary.
+ * @param {string[]} args Command arguments.
+ * @returns {void}
+ */
+function laneCommand(args) {
+  const caller = resolveCallerLaneId();
+  const commit = flagValue(args, "--commit");
+  const textFile = flagValue(args, "--text-file");
+  if (commit === undefined && textFile === undefined) {
+    console.log(caller ?? "unattributed");
+    return;
+  }
+  const text =
+    textFile === undefined
+      ? commitMessageOf(commit)
+      : readFileSync(textFile, "utf8");
+  const marker = parseLaneId(text);
+  console.log(`LANE ${judgeLane(marker, caller)} ${marker ?? "none"}`);
+}
+
+/**
+ * The value that follows a flag, refusing a flag left without one.
+ * @param {string[]} args Command arguments.
+ * @param {string} flag Flag to look for.
+ * @returns {string | undefined} The value, or undefined when the flag is absent.
+ */
+function flagValue(args, flag) {
+  const index = args.indexOf(flag);
+  if (index === -1) return undefined;
+  const value = args[index + 1];
+  if (value === undefined || value.startsWith("--"))
+    throw new TrackingError(`${flag} requires a value`);
+  return value;
+}
+
+/**
+ * The full message of one commit.
+ * @param {string} ref Commit-ish to read.
+ * @returns {string} The commit message body.
+ */
+function commitMessageOf(ref) {
+  const result = run("git", ["log", "-1", RAW_MESSAGE_FORMAT, ref], {
+    allowFailure: true,
+  });
+  if (result.status !== 0)
+    throw new TrackingError(`could not read the commit message of '${ref}'`);
+  return result.stdout;
+}
+
 function prepareCommitMessage(args) {
   const [file, source = ""] = args;
   if (!file)
@@ -4992,6 +5335,11 @@ function prepareCommitMessage(args) {
     RELEASE_SUBJECT.test(messageSubject(readFileSync(file, "utf8")))
   )
     return;
+  // Before the binding check, deliberately. The lane stamp is what makes an
+  // ORPHAN routable, and an orphan is disproportionately likely to be exactly
+  // the commit that never got a work item bound — so gating attribution on the
+  // binding would withhold it in the one case it exists for.
+  stampLane(file);
   const state = readState(true);
   if (!state) return;
   assertStateBranch(state);
@@ -5560,6 +5908,7 @@ function main() {
   // broken, which is when the answer matters most.
   if (command === "contract-version")
     return console.log(WORK_ITEM_CONTRACT_VERSION);
+  if (command === "lane") return laneCommand(args);
   if (command === "prepare-commit-msg") return prepareCommitMessage(args);
   if (command === "validate-commit") return validateCommit(args);
   if (command === "validate-push") return validatePush(args);
@@ -5568,7 +5917,7 @@ function main() {
   if (command === "validate-pr") return validatePr(args);
   if (command === DISCHARGE_COMMAND) return dischargePrGates(args);
   throw new TrackingError(
-    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|contract-version|backlink|complete|sweep|prepare-commit-msg|validate-commit|validate-push|validate-push-destination|validate-pr|discharge-pr-gates" +
+    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|contract-version|backlink|complete|sweep|lane|prepare-commit-msg|validate-commit|validate-push|validate-push-destination|validate-pr|discharge-pr-gates" +
       "\n(`bind` is accepted as an alias for `link`, but some agent harnesses refuse the token `bind` in a command line.)"
   );
 }
