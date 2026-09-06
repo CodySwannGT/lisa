@@ -49,3 +49,20 @@ If the verdict is `FAIL`, the caller should fix the item and re-run verify. Neve
 - Never write to Linear. Read-only.
 - Never short-circuit the validator. Always run the full gate set.
 - If `get_issue` / `get_project` returns an access error, surface it and exit — don't pretend the item is fine.
+
+## Comparison is semantic, never byte-exact
+
+Re-run the validator against the live issue. Do NOT compare the stored body
+against what was sent byte for byte.
+
+The reason is measured rather than theoretical. Trackers normalize markdown on
+write: `-` bullets become `*`, a bare URL is wrapped as `[url](<url>)`, bold
+emphasis is re-segmented around inline code spans. All lossless, all
+rendering-identical, and all of it makes a byte comparator report failure on a
+write that was completely fine. A comparator that cannot tell vendor
+normalization from corruption fails on healthy writes and trains its reader to
+ignore it, which costs more than the check was ever worth.
+
+Compare meaning: run `lisa-linear-validate-issue` against the stored item and let the gates
+decide. Where a single field must be compared directly, normalize both sides
+first.

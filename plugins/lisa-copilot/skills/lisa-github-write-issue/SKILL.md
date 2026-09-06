@@ -12,6 +12,41 @@ This skill is the GitHub counterpart of `lisa-jira-write-ticket`. The two skills
 
 Repository name for scoped comments: `basename $(git rev-parse --show-toplevel)`.
 
+## Writing by another path? The gates still apply
+
+A team that talks to its tracker through its own script is doing a normal
+thing — the script usually owns the credential plumbing, and Lisa neither
+controls nor wants to control it. What that script does NOT get is either half
+of this skill's quality gate, and nothing about the write says so.
+
+**A read-back is not the missing check.** A bespoke path almost always re-reads
+the issue after writing and confirms the tracker stored what was sent. That is
+worth doing and it is not this. It proves TRANSPORT: the API accepted the
+payload and the field values round-tripped. It cannot fail for the reason these
+gates exist, because it never looks at whether what was sent was any good — a
+issue with no acceptance criteria, no parent, and a human decision left sitting
+in the middle of it round-trips perfectly. That is the dangerous half of the
+shape: a failing control gets investigated, a misread one gets trusted.
+
+So a write by any other path still owes both phases, and both run standalone
+against an item that already exists:
+
+| Phase | Skill | What it costs you |
+|---|---|---|
+| Pre-write validate | `lisa-github-validate-issue` | Run it on the draft before you send it |
+| Post-write verify | `lisa-github-verify` | Run it on the live issue after you send it |
+
+```text
+Skill(lisa-github-validate-issue) with the draft issue, or with a reference to a live one
+Skill(lisa-github-verify) with owner/repo#1234
+```
+
+**These are plugin-resident skills invoked through the Skill tool.** They are
+not shell scripts and will not appear in any repository's `scripts/` directory,
+including yours. An agent that searches the repo it is standing in, finds
+nothing, and concludes the capability is absent has made the one mistake that
+turns a local script from the convenient option into the only one.
+
 ## Prerequisites
 
 - `gh` CLI installed and authenticated (`gh auth status` must succeed). The skill never falls back to a different transport — if `gh` is unauthenticated, stop and surface the auth error.

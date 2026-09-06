@@ -27,3 +27,20 @@ Pass through `lisa-github-validate-issue`'s structured output unchanged. Do not 
 - This skill is read-only. It never edits the issue, posts comments, or changes labels.
 - If a gate fails, the recommendation is part of the validator's report; surface it as-is.
 - The Validation Journey check (S11) parses the `## Validation Journey` markdown section — same parser logic as `lisa-github-add-journey` and `lisa-github-journey`.
+
+## Comparison is semantic, never byte-exact
+
+Re-run the validator against the live issue. Do NOT compare the stored body
+against what was sent byte for byte.
+
+The reason is measured rather than theoretical. Trackers normalize markdown on
+write: `-` bullets become `*`, a bare URL is wrapped as `[url](<url>)`, bold
+emphasis is re-segmented around inline code spans. All lossless, all
+rendering-identical, and all of it makes a byte comparator report failure on a
+write that was completely fine. A comparator that cannot tell vendor
+normalization from corruption fails on healthy writes and trains its reader to
+ignore it, which costs more than the check was ever worth.
+
+Compare meaning: run `lisa-github-validate-issue` against the stored item and let the gates
+decide. Where a single field must be compared directly, normalize both sides
+first.
