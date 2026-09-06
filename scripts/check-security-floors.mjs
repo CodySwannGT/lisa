@@ -227,6 +227,7 @@ export function collectFloors() {
   const unresolved = [];
   /** Floors carrying a version that resolves to no lower bound. */
   const unparseable = [];
+  const deliberate = [];
   // `exclude` decides what is walked; the filter decides what is a manifest.
   // Not redundant: the filter carries fragments that are not whole path
   // segments, so it is not fully expressible as a prune list, and it also
@@ -257,7 +258,16 @@ export function collectFloors() {
    * @param {string} spec The version constraint to resolve.
    */
   const record = (name, file, path, spec) => {
-    const { version, reason } = resolveLowerBound(spec);
+    const { kind, version, reason } = resolveLowerBound(spec);
+    // A THIRD BUCKET, not a fourth branch (#3465). A spec that declares no floor
+    // BY DESIGN — an alias, or a non-registry protocol — is not a failed attempt
+    // to state one, so it is recorded apart from the unreadable ones and does
+    // NOT gate `--strict`. There is no edit that would satisfy the gate, which
+    // is what made the old advice impossible to follow.
+    if (kind === "non-floor") {
+      deliberate.push({ file, path, name, spec, reason });
+      return;
+    }
     if (version === null) {
       unparseable.push({ file, path, name, spec, reason });
       return;
@@ -316,7 +326,14 @@ export function collectFloors() {
       }
     }
   }
-  return { found, unresolved, unparseable, scanned: files, unscanned };
+  return {
+    found,
+    unresolved,
+    unparseable,
+    deliberate,
+    scanned: files,
+    unscanned,
+  };
 }
 
 /**
@@ -460,21 +477,45 @@ function branchLowerBound(branch) {
  */
 function resolveLowerBound(spec) {
   const raw = typeof spec === "string" ? spec.trim() : "";
-  if (raw === "") return { version: null, reason: "is empty" };
+  if (raw === "")
+    return { kind: "unreadable", version: null, reason: "is empty" };
   // An alias versions a DIFFERENT package. Its number cannot be compared
   // against advisories filed for this name, and comparing it anyway would
   // answer confidently about the wrong package.
+  //
+  // A DELIBERATE NON-FLOOR, not a failed attempt at one (#3465). There is no
+  // edit that turns this into a lower bound, so telling a reader to write one
+  // is advice they cannot follow — and gating `--strict` on it fails for a
+  // coverage gap that does not exist.
   if (/^npm:/i.test(raw)) {
     return {
+      kind: "non-floor",
       version: null,
       reason:
-        "is an alias, so its version belongs to another package and cannot be compared against this one's advisories",
+        "is an alias, so its version belongs to another package and cannot be compared against this one's advisories. Nothing to rewrite here: if that package needs a floor, state it where that package is declared",
+    };
+  }
+  // The same answer for the same reason, which is why this is a bucket rather
+  // than a branch beside the alias. These name a SOURCE, not a registry range:
+  // any digits belong to a branch, tag or commit, so there is no lower bound to
+  // read and none to write. The file already draws this line one level up for
+  // `workspace:*` — a literal carrying no digits is "not a failed attempt to
+  // state a floor" — but it draws it with a digit test, which cannot tell
+  // `workspace:*` from `workspace:^1.2.3` and so stopped applying exactly where
+  // the spec got more specific.
+  const protocol = NON_REGISTRY_PROTOCOL.exec(raw);
+  if (protocol !== null) {
+    return {
+      kind: "non-floor",
+      version: null,
+      reason: `names a source with the \`${protocol[1]}:\` protocol rather than a registry range, so any version in it is a branch, tag or commit and not a lowest permitted release. Nothing to rewrite here`,
     };
   }
 
   const branches = raw.split("||").map(branchLowerBound);
   if (branches.some(branch => branch.kind === "unreadable")) {
     return {
+      kind: "unreadable",
       version: null,
       reason: "is not a version range this check knows how to read",
     };
@@ -483,14 +524,20 @@ function resolveLowerBound(spec) {
   // makes the whole spec floorless: `<8 || ^9` permits everything below 8.
   // Filtering that branch out would let the strongest branch speak for the
   // weakest, reporting a floor the spec does not have.
+  // NOT a reading failure, and deliberately still gating. `<8` was read
+  // perfectly and what it says is dangerous, so it keeps its own kind: calling
+  // it unreadable would misdescribe it, and calling it a non-floor would clear
+  // a genuine gap.
   if (branches.some(branch => branch.kind === "floorless")) {
     return {
+      kind: "floorless",
       version: null,
       reason:
         "sets only an upper bound, so it permits every earlier release including vulnerable ones",
     };
   }
   return {
+    kind: "bound",
     version: branches.reduce(
       (lowest, branch) =>
         compare(branch.version, lowest) < 0 ? branch.version : lowest,
@@ -499,6 +546,18 @@ function resolveLowerBound(spec) {
     reason: null,
   };
 }
+
+/**
+ * Spec prefixes that name a SOURCE rather than a registry range.
+ *
+ * Every one of these carries versions that are branches, tags, commits or paths
+ * — never a lowest permitted release — so none of them can state a floor and
+ * none of them is a failed attempt to. Listed rather than inferred from "has a
+ * colon", because a bare `>=1.2.3` has no colon and `npm:` deliberately keeps
+ * its own branch above with its own advice.
+ */
+const NON_REGISTRY_PROTOCOL =
+  /^(workspace|github|git|git\+ssh|git\+https|file|link|portal|patch|bitbucket|gitlab)(?=:)/i;
 
 /**
  * Lowest version a spec permits, as a comparable tuple.
@@ -515,6 +574,24 @@ function resolveLowerBound(spec) {
  */
 export function lowestPermitted(spec) {
   return resolveLowerBound(spec).version;
+}
+
+/**
+ * What kind of answer a spec gives, alongside the reason (#3465).
+ *
+ * FOUR kinds, where the report previously had two. `bound` resolves; `non-floor`
+ * declares no floor BY DESIGN and has nothing to fix; `unreadable` is a failed
+ * attempt at a floor and does; `floorless` was read perfectly and permits
+ * vulnerable releases, which is a finding rather than a reading failure.
+ *
+ * The ticket named two states and there are four, which is the reason this is
+ * exported rather than folded into `lowerBoundGap`: a caller that only has a
+ * reason string cannot tell "no action possible" from "act now".
+ * @param {string} spec A version constraint.
+ * @returns {{kind: string, version: number[]|null, reason: string|null}} The classification.
+ */
+export function classifyLowerBound(spec) {
+  return resolveLowerBound(spec);
 }
 
 /**
@@ -617,6 +694,7 @@ async function audit() {
     found: floors,
     unresolved,
     unparseable,
+    deliberate,
     scanned,
     unscanned,
   } = collectFloors();
@@ -662,6 +740,7 @@ async function audit() {
     unreachable,
     unresolved,
     unparseable,
+    deliberate,
     unscanned,
     manifests: scanned.length,
     checked: floors.size,
@@ -676,6 +755,7 @@ async function main() {
     unreachable,
     unresolved,
     unparseable,
+    deliberate,
     unscanned,
     manifests,
     checked,
@@ -689,6 +769,7 @@ async function main() {
           unreachable,
           unresolved,
           unparseable,
+          deliberate,
           unscanned,
           manifests,
           checked,
@@ -753,6 +834,23 @@ async function main() {
     );
   }
 
+  // ITS OWN HEADING, ITS OWN ADVICE, AND NO GATE (#3465). These declare no floor
+  // BY DESIGN, so the rewrite advice above is one they cannot follow: an alias
+  // versions another package and a protocol spec names a source. Reported rather
+  // than dropped, because "audited and found to have nothing to audit" and
+  // "never looked at" are the two states this whole script exists to separate —
+  // and each entry carries the reason its own kind gives.
+  if (!asJson && deliberate.length > 0) {
+    console.log(
+      `\n> **${deliberate.length} spec(s) declare no floor by design.** Each was read successfully; none of them states a lowest permitted release, so there is nothing to compare against the advisory database and nothing to rewrite. These do NOT gate \`--strict\`.`
+    );
+    for (const entry of deliberate) {
+      console.log(
+        `> - \`${entry.name}: ${entry.spec}\` in ${entry.file} ${entry.path} — ${entry.reason}`
+      );
+    }
+  }
+
   // A manifest the patterns never opened is the same failure as a package the
   // advisory API never answered for: unexamined, and reported clean unless the
   // difference is stated. Printed whether or not anything else went wrong.
@@ -799,6 +897,12 @@ async function main() {
   // An unscanned tracked manifest gates for the same reason an inconclusive
   // lookup does: it is a floor nobody checked, and passing reports it clean.
   // A floor with no readable lower bound gates for that reason a fourth time.
+  //
+  // `deliberate` is ABSENT from this list on purpose (#3465), and its absence is
+  // the fix rather than an oversight. Those specs were read successfully and
+  // state no floor by design, so there is no edit that would clear the gate —
+  // failing on them would be a permanent red with unfollowable advice, which is
+  // how a check gets switched off instead of satisfied.
   if (
     strict &&
     (problems.length > 0 ||

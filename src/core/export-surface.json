@@ -685,6 +685,7 @@
       "MANIFEST_EXCLUDE_GLOBS",
       "MANIFEST_PATTERNS",
       "NOT_A_MANIFEST",
+      "classifyLowerBound",
       "collectFloors",
       "lowerBoundGap",
       "lowestPermitted",
