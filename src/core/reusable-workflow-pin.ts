@@ -174,11 +174,14 @@ export function isMutableRef(reference: ReusableWorkflowRef): boolean {
  * Quoting, indentation, and everything else on the line are preserved.
  * @param source - Full text of a workflow file
  * @param pin - The identity every caller must carry
+ * @param shouldPin - Whether a given callee basename may be pinned; a callee
+ * this release does not carry must be left alone
  * @returns The rewritten text, byte-identical to the input when nothing changed
  */
 export function pinReusableWorkflowRefs(
   source: string,
-  pin: ReleasePin
+  pin: ReleasePin,
+  shouldPin: (workflow: string) => boolean = () => true
 ): string {
   return source
     .split("\n")
@@ -187,6 +190,12 @@ export function pinReusableWorkflowRefs(
       const groups = USES_LINE.exec(line)?.groups;
       if (groups === undefined) return line;
       const { lead, open, workflow } = groups;
+      // A callee this release does not carry must be left exactly as it is.
+      // Pinning it would name a commit where the file is absent, and a
+      // reusable workflow that does not resolve is a LOAD error: the job dies
+      // before a step runs, and nothing in the consumer's own diff explains
+      // it. Leaving a mutable ref is the lesser failure by a wide margin.
+      if (workflow !== undefined && !shouldPin(workflow)) return line;
       // The closing quote is reconstructed from the opening one rather than
       // captured: YAML quoting is symmetric, and a separate optional-quote
       // group adjacent to a greedy tail is the ambiguity that makes this
