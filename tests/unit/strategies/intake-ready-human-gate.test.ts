@@ -25,6 +25,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   HUMAN_GATE_NOTE_MARKER,
+  HUMAN_GATE_RELEASE_MARKER,
   classifyReadyCandidate,
   formatHumanGateNote,
   planHumanGateReconciliation,
@@ -179,8 +180,19 @@ describe("what the operator reads", () => {
     expect(note).toContain(HUMAN_GATE_NOTE_MARKER);
   });
 
+  it("names the release marker, because that is what a person types", () => {
+    expect(formatHumanGateNote()).toContain(HUMAN_GATE_RELEASE_MARKER);
+  });
+
   it("uses no vocabulary the reader has to already know", () => {
-    const note = formatHumanGateNote().replace(HUMAN_GATE_NOTE_MARKER, "");
+    // The release marker is the ONE token the note may name, and it is exempt
+    // for the reason the rest are banned: this is not vocabulary the reader has
+    // to already know, it is the literal string they type to lift the hold.
+    // Withholding it would leave the note describing a mechanism it declines to
+    // name — the state of affairs CodySwannGT/lisa#3852 was filed about.
+    const note = formatHumanGateNote()
+      .replace(HUMAN_GATE_NOTE_MARKER, "")
+      .replace(HUMAN_GATE_RELEASE_MARKER, "");
 
     // The person standing at this gate is the one who applied the hold, not the
     // one who maintains intake. Naming a skill, a label, or a phase tells them

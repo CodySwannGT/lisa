@@ -241,6 +241,28 @@ const canonicalMarker = (): string => {
   return match?.[1] ?? "";
 };
 
+/**
+ * Every bracketed human/gate token the reader actually READS, from the one
+ * script that defines them.
+ *
+ * The drift this guard catches is a spelling that is written but never read.
+ * That is a property of the reader, not of the hold: `[lisa-human-gate-release]`
+ * is a different marker with a different meaning — it DISCHARGES a hold
+ * (CodySwannGT/lisa#3852) — and the same module parses it, so a contract naming
+ * it is naming something live. Derived from the source rather than listed here,
+ * so a marker that is deleted or renamed stops being accepted the moment it
+ * stops being read.
+ * @returns Every marker literal the module declares
+ */
+const readMarkers = (): readonly string[] => {
+  const source = readFileSync(MARKER_SOURCE, "utf-8");
+  const declarations =
+    source.match(/HUMAN_GATE\w*MARKER\s*=\s*"([^"]+)"/gu) ?? [];
+  return declarations.flatMap(
+    declaration => declaration.match(MARKER_SHAPE) ?? []
+  );
+};
+
 describe("the hold marker has exactly one spelling", () => {
   const marker = canonicalMarker();
 
@@ -249,10 +271,12 @@ describe("the hold marker has exactly one spelling", () => {
   });
 
   it("is spelled identically in every contract that mentions a hold", () => {
+    const read = new Set(readMarkers());
+    expect(read.has(marker)).toBe(true);
     const drift = ALL_CONTRACTS.flatMap(file => {
       const found = readFileSync(file, "utf-8").match(MARKER_SHAPE) ?? [];
       return [...new Set(found)]
-        .filter(token => token !== marker)
+        .filter(token => !read.has(token))
         .map(token => `${file} spells the hold marker ${token}`);
     });
     expect(drift).toEqual([]);

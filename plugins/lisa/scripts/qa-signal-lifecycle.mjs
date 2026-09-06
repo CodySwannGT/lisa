@@ -33,9 +33,18 @@
  * it, and this fix must not remove a control while correcting one.
  *
  * Adding the next transient signal is a row in {@link SIGNALS} plus its
- * predicate — not another bespoke clear path. The `rework` and `regression`
- * labels `lisa-rework-triage` also reads are plausible next rows; whether they
- * have the same shape is unverified here and deliberately not claimed.
+ * predicate — not another bespoke clear path. The `human-gate` signal is that
+ * claim being cashed (CodySwannGT/lisa#3852): a person could park a work item
+ * and nothing could ever un-park it, and the fix is one row plus one predicate
+ * rather than a second lifecycle. It also stretched the contract in two honest
+ * places, both declared per-row rather than assumed: its label name is keyed
+ * per vendor (`configPaths`), and its durable half is a body marker as well as
+ * a label (`readsBody`), because the surface the filing contract stamps is the
+ * description.
+ *
+ * The `rework` and `regression` labels `lisa-rework-triage` also reads are
+ * plausible next rows; whether they have the same shape is unverified here and
+ * deliberately not claimed.
  *
  * ## Why a script rather than prose in each skill
  *
@@ -52,6 +61,10 @@ import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import {
+  bodyDeclaresHold,
+  humanGateDischarged,
+} from "./intake-blocker-reprobe.mjs";
+import {
   GLOBAL_CONFIG,
   LOCAL_CONFIG,
   VENDOR_ROOTS,
@@ -63,6 +76,9 @@ import {
 
 /** The QA-failure signal: applied by `lisa-qa-fail`, read by rework triage. */
 export const QA_FAILURE_SIGNAL = "qa-failure";
+
+/** The human-gate signal: applied at filing, read by every intake sweep. */
+export const HUMAN_GATE_SIGNAL = "human-gate";
 
 /**
  * Every transient signal, with the void conditions that lift it.
@@ -85,6 +101,23 @@ export const SIGNALS = Object.freeze({
       "qa-pass-recorded",
       "certified-role-reached",
     ]),
+  }),
+  [HUMAN_GATE_SIGNAL]: Object.freeze({
+    configPaths: Object.freeze({
+      jira: "jira.labels.human_needed",
+      linear: "linear.labels.build.human_needed",
+      github: "github.labels.build.human_needed",
+    }),
+    fallbacks: Object.freeze({
+      jira: "Human Needed",
+      linear: "human-needed",
+      github: "human-needed",
+    }),
+    readsBody: true,
+    appliedBy: "lisa-track",
+    clearedBy: Object.freeze(["lisa-repair-intake"]),
+    readBy: "lisa-tracker-build-intake",
+    voidConditions: Object.freeze(["human-gate-release-recorded"]),
   }),
 });
 
@@ -193,6 +226,8 @@ export const VOID_PREDICATES = Object.freeze({
   "certified-role-reached": ({ role, resolvedRoles }) =>
     normalize(role) !== "" &&
     resolvedRoles.some(name => normalize(name) === normalize(role)),
+  "human-gate-release-recorded": ({ body, comments }) =>
+    humanGateDischarged({ body, comments }),
 });
 
 /**
@@ -211,19 +246,37 @@ export const unpredicatedConditions = () =>
 /**
  * Resolve a signal's label name from config, falling back to its declared name.
  *
+ * A row declares its config location one of two ways: `configPath`, when the
+ * name lives at one place whatever the tracker, or `configPaths`, when the
+ * trackers genuinely disagree about where it lives. The human-gate marker is
+ * the second kind — `jira.labels.human_needed` sits outside the workflow map
+ * that `linear.labels.build.human_needed` and `github.labels.build.human_needed`
+ * sit inside — and inventing a uniform path it is not written at would resolve
+ * a name no project has configured, which is a hardcoded literal wearing a
+ * config lookup's clothes.
+ *
+ * An unknown vendor on a vendor-keyed row resolves to nothing rather than to a
+ * guess: `source: "none"` and an empty name, which the caller reports.
+ *
  * @param {object} options inputs
  * @param {string} options.signal a key of {@link SIGNALS}
  * @param {unknown} [options.config] merged config object
+ * @param {string} [options.vendor] `jira` | `linear` | `github`
  * @returns {{ value: string, source: string }} the name and where it came from
  */
-export const resolveSignalLabel = ({ signal, config }) => {
+export const resolveSignalLabel = ({ signal, config, vendor }) => {
   const declared = SIGNALS[signal];
   if (!declared) return { value: "", source: "none" };
-  const configured = readPath(config, declared.configPath);
+  const path = declared.configPath ?? declared.configPaths?.[vendor];
+  const fallback = declared.fallback ?? declared.fallbacks?.[vendor];
+  if (typeof path !== "string") return { value: "", source: "none" };
+  const configured = readPath(config, path);
   if (typeof configured === "string" && configured.trim().length > 0) {
     return { value: configured.trim(), source: "config" };
   }
-  return { value: declared.fallback, source: "fallback" };
+  return typeof fallback === "string"
+    ? { value: fallback, source: "fallback" }
+    : { value: "", source: "none" };
 };
 
 /**
@@ -265,6 +318,7 @@ const labelNames = labels =>
  * @param {string} [options.signal] a key of {@link SIGNALS}
  * @param {readonly unknown[]} [options.labels] the item's labels
  * @param {readonly unknown[]} [options.comments] comment bodies, oldest first
+ * @param {unknown} [options.body] the item's description, for body-marker rows
  * @param {string} [options.role] the item's current lifecycle role name
  * @param {string} options.vendor `jira` | `linear` | `github`
  * @param {unknown} [options.config] merged config object
@@ -274,6 +328,7 @@ export const evaluateSignal = ({
   signal = QA_FAILURE_SIGNAL,
   labels,
   comments,
+  body,
   role = "",
   vendor,
   config,
@@ -295,14 +350,23 @@ export const evaluateSignal = ({
     };
   }
 
-  const label = resolveSignalLabel({ signal, config });
-  const present = labelNames(labels).some(
-    name => normalize(name) === normalize(label.value)
-  );
+  const label = resolveSignalLabel({ signal, config, vendor });
+  const labelPresent =
+    normalize(label.value) !== "" &&
+    labelNames(labels).some(name => normalize(name) === normalize(label.value));
+  // A row that declares `readsBody` is durable on two surfaces, and the marker
+  // one is the surface the filing contract stamps: an item held exactly as the
+  // contract instructs carries no label at all (CodySwannGT/lisa#3805), so
+  // presence keyed on the label alone would report it absent and report nothing
+  // to clear.
+  const present =
+    labelPresent || (declared.readsBody === true && bodyDeclaresHold(body));
   const verdict = latestQaVerdict(comments);
   const context = {
     verdict,
     role,
+    body,
+    comments,
     resolvedRoles: voidingRoles({ vendor, config }),
   };
   const unchecked = declared.voidConditions.filter(

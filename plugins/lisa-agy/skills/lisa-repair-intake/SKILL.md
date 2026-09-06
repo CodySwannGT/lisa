@@ -188,6 +188,7 @@ In addition to the lifecycle roles above, the build lifecycle defines the **`hum
 
 - The blocks repair-intake **itself writes** are the auto-recoverable kind — it files a build-ready fix ticket and moves the item `blocked` *blocked by that ticket*, expecting the next cycle to self-heal. Those are **not** `human_needed`; if such an item arrives carrying a `human_needed` marker **this skill applied on an earlier cycle**, repair-intake **clears** it (the block is no longer waiting on a human).
 - **Never remove a `human_needed` marker this skill did not apply.** "Stale" is a judgment about the block's kind, not about who applied the marker or when — so without this rule an operator's deliberate hold, applied *after* correcting a wrong transition, is indistinguishable from a leftover the sweep is designed to clear, and gets swept. Establish provenance from the label event's actor (`rejection-detection` **Automation-reversal memory** reads the same surfaces); if provenance is not readable, **leave the marker in place**. Removing a human's hold is unrecoverable within the loop; leaving a stale one costs a cycle and is visible.
+- **The one exception is a hold that has recorded its own discharge.** A `[lisa-human-gate-release]` comment naming the hold's `reason=` is not a guess about provenance — it is the hold's stated void condition, recorded on the item by the person who answered it. Clearing the marker there is not overriding a human's judgment; it is *enacting* it. That is the whole of the exception: no other reading of "this looks stale" reopens the question above, and an item whose release cannot be read stays held. See "Release the holds that have been answered" below (#3852).
 - The marker is consulted **before **any** repair transition**, not only before Class C. Class C's hard stop is the strictest reading of it, but a marker that is honoured on one classification path and ignored on the other three is not a guard — and Class A, dependency clearing, is exactly the path an operator reverting a wrongly-cleared blocker is trying to protect. Match it robustly (hyphen/underscore, case-insensitive, label set and note prose) wherever it is read.
 - The blocks the **vendor agent** writes when repair-intake re-dispatches it (its pre-flight gate) carry `human_needed` already — the agent owns that marker. repair-intake leaves it in place.
 
@@ -968,6 +969,50 @@ with labels like `build-ready`, or with no Lisa status label at all, that are in
    substring match whose precision is a separate open defect (#3815). Refusing and reporting is
    the safe failure direction without the latch. Count these under `held_for_person`, never under
    `normalized_ready`.
+
+   **Pass the item's `comments`.** The planner reads a recorded `[lisa-human-gate-release]` comment
+   as the discharge of the hold naming the same `reason=`, and an item read without its comments is
+   an item whose discharge cannot be seen. That fails closed — it stays held — which is the safe
+   direction and precisely why the omission is invisible.
+
+2b. **Release the holds that have been answered.** This is step 2a's inverse and it is the reason
+   this sweep is where it lives: applying a hold had a path and lifting one had none, so a person
+   could supply exactly what a held item asked for, record the decision on the item, and the item
+   stayed held forever (CodySwannGT/lisa#3852). The expensive part — getting a person's attention,
+   framing the question, obtaining a judgment — was already paid for, and the system discarded the
+   answer.
+
+   Enumerate items carrying the configured `human_needed` marker **or** a `[lisa-human-gate]` marker
+   in the body, and for each call
+   `planHumanGateRelease({ labels, body, comments, humanNeededLabel, readyLabel, lifecycleLabels, alreadyNotified })`
+   from `scripts/intake-blocker-reprobe.mjs`. Apply exactly the actions it returns: remove the
+   human-needed marker, add the configured build `ready` label back, and post
+   `formatHumanGateReleaseNote()` once. Do **not** re-implement the discharge test, and do **not**
+   decide it from labels alone — the hold and its release are body and comment surfaces.
+
+   Three refusals make this safe to run on every cycle, and each one is in the planner rather than
+   in this prose so it cannot drift:
+
+   - **Still held plans nothing.** Every outstanding reason holds the whole item; an item whose
+     second question is unanswered is not half-released.
+   - **Never held plans nothing.** Without that this would be a path that adds the build-ready role
+     to arbitrary items — a promotion mechanism wearing a release mechanism's name.
+   - **An item that has moved on is not dragged back.** The ready role is restored only when the
+     item carries no other configured lifecycle label.
+
+   This is a genuine exception to "never remove a `human_needed` marker this skill did not apply",
+   and the exception is narrow enough to state exactly: provenance is the wrong question when the
+   *hold itself* names the condition that voids it and that condition is recorded. The general rule
+   stands because "stale" is otherwise a judgment about the block's kind; here nothing is being
+   judged — a release naming the hold's own reason is on the item, or it is not.
+
+   **Never edit a description to clear a hold**, here or anywhere. The only body write this plugin
+   has is a whole-body replacement, so deleting one line means rewriting the record and hoping
+   nothing was dropped. That is why holds accumulated: each individual release was a small gamble
+   with a large downside. The hold note stays in the body as history; the release is a comment
+   beside it. Count these under `released_to_queue`, and name them in the cycle summary via
+   `summarizeHumanGateReleases([...])` — printed even when it is zero, because a release path that
+   has stopped working and a cycle with nothing to release read identically otherwise.
 3. Classify the issue:
    - **PRD** if it has PRD labels/markers (`prd`, `type:PRD`, `kind:prd`), PRD structure
      (`## Problem`, `## Goals`, `## Validation Journey`, generated-work/backlink sections), or

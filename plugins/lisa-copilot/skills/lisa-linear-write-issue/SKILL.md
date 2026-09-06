@@ -291,6 +291,17 @@ person scanning a board and to any path that has not yet been routed through the
 If the label does not exist in the tracker, create it, or record that it could not be applied and
 proceed — the marker still holds. Never file the label *instead of* the marker.
 
+**Write a `reason=` the release can name.** The hold's reason is not decoration: a hold ends when a
+`[lisa-human-gate-release]` comment repeating that same `reason=` is recorded on the item, and the
+next intake sweep then takes the marker label off and puts the item back in the build-ready role on
+its own. Matching is per-reason so that a hold declared *after* an earlier release is not born
+discharged. A keyless hold is legal and is discharged by a keyless release; a hold whose reason is a
+paragraph is legal and nobody will reproduce it. Prefer a short slug the person answering it can
+retype. Do **not** instruct anyone to delete the marker from the description to lift the hold — the
+only body write available is a whole-body replacement, so that asks them to rewrite the whole record
+to clear one line, which is why answered holds accumulated instead of being lifted
+(CodySwannGT/lisa#3852). The marker stays as history; the release is recorded beside it.
+
 If a leaf arrives with `build_ready` omitted or `false` **and** no `human_gate`, do not create it: report the incomplete handoff and name both ways to resolve it (`build_ready: true`, or a `human_gate` reason). Containers are exempt — their state rolls up from children, so they need neither.
 
 ## Phase 5.5 — Validate (Pre-write Gate)

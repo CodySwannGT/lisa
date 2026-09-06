@@ -216,7 +216,12 @@ other gate's verdict — however conclusive — may promote an item a person par
    drift, and a drifted gate fails *silently*, by quietly ceasing to match. Do **not** re-implement
    the test here, and do **not** key it on `reason=`: markers in the wild carry no `reason=` key at
    all and sit anywhere in the body, so a structured parse would miss them while appearing to work
-   on every item that happens to have one.
+   on every item that happens to have one. **Pass the item's `comments` alongside its labels and
+   body.** A hold is ended by a release recorded in a comment, so a reader handed no comments cannot
+   see the discharge — it goes on holding an item whose question was answered weeks ago, which is
+   the defect this gate carried from the day it was written (CodySwannGT/lisa#3852). Omitting them
+   fails closed, and that is exactly why it is easy to miss: nothing breaks, the item simply never
+   comes back.
 2. **On `claimable: false` with reason `human-gate`, do not claim and do not dispatch.**
 3. **Reconcile the lane; do not merely skip.** Skipping alone leaves the item in `$READY`, re-judged
    and re-rejected every cycle forever and seen by nothing — `lisa-repair-intake` sweeps items that
@@ -228,14 +233,32 @@ other gate's verdict — however conclusive — may promote an item a person par
    already out of the lane and already marked yields no second mutation and no second comment. This
    is the same repair the leaf-only gate already performs for a ready item that must not be
    dispatched.
-4. **Name it in the cycle summary** via `summarizeHumanGateHolds([...])`, so the record
+4. **On `claimable: true` for an item that still carries a hold, RELEASE it — do not just proceed.**
+   The hold left durable state behind: the item is out of the queue and flagged as needing a person,
+   and answering the question does not undo either. Call
+   `planHumanGateRelease({ labels, body, comments, humanNeededLabel, readyLabel, lifecycleLabels, alreadyNotified })`
+   and apply exactly the actions it returns: remove the configured human-needed marker, add the
+   configured ready role back, and post `formatHumanGateReleaseNote()` once. It is the exact inverse
+   of step 3's planner and it refuses in both directions — an item still held plans nothing, and an
+   item never held plans nothing, so it can only ever un-do a hold and can never promote something on
+   its own. It is idempotent by state, so a second cycle over a released item yields no second
+   mutation and no second comment.
+
+   **Never edit the description to clear a hold.** The only body write available is a whole-body
+   replacement, so deleting one line means rewriting the whole record and hoping nothing was
+   dropped — the reason holds accumulated instead of being lifted. The hold note stays in the
+   description as history; the release is a comment beside it.
+5. **Name it in the cycle summary** via `summarizeHumanGateHolds([...])`, so the record
    distinguishes "nothing was eligible" from "something eligible was held for a person". A lane
    mutation nobody can see afterwards is the same class of problem this gate exists to fix.
    Report alongside it what the precision rule SKIPPED, via `summarizeHumanGateMentions(n)`
    — the marker occurrences that were mentions rather than declarations (CodySwannGT/lisa#3815).
    A rule that quietly declines to honour half the occurrences it sees reads exactly like a
-   rule that saw none, so the count is printed even when it is zero.
-5. **Continue to the next candidate.** A held item does not end the cycle.
+   rule that saw none, so the count is printed even when it is zero. Report what was RELEASED
+   beside it via `summarizeHumanGateReleases([...])`, printed even when it is zero: a release path
+   that has stopped working and a cycle with nothing to release read identically otherwise, which
+   is how a missing inverse stays missing.
+6. **Continue to the next candidate.** A held item does not end the cycle.
 
 
 #### 3a.0 Repo-scope gate (claim only current-repo Issues)
