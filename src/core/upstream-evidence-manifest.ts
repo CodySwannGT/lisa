@@ -135,7 +135,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/create-only/.github/workflows/ci.yml":
       "7bd00500e4afe02cbf93f2fe3ee054cd0d9fdce53857de84d5034f9f7c8deaf8",
     "cdk/create-only/.github/workflows/deploy.yml":
-      "f32ec7eecc7451812213fc66f1a6fa4b360137c586d47ede06747f04eb557251",
+      "eaab3860ecc75649b878dce7ca3486fadf31e381dd1191f9740b99ab7fcb5cf3",
     "cdk/create-only/cdk.json":
       "f89030d8fe145a1dbabd59d89ddee4e16984f222d737f7fcf6b778d911e9fe40",
     "cdk/create-only/stryker.conf.json":
@@ -9730,6 +9730,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/dependabot-not-distributed.test.ts": true,
     "tests/unit/config/dependency-tree-preflight.test.ts": true,
     "tests/unit/config/deploy-template-triggers.test.ts": true,
+    "tests/unit/config/deploy-workflow-naming.test.ts": true,
     "tests/unit/config/dist-rebuild-window.test.ts": true,
     "tests/unit/config/eslint-ignore-wiki.test.ts": true,
     "tests/unit/config/eslint-no-unused-vars.test.ts": true,
