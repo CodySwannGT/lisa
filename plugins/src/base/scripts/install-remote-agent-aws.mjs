@@ -342,6 +342,20 @@ so rather than repointing every unqualified \`aws\` command. Pass
 Production and shared profiles are observer-only. Production repair remains a
 human-driven local-workstation operation.
 
+Observer-only names what those profiles may READ, not only what they may not
+write. Prove that half — a role that can read nothing satisfies every deny-side
+assertion ever made about it:
+
+\`\`\`bash
+LISA_AWS_VERIFY_OBSERVER_READS=1 bash scripts/remote-agent-aws-setup.sh
+\`\`\`
+
+It runs one representative read per observability surface against every observer
+profile — deployment stacks, compute inventory, alarm state, delivery pipelines,
+builds, functions, logs, http endpoints, queues, workflows — and refuses to
+report ready if any is denied, naming all of them at once. Every action is
+read-only, so widening the role's policy to satisfy it grants no write anywhere.
+
 After the infrastructure pipeline deploys the remote-agent IAM stacks, retrieve
 the complete bundle from the shared account. Do not extract or distribute its
 individual access-key fields:

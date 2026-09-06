@@ -147,6 +147,55 @@ if (args[0] === "sts" && args[1] === "get-caller-identity") {
   reportIdentity(roleArn ? roleArn.split(":")[4] : "000000000000");
 }
 
+// Read probes. The observer check asks one no-argument read per observability
+// surface, so the fake has to be able to ALLOW as well as deny — a stub that
+// refused everything could only ever exercise the deny side, which is the exact
+// defect the check exists to close.
+//
+// Three outcomes, matching the three the script distinguishes: allowed, denied,
+// and could-not-be-reached. FAKE_AWS_DENY and FAKE_AWS_UNREACHABLE hold
+// space-separated "<service> <operation>" pairs joined by commas; anything not
+// listed succeeds with an empty result, which is what a real read returns
+// against an account with nothing deployed.
+// Positional arguments only. The real CLI accepts --profile anywhere, and the
+// observer check puts it before the service, so reading args[0] and args[1]
+// straight would identify the probe as "--profile <name>" and match nothing.
+const positional = [];
+for (let index = 0; index < args.length; index += 1) {
+  if (args[index].startsWith("--")) {
+    index += 1;
+    continue;
+  }
+  positional.push(args[index]);
+}
+const probe = positional[0] + " " + positional[1];
+function listed(variable) {
+  return (process.env[variable] || "")
+    .split(",")
+    .map(function (entry) {
+      return entry.trim();
+    })
+    .includes(probe);
+}
+if (listed("FAKE_AWS_UNREACHABLE")) {
+  process.stderr.write(
+    "Could not connect to the endpoint URL for " + probe + "\n"
+  );
+  process.exit(255);
+}
+if (listed("FAKE_AWS_DENY")) {
+  process.stderr.write(
+    "An error occurred (AccessDeniedException) when calling " +
+      args[1] +
+      ": User is not authorized to perform this operation\n"
+  );
+  process.exit(254);
+}
+if (process.env.FAKE_AWS_ALLOW_READS === "1") {
+  process.stdout.write("{}\n");
+  process.exit(0);
+}
+
 process.stderr.write("fake-aws: unsupported command " + args.join(" ") + "\n");
 process.exit(2);
 `;
