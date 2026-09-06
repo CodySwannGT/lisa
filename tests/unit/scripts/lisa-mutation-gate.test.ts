@@ -1107,7 +1107,20 @@ describe("the gate end to end", () => {
         "   a timed-out mutant as KILLED, so an unmeasured share is an unknown amount of\n" +
         "   this score decided by the clock.\n" +
         '   Add "clear-text" to `reporters` in your Stryker config to measure it, or set\n' +
-        "   MUTATION_CAPTURE=0 to say out loud that this run is not being accounted for."
+        "   MUTATION_CAPTURE=0 to say out loud that this run is not being accounted for.\n" +
+        // The same stand-in prints no cost denominator either, and the two
+        // silences are different facts: the block above is about how much of a
+        // SCORE the clock decided, this one about how much WORK the score cost.
+        // A run that lost its per-mutant test selection reports the same score
+        // at many times the price (CodySwannGT/lisa#3880), so an unaccounted
+        // run says so rather than reading as a cheap one.
+        "⚠️  mutation-gate: selection-unmeasured\n" +
+        "   This run's COST denominator was NOT measured: Stryker printed neither the\n" +
+        "   size of the un-mutated suite nor an average tests-per-mutant, so nothing here\n" +
+        "   can say whether it selected tests per mutant or ran the whole suite for every\n" +
+        '   one. The suite size comes from the dry run at log level "info"; the average\n' +
+        '   comes from the "clear-text" reporter. A run missing both is unaccounted for\n' +
+        "   on cost, which is not the same as a run that was cheap."
     );
   });
 
