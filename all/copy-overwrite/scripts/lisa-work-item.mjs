@@ -4754,19 +4754,16 @@ function sweep(args) {
     }
   }
   if (drifted === 0) {
+    const examinedSummary = `Examined ${subjects.size} item(s) across ${roles.length} lifecycle role(s); no role outside ${examined} was queried.`;
     console.log(
-      `No drift: every open item carrying ${examined} is genuinely in flight.\n` +
-        `Examined ${subjects.size} item(s) across ${roles.length} lifecycle role(s); ` +
-        `no role outside ${examined} was queried.` +
-        describeUnresolvedBranches(unresolved)
+      `No drift: every open item carrying ${examined} is genuinely in flight.\n${examinedSummary}${describeUnresolvedBranches(unresolved)}`
     );
     return;
   }
   if (!apply) {
+    const driftHeadline = `${drifted} open item(s) carrying ${examined} are declared by a commit on a deploy branch.`;
     console.log(
-      `\n${drifted} open item(s) carrying ${examined} are declared by a commit on a deploy branch. ` +
-        `Re-run with --apply to complete them.` +
-        describeUnresolvedBranches(unresolved)
+      `\n${driftHeadline} Re-run with --apply to complete them.${describeUnresolvedBranches(unresolved)}`
     );
   }
 }
