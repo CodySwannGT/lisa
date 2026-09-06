@@ -33,6 +33,10 @@
  * That is why the third block below asserts a defect rather than a guarantee.
  * It is the recorded measurement, not an endorsement: when the gap is closed,
  * this block is what must change, and it names what a fix would have to do.
+ * CodySwannGT/lisa#4046 tracks closing it, and carries the trap that makes the
+ * obvious fix a no-op — both `NO_STATUS_MOMENTS` call sites compare the raw
+ * moment key, so adding `pre-deploy` to that list never matches
+ * `pre-deploy:production`.
  *
  * Measured at 4.50.3 over the 41-gate registry: 28 gates are legal at `push`
  * and 0 of them accept `await:`; 39 are legal at `pre-deploy` and all 39
