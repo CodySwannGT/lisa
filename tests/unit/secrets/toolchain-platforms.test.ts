@@ -243,3 +243,48 @@ describe("the pinning gate", () => {
     expect(() => assertPinned(unchecksummed)).toThrow(/url and sha256/);
   });
 });
+
+describe("an unresolvable entry is still probed", () => {
+  it("asks the probe and keeps the provisioning verdict unchanged", () => {
+    // The differential this pins: with the probe result held constant, the
+    // decision must not swing from "leave it alone" to "hard stop" purely on
+    // whether a table entry exists. `invalid` is right for provisioning and
+    // does not change — what changed is that `found` now travels with it, so a
+    // caller asking about availability is not forced to infer it from the
+    // provisioning answer.
+    const asked: string[] = [];
+    const present = (name: string) => {
+      asked.push(name);
+      return { present: true, version: "2.1.0" };
+    };
+    const plan = planToolchain(
+      { install: [GH] },
+      present,
+      "local",
+      "win32-x64"
+    ) as Array<Step & { found?: unknown; unpinnedForPlatform?: boolean }>;
+    expect(asked).toEqual(["gh"]);
+    expect(plan[0]?.action).toBe("invalid");
+    expect(plan[0]?.unpinnedForPlatform).toBe(true);
+    expect(plan[0]?.found).toEqual({ present: true, version: "2.1.0" });
+  });
+
+  it("does not probe, or mark, a malformed platforms map", () => {
+    // Nothing on PATH redeems a broken declaration, so there is no availability
+    // question to ask and no answer to carry.
+    const asked: string[] = [];
+    const probe = (name: string) => {
+      asked.push(name);
+      return { present: true, version: "2.1.0" };
+    };
+    const plan = planToolchain(
+      { install: [{ name: "gh", version: "2.83.0", platforms: [LINUX] }] },
+      probe,
+      "local",
+      MAC
+    ) as Array<Step & { unpinnedForPlatform?: boolean }>;
+    expect(asked).toEqual([]);
+    expect(plan[0]?.action).toBe("invalid");
+    expect(plan[0]?.unpinnedForPlatform).toBeUndefined();
+  });
+});
