@@ -2309,7 +2309,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-lisa-owned-hash-ledger.mjs":
       "987ed2f9cedefcb70778a6c6ad0f3fffd114fedc7e8bf62d6456b2d2e8e2de76",
     "scripts/generate-nightly-e2e-guard-certificate.mjs":
-      "d753c779ed67099639136b3dac658f329ff6cc6b7a009e6f018b29e48b3e8ff1",
+      "cfa441fced288d9e82d6b4a0a5e6c0d66b513f50b87751b879e8d2410a8054a3",
     "scripts/generate-two-channel-couplings.ts":
       "4393f6f30ae7292da20c68c2b097b96f93b0e364e2fec48f8b7c86827d444986",
     "scripts/generate-upstream-evidence-manifest.mjs":
