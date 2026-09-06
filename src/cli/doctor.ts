@@ -27,6 +27,7 @@ import { checkWorkerEpoch } from "./doctor-worker-epoch.js";
 import { checkSerializeLegsContract } from "./doctor-serialize-legs-contract.js";
 import { checkApplyFailure } from "./doctor-apply-failure.js";
 import { checkProjectType } from "./doctor-project-type.js";
+import { checkRailsDeployIntent } from "./doctor-rails-deploy-intent.js";
 import { checkOverrideFloorConflicts } from "./doctor-override-floor-conflicts.js";
 import { renderDoctorResult } from "./doctor-render.js";
 import type { GateReport } from "./gate-report-types.js";
@@ -376,6 +377,15 @@ export async function runDoctor(
     // postinstall that wrote it is skipped under CI, and the tool it disables
     // reports only that it found nothing (CodySwannGT/lisa#3858).
     await checkConfigShadowing(resolvedTarget),
+    // Third in the same run of "what did Lisa seed here, and does it still
+    // say what it meant". The two above compare a Lisa-owned file against the
+    // shipped copy and ask whether a seeded file outranks the project's own;
+    // this one asks whether a file Lisa is FORBIDDEN to refresh still reads as
+    // deliberate. The seed fix reaches new adoptions only, the apply path will
+    // not rewrite a host-owned workflow, and nothing else looks at the file
+    // again — so an already-seeded project has no way but this to find itself
+    // (CodySwannGT/lisa#3779).
+    await checkRailsDeployIntent(resolvedTarget),
     await checkReusableWorkflowRefs(resolvedTarget),
     // Immediately after the ref check, because both read the same caller
     // workflows and an operator editing one wants both findings together. This
