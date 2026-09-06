@@ -821,7 +821,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/track-plan-sessions.sh":
       "8bc47dcad3aed628df0c9efbe7b6f3df87635b94b0c54c71e0bd52eceace563a",
     "plugins/src/base/hooks/withdrawn-rulings.mjs":
-      "fcaac3917b7cafc9b8c853644d16a0598b3df0ef6d117af0ad03c4251c60a294",
+      "4e66fd547514f08f8293a9f8e337876679d928e3e9825eefb508f887f88e8d85",
     "plugins/src/base/hooks/withdrawn-rulings.sh":
       "5dbf429b6ec73c3c29fb96008efa1015feaa4812c1b4bb26aaa5d0b904a0ff9c",
     "plugins/src/base/hooks/worktree-binding-guard.mjs":
@@ -877,7 +877,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/wiki-knowledge-source.md":
       "b3ae63fca40461fef19779d8f0c971553963ed8fe9c22fc504da3d8e757b3a36",
     "plugins/src/base/rules/eager/withdrawn-rulings.md":
-      "d31ad0b430524038131474c4b7b8239a8d68562f502d2d7797f2de5bbe3b2495",
+      "b4a066751e704c84b1eaca4a4b5c7371491873080d31078363a40c4de110539f",
     "plugins/src/base/rules/reference/automation-runbook-contract.md":
       "f572c375e86290421642c1492655665d92ad94fa6b7c597e82277a0c33516f04",
     "plugins/src/base/rules/reference/base-rules.md":
@@ -987,7 +987,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/wiki-knowledge-source.md":
       "725a7415a0606f85164722bd4b4975bce1f496cc43c97e45b224810b1a685189",
     "plugins/src/base/rules/reference/withdrawn-rulings.md":
-      "089ebd9f633ca739a10bdef0ac162b28aa8516da181f568923246cace9c00508",
+      "34afe0413fce11872ac99b87e6323c59a754db7992c5fb054a56845af0723785",
     "plugins/src/base/rules/reference/work-item-definition-of-ready.md":
       "2409b6c4631cd1aa5e85c70cadfca68f66c0087cf7ba8adbf50e4f1753cbeddf",
     "plugins/src/base/scripts/automation-run-record.mjs":
@@ -10062,6 +10062,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/track-plan-sessions.test.ts": true,
     "tests/unit/hooks/typecheck-hook-placement.test.ts": true,
     "tests/unit/hooks/verification-failure-mode-fixtures.test.ts": true,
+    "tests/unit/hooks/withdrawn-rulings-reaudit.test.ts": true,
     "tests/unit/hooks/withdrawn-rulings-wiring.test.ts": true,
     "tests/unit/hooks/withdrawn-rulings.test.ts": true,
     "tests/unit/hooks/work-item-wiring.test.ts": true,

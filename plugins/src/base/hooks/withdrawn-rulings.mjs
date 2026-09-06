@@ -62,9 +62,35 @@
  * chore produced mid-task, after being corrected, when attention has moved on.
  * A rule of the form "always record retractions durably" is a discipline, and
  * this repository's own measurement is that prose rules land at roughly zero
- * adoption. `--withdraw` is therefore one command with three required fields,
+ * adoption. `--withdraw` is therefore one command with four required fields,
  * and it refuses without the verbatim claim: a tombstone the holder of the
  * claim cannot recognise reaches them without reaching them.
+ *
+ * ## Why the re-audit is a required FIELD and not a reminder
+ *
+ * Correcting a premise removes the belief and leaves every inference standing
+ * (CodySwannGT/lisa#3489). The observed instance: a session disproved a false
+ * claim that a credential CLI was unavailable, updated the fact, and two hours
+ * later still relayed to its human that a work item was blocked for a reason
+ * that rested on the retracted claim. Three facts sat in one context and were
+ * never joined. The retraction was recorded; the artifacts it invalidated were
+ * not revisited.
+ *
+ * This file already carried the obligation as prose — "if you already relayed
+ * or recorded one, correct it on the same surface" — which is the discipline
+ * shape this module exists to distrust. So `--derived` is required, and
+ * `--derived none` is the explicit empty answer. The obligation is to PRODUCE
+ * the list, not to find something wrong in it: an empty answer is fine, an
+ * absent one is not, and the difference between them is the whole control.
+ *
+ * It has to bind here because there is nowhere else it could. A scanner that
+ * went looking for artifacts resting on a retracted premise would find nothing
+ * to read: outside the learnings ledger's `provenance` refs, no artifact Lisa
+ * writes records the premise it rests on. A tracker item marked blocked, a
+ * statement relayed to a human, a message to a peer session — none carry a
+ * back-pointer. The retracting session is the only party that still holds the
+ * derivation, and the moment it runs this command is the only moment that
+ * knowledge is both present and being written down.
  * @module withdrawn-rulings
  */
 import * as fs from "node:fs";
@@ -220,6 +246,15 @@ export function formatNotice(entries, headline) {
       lines.push(`  superseded by: ${entry.supersededBy}`);
     if (Array.isArray(entry.reached) && entry.reached.length > 0)
       lines.push(`  originally reached: ${entry.reached.join(", ")}`);
+    // Printed even when empty, and that is the useful case: it tells a reader
+    // the withdrawer looked, so nobody repeats the audit and nobody assumes it
+    // happened. An entry with no `derived` key at all says neither.
+    if (Array.isArray(entry.derived))
+      lines.push(
+        entry.derived.length > 0
+          ? `  still standing on it: ${entry.derived.join(", ")}`
+          : `  still standing on it: nothing (audited by the withdrawer)`
+      );
     return lines.join("\n");
   });
   return [
@@ -363,6 +398,24 @@ export function normalizeSuperseded(value) {
 }
 
 /**
+ * Normalise `--derived` values into the re-audit list.
+ *
+ * `none` is a real answer and must survive as one. A withdrawer who checked and
+ * found nothing standing has discharged the obligation exactly as fully as one
+ * who lists five artifacts, and the record has to be able to say so — otherwise
+ * the only way to satisfy the field is to invent an entry, which is worse than
+ * the gap it closes. Absent is refused elsewhere; `none` resolves here to an
+ * empty list, which reads back as "audited, nothing survives".
+ * @param {readonly string[]} values Raw `--derived` values, in order given.
+ * @returns {string[]} The artifacts still standing, possibly none.
+ */
+export function normalizeDerived(values) {
+  return values
+    .map(value => value.trim())
+    .filter(value => value !== "" && value.toLowerCase() !== "none");
+}
+
+/**
  * Build the record `--withdraw` appends, refusing an unrecognisable tombstone.
  * @param {readonly string[]} argv Arguments.
  * @param {string} now ISO-8601 timestamp.
@@ -380,12 +433,25 @@ export function buildWithdrawal(argv, now) {
     };
   if (because === "")
     return { error: "--because is required: say what disproved it" };
+  const derived = flagValues(argv, "--derived");
+  if (derived.length === 0)
+    return {
+      error:
+        "--derived is required: name what you asserted, filed or relayed while you " +
+        "believed this, so the retraction reaches those artifacts too. Correcting a " +
+        "premise leaves every inference standing. Pass `--derived none` if you checked " +
+        "and nothing survives — an empty answer is fine, an absent one is not.",
+    };
   return {
     record: {
       id,
       withdrawnAt: now,
       claim,
       because,
+      // Present even when empty: the difference between "audited, nothing
+      // survives" and "never audited" is the whole point of the field, and an
+      // omitted key cannot express the first.
+      derived: normalizeDerived(derived),
       // "none" is what a person types when nothing replaced the claim, and a
       // string "none" in the record would print as a superseding id that does
       // not exist. Normalised here rather than at every reader.
@@ -452,6 +518,15 @@ export function runCheck(root) {
   for (const entry of entries) {
     if (typeof entry.claim !== "string" || entry.claim === "")
       problems.push(`${entry.id}: no verbatim claim recorded`);
+    // An absent `derived` is a tombstone whose writer never said what rested on
+    // the claim. That is the CodySwannGT/lisa#3489 failure written into the
+    // ledger, and letting it through here would make the write-time refusal a
+    // formality anything could route around by editing the file.
+    if (!Array.isArray(entry.derived))
+      problems.push(
+        `${entry.id}: no re-audit recorded — say what was asserted, filed or relayed ` +
+          `while the claim was believed, or record an empty list to say nothing survives`
+      );
     if (
       typeof entry.withdrawnAt !== "string" ||
       Number.isNaN(Date.parse(entry.withdrawnAt))
