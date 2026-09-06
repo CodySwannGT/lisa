@@ -369,15 +369,45 @@ appending job arithmetic to every green is noise.
 
 | what the reader sees | what happened |
 |---|---|
-| `cancelled — 0 of 1 job(s) reached a verdict, so it tested nothing` | displaced by the concurrency group, or cancelled before any work started |
-| `cancelled — 7 of 8 job(s) reached a verdict, so it ran but did not finish` | the suite ran and was killed part-way — a job at its own `timeout-minutes` ceiling, or an operator cancel mid-flight |
+| `0 of 1 job(s) reached a verdict, so it tested nothing` | displaced by the concurrency group, or cancelled before any work started |
+| `7 of 8 job(s) reached a verdict, so it was killed at a time limit` | GitHub reported that an unfinished job exceeded its `timeout-minutes` ceiling |
+| `7 of 8 job(s) reached a verdict, so it stopped before finishing, with no time-limit evidence on any unfinished job` | it ran and stopped for some other reason — an operator cancel, a duplicate displaced mid-flight, an evicted runner, or a `needs:` dependency that failed and took its dependents with it |
+| `7 of 8 job(s) reached a verdict, so it ran but did not finish, for a reason this gate could not read` | the annotations that would attribute it were unreadable, or there were more unfinished jobs than the probe reads |
 
-This costs nothing: the counts come from jobs the walk already fetched, and **no
-workflow job configuration is read** to produce them. It is a naming of what the
-gate already knew, not a new source of truth. Separating an operator cancel from
-a `timeout-minutes` kill *within* the second row would require reading step
-annotations or the workflow's job configuration, and is deliberately out of
-scope here.
+The counts come free from jobs the walk already fetched. The **time-limit**
+distinction does not, and it is worth the request: a ceiling kill is a statement
+about the software or its budget, while an operator cancel is a decision a human
+made and says nothing about health. Reporting the two alike cries wolf — it
+presents a human decision as a suite that exhausted its time. It can never hide
+a regression in the other direction, because the run is scored and blocks
+whichever it was; only the diagnosis differed.
+
+**It is read, not inferred.** The guard asks the check run of each unfinished job
+for its annotations and looks for GitHub saying a job exceeded its maximum
+execution time. It does not compare elapsed time against a configured ceiling,
+which would infer a kill from a clock and mis-call every job that stopped early
+for an unrelated reason. **No workflow job configuration is read.**
+
+Three answers, and the third is not a tidy-up. Row three is an evidenced
+absence — every unfinished job's annotations were read and none named a time
+limit. Row four is *unread*: a 404, an unreadable body, a job carrying no check
+run URL, or more unfinished jobs than the cap. The two must not be collapsed,
+for the reason `fetchAllJobs` gives one layer up — the killed shard may be the
+one that would not load, and calling that "no timeout here" manufactures the
+absence of evidence.
+
+The probe fires only for a run that reached **no verdict of its own yet scored
+some of its jobs**, which is the only shape the counts cannot resolve. A
+decisive run and a run that tested nothing are both named without it, so the
+common path costs exactly what it did before. It never fails the gate: it
+catches everything and answers "could not read", on the same contract as the
+requiredness measurement — a diagnostic that took the gate down when an
+annotations endpoint blinked would trade a missing sentence for a missing gate.
+
+The residual is deliberately **not** called "an operator cancel". Nothing here
+proves a human did anything; the evidence says a ceiling was hit or does not say
+so, and claiming the negative as a positive would repeat the category error one
+layer along.
 
 ### 2.5 Rows 36–39 — a run that tested a SLICE is not a green suite
 

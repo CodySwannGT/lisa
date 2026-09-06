@@ -65,6 +65,13 @@ export interface Job {
   readonly name: string;
   readonly conclusion: string | null;
   readonly html_url?: string;
+  /**
+   * The check run carrying this job's annotations. Present on the real payload
+   * and read only by the timeout probe, which is why most fixtures omit it —
+   * an omitted URL is a job the probe cannot address, and it answers "not
+   * attributed" rather than "no timeout".
+   */
+  readonly check_run_url?: string;
 }
 
 /** The resolved bootstrap window. */

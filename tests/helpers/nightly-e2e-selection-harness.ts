@@ -37,6 +37,14 @@ export interface RunSelection {
    */
   readonly decisiveJobs?: number;
   readonly totalJobs?: number;
+  /**
+   * Whether GitHub reported that an unfinished job hit its `timeout-minutes`
+   * ceiling. `true` and `false` are both evidenced; `null`/absent means the
+   * question could not be answered, and the report says so rather than
+   * guessing. Only ever consulted for a run that scored some jobs but reached
+   * no verdict of its own — the shape the counts alone cannot resolve.
+   */
+  readonly timedOut?: boolean | null;
   /** True when no conclusive run was found inside the freshness window. */
   readonly fellBack: boolean;
   readonly skipped: readonly SkippedRun[];
@@ -74,6 +82,11 @@ export interface SelectionModule {
   ): boolean;
   countDecisiveJobs(jobs: readonly Job[] | null): number;
   formatSelection(selection: RunSelection | null): string | null;
+  readTimeoutEvidence(
+    api: unknown,
+    jobs: readonly Job[] | null,
+    wait?: (ms: number) => Promise<void>
+  ): Promise<boolean | null>;
 }
 
 /** The gate's default freshness window, in hours. */

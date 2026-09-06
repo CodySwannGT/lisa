@@ -290,6 +290,9 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
         conclusion: "success",
         createdAt: PASSED_RUN.created_at,
         decisiveJobs: 8,
+        // Null because the probe was never fired: this run reached its own
+        // verdict, so there is no shortfall to attribute and nothing to fetch.
+        timedOut: null,
         totalJobs: 8,
         fellBack: false,
         skipped: [
@@ -900,12 +903,12 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
   });
 
   describe("an inconclusive scored run says WHY it was inconclusive", () => {
-    it("names a run that ran out of time part-way through", () => {
-      // `cancelled` is overloaded across a displaced duplicate, a job killed at
-      // its own `timeout-minutes` ceiling, and an operator cancel. The job
-      // counts separate the first from the other two without reading anything
-      // but the jobs the gate already fetched: seven of eight verdicts reached
-      // is a suite that ran and did not finish, not one that never started.
+    it("refuses to call a shortfall a timeout when it could not look", () => {
+      // The counts separate "it never started" from "it started and stopped".
+      // They do NOT say why it stopped, and the earlier version of this test
+      // asserted a line that read 7-of-8 as "ran out of time" — true of a
+      // ceiling kill, false of an operator cancel. With no timeout evidence
+      // either way, the honest line says the reason was unreadable.
       const line = mod.formatSelection({
         runId: 33313952295,
         conclusion: "cancelled",
@@ -917,8 +920,68 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
       });
 
       expect(line).toBe(
-        `↳ scored run 33313952295 (cancelled — 7 of 8 job(s) reached a verdict, so it ran but did not finish, ${FRESH})`
+        `\u21b3 scored run 33313952295 (cancelled \u2014 7 of 8 job(s) reached a verdict, so it ran but did not finish, for a reason this gate could not read, ${FRESH})`
       );
+    });
+
+    it("names a ceiling kill when GitHub says a job exceeded its limit", () => {
+      const line = mod.formatSelection({
+        runId: 33240191767,
+        conclusion: "cancelled",
+        createdAt: FRESH,
+        decisiveJobs: 7,
+        totalJobs: 8,
+        timedOut: true,
+        fellBack: false,
+        skipped: [],
+      });
+
+      expect(line).toContain("so it was killed at a time limit");
+      expect(line).not.toContain("could not read");
+    });
+
+    it("does not claim an operator cancel it cannot prove", () => {
+      // Absence of a timeout annotation is not proof a human pressed cancel: a
+      // displaced duplicate, an evicted runner and a failed `needs:` dependency
+      // land in the same residual. Naming it "an operator cancel" would be the
+      // same category error one layer along.
+      const line = mod.formatSelection({
+        runId: 33240191768,
+        conclusion: "cancelled",
+        createdAt: FRESH,
+        decisiveJobs: 7,
+        totalJobs: 8,
+        timedOut: false,
+        fellBack: false,
+        skipped: [],
+      });
+
+      expect(line).toContain(
+        "stopped before finishing, with no time-limit evidence"
+      );
+      expect(line).toContain(
+        "an operator cancel, a displaced duplicate, an evicted runner and a failed dependency all land here"
+      );
+      expect(line).not.toContain("killed at a time limit");
+    });
+
+    it("still says tested nothing when no job reached a verdict", () => {
+      // The 0-of-N arm is untouched by the timeout probe, and must stay that
+      // way even when a stray timedOut rides along: a run that scored nothing
+      // was displaced, not killed part-way.
+      const line = mod.formatSelection({
+        runId: 33226173248,
+        conclusion: "cancelled",
+        createdAt: FRESH,
+        decisiveJobs: 0,
+        totalJobs: 1,
+        timedOut: true,
+        fellBack: false,
+        skipped: [],
+      });
+
+      expect(line).toContain("so it tested nothing");
+      expect(line).not.toContain("time limit");
     });
 
     it("names a run that tested nothing at all", () => {
@@ -972,6 +1035,118 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
 
       expect(observation?.selection?.decisiveJobs).toBe(1);
       expect(observation?.selection?.totalJobs).toBe(2);
+    });
+  });
+
+  describe("the timeout probe reads GitHub rather than guessing", () => {
+    /** A job the probe can address, killed part-way. */
+    const UNFINISHED = Object.freeze({
+      name: "shard-2",
+      conclusion: "cancelled",
+      check_run_url: "https://api.test/repos/o/r/check-runs/551",
+    });
+
+    /**
+     * Stubs the annotations endpoint alone, recording what was asked for.
+     *
+     * @param messages - Annotation messages the check run carries
+     * @param status - HTTP status the endpoint answers with
+     * @returns The paths requested, in call order
+     */
+    function stubAnnotations(
+      messages: readonly string[],
+      status = 200
+    ): string[] {
+      const asked: string[] = [];
+      (globalThis as { fetch: unknown }).fetch = async (
+        url: string
+      ): Promise<unknown> => {
+        asked.push(url);
+        return fakeResponse(
+          status,
+          {},
+          status === 200 ? messages.map(message => ({ message })) : {}
+        );
+      };
+      return asked;
+    }
+
+    it("reports a ceiling kill from GitHub's own annotation", async () => {
+      // Hardcoded rather than built from the guard's regex: the whole point is
+      // that this is the vendor's wording, so the fixture has to be the vendor's
+      // wording too.
+      const asked = stubAnnotations([
+        "The job running on runner GitHub Actions 12 has exceeded the maximum execution time of 60 minutes.",
+      ]);
+
+      expect(
+        await mod.readTimeoutEvidence(TEST_API, [UNFINISHED], noWait)
+      ).toBe(true);
+      expect(asked).toEqual([
+        "https://api.test/repos/o/r/check-runs/551/annotations?per_page=100",
+      ]);
+    });
+
+    it("reports no ceiling kill when every annotation was read and none said so", async () => {
+      stubAnnotations(["Process completed with exit code 1."]);
+
+      expect(
+        await mod.readTimeoutEvidence(TEST_API, [UNFINISHED], noWait)
+      ).toBe(false);
+    });
+
+    it("answers unknown rather than absent when a check run is unreadable", async () => {
+      // A 404 mid-probe is unread, not empty. Counting it as "no annotations"
+      // would manufacture the absence of evidence — the killed shard may be the
+      // one that would not load.
+      stubAnnotations([], 404);
+
+      expect(
+        await mod.readTimeoutEvidence(TEST_API, [UNFINISHED], noWait)
+      ).toBeNull();
+    });
+
+    it("answers unknown for a job it cannot address", async () => {
+      // No check_run_url, and no assumption that a job id equals its check-run
+      // id. Nothing is fetched at all.
+      const asked = stubAnnotations([]);
+
+      expect(
+        await mod.readTimeoutEvidence(
+          TEST_API,
+          [{ name: "shard-2", conclusion: "cancelled" }],
+          noWait
+        )
+      ).toBeNull();
+      expect(asked).toEqual([]);
+    });
+
+    it("asks nothing when every job reached a verdict", async () => {
+      const asked = stubAnnotations([]);
+
+      expect(
+        await mod.readTimeoutEvidence(
+          TEST_API,
+          [{ name: "shard-1", conclusion: "success" }],
+          noWait
+        )
+      ).toBeNull();
+      expect(asked).toEqual([]);
+    });
+
+    it("does not probe a run that reached its own verdict", async () => {
+      // The cost control: a decisive run has already said what happened, so the
+      // common path keeps exactly the request count it had before this existed.
+      const paths = stubActions(
+        [{ ...DISPLACED_RUN, id: 903, conclusion: "success" }],
+        {
+          903: [{ name: "android", conclusion: "success" }],
+        }
+      );
+
+      await mod.observe(TEST_API, [RUN_SUITE], BRANCH, CONTEXT, noWait);
+
+      expect(paths.filter(path => path.includes("/annotations"))).toEqual([]);
     });
   });
 
