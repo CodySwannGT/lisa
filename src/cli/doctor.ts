@@ -13,6 +13,7 @@ import {
 import { checkEnforcementCoverage } from "./doctor-enforcement-coverage.js";
 import { checkLockfileReconciliation } from "./doctor-reconciliation.js";
 import { checkKaneProvider } from "./doctor-kane.js";
+import { checkConfigShadowing } from "./doctor-config-shadowing.js";
 import { checkLearningsLedger } from "./doctor-learnings-ledger.js";
 import { checkMergeDrivers } from "./doctor-merge-drivers.js";
 import { checkReadinessReportTracking } from "./doctor-readiness-tracking.js";
@@ -366,6 +367,15 @@ export async function runDoctor(
     await checkSonarProvider(resolvedTarget, deps),
     await checkLegacyMonitorThresholds(resolvedTarget),
     await checkLisaOwnedArtifacts(resolvedTarget),
+    // Immediately after, because it asks the other half of "what did Lisa
+    // write here". That check compares a Lisa-owned file against the shipped
+    // copy; this one asks whether a file Lisa seeded is OUTRANKING one the
+    // project wrote itself. The write-path guard cannot answer that: it is
+    // reached once, before the file exists, so a repository that received the
+    // template earlier has no signal of any kind — the file is untracked, the
+    // postinstall that wrote it is skipped under CI, and the tool it disables
+    // reports only that it found nothing (CodySwannGT/lisa#3858).
+    await checkConfigShadowing(resolvedTarget),
     await checkReusableWorkflowRefs(resolvedTarget),
     // Immediately after the ref check, because both read the same caller
     // workflows and an operator editing one wants both findings together. This
