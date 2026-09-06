@@ -931,11 +931,49 @@ proxy for the other, so read them separately:
   wedged looking abandoned.
 
 Never dismiss on `reviewDecision` alone. Dismiss the stale (often bot) review
-where repo policy permits, else re-request review:
+where repo policy permits:
 ```bash
 gh api -X PUT repos/<owner>/<repo>/pulls/<pr>/reviews/<review_id>/dismissals \
   -f message="Addressed; threads resolved." -f event=DISMISS
 ```
+
+**When you cannot dismiss, re-requesting is NOT the automatic fallback.** This
+file already forbids re-requesting to refresh a review, in as many words, and
+that prohibition applies here too — the fallback used to contradict it, and an
+agent reaching it was told to do the thing the same file calls one-way
+destruction (CodySwannGT/lisa#3587).
+
+Read the reviews before deciding, because the read is cheap and settles it:
+
+```bash
+gh api "repos/<owner>/<repo>/pulls/<pr>/reviews" \
+  --jq '[.[] | {author: .user.login, state: .state, hasBody: (((.body // "") | length) > 0)}]'
+```
+
+- **A human reviewer** — re-request freely. Re-requesting a person's review is
+  unremarkable and loses nothing.
+- **A bot reviewer whose review is NOT the only substantive one** — re-request.
+  Something else still evidences that this head was read.
+- **A bot reviewer whose review IS the only substantive one on the PR** — do
+  NOT re-request. **Escalate for a dismissal decision instead.** Under a
+  throttle or a spending cap the bot answers a new request with a status
+  carrying no review body, that hollow answer becomes its latest review, and
+  every effective-review computation — including the "latest non-dismissed
+  review per reviewer" rule immediately below — then reads the hollow one. The
+  substantive review is still retrievable from the reviews API; what is lost is
+  its standing as the reviewer's current review, which is the thing the merge
+  standard reads.
+
+Deleting the fallback outright would over-correct: it is the only remedy a lane
+without dismissal permission has, and that permission is not universal. This
+narrows it to the case that costs nothing.
+
+**Unverified, and stated as such rather than asserted:** that a bot's re-review
+REPLACES its predecessor in the effective set is inferred from the observed
+consequence, not measured against the vendor. It has not been tested here, and
+testing it means re-requesting on a live pull request. The guidance is worth
+following either way — the escalation costs one human decision, and the failure
+it avoids is one-way.
 Some org rulesets allow 0 approvals yet a bot `CHANGES_REQUESTED` still blocks
 auto-merge — dismissing the stale review after resolving all threads is what
 unblocks it.
