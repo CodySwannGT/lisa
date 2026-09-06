@@ -85,7 +85,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "306c76e07e25d8df06b4a586508d1d13c628375861b4f05e92b7b6635d46d171",
+      "ec2aa4c645fb1573aa2dfb731e7ced02a00b7f56a3eb853157ac7e74c0a04f92",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -10459,6 +10459,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-push-refs-file.test.ts": true,
     "tests/unit/scripts/work-item-push-success-attribution.test.ts": true,
     "tests/unit/scripts/work-item-run-and-gh-version.test.ts": true,
+    "tests/unit/scripts/work-item-session-url.test.ts": true,
     "tests/unit/scripts/work-item-tracker-unreachable.test.ts": true,
     "tests/unit/scripts/work-item-trailer-definition.test.ts": true,
     "tests/unit/scripts/work-item-unreachable-ancestry.test.ts": true,

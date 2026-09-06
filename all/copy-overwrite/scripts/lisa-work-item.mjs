@@ -1239,12 +1239,190 @@ function writeState(ref, provider = trackerContract().provider, options = {}) {
  * @returns {string[]} Every Work-Item value found, in order of appearance.
  */
 export function workItemLines(message) {
-  return String(message ?? "")
-    .split(/\r?\n/)
-    .flatMap(line => {
-      const value = workItemLineValue(line);
-      return value === null ? [] : [value];
-    });
+  return messageLines(message).flatMap(line => {
+    const value = workItemLineValue(line);
+    return value === null ? [] : [value];
+  });
+}
+
+/**
+ * One commit message or pull-request body, as lines.
+ *
+ * THE shared split, so every reader here means the same thing by "a line".
+ * Definition B — the whole message, not git's final paragraph — is the whole
+ * point of the `work-item-trailer-definition` rule (#3747), and it survives
+ * only if the next reader that needs lines reuses this instead of writing a
+ * third scanner with its own idea of where a message ends.
+ * @param {string} message Commit message or pull-request body.
+ * @returns {string[]} Every line, in order, without their terminators.
+ */
+function messageLines(message) {
+  return String(message ?? "").split(/\r?\n/);
+}
+
+/**
+ * ## The coding-session URL a commit message must not publish
+ *
+ * Measured on this fleet's own public history: 65 commits on the default
+ * branch, and 54 more on one unmerged branch, carry a coding-session URL in
+ * their message across nine session identifiers spanning a month
+ * (CodySwannGT/lisa#3731). They are not credentials and nobody can use them.
+ * They are internal identifiers, published in perpetuity, that partition a
+ * public history by working session — metadata nobody decided to publish.
+ *
+ * **Nothing typed them.** The harness appended the trailer itself, below
+ * whatever the agent wrote, after the agent had finished writing. That is why
+ * the check lives at `commit-msg` and reads the file git is about to commit:
+ * every instruction, rule and convention aimed at the agent is upstream of the
+ * moment the text actually appears, so a guard placed there would be inert
+ * against the one producer that has emitted every single instance. The
+ * convention has since changed and no longer emits it — which is exactly the
+ * state that existed before, and exactly the state that failed.
+ *
+ * Deliberately NOT wired into `validateMessage`: that reader also serves the
+ * push and pull-request gates, which walk history. Refusing there would refuse
+ * the 119 commits that already carry one — a published-history rewrite, which
+ * is a human decision and explicitly out of scope. This ticket is about not
+ * adding more.
+ */
+const SESSION_URL_MARK = "claude.ai/code/session_";
+
+/**
+ * The shortest run of identifier characters this treats as a real session id.
+ *
+ * **This is the line between a leak and a sentence about leaks.** Real ids are
+ * 24 characters of base62; prose that has to name the form writes
+ * `claude.ai/code/session_<id>` or trails it off. A guard whose pattern matched
+ * prose would refuse the commit that adds the guard, its tests and its
+ * documentation — the failure this repository has walked into more than once —
+ * so the discriminator is not "does the text mention it" but "does the text
+ * carry an actual published identifier".
+ */
+const SESSION_ID_FLOOR = 16;
+
+/**
+ * Does `line` carry `needle` at `index`, comparing ASCII case-insensitively?
+ *
+ * A character walk rather than `line.toLowerCase().includes(needle)`. Case
+ * folding is not length-preserving in Unicode — U+0130 expands to two code
+ * units — so an index taken in a folded copy does not address the original,
+ * and the id that follows the mark would be measured from the wrong place.
+ * @param {string} line One line of a commit message.
+ * @param {number} index Where in `line` to compare.
+ * @param {string} needle Lowercase text to look for.
+ * @returns {boolean} True when `line` carries `needle` there.
+ */
+function matchesFolded(line, index, needle) {
+  if (index + needle.length > line.length) return false;
+  for (let offset = 0; offset < needle.length; offset += 1) {
+    const code = line.charCodeAt(index + offset);
+    const folded = code >= 65 && code <= 90 ? code + 32 : code;
+    if (folded !== needle.charCodeAt(offset)) return false;
+  }
+  return true;
+}
+
+/**
+ * Is this one of the characters a session identifier is made of?
+ * @param {string} character A single character.
+ * @returns {boolean} True for `[0-9A-Za-z_-]`.
+ */
+function isSessionIdCharacter(character) {
+  return (
+    (character >= "0" && character <= "9") ||
+    (character >= "a" && character <= "z") ||
+    (character >= "A" && character <= "Z") ||
+    character === "-" ||
+    character === "_"
+  );
+}
+
+/**
+ * Does this line carry a session URL with a real identifier on it?
+ *
+ * Scanned character by character, never matched with a pattern. The shipped
+ * tree's lint refuses backtracking-prone quantifiers, and the input here is a
+ * commit message — text this script does not get to trust the shape of.
+ * @param {string} line One line of a commit message.
+ * @returns {boolean} True when the line publishes a session identifier.
+ */
+function carriesSessionUrl(line) {
+  for (let index = 0; index < line.length; index += 1) {
+    if (!matchesFolded(line, index, SESSION_URL_MARK)) continue;
+    let end = index + SESSION_URL_MARK.length;
+    while (end < line.length && isSessionIdCharacter(line[end])) end += 1;
+    if (end - index - SESSION_URL_MARK.length >= SESSION_ID_FLOOR) return true;
+  }
+  return false;
+}
+
+/**
+ * Git's `--verbose` scissors, below which nothing reaches the commit.
+ *
+ * `git commit -v` appends the staged diff under this line and strips both
+ * before recording the message. A guard that read past it would refuse a commit
+ * for text that was never going to be published — including, precisely, the
+ * commit that stages this guard's own test fixtures.
+ */
+const SCISSORS_MARK = ">8";
+
+/**
+ * The part of a commit message that will actually be recorded.
+ * @param {string} message The commit message file's contents.
+ * @returns {string[]} Lines above the scissors, or every line when there is none.
+ */
+function publishedLines(message) {
+  const lines = messageLines(message);
+  const cut = lines.findIndex(
+    line => line.trimStart().startsWith("#") && line.includes(SCISSORS_MARK)
+  );
+  return cut === -1 ? lines : lines.slice(0, cut);
+}
+
+/**
+ * Which lines of this message publish a coding-session URL.
+ * @param {string} message The commit message file's contents.
+ * @returns {number[]} One-based line numbers, in order.
+ */
+function sessionUrlLines(message) {
+  return publishedLines(message).flatMap((line, index) =>
+    carriesSessionUrl(line) ? [index + 1] : []
+  );
+}
+
+/**
+ * Refuse a commit message that publishes a coding-session URL.
+ *
+ * The refusal names line numbers and the URL's PREFIX only. Echoing the
+ * identifier back would copy it into CI logs and terminal scrollback, which is
+ * the same act at a different address.
+ * @param {string} message The commit message file's contents.
+ * @throws {TrackingError} When the message carries a session identifier.
+ */
+function assertNoSessionUrl(message) {
+  const lines = sessionUrlLines(message);
+  if (lines.length === 0) return;
+  const plural = lines.length === 1 ? "" : "s";
+  const error = new TrackingError(
+    [
+      `This commit message publishes a coding-session URL on line${plural} ${lines.join(", ")}.`,
+      "",
+      `Remove every ${SESSION_URL_MARK}… occurrence from the message.`,
+      "",
+      "It is not a credential, and this refusal is hygiene rather than a",
+      "breach: the identifier has no reader outside the session that made it.",
+      "But this history is public and permanent, and a session id partitions",
+      "it by working session — metadata nobody chose to publish. If something",
+      "other than you is appending it, that is the thing to turn off; an",
+      "instruction to stop cannot reach the code that writes it.",
+      "",
+      "To route a commit back to the run that produced it, use the",
+      "non-identifying `Lane-Id:` trailer Lisa already stamps at",
+      "prepare-commit-msg.",
+    ].join("\n")
+  );
+  error.selfExplanatory = true;
+  throw error;
 }
 
 /**
@@ -5406,9 +5584,16 @@ function validateCommit(args) {
   const file = args[0];
   if (!file)
     throw new TrackingError("validate-commit requires the commit message file");
+  const message = readFileSync(file, "utf8");
+  // Before the traceability gates and outside their exemptions, deliberately.
+  // A merge or release message is exempt from naming a work item because
+  // nothing bound one; neither fact says anything about whether the harness
+  // appended an identifier to it, and those are exactly the messages no agent
+  // proof-reads.
+  assertNoSessionUrl(message);
   let result;
   try {
-    result = validateMessage(readFileSync(file, "utf8"), {
+    result = validateMessage(message, {
       allowMergeExemption: true,
     });
   } catch (error) {
