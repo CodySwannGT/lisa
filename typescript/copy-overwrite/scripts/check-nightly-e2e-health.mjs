@@ -464,6 +464,57 @@ export const REQUIRED_BYPASS_REASON_PATTERN =
  */
 export const DEFAULT_BYPASS_REASON_PATTERN = REQUIRED_BYPASS_REASON_PATTERN;
 
+/**
+ * Blank out fenced code blocks so documentation cannot stand in as a waiver.
+ *
+ * The reason pattern is `^`-anchored and matched multiline against the raw pull
+ * request body, so a `Nightly-E2E-Bypass:` line inside ``` ``` ``` matched
+ * exactly as readily as one an author wrote to assert something. A pull request
+ * DOCUMENTING the waiver format — which is the natural way to document it —
+ * therefore waived its own gate, and a quoted example from another pull request
+ * waived it under that other pull request's ticket. The bypass was still
+ * authorised (label present, applied by a maintainer, inside the window); what
+ * was fabricated is the audit record, which is the part the waiver exists to
+ * produce.
+ *
+ * Fences are the whole hole, and the `^` anchor is why. A line inside an
+ * indented block starts with spaces, a blockquote line starts with `>`, and an
+ * inline span at column zero starts with a backtick — none of them can match an
+ * anchored pattern. Inline spans are stripped anyway, because they cost one
+ * line here and the anchor is not a property anyone should have to remember.
+ *
+ * Lines are blanked rather than removed. Deleting them would slide unrelated
+ * lines together and could manufacture a match that the body never contained,
+ * which is the same class of defect one step along.
+ * @param {string} body - Raw pull request body.
+ * @returns {string} The body with code spans and fenced blocks blanked.
+ */
+export function stripMarkdownCode(body) {
+  let fence = null;
+  return String(body ?? "")
+    .split("\n")
+    .map(line => {
+      const opener = /^\s{0,3}(`{3,}|~{3,})/u.exec(line);
+      if (fence === null) {
+        if (opener) {
+          fence = opener[1][0].repeat(opener[1].length);
+          return "";
+        }
+        // A closing fence may be LONGER than its opener, never shorter, so the
+        // run length is carried rather than assumed.
+        return line.replace(/`+[^`]*`+/gu, " ");
+      }
+      if (
+        opener &&
+        opener[1][0] === fence[0] &&
+        opener[1].length >= fence.length
+      )
+        fence = null;
+      return "";
+    })
+    .join("\n");
+}
+
 /** Hard ceiling on how far out a bootstrap window may sit. */
 export const BOOTSTRAP_ABSOLUTE_MAX_DAYS = 30;
 
@@ -1564,8 +1615,12 @@ export function evaluateBypass(request) {
 
   // The built-in rule ALWAYS applies. It is checked first and on its own, so no
   // caller-supplied pattern can stand in for it.
+  //
+  // Matched against the body with fenced code blanked: a waiver is prose that
+  // ASSERTS something, and a code sample never is. See `stripMarkdownCode`.
+  const assertedBody = stripMarkdownCode(prBody ?? "");
   const found = new RegExp(REQUIRED_BYPASS_REASON_PATTERN, "m").exec(
-    prBody ?? ""
+    assertedBody
   );
   if (!found) {
     return reject("no_reason_or_ticket", {
@@ -1584,7 +1639,9 @@ export function evaluateBypass(request) {
         `\`bypass_reason_pattern\` does not compile: ${error instanceof Error ? error.message : String(error)}`
       );
     }
-    if (!extra.test(prBody ?? "")) {
+    // Same body the built-in rule saw. A project pattern that could match
+    // inside a fence would reopen the hole one layer along.
+    if (!extra.test(assertedBody)) {
       return reject("no_reason_or_ticket", {
         expiresAt: new Date(expiresMs).toISOString(),
       });
