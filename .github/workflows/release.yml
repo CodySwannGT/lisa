@@ -660,15 +660,37 @@ jobs:
           # prerelease string. An explicit `prerelease` input still wins.
           # Only standard-version is scoped in here; semantic/calendar/custom
           # keep their prior behavior (below).
+          # Every strategy but `custom` derives the label, not just
+          # standard-version. The scoping above was written for the default
+          # strategy and left `semantic` and `calendar` sharing one repo-global
+          # `vX.Y.Z` namespace across dev, staging and main — so a promote or a
+          # sync-back merge lets a non-prod branch compute a version main has
+          # already released and attempt its tag.
+          #
+          # `custom` is excluded on purpose and stays excluded: an explicitly
+          # pinned version must never be silently renamed. Its collision is
+          # handled below by refusing, not by relabelling.
           PRERELEASE_LABEL="$RELEASE_PRERELEASE"
-          if [ -z "$PRERELEASE_LABEL" ] && [ "$RELEASE_STRATEGY" == "standard-version" ]; then
+          LABEL_IS_DERIVED=""
+          if [ -z "$PRERELEASE_LABEL" ] && [ "$RELEASE_STRATEGY" != "custom" ]; then
             case "$RELEASE_ENVIRONMENT" in
               main|master|prod|production) PRERELEASE_LABEL="" ;;
-              *) PRERELEASE_LABEL="$RELEASE_ENVIRONMENT" ;;
+              *) PRERELEASE_LABEL="$RELEASE_ENVIRONMENT"; LABEL_IS_DERIVED="1" ;;
             esac
           fi
 
-          if [ -n "$PRERELEASE_LABEL" ] && [ "$RELEASE_STRATEGY" != "calendar" ]; then
+          # Calendar keeps its exemption for an EXPLICIT label and loses it for
+          # a derived one, which is not a special case so much as the same rule
+          # applied twice. With an explicit prerelease, calendar already put the
+          # label and a %H%M stamp inside VERSION, so the clean tag is unique
+          # and a second suffix would only be noise. With no explicit
+          # prerelease it has neither, and `v2026.09.06` is exactly as
+          # collidable as any other clean tag — worse, in fact, because the
+          # collision guard below cannot repair it: `npx semver -i patch` reads
+          # `2026.09.06` as invalid (leading zeros are not semver), returns
+          # nothing, and the run dies at the version check having bumped
+          # nothing. Scoping it never reaches that path.
+          if [ -n "$PRERELEASE_LABEL" ] && { [ "$RELEASE_STRATEGY" != "calendar" ] || [ -n "$LABEL_IS_DERIVED" ]; }; then
             # Non-prod (or explicit prerelease): unique timestamped tag, clean
             # package.json version. The timestamp guarantees tag uniqueness, so
             # no collision guard is needed.
@@ -681,12 +703,23 @@ jobs:
             # sibling branch may have just created one) and bump patch until the
             # tag is free. Skipped for "custom" — an explicitly pinned version
             # must not be silently changed.
+            git fetch --tags --force origin >/dev/null 2>&1 || true
             if [ "$RELEASE_STRATEGY" != "custom" ]; then
-              git fetch --tags --force origin >/dev/null 2>&1 || true
               while git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; do
                 echo "::warning::Tag v$VERSION already exists (released from another branch); bumping patch"
                 VERSION=$(npx semver -i patch "$VERSION")
               done
+            elif git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+              # Refuse rather than proceed. Bumping is not available here — the
+              # whole point of `custom` is that the operator pinned this exact
+              # version — and proceeding is worse than it looks: the tag step
+              # would 422 far downstream with `already_exists`, naming neither
+              # the version nor where it came from. Say both here, while the
+              # operator still has the context to act on it.
+              TAG_HOLDER=$(git branch -r --contains "refs/tags/v$VERSION" 2>/dev/null | head -1 | tr -d ' *' || true)
+              echo "::error::Refusing to release: tag v$VERSION already exists${TAG_HOLDER:+, released from ${TAG_HOLDER}}. custom_version is an explicit pin, so it is not renamed or bumped. Choose a different version, or delete that tag if it was cut in error."
+              echo "❌ Release refused: tag v$VERSION already exists${TAG_HOLDER:+ on ${TAG_HOLDER}}" >> $GITHUB_STEP_SUMMARY
+              exit 1
             fi
             TAG="v$VERSION"
           fi
