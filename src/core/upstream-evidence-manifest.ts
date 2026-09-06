@@ -2282,6 +2282,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "2d7082d5033088c85f66995aee9e3ee1e7751435e65bfde8e1cb002e6689d476",
     "scripts/copy-opencode-plugin-templates.mjs":
       "4d68863cd8414d29218280cded63f2c29c3f8d51d8e74cc3b6adfec4f25b06ec",
+    "scripts/deployed-guard-advice.mjs":
+      "11b4248806e60491e0017e0cc7955928474af73ce53767848f6fbb9cec294ebf",
     "scripts/detect-stale-workflow-inputs.mjs":
       "04274c1ed972c040ccf0b64aba193368d652769094db6d97706706530e93d74f",
     "scripts/downstream-name-digest.mjs":
@@ -8558,6 +8560,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/cleanup-worktrees.sh": true,
     "scripts/copy-codex-scripts.mjs": true,
     "scripts/copy-opencode-plugin-templates.mjs": true,
+    "scripts/deployed-guard-advice.mjs": true,
     "scripts/detect-stale-workflow-inputs.mjs": true,
     "scripts/downstream-name-digest.mjs": true,
     "scripts/fix-namespace-test-assertions.mjs": true,
@@ -10165,6 +10168,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/cross-pollinate.test.ts": true,
     "tests/unit/scripts/cursor-artifact-helpers.ts": true,
     "tests/unit/scripts/cwd-resolution-corpus-adversarial.test.ts": true,
+    "tests/unit/scripts/deployed-guard-advice.test.ts": true,
     "tests/unit/scripts/derived-artifact-staleness.test.ts": true,
     "tests/unit/scripts/destructive-capability-compound-names.test.ts": true,
     "tests/unit/scripts/destructive-guard-boundaries.test.ts": true,
