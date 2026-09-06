@@ -783,7 +783,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/enforcement-vintage.sh":
       "e23cb84a0035c86805ce7aada15adae6634a5a8cb68a9e2ba677ab1953721b97",
     "plugins/src/base/hooks/failure-signature-index.mjs":
-      "06cf3f7d917a793f283ced2997d3b9dade47f33d40904ca6914b9879313ab7df",
+      "cef454f9b7c01b9d035bc3d6daf094f626db0a0a97d4d06be24fce702ad67ff9",
     "plugins/src/base/hooks/failure-signature-index.sh":
       "08ed520f59cf97056c3d17bc342e1a4d24802e8d460d77b546017c15a4ba2c55",
     "plugins/src/base/hooks/guard-dedupe.bash":
@@ -10028,6 +10028,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/enforcement-gates-e2e.test.ts": true,
     "tests/unit/hooks/enforcement-vintage-wiring.test.ts": true,
     "tests/unit/hooks/enforcement-vintage.test.ts": true,
+    "tests/unit/hooks/failure-signature-discrimination.test.ts": true,
     "tests/unit/hooks/failure-signature-index-wiring.test.ts": true,
     "tests/unit/hooks/failure-signature-index.test.ts": true,
     "tests/unit/hooks/gate-coverage-errored-leg.test.ts": true,
