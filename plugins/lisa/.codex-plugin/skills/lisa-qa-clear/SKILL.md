@@ -46,9 +46,20 @@ Read `.lisa.config.json`:
       `[lisa-qa-clear] Certified without human QA: scope is <repo(s)>, not observable
       with end-user access. Verified by the automated lifecycle pre-promotion.`
    2. Then transition to the certified status.
-   3. Verify both halves landed before counting the ticket as moved. A comment without
-      the transition, or a transition without the comment, is a **partial** — report it
-      as such, never as completed.
+   3. Then clear the QA-failure **signal**, because certifying is one of its two void
+      conditions and this is the second path that reaches it:
+
+      ```bash
+      RESOLVER="${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-plugins/lisa}}/scripts/qa-signal-lifecycle.mjs"
+      SIGNAL=$(node "$RESOLVER" --vendor "<jira|linear|github>" --print-label)
+      ```
+
+      Remove `$SIGNAL` through the same tracker surface that applied it. Removing a label
+      the ticket does not carry is a no-op, so this runs unconditionally. The
+      `[lisa-qa-fail]` comments are never touched — the history stays, the signal goes.
+   4. Verify all three landed before counting the ticket as moved. A comment without
+      the transition, a transition without the comment, or a certified ticket still
+      wearing the signal is a **partial** — report it as such, never as completed.
 5. Report the batch:
 
 ```text
@@ -68,7 +79,8 @@ marks exactly what was auto-cleared.
 - Never bulk-move on an inferred repo list without explicit operator confirmation.
 - Every cleared ticket carries the audit comment; a transition without the comment is a
   bug in this procedure.
-- Idempotent by repair, not by skip: a ticket is complete only when it has BOTH the
-  `[lisa-qa-clear]` comment AND the certified status. Re-runs finish partials — comment
-  present but not certified → transition it; certified but no comment → post the
-  comment. Only fully-complete tickets are skipped silently.
+- Idempotent by repair, not by skip: a ticket is complete only when it has the
+  `[lisa-qa-clear]` comment, the certified status, AND no QA-failure signal. Re-runs
+  finish partials — comment present but not certified → transition it; certified but no
+  comment → post the comment; certified but still signalled → clear the signal. Only
+  fully-complete tickets are skipped silently.

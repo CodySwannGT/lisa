@@ -1034,6 +1034,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "bdfbf0e639457a5c569c68e1e4a76bbefb7f8c731c06539b4b345609ef5efde1",
     "plugins/src/base/scripts/project-ideation-idempotency-harness.mjs":
       "5722de5c53efb033051442f965d0873beb9cdb18aa1d3f5cd82151b5fb9ed529",
+    "plugins/src/base/scripts/qa-signal-lifecycle.mjs":
+      "2c60c7a1159c9e34faf3a4ded167dfe46f2603a7cbb598bf35bf17f0e6a42ce1",
     "plugins/src/base/scripts/queue-contract-resolution.mjs":
       "5944dd862f949155db1f4e43279041407dc2c920723cee808fa353dc0bdd2c6e",
     "plugins/src/base/scripts/queue-health-classification.mjs":
@@ -1303,11 +1305,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-qa-checklist/SKILL.md":
       "da1de96ada92d18f5f6b57e2751b95d5da28a6505debdb7ccd823b95bdd1405b",
     "plugins/src/base/skills/lisa-qa-clear/SKILL.md":
-      "2a4bbe2501b159eceea289584e50bcceffae2fee5210420d6be3b403dae6d079",
+      "127f67dcd701d6ae82ccecc755c436e249599d5c7d633aa88b4773cb357bd2cb",
     "plugins/src/base/skills/lisa-qa-fail/SKILL.md":
-      "cf4bc2b6e3e31a7fabfba5fb9ed1218eb564b0d94113a317267371de7a2708fb",
+      "e7704f635470f3d1ee8ce06fd190ca8f72792457bf4087f8075017e22b00b61f",
     "plugins/src/base/skills/lisa-qa-queue/SKILL.md":
-      "1d5f009f60004bf75b5d79bca370096ce40e1d41d585dc8afd4389f21bba84ae",
+      "98a671e3e101c7533745e191307bad7b41da5a93350c089ba77829b0845cb808",
     "plugins/src/base/skills/lisa-quality-review/SKILL.md":
       "774c290f702842f8f751dcdf0e28e74b54e8efa299194c4a29475355da8c22e2",
     "plugins/src/base/skills/lisa-queue-status/SKILL.md":
@@ -1327,7 +1329,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-review-local/SKILL.md":
       "74112f88c721825464d962b05111dafe84173fb370d9522d5e155acc46cc55e9",
     "plugins/src/base/skills/lisa-rework-triage/SKILL.md":
-      "56a5549a1430ea791e5edb71144c0741f09970933fe3f7b54a76e3218b9b9042",
+      "264b91c4998dc722dff632ecb4846fe4cf779779fbf00dc1713f82f3ea12c12d",
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
@@ -3678,6 +3680,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/scripts/plugin-sync-explain.mjs": true,
     "plugins/lisa-agy/scripts/pr-arming-sweep.mjs": true,
     "plugins/lisa-agy/scripts/project-ideation-idempotency-harness.mjs": true,
+    "plugins/lisa-agy/scripts/qa-signal-lifecycle.mjs": true,
     "plugins/lisa-agy/scripts/queue-contract-resolution.mjs": true,
     "plugins/lisa-agy/scripts/queue-health-classification.mjs": true,
     "plugins/lisa-agy/scripts/queue-status-build-readers.mjs": true,
@@ -4161,6 +4164,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/scripts/plugin-sync-explain.mjs": true,
     "plugins/lisa-copilot/scripts/pr-arming-sweep.mjs": true,
     "plugins/lisa-copilot/scripts/project-ideation-idempotency-harness.mjs": true,
+    "plugins/lisa-copilot/scripts/qa-signal-lifecycle.mjs": true,
     "plugins/lisa-copilot/scripts/queue-contract-resolution.mjs": true,
     "plugins/lisa-copilot/scripts/queue-health-classification.mjs": true,
     "plugins/lisa-copilot/scripts/queue-status-build-readers.mjs": true,
@@ -4630,6 +4634,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/scripts/plugin-sync-explain.mjs": true,
     "plugins/lisa-cursor/scripts/pr-arming-sweep.mjs": true,
     "plugins/lisa-cursor/scripts/project-ideation-idempotency-harness.mjs": true,
+    "plugins/lisa-cursor/scripts/qa-signal-lifecycle.mjs": true,
     "plugins/lisa-cursor/scripts/queue-contract-resolution.mjs": true,
     "plugins/lisa-cursor/scripts/queue-health-classification.mjs": true,
     "plugins/lisa-cursor/scripts/queue-status-build-readers.mjs": true,
@@ -7227,6 +7232,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/scripts/plugin-sync-explain.mjs": true,
     "plugins/lisa/scripts/pr-arming-sweep.mjs": true,
     "plugins/lisa/scripts/project-ideation-idempotency-harness.mjs": true,
+    "plugins/lisa/scripts/qa-signal-lifecycle.mjs": true,
     "plugins/lisa/scripts/queue-contract-resolution.mjs": true,
     "plugins/lisa/scripts/queue-health-classification.mjs": true,
     "plugins/lisa/scripts/queue-status-build-readers.mjs": true,
@@ -7882,6 +7888,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/scripts/plugin-sync-explain.mjs": true,
     "plugins/src/base/scripts/pr-arming-sweep.mjs": true,
     "plugins/src/base/scripts/project-ideation-idempotency-harness.mjs": true,
+    "plugins/src/base/scripts/qa-signal-lifecycle.mjs": true,
     "plugins/src/base/scripts/queue-contract-resolution.mjs": true,
     "plugins/src/base/scripts/queue-health-classification.mjs": true,
     "plugins/src/base/scripts/queue-status-build-readers.mjs": true,
@@ -10700,6 +10707,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/promotion-contract-helpers.ts": true,
     "tests/unit/strategies/promotion-contract-rule.test.ts": true,
     "tests/unit/strategies/qa-acceptance-skills.test.ts": true,
+    "tests/unit/strategies/qa-failure-signal-inverse.test.ts": true,
     "tests/unit/strategies/queue-contract-resolution.test.ts": true,
     "tests/unit/strategies/queue-health-classification.test.ts": true,
     "tests/unit/strategies/queue-status-build-readers.test.ts": true,

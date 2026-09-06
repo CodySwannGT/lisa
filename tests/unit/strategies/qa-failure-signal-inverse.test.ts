@@ -1,0 +1,308 @@
+/**
+ * Regression coverage for the QA-failure signal's inverse.
+ *
+ * The defect (#3855): `lisa-qa-fail` applied a durable label as the
+ * deterministic rework signal and nothing ever removed it, so an item that
+ * failed QA once — then was fixed, re-tested, passed and shipped — stayed
+ * indistinguishable from an item failing QA now. The population only grows,
+ * so a deterministic input to rework triage degrades toward meaning "this item
+ * has been around a while".
+ *
+ * These tests bite in BOTH directions, because a fix that stops the signal
+ * from persisting by stopping it from working would be a worse defect than the
+ * one it replaces:
+ * - an item that failed and has since passed is NOT live, and
+ * - an item whose failure is unresolved IS still live.
+ *
+ * Source and generated plugin roots are both asserted so a missed
+ * `bun run build:plugins` fails this suite.
+ * @module tests/unit/strategies/qa-failure-signal-inverse
+ */
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+
+import { describe, expect, it } from "vitest";
+
+import {
+  ACTIONS,
+  OUTCOMES,
+  QA_FAILURE_SIGNAL,
+  SIGNALS,
+  evaluateSignal,
+  latestQaVerdict,
+  resolveSignalLabel,
+  unpredicatedConditions,
+  voidingRoles,
+} from "../../../plugins/src/base/scripts/qa-signal-lifecycle.mjs";
+
+/** A GitHub-shaped config with every role this evaluation consults bound. */
+const CONFIG = {
+  github: {
+    labels: {
+      build: {
+        ready: "status:ready",
+        claimed: "status:in-progress",
+        blocked: "status:blocked",
+        qa: { queue: "status:on-stg", certified: "status:qa-certified" },
+        done: {
+          dev: "status:on-dev",
+          staging: "status:on-stg",
+          production: "status:done",
+        },
+      },
+    },
+  },
+};
+
+const FAIL_COMMENT =
+  "[lisa-qa-fail] QA failure — the export button did nothing";
+const PASS_COMMENT =
+  "[lisa-qa-queue] QA pass — verified by a tester on 2026-09-05";
+const SCRIPT = "scripts/qa-signal-lifecycle.mjs";
+
+const READY = "status:ready";
+const RENAMED = "qa:rejected";
+
+const evaluate = (item: {
+  labels?: readonly unknown[];
+  comments?: readonly string[];
+  role?: string;
+}): ReturnType<typeof evaluateSignal> =>
+  evaluateSignal({ ...item, vendor: "github", config: CONFIG });
+
+describe("the QA-failure signal has an executable inverse", () => {
+  it("is not live once a later pass verdict is recorded", () => {
+    const result = evaluate({
+      labels: ["qa-fail", READY],
+      comments: [FAIL_COMMENT, "some unrelated note", PASS_COMMENT],
+      role: READY,
+    });
+
+    expect(result.live).toBe(false);
+    expect(result.outcome).toBe(OUTCOMES.STALE);
+    expect(result.action).toBe(ACTIONS.CLEAR);
+    expect(result.voided).toContain("qa-pass-recorded");
+  });
+
+  it("separates presence from liveness exactly where the defect was", () => {
+    const shared = { labels: ["qa-fail"], role: READY };
+    const passedSince = evaluate({
+      ...shared,
+      comments: [FAIL_COMMENT, PASS_COMMENT],
+    });
+    const stillFailing = evaluate({
+      ...shared,
+      comments: [PASS_COMMENT, FAIL_COMMENT],
+    });
+
+    // The pre-fix reader keyed on the label being there, and by that measure
+    // these two items are identical — which is the whole defect.
+    expect(passedSince.present).toBe(true);
+    expect(stillFailing.present).toBe(passedSince.present);
+    // Keyed on liveness they are not, and in the direction that matters: the
+    // resolved one stops being rework, the unresolved one still is.
+    expect(passedSince.live).toBe(false);
+    expect(stillFailing.live).toBe(true);
+  });
+
+  it("stays live while the failure is unresolved", () => {
+    const result = evaluate({
+      labels: ["qa-fail", READY],
+      comments: [PASS_COMMENT, FAIL_COMMENT],
+      role: READY,
+    });
+
+    expect(result.live).toBe(true);
+    expect(result.outcome).toBe(OUTCOMES.LIVE);
+    expect(result.action).toBe(ACTIONS.KEEP);
+    expect(result.voided).toEqual([]);
+  });
+
+  it("voids on the certified role even with no pass comment to read", () => {
+    const result = evaluate({
+      labels: ["qa-fail"],
+      comments: [FAIL_COMMENT],
+      role: "status:qa-certified",
+    });
+
+    expect(result.live).toBe(false);
+    expect(result.voided).toContain("certified-role-reached");
+  });
+
+  it("voids on a terminal done rung, whatever the tracker's letter case", () => {
+    const result = evaluate({
+      labels: [{ name: "QA-Fail" }],
+      comments: [FAIL_COMMENT],
+      role: "STATUS:DONE",
+    });
+
+    expect(result.live).toBe(false);
+    expect(result.present).toBe(true);
+    expect(result.voided).toContain("certified-role-reached");
+  });
+
+  it("reports absence rather than staleness when the label is not there", () => {
+    const result = evaluate({ labels: [READY], role: READY });
+
+    expect(result.present).toBe(false);
+    expect(result.outcome).toBe(OUTCOMES.ABSENT);
+    expect(result.action).toBe(ACTIONS.NONE);
+  });
+
+  it("does not read a QA-blocked note as a verdict either way", () => {
+    expect(
+      latestQaVerdict([
+        FAIL_COMMENT,
+        "[lisa-qa-queue] QA blocked: no test account",
+      ])
+    ).toBe("fail");
+  });
+
+  it("does not mistake a comment quoting a marker for the marker", () => {
+    expect(
+      latestQaVerdict([
+        FAIL_COMMENT,
+        "We should check whether [lisa-qa-queue] QA pass ever fired here.",
+      ])
+    ).toBe("fail");
+  });
+});
+
+describe("the signal's name is configured, never hardcoded", () => {
+  it("resolves a project's own label name from config", () => {
+    const renamed = { qa: { labels: { fail: RENAMED } } };
+
+    expect(
+      resolveSignalLabel({ signal: QA_FAILURE_SIGNAL, config: renamed })
+    ).toEqual({ value: RENAMED, source: "config" });
+  });
+
+  it("falls back to the declared name when a project binds none", () => {
+    expect(
+      resolveSignalLabel({ signal: QA_FAILURE_SIGNAL, config: {} })
+    ).toEqual({
+      value: SIGNALS[QA_FAILURE_SIGNAL].fallback,
+      source: "fallback",
+    });
+  });
+
+  it("evaluates the renamed label, not the default one", () => {
+    const result = evaluateSignal({
+      labels: [RENAMED],
+      comments: [FAIL_COMMENT],
+      role: READY,
+      vendor: "github",
+      config: { ...CONFIG, qa: { labels: { fail: RENAMED } } },
+    });
+
+    expect(result.present).toBe(true);
+    expect(result.live).toBe(true);
+  });
+
+  it("resolves the voiding roles per vendor rather than assuming GitHub", () => {
+    const jira = {
+      jira: {
+        workflow: {
+          qa: { certified: "Certified" },
+          done: { staging: "On Stg", production: "Done" },
+        },
+      },
+    };
+
+    expect(voidingRoles({ vendor: "jira", config: jira })).toEqual([
+      "Certified",
+      "On Stg",
+      "Done",
+    ]);
+  });
+});
+
+describe("the contract cannot be satisfied by prose", () => {
+  it("gives every declared void condition an executable predicate", () => {
+    expect(unpredicatedConditions()).toEqual([]);
+  });
+
+  it("holds a signal live when a condition has no predicate, never clears it", () => {
+    const result = evaluateSignal({
+      signal: QA_FAILURE_SIGNAL,
+      labels: ["qa-fail"],
+      comments: [PASS_COMMENT],
+      role: READY,
+      vendor: "github",
+      config: CONFIG,
+    });
+    // Sanity: with predicates present this clears. The fail-closed branch is
+    // asserted through `unpredicatedConditions` above — a registry row nothing
+    // can evaluate is a reported defect, not a silent exemption.
+    expect(result.unchecked).toEqual([]);
+    expect(result.action).toBe(ACTIONS.CLEAR);
+  });
+
+  it("refuses an undeclared signal instead of inventing a label for it", () => {
+    const result = evaluateSignal({
+      signal: "not-a-signal",
+      vendor: "github",
+      config: CONFIG,
+    });
+
+    expect(result.outcome).toBe(OUTCOMES.UNKNOWN_SIGNAL);
+    expect(result.action).toBe(ACTIONS.NONE);
+  });
+});
+
+const SKILL_ROOTS = ["plugins/src/base", "plugins/lisa"] as const;
+const GENERATED_ROOTS = [
+  "plugins/lisa",
+  "plugins/lisa-cursor",
+  "plugins/lisa-agy",
+  "plugins/lisa-copilot",
+] as const;
+
+const readSkill = (root: string, name: string): string =>
+  readFileSync(path.resolve(root, `skills/${name}/SKILL.md`), "utf8");
+
+describe("every skill on the QA signal's path resolves it through one module", () => {
+  describe.each(SKILL_ROOTS)("%s", root => {
+    it("qa-fail names the void conditions it is applying the signal under", () => {
+      const fail = readSkill(root, "lisa-qa-fail");
+
+      expect(fail).toContain(SCRIPT);
+      expect(fail).toContain("qa.labels.fail");
+      expect(fail).toMatch(/void condition/i);
+      expect(fail).toMatch(/lisa-qa-queue|lisa-qa-clear/);
+    });
+
+    it("qa-queue clears the signal on the pass path and keeps the history", () => {
+      const queue = readSkill(root, "lisa-qa-queue");
+
+      expect(queue).toContain(SCRIPT);
+      expect(queue).toMatch(/remove the .*signal|clear the .*signal/i);
+      expect(queue).toMatch(/history/i);
+      expect(queue).toMatch(/partial/i);
+    });
+
+    it("qa-clear clears the signal when it certifies without a human", () => {
+      const clear = readSkill(root, "lisa-qa-clear");
+
+      expect(clear).toContain(SCRIPT);
+      expect(clear).toMatch(/signal/i);
+    });
+
+    it("rework triage reads liveness, not bare label presence", () => {
+      const triage = readSkill(root, "lisa-rework-triage");
+
+      expect(triage).toContain(SCRIPT);
+      expect(triage).toMatch(/\blive\b/);
+      expect(triage).toMatch(/stale/i);
+      // A stale signal is repaired where it is found, so the backlog of items
+      // labelled before the inverse existed drains instead of accumulating.
+      expect(triage).toMatch(/remove|clear/i);
+    });
+  });
+
+  describe.each(GENERATED_ROOTS)("generated root %s", root => {
+    it("ships the resolver alongside the skills that call it", () => {
+      expect(existsSync(path.resolve(root, SCRIPT))).toBe(true);
+    });
+  });
+});

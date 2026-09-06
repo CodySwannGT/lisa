@@ -71,10 +71,32 @@ not smoothed over.
 For `not-covered-by-ac`, do NOT transition the ticket — the spec question goes to the
 human product gate. Flag it in the response and stop after posting.
 
-## Phase 4 — Label and transition
+## Phase 4 — Signal and transition
 
-1. Apply the `qa-fail` label — this is the deterministic rework signal `lisa-rework-triage`
-   keys on at next claim, and the gap classification above becomes its primary evidence.
+1. Apply the QA-failure **signal** label. Resolve its name — never hardcode one:
+
+   ```bash
+   SIGNAL=$(node "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-plugins/lisa}}/scripts/qa-signal-lifecycle.mjs" \
+     --vendor "<jira|linear|github>" --print-label)   # `qa.labels.fail`, default `qa-fail`
+   ```
+
+   This is the deterministic rework signal `lisa-rework-triage` keys on at next claim, and
+   the gap classification above becomes its primary evidence.
+
+   The signal is **transient, and it says so.** Two void conditions lift it, both with an
+   executable predicate in `scripts/qa-signal-lifecycle.mjs`: a later QA pass verdict
+   (`qa-pass-recorded`), or the item reaching the certified or a terminal role
+   (`certified-role-reached`). `lisa-qa-queue` clears it on the pass path and `lisa-qa-clear`
+   clears it when it certifies without a human, so the clear path is as reachable as this
+   one. Record that in the comment so nobody has to infer it:
+
+   ```text
+   Signal: <label> — voided by a later QA pass, or by reaching the certified/terminal role.
+   ```
+
+   What is durable is the **history**: this `[lisa-qa-fail]` comment is never rewritten or
+   removed, so "failed QA twice before shipping" stays readable after the label is gone.
+   The label is the machine-read signal; the comment is the record.
 2. Transition the ticket to the build-ready status (`jira.workflow.ready`, or the
    configured tracker's equivalent ready label/state when `tracker` is GitHub or
    Linear). The rework loop takes it from here: intake claims it, `lisa-ticket-triage` Phase 2.5 runs
@@ -92,3 +114,6 @@ human product gate. Flag it in the response and stop after posting.
 - The expectation gap must cite a specific evidence artifact or say `no-evidence-found` —
   a gap classification without a citation is a guess, and guesses are worse than
   `no-evidence-found`.
+- Never apply a signal whose clear path you cannot name. A durable mark with no inverse is
+  a defect class of its own (`state-changes-without-inverses`): it stays correct at the
+  moment it fires and becomes wrong by outliving what it described.

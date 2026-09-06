@@ -45,9 +45,32 @@ Read `.lisa.config.json`:
 
 ## Recording the verdict
 
-- **Pass** — transition the ticket to the certified status via the tracker access layer,
-  post a brief `[lisa-qa-queue] QA pass` comment naming who verified and when, and offer
-  the next item.
+- **Pass** — three writes, in this order, and the pairing must be failure-safe exactly as
+  `lisa-qa-clear`'s is:
+  1. Post a brief `[lisa-qa-queue] QA pass` comment naming who verified and when. The
+     literal marker matters: it is the `qa-pass-recorded` void condition's evidence.
+  2. Transition the ticket to the certified status via the tracker access layer.
+  3. **Clear the QA-failure signal.** A pass is the inverse of a fail, and until this runs
+     an item that failed once reads as failing forever to `lisa-rework-triage`:
+
+     ```bash
+     RESOLVER="${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-plugins/lisa}}/scripts/qa-signal-lifecycle.mjs"
+     SIGNAL=$(node "$RESOLVER" --vendor "<jira|linear|github>" --print-label)
+     ```
+
+     Remove `$SIGNAL` from the item through the same tracker surface that applied it —
+     `gh issue edit <n> --remove-label "$SIGNAL"` on GitHub, the label-update mutation on
+     Linear, the `update.labels[].remove` field on JIRA. Removing a label the item does not
+     carry is a no-op on every tracker, so this is safe to run unconditionally.
+
+  Verify all three landed before reporting the pass. A transition without the signal
+  cleared is a **partial** — report it as such and finish it, never count it as complete.
+
+  The failure **history** is untouched: the `[lisa-qa-fail]` comments stay exactly as
+  written. Only the machine-read signal is voided, so "this failed QA twice before
+  shipping" remains readable while "this is failing QA" stops being asserted.
+
+  Then offer the next item.
 - **Fail** — invoke `lisa-qa-fail` with the ticket key and the tester's own words
   (verbatim — do not paraphrase away detail; attach any screenshots they provided). That
   skill owns the failure report, the expectation-gap diagnosis, the `qa-fail` label, and
@@ -63,6 +86,8 @@ Read `.lisa.config.json`:
 - One ticket at a time — never dump the queue on the tester.
 - The tester's verbatim description is evidence; preserve it exactly in whatever is posted.
 - Never transition to certified without an explicit "pass" from the tester.
+- Never certify without clearing the QA-failure signal. The clear path must stay as
+  reachable as the path that applied it (`state-changes-without-inverses`).
 - All tracker writes go through the access layer / `lisa-qa-fail` — this skill never
   hand-crafts tracker mutations beyond the pass transition and its comment.
 - Session summary on request ("how did we do?"): counts of passed / failed / blocked /
