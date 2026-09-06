@@ -14,14 +14,14 @@
  * `output.args.command`. Throwing in `tool.execute.before` cancels the tool
  * call and surfaces the message to the agent.
  *
- * SCOPE GAP, recorded rather than silently dropped (AGENTS.md). Since
- * CodySwannGT/lisa#3753 the canonical guard covers a SECOND substrate —
- * structured tool payloads, where a creation arrives as named fields rather
- * than a command line — because the filing contract was enforced on the shell
- * and unenforced on every tool call beside it. This port returns early for any
- * tool other than `bash`, so on OpenCode that substrate is still uncovered.
- * Closing it needs OpenCode's own creation-tool envelope, which is separate
- * work from porting the shell path.
+ * BOTH SUBSTRATES. Since CodySwannGT/lisa#3753 the canonical guard covers a
+ * second substrate — structured tool payloads, where a creation arrives as
+ * named fields rather than a command line. This port covered only `bash` until
+ * CodySwannGT/lisa#3785 closed that gap; `refuseUndeclaredStructured` below
+ * carries the structured arm and documents the captured OpenCode envelope it
+ * was written against. Unlike agy, OpenCode needs no registration change: a
+ * plugin's `tool.execute.before` already receives every tool call, so the gap
+ * here was the early return alone.
  *
  * The port matches on the raw command text rather than tokenising it, which
  * makes it naturally immune to the prefix and tokenisation bypass classes the
@@ -511,14 +511,239 @@ const LisaBlockDirectIssueCreate = async () => {
     return { roles: [resolved.readyRole, role], named: undefined };
   };
 
+  /**
+   * The refusal both substrates raise, so neither can drift from the other.
+   *
+   * Extracted rather than copied when the structured substrate arrived
+   * (CodySwannGT/lisa#3785): a refusal that exists twice is a refusal that
+   * names the sanctioned paths twice, and the acceptance criterion for that
+   * ticket is that the structured refusal names the SAME two the shell one
+   * does. Only the "where the declaration is read from" paragraph differs,
+   * because on one substrate it is a command line and on the other it is a
+   * field.
+   * @param signatureName What is being refused, in the message's own voice.
+   * @param resolved The filing policy.
+   * @param readFrom The substrate-specific paragraph.
+   * @returns The error to throw.
+   */
+  const undeclaredRefusal = ({
+    readFrom,
+    resolved,
+    signatureName,
+  }: Readonly<{
+    readFrom: readonly string[];
+    resolved: FilingPolicy;
+    signatureName: string;
+  }>): Error =>
+    new Error(
+      [
+        `block-direct-issue-create: refusing ${signatureName} — this filing declares no readiness.`,
+        "",
+        "WHY: a work item filed without the build-ready role is an incomplete",
+        "handoff. Build-intake scans the ready lane and nothing else, so nothing",
+        "will ever pick it up: the write succeeds and the work still dies.",
+        "",
+        "FILE IT THE SANCTIONED WAY — one of these two, always explicit:",
+        "",
+        '1. Complete enough to build? Run /lisa:track "<what needs building>",',
+        "   which resolves or creates exactly one live leaf through",
+        "   lisa-tracker-write with build_ready: true, validates it before the",
+        "   write, and claims it.",
+        "2. A human product call is pending? Route the same way but pass",
+        '   human_gate: "<why a human must judge this first>", which stamps',
+        `   ${HUMAN_GATE_MARKER} on the item so the hold is auditable.`,
+        "",
+        "Filed, not ready, and no human_gate is the incomplete-handoff case. See",
+        "the ready-role-filing rule for the full contract.",
+        "",
+        "If you must run the CLI directly, the command has to carry one of the",
+        `two declarations itself: the configured build-ready role "${resolved.readyRole}",`,
+        `or a ${HUMAN_GATE_MARKER} marker in the body it submits.`,
+        ...(resolved.stateRoleTracker
+          ? [
+              "",
+              `Your role "${resolved.readyRole}" is a workflow STATE, not a label, and the`,
+              "mandated client is curl, which has no flag that carries a state. So",
+              "declare the lifecycle role the access layer resolves the state from:",
+              "",
+              "  LIFECYCLE_ROLE=ready curl -sS -X POST <the tracker endpoint> …",
+              "",
+              'or lifecycle_role:"ready" in the request payload, or a --state /',
+              "--status flag where the CLI has one.",
+            ]
+          : []),
+        "",
+        ...readFrom,
+        "",
+        "OPERATOR ESCAPE: a human can export LISA_ALLOW_DIRECT_ISSUE_CREATE=1 in",
+        "the environment before starting the session. Setting it inline on this",
+        "command is deliberately refused.",
+      ].join("\n")
+    );
+
+  /**
+   * Tool names that are never a tracker creation, skipped before anything else.
+   *
+   * The canonical guard's own list, transcribed rather than adapted. It is a
+   * cost gate, not a correctness gate — none of these names would survive the
+   * verb and noun tests below anyway — so keeping it identical costs nothing
+   * and removes one way for the two implementations to disagree.
+   */
+  const STRUCTURED_SKIP: ReadonlySet<string> = new Set([
+    "Bash",
+    "Read",
+    "Write",
+    "Edit",
+    "MultiEdit",
+    "Glob",
+    "Grep",
+    "Task",
+    "TodoWrite",
+  ]);
+  /**
+   * A creation verb in a tool name, matched on SHAPE rather than on a list of
+   * server tool names. Case-folded on the first letter only, exactly as the
+   * canonical guard's `*[Cc]reate*` globs are: matching case-insensitively
+   * would make this port STRICTER than the canonical guard, and the invariant
+   * this port is documented under is that it is never stricter, only looser.
+   */
+  const STRUCTURED_VERB = /[Cc]reate|[Nn]ew|[Aa]dd|[Ff]ile/u;
+  /**
+   * A tracker noun in a tool name. Same transcription rule as the verb above.
+   */
+  const STRUCTURED_NOUN =
+    /[Ii]ssue|[Tt]icket|[Tt]ask|[Ss]tory|[Bb]ug|[Ee]pic|[Ww]ork/u;
+
+  /**
+   * Every string in a structured payload, at any depth.
+   *
+   * Over-collecting is safe and is what the canonical guard does: a role lands
+   * in a different field on every tracker — `labels[]` on GitHub, a workflow
+   * state on Linear, a transition id on JIRA — and enumerating field names per
+   * vendor is the same brittleness as enumerating tool names. The values are
+   * compared against ONE configured role string, so an unrelated field cannot
+   * accidentally satisfy it.
+   * @param value Any decoded JSON value.
+   * @returns Every string reachable from it.
+   */
+  const flatten = (value: unknown): readonly string[] => {
+    if (typeof value === "string") return [value];
+    if (Array.isArray(value)) return value.flatMap(flatten);
+    if (value !== null && typeof value === "object")
+      return Object.values(value).flatMap(flatten);
+    return [];
+  };
+
+  /**
+   * Refuse a structured creation that declares no readiness.
+   *
+   * ## Why this exists on a port whose other arm reads a command line
+   *
+   * CodySwannGT/lisa#3753 taught the canonical guard that a creation also
+   * arrives as NAMED FIELDS. This port returned early for every tool but
+   * `bash`, so on OpenCode that substrate was unenforced — the shape
+   * CodySwannGT/lisa#3785 exists to close.
+   *
+   * OpenCode's envelope was CAPTURED, not guessed. Driving `opencode run`
+   * against a local MCP server exposing one `create_issue` tool, with a probe
+   * plugin on `tool.execute.before`, on OpenCode 1.17.13:
+   *
+   *   input  {"tool":"probe-tracker_create_issue", …}
+   *   output {"args":{"title":"envelope probe","body":"capture"}}
+   *
+   * So unlike agy — which funnels every MCP call through one generic tool name
+   * and hides the real one in the arguments — OpenCode names the tool
+   * `<server>_<tool>` and puts the tool's own arguments directly on `args`.
+   * That is the shape the canonical guard's structured classifier already
+   * reads, which is why this arm can transcribe its predicate instead of
+   * translating an envelope.
+   *
+   * ## Why the predicate is transcribed rather than delegated
+   *
+   * The canonical guard is a bash script, and it is not shipped to OpenCode —
+   * this template is the whole of what a host project receives. So the port
+   * carries the predicate, as it already does for the shell arm, and the
+   * cross-implementation parity suite is what stops the two drifting: it
+   * drives both with the same payloads and compares verdicts.
+   * @param args The tool's arguments, as OpenCode decoded them.
+   * @param policy The filing policy.
+   * @param tool The tool name.
+   * @throws When the call reads as an undeclared tracker creation.
+   */
+  const refuseUndeclaredStructured = ({
+    args,
+    policy: resolved,
+    tool,
+  }: Readonly<{
+    args: Record<string, unknown>;
+    policy: FilingPolicy;
+    tool: string;
+  }>): void => {
+    // The cheap shape gate, deliberately before anything that costs. This hook
+    // now runs on EVERY tool call, so the cost of the path that does nothing is
+    // the cost of the whole change.
+    //
+    // RESIDUAL, stated rather than hidden, and inherited verbatim from the
+    // canonical guard: a server whose creation tool is named without a
+    // create-verb or without a tracker noun is not recognised and is allowed.
+    // That is a fail-open, and it is the honest cost of refusing to enumerate
+    // server tool names — a list passes every row anyone thought of and misses
+    // the first one nobody did.
+    if (STRUCTURED_SKIP.has(tool)) return;
+    if (!STRUCTURED_VERB.test(tool)) return;
+    if (!STRUCTURED_NOUN.test(tool)) return;
+    // The operator's ambient escape works on both substrates. There is no
+    // inline form to disqualify here — a structured call has no shell in which
+    // to assign one — so the override is simply honoured.
+    if (process.env["LISA_ALLOW_DIRECT_ISSUE_CREATE"]) return;
+
+    const values = flatten(args);
+    // A PACKED label string counts. Exact equality against the flattened value
+    // list reads `labels: ["status:ready"]` and nothing else, but the same
+    // compliant filing spelled `labels: "status:ready,type:Bug"` carries no
+    // value equal to the role. Split on the DELIMITERS a packed list uses and
+    // trim, never on a `contains` match: `contains` would accept a body that
+    // merely mentions the role in prose — "do not mark this status:ready" —
+    // and that is a fail-open on the one question this path answers.
+    const atoms = [
+      ...values,
+      ...values.flatMap(value =>
+        value.split(/[,;\n]/u).map(part => part.trim())
+      ),
+    ];
+    if (atoms.includes(resolved.readyRole)) return;
+    // Matched as a bare substring, matching the canonical guard rather than
+    // this port's stricter shell-path reader. A structured field is not prose
+    // with fenced blocks in it, and being stricter here than the canonical
+    // guard is the one direction this port is documented never to take.
+    if (values.some(value => value.includes(HUMAN_GATE_MARKER))) return;
+
+    throw undeclaredRefusal({
+      readFrom: [
+        "WHERE THE DECLARATION IS READ FROM: every field of the payload this call",
+        "submits, at any depth — the role lands in a different field on every",
+        "tracker, so no single field name is demanded.",
+      ],
+      resolved,
+      signatureName: `a tracker creation through ${tool}`,
+    });
+  };
+
   return {
     "tool.execute.before": async (
       input: { tool: string },
-      output: { args?: { command?: string } }
+      output: { args?: Record<string, unknown> }
     ) => {
-      if (input.tool !== "bash") return;
       if (policy === undefined) return;
-      const command = String(output.args?.command ?? "");
+      if (input.tool !== "bash") {
+        refuseUndeclaredStructured({
+          args: output.args ?? {},
+          policy,
+          tool: input.tool,
+        });
+        return;
+      }
+      const command = String(output.args?.["command"] ?? "");
       if (!command) return;
       if (/--help\b|\s-h(\s|$)/.test(command)) return;
       // The override is honored only from the ambient environment. An inline
@@ -653,53 +878,15 @@ const LisaBlockDirectIssueCreate = async () => {
             "command is deliberately refused.",
           ].join("\n")
         );
-      throw new Error(
-        [
-          `block-direct-issue-create: refusing ${signatureName} — this filing declares no readiness.`,
-          "",
-          "WHY: a work item filed without the build-ready role is an incomplete",
-          "handoff. Build-intake scans the ready lane and nothing else, so nothing",
-          "will ever pick it up: the write succeeds and the work still dies.",
-          "",
-          "FILE IT THE SANCTIONED WAY — one of these two, always explicit:",
-          "",
-          '1. Complete enough to build? Run /lisa:track "<what needs building>",',
-          "   which resolves or creates exactly one live leaf through",
-          "   lisa-tracker-write with build_ready: true, validates it before the",
-          "   write, and claims it.",
-          "2. A human product call is pending? Route the same way but pass",
-          '   human_gate: "<why a human must judge this first>", which stamps',
-          `   ${HUMAN_GATE_MARKER} on the item so the hold is auditable.`,
-          "",
-          "Filed, not ready, and no human_gate is the incomplete-handoff case. See",
-          "the ready-role-filing rule for the full contract.",
-          "",
-          "If you must run the CLI directly, the command has to carry one of the",
-          `two declarations itself: the configured build-ready role "${policy.readyRole}",`,
-          `or a ${HUMAN_GATE_MARKER} marker in the body it submits.`,
-          ...(policy.stateRoleTracker
-            ? [
-                "",
-                `Your role "${policy.readyRole}" is a workflow STATE, not a label, and the`,
-                "mandated client is curl, which has no flag that carries a state. So",
-                "declare the lifecycle role the access layer resolves the state from:",
-                "",
-                "  LIFECYCLE_ROLE=ready curl -sS -X POST <the tracker endpoint> …",
-                "",
-                'or lifecycle_role:"ready" in the request payload, or a --state /',
-                "--status flag where the CLI has one.",
-              ]
-            : []),
-          "",
+      throw undeclaredRefusal({
+        readFrom: [
           "WHERE THE DECLARATION IS READ FROM: the command, and the contents of any",
           "file it runs or submits. Moving the create into a script no longer moves",
           "it out of sight, so the declaration can live wherever the create does.",
-          "",
-          "OPERATOR ESCAPE: a human can export LISA_ALLOW_DIRECT_ISSUE_CREATE=1 in",
-          "the environment before starting the session. Setting it inline on this",
-          "command is deliberately refused.",
-        ].join("\n")
-      );
+        ],
+        resolved: policy,
+        signatureName,
+      });
     },
   };
 };

@@ -743,7 +743,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-blind-automerge.sh":
       "2a72f840b37666544fd1019b8c00d7f1c800fab2163b1e852b0a750c28919758",
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
-      "3e8e54a608e57b57e3fd372ad5b9a7b2794ce4934a67e36f374c8a06dc16e69e",
+      "7ec3db9a519a5ce95277d75ab347d2ee52970bc4ccb7ae554bccba8628290c19",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
       "12359f05694d63f5120265b5b9bda3f3c74c0fc58d551b3405e25a2e916d831b",
     "plugins/src/base/hooks/block-host-name-leak.agy.sh":
@@ -2311,7 +2311,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/fix-test-assertions.mjs":
       "59b5e8cc31e7c7323d20bd180f2ae97c08a9685758483b6fe00ba77317a845f2",
     "scripts/generate-agy-plugin-artifacts.mjs":
-      "4276c252e137306320fd4c0cbc80c35bf0eb7e01e3da44aa945d0ef25750f575",
+      "dd137fcd9502db427c9679fae5088e996d92e1e013d71620612aef178a7be207",
     "scripts/generate-codex-plugin-artifacts.mjs":
       "facb86910c07d1b8025868d24425fdaea7b6efbe282bace5ee5bf23957d6b51a",
     "scripts/generate-copilot-plugin-artifacts.mjs":
@@ -9555,6 +9555,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/support/git-executable.ts": true,
     "tests/support/prune-fixtures.ts": true,
     "tests/support/work-item-cli.ts": true,
+    "tests/unit/agy/block-direct-issue-create-structured-agy.test.ts": true,
     "tests/unit/agy/block-managed-file-edits-agy.test.ts": true,
     "tests/unit/agy/block-no-verify-agy.test.ts": true,
     "tests/unit/agy/mcp-collect.test.ts": true,
@@ -10138,6 +10139,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/agent-transformer.test.ts": true,
     "tests/unit/opencode/block-direct-issue-create-cross-repo-parity.test.ts": true,
     "tests/unit/opencode/block-direct-issue-create-noexec-parity.test.ts": true,
+    "tests/unit/opencode/block-direct-issue-create-structured-parity.test.ts": true,
     "tests/unit/opencode/block-managed-file-edits-plugin.test.ts": true,
     "tests/unit/opencode/block-no-verify-emit.test.ts": true,
     "tests/unit/opencode/block-no-verify-plugin.test.ts": true,
