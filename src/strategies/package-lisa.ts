@@ -1091,6 +1091,35 @@ function alignLisaPin(
     };
   }
 
+  // AN UPGRADE IS NOT DRIFT (#3505). Everything above treats a mismatched pin
+  // as a pin that fell behind the files just written, which is true in one
+  // direction only. A declared version NEWER than the applying one is an
+  // operator upgrading, and rewriting it destroys the only record that the
+  // upgrade was asked for — measured in a consumer repo, where the bump
+  // reverted on the first `bun install`, took `node_modules` back with it, left
+  // the lockfile untouched, and exited 0.
+  //
+  // Leaving it is what makes ONE install enough. The files this apply wrote are
+  // still the older version's, so the tree is not yet consistent — but the pin
+  // now names where it is going, the next install resolves that version, and
+  // its apply converges everything. Reverting GUARANTEED the second install by
+  // destroying the request.
+  //
+  // `minVersion` rather than a bare compare, so a range is judged by the
+  // earliest release it admits: `^4.26.0` cannot be satisfied by 4.23.20 and is
+  // an upgrade, while `^4.20.0` admits the applying version and is the skew
+  // this phase exists to close.
+  const declaredFloor =
+    current === undefined ? null : semver.minVersion(current);
+  if (declaredFloor !== null && semver.gt(declaredFloor, applyingVersion)) {
+    return {
+      packageJson,
+      notes: [
+        `Left ${LISA_PACKAGE_NAME} at "${current}", which is NEWER than the ${applyingVersion} performing this apply — that reads as an upgrade you asked for, not drift, so it has not been reverted. The files this apply just wrote are still ${applyingVersion}'s, so run your package manager's install once more: that resolves ${current}, re-applies as that version, and leaves the manifest, the lockfile and node_modules all on it.`,
+      ],
+    };
+  }
+
   const note =
     current === undefined
       ? `Added ${LISA_PACKAGE_NAME} ${applyingVersion} to ${section}. The files this apply just wrote come from ${applyingVersion} and call into it, so install it before your next lint run.`
@@ -1106,6 +1135,25 @@ function alignLisaPin(
     },
     notes: [note],
   };
+}
+
+/**
+ * Test seam for {@link alignLisaPin}.
+ *
+ * The phase is pure and its direction rule is the whole of #3505, but it runs
+ * deep inside an apply whose other phases touch the filesystem. Exporting the
+ * pure function is what let the upgrade-survives case be asserted at all —
+ * before this there was no test of `alignLisaPin` anywhere, which is why the
+ * revert went unwatched rather than merely unfixed.
+ * @param packageJson - The manifest as the merge phases left it
+ * @param applyingVersion - Version of the Lisa performing this apply
+ * @returns The manifest with the pin aligned, plus operator-visible notes
+ */
+export function alignLisaPinForTest(
+  packageJson: Record<string, unknown>,
+  applyingVersion: string
+): PackageJsonPlan {
+  return alignLisaPin(packageJson, applyingVersion);
 }
 
 /** The package.json section whose overwrites are reported to the operator. */

@@ -10664,6 +10664,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/linear-state-write-fixtures.ts": true,
     "tests/unit/strategies/linear-state-write-guard.test.ts": true,
     "tests/unit/strategies/linear-state-write-sink.test.ts": true,
+    "tests/unit/strategies/lisa-pin-upgrade-survives.test.ts": true,
     "tests/unit/strategies/measurement-integrity-rule.test.ts": true,
     "tests/unit/strategies/merge-state-not-proof-contract.test.ts": true,
     "tests/unit/strategies/merge.test.ts": true,
