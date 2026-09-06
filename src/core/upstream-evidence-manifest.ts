@@ -9889,6 +9889,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/skill-frontmatter-contract.test.ts": true,
     "tests/unit/core/skip-git-check-decoupling.test.ts": true,
     "tests/unit/core/sonar-integration.test.ts": true,
+    "tests/unit/core/stack-plugin-rules-split.test.ts": true,
     "tests/unit/core/third-party-action-pins.test.ts": true,
     "tests/unit/core/two-channel-delivery-scan.test.ts": true,
     "tests/unit/core/two-channel-delivery.test.ts": true,
