@@ -9693,6 +9693,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/codex/build-byte-stable.test.ts": true,
     "tests/unit/codex/codex-edit-hooks.test.ts": true,
     "tests/unit/codex/codex-hooks-json-tracked.test.ts": true,
+    "tests/unit/codex/codex-overlay-artifact-classification.test.ts": true,
     "tests/unit/codex/command-plugin-artifacts.test.ts": true,
     "tests/unit/codex/committed-openai-yaml-in-sync.test.ts": true,
     "tests/unit/codex/convert-command-to-skill.test.ts": true,
