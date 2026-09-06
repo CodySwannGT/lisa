@@ -11,7 +11,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-npm-publish-landed.mjs":
       "bba6114e5e4643575749210819acfda207260ac1db5fcb48c33c320c3a9503ca",
     "all/copy-overwrite/scripts/check-orphaned-branches.mjs":
-      "42a107a86032a7f72e9d05a74bd9026c20589b87a15148a00802c1c0c0f65c9d",
+      "c5d148c281aae86e0d43efd3b51542a8c61f516c9f670e9227f6a2ae0243c98d",
     "all/copy-overwrite/scripts/check-release-package-identity.mjs":
       "a64b5567b96706d5d7f573830cce0e623d7e4c36bb6a47c291aa02bcad79039d",
     "all/copy-overwrite/scripts/check-state-classification.mjs":
@@ -85,7 +85,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "89eb480777c22631ca8e21f54a526ad5890ea7ff2746ae7eec93447e0f8a8331",
+      "306c76e07e25d8df06b4a586508d1d13c628375861b4f05e92b7b6635d46d171",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -833,7 +833,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/worktree-binding-guard.sh":
       "1b851990168b70ef6469c3c35b0ccc4012f1bf6ceee60a0fdec9a2f8d42ec70f",
     "plugins/src/base/rules/eager/00-rule-index.md":
-      "d1d1c64b325665bc0e777b9ca36a4085420ea2a98452a3381679e9d073dd0ad6",
+      "12f953c60e12b84b59e930efdd10ffddd38472463e83f2e09ef189cd02388346",
     "plugins/src/base/rules/eager/base-rules.md":
       "0f4feae799871827c8ddbef342c6db7bb95aee13c55dec6ecfda9ba5a0a5bd78",
     "plugins/src/base/rules/eager/coding-philosophy.md":
@@ -873,7 +873,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/tool-access-gate.md":
       "a5413a43ec353f768586e0a1cde3836db025cb5d8b80821020602995e71aa296",
     "plugins/src/base/rules/eager/tracked-work.md":
-      "24f04b4610eff1519d818741c6bd5ad6464a0833ef24ecb8bf6ceb35dced9a4b",
+      "182784993c2a4dbdb2c3c93e0b4ac23b5f0953cd5b55065d906ebf9b1747e215",
     "plugins/src/base/rules/eager/upstream-to-lisa.md":
       "eb8b37e789423dba78e3a77951db087c4d3f56a88478b63107ec6b9ddbf23b13",
     "plugins/src/base/rules/eager/verification.md":
@@ -994,6 +994,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "089ebd9f633ca739a10bdef0ac162b28aa8516da181f568923246cace9c00508",
     "plugins/src/base/rules/reference/work-item-definition-of-ready.md":
       "2409b6c4631cd1aa5e85c70cadfca68f66c0087cf7ba8adbf50e4f1753cbeddf",
+    "plugins/src/base/rules/reference/work-item-trailer-definition.md":
+      "2997766dc8ab61bf63891781dc9e86339a47ca35eddd4ca387bd7cc0ce85f2a5",
     "plugins/src/base/scripts/automation-run-record.mjs":
       "24351f445c9c9dc7e9136be918bb0c4fbea567f0c3972cbe62afbdc83653ce2a",
     "plugins/src/base/scripts/automation-status-claude-adapter.mjs":
@@ -4153,6 +4155,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/reference/wiki-knowledge-source.md": true,
     "plugins/lisa-copilot/rules/reference/withdrawn-rulings.md": true,
     "plugins/lisa-copilot/rules/reference/work-item-definition-of-ready.md": true,
+    "plugins/lisa-copilot/rules/reference/work-item-trailer-definition.md": true,
     "plugins/lisa-copilot/scripts/automation-run-record.mjs": true,
     "plugins/lisa-copilot/scripts/automation-status-claude-adapter.mjs": true,
     "plugins/lisa-copilot/scripts/automation-status-codex-adapter.mjs": true,
@@ -4624,6 +4627,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/withdrawn-rulings-reference.mdc": true,
     "plugins/lisa-cursor/rules/withdrawn-rulings.mdc": true,
     "plugins/lisa-cursor/rules/work-item-definition-of-ready-reference.mdc": true,
+    "plugins/lisa-cursor/rules/work-item-trailer-definition-reference.mdc": true,
     "plugins/lisa-cursor/scripts/automation-run-record.mjs": true,
     "plugins/lisa-cursor/scripts/automation-status-claude-adapter.mjs": true,
     "plugins/lisa-cursor/scripts/automation-status-codex-adapter.mjs": true,
@@ -7223,6 +7227,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/reference/wiki-knowledge-source.md": true,
     "plugins/lisa/rules/reference/withdrawn-rulings.md": true,
     "plugins/lisa/rules/reference/work-item-definition-of-ready.md": true,
+    "plugins/lisa/rules/reference/work-item-trailer-definition.md": true,
     "plugins/lisa/scripts/automation-run-record.mjs": true,
     "plugins/lisa/scripts/automation-status-claude-adapter.mjs": true,
     "plugins/lisa/scripts/automation-status-codex-adapter.mjs": true,
@@ -7880,6 +7885,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/reference/wiki-knowledge-source.md": true,
     "plugins/src/base/rules/reference/withdrawn-rulings.md": true,
     "plugins/src/base/rules/reference/work-item-definition-of-ready.md": true,
+    "plugins/src/base/rules/reference/work-item-trailer-definition.md": true,
     "plugins/src/base/scripts/automation-run-record.mjs": true,
     "plugins/src/base/scripts/automation-status-claude-adapter.mjs": true,
     "plugins/src/base/scripts/automation-status-codex-adapter.mjs": true,
@@ -10453,6 +10459,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-push-success-attribution.test.ts": true,
     "tests/unit/scripts/work-item-run-and-gh-version.test.ts": true,
     "tests/unit/scripts/work-item-tracker-unreachable.test.ts": true,
+    "tests/unit/scripts/work-item-trailer-definition.test.ts": true,
     "tests/unit/scripts/work-item-unreachable-ancestry.test.ts": true,
     "tests/unit/secrets/automation-workflow.test.ts": true,
     "tests/unit/secrets/aws-bootstrap-derivation.test.ts": true,

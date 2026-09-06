@@ -123,6 +123,24 @@ function workItemLineValue(line) {
   const value = line.slice(match[0].length).trim();
   return value === "" ? null : value;
 }
+
+/**
+ * Is this a bare positive issue number — no sign, no padding, no suffix?
+ *
+ * A digit walk rather than a pattern. The shipped tree's lint refuses
+ * backtracking-prone quantifiers, and scanning characters cannot backtrack at
+ * all; the previous reader spelled this as part of a regex assembled from an
+ * escaped repository name, which is the construction that drifted.
+ * @param {string} text Candidate digits.
+ * @returns {boolean} True when `text` is `[1-9]` followed by digits only.
+ */
+function isIssueNumber(text) {
+  if (text.length === 0 || text[0] < "1" || text[0] > "9") return false;
+  for (let index = 1; index < text.length; index += 1) {
+    if (text[index] < "0" || text[index] > "9") return false;
+  }
+  return true;
+}
 /**
  * ## Lane attribution: which agent lane produced this, without saying who
  *
@@ -1205,10 +1223,22 @@ function writeState(ref, provider = trackerContract().provider, options = {}) {
  * Comment lines and a verbose commit's diff are not a hazard: the prefix is
  * anchored at column zero, so `# Work-Item: …` never matches, and every
  * unified-diff line carries a space, `+` or `-` in that column.
+ *
+ * EXPORTED because the definition being private is what made it rediscoverable
+ * as a bug. Anything in this fleet that reads a `Work-Item:` trailer imports
+ * this; the alternative each new tool reached for — `%(trailers)` or an ad-hoc
+ * regex — is Definition A, and Definition A misses 92% of this repository's
+ * trailers. See the `work-item-trailer-definition` rule (#3747).
+ *
+ * It deliberately does NOT validate the shape of a value. It answers "what does
+ * this text say?"; `canonicalizeRef` above it decides what is acceptable. A
+ * reader that filtered malformed values out during the scan would make a bad
+ * value invisible rather than refused — the #2672 failure re-created one layer
+ * down. A filter a caller applies to this output is the CALLER's filter.
  * @param {string} message Commit message or pull-request body.
  * @returns {string[]} Every Work-Item value found, in order of appearance.
  */
-function workItemLines(message) {
+export function workItemLines(message) {
   return String(message ?? "")
     .split(/\r?\n/)
     .flatMap(line => {
@@ -1239,12 +1269,17 @@ function workItemLines(message) {
  *
  * Two DIFFERENT references is the real ambiguity — which one is this change
  * about? — and it still fails, naming both.
+ *
+ * EXPORTED alongside `workItemLines` for the same reason: a tool that needs THE
+ * work item rather than every line should get the canonicalizing, ambiguity-
+ * refusing reader instead of writing its own. See the
+ * `work-item-trailer-definition` rule (#3747).
  * @param {string} text Commit message or pull-request body.
  * @param {object} contract Resolved tracker contract.
  * @param {string} subject What is being read, for the message.
  * @returns {string} The canonical work-item reference.
  */
-function soleWorkItem(text, contract, subject) {
+export function soleWorkItem(text, contract, subject) {
   const values = workItemLines(text);
   if (values.length === 0) {
     throw new TrackingError(`No Work-Item trailer anywhere in the ${subject}`);
@@ -4103,39 +4138,50 @@ function backlink(args) {
  * somebody's pull request NAMED the item somewhere, which is a different and
  * much weaker claim — see `sweepDeclarations` for what that difference cost.
  *
- * Scanned with the `m` flag over the WHOLE body rather than read through git's
- * `%(trailers:key=Work-Item)`, and that is the load-bearing part. Git's trailer
- * parser only considers the LAST paragraph of a message, and this project's
- * commits put `Work-Item:` above the trailing co-author block, so the parser
- * does not see it as a trailer at all. Measured on `origin/main`: the parser
- * finds 602 distinct issues where a full-body scan finds 835 — it misses 233,
- * and the undercount is clean, plausible and well-formed, which is why it
- * survived. Anything in this fleet that counts or verifies trailers has to
- * scan the body (CodySwannGT/lisa#3859).
+ * Read through `workItemLines` — the whole body, prefix anchored at column zero
+ * — rather than git's `%(trailers:key=Work-Item)`, and that is the load-bearing
+ * part. Git's trailer parser only considers the LAST paragraph of a message,
+ * and this project's commits put `Work-Item:` above the trailing co-author
+ * block, so the parser does not see it as a trailer at all. Measured on
+ * `origin/main`: the parser finds 602 distinct issues where a full-body scan
+ * finds 835 — it misses 233, and the undercount is clean, plausible and
+ * well-formed, which is why it survived. Anything in this fleet that counts or
+ * verifies trailers has to scan the body (CodySwannGT/lisa#3859).
+ *
+ * It USED to carry its own regex, which is how the two readers drifted: that
+ * one allowed leading whitespace where `workItemLines` anchors at column zero,
+ * so it would have matched the context line of a verbose commit's own diff.
+ * Measured over full `origin/main` history: 2,059 `Work-Item:` lines at column
+ * zero and ZERO indented ones, so the looser form served no real input and
+ * admitted one class of false positive. One definition now, not two (#3747).
+ *
+ * The `owner/name#number` filter stays HERE rather than moving down into the
+ * reader. This function answers a narrower question — which issues in THIS
+ * repository does the commit declare? — and a value the filter drops is one the
+ * reader still saw. That ordering is what keeps a malformed trailer refusable
+ * by the gate instead of invisible to it.
+ *
  * CRLF needs nothing here, and a relayed review finding that said otherwise
- * was refuted rather than acted on. ECMAScript counts CR as a LineTerminator,
- * so `$` under `m` matches BEFORE the `\r` of a CRLF pair, not between it and
- * the `\n` — the terminator has no carriage return left to admit. The case is
- * pinned in `work-item-cli-writes.test.ts` so the refutation is a control
- * rather than a paragraph.
+ * was refuted rather than acted on. `workItemLines` splits on `/\r?\n/`, so a
+ * CRLF line arrives without its carriage return; the value is trimmed besides.
+ * The case is pinned in `work-item-cli-writes.test.ts` so the refutation is a
+ * control rather than a paragraph.
  * @param {string} body A commit message body.
  * @param {string} repository `owner/name` the item must belong to.
  * @returns {number[]} Declared issue numbers, de-duplicated, in first-seen order.
  */
 export function declaredWorkItemNumbers(body, repository) {
-  const escaped = String(repository ?? "").replace(
-    /[.*+?^${}()|[\]\\]/g,
-    "\\$&"
-  );
-  if (!escaped) return [];
-  const pattern = new RegExp(
-    `^[ \\t]*Work-Item:[ \\t]*${escaped}#([1-9]\\d*)[ \\t]*$`,
-    "gim"
-  );
+  const owner = String(repository ?? "").toLowerCase();
+  if (owner === "") return [];
   const numbers = [];
-  let match;
-  while ((match = pattern.exec(String(body ?? ""))) !== null)
-    numbers.push(Number(match[1]));
+  for (const value of workItemLines(body)) {
+    const hash = value.indexOf("#");
+    if (hash === -1) continue;
+    if (value.slice(0, hash).toLowerCase() !== owner) continue;
+    const digits = value.slice(hash + 1);
+    if (!isIssueNumber(digits)) continue;
+    numbers.push(Number(digits));
+  }
   return [...new Set(numbers)];
 }
 

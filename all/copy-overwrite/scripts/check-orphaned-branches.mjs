@@ -90,7 +90,7 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 // resolves there exactly as it does here. Imported rather than reimplemented:
 // a second lane parser is a second answer to `whose is this?`, and two
 // answers is the state this report exists to end.
-import { parseLaneId } from "./lisa-work-item.mjs";
+import { parseLaneId, workItemLines } from "./lisa-work-item.mjs";
 
 /** Branch name prefixes that are never work-in-flight. */
 const IGNORED_PREFIXES = Object.freeze(["backup/", "gh-readonly-queue/"]);
@@ -259,9 +259,23 @@ export function branchesAhead(remote = "origin", base = "main") {
  * The work-item reference a branch is bound to, and how strongly.
  *
  * The trailer is asked first because it is the same binding the commit gate
- * enforces. It is routinely absent — the branch that motivated this check
- * carried no trailer at all — so the branch name is the fallback, reported as
- * an inference rather than as a fact.
+ * enforces — and it is read the way the gate reads it, through the exported
+ * `workItemLines`, over each commit's whole message.
+ *
+ * This used to ask git: `--format=%(trailers:key=Work-Item,valueonly)`. That is
+ * the obvious tool and it is the wrong one. Git's parser sees only a message's
+ * FINAL contiguous block of `Key: value` lines, and this fleet's convention
+ * puts `🤖 Generated with Claude Code` boilerplate below the trailer, which
+ * ends the block. Measured over non-merge commits that name an item: on a
+ * single multi-agent branch git found none on 47 of 51; over full
+ * default-branch history it missed 477 of 1,730. So the claim this docstring
+ * used to make — "it is routinely absent" — was mostly a property of the
+ * reader, not of the branches, and every one of those branches was ruled on
+ * from a branch-name INFERENCE while its canonical binding sat in the message
+ * unread. See the `work-item-trailer-definition` rule (#3747).
+ *
+ * The branch name remains the fallback for a branch that genuinely carries no
+ * trailer, reported as an inference rather than as a fact.
  * @param {string} branch Short branch name.
  * @param {string} base Default branch name.
  * @param {string} remote Remote name.
@@ -269,15 +283,12 @@ export function branchesAhead(remote = "origin", base = "main") {
  * @returns {{ref: string, refSource: string} | undefined} The reference.
  */
 export function workItemRef(branch, base, remote = "origin", exec = run) {
-  const trailers = exec("git", [
+  const messages = exec("git", [
     "log",
-    "--format=%(trailers:key=Work-Item,valueonly,separator=%x2C)",
+    "--format=%B",
     `${remote}/${base}..${remote}/${branch}`,
   ]);
-  const fromTrailer = trailers
-    ?.split(/[\n,]/u)
-    .map(value => value.trim())
-    .find(value => value.length > 0);
+  const [fromTrailer] = workItemLines(messages ?? "");
   if (fromTrailer) {
     const digits = REF_IN_TRAILER.exec(fromTrailer);
     if (digits) return { ref: digits[1], refSource: REF_SOURCE.TRAILER };
