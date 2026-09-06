@@ -2601,6 +2601,13 @@ function validateCommits(commits, configRef, remote) {
     refs: list,
     issue: ref ? issues.get(ref) : undefined,
     issues,
+    // De-duplicated on purpose, and it is the same `unique` every counter below
+    // was computed from. A caller that compared a counter against the RAW
+    // `commits.length` would read "some commits were exempt" out of a range in
+    // which every one of them was, whenever the same sha appeared twice — which
+    // a push range spanning several refs does routinely. The whole point of
+    // this field is to be the denominator those counters actually add up to.
+    examined: unique.length,
     mergeExempt,
     protectedExempt,
     releaseExempt,
@@ -3269,6 +3276,61 @@ function reportMapping(findings, commitRefs, bodyRefs) {
 }
 
 /**
+ * True when this range introduced no authored work of its own, and at least one
+ * of the things it did introduce was a merge.
+ *
+ * ## Why the condition is stated against `examined`
+ *
+ * The deferral used to read `relevant === 0 && mergeExempt > 0`. Both halves
+ * are true of every range that should defer, but only one of them SAYS so.
+ * `mergeExempt > 0` is satisfied by a range in which SOME commits are merges —
+ * strictly weaker than the precondition the deferral means to assert, which is
+ * that not one commit in the range authored anything. It coincided with the
+ * right answer because `relevant === 0` was carrying that claim, so the two
+ * agreed by accident rather than by construction, and a refactor that loosened
+ * `relevant` would have taken the deferral with it silently
+ * (CodySwannGT/lisa#3921).
+ *
+ * Stating it as "every commit examined was exempt" makes the predicate
+ * self-sufficient: it reads the denominator directly instead of trusting a
+ * counter that is incremented before the trailer is parsed.
+ *
+ * ## Why it is not `mergeExempt === examined`
+ *
+ * Because that is a DIFFERENT claim — "the range is nothing but merges" — and
+ * it is strictly stronger than the one the deferral needs. A back-merge of a
+ * non-default deploy branch legitimately drags release commits along with the
+ * merge; those are exempt for their own reason, and a range of one merge plus
+ * one `chore(release):` commit still introduced no authored work. Requiring
+ * merges-only would refuse it with "no non-merge commit linked to a work item",
+ * which is the #3851 deadlock returning through the door this closed.
+ *
+ * `mergeExempt > 0` stays as the second conjunct, and it is not the weak test
+ * this replaced: it is what separates a deferral ("the subject is one level up,
+ * at the merge's own pull request") from the release-only and deploy-chain
+ * exemptions, which have their own branches and their own wording above.
+ *
+ * Exported so the predicate can be asserted directly. The push path reaches it
+ * only through a spawned child, where the interesting case — a range whose
+ * exemptions do not add up — cannot be built out of real commits at all.
+ * @param {object} [result] Commit-side result from `validateCommits`.
+ * @returns {boolean} True when the commit-side question has no subject here.
+ */
+export function mergeOnlyRange(result) {
+  if (!result) return false;
+  const examinedCount = result.examined ?? 0;
+  const exempt =
+    (result.mergeExempt ?? 0) +
+    (result.releaseExempt ?? 0) +
+    (result.protectedExempt ?? 0);
+  return (
+    examinedCount > 0 &&
+    (result.mergeExempt ?? 0) > 0 &&
+    exempt === examinedCount
+  );
+}
+
+/**
  * Check every pull-request requirement and report all of the unmet ones.
  *
  * `rangeIsPartial` is what the PUSH path passes, and it changes exactly one
@@ -3336,12 +3398,13 @@ function validatePrData(outcome, prUrl, prBody, rangeIsPartial = false) {
   // Nothing to check HERE, and the subject is one level up. Scoped to a merge
   // because that is the only way a partial range empties out while the pull
   // request is attributed: the trailered commit is excluded for having been
-  // validated on an earlier push. `relevant === 0` cannot mask an untrailered
-  // commit — `validateCommits` increments the counter BEFORE reading the
-  // trailer, so a missing one raises through `outcome.error` on a different
-  // branch entirely, and the control below still refuses it.
+  // validated on an earlier push. `mergeOnlyRange` cannot mask an untrailered
+  // commit — `validateCommits` classifies one as neither merge, release nor
+  // protected, so the exemptions no longer add up to the range and the
+  // predicate is false; the missing trailer also raises through `outcome.error`
+  // on a different branch entirely, and the control below still refuses it.
   const deferredToPullRequest =
-    rangeIsPartial === true && result?.relevant === 0 && result.mergeExempt > 0;
+    rangeIsPartial === true && mergeOnlyRange(result);
   // All three are COMMIT-side. They carry `IN_THIS_PR` because a rewrite plus a
   // force-push does clear them without recreating the pull request — but the
   // tag's wording invites a body edit, which cannot touch a commit message. The
@@ -3440,15 +3503,27 @@ function alreadyTraced(result) {
  * `alreadyTraced` renders nothing here: it fires only for `protectedExempt`,
  * and a back-merge onto a feature branch has none. So the zero went unexplained.
  *
- * ## Why `relevant === 0 && mergeExempt > 0` is the whole condition
+ * ## The condition is the deferral's own, not a second opinion
  *
- * The deferral itself is `rangeIsPartial && relevant === 0 && mergeExempt > 0`.
- * This renders only on the push path, where the range is ALWAYS a subset of the
- * pull request's — `reportPushGroup` passes `rangeIsPartial: true`
- * unconditionally, and says why. `validate-pr` reads the full `base..head`
- * range and does not defer, which is why its success line does not carry this.
+ * Both read {@link mergeOnlyRange}, deliberately: a message rendered on a
+ * condition that merely AGREES with the deferral is a second implementation of
+ * the same rule, free to drift from it, and a clause claiming a deferral that
+ * did not happen is worse than no clause. This renders only on the push path,
+ * where the range is ALWAYS a subset of the pull request's — `reportPushGroup`
+ * passes `rangeIsPartial: true` unconditionally, and says why. `validate-pr`
+ * reads the full `base..head` range and does not defer, which is why its
+ * success line does not carry this.
  *
- * ## This adds a sentence and relaxes nothing
+ * ## What it must say, and why the count alone did not
+ *
+ * A gate that stands down has to name what it stood down FROM and what still
+ * ran, or the next reader cannot separate "deferred, correctly, with gates 4
+ * and 5 still enforced" from "skipped" — and that distinction is the entire
+ * subject of the surrounding work (CodySwannGT/lisa#3921). So the clause names
+ * the count, names gate 3 as the one with no subject here, names where it is
+ * asked instead, and names the gates that were enforced anyway.
+ *
+ * ## This adds sentences and relaxes nothing
  *
  * The verdict, the exit status and every gate are untouched: a clause is
  * appended to a line that already said OK. A diagnostic fix that also softened
@@ -3457,9 +3532,25 @@ function alreadyTraced(result) {
  * @returns {string} A clause to append, or the empty string.
  */
 function carriedByPullRequest(result) {
-  return result.relevant === 0 && result.mergeExempt > 0
-    ? ` (${result.mergeExempt} merge commit(s); this push introduces no authored work, so the pull request's own range carries the requirement)`
-    : "";
+  if (!mergeOnlyRange(result)) return "";
+  // Stated separately from the deferral itself, and this is the half #3921
+  // asked for. "N merge commit(s)" alone leaves a reader unable to tell a
+  // correct deferral from a skip: the two differ entirely in what ELSE ran, and
+  // what else ran was not in the output. Gate 5 is named as inapplicable rather
+  // than enforced under `trailer`, because a run that contacted no tracker has
+  // not enforced a backlink — claiming it here would be the vacuous success
+  // this line exists to prevent, one clause along.
+  const stillEnforced =
+    result.contract?.verify === "full"
+      ? "gates 4 and 5 were still enforced here, on this push, exactly as on any other"
+      : 'gate 4 was still enforced here, on this push, exactly as on any other; gate 5 does not apply (workItem.verify is "trailer")';
+  return (
+    ` (${result.mergeExempt} merge commit(s), and nothing else in this range; ` +
+    `this push introduces no authored work, so gate 3 had no subject here and ` +
+    `the pull request's own range carries the requirement — \`validate-pr\` ` +
+    `asks it there from base..head, as a required check. Nothing else stood ` +
+    `down: ${stillEnforced})`
+  );
 }
 
 /**
