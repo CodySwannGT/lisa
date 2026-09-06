@@ -238,6 +238,27 @@ const labelNames = labels =>
     .filter(name => typeof name === "string");
 
 /**
+ * One evaluated signal.
+ *
+ * Every field is always present, including on the unknown-signal branch: a
+ * caller reading `action` should not have to know which branch produced the
+ * result, and a partial shape here would push that knowledge into four skills.
+ *
+ * @typedef {object} SignalEvaluation
+ * @property {string} signal the signal key that was evaluated
+ * @property {string} label its resolved label name, empty when undeclared
+ * @property {string} labelSource `config` | `fallback` | `none`
+ * @property {boolean} present whether that label is on the item
+ * @property {"pass" | "fail" | null} verdict the newest QA verdict read
+ * @property {string[]} voided void conditions whose predicate answered true
+ * @property {string[]} unchecked declared conditions with no predicate
+ * @property {boolean} live whether the signal still asserts what it says
+ * @property {string} outcome a member of {@link OUTCOMES}
+ * @property {string} action a member of {@link ACTIONS}
+ * @property {string} reason why, in one sentence a human can act on
+ */
+
+/**
  * Decide whether a signal on an item is still live, and what to do about it.
  *
  * @param {object} options inputs
@@ -247,7 +268,7 @@ const labelNames = labels =>
  * @param {string} [options.role] the item's current lifecycle role name
  * @param {string} options.vendor `jira` | `linear` | `github`
  * @param {unknown} [options.config] merged config object
- * @returns {object} the evaluation, including `outcome`, `action` and `reason`
+ * @returns {SignalEvaluation} the evaluation; branch on `action`, never on prose
  */
 export const evaluateSignal = ({
   signal = QA_FAILURE_SIGNAL,
@@ -261,6 +282,13 @@ export const evaluateSignal = ({
   if (!declared) {
     return {
       signal,
+      label: "",
+      labelSource: "none",
+      present: false,
+      verdict: null,
+      voided: [],
+      unchecked: [],
+      live: false,
       outcome: OUTCOMES.UNKNOWN_SIGNAL,
       action: ACTIONS.NONE,
       reason: `Unknown signal '${signal}'. Declared: ${Object.keys(SIGNALS).join(", ")}.`,

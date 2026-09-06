@@ -1035,7 +1035,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/project-ideation-idempotency-harness.mjs":
       "5722de5c53efb033051442f965d0873beb9cdb18aa1d3f5cd82151b5fb9ed529",
     "plugins/src/base/scripts/qa-signal-lifecycle.mjs":
-      "2c60c7a1159c9e34faf3a4ded167dfe46f2603a7cbb598bf35bf17f0e6a42ce1",
+      "7d9a509426eaaf5fbcfa70bbd869224e94c158356b7cbcf0be0b7cc34feacfb1",
     "plugins/src/base/scripts/queue-contract-resolution.mjs":
       "5944dd862f949155db1f4e43279041407dc2c920723cee808fa353dc0bdd2c6e",
     "plugins/src/base/scripts/queue-health-classification.mjs":
