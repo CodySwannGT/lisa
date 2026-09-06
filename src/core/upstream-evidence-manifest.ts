@@ -41,7 +41,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
-      "f558e398ff72a8cd3515316880fa648a679b8bfed3ce04afced136d22f1a4fd8",
+      "67ee5b39aefc1ebcc4f61551d00a179b1a31b0d67ed9f8a7dcc5754530e2a943",
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "94d1d76b5c25059d93ee888dc824d1621adc8e3dbe368904543b37a82259c4a3",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
@@ -49,27 +49,29 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "de1bb66dd26e504a98485e090691df43dd22e961929abfc1bf70a32a4fb84959",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
-      "b787e4e01e2801f237ae0644399f524f02ed9d0e296064f1c23386646916e268",
+      "9ea884f6175c6991cce0d9f956c4cd424dbb9c863ce82d298320dd0eec37a0ea",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "fd25f6aa8a8b93a3b362e2946e470fb5869ffe3b93273b97b0f8fb5ec700c6db",
+      "1d9acef616f87946857e58a89a841f020fb19f7bffda78a688c0a446543eaa0a",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
-      "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
+      "2660d27d111beb79fed7e83feebcabd5f7e565dce99dbb4d861c8dc59ef8a0d7",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
-      "a27ccb4e5307778e00fd279ac3d59ccc73c42431456b4ac5e00db3a617b8f9c1",
+      "6c10536549f49b24539062f96f9be7c9f92ef03dff7eed584850fc1755df27b5",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "e987dd924dbbdc35eddf607a27372bfac6cf743c9ddb888d8a81b4b128c10908",
+      "c00a3659f997c046df3c147b348518aabe452fe6ecbd20a15fea68ac2def2b3f",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
-      "234cb82cc9033bd04940a553d4ddc95b078e585e41777d6529d887676edc40b1",
+      "865f89d7504a7d1c3380449a2790801c60c1cfe5fa8f1aad54ffc51aa8d0cc7f",
+    "all/copy-overwrite/scripts/lisa-hooks/guard-dedupe.bash":
+      "c7cb4b9c36cdd9939dc0e007b05ebf5e202b3fa6179e01279d92c5104e389899",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
       "a76959fff54b59af0d46cc8066d75bdfaf8bfd0591505663ab7cfcdf38f34fa6",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "40e12bb956baacb23846456d20b840e11c14dae539fc67806476eb674d6c38b1",
+      "df4de965f12ac79a5e9d75c795780e5f1db641468dca7a9d373deb36d9765114",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
       "9c463da32a93903e9c04968b7fa61680ee554ee41fa3eebd9af6337ff95350e5",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh":
-      "662652c09e5eb70f14db61136ea1206e9b337fce49dcabc774a45a07a0fd718f",
+      "6ab6f70a4a54d3bfb70a5949ce604de884dd738fb2ea45730d1b6c9eef0c7f7b",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
       "76c568bb393c47ef0e48bf0aaaa092be60ab137e79a5bb39b03cd83decd7b91e",
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
@@ -739,11 +741,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-blind-automerge.agy.sh":
       "7a1263ea15df37a24d959944a9b9bfe579df189abf8e697f967bbaba9d3ffc90",
     "plugins/src/base/hooks/block-blind-automerge.sh":
-      "fba70252bd70d4c4d28b855c979263a3f18660521038d1a8329876870bbb6670",
+      "2a72f840b37666544fd1019b8c00d7f1c800fab2163b1e852b0a750c28919758",
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "3e8e54a608e57b57e3fd372ad5b9a7b2794ce4934a67e36f374c8a06dc16e69e",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "c7a03b576443a509445df5a10b2a3312dd21517d3646b497fc32da74ab4bf365",
+      "12359f05694d63f5120265b5b9bda3f3c74c0fc58d551b3405e25a2e916d831b",
     "plugins/src/base/hooks/block-host-name-leak.agy.sh":
       "9522a2db621178d9cee5bf70ff3948251c5043868f372924bfee19126dbd1c41",
     "plugins/src/base/hooks/block-host-name-leak.mjs":
@@ -753,19 +755,19 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
-      "d47314b66d6ce85f77d6e058f861eede4462b2b0a33d54e82ff1c931167ec3f7",
+      "d2a8efddff3bcafc9a6b04b28e02cf3db75f98b1f9d90af3ca365fc3bb50c043",
     "plugins/src/base/hooks/block-managed-file-edits.agy.sh":
       "19cda51fcc113f0b3c184d8907913ab4b49ecb81db80ce7909639194bc9c52d6",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
-      "6cd08b50d75dcc918d8fca0519a912d2c7219fa697871e1e0835a8603cd2c687",
+      "8c88d2c8cd53bfa0ab70aae60e58fbb90afd1320877ab53b4eecc6a6cd0cd54a",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
       "452466fc87be994084017165a045a5fca77a357d71407d0524980c8bdd975c29",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "75b1b0cff2776687b2441bf73a8cd253e03a6d1fbdc83d2d9cb38b781a2ce519",
+      "05befc4599dd53c39bfb1b8770928e1909bbb3c2c4e4850fc93e54fb64467489",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":
-      "90601e31603c440d8f19d213d63bfef8d18596c60f88cb6e28c93d12453c5c0c",
+      "c00a8cbdb2ea3397bb92231f49d77820109188c21a3320a4414ad97ca27fcaa7",
     "plugins/src/base/hooks/cleanup-stale-worktrees.sh":
       "1dc1aa62e5873acba5471195710e2a5594091b94dc36287875ace14e0e2cd2d3",
     "plugins/src/base/hooks/debug-hook.sh":
@@ -784,6 +786,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "06cf3f7d917a793f283ced2997d3b9dade47f33d40904ca6914b9879313ab7df",
     "plugins/src/base/hooks/failure-signature-index.sh":
       "08ed520f59cf97056c3d17bc342e1a4d24802e8d460d77b546017c15a4ba2c55",
+    "plugins/src/base/hooks/guard-dedupe.bash":
+      "fad4beb436585afae8f86c04f4d51056330ae2a26731eebacf6f0c2cd03523fe",
     "plugins/src/base/hooks/inject-flow-context.sh":
       "f4ab07065762d592c0fc36be2e4918e767b293aaa4094b9d85d69010576c6dbf",
     "plugins/src/base/hooks/inject-resolved-config.mjs":
@@ -799,7 +803,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "8509567b13d520ca3d455c2f7ebc69a043d4a73deeab8ba402bb2e1b3c68930e",
+      "c93b51e96272b8e2df8a1524b47bc6affd0d327b591f6efe55fe1cb3f16dea17",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -827,7 +831,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/worktree-binding-guard.mjs":
       "d015c5812388aa3611ee305dc8706f48c2c91d117a0f6f2b83efd3424c378afb",
     "plugins/src/base/hooks/worktree-binding-guard.sh":
-      "db57cb8a5b1d6b644e0dbc28a2ce77b2eb00e30695a6270323ac5f1cf494e46d",
+      "1b851990168b70ef6469c3c35b0ccc4012f1bf6ceee60a0fdec9a2f8d42ec70f",
     "plugins/src/base/rules/eager/00-rule-index.md":
       "d1d1c64b325665bc0e777b9ca36a4085420ea2a98452a3381679e9d073dd0ad6",
     "plugins/src/base/rules/eager/base-rules.md":
@@ -2213,7 +2217,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/merge/.claude/settings.json":
       "16c30d17bc6941a1ffa7fce54a5ab2e87101f7ea77a69b1d695eccd07e156ab7",
     "scripts/build-plugins.sh":
-      "3d22c66560a9beb476931d4ba5af0321bcef44df5d96ae58ae4b1fe432e6662f",
+      "cfdb772f2fe0e3f2890644fb628b1c60bb5601c88d6888bbb8803e499ebb9236",
     "scripts/check-cwd-resolution-corpus.mjs":
       "117248694ca2a0dc48f8e22c2a5169791fec554b3dcf61ab6cda210d84185017",
     "scripts/check-deletion-basis.mjs":
@@ -2293,7 +2297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/copy-codex-scripts.mjs":
       "2d7082d5033088c85f66995aee9e3ee1e7751435e65bfde8e1cb002e6689d476",
     "scripts/copy-opencode-plugin-templates.mjs":
-      "4d68863cd8414d29218280cded63f2c29c3f8d51d8e74cc3b6adfec4f25b06ec",
+      "297477e478d18c605dc4f46fcb6072f4ee72109419944adfcfb18de691e13202",
     "scripts/deployed-guard-advice.mjs":
       "11b4248806e60491e0017e0cc7955928474af73ce53767848f6fbb9cec294ebf",
     "scripts/detect-stale-workflow-inputs.mjs":
@@ -2307,7 +2311,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/fix-test-assertions.mjs":
       "59b5e8cc31e7c7323d20bd180f2ae97c08a9685758483b6fe00ba77317a845f2",
     "scripts/generate-agy-plugin-artifacts.mjs":
-      "d9edb5089ece7525e0ffdec923f7d4781da95c3de85ef34172cf513d69b09f1d",
+      "4276c252e137306320fd4c0cbc80c35bf0eb7e01e3da44aa945d0ef25750f575",
     "scripts/generate-codex-plugin-artifacts.mjs":
       "facb86910c07d1b8025868d24425fdaea7b6efbe282bace5ee5bf23957d6b51a",
     "scripts/generate-copilot-plugin-artifacts.mjs":
@@ -2383,7 +2387,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-enforcement-census.mjs":
       "41490f30f30cbb5ff05454a52caa1d3286db225667847eee22b7b994809e64d4",
     "scripts/lisa-enforcement-fallback.sh":
-      "a297262691f073f036b1a2abb5951d27f9e90f5f66eef438086484a096867e0d",
+      "e6fc1ea522ee6b71b30cae8ee2ec5058ab65b15f9e2fdd7cb0444aa8cf531e67",
     "scripts/lisa-github-environments.sh":
       "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
     "scripts/lisa-github-repo-settings.sh":
@@ -2437,7 +2441,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "129a75e619afd20d1de0f074ff7064e36bd9ea96a7205927e8b5d4bf1751b50c",
+      "9616b95f0452a33233bda8106a59a7effbebad8562063db07080cf914f795cdb",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -2791,6 +2795,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh": true,
+    "all/copy-overwrite/scripts/lisa-hooks/guard-dedupe.bash": true,
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py": true,
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh": true,
@@ -3656,6 +3661,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/hooks/block-no-verify.agy.sh": true,
     "plugins/lisa-agy/hooks/block-shell-json-parsing.agy.sh": true,
     "plugins/lisa-agy/hooks/block-shell-json-parsing.sh": true,
+    "plugins/lisa-agy/hooks/guard-dedupe.bash": true,
     "plugins/lisa-agy/hooks/parity-safety-net-heredoc.py": true,
     "plugins/lisa-agy/hooks/parity-safety-net.agy.sh": true,
     "plugins/lisa-agy/hooks/parity-safety-net.sh": true,
@@ -4045,6 +4051,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/hooks/enforcement-vintage.sh": true,
     "plugins/lisa-copilot/hooks/failure-signature-index.mjs": true,
     "plugins/lisa-copilot/hooks/failure-signature-index.sh": true,
+    "plugins/lisa-copilot/hooks/guard-dedupe.bash": true,
     "plugins/lisa-copilot/hooks/inject-resolved-config.mjs": true,
     "plugins/lisa-copilot/hooks/inject-resolved-config.sh": true,
     "plugins/lisa-copilot/hooks/inject-rules.sh": true,
@@ -4514,6 +4521,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/hooks/enforcement-vintage.sh": true,
     "plugins/lisa-cursor/hooks/failure-signature-index.mjs": true,
     "plugins/lisa-cursor/hooks/failure-signature-index.sh": true,
+    "plugins/lisa-cursor/hooks/guard-dedupe.bash": true,
     "plugins/lisa-cursor/hooks/hooks.json": true,
     "plugins/lisa-cursor/hooks/inject-resolved-config.mjs": true,
     "plugins/lisa-cursor/hooks/inject-resolved-config.sh": true,
@@ -7109,6 +7117,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/hooks/enforcement-vintage.sh": true,
     "plugins/lisa/hooks/failure-signature-index.mjs": true,
     "plugins/lisa/hooks/failure-signature-index.sh": true,
+    "plugins/lisa/hooks/guard-dedupe.bash": true,
     "plugins/lisa/hooks/inject-flow-context.sh": true,
     "plugins/lisa/hooks/inject-resolved-config.mjs": true,
     "plugins/lisa/hooks/inject-resolved-config.sh": true,
@@ -7765,6 +7774,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/hooks/enforcement-vintage.sh": true,
     "plugins/src/base/hooks/failure-signature-index.mjs": true,
     "plugins/src/base/hooks/failure-signature-index.sh": true,
+    "plugins/src/base/hooks/guard-dedupe.bash": true,
     "plugins/src/base/hooks/inject-flow-context.sh": true,
     "plugins/src/base/hooks/inject-resolved-config.mjs": true,
     "plugins/src/base/hooks/inject-resolved-config.sh": true,
@@ -10024,6 +10034,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/gate-coverage-handover.test.ts": true,
     "tests/unit/hooks/generated-shell-parsing-regressions.test.ts": true,
     "tests/unit/hooks/guard-behavioural-parity.test.ts": true,
+    "tests/unit/hooks/guard-dedupe.test.ts": true,
     "tests/unit/hooks/hook-scripts-parse.test.ts": true,
     "tests/unit/hooks/hook-stdin-epipe.test.ts": true,
     "tests/unit/hooks/hook-tooling-fail-closed.test.ts": true,

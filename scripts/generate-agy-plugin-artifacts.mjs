@@ -215,6 +215,13 @@ export function generateAgyVariant(srcDir, outDir, version) {
  * hooks don't support, so they are intentionally absent. inject-rules is absent
  * too (rules stay out of agy artifacts).
  */
+/**
+ * The dedupe library every dual-channel guard sources as a sibling of itself.
+ * Shipped with each canonical guard, or the reference resolves to nothing and
+ * the guard silently loses it (CodySwannGT/lisa#3814).
+ */
+const GUARD_DEDUPE_LIB = "guard-dedupe.bash";
+
 const AGY_PLUGIN_HOOKS = [
   {
     sourceScript: "block-no-verify.sh",
@@ -230,7 +237,11 @@ const AGY_PLUGIN_HOOKS = [
     event: "PreToolUse",
     matcher: "run_command",
     agyScript: "parity-safety-net.agy.sh",
-    supportScripts: ["parity-safety-net.sh", "parity-safety-net-heredoc.py"],
+    supportScripts: [
+      "parity-safety-net.sh",
+      "parity-safety-net-heredoc.py",
+      GUARD_DEDUPE_LIB,
+    ],
   },
   {
     sourceScript: "block-shell-json-parsing.sh",
@@ -238,7 +249,7 @@ const AGY_PLUGIN_HOOKS = [
     event: "PreToolUse",
     matcher: "run_command",
     agyScript: "block-shell-json-parsing.agy.sh",
-    supportScripts: ["block-shell-json-parsing.sh"],
+    supportScripts: ["block-shell-json-parsing.sh", GUARD_DEDUPE_LIB],
   },
   {
     // Bash arm only. agy matches `run_command`, so its file-edit tool calls
@@ -249,7 +260,7 @@ const AGY_PLUGIN_HOOKS = [
     event: "PreToolUse",
     matcher: "run_command",
     agyScript: "block-instruction-file-edits.agy.sh",
-    supportScripts: ["block-instruction-file-edits.sh"],
+    supportScripts: ["block-instruction-file-edits.sh", GUARD_DEDUPE_LIB],
   },
   {
     // Bash arm only, on the same terms as the instruction-file entry above:
@@ -261,7 +272,7 @@ const AGY_PLUGIN_HOOKS = [
     event: "PreToolUse",
     matcher: "run_command",
     agyScript: "block-managed-file-edits.agy.sh",
-    supportScripts: ["block-managed-file-edits.sh"],
+    supportScripts: ["block-managed-file-edits.sh", GUARD_DEDUPE_LIB],
   },
   {
     // No arm-only caveat here, unlike the entry above: the canonical guard is
@@ -271,7 +282,7 @@ const AGY_PLUGIN_HOOKS = [
     event: "PreToolUse",
     matcher: "run_command",
     agyScript: "block-direct-issue-create.agy.sh",
-    supportScripts: ["block-direct-issue-create.sh"],
+    supportScripts: ["block-direct-issue-create.sh", GUARD_DEDUPE_LIB],
   },
   {
     // Bash-only by construction, like the guard above: `gh pr merge --auto` is
@@ -282,7 +293,7 @@ const AGY_PLUGIN_HOOKS = [
     event: "PreToolUse",
     matcher: "run_command",
     agyScript: "block-blind-automerge.agy.sh",
-    supportScripts: ["block-blind-automerge.sh"],
+    supportScripts: ["block-blind-automerge.sh", GUARD_DEDUPE_LIB],
   },
   {
     // Same shape as the entry above, plus one support file the others do not

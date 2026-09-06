@@ -24,6 +24,7 @@ const canonicalSupportFiles = [
   "block-no-verify.sh",
   "parity-safety-net.sh",
   "parity-safety-net-heredoc.py",
+  "guard-dedupe.bash",
 ];
 
 fs.rmSync(destDir, { recursive: true, force: true });

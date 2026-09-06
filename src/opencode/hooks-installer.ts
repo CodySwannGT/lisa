@@ -113,6 +113,7 @@ const PLUGIN_SUPPORT_FILES = [
   "block-no-verify.sh",
   "parity-safety-net.sh",
   "parity-safety-net-heredoc.py",
+  "guard-dedupe.bash",
 ] as const;
 
 /** Result of the OpenCode hooks install pass */
