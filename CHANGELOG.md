@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.50.3](https://github.com/CodySwannGT/lisa/compare/v4.50.2...v4.50.3) (2026-09-06)
+
+
+### Bug Fixes
+
+* **migrations:** keep the pin idempotent when a callee is exempt ([237122e](https://github.com/CodySwannGT/lisa/commit/237122e91a8683914de2148df81feada79986314)), closes [CodySwannGT/lisa#4021](https://github.com/CodySwannGT/lisa/issues/4021)
+* **migrations:** never pin a callee the release does not carry ([55fc31b](https://github.com/CodySwannGT/lisa/commit/55fc31b6d442a977b8d17b0ea5753a21adadfa6c)), closes [#4021](https://github.com/CodySwannGT/lisa/issues/4021) [CodySwannGT/lisa#4021](https://github.com/CodySwannGT/lisa/issues/4021)
+* **tests:** run the CDK synth child outside fleet admission ([4eb4173](https://github.com/CodySwannGT/lisa/commit/4eb41737bbcab687289970409cc4a0646cc3d98a)), closes [#2](https://github.com/CodySwannGT/lisa/issues/2) [#4034](https://github.com/CodySwannGT/lisa/issues/4034) [CodySwannGT/lisa#4034](https://github.com/CodySwannGT/lisa/issues/4034)
+
 ### [4.50.2](https://github.com/CodySwannGT/lisa/compare/v4.50.1...v4.50.2) (2026-09-05)
 
 
