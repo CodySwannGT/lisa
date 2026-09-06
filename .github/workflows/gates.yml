@@ -198,6 +198,22 @@ on:
 permissions:
   contents: read
 
+# ─── The package manager, bound once ────────────────────────────────────────
+# A `${{ }}` expression is substituted into a `run:` body BEFORE the shell
+# parses it, so an interpolated value is shell SOURCE TEXT rather than an
+# argument. `package_manager` is a free-text `type: string` input, so a caller
+# passing `npm; <anything>` had the second half executed (#3793).
+#
+# Bound here, at workflow level, every job and every step reads it as an
+# environment variable — quoted, one argv word, never source.
+#
+# Env-passing is only half the remedy: it stops the injection but still tries
+# to exec whatever the single word names. The other half is the `case` in each
+# job's install step, which fails the job closed on anything outside
+# npm|yarn|pnpm|bun before a command position is ever reached.
+env:
+  PACKAGE_MANAGER: ${{ inputs.package_manager }}
+
 jobs:
   gates:
     name: 🚦 Gates
@@ -228,13 +244,16 @@ jobs:
         if: inputs.install_dependencies
         working-directory: ${{ inputs.working_directory || '.' }}
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
 
       # ─── The façade ───────────────────────────────────────────────────────
       # Three candidate paths, in the same order every other Lisa workflow

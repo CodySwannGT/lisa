@@ -9471,6 +9471,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/nightly-e2e-tracking-shipped-authority.test.ts": true,
     "tests/integration/nightly-e2e-tracking-workflow.test.ts": true,
     "tests/integration/oxlint-worktree-resolution.test.ts": true,
+    "tests/integration/package-manager-injection.test.ts": true,
     "tests/integration/playwright-caller-template.test.ts": true,
     "tests/integration/playwright-e2e-workflow.test.ts": true,
     "tests/integration/postinstall-leaves-gate-declarations-alone.test.ts": true,

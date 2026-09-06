@@ -168,6 +168,22 @@ on:
       SENTRY_PROJECT:
         required: false
 
+# ─── The package manager, bound once ────────────────────────────────────────
+# A `${{ }}` expression is substituted into a `run:` body BEFORE the shell
+# parses it, so an interpolated value is shell SOURCE TEXT rather than an
+# argument. `package_manager` is a free-text `type: string` input, so a caller
+# passing `npm; <anything>` had the second half executed (#3793).
+#
+# Bound here, at workflow level, every job and every step reads it as an
+# environment variable — quoted, one argv word, never source.
+#
+# Env-passing is only half the remedy: it stops the injection but still tries
+# to exec whatever the single word names. The other half is the `case` in each
+# job's install step, which fails the job closed on anything outside
+# npm|yarn|pnpm|bun before a command position is ever reached.
+env:
+  PACKAGE_MANAGER: ${{ inputs.package_manager }}
+
 jobs:
   # Initialize release with correlation ID and logging
   release_init:
@@ -539,13 +555,13 @@ jobs:
 
       - name: Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+          if [ "$PACKAGE_MANAGER" = "npm" ]; then
             npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
             yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "pnpm" ]; then
+          elif [ "$PACKAGE_MANAGER" = "pnpm" ]; then
             pnpm install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
             bun install --frozen-lockfile
           else
             npm ci

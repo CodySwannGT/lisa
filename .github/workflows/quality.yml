@@ -311,6 +311,22 @@ concurrency:
 # Jobs that touch neither the repository nor the API declare `permissions: {}`.
 # Never widen this floor — grant a job its minimal scope at the job level.
 
+# ─── The package manager, bound once ────────────────────────────────────────
+# A `${{ }}` expression is substituted into a `run:` body BEFORE the shell
+# parses it, so an interpolated value is shell SOURCE TEXT rather than an
+# argument. `package_manager` is a free-text `type: string` input, so a caller
+# passing `npm; <anything>` had the second half executed (#3793).
+#
+# Bound here, at workflow level, every job and every step reads it as an
+# environment variable — quoted, one argv word, never source.
+#
+# Env-passing is only half the remedy: it stops the injection but still tries
+# to exec whatever the single word names. The other half is the `case` in each
+# job's install step, which fails the job closed on anything outside
+# npm|yarn|pnpm|bun before a command position is ever reached.
+env:
+  PACKAGE_MANAGER: ${{ inputs.package_manager }}
+
 jobs:
   # ─── Which Lisa ran this ─────────────────────────────────────────────────
   # A CONSUMER RUNS TWO LISAS AT ONCE. Its `package.json` pins
@@ -741,13 +757,16 @@ jobs:
         env:
           PACKAGE_MANAGER: ${{ inputs.package_manager }}
         run: |
-          if [ "$PACKAGE_MANAGER" = "npm" ]; then
-            npm ci
-          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🧪 Verify the configured gate runner is installed
@@ -920,13 +939,16 @@ jobs:
 
       - name: 📥 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
 
       # ─── Gate façade ─────────────────────────────────────────────────────
       # THE CONTRACT (stated once here; the other converted jobs point back).
@@ -1088,7 +1110,7 @@ jobs:
         if: steps.gate.outputs.configured == 'false'
         run: |
           if [ ! -x "node_modules/.bin/oxlint" ]; then
-            echo "::error::oxlint is required but not installed at node_modules/.bin/oxlint. Add 'oxlint' as a devDependency (Lisa governance pins it via package.lisa.json) and run '${{ inputs.package_manager }} install'."
+            echo "::error::oxlint is required but not installed at node_modules/.bin/oxlint. Add 'oxlint' as a devDependency (Lisa governance pins it via package.lisa.json) and run '$PACKAGE_MANAGER install'."
             exit 1
           fi
           echo "oxlint $(./node_modules/.bin/oxlint --version | head -1) found."
@@ -1193,7 +1215,8 @@ jobs:
         # step runs both linters in sequence. Per-project script semantics
         # (e.g. Lisa itself uses --disable-nested-config) are preserved.
         if: steps.gate.outputs.configured == 'false'
-        run: ${{ inputs.package_manager }} run lint
+        run: |
+          "$PACKAGE_MANAGER" run lint
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
@@ -1227,13 +1250,16 @@ jobs:
 
       - name: 📥 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -1411,7 +1437,8 @@ jobs:
       - name: 🐢 Run slow lint rules
         # FALLBACK — unchanged behavior for a project with no `gates` block.
         if: steps.gate.outputs.configured == 'false'
-        run: ${{ inputs.package_manager }} run lint:slow
+        run: |
+          "$PACKAGE_MANAGER" run lint:slow
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
@@ -1445,13 +1472,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -1629,7 +1659,8 @@ jobs:
       - name: 🔍 Run type check
         # FALLBACK — unchanged behavior for a project with no `gates` block.
         if: steps.gate.outputs.configured == 'false'
-        run: ${{ inputs.package_manager }} run typecheck
+        run: |
+          "$PACKAGE_MANAGER" run typecheck
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
@@ -1748,13 +1779,16 @@ jobs:
       - name: 📦 Install dependencies
         if: steps.gates_declared.outputs.declared == 'true'
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -2123,13 +2157,16 @@ jobs:
         env:
           PACKAGE_MANAGER: ${{ inputs.package_manager }}
         run: |
-          if [ "$PACKAGE_MANAGER" = "npm" ]; then
-            npm ci
-          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🧪 Verify the configured gate runner is installed
@@ -2422,13 +2459,16 @@ jobs:
         env:
           PACKAGE_MANAGER: ${{ inputs.package_manager }}
         run: |
-          if [ "$PACKAGE_MANAGER" = "npm" ]; then
-            npm ci
-          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🧪 Verify the configured gate runner is installed
@@ -2720,13 +2760,16 @@ jobs:
         env:
           PACKAGE_MANAGER: ${{ inputs.package_manager }}
         run: |
-          if [ "$PACKAGE_MANAGER" = "npm" ]; then
-            npm ci
-          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # The non-regression checks are the whole of what protects coverage the
@@ -3260,13 +3303,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -3549,11 +3595,11 @@ jobs:
         # FALLBACK — unchanged behavior for a project with no `gates` block.
         if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured == 'false'
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+          if [ "$PACKAGE_MANAGER" = "npm" ]; then
             npm run test:cov
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
             yarn test:cov
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
             bun run test:cov
           fi
         env:
@@ -3758,13 +3804,16 @@ jobs:
       - name: 📦 Install dependencies
         if: steps.check_script.outputs.exists == 'true' || steps.gate.outputs.configured == 'true'
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🧪 Verify the configured gate runner is installed
@@ -3873,11 +3922,11 @@ jobs:
         # silent green into a spurious red.
         if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured == 'false'
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+          if [ "$PACKAGE_MANAGER" = "npm" ]; then
             npm run test:mutation
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
             yarn test:mutation
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
             bun run test:mutation
           fi
         env:
@@ -4060,13 +4109,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🔍 Check for test:integration script
@@ -4259,11 +4311,11 @@ jobs:
         # FALLBACK — unchanged behavior for a project with no `gates` block.
         if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured == 'false'
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+          if [ "$PACKAGE_MANAGER" = "npm" ]; then
             npm run test:integration
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
             yarn test:integration
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
             bun run test:integration
           fi
         env:
@@ -4615,13 +4667,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -4799,7 +4854,8 @@ jobs:
       - name: 📐 Check formatting
         # FALLBACK — unchanged behavior for a project with no `gates` block.
         if: steps.gate.outputs.configured == 'false'
-        run: ${{ inputs.package_manager }} run format:check
+        run: |
+          "$PACKAGE_MANAGER" run format:check
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
@@ -4833,13 +4889,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -5068,14 +5127,16 @@ jobs:
       - name: 🏗️ Build project
         # FALLBACK — unchanged behavior for a project with no `gates` block.
         if: ${{ (inputs.cache_build != true || steps.build_cache.outputs.cache-hit != 'true') && steps.gate.outputs.configured == 'false' }}
-        run: ${{ inputs.package_manager }} run build
+        run: |
+          "$PACKAGE_MANAGER" run build
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: ⏭️ Build cache hit — skipping build
         if: inputs.cache_build == true && steps.build_cache.outputs.cache-hit == 'true'
-        run: echo "::notice::Build cache hit — skipped \`${{ inputs.package_manager }} run build\`"
+        run: |
+          echo "::notice::Build cache hit — skipped \`$PACKAGE_MANAGER run build\`"
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 📤 Upload build artifacts
@@ -5175,13 +5236,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🧭 Validate the gates block
@@ -5652,13 +5716,16 @@ jobs:
         # their fallbacks. That is a SEPARATE defect from #2680, recorded in
         # docs/design/gates-and-policy.md; do not read this install as its fix.
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -6185,11 +6252,14 @@ jobs:
       - name: 📦 Install dependencies
         run: |
           set -euo pipefail
-          if [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          else
-            ${{ inputs.package_manager }} install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            bun) bun install --frozen-lockfile ;;
+            npm | yarn | pnpm) "$PACKAGE_MANAGER" install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -6297,7 +6367,8 @@ jobs:
       # declined gate should cost nothing.
       - name: 🏗️ Build the web bundle
         if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured != 'off'
-        run: ${{ inputs.package_manager }} run export:web
+        run: |
+          "$PACKAGE_MANAGER" run export:web
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🧪 Verify the configured gate runner is installed
@@ -6409,7 +6480,8 @@ jobs:
         # working on the script it already has. No consumer needs a same-day
         # `package.json` alias for this to land.
         if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured == 'false'
-        run: ${{ inputs.package_manager }} run lighthouse:check
+        run: |
+          "$PACKAGE_MANAGER" run lighthouse:check
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: ⏭️ Skip the performance budget (no export:web script)
@@ -6500,13 +6572,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -6768,13 +6843,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -6996,13 +7074,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -7224,13 +7305,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -7412,9 +7496,9 @@ jobs:
         if: steps.gate.outputs.configured == 'false'
         run: |
           if jq -e '.scripts["knip:check"]' package.json >/dev/null 2>&1; then
-            ${{ inputs.package_manager }} run knip:check
+            "$PACKAGE_MANAGER" run knip:check
           else
-            ${{ inputs.package_manager }} run knip
+            "$PACKAGE_MANAGER" run knip
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
@@ -7461,13 +7545,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -7731,13 +7818,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -7948,7 +8038,8 @@ jobs:
 
       - name: 🔎 Run ast-grep scan
         if: steps.check_config.outputs.has_config == 'true' && steps.check_rules.outputs.has_rules == 'true'
-        run: ${{ inputs.package_manager }} run sg:scan
+        run: |
+          "$PACKAGE_MANAGER" run sg:scan
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Counts rule-test files rather than trusting the runner's exit code.
@@ -8169,13 +8260,16 @@ jobs:
         env:
           PACKAGE_MANAGER: ${{ inputs.package_manager }}
         run: |
-          if [ "$PACKAGE_MANAGER" = "npm" ]; then
-            npm ci
-          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🧪 Verify the configured gate runner is installed
@@ -8323,13 +8417,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -8541,7 +8638,7 @@ jobs:
           GHSA_IDS="${{ steps.audit_exclusions.outputs.ghsa_ids }}"
           CVE_IDS="${{ steps.audit_exclusions.outputs.cve_ids }}"
 
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+          if [ "$PACKAGE_MANAGER" = "npm" ]; then
             # Build jq exclusion filter for npm audit GHSA IDs
             NPM_EXCLUDE_FILTER=""
             for _id in $GHSA_IDS; do
@@ -8564,7 +8661,7 @@ jobs:
               exit 1
             fi
             echo "::notice::No high or critical vulnerabilities found (excluding known false positives)"
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
             # Build jq filter for GHSA IDs
             GHSA_FILTER=""
             for _id in $GHSA_IDS; do
@@ -8608,7 +8705,7 @@ jobs:
             else
               echo "::notice::No high or critical vulnerabilities found (excluding known false positives)"
             fi
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
             GHSA_IDS_JSON=$(printf '%s\n' $GHSA_IDS | jq -R . | jq -s 'map(select(length > 0))')
             CVE_IDS_JSON=$(printf '%s\n' $CVE_IDS | jq -R . | jq -s 'map(select(length > 0))')
             # `--production` scopes the audit to production dependencies, matching
@@ -8674,7 +8771,7 @@ jobs:
             fi
             echo "::notice::No high or critical vulnerabilities found (excluding known false positives)"
           else
-            echo "Unsupported package manager: ${{ inputs.package_manager }}"
+            echo "Unsupported package manager: $PACKAGE_MANAGER"
             exit 1
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
@@ -9147,13 +9244,16 @@ jobs:
       - name: 📦 Install dependencies
         if: steps.gate.outputs.configured == 'false' && (steps.check_snyk.outputs.has_token == 'true')
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🛡️ Run Snyk to check for vulnerabilities
