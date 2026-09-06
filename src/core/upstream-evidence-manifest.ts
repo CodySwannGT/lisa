@@ -2228,6 +2228,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "ec588e17a238a2bfc5c39f6a7a5090a8923b5bf464afd2c43f89972e53cefb4c",
     "scripts/check-empty-subject-guards.mjs":
       "02fc6af8de14fa2230e5f601225bda2f51d4ed7a462e67c46a36a6c7d92e1833",
+    "scripts/check-engine-floor.mjs":
+      "2be69f81865523a62392a9181dcdfb141a23bd1cbd06665d8a5a70911c1104c9",
     "scripts/check-generated-artifact-merge-coverage.mjs":
       "bb7e708f1f6e00b503a9b885bb52c335c5b238b0dd76032e02301e8883f990b3",
     "scripts/check-guard-parity-notes.mjs":
@@ -8556,6 +8558,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-duplicate-versions.mjs": true,
     "scripts/check-eager-rule-budget.mjs": true,
     "scripts/check-empty-subject-guards.mjs": true,
+    "scripts/check-engine-floor.mjs": true,
     "scripts/check-generated-artifact-merge-coverage.mjs": true,
     "scripts/check-guard-parity-notes.mjs": true,
     "scripts/check-learnings-budget.ts": true,
@@ -10175,6 +10178,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/check-duplicate-versions.test.ts": true,
     "tests/unit/scripts/check-duplicate-versions.units.test.ts": true,
     "tests/unit/scripts/check-empty-subject-guards.test.ts": true,
+    "tests/unit/scripts/check-engine-floor.test.ts": true,
     "tests/unit/scripts/check-guard-parity-notes.test.ts": true,
     "tests/unit/scripts/check-learnings-budget-helpers.ts": true,
     "tests/unit/scripts/check-learnings-budget.test.ts": true,
@@ -10822,6 +10826,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tsconfig.eslint.json": true,
     "tsconfig.json": true,
     "tsconfig.local.json": true,
+    "tsconfig.shipped-js.json": true,
     "tsconfig.tests.json": true,
     "tsconfig/base.json": true,
     "tsconfig/build.json": true,
