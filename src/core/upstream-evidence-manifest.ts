@@ -2429,7 +2429,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/probes/wave3-verification.sh":
       "c341c3682f2401339a433a48efc8b8dd80c9c190f12ec6287139bebd1e47c049",
     "scripts/reconcile-release-tags.mjs":
-      "ff407babbd01123cbb2a55c194abe79b94b31ef6f6f4ab4142c64aa221d443b2",
+      "4a081e799dad3b76b1d66b306791d73e5f31cce109affda0bfd16dc69c0656a5",
     "scripts/remedy-conformance.mjs":
       "3205d842b03faa9e8b9e49b7cff46c3999317ab6f2b84e81b881e26e9d13354f",
     "scripts/remote-agent-aws-setup.sh":
