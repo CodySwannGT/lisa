@@ -191,6 +191,13 @@ describe("no surface reintroduces the dependency arm", () => {
     // A construct consumer genuinely does, and this arm is independent of the
     // `cdk` project type, so narrowing detection does not weaken it.
     "src/cli/remote-environment-detection.ts",
+    // Names the dependencies the CDK preset FORCE-MERGES, so the
+    // installed-base check can tell a repository what to back out. Not a
+    // detection surface and structurally unable to become one: the
+    // classifier it feeds takes `CdkAdoptionEvidence`, which carries preset
+    // artifacts and the app marker and no dependency field at all
+    // (CodySwannGT/lisa#3711).
+    "src/core/cdk-preset-adoption.ts",
   ]);
 
   /**

@@ -13,6 +13,7 @@ import {
 import { checkEnforcementCoverage } from "./doctor-enforcement-coverage.js";
 import { checkLockfileReconciliation } from "./doctor-reconciliation.js";
 import { checkKaneProvider } from "./doctor-kane.js";
+import { checkCdkPresetAdoption } from "./doctor-cdk-preset-adoption.js";
 import { checkConfigShadowing } from "./doctor-config-shadowing.js";
 import { checkLearningsLedger } from "./doctor-learnings-ledger.js";
 import { checkMergeDrivers } from "./doctor-merge-drivers.js";
@@ -386,6 +387,15 @@ export async function runDoctor(
     // again — so an already-seeded project has no way but this to find itself
     // (CodySwannGT/lisa#3779).
     await checkRailsDeployIntent(resolvedTarget),
+    // Fourth in the same run, and the one the other three cannot see. Those
+    // ask whether a Lisa-owned file is current, whether a seeded file outranks
+    // the project's own, and whether a file Lisa will not refresh still reads
+    // as deliberate; this asks whether a whole stack preset was delivered to a
+    // repository that never qualified for it. The detection fix reaches the
+    // next decision only, and the repository it already wrote to gets no
+    // signal of any kind — the dead-code gate it skewed reports SUCCESS
+    // (CodySwannGT/lisa#3711).
+    await checkCdkPresetAdoption(resolvedTarget),
     await checkReusableWorkflowRefs(resolvedTarget),
     // Immediately after the ref check, because both read the same caller
     // workflows and an operator editing one wants both findings together. This
