@@ -43,6 +43,34 @@
  * does, and so on per `SURFACES`. Add a surface to Lisa and the entry added
  * here is a path shape, not a list of which guards have it.
  *
+ * ## A path shape alone measures the wrong thing on Codex
+ *
+ * A file named for the guard is sufficient evidence that a surface carries it;
+ * it is not NECESSARY. Codex is the surface where the difference is real, and
+ * the first version of this file got Codex wrong for exactly that reason
+ * (CodySwannGT/lisa#3750).
+ *
+ * `src/codex/scripts/<id>.sh` is the retired channel. `src/codex/hooks-installer.ts`
+ * says so in its own opening remark — the project overlay moved to
+ * plugin-bundled hooks plus one repository-owned dispatcher, and that module
+ * "remains for migration coverage of the retired linked script/rule layout".
+ * Two channels deliver a guard to Codex today, and neither puts a file in that
+ * directory:
+ *
+ *   - `scripts/lisa-enforcement-fallback.sh`, whose roster names the guards it
+ *     dispatches. `src/codex/enforcement-fallback-installer.ts` registers it on
+ *     `PreToolUse` for `Bash|Edit|Write|apply_patch`.
+ *   - `plugins/lisa/.codex-plugin/hooks.json`, the Codex plugin manifest, whose
+ *     hook commands name the guards Codex runs directly.
+ *
+ * So a `registries` entry is read the same way a `ports` entry is — from the
+ * file, never from a declaration — but it answers "does this file REGISTER the
+ * guard" rather than "is there a file named for it". Both readers are
+ * STRUCTURAL: the roster reader parses the `for guard in ... ; do` list and the
+ * manifest reader parses JSON. Neither scans for the guard's name in prose,
+ * because the dispatcher's own header lists guard names in a sentence and a
+ * substring sweep would count that sentence as registration.
+ *
  * ## The claim grammar
  *
  * Bounded on purpose. Inside one comment block, between a negation (`no`,
@@ -104,6 +132,10 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
  * the candidate paths, any one of which existing means the surface carries the
  * guard. Both are matched case-insensitively on the alias side and exactly on
  * the path side.
+ *
+ * `registries` are files that REGISTER a guard without being named for it —
+ * see the module remark above. Each names a `reader` from
+ * {@link REGISTRY_READERS}, which returns the guard ids that file registers.
  */
 export const SURFACES = Object.freeze([
   Object.freeze({
@@ -120,6 +152,16 @@ export const SURFACES = Object.freeze([
     ports: Object.freeze([
       "src/codex/scripts/{id}.sh",
       "src/codex/scripts/{id}.mjs",
+    ]),
+    registries: Object.freeze([
+      Object.freeze({
+        path: "scripts/lisa-enforcement-fallback.sh",
+        reader: "dispatcher-roster",
+      }),
+      Object.freeze({
+        path: "plugins/lisa/.codex-plugin/hooks.json",
+        reader: "codex-hooks-manifest",
+      }),
     ]),
   }),
   Object.freeze({
@@ -170,10 +212,20 @@ export const BLIND_SPOTS = Object.freeze([
   "gaps stated outside the claim grammar (see the module remarks)",
   "understated gaps: a note that omits a genuinely missing surface passes",
   "whether a present port file is actually registered for its agent",
+  "a delivery channel absent from SURFACES — presence is only as complete as the ports and registries named there",
 ]);
 
 /** File extensions a guard source may use. */
 const GUARD_EXTENSIONS = Object.freeze([".sh", ".mjs", ".ts", ".py"]);
+
+/** Runs of whitespace, for splitting a roster or a command line. */
+const WHITESPACE = /\s+/u;
+
+/** The shape every guard id has; anything else is not one. */
+const GUARD_ID_SHAPE = /^[a-z0-9][a-z0-9-]*$/u;
+
+/** Shell words in the dispatcher roster that are syntax, not guard names. */
+const ROSTER_KEYWORDS = new Set(["", "\\", "do", "for", "guard", "in"]);
 
 /** Words that open a claim. */
 const NEGATIONS = new Set(["no", "lacks", "lack", "missing", "without"]);
@@ -264,6 +316,137 @@ export function portFor(repoRoot, guardId, surfaceId) {
   return surface.ports
     .map(template => template.replace("{id}", guardId))
     .find(relative => existsSync(path.join(repoRoot, relative)));
+}
+
+/**
+ * Guard ids the enforcement dispatcher runs.
+ *
+ * Read from the `for guard in ... ; do` roster and from nowhere else. The
+ * dispatcher's header also lists guard names in an English sentence, so a
+ * substring sweep of this file would report every guard it MENTIONS as one it
+ * RUNS — the sentinel-versus-talk-about-the-sentinel mistake, and the reason
+ * this reader is a parse rather than a search.
+ * @param {string} source - Full contents of the dispatcher.
+ * @returns {Set<string>} Guard ids in the roster; empty when there is none.
+ */
+export function dispatcherRoster(source) {
+  const names = new Set();
+  const lines = source.split("\n");
+  let index = lines.findIndex(line =>
+    line.trimStart().startsWith("for guard in")
+  );
+  if (index === -1) return names;
+  let roster = "";
+  let open = true;
+  while (open && index < lines.length) {
+    const line = lines[index];
+    roster += ` ${line}`;
+    open = !line.includes("; do");
+    index += 1;
+  }
+  // Still open at end of file means the roster was never terminated, which is
+  // a malformed dispatcher rather than an empty one. Report nothing: a partial
+  // parse that answered anyway would claim registration it had not read.
+  if (open) return new Set();
+  for (const raw of roster.split(WHITESPACE)) {
+    const word = raw.endsWith(";") ? raw.slice(0, -1) : raw;
+    if (ROSTER_KEYWORDS.has(word) || !GUARD_ID_SHAPE.test(word)) continue;
+    names.add(word);
+  }
+  return names;
+}
+
+/**
+ * Guard ids the Codex plugin manifest registers.
+ *
+ * Structural: the JSON is parsed and every hook `command` is reduced to the
+ * basename of the file it runs. A command carrying arguments (`… --hook`)
+ * still resolves to its script, and anything unparseable registers nothing.
+ * @param {string} source - Full contents of the manifest.
+ * @returns {Set<string>} Guard ids the manifest registers.
+ */
+export function codexHooksManifest(source) {
+  const names = new Set();
+  let parsed;
+  try {
+    parsed = JSON.parse(source);
+  } catch {
+    // probe-direction: fail-closed — an unreadable manifest registers nothing,
+    // so a genuine gap note keeps passing rather than being refused on the
+    // strength of a file this reader could not read.
+    return names;
+  }
+  const events = parsed?.hooks;
+  if (events === null || typeof events !== "object") return names;
+  for (const entries of Object.values(events)) {
+    if (!Array.isArray(entries)) continue;
+    for (const entry of entries) {
+      for (const hook of Array.isArray(entry?.hooks) ? entry.hooks : []) {
+        const id = guardIdOfCommand(hook?.command);
+        if (id !== undefined) names.add(id);
+      }
+    }
+  }
+  return names;
+}
+
+/**
+ * The guard a hook command runs.
+ * @param {unknown} command - A manifest hook's `command` field.
+ * @returns {string | undefined} The guard id, or nothing.
+ */
+function guardIdOfCommand(command) {
+  if (typeof command !== "string") return undefined;
+  const [word] = command.split(WHITESPACE);
+  const base = word.slice(word.lastIndexOf("/") + 1);
+  const extension = GUARD_EXTENSIONS.find(candidate =>
+    base.endsWith(candidate)
+  );
+  if (extension === undefined) return undefined;
+  const stem = base.slice(0, -extension.length);
+  return GUARD_ID_SHAPE.test(stem) ? stem : undefined;
+}
+
+/** How each `registries` entry's `reader` is resolved. */
+export const REGISTRY_READERS = Object.freeze({
+  "codex-hooks-manifest": codexHooksManifest,
+  "dispatcher-roster": dispatcherRoster,
+});
+
+/**
+ * The registration file that proves a surface RUNS a guard.
+ * @param {string} repoRoot - Absolute path of the tree being scanned.
+ * @param {string} guardId - Guard id from {@link guardIdFor}.
+ * @param {string} surfaceId - Surface id from {@link SURFACES}.
+ * @returns {string | undefined} Repo-relative path, or nothing if none does.
+ */
+export function registryFor(repoRoot, guardId, surfaceId) {
+  const surface = SURFACES.find(candidate => candidate.id === surfaceId);
+  for (const registry of surface?.registries ?? []) {
+    const absolute = path.join(repoRoot, registry.path);
+    if (!existsSync(absolute)) continue;
+    const read = REGISTRY_READERS[registry.reader];
+    if (read !== undefined && read(readFileSync(absolute, "utf8")).has(guardId))
+      return registry.path;
+  }
+  return undefined;
+}
+
+/**
+ * The file that contradicts a claim of no port on one surface.
+ *
+ * A port file OR a registration; either is proof the surface carries the
+ * guard, and a note claiming otherwise is refused on whichever is found.
+ * @param {string} repoRoot - Absolute path of the tree being scanned.
+ * @param {string} guardId - Guard id from {@link guardIdFor}.
+ * @param {string} surfaceId - Surface id from {@link SURFACES}.
+ * @returns {string | undefined} Repo-relative path, or nothing.
+ */
+export function evidenceFor(repoRoot, guardId, surfaceId) {
+  return (
+    portFor(repoRoot, guardId, surfaceId) ??
+    registryFor(repoRoot, guardId, surfaceId)
+  );
 }
 
 /**
@@ -445,7 +628,7 @@ function inspectBlock(repoRoot, guard, block, report) {
   for (const claim of claimsIn(block.text)) {
     report.claims += 1;
     for (const surface of claim.surfaces) {
-      const evidence = portFor(repoRoot, guard.guardId, surface);
+      const evidence = evidenceFor(repoRoot, guard.guardId, surface);
       if (!evidence) continue;
       report.findings.push({
         file: guard.relative,

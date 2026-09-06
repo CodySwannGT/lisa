@@ -31,10 +31,14 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   BLIND_SPOTS,
   claimsIn,
+  codexHooksManifest,
   commentBlocks,
+  dispatcherRoster,
+  evidenceFor,
   formatReport,
   guardIdFor,
   portFor,
+  registryFor,
   SURFACES,
   sweep,
 } from "../../../scripts/check-guard-parity-notes.mjs";
@@ -73,6 +77,9 @@ function write(root: string, relative: string, contents: string): void {
 /** The Antigravity port fixture, written and then named as the contradiction. */
 const DEMO_AGY_PORT = "plugins/src/base/hooks/demo-guard.agy.sh";
 
+/** The Claude reference port every fixture tree writes. */
+const DEMO_GUARD_SOURCE = "plugins/src/base/hooks/demo-guard.sh";
+
 /** Guard id every fixture tree in this file uses. */
 const DEMO_GUARD = "demo-guard";
 
@@ -85,6 +92,32 @@ const STALE_CLAIM =
 
 /** The corrected wording: Codex is the one surface with no port. */
 const TRUE_CLAIM = "This guard has no Codex port. Every other surface has one.";
+
+/** Repo-relative path of the Codex enforcement dispatcher. */
+const DISPATCHER = "scripts/lisa-enforcement-fallback.sh";
+
+/** Repo-relative path of the Codex plugin manifest. */
+const CODEX_MANIFEST = "plugins/lisa/.codex-plugin/hooks.json";
+
+/**
+ * A dispatcher whose header MENTIONS a guard it does not run.
+ *
+ * The real dispatcher's header lists guard names in an English sentence, so a
+ * reader that searched this file for a name would report every guard it talks
+ * about as one it dispatches. The roster below deliberately omits the guard the
+ * prose names.
+ */
+const DISPATCHER_SOURCE = [
+  "#!/usr/bin/env bash",
+  "# Every PreToolUse guard — demo-guard, other-guard — is dispatched here.",
+  "set -euo pipefail",
+  "",
+  "for guard in other-guard third-guard \\",
+  "  fourth-guard; do",
+  '  echo "$guard"',
+  "done",
+  "",
+].join("\n");
 
 /**
  * A guard header carrying one parity note.
@@ -110,7 +143,7 @@ function guardSource(claim: string): string {
  * @param claim - The note's claim sentence.
  */
 function writeGuardWithTwoPorts(root: string, claim: string): void {
-  write(root, "plugins/src/base/hooks/demo-guard.sh", guardSource(claim));
+  write(root, DEMO_GUARD_SOURCE, guardSource(claim));
   write(root, DEMO_AGY_PORT, "# agy port\n");
   write(root, "src/opencode/plugin-templates/lisa-demo-guard.ts", "// port\n");
 }
@@ -135,9 +168,7 @@ describe("check-guard-parity-notes", () => {
       "opencode",
     ]);
     expect(report.findings[0]!.guard).toBe(DEMO_GUARD);
-    expect(report.findings[0]!.file).toBe(
-      "plugins/src/base/hooks/demo-guard.sh"
-    );
+    expect(report.findings[0]!.file).toBe(DEMO_GUARD_SOURCE);
     expect(report.findings[0]!.line).toBe(5);
     expect(report.findings[0]!.evidence).toBe(DEMO_AGY_PORT);
     expect(report.findings[1]!.evidence).toBe(
@@ -234,12 +265,128 @@ describe("check-guard-parity-notes", () => {
     expect(portFor(root, DEMO_GUARD, "not-a-surface")).toBeUndefined();
   });
 
+  it("reads the dispatcher's roster and not the guards its prose names", () => {
+    // The bite that keeps this reader honest. `demo-guard` appears in the
+    // header sentence and nowhere in the roster; a substring sweep would call
+    // it registered, which is how a note claiming a real gap would be refused
+    // on the strength of a comment.
+    const roster = dispatcherRoster(DISPATCHER_SOURCE);
+
+    expect(
+      [...roster].sort((left, right) => left.localeCompare(right))
+    ).toEqual(["fourth-guard", "other-guard", "third-guard"]);
+    expect(roster.has(DEMO_GUARD)).toBe(false);
+  });
+
+  it("registers nothing from a roster the dispatcher never closes", () => {
+    // A partial parse that answered anyway would claim registration it had not
+    // finished reading.
+    expect(
+      dispatcherRoster("#!/usr/bin/env bash\nfor guard in demo-guard \\\n").size
+    ).toBe(0);
+  });
+
+  it("reads the Codex manifest structurally, arguments and all", () => {
+    const manifest = JSON.stringify({
+      hooks: {
+        PostToolUse: [
+          {
+            hooks: [
+              { command: "${PLUGIN_ROOT}/hooks/withdrawn-rulings.sh --hook" },
+            ],
+            matcher: "Bash",
+          },
+        ],
+        PreToolUse: [
+          {
+            hooks: [{ command: "${PLUGIN_ROOT}/hooks/demo-guard.sh" }],
+            matcher: "Bash",
+          },
+        ],
+      },
+    });
+
+    expect(
+      [...codexHooksManifest(manifest)].sort((left, right) =>
+        left.localeCompare(right)
+      )
+    ).toEqual([DEMO_GUARD, "withdrawn-rulings"]);
+  });
+
+  it("registers nothing from a manifest it cannot parse", () => {
+    expect(codexHooksManifest("{ not json").size).toBe(0);
+  });
+
+  it("refuses a Codex gap note when a registration channel runs the guard", () => {
+    // The defect this pair was filed for. `src/codex/scripts/` is the RETIRED
+    // linked-script layout, so a guard's absence from it proves nothing — and a
+    // check that read only that directory returned a clean tick on a note that
+    // was false (CodySwannGT/lisa#3750).
+    const root = makeTree();
+    write(root, DEMO_GUARD_SOURCE, guardSource(TRUE_CLAIM));
+    write(
+      root,
+      DISPATCHER,
+      DISPATCHER_SOURCE.replace(
+        "for guard in other-guard",
+        `for guard in ${DEMO_GUARD}`
+      )
+    );
+
+    const report = sweep(root);
+
+    expect(report.claims).toBe(1);
+    expect(report.findings.length).toBe(1);
+    expect(report.findings[0]!.surface).toBe("codex");
+    expect(report.findings[0]!.evidence).toBe(DISPATCHER);
+  });
+
+  it("keeps accepting the same note when no channel runs the guard", () => {
+    // The negative control for the case above, over a tree identical but for
+    // the roster entry. Without it, a reader that reported every guard as
+    // registered would satisfy the refusal assertion.
+    const root = makeTree();
+    write(root, DEMO_GUARD_SOURCE, guardSource(TRUE_CLAIM));
+    write(root, DISPATCHER, DISPATCHER_SOURCE);
+
+    const report = sweep(root);
+
+    expect(report.claims).toBe(1);
+    expect(report.findings).toEqual([]);
+  });
+
+  it("resolves a registration only for the surface that declares one", () => {
+    const root = makeTree();
+    write(
+      root,
+      CODEX_MANIFEST,
+      JSON.stringify({
+        hooks: {
+          PreToolUse: [
+            {
+              hooks: [{ command: `\${PLUGIN_ROOT}/hooks/${DEMO_GUARD}.sh` }],
+              matcher: "Bash",
+            },
+          ],
+        },
+      })
+    );
+
+    expect(registryFor(root, DEMO_GUARD, "codex")).toBe(CODEX_MANIFEST);
+    expect(registryFor(root, DEMO_GUARD, "antigravity")).toBeUndefined();
+    expect(evidenceFor(root, DEMO_GUARD, "codex")).toBe(CODEX_MANIFEST);
+  });
+
   it("finds nothing in this repository while having read something", () => {
+    // `claims` is deliberately NOT asserted above zero. This repository has no
+    // open parity gap left to record, so pinning a claim here would make the
+    // suite fail the moment the last gap closes — a gate whose remedy is
+    // forbidden. The grammar's liveness is proven by the fixture cases instead,
+    // which is where it belongs.
     const report = sweep(REPO_ROOT);
 
     expect(report.findings).toEqual([]);
     expect(report.files).toBeGreaterThan(0);
-    expect(report.claims).toBeGreaterThan(0);
     expect(formatReport(report)).toContain(BLIND_SPOTS[0]!);
   });
 });

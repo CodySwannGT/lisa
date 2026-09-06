@@ -55,7 +55,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "2660d27d111beb79fed7e83feebcabd5f7e565dce99dbb4d861c8dc59ef8a0d7",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
-      "6c10536549f49b24539062f96f9be7c9f92ef03dff7eed584850fc1755df27b5",
+      "f1875d6caa74e0e99ba90adee0b93759bbdef0ddc7aff6834d57e6e5277c1ffe",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
       "c00a3659f997c046df3c147b348518aabe452fe6ecbd20a15fea68ac2def2b3f",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
@@ -759,7 +759,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.agy.sh":
       "19cda51fcc113f0b3c184d8907913ab4b49ecb81db80ce7909639194bc9c52d6",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
-      "8c88d2c8cd53bfa0ab70aae60e58fbb90afd1320877ab53b4eecc6a6cd0cd54a",
+      "bd7c3521af9ce2055ed3dbe1bf87054727f9195ce591137d3f19a31d67eb5ef7",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
       "452466fc87be994084017165a045a5fca77a357d71407d0524980c8bdd975c29",
     "plugins/src/base/hooks/block-no-verify.sh":
@@ -2237,7 +2237,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-generated-artifact-merge-coverage.mjs":
       "bb7e708f1f6e00b503a9b885bb52c335c5b238b0dd76032e02301e8883f990b3",
     "scripts/check-guard-parity-notes.mjs":
-      "8064f55930cde8ee530471650253d14b566164396046b39c48becee71060a87f",
+      "3035043067ec7153d754cedf0eb51da22643fc0b2b744770b8ba93b0e6506092",
     "scripts/check-learnings-budget.ts":
       "6e9a735f090a7f1f73f0a447e6688c3dabe9edf61de5e9ad48b0c22701ee38d0",
     "scripts/check-merge-driver-registration.mjs":
@@ -9719,6 +9719,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/codex/agent-installer.test.ts": true,
     "tests/unit/codex/agent-transformer.test.ts": true,
     "tests/unit/codex/agents-md-installer.test.ts": true,
+    "tests/unit/codex/block-managed-file-edits-codex.test.ts": true,
     "tests/unit/codex/block-no-verify-codex.test.ts": true,
     "tests/unit/codex/block-suppress-directives.test.ts": true,
     "tests/unit/codex/build-byte-stable.test.ts": true,

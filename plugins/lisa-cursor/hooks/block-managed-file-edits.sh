@@ -70,21 +70,35 @@
 # propagate any further either — a path a followed script merely NAMES is data
 # one file further out, not a third hop.
 #
-# ## Parity gap, recorded rather than silently dropped
+# ## Parity: every surface runs this guard, and Codex runs it twice over
 #
-# This guard has no Codex port. Every other surface carries it: the Claude
-# reference, the Cursor and Copilot copies generated from that reference, the
-# Antigravity sibling beside this file, and the OpenCode plugin template.
-# Recorded so the remaining gap reads as known rather than as an oversight, and
-# delete this note in the commit that opens the Codex port — a gap note whose
-# gap is closed is the next instance of the defect it was written to prevent.
+# This header carried a gap note through two wordings, and BOTH were wrong by
+# the time anyone read them. The first named three surfaces; two of those ports
+# shipped and the note stayed unedited. The second named Codex alone, and Codex
+# had never been the gap either — the note and the check that read it were both
+# looking in `src/codex/scripts/`, and `src/codex/hooks-installer.ts` says in
+# its own opening remark that the linked-script layout that directory serves is
+# RETIRED (CodySwannGT/lisa#3750).
 #
-# It is CHECKED rather than trusted. `check:guard-parity-notes` reads the
-# sentence above, resolves which surfaces carry this guard from the files that
-# exist, and refuses any note naming a surface whose port is present. The
-# earlier wording named three missing ports and stayed unedited while two of
-# them shipped, because nothing read it — unlike the declaration two paragraphs
-# below, which something does.
+# What actually reaches Codex, measured rather than inferred — see
+# `tests/unit/codex/block-managed-file-edits-codex.test.ts`, which drives the
+# registered command as a subprocess in a synthetic host project:
+#
+#   `scripts/lisa-enforcement-fallback.sh` names this guard in its roster, and
+#   `src/codex/enforcement-fallback-installer.ts` registers that dispatcher on
+#   `PreToolUse` for `Bash|Edit|Write|apply_patch`. A Codex `apply_patch` or
+#   `Bash` redirect at a copy-overwrite template exits 2; an ordinary edit to a
+#   host-owned file exits 0.
+#
+#   `plugins/lisa/.codex-plugin/hooks.json` registers this guard a second time,
+#   directly, on the Codex plugin channel.
+#
+# The lesson is not "the note was stale". It is that a note asserting ABSENCE
+# and a check deriving presence from ONE path shape agree with each other for
+# free — the check read the same retired directory the note did, so it returned
+# a clean tick on a claim that was false. `check:guard-parity-notes` now
+# resolves Codex from those two registration channels as well, and it refuses
+# this paragraph if anyone writes the absence back in.
 #
 # Exemptions (allowed):
 #   - `LISA_ALLOW_MANAGED_FILE_WRITE` set — the operator's explicit override,
