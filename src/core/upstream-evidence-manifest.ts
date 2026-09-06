@@ -51,7 +51,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
       "b787e4e01e2801f237ae0644399f524f02ed9d0e296064f1c23386646916e268",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "4e9b1e4d709fecbef5be616d76b641e6edf9a96c7b811e91df3d7842d1450f51",
+      "fd25f6aa8a8b93a3b362e2946e470fb5869ffe3b93273b97b0f8fb5ec700c6db",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
@@ -743,7 +743,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "3e8e54a608e57b57e3fd372ad5b9a7b2794ce4934a67e36f374c8a06dc16e69e",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "c670044992fe024b7a8942ceefcab0844127ca34e38458e8ec5699851dcfaac3",
+      "c7a03b576443a509445df5a10b2a3312dd21517d3646b497fc32da74ab4bf365",
     "plugins/src/base/hooks/block-host-name-leak.agy.sh":
       "9522a2db621178d9cee5bf70ff3948251c5043868f372924bfee19126dbd1c41",
     "plugins/src/base/hooks/block-host-name-leak.mjs":
@@ -9956,6 +9956,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-direct-issue-create-data-paths.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-declarations.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-file-reach.test.ts": true,
+    "tests/unit/hooks/block-direct-issue-create-inert-payload.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-mcp-substrate.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-missing-interpreter.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-noexec.test.ts": true,

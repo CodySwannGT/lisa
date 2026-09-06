@@ -406,6 +406,12 @@ WHERE THE DECLARATION IS READ FROM: argv, the request payload — inline, in a
 this command runs. Moving the create into a file no longer moves it out of
 sight, so the declaration can live wherever the create does.
 
+IF THAT FILE ONLY HOLDS A PAYLOAD AS TEST DATA: a file that writes a payload
+locally and carries no way to transmit it — no HTTP client, no CLI, no process
+spawn — is not read as a filing. If this refusal named such a file, one of
+those is present; drop it, or source the fixture from an existing file instead
+of restating it here.
+
 OPERATOR ESCAPE: a human can export \`LISA_ALLOW_DIRECT_ISSUE_CREATE=1\` in the
 environment before starting the session. It is deliberately not reachable by
 setting it inline on this command — an inline assignment is refused.
@@ -784,6 +790,84 @@ TRACKER_ENDPOINT = re.compile(
     r"|repos/[^/\s?#'\"]+/[^/\s?#'\"]+/issues",
     re.IGNORECASE,
 )
+
+# ---------------------------------------------------------------------------
+# A PAYLOAD HELD AS DATA IS NOT A SUBMISSION
+#
+# The conjunction above — an endpoint AND a creation verb in one file — cannot
+# tell a payload being WRITTEN AS TEST DATA from one about to be SUBMITTED.
+# Measured (CodySwannGT/lisa#3943): a helper that assembles test fixtures, and
+# holds a mutation body as a string constant it writes to a fixture file, was
+# refused as "a tracker creation inside <path>". It submits nothing. The same
+# helper rewritten to SLICE the payload out of an existing file was allowed —
+# so the discriminator was the literal, not the behaviour.
+#
+# The behaviour that separates them is EGRESS. A file can only file an issue if
+# it can hand its bytes to another host or another process. A file with no such
+# primitive anywhere in it cannot submit whatever its constants spell, so the
+# conjunction is reading data.
+#
+# BOTH HALVES ARE REQUIRED, and the second one is why this is not a hole. The
+# exemption needs POSITIVE evidence that the file produces a local artifact
+# (`LOCAL_WRITE`) as well as the ABSENCE of egress, so it is bounded to the
+# measured population — a fixture writer — rather than granted to any file that
+# happens to use a transport nobody enumerated. Egress is over-matched on
+# purpose: every miss in `PAYLOAD_EGRESS` widens the exemption, so the list
+# reaches for `.post(`-shaped calls and process spawning as well as named HTTP
+# clients, and a file doing both is refused. That is the guard's usual
+# direction of failure — a false refusal is reported, a false allow is silent.
+#
+# RESIDUAL, stated rather than hidden: a submitting file that ALSO writes a
+# local artifact and reaches the network through a primitive no pattern here
+# names is allowed. Nothing about `text_declares_readiness`, the nested shell
+# scan, the unparseable arm, or the argv path is weakened — this reads only the
+# coarse conjunction, which is the only arm that ever inferred a submission
+# from contents alone.
+PAYLOAD_EGRESS = re.compile(
+    # Clients and trackers, by name.
+    r"\bcurl\b|\bwget\b|\bhttpie\b|\bgh\b|\bjira\b|\bacli\b"
+    r"|requests\.|httpx|aiohttp|pycurl|urllib|urlopen|http\.client|\bsocket\b"
+    r"|https?connection|httpurlconnection|httpclient|httprequest|webclient"
+    r"|okhttp|net::http|restclient|faraday|httparty|open-uri|\blwp\b|http::tiny"
+    r"|curl_init|curl_exec|guzzle|fsockopen|file_get_contents"
+    r"|\bfetch\s*\(|axios|xmlhttprequest|node-fetch|undici|superagent"
+    r"|http\.post|http\.newrequest"
+    # Handing the payload to another process, which can carry it anywhere.
+    r"|subprocess|os\.system|popen|child_process|execsync|spawnsync"
+    r"|\bspawn\s*\(|\bexec\s*\(|\bsystem\s*\(|bun\.spawn|deno\.command"
+    # The shape a send takes in almost any language, whatever the client is
+    # called. Over-matching here costs an exemption, never a refusal.
+    r"|\.post\s*\(|\.put\s*\(|\.patch\s*\(|\.request\s*\(|\.send\s*\("
+    r"|\.execute\s*\(|\.mutate\s*\(|\.do\s*\(",
+    re.IGNORECASE,
+)
+# Producing a local artifact: the positive half of the exemption.
+LOCAL_WRITE = re.compile(
+    r"\.write\s*\(|\.writelines\s*\(|write_text\s*\(|write_bytes\s*\("
+    r"|writefilesync|writefile\s*\(|createwritestream|outputstream"
+    r"|ioutil\.writefile|\btee\b"
+    # A shell redirect. Anchored on a separator so `=>` and `->` are not read
+    # as one, and required to be followed by something path-shaped.
+    r"|(?:^|[\s;&|(])>>?\s*[\"']?[\w./$~-]",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+def payload_is_inert(text):
+    """Whether this file HOLDS a creation payload rather than submitting one.
+
+    Args:
+        text: The file's contents.
+
+    Returns:
+        True when the file writes a local artifact and carries no primitive
+        capable of transmitting anything.
+    """
+    return (
+        LOCAL_WRITE.search(text) is not None
+        and PAYLOAD_EGRESS.search(text) is None
+    )
+
 
 # ---------------------------------------------------------------------------
 # DECLARING BUILD-READY WHEN THE ROLE IS A STATE AND NOT A LABEL
@@ -2010,7 +2094,9 @@ def file_creation(text, depth):
     `node wrapper.mjs`, a Python client, or anything else that speaks HTTP
     directly — it needs a tracker endpoint AND a creation verb in the same
     file, which is what keeps a changelog that merely mentions `issueCreate`
-    from reading as a creation.
+    from reading as a creation. It also needs the file to be capable of
+    SENDING what it spells: a helper that writes the same payload into a test
+    fixture submits nothing. See `payload_is_inert`.
 
     Args:
         text: The file's contents.
@@ -2030,6 +2116,9 @@ def file_creation(text, depth):
         GRAPHQL_CREATE.search(text)
         and TRACKER_ENDPOINT.search(text)
         and not text_declares_readiness(text)
+        # A payload the file WRITES rather than SENDS is data. See
+        # `payload_is_inert` for why the absence of egress alone is not enough.
+        and not payload_is_inert(text)
     ):
         return "a tracker creation", [ready_role], None
     return None
