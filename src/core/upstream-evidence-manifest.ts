@@ -2433,7 +2433,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "0ce47fff41296620105dc1946780420015ac14a735732c0e6f8459b5cca67c61",
+      "eea0d6a28e452caaac096aeba3b67b9e33c87d27b6b17b0c9bedeaf21f93c065",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -9424,6 +9424,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/maestro-native-driver-retry.test.ts": true,
     "tests/integration/maestro-native-emulator-capability.test.ts": true,
     "tests/integration/maestro-native-fatal-surface.test.ts": true,
+    "tests/integration/maestro-native-fatal-watchdog.test.ts": true,
     "tests/integration/maestro-native-flake-classification.test.ts": true,
     "tests/integration/maestro-native-flow-runner.test.ts": true,
     "tests/integration/maestro-native-per-flow-retry.test.ts": true,
