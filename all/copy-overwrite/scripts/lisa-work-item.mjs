@@ -1095,6 +1095,85 @@ function isMergeInProgress() {
 }
 
 /**
+ * Does this commit have more than one parent?
+ *
+ * The STRUCTURAL merge question, and the only one both gate paths ask. It is a
+ * property of the commit rather than of the repository, so unlike
+ * `isMergeInProgress` it survives the merge completing.
+ * @param {string} sha Commit to inspect.
+ * @param {object} [options] Passed to `run`; `allowFailure` makes an
+ *   unresolvable commit-ish answer "not a merge" instead of throwing.
+ * @returns {boolean} Whether the commit is a merge.
+ */
+function isMergeCommit(sha, options = {}) {
+  const result = run("git", ["rev-list", "--parents", "-n", "1", sha], options);
+  return result.stdout.trim().split(/\s+/).length > 2;
+}
+
+/**
+ * A commit message with git's own cleanup applied.
+ *
+ * `git stripspace` rather than a regular expression because the comment marker
+ * is configurable — `core.commentChar`, and a whole `core.commentString` since
+ * git 2.45 — so a hard-coded `#` reads a repository that chose `;` as carrying
+ * comment lines that are really message text. This is the same pass git runs
+ * on the file after the hook returns, so comparing two messages through it
+ * compares what git will actually store.
+ * @param {string} message Raw message text.
+ * @returns {string} The cleaned message.
+ */
+function cleanedMessage(message) {
+  const result = run("git", ["stripspace", "--strip-comments"], {
+    allowFailure: true,
+    input: message,
+  });
+  return (result.status === 0 ? result.stdout : message).trim();
+}
+
+/**
+ * Is this `commit-msg` run an amend of a merge that has already landed?
+ *
+ * The commit path used to ask only whether a merge was IN PROGRESS. That state
+ * is transient: `git merge` removes `MERGE_HEAD` the moment the merge commits,
+ * so `git commit --amend` on that same merge — the tidy way to fold in
+ * generated artifacts the merge staled — reads as an ordinary commit and is
+ * refused for lacking a trailer. The push path never had the defect, because it
+ * counts parents. Two detectors, two different questions, and only one of them
+ * survived the merge completing (#3875).
+ *
+ * At `commit-msg` time the commit does not exist yet, so ITS parents cannot be
+ * counted — which is why the transient check was there. What can be read is
+ * HEAD, and on an amend HEAD is the very commit being rewritten. So the
+ * exemption needs both halves: HEAD is structurally a merge, AND the proposed
+ * message is the message HEAD already carries.
+ *
+ * The second half is what keeps a NEW commit authored on top of a merge
+ * checked. Treating every `commit-msg` invocation as an amend would exempt it,
+ * and that is the strictly worse failure — an unlinked commit let through
+ * rather than a linked one blocked. A new commit carries a new message.
+ *
+ * What remains is a new commit that reuses HEAD's merge message verbatim
+ * (`git commit -C HEAD`). It is exempt here and NOT exempt at push time, where
+ * `commitExemption` counts its single parent and demands the trailer. So the
+ * looser commit-time answer is bounded by the structural gate downstream rather
+ * than being the last word.
+ * @param {string} message The proposed commit message.
+ * @returns {boolean} Whether to treat this as an amend of a merge commit.
+ */
+function amendsMergeAtHead(message) {
+  if (!isMergeCommit("HEAD", { allowFailure: true })) return false;
+  const current = run("git", ["show", "-s", "--format=%B", "HEAD"], {
+    allowFailure: true,
+  });
+  // probe-direction: fail-closed — a HEAD whose message cannot be read grants
+  // no exemption, so an unreadable answer makes the gate stricter and the
+  // author writes an ordinary trailered commit. The opposite default would
+  // exempt on a failed probe, which is the shape this whole ticket is about.
+  if (current.status !== 0) return false;
+  return cleanedMessage(message) === cleanedMessage(current.stdout);
+}
+
+/**
  * `.lisa.config.json` as it stands at one commit, or `{}` when it cannot be
  * read there.
  *
@@ -1202,8 +1281,7 @@ function protectedCommits(commits, configRef, remote) {
 }
 
 function commitExemption(sha, onProtectedBranch = new Set()) {
-  const parents = git(["rev-list", "--parents", "-n", "1", sha]).split(/\s+/);
-  if (parents.length > 2) return "merge";
+  if (isMergeCommit(sha)) return "merge";
   if (RELEASE_SUBJECT.test(git(["show", "-s", "--format=%s", sha])))
     return "release";
   return onProtectedBranch.has(sha) ? "protected" : undefined;
@@ -2515,7 +2593,10 @@ function assertIdentityMatches(ref, contract) {
 }
 
 function validateMessage(message, options = {}) {
-  if (options.allowInProgressMerge && isMergeInProgress())
+  if (
+    options.allowMergeExemption &&
+    (isMergeInProgress() || amendsMergeAtHead(message))
+  )
     return { exempt: "merge" };
   if (RELEASE_SUBJECT.test(messageSubject(message)))
     return { exempt: "release" };
@@ -4934,7 +5015,7 @@ function validateCommit(args) {
   let result;
   try {
     result = validateMessage(readFileSync(file, "utf8"), {
-      allowInProgressMerge: true,
+      allowMergeExemption: true,
     });
   } catch (error) {
     // The commit-msg hook is the EARLIEST moment an operator meets any of this,
