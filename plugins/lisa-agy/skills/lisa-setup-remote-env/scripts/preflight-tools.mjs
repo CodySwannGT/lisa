@@ -228,7 +228,45 @@ export function preflightTools(
 }
 
 /**
+ * Count something and agree with itself about the verb.
+ * @param {number} n How many.
+ * @param {string} one Singular noun phrase.
+ * @param {string} many Plural noun phrase.
+ * @returns {string} A counted phrase such as "1 tool" or "3 tools".
+ */
+function count(n, one, many) {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
+/**
  * Render a verdict for whoever has to act on it.
+ *
+ * **The data was already tiered correctly; the layout undid it.** Two of two
+ * operators reading this screen on the same morning concluded that a tool Lisa
+ * was about to install for them was a blocker, and one of them only found out
+ * otherwise by going to look at the machine. The verdict underneath was right
+ * both times, which is what makes this a presentation defect rather than a
+ * logic one — and per Lisa's own gate rule, everything crossing a gate outward
+ * has to be readable by a non-technical operator, because that is who is
+ * standing at the gate.
+ *
+ * Four things worked against that reader at once, and all four are addressed
+ * here rather than one:
+ *
+ *   1. **Order.** The softer tier rendered first, so a reader met an
+ *      installable tool while still holding the word FAILED. What stops the
+ *      work now comes first, and what Lisa will handle comes after.
+ *   2. **Scope.** A bare `FAILED.` says nothing about how much of the screen it
+ *      covers. The header now carries counts, so "1 tool blocks; 1 more Lisa
+ *      can install for you" is legible before any list is read.
+ *   3. **Placement of the instruction.** *"Route the item to blocked"* was the
+ *      last line of the whole report and read as applying to everything above
+ *      it. That instruction is what a session acts on, which is how a layout
+ *      problem became a routing decision. It now sits inside the blocking
+ *      section, indented with it, and says "the tools above".
+ *   4. **Markers.** The two lists were byte-identical in shape — same indent,
+ *      same `name — reason`. A stop and an action now look different at a
+ *      glance.
  * @param {object} result A {@link preflightTools} result.
  * @returns {string} Operator-readable report, empty when nothing needs saying.
  */
@@ -238,42 +276,71 @@ export function reportTools(result) {
   // The header tracks the exit code. Only a blocked tool is a failure — one
   // Lisa can install is an action with a command attached, and calling that
   // "FAILED" while exiting zero teaches readers that the word means nothing.
+  //
+  // The counts are what scope the word to the part of the screen it owns. A
+  // header that says how many tools it is talking about cannot be read as
+  // covering a list it does not cover.
+  const blocking = count(result.blocked.length, "tool blocks", "tools block");
+  const spare = result.installable.length
+    ? ` ${result.installable.length} more Lisa can install for you.`
+    : ``;
   const header = () => {
-    if (result.blocked.length) return "Tooling preflight FAILED.";
+    if (result.blocked.length)
+      return `Tooling preflight FAILED — ${blocking}.${spare}`;
     if (result.installable.length)
-      return "Tooling preflight — action available.";
+      return (
+        `Tooling preflight — action available. Nothing blocks;` +
+        ` ${count(result.installable.length, "tool", "tools")} Lisa can` +
+        ` install for you.`
+      );
     // Nothing to do and nothing to fix; the note below is the whole message.
-    return "Tooling preflight passed, with a note.";
+    // This third state arrived on main after this branch was cut — a result
+    // carrying only UNVERIFIED tools reaches here, and the two-way header this
+    // branch wrote would have called that "action available" with nothing to
+    // act on.
+    return `Tooling preflight passed, with a note.`;
   };
   const lines = [header()];
-  if (result.installable.length) {
-    lines.push(
-      ``,
-      `Lisa can install these itself — they are pinned and checksummed.`,
-      `Run /lisa:setup:local-env to place them:`,
-      ``
-    );
-    for (const step of result.installable) {
-      lines.push(`  ${step.name} — ${step.reason}`);
-    }
-  }
+  // Blocking first, always. A reader who has been told something FAILED reads
+  // the next thing on screen as the failure, so the next thing on screen has to
+  // be one.
   if (result.blocked.length) {
     lines.push(
       ``,
-      `These need you. Lisa has no pinned artifact it can place:`,
+      `STOP — these block the work. Lisa has no pinned artifact it can place,`,
+      `so it cannot fix them for you:`,
       ``
     );
     for (const step of result.blocked) {
       const why = result.reasons[step.name];
-      lines.push(`  ${step.name} — ${step.reason}`);
-      if (why) lines.push(`      required because ${why}`);
+      lines.push(`  [BLOCKED] ${step.name} — ${step.reason}`);
+      if (why) lines.push(`            required because ${why}`);
     }
+    // Indented into the section above and naming it, rather than trailing the
+    // whole report where it silently claimed every tool listed anywhere.
     lines.push(
       ``,
-      `Work needing one of these cannot be completed. Route the item to`,
-      `blocked with this reason rather than claiming it and stopping partway.`
+      `  Work needing one of the tools above cannot be completed. Route that`,
+      `  item to blocked citing that tool, rather than claiming it and`,
+      `  stopping partway. Nothing else in this report is a reason to stop.`
     );
   }
+  if (result.installable.length) {
+    lines.push(
+      ``,
+      `NOT A BLOCKER — Lisa can install these itself; they are pinned and`,
+      `checksummed. Run /lisa:setup:local-env to place them:`,
+      ``
+    );
+    for (const step of result.installable) {
+      lines.push(`  [INSTALLABLE] ${step.name} — ${step.reason}`);
+    }
+  }
+  // Kept in main's wording and deliberately left unmarked. The markers above
+  // separate a STOP from an ACTION, and this section is neither: nothing here
+  // blocks and there is nothing to run. Giving it a third marker would say
+  // these tools belong on the same axis as the two tiers this branch exists to
+  // tell apart. It sits last because it is the only section a reader can skip.
   if (result.unverified.length) {
     lines.push(
       ``,
