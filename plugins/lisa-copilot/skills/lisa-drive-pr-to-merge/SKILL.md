@@ -933,9 +933,15 @@ proxy for the other, so read them separately:
 Never dismiss on `reviewDecision` alone. Dismiss the stale (often bot) review
 where repo policy permits, else re-request review:
 ```bash
+DISMISSAL=$(node "$CLAUDE_PLUGIN_ROOT/scripts/lane-attribution.mjs" \
+  --body "Addressed; threads resolved." --owner "<credential-owner>")
 gh api -X PUT repos/<owner>/<repo>/pulls/<pr>/reviews/<review_id>/dismissals \
-  -f message="Addressed; threads resolved." -f event=DISMISS
+  -f message="$DISMISSAL" -f event=DISMISS
 ```
+
+The dismissal message is one of the four agent-authored gate artifacts that must
+carry lane attribution — see **Lane attribution** below for why, and for the
+other three.
 Some org rulesets allow 0 approvals yet a bot `CHANGES_REQUESTED` still blocks
 auto-merge — dismissing the stale review after resolving all threads is what
 unblocks it.
@@ -1155,6 +1161,43 @@ Two properties worth knowing, because both were once the other way round:
   declaring them, and every one of the 8 had live work open against it.
 - **A clean result names the lanes it examined.** "No drift" over a subject
   list that excluded the ready lane was true and unusable.
+
+## 3.5 Lane attribution on agent-authored gate actions
+
+Lanes share the operator's GitHub credential, so GitHub records every agent
+merge, dismissal and auto-merge change as an action by the account owner. A
+later reader cannot tell an agent's action from the operator's own, or tell two
+concurrent lanes apart (CodySwannGT/lisa#3625). **With one shared key there is
+no actor field that can carry this** — `botActor` is null and the actor resolves
+to the key owner — so the message body is the only channel that exists.
+
+Route every body through the shared formatter, which resolves the lane, appends
+one trailer, and is idempotent under retry:
+
+```bash
+node "$CLAUDE_PLUGIN_ROOT/scripts/lane-attribution.mjs" \
+  --body "<the message this action would have carried>" --owner "<credential-owner>"
+```
+
+The four agent-authored gate artifacts, and where each stands:
+
+| artifact | text field | what to do |
+|---|---|---|
+| review dismissal | `-f message` | attribute it — see section 2 |
+| direct merge (`gh pr merge <pr> --<method>`) | `--body` | pass an attributed `--body` |
+| auto-merge enable / disable | **none** | GitHub offers no message, so post ONE pull-request comment naming the action and the lane |
+| submitted review | `--body` | no Lisa flow submits reviews on this path today; attribute it if one ever does |
+
+**Never attribute with a session identifier.** The obvious id is the session or
+its URL, and it is exactly what CodySwannGT/lisa#3731 forbids publishing — while
+one of the artifacts above is a merge commit message, in a public repository.
+The formatter refuses a session id or URL outright rather than trimming it, and
+falls back to a one-way digest when no `LISA_LANE` is set. A lane label is what
+an auditor needs, and it is not a secret.
+
+**Attribution is a record, never a claim of authority.** It says which lane
+acted; it does not assert the action was authorised, and it changes no native
+GitHub field. Do not write anything that implies the actor field moved.
 
 ## 4. Terminal states
 

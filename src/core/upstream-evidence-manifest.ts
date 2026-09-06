@@ -1024,6 +1024,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "3b00c579cd5bb4cea6c49bc807dd19c2b3e5450847f4b015f5ef48a99185e7be",
     "plugins/src/base/scripts/intake-prework-denominator.mjs":
       "0a40cb91ab1c0e810f42d035d9652af3033e97c692b93b911de851991c12eca1",
+    "plugins/src/base/scripts/lane-attribution.mjs":
+      "6d2815d68e02efc14c1475bc5975cfc9e17b6e046f00d467646a17658d056a4f",
     "plugins/src/base/scripts/lifecycle-label-trust.mjs":
       "0a9892890da6011733bf9b1186fbe936253c2796c4ac448f1a55f63b8daaa154",
     "plugins/src/base/scripts/linear-state-write-target.mjs":
@@ -1101,7 +1103,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "ab7bb855fd3ebe321e41b0143815f202b70f6ba38f6678791d6d9e933e0c3fd8",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "cb1ea1a70aa8051875290531fe0952f0b6f26079a99f1b887c449a2efea93aaa",
+      "049151a5884ab55ee0d328c5abba41231696e43adb8bff70865c728900c22fa9",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -3663,6 +3665,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/scripts/install-remote-agent-aws.mjs": true,
     "plugins/lisa-agy/scripts/intake-blocker-reprobe.mjs": true,
     "plugins/lisa-agy/scripts/intake-prework-denominator.mjs": true,
+    "plugins/lisa-agy/scripts/lane-attribution.mjs": true,
     "plugins/lisa-agy/scripts/lifecycle-label-trust.mjs": true,
     "plugins/lisa-agy/scripts/linear-state-write-target.mjs": true,
     "plugins/lisa-agy/scripts/plugin-sync-explain.mjs": true,
@@ -4146,6 +4149,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/scripts/install-remote-agent-aws.mjs": true,
     "plugins/lisa-copilot/scripts/intake-blocker-reprobe.mjs": true,
     "plugins/lisa-copilot/scripts/intake-prework-denominator.mjs": true,
+    "plugins/lisa-copilot/scripts/lane-attribution.mjs": true,
     "plugins/lisa-copilot/scripts/lifecycle-label-trust.mjs": true,
     "plugins/lisa-copilot/scripts/linear-state-write-target.mjs": true,
     "plugins/lisa-copilot/scripts/plugin-sync-explain.mjs": true,
@@ -4615,6 +4619,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/scripts/install-remote-agent-aws.mjs": true,
     "plugins/lisa-cursor/scripts/intake-blocker-reprobe.mjs": true,
     "plugins/lisa-cursor/scripts/intake-prework-denominator.mjs": true,
+    "plugins/lisa-cursor/scripts/lane-attribution.mjs": true,
     "plugins/lisa-cursor/scripts/lifecycle-label-trust.mjs": true,
     "plugins/lisa-cursor/scripts/linear-state-write-target.mjs": true,
     "plugins/lisa-cursor/scripts/plugin-sync-explain.mjs": true,
@@ -7203,6 +7208,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/scripts/install-remote-agent-aws.mjs": true,
     "plugins/lisa/scripts/intake-blocker-reprobe.mjs": true,
     "plugins/lisa/scripts/intake-prework-denominator.mjs": true,
+    "plugins/lisa/scripts/lane-attribution.mjs": true,
     "plugins/lisa/scripts/lifecycle-label-trust.mjs": true,
     "plugins/lisa/scripts/linear-state-write-target.mjs": true,
     "plugins/lisa/scripts/plugin-sync-explain.mjs": true,
@@ -7858,6 +7864,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/scripts/install-remote-agent-aws.mjs": true,
     "plugins/src/base/scripts/intake-blocker-reprobe.mjs": true,
     "plugins/src/base/scripts/intake-prework-denominator.mjs": true,
+    "plugins/src/base/scripts/lane-attribution.mjs": true,
     "plugins/src/base/scripts/lifecycle-label-trust.mjs": true,
     "plugins/src/base/scripts/linear-state-write-target.mjs": true,
     "plugins/src/base/scripts/plugin-sync-explain.mjs": true,
@@ -10606,6 +10613,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/jira-description-adf.test.ts": true,
     "tests/unit/strategies/jira-evidence-config-bound-status.test.ts": true,
     "tests/unit/strategies/ladder-router-contract.test.ts": true,
+    "tests/unit/strategies/lane-attribution.test.ts": true,
     "tests/unit/strategies/latest-review-identity-parity.test.ts": true,
     "tests/unit/strategies/latest-review-per-reviewer-contract.test.ts": true,
     "tests/unit/strategies/latest-review-stable-identity.test.ts": true,
