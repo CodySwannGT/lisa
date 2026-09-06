@@ -937,7 +937,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/intent-routing.md":
       "988f8f45b41056c2adaa1a3e5f6ea926ac56a2fd041c07f98a9c2b271050efdd",
     "plugins/src/base/rules/reference/leaf-only-lifecycle.md":
-      "47dbe473b538098e49524fffaa68bf56fe49db18229bff5a52cb884954f40c7a",
+      "8ab9a33e36fa544d31f44353bd3cf48e40abac10a99e77f510162dbf4e11e773",
     "plugins/src/base/rules/reference/learnings-ladder.md":
       "4b6760e8ec58dea0e646cfa1b0518f468cc959ef3be55e3f87c225ec076f53c7",
     "plugins/src/base/rules/reference/local-ci-first.md":
@@ -10685,6 +10685,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/latest-review-per-reviewer-contract.test.ts": true,
     "tests/unit/strategies/latest-review-stable-identity.test.ts": true,
     "tests/unit/strategies/leaf-only-build-ready.test.ts": true,
+    "tests/unit/strategies/leaf-only-lifecycle-done-shape.test.ts": true,
     "tests/unit/strategies/learner-capture-contract.test.ts": true,
     "tests/unit/strategies/learnings-audit-contract.test.ts": true,
     "tests/unit/strategies/learnings-confirmation-contract.test.ts": true,
