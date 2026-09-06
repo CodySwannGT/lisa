@@ -466,11 +466,25 @@ branch — operate on it the same way.
 
 **4. Classify as a blocker.** Treat any of these as a real external blocker:
 
-- **True merge conflict** — `mergeable = CONFLICTING` or `mergeStateStatus = DIRTY` (overlapping
-  changes a plain rebase cannot resolve), or `gh pr update-branch` (step 3) reported a conflict. A
+- **True merge conflict** — `gh pr update-branch` (step 3) reported a conflict, or
+  `git merge-tree --write-tree origin/<base> <head>` exits non-zero. A
   merely `BEHIND` branch is **not** here — it was re-synced in step 3. Unlike the other classes below, a
   conflict is **resolvable by re-running the build**, so step 5 gives it one in-place re-dispatch before
   filing — see its conflict-first rule.
+
+  **`mergeable = CONFLICTING` and `mergeStateStatus = DIRTY` are hints that
+  START this check, never the verdict that ends it.** Both are cached
+  computations that go stale — measured, GitHub reported `DIRTY` for two
+  branches at the same moment while only one actually conflicted, and a single
+  response has carried `MERGEABLE` and `DIRTY` together
+  (CodySwannGT/lisa#3694). Confirm with `merge-tree` before classifying, and
+  say in the run summary which answer you acted on.
+
+  **This class matters more here than in `lisa-drive-pr-to-merge`.** There a
+  spurious `DIRTY` costs a wasted resolve, which a human sees. Here it files a
+  BLOCKER against a pull request with nothing wrong with it, unattended — so
+  the wrong answer becomes durable tracker state that a later cycle reads as
+  fact. Verify before filing, never after.
 - **Failing required checks** — `statusCheckRollup` has a `FAILURE`/`ERROR`/`TIMED_OUT` conclusion,
   or `mergeStateStatus = UNSTABLE`/`BLOCKED` due to checks.
 - **Change requests outstanding** — `reviewDecision = CHANGES_REQUESTED`, or unresolved CodeRabbit
