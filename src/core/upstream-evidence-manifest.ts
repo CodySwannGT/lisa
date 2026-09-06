@@ -2443,7 +2443,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "9616b95f0452a33233bda8106a59a7effbebad8562063db07080cf914f795cdb",
+      "05a51054d6c913dfe20179488bacb2b10f967435331ea055fb26e21f35758236",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -9518,6 +9518,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/rails-scratch-authority.test.ts": true,
     "tests/integration/rails-scratch-lifecycle.test.ts": true,
     "tests/integration/rails-scratch-ownership.test.ts": true,
+    "tests/integration/registry-path-agreement.test.ts": true,
     "tests/integration/release-changelog-entry.test.ts": true,
     "tests/integration/release-changelog-push-recovery.test.ts": true,
     "tests/integration/release-notes-expansion.test.ts": true,
