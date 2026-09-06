@@ -67,16 +67,31 @@ export const DEFAULT_TERMINAL_LIFECYCLE_LABEL = "status:done";
 export const IMPLAUSIBLE_CLAIM_WINDOW_SECONDS = 300;
 
 /**
- * Both directions a lifecycle label can contradict native state.
+ * Every direction a lifecycle label can contradict native state.
  *
  * Emitted on every drift result so a repair pass cannot walk one direction and
- * silently leave the other accumulating — the asymmetry that let TUN-556 and
+ * silently leave the others accumulating — the asymmetry that let TUN-556 and
  * TUN-503 sit on a terminal `status:done` while still natively open.
+ *
+ * The closed side is TWO directions, not one, because the repairs differ and
+ * only one of them is safe to perform blind. A closure carries a REASON, and
+ * an item closed as `NOT_PLANNED` is somebody recording that the work will not
+ * be done. Advancing that to the terminal `done` role — documented in this
+ * repository as "terminal — shipped to production" — rewrites "we are not
+ * doing this" as "we shipped this", and afterwards the two are
+ * indistinguishable. Measured on this repository (CodySwannGT/lisa#3479):
+ * of 10 closed items still wearing an active role, 5 were `NOT_PLANNED`, so a
+ * reason-blind repair would have written a false terminal on half the
+ * population in one pass.
  */
 export const LIFECYCLE_DRIFT_DIRECTIONS = [
   "terminal-label-open-state",
   "open-label-closed-state",
+  "open-label-abandoned-state",
 ];
+
+/** The closure reason that means the work will deliberately NOT be done. */
+const NOT_PLANNED = "not_planned";
 
 /**
  * @typedef {{ readonly login?: string, readonly type?: string }} Actor
@@ -290,9 +305,17 @@ export function resolveClaimability({ trusted, config }) {
  * bot-applied label the classifier just refused to believe would still drive a
  * real label write — the guard would launder the very input it rejected.
  *
+ * `stateReason` splits the closed side. Only a positively reported
+ * `NOT_PLANNED` earns the retire-only direction: an ABSENT reason is not
+ * evidence of abandonment, and inventing a third answer for it would change
+ * the repair on evidence nobody has. Both GitHub spellings are accepted
+ * because the REST payload says `state_reason` and the CLI's JSON view says
+ * `stateReason`, and the skill that drives this reads the REST one.
+ *
  * @param {{
  *   readonly labels?: readonly (string | { readonly name?: string })[]
  *   readonly state?: string
+ *   readonly stateReason?: string
  *   readonly terminalLabels?: readonly string[]
  *   readonly excludeLabels?: readonly string[]
  * }} input
@@ -317,6 +340,11 @@ export function detectLifecycleDrift(input = {}) {
     String(input.state ?? "")
       .trim()
       .toLowerCase() === "closed";
+  const abandoned =
+    closed &&
+    String(input.stateReason ?? "")
+      .trim()
+      .toLowerCase() === NOT_PLANNED;
   const allLifecycleLabels = normalizeLabelNames(input.labels).filter(
     isLifecycleLabel
   );
@@ -333,7 +361,14 @@ export function detectLifecycleDrift(input = {}) {
       return [{ direction: "terminal-label-open-state", label }];
     }
     if (!isTerminal && closed) {
-      return [{ direction: "open-label-closed-state", label }];
+      return [
+        {
+          direction: abandoned
+            ? "open-label-abandoned-state"
+            : "open-label-closed-state",
+          label,
+        },
+      ];
     }
     return [];
   });
@@ -538,6 +573,12 @@ async function main() {
   const drift = detectLifecycleDrift({
     labels: issue.labels,
     state: issue.state,
+    // Both spellings, because this entrypoint is fed by whichever read the
+    // caller happened to make: the REST payload says `state_reason`, the CLI's
+    // `--json` view says `stateReason`. Dropping the reason here would leave
+    // the classifier's abandoned direction correct and unreachable, which is
+    // the same as not having written it.
+    stateReason: issue.state_reason ?? issue.stateReason,
     terminalLabels: terminalLifecycleLabels(payload.config),
     excludeLabels: trust.untrusted.map(entry => entry.label),
   });

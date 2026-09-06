@@ -24,6 +24,7 @@ import {
 import { BUILD_LABEL_DEFAULTS } from "../../../src/sync/lifecycle-defaults.js";
 
 import {
+  BLOCKED,
   BOT,
   DONE,
   FICTIONAL,
@@ -41,6 +42,11 @@ const TAXONOMY = ["bug", "repo:lisa", "human-needed"];
 const TERMINAL_OPEN = "terminal-label-open-state";
 /** The rot direction that had no owner before #2539. */
 const OPEN_CLOSED = "open-label-closed-state";
+/** The half of that direction which must NEVER earn a terminal write (#3479). */
+const OPEN_ABANDONED = "open-label-abandoned-state";
+/** GitHub's two closure reasons, as the REST payload spells them. */
+const COMPLETED = "COMPLETED";
+const NOT_PLANNED = "NOT_PLANNED";
 
 describe("lifecycle label identification (#2539)", () => {
   it("matches on the `status:` prefix rather than a pinned member set", () => {
@@ -48,7 +54,7 @@ describe("lifecycle label identification (#2539)", () => {
   });
 
   it("classifies every currently-known member as lifecycle", () => {
-    expect(isLifecycleLabel("status:blocked")).toBe(true);
+    expect(isLifecycleLabel(BLOCKED)).toBe(true);
     expect(isLifecycleLabel(DONE)).toBe(true);
     expect(isLifecycleLabel(IN_PROGRESS)).toBe(true);
     expect(isLifecycleLabel(ON_DEV)).toBe(true);
@@ -173,11 +179,11 @@ describe("bidirectional lifecycle drift (#2539)", () => {
     ).toEqual([{ direction: OPEN_CLOSED, label: IN_PROGRESS }]);
   });
 
-  it("reports both directions from one pass so neither can be skipped", () => {
+  it("reports every direction from one pass so none can be skipped", () => {
     expect(
       detectLifecycleDrift({ labels: [], state: "open" }).directionsWalked
-    ).toEqual([TERMINAL_OPEN, OPEN_CLOSED]);
-    expect(LIFECYCLE_DRIFT_DIRECTIONS).toHaveLength(2);
+    ).toEqual([TERMINAL_OPEN, OPEN_CLOSED, OPEN_ABANDONED]);
+    expect(LIFECYCLE_DRIFT_DIRECTIONS).toHaveLength(3);
   });
 
   it("does not treat the env rungs as terminal", () => {
@@ -222,7 +228,7 @@ describe("bidirectional lifecycle drift (#2539)", () => {
     expect(result.excluded).toEqual([IN_PROGRESS]);
   });
 
-  it("still walks both directions while excluding a label", () => {
+  it("still walks every direction while excluding a label", () => {
     expect(
       detectLifecycleDrift({
         labels: [IN_PROGRESS],
@@ -230,7 +236,7 @@ describe("bidirectional lifecycle drift (#2539)", () => {
         terminalLabels: TERMINAL,
         excludeLabels: [IN_PROGRESS],
       }).directionsWalked
-    ).toEqual([TERMINAL_OPEN, OPEN_CLOSED]);
+    ).toEqual([TERMINAL_OPEN, OPEN_CLOSED, OPEN_ABANDONED]);
   });
 
   it("keeps repairing trusted labels alongside an excluded one", () => {
@@ -252,6 +258,80 @@ describe("bidirectional lifecycle drift (#2539)", () => {
         state: "open",
         terminalLabels: TERMINAL,
       }).excluded
+    ).toEqual([]);
+  });
+
+  it("routes a not-planned closure away from the terminal-writing direction", () => {
+    // The defect (#3479). This classifier read only `state`, so a deliberate
+    // "we will not do this" closure was reported as `open-label-closed-state`
+    // — the direction whose repair advances the label to `status:done`,
+    // documented "terminal — shipped to production". Measured on this
+    // repository, 5 of the 10 closed items still wearing an active role were
+    // NOT_PLANNED, so one repair pass would have written a false terminal on
+    // half the population.
+    expect(
+      detectLifecycleDrift({
+        labels: [READY],
+        state: "closed",
+        stateReason: NOT_PLANNED,
+        terminalLabels: TERMINAL,
+      }).drifts
+    ).toEqual([{ direction: OPEN_ABANDONED, label: READY }]);
+  });
+
+  it("routes a not-planned closure the same way for every active role", () => {
+    // The five measured items all carried `ready`, which the ownership guard
+    // skips on leaves — so they escaped by accident, not by control. A
+    // not-planned item wearing `claimed` or `blocked` has no such shield, and
+    // that is the case this row pins.
+    expect(
+      detectLifecycleDrift({
+        labels: [IN_PROGRESS, BLOCKED],
+        state: "closed",
+        stateReason: NOT_PLANNED,
+        terminalLabels: TERMINAL,
+      }).drifts
+    ).toEqual([
+      { direction: OPEN_ABANDONED, label: IN_PROGRESS },
+      { direction: OPEN_ABANDONED, label: BLOCKED },
+    ]);
+  });
+
+  it("still advances a completed closure to the terminal role", () => {
+    // The negative control, and it is not optional: a classifier that routed
+    // every closure to the retire-only direction would satisfy the two cases
+    // above and repair nothing, which is strictly worse than the defect.
+    expect(
+      detectLifecycleDrift({
+        labels: [IN_PROGRESS],
+        state: "closed",
+        stateReason: COMPLETED,
+        terminalLabels: TERMINAL,
+      }).drifts
+    ).toEqual([{ direction: OPEN_CLOSED, label: IN_PROGRESS }]);
+  });
+
+  it("treats an absent closure reason as it always did, not as abandoned", () => {
+    // Absence of a reason is not evidence of abandonment. Only a positively
+    // reported NOT_PLANNED narrows the repair; inventing a third answer for a
+    // reason nobody supplied would change behaviour on evidence nobody has.
+    expect(
+      detectLifecycleDrift({
+        labels: [IN_PROGRESS],
+        state: "closed",
+        terminalLabels: TERMINAL,
+      }).drifts
+    ).toEqual([{ direction: OPEN_CLOSED, label: IN_PROGRESS }]);
+  });
+
+  it("ignores a closure reason on an item that is not closed", () => {
+    expect(
+      detectLifecycleDrift({
+        labels: [READY],
+        state: "open",
+        stateReason: NOT_PLANNED,
+        terminalLabels: TERMINAL,
+      }).drifts
     ).toEqual([]);
   });
 

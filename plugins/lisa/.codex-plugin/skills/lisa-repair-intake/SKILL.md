@@ -698,20 +698,25 @@ native-open / active / unresolved:
 
 ### Lifecycle label contradicts native state — walk BOTH directions
 
-A lifecycle label can lie in two ways, and historically only one of them had an owner:
+A lifecycle label can lie in three ways, and historically only one of them had an owner:
 
-| label | native state | owned by |
-|---|---|---|
-| terminal `done` role | still open / active | the `Build terminal-open` section above |
-| non-terminal role (`ready`, `claimed`, `blocked`, or any other `status:` member) | closed / completed | **nothing, until now** |
+| label | native state | repair | owned by |
+|---|---|---|---|
+| terminal `done` role | still open / active | roll up, then close at the true terminal | the `Build terminal-open` section above |
+| non-terminal role (`ready`, `claimed`, `blocked`, or any other `status:` member) | closed as `COMPLETED` | advance to the terminal `done` role | **nothing, until now** |
+| the same non-terminal role | closed as `NOT_PLANNED` | **retire it and add nothing** | **nothing, until now** |
 
-A pass that walks one direction leaves the other accumulating silently. Measured on the Linear TUN
+The last two look identical from the label alone and differ only in the closure REASON, which is
+why they are separate directions: one earns a terminal write and the other must never receive one.
+
+A pass that walks one direction leaves the others accumulating silently. Measured on the Linear TUN
 board: **TUN-556 and TUN-503 both carry a terminal `status:done` while still natively open in
 `On Dev`** — invisible to intake and indistinguishable from handled, exactly like a bot-applied
 `status:in-progress` on GitHub.
 
-Resolve both directions in one pass with the shipped detector, which always reports
-`directionsWalked` covering both, so a "clean" verdict is an assertion that both were examined.
+Resolve every direction in one pass with the shipped detector, which always reports
+`directionsWalked` covering all of them, so a "clean" verdict is an assertion that each was
+examined.
 
 **Build the classifier input inside this cycle. Never consume a temp file another skill wrote.**
 repair-intake runs as its own cycle, so borrowing `lisa-github-build-intake`'s scratch file fails
@@ -724,6 +729,9 @@ silent-clean verdict this section promises cannot happen.
 TRUST_DIR=$(mktemp -d)
 trap 'rm -rf "$TRUST_DIR"' EXIT
 
+# REST, not `gh issue view`: this payload carries `state_reason`, and the reason is
+# what separates the two closed directions. A read that drops it makes a NOT_PLANNED
+# closure indistinguishable from a completion at the exact moment one of them WRITES.
 gh api "repos/<org>/<repo>/issues/<n>" > "$TRUST_DIR/issue.json"
 
 # --paginate emits ONE ARRAY PER PAGE; --slurp + `add` flattens all of them so a
@@ -758,14 +766,30 @@ The `excluded` array reports what was held back; surface it, do not repair it.
 1. **`terminal-label-open-state`** → hand to the `Build terminal-open → native close` section above.
    Do not restate its rules; the terminality test lives there (intermediate env rungs like
    `status:on-dev` / `status:on-stg` are **not** terminal).
-2. **`open-label-closed-state`** → the previously unowned direction. The item is natively closed or
-   completed while still wearing a non-terminal lifecycle role. Advance the label to the env-resolved
-   terminal `done` role and post one idempotent `[lisa-repair-intake]` note. This is a write on
-   **Lisa's own** lifecycle surface, not a contest with another writer.
+2. **`open-label-closed-state`** → the previously unowned direction. The item is natively closed as
+   **completed** while still wearing a non-terminal lifecycle role. Advance the label to the
+   env-resolved terminal `done` role and post one idempotent `[lisa-repair-intake]` note. This is a
+   write on **Lisa's own** lifecycle surface, not a contest with another writer.
    Apply the leaf/container check from the **Lifecycle ownership guard** section *before* this
    branch: repair-intake owns container repair, so a natively-closed `ready` **leaf** is skipped
    here and left to the build lane rather than claimed by this pass.
-3. **Vendor caveat — Linear.** On Linear the lifecycle surface is the native workflow **state**, not a
+3. **`open-label-abandoned-state`** → the same shape, closed as **`NOT_PLANNED`**. **Remove the
+   stale non-terminal role and add nothing.** Do NOT advance it to the terminal `done` role: that
+   role is documented "terminal — shipped to production", and a not-planned closure is somebody
+   recording that the work will not be done, so writing `done` there rewrites "we are not doing
+   this" as "we shipped this" and afterwards the two are indistinguishable. The repository has no
+   label for "closed, not done" — `wontfix` exists but has never been used, so adopting it would be
+   introducing a convention rather than applying one — and until a human settles that, carrying no
+   active lifecycle role is the honest state. Post the same idempotent note naming the closure
+   reason. The leaf/container check applies here exactly as in (2).
+
+   **Measured** (CodySwannGT/lisa#3479): of 10 closed items still wearing an active role, **5 were
+   `NOT_PLANNED`** — #3963, #3938, #3928, #3600, #3564. Before this split the classifier read only
+   `state`, never the closure reason, so one repair pass would have stamped a false terminal on
+   half the population. They escaped only because all five happened to carry `ready`, which the
+   ownership guard skips on leaves; a `NOT_PLANNED` item carrying `claimed` or `blocked` had no
+   such shield. An accident of today's labels is not a control.
+4. **Vendor caveat — Linear.** On Linear the lifecycle surface is the native workflow **state**, not a
    `status:*` label (see `config-resolution`). A `status:*` label there is leftover cruft that no
    repair direction reads, which is precisely why TUN-556 and TUN-503 rotted. Treat Linear's native
    state as authoritative and remove the contradicting stale label; never move the state to match a
