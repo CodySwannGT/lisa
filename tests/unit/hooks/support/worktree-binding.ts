@@ -122,6 +122,36 @@ export interface Call {
   readonly input?: Record<string, unknown>;
   readonly session?: string;
   readonly state: string;
+  /** Hook event, for the cases that are not a tool call. */
+  readonly event?: string;
+  /** Runtime variables to set; anything absent here is unset for the guard. */
+  readonly runtime?: Readonly<Record<string, string>>;
+}
+
+/**
+ * Variables that tell the guard which runtime it is running under.
+ *
+ * Stripped by default rather than inherited. They are set in every Claude Code
+ * session, this suite runs inside one, and a case that inherited them would
+ * pass or fail according to which build the developer happened to be on — the
+ * runtime version is the subject of one of these cases, so it has to be an
+ * input rather than an accident.
+ */
+const RUNTIME_KEYS = ["CLAUDECODE", "AI_AGENT", "CLAUDE_CODE_EXECPATH"];
+
+/**
+ * Environment for one guard run: the outer runtime removed, the case's put in.
+ * @param runtime - Runtime variables this case wants set
+ * @param state - Guard state home
+ * @returns Environment for the spawn
+ */
+function guardEnv(
+  runtime: Readonly<Record<string, string>> | undefined,
+  state: string
+): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...cleanGitEnv(), LISA_STATE_HOME: state };
+  for (const key of RUNTIME_KEYS) delete env[key];
+  return { ...env, ...runtime };
 }
 
 /**
@@ -135,13 +165,14 @@ export function runGuard(call: Call) {
     cwd: call.cwd,
     tool_name: call.tool ?? "Bash",
     tool_input: call.input ?? { command: "echo hello" },
+    ...(call.event === undefined ? {} : { hook_event_name: call.event }),
   };
   return boundedSpawnSync({
     label: GUARD_LABEL,
     command: process.execPath,
     args: [GUARD_PATH],
     cwd: call.cwd,
-    env: { ...cleanGitEnv(), LISA_STATE_HOME: call.state },
+    env: guardEnv(call.runtime, call.state),
     input: JSON.stringify(payload),
   });
 }
@@ -159,7 +190,7 @@ export function runRaw(raw: string, cwd: string, state: string) {
     command: process.execPath,
     args: [GUARD_PATH],
     cwd,
-    env: { ...cleanGitEnv(), LISA_STATE_HOME: state },
+    env: guardEnv(undefined, state),
     input: raw,
   });
 }
