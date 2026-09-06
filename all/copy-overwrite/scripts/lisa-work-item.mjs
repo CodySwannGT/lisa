@@ -2339,12 +2339,31 @@ function assertStateAmong(refs, contract) {
  * take the fail-open path on every commit, and print the same success line: a
  * second fail-open wearing the first fix's clothes, and strictly worse than
  * the gap, because the gap would now be believed closed.
+ * EXPORTED, AND TAKING THE BRANCH AS AN ARGUMENT, so the provider dispatch is
+ * reachable in process. `githubBranchIssue` below was split out for that
+ * reason and is measurable; the routing that decides whether it is called at
+ * all was not. The CLI cases exercise these lines only by SPAWNING the script,
+ * and a spawned child loads the file from disk rather than the instrumented
+ * module, so a mutant here is activated in a process the assertions never
+ * observe. It survives, and the gate reports a score rather than reporting
+ * that it measured nothing — `if (false)` on the provider arm routes every
+ * GitHub branch away from the extractor and restores the defect
+ * CodySwannGT/lisa#3861 closed, while every end-to-end case still passes.
+ * Measured after the split, over these lines only: 21 mutants, 19 killed,
+ * 90.48%, where before the split every mutant here was unkillable. The one
+ * survivor left inside this function is `if (!branch)` mutated to `if (false)`,
+ * and it is EQUIVALENT rather than unproven: both arms already decline an
+ * absent name on their own — the GitHub reading needs a slash-segment starting
+ * with a digit, the key-based reading needs the configured key — so no input
+ * distinguishes the two programs. The guard stays because it is the documented
+ * fail-open and because the next arm added here may not be so forgiving; the
+ * equivalence is recorded so a later reader does not mistake it for a gap.
+ * @param {string|undefined} branch Active branch name, if any.
  * @param {object} contract Resolved tracker contract.
  * @returns {string|undefined} Canonical reference, or undefined when the
  *   branch encodes none.
  */
-function branchWorkItem(contract) {
-  const branch = activeBranch();
+export function branchWorkItemFrom(branch, contract) {
   if (!branch) return undefined;
   if (contract.provider === "github")
     return githubBranchIssue(branch, contract);
@@ -2359,6 +2378,28 @@ function branchWorkItem(contract) {
     "i"
   ).exec(branch);
   return match ? `${key}-${match[1]}` : undefined;
+}
+
+/**
+ * The work item the ACTIVE branch encodes, or undefined when it encodes none.
+ *
+ * The impure half of the split, and deliberately nothing beyond the
+ * `activeBranch()` call — every decision, including the detached-HEAD
+ * fail-open, lives in `branchWorkItemFrom`, which is pure and exported so the
+ * mutation gate can see it.
+ *
+ * This one line is therefore the whole residue of the subprocess boundary: its
+ * body-removal mutant survives, because the only cases that reach it spawn the
+ * script. Those cases DO catch it — with this returning undefined the trailer
+ * comparison silently fails open again and the mismatch cases stop refusing —
+ * but the gate cannot observe a child process. Shrinking that blind spot from
+ * the whole dispatch to one delegating call is the point of the split.
+ * @param {object} contract Resolved tracker contract.
+ * @returns {string|undefined} Canonical reference, or undefined when the
+ *   branch encodes none.
+ */
+function branchWorkItem(contract) {
+  return branchWorkItemFrom(activeBranch(), contract);
 }
 
 /**

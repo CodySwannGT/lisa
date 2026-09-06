@@ -23,6 +23,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  branchWorkItemFrom,
   githubBranchIssue,
   noPullRequestToDischarge,
   postDischargeBacklinks,
@@ -3490,6 +3491,93 @@ describe("githubBranchIssue, in process (#3861)", () => {
       })
     ).toBe("other/repo#7");
   });
+});
+
+// ---------------------------------------------------------------------------
+// The provider dispatch above the branch reader, in process.
+//
+// `githubBranchIssue` is measurable because it is pure and exported; the
+// routing that decides whether it is reached at all was not. Those two
+// conditions were reachable only by SPAWNING the script, and a spawned child
+// loads the file from disk rather than the instrumented module, so their
+// mutants were activated in a process no assertion observes. The gate scored
+// them without being able to kill them — and `if (false)` on the provider arm
+// routes every GitHub branch away from the extractor, restoring the defect
+// #3861 closed, while every CLI case above still passes (#3930).
+//
+// These cases take the branch as an argument, so they touch no repository and
+// spawn nothing.
+// ---------------------------------------------------------------------------
+describe("branchWorkItemFrom, in process (#3930)", () => {
+  const GITHUB = { provider: "github", repository: "acme/widgets" };
+  const JIRA = { provider: "jira", project: "SE" };
+  const LINEAR = { provider: "linear", teamKey: "ENG" };
+
+  it("routes a GitHub contract through the GitHub reading of the branch", () => {
+    // Mutating the provider condition to a constant false loses this: the
+    // branch would fall through to the key-based arm, where a `github`
+    // contract has neither `project` nor `teamKey` and yields undefined.
+    expect(branchWorkItemFrom("fix/3861-github-branch", GITHUB)).toBe(
+      "acme/widgets#3861"
+    );
+  });
+
+  it("routes a Jira contract through the key-based reading, not the GitHub one", () => {
+    // Mutating the provider condition to a constant true loses this: the
+    // GitHub arm would read the leading segment of `fix/…` — there is none
+    // here — and in any case would mint an `owner/repo#n` reference for a
+    // tracker that does not use one.
+    expect(branchWorkItemFrom("feat/se-7220-widgets", JIRA)).toBe("SE-7220");
+  });
+
+  it("routes a Linear contract through the team key, not the GitHub one", () => {
+    expect(branchWorkItemFrom("claude/eng-412-thing", LINEAR)).toBe("ENG-412");
+  });
+
+  it("reads a numeric leading segment as a Jira key only when the key matches", () => {
+    // The dispatch is what keeps a bare-number branch out of the key-based
+    // arm's reach on GitHub and out of the GitHub arm's reach on Jira.
+    expect(branchWorkItemFrom("fix/3861-github-branch", JIRA)).toBeUndefined();
+  });
+
+  it("declines a branch naming a key that is not the configured one", () => {
+    // The key is interpolated into the pattern literally. Escaping it by the
+    // COMPLEMENT of the metacharacter class instead — `\S\E` for `SE` — turns
+    // the key into a wildcard that reads any two-character segment, so this
+    // branch would be misread as SE-12 and refuse a correct commit.
+    expect(branchWorkItemFrom("feat/xe-12-other-key", JIRA)).toBeUndefined();
+  });
+
+  it("matches a key containing regex metacharacters literally", () => {
+    // Not escaping the key at all leaves `.` as a wildcard, so `S.E` reads
+    // `sxe` — a reference minted for a project nobody configured.
+    const dotted = { provider: "jira", project: "S.E" };
+    expect(branchWorkItemFrom("feat/sxe-12", dotted)).toBeUndefined();
+    expect(branchWorkItemFrom("feat/s.e-12", dotted)).toBe("S.E-12");
+  });
+
+  it("declines a key-based contract that configures no key", () => {
+    // `if (!key) return undefined` — dropping it would build a RegExp from
+    // `undefined` and read the literal string "undefined-12" out of a branch.
+    expect(
+      branchWorkItemFrom("feat/se-7220", { provider: "jira" })
+    ).toBeUndefined();
+    expect(
+      branchWorkItemFrom("feat/eng-412", { provider: "linear" })
+    ).toBeUndefined();
+  });
+
+  it.each([[""], [undefined]])(
+    "fails open on a detached HEAD (%s) for every provider",
+    branch => {
+      // A detached HEAD names no branch. Removing the guard would hand an
+      // empty name to both arms; the point is that the fail-open is pinned
+      // rather than incidental.
+      expect(branchWorkItemFrom(branch, GITHUB)).toBeUndefined();
+      expect(branchWorkItemFrom(branch, JIRA)).toBeUndefined();
+      expect(branchWorkItemFrom(branch, LINEAR)).toBeUndefined();
+    }
+  );
 });
 
 /**
