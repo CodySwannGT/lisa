@@ -228,6 +228,21 @@ jobs:
       # NOT read, and exits 2 at zero.
       - name: Check no probe spends a failure as an absence
         run: bun run check:probe-absence-direction
+      # #3908: a guard's parity note claimed three missing agent ports while two
+      # of the three had shipped. Nothing read the note, so it drifted while the
+      # machine-checked capability declaration one line below it stayed honest —
+      # the only difference between them. An overstated gap note is worse than
+      # none: it exists so a reader treats the gap as KNOWN and stops
+      # investigating, so a stale one sends that reader to redo the measurement
+      # it was written to spare them. This step reads the note and resolves
+      # which surfaces carry the guard from the files that exist, refusing any
+      # claim the tree contradicts. A GENUINE gap stays recordable — the check
+      # never demands a note's deletion, only its accuracy. Like its neighbours
+      # it refuses to pass an inspection it did not perform: it prints how many
+      # guard sources it read and how many claims it recognised, names the
+      # phrasings and surfaces it does NOT read, and exits 2 at zero sources.
+      - name: Check no guard parity note overstates its gap
+        run: bun run check:guard-parity-notes
       # #3888: a guard that reports OK when its comparison had no subject. The
       # instance that motivated it is a REQUIRED push gate — the conflict-marker
       # prover printed `✓ no leftover conflict markers in 0 tracked files` and

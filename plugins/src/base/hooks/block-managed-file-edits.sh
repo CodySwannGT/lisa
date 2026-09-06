@@ -72,11 +72,19 @@
 #
 # ## Parity gap, recorded rather than silently dropped
 #
-# This guard has no Antigravity, Codex or OpenCode port — only the Claude
-# reference and the copies generated from it. Its siblings do. That predates
-# this change and is not closed by it: opening three ports is its own work, and
-# doing it here would triple the surface under review. Recorded so it reads as a
-# known gap rather than an oversight.
+# This guard has no Codex port. Every other surface carries it: the Claude
+# reference, the Cursor and Copilot copies generated from that reference, the
+# Antigravity sibling beside this file, and the OpenCode plugin template.
+# Recorded so the remaining gap reads as known rather than as an oversight, and
+# delete this note in the commit that opens the Codex port — a gap note whose
+# gap is closed is the next instance of the defect it was written to prevent.
+#
+# It is CHECKED rather than trusted. `check:guard-parity-notes` reads the
+# sentence above, resolves which surfaces carry this guard from the files that
+# exist, and refuses any note naming a surface whose port is present. The
+# earlier wording named three missing ports and stayed unedited while two of
+# them shipped, because nothing read it — unlike the declaration two paragraphs
+# below, which something does.
 #
 # Exemptions (allowed):
 #   - `LISA_ALLOW_MANAGED_FILE_WRITE` set — the operator's explicit override,

@@ -55,7 +55,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
-      "781f1523fc4851e011058990e3c66d0350e90b9917bdb08a5579907712dd99cb",
+      "a27ccb4e5307778e00fd279ac3d59ccc73c42431456b4ac5e00db3a617b8f9c1",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
       "e987dd924dbbdc35eddf607a27372bfac6cf743c9ddb888d8a81b4b128c10908",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
@@ -757,7 +757,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.agy.sh":
       "19cda51fcc113f0b3c184d8907913ab4b49ecb81db80ce7909639194bc9c52d6",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
-      "458a310c1c0f17cf08d9d9b94f7e6bebaea52a1757b09d509ccf673a2307c4d8",
+      "6cd08b50d75dcc918d8fca0519a912d2c7219fa697871e1e0835a8603cd2c687",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
       "452466fc87be994084017165a045a5fca77a357d71407d0524980c8bdd975c29",
     "plugins/src/base/hooks/block-no-verify.sh":
@@ -2228,6 +2228,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "02fc6af8de14fa2230e5f601225bda2f51d4ed7a462e67c46a36a6c7d92e1833",
     "scripts/check-generated-artifact-merge-coverage.mjs":
       "bb7e708f1f6e00b503a9b885bb52c335c5b238b0dd76032e02301e8883f990b3",
+    "scripts/check-guard-parity-notes.mjs":
+      "8064f55930cde8ee530471650253d14b566164396046b39c48becee71060a87f",
     "scripts/check-learnings-budget.ts":
       "6e9a735f090a7f1f73f0a447e6688c3dabe9edf61de5e9ad48b0c22701ee38d0",
     "scripts/check-merge-driver-registration.mjs":
@@ -8548,6 +8550,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-eager-rule-budget.mjs": true,
     "scripts/check-empty-subject-guards.mjs": true,
     "scripts/check-generated-artifact-merge-coverage.mjs": true,
+    "scripts/check-guard-parity-notes.mjs": true,
     "scripts/check-learnings-budget.ts": true,
     "scripts/check-merge-driver-registration.mjs": true,
     "scripts/check-npm-publish-landed.mjs": true,
@@ -10161,6 +10164,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/check-duplicate-versions.test.ts": true,
     "tests/unit/scripts/check-duplicate-versions.units.test.ts": true,
     "tests/unit/scripts/check-empty-subject-guards.test.ts": true,
+    "tests/unit/scripts/check-guard-parity-notes.test.ts": true,
     "tests/unit/scripts/check-learnings-budget-helpers.ts": true,
     "tests/unit/scripts/check-learnings-budget.test.ts": true,
     "tests/unit/scripts/check-npm-publish-landed.test.ts": true,
