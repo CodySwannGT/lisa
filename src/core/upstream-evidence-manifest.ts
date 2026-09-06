@@ -2414,6 +2414,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "51081847e980f314a764c2e50a7a121b1ced9ef4b980f33898057de4c7b852e6",
     "scripts/materialize-copy-overwrite.mjs":
       "f510944db5b234131cb659b8780f571b460f8052a854131aa27558d73e126f36",
+    "scripts/measure-scripts-profile-gap.mts":
+      "5956e71e56a16c596dfbd84bdea646c1d085f77e4b0ddc1cb2ce99348d9ab6b7",
     "scripts/measure-tmpdir-growth.mjs":
       "aa2f336fdb9592e4b7bda1a676d0915ba259e66a06081622a7e724604219d56b",
     "scripts/merge-generated-artifact.mjs":
@@ -8659,6 +8661,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lisa-update-local.sh": true,
     "scripts/lisa-work-item.mjs": true,
     "scripts/materialize-copy-overwrite.mjs": true,
+    "scripts/measure-scripts-profile-gap.mts": true,
     "scripts/measure-tmpdir-growth.mjs": true,
     "scripts/merge-generated-artifact.mjs": true,
     "scripts/mutation-performance-measure.mjs": true,
@@ -10336,6 +10339,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/maestro-flake-classification.test.ts": true,
     "tests/unit/scripts/maestro-flake-helpers.ts": true,
     "tests/unit/scripts/maestro-intermittent-registry.test.ts": true,
+    "tests/unit/scripts/measure-scripts-profile-gap.test.ts": true,
     "tests/unit/scripts/measure-tmpdir-growth-performance.test.ts": true,
     "tests/unit/scripts/measure-tmpdir-growth.test.ts": true,
     "tests/unit/scripts/merge-driver-registration.test.ts": true,

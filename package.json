@@ -22,6 +22,7 @@
     "typecheck": "tsc --noEmit && bun run typecheck:tests && bun run typecheck:engine-floor",
     "typecheck:tests": "node scripts/check-typecheck-tests.mjs",
     "typecheck:engine-floor": "node scripts/check-engine-floor.mjs",
+    "measure:scripts-profile-gap": "bun scripts/measure-scripts-profile-gap.mts",
     "format:check": "prettier --check .",
     "format": "prettier --check . --write",
     "knip:check": "knip",
