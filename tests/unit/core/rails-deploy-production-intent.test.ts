@@ -95,7 +95,7 @@ describe("classifyProductionDeployIntent", () => {
 jobs:
   gates:
     # "runtime-web-vulnerability": { "pre-deploy:main": "required" }
-    uses: some-org/some-repo/.github/workflows/gates.yml@main
+    uses: CodySwannGT/lisa/.github/workflows/gates.yml@main
     steps:
       - run: echo "$([[ $GITHUB_REF_NAME == 'main' ]] && echo production)"
 `
