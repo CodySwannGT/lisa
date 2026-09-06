@@ -113,7 +113,7 @@ describe("threshold-ratchet exemption expiry (#3856)", () => {
       expect(message).toContain(KEY_LINES);
       expect(message).toContain(UNTIL_DAY);
       expect(message).toContain(MIGRATION_REASON);
-      expect(message).toContain("delete");
+      expect(message).toContain("Delete it");
     });
 
     it("reports the stale entry even when nothing changed under it", () => {
@@ -196,6 +196,24 @@ describe("threshold-ratchet exemption expiry (#3856)", () => {
       expect(allowEntryExpiry("2026-02-31")).toBeUndefined();
       expect(allowEntryExpiry("0099-01-01")).toBeUndefined();
       expect(allowEntryExpiry("2026-13-01")).toBeUndefined();
+    });
+
+    it("tolerates surrounding whitespace in a well-formed date", () => {
+      expect(allowEntryExpiry(`  ${UNTIL_DAY}\n`)).toBe(AFTER_EXPIRY);
+    });
+
+    it("treats a blank reason as no reason recorded", () => {
+      expect(
+        classifyAllowEntry(
+          {
+            file: VITEST_FILE,
+            key: KEY_LINES,
+            reason: "   ",
+            until: UNTIL_DAY,
+          },
+          AFTER_EXPIRY
+        ).detail
+      ).toContain("No reason is recorded.");
     });
 
     it("keeps honouring an unchecked entry so a valid exception survives", () => {

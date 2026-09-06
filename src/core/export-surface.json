@@ -2,7 +2,7 @@
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
   "$modules": 124,
-  "$names": 1171,
+  "$names": 1181,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -520,11 +520,16 @@
       "applyAllowList",
       "compareConstraints",
       "compareFile",
+      "describeAllowList",
       "formatReport"
     ],
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs": [
+      "ALLOW_STATE",
       "FAMILIES",
       "LIGHTHOUSE_ASSERTION_DIRECTIONS",
+      "allowEntryExpiry",
+      "classifyAllowEntry",
+      "describeAllowScope",
       "extractAllowEntries",
       "extractK6Constraints",
       "extractLighthouseAssertions",
@@ -1407,11 +1412,16 @@
       "applyAllowList",
       "compareConstraints",
       "compareFile",
+      "describeAllowList",
       "formatReport"
     ],
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs": [
+      "ALLOW_STATE",
       "FAMILIES",
       "LIGHTHOUSE_ASSERTION_DIRECTIONS",
+      "allowEntryExpiry",
+      "classifyAllowEntry",
+      "describeAllowScope",
       "extractAllowEntries",
       "extractK6Constraints",
       "extractLighthouseAssertions",

@@ -809,11 +809,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/sonar-secrets.sh":
       "8ec9d8eab090fd8aed69b6378160ae607b4341923ed076d9a5d08bf44d238064",
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs":
-      "2ae57ea1eb0a0199559a17ee69186953f41115986a276e641ff8b3070e2f9fa6",
+      "b482b0409ce19e1be6939fdc5431dd8dd62cd62d4aad36a378c52fe3e86bc69d",
     "plugins/src/base/hooks/threshold-ratchet-families.mjs":
-      "04778f3fe4085638088b49e79e17d8ea8557913ccfd2262c0f6c63121eb98b12",
+      "be34a18a8dc3adb516023ba2dbcdb00012d9defdeedf15c0f5711f742b6f91b6",
     "plugins/src/base/hooks/threshold-ratchet.mjs":
-      "d49009c4b50e2d297a2dca730ab066dc68429fbb0d38746e0a055aae97dda9d2",
+      "c9d7d91705baba1adb9ff7cb2ce29b1fe43a16630f5fb847bb657101ca43756b",
     "plugins/src/base/hooks/threshold-ratchet.sh":
       "b86f4d0b554e44fd119ad8a8920cd0ba6c9dbe779f7ee219d381cf0629453990",
     "plugins/src/base/hooks/ticket-sync-reminder.sh":
@@ -2161,15 +2161,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/lefthook.yml":
       "c0969fba8a2826155c4009cfaa8bcf986ebd0cc1513867fe7f9aa8077005edb3",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
-      "d7415ebdec5af1f99eda98a23757d25ca09b4b04affc4619f810a64fc0aa9941",
+      "5806cdc3c80757100f0cd24a8cbd3c581f9a381a925f9ebdd1f4d79881e5de2a",
     "rails/copy-overwrite/scripts/lisa-clean-git-env.sh":
       "d15af6f13eedbca41046070972380e69fc0af8f7d903aac12b8644389b9a0c91",
     "rails/copy-overwrite/scripts/lisa-scratch-run.sh":
       "ef3c38f8d1d2f48ba265e21f841310d25142228dac57b0a5742c7d902113ca9a",
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "874f0792beab000939d480c1a0547ce4dd351421b4e5f0fbb495aae246ab85c2",
+      "5333b685717640f927746b5384ac35001eb7080b69142baf7cfaf546374c2ac9",
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs":
-      "7d5cc48497705466adc05aecc0c0a475b18cbccbd73b4b4b986476de9c5cdb96",
+      "ab9ef18c310f50dab91832418ef41147dbfdfcf05f87ebd1d1badace76ae5a77",
     "rails/copy-overwrite/sgconfig.yml":
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "rails/create-only/.github/workflows/ci.yml":
@@ -2531,7 +2531,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "ed6f649d68e2d264ce7f4a5cc6c2db42e6725d30005d7dad98b759801bc14b07",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
-      "d7415ebdec5af1f99eda98a23757d25ca09b4b04affc4619f810a64fc0aa9941",
+      "5806cdc3c80757100f0cd24a8cbd3c581f9a381a925f9ebdd1f4d79881e5de2a",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
       "777e46c8e8147935f0b944dc21536f6238b26b5b7dca06c5fdb2d2898a9790dc",
     "typescript/copy-overwrite/scripts/lib/bounded-spawn.mjs":
@@ -2557,9 +2557,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/reconcile-nightly-e2e-tracking.mjs":
       "d061c7513acdf1e187cf916dca53432a06a78e43bd0068a0b315ad351a4b72db",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "874f0792beab000939d480c1a0547ce4dd351421b4e5f0fbb495aae246ab85c2",
+      "5333b685717640f927746b5384ac35001eb7080b69142baf7cfaf546374c2ac9",
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs":
-      "7d5cc48497705466adc05aecc0c0a475b18cbccbd73b4b4b986476de9c5cdb96",
+      "ab9ef18c310f50dab91832418ef41147dbfdfcf05f87ebd1d1badace76ae5a77",
     "typescript/copy-overwrite/sgconfig.yml":
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "typescript/copy-overwrite/tsconfig.eslint.json":
