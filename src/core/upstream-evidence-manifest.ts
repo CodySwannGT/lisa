@@ -791,7 +791,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/inject-resolved-config.sh":
       "bc73e118afff35f455241647c24da6e23caaf30d189eb6d3a48814e9a8309613",
     "plugins/src/base/hooks/inject-rules.sh":
-      "89a3780250e21aefa0eb83235523835ec0f83b25807b1ccc21f7a397a0459842",
+      "9d2d3352f57099fdb7a3442ddd266c672cd83d484d1216f341168323f5e354ca",
     "plugins/src/base/hooks/install-pkgs.sh":
       "e9a13faba849a277410dde911ab102ee6f88ef915b33571bb1d4eef904172db5",
     "plugins/src/base/hooks/parity-safety-net-heredoc.py":
@@ -1767,8 +1767,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/harper-fabric/hooks/enforce-config-extensions.sh":
       "8f8d663e7f1e7ad9297572f2518f60c4c6277e9eba91a57a65c1c300420c9399",
     "plugins/src/harper-fabric/hooks/inject-rules.sh":
-      "31d84b081b1d2e621482ffbf1ebf154be39350a00c66bdcd64f53e7180b30948",
-    "plugins/src/harper-fabric/rules/harper-fabric.md":
+      "338aec3790243b7720450bcbd7d692d5b6ac282aef418597cfb83deb790b8fb0",
+    "plugins/src/harper-fabric/rules/eager/harper-fabric.md":
+      "0e17d8db9aa3dff8c4bc7cd410ab175b8bd6449d7611bf04d33157d2b6e83b30",
+    "plugins/src/harper-fabric/rules/reference/harper-fabric.md":
       "c2c3471d9fb2038dddd42264fad27d818dd707f7a7b743f7b82e80f87d2f125c",
     "plugins/src/harper-fabric/skills/e2e-coverage-gaps/SKILL.md":
       "5713668cdeca0f18694b986c6ef69bfa7f7dce50107694308bd1b47c77286db5",
@@ -1881,8 +1883,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/phaser/agents/ux-ui-designer.md":
       "e6865e1015b8dc667548432350ed5504e6eed9abe509866a87e7379ea08a3eae",
     "plugins/src/phaser/hooks/inject-rules.sh":
-      "dec6b160d1f4e0af79c2cc586dc31c6915fd61154851888619f566a3b6eecdbb",
-    "plugins/src/phaser/rules/phaser.md":
+      "db756820b4dad4a2d1918688068510e245c22b2a72b8a06e78f39047e6168d50",
+    "plugins/src/phaser/rules/eager/phaser.md":
+      "a1c99634e094dd588c22d595a8c4a07bd267e564a8062a4d74788d830442d6ae",
+    "plugins/src/phaser/rules/reference/phaser.md":
       "d1b19997b7910ffe6b4d6deb4738dd92f96a4c3c10eaa01fe02ef4aa499184f7",
     "plugins/src/phaser/skills/phaser-accessibility/SKILL.md":
       "30c2552dc8d86decf1e24bd15ed5b249ca589ab1f6b605abad5b82851ef515f9",
@@ -1915,14 +1919,16 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/rails/commands/improve/test-coverage.md":
       "4e4c87b635e7fc699e06872ed337080dbfbbd658aba93d25010e4ad722b2a68d",
     "plugins/src/rails/hooks/inject-rules.sh":
-      "19506aa16ae2354dac00df2cf51c4d45aa95e0415e5e9d5b6d46b81be85225e7",
+      "96a512bafefb72a5e0f0c8e55ecb7b05a3512408688cf7b1129194b4dcbaebbc",
     "plugins/src/rails/hooks/lisa-edit-gate.sh":
       "0a8d9a043f04b15b71bb500ff03cf1e67e4ac292181a5d596ddf078f301e671f",
     "plugins/src/rails/hooks/rubocop-on-edit.sh":
       "3961329a204dfd5a23da61c908c0d9518b46ee7144d4f8dd42810f0cb175aba3",
     "plugins/src/rails/hooks/sg-scan-on-edit.sh":
       "edbf96a5ff87751146d83d18b16c83b88ea26315ad6549dbe49b24c3ffade0bb",
-    "plugins/src/rails/rules/rails-conventions.md":
+    "plugins/src/rails/rules/eager/rails-conventions.md":
+      "10030d8159ae75c13c1b19d81694bf5649371c30cc6ceeed44948cd852138c5a",
+    "plugins/src/rails/rules/reference/rails-conventions.md":
       "e2db55d2b4d2f6b7f937ac1f9f386c5f48c4155ace34501f917e3471d22bfa3c",
     "plugins/src/rails/skills/action-controller-best-practices/SKILL.md":
       "db4eca94c9ace5b9a62e140ac8766a65d46916ce10e108a849a6ece791ad649e",
@@ -5606,7 +5612,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-harper-fabric-copilot/hooks/enforce-config-extensions.mjs": true,
     "plugins/lisa-harper-fabric-copilot/hooks/enforce-config-extensions.sh": true,
     "plugins/lisa-harper-fabric-copilot/hooks/inject-rules.sh": true,
-    "plugins/lisa-harper-fabric-copilot/rules/harper-fabric.md": true,
+    "plugins/lisa-harper-fabric-copilot/rules/eager/harper-fabric.md": true,
+    "plugins/lisa-harper-fabric-copilot/rules/reference/harper-fabric.md": true,
     "plugins/lisa-harper-fabric-copilot/skills/e2e-coverage-gaps/SKILL.md": true,
     "plugins/lisa-harper-fabric-copilot/skills/harper-auth/SKILL.md": true,
     "plugins/lisa-harper-fabric-copilot/skills/harper-build-and-deploy/SKILL.md": true,
@@ -5625,6 +5632,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-harper-fabric-cursor/hooks/enforce-config-extensions.mjs": true,
     "plugins/lisa-harper-fabric-cursor/hooks/enforce-config-extensions.sh": true,
     "plugins/lisa-harper-fabric-cursor/hooks/hooks.json": true,
+    "plugins/lisa-harper-fabric-cursor/rules/harper-fabric-reference.mdc": true,
     "plugins/lisa-harper-fabric-cursor/rules/harper-fabric.mdc": true,
     "plugins/lisa-harper-fabric-cursor/skills/e2e-coverage-gaps/SKILL.md": true,
     "plugins/lisa-harper-fabric-cursor/skills/harper-auth/SKILL.md": true,
@@ -5672,7 +5680,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-harper-fabric/hooks/enforce-config-extensions.mjs": true,
     "plugins/lisa-harper-fabric/hooks/enforce-config-extensions.sh": true,
     "plugins/lisa-harper-fabric/hooks/inject-rules.sh": true,
-    "plugins/lisa-harper-fabric/rules/harper-fabric.md": true,
+    "plugins/lisa-harper-fabric/rules/eager/harper-fabric.md": true,
+    "plugins/lisa-harper-fabric/rules/reference/harper-fabric.md": true,
     "plugins/lisa-harper-fabric/skills/e2e-coverage-gaps/SKILL.md": true,
     "plugins/lisa-harper-fabric/skills/e2e-coverage-gaps/agents/openai.yaml": true,
     "plugins/lisa-harper-fabric/skills/harper-auth/SKILL.md": true,
@@ -5880,7 +5889,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-phaser-copilot/agents/target-player.agent.md": true,
     "plugins/lisa-phaser-copilot/agents/ux-ui-designer.agent.md": true,
     "plugins/lisa-phaser-copilot/hooks/inject-rules.sh": true,
-    "plugins/lisa-phaser-copilot/rules/phaser.md": true,
+    "plugins/lisa-phaser-copilot/rules/eager/phaser.md": true,
+    "plugins/lisa-phaser-copilot/rules/reference/phaser.md": true,
     "plugins/lisa-phaser-copilot/skills/phaser-accessibility/SKILL.md": true,
     "plugins/lisa-phaser-copilot/skills/phaser-asset-pipeline/SKILL.md": true,
     "plugins/lisa-phaser-copilot/skills/phaser-asset-sourcing/SKILL.md": true,
@@ -5909,6 +5919,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-phaser-cursor/agents/qa-playtester.md": true,
     "plugins/lisa-phaser-cursor/agents/target-player.md": true,
     "plugins/lisa-phaser-cursor/agents/ux-ui-designer.md": true,
+    "plugins/lisa-phaser-cursor/rules/phaser-reference.mdc": true,
     "plugins/lisa-phaser-cursor/rules/phaser.mdc": true,
     "plugins/lisa-phaser-cursor/skills/phaser-accessibility/SKILL.md": true,
     "plugins/lisa-phaser-cursor/skills/phaser-asset-pipeline/SKILL.md": true,
@@ -5957,7 +5968,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-phaser/agents/target-player.md": true,
     "plugins/lisa-phaser/agents/ux-ui-designer.md": true,
     "plugins/lisa-phaser/hooks/inject-rules.sh": true,
-    "plugins/lisa-phaser/rules/phaser.md": true,
+    "plugins/lisa-phaser/rules/eager/phaser.md": true,
+    "plugins/lisa-phaser/rules/reference/phaser.md": true,
     "plugins/lisa-phaser/skills/phaser-accessibility/SKILL.md": true,
     "plugins/lisa-phaser/skills/phaser-accessibility/agents/openai.yaml": true,
     "plugins/lisa-phaser/skills/phaser-asset-pipeline/SKILL.md": true,
@@ -6013,7 +6025,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-rails-copilot/hooks/lisa-edit-gate.sh": true,
     "plugins/lisa-rails-copilot/hooks/rubocop-on-edit.sh": true,
     "plugins/lisa-rails-copilot/hooks/sg-scan-on-edit.sh": true,
-    "plugins/lisa-rails-copilot/rules/rails-conventions.md": true,
+    "plugins/lisa-rails-copilot/rules/eager/rails-conventions.md": true,
+    "plugins/lisa-rails-copilot/rules/reference/rails-conventions.md": true,
     "plugins/lisa-rails-copilot/skills/action-controller-best-practices/SKILL.md": true,
     "plugins/lisa-rails-copilot/skills/action-view-best-practices/SKILL.md": true,
     "plugins/lisa-rails-copilot/skills/active-record-model-best-practices/SKILL.md": true,
@@ -6045,6 +6058,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-rails-cursor/hooks/lisa-edit-gate.sh": true,
     "plugins/lisa-rails-cursor/hooks/rubocop-on-edit.sh": true,
     "plugins/lisa-rails-cursor/hooks/sg-scan-on-edit.sh": true,
+    "plugins/lisa-rails-cursor/rules/rails-conventions-reference.mdc": true,
     "plugins/lisa-rails-cursor/rules/rails-conventions.mdc": true,
     "plugins/lisa-rails-cursor/skills/action-controller-best-practices/SKILL.md": true,
     "plugins/lisa-rails-cursor/skills/action-view-best-practices/SKILL.md": true,
@@ -6120,7 +6134,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-rails/hooks/lisa-edit-gate.sh": true,
     "plugins/lisa-rails/hooks/rubocop-on-edit.sh": true,
     "plugins/lisa-rails/hooks/sg-scan-on-edit.sh": true,
-    "plugins/lisa-rails/rules/rails-conventions.md": true,
+    "plugins/lisa-rails/rules/eager/rails-conventions.md": true,
+    "plugins/lisa-rails/rules/reference/rails-conventions.md": true,
     "plugins/lisa-rails/skills/action-controller-best-practices/SKILL.md": true,
     "plugins/lisa-rails/skills/action-controller-best-practices/agents/openai.yaml": true,
     "plugins/lisa-rails/skills/action-view-best-practices/SKILL.md": true,
@@ -8232,7 +8247,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/harper-fabric/hooks/enforce-config-extensions.mjs": true,
     "plugins/src/harper-fabric/hooks/enforce-config-extensions.sh": true,
     "plugins/src/harper-fabric/hooks/inject-rules.sh": true,
-    "plugins/src/harper-fabric/rules/harper-fabric.md": true,
+    "plugins/src/harper-fabric/rules/eager/harper-fabric.md": true,
+    "plugins/src/harper-fabric/rules/reference/harper-fabric.md": true,
     "plugins/src/harper-fabric/skills/e2e-coverage-gaps/SKILL.md": true,
     "plugins/src/harper-fabric/skills/harper-auth/SKILL.md": true,
     "plugins/src/harper-fabric/skills/harper-build-and-deploy/SKILL.md": true,
@@ -8289,7 +8305,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/phaser/agents/target-player.md": true,
     "plugins/src/phaser/agents/ux-ui-designer.md": true,
     "plugins/src/phaser/hooks/inject-rules.sh": true,
-    "plugins/src/phaser/rules/phaser.md": true,
+    "plugins/src/phaser/rules/eager/phaser.md": true,
+    "plugins/src/phaser/rules/reference/phaser.md": true,
     "plugins/src/phaser/skills/phaser-accessibility/SKILL.md": true,
     "plugins/src/phaser/skills/phaser-asset-pipeline/SKILL.md": true,
     "plugins/src/phaser/skills/phaser-asset-sourcing/SKILL.md": true,
@@ -8309,7 +8326,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/rails/hooks/lisa-edit-gate.sh": true,
     "plugins/src/rails/hooks/rubocop-on-edit.sh": true,
     "plugins/src/rails/hooks/sg-scan-on-edit.sh": true,
-    "plugins/src/rails/rules/rails-conventions.md": true,
+    "plugins/src/rails/rules/eager/rails-conventions.md": true,
+    "plugins/src/rails/rules/reference/rails-conventions.md": true,
     "plugins/src/rails/skills/action-controller-best-practices/SKILL.md": true,
     "plugins/src/rails/skills/action-view-best-practices/SKILL.md": true,
     "plugins/src/rails/skills/active-record-model-best-practices/SKILL.md": true,

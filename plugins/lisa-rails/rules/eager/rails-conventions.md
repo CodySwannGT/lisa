@@ -1,8 +1,3 @@
----
-description: "Rails Coding Conventions (load-bearing)"
-alwaysApply: true
----
-
 # Rails Coding Conventions (load-bearing)
 
 Rails-specific standards for this project. The head below is what changes
@@ -25,4 +20,4 @@ point live in the reference body.
 6. **RSpec with `factory_bot` and `shoulda-matchers`,** not fixtures. Use
    `described_class` and keep one assertion concept per example.
 
-Full prose and Ruby examples: [reference/rails-conventions.md](rails-conventions-reference.mdc).
+Full prose and Ruby examples: [reference/rails-conventions.md](../reference/rails-conventions.md).

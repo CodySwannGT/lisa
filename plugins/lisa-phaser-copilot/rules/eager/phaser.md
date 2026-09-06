@@ -1,8 +1,3 @@
----
-description: "Phaser 4 Project Rules (load-bearing)"
-alwaysApply: true
----
-
 # Phaser 4 Project Rules (load-bearing)
 
 This is a **Phaser 4** (npm `phaser@^4.2.0`) TypeScript game project on the
@@ -46,4 +41,4 @@ lint-enforced project layer.
 
 Full prose — the ten locked architecture decisions, the enforced lint rules, the
 performance contract, and the game-development persona subagents:
-[reference/phaser.md](phaser-reference.mdc).
+[reference/phaser.md](../reference/phaser.md).

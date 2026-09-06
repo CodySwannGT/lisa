@@ -1,8 +1,3 @@
----
-description: "Harper/Fabric Project Rules (load-bearing)"
-alwaysApply: true
----
-
 # Harper/Fabric Project Rules (load-bearing)
 
 These rules apply to Harper/Fabric component apps managed by Lisa. The head
@@ -33,4 +28,4 @@ the reference body.
    and the smallest relevant test command; plus the project smoke command for
    deploy-affecting changes. If a command cannot run, report it and the blocker.
 
-Full prose: [reference/harper-fabric.md](harper-fabric-reference.mdc).
+Full prose: [reference/harper-fabric.md](../reference/harper-fabric.md).
