@@ -2822,6 +2822,9 @@ const GITHUB_ACCEPT = "application/vnd.github+json";
  */
 const HEALTH_USER_AGENT = "lisa-nightly-e2e-health";
 
+/** GitHub's public API origin, used when the runner exports no override. */
+const DEFAULT_GITHUB_API_URL = "https://api.github.com";
+
 /**
  * How long to wait before retrying a throttled response, bounded.
  *
@@ -3987,7 +3990,7 @@ export function resolveWaiverSettings(env) {
   });
   return {
     api: {
-      apiUrl: env.GITHUB_API_URL || "https://api.github.com",
+      apiUrl: env.GITHUB_API_URL || DEFAULT_GITHUB_API_URL,
       repo: env.GITHUB_REPOSITORY,
       token,
       maxAttempts: limits.apiMaxAttempts,
@@ -4110,7 +4113,7 @@ export function resolveSettings(env) {
 
   return {
     api: {
-      apiUrl: env.GITHUB_API_URL || "https://api.github.com",
+      apiUrl: env.GITHUB_API_URL || DEFAULT_GITHUB_API_URL,
       repo: env.GITHUB_REPOSITORY,
       token,
       maxAttempts: limits.apiMaxAttempts,
@@ -4123,7 +4126,7 @@ export function resolveSettings(env) {
       // the runner already exports the right value.
       graphqlUrl:
         env.GITHUB_GRAPHQL_URL ||
-        `${env.GITHUB_API_URL || "https://api.github.com"}/graphql`,
+        `${env.GITHUB_API_URL || DEFAULT_GITHUB_API_URL}/graphql`,
     },
     issueLabel: env.NIGHTLY_ISSUE_LABEL || TRACKING_ISSUE_LABEL,
     // Reporting-only settings. The gate reads none of them, which is why they
