@@ -682,6 +682,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "8e1a04254f214c7de4ac252f0aec0f520aae617b87c7b306df6f08c6d2e8cf76",
     "b0693e6c7c73638ce9044c402b80999cebc0e2ada68dbb65dc94f810b732f3e7",
     "d3d8598080c3b4512957588d6d280facca2da6bf18a5a985b1f2c0d53a7c34aa",
+    "ea9e3e7d9d228b71a9c53801e22ef18cf56ab38f331fdd9883a6f8585da8b83c",
   ]),
   "scripts/lisa-hooks/block-instruction-file-edits.sh": Object.freeze([
     "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
@@ -1806,6 +1807,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "8e1a04254f214c7de4ac252f0aec0f520aae617b87c7b306df6f08c6d2e8cf76",
     "b0693e6c7c73638ce9044c402b80999cebc0e2ada68dbb65dc94f810b732f3e7",
     "d3d8598080c3b4512957588d6d280facca2da6bf18a5a985b1f2c0d53a7c34aa",
+    "ea9e3e7d9d228b71a9c53801e22ef18cf56ab38f331fdd9883a6f8585da8b83c",
   ]),
   "scripts/lisa-hooks/block-instruction-file-edits.sh": Object.freeze([
     "3e709e1ec8a5843c00684bc477ad32ddab2c5fdb11f71d5aeec0c49609eaf025",
