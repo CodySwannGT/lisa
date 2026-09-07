@@ -229,6 +229,14 @@ For each candidate, classify the relationship:
 
 Linear native relations are set on the Issue via `save_issue`'s `relations` field (or via a paired `save_issue_relation` call if available in the MCP). For Project-level (Epic) relationships, capture them in the description under `## Related Projects` since Linear doesn't model relations between Projects natively.
 
+**Adding a relation to an already-linked pair may be a REPLACE, not an add.** Reported measured twice against the raw `issueRelationCreate` mutation: creating a `blocks` edge between two issues already carrying a `related` edge converted that edge in place — the source issue's outgoing relation count did not grow (CodySwannGT/lisa#3605). Relationship discovery is mandatory on the UPDATE path as well as creation, so this skill's own contract routinely points it at pairs that already have edges.
+
+So on an update, read the pair's existing relations before writing one. Where an edge already exists and differs in type, surface it and let a human decide rather than writing over it — **an inherited relation is not a verified one**, and rewriting it silently removes the only moment anyone would check what it meant.
+
+**The true undo is delete plus re-create with the original type.** A single delete removes the link entirely and does not restore what was there before, so any runbook recording "undo = delete relation X" has written down a plan that loses the prior relationship.
+
+**Marked UNVERIFIED.** The observations were against the raw mutation; whether the MCP's `relations` field diffs before writing has not been tested, and testing it means writing a relation to a live workspace. Note that this does not make Lisa safe by default: `lisa-linear-access` resolves `LINEAR_API_KEY` + raw GraphQL as **tier 1, ahead of the MCP**, so the normal autonomous path is the one the observations were made against.
+
 ### 4c. Remote Links
 
 Identify and attach (Linear stores attachments / links on the Issue or in description body):
