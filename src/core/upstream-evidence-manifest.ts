@@ -2549,7 +2549,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/eslint.config.ts":
       "1a2f6eb5dd19a7dfc445c61bac8bd08a5f8908f023655c920aff08b633b30fb6",
     "typescript/copy-overwrite/eslint.ignore.config.json":
-      "b9a6c5cdd82cd76fe1c6f409b1e7630bfb42f037728c4ff7354906ed960a03c6",
+      "cc6704b53aef78138a6a37a983d895981073c62ac33a78007d088722984398b2",
     "typescript/copy-overwrite/eslint.slow.config.ts":
       "9f0efef2d1012e21a1d5e03eb98634bfeb459e3427147d75ad6905acbbab8466",
     "typescript/copy-overwrite/knip.json":
