@@ -3,7 +3,7 @@
 export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
   Object.freeze({
     "all/copy-contents/.gitattributes":
-      "e19d1a971de1a9142cb13d58ce56a98a3ec1c0594a6930ca7f92cb5ef4135d40",
+      "c30d90e57bc00e674e8a35d7d61d41ad10d40943f4f682704e1e8517c8124fa1",
     "all/copy-contents/gitignore":
       "66e105ae1b6874e6c587d128a04ff5a5005bf923759fc41cc31d73b9ba44bacf",
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
@@ -800,6 +800,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "9d2d3352f57099fdb7a3442ddd266c672cd83d484d1216f341168323f5e354ca",
     "plugins/src/base/hooks/install-pkgs.sh":
       "e9a13faba849a277410dde911ab102ee6f88ef915b33571bb1d4eef904172db5",
+    "plugins/src/base/hooks/operational-hazards.mjs":
+      "f29f1a3a7d48bdcdd8ef1e154361b10577a8ea091c3c0c41b7ece47ffb8dfaa9",
+    "plugins/src/base/hooks/operational-hazards.sh":
+      "d924b576559ea341d1b5bea88a44db7c3bf0b357ed62aab0611e6660ef5f155f",
     "plugins/src/base/hooks/parity-safety-net-heredoc.py":
       "f21b1232ac82bd0e42d2ba43c68f4cc4546334fc885ba31747881f427097ef78",
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
@@ -862,6 +866,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "aff22dd8dfce9b527348c641a996374257fa8a552298713aae524c83858c2aa9",
     "plugins/src/base/rules/eager/not-blocked-just-waiting.md":
       "bd96e3a61bfd9ddf27d88b6cb62948c701b6335e9758a081cd5c1fc63048d9be",
+    "plugins/src/base/rules/eager/operational-hazards.md":
+      "9acb3b13a6b3f7d993c7fc37cf70fa94947119c4d59e6295217cafe9f13c6c58",
     "plugins/src/base/rules/eager/report-actionability.md":
       "7c4d5b2bea93b7cd5bb8694fa7c06f4ca8f94a19eb17832f1ccc5354b0207163",
     "plugins/src/base/rules/eager/security-audit-handling.md":
@@ -950,6 +956,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "bef69d0cefa92e2b8ca589bb27f8e92749140e662d54110e12f0a47890e69f14",
     "plugins/src/base/rules/reference/observability-audit.md":
       "aafba16866a2e8076938bc9a252870dc81ef5f3d3ff9729ad6f6aee8def1cbca",
+    "plugins/src/base/rules/reference/operational-hazards.md":
+      "208c36bdf12b6164573d5d744f1747a3fd5904d9aaf55ec335c9ba884fcd9d17",
     "plugins/src/base/rules/reference/prd-definition-of-ready.md":
       "f5491d0e2e602844e285b05396313a20cf66e096dfc68cef8824eaf8ca643377",
     "plugins/src/base/rules/reference/prd-lifecycle-rollup.md":
@@ -4071,6 +4079,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/hooks/inject-resolved-config.sh": true,
     "plugins/lisa-copilot/hooks/inject-rules.sh": true,
     "plugins/lisa-copilot/hooks/install-pkgs.sh": true,
+    "plugins/lisa-copilot/hooks/operational-hazards.mjs": true,
+    "plugins/lisa-copilot/hooks/operational-hazards.sh": true,
     "plugins/lisa-copilot/hooks/parity-safety-net-heredoc.py": true,
     "plugins/lisa-copilot/hooks/parity-safety-net.sh": true,
     "plugins/lisa-copilot/hooks/secrets-preflight.sh": true,
@@ -4099,6 +4109,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/eager/local-ci-first.md": true,
     "plugins/lisa-copilot/rules/eager/measurement-integrity.md": true,
     "plugins/lisa-copilot/rules/eager/not-blocked-just-waiting.md": true,
+    "plugins/lisa-copilot/rules/eager/operational-hazards.md": true,
     "plugins/lisa-copilot/rules/eager/report-actionability.md": true,
     "plugins/lisa-copilot/rules/eager/security-audit-handling.md": true,
     "plugins/lisa-copilot/rules/eager/session-status-updates.md": true,
@@ -4143,6 +4154,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/reference/measurement-integrity.md": true,
     "plugins/lisa-copilot/rules/reference/not-blocked-just-waiting.md": true,
     "plugins/lisa-copilot/rules/reference/observability-audit.md": true,
+    "plugins/lisa-copilot/rules/reference/operational-hazards.md": true,
     "plugins/lisa-copilot/rules/reference/prd-definition-of-ready.md": true,
     "plugins/lisa-copilot/rules/reference/prd-lifecycle-rollup.md": true,
     "plugins/lisa-copilot/rules/reference/pre-flight-autofill.md": true,
@@ -4542,6 +4554,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/hooks/inject-resolved-config.mjs": true,
     "plugins/lisa-cursor/hooks/inject-resolved-config.sh": true,
     "plugins/lisa-cursor/hooks/install-pkgs.sh": true,
+    "plugins/lisa-cursor/hooks/operational-hazards.mjs": true,
+    "plugins/lisa-cursor/hooks/operational-hazards.sh": true,
     "plugins/lisa-cursor/hooks/parity-safety-net-heredoc.py": true,
     "plugins/lisa-cursor/hooks/parity-safety-net.sh": true,
     "plugins/lisa-cursor/hooks/secrets-preflight.sh": true,
@@ -4604,6 +4618,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/not-blocked-just-waiting-reference.mdc": true,
     "plugins/lisa-cursor/rules/not-blocked-just-waiting.mdc": true,
     "plugins/lisa-cursor/rules/observability-audit-reference.mdc": true,
+    "plugins/lisa-cursor/rules/operational-hazards-reference.mdc": true,
+    "plugins/lisa-cursor/rules/operational-hazards.mdc": true,
     "plugins/lisa-cursor/rules/prd-definition-of-ready-reference.mdc": true,
     "plugins/lisa-cursor/rules/prd-lifecycle-rollup-reference.mdc": true,
     "plugins/lisa-cursor/rules/pre-flight-autofill-reference.mdc": true,
@@ -7140,6 +7156,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/hooks/inject-resolved-config.sh": true,
     "plugins/lisa/hooks/inject-rules.sh": true,
     "plugins/lisa/hooks/install-pkgs.sh": true,
+    "plugins/lisa/hooks/operational-hazards.mjs": true,
+    "plugins/lisa/hooks/operational-hazards.sh": true,
     "plugins/lisa/hooks/parity-safety-net-heredoc.py": true,
     "plugins/lisa/hooks/parity-safety-net.agy.sh": true,
     "plugins/lisa/hooks/parity-safety-net.sh": true,
@@ -7171,6 +7189,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/eager/local-ci-first.md": true,
     "plugins/lisa/rules/eager/measurement-integrity.md": true,
     "plugins/lisa/rules/eager/not-blocked-just-waiting.md": true,
+    "plugins/lisa/rules/eager/operational-hazards.md": true,
     "plugins/lisa/rules/eager/report-actionability.md": true,
     "plugins/lisa/rules/eager/security-audit-handling.md": true,
     "plugins/lisa/rules/eager/session-status-updates.md": true,
@@ -7215,6 +7234,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/reference/measurement-integrity.md": true,
     "plugins/lisa/rules/reference/not-blocked-just-waiting.md": true,
     "plugins/lisa/rules/reference/observability-audit.md": true,
+    "plugins/lisa/rules/reference/operational-hazards.md": true,
     "plugins/lisa/rules/reference/prd-definition-of-ready.md": true,
     "plugins/lisa/rules/reference/prd-lifecycle-rollup.md": true,
     "plugins/lisa/rules/reference/pre-flight-autofill.md": true,
@@ -7798,6 +7818,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/hooks/inject-resolved-config.sh": true,
     "plugins/src/base/hooks/inject-rules.sh": true,
     "plugins/src/base/hooks/install-pkgs.sh": true,
+    "plugins/src/base/hooks/operational-hazards.mjs": true,
+    "plugins/src/base/hooks/operational-hazards.sh": true,
     "plugins/src/base/hooks/parity-safety-net-heredoc.py": true,
     "plugins/src/base/hooks/parity-safety-net.agy.sh": true,
     "plugins/src/base/hooks/parity-safety-net.sh": true,
@@ -7829,6 +7851,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/eager/local-ci-first.md": true,
     "plugins/src/base/rules/eager/measurement-integrity.md": true,
     "plugins/src/base/rules/eager/not-blocked-just-waiting.md": true,
+    "plugins/src/base/rules/eager/operational-hazards.md": true,
     "plugins/src/base/rules/eager/report-actionability.md": true,
     "plugins/src/base/rules/eager/security-audit-handling.md": true,
     "plugins/src/base/rules/eager/session-status-updates.md": true,
@@ -7873,6 +7896,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/reference/measurement-integrity.md": true,
     "plugins/src/base/rules/reference/not-blocked-just-waiting.md": true,
     "plugins/src/base/rules/reference/observability-audit.md": true,
+    "plugins/src/base/rules/reference/operational-hazards.md": true,
     "plugins/src/base/rules/reference/prd-definition-of-ready.md": true,
     "plugins/src/base/rules/reference/prd-lifecycle-rollup.md": true,
     "plugins/src/base/rules/reference/pre-flight-autofill.md": true,
@@ -10096,6 +10120,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/inject-rules.test.ts": true,
     "tests/unit/hooks/install-pkgs-worktree-node-modules.test.ts": true,
     "tests/unit/hooks/lint-on-edit.test.ts": true,
+    "tests/unit/hooks/operational-hazards-wiring.test.ts": true,
+    "tests/unit/hooks/operational-hazards.test.ts": true,
     "tests/unit/hooks/parity-push-gate.test.ts": true,
     "tests/unit/hooks/parity-safety-net-cd-resolution.test.ts": true,
     "tests/unit/hooks/parity-safety-net-credentials.test.ts": true,

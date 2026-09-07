@@ -78,6 +78,7 @@
     "check:merge-drivers": "node scripts/check-merge-driver-registration.mjs",
     "check:failure-signatures": "node plugins/src/base/hooks/failure-signature-index.mjs --check",
     "check:withdrawn-rulings": "node plugins/src/base/hooks/withdrawn-rulings.mjs --check",
+    "check:operational-hazards": "node plugins/src/base/hooks/operational-hazards.mjs --check",
     "check:template-workflow-refs": "node scripts/check-template-workflow-refs.mjs",
     "check:workflow-contract-assertions": "node scripts/check-workflow-contract-assertions.mjs",
     "check:third-party-action-pins": "node scripts/check-third-party-action-pins.mjs",
