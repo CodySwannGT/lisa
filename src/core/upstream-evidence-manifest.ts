@@ -2541,7 +2541,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "ed19944f4182c20a5b6b68c588fea2c8d21d1d2b906d9cfd0054c5835bc1ad64",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "ed6f649d68e2d264ce7f4a5cc6c2db42e6725d30005d7dad98b759801bc14b07",
+      "617f768861e239988100fecfc2195c5aa820f2a2696023263714644fdd111bd3",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "5806cdc3c80757100f0cd24a8cbd3c581f9a381a925f9ebdd1f4d79881e5de2a",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -10415,6 +10415,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/required-check-promotions.wiring.test.ts": true,
     "tests/unit/scripts/review-evidence-check-name.test.ts": true,
     "tests/unit/scripts/review-gate-conditions.test.ts": true,
+    "tests/unit/scripts/review-objection-at-head.test.ts": true,
     "tests/unit/scripts/run-artifact-checks.test.ts": true,
     "tests/unit/scripts/schema-validate-keyword-forms.test.ts": true,
     "tests/unit/scripts/schema-validate-prototype-keywords.test.ts": true,

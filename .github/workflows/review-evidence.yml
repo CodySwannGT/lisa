@@ -209,6 +209,45 @@
 # every single time, and an absent-means-waived gate would pass forever while
 # reporting nothing.
 #
+# AND FOUR STATES, BECAUSE THE DESCRIPTION CANNOT SEPARATE TWO OF THEM (#3706).
+# Everything above is settled by the vendor's status DESCRIPTION, and the
+# description is not a function of whether a review happened. The same string has
+# been measured meaning opposite things on this repository:
+#
+#   success :: "Review rate limited"   nobody read the diff           -> WAIVED
+#   success :: "Review rate limited"   reviewed, posted CHANGES_REQUESTED,
+#                                      found a real defect (#3762)    -> WAIVED
+#
+# A classifier that reads the string collapses those two, and it collapses them
+# PERMISSIVELY: the pull request a reviewer objected to merges on a waiver
+# written for the pull request nobody read. The only surface that separates them
+# is the review OBJECTS, so `--require-review-evidence` now also reads
+# `pulls/{pr}/reviews` and publishes a fourth verdict, OBJECTED, above every
+# state read from a description.
+#
+# MEASURED 2026-09-06, the 60 most recently updated MERGED pull requests here:
+#
+#   Review rate limited   52 of 60          CHANGES_REQUESTED at merged head  2
+#   Review completed       8 of 60          CHANGES_REQUESTED at an older head 2
+#
+# So the population this change moves is the 2 — 3.3% — and on BOTH of them the
+# description was `Review completed`, meaning the gate published `REVIEWED` while
+# a reviewer's objection stood at the merged head. The other 2 objections were
+# stale and are deliberately left alone: counting them would redden pull requests
+# whose authors had already addressed the objection, the false-red direction
+# #3716 and #3720 are about. It does NOT touch the 52 that waive because nothing
+# reviewed them.
+#
+# THE 52 ARE THE POLICY QUESTION, AND IT IS NOT ANSWERED HERE. #3706 asks whether
+# a waiver should escalate after N of them. The gate has always computed the rate
+# and nothing has ever acted on it, so the LEVER now exists —
+# `--waive-rate-escalate=N` republishes a waived verdict as `failure` once the
+# sampled waive count reaches N — and it is DOWN: no workflow in this tree passes
+# it, every waiver still renders `neutral`, and the waiver's report-only severity
+# is untouched, because that severity is the owner's ruling on #3221 and a CLI
+# flag may not repeal it. Setting a number is a human decision, and the run that
+# would be judged by it already prints the rate it would be judged against.
+#
 # STILL NOT A REQUIRED CONTEXT. This job is absent from
 # `.github/required-checks.json`, so a red run here is visible and does not yet
 # block a merge. Promoting it is gated by
