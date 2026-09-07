@@ -95,17 +95,21 @@
     },
     "quality.yml::scripts/lisa-work-item.mjs": {
       "decision": "handshake"
+    },
+    "release.yml::scripts/resolve-published-version-floor.mjs": {
+      "decision": "warranted",
+      "reason": "Verdict-bearing on the release path, and further upstream than its siblings: it does not judge a release after the fact, it CHOOSES the version the release cuts. A copy behind a change to what counts as the floor — the prerelease exclusion, say — picks a different number, and the number is believed by every artifact downstream of it. Not closed here because a handshake on the release path needs its own red-before-green control against a real registry response, which is more than the classification this entry records; the obligation is counted on every run rather than defaulted away."
     }
   },
   "inspected": {
     "workflows": 23,
     "steps": 747,
-    "couplings": 34,
-    "inventory": 78
+    "couplings": 35,
+    "inventory": 79
   },
   "counts": {
     "package-backed": 10,
-    "apply-lagged": 22,
+    "apply-lagged": 23,
     "never-delivered": 0,
     "undelivered": 2
   },
@@ -113,13 +117,13 @@
     "version-handshake": 4,
     "capability-probe": 0,
     "existence-only": 4,
-    "no-probe": 14,
+    "no-probe": 15,
     "unchecked": 2
   },
   "decisionCounts": {
     "handshake": 4,
     "not-needed": 11,
-    "warranted": 9
+    "warranted": 10
   },
   "couplings": [
     {
@@ -651,6 +655,30 @@
         "all/copy-overwrite"
       ],
       "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-work-item.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `version-handshake`. The delivered artifact answers a contract version and the workflow asks for one, so a copy too old to speak the same contract is NAMED rather than silently run. Tokens found: `artifact-declares-version`, `artifact-answers-version`, `step-requests-version`, `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
+    },
+    {
+      "key": "release.yml::scripts/resolve-published-version-floor.mjs",
+      "workflow": "release.yml",
+      "path": "scripts/resolve-published-version-floor.mjs",
+      "channel": "apply",
+      "verdict": "apply-lagged",
+      "remedy": "run-lisa-apply",
+      "guarded": false,
+      "handling": [
+        "else-branch",
+        "exit-nonzero",
+        "error-annotation",
+        "notice-annotation",
+        "failure-suppression"
+      ],
+      "detection": "no-probe",
+      "stalenessSignals": [],
+      "decision": "warranted",
+      "reason": "Verdict-bearing on the release path, and further upstream than its siblings: it does not judge a release after the fact, it CHOOSES the version the release cuts. A copy behind a change to what counts as the floor — the prerelease exclusion, say — picks a different number, and the number is believed by every artifact downstream of it. Not closed here because a handshake on the release path needs its own red-before-green control against a real registry response, which is more than the classification this entry records; the obligation is counted on every run rather than defaulted away.",
+      "lanes": [
+        "all/copy-overwrite"
+      ],
+      "detail": "`release.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/resolve-published-version-floor.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `else-branch`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. None of the staleness tokens this scan can see (`artifact-declares-version`, `artifact-answers-version`, `step-requests-version`, `workflow-requests-version`) were found."
     }
   ]
 }

@@ -27,11 +27,14 @@ import { describe, expect, it } from "vitest";
 
 const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../..");
 const CHECKER = "scripts/check-npm-publish-landed.mjs";
+const FLOOR_RESOLVER = "scripts/resolve-published-version-floor.mjs";
 const PUBLISH_WORKFLOW = "publish-to-npm.yml";
 const DEPLOY_WORKFLOW = "deploy.yml";
+const RELEASE_WORKFLOW = "release.yml";
 const PUBLISH_STEP = "Publish to npm with OIDC";
 const VERIFY_STEP = "Verify the publish reached the registry";
 const SUCCESS_STEP = "Notify on success";
+const DETERMINE_STEP = "Determine Version";
 
 /** Minimal workflow step fields exercised by this contract. */
 interface WorkflowStep {
@@ -255,8 +258,42 @@ const mutablePointerReads = (source: string): string[] =>
         /(?:curl|fetch\()[^\n]*dist-tags/u.test(line)
     );
 
+describe("release.yml chooses its version from an authoritative floor", () => {
+  it("resolves the floor through the shipped resolver, not the npm CLI", async () => {
+    // The step CHOOSES the version the release cuts. Its old input was the
+    // registry's cached mutable pointer, which lags a successful publish by
+    // minutes (CodySwannGT/lisa#3685), so the guard under-corrected inside that
+    // window while still reporting that it had run.
+    const workflow = await readWorkflow(RELEASE_WORKFLOW);
+    const steps = workflow.jobs.version?.steps ?? [];
+    const determine = steps[indexOfStep(steps, DETERMINE_STEP)];
+
+    expect(determine?.run).toContain(FLOOR_RESOLVER);
+  });
+
+  it("refuses the release when the floor cannot be read", async () => {
+    // An unreadable registry is not evidence that nothing is published. The
+    // old code swallowed the failure (`|| true`) and proceeded to choose a
+    // version anyway, which is silent under-correction rather than a guard.
+    const workflow = await readWorkflow(RELEASE_WORKFLOW);
+    const steps = workflow.jobs.version?.steps ?? [];
+    const determine = steps[indexOfStep(steps, DETERMINE_STEP)]?.run ?? "";
+
+    const refusal = determine
+      .split("\n")
+      .findIndex(line => line.includes(FLOOR_RESOLVER));
+    const remainder = determine.split("\n").slice(refusal, refusal + 5);
+
+    expect(refusal).toBeGreaterThan(-1);
+    // The invocation is itself the condition, so a non-zero exit cannot pass
+    // through unnoticed the way `$(... || true)` let the old read do.
+    expect(determine.split("\n")[refusal]).toContain("if !");
+    expect(remainder.some(line => line.includes("exit 1"))).toBe(true);
+  });
+});
+
 describe("the release pipeline never verifies against a mutable tag", () => {
-  it.each([PUBLISH_WORKFLOW, DEPLOY_WORKFLOW])(
+  it.each([PUBLISH_WORKFLOW, DEPLOY_WORKFLOW, RELEASE_WORKFLOW])(
     "%s reads no dist-tag or latest pointer",
     async fileName => {
       // `dist-tags.latest` lags a successful publish by several minutes

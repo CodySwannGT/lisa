@@ -703,8 +703,39 @@ jobs:
             main|master|prod|production)
               PACKAGE_NAME=$(node -p 'require("./package.json").name || ""')
               if [ -n "$PACKAGE_NAME" ]; then
-                PUBLISHED_VERSION=$(npm view "$PACKAGE_NAME" version 2>/dev/null || true)
-                if [ -n "$PUBLISHED_VERSION" ] && npx semver "$PUBLISHED_VERSION" >/dev/null 2>&1; then
+                # This is not a report — it CHOOSES the version the release
+                # cuts, and its whole purpose is to keep that version above what
+                # is already published. It used to ask `npm view <pkg> version`,
+                # which is the registry's cached mutable pointer and lags a
+                # successful publish: measured at ~13 minutes behind a completed
+                # publish (CodySwannGT/lisa#3685). A release cut inside that
+                # window compared against a version that was no longer the
+                # newest, so the loop below under-corrected — and did it
+                # silently, because the guard still reported having run.
+                # Releases here run minutes apart, so the window is routinely
+                # open.
+                #
+                # The floor now comes from the uncached packument's full
+                # `versions` map (see the resolver's module comment), never from
+                # a mutable pointer, and prereleases are excluded so a
+                # non-production `vX.Y.Z-<environment>.<epoch>` release — the
+                # tag scheme introduced by CodySwannGT/lisa#3741 — cannot drag
+                # production's floor upward.
+                #
+                # A registry that cannot be read REFUSES the release. It is not
+                # evidence that nothing is published, and choosing a version
+                # from evidence nobody could read is how two releases pick the
+                # same one.
+                if ! FLOOR_LINE=$(node scripts/resolve-published-version-floor.mjs --package "$PACKAGE_NAME"); then
+                  echo "::error::Refusing to choose a release version: the published version floor for $PACKAGE_NAME could not be read from the registry. Nothing was proved either way, so no version is chosen on the assumption that nothing is published."
+                  echo "❌ Release refused: the published version floor for $PACKAGE_NAME is NOT DETERMINED" >> "$GITHUB_STEP_SUMMARY"
+                  exit 1
+                fi
+                PUBLISHED_VERSION="${FLOOR_LINE##*version=}"
+                if [ "$PUBLISHED_VERSION" = "none" ]; then
+                  PUBLISHED_VERSION=""
+                fi
+                if [ -n "$PUBLISHED_VERSION" ]; then
                   while [ "$(npx semver "$VERSION" "$PUBLISHED_VERSION" | tail -1)" = "$PUBLISHED_VERSION" ]; do
                     echo "::warning::Computed version $VERSION is not above published $PUBLISHED_VERSION; bumping patch"
                     VERSION=$(npx semver -i patch "$PUBLISHED_VERSION")
