@@ -3,6 +3,100 @@
     "quality.yml::scripts/check-learnings-budget.ts": "Lisa-source-only branch, and the else arm is the delivery. The step tests for BOTH scripts/check-learnings-budget.ts and src/core/learnings-budget-check.ts, which co-exist only in this repository; every consumer takes the else arm and runs the prover as `bunx @codyswann/lisa@<their own declared version>`, which is the PACKAGE channel and not a caller-tree read at all. A trailing `grep -qE \"learnings budget (passed|saturated)|no learnings file\"` then refuses a run that printed no verdict, so the arm cannot pass vacuously. Ratified because the caller-tree read is unreachable outside this repository, not because the gap is tolerated.",
     "quality.yml::scripts/generate-nightly-e2e-guard-certificate.mjs": "Lisa-source-only branch. Both reusable jobs require `github.repository == 'CodySwannGT/lisa'` before the step can start, and the run body repeats that exact repository guard before checking this artifact path. Ordinary and private host callers therefore skip the step without reading or fetching from their own tree. The scoped branch fetches only the immutable refs needed to behavior-test Lisa's own retained certificate inputs. Ratified because the caller-tree read is unreachable outside this repository, not because an undelivered host dependency is tolerated."
   },
+  "staleness": {
+    "create-github-issue-on-failure.yml::scripts/nightly-e2e-provider-action.mjs": {
+      "decision": "not-needed",
+      "reason": "Advisory transport, not a verdict. The script files and reconciles a tracker issue about a nightly run that has ALREADY failed; it posts no check context and no job depends on its answer. A superseded copy files a differently-shaped issue, which lands in front of a human who can see it — the visible failure, not the believed-red one this dimension exists to catch. A handshake here would gate issue filing on a version comparison and buy no cover."
+    },
+    "create-jira-issue-on-failure.yml::scripts/nightly-e2e-provider-action.mjs": {
+      "decision": "not-needed",
+      "reason": "Advisory transport, not a verdict. The script files and reconciles a tracker issue about a nightly run that has ALREADY failed; it posts no check context and no job depends on its answer. A superseded copy files a differently-shaped issue, which lands in front of a human who can see it — the visible failure, not the believed-red one this dimension exists to catch. A handshake here would gate issue filing on a version comparison and buy no cover."
+    },
+    "create-linear-issue-on-failure.yml::scripts/nightly-e2e-provider-action.mjs": {
+      "decision": "not-needed",
+      "reason": "Advisory transport, not a verdict. The script files and reconciles a tracker issue about a nightly run that has ALREADY failed; it posts no check context and no job depends on its answer. A superseded copy files a differently-shaped issue, which lands in front of a human who can see it — the visible failure, not the believed-red one this dimension exists to catch. A handshake here would gate issue filing on a version comparison and buy no cover."
+    },
+    "create-sentry-issue-on-failure.yml::scripts/nightly-e2e-provider-action.mjs": {
+      "decision": "not-needed",
+      "reason": "Advisory transport, not a verdict. The script files and reconciles a tracker issue about a nightly run that has ALREADY failed; it posts no check context and no job depends on its answer. A superseded copy files a differently-shaped issue, which lands in front of a human who can see it — the visible failure, not the believed-red one this dimension exists to catch. A handshake here would gate issue filing on a version comparison and buy no cover."
+    },
+    "maestro-native-e2e.yml::scripts/classify-maestro-failures.mjs": {
+      "decision": "not-needed",
+      "reason": "Advisory classifier over a failure that has already happened. The step carries `exit-zero` and `failure-suppression`, and the job's verdict comes from the suite it annotates rather than from this script — a superseded copy mislabels a failure, it cannot invent or suppress one. Not verdict-bearing, so a handshake is cost without cover."
+    },
+    "nightly-e2e-health.yml::scripts/check-nightly-e2e-health.mjs": {
+      "decision": "handshake"
+    },
+    "nightly-e2e-health.yml::scripts/nightly-e2e-suites.schema.json": {
+      "decision": "not-needed",
+      "reason": "Data, not logic: a JSON schema has no branch that can reach a wrong verdict, only a shape that does or does not validate. Its one reader is `scripts/check-nightly-e2e-health.mjs`, which DOES carry a version handshake, so the vintage of the pair is already named in the run output — a second handshake on the schema would restate an answer that is already given."
+    },
+    "nightly-e2e-report.yml::scripts/check-nightly-e2e-health.mjs": {
+      "decision": "handshake"
+    },
+    "nightly-e2e-tracking.yml::scripts/reconcile-nightly-e2e-tracking.mjs": {
+      "decision": "not-needed",
+      "reason": "Advisory transport, not a verdict. The script files and reconciles a tracker issue about a nightly run that has ALREADY failed; it posts no check context and no job depends on its answer. A superseded copy files a differently-shaped issue, which lands in front of a human who can see it — the visible failure, not the believed-red one this dimension exists to catch. A handshake here would gate issue filing on a version comparison and buy no cover."
+    },
+    "publish-to-npm.yml::scripts/check-npm-publish-landed.mjs": {
+      "decision": "warranted",
+      "reason": "Verdict-bearing on the release path: this prover decides whether a publish actually landed, and a superseded copy can report a landed publish that did not, or redden one that did. The evidence it produces is exactly the kind read once and believed. Not closed here because a handshake on the release path needs its own red-before-green control against a real registry response, which is more than the classification this entry exists to record; the obligation is recorded rather than defaulted so it is counted on every run."
+    },
+    "publish-to-npm.yml::scripts/check-release-package-identity.mjs": {
+      "decision": "warranted",
+      "reason": "Verdict-bearing on the release path, same shape as `check-npm-publish-landed.mjs`: it decides whether the artifact about to be published is the one this repository built. A copy behind a major can compare a field that has since changed meaning and pass. Not closed here for the same reason, and counted every run rather than exempted."
+    },
+    "quality-rails.yml::scripts/check-threshold-ratchet.mjs": {
+      "decision": "warranted",
+      "reason": "Verdict-bearing required gate: it compares committed thresholds against measured coverage and posts a red check. A copy predating a threshold-semantics change enforces the old comparison and its red is believed — the precise harm CodySwannGT/lisa#3477 measured on the work-item gate. The artifact exports no contract version yet, so closing this needs the artifact half authored first; recorded as an open obligation rather than exempted."
+    },
+    "quality-rails.yml::scripts/lisa-mutation.sh": {
+      "decision": "not-needed",
+      "reason": "A runner, not a judge. The gate's verdict is mutant's exit code, and what it runs is read from the project's own `mutation.gate.yml` and `.mutant.yml`; this script's own logic decides whether the gate is enabled and what ref to diff against, both of which come from configuration it does not own. A superseded copy runs the wrong subjects loudly rather than returning a wrong verdict quietly."
+    },
+    "quality-rails.yml::scripts/lisa-scratch-run.sh": {
+      "decision": "not-needed",
+      "reason": "A supervisor that hosts a verdict rather than computing one: it owns run-scoped scratch and cleanup around whatever it wraps. Nothing it does can turn a passing suite red or a failing one green — a superseded copy misplaces or fails to reap a scratch directory, which surfaces as its own visible failure rather than as a believed verdict."
+    },
+    "quality-rails.yml::scripts/lisa-work-item.mjs": {
+      "decision": "handshake"
+    },
+    "quality.yml::scripts/check-e2e-coverage.mjs": {
+      "decision": "warranted",
+      "reason": "Verdict-bearing required gate: it computes route coverage against a configured floor and posts a red check every reader believes. A copy predating a change to how routes are enumerated reports a coverage number derived from superseded logic, with nothing in the output naming its vintage. The artifact exports no contract version yet, so closing this needs the artifact half authored first; recorded as an open obligation rather than exempted."
+    },
+    "quality.yml::scripts/check-learnings-budget.ts": {
+      "decision": "not-needed",
+      "reason": "Unreachable outside this repository, and ratified above on that ground: the step tests for two paths that co-exist only here, and every consumer takes the else arm and runs the prover from the PACKAGE channel, whose vintage is their declared dependency version. There is no delivered artifact at this path for a consumer to hold a stale copy of — which is why the detection is `unchecked` rather than a measured negative."
+    },
+    "quality.yml::scripts/check-skipped-required-checks.mjs": {
+      "decision": "warranted",
+      "reason": "Verdict-bearing required gate: it compares skip tokens against the ruleset's required contexts, and the step states that its absence is a failure precisely because a skipped required check reads as satisfied. A superseded copy comparing against a stale notion of the required set is the same false green arriving by the other door. The artifact exports no contract version yet; recorded as an open obligation rather than exempted."
+    },
+    "quality.yml::scripts/check-state-classification.mjs": {
+      "decision": "warranted",
+      "reason": "Verdict-bearing required gate whose subject is classification itself — it decides which states a change is allowed to leave behind. A copy behind a classification change enforces the superseded taxonomy and names states that no longer mean what it thinks. The artifact exports no contract version yet; recorded as an open obligation rather than exempted."
+    },
+    "quality.yml::scripts/check-threshold-ratchet.mjs": {
+      "decision": "warranted",
+      "reason": "Verdict-bearing required gate, the same artifact and the same exposure as the `quality-rails.yml` entry: a copy predating a threshold-semantics change enforces the old comparison and its red is believed. Closing it once closes both couplings, since they read the same script down two stack lanes. The artifact exports no contract version yet; recorded as an open obligation rather than exempted."
+    },
+    "quality.yml::scripts/check-verification-coverage.mjs": {
+      "decision": "warranted",
+      "reason": "Verdict-bearing gate over whether shipped work carries its verification evidence. A superseded copy looks for evidence in a shape the repository has moved off and reports a gap that is not there, or misses one that is. The artifact exports no contract version yet; recorded as an open obligation rather than exempted."
+    },
+    "quality.yml::scripts/generate-nightly-e2e-guard-certificate.mjs": {
+      "decision": "not-needed",
+      "reason": "Unreachable outside this repository, and ratified above on that ground: both reusable jobs require this repository before the step can start, and the run body repeats the guard. No consumer ever reads this path from their own tree, so there is no copy of it anywhere to go stale — which is why the detection is `unchecked` rather than a measured negative."
+    },
+    "quality.yml::scripts/lisa-floor-collisions.mjs": {
+      "decision": "warranted",
+      "reason": "Verdict-bearing gate: it decides whether two declared floors collide and fails the job when they do. A copy predating a change to how a floor is spelled can miss a live collision, and a missed collision is silent by construction. The artifact exports no contract version yet; recorded as an open obligation rather than exempted."
+    },
+    "quality.yml::scripts/lisa-work-item.mjs": {
+      "decision": "handshake"
+    }
+  },
   "inspected": {
     "workflows": 23,
     "steps": 747,
@@ -15,6 +109,18 @@
     "never-delivered": 0,
     "undelivered": 2
   },
+  "detectionCounts": {
+    "version-handshake": 4,
+    "capability-probe": 0,
+    "existence-only": 4,
+    "no-probe": 14,
+    "unchecked": 2
+  },
+  "decisionCounts": {
+    "handshake": 4,
+    "not-needed": 11,
+    "warranted": 9
+  },
   "couplings": [
     {
       "key": "create-github-issue-on-failure.yml::scripts/nightly-e2e-provider-action.mjs",
@@ -25,10 +131,14 @@
       "remedy": "run-lisa-apply",
       "guarded": false,
       "handling": [],
+      "detection": "no-probe",
+      "stalenessSignals": [],
+      "decision": "not-needed",
+      "reason": "Advisory transport, not a verdict. The script files and reconciles a tracker issue about a nightly run that has ALREADY failed; it posts no check context and no job depends on its answer. A superseded copy files a differently-shaped issue, which lands in front of a human who can see it — the visible failure, not the believed-red one this dimension exists to catch. A handshake here would gate issue filing on a version comparison and buy no cover.",
       "lanes": [
         "typescript/copy-overwrite"
       ],
-      "detail": "`create-github-issue-on-failure.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-provider-action.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
+      "detail": "`create-github-issue-on-failure.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-provider-action.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. None of the staleness tokens this scan can see (`artifact-declares-version`, `artifact-answers-version`, `step-requests-version`, `workflow-requests-version`) were found."
     },
     {
       "key": "create-jira-issue-on-failure.yml::scripts/nightly-e2e-provider-action.mjs",
@@ -39,10 +149,14 @@
       "remedy": "run-lisa-apply",
       "guarded": false,
       "handling": [],
+      "detection": "no-probe",
+      "stalenessSignals": [],
+      "decision": "not-needed",
+      "reason": "Advisory transport, not a verdict. The script files and reconciles a tracker issue about a nightly run that has ALREADY failed; it posts no check context and no job depends on its answer. A superseded copy files a differently-shaped issue, which lands in front of a human who can see it — the visible failure, not the believed-red one this dimension exists to catch. A handshake here would gate issue filing on a version comparison and buy no cover.",
       "lanes": [
         "typescript/copy-overwrite"
       ],
-      "detail": "`create-jira-issue-on-failure.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-provider-action.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
+      "detail": "`create-jira-issue-on-failure.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-provider-action.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. None of the staleness tokens this scan can see (`artifact-declares-version`, `artifact-answers-version`, `step-requests-version`, `workflow-requests-version`) were found."
     },
     {
       "key": "create-linear-issue-on-failure.yml::scripts/nightly-e2e-provider-action.mjs",
@@ -53,10 +167,14 @@
       "remedy": "run-lisa-apply",
       "guarded": false,
       "handling": [],
+      "detection": "no-probe",
+      "stalenessSignals": [],
+      "decision": "not-needed",
+      "reason": "Advisory transport, not a verdict. The script files and reconciles a tracker issue about a nightly run that has ALREADY failed; it posts no check context and no job depends on its answer. A superseded copy files a differently-shaped issue, which lands in front of a human who can see it — the visible failure, not the believed-red one this dimension exists to catch. A handshake here would gate issue filing on a version comparison and buy no cover.",
       "lanes": [
         "typescript/copy-overwrite"
       ],
-      "detail": "`create-linear-issue-on-failure.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-provider-action.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
+      "detail": "`create-linear-issue-on-failure.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-provider-action.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. None of the staleness tokens this scan can see (`artifact-declares-version`, `artifact-answers-version`, `step-requests-version`, `workflow-requests-version`) were found."
     },
     {
       "key": "create-sentry-issue-on-failure.yml::scripts/nightly-e2e-provider-action.mjs",
@@ -67,10 +185,14 @@
       "remedy": "run-lisa-apply",
       "guarded": false,
       "handling": [],
+      "detection": "no-probe",
+      "stalenessSignals": [],
+      "decision": "not-needed",
+      "reason": "Advisory transport, not a verdict. The script files and reconciles a tracker issue about a nightly run that has ALREADY failed; it posts no check context and no job depends on its answer. A superseded copy files a differently-shaped issue, which lands in front of a human who can see it — the visible failure, not the believed-red one this dimension exists to catch. A handshake here would gate issue filing on a version comparison and buy no cover.",
       "lanes": [
         "typescript/copy-overwrite"
       ],
-      "detail": "`create-sentry-issue-on-failure.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-provider-action.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
+      "detail": "`create-sentry-issue-on-failure.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-provider-action.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. None of the staleness tokens this scan can see (`artifact-declares-version`, `artifact-answers-version`, `step-requests-version`, `workflow-requests-version`) were found."
     },
     {
       "key": "maestro-native-e2e.yml::scripts/classify-maestro-failures.mjs",
@@ -84,10 +206,14 @@
         "exit-zero",
         "failure-suppression"
       ],
+      "detection": "no-probe",
+      "stalenessSignals": [],
+      "decision": "not-needed",
+      "reason": "Advisory classifier over a failure that has already happened. The step carries `exit-zero` and `failure-suppression`, and the job's verdict comes from the suite it annotates rather than from this script — a superseded copy mislabels a failure, it cannot invent or suppress one. Not verdict-bearing, so a handshake is cost without cover.",
       "lanes": [
         "expo/copy-overwrite"
       ],
-      "detail": "`maestro-native-e2e.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/classify-maestro-failures.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (expo/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `exit-zero`, `failure-suppression` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
+      "detail": "`maestro-native-e2e.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/classify-maestro-failures.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (expo/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `exit-zero`, `failure-suppression` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. None of the staleness tokens this scan can see (`artifact-declares-version`, `artifact-answers-version`, `step-requests-version`, `workflow-requests-version`) were found."
     },
     {
       "key": "nightly-e2e-health.yml::scripts/check-nightly-e2e-health.mjs",
@@ -98,10 +224,18 @@
       "remedy": "run-lisa-apply",
       "guarded": false,
       "handling": [],
+      "detection": "version-handshake",
+      "stalenessSignals": [
+        "artifact-declares-version",
+        "artifact-answers-version",
+        "workflow-requests-version"
+      ],
+      "decision": "handshake",
+      "reason": null,
       "lanes": [
         "typescript/copy-overwrite"
       ],
-      "detail": "`nightly-e2e-health.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-nightly-e2e-health.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
+      "detail": "`nightly-e2e-health.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-nightly-e2e-health.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour. STALENESS (a separate dimension from the delivery verdict above): `version-handshake`. The delivered artifact answers a contract version and the workflow asks for one, so a copy too old to speak the same contract is NAMED rather than silently run. Tokens found: `artifact-declares-version`, `artifact-answers-version`, `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     },
     {
       "key": "nightly-e2e-health.yml::scripts/nightly-e2e-suites.schema.json",
@@ -112,10 +246,16 @@
       "remedy": "run-lisa-apply",
       "guarded": false,
       "handling": [],
+      "detection": "no-probe",
+      "stalenessSignals": [
+        "workflow-requests-version"
+      ],
+      "decision": "not-needed",
+      "reason": "Data, not logic: a JSON schema has no branch that can reach a wrong verdict, only a shape that does or does not validate. Its one reader is `scripts/check-nightly-e2e-health.mjs`, which DOES carry a version handshake, so the vintage of the pair is already named in the run output — a second handshake on the schema would restate an answer that is already given.",
       "lanes": [
         "typescript/copy-overwrite"
       ],
-      "detail": "`nightly-e2e-health.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-suites.schema.json` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
+      "detail": "`nightly-e2e-health.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-suites.schema.json` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     },
     {
       "key": "nightly-e2e-report.yml::scripts/check-nightly-e2e-health.mjs",
@@ -126,10 +266,18 @@
       "remedy": "run-lisa-apply",
       "guarded": false,
       "handling": [],
+      "detection": "version-handshake",
+      "stalenessSignals": [
+        "artifact-declares-version",
+        "artifact-answers-version",
+        "workflow-requests-version"
+      ],
+      "decision": "handshake",
+      "reason": null,
       "lanes": [
         "typescript/copy-overwrite"
       ],
-      "detail": "`nightly-e2e-report.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-nightly-e2e-health.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
+      "detail": "`nightly-e2e-report.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-nightly-e2e-health.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour. STALENESS (a separate dimension from the delivery verdict above): `version-handshake`. The delivered artifact answers a contract version and the workflow asks for one, so a copy too old to speak the same contract is NAMED rather than silently run. Tokens found: `artifact-declares-version`, `artifact-answers-version`, `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     },
     {
       "key": "nightly-e2e-tracking.yml::scripts/reconcile-nightly-e2e-tracking.mjs",
@@ -140,10 +288,14 @@
       "remedy": "run-lisa-apply",
       "guarded": false,
       "handling": [],
+      "detection": "no-probe",
+      "stalenessSignals": [],
+      "decision": "not-needed",
+      "reason": "Advisory transport, not a verdict. The script files and reconciles a tracker issue about a nightly run that has ALREADY failed; it posts no check context and no job depends on its answer. A superseded copy files a differently-shaped issue, which lands in front of a human who can see it — the visible failure, not the believed-red one this dimension exists to catch. A handshake here would gate issue filing on a version comparison and buy no cover.",
       "lanes": [
         "typescript/copy-overwrite"
       ],
-      "detail": "`nightly-e2e-tracking.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/reconcile-nightly-e2e-tracking.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
+      "detail": "`nightly-e2e-tracking.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/reconcile-nightly-e2e-tracking.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. None of the staleness tokens this scan can see (`artifact-declares-version`, `artifact-answers-version`, `step-requests-version`, `workflow-requests-version`) were found."
     },
     {
       "key": "publish-to-npm.yml::scripts/check-npm-publish-landed.mjs",
@@ -154,10 +306,14 @@
       "remedy": "run-lisa-apply",
       "guarded": false,
       "handling": [],
+      "detection": "no-probe",
+      "stalenessSignals": [],
+      "decision": "warranted",
+      "reason": "Verdict-bearing on the release path: this prover decides whether a publish actually landed, and a superseded copy can report a landed publish that did not, or redden one that did. The evidence it produces is exactly the kind read once and believed. Not closed here because a handshake on the release path needs its own red-before-green control against a real registry response, which is more than the classification this entry exists to record; the obligation is recorded rather than defaulted so it is counted on every run.",
       "lanes": [
         "all/copy-overwrite"
       ],
-      "detail": "`publish-to-npm.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-npm-publish-landed.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
+      "detail": "`publish-to-npm.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-npm-publish-landed.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. None of the staleness tokens this scan can see (`artifact-declares-version`, `artifact-answers-version`, `step-requests-version`, `workflow-requests-version`) were found."
     },
     {
       "key": "publish-to-npm.yml::scripts/check-release-package-identity.mjs",
@@ -168,10 +324,14 @@
       "remedy": "run-lisa-apply",
       "guarded": false,
       "handling": [],
+      "detection": "no-probe",
+      "stalenessSignals": [],
+      "decision": "warranted",
+      "reason": "Verdict-bearing on the release path, same shape as `check-npm-publish-landed.mjs`: it decides whether the artifact about to be published is the one this repository built. A copy behind a major can compare a field that has since changed meaning and pass. Not closed here for the same reason, and counted every run rather than exempted.",
       "lanes": [
         "all/copy-overwrite"
       ],
-      "detail": "`publish-to-npm.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-release-package-identity.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
+      "detail": "`publish-to-npm.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-release-package-identity.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. None of the staleness tokens this scan can see (`artifact-declares-version`, `artifact-answers-version`, `step-requests-version`, `workflow-requests-version`) were found."
     },
     {
       "key": "quality-rails.yml::scripts/check-threshold-ratchet.mjs",
@@ -187,11 +347,17 @@
         "exit-nonzero",
         "error-annotation"
       ],
+      "detection": "no-probe",
+      "stalenessSignals": [
+        "workflow-requests-version"
+      ],
+      "decision": "warranted",
+      "reason": "Verdict-bearing required gate: it compares committed thresholds against measured coverage and posts a red check. A copy predating a threshold-semantics change enforces the old comparison and its red is believed — the precise harm CodySwannGT/lisa#3477 measured on the work-item gate. The artifact exports no contract version yet, so closing this needs the artifact half authored first; recorded as an open obligation rather than exempted.",
       "lanes": [
         "rails/copy-overwrite",
         "typescript/copy-overwrite"
       ],
-      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-threshold-ratchet.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-overwrite, typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
+      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-threshold-ratchet.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-overwrite, typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     },
     {
       "key": "quality-rails.yml::scripts/lisa-mutation.sh",
@@ -206,10 +372,16 @@
         "exit-nonzero",
         "error-annotation"
       ],
+      "detection": "existence-only",
+      "stalenessSignals": [
+        "workflow-requests-version"
+      ],
+      "decision": "not-needed",
+      "reason": "A runner, not a judge. The gate's verdict is mutant's exit code, and what it runs is read from the project's own `mutation.gate.yml` and `.mutant.yml`; this script's own logic decides whether the gate is enabled and what ref to diff against, both of which come from configuration it does not own. A superseded copy runs the wrong subjects loudly rather than returning a wrong verdict quietly.",
       "lanes": [
         "rails/copy-contents"
       ],
-      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-mutation.sh` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-contents). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `exit-zero`, `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
+      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-mutation.sh` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-contents). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `exit-zero`, `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `existence-only`. An existence test and no version probe: this coupling can see that the artifact is MISSING and cannot see that it is OLD. A present copy of any vintage runs, and its verdict is believed. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     },
     {
       "key": "quality-rails.yml::scripts/lisa-scratch-run.sh",
@@ -224,10 +396,16 @@
         "exit-nonzero",
         "error-annotation"
       ],
+      "detection": "existence-only",
+      "stalenessSignals": [
+        "workflow-requests-version"
+      ],
+      "decision": "not-needed",
+      "reason": "A supervisor that hosts a verdict rather than computing one: it owns run-scoped scratch and cleanup around whatever it wraps. Nothing it does can turn a passing suite red or a failing one green — a superseded copy misplaces or fails to reap a scratch directory, which surfaces as its own visible failure rather than as a believed verdict.",
       "lanes": [
         "rails/copy-overwrite"
       ],
-      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-scratch-run.sh` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `exit-zero`, `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
+      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-scratch-run.sh` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `exit-zero`, `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `existence-only`. An existence test and no version probe: this coupling can see that the artifact is MISSING and cannot see that it is OLD. A present copy of any vintage runs, and its verdict is believed. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     },
     {
       "key": "quality-rails.yml::scripts/lisa-work-item.mjs",
@@ -244,10 +422,19 @@
         "error-annotation",
         "notice-annotation"
       ],
+      "detection": "version-handshake",
+      "stalenessSignals": [
+        "artifact-declares-version",
+        "artifact-answers-version",
+        "step-requests-version",
+        "workflow-requests-version"
+      ],
+      "decision": "handshake",
+      "reason": null,
       "lanes": [
         "all/copy-overwrite"
       ],
-      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-work-item.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
+      "detail": "`quality-rails.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-work-item.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `version-handshake`. The delivered artifact answers a contract version and the workflow asks for one, so a copy too old to speak the same contract is NAMED rather than silently run. Tokens found: `artifact-declares-version`, `artifact-answers-version`, `step-requests-version`, `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     },
     {
       "key": "quality.yml::scripts/check-e2e-coverage.mjs",
@@ -263,10 +450,16 @@
         "error-annotation",
         "notice-annotation"
       ],
+      "detection": "existence-only",
+      "stalenessSignals": [
+        "workflow-requests-version"
+      ],
+      "decision": "warranted",
+      "reason": "Verdict-bearing required gate: it computes route coverage against a configured floor and posts a red check every reader believes. A copy predating a change to how routes are enumerated reports a coverage number derived from superseded logic, with nothing in the output naming its vintage. The artifact exports no contract version yet, so closing this needs the artifact half authored first; recorded as an open obligation rather than exempted.",
       "lanes": [
         "expo/copy-overwrite"
       ],
-      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-e2e-coverage.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (expo/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-nonzero`, `error-annotation`, `notice-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
+      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-e2e-coverage.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (expo/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-nonzero`, `error-annotation`, `notice-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `existence-only`. An existence test and no version probe: this coupling can see that the artifact is MISSING and cannot see that it is OLD. A present copy of any vintage runs, and its verdict is believed. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     },
     {
       "key": "quality.yml::scripts/check-learnings-budget.ts",
@@ -282,8 +475,14 @@
         "error-annotation",
         "failure-suppression"
       ],
+      "detection": "unchecked",
+      "stalenessSignals": [
+        "workflow-requests-version"
+      ],
+      "decision": "not-needed",
+      "reason": "Unreachable outside this repository, and ratified above on that ground: the step tests for two paths that co-exist only here, and every consumer takes the else arm and runs the prover from the PACKAGE channel, whose vintage is their declared dependency version. There is no delivered artifact at this path for a consumer to hold a stale copy of — which is why the detection is `unchecked` rather than a measured negative.",
       "lanes": [],
-      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-learnings-budget.ts` from the CALLER's tree, and Lisa ships no such path in any delivery lane — no apply and no bump ever produces it. Either the consumer authors it, or whatever the step does where the path is missing runs instead — and that branch is the part this scan does not read. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-nonzero`, `error-annotation`, `failure-suppression` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
+      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-learnings-budget.ts` from the CALLER's tree, and Lisa ships no such path in any delivery lane — no apply and no bump ever produces it. Either the consumer authors it, or whatever the step does where the path is missing runs instead — and that branch is the part this scan does not read. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-nonzero`, `error-annotation`, `failure-suppression` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `unchecked`. Lisa delivers nothing at this path, so there is no artifact to ask whether it could answer a version. The staleness half is UNKNOWN here — not current, and not probe-less. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     },
     {
       "key": "quality.yml::scripts/check-skipped-required-checks.mjs",
@@ -298,10 +497,16 @@
         "exit-nonzero",
         "error-annotation"
       ],
+      "detection": "no-probe",
+      "stalenessSignals": [
+        "workflow-requests-version"
+      ],
+      "decision": "warranted",
+      "reason": "Verdict-bearing required gate: it compares skip tokens against the ruleset's required contexts, and the step states that its absence is a failure precisely because a skipped required check reads as satisfied. A superseded copy comparing against a stale notion of the required set is the same false green arriving by the other door. The artifact exports no contract version yet; recorded as an open obligation rather than exempted.",
       "lanes": [
         "typescript/copy-overwrite"
       ],
-      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-skipped-required-checks.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `exit-zero`, `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
+      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-skipped-required-checks.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `exit-zero`, `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     },
     {
       "key": "quality.yml::scripts/check-state-classification.mjs",
@@ -317,10 +522,16 @@
         "error-annotation",
         "notice-annotation"
       ],
+      "detection": "existence-only",
+      "stalenessSignals": [
+        "workflow-requests-version"
+      ],
+      "decision": "warranted",
+      "reason": "Verdict-bearing required gate whose subject is classification itself — it decides which states a change is allowed to leave behind. A copy behind a classification change enforces the superseded taxonomy and names states that no longer mean what it thinks. The artifact exports no contract version yet; recorded as an open obligation rather than exempted.",
       "lanes": [
         "all/copy-overwrite"
       ],
-      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-state-classification.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-nonzero`, `error-annotation`, `notice-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
+      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-state-classification.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-nonzero`, `error-annotation`, `notice-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `existence-only`. An existence test and no version probe: this coupling can see that the artifact is MISSING and cannot see that it is OLD. A present copy of any vintage runs, and its verdict is believed. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     },
     {
       "key": "quality.yml::scripts/check-threshold-ratchet.mjs",
@@ -336,11 +547,17 @@
         "exit-nonzero",
         "error-annotation"
       ],
+      "detection": "no-probe",
+      "stalenessSignals": [
+        "workflow-requests-version"
+      ],
+      "decision": "warranted",
+      "reason": "Verdict-bearing required gate, the same artifact and the same exposure as the `quality-rails.yml` entry: a copy predating a threshold-semantics change enforces the old comparison and its red is believed. Closing it once closes both couplings, since they read the same script down two stack lanes. The artifact exports no contract version yet; recorded as an open obligation rather than exempted.",
       "lanes": [
         "rails/copy-overwrite",
         "typescript/copy-overwrite"
       ],
-      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-threshold-ratchet.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-overwrite, typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
+      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-threshold-ratchet.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (rails/copy-overwrite, typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     },
     {
       "key": "quality.yml::scripts/check-verification-coverage.mjs",
@@ -351,10 +568,16 @@
       "remedy": "run-lisa-apply",
       "guarded": false,
       "handling": [],
+      "detection": "no-probe",
+      "stalenessSignals": [
+        "workflow-requests-version"
+      ],
+      "decision": "warranted",
+      "reason": "Verdict-bearing gate over whether shipped work carries its verification evidence. A superseded copy looks for evidence in a shape the repository has moved off and reports a gap that is not there, or misses one that is. The artifact exports no contract version yet; recorded as an open obligation rather than exempted.",
       "lanes": [
         "typescript/copy-overwrite"
       ],
-      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-verification-coverage.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour."
+      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-verification-coverage.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     },
     {
       "key": "quality.yml::scripts/generate-nightly-e2e-guard-certificate.mjs",
@@ -368,8 +591,14 @@
         "exit-zero",
         "notice-annotation"
       ],
+      "detection": "unchecked",
+      "stalenessSignals": [
+        "workflow-requests-version"
+      ],
+      "decision": "not-needed",
+      "reason": "Unreachable outside this repository, and ratified above on that ground: both reusable jobs require this repository before the step can start, and the run body repeats the guard. No consumer ever reads this path from their own tree, so there is no copy of it anywhere to go stale — which is why the detection is `unchecked` rather than a measured negative.",
       "lanes": [],
-      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/generate-nightly-e2e-guard-certificate.mjs` from the CALLER's tree, and Lisa ships no such path in any delivery lane — no apply and no bump ever produces it. Either the consumer authors it, or whatever the step does where the path is missing runs instead — and that branch is the part this scan does not read. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `exit-zero`, `notice-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
+      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/generate-nightly-e2e-guard-certificate.mjs` from the CALLER's tree, and Lisa ships no such path in any delivery lane — no apply and no bump ever produces it. Either the consumer authors it, or whatever the step does where the path is missing runs instead — and that branch is the part this scan does not read. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `exit-zero`, `notice-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `unchecked`. Lisa delivers nothing at this path, so there is no artifact to ask whether it could answer a version. The staleness half is UNKNOWN here — not current, and not probe-less. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     },
     {
       "key": "quality.yml::scripts/lisa-floor-collisions.mjs",
@@ -383,10 +612,16 @@
         "exit-nonzero",
         "error-annotation"
       ],
+      "detection": "no-probe",
+      "stalenessSignals": [
+        "workflow-requests-version"
+      ],
+      "decision": "warranted",
+      "reason": "Verdict-bearing gate: it decides whether two declared floors collide and fails the job when they do. A copy predating a change to how a floor is spelled can miss a live collision, and a missed collision is silent by construction. The artifact exports no contract version yet; recorded as an open obligation rather than exempted.",
       "lanes": [
         "all/copy-overwrite"
       ],
-      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-floor-collisions.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
+      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-floor-collisions.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     },
     {
       "key": "quality.yml::scripts/lisa-work-item.mjs",
@@ -403,10 +638,19 @@
         "error-annotation",
         "notice-annotation"
       ],
+      "detection": "version-handshake",
+      "stalenessSignals": [
+        "artifact-declares-version",
+        "artifact-answers-version",
+        "step-requests-version",
+        "workflow-requests-version"
+      ],
+      "decision": "handshake",
+      "reason": null,
       "lanes": [
         "all/copy-overwrite"
       ],
-      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-work-item.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume."
+      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lisa-work-item.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `version-handshake`. The delivered artifact answers a contract version and the workflow asks for one, so a copy too old to speak the same contract is NAMED rather than silently run. Tokens found: `artifact-declares-version`, `artifact-answers-version`, `step-requests-version`, `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     }
   ]
 }

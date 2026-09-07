@@ -46,9 +46,20 @@ function coupling(overrides: Partial<CouplingInput> = {}): CouplingInput {
     packageBacked: false,
     guarded: false,
     handling: [],
+    staleness: [],
+    artifactRead: true,
     ...overrides,
   };
 }
+
+/**
+ * Nothing ratified and nothing decided.
+ *
+ * The staleness decision lives in its own suite; these tests are about the
+ * delivery verdict, and spelling both empty maps at every call site would bury
+ * the field each test actually varies.
+ */
+const UNJUDGED = { ratified: {}, classified: {} } as const;
 
 /** Inspection counts that describe a run which genuinely looked at something. */
 const MEASURED = {
@@ -90,7 +101,7 @@ describe("classifyTwoChannelDelivery verdicts", () => {
     const report = classifyTwoChannelDelivery({
       couplings: [coupling()],
       inspected: MEASURED,
-      ratified: {},
+      ...UNJUDGED,
     });
     expect(report.entries[0]?.verdict).toBe("apply-lagged");
     expect(report.entries[0]?.remedy).toBe("run-lisa-apply");
@@ -100,7 +111,7 @@ describe("classifyTwoChannelDelivery verdicts", () => {
     const report = classifyTwoChannelDelivery({
       couplings: [coupling({ lanes: [CREATE_ONLY_LANE] })],
       inspected: MEASURED,
-      ratified: {},
+      ...UNJUDGED,
     });
     expect(report.entries[0]?.verdict).toBe("never-delivered");
     expect(report.entries[0]?.remedy).toBe("adopt-the-artifact");
@@ -110,7 +121,7 @@ describe("classifyTwoChannelDelivery verdicts", () => {
     const report = classifyTwoChannelDelivery({
       couplings: [coupling({ lanes: [] })],
       inspected: MEASURED,
-      ratified: {},
+      ...UNJUDGED,
     });
     expect(report.entries[0]?.verdict).toBe("undelivered");
     expect(report.entries[0]?.remedy).toBe("author-the-artifact");
@@ -120,7 +131,7 @@ describe("classifyTwoChannelDelivery verdicts", () => {
     const report = classifyTwoChannelDelivery({
       couplings: [coupling({ packageBacked: true, lanes: [CREATE_ONLY_LANE] })],
       inspected: MEASURED,
-      ratified: {},
+      ...UNJUDGED,
     });
     expect(report.entries[0]?.verdict).toBe("package-backed");
     expect(report.entries[0]?.channel).toBe("package");
@@ -136,7 +147,7 @@ describe("classifyTwoChannelDelivery verdicts", () => {
     const report = classifyTwoChannelDelivery({
       couplings: [coupling({ lanes: [], guarded: true })],
       inspected: MEASURED,
-      ratified: {},
+      ...UNJUDGED,
     });
     const detail = report.entries[0]?.detail ?? "";
     expect(detail).not.toContain("SKIPS rather than fails");
@@ -148,7 +159,7 @@ describe("classifyTwoChannelDelivery verdicts", () => {
     const report = classifyTwoChannelDelivery({
       couplings: [coupling({ lanes: [], guarded: true })],
       inspected: MEASURED,
-      ratified: {},
+      ...UNJUDGED,
     });
     const detail = report.entries[0]?.detail ?? "";
     expect(detail).toContain("NOT MEASURED");
@@ -163,7 +174,7 @@ describe("classifyTwoChannelDelivery verdicts", () => {
     const report = classifyTwoChannelDelivery({
       couplings: [coupling({ lanes: [], guarded: false })],
       inspected: MEASURED,
-      ratified: {},
+      ...UNJUDGED,
     });
     const detail = report.entries[0]?.detail ?? "";
     expect(detail).toContain("most likely fails the job loudly");
@@ -180,7 +191,7 @@ describe("classifyTwoChannelDelivery verdicts", () => {
         }),
       ],
       inspected: MEASURED,
-      ratified: {},
+      ...UNJUDGED,
     });
     const detail = report.entries[0]?.detail ?? "";
     expect(detail).toContain(
@@ -195,7 +206,7 @@ describe("classifyTwoChannelDelivery verdicts", () => {
     const report = classifyTwoChannelDelivery({
       couplings: [coupling({ lanes: [], guarded: true, handling: [] })],
       inspected: MEASURED,
-      ratified: {},
+      ...UNJUDGED,
     });
     const detail = report.entries[0]?.detail ?? "";
     for (const name of HANDLING_SIGNALS) {
@@ -209,7 +220,7 @@ describe("classifyTwoChannelDelivery verdicts", () => {
         coupling({ lanes: [], guarded: true, handling: ["else-branch"] }),
       ],
       inspected: MEASURED,
-      ratified: {},
+      ...UNJUDGED,
     });
     expect(guarded.entries[0]?.verdict).toBe("undelivered");
     expect(guarded.entries[0]?.remedy).toBe("author-the-artifact");
@@ -221,7 +232,7 @@ describe("classifyTwoChannelDelivery findings", () => {
     const report = classifyTwoChannelDelivery({
       couplings: [coupling({ lanes: [CREATE_ONLY_LANE] })],
       inspected: MEASURED,
-      ratified: {},
+      ...UNJUDGED,
     });
     expect(report.findings.map(entry => entry.key)).toEqual([PROVER_KEY]);
   });
@@ -233,7 +244,7 @@ describe("classifyTwoChannelDelivery findings", () => {
     const report = classifyTwoChannelDelivery({
       couplings: [coupling()],
       inspected: MEASURED,
-      ratified: {},
+      ...UNJUDGED,
     });
     expect(report.findings).toHaveLength(0);
     expect(report.counts["apply-lagged"]).toBe(1);
@@ -244,6 +255,7 @@ describe("classifyTwoChannelDelivery findings", () => {
       couplings: [coupling({ lanes: [] })],
       inspected: MEASURED,
       ratified: { [PROVER_KEY]: "the else arm runs the packaged copy" },
+      classified: {},
     });
     expect(report.findings).toHaveLength(0);
   });
@@ -256,6 +268,7 @@ describe("classifyTwoChannelDelivery findings", () => {
         [PROVER_KEY]: "still live",
         [`${WORKFLOW}::scripts/deleted.mjs`]: "nothing reads this any more",
       },
+      classified: {},
     });
     expect(report.staleRatifications).toEqual([
       `${WORKFLOW}::scripts/deleted.mjs`,
@@ -266,7 +279,7 @@ describe("classifyTwoChannelDelivery findings", () => {
     const report = classifyTwoChannelDelivery({
       couplings: [coupling()],
       inspected: MEASURED,
-      ratified: {},
+      ...UNJUDGED,
     });
     expect(report.counts).toEqual({
       "package-backed": 0,
@@ -283,7 +296,7 @@ describe("classifyTwoChannelDelivery findings", () => {
         coupling({ path: "scripts/alpha.mjs" }),
       ],
       inspected: MEASURED,
-      ratified: {},
+      ...UNJUDGED,
     });
     expect(report.entries.map(entry => entry.path)).toEqual([
       "scripts/alpha.mjs",
@@ -297,7 +310,7 @@ describe("classifyTwoChannelDelivery refuses to pass on nothing", () => {
     const report = classifyTwoChannelDelivery({
       couplings: [],
       inspected: { workflows: 0, steps: 0, couplings: 0, inventory: 55 },
-      ratified: {},
+      ...UNJUDGED,
     });
     expect(report.measured).toBe(false);
     expect(report.unmeasuredReason).toContain("no reusable workflows");
@@ -307,7 +320,7 @@ describe("classifyTwoChannelDelivery refuses to pass on nothing", () => {
     const report = classifyTwoChannelDelivery({
       couplings: [],
       inspected: { workflows: 23, steps: 0, couplings: 0, inventory: 55 },
-      ratified: {},
+      ...UNJUDGED,
     });
     expect(report.measured).toBe(false);
     expect(report.unmeasuredReason).toContain("no steps");
@@ -320,7 +333,7 @@ describe("classifyTwoChannelDelivery refuses to pass on nothing", () => {
     const report = classifyTwoChannelDelivery({
       couplings: [coupling()],
       inspected: { workflows: 23, steps: 633, couplings: 1, inventory: 0 },
-      ratified: {},
+      ...UNJUDGED,
     });
     expect(report.measured).toBe(false);
     expect(report.unmeasuredReason).toContain("delivery inventory is empty");
@@ -330,7 +343,7 @@ describe("classifyTwoChannelDelivery refuses to pass on nothing", () => {
     const report = classifyTwoChannelDelivery({
       couplings: [],
       inspected: { workflows: 23, steps: 633, couplings: 0, inventory: 55 },
-      ratified: {},
+      ...UNJUDGED,
     });
     expect(report.measured).toBe(false);
     expect(report.unmeasuredReason).toContain(
@@ -345,7 +358,7 @@ describe("classifyTwoChannelDelivery refuses to pass on nothing", () => {
     const report = classifyTwoChannelDelivery({
       couplings: [coupling()],
       inspected: MEASURED,
-      ratified: {},
+      ...UNJUDGED,
     });
     expect(report.measured).toBe(true);
     expect(report.unmeasuredReason).toBeNull();
@@ -357,7 +370,7 @@ describe("classifyTwoChannelDelivery refuses to pass on nothing", () => {
     const report = classifyTwoChannelDelivery({
       couplings: [coupling()],
       inspected: MEASURED,
-      ratified: {},
+      ...UNJUDGED,
     });
     expect(report.inspected).toEqual(MEASURED);
   });

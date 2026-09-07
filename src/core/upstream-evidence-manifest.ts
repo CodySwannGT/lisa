@@ -2329,7 +2329,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-nightly-e2e-guard-certificate.mjs":
       "0407e1e2b98b3f837f4a0cfd85262711dbfa6387ed40f4f9ac81ca447aec2913",
     "scripts/generate-two-channel-couplings.ts":
-      "eeb2373773da025c04480cf5fcb7a60174e06e9fe70e84af40410cf8f7c40e1b",
+      "5fae0ab51a48e45748f5ffd1f5d5641b33e4bf0ebf014f61fdbfb6b66acae04f",
     "scripts/generate-upstream-evidence-manifest.mjs":
       "8f18972834d6be9771501c35da30de95539a7e7b3fb3d7605e0bc31477812a5f",
     "scripts/github-status-check.sh":
@@ -2447,7 +2447,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "2b89499198e2af151bad59a8365035571d47814187d02c66e724ea81b5533137",
+      "6f99f748e01d49a64d644eb0366cdf4d617bce36712107bad090869f9b7304b4",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -9061,6 +9061,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/third-party-action-pins.ts": true,
     "src/core/two-channel-delivery-scan.ts": true,
     "src/core/two-channel-delivery.ts": true,
+    "src/core/two-channel-staleness.ts": true,
     "src/core/upstream-attribution-body.ts": true,
     "src/core/workflow-deletion-ownership.ts": true,
     "src/core/workflow-reference-guard.ts": true,
@@ -9976,6 +9977,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/third-party-action-pins.test.ts": true,
     "tests/unit/core/two-channel-delivery-scan.test.ts": true,
     "tests/unit/core/two-channel-delivery.test.ts": true,
+    "tests/unit/core/two-channel-staleness.test.ts": true,
     "tests/unit/core/update-skill-apply-mode.test.ts": true,
     "tests/unit/core/upstream-attribution-body-hardening.test.ts": true,
     "tests/unit/core/upstream-attribution-body.test.ts": true,

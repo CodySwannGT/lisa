@@ -14,12 +14,23 @@ import {
   isReusable,
   scanWorkflow,
 } from "../../../src/core/two-channel-delivery-scan.js";
+import type { StalenessSignal } from "../../../src/core/two-channel-staleness.js";
 
 /**
  * No lane ships anything, so every scan result is host-only.
  * @returns No lanes
  */
 const NO_LANES = (): readonly string[] => [];
+
+/**
+ * Nothing is delivered at any path, so the artifact half is unknowable.
+ *
+ * `null` rather than `[]`: "no artifact to ask" and "an artifact carrying no
+ * version tokens" are different measurements, and collapsing them is what the
+ * staleness dimension exists to refuse.
+ * @returns No artifact
+ */
+const NO_ARTIFACT = (): readonly StalenessSignal[] | null => null;
 
 /** The lane every fixture's prover is delivered by. */
 const LANE = "all/copy-overwrite";
@@ -110,6 +121,7 @@ describe("scanWorkflow", () => {
       workflow: WORKFLOW,
       text: STEP + RUN_PROVER,
       lanesFor: APPLY_LANE,
+      artifactSignalsFor: NO_ARTIFACT,
     });
     expect(couplings).toHaveLength(1);
     expect(couplings[0]?.path).toBe(PROVER);
@@ -124,6 +136,7 @@ describe("scanWorkflow", () => {
       workflow: WORKFLOW,
       text: `${STEP}        run: node ${PACKAGE_PROVER}\n`,
       lanesFor: APPLY_LANE,
+      artifactSignalsFor: NO_ARTIFACT,
     });
     expect(couplings).toHaveLength(0);
   });
@@ -133,6 +146,7 @@ describe("scanWorkflow", () => {
       workflow: WORKFLOW,
       text: `${STEP}        run: |\n          for c in "${PACKAGE_PROVER}" "${PROVER}"; do :; done\n`,
       lanesFor: APPLY_LANE,
+      artifactSignalsFor: NO_ARTIFACT,
     });
     expect(couplings[0]?.packageBacked).toBe(true);
   });
@@ -145,6 +159,7 @@ describe("scanWorkflow", () => {
       workflow: WORKFLOW,
       text: `${STEP}        run: |\n          echo "node_modules/@codyswann/lisa/dist/core/prover.mjs"\n          node scripts/tools/prover.mjs\n`,
       lanesFor: APPLY_LANE,
+      artifactSignalsFor: NO_ARTIFACT,
     });
     expect(couplings[0]?.packageBacked).toBe(false);
   });
@@ -154,6 +169,7 @@ describe("scanWorkflow", () => {
       workflow: WORKFLOW,
       text: `${STEP}        run: |\n          if [ -f ${PROVER} ]; then node ${PROVER}; fi\n`,
       lanesFor: APPLY_LANE,
+      artifactSignalsFor: NO_ARTIFACT,
     });
     expect(couplings[0]?.guarded).toBe(true);
   });
@@ -163,6 +179,7 @@ describe("scanWorkflow", () => {
       workflow: WORKFLOW,
       text: `${STEP}        if: hashFiles('${PROVER}') != ''\n${RUN_PROVER}`,
       lanesFor: APPLY_LANE,
+      artifactSignalsFor: NO_ARTIFACT,
     });
     expect(couplings[0]?.guarded).toBe(true);
   });
@@ -172,6 +189,7 @@ describe("scanWorkflow", () => {
       workflow: WORKFLOW,
       text: STEP + RUN_PROVER,
       lanesFor: APPLY_LANE,
+      artifactSignalsFor: NO_ARTIFACT,
     });
     expect(couplings[0]?.guarded).toBe(false);
   });
@@ -181,6 +199,7 @@ describe("scanWorkflow", () => {
       workflow: WORKFLOW,
       text: `      - name: 🔍 Look\n        run: test -f ${PROVER}\n${STEP}${RUN_PROVER}`,
       lanesFor: APPLY_LANE,
+      artifactSignalsFor: NO_ARTIFACT,
     });
     expect(couplings).toHaveLength(1);
   });
@@ -193,6 +212,7 @@ describe("scanWorkflow", () => {
       workflow: WORKFLOW,
       text: `      - name: 🔍 Resolve\n        run: node "${PACKAGE_PROVER}"\n${STEP}${RUN_PROVER}`,
       lanesFor: APPLY_LANE,
+      artifactSignalsFor: NO_ARTIFACT,
     });
     expect(couplings).toHaveLength(1);
     expect(couplings[0]?.packageBacked).toBe(false);
@@ -203,6 +223,7 @@ describe("scanWorkflow", () => {
       workflow: WORKFLOW,
       text: `      - name: 🔍 Look\n        run: |\n          if [ -f ${PROVER} ]; then echo yes; fi\n${STEP}${RUN_PROVER}`,
       lanesFor: APPLY_LANE,
+      artifactSignalsFor: NO_ARTIFACT,
     });
     expect(couplings[0]?.guarded).toBe(true);
   });
@@ -212,6 +233,7 @@ describe("scanWorkflow", () => {
       workflow: WORKFLOW,
       text: `${STEP}        run: bun scripts/unshipped.ts\n`,
       lanesFor: NO_LANES,
+      artifactSignalsFor: NO_ARTIFACT,
     });
     expect(couplings[0]?.lanes).toEqual([]);
   });
@@ -233,6 +255,7 @@ describe("scanWorkflow", () => {
         "          fi\n" +
         '          grep -qE "passed" out\n',
       lanesFor: NO_LANES,
+      artifactSignalsFor: NO_ARTIFACT,
     });
     expect(couplings[0]?.guarded).toBe(true);
     expect(couplings[0]?.handling).toEqual([
@@ -252,6 +275,7 @@ describe("scanWorkflow", () => {
         "            exit 0\n" +
         "          fi\n",
       lanesFor: NO_LANES,
+      artifactSignalsFor: NO_ARTIFACT,
     });
     expect(couplings[0]?.handling).toEqual(["exit-zero", "notice-annotation"]);
   });
@@ -261,6 +285,7 @@ describe("scanWorkflow", () => {
       workflow: WORKFLOW,
       text: STEP + RUN_PROVER,
       lanesFor: APPLY_LANE,
+      artifactSignalsFor: NO_ARTIFACT,
     });
     expect(couplings[0]?.handling).toEqual([]);
   });
@@ -270,6 +295,7 @@ describe("scanWorkflow", () => {
       workflow: WORKFLOW,
       text: `${STEP}        continue-on-error: true\n        run: node ${PROVER} || true\n`,
       lanesFor: APPLY_LANE,
+      artifactSignalsFor: NO_ARTIFACT,
     });
     expect(couplings[0]?.guarded).toBe(false);
     expect(couplings[0]?.handling).toEqual(["failure-suppression"]);
@@ -282,6 +308,7 @@ describe("scanWorkflow", () => {
         `      - name: 🔍 Look\n        run: |\n          if [ -f ${PROVER} ]; then exit 0; fi\n` +
         `${STEP}        run: node ${PROVER} || true\n`,
       lanesFor: APPLY_LANE,
+      artifactSignalsFor: NO_ARTIFACT,
     });
     expect(couplings).toHaveLength(1);
     expect(couplings[0]?.handling).toEqual([
@@ -297,6 +324,7 @@ describe("scanWorkflow", () => {
         "      - name: b\n        run: node scripts/zebra.mjs\n" +
         "      - name: a\n        run: node scripts/alpha.mjs\n",
       lanesFor: APPLY_LANE,
+      artifactSignalsFor: NO_ARTIFACT,
     });
     expect(couplings.map(entry => entry.path)).toEqual([
       "scripts/alpha.mjs",

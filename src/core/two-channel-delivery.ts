@@ -64,8 +64,50 @@
  * as unmeasured rather than as a clean sweep. An empty comparison and a
  * converged consumer must not produce the same output — this whole subject is
  * failures that read as normal, and reproducing that here would be perverse.
+ *
+ * ## Absence and staleness are two dimensions, not two values of one
+ *
+ * Everything above is about the read path being ABSENT, and absence is the
+ * benign half: an absent artifact makes a step skip or fail, and neither
+ * outcome is a wrong answer. The harmful half is PRESENT-AND-OLD — a gate that
+ * posts a red required check derived from superseded logic, which every reader
+ * believes (CodySwannGT/lisa#3477).
+ *
+ * So `detection` is a SECOND dimension hung off the same entry rather than an
+ * extra member of `CouplingVerdict`. A coupling can be `apply-lagged` and carry
+ * a version handshake; it can be `package-backed` and carry none. Folding the
+ * two together would force a choice between the questions instead of answering
+ * both.
+ *
+ * The dimension is DERIVED, never declared. What a reader is allowed to record
+ * by hand is the DECISION — whether the staleness half is worth closing here —
+ * and even that is checked against the tree: a decision claiming a handshake
+ * that the delivered artifact and the workflow do not between them show is a
+ * failure, not a note. Silence is the one thing the dimension may never mean:
+ * a coupling whose delivered artifact cannot be read at all is `unchecked`,
+ * said out loud, rather than defaulted to current.
  * @module core/two-channel-delivery
  */
+import {
+  contradictionIn,
+  detectStaleness,
+  malformedIn,
+  stalenessShape,
+  STALENESS_DECISIONS,
+  STALENESS_DETECTIONS,
+  type StalenessDecision,
+  type StalenessDetection,
+  type StalenessRecord,
+  type StalenessSignal,
+} from "./two-channel-staleness.js";
+
+export type {
+  StalenessDecision,
+  StalenessDetection,
+  StalenessRecord,
+  StalenessSignal,
+} from "./two-channel-staleness.js";
+
 /**
  * How one artifact reaches a consumer that already exists.
  *
@@ -211,6 +253,24 @@ export interface CouplingInput {
    * reader completing the sentence the scan refuses to complete.
    */
   readonly handling: readonly HandlingSignal[];
+  /**
+   * Literal staleness-probe tokens found for this coupling.
+   *
+   * Evidence for the second dimension, held to the same rule as `handling`: a
+   * name means the characters were found where the name says to look. The
+   * artifact-side names are exact for this path; the workflow-side one is
+   * workflow-scoped and says so in its own name.
+   */
+  readonly staleness: readonly StalenessSignal[];
+  /**
+   * Whether any delivered artifact was available at this path to inspect.
+   *
+   * False is NOT "the artifact has no version probe" — it is "there was no
+   * artifact to ask". The two must not collapse: one is a measurement, the
+   * other is the absence of one, and reporting the second as the first is the
+   * defect this module is named after.
+   */
+  readonly artifactRead: boolean;
 }
 
 /** One coupling, its verdict, and the evidence behind it. */
@@ -223,6 +283,12 @@ export interface CouplingEntry extends CouplingInput {
   readonly verdict: CouplingVerdict;
   /** The action this verdict calls for. */
   readonly remedy: CouplingRemedy;
+  /** What this coupling can tell about the artifact's AGE. Derived. */
+  readonly detection: StalenessDetection;
+  /** The recorded decision about the staleness half, or null if none was. */
+  readonly decision: StalenessDecision | null;
+  /** The reason recorded beside that decision, or null. */
+  readonly reason: string | null;
   /** One operator-readable sentence. */
   readonly detail: string;
 }
@@ -262,6 +328,32 @@ export interface TwoChannelReport {
    * which is how an allowlist added to harden a guard becomes the bypass.
    */
   readonly staleRatifications: readonly string[];
+  /** How many LEDGERED entries carry each detection. Every key is present. */
+  readonly detectionCounts: Readonly<Record<StalenessDetection, number>>;
+  /** How many LEDGERED entries carry each decision. Every key is present. */
+  readonly decisionCounts: Readonly<Record<StalenessDecision, number>>;
+  /** How many ledgered entries the run classified, the tally's denominator. */
+  readonly classifiable: number;
+  /**
+   * Ledgered couplings with no recorded staleness decision.
+   *
+   * The forcing function. A derived detection arrives free for entry 24; the
+   * decision does not, and this is what refuses the entry until somebody makes
+   * one.
+   */
+  readonly unclassified: readonly string[];
+  /** Recorded decisions the tree refuses to support, one sentence each. */
+  readonly contradictions: readonly string[];
+  /** Recorded decisions that are unusable as written, one sentence each. */
+  readonly malformed: readonly string[];
+  /**
+   * Staleness decisions matching no live coupling.
+   *
+   * Reported for the same reason a stale ratification is: a decision about a
+   * coupling that no longer exists is an unexamined exemption the next
+   * matching path inherits for free.
+   */
+  readonly staleClassifications: readonly string[];
   /** False when the run did not actually measure anything. */
   readonly measured: boolean;
   /** Why the run measured nothing, or null when it measured something. */
@@ -396,20 +488,30 @@ function byKey(left: Keyed, right: Keyed): number {
 /**
  * Turn one raw coupling into a classified entry.
  * @param input - The coupling
+ * @param classified - Recorded staleness decisions, keyed `<workflow>::<path>`
  * @returns The entry
  */
-function toEntry(input: CouplingInput): CouplingEntry {
+function toEntry(
+  input: CouplingInput,
+  classified: Readonly<Record<string, StalenessRecord>>
+): CouplingEntry {
   const channel = input.packageBacked
     ? CHANNEL_PACKAGE
     : resolveDeliveryChannel(input.lanes);
   const verdict = verdictFor(input, channel);
+  const key = `${input.workflow}::${input.path}`;
+  const detection = detectStaleness(input);
+  const record = classified[key];
   return {
     ...input,
-    key: `${input.workflow}::${input.path}`,
+    key,
     channel,
     verdict,
     remedy: REMEDIES[verdict],
-    detail: detailFor(input, verdict),
+    detection,
+    decision: record?.decision ?? null,
+    reason: record?.reason ?? null,
+    detail: `${detailFor(input, verdict)} ${stalenessShape(input, detection)}`,
   };
 }
 
@@ -446,18 +548,28 @@ function unmeasuredReasonFor(inspected: InspectionCounts): string | null {
  * @param options.couplings - Every caller-tree path read that was found
  * @param options.inspected - What the run looked at
  * @param options.ratified - Ratification reasons, keyed `<workflow>::<path>`
+ * @param options.classified - Staleness decisions, keyed `<workflow>::<path>`
  * @returns The measurement
  */
 export function classifyTwoChannelDelivery(options: {
   couplings: readonly CouplingInput[];
   inspected: InspectionCounts;
   ratified: Readonly<Record<string, string>>;
+  classified: Readonly<Record<string, StalenessRecord>>;
 }): TwoChannelReport {
-  const { couplings, inspected, ratified } = options;
-  const entries = couplings.map(toEntry).sort(byKey);
+  const { couplings, inspected, ratified, classified } = options;
+  const entries = couplings
+    .map(input => toEntry(input, classified))
+    .sort(byKey);
   const unrestorable = entries.filter(entry => UNRESTORABLE.has(entry.verdict));
   const live = new Set(unrestorable.map(entry => entry.key));
   const unmeasuredReason = unmeasuredReasonFor(inspected);
+  // The staleness dimension is asked of the LEDGERED couplings only. A
+  // package-backed step is covered by the fast channel and is not written to
+  // the ledger, so requiring a hand-authored decision for one would demand a
+  // sentence about an entry no reader can see.
+  const ledgered = entries.filter(entry => entry.verdict !== PACKAGE_BACKED);
+  const ledgeredKeys = new Set(ledgered.map(entry => entry.key));
   return {
     entries,
     counts: Object.fromEntries(
@@ -470,6 +582,31 @@ export function classifyTwoChannelDelivery(options: {
     findings: unrestorable.filter(entry => !Object.hasOwn(ratified, entry.key)),
     staleRatifications: Object.keys(ratified)
       .filter(key => !live.has(key))
+      .sort((left, right) => left.localeCompare(right)),
+    detectionCounts: Object.fromEntries(
+      STALENESS_DETECTIONS.map(detection => [
+        detection,
+        ledgered.filter(entry => entry.detection === detection).length,
+      ])
+    ) as Record<StalenessDetection, number>,
+    decisionCounts: Object.fromEntries(
+      STALENESS_DECISIONS.map(decision => [
+        decision,
+        ledgered.filter(entry => entry.decision === decision).length,
+      ])
+    ) as Record<StalenessDecision, number>,
+    classifiable: ledgered.length,
+    unclassified: ledgered
+      .filter(entry => entry.decision === null)
+      .map(entry => entry.key),
+    contradictions: ledgered
+      .map(contradictionIn)
+      .filter((sentence): sentence is string => sentence !== null),
+    malformed: ledgered
+      .map(malformedIn)
+      .filter((sentence): sentence is string => sentence !== null),
+    staleClassifications: Object.keys(classified)
+      .filter(key => !ledgeredKeys.has(key))
       .sort((left, right) => left.localeCompare(right)),
     measured: unmeasuredReason === null,
     unmeasuredReason,

@@ -39,6 +39,14 @@
  *   - a ratification matching no live coupling, because a permission left
  *     behind after its subject is gone is inherited for free by the next path
  *     that happens to match;
+ *   - a ledgered coupling with no recorded STALENESS decision (#3687) — the
+ *     one field a new coupling cannot be added without, because its detection
+ *     is derived and therefore free while the decision costs a sentence;
+ *   - a staleness decision the tree refuses to support, in either direction:
+ *     a claimed handshake nothing shows, or an exemption on a coupling that
+ *     already has one;
+ *   - a staleness decision matching no live coupling, for the same reason a
+ *     stale ratification fails;
  *   - `--check` against a stale ledger;
  *   - and any run that measured nothing.
  *
@@ -82,6 +90,13 @@ import {
   isReusable,
   scanWorkflow,
 } from "../src/core/two-channel-delivery-scan.js";
+import {
+  artifactStalenessSignals,
+  STALENESS_DECISIONS,
+  STALENESS_DETECTIONS,
+  type StalenessRecord,
+  type StalenessSignal,
+} from "../src/core/two-channel-staleness.js";
 
 /** Where the fast channel's bodies live in this repository. */
 const WORKFLOWS_DIR = path.join(".github", "workflows");
@@ -231,8 +246,18 @@ export function buildDeliveryInventory(
 /** The ledger's hand-authored half plus its derived half. */
 interface Ledger {
   readonly ratified: Readonly<Record<string, string>>;
+  /**
+   * The staleness decision recorded for each ledgered coupling.
+   *
+   * Hand-authored, and required. The DETECTION beside each coupling below is
+   * derived from the tree on every run; this is the half a person has to
+   * answer, which is what stops entry 24 from inheriting "nobody looked".
+   */
+  readonly staleness: Readonly<Record<string, StalenessRecord>>;
   readonly inspected: TwoChannelReport["inspected"];
   readonly counts: TwoChannelReport["counts"];
+  readonly detectionCounts: TwoChannelReport["detectionCounts"];
+  readonly decisionCounts: TwoChannelReport["decisionCounts"];
   readonly couplings: readonly {
     readonly key: string;
     readonly workflow: string;
@@ -242,9 +267,26 @@ interface Ledger {
     readonly remedy: string;
     readonly guarded: boolean;
     readonly handling: readonly string[];
+    readonly detection: string;
+    readonly stalenessSignals: readonly string[];
+    readonly decision: string | null;
+    readonly reason: string | null;
     readonly lanes: readonly string[];
     readonly detail: string;
   }[];
+}
+
+/**
+ * The ledger as it currently stands, or an empty one when there is none.
+ * @param ledgerPath - Absolute path to the ledger
+ * @returns Whatever the file holds, unvalidated
+ */
+function readLedger(ledgerPath: string): Partial<Ledger> {
+  if (!existsSync(ledgerPath)) return {};
+  return (
+    (JSON.parse(readFileSync(ledgerPath, "utf8")) as Partial<Ledger> | null) ??
+    {}
+  );
 }
 
 /**
@@ -253,11 +295,18 @@ interface Ledger {
  * @returns The ratification reasons, keyed `<workflow>::<path>`
  */
 function readRatified(ledgerPath: string): Readonly<Record<string, string>> {
-  if (!existsSync(ledgerPath)) return {};
-  const parsed = JSON.parse(readFileSync(ledgerPath, "utf8")) as
-    | Partial<Ledger>
-    | undefined;
-  return parsed?.ratified ?? {};
+  return readLedger(ledgerPath).ratified ?? {};
+}
+
+/**
+ * Read the staleness decisions already recorded.
+ * @param ledgerPath - Absolute path to the ledger
+ * @returns The decisions, keyed `<workflow>::<path>`
+ */
+function readClassified(
+  ledgerPath: string
+): Readonly<Record<string, StalenessRecord>> {
+  return readLedger(ledgerPath).staleness ?? {};
 }
 
 /**
@@ -273,12 +322,16 @@ function readRatified(ledgerPath: string): Readonly<Record<string, string>> {
  */
 function toLedger(
   report: TwoChannelReport,
-  ratified: Readonly<Record<string, string>>
+  ratified: Readonly<Record<string, string>>,
+  classified: Readonly<Record<string, StalenessRecord>>
 ): Ledger {
   return {
     ratified,
+    staleness: classified,
     inspected: report.inspected,
     counts: report.counts,
+    detectionCounts: report.detectionCounts,
+    decisionCounts: report.decisionCounts,
     couplings: report.entries
       .filter(entry => entry.verdict !== "package-backed")
       .map(entry => ({
@@ -290,6 +343,10 @@ function toLedger(
         remedy: entry.remedy,
         guarded: entry.guarded,
         handling: entry.handling,
+        detection: entry.detection,
+        stalenessSignals: entry.staleness,
+        decision: entry.decision,
+        reason: entry.reason,
         lanes: entry.lanes,
         detail: entry.detail,
       })),
@@ -304,11 +361,27 @@ function toLedger(
 export function measure(root: string): {
   readonly report: TwoChannelReport;
   readonly ratified: Readonly<Record<string, string>>;
+  readonly classified: Readonly<Record<string, StalenessRecord>>;
 } {
   const workflowsDir = path.join(root, WORKFLOWS_DIR);
   const inventory = buildDeliveryInventory(root);
   const lanesFor = (callerPath: string): readonly string[] =>
     inventory.get(callerPath) ?? [];
+  const artifactSignalsFor = (
+    callerPath: string
+  ): readonly StalenessSignal[] | null => {
+    const lanes = lanesFor(callerPath);
+    // No lane ships this path, so there is no artifact to ask. Returning [] —
+    // "it carries no version tokens" — would be the same bytes as a measured
+    // negative, which is the exact collapse this ledger exists to refuse.
+    if (lanes.length === 0) return null;
+    const signals = lanes.flatMap(lane =>
+      artifactStalenessSignals(
+        readFileSync(path.join(root, lane, callerPath), "utf8")
+      )
+    );
+    return [...new Set(signals)];
+  };
   const names = existsSync(workflowsDir)
     ? readdirSync(workflowsDir)
         .filter(name => name.endsWith(".yml") || name.endsWith(".yaml"))
@@ -327,6 +400,7 @@ export function measure(root: string): {
       workflow: entry.name,
       text: entry.text,
       lanesFor,
+      artifactSignalsFor,
     }),
   }));
   const couplings: readonly CouplingInput[] = scanned.flatMap(
@@ -342,8 +416,10 @@ export function measure(root: string): {
         inventory: inventory.size,
       },
       ratified: readRatified(path.join(root, LEDGER_PATH)),
+      classified: readClassified(path.join(root, LEDGER_PATH)),
     }),
     ratified: readRatified(path.join(root, LEDGER_PATH)),
+    classified: readClassified(path.join(root, LEDGER_PATH)),
   };
 }
 
@@ -372,7 +448,64 @@ function humanReport(report: TwoChannelReport): string {
         `inherit. Delete it from ${LEDGER_PATH}.`
     )
     .join("");
-  return `${header}\n${verdicts}${findings}${stale}`;
+  return `${header}\n${verdicts}\n${stalenessReport(report)}${findings}${stale}`;
+}
+
+/**
+ * The staleness half of the report: the fleet tally and anything unanswered.
+ *
+ * Every line carries its denominator. "10 can detect staleness" is a number
+ * somebody can believe without knowing whether it is out of 12 or out of 700,
+ * and a coverage figure nobody can size is the shape of report this repository
+ * has been burned by before.
+ * @param report - The measurement
+ * @returns The staleness section
+ */
+function stalenessReport(report: TwoChannelReport): string {
+  const total = report.classifiable;
+  const handshakes = report.detectionCounts["version-handshake"];
+  const probes = report.detectionCounts["capability-probe"];
+  const blind =
+    report.detectionCounts["existence-only"] +
+    report.detectionCounts["no-probe"];
+  const unchecked = report.detectionCounts.unchecked;
+  const headline =
+    `staleness detection: ${handshakes}/${total} coupling(s) can detect a stale ` +
+    `artifact (version handshake); ${probes}/${total} detect it at one capability ` +
+    `floor only; ${blind}/${total} detect absence at most and never age; ` +
+    `${unchecked}/${total} could not be checked (nothing is delivered at the path, ` +
+    `so there is no artifact to ask).`;
+  const detections = STALENESS_DETECTIONS.map(
+    detection => `  ${detection}: ${report.detectionCounts[detection]}`
+  ).join("\n");
+  const decisions = STALENESS_DECISIONS.map(
+    decision => `  decision ${decision}: ${report.decisionCounts[decision]}`
+  ).join("\n");
+  const unclassified = report.unclassified
+    .map(
+      key =>
+        `\nUNCLASSIFIED ${key}\n  No staleness decision is recorded for this ` +
+        `coupling. Its detection is derived on every run and costs nobody ` +
+        `anything; the decision is the half a person has to make. Add an entry ` +
+        `under "staleness" in ${LEDGER_PATH} with a decision of ` +
+        `${STALENESS_DECISIONS.join(" | ")} and, unless it is \`handshake\`, a reason.`
+    )
+    .join("");
+  const contradictions = report.contradictions
+    .map(sentence => `\nCONTRADICTED DECISION ${sentence}`)
+    .join("");
+  const malformed = report.malformed
+    .map(sentence => `\nMALFORMED DECISION ${sentence}`)
+    .join("");
+  const staleDecisions = report.staleClassifications
+    .map(
+      key =>
+        `\nSTALE STALENESS DECISION ${key}\n  Nothing reads this path any more, ` +
+        `so the decision is an unexamined exemption the next matching path would ` +
+        `inherit. Delete it from ${LEDGER_PATH}.`
+    )
+    .join("");
+  return `${headline}\n${detections}\n${decisions}${unclassified}${contradictions}${malformed}${staleDecisions}`;
 }
 
 /**
@@ -386,7 +519,7 @@ export function main(argv: readonly string[]): number {
     process.stderr.write(`error: --root does not exist: ${options.root}\n`);
     return EXIT_OPERATIONAL;
   }
-  const { report, ratified } = measure(options.root);
+  const { report, ratified, classified } = measure(options.root);
   process.stdout.write(
     `${options.json ? JSON.stringify(report, null, 2) : humanReport(report)}\n`
   );
@@ -399,7 +532,7 @@ export function main(argv: readonly string[]): number {
     return EXIT_OPERATIONAL;
   }
   const ledgerPath = path.join(options.root, LEDGER_PATH);
-  const rendered = `${JSON.stringify(toLedger(report, ratified), null, 2)}\n`;
+  const rendered = `${JSON.stringify(toLedger(report, ratified, classified), null, 2)}\n`;
   const current = existsSync(ledgerPath)
     ? readFileSync(ledgerPath, "utf8")
     : "";
@@ -418,6 +551,10 @@ export function main(argv: readonly string[]): number {
   const failed =
     report.findings.length > 0 ||
     report.staleRatifications.length > 0 ||
+    report.unclassified.length > 0 ||
+    report.contradictions.length > 0 ||
+    report.malformed.length > 0 ||
+    report.staleClassifications.length > 0 ||
     ledgerStale;
   return failed ? 1 : 0;
 }
