@@ -19,6 +19,28 @@ Reads `linear.workspace`, `linear.teamKey` from `.lisa.config.json` (with `.loca
 1. **An existing Linear identifier** (e.g. `ENG-123` for an Issue, or `<workspace>/project/<slug>-<id>` for a Project): fetch and validate the live state.
 2. **A proposed item spec** (YAML block, see schema below): validate as-is without touching Linear.
 
+### Standalone entry point — validating an item written by another path
+
+Input form 1 is a **supported entry point in its own right**, not only an internal step of a
+caller flow. Point this skill at any existing item — however it was written, including by a
+bespoke script, a direct API or GraphQL call, or the vendor's own web UI — and it fetches the
+live state and runs the full gate set against it.
+
+Copy-pasteable, via the Skill tool:
+
+```text
+Skill(skill: "lisa-linear-validate-issue", args: "ENG-123")
+```
+
+where the argument is an Issue identifier such as `ENG-123`, or a Project URL. The report it returns is the same structured PASS/FAIL
+report the write path consumes, so a bespoke write path can discharge both the pre-write
+validate and the post-write verify obligation with it (see the bespoke-path section of
+`lisa-linear-write-issue`).
+
+This skill is plugin-resident. It is invoked through the Skill tool and is **not** expected to
+appear in any repository's `scripts/` directory; not finding a shell script by this name is
+not evidence that the capability is absent.
+
 ### Spec schema
 
 ```yaml

@@ -15,6 +15,28 @@ Run all organizational quality gates against an issue spec OR an existing issue.
 1. **An existing issue ref** (`org/repo#<number>` or `https://github.com/<org>/<repo>/issues/<number>`): fetch it and validate the live state. Use this for post-write checks.
 2. **A proposed issue spec** (YAML block, see schema below): validate as-is without touching GitHub. Use this for pre-write and dry-run checks.
 
+### Standalone entry point — validating an item written by another path
+
+Input form 1 is a **supported entry point in its own right**, not only an internal step of a
+caller flow. Point this skill at any existing item — however it was written, including by a
+bespoke script, a direct API or GraphQL call, or the vendor's own web UI — and it fetches the
+live state and runs the full gate set against it.
+
+Copy-pasteable, via the Skill tool:
+
+```text
+Skill(skill: "lisa-github-validate-issue", args: "CodySwannGT/lisa#3663")
+```
+
+where the argument is an issue ref such as `CodySwannGT/lisa#3663`, or the full issue URL. The report it returns is the same structured PASS/FAIL
+report the write path consumes, so a bespoke write path can discharge both the pre-write
+validate and the post-write verify obligation with it (see the bespoke-path section of
+`lisa-github-write-issue`).
+
+This skill is plugin-resident. It is invoked through the Skill tool and is **not** expected to
+appear in any repository's `scripts/` directory; not finding a shell script by this name is
+not evidence that the capability is absent.
+
 ### Spec schema
 
 Specs are passed as a fenced YAML block. Required keys depend on `issue_type`.
