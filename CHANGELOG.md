@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.50.4](https://github.com/CodySwannGT/lisa/compare/v4.50.3...v4.50.4) (2026-09-07)
+
+
+### Bug Fixes
+
+* **gates:** let the removal gate run when its pinned baseline came detached ([c966bfa](https://github.com/CodySwannGT/lisa/commit/c966bfa06e8960af48d147c632fa418f892e51c2)), closes [CodySwannGT/lisa#3719](https://github.com/CodySwannGT/lisa/issues/3719) [CodySwannGT/lisa#3488](https://github.com/CodySwannGT/lisa/issues/3488) [CodySwannGT/lisa#3893](https://github.com/CodySwannGT/lisa/issues/3893) [#3719](https://github.com/CodySwannGT/lisa/issues/3719) [CodySwannGT/lisa#4047](https://github.com/CodySwannGT/lisa/issues/4047)
+
 ### [4.50.3](https://github.com/CodySwannGT/lisa/compare/v4.50.2...v4.50.3) (2026-09-06)
 
 
