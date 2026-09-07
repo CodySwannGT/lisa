@@ -29,6 +29,7 @@ import { checkSerializeLegsContract } from "./doctor-serialize-legs-contract.js"
 import { checkApplyFailure } from "./doctor-apply-failure.js";
 import { checkProjectType } from "./doctor-project-type.js";
 import { checkRailsDeployIntent } from "./doctor-rails-deploy-intent.js";
+import { checkStaleManagedBanner } from "./doctor-stale-managed-banner.js";
 import { checkOverrideFloorConflicts } from "./doctor-override-floor-conflicts.js";
 import { renderDoctorResult } from "./doctor-render.js";
 import type { GateReport } from "./gate-report-types.js";
@@ -396,6 +397,16 @@ export async function runDoctor(
     // signal of any kind — the dead-code gate it skewed reports SUCCESS
     // (CodySwannGT/lisa#3711).
     await checkCdkPresetAdoption(resolvedTarget),
+    // Fifth, and the inverse of the first. That check walks the templates Lisa
+    // SHIPS and asks whether this project's copies are current; a template
+    // removed upstream leaves that loop entirely, so the copy left behind is
+    // never visited again and keeps telling every reader — human and agent —
+    // that Lisa replaces it and a local fix is pointless. This walks the other
+    // direction: the files on disk that CLAIM Lisa manages them, asking which
+    // of those claims the installed package still backs. A proposal to remove
+    // one such orphaned workflow was declined on the strength of the false
+    // banner (CodySwannGT/lisa#3703).
+    await checkStaleManagedBanner(resolvedTarget),
     await checkReusableWorkflowRefs(resolvedTarget),
     // Immediately after the ref check, because both read the same caller
     // workflows and an operator editing one wants both findings together. This
