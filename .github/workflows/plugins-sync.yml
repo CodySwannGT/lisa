@@ -96,6 +96,19 @@ jobs:
         run: |
           git fetch --tags --quiet --no-recurse-submodules
           bun run check:template-workflow-refs
+      # #3698 is the sibling half of the check above. That one proves the
+      # reference RESOLVES; this one proves the consumer can tell when what it
+      # resolves to has changed. Under the @main ruling a single push here alters
+      # what gates and what ships in every downstream repo at once, with no PR
+      # and no record there — and an unchanged workflow and a rewritten one
+      # produce identical silence. Each reusable declares a contract major, each
+      # caller template is seeded with it, and this gate refuses a template that
+      # takes the `uses:` line and drops the assertion, which would look
+      # perfectly healthy while measuring nothing. Same reasoning as its
+      # neighbours for staying out of the shared registry. Offline: tracked YAML
+      # and one JSON registry, nothing resolved upstream.
+      - name: Check reusable-workflow contract assertions are seeded
+        run: bun run check:workflow-contract-assertions
       # #3585: every THIRD-PARTY action was referenced by a mutable ref, so the
       # bytes that executed were chosen at job start by asking a repository we
       # do not control what its branch or tag points at right now. Thirteen of

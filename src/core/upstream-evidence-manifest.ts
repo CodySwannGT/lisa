@@ -95,7 +95,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/create-only/.agents/rules/README.md":
       "fd260fd9b2934d0d698a8098dfff07fedc071849d588e602d773666678c3d540",
     "all/create-only/.github/workflows/continuous-gates.yml":
-      "48c410a6547d4b7a5af332fec5f3c0be97ee9eb03418398a35d05c85e3354fbc",
+      "d4b3aa4eeefec7fba06587aa596f7d4df1bed58b9613b49a9a97f71821c8a937",
     "all/create-only/.lisaignore":
       "735dc0a28a19e3aebc3d71b1ddf8b077e96ab17013d0f1c49d87c08558a315df",
     "all/create-only/scripts/remote-agent-aws-setup.sh":
@@ -135,9 +135,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/copy-overwrite/vitest.config.ts":
       "c7f309d4f43d9188b9c067cb4900b2bdbacfbd28d135a6a2e6313cb0a37b030f",
     "cdk/create-only/.github/workflows/ci.yml":
-      "7bd00500e4afe02cbf93f2fe3ee054cd0d9fdce53857de84d5034f9f7c8deaf8",
+      "8fcb76bf30212a391f7c57d0d43d0f5a0a79836cdd309cab0e0b06837af68b14",
     "cdk/create-only/.github/workflows/deploy.yml":
-      "f32ec7eecc7451812213fc66f1a6fa4b360137c586d47ede06747f04eb557251",
+      "2b988460f6ad4d2a6f69e4854da17b6cac855bf3af4c9d0e17bdbe1144512136",
     "cdk/create-only/cdk.json":
       "f89030d8fe145a1dbabd59d89ddee4e16984f222d737f7fcf6b778d911e9fe40",
     "cdk/create-only/stryker.conf.json":
@@ -285,21 +285,21 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/required-checks.json":
       "5296c296ce3f59db5e8eaebb36a1c378d4b58c2339e9343a8b29575060de230a",
     "expo/create-only/.github/workflows/ci.yml":
-      "5ea18b202fd952a79996e310fd933a2ac741d5e639b4d15224276e7e285f91ba",
+      "d343dc43f290b56a1391a78489b32cbf91c79812d376f7d23fb4ad874e55bdb6",
     "expo/create-only/.github/workflows/deploy.yml":
-      "ac842bf930d40b4314ce0678c08902d0efc372273608d34fc2bebb5f271026e8",
+      "2932198efbbb1bbcd93d5d9d228a15301cd390cc53d8e2a488e5fd5f4ec67be8",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
-      "917d1918f3bff9b4c19db3f9a9bd6fd1d7c5d3db0947dacec3f4797c692632d6",
+      "8d95742b6aba4ad0d4fdb688548ff0b3933828ab911441d46562fcee9bfa427e",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
       "02c9ddf80eaaec34eae35abf70cc8f39a7c6e43245cd742421acc188ea59b208",
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
-      "a486f7e0a5b0f8ed8899d5f5154850db97c9f9d88db8cb0e81d73fcaa4c7f13e",
+      "560d40504494ca7d98a99dbe27535f91aceff19e8f98b51ddf9a8f24f559e535",
     "expo/create-only/.github/workflows/nightly-e2e-report.yml":
-      "6c2cdc22f0da74329ba4eb39f1b4ea8d9e6bf73924f0f874ac4453308b4e51c8",
+      "002f9a3bb88e1ff964195f413e385313c6d6f868e6d003b787663903d6bbd3a9",
     "expo/create-only/.github/workflows/nightly-e2e-tracking.yml":
-      "7a1bd451b7abe7d7f5b8ea63f65f80a7f4258125b656ae3a6757d5bb54c92ef2",
+      "b1b181a8362c6891480f8e333ca5f7fdd29f6dbc4973d07fd0b70592ba16e881",
     "expo/create-only/.github/workflows/playwright-e2e.yml":
-      "4910275b5c295719e10baa88e8ddb14fc1082a368f3eecd83f4612abb62821b7",
+      "2d54cbd374b3ecde53e1f76469b98c4d1621659ea08155acca6ab076253d77fc",
     "expo/create-only/.maestro/flake-classification.json":
       "8a9469ac2d3b7cb885b4a48ea2dc942aa4ad5deb1a12b05818f62811cac6b0d5",
     "expo/create-only/.zap/baseline.conf":
@@ -351,7 +351,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/copy-contents/gitignore":
       "d091c40fd0ea3068491f1be0d6510090ae872ca95d0d058ef4595d6492d13897",
     "harper-fabric/copy-overwrite/.github/workflows/ci.yml":
-      "1fef0b72f890869e656dbe3b9463c83725ea8ca8e24e50b58d93c68502603fd0",
+      "ccef2ec19da13266bf47c44e1de9bdac4afc65c60037b8e3f4c43e20b3b7f9cd",
     "harper-fabric/copy-overwrite/ast-grep/rules/harper/no-early-return-in-search-loop.yml":
       "8b9f1c93ebdd4f760978df01b166de90a78e751f7b4c907bded98f2862b4ac01",
     "harper-fabric/copy-overwrite/ast-grep/rules/harper/no-empty-conditions-with-sort.yml":
@@ -371,7 +371,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/copy-overwrite/vitest.config.ts":
       "94ee60be0e9a4b735cf1b053143751c9968465ff04fb59fbdfc252e7413ff337",
     "harper-fabric/create-only/.github/workflows/deploy.yml":
-      "ba46d5767b6b1f68b71de5ad6c80b759b7c8b03bc25fd52b1a698cfed51fd03f",
+      "ffe74236f7896488c041f46c63d43a7b31f9ba45b9c8d47b47326888386f3ef9",
     "harper-fabric/create-only/.github/workflows/zap-baseline.yml":
       "068d8bea3d2ccf4fca97b8d3f8f23734b9feb37b3faea6d5a10ed219e0cc783b",
     "harper-fabric/create-only/.zap/baseline.conf":
@@ -453,9 +453,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/required-checks.json":
       "9c776b13295cd07ce18984d3fbfee5a33af5e7c2ce9045cd1cb5fc478b256634",
     "nestjs/create-only/.github/workflows/ci.yml":
-      "aba5d0d7b7eafcd0ceb4d6c6a9fa205d5473fed937cfc86012559bcb11258f9b",
+      "fb85b8dc792dfc493c532cddb305a86255c7442881653ff3a4ddb8cd25bece7e",
     "nestjs/create-only/.github/workflows/deploy.yml":
-      "73aefeb215445c2fdc969c2345342e15840890750922755601c3a9a0bfc6c0d4",
+      "05be9690eebf55fa740bbb4f27c0f4f9f0759e1f0e125fecd6a13bfc3651ab05",
     "nestjs/create-only/.zap/baseline.conf":
       "a7cd559b014555ef2efe7a6ce129384ec376ce4d66d5bc3ae9e2f3f883172c4d",
     "nestjs/create-only/scripts/zap-baseline.sh":
@@ -497,7 +497,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/copy-contents/gitignore":
       "4b8d1a5817d35f64f5d4859f9184ebe2e1dc42e63f8e9269fff233e2ec258d6c",
     "phaser/copy-overwrite/.github/workflows/ci.yml":
-      "5640ec1c9b317e40749b8994487c24ad8123ebff66a2773696ad95f9b1c047b0",
+      "d5e2561c51b95bf12bbd566e7a95b2609041bc59d5932f50b3a088fc765b3769",
     "phaser/copy-overwrite/.husky/pre-push.verify":
       "d03bc6d18e20c368d37abd4d1000589cbbfb67afab0ad58da4f18ed73ec65ee9",
     "phaser/copy-overwrite/ast-grep/rule-tests/.gitkeep":
@@ -2181,9 +2181,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/sgconfig.yml":
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "rails/create-only/.github/workflows/ci.yml":
-      "924375bcfcb8c13f546a7e323cf5ad99cee1427d3ba90386680db16b981e5ab4",
+      "5aa2401acc1373afd0b9a114f7fd6b5904b3fcbaa2940f8eb527b2ce5ddf23f8",
     "rails/create-only/.github/workflows/deploy.yml":
-      "c769346cb4adae9460c472dd8c1426b0daf3ab9f05adfaeee8a41723cb2885e2",
+      "50b3266ec38a9cca83236b486b2e545a88cb67f244fd7d531db8e2680081aac4",
     "rails/create-only/.mise.toml":
       "28be5746256a30ad2260da7d37244cc461f8963ce5d5a81ddce71b48f0ab6ef0",
     "rails/create-only/.mutant.yml":
@@ -2271,7 +2271,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-state-classification.mjs":
       "26baaa85c0758fa41f1f66257f7d3a31ea4dd5cf17a9c0acaa3e89caaaf6265a",
     "scripts/check-template-workflow-refs.mjs":
-      "89176394a933d0a42c39ab1805a45e782a2f3e1893d707ac1afb439062397088",
+      "bf26be3a1c1556a22b218914704cd9f3ef2b26de721b3e961d5a21ddc8141efe",
     "scripts/check-test-case-executed.mjs":
       "99c4e0f4544f67c920d787fe6a7fb801ac37c591b6392791b4e3d1802bec5359",
     "scripts/check-third-party-action-pins.mjs":
@@ -2282,6 +2282,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "82a5ed89ae830482dbaab99e2f8eeededcde60a7dd6ac145f191b4ac8394c85b",
     "scripts/check-whole-output-guards.mjs":
       "bb3c959fe67a6f481a9b8442a5a9a51a49599b4efd8fbefe3329fdf5c96b9c02",
+    "scripts/check-workflow-contract-assertions.mjs":
+      "ea31f1ddaf2cea36177dc1415e8dd5e324b2c36d26453c43f4ae100cbf68471d",
     "scripts/check-workflow-package-paths.mjs":
       "d057c7666ad048cfbd11a1ef83ad1e13fb1c61a9d399ec83221c99c4256728a1",
     "scripts/claude-remote-setup.sh":
@@ -2445,7 +2447,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "05a51054d6c913dfe20179488bacb2b10f967435331ea055fb26e21f35758236",
+      "2b89499198e2af151bad59a8365035571d47814187d02c66e724ea81b5533137",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -2462,6 +2464,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "b8ac0240726721a047811e98d42f661426abc3e427a0c86f3b20082eb498809d",
     "scripts/verify-packed-learnings-contract.mjs":
       "2227b32f3b3dc2dc6817a60b4998b64881c03e30ecd15cb52b6d6f95a5870613",
+    "scripts/workflow-contract-assertion.sh":
+      "191b5e766e1defb3bee3befbc8354abd9a46d3989eede7a420cd8893885df137",
     "tsconfig/base.json":
       "d04a105ec81aa9dc69d230d4a83406d920c305b6fc13c641ebafde0c41fc658f",
     "tsconfig/build.json":
@@ -2583,7 +2587,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/.github/required-checks.json":
       "01f5b7d8587adc21e85f525b57ac04a8143427459d95b48b616216eca54a73df",
     "typescript/create-only/.github/workflows/ci.yml":
-      "409799708fe51716f3c8228950db3bb26864f43a01a9e6186f6d3d1970e29f2d",
+      "bece1fdb51209ad6dd5e45d20b8f77bb746458d5df955806827d332d49d65f8e",
     "typescript/create-only/.github/workflows/review-evidence.yml":
       "b36a14a96aeed26b5a7b072236e2f971a55aabbba998ca5b7575200a758a5d05",
     "typescript/create-only/.github/workflows/third-party-review-evidence.yml":
@@ -2711,6 +2715,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/pull_request_template.md": true,
     ".github/required-check-promotions.json": true,
     ".github/required-checks.json": true,
+    ".github/reusable-workflow-contracts.json": true,
     ".github/workflow-package-floor.json": true,
     ".github/workflows/build.yml": true,
     ".github/workflows/ci.yml": true,
@@ -8601,6 +8606,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-typecheck-tests.mjs": true,
     "scripts/check-ui-demo-data.mjs": true,
     "scripts/check-whole-output-guards.mjs": true,
+    "scripts/check-workflow-contract-assertions.mjs": true,
     "scripts/check-workflow-package-paths.mjs": true,
     "scripts/claude-remote-setup.sh": true,
     "scripts/clean-dist.mjs": true,
@@ -8691,6 +8697,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/verify-health-deterministic-built.mjs": true,
     "scripts/verify-learner-frontmatter-built.mjs": true,
     "scripts/verify-packed-learnings-contract.mjs": true,
+    "scripts/workflow-contract-assertion.sh": true,
     "sgconfig.yml": true,
     "shipped-removals.json": true,
     "spec/tasc-0.1-draft.md": true,
@@ -10241,6 +10248,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/check-typecheck-tests.test.ts": true,
     "tests/unit/scripts/check-ui-demo-data.test.ts": true,
     "tests/unit/scripts/check-whole-output-guards.test.ts": true,
+    "tests/unit/scripts/check-workflow-contract-assertions.test.ts": true,
     "tests/unit/scripts/check-workflow-package-contracts.test.ts": true,
     "tests/unit/scripts/check-workflow-package-paths.test.ts": true,
     "tests/unit/scripts/cleanup-worktrees-apply.test.ts": true,
@@ -10479,6 +10487,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-tracker-unreachable.test.ts": true,
     "tests/unit/scripts/work-item-trailer-definition.test.ts": true,
     "tests/unit/scripts/work-item-unreachable-ancestry.test.ts": true,
+    "tests/unit/scripts/workflow-contract-assertion.test.ts": true,
     "tests/unit/secrets/automation-workflow.test.ts": true,
     "tests/unit/secrets/aws-bootstrap-derivation.test.ts": true,
     "tests/unit/secrets/aws-bootstrap-publication-budget.test.ts": true,

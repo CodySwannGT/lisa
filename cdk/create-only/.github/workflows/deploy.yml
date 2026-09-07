@@ -84,6 +84,13 @@ jobs:
     uses: CodySwannGT/lisa/.github/workflows/gates.yml@main
     needs: [determine_environment]
     with:
+      # Travels with the `uses:` line above — the two are one unit. Lisa's
+      # reusable workflows are tracked at `@main`, so that file changes under
+      # this repository with no pull request here. This is the contract major it
+      # spoke when Lisa seeded this file; the run fails loudly if it has since
+      # declared a break, and says NOT DETERMINED if this line goes missing
+      # (CodySwannGT/lisa#3698).
+      expected_workflow_contract_major: '1'
       moment: pre-deploy:${{ needs.determine_environment.outputs.environment }}
       node_version: '22.21.1'
       package_manager: 'npm'
@@ -99,6 +106,13 @@ jobs:
       contents: write
       pull-requests: read
     with:
+      # Travels with the `uses:` line above — the two are one unit. Lisa's
+      # reusable workflows are tracked at `@main`, so that file changes under
+      # this repository with no pull request here. This is the contract major it
+      # spoke when Lisa seeded this file; the run fails loudly if it has since
+      # declared a break, and says NOT DETERMINED if this line goes missing
+      # (CodySwannGT/lisa#3698).
+      expected_workflow_contract_major: '1'
       environment: ${{ needs.determine_environment.outputs.environment }}
       release_strategy: 'standard-version'
       skip_jobs: 'test:e2e,test:integration'
@@ -128,6 +142,13 @@ jobs:
     needs: [determine_environment, release]
     if: ${{ always() && !cancelled() && needs.release.result == 'success' }}
     with:
+      # Travels with the `uses:` line above — the two are one unit. Lisa's
+      # reusable workflows are tracked at `@main`, so that file changes under
+      # this repository with no pull request here. This is the contract major it
+      # spoke when Lisa seeded this file; the run fails loudly if it has since
+      # declared a break, and says NOT DETERMINED if this line goes missing
+      # (CodySwannGT/lisa#3698).
+      expected_workflow_contract_major: '1'
       moment: post-deploy:${{ needs.determine_environment.outputs.environment }}
       node_version: '22.21.1'
       package_manager: 'npm'
