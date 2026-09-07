@@ -454,22 +454,29 @@ branch — operate on it the same way.
   ```sh
   base=$(gh pr view <pr> --json baseRefName --jq .baseRefName)
   head=$(gh pr view <pr> --json headRefOid --jq .headRefOid)
-  git fetch --quiet origin "$base" && git fetch --quiet origin "pull/<pr>/head"
-  git merge-tree --write-tree "origin/$base" "$head" >/dev/null; trial=$?
+  git fetch --quiet origin "$base" "pull/<pr>/head" || readable=no
+  git rev-parse --verify --quiet "origin/$base^{commit}" >/dev/null || readable=no
+  git rev-parse --verify --quiet "$head^{commit}" >/dev/null || readable=no
+  out=$(git merge-tree --write-tree "origin/$base" "$head" 2>/dev/null); code=$?
   ```
 
   `merge-tree --write-tree` merges into the object store only — no working tree, no index and no
-  branch is touched — so it is safe inside an unattended scanner. Read `trial` as **three** states,
-  and the third is not optional:
+  branch is touched — so it is safe inside an unattended scanner.
 
-  - `trial == 1` → **CONFLICTED**. A real external blocker. Unlike the other classes below, a
-    conflict is **resolvable by re-running the build**, so step 5 gives it one in-place re-dispatch
-    before filing — see its conflict-first rule.
-  - `trial == 0` → **CLEAN**. Not a blocker, whatever the API said. Write nothing, leave the item
+  **Read the exit code together with stdout; the exit code alone cannot separate the three states.**
+  Measured on git 2.53.0: a trial naming a ref that does not exist exits `1`, the same code a genuine
+  conflict returns, printing nothing on stdout and `merge-tree: <ref> - not something we can merge`
+  on stderr. A trial that ran always prints the resulting tree OID on its first line; one that could
+  not run prints nothing. Three states, and the third is not optional:
+
+  - `code == 1` **and** `$out` non-empty → **CONFLICTED**. A real external blocker. Unlike the other
+    classes below, a conflict is **resolvable by re-running the build**, so step 5 gives it one
+    in-place re-dispatch before filing — see its conflict-first rule.
+  - `code == 0` → **CLEAN**. Not a blocker, whatever the API said. Write nothing, leave the item
     `claimed`, and let a later cycle re-ask.
-  - anything else, or a fetch that failed → **NOT DETERMINED**. The trial could not run — a missing
-    ref, an unreachable remote, a git older than 2.38 — which is an absence of evidence, not a
-    verdict. Write nothing, file nothing, leave the item `claimed`, and record it as
+  - `readable=no`, `$out` empty, or any other exit → **NOT DETERMINED**. The trial could not run — an
+    unresolvable ref, an unreachable remote, a git older than 2.38 — which is an absence of evidence,
+    not a verdict. Write nothing, file nothing, leave the item `claimed`, and record it as
     `not_determined` in the run summary so a later cycle re-asks.
 
   `gh pr update-branch` (step 3) reporting a conflict it cannot apply also counts as CONFLICTED —

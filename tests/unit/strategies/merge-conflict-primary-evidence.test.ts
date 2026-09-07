@@ -63,6 +63,10 @@ describe.each(CASES)(
       expect(content).toContain("baseRefName");
       expect(content).toContain("headRefOid");
       expect(flat).toMatch(/git fetch [^;]*origin/u);
+      // A trial against a ref that was never fetched exits 1 with an empty
+      // stdout, so resolving both sides first is what makes the third state
+      // reachable at all.
+      expect(content).toContain("git rev-parse --verify");
     });
 
     it("demotes the computed fields to hints", () => {
@@ -85,6 +89,17 @@ describe.each(CASES)(
     it("distinguishes all three outcomes by name", () => {
       expect(content).toContain("CONFLICTED");
       expect(content).toContain("CLEAN");
+    });
+
+    it("does not let the exit code alone decide CONFLICTED", () => {
+      // Measured on git 2.53.0: `git merge-tree --write-tree a <missing-ref>`
+      // exits 1 with an empty stdout — the same code a genuine conflict
+      // returns. Branching on the code alone swaps GitHub's cached field for a
+      // local command that is wrong in the same direction, and looks like
+      // proof while doing it. The tree OID on stdout is the discriminator.
+      expect(flat).toMatch(/not something we can merge/u);
+      expect(flat).toMatch(/exit code[^.]{0,80}(?:together with|alone)/iu);
+      expect(flat).toMatch(/tree OID/u);
     });
 
     it("does not treat a bare DIRTY as sufficient to enter the conflict path", () => {

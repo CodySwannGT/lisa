@@ -717,8 +717,10 @@ at the moment of asking — a merge trial against the actual base:
 ```sh
 base=$(gh pr view <pr> --json baseRefName --jq .baseRefName)
 head=$(gh pr view <pr> --json headRefOid --jq .headRefOid)
-git fetch --quiet origin "$base" && git fetch --quiet origin "pull/<pr>/head"
-git merge-tree --write-tree "origin/$base" "$head" >/dev/null; trial=$?
+git fetch --quiet origin "$base" "pull/<pr>/head" || readable=no
+git rev-parse --verify --quiet "origin/$base^{commit}" >/dev/null || readable=no
+git rev-parse --verify --quiet "$head^{commit}" >/dev/null || readable=no
+out=$(git merge-tree --write-tree "origin/$base" "$head" 2>/dev/null); code=$?
 ```
 
 `git merge-tree --write-tree` performs a real three-way merge into the object
@@ -726,20 +728,28 @@ store. It touches no working tree, no index and no branch, so it is safe to run
 mid-loop on a dirty checkout — which is why it, and not a scratch clone or a
 throwaway `git merge`, is the trial this skill runs.
 
-Read `trial` as **three** states, never two:
+**Read the exit code together with stdout. The exit code alone cannot tell you
+which of the three states you are in.** Measured on git 2.53.0: a trial naming a
+ref that does not exist exits `1` — the very same code a genuine conflict
+returns — printing nothing on stdout and `merge-tree: <ref> - not something we
+can merge` on stderr. The discriminator is stdout: a trial that *ran* always
+prints the resulting tree OID on its first line, and one that could not run
+prints nothing at all.
 
-| `trial` | State | What to do |
+| Outcome | State | What to do |
 |---|---|---|
-| `1` | **CONFLICTED** | Enter the resolution path below. |
-| `0` | **CLEAN** | Do **not** enter it, whatever `mergeStateStatus` says. |
-| anything else, or a fetch that failed | **NOT DETERMINED** | Neither. Re-fetch and retry once; if it is still unreadable, report `not_determined` and let the next loop iteration ask again. |
+| `readable=no`, or `$out` empty | **NOT DETERMINED** | Neither path. Re-fetch and retry once; if it is still unreadable, report `not_determined` and let the next loop iteration ask again. |
+| `code == 0` | **CLEAN** | Do **not** enter the resolution path, whatever `mergeStateStatus` says. |
+| `code == 1` and `$out` non-empty | **CONFLICTED** | Enter the resolution path below. |
+| anything else | **NOT DETERMINED** | As the first row. |
 
-The third state is the one that gets collapsed. `merge-tree` exits greater than
-`1` when it could not run at all — a missing ref, an unreachable remote, a fork
-head that was never fetched, a git older than 2.38 that has no `--write-tree` —
-and that is an *absence of evidence*, not evidence of either answer. Reading it
-as CLEAN skips a real conflict; reading it as CONFLICTED reproduces the defect
-this check exists to remove.
+The third state is the one that gets collapsed, and reaching for the exit code
+by itself is exactly how. An unresolvable ref, an unreachable remote, a fork
+head that was never fetched, a git older than 2.38 with no `--write-tree`: each
+is an *absence of evidence*, not evidence of either answer. Reading it as CLEAN
+skips a real conflict; reading it as CONFLICTED reproduces the defect this check
+exists to remove — with a local command standing in for the cached field, which
+is worse, because it looks like proof.
 
 Measured (#3694): same field, same moment, two branches — GitHub reported
 `DIRTY` for **both**, and the trial exited `0` for one and `1` for the other. A
