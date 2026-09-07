@@ -2249,7 +2249,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-shell-guard-refusal-coverage.mjs":
       "95e4086965dde95d0aa17cb3db64a94c9e2d21822039aaf89aad4a8acc99689e",
     "scripts/check-shipped-surface-removals.mjs":
-      "c6d1cb1c15254202977602e28b85e5cd0eef0ccdce849dcf5ff74299fd59adef",
+      "726eb1f77a567f958b78bc75b95df2146eaffde7e0964b1e50023d4421d7004b",
     "scripts/check-state-classification.mjs":
       "26baaa85c0758fa41f1f66257f7d3a31ea4dd5cf17a9c0acaa3e89caaaf6265a",
     "scripts/check-template-workflow-refs.mjs":

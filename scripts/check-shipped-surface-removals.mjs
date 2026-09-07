@@ -280,32 +280,177 @@ export function loadLedger(root) {
   return { baseline, removals };
 }
 
+/** A release tag, as this repository spells one. */
+const RELEASE_TAG = /^v\d+\.\d+\.\d+$/u;
+
+/**
+ * Whether a commit is an ancestor of HEAD, which is what makes `ref..HEAD` a
+ * release history rather than an arbitrary pair of commits.
+ *
+ * @param {string} root - repository root.
+ * @param {string} rev - the revision to test.
+ * @returns {boolean} true when `rev` is reachable from HEAD.
+ */
+function isAncestorOfHead(root, rev) {
+  try {
+    boundedExecFileSync(
+      "git",
+      ["-C", root, "merge-base", "--is-ancestor", rev, "HEAD"],
+      { stdio: "ignore" }
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The OLDEST release tag reachable from HEAD, or null when there is none.
+ *
+ * Oldest, not newest, and the difference decides whether this gate proves
+ * anything. Measured on this repository the day the configured baseline came
+ * detached: 1779 tags exist, 141 are reachable, the newest reachable is the
+ * release commit HEAD itself sits on — so a newest-first rule yields a window
+ * of ZERO commits and a confident pass over nothing examined. The oldest
+ * reachable tag yields 1030. A baseline is an anchor, so when the configured
+ * anchor is gone the honest substitute is the earliest one still standing, not
+ * the nearest.
+ *
+ * `--merged HEAD` is the ancestry filter, so every candidate is already a legal
+ * baseline; ordering only decides how much history the window covers.
+ *
+ * @param {string} root - repository root.
+ * @returns {string | null} the tag name, or null when no release tag is reachable.
+ */
+export function oldestReachableReleaseTag(root) {
+  const listed = git(
+    root,
+    ["tag", "--merged", "HEAD", "--sort=creatordate"],
+    "could not list tags reachable from HEAD"
+  );
+  const tags = listed
+    .split("\n")
+    .map(line => line.trim())
+    .filter(line => RELEASE_TAG.test(line));
+  return tags[0] ?? null;
+}
+
 /**
  * Resolve the baseline ref, refusing anything this gate cannot compare against.
  *
+ * The configured baseline is used verbatim whenever it is reachable, and this
+ * function behaves then exactly as it always has. It gained a fallback because
+ * a history rewrite detached the pinned tag: `v4.0.0` still resolves to a
+ * commit and is no longer an ancestor of `main`, so every invocation threw and
+ * `test-correctness` — a required PUSH gate — refused every branch in the
+ * repository. The gate was not wrong about anything; it could not run.
+ * CodySwannGT/lisa#4047, and CodySwannGT/lisa#3719 records the same rewrite
+ * breaking a different ancestry-walking gate.
+ *
+ * The fallback does not loosen the gate. Three ways it stays strict:
+ *
+ *   - it substitutes only when the configured baseline is UNREACHABLE, never
+ *     when it merely produces findings;
+ *   - a substituted baseline is named in the report, with the ref it replaced,
+ *     so a reader is never told a window they did not ask for is the one they
+ *     configured; and
+ *   - an EMPTY window is refused. A baseline equal to HEAD compares nothing,
+ *     and "nothing examined" must never render as "nothing wrong" — that is
+ *     the failure this gate exists to prevent, one level up.
+ *
+ * Re-anchoring the tag is deliberately not the fix. Moving a published tag
+ * breaks every consumer pinned at a commit that belonged to it
+ * (CodySwannGT/lisa#3488, CodySwannGT/lisa#3893).
+ *
  * @param {string} root - repository root.
  * @param {string} ref - the requested baseline.
- * @returns {string} the resolved commit sha.
+ * @param {boolean} [mayFallBack] - true only for the ledger's configured pin.
+ *   An explicit `--since` never falls back: a stale pin is nobody's decision
+ *   and a typed argument is somebody's, so answering a different window than
+ *   the one asked for would be answering a different question. This repository
+ *   drives the gate to a finding by reaching back past the supported major with
+ *   `--since`, and a fallback there silently turned the bite arm green — caught
+ *   by that arm, which is the whole reason it exists.
+ * @returns {{ sha: string, ref: string, requested: string, substituted: boolean }}
+ *   the resolved baseline and whether it is the one that was asked for.
  */
-export function resolveBaseline(root, ref) {
+/**
+ * Refuse a baseline whose window holds no commits.
+ *
+ * Shared by both paths out of `resolveBaseline` on purpose. The condition is
+ * one thing — the endpoints are the same commit, so the scan compares nothing —
+ * and it is reachable two ways: a `--since` that names HEAD, and a fallback tag
+ * that turns out to be HEAD. Guarding only the second left the first reporting
+ * `OK ... every removal from a shipped surface is governed` over zero commits.
+ *
+ * @param {string} root - repository root.
+ * @param {string} ref - the baseline as the caller named it, for the message.
+ * @param {string} sha - the commit that baseline resolved to.
+ * @throws {UsageError} When `sha..HEAD` contains no commits.
+ */
+function assertNonEmptyWindow(root, ref, sha) {
+  const span = git(
+    root,
+    ["rev-list", "--count", `${sha}..HEAD`],
+    `could not measure the window ${ref}..HEAD`
+  ).trim();
+  if (span === "0") {
+    throw new UsageError(
+      `baseline ${ref} is HEAD itself, so the window is empty - refusing ` +
+        `rather than reporting a clean scan of nothing`
+    );
+  }
+}
+
+export function resolveBaseline(root, ref, mayFallBack = false) {
   const sha = git(
     root,
     ["rev-parse", "--verify", `${ref}^{commit}`],
     `baseline ${ref} does not resolve to a commit`
   ).trim();
-  try {
-    boundedExecFileSync(
-      "git",
-      ["-C", root, "merge-base", "--is-ancestor", sha, "HEAD"],
-      { stdio: "ignore" }
-    );
-  } catch {
+  if (isAncestorOfHead(root, sha)) {
+    // A reachable baseline can still be HEAD itself, and then the window holds
+    // no commits at all. The scan reads nothing and reports every removal
+    // governed, which is a confident pass over nothing examined — the failure
+    // this gate exists to prevent, produced by the gate. The fallback branch
+    // below already refuses that; an explicit `--since` reached the same state
+    // by a different route and did not, so the check belongs on every path out
+    // of here rather than on one of them.
+    assertNonEmptyWindow(root, ref, sha);
+    return { ref, requested: ref, sha, substituted: false };
+  }
+  if (!mayFallBack) {
     throw new UsageError(
       `baseline ${ref} is not an ancestor of HEAD, so the window is not a ` +
         `release history this gate can read`
     );
   }
-  return sha;
+  const fallback = oldestReachableReleaseTag(root);
+  if (fallback === null) {
+    throw new UsageError(
+      `baseline ${ref} is not an ancestor of HEAD, and no release tag is ` +
+        `reachable from HEAD either, so there is no window this gate can ` +
+        `read - refusing rather than reporting a clean scan`
+    );
+  }
+  const fallbackSha = git(
+    root,
+    ["rev-parse", "--verify", `${fallback}^{commit}`],
+    `fallback baseline ${fallback} does not resolve to a commit`
+  ).trim();
+  const span = git(
+    root,
+    ["rev-list", "--count", `${fallbackSha}..HEAD`],
+    `could not measure the window ${fallback}..HEAD`
+  ).trim();
+  if (span === "0") {
+    throw new UsageError(
+      `baseline ${ref} is not an ancestor of HEAD, and the oldest reachable ` +
+        `release tag ${fallback} is HEAD itself, so the window is empty - ` +
+        `refusing rather than reporting a clean scan of nothing`
+    );
+  }
+  return { ref: fallback, requested: ref, sha: fallbackSha, substituted: true };
 }
 
 /**
@@ -633,6 +778,9 @@ export function buildReport(findings, opts) {
     findings.ledger.length;
   return {
     baseline: opts.baseline,
+    // The ref the ledger asked for, when it is NOT the one that was used. Null
+    // on every ordinary run, so a reader who sees it knows the window moved.
+    baselineReplaced: opts.replaced ?? null,
     findings,
     root: opts.root,
     schemaVersion: 1,
@@ -658,14 +806,27 @@ export function buildReport(findings, opts) {
  */
 export function humanReport(report) {
   const { findings, summary } = report;
+  // Printed on BOTH arms. A window that is not the configured one changes what
+  // a pass and a failure each mean, so a reader must not have to reach the JSON
+  // to find out which window they are reading.
+  const substitution =
+    report.baselineReplaced === null || report.baselineReplaced === undefined
+      ? []
+      : [
+          `  NOTE baseline ${report.baselineReplaced} is not an ancestor of ` +
+            `HEAD, so the oldest reachable release tag ${report.baseline} was ` +
+            `used instead. Re-pin ${LEDGER_PATH} rather than moving the tag.`,
+        ];
   if (summary.violations === 0) {
     return [
       `OK ${summary.shippedFiles} shipped file(s) since ${report.baseline}:`,
       `  every removal from a shipped surface is governed`,
       `  (${summary.recordedRemovals} removal(s) recorded in ${LEDGER_PATH})`,
+      ...substitution,
     ].join("\n");
   }
   return [
+    ...substitution,
     ...findings.paths.map(
       row =>
         `FAIL ${row.path}\n` +
@@ -771,7 +932,12 @@ export function countImporters(shipped, read) {
  */
 export function scan(opts) {
   const ledger = loadLedger(opts.root);
-  const baseline = resolveBaseline(opts.root, opts.since ?? ledger.baseline);
+  const resolved = resolveBaseline(
+    opts.root,
+    opts.since ?? ledger.baseline,
+    opts.since === null || opts.since === undefined
+  );
+  const baseline = resolved.sha;
   const before = shippedFilesAt(opts.root, baseline);
   const after = shippedFilesAt(opts.root, "HEAD");
   if (after.size === 0) {
@@ -807,8 +973,9 @@ export function scan(opts) {
     }),
   };
   return buildReport(findings, {
-    baseline: opts.since ?? ledger.baseline,
+    baseline: resolved.ref,
     recorded: ledger.removals.length,
+    replaced: resolved.substituted ? resolved.requested : null,
     root: opts.root,
     shipped: after.size,
   });
