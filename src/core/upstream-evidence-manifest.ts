@@ -2027,7 +2027,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/wiki/scripts/lib/bounded-child.mjs":
       "be16777cb16ebdbd3ea7bde3ec396ee203e6dbac73584012f7684f097264fa2c",
     "plugins/src/wiki/scripts/lint-wiki.mjs":
-      "4d627bcb939ee7657863c4171ab76b3f35a758021b429eb1daf9c721745d4b42",
+      "f70b85061e1201fe0278ac4868d21519f162ffc37bfcc20e51168eeac8efaf91",
     "plugins/src/wiki/scripts/mcp-doctor.mjs":
       "82a29e61ed95661a2306238be53fbfe8746acf0a7c480e9a98ff8a3357e3fab9",
     "plugins/src/wiki/scripts/render-contract.mjs":
@@ -2039,7 +2039,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/wiki/scripts/validate-config.mjs":
       "2f142e2f1138085e543d82d8910bc254911fd70dfd8a5c6ba98198bac2c3d26c",
     "plugins/src/wiki/scripts/verify-migration.mjs":
-      "d86116b3d7bbd96381a1d34cad1ed2292865b297f2270507802ca39e49cece14",
+      "8680ec4ecf2fae84fb2bc61f8c0dab4763820336a6c5db65eb684b21c07a7860",
     "plugins/src/wiki/scripts/verify-wiki-safety.mjs":
       "573253b4b0dd0babae565f3a4b30d7d0001b5ce1370ae19635f46047a37ecc5b",
     "plugins/src/wiki/scripts/wiki-safety.mjs":
@@ -10756,6 +10756,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/wiki-connector-source-sanitization.test.ts": true,
     "tests/unit/strategies/wiki-ensure-gitignore.test.ts": true,
     "tests/unit/strategies/wiki-ensure-wiki.test.ts": true,
+    "tests/unit/strategies/wiki-lint-preserved-sources.test.ts": true,
     "tests/unit/strategies/wiki-redaction-policy.test.ts": true,
     "tests/unit/strategies/wiki-safety.test.ts": true,
     "tests/unit/strategies/wiki-status-report-rendering.test.ts": true,
