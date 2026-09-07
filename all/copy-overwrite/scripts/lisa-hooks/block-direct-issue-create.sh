@@ -353,10 +353,66 @@ EOF
   esac
 }
 
+# The branch-specific half of the remediation, printed only for the branch that
+# fired. Every refusal this guard issues has to name an inverse the author can
+# actually perform — a refusal with none is a state change with no inverse, and
+# on a file-contents refusal it made a path permanently unnameable to any
+# command the guard did not recognise as a reader (CodySwannGT/lisa#3683).
+#
+# NEITHER PARAGRAPH IS AN ESCAPE HATCH, and that is deliberate. `3594` records
+# that a PreToolUse guard whose escape the guarded agent can set is not a
+# control, so nothing here is settable: the only inverses named are edits to
+# the refused command itself, and performing either one leaves a genuine
+# undeclared creation refused by the checks above. Re-quoting an unlexable
+# creation hands it to the parsed path, which refuses it; naming a document to
+# a reader files nothing, which is the whole point. The one true escape stays
+# what it was — an ambient variable a human exports before the session, which a
+# tool-call shell cannot reach because its exports do not survive into this
+# hook's environment.
+remedy_hint() {
+  case "${1:-}" in
+    unparseable)
+      cat <<'EOF'
+
+THIS COMMAND DID NOT LEX, so it was judged by pattern rather than by parse. An
+unbalanced quote is the cause, and an apostrophe in ordinary prose is the
+measured one. The pattern cannot separate a sentence about filing from a real
+filing hidden behind a trailing `#` comment, so it refuses both.
+
+THE INVERSE IS EXECUTABLE: re-quote the command so it lexes, and run it again.
+It is not a bypass — a re-quoted creation is handed to the full parser, which
+refuses it unless it declares readiness the ordinary way.
+
+A command whose every segment runs a known READER is not refused on this branch
+at all, so `cat`, `grep`, `ls`, `cp`, `mv`, `git` and `echo` never reach it.
+EOF
+      ;;
+    file)
+      cat <<'EOF'
+
+THIS REFUSAL CAME FROM A FILE THIS COMMAND RUNS. A path is opened only when the
+command puts it in a COMMAND position; a program that takes it as data — `cat`,
+`grep`, `ls`, `cp`, `mv`, `git`, a test runner — never reaches this branch. Two
+inverses, both executable:
+
+  - The file WRITES a payload locally and cannot transmit it (no HTTP client,
+    no CLI, no process spawn): it is read as data, not as a filing. Drop the
+    transmitting primitive, or slice the payload out of an existing file
+    instead of restating it here.
+  - The file produces no local artifact either — it is a DOCUMENT that quotes a
+    creation rather than a program that performs one. Name it to a reader
+    rather than to an interpreter; rewording its contents is not the remedy and
+    does not converge.
+EOF
+      ;;
+  esac
+}
+
 refuse() {
   local signature="$1"
   local roles="$2"
   local target="$3"
+  local remedy="${4:-}"
   if [ -n "$target" ]; then
     refuse_cross_repo "$signature" "$roles" "$target"
   fi
@@ -427,11 +483,7 @@ WHERE THE DECLARATION IS READ FROM: argv, the request payload — inline, in a
 this command runs. Moving the create into a file no longer moves it out of
 sight, so the declaration can live wherever the create does.
 
-IF THAT FILE ONLY HOLDS A PAYLOAD AS TEST DATA: a file that writes a payload
-locally and carries no way to transmit it — no HTTP client, no CLI, no process
-spawn — is not read as a filing. If this refusal named such a file, one of
-those is present; drop it, or source the fixture from an existing file instead
-of restating it here.
+$(remedy_hint "$remedy")
 
 OPERATOR ESCAPE: a human can export \`LISA_ALLOW_DIRECT_ISSUE_CREATE=1\` in the
 environment before starting the session. It is deliberately not reachable by
@@ -1922,17 +1974,29 @@ def is_assignment_word(token):
 # harm #3705 records, because it can block the verification of a fix while
 # saying nothing about why.
 #
+# RELOCATION AND ECHOING ARE READS TOO, and leaving them off is what turned a
+# false positive into a property of the repository (CodySwannGT/lisa#3683). A
+# file that QUOTES a creation was already reachable by `grep`, `cat` and `ls`
+# once this list existed — but not by `cp` or `mv`, so the file could be read
+# and never moved, by any agent and by CI, for as long as the literal stayed in
+# it. The measured case shows why "reword it" is not the inverse: the refusal
+# recurred AFTER the content had been reworded, on a different file quoting the
+# same command. None of these four executes an operand: `cp` and `mv` copy
+# bytes, `echo` and `printf` write them to stdout. They are also the vocabulary
+# `unparseable_reads_only` answers with when the text could not be lexed at all.
+#
 # RESIDUAL, stated rather than hidden: a reader NOT on this list is still
 # followed and can still over-refuse. The set of read-only tools is unbounded,
 # so this closes the measured population and not the class. Add names here as
 # they are measured; do not invert the default to close it by fiat, or the
 # executed-script reach that #3484 bought is lost.
 READ_ONLY_PROGRAMS = {
-    "awk", "bat", "cat", "cksum", "cmp", "column", "comm", "cut", "diff",
-    "du", "file", "fold", "git", "grep", "head", "hexdump", "jest", "jq",
-    "less", "ls", "md5", "md5sum", "more", "nl", "od", "pytest", "rg",
-    "sed", "sha1sum", "sha256sum", "shellcheck", "shfmt", "sort", "stat",
-    "strings", "tail", "tee", "uniq", "vitest", "wc", "xxd", "yamllint",
+    "awk", "bat", "cat", "cksum", "cmp", "column", "comm", "cp", "cut",
+    "diff", "du", "echo", "file", "fold", "git", "grep", "head", "hexdump",
+    "jest", "jq", "less", "ls", "md5", "md5sum", "more", "mv", "nl", "od",
+    "printf", "pytest", "rg", "sed", "sha1sum", "sha256sum", "shellcheck",
+    "shfmt", "sort", "stat", "strings", "tail", "tee", "uniq", "vitest",
+    "wc", "xxd", "yamllint",
 }
 
 
@@ -1971,6 +2035,67 @@ def executing_command(argv):
             index += 2 if option in separate else 1
         index += positional
     return (None, None, [])
+
+
+# Operators that end a command in raw shell text. Used ONLY where `shlex` has
+# already refused the text, so a quote-aware split is not available — and
+# OVER-splitting is the safe direction here, because an extra segment can only
+# add a command word to check, never remove one.
+RAW_SEGMENT_SPLIT = re.compile(r"&&|\|\||[;|&\n]")
+
+
+def raw_command_words(text):
+    """The program each segment of unlexable text puts in command position.
+
+    Answered on a whitespace split because the reason this path exists is that
+    `shlex` refused the text. It still routes through `executing_command`, so a
+    leading assignment and a wrapper — `nice`, `env`, `sudo`, `timeout` — are
+    stepped over here exactly as they are on the parsed path. Reading the
+    wrapper as the command is the bypass this guard's own comments record.
+
+    Args:
+        text: The raw command string.
+
+    Returns:
+        One entry per non-empty segment: the resolved program name, or None
+        when the segment names none.
+    """
+    words = []
+    for chunk in RAW_SEGMENT_SPLIT.split(text):
+        tokens = chunk.split()
+        if not tokens:
+            continue
+        words.append(executing_command(tokens)[1])
+    return words
+
+
+def unparseable_reads_only(text):
+    """Whether unlexable text only READS, and therefore files nothing.
+
+    `UNPARSEABLE_CREATION` matches raw text, so it cannot tell a filing from a
+    sentence about one. `echo the guard's <creation> behaviour` fails to lex
+    for the apostrophe alone, and was refused as a tracker creation — a command
+    that files nothing, told that "this filing declares no readiness", with no
+    printed remedy that applied to any part of it (CodySwannGT/lisa#3683).
+
+    The fallback is NOT removable and is not narrowed here. `<creation> #'` is
+    a real filing that bash runs and `shlex` rejects, so "I could not parse it"
+    must keep meaning refuse. What this asks instead is the COMMAND POSITION
+    question the parsed path already asks and this arm skipped: only a command
+    position can run anything, and a reader takes its operands as data.
+
+    Fails closed on everything else, which is the same asymmetry
+    `READ_ONLY_PROGRAMS` documents: an unresolvable command word, an
+    unrecognised program, or a text with no segments at all is refused.
+
+    Args:
+        text: The raw command string that would not lex.
+
+    Returns:
+        True when every segment's command word is a known reader.
+    """
+    words = raw_command_words(text)
+    return bool(words) and all(word in READ_ONLY_PROGRAMS for word in words)
 
 
 def executed_operand(argv):
@@ -2194,6 +2319,12 @@ def scan(text, depth, from_file=False):
         # reachable by declaring inline instead, which this change makes work.
         if text_declares_readiness(text):
             return None
+        # The command-position arm of the same reasoning `executed_operand`
+        # applies. A text every one of whose segments runs a known READER
+        # cannot file anything, whatever its prose says — see
+        # `unparseable_reads_only` for why this does not narrow the fallback.
+        if unparseable_reads_only(text):
+            return None
         if UNPARSEABLE_CREATION.search(text):
             return (
                 "an unparseable command that reads as a tracker creation",
@@ -2298,6 +2429,30 @@ def scan(text, depth, from_file=False):
 # a human one retry and a false negative costs the entire control.
 inline_override = (OVERRIDE_NAME + "=") in command
 
+
+def remedy_for(signature):
+    """Which extra remediation paragraph this refusal earns.
+
+    A guard that prints every remedy it knows prints one that does not apply,
+    and a remedy that cannot be performed is the failure this ticket is about
+    (CodySwannGT/lisa#3683): the file-payload paragraph told an author to drop
+    a transmitting primitive that a DOCUMENT does not have, and the
+    unparseable arm printed declaration advice for a command that files
+    nothing. Both are now keyed off which branch actually fired.
+
+    Args:
+        signature: The refusal signature.
+
+    Returns:
+        A key the shell half maps to a paragraph, or an empty string.
+    """
+    if signature.startswith("an unparseable command"):
+        return "unparseable"
+    if " inside " in signature:
+        return "file"
+    return ""
+
+
 found = scan(command, 0)
 if found is not None:
     signature, roles, target = found
@@ -2308,6 +2463,7 @@ if found is not None:
     print("signature=%s" % signature)
     print("roles=%s" % ", ".join(role for role in roles if role))
     print("target=%s" % (target or ""))
+    print("remedy=%s" % remedy_for(signature))
     sys.exit(0)
 
 print("ALLOW")
@@ -2412,7 +2568,8 @@ case "$verdict" in
     refuse \
       "$(verdict_field signature)" \
       "$(verdict_field roles)" \
-      "$(verdict_field target)"
+      "$(verdict_field target)" \
+      "$(verdict_field remedy)"
     ;;
 esac
 
