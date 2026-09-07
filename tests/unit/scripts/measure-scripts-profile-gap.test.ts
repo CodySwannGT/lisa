@@ -17,7 +17,6 @@
  * cost for a unit suite, and the reason `--root` exists on the script.
  * @module tests/unit/scripts/measure-scripts-profile-gap
  */
-import { execFileSync } from "node:child_process";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
@@ -35,6 +34,8 @@ import {
   cleanupTempDir,
   createTempDir,
 } from "../../helpers/test-utils.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import { GIT_BIN } from "../../support/git-executable.js";
 
 /** Sort without a bare `.sort()`, which is `sonarjs/no-alphabetical-sort`. */
 const alphabetically = (left: string, right: string): number =>
@@ -185,7 +186,13 @@ describe("trackedScripts", () => {
 
     const env = cleanGitEnv(process.env);
     const git = (...args: readonly string[]) =>
-      execFileSync("git", [...args], { cwd: root, env, stdio: "ignore" });
+      boundedExecFileSync({
+        label: `git ${args.join(" ")}`,
+        command: GIT_BIN,
+        args,
+        cwd: root,
+        env,
+      });
     git("init");
     git("config", "user.email", "test@example.com");
     git("config", "user.name", "Test");

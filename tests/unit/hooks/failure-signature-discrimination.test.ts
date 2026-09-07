@@ -17,12 +17,12 @@
  * side when it could not measure is the fail-open shape this exists against.
  */
 import { describe, expect, it } from "vitest";
-import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
 import { cleanGitEnv, GIT_BIN } from "../../support/git-executable.js";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import {
   formatReport,
   matchEntries,
@@ -116,10 +116,20 @@ function gitFixture(config: GitConfig): string {
   // An absolute git and a scrubbed environment: a fixture repository that
   // inherits `GIT_DIR` from the outer checkout stops being about itself, which
   // is precisely the confusion these rows exist to prevent.
-  const options = { cwd: root, env: cleanGitEnv(), stdio: "ignore" } as const;
-  execFileSync(GIT_BIN, ["init", "--quiet"], options);
+  const options = { cwd: root, env: cleanGitEnv() } as const;
+  boundedExecFileSync({
+    label: "git init",
+    command: GIT_BIN,
+    args: ["init", "--quiet"],
+    ...options,
+  });
   for (const [key, value] of Object.entries(config)) {
-    execFileSync(GIT_BIN, ["config", key, value], options);
+    boundedExecFileSync({
+      label: `git config ${key}`,
+      command: GIT_BIN,
+      args: ["config", key, value],
+      ...options,
+    });
   }
   fs.writeFileSync(path.join(root, "NOTES.md"), NOTE);
   return root;

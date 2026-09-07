@@ -17,10 +17,11 @@
  *
  * See the `work-item-trailer-definition` rule for why Definition B wins.
  */
-import { spawnSync } from "node:child_process";
 
 import { describe, expect, it } from "vitest";
 
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { GIT_BIN } from "../../support/git-executable.js";
 import { workItemRef } from "../../../all/copy-overwrite/scripts/check-orphaned-branches.mjs";
 import {
   declaredWorkItemNumbers,
@@ -64,8 +65,10 @@ const NON_CONTIGUOUS = [
  * @returns The trailer lines git recognises.
  */
 const gitTrailers = (message: string): string[] => {
-  const result = spawnSync("git", ["interpret-trailers", "--parse"], {
-    encoding: "utf8",
+  const result = boundedSpawnSync({
+    label: "git interpret-trailers --parse",
+    command: GIT_BIN,
+    args: ["interpret-trailers", "--parse"],
     input: message,
   });
   if (result.error || result.status !== 0)
