@@ -151,7 +151,6 @@ jobs:
     name: 🔖 Workflow Contract
     runs-on: ubuntu-latest
     timeout-minutes: 2
-    permissions: {}
     steps:
       - name: 🔖 Assert the caller still understands this workflow
         env:
