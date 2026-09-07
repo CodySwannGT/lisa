@@ -445,11 +445,40 @@ branch — operate on it the same way.
 
 **4. Classify as a blocker.** Treat any of these as a real external blocker:
 
-- **True merge conflict** — `mergeable = CONFLICTING` or `mergeStateStatus = DIRTY` (overlapping
-  changes a plain rebase cannot resolve), or `gh pr update-branch` (step 3) reported a conflict. A
-  merely `BEHIND` branch is **not** here — it was re-synced in step 3. Unlike the other classes below, a
-  conflict is **resolvable by re-running the build**, so step 5 gives it one in-place re-dispatch before
-  filing — see its conflict-first rule.
+- **True merge conflict** — confirmed by a **merge trial**, never by a cached field.
+  `mergeable = CONFLICTING` and `mergeStateStatus = DIRTY` are hints that say *go look*: both are
+  computed asynchronously, and a stale one is served often enough that GitHub reported `DIRTY` for two
+  branches at the same moment while only one of them actually conflicted (#3694). Re-derive from
+  primary evidence at the moment of asking:
+
+  ```sh
+  base=$(gh pr view <pr> --json baseRefName --jq .baseRefName)
+  head=$(gh pr view <pr> --json headRefOid --jq .headRefOid)
+  git fetch --quiet origin "$base" && git fetch --quiet origin "pull/<pr>/head"
+  git merge-tree --write-tree "origin/$base" "$head" >/dev/null; trial=$?
+  ```
+
+  `merge-tree --write-tree` merges into the object store only — no working tree, no index and no
+  branch is touched — so it is safe inside an unattended scanner. Read `trial` as **three** states,
+  and the third is not optional:
+
+  - `trial == 1` → **CONFLICTED**. A real external blocker. Unlike the other classes below, a
+    conflict is **resolvable by re-running the build**, so step 5 gives it one in-place re-dispatch
+    before filing — see its conflict-first rule.
+  - `trial == 0` → **CLEAN**. Not a blocker, whatever the API said. Write nothing, leave the item
+    `claimed`, and let a later cycle re-ask.
+  - anything else, or a fetch that failed → **NOT DETERMINED**. The trial could not run — a missing
+    ref, an unreachable remote, a git older than 2.38 — which is an absence of evidence, not a
+    verdict. Write nothing, file nothing, leave the item `claimed`, and record it as
+    `not_determined` in the run summary so a later cycle re-asks.
+
+  `gh pr update-branch` (step 3) reporting a conflict it cannot apply also counts as CONFLICTED —
+  that is a merge actually attempted, not a cached answer. A merely `BEHIND` branch is **not** here —
+  it was re-synced in step 3.
+
+  **Filing on a cached field is the expensive direction here.** In a fix-mode loop a false
+  CONFLICTED wastes a resolve; in this scanner it files a blocker against a pull request that has
+  nothing wrong with it, and unattended intake will keep doing that without anyone noticing.
 - **Failing required checks** — `statusCheckRollup` has a `FAILURE`/`ERROR`/`TIMED_OUT` conclusion,
   or `mergeStateStatus = UNSTABLE`/`BLOCKED` due to checks.
 - **Change requests outstanding** — `reviewDecision = CHANGES_REQUESTED`, or unresolved CodeRabbit
