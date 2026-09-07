@@ -5148,6 +5148,12 @@ function complete(args) {
  *
  * Reports by default and only acts under `--apply`, because a sweep that closes
  * things as a side effect of being run is not something anyone will run twice.
+ *
+ * `--since <rev>` bounds the evidence scan to what a deploy branch gained after
+ * `<rev>`. That is what makes an APPLYING run safe to trigger from a merge: the
+ * unbounded question is "what has ever shipped and is still open", which is a
+ * backlog nobody should complete unattended, while the bounded one is "what did
+ * this push ship", which is exactly the item the merge earned. See `sweepBound`.
  */
 /**
  * Buffer bound for a deploy branch's commit log.
@@ -5225,6 +5231,92 @@ function resolvedBranchRev(branch) {
   return undefined;
 }
 
+/** Bounds a sweep to the commits a single push added to a deploy branch. */
+const SINCE_FLAG = "--since";
+
+/**
+ * The revision a bounded sweep starts AFTER, or undefined for the whole history.
+ *
+ * This is what gives directly-driven work a terminal path. The unbounded sweep
+ * answers "what has ever shipped and is still open", which is a backlog
+ * question: pointing `--apply` at it completes every item the history declares,
+ * so it is only ever safe to run deliberately, by a person who has read the
+ * report. A merge cannot run that. `--since <rev>` narrows the same
+ * evidence to what THIS push added, which is a question a push-triggered run
+ * can answer and act on — it completes the items its own merge shipped and
+ * structurally cannot reach any other (CodySwannGT/lisa#3704).
+ *
+ * A valueless flag is REFUSED rather than read as absent. The shared `option`
+ * helper falls back when a flag carries no value, which is right where the
+ * fallback is another spelling of the same answer and catastrophic here: the
+ * fallback is "no bound at all", so a typo would silently widen an applying run
+ * from one merge to the entire backlog. That is the one direction this must
+ * never fail in.
+ * @param {string[]} args Command arguments.
+ * @returns {string | undefined} The bound, or undefined when unbounded.
+ */
+function sweepBound(args) {
+  const index = args.indexOf(SINCE_FLAG);
+  if (index < 0) return undefined;
+  const value = args[index + 1];
+  if (value === undefined || value.startsWith("-") || value.trim() === "") {
+    throw new TrackingError(
+      `${SINCE_FLAG} was supplied without a revision, and it is not read as absent.\n` +
+        `Pass ${SINCE_FLAG} <rev> — the commit the deploy branch was at before the push — ` +
+        `or omit the flag entirely to sweep the whole history.\n` +
+        `Treating it as absent would widen an --apply run from the one merge that triggered it ` +
+        `to every item the history declares.`
+    );
+  }
+  return value.trim();
+}
+
+/**
+ * Resolve a sweep bound to a commit, refusing when it names nothing here.
+ *
+ * An unresolvable bound is NOT DETERMINED, never an empty range. `git log
+ * <branch> --not <unknown>` does not fail quietly — it fails — but a bound
+ * that resolves in the caller's repository and not in this checkout (a shallow
+ * clone, an unfetched ref, the all-zero SHA a branch-creation push carries) is
+ * the case where a run could otherwise report a narrower answer than the one
+ * its operator asked for. Refusing says which of the two happened.
+ * @param {string | undefined} since The bound as supplied.
+ * @returns {string | undefined} The resolved object ID, or undefined.
+ */
+function resolvedSinceRev(since) {
+  if (since === undefined) return undefined;
+  const result = run(
+    "git",
+    ["rev-parse", "--verify", "--quiet", `${since}^{commit}`],
+    { allowFailure: true }
+  );
+  const sha = result.stdout.trim();
+  if (result.status !== 0 || sha === "") {
+    throw new TrackingError(
+      `NOT DETERMINED: ${SINCE_FLAG} ${since} resolves to no commit in this checkout, ` +
+        `so the range a bounded sweep would examine is unknown.\n` +
+        `An unresolvable bound is not an empty one — reporting "no drift" from it would be ` +
+        `an absence claim over evidence never read.\n` +
+        `Fetch the history (\`git fetch --unshallow origin\`) and re-run, or drop ${SINCE_FLAG} ` +
+        `to sweep the whole deploy history.`
+    );
+  }
+  return sha;
+}
+
+/**
+ * The sentence a report owes its reader when the scan was bounded.
+ * @param {string | undefined} since The bound as supplied.
+ * @returns {string} A qualifying line, or the empty string when unbounded.
+ */
+function describeSinceBound(since) {
+  if (since === undefined) return "";
+  return (
+    `\nBounded: only commits a deploy branch gained since ${since} were read, so anything ` +
+    `declared before that is outside this result.`
+  );
+}
+
 /**
  * Work items DECLARED by commits reachable from a deploy branch.
  *
@@ -5253,11 +5345,13 @@ function resolvedBranchRev(branch) {
  * refuses rather than reporting a clean queue.
  * @param {string} repository `owner/name` the items belong to.
  * @param {object} contract Resolved tracker contract.
+ * @param {string} [since] Revision to bound the scan after; see `sweepBound`.
  * @returns {{declarations: Map<number, string[]>, unresolved: string[]}} Issue
  *   number to declaring commits, and the deploy branches that resolved to
  *   nothing.
  */
-function deployedDeclarations(repository, contract) {
+function deployedDeclarations(repository, contract, since) {
+  const sinceRev = resolvedSinceRev(since);
   const declarations = new Map();
   const unresolved = [];
   for (const branch of contract.deployBranches.keys()) {
@@ -5266,7 +5360,8 @@ function deployedDeclarations(repository, contract) {
       unresolved.push(branch);
       continue;
     }
-    const result = run("git", ["log", rev, "-z", "--format=%H%n%B"], {
+    const bound = sinceRev ? ["--not", sinceRev] : [];
+    const result = run("git", ["log", rev, ...bound, "-z", "--format=%H%n%B"], {
       allowFailure: true,
       maxBuffer: DECLARATION_LOG_MAX_BYTES,
     });
@@ -5350,9 +5445,11 @@ function sweep(args) {
       else subjects.set(issue.number, { ...issue, roles: [role] });
     }
   }
+  const since = sweepBound(args);
   const { declarations, unresolved } = deployedDeclarations(
     repository,
-    contract
+    contract,
+    since
   );
   const apply = args.includes("--apply");
   // Named in every report, clean or not. The old clean-result sentence spoke
@@ -5390,14 +5487,14 @@ function sweep(args) {
   if (drifted === 0) {
     const examinedSummary = `Examined ${subjects.size} item(s) across ${roles.length} lifecycle role(s); no role outside ${examined} was queried.`;
     console.log(
-      `No drift: every open item carrying ${examined} is genuinely in flight.\n${examinedSummary}${describeUnresolvedBranches(unresolved)}`
+      `No drift: every open item carrying ${examined} is genuinely in flight.\n${examinedSummary}${describeSinceBound(since)}${describeUnresolvedBranches(unresolved)}`
     );
     return;
   }
   if (!apply) {
     const driftHeadline = `${drifted} open item(s) carrying ${examined} are declared by a commit on a deploy branch.`;
     console.log(
-      `\n${driftHeadline} Re-run with --apply to complete them.${describeUnresolvedBranches(unresolved)}`
+      `\n${driftHeadline} Re-run with --apply to complete them.${describeSinceBound(since)}${describeUnresolvedBranches(unresolved)}`
     );
   }
 }

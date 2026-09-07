@@ -1205,6 +1205,27 @@ Two properties worth knowing, because both were once the other way round:
 - **A clean result names the lanes it examined.** "No drift" over a subject
   list that excluded the ready lane was true and unusable.
 
+**And the forward path, for work this skill never drove:** `sweep --since <rev>`
+bounds the same evidence to what a deploy branch gained after `<rev>`. That
+distinction is what makes an APPLYING run safe to trigger from a merge. The
+unbounded question is a backlog — "what has ever shipped and is still open" —
+and completing a backlog unattended is why the daily job reports rather than
+applies. The bounded one is "what did this push ship", which is exactly the item
+the merge earned, so a push-triggered run can complete it and structurally
+cannot reach anything else.
+
+A bound that resolves to no commit — a shallow clone, an unfetched ref, the
+all-zero SHA a branch-creation push carries — is **NOT DETERMINED** and refuses.
+An unresolvable bound is not an empty range, and reporting "no drift" from one
+would be an absence claim over evidence never read. A valueless `--since` is
+refused for the same reason in the other direction: read as absent it would
+widen an `--apply` run from one merge to the whole history.
+
+This is what closes the gap for a self-hosted repository whose own work is
+driven by hand: the terminal transition is owned by this skill and by build
+intake, and work that ran neither used to ship and stay in the dispatch lane
+(CodySwannGT/lisa#3704).
+
 ## 4. Terminal states
 
 Loop until one of:
