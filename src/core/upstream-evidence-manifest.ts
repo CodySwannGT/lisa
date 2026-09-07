@@ -13,7 +13,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-orphaned-branches.mjs":
       "c5d148c281aae86e0d43efd3b51542a8c61f516c9f670e9227f6a2ae0243c98d",
     "all/copy-overwrite/scripts/check-release-package-identity.mjs":
-      "a64b5567b96706d5d7f573830cce0e623d7e4c36bb6a47c291aa02bcad79039d",
+      "a0f17592d4436de4c240f7c78512537581aa2ed5e89f0caf1fe890694163a873",
     "all/copy-overwrite/scripts/check-state-classification.mjs":
       "a72910f9885629dd6d8a739b900f5603e4b53d68ece64100a2a5647016b58e1e",
     "all/copy-overwrite/scripts/check-third-party-action-pins.mjs":
@@ -157,7 +157,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/merge/.oxlintrc.json":
       "f7d248cf8a89561374d7e68e24aa780f4a6a523938475ad685f034ce0194d75c",
     "cdk/package-lisa/package.lisa.json":
-      "503c229ec5047a0e757270b0f2a89380225290d2a549f15fbc896a341596c0db",
+      "1798bf52b1bff6b36c8794fcf4e3850a1d20f6929b6e8cf643b682ed0555b503",
     "eslint-plugin-code-organization/README.md":
       "e70c9e262ce3a97e1f9fe1897ffa71e3d1b124f10486b90ead5d4a5252977826",
     "eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js":
@@ -347,7 +347,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
-      "272c87c289ef8f174921d5ba3455e94d1bee90b278a9912844661f274a38c762",
+      "4d6225d29629ef8d44cb311cfeca1d9b3510cffbb19cb08fa2ee9f3e2a707ccd",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -387,7 +387,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/merge/.oxlintrc.json":
       "b41ea588eed47e0f1532aab5f6226b82586269b84edd1947bdde603e0a8513fa",
     "harper-fabric/package-lisa/package.lisa.json":
-      "b801484de5c9dcaa4b7c9fe29d3d1b7fed601f68f53679a3b3dac6a3aa83aefb",
+      "92d495f87276313ad8bf05bc3f375d1da109b0730bac7a4e1a3c6ca5a278096d",
     "nestjs/copy-overwrite/eslint.config.ts":
       "300895743cd8e3041f164902e1c8e509d8ef07474848a70621ac354d73595477",
     "nestjs/copy-overwrite/eslint.nestjs.ts":
@@ -475,11 +475,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
-      "4c61c138f38bac222540c9c27cb3637e9a22d102e32e9347d46efbf55feff593",
+      "8554201adbb007c6740dae539fd83ad271fd01c55de064544e9e1e8a685e09ac",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
       "20760529dd59186baf870fb2d0ac555ff95bc3dc75ea96ba4564bf37d61f708e",
     "npm-package/package-lisa/package.lisa.json":
-      "26631370a868f6df3e114d60311a59312da832bf78dd08154a4829f6473a6e14",
+      "69fb783efa083994d499f5927619b6e59cb280835f241b2737758e1e9eb1bf7d",
     "oxlint/base.json":
       "8cbc563bdfbbaf455742cef24d33676f45b55baf1ea62b529018b2d112d70f8a",
     "oxlint/cdk.json":
@@ -535,7 +535,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/merge/.oxlintrc.json":
       "02c0d70e6e07bc0e981f94a1e2ccd01a2c295c4c66e8b8ea9b2f363d44fa5c06",
     "phaser/package-lisa/package.lisa.json":
-      "904be9a79354c652d34cac5c018349893bd69c23916698fac3c5265248ecbfc8",
+      "1f83d7a6680dd1e87688be53b2717dee812355c1c55660aa6353091b7b457e1e",
     "plugins/src/base/agents/architecture-specialist.md":
       "076feb3a09ef056628bc33242f93278ce6b00f55878984a18a9337d326b5e1d4",
     "plugins/src/base/agents/bug-fixer.md":
@@ -2265,7 +2265,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-probe-absence-direction.mjs":
       "5dfb12c8ac9a23220219cc8748f1fea03f55bb42c0a9cf045bccfd04a4646652",
     "scripts/check-release-package-identity.mjs":
-      "a64b5567b96706d5d7f573830cce0e623d7e4c36bb6a47c291aa02bcad79039d",
+      "a0f17592d4436de4c240f7c78512537581aa2ed5e89f0caf1fe890694163a873",
     "scripts/check-required-check-promotions.mjs":
       "ae7a3d80beb98d8069af12d2d588e76f73f7a329b1f883ddbe1818bb1b5cafa9",
     "scripts/check-rules-pairing.sh":
@@ -2635,7 +2635,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "39bc34cc4367f20064c27649a1d83316b848d6a3d7bcc04d0d71ae3317b9e9c9",
+      "79763592eb1a22d5868d5aaf81743f415bfd5b3772530ec565e79e5402d283f5",
     "ui/README.md":
       "9c4aa65ff4028eedfda1f284d47b620fff7353c07fd8084ccc427fe4c5a1ed72",
     "ui/index.html":
@@ -9066,7 +9066,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/lisa-owned-provenance.ts": true,
     "src/core/lisa-owned-templates.ts": true,
     "src/core/lisa-plugin-selection.ts": true,
-    "src/core/lisa-release-callees.ts": true,
     "src/core/lisa-release-pin.ts": true,
     "src/core/lisa-rules-mirror.ts": true,
     "src/core/lisa-skill-sources.ts": true,
@@ -9470,6 +9469,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/enforcement-census-cli.test.ts": true,
     "tests/integration/environment-facade-gates.test.ts": true,
     "tests/integration/environment-prepare-workflow.test.ts": true,
+    "tests/integration/expo-host-run-scripts-survive-apply.test.ts": true,
     "tests/integration/facade-proof-not-step.test.ts": true,
     "tests/integration/failure-issue-workflows.test.ts": true,
     "tests/integration/floor-collisions-gate-fail-closed.test.ts": true,
@@ -9980,7 +9980,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/lisa-owned-templates-classification.test.ts": true,
     "tests/unit/core/lisa-owned-templates.test.ts": true,
     "tests/unit/core/lisa-plugin-selection.test.ts": true,
-    "tests/unit/core/lisa-release-callees.test.ts": true,
     "tests/unit/core/lisa-release-pin.test.ts": true,
     "tests/unit/core/lisa-skill-sources.test.ts": true,
     "tests/unit/core/nightly-e2e-pull-request-triggers.test.ts": true,
@@ -9996,6 +9995,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/project-config-nightly-e2e.test.ts": true,
     "tests/unit/core/project-config.test.ts": true,
     "tests/unit/core/rails-deploy-production-intent.test.ts": true,
+    "tests/unit/core/reusable-workflow-pin-absent-callee.test.ts": true,
     "tests/unit/core/reusable-workflow-pin.test.ts": true,
     "tests/unit/core/role-agent-template-contract.test.ts": true,
     "tests/unit/core/self-apply.test.ts": true,
@@ -10189,6 +10189,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/migrations/ensure-lisa-postinstall.test.ts": true,
     "tests/unit/migrations/ensure-nightly-e2e-workflow-pins.test.ts": true,
     "tests/unit/migrations/ensure-oxlint-base-configs.test.ts": true,
+    "tests/unit/migrations/ensure-pinned-reusable-workflow-refs-vouched.test.ts": true,
     "tests/unit/migrations/ensure-pinned-reusable-workflow-refs.test.ts": true,
     "tests/unit/migrations/ensure-playwright-dedicated-caller.test.ts": true,
     "tests/unit/migrations/ensure-push-default-safe.test.ts": true,

@@ -6,11 +6,6 @@ import {
   getPackageReleaseTag,
   getPackageVersion,
 } from "../cli/version.js";
-import type { ReleaseCalleeDependencies } from "../core/lisa-release-callees.js";
-import {
-  defaultReleaseCalleeDependencies,
-  resolveReleaseCallees,
-} from "../core/lisa-release-callees.js";
 import type { ReleasePinDependencies } from "../core/lisa-release-pin.js";
 import {
   UnresolvableReleasePinError,
@@ -18,13 +13,11 @@ import {
   resolveTagCommitFromGit,
 } from "../core/lisa-release-pin.js";
 import type {
-  ReleaseCallees,
   ReleasePin,
   ReusableWorkflowRef,
 } from "../core/reusable-workflow-pin.js";
 import {
   findReusableWorkflowRefs,
-  isCalleePresent,
   isPinnedAt,
   pinReusableWorkflowRefs,
 } from "../core/reusable-workflow-pin.js";
@@ -57,8 +50,8 @@ interface PlannedRewrite {
   readonly source: string;
 }
 
-/** One caller left alone because the release does not carry its callee. */
-interface UnpinnableCaller {
+/** One caller left alone because this release cannot vouch for its callee. */
+interface UnvouchedCaller {
   /** Path relative to the project root. */
   readonly relative: string;
   /** 1-based line the caller sits on. */
@@ -69,12 +62,12 @@ interface UnpinnableCaller {
   readonly ref: string;
 }
 
-/** Everything one pass over the project's workflows decided. */
+/** Everything one pass over the project's workflow files decided. */
 interface RewritePlan {
   /** Files to write, computed in full before any is written. */
   readonly changes: readonly PlannedRewrite[];
-  /** Callers deliberately not rewritten, and reported instead. */
-  readonly unpinnable: readonly UnpinnableCaller[];
+  /** Callers deliberately left on the ref they already had. */
+  readonly unvouched: readonly UnvouchedCaller[];
 }
 
 /**
@@ -115,17 +108,6 @@ interface RewritePlan {
  * an existing caller mutable while reporting a successful apply is the
  * fail-open shape this migration exists to remove, so that case still stops.
  *
- * ## Why a caller can be left on `@main` on purpose
- *
- * Pinning assumes the release is a superset of what the consumer references,
- * and a reusable workflow that exists only on `main` breaks that: the caller
- * would be rewritten to a commit the file is not in. That is not a wrong pin,
- * it is an unloadable one — Actions resolves `uses:` before creating any job,
- * so the run has zero jobs, zero failures, and no message naming the missing
- * file. Such a caller is left exactly as it was and reported by name, because
- * "this stays on `@main` because no release carries it yet" is a fact the
- * consumer can act on and a silent rewrite is not (CodySwannGT/lisa#4021).
- *
  * ## Why it declines nothing in postinstall-safe mode
  *
  * The version change IS the postinstall moment. A pin that only moved when an
@@ -152,13 +134,9 @@ export class EnsurePinnedReusableWorkflowRefsMigration implements Migration {
    */
   private hadCallersBefore: boolean | null = null;
 
-  /** Which reusable workflows the pinned release carries, once asked. */
-  private callees: { value: ReleaseCallees } | null = null;
-
   /**
    * Create the migration.
    * @param deps - Pin resolution readers, injectable for deterministic tests
-   * @param calleeDeps - Callee-inventory readers, injectable for the same reason
    */
   constructor(
     private readonly deps: ReleasePinDependencies = {
@@ -166,8 +144,7 @@ export class EnsurePinnedReusableWorkflowRefsMigration implements Migration {
       readStampedCommit: getPackageReleaseCommit,
       readStampedTag: getPackageReleaseTag,
       resolveTagCommit: resolveTagCommitFromGit,
-    },
-    private readonly calleeDeps: ReleaseCalleeDependencies = defaultReleaseCalleeDependencies
+    }
   ) {}
 
   /**
@@ -214,12 +191,15 @@ export class EnsurePinnedReusableWorkflowRefsMigration implements Migration {
     if (!(await containsCaller(ctx.projectDir))) return false;
     const resolution = await this.resolved(ctx);
     if (resolution.ok) {
-      const plan = await this.planned(ctx, resolution.pin);
-      // An unpinnable caller keeps the migration applicable with nothing to
-      // write. `apply` is the only place that says why a caller was left on a
-      // mutable ref, and a silent skip is exactly the outcome the consumer
-      // could not act on (CodySwannGT/lisa#4021).
-      return plan.changes.length > 0 || plan.unpinnable.length > 0;
+      const plan = await this.plan(
+        ctx.projectDir,
+        resolution.pin,
+        await vouchedCallees(ctx.lisaDir, [
+          UNIVERSAL_LANE,
+          ...ctx.detectedTypes,
+        ])
+      );
+      return plan.changes.length > 0;
     }
     return this.isFatal(ctx, resolution.error);
   }
@@ -245,24 +225,24 @@ export class EnsurePinnedReusableWorkflowRefsMigration implements Migration {
     // Every rewrite is computed before any is written. A partial rewrite would
     // leave one caller on the new release and another on the old one, which
     // reads as a finished migration and is not one.
-    const { changes, unpinnable } = await this.planned(ctx, pin);
-    for (const caller of unpinnable) {
-      ctx.logger.warn(unpinnableMessage(caller, pin));
+    const { changes, unvouched } = await this.plan(
+      ctx.projectDir,
+      pin,
+      await vouchedCallees(ctx.lisaDir, [UNIVERSAL_LANE, ...ctx.detectedTypes])
+    );
+    // Said once per apply, before anything is written. "This one stays where
+    // it is, and here is why" is the whole remedy the reporting consumer
+    // asked for: they had to revert one rewrite of five by hand, with nothing
+    // in the output marking that one as different (CodySwannGT/lisa#4021).
+    for (const caller of unvouched) {
+      ctx.logger.warn(unvouchedMessage(caller, pin));
     }
-
     if (changes.length === 0) {
-      return {
-        name: this.name,
-        action: "noop",
-        ...(unpinnable.length > 0 ? { message: skipSummary(unpinnable) } : {}),
-      };
+      return { name: this.name, action: "noop" };
     }
 
     const changedFiles = changes.map(change => change.relative);
-    const message = [
-      `Pinned ${changedFiles.length} Lisa reusable-workflow caller file(s) at ${pin.sha} (v${pin.version})`,
-      ...(unpinnable.length > 0 ? [skipSummary(unpinnable)] : []),
-    ].join("; ");
+    const message = `Pinned ${changedFiles.length} Lisa reusable-workflow caller file(s) at ${pin.sha} (v${pin.version})`;
     if (ctx.dryRun) {
       ctx.logger.dry(`Would update ${changedFiles.join(", ")}`);
       return { name: this.name, action: "applied", changedFiles, message };
@@ -301,49 +281,37 @@ export class EnsurePinnedReusableWorkflowRefsMigration implements Migration {
 
   /**
    * The rewrite to perform on every workflow file, and every caller skipped.
-   * @param ctx - Migration context
+   * @param projectDir - Destination project directory
    * @param pin - The identity every caller must carry
-   * @returns Files to write and callers left on their existing ref
+   * @param vouched - Callee names this release carries; empty means unknown
+   * @returns Files whose content changes, and callers left on their own ref
    */
-  private async planned(
-    ctx: MigrationContext,
-    pin: ReleasePin
+  private async plan(
+    projectDir: string,
+    pin: ReleasePin,
+    vouched: ReadonlySet<string>
   ): Promise<RewritePlan> {
-    const callees = await this.resolvedCallees(ctx, pin);
-    const files = await workflowFiles(ctx.projectDir);
+    // An EMPTY vouched set means the templates could not be read, not that
+    // this release ships no reusable workflows. Falling back to pinning
+    // everything preserves today's behaviour rather than silently disabling
+    // the pin, which would be a worse failure than the one this guard exists
+    // to prevent.
+    const shouldPin = (workflow: string): boolean =>
+      vouched.size === 0 || vouched.has(workflow);
+    const files = await workflowFiles(projectDir);
     const perFile = await Promise.all(
       files.map(async relative => {
-        const absolute = path.join(ctx.projectDir, relative);
+        const absolute = path.join(projectDir, relative);
         const before = await readFile(absolute, "utf8").catch(() => null);
         return before === null
-          ? emptyPlan
-          : planFile({ relative, absolute, before, pin, callees });
+          ? EMPTY_PLAN
+          : planFile({ relative, absolute, before, pin, shouldPin });
       })
     );
     return {
       changes: perFile.flatMap(entry => entry.changes),
-      unpinnable: perFile.flatMap(entry => entry.unpinnable),
+      unvouched: perFile.flatMap(entry => entry.unvouched),
     };
-  }
-
-  /**
-   * The callee inventory for this pin, resolved once per apply.
-   *
-   * Cached rather than re-read because `applies` and `apply` both need it and
-   * the git fallback spawns a process; caching the null answer matters as much
-   * as caching a set, since "nobody recorded it" is also a stable fact.
-   * @param ctx - Migration context
-   * @param pin - The identity every caller must carry
-   * @returns The inventory, or null when neither source can answer
-   */
-  private async resolvedCallees(
-    ctx: MigrationContext,
-    pin: ReleasePin
-  ): Promise<ReleaseCallees> {
-    this.callees ??= {
-      value: await resolveReleaseCallees(ctx.lisaDir, pin, this.calleeDeps),
-    };
-    return this.callees.value;
   }
 
   /**
@@ -400,23 +368,23 @@ export class EnsurePinnedReusableWorkflowRefsMigration implements Migration {
   }
 }
 
-/** A file that contributes nothing to the plan. */
-const emptyPlan: RewritePlan = { changes: [], unpinnable: [] };
+/** What a file that contributes nothing to the plan returns. */
+const EMPTY_PLAN: RewritePlan = { changes: [], unvouched: [] };
 
 /**
  * Decide what one workflow file contributes to the plan.
  *
- * A file is rewritten when any caller whose callee EXISTS is not already at
- * the pin. Callers whose callee is absent are reported instead — and they are
- * reported even when the file needs no rewrite, because the reason a caller
- * stays on `@main` is the sentence the consumer needs in order to write the
- * right comment next to it.
+ * A file is rewritten when any caller this release WILL pin is not already at
+ * the pin. Callers it will not pin are recorded instead — and recorded even
+ * when the file needs no rewrite, because the reason a caller stays on the ref
+ * it has is the sentence the consumer needs in order to write the right
+ * comment beside it.
  * @param input - The file, its content, and what is being pinned
  * @param input.relative - Path relative to the project root
  * @param input.absolute - Absolute path to the workflow file
  * @param input.before - Current content of the file
  * @param input.pin - The identity every caller must carry
- * @param input.callees - The release's inventory, or null when it is unknown
+ * @param input.shouldPin - Whether a given callee basename may be pinned
  * @returns This file's contribution to the plan
  */
 function planFile(input: {
@@ -424,42 +392,48 @@ function planFile(input: {
   readonly absolute: string;
   readonly before: string;
   readonly pin: ReleasePin;
-  readonly callees: ReleaseCallees;
+  readonly shouldPin: (workflow: string) => boolean;
 }): RewritePlan {
-  const { relative, absolute, before, pin, callees } = input;
+  const { relative, absolute, before, pin, shouldPin } = input;
   const refs = findReusableWorkflowRefs(before);
-  if (refs.length === 0) return emptyPlan;
+  if (refs.length === 0) return EMPTY_PLAN;
 
-  const present = refs.filter(reference => isCalleePresent(reference, callees));
-  const unpinnable = refs
-    .filter(reference => !isCalleePresent(reference, callees))
-    .map(reference => toUnpinnable(relative, reference));
-  const needsWrite = present.some(reference => !isPinnedAt(reference, pin));
+  // Only references this release will actually pin count toward "already
+  // settled". An unvouched reference is deliberately left mutable, so it is
+  // never `isPinnedAt` — reading it as unsettled made this file report a
+  // change on EVERY apply, rewriting byte-identical content and logging a pin
+  // that did not happen. That is the exact idempotency the migration
+  // otherwise guarantees.
+  const settled = refs.every(
+    reference => !shouldPin(reference.workflow) || isPinnedAt(reference, pin)
+  );
 
   return {
-    changes: needsWrite
-      ? [
+    changes: settled
+      ? []
+      : [
           {
             relative,
             absolute,
-            source: pinReusableWorkflowRefs(before, pin, callees),
+            source: pinReusableWorkflowRefs(before, pin, shouldPin),
           },
-        ]
-      : [],
-    unpinnable,
+        ],
+    unvouched: refs
+      .filter(reference => !shouldPin(reference.workflow))
+      .map(reference => toUnvouched(relative, reference)),
   };
 }
 
 /**
- * Record one caller the release cannot carry.
+ * Record one caller this release cannot vouch for.
  * @param relative - Path relative to the project root
  * @param reference - The caller reference found there
  * @returns The reportable record
  */
-function toUnpinnable(
+function toUnvouched(
   relative: string,
   reference: ReusableWorkflowRef
-): UnpinnableCaller {
+): UnvouchedCaller {
   return {
     relative,
     line: reference.line,
@@ -474,25 +448,14 @@ function toUnpinnable(
  * @param pin - The identity the rest of the project was pinned at
  * @returns An operator-readable statement
  */
-function unpinnableMessage(caller: UnpinnableCaller, pin: ReleasePin): string {
+function unvouchedMessage(caller: UnvouchedCaller, pin: ReleasePin): string {
   return (
     `${caller.relative}:${caller.line} calls ${caller.workflow}@${caller.ref} and stays on that ref: ` +
-    `${caller.workflow} does not exist at ${pin.sha} (v${pin.version}), so no released Lisa carries it yet. ` +
-    "Pinning it there would name a commit the workflow is absent from, and GitHub answers an unresolvable " +
-    "`uses:` with a load error — zero jobs created, so zero failures, and nothing naming the missing file."
+    `no caller template in the installed Lisa references ${caller.workflow}, so this release cannot ` +
+    `confirm it exists at ${pin.sha} (v${pin.version}). Pinning it there could name a commit the workflow ` +
+    "is absent from, and GitHub answers an unresolvable `uses:` with a load error — zero jobs created, so " +
+    "zero failures, and nothing naming the missing file."
   );
-}
-
-/**
- * One line naming every caller the pin could not reach.
- * @param unpinnable - Callers left on their existing ref
- * @returns A summary for the migration result
- */
-function skipSummary(unpinnable: readonly UnpinnableCaller[]): string {
-  const named = unpinnable
-    .map(caller => `${caller.workflow} (${caller.relative}:${caller.line})`)
-    .join(", ");
-  return `left ${unpinnable.length} caller(s) unpinned because no released Lisa carries the workflow: ${named}`;
 }
 
 /**
@@ -507,6 +470,52 @@ async function workflowFiles(root: string): Promise<readonly string[]> {
   return entries
     .filter(name => /\.ya?ml$/u.test(name))
     .map(name => path.join(WORKFLOW_DIR, name));
+}
+
+/**
+ * The callee names Lisa's OWN shipped caller templates reference.
+ * @remarks
+ * This is the set this release can vouch for. A caller naming anything else —
+ * typically a workflow that exists only on Lisa's `main`, adopted by a project
+ * ahead of a release carrying it — must not be pinned: the pin would name a
+ * commit where the file is absent, and an unresolvable reusable workflow is a
+ * LOAD error that kills the job before a step runs, with nothing in the
+ * consumer's own diff to explain it.
+ *
+ * Derived from the templates on disk rather than a hardcoded roster, because
+ * the roster is exactly what changes between releases. The npm package does
+ * not ship Lisa's own `.github/workflows/`, so the callee files cannot be
+ * probed directly; the caller templates are the only offline witness to what a
+ * given release provides.
+ * @param lisaDir - Installed Lisa root
+ * @param lanes - Universal lane plus the project's detected types
+ * @returns Callee basenames, e.g. `quality.yml`
+ */
+export async function vouchedCallees(
+  lisaDir: string,
+  lanes: readonly string[]
+): Promise<ReadonlySet<string>> {
+  const roots = lanes.flatMap(lane =>
+    TEMPLATE_MODES.map(mode => path.join(lisaDir, lane, mode))
+  );
+  const perRoot = await Promise.all(
+    roots.map(async root => {
+      const files = await workflowFiles(root);
+      const perFile = await Promise.all(
+        files.map(async relative => {
+          const source = await readFile(
+            path.join(root, relative),
+            "utf8"
+          ).catch(() => "");
+          return findReusableWorkflowRefs(source).map(
+            reference => reference.workflow
+          );
+        })
+      );
+      return perFile.flat();
+    })
+  );
+  return new Set(perRoot.flat());
 }
 
 /**

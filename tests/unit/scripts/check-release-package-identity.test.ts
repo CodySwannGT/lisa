@@ -19,7 +19,6 @@ import {
   assertCheckoutIdentity,
   assertReleaseTag,
   packAndValidateReleaseCandidate,
-  releaseWorkflowInventory,
 } from "../../../scripts/check-release-package-identity.mjs";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
@@ -31,9 +30,6 @@ const PACKAGE_JSON = "package.json";
 const PACKAGE_NAME = "release-fixture";
 const GIT = resolveGit();
 const roots: string[] = [];
-
-/** A workflow name the inventory fixtures reuse. */
-const QUALITY_WORKFLOW = "quality.yml";
 
 /** Execute git in one disposable fixture and return trimmed stdout. */
 function git(root: string, ...args: string[]): string {
@@ -303,109 +299,5 @@ describe("release package identity", () => {
       certificateMemberSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
     });
     expect(readFileSync(result.tarballPath)).not.toHaveLength(0);
-  });
-
-  describe("the workflow inventory a consumer's pinner reads", () => {
-    /**
-     * Add workflow files to a fixture and optionally stamp them.
-     *
-     * @param root - Fixture root
-     * @param names - Workflow file names to create
-     * @param stamped - What package.json records, or undefined to record nothing
-     */
-    function withWorkflows(
-      root: string,
-      names: readonly string[],
-      stamped?: readonly string[]
-    ): void {
-      mkdirSync(path.join(root, ".github", "workflows"), { recursive: true });
-      for (const name of names) {
-        writeFileSync(
-          path.join(root, ".github", "workflows", name),
-          "on: workflow_call\njobs: {}\n"
-        );
-      }
-      if (stamped === undefined) return;
-      const packageJson = JSON.parse(
-        readFileSync(path.join(root, PACKAGE_JSON), "utf8")
-      ) as Record<string, unknown>;
-      packageJson["lisaReleaseWorkflows"] = [...stamped];
-      writeFileSync(
-        path.join(root, PACKAGE_JSON),
-        `${JSON.stringify(packageJson, null, 2)}\n`
-      );
-    }
-
-    it("lists the release tree's workflows in a stable order", () => {
-      const { root } = createTaggedFixture();
-      withWorkflows(root, [QUALITY_WORKFLOW, "gates.yml", "notes.md"]);
-
-      // Sorted, so the stamp is a function of the tree rather than of
-      // directory order, and non-workflow files are excluded.
-      expect(releaseWorkflowInventory(root)).toEqual([
-        "gates.yml",
-        QUALITY_WORKFLOW,
-      ]);
-    });
-
-    it("answers an empty list for a repository that ships no workflows", () => {
-      const { root } = createTaggedFixture();
-      expect(releaseWorkflowInventory(root)).toEqual([]);
-    });
-
-    it("REFUSES to publish a release that records no inventory it could have", () => {
-      // Without this the stamp is inert: it could silently stop being written
-      // and every consumer would go back to pinning callers at commits their
-      // callee may not exist in, with nothing red anywhere to say so.
-      const { root, commit } = createTaggedFixture();
-      preparePackFixture(root, commit, VERSION);
-      withWorkflows(root, [QUALITY_WORKFLOW]);
-
-      expect(() =>
-        packAndValidateReleaseCandidate({
-          root,
-          version: VERSION,
-          releaseCommit: commit,
-          tag: TAG,
-          packDestination: path.join(root, "packed"),
-        })
-      ).toThrow(/lisaReleaseWorkflows undefined is not an array/u);
-    });
-
-    it("REFUSES an inventory that disagrees with the release tree", () => {
-      const { root, commit } = createTaggedFixture();
-      preparePackFixture(root, commit, VERSION);
-      withWorkflows(root, [QUALITY_WORKFLOW, "gates.yml"], [QUALITY_WORKFLOW]);
-
-      expect(() =>
-        packAndValidateReleaseCandidate({
-          root,
-          version: VERSION,
-          releaseCommit: commit,
-          tag: TAG,
-          packDestination: path.join(root, "packed"),
-        })
-      ).toThrow(/does not match the release tree/u);
-    });
-
-    it("accepts and reports an inventory that matches the release tree", () => {
-      const { root, commit } = createTaggedFixture();
-      preparePackFixture(root, commit, VERSION);
-      withWorkflows(
-        root,
-        ["gates.yml", QUALITY_WORKFLOW],
-        ["gates.yml", QUALITY_WORKFLOW]
-      );
-
-      const result = packAndValidateReleaseCandidate({
-        root,
-        version: VERSION,
-        releaseCommit: commit,
-        tag: TAG,
-        packDestination: path.join(root, "packed"),
-      });
-
-      expect(result.releaseWorkflows).toEqual(["gates.yml", QUALITY_WORKFLOW]);
-    });
   });
 });

@@ -343,14 +343,14 @@ describe("Lighthouse detail budget", () => {
     expect(result.stderr).toContain("contains no Lighthouse result JSON");
   });
 
-  it("ships the score override and the detail checker in one forced script", () => {
+  it("ships the score override and the detail checker in one default script", () => {
     const packageTemplate = JSON.parse(
       readFileSync(
         path.join(REPO_ROOT, "expo/package-lisa/package.lisa.json"),
         "utf8"
       )
     );
-    const command = packageTemplate.force.scripts["lighthouse:check"];
+    const command = packageTemplate.defaults.scripts["lighthouse:check"];
     const lighthouseConfig = readFileSync(
       path.join(REPO_ROOT, "expo/create-only/lighthouserc.js"),
       "utf8"

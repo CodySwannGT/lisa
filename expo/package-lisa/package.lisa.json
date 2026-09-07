@@ -26,18 +26,9 @@
       "fetch:graphql:schema:dev": "./scripts/fetch-graphql-schema.sh development",
       "fetch:graphql:schema:production": "./scripts/fetch-graphql-schema.sh production",
       "fetch:graphql:schema:staging": "./scripts/fetch-graphql-schema.sh staging",
-      "lighthouse:check": "lhci autorun --collect.settings.chromeFlags='--no-sandbox --disable-gpu --headless' --assert.assertions.forced-reflow-insight=off && node scripts/check-lighthouse-details.mjs",
       "lint:fix": "oxlint --fix && eslint . --fix",
       "lint:lisa": "oxlint && eslint . --quiet",
       "maestro:classify": "node scripts/classify-maestro-failures.mjs",
-      "maestro:studio": "maestro studio",
-      "maestro:test": "lisa-test-run --profile expo --adapter direct -- maestro test .maestro/flows",
-      "maestro:test:android": "lisa-test-run --profile expo --adapter direct -- maestro test -p android .maestro/flows",
-      "maestro:test:ios": "lisa-test-run --profile expo --adapter direct -- maestro test -p ios .maestro/flows",
-      "maestro:test:smoke": "lisa-test-run --profile expo --adapter direct -- maestro test -p ios --include-tags=smoke .maestro/flows",
-      "playwright:build": "expo export --platform web",
-      "playwright:test": "bun run playwright:build && lisa-test-run --profile expo --adapter direct -- playwright test",
-      "playwright:test:ui": "bun run playwright:build && lisa-test-run --profile expo --adapter direct -- playwright test --ui",
       "pre-build:eas": "cat .gitignore > .easignore && cat .easignore.extra >> .easignore",
       "security:zap": "bash scripts/zap-baseline.sh",
       "setup:deploy-key": "setup-deploy-key",
@@ -59,7 +50,7 @@
       "test:integration:lisa": "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
       "test:lisa": "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest",
       "test:mutation": "LISA_TEST_SCRATCH_PREFIXES='[\"lisa-mutation-\",\"worker-\"]' lisa-test-run --profile expo --adapter direct -- node scripts/lisa-mutation.mjs",
-      "test:node": "LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile expo --adapter direct -- node scripts/lisa-test-node.mjs",
+      "test:node:lisa": "LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile expo --adapter direct -- node scripts/lisa-test-node.mjs",
       "test:unit:lisa": "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
       "test:watch:lisa": "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --watch"
     },
@@ -182,11 +173,21 @@
       "jest-expo": "~57.0.1"
     },
     "scripts": {
+      "lighthouse:check": "lhci autorun --collect.settings.chromeFlags='--no-sandbox --disable-gpu --headless' --assert.assertions.forced-reflow-insight=off && node scripts/check-lighthouse-details.mjs",
       "lint": "$npm_execpath run lint:lisa",
+      "maestro:studio": "maestro studio",
+      "maestro:test": "lisa-test-run --profile expo --adapter direct -- maestro test .maestro/flows",
+      "maestro:test:android": "lisa-test-run --profile expo --adapter direct -- maestro test -p android .maestro/flows",
+      "maestro:test:ios": "lisa-test-run --profile expo --adapter direct -- maestro test -p ios .maestro/flows",
+      "maestro:test:smoke": "lisa-test-run --profile expo --adapter direct -- maestro test -p ios --include-tags=smoke .maestro/flows",
+      "playwright:build": "expo export --platform web",
+      "playwright:test": "bun run playwright:build && lisa-test-run --profile expo --adapter direct -- playwright test",
+      "playwright:test:ui": "bun run playwright:build && lisa-test-run --profile expo --adapter direct -- playwright test --ui",
       "test": "$npm_execpath run test:lisa",
       "test:cov": "$npm_execpath run test:cov:lisa",
       "test:cov:unit": "$npm_execpath run test:cov:unit:lisa",
       "test:integration": "$npm_execpath run test:integration:lisa",
+      "test:node": "$npm_execpath run test:node:lisa",
       "test:unit": "$npm_execpath run test:unit:lisa",
       "test:watch": "$npm_execpath run test:watch:lisa"
     }
@@ -206,9 +207,36 @@
   },
   "adopt": {
     "scripts": {
+      "lighthouse:check": [
+        "lhci autorun --collect.settings.chromeFlags='--no-sandbox --disable-gpu --headless' --assert.assertions.forced-reflow-insight=off && node scripts/check-lighthouse-details.mjs"
+      ],
       "lint": [
         "oxlint && eslint . --quiet",
         "eslint . --quiet"
+      ],
+      "maestro:studio": [
+        "maestro studio"
+      ],
+      "maestro:test": [
+        "lisa-test-run --profile expo --adapter direct -- maestro test .maestro/flows"
+      ],
+      "maestro:test:android": [
+        "lisa-test-run --profile expo --adapter direct -- maestro test -p android .maestro/flows"
+      ],
+      "maestro:test:ios": [
+        "lisa-test-run --profile expo --adapter direct -- maestro test -p ios .maestro/flows"
+      ],
+      "maestro:test:smoke": [
+        "lisa-test-run --profile expo --adapter direct -- maestro test -p ios --include-tags=smoke .maestro/flows"
+      ],
+      "playwright:build": [
+        "expo export --platform web"
+      ],
+      "playwright:test": [
+        "bun run playwright:build && lisa-test-run --profile expo --adapter direct -- playwright test"
+      ],
+      "playwright:test:ui": [
+        "bun run playwright:build && lisa-test-run --profile expo --adapter direct -- playwright test --ui"
       ],
       "test": [
         "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest",
@@ -228,6 +256,9 @@
       "test:integration": [
         "NODE_ENV=test jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",
         "NODE_ENV=test jest --testPathPatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\" --passWithNoTests"
+      ],
+      "test:node": [
+        "LISA_TEST_SCRATCH_PREFIXES='[\"node-\"]' lisa-test-run --profile expo --adapter direct -- node scripts/lisa-test-node.mjs"
       ],
       "test:unit": [
         "NODE_ENV=test lisa-test-run --profile expo --adapter direct -- jest --testPathIgnorePatterns=\"\\.integration[.\\\\-](test|spec)\\.(ts|tsx)$\"",

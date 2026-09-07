@@ -278,18 +278,6 @@ jobs:
           # tag ref is carried forward, and a caller pinned at an orphaned
           # commit stops loading its workflow without ever reporting a failure.
           npm pkg set lisaReleaseTag="$RELEASE_TAG"
-          # Which workflow files exist at the release commit. `.github/` is not
-          # in the npm files allowlist, so an installed package has no other way
-          # to learn this without a network call at apply time. A consumer's
-          # reusable-workflow pinner reads it to leave a caller alone when the
-          # release does not carry its callee: that pin would not fail, it would
-          # never load, so the run creates zero jobs, reports zero failures, and
-          # names no missing file (#4021). Listed by the same function that
-          # validates it during pack, so the two cannot describe different trees.
-          WORKFLOW_INVENTORY="$(node scripts/check-release-package-identity.mjs workflows)"
-          if [ "$WORKFLOW_INVENTORY" != "[]" ]; then
-            npm pkg set lisaReleaseWorkflows="$WORKFLOW_INVENTORY" --json
-          fi
 
       - name: Build package
         run: |
