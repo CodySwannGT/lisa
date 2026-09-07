@@ -291,7 +291,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/maestro-e2e.yml":
       "917d1918f3bff9b4c19db3f9a9bd6fd1d7c5d3db0947dacec3f4797c692632d6",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
-      "db78a1012a00cf4e8b023a67bb57566ae85cf790c3856f3e299636c766f0c242",
+      "02c9ddf80eaaec34eae35abf70cc8f39a7c6e43245cd742421acc188ea59b208",
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
       "a486f7e0a5b0f8ed8899d5f5154850db97c9f9d88db8cb0e81d73fcaa4c7f13e",
     "expo/create-only/.github/workflows/nightly-e2e-report.yml":
@@ -1109,7 +1109,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "ab7bb855fd3ebe321e41b0143815f202b70f6ba38f6678791d6d9e933e0c3fd8",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "cb1ea1a70aa8051875290531fe0952f0b6f26079a99f1b887c449a2efea93aaa",
+      "dd1da8d06f433d7feb921443513f7b5948fe8e75cf0bcb925bc8687e0ea48406",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -2539,7 +2539,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "d557bfb64c8c23d9f03c173798aa1f176f5e28d395ad6667f855049d4b886db6",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "dfd2fef680de5ef03e63075e8a61c62ca4d95cdfdff6201939b79c748d3397f6",
+      "ed19944f4182c20a5b6b68c588fea2c8d21d1d2b906d9cfd0054c5835bc1ad64",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "ed6f649d68e2d264ce7f4a5cc6c2db42e6725d30005d7dad98b759801bc14b07",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -9360,6 +9360,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/nightly-e2e-reporting-harness.ts": true,
     "tests/helpers/nightly-e2e-selection-harness.ts": true,
     "tests/helpers/nightly-e2e-tracking-harness.ts": true,
+    "tests/helpers/nightly-e2e-waiver-harness.ts": true,
     "tests/helpers/package-lisa-apply-harness.ts": true,
     "tests/helpers/process-tree-runner-verdict.ts": true,
     "tests/helpers/readiness-workflow-fixtures.ts": true,
@@ -10390,6 +10391,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/nightly-e2e-tracking-failures.test.ts": true,
     "tests/unit/scripts/nightly-e2e-tracking-observability.test.ts": true,
     "tests/unit/scripts/nightly-e2e-tracking-reconcile.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-waiver-record.test.ts": true,
     "tests/unit/scripts/per-agent-hook-filter.test.ts": true,
     "tests/unit/scripts/placeholder-expiry.test.ts": true,
     "tests/unit/scripts/plugin-parity-drift-helpers.ts": true,

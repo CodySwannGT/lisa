@@ -3,7 +3,8 @@
 
 name: 🧹 Nightly E2E Bypass Reaper
 
-# Removes a used `nightly-e2e-bypass` label when its pull request closes.
+# Writes the durable waiver record, then removes a used `nightly-e2e-bypass`
+# label, when its pull request closes.
 #
 # ## Why removal happens on CLOSE and not on USE
 #
@@ -20,12 +21,36 @@ name: 🧹 Nightly E2E Bypass Reaper
 # applied (default 24, hard ceiling 72). The reaper keeps the label list honest;
 # it is not what bounds the waiver's lifetime.
 #
-# ## Why the audit survives removal
+# ## Why the RECORD is written before the label is stripped
 #
-# The audit record lives in the gate's job summary, its `::notice::` annotation
-# and its `audit_json` output on the run that honoured the bypass — none of which
-# this workflow touches. Removing the label removes the REQUEST, never the
-# RECORD.
+# The audit lives on the gate run that honoured the bypass — its job summary,
+# its `::notice::` annotation, its `audit_json` output — and none of that is
+# reachable from the pull request a reviewer is looking at, nor from any
+# repository-wide question. Measured on a consumer: the LABEL was the only
+# index of "which merges went past this gate on a waiver", and stripping it
+# withdrew the REQUEST and erased the INDEX in the same call. After a waived
+# merge closed, the repository could no longer answer "what shipped on a
+# waiver, and why" — a compliance question as much as an engineering one.
+#
+# So this workflow re-derives the waiver from the live pull request FIRST and
+# posts a marker-delimited record comment, and only then strips the label. The
+# ordering is the whole point, and it is enforced by the step order plus the
+# refusal below: if the record could not be established, the label is LEFT ON.
+# A label nobody removed is untidy; an unrecorded waived merge is unauditable,
+# and untidy is the cheaper of the two.
+#
+# ## Why an EXPIRED waiver is still recorded
+#
+# By the time a pull request closes the waiver has often lapsed, and the
+# re-derivation says `refused`. That is not a reason to write nothing — an
+# expired waiver still shipped something, and those are exactly the merges most
+# worth being able to find later. The record carries the state it was recorded
+# in rather than pretending the waiver was fine.
+#
+# The one state that is NOT recorded is `not_determined`: the live pull request
+# could not be read, so nothing was established. Writing a confident-looking
+# record there would be worse than writing none, so the workflow fails and
+# leaves the label in place for a re-run to catch.
 
 on:
   pull_request_target:
@@ -33,8 +58,8 @@ on:
 
 permissions:
   contents: read
-  # The one write in the whole nightly-gate standard, scoped to removing one
-  # label from an already-closed PR.
+  # The one write in the whole nightly-gate standard: posting the waiver record
+  # and removing one label from an already-closed PR.
   pull-requests: write
 
 concurrency:
@@ -43,23 +68,109 @@ concurrency:
 
 jobs:
   reap:
-    name: 🧹 Remove used bypass label
+    name: 🧹 Record the waiver, then remove its label
     # `pull_request_target` runs with a writable token against the BASE repo, so
     # this job must never check out or execute pull-request code. It does not:
-    # there is no checkout step and the only command is a `gh` API call.
+    # the checkout below pins the BASE ref explicitly and nothing in this file
+    # names the pull request's head commit, so the only code that runs here is
+    # code already merged into the base branch and reviewed on its own terms.
+    #
+    # The reaper checks out at all because it re-derives the waiver through the
+    # SAME guard the gate uses. The alternative — restating that derivation in
+    # shell here — is a second implementation of "is this waiver good?", and two
+    # of those drift.
     if: contains(github.event.pull_request.labels.*.name, 'nightly-e2e-bypass')
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
+      - name: 📥 Checkout the BASE branch (never the pull request's head)
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          persist-credentials: false
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: '22'
+
+      - name: 🔎 Locate the guard
+        id: guard
+        env:
+          # Two addresses for the SAME file, not a fallback to a different
+          # implementation: `lisa apply` installs the guard into `scripts/`, and
+          # a repository that has not run it yet still carries the template.
+          INSTALLED: scripts/check-nightly-e2e-health.mjs
+          TEMPLATE: typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs
+        run: |
+          set -euo pipefail
+          if [[ -f "$INSTALLED" ]]; then
+            echo "path=$INSTALLED" >> "$GITHUB_OUTPUT"
+          elif [[ -f "$TEMPLATE" ]]; then
+            echo "path=$TEMPLATE" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error title=Nightly E2E guard is not installed::Neither '$INSTALLED' nor '$TEMPLATE' exists on this branch, so the waiver cannot be re-derived. Refusing to strip the bypass label: that would erase the only index of this waived merge. Run \`lisa apply\`."
+            exit 1
+          fi
+
+      - name: 🧾 Re-derive the waiver from the live pull request
+        id: waiver
+        # A refused waiver exits 1 by design — that exit code is the merge-time
+        # contract — and on THIS path a refusal is an ordinary outcome to be
+        # recorded, not a failure. The state is read from the output instead,
+        # and the step below decides what each state means here.
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          NIGHTLY_PR_NUMBER: ${{ github.event.pull_request.number }}
+          NIGHTLY_BYPASS_LABEL: nightly-e2e-bypass
+          GUARD: ${{ steps.guard.outputs.path }}
+        run: node "$GUARD" --waiver-verdict
+
+      - name: 🗒️ Post the durable waiver record
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          STATE: ${{ steps.waiver.outputs.waiver_state }}
+          RECORD: ${{ steps.waiver.outputs.waiver_record }}
+          MARKER: NIGHTLY-E2E-BYPASS-RECORD
+        run: |
+          set -euo pipefail
+          if [[ "$STATE" == "none" ]]; then
+            echo "::notice title=No waiver to record::The live pull request carries no bypass label, so somebody removed it between the close event and this run. There is nothing to record and nothing to strip."
+            exit 0
+          fi
+          if [[ "$STATE" != "waived" && "$STATE" != "refused" ]]; then
+            echo "::error title=Waiver NOT recorded::The waiver could not be re-derived (state: '${STATE:-unreadable}'), so nothing was established about it. Refusing to write a record that would look authoritative and refusing to strip the label, which is currently the only index of this waived merge. Re-run this workflow once the API is readable."
+            exit 1
+          fi
+          # Idempotent. `pull_request_target` can fire more than once for a
+          # close, and two identical records read as two waived merges.
+          if gh api --paginate "repos/$REPO/issues/$PR/comments" \
+            --jq '.[].body' 2>/dev/null | grep -qF "$MARKER"; then
+            echo "::notice title=Waiver already recorded::#$PR already carries a $MARKER comment. Not posting a second one."
+            exit 0
+          fi
+          printf '%s\n' \
+            "Recorded by the nightly-E2E bypass reaper when this pull request closed, BEFORE its \`nightly-e2e-bypass\` label was stripped." \
+            "" \
+            "$RECORD" > "$RUNNER_TEMP/waiver-record.md"
+          gh pr comment "$PR" --repo "$REPO" --body-file "$RUNNER_TEMP/waiver-record.md"
+          echo "::notice title=Waiver recorded::The waiver on #$PR is now durable: it survives the label removal below."
+
       - name: 🧹 Strip the bypass label
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
           LABEL: nightly-e2e-bypass
+          MERGED: ${{ github.event.pull_request.merged && 'merged' || 'closed' }}
         run: |
           set -euo pipefail
-          echo "Removing '$LABEL' from $REPO#$PR (state: ${{ github.event.pull_request.merged && 'merged' || 'closed' }})."
+          echo "Removing '$LABEL' from $REPO#$PR (state: $MERGED)."
           # ONE delete. Someone removing the label between the event and this
           # run is the desired end state, not a failure — but a permission or
           # API problem must NEVER look like a successful reap, or the label
@@ -75,7 +186,7 @@ jobs:
           deleted=$?
           set -e
           if [[ $deleted -eq 0 ]]; then
-            echo "::notice title=Nightly E2E bypass label removed::'$LABEL' cleared from #$PR after close. The audit record on the gate run that honoured it is unaffected."
+            echo "::notice title=Nightly E2E bypass label removed::'$LABEL' cleared from #$PR after close. The waiver record posted above outlives it, and the audit on the gate run that honoured it is unaffected."
             exit 0
           fi
           if gh api "repos/$REPO/issues/$PR/labels" --jq '.[].name' 2>/dev/null \

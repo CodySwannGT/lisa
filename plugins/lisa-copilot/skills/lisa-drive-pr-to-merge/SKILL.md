@@ -410,6 +410,55 @@ code shipping that nothing read. The cost is bounded — the moment the context
 proves work, the latch is armed and the unattended behaviour returns — and the
 open PR is REPORTED (`blocked:unreviewed`, section 4), not silently abandoned.
 
+#### A nightly-E2E waiver is RE-DERIVED here, never replayed
+
+Everything above reads STORED check results. That is fine for a gate whose
+input is the code, and weaker than it looks for one whose input is *mutable
+pull-request state a human can edit* — which is exactly what a nightly-E2E
+bypass waiver is. A stored `bypassed` says what was true when the gate ran, and
+the merge happens later.
+
+Every way a waiver can change fires a pull-request event the gate subscribes to
+— applying the label, removing it, editing the body — **except one**. A waiver
+that runs out of hours produces no event at all, so no amount of re-running
+sees it, and the stored green goes on saying green. Expiry is only visible to
+re-deriving.
+
+So before arming, ask the guard what is true NOW:
+
+```bash
+NIGHTLY_PR_NUMBER=<pr> node scripts/check-nightly-e2e-health.mjs --waiver-verdict --json
+```
+
+The same second address applies as above:
+`typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs`. The mode needs
+only a token, `GITHUB_REPOSITORY` and the pull request number — no suite table,
+because the question here is "is the waiver still good?", not "is the nightly
+green?".
+
+Read `state`, and treat the exit code as its shorthand rather than its source:
+
+| `state` | what it means | arm? |
+| --- | --- | --- |
+| `none` | nobody asked for a waiver; the gate stands on suite evidence | **arm** |
+| `waived` | a waiver is valid *at this moment* | **arm** — the escape hatch working |
+| `refused` | a waiver was requested and no longer holds | no — a stored `bypassed` must not carry this merge |
+| `not_determined` | the live pull request could not be read | no — nothing was established |
+
+`refused` and `not_determined` are kept apart on purpose. The first names a
+lapsed waiver, what it covered and a remedy; the second says the question could
+not be answered. Collapsing the second into "fine" is the failure the whole mode
+exists against, and collapsing it into "the waiver is bad" invents a fact.
+
+**Do not weaken the gate to get past this.** A genuine, still-valid waiver keeps
+merging — that is the `waived` row, and it is the row to protect. If the waiver
+has lapsed, either fix the red suite or re-apply a fresh waiver so a
+maintainer's grant is dated from now; report `blocked:nightly-waiver-lapsed`
+(section 4) rather than merging on the earlier green.
+
+If the repository ships no nightly-E2E gate at all, the guard is absent and this
+subsection does not apply — the same scope rule the vacuity gate uses.
+
 Before enabling auto-merge, capture the live PR head and compare it to
 `verify_commit`:
 

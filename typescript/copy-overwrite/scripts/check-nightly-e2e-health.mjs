@@ -1479,6 +1479,31 @@ export function resolveSuiteGrace(suite, maxDays, now) {
 // ---------------------------------------------------------------------------
 
 /**
+ * Reads the `Nightly-E2E-Bypass: <TICKET> <reason>` trailer out of a body.
+ *
+ * Split out because the trailer is read by three consumers that MUST agree:
+ * `evaluateBypass` (does this waiver qualify?), the merge-time re-derivation
+ * (does it still qualify NOW?), and the durable record (what did it say?). The
+ * third one is why this returns the trailer independently of validity — an
+ * EXPIRED waiver still has a ticket and a reason, and a record that omitted
+ * them because the waiver had lapsed would answer "what shipped on a waiver,
+ * and why" with silence for exactly the merges most worth reading about.
+ *
+ * @param {string|null|undefined} prBody - The pull request body
+ * @returns {{ticket: string, reason: string|null}|null} The trailer, or `null` when absent
+ */
+export function parseWaiverTrailer(prBody) {
+  const found = new RegExp(REQUIRED_BYPASS_REASON_PATTERN, "m").exec(
+    prBody ?? ""
+  );
+  if (!found) return null;
+  return Object.freeze({
+    ticket: found.groups?.ticket ?? null,
+    reason: (found.groups?.reason ?? "").trim() || null,
+  });
+}
+
+/**
  * Decides whether a bypass request is valid, as a pure function of the facts
  * the caller gathered.
  *
@@ -1563,11 +1588,11 @@ export function evaluateBypass(request) {
   }
 
   // The built-in rule ALWAYS applies. It is checked first and on its own, so no
-  // caller-supplied pattern can stand in for it.
-  const found = new RegExp(REQUIRED_BYPASS_REASON_PATTERN, "m").exec(
-    prBody ?? ""
-  );
-  if (!found) {
+  // caller-supplied pattern can stand in for it. Parsed through the ONE shared
+  // reader (`parseWaiverTrailer`), so the merge-time re-derivation and the
+  // durable record cannot come to read the trailer differently from the gate.
+  const trailer = parseWaiverTrailer(prBody);
+  if (!trailer) {
     return reject("no_reason_or_ticket", {
       expiresAt: new Date(expiresMs).toISOString(),
     });
@@ -1598,8 +1623,8 @@ export function evaluateBypass(request) {
     actor: labelEvent.actor,
     appliedAt: new Date(appliedMs).toISOString(),
     expiresAt: new Date(expiresMs).toISOString(),
-    ticket: found.groups?.ticket ?? null,
-    detail: (found.groups?.reason ?? "").trim() || null,
+    ticket: trailer.ticket,
+    detail: trailer.reason,
   });
 }
 
@@ -1616,6 +1641,174 @@ const BYPASS_REJECTIONS = Object.freeze({
   pr_state_unreadable:
     "this pull request's live labels and body could not be read, so whether a waiver was requested is UNKNOWN. The gate stays closed: a bypass that fires when it could not read the request is worse than no bypass. On a private repository the caller job needs `pull-requests: read`; otherwise this is a transient API failure and a re-run resolves it.",
 });
+
+// ---------------------------------------------------------------------------
+// 4.1 The waiver record — durable, and RE-DERIVED at the moment of asking
+// ---------------------------------------------------------------------------
+//
+// Two defects live here, and they are the same defect seen from two ends.
+//
+// THE VERDICT WAS REPLAYED. The merge consumes a STORED check run. Between the
+// last evaluation and the merge, `bypassed` is a record of the past, and a
+// waiver is mutable pull-request state a human can edit. Removal at least fires
+// `unlabeled` and re-runs the gate; EXPIRY fires nothing at all, so the one
+// transition that produces no event is the one a replayed verdict can never
+// see. `runWaiverVerdict` re-derives the waiver from the LIVE pull request at
+// the moment the merge asks, through the SAME `observeWaiver` the gate itself
+// uses — not a second implementation that can drift into disagreeing with it.
+//
+// THE WAIVER LEFT NO RECORD. The label is the only repository-wide index of
+// "which merges went past this gate on a waiver", and the reaper strips it on
+// close, which withdraws the REQUEST and erases the INDEX with it. The record
+// below is written into a marker-delimited comment BEFORE the strip, so the
+// index outlives the label. `formatWaiverRecord` is deliberately buildable from
+// a REFUSED waiver too: an expired waiver still shipped something.
+//
+// Both halves refuse to guess. An unreadable pull request is `not_determined`
+// and never `waived` — "we could not check" must not render as "it is fine",
+// which is the rule the rest of this file is built on.
+
+/**
+ * The four answers to "is a waiver in force on this pull request right now?".
+ *
+ * `none` is not a synonym for `waived`: it means nobody asked for a waiver, so
+ * whatever the gate reported rests on suite evidence alone. `not_determined` is
+ * not a synonym for `refused` either — one is a fact about the waiver, the
+ * other is the absence of any fact — and only `refused` names a remedy.
+ */
+export const WAIVER_STATES = Object.freeze({
+  none: "none",
+  waived: "waived",
+  refused: "refused",
+  notDetermined: "not_determined",
+});
+
+/**
+ * The token every durable waiver record carries, and the key it is found by.
+ *
+ * The record has to be enumerable AFTER the reaper has stripped the label, so
+ * the search key must be something the reaper does not touch. This string is
+ * that key; the markers below wrap it.
+ */
+export const WAIVER_RECORD_MARKER = "NIGHTLY-E2E-BYPASS-RECORD";
+
+/** Opening marker of the durable waiver record. */
+export const WAIVER_RECORD_BEGIN = `<!-- ${WAIVER_RECORD_MARKER}-BEGIN -->`;
+
+/** Closing marker of the durable waiver record. */
+export const WAIVER_RECORD_END = `<!-- ${WAIVER_RECORD_MARKER}-END -->`;
+
+/**
+ * Turns a bypass decision into the merge-time waiver state.
+ *
+ * @param {object|null|undefined} bypass - A decision from `evaluateBypass`, or `null` when no waiver was requested
+ * @returns {string} One of `WAIVER_STATES`
+ */
+export function classifyWaiver(bypass) {
+  if (bypass === null || bypass === undefined) return WAIVER_STATES.none;
+  if (bypass.reason === "pr_state_unreadable") {
+    return WAIVER_STATES.notDetermined;
+  }
+  return bypass.valid === true ? WAIVER_STATES.waived : WAIVER_STATES.refused;
+}
+
+/** One row of the record table, or nothing when the value is unknown. */
+const recordRow = (field, value) =>
+  value === null || value === undefined || value === ""
+    ? []
+    : [`| ${field} | ${value} |`];
+
+/**
+ * Renders the durable waiver record as a marker-delimited comment body.
+ *
+ * The markers are what make it survivable and enumerable: a rewriter that
+ * preserves marked regions cannot drop it by accident, and one that does not at
+ * least leaves the deletion legible. They are also the search key — the record
+ * outlives the label, so enumeration has to key on something the reaper does
+ * not touch.
+ *
+ * Every unknown field is OMITTED rather than rendered as a confident empty
+ * string. A record that prints `ticket:` with nothing after it reads as "there
+ * was no ticket" when what happened is "the trailer could not be read".
+ *
+ * @param {{state: string, label: string, prNumber: number|null, gateContext: string, derivedAt: string, waiver: object|null, trailer: object|null, repo: string|null}} result - A `runWaiverVerdict` result
+ * @returns {string} The comment body
+ */
+export function formatWaiverRecord(result) {
+  const waiver = result.waiver ?? {};
+  return [
+    WAIVER_RECORD_BEGIN,
+    "### 🌙 Nightly E2E waiver record",
+    "",
+    `This pull request carried an audited waiver against the \`${result.gateContext}\` merge gate. The \`${result.label}\` label is stripped when the pull request closes, so THIS comment — not the label — is what makes the waiver enumerable afterwards.`,
+    "",
+    "| field | value |",
+    "| --- | --- |",
+    ...recordRow("label", `\`${result.label}\``),
+    ...recordRow(
+      "ticket",
+      result.trailer?.ticket ? `\`${result.trailer.ticket}\`` : null
+    ),
+    ...recordRow("reason", result.trailer?.reason),
+    ...recordRow("applied by", waiver.actor ? `\`${waiver.actor}\`` : null),
+    ...recordRow("applied at", waiver.appliedAt),
+    ...recordRow("expires at", waiver.expiresAt),
+    ...recordRow("state when recorded", `\`${result.state}\``),
+    ...recordRow(
+      "refusal",
+      result.state === WAIVER_STATES.refused
+        ? (BYPASS_REJECTIONS[waiver.reason] ?? waiver.reason)
+        : null
+    ),
+    ...recordRow("re-derived at", result.derivedAt),
+    "",
+    `**Search key:** \`${WAIVER_RECORD_MARKER}\`. Every waived merge in \`${result.repo ?? "this repository"}\` is the set of pull-request comments carrying it, paginated from the REST comment listing for the repository's issues. The reaper never touches this comment, which is the whole point: the label answers "is a waiver being requested", and only this answers "what shipped on a waiver, and why".`,
+    WAIVER_RECORD_END,
+    "",
+  ].join("\n");
+}
+
+/** The headline each waiver state reports. */
+const WAIVER_HEADLINES = Object.freeze({
+  none: "✅ **No waiver is in force.** Nobody asked this gate to waive anything, so whatever it reported rests on suite evidence alone.",
+  waived:
+    "⚠️ **A valid waiver IS in force right now.** This is not the stored verdict being trusted — it was re-derived from the live pull request at the moment of asking.",
+  refused:
+    "⛔ **A waiver was requested and is NOT valid right now.** A stored `bypassed` verdict must not carry this merge: it is a record of the past, and the waiver behind it no longer holds.",
+  not_determined:
+    "⚠️ **NOT DETERMINED.** The live pull request could not be read, so whether a waiver is in force is UNKNOWN. This is not a pass — an answer that could not be measured must never render as one that was.",
+});
+
+/**
+ * Renders the merge-time waiver verdict for a human.
+ *
+ * @param {object} result - A `runWaiverVerdict` result
+ * @returns {string} Markdown
+ */
+export function formatWaiverVerdict(result) {
+  const lines = [
+    "## 🌙 Nightly E2E waiver — re-derived",
+    "",
+    WAIVER_HEADLINES[result.state],
+    "",
+    `Pull request: #${result.prNumber ?? "—"} · label \`${result.label}\` · re-derived at ${result.derivedAt}.`,
+  ];
+  if (result.state === WAIVER_STATES.refused) {
+    lines.push(
+      "",
+      `**What the waiver covered:** the \`${result.gateContext}\` merge gate${result.trailer?.ticket ? `, under ticket \`${result.trailer.ticket}\`` : ""}${result.trailer?.reason ? ` — ${result.trailer.reason}` : ""}.`,
+      "",
+      `**Why it is refused now:** ${BYPASS_REJECTIONS[result.waiver?.reason] ?? result.waiver?.reason}`,
+      "",
+      `**Remedy:** fix the red suite, or re-apply a fresh waiver — remove the \`${result.label}\` label, confirm the \`Nightly-E2E-Bypass: <TICKET> <reason>\` line still says what you mean, and re-apply the label so a maintainer's grant is dated from now. Do not merge on the earlier green.`
+    );
+  }
+  if (result.state === WAIVER_STATES.notDetermined) {
+    lines.push("", `**Remedy:** ${BYPASS_REJECTIONS.pr_state_unreadable}`);
+  }
+  if (result.record) lines.push("", result.record);
+  return `${lines.join("\n")}\n`;
+}
 
 // ---------------------------------------------------------------------------
 // 5. Verdict
@@ -3640,6 +3833,226 @@ export async function fetchActorPermission(api, login, wait) {
   return result?.body?.role_name ?? result?.body?.permission ?? null;
 }
 
+/**
+ * The waiver question, extracted from resolved settings.
+ *
+ * @param {object} settings - Resolved settings carrying `pr`, `bypassLabel`, `bypassMaxHours`
+ * @param {Date} now - The instant to evaluate at
+ * @returns {object} The request `observeWaiver` consumes
+ */
+function waiverRequest(settings, now) {
+  return {
+    prNumber: settings.pr.number,
+    label: settings.bypassLabel,
+    payloadAuthor: settings.pr.payloadAuthor,
+    maxHours: settings.bypassMaxHours,
+    extraReasonPattern: settings.extraBypassReasonPattern,
+    now,
+  };
+}
+
+/**
+ * Reads the pull request LIVE and derives the waiver from what it says NOW.
+ *
+ * The ONE place the waiver is derived. The gate calls it while producing the
+ * check, and the merge-time re-derivation calls it again later; that they are
+ * the same call is the property that makes "re-derived" mean anything, because
+ * a second implementation would eventually answer a different question.
+ *
+ * Four outcomes, and the two that are easy to collapse are kept apart:
+ *
+ *   no pull request     `bypass: null`, `labelPresent: false` — nothing to waive
+ *   label absent        `bypass: null`, `labelPresent: false` — nobody asked
+ *   unreadable          a REJECTED bypass, `labelPresent: null` — UNKNOWN, never a grant
+ *   label present       whatever `evaluateBypass` decides
+ *
+ * `trailer` is returned alongside, parsed from the live body regardless of
+ * whether the waiver qualifies, because the durable record has to be able to
+ * say what an EXPIRED waiver claimed.
+ *
+ * @param {object} api - API coordinates
+ * @param {{prNumber: number|null, label: string, payloadAuthor: string|null, maxHours: number, extraReasonPattern: string, now: Date}} request - The waiver question
+ * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep
+ * @returns {Promise<{bypass: object|null, trailer: object|null, labelPresent: boolean|null}>} The observation
+ */
+export async function observeWaiver(api, request, wait) {
+  const absent = Object.freeze({
+    bypass: null,
+    trailer: null,
+    labelPresent: false,
+  });
+  if (!request.prNumber) return absent;
+
+  const live = await fetchPullRequestState(api, request.prNumber, wait);
+  const subject = {
+    prNumber: request.prNumber,
+    label: request.label,
+    prAuthor: request.payloadAuthor,
+  };
+  if (live === null) {
+    // Unreadable is UNKNOWN, and `labelPresent: null` says so in the same
+    // vocabulary the bypass uses. Falling back to the event payload here is
+    // exactly the defect row 40 exists to close.
+    return Object.freeze({
+      bypass: unreadablePullRequestBypass(subject),
+      trailer: null,
+      labelPresent: null,
+    });
+  }
+  const trailer = parseWaiverTrailer(live.body);
+  if (!live.labels.includes(request.label)) {
+    // Read successfully, label not present. Nobody asked for a waiver, and a
+    // label REMOVED since the run was triggered lands here rather than waiving
+    // anything. The trailer is still carried: prose in a body is a request
+    // nobody granted, not a waiver.
+    return Object.freeze({ bypass: null, trailer, labelPresent: false });
+  }
+
+  const labelEvent = await fetchLabelEvent(
+    api,
+    request.prNumber,
+    request.label,
+    wait
+  );
+  const actorPermission = labelEvent
+    ? await fetchActorPermission(api, labelEvent.actor, wait)
+    : null;
+  return Object.freeze({
+    bypass: evaluateBypass({
+      labelEvent,
+      prAuthor: live.author ?? request.payloadAuthor,
+      prBody: live.body,
+      actorPermission,
+      prNumber: request.prNumber,
+      label: request.label,
+      maxHours: request.maxHours,
+      extraReasonPattern: request.extraReasonPattern,
+      now: request.now,
+    }),
+    trailer,
+    labelPresent: true,
+  });
+}
+
+/**
+ * Resolves everything the WAIVER half needs, and nothing else.
+ *
+ * Deliberately does not require `branch` or `suites`: the merge-time question
+ * is "is the waiver still good?", not "is the nightly green?". Demanding the
+ * suite table here would make the re-derivation impossible to run from the one
+ * place that most needs it — a merge driver that has a pull request number and
+ * a token, and no business restating the gate's configuration.
+ *
+ * The security ceilings are resolved through the SAME `resolveSecurityLimits`
+ * the gate uses, so a caller cannot buy a longer waiver by asking a different
+ * entry point.
+ *
+ * @param {NodeJS.ProcessEnv} env - The environment
+ * @returns {object} Resolved waiver settings
+ * @throws {GateConfigError} When required settings are absent or unusable
+ */
+export function resolveWaiverSettings(env) {
+  const token = env.GITHUB_TOKEN || env.GH_TOKEN;
+  if (!token) {
+    throw new GateConfigError(
+      "No GITHUB_TOKEN / GH_TOKEN in the environment. Re-deriving a waiver means reading the live pull request, and that needs a token."
+    );
+  }
+  if (!env.GITHUB_REPOSITORY) {
+    throw new GateConfigError(
+      "No GITHUB_REPOSITORY in the environment, so there is no pull request to re-derive a waiver from."
+    );
+  }
+  const prNumber = Number(env.NIGHTLY_PR_NUMBER) || null;
+  if (!prNumber) {
+    throw new GateConfigError(
+      "No NIGHTLY_PR_NUMBER in the environment. A waiver is a property of one pull request; without one there is nothing to re-derive, and answering `none` here would be a guess wearing a verdict's clothes."
+    );
+  }
+  const raw = env.NIGHTLY_BYPASS_MAX_HOURS;
+  const requestedHours =
+    raw === undefined || String(raw).trim() === "" ? 24 : Number(raw);
+  if (!Number.isFinite(requestedHours) || requestedHours <= 0) {
+    throw new GateConfigError(
+      `\`NIGHTLY_BYPASS_MAX_HOURS\` must be a positive number (got ${raw}).`
+    );
+  }
+  const { limits } = resolveSecurityLimits({
+    bypassMaxHours: requestedHours,
+    bootstrapMaxDays: BOOTSTRAP_ABSOLUTE_MAX_DAYS,
+    freshnessHours: ABSOLUTE_MAX_FRESHNESS_HOURS,
+    apiMaxAttempts: ABSOLUTE_MAX_API_ATTEMPTS,
+    apiMaxPages: ABSOLUTE_MAX_API_PAGES,
+    apiRetryMaxSeconds: ABSOLUTE_MAX_RETRY_SECONDS,
+  });
+  return {
+    api: {
+      apiUrl: env.GITHUB_API_URL || "https://api.github.com",
+      repo: env.GITHUB_REPOSITORY,
+      token,
+      maxAttempts: limits.apiMaxAttempts,
+      maxPages: limits.apiMaxPages,
+      retryMaxSeconds: limits.apiRetryMaxSeconds,
+    },
+    gateContext:
+      (env.NIGHTLY_GATE_CONTEXT ?? "").trim() || DEFAULT_GATE_CONTEXT,
+    bypassLabel:
+      String(env.NIGHTLY_BYPASS_LABEL ?? "").trim() || DEFAULT_BYPASS_LABEL,
+    bypassMaxHours: limits.bypassMaxHours,
+    extraBypassReasonPattern: env.NIGHTLY_BYPASS_REASON_PATTERN || "",
+    pr: { number: prNumber, payloadAuthor: env.NIGHTLY_PR_AUTHOR || null },
+  };
+}
+
+/**
+ * Re-derives the waiver from the live pull request, at the moment of asking.
+ *
+ * This is the answer to "the verdict is replayed, not re-derived". A stored
+ * check run says what was true when it ran; this says what is true now. The
+ * difference matters for exactly one transition — EXPIRY — because every other
+ * change to a waiver (applying the label, removing it, editing the body) fires
+ * a pull-request event the gate already subscribes to, and expiry fires
+ * nothing. A waiver that lapses between the last evaluation and the merge is
+ * invisible to any amount of re-running; it is only visible to re-deriving.
+ *
+ * @param {NodeJS.ProcessEnv} env - The environment
+ * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep
+ * @returns {Promise<object>} The waiver verdict, with its durable record
+ */
+export async function runWaiverVerdict(env, wait) {
+  const settings = resolveWaiverSettings(env);
+  const now = new Date();
+  const observed = await observeWaiver(
+    settings.api,
+    waiverRequest(settings, now),
+    wait
+  );
+  const state = classifyWaiver(observed.bypass);
+  const result = {
+    state,
+    prNumber: settings.pr.number,
+    repo: settings.api.repo,
+    label: settings.bypassLabel,
+    gateContext: settings.gateContext,
+    derivedAt: now.toISOString(),
+    waiver: observed.bypass,
+    trailer: observed.trailer,
+    labelPresent: observed.labelPresent,
+    record: null,
+  };
+  // A record is written for every state that involved a waiver at all —
+  // including a REFUSED one. "What shipped on a waiver, and why" is exactly the
+  // question an expired waiver makes hard to answer, so it is the one the
+  // record must still answer.
+  return Object.freeze({
+    ...result,
+    record:
+      state === WAIVER_STATES.none || state === WAIVER_STATES.notDetermined
+        ? null
+        : formatWaiverRecord(result),
+  });
+}
+
 // ---------------------------------------------------------------------------
 // 8. Entry point
 // ---------------------------------------------------------------------------
@@ -3808,47 +4221,16 @@ export async function runGate(env, wait) {
   // The bypass reads the pull request LIVE and never consults `github.event`.
   // Three outcomes, and the middle one is the vacuity guard: unreadable is a
   // REJECTED bypass, never an absent one and never a granted one.
-  let bypass = null;
-  if (settings.pr.number) {
-    const live = await fetchPullRequestState(
-      settings.api,
-      settings.pr.number,
-      wait
-    );
-    const subject = {
-      prNumber: settings.pr.number,
-      label: settings.bypassLabel,
-      prAuthor: settings.pr.payloadAuthor,
-    };
-    if (live === null) {
-      bypass = unreadablePullRequestBypass(subject);
-    } else if (live.labels.includes(settings.bypassLabel)) {
-      const labelEvent = await fetchLabelEvent(
-        settings.api,
-        settings.pr.number,
-        settings.bypassLabel,
-        wait
-      );
-      const actorPermission = labelEvent
-        ? await fetchActorPermission(settings.api, labelEvent.actor, wait)
-        : null;
-      bypass = evaluateBypass({
-        labelEvent,
-        prAuthor: live.author ?? settings.pr.payloadAuthor,
-        prBody: live.body,
-        actorPermission,
-        prNumber: settings.pr.number,
-        label: settings.bypassLabel,
-        maxHours: settings.bypassMaxHours,
-        extraReasonPattern: settings.extraBypassReasonPattern,
-        now,
-      });
-    }
-    // The remaining case — read successfully, label not present — leaves
-    // `bypass` null. Nobody asked for a waiver, so there is nothing to report,
-    // and a label REMOVED since the run was triggered lands here rather than
-    // waiving anything.
-  }
+  //
+  // Derived through `observeWaiver`, which is the SAME call the merge-time
+  // re-derivation makes. Two implementations of "is this waiver good?" would
+  // drift, and the whole value of re-deriving at merge time is that it answers
+  // the question the gate answered — later, not differently.
+  const { bypass } = await observeWaiver(
+    settings.api,
+    waiverRequest(settings, now),
+    wait
+  );
 
   return {
     ...decide(findings, { bootstrap, bypass }),
@@ -4156,6 +4538,10 @@ async function main(argv) {
   // The reporting half is opt-in at the call site, which is what keeps the
   // default invocation — the required status check — provably read-only.
   if (argv.includes("--report-issues")) return await reportIssues(asJson);
+  // The merge-time re-derivation. Also read-only: it emits the durable record
+  // rather than posting it, so the one caller that needs `pull-requests: write`
+  // (the reaper) is the only place a write can happen.
+  if (argv.includes("--waiver-verdict")) return await waiverVerdict(asJson);
 
   /** @type {object} */
   let verdict;
@@ -4218,6 +4604,85 @@ async function main(argv) {
     }
     process.exitCode = 1;
   }
+}
+
+/**
+ * The `--waiver-verdict` CLI: re-derive the waiver and say what it found.
+ *
+ * The exit code is the merge-time contract, and it has three arms rather than
+ * two. `none` and `waived` exit 0 — the first because nobody asked for a
+ * waiver, the second because a genuine, still-valid waiver is the escape hatch
+ * working as designed and must keep merging. `refused` and `not_determined`
+ * both exit 1, and they say DIFFERENT things: one names a lapsed waiver and its
+ * remedy, the other says the question could not be answered. Collapsing the
+ * second into a pass is the failure this whole mode exists to prevent.
+ *
+ * Exported for the same reason `reportIssues` is: the exit code IS the
+ * contract here — it is what stops a merge — and a contract only a spawned
+ * process can observe is one the suite tests indirectly or not at all.
+ *
+ * @param {boolean} asJson - Whether to emit the machine record instead
+ * @returns {Promise<void>} Resolves once the verdict is written
+ */
+export async function waiverVerdict(asJson) {
+  /** @type {object} */
+  let result;
+  try {
+    result = await runWaiverVerdict(process.env);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const failure = {
+      state: WAIVER_STATES.notDetermined,
+      error: {
+        kind: error instanceof GateConfigError ? "configuration" : "api",
+        message,
+      },
+      record: null,
+    };
+    if (asJson) {
+      process.stdout.write(`${JSON.stringify(failure, null, 2)}\n`);
+    } else {
+      process.stdout.write(
+        `## 🌙 Nightly E2E waiver — re-derived\n\n⚠️ **NOT DETERMINED.** ${message}\n\nThis is not a pass. A waiver whose state could not be re-derived must not carry a merge.\n`
+      );
+    }
+    await writeWaiverOutputs(failure);
+    process.exitCode = 1;
+    return;
+  }
+
+  if (asJson) {
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  } else {
+    const report = formatWaiverVerdict(result);
+    process.stdout.write(report);
+    await appendSummary(report);
+  }
+  await writeWaiverOutputs(result);
+  if (
+    result.state === WAIVER_STATES.refused ||
+    result.state === WAIVER_STATES.notDetermined
+  ) {
+    process.exitCode = 1;
+  }
+}
+
+/**
+ * Publishes the waiver verdict as step outputs.
+ *
+ * `waiver_record` is emitted as a heredoc so the reaper can post it verbatim
+ * without the record's own markdown having to survive a shell quote.
+ *
+ * @param {object} result - The waiver verdict
+ * @returns {Promise<void>} Resolves when written
+ */
+async function writeWaiverOutputs(result) {
+  if (!process.env.GITHUB_OUTPUT) return;
+  const { appendFileSync } = await import("node:fs");
+  appendFileSync(
+    process.env.GITHUB_OUTPUT,
+    `waiver_state=${result.state}\nwaiver_record<<LISA_WAIVER_EOF\n${result.record ?? ""}\nLISA_WAIVER_EOF\n`
+  );
 }
 
 /**
