@@ -192,8 +192,6 @@ export const OUTCOMES = Object.freeze({
   sandboxReclaimed: "mutation-gate: sandbox-reclaimed",
   timeoutAccounting: "mutation-gate: timeout-accounting",
   timeoutUnmeasured: "mutation-gate: timeout-share-unmeasured",
-  selectionAccounting: "mutation-gate: selection-accounting",
-  selectionUnmeasured: "mutation-gate: selection-unmeasured",
   timeoutShareExceeded: "mutation-gate: timeout-share-exceeded",
   inflatedByTimeouts: "mutation-gate: score-below-break-without-timeouts",
   clearedBreakThreshold: "mutation-gate: cleared-break-threshold",
@@ -1418,239 +1416,6 @@ export const accountForTimeouts = (output, cwd) => {
 };
 
 /**
- * Stryker's own line naming how big the un-mutated suite was.
- *
- * `Initial test run succeeded. Ran 500 tests in 1 minute and 2 seconds …`,
- * logged by the dry-run executor at Stryker's default `info` level. This is the
- * DENOMINATOR half of the cost fraction below: an average tests-per-mutant with
- * nothing to be large or small against is a bare number, and the whole point of
- * the block is the ratio.
- * @type {string}
- */
-const DRY_RUN_SUITE_MARKER = "Initial test run succeeded. Ran ";
-
-/**
- * The clear-text reporter's per-mutant cost line, `Ran 6.21 tests per mutant on
- * average.` — the numerator.
- *
- * Absent from a run whose reporters do not include `clear-text`, exactly like
- * the `All files` row {@link parseMutantTally} reads, and treated the same way:
- * reported as NOT MEASURED, never assumed.
- * @type {string}
- */
-const TESTS_PER_MUTANT_MARKER = " tests per mutant on average.";
-
-/**
- * Stryker's closing line, `Done in 2 minutes and 28 seconds.`
- * @type {string}
- */
-const RUN_ELAPSED_MARKER = "Done in ";
-
-/**
- * The first line carrying a marker, or undefined.
- * @param {readonly string[]} lines - Output split on newlines, ANSI stripped.
- * @param {string} marker - Substring to look for.
- * @returns {string|undefined} The line, or undefined when none carries it.
- */
-const lineWith = (lines, marker) => lines.find(line => line.includes(marker));
-
-/**
- * The number Stryker printed immediately after a marker.
- *
- * An absent or non-numeric token is null and not zero, for the reason the rest
- * of this file is organised around: zero is a measurement, and this one was not
- * taken.
- * @param {string} line - The line carrying the marker.
- * @param {string} marker - The marker.
- * @returns {number|null} The number, or null.
- */
-const numberAfter = (line, marker) => {
-  const [token = ""] = line
-    .slice(line.indexOf(marker) + marker.length)
-    .trim()
-    .split(" ");
-  if (token === "") return null;
-  const parsed = Number(token);
-  return Number.isFinite(parsed) ? parsed : null;
-};
-
-/**
- * The number Stryker printed immediately before a marker.
- * @param {string} line - The line carrying the marker.
- * @param {string} marker - The marker.
- * @returns {number|null} The number, or null.
- */
-const numberBefore = (line, marker) => {
-  const words = line.slice(0, line.indexOf(marker)).trim().split(" ");
-  const token = words.at(-1) ?? "";
-  if (token === "") return null;
-  const parsed = Number(token);
-  return Number.isFinite(parsed) ? parsed : null;
-};
-
-/**
- * The text Stryker printed after a marker, trailing full stop removed.
- * @param {string} line - The line carrying the marker.
- * @param {string} marker - The marker.
- * @returns {string|null} The text, or null when there is none.
- */
-const textAfter = (line, marker) => {
-  const rest = line
-    .slice(line.indexOf(marker) + marker.length)
-    .trim()
-    .replace(/\.$/u, "");
-  return rest === "" ? null : rest;
-};
-
-/**
- * What a completed run cost per mutant, read out of Stryker's own transcript.
- *
- * Three independent readings, each null when Stryker did not print it, because
- * they come from two different surfaces that can be turned off separately: the
- * suite size and the elapsed time from the logger at `info`, the average from
- * the `clear-text` reporter.
- * @param {string|null|undefined} output - Stryker's combined output.
- * @returns {{suiteTests: number|null, testsPerMutant: number|null,
- *   elapsed: string|null}|null} The readings, or null when there is no output.
- */
-export const parseSelection = output => {
-  if (typeof output !== "string" || output.length === 0) return null;
-  const lines = output.replaceAll(ANSI_PATTERN, "").split("\n");
-  const suite = lineWith(lines, DRY_RUN_SUITE_MARKER);
-  const perMutant = lineWith(lines, TESTS_PER_MUTANT_MARKER);
-  const elapsed = lineWith(lines, RUN_ELAPSED_MARKER);
-  return Object.freeze({
-    suiteTests:
-      suite === undefined ? null : numberAfter(suite, DRY_RUN_SUITE_MARKER),
-    testsPerMutant:
-      perMutant === undefined
-        ? null
-        : numberBefore(perMutant, TESTS_PER_MUTANT_MARKER),
-    elapsed:
-      elapsed === undefined ? null : textAfter(elapsed, RUN_ELAPSED_MARKER),
-  });
-};
-
-/**
- * Whether a reading carries at least one of the two numbers worth printing.
- *
- * The elapsed time alone is not enough: it is a fact about the machine, and
- * printing it with no denominator beside it is the shape this block exists to
- * replace.
- * @param {{suiteTests: number|null, testsPerMutant: number|null}|null} selection
- *   - From {@link parseSelection}.
- * @returns {boolean} Whether there is a cost fraction to report.
- */
-export const hasSelectionNumbers = selection =>
-  selection !== null &&
-  (selection.suiteTests !== null || selection.testsPerMutant !== null);
-
-/**
- * The one-machine caveat every timing in this block carries.
- * @returns {string} Load averages and the parallelism they were taken against.
- */
-const loadDescription = () => {
-  const [one = Number.NaN, five = Number.NaN, fifteen = Number.NaN] =
-    os.loadavg();
-  return (
-    `${score(one)} / ${score(five)} / ${score(fifteen)} ` +
-    `over ${os.availableParallelism()} core(s)`
-  );
-};
-
-/**
- * The cost fraction, or as much of it as Stryker printed.
- * @param {{suiteTests: number|null, testsPerMutant: number|null}} selection -
- *   From {@link parseSelection}.
- * @returns {string} One line.
- */
-const costFractionLine = selection => {
-  const { suiteTests: suite, testsPerMutant: per } = selection;
-  if (per === null)
-    return `   tests per mutant: NOT measured; un-mutated suite: ${suite} test(s).`;
-  if (suite === null || suite <= 0)
-    return `   ${per} test(s) ran per mutant; un-mutated suite size: NOT measured.`;
-  return (
-    `   ${per} test(s) ran per mutant, against an un-mutated suite of ${suite} — ` +
-    `${score(percent(per, suite))}% of it.`
-  );
-};
-
-/**
- * What the fraction above means, and what its degenerate value looks like.
- *
- * Deliberately NOT a threshold. The share that counts as "too much of the
- * suite" depends on how big the suite is — 15 of 57 tests is ordinary
- * selection, 15 of 500 is excellent, and no single percentage separates them —
- * so this names the failure mode and its measured shape and leaves the reading
- * to whoever is looking at their own numbers. Minting a ceiling here would put
- * a governed-looking number in front of a run whose timings are already a
- * function of how busy the box was.
- * @type {string}
- */
-const SELECTION_NOTE =
-  '   That percentage is what `coverageAnalysis: "perTest"` buys: Stryker runs\n' +
-  "   only the tests whose dry run executed the mutated line, so a diff-scoped run\n" +
-  "   should sit far below its suite. An average approaching the suite size means\n" +
-  "   the dry run produced NO per-test coverage and Stryker fell back to running\n" +
-  "   the WHOLE suite for every mutant — the same verdict at many times the cost,\n" +
-  "   announced nowhere else in its output. CodySwannGT/lisa#3880 measured 267.22\n" +
-  "   of 500 that way over 61 minutes; the same guard at a comparable scope, with\n" +
-  "   selection in effect, measured 6.21 of 500 in 2 minutes and 28 seconds.\n" +
-  "   The elapsed figure is a fact about THIS machine at THIS load. It is reported\n" +
-  "   so a slow run can be read rather than guessed at, and it is never a budget.";
-
-/**
- * The block printed when a run's cost denominator could not be read at all.
- * @returns {string} The block.
- */
-const unmeasuredSelectionBlock = () =>
-  `⚠️  ${OUTCOMES.selectionUnmeasured}\n` +
-  "   This run's COST denominator was NOT measured: Stryker printed neither the\n" +
-  "   size of the un-mutated suite nor an average tests-per-mutant, so nothing here\n" +
-  "   can say whether it selected tests per mutant or ran the whole suite for every\n" +
-  '   one. The suite size comes from the dry run at log level "info"; the average\n' +
-  '   comes from the "clear-text" reporter. A run missing both is unaccounted for\n' +
-  "   on cost, which is not the same as a run that was cheap.";
-
-/**
- * What a completed run cost, printed whatever its verdict.
- *
- * The gate already accounts for how much of a SCORE the clock decided
- * ({@link accountingBlock}). This accounts for the other half nobody could see:
- * how much WORK the score cost, and therefore whether the per-mutant test
- * selection Stryker was configured for actually took effect. A 61-minute scoped
- * run used to report a score and no denominator, which left the one number that
- * explains it — 267 tests per mutant against a 500-test suite — unprinted.
- *
- * Reporting only. It changes no exit code and applies no ceiling; see
- * {@link SELECTION_NOTE} for why there is no threshold here to apply.
- * @param {{suiteTests: number|null, testsPerMutant: number|null,
- *   elapsed: string|null}|null} selection - From {@link parseSelection}.
- * @param {string} load - From {@link loadDescription}.
- * @returns {string} The block.
- */
-export const selectionBlock = (selection, load) => {
-  if (!hasSelectionNumbers(selection)) return unmeasuredSelectionBlock();
-  const elapsed =
-    selection.elapsed === null
-      ? "   elapsed: NOT measured"
-      : `   elapsed ${selection.elapsed}`;
-  const heading = `📏 ${OUTCOMES.selectionAccounting}`;
-  const cost = costFractionLine(selection);
-  const measured = `${elapsed}, at load average ${load}.`;
-  return `${heading}\n${cost}\n${measured}\n${SELECTION_NOTE}`;
-};
-
-/**
- * The whole selection step, from a captured transcript to a printable block.
- * @param {string|null|undefined} output - Stryker's combined output.
- * @returns {string} The block.
- */
-export const accountForSelection = output =>
-  selectionBlock(parseSelection(output), loadDescription());
-
-/**
  * How many of Stryker's last lines an unrecognised failure quotes back.
  * @type {number}
  */
@@ -2759,7 +2524,6 @@ export const WHOLE_LIST_FLAG = "--all";
  */
 export const reportRun = (cwd, result, scored) => {
   const accounting = accountForTimeouts(result.output, cwd);
-  const selection = parseSelection(result.output);
   if (result.killedBy === CHILD_DEADLINE) {
     // A gate that ran and failed measured something; a gate that was KILLED
     // measured nothing. Both used to arrive as one nonzero status, and the
@@ -2784,22 +2548,13 @@ export const reportRun = (cwd, result, scored) => {
     // that DID produce one still gets the honest recomputation: a run under the
     // floor is under it by more than Stryker said.
     if (accounting.measured) console.error(accounting.message);
-    // A failure that never reached the mutant phase has no denominator to
-    // report, and the unmeasured block would then be noise on top of a failure
-    // that has already explained itself. One that DID reach it still says what
-    // it cost — a run can fail its floor AND have lost its test selection, and
-    // the second is the reason it took an hour to say so.
-    if (hasSelectionNumbers(selection))
-      console.error(selectionBlock(selection, loadDescription()));
     return { code: result.code, measured: accounting.measured };
   }
   if (accounting.failed) {
-    console.error(
-      `${accounting.message}\n${accountForSelection(result.output)}`
-    );
+    console.error(accounting.message);
     return { code: 1, measured: accounting.measured };
   }
-  console.log(`${accounting.message}\n${accountForSelection(result.output)}`);
+  console.log(accounting.message);
   return { code: 0, measured: accounting.measured };
 };
 
