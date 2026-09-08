@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.51.0](https://github.com/CodySwannGT/lisa/compare/v4.50.9...v4.51.0) (2026-09-08)
+
+
+### Features
+
+* **ci:** run the reusable-workflow load detector on a schedule ([d8663f2](https://github.com/CodySwannGT/lisa/commit/d8663f25830e942914d7d1ad14ee6ae503322779)), closes [CodySwannGT/lisa#3581](https://github.com/CodySwannGT/lisa/issues/3581)
+* **core:** tell a reusable workflow that failed to load from one that failed to run ([0dccaa6](https://github.com/CodySwannGT/lisa/commit/0dccaa61e9bbeb48767420371b23605ee88d7960)), closes [CodySwannGT/lisa#3581](https://github.com/CodySwannGT/lisa/issues/3581)
+
 ### [4.50.9](https://github.com/CodySwannGT/lisa/compare/v4.50.8...v4.50.9) (2026-09-08)
 
 ### [4.50.8](https://github.com/CodySwannGT/lisa/compare/v4.50.7...v4.50.8) (2026-09-08)
