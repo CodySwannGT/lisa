@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.52.1](https://github.com/CodySwannGT/lisa/compare/v4.52.0...v4.52.1) (2026-09-08)
+
+
+### Bug Fixes
+
+* **doctor:** support headless CodeRabbit authentication ([382d7f6](https://github.com/CodySwannGT/lisa/commit/382d7f6a532e9c3109d24cd5f901e4c9d9cbfabb)), closes [CodySwannGT/lisa#4058](https://github.com/CodySwannGT/lisa/issues/4058)
+
 ## [4.52.0](https://github.com/CodySwannGT/lisa/compare/v4.51.0...v4.52.0) (2026-09-08)
 
 
