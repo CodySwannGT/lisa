@@ -219,7 +219,7 @@ intakes use. Never call Atlassian MCP or `acli` directly — go through `lisa-at
 | Linear (build) | Linear MCP `list_issues` / `get_issue` / `list_comments` | Linear MCP `save_issue` (labels) / `save_comment` | `lisa-linear-agent` |
 | Notion (PRD) | `lisa-notion-access` (`query`, page comments) | `lisa-notion-access` `write-page` (status) / page comment | `lisa-notion-to-tracker` (dry-run) |
 | GitHub (PRD) | `gh issue list/view` (PRD labels) / GraphQL sub-issues / generated-work section | `gh issue edit` / `gh issue comment` / `gh issue close --reason completed` | `lisa-github-to-tracker` (dry-run) |
-| Linear (PRD) | Linear MCP `list_projects` / `get_project` (+ sentinel feedback issue) | Linear MCP `save_project` (labels) / `save_comment` | `lisa-linear-to-tracker` (dry-run) |
+| Linear (PRD) | `lisa-linear-access` `list-projects` / `get-project` / `list-comments project_id` | `lisa-linear-access` `save-project` (labels) / `save-comment project_id` | `lisa-linear-to-tracker` (dry-run) |
 | Confluence (PRD) | `lisa-atlassian-access` CQL | `lisa-atlassian-access` page `parentId` update / comment | `lisa-confluence-to-tracker` (dry-run) |
 
 ## Staleness model
@@ -268,8 +268,9 @@ exposes, and compare it to `now - stale_after`:
 1. Provider-native status/label **transition** time into the in-progress role, when the provider
    exposes it cleanly (JIRA changelog transition to `claimed` / In Progress, GitHub label event,
    Linear state/label history, Notion/Confluence page move/status history).
-2. Latest human lifecycle/progress **comment** or edit on the item (and, for Linear PRDs, the
-   sentinel feedback issue). Exclude automation self-comments and Lisa audit markers such as
+2. Latest human lifecycle/progress **comment** or edit on the item (for Linear PRDs, the
+   project's own comments via `list-comments project_id`, plus any legacy sentinel feedback
+   issue for projects that predate project-level comments). Exclude automation self-comments and Lisa audit markers such as
    `[claude-build-intake]`, `[codex-build-intake]`, `[lisa-build-intake]`, and
    `[lisa-repair-intake]`.
 3. For build items, latest **PR-side forward-progress activity** on the linked PR: newest commit,
@@ -887,8 +888,8 @@ intake runs per item**, targeted at this single PRD and **skipping the claim** (
 ### PRD `blocked` → re-validate if new answers exist
 
 1. Determine whether **new clarifying answers** exist: any comment/update on the PRD newer than
-   the last `[lisa-repair-intake]` note or the original `blocked` note. For Linear include the
-   sentinel feedback issue and anchored sub-issue comments; for Confluence include inline/footer
+   the last `[lisa-repair-intake]` note or the original `blocked` note. For Linear include the project's own
+   comments, anchored sub-issue comments, and any legacy sentinel feedback issue; for Confluence include inline/footer
    comments where the access layer exposes them; for Notion include page comments and
    `last_edited_time`.
 2. If new answers exist → run the `lisa:<source>-to-tracker` dry-run validate→route pipeline as

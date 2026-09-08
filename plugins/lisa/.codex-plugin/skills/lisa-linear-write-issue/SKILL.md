@@ -256,7 +256,7 @@ If the item modifies an existing user-facing surface, a `lisa-product-walkthroug
 Before create/update, verify each field is populated where applicable:
 
 - **Workflow state**: set the resolved `ready` state (`linear.workflow.ready`, default `Ready`) on a new **leaf** work unit (Bug / Task / Sub-task / Improvement with no child work) per `leaf-only-lifecycle`, **only on explicit `build_ready: true`** (see the Build-ready control input below). A container (Epic Project / Story with sub-issues / Spike) is never put in the build-ready state.
-- **Labels**: taxonomy only — `type:<Kind>`, `repo:<name>`, `component:<name>`, and the `prd-intake-feedback` sentinel. Lifecycle is **not** a label on Linear; do not add `status:*` labels.
+- **Labels**: taxonomy only — `type:<Kind>`, `repo:<name>`, `component:<name>`. Lifecycle is **not** a label on Linear; do not add `status:*` labels.
 - **Native priority field**: 0–4 per Linear's scale; explicit, not "unset".
 - **Native estimate**: per Linear's team-configured estimate scale (often 0–8 Fibonacci); skip for Epic / Spike.
 - **ProjectMilestone**: when the team uses dated milestones, set the milestone on the Project (Epic) or on the Issue (when an Issue belongs to a milestone).
@@ -328,7 +328,7 @@ If the validator reports `PASS`, continue to Phase 6.
 
 ### CREATE — Story / Task / Bug / Spike / Improvement (Issue with projectId)
 
-1. Resolve any required Issue labels (`type:<Kind>`, `repo:<name>`, `component:<name>`, `prd-intake-feedback` only if this is a sentinel issue) via `lisa-linear-access operation: list-issue-labels` (create via `lisa-linear-access operation: create-issue-label` if missing). Separately, place a **leaf** work unit in the `ready` lane by passing `lifecycle_role: ready` on the create call below — and only on **explicit `build_ready: true`**, per the Build-ready control input below. Omit the role for a container, and for a leaf whose `build_ready` is `false` or omitted, which then waits in the team's default backlog state for a human to promote it. Ready is an explicit claim, never an omission's default. Never resolve a state ID here and pass it as `stateId`: the access layer resolves the configured `ready` state itself and refuses anything else.
+1. Resolve any required Issue labels (`type:<Kind>`, `repo:<name>`, `component:<name>`) via `lisa-linear-access operation: list-issue-labels` (create via `lisa-linear-access operation: create-issue-label` if missing). Separately, place a **leaf** work unit in the `ready` lane by passing `lifecycle_role: ready` on the create call below — and only on **explicit `build_ready: true`**, per the Build-ready control input below. Omit the role for a container, and for a leaf whose `build_ready` is `false` or omitted, which then waits in the team's default backlog state for a human to promote it. Ready is an explicit claim, never an omission's default. Never resolve a state ID here and pass it as `stateId`: the access layer resolves the configured `ready` state itself and refuses anything else.
 2. Call `lisa-linear-access operation: save-issue` with: `team` (teamId), `title` (summary), `description` (markdown), `projectId` (the Epic Project), `priority` (0–4), `estimate`, `labelIds`, `assignee` if known.
 3. Capture the returned identifier (e.g. `ENG-123`) — Phase 4 sub-tasks need it as `parentId`.
 4. Add relationships from Phase 4b via `save_issue` (relations field) or paired relation calls.
@@ -352,7 +352,7 @@ Call the `lisa-linear-verify` skill on the resulting item. `lisa-linear-verify` 
 
 ## Phase 8 — Announce
 
-Post a creation comment via `lisa-linear-access operation: save-comment` (on the Issue, or on a sentinel issue under the Project for Epic-level announcements) with:
+Post a creation comment via `lisa-linear-access operation: save-comment` — `issue_id:<ID>` for an Issue, `project_id:<ID>` for an Epic-level announcement, which goes on the Project itself. Never create an Issue to carry a Project's announcement. The comment contains:
 
 - `[<repo>]` prefix if the item is repo-scoped
 - Who the item is assigned to (if known)

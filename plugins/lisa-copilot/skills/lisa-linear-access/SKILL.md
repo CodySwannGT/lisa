@@ -23,8 +23,8 @@ operation: get-issue id:<ID>
 operation: save-issue payload:{...} [lifecycle_role:<ROLE>] [env:<KEY>]
 operation: list-workflow-states team:<ID>
 operation: create-workflow-state payload:{...}
-operation: list-comments issue_id:<ID>
-operation: save-comment issue_id:<ID> body:"..."
+operation: list-comments (issue_id:<ID> | project_id:<ID>)
+operation: save-comment (issue_id:<ID> | project_id:<ID>) body:"..."
 operation: history id:<ID>
 operation: list-issue-labels [team:<ID>]
 operation: create-issue-label payload:{...}
@@ -294,6 +294,55 @@ Set `isTeamDefault` per node by comparing `node.id` against
 the team's default, resolve the default through the team record and join on `id`
 the same way.
 
+## `save-comment` / `list-comments` — an Issue **or** a Project
+
+Both comment operations take **either** `issue_id:` or `project_id:`. Exactly one
+is required; passing both, or neither, is refused naming the operation.
+
+Linear treats a comment's target as one field on the same input type, so the
+project form is not a second mechanism — it is the same mutation with a
+different anchor. Direct introspection of `https://api.linear.app/graphql`:
+`CommentCreateInput` accepts `issueId`, `projectId`, `projectUpdateId`,
+`documentContentId`, and `parentId`, and the `Project` type exposes
+`Project.comments`. Neither is beta and neither needs a special scope.
+
+```graphql
+# save-comment — the anchor field is chosen by which id the caller passed.
+mutation($input:CommentCreateInput!){
+  commentCreate(input:$input){ success comment{ id url createdAt } }
+}
+```
+
+Build `$input` as `{ issueId: <id>, body: <body> }` for the Issue form and
+`{ projectId: <id>, body: <body> }` for the Project form. Nothing else differs —
+same mutation, same result shape, same error handling.
+
+```graphql
+# list-comments project_id:<ID> — page via pageInfo so a long-lived PRD's
+# feedback history never silently truncates.
+query($id:String!){
+  project(id:$id){
+    comments(first:100){
+      pageInfo{ hasNextPage endCursor }
+      nodes{ id body createdAt url user{ name } }
+    }
+  }
+}
+```
+
+The Issue form reads through `issue(id:$id){ comments{...} }` with the identical
+node shape, so a caller consumes one result format for either anchor.
+
+**Substrate.** The Linear MCP exposes comments on Issues only, so the
+`project_id` form resolves solely through the tier-1 `LINEAR_API_KEY` + GraphQL
+substrate — the same restriction `history` carries, and for the same reason.
+That is not a gap in Linear: the precedence contract already puts GraphQL ahead
+of the MCP, so the preferred substrate has always been able to do this. Only
+this wrapper could not, which is what made callers fabricate an Issue to hold a
+Project's comments. If tier 1 is unavailable, fail with the layer's standard
+`Error:` result naming `save-comment project_id` — do **not** silently degrade
+into creating an Issue to comment on.
+
 ## `history` — transition history (read-only)
 
 `history id:<ID>` returns an Issue's ordered past state changes — the raw
@@ -371,6 +420,10 @@ query($id:String!){
 - Missing token plus missing MCP is a hard failure naming `LINEAR_API_KEY`.
 - Mutations send only the fields being changed, matching existing Linear skill
   guidance that `save_*` style updates should not clobber unrelated fields.
+- A comment anchors to exactly one target. `save-comment` and `list-comments`
+  take `issue_id` **or** `project_id`, never both and never neither. A caller
+  that wants to comment on a Project passes `project_id` — it never creates an
+  Issue to hold the comment, and this layer never creates one on its behalf.
 - Every workflow-state write is resolved by
   `scripts/linear-state-write-target.mjs` from a declared `lifecycle_role`,
   before either transport. The ID dispatched is the ID that script returned —
