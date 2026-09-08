@@ -239,7 +239,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/knip.json":
       "054a6ac5289168f5b19ad705ca7dd0083a7feea1114d79014fbc72ed2a6f5a76",
     "expo/copy-overwrite/plugins/withAndroidSplashNoClientExit.js":
-      "2575c267e996901964dfca4d2b0bc2446d16eadbb9dd95bb653346507c29f83e",
+      "7ecb5c9ef3150eab01d3a3be02aab06a558a1d4ca6140220bbed5e65913adad0",
     "expo/copy-overwrite/scripts/bdd-matrix.mjs":
       "8611fa2329660bcb1cbffaf70091c35d49f1635c13d89b85a68fbbe7ec25e69e",
     "expo/copy-overwrite/scripts/bdd/baseline.mjs":
@@ -1119,7 +1119,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "ab7bb855fd3ebe321e41b0143815f202b70f6ba38f6678791d6d9e933e0c3fd8",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "2dcfeea8911fe7ec9ceda814fdf60816c0f47af1e74f4b194270a1345ef7712f",
+      "969541fd981d31dbb41f2d57a4501c8936b67cff384f6fb80343841086570a77",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -2499,15 +2499,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "tsconfig/typescript.json":
       "8cf66a6535640e0a723e24bdf7a2d8e58a634c451f0754875c7880811381a914",
     "typescript/copy-contents/.husky/commit-msg":
-      "1885cc0f655a5a336078db510ceb8854582c628cb813c14fd052a1f6aa3bab07",
+      "2cc323494b919a6d29231dee56a64ced5f5d37b31470f692b0336706e71a92fc",
     "typescript/copy-contents/.husky/post-checkout":
       "f3abc4528e12d3ad2bc48b236d19f105e2817595c744156a558c62ae5551ccfb",
     "typescript/copy-contents/.husky/post-merge":
       "8155564c7aed71d04bada189d66623e32a00d80598a8194782b6ecabec5134c0",
     "typescript/copy-contents/.husky/pre-commit":
-      "d5f85c0b5d9a0277389c1ae96aec30db603ee38637d4ab749a659bb031d06d93",
+      "170a599896e3cf0773fcbc9fa12d49051a864698220b70e8f4b1ea6cca063365",
     "typescript/copy-contents/.husky/pre-push":
-      "20cbd929137965bddf19c280d69eec7b214f227b986e15347c9a1d04fac4d3e5",
+      "a80f2b79a3ef7a7c742642a48e1472abb3b53ad755609cc590aa0dde4300db9f",
     "typescript/copy-contents/.husky/prepare-commit-msg":
       "4a719c20da65653f266e7c8a346b5546ad05f1dfa34665fc7fec47e89d2f58d1",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
@@ -9980,6 +9980,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/learnings-lost-write-detection.test.ts": true,
     "tests/unit/core/learnings-merge-driver-install.test.ts": true,
     "tests/unit/core/learnings-merge-driver.test.ts": true,
+    "tests/unit/core/learnings-merge-reports-every-invalid-entry.test.ts": true,
     "tests/unit/core/learnings-merge.test.ts": true,
     "tests/unit/core/learnings-migration.test.ts": true,
     "tests/unit/core/learnings-overflow-budget-check.test.ts": true,
@@ -10049,6 +10050,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/health/deterministic.test.ts": true,
     "tests/unit/health/drift-tickets.test.ts": true,
     "tests/unit/health/expo-splash-inspection.test.ts": true,
+    "tests/unit/health/expo-splash-tag-migration.test.ts": true,
     "tests/unit/health/gitignore.test.ts": true,
     "tests/unit/health/package-surfaces.test.ts": true,
     "tests/unit/health/ruleset-reach-inspection.test.ts": true,
@@ -10132,6 +10134,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/hook-stdin-epipe.test.ts": true,
     "tests/unit/hooks/hook-tooling-fail-closed.test.ts": true,
     "tests/unit/hooks/host-enforcement-fallback.test.ts": true,
+    "tests/unit/hooks/husky-package-manager-detection.test.ts": true,
     "tests/unit/hooks/husky-resolver-lookup.test.ts": true,
     "tests/unit/hooks/inject-resolved-config-completeness.test.ts": true,
     "tests/unit/hooks/inject-resolved-config-names-subject.test.ts": true,
@@ -10737,6 +10740,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/drive-pr-auto-merge-race.test.ts": true,
     "tests/unit/strategies/drive-pr-conflict-zero-ci.test.ts": true,
     "tests/unit/strategies/drive-pr-hold-gate.test.ts": true,
+    "tests/unit/strategies/drive-pr-review-re-request-contract.test.ts": true,
     "tests/unit/strategies/easignore-worktree-exclusion.test.ts": true,
     "tests/unit/strategies/env-promotion-completeness.test.ts": true,
     "tests/unit/strategies/evidence-ref-contract.test.ts": true,

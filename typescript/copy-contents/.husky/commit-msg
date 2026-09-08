@@ -1,21 +1,59 @@
 # BEGIN: AI GUARDRAILS 
 
-# Detect package manager (check if tool is available before using it)
-# Priority: bun > yarn > npm (bun first since package.json engines prefer it)
-if ([ -f "bun.lockb" ] || [ -f "bun.lock" ]) && command -v bun >/dev/null 2>&1; then
-  PACKAGE_MANAGER="bun"
-  EXECUTOR="bunx"
-elif [ -f "yarn.lock" ] && command -v yarn >/dev/null 2>&1; then
-  PACKAGE_MANAGER="yarn"
-  EXECUTOR="yarn"
-elif [ -f "package-lock.json" ]; then
+# --- lisa:pm-detect ---
+# Detect the package manager this project wants, honoring explicit opt-outs.
+# Precedence: packageManager field > engines "please-use-<pm>" sentinel >
+# lockfile presence (minus any PM the engines forbid) > npm default.
+#
+# The order this replaced claimed to come from `package.json` engines and never
+# read them. Two things were wrong with that. It keyed on lockfile presence
+# ALONE, which is the one thing this product's own installer hook says it must
+# not do: an npm-only project (engines.bun = "please-use-npm", CI runs
+# `npm ci`) that picks up a stray bun.lock gets bun here and npm there, so two
+# Lisa components in one repository disagree about which manager runs the
+# gates. And the justification described LISA's package.json, copied verbatim
+# into repositories whose engines say something else entirely.
+#
+# `pnpm` was absent from the chain, so a pnpm project matched no branch and
+# fell through to npm. Seven sibling detectors in this product already know
+# `pnpm-lock.yaml`; this family was the only one that did not.
+#
+# Kept in step with `install-pkgs.sh`, deliberately: the two must agree, and
+# the failure mode of drift is silent disagreement rather than an error.
+lisa_detect_pm() {
+  _field="" _forced="" _forbidden=""
+  if [ -f package.json ] && command -v jq >/dev/null 2>&1; then
+    _field=$(jq -r '(.packageManager // "") | sub("@.*$";"")' package.json 2>/dev/null)
+    _forced=$(jq -r 'first((.engines // {})[] | strings | capture("please-use-(?<pm>bun|npm|yarn|pnpm)")?.pm) // ""' package.json 2>/dev/null)
+    _forbidden=$(jq -r '[(.engines // {}) | to_entries[] | select(((.value|strings) // "") | test("please-use|do-not-use";"i")) | .key] | join(" ")' package.json 2>/dev/null)
+  fi
+  case "$_field" in bun | npm | yarn | pnpm) printf '%s\n' "$_field"; return 0 ;; esac
+  case "$_forced" in bun | npm | yarn | pnpm) printf '%s\n' "$_forced"; return 0 ;; esac
+  _pm_allowed() { case " $_forbidden " in *" $1 "*) return 1 ;; *) return 0 ;; esac; }
+  if { [ -f bun.lockb ] || [ -f bun.lock ]; } && _pm_allowed bun; then printf 'bun\n'; return 0; fi
+  if [ -f pnpm-lock.yaml ] && _pm_allowed pnpm; then printf 'pnpm\n'; return 0; fi
+  if [ -f yarn.lock ] && _pm_allowed yarn; then printf 'yarn\n'; return 0; fi
+  if [ -f package-lock.json ] && _pm_allowed npm; then printf 'npm\n'; return 0; fi
+  printf 'npm\n'
+}
+
+PACKAGE_MANAGER="$(lisa_detect_pm)"
+# A manager that is not installed is NAMED, never silently swapped. The branch
+# this replaced answered "npm" for three different inputs — a pnpm project, a
+# bun project on a machine without bun, a yarn project without yarn — and
+# printed that answer as a detection. A confident wrong tool at commit time
+# costs more than a named fallback.
+if ! command -v "$PACKAGE_MANAGER" >/dev/null 2>&1; then
+  echo "⚠️  $PACKAGE_MANAGER is this project's package manager but is not on PATH; running gates with npm instead."
   PACKAGE_MANAGER="npm"
-  EXECUTOR="npx"
-else
-  # Default to npm if no lock file is found or tool is not available
-  PACKAGE_MANAGER="npm"
-  EXECUTOR="npx"
 fi
+case "$PACKAGE_MANAGER" in
+  bun) RUNNER="bun run"; EXECUTOR="bunx" ;;
+  pnpm) RUNNER="pnpm run"; EXECUTOR="pnpm exec" ;;
+  yarn) RUNNER="yarn"; EXECUTOR="yarn" ;;
+  *) RUNNER="npm run"; EXECUTOR="npx" ;;
+esac
+# --- end lisa:pm-detect ---
 
 # Get the commit message file path
 COMMIT_MSG_FILE=$1

@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.53.7](https://github.com/CodySwannGT/lisa/compare/v4.53.6...v4.53.7) (2026-09-08)
+
+
+### Bug Fixes
+
+* **learnings:** report every invalid entry from every merge side ([60d0f1d](https://github.com/CodySwannGT/lisa/commit/60d0f1dea3cc7ea1dab0e90af1e334bcf0fbab41)), closes [CodySwannGT/lisa#3577](https://github.com/CodySwannGT/lisa/issues/3577)
+
+### [4.53.6](https://github.com/CodySwannGT/lisa/compare/v4.53.5...v4.53.6) (2026-09-08)
+
+### [4.53.5](https://github.com/CodySwannGT/lisa/compare/v4.53.4...v4.53.5) (2026-09-08)
+
+
+### Bug Fixes
+
+* **expo:** match the splash marker on identity so a rename migrates ([f3aaad3](https://github.com/CodySwannGT/lisa/commit/f3aaad3fdf4e899e6261c9f0f3ffa2c9dd50c0d4)), closes [CodySwannGT/lisa#3536](https://github.com/CodySwannGT/lisa/issues/3536)
+* **husky:** pick the package manager the project declares, not the one Lisa uses ([a141fc7](https://github.com/CodySwannGT/lisa/commit/a141fc7285756802afbd3b9bee612a7a5e513735)), closes [CodySwannGT/lisa#3535](https://github.com/CodySwannGT/lisa/issues/3535)
+
 ### [4.53.4](https://github.com/CodySwannGT/lisa/compare/v4.53.3...v4.53.4) (2026-09-08)
 
 
