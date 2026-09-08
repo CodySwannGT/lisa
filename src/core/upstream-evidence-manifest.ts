@@ -1103,7 +1103,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "ab7bb855fd3ebe321e41b0143815f202b70f6ba38f6678791d6d9e933e0c3fd8",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "cb1ea1a70aa8051875290531fe0952f0b6f26079a99f1b887c449a2efea93aaa",
+      "9b90ab97ba29e140a06ed50e8f3822ba0b7820b35dce1ed016f1d57510d6b6e9",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -10591,6 +10591,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/drive-pr-auto-merge-race.test.ts": true,
     "tests/unit/strategies/drive-pr-conflict-zero-ci.test.ts": true,
     "tests/unit/strategies/drive-pr-hold-gate.test.ts": true,
+    "tests/unit/strategies/drive-pr-review-re-request-contract.test.ts": true,
     "tests/unit/strategies/easignore-worktree-exclusion.test.ts": true,
     "tests/unit/strategies/env-promotion-completeness.test.ts": true,
     "tests/unit/strategies/evidence-ref-contract.test.ts": true,
