@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.54.2](https://github.com/CodySwannGT/lisa/compare/v4.54.1...v4.54.2) (2026-09-08)
+
+
+### Bug Fixes
+
+* **wiki:** stop blocking a source note for describing a subject that moved ([323de53](https://github.com/CodySwannGT/lisa/commit/323de53285b0d113df82c6af99759e74908c0c67)), closes [CodySwannGT/lisa#3622](https://github.com/CodySwannGT/lisa/issues/3622)
+
 ### [4.54.1](https://github.com/CodySwannGT/lisa/compare/v4.54.0...v4.54.1) (2026-09-08)
 
 ## [4.54.0](https://github.com/CodySwannGT/lisa/compare/v4.53.7...v4.54.0) (2026-09-08)
