@@ -848,6 +848,36 @@ GLUED_OPERATORS = ("&&", "||", ";;", ";", "|", "&")
 SEGMENT_BOUNDARIES = set(GLUED_OPERATORS) | {"(", ")", "{", "}"}
 
 
+def strip_full_line_comments(text):
+    """Drop whole-line `#` comments, which no shell ever executes.
+
+    Only a `#` that opens a line (after optional whitespace) is removed. A `#`
+    appearing mid-line can be inside a string or a parameter expansion, and
+    deciding that needs the lexer that has just failed — which is the arms race
+    this file must not enter.
+
+    That narrow subset is exactly what is needed, and it cannot reopen a
+    bypass: bash does not execute a comment line either, so a creation written
+    inside one was never going to run. What it removes is the FALSE positive —
+    an apostrophe in prose breaks `shlex`, the lex-failure branch then applies
+    the coarse recogniser to the whole text, and a comment merely NAMING
+    `issueCreate` refuses a file that files nothing (CodySwannGT/lisa#3551).
+
+    Measured on this repository: 111 tracked files do not lex and carry a
+    coarse token; 13 of them are shell scripts, and they include this guard's
+    own shipped copies — the file cannot be run through the tool it protects.
+
+    Args:
+        text: The raw command or file text.
+
+    Returns:
+        The text with whole-line comments blanked, line count preserved.
+    """
+    return "\n".join(
+        "" if line.lstrip().startswith("#") else line for line in text.split("\n")
+    )
+
+
 def strip_heredocs(text):
     """Drop heredoc bodies so quoted prose cannot be read as argv.
 
@@ -2084,7 +2114,14 @@ def scan(text, depth, from_file=False):
         # reachable by declaring inline instead, which this change makes work.
         if text_declares_readiness(text):
             return None
-        if UNPARSEABLE_CREATION.search(text):
+        # Whole-line comments are removed FIRST. The coarse recogniser is right
+        # to be coarse about text it could not parse, but a comment is text no
+        # shell would have run, so matching one refuses a file that files
+        # nothing — and the refusal is permanent for that file, because the
+        # verdict is deterministic rather than cached. See
+        # `strip_full_line_comments` for why this cannot reopen the bypass the
+        # coarseness defends.
+        if UNPARSEABLE_CREATION.search(strip_full_line_comments(text)):
             return (
                 "an unparseable command that reads as a tracker creation",
                 [ready_role],
