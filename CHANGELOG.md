@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.54.0](https://github.com/CodySwannGT/lisa/compare/v4.53.7...v4.54.0) (2026-09-08)
+
+
+### Features
+
+* **apply:** let a consumer declare a reusable-workflow pin deliberate ([f8a3769](https://github.com/CodySwannGT/lisa/commit/f8a37698e02053557dcdea372b88adae469fc357)), closes [#3597](https://github.com/CodySwannGT/lisa/issues/3597) [CodySwannGT/lisa#3596](https://github.com/CodySwannGT/lisa/issues/3596)
+
+
+### Bug Fixes
+
+* **drive-pr:** stop sending a lane that cannot dismiss to re-request ([486708d](https://github.com/CodySwannGT/lisa/commit/486708db0470afa2e8340f3cc0817204694aa526)), closes [CodySwannGT/lisa#3587](https://github.com/CodySwannGT/lisa/issues/3587)
+* **linear:** read a pair's relations before writing one over them ([e42ced4](https://github.com/CodySwannGT/lisa/commit/e42ced4a9ad5e6828e5b25b3fc4391914fccb4ad)), closes [CodySwannGT/lisa#3605](https://github.com/CodySwannGT/lisa/issues/3605)
+
 ### [4.53.7](https://github.com/CodySwannGT/lisa/compare/v4.53.6...v4.53.7) (2026-09-08)
 
 
