@@ -101,7 +101,6 @@ scripts/nightly-e2e-provider-support.mjs
 scripts/nightly-e2e-tracking-config.mjs
 scripts/reconcile-nightly-e2e-tracking-cli.mjs
 scripts/reconcile-nightly-e2e-tracking.mjs
-scripts/resolve-published-version-floor.mjs
 scripts/threshold-ratchet-compare.mjs
 scripts/threshold-ratchet-families.mjs
 
