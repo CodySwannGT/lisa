@@ -1,5 +1,6 @@
 /** Complete process-table closure checks for gated lisa-test-run fixtures. */
 import * as fs from "node:fs";
+import { createRequire } from "node:module";
 import * as path from "node:path";
 
 import { processBirthFingerprintSnapshot } from "../../src/configs/vitest/scratch-owner.js";
@@ -112,24 +113,30 @@ function descendantPids(
 }
 
 /**
- * Resolve the exact installed esbuild service command used by the tsx loader.
+ * Resolve the exact esbuild service command one checkout will really execute.
+ *
+ * The loader locates the service binary with Node's resolver, which returns
+ * realpaths. A checkout whose `node_modules` is a symlink -- every agent
+ * worktree, and any second checkout sharing an install -- therefore executes
+ * the binary under the link target, not under its own root. Assembling the
+ * path from the checkout root instead of resolving it made all four loader
+ * helpers unrecognizable there, and the closure then reported the invocation's
+ * own toolchain as foreign (CodySwannGT/lisa#3414).
+ * @param baseDir - Checkout whose module graph spawns the loader service
  * @returns Complete binary and service arguments expected in the process table
  */
-function expectedEsbuildServiceCommand(): string {
-  const packageRoot = path.join(REPO_ROOT, "node_modules", "esbuild");
-  const manifest = JSON.parse(
-    fs.readFileSync(path.join(packageRoot, "package.json"), "utf8")
-  ) as { readonly version?: unknown };
+export function esbuildServiceCommandFrom(baseDir: string): string {
+  const manifestPath = createRequire(
+    path.join(baseDir, "package.json")
+  ).resolve("esbuild/package.json");
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as {
+    readonly version?: unknown;
+  };
   if (typeof manifest.version !== "string" || manifest.version.length === 0) {
     throw new Error("Installed esbuild version is unavailable");
   }
-  const binary = path.join(
-    REPO_ROOT,
-    "node_modules",
-    "@esbuild",
-    `${process.platform}-${process.arch}`,
-    "bin",
-    "esbuild"
+  const binary = createRequire(manifestPath).resolve(
+    `@esbuild/${process.platform}-${process.arch}/bin/esbuild`
   );
   return `${binary} --service=${manifest.version} --ping`;
 }
@@ -144,7 +151,7 @@ function loaderHelperRows(
   rows: readonly ProcessSnapshotRow[],
   owners: readonly (readonly [string, ProcessSnapshotRow])[]
 ): readonly ProcessSnapshotRow[] {
-  const expectedCommand = expectedEsbuildServiceCommand();
+  const expectedCommand = esbuildServiceCommandFrom(REPO_ROOT);
   return owners.flatMap(([label, owner]) => {
     const matches = rows.filter(
       row =>

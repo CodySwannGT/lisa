@@ -9869,6 +9869,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/js-yaml-security-floor.test.ts": true,
     "tests/unit/config/knip-shipped-hooks-binaries.test.ts": true,
     "tests/unit/config/lisa-pin-is-not-templated.test.ts": true,
+    "tests/unit/config/lisa-test-run-invocation-closure.test.ts": true,
     "tests/unit/config/managed-scripts-prettierignore.test.ts": true,
     "tests/unit/config/mjs-gate-off-stays-honest.test.ts": true,
     "tests/unit/config/mutation-gate-source-shape.test.ts": true,
