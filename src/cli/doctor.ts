@@ -17,6 +17,10 @@ import { checkLearningsLedger } from "./doctor-learnings-ledger.js";
 import { checkMergeDrivers } from "./doctor-merge-drivers.js";
 import { checkReadinessReportTracking } from "./doctor-readiness-tracking.js";
 import { checkSonarProvider } from "./doctor-sonar.js";
+import {
+  checkCodeRabbitProvider,
+  probeCodeRabbitReadiness,
+} from "./doctor-coderabbit.js";
 import { checkLegacyCodexOverlay } from "./doctor-legacy-overlay.js";
 import { checkLisaOwnedArtifacts } from "./doctor-lisa-owned-artifacts.js";
 import { checkLegacyMonitorThresholds } from "./doctor-monitor-thresholds.js";
@@ -97,6 +101,7 @@ export interface DoctorDependencies {
   write: (message: string) => void;
   probeKaneReadiness: typeof probeKaneReadiness;
   probeSonarReadiness: typeof probeSonarReadiness;
+  probeCodeRabbitReadiness: typeof probeCodeRabbitReadiness;
 }
 
 /**
@@ -119,6 +124,7 @@ const DEFAULT_DEPENDENCIES: DoctorDependencies = {
   write: message => console.log(message),
   probeKaneReadiness,
   probeSonarReadiness,
+  probeCodeRabbitReadiness,
 };
 
 /**
@@ -362,6 +368,7 @@ export async function runDoctor(
     // one compares every declaration against the ruleset template that
     // enforces it, which is the layer the traceability check only reports.
     await checkDeclaredContexts(resolvedTarget),
+    await checkCodeRabbitProvider(resolvedTarget, deps),
     await checkKaneProvider(resolvedTarget, deps),
     await checkSonarProvider(resolvedTarget, deps),
     await checkLegacyMonitorThresholds(resolvedTarget),
