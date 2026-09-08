@@ -1,17 +1,47 @@
 // This file is managed by Lisa and IS replaced on each `lisa` run.
 // Do not edit directly — durable changes belong upstream in Lisa.
 
-const { withMainActivity } = require("expo/config-plugins");
-const {
-  mergeContents,
-} = require("@expo/config-plugins/build/utils/generateCode");
-
 /**
  * Tag written into the generated MainActivity so the mod is idempotent. Expo
  * runs prebuild mods repeatedly, and `expo prebuild` can be run against an
  * existing `android/` directory, so an unconditional insert would stack.
+ *
+ * **Renaming this is a supported operation, and it did not used to be.**
+ * `mergeContents` looks for a block bearing exactly this tag and INSERTS when
+ * it does not find one. So changing the value made every previously generated
+ * block invisible to the check and appended a second one — the unconditional
+ * insert this tag exists to prevent, reached by editing the tag itself. The
+ * consumer holds the stale side, because this file is copy-overwrite and
+ * upstream moves the value.
+ *
+ * `IDENTITY` below is what makes a rename safe: matching is on the stable
+ * identity, and the tag is payload.
  */
 const TAG = "lisa-splash-no-client-exit";
+
+/**
+ * The stable identity every tag this plugin has ever written must satisfy.
+ *
+ * Matching on this rather than on the whole tag is the fix: a block written
+ * under any `lisa-splash-*` tag is recognised as OURS, retired, and re-emitted
+ * under the current one. The tag can then be renamed freely within the family
+ * without stranding anything.
+ *
+ * The boundary is load-bearing. Without it `lisa-splash` would also match a
+ * hypothetical `lisa-splash-something-else`, and this plugin would delete
+ * another plugin's block.
+ */
+const IDENTITY = /^lisa-splash(?:-|$)/;
+
+/**
+ * Tags this plugin wrote that fall OUTSIDE `IDENTITY`.
+ *
+ * Empty today, and the list is the escape hatch rather than the mechanism: a
+ * rename that stays inside the identity family needs no entry here. Append the
+ * OLD value only when a rename leaves the family, and never remove an entry —
+ * a consumer regenerating native sources years later still carries it.
+ */
+const PRIOR_TAGS = Object.freeze([]);
 
 /**
  * Anchor. `super.onCreate(null)` is React Native's own template line, not one
@@ -95,7 +125,64 @@ const SNIPPET = `    // Opt out of the Android 12+ client-side splash-exit hands
  * @param {string} contents Current MainActivity source.
  * @returns {object} The mergeContents result, with the snippet inserted.
  */
+/**
+ * Is this tag one of ours, but not the one we write today?
+ * @param {string} tag A tag read out of a `@generated begin` marker.
+ * @returns {boolean} True when the block it opens should be retired.
+ */
+const isPriorTag = tag =>
+  tag !== TAG && (IDENTITY.test(tag) || PRIOR_TAGS.includes(tag));
+
+/**
+ * Remove every block this plugin wrote under a PREVIOUS tag.
+ *
+ * Blocks bearing the CURRENT tag are deliberately left alone. `mergeContents`
+ * already recognises those and replaces them in place, and letting it do so
+ * preserves a property worth keeping: an already-patched file is updated
+ * without needing the anchor, so a React Native upgrade that moves
+ * `onCreate` does not turn a working project into a hard prebuild failure.
+ * Stripping everything and re-inserting would have traded that away.
+ *
+ * Markers are matched by structure — `@generated begin <tag>` through
+ * `@generated end <tag>` — rather than by reproducing the exact header
+ * `mergeContents` writes, because that header carries a content hash whose
+ * format is upstream's to change.
+ * @param {string} contents Current MainActivity source.
+ * @returns {{contents: string, retired: string[]}} Source with prior blocks
+ *   removed, and the tags that were retired.
+ */
+const stripPriorBlocks = contents => {
+  const lines = contents.split("\n");
+  const kept = [];
+  const retired = [];
+  let dropping = null;
+  for (const line of lines) {
+    if (dropping === null) {
+      const begin = /@generated begin (\S+)/.exec(line);
+      if (begin && isPriorTag(begin[1])) {
+        dropping = begin[1];
+        retired.push(begin[1]);
+        continue;
+      }
+      kept.push(line);
+      continue;
+    }
+    // Inside a doomed block: drop through its own end marker, and only its
+    // own. Keying the end on the tag we opened with means a nested or
+    // adjacent block belonging to something else cannot close ours early.
+    if (line.includes(`@generated end ${dropping}`)) dropping = null;
+  }
+  // An unterminated block would otherwise swallow the rest of the file. Losing
+  // MainActivity to a truncated marker is far worse than leaving a stale block
+  // in place, so this fails closed by keeping the original.
+  if (dropping !== null) return { contents, retired: [] };
+  return { contents: kept.join("\n"), retired };
+};
+
 const mergeOrThrow = contents => {
+  const {
+    mergeContents,
+  } = require("@expo/config-plugins/build/utils/generateCode");
   try {
     return mergeContents({
       src: contents,
@@ -140,8 +227,14 @@ const mergeOrThrow = contents => {
  * @param {object} config The Expo config being modified.
  * @returns {object} The config with the MainActivity mod applied.
  */
-const withAndroidSplashNoClientExit = config =>
-  withMainActivity(config, config => {
+const withAndroidSplashNoClientExit = config => {
+  // Required here rather than at module load so this file can be imported by a
+  // test without the Expo toolchain installed. The tag-migration logic is the
+  // part that needs proving and it depends on neither package; a top-level
+  // require made the whole module unloadable, which is why the duplicate-block
+  // defect shipped with no test that could have caught it.
+  const { withMainActivity } = require("expo/config-plugins");
+  return withMainActivity(config, config => {
     const { modResults } = config;
 
     if (modResults.language !== "kt") {
@@ -152,7 +245,8 @@ const withAndroidSplashNoClientExit = config =>
       );
     }
 
-    const merged = mergeOrThrow(modResults.contents);
+    const { contents: withoutPrior } = stripPriorBlocks(modResults.contents);
+    const merged = mergeOrThrow(withoutPrior);
 
     return {
       ...config,
@@ -162,6 +256,10 @@ const withAndroidSplashNoClientExit = config =>
       },
     };
   });
+};
 
 module.exports = withAndroidSplashNoClientExit;
 module.exports.TAG = TAG;
+module.exports.PRIOR_TAGS = PRIOR_TAGS;
+module.exports.isPriorTag = isPriorTag;
+module.exports.stripPriorBlocks = stripPriorBlocks;

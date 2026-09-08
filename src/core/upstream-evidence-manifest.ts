@@ -237,7 +237,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/knip.json":
       "054a6ac5289168f5b19ad705ca7dd0083a7feea1114d79014fbc72ed2a6f5a76",
     "expo/copy-overwrite/plugins/withAndroidSplashNoClientExit.js":
-      "2575c267e996901964dfca4d2b0bc2446d16eadbb9dd95bb653346507c29f83e",
+      "7ecb5c9ef3150eab01d3a3be02aab06a558a1d4ca6140220bbed5e65913adad0",
     "expo/copy-overwrite/scripts/bdd-matrix.mjs":
       "8611fa2329660bcb1cbffaf70091c35d49f1635c13d89b85a68fbbe7ec25e69e",
     "expo/copy-overwrite/scripts/bdd/baseline.mjs":
@@ -9929,6 +9929,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/health/deterministic.test.ts": true,
     "tests/unit/health/drift-tickets.test.ts": true,
     "tests/unit/health/expo-splash-inspection.test.ts": true,
+    "tests/unit/health/expo-splash-tag-migration.test.ts": true,
     "tests/unit/health/gitignore.test.ts": true,
     "tests/unit/health/package-surfaces.test.ts": true,
     "tests/unit/health/ruleset-reach-inspection.test.ts": true,
