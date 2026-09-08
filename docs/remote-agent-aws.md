@@ -96,10 +96,71 @@ aws --profile <project>-agent-production sts get-caller-identity
 Read the `Account` each one returns and compare it against the account that
 stage is supposed to be. A successful call is not the answer.
 
-Then prove the policy boundary: a permitted dev/staging repair action should
-reach the service authorization layer, while `iam:PassRole` and a production
-mutation must return `AccessDenied`. Production repair continues to use the
-human-driven local-workstation role and is not present in the remote container.
+Then prove the policy boundary, in this order. **The order is the check.**
+`AccessDenied` is what an unassumed role, a misconfigured profile and a
+correctly-scoped observer all return, so a boundary assertion made before the
+profile is bound to its expected account passes on a credential that reached
+some other account entirely — the same vacuous pass this contract already
+refuses for `sts:GetCallerIdentity`. Bind identity first, then assert the
+boundary: a permitted dev/staging repair action should reach the service
+authorization layer, while `iam:PassRole` and a production mutation must return
+`AccessDenied`. Production repair continues to use the human-driven
+local-workstation role and is not present in the remote container.
+
+That is only half a proof, and it is the half that cannot fail for the right
+reason. **A role that can read nothing at all satisfies every deny-side
+assertion above.** Prove the allow side too:
+
+```bash
+LISA_AWS_VERIFY_OBSERVER_READS=1 bash scripts/remote-agent-aws-setup.sh
+```
+
+which runs one representative read per surface below against every observer
+profile and refuses to report ready if any is denied, naming all of them at
+once rather than one per run.
+
+## What observer-only GRANTS
+
+Observer-only has been stated as a list of things a role must not do. That is
+not a definition a policy author can implement, and the consequence was
+measured: the read surface of a headless verifier got discovered by
+`AccessDenied`, one action at a time, at verification time. Three consecutive
+incidents in one consumer had that shape — instance discovery, alarm reads, and
+pipeline definition reads — each stalling a verification, each costing a ticket
+and a deploy.
+
+The surfaces below are derived from the role's purpose — *what must a headless
+verifier be able to read?* — rather than from the services any one stack happens
+to deploy. Every action is read-only. Widening the allow side generously grants
+no write anywhere, and it is far cheaper than rediscovering the list by denial.
+
+| surface | representative read | what an observer cannot answer without it |
+|---|---|---|
+| deployment stacks | `cloudformation describe-stacks` | what is deployed, and did the last change apply or roll back |
+| compute inventory | `ec2 describe-instances` | what is actually running, and is it healthy |
+| alarm state | `cloudwatch describe-alarms` | is anything alarming right now, and since when |
+| delivery pipelines | `codepipeline list-pipelines` | what the pipeline does and where this change stopped — the **definition** as well as the executions |
+| builds | `codebuild list-projects` | did the build run, and what did it say |
+| functions | `lambda list-functions` | is the handler deployed, and at which version |
+| logs | `logs describe-log-groups` | what it printed when it failed |
+| http endpoints | `apigateway get-rest-apis` | is the endpoint published and reachable |
+| queues | `sqs list-queues` | is work backing up or dead-lettering |
+| workflows | `stepfunctions list-state-machines` | did the orchestrated run complete or stall |
+
+Each probe names no resource, so it asks an IAM question rather than an
+inventory one: an empty result against a fresh account is a pass, and only a
+missing permission fails. The limitation that buys is worth stating — a surface
+whose *list* action is granted while its *detail* action is not still passes the
+probe. That is exactly the third incident, where the role could list pipeline
+executions but could not read the pipeline definition, so the requirement covers
+both halves even though the probe can only reach one. Grant the detail reads for
+each surface too; the probe proves the surface is reachable, not that every
+action on it is granted.
+
+A stage is treated as an observer when its bundle entry sets `"observer": true`,
+and otherwise when it is named `production` or `shared` — the definition this
+document already states. Dev and staging profiles are not probed, because they
+may carry the repair policy and failing them for holding it would be wrong.
 
 ## Notes
 
