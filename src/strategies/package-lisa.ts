@@ -1105,12 +1105,20 @@ function alignLisaPin(
   // its apply converges everything. Reverting GUARANTEED the second install by
   // destroying the request.
   //
-  // `minVersion` rather than a bare compare, so a range is judged by the
-  // earliest release it admits: `^4.26.0` cannot be satisfied by 4.23.20 and is
-  // an upgrade, while `^4.20.0` admits the applying version and is the skew
-  // this phase exists to close.
-  const declaredFloor =
-    current === undefined ? null : semver.minVersion(current);
+  // A floor rather than a bare compare, so a range is judged by the earliest
+  // release it admits: `^4.26.0` cannot be satisfied by 4.23.20 and is an
+  // upgrade, while `^4.20.0` admits the applying version and is the skew this
+  // phase exists to close.
+  //
+  // `rangeFloor` rather than `semver.minVersion` directly, because a spec that
+  // is not a range THROWS: on semver 7.8.1, `minVersion("latest")` raises
+  // `Invalid comparator: latest`. A dist-tag carries no protocol prefix, so
+  // `isNonRegistrySpec` does not screen it out, and the throw propagates into
+  // `apply()` as a JsonMergeError — failing the whole apply over a pin spelling
+  // npm accepts. `rangeFloor` answers null there, which is the honest reading:
+  // a dist-tag declares no floor, so nothing about it can be NEWER than the
+  // applying version, and the pin is reconciled like any other drift.
+  const declaredFloor = current === undefined ? null : rangeFloor(current);
   if (declaredFloor !== null && semver.gt(declaredFloor, applyingVersion)) {
     return {
       packageJson,
