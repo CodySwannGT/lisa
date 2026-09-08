@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.50.5](https://github.com/CodySwannGT/lisa/compare/v4.50.4...v4.50.5) (2026-09-08)
+
+
+### Bug Fixes
+
+* **doctor:** require configured CodeRabbit CLI ([fcfd27b](https://github.com/CodySwannGT/lisa/commit/fcfd27b1493630ac011940e944899d2dbc2d3fb0)), closes [CodySwannGT/lisa#4050](https://github.com/CodySwannGT/lisa/issues/4050) [CodySwannGT/lisa#4050](https://github.com/CodySwannGT/lisa/issues/4050)
+
 ### [4.50.4](https://github.com/CodySwannGT/lisa/compare/v4.50.3...v4.50.4) (2026-09-07)
 
 
