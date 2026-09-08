@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.53.7](https://github.com/CodySwannGT/lisa/compare/v4.53.6...v4.53.7) (2026-09-08)
+
+
+### Bug Fixes
+
+* **learnings:** report every invalid entry from every merge side ([60d0f1d](https://github.com/CodySwannGT/lisa/commit/60d0f1dea3cc7ea1dab0e90af1e334bcf0fbab41)), closes [CodySwannGT/lisa#3577](https://github.com/CodySwannGT/lisa/issues/3577)
+
 ### [4.53.6](https://github.com/CodySwannGT/lisa/compare/v4.53.5...v4.53.6) (2026-09-08)
 
 ### [4.53.5](https://github.com/CodySwannGT/lisa/compare/v4.53.4...v4.53.5) (2026-09-08)
