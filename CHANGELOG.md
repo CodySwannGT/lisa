@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.54.3](https://github.com/CodySwannGT/lisa/compare/v4.54.2...v4.54.3) (2026-09-08)
+
+
+### Bug Fixes
+
+* **guard:** let the copy family name a filing file, and fence the readers ([49ccf9e](https://github.com/CodySwannGT/lisa/commit/49ccf9e5577f20d79e9a4d9e67c4bdb98b7c6911)), closes [#3484](https://github.com/CodySwannGT/lisa/issues/3484) [#3606](https://github.com/CodySwannGT/lisa/issues/3606) [CodySwannGT/lisa#3683](https://github.com/CodySwannGT/lisa/issues/3683)
+
 ### [4.54.2](https://github.com/CodySwannGT/lisa/compare/v4.54.1...v4.54.2) (2026-09-08)
 
 
