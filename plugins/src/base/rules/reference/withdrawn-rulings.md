@@ -75,6 +75,40 @@ JSONL rather than prose: each line is independent, so concurrent appends from ma
 collide and `merge=union` reconstructs the union exactly. A prose ledger would need a bespoke merge
 driver to survive the same traffic.
 
+## The re-audit field, and why it is required (CodySwannGT/lisa#3489)
+
+A tombstone answers "this claim is dead". It does not answer **"what did I build while it was
+alive?"** — and that is the half that reached other agents and the human. Correcting a premise
+removes the belief and leaves every inference standing.
+
+The observed instance: a session spent part of a day believing a readiness preflight's false claim
+that a credential CLI was unavailable. A delegate probed the binary and disproved it, the session
+updated the fact, and carried on. It never asked what it had concluded while believing the false
+thing. Two hours later it relayed to its human that a work item was blocked because an SSO session
+had expired and a deployed template could not be read — relayed unexamined, while already knowing
+the vault worked, and while its own config had listed the relevant bootstrap secret the whole time.
+Three facts sat in one context and were never joined.
+
+So `--derived` is a required field on every withdrawal, and `--derived none` is the explicit empty
+answer. The record always carries the key: an empty list means *audited, nothing survives*, and an
+absent key means *never audited*. Distinguishing those two is the entire purpose, which is why the
+push gate refuses a ledger entry that omits it — otherwise the write-time refusal would be a
+formality anyone could route around by editing the file.
+
+**Why it cannot be a scanner instead.** Re-auditing after the fact would require asking "which
+artifacts rest on premise P". Nothing can answer that. Learnings-ledger entries carry `provenance`
+refs and are genuinely queryable that way, but they are the only artifact class that is: a tracker
+item marked blocked, a sentence relayed to an operator, a message to a peer session, an evidence
+file — none record the premise they rest on. **Re-auditing those is not merely unenforced; for
+anyone but the session still holding the context, it is impossible.** The obligation therefore has
+to bind at the one moment that knowledge is both present and being written down.
+
+Note the division of labour with `--reached`, which is a different question. `--reached` records the
+**audience** — who received the claim, which is #3752's problem of delivery. `--derived` records the
+**derivation** — what now stands on it, which is #3489's problem. A tombstone can reach every holder
+and still leave a wrong tracker state behind, and it can enumerate its inferences while reaching
+nobody. Both fields, or neither half is covered.
+
 ## How a running session is reached
 
 `--session-start` stamps a per-session mark recording the ids the session was born already knowing.
