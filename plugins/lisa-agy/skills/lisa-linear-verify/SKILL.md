@@ -52,8 +52,14 @@ If the verdict is `FAIL`, the caller should fix the item and re-run verify. Neve
 
 ## Comparison is semantic, never byte-exact
 
-Re-run the validator against the live issue. Do NOT compare the stored body
-against what was sent byte for byte.
+Re-run the validator against the live item — an Issue or a Project, whichever
+was written. Do NOT compare the stored body against what was sent byte for byte.
+
+The shape does not change the method, and saying so matters here because the
+access rule directly above already names both `get_issue` and `get_project`: a
+Project's stored description is normalized on write exactly as an Issue's body
+is, so a byte comparator is wrong about it for the same reason and to the same
+degree.
 
 The reason is measured rather than theoretical. Trackers normalize markdown on
 write: `-` bullets become `*`, a bare URL is wrapped as `[url](<url>)`, bold
