@@ -48,10 +48,11 @@
  * is bypassed anywhere in this suite.
  * @module tests/unit/hooks/block-no-verify-eval-payload
  */
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import * as path from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
@@ -118,8 +119,13 @@ const ALLOWED = [
 /**
  * Inputs that must not crash the parser.
  *
- * A Python traceback exits non-zero, which the wrapper turns into a spurious
- * BLOCK — so a crash here is a refusal of an innocent command, not a no-op.
+ * A crash exits non-zero with nothing on stdout, and the failure direction is
+ * the opposite of what this comment used to say: it is not turned into a
+ * spurious BLOCK. On the exit-code protocol any status that is not 2 read as
+ * "allow", and on the Codex protocol empty stdout read as "allow" — so a guard
+ * that died on every input would have satisfied this whole table silently. The
+ * deciders now assert the exit status, which is what makes a crash fail here
+ * instead of passing as the most permissive answer available.
  */
 const PATHOLOGICAL = [
   "eval",
@@ -146,7 +152,11 @@ const runGuard = (
   const result = boundedSpawnSync({
     label: `block-no-verify eval (${script})`,
     command: BASH_PATH,
-    args: [path.join(process.cwd(), script)],
+    // Absolute paths pass through, so the rejection controls below can point a
+    // decider at a deliberately broken script outside the repository. Joining
+    // unconditionally would turn "/tmp/x" into "<cwd>/tmp/x" and the control
+    // would measure a missing file instead of a crashing one.
+    args: [path.isAbsolute(script) ? script : path.join(process.cwd(), script)],
     input: JSON.stringify({
       tool_name: "Bash",
       tool_input: { command },
@@ -157,13 +167,25 @@ const runGuard = (
 };
 
 /**
- * Decide via the exit-code protocol: status 2 refuses.
+ * Decide via the exit-code protocol: status 2 refuses, status 0 allows.
+ *
+ * Any OTHER status is a crash, not a verdict, and is failed here rather than
+ * folded into "allow". These copies contain exactly two exits, 0 and 2, so a 1
+ * or a 127 means the guard died before deciding — and reading that as an allow
+ * would let a parser crash satisfy every ALLOWED and PATHOLOGICAL case in the
+ * table while the guard refused nothing at all.
  * @param script - Repository-relative path to the shipped guard copy
  * @param command - The Bash command line the guard is asked to vet
  * @returns "deny" when the guard refuses, "allow" otherwise
  */
-const decideByExitCode = (script: string, command: string): string =>
-  runGuard(script, command).status === EXIT_BLOCKED ? "deny" : "allow";
+const decideByExitCode = (script: string, command: string): string => {
+  const { status } = runGuard(script, command);
+  if (status === EXIT_BLOCKED) {
+    return "deny";
+  }
+  expect(status).toBe(0);
+  return "allow";
+};
 
 /**
  * Decide via the agy protocol: a JSON `decision` field on stdout.
@@ -171,9 +193,15 @@ const decideByExitCode = (script: string, command: string): string =>
  * @param command - The Bash command line the guard is asked to vet
  * @returns "deny" when the guard refuses, "allow" otherwise
  */
-const decideByAgyJson = (script: string, command: string): string =>
-  (JSON.parse(runGuard(script, command).stdout) as { decision: string })
-    .decision;
+const decideByAgyJson = (script: string, command: string): string => {
+  const { status, stdout } = runGuard(script, command);
+  // These copies exit 0 on both verdicts and carry the decision on stdout, so
+  // any non-zero status is a crash. `JSON.parse("")` would throw here anyway,
+  // but it throws about syntax; asserting the status first makes the failure
+  // say which of the two things went wrong.
+  expect(status).toBe(0);
+  return (JSON.parse(stdout) as { decision: string }).decision;
+};
 
 /**
  * Decide via the Codex protocol: a permissionDecision object, or silence.
@@ -182,14 +210,21 @@ const decideByAgyJson = (script: string, command: string): string =>
  * @returns "deny" when the guard refuses, "allow" otherwise
  */
 const decideByCodexDecision = (script: string, command: string): string => {
-  const { stdout } = runGuard(script, command);
+  const { status, stdout } = runGuard(script, command);
+  // Silence means allow ONLY from a guard that ran to completion. This copy
+  // contains a single exit, 0, and signals deny by printing JSON — so a crashed
+  // script produces empty stdout too, and is indistinguishable from an allow
+  // until the status is checked. Checking it first is what keeps the quietest
+  // possible failure from reading as the most permissive possible verdict.
+  expect(status).toBe(0);
   if (stdout.trim() === "") {
     return "allow";
   }
-  const parsed = JSON.parse(stdout) as {
-    hookSpecificOutput: { permissionDecision: string };
-  };
-  return parsed.hookSpecificOutput.permissionDecision;
+  return (
+    JSON.parse(stdout) as {
+      hookSpecificOutput: { permissionDecision: string };
+    }
+  ).hookSpecificOutput.permissionDecision;
 };
 
 /**
@@ -211,12 +246,64 @@ const assertEvalParity = (
     });
 
     it.each(PATHOLOGICAL)("does not crash on %s", command => {
-      // Not asserting a verdict — asserting the parser answered at all. A
-      // traceback would surface here as a spurious refusal.
+      // Not asserting a verdict — asserting the parser answered at all.
+      //
+      // A traceback does NOT surface here as a spurious refusal, which is what
+      // this comment used to claim. On two of the three protocols a crash is
+      // indistinguishable from the most permissive answer: the exit-code copies
+      // report a non-2 status, and the Codex copy reports empty stdout. Both
+      // read as "allow" unless the status is checked, so a guard that died on
+      // every input would pass this case and every ALLOWED case with it. The
+      // status assertions in the deciders are what make that impossible.
       expect(["deny", "allow"]).toContain(decide(script, command));
     });
   });
 };
+
+describe("a crashed guard is not read as an allow", () => {
+  /**
+   * Write a guard that dies without deciding, and return its absolute path.
+   *
+   * It exits 1 with empty stdout, which is what a syntax error or an unbound
+   * variable under `set -u` actually produces — the shape the deciders used to
+   * fold into "allow".
+   * @returns Absolute path to the crashing script
+   */
+  const crashRoots: string[] = [];
+
+  const crashingGuard = (): string => {
+    const dir = mkdtempSync(path.join(tmpdir(), "block-no-verify-crash-"));
+    const file = path.join(dir, "crash.sh");
+    crashRoots.push(dir);
+    writeFileSync(file, "#!/usr/bin/env bash\nexit 1\n");
+    return file;
+  };
+
+  afterAll(() => {
+    for (const dir of crashRoots) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  // One innocent command is enough: the crash is in the guard, not the input.
+  const INNOCENT = "git status";
+
+  // These are the controls for the three assertions added above. Without them
+  // the assertions are untested code that would pass whether or not they were
+  // there — the exact shape this suite exists to refuse, since a guard is only
+  // as good as the proof it refuses something.
+  it("fails the exit-code protocol instead of allowing", () => {
+    expect(() => decideByExitCode(crashingGuard(), INNOCENT)).toThrow();
+  });
+
+  it("fails the Codex protocol instead of allowing on silence", () => {
+    expect(() => decideByCodexDecision(crashingGuard(), INNOCENT)).toThrow();
+  });
+
+  it("fails the agy protocol instead of parsing empty stdout", () => {
+    expect(() => decideByAgyJson(crashingGuard(), INNOCENT)).toThrow();
+  });
+});
 
 describe("block-no-verify eval-payload coverage across shipped copies", () => {
   for (const script of EXIT_CODE_COPIES) {
