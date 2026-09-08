@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.50.6](https://github.com/CodySwannGT/lisa/compare/v4.50.5...v4.50.6) (2026-09-08)
+
+
+### Bug Fixes
+
+* **nightly-e2e:** re-certify the guard 50 published releases shipped ([64e2fd4](https://github.com/CodySwannGT/lisa/commit/64e2fd4bf267ec065de278c74acedcde776067ed)), closes [CodySwannGT/lisa#3500](https://github.com/CodySwannGT/lisa/issues/3500)
+* **preflight:** probe a tool the manifest cannot pin for this platform ([1fadcf4](https://github.com/CodySwannGT/lisa/commit/1fadcf48253573c98225988f03d0a60ea87de60d)), closes [CodySwannGT/lisa#3473](https://github.com/CodySwannGT/lisa/issues/3473)
+
 ### [4.50.5](https://github.com/CodySwannGT/lisa/compare/v4.50.4...v4.50.5) (2026-09-08)
 
 
