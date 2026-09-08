@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.54.4](https://github.com/CodySwannGT/lisa/compare/v4.54.3...v4.54.4) (2026-09-08)
+
+
+### Bug Fixes
+
+* **skills:** confirm a merge conflict locally instead of trusting a cache ([1359f22](https://github.com/CodySwannGT/lisa/commit/1359f22b789e59eab7b36188a04dabb5c9c8412e)), closes [CodySwannGT/lisa#3694](https://github.com/CodySwannGT/lisa/issues/3694)
+
 ### [4.54.3](https://github.com/CodySwannGT/lisa/compare/v4.54.2...v4.54.3) (2026-09-08)
 
 
