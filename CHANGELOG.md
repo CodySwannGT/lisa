@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.54.5](https://github.com/CodySwannGT/lisa/compare/v4.54.4...v4.54.5) (2026-09-08)
+
+
+### Bug Fixes
+
+* **deps:** move js-yaml to the patched releases for GHSA-2883-xcg3-v3hh ([e613fd5](https://github.com/CodySwannGT/lisa/commit/e613fd55a9bd430d27bf102bba600142c2f412b2)), closes [CodySwannGT/lisa#4091](https://github.com/CodySwannGT/lisa/issues/4091)
+
 ### [4.54.4](https://github.com/CodySwannGT/lisa/compare/v4.54.3...v4.54.4) (2026-09-08)
 
 
