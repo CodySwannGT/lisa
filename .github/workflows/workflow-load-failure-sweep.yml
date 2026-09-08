@@ -1,0 +1,67 @@
+name: 🧩 Reusable Workflow Load Sweep
+
+# Detects reusable workflows that failed to LOAD rather than to run
+# (CodySwannGT/lisa#3581).
+#
+# When an upstream commit makes a reusable workflow unparseable, GitHub rejects
+# the file before creating any job. There is no red job to open and no
+# annotation naming the line; the run is simply empty. Nothing that watches for
+# a failing JOB can see it.
+#
+# WHY A SCHEDULE AND NOT A GATE. On a pull request this is already covered:
+# `check-skipped-required-checks --pr=<n>` raises `absent_required_check`, and a
+# ruleset-required context that never reports blocks the merge regardless. The
+# incident this closes happened where no gate looks — a push handler failed five
+# times in a row, ~40 minutes after an upstream commit landed, with nothing
+# changed on the consumer side. Detection already existed at exactly one moment
+# while the failure occurs at all of them, so the moment is the fix here.
+#
+# The precedent is `lifecycle-drift-sweep.yml`: a report nobody scheduled and
+# nobody read is indistinguishable from no report. Failing the job routes the
+# finding into the existing deduplicating failure-to-issue path rather than a
+# job summary nobody opens.
+#
+# NOTE: repo-specific to the Lisa monorepo, NOT a Lisa template — do not move it
+# under plugins/src or the create-only template sets. The consumers where this
+# incident actually happens do not get it from here; see the ticket.
+
+on:
+  schedule:
+    # Every six hours. The window below is 26h, so consecutive runs overlap
+    # heavily on purpose: a load failure that is fixed between two runs should
+    # still have been reported once, and an overlap is far cheaper than the
+    # forty minutes of silence the incident cost.
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # Without this the runs API returns nothing and the scan would report a clean
+  # window it never saw. A missing permission that renders as a pass is the same
+  # defect this workflow exists to catch, one layer down.
+  actions: read
+
+jobs:
+  sweep:
+    name: 🧩 Scan run history for load failures
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.3.8'
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Scan for reusable workflow load failures
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        # Exits non-zero on findings AND on a window it could not cover.
+        # "Found nothing" and "could not look" are different answers and this
+        # step deliberately renders both as red.
+        run: bun run check:workflow-load-failures
