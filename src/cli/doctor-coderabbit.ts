@@ -1,5 +1,6 @@
 /** Doctor check for a CodeRabbit CLI required by the project's gate policy. */
 import { execFile } from "node:child_process";
+import { env as processEnvironment } from "node:process";
 import { promisify } from "node:util";
 import { readConfinedMergedConfig } from "./ui-confined-project-read.js";
 import { isJsonObject, type JsonObject } from "../sync/json-path.js";
@@ -7,10 +8,12 @@ import type { DoctorCheck } from "./doctor.js";
 
 const execFileAsync = promisify(execFile);
 const CODERABBIT = "coderabbit";
+const CODERABBIT_API_KEY = "CODERABBIT_API_KEY";
 
 /** Outcome of one read-only CodeRabbit command. */
 export interface CodeRabbitCommandResult {
   readonly ok: boolean;
+  readonly stdout: string;
 }
 
 /** Injectable fixed-argv CodeRabbit runner. */
@@ -36,12 +39,59 @@ export interface CodeRabbitDoctorDependencies {
  */
 export const runCodeRabbitCommand: CodeRabbitCommandRunner = async args => {
   try {
-    await execFileAsync(CODERABBIT, [...args], { timeout: 15_000 });
-    return { ok: true };
+    const { stdout } = await execFileAsync(CODERABBIT, [...args], {
+      timeout: 15_000,
+    });
+    return { ok: true, stdout };
   } catch {
-    return { ok: false };
+    return { ok: false, stdout: "" };
   }
 };
+
+/**
+ * Read the explicit authentication boolean from CodeRabbit's NDJSON agent
+ * output. Process success alone is not proof: current CLIs exit zero while
+ * reporting `authenticated:false`.
+ * @param output - Stdout from `coderabbit auth status --agent`
+ * @returns The reported state, or null when no valid status record exists
+ */
+function parseAuthenticationStatus(output: string): boolean | null {
+  return output
+    .trim()
+    .split(/\r?\n/u)
+    .reduce<boolean | null>((authenticated, line) => {
+      if (line.trim() === "") return authenticated;
+      try {
+        const status: unknown = JSON.parse(line);
+        return isJsonObject(status) &&
+          status.type === "status" &&
+          typeof status.authenticated === "boolean"
+          ? status.authenticated
+          : authenticated;
+      } catch {
+        return authenticated;
+      }
+    }, null);
+}
+
+/**
+ * Whether a headless Agentic key is available without reading its value.
+ * @returns True when the standard CodeRabbit key variable is nonblank
+ */
+function hasHeadlessApiKey(): boolean {
+  return (processEnvironment[CODERABBIT_API_KEY] ?? "").trim() !== "";
+}
+
+/**
+ * Build actionable authentication guidance without ever embedding a secret.
+ * @returns Headless-first remediation for the current environment
+ */
+function authenticationGuidance(): string {
+  if (hasHeadlessApiKey()) {
+    return 'CodeRabbit CLI is installed but not authenticated; headless credentials are available, so run `coderabbit auth login --api-key "$CODERABBIT_API_KEY"`';
+  }
+  return 'CodeRabbit CLI is installed but not authenticated; for headless use, create a CodeRabbit Agentic API key, expose it as `CODERABBIT_API_KEY`, then run `coderabbit auth login --api-key "$CODERABBIT_API_KEY"`; interactive fallback: run `coderabbit auth login`';
+}
 
 /**
  * Whether a gate declaration awaits CodeRabbit at any moment.
@@ -91,12 +141,24 @@ export async function probeCodeRabbitReadiness(
         "CodeRabbit is configured, but its CLI is unavailable; install it from https://www.coderabbit.ai/cli",
     };
   }
-  if (!(await runner(["auth", "status"])).ok) {
+  const authentication = await runner(["auth", "status", "--agent"]);
+  if (!authentication.ok) {
     return {
       status: "fail",
       detail:
-        "CodeRabbit CLI is installed but not authenticated; run `coderabbit auth login`",
+        "CodeRabbit CLI is installed, but Lisa could not verify authentication with `coderabbit auth status --agent`; update the CLI and retry",
     };
+  }
+  const authenticated = parseAuthenticationStatus(authentication.stdout);
+  if (authenticated === null) {
+    return {
+      status: "fail",
+      detail:
+        "CodeRabbit CLI is installed, but Lisa could not verify authentication because `coderabbit auth status --agent` returned no valid status event; update the CLI and retry",
+    };
+  }
+  if (!authenticated) {
+    return { status: "fail", detail: authenticationGuidance() };
   }
   return {
     status: "ready",
