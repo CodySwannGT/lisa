@@ -144,7 +144,13 @@ describe("preflightTools", () => {
 describe("reportTools", () => {
   it("says nothing when the verdict is ok", () => {
     expect(
-      reportTools({ verdict: "ok", blocked: [], installable: [], reasons: {} })
+      reportTools({
+        verdict: "ok",
+        blocked: [],
+        installable: [],
+        unverified: [],
+        reasons: {},
+      })
     ).toBe("");
   });
 
@@ -155,6 +161,7 @@ describe("reportTools", () => {
       verdict: "missing",
       blocked: [{ name: "gh", reason: GH_MISSING }],
       installable: [{ name: "maestro", reason: MAESTRO_MISSING }],
+      unverified: [],
       reasons: { gh: TRACKER_GH },
     });
     expect(text).toContain("Lisa can install these itself");
@@ -170,6 +177,7 @@ describe("reportTools", () => {
       verdict: "missing",
       blocked: [],
       installable: [{ name: "maestro", reason: MAESTRO_MISSING }],
+      unverified: [],
       reasons: {},
     });
     expect(installOnly).toContain("action available");
@@ -179,6 +187,7 @@ describe("reportTools", () => {
       verdict: "missing",
       blocked: [{ name: "gh", reason: GH_MISSING }],
       installable: [],
+      unverified: [],
       reasons: {},
     });
     expect(blocking).toContain("FAILED");
@@ -189,8 +198,137 @@ describe("reportTools", () => {
       verdict: "missing",
       blocked: [{ name: "gh", reason: GH_MISSING }],
       installable: [],
+      unverified: [],
       reasons: {},
     });
     expect(text).not.toContain("Lisa can install these itself");
+  });
+});
+
+/**
+ * An install entry with no artifact for the running platform.
+ *
+ * Deliberately the real shape that caused this: a tool pinned for Linux only,
+ * on a machine that is not Linux. No network, no real vault, no dependence on
+ * what the developer's machine happens to hold.
+ * @returns A manifest whose only install entry cannot resolve on macOS.
+ */
+const linuxOnly = () => ({
+  require: [],
+  install: [
+    {
+      name: "bws",
+      version: "2.1.0",
+      install: "release-zip",
+      platforms: {
+        "linux-arm64": {
+          url: "https://example.test/a.zip",
+          sha256: "a".repeat(64),
+        },
+        "linux-x64": {
+          url: "https://example.test/b.zip",
+          sha256: "b".repeat(64),
+        },
+      },
+    },
+  ],
+});
+
+describe("a tool with no pin for this platform", () => {
+  it("does not block when the binary is installed and usable", () => {
+    // The defect: `invalid` answers "can Lisa provision this here?", which for
+    // an unpinned platform is correctly no. The preflight asks "can the agent
+    // use this right now?" and reused the provisioning verdict, so a bws that
+    // resolved secrets in the same session was reported as a blocker.
+    const result = preflightTools(
+      {},
+      { tools: linuxOnly() },
+      probeFrom({ bws: "2.1.0" }),
+      PLATFORM
+    );
+    expect(result.blocked).toEqual([]);
+    expect(result.unverified.map((s: { name: string }) => s.name)).toEqual([
+      "bws",
+    ]);
+  });
+
+  it("blocks exactly as before when the binary is absent", () => {
+    // Presence-only, not a skip. Dropping the entry would report clean for a
+    // tool that is neither pinned nor installed — a green from a check that
+    // never ran.
+    const result = preflightTools(
+      {},
+      { tools: linuxOnly() },
+      probeFrom({}),
+      PLATFORM
+    );
+    expect(result.verdict).toBe("missing");
+    expect(result.blocked.map((s: { name: string }) => s.name)).toEqual([
+      "bws",
+    ]);
+    expect(result.blocked[0]?.reason).toContain("no pin for darwin-arm64");
+    expect(result.blocked[0]?.reason).toContain("linux-arm64, linux-x64");
+  });
+
+  it("still blocks a present binary that is below a declared minVersion", () => {
+    // The pin names an artifact for another platform and is unusable here. A
+    // minimum is a statement about the tool itself, and survives.
+    const manifest = linuxOnly();
+    const result = preflightTools(
+      {},
+      {
+        tools: {
+          ...manifest,
+          install: [{ ...manifest.install[0], minVersion: "3.0.0" }],
+        },
+      },
+      probeFrom({ bws: "2.1.0" }),
+      PLATFORM
+    );
+    expect(result.verdict).toBe("missing");
+    expect(result.blocked.map((s: { name: string }) => s.name)).toEqual([
+      "bws",
+    ]);
+  });
+
+  it("keeps blocking a malformed platforms map, present or not", () => {
+    // A broken declaration is not a fact about this machine, and a binary
+    // happening to be on PATH does not redeem it.
+    const result = preflightTools(
+      {},
+      {
+        tools: {
+          require: [],
+          install: [
+            { name: "bws", version: "2.1.0", platforms: ["linux-x64"] },
+          ],
+        },
+      },
+      probeFrom({ bws: "2.1.0" }),
+      PLATFORM
+    );
+    expect(result.verdict).toBe("missing");
+    expect(result.blocked.map((s: { name: string }) => s.name)).toEqual([
+      "bws",
+    ]);
+    expect(result.blocked[0]?.reason).toContain("must be an object");
+  });
+
+  it("exits the report without a route-to-blocked instruction", () => {
+    // The load-bearing detail is the instruction, not the verdict: a
+    // table-lookup gap was being converted into durable tracker state.
+    const result = preflightTools(
+      {},
+      { tools: linuxOnly() },
+      probeFrom({ bws: "2.1.0" }),
+      PLATFORM
+    );
+    const text = reportTools(result);
+    expect(text).not.toContain("FAILED");
+    expect(text).not.toContain("Route the item to");
+    expect(text).not.toContain("These need you");
+    expect(text).toContain("cannot vouch");
+    expect(text).toContain("2.1.0");
+    expect(text).toContain("Nothing here blocks your work");
   });
 });
