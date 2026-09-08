@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.53.0](https://github.com/CodySwannGT/lisa/compare/v4.52.1...v4.53.0) (2026-09-08)
+
+
+### Features
+
+* **blockers:** give a satisfied dependency edge an owner that dissolves it ([f54a6d4](https://github.com/CodySwannGT/lisa/commit/f54a6d45329a927aef0a7a3e416dd8059cd7cbf3)), closes [#3479](https://github.com/CodySwannGT/lisa/issues/3479) [#3605](https://github.com/CodySwannGT/lisa/issues/3605) [CodySwannGT/lisa#3472](https://github.com/CodySwannGT/lisa/issues/3472)
+* **remote-aws:** prove what an observer-only role may read ([b77d7ca](https://github.com/CodySwannGT/lisa/commit/b77d7caf66dcb5b83934ea4d158a30a4e7329630)), closes [CodySwannGT/lisa#3475](https://github.com/CodySwannGT/lisa/issues/3475)
+
 ### [4.52.1](https://github.com/CodySwannGT/lisa/compare/v4.52.0...v4.52.1) (2026-09-08)
 
 
