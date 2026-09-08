@@ -2309,7 +2309,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-nightly-e2e-guard-certificate.mjs":
       "d753c779ed67099639136b3dac658f329ff6cc6b7a009e6f018b29e48b3e8ff1",
     "scripts/generate-two-channel-couplings.ts":
-      "8c1f5b8d6ac5043dec9789f3ac1fe83d9ba00d1e1eccf9c6a92f274ab8da919e",
+      "4393f6f30ae7292da20c68c2b097b96f93b0e364e2fec48f8b7c86827d444986",
     "scripts/generate-upstream-evidence-manifest.mjs":
       "8f18972834d6be9771501c35da30de95539a7e7b3fb3d7605e0bc31477812a5f",
     "scripts/github-status-check.sh":
@@ -2425,7 +2425,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "0ce47fff41296620105dc1946780420015ac14a735732c0e6f8459b5cca67c61",
+      "8c35c8ac477ccd8d579a0adf6261d68657262ca8c01f1376bdb46fdcdd27e36e",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -10361,6 +10361,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/threshold-ratchet-symlinked-entry.test.ts": true,
     "tests/unit/scripts/threshold-ratchet-wiring.test.ts": true,
     "tests/unit/scripts/threshold-ratchet.test.ts": true,
+    "tests/unit/scripts/two-channel-staleness-classification.test.ts": true,
     "tests/unit/scripts/upstream-evidence-manifest.test.ts": true,
     "tests/unit/scripts/upstream-manifest-staleness.test.ts": true,
     "tests/unit/scripts/vacuous-required-checks-wiring.test.ts": true,

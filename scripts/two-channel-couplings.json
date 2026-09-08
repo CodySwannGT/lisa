@@ -3,6 +3,100 @@
     "quality.yml::scripts/check-learnings-budget.ts": "Lisa-source-only branch, and the else arm is the delivery. The step tests for BOTH scripts/check-learnings-budget.ts and src/core/learnings-budget-check.ts, which co-exist only in this repository; every consumer takes the else arm and runs the prover as `bunx @codyswann/lisa@<their own declared version>`, which is the PACKAGE channel and not a caller-tree read at all. A trailing `grep -qE \"learnings budget (passed|saturated)|no learnings file\"` then refuses a run that printed no verdict, so the arm cannot pass vacuously. Ratified because the caller-tree read is unreachable outside this repository, not because the gap is tolerated.",
     "quality.yml::scripts/generate-nightly-e2e-guard-certificate.mjs": "Lisa-source-only branch. Both reusable jobs require `github.repository == 'CodySwannGT/lisa'` before the step can start, and the run body repeats that exact repository guard before checking this artifact path. Ordinary and private host callers therefore skip the step without reading or fetching from their own tree. The scoped branch fetches only the immutable refs needed to behavior-test Lisa's own retained certificate inputs. Ratified because the caller-tree read is unreachable outside this repository, not because an undelivered host dependency is tolerated."
   },
+  "staleness": {
+    "create-github-issue-on-failure.yml::scripts/nightly-e2e-provider-action.mjs": {
+      "detects": "existence-only",
+      "reason": "The read files a tracker issue after a nightly failure; it posts no required check and gates no merge. A stale copy files a slightly wrong issue body, which a human reads and corrects, rather than turning a merge green or red from superseded logic. The harm this classification exists to catch is a verdict nobody can see is old, and this coupling produces no verdict."
+    },
+    "create-jira-issue-on-failure.yml::scripts/nightly-e2e-provider-action.mjs": {
+      "detects": "existence-only",
+      "reason": "Same provider action as the GitHub arm, same reasoning: it files a tracker issue after a nightly failure, posts no required check, and gates no merge. A stale copy misformats a report a human reads; it cannot produce a merge verdict derived from superseded logic."
+    },
+    "create-linear-issue-on-failure.yml::scripts/nightly-e2e-provider-action.mjs": {
+      "detects": "existence-only",
+      "reason": "Same provider action as the GitHub and Jira arms, same reasoning: it files a tracker issue after a nightly failure, posts no required check, and gates no merge. A stale copy degrades a report rather than a verdict."
+    },
+    "create-sentry-issue-on-failure.yml::scripts/nightly-e2e-provider-action.mjs": {
+      "detects": "existence-only",
+      "reason": "Same provider action as the other three failure arms, same reasoning: it files an issue after a nightly failure, posts no required check, and gates no merge. A stale copy degrades a report rather than a verdict."
+    },
+    "maestro-native-e2e.yml::scripts/classify-maestro-failures.mjs": {
+      "detects": "existence-only",
+      "reason": "Classifies native E2E failures for the run summary so an operator can tell an infrastructure flake from a product regression. It labels a failure that has already been decided elsewhere; it does not decide one. A stale classifier mislabels a red the operator is already looking at, which is visible in the same output."
+    },
+    "nightly-e2e-health.yml::scripts/check-nightly-e2e-health.mjs": {
+      "detects": "version-handshake"
+    },
+    "nightly-e2e-health.yml::scripts/nightly-e2e-suites.schema.json": {
+      "detects": "existence-only",
+      "reason": "A JSON schema has no executable surface, so it cannot answer a contract-version call at all — no handshake is constructible here. It is covered transitively rather than left unguarded: the schema and check-nightly-e2e-health.mjs ship on the same typescript/copy-overwrite lane and are read by the same workflow, and that checker DOES handshake, so a tree old enough to carry a stale schema carries a stale checker and the existing handshake fails first."
+    },
+    "nightly-e2e-report.yml::scripts/check-nightly-e2e-health.mjs": {
+      "detects": "version-handshake"
+    },
+    "nightly-e2e-tracking.yml::scripts/reconcile-nightly-e2e-tracking.mjs": {
+      "detects": "existence-only",
+      "reason": "Reconciles the nightly tracking issue — opens, refreshes or closes it to match the latest health verdict. It consumes a verdict rather than producing one, so a stale copy mismanages a tracking issue a human reads and cannot make a merge gate green."
+    },
+    "publish-to-npm.yml::scripts/check-npm-publish-landed.mjs": {
+      "detects": "existence-only",
+      "reason": "A GENUINE GAP, recorded rather than waved through. It verifies a publish actually landed, so a stale copy can attest to a release that did not happen. It runs post-merge in the release workflow and posts no merge-blocking required context, which is why it is not the first handshake to build — but it is verdict-bearing and belongs at the front of the queue when this classification is next acted on."
+    },
+    "publish-to-npm.yml::scripts/check-release-package-identity.mjs": {
+      "detects": "existence-only",
+      "reason": "A GENUINE GAP, recorded rather than waved through, and the sibling of the publish-landed read: it attests that the published package is the one intended, so a stale copy can attest to an identity it no longer checks the same way. Post-merge and not merge-blocking, so it queues behind the merge gates rather than ahead of them."
+    },
+    "quality-rails.yml::scripts/check-threshold-ratchet.mjs": {
+      "detects": "existence-only",
+      "reason": "Same prover as the quality.yml read and the same GENUINE GAP, reached from the Rails caller tree. Recorded separately because the two callers can drift apart: a handshake added to one workflow does not reach the other, which is how a fleet ends up half-covered."
+    },
+    "quality-rails.yml::scripts/lisa-mutation.sh": {
+      "detects": "existence-only",
+      "reason": "A shell wrapper that shapes a mutation-testing invocation; the verdict comes from Stryker and its configured thresholds, not from this file. A stale wrapper passes older flags, which fails loudly as a runner usage error rather than producing a wrong mutation score."
+    },
+    "quality-rails.yml::scripts/lisa-scratch-run.sh": {
+      "detects": "existence-only",
+      "reason": "A shell wrapper that isolates a run's scratch namespace. It carries no verdict-bearing logic at all — it prepares a directory and execs the real command — so there is no superseded judgement for a stale copy to apply."
+    },
+    "quality-rails.yml::scripts/lisa-work-item.mjs": {
+      "detects": "version-handshake"
+    },
+    "quality.yml::scripts/check-e2e-coverage.mjs": {
+      "detects": "existence-only",
+      "reason": "Guarded by an existence test and scoped to Expo consumers. It reports route coverage against a declared threshold; a stale copy computes coverage by an older rule and says which rule it used in its own output, so the number it prints is interpretable rather than silently wrong."
+    },
+    "quality.yml::scripts/check-learnings-budget.ts": {
+      "detects": "existence-only",
+      "reason": "Already ratified as a Lisa-source-only branch: every consumer takes the else arm and runs the prover from the PACKAGE channel at their own declared version, which is a version pin rather than an unversioned copy. The two-channel skew this field is about does not arise on the path consumers actually take."
+    },
+    "quality.yml::scripts/check-skipped-required-checks.mjs": {
+      "detects": "existence-only",
+      "reason": "A GENUINE GAP and the sharpest one in this registry: it is the vacuity and review-evidence prover, so a stale copy posts a review verdict from superseded logic on a merge gate. Its own workflow resolves a second in-repo address when scripts/ has no copy, which bounds the absent case but says nothing about age. Highest-value handshake candidate here."
+    },
+    "quality.yml::scripts/check-state-classification.mjs": {
+      "detects": "existence-only",
+      "reason": "Guarded by an existence test and advisory in effect: it classifies demo/fixture state against a declared contract and reports what it found. A stale copy reports against an older contract version, which surfaces as a classification mismatch in its own output rather than as a green merge gate, so the failure is self-announcing."
+    },
+    "quality.yml::scripts/check-threshold-ratchet.mjs": {
+      "detects": "existence-only",
+      "reason": "A GENUINE GAP. The ratchet decides whether a threshold moved the wrong way, so a stale copy can pass a loosened threshold it does not yet know how to refuse. It is declared optional at push in this repository's own gate set, which lowers the blast radius but does not remove it."
+    },
+    "quality.yml::scripts/check-verification-coverage.mjs": {
+      "detects": "existence-only",
+      "reason": "Bespoke and conditional — it requires a verification-spec delta on feat/fix changes. A stale copy applies an older definition of what counts as a spec delta, which produces a visible disagreement with the spec in the pull request rather than a silent pass."
+    },
+    "quality.yml::scripts/generate-nightly-e2e-guard-certificate.mjs": {
+      "detects": "existence-only",
+      "reason": "Already ratified as undelivered: no lane ships this path, so no consumer tree carries a copy that could be stale. The staleness question is vacuous here for the same reason the delivery question was, and it is recorded rather than left blank so the entry is not mistaken for one nobody examined."
+    },
+    "quality.yml::scripts/lisa-floor-collisions.mjs": {
+      "detects": "existence-only",
+      "reason": "Reports collisions between declared security floors. A stale copy knows a smaller set of floors, so it under-reports rather than mis-decides, and the floors it does know it still checks correctly. Under-reporting is the benign direction for a collision detector."
+    },
+    "quality.yml::scripts/lisa-work-item.mjs": {
+      "detects": "version-handshake"
+    }
+  },
   "inspected": {
     "workflows": 23,
     "steps": 719,

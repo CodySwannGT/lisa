@@ -59,6 +59,21 @@ const APPLY_LANE = ["all", COPY_OVERWRITE, SCRIPTS] as const;
 /** The scaffold-time-only lane an unrefreshed artifact is written into. */
 const CREATE_ONLY_LANE = ["expo", "create-only", SCRIPTS] as const;
 
+/**
+ * The staleness classification the fixture coupling carries.
+ *
+ * Every live coupling must record whether it can detect a STALE artifact, not
+ * only an absent one, so a fixture tree that is otherwise in step still fails
+ * without this — which is the requirement working rather than a test detail.
+ */
+const CLASSIFIED = {
+  [`${WORKFLOW}::scripts/${PROVER}`]: {
+    detects: "existence-only",
+    reason:
+      "Fixture coupling with no verdict-bearing logic; nothing downstream reads a result from it.",
+  },
+};
+
 describe("generate-two-channel-couplings CLI", () => {
   let tempDir: string;
   let root: string;
@@ -151,6 +166,10 @@ describe("generate-two-channel-couplings CLI", () => {
         [`${WORKFLOW}::scripts/${PROVER}`]:
           "scaffold-time only, adopted by hand",
       },
+      // A ratified coupling still has to answer the staleness question: the two
+      // record different things — whether the delivery gap is permitted, and
+      // whether an old copy would be noticed (#3687).
+      staleness: CLASSIFIED,
     });
     expect(run(["--root", root])).toBe(0);
   });
@@ -170,6 +189,12 @@ describe("generate-two-channel-couplings CLI", () => {
     // every failure above is indistinguishable from the gate simply being red.
     await fs.outputFile(path.join(root, ...WORKFLOWS_DIR, WORKFLOW), REUSABLE);
     await fs.outputFile(path.join(root, ...APPLY_LANE, PROVER), ARTIFACT_BODY);
+    run(["--root", root]);
+    const ledgerPath = path.join(root, ...LEDGER);
+    await fs.writeJson(ledgerPath, {
+      ...((await fs.readJson(ledgerPath)) as object),
+      staleness: CLASSIFIED,
+    });
     expect(run(["--root", root])).toBe(0);
   });
 
