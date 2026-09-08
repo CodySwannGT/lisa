@@ -885,7 +885,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/bdd-e2e-coverage.md":
       "ba3b4107149e2fb8399df9df416af917aece65c07b7b82b1e266617703225c9b",
     "plugins/src/base/rules/reference/blocker-containment.md":
-      "a759fb566e9614aaa99cf8e194e7ae647bd4e0a4699bd40eb5acb123051ca349",
+      "123fd6740bb6b927ae94f8d51d2f7f92188d59d1e5685a0aa1bea9db18301384",
     "plugins/src/base/rules/reference/claim-archaeology.md":
       "4e9189652e3b11dd865e7eb8b7a3d2ce9be96b139084d414dc10017099764753",
     "plugins/src/base/rules/reference/claim-evidence-mapping.md":
@@ -1006,6 +1006,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "7a84d3abf27a5fe1715a9869c4862711622c004ad9710aae55912ff9c6a5658d",
     "plugins/src/base/scripts/automation-status-unrecorded-runs.mjs":
       "e6063e072b9cf0928bf94df034937326444d542143f5d7264a9c2c7180c035ae",
+    "plugins/src/base/scripts/blocker-edge-resolution.mjs":
+      "f0891d78c68817cf64132a4c9906624aa4997a45ee3cdefd2c072fc443b59a0b",
     "plugins/src/base/scripts/cross-pollinate.mjs":
       "08b17213a484e4c873283e2af674df579593c7ff20c95a06d71ae88c0b83f937",
     "plugins/src/base/scripts/design-bindings-probe.mjs":
@@ -1317,7 +1319,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-remote-dispatch/scripts/dispatch.mjs":
       "2c51d388ecb681905f6b2280ffefc03434f91bfe4901e637869b716be81ccc93",
     "plugins/src/base/skills/lisa-repair-intake/SKILL.md":
-      "e593b35c4468df750034ce18dd7bd84e4b01c949eac9efae4d18775a29c68fc4",
+      "abe1355833e4ec77d641f8800f29db3d51ebc18f50d8b0275362bf41551dd673",
     "plugins/src/base/skills/lisa-reproduce-bug/SKILL.md":
       "49dee0ea4d444a6df050d85fd57566497df288490f64b467d0505b1863fc1039",
     "plugins/src/base/skills/lisa-research/SKILL.md":
@@ -3657,6 +3659,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/scripts/automation-status-report.mjs": true,
     "plugins/lisa-agy/scripts/automation-status-run-history.mjs": true,
     "plugins/lisa-agy/scripts/automation-status-unrecorded-runs.mjs": true,
+    "plugins/lisa-agy/scripts/blocker-edge-resolution.mjs": true,
     "plugins/lisa-agy/scripts/cross-pollinate.mjs": true,
     "plugins/lisa-agy/scripts/design-bindings-probe.mjs": true,
     "plugins/lisa-agy/scripts/design-intake-gate.mjs": true,
@@ -4140,6 +4143,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/scripts/automation-status-report.mjs": true,
     "plugins/lisa-copilot/scripts/automation-status-run-history.mjs": true,
     "plugins/lisa-copilot/scripts/automation-status-unrecorded-runs.mjs": true,
+    "plugins/lisa-copilot/scripts/blocker-edge-resolution.mjs": true,
     "plugins/lisa-copilot/scripts/cross-pollinate.mjs": true,
     "plugins/lisa-copilot/scripts/design-bindings-probe.mjs": true,
     "plugins/lisa-copilot/scripts/design-intake-gate.mjs": true,
@@ -4609,6 +4613,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/scripts/automation-status-report.mjs": true,
     "plugins/lisa-cursor/scripts/automation-status-run-history.mjs": true,
     "plugins/lisa-cursor/scripts/automation-status-unrecorded-runs.mjs": true,
+    "plugins/lisa-cursor/scripts/blocker-edge-resolution.mjs": true,
     "plugins/lisa-cursor/scripts/cross-pollinate.mjs": true,
     "plugins/lisa-cursor/scripts/design-bindings-probe.mjs": true,
     "plugins/lisa-cursor/scripts/design-intake-gate.mjs": true,
@@ -7197,6 +7202,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/scripts/automation-status-report.mjs": true,
     "plugins/lisa/scripts/automation-status-run-history.mjs": true,
     "plugins/lisa/scripts/automation-status-unrecorded-runs.mjs": true,
+    "plugins/lisa/scripts/blocker-edge-resolution.mjs": true,
     "plugins/lisa/scripts/cross-pollinate.mjs": true,
     "plugins/lisa/scripts/design-bindings-probe.mjs": true,
     "plugins/lisa/scripts/design-intake-gate.mjs": true,
@@ -7852,6 +7858,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/scripts/automation-status-report.mjs": true,
     "plugins/src/base/scripts/automation-status-run-history.mjs": true,
     "plugins/src/base/scripts/automation-status-unrecorded-runs.mjs": true,
+    "plugins/src/base/scripts/blocker-edge-resolution.mjs": true,
     "plugins/src/base/scripts/cross-pollinate.mjs": true,
     "plugins/src/base/scripts/design-bindings-probe.mjs": true,
     "plugins/src/base/scripts/design-intake-gate.mjs": true,
@@ -10512,6 +10519,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/bce-parity-and-consumption.test.ts": true,
     "tests/unit/strategies/bdd-e2e-coverage-rule.test.ts": true,
     "tests/unit/strategies/blocker-containment-rule.test.ts": true,
+    "tests/unit/strategies/blocker-edge-resolution.test.ts": true,
     "tests/unit/strategies/browser-verification-controller-contract.test.ts": true,
     "tests/unit/strategies/build-intake-duplicate-closeout.test.ts": true,
     "tests/unit/strategies/build-ready-control.test.ts": true,
