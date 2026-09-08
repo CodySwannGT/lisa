@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.53.3](https://github.com/CodySwannGT/lisa/compare/v4.53.2...v4.53.3) (2026-09-08)
+
+
+### Bug Fixes
+
+* **cdk:** name the release workflow for what its jobs actually do ([5e3d350](https://github.com/CodySwannGT/lisa/commit/5e3d350da2c2687fda8bb570681aac44a0a5aa14)), closes [CodySwannGT/lisa#3493](https://github.com/CodySwannGT/lisa/issues/3493)
+
 ### [4.53.2](https://github.com/CodySwannGT/lisa/compare/v4.53.1...v4.53.2) (2026-09-08)
 
 
