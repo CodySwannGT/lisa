@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.53.4](https://github.com/CodySwannGT/lisa/compare/v4.53.3...v4.53.4) (2026-09-08)
+
+
+### Bug Fixes
+
+* **cdk-ci:** say when pull-request validation is holding deploy rights ([9f45790](https://github.com/CodySwannGT/lisa/commit/9f457908856eb0e867a881a31d002290855b5237)), closes [CodySwannGT/lisa#3528](https://github.com/CodySwannGT/lisa/issues/3528)
+
 ### [4.53.3](https://github.com/CodySwannGT/lisa/compare/v4.53.2...v4.53.3) (2026-09-08)
 
 
