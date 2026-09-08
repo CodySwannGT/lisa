@@ -147,6 +147,18 @@ function planInstallable(tool, found, pinIsFloor = false) {
 const KNOWN_SURFACES = new Set(["local", "remote"]);
 
 /**
+ * Marks the one resolution failure that is a question about *this machine*.
+ *
+ * A `platforms` map that is not an object is a broken declaration, and nothing
+ * on PATH redeems it. A map that simply has no block for the running platform
+ * is a different statement: the manifest cannot say what Lisa should place
+ * here, which says nothing at all about what is already here. Callers that need
+ * to tell those apart get a code rather than a regex over the message, because
+ * a message is prose written for an operator and will be rewritten.
+ */
+export const NO_PIN_FOR_PLATFORM = "no-pin-for-platform";
+
+/**
  * The platform key a manifest entry is resolved against.
  *
  * `<platform>-<arch>` rather than either alone, because both halves change the
@@ -197,13 +209,15 @@ export function resolvePlatform(tool, platform = currentPlatform()) {
   const block = platforms[platform];
   if (!block) {
     const known = Object.keys(platforms).sort().join(", ");
-    throw new Error(
+    const err = new Error(
       `${tool.name}: no pin for ${platform}.\n` +
         `Declared platforms: ${known || "(none)"}.\n` +
         `Add a block for ${platform} with its own url and sha256, or drop the ` +
         `tool from this surface. Guessing an artifact would defeat the ` +
         `checksum.`
     );
+    err.code = NO_PIN_FOR_PLATFORM;
+    throw err;
   }
   // The platform block wins over the shared fields, and `platforms` itself is
   // dropped so a resolved entry is indistinguishable from a flat one — that is
@@ -265,11 +279,17 @@ export function appliesToSurface(tool, surface) {
  * `require` entries are deliberately not resolved: they carry a name and a
  * minimum version, nothing platform-specific, and inventing a per-platform shape
  * for them would be ceremony with no artifact behind it.
+ *
+ * Every entry is probed, including one with no pin for this platform. That
+ * entry's verdict is still `invalid`, because provisioning genuinely cannot
+ * proceed — but `found` and `unpinnedForPlatform` travel with it so a caller
+ * asking about availability rather than provisioning has the answer instead of
+ * having to infer one from the other.
  * @param {{require?: object[], install?: object[]}} tools Manifest.
  * @param {(name: string) => {version: string|null, present: boolean}} probe Version probe.
  * @param {string} [surface] Surface being provisioned.
  * @param {string} [platform] Platform key to resolve install entries against.
- * @returns {Array<{name: string, action: string, reason: string, tool?: object}>} Ordered decisions.
+ * @returns {Array<{name: string, action: string, reason: string, tool?: object, found?: {version: string|null, present: boolean}, unpinnedForPlatform?: boolean}>} Ordered decisions.
  */
 export function planToolchain(
   tools,
@@ -287,7 +307,27 @@ export function planToolchain(
     try {
       resolved = resolvePlatform(tool, platform);
     } catch (err) {
-      plan.push({ name: tool.name, action: "invalid", reason: err.message });
+      // Ask the probe anyway, and carry its answer alongside the verdict.
+      //
+      // The verdict itself is right and does not change: Lisa cannot place an
+      // artifact it has no pin for. But "can Lisa provision this here?" and
+      // "can the agent use this right now?" are different questions, and
+      // skipping the probe on this branch left the second one unanswerable —
+      // so `preflight-tools` answered it with the first, and reported a `bws`
+      // that was installed, on PATH, and resolving secrets in the same session
+      // as a blocker that work had to be routed around.
+      //
+      // Only the missing-pin case gets a probe result. A malformed `platforms`
+      // map is a broken declaration rather than a fact about this machine, and
+      // a binary happening to be on PATH does not redeem it.
+      plan.push({
+        name: tool.name,
+        action: "invalid",
+        reason: err.message,
+        ...(err.code === NO_PIN_FOR_PLATFORM
+          ? { unpinnedForPlatform: true, found: probe(tool.name) }
+          : {}),
+      });
       continue;
     }
     // The resolved entry travels with the decision so the installer never has to

@@ -66,10 +66,7 @@ const BLIND = "no-probe";
 const REASON = "advisory read; a superseded copy cannot reach a wrong verdict";
 
 /** An exemption a test can reuse wherever the reason is not the subject. */
-const EXEMPT: StalenessRecord = {
-  decision: NOT_NEEDED,
-  reason: REASON,
-};
+const EXEMPT: StalenessRecord = { decision: NOT_NEEDED, reason: REASON };
 
 /**
  * Order two names the way a reader would.
@@ -310,12 +307,20 @@ describe("classifyTwoChannelDelivery — the recorded staleness decision", () =>
     expect(report.malformed).toHaveLength(1);
   });
 
+  it("refuses a reason that is a label rather than a decision", () => {
+    // A floor, not a proof. "advisory" reads as an answer while carrying none
+    // of the argument a later reader needs to re-examine the exemption.
+    const report = judged({ [PROVER_KEY]: { ...EXEMPT, reason: "advisory" } });
+    expect(report.malformed).toHaveLength(1);
+    expect(report.malformed[0]).toContain("A label is not a decision");
+  });
+
   it("refuses a decision whose coupling no longer exists", () => {
     const report = judged({
       [PROVER_KEY]: EXEMPT,
       [`${WORKFLOW}::scripts/gone.mjs`]: {
         decision: NOT_NEEDED,
-        reason: "advisory",
+        reason: "advisory read; nothing downstream believes its result",
       },
     });
     expect(report.staleClassifications).toEqual([
@@ -329,7 +334,7 @@ describe("classifyTwoChannelDelivery — the recorded staleness decision", () =>
     // into a red would make the cheapest way out of the obligation an
     // exemption, which is the wrong incentive.
     const report = judged({
-      [PROVER_KEY]: { decision: "warranted", reason: "verdict-bearing gate" },
+      [PROVER_KEY]: { decision: "warranted", reason: REASON },
     });
     expect(report.decisionCounts.warranted).toBe(1);
     expect(report.contradictions).toEqual([]);

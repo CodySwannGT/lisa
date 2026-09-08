@@ -13,6 +13,14 @@ export const NIGHTLY_E2E_GUARD_CERTIFICATE_SCHEMA_VERSION = 1;
  * Generic Lisa ownership hashes are deliberately not consulted at runtime.
  */
 export const NIGHTLY_E2E_GUARD_BEHAVIOR_CERTIFICATES = Object.freeze({
+  "11608828a0ca51d4505e37742f8120102e68e081a92e054b631876b8d3a6d0bc":
+    Object.freeze({
+      contractVersion: "1.7.0",
+      packageVersions: Object.freeze(["4.26.0"]),
+      provenances: Object.freeze([
+        "git tag v4.26.0 package @codyswann/lisa@4.26.0 (typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs)",
+      ]),
+    }),
   "1c79ec49e5f4a3bba700bc1d97e9fc0f4f1799dec3acdf2bed5e3e5b866a0efd":
     Object.freeze({
       contractVersion: "1.1.0",
@@ -24,9 +32,9 @@ export const NIGHTLY_E2E_GUARD_BEHAVIOR_CERTIFICATES = Object.freeze({
   "5e2762fcaced068f9330bb9b3a3d6a39108947a2f0950cdc3fe27c2edd8c0595":
     Object.freeze({
       contractVersion: "1.9.0",
-      packageVersions: Object.freeze(["4.50.3"]),
+      packageVersions: Object.freeze(["4.53.4"]),
       provenances: Object.freeze([
-        "workspace package @codyswann/lisa@4.50.3 (typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs)",
+        "workspace package @codyswann/lisa@4.53.4 (typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs)",
       ]),
     }),
   "898ee0247806c7aa6e98328662d80bcff22ff067999298865462a58daef8bb22":

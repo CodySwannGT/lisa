@@ -13,12 +13,14 @@ import {
 import { checkEnforcementCoverage } from "./doctor-enforcement-coverage.js";
 import { checkLockfileReconciliation } from "./doctor-reconciliation.js";
 import { checkKaneProvider } from "./doctor-kane.js";
-import { checkCdkPresetAdoption } from "./doctor-cdk-preset-adoption.js";
-import { checkConfigShadowing } from "./doctor-config-shadowing.js";
 import { checkLearningsLedger } from "./doctor-learnings-ledger.js";
 import { checkMergeDrivers } from "./doctor-merge-drivers.js";
 import { checkReadinessReportTracking } from "./doctor-readiness-tracking.js";
 import { checkSonarProvider } from "./doctor-sonar.js";
+import {
+  checkCodeRabbitProvider,
+  probeCodeRabbitReadiness,
+} from "./doctor-coderabbit.js";
 import { checkLegacyCodexOverlay } from "./doctor-legacy-overlay.js";
 import { checkLisaOwnedArtifacts } from "./doctor-lisa-owned-artifacts.js";
 import { checkLegacyMonitorThresholds } from "./doctor-monitor-thresholds.js";
@@ -29,8 +31,7 @@ import { checkSerializeLegsContract } from "./doctor-serialize-legs-contract.js"
 import { checkApplyFailure } from "./doctor-apply-failure.js";
 import { checkApplyDeletions } from "./doctor-apply-deletions.js";
 import { checkProjectType } from "./doctor-project-type.js";
-import { checkRailsDeployIntent } from "./doctor-rails-deploy-intent.js";
-import { checkStaleManagedBanner } from "./doctor-stale-managed-banner.js";
+import { checkSeededArtifacts } from "./doctor-seeded-artifacts.js";
 import { checkOverrideFloorConflicts } from "./doctor-override-floor-conflicts.js";
 import { renderDoctorResult } from "./doctor-render.js";
 import type { GateReport } from "./gate-report-types.js";
@@ -102,6 +103,7 @@ export interface DoctorDependencies {
   write: (message: string) => void;
   probeKaneReadiness: typeof probeKaneReadiness;
   probeSonarReadiness: typeof probeSonarReadiness;
+  probeCodeRabbitReadiness: typeof probeCodeRabbitReadiness;
 }
 
 /**
@@ -124,6 +126,7 @@ const DEFAULT_DEPENDENCIES: DoctorDependencies = {
   write: message => console.log(message),
   probeKaneReadiness,
   probeSonarReadiness,
+  probeCodeRabbitReadiness,
 };
 
 /**
@@ -367,47 +370,18 @@ export async function runDoctor(
     // one compares every declaration against the ruleset template that
     // enforces it, which is the layer the traceability check only reports.
     await checkDeclaredContexts(resolvedTarget),
+    await checkCodeRabbitProvider(resolvedTarget, deps),
     await checkKaneProvider(resolvedTarget, deps),
     await checkSonarProvider(resolvedTarget, deps),
     await checkLegacyMonitorThresholds(resolvedTarget),
     await checkLisaOwnedArtifacts(resolvedTarget),
-    // Immediately after, because it asks the other half of "what did Lisa
-    // write here". That check compares a Lisa-owned file against the shipped
-    // copy; this one asks whether a file Lisa seeded is OUTRANKING one the
-    // project wrote itself. The write-path guard cannot answer that: it is
-    // reached once, before the file exists, so a repository that received the
-    // template earlier has no signal of any kind — the file is untracked, the
-    // postinstall that wrote it is skipped under CI, and the tool it disables
-    // reports only that it found nothing (CodySwannGT/lisa#3858).
-    await checkConfigShadowing(resolvedTarget),
-    // Third in the same run of "what did Lisa seed here, and does it still
-    // say what it meant". The two above compare a Lisa-owned file against the
-    // shipped copy and ask whether a seeded file outranks the project's own;
-    // this one asks whether a file Lisa is FORBIDDEN to refresh still reads as
-    // deliberate. The seed fix reaches new adoptions only, the apply path will
-    // not rewrite a host-owned workflow, and nothing else looks at the file
-    // again — so an already-seeded project has no way but this to find itself
-    // (CodySwannGT/lisa#3779).
-    await checkRailsDeployIntent(resolvedTarget),
-    // Fourth in the same run, and the one the other three cannot see. Those
-    // ask whether a Lisa-owned file is current, whether a seeded file outranks
-    // the project's own, and whether a file Lisa will not refresh still reads
-    // as deliberate; this asks whether a whole stack preset was delivered to a
-    // repository that never qualified for it. The detection fix reaches the
-    // next decision only, and the repository it already wrote to gets no
-    // signal of any kind — the dead-code gate it skewed reports SUCCESS
-    // (CodySwannGT/lisa#3711).
-    await checkCdkPresetAdoption(resolvedTarget),
-    // Fifth, and the inverse of the first. That check walks the templates Lisa
-    // SHIPS and asks whether this project's copies are current; a template
-    // removed upstream leaves that loop entirely, so the copy left behind is
-    // never visited again and keeps telling every reader — human and agent —
-    // that Lisa replaces it and a local fix is pointless. This walks the other
-    // direction: the files on disk that CLAIM Lisa manages them, asking which
-    // of those claims the installed package still backs. A proposal to remove
-    // one such orphaned workflow was declined on the strength of the false
-    // banner (CodySwannGT/lisa#3703).
-    await checkStaleManagedBanner(resolvedTarget),
+    // The four seeded-artifact checks, in one call because they are one
+    // operator question asked four ways: what did Lisa write into this
+    // repository, and does it still say what it meant. Each is unreachable
+    // from the write path that could have prevented it — that path runs once,
+    // before the file exists — so an already-seeded project has no other way
+    // to find itself. See `doctor-seeded-artifacts` for which is which.
+    ...(await checkSeededArtifacts(resolvedTarget)),
     await checkReusableWorkflowRefs(resolvedTarget),
     // Immediately after the ref check, because both read the same caller
     // workflows and an operator editing one wants both findings together. This

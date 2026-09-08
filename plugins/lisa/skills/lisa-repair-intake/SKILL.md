@@ -604,10 +604,29 @@ condition observed, filed under the wrong heading, and overridden.
    **deployed / runtime verification failure**, by an **ambiguity**, or by more than one at once.
    Re-check **every** class present — do not stop at "no `is blocked by` links, therefore nothing
    to do." A self-block has zero dependencies by definition, yet is fully re-checkable.
-2. **Dependency cleared** — if every parsed `is blocked by` dependency is **cleared** → move
-   `blocked → claimed`, then run the same agent-dispatch + post-agent `claimed → done` sequence as
-   the stalled-`claimed` path above (one-cycle recovery). If the agent re-blocks, move back to
-   `blocked` — a valid outcome.
+2. **Dependency cleared** — decide each parsed `is blocked by` edge with
+   `scripts/blocker-edge-resolution.mjs`, feeding it the `blocker-containment` verdict plus the
+   blocker's state and closure reason. It returns `dissolve` / `keep` / `escalate` per edge.
+   **Dissolve the edge in the SAME write that records the ruling, then read the relation back and
+   confirm it is gone.** Only when every edge dissolves → move `blocked → claimed`, then run the
+   same agent-dispatch + post-agent `claimed → done` sequence as the stalled-`claimed` path above
+   (one-cycle recovery). If the agent re-blocks, move back to `blocked` — a valid outcome.
+
+   **Moving the state without removing the edge is not a clearance, it is a claim about one.** That
+   was the defect (CodySwannGT/lisa#3472): the pass moved the state and left the relation, recording
+   the ruling as a comment, and the next reader parses relations rather than prose — so the block
+   re-formed every cycle and a human had to break the loop. Reading the relation back is what makes
+   "I removed the link" distinguishable from "I meant to".
+
+   **An `escalate` verdict holds the item and reports it — never dissolve on it.** The sharp case is
+   a blocker closed `NOT PLANNED`: the work depended on will never be delivered, so dissolving reads
+   as "unblocked" when nothing was built, and holding silently hides a decision only a human can
+   make. Treating closure as satisfaction is the same reason-blind wrong write as
+   CodySwannGT/lisa#3479. A single escalation among otherwise-dissolving edges holds the item.
+
+   **On Linear, dissolve with a relation DELETE.** Do not "update" an edge:
+   `issueRelationCreate` CONVERTS an existing relation rather than adding one
+   (CodySwannGT/lisa#3605), so a writer reaching for it can destroy a different edge.
 3. **Validation / quality-gate self-block re-check** — if the block reason is a pre-flight
    `verify`/`validate` gate failure (its `[lisa-*]` block note carries a gate marker + a "Missing
    requirements" list and there is **no** open `is blocked by` dependency), re-run the **same gate**

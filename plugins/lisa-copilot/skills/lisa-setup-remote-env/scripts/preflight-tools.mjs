@@ -15,9 +15,25 @@
  * check that forgot `minVersion`, so a container verified clean against a node
  * older than the manifest demanded. One function, one verdict, no drift.
  *
- * **Two verdicts, not three.** `preflight-secrets` needs `unreachable` because
- * a vault can fail to be asked. Probing a local binary cannot: it is present or
- * it is not. The analogous trap — a tool whose version cannot be parsed — is
+ * **Three verdicts, and the third one was learned the hard way.** The original
+ * header here claimed two sufficed: `preflight-secrets` needs `unreachable`
+ * because a vault can fail to be asked, and "probing a local binary cannot: it
+ * is present or it is not." That sentence was true of probing and false of this
+ * module, because one branch of `planToolchain` never probed at all — an
+ * install entry with no pin for the running platform short-circuited to
+ * `invalid` before the binary was looked for. So a `bws` that was installed, on
+ * PATH, and resolving secrets in the very same session was reported under
+ * "These need you", next to an instruction to route the work to blocked. Four
+ * operator sessions believed it.
+ *
+ * The third tier is `unverified`: present and usable, but with no pin for this
+ * platform, so Lisa can neither reinstall it nor say where it came from. That
+ * is a real thing to know — an unpinned binary is a supply-chain claim nobody
+ * checked — and it is emphatically not a reason to stop. Availability and
+ * provenance are two questions, and answering the first with the second is the
+ * defect this tier exists to prevent recurring.
+ *
+ * The analogous trap — a tool whose version cannot be parsed — is
  * already handled correctly upstream, because `planRequired` compares
  * `found.version ?? "0"` and an unknown version loses every `minVersion`
  * comparison. It fails closed without needing a verdict of its own.
@@ -34,11 +50,43 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { probe, readRemoteEnvConfig } from "./setup-remote-env.mjs";
-import { currentPlatform, planToolchain } from "./toolchain.mjs";
+import {
+  compareVersions,
+  currentPlatform,
+  planToolchain,
+} from "./toolchain.mjs";
 import { toolFloor } from "./tool-floor.mjs";
 
-/** Plan actions that mean the agent cannot use the tool right now. */
+/**
+ * Plan actions that mean the agent cannot use the tool right now.
+ *
+ * `invalid` is here because most of its causes really are stops — an unpinned
+ * version, a malformed `platforms` map, an unknown install method. The one
+ * cause that is not, an entry with no pin for this platform whose binary is
+ * nonetheless on PATH, is lifted out below before this set is applied.
+ */
 const BLOCKING = new Set(["missing", "invalid"]);
+
+/**
+ * Whether an unpinnable entry is nonetheless usable on this machine.
+ *
+ * Presence-only, and deliberately not a skip. Dropping the entry entirely would
+ * report clean for a tool that is neither pinned nor installed, which is the
+ * vacuous green this module refuses everywhere else. So the probe still decides
+ * — it just gets asked, which on this branch it previously never was.
+ *
+ * A declared `minVersion` still bites. The pin is unusable here (it names an
+ * artifact for another platform), but a minimum is a statement about the tool
+ * rather than about the download, and a binary below it cannot do the work.
+ * @param {object} step One `planToolchain` decision.
+ * @param {Record<string, string>} minVersions Declared minimums by tool name.
+ * @returns {boolean} Whether the tool is present and good enough to use.
+ */
+function usableWithoutPin(step, minVersions) {
+  if (!step.unpinnedForPlatform || !step.found?.present) return false;
+  const floor = minVersions[step.name];
+  return !floor || compareVersions(step.found.version ?? "0", floor) >= 0;
+}
 
 /**
  * Read the whole config, for the derivations that live outside `remoteEnv`.
@@ -109,7 +157,7 @@ export function mergeFloor(tools, floor) {
  * @param {object} [remoteEnv] Parsed `remoteEnv` block.
  * @param {Function} [versionProbe] Version probe, injected for tests.
  * @param {string} [platform] Platform key, injected for tests.
- * @returns {{verdict: string, blocked: Array<{name: string, action: string, reason: string}>, installable: Array<{name: string, action: string, reason: string}>, reasons: Record<string, string>}}
+ * @returns {{verdict: string, blocked: Array<{name: string, action: string, reason: string}>, installable: Array<{name: string, action: string, reason: string}>, unverified: Array<{name: string, action: string, reason: string}>, reasons: Record<string, string>}}
  */
 export function preflightTools(
   config = readConfigRoot(),
@@ -122,19 +170,59 @@ export function preflightTools(
     toolFloor(config)
   );
   if (!(tools.require ?? []).length && !(tools.install ?? []).length) {
-    return { verdict: "ok", blocked: [], installable: [], reasons };
+    return {
+      verdict: "ok",
+      blocked: [],
+      installable: [],
+      unverified: [],
+      reasons,
+    };
   }
 
   // "local" because this runs where the agent is, and it is the surface word
   // `appliesToSurface` already understands — a tool narrowed to ["remote"] is
   // correctly ignored on a laptop rather than reported as missing there.
   const plan = planToolchain(tools, versionProbe, "local", platform);
-  const blocked = plan.filter(step => BLOCKING.has(step.action));
+  const minVersions = Object.fromEntries(
+    (tools.install ?? [])
+      .filter(tool => tool.minVersion)
+      .map(tool => [tool.name, tool.minVersion])
+  );
+  const usable = new Set(
+    plan
+      .filter(step => usableWithoutPin(step, minVersions))
+      .map(step => step.name)
+  );
+  // Restated in this module's own vocabulary rather than passed through.
+  // `resolvePlatform`'s message is written for someone repairing a manifest —
+  // "add a block for darwin-arm64 with its own url and sha256" — and reads as a
+  // demand. What the reader here needs is the availability answer first and the
+  // provenance caveat second, because only one of the two affects whether they
+  // can start work.
+  const unverified = plan
+    .filter(step => usable.has(step.name))
+    .map(step => ({
+      ...step,
+      action: "unverified",
+      reason:
+        `${step.name} ${step.found.version ?? "(version unknown)"} is on ` +
+        `PATH and usable, but the manifest pins no artifact for ${platform}, ` +
+        `so Lisa cannot reinstall it or say where it came from`,
+    }));
+  const blocked = plan.filter(
+    step => BLOCKING.has(step.action) && !usable.has(step.name)
+  );
   const installable = plan.filter(step => step.action === "install");
+  if (blocked.length || installable.length)
+    return { verdict: "missing", blocked, installable, unverified, reasons };
+  // A note is not a failure and must not exit non-zero, but it does have to be
+  // said — an "ok" verdict renders nothing at all, which would drop the only
+  // signal this tier exists to carry.
   return {
-    verdict: blocked.length || installable.length ? "missing" : "ok",
+    verdict: unverified.length ? "notice" : "ok",
     blocked,
     installable,
+    unverified,
     reasons,
   };
 }
@@ -150,11 +238,14 @@ export function reportTools(result) {
   // The header tracks the exit code. Only a blocked tool is a failure — one
   // Lisa can install is an action with a command attached, and calling that
   // "FAILED" while exiting zero teaches readers that the word means nothing.
-  const lines = [
-    result.blocked.length
-      ? "Tooling preflight FAILED."
-      : "Tooling preflight — action available.",
-  ];
+  const header = () => {
+    if (result.blocked.length) return "Tooling preflight FAILED.";
+    if (result.installable.length)
+      return "Tooling preflight — action available.";
+    // Nothing to do and nothing to fix; the note below is the whole message.
+    return "Tooling preflight passed, with a note.";
+  };
+  const lines = [header()];
   if (result.installable.length) {
     lines.push(
       ``,
@@ -181,6 +272,21 @@ export function reportTools(result) {
       ``,
       `Work needing one of these cannot be completed. Route the item to`,
       `blocked with this reason rather than claiming it and stopping partway.`
+    );
+  }
+  if (result.unverified.length) {
+    lines.push(
+      ``,
+      `Installed, but Lisa did not put them there and cannot vouch for them:`,
+      ``
+    );
+    for (const step of result.unverified) {
+      lines.push(`  ${step.name} — ${step.reason}`);
+    }
+    lines.push(
+      ``,
+      `Nothing here blocks your work — these tools are usable right now. Add a`,
+      `pin for this platform when you want Lisa able to verify or replace them.`
     );
   }
   return lines.join("\n");

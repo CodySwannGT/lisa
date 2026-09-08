@@ -1,7 +1,18 @@
 # Seeded by Lisa on first setup — this file is YOURS.
 # Lisa will not overwrite it. (copy-overwrite assets ARE replaced each run.)
+#
+# This workflow RELEASES. It does not deploy, and it is not missing a deploy
+# job — a CDK app deploys through the self-mutating AWS CodePipeline defined in
+# its own `lib/pipeline-stack.ts`, triggered from `main` inside AWS. Adding a
+# deploy job here would give the same stacks two racing deployers, one of which
+# rewrites the other underneath it.
+#
+# The name says only what the jobs prove, because at the call site the name is
+# the only thing visible. A green check here means RELEASED. Whether the change
+# reached an environment is a separate fact, and it is answered by CodePipeline
+# — which may still be holding at a manual approval gate — not by this run.
 
-name: 🚀 Release and Deploy
+name: 📦 Release
 
 on:
   push:
@@ -154,4 +165,3 @@ jobs:
       package_manager: 'npm'
     # No `secrets:` key: gates.yml declares none in its `workflow_call`, so
     # passing any grants everything to a callee that reads nothing (#3065).
-# Trigger staging deployment after CDK trust fix

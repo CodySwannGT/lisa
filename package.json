@@ -45,6 +45,7 @@
     "prepublishOnly": "$npm_execpath run build",
     "check:plugins": "bash scripts/check-plugins-sync.sh",
     "check:learnings-budget": "bun scripts/check-learnings-budget.ts",
+    "check:workflow-load-failures": "bun scripts/check-workflow-load-failures.ts",
     "check:ui-demo-data": "node scripts/check-ui-demo-data.mjs",
     "check:behavior-contract": "BDD_COVERAGE_ROOT=. node expo/copy-overwrite/scripts/check-bdd-coverage.mjs",
     "bdd:coverage": "bun run check:behavior-contract",
@@ -185,7 +186,7 @@
     "zod-validation-error": "^4.0.0"
   },
   "name": "@codyswann/lisa",
-  "version": "4.50.3",
+  "version": "4.53.4",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {

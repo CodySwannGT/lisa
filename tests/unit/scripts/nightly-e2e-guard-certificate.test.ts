@@ -102,7 +102,7 @@ export function decide() {
     );
     // The current handler has a new digest after the not-measured state fix;
     // the three retained historical handlers remain certified independently.
-    expect(generated.certificates).toHaveLength(4);
+    expect(generated.certificates).toHaveLength(5);
     expect(generated.certificates).toContainEqual(
       expect.objectContaining({
         digest: RETAINED_GUARD_DIGEST,
@@ -153,6 +153,26 @@ export function decide() {
         packageVersions: expect.arrayContaining(["4.26.1"]),
         provenances: expect.arrayContaining([
           expect.stringContaining("v4.26.1"),
+        ]),
+      })
+    );
+    // The 1.7.0 guard as the 50 releases from `4.22.13` through `4.26.0`
+    // published it — a DIFFERENT blob from the `v4.17.16` entry above, under
+    // the same contract version, which is why retention is a ref list rather
+    // than a contract list. Commit 48c936bb9 moved the workspace guard and
+    // regeneration replaced this row instead of adding beside it, so every one
+    // of those 50 lost its certificate and `lisa doctor` began refusing to
+    // execute bytes it had trusted the day before.
+    //
+    // Literal `4.26.0` for the reason spelled out above: this entry is frozen
+    // at what an immutable tag shipped, and asserting the workspace version
+    // would pass today only by coincidence.
+    expect(generated.certificates).toContainEqual(
+      expect.objectContaining({
+        contractVersion: "1.7.0",
+        packageVersions: expect.arrayContaining(["4.26.0"]),
+        provenances: expect.arrayContaining([
+          expect.stringContaining("v4.26.0"),
         ]),
       })
     );

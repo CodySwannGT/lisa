@@ -152,12 +152,118 @@ export function normalizeVisitedPath(raw) {
 }
 
 /**
+ * Remove JavaScript comments, leaving string literals intact.
+ *
+ * Naively deleting from `//` to end of line would eat the rest of
+ * `page.goto("https://host/route")` and LOSE a real navigation, so this tracks
+ * string state and only treats a delimiter as a comment outside one.
+ *
+ * Two shapes are deliberately not modelled: a `//` inside `${...}` within a
+ * template literal, and one inside a regex literal. Both are left as string
+ * content, so the failure is UNDER-stripping — a comment that survives can only
+ * credit what the old code already credited. Over-stripping is the direction
+ * that would silently delete real navigations, and nothing here can reach it.
+ * @param {string} source - JavaScript or TypeScript source
+ * @returns {string} The same source with comment bodies removed
+ */
+export function stripJsComments(source) {
+  let out = "";
+  let index = 0;
+  let quote = null;
+  while (index < source.length) {
+    const character = source[index];
+    const next = source[index + 1];
+    if (quote !== null) {
+      if (character === "\\") {
+        out += character + (next ?? "");
+        index += 2;
+        continue;
+      }
+      if (character === quote) quote = null;
+      out += character;
+      index += 1;
+      continue;
+    }
+    if (character === '"' || character === "'" || character === "`") {
+      quote = character;
+      out += character;
+      index += 1;
+      continue;
+    }
+    if (character === "/" && next === "/") {
+      while (index < source.length && source[index] !== "\n") index += 1;
+      continue;
+    }
+    if (character === "/" && next === "*") {
+      index += 2;
+      while (
+        index < source.length &&
+        !(source[index] === "*" && source[index + 1] === "/")
+      ) {
+        // Newlines survive so any line-based reporting keeps its numbering.
+        if (source[index] === "\n") out += "\n";
+        index += 1;
+      }
+      index += 2;
+      continue;
+    }
+    out += character;
+    index += 1;
+  }
+  return out;
+}
+
+/**
+ * Remove YAML comments, leaving quoted scalars intact.
+ *
+ * `#` opens a comment only at line start or after whitespace, which is YAML's
+ * own rule and the reason `openLink: myapp://x#fragment` keeps its fragment.
+ * @param {string} source - YAML source
+ * @returns {string} The same source with comment bodies removed
+ */
+export function stripYamlComments(source) {
+  return source
+    .split("\n")
+    .map(line => {
+      let quote = null;
+      for (let index = 0; index < line.length; index += 1) {
+        const character = line[index];
+        if (quote !== null) {
+          if (character === "\\" && quote === '"') {
+            index += 1;
+            continue;
+          }
+          if (character === quote) quote = null;
+          continue;
+        }
+        if (character === '"' || character === "'") {
+          quote = character;
+          continue;
+        }
+        if (character === "#" && (index === 0 || /\s/u.test(line[index - 1])))
+          return line.slice(0, index);
+      }
+      return line;
+    })
+    .join("\n");
+}
+
+/**
  * Extract every route-comparable path a Playwright spec visits.
+ *
+ * Navigations are read from CODE and annotations from the RAW source, and the
+ * asymmetry is the whole point: a comment may DECLARE coverage, but it may not
+ * SIMULATE a navigation. `e2e-route:` lives in a comment on purpose — it is an
+ * author stating what a flow reaches by tapping — while a comment that merely
+ * mentions `.goto("/watchlist")` as an example was being read as a visit, so
+ * prose credited routes no test ever opened.
  * @param {string} source - Spec file contents
  * @returns {string[]} Normalized visited paths
  */
 export function extractPlaywrightPaths(source) {
-  const fromGoto = [...source.matchAll(GOTO_PATTERN)].map(match => match[2]);
+  const fromGoto = [...stripJsComments(source).matchAll(GOTO_PATTERN)].map(
+    match => match[2]
+  );
   const fromAnnotations = [...source.matchAll(ROUTE_ANNOTATION_PATTERN)].map(
     match => match[1]
   );
@@ -168,13 +274,20 @@ export function extractPlaywrightPaths(source) {
 
 /**
  * Extract every route-comparable path a Maestro flow opens.
+ *
+ * Same asymmetry as the Playwright extractor, and this is where the defect was
+ * measured: a flow whose comment explained *"the coverage gate only sees
+ * `openLink:`, so they are declared here"* had that very sentence read as a
+ * navigation. The regex ate ``` `openLink:`, ``` and produced the path `` /`, ``,
+ * which happened to match no route — the same mechanism one character away
+ * from a false credit.
  * @param {string} source - Flow YAML contents
  * @returns {string[]} Normalized visited paths
  */
 export function extractMaestroPaths(source) {
-  const fromOpenLink = [...source.matchAll(OPEN_LINK_PATTERN)].map(
-    match => match[1]
-  );
+  const fromOpenLink = [
+    ...stripYamlComments(source).matchAll(OPEN_LINK_PATTERN),
+  ].map(match => match[1]);
   const fromAnnotations = [...source.matchAll(ROUTE_ANNOTATION_PATTERN)].map(
     match => match[1]
   );

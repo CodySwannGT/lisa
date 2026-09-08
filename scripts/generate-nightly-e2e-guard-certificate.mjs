@@ -51,6 +51,16 @@ export const RETAINED_RELEASES = Object.freeze([
   // refusing to execute bytes it trusted yesterday. Rereading the tag is the
   // only sanctioned way to keep it: the digest is derived, never copied.
   "v4.26.1",
+  // The 1.7.0 guard, as the 50 releases from `4.22.13` through `4.26.0`
+  // published it. Commit 48c936bb9 moved the workspace guard and regeneration
+  // replaced the outgoing row instead of adding beside it, so the digest those
+  // 50 shipped was revoked and nothing noticed. Re-measured: 50 tags carrying
+  // it, bounded on both sides — v4.22.12 differs, v4.26.1 differs.
+  //
+  // `v4.17.16` above also certifies a 1.7.0 guard; the two are DIFFERENT bytes
+  // under the same contract version, which is why retention is a ref list and
+  // not a contract list.
+  "v4.26.0",
 ]);
 
 const digest = bytes => createHash("sha256").update(bytes).digest("hex");

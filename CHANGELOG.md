@@ -2,6 +2,97 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.53.4](https://github.com/CodySwannGT/lisa/compare/v4.53.3...v4.53.4) (2026-09-08)
+
+
+### Bug Fixes
+
+* **cdk-ci:** say when pull-request validation is holding deploy rights ([9f45790](https://github.com/CodySwannGT/lisa/commit/9f457908856eb0e867a881a31d002290855b5237)), closes [CodySwannGT/lisa#3528](https://github.com/CodySwannGT/lisa/issues/3528)
+
+### [4.53.3](https://github.com/CodySwannGT/lisa/compare/v4.53.2...v4.53.3) (2026-09-08)
+
+
+### Bug Fixes
+
+* **cdk:** name the release workflow for what its jobs actually do ([5e3d350](https://github.com/CodySwannGT/lisa/commit/5e3d350da2c2687fda8bb570681aac44a0a5aa14)), closes [CodySwannGT/lisa#3493](https://github.com/CodySwannGT/lisa/issues/3493)
+
+### [4.53.2](https://github.com/CodySwannGT/lisa/compare/v4.53.1...v4.53.2) (2026-09-08)
+
+
+### Bug Fixes
+
+* **withdrawn-rulings:** oblige a re-audit when a premise is retracted ([1f5c2f5](https://github.com/CodySwannGT/lisa/commit/1f5c2f5cc0d3aca698aecff885991e118bc0239c)), closes [CodySwannGT/lisa#3489](https://github.com/CodySwannGT/lisa/issues/3489)
+
+### [4.53.1](https://github.com/CodySwannGT/lisa/compare/v4.53.0...v4.53.1) (2026-09-08)
+
+## [4.53.0](https://github.com/CodySwannGT/lisa/compare/v4.52.1...v4.53.0) (2026-09-08)
+
+
+### Features
+
+* **blockers:** give a satisfied dependency edge an owner that dissolves it ([f54a6d4](https://github.com/CodySwannGT/lisa/commit/f54a6d45329a927aef0a7a3e416dd8059cd7cbf3)), closes [#3479](https://github.com/CodySwannGT/lisa/issues/3479) [#3605](https://github.com/CodySwannGT/lisa/issues/3605) [CodySwannGT/lisa#3472](https://github.com/CodySwannGT/lisa/issues/3472)
+* **remote-aws:** prove what an observer-only role may read ([b77d7ca](https://github.com/CodySwannGT/lisa/commit/b77d7caf66dcb5b83934ea4d158a30a4e7329630)), closes [CodySwannGT/lisa#3475](https://github.com/CodySwannGT/lisa/issues/3475)
+
+### [4.52.1](https://github.com/CodySwannGT/lisa/compare/v4.52.0...v4.52.1) (2026-09-08)
+
+
+### Bug Fixes
+
+* **doctor:** support headless CodeRabbit authentication ([382d7f6](https://github.com/CodySwannGT/lisa/commit/382d7f6a532e9c3109d24cd5f901e4c9d9cbfabb)), closes [CodySwannGT/lisa#4058](https://github.com/CodySwannGT/lisa/issues/4058)
+
+## [4.52.0](https://github.com/CodySwannGT/lisa/compare/v4.51.0...v4.52.0) (2026-09-08)
+
+
+### Features
+
+* **ci:** make every two-channel coupling declare if it can see staleness ([7f77828](https://github.com/CodySwannGT/lisa/commit/7f7782824f39000d92803e733a5844b3378243c6)), closes [#3477](https://github.com/CodySwannGT/lisa/issues/3477) [CodySwannGT/lisa#3687](https://github.com/CodySwannGT/lisa/issues/3687)
+
+
+### Bug Fixes
+
+* **e2e-coverage:** a comment may declare coverage, not simulate a visit ([74012fa](https://github.com/CodySwannGT/lisa/commit/74012fafc728cf5bea26f089fcb64687ace815a6)), closes [#3442](https://github.com/CodySwannGT/lisa/issues/3442) [#3443](https://github.com/CodySwannGT/lisa/issues/3443) [CodySwannGT/lisa#3444](https://github.com/CodySwannGT/lisa/issues/3444)
+
+## [4.51.0](https://github.com/CodySwannGT/lisa/compare/v4.50.9...v4.51.0) (2026-09-08)
+
+
+### Features
+
+* **ci:** run the reusable-workflow load detector on a schedule ([d8663f2](https://github.com/CodySwannGT/lisa/commit/d8663f25830e942914d7d1ad14ee6ae503322779)), closes [CodySwannGT/lisa#3581](https://github.com/CodySwannGT/lisa/issues/3581)
+* **core:** tell a reusable workflow that failed to load from one that failed to run ([0dccaa6](https://github.com/CodySwannGT/lisa/commit/0dccaa61e9bbeb48767420371b23605ee88d7960)), closes [CodySwannGT/lisa#3581](https://github.com/CodySwannGT/lisa/issues/3581)
+
+### [4.50.9](https://github.com/CodySwannGT/lisa/compare/v4.50.8...v4.50.9) (2026-09-08)
+
+### [4.50.8](https://github.com/CodySwannGT/lisa/compare/v4.50.7...v4.50.8) (2026-09-08)
+
+
+### Bug Fixes
+
+* **release:** read the published version from an uncached endpoint ([2f3e326](https://github.com/CodySwannGT/lisa/commit/2f3e3266469f83af8cd6265762c7b1d500373124)), closes [#3684](https://github.com/CodySwannGT/lisa/issues/3684) [#3741](https://github.com/CodySwannGT/lisa/issues/3741) [CodySwannGT/lisa#3685](https://github.com/CodySwannGT/lisa/issues/3685)
+
+### [4.50.7](https://github.com/CodySwannGT/lisa/compare/v4.50.6...v4.50.7) (2026-09-08)
+
+### [4.50.6](https://github.com/CodySwannGT/lisa/compare/v4.50.5...v4.50.6) (2026-09-08)
+
+
+### Bug Fixes
+
+* **nightly-e2e:** re-certify the guard 50 published releases shipped ([64e2fd4](https://github.com/CodySwannGT/lisa/commit/64e2fd4bf267ec065de278c74acedcde776067ed)), closes [CodySwannGT/lisa#3500](https://github.com/CodySwannGT/lisa/issues/3500)
+* **preflight:** probe a tool the manifest cannot pin for this platform ([1fadcf4](https://github.com/CodySwannGT/lisa/commit/1fadcf48253573c98225988f03d0a60ea87de60d)), closes [CodySwannGT/lisa#3473](https://github.com/CodySwannGT/lisa/issues/3473)
+
+### [4.50.5](https://github.com/CodySwannGT/lisa/compare/v4.50.4...v4.50.5) (2026-09-08)
+
+
+### Bug Fixes
+
+* **doctor:** require configured CodeRabbit CLI ([fcfd27b](https://github.com/CodySwannGT/lisa/commit/fcfd27b1493630ac011940e944899d2dbc2d3fb0)), closes [CodySwannGT/lisa#4050](https://github.com/CodySwannGT/lisa/issues/4050) [CodySwannGT/lisa#4050](https://github.com/CodySwannGT/lisa/issues/4050)
+
+### [4.50.4](https://github.com/CodySwannGT/lisa/compare/v4.50.3...v4.50.4) (2026-09-07)
+
+
+### Bug Fixes
+
+* **gates:** let the removal gate run when its pinned baseline came detached ([c966bfa](https://github.com/CodySwannGT/lisa/commit/c966bfa06e8960af48d147c632fa418f892e51c2)), closes [CodySwannGT/lisa#3719](https://github.com/CodySwannGT/lisa/issues/3719) [CodySwannGT/lisa#3488](https://github.com/CodySwannGT/lisa/issues/3488) [CodySwannGT/lisa#3893](https://github.com/CodySwannGT/lisa/issues/3893) [#3719](https://github.com/CodySwannGT/lisa/issues/3719) [CodySwannGT/lisa#4047](https://github.com/CodySwannGT/lisa/issues/4047)
+
 ### [4.50.3](https://github.com/CodySwannGT/lisa/compare/v4.50.2...v4.50.3) (2026-09-06)
 
 

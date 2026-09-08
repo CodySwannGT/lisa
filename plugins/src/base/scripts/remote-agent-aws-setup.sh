@@ -27,6 +27,11 @@
 #   LISA_AWS_VERIFY_ALL_PROFILES
 #                           1 to prove every stage's account, not just the
 #                           default's.
+#   LISA_AWS_VERIFY_OBSERVER_READS
+#                           1 to prove the ALLOW side of every observer-only
+#                           profile: one representative read per observability
+#                           surface must succeed. A role that can read nothing
+#                           fails here instead of at verification time.
 #   LISA_AWS_CLAIM_DEFAULT_PROFILE
 #                           1 to take over a `[default]` this project does not
 #                           already own. Off by default: silently repointing
@@ -337,6 +342,120 @@ assert_profile_account() {
     "profile ${profile} (stage ${stage}) resolved to AWS account ${actual}, but this project expects ${expected}. The credentials authenticate; they are not this project's account. Refusing to report ready."
 }
 
+# What an observer-only role must be able to READ.
+#
+# "Observer-only" was defined entirely by what it must not do, and the proof
+# prescribed for it tested only the deny side. A role that can read NOTHING
+# passes a deny-side check perfectly, so the read surface of a headless verifier
+# was being discovered one `AccessDenied` at a time, mid-verification, and
+# granted one ticket at a time. Three consecutive incidents in one consumer had
+# that exact shape: instance discovery, alarm reads, and pipeline definition
+# reads — none of those services appeared in the shipped starter policy at all,
+# because that policy enumerated the services the stack happened to deploy
+# rather than answering "what must a verifier be able to read?".
+#
+# So the surfaces below are derived from the ROLE'S PURPOSE, not from any one
+# stack's topology. Each row is a surface, the read that represents it, and the
+# question an observer cannot answer without it. Every action is read-only:
+# widening the allow side generously is far cheaper than rediscovering it by
+# denial, and it grants no write anywhere.
+#
+# Each probe takes no resource name, which is what lets it run against a fresh
+# account with nothing deployed — these ask an IAM question, not an inventory
+# one, and an empty result is a pass. The limitation that buys: a surface whose
+# list action is granted while its detail action is not still passes here. That
+# is exactly incident three, where the role could list pipeline executions but
+# could not read the pipeline definition, so the table names both halves in the
+# question column and the docs state the requirement; the probe proves the
+# surface is reachable, not that every action on it is granted.
+OBSERVER_READ_SURFACES=$(
+  cat <<'SURFACES'
+deployment stacks	cloudformation describe-stacks	what is deployed, and did the last change apply or roll back
+compute inventory	ec2 describe-instances	what is actually running, and is it healthy
+alarm state	cloudwatch describe-alarms	is anything alarming right now, and since when
+delivery pipelines	codepipeline list-pipelines	what the pipeline does and where this change stopped, definition as well as executions
+builds	codebuild list-projects	did the build run, and what did it say
+functions	lambda list-functions	is the handler deployed, and at which version
+logs	logs describe-log-groups	what it printed when it failed
+http endpoints	apigateway get-rest-apis	is the endpoint published and reachable
+queues	sqs list-queues	is work backing up or dead-lettering
+workflows	stepfunctions list-state-machines	did the orchestrated run complete or stall
+SURFACES
+)
+
+# Stages whose profile is observer-only, per the contract's own words.
+#
+# The bootstrap bundle carries no observer field today, so this reads one if a
+# bundle supplies it and otherwise falls back to the definition the contract
+# already states in prose: dev and staging may repair, production and shared are
+# observer-only. Deriving it is what makes "observer" exist anywhere other than
+# a sentence in a document — until now nothing in the data or the code could
+# answer which profiles the word applied to.
+is_observer_stage() {
+  local stage declared
+  stage="$1"
+  # `has` rather than `.observer // empty`: jq's alternative operator treats
+  # `false` as absent, so a stage that explicitly declared itself NOT an
+  # observer fell through to the name-based default and was probed anyway —
+  # the declaration was accepted only when it agreed with the guess.
+  declared="$(printf '%s' "$profiles_json" | jq -r --arg s "$stage" '
+    .[$s] | if type == "object" and has("observer") then (.observer | tostring) else empty end
+  ')"
+  if [ -n "$declared" ]; then
+    [ "$declared" = "true" ]
+    return
+  fi
+  case "$stage" in
+    production | shared) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# Prove the ALLOW side of an observer profile.
+#
+# Reports every surface it could not read rather than stopping at the first,
+# because an operator repairing a policy wants the whole list — the same reason
+# the toolchain planner reports every unresolvable tool at once. One ticket, not
+# three in a row.
+#
+# Denied and unreachable are kept apart. A read that fails because the service
+# could not be reached says nothing about the policy, and folding it into
+# "denied" would send someone to widen a policy that was already correct; a pass
+# is never claimed from either.
+assert_observer_reads() {
+  local profile stage denied unreachable surface probe question output status
+  profile="$1"
+  stage="$2"
+  denied=""
+  unreachable=""
+
+  while IFS="$(printf '\t')" read -r surface probe question; do
+    [ -n "$surface" ] || continue
+    set +e
+    output="$(AWS_PAGER="" aws --profile "$profile" $probe 2>&1)"
+    status=$?
+    set -e
+    [ "$status" -eq 0 ] && continue
+    case "$output" in
+      *AccessDenied* | *UnauthorizedOperation* | *not\ authorized*)
+        denied="${denied}
+  ${surface} — \`aws ${probe}\` was denied, so this role cannot answer: ${question}"
+        ;;
+      *)
+        unreachable="${unreachable}
+  ${surface} — \`aws ${probe}\` did not return an authorization answer at all: ${output}"
+        ;;
+    esac
+  done <<<"$OBSERVER_READ_SURFACES"
+
+  if [ -n "$unreachable" ]; then
+    fail "profile ${profile} (stage ${stage}) could not be checked against the observer read surface, so nothing about its permissions was proved:${unreachable}"
+  fi
+  if [ -n "$denied" ]; then
+    fail "profile ${profile} (stage ${stage}) is observer-only but cannot read the surfaces an observer exists to read. Widen the role's read-only policy to cover them; every action below is read-only and none grants a write:${denied}"
+  fi
+}
+
 # Who currently owns `[default]`.
 #
 # `default` is the one name that cannot be namespaced, so it is the one place
@@ -529,6 +648,21 @@ if [ "${LISA_AWS_SKIP_VERIFY:-0}" != "1" ]; then
     ')
   else
     assert_profile_account "$default_profile" "$default_expected_account" "$default_stage"
+  fi
+  # Ordered after the account assertions on purpose, and it is the ordering that
+  # makes either half mean anything. `AccessDenied` is what an unassumed role, a
+  # misconfigured profile and a correctly-scoped observer all return, so a
+  # boundary check run before identity is bound passes on a credential that
+  # reached the wrong account entirely — the same class of vacuous pass this
+  # script already refuses for `sts:GetCallerIdentity`. Binding the profile to
+  # its expected account first is what turns the reads below into a statement
+  # about THIS role.
+  if [ "${LISA_AWS_VERIFY_OBSERVER_READS:-0}" = "1" ]; then
+    while IFS= read -r stage; do
+      [ -n "$stage" ] || continue
+      is_observer_stage "$stage" || continue
+      assert_observer_reads "${PROFILE_NAMESPACE}-agent-${stage}" "$stage"
+    done < <(printf '%s' "$profiles_json" | jq -r 'keys[]')
   fi
 fi
 

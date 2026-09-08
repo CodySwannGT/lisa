@@ -34,11 +34,33 @@ The result is one-directional propagation. **New guidance travels; corrections d
   node "$CLAUDE_PLUGIN_ROOT/hooks/withdrawn-rulings.mjs" --withdraw <id> \
     --claim "<the withdrawn claim, verbatim>" \
     --because "<what disproved it>" \
+    --derived "<an artifact you left standing on it>" ... | --derived none \
     [--superseded-by <id>] [--reached <channel> ...]
   ```
 
   The verbatim claim is required and the command refuses without it: **a tombstone the holder of the
   claim cannot recognise reaches them without reaching them.**
+
+- **`--derived` is required too, because correcting a premise leaves every inference standing.**
+  Updating the fact is the easy half. The conclusions you already drew from it are the half that
+  reached other agents and the human, and they do not retract themselves. Before you can record the
+  withdrawal you must name what you asserted, filed, or relayed while you believed the claim —
+  tracker state you set, a statement you made to your operator, a message you sent a peer session.
+
+  **The obligation is to produce the list, not to find something wrong in it.** `--derived none` is
+  a complete answer when you checked and nothing survives, and the record keeps it as an empty list
+  so a later reader can tell "audited, nothing standing" from "never audited". An absent answer is
+  refused; an empty one is not.
+
+  Measured instance: a session disproved a false claim that a credential CLI was unavailable,
+  updated the fact, and **two hours later still relayed to its human that a work item was blocked**
+  for a reason resting on the retracted claim. Three facts sat in one context and were never joined.
+
+  It binds here because nowhere else can carry it. Outside the learnings ledger's `provenance` refs,
+  **no artifact Lisa writes records the premise it rests on** — a blocked label, a relayed sentence,
+  a peer message carry no back-pointer. Nothing can go looking afterwards for what rested on a
+  retracted claim. You are the only party still holding that, at the only moment it is being
+  written down.
 
 - **The ledger is the retraction path, precisely because it is cheap.** Writing a finding feels
   productive; writing a retraction is a chore produced mid-task, after being corrected, when

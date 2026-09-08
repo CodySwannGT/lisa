@@ -109,6 +109,8 @@ describe("a withdrawal reaches a session that already read the old version", () 
       "A claim this session was born knowing was withdrawn.",
       BECAUSE,
       "recorded before the session started",
+      "--derived",
+      "none",
     ]);
 
     // The session starts here. Everything above is part of its snapshot.
@@ -125,6 +127,8 @@ describe("a withdrawal reaches a session that already read the old version", () 
       "Creating a fresh worktree captures the stale binding.",
       BECAUSE,
       "zero observed successes; the condition arrived later on its own",
+      "--derived",
+      "none",
       "--superseded-by",
       "wait-for-the-condition",
       "--reached",
@@ -155,6 +159,8 @@ describe("a withdrawal reaches a session that already read the old version", () 
       "This one was withdrawn.",
       BECAUSE,
       MEASURED,
+      "--derived",
+      "none",
     ]);
     const reached = contextOf(runHook(CHECK, { session_id: SESSION }));
     expect(reached).toContain("the-withdrawn-one");
@@ -163,7 +169,16 @@ describe("a withdrawal reaches a session that already read the old version", () 
   });
 
   it("says nothing to a session it never stamped", () => {
-    runCli([WITHDRAW, "unseen", CLAIM, A_CLAIM, BECAUSE, MEASURED]);
+    runCli([
+      WITHDRAW,
+      "unseen",
+      CLAIM,
+      A_CLAIM,
+      BECAUSE,
+      MEASURED,
+      "--derived",
+      "none",
+    ]);
     expect(contextOf(runHook(CHECK, { session_id: "never-stamped" }))).toBe("");
   });
 
@@ -179,6 +194,8 @@ describe("a withdrawal reaches a session that already read the old version", () 
         "Written from a different checkout entirely.",
         BECAUSE,
         MEASURED,
+        "--derived",
+        "none",
       ],
       sibling
     );
@@ -197,6 +214,8 @@ describe("the retraction path is cheap, and refuses an unrecognisable tombstone"
       A_CLAIM,
       BECAUSE,
       MEASURED,
+      "--derived",
+      "none",
       "--superseded-by",
       "none",
     ]);
@@ -257,7 +276,16 @@ describe("--check refuses a ledger that would swallow a withdrawal", () => {
   });
 
   it("passes on a well-formed ledger", () => {
-    runCli([WITHDRAW, "fine", CLAIM, A_CLAIM, BECAUSE, MEASURED]);
+    runCli([
+      WITHDRAW,
+      "fine",
+      CLAIM,
+      A_CLAIM,
+      BECAUSE,
+      MEASURED,
+      "--derived",
+      "none",
+    ]);
     expect(runCli(["--check"])).toContain("ledger well-formed");
   });
 });

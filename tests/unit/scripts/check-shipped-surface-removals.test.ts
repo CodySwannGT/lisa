@@ -35,11 +35,12 @@
  *
  * @module tests/unit/scripts/check-shipped-surface-removals
  */
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { indexRemovals } from "../../../scripts/lib/shipped-surface.mjs";
 import {
   buildReport,
@@ -111,6 +112,92 @@ function run(argv: readonly string[]): {
     },
   });
   return { code, stderr: stderr.join(""), stdout: stdout.join("") };
+}
+
+/** A shipped path the fixture removes with nothing governing the removal. */
+const FIXTURE_REMOVED_PATH = "typescript/copy-overwrite/scripts/gone.mjs";
+
+/**
+ * A throwaway repository whose window contains one ungoverned removal.
+ *
+ * Two commits and a tag: the first ships two files under a delivery lane, the
+ * second deletes one of them, and no `deletions.json` or ledger entry accounts
+ * for it. That is the exact shape the gate exists to catch, built rather than
+ * borrowed so no rewrite of this repository's tags can quietly disarm it.
+ * @param options - How the fixture's baseline pin should be broken, if at all
+ * @param options.detachBaseline - Pin the ledger at a tag that is not an
+ *   ancestor of HEAD, reproducing what a history rewrite leaves behind
+ * @param options.tagged - Whether any release tag is reachable from HEAD
+ * @returns The fixture repository root
+ */
+function makeRemovalFixture(
+  options: {
+    detachBaseline?: boolean;
+    tagged?: boolean;
+    removeShippedFile?: boolean;
+  } = {}
+): string {
+  const {
+    detachBaseline = false,
+    tagged = true,
+    removeShippedFile = true,
+  } = options;
+  const root = mkdtempSync(path.join(tmpdir(), "lisa-removal-bite-"));
+  temporaryDirectories.push(root);
+  const lane = path.join(root, "typescript", "copy-overwrite", "scripts");
+  mkdirSync(lane, { recursive: true });
+  writeFileSync(path.join(lane, "gone.mjs"), "export const gone = 1;\n");
+  writeFileSync(path.join(lane, "stays.mjs"), "export const stays = 1;\n");
+  writeFileSync(
+    path.join(root, "shipped-removals.json"),
+    `${JSON.stringify(
+      { baseline: detachBaseline ? "v9.9.9" : "v1.0.0", removals: [] },
+      null,
+      2
+    )}\n`
+  );
+  const run = (...args: string[]) =>
+    boundedExecFileSync({
+      label: `git ${args[0] ?? ""}`,
+      command: "git",
+      args: ["-C", root, ...args],
+      stdio: "ignore",
+    });
+  run("init", "-q", "-b", "main");
+  run("config", "user.email", "fixture@example.invalid");
+  run("config", "user.name", "fixture");
+  run("add", "-A");
+  run("commit", "-q", "-m", "seed");
+  if (tagged) run("tag", "v1.0.0");
+  if (detachBaseline) {
+    // A tag that resolves to a commit and is NOT an ancestor of HEAD — what a
+    // history rewrite leaves behind, reproduced without rewriting anything.
+    run("checkout", "-q", "-b", "detached-line");
+    writeFileSync(path.join(lane, "sidecar.mjs"), "export const side = 1;\n");
+    run("add", "-A");
+    run("commit", "-q", "-m", "a commit on a line HEAD never reaches");
+    run("tag", "v9.9.9");
+    run("checkout", "-q", "main");
+  }
+  if (removeShippedFile) {
+    rmSync(path.join(lane, "gone.mjs"));
+    run("add", "-A");
+    run(
+      "commit",
+      "-q",
+      "-m",
+      "remove a shipped script with nothing governing it"
+    );
+  } else {
+    // A window with commits in it but no ungoverned removal. Needed to assert
+    // the substituted baseline on the PASS arm: the removal fixture can only
+    // ever show the note beside an exit 1, which leaves "does a substituted
+    // baseline still let a clean scan report clean" untested.
+    writeFileSync(path.join(lane, "added.mjs"), "export const added = 1;\n");
+    run("add", "-A");
+    run("commit", "-q", "-m", "add a shipped script, removing nothing");
+  }
+  return root;
 }
 
 const temporaryDirectories: string[] = [];
@@ -600,20 +687,113 @@ describe("the gate", () => {
     expect(result.stdout).toBe("");
   });
 
-  it("exits 1 and names the surface when the window contains ungoverned removals", () => {
-    // The previous major line carries removals nobody back-filled - which is
-    // what `baseline` is for, and is also the only way to drive `main` to a
-    // finding without inventing one. Reaching further back than the supported
-    // major must therefore FAIL, and the specific path asserted here was
-    // removed in v3.45.7 and cannot change retroactively.
-    const result = run(["--since", "v3.0.0"]);
+  it("refuses an explicitly named window it cannot reach, rather than moving it", () => {
+    // This arm used to drive a finding by reaching past the supported major
+    // with `--since v3.0.0`. A history rewrite detached that tag along with
+    // 1638 others (CodySwannGT/lisa#4047, CodySwannGT/lisa#3719), so the window
+    // no longer exists and the assertion could not be restored by choosing an
+    // older tag: v4.26.4 is the OLDEST reachable one and its window is clean.
+    //
+    // What replaced it is the property the fallback must not break. The ledger
+    // pin may be substituted when it goes stale, because a stale pin is nobody's
+    // decision. An argument somebody typed is somebody's decision, and quietly
+    // answering about a different window would be answering a different
+    // question. This arm is not decoration: it caught the first version of that
+    // fallback silently turning a red end-to-end run green.
+    //
+    // It runs against a fixture rather than this repository for the same reason
+    // the bite arm below does. Reading `--since` out of the ambient checkout
+    // makes the assertion depend on which tags that clone happens to hold: it
+    // passed locally, where the detached tag still resolves, and failed in CI,
+    // where a shallow fetch carries no tags at all and the run took a different
+    // refusal path. A test whose verdict turns on the fetch depth of the machine
+    // running it is measuring the machine.
+    const repo = makeRemovalFixture({ detachBaseline: true });
+
+    const result = run(["--root", repo, "--since", "v9.9.9"]);
+
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain("is not an ancestor of HEAD");
+    expect(result.stdout).toBe("");
+  });
+
+  it("exits 1 and names the surface when a window contains an ungoverned removal", () => {
+    // The bite arm, on a fixture rather than on this repository's history. It
+    // moved because the history it used to read was rewritten underneath it —
+    // a gate whose ability to fail depends on a tag someone may rewrite is a
+    // gate that can stop biting without anyone editing it.
+    const repo = makeRemovalFixture();
+
+    const result = run(["--root", repo]);
+
     expect(result.code).toBe(1);
-    expect(result.stdout).toContain(
-      "harper-fabric/copy-overwrite/.github/dependabot.yml"
-    );
+    expect(result.stdout).toContain(FIXTURE_REMOVED_PATH);
     expect(result.stdout).toContain(
       "ungoverned change(s) to a shipped surface"
     );
+    // A reachable pin is used verbatim and says nothing extra. Without this,
+    // "the fallback works" is indistinguishable from "the fallback always runs".
+    expect(result.stdout).not.toContain("NOTE baseline");
+  });
+
+  it("names the substituted baseline and the pin it replaced", () => {
+    const repo = makeRemovalFixture({ detachBaseline: true });
+
+    const result = run(["--root", repo]);
+
+    // Still exits 1: substituting the baseline restores the gate's ability to
+    // run, and must not change what it concludes about the code it then reads.
+    expect(result.code).toBe(1);
+    expect(result.stdout).toContain(
+      "NOTE baseline v9.9.9 is not an ancestor of HEAD"
+    );
+    expect(result.stdout).toContain("release tag v1.0.0 was used instead");
+  });
+
+  it("names the substituted baseline on a clean scan too", () => {
+    // The pass arm of the substitution. Its sibling above proves the note
+    // appears beside a finding; this proves the substitution does not turn a
+    // clean window into a failure, and that a green never rests silently on a
+    // window other than the one the ledger pinned.
+    const repo = makeRemovalFixture({
+      detachBaseline: true,
+      removeShippedFile: false,
+    });
+
+    const result = run(["--root", repo]);
+
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain(
+      "NOTE baseline v9.9.9 is not an ancestor of HEAD"
+    );
+    expect(result.stdout).toContain("release tag v1.0.0 was used instead");
+  });
+
+  it("refuses a baseline that is HEAD itself, however it was named", () => {
+    // Reachable, so it never reaches the fallback branch that already refused
+    // an empty window — and therefore scanned zero commits and reported every
+    // removal governed. A confident pass over nothing examined, produced by the
+    // gate whose whole purpose is to prevent one.
+    const repo = makeRemovalFixture();
+
+    const result = run(["--root", repo, "--since", "HEAD"]);
+
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain("is HEAD itself, so the window is empty");
+    expect(result.stdout).toBe("");
+  });
+
+  it("refuses when no release tag is reachable at all", () => {
+    // The branch that must never become a pass. A gate with no window has
+    // examined nothing, and "nothing examined" rendering as "nothing wrong" is
+    // the failure this whole file exists to prevent, one level up.
+    const repo = makeRemovalFixture({ detachBaseline: true, tagged: false });
+
+    const result = run(["--root", repo]);
+
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain("no release tag is reachable from HEAD");
+    expect(result.stdout).toBe("");
   });
 
   it("emits machine-readable output on request", () => {

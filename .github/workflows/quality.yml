@@ -961,7 +961,8 @@ jobs:
             fetch --no-tags origin \
             refs/tags/v2.353.0:refs/tags/v2.353.0 \
             refs/tags/v4.17.16:refs/tags/v4.17.16 \
-            refs/tags/v4.26.1:refs/tags/v4.26.1
+            refs/tags/v4.26.1:refs/tags/v4.26.1 \
+            refs/tags/v4.26.0:refs/tags/v4.26.0
 
       - name: 🔧 Setup Node.js
         if: matrix.action == 'run'
@@ -3543,7 +3544,8 @@ jobs:
             fetch --no-tags origin \
             refs/tags/v2.353.0:refs/tags/v2.353.0 \
             refs/tags/v4.17.16:refs/tags/v4.17.16 \
-            refs/tags/v4.26.1:refs/tags/v4.26.1
+            refs/tags/v4.26.1:refs/tags/v4.26.1 \
+            refs/tags/v4.26.0:refs/tags/v4.26.0
 
       - name: 📎 Fetch export-removal witness history
         if: github.repository == 'CodySwannGT/lisa'

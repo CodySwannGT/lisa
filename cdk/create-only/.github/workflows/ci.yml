@@ -100,6 +100,26 @@ jobs:
             ROLE_NAME="DeployServiceRole"
           fi
 
+          # Say so when the compatibility escape hatch is the thing in force.
+          #
+          # Nothing provisions the read-only role for you, so the cheapest way
+          # to make a fresh repository's CI go green is to point this variable
+          # at DeployServiceRole — which restores exactly the over-privileged
+          # default the split removed. The escape hatch is easier than the fix,
+          # so without this line the path of least resistance quietly re-creates
+          # the problem and every check stays green: the identity assertion
+          # below compares against the role that was SELECTED, so it confirms
+          # the deploy role as correct and prints a tick next to it.
+          #
+          # A warning rather than a failure, deliberately. The override is
+          # documented and legitimate while a repository is being set up;
+          # failing it would break the path the comment above tells people to
+          # take. What it must not do is stay invisible.
+          if [ "${{ github.event_name }}" == "pull_request" ] \
+            && [ "$ROLE_NAME" == "DeployServiceRole" ]; then
+            echo "::warning title=Pull-request validation is holding deploy rights::This pull request assumed DeployServiceRole to run read-only checks (cdk synth, cdk diff, tests), because CDK_CI_READ_ONLY_ROLE_NAME is set to DeployServiceRole. That is the compatibility setting, not the default. While it is in force, anyone who can open a pull request against this repository can obtain deployment credentials for the target account. To fix it: create the read-only role described in .github/workflows/ci.yml in each account, then unset this repository variable."
+          fi
+
           echo "role_name=$ROLE_NAME" >> $GITHUB_OUTPUT
 
           # Map to CDK environment name.

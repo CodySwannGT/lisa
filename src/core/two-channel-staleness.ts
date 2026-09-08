@@ -46,6 +46,16 @@ const DECISION_HANDSHAKE = "handshake";
 const DECISION_NOT_NEEDED = "not-needed";
 const DECISION_WARRANTED = "warranted";
 
+/**
+ * The floor a stated reason must clear to be a reason rather than a label.
+ *
+ * A floor, not a proof — no check tells a real argument from filler. What it
+ * buys is that "n/a", "ok" and "advisory" cannot stand in for the decision this
+ * field exists to record, which is the same collapse the empty-reason refusal
+ * below already rejects, one step further along.
+ */
+const MIN_REASON_CHARACTERS = 40;
+
 /** How a workflow asks an artifact how old it is. */
 const VERSION_REQUEST = "contract-version";
 
@@ -310,7 +320,11 @@ export function malformedIn(entry: DecidedCoupling): string | null {
     return `${entry.key}: \`${String(entry.decision)}\` is not one of ${STALENESS_DECISIONS.join(", ")}.`;
   }
   if (entry.decision === DECISION_HANDSHAKE) return null;
-  return (entry.reason ?? "").trim().length === 0
-    ? `${entry.key}: recorded as \`${entry.decision}\` with no reason. A decision without its reason is indistinguishable from nobody having looked, which is the state this field exists to end.`
+  const reason = (entry.reason ?? "").trim();
+  if (reason.length === 0) {
+    return `${entry.key}: recorded as \`${entry.decision}\` with no reason. A decision without its reason is indistinguishable from nobody having looked, which is the state this field exists to end.`;
+  }
+  return reason.length < MIN_REASON_CHARACTERS
+    ? `${entry.key}: recorded as \`${entry.decision}\` with a ${reason.length}-character reason, under the ${MIN_REASON_CHARACTERS} this field requires. A label is not a decision: "advisory" and "n/a" read as an answer while carrying none of the argument a later reader needs to re-examine the exemption.`
     : null;
 }
