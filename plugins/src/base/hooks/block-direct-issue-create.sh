@@ -1819,12 +1819,26 @@ def is_assignment_word(token):
 # so this closes the measured population and not the class. Add names here as
 # they are measured; do not invert the default to close it by fiat, or the
 # executed-script reach that #3484 bought is lost.
+# The copy/move/link family is measured, not inferred: `cp <a file that files>`
+# was refused as "an unparseable command that reads as a tracker creation
+# inside <path>" (CodySwannGT/lisa#3683, trip 5, reproduced in this guard's own
+# suite). These four relocate bytes and never execute an operand, so following
+# them can only ever over-refuse — and the harm is the propagating kind this
+# ticket is about, because a file that quotes a creation then cannot be copied
+# by any agent or by CI.
+#
+# `mv`, `ln` and `install` join `cp` as the same operation rather than as a
+# guess: the list already carries whole families (`git` wholesale, `bat`/`xxd`
+# beside `cat`) on exactly that reasoning. Path arithmetic and metadata tools
+# are deliberately NOT added — unmeasured, and the residual note above is the
+# standing instruction to add on measurement rather than by sweep.
 READ_ONLY_PROGRAMS = {
-    "awk", "bat", "cat", "cksum", "cmp", "column", "comm", "cut", "diff",
-    "du", "file", "fold", "git", "grep", "head", "hexdump", "jest", "jq",
-    "less", "ls", "md5", "md5sum", "more", "nl", "od", "pytest", "rg",
-    "sed", "sha1sum", "sha256sum", "shellcheck", "shfmt", "sort", "stat",
-    "strings", "tail", "tee", "uniq", "vitest", "wc", "xxd", "yamllint",
+    "awk", "bat", "cat", "cksum", "cmp", "column", "comm", "cp", "cut",
+    "diff", "du", "file", "fold", "git", "grep", "head", "hexdump",
+    "install", "jest", "jq", "less", "ln", "ls", "md5", "md5sum", "more",
+    "mv", "nl", "od", "pytest", "rg", "sed", "sha1sum", "sha256sum",
+    "shellcheck", "shfmt", "sort", "stat", "strings", "tail", "tee",
+    "uniq", "vitest", "wc", "xxd", "yamllint",
 }
 
 
