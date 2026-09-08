@@ -600,8 +600,42 @@ jobs:
             main|master|prod|production)
               PACKAGE_NAME=$(node -p 'require("./package.json").name || ""')
               if [ -n "$PACKAGE_NAME" ]; then
-                PUBLISHED_VERSION=$(npm view "$PACKAGE_NAME" version 2>/dev/null || true)
-                if [ -n "$PUBLISHED_VERSION" ] && npx semver "$PUBLISHED_VERSION" >/dev/null 2>&1; then
+                # Read the UNCACHED packument, never `npm view` or dist-tags.
+                #
+                # This is a correctness decision — it picks the version the
+                # release cuts — and `npm view <pkg> version` is the most-cached
+                # endpoint npm serves. Measured 2026-09-03: for ~13 minutes
+                # after a publish completed, `npm view`, the plain packument and
+                # `/-/package/.../dist-tags` all reported a version two behind
+                # while the exact-version endpoint and `?write=true` both
+                # reported the truth. A guard fed a stale base under-corrects
+                # and silently fails to guard, which is worse than not having
+                # it: the release still cuts a tag and a GitHub release, and
+                # only the npm publish fails — leaving a version tagged,
+                # released and attested but absent from the registry.
+                #
+                # The same discipline is already applied by
+                # `check-npm-publish-landed.mjs` and `reconcile-release-tags.mjs`;
+                # this was the one correctness decision still reading the cache.
+                #
+                # Inline rather than a shipped script on purpose: this reusable
+                # workflow runs against the CALLER's checkout, so a path under
+                # Lisa's own `scripts/` is not there to resolve.
+                PUBLISHED_VERSION=$(node -e '
+                  const name = process.argv[1];
+                  const url = `${process.env.LISA_NPM_REGISTRY || "https://registry.npmjs.org"}/${name.replace("/", "%2f")}?write=true`;
+                  fetch(url, { headers: { accept: "application/json" } })
+                    .then(r => (r.ok ? r.json() : null))
+                    .then(d => { const v = d && d["dist-tags"] && d["dist-tags"].latest; if (v) process.stdout.write(String(v)); })
+                    .catch(() => {});
+                ' "$PACKAGE_NAME" 2>/dev/null || true)
+                if [ -z "$PUBLISHED_VERSION" ]; then
+                  # Unknown, NOT "nothing is published". Announced rather than
+                  # failed: a transient registry blip must not red-line every
+                  # release, but it must not pass for a clean guard run either —
+                  # that silence is what let this go unnoticed.
+                  echo "::warning::Could not read the published version from an uncached registry endpoint. The not-above-published guard did NOT run for $PACKAGE_NAME; treat this as unknown, not as nothing being published."
+                elif npx semver "$PUBLISHED_VERSION" >/dev/null 2>&1; then
                   while [ "$(npx semver "$VERSION" "$PUBLISHED_VERSION" | tail -1)" = "$PUBLISHED_VERSION" ]; do
                     echo "::warning::Computed version $VERSION is not above published $PUBLISHED_VERSION; bumping patch"
                     VERSION=$(npx semver -i patch "$PUBLISHED_VERSION")
