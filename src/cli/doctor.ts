@@ -27,6 +27,7 @@ import { checkReusableWorkflowRefs } from "./doctor-reusable-workflow-refs.js";
 import { checkWorkerEpoch } from "./doctor-worker-epoch.js";
 import { checkSerializeLegsContract } from "./doctor-serialize-legs-contract.js";
 import { checkApplyFailure } from "./doctor-apply-failure.js";
+import { checkApplyDeletions } from "./doctor-apply-deletions.js";
 import { checkProjectType } from "./doctor-project-type.js";
 import { checkRailsDeployIntent } from "./doctor-rails-deploy-intent.js";
 import { checkStaleManagedBanner } from "./doctor-stale-managed-banner.js";
@@ -435,6 +436,13 @@ export async function runDoctor(
     // this check sees a consumer who later edits it back out.
     await checkNightlyE2eBypassArming(resolvedTarget),
     await checkApplyFailure(resolvedTarget),
+    // Beside the recorded-failure check because they are the same operator
+    // question asked either way round: that one reports an apply that did not
+    // run, this one an apply that ran and took files with it. Both exist
+    // because the install path speaks only on channels that are closed by the
+    // time it speaks — hidden postinstall stdout, and a detached trampoline
+    // spawned with stdio "ignore" (CodySwannGT/lisa#4071).
+    await checkApplyDeletions(resolvedTarget),
     // Immediately after the recorded-failure check, because they are the two
     // halves of the same operator question. That one reports that an apply DID
     // fail; this one answers whether the next one will, and names the one-line
