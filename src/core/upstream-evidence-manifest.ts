@@ -263,7 +263,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
       "2f9b65a14ae256e15da62424d01dbd378f55e4da60959aeaee9c59cf1ab2e39b",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
-      "da5cc02794a5972fc3ac72650b3783b5af7ed909ab92c1a8de5e925bae873d0d",
+      "d2d89107166305be148432d741ac1b0de8fe34bd1ba92f595573df2b764d32a1",
     "expo/copy-overwrite/scripts/check-lighthouse-details.mjs":
       "c33678782088725f6e95a07873a4260c347d915518d0c52e107ff3dc0ad32641",
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs":
@@ -10185,6 +10185,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/detect-stale-workflow-inputs-helpers.ts": true,
     "tests/unit/scripts/detect-stale-workflow-inputs.test.ts": true,
     "tests/unit/scripts/downstream-name-digest.test.ts": true,
+    "tests/unit/scripts/e2e-coverage-comment-navigation.test.ts": true,
     "tests/unit/scripts/e2e-coverage-interpolation-wildcard.test.ts": true,
     "tests/unit/scripts/e2e-coverage-run-awareness.test.ts": true,
     "tests/unit/scripts/e2e-coverage.test.ts": true,
