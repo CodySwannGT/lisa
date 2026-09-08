@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.52.0](https://github.com/CodySwannGT/lisa/compare/v4.51.0...v4.52.0) (2026-09-08)
+
+
+### Features
+
+* **ci:** make every two-channel coupling declare if it can see staleness ([7f77828](https://github.com/CodySwannGT/lisa/commit/7f7782824f39000d92803e733a5844b3378243c6)), closes [#3477](https://github.com/CodySwannGT/lisa/issues/3477) [CodySwannGT/lisa#3687](https://github.com/CodySwannGT/lisa/issues/3687)
+
+
+### Bug Fixes
+
+* **e2e-coverage:** a comment may declare coverage, not simulate a visit ([74012fa](https://github.com/CodySwannGT/lisa/commit/74012fafc728cf5bea26f089fcb64687ace815a6)), closes [#3442](https://github.com/CodySwannGT/lisa/issues/3442) [#3443](https://github.com/CodySwannGT/lisa/issues/3443) [CodySwannGT/lisa#3444](https://github.com/CodySwannGT/lisa/issues/3444)
+
 ## [4.51.0](https://github.com/CodySwannGT/lisa/compare/v4.50.9...v4.51.0) (2026-09-08)
 
 
