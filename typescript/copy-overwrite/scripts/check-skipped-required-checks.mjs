@@ -1743,10 +1743,28 @@ export function reviewActivityFrom(payload) {
   const decision = String(
     /** @type {Record<string, unknown>} */ (payload).reviewDecision ?? ""
   ).toUpperCase();
+  const objected = decision === "CHANGES_REQUESTED" || unresolved;
+  // The query asks for the first 50 threads, and the two verdicts do not need
+  // the same evidence.
+  //
+  // "Somebody objected" is sound from a partial page: a thread we did not read
+  // cannot un-object the one we did. "Nobody objected" is not — it is a claim
+  // about every thread, and a page of 50 resolved ones says nothing about the
+  // fifty-first. A pull request with more than 50 threads whose only unresolved
+  // one sorts late would otherwise report `objected: false`, and a neutral
+  // waiver would be allowed to cover a live objection.
+  //
+  // `totalCount` is already in the response, so the shortfall is detectable
+  // without a second request. Reporting it as UNREAD is the honest answer and
+  // the one this module is built around: a failed read is NOT a negative, and
+  // the cost lands on the waiver's corroboration rather than on the merge.
+  if (!objected && nodes.length < threads.totalCount) {
+    return UNREAD_REVIEW_ACTIVITY;
+  }
   return {
     read: true,
     present: reviews.totalCount > 0 || threads.totalCount > 0,
-    objected: decision === "CHANGES_REQUESTED" || unresolved,
+    objected,
   };
 }
 

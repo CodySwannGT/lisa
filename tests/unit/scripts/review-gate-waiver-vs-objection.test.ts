@@ -340,9 +340,60 @@ describe("reading the review surface GitHub actually answers with", () => {
       mod.reviewActivityFrom({
         reviewDecision: "APPROVED",
         reviews: { totalCount: 2 },
-        reviewThreads: { totalCount: 3, nodes: [{ isResolved: true }] },
+        // All three threads, not one of three. The fixture used to declare
+        // `totalCount: 3` while supplying a single node, which is a truncated
+        // page rather than the "every thread is resolved" case in the name —
+        // harmless while nothing read `totalCount`, and wrong as soon as
+        // something did. The assertion is unchanged; the input now matches what
+        // it claims to be.
+        reviewThreads: {
+          totalCount: 3,
+          nodes: [
+            { isResolved: true },
+            { isResolved: true },
+            { isResolved: true },
+          ],
+        },
       })
     ).toEqual({ read: true, present: true, objected: false });
+  });
+
+  it("will not call a truncated thread page `no objection`", () => {
+    // Raised in review. The query asks for the first 50 threads. A pull request
+    // with more than that, whose only unresolved thread sorts past the page,
+    // returned `objected: false` — and a neutral waiver was then allowed to
+    // cover a live objection.
+    //
+    // The fix reads `totalCount`, which the query already requests, so the
+    // shortfall is visible without a second request. UNREAD is the honest
+    // answer: the page seen genuinely does not say whether anybody objected.
+    expect(
+      mod.reviewActivityFrom({
+        reviewDecision: null,
+        reviews: { totalCount: 1 },
+        reviewThreads: {
+          totalCount: 51,
+          nodes: Array.from({ length: 50 }, () => ({ isResolved: true })),
+        },
+      })
+    ).toEqual({ read: false, present: false, objected: false });
+  });
+
+  it("still reports an objection it can SEE, even on a truncated page", () => {
+    // The two verdicts do not need the same evidence, and collapsing them into
+    // "truncated means unread" would throw away a sound answer: a thread nobody
+    // fetched cannot un-object the unresolved one already in hand. Without this
+    // the fix above would trade a false negative for a lost true positive.
+    expect(
+      mod.reviewActivityFrom({
+        reviewDecision: null,
+        reviews: { totalCount: 1 },
+        reviewThreads: {
+          totalCount: 99,
+          nodes: [{ isResolved: true }, { isResolved: false }],
+        },
+      })
+    ).toEqual({ read: true, present: true, objected: true });
   });
 
   it("reports no activity for the genuinely unreviewed pull request", () => {
