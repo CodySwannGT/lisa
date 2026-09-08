@@ -43,9 +43,19 @@
  *     conservative — a cost, but never data loss. A banner-rewriting migration
  *     can clobber a header a consumer customised, which is.
  *
- * It also catches the drift in BOTH directions, which a one-way rewrite cannot:
- * a copy-overwrite asset wearing a create-only banner is the inverse defect and
- * the same comparison reports it.
+ * ## One direction only, and why the inverse is not checked here
+ *
+ * This reports a workflow claiming `managed` when its template has moved to
+ * create-only. It does NOT report the inverse — a copy-overwrite asset wearing
+ * a create-only banner — and the rejection controls assert that a `seeded`
+ * claim is passed rather than flagged.
+ *
+ * The inverse needs something this check does not have: the LANE, which is a
+ * property of the consumer's stack rather than of the file. `ci.yml` ships
+ * create-only on five stacks and copy-overwrite on two, so the same filename
+ * carrying the same banner is correct in one consumer and stale in the next.
+ * Reading a banner cannot distinguish them, and a check that guessed would put
+ * its most dangerous answer on the guess.
  *
  * ## What cannot be known from here, and is therefore not claimed
  *
@@ -53,6 +63,12 @@
  * cannot see consumer checkouts, so this check answers only for the tree it is
  * pointed at. Any fleet-wide number would be an estimate wearing a measurement's
  * clothes.
+ *
+ * The consumer's LANE for a given workflow is unknowable here for the same
+ * reason, and that bounds what the warning may assert. It reports the banner it
+ * found; the reassurance it offers is true for the stacks whose `ci.yml` is
+ * create-only and would be false for the two whose `ci.yml` Lisa replaces. That
+ * gap is real and is tracked separately — it is not closed by this module.
  * @module cli/doctor-ownership-banner-drift
  */
 import { readdir, readFile } from "node:fs/promises";

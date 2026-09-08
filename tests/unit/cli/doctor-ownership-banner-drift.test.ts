@@ -124,6 +124,15 @@ describe("rejection controls: what must NOT be reported", () => {
   it("passes a create-only workflow carrying the correct banner", async () => {
     // Without this the check could warn on everything and satisfy every
     // assertion above.
+    //
+    // It is also the scope boundary, deliberately: the inverse defect — a
+    // copy-overwrite asset wearing a create-only banner — is NOT reported.
+    // Deciding that needs the consumer's lane, and the lane is a property of
+    // their stack, not of the file. `ci.yml` ships create-only on five stacks
+    // and copy-overwrite on two, so this exact input is correct in one
+    // consumer and stale in the next. Passing it is the honest answer from a
+    // check that reads banners; flagging it would be a guess in the direction
+    // that costs a consumer their edits.
     const result = await checkOwnershipBannerDrift(await consumerWith(SEEDED));
 
     expect(result.status).toBe("ok");
