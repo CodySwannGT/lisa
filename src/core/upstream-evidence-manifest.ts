@@ -133,7 +133,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/copy-overwrite/vitest.config.ts":
       "c7f309d4f43d9188b9c067cb4900b2bdbacfbd28d135a6a2e6313cb0a37b030f",
     "cdk/create-only/.github/workflows/ci.yml":
-      "7bd00500e4afe02cbf93f2fe3ee054cd0d9fdce53857de84d5034f9f7c8deaf8",
+      "f66badecde1390a73455f1359f19dc6677d3134237188ac8d3c7b4405978837a",
     "cdk/create-only/.github/workflows/deploy.yml":
       "eaab3860ecc75649b878dce7ca3486fadf31e381dd1191f9740b99ab7fcb5cf3",
     "cdk/create-only/cdk.json":
