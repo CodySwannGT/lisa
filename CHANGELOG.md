@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.54.12](https://github.com/CodySwannGT/lisa/compare/v4.54.11...v4.54.12) (2026-09-09)
+
+
+### Bug Fixes
+
+* **gates:** refuse an awaited gate where nothing consumes the signal ([5e6d507](https://github.com/CodySwannGT/lisa/commit/5e6d50763784ebf18daf896222a8683d8f80accf)), closes [CodySwannGT/lisa#4046](https://github.com/CodySwannGT/lisa/issues/4046)
+* **nightly-e2e:** documentation of a waiver is not a waiver ([7855318](https://github.com/CodySwannGT/lisa/commit/7855318cb822a7a2b5618beeb75e04246a4ae2d5)), closes [CodySwannGT/lisa#3486](https://github.com/CodySwannGT/lisa/issues/3486)
+* **nightly-e2e:** retain v4.50.3 before this branch revokes it ([0fef8c6](https://github.com/CodySwannGT/lisa/commit/0fef8c6eb65c61215d6580022e2e1665c36de550)), closes [CodySwannGT/lisa#3500](https://github.com/CodySwannGT/lisa/issues/3500) [CodySwannGT/lisa#3486](https://github.com/CodySwannGT/lisa/issues/3486)
+
 ### [4.54.11](https://github.com/CodySwannGT/lisa/compare/v4.54.10...v4.54.11) (2026-09-09)
 
 
