@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.54.8](https://github.com/CodySwannGT/lisa/compare/v4.54.7...v4.54.8) (2026-09-09)
+
+
+### Bug Fixes
+
+* **hooks:** delete the managed-file guard's parity note, which went stale ([abc8e21](https://github.com/CodySwannGT/lisa/commit/abc8e21eeb6a737091947e3f41db72e1c26e517a)), closes [CodySwannGT/lisa#3750](https://github.com/CodySwannGT/lisa/issues/3750)
+
 ### [4.54.7](https://github.com/CodySwannGT/lisa/compare/v4.54.6...v4.54.7) (2026-09-09)
 
 ### [4.54.6](https://github.com/CodySwannGT/lisa/compare/v4.54.5...v4.54.6) (2026-09-09)
