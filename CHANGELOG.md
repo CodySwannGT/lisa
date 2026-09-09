@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.54.6](https://github.com/CodySwannGT/lisa/compare/v4.54.5...v4.54.6) (2026-09-09)
+
+
+### Bug Fixes
+
+* **ci:** stop a review waiver from covering a review that happened ([3e146d9](https://github.com/CodySwannGT/lisa/commit/3e146d9635ad4fc85227deb8936859affe8f978b)), closes [#3221](https://github.com/CodySwannGT/lisa/issues/3221) [#3706](https://github.com/CodySwannGT/lisa/issues/3706) [#3221](https://github.com/CodySwannGT/lisa/issues/3221) [CodySwannGT/lisa#3706](https://github.com/CodySwannGT/lisa/issues/3706)
+* **review-gate:** stop a truncated thread page from reading as "nobody objected" ([027c13c](https://github.com/CodySwannGT/lisa/commit/027c13ce54130f055f16b78780ba9c879d417a4c)), closes [CodySwannGT/lisa#3706](https://github.com/CodySwannGT/lisa/issues/3706)
+
+
+### Documentation
+
+* **skills:** state what a non-skill tracker write still owes ([3135734](https://github.com/CodySwannGT/lisa/commit/3135734118c85ee1c4e59cf63ee7e0063a30eb07)), closes [CodySwannGT/lisa#3663](https://github.com/CodySwannGT/lisa/issues/3663)
+
 ### [4.54.5](https://github.com/CodySwannGT/lisa/compare/v4.54.4...v4.54.5) (2026-09-08)
 
 
