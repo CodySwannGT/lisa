@@ -70,13 +70,25 @@
 # propagate any further either — a path a followed script merely NAMES is data
 # one file further out, not a third hop.
 #
-# ## Parity gap, recorded rather than silently dropped
+# ## Every agent surface reaches this guard
 #
-# This guard has no Antigravity, Codex or OpenCode port — only the Claude
-# reference and the copies generated from it. Its siblings do. That predates
-# this change and is not closed by it: opening three ports is its own work, and
-# doing it here would triple the surface under review. Recorded so it reads as a
-# known gap rather than an oversight.
+# There is no parity gap left to record. A note here used to record one for
+# three surfaces; every one of those ports now exists, and the note outlived
+# them. It is deleted rather than trimmed, because a stale gap note is
+# worse than none: it OVERSTATES the gap, and a reader who trusts it goes
+# looking for three missing ports, finds two present, and cannot tell which
+# third is real without redoing the measurement from scratch. AGENTS.md asks
+# for a gap to be documented instead of silently dropped — that only works
+# while the document is true.
+#
+# Where each surface picks it up, so the next reader measures instead of
+# guessing: Claude and Copilot from `.claude-plugin/plugin.json`, Cursor from
+# `hooks/hooks.json`, Codex from `.codex-plugin/hooks.json` AND from the
+# enforcement-fallback dispatcher, Antigravity from `hooks.json` via the
+# `.agy.sh` adapter beside this file, and OpenCode from
+# `src/opencode/plugin-templates/lisa-block-managed-file-edits.ts`.
+# `tests/unit/hooks/managed-file-guard-parity-note.test.ts` fails if this
+# paragraph goes stale in either direction.
 #
 # Exemptions (allowed):
 #   - `LISA_ALLOW_MANAGED_FILE_WRITE` set — the operator's explicit override,
