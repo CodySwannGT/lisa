@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.54.10](https://github.com/CodySwannGT/lisa/compare/v4.54.9...v4.54.10) (2026-09-09)
+
+
+### Bug Fixes
+
+* **mutation:** stop Stryker walking .worktrees and exhausting the heap ([664a4a3](https://github.com/CodySwannGT/lisa/commit/664a4a39cc3fa906dd702699bb0fe3fc4f69a41d)), closes [CodySwannGT/lisa#4122](https://github.com/CodySwannGT/lisa/issues/4122)
+
 ### [4.54.9](https://github.com/CodySwannGT/lisa/compare/v4.54.8...v4.54.9) (2026-09-09)
 
 
