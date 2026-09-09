@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.54.9](https://github.com/CodySwannGT/lisa/compare/v4.54.8...v4.54.9) (2026-09-09)
+
+
+### Bug Fixes
+
+* **secrets:** say a deadline killed the CLI, not that it is missing ([59f3bec](https://github.com/CodySwannGT/lisa/commit/59f3bec71b3fbef6f1cc2ec52bb8cdab7af8b123)), closes [CodySwannGT/lisa#4045](https://github.com/CodySwannGT/lisa/issues/4045)
+
 ### [4.54.8](https://github.com/CodySwannGT/lisa/compare/v4.54.7...v4.54.8) (2026-09-09)
 
 
