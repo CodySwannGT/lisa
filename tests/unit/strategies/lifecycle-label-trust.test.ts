@@ -44,7 +44,22 @@ const TERMINAL_OPEN = "terminal-label-open-state";
 const OPEN_CLOSED = "open-label-closed-state";
 /** The half of that direction which must NEVER earn a terminal write (#3479). */
 const OPEN_ABANDONED = "open-label-abandoned-state";
-/** GitHub's two closure reasons, as the REST payload spells them. */
+/**
+ * Closure reasons in the WRONG case on purpose, to exercise normalization.
+ *
+ * These are deliberately not how GitHub spells them. The REST payload is
+ * lowercase — `completed`, `not_planned` — and the production constant matches
+ * it, so the comparison lowercases the incoming value before testing it:
+ *
+ *     String(input.stateReason ?? "").trim().toLowerCase() === NOT_PLANNED
+ *
+ * Feeding uppercase here is the only coverage that normalization has. Rewriting
+ * these to lowercase to "match GitHub" would look like a correctness fix and
+ * would silently delete that coverage, so the shape is load-bearing and stays.
+ *
+ * They are also not the only closure reasons GitHub has — `duplicate` and
+ * `reopened` exist too. Nothing here should be read as an enumeration of them.
+ */
 const COMPLETED = "COMPLETED";
 const NOT_PLANNED = "NOT_PLANNED";
 
