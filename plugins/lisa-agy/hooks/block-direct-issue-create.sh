@@ -113,6 +113,27 @@ set -euo pipefail
 
 input="$(cat)"
 
+# Evaluate once per tool call when this guard is registered on both channels.
+#
+# Lisa reaches an agent through the repository dispatcher AND the plugin
+# manifest, and where both are live the harness runs this guard twice for one
+# tool call. `guard-dedupe.bash` short-circuits the second run ONLY when a
+# byte-identical copy already ALLOWED this exact payload on this exact tool
+# call; a differing vintage, a refusal, and a host with one channel all
+# evaluate exactly as before. Nothing is de-registered by it
+# (CodySwannGT/lisa#3814).
+#
+# Absent library means no dedupe, which is the pre-existing behaviour, so an
+# older channel copy that predates it is unaffected.
+lisa_guard_hook_dir="${BASH_SOURCE[0]%/*}"
+lisa_guard_dedupe_lib="$lisa_guard_hook_dir/guard-dedupe.bash"
+if [ -r "$lisa_guard_dedupe_lib" ]; then
+  # shellcheck source=guard-dedupe.bash
+  . "$lisa_guard_dedupe_lib"
+  trap 'lisa_guard_dedupe_record $?' EXIT
+  lisa_guard_dedupe block-direct-issue-create "$input"
+fi
+
 # Probe both interpreters before use and announce a missing one rather than
 # swallowing it. Under `set -e` an absent jq aborts with 127, and Claude Code
 # treats any non-2 exit as a NON-BLOCKING hook error — so the guard would
@@ -329,10 +350,66 @@ EOF
   esac
 }
 
+# The branch-specific half of the remediation, printed only for the branch that
+# fired. Every refusal this guard issues has to name an inverse the author can
+# actually perform — a refusal with none is a state change with no inverse, and
+# on a file-contents refusal it made a path permanently unnameable to any
+# command the guard did not recognise as a reader (CodySwannGT/lisa#3683).
+#
+# NEITHER PARAGRAPH IS AN ESCAPE HATCH, and that is deliberate. `3594` records
+# that a PreToolUse guard whose escape the guarded agent can set is not a
+# control, so nothing here is settable: the only inverses named are edits to
+# the refused command itself, and performing either one leaves a genuine
+# undeclared creation refused by the checks above. Re-quoting an unlexable
+# creation hands it to the parsed path, which refuses it; naming a document to
+# a reader files nothing, which is the whole point. The one true escape stays
+# what it was — an ambient variable a human exports before the session, which a
+# tool-call shell cannot reach because its exports do not survive into this
+# hook's environment.
+remedy_hint() {
+  case "${1:-}" in
+    unparseable)
+      cat <<'EOF'
+
+THIS COMMAND DID NOT LEX, so it was judged by pattern rather than by parse. An
+unbalanced quote is the cause, and an apostrophe in ordinary prose is the
+measured one. The pattern cannot separate a sentence about filing from a real
+filing hidden behind a trailing `#` comment, so it refuses both.
+
+THE INVERSE IS EXECUTABLE: re-quote the command so it lexes, and run it again.
+It is not a bypass — a re-quoted creation is handed to the full parser, which
+refuses it unless it declares readiness the ordinary way.
+
+A command whose every segment runs a known READER is not refused on this branch
+at all, so `cat`, `grep`, `ls`, `cp`, `mv`, `git` and `echo` never reach it.
+EOF
+      ;;
+    file)
+      cat <<'EOF'
+
+THIS REFUSAL CAME FROM A FILE THIS COMMAND RUNS. A path is opened only when the
+command puts it in a COMMAND position; a program that takes it as data — `cat`,
+`grep`, `ls`, `cp`, `mv`, `git`, a test runner — never reaches this branch. Two
+inverses, both executable:
+
+  - The file WRITES a payload locally and cannot transmit it (no HTTP client,
+    no CLI, no process spawn): it is read as data, not as a filing. Drop the
+    transmitting primitive, or slice the payload out of an existing file
+    instead of restating it here.
+  - The file produces no local artifact either — it is a DOCUMENT that quotes a
+    creation rather than a program that performs one. Name it to a reader
+    rather than to an interpreter; rewording its contents is not the remedy and
+    does not converge.
+EOF
+      ;;
+  esac
+}
+
 refuse() {
   local signature="$1"
   local roles="$2"
   local target="$3"
+  local remedy="${4:-}"
   if [ -n "$target" ]; then
     refuse_cross_repo "$signature" "$roles" "$target"
   fi
@@ -402,6 +479,8 @@ WHERE THE DECLARATION IS READ FROM: argv, the request payload — inline, in a
 \`--data-binary @file\`, or piped in over stdin — and the contents of a script
 this command runs. Moving the create into a file no longer moves it out of
 sight, so the declaration can live wherever the create does.
+
+$(remedy_hint "$remedy")
 
 OPERATOR ESCAPE: a human can export \`LISA_ALLOW_DIRECT_ISSUE_CREATE=1\` in the
 environment before starting the session. It is deliberately not reachable by
@@ -781,6 +860,84 @@ TRACKER_ENDPOINT = re.compile(
     r"|repos/[^/\s?#'\"]+/[^/\s?#'\"]+/issues",
     re.IGNORECASE,
 )
+
+# ---------------------------------------------------------------------------
+# A PAYLOAD HELD AS DATA IS NOT A SUBMISSION
+#
+# The conjunction above — an endpoint AND a creation verb in one file — cannot
+# tell a payload being WRITTEN AS TEST DATA from one about to be SUBMITTED.
+# Measured (CodySwannGT/lisa#3943): a helper that assembles test fixtures, and
+# holds a mutation body as a string constant it writes to a fixture file, was
+# refused as "a tracker creation inside <path>". It submits nothing. The same
+# helper rewritten to SLICE the payload out of an existing file was allowed —
+# so the discriminator was the literal, not the behaviour.
+#
+# The behaviour that separates them is EGRESS. A file can only file an issue if
+# it can hand its bytes to another host or another process. A file with no such
+# primitive anywhere in it cannot submit whatever its constants spell, so the
+# conjunction is reading data.
+#
+# BOTH HALVES ARE REQUIRED, and the second one is why this is not a hole. The
+# exemption needs POSITIVE evidence that the file produces a local artifact
+# (`LOCAL_WRITE`) as well as the ABSENCE of egress, so it is bounded to the
+# measured population — a fixture writer — rather than granted to any file that
+# happens to use a transport nobody enumerated. Egress is over-matched on
+# purpose: every miss in `PAYLOAD_EGRESS` widens the exemption, so the list
+# reaches for `.post(`-shaped calls and process spawning as well as named HTTP
+# clients, and a file doing both is refused. That is the guard's usual
+# direction of failure — a false refusal is reported, a false allow is silent.
+#
+# RESIDUAL, stated rather than hidden: a submitting file that ALSO writes a
+# local artifact and reaches the network through a primitive no pattern here
+# names is allowed. Nothing about `text_declares_readiness`, the nested shell
+# scan, the unparseable arm, or the argv path is weakened — this reads only the
+# coarse conjunction, which is the only arm that ever inferred a submission
+# from contents alone.
+PAYLOAD_EGRESS = re.compile(
+    # Clients and trackers, by name.
+    r"\bcurl\b|\bwget\b|\bhttpie\b|\bgh\b|\bjira\b|\bacli\b"
+    r"|requests\.|httpx|aiohttp|pycurl|urllib|urlopen|http\.client|\bsocket\b"
+    r"|https?connection|httpurlconnection|httpclient|httprequest|webclient"
+    r"|okhttp|net::http|restclient|faraday|httparty|open-uri|\blwp\b|http::tiny"
+    r"|curl_init|curl_exec|guzzle|fsockopen|file_get_contents"
+    r"|\bfetch\s*\(|axios|xmlhttprequest|node-fetch|undici|superagent"
+    r"|http\.post|http\.newrequest"
+    # Handing the payload to another process, which can carry it anywhere.
+    r"|subprocess|os\.system|popen|child_process|execsync|spawnsync"
+    r"|\bspawn\s*\(|\bexec\s*\(|\bsystem\s*\(|bun\.spawn|deno\.command"
+    # The shape a send takes in almost any language, whatever the client is
+    # called. Over-matching here costs an exemption, never a refusal.
+    r"|\.post\s*\(|\.put\s*\(|\.patch\s*\(|\.request\s*\(|\.send\s*\("
+    r"|\.execute\s*\(|\.mutate\s*\(|\.do\s*\(",
+    re.IGNORECASE,
+)
+# Producing a local artifact: the positive half of the exemption.
+LOCAL_WRITE = re.compile(
+    r"\.write\s*\(|\.writelines\s*\(|write_text\s*\(|write_bytes\s*\("
+    r"|writefilesync|writefile\s*\(|createwritestream|outputstream"
+    r"|ioutil\.writefile|\btee\b"
+    # A shell redirect. Anchored on a separator so `=>` and `->` are not read
+    # as one, and required to be followed by something path-shaped.
+    r"|(?:^|[\s;&|(])>>?\s*[\"']?[\w./$~-]",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+def payload_is_inert(text):
+    """Whether this file HOLDS a creation payload rather than submitting one.
+
+    Args:
+        text: The file's contents.
+
+    Returns:
+        True when the file writes a local artifact and carries no primitive
+        capable of transmitting anything.
+    """
+    return (
+        LOCAL_WRITE.search(text) is not None
+        and PAYLOAD_EGRESS.search(text) is None
+    )
+
 
 # ---------------------------------------------------------------------------
 # DECLARING BUILD-READY WHEN THE ROLE IS A STATE AND NOT A LABEL
@@ -1814,11 +1971,23 @@ def is_assignment_word(token):
 # harm #3705 records, because it can block the verification of a fix while
 # saying nothing about why.
 #
+# RELOCATION AND ECHOING ARE READS TOO, and leaving them off is what turned a
+# false positive into a property of the repository (CodySwannGT/lisa#3683). A
+# file that QUOTES a creation was already reachable by `grep`, `cat` and `ls`
+# once this list existed — but not by `cp` or `mv`, so the file could be read
+# and never moved, by any agent and by CI, for as long as the literal stayed in
+# it. The measured case shows why "reword it" is not the inverse: the refusal
+# recurred AFTER the content had been reworded, on a different file quoting the
+# same command. None of these four executes an operand: `cp` and `mv` copy
+# bytes, `echo` and `printf` write them to stdout. They are also the vocabulary
+# `unparseable_reads_only` answers with when the text could not be lexed at all.
+#
 # RESIDUAL, stated rather than hidden: a reader NOT on this list is still
 # followed and can still over-refuse. The set of read-only tools is unbounded,
 # so this closes the measured population and not the class. Add names here as
 # they are measured; do not invert the default to close it by fiat, or the
 # executed-script reach that #3484 bought is lost.
+#
 # The copy/move/link family is measured, not inferred: `cp <a file that files>`
 # was refused as "an unparseable command that reads as a tracker creation
 # inside <path>" (CodySwannGT/lisa#3683, trip 5, reproduced in this guard's own
@@ -1834,11 +2003,12 @@ def is_assignment_word(token):
 # standing instruction to add on measurement rather than by sweep.
 READ_ONLY_PROGRAMS = {
     "awk", "bat", "cat", "cksum", "cmp", "column", "comm", "cp", "cut",
-    "diff", "du", "file", "fold", "git", "grep", "head", "hexdump",
-    "install", "jest", "jq", "less", "ln", "ls", "md5", "md5sum", "more",
-    "mv", "nl", "od", "pytest", "rg", "sed", "sha1sum", "sha256sum",
-    "shellcheck", "shfmt", "sort", "stat", "strings", "tail", "tee",
-    "uniq", "vitest", "wc", "xxd", "yamllint",
+    "diff", "du", "echo", "file", "fold", "git", "grep", "head",
+    "hexdump", "install", "jest", "jq", "less", "ln", "ls", "md5",
+    "md5sum", "more", "mv", "nl", "od", "printf", "pytest", "rg",
+    "sed", "sha1sum", "sha256sum", "shellcheck", "shfmt", "sort",
+    "stat", "strings", "tail", "tee", "uniq", "vitest", "wc", "xxd",
+    "yamllint",
 }
 
 
@@ -1877,6 +2047,67 @@ def executing_command(argv):
             index += 2 if option in separate else 1
         index += positional
     return (None, None, [])
+
+
+# Operators that end a command in raw shell text. Used ONLY where `shlex` has
+# already refused the text, so a quote-aware split is not available — and
+# OVER-splitting is the safe direction here, because an extra segment can only
+# add a command word to check, never remove one.
+RAW_SEGMENT_SPLIT = re.compile(r"&&|\|\||[;|&\n]")
+
+
+def raw_command_words(text):
+    """The program each segment of unlexable text puts in command position.
+
+    Answered on a whitespace split because the reason this path exists is that
+    `shlex` refused the text. It still routes through `executing_command`, so a
+    leading assignment and a wrapper — `nice`, `env`, `sudo`, `timeout` — are
+    stepped over here exactly as they are on the parsed path. Reading the
+    wrapper as the command is the bypass this guard's own comments record.
+
+    Args:
+        text: The raw command string.
+
+    Returns:
+        One entry per non-empty segment: the resolved program name, or None
+        when the segment names none.
+    """
+    words = []
+    for chunk in RAW_SEGMENT_SPLIT.split(text):
+        tokens = chunk.split()
+        if not tokens:
+            continue
+        words.append(executing_command(tokens)[1])
+    return words
+
+
+def unparseable_reads_only(text):
+    """Whether unlexable text only READS, and therefore files nothing.
+
+    `UNPARSEABLE_CREATION` matches raw text, so it cannot tell a filing from a
+    sentence about one. `echo the guard's <creation> behaviour` fails to lex
+    for the apostrophe alone, and was refused as a tracker creation — a command
+    that files nothing, told that "this filing declares no readiness", with no
+    printed remedy that applied to any part of it (CodySwannGT/lisa#3683).
+
+    The fallback is NOT removable and is not narrowed here. `<creation> #'` is
+    a real filing that bash runs and `shlex` rejects, so "I could not parse it"
+    must keep meaning refuse. What this asks instead is the COMMAND POSITION
+    question the parsed path already asks and this arm skipped: only a command
+    position can run anything, and a reader takes its operands as data.
+
+    Fails closed on everything else, which is the same asymmetry
+    `READ_ONLY_PROGRAMS` documents: an unresolvable command word, an
+    unrecognised program, or a text with no segments at all is refused.
+
+    Args:
+        text: The raw command string that would not lex.
+
+    Returns:
+        True when every segment's command word is a known reader.
+    """
+    words = raw_command_words(text)
+    return bool(words) and all(word in READ_ONLY_PROGRAMS for word in words)
 
 
 def executed_operand(argv):
@@ -2021,7 +2252,9 @@ def file_creation(text, depth):
     `node wrapper.mjs`, a Python client, or anything else that speaks HTTP
     directly — it needs a tracker endpoint AND a creation verb in the same
     file, which is what keeps a changelog that merely mentions `issueCreate`
-    from reading as a creation.
+    from reading as a creation. It also needs the file to be capable of
+    SENDING what it spells: a helper that writes the same payload into a test
+    fixture submits nothing. See `payload_is_inert`.
 
     Args:
         text: The file's contents.
@@ -2041,6 +2274,9 @@ def file_creation(text, depth):
         GRAPHQL_CREATE.search(text)
         and TRACKER_ENDPOINT.search(text)
         and not text_declares_readiness(text)
+        # A payload the file WRITES rather than SENDS is data. See
+        # `payload_is_inert` for why the absence of egress alone is not enough.
+        and not payload_is_inert(text)
     ):
         return "a tracker creation", [ready_role], None
     return None
@@ -2094,6 +2330,12 @@ def scan(text, depth, from_file=False):
         # that operand needs the tokenisation that just failed. That case is
         # reachable by declaring inline instead, which this change makes work.
         if text_declares_readiness(text):
+            return None
+        # The command-position arm of the same reasoning `executed_operand`
+        # applies. A text every one of whose segments runs a known READER
+        # cannot file anything, whatever its prose says — see
+        # `unparseable_reads_only` for why this does not narrow the fallback.
+        if unparseable_reads_only(text):
             return None
         if UNPARSEABLE_CREATION.search(text):
             return (
@@ -2199,6 +2441,30 @@ def scan(text, depth, from_file=False):
 # a human one retry and a false negative costs the entire control.
 inline_override = (OVERRIDE_NAME + "=") in command
 
+
+def remedy_for(signature):
+    """Which extra remediation paragraph this refusal earns.
+
+    A guard that prints every remedy it knows prints one that does not apply,
+    and a remedy that cannot be performed is the failure this ticket is about
+    (CodySwannGT/lisa#3683): the file-payload paragraph told an author to drop
+    a transmitting primitive that a DOCUMENT does not have, and the
+    unparseable arm printed declaration advice for a command that files
+    nothing. Both are now keyed off which branch actually fired.
+
+    Args:
+        signature: The refusal signature.
+
+    Returns:
+        A key the shell half maps to a paragraph, or an empty string.
+    """
+    if signature.startswith("an unparseable command"):
+        return "unparseable"
+    if " inside " in signature:
+        return "file"
+    return ""
+
+
 found = scan(command, 0)
 if found is not None:
     signature, roles, target = found
@@ -2209,6 +2475,7 @@ if found is not None:
     print("signature=%s" % signature)
     print("roles=%s" % ", ".join(role for role in roles if role))
     print("target=%s" % (target or ""))
+    print("remedy=%s" % remedy_for(signature))
     sys.exit(0)
 
 print("ALLOW")
@@ -2239,11 +2506,28 @@ if [ -n "$structured_call" ]; then
     exit 0
   fi
 
+  # A PACKED label string counts. Exact equality against the flattened value
+  # list reads `labels: ["status:ready"]` and nothing else, but the same
+  # compliant filing spelled `labels: "status:ready,type:Bug"` — the shape
+  # `gh issue create --label` takes, and the shape several MCP servers pass
+  # through verbatim — carries no value equal to the role, so the guard
+  # refused a filing that had declared exactly what it demanded. A false
+  # positive in a guard costs more than a miss: it teaches the operator that
+  # the guard is wrong, and the next refusal is argued with rather than
+  # obeyed.
+  #
+  # Split on the DELIMITERS a packed list uses (comma, semicolon, newline) and
+  # trimmed, never on a `contains` match. `contains` would accept a body that
+  # merely mentions the role in prose — "do not mark this status:ready" — and
+  # that is a fail-open on the one question this path exists to answer.
   structured_declaration="$(
     printf '%s' "$input" |
       jq -r --arg role "$ready_role" '
         [(.tool_input // {}) | .. | strings] as $values
-        | if ($values | index($role)) then "role"
+        | ($values + ($values
+            | map(splits("[,;\n]"))
+            | map(sub("^\\s+"; "") | sub("\\s+$"; "")))) as $atoms
+        | if ($atoms | index($role)) then "role"
           elif ($values | map(select(contains("[lisa-human-gate]"))) | length) > 0 then "gate"
           else "" end
       ' 2>/dev/null || printf 'UNREADABLE'
@@ -2296,7 +2580,8 @@ case "$verdict" in
     refuse \
       "$(verdict_field signature)" \
       "$(verdict_field roles)" \
-      "$(verdict_field target)"
+      "$(verdict_field target)" \
+      "$(verdict_field remedy)"
     ;;
 esac
 

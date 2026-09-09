@@ -58,6 +58,15 @@
         ]
       },
       {
+        "matcher": "Bash|Edit|Write|Read|Task|Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/operational-hazards.sh --hook"
+          }
+        ]
+      },
+      {
         "matcher": "EnterWorktree",
         "hooks": [
           {
@@ -185,6 +194,15 @@
         "hooks": [
           {
             "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/operational-hazards.sh --session-start"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
             "command": "${PLUGIN_ROOT}/hooks/inject-resolved-config.sh"
           }
         ]
@@ -241,6 +259,15 @@
           {
             "type": "command",
             "command": "${PLUGIN_ROOT}/hooks/withdrawn-rulings.sh --session-start"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/operational-hazards.sh --session-start"
           }
         ]
       },

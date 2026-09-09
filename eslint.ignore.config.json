@@ -33,6 +33,7 @@
     ".codex/**",
     ".claude/worktrees/**",
     ".worktrees/**",
+    "worktrees/**",
     ".claude-active-project/**",
     ".claude-active-plan/**",
     "coverage/**",

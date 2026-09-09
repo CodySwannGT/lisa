@@ -12,7 +12,10 @@ import {
   resolveReleasePin,
   resolveTagCommitFromGit,
 } from "../core/lisa-release-pin.js";
-import type { ReleasePin } from "../core/reusable-workflow-pin.js";
+import type {
+  ReleasePin,
+  ReusableWorkflowRef,
+} from "../core/reusable-workflow-pin.js";
 import {
   findReusableWorkflowRefs,
   isPinnedAt,
@@ -36,6 +39,36 @@ const TEMPLATE_MODES = ["create-only", "copy-overwrite"] as const;
 type Resolution =
   | { readonly ok: true; readonly pin: ReleasePin }
   | { readonly ok: false; readonly error: UnresolvableReleasePinError };
+
+/** One workflow file whose content the pin changes. */
+interface PlannedRewrite {
+  /** Path relative to the project root. */
+  readonly relative: string;
+  /** Absolute path to write. */
+  readonly absolute: string;
+  /** The rewritten file content. */
+  readonly source: string;
+}
+
+/** One caller left alone because this release cannot vouch for its callee. */
+interface UnvouchedCaller {
+  /** Path relative to the project root. */
+  readonly relative: string;
+  /** 1-based line the caller sits on. */
+  readonly line: number;
+  /** The Lisa reusable workflow it calls. */
+  readonly workflow: string;
+  /** The ref it keeps. */
+  readonly ref: string;
+}
+
+/** Everything one pass over the project's workflow files decided. */
+interface RewritePlan {
+  /** Files to write, computed in full before any is written. */
+  readonly changes: readonly PlannedRewrite[];
+  /** Callers deliberately left on the ref they already had. */
+  readonly unvouched: readonly UnvouchedCaller[];
+}
 
 /**
  * Pin every Lisa reusable-workflow caller in a project at the commit the
@@ -158,7 +191,7 @@ export class EnsurePinnedReusableWorkflowRefsMigration implements Migration {
     if (!(await containsCaller(ctx.projectDir))) return false;
     const resolution = await this.resolved(ctx);
     if (resolution.ok) {
-      const changes = await this.plan(
+      const plan = await this.plan(
         ctx.projectDir,
         resolution.pin,
         await vouchedCallees(ctx.lisaDir, [
@@ -166,7 +199,7 @@ export class EnsurePinnedReusableWorkflowRefsMigration implements Migration {
           ...ctx.detectedTypes,
         ])
       );
-      return changes.length > 0;
+      return plan.changes.length > 0;
     }
     return this.isFatal(ctx, resolution.error);
   }
@@ -192,11 +225,18 @@ export class EnsurePinnedReusableWorkflowRefsMigration implements Migration {
     // Every rewrite is computed before any is written. A partial rewrite would
     // leave one caller on the new release and another on the old one, which
     // reads as a finished migration and is not one.
-    const changes = await this.plan(
+    const { changes, unvouched } = await this.plan(
       ctx.projectDir,
       pin,
       await vouchedCallees(ctx.lisaDir, [UNIVERSAL_LANE, ...ctx.detectedTypes])
     );
+    // Said once per apply, before anything is written. "This one stays where
+    // it is, and here is why" is the whole remedy the reporting consumer
+    // asked for: they had to revert one rewrite of five by hand, with nothing
+    // in the output marking that one as different (CodySwannGT/lisa#4021).
+    for (const caller of unvouched) {
+      ctx.logger.warn(unvouchedMessage(caller, pin));
+    }
     if (changes.length === 0) {
       return { name: this.name, action: "noop" };
     }
@@ -240,58 +280,38 @@ export class EnsurePinnedReusableWorkflowRefsMigration implements Migration {
   }
 
   /**
-   * The rewrite to perform on every workflow file that needs one.
+   * The rewrite to perform on every workflow file, and every caller skipped.
    * @param projectDir - Destination project directory
    * @param pin - The identity every caller must carry
    * @param vouched - Callee names this release carries; empty means unknown
-   * @returns One entry per file whose content changes
+   * @returns Files whose content changes, and callers left on their own ref
    */
   private async plan(
     projectDir: string,
     pin: ReleasePin,
     vouched: ReadonlySet<string>
-  ): Promise<
-    readonly { relative: string; absolute: string; source: string }[]
-  > {
+  ): Promise<RewritePlan> {
+    // An EMPTY vouched set means the templates could not be read, not that
+    // this release ships no reusable workflows. Falling back to pinning
+    // everything preserves today's behaviour rather than silently disabling
+    // the pin, which would be a worse failure than the one this guard exists
+    // to prevent.
+    const shouldPin = (workflow: string): boolean =>
+      vouched.size === 0 || vouched.has(workflow);
     const files = await workflowFiles(projectDir);
-    const planned = await Promise.all(
+    const perFile = await Promise.all(
       files.map(async relative => {
         const absolute = path.join(projectDir, relative);
         const before = await readFile(absolute, "utf8").catch(() => null);
-        if (before === null) return [];
-        const refs = findReusableWorkflowRefs(before);
-        if (refs.length === 0) return [];
-        // An EMPTY vouched set means the templates could not be read, not
-        // that this release ships no reusable workflows. Falling back to
-        // pinning everything preserves today's behaviour rather than silently
-        // disabling the pin, which would be a worse failure than the one this
-        // guard exists to prevent.
-        const shouldPin = (workflow: string): boolean =>
-          vouched.size === 0 || vouched.has(workflow);
-        // Only references this release will actually pin count toward
-        // "already settled". An unvouched reference is deliberately left
-        // mutable, so it is never `isPinnedAt` — reading it as unsettled made
-        // this file report a change on EVERY apply, rewriting byte-identical
-        // content and logging a pin that did not happen. That is the exact
-        // idempotency the migration otherwise guarantees.
-        if (
-          refs.every(
-            reference =>
-              !shouldPin(reference.workflow) || isPinnedAt(reference, pin)
-          )
-        ) {
-          return [];
-        }
-        return [
-          {
-            relative,
-            absolute,
-            source: pinReusableWorkflowRefs(before, pin, shouldPin),
-          },
-        ];
+        return before === null
+          ? EMPTY_PLAN
+          : planFile({ relative, absolute, before, pin, shouldPin });
       })
     );
-    return planned.flat();
+    return {
+      changes: perFile.flatMap(entry => entry.changes),
+      unvouched: perFile.flatMap(entry => entry.unvouched),
+    };
   }
 
   /**
@@ -346,6 +366,96 @@ export class EnsurePinnedReusableWorkflowRefsMigration implements Migration {
     }
     return false;
   }
+}
+
+/** What a file that contributes nothing to the plan returns. */
+const EMPTY_PLAN: RewritePlan = { changes: [], unvouched: [] };
+
+/**
+ * Decide what one workflow file contributes to the plan.
+ *
+ * A file is rewritten when any caller this release WILL pin is not already at
+ * the pin. Callers it will not pin are recorded instead — and recorded even
+ * when the file needs no rewrite, because the reason a caller stays on the ref
+ * it has is the sentence the consumer needs in order to write the right
+ * comment beside it.
+ * @param input - The file, its content, and what is being pinned
+ * @param input.relative - Path relative to the project root
+ * @param input.absolute - Absolute path to the workflow file
+ * @param input.before - Current content of the file
+ * @param input.pin - The identity every caller must carry
+ * @param input.shouldPin - Whether a given callee basename may be pinned
+ * @returns This file's contribution to the plan
+ */
+function planFile(input: {
+  readonly relative: string;
+  readonly absolute: string;
+  readonly before: string;
+  readonly pin: ReleasePin;
+  readonly shouldPin: (workflow: string) => boolean;
+}): RewritePlan {
+  const { relative, absolute, before, pin, shouldPin } = input;
+  const refs = findReusableWorkflowRefs(before);
+  if (refs.length === 0) return EMPTY_PLAN;
+
+  // Only references this release will actually pin count toward "already
+  // settled". An unvouched reference is deliberately left mutable, so it is
+  // never `isPinnedAt` — reading it as unsettled made this file report a
+  // change on EVERY apply, rewriting byte-identical content and logging a pin
+  // that did not happen. That is the exact idempotency the migration
+  // otherwise guarantees.
+  const settled = refs.every(
+    reference => !shouldPin(reference.workflow) || isPinnedAt(reference, pin)
+  );
+
+  return {
+    changes: settled
+      ? []
+      : [
+          {
+            relative,
+            absolute,
+            source: pinReusableWorkflowRefs(before, pin, shouldPin),
+          },
+        ],
+    unvouched: refs
+      .filter(reference => !shouldPin(reference.workflow))
+      .map(reference => toUnvouched(relative, reference)),
+  };
+}
+
+/**
+ * Record one caller this release cannot vouch for.
+ * @param relative - Path relative to the project root
+ * @param reference - The caller reference found there
+ * @returns The reportable record
+ */
+function toUnvouched(
+  relative: string,
+  reference: ReusableWorkflowRef
+): UnvouchedCaller {
+  return {
+    relative,
+    line: reference.line,
+    workflow: reference.workflow,
+    ref: reference.ref,
+  };
+}
+
+/**
+ * Say why one caller was left where it was, in the consumer's terms.
+ * @param caller - The caller left alone
+ * @param pin - The identity the rest of the project was pinned at
+ * @returns An operator-readable statement
+ */
+function unvouchedMessage(caller: UnvouchedCaller, pin: ReleasePin): string {
+  return (
+    `${caller.relative}:${caller.line} calls ${caller.workflow}@${caller.ref} and stays on that ref: ` +
+    `no caller template in the installed Lisa references ${caller.workflow}, so this release cannot ` +
+    `confirm it exists at ${pin.sha} (v${pin.version}). Pinning it there could name a commit the workflow ` +
+    "is absent from, and GitHub answers an unresolvable `uses:` with a load error — zero jobs created, so " +
+    "zero failures, and nothing naming the missing file."
+  );
 }
 
 /**

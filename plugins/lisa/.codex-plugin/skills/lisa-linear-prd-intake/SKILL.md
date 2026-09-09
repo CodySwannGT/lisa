@@ -12,7 +12,7 @@ allowed-tools: ["Skill", "Bash"]
 - A Linear **team** URL or team key — scans every project on the team whose labels include the configured `ready` label. Example: `https://linear.app/acme/team/ENG/projects` or bare `ENG`.
 - The literal token `linear` — equivalent to "the default Linear workspace"; only valid if `linear.workspace` is configured in `.lisa.config.json`.
 
-Run one intake cycle against that scope. The first eligible project with the `ready` label is claimed, validated, routed to either the `blocked` label (with clarifying comments on a sentinel feedback issue) or the `ticketed` label (with destination tickets created), then the cycle exits. Remaining ready projects stay queued for later scheduler invocations.
+Run one intake cycle against that scope. The first eligible project with the `ready` label is claimed, validated, routed to either the `blocked` label (with clarifying comments on the project) or the `ticketed` label (with destination tickets created), then the cycle exits. Remaining ready projects stay queued for later scheduler invocations.
 
 ## Workflow resolution
 
@@ -37,9 +37,15 @@ SHIPPED=$(read_role shipped "prd-shipped")
 SENTINEL=$(read_role sentinel "prd-intake-feedback")
 ```
 
+`$SENTINEL` is **legacy-read-only**. This skill no longer creates a sentinel
+feedback issue — unanchored comments go on the project. The role is still
+resolved because projects intake ran against before this change already carry
+one, and the rollup phase must recognise it to keep it out of the denominator
+(see "Legacy sentinel feedback issues").
+
 In prose below, the role names refer to the resolved labels: e.g. "the `ready` label" means whatever `linear.labels.prd.ready` resolves to (default: `prd-ready`).
 
-This skill is the Linear counterpart of `lisa-notion-prd-intake` and `lisa-confluence-prd-intake`, and shares its PRD shipped rollup phase (3f) with `lisa-github-prd-intake`. The phases, gates, comment templates, and rules are identical — the only differences are (1) the lifecycle is encoded as **project labels** instead of a status property, (2) the fetch / update tools are Linear MCP, and (3) clarifying-question comments land on a sentinel feedback Issue under the project (because Linear's MCP does not expose project-level comments). Keep all four intake skills behaviorally aligned: when changing intake logic — including the rollup phase — change them together.
+This skill is the Linear counterpart of `lisa-notion-prd-intake` and `lisa-confluence-prd-intake`, and shares its PRD shipped rollup phase (3f) with `lisa-github-prd-intake`. The phases, gates, comment templates, and rules are identical — the only differences are (1) the lifecycle is encoded as **project labels** instead of a status property, and (2) the fetch / update surface is `lisa-linear-access`. Unanchored clarifying-question comments land on the **project itself**, exactly as they do on a Notion or Confluence page — `lisa-linear-access operation: save-comment project_id:<ID>` maps to `commentCreate(input: { projectId, body })`, which Linear has always supported. Keep all four intake skills behaviorally aligned: when changing intake logic — including the rollup phase — change them together.
 
 The **PRD shipped rollup phase (3f)** transitions a `$TICKETED` PRD project to `$SHIPPED` once all its generated top-level work is terminal, per the `prd-lifecycle-rollup` rule. This is the Linear leg of the same vendor-neutral rollup that `lisa-github-prd-intake` implements for GitHub (LPC-1.3 #584); only the vendor surface (Linear workflow states + project labels) differs.
 
@@ -146,7 +152,7 @@ This call also indirectly invokes `lisa-tracker-source-artifacts` (artifact extr
 
 1. Re-invoke `lisa-linear-to-tracker` with `dry_run: false` to actually write the tickets. This re-runs Phases 1-5 and runs the preservation gate (Phase 5.5).
 2. Capture the created ticket keys from the skill's output.
-3. Ensure the project has a sentinel feedback issue (see "Sentinel feedback issue" below for the helper). Post a comment on it via `lisa-linear-access operation: save-comment` listing the created tickets (epic, stories, sub-tasks) with their JIRA URLs. Lead with: `"Ticketed by Claude. Created N JIRA issues — see below. Add the $SHIPPED label to the Linear project after the work is delivered."`
+3. Post a comment on the project via `lisa-linear-access operation: save-comment project_id:<id>` listing the created tickets (epic, stories, sub-tasks) with their JIRA URLs. Lead with: `"Ticketed by Claude. Created N JIRA issues — see below. Add the $SHIPPED label to the Linear project after the work is delivered."`
 4. Transition labels: remove `$IN_REVIEW`, add `$TICKETED` via `save_project`.
 5. **Run Phase 3e (coverage audit)** before considering this PRD done.
 
@@ -157,13 +163,13 @@ The audience for these comments is the **product team**, not engineers. They are
 ##### 3c.1 Partition failures
 
 1. Drop every failure where `product_relevant = false`. Those are internal data-quality problems — the agent should fix its own spec rather than ask product to clarify a missing core field. Record the dropped failures under `Errors` in the cycle summary so engineers can see them; never surface them on the PRD.
-2. Group the remaining product-relevant failures by `prd_anchor` (which, for Linear, is a sub-issue identifier when the failure traces to a specific issue, or `null` otherwise). Failures that share an anchor become one comment thread on that issue. Failures with `prd_anchor: null` are batched into one comment on the sentinel feedback issue, since they have no source sub-issue to attach to.
+2. Group the remaining product-relevant failures by `prd_anchor` (which, for Linear, is a sub-issue identifier when the failure traces to a specific issue, or `null` otherwise). Failures that share an anchor become one comment thread on that issue. Failures with `prd_anchor: null` are batched into one comment on the **project itself**, since they have no source sub-issue to attach to.
 
 ##### 3c.2 Render each comment
 
-Ensure the project has a sentinel feedback issue (see helper below). For each anchored group (`prd_anchor` is a sub-issue identifier), post a comment on THAT sub-issue via `lisa-linear-access operation: save-comment({issueId: <prd_anchor>, body: <template>})`. For the unanchored group, post a single comment on the sentinel feedback issue using the same template, prefixed with `Issues without a specific sub-issue anchor:` and one block per failure.
+For each anchored group (`prd_anchor` is a sub-issue identifier), post a comment on THAT sub-issue via `lisa-linear-access operation: save-comment issue_id:<prd_anchor> body:<template>`. For the unanchored group, post a single comment on the **project** via `lisa-linear-access operation: save-comment project_id:<id> body:<template>`, using the same template, prefixed with `Issues without a specific sub-issue anchor:` and one block per failure.
 
-If `save_comment` fails for a specific anchored sub-issue (the issue was deleted between fetch and post, or the agent lacks comment permission), fall back to the sentinel feedback issue for that group. Do not silently drop the failure.
+If `save-comment` fails for a specific anchored sub-issue (the issue was deleted between fetch and post, or the agent lacks comment permission), fall back to the **project** comment for that group. Do not silently drop the failure, and do not create an issue to hold it.
 
 ##### 3c.3 Comment template
 
@@ -207,7 +213,7 @@ Use these exact badge labels — they are the validator's category values transl
 
 ##### 3c.6 Label transition
 
-After all comments are posted (anchored groups + the optional sentinel-issue summary), transition labels: remove `$IN_REVIEW`, add `$BLOCKED` via `save_project`. Do NOT write any destination tickets.
+After all comments are posted (anchored groups + the optional project-level summary), transition labels: remove `$IN_REVIEW`, add `$BLOCKED` via `save_project`. Do NOT write any destination tickets.
 
 #### 3d. Stop
 
@@ -223,8 +229,8 @@ Per-ticket gates prove each ticket is well-formed; they do NOT prove the *set* o
    | Verdict | Action |
    |---------|--------|
    | `COMPLETE` | Done. Leave label as `$TICKETED`. End the cycle. |
-   | `COMPLETE_WITH_SCOPE_CREEP` | Post an advisory comment on the sentinel feedback issue naming the scope-creep tickets (so product can decide whether to close them as out-of-scope). Leave label as `$TICKETED`. |
-   | `GAPS_FOUND` | The created ticket set is incomplete. (a) For each gap, post a comment using the same product-facing template as Phase 3c.3 — anchored on the relevant sub-issue when `prd_anchor` is non-null, on the sentinel feedback issue otherwise; category badge from the gap's `category` field; `What's unclear` and `Recommendation` from the audit report's `what` and `recommendation` fields. Apply the same forbidden-language rules from Phase 3c.5. (b) Post one summary comment on the sentinel feedback issue listing the tickets that *were* successfully created (so product knows what to keep vs. what to extend). (c) Transition labels from `$TICKETED` back to `$BLOCKED` via `save_project`. |
+   | `COMPLETE_WITH_SCOPE_CREEP` | Post an advisory comment on the project naming the scope-creep tickets (so product can decide whether to close them as out-of-scope). Leave label as `$TICKETED`. |
+   | `GAPS_FOUND` | The created ticket set is incomplete. (a) For each gap, post a comment using the same product-facing template as Phase 3c.3 — anchored on the relevant sub-issue when `prd_anchor` is non-null, on the project otherwise; category badge from the gap's `category` field; `What's unclear` and `Recommendation` from the audit report's `what` and `recommendation` fields. Apply the same forbidden-language rules from Phase 3c.5. (b) Post one summary comment on the project listing the tickets that *were* successfully created (so product knows what to keep vs. what to extend). (c) Transition labels from `$TICKETED` back to `$BLOCKED` via `save_project`. |
    | `NO_TICKETS_FOUND` | Should not happen if step 2 succeeded. If it does, log it as an Error in the cycle summary and leave label as `$TICKETED` with a comment flagging the audit failure for human review. |
 
 3. The created tickets remain in the destination tracker regardless of the verdict — they are valid in their own right. The audit only tells us whether *more* are needed.
@@ -251,6 +257,8 @@ Read the PRD's **generated top-level work** — its created Epics and any top-le
 
 2. **Documented `## Tickets` section (fallback).** When the native relationship is unavailable (the destination tracker is a *different* system — e.g. Linear PRD → JIRA tracker — so the children were never linked as Linear issues), parse the machine-readable generated-work section `lisa-prd-backlink` writes to the PRD (`## Tickets`, alias `## Generated Work`; see #582). Top-level children are the `### <Epic key>: <title>` group headers' first line (`- [<ref>](<url>) — Epic`) plus any top-level Story listed directly under `### Unparented items`. Lines nested deeper (`  - ... — Story:` under an Epic, `    - ... — Sub-task:`) are descendants, NOT top-level children — skip them.
 
+**Exclude any Issue carrying the `$SENTINEL` label from the child set entirely — before the dedupe, before the predicate.** A legacy sentinel is an artifact of this skill, not generated work, and it can never be terminal: closing it was forbidden precisely so its comment history stayed intact. Counting it kept the PRD out of `$SHIPPED` forever — a project whose real children were all terminal still sat at `$TICKETED` because the one non-terminal child was the reporting mechanism itself. It is excluded regardless of its state, so projects that already have a sentinel unjam without anyone touching the sentinel. Record it in the cycle summary as `excluded: legacy sentinel <ref>` so the exclusion is visible rather than silent.
+
 Dedupe the resulting child set by **child-ref identity** (the Linear issue/project identifier, e.g. `TEAM-123` or its UUID) so a child that appears both as a native relationship and in the documented section is counted once (`prd-lifecycle-rollup` idempotency dedupe key). If neither source yields any child (the PRD generated nothing, or the relationship was never recorded), record `no generated top-level children — rollup skipped` and leave the PRD as `$TICKETED`; do not ship an empty PRD.
 
 ##### 3f.3 Apply the terminal-state predicate
@@ -261,7 +269,7 @@ For each top-level child, fetch its workflow state and classify per the `prd-lif
 - **Terminal-but-dropped.** The child is in a **canceled** workflow state (the `canceled`-category state). Like a not-planned leaf, it does not hold the PRD open and is excluded from the shipped set.
 - **Incomplete / blocked.** Anything else: any backlog / unstarted / started / triage workflow state. Holds the PRD open.
 
-The set of **required** children for the all-terminal check is the top-level children minus the canceled (terminal-but-dropped) ones.
+The set of **required** children for the all-terminal check is the top-level children minus the canceled (terminal-but-dropped) ones. Legacy `$SENTINEL`-labelled Issues never reach this predicate at all — 3f.2 drops them from the child set, so they are absent from both the numerator and the denominator.
 
 ##### 3f.4 Branch on the rollup verdict
 
@@ -269,12 +277,12 @@ The set of **required** children for the all-terminal check is the top-level chi
 
 1. Transition labels: remove `$TICKETED`, add `$SHIPPED` via `lisa-linear-access operation: save-project({id, labels})`. Verify exactly one lifecycle label remains (the single-label invariant).
 2. Leave the PRD active for `/lisa:verify-prd`; do not archive at the shipped hop.
-3. Post a short rollup comment on the sentinel feedback issue naming the terminal child set and (when dropped children exist) the dropped set, so the audit trail records *why* the PRD shipped. Lead with `"Shipped by Claude — all generated top-level work is complete."`
+3. Post a short rollup comment on the project naming the terminal child set and (when dropped children exist) the dropped set, so the audit trail records *why* the PRD shipped. Lead with `"Shipped by Claude — all generated top-level work is complete."`
 
 **Any required child incomplete / blocked**:
 
 1. Leave the PRD label as `$TICKETED` and leave the project **active**. Do NOT add `$SHIPPED`. Do NOT archive.
-2. Report the incomplete child set — both in the cycle summary and, when at least one cycle has previously ticketed this PRD, as a single advisory comment on the sentinel feedback issue listing the still-open children (`- <ref> "<title>" — <state>`), so product can see what's blocking the rollup. Keep it idempotent: regenerate the advisory rather than appending a fresh one each cycle.
+2. Report the incomplete child set — both in the cycle summary and, when at least one cycle has previously ticketed this PRD, as a single advisory comment on the project listing the still-open children (`- <ref> "<title>" — <state>`), so product can see what's blocking the rollup. Keep it idempotent: regenerate the advisory rather than appending a fresh one each cycle.
 
 ##### 3f.5 Rollup cites the rule
 
@@ -315,28 +323,37 @@ Coverage audit summary: <n> COMPLETE / <n> COMPLETE_WITH_SCOPE_CREEP / <n> GAPS_
 
 Print to the agent's output. Do not write this summary to Linear or the destination tracker — it's an operational record for the human.
 
-## Sentinel feedback issue
+## Legacy sentinel feedback issues
 
-Linear's MCP does not expose project-level comments. To preserve the comment-based feedback channel that Notion and Confluence intake have natively, this skill maintains a single sentinel **feedback Issue** under each project. All clarifying-question comments that don't anchor to a specific sub-issue land here.
+Earlier versions of this skill find-or-created one Issue per project — titled
+`"PRD intake: clarifying questions"`, labelled `$SENTINEL` — to hold the
+unanchored clarifying-question comments, on the belief that Linear had no
+project-level comment channel. It does: `commentCreate(input: { projectId, body })`
+and `Project.comments` are first-class operations, now exposed by
+`lisa-linear-access` as the `project_id` forms of `save-comment` and
+`list-comments`. The constraint was this wrapper, never the substrate.
 
-The sentinel issue is identified by:
+**This skill no longer creates a sentinel.** There is no find-or-create step;
+unanchored comments go on the project. New projects never get one.
 
-- A stable title: `"PRD intake: clarifying questions"`
-- A stable label: `$SENTINEL` (issue-level label, distinct from the project-level PRD lifecycle labels)
-- Membership in the project being processed
+Projects processed before this change still carry theirs, so:
 
-Helper behavior — call this **before** posting any clarifying-question comment in Phase 3c or 3e:
+- **Do not close, archive, delete, or repurpose an existing sentinel.** Its
+  comment history is a real audit trail, and it has nowhere else to live yet.
+  Retiring them is deliberately out of scope here.
+- **Do not post to it either.** New unanchored comments go on the project, so the
+  two channels do not interleave.
+- **The rollup ignores it** (Phase 3f.2). That is what stops an existing sentinel
+  from holding its project out of `$SHIPPED` forever.
 
-1. Search for an existing feedback issue: `list_issues({project: <id>, label: "$SENTINEL"})`. If multiple match (shouldn't happen, but defensive), use the oldest by `createdAt`.
-2. If none exists: ensure the `$SENTINEL` label exists on the project's team via `list_issue_labels` then `create_issue_label` if needed; then create the sentinel via `save_issue({team: <team-id>, project: <id>, title: "PRD intake: clarifying questions", description: "Auto-created by lisa-linear-prd-intake. This issue collects clarifying-question comments that don't anchor to a specific sub-issue. Do not close manually — it is reused across intake cycles.", labels: ["$SENTINEL"]})`. Capture the new issue identifier.
-3. Return the issue identifier to the caller for use in `save_comment({issueId: <id>, body: ...})`.
-
-Idempotency: the helper finds-or-creates. Re-runs of the cycle reuse the same sentinel issue. Comments accumulate; product reads top-down to see the latest cycle's findings. Do not delete or repurpose old comments — history is the audit trail.
+`$SENTINEL` therefore survives in config as a **read-only recognizer** — the
+label name the rollup matches on to exclude these issues. It is no longer a
+label this skill writes.
 
 ## Idempotency & safety
 
 - **One item per cycle**: this skill processes the first eligible ready project from Phase 2, then exits. New or remaining `$READY` projects are picked up by later scheduler invocations.
-- **No writes outside the lifecycle**: this skill only ever writes to the destination tracker via `lisa-linear-to-tracker` (which delegates to `lisa-tracker-write`), only ever changes Linear project labels among `$IN_REVIEW`, `$BLOCKED`, `$TICKETED`, and `$SHIPPED` (the last via the rollup phase 3f only), only ever creates/comments on the sentinel feedback issue (never any other Linear issue). It never edits project descriptions, never edits Linear documents, never touches the `draft` label, never archives projects at the shipped hop, and never deletes projects.
+- **No writes outside the lifecycle**: this skill only ever writes to the destination tracker via `lisa-linear-to-tracker` (which delegates to `lisa-tracker-write`), only ever changes Linear project labels among `$IN_REVIEW`, `$BLOCKED`, `$TICKETED`, and `$SHIPPED` (the last via the rollup phase 3f only), only ever comments on the PRD project itself and on the sub-issues a failure anchors to (never on any other Linear issue, and it creates no Linear issue of its own). It never edits project descriptions, never edits Linear documents, never touches the `draft` label, never archives projects at the shipped hop, and never deletes projects.
 - **Claim-first ordering**: the label flip to `$IN_REVIEW` happens BEFORE validation runs, so a re-entrant call won't double-process.
 - **Failure handling**: an exception processing the selected project is caught and recorded under "Errors" in the summary, then the cycle exits. The project that errored is left labelled `$IN_REVIEW` — the human investigates from there.
 - **Single-label invariant**: after every transition, verify exactly one lifecycle label is present on the project. If two are present (rare race), surface as an Error and skip — do NOT auto-resolve, the human decides.
@@ -358,18 +375,18 @@ Destination tracker config (jira / github / linear) is consumed by `lisa-tracker
 | `.lisa.config.json` `linear.labels.prd.blocked` | `prd-blocked` | Project label set on validation failure |
 | `.lisa.config.json` `linear.labels.prd.ticketed` | `prd-ticketed` | Project label set on success |
 | `.lisa.config.json` `linear.labels.prd.shipped` | `prd-shipped` | Project label set by the rollup phase (3f) when all generated top-level work is terminal; product may also set it by hand |
-| `.lisa.config.json` `linear.labels.prd.sentinel` | `prd-intake-feedback` | Issue-level label marking the sentinel feedback issue |
+| `.lisa.config.json` `linear.labels.prd.sentinel` | `prd-intake-feedback` | Issue-level label marking a **legacy** sentinel feedback issue. Read-only: matched so the rollup can exclude it (Phase 3f.2); never written by this skill |
 
 ## Rules
 
 - Never write to the destination tracker outside of `lisa-linear-to-tracker` → `lisa-tracker-write`. The validator's verdict gates progress; bypassing it produces broken tickets.
-- Never add or remove a label this skill doesn't own (`$IN_REVIEW`, `$BLOCKED`, `$TICKETED`, and `$SHIPPED` via the rollup phase only). Product owns the `draft` and `ready` labels; product and the rollup phase (3f) both set `shipped`. The issue-level `$SENTINEL` label is owned by this skill but is not a lifecycle label.
+- Never add or remove a label this skill doesn't own (`$IN_REVIEW`, `$BLOCKED`, `$TICKETED`, and `$SHIPPED` via the rollup phase only). Product owns the `draft` and `ready` labels; product and the rollup phase (3f) both set `shipped`. The issue-level `$SENTINEL` label is read-only here — matched to recognise legacy sentinel issues, never applied.
 - Set `$SHIPPED` only from the rollup phase, and only when all generated top-level children are terminal per the `prd-lifecycle-rollup` rule. Never ship on partial completion and never archive at shipped.
-- Never edit a project's description or any attached Linear document. Communication with product happens only through comments on sub-issues or on the sentinel feedback issue.
-- Never post a single dump of all gate failures on one comment. One comment per `prd_anchor` group on the relevant sub-issue (or one comment on the sentinel feedback issue for unanchored failures only). Comments must be sub-issue-anchored where possible, categorized, plain-language, and contain a concrete recommendation.
+- Never edit a project's description or any attached Linear document. Communication with product happens only through comments — on the project itself, or on the sub-issue a failure anchors to.
+- Never post a single dump of all gate failures on one comment. One comment per `prd_anchor` group on the relevant sub-issue (or one comment on the project for unanchored failures only). Comments must be sub-issue-anchored where possible, categorized, plain-language, and contain a concrete recommendation.
 - Never include a gate ID, internal skill name, or engineering shorthand in a comment body.
 - Never run more than one intake cycle concurrently against the same scope. This skill assumes serial execution.
-- Never close, archive, or otherwise modify the sentinel feedback issue except to post comments on it. Its longevity is the audit trail.
+- Never create a Linear issue to hold a comment. Unanchored feedback belongs on the project. Never close, archive, repurpose, or post to a legacy sentinel issue either — its existing history is an audit trail, and retiring those issues is a separate, deliberate follow-up.
 - If `lisa-linear-to-tracker` returns errors, treat them as gate failures: comment + `$BLOCKED`. Don't silently fail.
 
 ## Adoption (one-time per project)

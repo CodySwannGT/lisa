@@ -211,6 +211,12 @@
         "run": "check:withdrawn-rulings"
       }
     },
+    "x-operational-hazards": {
+      "push": {
+        "level": "required",
+        "run": "check:operational-hazards"
+      }
+    },
     "x-plugin-artifact-sync": {
       "push": {
         "level": "required",

@@ -1,57 +1,36 @@
 ---
-description: "Harper/Fabric Project Rules"
+description: "Harper/Fabric Project Rules (load-bearing)"
 alwaysApply: true
 ---
 
-# Harper/Fabric Project Rules
+# Harper/Fabric Project Rules (load-bearing)
 
-These rules apply to Harper/Fabric component apps managed by Lisa.
+These rules apply to Harper/Fabric component apps managed by Lisa. The head
+below is what changes behaviour in a session that never asks for it; the full
+contract — deploy surface, documentation sync, design-system detail — lives in
+the reference body.
 
-## Build The Real Thing
+## Mandatory
 
-- Do not ship client-side workarounds for missing backend behavior. If a change needs a Harper resource, schema update, seed path, or deploy script change, make that change.
-- Do not silently downgrade a feature to a stub, mock, or partial path. Only use a stop-gap when the user explicitly asks for one.
-- Treat deployed Fabric behavior as part of the product. A change is unfinished until the local build and the relevant deployed or smoke path agree.
+1. **Build the real thing.** If a change needs a Harper resource, schema
+   update, seed path, or deploy script change, make that change. Do not ship a
+   client-side workaround, a stub, or a partial path for missing backend
+   behaviour unless the user explicitly asks for a stop-gap.
+2. **TypeScript under `src/` is the source.** Every `.js` at the harper-app root
+   (`harper-app/*.js`), plus `harper-app/web/**/*.js` and `harper-app/lib/**`,
+   is a generated deploy artifact. Never edit one — change the matching
+   TypeScript and run `bun run build`.
+3. **`harper-app/config.yaml` does not merge with Harper defaults.** Keep every
+   required top-level extension declared when editing it.
+4. **UI is composed from the project design system.** Extend the design-system
+   component first, then consume it through the barrel. No raw colours, no ad
+   hoc spacing. Every UI change needs Playwright verification with screenshots —
+   typecheck and unit tests are not enough for a visual change.
+5. **Immutable data flow.** `readonly` types, pure transformations, `const` over
+   `let`. Do not mutate parameters, singletons, fixtures, or config objects. No
+   `any`, broad casts, or `ts-ignore` outside a typed adapter.
+6. **Verify before reporting completion.** `bun run build`, `bun run typecheck`,
+   and the smallest relevant test command; plus the project smoke command for
+   deploy-affecting changes. If a command cannot run, report it and the blocker.
 
-## TypeScript Is Source
-
-- TypeScript under `src/` is the source of truth for Harper resources, browser modules, shared libraries, and operational scripts.
-- `harper-app/config.yaml`, `harper-app/schema.graphql`, HTML, CSS, docs, and research fixtures are source assets.
-- `harper-app/config.yaml` does not merge with Harper defaults. Keep every required top-level extension declared when editing it; the Harper Fabric hook blocks accidental extension drops unless the removal is documented in `.lisa/harper-config-extension-allowlist.json`.
-- Every `.js` at the harper-app root (`harper-app/*.js` — `resources.js`, `resource-*.js`, and any other compiled module) plus `harper-app/web/**/*.js` and `harper-app/lib/**` are generated deploy artifacts. Never edit them directly; change the matching TypeScript and run `bun run build`. Name compiled resource modules `resource-*.ts` so their output is unambiguously generated; a hand-written `.js` kept at the harper-app root must be re-included in `.gitignore` and listed in `.lisa/harper-generated-artifact-allowlist.txt` so the block hook allows editing it.
-- Deployment, bootstrap, smoke, seed, verify, preview, token, crawl, ingest, and extraction commands must run from compiled JavaScript or generated Harper assets, not stale checked-in JavaScript.
-
-## Harper/Fabric Deploy Surface
-
-- A deployable Harper app must keep `config.yaml`, `schema.graphql`, `resources.js`, and `web/**` at the component root that Fabric packages.
-- Build before symlinking, packaging, or deploying `harper-app/`.
-- Keep runtime secrets out of tracked files. Prefer environment variables or OS keychain helpers; document secret locations without recording secret values.
-- When discovering a Harper/Fabric limitation or workaround, document the symptom, root cause, fix, and tempting broken alternatives in the project runbook.
-
-## Documentation Sync
-
-- Project docs are operational contracts. When commands, schema, deploy shape, data model, seeded-data summary, crawler behavior, credential handling, or UI components change, update the matching project doc in the same change.
-- Harper schema changes must update the conceptual schema docs and any verify paths that assert joins or row counts.
-- Deploy topology, credential rotation, generated-artifact layout, and Fabric workarounds belong in the Fabric runbook.
-- UI component, token, variant, or design-system changes must update the design-system catalog.
-
-## UI Work
-
-- Browser UI must be composed from the project design system. Search the existing design-system catalog and components before adding markup.
-- Add or extend the design-system component first, then consume it from pages.
-- Pages should import UI components through the design-system barrel, not deep component paths.
-- Do not introduce raw colors or ad hoc spacing in UI styles. Use design tokens and update the token docs when adding tokens.
-- Every UI change needs Playwright verification that checks DOM behavior and captures screenshots. Type checks and unit tests are not enough for visual changes.
-
-## Immutable Code
-
-- Prefer immutable data flow: `readonly` types, pure transformations, object/array copies, and explicit returned values.
-- Do not mutate parameters, imported singletons, fixture objects, records, arrays, DOM-derived state, or config objects unless an API requires mutation and the exception is documented locally.
-- Avoid `let`; use `const` and small pure helper functions instead.
-- Avoid `any`, broad casts, and `ts-ignore`. If an external API forces an escape hatch, isolate it behind a typed adapter.
-
-## Verification
-
-- Run `bun run build`, `bun run typecheck`, and the smallest relevant test command before reporting completion.
-- For deploy-affecting changes, also run the project smoke command against the local or deployed Harper endpoint.
-- If a verification command cannot run, report the exact command and blocker.
+Full prose: [reference/harper-fabric.md](harper-fabric-reference.mdc).

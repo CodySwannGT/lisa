@@ -130,6 +130,21 @@ describe("block-managed-file-edits.sh reach", () => {
         "a wrapper with its own operand",
         () => `nice -n 5 bash ${redirectScript}`,
       ],
+      // `env` runs what follows it without changing what it is, exactly as
+      // `nice` and `nohup` above do, and it was the one such wrapper missing
+      // from the table. It is also the one a caller reaches for WITHOUT
+      // thinking about wrappers at all, because `env VAR=value <cmd>` is how a
+      // one-off environment override is spelled — so its absence was reachable
+      // by habit rather than by evasion.
+      ["env", () => `env bash ${redirectScript}`],
+      ["env with an assignment", () => `env FOO=bar bash ${redirectScript}`],
+      [
+        "env with several assignments",
+        () => `env FOO=bar BAZ=qux bash ${redirectScript}`,
+      ],
+      ["env -i", () => `env -i bash ${redirectScript}`],
+      ["env -u", () => `env -u FOO bash ${redirectScript}`],
+      ["a bare script path behind env", () => `env ${redirectScript}`],
     ])("refuses %s inside an executed script", (_label, command) => {
       expect(run(command())).toBe(EXIT_BLOCKED);
     });

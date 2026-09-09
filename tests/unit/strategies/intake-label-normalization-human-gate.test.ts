@@ -33,6 +33,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  HUMAN_GATE_RELEASE_MARKER,
   NORMALIZATION_HOLD_NOTE_MARKER,
   formatNormalizationHoldNote,
   isHumanGated,
@@ -248,11 +249,19 @@ describe("what the operator reads when a hold is left alone", () => {
     expect(NORMALIZATION_HOLD_NOTE_MARKER).not.toContain("[lisa-human-gate]");
   });
 
+  it("names the release marker, because that is what a person types", () => {
+    expect(formatNormalizationHoldNote()).toContain(HUMAN_GATE_RELEASE_MARKER);
+  });
+
   it("uses no vocabulary the reader has to already know", () => {
-    const note = formatNormalizationHoldNote().replace(
-      NORMALIZATION_HOLD_NOTE_MARKER,
-      ""
-    );
+    // The release marker is the ONE token the note may name, and it is exempt
+    // for the reason the rest are banned: this is not vocabulary the reader has
+    // to already know, it is the literal string they type to lift the hold.
+    // Withholding it would leave the note describing a mechanism it declines to
+    // name — the state of affairs CodySwannGT/lisa#3852 was filed about.
+    const note = formatNormalizationHoldNote()
+      .replace(NORMALIZATION_HOLD_NOTE_MARKER, "")
+      .replace(HUMAN_GATE_RELEASE_MARKER, "");
 
     for (const jargon of [
       "status:",

@@ -62,6 +62,15 @@ Shared helpers own both, so the vocabulary cannot drift per vendor:
 blocker re-probe carries an absolute human gate: an item carrying the configured human-needed label
 or a `[lisa-human-gate]` marker is never auto-selected, whatever a probe returns.
 
+That gate has an inverse, and it is forwarded identically: a hold ends when a
+`[lisa-human-gate-release]` comment naming the same `reason=` is recorded on the item. Every vendor
+scanner passes the item's `comments` into the gate helpers so the discharge is visible, and calls
+`planHumanGateRelease(...)` to take the marker off and put the item back in the queue. **No vendor
+scanner clears a hold by editing the description** — the only body write any of them has is a
+whole-body replacement, so a release that went through the description would risk destroying the
+record it was releasing, which is why holds accumulated with no way out (CodySwannGT/lisa#3852).
+The hold note stays in the description as history and the release sits beside it as a comment.
+
 Measured: sweeping one team by lane name saw 39 of 343 open rows; by category it sees 100. The
 61-row gap produced 31 consecutive false "dry lane" cycles, every record honest and every
 conclusion wrong (#2657).

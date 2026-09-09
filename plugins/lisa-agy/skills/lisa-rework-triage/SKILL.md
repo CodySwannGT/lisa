@@ -41,8 +41,34 @@ first-attempt work.
    comment posted by `lisa-tracker-evidence` (`[lisa-evidence]` / the vendor evidence
    header). Only markers proving a prior *implementation* attempt qualify —
    `[lisa-rework-triage]` comments and other unrelated `[lisa-*]` annotations never do.
-4. **Explicit rework marker.** A `rework`, `qa-fail`, or `regression` label applied by QA or
-   the verify lifecycle.
+4. **Explicit rework marker.** A `rework` or `regression` label applied by QA or the verify
+   lifecycle, or a **live** QA-failure signal.
+
+   The QA-failure signal is transient, so its bare presence is not the signal — its
+   liveness is. Ask the resolver, never the label list:
+
+   ```bash
+   RESOLVER="${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-plugins/lisa}}/scripts/qa-signal-lifecycle.mjs"
+   node "$RESOLVER" --vendor "<jira|linear|github>" --item bundle.json
+   # bundle.json: { "labels": [...], "comments": [<bodies, oldest first>], "role": "<current>" }
+   ```
+
+   Branch on `action`, never on the label being there:
+
+   | `outcome` | Meaning | What triage does |
+   |---|---|---|
+   | `live` | the failure is unresolved | signal 4 fires — this is rework |
+   | `stale` | a later QA pass, or the certified/terminal role, voided it | signal 4 does **not** fire; **remove the label** (same tracker surface that applied it) and note the repair in the triage comment. Keep evaluating signals 1–3 |
+   | `absent` | no signal | signal 4 does not fire |
+   | `unchecked` | a declared void condition has no predicate | treat as `live` and surface it — a control nothing can evaluate is a defect to report, not an exemption |
+
+   Clearing a stale signal here is the repair path for items labelled before the signal had
+   an inverse; without it that backlog never drains. The `[lisa-qa-fail]` comments are the
+   history and are never touched — a stale signal removed still leaves the failure fully
+   readable, and signal 3 still reads those comments.
+
+   `rework` and `regression` are matched on presence as before. Whether they have the same
+   shape is **unverified** and not claimed here.
 
 Record which signal fired — it is part of the evidence trail.
 
@@ -170,3 +196,7 @@ which blocks per the normal triage rules.
   bypass the quality gates this loop exists to strengthen.
 - Noise discipline: one triage comment per bounce (fingerprinted), no upstream issue without
   the dedupe search, and upstream issues describe failure *classes*, not single incidents.
+- Never key on a durable mark whose inverse you have not checked. A signal with no expiry
+  degrades toward meaning "this item has been around a while"
+  (`state-changes-without-inverses`), and a deterministic input that degrades is
+  deterministically wrong.

@@ -165,6 +165,27 @@ set -euo pipefail
 
 input="$(cat)"
 
+# Evaluate once per tool call when this guard is registered on both channels.
+#
+# Lisa reaches an agent through the repository dispatcher AND the plugin
+# manifest, and where both are live the harness runs this guard twice for one
+# tool call. `guard-dedupe.bash` short-circuits the second run ONLY when a
+# byte-identical copy already ALLOWED this exact payload on this exact tool
+# call; a differing vintage, a refusal, and a host with one channel all
+# evaluate exactly as before. Nothing is de-registered by it
+# (CodySwannGT/lisa#3814).
+#
+# Absent library means no dedupe, which is the pre-existing behaviour, so an
+# older channel copy that predates it is unaffected.
+lisa_guard_hook_dir="${BASH_SOURCE[0]%/*}"
+lisa_guard_dedupe_lib="$lisa_guard_hook_dir/guard-dedupe.bash"
+if [ -r "$lisa_guard_dedupe_lib" ]; then
+  # shellcheck source=guard-dedupe.bash
+  . "$lisa_guard_dedupe_lib"
+  trap 'lisa_guard_dedupe_record $?' EXIT
+  lisa_guard_dedupe block-blind-automerge "$input"
+fi
+
 # Both interpreters are probed BEFORE use, and a missing one is ANNOUNCED
 # rather than swallowed. Under `set -e` an absent jq would abort with 127, and
 # Claude Code treats any non-2 exit as a non-blocking hook error — so the guard
@@ -247,9 +268,41 @@ PULL_REQUEST_ID_PATTERN = re.compile(
 NODE_ID_PATTERN = re.compile(r"^[A-Za-z0-9_=-]+$")
 
 # The probe that resolves a node id to the same fields `gh pr view` returns.
+#
+# `statusCheckRollup` is in here because the RE-TARGET path needs it and this
+# is the only probe a GraphQL `updatePullRequest` can use. Without it
+# `failing_check_names` read an absent key, found no failing check, and the
+# guard announced the re-target as the sanctioned green-PR batching case —
+# for a pull request that might be failing every check it has. The porcelain
+# path asked the right question and the API path could not, so the identical
+# act was guarded through `gh pr edit --base` and waved through as GraphQL:
+# a bypass that needs no permission, only a different spelling.
+#
+# The nodes are reshaped by `--jq` below into the flat list `gh pr view
+# --json statusCheckRollup` returns, so one reader serves both probes.
 NODE_QUERY = (
     "query($id:ID!){node(id:$id){... on PullRequest"
-    "{number url reviewDecision state baseRefName}}}"
+    "{number url reviewDecision state baseRefName "
+    "commits(last:1){nodes{commit{statusCheckRollup{contexts(first:100){nodes{"
+    "__typename ... on CheckRun{name conclusion} "
+    "... on StatusContext{context state}"
+    "}}}}}}}}}"
+)
+
+# Reshape the envelope into the porcelain's shape: unwrap `.data.node`, hoist
+# the last commit's rollup contexts to a top-level `statusCheckRollup` list,
+# and drop the `commits` scaffolding that carried it.
+# `has("commits")` rather than an unconditional default, and the distinction is
+# the point: a node that CARRIES the scaffolding and no contexts is a PR with no
+# checks, which is genuinely not failing and gets an empty list. A node without
+# the scaffolding is a probe that never asked, and it must leave the key absent
+# so the re-target path can tell the two apart instead of reading both as green.
+NODE_JQ = (
+    "if .data.node == null then null else .data.node as $n "
+    "| if ($n | has(\"commits\")) then ($n | del(.commits)) "
+    "+ {statusCheckRollup: "
+    "((($n.commits.nodes[0].commit.statusCheckRollup.contexts.nodes)) // [])} "
+    "else $n end end"
 )
 
 # What a probe spec asks for. `view` and `node` differ only in how the PR is
@@ -728,7 +781,7 @@ def probe_args(kind, subject, repo_args, fields):
             "gh", "api", "graphql",
             "-f", "query=" + NODE_QUERY,
             "-f", "id=" + subject,
-            "--jq", ".data.node",
+            "--jq", NODE_JQ,
         ]
     args = ["gh", "pr", "view"]
     if subject is not None:
@@ -969,6 +1022,20 @@ Do one of these instead:
   - leave the PR on its covered base and merge it there.
 """
 
+RETARGET_CHECKS_UNREADABLE = """Blocked: re-targeting %s onto "%s" cannot be judged, because this guard could
+not read the pull request's checks.
+
+That ref has ZERO required status checks, so the one thing standing between the
+move and a permission-free gate bypass is whether the PR is currently failing —
+and the probe returned no `statusCheckRollup` at all. An absent rollup is not an
+empty one. Reporting the move as the sanctioned green-PR batching case here
+would be a verdict about a question that was never asked.
+
+Re-target through `gh pr edit --base` instead, which reads the checks, or fix
+the probe. Do not report the PR as batched until something has actually looked.
+"""
+
+
 UNCOVERED_RETARGET_NOTICE = (
     "block-blind-automerge: %s is being re-targeted onto \"%s\", a ref with ZERO "
     "required status checks; its gates will run but cannot block a merge\n"
@@ -1039,6 +1106,18 @@ for act, kind, subject, repo_args, target_ref in acts:
         # nothing can block it", which holds whatever base it came from.
         if not base_is_uncovered(payload, repo_args, target_ref):
             continue
+        # Fails CLOSED, and only here. Everywhere else in this file an
+        # unanswerable question degrades and continues, because the guard being
+        # unable to run must not become the reason a command is refused. This
+        # branch is different: the base has already been confirmed to have zero
+        # required checks, so an empty `failing` list is the whole basis for
+        # allowing the move, and an ABSENT rollup produces the identical empty
+        # list. Passing on it would be a measurement that could not fail.
+        if not isinstance(payload.get("statusCheckRollup"), list):
+            sys.stderr.write(
+                RETARGET_CHECKS_UNREADABLE % (pr_name(payload), target_ref)
+            )
+            sys.exit(1)
         failing = failing_check_names(payload)
         if not failing:
             # A green PR moving onto a stack base is the sanctioned batching

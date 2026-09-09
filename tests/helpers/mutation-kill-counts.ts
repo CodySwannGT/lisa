@@ -14,11 +14,19 @@
  * failing to bite* when the truth is that it never had anything to bite with
  * (CodySwannGT/lisa#2992).
  *
- * The premise does obtain today. Measured across all four withheld guards
- * (CodySwannGT/lisa#2936, four scoped runs of the committed configuration):
+ * The premise does obtain today. Measured across all five withheld guards
+ * (CodySwannGT/lisa#2936, scoped runs of the committed configuration):
  * `lisa-work-item.mjs` 1,113 kills, `lisa-gates.mjs` 787, `lisa-mutation.mjs`
- * 389, `lisa-destructive-guard.mjs` 147. So this guards a future state rather
- * than a present one, which is the direction a bite test should be wrong in.
+ * 389, `lisa-destructive-guard.mjs` 147, and `lisa-worktree-guard.mjs` 81
+ * (CodySwannGT/lisa#3914). So this guards a future state rather than a present
+ * one, which is the direction a bite test should be wrong in.
+ *
+ * The last of those is the one to watch. 81 kills of 334 valid mutants is a
+ * real contribution and not a zero, which is all this check asks — but 196 of
+ * that guard's mutants are reported UNCOVERED because most of its suite drives
+ * it as a CLI through `spawnSync`, and a mutant activated in the parent process
+ * is not active in the child. It is the withheld guard nearest to the state
+ * this module exists to catch.
  *
  * ## Why the JSON reporter and not the clear-text table
  *

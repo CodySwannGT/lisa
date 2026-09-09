@@ -192,7 +192,8 @@ done
 # sibling references back out of the shipped scripts, so a companion added to a
 # guard and not added here fails as a missing dependency rather than waiting to
 # be discovered as a permanent block downstream.
-for companion in parity-safety-net-heredoc.py worktree-binding-guard.mjs; do
+for companion in parity-safety-net-heredoc.py worktree-binding-guard.mjs \
+  guard-dedupe.bash; do
   if [ -f "$SRC_DIR/base/hooks/$companion" ]; then
     materialize "$SRC_DIR/base/hooks/$companion" "$HOST_GUARD_DIR/$companion"
   fi

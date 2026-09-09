@@ -7,6 +7,12 @@
  * it — that is the defect it exists against. So these tests assert the reader,
  * not merely the data: the PostToolUse hook must be registered, and the hook
  * must actually emit a notice when fed a real failure transcript.
+ *
+ * A notice that arrives and names the WRONG cause is worse than none, because
+ * it sends the reader away from an answer already on their screen. So the rows
+ * are also exercised in both directions against real transcripts, and a row
+ * that measures the checkout must be able to report that it did not determine
+ * (CodySwannGT/lisa#3812).
  */
 import { describe, expect, it } from "vitest";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
@@ -121,6 +127,21 @@ describe("failure-signature index — how it gets read", () => {
   });
 });
 
+/**
+ * Run this repository's real index against a transcript.
+ * @param transcript - Command output to match
+ * @returns The notice printed, empty when nothing matched
+ */
+function matched(transcript: string): string {
+  return boundedExecFileSync({
+    label: "failure-signature-index.mjs --match",
+    command: NODE,
+    args: [path.join(REPO_ROOT, HOOK_MJS), "--match"],
+    cwd: REPO_ROOT,
+    input: transcript,
+  });
+}
+
 describe("failure-signature index — this repository's own rows", () => {
   it("resolves every entry against a record that still exists", () => {
     const stdout = boundedExecFileSync({
@@ -133,7 +154,7 @@ describe("failure-signature index — this repository's own rows", () => {
     expect(stdout.startsWith("failure-signature index: 0 ")).toBe(false);
   });
 
-  it("carries the four hazards #3061 catalogued, each pointing at its record", () => {
+  it("carries the hazards #3061 catalogued, each pointing at its record", () => {
     const index = readJson(INDEX) as {
       entries: { id: string; records: { file: string }[] }[];
     };
@@ -141,10 +162,65 @@ describe("failure-signature index — this repository's own rows", () => {
     for (const id of [
       "dist-deleted-under-readers",
       "sh-is-dash-on-linux",
-      "merge-driver-mapped-but-unregistered",
+      "learnings-merge-driver-mapped-path-conflicted",
+      "generated-artifact-merge-driver-mapped-path-conflicted",
       "terminated-not-failed",
     ]) {
       expect(byId.get(id)?.records.length, id).toBeGreaterThan(0);
+    }
+  });
+
+  it("tells a driver that ran and declined from one that never ran", () => {
+    // The defect, on this repository's real rows rather than a fixture
+    // (CodySwannGT/lisa#3812): both transcripts carry a conflict in a path
+    // `.gitattributes` maps to a custom merge driver, and the index used to
+    // answer "unregistered driver" to both — sending the reader to verify
+    // registration and away from the resolution the driver had already
+    // printed. Each transcript must now produce its OWN attribution, and
+    // neither may produce the other's.
+    const declined = matched(
+      [
+        "Auto-merging src/core/upstream-evidence-manifest.ts",
+        "merge-generated-artifact: src/core/upstream-evidence-manifest.ts could not be merged mechanically — both sides changed one entry in incompatible ways.",
+        "CONFLICT (content): Merge conflict in src/core/upstream-evidence-manifest.ts",
+      ].join("\n")
+    );
+    const silent = matched(
+      [
+        "Auto-merging .lisa/PROJECT_LEARNINGS.md",
+        "CONFLICT (content): Merge conflict in .lisa/PROJECT_LEARNINGS.md",
+        "Automatic merge failed; fix conflicts and then commit the result.",
+      ].join("\n")
+    );
+    expect(declined).toContain("merge-driver-ran-and-declined");
+    expect(declined).toContain("driver RAN and DECLINED");
+    expect(declined).not.toContain("mapped-path-conflicted");
+    expect(silent).toContain("learnings-merge-driver-mapped-path-conflicted");
+    expect(silent).not.toContain("merge-driver-ran-and-declined");
+  });
+
+  it("never reports a cause it did not measure, on the rows that measure", () => {
+    // The third arm. A row whose determination could not read the checkout
+    // must say so rather than defaulting to either confident answer — the
+    // fail-open shape #3812 exists against.
+    const index = readJson(INDEX) as {
+      entries: {
+        id: string;
+        determination?: { unknown: string; gitConfigKeys: string[] };
+      }[];
+    };
+    const measuring = index.entries.filter(
+      entry => entry.determination !== undefined
+    );
+    expect(measuring.length).toBeGreaterThan(0);
+    for (const entry of measuring) {
+      expect(
+        entry.determination?.gitConfigKeys.length,
+        entry.id
+      ).toBeGreaterThan(0);
+      expect(entry.determination?.unknown, entry.id).toContain(
+        "NOT DETERMINED"
+      );
     }
   });
 

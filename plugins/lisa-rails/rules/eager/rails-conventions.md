@@ -1,0 +1,23 @@
+# Rails Coding Conventions (load-bearing)
+
+Rails-specific standards for this project. The head below is what changes
+behaviour in a session that never asks for it; the worked examples for every
+point live in the reference body.
+
+## Mandatory
+
+1. **Fat models, skinny controllers.** Controllers handle HTTP concerns only.
+   Business logic belongs in a model or a service object under `app/services/`.
+2. **Strong parameters always, `permit!` never.** Enumerate the permitted keys.
+3. **No N+1 queries.** Use `includes` / `preload` / `eager_load` on any
+   association you iterate. Bullet is installed to catch the ones you miss.
+4. **Never edit `db/schema.rb` by hand.** Change it through a migration, honour
+   the `strong_migrations` constraints, and index every foreign key and
+   commonly-queried column.
+5. **Scopes, not class methods,** for chainable queries. Prefer built-in
+   validators; keep callbacks to simple normalization and push complex side
+   effects into a service object.
+6. **RSpec with `factory_bot` and `shoulda-matchers`,** not fixtures. Use
+   `described_class` and keep one assertion concept per example.
+
+Full prose and Ruby examples: [reference/rails-conventions.md](../reference/rails-conventions.md).

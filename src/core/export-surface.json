@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 122,
-  "$names": 1136,
+  "$modules": 126,
+  "$names": 1232,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -17,6 +17,7 @@
       "verifyPublish"
     ],
     "all/copy-overwrite/scripts/check-orphaned-branches.mjs": [
+      "branchLanes",
       "branchesAhead",
       "branchesWithPullRequests",
       "defaultBranch",
@@ -117,7 +118,12 @@
       "placeholderKeys"
     ],
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs": [
+      "interruptionReason",
+      "interruptionReport",
+      "isWatchablePid",
       "killWindowsTree",
+      "parseWatchPids",
+      "pidIsGone",
       "posixTreeExists",
       "processGroupHasRunnableMember",
       "reapTree",
@@ -335,32 +341,43 @@
       "run"
     ],
     "all/copy-overwrite/scripts/lisa-work-item.mjs": [
+      "LANE_ID_VARIABLES",
+      "LANE_TRAILER",
       "TrackerUnreachableError",
       "WORK_ITEM_CONTRACT_VERSION",
       "ancestryUnreachable",
       "assertGhVersion",
       "backlinkReport",
+      "branchWorkItemFrom",
       "carriesLabel",
       "competingLifecycleRoles",
       "declaredWorkItemNumbers",
       "deployBranchEnvironments",
+      "deriveLaneId",
       "githubBranchIssue",
       "githubFailure",
       "githubFailureReason",
+      "judgeLane",
       "labelNamesOf",
+      "mergeOnlyRange",
       "mergedBaseDecision",
       "mergedPullRequestsIn",
       "noPullRequestToDischarge",
+      "parseLaneId",
       "postDischargeBacklinks",
       "pullRequestViewArgs",
       "pushSuccessLine",
+      "renderLaneTrailer",
       "resetGhVersionCheck",
+      "resolveCallerLaneId",
       "run",
       "runCli",
       "shippedDeclarations",
+      "soleWorkItem",
       "textContainsBacklink",
       "unreachableAncestryRefusal",
-      "unresolvedPushReport"
+      "unresolvedPushReport",
+      "workItemLines"
     ],
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs": [
       "classifyWorktree",
@@ -519,11 +536,16 @@
       "applyAllowList",
       "compareConstraints",
       "compareFile",
+      "describeAllowList",
       "formatReport"
     ],
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs": [
+      "ALLOW_STATE",
       "FAMILIES",
       "LIGHTHOUSE_ASSERTION_DIRECTIONS",
+      "allowEntryExpiry",
+      "classifyAllowEntry",
+      "describeAllowScope",
       "extractAllowEntries",
       "extractK6Constraints",
       "extractLighthouseAssertions",
@@ -596,6 +618,12 @@
       "main",
       "sweep"
     ],
+    "scripts/check-engine-floor.mjs": [
+      "declaredFloor",
+      "libForEngineFloor",
+      "main",
+      "rootFrom"
+    ],
     "scripts/check-generated-artifact-merge-coverage.mjs": [
       "AGGREGATE_CHECK",
       "DISPOSITION",
@@ -608,6 +636,24 @@
       "main",
       "mapsToDriver",
       "undeclaredChecks"
+    ],
+    "scripts/check-guard-parity-notes.mjs": [
+      "BLIND_SPOTS",
+      "REGISTRY_READERS",
+      "SCANNED_DIRS",
+      "SURFACES",
+      "claimsIn",
+      "codexHooksManifest",
+      "commentBlocks",
+      "dispatcherRoster",
+      "evidenceFor",
+      "formatReport",
+      "guardIdFor",
+      "lineAt",
+      "main",
+      "portFor",
+      "registryFor",
+      "sweep"
     ],
     "scripts/check-merge-driver-registration.mjs": [
       "inspectMergeDrivers",
@@ -780,6 +826,19 @@
       "scopeOf",
       "sweep"
     ],
+    "scripts/check-workflow-contract-assertions.mjs": [
+      "CANONICAL_REL",
+      "INPUT_NAME",
+      "JOB_ID",
+      "REGISTRY_REL",
+      "UsageError",
+      "auditReusable",
+      "callerReferences",
+      "describeEntryProblem",
+      "main",
+      "parseArgs",
+      "workflowCallOf"
+    ],
     "scripts/check-workflow-package-paths.mjs": [
       "collectClaims",
       "extractPackagePaths",
@@ -787,11 +846,32 @@
       "releaseContains",
       "splitIntoSteps"
     ],
+    "scripts/deployed-guard-advice.mjs": [
+      "ADVICE_SWEEP_VERDICTS",
+      "FORBIDDEN_ADVISORY_PATTERNS",
+      "SOURCE_GUARD_ROOTS",
+      "cacheChannels",
+      "deployedGuardAdviceExitCode",
+      "formatDeployedGuardAdviceReport",
+      "invokedAsScript",
+      "marketplaceChannel",
+      "matchAdvisory",
+      "pluginManifestChannel",
+      "repositoryChannel",
+      "resolveGuardChannels",
+      "resolveSourceChannels",
+      "scanDeployedGuardAdvice",
+      "sessionChannel"
+    ],
     "scripts/detect-stale-workflow-inputs.mjs": [
       "UsageError",
       "buildReport",
+      "diffStaleKeys",
+      "extractCallerJobs",
+      "extractDeclaredInputs",
       "main",
-      "parseArgs"
+      "parseArgs",
+      "parseReusableReference"
     ],
     "scripts/downstream-name-digest.mjs": [
       "entryFor",
@@ -828,6 +908,7 @@
       "exportedNames",
       "parseArtifact",
       "removedExports",
+      "removedSinceOperand",
       "renderArtifact",
       "shippedScripts"
     ],
@@ -1085,10 +1166,8 @@
       "classifyProbe",
       "formatReport",
       "parseVersionTag",
-      "probeRegistry",
-      "probeWithRetry",
-      "reconcile",
-      "registryUrl"
+      "probeVersion",
+      "reconcile"
     ],
     "scripts/remedy-conformance.mjs": [
       "FORBIDDEN_REMEDY_OPERATIONS",
@@ -1142,12 +1221,17 @@
       "SCOPE_UNREADABLE_REASON",
       "SUITE_STATES",
       "TRACKING_ISSUE_LABEL",
+      "WAIVER_RECORD_BEGIN",
+      "WAIVER_RECORD_END",
+      "WAIVER_RECORD_MARKER",
+      "WAIVER_STATES",
       "ZERO_FLOWS_REASON",
       "apiGet",
       "apiWrite",
       "applyIssuePlan",
       "assessSuite",
       "assessSuiteScope",
+      "classifyWaiver",
       "contextMatchesGate",
       "countDecisiveJobs",
       "decide",
@@ -1167,9 +1251,13 @@
       "formatReport",
       "formatSelection",
       "formatVerdictReport",
+      "formatWaiverRecord",
+      "formatWaiverVerdict",
       "isCompleteEvidence",
       "isFresh",
       "observe",
+      "observeWaiver",
+      "parseWaiverTrailer",
       "planIssueActions",
       "planReport",
       "publishReport",
@@ -1179,17 +1267,20 @@
       "resolveSecurityLimits",
       "resolveSettings",
       "resolveSuiteGrace",
+      "resolveWaiverSettings",
       "retryDelayMs",
       "runGate",
       "runProducedEvidence",
       "runReport",
+      "runWaiverVerdict",
       "setIssuePin",
       "stateForConclusion",
       "stripMarkdownCode",
       "suiteMarker",
       "suiteRequiredness",
       "unreadablePullRequestBypass",
-      "validateSuites"
+      "validateSuites",
+      "waiverVerdict"
     ],
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs": [
       "CARRIED_MERGE_COMMIT_LIMIT",
@@ -1203,6 +1294,7 @@
       "REVIEW_GATE_BLOCKING",
       "REVIEW_GATE_CONDITIONS",
       "REVIEW_GATE_STATES",
+      "REVIEW_OBJECTION_STATE",
       "REVIEW_SATISFACTIONS",
       "REVIEW_VERDICT_CONCLUSIONS",
       "REVIEW_VERDICT_TITLE_LIMIT",
@@ -1227,6 +1319,7 @@
       "fetchChecksForCommit",
       "fetchChecksViaApi",
       "fetchPullRequestChecks",
+      "fetchPullRequestReviews",
       "fetchRecentMergedChecks",
       "fetchReviewActivity",
       "fetchSettledChecks",
@@ -1237,6 +1330,8 @@
       "noWorkClaimIsCertain",
       "readCarriedReview",
       "readFlagValue",
+      "readObjectionAtHead",
+      "readReviewObjection",
       "readSkipJobs",
       "resolveHeadSha",
       "resolvePullRequestNumber",
@@ -1252,6 +1347,7 @@
       "unquoteScalar",
       "vacuityRefusal",
       "violationBlocks",
+      "waiverEscalates",
       "writeVerdictOutputs"
     ],
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs": [
@@ -1361,18 +1457,26 @@
     "typescript/copy-overwrite/scripts/reconcile-nightly-e2e-tracking.mjs": [
       "CONDITION_MARKER",
       "TRACKED_SUITE_LABELS",
+      "TRACKING_DESTINATIONS",
+      "buildProviderDispatch",
       "planCombinedTracking",
-      "reconcileCombinedTracking"
+      "reconcileCombinedTracking",
+      "resolveNightlyTrackingConfig"
     ],
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs": [
       "applyAllowList",
       "compareConstraints",
       "compareFile",
+      "describeAllowList",
       "formatReport"
     ],
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs": [
+      "ALLOW_STATE",
       "FAMILIES",
       "LIGHTHOUSE_ASSERTION_DIRECTIONS",
+      "allowEntryExpiry",
+      "classifyAllowEntry",
+      "describeAllowScope",
       "extractAllowEntries",
       "extractK6Constraints",
       "extractLighthouseAssertions",

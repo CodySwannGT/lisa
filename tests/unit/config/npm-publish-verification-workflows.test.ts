@@ -29,6 +29,7 @@ const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../..");
 const CHECKER = "scripts/check-npm-publish-landed.mjs";
 const PUBLISH_WORKFLOW = "publish-to-npm.yml";
 const DEPLOY_WORKFLOW = "deploy.yml";
+const RELEASE_WORKFLOW = "release.yml";
 const PUBLISH_STEP = "Publish to npm with OIDC";
 const VERIFY_STEP = "Verify the publish reached the registry";
 const SUCCESS_STEP = "Notify on success";
@@ -256,7 +257,7 @@ const mutablePointerReads = (source: string): string[] =>
     );
 
 describe("the release pipeline never verifies against a mutable tag", () => {
-  it.each([PUBLISH_WORKFLOW, DEPLOY_WORKFLOW])(
+  it.each([PUBLISH_WORKFLOW, DEPLOY_WORKFLOW, RELEASE_WORKFLOW])(
     "%s reads no dist-tag or latest pointer",
     async fileName => {
       // `dist-tags.latest` lags a successful publish by several minutes

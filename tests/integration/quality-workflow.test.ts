@@ -791,7 +791,12 @@ describe("quality.yml reusable workflow", () => {
       );
       expect(install?.run).not.toContain("${{ inputs.package_manager }}");
       expect(install?.run).toMatch(
-        /if \[\s*"\$PACKAGE_MANAGER"\s*=\s*"npm"\s*\]; then[\s\S]*npm ci/
+        /case\s+"\$PACKAGE_MANAGER"\s+in[\s\S]*npm\)\s*npm ci/
+      );
+      // Fail closed: anything outside the allowlist stops the job before a
+      // command position is reached (#3793).
+      expect(install?.run).toContain(
+        "package_manager must be one of npm, yarn, pnpm, bun"
       );
       expect(install?.run).toContain("yarn install --frozen-lockfile");
       expect(install?.run).toContain("bun install --frozen-lockfile");

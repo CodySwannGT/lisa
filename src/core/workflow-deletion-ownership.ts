@@ -63,44 +63,18 @@
  */
 import * as path from "node:path";
 
+import {
+  classifyOwnershipHeader,
+  type OwnershipHeader,
+} from "./ownership-header.js";
+
+export { LISA_MANAGED_MARKER, LISA_SEEDED_MARKER } from "./ownership-header.js";
+
 /**
  * Repo-relative directory GitHub Actions reads workflow definitions from.
  * Deletion of anything inside it is what this module governs.
  */
 const WORKFLOWS_DIR = ".github/workflows";
-
-/**
- * The sentence a `copy-overwrite` template carries, minus its comment prefix.
- *
- * Matched as a substring rather than a whole line because the prefix differs by
- * file type (`#`, `//`, ` *`) and the wording has been revised once already —
- * the retired header said "changes will be overwritten on the next `lisa` run".
- * Both spellings contain this phrase, so a consumer still holding a
- * years-old Lisa workflow is still correctly attributed.
- */
-export const LISA_MANAGED_MARKER = "managed by Lisa";
-
-/**
- * The word a `create-only` seed header shouts, minus its comment prefix.
- *
- * "YOURS" is the load-bearing token of that contract and the one the header
- * test asserts. A file carrying it came out of Lisa's template tree AND was
- * handed to the consumer, which is exactly the pair of facts that makes it
- * undeletable.
- */
-export const LISA_SEEDED_MARKER = "YOURS";
-
-/**
- * How many leading lines of a file count as its ownership header.
- *
- * Bounded on purpose. A whole-file search would let any mention of Lisa
- * anywhere in a consumer's workflow — a step name, a comment about a Lisa
- * command — authorise that file's deletion, which is the false-negative
- * direction that reintroduces #3656. Every shipped template puts its header on
- * the first two lines; four covers a leading `---` document marker or a blank
- * line above it and still stops short of any workflow body.
- */
-const HEADER_LINES = 4;
 
 /** What Lisa can prove about a workflow file it has been asked to delete. */
 export type WorkflowDeletionVerdict =
@@ -136,26 +110,37 @@ export function isWorkflowDeletionPath(relativePath: string): boolean {
 }
 
 /**
+ * The deletion verdict each ownership header supports, one entry per header.
+ *
+ * A total map rather than a chain of comparisons, so a header added to
+ * `core/ownership-header` fails to compile here instead of falling through to
+ * whichever verdict the last branch happened to be — and on this path the last
+ * branch is the one that keeps the file, so a silent fall-through would look
+ * safe while being unconsidered.
+ */
+const DELETION_VERDICTS: Readonly<
+  Record<OwnershipHeader, WorkflowDeletionVerdict>
+> = {
+  "host-owned-seed": { kind: "host-owned-seed" },
+  "lisa-managed": { kind: "lisa-managed" },
+  unattributable: { kind: "unattributable" },
+};
+
+/**
  * Read the ownership contract a workflow file states about itself.
  *
- * Precedence is seed-before-managed. A `create-only` header mentions
- * `copy-overwrite` in its own second line, so a naive managed-first check would
- * read every seeded workflow as Lisa-managed and delete the very files #3656
- * lost. Ordering it this way means the strongest claim a file can make is the
- * one that keeps it.
+ * The reading itself lives in `core/ownership-header`, because the header is
+ * one contract every template carries and more than one guard has to ask about
+ * it — a second copy of the marker strings, their precedence, or the bound on
+ * how far into the file counts would drift silently. This function keeps the
+ * deletion-shaped verdict its callers switch on and delegates the reading.
  * @param contents - Raw text of the workflow file on disk
  * @returns The verdict its header supports
  */
 export function classifyWorkflowForDeletion(
   contents: string
 ): WorkflowDeletionVerdict {
-  const header = contents.split("\n").slice(0, HEADER_LINES).join("\n");
-  if (header.includes(LISA_SEEDED_MARKER)) {
-    return { kind: "host-owned-seed" };
-  }
-  return header.includes(LISA_MANAGED_MARKER)
-    ? { kind: "lisa-managed" }
-    : { kind: "unattributable" };
+  return DELETION_VERDICTS[classifyOwnershipHeader(contents)];
 }
 
 /**

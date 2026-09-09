@@ -1,6 +1,7 @@
 import * as path from "node:path";
 import type { IProjectTypeDetector } from "../detector.interface.js";
 import { pathExists } from "../../utils/index.js";
+import { CDK_APP_MARKER } from "../../core/cdk-preset-adoption.js";
 
 /**
  * Detector for AWS CDK applications.
@@ -32,6 +33,6 @@ export class CDKDetector implements IProjectTypeDetector {
    * @returns True when the project has a cdk.json
    */
   async detect(destDir: string): Promise<boolean> {
-    return pathExists(path.join(destDir, "cdk.json"));
+    return pathExists(path.join(destDir, CDK_APP_MARKER));
   }
 }

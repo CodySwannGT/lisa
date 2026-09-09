@@ -45,6 +45,9 @@ function killedError(): Error & { code: string } {
   });
 }
 
+/** An error the module must NOT relabel as a timeout — it is not one. */
+const UNKNOWN_FAILURE = "postinstall module failure";
+
 afterEach(() => {
   boundedSpawnSync.mockReset();
   vi.restoreAllMocks();
@@ -75,13 +78,32 @@ describe("a postinstall apply killed at its deadline", () => {
 
   it("does not relabel an unknown module failure as a child timeout", async () => {
     boundedSpawnSync.mockImplementation(() => {
-      throw new Error("postinstall module failure");
+      throw new Error(UNKNOWN_FAILURE);
     });
     const { runPostinstall } =
       await import("../../../all/copy-overwrite/scripts/lisa-postinstall.mjs");
 
-    expect(() => runPostinstall(project(), {})).toThrow(
-      "postinstall module failure"
-    );
+    expect(() => runPostinstall(project(), {})).toThrow(UNKNOWN_FAILURE);
+  });
+
+  // The escaping throw is deliberate and stays. What did not stay is its
+  // SILENCE: the invocation this module is chained into ends in `|| true`, so
+  // the non-zero exit reaches nothing, and the stack trace scrolls past once.
+  // Every later instrument then reads a project whose templates were simply
+  // not applied — the exact condition this module's header was written to end.
+  // `lisa doctor` asks the marker, so the marker has to be there.
+  it("leaves the durable marker before an unknown failure escapes", async () => {
+    boundedSpawnSync.mockImplementation(() => {
+      throw new Error(UNKNOWN_FAILURE);
+    });
+    const { APPLY_FAILURE_MARKER, runPostinstall } =
+      await import("../../../all/copy-overwrite/scripts/lisa-postinstall.mjs");
+    const root = project();
+
+    expect(() => runPostinstall(root, {})).toThrow(UNKNOWN_FAILURE);
+
+    const marker = path.join(root, APPLY_FAILURE_MARKER);
+    expect(existsSync(marker)).toBe(true);
+    expect(readFileSync(marker, "utf8")).toContain(UNKNOWN_FAILURE);
   });
 });

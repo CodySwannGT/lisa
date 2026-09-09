@@ -188,6 +188,7 @@ In addition to the lifecycle roles above, the build lifecycle defines the **`hum
 
 - The blocks repair-intake **itself writes** are the auto-recoverable kind — it files a build-ready fix ticket and moves the item `blocked` *blocked by that ticket*, expecting the next cycle to self-heal. Those are **not** `human_needed`; if such an item arrives carrying a `human_needed` marker **this skill applied on an earlier cycle**, repair-intake **clears** it (the block is no longer waiting on a human).
 - **Never remove a `human_needed` marker this skill did not apply.** "Stale" is a judgment about the block's kind, not about who applied the marker or when — so without this rule an operator's deliberate hold, applied *after* correcting a wrong transition, is indistinguishable from a leftover the sweep is designed to clear, and gets swept. Establish provenance from the label event's actor (`rejection-detection` **Automation-reversal memory** reads the same surfaces); if provenance is not readable, **leave the marker in place**. Removing a human's hold is unrecoverable within the loop; leaving a stale one costs a cycle and is visible.
+- **The one exception is a hold that has recorded its own discharge.** A `[lisa-human-gate-release]` comment naming the hold's `reason=` is not a guess about provenance — it is the hold's stated void condition, recorded on the item by the person who answered it. Clearing the marker there is not overriding a human's judgment; it is *enacting* it. That is the whole of the exception: no other reading of "this looks stale" reopens the question above, and an item whose release cannot be read stays held. See "Release the holds that have been answered" below (#3852).
 - The marker is consulted **before **any** repair transition**, not only before Class C. Class C's hard stop is the strictest reading of it, but a marker that is honoured on one classification path and ignored on the other three is not a guard — and Class A, dependency clearing, is exactly the path an operator reverting a wrongly-cleared blocker is trying to protect. Match it robustly (hyphen/underscore, case-insensitive, label set and note prose) wherever it is read.
 - The blocks the **vendor agent** writes when repair-intake re-dispatches it (its pre-flight gate) carry `human_needed` already — the agent owns that marker. repair-intake leaves it in place.
 
@@ -218,7 +219,7 @@ intakes use. Never call Atlassian MCP or `acli` directly — go through `lisa-at
 | Linear (build) | Linear MCP `list_issues` / `get_issue` / `list_comments` | Linear MCP `save_issue` (labels) / `save_comment` | `lisa-linear-agent` |
 | Notion (PRD) | `lisa-notion-access` (`query`, page comments) | `lisa-notion-access` `write-page` (status) / page comment | `lisa-notion-to-tracker` (dry-run) |
 | GitHub (PRD) | `gh issue list/view` (PRD labels) / GraphQL sub-issues / generated-work section | `gh issue edit` / `gh issue comment` / `gh issue close --reason completed` | `lisa-github-to-tracker` (dry-run) |
-| Linear (PRD) | Linear MCP `list_projects` / `get_project` (+ sentinel feedback issue) | Linear MCP `save_project` (labels) / `save_comment` | `lisa-linear-to-tracker` (dry-run) |
+| Linear (PRD) | `lisa-linear-access` `list-projects` / `get-project` / `list-comments project_id` | `lisa-linear-access` `save-project` (labels) / `save-comment project_id` | `lisa-linear-to-tracker` (dry-run) |
 | Confluence (PRD) | `lisa-atlassian-access` CQL | `lisa-atlassian-access` page `parentId` update / comment | `lisa-confluence-to-tracker` (dry-run) |
 
 ## Staleness model
@@ -267,8 +268,9 @@ exposes, and compare it to `now - stale_after`:
 1. Provider-native status/label **transition** time into the in-progress role, when the provider
    exposes it cleanly (JIRA changelog transition to `claimed` / In Progress, GitHub label event,
    Linear state/label history, Notion/Confluence page move/status history).
-2. Latest human lifecycle/progress **comment** or edit on the item (and, for Linear PRDs, the
-   sentinel feedback issue). Exclude automation self-comments and Lisa audit markers such as
+2. Latest human lifecycle/progress **comment** or edit on the item (for Linear PRDs, the
+   project's own comments via `list-comments project_id`, plus any legacy sentinel feedback
+   issue for projects that predate project-level comments). Exclude automation self-comments and Lisa audit markers such as
    `[claude-build-intake]`, `[codex-build-intake]`, `[lisa-build-intake]`, and
    `[lisa-repair-intake]`.
 3. For build items, latest **PR-side forward-progress activity** on the linked PR: newest commit,
@@ -466,25 +468,49 @@ branch — operate on it the same way.
 
 **4. Classify as a blocker.** Treat any of these as a real external blocker:
 
-- **True merge conflict** — `gh pr update-branch` (step 3) reported a conflict, or
-  `git merge-tree --write-tree origin/<base> <head>` exits non-zero. A
-  merely `BEHIND` branch is **not** here — it was re-synced in step 3. Unlike the other classes below, a
-  conflict is **resolvable by re-running the build**, so step 5 gives it one in-place re-dispatch before
-  filing — see its conflict-first rule.
+- **True merge conflict** — confirmed by a **merge trial**, never by a cached field.
+  `mergeable = CONFLICTING` and `mergeStateStatus = DIRTY` are hints that say *go look*: both are
+  computed asynchronously, and a stale one is served often enough that GitHub reported `DIRTY` for two
+  branches at the same moment while only one of them actually conflicted (#3694). Re-derive from
+  primary evidence at the moment of asking:
 
-  **`mergeable = CONFLICTING` and `mergeStateStatus = DIRTY` are hints that
-  START this check, never the verdict that ends it.** Both are cached
-  computations that go stale — measured, GitHub reported `DIRTY` for two
-  branches at the same moment while only one actually conflicted, and a single
-  response has carried `MERGEABLE` and `DIRTY` together
-  (CodySwannGT/lisa#3694). Confirm with `merge-tree` before classifying, and
-  say in the run summary which answer you acted on.
+  ```sh
+  base=$(gh pr view <pr> --json baseRefName --jq .baseRefName)
+  head=$(gh pr view <pr> --json headRefOid --jq .headRefOid)
+  git fetch --quiet origin "$base" "pull/<pr>/head" || readable=no
+  git rev-parse --verify --quiet "origin/$base^{commit}" >/dev/null || readable=no
+  git rev-parse --verify --quiet "$head^{commit}" >/dev/null || readable=no
+  out=$(git merge-tree --write-tree "origin/$base" "$head" 2>/dev/null); code=$?
+  ```
 
-  **This class matters more here than in `lisa-drive-pr-to-merge`.** There a
-  spurious `DIRTY` costs a wasted resolve, which a human sees. Here it files a
-  BLOCKER against a pull request with nothing wrong with it, unattended — so
-  the wrong answer becomes durable tracker state that a later cycle reads as
-  fact. Verify before filing, never after.
+  `merge-tree --write-tree` merges into the object store only — no working tree, no index and no
+  branch is touched — so it is safe inside an unattended scanner.
+
+  **Read the exit code together with stdout; the exit code alone cannot separate the three states.**
+  Measured on git 2.53.0: a trial naming a ref that does not exist exits `1`, the same code a genuine
+  conflict returns, printing nothing on stdout and `merge-tree: <ref> - not something we can merge`
+  on stderr. A trial that ran always prints the resulting tree OID on its first line; one that could
+  not run prints nothing. Three states, and the third is not optional:
+
+  - `code == 1` **and** `$out` non-empty → **CONFLICTED**. A real external blocker. Unlike the other
+    classes below, a conflict is **resolvable by re-running the build**, so step 5 gives it one
+    in-place re-dispatch before filing — see its conflict-first rule.
+  - `code == 0` → **CLEAN**. Not a blocker, whatever the API said. Write nothing, leave the item
+    `claimed`, and let a later cycle re-ask.
+  - `readable=no`, `$out` empty, or any other exit → **NOT DETERMINED**. The trial could not run — an
+    unresolvable ref, an unreachable remote, a git older than 2.38 — which is an absence of evidence,
+    not a verdict. Write nothing, file nothing, leave the item `claimed`, and record it as
+    `not_determined` in the run summary so a later cycle re-asks.
+
+  A `gh pr update-branch` (step 3) that reported a conflict it cannot apply also counts as
+  CONFLICTED — that is a merge actually attempted, not a cached answer. A merely `BEHIND` branch is
+  **not** here — it was re-synced in step 3.
+
+  **Filing on a cached field is the expensive direction here.** In a fix-mode loop a false
+  CONFLICTED wastes a resolve, which a human sees; in this scanner it files a
+  BLOCKER against a pull request that has nothing wrong with it, unattended — so the wrong answer
+  becomes durable tracker state that a later cycle reads as fact, and intake will keep doing that
+  without anyone noticing. Verify before filing, never after.
 - **Failing required checks** — `statusCheckRollup` has a `FAILURE`/`ERROR`/`TIMED_OUT` conclusion,
   or `mergeStateStatus = UNSTABLE`/`BLOCKED` due to checks.
 - **Change requests outstanding** — `reviewDecision = CHANGES_REQUESTED`, or unresolved CodeRabbit
@@ -905,8 +931,8 @@ intake runs per item**, targeted at this single PRD and **skipping the claim** (
 ### PRD `blocked` → re-validate if new answers exist
 
 1. Determine whether **new clarifying answers** exist: any comment/update on the PRD newer than
-   the last `[lisa-repair-intake]` note or the original `blocked` note. For Linear include the
-   sentinel feedback issue and anchored sub-issue comments; for Confluence include inline/footer
+   the last `[lisa-repair-intake]` note or the original `blocked` note. For Linear include the project's own
+   comments, anchored sub-issue comments, and any legacy sentinel feedback issue; for Confluence include inline/footer
    comments where the access layer exposes them; for Notion include page comments and
    `last_edited_time`.
 2. If new answers exist → run the `lisa:<source>-to-tracker` dry-run validate→route pipeline as
@@ -1023,6 +1049,50 @@ with labels like `build-ready`, or with no Lisa status label at all, that are in
    substring match whose precision is a separate open defect (#3815). Refusing and reporting is
    the safe failure direction without the latch. Count these under `held_for_person`, never under
    `normalized_ready`.
+
+   **Pass the item's `comments`.** The planner reads a recorded `[lisa-human-gate-release]` comment
+   as the discharge of the hold naming the same `reason=`, and an item read without its comments is
+   an item whose discharge cannot be seen. That fails closed — it stays held — which is the safe
+   direction and precisely why the omission is invisible.
+
+2b. **Release the holds that have been answered.** This is step 2a's inverse and it is the reason
+   this sweep is where it lives: applying a hold had a path and lifting one had none, so a person
+   could supply exactly what a held item asked for, record the decision on the item, and the item
+   stayed held forever (CodySwannGT/lisa#3852). The expensive part — getting a person's attention,
+   framing the question, obtaining a judgment — was already paid for, and the system discarded the
+   answer.
+
+   Enumerate items carrying the configured `human_needed` marker **or** a `[lisa-human-gate]` marker
+   in the body, and for each call
+   `planHumanGateRelease({ labels, body, comments, humanNeededLabel, readyLabel, lifecycleLabels, alreadyNotified })`
+   from `scripts/intake-blocker-reprobe.mjs`. Apply exactly the actions it returns: remove the
+   human-needed marker, add the configured build `ready` label back, and post
+   `formatHumanGateReleaseNote()` once. Do **not** re-implement the discharge test, and do **not**
+   decide it from labels alone — the hold and its release are body and comment surfaces.
+
+   Three refusals make this safe to run on every cycle, and each one is in the planner rather than
+   in this prose so it cannot drift:
+
+   - **Still held plans nothing.** Every outstanding reason holds the whole item; an item whose
+     second question is unanswered is not half-released.
+   - **Never held plans nothing.** Without that this would be a path that adds the build-ready role
+     to arbitrary items — a promotion mechanism wearing a release mechanism's name.
+   - **An item that has moved on is not dragged back.** The ready role is restored only when the
+     item carries no other configured lifecycle label.
+
+   This is a genuine exception to "never remove a `human_needed` marker this skill did not apply",
+   and the exception is narrow enough to state exactly: provenance is the wrong question when the
+   *hold itself* names the condition that voids it and that condition is recorded. The general rule
+   stands because "stale" is otherwise a judgment about the block's kind; here nothing is being
+   judged — a release naming the hold's own reason is on the item, or it is not.
+
+   **Never edit a description to clear a hold**, here or anywhere. The only body write this plugin
+   has is a whole-body replacement, so deleting one line means rewriting the record and hoping
+   nothing was dropped. That is why holds accumulated: each individual release was a small gamble
+   with a large downside. The hold note stays in the body as history; the release is a comment
+   beside it. Count these under `released_to_queue`, and name them in the cycle summary via
+   `summarizeHumanGateReleases([...])` — printed even when it is zero, because a release path that
+   has stopped working and a cycle with nothing to release read identically otherwise.
 3. Classify the issue:
    - **PRD** if it has PRD labels/markers (`prd`, `type:PRD`, `kind:prd`), PRD structure
      (`## Problem`, `## Goals`, `## Validation Journey`, generated-work/backlink sections), or

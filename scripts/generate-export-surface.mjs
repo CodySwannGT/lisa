@@ -46,8 +46,27 @@
  * @module scripts/generate-export-surface
  */
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+
+/**
+ * Fixed absolute git locations, in the order they are tried.
+ *
+ * A bare `"git"` resolves through `PATH`, which any directory early on it can
+ * decide — and this script's whole purpose is to be trusted about what a
+ * release removed. The same ordered candidate list the other shipped checks
+ * use, so one repository resolves one git.
+ */
+const GIT_LOCATIONS = [
+  "/Library/Developer/CommandLineTools/usr/bin/git",
+  "/Applications/Xcode.app/Contents/Developer/usr/bin/git",
+  "/usr/bin/git",
+  "/usr/local/bin/git",
+  "/opt/homebrew/bin/git",
+];
+
+/** Absolute git path: the first candidate that exists. */
+const GIT_BIN = GIT_LOCATIONS.find(candidate => existsSync(candidate)) ?? "git";
 
 /** Directories inside the `files` allowlist that ship executable `.mjs`. */
 const SHIPPED_ROOTS = [
@@ -87,10 +106,34 @@ const ARTIFACT = "src/core/export-surface.json";
  * 306 `const`, 38 `async function`, 14 `class`, 4 brace-lists.
  */
 const DECLARATION =
-  /^export\s+(?:async\s+)?(?:function|const|let|var|class)\s+([A-Za-z_$][\w$]*)/;
+  /^export\s+(?:async\s+)?(?:function|const|let|var|class)\s+([A-Za-z_$][\w$]*)/gm;
 
-/** `export { a, b as c }` — the re-export form. */
-const BRACE_LIST = /^export\s*\{([^}]*)\}/;
+/**
+ * `export { a, b as c }` — the re-export form, on one line or many.
+ *
+ * The body is `[^}]*`, which crosses newlines, because the reader used to walk
+ * the source a line at a time and so could only ever see a list that closed on
+ * the line it opened on. A multiline block contributed NOTHING to the artifact,
+ * and a removal from one was therefore never reported while the check went on
+ * passing — the exact failure this file exists against (CodySwannGT/lisa#4006).
+ *
+ * Still anchored with `m` rather than dropped, so an `export {` inside a string
+ * or a comment is no more countable than it was before.
+ */
+const BRACE_LIST = /^export\s*\{([^}]*)\}/gm;
+
+/**
+ * `export * as ns from "mod"` — the namespace re-export form.
+ *
+ * `ns` is a name a consumer imports, so it belongs on the surface. Its bare
+ * sibling `export * from "mod"` stays invisible: it introduces no name of its
+ * own, and enumerating what it forwards would mean resolving and reading the
+ * other module, which is the dynamic behavior this reader deliberately avoids.
+ */
+const NAMESPACE_REEXPORT = /^export\s*\*\s+as\s+([A-Za-z_$][\w$]*)\s+from\b/gm;
+
+/** Comments inside a brace list — a commented-out name is not on the surface. */
+const CLAUSE_COMMENT = /\/\*[\s\S]*?\*\/|\/\/[^\n]*/g;
 
 /**
  * Every tracked, shipped `.mjs` path.
@@ -98,7 +141,7 @@ const BRACE_LIST = /^export\s*\{([^}]*)\}/;
  * @returns {string[]} Repo-relative paths, sorted.
  */
 export function shippedScripts(cwd = process.cwd()) {
-  const listed = execFileSync("git", ["ls-files"], {
+  const listed = execFileSync(GIT_BIN, ["ls-files"], {
     cwd,
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
@@ -114,20 +157,21 @@ export function shippedScripts(cwd = process.cwd()) {
  *
  * `export default` is deliberately excluded: it has no name to compare, so
  * recording it would add a row that can never change meaningfully.
+ *
+ * Read over the whole source rather than a line at a time, so a declaration
+ * list that spans lines is seen. Every pattern stays anchored at a line start
+ * under `m`, which is what keeps an `export` inside a string or a comment out.
  * @param {string} source Module source.
  * @returns {string[]} Exported names, sorted and deduplicated.
  */
 export function exportedNames(source) {
   const names = new Set();
-  for (const line of source.split("\n")) {
-    const declared = DECLARATION.exec(line);
-    if (declared) {
-      names.add(declared[1]);
-      continue;
-    }
-    const braced = BRACE_LIST.exec(line);
-    if (!braced) continue;
-    for (const clause of braced[1].split(",")) {
+  for (const [, declared] of source.matchAll(DECLARATION)) names.add(declared);
+  for (const [, namespaced] of source.matchAll(NAMESPACE_REEXPORT)) {
+    names.add(namespaced);
+  }
+  for (const [, body] of source.matchAll(BRACE_LIST)) {
+    for (const clause of body.replace(CLAUSE_COMMENT, " ").split(",")) {
       // `a as b` exports b; the local name is not part of the surface.
       const parts = clause.trim().split(/\s+as\s+/);
       const exported = (parts.at(-1) ?? "").trim();
@@ -239,7 +283,7 @@ export function changelogSection(removals) {
  */
 function surfaceAt(ref, cwd) {
   try {
-    const source = execFileSync("git", ["show", `${ref}:${ARTIFACT}`], {
+    const source = execFileSync(GIT_BIN, ["show", `${ref}:${ARTIFACT}`], {
       cwd,
       encoding: "utf8",
       maxBuffer: 64 * 1024 * 1024,
@@ -260,17 +304,59 @@ function surfaceAt(ref, cwd) {
 }
 
 /**
+ * Classify what an argument vector asks `--removed-since` to do.
+ *
+ * Three outcomes, and the point of the function is that they are three rather
+ * than two. "Compare against this revision" and "generate the artifact" are
+ * the two intended paths; "the flag is present but its operand is missing or
+ * is itself a flag" used to collapse into the second, which is how a typo came
+ * to read as `no exports removed`.
+ *
+ * An operand starting with `-` is refused rather than passed to git: it is
+ * far likelier to be the next flag — `--removed-since --check` consumed
+ * `--check` as the revision — than a revision anyone meant.
+ * @param {string[]} argv Arguments after the script name.
+ * @returns {{mode: "generate"}|{mode: "compare", operand: string}|{mode: "refuse", got: string}}
+ *   What was asked for.
+ */
+export function removedSinceOperand(argv) {
+  const index = argv.indexOf("--removed-since");
+  if (index === -1) return { mode: "generate" };
+
+  const operand = argv[index + 1];
+  if (operand === undefined || operand === "") {
+    return { mode: "refuse", got: "nothing" };
+  }
+  if (operand.startsWith("-")) {
+    return { mode: "refuse", got: `the flag "${operand}"` };
+  }
+  return { mode: "compare", operand };
+}
+
+/**
  * CLI.
  * @returns {number} Exit code.
  */
 function main() {
   const cwd = process.cwd();
   const argv = process.argv.slice(2);
-  const since = argv.includes("--removed-since")
-    ? argv[argv.indexOf("--removed-since") + 1]
-    : null;
+  const request = removedSinceOperand(argv);
 
-  if (since) {
+  if (request.mode === "refuse") {
+    // Exit 2, and on stderr, because the alternative was exit 0 with the
+    // artifact rewritten: a trailing `--removed-since` left the operand
+    // undefined, the comparison branch was skipped, and control fell through
+    // to generation — the one branch that produces a reassuring exit code.
+    // A caller that asked "did this release remove any public export?" was
+    // handed an all-clear for a comparison nobody performed.
+    process.stderr.write(
+      `--removed-since requires a git revision as its next argument; got ${request.got}. Nothing was compared, and this is NOT a clean result.\n`
+    );
+    return 2;
+  }
+
+  if (request.mode === "compare") {
+    const since = request.operand;
     const before = surfaceAt(since, cwd);
     if (before === null) {
       // Exit 2, not 0. "I could not compare" and "nothing was removed" are

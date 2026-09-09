@@ -16,6 +16,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  branchLanes,
   main,
   orphanedBranches,
   refInBranchName,
@@ -31,6 +32,9 @@ const SUPERSEDED_BRANCH = "qd/3604-follow-execution-not-args";
 
 /** A branch whose work item is still open, so it really is unsubmitted work. */
 const LIVE_BRANCH = "fix/3904-live";
+
+/** A second live branch, so a one-lane answer cannot satisfy a two-lane claim. */
+const OTHER_BRANCH = "fix/3905-other";
 
 describe("orphaned branch selection", () => {
   it("reports a branch ahead of base with no pull request", () => {
@@ -306,6 +310,23 @@ describe("a pull request is not a work item", () => {
   });
 });
 
+describe("lanes read off the branch tip", () => {
+  it("reads a lane out of the tip commit, and skips a branch with none", () => {
+    const messages = new Map([
+      ["origin/fix/stamped", "feat: work\n\nLane-Id: lane-0123456789ab\n"],
+      ["origin/fix/bare", "feat: work\n"],
+    ]);
+    const lanes = branchLanes(
+      ["fix/stamped", "fix/bare", "fix/gone"],
+      "origin",
+      (_command: string, args: string[]) => messages.get(args[3] ?? "")
+    );
+    expect(lanes.get("fix/stamped")).toBe("lane-0123456789ab");
+    expect(lanes.has("fix/bare")).toBe(false);
+    expect(lanes.has("fix/gone")).toBe(false);
+  });
+});
+
 /**
  * What the report says, which is the only part an operator ever sees.
  */
@@ -315,6 +336,7 @@ describe("the report an operator reads", () => {
     collectAhead: () => [{ ahead: 1, branch: SUPERSEDED_BRANCH }],
     collectDivergence: () =>
       new Map([[SUPERSEDED_BRANCH, { baseAhead: 374, branchAhead: 1 }]]),
+    collectLanes: () => new Map<string, string>(),
     collectSubmitted: () => new Set<string>(),
     collectWorkItems: () =>
       new Map([
@@ -370,5 +392,45 @@ describe("the report an operator reads", () => {
         new Map([[LIVE_BRANCH, { ref: "#3904", state: "OPEN" }]]),
     });
     expect(text).toMatch(/open a pull request/i);
+  });
+
+  // Every session here pushes under one git identity, so `author.login` is the
+  // same on a branch a live session is still working and on one whose session
+  // ended days ago. Two lanes, not one: a report that named a single constant
+  // would satisfy a one-lane assertion while routing nothing.
+  it("names the lane that produced each branch, and tells two apart", () => {
+    const text = report({
+      ...supersededProbe,
+      collectAhead: () => [
+        { ahead: 4, branch: LIVE_BRANCH },
+        { ahead: 2, branch: OTHER_BRANCH },
+      ],
+      collectDivergence: () => new Map(),
+      collectLanes: () =>
+        new Map([
+          [LIVE_BRANCH, "lane-0123456789ab"],
+          [OTHER_BRANCH, "lane-fedcba987654"],
+        ]),
+      collectWorkItems: () =>
+        new Map([
+          [LIVE_BRANCH, { ref: "#3904", state: "OPEN" }],
+          [OTHER_BRANCH, { ref: "#3905", state: "OPEN" }],
+        ]),
+    });
+    expect(text).toContain("produced by lane-0123456789ab");
+    expect(text).toContain("produced by lane-fedcba987654");
+  });
+
+  it("says a branch is unrouted rather than staying quiet about it", () => {
+    // Silence about attribution reads as "nobody made this", and a survey that
+    // read it that way reached two wrong conclusions.
+    const text = report({
+      ...supersededProbe,
+      collectAhead: () => [{ ahead: 4, branch: LIVE_BRANCH }],
+      collectDivergence: () => new Map(),
+      collectWorkItems: () =>
+        new Map([[LIVE_BRANCH, { ref: "#3904", state: "OPEN" }]]),
+    });
+    expect(text).toContain("cannot be routed to a session");
   });
 });

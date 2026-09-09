@@ -230,6 +230,11 @@ describe("apply receipt", () => {
       apply_mode: FULL,
       stale_paths: [],
       deleted_paths: [],
+      // The two fields that make a removal answerable after the install output
+      // is gone (CodySwannGT/lisa#4071). Empty and null here: this apply removed
+      // nothing, and a timestamp would assert that it had.
+      deletion_notices: [],
+      deletions_recorded_at: null,
     });
   });
 

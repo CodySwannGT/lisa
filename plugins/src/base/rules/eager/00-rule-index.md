@@ -29,6 +29,7 @@ Paths are relative to this file.
 | `prd-definition-of-ready` | authoring or validating a PRD's requirement atoms | [../reference/prd-definition-of-ready.md](../reference/prd-definition-of-ready.md) |
 | `prd-lifecycle-rollup` | rolling a PRD up from its generated top-level work | [../reference/prd-lifecycle-rollup.md](../reference/prd-lifecycle-rollup.md) |
 | `usage-accounting` | writing the managed `## Lisa Usage` section on an artifact | [../reference/usage-accounting.md](../reference/usage-accounting.md) |
+| `work-item-trailer-definition` | reading, counting, or auditing a `Work-Item:` trailer — BEFORE reaching for `%(trailers)` | [../reference/work-item-trailer-definition.md](../reference/work-item-trailer-definition.md) |
 
 ## Build-intake claim time
 

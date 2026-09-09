@@ -43,6 +43,19 @@ name: 🔍 Quality Checks
 on:
   workflow_call:
     inputs:
+      expected_workflow_contract_major:
+        description: >-
+          The contract major of THIS workflow the caller was written against.
+          Consumers track `@main`, so quality.yml changes under them with no pull
+          request in their repository; comparing this value against the major
+          the workflow declares is the only way a run can tell a compatible
+          change from a breaking one — or from nothing having been looked at.
+          A caller that omits it is told so loudly and never quietly passed.
+          Seeded beside the `uses:` line in every Lisa caller template and
+          enforced by Lisa's `check-workflow-contract-assertions.mjs` gate.
+        required: false
+        default: ''
+        type: string
       node_version:
         description: 'Node.js version to use'
         required: false
@@ -311,7 +324,93 @@ concurrency:
 # Jobs that touch neither the repository nor the API declare `permissions: {}`.
 # Never widen this floor — grant a job its minimal scope at the job level.
 
+# ─── The package manager, bound once ────────────────────────────────────────
+# A `${{ }}` expression is substituted into a `run:` body BEFORE the shell
+# parses it, so an interpolated value is shell SOURCE TEXT rather than an
+# argument. `package_manager` is a free-text `type: string` input, so a caller
+# passing `npm; <anything>` had the second half executed (#3793).
+#
+# Bound here, at workflow level, every job and every step reads it as an
+# environment variable — quoted, one argv word, never source.
+#
+# Env-passing is only half the remedy: it stops the injection but still tries
+# to exec whatever the single word names. The other half is the `case` in each
+# job's install step, which fails the job closed on anything outside
+# npm|yarn|pnpm|bun before a command position is ever reached.
+env:
+  PACKAGE_MANAGER: ${{ inputs.package_manager }}
+
 jobs:
+  workflow_contract:
+    # The caller-facing half of the staleness handshake (CodySwannGT/lisa#3698).
+    # `.github/reusable-workflow-contracts.json` records the major, every shipped
+    # caller template is seeded with it, and
+    # `check-workflow-contract-assertions.mjs` in Lisa refuses a template that
+    # takes the `uses:` reference and drops the assertion — the two are one unit.
+    name: 🔖 Workflow Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: 🔖 Assert the caller still understands this workflow
+        env:
+          # The contract major THIS revision speaks. Bump it here and in
+          # .github/reusable-workflow-contracts.json in the same commit, and
+          # reseed every caller template in that commit too.
+          DECLARED_MAJOR: '1'
+          EXPECTED_MAJOR: ${{ inputs.expected_workflow_contract_major }}
+          WORKFLOW_FILE: quality.yml
+        # Byte-identical to workflow-contract-assertion.sh in Lisa across every
+        # reusable workflow; the gate proves it rather than trusting it.
+        run: |
+          set -eu
+
+          # The consumer-side half of a two-party contract (CodySwannGT/lisa#3698).
+          #
+          # Every consumer reference to a Lisa reusable workflow tracks `@main` by ruling,
+          # not by accident. So this workflow changes under a consumer between two runs of
+          # one pull request, with no PR, no review and no record in their repository.
+          # That is intended. What was missing is any way for them to TELL: an unchanged
+          # workflow and a rewritten one produced the same silence, and an investigation
+          # that fetched `@main` afterwards was reading a different artifact than the run
+          # it was investigating and could not know it.
+          #
+          # This step is the signal, and it deliberately asserts the CONTRACT rather than
+          # the ref. Asserting the ref — a tag, a SHA, a tree hash — goes red on every
+          # legitimate upstream change and is deleted within a week, which is how a
+          # staleness check becomes a staleness problem. The major asserts the property a
+          # caller actually depends on: "the inputs and behaviour you were seeded against
+          # still hold". A compatible change stays green, because receiving compatible
+          # changes is the entire point of tracking `@main`; only a declared break speaks.
+          echo "workflow:                                  ${WORKFLOW_FILE}"
+          echo "contract major declared by this revision:  ${DECLARED_MAJOR}"
+          echo "contract major the caller was seeded with: ${EXPECTED_MAJOR:-<none passed>}"
+
+          # NOT DETERMINED, said out loud.
+          #
+          # A caller that passes nothing is not failed. Caller workflows ship create-only
+          # and are never overwritten, so every consumer seeded before this shipped passes
+          # nothing — while this workflow is live in all of them on their next run.
+          # Failing closed here would redden the entire fleet over a file Lisa cannot
+          # update on their behalf: the two-channel mistake this handshake exists to
+          # catch, committed in the other direction.
+          #
+          # It must not be SILENT either. Silence is the defect. So the run says plainly
+          # that it measured nothing, and says what to add.
+          case "${EXPECTED_MAJOR}" in
+            '' | *[!0-9]*)
+              echo "::warning title=Workflow contract NOT DETERMINED::This run cannot tell whether ${WORKFLOW_FILE} changed under you. Its caller passed expected_workflow_contract_major='${EXPECTED_MAJOR}', which is not a whole number, so there is nothing to compare against the major ${DECLARED_MAJOR} this revision declares. Add 'expected_workflow_contract_major: ${DECLARED_MAJOR}' to the 'with:' block beside your 'uses: ...@main' line. Until you do, this check is measuring nothing and its green means only that."
+              exit 0
+              ;;
+          esac
+
+          if [ "${EXPECTED_MAJOR}" != "${DECLARED_MAJOR}" ]; then
+            echo "::error title=Workflow contract mismatch::${WORKFLOW_FILE} on @main declares contract major ${DECLARED_MAJOR}; this caller was seeded against major ${EXPECTED_MAJOR}. A major bump is Lisa stating that an input or a behaviour you depend on changed in a way you must react to. Read the workflow header for what moved, update this caller, then set expected_workflow_contract_major: ${DECLARED_MAJOR}."
+            exit 1
+          fi
+
+          echo "contract major ${DECLARED_MAJOR} agreed: ${WORKFLOW_FILE} has not declared a break under this caller."
+
   # ─── Which Lisa ran this ─────────────────────────────────────────────────
   # A CONSUMER RUNS TWO LISAS AT ONCE. Its `package.json` pins
   # `@codyswann/lisa` at a version and that pinned copy governs the local
@@ -342,6 +441,11 @@ jobs:
     name: 🔖 Which Lisa Ran This
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # CARRIED OUT OF THE JOB so something else can compare it. The stamp below
+    # already knows which copy it resolved; until this output existed that fact
+    # died with the job, and no other job on the run could have contradicted it.
+    outputs:
+      registry_path: ${{ steps.stamp.outputs.registry_path }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -404,6 +508,7 @@ jobs:
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🔖 Report which Lisa is running
+        id: stamp
         # Resolved through the same three-candidate search every gate job
         # below uses, in the same order, and — see the steps above — against
         # the same filesystem, deliberately: the point of the stamp is to name
@@ -430,11 +535,146 @@ jobs:
             # deliberately does NOT render the full stamp with `unknown` in
             # every field, because that reads like a stamp that resolved and
             # found nothing rather than one that could not be produced.
+            #
+            # An EMPTY output rather than a placeholder, for the same reason:
+            # the comparison downstream has to be able to tell "this job
+            # resolved nothing" from "this job resolved a different copy", and
+            # a stand-in string reads as the second.
+            echo "registry_path=" >> "$GITHUB_OUTPUT"
             echo "::warning title=Lisa identity unavailable::This project ships no gate registry, so nothing can name the enforcement bytes that produced the reports below. The workflow that ran them is ${WORKFLOW_REF}@${WORKFLOW_SHA}."
             exit 0
           fi
+          echo "registry_path=$(cd "$(dirname "$RESOLVER")" && pwd -P)/$(basename "$RESOLVER")" >> "$GITHUB_OUTPUT"
           node "$RESOLVER" identity --format=github || true
         working-directory: ${{ inputs.working_directory || '.' }}
+
+  # ─── Which copy the gates ran ────────────────────────────────────────────
+  # THE STAMP'S CROSS-PROCESS CLAIM, OBSERVED RATHER THAN INFERRED. The job
+  # above resolves the enforcement registry through the same three-candidate
+  # search the gate jobs run, in the same order, after the same dependency
+  # install. Every word of that is an argument about how this FILE is written.
+  # It is not an observation that two jobs on one runner landed on one file,
+  # and those are different claims: a change that breaks the correspondence
+  # without breaking the YAML shape satisfies the first and violates the
+  # second.
+  #
+  # Why the gap mattered enough to instrument. The stamp exists because a
+  # content hash reads as the one fact that cannot be mistaken, so a
+  # confidently wrong stamp is worse than an absent one. "The stamp is
+  # self-consistent" is the weaker of the two things a reader takes it to
+  # mean, and until this job it was the only one anything demonstrated.
+  #
+  # FAILS CLOSED ON ITS OWN BLINDNESS. The healthy state here is "the paths
+  # are equal", and every way of NOT LOOKING — a stamp that resolved nothing,
+  # a gate job that never ran, a comparison that could not execute — also
+  # produces "no divergence found". So each of those reports NOT_DETERMINED
+  # and says which one it was; none of them may render as agreement. The
+  # verdict is written to a file the shell reads back, so a comparison that
+  # dies before printing is still reported rather than passing as silence.
+  #
+  # REPORT ONLY, like the stamp it checks. A failed job here fails the
+  # reusable workflow, which fails the CALLER's job, which in some consumers
+  # is a required context; a comparison that could redden CI would be a new
+  # gate nobody declared, arriving unannounced in every project that reports.
+  # So the verdict travels as an annotation and a run-summary block, and the
+  # step exits zero on every one of them. It carries no `continue-on-error`
+  # for the same reason `lisa_identity` does not: the file's unconditional
+  # carriers are pinned, and this needs no exemption to be harmless.
+  registry_path_agreement:
+    permissions:
+      contents: read
+    name: 🧭 Which Copy The Gates Ran
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # `always()` and not `success()`: a gate job that FAILED still resolved a
+    # copy, and a run that went wrong is where the divergence is likeliest.
+    needs: [lisa_identity, gate_plan, lint, test_unit]
+    if: ${{ always() }}
+    steps:
+      # NO CHECKOUT. Everything compared here arrived as a job output from a
+      # job that already did the resolving, so this job reads no file the
+      # caller controls and needs no copy of the caller's tree. That also
+      # keeps it honest: it cannot re-derive a path and compare a value
+      # against itself.
+      - name: 🧭 Compare the stamped copy against the executed copy
+        env:
+          STAMP_PATH: ${{ needs.lisa_identity.outputs.registry_path }}
+          STAMP_RESULT: ${{ needs.lisa_identity.result }}
+          LINT_PATH: ${{ needs.lint.outputs.registry_path }}
+          LINT_RESULT: ${{ needs.lint.result }}
+          TEST_UNIT_PATH: ${{ needs.test_unit.outputs.registry_path }}
+          TEST_UNIT_RESULT: ${{ needs.test_unit.result }}
+          PLAN_PATH: ${{ needs.gate_plan.outputs.registry_path }}
+          PLAN_RESULT: ${{ needs.gate_plan.result }}
+        run: |
+          set -uo pipefail
+          VERDICT_FILE="$(mktemp)"
+          export VERDICT_FILE
+          node -e '
+          const fs = require("node:fs");
+          const env = process.env;
+          const observe = (name, role, resolvedPath, result) => ({
+            name,
+            role,
+            path: (resolvedPath || "").trim(),
+            result: result || "unknown",
+          });
+          const stamp = observe("lisa_identity", "stamped the run", env.STAMP_PATH, env.STAMP_RESULT);
+          const executed = [
+            observe("lint", "executed a gate", env.LINT_PATH, env.LINT_RESULT),
+            observe("test_unit", "executed a gate", env.TEST_UNIT_PATH, env.TEST_UNIT_RESULT),
+          ];
+          const noted = observe("gate_plan", "planned without installing", env.PLAN_PATH, env.PLAN_RESULT);
+          const all = [stamp, ...executed, noted];
+          const resolved = executed.filter(job => job.path !== "");
+          let verdict = "NOT_DETERMINED";
+          let why;
+          if (stamp.path === "") {
+            why = "the identity job reported no resolved registry path (result=" + stamp.result + "), so the stamp was compared against nothing. This is NOT the finding that the two copies differ: one of them could not be resolved at all.";
+          } else if (resolved.length === 0) {
+            why = "no gate-executing job reported a resolved registry path (" + executed.map(job => job.name + " result=" + job.result).join(", ") + "), so nothing on this run executed a copy the stamp could be checked against. This is NOT the finding that the two copies differ.";
+          } else {
+            const diverged = resolved.filter(job => job.path !== stamp.path);
+            verdict = diverged.length === 0 ? "AGREED" : "DIVERGED";
+            why = diverged.length === 0
+              ? "the identity job stamped " + stamp.path + " and " + resolved.map(job => job.name).join(", ") + " executed that same copy."
+              : "the identity job stamped " + stamp.path + " while " + diverged.map(job => job.name + " executed " + job.path).join(" and ") + ". The digests the stamp reports are of a copy the gates did not run.";
+          }
+          const cell = job => (job.path === "" ? "(none resolved)" : job.path);
+          const summary = [
+            "## Which copy the gates ran",
+            "",
+            "**" + verdict + "** - " + why,
+            "",
+            "| job | role | result | resolved registry |",
+            "| --- | --- | --- | --- |",
+            ...all.map(job => "| " + job.name + " | " + job.role + " | " + job.result + " | " + cell(job) + " |"),
+            "",
+            "gate_plan is REPORTED, NOT ASSERTED. It resolves the registry without installing dependencies, so it can land on a copy the gate-executing jobs never run. That is a real gap, tracked on its own; naming it here is what stops this comparison from passing by leaving it out.",
+            "",
+          ].join("\n");
+          if (env.GITHUB_STEP_SUMMARY) {
+            try {
+              fs.appendFileSync(env.GITHUB_STEP_SUMMARY, summary + "\n");
+            } catch (error) {
+              console.log("::warning::The run summary for the registry-path comparison could not be written: " + error.message);
+            }
+          }
+          const observed = all.map(job => job.name + "=" + cell(job)).join(" ");
+          console.log("::" + (verdict === "AGREED" ? "notice" : "error") + " title=Which copy the gates ran - " + verdict + "::" + why + " Observed: " + observed);
+          if (env.VERDICT_FILE) fs.writeFileSync(env.VERDICT_FILE, verdict);
+          process.exit(verdict === "AGREED" ? 0 : verdict === "DIVERGED" ? 1 : 2);
+          ' || true
+          VERDICT=""
+          if [ -s "$VERDICT_FILE" ]; then VERDICT="$(cat "$VERDICT_FILE")"; fi
+          rm -f "$VERDICT_FILE"
+          case "$VERDICT" in
+            AGREED | DIVERGED | NOT_DETERMINED) ;;
+            *)
+              echo "::error title=Which copy the gates ran - NOT_DETERMINED::The comparison did not run to completion, so nothing on this run established that the identity stamp names the copy the gate jobs executed. A verdict that cannot be read is reported as unobserved, never as agreement."
+              ;;
+          esac
+          exit 0
 
   gate_plan:
     permissions:
@@ -443,6 +683,11 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       plan: ${{ steps.plan.outputs.plan }}
+      # THIS JOB INSTALLS NOTHING, so its search can land on a copy the
+      # gate-executing jobs will not run. That is a real and separately-tracked
+      # gap; the path is emitted so the comparison downstream can NAME it
+      # instead of quietly leaving this job out of the picture.
+      registry_path: ${{ steps.plan.outputs.registry_path }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -485,6 +730,11 @@ jobs:
           fi
 
           echo "plan=$PLAN" >> "$GITHUB_OUTPUT"
+          if [ -n "$RESOLVER" ]; then
+            echo "registry_path=$(cd "$(dirname "$RESOLVER")" && pwd -P)/$(basename "$RESOLVER")" >> "$GITHUB_OUTPUT"
+          else
+            echo "registry_path=" >> "$GITHUB_OUTPUT"
+          fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
   # ─── The generic pull-request gate runner ────────────────────────────────
@@ -743,13 +993,16 @@ jobs:
         env:
           PACKAGE_MANAGER: ${{ inputs.package_manager }}
         run: |
-          if [ "$PACKAGE_MANAGER" = "npm" ]; then
-            npm ci
-          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🧪 Verify the configured gate runner is installed
@@ -902,6 +1155,12 @@ jobs:
     needs: [gate_plan]
     if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',lint,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"lint":"skip"')) }}
 
+    outputs:
+      # The absolute path of the enforcement registry this job resolved AFTER
+      # installing dependencies — the copy whose bytes decide this job's
+      # verdict. `registry_path_agreement` compares it against the identity
+      # job's.
+      registry_path: ${{ steps.registry.outputs.path }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -922,13 +1181,16 @@ jobs:
 
       - name: 📥 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
 
       # ─── Gate façade ─────────────────────────────────────────────────────
       # THE CONTRACT (stated once here; the other converted jobs point back).
@@ -1040,6 +1302,36 @@ jobs:
           ' >> "$GITHUB_OUTPUT"
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # WHICH COPY THIS JOB RESOLVED, carried out of the job so something else
+      # can compare it against the stamp. It reads the choice the resolve step
+      # above already made rather than searching again: a second search is a
+      # second answer that can disagree with the first, and the claim being
+      # observed is about the copy THIS job executes.
+      #
+      # Absolute, because the two jobs being compared render the same file
+      # differently — the stamp prints a path relative to the working
+      # directory — and two spellings of one file are not evidence of
+      # divergence. Empty rather than a placeholder when nothing resolved, so
+      # "could not resolve" stays distinguishable from "resolved something
+      # else".
+      #
+      # `if: always()`: a job that FAILED still resolved a copy, and a
+      # comparison that only ever sees successful jobs cannot observe the
+      # divergence it exists to detect.
+      - name: 🧭 Record which registry copy this job resolved
+        id: registry
+        if: always()
+        env:
+          RESOLVER: ${{ steps.gate.outputs.resolver }}
+        run: |
+          set -uo pipefail
+          if [ -n "$RESOLVER" ] && [ -f "$RESOLVER" ]; then
+            echo "path=$(cd "$(dirname "$RESOLVER")" && pwd -P)/$(basename "$RESOLVER")" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=" >> "$GITHUB_OUTPUT"
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+
       - name: 🚨 Report the unconfigured gate
         # REPORT ONLY — it never fails the job and never changes what runs.
         # `|| true` is what makes that true rather than merely intended: the
@@ -1090,7 +1382,7 @@ jobs:
         if: steps.gate.outputs.configured == 'false'
         run: |
           if [ ! -x "node_modules/.bin/oxlint" ]; then
-            echo "::error::oxlint is required but not installed at node_modules/.bin/oxlint. Add 'oxlint' as a devDependency (Lisa governance pins it via package.lisa.json) and run '${{ inputs.package_manager }} install'."
+            echo "::error::oxlint is required but not installed at node_modules/.bin/oxlint. Add 'oxlint' as a devDependency (Lisa governance pins it via package.lisa.json) and run '$PACKAGE_MANAGER install'."
             exit 1
           fi
           echo "oxlint $(./node_modules/.bin/oxlint --version | head -1) found."
@@ -1195,7 +1487,8 @@ jobs:
         # step runs both linters in sequence. Per-project script semantics
         # (e.g. Lisa itself uses --disable-nested-config) are preserved.
         if: steps.gate.outputs.configured == 'false'
-        run: ${{ inputs.package_manager }} run lint
+        run: |
+          "$PACKAGE_MANAGER" run lint
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
@@ -1229,13 +1522,16 @@ jobs:
 
       - name: 📥 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -1413,7 +1709,8 @@ jobs:
       - name: 🐢 Run slow lint rules
         # FALLBACK — unchanged behavior for a project with no `gates` block.
         if: steps.gate.outputs.configured == 'false'
-        run: ${{ inputs.package_manager }} run lint:slow
+        run: |
+          "$PACKAGE_MANAGER" run lint:slow
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
@@ -1447,13 +1744,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -1631,7 +1931,8 @@ jobs:
       - name: 🔍 Run type check
         # FALLBACK — unchanged behavior for a project with no `gates` block.
         if: steps.gate.outputs.configured == 'false'
-        run: ${{ inputs.package_manager }} run typecheck
+        run: |
+          "$PACKAGE_MANAGER" run typecheck
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
@@ -1750,13 +2051,16 @@ jobs:
       - name: 📦 Install dependencies
         if: steps.gates_declared.outputs.declared == 'true'
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -2125,13 +2429,16 @@ jobs:
         env:
           PACKAGE_MANAGER: ${{ inputs.package_manager }}
         run: |
-          if [ "$PACKAGE_MANAGER" = "npm" ]; then
-            npm ci
-          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🧪 Verify the configured gate runner is installed
@@ -2424,13 +2731,16 @@ jobs:
         env:
           PACKAGE_MANAGER: ${{ inputs.package_manager }}
         run: |
-          if [ "$PACKAGE_MANAGER" = "npm" ]; then
-            npm ci
-          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🧪 Verify the configured gate runner is installed
@@ -2722,13 +3032,16 @@ jobs:
         env:
           PACKAGE_MANAGER: ${{ inputs.package_manager }}
         run: |
-          if [ "$PACKAGE_MANAGER" = "npm" ]; then
-            npm ci
-          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # The non-regression checks are the whole of what protects coverage the
@@ -3182,6 +3495,12 @@ jobs:
     needs: [gate_plan]
     if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test:unit,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_unit":"skip"')) }}
 
+    outputs:
+      # The absolute path of the enforcement registry this job resolved AFTER
+      # installing dependencies — the copy whose bytes decide this job's
+      # verdict. `registry_path_agreement` compares it against the identity
+      # job's.
+      registry_path: ${{ steps.registry.outputs.path }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -3264,13 +3583,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -3310,6 +3632,36 @@ jobs:
           if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
           process.stdout.write(`configured=true\nlevel=${level}\nrunner=${runner}\ntask=${task}\n`); });
           ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      # WHICH COPY THIS JOB RESOLVED, carried out of the job so something else
+      # can compare it against the stamp. It reads the choice the resolve step
+      # above already made rather than searching again: a second search is a
+      # second answer that can disagree with the first, and the claim being
+      # observed is about the copy THIS job executes.
+      #
+      # Absolute, because the two jobs being compared render the same file
+      # differently — the stamp prints a path relative to the working
+      # directory — and two spellings of one file are not evidence of
+      # divergence. Empty rather than a placeholder when nothing resolved, so
+      # "could not resolve" stays distinguishable from "resolved something
+      # else".
+      #
+      # `if: always()`: a job that FAILED still resolved a copy, and a
+      # comparison that only ever sees successful jobs cannot observe the
+      # divergence it exists to detect.
+      - name: 🧭 Record which registry copy this job resolved
+        id: registry
+        if: always()
+        env:
+          RESOLVER: ${{ steps.gate.outputs.resolver }}
+        run: |
+          set -uo pipefail
+          if [ -n "$RESOLVER" ] && [ -f "$RESOLVER" ]; then
+            echo "path=$(cd "$(dirname "$RESOLVER")" && pwd -P)/$(basename "$RESOLVER")" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=" >> "$GITHUB_OUTPUT"
+          fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🚨 Report the unconfigured gate
@@ -3553,11 +3905,11 @@ jobs:
         # FALLBACK — unchanged behavior for a project with no `gates` block.
         if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured == 'false'
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+          if [ "$PACKAGE_MANAGER" = "npm" ]; then
             npm run test:cov
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
             yarn test:cov
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
             bun run test:cov
           fi
         env:
@@ -3762,13 +4114,16 @@ jobs:
       - name: 📦 Install dependencies
         if: steps.check_script.outputs.exists == 'true' || steps.gate.outputs.configured == 'true'
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🧪 Verify the configured gate runner is installed
@@ -3877,11 +4232,11 @@ jobs:
         # silent green into a spurious red.
         if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured == 'false'
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+          if [ "$PACKAGE_MANAGER" = "npm" ]; then
             npm run test:mutation
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
             yarn test:mutation
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
             bun run test:mutation
           fi
         env:
@@ -4064,13 +4419,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🔍 Check for test:integration script
@@ -4263,11 +4621,11 @@ jobs:
         # FALLBACK — unchanged behavior for a project with no `gates` block.
         if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured == 'false'
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+          if [ "$PACKAGE_MANAGER" = "npm" ]; then
             npm run test:integration
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
             yarn test:integration
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
             bun run test:integration
           fi
         env:
@@ -4619,13 +4977,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -4803,7 +5164,8 @@ jobs:
       - name: 📐 Check formatting
         # FALLBACK — unchanged behavior for a project with no `gates` block.
         if: steps.gate.outputs.configured == 'false'
-        run: ${{ inputs.package_manager }} run format:check
+        run: |
+          "$PACKAGE_MANAGER" run format:check
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
@@ -4837,13 +5199,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -5072,14 +5437,16 @@ jobs:
       - name: 🏗️ Build project
         # FALLBACK — unchanged behavior for a project with no `gates` block.
         if: ${{ (inputs.cache_build != true || steps.build_cache.outputs.cache-hit != 'true') && steps.gate.outputs.configured == 'false' }}
-        run: ${{ inputs.package_manager }} run build
+        run: |
+          "$PACKAGE_MANAGER" run build
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: ⏭️ Build cache hit — skipping build
         if: inputs.cache_build == true && steps.build_cache.outputs.cache-hit == 'true'
-        run: echo "::notice::Build cache hit — skipped \`${{ inputs.package_manager }} run build\`"
+        run: |
+          echo "::notice::Build cache hit — skipped \`$PACKAGE_MANAGER run build\`"
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 📤 Upload build artifacts
@@ -5179,13 +5546,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🧭 Validate the gates block
@@ -5656,13 +6026,16 @@ jobs:
         # their fallbacks. That is a SEPARATE defect from #2680, recorded in
         # docs/design/gates-and-policy.md; do not read this install as its fix.
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -6189,11 +6562,14 @@ jobs:
       - name: 📦 Install dependencies
         run: |
           set -euo pipefail
-          if [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          else
-            ${{ inputs.package_manager }} install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            bun) bun install --frozen-lockfile ;;
+            npm | yarn | pnpm) "$PACKAGE_MANAGER" install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -6301,7 +6677,8 @@ jobs:
       # declined gate should cost nothing.
       - name: 🏗️ Build the web bundle
         if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured != 'off'
-        run: ${{ inputs.package_manager }} run export:web
+        run: |
+          "$PACKAGE_MANAGER" run export:web
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🧪 Verify the configured gate runner is installed
@@ -6413,7 +6790,8 @@ jobs:
         # working on the script it already has. No consumer needs a same-day
         # `package.json` alias for this to land.
         if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured == 'false'
-        run: ${{ inputs.package_manager }} run lighthouse:check
+        run: |
+          "$PACKAGE_MANAGER" run lighthouse:check
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: ⏭️ Skip the performance budget (no export:web script)
@@ -6504,13 +6882,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -6772,13 +7153,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -7000,13 +7384,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -7228,13 +7615,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -7416,9 +7806,9 @@ jobs:
         if: steps.gate.outputs.configured == 'false'
         run: |
           if jq -e '.scripts["knip:check"]' package.json >/dev/null 2>&1; then
-            ${{ inputs.package_manager }} run knip:check
+            "$PACKAGE_MANAGER" run knip:check
           else
-            ${{ inputs.package_manager }} run knip
+            "$PACKAGE_MANAGER" run knip
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
@@ -7465,13 +7855,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -7735,13 +8128,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -7952,7 +8348,8 @@ jobs:
 
       - name: 🔎 Run ast-grep scan
         if: steps.check_config.outputs.has_config == 'true' && steps.check_rules.outputs.has_rules == 'true'
-        run: ${{ inputs.package_manager }} run sg:scan
+        run: |
+          "$PACKAGE_MANAGER" run sg:scan
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Counts rule-test files rather than trusting the runner's exit code.
@@ -8173,13 +8570,16 @@ jobs:
         env:
           PACKAGE_MANAGER: ${{ inputs.package_manager }}
         run: |
-          if [ "$PACKAGE_MANAGER" = "npm" ]; then
-            npm ci
-          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🧪 Verify the configured gate runner is installed
@@ -8327,13 +8727,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       # Gate façade — contract and fallback rationale documented in full on the
@@ -8545,7 +8948,7 @@ jobs:
           GHSA_IDS="${{ steps.audit_exclusions.outputs.ghsa_ids }}"
           CVE_IDS="${{ steps.audit_exclusions.outputs.cve_ids }}"
 
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+          if [ "$PACKAGE_MANAGER" = "npm" ]; then
             # Build jq exclusion filter for npm audit GHSA IDs
             NPM_EXCLUDE_FILTER=""
             for _id in $GHSA_IDS; do
@@ -8568,7 +8971,7 @@ jobs:
               exit 1
             fi
             echo "::notice::No high or critical vulnerabilities found (excluding known false positives)"
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
+          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
             # Build jq filter for GHSA IDs
             GHSA_FILTER=""
             for _id in $GHSA_IDS; do
@@ -8612,7 +9015,7 @@ jobs:
             else
               echo "::notice::No high or critical vulnerabilities found (excluding known false positives)"
             fi
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
+          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
             GHSA_IDS_JSON=$(printf '%s\n' $GHSA_IDS | jq -R . | jq -s 'map(select(length > 0))')
             CVE_IDS_JSON=$(printf '%s\n' $CVE_IDS | jq -R . | jq -s 'map(select(length > 0))')
             # `--production` scopes the audit to production dependencies, matching
@@ -8678,7 +9081,7 @@ jobs:
             fi
             echo "::notice::No high or critical vulnerabilities found (excluding known false positives)"
           else
-            echo "Unsupported package manager: ${{ inputs.package_manager }}"
+            echo "Unsupported package manager: $PACKAGE_MANAGER"
             exit 1
           fi
         working-directory: ${{ inputs.working_directory || '.' }}
@@ -9151,13 +9554,16 @@ jobs:
       - name: 📦 Install dependencies
         if: steps.gate.outputs.configured == 'false' && (steps.check_snyk.outputs.has_token == 'true')
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🛡️ Run Snyk to check for vulnerabilities

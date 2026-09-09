@@ -322,6 +322,17 @@ person scanning a board and to any path that has not yet been routed through the
 If the label does not exist in the tracker, create it, or record that it could not be applied and
 proceed — the marker still holds. Never file the label *instead of* the marker.
 
+**Write a `reason=` the release can name.** The hold's reason is not decoration: a hold ends when a
+`[lisa-human-gate-release]` comment repeating that same `reason=` is recorded on the item, and the
+next intake sweep then takes the marker label off and puts the item back in the build-ready role on
+its own. Matching is per-reason so that a hold declared *after* an earlier release is not born
+discharged. A keyless hold is legal and is discharged by a keyless release; a hold whose reason is a
+paragraph is legal and nobody will reproduce it. Prefer a short slug the person answering it can
+retype. Do **not** instruct anyone to delete the marker from the description to lift the hold — the
+only body write available is a whole-body replacement, so that asks them to rewrite the whole record
+to clear one line, which is why answered holds accumulated instead of being lifted
+(CodySwannGT/lisa#3852). The marker stays as history; the release is recorded beside it.
+
 If a leaf arrives with `build_ready` omitted or `false` **and** no `human_gate`, do not create it: report the incomplete handoff and name both ways to resolve it (`build_ready: true`, or a `human_gate` reason). Containers are exempt — their state rolls up from children, so they need neither.
 
 **The container exemption is executable, not prose.** It used to live only in the sentence above,
@@ -444,6 +455,46 @@ The mapping below is the single source of truth for how JIRA concepts translate 
 | Custom-field "Reporter" (the human) | The issue's `author` (immutable) plus the `Filed by:` line in the body |
 | Worklog | Comments (no native time tracking) |
 | Triage marker | Label `claude-triaged-<repo>` |
+
+## Writing by a bespoke path (your own script, direct API or GraphQL)
+
+Nothing here stops a consumer from writing to GitHub through `gh issue create` directly, the GitHub REST or GraphQL API, or your own script, and nothing should
+try to — a script that owns the credential plumbing is often the only practical transport.
+**The transport is not the gate.** A bespoke write path still owes both halves of the quality
+gate this skill runs, and owes them explicitly, because no phase of this flow will ever run
+for it.
+
+A bespoke script's own read-back does not discharge either obligation. Re-reading the issue
+and confirming GitHub stored what was sent **proves transport, not quality**: it shows the
+fields round-tripped and says nothing about whether what was sent clears a single gate. An
+agent that reads `VERIFIED` out of such a script has been told the issue was checked when it
+was not. Measured once, on one issue, on 2026-09-03 (CodySwannGT/lisa#3663): a local
+script's read-back was clean on every field, and the issue then failed gates S5, S9 and S18
+when the validator was run against it by hand.
+
+What a bespoke write path still owes — the same two checks, invoked by hand:
+
+1. **Pre-write validate**, the obligation Phase 5.5 discharges here. Invoke `lisa-github-validate-issue` via
+   the Skill tool with the proposed spec as a YAML block **before** writing. Never write on a
+   `FAIL` verdict.
+2. **Post-write verify**, the obligation Phase 7 discharges here. Invoke `lisa-github-verify` via the
+   Skill tool with the identifier of the issue you just wrote — or `lisa-github-validate-issue` directly in
+   identifier mode, which fetches and validates the live state. Never report success on a
+   `FAIL` verdict.
+
+Both run standalone against an existing live issue; `lisa-github-validate-issue` documents the copy-pasteable
+invocation under its standalone entry point.
+
+**Three outcomes, never two.** `PASS`, `FAIL` and *could not validate* are distinct results.
+If the validator did not run to a verdict — the skill was unavailable, a credential was
+missing, the issue could not be fetched — that is **not** a pass. Report it as unvalidated and
+say why. Collapsing "could not validate" into "validated" is the same misreading as trusting
+a read-back.
+
+**These are skills, not scripts.** `lisa-github-validate-issue` and `lisa-github-verify` are plugin-resident and invoked
+through the Skill tool. They are **not** expected to appear in any repository's `scripts/`
+directory, and their absence from one is not evidence that the capability is missing —
+searching the repository you happen to be standing in is the wrong search.
 
 ## Rules
 

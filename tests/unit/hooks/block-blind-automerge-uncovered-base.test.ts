@@ -44,6 +44,10 @@ import {
   COVERED_RULES,
   EXIT_ALLOWED,
   EXIT_BLOCKED,
+  graphqlGh,
+  GRAPHQL_CHECK_BLOCKED_NODE,
+  GRAPHQL_GREEN_NODE,
+  GRAPHQL_ROLLUPLESS_NODE,
   RETARGET,
   routingGh,
   STACK_BASE,
@@ -199,18 +203,67 @@ describe("block-blind-automerge.sh — uncovered base", () => {
       expect(status).toBe(EXIT_BLOCKED);
     });
 
+    // Asked through the REAL node probe, envelope and `--jq` included. The
+    // porcelain fake answers any question with the same flat body, so the
+    // GraphQL substrate could stop requesting `statusCheckRollup` altogether
+    // and this case would still go green — the fixture would be supplying the
+    // very field the probe had dropped. It did drop it: the node query asked
+    // for five scalars, `failing_check_names` read an absent key, found
+    // nothing failing, and the guard announced the move as the sanctioned
+    // green-PR batching case. Same act, guarded through `gh pr edit --base`
+    // and waved through as GraphQL.
     it("refuses the GraphQL re-target substrate", () => {
-      const { bin } = routingGh({
-        pr: CHECK_BLOCKED_PR,
+      const { bin } = graphqlGh({
+        node: GRAPHQL_CHECK_BLOCKED_NODE,
         rules: UNCOVERED_RULES,
       });
       const command = `${
         MUTATION_HEAD
       }pullRequestId:"PR_kwABC",baseRefName:"${STACK_BASE}"}){clientMutationId}}'`;
 
-      const { status } = runHook(bash(command), { ghBin: bin });
+      const { status, stderr } = runHook(bash(command), { ghBin: bin });
 
       expect(status).toBe(EXIT_BLOCKED);
+      expect(stderr).toContain("🔍 Quality Checks / 🔗 Work-Item Traceability");
+      expect(stderr).toContain("🧩 Plugin artifacts match source");
+    });
+
+    // The other half. Without it the case above is satisfied by a guard that
+    // refuses every GraphQL re-target, which would break the batching workflow
+    // this file elsewhere protects.
+    it("allows the GraphQL re-target of a genuinely green PR", () => {
+      const { bin } = graphqlGh({
+        node: GRAPHQL_GREEN_NODE,
+        rules: UNCOVERED_RULES,
+      });
+      const command = `${
+        MUTATION_HEAD
+      }pullRequestId:"PR_kwABC",baseRefName:"${STACK_BASE}"}){clientMutationId}}'`;
+
+      const { status, stderr } = runHook(bash(command), { ghBin: bin });
+
+      expect(status).toBe(EXIT_ALLOWED);
+      expect(stderr).toContain("ZERO");
+    });
+
+    // Fails CLOSED, unlike every other unanswerable case in this guard. Once
+    // the base is known to enforce nothing, an empty failing-check list is the
+    // whole basis for allowing the move — and a rollup that was never returned
+    // produces the identical empty list. Announcing the move as green there is
+    // a verdict on a question nothing asked.
+    it("refuses a re-target whose checks the probe did not return at all", () => {
+      const { bin } = graphqlGh({
+        node: GRAPHQL_ROLLUPLESS_NODE,
+        rules: UNCOVERED_RULES,
+      });
+      const command = `${
+        MUTATION_HEAD
+      }pullRequestId:"PR_kwABC",baseRefName:"${STACK_BASE}"}){clientMutationId}}'`;
+
+      const { status, stderr } = runHook(bash(command), { ghBin: bin });
+
+      expect(status).toBe(EXIT_BLOCKED);
+      expect(stderr).toMatch(/An absent rollup is not an\s+empty one/);
     });
   });
 

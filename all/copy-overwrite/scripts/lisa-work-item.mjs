@@ -8,6 +8,7 @@
  * commit trailers, pull-request bodies, and the configured tracker.
  */
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   chmodSync,
   existsSync,
@@ -65,6 +66,8 @@ export const WORK_ITEM_CONTRACT_VERSION = "1.0.0";
 const RELEASE_SUBJECT =
   /^chore\(release\): \d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)? \[skip ci\](?: \[skip-cd\])?$/;
 const ZERO_OID = /^0+$/;
+/** `git` pretty-format that prints a commit message body verbatim. */
+const RAW_MESSAGE_FORMAT = "--format=%B";
 const MARKER = "[lisa-pr-link]";
 /**
  * The deploy environment whose done role is terminal — the only one that
@@ -120,6 +123,218 @@ function workItemLineValue(line) {
   const value = line.slice(match[0].length).trim();
   return value === "" ? null : value;
 }
+
+/**
+ * Is this a bare positive issue number — no sign, no padding, no suffix?
+ *
+ * A digit walk rather than a pattern. The shipped tree's lint refuses
+ * backtracking-prone quantifiers, and scanning characters cannot backtrack at
+ * all; the previous reader spelled this as part of a regex assembled from an
+ * escaped repository name, which is the construction that drifted.
+ * @param {string} text Candidate digits.
+ * @returns {boolean} True when `text` is `[1-9]` followed by digits only.
+ */
+function isIssueNumber(text) {
+  if (text.length === 0 || text[0] < "1" || text[0] > "9") return false;
+  for (let index = 1; index < text.length; index += 1) {
+    if (text[index] < "0" || text[index] > "9") return false;
+  }
+  return true;
+}
+/**
+ * ## Lane attribution: which agent lane produced this, without saying who
+ *
+ * Every session in this fleet — and the human operator — pushes under ONE git
+ * identity, so `author.login` is a constant across every commit, branch and
+ * pull request. That is correct for accountability (the human IS the author of
+ * all of it) and useless for ROUTING: a green pull request nobody armed, a
+ * branch carrying finished work, an unpushed body found in a worktree sweep —
+ * none of them can be handed back to whoever should finish them, because the
+ * record does not say which lane made them. A survey has to guess from branch
+ * names and file mtimes, and guesses have been wrong in both directions.
+ *
+ * The obvious remedy — record the session URL — is itself a defect: this is a
+ * public repository and a published session identifier is an
+ * identifier-hygiene problem, filed separately. So the requirement is narrower
+ * than "add provenance":
+ *
+ * - it must distinguish WHICH lane to route to;
+ * - it must publish nothing that is itself an identifier;
+ * - it must survive the branch being deleted, which is when routing matters
+ *   most, because pull requests auto-delete their branch on merge;
+ * - and it must not imply the human is not the accountable author.
+ *
+ * A lane id satisfies all four. It is `lane-` followed by twelve hex
+ * characters of a SHA-256 over an owner id the AGENT RUNTIME supplied — never
+ * the id itself. The digest is one-way over a high-entropy input, so it names
+ * no session, no URL, no person and no project; it is a stable handle that
+ * only a live lane can claim, by deriving its own and finding them equal.
+ *
+ * ### Written once, at the source
+ *
+ * The stamp goes on at `prepare-commit-msg`, in the process that is making the
+ * commit, from that process's own environment. An attribution reconstructed
+ * later — from a branch name, a timestamp, a report of a report — loses
+ * fidelity at every hop, and the sweep that motivated this is exactly that
+ * failure. `--if-exists=doNothing` means a rebase, an amend or a cherry-pick
+ * by a DIFFERENT lane preserves the original stamp rather than stealing the
+ * attribution.
+ *
+ * ### One primitive, three surfaces
+ *
+ * `renderLaneTrailer` / `parseLaneId` are deliberately text-in, text-out and
+ * carry no assumption that the text is a commit message. The same pair serves
+ * a commit trailer, a pull-request body marker and a tracker comment footer —
+ * the three places sibling work needs lane attribution — so the fleet has one
+ * token vocabulary rather than three bespoke ones.
+ *
+ * @see CodySwannGT/lisa#3771
+ */
+
+/** Trailer key that carries the lane id in a commit message or PR body. */
+export const LANE_TRAILER = "Lane-Id";
+
+/**
+ * Environment variables consulted, in order, for the caller's owner id.
+ *
+ * Every one is supplied by the surrounding agent runtime. Lisa invents none of
+ * them: an id minted per invocation would differ from the one stamped on the
+ * commit and no lane could ever recognise its own work.
+ *
+ * `CLAUDE_CODE_SESSION_ID` is the variable Claude Code actually exports.
+ * `CLAUDE_SESSION_ID` is kept after it because the sibling list in
+ * `src/cli/worktree-ownership.ts` shipped with only that spelling, and a
+ * receipt written under it must keep resolving.
+ *
+ * A unit test asserts this list equals that one. Two readers of one fact drift
+ * silently otherwise, and the drift is invisible: both halves keep working,
+ * they just stop agreeing about who "mine" is.
+ */
+export const LANE_ID_VARIABLES = Object.freeze([
+  "LISA_OWNER_ID",
+  "CLAUDE_CODE_SESSION_ID",
+  "CLAUDE_SESSION_ID",
+  "CODEX_SESSION_ID",
+]);
+
+/** Fixed, human-readable prefix that makes a lane id greppable. */
+const LANE_PREFIX = "lane-";
+/**
+ * Hex characters of the digest kept.
+ *
+ * Twelve is 48 bits — collision-free at fleet scale by a wide margin, and
+ * short enough to read in a report line without wrapping.
+ */
+const LANE_DIGEST_LENGTH = 12;
+/**
+ * The prefix only: an anchored, fixed-length literal with no quantifier, so it
+ * cannot backtrack over a commit message or pull-request body this script does
+ * not own. Same reasoning as `WORK_ITEM_PREFIX` above; the value is parsed by
+ * character scanning rather than by a second pattern.
+ */
+const LANE_PREFIX_MATCH = /^lane-id:/i;
+
+/**
+ * Derive a lane id from an owner id supplied by the agent runtime.
+ *
+ * One-way by construction. The returned token cannot be turned back into the
+ * owner id, contains no character the owner id contributed, and is therefore
+ * safe to publish on a public repository — which is the whole reason it is a
+ * digest rather than the id.
+ * @param {unknown} ownerId Owner id from the agent runtime.
+ * @returns {string | undefined} The lane id, or undefined when there is no id.
+ */
+export function deriveLaneId(ownerId) {
+  const trimmed = typeof ownerId === "string" ? ownerId.trim() : "";
+  if (trimmed === "") return undefined;
+  const digest = createHash("sha256").update(trimmed, "utf8").digest("hex");
+  return LANE_PREFIX + digest.slice(0, LANE_DIGEST_LENGTH);
+}
+
+/**
+ * Resolve the lane id of the process running this command.
+ *
+ * Undefined is a real answer and a restrictive one: a caller with no id can
+ * never match a stamp, so every attributed commit is somebody else's as far as
+ * it is concerned. "I could not tell" must never resolve in favour of taking
+ * over another lane's work.
+ * @param {NodeJS.ProcessEnv} [env] Environment to read.
+ * @returns {string | undefined} The caller's lane id, or undefined.
+ */
+export function resolveCallerLaneId(env = process.env) {
+  for (const variable of LANE_ID_VARIABLES) {
+    const lane = deriveLaneId(env[variable]);
+    if (lane !== undefined) return lane;
+  }
+  return undefined;
+}
+
+/**
+ * Whether a value has the exact shape this module mints.
+ *
+ * Scanned character by character rather than matched with a quantified
+ * pattern, so the check is linear over untrusted text.
+ * @param {string} value Candidate token.
+ * @returns {boolean} True when the value is a well-formed lane id.
+ */
+function isLaneId(value) {
+  if (!value.startsWith(LANE_PREFIX)) return false;
+  const digest = value.slice(LANE_PREFIX.length);
+  if (digest.length !== LANE_DIGEST_LENGTH) return false;
+  for (const character of digest) {
+    const digit = character >= "0" && character <= "9";
+    const hex = character >= "a" && character <= "f";
+    if (!digit && !hex) return false;
+  }
+  return true;
+}
+
+/**
+ * Render the one marker line every surface uses.
+ *
+ * A commit trailer, a pull-request body line and a tracker comment footer are
+ * the same string here on purpose — see the module note above.
+ * @param {string} laneId Lane id to render.
+ * @returns {string} The marker line, without a trailing newline.
+ */
+export function renderLaneTrailer(laneId) {
+  return `${LANE_TRAILER}: ${laneId}`;
+}
+
+/**
+ * Read a lane id out of arbitrary text.
+ *
+ * Text-in, text-out: a commit message, a pull-request body and a tracker
+ * comment are all just text, and this makes no assumption about which it was
+ * handed.
+ * @param {string} text Commit message, pull-request body or comment body.
+ * @returns {string | undefined} The stamped lane id, or undefined.
+ */
+export function parseLaneId(text) {
+  for (const line of text.split("\n")) {
+    const match = LANE_PREFIX_MATCH.exec(line);
+    if (!match) continue;
+    const value = line.slice(match[0].length).trim();
+    if (isLaneId(value)) return value;
+  }
+  return undefined;
+}
+
+/**
+ * Judge a stamp against the caller.
+ *
+ * A stamp naming somebody else is a hard "theirs" even when the caller has no
+ * lane of its own, for the same reason an unidentified cleaner may not delete
+ * a claimed worktree: an unidentified caller proves nothing.
+ * @param {string | undefined} markerLane Lane id found on the work.
+ * @param {string | undefined} callerLane Lane id of the running process.
+ * @returns {"mine" | "theirs" | "unattributed"} The routing verdict.
+ */
+export function judgeLane(markerLane, callerLane) {
+  if (markerLane === undefined) return "unattributed";
+  return markerLane === callerLane ? "mine" : "theirs";
+}
+
 const GUIDANCE = [
   "Mention the ticket this work relates to, or ask Lisa to create one:",
   "  Work-Item: <configured-project-ticket>",
@@ -1008,16 +1223,206 @@ function writeState(ref, provider = trackerContract().provider, options = {}) {
  * Comment lines and a verbose commit's diff are not a hazard: the prefix is
  * anchored at column zero, so `# Work-Item: …` never matches, and every
  * unified-diff line carries a space, `+` or `-` in that column.
+ *
+ * EXPORTED because the definition being private is what made it rediscoverable
+ * as a bug. Anything in this fleet that reads a `Work-Item:` trailer imports
+ * this; the alternative each new tool reached for — `%(trailers)` or an ad-hoc
+ * regex — is Definition A, and Definition A misses 92% of this repository's
+ * trailers. See the `work-item-trailer-definition` rule (#3747).
+ *
+ * It deliberately does NOT validate the shape of a value. It answers "what does
+ * this text say?"; `canonicalizeRef` above it decides what is acceptable. A
+ * reader that filtered malformed values out during the scan would make a bad
+ * value invisible rather than refused — the #2672 failure re-created one layer
+ * down. A filter a caller applies to this output is the CALLER's filter.
  * @param {string} message Commit message or pull-request body.
  * @returns {string[]} Every Work-Item value found, in order of appearance.
  */
-function workItemLines(message) {
-  return String(message ?? "")
-    .split(/\r?\n/)
-    .flatMap(line => {
-      const value = workItemLineValue(line);
-      return value === null ? [] : [value];
-    });
+export function workItemLines(message) {
+  return messageLines(message).flatMap(line => {
+    const value = workItemLineValue(line);
+    return value === null ? [] : [value];
+  });
+}
+
+/**
+ * One commit message or pull-request body, as lines.
+ *
+ * THE shared split, so every reader here means the same thing by "a line".
+ * Definition B — the whole message, not git's final paragraph — is the whole
+ * point of the `work-item-trailer-definition` rule (#3747), and it survives
+ * only if the next reader that needs lines reuses this instead of writing a
+ * third scanner with its own idea of where a message ends.
+ * @param {string} message Commit message or pull-request body.
+ * @returns {string[]} Every line, in order, without their terminators.
+ */
+function messageLines(message) {
+  return String(message ?? "").split(/\r?\n/);
+}
+
+/**
+ * ## The coding-session URL a commit message must not publish
+ *
+ * Measured on this fleet's own public history: 65 commits on the default
+ * branch, and 54 more on one unmerged branch, carry a coding-session URL in
+ * their message across nine session identifiers spanning a month
+ * (CodySwannGT/lisa#3731). They are not credentials and nobody can use them.
+ * They are internal identifiers, published in perpetuity, that partition a
+ * public history by working session — metadata nobody decided to publish.
+ *
+ * **Nothing typed them.** The harness appended the trailer itself, below
+ * whatever the agent wrote, after the agent had finished writing. That is why
+ * the check lives at `commit-msg` and reads the file git is about to commit:
+ * every instruction, rule and convention aimed at the agent is upstream of the
+ * moment the text actually appears, so a guard placed there would be inert
+ * against the one producer that has emitted every single instance. The
+ * convention has since changed and no longer emits it — which is exactly the
+ * state that existed before, and exactly the state that failed.
+ *
+ * Deliberately NOT wired into `validateMessage`: that reader also serves the
+ * push and pull-request gates, which walk history. Refusing there would refuse
+ * the 119 commits that already carry one — a published-history rewrite, which
+ * is a human decision and explicitly out of scope. This ticket is about not
+ * adding more.
+ */
+const SESSION_URL_MARK = "claude.ai/code/session_";
+
+/**
+ * The shortest run of identifier characters this treats as a real session id.
+ *
+ * **This is the line between a leak and a sentence about leaks.** Real ids are
+ * 24 characters of base62; prose that has to name the form writes
+ * `claude.ai/code/session_<id>` or trails it off. A guard whose pattern matched
+ * prose would refuse the commit that adds the guard, its tests and its
+ * documentation — the failure this repository has walked into more than once —
+ * so the discriminator is not "does the text mention it" but "does the text
+ * carry an actual published identifier".
+ */
+const SESSION_ID_FLOOR = 16;
+
+/**
+ * Does `line` carry `needle` at `index`, comparing ASCII case-insensitively?
+ *
+ * A character walk rather than `line.toLowerCase().includes(needle)`. Case
+ * folding is not length-preserving in Unicode — U+0130 expands to two code
+ * units — so an index taken in a folded copy does not address the original,
+ * and the id that follows the mark would be measured from the wrong place.
+ * @param {string} line One line of a commit message.
+ * @param {number} index Where in `line` to compare.
+ * @param {string} needle Lowercase text to look for.
+ * @returns {boolean} True when `line` carries `needle` there.
+ */
+function matchesFolded(line, index, needle) {
+  if (index + needle.length > line.length) return false;
+  for (let offset = 0; offset < needle.length; offset += 1) {
+    const code = line.charCodeAt(index + offset);
+    const folded = code >= 65 && code <= 90 ? code + 32 : code;
+    if (folded !== needle.charCodeAt(offset)) return false;
+  }
+  return true;
+}
+
+/**
+ * Is this one of the characters a session identifier is made of?
+ * @param {string} character A single character.
+ * @returns {boolean} True for `[0-9A-Za-z_-]`.
+ */
+function isSessionIdCharacter(character) {
+  return (
+    (character >= "0" && character <= "9") ||
+    (character >= "a" && character <= "z") ||
+    (character >= "A" && character <= "Z") ||
+    character === "-" ||
+    character === "_"
+  );
+}
+
+/**
+ * Does this line carry a session URL with a real identifier on it?
+ *
+ * Scanned character by character, never matched with a pattern. The shipped
+ * tree's lint refuses backtracking-prone quantifiers, and the input here is a
+ * commit message — text this script does not get to trust the shape of.
+ * @param {string} line One line of a commit message.
+ * @returns {boolean} True when the line publishes a session identifier.
+ */
+function carriesSessionUrl(line) {
+  for (let index = 0; index < line.length; index += 1) {
+    if (!matchesFolded(line, index, SESSION_URL_MARK)) continue;
+    let end = index + SESSION_URL_MARK.length;
+    while (end < line.length && isSessionIdCharacter(line[end])) end += 1;
+    if (end - index - SESSION_URL_MARK.length >= SESSION_ID_FLOOR) return true;
+  }
+  return false;
+}
+
+/**
+ * Git's `--verbose` scissors, below which nothing reaches the commit.
+ *
+ * `git commit -v` appends the staged diff under this line and strips both
+ * before recording the message. A guard that read past it would refuse a commit
+ * for text that was never going to be published — including, precisely, the
+ * commit that stages this guard's own test fixtures.
+ */
+const SCISSORS_MARK = ">8";
+
+/**
+ * The part of a commit message that will actually be recorded.
+ * @param {string} message The commit message file's contents.
+ * @returns {string[]} Lines above the scissors, or every line when there is none.
+ */
+function publishedLines(message) {
+  const lines = messageLines(message);
+  const cut = lines.findIndex(
+    line => line.trimStart().startsWith("#") && line.includes(SCISSORS_MARK)
+  );
+  return cut === -1 ? lines : lines.slice(0, cut);
+}
+
+/**
+ * Which lines of this message publish a coding-session URL.
+ * @param {string} message The commit message file's contents.
+ * @returns {number[]} One-based line numbers, in order.
+ */
+function sessionUrlLines(message) {
+  return publishedLines(message).flatMap((line, index) =>
+    carriesSessionUrl(line) ? [index + 1] : []
+  );
+}
+
+/**
+ * Refuse a commit message that publishes a coding-session URL.
+ *
+ * The refusal names line numbers and the URL's PREFIX only. Echoing the
+ * identifier back would copy it into CI logs and terminal scrollback, which is
+ * the same act at a different address.
+ * @param {string} message The commit message file's contents.
+ * @throws {TrackingError} When the message carries a session identifier.
+ */
+function assertNoSessionUrl(message) {
+  const lines = sessionUrlLines(message);
+  if (lines.length === 0) return;
+  const plural = lines.length === 1 ? "" : "s";
+  const error = new TrackingError(
+    [
+      `This commit message publishes a coding-session URL on line${plural} ${lines.join(", ")}.`,
+      "",
+      `Remove every ${SESSION_URL_MARK}… occurrence from the message.`,
+      "",
+      "It is not a credential, and this refusal is hygiene rather than a",
+      "breach: the identifier has no reader outside the session that made it.",
+      "But this history is public and permanent, and a session id partitions",
+      "it by working session — metadata nobody chose to publish. If something",
+      "other than you is appending it, that is the thing to turn off; an",
+      "instruction to stop cannot reach the code that writes it.",
+      "",
+      "To route a commit back to the run that produced it, use the",
+      "non-identifying `Lane-Id:` trailer Lisa already stamps at",
+      "prepare-commit-msg.",
+    ].join("\n")
+  );
+  error.selfExplanatory = true;
+  throw error;
 }
 
 /**
@@ -1042,12 +1447,17 @@ function workItemLines(message) {
  *
  * Two DIFFERENT references is the real ambiguity — which one is this change
  * about? — and it still fails, naming both.
+ *
+ * EXPORTED alongside `workItemLines` for the same reason: a tool that needs THE
+ * work item rather than every line should get the canonicalizing, ambiguity-
+ * refusing reader instead of writing its own. See the
+ * `work-item-trailer-definition` rule (#3747).
  * @param {string} text Commit message or pull-request body.
  * @param {object} contract Resolved tracker contract.
  * @param {string} subject What is being read, for the message.
  * @returns {string} The canonical work-item reference.
  */
-function soleWorkItem(text, contract, subject) {
+export function soleWorkItem(text, contract, subject) {
   const values = workItemLines(text);
   if (values.length === 0) {
     throw new TrackingError(`No Work-Item trailer anywhere in the ${subject}`);
@@ -1092,6 +1502,85 @@ function isMergeInProgress() {
       allowFailure: true,
     }).status === 0
   );
+}
+
+/**
+ * Does this commit have more than one parent?
+ *
+ * The STRUCTURAL merge question, and the only one both gate paths ask. It is a
+ * property of the commit rather than of the repository, so unlike
+ * `isMergeInProgress` it survives the merge completing.
+ * @param {string} sha Commit to inspect.
+ * @param {object} [options] Passed to `run`; `allowFailure` makes an
+ *   unresolvable commit-ish answer "not a merge" instead of throwing.
+ * @returns {boolean} Whether the commit is a merge.
+ */
+function isMergeCommit(sha, options = {}) {
+  const result = run("git", ["rev-list", "--parents", "-n", "1", sha], options);
+  return result.stdout.trim().split(/\s+/).length > 2;
+}
+
+/**
+ * A commit message with git's own cleanup applied.
+ *
+ * `git stripspace` rather than a regular expression because the comment marker
+ * is configurable — `core.commentChar`, and a whole `core.commentString` since
+ * git 2.45 — so a hard-coded `#` reads a repository that chose `;` as carrying
+ * comment lines that are really message text. This is the same pass git runs
+ * on the file after the hook returns, so comparing two messages through it
+ * compares what git will actually store.
+ * @param {string} message Raw message text.
+ * @returns {string} The cleaned message.
+ */
+function cleanedMessage(message) {
+  const result = run("git", ["stripspace", "--strip-comments"], {
+    allowFailure: true,
+    input: message,
+  });
+  return (result.status === 0 ? result.stdout : message).trim();
+}
+
+/**
+ * Is this `commit-msg` run an amend of a merge that has already landed?
+ *
+ * The commit path used to ask only whether a merge was IN PROGRESS. That state
+ * is transient: `git merge` removes `MERGE_HEAD` the moment the merge commits,
+ * so `git commit --amend` on that same merge — the tidy way to fold in
+ * generated artifacts the merge staled — reads as an ordinary commit and is
+ * refused for lacking a trailer. The push path never had the defect, because it
+ * counts parents. Two detectors, two different questions, and only one of them
+ * survived the merge completing (#3875).
+ *
+ * At `commit-msg` time the commit does not exist yet, so ITS parents cannot be
+ * counted — which is why the transient check was there. What can be read is
+ * HEAD, and on an amend HEAD is the very commit being rewritten. So the
+ * exemption needs both halves: HEAD is structurally a merge, AND the proposed
+ * message is the message HEAD already carries.
+ *
+ * The second half is what keeps a NEW commit authored on top of a merge
+ * checked. Treating every `commit-msg` invocation as an amend would exempt it,
+ * and that is the strictly worse failure — an unlinked commit let through
+ * rather than a linked one blocked. A new commit carries a new message.
+ *
+ * What remains is a new commit that reuses HEAD's merge message verbatim
+ * (`git commit -C HEAD`). It is exempt here and NOT exempt at push time, where
+ * `commitExemption` counts its single parent and demands the trailer. So the
+ * looser commit-time answer is bounded by the structural gate downstream rather
+ * than being the last word.
+ * @param {string} message The proposed commit message.
+ * @returns {boolean} Whether to treat this as an amend of a merge commit.
+ */
+function amendsMergeAtHead(message) {
+  if (!isMergeCommit("HEAD", { allowFailure: true })) return false;
+  const current = run("git", ["show", "-s", RAW_MESSAGE_FORMAT, "HEAD"], {
+    allowFailure: true,
+  });
+  // probe-direction: fail-closed — a HEAD whose message cannot be read grants
+  // no exemption, so an unreadable answer makes the gate stricter and the
+  // author writes an ordinary trailered commit. The opposite default would
+  // exempt on a failed probe, which is the shape this whole ticket is about.
+  if (current.status !== 0) return false;
+  return cleanedMessage(message) === cleanedMessage(current.stdout);
 }
 
 /**
@@ -1202,8 +1691,7 @@ function protectedCommits(commits, configRef, remote) {
 }
 
 function commitExemption(sha, onProtectedBranch = new Set()) {
-  const parents = git(["rev-list", "--parents", "-n", "1", sha]).split(/\s+/);
-  if (parents.length > 2) return "merge";
+  if (isMergeCommit(sha)) return "merge";
   if (RELEASE_SUBJECT.test(git(["show", "-s", "--format=%s", sha])))
     return "release";
   return onProtectedBranch.has(sha) ? "protected" : undefined;
@@ -1799,6 +2287,10 @@ function backlinkTokens(text) {
  * field. Exported so the comparison can be asserted directly — a permissive
  * comparison returns `true` rather than throwing, so nothing observable changes
  * without an assertion on the returned boolean.
+ *
+ * READ-ONLY. Its permissiveness is correct here and only here: gate 5 should
+ * pass when a human links the pull request in their own words. It must never
+ * authorise a write — see `managedBacklinkTarget` for why that split exists.
  * @param {unknown} value Comment body, or a structure containing one.
  * @param {string} prUrl The pull request URL that must be linked.
  * @returns {boolean} True when this exact pull request is linked.
@@ -1829,18 +2321,55 @@ function backlinkBody(prUrl) {
 }
 
 /**
- * Whether a comment payload is Lisa's managed backlink comment.
+ * A comment body's visible text, whatever shape the provider returned.
  *
- * Shape-agnostic deliberately: GitHub and Linear return a plain string body,
- * Jira returns an Atlassian Document Format tree. Serialising covers all three
- * without a per-provider walker, and the marker is distinctive enough that a
- * false positive would have to be a comment quoting it verbatim — which is
- * still Lisa's comment to reuse rather than a second one to add.
+ * GitHub and Linear hand back a plain string; Jira hands back an Atlassian
+ * Document Format tree whose prose lives in the `text` field of its leaf nodes.
+ * Collecting those in document order reconstructs what a reader sees, which is
+ * the only thing an identity test can honestly compare. Deliberately NOT
+ * `JSON.stringify`: that would let structure — a link's `href`, a node type —
+ * count as text the author wrote.
  * @param {unknown} body Comment body in whatever shape the provider returned.
- * @returns {boolean} True when this is the managed comment.
+ * @returns {string} The visible text, or the empty string when there is none.
  */
-function carriesMarker(body) {
-  return JSON.stringify(body ?? "").includes(MARKER);
+function bodyText(body) {
+  if (typeof body === "string") return body;
+  if (Array.isArray(body)) return body.map(bodyText).join(" ");
+  if (body && typeof body === "object")
+    return Object.entries(body)
+      .map(([key, value]) =>
+        key === "text" && typeof value === "string" ? value : bodyText(value)
+      )
+      .join(" ");
+  return "";
+}
+
+/**
+ * The pull request a body is Lisa's managed backlink FOR, or null.
+ *
+ * This is an IDENTITY test, and the split from `textContainsBacklink` is the
+ * whole point. That predicate answers "is this pull request linked from this
+ * item?" — the right question for a reader, which should accept a human's link
+ * however they wrote it. Reusing it to authorise a write turned a claim about
+ * the ITEM into a claim about the COMMENT: any prose carrying the marker and
+ * the URL as a bare token was treated as Lisa's to replace wholesale, and the
+ * gate's own printed remedy contains both, so pasting a gate failure into a
+ * comment was enough to have that comment flattened to one line.
+ *
+ * So a body must BE `backlinkBody(...)`, not merely contain its parts.
+ * Whitespace is normalised because a provider may hand back the body it stored
+ * with a trailing newline, and refusing to recognise Lisa's own comment would
+ * make every rerun post a duplicate — the opposite failure, equally wrong.
+ * @param {unknown} body Comment body in whatever shape the provider returned.
+ * @returns {string | null} The pull request URL it links, or null if the body
+ *   is somebody's writing rather than the managed comment.
+ */
+function managedBacklinkTarget(body) {
+  const text = bodyText(body).replace(/\s+/g, " ").trim();
+  const prefix = `${MARKER} `;
+  if (!text.startsWith(prefix)) return null;
+  const target = text.slice(prefix.length);
+  return target && !target.includes(" ") ? target : null;
 }
 
 /**
@@ -1863,6 +2392,12 @@ function carriesMarker(body) {
  * and its replacement, a pull request reopened or recreated against a different
  * base, and work split across repositories all put two pull requests on one
  * item, and none of them involve a stack.
+ *
+ * Both arms run off `managedBacklinkTarget`, so a comment nobody managed is
+ * neither overwritten nor counted. The count is the operator-visible half of
+ * the same predicate: "1 other pull request already linked" said of a prose
+ * comment is a false statement about the item, and it is the line that
+ * surfaced this defect.
  * @param {readonly unknown[]} comments Comments as the provider returned them.
  * @param {string} prUrl The pull request being discharged.
  * @param {(comment: unknown) => unknown} bodyOf Reads a comment's body.
@@ -1873,9 +2408,9 @@ function partitionBacklinks(comments, prUrl, bodyOf) {
   const mine = [];
   let others = 0;
   for (const comment of comments) {
-    const body = bodyOf(comment);
-    if (!carriesMarker(body)) continue;
-    if (textContainsBacklink(body, prUrl)) mine.push(comment);
+    const target = managedBacklinkTarget(bodyOf(comment));
+    if (target === null) continue;
+    if (target === prUrl) mine.push(comment);
     else others += 1;
   }
   return { mine: mine[0], others };
@@ -2037,9 +2572,10 @@ function linearBacklink(ref, prUrl, contract) {
  * The managed comment as an Atlassian Document Format tree.
  *
  * A single text node, so the marker and the URL land in one string — which is
- * what `textContainsBacklink` walks the tree looking for. Splitting them across
- * nodes would write a comment the reader accepts visually and the check
- * rejects.
+ * what `textContainsBacklink` walks the tree looking for, and what
+ * `managedBacklinkTarget` reconstructs when deciding the comment is Lisa's to
+ * update. Splitting them across nodes would write a comment the reader accepts
+ * visually and the check rejects.
  * @param {string} prUrl Pull request URL.
  * @returns {object} The ADF document.
  */
@@ -2291,12 +2827,31 @@ function assertStateAmong(refs, contract) {
  * take the fail-open path on every commit, and print the same success line: a
  * second fail-open wearing the first fix's clothes, and strictly worse than
  * the gap, because the gap would now be believed closed.
+ * EXPORTED, AND TAKING THE BRANCH AS AN ARGUMENT, so the provider dispatch is
+ * reachable in process. `githubBranchIssue` below was split out for that
+ * reason and is measurable; the routing that decides whether it is called at
+ * all was not. The CLI cases exercise these lines only by SPAWNING the script,
+ * and a spawned child loads the file from disk rather than the instrumented
+ * module, so a mutant here is activated in a process the assertions never
+ * observe. It survives, and the gate reports a score rather than reporting
+ * that it measured nothing — `if (false)` on the provider arm routes every
+ * GitHub branch away from the extractor and restores the defect
+ * CodySwannGT/lisa#3861 closed, while every end-to-end case still passes.
+ * Measured after the split, over these lines only: 21 mutants, 19 killed,
+ * 90.48%, where before the split every mutant here was unkillable. The one
+ * survivor left inside this function is `if (!branch)` mutated to `if (false)`,
+ * and it is EQUIVALENT rather than unproven: both arms already decline an
+ * absent name on their own — the GitHub reading needs a slash-segment starting
+ * with a digit, the key-based reading needs the configured key — so no input
+ * distinguishes the two programs. The guard stays because it is the documented
+ * fail-open and because the next arm added here may not be so forgiving; the
+ * equivalence is recorded so a later reader does not mistake it for a gap.
+ * @param {string|undefined} branch Active branch name, if any.
  * @param {object} contract Resolved tracker contract.
  * @returns {string|undefined} Canonical reference, or undefined when the
  *   branch encodes none.
  */
-function branchWorkItem(contract) {
-  const branch = activeBranch();
+export function branchWorkItemFrom(branch, contract) {
   if (!branch) return undefined;
   if (contract.provider === "github")
     return githubBranchIssue(branch, contract);
@@ -2311,6 +2866,28 @@ function branchWorkItem(contract) {
     "i"
   ).exec(branch);
   return match ? `${key}-${match[1]}` : undefined;
+}
+
+/**
+ * The work item the ACTIVE branch encodes, or undefined when it encodes none.
+ *
+ * The impure half of the split, and deliberately nothing beyond the
+ * `activeBranch()` call — every decision, including the detached-HEAD
+ * fail-open, lives in `branchWorkItemFrom`, which is pure and exported so the
+ * mutation gate can see it.
+ *
+ * This one line is therefore the whole residue of the subprocess boundary: its
+ * body-removal mutant survives, because the only cases that reach it spawn the
+ * script. Those cases DO catch it — with this returning undefined the trailer
+ * comparison silently fails open again and the mismatch cases stop refusing —
+ * but the gate cannot observe a child process. Shrinking that blind spot from
+ * the whole dispatch to one delegating call is the point of the split.
+ * @param {object} contract Resolved tracker contract.
+ * @returns {string|undefined} Canonical reference, or undefined when the
+ *   branch encodes none.
+ */
+function branchWorkItem(contract) {
+  return branchWorkItemFrom(activeBranch(), contract);
 }
 
 /**
@@ -2357,7 +2934,26 @@ export function githubBranchIssue(branch, contract) {
   // Bounded on both sides: the number must fill the segment, so `4.33.1` and
   // `se-7728` do not match, and `3463` is not read out of `34631`.
   const match = /^[^/]+\/([1-9]\d*)(?:-|$)/.exec(branch);
-  return match ? `${contract.repository}#${match[1]}` : undefined;
+  if (!match) return undefined;
+  // A LEADING date stamp escapes every other bound this rule has. The comment
+  // above already declines `stack/queue-drain-20260903`, but only because the
+  // digits trail there; `release/20260903-cutover` puts the same stamp at the
+  // front of the segment, where it fills it exactly and reads as issue
+  // 20260903. Nothing else here can tell the two apart, because by shape they
+  // are the same token in the same position.
+  //
+  // Matched as a DATE rather than as "too many digits": a length bound would
+  // be a guess about how many issues this fleet will ever file, and would
+  // start refusing real numbers on the day it is wrong. `YYYYMMDD` with a
+  // real month and a real day is narrow enough that the only issue number it
+  // can cost is one no repository will reach.
+  //
+  // Declining fails OPEN — the trailer is then compared against nothing, which
+  // is the state this whole fallback was built to improve on but is still
+  // strictly safer than refusing a commit that is perfectly correct.
+  if (/^(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])$/.test(match[1]))
+    return undefined;
+  return `${contract.repository}#${match[1]}`;
 }
 
 /**
@@ -2407,7 +3003,10 @@ function assertIdentityMatches(ref, contract) {
 }
 
 function validateMessage(message, options = {}) {
-  if (options.allowInProgressMerge && isMergeInProgress())
+  if (
+    options.allowMergeExemption &&
+    (isMergeInProgress() || amendsMergeAtHead(message))
+  )
     return { exempt: "merge" };
   if (RELEASE_SUBJECT.test(messageSubject(message)))
     return { exempt: "release" };
@@ -2419,7 +3018,7 @@ function validateMessage(message, options = {}) {
 }
 
 function commitMessage(sha) {
-  return git(["show", "-s", "--format=%B", sha]);
+  return git(["show", "-s", RAW_MESSAGE_FORMAT, sha]);
 }
 
 /**
@@ -2493,6 +3092,13 @@ function validateCommits(commits, configRef, remote) {
     refs: list,
     issue: ref ? issues.get(ref) : undefined,
     issues,
+    // De-duplicated on purpose, and it is the same `unique` every counter below
+    // was computed from. A caller that compared a counter against the RAW
+    // `commits.length` would read "some commits were exempt" out of a range in
+    // which every one of them was, whenever the same sha appeared twice — which
+    // a push range spanning several refs does routinely. The whole point of
+    // this field is to be the denominator those counters actually add up to.
+    examined: unique.length,
     mergeExempt,
     protectedExempt,
     releaseExempt,
@@ -3161,6 +3767,61 @@ function reportMapping(findings, commitRefs, bodyRefs) {
 }
 
 /**
+ * True when this range introduced no authored work of its own, and at least one
+ * of the things it did introduce was a merge.
+ *
+ * ## Why the condition is stated against `examined`
+ *
+ * The deferral used to read `relevant === 0 && mergeExempt > 0`. Both halves
+ * are true of every range that should defer, but only one of them SAYS so.
+ * `mergeExempt > 0` is satisfied by a range in which SOME commits are merges —
+ * strictly weaker than the precondition the deferral means to assert, which is
+ * that not one commit in the range authored anything. It coincided with the
+ * right answer because `relevant === 0` was carrying that claim, so the two
+ * agreed by accident rather than by construction, and a refactor that loosened
+ * `relevant` would have taken the deferral with it silently
+ * (CodySwannGT/lisa#3921).
+ *
+ * Stating it as "every commit examined was exempt" makes the predicate
+ * self-sufficient: it reads the denominator directly instead of trusting a
+ * counter that is incremented before the trailer is parsed.
+ *
+ * ## Why it is not `mergeExempt === examined`
+ *
+ * Because that is a DIFFERENT claim — "the range is nothing but merges" — and
+ * it is strictly stronger than the one the deferral needs. A back-merge of a
+ * non-default deploy branch legitimately drags release commits along with the
+ * merge; those are exempt for their own reason, and a range of one merge plus
+ * one `chore(release):` commit still introduced no authored work. Requiring
+ * merges-only would refuse it with "no non-merge commit linked to a work item",
+ * which is the #3851 deadlock returning through the door this closed.
+ *
+ * `mergeExempt > 0` stays as the second conjunct, and it is not the weak test
+ * this replaced: it is what separates a deferral ("the subject is one level up,
+ * at the merge's own pull request") from the release-only and deploy-chain
+ * exemptions, which have their own branches and their own wording above.
+ *
+ * Exported so the predicate can be asserted directly. The push path reaches it
+ * only through a spawned child, where the interesting case — a range whose
+ * exemptions do not add up — cannot be built out of real commits at all.
+ * @param {object} [result] Commit-side result from `validateCommits`.
+ * @returns {boolean} True when the commit-side question has no subject here.
+ */
+export function mergeOnlyRange(result) {
+  if (!result) return false;
+  const examinedCount = result.examined ?? 0;
+  const exempt =
+    (result.mergeExempt ?? 0) +
+    (result.releaseExempt ?? 0) +
+    (result.protectedExempt ?? 0);
+  return (
+    examinedCount > 0 &&
+    (result.mergeExempt ?? 0) > 0 &&
+    exempt === examinedCount
+  );
+}
+
+/**
  * Check every pull-request requirement and report all of the unmet ones.
  *
  * `rangeIsPartial` is what the PUSH path passes, and it changes exactly one
@@ -3228,12 +3889,13 @@ function validatePrData(outcome, prUrl, prBody, rangeIsPartial = false) {
   // Nothing to check HERE, and the subject is one level up. Scoped to a merge
   // because that is the only way a partial range empties out while the pull
   // request is attributed: the trailered commit is excluded for having been
-  // validated on an earlier push. `relevant === 0` cannot mask an untrailered
-  // commit — `validateCommits` increments the counter BEFORE reading the
-  // trailer, so a missing one raises through `outcome.error` on a different
-  // branch entirely, and the control below still refuses it.
+  // validated on an earlier push. `mergeOnlyRange` cannot mask an untrailered
+  // commit — `validateCommits` classifies one as neither merge, release nor
+  // protected, so the exemptions no longer add up to the range and the
+  // predicate is false; the missing trailer also raises through `outcome.error`
+  // on a different branch entirely, and the control below still refuses it.
   const deferredToPullRequest =
-    rangeIsPartial === true && result?.relevant === 0 && result.mergeExempt > 0;
+    rangeIsPartial === true && mergeOnlyRange(result);
   // All three are COMMIT-side. They carry `IN_THIS_PR` because a rewrite plus a
   // force-push does clear them without recreating the pull request — but the
   // tag's wording invites a body edit, which cannot touch a commit message. The
@@ -3332,15 +3994,27 @@ function alreadyTraced(result) {
  * `alreadyTraced` renders nothing here: it fires only for `protectedExempt`,
  * and a back-merge onto a feature branch has none. So the zero went unexplained.
  *
- * ## Why `relevant === 0 && mergeExempt > 0` is the whole condition
+ * ## The condition is the deferral's own, not a second opinion
  *
- * The deferral itself is `rangeIsPartial && relevant === 0 && mergeExempt > 0`.
- * This renders only on the push path, where the range is ALWAYS a subset of the
- * pull request's — `reportPushGroup` passes `rangeIsPartial: true`
- * unconditionally, and says why. `validate-pr` reads the full `base..head`
- * range and does not defer, which is why its success line does not carry this.
+ * Both read {@link mergeOnlyRange}, deliberately: a message rendered on a
+ * condition that merely AGREES with the deferral is a second implementation of
+ * the same rule, free to drift from it, and a clause claiming a deferral that
+ * did not happen is worse than no clause. This renders only on the push path,
+ * where the range is ALWAYS a subset of the pull request's — `reportPushGroup`
+ * passes `rangeIsPartial: true` unconditionally, and says why. `validate-pr`
+ * reads the full `base..head` range and does not defer, which is why its
+ * success line does not carry this.
  *
- * ## This adds a sentence and relaxes nothing
+ * ## What it must say, and why the count alone did not
+ *
+ * A gate that stands down has to name what it stood down FROM and what still
+ * ran, or the next reader cannot separate "deferred, correctly, with gates 4
+ * and 5 still enforced" from "skipped" — and that distinction is the entire
+ * subject of the surrounding work (CodySwannGT/lisa#3921). So the clause names
+ * the count, names gate 3 as the one with no subject here, names where it is
+ * asked instead, and names the gates that were enforced anyway.
+ *
+ * ## This adds sentences and relaxes nothing
  *
  * The verdict, the exit status and every gate are untouched: a clause is
  * appended to a line that already said OK. A diagnostic fix that also softened
@@ -3349,9 +4023,25 @@ function alreadyTraced(result) {
  * @returns {string} A clause to append, or the empty string.
  */
 function carriedByPullRequest(result) {
-  return result.relevant === 0 && result.mergeExempt > 0
-    ? ` (${result.mergeExempt} merge commit(s); this push introduces no authored work, so the pull request's own range carries the requirement)`
-    : "";
+  if (!mergeOnlyRange(result)) return "";
+  // Stated separately from the deferral itself, and this is the half #3921
+  // asked for. "N merge commit(s)" alone leaves a reader unable to tell a
+  // correct deferral from a skip: the two differ entirely in what ELSE ran, and
+  // what else ran was not in the output. Gate 5 is named as inapplicable rather
+  // than enforced under `trailer`, because a run that contacted no tracker has
+  // not enforced a backlink — claiming it here would be the vacuous success
+  // this line exists to prevent, one clause along.
+  const stillEnforced =
+    result.contract?.verify === "full"
+      ? "gates 4 and 5 were still enforced here, on this push, exactly as on any other"
+      : 'gate 4 was still enforced here, on this push, exactly as on any other; gate 5 does not apply (workItem.verify is "trailer")';
+  return (
+    ` (${result.mergeExempt} merge commit(s), and nothing else in this range; ` +
+    `this push introduces no authored work, so gate 3 had no subject here and ` +
+    `the pull request's own range carries the requirement — \`validate-pr\` ` +
+    `asks it there from base..head, as a required check. Nothing else stood ` +
+    `down: ${stillEnforced})`
+  );
 }
 
 /**
@@ -3626,33 +4316,50 @@ function backlink(args) {
  * somebody's pull request NAMED the item somewhere, which is a different and
  * much weaker claim — see `sweepDeclarations` for what that difference cost.
  *
- * Scanned with the `m` flag over the WHOLE body rather than read through git's
- * `%(trailers:key=Work-Item)`, and that is the load-bearing part. Git's trailer
- * parser only considers the LAST paragraph of a message, and this project's
- * commits put `Work-Item:` above the trailing co-author block, so the parser
- * does not see it as a trailer at all. Measured on `origin/main`: the parser
- * finds 602 distinct issues where a full-body scan finds 835 — it misses 233,
- * and the undercount is clean, plausible and well-formed, which is why it
- * survived. Anything in this fleet that counts or verifies trailers has to
- * scan the body (CodySwannGT/lisa#3859).
+ * Read through `workItemLines` — the whole body, prefix anchored at column zero
+ * — rather than git's `%(trailers:key=Work-Item)`, and that is the load-bearing
+ * part. Git's trailer parser only considers the LAST paragraph of a message,
+ * and this project's commits put `Work-Item:` above the trailing co-author
+ * block, so the parser does not see it as a trailer at all. Measured on
+ * `origin/main`: the parser finds 602 distinct issues where a full-body scan
+ * finds 835 — it misses 233, and the undercount is clean, plausible and
+ * well-formed, which is why it survived. Anything in this fleet that counts or
+ * verifies trailers has to scan the body (CodySwannGT/lisa#3859).
+ *
+ * It USED to carry its own regex, which is how the two readers drifted: that
+ * one allowed leading whitespace where `workItemLines` anchors at column zero,
+ * so it would have matched the context line of a verbose commit's own diff.
+ * Measured over full `origin/main` history: 2,059 `Work-Item:` lines at column
+ * zero and ZERO indented ones, so the looser form served no real input and
+ * admitted one class of false positive. One definition now, not two (#3747).
+ *
+ * The `owner/name#number` filter stays HERE rather than moving down into the
+ * reader. This function answers a narrower question — which issues in THIS
+ * repository does the commit declare? — and a value the filter drops is one the
+ * reader still saw. That ordering is what keeps a malformed trailer refusable
+ * by the gate instead of invisible to it.
+ *
+ * CRLF needs nothing here, and a relayed review finding that said otherwise
+ * was refuted rather than acted on. `workItemLines` splits on `/\r?\n/`, so a
+ * CRLF line arrives without its carriage return; the value is trimmed besides.
+ * The case is pinned in `work-item-cli-writes.test.ts` so the refutation is a
+ * control rather than a paragraph.
  * @param {string} body A commit message body.
  * @param {string} repository `owner/name` the item must belong to.
  * @returns {number[]} Declared issue numbers, de-duplicated, in first-seen order.
  */
 export function declaredWorkItemNumbers(body, repository) {
-  const escaped = String(repository ?? "").replace(
-    /[.*+?^${}()|[\]\\]/g,
-    "\\$&"
-  );
-  if (!escaped) return [];
-  const pattern = new RegExp(
-    `^[ \\t]*Work-Item:[ \\t]*${escaped}#([1-9]\\d*)[ \\t]*$`,
-    "gim"
-  );
+  const owner = String(repository ?? "").toLowerCase();
+  if (owner === "") return [];
   const numbers = [];
-  let match;
-  while ((match = pattern.exec(String(body ?? ""))) !== null)
-    numbers.push(Number(match[1]));
+  for (const value of workItemLines(body)) {
+    const hash = value.indexOf("#");
+    if (hash === -1) continue;
+    if (value.slice(0, hash).toLowerCase() !== owner) continue;
+    const digits = value.slice(hash + 1);
+    if (!isIssueNumber(digits)) continue;
+    numbers.push(Number(digits));
+  }
   return [...new Set(numbers)];
 }
 
@@ -4441,6 +5148,12 @@ function complete(args) {
  *
  * Reports by default and only acts under `--apply`, because a sweep that closes
  * things as a side effect of being run is not something anyone will run twice.
+ *
+ * `--since <rev>` bounds the evidence scan to what a deploy branch gained after
+ * `<rev>`. That is what makes an APPLYING run safe to trigger from a merge: the
+ * unbounded question is "what has ever shipped and is still open", which is a
+ * backlog nobody should complete unattended, while the bounded one is "what did
+ * this push ship", which is exactly the item the merge earned. See `sweepBound`.
  */
 /**
  * Buffer bound for a deploy branch's commit log.
@@ -4518,6 +5231,92 @@ function resolvedBranchRev(branch) {
   return undefined;
 }
 
+/** Bounds a sweep to the commits a single push added to a deploy branch. */
+const SINCE_FLAG = "--since";
+
+/**
+ * The revision a bounded sweep starts AFTER, or undefined for the whole history.
+ *
+ * This is what gives directly-driven work a terminal path. The unbounded sweep
+ * answers "what has ever shipped and is still open", which is a backlog
+ * question: pointing `--apply` at it completes every item the history declares,
+ * so it is only ever safe to run deliberately, by a person who has read the
+ * report. A merge cannot run that. `--since <rev>` narrows the same
+ * evidence to what THIS push added, which is a question a push-triggered run
+ * can answer and act on — it completes the items its own merge shipped and
+ * structurally cannot reach any other (CodySwannGT/lisa#3704).
+ *
+ * A valueless flag is REFUSED rather than read as absent. The shared `option`
+ * helper falls back when a flag carries no value, which is right where the
+ * fallback is another spelling of the same answer and catastrophic here: the
+ * fallback is "no bound at all", so a typo would silently widen an applying run
+ * from one merge to the entire backlog. That is the one direction this must
+ * never fail in.
+ * @param {string[]} args Command arguments.
+ * @returns {string | undefined} The bound, or undefined when unbounded.
+ */
+function sweepBound(args) {
+  const index = args.indexOf(SINCE_FLAG);
+  if (index < 0) return undefined;
+  const value = args[index + 1];
+  if (value === undefined || value.startsWith("-") || value.trim() === "") {
+    throw new TrackingError(
+      `${SINCE_FLAG} was supplied without a revision, and it is not read as absent.\n` +
+        `Pass ${SINCE_FLAG} <rev> — the commit the deploy branch was at before the push — ` +
+        `or omit the flag entirely to sweep the whole history.\n` +
+        `Treating it as absent would widen an --apply run from the one merge that triggered it ` +
+        `to every item the history declares.`
+    );
+  }
+  return value.trim();
+}
+
+/**
+ * Resolve a sweep bound to a commit, refusing when it names nothing here.
+ *
+ * An unresolvable bound is NOT DETERMINED, never an empty range. `git log
+ * <branch> --not <unknown>` does not fail quietly — it fails — but a bound
+ * that resolves in the caller's repository and not in this checkout (a shallow
+ * clone, an unfetched ref, the all-zero SHA a branch-creation push carries) is
+ * the case where a run could otherwise report a narrower answer than the one
+ * its operator asked for. Refusing says which of the two happened.
+ * @param {string | undefined} since The bound as supplied.
+ * @returns {string | undefined} The resolved object ID, or undefined.
+ */
+function resolvedSinceRev(since) {
+  if (since === undefined) return undefined;
+  const result = run(
+    "git",
+    ["rev-parse", "--verify", "--quiet", `${since}^{commit}`],
+    { allowFailure: true }
+  );
+  const sha = result.stdout.trim();
+  if (result.status !== 0 || sha === "") {
+    throw new TrackingError(
+      `NOT DETERMINED: ${SINCE_FLAG} ${since} resolves to no commit in this checkout, ` +
+        `so the range a bounded sweep would examine is unknown.\n` +
+        `An unresolvable bound is not an empty one — reporting "no drift" from it would be ` +
+        `an absence claim over evidence never read.\n` +
+        `Fetch the history (\`git fetch --unshallow origin\`) and re-run, or drop ${SINCE_FLAG} ` +
+        `to sweep the whole deploy history.`
+    );
+  }
+  return sha;
+}
+
+/**
+ * The sentence a report owes its reader when the scan was bounded.
+ * @param {string | undefined} since The bound as supplied.
+ * @returns {string} A qualifying line, or the empty string when unbounded.
+ */
+function describeSinceBound(since) {
+  if (since === undefined) return "";
+  return (
+    `\nBounded: only commits a deploy branch gained since ${since} were read, so anything ` +
+    `declared before that is outside this result.`
+  );
+}
+
 /**
  * Work items DECLARED by commits reachable from a deploy branch.
  *
@@ -4534,16 +5333,35 @@ function resolvedBranchRev(branch) {
  *
  * Reachability is also what confirms the work actually landed, rather than
  * trusting a pull request's `baseRefName` to say where it went.
+ *
+ * UNRESOLVABLE branches are reported, never silently dropped. A configured
+ * deploy branch that resolves to no commit is a branch the sweep did not look
+ * at, and a `continue` past it turns part of an absence claim into evidence
+ * never read — the same shape as the truncated log below, which this function
+ * already refuses over. It is not fatal on its own, because a project may
+ * configure `dev` or `staging` in a clone that has only ever fetched `main`
+ * and the sweep is still useful there; what it may not do is let the omission
+ * go unsaid. When NOTHING resolved there is no evidence at all, and the run
+ * refuses rather than reporting a clean queue.
  * @param {string} repository `owner/name` the items belong to.
  * @param {object} contract Resolved tracker contract.
- * @returns {Map<number, string[]>} Issue number to declaring commits.
+ * @param {string} [since] Revision to bound the scan after; see `sweepBound`.
+ * @returns {{declarations: Map<number, string[]>, unresolved: string[]}} Issue
+ *   number to declaring commits, and the deploy branches that resolved to
+ *   nothing.
  */
-function deployedDeclarations(repository, contract) {
+function deployedDeclarations(repository, contract, since) {
+  const sinceRev = resolvedSinceRev(since);
   const declarations = new Map();
+  const unresolved = [];
   for (const branch of contract.deployBranches.keys()) {
     const rev = resolvedBranchRev(branch);
-    if (!rev) continue;
-    const result = run("git", ["log", rev, "-z", "--format=%H%n%B"], {
+    if (!rev) {
+      unresolved.push(branch);
+      continue;
+    }
+    const bound = sinceRev ? ["--not", sinceRev] : [];
+    const result = run("git", ["log", rev, ...bound, "-z", "--format=%H%n%B"], {
       allowFailure: true,
       maxBuffer: DECLARATION_LOG_MAX_BYTES,
     });
@@ -4570,7 +5388,31 @@ function deployedDeclarations(repository, contract) {
       ]);
     }
   }
-  return declarations;
+  if (
+    unresolved.length > 0 &&
+    unresolved.length === contract.deployBranches.size
+  ) {
+    throw new TrackingError(
+      `no configured deploy branch resolves to a commit (${unresolved.join(", ")}), so no absence of drift can be reported.\n` +
+        `Fetch them (\`git fetch origin\`) or correct \`deploy.branches\` in .lisa.config.json; ` +
+        `a deploy branch the sweep could not read is not an empty one.`
+    );
+  }
+  return { declarations, unresolved };
+}
+
+/**
+ * The sentence a report owes its reader when part of the evidence was missing.
+ * @param {string[]} unresolved Deploy branches that resolved to no commit.
+ * @returns {string} A qualifying line, or the empty string when nothing was.
+ */
+function describeUnresolvedBranches(unresolved) {
+  if (unresolved.length === 0) return "";
+  return (
+    `\nNOT examined: ${unresolved.join(", ")} — configured as a deploy branch ` +
+    `but resolving to no commit here, so anything shipped only there is ` +
+    `outside this result.`
+  );
 }
 
 /**
@@ -4603,7 +5445,12 @@ function sweep(args) {
       else subjects.set(issue.number, { ...issue, roles: [role] });
     }
   }
-  const declarations = deployedDeclarations(repository, contract);
+  const since = sweepBound(args);
+  const { declarations, unresolved } = deployedDeclarations(
+    repository,
+    contract,
+    since
+  );
   const apply = args.includes("--apply");
   // Named in every report, clean or not. The old clean-result sentence spoke
   // only of the claimed role while the subject list excluded the ready lane
@@ -4638,19 +5485,164 @@ function sweep(args) {
     }
   }
   if (drifted === 0) {
+    const examinedSummary = `Examined ${subjects.size} item(s) across ${roles.length} lifecycle role(s); no role outside ${examined} was queried.`;
     console.log(
-      `No drift: every open item carrying ${examined} is genuinely in flight.\n` +
-        `Examined ${subjects.size} item(s) across ${roles.length} lifecycle role(s); ` +
-        `no role outside ${examined} was queried.`
+      `No drift: every open item carrying ${examined} is genuinely in flight.\n${examinedSummary}${describeSinceBound(since)}${describeUnresolvedBranches(unresolved)}`
     );
     return;
   }
   if (!apply) {
+    const driftHeadline = `${drifted} open item(s) carrying ${examined} are declared by a commit on a deploy branch.`;
     console.log(
-      `\n${drifted} open item(s) carrying ${examined} are declared by a commit on a deploy branch. ` +
-        `Re-run with --apply to complete them.`
+      `\n${driftHeadline} Re-run with --apply to complete them.${describeSinceBound(since)}${describeUnresolvedBranches(unresolved)}`
     );
   }
+}
+
+/**
+ * Whether a line is `Key: value` — the shape git recognises as a trailer.
+ *
+ * Character-scanned rather than matched, so it is linear over a commit message
+ * this script does not own.
+ * @param {string} line One line of a commit message.
+ * @returns {boolean} Whether git would read this line as a trailer.
+ */
+function isTrailerLine(line) {
+  const colon = line.indexOf(": ");
+  if (colon <= 0) return false;
+  if (line.slice(colon + 2).trim() === "") return false;
+  for (const character of line.slice(0, colon)) {
+    const letter =
+      (character >= "a" && character <= "z") ||
+      (character >= "A" && character <= "Z");
+    const digit = character >= "0" && character <= "9";
+    if (!letter && !digit && character !== "-") return false;
+  }
+  return true;
+}
+
+/**
+ * Where the lane line goes, so the final trailer paragraph is never split.
+ *
+ * `git interpret-trailers` starts a NEW paragraph whenever the last one holds
+ * any line it does not recognise as a trailer — and the final block of an
+ * agent-authored message routinely ends with a non-trailer signature line. The
+ * split is silent and it costs something real: `Co-Authored-By` stops being in
+ * the last paragraph, which is the only place GitHub reads co-authors from, so
+ * a routing aid would quietly break attribution to fix attribution.
+ *
+ * Scanning back from the end and stopping at the first blank line keeps the
+ * search inside the final paragraph. A message whose tail is prose has no
+ * trailer to sit beside and is left to git, which correctly opens a paragraph
+ * for it.
+ * @param {string[]} lines Message lines, trailing blanks already removed.
+ * @returns {number} Index to insert after, or -1 for "let git decide".
+ */
+function trailerInsertionPoint(lines) {
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    if (lines[index].trim() === "") return -1;
+    if (isTrailerLine(lines[index])) return index;
+  }
+  return -1;
+}
+
+/**
+ * Stamp the caller's lane onto a commit message being prepared.
+ *
+ * Never the reason a commit fails. Attribution is a routing aid; a git that
+ * declines to rewrite trailers is a worse commit message, not a violation, and
+ * refusing the commit over it would make every session's first encounter with
+ * this feature an outage.
+ *
+ * An existing stamp is left alone. On a rebase, an amend or a cherry-pick the
+ * message already carries the ORIGINATING lane's stamp, and the lane doing the
+ * rewrite must not take credit for work it did not start — which is precisely
+ * the guess a survey has to make when nothing is recorded.
+ * @param {string} file Commit message file.
+ * @returns {void}
+ */
+function stampLane(file) {
+  const lane = resolveCallerLaneId();
+  if (lane === undefined) return;
+  const message = readFileSync(file, "utf8");
+  if (message.split("\n").some(line => LANE_PREFIX_MATCH.test(line))) return;
+  const lines = message.split("\n");
+  while (lines.length > 0 && lines[lines.length - 1].trim() === "") lines.pop();
+  const at = trailerInsertionPoint(lines);
+  if (at === -1) {
+    run(
+      "git",
+      [
+        "interpret-trailers",
+        "--in-place",
+        "--if-missing=add",
+        "--trailer",
+        renderLaneTrailer(lane),
+        file,
+      ],
+      { allowFailure: true }
+    );
+    return;
+  }
+  lines.splice(at + 1, 0, renderLaneTrailer(lane));
+  writeFileSync(file, `${lines.join("\n")}\n`);
+}
+
+/**
+ * Answer "which lane does this belong to, and is it mine?".
+ *
+ * With no argument it reports the caller's own lane, which is what a session
+ * needs to recognise its own work later. With `--commit` it reads the message
+ * of a commit — the form that survives branch deletion, because the commit
+ * lives on in the base branch once the pull request has landed. With
+ * `--text-file` it reads any text at all, which is how a pull-request body or
+ * a tracker comment is classified with the same vocabulary.
+ * @param {string[]} args Command arguments.
+ * @returns {void}
+ */
+function laneCommand(args) {
+  const caller = resolveCallerLaneId();
+  const commit = flagValue(args, "--commit");
+  const textFile = flagValue(args, "--text-file");
+  if (commit === undefined && textFile === undefined) {
+    console.log(caller ?? "unattributed");
+    return;
+  }
+  const text =
+    textFile === undefined
+      ? commitMessageOf(commit)
+      : readFileSync(textFile, "utf8");
+  const marker = parseLaneId(text);
+  console.log(`LANE ${judgeLane(marker, caller)} ${marker ?? "none"}`);
+}
+
+/**
+ * The value that follows a flag, refusing a flag left without one.
+ * @param {string[]} args Command arguments.
+ * @param {string} flag Flag to look for.
+ * @returns {string | undefined} The value, or undefined when the flag is absent.
+ */
+function flagValue(args, flag) {
+  const index = args.indexOf(flag);
+  if (index === -1) return undefined;
+  const value = args[index + 1];
+  if (value === undefined || value.startsWith("--"))
+    throw new TrackingError(`${flag} requires a value`);
+  return value;
+}
+
+/**
+ * The full message of one commit.
+ * @param {string} ref Commit-ish to read.
+ * @returns {string} The commit message body.
+ */
+function commitMessageOf(ref) {
+  const result = run("git", ["log", "-1", RAW_MESSAGE_FORMAT, ref], {
+    allowFailure: true,
+  });
+  if (result.status !== 0)
+    throw new TrackingError(`could not read the commit message of '${ref}'`);
+  return result.stdout;
 }
 
 function prepareCommitMessage(args) {
@@ -4664,6 +5656,11 @@ function prepareCommitMessage(args) {
     RELEASE_SUBJECT.test(messageSubject(readFileSync(file, "utf8")))
   )
     return;
+  // Before the binding check, deliberately. The lane stamp is what makes an
+  // ORPHAN routable, and an orphan is disproportionately likely to be exactly
+  // the commit that never got a work item bound — so gating attribution on the
+  // binding would withhold it in the one case it exists for.
+  stampLane(file);
   const state = readState(true);
   if (!state) return;
   assertStateBranch(state);
@@ -4684,10 +5681,17 @@ function validateCommit(args) {
   const file = args[0];
   if (!file)
     throw new TrackingError("validate-commit requires the commit message file");
+  const message = readFileSync(file, "utf8");
+  // Before the traceability gates and outside their exemptions, deliberately.
+  // A merge or release message is exempt from naming a work item because
+  // nothing bound one; neither fact says anything about whether the harness
+  // appended an identifier to it, and those are exactly the messages no agent
+  // proof-reads.
+  assertNoSessionUrl(message);
   let result;
   try {
-    result = validateMessage(readFileSync(file, "utf8"), {
-      allowInProgressMerge: true,
+    result = validateMessage(message, {
+      allowMergeExemption: true,
     });
   } catch (error) {
     // The commit-msg hook is the EARLIEST moment an operator meets any of this,
@@ -5232,6 +6236,7 @@ function main() {
   // broken, which is when the answer matters most.
   if (command === "contract-version")
     return console.log(WORK_ITEM_CONTRACT_VERSION);
+  if (command === "lane") return laneCommand(args);
   if (command === "prepare-commit-msg") return prepareCommitMessage(args);
   if (command === "validate-commit") return validateCommit(args);
   if (command === "validate-push") return validatePush(args);
@@ -5240,7 +6245,7 @@ function main() {
   if (command === "validate-pr") return validatePr(args);
   if (command === DISCHARGE_COMMAND) return dischargePrGates(args);
   throw new TrackingError(
-    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|contract-version|backlink|complete|sweep|prepare-commit-msg|validate-commit|validate-push|validate-push-destination|validate-pr|discharge-pr-gates" +
+    "Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|contract-version|backlink|complete|sweep|lane|prepare-commit-msg|validate-commit|validate-push|validate-push-destination|validate-pr|discharge-pr-gates" +
       "\n(`bind` is accepted as an alias for `link`, but some agent harnesses refuse the token `bind` in a command line.)"
   );
 }

@@ -1,5 +1,5 @@
 {
-  "_comment": "Symptom-keyed index of hazards whose explanation ALREADY exists somewhere in this repository. An entry stores no knowledge of its own: it stores the text a person sees when the hazard bites, and a pointer to the record that already explains it. The records stay exactly where their authors put them — next to the cause — and this file makes them reachable from the effect. Read by plugins/src/base/hooks/failure-signature-index.mjs, which runs as a PostToolUse hook on every Bash result (so it is read by the person standing in the symptom, not by anyone who goes looking) and as `bun run check:failure-signatures` (which fails when an entry's record has moved, when its signature no longer matches its own recorded sample, or when the index resolves nothing at all). See CodySwannGT/lisa#3061.",
+  "_comment": "Symptom-keyed index of hazards whose explanation ALREADY exists somewhere in this repository. An entry stores no knowledge of its own: it stores the text a person sees when the hazard bites, and a pointer to the record that already explains it. The records stay exactly where their authors put them — next to the cause — and this file makes them reachable from the effect. Read by plugins/src/base/hooks/failure-signature-index.mjs, which runs as a PostToolUse hook on every Bash result (so it is read by the person standing in the symptom, not by anyone who goes looking) and as `bun run check:failure-signatures` (which fails when an entry's record has moved, when its signature no longer matches its own recorded sample, when a row's discriminator has no counterSample proving it discriminates, when a row's determination cannot report a NOT-DETERMINED answer, or when the index resolves nothing at all). A row may only assert what its evidence supports: where one symptom has two opposite causes, `excludes` withholds the row against counter-evidence in the same output and `determination` measures the checkout and reports NOT DETERMINED rather than guessing. See CodySwannGT/lisa#3061 and CodySwannGT/lisa#3812.",
   "version": 1,
   "entries": [
     {
@@ -38,15 +38,76 @@
       ]
     },
     {
-      "id": "merge-driver-mapped-but-unregistered",
-      "symptom": "conflict markers in a file .gitattributes maps to a union merge driver, which should never conflict",
+      "id": "merge-driver-ran-and-declined",
+      "symptom": "a merge conflict in a path .gitattributes maps to a custom merge driver, in output where that driver printed its own name",
+      "sample": "merge-generated-artifact: src/core/upstream-evidence-manifest.ts could not be merged mechanically — both sides changed the entry for scripts/two-channel-couplings.json in incompatible ways.",
+      "signature": "(?:^|\\n)merge-(?:generated-artifact|learnings): ",
+      "cause": "the driver RAN and DECLINED — it is working as designed. It printed its own diagnosis and the exact commands to resolve, in this same output, above this notice. A driver that is not registered prints nothing at all, so registration is not the question here and `lisa doctor` will not answer it. Scroll up and follow what the driver already told you; `exit 1` means declined here, not failed.",
+      "records": [
+        {
+          "file": "scripts/merge-generated-artifact.mjs",
+          "anchor": "could not be merged mechanically"
+        },
+        {
+          "file": "src/cli/merge-learnings-cmd.ts",
+          "anchor": "a precise reason on stderr"
+        }
+      ]
+    },
+    {
+      "id": "learnings-merge-driver-mapped-path-conflicted",
+      "symptom": "conflict markers in the project-learnings ledger, which .gitattributes maps to a union merge driver, with NO driver-authored line anywhere in the output",
       "sample": "CONFLICT (content): Merge conflict in .lisa/PROJECT_LEARNINGS.md",
-      "signature": "CONFLICT \\(content\\): Merge conflict in [^\\n]{0,200}(?:PROJECT_LEARNINGS|upstream-evidence-manifest|lisa-owned-hash-ledger)",
-      "cause": "the merge=<name> mapping lives in .gitattributes but merge.<name>.driver is machine-local and unregistered in this checkout, so git silently falls back to its built-in text merge. A guard for this already exists — do not build a second one.",
+      "signature": "CONFLICT \\(content\\): Merge conflict in [^\\n]{0,200}PROJECT_LEARNINGS",
+      "excludes": "(?:^|\\n)merge-learnings: ",
+      "counterSample": "CONFLICT (content): Merge conflict in .lisa/PROJECT_LEARNINGS.md\nmerge-learnings: .lisa/PROJECT_LEARNINGS.md: two branches gave one stable id incompatible successors",
+      "cause": "the ledger conflicted and no driver announced itself. That is consistent with a driver that never ran AND with a driver whose output never reached this transcript, so the two are separated by measuring this checkout rather than by assuming.",
+      "determination": {
+        "question": "whether merge.lisa-learnings.driver is registered in this checkout",
+        "gitConfigKeys": [
+          "merge.lisa-learnings.driver"
+        ],
+        "absent": "the merge=lisa-learnings mapping lives in .gitattributes but merge.lisa-learnings.driver is machine-local and unregistered HERE, so git silently fell back to its built-in text merge. Register it with `lisa install-merge-driver` (or any `lisa apply`) run here, then redo the merge. A guard for this already exists — do not build a second one.",
+        "present": "the driver IS registered here, so an unregistered driver is EXCLUDED. Why it conflicted anyway is NOT MEASURED: no driver line reached this output, and that is not proof one did not run — a killed or timed-out command loses its streams, only the last 512KB of a transcript is read, and `git merge-tree` never runs custom drivers at all. Redo the merge and read the driver's own stderr before naming a cause.",
+        "unknown": "NOT DETERMINED — this checkout could not be asked whether the driver is registered, so an unregistered driver and a driver that ran with its output lost both remain open. Answer that first with `lisa doctor` and `git config --get merge.lisa-learnings.driver`; do not diagnose past this line."
+      },
       "records": [
         {
           "file": ".gitattributes",
           "anchor": "run `lisa install-merge-driver` to register it"
+        }
+      ],
+      "guard": {
+        "file": "src/cli/doctor-merge-drivers.ts",
+        "anchor": "Merge drivers registered?",
+        "name": "the `lisa doctor` check \"Merge drivers registered?\""
+      }
+    },
+    {
+      "id": "generated-artifact-merge-driver-mapped-path-conflicted",
+      "symptom": "conflict markers in a checked-in generated artifact, which .gitattributes maps to a reconstructing merge driver, with NO driver-authored line anywhere in the output",
+      "sample": "CONFLICT (content): Merge conflict in src/core/upstream-evidence-manifest.ts",
+      "signature": "CONFLICT \\(content\\): Merge conflict in [^\\n]{0,200}(?:upstream-evidence-manifest|lisa-owned-hash-ledger)",
+      "excludes": "(?:^|\\n)merge-generated-artifact: ",
+      "counterSample": "CONFLICT (content): Merge conflict in src/core/upstream-evidence-manifest.ts\nmerge-generated-artifact: src/core/upstream-evidence-manifest.ts could not be merged mechanically — both sides changed one entry in incompatible ways.",
+      "cause": "the artifact conflicted and no driver announced itself. That is consistent with a driver that never ran AND with a driver whose output never reached this transcript, so the two are separated by measuring this checkout rather than by assuming.",
+      "determination": {
+        "question": "whether merge.lisa-generated-artifact.driver is registered in this checkout",
+        "gitConfigKeys": [
+          "merge.lisa-generated-artifact.driver"
+        ],
+        "absent": "the merge=lisa-generated-artifact mapping lives in .gitattributes but merge.lisa-generated-artifact.driver is machine-local and unregistered HERE, so git silently fell back to its built-in text merge and the artifact conflicts by construction. Register it by running `bun install` here, then redo the merge. A guard for this already exists — do not build a second one.",
+        "present": "the driver IS registered here, so an unregistered driver is EXCLUDED. Why it conflicted anyway is NOT MEASURED: no driver line reached this output, and that is not proof one did not run — a killed or timed-out command loses its streams, only the last 512KB of a transcript is read, and `git merge-tree` never runs custom drivers at all. Redo the merge and read the driver's own stderr before naming a cause.",
+        "unknown": "NOT DETERMINED — this checkout could not be asked whether the driver is registered, so an unregistered driver and a driver that ran with its output lost both remain open. Answer that first with `lisa doctor` and `git config --get merge.lisa-generated-artifact.driver`; do not diagnose past this line."
+      },
+      "records": [
+        {
+          "file": ".gitattributes",
+          "anchor": "scripts/install-generated-artifact-merge-driver.mjs, and `lisa doctor`"
+        },
+        {
+          "file": "scripts/install-generated-artifact-merge-driver.mjs",
+          "anchor": "Register the `lisa-generated-artifact` merge driver in this checkout's local"
         }
       ],
       "guard": {

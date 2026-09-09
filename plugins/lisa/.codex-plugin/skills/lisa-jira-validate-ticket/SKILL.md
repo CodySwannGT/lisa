@@ -17,6 +17,28 @@ Run all organizational quality gates against a ticket spec OR an existing ticket
 1. **An existing ticket key** (e.g. `PROJ-1234`): fetch it and validate the live state. Use this for post-write checks.
 2. **A proposed ticket spec** (YAML block, see schema below): validate as-is without touching JIRA. Use this for pre-write and dry-run checks.
 
+### Standalone entry point — validating an item written by another path
+
+Input form 1 is a **supported entry point in its own right**, not only an internal step of a
+caller flow. Point this skill at any existing item — however it was written, including by a
+bespoke script, a direct API or GraphQL call, or the vendor's own web UI — and it fetches the
+live state and runs the full gate set against it.
+
+Copy-pasteable, via the Skill tool:
+
+```text
+Skill(skill: "lisa-jira-validate-ticket", args: "PROJ-1234")
+```
+
+where the argument is a ticket key such as `PROJ-1234`. The report it returns is the same structured PASS/FAIL
+report the write path consumes, so a bespoke write path can discharge both the pre-write
+validate and the post-write verify obligation with it (see the bespoke-path section of
+`lisa-jira-write-ticket`).
+
+This skill is plugin-resident. It is invoked through the Skill tool and is **not** expected to
+appear in any repository's `scripts/` directory; not finding a shell script by this name is
+not evidence that the capability is absent.
+
 ### Spec schema
 
 Specs are passed as a fenced YAML block. Required keys depend on `issue_type`.
