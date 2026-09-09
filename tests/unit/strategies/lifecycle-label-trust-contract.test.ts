@@ -133,6 +133,30 @@ describe("lifecycle-label trust contract (#2539)", () => {
       expect(section).toContain("TUN-556 and TUN-503");
     });
 
+    it("forbids advancing a not-planned closure to the terminal role", () => {
+      // The skill is what an agent actually follows, so a classifier that
+      // separates the two closures is only half the repair: prose still saying
+      // "advance the label to the terminal done role" for every closed item
+      // would have the agent write the wrong terminal by hand.
+      const repair = read(root, REPAIR_INTAKE);
+      const section = repair.slice(
+        repair.indexOf("Lifecycle label contradicts native state"),
+        repair.indexOf("Bot-authored lifecycle label")
+      );
+
+      expect(section).toContain("open-label-abandoned-state");
+      expect(section).toContain(
+        "**Remove the stale non-terminal role and add nothing.**"
+      );
+      expect(section).toContain(
+        "Do NOT advance it to the terminal `done` role"
+      );
+      // The reason the wrong write is unrecoverable, not merely wrong.
+      expect(section).toContain(
+        'rewrites "we are not doing this" as "we shipped this"'
+      );
+    });
+
     it("names Linear's native state as authoritative over a stale label", () => {
       expect(read(root, REPAIR_INTAKE)).toContain(
         "never move the state to match a label"

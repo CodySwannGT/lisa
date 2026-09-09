@@ -1027,7 +1027,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/intake-prework-denominator.mjs":
       "0a40cb91ab1c0e810f42d035d9652af3033e97c692b93b911de851991c12eca1",
     "plugins/src/base/scripts/lifecycle-label-trust.mjs":
-      "0a9892890da6011733bf9b1186fbe936253c2796c4ac448f1a55f63b8daaa154",
+      "852422d7c849ff32e9412e71e5c45cab345aeda28641705af2d8b41501f94667",
     "plugins/src/base/scripts/linear-state-write-target.mjs":
       "2c06525345b47a93e8ad75566d4a7d0cac6850ce30cf0481120ad88146d4c220",
     "plugins/src/base/scripts/plugin-sync-explain.mjs":
@@ -1319,7 +1319,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-remote-dispatch/scripts/dispatch.mjs":
       "2c51d388ecb681905f6b2280ffefc03434f91bfe4901e637869b716be81ccc93",
     "plugins/src/base/skills/lisa-repair-intake/SKILL.md":
-      "d579d718502a42d1613f2c9e1fee7718be42a0a6afa4fac5d93c30b27db3a53b",
+      "e07f29608a21d6eeb8543140205832d899971be36facb82971ad89a22c01d130",
     "plugins/src/base/skills/lisa-reproduce-bug/SKILL.md":
       "49dee0ea4d444a6df050d85fd57566497df288490f64b467d0505b1863fc1039",
     "plugins/src/base/skills/lisa-research/SKILL.md":
@@ -10651,6 +10651,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/learnings-fingerprint-contract.test.ts": true,
     "tests/unit/strategies/learnings-merge-driver-opt-out-contract.test.ts": true,
     "tests/unit/strategies/learnings-overflow-contract.test.ts": true,
+    "tests/unit/strategies/lifecycle-closure-reason-wiring.test.ts": true,
     "tests/unit/strategies/lifecycle-label-claimability.test.ts": true,
     "tests/unit/strategies/lifecycle-label-trust-contract.test.ts": true,
     "tests/unit/strategies/lifecycle-label-trust-entry-guard.test.ts": true,
