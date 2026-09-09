@@ -1632,6 +1632,16 @@ export const REVIEW_GATE_STATES = Object.freeze({
  * | `unrecognised`  | the reviewer said something new  | classify the phrase   |
  * | `undetermined`  | THE GATE STOPPED WAITING         | re-run; read nothing into it |
  *
+ * `waived_with_review` is the eighth, and it is a WAIVER — same severity, same
+ * `neutral`, same never-blocking kind. It exists because the waiver's sentence
+ * was a claim rather than a label: "this pull request is UNREVIEWED". MEASURED
+ * on this repository 2026-09-06 over the last 40 merged pull requests, 34 of
+ * which reported `Review rate limited`: SEVEN of those 34 carried review
+ * activity at the head. The waiver described one waived merge in five wrongly,
+ * and it described it wrongly in the direction that matters — an operator
+ * writing a merge disclosure from that sentence asserts nobody looked while a
+ * finding sits on the pull request.
+ *
  * All of them published one word, so an operator handed `unsatisfied` had to
  * guess between situations whose correct responses have nothing in common. That
  * collapse is why CodySwannGT/lisa#3706, #3716 and #3600 each described a
@@ -1666,11 +1676,111 @@ export const REVIEW_GATE_STATES = Object.freeze({
 export const REVIEW_GATE_CONDITIONS = Object.freeze({
   satisfied: "satisfied",
   waived: "waived",
+  waivedWithReview: "waived_with_review",
   absent: "absent",
   objected: "objected",
   pending: "pending",
   unrecognised: "unrecognised",
   undetermined: "undetermined",
+});
+
+/**
+ * What the pull request's OWN review surface says, independent of any check.
+ *
+ * ## Why a second input exists at all (#3706)
+ *
+ * The gate classified an evidence-bearing check from its `state` and its
+ * `description`, and **the description is not a function of whether a review
+ * happened.** Measured on CodySwannGT/lisa#3762: `success` with the
+ * description `Review rate limited`, and the vendor HAD reviewed, posting
+ * `CHANGES_REQUESTED` with a comment that found a real defect. The identical
+ * string appears on pull requests nothing read. One string, two opposite
+ * facts — and the waiver collapsed them PERMISSIVELY, so a pull request a
+ * reviewer objected to published `neutral` and merged.
+ *
+ * No rearrangement of the description vocabulary can fix that, because the
+ * information is not in the description. It is in `reviewDecision` and
+ * `reviewThreads`, which `gh pr checks` cannot see and this gate did not read.
+ *
+ * ## Why `reviewDecision` rather than the reviews' own states
+ *
+ * `reviewDecision` is GitHub's own computation of the latest state per
+ * reviewer, so a DISMISSED objection and a superseded one are already excluded.
+ * Recomputing it here from `reviews[].state` would resurrect a stale
+ * `CHANGES_REQUESTED` and block work that was already addressed — the false-red
+ * direction tracked on #3720, which this must not manufacture while closing the
+ * false-green one.
+ *
+ * ## COULD-NOT-ASK IS A THIRD STATE, NOT AN ABSENCE VALUE
+ *
+ * "No review activity" is what GRANTS the waiver, so a failed read resolving to
+ * it would waive on evidence nobody obtained — this file's own thesis, one
+ * square over, and the shape `scripts/check-probe-absence-direction.mjs`
+ * refuses outright (#3848): a probe must not hand a failure back as an answer.
+ * The first draft here returned `undefined` on a failed read, which the caller
+ * did distinguish — and which is still the same token a caller elsewhere reads
+ * as a legitimate negative. So the third state is carried in the value:
+ * `read: false` is a fact about the READ, and `present` / `objected` are facts
+ * about the pull request that only mean anything when `read` is true.
+ *
+ * @param {unknown} payload - `pullRequest` as the GraphQL read returns it
+ * @returns {{read: boolean, present: boolean, objected: boolean}} What the review surface showed, and whether it was read at all
+ */
+export function reviewActivityFrom(payload) {
+  if (typeof payload !== "object" || payload === null) {
+    return UNREAD_REVIEW_ACTIVITY;
+  }
+  const reviews = /** @type {{totalCount?: unknown}} */ (
+    /** @type {Record<string, unknown>} */ (payload).reviews
+  );
+  const threads = /** @type {{totalCount?: unknown, nodes?: unknown}} */ (
+    /** @type {Record<string, unknown>} */ (payload).reviewThreads
+  );
+  if (typeof reviews?.totalCount !== "number") return UNREAD_REVIEW_ACTIVITY;
+  if (typeof threads?.totalCount !== "number") return UNREAD_REVIEW_ACTIVITY;
+  const nodes = Array.isArray(threads.nodes) ? threads.nodes : [];
+  const unresolved = nodes.some(node => node?.isResolved === false);
+  const decision = String(
+    /** @type {Record<string, unknown>} */ (payload).reviewDecision ?? ""
+  ).toUpperCase();
+  const objected = decision === "CHANGES_REQUESTED" || unresolved;
+  // The query asks for the first 50 threads, and the two verdicts do not need
+  // the same evidence.
+  //
+  // "Somebody objected" is sound from a partial page: a thread we did not read
+  // cannot un-object the one we did. "Nobody objected" is not — it is a claim
+  // about every thread, and a page of 50 resolved ones says nothing about the
+  // fifty-first. A pull request with more than 50 threads whose only unresolved
+  // one sorts late would otherwise report `objected: false`, and a neutral
+  // waiver would be allowed to cover a live objection.
+  //
+  // `totalCount` is already in the response, so the shortfall is detectable
+  // without a second request. Reporting it as UNREAD is the honest answer and
+  // the one this module is built around: a failed read is NOT a negative, and
+  // the cost lands on the waiver's corroboration rather than on the merge.
+  if (!objected && nodes.length < threads.totalCount) {
+    return UNREAD_REVIEW_ACTIVITY;
+  }
+  return {
+    read: true,
+    present: reviews.totalCount > 0 || threads.totalCount > 0,
+    objected,
+  };
+}
+
+/**
+ * The review surface as it looks when nobody managed to read it.
+ *
+ * A named value rather than `undefined` on purpose: `undefined` is what a
+ * caller elsewhere in this file reads as a legitimate negative, and the whole
+ * point is that a failed read is NOT a negative. `present` and `objected` are
+ * `false` here only because the shape requires values; `read: false` is the
+ * field every consumer must branch on first.
+ */
+export const UNREAD_REVIEW_ACTIVITY = Object.freeze({
+  read: false,
+  present: false,
+  objected: false,
 });
 
 /**
@@ -1719,7 +1829,13 @@ function normalizeDescription(description) {
  * long" are different things to go and look at; what changes is that neither is
  * asserted as a fact about the reviewer when the gate simply stopped waiting.
  *
- * @param {{present: boolean, state?: string, description?: string, waitExpired?: boolean}} reading - One check, and whether the settle wait expired
+ * A WAIVER IS NOW CONDITIONAL ON THE ABSENCE OF REVIEW (#3706). `reading.
+ * reviewActivity` is what the pull request's own review surface showed, and it
+ * only ever reaches the waiver branch — the satisfy, absent, pending and
+ * unrecognised paths are untouched by it, deliberately, because none of them
+ * grants permission to merge on a claim about who reviewed.
+ *
+ * @param {{present: boolean, state?: string, description?: string, waitExpired?: boolean, reviewActivity?: {read: boolean, present: boolean, objected: boolean}}} reading - One check, whether the settle wait expired, and what the pull request's own review surface showed
  * @param {{waive?: readonly string[], satisfy?: readonly string[]}} [vocabulary] - Per-check extensions
  * @returns {{state: string, condition: string, why: string}} Severity, the condition observed, and a one-line reason
  */
@@ -1734,7 +1850,12 @@ export function reviewGateState(reading, vocabulary = {}) {
   if (state !== "SUCCESS") {
     return pendingReviewGateState(state, reading.waitExpired);
   }
-  return successfulReviewGateState(text, reading.description, vocabulary);
+  return successfulReviewGateState(
+    text,
+    reading.description,
+    vocabulary,
+    reading.reviewActivity
+  );
 }
 
 /**
@@ -1804,14 +1925,69 @@ function pendingReviewGateState(state, waitExpired) {
 }
 
 /**
+ * Classifies a check whose description matched an entitlement waiver.
+ *
+ * ## The waiver keeps its severity and loses its false claim (#3706)
+ *
+ * The owner's ruling on #3221, restated on #3706, is untouched: a pull request
+ * author cannot fix a vendor entitlement, so a throttled reviewer must not
+ * redden the author's pull request. That ruling is about the pull request
+ * NOBODY REVIEWED, which is the only pull request it was ever an argument
+ * about — and the third branch below is where it lives, unchanged.
+ *
+ * What the ruling never covered is a pull request where a review DID happen and
+ * OBJECTED. Measured on #3762: `success`, description `Review rate limited`,
+ * and a `CHANGES_REQUESTED` finding a real defect. The waiver covered it
+ * anyway, because the gate read only the string — so the one condition the file
+ * calls "the case this gate exists to let through to a human" was the condition
+ * it merged. That is the first branch, and it is the fix.
+ *
+ * The second branch is the honesty half. Review activity WITHOUT an objection
+ * still waives — the entitlement argument still applies and the severity does
+ * not move — but the sentence stops asserting "this pull request is
+ * UNREVIEWED", which was measured false on 7 of 34 waived merges here.
+ *
+ * @param {string|undefined} description - Original description
+ * @param {{read: boolean, present: boolean, objected: boolean}|undefined} activity - What the pull request's own review surface showed
+ * @returns {{state: string, condition: string, why: string}} Review gate verdict
+ */
+function waivedReviewGateState(description, activity) {
+  const said = `reported ${JSON.stringify(description ?? "")}`;
+  const read = activity !== undefined && activity.read !== false;
+  if (read && activity.objected === true) {
+    return {
+      state: REVIEW_GATE_STATES.unsatisfied,
+      condition: REVIEW_GATE_CONDITIONS.objected,
+      why: `${said} — but a review HAPPENED on this pull request and OBJECTED to it: \`reviewDecision\` is CHANGES_REQUESTED, or a review thread is unresolved. NO WAIVER COVERS AN OBJECTION. The description said the reviewer could not review and the review surface says it did; the review surface is the authority, because a vendor's throttle message is not a function of whether anybody read the diff (CodySwannGT/lisa#3762). READ THE OBJECTION.`,
+    };
+  }
+  if (read && activity.present === true) {
+    return {
+      state: REVIEW_GATE_STATES.waived,
+      condition: REVIEW_GATE_CONDITIONS.waivedWithReview,
+      why: `${said} — the check saying, in its own words, that it could not review. WAIVED: merging is a decision taken on that basis. But this pull request DOES carry review activity that raised no objection, so it is not the unreviewed pull request the waiver's rationale is about — do not record it as one.`,
+    };
+  }
+  const unverified = read
+    ? ""
+    : " The pull request's own review surface could not be read on this run, so nothing corroborated the waiver: it is granted on the description alone, which is the input measured to be wrong in both directions.";
+  return {
+    state: REVIEW_GATE_STATES.waived,
+    condition: REVIEW_GATE_CONDITIONS.waived,
+    why: `${said} — the check saying, in its own words, that it could not review. WAIVED, not satisfied: this pull request is UNREVIEWED and merging it is a decision taken on that basis.${unverified} The waiver clears the moment the entitlement behind it is fixed, at which point this gate starts biting with no code change.`,
+  };
+}
+
+/**
  * Classifies a successful check from its exact description vocabulary.
  *
  * @param {string} text - Normalized description
  * @param {string|undefined} description - Original description
  * @param {{waive?: readonly string[], satisfy?: readonly string[]}} vocabulary - Per-check extensions
+ * @param {{read: boolean, present: boolean, objected: boolean}|undefined} [activity] - What the pull request's own review surface showed
  * @returns {{state: string, condition: string, why: string}} Review gate verdict
  */
-function successfulReviewGateState(text, description, vocabulary) {
+function successfulReviewGateState(text, description, vocabulary, activity) {
   const satisfies = [...REVIEW_SATISFACTIONS, ...(vocabulary.satisfy ?? [])];
   if (satisfies.some(phrase => text === normalizeDescription(phrase))) {
     return {
@@ -1822,11 +1998,7 @@ function successfulReviewGateState(text, description, vocabulary) {
   }
   const waivers = [...ENTITLEMENT_WAIVERS, ...(vocabulary.waive ?? [])];
   if (waivers.some(phrase => text === normalizeDescription(phrase))) {
-    return {
-      state: REVIEW_GATE_STATES.waived,
-      condition: REVIEW_GATE_CONDITIONS.waived,
-      why: `reported ${JSON.stringify(description ?? "")} — the check saying, in its own words, that it could not review. WAIVED, not satisfied: this pull request is UNREVIEWED and merging it is a decision taken on that basis. The waiver clears the moment the entitlement behind it is fixed, at which point this gate starts biting with no code change.`,
-    };
+    return waivedReviewGateState(description, activity);
   }
   return {
     state: REVIEW_GATE_STATES.unsatisfied,
@@ -1845,7 +2017,7 @@ function successfulReviewGateState(text, description, vocabulary) {
  *
  * @param {object} declaration - The per-repo declaration
  * @param {ReadonlyArray<{name: string, state: string, description?: string}>} checks - The checks
- * @param {{headSha?: string, waitExpired?: boolean}} [options] - `headSha` is cited in every finding; `waitExpired` says the settle loop hit its deadline
+ * @param {{headSha?: string, waitExpired?: boolean, reviewActivity?: {read: boolean, present: boolean, objected: boolean}}} [options] - `headSha` is cited in every finding; `waitExpired` says the settle loop hit its deadline; `reviewActivity` is what the pull request's own review surface showed, absent or `read: false` when it was never read
  * @returns {{violations: object[], states: Record<string, string>, conditions: Record<string, string>, descriptions: Record<string, string>, checked: number}} Findings, per-check state and condition, the description each verdict was read from, and how many were examined
  */
 export function evaluateReviewGate(declaration, checks, options = {}) {
@@ -1877,6 +2049,7 @@ export function evaluateReviewGate(declaration, checks, options = {}) {
             state: found.state,
             description: found.description,
             waitExpired: options.waitExpired === true,
+            reviewActivity: options.reviewActivity,
           },
       vocabulary
     );
@@ -2122,6 +2295,28 @@ function carriedSuffix(carried) {
  *   pull requests this one CARRIES
  * @returns {{verdict: string, conclusion: string, title: string}} What to publish
  */
+/**
+ * The lead sentence for an unsatisfied verdict, keyed on WHAT was observed.
+ *
+ * Three leads because the three conditions hand an operator three different
+ * facts, and the title is the one surface a merge decision reads. Split out of
+ * {@link reviewGateVerdict} so each lead is one expression rather than a nested
+ * ternary nobody can read.
+ *
+ * @param {{allUndetermined: boolean, allObjected: boolean, unsatisfied: readonly string[], quote: (name: string) => string}} reading - The classification and how to name each check
+ * @returns {string} The lead sentence, without the carried/waive-rate suffix
+ */
+function unsatisfiedTitle(reading) {
+  const named = reading.unsatisfied.map(reading.quote).join("; ");
+  if (reading.allUndetermined) {
+    return `UNDETERMINED — the gate stopped waiting before review evidence settled, and is NOT reporting that nobody reviewed: ${named}. RE-RUN this job; do not investigate the change on the strength of this`;
+  }
+  if (reading.allObjected) {
+    return `OBJECTED — a review HAPPENED on this pull request and objected to it; this is NOT an unreviewed pull request and no waiver covers it: ${named}. READ THE OBJECTION`;
+  }
+  return `UNREVIEWED — review evidence unsatisfied: ${named}`;
+}
+
 export function reviewGateVerdict(reading = {}) {
   const states = reading.states ?? {};
   const conditions = reading.conditions ?? {};
@@ -2179,13 +2374,23 @@ export function reviewGateVerdict(reading = {}) {
     const allUndetermined = unsatisfied.every(
       name => conditions[name] === REVIEW_GATE_CONDITIONS.undetermined
     );
+    // AND THE SAME MISTAKE ONE ROW DOWN (#3706). `objected` is the one
+    // unsatisfying condition where a review DID happen, and this title called
+    // it UNREVIEWED — the word an operator quotes into a merge disclosure. It
+    // is the more expensive direction of the two: `undetermined` sends someone
+    // to audit a change nobody had a finding about, while UNREVIEWED-on-an-
+    // objection tells them no finding exists while one sits on the pull
+    // request. Only when EVERY unsatisfied check objected, so a real silence
+    // alongside an objection still leads with UNREVIEWED.
+    const allObjected = unsatisfied.every(
+      name => conditions[name] === REVIEW_GATE_CONDITIONS.objected
+    );
     return {
       verdict: REVIEW_GATE_STATES.unsatisfied,
       conclusion: REVIEW_VERDICT_CONCLUSIONS.unsatisfied,
       title: fitTitle(
-        allUndetermined
-          ? `UNDETERMINED — the gate stopped waiting before review evidence settled, and is NOT reporting that nobody reviewed: ${unsatisfied.map(quote).join("; ")}. RE-RUN this job; do not investigate the change on the strength of this${suffix}`
-          : `UNREVIEWED — review evidence unsatisfied: ${unsatisfied.map(quote).join("; ")}${suffix}`
+        unsatisfiedTitle({ allUndetermined, allObjected, unsatisfied, quote }) +
+          suffix
       ),
     };
   }
@@ -2194,11 +2399,24 @@ export function reviewGateVerdict(reading = {}) {
     name => states[name] === REVIEW_GATE_STATES.waived
   );
   if (waived.length > 0) {
+    // AND THE TITLE IS WHERE THE CLAIM IS READ (#3706). "This pull request is
+    // UNREVIEWED" is the sentence an operator quotes into a merge disclosure,
+    // and it was printed unconditionally — measured false on 7 of the last 34
+    // waived merges here, every one of which carried review activity at the
+    // head. Severity does not move: both leads publish `neutral`, and the
+    // waiver's rationale is untouched. Only the claim changes, and only when
+    // EVERY waived check saw review activity, so one genuinely silent check
+    // alongside a reviewed one still leads with UNREVIEWED.
+    const allWithReview = waived.every(
+      name => conditions[name] === REVIEW_GATE_CONDITIONS.waivedWithReview
+    );
     return {
       verdict: REVIEW_GATE_STATES.waived,
       conclusion: REVIEW_VERDICT_CONCLUSIONS.waived,
       title: fitTitle(
-        `WAIVED — this pull request is UNREVIEWED and merging it is a decision taken on that basis: ${waived.map(quote).join("; ")}${suffix}`
+        allWithReview
+          ? `WAIVED — the review check could not review, and merging is a decision taken on that basis; but this pull request DOES carry review activity that raised no objection, so do NOT record it as unreviewed: ${waived.map(quote).join("; ")}${suffix}`
+          : `WAIVED — this pull request is UNREVIEWED and merging it is a decision taken on that basis: ${waived.map(quote).join("; ")}${suffix}`
       ),
     };
   }
@@ -2230,6 +2448,81 @@ export function reviewGateVerdict(reading = {}) {
     conclusion: REVIEW_VERDICT_CONCLUSIONS.satisfied,
     title: fitTitle(`REVIEWED — ${names.map(quote).join("; ")}${suffix}`),
   };
+}
+
+/**
+ * The one call that answers "did a review actually happen on this pull request?"
+ *
+ * Everything else this file reads is a CHECK — a conclusion and a description
+ * posted by a vendor about itself. This reads the pull request's own review
+ * surface, which is the only place the answer exists and the one place
+ * `gh pr checks` cannot reach: measured on a pull request in this repository,
+ * `gh pr checks` printed 42 pass / 1 fail / 5 skipping and said nothing about a
+ * blocking `CHANGES_REQUESTED` or an unresolved thread, both of which block a
+ * merge here.
+ *
+ * `first: 50` on the threads because only `isResolved` is read and only whether
+ * ANY is false matters; a pull request with more than fifty threads is already
+ * blocked by the first unresolved one in the page.
+ */
+const REVIEW_ACTIVITY_QUERY = [
+  "query($owner: String!, $name: String!, $number: Int!) {",
+  "  repository(owner: $owner, name: $name) {",
+  "    pullRequest(number: $number) {",
+  "      reviewDecision",
+  "      reviews(first: 1) { totalCount }",
+  "      reviewThreads(first: 50) { totalCount nodes { isResolved } }",
+  "    }",
+  "  }",
+  "}",
+].join("\n");
+
+/**
+ * Reads what the pull request's own review surface shows, or nothing.
+ *
+ * BEST-EFFORT AND NEVER FATAL, in the direction that costs a waiver its
+ * corroboration rather than a pull request its merge: a failed read returns
+ * {@link UNREAD_REVIEW_ACTIVITY}, which {@link waivedReviewGateState} renders
+ * as a waiver that says it was not corroborated. Throwing here would convert a
+ * transient GitHub error into a red review gate on a pull request nobody has
+ * any finding about, on 85% of pull requests here — the "gate that reddens
+ * every pull request and then gets deleted" failure this file names twice.
+ *
+ * probe-direction: fail-closed — a failed read cannot produce
+ * `{read: true, present: false}`, which is the only value that grants an
+ * uncorroborated waiver its silence. It produces `read: false` instead, and the
+ * verdict published then says out loud that nothing corroborated the waiver. No
+ * outcome is quieter for the failure than it would have been for a real read.
+ *
+ * @param {string|number} pr - Pull request number
+ * @param {string} [repo] - `OWNER/NAME`; defaults to the current repository
+ * @returns {{read: boolean, present: boolean, objected: boolean}} What the review surface showed, and whether it was read at all
+ */
+export function fetchReviewActivity(pr, repo) {
+  const slug = resolveRepoSlug(repo);
+  if (slug === undefined) return UNREAD_REVIEW_ACTIVITY;
+  const [owner, name] = slug.split("/");
+  try {
+    const raw = boundedExecFileSync(
+      "gh",
+      [
+        "api",
+        "graphql",
+        "-f",
+        `query=${REVIEW_ACTIVITY_QUERY}`,
+        "-F",
+        `owner=${owner}`,
+        "-F",
+        `name=${name}`,
+        "-F",
+        `number=${pr}`,
+      ],
+      { encoding: "utf8" }
+    );
+    return reviewActivityFrom(JSON.parse(raw)?.data?.repository?.pullRequest);
+  } catch {
+    return UNREAD_REVIEW_ACTIVITY;
+  }
 }
 
 /**
@@ -3205,7 +3498,7 @@ function readSecondsFlag(argv, name, fallback) {
  *
  * @param {ReadonlyArray<string>} argv - CLI arguments
  * @param {object} declaration - The per-repo declaration
- * @param {{trustRequiredContexts?: boolean, env?: NodeJS.ProcessEnv, fetch?: Function, probeBranch?: Function, now?: Function, sleep?: Function, headSha?: Function}} [options] -
+ * @param {{trustRequiredContexts?: boolean, env?: NodeJS.ProcessEnv, fetch?: Function, probeBranch?: Function, now?: Function, sleep?: Function, headSha?: Function, reviewActivity?: Function}} [options] -
  *   Injection seams for the suite
  * @returns {{pr: string|undefined, prSource: string|null, headSha: string|undefined, checked: number, violations: object[], settled: boolean, refusal: {kind: string, reason: string}|null}|undefined} The inspection
  */
@@ -3288,14 +3581,31 @@ export function inspectVacuity(argv, declaration, options = {}) {
   // block. Its findings are what make a waiver visible, and a waiver that is
   // only computed when somebody opted in would be invisible on exactly the
   // repositories that have not opted in yet.
-  const gate = evaluateReviewGate(declaration, read.checks, {
+  const gateOptions = {
     headSha: read.headSha,
     // The settle loop exits on one of two things: everything declared reached a
     // terminal read, or the deadline passed. So `settled === false` IS "the
     // wait expired", and it is the only place that fact exists — every reader
     // downstream sees a check row that looks identical either way (#3716).
     waitExpired: read.settled === false,
-  });
+  };
+  // TWO PASSES, AND THE SECOND IS PAID FOR ONLY BY A WAIVER (#3706). The review
+  // surface is read exactly when a waiver is on the table, which is the only
+  // condition whose verdict it can change: `satisfied`, `absent`, `pending`,
+  // `unrecognised` and `undetermined` all reach the same answer without it, and
+  // making them pay a network call would put a new failure mode on paths that
+  // work. Same shape, and the same reason, as the waive-rate sample below.
+  const gate = Object.values(
+    evaluateReviewGate(declaration, read.checks, gateOptions).states
+  ).includes(REVIEW_GATE_STATES.waived)
+    ? evaluateReviewGate(declaration, read.checks, {
+        ...gateOptions,
+        reviewActivity: (options.reviewActivity ?? fetchReviewActivity)(
+          pr,
+          repo
+        ),
+      })
+    : evaluateReviewGate(declaration, read.checks, gateOptions);
   // #3658. Everything above judged ONE commit — this pull request's head — and
   // that is the one commit a batch integration pull request does not speak for.
   // Armed by the same flag as the gate itself, because this IS the gate,

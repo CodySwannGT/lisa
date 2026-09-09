@@ -90,6 +90,35 @@
 # seven pull requests (#3632, #3633, #3634, #3636, #3637, #3647 and the release
 # they shipped in) merged unreviewed under a green pair of checks.
 #
+# AND A WAIVER MAY NOT COVER A REVIEW THAT HAPPENED (#3706). Everything above
+# classifies the review check from its `state` and its `description`, and the
+# description is NOT a function of whether a review happened. Measured on
+# CodySwannGT/lisa#3762: `success`, description `Review rate limited`, and the
+# vendor HAD reviewed — it posted `CHANGES_REQUESTED` and found a real defect.
+# The identical string appears on pull requests nothing read, so one string
+# carried two opposite facts and the waiver collapsed them PERMISSIVELY: the one
+# condition this gate exists to let through to a human was the condition it
+# merged. Re-measured on the repository that ships this, 2026-09-06, over the
+# last 40 merged pull requests: 34 reported `Review rate limited`, and 7 of those
+# 34 carried review activity at the head while the published verdict said "this
+# pull request is UNREVIEWED".
+#
+# So the waiver is now CONDITIONAL ON THE ABSENCE OF REVIEW. When a waiver is on
+# the table — and only then, so no other path pays a network call — the guard
+# reads the pull request's own review surface, `reviewDecision` and
+# `reviewThreads`, which is the only surface that answers the question and the
+# one `gh pr checks` cannot see at all. An objection there is `unsatisfied`,
+# never waived. Review activity without an objection stays WAIVED at unchanged
+# severity and merely stops asserting that nobody reviewed. A surface that
+# cannot be read stays WAIVED too, and says the waiver is uncorroborated —
+# refusing there would convert a transient API error into a red gate on a pull
+# request nobody has a finding about.
+#
+# `reviewDecision` rather than the reviews' own states, deliberately: GitHub
+# already computes the latest state per reviewer there, so a DISMISSED objection
+# is not resurrected. Recomputing it here would manufacture the false red
+# tracked on #3720 while closing the false green tracked here.
+#
 # AND A PULL REQUEST SPEAKS FOR ONE COMMIT ONLY (#3658). Everything above judges
 # this pull request's HEAD, which is the one commit a batch integration pull
 # request does not speak for: its head carries the MERGES of every constituent
