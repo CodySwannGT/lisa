@@ -1233,9 +1233,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-to-tracker/SKILL.md":
       "863904e013f61508aff5a519697d2fa0e646690729214f5adcb585a86cd7043a",
     "plugins/src/base/skills/lisa-linear-validate-issue/SKILL.md":
-      "f62fac584ff34e81595e73bf6ed1157a6015277b267f5bbc06b2ff8ec55c8965",
+      "872c1aefc894e6bf52c67b4ce3f9e23371a44f659fa737f54a058c4b950f6deb",
     "plugins/src/base/skills/lisa-linear-verify/SKILL.md":
-      "b9f5ece85cfa8347c42d9827111b96896cc052ab9a349fad8436e0e93ca7878e",
+      "d42dba675264dee9c9580073e610ffda8c752f037316bdcb3ee8c49d0c296075",
     "plugins/src/base/skills/lisa-linear-write-issue/SKILL.md":
       "f017c4ba6185f3e08bc8451683f9b2220cf68465af83e5cc5b0426983232c195",
     "plugins/src/base/skills/lisa-linear-write-prd/SKILL.md":

@@ -72,13 +72,21 @@ If the caller passes only an identifier, fetch the item via `lisa-linear-access 
 ## Standalone use, against an item that already exists
 
 This is a supported entry point, not only an internal step of a caller flow.
-Point it at a live issue and it fetches and validates the stored state:
+Point it at a live item and it fetches and validates the stored state. Both
+tracker shapes are accepted, because the fetch step above already resolves
+either one — an Issue by identifier, and a Project by URL or slug:
 
 ```text
 Skill(lisa-linear-validate-issue) with ENG-1234
+Skill(lisa-linear-validate-issue) with https://linear.app/<workspace>/project/<slug>
+Skill(lisa-linear-validate-issue) with <slug>
 ```
 
-Use it whenever the issue reached the tracker by some path other than
+A Project takes the `get-project` path and is classified by S15 from its
+project-member issues, exactly as an Issue is classified from its sub-issues.
+Nothing about the gate set changes with the shape; only the fetch does.
+
+Use it whenever the item reached the tracker by some path other than
 `lisa-linear-write-issue` — a team's own script, a workflow step, a cron, anything holding the
 credentials but no skill runtime. Those paths get neither the pre-write nor the
 post-write gate, and their own read-back substitutes for neither: a read-back
