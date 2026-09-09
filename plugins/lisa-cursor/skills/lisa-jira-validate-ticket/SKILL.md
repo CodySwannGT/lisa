@@ -68,6 +68,25 @@ prd_source: "https://notion.so/..."    # set when the ticket was generated from 
 
 If the caller passes only a ticket key, fetch the ticket via `lisa-atlassian-access` `operation: read-ticket key: <KEY>`, derive the same fields from the fetched data — including `runtime_behavior_change` (derived from the `Target Backend Environment` declaration per `derived-branch-plan`, and authoritative over any caller assertion), `build_ready` (label set contains the resolved `READY_ROLE` — merged `jira.workflow.ready`, default `status:ready` — never a hard-coded label) and `child_refs` (sub-tasks plus `is blocked by` parentage, resolved as in `lisa-jira-read-ticket`) so S15 can classify the ticket — then run gates.
 
+## Standalone use, against an item that already exists
+
+This is a supported entry point, not only an internal step of a caller flow.
+Point it at a live ticket and it fetches and validates the stored state:
+
+```text
+Skill(lisa-jira-validate-ticket) with PROJ-1234
+```
+
+Use it whenever the ticket reached the tracker by some path other than
+`lisa-jira-write-ticket` — a team's own script, a workflow step, a cron, anything holding the
+credentials but no skill runtime. Those paths get neither the pre-write nor the
+post-write gate, and their own read-back substitutes for neither: a read-back
+proves the tracker stored what was sent, never that what was sent was any good.
+
+The gate definitions live here on purpose, so every caller picks up a change
+automatically. Running this skill by hand is the same gate the write path runs,
+not an approximation of it.
+
 ## Gates
 
 Gates are grouped into **Specification** (spec-only checks, no JIRA lookups) and **Feasibility** (requires JIRA lookups). The dry-run path may opt to run Specification gates only; the write path runs both.

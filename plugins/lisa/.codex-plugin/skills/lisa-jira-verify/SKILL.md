@@ -28,3 +28,20 @@ Pass through `lisa-jira-validate-ticket`'s structured output unchanged. Do not s
 - This skill is read-only. It never edits the ticket, posts comments, or changes status.
 - If a gate fails, the recommendation is part of the validator's report; surface it as-is.
 - Validation Journey checks (S11) historically required a parser script (`parse-plan.py`); the parser logic now lives inside `lisa-jira-validate-ticket` so this skill no longer shells out to it.
+
+## Comparison is semantic, never byte-exact
+
+Re-run the validator against the live ticket. Do NOT compare the stored body
+against what was sent byte for byte.
+
+The reason is measured rather than theoretical. Trackers normalize markdown on
+write: `-` bullets become `*`, a bare URL is wrapped as `[url](<url>)`, bold
+emphasis is re-segmented around inline code spans. All lossless, all
+rendering-identical, and all of it makes a byte comparator report failure on a
+write that was completely fine. A comparator that cannot tell vendor
+normalization from corruption fails on healthy writes and trains its reader to
+ignore it, which costs more than the check was ever worth.
+
+Compare meaning: run `lisa-jira-validate-ticket` against the stored item and let the gates
+decide. Where a single field must be compared directly, normalize both sides
+first.
