@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.54.11](https://github.com/CodySwannGT/lisa/compare/v4.54.10...v4.54.11) (2026-09-09)
+
+
+### Bug Fixes
+
+* **mutation:** exclude every worktrees directory, not just one ([b585953](https://github.com/CodySwannGT/lisa/commit/b585953eb71a0b8455888001968dc4e3b81c67d5)), closes [CodySwannGT/lisa#4122](https://github.com/CodySwannGT/lisa/issues/4122)
+
 ### [4.54.10](https://github.com/CodySwannGT/lisa/compare/v4.54.9...v4.54.10) (2026-09-09)
 
 
