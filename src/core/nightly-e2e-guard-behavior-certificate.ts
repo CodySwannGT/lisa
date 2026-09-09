@@ -29,6 +29,14 @@ export const NIGHTLY_E2E_GUARD_BEHAVIOR_CERTIFICATES = Object.freeze({
         "git tag v2.353.0 package @codyswann/lisa@2.352.0 (typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs)",
       ]),
     }),
+  "52652b6a14c923bc0461be5a22962478852a2d2d3e8c8ca96ffd595b85df6255":
+    Object.freeze({
+      contractVersion: "1.9.0",
+      packageVersions: Object.freeze(["4.54.11"]),
+      provenances: Object.freeze([
+        "workspace package @codyswann/lisa@4.54.11 (typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs)",
+      ]),
+    }),
   "898ee0247806c7aa6e98328662d80bcff22ff067999298865462a58daef8bb22":
     Object.freeze({
       contractVersion: "1.8.0",
@@ -48,9 +56,9 @@ export const NIGHTLY_E2E_GUARD_BEHAVIOR_CERTIFICATES = Object.freeze({
   dfd2fef680de5ef03e63075e8a61c62ca4d95cdfdff6201939b79c748d3397f6:
     Object.freeze({
       contractVersion: "1.9.0",
-      packageVersions: Object.freeze(["4.54.11"]),
+      packageVersions: Object.freeze(["4.50.3"]),
       provenances: Object.freeze([
-        "workspace package @codyswann/lisa@4.54.11 (typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs)",
+        "git tag v4.50.3 package @codyswann/lisa@4.50.3 (typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs)",
       ]),
     }),
 });

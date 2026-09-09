@@ -2309,7 +2309,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-lisa-owned-hash-ledger.mjs":
       "987ed2f9cedefcb70778a6c6ad0f3fffd114fedc7e8bf62d6456b2d2e8e2de76",
     "scripts/generate-nightly-e2e-guard-certificate.mjs":
-      "d753c779ed67099639136b3dac658f329ff6cc6b7a009e6f018b29e48b3e8ff1",
+      "cfa441fced288d9e82d6b4a0a5e6c0d66b513f50b87751b879e8d2410a8054a3",
     "scripts/generate-two-channel-couplings.ts":
       "4393f6f30ae7292da20c68c2b097b96f93b0e364e2fec48f8b7c86827d444986",
     "scripts/generate-upstream-evidence-manifest.mjs":
@@ -2521,7 +2521,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/knip.json":
       "d557bfb64c8c23d9f03c173798aa1f176f5e28d395ad6667f855049d4b886db6",
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
-      "dfd2fef680de5ef03e63075e8a61c62ca4d95cdfdff6201939b79c748d3397f6",
+      "52652b6a14c923bc0461be5a22962478852a2d2d3e8c8ca96ffd595b85df6255",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
       "c03c19d3d4b29eac6d87e35d2612417ebbf36417f2c2bd3f8cd4611d143ff7f6",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -10310,6 +10310,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/mutation-performance-measure.test.ts": true,
     "tests/unit/scripts/mutation-performance-reporter.test.ts": true,
     "tests/unit/scripts/never-blocking-under-fail-on-vacuous.test.ts": true,
+    "tests/unit/scripts/nightly-e2e-fenced-waiver.test.ts": true,
     "tests/unit/scripts/nightly-e2e-guard-certificate.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-api.test.ts": true,
     "tests/unit/scripts/nightly-e2e-health-bypass-label.test.ts": true,

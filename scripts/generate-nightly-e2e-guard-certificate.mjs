@@ -61,6 +61,15 @@ export const RETAINED_RELEASES = Object.freeze([
   // under the same contract version, which is why retention is a ref list and
   // not a contract list.
   "v4.26.0",
+  // The 1.9.0 guard, as `@codyswann/lisa@4.50.3` published it. Retained in the
+  // same commit that moves the workspace guard, because that is the whole
+  // window: regeneration certifies the WORKSPACE bytes under the workspace
+  // package version, so a guard-changing commit replaces the outgoing row
+  // instead of adding beside it, and the release already installed in the field
+  // silently loses its certificate. That is exactly what commit 48c936bb9 did
+  // to the 50 releases from v4.22.13 through v4.26.0 (#3500), found only after
+  // the fact. Adding the ref here is what stops this change repeating it.
+  "v4.50.3",
 ]);
 
 const digest = bytes => createHash("sha256").update(bytes).digest("hex");
