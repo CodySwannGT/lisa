@@ -93,6 +93,25 @@ prd_source: "https://notion.so/..."    # set when the issue was generated from a
 
 If the caller passes only an issue ref, fetch via `gh issue view <number> --repo <org>/<repo> --json number,title,body,labels,state,milestone,assignees`, parse the body sections, derive the spec fields — including `runtime_behavior_change`, derived from the `## Target Backend Environment` declaration per `derived-branch-plan` and authoritative over any caller assertion — then run gates. The parser lives in `lisa-github-read-issue` (composition).
 
+## Standalone use, against an item that already exists
+
+This is a supported entry point, not only an internal step of a caller flow.
+Point it at a live issue and it fetches and validates the stored state:
+
+```text
+Skill(lisa-github-validate-issue) with owner/repo#1234
+```
+
+Use it whenever the issue reached the tracker by some path other than
+`lisa-github-write-issue` — a team's own script, a workflow step, a cron, anything holding the
+credentials but no skill runtime. Those paths get neither the pre-write nor the
+post-write gate, and their own read-back substitutes for neither: a read-back
+proves the tracker stored what was sent, never that what was sent was any good.
+
+The gate definitions live here on purpose, so every caller picks up a change
+automatically. Running this skill by hand is the same gate the write path runs,
+not an approximation of it.
+
 ## Gates
 
 Gates are grouped into **Specification** (spec-only checks, no GitHub lookups) and **Feasibility** (requires GitHub lookups). The dry-run path may opt to run Specification gates only via `--spec-only`; the write path runs both.

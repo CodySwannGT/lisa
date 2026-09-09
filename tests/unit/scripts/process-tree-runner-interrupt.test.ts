@@ -125,15 +125,43 @@ const CONTROL_SUPERVISOR = [
   `setInterval(() => {}, 1000);`,
 ].join("\n");
 
-/** A synchronous parent, exactly as the gate runner starts a supervisor. */
+/**
+ * A synchronous parent, exactly as the gate runner starts a supervisor.
+ *
+ * It takes the planted command as a FILE rather than as an argument, and that
+ * is load-bearing rather than tidy. Passed as an argument, the token sat in
+ * this parent's own `ps` line, so {@link plantRun}'s readiness check was
+ * satisfied by the parent alone — before it had reached `spawnSync`, measured
+ * at 12/12 attempts on a quiet box. The case then killed the parent, and on a
+ * box slow enough that the kill landed first, no supervisor was ever started
+ * and no tree ever planted: the CONTROL measured zero survivors and read it as
+ * "the machine reaped the orphans", which is the one thing it exists to
+ * distinguish from. Reading the command from a file keeps the token out of
+ * every process except the ones this file is actually measuring.
+ */
 const SYNC_PARENT = [
   `import { spawnSync } from "node:child_process";`,
-  `import { openSync } from "node:fs";`,
-  `const [supervisor, command, reportFile, ...extra] = process.argv.slice(2);`,
+  `import { openSync, readFileSync } from "node:fs";`,
+  `const [supervisor, commandFile, reportFile, ...extra] =`,
+  `  process.argv.slice(2);`,
+  `const command = readFileSync(commandFile, "utf8");`,
   `spawnSync(process.execPath, [supervisor, ...extra, command], {`,
   `  stdio: ["ignore", "ignore", openSync(reportFile, "a")],`,
   `});`,
 ].join("\n");
+
+/**
+ * Token-carrying processes that must exist before a planted run is ready.
+ *
+ * Two: the supervisor, which carries the command in its own argument list,
+ * and at least one descendant it started from that command. Linux shows three
+ * — supervisor, `/bin/sh`, and the node leaf — because the shell survives to
+ * wait on its child, while macOS shows two, the shell having exec'd into the
+ * leaf. Two is what both platforms are guaranteed to reach, and it is the
+ * smallest count that cannot be satisfied without a supervisor that has
+ * actually started AND actually spawned the command.
+ */
+const PLANTED_TREE_MINIMUM = 2;
 
 interface PlantedRun {
   readonly parentPid: number;
@@ -158,6 +186,8 @@ const plantRun = async (input: {
   writeFileSync(reportFile, "");
   const parentFile = path.join(root, "parent.mjs");
   writeFileSync(parentFile, SYNC_PARENT);
+  const commandFile = path.join(root, "command.txt");
+  writeFileSync(commandFile, plantedCommand(token));
 
   let supervisorFile = PROCESS_TREE_RUNNER;
   const extra = [...(input.extraArgs ?? [])];
@@ -171,14 +201,20 @@ const plantRun = async (input: {
 
   const parent = spawn(
     process.execPath,
-    [parentFile, supervisorFile, plantedCommand(token), reportFile, ...extra],
+    [parentFile, supervisorFile, commandFile, reportFile, ...extra],
     { stdio: "ignore" }
   );
   parent.unref();
   const parentPid = parent.pid ?? 0;
   expect(parentPid).toBeGreaterThan(1);
+  // The run is planted only once the supervisor AND a descendant of its own
+  // are running. Anything weaker lets a case proceed to kill the parent while
+  // the tree it means to measure does not yet exist, and every later count
+  // then reports a zero that was never about orphaning.
   expect(
-    await waitForProcessCondition(() => findTokenProcesses(token).length > 0)
+    await waitForProcessCondition(
+      () => findTokenProcesses(token).length >= PLANTED_TREE_MINIMUM
+    )
   ).toBe(true);
   return { parentPid, token, reportFile };
 };

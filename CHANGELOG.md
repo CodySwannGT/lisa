@@ -2,6 +2,103 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.54.13](https://github.com/CodySwannGT/lisa/compare/v4.54.12...v4.54.13) (2026-09-09)
+
+### [4.54.12](https://github.com/CodySwannGT/lisa/compare/v4.54.11...v4.54.12) (2026-09-09)
+
+
+### Bug Fixes
+
+* **gates:** refuse an awaited gate where nothing consumes the signal ([5e6d507](https://github.com/CodySwannGT/lisa/commit/5e6d50763784ebf18daf896222a8683d8f80accf)), closes [CodySwannGT/lisa#4046](https://github.com/CodySwannGT/lisa/issues/4046)
+* **nightly-e2e:** documentation of a waiver is not a waiver ([7855318](https://github.com/CodySwannGT/lisa/commit/7855318cb822a7a2b5618beeb75e04246a4ae2d5)), closes [CodySwannGT/lisa#3486](https://github.com/CodySwannGT/lisa/issues/3486)
+* **nightly-e2e:** retain v4.50.3 before this branch revokes it ([0fef8c6](https://github.com/CodySwannGT/lisa/commit/0fef8c6eb65c61215d6580022e2e1665c36de550)), closes [CodySwannGT/lisa#3500](https://github.com/CodySwannGT/lisa/issues/3500) [CodySwannGT/lisa#3486](https://github.com/CodySwannGT/lisa/issues/3486)
+
+### [4.54.11](https://github.com/CodySwannGT/lisa/compare/v4.54.10...v4.54.11) (2026-09-09)
+
+
+### Bug Fixes
+
+* **mutation:** exclude every worktrees directory, not just one ([b585953](https://github.com/CodySwannGT/lisa/commit/b585953eb71a0b8455888001968dc4e3b81c67d5)), closes [CodySwannGT/lisa#4122](https://github.com/CodySwannGT/lisa/issues/4122)
+
+### [4.54.10](https://github.com/CodySwannGT/lisa/compare/v4.54.9...v4.54.10) (2026-09-09)
+
+
+### Bug Fixes
+
+* **mutation:** stop Stryker walking .worktrees and exhausting the heap ([664a4a3](https://github.com/CodySwannGT/lisa/commit/664a4a39cc3fa906dd702699bb0fe3fc4f69a41d)), closes [CodySwannGT/lisa#4122](https://github.com/CodySwannGT/lisa/issues/4122)
+
+### [4.54.9](https://github.com/CodySwannGT/lisa/compare/v4.54.8...v4.54.9) (2026-09-09)
+
+
+### Bug Fixes
+
+* **secrets:** say a deadline killed the CLI, not that it is missing ([59f3bec](https://github.com/CodySwannGT/lisa/commit/59f3bec71b3fbef6f1cc2ec52bb8cdab7af8b123)), closes [CodySwannGT/lisa#4045](https://github.com/CodySwannGT/lisa/issues/4045)
+
+### [4.54.8](https://github.com/CodySwannGT/lisa/compare/v4.54.7...v4.54.8) (2026-09-09)
+
+
+### Bug Fixes
+
+* **hooks:** delete the managed-file guard's parity note, which went stale ([abc8e21](https://github.com/CodySwannGT/lisa/commit/abc8e21eeb6a737091947e3f41db72e1c26e517a)), closes [CodySwannGT/lisa#3750](https://github.com/CodySwannGT/lisa/issues/3750)
+
+### [4.54.7](https://github.com/CodySwannGT/lisa/compare/v4.54.6...v4.54.7) (2026-09-09)
+
+### [4.54.6](https://github.com/CodySwannGT/lisa/compare/v4.54.5...v4.54.6) (2026-09-09)
+
+
+### Bug Fixes
+
+* **ci:** stop a review waiver from covering a review that happened ([3e146d9](https://github.com/CodySwannGT/lisa/commit/3e146d9635ad4fc85227deb8936859affe8f978b)), closes [#3221](https://github.com/CodySwannGT/lisa/issues/3221) [#3706](https://github.com/CodySwannGT/lisa/issues/3706) [#3221](https://github.com/CodySwannGT/lisa/issues/3221) [CodySwannGT/lisa#3706](https://github.com/CodySwannGT/lisa/issues/3706)
+* **review-gate:** stop a truncated thread page from reading as "nobody objected" ([027c13c](https://github.com/CodySwannGT/lisa/commit/027c13ce54130f055f16b78780ba9c879d417a4c)), closes [CodySwannGT/lisa#3706](https://github.com/CodySwannGT/lisa/issues/3706)
+
+
+### Documentation
+
+* **skills:** state what a non-skill tracker write still owes ([3135734](https://github.com/CodySwannGT/lisa/commit/3135734118c85ee1c4e59cf63ee7e0063a30eb07)), closes [CodySwannGT/lisa#3663](https://github.com/CodySwannGT/lisa/issues/3663)
+
+### [4.54.5](https://github.com/CodySwannGT/lisa/compare/v4.54.4...v4.54.5) (2026-09-08)
+
+
+### Bug Fixes
+
+* **deps:** move js-yaml to the patched releases for GHSA-2883-xcg3-v3hh ([e613fd5](https://github.com/CodySwannGT/lisa/commit/e613fd55a9bd430d27bf102bba600142c2f412b2)), closes [CodySwannGT/lisa#4091](https://github.com/CodySwannGT/lisa/issues/4091)
+
+### [4.54.4](https://github.com/CodySwannGT/lisa/compare/v4.54.3...v4.54.4) (2026-09-08)
+
+
+### Bug Fixes
+
+* **skills:** confirm a merge conflict locally instead of trusting a cache ([1359f22](https://github.com/CodySwannGT/lisa/commit/1359f22b789e59eab7b36188a04dabb5c9c8412e)), closes [CodySwannGT/lisa#3694](https://github.com/CodySwannGT/lisa/issues/3694)
+
+### [4.54.3](https://github.com/CodySwannGT/lisa/compare/v4.54.2...v4.54.3) (2026-09-08)
+
+
+### Bug Fixes
+
+* **guard:** let the copy family name a filing file, and fence the readers ([49ccf9e](https://github.com/CodySwannGT/lisa/commit/49ccf9e5577f20d79e9a4d9e67c4bdb98b7c6911)), closes [#3484](https://github.com/CodySwannGT/lisa/issues/3484) [#3606](https://github.com/CodySwannGT/lisa/issues/3606) [CodySwannGT/lisa#3683](https://github.com/CodySwannGT/lisa/issues/3683)
+
+### [4.54.2](https://github.com/CodySwannGT/lisa/compare/v4.54.1...v4.54.2) (2026-09-08)
+
+
+### Bug Fixes
+
+* **wiki:** stop blocking a source note for describing a subject that moved ([323de53](https://github.com/CodySwannGT/lisa/commit/323de53285b0d113df82c6af99759e74908c0c67)), closes [CodySwannGT/lisa#3622](https://github.com/CodySwannGT/lisa/issues/3622)
+
+### [4.54.1](https://github.com/CodySwannGT/lisa/compare/v4.54.0...v4.54.1) (2026-09-08)
+
+## [4.54.0](https://github.com/CodySwannGT/lisa/compare/v4.53.7...v4.54.0) (2026-09-08)
+
+
+### Features
+
+* **apply:** let a consumer declare a reusable-workflow pin deliberate ([f8a3769](https://github.com/CodySwannGT/lisa/commit/f8a37698e02053557dcdea372b88adae469fc357)), closes [#3597](https://github.com/CodySwannGT/lisa/issues/3597) [CodySwannGT/lisa#3596](https://github.com/CodySwannGT/lisa/issues/3596)
+
+
+### Bug Fixes
+
+* **drive-pr:** stop sending a lane that cannot dismiss to re-request ([486708d](https://github.com/CodySwannGT/lisa/commit/486708db0470afa2e8340f3cc0817204694aa526)), closes [CodySwannGT/lisa#3587](https://github.com/CodySwannGT/lisa/issues/3587)
+* **linear:** read a pair's relations before writing one over them ([e42ced4](https://github.com/CodySwannGT/lisa/commit/e42ced4a9ad5e6828e5b25b3fc4391914fccb4ad)), closes [CodySwannGT/lisa#3605](https://github.com/CodySwannGT/lisa/issues/3605)
+
 ### [4.53.7](https://github.com/CodySwannGT/lisa/compare/v4.53.6...v4.53.7) (2026-09-08)
 
 

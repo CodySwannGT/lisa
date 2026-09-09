@@ -20,210 +20,31 @@
  *   - a REFUSAL, which is never memoised and never replayed.
  * @module tests/unit/hooks/guard-dedupe
  */
-import {
-  appendFileSync,
-  chmodSync,
-  copyFileSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import {
+  BLOCKED,
+  BYPASS,
+  DISPATCHER,
+  HARMLESS,
+  PLUGIN,
+  cleanupWorlds,
+  drainEvaluations,
+  installChannel,
+  makeWorld,
+  nextToolCall,
+  probeEnv,
+  run,
+  runPayload,
+} from "./support/guard-dedupe-world.js";
+import {
+  installAbsentStatShim,
+  installGnuStatShim,
+} from "./support/gnu-stat-shim.js";
 
-/** Absolute, so the interpreter is never resolved through a writeable PATH. */
-const BASH = "/bin/bash";
-
-const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
-
-/** The library under test, in the tree the ports are generated from. */
-const LIBRARY = path.join(
-  REPO_ROOT,
-  "plugins",
-  "src",
-  "base",
-  "hooks",
-  "guard-dedupe.bash"
-);
-
-/** Claude's refusal code. */
-const BLOCKED = 2;
-
-/** The library, as every channel names it beside its own guard. */
-const LIBRARY_NAME = "guard-dedupe.bash";
-
-/** Label the bounded spawn reports the probe under. */
-const PROBE_LABEL = "guard-dedupe probe";
-
-/** Channel names, which double as the identity each copy logs. */
-const DISPATCHER = "dispatcher";
-const PLUGIN = "plugin";
-
-/** A command no guard has an opinion about. */
-const HARMLESS = "ls -la";
-
-/** The bypass a guard exists to refuse. */
-const BYPASS = "git commit --no-verify";
-
-const temporaries: string[] = [];
-
-afterEach(() => {
-  for (const dir of temporaries.splice(0)) {
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-
-/** One channel's copy of a guard, and the identity it logs when it evaluates. */
-interface Channel {
-  readonly name: string;
-  readonly script: string;
-}
-
-/** A whole two-channel world: state, transcript, log, and the guard copies. */
-interface World {
-  readonly root: string;
-  readonly memoDir: string;
-  readonly transcript: string;
-  readonly log: string;
-}
-
-/**
- * A guard that logs every evaluation and then returns a fixed verdict.
- *
- * Deliberately a stand-in rather than one of the eight real guards: what is
- * under test is the dedupe contract, and a probe makes "did the body run" an
- * observation instead of an inference from timing. The preamble is copied
- * verbatim from what the real guards carry.
- * @param verdict - Status the guard body exits with
- * @param marker - Text that makes one channel's bytes differ from another's
- * @returns The script source
- */
-function probeSource(verdict: number, marker: string): string {
-  return `#!/usr/bin/env bash
-# ${marker}
-set -euo pipefail
-
-input="$(cat)"
-
-lisa_guard_hook_dir="\${BASH_SOURCE[0]%/*}"
-lisa_guard_dedupe_lib="$lisa_guard_hook_dir/guard-dedupe.bash"
-if [ -r "$lisa_guard_dedupe_lib" ]; then
-  . "$lisa_guard_dedupe_lib"
-  trap 'lisa_guard_dedupe_record $?' EXIT
-  lisa_guard_dedupe probe "$input"
-fi
-
-printf '%s\\n' "$LISA_PROBE_CHANNEL" >>"$LISA_PROBE_LOG"
-exit ${verdict}
-`;
-}
-
-/**
- * Build a world with the state directory, transcript, and evaluation log.
- * @returns The world
- */
-function makeWorld(): World {
-  const root = mkdtempSync(path.join(tmpdir(), "lisa-dedupe-"));
-  const memoDir = path.join(root, "memo");
-  const transcript = path.join(root, "transcript.jsonl");
-  const log = path.join(root, "evaluations.log");
-
-  temporaries.push(root);
-  mkdirSync(memoDir, { mode: 0o700 });
-  writeFileSync(transcript, "turn\n");
-  writeFileSync(log, "");
-  return { root, memoDir, transcript, log };
-}
-
-/**
- * Install one channel's copy of the probe guard beside its own library copy.
- *
- * A separate directory per channel because that is what makes two
- * registrations two channels: the dispatcher serves a repository or applied
- * tree, the plugin manifest serves a cache under the agent's config.
- * @param world - The world to install into
- * @param name - Channel name, also the directory name
- * @param verdict - Status the probe exits with
- * @param marker - Text that makes this copy's bytes differ, or the shared one
- * @returns The installed channel
- */
-function installChannel(
-  world: World,
-  name: string,
-  verdict = 0,
-  marker = "shared"
-): Channel {
-  const dir = path.join(world.root, name);
-  const script = path.join(dir, "probe.sh");
-
-  mkdirSync(dir, { recursive: true });
-  copyFileSync(LIBRARY, path.join(dir, LIBRARY_NAME));
-  writeFileSync(script, probeSource(verdict, marker));
-  chmodSync(script, 0o755);
-  return { name, script };
-}
-
-/**
- * Run one channel's guard against a payload.
- * @param world - The world the run happens in
- * @param channel - The channel serving the guard
- * @param command - The Bash command the payload proposes
- * @param sessionId - Session the payload belongs to
- * @returns The guard's exit status
- */
-function run(
-  world: World,
-  channel: Channel,
-  command: string,
-  sessionId = "session-a"
-): number | null {
-  const result = boundedSpawnSync({
-    label: PROBE_LABEL,
-    command: BASH,
-    args: [channel.script],
-    input: JSON.stringify({
-      session_id: sessionId,
-      transcript_path: world.transcript,
-      tool_name: "Bash",
-      tool_input: { command },
-    }),
-    cwd: world.root,
-    env: {
-      ...process.env,
-      LISA_GUARD_MEMO_DIR: world.memoDir,
-      LISA_PROBE_CHANNEL: channel.name,
-      LISA_PROBE_LOG: world.log,
-    },
-  });
-
-  return result.status;
-}
-
-/**
- * Every evaluation logged so far, and clear the log.
- * @param world - The world to read
- * @returns Channel names, in the order they evaluated
- */
-function drainEvaluations(world: World): string[] {
-  const lines = readFileSync(world.log, "utf-8").split("\n").filter(Boolean);
-
-  writeFileSync(world.log, "");
-  return lines;
-}
-
-/**
- * Advance the transcript, which is what makes the next call a different one.
- * @param world - The world to advance
- */
-function nextToolCall(world: World): void {
-  appendFileSync(world.transcript, "another turn\n");
-}
+afterEach(cleanupWorlds);
 
 describe("a guard registered on both channels", () => {
   it("evaluates once per tool call once both channels are known", () => {
@@ -314,6 +135,57 @@ describe("a guard registered on both channels", () => {
     run(world, plugin, HARMLESS, "session-b");
     expect(drainEvaluations(world)).toEqual([DISPATCHER, PLUGIN]);
   });
+
+  it("deduplicates where `stat` spells the transcript size the other way", () => {
+    // The platform arm the macOS spelling was written for. Read through a
+    // command that FAILS, the discriminator carried the machine's free-space
+    // figure instead of the transcript's size, so no two channels ever agreed
+    // and the memo never hit on any Linux host — with every rejection control
+    // below still green, because each of those asserts a miss.
+    const world = makeWorld();
+
+    installGnuStatShim(world.binDir, path.join(world.root, "stat-calls"));
+
+    const dispatcher = installChannel(world, DISPATCHER);
+    const plugin = installChannel(world, PLUGIN);
+
+    run(world, dispatcher, HARMLESS);
+    run(world, plugin, HARMLESS);
+    nextToolCall(world);
+    drainEvaluations(world);
+
+    run(world, dispatcher, HARMLESS);
+    run(world, plugin, HARMLESS);
+    expect(drainEvaluations(world)).toEqual([DISPATCHER]);
+  });
+
+  it("refuses to memoise when no `stat` can size the transcript", () => {
+    // Condition 2 — NO DISCRIMINATOR MEANS NO MEMO — on a host carrying
+    // neither spelling. Green before this repair as well as after, and kept
+    // for what it now holds down rather than for what it caught: the old
+    // spelling got this right only as a side effect of `pipefail`, because the
+    // last command in the digest pipeline happened to be the failing `stat`.
+    // The repaired code reads the size BEFORE the pipeline, so nothing fails
+    // inside it and that accident is gone. Drop the digit check that replaced
+    // it and the key silently becomes payload-only, which is a memo a command
+    // reissued later in the session can replay against a tree that has since
+    // changed.
+    const world = makeWorld();
+
+    installAbsentStatShim(world.binDir);
+
+    const dispatcher = installChannel(world, DISPATCHER);
+    const plugin = installChannel(world, PLUGIN);
+
+    run(world, dispatcher, HARMLESS);
+    run(world, plugin, HARMLESS);
+    nextToolCall(world);
+    drainEvaluations(world);
+
+    run(world, dispatcher, HARMLESS);
+    run(world, plugin, HARMLESS);
+    expect(drainEvaluations(world)).toEqual([DISPATCHER, PLUGIN]);
+  });
 });
 
 describe("what the memo refuses to deduplicate", () => {
@@ -384,19 +256,7 @@ describe("what the memo refuses to deduplicate", () => {
     });
 
     for (const channel of [dispatcher, plugin, dispatcher, plugin]) {
-      boundedSpawnSync({
-        label: PROBE_LABEL,
-        command: BASH,
-        args: [channel.script],
-        input: payload,
-        cwd: world.root,
-        env: {
-          ...process.env,
-          LISA_GUARD_MEMO_DIR: world.memoDir,
-          LISA_PROBE_CHANNEL: channel.name,
-          LISA_PROBE_LOG: world.log,
-        },
-      });
+      runPayload(world, channel, payload);
     }
 
     expect(drainEvaluations(world)).toHaveLength(4);
@@ -413,25 +273,17 @@ describe("what the memo refuses to deduplicate", () => {
     drainEvaluations(world);
 
     for (const channel of [dispatcher, plugin]) {
-      boundedSpawnSync({
-        label: PROBE_LABEL,
-        command: BASH,
-        args: [channel.script],
-        input: JSON.stringify({
+      runPayload(
+        world,
+        channel,
+        JSON.stringify({
           session_id: "session-a",
           transcript_path: world.transcript,
           tool_name: "Bash",
           tool_input: { command: HARMLESS },
         }),
-        cwd: world.root,
-        env: {
-          ...process.env,
-          LISA_GUARD_MEMO_DIR: world.memoDir,
-          LISA_GUARD_DEDUPE_DISABLE: "1",
-          LISA_PROBE_CHANNEL: channel.name,
-          LISA_PROBE_LOG: world.log,
-        },
-      });
+        { ...probeEnv(world, channel), LISA_GUARD_DEDUPE_DISABLE: "1" }
+      );
     }
 
     expect(drainEvaluations(world)).toEqual([DISPATCHER, PLUGIN]);

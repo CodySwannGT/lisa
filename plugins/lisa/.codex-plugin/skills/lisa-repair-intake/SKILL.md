@@ -354,6 +354,28 @@ a PR that cannot merge or a deploy that failed — it just churns.
      ticket, and record it. The existing "Build `blocked` → unblock if cleared" path resumes this item on
      a later cycle once the fix ticket is terminal — a self-healing loop. Skip the resume steps below.
 
+     **On Linear, READ the pair's existing relations before writing that link.** Reported measured
+     twice: `issueRelationCreate` on a pair that already carries a `related` edge appears to CONVERT
+     that edge rather than add a second one — the outgoing count did not grow — and the undo is not
+     what it looks like, because deleting the new relation removes the link entirely instead of
+     restoring the original. Full reversal is delete **plus re-create with the original type**
+     (CodySwannGT/lisa#3605).
+
+     So: fetch the pair's relations first. If any edge already exists between the two items, do
+     **not** write — record the item under the run's escalations naming the existing edge and its
+     type, and leave both alone. A fix ticket freshly filed by this same pass has no prior edge by
+     construction, which is the ordinary case and stays a single write.
+
+     This matters here more than anywhere else Lisa writes a relation: this pass runs unattended on a
+     schedule, and `max_candidates` defaults to 100, so a converting write is not one lost edge but
+     up to a hundred — none of them logged, because nothing read the prior state.
+
+     **Marked UNVERIFIED, deliberately.** The conversion was observed against the raw GraphQL
+     mutation, and confirming it on Lisa's own path means writing a relation to a live Linear
+     workspace. That has not been done and must not be done to close this. The read costs one call
+     and is correct whether or not the semantics are what they appear to be — which is the whole
+     reason it is safe to adopt without settling the question.
+
 If the PR is healthy in-flight and no blocker is found, the work simply died mid-flight — run the **same per-item sequence
 the vendor build-intake runs**, skipping the claim transition (the item is already `claimed`):
 
@@ -480,13 +502,15 @@ branch — operate on it the same way.
     not a verdict. Write nothing, file nothing, leave the item `claimed`, and record it as
     `not_determined` in the run summary so a later cycle re-asks.
 
-  `gh pr update-branch` (step 3) reporting a conflict it cannot apply also counts as CONFLICTED —
-  that is a merge actually attempted, not a cached answer. A merely `BEHIND` branch is **not** here —
-  it was re-synced in step 3.
+  A `gh pr update-branch` (step 3) that reported a conflict it cannot apply also counts as
+  CONFLICTED — that is a merge actually attempted, not a cached answer. A merely `BEHIND` branch is
+  **not** here — it was re-synced in step 3.
 
   **Filing on a cached field is the expensive direction here.** In a fix-mode loop a false
-  CONFLICTED wastes a resolve; in this scanner it files a blocker against a pull request that has
-  nothing wrong with it, and unattended intake will keep doing that without anyone noticing.
+  CONFLICTED wastes a resolve, which a human sees; in this scanner it files a
+  BLOCKER against a pull request that has nothing wrong with it, unattended — so the wrong answer
+  becomes durable tracker state that a later cycle reads as fact, and intake will keep doing that
+  without anyone noticing. Verify before filing, never after.
 - **Failing required checks** — `statusCheckRollup` has a `FAILURE`/`ERROR`/`TIMED_OUT` conclusion,
   or `mergeStateStatus = UNSTABLE`/`BLOCKED` due to checks.
 - **Change requests outstanding** — `reviewDecision = CHANGES_REQUESTED`, or unresolved CodeRabbit

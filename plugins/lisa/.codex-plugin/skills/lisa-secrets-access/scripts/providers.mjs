@@ -13,6 +13,8 @@ import { listBootstrapFiles, readBootstrapFile } from "./bootstrap-store.mjs";
 
 import {
   boundedChildOutput,
+  isChildTimeout,
+  SETUP_OPERATION_BUDGET_MS,
   rethrowIfChildTimeout,
 } from "../../lisa-setup-workstation/scripts/bounded-child.mjs";
 
@@ -393,7 +395,12 @@ export function fetchRaw(cfg) {
   }
 
   if (cfg.provider === "bitwarden") {
-    const raw = run("bws", ["secret", "list", "--output", "json"], env);
+    const raw = run(
+      "bws",
+      ["secret", "list", "--output", "json"],
+      env,
+      "reading secrets from Bitwarden"
+    );
     return JSON.parse(raw || "[]").map(s => ({
       key: s.key,
       value: s.value,
@@ -407,7 +414,7 @@ export function fetchRaw(cfg) {
 
   if (cfg.provider === "doppler") {
     const args = ["secrets", "download", "--no-file", "--format", "json"];
-    const raw = run("doppler", args, env);
+    const raw = run("doppler", args, env, "reading secrets from Doppler");
     return Object.entries(JSON.parse(raw || "{}")).map(([key, value]) => ({
       key,
       value: String(value),
@@ -429,12 +436,84 @@ export function fetchRaw(cfg) {
  * @param {NodeJS.ProcessEnv} env Environment for the child.
  * @returns {string} Captured stdout.
  */
-function run(bin, args, env) {
-  return boundedChildOutput(bin, args, {
-    encoding: "utf8",
-    env,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+function run(bin, args, env, operation = "talking to the secrets provider") {
+  try {
+    return boundedChildOutput(bin, args, {
+      encoding: "utf8",
+      env,
+      stdio: ["ignore", "pipe", "pipe"],
+      // THE OPERATION BUDGET, not the probe budget (#4045). Passing none fell
+      // back to `CHILD_BUDGET_MS`, which its own docstring calls "a hang
+      // detector, not a performance budget" — while the sibling budget's
+      // docstring names "secret-provider calls" explicitly. A round trip to a
+      // hosted vault over someone's network is neither a hang nor a local
+      // probe, and this is the one function every Bitwarden and Doppler call
+      // in the tree passes through.
+      timeout: PROVIDER_BUDGET_MS,
+    });
+  } catch (error) {
+    const timedOut = describeProviderTimeout(bin, operation, error);
+    // Rethrow UNCHANGED when it is not a timeout. Relabelling every failure as
+    // a deadline would be this defect with the sign flipped: a genuinely
+    // missing binary would then read as a slow one.
+    if (timedOut === null) throw error;
+    throw new Error(timedOut);
+  }
+}
+
+/**
+ * The deadline a provider CLI call is given.
+ *
+ * `SETUP_OPERATION_BUDGET_MS` rather than `CHILD_BUDGET_MS`, because
+ * `bounded-child.mjs` documents that budget as covering "downloads, package
+ * installation, secret-provider calls, or a project-declared hook", and the
+ * probe budget as a hang detector. Re-exported under a local name so the value
+ * a message quotes and the value the call enforces cannot drift apart.
+ */
+export const PROVIDER_BUDGET_MS = SETUP_OPERATION_BUDGET_MS;
+
+/**
+ * An operator-readable account of a provider CLI killed at its deadline.
+ *
+ * ## What the old message did
+ *
+ * The entire operator-facing output was `spawnSync bws ETIMEDOUT` — a binary
+ * name and an errno, which is the exact shape Node produces for `ENOENT`.
+ * MEASURED: every reader concluded the binary was missing or broken. In the
+ * reported session `bws 2.1.0` was installed and answering in 365–725 ms, a
+ * direct `bws secret list` succeeded moments later, and the operator was one
+ * step from routing live work to `blocked` over a working credential path.
+ *
+ * ## What this says instead, and why each part is there
+ *
+ * The operation, so the reader knows what was in flight. That the CLI RAN, in
+ * as many words, because that is the belief being corrected. The deadline and
+ * whose it is — an operator needs both: the number tells them whether a retry
+ * is plausible, and "Lisa's" tells them the vault reported nothing at all. A
+ * next step, because a message at a gate that a non-technical operator cannot
+ * act on is not finished.
+ *
+ * Returns null for anything that is not a killed child, so the caller rethrows
+ * the original untouched.
+ * @param {string} bin The provider executable that was run.
+ * @param {string} operation What the call was doing, in operator words.
+ * @param {unknown} error The caught value.
+ * @returns {string|null} The message, or null when this is not a timeout.
+ */
+export function describeProviderTimeout(bin, operation, error) {
+  if (!isChildTimeout(error)) return null;
+  const seconds = Math.round(PROVIDER_BUDGET_MS / 1000);
+  return (
+    `${operation}: the \`${bin}\` CLI ran for ${seconds}s and Lisa stopped it ` +
+    `at its own deadline. This is NOT a missing or broken \`${bin}\` — the ` +
+    `binary was found and started, which is what separates this from the ` +
+    `similar-looking "spawnSync ${bin} ENOENT" you get when it is absent. The ` +
+    `deadline is Lisa's, so the provider reported nothing either way: no ` +
+    `secret was read, and nothing says your vault is unreachable. Most often ` +
+    `this is transient network latency — retry the command, and if it keeps ` +
+    `hitting the deadline check that \`${bin}\` answers on its own before ` +
+    `concluding the credential path is unavailable.`
+  );
 }
 
 /**
@@ -621,7 +700,12 @@ export function writeSecret(cfg, id, value) {
   const env = providerEnv(cfg);
 
   if (cfg.provider === "bitwarden") {
-    run("bws", ["secret", "edit", id, "--value", value], env);
+    run(
+      "bws",
+      ["secret", "edit", id, "--value", value],
+      env,
+      "updating a secret in Bitwarden"
+    );
     return;
   }
   throw new Error(
@@ -687,7 +771,12 @@ export function removeCoordinationRecord(cfg, id) {
   const env = providerEnv(cfg);
 
   if (cfg.provider === "bitwarden") {
-    run("bws", ["secret", "delete", id, "--output", "none"], env);
+    run(
+      "bws",
+      ["secret", "delete", id, "--output", "none"],
+      env,
+      "deleting a secret in Bitwarden"
+    );
     return;
   }
   throw new Error(

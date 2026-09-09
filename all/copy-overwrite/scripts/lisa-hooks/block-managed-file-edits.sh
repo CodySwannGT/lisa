@@ -73,35 +73,57 @@
 # propagate any further either — a path a followed script merely NAMES is data
 # one file further out, not a third hop.
 #
-# ## Parity: every surface runs this guard, and Codex runs it twice over
+# ## Every agent surface reaches this guard, and Codex reaches it twice over
 #
-# This header carried a gap note through two wordings, and BOTH were wrong by
-# the time anyone read them. The first named three surfaces; two of those ports
-# shipped and the note stayed unedited. The second named Codex alone, and Codex
-# had never been the gap either — the note and the check that read it were both
-# looking in `src/codex/scripts/`, and `src/codex/hooks-installer.ts` says in
-# its own opening remark that the linked-script layout that directory serves is
-# RETIRED (CodySwannGT/lisa#3750).
+# There is no parity gap left to record. A note here used to record one, and it
+# was wrong by the time anyone read it — through two wordings. The first named
+# three surfaces; every one of those ports then shipped and the note stayed
+# unedited. The second named Codex alone, and Codex had never been the gap
+# either: the note and the check that read it were both looking in
+# `src/codex/scripts/`, and `src/codex/hooks-installer.ts` says in its own
+# opening remark that the linked-script layout that directory serves is RETIRED
+# (CodySwannGT/lisa#3750).
 #
-# What actually reaches Codex, measured rather than inferred — see
-# `tests/unit/codex/block-managed-file-edits-codex.test.ts`, which drives the
-# registered command as a subprocess in a synthetic host project:
+# The note is deleted rather than trimmed, because a stale gap note is worse
+# than none: it OVERSTATES the gap, and a reader who trusts it goes looking for
+# three missing ports, finds two present, and cannot tell which third is real
+# without redoing the measurement from scratch. AGENTS.md asks for a gap to be
+# documented instead of silently dropped — that only works while the document
+# is true.
+#
+# The deeper lesson is not "the note was stale". It is that a note asserting
+# ABSENCE and a check deriving presence from ONE path shape agree with each
+# other for free — the check read the same retired directory the note did, so
+# it returned a clean tick on a claim that was false.
+#
+# Where each surface picks it up, so the next reader measures instead of
+# guessing: Claude and Copilot from `.claude-plugin/plugin.json`, Cursor from
+# `hooks/hooks.json`, Antigravity from `hooks.json` via the `.agy.sh` adapter
+# beside this file, OpenCode from
+# `src/opencode/plugin-templates/lisa-block-managed-file-edits.ts`, and Codex
+# from TWO channels rather than one:
+#
+#   `plugins/lisa/.codex-plugin/hooks.json` registers this guard directly, on
+#   the Codex plugin channel.
 #
 #   `scripts/lisa-enforcement-fallback.sh` names this guard in its roster, and
 #   `src/codex/enforcement-fallback-installer.ts` registers that dispatcher on
-#   `PreToolUse` for `Bash|Edit|Write|apply_patch`. A Codex `apply_patch` or
-#   `Bash` redirect at a copy-overwrite template exits 2; an ordinary edit to a
-#   host-owned file exits 0.
+#   `PreToolUse` for `Bash|Edit|Write|apply_patch` — which is how Codex's
+#   `apply_patch` writes are reached at all.
 #
-#   `plugins/lisa/.codex-plugin/hooks.json` registers this guard a second time,
-#   directly, on the Codex plugin channel.
+# Both Codex channels are measured rather than inferred — see
+# `tests/unit/codex/block-managed-file-edits-codex.test.ts`, which drives the
+# registered command as a subprocess in a synthetic host project: a Codex
+# `apply_patch` or `Bash` redirect at a copy-overwrite template exits 2; an
+# ordinary edit to a host-owned file exits 0.
 #
-# The lesson is not "the note was stale". It is that a note asserting ABSENCE
-# and a check deriving presence from ONE path shape agree with each other for
-# free — the check read the same retired directory the note did, so it returned
-# a clean tick on a claim that was false. `check:guard-parity-notes` now
-# resolves Codex from those two registration channels as well, and it refuses
-# this paragraph if anyone writes the absence back in.
+# Two checks hold this paragraph to the tree.
+# `tests/unit/hooks/managed-file-guard-parity-note.test.ts` fails if it goes
+# stale in either direction — a port that ships without the note being
+# narrowed, and a port REMOVED without it being restored.
+# `check:guard-parity-notes` refuses an absence claim written back in, and now
+# resolves Codex from those two registration channels as well as from a path
+# shape, so it can no longer agree with a false note for free.
 #
 # Exemptions (allowed):
 #   - `LISA_ALLOW_MANAGED_FILE_WRITE` set — the operator's explicit override,

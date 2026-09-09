@@ -54,9 +54,9 @@
 # COST ON THE PATH THAT GETS NO BENEFIT. A host with one channel must not pay
 # for a mechanism it cannot use. The channel check is builtins only — one small
 # file read, no subshell, no fork — and returns before the digest is computed
-# unless a second channel has actually been seen. The digest, one command
-# substitution, is reached only where a second channel is live, which is exactly
-# where it is repaid.
+# unless a second channel has actually been seen. The digest, and the one `stat`
+# that feeds it the per-call discriminator, are reached only where a second
+# channel is live, which is exactly where they are repaid.
 
 # Key this guard would memoise under, once computed. Empty means "record
 # nothing on exit".
@@ -251,6 +251,32 @@ lisa_guard_dedupe() {
 
   lisa_guard_memo_resolve_digest || return 0
 
+  # The transcript's size, captured and VALIDATED before it can reach the
+  # digest, because a `stat` that rejects the other platform's spelling can
+  # still write to stdout on its way out. GNU `stat -f '%z' FILE` reads `-f` as
+  # `--file-system` and the format string as a FILE that does not exist: it
+  # exits non-zero AND prints a filesystem status block for the real operand,
+  # whose `Free` and `Available` counts move under any disk activity. Appended
+  # straight into the digest, that made the two channels of ONE tool call
+  # compute different keys, so the memo could only ever miss — the whole
+  # mechanism switched off on every Linux host, while the three "must not
+  # dedupe" controls stayed green because they assert a miss.
+  #
+  # Only an all-digits answer is accepted, and no size means NO MEMO rather
+  # than a memo with nothing separating one call from the next: that is
+  # condition 2 above, which the `A || B` spelling had left unenforced on a
+  # host carrying neither `stat`.
+  local transcript_size=""
+  transcript_size="$(stat -c '%s' "$transcript" 2>/dev/null)" ||
+    transcript_size=""
+  case "$transcript_size" in
+    "" | *[!0-9]*)
+      transcript_size="$(stat -f '%z' "$transcript" 2>/dev/null)" ||
+        transcript_size=""
+      ;;
+  esac
+  case "$transcript_size" in "" | *[!0-9]*) return 0 ;; esac
+
   # One command substitution, covering everything the verdict depends on: the
   # guard's own bytes, this library's bytes, the payload, and which call it is.
   local key=""
@@ -258,8 +284,7 @@ lisa_guard_dedupe() {
     {
       cat "$self_script" "${BASH_SOURCE[0]}" 2>/dev/null
       printf '\n%s\n' "$payload"
-      stat -f '%z' "$transcript" 2>/dev/null ||
-        stat -c '%s' "$transcript" 2>/dev/null
+      printf '%s\n' "$transcript_size"
     } | if [ "$lisa_guard_memo_digest_tool" = "shasum" ]; then
       shasum -a 256 2>/dev/null
     else
