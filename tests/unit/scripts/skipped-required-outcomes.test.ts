@@ -85,7 +85,9 @@ interface GuardModule {
     declaration: Record<string, unknown>,
     results: Record<string, { result?: string }>,
     names: Record<string, string>
-  ): Pick<Inspection, "examined" | "notExamined" | "violations">;
+  ): Pick<Inspection, "examined" | "notExamined" | "violations"> & {
+    prefix: { prefix: string | null; source: string };
+  };
   inspectOutcomes(
     argv: readonly string[],
     declaration: Record<string, unknown>,
@@ -272,6 +274,74 @@ describe("check-skipped-required-checks, the outcome arm", () => {
       expect(mod.producesContext("Lint", "🔍 Quality Checks / Slow Lint")).toBe(
         false
       );
+    });
+
+    it("does NOT judge a context another workflow posts, name match or not", () => {
+      // The collision CodeRabbit raised on this change, and the one that would
+      // put this guard back in the business of false greens: the trailing
+      // segment is the local job's name, the prefix says the check belongs to a
+      // workflow this run cannot see, and reporting the local result for it
+      // claims a check nobody here read. It is NOT EXAMINED, and its skipped
+      // local twin is still caught under the prefix this run does own.
+      const foreign = "🌙 Nightly E2E Health / 🧹 Lint";
+      const result = mod.evaluateRequiredOutcomes(
+        { required_contexts: [LINT, BDD, foreign] },
+        needs({ lint: "skipped", bdd_coverage: "success" }),
+        NAMES
+      );
+      expect(result.notExamined).toEqual([foreign]);
+      expect(result.examined.map(entry => entry.context)).toEqual([LINT, BDD]);
+      expect(result.violations.map(violation => violation.token)).toEqual([
+        LINT,
+      ]);
+      expect(result.prefix.prefix).toBe("🔍 Quality Checks");
+    });
+
+    it("judges nothing when no prefix has a majority, rather than coin-tossing", () => {
+      // One context each: nothing evidences which workflow this run is, so
+      // neither is attributed. Coverage lost, and reported as lost.
+      const result = mod.evaluateRequiredOutcomes(
+        {
+          required_contexts: ["A / 🧹 Lint", "B / 🐢 Slow Lint Rules"],
+        },
+        needs({ lint: "skipped", lint_slow: "skipped" }),
+        NAMES
+      );
+      expect(result.examined).toEqual([]);
+      expect(result.violations).toEqual([]);
+      expect(result.notExamined).toEqual([
+        "A / 🧹 Lint",
+        "B / 🐢 Slow Lint Rules",
+      ]);
+      expect(result.prefix.prefix).toBeNull();
+      expect(result.prefix.source).toContain("not evidenced");
+    });
+
+    it("takes a DECLARED prefix over any inference", () => {
+      // The escape from the inference: a repository that states its caller job
+      // name gets exact ownership, and a majority of foreign contexts cannot
+      // out-vote it.
+      const result = mod.evaluateRequiredOutcomes(
+        {
+          ruleset: { context_prefix: "🔍 Quality Checks" },
+          required_contexts: [
+            LINT,
+            "🌙 Other / 🐢 Slow Lint Rules",
+            "🌙 Other / 🧾 BDD Behavior Contract",
+          ],
+        },
+        needs({
+          lint: "skipped",
+          lint_slow: "success",
+          bdd_coverage: "success",
+        }),
+        NAMES
+      );
+      expect(result.examined.map(entry => entry.context)).toEqual([LINT]);
+      expect(result.violations.map(violation => violation.kind)).toEqual([
+        mod.VIOLATIONS.requiredSkipped,
+      ]);
+      expect(result.prefix.source).toContain("declared");
     });
 
     it("REFUSES a context two jobs could both post instead of guessing", () => {

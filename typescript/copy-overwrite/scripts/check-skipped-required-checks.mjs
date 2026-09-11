@@ -78,12 +78,18 @@
  *    their results from `toJSON(needs)`. Reading check runs through the API
  *    would need `checks: read`, which callers do not grant and a called
  *    workflow cannot request — and #3599's reduction to offline arms holds.
- *  - **Names on the ` / ` boundary.** `needs` carries results but no names, so
- *    the workflow carries a job id → display name map beside it (a test
- *    derives it from the jobs). A job in a called workflow posts
- *    `<caller job> / <job name>`, and the CALLER's job name is not visible from
- *    inside, so a context matches a job by equality or by a suffix bounded at
- *    ` / ` — see {@link producesContext}.
+ *  - **Names on the ` / ` boundary, and a prefix that says whose they are.**
+ *    `needs` carries results but no names, so the workflow carries a job id →
+ *    display name map beside it (a test derives it from the jobs). A job in a
+ *    called workflow posts `<caller job> / <job name>`, and the CALLER's job
+ *    name is not visible from inside, so a context matches a job by equality or
+ *    by a suffix bounded at ` / ` — see {@link producesContext}. A NAME MATCH IS
+ *    NOT OWNERSHIP: `Some Other Workflow / 🧹 Lint` matches the local `🧹 Lint`
+ *    while being posted by a workflow this run cannot see, and reporting the
+ *    local result for it would be a false green. So a context is judged only
+ *    under the ONE prefix this run posts — declared as
+ *    `ruleset.context_prefix`, else inferred by majority — and every other
+ *    prefix is reported NOT EXAMINED. See {@link owningPrefix}.
  *  - **Only at `pull-request`.** Other moments skip most jobs by design and gate
  *    no merge; see {@link MERGE_GATE_MOMENT}.
  *  - **Only what this run posts.** An external app, another workflow, or a
@@ -4095,12 +4101,86 @@ export const OUTCOME_REFUSALS = Object.freeze({
  * `Slow Lint`. Two job names that could both match one context are refused as
  * ambiguous by {@link evaluateRequiredOutcomes} rather than resolved by guessing.
  *
+ * NAME MATCHING ALONE IS NOT OWNERSHIP, and this function is deliberately only
+ * half the rule — see {@link owningPrefix}. `Some Other Workflow / 🧹 Lint`
+ * satisfies this test against the local `🧹 Lint` job while being posted by a
+ * workflow this run cannot see, and reporting the local result for it is a
+ * FALSE GREEN of exactly the kind this file exists to refuse.
+ *
  * @param {string} jobName - The job's display name
  * @param {string} context - A required context, verbatim
- * @returns {boolean} True when the job posts that context
+ * @returns {boolean} True when the job's NAME matches that context
  */
 export function producesContext(jobName, context) {
   return context === jobName || context.endsWith(` / ${jobName}`);
+}
+
+/**
+ * The prefix of a context matched by name, or `""` for an unprefixed match.
+ *
+ * @param {string} context - A required context
+ * @param {string} jobName - The job name that matched it
+ * @returns {string} The caller-job prefix the context carries
+ */
+function prefixOf(context, jobName) {
+  return context === jobName
+    ? ""
+    : context.slice(0, context.length - jobName.length - " / ".length);
+}
+
+/**
+ * Which caller-job prefix this run OWNS, and how that was decided.
+ *
+ * The problem it solves: every context this run posts carries one prefix — the
+ * caller's job name — and a context carrying any OTHER prefix belongs to a
+ * workflow this run cannot see, even when its trailing segment happens to equal
+ * a local job name. Matching on the name alone would report a local job's result
+ * for somebody else's check.
+ *
+ * Two ways to know the prefix, in order:
+ *
+ *  1. **Declared.** `ruleset.context_prefix` in the per-repo declaration, when
+ *     present, is the caller's job name as transcribed by whoever transcribed
+ *     the contexts. Exact, and nothing is inferred.
+ *  2. **Inferred, by majority.** This workflow posts a context for every gate —
+ *     dozens — while another workflow contributes one or two. So the prefix
+ *     accounting for the MOST required contexts is this run's. A tie is not
+ *     resolved: with no majority there is no evidence, and every matched context
+ *     is reported NOT EXAMINED rather than attributed by coin-toss.
+ *
+ * The failure direction is what makes the inference acceptable: a context whose
+ * prefix is not the chosen one is never examined and never claimed, so being
+ * wrong costs coverage that is reported as missing — never a green over a check
+ * nobody read.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {ReadonlyArray<{context: string, prefix: string}>} matches - Name matches
+ * @returns {{prefix: string|null, source: string}} The owning prefix, and why
+ */
+export function owningPrefix(declaration, matches) {
+  const declared = declaration.ruleset?.context_prefix;
+  if (typeof declared === "string" && declared.trim() !== "") {
+    return { prefix: declared, source: "declared in `ruleset.context_prefix`" };
+  }
+  const counts = new Map();
+  for (const { prefix } of matches) {
+    counts.set(prefix, (counts.get(prefix) ?? 0) + 1);
+  }
+  if (counts.size === 0) return { prefix: null, source: "no context matched" };
+  const ranked = [...counts.entries()].sort(
+    (left, right) => right[1] - left[1]
+  );
+  const [[prefix, top]] = ranked;
+  if (ranked.length > 1 && ranked[1][1] === top) {
+    return {
+      prefix: null,
+      source: `two prefixes match ${top} context(s) each, so which one this run posts is not evidenced`,
+    };
+  }
+  return {
+    prefix,
+    source: `inferred from ${top} of ${matches.length} matched context(s)`,
+  };
 }
 
 /**
@@ -4112,19 +4192,34 @@ export function producesContext(jobName, context) {
  * @param {object} declaration - The per-repo declaration
  * @param {Record<string, {result?: string}>} results - `toJSON(needs)`, parsed
  * @param {Record<string, string>} names - Job id → display name
- * @returns {{examined: {context: string, job: string, result: string}[], notExamined: string[], violations: object[]}} What was judged, what could not be seen, and the findings
+ * @returns {{examined: {context: string, job: string, result: string}[], notExamined: string[], violations: object[], prefix: {prefix: string|null, source: string}}} What was judged, what could not be seen, the findings, and whose contexts it judged
  */
 export function evaluateRequiredOutcomes(declaration, results, names) {
   const required = Array.isArray(declaration.required_contexts)
     ? declaration.required_contexts
     : [];
+  // TWO PASSES, and the first one is the ownership rule. A name match says a
+  // context COULD be this job's; only the prefix says it IS. See `owningPrefix`.
+  const matched = required.flatMap(context => {
+    const jobs = Object.keys(names).filter(job =>
+      producesContext(names[job], context)
+    );
+    return jobs.length === 0
+      ? []
+      : [{ context, jobs, prefix: prefixOf(context, names[jobs[0]]) }];
+  });
+  const prefix = owningPrefix(declaration, matched);
+  const owned = new Map(
+    matched
+      .filter(match => prefix.prefix !== null && match.prefix === prefix.prefix)
+      .map(match => [match.context, match.jobs])
+  );
+
   const examined = [];
   const notExamined = [];
   const violations = [];
   for (const context of required) {
-    const jobs = Object.keys(names).filter(job =>
-      producesContext(names[job], context)
-    );
+    const jobs = owned.get(context) ?? [];
     if (jobs.length === 0) {
       notExamined.push(context);
       continue;
@@ -4143,7 +4238,7 @@ export function evaluateRequiredOutcomes(declaration, results, names) {
     examined.push({ context, job, result });
     violations.push(...outcomeViolations(context, job, result));
   }
-  return { examined, notExamined, violations };
+  return { examined, notExamined, violations, prefix };
 }
 
 /**
@@ -4265,7 +4360,7 @@ export function inspectOutcomes(argv, declaration, options = {}) {
       ? null
       : {
           kind: OUTCOME_REFUSALS.examinedNothing,
-          reason: `Not one of the ${evaluated.notExamined.length} context(s) in \`required_contexts\` is posted by a job in this run, so no outcome was examined, and a guard that examined nothing must not render like one that found nothing. Either the snapshot names no context this workflow posts — transcribe the real ruleset — or the contexts were renamed; names are matched byte for byte, on the \` / \` boundary.`,
+          reason: `Not one of the ${evaluated.notExamined.length} context(s) in \`required_contexts\` was judged, so no outcome was examined, and a guard that examined nothing must not render like one that found nothing. Either no context this workflow posts is in the snapshot — transcribe the real ruleset — or the contexts were renamed, or this run does not own their prefix (${evaluated.prefix.source}). Names are matched byte for byte on the \` / \` boundary, and a context is judged only under the prefix this run posts; \`ruleset.context_prefix\` states that prefix outright.`,
         };
   return { ...base, ...evaluated, refusal };
 }
@@ -4755,10 +4850,14 @@ function appendExaminedOutcomes(lines, outcomes) {
   if (outcomes.examined.length === 0) return;
   const count = outcomes.examined.length;
   const findings = outcomes.violations.length;
+  const owned =
+    outcomes.prefix?.prefix === undefined || outcomes.prefix?.prefix === null
+      ? ""
+      : ` Contexts judged are those this run posts, under the prefix ${JSON.stringify(outcomes.prefix.prefix)} (${outcomes.prefix.source}); any other prefix belongs to a workflow this run cannot see.`;
   lines.push(
     findings === 0
-      ? `✅ ${count} ruleset-required context(s) examined against this run's job results; none was skipped.`
-      : `❌ ${count} ruleset-required context(s) examined against this run's job results; ${findings} did not prove it ran (see the violations below).`,
+      ? `✅ ${count} ruleset-required context(s) examined against this run's job results; none was skipped.${owned}`
+      : `❌ ${count} ruleset-required context(s) examined against this run's job results; ${findings} did not prove it ran (see the violations below).${owned}`,
     "",
     ...outcomes.examined.map(
       ({ context, job, result }) =>
@@ -4778,7 +4877,7 @@ function appendExaminedOutcomes(lines, outcomes) {
 function appendUnexaminedContexts(lines, notExamined) {
   if (notExamined.length === 0) return;
   lines.push(
-    `Not examined — ${notExamined.length} required context(s) no job in this workflow run posts: an external app, another workflow, or a matrix leg named at runtime. GitHub records their outcomes; this run cannot see them and makes no claim about them.`,
+    `Not examined — ${notExamined.length} required context(s) this run does not post: an external app, another workflow (including one whose job name matches a local one but whose prefix says it is not this run's), or a matrix leg named at runtime. GitHub records their outcomes; this run cannot see them and makes no claim about them.`,
     "",
     ...notExamined.map(context => `- \`${context}\``),
     ""
