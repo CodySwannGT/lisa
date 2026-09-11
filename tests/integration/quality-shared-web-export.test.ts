@@ -7,7 +7,10 @@ import { jobOf, loadWorkflow } from "../helpers/workflow-test-utils.js";
 const quality = loadWorkflow(".github/workflows/quality.yml");
 const zap = loadWorkflow(".github/workflows/zap-baseline-expo.yml");
 const producer = jobOf(quality, "performance_budget").steps ?? [];
-const consumer = Object.values(zap.jobs).flatMap(job => job.steps ?? []);
+const consumer =
+  Object.values(zap.jobs).find(job =>
+    job.steps?.some(step => step.id === "shared_export")
+  )?.steps ?? [];
 
 describe("shared quality web export", () => {
   it("is opt-in for both workflows", () => {

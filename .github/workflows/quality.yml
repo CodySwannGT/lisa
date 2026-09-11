@@ -724,6 +724,7 @@ jobs:
     name: 🗺️ Gate Preallocation Plan
     runs-on: ubuntu-latest
     outputs:
+      legs_result: ${{ steps.legs.outcome }}
       legs: ${{ steps.legs.outputs.legs }}
       count: ${{ steps.legs.outputs.count }}
       plan: ${{ steps.plan.outputs.plan }}
@@ -809,7 +810,7 @@ jobs:
     # error, not an empty job set. `result == 'success'` is the honest reading
     # of a planner that failed — it could not say which legs exist, so this
     # cannot run them, and the red planner above is what the operator sees.
-    if: ${{ always() && !cancelled() && ((inputs.combine_planning_checks && needs.gate_plan.result == 'success' && needs.gate_plan.outputs.count != '0') || (!inputs.combine_planning_checks && needs.gate_legs.result == 'success' && needs.gate_legs.outputs.count != '0')) }}
+    if: ${{ always() && !cancelled() && ((inputs.combine_planning_checks && needs.gate_plan.outputs.legs_result == 'success' && needs.gate_plan.outputs.count != '0') || (!inputs.combine_planning_checks && needs.gate_legs.result == 'success' && needs.gate_legs.outputs.count != '0')) }}
     strategy:
       # One failing gate must not cancel the others. An operator fixing a red
       # pull request needs every verdict from one run, not one per attempt.
@@ -861,7 +862,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies && (matrix.action == 'run' && matrix.install)
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📥 Install dependencies
@@ -1067,7 +1068,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📥 Install dependencies
@@ -1320,7 +1321,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📥 Install dependencies
@@ -1475,7 +1476,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
@@ -1684,7 +1685,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies && (steps.gates_declared.outputs.declared == 'true')
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
@@ -1966,7 +1967,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies && (steps.check_script.outputs.exists == 'true' || steps.gate.outputs.configured == 'true')
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
@@ -2201,7 +2202,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies && (steps.gate.outputs.configured == 'true')
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
@@ -2427,7 +2428,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies && (steps.gate.outputs.configured == 'true')
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
@@ -2863,7 +2864,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
@@ -3282,7 +3283,7 @@ jobs:
       # for no install — the cost profile the previous ordering was written for.
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies && (steps.check_script.outputs.exists == 'true' || steps.gate.outputs.configured == 'true')
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
@@ -3511,7 +3512,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
@@ -3927,7 +3928,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
@@ -4079,7 +4080,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
@@ -4305,7 +4306,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
@@ -4703,7 +4704,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
@@ -5189,7 +5190,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
@@ -5455,7 +5456,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
@@ -5631,7 +5632,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
@@ -5793,7 +5794,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
@@ -5955,7 +5956,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
@@ -6126,7 +6127,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
@@ -6285,7 +6286,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
@@ -6628,7 +6629,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies && (steps.gate.outputs.configured == 'true')
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
@@ -6746,7 +6747,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies
@@ -7382,7 +7383,7 @@ jobs:
 
       - name: 💾 Restore package downloads
         if: inputs.cache_dependencies && (steps.gate.outputs.configured == 'false' && (steps.check_snyk.outputs.has_token == 'true'))
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v5
         with: *package_download_cache
 
       - name: 📦 Install dependencies

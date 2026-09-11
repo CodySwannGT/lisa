@@ -11,12 +11,14 @@ const workflow = loadWorkflow(".github/workflows/quality.yml");
  * @param combine Whether planning checks share a runner.
  * @param selectedResult The selected planner result.
  * @param count How many gates were planned.
+ * @param combinedResult Aggregate result, which may include a compatibility failure.
  * @returns Whether the gate matrix runs.
  */
 function runsGates(
   combine: boolean,
   selectedResult: string,
-  count = "1"
+  count = "1",
+  combinedResult = selectedResult
 ): boolean {
   const condition =
     jobOf(workflow, "declared_gates").if?.replace(/^\$\{\{|\}\}$/gu, "") ??
@@ -25,8 +27,8 @@ function runsGates(
     inputs: { combine_planning_checks: combine },
     needs: {
       gate_plan: {
-        result: combine ? selectedResult : "success",
-        outputs: { count },
+        result: combine ? combinedResult : "success",
+        outputs: { count, legs_result: selectedResult },
       },
       gate_legs: {
         result: combine ? "skipped" : selectedResult,
@@ -80,6 +82,14 @@ describe("combined quality planning", () => {
       expect(runsGates(combine, "skipped")).toBe(false);
     }
   );
+
+  it("still runs valid gate plans when compatibility failed", () => {
+    expect(jobOf(workflow, "gate_plan").outputs?.legs_result).toBe(
+      "${{ steps.legs.outcome }}"
+    );
+    expect(runsGates(true, "success", "1", "failure")).toBe(true);
+    expect(runsGates(true, "failure", "1", "failure")).toBe(false);
+  });
 
   it("retains individually named gates and their required/optional/off executor", () => {
     expect(jobOf(workflow, "declared_gates").name).toBe("${{ matrix.label }}");

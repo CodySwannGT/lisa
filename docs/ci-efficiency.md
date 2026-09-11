@@ -18,6 +18,11 @@ the quality caller. Use this only when both checks should scan the same export
 configuration. A performance gate that is off publishes nothing, so ZAP builds
 its own export.
 
+Only the identity job publishes the package download cache. Other jobs restore
+it and still install normally, avoiding competing archive-and-save attempts on
+a cache miss. Combining planning keeps a compatibility failure visible while
+allowing successfully planned gate jobs to report their own results.
+
 New TypeScript CI callers group revisions of one PR together and cancel the
 superseded revision. Other events use the run identifier, so separate manual
 requests cannot evict one another from a pending concurrency slot. Stateful

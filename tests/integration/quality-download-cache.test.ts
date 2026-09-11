@@ -1,14 +1,35 @@
 /** Caching must reuse downloads without bypassing installation or gate policy. */
 import { describe, expect, it } from "vitest";
 
-import { loadWorkflow } from "../helpers/workflow-test-utils.js";
+import { jobOf, loadWorkflow } from "../helpers/workflow-test-utils.js";
 
 const workflow = loadWorkflow(".github/workflows/quality.yml");
+const savingCacheAction = "actions/cache@v5";
 const installingJobs = Object.entries(workflow.jobs).filter(([, job]) =>
   job.steps?.some(step => step.name?.includes("Install dependencies"))
 );
 
 describe("quality package download caching", () => {
+  it("covers dependency installs and has one unconditional cache publisher", () => {
+    expect(installingJobs.length).toBeGreaterThan(0);
+    expect(jobOf(workflow, "lisa_identity").if).toBeUndefined();
+    const publishers = installingJobs.filter(([, job]) =>
+      job.steps?.some(
+        step =>
+          step.name === "💾 Restore package downloads" &&
+          step.uses === savingCacheAction
+      )
+    );
+    expect(publishers.map(([id]) => id)).toEqual(["lisa_identity"]);
+  });
+
+  it("still saves build outputs when build caching is enabled", () => {
+    const buildCache = Object.values(workflow.jobs)
+      .flatMap(job => job.steps ?? [])
+      .find(step => step.id === "build_cache");
+    expect(buildCache?.uses).toBe(savingCacheAction);
+  });
+
   it("has an explicit opt-out", () => {
     expect(
       workflow.on?.workflow_call?.inputs?.cache_dependencies
@@ -20,7 +41,7 @@ describe("quality package download caching", () => {
 
   it.each(installingJobs)(
     "%s still installs after restoring downloads",
-    (_, job) => {
+    (id, job) => {
       const steps = job.steps ?? [];
       const installIndex = steps.findIndex(step =>
         step.name?.includes("Install dependencies")
@@ -29,7 +50,9 @@ describe("quality package download caching", () => {
       const cache = steps[installIndex - 1];
       if (!install || !cache)
         throw new Error("Install or preceding cache step is missing");
-      expect(cache.uses).toBe("actions/cache@v5");
+      expect(cache.uses).toBe(
+        id === "lisa_identity" ? savingCacheAction : "actions/cache/restore@v5"
+      );
       expect(cache.if).toBe(
         install.if
           ? `inputs.cache_dependencies && (${install.if})`
