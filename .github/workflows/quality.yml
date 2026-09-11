@@ -4278,7 +4278,8 @@ jobs:
           retention-days: 1
           if-no-files-found: ignore
 
-  # Rationale: docs/quality-workflow-notes.md#note-9
+  # DELIBERATELY NOT A GATE: projects cannot skip validation of their own gate
+  # declarations. Rationale: docs/quality-workflow-notes.md#note-9
   gate_config_validity:
     permissions:
       contents: read
