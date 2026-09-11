@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.1](https://github.com/CodySwannGT/lisa/compare/v4.55.0...v4.55.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **ci:** fit workflow limits and refresh a vulnerable floor ([bb45dfe](https://github.com/CodySwannGT/lisa/commit/bb45dfebf923a145090c263b85ad07501571dd0d)), closes [CodySwannGT/lisa#4134](https://github.com/CodySwannGT/lisa/issues/4134) [CodySwannGT/lisa#4134](https://github.com/CodySwannGT/lisa/issues/4134)
+* **ci:** preserve gate reporting and existing build cache writes ([249946e](https://github.com/CodySwannGT/lisa/commit/249946e7a1c0faf415587924e15122d159ae6e8c)), closes [CodySwannGT/lisa#4134](https://github.com/CodySwannGT/lisa/issues/4134) [CodySwannGT/lisa#4134](https://github.com/CodySwannGT/lisa/issues/4134)
+* **ci:** retire the reference moved into workflow documentation ([0b59193](https://github.com/CodySwannGT/lisa/commit/0b59193268fbea586c27e205a375a65755328399)), closes [CodySwannGT/lisa#4134](https://github.com/CodySwannGT/lisa/issues/4134) [CodySwannGT/lisa#4134](https://github.com/CodySwannGT/lisa/issues/4134)
+* **deps:** patch the TOML parser blocking CI delivery ([e569f1e](https://github.com/CodySwannGT/lisa/commit/e569f1e3380577375e79abce32ec4bb5df78ccee)), closes [CodySwannGT/lisa#4134](https://github.com/CodySwannGT/lisa/issues/4134) [CodySwannGT/lisa#4134](https://github.com/CodySwannGT/lisa/issues/4134)
+
+
+### Performance Improvements
+
+* **ci:** reduce redundant workflow work ([08eef75](https://github.com/CodySwannGT/lisa/commit/08eef7539944a0612996bbcb2f3e1ed212c27285)), closes [CodySwannGT/lisa#4134](https://github.com/CodySwannGT/lisa/issues/4134) [CodySwannGT/lisa#4134](https://github.com/CodySwannGT/lisa/issues/4134)
+
+
+### Documentation
+
+* **ci:** retain the config validator source warning ([11f88f0](https://github.com/CodySwannGT/lisa/commit/11f88f08978e37feb00778cdb8a5b1491a04907a)), closes [CodySwannGT/lisa#4134](https://github.com/CodySwannGT/lisa/issues/4134) [CodySwannGT/lisa#4134](https://github.com/CodySwannGT/lisa/issues/4134)
+
 ## [4.55.0](https://github.com/CodySwannGT/lisa/compare/v4.54.13...v4.55.0) (2026-09-09)
 
 
