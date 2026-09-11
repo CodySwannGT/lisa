@@ -188,17 +188,33 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v6
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Check if app config changed
         id: check_changes
+        env:
+          PUSH_BEFORE: ${{ github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
-          if git diff --name-only HEAD^ HEAD | grep -qE "^(app\.config\.ts|app\.json|eas\.json)$"; then
-            echo "app_config_changed=true" >> $GITHUB_OUTPUT
-            echo "app config (app.config.ts / app.json / eas.json) has been modified"
+          set -euo pipefail
+          # A push may contain several commits. Inspect the complete push so
+          # this single build trigger also covers changes before the last commit.
+          base=HEAD^
+          if [ "$EVENT_NAME" = push ]; then
+            base="$PUSH_BEFORE"
+          fi
+          if [ -z "$base" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            # A new branch or unavailable before-revision needs a build.
+            echo "app_config_changed=true" >> "$GITHUB_OUTPUT"
+          elif git diff --quiet "$base" HEAD -- app.config.ts app.json eas.json; then
+            echo "app_config_changed=false" >> "$GITHUB_OUTPUT"
           else
-            echo "app_config_changed=false" >> $GITHUB_OUTPUT
-            echo "app config has not been modified"
+            result=$?
+            if [ "$result" -ne 1 ]; then
+              echo "::error::Could not compare native app configuration."
+              exit "$result"
+            fi
+            echo "app_config_changed=true" >> "$GITHUB_OUTPUT"
           fi
 
   # Trigger EAS Build if needed (only runs if app config changed)

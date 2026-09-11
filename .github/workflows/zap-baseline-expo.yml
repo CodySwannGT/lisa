@@ -29,6 +29,11 @@ on:
         required: false
         default: 'bun'
         type: string
+      reuse_quality_web_export:
+        description: 'Reuse the performance-check export from this run, rebuilding if it was not published.'
+        required: false
+        default: false
+        type: boolean
       zap_target_url:
         description: 'Override URL for ZAP to scan (default: http://localhost:3000)'
         required: false
@@ -161,7 +166,17 @@ jobs:
               ;;
           esac
 
+      - name: Download the quality web export
+        id: shared_export
+        if: inputs.reuse_quality_web_export
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: quality-web-export-${{ github.run_id }}-${{ github.run_attempt }}
+          path: dist
+
       - name: Build web export
+        if: steps.shared_export.outcome != 'success'
         run: npx expo export --platform web
 
       - name: Start static server

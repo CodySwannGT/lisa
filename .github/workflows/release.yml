@@ -28,6 +28,11 @@ on:
         required: false
         type: string
         default: ''
+      run_quality_checks:
+        description: 'Run quality checks again during release. Set false when protected PR CI already enforces them; deployment and release checks still run.'
+        required: false
+        type: boolean
+        default: true
       moment:
         # Forwarded to quality.yml so a deploy-time caller can resolve the
         # gate set for its actual moment (`pre-deploy:<environment>`) instead
@@ -477,6 +482,7 @@ jobs:
   quality:
     name: 🔍 Quality Checks
     needs: [release_init, release_schedule]
+    if: inputs.run_quality_checks
     # release.yml is ITSELF a called workflow (host deploy.yml invokes it), so a
     # scope requested here must be granted by every one of those hosts or their
     # whole run dies at startup with zero jobs. Keep this at the long-standing
@@ -500,10 +506,20 @@ jobs:
   # Version management with observability
   version:
     name: 📦 Version Management
-    needs: [release_init, quality, release_approval, check_promotion]
+    needs:
+      [
+        release_init,
+        release_schedule,
+        quality,
+        release_approval,
+        check_promotion,
+      ]
     if: |
       always() && !cancelled() &&
-      needs.quality.result == 'success' &&
+      needs.release_init.result == 'success' &&
+      needs.release_schedule.result == 'success' &&
+      needs.check_promotion.result == 'success' &&
+      (needs.quality.result == 'success' || (inputs.run_quality_checks == false && needs.quality.result == 'skipped')) &&
       (needs.release_approval.result == 'success' || needs.release_approval.result == 'skipped') &&
       needs.check_promotion.outputs.is_promotion != 'true'
     runs-on: ubuntu-latest
@@ -1397,6 +1413,7 @@ jobs:
             "attestations": {
               "quality": {
                 "passed": ${{ needs.quality.result == 'success' }},
+                "requested": ${{ inputs.run_quality_checks }},
                 "skipped_checks": "${{ inputs.skip_jobs }}",
                 "workflow_result": "${{ needs.quality.result }}"
               },
@@ -1906,7 +1923,7 @@ jobs:
           fi
 
           # Check 3: Quality gates
-          if [ "${{ needs.quality.result }}" != "success" ] && [ "${{ needs.quality.result }}" != "skipped" ]; then
+          if [ "${{ needs.quality.result }}" != "success" ] && ! { [ "${{ inputs.run_quality_checks }}" == "false" ] && [ "${{ needs.quality.result }}" == "skipped" ]; }; then
             COMPLIANCE_PASSED=false
             COMPLIANCE_ISSUES+=("Quality checks failed")
           fi
@@ -1960,7 +1977,9 @@ jobs:
                 "completed": ${{ needs.release_signing.outputs.signed == 'true' || inputs.require_signatures == false }}
               },
               "quality": {
-                "passed": ${{ needs.quality.result == 'success' || needs.quality.result == 'skipped' }},
+                "passed": ${{ needs.quality.result == 'success' }},
+                "requested": ${{ inputs.run_quality_checks }},
+                "workflow_result": "${{ needs.quality.result }}",
                 "skipped_checks": "${{ inputs.skip_jobs }}"
               },
               "attestation": {
