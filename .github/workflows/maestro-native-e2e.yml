@@ -2908,7 +2908,33 @@ jobs:
             # after the action's boot wait has completed, then prove the
             # device is online before installing or starting Maestro.
             adb kill-server
-            adb start-server
+            # `kill-server` returns as soon as it has asked the daemon to
+            # exit, NOT once port 5037 is released, so the `start-server` on
+            # the next line can race the dying daemon's socket. When it loses,
+            # two daemons fork and one dies on `could not install *smartsocket*
+            # listener: Address already in use`; the client then reports
+            # `failed to start daemon` / `error: cannot connect to daemon` and
+            # this line exits 255. That kills the whole arm at its SECOND
+            # command — before the install, before Maestro — so the leg
+            # publishes no report and reads as "the Android suite tested
+            # nothing" rather than as a transient bind collision.
+            #
+            # Bounded retry, not a wait: the collision is decided by whether
+            # the socket is free at the instant of the call, so re-issuing it
+            # is the fix and sleeping longer up front is only a slower version
+            # of the same gamble. `kill-server` is repeated inside the loop
+            # because a half-started daemon is exactly the state that loses
+            # the next attempt too.
+            #
+            # The bare `adb start-server` after the loop is the assertion, and
+            # it is what keeps this loud: it is idempotent (a running daemon
+            # exits 0 immediately), so it costs nothing on the happy path,
+            # while a daemon that is genuinely unable to start still fails the
+            # step with adb's own message. Do not fold it into the loop with a
+            # `|| true` — that is the shape that turns this into a step which
+            # cannot go red. One line, because the action runs each script
+            # LINE through its own `sh -c` and a continuation does not survive.
+            for attempt in 1 2 3 4 5; do adb start-server && break; echo "::warning::adb start-server lost the port-5037 race (attempt $attempt/5); killing and retrying"; adb kill-server >/dev/null 2>&1 || true; sleep 3; done; adb start-server
             adb wait-for-device
             adb shell getprop sys.boot_completed | grep -q 1
             adb install app-android.apk
