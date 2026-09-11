@@ -165,3 +165,33 @@ correctly there.
 - CodySwannGT/lisa#3855 — `qa-fail` never clears
 - CodySwannGT/lisa#3856 — threshold exemptions never expire
 - CodySwannGT/lisa#3805 — held work promoted by a label-keyed sweep
+
+---
+
+## Partial supersession, 2026-09-11
+
+The `qa-fail` row above described its void conditions as *"a later QA pass
+verdict, or the item reaching the certified or a terminal role"*, with both
+certify paths (`lisa-qa-queue` on pass, `lisa-qa-clear` on batch-certify)
+removing the label.
+
+**Those skills are retired.** The human-QA acceptance family — `lisa-qa-queue`,
+`lisa-qa-fail`, `lisa-qa-clear`, `lisa-qa-checklist` — and the `qa.queue` /
+`qa.certified` lifecycle roles were removed after measuring zero usage: not one
+managed comment any of them posts existed in the consuming workspace, ever.
+
+What this changes and what it does not:
+
+- **Unchanged:** the signal still has an executable inverse, still lives in
+  `plugins/src/base/scripts/qa-signal-lifecycle.mjs`, and `lisa-rework-triage`
+  still reads its **liveness** rather than its presence. The defect #3855
+  closed stays closed.
+- **Changed:** the certified role is no longer a void condition, because the
+  role no longer exists. Reaching a configured `done` rung is now the whole
+  proof. A project wanting a distinct post-QA state expresses it as a `done`
+  rung.
+- **Changed:** the signal has no automatic writer. It is applied by a human, or
+  by whatever a project uses for QA, and read by rework triage.
+
+The row is left as written rather than edited — it records what was true when
+the decision was made.

@@ -188,8 +188,7 @@ Consumers pass business-shaped arguments only; they do not embed GraphQL.
 
 **This layer does not accept a state to write. It resolves one.** A `save-issue`
 that changes the workflow state declares `lifecycle_role:<ROLE>` — the semantic
-role it is applying (`ready`, `claimed`, `blocked`, `review`, `done`,
-`qa.queue`, `qa.certified`) — plus `env:<KEY>` when the role is the env-indexed
+role it is applying (`ready`, `claimed`, `blocked`, `review`, `done`) — plus `env:<KEY>` when the role is the env-indexed
 `done`. This layer then resolves that role against config and the team's own
 catalog, and sends the ID **it** resolved.
 

@@ -71,10 +71,13 @@ import {
   parseArgs,
   parseConfig,
   readPath,
-  resolveRole,
 } from "./resolve-lifecycle-role.mjs";
 
-/** The QA-failure signal: applied by `lisa-qa-fail`, read by rework triage. */
+/**
+ * The QA-failure signal. Historically applied by the retired `lisa-qa-fail`
+ * skill; now applied by a human or by whatever a project uses for QA, and read
+ * by rework triage.
+ */
 export const QA_FAILURE_SIGNAL = "qa-failure";
 
 /** The human-gate signal: applied at filing, read by every intake sweep. */
@@ -190,8 +193,13 @@ const verdictOf = body => {
 };
 
 /**
- * Role names whose occupancy proves the QA failure was resolved: the certified
- * role, and every environment rung of the terminal `done` map.
+ * Role names whose occupancy proves the QA failure was resolved: every
+ * environment rung of the terminal `done` map.
+ *
+ * Previously this also resolved a `qa.certified` role. That role was retired
+ * along with the QA acceptance skills that were its only writers, so reaching a
+ * `done` rung is now the whole proof. A project that wants a distinct
+ * post-QA state expresses it as a `done` rung.
  *
  * @param {object} options inputs
  * @param {string} options.vendor `jira` | `linear` | `github`
@@ -199,16 +207,21 @@ const verdictOf = body => {
  * @returns {string[]} configured role names, empty when none are bound
  */
 export const voidingRoles = ({ vendor, config }) => {
-  const certified = resolveRole({
-    role: "qa.certified",
-    vendor,
-    global: config,
-  });
   const root = VENDOR_ROOTS[vendor];
   const doneMap = root ? readPath(config, `${root}.done`) : undefined;
+  // `done` has two sanctioned shapes: an env-indexed map, and a single scalar
+  // state for a project with one terminal rung. Every other reader handles
+  // both — linear-state-write-target.mjs:147, lifecycle-label-trust.mjs:213,
+  // queue-status-build-readers.mjs:315 — and this one must too. Missing the
+  // scalar here returns NO voiding roles at all, which holds a QA failure live
+  // forever on exactly the projects with the simplest config.
   const done =
-    doneMap && typeof doneMap === "object" ? Object.values(doneMap) : [];
-  return [certified.value, ...done].filter(
+    typeof doneMap === "string"
+      ? [doneMap]
+      : doneMap && typeof doneMap === "object"
+        ? Object.values(doneMap)
+        : [];
+  return done.filter(
     name => typeof name === "string" && name.trim().length > 0
   );
 };
