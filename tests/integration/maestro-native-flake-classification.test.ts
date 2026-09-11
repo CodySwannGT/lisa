@@ -296,6 +296,32 @@ describe("maestro-native-e2e flake classification (executed)", () => {
     expect(outcome.status).toBe(0);
   });
 
+  // The case above and this one are a pair, and only together do they say what
+  // the step is for. Alone, "exits 0 when the classifier blows up" is equally
+  // satisfied by a step that discards the status without a word — which is what
+  // `|| true` did, and what made an OOM'd classifier indistinguishable from a
+  // run with nothing to classify. Unable to fail the job is the requirement;
+  // silent about it never was.
+  it("SAYS SO when the classifier blows up, rather than swallowing it", () => {
+    const dir = scratchProject({ classifier: "failing", report: REPORT_XML });
+    const outcome = runStep(classificationStep("android"), dir);
+    expect(outcome.status, "still unable to fail the job").toBe(0);
+    expect(outcome.output).toContain("Flake classification did not run");
+    // The warning has to say what an empty classification MEANS here, because
+    // the reader's mistake is treating absence as "no device fault found".
+    expect(outcome.output).toContain("NO preamble/device verdict");
+  });
+
+  // The negative control for the pair above: on a healthy run the warning must
+  // be absent. A step that printed it unconditionally would pass the case above
+  // while telling every reader their classification is missing.
+  it("stays quiet about classifier failure when the classifier succeeds", () => {
+    const dir = scratchProject({ classifier: "real", report: REPORT_XML });
+    const outcome = runStep(classificationStep("android"), dir);
+    expect(outcome.status).toBe(0);
+    expect(outcome.output).not.toContain("Flake classification did not run");
+  });
+
   it("exits 0 when the repository has not picked up the classifier yet", () => {
     const dir = scratchProject({ classifier: "absent", report: REPORT_XML });
     const outcome = runStep(classificationStep("android"), dir);

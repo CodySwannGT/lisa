@@ -3430,9 +3430,26 @@ jobs:
           # An absent debug tree is normal — a suite that died before Maestro
           # started never wrote one — and the classifier reads it as "no
           # evidence", which yields no device verdict rather than an error.
-          node "$CLASSIFIER" --markdown --platform="$MAESTRO_PLATFORM" \
+          #
+          # Still unable to fail the job — `exit 0` below, plus this step's
+          # `continue-on-error` — but no longer SILENT about it. `|| true`
+          # discarded the status with no trace, and combined with "no evidence
+          # is normal" that made a dead classifier indistinguishable from a run
+          # with nothing to classify. Measured 2026-09-11: the classifier OOM'd
+          # reading a 3.5 GB debug tree, the step went green, and the leg's one
+          # failure — a simulator launch failure, exactly the device fault this
+          # classifier exists to name — was read as a flow failure instead.
+          #
+          # So the absence of a classification below now has two possible
+          # meanings and the warning says which. Do not reduce this to `|| true`
+          # again: that is not a smaller diagnostic, it is none.
+          if node "$CLASSIFIER" --markdown --platform="$MAESTRO_PLATFORM" \
             --debug-output="$MAESTRO_DEBUG_DIR" "$MAESTRO_REPORT" \
-            | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}" || true
+            | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"; then
+            :
+          else
+            echo "::warning title=Flake classification did not run (${MAESTRO_PLATFORM})::$CLASSIFIER exited non-zero, so this leg has NO preamble/device verdict. An empty classification is THIS failure, not a clean run — do not read it as 'no device fault'."
+          fi
           exit 0
 
       - name: 📤 Upload Maestro debug output
@@ -4289,9 +4306,26 @@ jobs:
           # An absent debug tree is normal — a suite that died before Maestro
           # started never wrote one — and the classifier reads it as "no
           # evidence", which yields no device verdict rather than an error.
-          node "$CLASSIFIER" --markdown --platform="$MAESTRO_PLATFORM" \
+          #
+          # Still unable to fail the job — `exit 0` below, plus this step's
+          # `continue-on-error` — but no longer SILENT about it. `|| true`
+          # discarded the status with no trace, and combined with "no evidence
+          # is normal" that made a dead classifier indistinguishable from a run
+          # with nothing to classify. Measured 2026-09-11: the classifier OOM'd
+          # reading a 3.5 GB debug tree, the step went green, and the leg's one
+          # failure — a simulator launch failure, exactly the device fault this
+          # classifier exists to name — was read as a flow failure instead.
+          #
+          # So the absence of a classification below now has two possible
+          # meanings and the warning says which. Do not reduce this to `|| true`
+          # again: that is not a smaller diagnostic, it is none.
+          if node "$CLASSIFIER" --markdown --platform="$MAESTRO_PLATFORM" \
             --debug-output="$MAESTRO_DEBUG_DIR" "$MAESTRO_REPORT" \
-            | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}" || true
+            | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"; then
+            :
+          else
+            echo "::warning title=Flake classification did not run (${MAESTRO_PLATFORM})::$CLASSIFIER exited non-zero, so this leg has NO preamble/device verdict. An empty classification is THIS failure, not a clean run — do not read it as 'no device fault'."
+          fi
           exit 0
 
       - name: 📤 Upload Maestro debug output
