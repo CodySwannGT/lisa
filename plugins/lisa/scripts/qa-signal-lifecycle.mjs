@@ -209,8 +209,18 @@ const verdictOf = body => {
 export const voidingRoles = ({ vendor, config }) => {
   const root = VENDOR_ROOTS[vendor];
   const doneMap = root ? readPath(config, `${root}.done`) : undefined;
+  // `done` has two sanctioned shapes: an env-indexed map, and a single scalar
+  // state for a project with one terminal rung. Every other reader handles
+  // both — linear-state-write-target.mjs:147, lifecycle-label-trust.mjs:213,
+  // queue-status-build-readers.mjs:315 — and this one must too. Missing the
+  // scalar here returns NO voiding roles at all, which holds a QA failure live
+  // forever on exactly the projects with the simplest config.
   const done =
-    doneMap && typeof doneMap === "object" ? Object.values(doneMap) : [];
+    typeof doneMap === "string"
+      ? [doneMap]
+      : doneMap && typeof doneMap === "object"
+        ? Object.values(doneMap)
+        : [];
   return done.filter(
     name => typeof name === "string" && name.trim().length > 0
   );

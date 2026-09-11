@@ -35,6 +35,8 @@ import {
   voidingRoles,
 } from "../../../plugins/src/base/scripts/qa-signal-lifecycle.mjs";
 
+const DONE = "status:done";
+
 /** A GitHub-shaped config with every role this evaluation consults bound. */
 const CONFIG = {
   github: {
@@ -47,7 +49,7 @@ const CONFIG = {
         done: {
           dev: "status:on-dev",
           staging: "status:on-stg",
-          production: "status:done",
+          production: DONE,
         },
       },
     },
@@ -219,6 +221,28 @@ describe("the signal's name is configured, never hardcoded", () => {
       "On Stg",
       "Done",
     ]);
+  });
+
+  it("honours a scalar `done` as well as an env-indexed map", () => {
+    // `done` has two sanctioned shapes. Reading only the map form returns NO
+    // voiding roles for a single-rung project, which holds every QA failure
+    // live forever — and it fails silently, because an empty list is exactly
+    // what a project that binds nothing also produces.
+    const scalar = { jira: { workflow: { done: "Done" } } };
+
+    expect(voidingRoles({ vendor: "jira", config: scalar })).toEqual(["Done"]);
+  });
+
+  it("still voids a live signal when the only terminal state is scalar", () => {
+    const result = evaluateSignal({
+      labels: ["qa-fail"],
+      comments: [FAIL_COMMENT],
+      role: DONE,
+      vendor: "github",
+      config: { github: { labels: { build: { done: DONE } } } },
+    });
+
+    expect(result.live).toBe(false);
   });
 });
 
