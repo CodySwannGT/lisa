@@ -626,7 +626,7 @@ function countOccurrences(haystack, needle) {
 
 /**
  * Tally every marker across a run's debug artifacts, per flow.
- * @param {readonly {path: string, text: string}[]} artifacts - Debug artifacts
+ * @param {Iterable<{path: string, text: string}>} artifacts - Debug artifacts, iterated once
  * @param {readonly {flow: string, keys: readonly string[]}[]} flowKeys - Flows in the report
  * @param {readonly string[]} markers - Markers to count
  * @returns {{perFlow: Map<string, object>, unattributed: object}} Tallies
@@ -723,20 +723,72 @@ export function deviceVerdict(tallies, baselines, markers) {
  * Absence is normal and silent: a run that crashed before Maestro started, or a
  * caller that has not wired the flag, simply yields no evidence — and with no
  * evidence nothing is ever a device fault.
+ *
+ * LAZY, and that is load-bearing rather than a micro-optimisation. This used to
+ * build an array holding every file's text at once. A real iOS debug tree is
+ * 3.5 GB across 540 files — `device-simulator.log` alone reaches 235 MB for a
+ * single flow — so the array exhausted the V8 heap and the classifier died with
+ * `FATAL ERROR: Reached heap limit` inside `fs.readFileSync`. Measured on a
+ * 44-flow iOS leg, 2026-09-11.
+ *
+ * That crash is invisible: the workflow step runs the classifier under
+ * `|| true` and `exit 0` so it can never fail the job — deliberately, and the
+ * suite beside this file pins that — and the docblock above says absence of
+ * evidence is normal. So an OOM produces exactly the observable of a run with
+ * nothing to classify. On the measured run, the leg's ONE failure was a
+ * simulator launch failure — precisely the device fault this classifier exists
+ * to name — and it went unnamed because the classifier had died.
+ *
+ * Yielding one artifact at a time caps peak memory at the largest single file
+ * instead of their sum, and each text becomes garbage as soon as
+ * {@link tallyDeviceMarkers} has counted it.
+ *
+ * The return is a RE-ITERABLE iterable, not a one-shot generator: `run()`
+ * computes this once and passes it through `classifyRun` for every report, so a
+ * generator would be empty for the second report onward — a silent
+ * evidence-loss bug in place of a loud crash, which would be worse than what it
+ * replaced.
  * @param {string | null} debugRoot - Absolute path of the debug-output directory
  * @param {{listFiles: Function, readFile: Function}} io - Injected readers
- * @returns {{path: string, text: string}[]} Artifacts
+ * @returns {Iterable<{path: string, text: string}>} Artifacts, read on demand
  */
 export function readDebugArtifacts(debugRoot, { listFiles, readFile }) {
   if (!debugRoot) return [];
-  const artifacts = [];
-  for (const file of listFiles(debugRoot) ?? []) {
-    if (isOpaque(file)) continue;
-    const text = readFile(file);
-    if (text === null) continue;
-    artifacts.push({ path: file, text });
-  }
-  return artifacts;
+  return {
+    *[Symbol.iterator]() {
+      for (const file of listFiles(debugRoot) ?? []) {
+        if (isOpaque(file)) continue;
+        const text = readFile(file);
+        // `readFile` returns null for absent, unreadable AND too-large-to-
+        // string files alike. The last is the one that grows back into the bug
+        // above — Node refuses a string past its maximum length, and a
+        // device log that crosses it would drop out of the evidence silently.
+        if (text === null) {
+          reportUnreadableArtifact(file);
+          continue;
+        }
+        yield { path: file, text };
+      }
+    },
+  };
+}
+
+/**
+ * Say on stderr that an artifact could not be read.
+ *
+ * Not a throw: a missing or unreadable artifact must not fail the run, for the
+ * same reason the step absorbs a non-zero exit. But it must not be silent
+ * either — an artifact that drops out of the evidence takes its markers with
+ * it, and a device fault it alone witnessed then reads as a flow failure.
+ * stderr rather than the markdown, so it reaches the job log without becoming
+ * part of the classification that a consumer parses.
+ * @param {string} file - Path of the artifact that could not be read
+ */
+function reportUnreadableArtifact(file) {
+  process.stderr.write(
+    `classify-maestro-failures: could not read ${path.basename(file)} — ` +
+      `its markers are NOT counted in this classification.\n`
+  );
 }
 
 /**
@@ -869,7 +921,7 @@ function resolveFlowPath(reported, { projectRoot, maestroRoot, readFile }) {
  * @param {readonly string[]} [options.signInMarkers] - Project sign-in markers
  * @param {readonly unknown[]} [options.knownIntermittent] - Raw registry entries
  * @param {string} [options.platform] - Arm the report came from
- * @param {readonly {path: string, text: string}[]} [options.debugArtifacts] - Run observation
+ * @param {Iterable<{path: string, text: string}>} [options.debugArtifacts] - Run observation
  * @param {readonly string[]} [options.deviceFaultMarkers] - Presence-decided device faults
  * @param {readonly string[]} [options.deviceInstabilityMarkers] - Count-decided device faults
  * @returns {{failures: object[], deviceRunEvidence: object[]}} The report's verdict
