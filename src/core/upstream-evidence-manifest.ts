@@ -287,7 +287,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/ci.yml":
       "d343dc43f290b56a1391a78489b32cbf91c79812d376f7d23fb4ad874e55bdb6",
     "expo/create-only/.github/workflows/deploy.yml":
-      "2932198efbbb1bbcd93d5d9d228a15301cd390cc53d8e2a488e5fd5f4ec67be8",
+      "755d98702ae6ce07d3cbdee873975efca5c918610567a2196f2ddeeccfaf69c1",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
       "8d95742b6aba4ad0d4fdb688548ff0b3933828ab911441d46562fcee9bfa427e",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
@@ -2459,7 +2459,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "6f99f748e01d49a64d644eb0366cdf4d617bce36712107bad090869f9b7304b4",
+      "edfa08472f756102c7818a840f9775c63f90eaa8c3352a49910d4586cecc2721",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -2599,7 +2599,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/.github/required-checks.json":
       "01f5b7d8587adc21e85f525b57ac04a8143427459d95b48b616216eca54a73df",
     "typescript/create-only/.github/workflows/ci.yml":
-      "bece1fdb51209ad6dd5e45d20b8f77bb746458d5df955806827d332d49d65f8e",
+      "694f9b9c15f55b8f81352a054521018c1297f22c3da0dca138282ca6eff905e7",
     "typescript/create-only/.github/workflows/review-evidence.yml":
       "42ecfb09718a16695259ace28875f8fbb2fa59bcafc799302bb797d000d45654",
     "typescript/create-only/.github/workflows/third-party-review-evidence.yml":
@@ -2910,6 +2910,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "docs/agentic-readiness-questionnaire.md": true,
     "docs/bdd-coverage-schema.md": true,
     "docs/bdd-scenario-matrix.md": true,
+    "docs/ci-efficiency.md": true,
     "docs/design/e2e-environment-reset-plan.md": true,
     "docs/design/e2e-wiring-contract.md": true,
     "docs/design/environment-facade-contract.md": true,
@@ -9387,6 +9388,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/fs-latency-budget.ts": true,
     "tests/helpers/gate-capture.ts": true,
     "tests/helpers/gate-coverage-harness.ts": true,
+    "tests/helpers/github-expression.ts": true,
     "tests/helpers/hardcoded-temp-path-scan.ts": true,
     "tests/helpers/hook-roster.ts": true,
     "tests/helpers/inject-resolved-config-harness.ts": true,
@@ -9461,6 +9463,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/auto-update-pr-branches-removed.test.ts": true,
     "tests/integration/bootstrap-keychain.test.ts": true,
     "tests/integration/cdk-ci-role-selection.test.ts": true,
+    "tests/integration/ci-concurrency-policy.test.ts": true,
     "tests/integration/cli-smoke.test.ts": true,
     "tests/integration/coverage-scratch-debris.test.ts": true,
     "tests/integration/deletion-basis-manifests.test.ts": true,
@@ -9528,6 +9531,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/mutation-performance-fixture.test.ts": true,
     "tests/integration/mutation-performance-packed-apply.test.ts": true,
     "tests/integration/mutation-sigterm-control.test.ts": true,
+    "tests/integration/native-build-push-range.test.ts": true,
     "tests/integration/nightly-e2e-gate-contract-doc.test.ts": true,
     "tests/integration/nightly-e2e-grace-wiring.test.ts": true,
     "tests/integration/nightly-e2e-health-workflow.test.ts": true,
@@ -9556,7 +9560,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/publish-npm-injection.test.ts": true,
     "tests/integration/push-collects-integration-tree-once.test.ts": true,
     "tests/integration/push-destination-inheritance.test.ts": true,
+    "tests/integration/quality-combined-planning.test.ts": true,
     "tests/integration/quality-declaration-required-jobs.test.ts": true,
+    "tests/integration/quality-download-cache.test.ts": true,
     "tests/integration/quality-dual-adoption-controls.test.ts": true,
     "tests/integration/quality-gate-e2e-browser.test.ts": true,
     "tests/integration/quality-gate-facade-fixture.ts": true,
@@ -9575,6 +9581,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-generic-gate-runner.test.ts": true,
     "tests/integration/quality-non-declarable-jobs.test.ts": true,
     "tests/integration/quality-script-presence-jobs.test.ts": true,
+    "tests/integration/quality-shared-web-export.test.ts": true,
     "tests/integration/quality-ungated-jobs.test.ts": true,
     "tests/integration/quality-verification-coverage-collapse.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,
@@ -9587,6 +9594,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/release-changelog-push-recovery.test.ts": true,
     "tests/integration/release-notes-expansion.test.ts": true,
     "tests/integration/release-published-version-read.test.ts": true,
+    "tests/integration/release-quality-opt-out.test.ts": true,
     "tests/integration/release-rails-tag-namespace.test.ts": true,
     "tests/integration/release-strategy-tag-namespace.test.ts": true,
     "tests/integration/release-version-injection.test.ts": true,
