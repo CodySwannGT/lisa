@@ -2635,7 +2635,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "79763592eb1a22d5868d5aaf81743f415bfd5b3772530ec565e79e5402d283f5",
+      "432f6789653fae75a70d679ab9de064282aed7bb63a15c29be1eed0eae19f83e",
     "ui/README.md":
       "9c4aa65ff4028eedfda1f284d47b620fff7353c07fd8084ccc427fe4c5a1ed72",
     "ui/index.html":
@@ -2924,6 +2924,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "docs/kane-cli-pilot.example.json": true,
     "docs/maestro-flake-classification.md": true,
     "docs/nightly-e2e-gate.md": true,
+    "docs/quality-workflow-notes.md": true,
     "docs/remote-agent-aws.md": true,
     "docs/wiki-inbox/.gitkeep": true,
     "docs/wiki-inbox/2026-08-12-lisa-improvement-notes.md": true,
@@ -9584,6 +9585,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-shared-web-export.test.ts": true,
     "tests/integration/quality-ungated-jobs.test.ts": true,
     "tests/integration/quality-verification-coverage-collapse.test.ts": true,
+    "tests/integration/quality-workflow-size.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,
     "tests/integration/rails-learnings-budget-gate.test.ts": true,
     "tests/integration/rails-scratch-authority.test.ts": true,
