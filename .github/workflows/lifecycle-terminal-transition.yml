@@ -68,6 +68,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_BRANCH: ${{ github.ref_name }}
         run: |
           set -o pipefail
           # A branch-creation push carries the all-zero SHA, and a
@@ -82,7 +83,7 @@ jobs:
             printf 'No item was completed. The daily Lifecycle Drift Sweep still reports anything left behind.\n' | tee -a transition.txt
             exit 0
           fi
-          node scripts/lisa-work-item.mjs sweep --apply --since "$PUSH_BEFORE" | tee transition.txt
+          node scripts/lisa-work-item.mjs sweep --apply --since "$PUSH_BEFORE" --branch "$PUSH_BRANCH" | tee transition.txt
       - name: Publish what happened
         if: always()
         run: |

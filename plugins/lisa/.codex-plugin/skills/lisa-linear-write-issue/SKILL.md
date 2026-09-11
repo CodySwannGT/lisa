@@ -33,40 +33,7 @@ Linear's data model maps Epic / Story / Sub-task to **different entity types**. 
 
 The build lifecycle uses native **workflow states** (`Ready`, `In Progress`, `Blocked`, `On Dev`, `On Stg`, `Done`, plus an optional review state a project may bind), resolved per role from `linear.workflow` — see "Why Linear uses states, not labels" in `config-resolution`. A new **leaf** work unit is created in the configured `ready` state only on explicit `build_ready: true`; omitted or `false` leaves it in the team's default backlog state, and a container is never put in `ready` at all (see the Build-ready control input below).
 
-## Writing by another path? The gates still apply
-
-A team that talks to its tracker through its own script is doing a normal
-thing — the script usually owns the credential plumbing, and Lisa neither
-controls nor wants to control it. What that script does NOT get is either half
-of this skill's quality gate, and nothing about the write says so.
-
-**A read-back is not the missing check.** A bespoke path almost always re-reads
-the issue after writing and confirms the tracker stored what was sent. That is
-worth doing and it is not this. It proves TRANSPORT: the API accepted the
-payload and the field values round-tripped. It cannot fail for the reason these
-gates exist, because it never looks at whether what was sent was any good — a
-issue with no acceptance criteria, no parent, and a human decision left sitting
-in the middle of it round-trips perfectly. That is the dangerous half of the
-shape: a failing control gets investigated, a misread one gets trusted.
-
-So a write by any other path still owes both phases, and both run standalone
-against an item that already exists:
-
-| Phase | Skill | What it costs you |
-|---|---|---|
-| Pre-write validate | `lisa-linear-validate-issue` | Run it on the draft before you send it |
-| Post-write verify | `lisa-linear-verify` | Run it on the live issue after you send it |
-
-```text
-Skill(lisa-linear-validate-issue) with the draft issue, or with a reference to a live one
-Skill(lisa-linear-verify) with ENG-1234
-```
-
-**These are plugin-resident skills invoked through the Skill tool.** They are
-not shell scripts and will not appear in any repository's `scripts/` directory,
-including yours. An agent that searches the repo it is standing in, finds
-nothing, and concludes the capability is absent has made the one mistake that
-turns a local script from the convenient option into the only one.
+For direct API or bespoke script writes, the [bespoke-path contract](#writing-by-a-bespoke-path-your-own-script-direct-api-or-graphql) still requires pre-write validation and post-write verification.
 
 ## Phase 1 — Resolve Intent
 
@@ -333,6 +300,8 @@ The marker remains the authoritative declaration; the label is what makes the ho
 person scanning a board and to any path that has not yet been routed through the shared reader.
 If the label does not exist in the tracker, create it, or record that it could not be applied and
 proceed — the marker still holds. Never file the label *instead of* the marker.
+
+**Every marker reader must consult comments.** Use `classifyReadyCandidate` with labels, body, comments and the configured human-needed label, then `planHumanGateRelease` for any release actions. A historical body marker alone is not an active hold after its matching release; unreadable comments leave a hold in place.
 
 **Write a `reason=` the release can name.** The hold's reason is not decoration: a hold ends when a
 `[lisa-human-gate-release]` comment repeating that same `reason=` is recorded on the item, and the

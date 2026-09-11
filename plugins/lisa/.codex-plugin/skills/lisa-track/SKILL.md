@@ -24,7 +24,7 @@ This flow must return exactly one canonical `(tracker_provider, work_item_ref)` 
 
 ### Explicit reference
 
-Invoke `lisa-tracker-read <ref>` and require a live result from the configured project. Reject nonexistent, inaccessible, closed/resolved/terminal, wrong-project, wrong-repository, or container items. Read the returned body for the hold marker: an item carrying `[lisa-human-gate]` is held and Phase 3 refuses to claim it, whatever role or labels it carries. This live read is mandatory even if caller context already includes ticket text.
+Invoke `lisa-tracker-read <ref>` and require a live result from the configured project. Reject nonexistent, inaccessible, closed/resolved/terminal, wrong-project, wrong-repository, or container items. Read the returned body, labels and all comments; Phase 3 uses the shared hold classifier so a historical `[lisa-human-gate]` marker with a matching release is not mistaken for an active hold. This live read is mandatory even if caller context already includes ticket text.
 
 ### File or plain text
 
@@ -44,9 +44,23 @@ This is intentionally conservative: ambiguity creates one explicit work item ins
 
 ## Phase 3 — Claim and bind
 
-The work item is **held** when either of two independent signals is present: the caller declared a `human_gate`, or the resolved item's body contains the literal `[lisa-human-gate]` marker. Test the marker as a plain substring and never key the parse on a `reason=` value — markers are written both with and without one, and a parser that requires the key misses the keyless ones while appearing to work.
+The work item is **held** when the caller declared a `human_gate`, independently of any item history,
+or `classifyReadyCandidate({ labels, body, comments, humanNeededLabel })` from the shipped
+`scripts/intake-blocker-reprobe.mjs` returns `claimable: false`. Pass the complete live comment
+history so a matching `[lisa-human-gate-release]` discharges the historical body marker. Never
+reimplement heldness as a substring test or as the negation of `planHumanGateRelease().released`:
+that planner also returns `released: false` for an item that was never held. Missing comments fail
+closed for a hold; never infer release from a missing label.
 
-A held item stops the flow here, whatever the resolution outcome and whatever roles or labels the item carries. The marker is the authority: an item can be held while sitting in the build-ready role with no blocked or human-needed label, because a human stamping a hold on live work is the most likely way a gate is ever applied, and the vendor claim contracts reject a closed item or an active blocker but not a marked one. Do not invoke `lisa-tracker-claim`, do not write the worktree binding, and do not begin durable project work. Claiming a held leaf binds a live lane to it and makes it look already-attended, which suppresses exactly the human attention it was filed to attract. Return the structured result below with `claim_outcome: held-by-gate` and `binding_outcome: skipped-human-gate`, name which signal held it in `held_by` and carry the reason verbatim in `gate_reason` alongside the canonical reference, then stop. A marker written without a `reason=` key yields `gate_reason: null` — a missing reason narrows what the result can say, never whether the item is held.
+A held item stops the flow here, whatever roles or labels it carries. Do not invoke
+`lisa-tracker-claim`, write the worktree binding, or begin durable project work. Return
+`claim_outcome: held-by-gate` and `binding_outcome: skipped-human-gate`, name the signal in `held_by`
+and carry its reason verbatim in `gate_reason` (null for a keyless hold), then stop.
+
+For a discharged item, call
+`planHumanGateRelease({ labels, body, comments, humanNeededLabel, readyLabel, lifecycleLabels, alreadyNotified })`
+and apply only the returned actions before claiming. Keep the body marker as history; a release
+never overrides a new caller-declared hold or another eligibility check.
 
 Otherwise:
 

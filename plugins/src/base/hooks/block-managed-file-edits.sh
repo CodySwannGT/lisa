@@ -607,7 +607,7 @@ FOLLOW_WRAPPERS = {
     # positional count: the walk below re-enters its assignment skip on the
     # next iteration and steps over as many as are present.
     "env": (
-        frozenset({"-C", "--chdir", "-P", "-S", "--split-string", "-u", "--unset"}),
+        frozenset({"-C", "--chdir", "-P", "-u", "--unset"}),
         0,
     ),
     "exec": (frozenset({"-a"}), 0),
@@ -757,6 +757,7 @@ def command_word(statement):
         its command word is itself the executed script.
     """
     index = 0
+    split_expansions = 0
     while index < len(statement):
         token = statement[index]
         if "=" in token and not token.startswith(("=", "-")):
@@ -771,6 +772,34 @@ def command_word(statement):
             option = statement[index]
             if option == "--":
                 index += 1
+                break
+            # env -S inserts the split string back into env's argument list;
+            # it is executable input, not an option value to discard. Keep
+            # shell -c's quoted operand intact while expanding the env layer.
+            if program == "env" and (
+                option in {"-S", "--split-string"}
+                or option.startswith("--split-string=")
+                or option.startswith("-S")
+            ):
+                consumed = 1
+                if option in {"-S", "--split-string"}:
+                    if index + 1 >= len(statement):
+                        return (None, None, [])
+                    split_string = statement[index + 1]
+                    consumed = 2
+                elif option.startswith("--split-string="):
+                    split_string = option.split("=", 1)[1]
+                else:
+                    split_string = option[2:]
+                if split_expansions >= 64:
+                    return (None, None, [])
+                try:
+                    expanded = shlex.split(split_string, comments=False, posix=True)
+                except ValueError:
+                    return (None, None, [])
+                statement = [token] + expanded + statement[index + consumed :]
+                split_expansions += 1
+                index = 0
                 break
             index += 2 if option in separate else 1
         index += positional

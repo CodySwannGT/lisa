@@ -188,7 +188,7 @@ Consumers pass business-shaped arguments only; they do not embed GraphQL.
 
 **This layer does not accept a state to write. It resolves one.** A `save-issue`
 that changes the workflow state declares `lifecycle_role:<ROLE>` — the semantic
-role it is applying (`ready`, `claimed`, `blocked`, `review`, `done`) — plus `env:<KEY>` when the role is the env-indexed
+role it is applying (for example, `ready`, `claimed`, `blocked`, `review`, `done`; the configured role contract is authoritative) — plus `env:<KEY>` when the role is the env-indexed
 `done`. This layer then resolves that role against config and the team's own
 catalog, and sends the ID **it** resolved.
 
@@ -319,9 +319,9 @@ same mutation, same result shape, same error handling.
 ```graphql
 # list-comments project_id:<ID> — page via pageInfo so a long-lived PRD's
 # feedback history never silently truncates.
-query($id:String!){
+query($id:String!,$after:String){
   project(id:$id){
-    comments(first:100){
+    comments(first:100,after:$after){
       pageInfo{ hasNextPage endCursor }
       nodes{ id body createdAt url user{ name } }
     }
@@ -329,8 +329,47 @@ query($id:String!){
 }
 ```
 
-The Issue form reads through `issue(id:$id){ comments{...} }` with the identical
-node shape, so a caller consumes one result format for either anchor.
+The Issue form uses `issue(id:$id)` with the same `first:100,after:$after`
+arguments and node shape. For **both** anchors, use this access-layer adapter with
+`linear_graphql` above; it accumulates every page and prints no partial history.
+A read succeeds only after `hasNextPage` is false. Errors, malformed pages, and
+missing or repeated continuation cursors fail the whole read.
+
+```bash
+linear_list_comment_pages() {  # issue|project id -> complete JSON node array
+  local anchor="$1" id="$2" after=null nodes='[]' seen='[]'
+  local query variables response connection cursor
+  case "$anchor" in issue|project) ;; *) echo "Error: invalid comment anchor" >&2; return 1 ;; esac
+  query='query($id:String!,$after:String){'"$anchor"'(id:$id){comments(first:100,after:$after){pageInfo{hasNextPage endCursor} nodes{id body createdAt url user{name}}}}}'
+  while :; do
+    variables=$(jq -cn --arg id "$id" --argjson after "$after" '{id:$id,after:$after}') || return 1
+    response=$(linear_graphql "$query" "$variables") || return 1
+    connection=$(printf '%s' "$response" | jq -ce --arg anchor "$anchor" '
+      if (.errors != null and .errors != []) then error("GraphQL comments read failed")
+      else .data[$anchor].comments end |
+      if (.nodes | type) != "array" or (.pageInfo.hasNextPage | type) != "boolean"
+      then error("Incomplete comments page") else . end') || return 1
+    nodes=$(jq -cn --argjson prior "$nodes" --argjson page "$connection" '$prior + $page.nodes') || return 1
+    if [ "$(printf '%s' "$connection" | jq -r '.pageInfo.hasNextPage')" = false ]; then
+      printf '%s\n' "$nodes"
+      return 0
+    fi
+    cursor=$(printf '%s' "$connection" | jq -ce '.pageInfo.endCursor | select(type == "string" and length > 0)') || {
+      echo "Error: incomplete comments history; missing cursor" >&2; return 1;
+    }
+    if jq -en --argjson seen "$seen" --argjson cursor "$cursor" '$seen | index($cursor) != null' >/dev/null; then
+      echo "Error: incomplete comments history; repeated cursor" >&2
+      return 1
+    fi
+    seen=$(jq -cn --argjson seen "$seen" --argjson cursor "$cursor" '$seen + [$cursor]') || return 1
+    after="$cursor"
+  done
+}
+```
+
+Call `linear_list_comment_pages project "$PROJECT_ID"` for `project_id`, or
+`linear_list_comment_pages issue "$ISSUE_ID"` for `issue_id`. The caller receives
+one complete node array; it must not interpret a failed command as zero comments.
 
 **Substrate.** The Linear MCP exposes comments on Issues only, so the
 `project_id` form resolves solely through the tier-1 `LINEAR_API_KEY` + GraphQL
@@ -339,7 +378,7 @@ That is not a gap in Linear: the precedence contract already puts GraphQL ahead
 of the MCP, so the preferred substrate has always been able to do this. Only
 this wrapper could not, which is what made callers fabricate an Issue to hold a
 Project's comments. If tier 1 is unavailable, fail with the layer's standard
-`Error:` result naming `save-comment project_id` — do **not** silently degrade
+`Error:` result naming the requested `save-comment project_id` or `list-comments project_id` operation — do **not** silently degrade
 into creating an Issue to comment on.
 
 ## `history` — transition history (read-only)

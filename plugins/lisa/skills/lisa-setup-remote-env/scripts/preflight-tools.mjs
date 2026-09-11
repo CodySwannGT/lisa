@@ -70,7 +70,7 @@ const BLOCKING = new Set(["missing", "invalid"]);
 /**
  * Whether an unpinnable entry is nonetheless usable on this machine.
  *
- * Presence-only, and deliberately not a skip. Dropping the entry entirely would
+ * Executability is required, even when no version floor is declared. Dropping the entry entirely would
  * report clean for a tool that is neither pinned nor installed, which is the
  * vacuous green this module refuses everywhere else. So the probe still decides
  * — it just gets asked, which on this branch it previously never was.
@@ -83,7 +83,12 @@ const BLOCKING = new Set(["missing", "invalid"]);
  * @returns {boolean} Whether the tool is present and good enough to use.
  */
 function usableWithoutPin(step, minVersions) {
-  if (!step.unpinnedForPlatform || !step.found?.present) return false;
+  if (
+    !step.unpinnedForPlatform ||
+    !step.found?.present ||
+    step.found.executable !== true
+  )
+    return false;
   const floor = minVersions[step.name];
   return !floor || compareVersions(step.found.version ?? "0", floor) >= 0;
 }

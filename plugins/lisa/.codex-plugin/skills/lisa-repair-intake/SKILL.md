@@ -189,7 +189,7 @@ In addition to the lifecycle roles above, the build lifecycle defines the **`hum
 - The blocks repair-intake **itself writes** are the auto-recoverable kind — it files a build-ready fix ticket and moves the item `blocked` *blocked by that ticket*, expecting the next cycle to self-heal. Those are **not** `human_needed`; if such an item arrives carrying a `human_needed` marker **this skill applied on an earlier cycle**, repair-intake **clears** it (the block is no longer waiting on a human).
 - **Never remove a `human_needed` marker this skill did not apply.** "Stale" is a judgment about the block's kind, not about who applied the marker or when — so without this rule an operator's deliberate hold, applied *after* correcting a wrong transition, is indistinguishable from a leftover the sweep is designed to clear, and gets swept. Establish provenance from the label event's actor (`rejection-detection` **Automation-reversal memory** reads the same surfaces); if provenance is not readable, **leave the marker in place**. Removing a human's hold is unrecoverable within the loop; leaving a stale one costs a cycle and is visible.
 - **The one exception is a hold that has recorded its own discharge.** A `[lisa-human-gate-release]` comment naming the hold's `reason=` is not a guess about provenance — it is the hold's stated void condition, recorded on the item by the person who answered it. Clearing the marker there is not overriding a human's judgment; it is *enacting* it. That is the whole of the exception: no other reading of "this looks stale" reopens the question above, and an item whose release cannot be read stays held. See "Release the holds that have been answered" below (#3852).
-- The marker is consulted **before **any** repair transition**, not only before Class C. Class C's hard stop is the strictest reading of it, but a marker that is honoured on one classification path and ignored on the other three is not a guard — and Class A, dependency clearing, is exactly the path an operator reverting a wrongly-cleared blocker is trying to protect. Match it robustly (hyphen/underscore, case-insensitive, label set and note prose) wherever it is read.
+- The marker is consulted **before **any** repair transition**, not only before Class C. Class C's hard stop is the strictest reading of it, but a marker that is honoured on one classification path and ignored on the other three is not a guard — and Class A, dependency clearing, is exactly the path an operator reverting a wrongly-cleared blocker is trying to protect. Read all comments and consult `classifyReadyCandidate` / `planHumanGateRelease` before treating the marker as active; a matching release discharges the historical body marker. Use the shared helpers for robust label and declaration matching, and leave unreadable releases held.
 - The blocks the **vendor agent** writes when repair-intake re-dispatches it (its pre-flight gate) carry `human_needed` already — the agent owns that marker. repair-intake leaves it in place.
 
 Resolve with the standard role-read pattern (local overrides global, default fallback):
@@ -621,6 +621,41 @@ the item open. Recording "the fix reached dev and production but skipped staging
 branch back-fill, not outstanding delivery" and then closing anyway is this defect exactly — the
 condition observed, filed under the wrong heading, and overridden.
 
+### Resolve the shipped blocker-edge module
+
+The helper ships in the plugin and npm package. Only the runtime-supplied plugin roots
+and installed package are trusted here; do not search arbitrary checkout-local plugin folders.
+Write the evaluated edge inputs to a JSON array file, then call `blocker_edge_decisions`.
+An absent module, unreadable input or import failure stops this repair without tracker writes.
+
+```bash
+resolve_blocker_guard() {
+  local candidate
+  for candidate in \
+    "${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/scripts/blocker-edge-resolution.mjs}" \
+    "${PLUGIN_ROOT:+$PLUGIN_ROOT/scripts/blocker-edge-resolution.mjs}" \
+    node_modules/@codyswann/lisa/plugins/lisa/scripts/blocker-edge-resolution.mjs; do
+    [ -n "$candidate" ] && [ -f "$candidate" ] && { printf '%s\n' "$candidate"; return; }
+  done
+  echo "Error: could not locate blocker-edge-resolution.mjs; refusing repair." >&2
+  return 1
+}
+
+blocker_edge_decisions() {  # JSON array file -> decision object
+  local guard
+  guard=$(resolve_blocker_guard) || return 1
+  node --input-type=module - "$guard" "$1" <<'LISA_BLOCKER_NODE'
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+const { resolveBlockerEdges } = await import(pathToFileURL(resolve(process.argv[2])).href);
+const edges = JSON.parse(readFileSync(process.argv[3], "utf8"));
+if (!Array.isArray(edges)) throw new Error("Expected an array of blocker edges");
+console.log(JSON.stringify(resolveBlockerEdges(edges)));
+LISA_BLOCKER_NODE
+}
+```
+
 ### Build `blocked` → re-evaluate, unblock if cleared
 
 1. Read the block reason and classify the blocker (see Blocker classification & clearing). An item
@@ -629,8 +664,11 @@ condition observed, filed under the wrong heading, and overridden.
    Re-check **every** class present — do not stop at "no `is blocked by` links, therefore nothing
    to do." A self-block has zero dependencies by definition, yet is fully re-checkable.
 2. **Dependency cleared** — decide each parsed `is blocked by` edge with
-   `scripts/blocker-edge-resolution.mjs`, feeding it the `blocker-containment` verdict plus the
-   blocker's state and closure reason. It returns `dissolve` / `keep` / `escalate` per edge.
+   the shipped plugin helper `scripts/blocker-edge-resolution.mjs`, feeding it the
+   `blocker-containment` verdict plus the blocker's state and closure reason. This is a module,
+   not a CLI and not a required host `scripts/` file. Resolve a trusted plugin/package path and
+   invoke `resolveBlockerEdges` as shown above; never create a second resolver in the host.
+   It returns `dissolve` / `keep` / `escalate` per edge.
    **Dissolve the edge in the SAME write that records the ruling, then read the relation back and
    confirm it is gone.** Only when every edge dissolves → move `blocked → claimed`, then run the
    same agent-dispatch + post-agent `claimed → done` sequence as the stalled-`claimed` path above
@@ -1033,7 +1071,7 @@ with labels like `build-ready`, or with no Lisa status label at all, that are in
    `intake_mode=build`, every non-PRD issue is normalized as a build ticket. If `intake_mode=both`,
    classify PRDs first and normalize all remaining issues as build tickets.
 2a. **Ask whether a person is holding it, before anything else.** Call
-   `planLabelNormalization({ labels, body, humanNeededLabel, lifecycleLabels, readyLabel })` from
+   `planLabelNormalization({ labels, body, comments, humanNeededLabel, lifecycleLabels, readyLabel })` from
    `scripts/intake-blocker-reprobe.mjs` for every candidate and apply exactly the verdict it
    returns. Do **not** re-implement the test here and do **not** decide held-ness from labels
    alone: the vendor writers stamp the `[lisa-human-gate]` marker into the body of a deliberate

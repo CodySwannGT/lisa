@@ -38,6 +38,7 @@ const GATES = {
 };
 
 const REASON = "the run that started it (pid 4242) exited";
+const COMPLETION_TALLY = "gate(s) declared.";
 
 /**
  * Run two required gates, interrupting after a chosen number of boundaries.
@@ -107,7 +108,7 @@ describe("a gate run whose caller has gone away", () => {
     expect(report).toContain("This is NOT a pass");
     // The exact sentence a completed run ends on, and the one an interrupted
     // run must never borrow.
-    expect(report).not.toContain("gate(s) declared.");
+    expect(report).not.toContain(COMPLETION_TALLY);
   });
 
   it("explains the unrun gates by the interruption, not by a failure", () => {
@@ -147,7 +148,53 @@ describe("a gate run whose caller is still there", () => {
     expect(result.blocked).toBe(false);
     expect(result.notRun).toEqual([]);
     const report = lines.join("\n");
-    expect(report).toContain("gate(s) declared.");
+    expect(report).toContain(COMPLETION_TALLY);
     expect(report).not.toContain("INTERRUPTED");
   });
+});
+
+describe("interruption during the final optional gate", () => {
+  it.each([false, true])(
+    "keeps a killed optional gate distinct from caller interruption: %s",
+    callerDisappears => {
+      const { lines, out } = sink();
+      const calls: string[] = [];
+      let callerExited = false;
+      const result = runGates({
+        gates: {
+          [STYLE]: REQUIRED_AT_COMMIT,
+          [LEAKAGE]: { commit: "optional" },
+        },
+        moment: COMMIT,
+        runner: RUNNER,
+        exec: command => {
+          calls.push(command);
+          if (command === LEAKAGE_COMMAND) {
+            callerExited = callerDisappears;
+            return { code: null, output: "the final gate was terminated" };
+          }
+          return { code: 0, output: "" };
+        },
+        out,
+        priorKills: [],
+        recordKill: () => true,
+        interrupted: () => (callerExited ? REASON : null),
+      }) as GateRun;
+
+      expect(calls).toEqual([LINT_COMMAND, LEAKAGE_COMMAND]);
+      expect(result.passed.map(gate => gate.id)).toEqual([STYLE]);
+      expect(result.killed.map(gate => gate.id)).toEqual([LEAKAGE]);
+      expect(result.notRun).toEqual([]);
+      expect(result.blockedBy).toBeNull();
+      expect(result.blocked).toBe(callerDisappears);
+      expect(result.interrupted).toBe(callerDisappears ? REASON : null);
+      expect(lines.join("\n")).not.toContain("the rest were not run");
+      expect(lines.join("\n").includes("INTERRUPTED, not completed")).toBe(
+        callerDisappears
+      );
+      expect(lines.join("\n").includes(COMPLETION_TALLY)).toBe(
+        !callerDisappears
+      );
+    }
+  );
 });

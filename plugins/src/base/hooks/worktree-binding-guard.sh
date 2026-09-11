@@ -54,7 +54,8 @@ if [ -r "$lisa_guard_dedupe_lib" ]; then
   # shellcheck source=guard-dedupe.bash
   . "$lisa_guard_dedupe_lib"
   trap 'lisa_guard_dedupe_record $?' EXIT
-  lisa_guard_dedupe worktree-binding-guard "$input"
+  lisa_guard_dedupe worktree-binding-guard "$input" \
+    "$lisa_guard_hook_dir/worktree-binding-guard.mjs"
 fi
 
 if ! command -v node >/dev/null 2>&1; then

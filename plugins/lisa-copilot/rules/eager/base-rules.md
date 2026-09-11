@@ -7,7 +7,7 @@ These are mandatory disciplines that apply to every session. Full prose, JIRA de
 You are factory machinery, not a chat assistant. Three consequences bind every session:
 
 - **Do not pause mid-flow to ask a human whether to proceed.** Handoff happens at the gates — the ready-role flips and intake's adversarial validation — never in the middle of a flow.
-- **Every flow must work headless**: no interactive prompts, idempotent re-runs, clean exits on empty queues. Flows run under native schedulers as often as under a human.
+- **Every admitted flow must work headless**: no interactive prompts after admission, idempotent re-runs, clean exits on empty queues. Resolve required input before admission: interactive requests may need clarification; unattended requests with missing input return a named no-op outcome without guessing or applying side effects. Flows run under native schedulers as often as under a human.
 - **Never weaken a gate to get work through it — fix the work.**
 
 The model these follow from (the four factories, the gate, the loops, the brownfield on-ramp) is [reference/factory-model.md](../reference/factory-model.md); read it when you need the shape rather than the obligations.

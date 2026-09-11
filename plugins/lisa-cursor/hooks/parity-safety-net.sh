@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# This file is managed by Lisa and IS replaced on each `lisa` run.
+# Do not edit directly — durable changes belong upstream in Lisa.
+
 # PreToolUse hook for Bash: a safety net that blocks destructive shell commands
 # before they run. Lisa-native reimplementation of the upstream
 # `safety-net@cc-marketplace` plugin's PreToolUse Bash-guard (parity work,
@@ -136,7 +139,8 @@ if [ -r "$lisa_guard_dedupe_lib" ]; then
   # shellcheck source=guard-dedupe.bash
   . "$lisa_guard_dedupe_lib"
   trap 'lisa_guard_dedupe_record $?' EXIT
-  lisa_guard_dedupe parity-safety-net "$input"
+  lisa_guard_dedupe parity-safety-net "$input" \
+    "$lisa_guard_hook_dir/parity-safety-net-heredoc.py"
 fi
 
 tool_name="$(printf '%s' "$input" | jq -r '.tool_name // empty')"

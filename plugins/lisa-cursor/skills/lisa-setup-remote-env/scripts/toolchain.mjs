@@ -56,7 +56,7 @@ export function extractVersion(output) {
 /**
  * Classify one required tool against what the environment actually provides.
  * @param {object} tool Manifest entry.
- * @param {{version: string|null, present: boolean}} found Probe result.
+ * @param {{version: string|null, present: boolean, executable: boolean}} found Probe result.
  * @returns {{name: string, action: string, reason: string}} The decision.
  */
 function planRequired(tool, found) {
@@ -68,6 +68,13 @@ function planRequired(tool, found) {
         `${tool.name} is required but not present. The base image is not a ` +
         `contract — if it used to provide this, the vendor has changed it. ` +
         `Either add an install entry or pin a different image.`,
+    };
+  }
+  if (found.executable !== true) {
+    return {
+      name: tool.name,
+      action: "missing",
+      reason: `${tool.name} was found but cannot be executed. Repair its permissions or replace the binary before using it.`,
     };
   }
   if (
@@ -97,7 +104,7 @@ function planRequired(tool, found) {
  * and maintenance the same script, and it is the cheap path when a container
  * resumes from cache rather than being built fresh.
  * @param {object} tool Manifest entry.
- * @param {{version: string|null, present: boolean}} found Probe result.
+ * @param {{version: string|null, present: boolean, executable: boolean}} found Probe result.
  * @returns {{name: string, action: string, reason: string}} The decision.
  */
 function planInstallable(tool, found, pinIsFloor = false) {
@@ -108,7 +115,11 @@ function planInstallable(tool, found, pinIsFloor = false) {
       reason: `${tool.name} has no pinned version. An unpinned install is not reproducible.`,
     };
   }
-  if (found.present && found.version === tool.version) {
+  if (
+    found.present &&
+    found.executable === true &&
+    found.version === tool.version
+  ) {
     return {
       name: tool.name,
       action: "skip",
@@ -125,6 +136,7 @@ function planInstallable(tool, found, pinIsFloor = false) {
   if (
     pinIsFloor &&
     found.present &&
+    found.executable === true &&
     found.version &&
     compareVersions(found.version, tool.version) > 0
   ) {
@@ -286,10 +298,10 @@ export function appliesToSurface(tool, surface) {
  * asking about availability rather than provisioning has the answer instead of
  * having to infer one from the other.
  * @param {{require?: object[], install?: object[]}} tools Manifest.
- * @param {(name: string) => {version: string|null, present: boolean}} probe Version probe.
+ * @param {(name: string) => {version: string|null, present: boolean, executable: boolean}} probe Version probe.
  * @param {string} [surface] Surface being provisioned.
  * @param {string} [platform] Platform key to resolve install entries against.
- * @returns {Array<{name: string, action: string, reason: string, tool?: object, found?: {version: string|null, present: boolean}, unpinnedForPlatform?: boolean}>} Ordered decisions.
+ * @returns {Array<{name: string, action: string, reason: string, tool?: object, found?: {version: string|null, present: boolean, executable: boolean}, unpinnedForPlatform?: boolean}>} Ordered decisions.
  */
 export function planToolchain(
   tools,

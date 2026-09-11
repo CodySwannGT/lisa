@@ -141,9 +141,9 @@ describe("a write skill tells a bespoke path what it still owes", () => {
     // these", and an agent whose script already re-reads its own write has no
     // reason to think anything is missing.
     const text = skillText(SOURCE, triple.writer);
-    expect(text).toMatch(/proves TRANSPORT/u);
+    expect(text).toMatch(/proves (?:TRANSPORT|transport)/u);
     expect(text).toMatch(
-      /never that what was sent was any good|whether what was sent was any good/u
+      /never that what was sent was any good|whether what was sent was any good|says nothing about whether what was sent clears/u
     );
   });
 
@@ -153,11 +153,11 @@ describe("a write skill tells a bespoke path what it still owes", () => {
     // point the local script stops being the convenient option and starts
     // looking like the only one.
     const text = skillText(SOURCE, triple.writer);
-    expect(text).toContain(
-      "plugin-resident skills invoked through the Skill tool"
+    expect(text.split(/\s+/u).join(" ")).toMatch(
+      /plugin-resident(?: skills)?(?: and)? invoked through the Skill tool/u
     );
     expect(text).toMatch(
-      /will not appear in any repository's `scripts\/` directory/u
+      /(?:will not appear|not\*\* expected to appear) in any repository's `scripts\/`\s+directory/u
     );
   });
 });
@@ -165,17 +165,22 @@ describe("a write skill tells a bespoke path what it still owes", () => {
 describe("a validator is advertised as a standalone entry point", () => {
   it.each(TRIPLES)("$validator documents live-item invocation", triple => {
     const text = skillText(SOURCE, triple.validator);
-    expect(text).toContain(
-      "Standalone use, against an item that already exists"
+    expect(text).toMatch(
+      /Standalone use, against an item that already exists|Standalone entry point — validating an item written by another path/u
     );
-    expect(text).toContain(`Skill(${triple.validator}) with `);
+    expect(
+      text.includes(`Skill(${triple.validator}) with `) ||
+        text.includes(`Skill(skill: "${triple.validator}", args:`)
+    ).toBe(true);
   });
 });
 
 describe("a verify contract forbids byte-exact comparison", () => {
   it.each(TRIPLES)("$verifier rules byte comparison out", triple => {
     const text = skillText(SOURCE, triple.verifier);
-    expect(text).toContain("Comparison is semantic, never byte-exact");
+    expect(text).toMatch(
+      /Comparison (?:is|semantics —) semantic, never byte-exact/u
+    );
     // Naming the CAUSE is what stops the rule being read as fussiness and
     // re-litigated by the next author who sees a body come back different.
     expect(text).toMatch(/normalize[sd]? markdown on\s+write/u);
@@ -195,7 +200,9 @@ describe("every agent surface carries the same contract", () => {
     for (const root of GENERATED) {
       const file = path.join(REPO_ROOT, root, triple.writer, "SKILL.md");
       if (!existsSync(file)) continue;
-      expect(readFileSync(file, "utf8"), file).toContain("proves TRANSPORT");
+      expect(readFileSync(file, "utf8"), file).toMatch(
+        /proves (?:TRANSPORT|transport)/u
+      );
     }
   });
 });

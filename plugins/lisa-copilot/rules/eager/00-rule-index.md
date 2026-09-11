@@ -68,6 +68,7 @@ Paths are relative to this file.
 
 | Slug | Read it when | Body |
 |---|---|---|
+| `operational-hazards` | looking up or publishing an active operational hazard that other sessions must see | [../reference/operational-hazards.md](../reference/operational-hazards.md) |
 | `automation-runbook-contract` | registering a loop, or ending any flow with its run outcome | [../reference/automation-runbook-contract.md](../reference/automation-runbook-contract.md) |
 | `convergent-review` | reviewing a PR or resolving review findings | [../reference/convergent-review.md](../reference/convergent-review.md) |
 | `credential-substrate-precedence` | writing or editing an `*-access` skill | [../reference/credential-substrate-precedence.md](../reference/credential-substrate-precedence.md) |

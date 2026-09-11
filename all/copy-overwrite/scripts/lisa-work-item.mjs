@@ -2338,7 +2338,11 @@ function bodyText(body) {
   if (body && typeof body === "object")
     return Object.entries(body)
       .map(([key, value]) =>
-        key === "text" && typeof value === "string" ? value : bodyText(value)
+        key === "text" && typeof value === "string"
+          ? value
+          : value && typeof value === "object"
+            ? bodyText(value)
+            : ""
       )
       .join(" ");
   return "";
@@ -5307,12 +5311,14 @@ function resolvedSinceRev(since) {
 /**
  * The sentence a report owes its reader when the scan was bounded.
  * @param {string | undefined} since The bound as supplied.
- * @returns {string} A qualifying line, or the empty string when unbounded.
+ * @param {string[]} branches Selected deploy branches.
+ * @returns {string} The examined branches and optional revision bound.
  */
-function describeSinceBound(since) {
-  if (since === undefined) return "";
+function describeSinceBound(since, branches) {
+  if (since === undefined)
+    return `\nExamined deploy branches: ${branches.join(", ")}.`;
   return (
-    `\nBounded: only commits a deploy branch gained since ${since} were read, so anything ` +
+    `\nBounded: only commits ${branches.join(", ")} gained since ${since} were read, so anything ` +
     `declared before that is outside this result.`
   );
 }
@@ -5346,15 +5352,16 @@ function describeSinceBound(since) {
  * @param {string} repository `owner/name` the items belong to.
  * @param {object} contract Resolved tracker contract.
  * @param {string} [since] Revision to bound the scan after; see `sweepBound`.
+ * @param {string[]} branches Selected deploy branches.
  * @returns {{declarations: Map<number, string[]>, unresolved: string[]}} Issue
  *   number to declaring commits, and the deploy branches that resolved to
  *   nothing.
  */
-function deployedDeclarations(repository, contract, since) {
+function deployedDeclarations(repository, contract, since, branches) {
   const sinceRev = resolvedSinceRev(since);
   const declarations = new Map();
   const unresolved = [];
-  for (const branch of contract.deployBranches.keys()) {
+  for (const branch of branches) {
     const rev = resolvedBranchRev(branch);
     if (!rev) {
       unresolved.push(branch);
@@ -5388,10 +5395,7 @@ function deployedDeclarations(repository, contract, since) {
       ]);
     }
   }
-  if (
-    unresolved.length > 0 &&
-    unresolved.length === contract.deployBranches.size
-  ) {
+  if (unresolved.length > 0 && unresolved.length === branches.length) {
     throw new TrackingError(
       `no configured deploy branch resolves to a commit (${unresolved.join(", ")}), so no absence of drift can be reported.\n` +
         `Fetch them (\`git fetch origin\`) or correct \`deploy.branches\` in .lisa.config.json; ` +
@@ -5426,6 +5430,36 @@ function describeDeclarations(shas) {
   return rest > 0 ? `${shown.join(", ")}, +${rest} more` : shown.join(", ");
 }
 
+/**
+ * Select the deploy branch whose push a bounded scan describes.
+ * Unbounded manual reports retain their whole-history, all-branch scope.
+ * @param {string[]} args Command arguments.
+ * @param {object} contract Resolved tracker contract.
+ * @param {string | undefined} since Optional lower bound.
+ * @returns {string[]} The explicitly selected or safely inferred branches.
+ */
+function sweepBranches(args, contract, since) {
+  const configured = [...contract.deployBranches.keys()];
+  const index = args.indexOf("--branch");
+  const explicit = index < 0 ? undefined : args[index + 1]?.trim();
+  if (index >= 0 && (!explicit || explicit.startsWith("-"))) {
+    throw new TrackingError("--branch requires a configured deploy branch.");
+  }
+  if (explicit !== undefined) {
+    if (!configured.includes(explicit)) {
+      throw new TrackingError(`Unknown deploy branch: ${explicit}`);
+    }
+    return [explicit];
+  }
+  if (since === undefined) return configured;
+  const candidate = process.env.GITHUB_REF_NAME || currentBranch();
+  if (configured.includes(candidate)) return [candidate];
+  if (configured.length === 1) return configured;
+  throw new TrackingError(
+    "NOT DETERMINED: a bounded sweep must name the pushed deploy branch with --branch."
+  );
+}
+
 function sweep(args) {
   const contract = trackerContract();
   if (contract.provider !== "github") {
@@ -5446,10 +5480,12 @@ function sweep(args) {
     }
   }
   const since = sweepBound(args);
+  const branches = sweepBranches(args, contract, since);
   const { declarations, unresolved } = deployedDeclarations(
     repository,
     contract,
-    since
+    since,
+    branches
   );
   const apply = args.includes("--apply");
   // Named in every report, clean or not. The old clean-result sentence spoke
@@ -5487,14 +5523,14 @@ function sweep(args) {
   if (drifted === 0) {
     const examinedSummary = `Examined ${subjects.size} item(s) across ${roles.length} lifecycle role(s); no role outside ${examined} was queried.`;
     console.log(
-      `No drift: every open item carrying ${examined} is genuinely in flight.\n${examinedSummary}${describeSinceBound(since)}${describeUnresolvedBranches(unresolved)}`
+      `No drift: every open item carrying ${examined} is genuinely in flight.\n${examinedSummary}${describeSinceBound(since, branches)}${describeUnresolvedBranches(unresolved)}`
     );
     return;
   }
   if (!apply) {
     const driftHeadline = `${drifted} open item(s) carrying ${examined} are declared by a commit on a deploy branch.`;
     console.log(
-      `\n${driftHeadline} Re-run with --apply to complete them.${describeSinceBound(since)}${describeUnresolvedBranches(unresolved)}`
+      `\n${driftHeadline} Re-run with --apply to complete them.${describeSinceBound(since, branches)}${describeUnresolvedBranches(unresolved)}`
     );
   }
 }

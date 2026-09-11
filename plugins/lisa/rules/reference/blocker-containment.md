@@ -2,7 +2,7 @@
 
 > Demoted from the always-on eager tier by CodySwannGT/lisa#3992. The
 > section below is the former eager head, preserved verbatim; the full
-> contract follows it. Reachable on demand via `rules/eager/00-rule-index.md`.
+> contract follows it. Reachable on demand via [the rule index](../eager/00-rule-index.md).
 
 ## Blocker Containment (load-bearing)
 
@@ -39,7 +39,7 @@ A false negative (left blocked) costs a cycle and is visible. A false positive (
 
 ## The one carve-out: a blocker with no code
 
-A dependency need not deliver code. A blocker **closed as completed** that positively declares no code deliverable — `Target Backend Environment: None — no runtime behavior change` (doc-only / config-only / type-only), no linked PR, no merge commit — is **cleared**, because there is no artifact whose location could matter.
+A dependency need not deliver code. A blocker **closed as completed** that positively declares no code deliverable — `## Target Backend Environment` reading `None — no runtime behavior change: <kind>` (`doc-only` / `config-only` / `type-only`), no linked PR, no merge commit — is **cleared**, because there is no artifact whose location could matter.
 
 This requires a **positive determination**, never an absence. "I could not find a PR" is fail-closed under the rule above; "the item declares it ships no code" is this carve-out. Collapsing the two turns the carve-out into a universal bypass.
 
@@ -131,7 +131,7 @@ A blocker is cleared under this carve-out when **all** of the following hold:
 
 1. it is **closed as completed** (not `not planned` — see `rejection-detection`, where *not planned* is a durable decline);
 2. it **positively declares no code deliverable** — `## Target Backend Environment` reading `None — no runtime behavior change: doc-only` (or `config-only` / `type-only`), per the grammar `derived-branch-plan` already defines;
-3. it has **no linked merged PR**. If it has one, the normal containment test applies regardless of what the section declares — the code is the authority over the prose.
+3. it has **no linked PR and no merge commit**. Any linked PR requires the normal containment test regardless of what the section declares; an open or unmerged PR remains blocking — the code is the authority over the prose.
 
 This is a **positive determination, never an absence.** "I could not find a PR" is `no-pr` in the fail-closed table above. "The item declares that it ships no code" is this carve-out. Collapsing the two converts a narrow carve-out into a universal bypass, and it is the single most likely way for this rule to be implemented wrongly.
 

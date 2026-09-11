@@ -120,7 +120,7 @@ export function readRemoteEnvConfig(cwd = process.cwd()) {
  * on which quirky binaries happen to exist on the machine running the tests.
  * @param {string} name Executable name.
  * @param {Function} [exec] Command runner, for tests.
- * @returns {{version: string|null, present: boolean}} Probe result.
+ * @returns {{version: string|null, present: boolean, executable: boolean}} Probe result.
  */
 export function probe(name, exec = boundedChildOutput) {
   try {
@@ -128,12 +128,19 @@ export function probe(name, exec = boundedChildOutput) {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
     });
-    return { present: true, version: extractVersion(out) };
+    return { present: true, executable: true, version: extractVersion(out) };
   } catch (err) {
-    if (err.code === "ENOENT") return { present: false, version: null };
     if (err.code === "ETIMEDOUT") throw err;
+    // A numeric exit status proves the child started, even when --version is
+    // unsupported. EACCES and other spawn failures carry no exit status: a
+    // file being discoverable does not mean the agent can execute it.
+    const executable = typeof err.status === "number";
     const output = `${err.stdout ?? ""}${err.stderr ?? ""}`;
-    return { present: true, version: extractVersion(output) };
+    return {
+      present: err.code !== "ENOENT",
+      executable,
+      version: executable ? extractVersion(output) : null,
+    };
   }
 }
 

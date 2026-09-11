@@ -144,6 +144,17 @@ describe("block-managed-file-edits.sh reach", () => {
       ],
       ["env -i", () => `env -i bash ${redirectScript}`],
       ["env -u", () => `env -u FOO bash ${redirectScript}`],
+      ["env -S", () => `env -S 'bash ${redirectScript}'`],
+      [
+        "env --split-string",
+        () => `env --split-string 'bash ${redirectScript}'`,
+      ],
+      [
+        "env --split-string=",
+        () => `env --split-string='bash ${redirectScript}'`,
+      ],
+      ["env attached -S", () => `env -S'bash ${redirectScript}'`],
+      ["env split options", () => `env -S '-i bash ${redirectScript}'`],
       ["a bare script path behind env", () => `env ${redirectScript}`],
     ])("refuses %s inside an executed script", (_label, command) => {
       expect(run(command())).toBe(EXIT_BLOCKED);
@@ -155,6 +166,16 @@ describe("block-managed-file-edits.sh reach", () => {
 
     it("refuses a managed write inside a shell command string", () => {
       expect(run(`bash -c 'echo tampered > ${MANAGED}'`)).toBe(EXIT_BLOCKED);
+    });
+
+    it("inspects the shell command nested inside env's split string", () => {
+      expect(run(`env -S "bash -c 'echo tampered > ${MANAGED}'"`)).toBe(
+        EXIT_BLOCKED
+      );
+    });
+
+    it("allows read-only scripts reached through env's split string", () => {
+      expect(run(`env -S 'bash ${readOnlyScript}'`)).toBe(EXIT_ALLOWED);
     });
 
     it("refuses a managed write after shell -c --", () => {
