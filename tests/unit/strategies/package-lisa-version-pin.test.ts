@@ -174,6 +174,32 @@ describe("apply pins the version it is applying (#2953)", () => {
       expect((await deps(DEV_DEPENDENCIES))[LISA]).toBe("workspace:*");
       expect(result.note).toContain(APPLYING);
     });
+
+    it("reconciles a dist-tag pin instead of failing the whole apply", async () => {
+      // Raised in review. A dist-tag is the gap between the two branches above:
+      // it carries no protocol prefix, so the non-registry screen does not hold
+      // it back, and it is not a range, so asking semver for its floor THROWS —
+      // `minVersion("latest")` raises `Invalid comparator: latest` on 7.8.1.
+      //
+      // That throw does not degrade this one phase. It surfaces as a
+      // JsonMergeError out of `apply()`, so a pin spelling npm accepts takes
+      // down the entire apply, and everything the apply had left to write stops
+      // with it.
+      //
+      // Reconciling is the honest answer rather than merely the safe one: a
+      // dist-tag declares no floor at all, so it cannot be NEWER than the
+      // applying version, and the branch that would leave it alone is asking a
+      // question it has no answer to.
+      await host.writeTemplate(TYPESCRIPT, INERT_TEMPLATE);
+      await host.writeHostManifest({
+        [DEV_DEPENDENCIES]: { [LISA]: "latest" },
+      });
+
+      const result = await host.runApply({}, applyingAt());
+
+      expect((await deps(DEV_DEPENDENCIES))[LISA]).toBe(APPLYING);
+      expect(result.note).toContain(APPLYING);
+    });
   });
 
   describe("the postinstall path does not rewrite the host's manifest", () => {
