@@ -37,7 +37,8 @@
     "🔍 Quality Checks / 🗑️ Dead Code Detection",
     "🔍 Quality Checks / 🔎 Structural Rules",
     "🔍 Quality Checks / 📚 Learnings Budget",
-    "🧩 Plugin artifacts match source"
+    "🧩 Plugin artifacts match source",
+    "🔍 Quality Checks / 🧪 Run .mjs Suites"
   ],
   "skip_job_declarations": {},
   "evidence_bearing_checks": {
