@@ -4359,9 +4359,12 @@ jobs:
           node "$RESOLVER" validate
         working-directory: ${{ inputs.working_directory || '.' }}
 
-  # NO `if:`, AND NO GATE. This job is not declarable and not skippable, by the
-  # same rule that exempts `🧭 Gate Config Validity` above: a gate whose job is
-  # to detect silencing cannot itself be silenceable.
+  # NO GATE, AND NO CONDITION THAT CAN SKIP IT. This job is not declarable and
+  # not skippable, by the same rule that exempts `🧭 Gate Config Validity`
+  # above: a gate whose job is to detect silencing cannot itself be silenceable.
+  # `if: always()` below is the opposite of an off-switch. Without it the
+  # `needs:` edge would SKIP this job whenever a sibling failed or skipped, and a
+  # skipped sibling is the one thing it exists to report.
   #
   # It carried a `skipped_required_checks` skip token until #2933. #2846 read
   # the missing registry row as an oversight and proposed making it a declarable
@@ -4377,17 +4380,122 @@ jobs:
   # scripts/lisa-gates.mjs, so the next meta-gate inherits it rather than
   # re-arguing it, and `tests/integration/quality-non-declarable-jobs.test.ts`
   # refuses a skip token or a gate row for anything in that table.
+  #
+  # WHAT IT JUDGES: OUTCOMES, NOT DECLARATIONS. It used to compare `skip_jobs`
+  # TOKENS against the ruleset snapshot. `skip_jobs` was retired in favour of
+  # gate levels, which skip a job through the gate plan and leave no token, so
+  # the token arm kept printing `✅ 0 skip_jobs token(s) examined` — measured on
+  # a caller pull request that merged with a ruleset-required context
+  # `skipped`. It now `needs:` every other job, reads their results from
+  # `toJSON(needs)` (no token, no API read), and FAILS when a required context's
+  # job concluded `skipped` at the `pull-request` moment. The full argument, and
+  # what it deliberately does not examine, is the `--outcomes` section of the
+  # prover's header.
   skipped_required_checks:
     permissions:
       contents: read
     name: 🔒 Skipped Required Checks
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # Every other job in this workflow EXCEPT `lisa_identity`, so this starts
+    # only once each has concluded and its result is final. A job added to the
+    # workflow and not here fails
+    # tests/integration/skipped-required-checks-outcome-wiring.test.ts.
+    #
+    # `lisa_identity` is excluded because its own control forbids this: a job
+    # that needs the stamp must be `always()`-guarded AND unable to fail
+    # (`gate-output-names-its-lisa.test.ts`), so that the stamp can never become
+    # a merge condition. This job exists to fail. It gives up nothing: the stamp
+    # carries no `if:`, so it cannot be skipped, and a context it posted could
+    # not be silenced the way this arm is looking for. Were one required, it
+    # would be reported as NOT EXAMINED rather than counted.
+    needs:
+      [
+        workflow_contract,
+        registry_path_agreement,
+        gate_legs,
+        gate_plan,
+        declared_gates,
+        lint,
+        lint_slow,
+        typecheck,
+        verification_coverage,
+        e2e_coverage,
+        state_classification,
+        bdd_coverage,
+        learnings_budget,
+        test_unit,
+        test_mutation,
+        test_mutation_measured,
+        test_integration,
+        maestro_e2e,
+        format,
+        build,
+        gate_config_validity,
+        threshold_ratchet,
+        work_item_traceability,
+        performance_budget,
+        test_node_suites,
+        environment_reset,
+        environment_reseed,
+        dead_code,
+        conflict_markers,
+        sg_scan,
+        floor_collisions,
+        npm_security_scan,
+        sonarcloud,
+        snyk,
+        secret_scanning,
+        license_compliance,
+        security_tools_summary,
+        compliance_validation,
+        audit_logger,
+        approval_gate,
+        performance_summary,
+      ]
+    if: always()
 
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
         with:
+          persist-credentials: false
+
+      - name: 📥 Check out the prover where this repository does not ship it
+        # THE PROVER TRAVELS WITH THE WORKFLOW, NEVER WITH THE CALLER'S PIN.
+        # `quality.yml` is consumed `@main`; `scripts/` arrives by `lisa apply`
+        # at whatever version the caller pinned. A copy predating `--outcomes`
+        # ignores the flag and prints the vestigial token line as though it were
+        # a verdict — the false green this job was retargeted to stop. The
+        # workflow defines the arguments, so the code reading them has to come
+        # from the workflow's side, and the caller's `scripts/` copy is not read
+        # here at all.
+        #
+        # Two sources, one rule — take the copy that ships with THIS workflow:
+        #
+        #  - In this repository the workspace already holds it, at the template
+        #    path, at exactly the revision under test. `hashFiles` is how a
+        #    condition can ask that: it returns the empty string when nothing
+        #    matches, so this step is skipped here and a change to the prover is
+        #    proved by the pull request that makes it.
+        #  - Everywhere else it is fetched from `main`, which is the ref every
+        #    caller names in `uses:`. A caller pinning some other ref gets
+        #    `main`'s prover; the two halves are released together at `main`, so
+        #    that is the pairing to keep — and it is stated here rather than
+        #    silently assumed.
+        #
+        # `job.workflow_repository` / `job.workflow_sha` would say this exactly,
+        # and GitHub REJECTS THE WHOLE FILE for using them: they are documented
+        # on the `job` context and the expression validator does not define them
+        # (measured — the run refuses to start, with no job and no annotation
+        # beyond "workflow file issue"). Do not reintroduce them.
+        if: hashFiles('typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs') == ''
+        uses: actions/checkout@v6
+        with:
+          repository: CodySwannGT/lisa
+          ref: main
+          path: .lisa-workflow-source
+          sparse-checkout: typescript/copy-overwrite/scripts
           persist-credentials: false
 
       - name: 🔧 Setup Node.js
@@ -4396,48 +4504,83 @@ jobs:
           package-manager-cache: false
           node-version: ${{ inputs.node_version }}
 
-      - name: 🔒 Refuse a skip that silences a required check
-        # ONCE ANY JOB IS SKIPPED, AN ABSENT PROVER IS A FAILURE, NEVER A SKIP.
-        # An empty input is different: zero skipped jobs cannot silence a
-        # required context, so that case is proved directly before resolving
-        # either per-project artifact (#3385).
+      - name: 🔒 Refuse a required context that skipped
+        # AN ABSENT PROVER OR DECLARATION IS A FAILURE, NEVER A SKIP (#2933).
+        # Both used to `exit 0`, and this job reported SUCCESS after printing
+        # "skipping" on every pull request since it shipped. A later shortcut
+        # (#3385) passed without either artifact whenever `skip_jobs` was empty
+        # — which, once `skip_jobs` was retired, was every pull request: the job
+        # examined nothing and said so in green. That shortcut is gone. An empty
+        # `skip_jobs` says nothing about whether a required context skipped.
         #
-        # Both arms of this step used to `exit 0`: one for a missing script,
-        # one for a missing declaration. Lisa's own repository has neither
-        # under `scripts/`, so this job reported SUCCESS after printing
-        # "skipping" on every pull request since it shipped — on the very
-        # repository that owns the epic against gates that report satisfied
-        # without proving anything (#2933). A guard against silencing required
-        # checks that is itself silently green is the defect it exists to catch.
-        #
-        # Resolved from two places for the same reason `📐 Threshold Ratchet`
-        # above is: Lisa mirrors only 2 of the 11 copy-overwrite scripts under
-        # `scripts/`, so the in-repo template is a legitimate second address for
-        # the SAME file, not a bypass. When neither resolves for a non-empty
-        # skip list, the step FAILS and names what is missing.
+        # Every expression reaches the prover through `env:`, never spliced into
+        # `run:`. `toJSON(needs)` carries job outputs, and an output interpolated
+        # into a shell line is an injection surface.
         env:
-          SKIP_JOBS: ${{ inputs.skip_jobs }}
+          LISA_GATE_MOMENT: ${{ inputs.moment }}
+          LISA_JOB_RESULTS: ${{ toJSON(needs) }}
+          # Job id -> display name for every job in `needs:` whose name is not a
+          # runtime expression. `needs` carries results but no names, and a
+          # required context is keyed by name. The wiring test derives this from
+          # the jobs themselves and fails on drift in either direction.
+          LISA_JOB_NAMES: |
+            {
+              "workflow_contract": "🔖 Workflow Contract",
+              "registry_path_agreement": "🧭 Which Copy The Gates Ran",
+              "gate_legs": "🧮 Declared Gate Legs",
+              "gate_plan": "🗺️ Gate Preallocation Plan",
+              "lint": "🧹 Lint",
+              "lint_slow": "🐢 Slow Lint Rules",
+              "typecheck": "🔍 Type Check",
+              "verification_coverage": "✅ Verification Coverage",
+              "e2e_coverage": "🧭 E2E Route Coverage",
+              "state_classification": "🧬 State Classification",
+              "bdd_coverage": "🧾 BDD Behavior Contract",
+              "learnings_budget": "📚 Learnings Budget",
+              "test_unit": "🧪 Run Unit Tests",
+              "test_mutation": "🧬 Mutation Testing Gate",
+              "test_mutation_measured": "🧬 Did the mutation gate measure anything?",
+              "test_integration": "🧪 Run Integration Tests",
+              "maestro_e2e": "📱 Native Device Journeys",
+              "format": "📐 Check Formatting",
+              "build": "🏗️ Build",
+              "gate_config_validity": "🧭 Gate Config Validity",
+              "threshold_ratchet": "📐 Threshold Ratchet",
+              "work_item_traceability": "🔗 Work-Item Traceability",
+              "performance_budget": "⚡ Performance Budget",
+              "test_node_suites": "🧪 Run .mjs Suites",
+              "environment_reset": "♻️ Environment Reset Guard",
+              "environment_reseed": "🌱 Environment Reseed Guard",
+              "dead_code": "🗑️ Dead Code Detection",
+              "conflict_markers": "🩹 Conflict Markers",
+              "sg_scan": "🔎 Structural Rules",
+              "floor_collisions": "🧱 Security Floor Collisions",
+              "npm_security_scan": "🔒 Security Scan",
+              "sonarcloud": "🔍 Static Security Analysis",
+              "snyk": "🛡️ Supply Chain Scan",
+              "secret_scanning": "🔐 Credential Leakage",
+              "license_compliance": "📜 Licence Check",
+              "security_tools_summary": "🔒 Security Tools Summary",
+              "compliance_validation": "✅ Compliance Validation",
+              "audit_logger": "📊 Audit Logger",
+              "approval_gate": "🚦 Approval Gate",
+              "performance_summary": "⚡ Performance Summary"
+            }
         run: |
           set -eu
-          if [ -z "${SKIP_JOBS:-}" ]; then
-            echo "skip_jobs is empty; no required status check can be silenced by a skipped job."
-            exit 0
-          fi
-          script=scripts/check-skipped-required-checks.mjs
-          upstream=typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs
-          if [ ! -f "$script" ] && [ -f "$upstream" ]; then
-            echo "Using the in-repo template at $upstream; no installed copy under scripts/."
-            script="$upstream"
-          fi
+          template=typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs
+          script=".lisa-workflow-source/$template"
+          if [ -f "$template" ]; then script="$template"; fi
+          echo "Prover: $script"
           if [ ! -f "$script" ]; then
-            echo "::error title=Skipped-required-check prover missing::scripts/check-skipped-required-checks.mjs does not exist, so no skip token was compared against the ruleset's required contexts. The prover's absence is a FAILURE, never a skip — GitHub counts a skipped required check as SATISFIED, and a guard that passes because it found nothing to run with is the same false green. Run 'lisa apply' to install the Lisa-managed script."
+            echo "::error title=Skipped-required-check prover missing::$script does not exist, so no required context's outcome was examined. The prover's absence is a FAILURE, never a skip — GitHub counts a skipped required check as SATISFIED, and a guard that passes because it found nothing to run with is the same false green."
             exit 1
           fi
           if [ ! -f .github/required-checks.json ]; then
-            echo "::error title=Required-checks declaration missing::.github/required-checks.json does not exist, so this guard has no ruleset snapshot to compare skips against and cannot answer. It is create-only and Lisa ships a seed — run 'lisa apply' to get it, then transcribe your ruleset's required contexts into it. Reporting a clean bill of health from a comparison that never happened is the exact failure this gate refuses."
+            echo "::error title=Required-checks declaration missing::.github/required-checks.json does not exist, so this guard has no ruleset snapshot and cannot tell which job outcomes a merge depends on. It is create-only and Lisa ships a seed — run 'lisa apply' to get it, then transcribe your ruleset's required contexts into it. Reporting a clean bill of health from a comparison that never happened is the exact failure this gate refuses."
             exit 1
           fi
-          node "$script"
+          node "$script" --outcomes
 
   # Threshold ratchet: quality thresholds may tighten, never weaken. Compares
   # every watched gate file (coverage/e2e/eslint thresholds, stryker break,
