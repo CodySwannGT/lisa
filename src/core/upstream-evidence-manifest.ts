@@ -283,7 +283,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/nightly-e2e-policy.json":
       "a6fc52bbaa7943523fba35bd1ab51d8da4b29354bf0133b47aa299b725f51e8c",
     "expo/create-only/.github/required-checks.json":
-      "5296c296ce3f59db5e8eaebb36a1c378d4b58c2339e9343a8b29575060de230a",
+      "8d40acc337c42fbdfc55638dc4ab43b541b975270ecae8fffec9897c13a42884",
     "expo/create-only/.github/workflows/ci.yml":
       "d343dc43f290b56a1391a78489b32cbf91c79812d376f7d23fb4ad874e55bdb6",
     "expo/create-only/.github/workflows/deploy.yml":
@@ -451,7 +451,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/k6/thresholds/strict.json":
       "e121ec72de4596b95c013a8c71f03653bcdf057cf7f8d1fec6f0e13c1381867f",
     "nestjs/create-only/.github/required-checks.json":
-      "9c776b13295cd07ce18984d3fbfee5a33af5e7c2ce9045cd1cb5fc478b256634",
+      "6de377accd8355091e31ee7b3e412187d2268650ecbeb6c2cba42923c594cfc0",
     "nestjs/create-only/.github/workflows/ci.yml":
       "fb85b8dc792dfc493c532cddb305a86255c7442881653ff3a4ddb8cd25bece7e",
     "nestjs/create-only/.github/workflows/deploy.yml":
@@ -2443,7 +2443,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "edfa08472f756102c7818a840f9775c63f90eaa8c3352a49910d4586cecc2721",
+      "ac6c217111a61716a6f456446f8551902cf4506f84bc6ae3bf131bb88990262a",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -2541,7 +2541,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "cd02b94b4db5134984c7b69f905af71c96bb5aac09a18fb3c6aef5ab0c22cf17",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "a4dc97b7733e33ad32b2f3c31b0d21697b30bc6089cb3ac774414eca6fe18583",
+      "a6b8f9c355cf3bb270221547ef0f38fa1e5fcf0b89d2ab6892fab258c10da5bc",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "5806cdc3c80757100f0cd24a8cbd3c581f9a381a925f9ebdd1f4d79881e5de2a",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -2581,7 +2581,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/vitest.config.ts":
       "dc140e617db43da38f456bcc909ae621a62996fe25e7b0babd5e81941308365c",
     "typescript/create-only/.github/required-checks.json":
-      "01f5b7d8587adc21e85f525b57ac04a8143427459d95b48b616216eca54a73df",
+      "9be2f3170b7c57cad1a483752d3c882213e90f36ece677d1dd4a1b1c1c66b76a",
     "typescript/create-only/.github/workflows/ci.yml":
       "694f9b9c15f55b8f81352a054521018c1297f22c3da0dca138282ca6eff905e7",
     "typescript/create-only/.github/workflows/review-evidence.yml":
@@ -9543,6 +9543,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/shell-guard-allow-controls.test.ts": true,
     "tests/integration/shell-guard-refusals.test.ts": true,
     "tests/integration/skipped-required-checks-gate-fail-closed.test.ts": true,
+    "tests/integration/skipped-required-checks-outcome-wiring.test.ts": true,
     "tests/integration/standards-proof-fixture.ts": true,
     "tests/integration/standards-proof-rails.test.ts": true,
     "tests/integration/standards-proof-tamper.test.ts": true,
@@ -10454,6 +10455,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/shipped-surface.test.ts": true,
     "tests/unit/scripts/skipped-required-checks-wiring.test.ts": true,
     "tests/unit/scripts/skipped-required-checks.test.ts": true,
+    "tests/unit/scripts/skipped-required-outcomes.test.ts": true,
     "tests/unit/scripts/slow-lint-dead-code-enforcement.test.ts": true,
     "tests/unit/scripts/state-classification.test.ts": true,
     "tests/unit/scripts/third-party-action-pins-warn-mode.test.ts": true,

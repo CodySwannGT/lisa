@@ -15,6 +15,11 @@
  *   node scripts/check-skipped-required-checks.mjs [rootDir] [--json]
  *   node scripts/check-skipped-required-checks.mjs --vacuity [--fail-on-vacuous]
  *   node scripts/check-skipped-required-checks.mjs --pr=1234 [--repo=OWNER/NAME]
+ *   node scripts/check-skipped-required-checks.mjs --outcomes   (reads LISA_JOB_RESULTS, LISA_JOB_NAMES, LISA_GATE_MOMENT)
+ *
+ * `--outcomes` is the arm the `🔒 Skipped Required Checks` job rests its verdict
+ * on. Without it, this reports only the vestigial `skip_jobs` token arm, which
+ * is not a verdict about whether a required context skipped.
  *
  * `--vacuity` is the WIRED form of the third bullet: it resolves the pull
  * request itself (`--pr`, else the Actions event payload, else `GITHUB_REF`,
@@ -31,12 +36,78 @@
  *
  * Two of the three live here:
  *
- *  - **Skipped** (the offline arm, below): GitHub counts a `skipped`
- *    required check as SATISFIED, so a `skip_jobs` token makes the gate
- *    decorative. Static, offline, BLOCKING.
+ *  - **Skipped** (`--outcomes` arm): GitHub counts a `skipped` required check
+ *    as SATISFIED. The `🔒 Skipped Required Checks` job hands this arm every
+ *    job result of its own workflow run, and it FAILS when a ruleset-required
+ *    context's job concluded `skipped`. Offline, BLOCKING in every
+ *    enforcement mode.
  *  - **Vacuous** (`--pr` arm): the check really ran and really reported
  *    `success`, having done no work — measured on CodeRabbit posting
  *    `success — "Review rate limited"`. Live, per-PR, REPORTING ONLY.
+ *
+ * ## `--outcomes` — why the verdict rests on OUTCOMES, and the token arm is VESTIGIAL
+ *
+ * This guard used to answer "can a skip silence a required check?" by reading
+ * `skip_jobs` TOKENS out of the caller's workflow and comparing what each was
+ * declared to silence against `required_contexts`. `skip_jobs` was then retired
+ * in favour of gate levels in `.lisa.config.json`, which skip a job through the
+ * gate plan and leave no token behind. The token arm kept running and kept
+ * printing `✅ 0 skip_jobs token(s) examined; none silences a ruleset-required
+ * status check`. MEASURED on a caller repository in the portfolio: a required
+ * `🧾 BDD Behavior Contract` context concluded `skipped` on seven of its sixty
+ * most recent merges, and this job was green on every one. It was green on
+ * exactly the condition it was built to refuse, because it inspected a
+ * declaration that had moved rather than the outcome the declaration was about.
+ *
+ * So the verdict now rests on the OUTCOME — what each required context's job
+ * actually concluded in this run. That is mechanism-independent: it holds
+ * whether the skip came from a gate level, a token, or a hand-written `if:`, so
+ * it survives the next replacement of whatever silences checks. A guard that
+ * inspects a declaration is correct only until the declaration moves.
+ *
+ * The token arm is RETAINED because a caller may still pass `skip_jobs`, and an
+ * undeclared or spaced token is still worth naming. It is VESTIGIAL: its
+ * findings can only ADD failures, and its clean result prints a count — never a
+ * ✅, never a claim that nothing was silenced. On its own (no `--outcomes`) it
+ * is not a verdict about skipped required contexts, and its report says so.
+ *
+ * How the outcome arm sees results, and what it deliberately does not claim:
+ *
+ *  - **No token.** The job `needs:` every other job in `quality.yml` with
+ *    `if: always()`, so it starts once every sibling has concluded, and reads
+ *    their results from `toJSON(needs)`. Reading check runs through the API
+ *    would need `checks: read`, which callers do not grant and a called
+ *    workflow cannot request — and #3599's reduction to offline arms holds.
+ *  - **Names on the ` / ` boundary, and a prefix that says whose they are.**
+ *    `needs` carries results but no names, so the workflow carries a job id →
+ *    display name map beside it (a test derives it from the jobs). A job in a
+ *    called workflow posts `<caller job> / <job name>`, and the CALLER's job
+ *    name is not visible from inside, so a context matches a job by equality or
+ *    by a suffix bounded at ` / ` — see {@link producesContext}. A NAME MATCH IS
+ *    NOT OWNERSHIP: `Some Other Workflow / 🧹 Lint` matches the local `🧹 Lint`
+ *    while being posted by a workflow this run cannot see, and reporting the
+ *    local result for it would be a false green. So a context is judged only
+ *    under the ONE prefix this run posts — declared as
+ *    `ruleset.context_prefix`, else inferred by majority — and every other
+ *    prefix is reported NOT EXAMINED. See {@link owningPrefix}.
+ *  - **Only at `pull-request`.** Other moments skip most jobs by design and gate
+ *    no merge; see {@link MERGE_GATE_MOMENT}.
+ *  - **Only what this run posts.** An external app, another workflow, or a
+ *    matrix leg named at runtime posts a context no job here can speak for. It
+ *    is listed as NOT EXAMINED, never silently counted — GitHub records that
+ *    outcome, and this run cannot see it.
+ *  - **Refusals FAIL, in every mode.** Zero required contexts examined, an
+ *    untranscribed snapshot, or results that cannot be read each fail. "Examined
+ *    nothing" must never render like "found nothing" (see `OUTCOME_REFUSALS`).
+ *
+ * The job checks this prover out from the WORKFLOW's own repository at the
+ * workflow's own commit (`job.workflow_repository@job.workflow_sha`), never
+ * from the caller's `scripts/`. `quality.yml` is consumed at `@main`; `scripts/`
+ * arrives by `lisa apply` at whatever version the caller pinned. A caller's copy
+ * predating this arm ignores `--outcomes` and prints the vestigial token line as
+ * though it were a verdict — the false green this arm replaces. The workflow
+ * defines the arguments, so the code reading them must come from the same
+ * revision.
  *
  * ## Where this runs
  *
@@ -347,6 +418,9 @@ export const VIOLATIONS = Object.freeze({
   reviewCarried: "review_evidence_carried_unreviewed",
   reviewObjected: "review_evidence_objected",
   reviewObjectionUnread: "review_evidence_objection_unread",
+  requiredSkipped: "required_context_skipped",
+  requiredNotRun: "required_context_not_run",
+  requiredAmbiguous: "required_context_ambiguous",
 });
 
 /**
@@ -454,8 +528,20 @@ const ENFORCEMENT_MODES = Object.freeze(["error", "warn"]);
  * both that a context is ruleset-required AND that a token it actually skips
  * silences it; that is a reviewed state, and shipping past it is the exact
  * defect this file exists to refuse.
+ *
+ * The three outcome kinds block for a stronger reason still: they are not a
+ * declaration at all but an OBSERVATION. A required context whose job concluded
+ * `skipped` in this very run is the false green itself, measured; a result that
+ * cannot be read, or a context two jobs could post, is a verdict this guard
+ * cannot render, and rendering it green anyway is the collapse the outcome arm
+ * was built to stop.
  */
-const ALWAYS_BLOCKING = Object.freeze([VIOLATIONS.suppressesRequired]);
+const ALWAYS_BLOCKING = Object.freeze([
+  VIOLATIONS.suppressesRequired,
+  VIOLATIONS.requiredSkipped,
+  VIOLATIONS.requiredNotRun,
+  VIOLATIONS.requiredAmbiguous,
+]);
 
 /**
  * Violation kinds that NEVER fail the build, in any enforcement mode.
@@ -3947,15 +4033,349 @@ export function inspectVacuity(argv, declaration, options = {}) {
 }
 
 /**
+ * Selects the OUTCOME arm — the one the `🔒 Skipped Required Checks` job rests
+ * its verdict on. See the `--outcomes` section of this file's header.
+ */
+export const OUTCOMES_FLAG = "--outcomes";
+
+/**
+ * The environment the outcome arm reads, exactly as `quality.yml` sets it.
+ *
+ * Environment rather than flags because two of the three are JSON built from
+ * expressions, and `toJSON(needs)` carries job OUTPUTS. An expression spliced
+ * into a `run:` line is a shell-injection surface; placed in `env:` it is inert
+ * data.
+ *
+ *  - `results` — `toJSON(needs)`: each sibling job's final `result`.
+ *  - `names` — job id → the display name GitHub composes into the context.
+ *  - `moment` — the workflow's `moment` input.
+ */
+export const OUTCOME_ENV = Object.freeze({
+  results: "LISA_JOB_RESULTS",
+  names: "LISA_JOB_NAMES",
+  moment: "LISA_GATE_MOMENT",
+});
+
+/**
+ * The one moment whose run is the merge gate a ruleset's required checks read.
+ *
+ * Every other moment skips most jobs BY DESIGN — a `continuous:dev` caller wants
+ * its E2E gates and nothing else — and gates no merge. Judging those runs would
+ * redden every nightly over a skip no pull request can merge on, and a gate that
+ * is red every night gets deleted rather than read.
+ */
+export const MERGE_GATE_MOMENT = "pull-request";
+
+/**
+ * Job results that show the job was scheduled to run.
+ *
+ * `failure` and `cancelled` are here rather than in a finding: GitHub does NOT
+ * count either as satisfying a required check, so the context already blocks
+ * the merge by itself. This arm exists for the one result GitHub DOES count as
+ * satisfied while proving nothing.
+ */
+const OUTCOMES_THAT_RAN = Object.freeze(["success", "failure", "cancelled"]);
+
+/**
+ * Why the outcome arm rendered no verdict, as stable tokens.
+ *
+ * Each one FAILS, in every enforcement mode. `warn` exists so a fresh install
+ * does not redden on hygiene findings; it is not a licence to print "examined
+ * nothing" in the shape of "found nothing", because that collapse is how this
+ * job came to be green over a skipped required context.
+ */
+export const OUTCOME_REFUSALS = Object.freeze({
+  untrusted: "outcomes_snapshot_untrusted",
+  unreadable: "outcomes_results_unreadable",
+  examinedNothing: "outcomes_examined_nothing",
+});
+
+/**
+ * Whether a job with this display name posts this required context.
+ *
+ * A job in a called workflow posts `<caller job name> / <job name>`, and the
+ * caller's job name is not visible from inside the called workflow without a
+ * token. So the match is exact equality OR a suffix bounded by the ` / `
+ * separator: `🧹 Lint` matches `🔍 Quality Checks / 🧹 Lint` and never
+ * `🔍 Quality Checks / 🐢 Slow Lint Rules`, and a bare `Lint` never matches
+ * `Slow Lint`. Two job names that could both match one context are refused as
+ * ambiguous by {@link evaluateRequiredOutcomes} rather than resolved by guessing.
+ *
+ * NAME MATCHING ALONE IS NOT OWNERSHIP, and this function is deliberately only
+ * half the rule — see {@link owningPrefix}. `Some Other Workflow / 🧹 Lint`
+ * satisfies this test against the local `🧹 Lint` job while being posted by a
+ * workflow this run cannot see, and reporting the local result for it is a
+ * FALSE GREEN of exactly the kind this file exists to refuse.
+ *
+ * @param {string} jobName - The job's display name
+ * @param {string} context - A required context, verbatim
+ * @returns {boolean} True when the job's NAME matches that context
+ */
+export function producesContext(jobName, context) {
+  return context === jobName || context.endsWith(` / ${jobName}`);
+}
+
+/**
+ * The prefix of a context matched by name, or `""` for an unprefixed match.
+ *
+ * @param {string} context - A required context
+ * @param {string} jobName - The job name that matched it
+ * @returns {string} The caller-job prefix the context carries
+ */
+function prefixOf(context, jobName) {
+  return context === jobName
+    ? ""
+    : context.slice(0, context.length - jobName.length - " / ".length);
+}
+
+/**
+ * Which caller-job prefix this run OWNS, and how that was decided.
+ *
+ * The problem it solves: every context this run posts carries one prefix — the
+ * caller's job name — and a context carrying any OTHER prefix belongs to a
+ * workflow this run cannot see, even when its trailing segment happens to equal
+ * a local job name. Matching on the name alone would report a local job's result
+ * for somebody else's check.
+ *
+ * Two ways to know the prefix, in order:
+ *
+ *  1. **Declared.** `ruleset.context_prefix` in the per-repo declaration, when
+ *     present, is the caller's job name as transcribed by whoever transcribed
+ *     the contexts. Exact, and nothing is inferred.
+ *  2. **Inferred, by majority.** This workflow posts a context for every gate —
+ *     dozens — while another workflow contributes one or two. So the prefix
+ *     accounting for the MOST required contexts is this run's. A tie is not
+ *     resolved: with no majority there is no evidence, and every matched context
+ *     is reported NOT EXAMINED rather than attributed by coin-toss.
+ *
+ * The failure direction is what makes the inference acceptable: a context whose
+ * prefix is not the chosen one is never examined and never claimed, so being
+ * wrong costs coverage that is reported as missing — never a green over a check
+ * nobody read.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {ReadonlyArray<{context: string, prefix: string}>} matches - Name matches
+ * @returns {{prefix: string|null, source: string}} The owning prefix, and why
+ */
+export function owningPrefix(declaration, matches) {
+  const declared = declaration.ruleset?.context_prefix;
+  if (typeof declared === "string" && declared.trim() !== "") {
+    return { prefix: declared, source: "declared in `ruleset.context_prefix`" };
+  }
+  const counts = new Map();
+  for (const { prefix } of matches) {
+    counts.set(prefix, (counts.get(prefix) ?? 0) + 1);
+  }
+  if (counts.size === 0) return { prefix: null, source: "no context matched" };
+  const ranked = [...counts.entries()].sort(
+    (left, right) => right[1] - left[1]
+  );
+  const [[prefix, top]] = ranked;
+  if (ranked.length > 1 && ranked[1][1] === top) {
+    return {
+      prefix: null,
+      source: `two prefixes match ${top} context(s) each, so which one this run posts is not evidenced`,
+    };
+  }
+  return {
+    prefix,
+    source: `inferred from ${top} of ${matches.length} matched context(s)`,
+  };
+}
+
+/**
+ * Judges each required context by what its job DID in this run.
+ *
+ * Pure: the whole verdict is a function of the snapshot, the results and the
+ * names, so every branch is testable without a workflow run.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {Record<string, {result?: string}>} results - `toJSON(needs)`, parsed
+ * @param {Record<string, string>} names - Job id → display name
+ * @returns {{examined: {context: string, job: string, result: string}[], notExamined: string[], violations: object[], prefix: {prefix: string|null, source: string}}} What was judged, what could not be seen, the findings, and whose contexts it judged
+ */
+export function evaluateRequiredOutcomes(declaration, results, names) {
+  const required = Array.isArray(declaration.required_contexts)
+    ? declaration.required_contexts
+    : [];
+  // TWO PASSES, and the first one is the ownership rule. A name match says a
+  // context COULD be this job's; only the prefix says it IS. See `owningPrefix`.
+  const matched = required.flatMap(context => {
+    const jobs = Object.keys(names).filter(job =>
+      producesContext(names[job], context)
+    );
+    return jobs.length === 0
+      ? []
+      : [{ context, jobs, prefix: prefixOf(context, names[jobs[0]]) }];
+  });
+  const prefix = owningPrefix(declaration, matched);
+  const owned = new Map(
+    matched
+      .filter(match => prefix.prefix !== null && match.prefix === prefix.prefix)
+      .map(match => [match.context, match.jobs])
+  );
+
+  const examined = [];
+  const notExamined = [];
+  const violations = [];
+  for (const context of required) {
+    const jobs = owned.get(context) ?? [];
+    if (jobs.length === 0) {
+      notExamined.push(context);
+      continue;
+    }
+    if (jobs.length > 1) {
+      violations.push({
+        kind: VIOLATIONS.requiredAmbiguous,
+        token: context,
+        contexts: [context],
+        message: `\`${context}\` is ruleset-required and could be posted by more than one job in this run (${jobs.map(job => `\`${job}\``).join(", ")}). Which outcome it carries cannot be decided without guessing, so it is refused rather than resolved. Rename a job so that no display name ends in \` / \` followed by another.`,
+      });
+      continue;
+    }
+    const [job] = jobs;
+    const result = String(results[job]?.result ?? "");
+    examined.push({ context, job, result });
+    violations.push(...outcomeViolations(context, job, result));
+  }
+  return { examined, notExamined, violations, prefix };
+}
+
+/**
+ * Findings for one examined required context.
+ *
+ * @param {string} context - Required context
+ * @param {string} job - The job that posts it
+ * @param {string} result - That job's result in this run
+ * @returns {object[]} Zero or one violation
+ */
+function outcomeViolations(context, job, result) {
+  if (result === "skipped") {
+    return [
+      {
+        kind: VIOLATIONS.requiredSkipped,
+        token: context,
+        contexts: [context],
+        message: `\`${context}\` is ruleset-required and its job \`${job}\` concluded \`skipped\`. GitHub counts a SKIPPED required status check as SATISFIED, so this pull request can merge on a check that ran zero steps. The mechanism does not change the outcome — a gate declared \`off\` at this moment, a \`skip_jobs\` token and a job condition all leave the same false green. Run the gate, or de-require the context in the ruleset and re-transcribe \`required_contexts\`.`,
+      },
+    ];
+  }
+  if (OUTCOMES_THAT_RAN.includes(result)) return [];
+  return [
+    {
+      kind: VIOLATIONS.requiredNotRun,
+      token: context,
+      contexts: [context],
+      message: `\`${context}\` is ruleset-required, but this run holds no readable result for its job \`${job}\` (read ${JSON.stringify(result)}). A result nobody can read is not evidence that the check ran, so it is refused rather than assumed. The job is most likely missing from the \`needs:\` of \`🔒 Skipped Required Checks\`.`,
+    },
+  ];
+}
+
+/**
+ * Parses the two JSON inputs, refusing anything that is not a plain object.
+ *
+ * @param {Record<string, string|undefined>} env - Environment
+ * @returns {{results?: Record<string, {result?: string}>, names?: Record<string, string>, error?: string}} The parsed inputs, or why they could not be read
+ */
+function readOutcomeEnv(env) {
+  const parsed = {};
+  for (const key of ["results", "names"]) {
+    const variable = OUTCOME_ENV[key];
+    let value;
+    try {
+      value = JSON.parse(String(env[variable] ?? ""));
+    } catch {
+      return {
+        error: `\`${variable}\` is not JSON, so no job result could be read. The \`🔒 Skipped Required Checks\` job sets it; outside that job \`${OUTCOMES_FLAG}\` has nothing to judge.`,
+      };
+    }
+    if (value === null || typeof value !== "object" || Array.isArray(value)) {
+      return {
+        error: `\`${variable}\` parsed to ${JSON.stringify(value)}, not an object keyed by job id.`,
+      };
+    }
+    parsed[key] = value;
+  }
+  const names = Object.values(parsed.names);
+  if (names.length === 0 || names.some(name => typeof name !== "string")) {
+    return {
+      error: `\`${OUTCOME_ENV.names}\` must map at least one job id to its display name, and every name must be a string.`,
+    };
+  }
+  return parsed;
+}
+
+/**
+ * The OUTCOME arm: did each ruleset-required context this run posts actually run?
+ *
+ * @param {ReadonlyArray<string>} argv - CLI arguments
+ * @param {object} declaration - The per-repo declaration
+ * @param {{env?: Record<string, string|undefined>, trust?: {trusted: boolean, reason: string}}} [options] - Environment and snapshot trust
+ * @returns {{moment: string, applicable: boolean, examined: object[], notExamined: string[], violations: object[], refusal: {kind: string, reason: string}|null}|undefined} The inspection, or undefined when `--outcomes` was not passed
+ */
+export function inspectOutcomes(argv, declaration, options = {}) {
+  if (!argv.includes(OUTCOMES_FLAG)) return undefined;
+  const env = options.env ?? process.env;
+  const moment = String(env[OUTCOME_ENV.moment] ?? "").trim();
+  const base = {
+    moment,
+    applicable: true,
+    examined: [],
+    notExamined: [],
+    violations: [],
+    refusal: null,
+  };
+  if (moment !== "" && moment !== MERGE_GATE_MOMENT) {
+    return { ...base, applicable: false };
+  }
+  /**
+   * @param {string} kind - One of `OUTCOME_REFUSALS`
+   * @param {string} reason - Why nothing was judged
+   * @returns {object} The refused inspection
+   */
+  const refuse = (kind, reason) => ({ ...base, refusal: { kind, reason } });
+  if (moment === "") {
+    return refuse(
+      OUTCOME_REFUSALS.unreadable,
+      `\`${OUTCOME_ENV.moment}\` is empty, so this cannot tell whether this run is the \`${MERGE_GATE_MOMENT}\` run a merge is gated on. Refused rather than assumed either way.`
+    );
+  }
+  if (options.trust?.trusted === false) {
+    return refuse(
+      OUTCOME_REFUSALS.untrusted,
+      "`required_contexts` has never been transcribed from a live ruleset (see NOT CHECKED above), so which job results a merge depends on is unknown. Examining no required context is not the same as finding none skipped."
+    );
+  }
+  const read = readOutcomeEnv(env);
+  if (read.error !== undefined) {
+    return refuse(OUTCOME_REFUSALS.unreadable, read.error);
+  }
+  const evaluated = evaluateRequiredOutcomes(
+    declaration,
+    read.results,
+    read.names
+  );
+  const refusal =
+    evaluated.examined.length > 0
+      ? null
+      : {
+          kind: OUTCOME_REFUSALS.examinedNothing,
+          reason: `Not one of the ${evaluated.notExamined.length} context(s) in \`required_contexts\` was judged, so no outcome was examined, and a guard that examined nothing must not render like one that found nothing. Either no context this workflow posts is in the snapshot — transcribe the real ruleset — or the contexts were renamed, or this run does not own their prefix (${evaluated.prefix.source}). Names are matched byte for byte on the \` / \` boundary, and a context is judged only under the prefix this run posts; \`ruleset.context_prefix\` states that prefix outright.`,
+        };
+  return { ...base, ...evaluated, refusal };
+}
+
+/**
  * Runs the guard.
  *
  * Every arm is OFFLINE. There is no network read and no token anywhere in this
  * path: the required-context rules answer from the committed snapshot when
- * {@link snapshotTrust} believes it, and refuse when it does not.
+ * {@link snapshotTrust} believes it, and refuse when it does not. The outcome
+ * arm reads job results the workflow hands it through the environment.
  *
  * @param {ReadonlyArray<string>} argv - CLI arguments
- * @param {object} [options] - Injection seams forwarded to {@link inspectVacuity}
- * @returns {{violations: object[], checked: number, tokens: string[], enforcement: string, trust: {trusted: boolean, reason: string}, recipe: string, pr: string|undefined, evidenceChecked: number, vacuity: object|undefined}} The result
+ * @param {object} [options] - Injection seams forwarded to {@link inspectVacuity}; `env` also reaches {@link inspectOutcomes}
+ * @returns {{violations: object[], checked: number, tokens: string[], enforcement: string, trust: {trusted: boolean, reason: string}, recipe: string, pr: string|undefined, evidenceChecked: number, vacuity: object|undefined, outcomes: object|undefined}} The result
  */
 export function runGuard(argv, options = {}) {
   if (argv.includes(RETIRED_REMOTE_FLAG)) {
@@ -3991,6 +4411,16 @@ export function runGuard(argv, options = {}) {
   });
   if (vacuity !== undefined) violations.push(...vacuity.violations);
 
+  // The OUTCOME arm, which the CI job's verdict rests on. Its findings are
+  // ALWAYS_BLOCKING and its refusal fails in every mode, so nothing the
+  // vestigial token arm above reports — clean or otherwise — can turn its red
+  // into a pass.
+  const outcomes = inspectOutcomes(argv, declaration, {
+    env: options.env,
+    trust,
+  });
+  if (outcomes !== undefined) violations.push(...outcomes.violations);
+
   return {
     violations,
     checked: result.checked,
@@ -4003,6 +4433,7 @@ export function runGuard(argv, options = {}) {
     verdict: vacuity?.verdict,
     waiveRate: vacuity?.waiveRate,
     vacuity,
+    outcomes,
   };
 }
 
@@ -4120,7 +4551,7 @@ export function violationBlocks(violation, policy) {
  *
  * @param {object} result - Guard result
  * @param {object} policy - Active CLI policy
- * @returns {{blocking: object[], refusal: object|null, refusalBlocks: boolean, failed: boolean}} CLI outcome
+ * @returns {{blocking: object[], refusal: object|null, refusalBlocks: boolean, outcomesRefusal: object|null, failed: boolean}} CLI outcome
  */
 function cliOutcome(result, policy) {
   const blocking = result.violations.filter(violation =>
@@ -4129,11 +4560,14 @@ function cliOutcome(result, policy) {
   const refusal = result.vacuity?.refusal ?? null;
   const refusalBlocks =
     refusal !== null && (!policy.warnOnly || policy.requireReviewEvidence);
+  // Unconditional: see OUTCOME_REFUSALS for why `warn` cannot downgrade it.
+  const outcomesRefusal = result.outcomes?.refusal ?? null;
   const failed =
     blocking.length > 0 ||
     (!result.trust.trusted && !policy.warnOnly) ||
-    refusalBlocks;
-  return { blocking, refusal, refusalBlocks, failed };
+    refusalBlocks ||
+    outcomesRefusal !== null;
+  return { blocking, refusal, refusalBlocks, outcomesRefusal, failed };
 }
 
 /**
@@ -4202,7 +4636,7 @@ function appendSnapshotRefusal(lines, result, policy) {
     ""
   );
   process.stderr.write(
-    `::${policy.warnOnly ? "warning" : "error"} title=Skipped-required checks NOT CHECKED::${result.trust.reason.split("\n")[0]}\n`
+    `::${policy.warnOnly && result.outcomes?.applicable !== true ? "warning" : "error"} title=Skipped-required checks NOT CHECKED::${result.trust.reason.split("\n")[0]}\n`
   );
 }
 
@@ -4243,8 +4677,12 @@ function appendCleanResult(lines, result, refusal) {
     return;
   }
 
+  // VESTIGIAL, and worded so it cannot be read as a verdict. This line used to
+  // be `✅ … none silences a ruleset-required status check`, and it printed
+  // exactly that, over zero tokens, on a pull request that merged with a
+  // required context skipped. The count is real; the count is all it may claim.
   lines.push(
-    `✅ ${result.checked} \`skip_jobs\` token(s) examined; none silences a ruleset-required status check.`
+    `ℹ️ ${result.checked} \`skip_jobs\` token(s) examined by the VESTIGIAL declaration arm. \`skip_jobs\` is retired, so this is NOT a verdict that no required context was skipped — only the outcome arm (\`${OUTCOMES_FLAG}\`, run by the \`🔒 Skipped Required Checks\` job) observes that.`
   );
   if (result.pr === undefined) return;
   const settleNote =
@@ -4254,6 +4692,18 @@ function appendCleanResult(lines, result, refusal) {
   lines.push(
     `✅ ${result.evidenceChecked} evidence-bearing check(s) examined on PR #${result.pr}; each proved it did work.${settleNote}`
   );
+}
+
+/**
+ * What a finding count was counted across, naming both arms when both ran.
+ *
+ * @param {object} result - Guard result
+ * @returns {string} The scope phrase
+ */
+function findingScope(result) {
+  const tokens = `${result.checked} \`skip_jobs\` token(s)`;
+  if (result.outcomes?.applicable !== true) return tokens;
+  return `${result.outcomes.examined.length} required-context outcome(s) and ${tokens}`;
 }
 
 /**
@@ -4267,7 +4717,7 @@ function appendCleanResult(lines, result, refusal) {
  */
 function appendFindingReport(lines, result, policy, blocking) {
   lines.push(
-    `${blocking.length > 0 ? "❌" : "⚠️"} ${result.violations.length} violation(s) across ${result.checked} \`skip_jobs\` token(s):`,
+    `${blocking.length > 0 ? "❌" : "⚠️"} ${result.violations.length} violation(s) across ${findingScope(result)}:`,
     ""
   );
   for (const violation of result.violations) {
@@ -4348,6 +4798,93 @@ function appendReviewWaiverGuidance(lines) {
 }
 
 /**
+ * Appends what the outcome arm examined, what it could not see, and why it
+ * refused — so "examined and found nothing" never reads like "examined nothing".
+ *
+ * @param {string[]} lines - Report lines
+ * @param {object|undefined} outcomes - The outcome inspection
+ * @returns {void}
+ */
+function appendOutcomeReport(lines, outcomes) {
+  if (outcomes === undefined) return;
+  if (!outcomes.applicable) {
+    lines.push(
+      `ℹ️ **Outcome arm not applicable** — this run's gate moment is \`${outcomes.moment}\`. A ruleset's required checks gate a merge from the \`${MERGE_GATE_MOMENT}\` run; this run gates none, so NOT ONE required context was examined here, and nothing in this report is a verdict about a pull request.`,
+      ""
+    );
+    return;
+  }
+  appendOutcomeRefusal(lines, outcomes.refusal);
+  appendExaminedOutcomes(lines, outcomes);
+  appendUnexaminedContexts(lines, outcomes.notExamined);
+}
+
+/**
+ * Appends and annotates an outcome inspection that judged nothing.
+ *
+ * @param {string[]} lines - Report lines
+ * @param {{kind: string, reason: string}|null} refusal - The refusal, if any
+ * @returns {void}
+ */
+function appendOutcomeRefusal(lines, refusal) {
+  if (refusal === null) return;
+  lines.push(
+    `⛔ **NOT EXAMINED** (\`${refusal.kind}\`) — the outcome arm judged no required context, and will not report that none was skipped. This FAILS in every enforcement mode.`,
+    "",
+    refusal.reason,
+    ""
+  );
+  process.stderr.write(
+    `::error title=${refusal.kind}::${refusal.reason.split("\n")[0]}\n`
+  );
+}
+
+/**
+ * Appends every examined required context with the result its job reported.
+ *
+ * @param {string[]} lines - Report lines
+ * @param {{examined: {context: string, job: string, result: string}[], violations: object[]}} outcomes - The outcome inspection
+ * @returns {void}
+ */
+function appendExaminedOutcomes(lines, outcomes) {
+  if (outcomes.examined.length === 0) return;
+  const count = outcomes.examined.length;
+  const findings = outcomes.violations.length;
+  const owned =
+    outcomes.prefix?.prefix === undefined || outcomes.prefix?.prefix === null
+      ? ""
+      : ` Contexts judged are those this run posts, under the prefix ${JSON.stringify(outcomes.prefix.prefix)} (${outcomes.prefix.source}); any other prefix belongs to a workflow this run cannot see.`;
+  lines.push(
+    findings === 0
+      ? `✅ ${count} ruleset-required context(s) examined against this run's job results; none was skipped.${owned}`
+      : `❌ ${count} ruleset-required context(s) examined against this run's job results; ${findings} did not prove it ran (see the violations below).${owned}`,
+    "",
+    ...outcomes.examined.map(
+      ({ context, job, result }) =>
+        `- \`${context}\` ← job \`${job}\`: \`${result || "(no result)"}\``
+    ),
+    ""
+  );
+}
+
+/**
+ * Appends the required contexts no job in this run posts.
+ *
+ * @param {string[]} lines - Report lines
+ * @param {ReadonlyArray<string>} notExamined - Contexts this run cannot see
+ * @returns {void}
+ */
+function appendUnexaminedContexts(lines, notExamined) {
+  if (notExamined.length === 0) return;
+  lines.push(
+    `Not examined — ${notExamined.length} required context(s) this run does not post: an external app, another workflow (including one whose job name matches a local one but whose prefix says it is not this run's), or a matrix leg named at runtime. GitHub records their outcomes; this run cannot see them and makes no claim about them.`,
+    "",
+    ...notExamined.map(context => `- \`${context}\``),
+    ""
+  );
+}
+
+/**
  * Builds the complete human-readable report.
  *
  * @param {object} result - Guard result
@@ -4360,6 +4897,7 @@ function buildTextReport(result, policy, outcome) {
   appendVerdictReport(lines, result);
   appendSnapshotRefusal(lines, result, policy);
   appendInspectionRefusal(lines, outcome);
+  appendOutcomeReport(lines, result.outcomes);
   if (result.violations.length === 0) {
     appendCleanResult(lines, result, outcome.refusal);
   } else {

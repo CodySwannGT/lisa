@@ -69,10 +69,6 @@
       "decision": "not-needed",
       "reason": "Unreachable outside this repository, and ratified above on that ground: the step tests for two paths that co-exist only here, and every consumer takes the else arm and runs the prover from the PACKAGE channel, whose vintage is their declared dependency version. There is no delivered artifact at this path for a consumer to hold a stale copy of — which is why the detection is `unchecked` rather than a measured negative."
     },
-    "quality.yml::scripts/check-skipped-required-checks.mjs": {
-      "decision": "warranted",
-      "reason": "Verdict-bearing required gate: it compares skip tokens against the ruleset's required contexts, and the step states that its absence is a failure precisely because a skipped required check reads as satisfied. A superseded copy comparing against a stale notion of the required set is the same false green arriving by the other door. The artifact exports no contract version yet; recorded as an open obligation rather than exempted."
-    },
     "quality.yml::scripts/check-state-classification.mjs": {
       "decision": "warranted",
       "reason": "Verdict-bearing required gate whose subject is classification itself — it decides which states a change is allowed to leave behind. A copy behind a classification change enforces the superseded taxonomy and names states that no longer mean what it thinks. The artifact exports no contract version yet; recorded as an open obligation rather than exempted."
@@ -99,13 +95,13 @@
   },
   "inspected": {
     "workflows": 23,
-    "steps": 777,
-    "couplings": 34,
+    "steps": 778,
+    "couplings": 33,
     "inventory": 78
   },
   "counts": {
     "package-backed": 10,
-    "apply-lagged": 22,
+    "apply-lagged": 21,
     "never-delivered": 0,
     "undelivered": 2
   },
@@ -113,13 +109,13 @@
     "version-handshake": 4,
     "capability-probe": 0,
     "existence-only": 4,
-    "no-probe": 14,
+    "no-probe": 13,
     "unchecked": 2
   },
   "decisionCounts": {
     "handshake": 4,
     "not-needed": 11,
-    "warranted": 9
+    "warranted": 8
   },
   "couplings": [
     {
@@ -483,30 +479,6 @@
       "reason": "Unreachable outside this repository, and ratified above on that ground: the step tests for two paths that co-exist only here, and every consumer takes the else arm and runs the prover from the PACKAGE channel, whose vintage is their declared dependency version. There is no delivered artifact at this path for a consumer to hold a stale copy of — which is why the detection is `unchecked` rather than a measured negative.",
       "lanes": [],
       "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-learnings-budget.ts` from the CALLER's tree, and Lisa ships no such path in any delivery lane — no apply and no bump ever produces it. Either the consumer authors it, or whatever the step does where the path is missing runs instead — and that branch is the part this scan does not read. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-nonzero`, `error-annotation`, `failure-suppression` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `unchecked`. Lisa delivers nothing at this path, so there is no artifact to ask whether it could answer a version. The staleness half is UNKNOWN here — not current, and not probe-less. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
-    },
-    {
-      "key": "quality.yml::scripts/check-skipped-required-checks.mjs",
-      "workflow": "quality.yml",
-      "path": "scripts/check-skipped-required-checks.mjs",
-      "channel": "apply",
-      "verdict": "apply-lagged",
-      "remedy": "run-lisa-apply",
-      "guarded": false,
-      "handling": [
-        "exit-zero",
-        "exit-nonzero",
-        "error-annotation"
-      ],
-      "detection": "no-probe",
-      "stalenessSignals": [
-        "workflow-requests-version"
-      ],
-      "decision": "warranted",
-      "reason": "Verdict-bearing required gate: it compares skip tokens against the ruleset's required contexts, and the step states that its absence is a failure precisely because a skipped required check reads as satisfied. A superseded copy comparing against a stale notion of the required set is the same false green arriving by the other door. The artifact exports no contract version yet; recorded as an open obligation rather than exempted.",
-      "lanes": [
-        "typescript/copy-overwrite"
-      ],
-      "detail": "`quality.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/check-skipped-required-checks.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `exit-zero`, `exit-nonzero`, `error-annotation` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. Tokens found: `workflow-requests-version`. `workflow-requests-version` is workflow-scoped — it does not say THIS step asks."
     },
     {
       "key": "quality.yml::scripts/check-state-classification.mjs",
