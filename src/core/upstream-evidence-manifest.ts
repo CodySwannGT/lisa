@@ -676,14 +676,6 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "40bd1be7ea08056f682db6fa90b6fa4829c39489bcebe793f25666c1013cc34a",
     "plugins/src/base/commands/pull-request/review.md":
       "e7546dabe52d5820dd17fc63ff9594e929db28551739b4cc3b3dedad3d81280c",
-    "plugins/src/base/commands/qa-checklist.md":
-      "2c7b7907b591934db96bfe10807bbdc92213e7bd7cac220d6cdc3447d872611b",
-    "plugins/src/base/commands/qa-clear.md":
-      "e5c32d777b77ce49e446f7f57a84473e83fe1570e9df252401a1451f297ee690",
-    "plugins/src/base/commands/qa-fail.md":
-      "38acfd411b326dbdbace098defa0cec97e6e8cbd0856dc09e607fd00d1285cf4",
-    "plugins/src/base/commands/qa-queue.md":
-      "64f2561b1c03a5fbc5bc7ad9af45ebd4aea46e90a3f410b2cbeb2f4d6b738d0e",
     "plugins/src/base/commands/queue-status.md":
       "a25e04e58e824e884334affa6f1e7666a0787007d3e94ca17e6088ef949fa716",
     "plugins/src/base/commands/repair-intake.md":
@@ -1043,7 +1035,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/lifecycle-label-trust.mjs":
       "0a9892890da6011733bf9b1186fbe936253c2796c4ac448f1a55f63b8daaa154",
     "plugins/src/base/scripts/linear-state-write-target.mjs":
-      "2c06525345b47a93e8ad75566d4a7d0cac6850ce30cf0481120ad88146d4c220",
+      "71cee45d5d88e6e5065cbf10542acddc4a2a521484801ae1c2ad215d65daa392",
     "plugins/src/base/scripts/plugin-sync-explain.mjs":
       "17cc7dde8f269b0cbc848c6385d6630a5926327c24e5769b2a16ed7d6aba2d76",
     "plugins/src/base/scripts/pr-arming-sweep.mjs":
@@ -1051,7 +1043,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/project-ideation-idempotency-harness.mjs":
       "5722de5c53efb033051442f965d0873beb9cdb18aa1d3f5cd82151b5fb9ed529",
     "plugins/src/base/scripts/qa-signal-lifecycle.mjs":
-      "cac08b00ffbd89a21e4ca62618aaf1fe8828afe56e63ed67a0eaafcca41bc6c2",
+      "504ea3532f02bdd6e1f7528c3e991d4f2c6203a0a554572a08702be8566ac475",
     "plugins/src/base/scripts/queue-contract-resolution.mjs":
       "5944dd862f949155db1f4e43279041407dc2c920723cee808fa353dc0bdd2c6e",
     "plugins/src/base/scripts/queue-health-classification.mjs":
@@ -1065,7 +1057,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/repo-scope-vocabulary-audit.mjs":
       "bed0f0b8a43146dbe222c657d6b58494c3962d1bb627bf0591d4b37102de972f",
     "plugins/src/base/scripts/resolve-lifecycle-role.mjs":
-      "129e90e66daf68ed676ac6f4c48b0375f28a129c10fa1cfe7524c38d2f0d1f80",
+      "e92b2904bb6d4404f4260fe03abea860edbb0f6ae8198d52cc94c69830a3f2c8",
     "plugins/src/base/scripts/rollup-blocker-classification.mjs":
       "469a686938ac319f2c700840913ec067970494938edeb55cdf491cc88231f1d5",
     "plugins/src/base/scripts/scoping-label-audit.mjs":
@@ -1227,7 +1219,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
       "73624a3f94954c414c000d734a52a45528674afbeb43936ec746ea7591e10760",
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
-      "54ca063364be1104984a700652d9fa8df8f0554f9379e7e97b5f751a3692558d",
+      "b15ced1f5edd339519a02b8dc7c127fcc7d22bc4e3fe20dee268efe20961ecc6",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "e63ae35df1a928dac7b42535ce11e77e8c617e60838ba319f22081400e87886e",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
@@ -1318,14 +1310,6 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "362835db13cb8f73179754bce427d0f7caef7738a575aa5b936a0383b7f81078",
     "plugins/src/base/skills/lisa-pull-request-review/SKILL.md":
       "10bb42cba995cdd6b945efd6ef3d48578860b9d09c94aefd17c298b53aed5053",
-    "plugins/src/base/skills/lisa-qa-checklist/SKILL.md":
-      "da1de96ada92d18f5f6b57e2751b95d5da28a6505debdb7ccd823b95bdd1405b",
-    "plugins/src/base/skills/lisa-qa-clear/SKILL.md":
-      "127f67dcd701d6ae82ccecc755c436e249599d5c7d633aa88b4773cb357bd2cb",
-    "plugins/src/base/skills/lisa-qa-fail/SKILL.md":
-      "e7704f635470f3d1ee8ce06fd190ca8f72792457bf4087f8075017e22b00b61f",
-    "plugins/src/base/skills/lisa-qa-queue/SKILL.md":
-      "98a671e3e101c7533745e191307bad7b41da5a93350c089ba77829b0845cb808",
     "plugins/src/base/skills/lisa-quality-review/SKILL.md":
       "774c290f702842f8f751dcdf0e28e74b54e8efa299194c4a29475355da8c22e2",
     "plugins/src/base/skills/lisa-queue-status/SKILL.md":
@@ -3640,10 +3624,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/commands/lisa/product-walkthrough.md": true,
     "plugins/lisa-agy/commands/lisa/project-ideation.md": true,
     "plugins/lisa-agy/commands/lisa/pull-request/review.md": true,
-    "plugins/lisa-agy/commands/lisa/qa-checklist.md": true,
-    "plugins/lisa-agy/commands/lisa/qa-clear.md": true,
-    "plugins/lisa-agy/commands/lisa/qa-fail.md": true,
-    "plugins/lisa-agy/commands/lisa/qa-queue.md": true,
     "plugins/lisa-agy/commands/lisa/queue-status.md": true,
     "plugins/lisa-agy/commands/lisa/repair-intake.md": true,
     "plugins/lisa-agy/commands/lisa/research.md": true,
@@ -3847,10 +3827,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-project-ideation/examples/public-external-inspiration.md": true,
     "plugins/lisa-agy/skills/lisa-project-ideation/examples/unavailable-data-rejection.md": true,
     "plugins/lisa-agy/skills/lisa-pull-request-review/SKILL.md": true,
-    "plugins/lisa-agy/skills/lisa-qa-checklist/SKILL.md": true,
-    "plugins/lisa-agy/skills/lisa-qa-clear/SKILL.md": true,
-    "plugins/lisa-agy/skills/lisa-qa-fail/SKILL.md": true,
-    "plugins/lisa-agy/skills/lisa-qa-queue/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-quality-review/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-queue-status/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-remote-dispatch/SKILL.md": true,
@@ -4031,10 +4007,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/commands/lisa/product-walkthrough.md": true,
     "plugins/lisa-copilot/commands/lisa/project-ideation.md": true,
     "plugins/lisa-copilot/commands/lisa/pull-request/review.md": true,
-    "plugins/lisa-copilot/commands/lisa/qa-checklist.md": true,
-    "plugins/lisa-copilot/commands/lisa/qa-clear.md": true,
-    "plugins/lisa-copilot/commands/lisa/qa-fail.md": true,
-    "plugins/lisa-copilot/commands/lisa/qa-queue.md": true,
     "plugins/lisa-copilot/commands/lisa/queue-status.md": true,
     "plugins/lisa-copilot/commands/lisa/repair-intake.md": true,
     "plugins/lisa-copilot/commands/lisa/research.md": true,
@@ -4338,10 +4310,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-project-ideation/examples/public-external-inspiration.md": true,
     "plugins/lisa-copilot/skills/lisa-project-ideation/examples/unavailable-data-rejection.md": true,
     "plugins/lisa-copilot/skills/lisa-pull-request-review/SKILL.md": true,
-    "plugins/lisa-copilot/skills/lisa-qa-checklist/SKILL.md": true,
-    "plugins/lisa-copilot/skills/lisa-qa-clear/SKILL.md": true,
-    "plugins/lisa-copilot/skills/lisa-qa-fail/SKILL.md": true,
-    "plugins/lisa-copilot/skills/lisa-qa-queue/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-quality-review/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-queue-status/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-remote-dispatch/SKILL.md": true,
@@ -4507,10 +4475,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/commands/lisa/product-walkthrough.md": true,
     "plugins/lisa-cursor/commands/lisa/project-ideation.md": true,
     "plugins/lisa-cursor/commands/lisa/pull-request/review.md": true,
-    "plugins/lisa-cursor/commands/lisa/qa-checklist.md": true,
-    "plugins/lisa-cursor/commands/lisa/qa-clear.md": true,
-    "plugins/lisa-cursor/commands/lisa/qa-fail.md": true,
-    "plugins/lisa-cursor/commands/lisa/qa-queue.md": true,
     "plugins/lisa-cursor/commands/lisa/queue-status.md": true,
     "plugins/lisa-cursor/commands/lisa/repair-intake.md": true,
     "plugins/lisa-cursor/commands/lisa/research.md": true,
@@ -4815,10 +4779,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-project-ideation/examples/public-external-inspiration.md": true,
     "plugins/lisa-cursor/skills/lisa-project-ideation/examples/unavailable-data-rejection.md": true,
     "plugins/lisa-cursor/skills/lisa-pull-request-review/SKILL.md": true,
-    "plugins/lisa-cursor/skills/lisa-qa-checklist/SKILL.md": true,
-    "plugins/lisa-cursor/skills/lisa-qa-clear/SKILL.md": true,
-    "plugins/lisa-cursor/skills/lisa-qa-fail/SKILL.md": true,
-    "plugins/lisa-cursor/skills/lisa-qa-queue/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-quality-review/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-queue-status/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-remote-dispatch/SKILL.md": true,
@@ -6869,14 +6829,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-project-ideation/examples/unavailable-data-rejection.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-pull-request-review/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-pull-request-review/agents/openai.yaml": true,
-    "plugins/lisa/.codex-plugin/skills/lisa-qa-checklist/SKILL.md": true,
-    "plugins/lisa/.codex-plugin/skills/lisa-qa-checklist/agents/openai.yaml": true,
-    "plugins/lisa/.codex-plugin/skills/lisa-qa-clear/SKILL.md": true,
-    "plugins/lisa/.codex-plugin/skills/lisa-qa-clear/agents/openai.yaml": true,
-    "plugins/lisa/.codex-plugin/skills/lisa-qa-fail/SKILL.md": true,
-    "plugins/lisa/.codex-plugin/skills/lisa-qa-fail/agents/openai.yaml": true,
-    "plugins/lisa/.codex-plugin/skills/lisa-qa-queue/SKILL.md": true,
-    "plugins/lisa/.codex-plugin/skills/lisa-qa-queue/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-quality-review/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-quality-review/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-queue-status/SKILL.md": true,
@@ -7100,10 +7052,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/commands/product-walkthrough.md": true,
     "plugins/lisa/commands/project-ideation.md": true,
     "plugins/lisa/commands/pull-request/review.md": true,
-    "plugins/lisa/commands/qa-checklist.md": true,
-    "plugins/lisa/commands/qa-clear.md": true,
-    "plugins/lisa/commands/qa-fail.md": true,
-    "plugins/lisa/commands/qa-queue.md": true,
     "plugins/lisa/commands/queue-status.md": true,
     "plugins/lisa/commands/repair-intake.md": true,
     "plugins/lisa/commands/research.md": true,
@@ -7531,14 +7479,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-project-ideation/examples/unavailable-data-rejection.md": true,
     "plugins/lisa/skills/lisa-pull-request-review/SKILL.md": true,
     "plugins/lisa/skills/lisa-pull-request-review/agents/openai.yaml": true,
-    "plugins/lisa/skills/lisa-qa-checklist/SKILL.md": true,
-    "plugins/lisa/skills/lisa-qa-checklist/agents/openai.yaml": true,
-    "plugins/lisa/skills/lisa-qa-clear/SKILL.md": true,
-    "plugins/lisa/skills/lisa-qa-clear/agents/openai.yaml": true,
-    "plugins/lisa/skills/lisa-qa-fail/SKILL.md": true,
-    "plugins/lisa/skills/lisa-qa-fail/agents/openai.yaml": true,
-    "plugins/lisa/skills/lisa-qa-queue/SKILL.md": true,
-    "plugins/lisa/skills/lisa-qa-queue/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-quality-review/SKILL.md": true,
     "plugins/lisa/skills/lisa-quality-review/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-queue-status/SKILL.md": true,
@@ -7763,10 +7703,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/commands/product-walkthrough.md": true,
     "plugins/src/base/commands/project-ideation.md": true,
     "plugins/src/base/commands/pull-request/review.md": true,
-    "plugins/src/base/commands/qa-checklist.md": true,
-    "plugins/src/base/commands/qa-clear.md": true,
-    "plugins/src/base/commands/qa-fail.md": true,
-    "plugins/src/base/commands/qa-queue.md": true,
     "plugins/src/base/commands/queue-status.md": true,
     "plugins/src/base/commands/repair-intake.md": true,
     "plugins/src/base/commands/research.md": true,
@@ -8084,10 +8020,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-project-ideation/examples/public-external-inspiration.md": true,
     "plugins/src/base/skills/lisa-project-ideation/examples/unavailable-data-rejection.md": true,
     "plugins/src/base/skills/lisa-pull-request-review/SKILL.md": true,
-    "plugins/src/base/skills/lisa-qa-checklist/SKILL.md": true,
-    "plugins/src/base/skills/lisa-qa-clear/SKILL.md": true,
-    "plugins/src/base/skills/lisa-qa-fail/SKILL.md": true,
-    "plugins/src/base/skills/lisa-qa-queue/SKILL.md": true,
     "plugins/src/base/skills/lisa-quality-review/SKILL.md": true,
     "plugins/src/base/skills/lisa-queue-status/SKILL.md": true,
     "plugins/src/base/skills/lisa-remote-dispatch/SKILL.md": true,
@@ -10867,7 +10799,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/project-learnings-rule-pair.test.ts": true,
     "tests/unit/strategies/promotion-contract-helpers.ts": true,
     "tests/unit/strategies/promotion-contract-rule.test.ts": true,
-    "tests/unit/strategies/qa-acceptance-skills.test.ts": true,
     "tests/unit/strategies/qa-failure-signal-inverse.test.ts": true,
     "tests/unit/strategies/queue-contract-resolution.test.ts": true,
     "tests/unit/strategies/queue-health-classification.test.ts": true,
