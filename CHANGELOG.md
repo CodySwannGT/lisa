@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.2](https://github.com/CodySwannGT/lisa/compare/v4.55.1...v4.55.2) (2026-09-11)
+
+
+### Bug Fixes
+
+* **qa:** honour a scalar `done` in voidingRoles ([3bd1236](https://github.com/CodySwannGT/lisa/commit/3bd12369b36d9a85cc429eb311bd9ccc4296a732)), closes [CodySwannGT/lisa#4130](https://github.com/CodySwannGT/lisa/issues/4130)
+
 ### [4.55.1](https://github.com/CodySwannGT/lisa/compare/v4.55.0...v4.55.1) (2026-09-11)
 
 
