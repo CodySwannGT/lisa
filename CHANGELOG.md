@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.17](https://github.com/CodySwannGT/lisa/compare/v4.55.16...v4.55.17) (2026-09-12)
+
+
+### Bug Fixes
+
+* **checks:** reject unsupported review guard arguments ([40d3067](https://github.com/CodySwannGT/lisa/commit/40d3067fce48eae6b66aad61ffc993b6ebe3588e)), closes [CodySwannGT/lisa#3586](https://github.com/CodySwannGT/lisa/issues/3586)
+
 ### [4.55.16](https://github.com/CodySwannGT/lisa/compare/v4.55.15...v4.55.16) (2026-09-12)
 
 
