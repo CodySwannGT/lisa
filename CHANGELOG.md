@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.22](https://github.com/CodySwannGT/lisa/compare/v4.55.21...v4.55.22) (2026-09-12)
+
+
+### Bug Fixes
+
+* **tests:** isolate sweep fixtures from the workflow branch ([1d22443](https://github.com/CodySwannGT/lisa/commit/1d22443a3e757fcc2b3fac933ffca099ac483fc0)), closes [CodySwannGT/lisa#4044](https://github.com/CodySwannGT/lisa/issues/4044)
+* **tests:** stop rebuilding shared dist inside concurrent suites ([429be1c](https://github.com/CodySwannGT/lisa/commit/429be1cdef699aef598389ed9174d8d446d73b61)), closes [CodySwannGT/lisa#3054](https://github.com/CodySwannGT/lisa/issues/3054)
+* validate incremental push declarations against their scope ([5c33c92](https://github.com/CodySwannGT/lisa/commit/5c33c92262cb7944ec7ccdd6e119751f6631a6ea)), closes [CodySwannGT/lisa#4044](https://github.com/CodySwannGT/lisa/issues/4044) [CodySwannGT/lisa#4044](https://github.com/CodySwannGT/lisa/issues/4044)
+
+
+### Documentation
+
+* align PR template with multi-item traceability ([90345c5](https://github.com/CodySwannGT/lisa/commit/90345c57840232d6b6b34f6513211328f92310ee)), closes [CodySwannGT/lisa#4044](https://github.com/CodySwannGT/lisa/issues/4044) [CodySwannGT/lisa#4044](https://github.com/CodySwannGT/lisa/issues/4044)
+
 ### [4.55.21](https://github.com/CodySwannGT/lisa/compare/v4.55.20...v4.55.21) (2026-09-12)
 
 
