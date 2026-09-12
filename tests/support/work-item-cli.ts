@@ -470,6 +470,7 @@ export function cli(
   try {
     replaceEnv({
       ...fixture.env,
+      GITHUB_REF_NAME: undefined,
       GIT_DIR: path.join(fixture.root, ".git"),
       GIT_WORK_TREE: fixture.root,
       ...overrides,

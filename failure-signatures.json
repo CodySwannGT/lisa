@@ -3,28 +3,6 @@
   "version": 1,
   "entries": [
     {
-      "id": "dist-deleted-under-readers",
-      "symptom": "ENOENT on a file under dist/ or plugins/ that is present again seconds later",
-      "sample": "ENOENT: no such file or directory, open '/repo/dist/configs/vitest/typescript.d.ts'",
-      "signature": "ENOENT[^\\n]{0,200}?(?:dist|plugins)/",
-      "cause": "a concurrent build deletes dist/ (or plugins/) wholesale before rebuilding it, so every concurrent reader sees a window in which the file does not exist. It is NOT a missing build and NOT a cross-checkout collision.",
-      "records": [
-        {
-          "file": "stryker.conf.json",
-          "anchor": "the integration suite rebuilds dist/ while this runs"
-        },
-        {
-          "file": "tests/integration/cli-smoke.test.ts",
-          "anchor": "flaky ENOENT"
-        }
-      ],
-      "guard": {
-        "file": "tests/unit/config/dist-rebuild-window.test.ts",
-        "anchor": "runs a build that never deletes dist",
-        "name": "the regression test \"runs a build that never deletes dist\""
-      }
-    },
-    {
       "id": "sh-is-dash-on-linux",
       "symptom": "a shell script that works on macOS dies on Linux CI with a syntax error it never reaches the body of",
       "sample": "Syntax error: \"(\" unexpected",
