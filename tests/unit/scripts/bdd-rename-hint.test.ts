@@ -39,15 +39,18 @@ const STRANGER = "a title belonging to another file entirely";
  * @returns Spec source.
  */
 function specSource(titles: readonly string[]): string {
-  return titles.map(title => `test(${JSON.stringify(title)}, () => {});`).join(
-    "\n"
-  );
+  return titles
+    .map(title => `test(${JSON.stringify(title)}, () => {});`)
+    .join("\n");
 }
 
 describe("rename hint on a stale mapping", () => {
   it("names the one unaccounted title in the same file", () => {
     const renamed = "renders the landing page for a signed-in visitor";
-    const root = healthyProject({}, { files: { [HOME_SPEC]: specSource([renamed]) } });
+    const root = healthyProject(
+      {},
+      { files: { [HOME_SPEC]: specSource([renamed]) } }
+    );
     const found = messages(runGate(root), MAPPING_EVIDENCE);
     expect(found).toHaveLength(1);
     expect(found[0]).toContain(JSON.stringify(renamed));
@@ -164,7 +167,11 @@ describe("rename hint on a stale mapping", () => {
   it("changes no verdict: a renamed test still fails and still counts as uncovered", () => {
     const root = healthyProject(
       {},
-      { files: { [HOME_SPEC]: specSource(["renders the landing page, eventually"]) } }
+      {
+        files: {
+          [HOME_SPEC]: specSource(["renders the landing page, eventually"]),
+        },
+      }
     );
     const run = runGate(root);
     expect(run.status).toBe(1);
