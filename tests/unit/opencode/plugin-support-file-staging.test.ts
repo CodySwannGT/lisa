@@ -6,7 +6,7 @@
  * a host's `.opencode/plugin/`; `scripts/copy-opencode-plugin-templates.mjs`
  * names the ones it stages into `dist/opencode/plugin-templates/`. They are two
  * hand-maintained lists of the same set, and `resolveSupportFile` resolves from
- * `plugins/src/base/hooks/` in a source checkout and from `dist/` in a packaged
+ * generated `plugins/lisa/hooks/` in a source checkout and from `dist/` in a packaged
  * install — so a file added to the installer alone works in this repository and
  * is MISSING from every `lisa apply` that runs off the published package.
  *

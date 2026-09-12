@@ -2297,7 +2297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/copy-codex-scripts.mjs":
       "2d7082d5033088c85f66995aee9e3ee1e7751435e65bfde8e1cb002e6689d476",
     "scripts/copy-opencode-plugin-templates.mjs":
-      "297477e478d18c605dc4f46fcb6072f4ee72109419944adfcfb18de691e13202",
+      "83d274e782fea23cf5f4f3047a12fece9f07e8fb8634a917410f08480eddeec4",
     "scripts/deployed-guard-advice.mjs":
       "11b4248806e60491e0017e0cc7955928474af73ce53767848f6fbb9cec294ebf",
     "scripts/detect-stale-workflow-inputs.mjs":
@@ -10205,6 +10205,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/session-bootstrap-jira-gate.test.ts": true,
     "tests/unit/opencode/settings-installer.test.ts": true,
     "tests/unit/opencode/skills-installer.test.ts": true,
+    "tests/unit/opencode/support-file-parity.test.ts": true,
     "tests/unit/opencode/support/filing-parity.ts": true,
     "tests/unit/plugins/container-view-pattern-parity.test.ts": true,
     "tests/unit/plugins/hook-registration-agreement.test.ts": true,

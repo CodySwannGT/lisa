@@ -70,18 +70,11 @@ describe("the OpenCode block-no-verify emit", () => {
   });
 
   it("ships the same policy script the other agents run", async () => {
-    // Byte-identical to the canonical source, so OpenCode cannot drift into a
-    // weaker guard than Claude, Codex, Cursor and Copilot enforce.
+    // Byte-identical to the generated policy, including its ownership banner,
+    // so both channels enforce the same guard and share its memo identity.
     await installHooks(lisaDir, destDir, [], []);
     const canonical = await fs.readFile(
-      path.join(
-        process.cwd(),
-        "plugins",
-        "src",
-        "base",
-        "hooks",
-        POLICY_SCRIPT
-      ),
+      path.join(process.cwd(), "plugins", "lisa", "hooks", POLICY_SCRIPT),
       "utf8"
     );
     const shipped = await fs.readFile(
