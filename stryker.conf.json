@@ -17,7 +17,16 @@
   "_cleanTempDirComment": "Default `true` removes the sandbox only after a SUCCESSFUL run, so exactly the runs that need investigating are the ones that leave a full second copy of the tree behind — and a leftover sandbox costs the next lint 1191 errors. `always` removes it either way — meaning pass or fail, NOT killed. This is Stryker's own teardown, so a SIGTERM, an OOM reap, a maxBuffer overflow and a Ctrl-C all skip it, and those are the runs a busy machine actually produces; one such kill left 72 MB behind. The gate handles that half rather than this setting: it gives each run its own `.stryker-tmp/run-<pid>-<epoch>` sandbox and reclaims, at the START of the next run, the ones whose owning process is gone. Reclaiming after the fact cannot run in the case that creates the mess, and reclaiming a SHARED path would delete a concurrent run's working directory (#2961).",
   "cleanTempDir": "always",
   "_ignorePatternsComment": "Stryker does NOT read .gitignore; without these it copies dist/ and coverage/ into every sandbox. That is not merely slow — the integration suite rebuilds dist/ while this runs, so the sandbox scan lists .d.ts files that are gone by the time it reads them and the whole gate dies on ENOENT. Nothing in the run needs either: the package self-resolves through the symlinked node_modules to the real checkout.",
-  "ignorePatterns": ["dist", "coverage"],
+  "_worktreesComment": "`.worktrees` is the same defect as dist/ and coverage/, found later because the cost scales with how many worktrees a machine happens to hold (CodySwannGT/lisa#4122). Each entry is a FULL checkout of this repository, so the preprocessor walks the tree N+1 times; measured at 123 worktrees it exhausted node's heap at ~3.9 GB after 158 seconds of mark-compact thrash and aborted with SIGABRT, taking the push with it. The last file it logged was `.worktrees/3467/all/copy-overwrite/scripts/lisa-gates.mjs`. That happens during PREPROCESSING, before any sandbox is written, which is why the leftover `.stryker-tmp/run-*` is 0 bytes and names no cause. Raising the heap would only move the worktree count at which it dies, and the count is a property of the hour rather than of the repository — it was 55 earlier in the session that measured this and 123 by the end. Excluding it cannot weaken the gate: `mutate` below names every target individually and by name, so nothing under `.worktrees` is reachable as a mutation target, and the exclusion removes only a scan of copies of files already listed. Independently measured on a second machine before the heap-exhaustion case above was known: 52 GB + 5.5 GB of parked worktrees copied into every sandbox blew the 20-minute dry-run budget on its own, while the dry-run suite itself takes 46 seconds — reported as `dry-run-timeout`, which says nothing about the tests. The bare `worktrees` name is kept in the list beside the `**/worktrees` glob rather than folded into it: a name matches the directory anywhere in the tree without depending on globstar matching zero segments at the root, and an extra ignore entry cannot weaken a gate whose `mutate` targets are all named individually.",
+  "_worktreesSecondLocationComment": "Excluding `.worktrees` alone was not enough, and the way that surfaced is the useful part: with the heap no longer exhausted, Stryker reached its DRY RUN for the first time and failed there instead — `tests/unit/hooks/pre-push-traceability-gate.test.ts` reported two hook copies disagreeing, a test that passes 36/36 in a normal run. `.gitignore` carries THREE worktree rules (`**/.claude/worktrees/`, `.worktrees/`, `worktrees/`), so excluding one leaves the others walked, and `.claude/worktrees` held 32 more checkouts. It only bites inside a sandbox because `checkoutFiles` in `tests/helpers/tracked-files.ts` is `isOwnCheckout(root) ? trackedPaths(root) : walkRepoFiles(root)`: a sandbox copy is not a git checkout, so the `git ls-files` path that hides ignored files is skipped and the filesystem walk finds hook copies no tracked roster contains. Fixing that fallback to skip worktree directories would close the class for every non-git copy rather than for Stryker alone, and is worth doing separately; excluding them here is what unblocks the gate now. Safe for the same reason as above — `mutate` names its targets by name and none lives under any worktrees directory.",
+  "ignorePatterns": [
+    "dist",
+    "coverage",
+    "worktrees",
+    ".worktrees",
+    "**/.claude/worktrees",
+    "**/worktrees"
+  ],
   "mutate": [
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs",
@@ -26,6 +35,7 @@
     "all/copy-overwrite/scripts/lisa-run-gates.mjs",
     "all/copy-overwrite/scripts/lisa-test-node.mjs",
     "all/copy-overwrite/scripts/lisa-work-item.mjs",
+    "all/copy-overwrite/scripts/lisa-worktree-guard.mjs",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs",
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs",
     "plugins/src/base/hooks/threshold-ratchet-families.mjs"

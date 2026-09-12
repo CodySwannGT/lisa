@@ -79,6 +79,16 @@ describe("claim-time repo scoping (Phase 3a.0)", () => {
         expect(section()).toMatch(/split/i);
       });
 
+      it("counts markers and splits before the single-wrong-repository skip", () => {
+        const text = section();
+        const count = text.indexOf("Count distinct repository markers first");
+        const split = text.indexOf("Multi-repo leaf → split");
+        const skip = text.indexOf("Exactly one other repository");
+        expect(count).toBeGreaterThan(-1);
+        expect(split).toBeGreaterThan(count);
+        expect(skip).toBeGreaterThan(split);
+      });
+
       it("cites the repo-scope-split rule by slug", () => {
         expect(section()).toContain(RULE_SLUG);
       });

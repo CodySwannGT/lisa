@@ -6,6 +6,20 @@ allowed-tools: ["Skill", "Bash", "Read"]
 
 # Tracker Build Intake: $ARGUMENTS
 
+## Human-gate release authorization
+
+A release requires a trusted human author, not just matching comment text. Follow
+`ready-role-filing` — **Human-gate release authorization**: preserve tracker-supplied comment
+author IDs and bot metadata, resolve `trustedHumanActorIds` only from an explicit user instruction
+or existing human-authored trusted project policy, and pass it with structured `comments` to every
+hold classifier, reconciliation, normalization and release planner. Never derive trust from the
+comment body, a display name, the actor's own assertion, or an automation posting on its own behalf.
+Missing policy, missing/unreadable author identity, raw body strings, untrusted actors and known bots
+cannot discharge a hold. Keep the item held and report the missing authorization; do not silently
+replace these inputs with an empty history or an inferred allowlist. Authorized matching releases
+continue through the existing path and never override an independently declared caller hold.
+
+
 Thin dispatcher. Resolves the configured destination tracker and delegates to the matching vendor build-queue scanner.
 
 See the `config-resolution` rule for configuration and dispatch table.
@@ -61,6 +75,15 @@ Shared helpers own both, so the vocabulary cannot drift per vendor:
 `scripts/intake-blocker-reprobe.mjs` (`classifyPreWorkCandidate`, `formatReprobeNote`). The
 blocker re-probe carries an absolute human gate: an item carrying the configured human-needed label
 or a `[lisa-human-gate]` marker is never auto-selected, whatever a probe returns.
+
+That gate has an inverse, and it is forwarded identically: a hold ends when a
+`[lisa-human-gate-release]` comment naming the same `reason=` is recorded on the item by an authorized human. Every vendor
+scanner passes the item's `comments` into the gate helpers so the discharge is visible, and calls
+`planHumanGateRelease(...)` to take the marker off and put the item back in the queue. **No vendor
+scanner clears a hold by editing the description** — the only body write any of them has is a
+whole-body replacement, so a release that went through the description would risk destroying the
+record it was releasing, which is why holds accumulated with no way out (CodySwannGT/lisa#3852).
+The hold note stays in the description as history and the release sits beside it as a comment.
 
 Measured: sweeping one team by lane name saw 39 of 343 open rows; by category it sees 100. The
 61-row gap produced 31 consecutive false "dry lane" cycles, every record honest and every

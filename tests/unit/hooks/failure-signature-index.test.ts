@@ -7,6 +7,7 @@
  * while routing nothing: a pointer that rotted, a signature that can never
  * fire, and an index with no live rows at all. Wiring lives in
  * failure-signature-index-wiring.test.ts.
+ * The discrimination arms live in failure-signature-discrimination.test.ts.
  */
 import { describe, expect, it } from "vitest";
 import * as fs from "node:fs";

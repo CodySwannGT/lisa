@@ -44,6 +44,87 @@
 # `--settle-timeout` (300s) and `--settle-interval` (15s) are what make the
 # verdict the settled one. Do not "simplify" the wait away.
 #
+# AND 300s IS MARGINAL, MEASURED (#3801, 2026-09-06). Until #3716 an expired
+# wait was published as `absent`, indistinguishable from a check that genuinely
+# never reported, so the window had never been evaluated against data — the only
+# evidence for it was ONE run that stopped nine seconds early. It has now been
+# read over the 158 runs of this workflow between 2026-09-04T10:22Z and
+# 2026-09-05T23:27Z, every one of them after the #3716 fix merged
+# (2026-09-04T09:56:32Z) and therefore able to publish `undetermined`:
+#
+#   WAIVED              123      REVIEWED             13
+#   UNDETERMINED         18      UNREVIEWED            3
+#   CARRIED UNREVIEWED    1                          ---
+#                                total               158
+#
+# So the wait EXPIRES ON 18 OF 158 RUNS (11.4%). The denominator is every run,
+# not a filtered one: all 158 reached a completed gate step, none was cancelled
+# mid-wait, and on none of the 158 heads did `CodeRabbit` fail to post a terminal
+# status eventually. There is no "we stopped looking" bucket hiding in it.
+#
+# HOW LATE, in seconds between the 300s deadline and the FIRST terminal
+# `CodeRabbit` status on the same head, all 18 of them:
+#
+#   16  34  46  52  58  83  102  131  132  141  172  203  257  273  296  329
+#   348  478                       min 16 · median 141 · max 478
+#
+# NEITHER CLUSTERED NOR LONG-TAILED, and the distinction decides the remedy. One
+# of the 18 lands inside thirty seconds and six land beyond four minutes, so the
+# misses are spread broadly — but they are BOUNDED: the longest settle in the
+# whole 158 is 778s from the start of the wait, and nothing failed to settle at
+# all. A long tail would mean waiting buys a shrinking share and something other
+# than waiting is needed. A bounded spread means a wider window converts almost
+# all of them, which is what these numbers say.
+#
+# THE NINE-SECOND ANECDOTE IS THE OUTLIER, NOT THE TYPE. It is shorter than every
+# one of the 18 gaps above. A window sized on it would have caught none of them.
+# Four further runs settled inside the LAST SIXTY SECONDS of the current window
+# (244s, 263s, 287s, 291s) and passed only just.
+#
+# WHAT A WIDER WINDOW WOULD BUY, against the 18 as denominator:
+#
+#   420s   7/18 (39%)      510s  12/18 (67%)      660s  17/18 (94%)
+#   480s  11/18 (61%)      600s  15/18 (83%)      780s  18/18 (100%)
+#
+# FOUR OF THE 18 ARE NOT REVIEWS. They settle to `Review rate limited`, which
+# this gate WAIVES — widening turns those from a red into a `neutral`, removing a
+# false red without obtaining a review, and they are counted separately above for
+# that reason. The other 14 settle to `Review approved` or `Review completed`.
+#
+# THE COST IS PAID ONLY WHERE IT ALREADY FAILED. The loop exits the moment the
+# check settles, so a longer ceiling costs nothing on the 140 runs that settle
+# early; raising it to 480s spends 2,227 extra job-seconds across these 158 runs
+# and to 600s spends 2,896 — against 18 red runs each of which costs a full
+# re-run of this job plus somebody deciding whether the red meant anything.
+#
+# HEADROOM IS SMALLER THAN IT LOOKS. `timeout-minutes: 10` is the whole job —
+# checkout, setup, the wait, the verdict, the publish — so anything past roughly
+# 510s needs the job ceiling raised in the same change.
+#
+# THE SAMPLE IS NOT CENSORED BY THE WINDOW, and that is why the tail can be read
+# off it. The gaps come from `CodeRabbit` commit-status timestamps, which the
+# reviewer writes whether or not this gate is still polling; a wider window does
+# not move them. The one shape that WOULD censor it — a head whose check never
+# settles, an unbounded gap — occurs zero times in 158. What the sample IS
+# conditioned on: one repository, one reviewer vendor, and 37 hours of an
+# unusually concurrent period, which biases the reviewer's queueing latency
+# UPWARD. A window sized here is therefore generous rather than short; re-measure
+# on a quiet week before treating this tail as the steady state.
+#
+# Reproduce with `gh api repos/CodySwannGT/lisa/actions/workflows/review-evidence.yml/runs`
+# for the run list, `.../actions/runs/<id>/jobs` for each gate step's start and
+# duration, `.../commits/<head_sha>/check-runs` for the published verdict title,
+# and `.../commits/<head_sha>/statuses` for when `CodeRabbit` actually settled.
+# `gh api --paginate` emits one array PER PAGE; page explicitly.
+#
+# THIS TICKET DELIBERATELY DID NOT MOVE THE NUMBER. #3801 asked only for the
+# distribution, because picking 420 or 600 from the single nine-second
+# observation is the move #3716 declined when it refused to fix a false red by
+# raising a threshold. The distribution now exists and it recommends WIDENING —
+# 480s inside the current job ceiling, or 600s with `timeout-minutes` raised —
+# and that change belongs to whoever files it, with these numbers as its
+# justification.
+#
 # Before #2928 nothing invoked the rule that detects any of this. A guard Lisa
 # ships but does not run on itself is a guard nobody has seen bite.
 #
@@ -156,6 +237,45 @@
 # `CodeRabbit` status at all, so a gate keyed on the wrong commit reads absent
 # every single time, and an absent-means-waived gate would pass forever while
 # reporting nothing.
+#
+# AND FOUR STATES, BECAUSE THE DESCRIPTION CANNOT SEPARATE TWO OF THEM (#3706).
+# Everything above is settled by the vendor's status DESCRIPTION, and the
+# description is not a function of whether a review happened. The same string has
+# been measured meaning opposite things on this repository:
+#
+#   success :: "Review rate limited"   nobody read the diff           -> WAIVED
+#   success :: "Review rate limited"   reviewed, posted CHANGES_REQUESTED,
+#                                      found a real defect (#3762)    -> WAIVED
+#
+# A classifier that reads the string collapses those two, and it collapses them
+# PERMISSIVELY: the pull request a reviewer objected to merges on a waiver
+# written for the pull request nobody read. The only surface that separates them
+# is the review OBJECTS, so `--require-review-evidence` now also reads
+# `pulls/{pr}/reviews` and publishes a fourth verdict, OBJECTED, above every
+# state read from a description.
+#
+# MEASURED 2026-09-06, the 60 most recently updated MERGED pull requests here:
+#
+#   Review rate limited   52 of 60          CHANGES_REQUESTED at merged head  2
+#   Review completed       8 of 60          CHANGES_REQUESTED at an older head 2
+#
+# So the population this change moves is the 2 — 3.3% — and on BOTH of them the
+# description was `Review completed`, meaning the gate published `REVIEWED` while
+# a reviewer's objection stood at the merged head. The other 2 objections were
+# stale and are deliberately left alone: counting them would redden pull requests
+# whose authors had already addressed the objection, the false-red direction
+# #3716 and #3720 are about. It does NOT touch the 52 that waive because nothing
+# reviewed them.
+#
+# THE 52 ARE THE POLICY QUESTION, AND IT IS NOT ANSWERED HERE. #3706 asks whether
+# a waiver should escalate after N of them. The gate has always computed the rate
+# and nothing has ever acted on it, so the LEVER now exists —
+# `--waive-rate-escalate=N` republishes a waived verdict as `failure` once the
+# sampled waive count reaches N — and it is DOWN: no workflow in this tree passes
+# it, every waiver still renders `neutral`, and the waiver's report-only severity
+# is untouched, because that severity is the owner's ruling on #3221 and a CLI
+# flag may not repeal it. Setting a number is a human decision, and the run that
+# would be judged by it already prints the rate it would be judged against.
 #
 # STILL NOT A REQUIRED CONTEXT. This job is absent from
 # `.github/required-checks.json`, so a red run here is visible and does not yet

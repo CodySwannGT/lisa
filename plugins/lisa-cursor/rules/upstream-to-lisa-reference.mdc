@@ -5,56 +5,27 @@ alwaysApply: false
 
 # Upstream To Lisa
 
-When working in a project that has Lisa installed, you will sometimes find that the **real fix belongs upstream in Lisa**, not in this project. This rule defines what to do so the fix is both unblocking *now* and durable *later*.
+A root cause in a Lisa-distributed artifact determines the destination of a worthwhile repair. First apply `do-it-now`'s **Worth doing** guidance. Ownership, a missing guard, or a reproducible edge case alone does not justify another issue.
 
-## When this applies
+## Accepted repairs
 
-You are working in a downstream/host project (not the Lisa source repo) and you discover one of:
+A concrete delivery failure, credible material safety risk, or recurring costly friction in a Lisa template, rule, skill, agent, hook, or CI workflow belongs upstream.
 
-- A bug or gap in a Lisa-distributed **template, rule, skill, agent, hook, or CI workflow**.
-- A **governance pattern** discovered here that should be generalized back into Lisa's templates so every project benefits.
-- Anything where the file you want to change is **Lisa-managed** — it carries Lisa governance markers, lives in a path Lisa owns, or any edit would be **overwritten on the next `lisa apply`**.
-- Anything where the root cause is in a Lisa **create-only** template, even if the generated file says Lisa will not overwrite it.
-
-The defining test: **does the root cause live in a Lisa-distributed artifact?** If yes, file upstream. The wipe-out test is a sufficient signal, not the only signal.
-
-| Template class | Local fix survives `lisa apply`? | Why it is still upstream-worthy |
+| Template class | Local fix survives `lisa apply`? | Why repair upstream? |
 | --- | --- | --- |
-| **copy-overwrite** (managed) | No — clobbered on next apply | The local fix is throwaway; without the upstream fix it re-breaks. |
-| **create-only** (first setup) | Yes — Lisa never overwrites it | No existing repo self-heals, and every newly scaffolded repo inherits the bug. |
+| **copy-overwrite** | No | Prevent the local repair being replaced by the broken source. |
+| **create-only** | Yes | Stop new projects inheriting the defect. |
 
-For create-only files, header text such as `Lisa will not overwrite it` is a **positive** upstream signal, not a reason to stay local. Keep the downstream fix because Lisa will not replace it, and still file upstream so future projects receive the corrected template.
+A header saying `Lisa will not overwrite it` is a positive upstream ownership signal, not a reason to keep an accepted defect local. It does not establish priority or value.
 
-## What to do — both steps, always
+1. **Unblock the current task if needed.** Apply the smallest safe local stopgap. Keep it scoped and attributable; do not stall useful delivery waiting for an upstream release.
+2. **Search before filing.** Search open AND closed issues in the configured upstream repository (`hardening.upstreamRepo`, default `CodySwannGT/lisa`). Reuse a matching open issue. Honor **Not planned** decisions under `rejection-detection`'s **Proposal rejection memory**, including legacy unmarked issues. Check actual behavior before treating a completed issue as a regression.
+3. **File only the accepted work.** Use `lisa-github-write-issue` against the upstream repository, with the explicit readiness declaration from `ready-role-filing`. State the owning source, observed consequence or credible risk, smallest durable fix, and any local stopgap. Follow the public-safe attribution/projection procedure; never publish host names, credentials, or private source paths.
 
-### 1. Fix it locally so you are not blocked
+Bundle related minor repairs into one bounded maintenance item when the combined benefit warrants it. Declined observations require no ticket or escalation. A generalizable governance pattern still has to justify its recurring cost across consumers; generality alone is insufficient.
 
-Apply the stopgap in this project so you can keep working. Do **not** stall waiting for an upstream fix to land.
+## Access and scope
 
-- For copy-overwrite files, treat the local change as temporary: it will be clobbered when the upstream fix ships and Lisa re-applies.
-- For create-only files, keep the local change: Lisa will not overwrite it. The upstream issue is still mandatory because new projects keep inheriting the broken template until Lisa changes.
+If an accepted upstream repair cannot be filed because access is missing, prepare the public-safe issue and explain the access problem. Do not ask a human to file observations already declined on value.
 
-### 2. File an upstream issue in the Lisa repository
-
-Use the `github-write-issue` skill (`lisa-github-write-issue`) to create a GitHub Issue **in Lisa's source repository `CodySwannGT/lisa`** — not in this project's own repo. The skill uses the `gh` CLI; the target repo must be `CodySwannGT/lisa` (e.g. `gh issue create --repo CodySwannGT/lisa ...`), because the agent's default repo is this host project.
-
-The issue should capture, following the skill's three-audience / acceptance-criteria conventions:
-
-- **Root cause** — which Lisa template/rule/skill/agent/hook/workflow is wrong or missing, with the path under `plugins/src/...` (or the relevant template source) if known.
-- **Symptom** — what broke or was missing in *this* project, and how it surfaced. Reference this project so the fix can be validated against a real case.
-- **Proposed durable fix** — the change to make in Lisa's source so it propagates to all projects on the next apply.
-- **Local stopgap applied** — note that a local fix is in place here, whether it is temporary copy-overwrite work or a retained create-only patch.
-
-## Do not
-
-- Do **not** only fix it locally and move on. For copy-overwrite files, the local fix is throwaway and re-breaks on the next apply. For create-only files, the local fix survives, but the broken template still ships to every new project.
-- Do **not** edit Lisa's templates from inside this project. You are not in the Lisa repo; those edits don't exist upstream and get overwritten — they create the illusion of a fix while the real source stays broken.
-- Do **not** file the issue in this project's own repo. The durable fix is tracked in `CodySwannGT/lisa`.
-
-## Access fallback
-
-If you lack permission to create an issue in `CodySwannGT/lisa`, do not silently drop it. Surface the situation to the user along with the fully-drafted issue contents (root cause, symptom, proposed fix, local stopgap), so a human can file it or grant access.
-
-## Not applicable inside the Lisa repo itself
-
-When you are already working **inside the Lisa source repo** (`CodySwannGT/lisa`), this rule does not apply — the fix is local to that repo, so make it directly in `plugins/src/...` (and rebuild artifacts) rather than filing an issue against yourself.
+Do not mistake editing an installed artifact for changing Lisa's source. Inside Lisa itself, use the existing tracked task, repair the shared source, and regenerate equivalent agent surfaces; no second upstream issue is needed.

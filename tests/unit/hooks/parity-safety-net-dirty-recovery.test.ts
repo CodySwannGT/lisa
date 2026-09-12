@@ -326,14 +326,22 @@ describe("the dirty-tree refusal names a remedy that runs", () => {
 
     // And the discarded work went somewhere recoverable that is not the shared
     // stash stack.
+    //
+    // The guidance prints two ALTERNATIVE blocks and this case runs them as
+    // one sequence, so each block names and fills its own patch file — which
+    // is the property that makes the discard block runnable on its own, by a
+    // reader who never typed the preserve block above it. Counting files would
+    // pin the number of blocks rather than the property; what has to hold of
+    // every file written is that the work comes back out of it.
     const written = readdirSync(patches);
-    expect(written).toHaveLength(1);
-    const patch = path.join(patches, written[0] ?? "");
-    const check = gitIn(dirty)("apply", "--check", patch);
-    expect(
-      check.status,
-      `the preserved patch does not re-apply: ${check.stderr}`
-    ).toBe(0);
+    expect(written.length).toBeGreaterThan(0);
+    for (const name of written) {
+      const check = gitIn(dirty)("apply", "--check", path.join(patches, name));
+      expect(
+        check.status,
+        `a preserved patch does not re-apply: ${name}: ${check.stderr}`
+      ).toBe(0);
+    }
   });
 
   it("recovers the tree the ticket was filed from: a conflicted index", () => {

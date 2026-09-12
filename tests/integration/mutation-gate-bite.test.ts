@@ -773,7 +773,7 @@ describe("mutation gate bite: the destructive guard alone", () => {
       assertRanToCompletion(gutted, "gutted");
 
       // The contribution check on the PULL-REQUEST path. This guard is one of
-      // the four in WITHHELD_GUARDS, and its intact run already exists here, so
+      // those in WITHHELD_GUARDS, and its intact run already exists here, so
       // checking it costs nothing and no pull request waits on the whole-list
       // arm to learn that this guard stopped contributing.
       assertWithheldGuardsContributed(attempt, [GUARD], "intact");

@@ -80,12 +80,7 @@ export const REQUIRED_ROLES = Object.freeze([
  * Roles a project MAY bind. Omitting one means the lifecycle skips that
  * transition. These have NO built-in default — that is the whole point of R1.
  */
-export const OPTIONAL_ROLES = Object.freeze([
-  "review",
-  "qa.queue",
-  "qa.certified",
-  "human_needed",
-]);
+export const OPTIONAL_ROLES = Object.freeze(["review", "human_needed"]);
 
 /** Where each vendor keeps its build lifecycle role map. */
 export const VENDOR_ROOTS = Object.freeze({
@@ -155,7 +150,7 @@ export const parseConfig = file => {
  * built-in default tier: see R1 in the module docblock.
  *
  * @param {object} options resolution inputs
- * @param {string} options.role role name (`ready`, `review`, `qa.queue`, …)
+ * @param {string} options.role role name (`ready`, `review`, `human_needed`, …)
  * @param {string} options.vendor one of `jira` | `linear` | `github`
  * @param {"read" | "write"} [options.intent] what the caller will do with it
  * @param {string} [options.env] env key when resolving the env-keyed `done` map

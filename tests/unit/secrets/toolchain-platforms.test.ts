@@ -58,7 +58,7 @@ const GH = {
  * A probe reporting everything absent, so plans reflect the manifest only.
  * @returns A uniform "not installed" result.
  */
-const ABSENT = () => ({ present: false, version: null });
+const ABSENT = () => ({ present: false, executable: false, version: null });
 
 /** A manifest entry, however many platforms it names. */
 type Entry = Record<string, unknown>;
@@ -87,7 +87,11 @@ const ghOn = (platform: string): Entry =>
  */
 const planOn = (
   tools: Record<string, unknown>,
-  probe: () => { present: boolean; version: string | null },
+  probe: () => {
+    present: boolean;
+    executable: boolean;
+    version: string | null;
+  },
   surface: string,
   platform: string
 ): Step[] => planToolchain(tools, probe, surface, platform) as Step[];
@@ -199,7 +203,7 @@ describe("the pin is a floor locally and an equality remotely", () => {
    * A workstation already carrying a newer gh than the manifest pins.
    * @returns A probe result one minor ahead of the pin.
    */
-  const NEWER = () => ({ present: true, version: "2.96.0" });
+  const NEWER = () => ({ present: true, executable: true, version: "2.96.0" });
 
   it("leaves a newer tool alone on a laptop", () => {
     // ~/.local/bin is prepended to PATH, so installing 2.83.0 over a system
@@ -209,7 +213,11 @@ describe("the pin is a floor locally and an equality remotely", () => {
   });
 
   it("still installs an older tool on a laptop", () => {
-    const older = () => ({ present: true, version: "2.10.0" });
+    const older = () => ({
+      present: true,
+      executable: true,
+      version: "2.10.0",
+    });
     const plan = planOn({ install: [GH] }, older, "local", LINUX);
     expect(plan[0]?.action).toBe("install");
   });
@@ -255,7 +263,7 @@ describe("an unresolvable entry is still probed", () => {
     const asked: string[] = [];
     const present = (name: string) => {
       asked.push(name);
-      return { present: true, version: "2.1.0" };
+      return { present: true, executable: true, version: "2.1.0" };
     };
     const plan = planToolchain(
       { install: [GH] },
@@ -266,7 +274,11 @@ describe("an unresolvable entry is still probed", () => {
     expect(asked).toEqual(["gh"]);
     expect(plan[0]?.action).toBe("invalid");
     expect(plan[0]?.unpinnedForPlatform).toBe(true);
-    expect(plan[0]?.found).toEqual({ present: true, version: "2.1.0" });
+    expect(plan[0]?.found).toEqual({
+      present: true,
+      executable: true,
+      version: "2.1.0",
+    });
   });
 
   it("does not probe, or mark, a malformed platforms map", () => {
@@ -275,7 +287,7 @@ describe("an unresolvable entry is still probed", () => {
     const asked: string[] = [];
     const probe = (name: string) => {
       asked.push(name);
-      return { present: true, version: "2.1.0" };
+      return { present: true, executable: true, version: "2.1.0" };
     };
     const plan = planToolchain(
       { install: [{ name: "gh", version: "2.83.0", platforms: [LINUX] }] },

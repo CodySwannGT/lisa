@@ -18,7 +18,6 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
-  readdirSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -27,6 +26,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { trackedHookCopies } from "../../helpers/hook-roster.js";
+import { trackedPaths } from "../../helpers/tracked-files.js";
 
 import {
   configPathFrom,
@@ -57,15 +57,6 @@ const CONFIG_ARGS = ["--config", CONFIG] as const;
 const KNOWN_HOOKS = [...trackedHookCopies("pre-commit")];
 
 /** Directory names the hook walk never descends into. */
-const UNWALKED = new Set([
-  ".git",
-  "node_modules",
-  "dist",
-  "coverage",
-  "plans",
-  "projects",
-]);
-
 /**
  * Run the preflight CLI and collect its exit code and combined output.
  * @param cwd - Directory to run in.
@@ -154,30 +145,19 @@ const installUnspawnableBin = (dir: string, name: string): void => {
  * @returns Repo-relative paths.
  */
 const preCommitHooksRunningLintStaged = (): string[] => {
-  const found: string[] = [];
-  /**
-   * Recurse into one directory.
-   * @param relative - Repo-relative directory path.
-   * @returns void
-   */
-  const walk = (relative: string): void => {
-    for (const entry of readdirSync(path.join(REPO_ROOT, relative), {
-      withFileTypes: true,
-    })) {
-      const next = relative === "" ? entry.name : `${relative}/${entry.name}`;
-      if (entry.isDirectory()) {
-        if (!UNWALKED.has(entry.name)) walk(next);
-      } else if (
-        entry.name === "pre-commit" &&
-        readFileSync(path.join(REPO_ROOT, next), "utf8").includes(
-          "lint-staged --config"
-        )
-      ) {
-        found.push(next);
-      }
-    }
-  };
-  walk("");
+  // Asks git rather than walking the filesystem. A walk that skips a list of
+  // directory NAMES cannot say which hooks this repository ships: a checkout
+  // parking nested git worktrees under `.worktrees/` or `worktrees/` has
+  // foreign pre-commit hooks on disk, gitignored and tracked by nobody, and the
+  // walk asserted against them. The expected roster on this same page is
+  // already tracked-derived, so the observed one is now derived the same way.
+  const found = trackedPaths(REPO_ROOT).filter(
+    relative =>
+      path.basename(relative) === "pre-commit" &&
+      readFileSync(path.join(REPO_ROOT, relative), "utf8").includes(
+        "lint-staged --config"
+      )
+  ) as string[];
   return found;
 };
 

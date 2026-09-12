@@ -78,6 +78,21 @@ who wants a file citation for those should add one; **a row that cannot be
 verified from this page is worth less than the four that can**, and saying so is
 cheaper than implying a precision the row does not have.
 
+### Resolved since the sweep
+
+The census above is a snapshot of 2026-09-04 and is left as written; this
+section records what has since been closed, so a reader is not sent to fix a row
+twice.
+
+| Row | Ticket | The inverse it got |
+|---|---|---|
+| `qa-fail` label | #3855 | Two void conditions, each with an executable predicate in `plugins/src/base/scripts/qa-signal-lifecycle.mjs`: a later QA pass verdict, or the item reaching the certified or a terminal role. Both certify paths (`lisa-qa-queue` on pass, `lisa-qa-clear` on batch-certify) remove the label, and `lisa-rework-triage` reads the signal's **liveness** rather than its presence — clearing a stale one where it finds it, which drains the backlog labelled before the inverse existed. The `[lisa-qa-fail]` comments are never touched, so the failure history survives the signal |
+
+That row also answers the question this page left open for the class: the
+durable signal and the history do not have to be the same object. Voiding the
+machine-read half while leaving the human-read half intact is cheaper than an
+expiry window, and it needs nobody to remember anything.
+
 ### Has an inverse — the model to copy
 
 | Control | Why it self-voids | Citation |
@@ -150,3 +165,33 @@ correctly there.
 - CodySwannGT/lisa#3855 — `qa-fail` never clears
 - CodySwannGT/lisa#3856 — threshold exemptions never expire
 - CodySwannGT/lisa#3805 — held work promoted by a label-keyed sweep
+
+---
+
+## Partial supersession, 2026-09-11
+
+The `qa-fail` row above described its void conditions as *"a later QA pass
+verdict, or the item reaching the certified or a terminal role"*, with both
+certify paths (`lisa-qa-queue` on pass, `lisa-qa-clear` on batch-certify)
+removing the label.
+
+**Those skills are retired.** The human-QA acceptance family — `lisa-qa-queue`,
+`lisa-qa-fail`, `lisa-qa-clear`, `lisa-qa-checklist` — and the `qa.queue` /
+`qa.certified` lifecycle roles were removed after measuring zero usage: not one
+managed comment any of them posts existed in the consuming workspace, ever.
+
+What this changes and what it does not:
+
+- **Unchanged:** the signal still has an executable inverse, still lives in
+  `plugins/src/base/scripts/qa-signal-lifecycle.mjs`, and `lisa-rework-triage`
+  still reads its **liveness** rather than its presence. The defect #3855
+  closed stays closed.
+- **Changed:** the certified role is no longer a void condition, because the
+  role no longer exists. Reaching a configured `done` rung is now the whole
+  proof. A project wanting a distinct post-QA state expresses it as a `done`
+  rung.
+- **Changed:** the signal has no automatic writer. It is applied by a human, or
+  by whatever a project uses for QA, and read by rework triage.
+
+The row is left as written rather than edited — it records what was true when
+the decision was made.

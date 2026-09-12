@@ -7,7 +7,7 @@ alwaysApply: false
 
 > Demoted from the always-on eager tier by CodySwannGT/lisa#3992. The
 > section below is the former eager head, preserved verbatim; the full
-> contract follows it. Reachable on demand via `rules/eager/00-rule-index.md`.
+> contract follows it. Reachable on demand via [the rule index](00-rule-index.mdc).
 
 ## Rejection Detection at Claim Time (load-bearing)
 
@@ -191,6 +191,12 @@ A proposal is **declined** when its prior item is **closed as _not planned_**:
 
 **Closed as _completed_ is NOT a decline.** A completed fix whose underlying problem later recurs is a **regression**, and the loop **may file** it — the recurrence is genuinely new work, not a re-proposal of the declined thing. Only *not planned* is the durable "no".
 
+### Agent declines and legacy issues
+
+A reasoned **Not planned** disposition made by an agent under `do-it-now` or an owner-authorized backlog audit has the same suppression effect. Do not require the owner to repeat it manually.
+
+For older issues without a stable marker, additionally search open and closed issues by the owning surface and concrete symptom, then read the body and closing discussion to establish a semantic match. A title resemblance alone is insufficient. Missing markers do not erase a documented decline. Repeating the same accepted limitation on a later date is not changed evidence; reopening the proposal requires a materially changed consequence, requirement, or risk that addresses the recorded reason.
+
 ### Marker discipline — deterministic key, open AND closed search
 
 Every loop-proposed item carries a **visible prose line** plus a marker (a bare HTML marker renders as an empty comment bubble):
@@ -216,7 +222,7 @@ This footer is **required on every proposing loop's filed ticket** (`lisa-explor
 
 ### The rule
 
-A marker hit on a **closed-as-not-planned** item **suppresses the proposal** — regardless of title similarity. Re-proposal is permitted **only** with evidence that **postdates the decline**, and the re-filed item MUST carry BOTH of the following:
+A marker hit on a **closed-as-not-planned** item **suppresses the proposal** — regardless of title similarity. Re-proposal is permitted **only** with evidence that **postdates the decline** and establishes a materially changed consequence, requirement, or risk addressing the recorded reason, and the re-filed item MUST carry BOTH of the following:
 
 1. **A machine token** for the dedupe/audit trail — generalizing the gardener's wording:
 
@@ -224,7 +230,7 @@ A marker hit on a **closed-as-not-planned** item **suppresses the proposal** —
 
 2. **A human acknowledgment sentence** in plain prose, so re-raising reads as a respectful return to an answered question rather than a machine nagging:
 
-   > You declined this on `<decline-date>`. It has recurred (`<recurrence-date>`, `<recurrence-ref>`), so we're raising it once more for your review.
+   > You declined this on `<decline-date>`. New evidence (`<recurrence-date>`, `<recurrence-ref>`) changes the consequence, requirement, or risk: `<what changed and why the decline no longer applies>`.
 
 Naming the decline date, the recurrence date, and the recurrence reference in both forms is what turns "raising it again" into an auditable, evidence-backed, operator-legible act rather than nagging. A marker hit on a closed-as-**completed** item is not a decline — it falls under the regression path above.
 

@@ -169,7 +169,7 @@ require() { need "$1" || { echo "FATAL: required tool '$1' missing and install f
 # Resolve the PM from packageManager/engines/lockfiles — emit the manager the
 # `packageManager` inventory field reported, NEVER a hardcoded bun. An npm-only
 # project (engines.bun = "please-use-npm") must install with npm; emitting
-# `bun install` would create a stray bun.lock and break it (the SE-5221
+# `bun install` would create a stray bun.lock and break it (the package-manager selection
 # regression). Only install/PATH-export the manager actually selected below.
 detect_package_manager() {
   _field="" _forced="" _forbidden=""

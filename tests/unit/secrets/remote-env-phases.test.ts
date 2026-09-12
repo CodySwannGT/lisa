@@ -172,6 +172,7 @@ describe("tool presence probe", () => {
     (code: string | undefined, stdout: string, stderr: string) => () => {
       throw Object.assign(new Error("command failed"), {
         code,
+        status: code === undefined ? 10 : null,
         stdout,
         stderr,
       });
@@ -195,12 +196,20 @@ describe("tool presence probe", () => {
 
   it("treats a failure to spawn as genuinely missing", () => {
     const result = probe("nope", failsWith("ENOENT", "", ""));
-    expect(result).toEqual({ present: false, version: null });
+    expect(result).toEqual({
+      present: false,
+      executable: false,
+      version: null,
+    });
   });
 
   it("reads the version from a clean run", () => {
     const result = probe("node", () => "v22.22.0\n");
-    expect(result).toEqual({ present: true, version: "22.22.0" });
+    expect(result).toEqual({
+      present: true,
+      executable: true,
+      version: "22.22.0",
+    });
   });
 });
 

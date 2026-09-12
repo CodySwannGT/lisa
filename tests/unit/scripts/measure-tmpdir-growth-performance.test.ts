@@ -42,11 +42,20 @@
  * genuinely needs darwin (BSD `ps -o lstart=`, a `darwin:` birth fingerprint)
  * and this one does not — the helper is filesystem and `spawnSync` only, and
  * `scripts/measure-tmpdir-growth.mjs` supports linux explicitly through
- * `/proc`. It stays on darwin for two reasons that survive that finding: the
+ * `/proc`. It stays on darwin for ONE reason that survives that finding: the
  * 5,000 ms budget is calibrated against darwin samples (169.97 / 170.94 /
- * 527.62 ms) and no Linux figure has ever been measured, and the corpus cost is
+ * 527.62 ms) and no Linux figure has ever been measured, so a Linux lane would
+ * assert a wall-clock budget on a platform nobody has calibrated.
+ *
+ * A second reason was once given and does NOT survive — that the corpus cost is
  * no cheaper on a 2-core hosted runner, so a Linux lane on every pull request
- * would hand back the cost the exclusion exists to remove.
+ * would hand back the cost the exclusion exists to remove. The only figure ever
+ * offered for that, 253.39 s, was measured on a dev box under fleet load. The
+ * nightly lane's first run measured this same file at 33.46 s on an idle hosted
+ * runner (run 33935719741), corpus construction included: roughly 7.5x apart,
+ * and the difference is contention, not the work. A performance figure measured
+ * under contention is a symptom, not a cost. The Linux corpus cost is still
+ * unmeasured, so that reason is a hypothesis (CodySwannGT/lisa#3949).
  *
  * Everything else about the command — including the entry-cap refusal branch,
  * which now proves itself on a 501-entry root — stays in the unit suite next to

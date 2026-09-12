@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# This file is managed by Lisa and IS replaced on each `lisa` run.
+# Do not edit directly — durable changes belong upstream in Lisa.
+
 # PreToolUse hook for Bash: a safety net that blocks destructive shell commands
 # before they run. Lisa-native reimplementation of the upstream
 # `safety-net@cc-marketplace` plugin's PreToolUse Bash-guard (parity work,
@@ -117,6 +120,28 @@ set -euo pipefail
 trap 'printf "%s\n" "Blocked by safety-net: hook failed while parsing its input; denying fail-closed." >&2; exit 2' ERR
 
 input="$(cat)"
+
+# Evaluate once per tool call when this guard is registered on both channels.
+#
+# Lisa reaches an agent through the repository dispatcher AND the plugin
+# manifest, and where both are live the harness runs this guard twice for one
+# tool call. `guard-dedupe.bash` short-circuits the second run ONLY when a
+# byte-identical copy already ALLOWED this exact payload on this exact tool
+# call; a differing vintage, a refusal, and a host with one channel all
+# evaluate exactly as before. Nothing is de-registered by it
+# (CodySwannGT/lisa#3814).
+#
+# Absent library means no dedupe, which is the pre-existing behaviour, so an
+# older channel copy that predates it is unaffected.
+lisa_guard_hook_dir="${BASH_SOURCE[0]%/*}"
+lisa_guard_dedupe_lib="$lisa_guard_hook_dir/guard-dedupe.bash"
+if [ -r "$lisa_guard_dedupe_lib" ]; then
+  # shellcheck source=guard-dedupe.bash
+  . "$lisa_guard_dedupe_lib"
+  trap 'lisa_guard_dedupe_record $?' EXIT
+  lisa_guard_dedupe parity-safety-net "$input" \
+    "$lisa_guard_hook_dir/parity-safety-net-heredoc.py"
+fi
 
 tool_name="$(printf '%s' "$input" | jq -r '.tool_name // empty')"
 if [ "$tool_name" != "Bash" ]; then
@@ -244,11 +269,18 @@ later with `git apply "$patch"`.
 
 If the work is NOT yours -- a concurrent agent dirtied this worktree and your
 judgement is "none of this is mine" -- that same capture is how you return the
-tree to HEAD:
+tree to HEAD. This block is self-contained; paste it as it stands:
 
+  patch="$(mktemp "${TMPDIR:-/tmp}/lisa-preserve-XXXXXX")"
   git reset
   git diff --binary HEAD > "$patch"
   git apply -R "$patch"
+
+It names the file itself rather than inheriting one from the block above,
+because the two blocks are alternatives and only one of them gets run. A remedy
+printed at the moment an agent is blocked is followed literally; one that
+depends on a variable the reader never set fails on its first line, and the
+guard that printed it stops being believed.
 
 `git reset` clears staged and unmerged entries first, so the capture sees the
 whole tree as one diff; reversing it leaves the tree at HEAD with "$patch" as

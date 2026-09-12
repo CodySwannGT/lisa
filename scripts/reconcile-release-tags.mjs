@@ -71,8 +71,27 @@
  * no evidence and return `unprovable` — the verdict that means "do not act".
  * Use `attempts/<n>/jobs` or `?filter=all`.
  *
+ * ## One probe, not two (issue #3804)
+ *
+ * The question "did this exact version reach the registry?" has ONE
+ * implementation, `verifyPublish` in `check-npm-publish-landed.mjs`, and this
+ * sweep calls it. It used to carry its own URL builder, its own fetch and its
+ * own body check, written in parallel with that module because the module was
+ * unmerged at the time. Two of them agreed only because two people had aligned
+ * the semantics by hand — including one real divergence caught in review, where
+ * this file accepted any HTTP 200 while the module also required the response
+ * body to name the version asked for. Both surfaces reporting `published` about
+ * one release have to mean the same thing by it, and that now rests on there
+ * being one implementation rather than on an agreement.
+ *
+ * WHAT DID NOT CONVERGE, DELIBERATELY: the retry policy and the exit code. See
+ * `probeVersion` for the first; the second is simply that `main` here returns
+ * nothing and the module's exit-1 CLI is never imported.
+ *
  * @module scripts/reconcile-release-tags
  */
+
+import { verifyPublish } from "../all/copy-overwrite/scripts/check-npm-publish-landed.mjs";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
@@ -109,21 +128,27 @@ export function parseVersionTag(tag) {
 }
 
 /**
- * What a single registry probe establishes.
+ * What a single registry probe establishes, in this sweep's vocabulary.
  *
- * Only a definitive 404 on the EXACT-VERSION endpoint proves absence. Every
- * other outcome — including a 200 that is not the version asked for, an auth
- * failure, a rate limit and any transport error — establishes nothing about
- * whether the release happened, and says so rather than guessing.
- * @param {object} probe The probe result.
- * @param {number|null} [probe.status] HTTP status, or null when none was received.
- * @param {string|null} [probe.error] Transport-level failure, if any.
+ * The probe itself no longer lives here — `verifyPublish` decides which of the
+ * three words an HTTP answer earns, and it already applies the rule this
+ * function used to apply: only a definitive 404 on the EXACT-VERSION endpoint
+ * proves absence, while a 200 naming a different version, an auth failure, a
+ * rate limit, a timeout and any transport error all establish nothing.
+ *
+ * This is kept as the sweep's own boundary rather than dropped as a
+ * pass-through. It is total: ANY outcome it does not recognise — a fourth
+ * verdict added upstream, a malformed result, no result at all — is read as
+ * `unprovable`. That default is the safe direction, because the damage this
+ * sweep can do is reporting a good release as absent, and an unrecognised word
+ * falling through to `missing` is exactly how that would happen.
+ * @param {object} outcome The result of one `verifyPublish` call.
+ * @param {string|null} [outcome.verdict] The verdict that call settled on.
  * @returns {string} One of the `VERDICT` values.
  */
-export function classifyProbe({ status = null, error = null } = {}) {
-  if (error) return VERDICT.UNPROVABLE;
-  if (status === 200) return VERDICT.PUBLISHED;
-  if (status === 404) return VERDICT.MISSING;
+export function classifyProbe({ verdict = null } = {}) {
+  if (verdict === VERDICT.PUBLISHED) return VERDICT.PUBLISHED;
+  if (verdict === VERDICT.MISSING) return VERDICT.MISSING;
   return VERDICT.UNPROVABLE;
 }
 
@@ -153,92 +178,48 @@ export function reconcile({ tags, probe }) {
 }
 
 /**
- * The exact-version registry endpoint for one version.
+ * Probe a version through the shared implementation, retrying ONLY while the
+ * answer is `unprovable`.
  *
- * EXACT VERSION, never `dist-tags.latest`. `latest` lags a successful publish
- * by minutes, so reconciling against it reports a release that shipped moments
- * ago as absent — a false `missing` on the newest and most-scrutinised release.
- * @param {string} pkg The package name.
- * @param {string} version The exact version.
- * @returns {string} The URL to probe.
- */
-export function registryUrl(pkg, version) {
-  return `https://registry.npmjs.org/${pkg.replace("/", "%2f")}/${version}`;
-}
-
-/**
- * Probe the registry for one version, converting every failure into a shape
- * `classifyProbe` can read rather than throwing.
- * @param {string} pkg The package name.
- * @param {string} version The exact version.
- * @param {typeof fetch} [fetchImpl] Injected for tests.
- * @returns {Promise<{status: number|null, error: string|null}>} The probe result.
- */
-export async function probeRegistry(pkg, version, fetchImpl = fetch) {
-  try {
-    const response = await fetchImpl(registryUrl(pkg, version), {
-      method: "GET",
-    });
-    if (response.status !== 200)
-      return { status: response.status, error: null };
-    // A 200 IS NOT ENOUGH — the body has to name the version that was asked
-    // for. This matches the release-time check (#3684) exactly: a 200 whose
-    // body names something else, or which does not parse, settles nothing and
-    // is `unprovable` rather than `published`. Two surfaces reporting the same
-    // word about one release have to mean the same thing by it, or comparing
-    // their reports is meaningless.
-    let body;
-    try {
-      body = await response.json();
-    } catch (error) {
-      return {
-        status: null,
-        error: `unparseable body: ${String(error?.message ?? error)}`,
-      };
-    }
-    if (body?.version !== version)
-      return {
-        status: null,
-        error: `registry served version ${String(body?.version)} for ${version}`,
-      };
-    return { status: 200, error: null };
-  } catch (error) {
-    // A transport failure is NOT evidence of absence. Returning it as an error
-    // is what makes `classifyProbe` answer `unprovable` instead of `missing`.
-    return { status: null, error: String(error?.message ?? error) };
-  }
-}
-
-/**
- * Probe a version, retrying ONLY while the answer is `unprovable`.
+ * THE RETRY POLICY IS THIS SWEEP'S, AND IT IS NOT THE MODULE'S. `verifyPublish`
+ * retries both non-`published` verdicts, because at release time a version that
+ * has just been published can lag the exact-version endpoint for a moment, so
+ * re-asking after a 404 is worth the wait. This sweep looks backwards at tags
+ * that are often years old, where a 404 is settled: re-asking would be asking
+ * the registry to change its mind, and paying for it 1,774 times. So the module
+ * is called with `attempts: 1` — one question per call, no internal retry — and
+ * the loop that decides whether to ask again lives here, where the timeline it
+ * reasons about lives. Same principle, different positions on that timeline;
+ * neither caller's behaviour moved when the probe converged.
  *
- * A retry loop that also re-ran `missing` would be asking the registry to
- * change its mind about a definite 404, and one that re-ran `published` would
- * double the cost of the common case. Only "we could not look" is worth
- * looking again at.
- *
- * This matters at sweep scale rather than for a single release. The first real
- * run over 1,699 tags produced two `unprovable` rows, and one of them was
- * `v2.325.4` — a version that IS published, whose probe simply failed in
- * flight. Without a re-probe every sweep carries a couple of rows an operator
- * has to chase by hand, which is how a report starts getting skimmed.
+ * Re-asking an `unprovable` matters at sweep scale rather than for a single
+ * release. The first real run over 1,699 tags produced two `unprovable` rows,
+ * and one of them was `v2.325.4` — a version that IS published, whose probe
+ * simply failed in flight. Without a re-probe every sweep carries a couple of
+ * rows an operator has to chase by hand, which is how a report starts getting
+ * skimmed.
  * @param {string} pkg The package name.
  * @param {string} version The exact version.
  * @param {object} [options] Retry controls.
  * @param {number} [options.attempts] Total attempts, including the first.
  * @param {() => Promise<void>} [options.pause] Delay between attempts.
  * @param {typeof fetch} [options.fetchImpl] Injected for tests.
- * @returns {Promise<{status: number|null, error: string|null}>} The last probe result.
+ * @returns {Promise<{verdict: string, detail: string}>} The settled outcome.
  */
-export async function probeWithRetry(
+export async function probeVersion(
   pkg,
   version,
   { attempts = 2, pause = async () => {}, fetchImpl = fetch } = {}
 ) {
-  let last = { status: null, error: "not attempted" };
+  let last = { verdict: VERDICT.UNPROVABLE, detail: "not attempted" };
   for (let attempt = 0; attempt < Math.max(1, attempts); attempt += 1) {
     if (attempt > 0) await pause();
-    last = await probeRegistry(pkg, version, fetchImpl);
+    last = await verifyPublish({
+      packageName: pkg,
+      version,
+      attempts: 1,
+      fetchImpl,
+    });
     if (classifyProbe(last) !== VERDICT.UNPROVABLE) return last;
   }
   return last;
@@ -313,7 +294,7 @@ async function main() {
   for (const tag of tags) {
     const version = parseVersionTag(tag);
     if (version === null || probes.has(version)) continue;
-    probes.set(version, await probeWithRetry(pkg, version));
+    probes.set(version, await probeVersion(pkg, version));
   }
 
   const result = reconcile({

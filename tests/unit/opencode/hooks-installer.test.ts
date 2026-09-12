@@ -320,10 +320,13 @@ describe("opencode/hooks-installer", () => {
       const result = await installHooks(lisaDir, destDir, ["typescript"], []);
       const files = await listInstalledPluginFiles(destDir);
       expect(result.pluginCount).toBe(files.length);
-      // Plus the four canonical support scripts, managed without being
-      // listed as plugins. Four since #3750: the managed-file guard is a
-      // shell-out, so its script is staged beside the plugin.
-      expect(result.managedFiles).toHaveLength(files.length + 4);
+      // Plus the five canonical support scripts, managed without being
+      // listed as plugins. Four since #3750, when the managed-file guard became
+      // a shell-out and its script started being staged beside the plugin;
+      // five since #3814 added the dedupe library those guards source as a
+      // sibling of themselves, which has to be staged with them or the
+      // reference resolves to nothing.
+      expect(result.managedFiles).toHaveLength(files.length + 5);
     });
   });
 

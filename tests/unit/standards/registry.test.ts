@@ -237,7 +237,8 @@ describe("standards check registry", () => {
     expect(workflow).toContain(
       "run: node scripts/check-verification-coverage.mjs"
     );
-    expect(workflow).toContain("run: ${{ inputs.package_manager }} run build");
+    // Bound through `env:`, never interpolated into the shell (#3793).
+    expect(workflow).toContain('"$PACKAGE_MANAGER" run build');
 
     const phaserWorkflow = await readFile(
       path.join(

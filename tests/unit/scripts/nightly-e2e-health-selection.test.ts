@@ -1121,6 +1121,109 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
       expect(asked).toEqual([]);
     });
 
+    it.each([
+      "https://api.test.attacker.test/repos/o/r/check-runs/551",
+      "https://api.test/repos/other/repo/check-runs/551",
+    ])(
+      "does not send credentials to an unexpected check-run URL %s",
+      async url => {
+        const asked = stubAnnotations([]);
+        expect(
+          await mod.readTimeoutEvidence(
+            TEST_API,
+            [{ ...UNFINISHED, check_run_url: url }],
+            noWait
+          )
+        ).toBeNull();
+        expect(asked).toEqual([]);
+      }
+    );
+
+    it("does not claim absence from a full first annotation page", async () => {
+      stubAnnotations(Array.from({ length: 100 }, () => "Other annotation"));
+      expect(
+        await mod.readTimeoutEvidence(TEST_API, [UNFINISHED], noWait)
+      ).toBeNull();
+    });
+
+    it("retains the configured Enterprise API prefix", async () => {
+      const asked = stubAnnotations(["exceeded the maximum execution time"]);
+      expect(
+        await mod.readTimeoutEvidence(
+          { ...TEST_API, apiUrl: "https://api.test/api/v3" },
+          [
+            {
+              ...UNFINISHED,
+              check_run_url: "https://api.test/api/v3/repos/o/r/check-runs/551",
+            },
+          ],
+          noWait
+        )
+      ).toBe(true);
+      expect(asked).toEqual([
+        "https://api.test/api/v3/repos/o/r/check-runs/551/annotations?per_page=100",
+      ]);
+    });
+
+    it.each([true, false])(
+      "attributes timeout only after a complete job read: %s",
+      async complete => {
+        const run = { ...DISPLACED_RUN, id: 965, conclusion: "cancelled" };
+        const jobs = [
+          ...Array.from({ length: complete ? 1 : 99 }, (_unused, index) => ({
+            name: `shard-${index}`,
+            conclusion: "success",
+          })),
+          UNFINISHED,
+        ];
+        const annotations: string[] = [];
+        (globalThis as { fetch: unknown }).fetch = async (
+          url: string
+        ): Promise<unknown> => {
+          if (url.includes("/annotations")) {
+            annotations.push(url);
+            return fakeResponse(
+              200,
+              {},
+              complete
+                ? [{ message: "exceeded the maximum execution time" }]
+                : []
+            );
+          }
+          if (url.includes("/jobs")) {
+            return new URL(url).searchParams.get("page") === "2"
+              ? fakeResponse(404)
+              : fakeResponse(200, {}, { jobs });
+          }
+          if (url.includes(ARTIFACTS_PATH))
+            return fakeResponse(200, {}, { artifacts: [] });
+          return fakeResponse(
+            200,
+            {},
+            { workflow_runs: url.includes(DISPATCH_QUERY) ? [run] : [] }
+          );
+        };
+        const [observation] = await mod.observe(
+          TEST_API,
+          [RUN_SUITE],
+          BRANCH,
+          CONTEXT,
+          noWait
+        );
+        expect(observation?.run?.id).toBe(run.id);
+        expect(observation?.jobsComplete).toBe(complete);
+        expect(observation?.selection?.timedOut).toBe(complete ? true : null);
+        expect(annotations).toHaveLength(complete ? 1 : 0);
+        expect(
+          mod.assessSuite(RUN_SUITE, observation ?? {}, {
+            branch: BRANCH,
+            freshnessHours: CONTEXT.freshnessHours,
+            now: NOW,
+          }).state
+        ).not.toBe(STATE.pass);
+      }
+    );
+
     it("asks nothing when every job reached a verdict", async () => {
       const asked = stubAnnotations([]);
 

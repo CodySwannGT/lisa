@@ -21,7 +21,7 @@ import {
 } from "../../../plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs";
 
 /** What a `--version` probe reports for one tool. */
-type Probed = { present: boolean; version: string | null };
+type Probed = { present: boolean; executable: boolean; version: string | null };
 
 /**
  * Build a probe backed by a fixed table, standing in for real `--version` calls.
@@ -31,7 +31,7 @@ type Probed = { present: boolean; version: string | null };
 const probeFrom =
   (table: Record<string, Probed>) =>
   (name: string): Probed =>
-    table[name] ?? { present: false, version: null };
+    table[name] ?? { present: false, executable: false, version: null };
 
 /**
  * Plan a manifest and return the decision recorded for one tool.
@@ -77,7 +77,9 @@ describe("required tools", () => {
   const tools = { require: [{ name: "python3" }], install: [] };
 
   it("passes when the base image provides it", () => {
-    const table = { python3: { present: true, version: "3.12.1" } };
+    const table = {
+      python3: { present: true, executable: true, version: "3.12.1" },
+    };
     expect(actionFor(tools, table, "python3")).toBe("present");
   });
 
@@ -94,7 +96,9 @@ describe("required tools", () => {
       require: [{ name: "node", minVersion: "20" }],
       install: [],
     };
-    const table = { node: { present: true, version: "18.19.0" } };
+    const table = {
+      node: { present: true, executable: true, version: "18.19.0" },
+    };
     expect(actionFor(versioned, table, "node")).toBe("missing");
   });
 
@@ -103,7 +107,9 @@ describe("required tools", () => {
       require: [{ name: "node", minVersion: "20" }],
       install: [],
     };
-    const table = { node: { present: true, version: "22.1.0" } };
+    const table = {
+      node: { present: true, executable: true, version: "22.1.0" },
+    };
     expect(actionFor(versioned, table, "node")).toBe("present");
   });
 });
@@ -114,12 +120,16 @@ describe("installable tools", () => {
   it("skips an install when the pin already matches", () => {
     // Detect first, install second — this is what makes setup and maintenance
     // the same script, and the cheap path on cache resume.
-    const table = { bws: { present: true, version: "2.1.0" } };
+    const table = {
+      bws: { present: true, executable: true, version: "2.1.0" },
+    };
     expect(actionFor(tools, table, "bws")).toBe("skip");
   });
 
   it("reinstalls when the pin moved", () => {
-    const table = { bws: { present: true, version: "2.0.0" } };
+    const table = {
+      bws: { present: true, executable: true, version: "2.0.0" },
+    };
     expect(actionFor(tools, table, "bws")).toBe("install");
   });
 

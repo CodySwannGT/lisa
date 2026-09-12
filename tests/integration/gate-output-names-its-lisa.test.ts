@@ -39,6 +39,18 @@ const WORKFLOWS = ".github/workflows";
 /** The identity job every gate-bearing reusable workflow carries. */
 const IDENTITY_JOB = "lisa_identity";
 
+/**
+ * The jobs allowed to depend on the stamp, named one by one.
+ *
+ * A job output is reachable only through `needs`, so anything that CHECKS the
+ * stamp against another job has to depend on it. That is the one legitimate
+ * reason to, and it is not a shape a future job can drift into by accident:
+ * the entry buys nothing on its own, because the case above additionally
+ * requires every listed job to be `always()`-guarded and to end every step
+ * body with `exit 0`.
+ */
+const STAMP_READERS = ["registry_path_agreement"] as const;
+
 /** The first candidate of the three-candidate search every resolver runs. */
 const REGISTRY_CANDIDATE =
   "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs";
@@ -175,13 +187,39 @@ describe("the CI gate surface", () => {
         IDENTITY_JOB
       ];
       for (const [name, other] of Object.entries(
-        workflow.jobs as Record<string, { needs?: string | string[] }>
+        workflow.jobs as Record<
+          string,
+          { needs?: string | string[]; if?: unknown; steps?: Step[] }
+        >
       )) {
         const needs = other.needs ?? [];
         const listed = Array.isArray(needs) ? needs : [needs];
-        expect(listed, `${name} depends on the stamp`).not.toContain(
-          IDENTITY_JOB
+        if (!listed.includes(IDENTITY_JOB)) continue;
+        expect(
+          [...STAMP_READERS],
+          `${name} depends on the stamp and is not one of the readers this control knows about`
+        ).toContain(name);
+        // WHAT "MERGE CONDITION" ACTUALLY MEANS, now that a reader exists.
+        // A dependant is a merge condition when the stamp's RESULT can decide
+        // whether it runs or what it reports. `if: always()` removes the
+        // first half — a failed, skipped or cancelled stamp still runs this
+        // job — and a body that ends `exit 0` removes the second, because the
+        // reader cannot turn the stamp into a red check on any path.
+        //
+        // The blanket ban this replaces asserted a PROXY for that property,
+        // and the proxy stopped matching the property the moment something
+        // legitimately needed to read the stamp's output: job outputs are
+        // reachable only through `needs`. Every dependant is still named
+        // here, so the exemption is one job by name rather than a shape any
+        // future job can grow into.
+        expect(other.if, `${name} is not always()-guarded`).toBe(
+          "${{ always() }}"
         );
+        for (const step of other.steps ?? [])
+          expect(
+            step.run ?? "",
+            `${name} can fail and would redden the stamp`
+          ).toMatch(/\nexit 0\n?$/);
       }
       expect(job.permissions).toEqual({ contents: "read" });
     }

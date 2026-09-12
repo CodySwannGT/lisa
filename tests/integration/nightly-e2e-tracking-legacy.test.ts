@@ -71,10 +71,14 @@ function sha256(relative: string): string {
 describe("legacy #2448 compatibility", () => {
   // These digests track whatever the legacy reporter is on main, and are
   // refreshed only when main deliberately changes it under its own review --
-  // most recently "track @main in every seeded template", which repointed the
-  // caller's `uses:` from `@v3.35.0` and replaced the comment instructing that
-  // pin. The reusable's own digest is UNCHANGED by that commit, which is the
-  // point: the caller moved, the reporter did not.
+  // most recently the `@main` staleness handshake, which gave the reusable an
+  // `expected_workflow_contract_major` input plus the job that asserts it, and
+  // seeded the matching value beside the caller's `uses:`. Before that, "track
+  // @main in every seeded template" repointed that same `uses:` from
+  // `@v3.35.0`. Neither touched the reporting logic these cases lock: the
+  // handshake job runs before the report and reads none of its state, and the
+  // three parsed-contract cases below are what prove a refreshed digest still
+  // describes the same reporter.
   // The lock they enforce is that the CONFIGURABLE tracking work on this branch
   // leaves the legacy per-suite reporter untouched, so a digest that moves
   // because of a commit on this branch is the failure it exists to catch. The
@@ -82,10 +86,10 @@ describe("legacy #2448 compatibility", () => {
   // describes the same reporter.
   it("preserves the exact released reusable and caller bytes", () => {
     expect(sha256(LEGACY_REL)).toBe(
-      "f051b15f2cbe84af09a39dd1f4e5607cff24a4795b85a00a60fb05cda42a00ac"
+      "e534f08d95f07fdac3d8b2951f0af7e8ad70c84ee23e5d7d816947aeda9217c2"
     );
     expect(sha256(LEGACY_CALLER_REL)).toBe(
-      "6c2cdc22f0da74329ba4eb39f1b4ea8d9e6bf73924f0f874ac4453308b4e51c8"
+      "002f9a3bb88e1ff964195f413e385313c6d6f868e6d003b787663903d6bbd3a9"
     );
   });
 
@@ -107,6 +111,7 @@ describe("legacy #2448 compatibility", () => {
         "branch",
         "bypass_label",
         "expected_contract_major",
+        "expected_workflow_contract_major",
         "freshness_hours",
         "gate_context",
         "guard_script",
@@ -140,6 +145,7 @@ describe("legacy #2448 compatibility", () => {
     ).toEqual([
       "branch",
       "bypass_label",
+      "expected_workflow_contract_major",
       "gate_context",
       "pin_issues",
       "suites",

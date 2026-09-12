@@ -1,0 +1,120 @@
+---
+description: "Operational Hazards — reference"
+alwaysApply: false
+---
+
+# Operational Hazards — reference
+
+Full contract behind the `operational-hazards` slug (CodySwannGT/lisa#3681). The eager rule carries
+the two commands; this is the reasoning, the tiers, and the boundary against doctrine.
+
+## The general property
+
+**A detector whose only failure mode is staying quiet cannot be audited.** A fan-out reaches the
+sessions alive at one instant. The sessions that were not alive receive nothing and are told
+nothing, so nobody — the sender included — can name who was missed.
+
+Measured on one machine in one hour: one session started 18 minutes after a warning it needed;
+another started 8 minutes after a different one; four more appeared and vanished entirely inside
+the hour. And the lanes most likely to collide are the ones that just started and are standing up
+fresh environments — so the warning that would have prevented the collision cannot reach the
+session that causes it, because that session does not exist yet.
+
+**The hole is unmeasurable, not merely growing.** Two sessions on the same machine, enumerating
+peers at the same moment, returned different rosters: one session appeared in one listing and had
+never appeared in four consecutive reads by the other. So "I enumerated the roster and checked the
+list" carries an unknown hole, and a fan-out audited against one session's view cannot be audited
+at all.
+
+## What the existing rule injector cannot do
+
+`inject-rules.sh` reads `CLAUDE_PLUGIN_ROOT/rules/eager` — the plugin root, not the project. A
+project cannot register anything there without editing an installed plugin, which the next apply
+overwrites. And it concatenates every `.md` unconditionally: no front matter, no date, no filter.
+Anything written there is injected on every start, permanently, until a human deletes the file.
+
+So the injector is the right *reach* and the wrong *store*. This ledger reuses the reach — the same
+two start events, plus the tool-result event — and supplies a project-owned store whose entries
+carry a condition something evaluates.
+
+## Why the expiry is the mechanism, not a convenience
+
+**The expiry is what separates a transient hazard from doctrine**, and it is the only reason the
+surface can be trusted with transient content: nobody has to remember to remove anything. A hazard
+surface without an expiry becomes the permanent-scripture problem, and a project that has watched
+that happen once will correctly refuse to use the surface again.
+
+The shape is deliberately the threshold-ratchet exemption's (CodySwannGT/lisa#3856) rather than a
+third scheme:
+
+- record the condition in a form something can evaluate — `until`, a `YYYY-MM-DD` day or an
+  ISO-8601 timestamp, live *through* the day named;
+- never let an unevaluable condition lapse into the permissive answer. An entry naming no evaluable
+  expiry — hand-written, or written before `until` existed — **still applies**, and is reported as
+  `unchecked` every time it is read.
+
+An expiry that lapses into "no longer shown" is worse than no expiry: it restores permanent
+scripture in reverse — the hazard vanishes — while every signal still reads healthy. That is why
+the writer refuses `--declare` without `--until`, and refuses an `until` it cannot parse, while the
+reader tolerates one and says so.
+
+## The inverse
+
+A hazard also ends before its expiry. A declaration nothing can void is the defect closed twice
+already — the QA-failure signal (CodySwannGT/lisa#3855) and the human gate (CodySwannGT/lisa#3852)
+— so `--lift` appends a void record naming what resolved it.
+
+Matching is **time-ordered**: a lift voids only a declaration that pre-dates it. A hazard
+re-declared after an earlier lift is therefore not born discharged, which is the unsafe direction
+#3852 records as the one this must not introduce. For the same reason the ledger union keeps the
+**newest** declaration for an id, not the first one read.
+
+## The ledger's two tiers
+
+- **`.lisa/HAZARDS.jsonl`**, committed — reaches every future reader of this project and merges by
+  git's built-in union driver. This is also the tier that answers "does `lisa apply` preserve it":
+  it is host-authored content under `.lisa/`, like the withdrawal tombstones beside it, and no
+  managed-file reconciliation writes it.
+- **`${LISA_STATE_HOME:-~/.lisa}/operational-hazards.jsonl`** — reaches sibling sessions in OTHER
+  worktrees on this machine *now*, which a committed file cannot do until it is merged and pulled.
+  For the fleet case above, this is the tier that matters.
+
+`--declare` and `--lift` write both. Reads are the union. Both files are append-only JSONL, so
+concurrent writers on their own branches reconstruct exactly under `merge=union`.
+
+## How a running session is reached
+
+`--session-start` delivers everything applying and stamps what the session was born knowing.
+`--hook` runs as a PostToolUse hook and announces only what changed since that stamp: a hazard
+declared while this session runs, and a **lift** of a hazard this session was told about. Both
+directions were measured — the provenance of #3681 is a session that was sent a lift for a hold it
+had never received.
+
+A missing stamp is deliberately silent. A session whose starting knowledge is unknown would
+otherwise be told every historical hazard, which degrades the mechanism into distrusting
+everything.
+
+The common path is cheap: when neither tier's `size:mtime` has moved, `--hook` exits after two
+`stat` calls without parsing anything. It fires on every tool call in every session, so anything
+expensive multiplies.
+
+## Surface parity
+
+The hook pair ships into every payload that carries the base hooks, and the injector fires on
+`SubagentStart` as well as `SessionStart` — which makes this better than a broadcast rather than
+merely equivalent, since a fan-out never reaches a subagent at all.
+
+Surfaces with no PostToolUse runtime get the start-event half and `--list`. That is the honest
+split: **the durable half — reaching every session that starts later — is closed everywhere the
+hook installs. The already-running half depends on a tool-result event, so where there is none, a
+running session is reached only when it runs `--list`.**
+
+## What deliberately does not belong here
+
+Anything that should still be true next month. A hazard is a condition of *this machine, this
+branch, this hour*: a port another lane holds, a resource one run has saturated, a command that
+dumps more than you asked for, a gate red for an environmental reason. If the entry would want
+renewing when it expires, it was never a hazard — promote it through the learnings ladder to a rule
+or an executable control, and let the entry lapse.
+
+Not a severity taxonomy, not a notification system, and not a change to how eager rules work.

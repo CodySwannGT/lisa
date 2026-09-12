@@ -213,6 +213,7 @@ function buildApplyConfig(parts: {
  * @param parts.persistence - Inputs deciding whether config must be written
  * @param parts.stalePaths - Managed files this apply left out of date
  * @param parts.deletedPaths - Files this apply removed
+ * @param parts.deletionNotices - Those removals, and any refusals, with reasons
  */
 async function finalizeSuccessfulApply(parts: {
   destDir: string;
@@ -222,6 +223,7 @@ async function finalizeSuccessfulApply(parts: {
   persistence: ProjectConfigPersistenceInput;
   stalePaths: readonly string[];
   deletedPaths: readonly string[];
+  deletionNotices: readonly string[];
 }): Promise<void> {
   const {
     destDir,
@@ -231,6 +233,7 @@ async function finalizeSuccessfulApply(parts: {
     persistence,
     stalePaths,
     deletedPaths,
+    deletionNotices,
   } = parts;
   // Ensure every applied project carries a .lisa.config.json. A missing file is
   // always backfilled with the resolved harness (the default when no --harness
@@ -266,6 +269,12 @@ async function finalizeSuccessfulApply(parts: {
     // afterwards either, so the receipt is the only place the removal is still
     // recorded once the install output is gone (CodySwannGT/lisa#3656).
     deletedPaths,
+    // And the reasons alongside them, because "which files" without "why" sends
+    // the operator to `git checkout` and back round the same loop on the next
+    // install. The receipt is also the only copy that survives the detached
+    // re-apply, which arrives having deleted nothing and used to write that
+    // over the record (CodySwannGT/lisa#4071).
+    deletionNotices,
   });
 }
 
@@ -413,6 +422,7 @@ export async function runApply(
         },
         stalePaths: result.stalePaths,
         deletedPaths: result.deletedPaths,
+        deletionNotices: result.deletionNotices,
       });
     }
 
