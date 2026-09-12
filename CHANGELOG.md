@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.16](https://github.com/CodySwannGT/lisa/compare/v4.55.15...v4.55.16) (2026-09-12)
+
+
+### Bug Fixes
+
+* **work-item:** repair authored trailers in unbound worktrees ([feab5d2](https://github.com/CodySwannGT/lisa/commit/feab5d2f23f6bde86f77b1c65556df4bf7a28c57)), closes [CodySwannGT/lisa#3859](https://github.com/CodySwannGT/lisa/issues/3859) [CodySwannGT/lisa#3859](https://github.com/CodySwannGT/lisa/issues/3859)
+* **work-item:** sync main with authored trailer repair ([54837ee](https://github.com/CodySwannGT/lisa/commit/54837eecb3c6178e43e3ebbbb4d7b24b9ecb926d)), closes [CodySwannGT/lisa#3859](https://github.com/CodySwannGT/lisa/issues/3859)
+
 ### [4.55.15](https://github.com/CodySwannGT/lisa/compare/v4.55.14...v4.55.15) (2026-09-12)
 
 
