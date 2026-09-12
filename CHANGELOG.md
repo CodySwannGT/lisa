@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.10](https://github.com/CodySwannGT/lisa/compare/v4.55.9...v4.55.10) (2026-09-12)
+
+
+### Bug Fixes
+
+* **expo:** validate Jira parser origin before token access ([e995547](https://github.com/CodySwannGT/lisa/commit/e9955474b814acc1a0ef53a4551f7ad519fcde5f)), closes [CodySwannGT/lisa#3506](https://github.com/CodySwannGT/lisa/issues/3506) [CodySwannGT/lisa#3506](https://github.com/CodySwannGT/lisa/issues/3506)
+
 ### [4.55.9](https://github.com/CodySwannGT/lisa/compare/v4.55.8...v4.55.9) (2026-09-12)
 
 
