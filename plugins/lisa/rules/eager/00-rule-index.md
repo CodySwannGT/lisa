@@ -76,6 +76,7 @@ Paths are relative to this file.
 | `documentation-source-paths` | moving, absorbing, or deleting a docs-like directory | [../reference/documentation-source-paths.md](../reference/documentation-source-paths.md) |
 | `project-learnings` | you need the learnings ledger's entry schema and field semantics | [../reference/project-learnings.md](../reference/project-learnings.md) |
 | `factory-model` | you need the shape of the factory model, not its obligations | [../reference/factory-model.md](../reference/factory-model.md) |
+| `never-name-a-downstream-project` | you are about to refer to a downstream project in writing | [../reference/never-name-a-downstream-project.md](../reference/never-name-a-downstream-project.md) |
 
 The obligations that follow from `factory-model` are in `base-rules`, which is
 eager. This entry is the exposition behind them.

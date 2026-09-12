@@ -829,7 +829,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/worktree-binding-guard.sh":
       "92511fa2fe3de504a78d0d79a2cacffac545baa1d0264cab0ca999a487adb98f",
     "plugins/src/base/rules/eager/00-rule-index.md":
-      "03414cf9ed6fc4c5a3bbc31a31792c821a13418568a11c2175745d1af269cb8a",
+      "ec1348b307edeb1e974c56c7d3e395116eb998415f100bab1004b8b11b7f20cc",
     "plugins/src/base/rules/eager/base-rules.md":
       "3de39af7d5ad74b0b91fb939ec67a76b806d05a4b5c071c3941af6cd4108083c",
     "plugins/src/base/rules/eager/coding-philosophy.md":
@@ -854,6 +854,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "8a0369f3b23c4c9906194ea2d5b6dab44bb82dee753571b7e3e27ed799a289f5",
     "plugins/src/base/rules/eager/measurement-integrity.md":
       "aff22dd8dfce9b527348c641a996374257fa8a552298713aae524c83858c2aa9",
+    "plugins/src/base/rules/eager/never-name-a-downstream-project.md":
+      "091f07a28baa5da6c19953a394a0cae39dd51abd46a3f23a3f113dd98462f912",
     "plugins/src/base/rules/eager/not-blocked-just-waiting.md":
       "bd96e3a61bfd9ddf27d88b6cb62948c701b6335e9758a081cd5c1fc63048d9be",
     "plugins/src/base/rules/eager/operational-hazards.md":
@@ -942,6 +944,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "4db796a9e159d25e5edd0d8d8d713b6556a3024a96e3882a50e19928b0e81a18",
     "plugins/src/base/rules/reference/measurement-integrity.md":
       "f628573c591e2cbbbbedd22821d40a3687dc14dba3aba5aebdc75c37ebd62494",
+    "plugins/src/base/rules/reference/never-name-a-downstream-project.md":
+      "3b591120dc7825e3bb2c52a633d8b1bc8c05dccc0befef2d2e95a73ac2a99e4c",
     "plugins/src/base/rules/reference/not-blocked-just-waiting.md":
       "bef69d0cefa92e2b8ca589bb27f8e92749140e662d54110e12f0a47890e69f14",
     "plugins/src/base/rules/reference/observability-audit.md":
@@ -4083,6 +4087,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/eager/learnings-ladder.md": true,
     "plugins/lisa-copilot/rules/eager/local-ci-first.md": true,
     "plugins/lisa-copilot/rules/eager/measurement-integrity.md": true,
+    "plugins/lisa-copilot/rules/eager/never-name-a-downstream-project.md": true,
     "plugins/lisa-copilot/rules/eager/not-blocked-just-waiting.md": true,
     "plugins/lisa-copilot/rules/eager/operational-hazards.md": true,
     "plugins/lisa-copilot/rules/eager/report-actionability.md": true,
@@ -4127,6 +4132,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/rules/reference/learnings-ladder.md": true,
     "plugins/lisa-copilot/rules/reference/local-ci-first.md": true,
     "plugins/lisa-copilot/rules/reference/measurement-integrity.md": true,
+    "plugins/lisa-copilot/rules/reference/never-name-a-downstream-project.md": true,
     "plugins/lisa-copilot/rules/reference/not-blocked-just-waiting.md": true,
     "plugins/lisa-copilot/rules/reference/observability-audit.md": true,
     "plugins/lisa-copilot/rules/reference/operational-hazards.md": true,
@@ -4583,6 +4589,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/rules/local-ci-first.mdc": true,
     "plugins/lisa-cursor/rules/measurement-integrity-reference.mdc": true,
     "plugins/lisa-cursor/rules/measurement-integrity.mdc": true,
+    "plugins/lisa-cursor/rules/never-name-a-downstream-project-reference.mdc": true,
+    "plugins/lisa-cursor/rules/never-name-a-downstream-project.mdc": true,
     "plugins/lisa-cursor/rules/not-blocked-just-waiting-reference.mdc": true,
     "plugins/lisa-cursor/rules/not-blocked-just-waiting.mdc": true,
     "plugins/lisa-cursor/rules/observability-audit-reference.mdc": true,
@@ -7141,6 +7149,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/eager/learnings-ladder.md": true,
     "plugins/lisa/rules/eager/local-ci-first.md": true,
     "plugins/lisa/rules/eager/measurement-integrity.md": true,
+    "plugins/lisa/rules/eager/never-name-a-downstream-project.md": true,
     "plugins/lisa/rules/eager/not-blocked-just-waiting.md": true,
     "plugins/lisa/rules/eager/operational-hazards.md": true,
     "plugins/lisa/rules/eager/report-actionability.md": true,
@@ -7185,6 +7194,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/rules/reference/learnings-ladder.md": true,
     "plugins/lisa/rules/reference/local-ci-first.md": true,
     "plugins/lisa/rules/reference/measurement-integrity.md": true,
+    "plugins/lisa/rules/reference/never-name-a-downstream-project.md": true,
     "plugins/lisa/rules/reference/not-blocked-just-waiting.md": true,
     "plugins/lisa/rules/reference/observability-audit.md": true,
     "plugins/lisa/rules/reference/operational-hazards.md": true,
@@ -7792,6 +7802,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/eager/learnings-ladder.md": true,
     "plugins/src/base/rules/eager/local-ci-first.md": true,
     "plugins/src/base/rules/eager/measurement-integrity.md": true,
+    "plugins/src/base/rules/eager/never-name-a-downstream-project.md": true,
     "plugins/src/base/rules/eager/not-blocked-just-waiting.md": true,
     "plugins/src/base/rules/eager/operational-hazards.md": true,
     "plugins/src/base/rules/eager/report-actionability.md": true,
@@ -7836,6 +7847,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/rules/reference/learnings-ladder.md": true,
     "plugins/src/base/rules/reference/local-ci-first.md": true,
     "plugins/src/base/rules/reference/measurement-integrity.md": true,
+    "plugins/src/base/rules/reference/never-name-a-downstream-project.md": true,
     "plugins/src/base/rules/reference/not-blocked-just-waiting.md": true,
     "plugins/src/base/rules/reference/observability-audit.md": true,
     "plugins/src/base/rules/reference/operational-hazards.md": true,
