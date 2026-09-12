@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.9](https://github.com/CodySwannGT/lisa/compare/v4.55.8...v4.55.9) (2026-09-12)
+
+
+### Bug Fixes
+
+* **jira:** validate shell credential destinations ([af03053](https://github.com/CodySwannGT/lisa/commit/af03053776eae34fd27b0f6052c9241518a7c999)), closes [CodySwannGT/lisa#4092](https://github.com/CodySwannGT/lisa/issues/4092) [CodySwannGT/lisa#4092](https://github.com/CodySwannGT/lisa/issues/4092)
+
 ### [4.55.8](https://github.com/CodySwannGT/lisa/compare/v4.55.7...v4.55.8) (2026-09-12)
 
 ### [4.55.7](https://github.com/CodySwannGT/lisa/compare/v4.55.6...v4.55.7) (2026-09-12)
