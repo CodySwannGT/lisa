@@ -73,8 +73,7 @@ describe("failure-signature index — how it gets read", () => {
       tool_input: { command: "bun run test" },
       tool_response: {
         stdout: "",
-        stderr:
-          "Error: ENOENT: no such file or directory, open '/x/dist/configs/vitest/typescript.d.ts'",
+        stderr: 'Syntax error: "(" unexpected',
       },
     });
     const stdout = boundedExecFileSync({
@@ -88,9 +87,8 @@ describe("failure-signature index — how it gets read", () => {
       hookSpecificOutput: { additionalContext: string };
     };
     const context = emitted.hookSpecificOutput.additionalContext;
-    expect(context).toContain("dist-deleted-under-readers");
-    expect(context).toContain("stryker.conf.json:");
-    expect(context).toContain("tests/integration/cli-smoke.test.ts:");
+    expect(context).toContain("sh-is-dash-on-linux");
+    expect(context).toContain("workstation.mjs:");
   });
 
   it("emits nothing for a Bash result that matches no known hazard", () => {
@@ -160,7 +158,6 @@ describe("failure-signature index — this repository's own rows", () => {
     };
     const byId = new Map(index.entries.map(entry => [entry.id, entry]));
     for (const id of [
-      "dist-deleted-under-readers",
       "sh-is-dash-on-linux",
       "learnings-merge-driver-mapped-path-conflicted",
       "generated-artifact-merge-driver-mapped-path-conflicted",

@@ -2,9 +2,9 @@
  * The bite test for the DIFF-ONLY gate — the one that actually runs on pushes
  * and pull requests now that `test:mutation` is the shipped wrapper.
  *
- * `mutation-gate-bite` proves the *whole-list* gate can go red. That is a
- * different gate. Between it and a push stands `lisa-mutation.mjs`, which picks
- * which files Stryker is pointed at, and a defect there is invisible in the
+ * `mutation-gate-bite` checks a focused guard against the committed floor.
+ * This suite also exercises `lisa-mutation.mjs`, which selects the files
+ * Stryker mutates. A defect in that selection can be invisible in the
  * worst way available: **a diff-only gate that mutates nothing exits 0, exactly
  * like one that mutated plenty and killed everything.** Wiring assertions cannot
  * tell those apart, so this drives the real script against a real Stryker and
