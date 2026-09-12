@@ -15,7 +15,7 @@
  * the mutation gate credits a kill only when the mutated module is loaded in
  * the test's own process.
  */
-import { writeFileSync } from "node:fs";
+import { rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterAll, afterEach, describe, expect, it } from "vitest";
@@ -167,6 +167,7 @@ describe("an absent tracker credential never refuses a commit", () => {
 
   it("Jira: no acli and no API token degrades to the offline checks", () => {
     const fixture = createFixture(JIRA);
+    rmSync(path.join(fixture.root, "fake-bin", "acli"));
     const result = cli(fixture, [VALIDATE, trailered(fixture, "LAS-12")], {
       ...NO_CREDENTIALS,
       PATH: sealedPath(fixture),
