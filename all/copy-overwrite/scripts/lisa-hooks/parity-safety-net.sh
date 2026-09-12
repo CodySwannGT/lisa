@@ -139,7 +139,8 @@ if [ -r "$lisa_guard_dedupe_lib" ]; then
   # shellcheck source=guard-dedupe.bash
   . "$lisa_guard_dedupe_lib"
   trap 'lisa_guard_dedupe_record $?' EXIT
-  lisa_guard_dedupe parity-safety-net "$input"
+  lisa_guard_dedupe parity-safety-net "$input" \
+    "$lisa_guard_hook_dir/parity-safety-net-heredoc.py"
 fi
 
 tool_name="$(printf '%s' "$input" | jq -r '.tool_name // empty')"

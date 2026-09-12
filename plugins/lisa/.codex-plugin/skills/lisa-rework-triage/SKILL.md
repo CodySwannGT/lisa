@@ -53,7 +53,8 @@ first-attempt work.
    # bundle.json: { "labels": [...], "comments": [<bodies, oldest first>], "role": "<current>" }
    ```
 
-   Branch on `action`, never on the label being there:
+   Branch on `outcome`, never on the label being there. The resolver's separate
+   `action` field is `keep` / `clear` / `none`; it is not the liveness verdict:
 
    | `outcome` | Meaning | What triage does |
    |---|---|---|

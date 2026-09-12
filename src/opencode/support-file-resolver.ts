@@ -14,13 +14,14 @@ export function resolveSupportFile(
   const moduleDir = path.dirname(fileURLToPath(moduleUrl));
   const bundled = path.join(moduleDir, "plugin-templates", filename);
   if (path.basename(path.dirname(moduleDir)) === "dist") return bundled;
+  // Generated hooks carry the same ownership banner as the dispatcher copy;
+  // raw authoring sources do not, so their literal-byte memo keys would differ.
   return path.resolve(
     moduleDir,
     "..",
     "..",
     "plugins",
-    "src",
-    "base",
+    "lisa",
     "hooks",
     filename
   );

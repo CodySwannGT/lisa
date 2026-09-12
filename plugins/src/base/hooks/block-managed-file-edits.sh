@@ -566,6 +566,7 @@ EOF
 import os
 import re
 import shlex
+import sys
 
 command = os.environ.get("MANAGED_EDIT_COMMAND", "")
 project = os.environ.get("MANAGED_EDIT_PROJECT", "") or os.getcwd()
@@ -576,6 +577,7 @@ project = os.environ.get("MANAGED_EDIT_PROJECT", "") or os.getcwd()
 FOLLOW_MAX_BYTES = 262144
 FOLLOW_MAX_FILES = 8
 FOLLOW_MAX_DEPTH = 3
+ENV_SPLIT_UNRESOLVED = 42
 
 # Spelled with chr() rather than backslash escapes on purpose. This source is
 # embedded in a shell heredoc and copied verbatim through several generators
@@ -607,7 +609,7 @@ FOLLOW_WRAPPERS = {
     # positional count: the walk below re-enters its assignment skip on the
     # next iteration and steps over as many as are present.
     "env": (
-        frozenset({"-C", "--chdir", "-P", "-S", "--split-string", "-u", "--unset"}),
+        frozenset({"-C", "--chdir", "-P", "-u", "--unset"}),
         0,
     ),
     "exec": (frozenset({"-a"}), 0),
@@ -741,6 +743,31 @@ def statements(tokens):
     return grouped
 
 
+class UnresolvedEnvSplit(ValueError):
+    """Split-string syntax whose executed arguments cannot be proven here."""
+
+
+def parse_env_split(split_string):
+    """Parse only the env -S subset shared with ordinary quoted arguments.
+
+    GNU env has its own escapes, comments and environment interpolation. Do
+    not pretend shlex implements those, or invent environment values in a
+    pre-execution guard. The operator can spell the resulting command directly.
+
+    Args:
+        split_string: The literal argument supplied to env's split option.
+
+    Returns:
+        Arguments for the supported subset; otherwise raises UnresolvedEnvSplit.
+    """
+    if any(marker in split_string for marker in (BACKSLASH, "#", "$", chr(96), chr(11), chr(12))):
+        raise UnresolvedEnvSplit("escapes, comments, shell substitution, variable expansion or control whitespace")
+    try:
+        return shlex.split(split_string, comments=False, posix=True)
+    except ValueError as error:
+        raise UnresolvedEnvSplit("unbalanced quoting") from error
+
+
 def command_word(statement):
     """The program a statement runs, and the tokens after it.
 
@@ -757,6 +784,7 @@ def command_word(statement):
         its command word is itself the executed script.
     """
     index = 0
+    split_expansions = 0
     while index < len(statement):
         token = statement[index]
         if "=" in token and not token.startswith(("=", "-")):
@@ -771,6 +799,36 @@ def command_word(statement):
             option = statement[index]
             if option == "--":
                 index += 1
+                break
+            # env -S inserts the split string back into env's argument list;
+            # it is executable input, not an option value to discard. Keep
+            # shell -c's quoted operand intact while expanding the env layer.
+            # The known no-operand flags can be combined before S (-vS/-ivS).
+            # Stop at S: the rest belongs to its argument, not more flags.
+            short_split = re.match(r"^-[iv0]*S(.*)$", option)
+            if program == "env" and (
+                option == "--split-string"
+                or option.startswith("--split-string=")
+                or short_split is not None
+            ):
+                consumed = 1
+                if option == "--split-string" or (
+                    short_split is not None and not short_split.group(1)
+                ):
+                    if index + 1 >= len(statement):
+                        raise UnresolvedEnvSplit("missing split-string operand")
+                    split_string = statement[index + 1]
+                    consumed = 2
+                elif option.startswith("--split-string="):
+                    split_string = option.split("=", 1)[1]
+                else:
+                    split_string = short_split.group(1)
+                if split_expansions >= 64:
+                    raise UnresolvedEnvSplit("nested split-string limit")
+                expanded = parse_env_split(split_string)
+                statement = [token] + expanded + statement[index + consumed :]
+                split_expansions += 1
+                index = 0
                 break
             index += 2 if option in separate else 1
         index += positional
@@ -985,7 +1043,11 @@ def collect(text, depth, seen, out):
 
 
 targets = []
-collect(command, 0, set(), targets)
+try:
+    collect(command, 0, set(), targets)
+except UnresolvedEnvSplit as error:
+    sys.stderr.write(str(error) + NEWLINE)
+    sys.exit(ENV_SPLIT_UNRESOLVED)
 for target in targets:
     cleaned = target.strip().strip("'\"")
     if cleaned:
@@ -1002,6 +1064,15 @@ PY
       analyzer_status=0
     else
       analyzer_status=$?
+    fi
+    if [ "$analyzer_status" -eq 42 ]; then
+      printf 'Blocked: cannot resolve env --split-string for managed-file protection.\n' >&2
+      printf 'Use an explicit command without split-string escapes, comments or variable expansion.\n' >&2
+      while IFS= read -r analyzer_line; do
+        [ -n "$analyzer_line" ] && printf '  %s\n' "$analyzer_line" >&2
+      done <"$analyzer_stderr"
+      rm -f "$analyzer_stderr"
+      exit 2
     fi
     if [ "$analyzer_status" -ne 0 ]; then
       printf 'block-managed-file-edits: Bash analyzer failed (exit %s); Bash write protection is NOT active\n' "$analyzer_status" >&2

@@ -215,9 +215,15 @@ nothing survives, exit on the denominator-stated summary from `summarizeDryLane`
 A blocker is a **claim with a timestamp, not a fact** — it goes stale the moment its condition comes
 true, and nothing re-read one before this phase. For each `$BLOCKED` candidate:
 
-1. **Human gate first, and it is absolute.** An issue carrying the configured human-needed label
-   (`github.labels.build.human_needed`, default `human-needed`) or a `[lisa-human-gate]` marker in
-   its body is **never** auto-selected, whatever any probe says.
+1. **Read release comments before applying the human gate.** Pass all item comments, labels,
+   body and configured `humanNeededLabel` to `classifyReadyCandidate(...)`. For a discharged hold,
+   call `planHumanGateRelease({ labels, body, comments, humanNeededLabel, readyLabel, lifecycleLabels, alreadyNotified })`
+   and retain its plan. Apply human-marker cleanup only as planned; defer any ready-role restoration
+   until steps 2–5 have cleared the remaining blockers (map the role to the vendor's state or label).
+   A still-active hold is never auto-selected, whatever any probe says. An absent or unreadable
+   comment history cannot discharge a hold. A release removes only the human hold: continue the
+   remaining blocker checks below before selecting the item.
+
 2. **Extract the stated discharge condition**, then **probe it**. Machine-testable conditions — a
    version on trunk, a published package, a CI run history, an advisory's patched status — rot
    fastest and are cheapest to check. A human decision is not machine-testable; leave it.
@@ -335,8 +341,9 @@ other gate's verdict — however conclusive — may promote an item a person par
    is the same repair the leaf-only gate already performs for a ready item that must not be
    dispatched.
 4. **On `claimable: true` for an item that still carries a hold, RELEASE it — do not just proceed.**
-   The hold left durable state behind: the item is out of the queue and flagged as needing a person,
-   and answering the question does not undo either. Call
+   This ready-lane candidate can retain a historical body marker and a human-needed label.
+   This step reconciles only candidates still in the ready lane; released holds outside it are
+   recovered by `lisa-repair-intake` step 2b (or Phase 2.5 when included in this cycle). Call
    `planHumanGateRelease({ labels, body, comments, humanNeededLabel, readyLabel, lifecycleLabels, alreadyNotified })`
    and apply exactly the actions it returns: remove the configured human-needed marker, add the
    configured ready role back, and post `formatHumanGateReleaseNote()` once. It is the exact inverse
@@ -369,11 +376,12 @@ GitHub Issues live in one repo by definition, so the scanned repo's issues are u
 1. **Resolve the current repo** per `config-resolution` "Repo scoping" (`.repo` → `.github.repo` → `git remote get-url origin` basename). If unresolvable, stop and report.
 2. **Cheap path first.** Prefer candidates already carrying the `repo:<current>` label. Keep the Phase 2 scan broad so unlabeled issues are still seen, determined, and stamped.
 3. **Per candidate, apply the repo-scope decision (`repo-scope-split`):**
-   - Carries `repo:<other>` → **skip** (leave it `ready` for that repo's own intake); next candidate.
-   - **Unlabeled** → determine the target repo(s) from the issue + code surfaces, then **stamp** `repo:<name>` via `gh issue edit <n> --add-label "repo:<name>"` (create the label lazily) so later cycles filter cheaply; re-apply with the now-known repo. (An issue whose work is entirely in the scanned repo is simply labeled `repo:<current>`.)
-   - **Container visibility is allowed.** A multi-repo Epic / Story / Spike may legitimately carry multiple `repo:<name>` labels for operator visibility. Do not split or claim it here; leave the repo markers intact and fall through to the leaf-only gate, which repairs the stale build-ready label instead of dispatching the container.
-   - **Multi-repo leaf → split, never claim.** Run the `repo-scope-split` work-time procedure into single-repo siblings, each created **build-ready** (`build_ready: true`) and stamped with its own `repo:<name>`; the current repo's sibling becomes a normal candidate.
-   - **Single-repo leaf for the current repo** → fall through to 3a (leaf-only gate) and 3b (claim).
+   - **Count distinct repository markers first**: collect all `repo:<name>` labels and, on JIRA, recognized repository components; deduplicate by repository. A container may carry multiple `repo:<name>` labels. Do not split or claim it here; send it to the leaf-only gate.
+   - **Multi-repo leaf → split, never claim.** More than one repository takes the work-time split before any wrong-repository skip. Each sibling is **build-ready** (`build_ready: true`) and stamped with its own `repo:<name>`; the current repo's sibling becomes a normal candidate.
+   - **Exactly one other repository** (`repo:<other>`) → **skip**, leaving the item ready for that repo's intake.
+   - **No repository marker** → determine target repo(s) from the ticket and code, stamp `repo:<name>` through the vendor access layer, and re-apply from the count.
+   - **Single-repo leaf for the current repo** → fall through to 3a and 3b.
+
 4. Continue until a claimable current-repo leaf is found (claim it; one per cycle) or the candidate set is exhausted — exit cleanly on the denominator-stated summary, naming the current repo alongside the swept lanes.
 
 #### 3a. Leaf-only claim gate (repair containers)

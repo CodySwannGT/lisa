@@ -2106,6 +2106,10 @@ def unparseable_reads_only(text):
     Returns:
         True when every segment's command word is a known reader.
     """
+    # Unlexable operands cannot be certified as data when shell substitutions
+    # may execute inside them. Preserve the plain apostrophe reader exemption.
+    if any(operator in text for operator in ("$(", "`", "<(", ">(")):
+        return False
     words = raw_command_words(text)
     return bool(words) and all(word in READ_ONLY_PROGRAMS for word in words)
 

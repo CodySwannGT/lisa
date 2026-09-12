@@ -45,6 +45,10 @@ if [ "\${1:-}" = "-c" ] && [ "\${2:-}" = "%s" ]; then
   printf '%s\\n' "\${size//[[:space:]]/}"
   exit 0
 fi
+if [ "\${1:-}" = "-c" ] && [ "\${2:-}" = "%u %a" ]; then
+  node -e 'const s=require("node:fs").statSync(process.argv[1]); console.log(s.uid+" "+(s.mode & 0o7777).toString(8))' "\${3:-}"
+  exit $?
+fi
 exit 1
 `
   );

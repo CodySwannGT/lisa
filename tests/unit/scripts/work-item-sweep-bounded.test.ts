@@ -17,7 +17,7 @@
  * GitHub write is issued against a real issue.
  * @module tests/unit/scripts/work-item-sweep-bounded
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterAll, afterEach, describe, expect, it } from "vitest";
@@ -38,6 +38,8 @@ const TERMINAL = "status:done";
 const SINCE = "--since";
 const APPLY = "--apply";
 const SWEEP = "sweep";
+const CURRENT_DRIFT = "DRIFT  acme/code#43";
+const EARLIER_REF = "acme/code#42";
 
 /** A timeline carrying one merged pull request in the swept repository. */
 const MERGED_TIMELINE = JSON.stringify([
@@ -164,9 +166,9 @@ describe("sweep --since bounds the evidence to one push (#3704)", () => {
     });
 
     expect(result.exitCode).toBeUndefined();
-    expect(result.stdout).toContain("DRIFT  acme/code#43");
+    expect(result.stdout).toContain(CURRENT_DRIFT);
     expect(result.stdout).toContain(shipped.slice(0, 9));
-    expect(result.stdout).not.toContain("acme/code#42");
+    expect(result.stdout).not.toContain(EARLIER_REF);
   });
 
   // The same fixture without the bound, so the case above cannot be satisfied
@@ -184,7 +186,7 @@ describe("sweep --since bounds the evidence to one push (#3704)", () => {
       FAKE_GH_TIMELINE_JSON: MERGED_TIMELINE,
     });
 
-    expect(result.stdout).toContain("DRIFT  acme/code#43");
+    expect(result.stdout).toContain(CURRENT_DRIFT);
     expect(result.stdout).toContain("DRIFT  acme/code#42");
   });
 
@@ -262,6 +264,71 @@ describe("sweep --apply --since completes only what the push shipped", () => {
 });
 
 describe("sweep --since refuses rather than guessing (#3704)", () => {
+  it("limits a push to its selected branch even when another deploy branch diverged", () => {
+    const fixture = offlineFixture();
+    const configPath = path.join(fixture.root, ".lisa.config.json");
+    const config = JSON.parse(readFileSync(configPath, "utf8"));
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        ...config,
+        deploy: { branches: { production: "main", staging: "staging" } },
+      })
+    );
+    const original = git(
+      fixture.root,
+      ["branch", "--show-current"],
+      fixture.env
+    );
+    const before = deployTip(fixture);
+    git(fixture.root, ["switch", "-q", "-c", "staging", "main"], fixture.env);
+    commit(fixture, "fix: separate release\n\nWork-Item: acme/code#42\n");
+    git(fixture.root, ["switch", "-q", original], fixture.env);
+    declareShipped(fixture, 43);
+    const bounded = cli(fixture, [SWEEP, SINCE, before, "--branch", "main"], {
+      FAKE_GH_LIST_JSON: BOTH,
+    });
+    expect(bounded.exitCode).toBeUndefined();
+    expect(bounded.stdout).toContain(CURRENT_DRIFT);
+    expect(bounded.stdout).not.toContain(EARLIER_REF);
+    expect(bounded.stdout).toContain(`main gained since ${before}`);
+    const unbounded = cli(fixture, [SWEEP], { FAKE_GH_LIST_JSON: BOTH });
+    expect(unbounded.stdout).toContain("DRIFT  acme/code#42");
+    expect(unbounded.stdout).toContain(CURRENT_DRIFT);
+    const selected = cli(fixture, [SWEEP, "--branch", "main"], {
+      FAKE_GH_LIST_JSON: BOTH,
+    });
+    expect(selected.stdout).toContain("Examined deploy branches: main.");
+    expect(selected.stdout).not.toContain(EARLIER_REF);
+    const ambiguous = cli(fixture, [SWEEP, SINCE, before], {
+      FAKE_GH_LIST_JSON: BOTH,
+    });
+    expect(ambiguous.exitCode).toBe(1);
+    expect(ambiguous.stderr).toContain("must name the pushed deploy branch");
+    const event = cli(fixture, [SWEEP, SINCE, before], {
+      FAKE_GH_LIST_JSON: BOTH,
+      GITHUB_REF_NAME: "main",
+    });
+    expect(event.stdout).toContain(CURRENT_DRIFT);
+    expect(event.stdout).not.toContain(EARLIER_REF);
+  });
+
+  it.each([
+    { value: [] },
+    { value: [""] },
+    { value: ["--apply"] },
+    { value: ["unknown"] },
+  ])("refuses invalid explicit branch $value", ({ value }) => {
+    const fixture = offlineFixture();
+    const result = cli(
+      fixture,
+      [SWEEP, SINCE, deployTip(fixture), "--branch", ...value],
+      { FAKE_GH_LIST_JSON: BOTH }
+    );
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).not.toContain("DRIFT");
+  });
+
   // NOT DETERMINED, not "nothing shipped". A bound that names no commit here —
   // a shallow clone, an unfetched ref, the all-zero SHA a branch-creation push
   // carries — leaves the range unknown, and reporting an absence from it would

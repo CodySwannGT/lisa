@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# This file is managed by Lisa and IS replaced on each `lisa` run.
+# Do not edit directly — durable changes belong upstream in Lisa.
+
 # PreToolUse hook: refuse agent writes to the session-instruction files.
 #
 # `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` are the files

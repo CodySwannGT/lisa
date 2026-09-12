@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# This file is managed by Lisa and IS replaced on each `lisa` run.
+# Do not edit directly — durable changes belong upstream in Lisa.
+
 # PreToolUse guard for Bash/Write/Edit/MultiEdit, and PostToolUse recorder for
 # EnterWorktree: refuse to act while the worktree the session was told it is in
 # disagrees with the one it is measurably in (CodySwannGT/lisa#3864).
@@ -54,7 +57,8 @@ if [ -r "$lisa_guard_dedupe_lib" ]; then
   # shellcheck source=guard-dedupe.bash
   . "$lisa_guard_dedupe_lib"
   trap 'lisa_guard_dedupe_record $?' EXIT
-  lisa_guard_dedupe worktree-binding-guard "$input"
+  lisa_guard_dedupe worktree-binding-guard "$input" \
+    "$lisa_guard_hook_dir/worktree-binding-guard.mjs"
 fi
 
 if ! command -v node >/dev/null 2>&1; then
