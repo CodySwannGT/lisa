@@ -100,9 +100,18 @@ export function decide() {
     expect(generated.source).toContain(
       "NIGHTLY_E2E_GUARD_BEHAVIOR_CERTIFICATES"
     );
-    // The current handler has a new digest after the not-measured state fix;
-    // the three retained historical handlers remain certified independently.
-    expect(generated.certificates).toHaveLength(5);
+    // One certificate per entry in RETAINED_RELEASES, plus one for the current
+    // workspace handler. It is 6 rather than 5 because this branch and `main`
+    // each retained a DIFFERENT release — `v4.50.3` here, `v4.26.0` upstream —
+    // and both were kept: the list is append-only, and dropping either would
+    // revoke a certificate for a release already installed somewhere, which is
+    // the whole failure the list exists to prevent.
+    //
+    // Adding a retained release means bumping this number. That is deliberate
+    // rather than derived: computing it from RETAINED_RELEASES.length would
+    // make the assertion agree with any list, including one an accidental
+    // regeneration had silently shortened.
+    expect(generated.certificates).toHaveLength(6);
     expect(generated.certificates).toContainEqual(
       expect.objectContaining({
         digest: RETAINED_GUARD_DIGEST,
@@ -173,6 +182,27 @@ export function decide() {
         packageVersions: expect.arrayContaining(["4.26.0"]),
         provenances: expect.arrayContaining([
           expect.stringContaining("v4.26.0"),
+        ]),
+      })
+    );
+
+    // The 1.9.0 guard as `@codyswann/lisa@4.50.3` PUBLISHED it, retained by the
+    // same commit that moved the workspace guard. Without this row that release
+    // — the one installed in the field right now — loses its certificate the
+    // moment the guard changes, and `lisa doctor` starts refusing bytes it
+    // trusted the day before. That is precisely what happened to the 50
+    // releases from v4.22.13 through v4.26.0 (#3500), noticed only afterwards.
+    //
+    // Two rows now carry package version 4.50.3 with DIFFERENT digests: the
+    // workspace bytes and the tag bytes. That is the certificate working as
+    // designed — it keys on the digest, because the package version alone
+    // cannot distinguish what shipped from what is about to.
+    expect(generated.certificates).toContainEqual(
+      expect.objectContaining({
+        contractVersion: "1.9.0",
+        packageVersions: expect.arrayContaining(["4.50.3"]),
+        provenances: expect.arrayContaining([
+          expect.stringContaining("git tag v4.50.3"),
         ]),
       })
     );

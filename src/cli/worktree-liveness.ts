@@ -14,8 +14,9 @@
  * @module cli/worktree-liveness
  */
 import { execFile } from "node:child_process";
-import * as path from "node:path";
 import { promisify } from "node:util";
+
+import { isPathInside } from "../utils/path-utils.js";
 
 const run = promisify(execFile);
 
@@ -49,18 +50,17 @@ export type LivenessProbe = () => Promise<readonly string[] | undefined>;
 
 /**
  * Report whether one path is the same as, or inside, another.
+ *
+ * Delegates to the shared predicate so the repository decides containment one
+ * way (CodySwannGT/lisa#3808) — the boundary rule this module needs is the same
+ * one a fixture guard or an artifact-path check needs, and a second copy is a
+ * second chance to write it as a bare string prefix.
  * @param parent - Containing directory
  * @param child - Path being tested
  * @returns True when `child` is `parent` or lives beneath it
  */
 export function isInside(parent: string, child: string): boolean {
-  const relative = path.relative(path.resolve(parent), path.resolve(child));
-  return (
-    relative === "" ||
-    (!relative.startsWith(`..${path.sep}`) &&
-      relative !== ".." &&
-      !path.isAbsolute(relative))
-  );
+  return isPathInside(parent, child);
 }
 
 /**

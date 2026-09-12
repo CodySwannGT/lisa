@@ -197,3 +197,60 @@ export function shadowedConfigNote(
     `settings with Lisa's defaults.`
   );
 }
+
+/**
+ * One already-installed shadowing: Lisa's template on disk, outranking a
+ * config the project wrote itself.
+ */
+export interface InstalledConfigShadowing {
+  /** The tool whose configuration is being outranked. */
+  readonly tool: string;
+  /** Repo-relative path of the Lisa-seeded template that wins. */
+  readonly template: string;
+  /** Repo-relative path of the project's own config that loses. */
+  readonly sibling: string;
+}
+
+/**
+ * Every shadowing pair that is ALREADY on disk in a project.
+ *
+ * The counterpart to {@link shadowedConfigSibling}, asking the same question
+ * one tense later. That function decides whether to write a file that is not
+ * there yet, so it is reached exactly once per path and never again; a
+ * repository that received the template before the guard existed is past that
+ * decision forever and nothing else looks. This function is what lets such a
+ * repository find itself: it requires the template to be PRESENT, then asks
+ * whether an outranked sibling is present too.
+ *
+ * Both arms read {@link CONFIG_FAMILIES}, deliberately. A second copy of
+ * "which filenames outrank Lisa's" would drift out of step with the guard, and
+ * the drift would be silent in exactly the way the original defect was.
+ *
+ * `exists` is expected to REJECT when it cannot determine an answer rather
+ * than resolve false. A probe that cannot read reports the same "nothing
+ * found" as a clean tree, which is this whole class of defect wearing the
+ * detector's hat.
+ * @param exists - Predicate answering whether a repo-relative path is present,
+ *   rejecting when the answer cannot be determined
+ * @returns Every installed shadowing pair, empty when the project is clean
+ */
+export async function installedConfigShadowings(
+  exists: (candidateRelativePath: string) => Promise<boolean>
+): Promise<readonly InstalledConfigShadowing[]> {
+  const found = await Promise.all(
+    CONFIG_FAMILIES.map(async family => {
+      if (!(await exists(family.template))) return undefined;
+      const shadowed = await shadowedConfigSibling(family.template, exists);
+      return shadowed === undefined
+        ? undefined
+        : {
+            sibling: shadowed.sibling,
+            template: family.template,
+            tool: shadowed.tool,
+          };
+    })
+  );
+  return found.filter(
+    (entry): entry is InstalledConfigShadowing => entry !== undefined
+  );
+}

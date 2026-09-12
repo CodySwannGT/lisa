@@ -17,6 +17,28 @@ Run all organizational quality gates against a ticket spec OR an existing ticket
 1. **An existing ticket key** (e.g. `PROJ-1234`): fetch it and validate the live state. Use this for post-write checks.
 2. **A proposed ticket spec** (YAML block, see schema below): validate as-is without touching JIRA. Use this for pre-write and dry-run checks.
 
+### Standalone entry point — validating an item written by another path
+
+Input form 1 is a **supported entry point in its own right**, not only an internal step of a
+caller flow. Point this skill at any existing item — however it was written, including by a
+bespoke script, a direct API or GraphQL call, or the vendor's own web UI — and it fetches the
+live state and runs the full gate set against it.
+
+Copy-pasteable, via the Skill tool:
+
+```text
+Skill(skill: "lisa-jira-validate-ticket", args: "PROJ-1234")
+```
+
+where the argument is a ticket key such as `PROJ-1234`. The report it returns is the same structured PASS/FAIL
+report the write path consumes, so a bespoke write path can discharge both the pre-write
+validate and the post-write verify obligation with it (see the bespoke-path section of
+`lisa-jira-write-ticket`).
+
+This skill is plugin-resident. It is invoked through the Skill tool and is **not** expected to
+appear in any repository's `scripts/` directory; not finding a shell script by this name is
+not evidence that the capability is absent.
+
 ### Spec schema
 
 Specs are passed as a fenced YAML block. Required keys depend on `issue_type`.
@@ -67,6 +89,25 @@ prd_source: "https://notion.so/..."    # set when the ticket was generated from 
 ```
 
 If the caller passes only a ticket key, fetch the ticket via `lisa-atlassian-access` `operation: read-ticket key: <KEY>`, derive the same fields from the fetched data — including `runtime_behavior_change` (derived from the `Target Backend Environment` declaration per `derived-branch-plan`, and authoritative over any caller assertion), `build_ready` (label set contains the resolved `READY_ROLE` — merged `jira.workflow.ready`, default `status:ready` — never a hard-coded label) and `child_refs` (sub-tasks plus `is blocked by` parentage, resolved as in `lisa-jira-read-ticket`) so S15 can classify the ticket — then run gates.
+
+## Standalone use, against an item that already exists
+
+This is a supported entry point, not only an internal step of a caller flow.
+Point it at a live ticket and it fetches and validates the stored state:
+
+```text
+Skill(lisa-jira-validate-ticket) with PROJ-1234
+```
+
+Use it whenever the ticket reached the tracker by some path other than
+`lisa-jira-write-ticket` — a team's own script, a workflow step, a cron, anything holding the
+credentials but no skill runtime. Those paths get neither the pre-write nor the
+post-write gate, and their own read-back substitutes for neither: a read-back
+proves the tracker stored what was sent, never that what was sent was any good.
+
+The gate definitions live here on purpose, so every caller picks up a change
+automatically. Running this skill by hand is the same gate the write path runs,
+not an approximation of it.
 
 ## Gates
 

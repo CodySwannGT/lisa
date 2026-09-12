@@ -80,6 +80,35 @@ const HANDLER = ".github/workflows/auto-update-pr-branches-dispatch.yml";
 const CALLERS = [EMITTER, HANDLER] as const;
 
 /**
+ * The two REUSABLE halves the callers invoked.
+ *
+ * These never travelled through a `create-only` tree — reusable workflows are
+ * referenced at `@main` rather than copied — so the shipped-tree assertion
+ * above cannot speak for them and asserting them there would test a state that
+ * cannot occur. The deletion manifest is the only thing that reaches a
+ * consumer already carrying one, which makes it the only place they CAN be
+ * guarded, and until now they were not guarded at all: the manifest declares
+ * four auto-update paths and this suite asserted two.
+ *
+ * The omission mattered more than its size suggests. The dispatch half is the
+ * subsystem's whole engine, and it is the file that
+ * CodySwannGT/lisa#3583 was filed against — a handler whose conflict-resolution
+ * step was `continue-on-error` and whose verification gate routed a still
+ * conflicted pull request into a warning that never touched the exit code, so
+ * a broken repair reported success indefinitely. That ticket is moot because
+ * this removal deleted its subject, which means this manifest is now the only
+ * thing standing between the fleet and that defect returning. Dropping either
+ * entry would have restored it silently and left every assertion here green.
+ */
+const REUSABLE = [
+  ".github/workflows/reusable-auto-update-pr-branches.yml",
+  ".github/workflows/reusable-auto-update-pr-branches-dispatch.yml",
+] as const;
+
+/** Every path the removal declares, across both delivery channels. */
+const ALL_REMOVED = [...CALLERS, ...REUSABLE] as const;
+
+/**
  * The Lisa version the deletion entries did NOT ship in.
  *
  * The floor is a real constraint, not bookkeeping: a deletion entry only ever
@@ -113,8 +142,10 @@ const CREATE_ONLY_WORKFLOWS = path.join(
  * Shipped stack manifest that drives consumer-side deletion.
  * @returns The manifest as shipped, with its `paths` list.
  */
-const shippedDeletions = (): { readonly paths: readonly string[] } =>
-  fs.readJsonSync(DELETIONS_PATH);
+const shippedDeletions = (): {
+  readonly paths: readonly string[];
+  readonly force: Readonly<Record<string, string>>;
+} => fs.readJsonSync(DELETIONS_PATH);
 
 /**
  * Every workflow the stack's create-only tree ships.
@@ -145,6 +176,37 @@ describe("auto-update-pr-branches: the shipped manifests", () => {
       expect(paths, `${caller} must be deleted from consumers`).toContain(
         caller
       );
+    }
+  });
+
+  it("lists the reusable halves too, which no other assertion reaches", () => {
+    // The callers are only the trigger surface. A consumer that keeps the
+    // reusable dispatch workflow keeps the engine — including the conflict
+    // handling #3583 was filed against — and nothing in the create-only tree
+    // can speak for these two, because reusable workflows are referenced at
+    // `@main` rather than copied into it.
+    const { paths } = shippedDeletions();
+    for (const reusable of REUSABLE) {
+      expect(paths, `${reusable} must be deleted from consumers`).toContain(
+        reusable
+      );
+    }
+  });
+
+  it("forces every removed path past the workflow-ownership gate", () => {
+    // `force` is the strongest declaration in the basis vocabulary and the one
+    // that reaches a consumer who EDITED their copy. Without it an edited
+    // workflow is owned locally and survives the deletion — and an edited copy
+    // does the same damage as the original, which is exactly why the recorded
+    // reason says the removal overrides ownership. A path listed for deletion
+    // but not forced is therefore only half-removed from the fleet.
+    const { force } = shippedDeletions();
+    for (const removed of ALL_REMOVED) {
+      const reason = force[removed];
+      expect(
+        typeof reason === "string" && reason.trim() !== "",
+        `${removed} must carry a non-empty force reason`
+      ).toBe(true);
     }
   });
 

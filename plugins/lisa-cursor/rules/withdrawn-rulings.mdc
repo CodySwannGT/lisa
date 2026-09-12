@@ -30,13 +30,24 @@ The result is one-directional propagation. **New guidance travels; corrections d
 - **Record every withdrawal in the ledger, with one command.** Retracting a claim you circulated,
   wrote down, or published is not done until this has run:
 
-  ```
-  node "$CLAUDE_PLUGIN_ROOT/hooks/withdrawn-rulings.mjs" --withdraw <id> \
+  ```sh
+  node "$CLAUDE_PLUGIN_ROOT/hooks/withdrawn-rulings.mjs" --withdraw "<id>" \
     --claim "<the withdrawn claim, verbatim>" \
     --because "<what disproved it>" \
-    --derived "<an artifact you left standing on it>" ... | --derived none \
-    [--superseded-by <id>] [--reached <channel> ...]
+    --derived "<an artifact you left standing on it>"
   ```
+
+  If the audit found no surviving derived artifact, use this alternative:
+
+  ```sh
+  node "$CLAUDE_PLUGIN_ROOT/hooks/withdrawn-rulings.mjs" --withdraw "<id>" \
+    --claim "<the withdrawn claim, verbatim>" \
+    --because "<what disproved it>" \
+    --derived none
+  ```
+
+  Repeat `--derived "<artifact>"` for additional artifacts. Either form may also
+  include `--superseded-by "<id>"` and repeated `--reached "<channel>"` arguments.
 
   The verbatim claim is required and the command refuses without it: **a tombstone the holder of the
   claim cannot recognise reaches them without reaching them.**

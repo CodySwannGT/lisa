@@ -877,6 +877,9 @@ reusable gate itself needs **no write permission** as a result.
 Expiry (`bypass_max_hours`) is the belt to that suspenders: even if the reaper
 is not installed, a bypass label stops working after its window.
 
+The reaper writes the durable record **before** it strips the label, and refuses
+to strip when it could not — see §6.4.
+
 ### 6.3 The gate reads the pull request LIVE, never from the event payload (row 40)
 
 Every fact the bypass decides on — the label and the
@@ -948,6 +951,105 @@ environment** — the exact shape the bug had. A test that asserted the YAML
 changed, or that `evaluateBypass` still decides correctly, would have stayed
 green throughout the entire period the gate was broken: the rules were never
 wrong, only where the facts came from.
+
+### 6.4 The waiver is recorded durably, and re-derived at the merge
+
+§6.3 made the GATE read live. This section is about the two things that are
+still true afterwards, and they are one defect seen from two ends.
+
+**The verdict is a stored check run.** A merge consumes what the gate published,
+and nothing recomputes it at the moment the merge happens. That is fine for a
+gate whose input is the code. It is weaker than it looks for one whose input is
+mutable pull-request state a human can edit — which is exactly what a waiver is.
+
+Every way a waiver can change fires a pull-request event the caller subscribes
+to (`labeled`, `unlabeled`, `edited` since #3708) **except one**: expiry. A
+waiver that simply runs out of hours produces no event at all, so re-running
+the gate cannot see it and the stored `bypassed` goes on saying `bypassed`.
+Expiry is only visible to *re-deriving*, which is what
+`--waiver-verdict` does:
+
+```bash
+NIGHTLY_PR_NUMBER=<pr> node scripts/check-nightly-e2e-health.mjs --waiver-verdict --json
+```
+
+It needs a token, `GITHUB_REPOSITORY` and a pull request number, and nothing
+else — deliberately not the suite table, because a re-derivation that demanded
+the gate's whole configuration could not run from a merge driver, which is the
+one place that most needs it. It derives through the SAME `observeWaiver` the
+gate itself calls; two implementations of "is this waiver good?" would drift,
+and the entire value of re-deriving is that it answers the question the gate
+answered, *later* rather than *differently*.
+
+Four states, and the exit code is their shorthand rather than their source:
+
+| `state` | meaning | exit |
+| --- | --- | --- |
+| `none` | nobody asked for a waiver; the gate stands on suite evidence | 0 |
+| `waived` | a waiver is valid at this moment | 0 |
+| `refused` | a waiver was requested and no longer holds | 1 |
+| `not_determined` | the live pull request could not be read | 1 |
+
+`refused` and `not_determined` are kept apart because they are different facts.
+One names a lapsed waiver, what it covered and a remedy; the other says the
+question could not be answered. Rendering the second as a pass is the failure
+this mode exists against; rendering it as `refused` invents a fact.
+
+`lisa-drive-pr-to-merge` consults it before arming auto-merge. **A genuine,
+still-valid waiver keeps merging** — that is the row to protect, and a change
+that makes waived merges harder to complete has broken the escape hatch rather
+than secured it.
+
+**The waiver left no durable record.** The `nightly-e2e-bypass` label was the
+only repository-wide index of "which merges went past this gate on a waiver",
+and the reaper strips it on close — correctly, because the label is a REQUEST.
+Stripping it withdrew the request and erased the index in the same call, so
+after a waived merge closed the repository could no longer answer "what shipped
+on a waiver, and why". That is a compliance question as much as an engineering
+one, and the check run says nothing either: it is produced by a workflow with
+**no write permission** by construction (§7), so its `output.summary` is `null`
+and the `::notice::` annotation lives in a run log nobody reviewing a merge is
+reading.
+
+So the reaper re-derives the waiver and posts a marker-delimited record comment
+**before** stripping the label, and refuses to strip when it could not:
+
+```text
+<!-- NIGHTLY-E2E-BYPASS-RECORD-BEGIN -->
+…ticket, reason, who applied it, when, when it expired, state when recorded…
+<!-- NIGHTLY-E2E-BYPASS-RECORD-END -->
+```
+
+The ordering is the guarantee. A label nobody removed is untidy; an unrecorded
+waived merge is unauditable, and untidy is the cheaper of the two. Enumerate
+them afterwards by the marker, which nothing strips:
+
+```bash
+gh api --paginate "repos/OWNER/REPO/issues/comments" \
+  --jq '.[] | select(.body | contains("NIGHTLY-E2E-BYPASS-RECORD")) | .html_url'
+```
+
+An **expired** waiver is still recorded. By the time a pull request closes the
+waiver has often lapsed, and those are precisely the merges most worth finding
+later; the record carries `state when recorded` rather than pretending the
+waiver was fine. The one state that writes nothing is `not_determined` — nothing
+was established, and a confident-looking record of nothing is worse than none.
+
+**Two limits, stated rather than left to be discovered:**
+
+- The **check run's own `output.summary` is still `null`.** Setting it needs
+  `checks: write`, and the reusable gate never requests write — that property is
+  load-bearing (§7) and is not worth trading for a rendering surface. The record
+  lives in a pull-request comment instead, which is a place a reviewer looks;
+  the check itself still only carries the verdict in its job summary.
+- The reaper is **create-only**, so this reaches repositories seeded after it
+  shipped. An existing consumer picks it up by taking the new file deliberately.
+
+Pinned by `tests/unit/scripts/nightly-e2e-waiver-record.test.ts`, whose headline
+case derives the SAME pull request twice and moves nothing but the clock: the
+fixture is byte-identical, the API is asked the same questions in the same
+order, and the answer flips from `waived` to `refused`. A replay cannot produce
+that difference, which is the whole claim.
 
 ## 7. Permissions, tokens, pagination, rate limits, reruns, concurrency
 

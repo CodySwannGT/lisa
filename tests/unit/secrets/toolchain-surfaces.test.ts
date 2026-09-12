@@ -31,7 +31,7 @@ describe("one manifest, many surfaces", () => {
    * decision rather than this machine's contents.
    * @returns A uniform "not installed" result
    */
-  const PROBE = () => ({ present: false, version: null });
+  const PROBE = () => ({ present: false, executable: false, version: null });
 
   it("applies an entry to every surface when none is named", () => {
     // Forgetting `surfaces` should cost a redundant check, never a silent

@@ -5,5 +5,7 @@
     "ast-grep scan",
     "prettier --write"
   ],
+  "*.{sh,bash,zsh,ksh}": ["ast-grep scan"],
+  "*.rb": ["ast-grep scan"],
   "*.{json,html,md,mdx,css,scss,yaml,yml,graphql}": ["prettier --write"]
 }

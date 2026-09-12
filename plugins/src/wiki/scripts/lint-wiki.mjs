@@ -4,7 +4,9 @@
  *
  * Read-only: it reports findings, it never modifies the wiki. Default mode is
  * "warning" (exit 1 only on FAIL items); `--strict` (hard-enforcement) also fails
- * on WARN items.
+ * on WARN items. INFO items are reported and block in NEITHER mode — that is
+ * the level for a finding whose only available remedies would damage the wiki,
+ * such as an unresolved path cited by a preserved source note.
  *
  * Usage: node lint-wiki.mjs [--wiki <wikiRoot>] [--config <path>] [--strict] [--json]
  * Exit 0 = clean (for the active mode), 1 = blocking findings.
@@ -303,14 +305,41 @@ const linkResolution = (f, target) => {
   ];
   return { primary, hit: cands.find(exists) };
 };
+// A path inside `sources/` is PRESERVED material, not authored navigation.
+// The contract (`Required Provenance`) says a source note records "what was
+// ingested, when, from where, and with what scope" — so a path it names is a
+// statement about the subject AT INGESTION TIME, and the subject moves on.
+// `wiki/sources/repository/2026-05-14-monorepo-baseline.md` cites
+// `docs/lisa-architecture.svg`, which existed on that date and was deleted
+// three months later by the commit that made the wiki the documentation home.
+// The citation is not broken; it is accurate about a repository that changed.
+//
+// Neither remedy available to a reader is legitimate. Repointing the link
+// falsifies the record, and deleting it destroys the provenance the note
+// exists to carry — so this cannot be reported at a level that blocks, or the
+// only way to a green check is to damage the evidence. It is reported at INFO:
+// visible in every run and in `--json`, blocking in none, `--strict` included.
+// Authored pages are untouched and a broken link there still FAILs.
+const preservedFinding = (id, message, f) =>
+  report.add(
+    "links",
+    `source-${id}`,
+    "INFO",
+    `${message} (preserved)`,
+    wrel(f)
+  );
 const linkedTo = new Set();
 for (const f of allMd) {
   const text = fs.readFileSync(f, "utf8");
+  const preserved = isSourceNote(f);
   for (const target of extractMarkdownLinks(text)) {
     const { primary, hit } = linkResolution(f, target);
     if (target.endsWith(".md") || primary.endsWith(".md")) {
       linkedTo.add(hit ?? primary);
-      if (!hit) {
+      if (hit) continue;
+      if (preserved) {
+        preservedFinding("citation", `cited page not present → ${target}`, f);
+      } else {
         report.add(
           "links",
           "broken",
@@ -320,13 +349,21 @@ for (const f of allMd) {
         );
       }
     } else if (!hit) {
-      report.add(
-        "links",
-        "broken-asset",
-        "WARN",
-        `link to missing path → ${target}`,
-        wrel(f)
-      );
+      if (preserved) {
+        preservedFinding(
+          "citation-asset",
+          `cited path not present → ${target}`,
+          f
+        );
+      } else {
+        report.add(
+          "links",
+          "broken-asset",
+          "WARN",
+          `link to missing path → ${target}`,
+          wrel(f)
+        );
+      }
     }
   }
   for (const cite of extractCitations(text)) {
@@ -335,7 +372,14 @@ for (const f of allMd) {
       path.resolve(wikiRoot, "..", cite),
       path.resolve(path.dirname(f), cite),
     ];
-    if (!candidates.some(exists)) {
+    if (candidates.some(exists)) continue;
+    if (preserved) {
+      preservedFinding(
+        "citation-path",
+        `citation path not present → ${cite}`,
+        f
+      );
+    } else {
       report.add(
         "links",
         "citation-unresolved",
@@ -427,6 +471,12 @@ for (const f of allFiles) {
 // --- output + verdict -----------------------------------------------------
 const fails = report.items.filter(i => i.status === "FAIL");
 const warns = report.items.filter(i => i.status === "WARN");
+// INFO is reported and never counted. It is the level for a finding a reader
+// is not permitted to fix — see the preserved-source note above. Deliberately
+// excluded from `blocking` in BOTH modes, because `--strict` is what the
+// shipped CI workflow runs and a level that blocks under strict is a blocking
+// level with extra steps.
+const infos = report.items.filter(i => i.status === "INFO");
 const blocking = strict ? fails.length + warns.length : fails.length;
 
 if (asJson) {
@@ -437,6 +487,7 @@ if (asJson) {
         strict,
         fails: fails.length,
         warns: warns.length,
+        infos: infos.length,
         items: report.items.filter(i => i.status !== "PASS"),
       },
       null,
@@ -444,13 +495,14 @@ if (asJson) {
     )
   );
 } else {
+  const marker = { FAIL: "✗", INFO: "ℹ" };
   for (const i of report.items.filter(i => i.status !== "PASS")) {
     console.log(
-      `${i.status === "FAIL" ? "✗" : "⚠"} [${i.group}] ${i.message}${i.file ? ` (${i.file})` : ""}`
+      `${marker[i.status] ?? "⚠"} [${i.group}] ${i.message}${i.file ? ` (${i.file})` : ""}`
     );
   }
   console.log(
-    `\n${fails.length} fail, ${warns.length} warn${strict ? " (strict: warnings block)" : ""} — ${blocking === 0 ? "OK" : "BLOCKING"}`
+    `\n${fails.length} fail, ${warns.length} warn, ${infos.length} info (never blocking)${strict ? " (strict: warnings block)" : ""} — ${blocking === 0 ? "OK" : "BLOCKING"}`
   );
 }
 

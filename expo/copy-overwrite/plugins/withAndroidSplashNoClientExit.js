@@ -152,31 +152,33 @@ const isPriorTag = tag =>
  *   removed, and the tags that were retired.
  */
 const stripPriorBlocks = contents => {
-  const lines = contents.split("\n");
-  const kept = [];
-  const retired = [];
-  let dropping = null;
-  for (const line of lines) {
-    if (dropping === null) {
-      const begin = /@generated begin (\S+)/.exec(line);
-      if (begin && isPriorTag(begin[1])) {
-        dropping = begin[1];
-        retired.push(begin[1]);
-        continue;
+  const result = contents.split("\n").reduce(
+    (state, line) => {
+      if (state.dropping === null) {
+        const begin = /@generated begin (\S+)/.exec(line);
+        if (begin && isPriorTag(begin[1])) {
+          return {
+            ...state,
+            dropping: begin[1],
+            retired: [...state.retired, begin[1]],
+          };
+        }
+        return { ...state, kept: [...state.kept, line] };
       }
-      kept.push(line);
-      continue;
-    }
-    // Inside a doomed block: drop through its own end marker, and only its
-    // own. Keying the end on the tag we opened with means a nested or
-    // adjacent block belonging to something else cannot close ours early.
-    if (line.includes(`@generated end ${dropping}`)) dropping = null;
-  }
+      // Inside a doomed block: drop through its own end marker, and only its
+      // own. Keying the end on the tag we opened with means a nested or
+      // adjacent block belonging to something else cannot close ours early.
+      return line.includes(`@generated end ${state.dropping}`)
+        ? { ...state, dropping: null }
+        : state;
+    },
+    { kept: [], retired: [], dropping: null }
+  );
   // An unterminated block would otherwise swallow the rest of the file. Losing
   // MainActivity to a truncated marker is far worse than leaving a stale block
   // in place, so this fails closed by keeping the original.
-  if (dropping !== null) return { contents, retired: [] };
-  return { contents: kept.join("\n"), retired };
+  if (result.dropping !== null) return { contents, retired: [] };
+  return { contents: result.kept.join("\n"), retired: result.retired };
 };
 
 const mergeOrThrow = contents => {

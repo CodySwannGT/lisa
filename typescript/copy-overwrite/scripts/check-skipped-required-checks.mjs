@@ -15,6 +15,11 @@
  *   node scripts/check-skipped-required-checks.mjs [rootDir] [--json]
  *   node scripts/check-skipped-required-checks.mjs --vacuity [--fail-on-vacuous]
  *   node scripts/check-skipped-required-checks.mjs --pr=1234 [--repo=OWNER/NAME]
+ *   node scripts/check-skipped-required-checks.mjs --outcomes   (reads LISA_JOB_RESULTS, LISA_JOB_NAMES, LISA_GATE_MOMENT)
+ *
+ * `--outcomes` is the arm the `🔒 Skipped Required Checks` job rests its verdict
+ * on. Without it, this reports only the vestigial `skip_jobs` token arm, which
+ * is not a verdict about whether a required context skipped.
  *
  * `--vacuity` is the WIRED form of the third bullet: it resolves the pull
  * request itself (`--pr`, else the Actions event payload, else `GITHUB_REF`,
@@ -31,12 +36,78 @@
  *
  * Two of the three live here:
  *
- *  - **Skipped** (the offline arm, below): GitHub counts a `skipped`
- *    required check as SATISFIED, so a `skip_jobs` token makes the gate
- *    decorative. Static, offline, BLOCKING.
+ *  - **Skipped** (`--outcomes` arm): GitHub counts a `skipped` required check
+ *    as SATISFIED. The `🔒 Skipped Required Checks` job hands this arm every
+ *    job result of its own workflow run, and it FAILS when a ruleset-required
+ *    context's job concluded `skipped`. Offline, BLOCKING in every
+ *    enforcement mode.
  *  - **Vacuous** (`--pr` arm): the check really ran and really reported
  *    `success`, having done no work — measured on CodeRabbit posting
  *    `success — "Review rate limited"`. Live, per-PR, REPORTING ONLY.
+ *
+ * ## `--outcomes` — why the verdict rests on OUTCOMES, and the token arm is VESTIGIAL
+ *
+ * This guard used to answer "can a skip silence a required check?" by reading
+ * `skip_jobs` TOKENS out of the caller's workflow and comparing what each was
+ * declared to silence against `required_contexts`. `skip_jobs` was then retired
+ * in favour of gate levels in `.lisa.config.json`, which skip a job through the
+ * gate plan and leave no token behind. The token arm kept running and kept
+ * printing `✅ 0 skip_jobs token(s) examined; none silences a ruleset-required
+ * status check`. MEASURED on a caller repository in the portfolio: a required
+ * `🧾 BDD Behavior Contract` context concluded `skipped` on seven of its sixty
+ * most recent merges, and this job was green on every one. It was green on
+ * exactly the condition it was built to refuse, because it inspected a
+ * declaration that had moved rather than the outcome the declaration was about.
+ *
+ * So the verdict now rests on the OUTCOME — what each required context's job
+ * actually concluded in this run. That is mechanism-independent: it holds
+ * whether the skip came from a gate level, a token, or a hand-written `if:`, so
+ * it survives the next replacement of whatever silences checks. A guard that
+ * inspects a declaration is correct only until the declaration moves.
+ *
+ * The token arm is RETAINED because a caller may still pass `skip_jobs`, and an
+ * undeclared or spaced token is still worth naming. It is VESTIGIAL: its
+ * findings can only ADD failures, and its clean result prints a count — never a
+ * ✅, never a claim that nothing was silenced. On its own (no `--outcomes`) it
+ * is not a verdict about skipped required contexts, and its report says so.
+ *
+ * How the outcome arm sees results, and what it deliberately does not claim:
+ *
+ *  - **No token.** The job `needs:` every other job in `quality.yml` with
+ *    `if: always()`, so it starts once every sibling has concluded, and reads
+ *    their results from `toJSON(needs)`. Reading check runs through the API
+ *    would need `checks: read`, which callers do not grant and a called
+ *    workflow cannot request — and #3599's reduction to offline arms holds.
+ *  - **Names on the ` / ` boundary, and a prefix that says whose they are.**
+ *    `needs` carries results but no names, so the workflow carries a job id →
+ *    display name map beside it (a test derives it from the jobs). A job in a
+ *    called workflow posts `<caller job> / <job name>`, and the CALLER's job
+ *    name is not visible from inside, so a context matches a job by equality or
+ *    by a suffix bounded at ` / ` — see {@link producesContext}. A NAME MATCH IS
+ *    NOT OWNERSHIP: `Some Other Workflow / 🧹 Lint` matches the local `🧹 Lint`
+ *    while being posted by a workflow this run cannot see, and reporting the
+ *    local result for it would be a false green. So a context is judged only
+ *    under the ONE prefix this run posts — declared as
+ *    `ruleset.context_prefix`, else inferred by majority — and every other
+ *    prefix is reported NOT EXAMINED. See {@link owningPrefix}.
+ *  - **Only at `pull-request`.** Other moments skip most jobs by design and gate
+ *    no merge; see {@link MERGE_GATE_MOMENT}.
+ *  - **Only what this run posts.** An external app, another workflow, or a
+ *    matrix leg named at runtime posts a context no job here can speak for. It
+ *    is listed as NOT EXAMINED, never silently counted — GitHub records that
+ *    outcome, and this run cannot see it.
+ *  - **Refusals FAIL, in every mode.** Zero required contexts examined, an
+ *    untranscribed snapshot, or results that cannot be read each fail. "Examined
+ *    nothing" must never render like "found nothing" (see `OUTCOME_REFUSALS`).
+ *
+ * The job checks this prover out from the WORKFLOW's own repository at the
+ * workflow's own commit (`job.workflow_repository@job.workflow_sha`), never
+ * from the caller's `scripts/`. `quality.yml` is consumed at `@main`; `scripts/`
+ * arrives by `lisa apply` at whatever version the caller pinned. A caller's copy
+ * predating this arm ignores `--outcomes` and prints the vestigial token line as
+ * though it were a verdict — the false green this arm replaces. The workflow
+ * defines the arguments, so the code reading them must come from the same
+ * revision.
  *
  * ## Where this runs
  *
@@ -345,6 +416,11 @@ export const VIOLATIONS = Object.freeze({
   reviewWaived: "review_evidence_waived",
   reviewUnsatisfied: "review_evidence_unsatisfied",
   reviewCarried: "review_evidence_carried_unreviewed",
+  reviewObjected: "review_evidence_objected",
+  reviewObjectionUnread: "review_evidence_objection_unread",
+  requiredSkipped: "required_context_skipped",
+  requiredNotRun: "required_context_not_run",
+  requiredAmbiguous: "required_context_ambiguous",
 });
 
 /**
@@ -395,10 +471,14 @@ export const REVIEW_DESCRIPTION_DEFAULTS = Object.freeze({
  * what any change here can achieve: **the description is not a function of
  * whether a review happened.** `proof` is matched whole-string, so a
  * reviewed-and-objected pull request still carrying `Review rate limited` can
- * never reach it. Settling the question needs a second input — `reviews` /
- * `reviewThreads` — which this script does not read and deliberately does not
- * fetch: that would make the claim checkable at the cost of turning a
- * description classifier into a network client (CodySwannGT/lisa#3827).
+ * never reach it. Settling the question needs a second input — the review
+ * OBJECTS — and that input now exists, in the one place it can exist without
+ * turning this classifier into a network client (CodySwannGT/lisa#3706, #3827):
+ * {@link readReviewObjection} fetches `pulls/{pr}/reviews` from the ALREADY
+ * network-bound {@link inspectVacuity} arm, beside the check, carried-batch and
+ * waive-rate reads it already makes, and {@link readObjectionAtHead} judges the
+ * result purely. Everything in THIS classifier still reads only a description,
+ * and still may not conclude from `rate limited` that nothing ran.
  *
  * So the phrase stays in `no_work` — denying credit on it remains correct and
  * remains the safe direction — and only the WORDING changes. For these phrases
@@ -448,8 +528,20 @@ const ENFORCEMENT_MODES = Object.freeze(["error", "warn"]);
  * both that a context is ruleset-required AND that a token it actually skips
  * silences it; that is a reviewed state, and shipping past it is the exact
  * defect this file exists to refuse.
+ *
+ * The three outcome kinds block for a stronger reason still: they are not a
+ * declaration at all but an OBSERVATION. A required context whose job concluded
+ * `skipped` in this very run is the false green itself, measured; a result that
+ * cannot be read, or a context two jobs could post, is a verdict this guard
+ * cannot render, and rendering it green anyway is the collapse the outcome arm
+ * was built to stop.
  */
-const ALWAYS_BLOCKING = Object.freeze([VIOLATIONS.suppressesRequired]);
+const ALWAYS_BLOCKING = Object.freeze([
+  VIOLATIONS.suppressesRequired,
+  VIOLATIONS.requiredSkipped,
+  VIOLATIONS.requiredNotRun,
+  VIOLATIONS.requiredAmbiguous,
+]);
 
 /**
  * Violation kinds that NEVER fail the build, in any enforcement mode.
@@ -482,6 +574,12 @@ export const NEVER_BLOCKING = Object.freeze([
   // constituents' own gates already went red, on branches no ruleset watches.
   // What was missing was that the batch rendered green anyway.
   VIOLATIONS.reviewCarried,
+  // "The objection probe could not read the reviews" is the ABSENCE of a
+  // reading, not a finding about the code. It is reported — and it caps the
+  // rendered verdict, see `reviewGateVerdict` — but reddening a build because
+  // one API call failed would punish an author for a network, which is the
+  // "gate that gets deleted" shape this file names three times already.
+  VIOLATIONS.reviewObjectionUnread,
 ]);
 
 /**
@@ -521,6 +619,7 @@ export const NEVER_BLOCKING = Object.freeze([
 export const REPORT_ONLY = Object.freeze([
   VIOLATIONS.reviewWaived,
   VIOLATIONS.reviewCarried,
+  VIOLATIONS.reviewObjectionUnread,
 ]);
 
 /**
@@ -534,6 +633,15 @@ export const REPORT_ONLY = Object.freeze([
  */
 export const REVIEW_GATE_BLOCKING = Object.freeze([
   VIOLATIONS.reviewUnsatisfied,
+  // A review that RAN AND OBJECTED is the one condition no waiver covers, and
+  // this file has said so in prose since #3221 while having no way to observe
+  // it: the objection lives in a review OBJECT, and until #3706 nothing here
+  // read one. MEASURED on this repository, 60 most recently updated merged
+  // pull requests: 2 carried a standing `CHANGES_REQUESTED` at the merged head
+  // and the gate published `REVIEWED — CodeRabbit reported "Review completed"`.
+  // Blocking on it is the same policy `reviewUnsatisfied` already carries, and
+  // it is armed by the same `--require-review-evidence` flag.
+  VIOLATIONS.reviewObjected,
 ]);
 
 /**
@@ -587,6 +695,36 @@ const REQUIRE_REVIEW_EVIDENCE_FLAG = "--require-review-evidence";
  * once measured.
  */
 const WAIVE_RATE_SAMPLE_FLAG = "--waive-rate-sample";
+
+/**
+ * How many waivers in the sample escalate a waiver from `neutral` to `failure`.
+ *
+ * ## Unset by default, and that is the whole safety property
+ *
+ * CodySwannGT/lisa#3706 asks a question this script cannot answer for a
+ * repository: "should N waivers in a row stop being tolerated?" The waiver
+ * itself is the repository owner's ruling on CodySwannGT/lisa#3221 — a pull
+ * request author cannot fix a vendor entitlement — and that ruling stands until
+ * an owner replaces it. What was missing was not the judgement but the LEVER:
+ * the rate was already computed, printed, and acted on by nothing.
+ *
+ * So this ships the lever and leaves it down. With the flag absent, every
+ * waiver renders exactly as it did before, and no workflow in this tree passes
+ * it. Passing `--waive-rate-escalate=N` is a deliberate act with a number
+ * attached, and the number is measurable first: the same run prints the rate it
+ * would be compared against.
+ *
+ * ## It escalates the RENDERING, not the exit code
+ *
+ * {@link VIOLATIONS.reviewWaived} stays in {@link NEVER_BLOCKING} and in
+ * {@link REPORT_ONLY} whatever this is set to. Those two arrays ARE the #3221
+ * ruling, and a flag that reached through them would repeal an owner's decision
+ * from a command line. What escalation changes is the conclusion published on
+ * the check run — the one surface a merge decision reads — from `neutral` to
+ * `failure`. Whether that red can block anything is a separate, deliberate,
+ * human act: promoting the context in the live ruleset.
+ */
+const WAIVE_RATE_ESCALATE_FLAG = "--waive-rate-escalate";
 
 /**
  * The one call the waive-rate sample makes.
@@ -1632,6 +1770,16 @@ export const REVIEW_GATE_STATES = Object.freeze({
  * | `unrecognised`  | the reviewer said something new  | classify the phrase   |
  * | `undetermined`  | THE GATE STOPPED WAITING         | re-run; read nothing into it |
  *
+ * `waived_with_review` is the eighth, and it is a WAIVER — same severity, same
+ * `neutral`, same never-blocking kind. It exists because the waiver's sentence
+ * was a claim rather than a label: "this pull request is UNREVIEWED". MEASURED
+ * on this repository 2026-09-06 over the last 40 merged pull requests, 34 of
+ * which reported `Review rate limited`: SEVEN of those 34 carried review
+ * activity at the head. The waiver described one waived merge in five wrongly,
+ * and it described it wrongly in the direction that matters — an operator
+ * writing a merge disclosure from that sentence asserts nobody looked while a
+ * finding sits on the pull request.
+ *
  * All of them published one word, so an operator handed `unsatisfied` had to
  * guess between situations whose correct responses have nothing in common. That
  * collapse is why CodySwannGT/lisa#3706, #3716 and #3600 each described a
@@ -1666,11 +1814,111 @@ export const REVIEW_GATE_STATES = Object.freeze({
 export const REVIEW_GATE_CONDITIONS = Object.freeze({
   satisfied: "satisfied",
   waived: "waived",
+  waivedWithReview: "waived_with_review",
   absent: "absent",
   objected: "objected",
   pending: "pending",
   unrecognised: "unrecognised",
   undetermined: "undetermined",
+});
+
+/**
+ * What the pull request's OWN review surface says, independent of any check.
+ *
+ * ## Why a second input exists at all (#3706)
+ *
+ * The gate classified an evidence-bearing check from its `state` and its
+ * `description`, and **the description is not a function of whether a review
+ * happened.** Measured on CodySwannGT/lisa#3762: `success` with the
+ * description `Review rate limited`, and the vendor HAD reviewed, posting
+ * `CHANGES_REQUESTED` with a comment that found a real defect. The identical
+ * string appears on pull requests nothing read. One string, two opposite
+ * facts — and the waiver collapsed them PERMISSIVELY, so a pull request a
+ * reviewer objected to published `neutral` and merged.
+ *
+ * No rearrangement of the description vocabulary can fix that, because the
+ * information is not in the description. It is in `reviewDecision` and
+ * `reviewThreads`, which `gh pr checks` cannot see and this gate did not read.
+ *
+ * ## Why `reviewDecision` rather than the reviews' own states
+ *
+ * `reviewDecision` is GitHub's own computation of the latest state per
+ * reviewer, so a DISMISSED objection and a superseded one are already excluded.
+ * Recomputing it here from `reviews[].state` would resurrect a stale
+ * `CHANGES_REQUESTED` and block work that was already addressed — the false-red
+ * direction tracked on #3720, which this must not manufacture while closing the
+ * false-green one.
+ *
+ * ## COULD-NOT-ASK IS A THIRD STATE, NOT AN ABSENCE VALUE
+ *
+ * "No review activity" is what GRANTS the waiver, so a failed read resolving to
+ * it would waive on evidence nobody obtained — this file's own thesis, one
+ * square over, and the shape `scripts/check-probe-absence-direction.mjs`
+ * refuses outright (#3848): a probe must not hand a failure back as an answer.
+ * The first draft here returned `undefined` on a failed read, which the caller
+ * did distinguish — and which is still the same token a caller elsewhere reads
+ * as a legitimate negative. So the third state is carried in the value:
+ * `read: false` is a fact about the READ, and `present` / `objected` are facts
+ * about the pull request that only mean anything when `read` is true.
+ *
+ * @param {unknown} payload - `pullRequest` as the GraphQL read returns it
+ * @returns {{read: boolean, present: boolean, objected: boolean}} What the review surface showed, and whether it was read at all
+ */
+export function reviewActivityFrom(payload) {
+  if (typeof payload !== "object" || payload === null) {
+    return UNREAD_REVIEW_ACTIVITY;
+  }
+  const reviews = /** @type {{totalCount?: unknown}} */ (
+    /** @type {Record<string, unknown>} */ (payload).reviews
+  );
+  const threads = /** @type {{totalCount?: unknown, nodes?: unknown}} */ (
+    /** @type {Record<string, unknown>} */ (payload).reviewThreads
+  );
+  if (typeof reviews?.totalCount !== "number") return UNREAD_REVIEW_ACTIVITY;
+  if (typeof threads?.totalCount !== "number") return UNREAD_REVIEW_ACTIVITY;
+  const nodes = Array.isArray(threads.nodes) ? threads.nodes : [];
+  const unresolved = nodes.some(node => node?.isResolved === false);
+  const decision = String(
+    /** @type {Record<string, unknown>} */ (payload).reviewDecision ?? ""
+  ).toUpperCase();
+  const objected = decision === "CHANGES_REQUESTED" || unresolved;
+  // The query asks for the first 50 threads, and the two verdicts do not need
+  // the same evidence.
+  //
+  // "Somebody objected" is sound from a partial page: a thread we did not read
+  // cannot un-object the one we did. "Nobody objected" is not — it is a claim
+  // about every thread, and a page of 50 resolved ones says nothing about the
+  // fifty-first. A pull request with more than 50 threads whose only unresolved
+  // one sorts late would otherwise report `objected: false`, and a neutral
+  // waiver would be allowed to cover a live objection.
+  //
+  // `totalCount` is already in the response, so the shortfall is detectable
+  // without a second request. Reporting it as UNREAD is the honest answer and
+  // the one this module is built around: a failed read is NOT a negative, and
+  // the cost lands on the waiver's corroboration rather than on the merge.
+  if (!objected && nodes.length < threads.totalCount) {
+    return UNREAD_REVIEW_ACTIVITY;
+  }
+  return {
+    read: true,
+    present: reviews.totalCount > 0 || threads.totalCount > 0,
+    objected,
+  };
+}
+
+/**
+ * The review surface as it looks when nobody managed to read it.
+ *
+ * A named value rather than `undefined` on purpose: `undefined` is what a
+ * caller elsewhere in this file reads as a legitimate negative, and the whole
+ * point is that a failed read is NOT a negative. `present` and `objected` are
+ * `false` here only because the shape requires values; `read: false` is the
+ * field every consumer must branch on first.
+ */
+export const UNREAD_REVIEW_ACTIVITY = Object.freeze({
+  read: false,
+  present: false,
+  objected: false,
 });
 
 /**
@@ -1719,7 +1967,13 @@ function normalizeDescription(description) {
  * long" are different things to go and look at; what changes is that neither is
  * asserted as a fact about the reviewer when the gate simply stopped waiting.
  *
- * @param {{present: boolean, state?: string, description?: string, waitExpired?: boolean}} reading - One check, and whether the settle wait expired
+ * A WAIVER IS NOW CONDITIONAL ON THE ABSENCE OF REVIEW (#3706). `reading.
+ * reviewActivity` is what the pull request's own review surface showed, and it
+ * only ever reaches the waiver branch — the satisfy, absent, pending and
+ * unrecognised paths are untouched by it, deliberately, because none of them
+ * grants permission to merge on a claim about who reviewed.
+ *
+ * @param {{present: boolean, state?: string, description?: string, waitExpired?: boolean, reviewActivity?: {read: boolean, present: boolean, objected: boolean}}} reading - One check, whether the settle wait expired, and what the pull request's own review surface showed
  * @param {{waive?: readonly string[], satisfy?: readonly string[]}} [vocabulary] - Per-check extensions
  * @returns {{state: string, condition: string, why: string}} Severity, the condition observed, and a one-line reason
  */
@@ -1734,7 +1988,12 @@ export function reviewGateState(reading, vocabulary = {}) {
   if (state !== "SUCCESS") {
     return pendingReviewGateState(state, reading.waitExpired);
   }
-  return successfulReviewGateState(text, reading.description, vocabulary);
+  return successfulReviewGateState(
+    text,
+    reading.description,
+    vocabulary,
+    reading.reviewActivity
+  );
 }
 
 /**
@@ -1804,14 +2063,69 @@ function pendingReviewGateState(state, waitExpired) {
 }
 
 /**
+ * Classifies a check whose description matched an entitlement waiver.
+ *
+ * ## The waiver keeps its severity and loses its false claim (#3706)
+ *
+ * The owner's ruling on #3221, restated on #3706, is untouched: a pull request
+ * author cannot fix a vendor entitlement, so a throttled reviewer must not
+ * redden the author's pull request. That ruling is about the pull request
+ * NOBODY REVIEWED, which is the only pull request it was ever an argument
+ * about — and the third branch below is where it lives, unchanged.
+ *
+ * What the ruling never covered is a pull request where a review DID happen and
+ * OBJECTED. Measured on #3762: `success`, description `Review rate limited`,
+ * and a `CHANGES_REQUESTED` finding a real defect. The waiver covered it
+ * anyway, because the gate read only the string — so the one condition the file
+ * calls "the case this gate exists to let through to a human" was the condition
+ * it merged. That is the first branch, and it is the fix.
+ *
+ * The second branch is the honesty half. Review activity WITHOUT an objection
+ * still waives — the entitlement argument still applies and the severity does
+ * not move — but the sentence stops asserting "this pull request is
+ * UNREVIEWED", which was measured false on 7 of 34 waived merges here.
+ *
+ * @param {string|undefined} description - Original description
+ * @param {{read: boolean, present: boolean, objected: boolean}|undefined} activity - What the pull request's own review surface showed
+ * @returns {{state: string, condition: string, why: string}} Review gate verdict
+ */
+function waivedReviewGateState(description, activity) {
+  const said = `reported ${JSON.stringify(description ?? "")}`;
+  const read = activity !== undefined && activity.read !== false;
+  if (read && activity.objected === true) {
+    return {
+      state: REVIEW_GATE_STATES.unsatisfied,
+      condition: REVIEW_GATE_CONDITIONS.objected,
+      why: `${said} — but a review HAPPENED on this pull request and OBJECTED to it: \`reviewDecision\` is CHANGES_REQUESTED, or a review thread is unresolved. NO WAIVER COVERS AN OBJECTION. The description said the reviewer could not review and the review surface says it did; the review surface is the authority, because a vendor's throttle message is not a function of whether anybody read the diff (CodySwannGT/lisa#3762). READ THE OBJECTION.`,
+    };
+  }
+  if (read && activity.present === true) {
+    return {
+      state: REVIEW_GATE_STATES.waived,
+      condition: REVIEW_GATE_CONDITIONS.waivedWithReview,
+      why: `${said} — the check saying, in its own words, that it could not review. WAIVED: merging is a decision taken on that basis. But this pull request DOES carry review activity that raised no objection, so it is not the unreviewed pull request the waiver's rationale is about — do not record it as one.`,
+    };
+  }
+  const unverified = read
+    ? ""
+    : " The pull request's own review surface could not be read on this run, so nothing corroborated the waiver: it is granted on the description alone, which is the input measured to be wrong in both directions.";
+  return {
+    state: REVIEW_GATE_STATES.waived,
+    condition: REVIEW_GATE_CONDITIONS.waived,
+    why: `${said} — the check saying, in its own words, that it could not review. WAIVED, not satisfied: this pull request is UNREVIEWED and merging it is a decision taken on that basis.${unverified} The waiver clears the moment the entitlement behind it is fixed, at which point this gate starts biting with no code change.`,
+  };
+}
+
+/**
  * Classifies a successful check from its exact description vocabulary.
  *
  * @param {string} text - Normalized description
  * @param {string|undefined} description - Original description
  * @param {{waive?: readonly string[], satisfy?: readonly string[]}} vocabulary - Per-check extensions
+ * @param {{read: boolean, present: boolean, objected: boolean}|undefined} [activity] - What the pull request's own review surface showed
  * @returns {{state: string, condition: string, why: string}} Review gate verdict
  */
-function successfulReviewGateState(text, description, vocabulary) {
+function successfulReviewGateState(text, description, vocabulary, activity) {
   const satisfies = [...REVIEW_SATISFACTIONS, ...(vocabulary.satisfy ?? [])];
   if (satisfies.some(phrase => text === normalizeDescription(phrase))) {
     return {
@@ -1822,11 +2136,7 @@ function successfulReviewGateState(text, description, vocabulary) {
   }
   const waivers = [...ENTITLEMENT_WAIVERS, ...(vocabulary.waive ?? [])];
   if (waivers.some(phrase => text === normalizeDescription(phrase))) {
-    return {
-      state: REVIEW_GATE_STATES.waived,
-      condition: REVIEW_GATE_CONDITIONS.waived,
-      why: `reported ${JSON.stringify(description ?? "")} — the check saying, in its own words, that it could not review. WAIVED, not satisfied: this pull request is UNREVIEWED and merging it is a decision taken on that basis. The waiver clears the moment the entitlement behind it is fixed, at which point this gate starts biting with no code change.`,
-    };
+    return waivedReviewGateState(description, activity);
   }
   return {
     state: REVIEW_GATE_STATES.unsatisfied,
@@ -1845,7 +2155,7 @@ function successfulReviewGateState(text, description, vocabulary) {
  *
  * @param {object} declaration - The per-repo declaration
  * @param {ReadonlyArray<{name: string, state: string, description?: string}>} checks - The checks
- * @param {{headSha?: string, waitExpired?: boolean}} [options] - `headSha` is cited in every finding; `waitExpired` says the settle loop hit its deadline
+ * @param {{headSha?: string, waitExpired?: boolean, reviewActivity?: {read: boolean, present: boolean, objected: boolean}}} [options] - `headSha` is cited in every finding; `waitExpired` says the settle loop hit its deadline; `reviewActivity` is what the pull request's own review surface showed, absent or `read: false` when it was never read
  * @returns {{violations: object[], states: Record<string, string>, conditions: Record<string, string>, descriptions: Record<string, string>, checked: number}} Findings, per-check state and condition, the description each verdict was read from, and how many were examined
  */
 export function evaluateReviewGate(declaration, checks, options = {}) {
@@ -1877,6 +2187,7 @@ export function evaluateReviewGate(declaration, checks, options = {}) {
             state: found.state,
             description: found.description,
             waitExpired: options.waitExpired === true,
+            reviewActivity: options.reviewActivity,
           },
       vocabulary
     );
@@ -1907,6 +2218,166 @@ export function evaluateReviewGate(declaration, checks, options = {}) {
   }
 
   return { violations, states, conditions, descriptions, checked };
+}
+
+/**
+ * The review-OBJECT state that means a reviewer objected.
+ *
+ * A review object, never a status description. The two are different data and
+ * the distinction is the entire content of CodySwannGT/lisa#3706: measured on
+ * #3762, `CodeRabbit` reported `success` with the description
+ * `Review rate limited` on a pull request it HAD reviewed, posting
+ * `CHANGES_REQUESTED` that found a real defect. The same string, on a different
+ * pull request the same week, meant nobody had read anything. A classifier
+ * reading the string collapses those two, and it collapses them PERMISSIVELY.
+ */
+export const REVIEW_OBJECTION_STATE = "CHANGES_REQUESTED";
+
+/**
+ * Whether an objection STANDS at this head, from the review objects.
+ *
+ * ## Filtered to the head, in both directions
+ *
+ * A review is counted only when its `commit_id` is this head. Leaving the
+ * filter out breaks the gate in whichever direction the data happens to point:
+ * a stale `CHANGES_REQUESTED` from three pushes ago would block work a newer
+ * head already fixed (CodySwannGT/lisa#3720), and that is a false RED, which
+ * this file argues repeatedly is the expensive kind to introduce while chasing
+ * a false green. A review with no `commit_id` is dropped for the same reason —
+ * unknown is not "at this head".
+ *
+ * MEASURED on the 60 most recently updated merged pull requests in this
+ * repository: 4 carried a `CHANGES_REQUESTED` from the reviewer, and only 2 of
+ * those were at the merged head. An unfiltered read would have reddened the
+ * other two for objections their authors had already addressed.
+ *
+ * ## Reported, never inferred
+ *
+ * This says only what the review objects say. It does NOT consult the status
+ * description, and nothing about a waiver, a rate limit or an entitlement
+ * reaches it — that is the point of having a second input at all.
+ * @param {ReadonlyArray<{state?: string, commitSha?: string, author?: string}>} reviews - Review objects
+ * @param {string|undefined} headSha - The head commit under inspection
+ * @returns {{objected: boolean, reviewers: string[], staleDropped: number}} What stands at head
+ */
+export function readObjectionAtHead(reviews, headSha) {
+  const all = reviews ?? [];
+  const atHead =
+    headSha === undefined || headSha === ""
+      ? []
+      : all.filter(review => review?.commitSha === headSha);
+  const objections = atHead.filter(
+    review =>
+      String(review?.state ?? "").toUpperCase() === REVIEW_OBJECTION_STATE
+  );
+  return {
+    objected: objections.length > 0,
+    reviewers: [
+      ...new Set(objections.map(review => String(review?.author ?? "unknown"))),
+    ].sort((left, right) => left.localeCompare(right)),
+    staleDropped: all.length - atHead.length,
+  };
+}
+
+/**
+ * Reads the review objects on one pull request.
+ *
+ * REST rather than the rollup, for the reason the description read is REST:
+ * `gh pr checks` and `gh pr view --json statusCheckRollup` cannot see a review
+ * object at all, so neither can say whether an objection stands. The endpoint
+ * carries `commit_id`, which is what makes the staleness filter possible.
+ * @param {string|number} pr - The pull request
+ * @param {string} [repo] - `OWNER/NAME`; defaults to the current repository
+ * @returns {Array<{state: string, commitSha: string, author: string}>} Review objects
+ * @throws {Error} When the slug cannot be resolved or `gh` cannot answer
+ */
+export function fetchPullRequestReviews(pr, repo) {
+  const slug = resolveRepoSlug(repo);
+  if (slug === undefined) {
+    throw new Error(
+      `check-skipped-required-checks: cannot read the reviews on PR ${pr} without an OWNER/NAME. Pass \`--repo=OWNER/NAME\`, or set GITHUB_REPOSITORY.`
+    );
+  }
+  return ghApiPaginatedArray(
+    `repos/${slug}/pulls/${pr}/reviews?per_page=100`,
+    "[.[] | {state: .state, commitSha: .commit_id, author: .user.login}]"
+  );
+}
+
+/**
+ * Reads and judges whether a review objection stands at this head.
+ *
+ * FAILING TO READ IS NOT PASSING, the same way {@link readCarriedReview} means
+ * it: an unreadable reviews endpoint reports UNREAD, which caps the rendered
+ * verdict below `REVIEWED` rather than reporting a clean one nothing looked at.
+ * It does not redden the build — see {@link NEVER_BLOCKING} — because the
+ * failure is the gate's own, not the author's.
+ * @param {string|number} pr - The pull request under inspection
+ * @param {string|undefined} repo - `OWNER/NAME`; defaults to the current repository
+ * @param {string|undefined} headSha - The head commit under inspection
+ * @param {{fetchReviews?: Function}} [options] - Injection seam
+ * @returns {{violations: object[], objected: boolean, reviewers: string[], staleDropped: number, unread?: string}} Findings and the standing
+ */
+export function readReviewObjection(pr, repo, headSha, options = {}) {
+  const read = options.fetchReviews ?? fetchPullRequestReviews;
+  let reviews;
+  try {
+    reviews = read(pr, repo);
+  } catch (error) {
+    const why = error instanceof Error ? error.message : String(error);
+    return {
+      violations: [
+        {
+          kind: VIOLATIONS.reviewObjectionUnread,
+          token: "objection",
+          contexts: [],
+          message: `The review objects on this pull request could not be read (${why}), so this run cannot say whether a reviewer OBJECTED at ${headSha ?? "the head commit"}. A status description cannot answer it: the same phrase has been observed on a pull request nothing reviewed and on one a reviewer objected to. Refusing to report a clean review nothing looked at.`,
+        },
+      ],
+      objected: false,
+      reviewers: [],
+      staleDropped: 0,
+      unread: why,
+    };
+  }
+  const standing = readObjectionAtHead(reviews, headSha);
+  if (!standing.objected) return { ...standing, violations: [] };
+  return {
+    ...standing,
+    violations: [
+      {
+        kind: VIOLATIONS.reviewObjected,
+        condition: REVIEW_GATE_CONDITIONS.objected,
+        token: "objection",
+        contexts: [],
+        message: `A review RAN AND OBJECTED at ${headSha ?? "this head"}: ${standing.reviewers.join(", ")} submitted ${REVIEW_OBJECTION_STATE}. READ THE OBJECTION. This is the one condition no waiver covers, and it is invisible in the check's conclusion and in its description alike — both have been observed reading exactly as they do on a pull request nobody reviewed.${citeHeadSha(headSha)}`,
+      },
+    ],
+  };
+}
+
+/**
+ * Whether a sampled waive rate has reached the escalation threshold.
+ *
+ * Three refusals, and each one is a direction an escalation could go wrong:
+ *
+ * - **No threshold** — nobody asked. The shipped default, and the reason this
+ *   change moves no merge.
+ * - **No rate** — the sample failed. {@link sampleWaiveRate} is best-effort by
+ *   construction, so an unreachable API must cost a sentence, never a red. An
+ *   escalation on an unmeasured rate would be a verdict from a measurement that
+ *   never happened, which is the family of defect this whole file is about.
+ * - **Nothing sampled** — a zero denominator. `0 >= 0` is true and would
+ *   escalate every waiver on an empty sample.
+ * @param {{waived?: number, sampled?: number}|undefined} rate - The sampled tally
+ * @param {number|undefined} threshold - Waivers at or above which to escalate
+ * @returns {boolean} Whether the waiver escalates
+ */
+export function waiverEscalates(rate, threshold) {
+  if (!Number.isInteger(threshold) || threshold <= 0) return false;
+  if (rate === undefined) return false;
+  if (!Number.isInteger(rate.sampled) || rate.sampled <= 0) return false;
+  return Number(rate.waived) >= threshold;
 }
 
 /**
@@ -2072,6 +2543,21 @@ function waiveRateSuffix(rate) {
 }
 
 /**
+ * The unread-objection sentence appended to a verdict title, or nothing.
+ *
+ * Only when the probe FAILED. A probe that ran and found nothing standing is a
+ * reading, and a title that announced it on every clean pull request would be
+ * the noise that gets a sentence skimmed past on the one run it mattered.
+ * @param {{unread?: string}|undefined} objection - The objection standing
+ * @returns {string} The sentence, or an empty string
+ */
+function objectionSuffix(objection) {
+  return objection?.unread === undefined
+    ? ""
+    : " · whether a reviewer OBJECTED at this head was NOT read";
+}
+
+/**
  * The carried-batch sentence appended to a verdict title, or nothing.
  *
  * NUMBERS ONLY, no vendor descriptions. The title is capped at
@@ -2116,19 +2602,69 @@ function carriedSuffix(carried) {
  * out: every state above is read from THIS pull request's head, which is the
  * one commit a batch integration pull request does not speak for.
  *
- * @param {{states?: Record<string, string>, conditions?: Record<string, string>, descriptions?: Record<string, string>, refusal?: {kind: string}|null, waiveRate?: {waived: number, sampled: number}, carried?: {unreviewed?: readonly string[], reviewed?: number, unread?: string}}} reading -
+ * AND AN OBJECTION OUTRANKS ALL OF IT (#3706). Every state above is read from a
+ * vendor's status DESCRIPTION, and the description has been measured saying the
+ * opposite of the truth in both directions on the same string: `Review rate
+ * limited` on a pull request nothing read, and `Review rate limited` on one the
+ * reviewer read and objected to. `reading.objection` is the second input that
+ * settles it, and it comes from review OBJECTS.
+ *
+ * @param {{states?: Record<string, string>, conditions?: Record<string, string>, descriptions?: Record<string, string>, refusal?: {kind: string}|null, waiveRate?: {waived: number, sampled: number}, carried?: {unreviewed?: readonly string[], reviewed?: number, unread?: string}, objection?: {objected?: boolean, reviewers?: readonly string[], unread?: string}, escalate?: number}} reading -
  *   The gate's per-check states and conditions, the descriptions they were read
- *   from, any refusal, an optional sampled waive rate, and the tally for the
- *   pull requests this one CARRIES
+ *   from, any refusal, an optional sampled waive rate, the tally for the pull
+ *   requests this one CARRIES, whether a review objection stands at this head,
+ *   and any waive-rate escalation threshold this repository set
  * @returns {{verdict: string, conclusion: string, title: string}} What to publish
  */
+/**
+ * The lead sentence for an unsatisfied verdict, keyed on WHAT was observed.
+ *
+ * Three leads because the three conditions hand an operator three different
+ * facts, and the title is the one surface a merge decision reads. Split out of
+ * {@link reviewGateVerdict} so each lead is one expression rather than a nested
+ * ternary nobody can read.
+ *
+ * @param {{allUndetermined: boolean, allObjected: boolean, unsatisfied: readonly string[], quote: (name: string) => string}} reading - The classification and how to name each check
+ * @returns {string} The lead sentence, without the carried/waive-rate suffix
+ */
+function unsatisfiedTitle(reading) {
+  const named = reading.unsatisfied.map(reading.quote).join("; ");
+  if (reading.allUndetermined) {
+    return `UNDETERMINED — the gate stopped waiting before review evidence settled, and is NOT reporting that nobody reviewed: ${named}. RE-RUN this job; do not investigate the change on the strength of this`;
+  }
+  if (reading.allObjected) {
+    return `OBJECTED — a review HAPPENED on this pull request and objected to it; this is NOT an unreviewed pull request and no waiver covers it: ${named}. READ THE OBJECTION`;
+  }
+  return `UNREVIEWED — review evidence unsatisfied: ${named}`;
+}
+
 export function reviewGateVerdict(reading = {}) {
   const states = reading.states ?? {};
   const conditions = reading.conditions ?? {};
   const descriptions = reading.descriptions ?? {};
   const names = Object.keys(states);
   const carried = carriedSuffix(reading.carried);
-  const suffix = `${carried}${waiveRateSuffix(reading.waiveRate)}`;
+  const suffix = `${carried}${objectionSuffix(reading.objection)}${waiveRateSuffix(reading.waiveRate)}`;
+
+  // FIRST, AND ABOVE EVERY STATE READ FROM A DESCRIPTION (#3706). An objection
+  // is the one thing here read from review OBJECTS rather than from a vendor
+  // sentence, and it is the only reading that establishes a review HAPPENED and
+  // said no. Every branch below it is settled by a description, and the
+  // description has now been measured saying the opposite of the truth in both
+  // directions on the same string. So an objection outranks a waiver — which
+  // would otherwise merge a pull request a reviewer objected to, the permissive
+  // collapse this ticket is about — and it outranks `undetermined`, because a
+  // gate that stopped waiting has observed nothing while this has observed
+  // something.
+  if (reading.objection?.objected === true) {
+    return {
+      verdict: REVIEW_GATE_STATES.unsatisfied,
+      conclusion: REVIEW_VERDICT_CONCLUSIONS.unsatisfied,
+      title: fitTitle(
+        `OBJECTED — a review RAN and requested changes at this head: ${reading.objection.reviewers.join(", ")} submitted ${REVIEW_OBJECTION_STATE}. This is NOT a waiver case and NOT an unreviewed one — READ THE OBJECTION${suffix}`
+      ),
+    };
+  }
 
   if (reading.refusal || names.length === 0) {
     return {
@@ -2179,13 +2715,23 @@ export function reviewGateVerdict(reading = {}) {
     const allUndetermined = unsatisfied.every(
       name => conditions[name] === REVIEW_GATE_CONDITIONS.undetermined
     );
+    // AND THE SAME MISTAKE ONE ROW DOWN (#3706). `objected` is the one
+    // unsatisfying condition where a review DID happen, and this title called
+    // it UNREVIEWED — the word an operator quotes into a merge disclosure. It
+    // is the more expensive direction of the two: `undetermined` sends someone
+    // to audit a change nobody had a finding about, while UNREVIEWED-on-an-
+    // objection tells them no finding exists while one sits on the pull
+    // request. Only when EVERY unsatisfied check objected, so a real silence
+    // alongside an objection still leads with UNREVIEWED.
+    const allObjected = unsatisfied.every(
+      name => conditions[name] === REVIEW_GATE_CONDITIONS.objected
+    );
     return {
       verdict: REVIEW_GATE_STATES.unsatisfied,
       conclusion: REVIEW_VERDICT_CONCLUSIONS.unsatisfied,
       title: fitTitle(
-        allUndetermined
-          ? `UNDETERMINED — the gate stopped waiting before review evidence settled, and is NOT reporting that nobody reviewed: ${unsatisfied.map(quote).join("; ")}. RE-RUN this job; do not investigate the change on the strength of this${suffix}`
-          : `UNREVIEWED — review evidence unsatisfied: ${unsatisfied.map(quote).join("; ")}${suffix}`
+        unsatisfiedTitle({ allUndetermined, allObjected, unsatisfied, quote }) +
+          suffix
       ),
     };
   }
@@ -2194,11 +2740,30 @@ export function reviewGateVerdict(reading = {}) {
     name => states[name] === REVIEW_GATE_STATES.waived
   );
   if (waived.length > 0) {
+    // The lever from #3706, and it is DOWN unless a repository set it. See
+    // `WAIVE_RATE_ESCALATE_FLAG`: the waiver's severity is the owner's ruling on
+    // #3221 and stays report-only in the exit code either way; what a threshold
+    // changes is the conclusion published where a merge decision reads it.
+    const escalated = waiverEscalates(reading.waiveRate, reading.escalate);
+    // AND THE TITLE IS WHERE THE CLAIM IS READ (#3706). "This pull request is
+    // UNREVIEWED" is the sentence an operator quotes into a merge disclosure,
+    // and it was printed unconditionally — measured false on 7 of the last 34
+    // waived merges here, every one of which carried review activity at the
+    // head. Severity does not move: both leads publish `neutral`, and the
+    // waiver's rationale is untouched. Only the claim changes, and only when
+    // EVERY waived check saw review activity, so one genuinely silent check
+    // alongside a reviewed one still leads with UNREVIEWED. Orthogonal to the
+    // escalation above: the rate decides the LEAD, this decides the CLAIM.
+    const allWithReview = waived.every(
+      name => conditions[name] === REVIEW_GATE_CONDITIONS.waivedWithReview
+    );
     return {
       verdict: REVIEW_GATE_STATES.waived,
-      conclusion: REVIEW_VERDICT_CONCLUSIONS.waived,
+      conclusion: escalated
+        ? REVIEW_VERDICT_CONCLUSIONS.unsatisfied
+        : REVIEW_VERDICT_CONCLUSIONS.waived,
       title: fitTitle(
-        `WAIVED — this pull request is UNREVIEWED and merging it is a decision taken on that basis: ${waived.map(quote).join("; ")}${suffix}`
+        `${escalated ? "WAIVED, AND THE WAIVER RATE HAS PASSED THE THRESHOLD THIS REPOSITORY SET" : "WAIVED"} — ${allWithReview ? "the review check could not review, and merging is a decision taken on that basis; but this pull request DOES carry review activity that raised no objection, so do NOT record it as unreviewed" : "this pull request is UNREVIEWED and merging it is a decision taken on that basis"}: ${waived.map(quote).join("; ")}${suffix}`
       ),
     };
   }
@@ -2225,11 +2790,102 @@ export function reviewGateVerdict(reading = {}) {
     };
   }
 
+  // A review ran and nothing here read whether it OBJECTED. Capped at `waived`
+  // for the reason the carried branch is: `REVIEWED` would report a clean
+  // review on the strength of a probe that failed, and the two states this file
+  // exists to keep apart are "a review said nothing was wrong" and "nothing
+  // established that". It blocks nothing — the failed read is the gate's, not
+  // the author's — and it stops looking like a pass.
+  if (reading.objection?.unread !== undefined) {
+    return {
+      verdict: REVIEW_GATE_STATES.waived,
+      conclusion: REVIEW_VERDICT_CONCLUSIONS.waived,
+      title: fitTitle(
+        `REVIEWED, OBJECTION STANDING UNKNOWN — the review ran, and whether it requested changes at this head could not be read: ${names.map(quote).join("; ")}${suffix}`
+      ),
+    };
+  }
+
   return {
     verdict: REVIEW_GATE_STATES.satisfied,
     conclusion: REVIEW_VERDICT_CONCLUSIONS.satisfied,
     title: fitTitle(`REVIEWED — ${names.map(quote).join("; ")}${suffix}`),
   };
+}
+
+/**
+ * The one call that answers "did a review actually happen on this pull request?"
+ *
+ * Everything else this file reads is a CHECK — a conclusion and a description
+ * posted by a vendor about itself. This reads the pull request's own review
+ * surface, which is the only place the answer exists and the one place
+ * `gh pr checks` cannot reach: measured on a pull request in this repository,
+ * `gh pr checks` printed 42 pass / 1 fail / 5 skipping and said nothing about a
+ * blocking `CHANGES_REQUESTED` or an unresolved thread, both of which block a
+ * merge here.
+ *
+ * `first: 50` on the threads because only `isResolved` is read and only whether
+ * ANY is false matters; a pull request with more than fifty threads is already
+ * blocked by the first unresolved one in the page.
+ */
+const REVIEW_ACTIVITY_QUERY = [
+  "query($owner: String!, $name: String!, $number: Int!) {",
+  "  repository(owner: $owner, name: $name) {",
+  "    pullRequest(number: $number) {",
+  "      reviewDecision",
+  "      reviews(first: 1) { totalCount }",
+  "      reviewThreads(first: 50) { totalCount nodes { isResolved } }",
+  "    }",
+  "  }",
+  "}",
+].join("\n");
+
+/**
+ * Reads what the pull request's own review surface shows, or nothing.
+ *
+ * BEST-EFFORT AND NEVER FATAL, in the direction that costs a waiver its
+ * corroboration rather than a pull request its merge: a failed read returns
+ * {@link UNREAD_REVIEW_ACTIVITY}, which {@link waivedReviewGateState} renders
+ * as a waiver that says it was not corroborated. Throwing here would convert a
+ * transient GitHub error into a red review gate on a pull request nobody has
+ * any finding about, on 85% of pull requests here — the "gate that reddens
+ * every pull request and then gets deleted" failure this file names twice.
+ *
+ * probe-direction: fail-closed — a failed read cannot produce
+ * `{read: true, present: false}`, which is the only value that grants an
+ * uncorroborated waiver its silence. It produces `read: false` instead, and the
+ * verdict published then says out loud that nothing corroborated the waiver. No
+ * outcome is quieter for the failure than it would have been for a real read.
+ *
+ * @param {string|number} pr - Pull request number
+ * @param {string} [repo] - `OWNER/NAME`; defaults to the current repository
+ * @returns {{read: boolean, present: boolean, objected: boolean}} What the review surface showed, and whether it was read at all
+ */
+export function fetchReviewActivity(pr, repo) {
+  const slug = resolveRepoSlug(repo);
+  if (slug === undefined) return UNREAD_REVIEW_ACTIVITY;
+  const [owner, name] = slug.split("/");
+  try {
+    const raw = boundedExecFileSync(
+      "gh",
+      [
+        "api",
+        "graphql",
+        "-f",
+        `query=${REVIEW_ACTIVITY_QUERY}`,
+        "-F",
+        `owner=${owner}`,
+        "-F",
+        `name=${name}`,
+        "-F",
+        `number=${pr}`,
+      ],
+      { encoding: "utf8" }
+    );
+    return reviewActivityFrom(JSON.parse(raw)?.data?.repository?.pullRequest);
+  } catch {
+    return UNREAD_REVIEW_ACTIVITY;
+  }
 }
 
 /**
@@ -3205,7 +3861,7 @@ function readSecondsFlag(argv, name, fallback) {
  *
  * @param {ReadonlyArray<string>} argv - CLI arguments
  * @param {object} declaration - The per-repo declaration
- * @param {{trustRequiredContexts?: boolean, env?: NodeJS.ProcessEnv, fetch?: Function, probeBranch?: Function, now?: Function, sleep?: Function, headSha?: Function}} [options] -
+ * @param {{trustRequiredContexts?: boolean, env?: NodeJS.ProcessEnv, fetch?: Function, probeBranch?: Function, now?: Function, sleep?: Function, headSha?: Function, reviewActivity?: Function}} [options] -
  *   Injection seams for the suite
  * @returns {{pr: string|undefined, prSource: string|null, headSha: string|undefined, checked: number, violations: object[], settled: boolean, refusal: {kind: string, reason: string}|null}|undefined} The inspection
  */
@@ -3288,14 +3944,31 @@ export function inspectVacuity(argv, declaration, options = {}) {
   // block. Its findings are what make a waiver visible, and a waiver that is
   // only computed when somebody opted in would be invisible on exactly the
   // repositories that have not opted in yet.
-  const gate = evaluateReviewGate(declaration, read.checks, {
+  const gateOptions = {
     headSha: read.headSha,
     // The settle loop exits on one of two things: everything declared reached a
     // terminal read, or the deadline passed. So `settled === false` IS "the
     // wait expired", and it is the only place that fact exists — every reader
     // downstream sees a check row that looks identical either way (#3716).
     waitExpired: read.settled === false,
-  });
+  };
+  // TWO PASSES, AND THE SECOND IS PAID FOR ONLY BY A WAIVER (#3706). The review
+  // surface is read exactly when a waiver is on the table, which is the only
+  // condition whose verdict it can change: `satisfied`, `absent`, `pending`,
+  // `unrecognised` and `undetermined` all reach the same answer without it, and
+  // making them pay a network call would put a new failure mode on paths that
+  // work. Same shape, and the same reason, as the waive-rate sample below.
+  const gate = Object.values(
+    evaluateReviewGate(declaration, read.checks, gateOptions).states
+  ).includes(REVIEW_GATE_STATES.waived)
+    ? evaluateReviewGate(declaration, read.checks, {
+        ...gateOptions,
+        reviewActivity: (options.reviewActivity ?? fetchReviewActivity)(
+          pr,
+          repo
+        ),
+      })
+    : evaluateReviewGate(declaration, read.checks, gateOptions);
   // #3658. Everything above judged ONE commit — this pull request's head — and
   // that is the one commit a batch integration pull request does not speak for.
   // Armed by the same flag as the gate itself, because this IS the gate,
@@ -3304,6 +3977,13 @@ export function inspectVacuity(argv, declaration, options = {}) {
   // read for the privilege, so the ordinary case is untouched.
   const carried = requireReviewEvidence
     ? readCarriedReview(declaration, pr, repo, options)
+    : undefined;
+  // #3706. Everything above is settled by a vendor's status DESCRIPTION, and
+  // the description does not answer the question the gate is asking. This is
+  // the second input — the review OBJECTS — and it is armed by the same flag as
+  // the carried arm, so an ordinary run pays no read it did not ask for.
+  const objection = requireReviewEvidence
+    ? readReviewObjection(pr, repo, read.headSha, options)
     : undefined;
   // Sampled ONLY when this pull request is itself waived. The rate answers
   // "is this the exception or the rule?", a question that only arises once a
@@ -3329,6 +4009,7 @@ export function inspectVacuity(argv, declaration, options = {}) {
       ...absent.violations,
       ...gate.violations,
       ...(carried?.violations ?? []),
+      ...(objection?.violations ?? []),
     ],
     absent: absent.absent,
     gateStates: gate.states,
@@ -3336,12 +4017,15 @@ export function inspectVacuity(argv, declaration, options = {}) {
     gateDescriptions: gate.descriptions,
     waiveRate,
     carried,
+    objection,
     verdict: reviewGateVerdict({
       states: gate.states,
       conditions: gate.conditions,
       descriptions: gate.descriptions,
       waiveRate,
       carried,
+      objection,
+      escalate: readIntegerFlag(argv, WAIVE_RATE_ESCALATE_FLAG, undefined),
     }),
     settled: read.settled,
     refusal: null,
@@ -3349,15 +4033,349 @@ export function inspectVacuity(argv, declaration, options = {}) {
 }
 
 /**
+ * Selects the OUTCOME arm — the one the `🔒 Skipped Required Checks` job rests
+ * its verdict on. See the `--outcomes` section of this file's header.
+ */
+export const OUTCOMES_FLAG = "--outcomes";
+
+/**
+ * The environment the outcome arm reads, exactly as `quality.yml` sets it.
+ *
+ * Environment rather than flags because two of the three are JSON built from
+ * expressions, and `toJSON(needs)` carries job OUTPUTS. An expression spliced
+ * into a `run:` line is a shell-injection surface; placed in `env:` it is inert
+ * data.
+ *
+ *  - `results` — `toJSON(needs)`: each sibling job's final `result`.
+ *  - `names` — job id → the display name GitHub composes into the context.
+ *  - `moment` — the workflow's `moment` input.
+ */
+export const OUTCOME_ENV = Object.freeze({
+  results: "LISA_JOB_RESULTS",
+  names: "LISA_JOB_NAMES",
+  moment: "LISA_GATE_MOMENT",
+});
+
+/**
+ * The one moment whose run is the merge gate a ruleset's required checks read.
+ *
+ * Every other moment skips most jobs BY DESIGN — a `continuous:dev` caller wants
+ * its E2E gates and nothing else — and gates no merge. Judging those runs would
+ * redden every nightly over a skip no pull request can merge on, and a gate that
+ * is red every night gets deleted rather than read.
+ */
+export const MERGE_GATE_MOMENT = "pull-request";
+
+/**
+ * Job results that show the job was scheduled to run.
+ *
+ * `failure` and `cancelled` are here rather than in a finding: GitHub does NOT
+ * count either as satisfying a required check, so the context already blocks
+ * the merge by itself. This arm exists for the one result GitHub DOES count as
+ * satisfied while proving nothing.
+ */
+const OUTCOMES_THAT_RAN = Object.freeze(["success", "failure", "cancelled"]);
+
+/**
+ * Why the outcome arm rendered no verdict, as stable tokens.
+ *
+ * Each one FAILS, in every enforcement mode. `warn` exists so a fresh install
+ * does not redden on hygiene findings; it is not a licence to print "examined
+ * nothing" in the shape of "found nothing", because that collapse is how this
+ * job came to be green over a skipped required context.
+ */
+export const OUTCOME_REFUSALS = Object.freeze({
+  untrusted: "outcomes_snapshot_untrusted",
+  unreadable: "outcomes_results_unreadable",
+  examinedNothing: "outcomes_examined_nothing",
+});
+
+/**
+ * Whether a job with this display name posts this required context.
+ *
+ * A job in a called workflow posts `<caller job name> / <job name>`, and the
+ * caller's job name is not visible from inside the called workflow without a
+ * token. So the match is exact equality OR a suffix bounded by the ` / `
+ * separator: `🧹 Lint` matches `🔍 Quality Checks / 🧹 Lint` and never
+ * `🔍 Quality Checks / 🐢 Slow Lint Rules`, and a bare `Lint` never matches
+ * `Slow Lint`. Two job names that could both match one context are refused as
+ * ambiguous by {@link evaluateRequiredOutcomes} rather than resolved by guessing.
+ *
+ * NAME MATCHING ALONE IS NOT OWNERSHIP, and this function is deliberately only
+ * half the rule — see {@link owningPrefix}. `Some Other Workflow / 🧹 Lint`
+ * satisfies this test against the local `🧹 Lint` job while being posted by a
+ * workflow this run cannot see, and reporting the local result for it is a
+ * FALSE GREEN of exactly the kind this file exists to refuse.
+ *
+ * @param {string} jobName - The job's display name
+ * @param {string} context - A required context, verbatim
+ * @returns {boolean} True when the job's NAME matches that context
+ */
+export function producesContext(jobName, context) {
+  return context === jobName || context.endsWith(` / ${jobName}`);
+}
+
+/**
+ * The prefix of a context matched by name, or `""` for an unprefixed match.
+ *
+ * @param {string} context - A required context
+ * @param {string} jobName - The job name that matched it
+ * @returns {string} The caller-job prefix the context carries
+ */
+function prefixOf(context, jobName) {
+  return context === jobName
+    ? ""
+    : context.slice(0, context.length - jobName.length - " / ".length);
+}
+
+/**
+ * Which caller-job prefix this run OWNS, and how that was decided.
+ *
+ * The problem it solves: every context this run posts carries one prefix — the
+ * caller's job name — and a context carrying any OTHER prefix belongs to a
+ * workflow this run cannot see, even when its trailing segment happens to equal
+ * a local job name. Matching on the name alone would report a local job's result
+ * for somebody else's check.
+ *
+ * Two ways to know the prefix, in order:
+ *
+ *  1. **Declared.** `ruleset.context_prefix` in the per-repo declaration, when
+ *     present, is the caller's job name as transcribed by whoever transcribed
+ *     the contexts. Exact, and nothing is inferred.
+ *  2. **Inferred, by majority.** This workflow posts a context for every gate —
+ *     dozens — while another workflow contributes one or two. So the prefix
+ *     accounting for the MOST required contexts is this run's. A tie is not
+ *     resolved: with no majority there is no evidence, and every matched context
+ *     is reported NOT EXAMINED rather than attributed by coin-toss.
+ *
+ * The failure direction is what makes the inference acceptable: a context whose
+ * prefix is not the chosen one is never examined and never claimed, so being
+ * wrong costs coverage that is reported as missing — never a green over a check
+ * nobody read.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {ReadonlyArray<{context: string, prefix: string}>} matches - Name matches
+ * @returns {{prefix: string|null, source: string}} The owning prefix, and why
+ */
+export function owningPrefix(declaration, matches) {
+  const declared = declaration.ruleset?.context_prefix;
+  if (typeof declared === "string" && declared.trim() !== "") {
+    return { prefix: declared, source: "declared in `ruleset.context_prefix`" };
+  }
+  const counts = new Map();
+  for (const { prefix } of matches) {
+    counts.set(prefix, (counts.get(prefix) ?? 0) + 1);
+  }
+  if (counts.size === 0) return { prefix: null, source: "no context matched" };
+  const ranked = [...counts.entries()].sort(
+    (left, right) => right[1] - left[1]
+  );
+  const [[prefix, top]] = ranked;
+  if (ranked.length > 1 && ranked[1][1] === top) {
+    return {
+      prefix: null,
+      source: `two prefixes match ${top} context(s) each, so which one this run posts is not evidenced`,
+    };
+  }
+  return {
+    prefix,
+    source: `inferred from ${top} of ${matches.length} matched context(s)`,
+  };
+}
+
+/**
+ * Judges each required context by what its job DID in this run.
+ *
+ * Pure: the whole verdict is a function of the snapshot, the results and the
+ * names, so every branch is testable without a workflow run.
+ *
+ * @param {object} declaration - The per-repo declaration
+ * @param {Record<string, {result?: string}>} results - `toJSON(needs)`, parsed
+ * @param {Record<string, string>} names - Job id → display name
+ * @returns {{examined: {context: string, job: string, result: string}[], notExamined: string[], violations: object[], prefix: {prefix: string|null, source: string}}} What was judged, what could not be seen, the findings, and whose contexts it judged
+ */
+export function evaluateRequiredOutcomes(declaration, results, names) {
+  const required = Array.isArray(declaration.required_contexts)
+    ? declaration.required_contexts
+    : [];
+  // TWO PASSES, and the first one is the ownership rule. A name match says a
+  // context COULD be this job's; only the prefix says it IS. See `owningPrefix`.
+  const matched = required.flatMap(context => {
+    const jobs = Object.keys(names).filter(job =>
+      producesContext(names[job], context)
+    );
+    return jobs.length === 0
+      ? []
+      : [{ context, jobs, prefix: prefixOf(context, names[jobs[0]]) }];
+  });
+  const prefix = owningPrefix(declaration, matched);
+  const owned = new Map(
+    matched
+      .filter(match => prefix.prefix !== null && match.prefix === prefix.prefix)
+      .map(match => [match.context, match.jobs])
+  );
+
+  const examined = [];
+  const notExamined = [];
+  const violations = [];
+  for (const context of required) {
+    const jobs = owned.get(context) ?? [];
+    if (jobs.length === 0) {
+      notExamined.push(context);
+      continue;
+    }
+    if (jobs.length > 1) {
+      violations.push({
+        kind: VIOLATIONS.requiredAmbiguous,
+        token: context,
+        contexts: [context],
+        message: `\`${context}\` is ruleset-required and could be posted by more than one job in this run (${jobs.map(job => `\`${job}\``).join(", ")}). Which outcome it carries cannot be decided without guessing, so it is refused rather than resolved. Rename a job so that no display name ends in \` / \` followed by another.`,
+      });
+      continue;
+    }
+    const [job] = jobs;
+    const result = String(results[job]?.result ?? "");
+    examined.push({ context, job, result });
+    violations.push(...outcomeViolations(context, job, result));
+  }
+  return { examined, notExamined, violations, prefix };
+}
+
+/**
+ * Findings for one examined required context.
+ *
+ * @param {string} context - Required context
+ * @param {string} job - The job that posts it
+ * @param {string} result - That job's result in this run
+ * @returns {object[]} Zero or one violation
+ */
+function outcomeViolations(context, job, result) {
+  if (result === "skipped") {
+    return [
+      {
+        kind: VIOLATIONS.requiredSkipped,
+        token: context,
+        contexts: [context],
+        message: `\`${context}\` is ruleset-required and its job \`${job}\` concluded \`skipped\`. GitHub counts a SKIPPED required status check as SATISFIED, so this pull request can merge on a check that ran zero steps. The mechanism does not change the outcome — a gate declared \`off\` at this moment, a \`skip_jobs\` token and a job condition all leave the same false green. Run the gate, or de-require the context in the ruleset and re-transcribe \`required_contexts\`.`,
+      },
+    ];
+  }
+  if (OUTCOMES_THAT_RAN.includes(result)) return [];
+  return [
+    {
+      kind: VIOLATIONS.requiredNotRun,
+      token: context,
+      contexts: [context],
+      message: `\`${context}\` is ruleset-required, but this run holds no readable result for its job \`${job}\` (read ${JSON.stringify(result)}). A result nobody can read is not evidence that the check ran, so it is refused rather than assumed. The job is most likely missing from the \`needs:\` of \`🔒 Skipped Required Checks\`.`,
+    },
+  ];
+}
+
+/**
+ * Parses the two JSON inputs, refusing anything that is not a plain object.
+ *
+ * @param {Record<string, string|undefined>} env - Environment
+ * @returns {{results?: Record<string, {result?: string}>, names?: Record<string, string>, error?: string}} The parsed inputs, or why they could not be read
+ */
+function readOutcomeEnv(env) {
+  const parsed = {};
+  for (const key of ["results", "names"]) {
+    const variable = OUTCOME_ENV[key];
+    let value;
+    try {
+      value = JSON.parse(String(env[variable] ?? ""));
+    } catch {
+      return {
+        error: `\`${variable}\` is not JSON, so no job result could be read. The \`🔒 Skipped Required Checks\` job sets it; outside that job \`${OUTCOMES_FLAG}\` has nothing to judge.`,
+      };
+    }
+    if (value === null || typeof value !== "object" || Array.isArray(value)) {
+      return {
+        error: `\`${variable}\` parsed to ${JSON.stringify(value)}, not an object keyed by job id.`,
+      };
+    }
+    parsed[key] = value;
+  }
+  const names = Object.values(parsed.names);
+  if (names.length === 0 || names.some(name => typeof name !== "string")) {
+    return {
+      error: `\`${OUTCOME_ENV.names}\` must map at least one job id to its display name, and every name must be a string.`,
+    };
+  }
+  return parsed;
+}
+
+/**
+ * The OUTCOME arm: did each ruleset-required context this run posts actually run?
+ *
+ * @param {ReadonlyArray<string>} argv - CLI arguments
+ * @param {object} declaration - The per-repo declaration
+ * @param {{env?: Record<string, string|undefined>, trust?: {trusted: boolean, reason: string}}} [options] - Environment and snapshot trust
+ * @returns {{moment: string, applicable: boolean, examined: object[], notExamined: string[], violations: object[], refusal: {kind: string, reason: string}|null}|undefined} The inspection, or undefined when `--outcomes` was not passed
+ */
+export function inspectOutcomes(argv, declaration, options = {}) {
+  if (!argv.includes(OUTCOMES_FLAG)) return undefined;
+  const env = options.env ?? process.env;
+  const moment = String(env[OUTCOME_ENV.moment] ?? "").trim();
+  const base = {
+    moment,
+    applicable: true,
+    examined: [],
+    notExamined: [],
+    violations: [],
+    refusal: null,
+  };
+  if (moment !== "" && moment !== MERGE_GATE_MOMENT) {
+    return { ...base, applicable: false };
+  }
+  /**
+   * @param {string} kind - One of `OUTCOME_REFUSALS`
+   * @param {string} reason - Why nothing was judged
+   * @returns {object} The refused inspection
+   */
+  const refuse = (kind, reason) => ({ ...base, refusal: { kind, reason } });
+  if (moment === "") {
+    return refuse(
+      OUTCOME_REFUSALS.unreadable,
+      `\`${OUTCOME_ENV.moment}\` is empty, so this cannot tell whether this run is the \`${MERGE_GATE_MOMENT}\` run a merge is gated on. Refused rather than assumed either way.`
+    );
+  }
+  if (options.trust?.trusted === false) {
+    return refuse(
+      OUTCOME_REFUSALS.untrusted,
+      "`required_contexts` has never been transcribed from a live ruleset (see NOT CHECKED above), so which job results a merge depends on is unknown. Examining no required context is not the same as finding none skipped."
+    );
+  }
+  const read = readOutcomeEnv(env);
+  if (read.error !== undefined) {
+    return refuse(OUTCOME_REFUSALS.unreadable, read.error);
+  }
+  const evaluated = evaluateRequiredOutcomes(
+    declaration,
+    read.results,
+    read.names
+  );
+  const refusal =
+    evaluated.examined.length > 0
+      ? null
+      : {
+          kind: OUTCOME_REFUSALS.examinedNothing,
+          reason: `Not one of the ${evaluated.notExamined.length} context(s) in \`required_contexts\` was judged, so no outcome was examined, and a guard that examined nothing must not render like one that found nothing. Either no context this workflow posts is in the snapshot — transcribe the real ruleset — or the contexts were renamed, or this run does not own their prefix (${evaluated.prefix.source}). Names are matched byte for byte on the \` / \` boundary, and a context is judged only under the prefix this run posts; \`ruleset.context_prefix\` states that prefix outright.`,
+        };
+  return { ...base, ...evaluated, refusal };
+}
+
+/**
  * Runs the guard.
  *
  * Every arm is OFFLINE. There is no network read and no token anywhere in this
  * path: the required-context rules answer from the committed snapshot when
- * {@link snapshotTrust} believes it, and refuse when it does not.
+ * {@link snapshotTrust} believes it, and refuse when it does not. The outcome
+ * arm reads job results the workflow hands it through the environment.
  *
  * @param {ReadonlyArray<string>} argv - CLI arguments
- * @param {object} [options] - Injection seams forwarded to {@link inspectVacuity}
- * @returns {{violations: object[], checked: number, tokens: string[], enforcement: string, trust: {trusted: boolean, reason: string}, recipe: string, pr: string|undefined, evidenceChecked: number, vacuity: object|undefined}} The result
+ * @param {object} [options] - Injection seams forwarded to {@link inspectVacuity}; `env` also reaches {@link inspectOutcomes}
+ * @returns {{violations: object[], checked: number, tokens: string[], enforcement: string, trust: {trusted: boolean, reason: string}, recipe: string, pr: string|undefined, evidenceChecked: number, vacuity: object|undefined, outcomes: object|undefined}} The result
  */
 export function runGuard(argv, options = {}) {
   if (argv.includes(RETIRED_REMOTE_FLAG)) {
@@ -3393,6 +4411,16 @@ export function runGuard(argv, options = {}) {
   });
   if (vacuity !== undefined) violations.push(...vacuity.violations);
 
+  // The OUTCOME arm, which the CI job's verdict rests on. Its findings are
+  // ALWAYS_BLOCKING and its refusal fails in every mode, so nothing the
+  // vestigial token arm above reports — clean or otherwise — can turn its red
+  // into a pass.
+  const outcomes = inspectOutcomes(argv, declaration, {
+    env: options.env,
+    trust,
+  });
+  if (outcomes !== undefined) violations.push(...outcomes.violations);
+
   return {
     violations,
     checked: result.checked,
@@ -3405,6 +4433,7 @@ export function runGuard(argv, options = {}) {
     verdict: vacuity?.verdict,
     waiveRate: vacuity?.waiveRate,
     vacuity,
+    outcomes,
   };
 }
 
@@ -3522,7 +4551,7 @@ export function violationBlocks(violation, policy) {
  *
  * @param {object} result - Guard result
  * @param {object} policy - Active CLI policy
- * @returns {{blocking: object[], refusal: object|null, refusalBlocks: boolean, failed: boolean}} CLI outcome
+ * @returns {{blocking: object[], refusal: object|null, refusalBlocks: boolean, outcomesRefusal: object|null, failed: boolean}} CLI outcome
  */
 function cliOutcome(result, policy) {
   const blocking = result.violations.filter(violation =>
@@ -3531,11 +4560,14 @@ function cliOutcome(result, policy) {
   const refusal = result.vacuity?.refusal ?? null;
   const refusalBlocks =
     refusal !== null && (!policy.warnOnly || policy.requireReviewEvidence);
+  // Unconditional: see OUTCOME_REFUSALS for why `warn` cannot downgrade it.
+  const outcomesRefusal = result.outcomes?.refusal ?? null;
   const failed =
     blocking.length > 0 ||
     (!result.trust.trusted && !policy.warnOnly) ||
-    refusalBlocks;
-  return { blocking, refusal, refusalBlocks, failed };
+    refusalBlocks ||
+    outcomesRefusal !== null;
+  return { blocking, refusal, refusalBlocks, outcomesRefusal, failed };
 }
 
 /**
@@ -3604,7 +4636,7 @@ function appendSnapshotRefusal(lines, result, policy) {
     ""
   );
   process.stderr.write(
-    `::${policy.warnOnly ? "warning" : "error"} title=Skipped-required checks NOT CHECKED::${result.trust.reason.split("\n")[0]}\n`
+    `::${policy.warnOnly && result.outcomes?.applicable !== true ? "warning" : "error"} title=Skipped-required checks NOT CHECKED::${result.trust.reason.split("\n")[0]}\n`
   );
 }
 
@@ -3645,8 +4677,12 @@ function appendCleanResult(lines, result, refusal) {
     return;
   }
 
+  // VESTIGIAL, and worded so it cannot be read as a verdict. This line used to
+  // be `✅ … none silences a ruleset-required status check`, and it printed
+  // exactly that, over zero tokens, on a pull request that merged with a
+  // required context skipped. The count is real; the count is all it may claim.
   lines.push(
-    `✅ ${result.checked} \`skip_jobs\` token(s) examined; none silences a ruleset-required status check.`
+    `ℹ️ ${result.checked} \`skip_jobs\` token(s) examined by the VESTIGIAL declaration arm. \`skip_jobs\` is retired, so this is NOT a verdict that no required context was skipped — only the outcome arm (\`${OUTCOMES_FLAG}\`, run by the \`🔒 Skipped Required Checks\` job) observes that.`
   );
   if (result.pr === undefined) return;
   const settleNote =
@@ -3656,6 +4692,18 @@ function appendCleanResult(lines, result, refusal) {
   lines.push(
     `✅ ${result.evidenceChecked} evidence-bearing check(s) examined on PR #${result.pr}; each proved it did work.${settleNote}`
   );
+}
+
+/**
+ * What a finding count was counted across, naming both arms when both ran.
+ *
+ * @param {object} result - Guard result
+ * @returns {string} The scope phrase
+ */
+function findingScope(result) {
+  const tokens = `${result.checked} \`skip_jobs\` token(s)`;
+  if (result.outcomes?.applicable !== true) return tokens;
+  return `${result.outcomes.examined.length} required-context outcome(s) and ${tokens}`;
 }
 
 /**
@@ -3669,7 +4717,7 @@ function appendCleanResult(lines, result, refusal) {
  */
 function appendFindingReport(lines, result, policy, blocking) {
   lines.push(
-    `${blocking.length > 0 ? "❌" : "⚠️"} ${result.violations.length} violation(s) across ${result.checked} \`skip_jobs\` token(s):`,
+    `${blocking.length > 0 ? "❌" : "⚠️"} ${result.violations.length} violation(s) across ${findingScope(result)}:`,
     ""
   );
   for (const violation of result.violations) {
@@ -3750,6 +4798,93 @@ function appendReviewWaiverGuidance(lines) {
 }
 
 /**
+ * Appends what the outcome arm examined, what it could not see, and why it
+ * refused — so "examined and found nothing" never reads like "examined nothing".
+ *
+ * @param {string[]} lines - Report lines
+ * @param {object|undefined} outcomes - The outcome inspection
+ * @returns {void}
+ */
+function appendOutcomeReport(lines, outcomes) {
+  if (outcomes === undefined) return;
+  if (!outcomes.applicable) {
+    lines.push(
+      `ℹ️ **Outcome arm not applicable** — this run's gate moment is \`${outcomes.moment}\`. A ruleset's required checks gate a merge from the \`${MERGE_GATE_MOMENT}\` run; this run gates none, so NOT ONE required context was examined here, and nothing in this report is a verdict about a pull request.`,
+      ""
+    );
+    return;
+  }
+  appendOutcomeRefusal(lines, outcomes.refusal);
+  appendExaminedOutcomes(lines, outcomes);
+  appendUnexaminedContexts(lines, outcomes.notExamined);
+}
+
+/**
+ * Appends and annotates an outcome inspection that judged nothing.
+ *
+ * @param {string[]} lines - Report lines
+ * @param {{kind: string, reason: string}|null} refusal - The refusal, if any
+ * @returns {void}
+ */
+function appendOutcomeRefusal(lines, refusal) {
+  if (refusal === null) return;
+  lines.push(
+    `⛔ **NOT EXAMINED** (\`${refusal.kind}\`) — the outcome arm judged no required context, and will not report that none was skipped. This FAILS in every enforcement mode.`,
+    "",
+    refusal.reason,
+    ""
+  );
+  process.stderr.write(
+    `::error title=${refusal.kind}::${refusal.reason.split("\n")[0]}\n`
+  );
+}
+
+/**
+ * Appends every examined required context with the result its job reported.
+ *
+ * @param {string[]} lines - Report lines
+ * @param {{examined: {context: string, job: string, result: string}[], violations: object[]}} outcomes - The outcome inspection
+ * @returns {void}
+ */
+function appendExaminedOutcomes(lines, outcomes) {
+  if (outcomes.examined.length === 0) return;
+  const count = outcomes.examined.length;
+  const findings = outcomes.violations.length;
+  const owned =
+    outcomes.prefix?.prefix === undefined || outcomes.prefix?.prefix === null
+      ? ""
+      : ` Contexts judged are those this run posts, under the prefix ${JSON.stringify(outcomes.prefix.prefix)} (${outcomes.prefix.source}); any other prefix belongs to a workflow this run cannot see.`;
+  lines.push(
+    findings === 0
+      ? `✅ ${count} ruleset-required context(s) examined against this run's job results; none was skipped.${owned}`
+      : `❌ ${count} ruleset-required context(s) examined against this run's job results; ${findings} did not prove it ran (see the violations below).${owned}`,
+    "",
+    ...outcomes.examined.map(
+      ({ context, job, result }) =>
+        `- \`${context}\` ← job \`${job}\`: \`${result || "(no result)"}\``
+    ),
+    ""
+  );
+}
+
+/**
+ * Appends the required contexts no job in this run posts.
+ *
+ * @param {string[]} lines - Report lines
+ * @param {ReadonlyArray<string>} notExamined - Contexts this run cannot see
+ * @returns {void}
+ */
+function appendUnexaminedContexts(lines, notExamined) {
+  if (notExamined.length === 0) return;
+  lines.push(
+    `Not examined — ${notExamined.length} required context(s) this run does not post: an external app, another workflow (including one whose job name matches a local one but whose prefix says it is not this run's), or a matrix leg named at runtime. GitHub records their outcomes; this run cannot see them and makes no claim about them.`,
+    "",
+    ...notExamined.map(context => `- \`${context}\``),
+    ""
+  );
+}
+
+/**
  * Builds the complete human-readable report.
  *
  * @param {object} result - Guard result
@@ -3762,6 +4897,7 @@ function buildTextReport(result, policy, outcome) {
   appendVerdictReport(lines, result);
   appendSnapshotRefusal(lines, result, policy);
   appendInspectionRefusal(lines, outcome);
+  appendOutcomeReport(lines, result.outcomes);
   if (result.violations.length === 0) {
     appendCleanResult(lines, result, outcome.refusal);
   } else {

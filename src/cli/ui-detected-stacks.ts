@@ -11,6 +11,7 @@ import {
   createDetectorRegistry,
   type DetectorRegistry,
 } from "../detection/index.js";
+import { CDK_APP_MARKER } from "../core/cdk-preset-adoption.js";
 import type { ProjectType } from "../core/config.js";
 import { projectPathKind, readProjectText } from "../health/read-only-fs.js";
 import { isJsonObject } from "../sync/json-path.js";
@@ -25,7 +26,7 @@ const MARKER_NAMES = [
   "app.json",
   "eas.json",
   "nest-cli.json",
-  "cdk.json",
+  CDK_APP_MARKER,
   HARPER_CONFIG_RELATIVE,
   "harper-app/schema.graphql",
   "bin/rails",
@@ -116,7 +117,7 @@ function classifyDetectedTypes(
     hasMarker("nest-cli.json") || hasDependencyPrefix("@nestjs")
       ? (["nestjs"] as const)
       : [],
-    hasMarker("cdk.json") ? (["cdk"] as const) : [],
+    hasMarker(CDK_APP_MARKER) ? (["cdk"] as const) : [],
     hasMarker("bin/rails") || hasMarker("config/application.rb")
       ? (["rails"] as const)
       : [],

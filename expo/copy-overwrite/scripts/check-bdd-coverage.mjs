@@ -248,7 +248,7 @@ function validateAll({
   const defects = [
     ...validateScenarios(scenarios, platforms),
     ...validateTrackerTags(scenarios, contract.trackers),
-    ...validateMappings({ root, scenarios, contract, cache }),
+    ...validateMappings({ root, scenarios, contract, cache, discovery }),
     ...validateWaivers({ scenarios, contract, today: options.today }),
     ...discovery.defects,
     ...disclosureDefects({ root, contract, discovery }),

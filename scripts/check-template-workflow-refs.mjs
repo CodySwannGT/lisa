@@ -28,6 +28,15 @@
  * This script reads what the templates actually reference and confirms the
  * target exists. Only that.
  *
+ * Its sibling, `check-workflow-contract-assertions.mjs`, answers the question
+ * this one cannot: a reference that resolves today still says nothing about
+ * whether what it resolves TO has changed under the consumer. Under the `@main`
+ * ruling one push here alters what gates and what ships in every downstream
+ * repository at once, and an unchanged workflow and a rewritten one produce
+ * identical silence (CodySwannGT/lisa#3698). That gate requires each reusable to
+ * declare a contract major and each caller template to be seeded with it, and
+ * the two run in the same CI step so neither can be adopted without the other.
+ *
  * Determinism guarantees (so the unit test is reproducible and CI is stable):
  *   - zero third-party dependencies (Node built-ins only),
  *   - no network access,

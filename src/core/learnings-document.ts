@@ -121,9 +121,9 @@ export function parseLearningsDocument(
   }
   const jsonStart = sourceHeader.length + JSON_FENCE_START.length;
   const jsonEnd = content.length - JSON_FENCE_END.length;
-  const entries = parseJsonLines(content.slice(jsonStart, jsonEnd)).map(
-    (candidate, index) =>
-      validateParsedLearningEntry(candidate, index, sourceVersion)
+  const entries = validateEveryParsedEntry(
+    parseJsonLines(content.slice(jsonStart, jsonEnd)),
+    sourceVersion
   );
   if (new Set(entries.map(entry => entry.id)).size !== entries.length) {
     throw new Error("Invalid project learnings payload: duplicate ids");
@@ -300,7 +300,63 @@ export function findConflictMarkerInBytes(
 }
 
 /**
+ * Validate every entry, reporting ALL failures rather than the first (#3577).
+ *
+ * The `.map` this replaces threw on the first bad row, so a ledger with five
+ * over-length rules named one id. Whoever triaged from that message shortened
+ * that row, re-ran, met the next one, and reasonably concluded the fix had not
+ * worked — measured in the field, where it made a five-row problem read as a
+ * one-row problem for a week.
+ *
+ * ## The single-failure message is unchanged, deliberately
+ *
+ * One problem renders exactly the bytes the old `.map` threw. Every caller that
+ * matches on `Invalid learning entry '<id>': <detail>` keeps working, and the
+ * only observable difference is that a document with N bad rows now says so
+ * about all N. Widening a diagnostic must not break the readers of the narrow
+ * one, or the fix arrives as a second defect.
+ *
+ * ## Why the caps are two lists and not one
+ *
+ * `maxRuleCharacters` and `maxRuleLines` break a merge identically, and a
+ * validator that stopped at the first would let a consumer fix every
+ * over-length rule, go green, and keep failing on the multi-line ones. Both
+ * kinds now appear in one report.
+ *
+ * @param candidates - Parsed JSONL values, in document order
+ * @param sourceVersion - Contract version declared by the source document
+ * @returns Validated entries
+ * @throws {Error} Naming every invalid entry, when any is invalid
+ */
+function validateEveryParsedEntry(
+  candidates: readonly unknown[],
+  sourceVersion: 1 | 2
+): LearningEntry[] {
+  const outcomes = candidates.map((candidate, index) => {
+    try {
+      return {
+        entry: validateParsedLearningEntry(candidate, index, sourceVersion),
+        problem: undefined,
+      };
+    } catch (error) {
+      return {
+        entry: undefined,
+        problem: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
+  const problems = outcomes.flatMap(outcome =>
+    outcome.problem === undefined ? [] : [outcome.problem]
+  );
+  if (problems.length > 0) throw new Error(problems.join("; "));
+  return outcomes.flatMap(outcome =>
+    outcome.entry === undefined ? [] : [outcome.entry]
+  );
+}
+
+/**
  * Add a stable entry identifier to validation failures.
+ *
  * @param candidate - Parsed JSONL value
  * @param index - Zero-based JSONL entry index
  * @param sourceVersion - Contract version declared by the source document

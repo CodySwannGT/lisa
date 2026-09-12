@@ -55,11 +55,18 @@ describe("in-process CLI: prepare-commit-msg", () => {
     expect(prepared).toContain(`Work-Item: ${REF}`);
   });
 
-  it("adds nothing when no work item is bound", () => {
+  // Narrowed from "adds nothing" when the lane stamp landed
+  // (CodySwannGT/lisa#3771): attribution is deliberately written BEFORE the
+  // binding is read, because an unbound commit is exactly the orphan routing
+  // exists for. The claim this case was actually making — no work item is
+  // invented for a commit that has none — is unchanged and still asserted.
+  it("adds no work-item trailer when no work item is bound", () => {
     const fixture = offlineFixture();
     const file = message(fixture, UNTRACKED);
     cli(fixture, [PREPARE, file]);
-    expect(readFileSync(file, "utf8")).toBe(UNTRACKED);
+    const outcome = readFileSync(file, "utf8");
+    expect(outcome).toContain(UNTRACKED);
+    expect(outcome).not.toContain("Work-Item:");
   });
 
   it("leaves a merge message alone", () => {

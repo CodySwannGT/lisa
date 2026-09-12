@@ -188,7 +188,10 @@ const counts = all.reduce(
   {}
 );
 console.log(
-  `verdict: ${verdict}  (${["PASS", "WARN", "FAIL", "SKIP"].map(s => `${counts[s] ?? 0} ${s}`).join(", ")})`
+  // INFO is listed so a finding this tool deliberately does not judge is still
+  // counted somewhere. Omitting it would make a reported finding invisible in
+  // the one line most readers stop at.
+  `verdict: ${verdict}  (${["PASS", "INFO", "WARN", "FAIL", "SKIP"].map(s => `${counts[s] ?? 0} ${s}`).join(", ")})`
 );
 console.log(`report → ${path.relative(process.cwd(), outPath)}`);
 console.log(

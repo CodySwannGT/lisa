@@ -273,6 +273,7 @@ case "$1:$2" in
   pr:view) printf '%s\n' ${JSON.stringify(HEAD_A)} ;;
   pr:checks) ${rows === null ? "exit 1" : `cat ${JSON.stringify(payload)}`} ;;
   api:*/pulls/*/commits*) printf '%s\n' '[]' ;;
+  api:*/pulls/*/reviews*) printf '%s\n' '[]' ;;
   api:*/commits/*/pulls*) printf '%s\n' '[]' ;;
   api:*/pulls/*) printf '%s\n' '0' ;;
   api:*status*) ${apiAnswer} ;;
@@ -826,6 +827,12 @@ describe("the vacuity arm, as something that actually runs", () => {
           // failed in CI, where it is not. An empty batch is what a settle test
           // means.
           fetchCarried: () => [],
+          // And the same flag now reads the review OBJECTS (#3706), for the
+          // same reason and with the same failure mode: without a seam this
+          // case would report "the review objects could not be read", a correct
+          // finding about an unauthenticated `gh` and nothing to do with the
+          // settle loop this asserts. No objection is what a settle test means.
+          fetchReviews: () => [],
         }
       );
 

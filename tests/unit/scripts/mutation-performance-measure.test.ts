@@ -1,5 +1,6 @@
 /** Closed-evidence and hostile-input tests for CodySwannGT/lisa#3304. */
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -321,5 +322,36 @@ describe("measurement evidence", () => {
       [SUMMARY_JSON]: expect.stringMatching(/^[0-9a-f]{64}$/u),
     });
     expect(manifest).not.toHaveProperty("evidence-digests.json");
+  });
+
+  // CodySwannGT/lisa#3808. The parent-realpath guard compared with a bare
+  // string prefix, so a symlink pointing at a SIBLING of the root whose name
+  // extends the root's name — `<base>/root-sibling` against `<base>/root` —
+  // satisfied `startsWith` and the escape was permitted.
+  it("refuses a parent that resolves to a sibling extending the root's name", () => {
+    const base = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-measure-root-"));
+    roots.push(base);
+    const root = path.join(base, "root");
+    const sibling = `${root}-sibling`;
+    fs.mkdirSync(root);
+    fs.mkdirSync(sibling);
+    fs.symlinkSync(sibling, path.join(root, "escape"), "dir");
+
+    expect(() =>
+      resolveArtifactPath(root, path.join("escape", SUMMARY_JSON))
+    ).toThrow(/outside its root/u);
+  });
+
+  it("still admits a parent that resolves to a genuine directory inside the root", () => {
+    const base = fs.mkdtempSync(path.join(os.tmpdir(), "lisa-measure-root-"));
+    roots.push(base);
+    const root = path.join(base, "root");
+    const real = path.join(root, "real");
+    fs.mkdirSync(real, { recursive: true });
+    fs.symlinkSync(real, path.join(root, "alias"), "dir");
+
+    expect(resolveArtifactPath(root, path.join("alias", SUMMARY_JSON))).toBe(
+      path.join(root, "alias", SUMMARY_JSON)
+    );
   });
 });

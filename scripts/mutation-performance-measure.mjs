@@ -181,6 +181,25 @@ export function overlayMeasurementReporters(source, reporterPath, reportPath) {
   };
 }
 
+/**
+ * Whether a resolved path is a root itself or sits beneath it.
+ *
+ * The separator is the whole point (CodySwannGT/lisa#3808): a bare
+ * `candidate.startsWith(root)` answers "inside" for `<root>-sibling`, because
+ * the sibling's name string-prefixes the root's. That is the fail-OPEN
+ * direction for a containment guard, and this function is used where the
+ * answer decides whether an escape is permitted.
+ *
+ * Both arguments must already be absolute and resolved; this is a boundary
+ * comparison, not a normaliser.
+ * @param {string} root - Absolute, resolved containing directory
+ * @param {string} candidate - Absolute, resolved path being tested
+ * @returns {boolean} True when the candidate is the root or lives beneath it
+ */
+function isWithinRoot(root, candidate) {
+  return candidate === root || candidate.startsWith(`${root}${path.sep}`);
+}
+
 /** Resolve an artifact path beneath its root and refuse links/escapes. */
 export function resolveArtifactPath(root, relative) {
   if (!relative || path.isAbsolute(relative)) {
@@ -188,16 +207,13 @@ export function resolveArtifactPath(root, relative) {
   }
   const resolvedRoot = path.resolve(root);
   const resolved = path.resolve(resolvedRoot, relative);
-  if (
-    resolved !== resolvedRoot &&
-    !resolved.startsWith(`${resolvedRoot}${path.sep}`)
-  ) {
+  if (!isWithinRoot(resolvedRoot, resolved)) {
     throw new Error("artifact path is outside its root");
   }
   const parent = path.dirname(resolved);
   if (
     existsSync(parent) &&
-    !realpathSync(parent).startsWith(realpathSync(resolvedRoot))
+    !isWithinRoot(realpathSync(resolvedRoot), realpathSync(parent))
   ) {
     throw new Error("artifact parent resolves outside its root");
   }

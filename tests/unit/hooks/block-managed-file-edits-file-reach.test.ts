@@ -130,6 +130,34 @@ describe("block-managed-file-edits.sh reach", () => {
         "a wrapper with its own operand",
         () => `nice -n 5 bash ${redirectScript}`,
       ],
+      // `env` runs what follows it without changing what it is, exactly as
+      // `nice` and `nohup` above do, and it was the one such wrapper missing
+      // from the table. It is also the one a caller reaches for WITHOUT
+      // thinking about wrappers at all, because `env VAR=value <cmd>` is how a
+      // one-off environment override is spelled — so its absence was reachable
+      // by habit rather than by evasion.
+      ["env", () => `env bash ${redirectScript}`],
+      ["env with an assignment", () => `env FOO=bar bash ${redirectScript}`],
+      [
+        "env with several assignments",
+        () => `env FOO=bar BAZ=qux bash ${redirectScript}`,
+      ],
+      ["env -i", () => `env -i bash ${redirectScript}`],
+      ["env -u", () => `env -u FOO bash ${redirectScript}`],
+      ["env -S", () => `env -S 'bash ${redirectScript}'`],
+      [
+        "env --split-string",
+        () => `env --split-string 'bash ${redirectScript}'`,
+      ],
+      [
+        "env --split-string=",
+        () => `env --split-string='bash ${redirectScript}'`,
+      ],
+      ["env attached -S", () => `env -S'bash ${redirectScript}'`],
+      ["env compound -vS", () => `env -vS 'bash ${redirectScript}'`],
+      ["env compound attached -ivS", () => `env -ivS'bash ${redirectScript}'`],
+      ["env split options", () => `env -S '-i bash ${redirectScript}'`],
+      ["a bare script path behind env", () => `env ${redirectScript}`],
     ])("refuses %s inside an executed script", (_label, command) => {
       expect(run(command())).toBe(EXIT_BLOCKED);
     });
@@ -140,6 +168,59 @@ describe("block-managed-file-edits.sh reach", () => {
 
     it("refuses a managed write inside a shell command string", () => {
       expect(run(`bash -c 'echo tampered > ${MANAGED}'`)).toBe(EXIT_BLOCKED);
+    });
+
+    it("inspects the shell command nested inside env's split string", () => {
+      expect(run(`env -S "bash -c 'echo tampered > ${MANAGED}'"`)).toBe(
+        EXIT_BLOCKED
+      );
+    });
+
+    it.each(["-S", "-vS"])(
+      "allows read-only scripts through env %s",
+      option => {
+        expect(run(`env ${option} 'bash ${readOnlyScript}'`)).toBe(
+          EXIT_ALLOWED
+        );
+      }
+    );
+
+    it.each([
+      String.raw`tee\_${MANAGED}`,
+      String.raw`tee \c ${MANAGED}`,
+      `tee # ignored ${MANAGED}`,
+      String.raw`tee \# ${MANAGED}`,
+      "tee ${SPLIT_TARGET}",
+      `tee${String.fromCharCode(11)}${MANAGED}`,
+      `tee${String.fromCharCode(12)}${MANAGED}`,
+    ])("refuses unresolved env split grammar: %s", splitString => {
+      const { status, stderr } = runGuard(
+        GUARD,
+        bash(`env -S '${splitString}'`),
+        {
+          cwd: host,
+          env: {
+            CLAUDE_PROJECT_DIR: host,
+            LISA_ALLOW_MANAGED_FILE_WRITE: "",
+            SPLIT_TARGET: MANAGED,
+          },
+        }
+      );
+      expect(status).toBe(EXIT_BLOCKED);
+      expect(stderr).toContain("cannot resolve env --split-string");
+      expect(stderr).not.toContain("protection is NOT active");
+    });
+
+    it("refuses backquote substitution inside a double-quoted env split string", () => {
+      // Only classifier input: neither env nor the generated tee runs.
+      const backquote = String.fromCharCode(96);
+      const command = `env -S "tee ${backquote}printf '%s%s' scripts/lisa-ho oks/block-no-verify.sh${backquote}"`;
+      const { status, stderr } = runGuard(GUARD, bash(command), {
+        cwd: host,
+        env: { CLAUDE_PROJECT_DIR: host, LISA_ALLOW_MANAGED_FILE_WRITE: "" },
+      });
+      expect(status).toBe(EXIT_BLOCKED);
+      expect(stderr).toContain("cannot resolve env --split-string");
     });
 
     it("refuses a managed write after shell -c --", () => {

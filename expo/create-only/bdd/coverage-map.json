@@ -1,5 +1,5 @@
 {
-  "_comment": "BDD behavior contract, machine-readable half. See the Lisa rule `bdd-e2e-coverage` and docs/bdd-coverage-schema.md. This file holds the contract, never the adoption decision: whether the gate is governed is declared once, as `behavior-contract` in .lisa.config.json, at `required`, `optional`, or `off`. An `adoption` block here is retired and is refused rather than ignored - a second copy of a decision is a second copy that can disagree.",
+  "_comment": "BDD behavior contract, machine-readable half. See the Lisa rule `bdd-e2e-coverage` and node_modules/@codyswann/lisa/plugins/lisa/rules/reference/bdd-e2e-coverage.md. This file holds the contract, never the adoption decision: whether the gate is governed is declared once, as `behavior-contract` in .lisa.config.json, at `required`, `optional`, or `off`. An `adoption` block here is retired and is refused rather than ignored - a second copy of a decision is a second copy that can disagree.",
   "schemaVersion": 2,
   "asOf": "1970-01-01",
   "runnerPlatforms": {

@@ -25,32 +25,12 @@
 import { readFileSync } from "node:fs";
 import * as path from "node:path";
 
+import { extensionsOf } from "../../helpers/lintstaged-globs.js";
+
 const CONFIGS = [
   ".lintstagedrc.json",
   "typescript/copy-overwrite/.lintstagedrc.json",
 ];
-
-/**
- * Extensions a lint-staged glob matches.
- * @param pattern - A lint-staged matcher such as `*.{js,ts}`
- * @returns The extension set
- */
-function extensionsOf(pattern: string): ReadonlySet<string> {
-  // Sliced rather than matched with a regex: `sonarjs/slow-regex` rejects the
-  // braced-group pattern as backtracking-vulnerable, and a matcher glob is
-  // simple enough that indexOf is both faster and unambiguous.
-  const open = pattern.indexOf("{");
-  const close = pattern.indexOf("}", open + 1);
-  if (open === -1 || close === -1) {
-    return new Set([pattern]);
-  }
-  return new Set(
-    pattern
-      .slice(open + 1, close)
-      .split(",")
-      .map(entry => entry.trim())
-  );
-}
 
 describe.each(CONFIGS)("%s matcher ordering", configPath => {
   const config = JSON.parse(

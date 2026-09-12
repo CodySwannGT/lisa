@@ -34,9 +34,47 @@
  * will fail. `guarded` runs the other way and is true if ANY occurrence is
  * guarded, because one silent-skip path is enough to make the absence silent.
  * Both directions point at reporting more rather than less.
+ *
+ * ## Why the handling signals are literal, and stay literal
+ *
+ * `guarded` says the step can TELL the path is missing. It has never said what
+ * the step then does, and a narrative that inferred the consequence from it
+ * asserted control flow nothing had read (CodySwannGT/lisa#3860). Deciding what
+ * an absent branch does needs a shell parser, and the answer would still be a
+ * guess. So this module reports the other checkable thing: which literal
+ * absence-handling tokens the step's own text contains. `else-branch` does not
+ * mean the else covers this read — it means the characters are there, so a
+ * reader who was about to conclude "this skips silently" is told, in the same
+ * sentence, that the step has a branch they have not read.
+ *
+ * ## Why the staleness probe is reported at two scopes
+ *
+ * The second dimension — can this coupling tell an OLD artifact from a current
+ * one — needs the same treatment, with one wrinkle the handling signals do not
+ * have. A read can reach the step it is used in through a `workflow_call`
+ * input default: `nightly-e2e-health.yml` defaults `guard_script` to
+ * `scripts/check-nightly-e2e-health.mjs`, and the step that compares contract
+ * versions names `$GUARD` and never the path. A step-scoped signal would
+ * therefore MISS a handshake that exists — a false negative on the one arm
+ * where a false negative reads as "this cannot detect staleness".
+ *
+ * So both scopes are reported, under names that say which is which:
+ * `step-requests-version` is exact for the step that reads the path, and
+ * `workflow-requests-version` says only that some step of this workflow asks.
+ * Neither is allowed to conclude anything alone — the artifact half, which the
+ * caller supplies and which IS exact for the path, is what bounds them.
  * @module core/two-channel-delivery-scan
  */
-import type { CouplingInput } from "./two-channel-delivery.js";
+import {
+  HANDLING_SIGNALS,
+  type CouplingInput,
+  type HandlingSignal,
+} from "./two-channel-delivery.js";
+import {
+  requestsVersion,
+  STALENESS_SIGNALS,
+  type StalenessSignal,
+} from "./two-channel-staleness.js";
 
 /** How a workflow spells a path inside the installed Lisa package. */
 const PACKAGE_PREFIX = "node_modules/@codyswann/lisa/";
@@ -206,12 +244,40 @@ function isGuarded(body: string, callerPath: string): boolean {
   });
 }
 
+/**
+ * Literal tokens in a step's text that bear on what an absent path does.
+ *
+ * Deliberately shallow. Each entry asks only "do these characters appear in
+ * this step", which is checkable by reading the step; none of them claims the
+ * token governs the read. The set is closed and small: an unnamed signal is
+ * reported as no signal, which is why the detail says which names exist.
+ */
+const SIGNAL_PATTERNS: Readonly<Record<HandlingSignal, RegExp>> = {
+  "else-branch": /(?:^|[\s;])(?:else|elif)(?:[\s;]|$)/,
+  "exit-zero": /(?:^|[\s;])exit\s+0(?!\d)/,
+  "exit-nonzero": /(?:^|[\s;])exit\s+[1-9]\d*/,
+  "error-annotation": /::error/,
+  "notice-annotation": /::(?:notice|warning)/,
+  "failure-suppression": /\|\|\s*true|continue-on-error:|set\s+\+e/,
+};
+
+/**
+ * Which absence-handling tokens one step's text contains.
+ * @param body - The step's text
+ * @returns Signal names, in the vocabulary's declared order
+ */
+function handlingSignalsIn(body: string): readonly HandlingSignal[] {
+  return HANDLING_SIGNALS.filter(name => SIGNAL_PATTERNS[name].test(body));
+}
+
 /** One occurrence of a caller-tree read, before deduplication. */
 interface Occurrence {
   readonly step: string;
   readonly path: string;
   readonly packageBacked: boolean;
   readonly guarded: boolean;
+  readonly handling: readonly HandlingSignal[];
+  readonly stepRequestsVersion: boolean;
 }
 
 /**
@@ -221,25 +287,71 @@ interface Occurrence {
  */
 function occurrencesIn(step: WorkflowStep): readonly Occurrence[] {
   const packagePaths = matchesIn(PACKAGE_PATH, step.body);
+  const handling = handlingSignalsIn(step.body);
+  const stepRequestsVersion = requestsVersion(step.body);
   return matchesIn(CALLER_PATH, step.body).map(callerPath => ({
     step: step.name,
     path: callerPath,
     packageBacked: isPackageBacked(packagePaths, callerPath),
     guarded: isGuarded(step.body, callerPath),
+    handling,
+    stepRequestsVersion,
   }));
+}
+
+/** Everything the collapse step needs that is not per-occurrence. */
+interface CollapseContext {
+  /** Workflow file name. */
+  readonly workflow: string;
+  /** Delivery lanes shipping a caller path. */
+  readonly lanesFor: (callerPath: string) => readonly string[];
+  /**
+   * Staleness tokens the DELIVERED artifact at a caller path carries, or null
+   * when Lisa delivers nothing there and the artifact half is unknowable.
+   */
+  readonly artifactSignalsFor: (
+    callerPath: string
+  ) => readonly StalenessSignal[] | null;
+  /** Whether any step of this workflow asks something for a contract version. */
+  readonly workflowRequestsVersion: boolean;
+}
+
+/**
+ * The staleness tokens one coupling carries, across both scopes.
+ *
+ * Deduplicated through `STALENESS_SIGNALS` so the order is the vocabulary's
+ * and two runs over the same tree emit the same bytes.
+ * @param context - The workflow-level inputs
+ * @param callerPath - The caller-tree path
+ * @param found - Every occurrence of that path in this workflow
+ * @returns Signal names in the vocabulary's declared order
+ */
+function stalenessSignalsFor(
+  context: CollapseContext,
+  callerPath: string,
+  found: readonly Occurrence[]
+): readonly StalenessSignal[] {
+  const present: readonly StalenessSignal[] = [
+    ...(context.artifactSignalsFor(callerPath) ?? []),
+    ...(found.some(occurrence => occurrence.stepRequestsVersion)
+      ? (["step-requests-version"] as const)
+      : []),
+    ...(context.workflowRequestsVersion
+      ? (["workflow-requests-version"] as const)
+      : []),
+  ];
+  return STALENESS_SIGNALS.filter(name => present.includes(name));
 }
 
 /**
  * Collapse repeated reads of one path into the single coupling they are.
- * @param workflow - Workflow file name
+ * @param context - Workflow name, lane and artifact lookups, workflow-scope signal
  * @param occurrences - Every occurrence found in that workflow
- * @param lanesFor - Delivery lanes shipping a caller path
  * @returns One coupling per distinct path, sorted by path
  */
 function collapse(
-  workflow: string,
-  occurrences: readonly Occurrence[],
-  lanesFor: (callerPath: string) => readonly string[]
+  context: CollapseContext,
+  occurrences: readonly Occurrence[]
 ): readonly CouplingInput[] {
   const paths = [...new Set(occurrences.map(occurrence => occurrence.path))];
   return paths
@@ -248,12 +360,17 @@ function collapse(
         occurrence => occurrence.path === callerPath
       );
       return {
-        workflow,
+        workflow: context.workflow,
         step: found[0]?.step ?? "",
         path: callerPath,
-        lanes: lanesFor(callerPath),
+        lanes: context.lanesFor(callerPath),
         packageBacked: found.every(occurrence => occurrence.packageBacked),
         guarded: found.some(occurrence => occurrence.guarded),
+        handling: HANDLING_SIGNALS.filter(name =>
+          found.some(occurrence => occurrence.handling.includes(name))
+        ),
+        staleness: stalenessSignalsFor(context, callerPath, found),
+        artifactRead: context.artifactSignalsFor(callerPath) !== null,
       };
     })
     .sort((left, right) => left.path.localeCompare(right.path));
@@ -265,18 +382,24 @@ function collapse(
  * @param options.workflow - Workflow file name, as a consumer spells it after `@main`
  * @param options.text - Raw workflow YAML
  * @param options.lanesFor - Delivery lanes shipping a caller path
+ * @param options.artifactSignalsFor - Staleness tokens the delivered artifact carries, or null when nothing is delivered there
  * @returns One coupling per distinct caller path, sorted by path
  */
 export function scanWorkflow(options: {
   workflow: string;
   text: string;
   lanesFor: (callerPath: string) => readonly string[];
+  artifactSignalsFor: (callerPath: string) => readonly StalenessSignal[] | null;
 }): readonly CouplingInput[] {
   const steps = extractSteps(options.text);
   return collapse(
-    options.workflow,
-    steps.flatMap(occurrencesIn),
-    options.lanesFor
+    {
+      workflow: options.workflow,
+      lanesFor: options.lanesFor,
+      artifactSignalsFor: options.artifactSignalsFor,
+      workflowRequestsVersion: steps.some(step => requestsVersion(step.body)),
+    },
+    steps.flatMap(occurrencesIn)
   );
 }
 

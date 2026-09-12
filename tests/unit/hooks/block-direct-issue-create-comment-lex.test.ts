@@ -82,7 +82,10 @@ describe("a prose comment does not make a harmless file unrunnable", () => {
       `# ${APOSTROPHE} recognises ${TOKEN} as a creation verb\necho hello\n`
     );
 
-    expect(runHook(bash(command), { cwd }).status).toBe(EXIT_ALLOWED);
+    expect(runHook(bash(command), { cwd })).toEqual({
+      status: EXIT_ALLOWED,
+      stderr: "",
+    });
   });
 
   it("allows the same file without the apostrophe, unchanged from before", () => {
@@ -95,7 +98,10 @@ describe("a prose comment does not make a harmless file unrunnable", () => {
       `# the caller guard recognises ${TOKEN} as a creation verb\necho hello\n`
     );
 
-    expect(runHook(bash(command), { cwd }).status).toBe(EXIT_ALLOWED);
+    expect(runHook(bash(command), { cwd })).toEqual({
+      status: EXIT_ALLOWED,
+      stderr: "",
+    });
   });
 
   it("allows an indented comment, which is still a comment", () => {
@@ -106,7 +112,10 @@ describe("a prose comment does not make a harmless file unrunnable", () => {
       `    # ${APOSTROPHE} mentions ${TOKEN}\necho hello\n`
     );
 
-    expect(runHook(bash(command), { cwd }).status).toBe(EXIT_ALLOWED);
+    expect(runHook(bash(command), { cwd })).toEqual({
+      status: EXIT_ALLOWED,
+      stderr: "",
+    });
   });
 });
 
@@ -131,10 +140,12 @@ describe("the bypass the coarseness exists to close stays closed", () => {
     const command = script(
       cwd,
       "inline.sh",
-      `echo "it's fine"\ngh issue create --title x --repo acme/widgets\n`
+      `echo 'unbalanced\ngh issue create --title x --repo acme/widgets\n`
     );
 
-    expect(runHook(bash(command), { cwd }).status).toBe(EXIT_BLOCKED);
+    const result = runHook(bash(command), { cwd });
+    expect(result.status).toBe(EXIT_BLOCKED);
+    expect(result.stderr).toContain("an unparseable command");
   });
 
   it("refuses a hand-rolled HTTP creation below an apostrophe comment", () => {

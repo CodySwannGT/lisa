@@ -88,7 +88,8 @@ describe("ast-grep rules enforce rather than advise", () => {
       start,
       quality.indexOf("\n  floor_collisions:")
     );
-    expect(block).toContain("run: ${{ inputs.package_manager }} run sg:scan");
+    // Bound through `env:`, never interpolated into the shell (#3793).
+    expect(block).toContain('"$PACKAGE_MANAGER" run sg:scan');
     // Not "no continue-on-error at all" — "none that goes green on its own
     // say-so". An UNCONDITIONAL carrier is the defect this pins: a scan that
     // can report green having analysed nothing. The one carrier the job has is

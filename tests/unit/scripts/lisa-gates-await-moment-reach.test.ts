@@ -82,12 +82,11 @@ const NO_STATUS = [
 /** The deploy moment this repository would gate a production release on. */
 const PRE_DEPLOY_PROD = "pre-deploy:production";
 
-/** One moment from each family that takes an `:<environment>` suffix. */
-const DEPLOY_FAMILY = [
-  PRE_DEPLOY_PROD,
-  "post-deploy:production",
-  "continuous:staging",
-] as const;
+// The one-per-family list that used to live here went with the sweep that used
+// it. The surviving equivalent is `DEPLOY_MOMENTS` in
+// `lisa-gates-await-deploy-refusal.test.ts`, which is where the per-family
+// assertions now are. Leaving an unused copy behind would be a second list to
+// keep in step with the first, for no reader's benefit.
 
 /** A deploy-moment gate that is legal at `pre-deploy` and needs no toolchain. */
 const DEPLOY_GATE = "runtime-web-vulnerability";
@@ -147,17 +146,15 @@ describe("an awaited signal is refused wherever nothing could post one", () => {
   });
 });
 
-describe("an awaited signal IS accepted at every deploy-family moment", () => {
-  it.each(DEPLOY_FAMILY)(
-    "accepts an await at %s for every legal gate",
-    moment => {
-      const legal = gatesLegalAt(moment);
-      expect(legal.length).toBeGreaterThan(0);
-      const refused = legal.filter(id => awaitProblems(id, moment).length > 0);
-      expect(refused).toEqual([]);
-    }
-  );
-
+// The sweep that used to live here — "accepts an await at %s for every legal
+// gate" — recorded the precondition of the defect this file documented, and it
+// is gone because the defect is. Its replacement is not a deletion: the same
+// sweep, with the assertion inverted and the same `legal.length > 0` guard
+// against an empty pass, is now
+// `lisa-gates-await-deploy-refusal.test.ts` → "refuses it for EVERY gate legal
+// at %s, not just the one measured". Keeping a corrected copy here as well
+// would be two statements of one rule that can drift apart.
+describe("the awaited signal's NAME is still derived at deploy moments", () => {
   it("derives the awaited signal's own name there, as it does at merge", () => {
     // Both derivations agree, which is why #3609's defect has no counterpart
     // here. The exposure is downstream of the derivation, not inside it.
@@ -202,26 +199,47 @@ describe("a required awaited gate at a deploy moment proves nothing", () => {
     return { out: `${result.stdout}${result.stderr}`, status: result.status };
   };
 
-  // THIS BLOCK RECORDS A DEFECT, and the assertions are deliberately the
-  // wrong-looking way round. A `required` gate that exits 0 without running is
-  // the failure mode this whole subsystem exists to prevent; here it is the
-  // measured behaviour at a moment no comparison surface watches. Closing the
-  // gap — by refusing `await:` at the deploy families, or by giving those
-  // moments a consumer for the awaited signal — is what should break these
-  // three assertions, and breaking them is the point.
-  it("classifies it SKIPPED rather than proved or failed", () => {
-    expect(runAt(PRE_DEPLOY_PROD).out).toContain("SKIPPED");
+  // THIS BLOCK USED TO RECORD THE DEFECT, with its assertions deliberately the
+  // wrong-looking way round, and it said of itself: "Closing the gap — by
+  // refusing `await:` at the deploy families ... is what should break these
+  // three assertions, and breaking them is the point."
+  //
+  // #4046 closed it that way, so the three are inverted here rather than
+  // deleted. They are kept because they are the only coverage that runs the
+  // SHIPPED RUNNER end to end: the sibling refusal suite asserts on
+  // `awaitProblems`, which is config validation, and a validator that refuses
+  // while the runner still exits 0 would satisfy that suite completely.
+  //
+  // Each assertion below is the measured replacement for the one it succeeds,
+  // taken from running the runner against this exact fixture, not from reading
+  // the implementation.
+  it("refuses the configuration instead of classifying it SKIPPED", () => {
+    const out = runAt(PRE_DEPLOY_PROD).out;
+
+    expect(out).toContain("the gate configuration is INVALID");
+    expect(out).toContain(`Nothing ran at "${PRE_DEPLOY_PROD}"`);
+    // The old outcome must be gone, not merely accompanied by the new one: a
+    // run that still reported SKIPPED alongside the refusal would be reporting
+    // two different answers to one question.
+    expect(out).not.toContain("SKIPPED");
   });
 
-  it("says no signal exists locally, which is the whole gap in one line", () => {
-    expect(runAt(PRE_DEPLOY_PROD).out).toContain(
-      `awaits "${SIGNAL}"; no signal exists locally`
+  it("names the absent consumer, not a missing local signal", () => {
+    const out = runAt(PRE_DEPLOY_PROD).out;
+
+    expect(out).toContain(
+      `awaits "${SIGNAL}", but nothing at this moment consumes an awaited signal`
     );
+    // The superseded wording blamed the environment for not having posted a
+    // signal, which read as "try again later". The declaration is the problem.
+    expect(out).not.toContain("no signal exists locally");
   });
 
-  it("exits green, so a release gated on this job is not held", () => {
+  it("exits non-zero, so a release gated on this job IS held", () => {
     const { out, status } = runAt(PRE_DEPLOY_PROD);
-    expect(status).toBe(0);
-    expect(out).toContain("0 proved, 0 failed");
+
+    expect(status).toBe(1);
+    expect(out).toContain("This is NOT a pass");
+    expect(out).not.toContain("0 proved, 0 failed");
   });
 });

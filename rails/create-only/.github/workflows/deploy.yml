@@ -73,6 +73,13 @@ jobs:
     name: 🚦 Pre-Deploy Gates
     uses: CodySwannGT/lisa/.github/workflows/gates.yml@main
     with:
+      # Travels with the `uses:` line above — the two are one unit. Lisa's
+      # reusable workflows are tracked at `@main`, so that file changes under
+      # this repository with no pull request here. This is the contract major it
+      # spoke when Lisa seeded this file; the run fails loudly if it has since
+      # declared a break, and says NOT DETERMINED if this line goes missing
+      # (CodySwannGT/lisa#3698).
+      expected_workflow_contract_major: '1'
       moment: pre-deploy:${{ github.ref_name }}
       install_dependencies: false
     # No `secrets:` key: gates.yml declares none in its `workflow_call`, so
@@ -81,6 +88,14 @@ jobs:
   release:
     name: Release
     uses: CodySwannGT/lisa/.github/workflows/release-rails.yml@main
+    with:
+      # Travels with the `uses:` line above — the two are one unit. Lisa's
+      # reusable workflows are tracked at `@main`, so that file changes under
+      # this repository with no pull request here. This is the contract major it
+      # spoke when Lisa seeded this file; the run fails loudly if it has since
+      # declared a break, and says NOT DETERMINED if this line goes missing
+      # (CodySwannGT/lisa#3698).
+      expected_workflow_contract_major: '1'
     needs: [pre_deploy_gates]
     secrets:
       DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
@@ -396,6 +411,13 @@ jobs:
     needs: [deploy_rails]
     if: ${{ always() && !cancelled() && needs.deploy_rails.result == 'success' }}
     with:
+      # Travels with the `uses:` line above — the two are one unit. Lisa's
+      # reusable workflows are tracked at `@main`, so that file changes under
+      # this repository with no pull request here. This is the contract major it
+      # spoke when Lisa seeded this file; the run fails loudly if it has since
+      # declared a break, and says NOT DETERMINED if this line goes missing
+      # (CodySwannGT/lisa#3698).
+      expected_workflow_contract_major: '1'
       moment: post-deploy:${{ github.ref_name }}
       install_dependencies: false
     # No `secrets:` key: gates.yml declares none in its `workflow_call`, so

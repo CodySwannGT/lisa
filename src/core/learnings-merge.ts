@@ -85,11 +85,32 @@ export function mergeLearningsDocuments(
   ours: string,
   theirs: string
 ): LearningsMergeResult {
+  // EVERY SIDE IS PARSED, EVEN AFTER ONE FAILS (#3577). These three calls used
+  // to share one `try`, so a failure in `base` meant `ours` and `theirs` were
+  // never parsed at all. MEASURED: an agent was shown one incoming entry, and
+  // only on a SECOND run was shown two over-length rules of its OWN — so
+  // "no error on this run" did not mean the author's own entries were clean,
+  // and nothing in the output said so. The person reading this message is the
+  // one positioned to stop the problem spreading, which is what makes a
+  // first-failure-only report a fail-open rather than merely a terse one.
+  const sides = [
+    readSide("base", base),
+    readSide("ours", ours),
+    readSide("theirs", theirs),
+  ];
+  const problems = sides.flatMap(side =>
+    side.problem === undefined ? [] : [`${side.label}: ${side.problem}`]
+  );
+  if (problems.length > 0) {
+    return { kind: "conflict", reason: problems.join("\n") };
+  }
+
   try {
-    const baseEntries = parseSide(base);
-    const ourEntries = parseSide(ours);
-    const theirEntries = parseSide(theirs);
-    const resolved = resolveAllIds(baseEntries, ourEntries, theirEntries);
+    const resolved = resolveAllIds(
+      sides[0]?.entries ?? new Map(),
+      sides[1]?.entries ?? new Map(),
+      sides[2]?.entries ?? new Map()
+    );
     if (resolved.kind === "conflict") {
       return resolved;
     }
@@ -98,6 +119,38 @@ export function mergeLearningsDocuments(
     return {
       kind: "conflict",
       reason: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+/**
+ * Parse one side, returning its problem instead of throwing it.
+ *
+ * The label is not decoration. An operator reading "this entry is too long"
+ * cannot tell a row they wrote from one arriving on the incoming branch, and
+ * those have different fixes — shorten mine, or go and talk to whoever wrote
+ * theirs. Naming the side is what makes the report actionable rather than
+ * merely complete.
+ *
+ * @param label - Which merge side this is, as an operator reads it
+ * @param content - Document for that side
+ * @returns The side's entries, or the problem that stopped it parsing
+ */
+function readSide(
+  label: string,
+  content: string | undefined
+): {
+  readonly label: string;
+  readonly entries: ReadonlyMap<string, LearningEntry>;
+  readonly problem: string | undefined;
+} {
+  try {
+    return { label, entries: parseSide(content), problem: undefined };
+  } catch (error) {
+    return {
+      label,
+      entries: new Map(),
+      problem: error instanceof Error ? error.message : String(error),
     };
   }
 }

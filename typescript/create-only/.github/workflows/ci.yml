@@ -8,6 +8,10 @@ on:
     types: [opened, synchronize, reopened, labeled, unlabeled]
   workflow_dispatch:
 
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   quality:
     name: 🔍 Quality Checks
@@ -20,6 +24,13 @@ jobs:
       issues: read
     uses: CodySwannGT/lisa/.github/workflows/quality.yml@main
     with:
+      # Travels with the `uses:` line above — the two are one unit. Lisa's
+      # reusable workflows are tracked at `@main`, so that file changes under
+      # this repository with no pull request here. This is the contract major it
+      # spoke when Lisa seeded this file; the run fails loudly if it has since
+      # declared a break, and says NOT DETERMINED if this line goes missing
+      # (CodySwannGT/lisa#3698).
+      expected_workflow_contract_major: '1'
       node_version: '22.21.1'
       package_manager: 'bun'
       skip_jobs: ''

@@ -188,6 +188,13 @@ describe("a script that reaches into another worktree", () => {
     // Before widening this arm to cover the inline forms, check that ticket:
     // the reason not to is that the runtime does it, and that reason is the
     // thing that can expire.
+    //
+    // The expiry is no longer only written down. #3944 pinned the version in
+    // the guard as `VERIFIED_RUNTIME_VERSION` and reports once when the session
+    // is running a different one — which does not prove the behaviour changed,
+    // only that nobody has checked since. The cases for that live in
+    // `worktree-binding-runtime-assumption.test.ts`; THIS case still asserts
+    // the gap itself, because a report is not a cover.
     const fixture = buildFixture();
     bindTo(fixture, fixture.a);
 

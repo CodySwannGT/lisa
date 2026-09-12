@@ -138,6 +138,48 @@ export function findReusableWorkflowRefs(
 }
 
 /**
+ * The marker a host writes to declare a pin as its own policy (#3596).
+ *
+ * Anchored at the start of the comment and shaped as a KEY, not a topic: a
+ * comment that merely discusses pinning ("this pin is deliberate, see the ADR")
+ * must not exempt the line it happens to sit on. Everything after the marker is
+ * the reason, and is not parsed — presence is the declaration, exactly as the
+ * `divergence:` field settled for plugin pins (CodySwannGT/lisa#3597).
+ */
+const DELIBERATE_PIN = /^lisa-pin:\s*deliberate\b/iu;
+
+/**
+ * Whether a caller's trailing comment declares its ref to be host policy.
+ *
+ * ## Why a declaration has to exist
+ *
+ * `pinReusableWorkflowRefs` rewrites every caller to the installed release's
+ * SHA, and its one exemption — `shouldPin` — is about what LISA can vouch for,
+ * not about what the HOST decided. So a consumer that deliberately repinned a
+ * caller in a reviewed commit had it reverted on the next apply, with no
+ * direction check and nothing it could write to object.
+ *
+ * The asymmetry this closes was already recorded one migration over: a BRANCH
+ * ref is left alone because Lisa "cannot infer that host's release policy",
+ * while a SHA pin was rewritten — and a SHA pin is the STRONGER statement of
+ * that policy, not the weaker one.
+ *
+ * ## Why the comment is the only place it can live
+ *
+ * A consumer's workflow file has no registry and no frontmatter. The caller
+ * line's own comment is the only surface where a declaration sits beside the
+ * thing it governs, which is also why the whole line — comment included — is
+ * left untouched: the normal path replaces the comment wholesale, and doing
+ * that here would delete the declaration while honouring it once, so the next
+ * apply would rewrite the ref with nothing left to object.
+ * @param comment - Trailing comment text without its `#`, or null
+ * @returns True when the host has declared this ref deliberate
+ */
+export function isDeliberatePin(comment: string | null): boolean {
+  return comment !== null && DELIBERATE_PIN.test(comment.trim());
+}
+
+/**
  * Whether a reference already carries the exact pin, comment included.
  * @param reference - A parsed caller reference
  * @param pin - The identity every caller must carry
@@ -147,6 +189,10 @@ export function isPinnedAt(
   reference: ReusableWorkflowRef,
   pin: ReleasePin
 ): boolean {
+  // A declared pin is SETTLED, not merely exempt. Reporting it as needing a
+  // pin would put a permanent finding in front of an operator who has already
+  // answered the question, which is how a report stops being read.
+  if (isDeliberatePin(reference.comment)) return true;
   return reference.ref === pin.sha && reference.comment === `v${pin.version}`;
 }
 
@@ -196,6 +242,9 @@ export function pinReusableWorkflowRefs(
       // before a step runs, and nothing in the consumer's own diff explains
       // it. Leaving a mutable ref is the lesser failure by a wide margin.
       if (workflow !== undefined && !shouldPin(workflow)) return line;
+      // The host said this ref is its own policy. Left byte-for-byte, comment
+      // included — see `isDeliberatePin` for why the comment has to survive.
+      if (isDeliberatePin(commentOf(groups["tail"] ?? ""))) return line;
       // The closing quote is reconstructed from the opening one rather than
       // captured: YAML quoting is symmetric, and a separate optional-quote
       // group adjacent to a greedy tail is the ambiguity that makes this
