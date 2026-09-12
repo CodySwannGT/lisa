@@ -65,7 +65,7 @@ merges" loop. Other skills delegate here instead of re-implementing it. Runs
 Resolve `<owner>/<repo>` from `gh repo view --json nameWithOwner` (or the PR URL).
 
 For agent-written review submissions, dismissal reasons, merge-message text and
-existing PR updates, follow `report-actionability` — **Agent attribution**.
+existing PR updates, follow `lisa-tracker-sync` — **Agent attribution**.
 Use the same short disclosure already present; a public lane name is optional.
 Do not create an extra comment solely to attribute a label or auto-merge change,
 or turn missing attribution into a merge gate. Attribute any relayed human

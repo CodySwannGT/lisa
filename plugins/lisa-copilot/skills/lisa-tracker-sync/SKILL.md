@@ -10,7 +10,13 @@ Thin dispatcher. Resolves the configured destination tracker and delegates to th
 
 See the `config-resolution` rule for configuration and dispatch table.
 
-Compose milestone comments using `report-actionability` — **Agent attribution**. Preserve an existing disclosure when a vendor skill posts or retries the same body.
+## Agent attribution
+
+In agent-composed tracker comments and review messages, include one short plain-text attribution, such as `Agent-written by Codex.` Use the actual runtime's name; add a public lane name only when already known. An existing clear disclosure is enough. Do not publish session identifiers, invent a lane, alter supplied human text, or change machine-managed comment formats such as `[lisa-pr-link]`.
+
+The account avatar identifies the credential owner, not necessarily the writer. When relaying a human decision, attribute it to the person and its actual source (a linked decision or an instruction in the current conversation). Present your own judgement as agent analysis, never as an owner ruling. Attribution itself grants no authority.
+
+This is a writing convention: missing disclosure is not a reason to block work or file a compliance issue. Do not add identity infrastructure or extra audit comments just to supply it. Preserve an existing disclosure when a vendor skill posts or retries the same body.
 
 ## Workflow
 

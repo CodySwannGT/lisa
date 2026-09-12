@@ -10,7 +10,7 @@ Thin dispatcher. Resolves the configured destination tracker and delegates to th
 
 See the `config-resolution` rule for configuration and dispatch table.
 
-Apply `report-actionability` — **Agent attribution** when composing evidence comments; a disclosure already present in the body needs no second trailer.
+Apply `lisa-tracker-sync` — **Agent attribution** when composing evidence comments; a disclosure already present in the body needs no second trailer.
 
 ## Workflow
 

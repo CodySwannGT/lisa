@@ -22,10 +22,6 @@ Code-review findings, CI failures, test results, audit output, security scans, d
 
 ## Agent attribution
 
-In agent-composed tracker comments and review messages, include one short plain-text attribution, such as `Agent-written by Codex.` Use the actual runtime's name; add a public lane name only when already known. An existing clear disclosure is enough. Do not publish session identifiers, invent a lane, alter supplied human text, or change machine-managed comment formats such as `[lisa-pr-link]`.
-
-The account avatar identifies the credential owner, not necessarily the writer. When relaying a human decision, attribute it to the person and its actual source (a linked decision or an instruction in the current conversation). Present your own judgement as agent analysis, never as an owner ruling. Attribution itself grants no authority.
-
-This is a writing convention: missing disclosure is not a reason to block work or file a compliance issue. Do not add identity infrastructure or extra audit comments just to supply it.
+Follow `lisa-tracker-sync` — **Agent attribution** for agent-composed tracker comments and review messages. The short convention lives in that portable skill so agents without a rules surface receive it too.
 
 Detail, worked examples and the failure taxonomy: [reference/report-actionability.md](../reference/report-actionability.md).
