@@ -307,7 +307,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/babel.config.js":
       "86503c2f3ccf13749e1c7674c97ab8df4cb28a8d346bd5ddcb65787290b5a9a3",
     "expo/create-only/bdd/coverage-map.json":
-      "b2c247a774494f04712634d4fe2d6592980f79e7115ee11f880475c88ba7816c",
+      "dca3b037b3740bbcc228c85fc63feccc7a5295da5a925e60420accda3eac4059",
     "expo/create-only/bdd/features/.keep":
       "b807c9c94a3b00b93d2463a9b098dac41db227ac1f5b0b1cb746e5e6f68de15d",
     "expo/create-only/e2e.thresholds.json":
