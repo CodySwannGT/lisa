@@ -65,6 +65,16 @@ const TRAILER_BODY =
 /** A body carrying no waiver trailer at all. */
 const BARE_BODY = "Just a normal pull request description.\n";
 
+/**
+ * The phrase the report uses for a reason line with no label applied.
+ *
+ * Named once because three cases assert on it — one that it appears, two that
+ * it does NOT. A literal copied per case is three chances for the assertion and
+ * the renderer to drift apart, and the two negative cases are the ones that
+ * would go quietly green if they drifted.
+ */
+const UNARMED_NOTICE = "label is NOT applied";
+
 /** One red suite, so there is always something for a waiver to waive. */
 const SUITES = JSON.stringify([
   {
@@ -464,6 +474,88 @@ describe("nightly e2e gate — row 40: the bypass reads the pull request LIVE", 
       expect(report).toContain("The bypass could not be evaluated");
       expect(report).toContain("pull-requests: read");
       expect(report).not.toContain("label is present but was REJECTED");
+    });
+  });
+
+  // ------------------------------------------------------------------
+  // The HALF-ARMED waiver: a reason in the body, no label on the request
+  // ------------------------------------------------------------------
+  //
+  // Not a rejected bypass — not a bypass at all, so `verdict.bypass` is null
+  // and the rejection branch cannot speak for it. Before this was reported the
+  // state was invisible: nothing in the report, nothing in the audit, and a
+  // pull request that reads as waived to anyone who opens it.
+  //
+  // The two halves are asymmetric in exactly the way that hides it. The REASON
+  // is prose in the body, where a reviewer looks; the LABEL is what arms the
+  // waiver and shows only on the labels strip. The convincing half is the
+  // inert one. Measured twice in one evening, on two different authors' pull
+  // requests.
+  describe("a waiver reason with no label applied", () => {
+    it("waives NOTHING — the gate still blocks", async () => {
+      const verdict = await gate(
+        { liveLabels: [], liveBody: TRAILER_BODY },
+        env("[]", TRAILER_BODY)
+      );
+
+      expect(verdict.blocked).toBe(true);
+      expect(verdict.verdict).not.toBe("bypassed");
+      // Null, not a rejection: nobody asked for a waiver, so there is no
+      // decision to record. That is why the rejection branch cannot report it.
+      expect(verdict.bypass).toBeNull();
+    });
+
+    it("SAYS SO, naming the ticket it found and what is missing", async () => {
+      const verdict = await gate(
+        { liveLabels: [], liveBody: TRAILER_BODY },
+        env("[]", TRAILER_BODY)
+      );
+      const report = mod.formatReport(verdict as never, {
+        branch: BRANCH,
+        bypassLabel: LABEL,
+      });
+
+      expect(report).toContain(UNARMED_NOTICE);
+      expect(report).toContain("nothing is waived");
+      // The ticket, so the reader can tell THEIR half-armed waiver from
+      // somebody else's quoted example.
+      expect(report).toContain("SE-6899");
+      // And it must not read as a rejection, which would send the reader to
+      // remove a label that is not there.
+      expect(report).not.toContain("label is present but was REJECTED");
+    });
+
+    // NEGATIVE CONTROL. A report that printed this unconditionally would pass
+    // the case above while telling every author their waiver is inert.
+    it("stays silent when the body carries no waiver reason", async () => {
+      const verdict = await gate(
+        { liveLabels: [], liveBody: BARE_BODY },
+        env("[]", BARE_BODY)
+      );
+      const report = mod.formatReport(verdict as never, {
+        branch: BRANCH,
+        bypassLabel: LABEL,
+      });
+
+      expect(verdict.blocked).toBe(true);
+      expect(report).not.toContain(UNARMED_NOTICE);
+    });
+
+    // The other direction: once the label IS applied the waiver is real, and
+    // the inert notice must be gone rather than sitting beside a granted one.
+    it("stays silent once the label arms the waiver", async () => {
+      const verdict = await gate(
+        { liveLabels: [LABEL], liveBody: TRAILER_BODY },
+        env("[]", TRAILER_BODY)
+      );
+      const report = mod.formatReport(verdict as never, {
+        branch: BRANCH,
+        bypassLabel: LABEL,
+      });
+
+      expect(verdict.verdict).toBe("bypassed");
+      expect(report).not.toContain(UNARMED_NOTICE);
+      expect(report).toContain("Gate bypassed");
     });
   });
 
