@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.23](https://github.com/CodySwannGT/lisa/compare/v4.55.22...v4.55.23) (2026-09-12)
+
+
+### Bug Fixes
+
+* reject caller chains at unsupported moment families ([bc30d18](https://github.com/CodySwannGT/lisa/commit/bc30d1846ef7930ed04d93c0c2b2034caffb97cd)), closes [CodySwannGT/lisa#4094](https://github.com/CodySwannGT/lisa/issues/4094) [CodySwannGT/lisa#4094](https://github.com/CodySwannGT/lisa/issues/4094)
+
 ### [4.55.22](https://github.com/CodySwannGT/lisa/compare/v4.55.21...v4.55.22) (2026-09-12)
 
 
