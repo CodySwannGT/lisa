@@ -85,7 +85,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "58cdf4db05dbf6463d405e0691e078034fd3c99d2859a978c0d332458db5c3f3",
+      "ea82b8b47c8367fc732ed8c70ba2cbf882aa01b40e40d40a95c5874044206815",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -10515,6 +10515,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-jira-backlink-adf.test.ts": true,
     "tests/unit/scripts/work-item-jira-origin.test.ts": true,
     "tests/unit/scripts/work-item-lifecycle-reconciliation.test.ts": true,
+    "tests/unit/scripts/work-item-linear-production.test.ts": true,
     "tests/unit/scripts/work-item-merge-base-completion.test.ts": true,
     "tests/unit/scripts/work-item-merge-only-range.test.ts": true,
     "tests/unit/scripts/work-item-multi-item-range.test.ts": true,
