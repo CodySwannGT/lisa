@@ -17,6 +17,7 @@ import {
   HOME_SPEC,
   MAPPING_FILE,
   codes,
+  healthyMapping,
   healthyProject,
   makeProject,
   messages,
@@ -117,6 +118,16 @@ describe("rename hint on a stale mapping", () => {
     expect(codes(run)).toContain(MAPPING_FILE);
     const message = messages(run, MAPPING_FILE)[0] ?? "";
     expect(message).not.toContain(STRANGER);
+    expect(message).not.toContain("rename");
+  });
+
+  it("never offers a rename to a mapping that declared no evidence at all", () => {
+    const root = healthyProject(
+      { mappings: [{ ...healthyMapping(), evidence: "" }] },
+      { files: { [HOME_SPEC]: specSource(["a title nothing accounts for"]) } }
+    );
+    const message = messages(runGate(root), MAPPING_EVIDENCE)[0] ?? "";
+    expect(message).toContain("declares no evidence string");
     expect(message).not.toContain("rename");
   });
 
