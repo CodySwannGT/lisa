@@ -10499,6 +10499,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-amended-merge-exemption.test.ts": true,
     "tests/unit/scripts/work-item-back-merge-exemption.test.ts": true,
     "tests/unit/scripts/work-item-backlink-exactness.test.ts": true,
+    "tests/unit/scripts/work-item-cli-acli-isolation.test.ts": true,
     "tests/unit/scripts/work-item-cli-binding.test.ts": true,
     "tests/unit/scripts/work-item-cli-commit.test.ts": true,
     "tests/unit/scripts/work-item-cli-lane.test.ts": true,
