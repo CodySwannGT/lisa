@@ -259,11 +259,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/report.mjs":
       "477eb378aedd41bb8792e7b9f1b9fd68351d9db1d0c7c4f8adc9c4ab4a88a71e",
     "expo/copy-overwrite/scripts/bdd/validate.mjs":
-      "cef88379a29e9fca2272a75052cb9f69951ddf5730d96d319f36bca35cd83ce2",
+      "0df5e4a8fadc6294c1c1951be11cda3d1e31ac3109b1f0072ba5d2961c566bde",
     "expo/copy-overwrite/scripts/bdd/waivers.mjs":
       "4011bcc9643b93522d2082363a2e9de3309d92f82ec054d2988860bb7cd3d16c",
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
-      "2f9b65a14ae256e15da62424d01dbd378f55e4da60959aeaee9c59cf1ab2e39b",
+      "d245e5e37cdff4e68b2a659b38e42266bdbd8662d44eed342b38dc820b523171",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
       "d2d89107166305be148432d741ac1b0de8fe34bd1ba92f595573df2b764d32a1",
     "expo/copy-overwrite/scripts/check-lighthouse-details.mjs":
@@ -10227,6 +10227,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/bdd-markdown-cell.test.ts": true,
     "tests/unit/scripts/bdd-nonregression.test.ts": true,
     "tests/unit/scripts/bdd-ratchet-removal.test.ts": true,
+    "tests/unit/scripts/bdd-rename-hint.test.ts": true,
     "tests/unit/scripts/bdd-render.test.ts": true,
     "tests/unit/scripts/bdd-reporting.test.ts": true,
     "tests/unit/scripts/bdd-validation.test.ts": true,
