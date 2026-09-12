@@ -6,6 +6,12 @@ allowed-tools: ["Bash", "Skill"]
 
 # Write JIRA Ticket: $ARGUMENTS
 
+On runtimes without the rule tree (Antigravity), read **Worth doing** in `lisa-track` for the same value and decline policy.
+
+## Before creating incidental work
+
+Apply `do-it-now`'s **Worth doing** guidance before drafting a new incidental item. Decline low-value observations without writing a ticket or requesting a human gate; report the reason briefly to the caller. A complete spec is not evidence of value. This does not cancel explicit user requests or accepted requirements. Honor prior Not planned decisions through `rejection-detection`, including legacy issues without markers. Accepted work continues through the existing validation and readiness contract below.
+
 ## Human-gate release authorization
 
 A release requires a trusted human author, not just matching comment text. Follow

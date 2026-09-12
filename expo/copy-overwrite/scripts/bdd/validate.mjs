@@ -13,6 +13,7 @@
 import * as fs from "node:fs";
 
 import { byCodeUnit, runnersByPlatform } from "./contract.mjs";
+import { isDisclosed } from "./discover.mjs";
 import { resolveInsideRepo } from "./parse.mjs";
 
 /**
@@ -184,9 +185,18 @@ function orphanReason(reference, { keys, repos, defaultRepo }) {
 }
 
 /**
+ * An empty discovery result, for callers that do not walk the tree.
+ *
+ * A caller that supplies no discovery gets exactly the findings it got before
+ * the rename hint existed. Absent discovery must read as "nothing to pair
+ * with", never as "pair with whatever is at hand".
+ */
+const NO_DISCOVERY = Object.freeze({ specs: [] });
+
+/**
  * Validate every scenario→test mapping, including that its evidence still
  * exists inside the mapped file.
- * @param {object} input - Root, scenarios, and the parsed contract.
+ * @param {object} input - Root, scenarios, the parsed contract, and discovery.
  * @returns {object[]} Defects found.
  */
 export function validateMappings({
@@ -194,6 +204,7 @@ export function validateMappings({
   scenarios,
   contract,
   cache = new Map(),
+  discovery = NO_DISCOVERY,
 }) {
   const byId = new Map(scenarios.map(scenario => [scenario.id, scenario]));
   const platformRunners = runnersByPlatform(contract.runnerPlatforms);
@@ -216,7 +227,9 @@ export function validateMappings({
     }
     defects.push(...mappingDuplicates(mapping, at, seen));
     defects.push(...mappingPlatforms(mapping, scenario, platformRunners, at));
-    defects.push(...mappingEvidence(root, mapping, at, cache));
+    defects.push(
+      ...mappingEvidence({ root, mapping, at, cache, contract, discovery })
+    );
   }
   return defects;
 }
@@ -327,6 +340,11 @@ export function evidenceResolves(root, mapping, cache = new Map()) {
     return {
       ok: false,
       code: "mapping-evidence",
+      // The ONE verdict a rename could explain: a live file that used to carry
+      // this string. A mapping with no evidence at all and a mapped file that
+      // is gone both return above, unmarked, so neither can be dressed up as
+      // a rename by a caller reading only the code.
+      stale: true,
       detail: `${mapping.file} no longer contains ${JSON.stringify(mapping.evidence)}`,
     };
   }
@@ -358,18 +376,76 @@ export function unresolvedEvidenceKeys({ root, contract, cache = new Map() }) {
 }
 
 /**
+ * The titles in the MAPPED FILE that nothing in the contract accounts for.
+ *
+ * Scoped to `mapping.file` and to nothing else. A title in a sibling file is
+ * never a candidate: pairing across files would let one deletion here and one
+ * addition anywhere in the repository read as a single rename, which is a
+ * confident wrong answer rather than a missing one.
+ *
+ * `isDisclosed` is asked with the WHOLE contract, this stale mapping included,
+ * so a new title that the dead evidence string happens to contain reads as
+ * accounted for and yields no candidate. That is the conservative direction:
+ * the hint goes quiet rather than offering a title something already claims.
+ * @param {object} mapping - Raw mapping entry.
+ * @param {object} contract - Parsed coverage map.
+ * @param {object} discovery - The discovery result.
+ * @returns {string[]} Candidate titles, deduplicated and ordered.
+ */
+function renameCandidates(mapping, contract, discovery) {
+  const unaccounted = (discovery.specs ?? [])
+    .filter(spec => spec.file === mapping.file)
+    .filter(
+      spec => typeof spec.evidence === "string" && spec.evidence.length > 0
+    )
+    .filter(spec => !isDisclosed(spec, contract))
+    .map(spec => spec.evidence);
+  return [...new Set(unaccounted)].sort(byCodeUnit);
+}
+
+/**
+ * Say a rename is the likely story, without ever picking which one.
+ *
+ * Every candidate is offered. Naming one would be a guess, and a confident
+ * wrong guess costs more than an honest list: the author knows which of their
+ * own tests moved and only needs to be told the two findings are one edit.
+ *
+ * Each title is JSON-quoted INDIVIDUALLY, so a title containing the comma the
+ * list joins on stays recoverable rather than splitting into two titles that
+ * were never in the file.
+ * @param {readonly string[]} candidates - Unaccounted titles in the same file.
+ * @returns {string} The hint, or the empty string when there is nothing to say.
+ */
+function renameHint(candidates) {
+  if (candidates.length === 0) return "";
+  const noun = candidates.length === 1 ? "title" : "titles";
+  return (
+    ` — probably a rename: ${candidates.length} test ${noun} in that same` +
+    ` file ${candidates.length === 1 ? "is" : "are"} named by no mapping and` +
+    ` no exclusion. Candidates, each quoted whole:` +
+    ` ${candidates.map(title => JSON.stringify(title)).join(", ")}.` +
+    ` Re-point this mapping's evidence at the right one, or record an exclusion.`
+  );
+}
+
+/**
  * Prove the mapped file still contains the exact evidence string.
  *
  * This is what makes a mapping falsifiable rather than an assertion: rename
  * or delete the test and the map breaks loudly instead of leaving a scenario
  * silently unguarded.
- * @param {string} root - Repo root.
- * @param {object} mapping - Raw mapping entry.
- * @param {string} at - Location label.
- * @param {Map<string, string>} cache - File-content cache.
+ *
+ * The hint appended here is MESSAGE ONLY. It never reaches `evidenceResolves`,
+ * which is what coverage counts from, so a renamed test stays a failure and
+ * stays uncovered until someone actually updates the map.
+ * @param {object} input - Root, the mapping, its label, the cache, the contract, and discovery.
  * @returns {object[]} Defects found.
  */
-function mappingEvidence(root, mapping, at, cache) {
+function mappingEvidence({ root, mapping, at, cache, contract, discovery }) {
   const verdict = evidenceResolves(root, mapping, cache);
-  return verdict.ok ? [] : [defect(verdict.code, `${at}: ${verdict.detail}`)];
+  if (verdict.ok) return [];
+  const hint = verdict.stale
+    ? renameHint(renameCandidates(mapping, contract, discovery))
+    : "";
+  return [defect(verdict.code, `${at}: ${verdict.detail}${hint}`)];
 }

@@ -125,10 +125,10 @@ export function extractMarkdownLinks(text) {
   return targets;
 }
 
-/** Extract plain-text `Source: <path>.md` citations that look like wiki paths. */
+/** Extract bare or backticked `Source: <path>.md` citations that look like wiki paths. */
 export function extractCitations(text) {
   const cites = [];
-  const re = /Source:\s*([^\s)]+\.md)/g;
+  const re = /Source:\s*`?([^\s)`]+\.md)`?/g;
   let m;
   while ((m = re.exec(text)) !== null) {
     const c = m[1];

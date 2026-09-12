@@ -207,7 +207,10 @@ For each idea in the creation set, invoke `/lisa:research` with:
 - a structured `ideation_ledger_payload` handoff containing the selected marker, automation id and
   memory path when available, persona names, persona evidence references, rejected overlap
   candidates, repo identity, `prd_ready`, selected idea title/key, and the expected empirical
-  verification artifact. This payload is the only ideation-run metadata channel between
+  verification artifact. For a justified re-proposal, include `reproposal_context`: the dated
+  decline, dated new evidence reference, materially changed consequence, and the exact machine
+  token and human acknowledgment paragraph specified below. Research must include that paragraph
+  and token in the PRD body. This payload is the only ideation-run metadata channel between
   `project-ideation`, `research`, `prd-source-write`, and the vendor writer; keep GitHub-specific
   rendering out of this skill.
 
@@ -249,10 +252,9 @@ Per the `rejection-detection` rule's **Proposal rejection memory** section, that
 cover **open AND closed** PRDs (with a body-enumeration fallback on search-index lag), and a PRD
 **closed as _not planned_** (GitHub `stateReason == "not_planned"`; the config-resolved won't-do/
 canceled equivalent on JIRA/Linear — never a hardcoded lane string) is a **durable human decline**
-that **suppresses** re-proposing that idea. Re-propose only with evidence that **postdates the
+that **suppresses** re-proposing that idea. Re-propose only for a materially changed consequence, requirement, or risk addressing the decline, supported by evidence that **postdates the
 decline**, and state it in the new PRD as BOTH the machine token (`declined <date>; recurred <date>
-in <ref>`) and a human acknowledgment sentence (`You declined this on <date>. It has recurred
-(<date>, <ref>), so we're raising it once more for your review.`). A PRD closed as _completed_ is
+in <ref>`) and a human acknowledgment sentence (`You declined this on <date>. New evidence (<date>, <ref>) changes the consequence, requirement, or risk: <what changed and why the decline no longer applies>.`). A PRD closed as _completed_ is
 not a decline. This is tracker-side memory; the advisory ideation memory ledger stays advisory and
 never overrides it.
 
@@ -350,7 +352,7 @@ marker-deduped teardown proposal through `lisa-tracker-write` (per `tracked-work
 - **Marker** `<!-- [lisa-automation-retire] key=exploratory-prds -->` plus a visible prose line;
   matched on the marker, never the title; searched **open AND closed** per `rejection-detection`'s
   **Proposal rejection memory**. Treat matches by close state: **open** suppresses another proposal;
-  **Not planned** suppresses another proposal unless new evidence postdates the rejection;
+  **Not planned** suppresses another proposal unless new evidence postdates the rejection and materially changes the consequence, requirement, or risk that justified the decline;
   **Completed** means the prior approved action happened, so a later recurrence may be re-filed.
   When an existing proposal suppresses filing, **the run still records `policy-obsolete` and files
   nothing** — the outcome describes this run, while the ticket is filed exactly once.

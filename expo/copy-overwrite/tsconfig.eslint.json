@@ -8,5 +8,5 @@
     "moduleResolution": "bundler"
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", "dist", "build", ".expo", "ios", "android"]
+  "exclude": ["node_modules", "dist", "build", ".expo", "ios", "android", "worktrees"]
 }

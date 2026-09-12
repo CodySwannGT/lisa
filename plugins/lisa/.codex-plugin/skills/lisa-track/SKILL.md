@@ -22,7 +22,23 @@ continue through the existing path and never override an independently declared 
 
 Establish the tracked-work invariant before any durable project mutation. Discussion and read-only orientation may proceed without this skill; code, configuration, documentation, research artifacts, plans, investigation findings, tests, commits, and pull requests may not.
 
-This flow must return exactly one canonical `(tracker_provider, work_item_ref)` pair or fail closed. It never returns an unvalidated textual guess.
+For accepted work this flow must return exactly one canonical `(tracker_provider, work_item_ref)` pair or fail closed. A declined incidental finding returns only its reason and authorizes no durable implementation. It never returns an unvalidated textual guess.
+
+## Worth doing
+
+Before filing, promoting, or claiming an incidental finding, ask whether the expected benefit justifies implementation, verification, maintenance, CI, and operator attention. Use the evidence already available; no numeric score, new tracking system, or speculative audit is required.
+
+- **Act** on concrete delivery failures, incorrect results, credible material security or data-loss risks, and recurring friction whose repair is worth its cost. A small fix can have a large consequence; security need not wait for an incident.
+- **Bundle** related small repairs when one bounded maintenance task is worth doing. Reuse an existing relevant item where possible. Do not expand unrelated work or create one ticket per wording fix.
+- **Decline** cosmetic preferences, speculative edge cases, duplicate controls, or changes whose likely benefit is smaller than their ongoing cost. Acceptable as-is is a valid engineering decision. Say why briefly in the current report, review, or issue; do not create a ticket, ledger entry, new rule, or human gate merely to record a declined observation.
+
+A reproducible imperfection proves that something happens, not that it deserves factory capacity. A complete specification establishes buildability, not value. Missing enforcement or test coverage alone does not justify new machinery; name the required behavior or credible consequence at risk. Honor explicit user requests, accepted product requirements, and material safety obligations. This rule cannot silently cancel those commitments or excuse failing required checks.
+
+## Prefer less machinery
+
+Start with the smallest sufficient correction at the owning component. Consider removing or consolidating redundant machinery before adding a hook, workflow, abstraction, registry, or test framework. Preserve required behavior and protection, and verify the consequence of the change. An isolated failure does not automatically justify a permanent control for every future session.
+
+For an existing incidental item, read its discussion, linked PRs and dependencies before declining. Close as **Not planned** (configured Jira/Linear equivalent), give the reason, and remove active lifecycle labels. Preserve human holds and committed scope unless cancellation is authorized; resolve effects on active PRs and dependent delivery first. Before re-filing, search open AND closed issues, read legacy unmarked matches, and require materially changed consequences that address the earlier reason. A later observation of the same accepted limitation is insufficient.
 
 ## Phase 1 — Resolve tracker and classify input
 
@@ -42,14 +58,16 @@ Invoke `lisa-tracker-read <ref>` and require a live result from the configured p
 
 ### File or plain text
 
+For incidental findings, apply `do-it-now` before resolving a new leaf. If the finding is declined, return the reason without creating or claiming anything; durable implementation does not start. Explicit user requests and accepted requirements remain in scope.
+
 Search conservatively before creating:
 
 1. Normalize the requested outcome and derive a short keyword set; never search with the whole prompt or secrets.
-2. Search only open/non-terminal items in the configured project and current repository through the configured provider's documented read surface:
-   - GitHub: `gh issue list --repo <org>/<repo> --state open --search "<keywords> in:title,body"`.
-   - Jira: `lisa-atlassian-access operation: search-issues` with project-scoped JQL.
-   - Linear: `lisa-linear-access operation: list-issues` scoped to the configured team/workspace.
-3. Treat search results as candidates, never proof. Live-read each plausible candidate through `lisa-tracker-read`, and discard terminal, container, blocked, held-by-gate, cross-repo, and materially different outcomes. A held candidate is never reused: attaching new work to an item a human is holding is how the hold gets spent.
+2. Search open AND closed items in the configured project and current repository through the configured provider's documented read surface. Closed items supply decision history, never an active binding:
+   - GitHub: `gh issue list --repo <org>/<repo> --state all --search "<keywords> in:title,body"`.
+   - Jira: `lisa-atlassian-access operation: search-issues` with project-scoped JQL and no status filter.
+   - Linear: `lisa-linear-access operation: list-issues` scoped to the configured team/workspace and including all states.
+3. Treat search results as candidates, never proof. Live-read each plausible candidate and its discussion through `lisa-tracker-read`. Apply `rejection-detection` to prior **Not planned** decisions, including legacy unmarked matches, before creating: suppress the same accepted limitation unless materially changed post-decline evidence addresses its reason, with the required token and acknowledgment in any new item. A completed fix may have a verified regression. For active binding, discard terminal, container, blocked, held-by-gate, cross-repo, and materially different outcomes. A held candidate is never reused: attaching new work to an item a human is holding is how the hold gets spent.
 4. Reuse only when **exactly one** live leaf is a high-confidence semantic match for the same requested outcome and repository. A shared keyword or similar title is not enough. Record the search queries, candidates, and rejection reasons in the returned resolution evidence.
 5. If there is no unique high-confidence match (zero or ambiguous candidates), create **exactly one** item by invoking `lisa-tracker-write` once. Synthesize one complete single-repository leaf (`Bug`, `Task`, `Sub-task`, or `Improvement`, never Epic/container) with the writer's required three-audience body, Gherkin acceptance criteria, repository, target environment, relationship search, and executable Validation Journey. Pass `build_ready: true` unless the caller declared a `human_gate`, in which case pass that `human_gate: "<why>"` reason instead of `build_ready: true` and never alongside it, so the writer leaves the leaf in the tracker's default backlog role — out of the lane build-intake claims from — and stamps the hold on the body as a `[lisa-human-gate]` marker. Discarding a declared gate and filing build-ready anyway is the one outcome this step must never produce. Do not create placeholder/thin tickets, do not create a hierarchy, and do not retry creation by making another item if validation fails; repair the proposed spec and retry the same writer operation only if the vendor contract supports idempotent reuse.
 6. Live-read the writer's canonical returned reference with `lisa-tracker-read`. A create response without a verified live leaf is failure.

@@ -9,6 +9,8 @@ Route ONE candidate learning through the judgment gate and act on the verdict. C
 
 Most candidates are dropped — that is the gate working, not a failure. Nothing is ever silent (every drop leaves a visible note), and no learning content ever reaches the learnings surface outside a pull request.
 
+On runtimes without the rule tree (Antigravity), read **Worth doing** in `lisa-track` for the same value and decline policy.
+
 ## Candidate Input
 
 Accept the candidate as JSON or `key=value` fields:
@@ -68,7 +70,9 @@ The note is one line naming the classification (with its fixed plain-language gl
 
 ### `handoff-upstream` (classification `lisa-upstream`)
 
-This disposition completes the SLL-5 loop (#1583): on a Lisa-attributed failure the upstream Lisa ticket is filed **automatically**. Filing lives here — not in `lisa-attribute-failure` — because that skill is deliberately read-only (doctor delegates to it inside its own read-only contract), while this skill already owns exactly the verdict's side effects and the marker-dedupe discipline. Never persist a local rule for a Lisa-attributed failure; the host project's only durable trace is the brief linking note in step 6.
+This disposition completes the SLL-5 loop (#1583): on an accepted worthwhile Lisa-attributed failure the upstream Lisa ticket is filed **automatically**. Filing lives here — not in `lisa-attribute-failure` — because that skill is deliberately read-only (doctor delegates to it inside its own read-only contract), while this skill already owns exactly the verdict's side effects and the marker-dedupe discipline. Never persist a local rule for a Lisa-attributed failure; the host project's only durable trace is the brief linking note in step 6.
+
+First apply `do-it-now`'s **Worth doing** guidance. Attribution establishes ownership, not value. Decline low-value additional hardening in the current summary without filing, persisting a rule, or asking a human; otherwise continue below. Before creating an upstream issue, consult `rejection-detection` for open and closed matches, including legacy unmarked declines.
 
 1. **Post the handoff marker** on the triggering issue (same one-comment marker dedupe; the marker key is unchanged). The visible line must not claim a filing that has not happened yet — attribution and filing come after this step:
 

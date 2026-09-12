@@ -46,6 +46,10 @@ Two guards that run when build-intake claims a ready item. Both come from acmeor
 
 It is a **single vendor-neutral contract** consumed by all three build-intake skills (`lisa-github-build-intake`, `lisa-jira-build-intake`, `lisa-linear-build-intake`). Each arm cites this slug in its claim step rather than growing its own copy, exactly as the arms cite `leaf-only-lifecycle`, `repo-scope-split`, `rejection-detection`, and `claim-archaeology`. One slug is what keeps a guard that fires on GitHub from being absent on Linear.
 
+## Value before claim
+
+After respecting human holds and resolving the issue's scope, apply `do-it-now`'s **Worth doing** guidance before claiming agent-proposed incidental work. Read current discussion, linked PRs, and dependencies. Decline low-value work as **Not planned** with a specific reason and remove active lifecycle labels; do not convert it to completed work or manufacture a replacement task. Retain explicit user commitments and meaningful delivery/safety defects. A decline is a processed disposition within the existing cycle limit, not permission to start an extra item.
+
 ## Sequencing
 
 The shared claim phase is `3a.0` repo-scope gate → `3a` leaf-only claim gate → `3b` Claim → `3c` run lifecycle → `3d` transition to done. Inside `3b`, the pre-transition window now runs four passes in a fixed order:
