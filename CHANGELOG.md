@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.18](https://github.com/CodySwannGT/lisa/compare/v4.55.17...v4.55.18) (2026-09-12)
+
+
+### Bug Fixes
+
+* **tests:** isolate Jira CLI fixture from the host machine ([a17c1a6](https://github.com/CodySwannGT/lisa/commit/a17c1a6da17c7625021619cabf267ad6610ce4b4)), closes [CodySwannGT/lisa#3201](https://github.com/CodySwannGT/lisa/issues/3201)
+
 ### [4.55.17](https://github.com/CodySwannGT/lisa/compare/v4.55.16...v4.55.17) (2026-09-12)
 
 
