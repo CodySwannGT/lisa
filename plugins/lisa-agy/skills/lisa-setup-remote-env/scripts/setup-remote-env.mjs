@@ -846,6 +846,8 @@ export function installUserSessionHook(repoRoot, options = {}) {
     ? hooks.SessionStart
     : [];
   let installed = false;
+  // Distinct matchers may cover different events. Do not infer regex equivalence.
+  const installedMatchers = new Set();
   let migrated = false;
   const normalizedSessionStart = sessionStart.flatMap(entry => {
     if (!Array.isArray(entry?.hooks)) return [entry];
@@ -853,18 +855,21 @@ export function installUserSessionHook(repoRoot, options = {}) {
       if (hook?.command !== command && hook?.command !== legacyCommand) {
         return [hook];
       }
-      if (installed) {
+      if (installedMatchers.has(entry.matcher)) {
         migrated = true;
         return [];
       }
       installed = true;
+      installedMatchers.add(entry.matcher);
       if (hook.command === command) return [hook];
       migrated = true;
       return [{ ...hook, command }];
     });
     return normalizedHooks.length > 0
       ? [{ ...entry, hooks: normalizedHooks }]
-      : [];
+      : entry.hooks.length === 0
+        ? [entry]
+        : [];
   });
 
   if (installed) {

@@ -263,7 +263,8 @@ function template(config: object): string {
   // the harness wearing the tracker's clothes.
   executable(
     path.join(bin, "curl"),
-    `
+    // Consume stdin before exiting so a writer cannot race into EPIPE.
+    `cat > /dev/null
 [ "\${FAKE_CURL_FAIL:-0}" != "1" ] || exit 1
 JSON=\${FAKE_CURL_JSON:-}
 if [ -n "\${FAKE_CURL_COUNT_FILE:-}" ]; then

@@ -175,7 +175,7 @@ export function darwinBirthBatchingEvidence(
   if (result.status !== 0) expect(result.status, result.stderr).toBe(0);
   const observations = JSON.parse(result.stdout) as readonly (readonly [
     number,
-    string | undefined,
+    string | null,
   ])[];
   const batchSizes = fs
     .readFileSync(log, "utf8")
@@ -189,7 +189,7 @@ export function darwinBirthBatchingEvidence(
     });
   const trace: DarwinBirthBatchingTrace = {
     inputCount: 1_025,
-    observedCount: observations.filter(([, birth]) => birth !== undefined)
+    observedCount: observations.filter(([, birth]) => typeof birth === "string")
       .length,
     batchSizes,
     liveOwnerBirth,

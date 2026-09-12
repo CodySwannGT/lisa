@@ -85,7 +85,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "3014f9dbe9b4a3e03faefb2803b30ea4c75dc2a56f47ae81d53793515c7c9822",
+      "58cdf4db05dbf6463d405e0691e078034fd3c99d2859a978c0d332458db5c3f3",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1151,7 +1151,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-read-issue/SKILL.md":
       "b0db6c44d3f3659905313b1a96c6536e2b3856c082bfbc3b2d6f92f349d7f90a",
     "plugins/src/base/skills/lisa-github-sync/SKILL.md":
-      "9130213c0b91f3fbc034d2d5b1cf7f4f238702059f84fb10e67bb8ce9aba83f4",
+      "c6e0f584830168abf8ca7b9a1de269fe168139ddd0c5a1070facf24bb54b86e1",
     "plugins/src/base/skills/lisa-github-to-tracker/SKILL.md":
       "005323919f5f671e541219278dbf8e736cc33b522090611a91f5af88cfa9964f",
     "plugins/src/base/skills/lisa-github-validate-issue/SKILL.md":
@@ -1423,7 +1423,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/preflight-tools.mjs":
       "70cdbb8e993c8dd58be8a1d7792e0a55d946c5e6e4ef6338ab6710fe2f5f893e",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "cd6f25709d841bc1a5810c8e8983ca9f3529cf9884d03dd07a922ccfa1280efc",
+      "b8967bec0d35f5e30d1c9347c5002ce795adf52841d6a13999eaf152d9a0587b",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/tool-floor.mjs":
       "8bf279a2b198c7a6d4163420ec73f871fb9c9cb70d7c87d852026bc5dbf97091",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
@@ -10510,6 +10510,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-gate-scope-advice.test.ts": true,
     "tests/unit/scripts/work-item-github-failure-diagnosis.test.ts": true,
     "tests/unit/scripts/work-item-jira-backlink-adf.test.ts": true,
+    "tests/unit/scripts/work-item-jira-origin.test.ts": true,
     "tests/unit/scripts/work-item-lifecycle-reconciliation.test.ts": true,
     "tests/unit/scripts/work-item-merge-base-completion.test.ts": true,
     "tests/unit/scripts/work-item-merge-only-range.test.ts": true,
@@ -10734,6 +10735,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/github-project-operator-docs.test.ts": true,
     "tests/unit/strategies/github-project-v2-utility.test.ts": true,
     "tests/unit/strategies/github-read-issue-label-history.test.ts": true,
+    "tests/unit/strategies/github-rollup-dedup-guidance.test.ts": true,
     "tests/unit/strategies/github-umbrella-queue-contract.test.ts": true,
     "tests/unit/strategies/github-validator-f2-f4-contract.test.ts": true,
     "tests/unit/strategies/github-writer-project-membership.test.ts": true,
