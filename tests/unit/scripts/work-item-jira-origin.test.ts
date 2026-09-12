@@ -65,8 +65,10 @@ function expectRequests(result: ReturnType<typeof request>, origin: string) {
     `${comments}?maxResults=100`,
     `${comments}/1`,
   ]);
-  expect(result.sent[0].config).not.toContain("request =");
-  expect(result.sent[1].config).toContain('request = "PUT"');
+  expect(result.sent.map(sent => sent.config)).toEqual([
+    expect.not.stringContaining("request ="),
+    expect.stringContaining('request = "PUT"'),
+  ]);
   for (const sent of result.sent) {
     expect(sent.config).toContain(`user = "${LOGIN}:${TOKEN}"`);
     expect(sent.args.join(" ")).not.toContain(TOKEN);
