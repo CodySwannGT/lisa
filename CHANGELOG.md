@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.4](https://github.com/CodySwannGT/lisa/compare/v4.55.3...v4.55.4) (2026-09-12)
+
+
+### Bug Fixes
+
+* preserve Linear bot attribution in release authorization ([2bc85cf](https://github.com/CodySwannGT/lisa/commit/2bc85cf5540167ad60915c594a065a7cfaeca0b0)), closes [CodySwannGT/lisa#4143](https://github.com/CodySwannGT/lisa/issues/4143)
+* require trusted authors for human-hold release comments ([dbc9cef](https://github.com/CodySwannGT/lisa/commit/dbc9cef31d774d9485734203fe12b777f24bb679)), closes [CodySwannGT/lisa#4143](https://github.com/CodySwannGT/lisa/issues/4143)
+
 ### [4.55.3](https://github.com/CodySwannGT/lisa/compare/v4.55.2...v4.55.3) (2026-09-12)
 
 
