@@ -789,7 +789,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/inject-rules.sh":
       "9d2d3352f57099fdb7a3442ddd266c672cd83d484d1216f341168323f5e354ca",
     "plugins/src/base/hooks/install-pkgs.sh":
-      "e9a13faba849a277410dde911ab102ee6f88ef915b33571bb1d4eef904172db5",
+      "51e9847de1cae1e1582f595d4b4e711de7bb1816a53c8e1507826e528b743af0",
     "plugins/src/base/hooks/operational-hazards.mjs":
       "f29f1a3a7d48bdcdd8ef1e154361b10577a8ea091c3c0c41b7ece47ffb8dfaa9",
     "plugins/src/base/hooks/operational-hazards.sh":
@@ -1121,7 +1121,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-fix-linter-error/SKILL.md":
       "3a8f01f014ac7f7ac37024c67df1ba07202331542d269d27da3356a7fa0a5599",
     "plugins/src/base/skills/lisa-generate-claude-remote-build-script/SKILL.md":
-      "9ae66050b046b3d5bcf4acb582928cb56f295d4d869b712e85b6e0717b67dc7b",
+      "214ed34793b9758a65930ef2a79eea8e44ee1f6c85a35b92fbc621cb539e0c69",
     "plugins/src/base/skills/lisa-git-commit/SKILL.md":
       "56320566e9278fb43b4d51c00854f3714dc61edc960292d51962a6f49116ac0f",
     "plugins/src/base/skills/lisa-git-prune/SKILL.md":
@@ -2283,7 +2283,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-workflow-package-paths.mjs":
       "d057c7666ad048cfbd11a1ef83ad1e13fb1c61a9d399ec83221c99c4256728a1",
     "scripts/claude-remote-setup.sh":
-      "0e33accf8aa057c70497f01c38bef9f9f3801d649272f583578d89201b242655",
+      "5947c48ee78f2efdf321f6a516e0aad427ac77345ce26d4e29d0eecc5cd5d307",
     "scripts/clean-dist.mjs":
       "04970d768464acbf96ebeb77c16a6a3b3da56c744eef0da64c573c6152ee0dc7",
     "scripts/cleanup-amplify-branches.sh":
@@ -2491,7 +2491,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-contents/.husky/pre-commit":
       "170a599896e3cf0773fcbc9fa12d49051a864698220b70e8f4b1ea6cca063365",
     "typescript/copy-contents/.husky/pre-push":
-      "a80f2b79a3ef7a7c742642a48e1472abb3b53ad755609cc590aa0dde4300db9f",
+      "4498f26ea035a6d24dd845f18f9ce718330d6184780482f88458cf7ab3e22380",
     "typescript/copy-contents/.husky/prepare-commit-msg":
       "4a719c20da65653f266e7c8a346b5546ad05f1dfa34665fc7fec47e89d2f58d1",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
