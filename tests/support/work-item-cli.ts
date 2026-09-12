@@ -250,6 +250,7 @@ function template(config: object): string {
   const bin = path.join(root, "fake-bin");
   mkdirSync(bin);
   executable(path.join(bin, "gh"), GH_SCRIPT);
+  executable(path.join(bin, "acli"), "exit 1");
   // The default is assigned on its own line rather than written
   // `"${FAKE_CURL_JSON:-{}}"`. That form does NOT mean "default to {}": the
   // expansion ends at the first `}`, so the default is `{` and a stray `}` is

@@ -1378,6 +1378,7 @@ describe("provider liveness", () => {
           FAKE_CURL_JSON_2: update,
           FAKE_CURL_JSON_3: readback,
           FAKE_GH_PR_JSON: JSON.stringify({
+            baseRefName: "main",
             mergedAt: "2026-08-26T00:00:00Z",
             number: 7,
             state: "MERGED",

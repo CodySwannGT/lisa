@@ -119,6 +119,25 @@ describe("lisa-edit-gate.sh refuses a declared task that fails", () => {
 describe("lisa-clean-git-env.sh refuses when git cannot answer", () => {
   const copies = trackedCopies("lisa-clean-git-env.sh");
 
+  it.each(copies)(
+    "%s reports missing git without executing the payload",
+    copy => {
+      const root = workspace();
+      const binDirectory = path.join(root, "empty-bin");
+      mkdirSync(binDirectory);
+      const result = boundedSpawnSync({
+        label: `${copy} without git`,
+        command: SH,
+        args: [path.join(REPO_ROOT, copy), "/bin/echo", "ran"],
+        cwd: root,
+        env: { PATH: binDirectory },
+      });
+      expect(result.status).toBe(REJECTED);
+      expect(result.stderr).toContain("git");
+      expect(result.stdout).not.toContain("ran");
+    }
+  );
+
   it.each(copies)("%s exits 1 when git refuses to list its env vars", copy => {
     const root = workspace();
     const binDirectory = path.join(root, "bin");

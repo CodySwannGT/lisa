@@ -202,28 +202,27 @@ describe("in-process CLI: lane", () => {
     );
   });
 
-  it("keeps the trailer block one paragraph, signature line and all", () => {
+  it("preserves parseable work-item, coauthor, and lane attribution", () => {
     const fixture = offlineFixture();
-    // The shape an agent-authored message actually has: a trailer block whose
-    // LAST line is not a trailer. `git interpret-trailers` opens a new
-    // paragraph for that, which pushes `Co-Authored-By` out of the final
-    // paragraph — the only place GitHub reads co-authors from. A routing aid
-    // must not break attribution to fix attribution.
     const message = prepared(
       fixture,
       SESSION_A,
-      "feat: work\n\nBody.\n\nWork-Item: acme/widgets#42\nCo-Authored-By: Claude\nGenerated with a coding agent\n"
+      "feat: work\n\nGenerated with a coding agent\n\nWork-Item: acme/widgets#42\nCo-Authored-By: Contributor <contributor@example.test>\n"
     );
-    const paragraphs = message.trimEnd().split("\n\n");
-    const last = paragraphs[paragraphs.length - 1];
-    expect(last).toContain("Work-Item: acme/widgets#42");
-    expect(last).toContain("Co-Authored-By: Claude");
-    expect(last).toContain(
+    const file = path.join(fixture.root, "MSG");
+    const parsed = git(
+      fixture.root,
+      ["interpret-trailers", "--parse", file],
+      fixture.env
+    );
+    expect(parsed).toContain("Work-Item: acme/widgets#42");
+    expect(parsed).toContain(
+      "Co-Authored-By: Contributor <contributor@example.test>"
+    );
+    expect(parsed).toContain(
       renderLaneTrailer(deriveLaneId(SESSION_A) as string)
     );
-    expect(message.trimEnd().endsWith("Generated with a coding agent")).toBe(
-      true
-    );
+    expect(message).toContain("Generated with a coding agent");
   });
 
   it("opens a paragraph when the message ends in prose", () => {

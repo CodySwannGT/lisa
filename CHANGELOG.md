@@ -2,6 +2,54 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.21](https://github.com/CodySwannGT/lisa/compare/v4.55.20...v4.55.21) (2026-09-12)
+
+
+### Bug Fixes
+
+* **linear:** require the production merge before completion ([d641f70](https://github.com/CodySwannGT/lisa/commit/d641f704aeeca1522da145f5935668535571e093)), closes [CodySwannGT/lisa#3324](https://github.com/CodySwannGT/lisa/issues/3324)
+* **tracking:** name the work item attached to a branch ([c6d028e](https://github.com/CodySwannGT/lisa/commit/c6d028e3a9039ae91dd402cde232fd0c08248cfa)), closes [CodySwannGT/lisa#3540](https://github.com/CodySwannGT/lisa/issues/3540)
+* **tracking:** resolve terminal completion by production environment ([8db1252](https://github.com/CodySwannGT/lisa/commit/8db1252953c6c96f79ccd6c21c34112dcf5e4517)), closes [CodySwannGT/lisa#4096](https://github.com/CodySwannGT/lisa/issues/4096)
+
+### [4.55.20](https://github.com/CodySwannGT/lisa/compare/v4.55.19...v4.55.20) (2026-09-12)
+
+### [4.55.19](https://github.com/CodySwannGT/lisa/compare/v4.55.18...v4.55.19) (2026-09-12)
+
+
+### Bug Fixes
+
+* handle empty Jira evidence arrays on Bash 3.2 ([8a28667](https://github.com/CodySwannGT/lisa/commit/8a28667dd43a6fef076e68e3a92e2efcab1dcf7e)), closes [CodySwannGT/lisa#3235](https://github.com/CodySwannGT/lisa/issues/3235) [CodySwannGT/lisa#3235](https://github.com/CodySwannGT/lisa/issues/3235)
+* **skills:** centralize local review before PR submission ([4faf541](https://github.com/CodySwannGT/lisa/commit/4faf541468af706bded5e19ea6a0821f2742cb40)), closes [CodySwannGT/lisa#3544](https://github.com/CodySwannGT/lisa/issues/3544)
+
+### [4.55.18](https://github.com/CodySwannGT/lisa/compare/v4.55.17...v4.55.18) (2026-09-12)
+
+
+### Bug Fixes
+
+* **tests:** isolate Jira CLI fixture from the host machine ([a17c1a6](https://github.com/CodySwannGT/lisa/commit/a17c1a6da17c7625021619cabf267ad6610ce4b4)), closes [CodySwannGT/lisa#3201](https://github.com/CodySwannGT/lisa/issues/3201)
+
+### [4.55.17](https://github.com/CodySwannGT/lisa/compare/v4.55.16...v4.55.17) (2026-09-12)
+
+
+### Bug Fixes
+
+* **checks:** reject unsupported review guard arguments ([40d3067](https://github.com/CodySwannGT/lisa/commit/40d3067fce48eae6b66aad61ffc993b6ebe3588e)), closes [CodySwannGT/lisa#3586](https://github.com/CodySwannGT/lisa/issues/3586)
+
+### [4.55.16](https://github.com/CodySwannGT/lisa/compare/v4.55.15...v4.55.16) (2026-09-12)
+
+
+### Bug Fixes
+
+* **work-item:** repair authored trailers in unbound worktrees ([feab5d2](https://github.com/CodySwannGT/lisa/commit/feab5d2f23f6bde86f77b1c65556df4bf7a28c57)), closes [CodySwannGT/lisa#3859](https://github.com/CodySwannGT/lisa/issues/3859) [CodySwannGT/lisa#3859](https://github.com/CodySwannGT/lisa/issues/3859)
+* **work-item:** sync main with authored trailer repair ([54837ee](https://github.com/CodySwannGT/lisa/commit/54837eecb3c6178e43e3ebbbb4d7b24b9ecb926d)), closes [CodySwannGT/lisa#3859](https://github.com/CodySwannGT/lisa/issues/3859)
+
+### [4.55.15](https://github.com/CodySwannGT/lisa/compare/v4.55.14...v4.55.15) (2026-09-12)
+
+
+### Bug Fixes
+
+* **ci:** inspect continued shell pipelines ([458c876](https://github.com/CodySwannGT/lisa/commit/458c876fc0346952f0839732f15d317585f9d100)), closes [CodySwannGT/lisa#3584](https://github.com/CodySwannGT/lisa/issues/3584) [CodySwannGT/lisa#3584](https://github.com/CodySwannGT/lisa/issues/3584)
+
 ### [4.55.14](https://github.com/CodySwannGT/lisa/compare/v4.55.13...v4.55.14) (2026-09-12)
 
 

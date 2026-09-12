@@ -353,6 +353,7 @@
 
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { parseArgs } from "node:util";
 
 import { boundedExecFileSync } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
@@ -750,12 +751,7 @@ const RECENT_MERGED_CHECKS_QUERY = [
 /**
  * The flag that used to select the live-ruleset drift mode, retired with it.
  *
- * Kept as an explicit rejection rather than left to the argument parser. Every
- * unrecognised `--*` argument is discarded before the positional read, so a
- * caller that still selects the retired mode would otherwise get the ordinary
- * offline run and an exit code of zero — a caller asking for a live comparison
- * and being told "pass" by something that never looked. Retiring a mode
- * silently is how a removed control keeps reporting success.
+ * Keep the specific retirement remedy alongside strict argument validation.
  */
 const RETIRED_REMOTE_FLAG = "--remote";
 
@@ -4381,6 +4377,23 @@ export function runGuard(argv, options = {}) {
   if (argv.includes(RETIRED_REMOTE_FLAG)) {
     throw new Error(RETIRED_REMOTE_MESSAGE);
   }
+  const { positionals } = parseArgs({
+    args: argv,
+    allowPositionals: true,
+    options: {
+      json: { type: "boolean" },
+      vacuity: { type: "boolean" },
+      "fail-on-vacuous": { type: "boolean" },
+      "require-review-evidence": { type: "boolean" },
+      outcomes: { type: "boolean" },
+      pr: { type: "string" },
+      repo: { type: "string" },
+      "settle-timeout": { type: "string" },
+      "settle-interval": { type: "string" },
+      "waive-rate-sample": { type: "string" },
+      "waive-rate-escalate": { type: "string" },
+    },
+  });
   if (
     argv.includes(REQUIRE_REVIEW_EVIDENCE_FLAG) &&
     !argv.includes("--vacuity") &&
@@ -4390,8 +4403,7 @@ export function runGuard(argv, options = {}) {
       "check-skipped-required-checks: `--require-review-evidence` needs `--vacuity` or `--pr=<number>` so there is a pull request whose review evidence can be inspected."
     );
   }
-  const positional = argv.filter(arg => !arg.startsWith("--"));
-  const rootDir = positional[0] ?? process.cwd();
+  const rootDir = positionals[0] ?? process.cwd();
   const declaration = loadDeclaration(rootDir);
   const collected = collectSkipJobTokens(rootDir, declaration.workflows);
   const trust = snapshotTrust(declaration);
