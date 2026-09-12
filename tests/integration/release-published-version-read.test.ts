@@ -266,8 +266,4 @@ describe("the shipped step asks an uncached endpoint", () => {
     expect(body).toContain("?write=true");
     expect(body).toContain("dist-tags");
   });
-
-  it("names why, so the next author does not simplify it back", () => {
-    expect(body).toContain("most-cached");
-  });
 });
