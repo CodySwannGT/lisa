@@ -10,6 +10,8 @@ Thin dispatcher. Resolves the configured destination tracker and delegates to th
 
 See the `config-resolution` rule for configuration and dispatch table.
 
+Compose milestone comments using `report-actionability` — **Agent attribution**. Preserve an existing disclosure when a vendor skill posts or retries the same body.
+
 ## Workflow
 
 1. Resolve tracker config (same logic as `lisa-tracker-write`).

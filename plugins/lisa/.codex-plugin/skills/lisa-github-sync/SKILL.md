@@ -44,7 +44,7 @@ Optional arguments include `pr_url=<url>` for the live pull request and `merge_s
 For `--rollup`, skip this milestone path and use Step 5's classifier decision.
 
 1. **Idempotency check** — read the issue's recent comments. If the most recent comment with the prefix `[claude-sync] <milestone>` matches the current milestone AND the body content is unchanged, skip the post (no duplicate).
-2. **Add the comment**:
+2. **Add the comment** using `report-actionability` — **Agent attribution** for the agent-composed body; keep any existing disclosure:
 
    ```bash
    gh issue comment <number> --repo <org>/<repo> --body-file /tmp/sync-comment.md
