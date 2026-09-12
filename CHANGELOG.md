@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.15](https://github.com/CodySwannGT/lisa/compare/v4.55.14...v4.55.15) (2026-09-12)
+
+
+### Bug Fixes
+
+* **ci:** inspect continued shell pipelines ([458c876](https://github.com/CodySwannGT/lisa/commit/458c876fc0346952f0839732f15d317585f9d100)), closes [CodySwannGT/lisa#3584](https://github.com/CodySwannGT/lisa/issues/3584) [CodySwannGT/lisa#3584](https://github.com/CodySwannGT/lisa/issues/3584)
+
 ### [4.55.14](https://github.com/CodySwannGT/lisa/compare/v4.55.13...v4.55.14) (2026-09-12)
 
 
