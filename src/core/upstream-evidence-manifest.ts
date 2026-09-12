@@ -855,7 +855,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/measurement-integrity.md":
       "aff22dd8dfce9b527348c641a996374257fa8a552298713aae524c83858c2aa9",
     "plugins/src/base/rules/eager/never-name-a-downstream-project.md":
-      "8ef8698dd438226576b320577553d121e7ba46feb0ec8eb42953548f9a507b66",
+      "091f07a28baa5da6c19953a394a0cae39dd51abd46a3f23a3f113dd98462f912",
     "plugins/src/base/rules/eager/not-blocked-just-waiting.md":
       "bd96e3a61bfd9ddf27d88b6cb62948c701b6335e9758a081cd5c1fc63048d9be",
     "plugins/src/base/rules/eager/operational-hazards.md":
