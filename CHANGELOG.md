@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.14](https://github.com/CodySwannGT/lisa/compare/v4.55.13...v4.55.14) (2026-09-12)
+
+
+### Bug Fixes
+
+* **setup:** preserve distinct SessionStart matchers ([16b76c6](https://github.com/CodySwannGT/lisa/commit/16b76c6d43123606b3fb94850bc2b61547b7e81a)), closes [CodySwannGT/lisa#3381](https://github.com/CodySwannGT/lisa/issues/3381) [CodySwannGT/lisa#3381](https://github.com/CodySwannGT/lisa/issues/3381)
+
+
+### Documentation
+
+* **sync:** use one parent rollup deduplication contract ([da05ad7](https://github.com/CodySwannGT/lisa/commit/da05ad7024d08d426f31a6562682ce6dc624808b)), closes [CodySwannGT/lisa#3332](https://github.com/CodySwannGT/lisa/issues/3332) [CodySwannGT/lisa#3332](https://github.com/CodySwannGT/lisa/issues/3332)
+
 ### [4.55.13](https://github.com/CodySwannGT/lisa/compare/v4.55.12...v4.55.13) (2026-09-12)
 
 
