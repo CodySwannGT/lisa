@@ -164,8 +164,15 @@ This skill ONLY transitions `$READY → $CLAIMED` on claim, and `$CLAIMED → $D
 
 1. List the team's workflow states via `lisa-linear-access operation: list-workflow-states`.
 2. Keep every state whose `type` is `backlog` or `unstarted` — that is the pre-work set. `$READY` is one member of it, not the whole of it.
-3. Query each pre-work state: `lisa-linear-access operation: list-issues({team: <teamId>, state: "<state>"})`, paging to `hasNextPage=false`. Linear's GraphQL complexity ceiling silently truncates at `first: 250`, so a single unpaged call is not a count.
-4. Also read the **total open** count for the team (every state whose `type` is not `completed` / `canceled`). This number is what makes an omitted lane arithmetically visible.
+3. Query each pre-work state: `lisa-linear-access operation: list-issues({team: <teamId>, state: "<state>"})`, following `endCursor` until `hasNextPage=false`. Deduplicate issue IDs. A failed page or non-advancing cursor makes the read incomplete; report it and end the cycle without dispatching. Do not infer completeness from a single page's size.
+4. Also read the **total open** count for the team using the same terminal set as the child check below: exclude `completed`, `canceled`, and `duplicate`. Intermediate deployment states remain open.
+
+Report the query scope, pages read and distinct issue count. If a previous read
+or a known issue contradicts the result, re-read that evidence before declaring
+the queue empty. Identifier ranges and gaps are diagnostics, not proof of
+completeness: filters, deleted issues and unseen omissions can all affect them.
+The historical 249-row report did not establish a root-connection defect, so it
+does not justify changing connections or adding a separate range-validation gate.
 
 Capture each Issue's: identifier, title, type label, priority, assignee, project, state (with its `type`), labels, description summary.
 
