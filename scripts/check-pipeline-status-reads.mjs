@@ -337,6 +337,18 @@ export function netDepth(line) {
 /** Whether a `set` builtin on this line turns `-e` on. */
 const errexitOn = line => /^\s*set\s+-[a-zA-Z]*e/.test(line);
 
+/** Whether an unescaped trailing backslash survives the existing comment scanner. */
+function hasLineContinuation(text) {
+  let slashes = 0;
+  for (
+    let index = text.length - 1;
+    index >= 0 && text[index] === "\\";
+    index -= 1
+  )
+    slashes += 1;
+  return slashes % 2 === 1 && splitTopLevel(text, [])[0]?.text === text;
+}
+
 /**
  * Inspect one block of shell source.
  *
@@ -365,7 +377,12 @@ export function inspectShellSource(source) {
   };
   const findings = [];
   for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index];
+    const startLine = index + 1;
+    let line = lines[index];
+    while (index + 1 < lines.length && hasLineContinuation(line)) {
+      index += 1;
+      line = line.slice(0, -1) + lines[index];
+    }
     const opening = state.carry;
     state.carry = Math.max(0, state.carry + netDepth(line));
     if (opening > 0) continue;
@@ -397,7 +414,7 @@ export function inspectShellSource(source) {
       findings.push({
         file: source.file,
         location: source.location,
-        line: index + 1,
+        line: startLine,
         statement: statement.text.trim(),
         lastStage: last,
         reason,
