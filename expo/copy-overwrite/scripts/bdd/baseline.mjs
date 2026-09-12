@@ -41,6 +41,9 @@ const defect = (code, message) => ({ code, message });
 /** Defect / evidence code, named once. */
 const SCENARIO_DELETED = "scenario-deleted";
 
+/** Coverage map path shared by baseline listing and reading. */
+const COVERAGE_MAP = "bdd/coverage-map.json";
+
 /**
  * Fixed absolute locations git is installed at, tried before anything on PATH.
  *
@@ -134,7 +137,7 @@ function git(root, args) {
  * @param {string} root - Repo root.
  * @param {string} revision - Commit-ish.
  * @param {string} relative - Repo-relative path.
- * @returns {string|null} File contents, or null when absent at that revision.
+ * @returns {string|null} File contents, or null when the path cannot be read.
  */
 export function showAtRevision(root, revision, relative) {
   const result = git(root, ["show", `${revision}:${relative}`]);
@@ -142,27 +145,22 @@ export function showAtRevision(root, revision, relative) {
 }
 
 /**
- * List the feature files that existed at a revision.
+ * List the coverage map and feature files that existed at a revision.
  *
- * Three-state on purpose. `git ls-tree` exits 0 with EMPTY output for a
- * revision that genuinely holds no features, so a non-zero exit is always
- * "could not ask" and never "there were none". Handing both back as `[]` let
- * one failed listing read as an empty baseline, and an empty `before` set
- * produces no `scenario-deleted` and no `coverage-regression` finding at all —
- * so the gate reported that nothing regressed having compared against nothing.
- * That is the same hole `loadBaseline` already closes for the coverage map,
- * left open on the feature files beside it.
+ * A successful empty listing establishes absence. A failed listing or a
+ * failed read of any listed file makes the baseline unavailable.
  * @param {string} root - Repo root.
  * @param {string} revision - Commit-ish.
  * @returns {{ok: boolean, files: string[]}} Listing, and whether it was taken.
  */
-function featureFilesAt(root, revision) {
+function baselineFilesAt(root, revision) {
   const result = git(root, [
     "ls-tree",
     "-r",
     "--name-only",
     revision,
     "--",
+    COVERAGE_MAP,
     "bdd/features",
   ]);
   // probe-direction: fail-closed — `ok: false` reaches `loadBaseline`, which
@@ -173,7 +171,7 @@ function featureFilesAt(root, revision) {
     files: result.stdout
       .split("\n")
       .map(line => line.trim())
-      .filter(line => line.endsWith(".feature")),
+      .filter(line => line === COVERAGE_MAP || line.endsWith(".feature")),
   };
 }
 
@@ -201,10 +199,18 @@ export function loadBaseline(root, revision, headPlatforms = new Set()) {
   const binary = resolveGit();
   const revisionExists =
     binary !== null && git(root, ["cat-file", "-e", `${revision}^{commit}`]).ok;
-  const raw = showAtRevision(root, revision, "bdd/coverage-map.json");
+  const listing = baselineFilesAt(root, revision);
+  const documents = listing.files.map(file => ({
+    file,
+    source: showAtRevision(root, revision, file),
+  }));
+  const unreadable = documents.find(document => document.source === null);
+  const raw = documents.find(
+    document => document.file === COVERAGE_MAP
+  )?.source;
   let contract = null;
   let error = null;
-  if (raw !== null) {
+  if (raw !== null && raw !== undefined) {
     try {
       contract = JSON.parse(raw);
     } catch (parseError) {
@@ -212,19 +218,20 @@ export function loadBaseline(root, revision, headPlatforms = new Set()) {
       error = `bdd/coverage-map.json at that revision is not valid JSON: ${parseError.message}`;
     }
   }
-  const listing = featureFilesAt(root, revision);
   if (binary === null) {
     error = "git was not found, so no base revision could be read";
   } else if (!revisionExists) {
     error = "the requested base does not name a readable commit";
   } else if (!listing.ok) {
     error =
-      "the base revision's feature files could not be listed, so no scenario " +
+      "the base revision's baseline files could not be listed, so no scenario " +
       "from it could be compared";
+  } else if (unreadable) {
+    error = `${unreadable.file} exists at the base revision but could not be read`;
   }
-  const documents = listing.files
-    .map(file => ({ file, source: showAtRevision(root, revision, file) }))
-    .filter(document => document.source !== null);
+  const features = documents.filter(
+    document => document.file.endsWith(".feature") && document.source !== null
+  );
   const platforms = new Set([
     ...declaredPlatforms(contract?.runnerPlatforms),
     ...headPlatforms,
@@ -236,10 +243,10 @@ export function loadBaseline(root, revision, headPlatforms = new Set()) {
     available: error === null && revisionExists,
     error,
     contract,
-    scenarios: documents.flatMap(document =>
+    scenarios: features.flatMap(document =>
       parseFeatureSource(document.source, document.file, platforms)
     ),
-    scenarioIds: scenarioIdsIn(documents.map(document => document.source)),
+    scenarioIds: scenarioIdsIn(features.map(document => document.source)),
   };
 }
 
