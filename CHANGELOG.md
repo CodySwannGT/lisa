@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.11](https://github.com/CodySwannGT/lisa/compare/v4.55.10...v4.55.11) (2026-09-12)
+
+
+### Documentation
+
+* **rules:** clarify unavailable host-name detection ([d012d06](https://github.com/CodySwannGT/lisa/commit/d012d0682212613af386c7bb5ab575d95759f285)), closes [CodySwannGT/lisa#4149](https://github.com/CodySwannGT/lisa/issues/4149)
+* **rules:** trim duplicate eager explanation ([ecca22e](https://github.com/CodySwannGT/lisa/commit/ecca22eb7efc509564f5c550273967db0d8bda1b)), closes [CodySwannGT/lisa#4149](https://github.com/CodySwannGT/lisa/issues/4149)
+* **rules:** write the rule block-host-name-leak already cites ([a9cc1fe](https://github.com/CodySwannGT/lisa/commit/a9cc1fe5bff184b47d36b2fb05e2c5d6a540db0e)), closes [CodySwannGT/lisa#4149](https://github.com/CodySwannGT/lisa/issues/4149)
+
 ### [4.55.10](https://github.com/CodySwannGT/lisa/compare/v4.55.9...v4.55.10) (2026-09-12)
 
 
