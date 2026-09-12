@@ -196,7 +196,7 @@ string), not a display name or a login. The helper also accepts provider-shaped 
 |---|---|---|
 | GitHub | REST comment `user.id`, or GraphQL author `id` through the User/Bot type fragment | REST `user.type`, or GraphQL author `__typename` |
 | JIRA | Comment `author.accountId` | `author.accountType` and any explicit bot flag |
-| Linear | Comment `user.id` | Any explicit API-provided bot metadata; do not infer humanity from a name |
+| Linear | Comment `user.id` | Non-null comment `botActor` identifies automation; preserve it or normalize to `isBot: true` |
 
 For example, `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds,
 humanNeededLabel, readyLabel, lifecycleLabels, alreadyNotified })` evaluates reason matching

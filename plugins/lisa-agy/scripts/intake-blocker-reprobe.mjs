@@ -282,6 +282,7 @@ function isKnownBot(actor) {
     actor.authorType,
   ];
   return (
+    actor.botActor != null ||
     actor.isBot === true ||
     actor.bot === true ||
     kinds.some(kind => /^(?:bot|app)$/i.test(String(kind ?? "").trim()))

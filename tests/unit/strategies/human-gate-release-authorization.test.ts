@@ -51,6 +51,12 @@ describe("release authorization rejects untrusted comment provenance", () => {
     { body: RELEASE, authorId: TRUSTED_ID, authorType: "Bot" },
     { body: RELEASE, authorId: TRUSTED_ID, authorType: "app" },
     { body: RELEASE, author: { ...AUTHOR, __typename: "Bot" } },
+    {
+      body: RELEASE,
+      user: { id: TRUSTED_ID },
+      botActor: { __typename: "ActorBot" },
+    },
+    { body: RELEASE, user: { id: TRUSTED_ID }, botActor: {} },
   ])(
     "keeps a matching release without trusted human authorship held: %j",
     comment => {
@@ -84,6 +90,16 @@ describe("release authorization rejects untrusted comment provenance", () => {
         body: BODY,
         comments: [COMMENT],
         trustedHumanActorIds: [TRUSTED_ID.toUpperCase()],
+      })
+    ).toBe(true);
+  });
+
+  it("accepts an explicitly trusted Linear user when botActor is null", () => {
+    expect(
+      humanGateDischarged({
+        body: BODY,
+        comments: [{ body: RELEASE, user: { id: TRUSTED_ID }, botActor: null }],
+        trustedHumanActorIds: TRUSTED_IDS,
       })
     ).toBe(true);
   });

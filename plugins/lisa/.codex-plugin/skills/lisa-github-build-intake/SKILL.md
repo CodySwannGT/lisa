@@ -241,8 +241,9 @@ true, and nothing re-read one before this phase. For each `$BLOCKED` candidate:
 2. **Extract the stated discharge condition**, then **probe it**. Machine-testable conditions — a
    version on trunk, a published package, a CI run history, an advisory's patched status — rot
    fastest and are cheapest to check. A human decision is not machine-testable; leave it.
-3. **Classify with `classifyPreWorkCandidate(...)`** from `scripts/intake-blocker-reprobe.mjs`. A
-   discharge with no recorded evidence is not a discharge, and neither is a candidate nothing
+3. **Classify with `classifyPreWorkCandidate(...)`** from `scripts/intake-blocker-reprobe.mjs`.
+   Include the structured `comments` and `trustedHumanActorIds` from step 1.
+   A discharge with no recorded evidence is not a discharge, and neither is a candidate nothing
    probed this cycle — the helper refuses both.
 4. **Record the result on the issue either way** via `formatReprobeNote(...)` as a comment, so the
    next cycle reads the answer rather than re-deriving it. Keep it idempotent.

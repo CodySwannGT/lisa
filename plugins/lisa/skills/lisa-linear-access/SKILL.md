@@ -323,7 +323,7 @@ query($id:String!,$after:String){
   project(id:$id){
     comments(first:100,after:$after){
       pageInfo{ hasNextPage endCursor }
-      nodes{ id body createdAt url user{ id name } }
+      nodes{ id body createdAt url user{ id name } botActor{ __typename } }
     }
   }
 }
@@ -334,13 +334,16 @@ arguments and node shape. For **both** anchors, use this access-layer adapter wi
 `linear_graphql` above; it accumulates every page and prints no partial history.
 A read succeeds only after `hasNextPage` is false. Errors, malformed pages, and
 missing or repeated continuation cursors fail the whole read.
+Preserve `botActor` with each comment: its non-null presence identifies automation,
+even if `user.id` is trusted. When normalizing comments, carry it forward or set
+`isBot: true`; never discard this metadata before release authorization.
 
 ```bash
 linear_list_comment_pages() {  # issue|project id -> complete JSON node array
   local anchor="$1" id="$2" after=null nodes='[]' seen='[]'
   local query variables response connection cursor
   case "$anchor" in issue|project) ;; *) echo "Error: invalid comment anchor" >&2; return 1 ;; esac
-  query='query($id:String!,$after:String){'"$anchor"'(id:$id){comments(first:100,after:$after){pageInfo{hasNextPage endCursor} nodes{id body createdAt url user{id name}}}}}'
+  query='query($id:String!,$after:String){'"$anchor"'(id:$id){comments(first:100,after:$after){pageInfo{hasNextPage endCursor} nodes{id body createdAt url user{id name} botActor{__typename}}}}}'
   while :; do
     variables=$(jq -cn --arg id "$id" --argjson after "$after" '{id:$id,after:$after}') || return 1
     response=$(linear_graphql "$query" "$variables") || return 1
