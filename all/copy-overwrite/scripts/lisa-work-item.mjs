@@ -778,28 +778,17 @@ function lifecycleContract(config, provider) {
   const roles = deepMerge(defaults, configured ?? {});
   const done = values(roles.done);
   const terminal =
-    typeof roles.done === "string"
-      ? roles.done
-      : (roles.done?.production ?? done.at(-1));
-  // No `active` set any more. It existed for exactly one reader — the claim
-  // check — and dead code inside a mutation-gated file is not merely untidy: it
-  // is a block of mutants nothing can kill, so it lowers the measured score
-  // while proving nothing. `done` still feeds `terminal`, which the completion
-  // writer reads.
-  // Two fields for one role, because matching and naming want opposite things.
-  // `terminal` is the COMPARISON key and stays folded, so a Linear workflow
-  // state configured `Done` still matches the API's `Done`. `terminalName` is
-  // the configured spelling, kept verbatim so a human-facing sentence can name
-  // the state the operator actually typed. Folding both is how the error for a
-  // missing state read `no workflow state named done` about a board whose
-  // state is called `Done` — a message that sends someone looking for a state
-  // that is not what they configured and not what Linear shows them.
-  const terminalName = String(terminal ?? "");
+    typeof roles.done === "string" ? roles.done : roles.done?.production;
+  // Match names case-insensitively while preserving their display spelling.
+  const terminalName = requireString(
+    terminal,
+    `${provider} production done lifecycle role`
+  );
   const byEnvironment = doneRolesByEnvironment(roles.done, terminalName);
   return {
     claimed: requireString(roles.claimed, `${provider} claimed lifecycle role`),
     done: byEnvironment,
-    productionEnvironment: productionEnvironmentOf(byEnvironment, terminalName),
+    productionEnvironment: PRODUCTION,
     ready: requireString(roles.ready, `${provider} ready lifecycle role`),
     roles: lifecycleRoleSet(roles, done),
     terminal: terminalName.toLowerCase(),
@@ -834,26 +823,6 @@ function doneRolesByEnvironment(done, terminalName) {
   // NO environment to apply, which would refuse every completion in a project
   // whose `done` nests. The resolved terminal is always an answer.
   return mapped.length > 0 ? mapped : [[PRODUCTION, terminalName]];
-}
-
-/**
- * Which of the configured environments is the production one.
- *
- * Found by matching the already-resolved TERMINAL ROLE, not by position. The
- * terminal role is the single existing answer to "which role closes an item",
- * so deriving the environment from it means the two can never disagree — and
- * it avoids deriving anything a second, independent way from JSON key order,
- * which is not semantically meaningful and which no schema constrains.
- * @param {[string, string][]} byEnvironment `[environment, role]` pairs.
- * @param {string} terminalName The resolved terminal role's spelling.
- * @returns {string} The production environment's name.
- */
-function productionEnvironmentOf(byEnvironment, terminalName) {
-  const folded = terminalName.trim().toLowerCase();
-  const matched = byEnvironment.find(
-    ([, role]) => role.toLowerCase() === folded
-  );
-  return matched?.[0] ?? PRODUCTION;
 }
 
 /**

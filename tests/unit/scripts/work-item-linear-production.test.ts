@@ -111,4 +111,53 @@ describe("Linear completion merge destination", () => {
     expect(result.stdout).toContain("work-item completed: LIN-12 -> Done");
     expect(readFileSync(count, "utf8").trim()).toBe("1");
   });
+
+  it.each(["dev", "staging"])(
+    "refuses %s even when its role has the production name",
+    base => {
+      const { count, result } = staged(base, {
+        ...CONFIG,
+        deploy: {
+          branches: { dev: "dev", staging: "staging", production: "main" },
+        },
+        linear: {
+          ...CONFIG.linear,
+          workflow: {
+            done: { dev: "Done", staging: "Done", production: "Done" },
+          },
+        },
+      });
+      expect(result.exitCode).toBe(1);
+      expect(existsSync(count)).toBe(false);
+    }
+  );
+
+  it.each([{ dev: "Done", production: "Done" }, "Done"])(
+    "completes production with shared or legacy done roles: %j",
+    done => {
+      const { count, result } = staged("main", {
+        ...CONFIG,
+        linear: { ...CONFIG.linear, workflow: { done } },
+      });
+      expect(result.exitCode).toBeUndefined();
+      expect(readFileSync(count, "utf8").trim()).toBe("3");
+    }
+  );
+
+  it.each(["main", "staging"])(
+    "refuses a null production role on %s before transport",
+    base => {
+      const { count, result } = staged(base, {
+        ...CONFIG,
+        deploy: { branches: { staging: "staging", production: "main" } },
+        linear: {
+          ...CONFIG.linear,
+          workflow: { done: { staging: "Done", production: null } },
+        },
+      });
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain("linear production done lifecycle role");
+      expect(existsSync(count)).toBe(false);
+    }
+  );
 });
