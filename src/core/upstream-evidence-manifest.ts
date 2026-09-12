@@ -1191,9 +1191,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-create/SKILL.md":
       "77078002d2a16e0b2a65725f4e86b13caa1c43ba193eb37beb5b7da20feed3f1",
     "plugins/src/base/skills/lisa-jira-evidence/SKILL.md":
-      "e6a2458a5de6587ad1a407997407198b856f32853c958c1e7adc53ca9bfd2e71",
+      "091149fefcfc51e3cec789082a0a8e21167239da1cf2b684e86224db733d974d",
     "plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh":
-      "33b95d722b465fd72bf81b09b8a103406b1893fa018e35ff563c862c39d68435",
+      "bcde5459f5de6e45ab6cbd7d0cd99c10f0cd4b97b9e30686fff0d9e8bcc70c2d",
     "plugins/src/base/skills/lisa-jira-journey/SKILL.md":
       "8712a24e0ef39364b9ce60140bdca5800321a129eae541e320a93e2dca3e35ef",
     "plugins/src/base/skills/lisa-jira-journey/scripts/generate-templates.py":
@@ -1201,9 +1201,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-journey/scripts/parse-plan.py":
       "a96fda5de44cd6d65fcc7ecf36aa365766707b77ad68b198062124d31a9238b9",
     "plugins/src/base/skills/lisa-jira-read-ticket/SKILL.md":
-      "1b7cd9a56bae1108c9814b8f8365411dad1e7f3cd294a28baeab6321d0b636b4",
+      "38eea04398ce42a869461b3d1a8ca6717f004271596a6c1eac12b1e46570a027",
     "plugins/src/base/skills/lisa-jira-read-ticket/scripts/download-attachment.sh":
-      "051d8ce5445b4db04c7389ed6fb614ba43358a30512ff3de8f4432c567304fe7",
+      "f50f532ee0142b61b4d16c4c61f49ee06fdf78c5edd870fbcfbc13b41f8ab519",
     "plugins/src/base/skills/lisa-jira-sync/SKILL.md":
       "943a89c2fd70b7cd1f13badc8ce0018f9f5ff18a0a7443440ba68a309bf4685f",
     "plugins/src/base/skills/lisa-jira-validate-ticket/SKILL.md":
@@ -1675,9 +1675,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/jira-create/SKILL.md":
       "0fb4378b7399580e180beaacd22f832af3ff0ddae7c5d7761039bc81832c0c43",
     "plugins/src/expo/skills/jira-evidence/SKILL.md":
-      "84158ef5355e7be3f20146388cf54e5eb897dab64b03e34bf2c5d91d4b4a55fd",
+      "2161ad652fe2871483c189934bb8fd38e1ed5469478db2f08fe1ae21092f63b3",
     "plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh":
-      "33b95d722b465fd72bf81b09b8a103406b1893fa018e35ff563c862c39d68435",
+      "bcde5459f5de6e45ab6cbd7d0cd99c10f0cd4b97b9e30686fff0d9e8bcc70c2d",
     "plugins/src/expo/skills/jira-journey/SKILL.md":
       "d677af1dbfc55deaf7f5c4bd0ed9c9d6de0cc2fed7c9395f62f53004185641c0",
     "plugins/src/expo/skills/jira-journey/scripts/generate-templates.py":
@@ -1955,9 +1955,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/rails/skills/jira-create/SKILL.md":
       "789b1ed68e983029e0b57c3eefa90fdce000615d0f23b1699a6d9c0099b4e1d0",
     "plugins/src/rails/skills/jira-evidence/SKILL.md":
-      "2208c5d81ce468d488f31088a9eef98b6a20ae014d64565cba99df28f45f490e",
+      "a131da5a48db3edfdbaa4d5f5a91b5e5f87ccb9a8bb995cec1e81586d76c5393",
     "plugins/src/rails/skills/jira-evidence/scripts/post-evidence.sh":
-      "33b95d722b465fd72bf81b09b8a103406b1893fa018e35ff563c862c39d68435",
+      "bcde5459f5de6e45ab6cbd7d0cd99c10f0cd4b97b9e30686fff0d9e8bcc70c2d",
     "plugins/src/rails/skills/jira-journey/SKILL.md":
       "c65cf8bcde3dbfe4995d26dcce62067cf1a08314a9ba9ca7f7c1fdd53d61feb6",
     "plugins/src/rails/skills/jira-verify/SKILL.md":
@@ -9431,6 +9431,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/host-test-scripts-survive-apply.test.ts": true,
     "tests/integration/inventory-covers-shipped-artifacts.test.ts": true,
     "tests/integration/jest-expo-haste-pruning.test.ts": true,
+    "tests/integration/jira-shell-auth-destinations.test.ts": true,
     "tests/integration/job-names-name-properties.test.ts": true,
     "tests/integration/lisa-test-run-packed-bin.test.ts": true,
     "tests/integration/lisa.test.ts": true,

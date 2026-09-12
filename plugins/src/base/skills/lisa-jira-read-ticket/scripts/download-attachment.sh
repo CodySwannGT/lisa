@@ -14,6 +14,8 @@
 #   See https://jira.atlassian.com/browse/JRACLOUD-97830 for the upstream
 #   gap; remove this helper once Atlassian ships a download tool in the MCP.
 #
+# Requires python3 for destination validation.
+#
 # Required env vars:
 #   JIRA_SERVER     - https://<your-tenant>.atlassian.net
 #   JIRA_LOGIN      - login email
@@ -86,7 +88,7 @@ if [[ -z "${JIRA_SERVER:-}" || -z "${JIRA_LOGIN:-}" ]]; then
 fi
 
 if [[ -z "${JIRA_SERVER:-}" && -n "$JIRA_CONFIG" ]]; then
-  JIRA_SERVER=$(grep '^server:' "$JIRA_CONFIG" | awk '{print $2}')
+  JIRA_SERVER=$(sed -n 's/^server:[[:space:]]*//p' "$JIRA_CONFIG")
 fi
 if [[ -z "${JIRA_LOGIN:-}" && -n "$JIRA_CONFIG" ]]; then
   JIRA_LOGIN=$(grep '^login:' "$JIRA_CONFIG" | awk '{print $2}')
@@ -101,17 +103,67 @@ for VAR in JIRA_SERVER JIRA_LOGIN JIRA_API_TOKEN; do
   fi
 done
 
+# Validate before constructing credentials; use only the approved HTTPS origin.
+JIRA_SERVER=$(python3 - "$JIRA_SERVER" <<'PY_ORIGIN'
+import ipaddress
+import re
+import sys
+from urllib.parse import urlsplit
+
+raw = sys.argv[1]
+try:
+    if not raw or any(c <= " " or c >= "\x7f" for c in raw):
+        raise ValueError()
+    url = urlsplit(raw)
+    if (url.scheme != "https" or "@" in url.netloc or "?" in raw
+            or "#" in raw or url.path not in ("", "/") or not url.hostname):
+        raise ValueError()
+    host = url.hostname
+    if url.netloc.startswith("["):
+        host = f"[{ipaddress.IPv6Address(host).compressed}]"
+    elif not re.fullmatch(r"[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*", host):
+        raise ValueError()
+    port = url.port
+    if port == 0:
+        raise ValueError()
+    suffix = f":{port}" if port is not None and port != 443 else ""
+    print(f"https://{host}{suffix}")
+except ValueError:
+    sys.exit("ERROR: JIRA_SERVER must be a bare HTTPS origin without userinfo, path, query or fragment.")
+PY_ORIGIN
+)
+
 OUTPUT_DIR=$(dirname "$OUTPUT_PATH")
 if [[ ! -d "$OUTPUT_DIR" ]]; then
   echo "ERROR: Output directory does not exist: $OUTPUT_DIR" >&2
   exit 3
 fi
 
-if [[ "$ID_OR_URL" == http*://* ]]; then
-  ATTACHMENT_URL="$ID_OR_URL"
+if [[ "$ID_OR_URL" =~ ^[0-9]+$ ]]; then
+  ATTACHMENT_URL="$JIRA_SERVER/rest/api/3/attachment/content/$ID_OR_URL"
 else
-  ATTACHMENT_URL="${JIRA_SERVER%/}/rest/api/3/attachment/content/$ID_OR_URL"
+  ATTACHMENT_URL="$ID_OR_URL"
 fi
+
+# A supplied URL receives Basic auth only when it names the configured origin.
+ATTACHMENT_URL=$(python3 - "$JIRA_SERVER" "$ATTACHMENT_URL" <<'PY_ATTACHMENT'
+import sys
+from urllib.parse import urlsplit, urlunsplit
+
+try:
+    origin, raw = sys.argv[1:]
+    if not raw or any(c <= " " or c >= "\x7f" for c in raw):
+        raise ValueError()
+    base, target = urlsplit(origin), urlsplit(raw)
+    if (target.scheme != "https" or "@" in target.netloc or "#" in raw
+            or target.hostname != base.hostname
+            or (target.port if target.port is not None else 443) != (base.port or 443)):
+        raise ValueError()
+    print(urlunsplit(("https", base.netloc, target.path, target.query, "")))
+except ValueError:
+    sys.exit("ERROR: Attachment must be an ID or an HTTPS URL on the configured Jira origin.")
+PY_ATTACHMENT
+)
 
 JIRA_AUTH=$(printf '%s' "$JIRA_LOGIN:$JIRA_API_TOKEN" | base64 | tr -d '\n')
 
@@ -134,7 +186,7 @@ case "$HTTP_CODE" in
       echo "ERROR: Got HTTP $HTTP_CODE but no Location header in response." >&2
       exit 1
     fi
-    curl -sSf -o "$OUTPUT_PATH" "$SIGNED_URL" || { echo "ERROR: Download from signed URL failed." >&2; exit 1; }
+    curl --proto '=https' -sSf -o "$OUTPUT_PATH" --url "$SIGNED_URL" || { echo "ERROR: Download from signed URL failed." >&2; exit 1; }
     ;;
   200)
     curl -sSf -o "$OUTPUT_PATH" \
