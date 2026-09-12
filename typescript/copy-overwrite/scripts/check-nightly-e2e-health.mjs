@@ -2148,6 +2148,26 @@ export function formatReport(verdict, context) {
         `${lead} — ${BYPASS_REJECTIONS[verdict.bypass.reason] ?? verdict.bypass.reason}`,
         ""
       );
+    } else if (verdict.trailer && verdict.labelPresent === false) {
+      // The half-armed waiver. A body carrying a well-formed
+      // `Nightly-E2E-Bypass:` line with no label applied is not a rejected
+      // bypass — it is not a bypass at all, so `verdict.bypass` is null and the
+      // branch above cannot speak for it. Before this said anything, the state
+      // was INVISIBLE: nothing in the report, nothing in the audit, and a pull
+      // request that reads as waived to anyone who opens it.
+      //
+      // The two halves are asymmetric in exactly the way that hides this. The
+      // REASON is visible — it is prose in the body, right where a reviewer
+      // looks — and the LABEL is the thing that actually arms it and is visible
+      // only on the labels strip. So the convincing half is the inert one.
+      //
+      // Reported, never granted. Arming on a body alone would delete the audit
+      // record the label exists to create: who applied it, holding which
+      // permission, and when it expires. None of that is knowable from prose.
+      lines.push(
+        `⚠️ **A bypass reason is in the body, but the \`${context.bypassLabel}\` label is NOT applied — so nothing is waived.** Found \`Nightly-E2E-Bypass: ${verdict.trailer.ticket ?? "?"}\`${verdict.trailer.reason ? ` (${verdict.trailer.reason})` : ""}. The reason line is the AUDIT RECORD; the label is what ARMS the waiver, and only the label is checked. Apply \`${context.bypassLabel}\` to arm it — the gate will then re-evaluate on the \`labeled\` event.`,
+        ""
+      );
     }
     lines.push(
       `Merges into \`${context.branch}\` are blocked until the nightly e2e suites are green again. To unblock:`,
@@ -4292,7 +4312,7 @@ export async function runGate(env, wait) {
   // re-derivation makes. Two implementations of "is this waiver good?" would
   // drift, and the whole value of re-deriving at merge time is that it answers
   // the question the gate answered — later, not differently.
-  const { bypass } = await observeWaiver(
+  const { bypass, trailer, labelPresent } = await observeWaiver(
     settings.api,
     waiverRequest(settings, now),
     wait
@@ -4300,6 +4320,20 @@ export async function runGate(env, wait) {
 
   return {
     ...decide(findings, { bootstrap, bypass }),
+    // Carried, not discarded. `observeWaiver` already records that a body
+    // carries a waiver trailer while no label is applied — "prose in a body is
+    // a request nobody granted" — and this function used to destructure
+    // `{ bypass }` alone and drop it on the floor. The producer recorded the
+    // fact and the consumer threw it away, so a pull request whose body says
+    // `Nightly-E2E-Bypass: …` read as waived to every human who looked at it
+    // while being completely inert. Measured twice in one evening, on two
+    // different authors' pull requests.
+    //
+    // This changes NOTHING about what is waived: `decide` is called with the
+    // same `bypass`, and a trailer without a label still waives nothing. What
+    // it buys is that `formatReport` can say so.
+    trailer,
+    labelPresent,
     clamped: settings.clamped,
     settings,
   };
