@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.6](https://github.com/CodySwannGT/lisa/compare/v4.55.5...v4.55.6) (2026-09-12)
+
+
+### Bug Fixes
+
+* **wiki:** resolve backticked source citations ([3520699](https://github.com/CodySwannGT/lisa/commit/3520699d79b8494627665a3f13965f89de7ab2b7)), closes [CodySwannGT/lisa#4151](https://github.com/CodySwannGT/lisa/issues/4151)
+
+
+### Documentation
+
+* **factory:** prioritize valuable work and decline unnecessary tooling ([9d943bd](https://github.com/CodySwannGT/lisa/commit/9d943bd481ef37a3e0d93e6b4e2a062cb6eb2393)), closes [#4152](https://github.com/CodySwannGT/lisa/issues/4152) [CodySwannGT/lisa#4152](https://github.com/CodySwannGT/lisa/issues/4152)
+* **factory:** reconcile decline and filing paths ([4eeba69](https://github.com/CodySwannGT/lisa/commit/4eeba69f544f8b828d2c08886195e8bd54256c1a)), closes [CodySwannGT/lisa#4152](https://github.com/CodySwannGT/lisa/issues/4152) [CodySwannGT/lisa#4152](https://github.com/CodySwannGT/lisa/issues/4152)
+
 ### [4.55.5](https://github.com/CodySwannGT/lisa/compare/v4.55.4...v4.55.5) (2026-09-12)
 
 
