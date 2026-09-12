@@ -63,6 +63,13 @@ merges" loop. Other skills delegate here instead of re-implementing it. Runs
     build-intake skills use to diagnose-and-route without fixing in place.
 
 Resolve `<owner>/<repo>` from `gh repo view --json nameWithOwner` (or the PR URL).
+
+For agent-written review submissions, dismissal reasons, merge-message text and
+existing PR updates, follow `report-actionability` — **Agent attribution**.
+Use the same short disclosure already present; a public lane name is optional.
+Do not create an extra comment solely to attribute a label or auto-merge change,
+or turn missing attribution into a merge gate. Attribute any relayed human
+decision to its actual source; an agent's analysis is not an owner ruling.
 Use plain `gh` + `git` so Claude and Codex execute identically.
 
 ## 0. Take the babysitter lease
