@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.5](https://github.com/CodySwannGT/lisa/compare/v4.55.4...v4.55.5) (2026-09-12)
+
+
+### Bug Fixes
+
+* **bdd:** give the test's support import an explicit extension ([c623659](https://github.com/CodySwannGT/lisa/commit/c62365944311257cf0f23f7456ab0b9692ed14d9)), closes [CodySwannGT/lisa#4153](https://github.com/CodySwannGT/lisa/issues/4153)
+* **bdd:** name the probable new title when a mapped test is renamed ([af84506](https://github.com/CodySwannGT/lisa/commit/af84506e6370a039bf40e46114b40b9a1667ba69)), closes [#4153](https://github.com/CodySwannGT/lisa/issues/4153) [CodySwannGT/lisa#4153](https://github.com/CodySwannGT/lisa/issues/4153)
+
+
+### Code Refactoring
+
+* **bdd:** document the hint's quiet case and name the noun variable ([27b8292](https://github.com/CodySwannGT/lisa/commit/27b8292ce7bae34ec866cc1f6de9c87268639e81)), closes [CodySwannGT/lisa#4153](https://github.com/CodySwannGT/lisa/issues/4153)
+
 ### [4.55.4](https://github.com/CodySwannGT/lisa/compare/v4.55.3...v4.55.4) (2026-09-12)
 
 
