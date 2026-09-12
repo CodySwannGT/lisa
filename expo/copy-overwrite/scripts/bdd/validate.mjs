@@ -382,6 +382,11 @@ export function unresolvedEvidenceKeys({ root, contract, cache = new Map() }) {
  * never a candidate: pairing across files would let one deletion here and one
  * addition anywhere in the repository read as a single rename, which is a
  * confident wrong answer rather than a missing one.
+ *
+ * `isDisclosed` is asked with the WHOLE contract, this stale mapping included,
+ * so a new title that the dead evidence string happens to contain reads as
+ * accounted for and yields no candidate. That is the conservative direction:
+ * the hint goes quiet rather than offering a title something already claims.
  * @param {object} mapping - Raw mapping entry.
  * @param {object} contract - Parsed coverage map.
  * @param {object} discovery - The discovery result.
@@ -413,9 +418,9 @@ function renameCandidates(mapping, contract, discovery) {
  */
 function renameHint(candidates) {
   if (candidates.length === 0) return "";
-  const plural = candidates.length === 1 ? "title" : "titles";
+  const noun = candidates.length === 1 ? "title" : "titles";
   return (
-    ` — probably a rename: ${candidates.length} test ${plural} in that same` +
+    ` — probably a rename: ${candidates.length} test ${noun} in that same` +
     ` file ${candidates.length === 1 ? "is" : "are"} named by no mapping and` +
     ` no exclusion. Candidates, each quoted whole:` +
     ` ${candidates.map(title => JSON.stringify(title)).join(", ")}.` +

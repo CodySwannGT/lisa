@@ -259,7 +259,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/report.mjs":
       "477eb378aedd41bb8792e7b9f1b9fd68351d9db1d0c7c4f8adc9c4ab4a88a71e",
     "expo/copy-overwrite/scripts/bdd/validate.mjs":
-      "0df5e4a8fadc6294c1c1951be11cda3d1e31ac3109b1f0072ba5d2961c566bde",
+      "ccb51f63ede9b5a9a2f1b881c0fe036416f6f1232262d0faff80a1440c79b2fd",
     "expo/copy-overwrite/scripts/bdd/waivers.mjs":
       "4011bcc9643b93522d2082363a2e9de3309d92f82ec054d2988860bb7cd3d16c",
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":

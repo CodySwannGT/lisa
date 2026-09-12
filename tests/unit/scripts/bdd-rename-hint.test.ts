@@ -150,6 +150,17 @@ describe("rename hint on a stale mapping", () => {
     );
   });
 
+  it("stays quiet when the dead evidence string still contains the new title", () => {
+    const root = healthyProject(
+      {},
+      { files: { [HOME_SPEC]: specSource(["renders the home"]) } }
+    );
+    const message = messages(runGate(root), MAPPING_EVIDENCE)[0] ?? "";
+    expect(message).toBe(
+      `coverage-map.mappings[0] ${HOME_ID}: ${HOME_SPEC} no longer contains ${JSON.stringify(HOME_EVIDENCE)}`
+    );
+  });
+
   it("changes no verdict: a renamed test still fails and still counts as uncovered", () => {
     const root = healthyProject(
       {},
