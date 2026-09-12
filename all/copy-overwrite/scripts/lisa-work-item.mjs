@@ -1100,6 +1100,7 @@ function trackerContract(config = readConfig()) {
         "linear.teamKey"
       ).toUpperCase(),
       lifecycle: lifecycleContract(config, provider),
+      deployBranches: deployBranchEnvironments(config),
     };
   }
   throw new TrackingError(
@@ -5005,7 +5006,7 @@ function githubPullRequestUrl(raw) {
 /**
  * Prove that supplied evidence is a merged PR in this repository.
  * @param {string} prUrl Canonical pull-request URL.
- * @returns {{number:number, repository:string, url:string}} Verified evidence.
+ * @returns {{base:string, number:number, repository:string, url:string}} Verified evidence.
  */
 function mergedPullRequestEvidence(prUrl) {
   const parsed = githubPullRequestUrl(prUrl);
@@ -5022,7 +5023,13 @@ function mergedPullRequestEvidence(prUrl) {
   }
   const result = run(
     "gh",
-    ["pr", "view", parsed.url, "--json", "number,state,mergedAt,url"],
+    [
+      "pr",
+      "view",
+      parsed.url,
+      "--json",
+      "number,state,mergedAt,url,baseRefName",
+    ],
     { allowFailure: true }
   );
   if (result.status !== 0) {
@@ -5042,7 +5049,7 @@ function mergedPullRequestEvidence(prUrl) {
       `refusing to complete from ${parsed.url}: the pull request is not verified merged`
     );
   }
-  return parsed;
+  return { ...parsed, base: String(pr.baseRefName ?? "") };
 }
 
 /**
@@ -5082,6 +5089,18 @@ function completeLinearWorkItem(ref, contract, prUrl) {
     );
   }
   const evidence = mergedPullRequestEvidence(prUrl);
+  const decision = mergedBaseDecision(
+    [{ base: evidence.base, number: evidence.number }],
+    contract.deployBranches,
+    contract.lifecycle
+  );
+  if (!decision.terminal) {
+    throw new TrackingError(
+      `refusing to complete ${ref}: pull request #${evidence.number} merged into ${evidence.base || "an unreadable branch"}, not the configured production branch.\n` +
+        `Deploy branches: ${describeDeployBranches(contract.deployBranches, contract.lifecycle.productionEnvironment)}.\n` +
+        `Merge into the configured production branch before completing this item; if the mapping is wrong, correct deploy.branches in .lisa.config.json.`
+    );
+  }
   const issue = linearCompletionIssue(
     ref,
     token,
