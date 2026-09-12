@@ -28,6 +28,12 @@ describe("complete branch trailer validation", () => {
     "Work-Item: garbage 2026",
     "Work-Item: another/repository#123",
     "Work-Item: #123",
+    "Work-Item:",
+    "work-item: \t\r\n",
+    `Work-Item:\n${TRAILER}`,
+    `${TRAILER}\nWork-Item:`,
+    `WORK-ITEM: \t\r\n${TRAILER}`,
+    `${TRAILER}\r\nWork-Item: \t`,
   ])("keeps invalid or ambiguous binding unresolved: %s", messages => {
     const exec = vi.fn((command: string) =>
       command === "git"
@@ -45,17 +51,18 @@ describe("complete branch trailer validation", () => {
     ).toBeUndefined();
   });
 
-  it("retains branch-name fallback only for a readable untrailered history", () => {
-    expect(
-      workItemRef(
-        BRANCH,
-        "main",
-        "origin",
-        () => "feat: ordinary work",
-        CONTRACT
-      )
-    ).toEqual({ ref: "999", refSource: "branch name" });
-  });
+  it.each([
+    "feat: ordinary work",
+    "feat: ordinary work\n\n Work-Item:",
+    "feat: ordinary work\n\n# Work-Item:",
+  ])(
+    "retains branch-name fallback for readable untrailered history: %s",
+    messages => {
+      expect(
+        workItemRef(BRANCH, "main", "origin", () => messages, CONTRACT)
+      ).toEqual({ ref: "999", refSource: "branch name" });
+    }
+  );
 
   it("does not reinterpret a non-GitHub contract as a GitHub issue number", () => {
     expect(

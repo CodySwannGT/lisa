@@ -49,6 +49,10 @@ const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 /** Where the authoritative skill sources live. */
 const SOURCE = "plugins/src/base/skills";
 
+/** The contract must deny that transport verification establishes content validity. */
+const CONTENT_VALIDITY_REFUSAL =
+  /never that what was sent was any good|never looks at whether what was sent was any good|says nothing about whether what was sent clears a single gate/u;
+
 /**
  * The generated per-agent roots the sources fan out into.
  *
@@ -142,9 +146,15 @@ describe("a write skill tells a bespoke path what it still owes", () => {
     // reason to think anything is missing.
     const text = skillText(SOURCE, triple.writer);
     expect(text).toMatch(/proves (?:TRANSPORT|transport)/u);
-    expect(text).toMatch(
-      /never that what was sent was any good|whether what was sent was any good|says nothing about whether what was sent clears/u
-    );
+    expect(text.split(/\s+/u).join(" ")).toMatch(CONTENT_VALIDITY_REFUSAL);
+  });
+
+  it.each([
+    "A read-back proves TRANSPORT and that what was sent was any good.",
+    "A read-back proves transport and looks at whether what was sent was any good.",
+    "A read-back proves transport and says whether what was sent clears a single gate.",
+  ])("rejects affirmative content-validity wording: %s", text => {
+    expect(CONTENT_VALIDITY_REFUSAL.test(text)).toBe(false);
   });
 
   it.each(TRIPLES)("$writer says the gates are not shell scripts", triple => {
@@ -202,6 +212,9 @@ describe("every agent surface carries the same contract", () => {
       if (!existsSync(file)) continue;
       expect(readFileSync(file, "utf8"), file).toMatch(
         /proves (?:TRANSPORT|transport)/u
+      );
+      expect(readFileSync(file, "utf8").split(/\s+/u).join(" "), file).toMatch(
+        CONTENT_VALIDITY_REFUSAL
       );
     }
   });

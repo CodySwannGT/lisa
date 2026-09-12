@@ -115,6 +115,22 @@ describe("blocker-containment rule contract", () => {
       );
     });
 
+    it("requires the complete no-code declaration and no PR in repair intake", () => {
+      const repair = read(root, "skills/lisa-repair-intake/SKILL.md");
+      const start = repair.indexOf("- **Ships no code**");
+      const end = repair.indexOf("- **Human override**", start);
+      expect(start).toBeGreaterThan(-1);
+      expect(end).toBeGreaterThan(start);
+      const carveOut = plain(repair.slice(start, end)).split(/\s+/u).join(" ");
+      expect(carveOut).toContain("None — no runtime behavior change: <kind>");
+      for (const kind of ["doc-only", "config-only", "type-only"]) {
+        expect(carveOut).toContain(kind);
+      }
+      expect(carveOut).toContain("no linked PR and no merge commit");
+      expect(carveOut).toContain("open or unmerged PR stays blocking");
+      expect(carveOut).not.toContain("has no merged PR");
+    });
+
     it("allows exactly one escape hatch, and forbids automation from forging it", () => {
       for (const doc of [eager, reference]) {
         expect(doc).toMatch(/human override/i);

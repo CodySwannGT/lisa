@@ -16,6 +16,11 @@ The model these follow from (the four factories, the gate, the loops, the brownf
 
 Treat every request as potentially underspecified. Before starting any work:
 
+**For unattended requests, the headless missing-input rule takes precedence over
+every stop-and-ask instruction below.** Return the named no-op outcome without
+guessing or applying side effects; do not prompt interactively. Stop-and-ask and
+confirmation requests below apply only to interactive requests before admission.
+
 1. Identify ambiguities that would prevent completion. If any exist, stop and ask.
 2. Identify open questions whose answers would change your approach. If any exist, stop and ask.
 3. Define how you will empirically verify the work is complete by USING the resulting software, not just running tests. If you cannot define this, stop and ask.

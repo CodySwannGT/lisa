@@ -1225,9 +1225,11 @@ layer, and test ancestry against the remote.
   remote, ancestry query errored) → **still blocking**, with the rule's reason key in the run
   record.
 - **Ships no code** — the blocker is closed as completed, positively declares
-  `Target Backend Environment: None — no runtime behavior change`, and has no merged PR →
+  `## Target Backend Environment` reading `None — no runtime behavior change: <kind>`
+  with kind `doc-only`, `config-only`, or `type-only`, and has no linked PR and no merge commit →
   **cleared** under the rule's carve-out. This is a positive determination, never an absence:
-  "no PR found" is `no-pr` and stays blocking.
+  "no PR found" is `no-pr` and stays blocking. A missing kind does not qualify; any linked
+  open or unmerged PR stays blocking under the normal containment test.
 - **Human override** — an explicit human statement on this item that the dependency is satisfied
   clears it and outranks a failed containment check. Name it in the run record.
 - **Human hold** — the override runs in both directions. `human_needed` is checked here as well as

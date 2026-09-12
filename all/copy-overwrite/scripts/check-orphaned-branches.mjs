@@ -298,7 +298,14 @@ export function workItemRef(
     `${remote}/${base}..${remote}/${branch}`,
   ]);
   if (messages === undefined) return undefined;
-  if (workItemLines(messages).length > 0) {
+  const values = workItemLines(messages);
+  // The canonical reader omits empty values. Count raw column-zero prefixes
+  // too, so an empty declaration stays invalid even beside a valid trailer.
+  const declarations = messages
+    .split(/\r?\n/)
+    .filter(line => /^work-item:/i.test(line));
+  if (declarations.length !== values.length) return undefined;
+  if (values.length > 0) {
     try {
       const canonical = soleWorkItem(messages, contract, "branch commits");
       // This collector reads GitHub issues. A valid reference for a different

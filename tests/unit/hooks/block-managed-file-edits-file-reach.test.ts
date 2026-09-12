@@ -154,6 +154,8 @@ describe("block-managed-file-edits.sh reach", () => {
         () => `env --split-string='bash ${redirectScript}'`,
       ],
       ["env attached -S", () => `env -S'bash ${redirectScript}'`],
+      ["env compound -vS", () => `env -vS 'bash ${redirectScript}'`],
+      ["env compound attached -ivS", () => `env -ivS'bash ${redirectScript}'`],
       ["env split options", () => `env -S '-i bash ${redirectScript}'`],
       ["a bare script path behind env", () => `env ${redirectScript}`],
     ])("refuses %s inside an executed script", (_label, command) => {
@@ -174,8 +176,39 @@ describe("block-managed-file-edits.sh reach", () => {
       );
     });
 
-    it("allows read-only scripts reached through env's split string", () => {
-      expect(run(`env -S 'bash ${readOnlyScript}'`)).toBe(EXIT_ALLOWED);
+    it.each(["-S", "-vS"])(
+      "allows read-only scripts through env %s",
+      option => {
+        expect(run(`env ${option} 'bash ${readOnlyScript}'`)).toBe(
+          EXIT_ALLOWED
+        );
+      }
+    );
+
+    it.each([
+      String.raw`tee\_${MANAGED}`,
+      String.raw`tee \c ${MANAGED}`,
+      `tee # ignored ${MANAGED}`,
+      String.raw`tee \# ${MANAGED}`,
+      "tee ${SPLIT_TARGET}",
+      `tee${String.fromCharCode(11)}${MANAGED}`,
+      `tee${String.fromCharCode(12)}${MANAGED}`,
+    ])("refuses unresolved env split grammar: %s", splitString => {
+      const { status, stderr } = runGuard(
+        GUARD,
+        bash(`env -S '${splitString}'`),
+        {
+          cwd: host,
+          env: {
+            CLAUDE_PROJECT_DIR: host,
+            LISA_ALLOW_MANAGED_FILE_WRITE: "",
+            SPLIT_TARGET: MANAGED,
+          },
+        }
+      );
+      expect(status).toBe(EXIT_BLOCKED);
+      expect(stderr).toContain("cannot resolve env --split-string");
+      expect(stderr).not.toContain("protection is NOT active");
     });
 
     it("refuses a managed write after shell -c --", () => {

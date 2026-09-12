@@ -11,7 +11,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-npm-publish-landed.mjs":
       "bba6114e5e4643575749210819acfda207260ac1db5fcb48c33c320c3a9503ca",
     "all/copy-overwrite/scripts/check-orphaned-branches.mjs":
-      "340618eddcf85909fc1d8274683b3ba75ecff94e7db9e34c3dcb03a6100092d2",
+      "83206471fc667f84b40e844d5290f365e02efc0c7552b27f29276d16fcaaf4cc",
     "all/copy-overwrite/scripts/check-release-package-identity.mjs":
       "a0f17592d4436de4c240f7c78512537581aa2ed5e89f0caf1fe890694163a873",
     "all/copy-overwrite/scripts/check-state-classification.mjs":
@@ -55,7 +55,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "2660d27d111beb79fed7e83feebcabd5f7e565dce99dbb4d861c8dc59ef8a0d7",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
-      "6c36ce79caf559788611e8ed58701a88226ffcc0aab53052ec08e9267ee5794f",
+      "ad0e6212474be551a7557b39a0f99b718b05ee4230f4ee4cbde03d8ba8fd0c85",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
       "c00a3659f997c046df3c147b348518aabe452fe6ecbd20a15fea68ac2def2b3f",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
@@ -751,7 +751,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.agy.sh":
       "19cda51fcc113f0b3c184d8907913ab4b49ecb81db80ce7909639194bc9c52d6",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
-      "91d7705c0e5b7e05b7add5675e9d416b9fb8cff58a2ef91fb04cc34caef91a9f",
+      "ed03f03383c8ed874f20b5fc755fb3f484c7cab1e93045712aec7d979ebed327",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
       "452466fc87be994084017165a045a5fca77a357d71407d0524980c8bdd975c29",
     "plugins/src/base/hooks/block-no-verify.sh":
@@ -831,7 +831,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/00-rule-index.md":
       "03414cf9ed6fc4c5a3bbc31a31792c821a13418568a11c2175745d1af269cb8a",
     "plugins/src/base/rules/eager/base-rules.md":
-      "e5fc2937dac9619c06501a5c666895742a157657af8ffda3ee92a4c826886ae6",
+      "8c45ec91948b6cf954291731a2d9bf388ae7401a681e4df09bb39912416044e7",
     "plugins/src/base/rules/eager/coding-philosophy.md":
       "cf2c52032e0368d81f17f002fed5c957ab350d01fc4a43f66b5f366516bac54a",
     "plugins/src/base/rules/eager/config-resolution.md":
@@ -1319,7 +1319,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-remote-dispatch/scripts/dispatch.mjs":
       "2c51d388ecb681905f6b2280ffefc03434f91bfe4901e637869b716be81ccc93",
     "plugins/src/base/skills/lisa-repair-intake/SKILL.md":
-      "6412d55ad7133c88aee79db1f51ba714993720a6562c4ecc997d2b662c497797",
+      "7dde4474df39bf13d72f714a03478acd84dcd528c9698067011bc59094db3385",
     "plugins/src/base/skills/lisa-reproduce-bug/SKILL.md":
       "49dee0ea4d444a6df050d85fd57566497df288490f64b467d0505b1863fc1039",
     "plugins/src/base/skills/lisa-research/SKILL.md":
@@ -10069,6 +10069,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/enforcement-gates-e2e.test.ts": true,
     "tests/unit/hooks/enforcement-vintage-wiring.test.ts": true,
     "tests/unit/hooks/enforcement-vintage.test.ts": true,
+    "tests/unit/hooks/env-split-string-reference.test.ts": true,
     "tests/unit/hooks/failure-signature-discrimination.test.ts": true,
     "tests/unit/hooks/failure-signature-index-wiring.test.ts": true,
     "tests/unit/hooks/failure-signature-index.test.ts": true,
