@@ -19,6 +19,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { isIP } from "node:net";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
@@ -48,7 +49,7 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
  * Bump the MINOR whenever a change to this file would alter a verdict the gate
  * reports, so a consumer running old logic can be told how far behind it is.
  */
-export const WORK_ITEM_CONTRACT_VERSION = "1.0.0";
+export const WORK_ITEM_CONTRACT_VERSION = "1.1.0";
 
 /**
  * Subject of a release-bot commit, which is exempt from the work-item trailer.
@@ -1079,6 +1080,8 @@ function trackerContract(config = readConfig()) {
         "jira.project"
       ).toUpperCase(),
       cloudId: String(config.atlassian?.cloudId ?? "").trim(),
+      // Preserve the input for REST validation; `site` is the legacy acli name.
+      server: String(config.atlassian?.site ?? process.env.JIRA_SERVER ?? ""),
       site: String(config.atlassian?.site ?? process.env.JIRA_SERVER ?? "")
         .replace(/^https?:\/\//, "")
         .replace(/\/$/, ""),
@@ -1952,18 +1955,65 @@ function jiraStatusCategory(issue) {
   ).toLowerCase();
 }
 
+/**
+ * Accept a legacy bare host or a root-only HTTPS URL before sending credentials.
+ * Reject components URL parsing would silently discard or reinterpret. The
+ * configured site remains the destination authority; this is not a host allowlist.
+ * @param {string} server Configured Jira server.
+ * @returns {string} Canonical HTTPS origin.
+ */
+function jiraServerOrigin(server) {
+  const invalid = () => {
+    // Never echo the supplied value: userinfo may itself contain a credential.
+    throw new TrackingError(
+      "Jira server must be a hostname or a root-only HTTPS URL with a valid host and port; credentials were not sent"
+    );
+  };
+  const parts =
+    /^(?:https:\/\/)?(\[[0-9a-f:.]+\]|[a-z0-9.-]+)(?::([0-9]+))?\/?$/i.exec(
+      server
+    );
+  if (!parts || /[^\x21-\x7e]/.test(server)) return invalid();
+  const [, host, port] = parts;
+  if (port !== undefined && (Number(port) < 1 || Number(port) > 65535))
+    return invalid();
+  if (host.startsWith("[")) {
+    if (isIP(host.slice(1, -1)) !== 6) return invalid();
+  } else if (/^[0-9.]+$/.test(host)) {
+    if (isIP(host) !== 4) return invalid();
+  } else if (
+    host.length > 253 ||
+    host
+      .split(".")
+      .some(label => !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(label))
+  ) {
+    return invalid();
+  }
+  try {
+    const url = new URL(
+      `https://${host}${port === undefined ? "" : `:${port}`}`
+    );
+    // WHATWG URL accepts alternate IPv4 spellings such as hexadecimal labels.
+    if (!host.startsWith("[") && url.hostname !== host.toLowerCase())
+      return invalid();
+    return url.origin;
+  } catch {
+    return invalid();
+  }
+}
+
 function jiraCredentials(contract) {
   const token = process.env.JIRA_API_TOKEN || process.env.ATLASSIAN_API_TOKEN;
   const login = process.env.JIRA_LOGIN || contract.email;
-  const server = String(contract.site || process.env.JIRA_SERVER || "")
-    .replace(/^https?:\/\//, "")
-    .replace(/\/$/, "");
+  // Offline trailer validation remains available without tracker credentials.
+  if (!token || !login) return undefined;
+  const server = String(contract.server || process.env.JIRA_SERVER || "");
   const baseUrl = contract.cloudId
     ? `https://api.atlassian.com/ex/jira/${encodeURIComponent(contract.cloudId)}`
     : server
-      ? `https://${server}`
+      ? jiraServerOrigin(server)
       : "";
-  return token && login && baseUrl ? { token, login, baseUrl } : undefined;
+  return baseUrl ? { token, login, baseUrl } : undefined;
 }
 
 function jiraIssue(ref, contract) {
