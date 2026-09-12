@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.13](https://github.com/CodySwannGT/lisa/compare/v4.55.12...v4.55.13) (2026-09-12)
+
+
+### Bug Fixes
+
+* **ci:** align work-item contract version defaults ([0243a43](https://github.com/CodySwannGT/lisa/commit/0243a438676de702284d309b962448f36d0a0b43)), closes [CodySwannGT/lisa#2180](https://github.com/CodySwannGT/lisa/issues/2180) [CodySwannGT/lisa#2180](https://github.com/CodySwannGT/lisa/issues/2180)
+* **jira:** validate work-item credential destinations ([e6cd503](https://github.com/CodySwannGT/lisa/commit/e6cd503b509854db5f3a128401f3d7cf7b2fbb26)), closes [CodySwannGT/lisa#2180](https://github.com/CodySwannGT/lisa/issues/2180) [CodySwannGT/lisa#2180](https://github.com/CodySwannGT/lisa/issues/2180)
+* **tracking:** satisfy shipped script regex lint ([38d5215](https://github.com/CodySwannGT/lisa/commit/38d521562556a54bba297db4ca03dfdac9fc73d6)), closes [CodySwannGT/lisa#2180](https://github.com/CodySwannGT/lisa/issues/2180) [CodySwannGT/lisa#2180](https://github.com/CodySwannGT/lisa/issues/2180)
+
 ### [4.55.12](https://github.com/CodySwannGT/lisa/compare/v4.55.11...v4.55.12) (2026-09-12)
 
 
