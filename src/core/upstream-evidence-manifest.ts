@@ -845,7 +845,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/history-audit.md":
       "e2365e3fb28230c643e943d26688a93906afa68e3e1355d3e86d4b22ab3db559",
     "plugins/src/base/rules/eager/integration-access-layer.md":
-      "e5675ec414d0dcfbbf7a29912f39ea5fb02747aa4e6045493e636cba1e635eb7",
+      "67d0ca7dfb75598c1929e68089ef44e55c9f29fcbdf31b62bf8fa59b3cba236b",
     "plugins/src/base/rules/eager/intent-routing.md":
       "a2ef2397a98fb3d991fcfb39b669e289c1e2b697191cbeb6c071d71eca836207",
     "plugins/src/base/rules/eager/learnings-ladder.md":
@@ -1337,7 +1337,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
-      "6ba87a36a76f70030c34bdd4bc7bffc27762ee44df5385e6048e01e1c3fa9f3e",
+      "503617363fde042af3f02ee8e48a50ebf8e06f2cf6ca0b71cbe94774b4a2ab42",
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
       "7f6acaa7ac13f31ebbd12e41000b5796536f1fe708684e59f79ab23b85ee08f0",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs":
