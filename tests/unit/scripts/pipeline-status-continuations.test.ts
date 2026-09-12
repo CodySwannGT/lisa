@@ -49,9 +49,9 @@ describe("continued workflow pipelines", () => {
       expect(result.inspected).toBe(2);
       expect(result.findings).toHaveLength(explicitBash ? 0 : 2);
       if (!explicitBash)
-        expect(result.findings.map(finding => finding.file)).toEqual([
-          ".github/workflows/continued.yml",
-          ".github/workflows/one-line.yml",
+        expect(result.findings).toMatchObject([
+          { file: ".github/workflows/continued.yml" },
+          { file: ".github/workflows/one-line.yml" },
         ]);
     }
   );
@@ -70,7 +70,7 @@ describe("continued workflow pipelines", () => {
       statusAlwaysRead: true,
       pipefail: false,
     });
-    expect(result.findings.map(finding => finding.line)).toEqual([2, 5]);
+    expect(result.findings).toMatchObject([{ line: 2 }, { line: 5 }]);
   });
 
   it("does not continue an escaped backslash or a comment", () => {
@@ -81,6 +81,6 @@ describe("continued workflow pipelines", () => {
       statusAlwaysRead: true,
       pipefail: false,
     });
-    expect(result.findings.map(finding => finding.line)).toEqual([2, 4]);
+    expect(result.findings).toMatchObject([{ line: 2 }, { line: 4 }]);
   });
 });
