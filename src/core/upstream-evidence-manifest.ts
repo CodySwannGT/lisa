@@ -1419,7 +1419,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/preflight-tools.mjs":
       "70cdbb8e993c8dd58be8a1d7792e0a55d946c5e6e4ef6338ab6710fe2f5f893e",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
-      "cd6f25709d841bc1a5810c8e8983ca9f3529cf9884d03dd07a922ccfa1280efc",
+      "b8967bec0d35f5e30d1c9347c5002ce795adf52841d6a13999eaf152d9a0587b",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/tool-floor.mjs":
       "8bf279a2b198c7a6d4163420ec73f871fb9c9cb70d7c87d852026bc5dbf97091",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/toolchain.mjs":
