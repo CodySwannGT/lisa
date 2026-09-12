@@ -6,6 +6,19 @@ name: ZAP Baseline Scan (NestJS)
 on:
   workflow_call:
     inputs:
+      expected_workflow_contract_major:
+        description: >-
+          The contract major of THIS workflow the caller was written against.
+          Consumers track `@main`, so zap-baseline-nestjs.yml changes under them with no pull
+          request in their repository; comparing this value against the major
+          the workflow declares is the only way a run can tell a compatible
+          change from a breaking one — or from nothing having been looked at.
+          A caller that omits it is told so loudly and never quietly passed.
+          Seeded beside the `uses:` line in every Lisa caller template and
+          enforced by Lisa's `check-workflow-contract-assertions.mjs` gate.
+        required: false
+        default: ''
+        type: string
       node_version:
         description: 'Node.js version to use'
         required: false
@@ -27,7 +40,93 @@ on:
         default: '.zap/baseline.conf'
         type: string
 
+# ─── The package manager, bound once ────────────────────────────────────────
+# A `${{ }}` expression is substituted into a `run:` body BEFORE the shell
+# parses it, so an interpolated value is shell SOURCE TEXT rather than an
+# argument. `package_manager` is a free-text `type: string` input, so a caller
+# passing `npm; <anything>` had the second half executed (#3793).
+#
+# Bound here, at workflow level, every job and every step reads it as an
+# environment variable — quoted, one argv word, never source.
+#
+# Env-passing is only half the remedy: it stops the injection but still tries
+# to exec whatever the single word names. The other half is the `case` in each
+# job's install step, which fails the job closed on anything outside
+# npm|yarn|pnpm|bun before a command position is ever reached.
+env:
+  PACKAGE_MANAGER: ${{ inputs.package_manager }}
+
 jobs:
+  workflow_contract:
+    # The caller-facing half of the staleness handshake (CodySwannGT/lisa#3698).
+    # `.github/reusable-workflow-contracts.json` records the major, every shipped
+    # caller template is seeded with it, and
+    # `check-workflow-contract-assertions.mjs` in Lisa refuses a template that
+    # takes the `uses:` reference and drops the assertion — the two are one unit.
+    name: 🔖 Workflow Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: 🔖 Assert the caller still understands this workflow
+        env:
+          # The contract major THIS revision speaks. Bump it here and in
+          # .github/reusable-workflow-contracts.json in the same commit, and
+          # reseed every caller template in that commit too.
+          DECLARED_MAJOR: '1'
+          EXPECTED_MAJOR: ${{ inputs.expected_workflow_contract_major }}
+          WORKFLOW_FILE: zap-baseline-nestjs.yml
+        # Byte-identical to workflow-contract-assertion.sh in Lisa across every
+        # reusable workflow; the gate proves it rather than trusting it.
+        run: |
+          set -eu
+
+          # The consumer-side half of a two-party contract (CodySwannGT/lisa#3698).
+          #
+          # Every consumer reference to a Lisa reusable workflow tracks `@main` by ruling,
+          # not by accident. So this workflow changes under a consumer between two runs of
+          # one pull request, with no PR, no review and no record in their repository.
+          # That is intended. What was missing is any way for them to TELL: an unchanged
+          # workflow and a rewritten one produced the same silence, and an investigation
+          # that fetched `@main` afterwards was reading a different artifact than the run
+          # it was investigating and could not know it.
+          #
+          # This step is the signal, and it deliberately asserts the CONTRACT rather than
+          # the ref. Asserting the ref — a tag, a SHA, a tree hash — goes red on every
+          # legitimate upstream change and is deleted within a week, which is how a
+          # staleness check becomes a staleness problem. The major asserts the property a
+          # caller actually depends on: "the inputs and behaviour you were seeded against
+          # still hold". A compatible change stays green, because receiving compatible
+          # changes is the entire point of tracking `@main`; only a declared break speaks.
+          echo "workflow:                                  ${WORKFLOW_FILE}"
+          echo "contract major declared by this revision:  ${DECLARED_MAJOR}"
+          echo "contract major the caller was seeded with: ${EXPECTED_MAJOR:-<none passed>}"
+
+          # NOT DETERMINED, said out loud.
+          #
+          # A caller that passes nothing is not failed. Caller workflows ship create-only
+          # and are never overwritten, so every consumer seeded before this shipped passes
+          # nothing — while this workflow is live in all of them on their next run.
+          # Failing closed here would redden the entire fleet over a file Lisa cannot
+          # update on their behalf: the two-channel mistake this handshake exists to
+          # catch, committed in the other direction.
+          #
+          # It must not be SILENT either. Silence is the defect. So the run says plainly
+          # that it measured nothing, and says what to add.
+          case "${EXPECTED_MAJOR}" in
+            '' | *[!0-9]*)
+              echo "::warning title=Workflow contract NOT DETERMINED::This run cannot tell whether ${WORKFLOW_FILE} changed under you. Its caller passed expected_workflow_contract_major='${EXPECTED_MAJOR}', which is not a whole number, so there is nothing to compare against the major ${DECLARED_MAJOR} this revision declares. Add 'expected_workflow_contract_major: ${DECLARED_MAJOR}' to the 'with:' block beside your 'uses: ...@main' line. Until you do, this check is measuring nothing and its green means only that."
+              exit 0
+              ;;
+          esac
+
+          if [ "${EXPECTED_MAJOR}" != "${DECLARED_MAJOR}" ]; then
+            echo "::error title=Workflow contract mismatch::${WORKFLOW_FILE} on @main declares contract major ${DECLARED_MAJOR}; this caller was seeded against major ${EXPECTED_MAJOR}. A major bump is Lisa stating that an input or a behaviour you depend on changed in a way you must react to. Read the workflow header for what moved, update this caller, then set expected_workflow_contract_major: ${DECLARED_MAJOR}."
+            exit 1
+          fi
+
+          echo "contract major ${DECLARED_MAJOR} agreed: ${WORKFLOW_FILE} has not declared a break under this caller."
+
   zap_baseline:
     name: ZAP Baseline Scan
     runs-on: ubuntu-latest
@@ -51,20 +150,24 @@ jobs:
 
       - name: Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
 
       - name: Build project
-        run: ${{ inputs.package_manager }} run build
+        run: |
+          "$PACKAGE_MANAGER" run build
 
       - name: Start NestJS server
         run: |
-          ${{ inputs.package_manager }} run start &
+          "$PACKAGE_MANAGER" run start &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
         env:

@@ -13,7 +13,9 @@
  * — a `hooks/` SUBDIR hooks.json (the earlier attempt) is NOT scanned. Lisa
  * already `agy plugin install`s these variants there, so this generator emits a
  * root `hooks.json` in agy's schema (top-level HOOK NAME → event → handlers),
- * matcher `run_command` (agy's shell tool), and ships the agy-protocol script
+ * matcher `run_command` (agy's shell tool) for every guard whose surface is the
+ * shell — and `""`, agy's "all tools" spelling, for the one whose surface is
+ * not (see `AGY_PLUGIN_HOOKS`) — and ships the agy-protocol script
  * into the variant's `hooks/` subdir (scripts in a subdir are fine — only
  * hooks.json must be at root; the command points at the absolute installed path
  * via `$HOME`). Only events agy supports map: PreToolUse / PostToolUse /
@@ -215,6 +217,13 @@ export function generateAgyVariant(srcDir, outDir, version) {
  * hooks don't support, so they are intentionally absent. inject-rules is absent
  * too (rules stay out of agy artifacts).
  */
+/**
+ * The dedupe library every dual-channel guard sources as a sibling of itself.
+ * Shipped with each canonical guard, or the reference resolves to nothing and
+ * the guard silently loses it (CodySwannGT/lisa#3814).
+ */
+const GUARD_DEDUPE_LIB = "guard-dedupe.bash";
+
 const AGY_PLUGIN_HOOKS = [
   {
     sourceScript: "block-no-verify.sh",
@@ -230,7 +239,11 @@ const AGY_PLUGIN_HOOKS = [
     event: "PreToolUse",
     matcher: "run_command",
     agyScript: "parity-safety-net.agy.sh",
-    supportScripts: ["parity-safety-net.sh", "parity-safety-net-heredoc.py"],
+    supportScripts: [
+      "parity-safety-net.sh",
+      "parity-safety-net-heredoc.py",
+      GUARD_DEDUPE_LIB,
+    ],
   },
   {
     sourceScript: "block-shell-json-parsing.sh",
@@ -238,7 +251,7 @@ const AGY_PLUGIN_HOOKS = [
     event: "PreToolUse",
     matcher: "run_command",
     agyScript: "block-shell-json-parsing.agy.sh",
-    supportScripts: ["block-shell-json-parsing.sh"],
+    supportScripts: ["block-shell-json-parsing.sh", GUARD_DEDUPE_LIB],
   },
   {
     // Bash arm only. agy matches `run_command`, so its file-edit tool calls
@@ -249,7 +262,7 @@ const AGY_PLUGIN_HOOKS = [
     event: "PreToolUse",
     matcher: "run_command",
     agyScript: "block-instruction-file-edits.agy.sh",
-    supportScripts: ["block-instruction-file-edits.sh"],
+    supportScripts: ["block-instruction-file-edits.sh", GUARD_DEDUPE_LIB],
   },
   {
     // Bash arm only, on the same terms as the instruction-file entry above:
@@ -261,17 +274,29 @@ const AGY_PLUGIN_HOOKS = [
     event: "PreToolUse",
     matcher: "run_command",
     agyScript: "block-managed-file-edits.agy.sh",
-    supportScripts: ["block-managed-file-edits.sh"],
+    supportScripts: ["block-managed-file-edits.sh", GUARD_DEDUPE_LIB],
   },
   {
-    // No arm-only caveat here, unlike the entry above: the canonical guard is
-    // Bash-only, and `run_command` is the whole of its surface.
+    // The one entry that is NOT `run_command`, and the reason is the whole of
+    // CodySwannGT/lisa#3785. Since CodySwannGT/lisa#3753 the canonical guard
+    // covers a second substrate — a creation arriving as named fields — and on
+    // agy that substrate is `call_mcp_tool`, a tool this matcher did not admit.
+    // Widening the adapter alone would have changed nothing: the hook would
+    // never have been invoked. Registration and adapter had to move together,
+    // which is the same pairing CodySwannGT/lisa#3753 recorded on Claude.
+    //
+    // `""` is agy's documented "matches all tools" spelling (its own hook docs:
+    // `"matcher": "*"` or `""`), and it is compiled as a regex — the binary
+    // errors with `Invalid matcher regex`. Verified by run on agy 1.1.3: a
+    // probe plugin registered with `""` received `run_command`, `grep_search`,
+    // `find_by_name`, `view_file` and `call_mcp_tool`. So the shell surface
+    // this guard already had is not narrowed by the widening.
     sourceScript: "block-direct-issue-create.sh",
     hookName: "lisa-block-direct-issue-create",
     event: "PreToolUse",
-    matcher: "run_command",
+    matcher: "",
     agyScript: "block-direct-issue-create.agy.sh",
-    supportScripts: ["block-direct-issue-create.sh"],
+    supportScripts: ["block-direct-issue-create.sh", GUARD_DEDUPE_LIB],
   },
   {
     // Bash-only by construction, like the guard above: `gh pr merge --auto` is
@@ -282,7 +307,7 @@ const AGY_PLUGIN_HOOKS = [
     event: "PreToolUse",
     matcher: "run_command",
     agyScript: "block-blind-automerge.agy.sh",
-    supportScripts: ["block-blind-automerge.sh"],
+    supportScripts: ["block-blind-automerge.sh", GUARD_DEDUPE_LIB],
   },
   {
     // Same shape as the entry above, plus one support file the others do not

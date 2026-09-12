@@ -833,6 +833,45 @@ if [ "$notice_due" -eq 1 ]; then
 fi
 
 # ---------------------------------------------------------------------------
+# One evaluation per guard per tool call
+#
+# The guards below are also registered individually by the plugin manifest, so
+# on a machine where both channels are live each one runs twice for a single
+# tool call. `guard-dedupe.bash`, sourced by each guard, lets the second copy
+# replay the first copy's ALLOW instead of recomputing it — and only when the
+# two copies are byte-identical, on the identical payload, within the identical
+# tool call. Nothing above is de-registered for it, because plugin-hook liveness
+# is not observable from disk and standing down on a disk guess is how this
+# dispatcher once switched enforcement off silently (CodySwannGT/lisa#3814).
+#
+# What is handed down here is only the state directory. `$notice_temp_base` has
+# already been resolved physically and had every parent checked for ownership
+# and mode, so the eight guards this loop spawns inherit that work instead of
+# repeating it eight times. A guard reached by the plugin channel has no such
+# parent and resolves its own; a guard that finds this variable unusable does
+# the same. Exported only when the chain was trusted, so an untrusted TMPDIR
+# hands down nothing rather than handing down a bad path.
+if [ -n "$notice_temp_base" ] && [ "$notice_state_trusted" -eq 1 ]; then
+  guard_memo_dir="$notice_temp_base/lisa-guard-memo-$notice_uid"
+  if [ ! -e "$guard_memo_dir" ] && [ ! -L "$guard_memo_dir" ]; then
+    (umask 077 && mkdir "$guard_memo_dir") 2>/dev/null || true
+  fi
+  # Unlike shared temp ancestors, memo leaves may not be writable by another
+  # account even with the sticky bit: it could pre-create the session child.
+  guard_memo_mode=""
+  guard_memo_mode="$(stat -c '%a' "$guard_memo_dir" 2>/dev/null)" ||
+    guard_memo_mode="$(stat -f '%p' "$guard_memo_dir" 2>/dev/null)" ||
+    guard_memo_mode=""
+  case "$guard_memo_mode" in "" | *[!0-7]*) guard_memo_mode=777 ;; esac
+  if [ -d "$guard_memo_dir" ] && [ ! -L "$guard_memo_dir" ] && \
+    [ -O "$guard_memo_dir" ] &&
+    [ $((8#$guard_memo_mode & 8#0022)) -eq 0 ]; then
+    export LISA_GUARD_MEMO_DIR="$guard_memo_dir"
+    export LISA_GUARD_MEMO_UID="$notice_uid"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
 # Dispatch
 status=0
 index=0

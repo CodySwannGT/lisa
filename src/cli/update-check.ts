@@ -5,6 +5,20 @@ import { getPackageVersion } from "./version.js";
 
 const DEFAULT_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const DEFAULT_TIMEOUT_MS = 2500;
+/**
+ * Resolves through the registry's cached mutable pointer, which lags a
+ * successful publish by minutes (CodySwannGT/lisa#3685). Kept deliberately.
+ *
+ * This is the update NAG, and its whole shape is built for a stale answer: the
+ * result is already cached locally for six hours, the request is abandoned
+ * after 2.5 seconds, and every failure returns `latest: null` rather than
+ * blocking. Being a few minutes behind costs a user one invocation's worth of
+ * "you are current". The uncached read that the release path uses costs a
+ * full-packument download on every CLI run, which is the wrong trade here.
+ *
+ * The prohibition this cites is on using a cached pointer for a CORRECTNESS
+ * decision. Nothing downstream of this value chooses, publishes, or gates.
+ */
 const NPM_LATEST_URL = "https://registry.npmjs.org/@codyswann/lisa/latest";
 
 /** Runtime options for Lisa's non-fatal update check. */

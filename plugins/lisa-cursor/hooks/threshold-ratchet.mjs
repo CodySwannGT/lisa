@@ -19,10 +19,20 @@
  * every entry carries a written decision.
  *
  * Human override: `.lisa.config.json` → `thresholdRatchet.allow` entries
- * ({ file, key, reason }). Honored ONLY from the baseline side (HEAD /
+ * ({ file, key, reason, until }). Honored ONLY from the baseline side (HEAD /
  * merge-base), never from the change under review — an agent cannot grant
  * itself an exception in the same change that weakens a gate. `key: "*"`
- * allows every key in the file.
+ * allows every key in the file, and reports as file-wide so it is not mistaken
+ * for a key-scoped one.
+ *
+ * Exemptions END (#3856). `until` is a `YYYY-MM-DD` day the entry is live
+ * through; past it the entry stops exempting and the weakening it permitted is
+ * refused again, naming the entry, its scope, its reason and the remedy. An
+ * entry naming no evaluable condition still exempts — that keeps a project
+ * mid-migration off a red wall — but is reported on every run until somebody
+ * gives it a condition or deletes it. Modelled on `_thresholdsDivergence` in
+ * `stryker.conf.json`, the sibling exemption that already stops exempting when
+ * it goes stale; see `threshold-ratchet-families.mjs` `ALLOW_STATE`.
  *
  * One exception, and only one: a PROMOTION between deploy-chain branches
  * (`--base` + `--head`, both named in `deploy.branches`, head upstream of
@@ -46,6 +56,7 @@ import {
 import {
   applyAllowList,
   compareFile,
+  describeAllowList,
   formatReport,
 } from "./threshold-ratchet-compare.mjs";
 
@@ -387,15 +398,6 @@ function run(mode, baseRef, onlyFiles, headRef) {
     );
   }
 
-  const findings = watched.flatMap(f =>
-    compareFile(
-      f,
-      git(["show", `${plan.baselineRef}:${f}`], root),
-      plan.readCurrent(f)
-    )
-  );
-  if (findings.length === 0) return 0;
-
   const allow = resolveAllowList(
     root,
     plan.baselineRef,
@@ -403,18 +405,66 @@ function run(mode, baseRef, onlyFiles, headRef) {
     baseRef,
     headRef
   );
+  const findings = watched.flatMap(f =>
+    compareFile(
+      f,
+      git(["show", `${plan.baselineRef}:${f}`], root),
+      plan.readCurrent(f)
+    )
+  );
+  // The allow-list inventory is printed whether or not the change produced
+  // findings. An exemption that has outlived its condition is dead weight the
+  // moment the condition passes, and reporting it only when something else has
+  // already failed is how a list nobody reads stays a list nobody reads.
+  if (findings.length === 0) {
+    reportAllowList(allow.entries, []);
+    return 0;
+  }
+  return reportFindings(findings, allow, mode);
+}
+
+/**
+ * Print the allow entries a human has to act on, minus the ones a refusal is
+ * about to name in full.
+ * @param {object[]} entries The resolved allow list
+ * @param {Array<{ message: string }>} expired Refusals already being printed
+ * @returns {void}
+ */
+function reportAllowList(entries, expired) {
+  for (const line of describeAllowList(entries)) {
+    if (expired.some(item => item.message.startsWith(line))) continue;
+    process.stdout.write(`threshold-ratchet: ${line}\n`);
+  }
+}
+
+/**
+ * Print the verdict for a change that produced findings.
+ * @param {object[]} findings Findings from every watched file
+ * @param {{ entries: object[], promotion: boolean, note: string | null }} allow
+ *   The resolved allow list and its provenance
+ * @param {"hook"|"staged"|"base"} mode Comparison mode
+ * @returns {number} Process exit code (2 for hook mode, 1 otherwise; 0 clean)
+ */
+function reportFindings(findings, allow, mode) {
   const split = partitionCarriedEntries(findings, allow.promotion);
-  const { blocked, allowed } = applyAllowList(split.rest, allow.entries);
+  const { blocked, allowed, expired } = applyAllowList(
+    split.rest,
+    allow.entries
+  );
   if (allow.note) process.stdout.write(`${allow.note}\n`);
+  reportAllowList(allow.entries, expired);
   for (const finding of split.carried) {
     process.stdout.write(
       `threshold-ratchet: carried forward by this promotion, approved upstream — ${finding.message}\n`
     );
   }
-  for (const finding of allowed) {
+  for (const item of allowed) {
     process.stdout.write(
-      `threshold-ratchet: allowed by .lisa.config.json exception — ${finding.message}\n`
+      `threshold-ratchet: ${item.message} (.lisa.config.json exception)\n`
     );
+  }
+  for (const item of expired) {
+    process.stderr.write(`threshold-ratchet: refused — ${item.message}\n`);
   }
   if (blocked.length === 0) return 0;
   process.stderr.write(`${formatReport(blocked)}\n`);

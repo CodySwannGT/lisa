@@ -3,6 +3,9 @@ import path from "node:path";
 import { intersects, validRange } from "semver";
 import { describe, expect, it } from "vitest";
 
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import { GIT_BIN } from "../../support/git-executable.js";
+
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 
 /**
@@ -36,7 +39,8 @@ const ADVISORY_FLOORS: Readonly<Record<string, string>> = {
   "form-data": "4.0.6",
   handlebars: "4.7.9",
   lodash: "4.18.0",
-  multer: "2.2.0",
+  multer: "2.3.0",
+  "smol-toml": "1.7.1",
   systeminformation: "5.31.7",
   tar: "7.5.21",
   undici: "6.28.0",
@@ -84,29 +88,29 @@ function collectForcedPins(template: string): readonly ForcedPin[] {
 
 /**
  * Locate every package.lisa.json shipped in the repository.
- * @param dir - Absolute directory to walk
+ *
+ * Asks git rather than walking the filesystem. A walk that skips a hand-written
+ * list of directory names cannot say what "shipped in the repository" means: a
+ * checkout that parks nested git worktrees under `.worktrees/` or `worktrees/`
+ * has foreign templates on disk, gitignored and tracked by nobody, and the walk
+ * policed them as though this repository shipped them. The skip list also
+ * drifts — it named `.worktrees` but not `worktrees`, one directory apart.
+ * Tracked-ness is the property being asserted, so it is the property queried.
  * @returns Repository-relative paths, sorted
  */
-function findTemplates(dir: string): readonly string[] {
-  return fs
-    .readdirSync(dir, { withFileTypes: true })
-    .flatMap(entry => {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        return entry.name === "node_modules" ||
-          entry.name === ".git" ||
-          entry.name === "dist"
-          ? []
-          : findTemplates(full);
-      }
-      return entry.name === "package.lisa.json"
-        ? [path.relative(REPO_ROOT, full)]
-        : [];
-    })
+function findTemplates(): readonly string[] {
+  return boundedExecFileSync({
+    label: "git ls-files package.lisa.json",
+    command: GIT_BIN,
+    args: ["ls-files", "-z", "--", "*package.lisa.json"],
+    cwd: REPO_ROOT,
+  })
+    .split("\0")
+    .filter(entry => entry !== "")
     .sort((a, b) => a.localeCompare(b));
 }
 
-const TEMPLATES = findTemplates(REPO_ROOT);
+const TEMPLATES = findTemplates();
 const FORCED_PINS = TEMPLATES.flatMap(collectForcedPins).filter(
   pin => ADVISORY_FLOORS[pin.name] !== undefined
 );

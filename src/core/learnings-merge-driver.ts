@@ -84,6 +84,17 @@ export function buildLearningsMergeDriverCommand(invocation: string): string {
 export const WITHDRAWN_RULINGS_LEDGER = ".lisa/WITHDRAWN.jsonl";
 
 /**
+ * The short-lived operational-hazard ledger, on the same built-in union driver.
+ *
+ * Fixed for the same reason as the tombstone ledger above: the hook that reads
+ * it ships inside every plugin payload and cannot resolve project config from
+ * there. Its entries expire on their own, so the file drains without anyone
+ * editing it — but until an entry expires it is written by exactly the same
+ * concurrent per-branch writers, so it needs the same union merge.
+ */
+export const OPERATIONAL_HAZARDS_LEDGER = ".lisa/HAZARDS.jsonl";
+
+/**
  * Build the `.gitattributes` line binding one ledger path to the driver.
  * @param ledgerPath - Project-relative learnings file path
  * @returns Single `.gitattributes` line, without a trailing newline
@@ -151,6 +162,14 @@ export function renderLearningsGitattributesBlock(ledgerPath: string): string {
     "# A default line merge here would drop a retraction, which is the one",
     "# failure this ledger exists to make impossible.",
     `${WITHDRAWN_RULINGS_LEDGER} merge=union`,
+    "",
+    "# Short-lived operational hazards, appended by any session that declares",
+    "# one (CodySwannGT/lisa#3681). Same append-only JSONL shape as the",
+    "# tombstones above and the same built-in union driver — a default line",
+    "# merge would drop a hazard, and a hazard nobody is told about is the",
+    "# collision this ledger exists to prevent. Entries carry an expiry and",
+    "# stop applying on their own, so the file drains without an editor.",
+    `${OPERATIONAL_HAZARDS_LEDGER} merge=union`,
     "",
     GITATTRIBUTES_END_MARKER,
     "",

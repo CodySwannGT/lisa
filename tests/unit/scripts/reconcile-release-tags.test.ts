@@ -22,12 +22,35 @@ import {
   classifyProbe,
   formatReport,
   parseVersionTag,
-  probeRegistry,
-  probeWithRetry,
+  probeVersion,
   reconcile,
-  registryUrl,
   VERDICT,
 } from "../../../scripts/reconcile-release-tags.mjs";
+
+/** Minimal `Response` stand-ins, shaped for the shared probe's reads. */
+const served = (version: string) => ({
+  status: 200,
+  ok: true,
+  json: async () => ({ version }),
+});
+const notFound = { status: 404, ok: false };
+const serverError = { status: 503, ok: false };
+
+/** A fetch double that counts calls and records the URL it was handed. */
+const recordingFetch = (
+  answer: (call: number) => unknown
+): { impl: typeof fetch; calls: () => number; urls: () => string[] } => {
+  let calls = 0;
+  const urls: string[] = [];
+  const impl = (async (url: string) => {
+    calls += 1;
+    urls.push(String(url));
+    const outcome = answer(calls);
+    if (outcome instanceof Error) throw outcome;
+    return outcome;
+  }) as unknown as typeof fetch;
+  return { impl, calls: () => calls, urls: () => urls };
+};
 
 /** Refs in this repository that are not release tags. */
 const NON_RELEASE_REFS = [
@@ -71,31 +94,24 @@ describe("parseVersionTag", () => {
 });
 
 describe("classifyProbe", () => {
-  it("reports a 200 as published", () => {
-    expect(classifyProbe({ status: 200 })).toBe(VERDICT.PUBLISHED);
+  it("carries the shared probe's three verdicts through unchanged", () => {
+    expect(classifyProbe({ verdict: "published" })).toBe(VERDICT.PUBLISHED);
+    expect(classifyProbe({ verdict: "missing" })).toBe(VERDICT.MISSING);
+    expect(classifyProbe({ verdict: "unprovable" })).toBe(VERDICT.UNPROVABLE);
   });
 
-  it("reports a 404 on the exact-version endpoint as missing", () => {
-    expect(classifyProbe({ status: 404 })).toBe(VERDICT.MISSING);
+  it("never reports anything it does not recognise as missing", () => {
+    // THE ASSERTION THIS FILE EXISTS FOR, now at the boundary with the shared
+    // module. A verdict this sweep cannot read says nothing about whether the
+    // release happened, and letting it fall through to `missing` is how a good
+    // release gets retracted. A fourth verdict added upstream must land in the
+    // harmless bucket by construction, not by someone remembering to update
+    // this function.
+    for (const verdict of ["skipped", "PUBLISHED", "", "unknown"])
+      expect(classifyProbe({ verdict }), verdict).toBe(VERDICT.UNPROVABLE);
   });
 
-  it("never reports a transport failure as missing", () => {
-    // THE ASSERTION THIS FILE EXISTS FOR. A registry that could not be reached
-    // says nothing about whether the release happened, and calling that
-    // `missing` is how a good release gets retracted over a network blip.
-    expect(classifyProbe({ error: "ENOTFOUND registry.npmjs.org" })).toBe(
-      VERDICT.UNPROVABLE
-    );
-  });
-
-  it("never reports an auth or throttling failure as missing", () => {
-    for (const status of [401, 403, 429, 500, 502, 503])
-      expect(classifyProbe({ status }), String(status)).toBe(
-        VERDICT.UNPROVABLE
-      );
-  });
-
-  it("treats an absent status as unprovable rather than assuming either way", () => {
+  it("treats an absent verdict as unprovable rather than assuming either way", () => {
     expect(classifyProbe({})).toBe(VERDICT.UNPROVABLE);
     expect(classifyProbe()).toBe(VERDICT.UNPROVABLE);
   });
@@ -107,7 +123,7 @@ describe("reconcile", () => {
     // everything is as useless as one that flags nothing.
     const { rows } = reconcile({
       tags: ["v4.34.5", "vv2.40.0"],
-      probe: always({ status: 200 }),
+      probe: always({ verdict: "published" }),
     });
     expect(rows.map(r => r.verdict)).toEqual([
       VERDICT.PUBLISHED,
@@ -118,7 +134,7 @@ describe("reconcile", () => {
   it("finds an orphan under either tag convention", () => {
     const { rows } = reconcile({
       tags: ["v4.33.7", "vv1.83.2"],
-      probe: always({ status: 404 }),
+      probe: always({ verdict: "missing" }),
     });
     expect(rows.map(r => r.version)).toEqual(["4.33.7", "1.83.2"]);
     expect(rows.every(r => r.verdict === VERDICT.MISSING)).toBe(true);
@@ -127,7 +143,7 @@ describe("reconcile", () => {
   it("keeps non-release refs out of the report entirely", () => {
     const { rows, ignored } = reconcile({
       tags: ["v1.0.0", ...NON_RELEASE_REFS.slice(0, 2)],
-      probe: always({ status: 200 }),
+      probe: always({ verdict: "published" }),
     });
     expect(rows).toHaveLength(1);
     expect(ignored).toEqual(NON_RELEASE_REFS.slice(0, 2));
@@ -139,7 +155,7 @@ describe("reconcile", () => {
     // "these releases never shipped" when the truth is "we could not look".
     const { rows } = reconcile({
       tags: ["v4.34.5", "v4.34.6", "vv2.40.0"],
-      probe: always({ error: "ETIMEDOUT" }),
+      probe: always({ verdict: "unprovable" }),
     });
     expect(rows.every(r => r.verdict === VERDICT.UNPROVABLE)).toBe(true);
     expect(rows.some(r => r.verdict === VERDICT.MISSING)).toBe(false);
@@ -150,9 +166,9 @@ describe("reconcile", () => {
     const { rows } = reconcile({
       tags: ["v4.34.5", "v4.33.7", "v9.9.9"],
       probe: (version: string) => {
-        if (published.has(version)) return { status: 200 };
-        if (version === "9.9.9") return { error: "ECONNRESET" };
-        return { status: 404 };
+        if (published.has(version)) return { verdict: "published" };
+        if (version === "9.9.9") return { verdict: "unprovable" };
+        return { verdict: "missing" };
       },
     });
     expect(rows).toEqual([
@@ -163,63 +179,73 @@ describe("reconcile", () => {
   });
 });
 
-describe("registryUrl", () => {
-  it("asks for the exact version, never the latest dist-tag", () => {
+describe("probeVersion reaches the registry through the shared probe", () => {
+  it("asks for the exact version, never the latest dist-tag", async () => {
     // `dist-tags.latest` lags a successful publish by minutes, so reconciling
     // against it reports the newest release — the one under most scrutiny — as
-    // absent.
-    const url = registryUrl(PACKAGE, ORPHAN_VERSION);
-    expect(url).toBe("https://registry.npmjs.org/@codyswann%2flisa/4.33.7");
+    // absent. The sweep no longer builds this URL; the assertion moves to the
+    // URL the shared module is observed to request, which is what actually
+    // determines the behaviour.
+    const fetcher = recordingFetch(() => notFound);
+    await probeVersion(PACKAGE, ORPHAN_VERSION, { fetchImpl: fetcher.impl });
+    const [url] = fetcher.urls();
+    expect(url).toContain(PACKAGE);
+    expect(url).toContain(ORPHAN_VERSION);
     expect(url).not.toContain("dist-tags");
     expect(url).not.toContain("latest");
   });
-});
-
-describe("probeRegistry", () => {
-  it("passes a status through for classification", async () => {
-    const probe = await probeRegistry("p", "1.0.0", (async () => ({
-      status: 404,
-    })) as unknown as typeof fetch);
-    expect(classifyProbe(probe)).toBe(VERDICT.MISSING);
-  });
 
   it("requires the body to name the version that was asked for", async () => {
-    // Matching the release-time check (#3684): a 200 alone is not proof. Two
-    // surfaces reporting `published` about one release must mean the same
-    // thing by it.
-    const probe = await probeRegistry("p", "1.0.0", (async () => ({
-      status: 200,
-      json: async () => ({ version: "9.9.9" }),
-    })) as unknown as typeof fetch);
+    // The one real divergence caught in review before the convergence: this
+    // sweep originally accepted any HTTP 200. It now inherits the rule instead
+    // of restating it, so the two surfaces cannot drift apart again.
+    const fetcher = recordingFetch(() => served("9.9.9"));
+    const probe = await probeVersion("p", "1.0.0", {
+      fetchImpl: fetcher.impl,
+    });
     expect(classifyProbe(probe)).toBe(VERDICT.UNPROVABLE);
   });
 
   it("treats an unparseable body as unprovable, not published", async () => {
-    const probe = await probeRegistry("p", "1.0.0", (async () => ({
+    const fetcher = recordingFetch(() => ({
       status: 200,
+      ok: true,
       json: async () => {
         throw new Error("Unexpected token");
       },
-    })) as unknown as typeof fetch);
+    }));
+    const probe = await probeVersion("p", "1.0.0", {
+      attempts: 1,
+      fetchImpl: fetcher.impl,
+    });
     expect(classifyProbe(probe)).toBe(VERDICT.UNPROVABLE);
   });
 
   it("reports published when the body names the exact version", async () => {
-    const probe = await probeRegistry("p", "1.0.0", (async () => ({
-      status: 200,
-      json: async () => ({ version: "1.0.0" }),
-    })) as unknown as typeof fetch);
+    const fetcher = recordingFetch(() => served("1.0.0"));
+    const probe = await probeVersion("p", "1.0.0", {
+      fetchImpl: fetcher.impl,
+    });
     expect(classifyProbe(probe)).toBe(VERDICT.PUBLISHED);
+  });
+
+  it("never reports an auth, throttling or 5xx answer as missing", async () => {
+    const fetcher = recordingFetch(() => serverError);
+    const probe = await probeVersion("p", "1.0.0", {
+      fetchImpl: fetcher.impl,
+    });
+    expect(classifyProbe(probe)).toBe(VERDICT.UNPROVABLE);
   });
 
   it("turns a thrown transport failure into unprovable, not missing", async () => {
     // MEASURED, NOT HYPOTHETICAL. On the first real run over 1,699 tags one
     // probe failed transiently against a version that IS published. With two
     // verdicts that run would have reported a good release as never shipped.
-    const probe = await probeRegistry("p", "1.0.0", async () => {
-      throw new Error("ETIMEDOUT");
+    const fetcher = recordingFetch(() => new Error("ETIMEDOUT"));
+    const probe = await probeVersion("p", "1.0.0", {
+      attempts: 1,
+      fetchImpl: fetcher.impl,
     });
-    expect(probe.status).toBeNull();
     expect(classifyProbe(probe)).toBe(VERDICT.UNPROVABLE);
   });
 });
@@ -255,60 +281,59 @@ describe("formatReport", () => {
   });
 });
 
-describe("probeWithRetry", () => {
-  it("retries an unprovable answer and takes the settled one", () => {
+describe("probeVersion keeps the sweep's retry policy, not the module's", () => {
+  // The shared module retries BOTH non-published verdicts, because at release
+  // time a version that just published can lag the exact-version endpoint. The
+  // sweep looks backwards at tags that are often years old, where a 404 is
+  // settled. These four assertions are what keeps the convergence from
+  // importing release-time retry behaviour into a 1,774-tag sweep.
+
+  it("retries an unprovable answer and takes the settled one", async () => {
     // The measured case: v2.325.4 IS published and its probe failed in flight.
     // One retry turns a row an operator must chase into a correct verdict.
-    let call = 0;
-    const fetchImpl = async () => {
-      call += 1;
-      if (call === 1) throw new Error("ETIMEDOUT");
-      return { status: 200, json: async () => ({ version: "2.325.4" }) };
-    };
-    return probeWithRetry("p", "2.325.4", {
-      fetchImpl: fetchImpl as unknown as typeof fetch,
-    }).then((probe: Record<string, unknown>) => {
-      expect(classifyProbe(probe)).toBe(VERDICT.PUBLISHED);
-      expect(call).toBe(2);
+    const fetcher = recordingFetch(call =>
+      call === 1 ? new Error("ETIMEDOUT") : served("2.325.4")
+    );
+    const probe = await probeVersion("p", "2.325.4", {
+      fetchImpl: fetcher.impl,
     });
+    expect(classifyProbe(probe)).toBe(VERDICT.PUBLISHED);
+    expect(fetcher.calls()).toBe(2);
   });
 
-  it("never retries a definite 404 — the registry does not change its mind", () => {
-    let call = 0;
-    const fetchImpl = async () => {
-      call += 1;
-      return { status: 404 };
-    };
-    return probeWithRetry("p", "4.33.7", {
-      fetchImpl: fetchImpl as unknown as typeof fetch,
-    }).then((probe: Record<string, unknown>) => {
-      expect(classifyProbe(probe)).toBe(VERDICT.MISSING);
-      expect(call).toBe(1);
+  it("never retries a definite 404 — the registry does not change its mind", async () => {
+    // THE ONE THAT WOULD BREAK SILENTLY. Handing the module the sweep's
+    // `attempts` instead of 1 would re-ask every one of the 26 orphan tags
+    // five times over, and the report would look identical while doing it.
+    const fetcher = recordingFetch(() => notFound);
+    const probe = await probeVersion("p", "4.33.7", {
+      attempts: 5,
+      fetchImpl: fetcher.impl,
     });
+    expect(classifyProbe(probe)).toBe(VERDICT.MISSING);
+    expect(fetcher.calls()).toBe(1);
   });
 
-  it("never retries a success — the common case pays nothing", () => {
-    let call = 0;
-    const fetchImpl = async () => {
-      call += 1;
-      return { status: 200, json: async () => ({ version: "4.34.5" }) };
-    };
-    return probeWithRetry("p", "4.34.5", {
-      fetchImpl: fetchImpl as unknown as typeof fetch,
-    }).then(() => expect(call).toBe(1));
+  it("never retries a success — the common case pays nothing", async () => {
+    const fetcher = recordingFetch(() => served("4.34.5"));
+    await probeVersion("p", "4.34.5", { attempts: 5, fetchImpl: fetcher.impl });
+    expect(fetcher.calls()).toBe(1);
   });
 
-  it("still reports unprovable when every attempt fails", () => {
+  it("still reports unprovable when every attempt fails", async () => {
     // Exhausting the retries must not be mistaken for absence. This is the
     // same asymmetry as classifyProbe, one layer up.
-    const fetchImpl = async () => {
-      throw new Error("ENOTFOUND");
-    };
-    return probeWithRetry("p", "1.0.0", {
+    const pauses: number[] = [];
+    const fetcher = recordingFetch(() => new Error("ENOTFOUND"));
+    const probe = await probeVersion("p", "1.0.0", {
       attempts: 3,
-      fetchImpl: fetchImpl as unknown as typeof fetch,
-    }).then((probe: Record<string, unknown>) => {
-      expect(classifyProbe(probe)).toBe(VERDICT.UNPROVABLE);
+      pause: async () => {
+        pauses.push(1);
+      },
+      fetchImpl: fetcher.impl,
     });
+    expect(classifyProbe(probe)).toBe(VERDICT.UNPROVABLE);
+    expect(fetcher.calls()).toBe(3);
+    expect(pauses).toHaveLength(2);
   });
 });

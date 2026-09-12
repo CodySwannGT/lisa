@@ -1,189 +1,49 @@
 ---
-description: "Phaser 4 Project Rules"
+description: "Phaser 4 Project Rules (load-bearing)"
 alwaysApply: true
 ---
 
-# Phaser 4 Project Rules
+# Phaser 4 Project Rules (load-bearing)
 
-This is a **Phaser 4** (v4.2+, npm `phaser@^4.2.0`) TypeScript game project built
-on the official `template-vite-ts` layout (Vite + TypeScript 6). Phaser 4 is the
-only supported target — never introduce Phaser 3 idioms. These decisions are
-**locked** and most are **lint-enforced**; do not disable a rule, fix the code.
+This is a **Phaser 4** (npm `phaser@^4.2.0`) TypeScript game project on the
+official `template-vite-ts` layout. Phaser 4 is the only supported target —
+never introduce Phaser 3 idioms. These decisions are **locked** and most are
+**lint-enforced**; do not disable a rule, fix the code.
 
-## Official Phaser skills — use these for API knowledge
+## Read the official skills first
 
-Phaser ships **28 official, authoritative agent skills** inside the installed
-package at **`node_modules/phaser/skills/<topic>/SKILL.md`** — e.g. `scenes`,
-`sprites-and-images`, `physics-arcade`, `physics-matter`, `tweens`, `particles`,
-`filters-and-postfx`, `loading-assets`, `animations`, `tilemaps`, `cameras`,
-`input-keyboard-mouse-touch`, `audio-and-sound`, `game-object-components`,
-`v3-to-v4-migration`, `v4-new-features`, and more. The Phaser team maintains them
-in lockstep with the engine, and they cite exact `src/...` source paths.
+Phaser ships 28 authoritative agent skills inside the installed package at
+`node_modules/phaser/skills/<topic>/SKILL.md` (`scenes`, `physics-arcade`,
+`tweens`, `tilemaps`, `v3-to-v4-migration`, …). **For any Phaser API or
+subsystem question, read the matching official skill rather than relying on
+memory.** The `lisa-phaser` skills deliberately cover only the opinionated,
+lint-enforced project layer.
 
-**For any Phaser API or subsystem question, read the matching official skill
-first.** Do not rely on memory, and do not expect Lisa to duplicate that
-knowledge — the `lisa-phaser` skills intentionally cover only the opinionated,
-project-specific, and lint-enforced layer (project structure, services, asset
-pipeline, i18n, accessibility, build/deploy, testing gates) that the official
-skills do not. When this file points at a Phaser subsystem (physics, rendering,
-scenes, …) the authority is the official skill of that name.
+## Mandatory
 
-An optional **Phaser Editor MCP server** (`@phaserjs/editor-mcp-server`, 40+
-tools for scenes/assets/tilemaps) is defined for this project type but
-**disabled by default** — enable it only when working with Phaser Editor v5. See
-`.mcp.json` and `disabledMcpjsonServers` in `.claude/settings.json`.
+1. **Thin scenes over a pure-logic core.** All game rules live in `src/logic/**`
+   as plain TypeScript with **zero `phaser` imports** — lint-enforced, and it is
+   what makes the game unit-testable.
+2. **Determinism.** No `Math.random()`, `Date.now()`, or `performance.now()` in
+   game code. Use the seeded `Phaser.Math.RND` and the scene clock.
+3. **Nothing created or allocated inside `update()`** — no `this.add.*`,
+   `tweens.add`, `time.addEvent`, `new Phaser.*`, object/array literals, or
+   `map`/`filter`/`reduce` chains. Create in `create()`; pool via `Group`s.
+4. **Events and state.** Cross-cutting events go through one dedicated
+   `EventsCenter`; **never reuse `game.events`**. Every external `.on()` needs a
+   matching `.off()` in the scene's `shutdown`. Global state goes through the
+   typed registry wrapper; persistence goes through SaveService, never raw
+   `localStorage`.
+5. **No raw keys, no placeholder art.** Texture/audio/animation/scene/event keys
+   are typed constants generated into `src/assets.ts`. Art must be real and
+   licensed per `phaser-asset-sourcing`; procedural `generateTexture`
+   placeholders are tracked art debt and need a linked issue.
+6. **No hardcoded user-facing strings** — use the typed i18n catalog.
+7. **Verify before reporting complete:** `bun run typecheck`, `bun run lint`,
+   `bun run test`, `bun run build`. For rendering or input changes, also verify
+   in a real browser (`bun run dev` plus a Playwright check). A green typecheck
+   alone is not proof a game works.
 
-## Locked architecture decisions
-
-1. **Thin scenes over a pure-logic core.** Scenes and GameObjects are thin
-   adapters that wire pure logic to the engine. All game rules live in
-   `src/logic/**` as plain TypeScript with **zero `phaser` imports** (data in,
-   data out). This is what makes the game unit-testable. ECS (bitECS / Miniplex)
-   is an opt-in option, not the default — reach for it only at high entity
-   counts. See `phaser-project-structure` and `phaser-testing`.
-2. **Canvas-only, framework-agnostic UI.** UI is plain TS + DOM/canvas (the
-   `template-vite-ts` baseline). A React/Vue EventBus bridge is documented only
-   as an upgrade path — it is not the default and is not added unless required.
-3. **Arcade physics by default; Matter is opt-in.** Matter is heavier and does
-   not interop with Arcade. Switching is a one-line config swap. See
-   the official `physics-arcade` skill.
-4. **Determinism.** No `Math.random()`, `Date.now()`, or `performance.now()` in
-   game code. Use the seeded `Phaser.Math.RandomDataGenerator` (`Phaser.Math.RND`
-   or a local instance seeded from one place) so replays and tests reproduce.
-5. **State and events.** Global state goes through a **typed wrapper over the
-   registry**; cross-cutting events go through a **single dedicated
-   EventsCenter** (`new Phaser.Events.EventEmitter()`) — **never reuse
-   `game.events`**. Every external `.on()` (`this.input` / `scale` / `time` /
-   `window` / the custom bus) must have a matching `.off()` in the scene's
-   `shutdown`. See `phaser-services`.
-6. **Performance.** Pool transient objects via `Group`s; make **no allocations
-   and create no objects/tweens/timers inside `update()`**; atlas everything; use
-   `BitmapText` for high-churn text; use `SpriteGPULayer` / `TilemapGPULayer` for
-   mass rendering. See the official `game-object-components` skill.
-7. **Baked-in asset pipeline with REAL art.** Raw art in `assets/src` is packed
-   at build time (free-tex-packer-core atlases, audiosprite, BMFont) into
-   `public/assets`, and a codegen step emits typed keys to `src/assets.ts` so a
-   missing or renamed key is a **compile error**. No raw string asset / scene /
-   event keys anywhere. The art itself must be **real and licensed** — sourced
-   per `phaser-asset-sourcing` (CC0-or-equivalent only, with an exact license
-   quote + evidence URL in `assets/LICENSES.md` and committed provenance).
-   Procedural `generateTexture` placeholders are **tracked art debt**: a scene
-   may ship them **only** with a linked art-debt issue, never as the finished
-   state and never described as "zero-asset best practice." Characters ship real
-   idle+walk animation, not static frames. See `phaser-asset-sourcing` and
-   `phaser-asset-pipeline`.
-8. **PWA on by default** via `vite-plugin-pwa` (`registerType: "autoUpdate"`,
-   `globPatterns` extended to cover game assets). See `phaser-build-deploy`.
-9. **Cross-cutting services are scaffolded** in `src/services/**`: SoundService
-   (mobile audio unlock on first gesture), InputService (semantic actions, not
-   raw keys), SaveService (typed `localStorage` with a schema `VERSION` +
-   migration chain — never raw `localStorage`), a typed i18n string catalog (no
-   hardcoded user-facing strings), accessibility (prefers-reduced-motion,
-   pause-on-blur, keyboard-navigable menus, screen-reader live region), and a
-   vendor-neutral telemetry/analytics abstraction. In-game errors are wired to
-   the observability sink. See `phaser-services`, `phaser-i18n`,
-   `phaser-accessibility`.
-10. **Testing is a pyramid.** Pure logic is unit-tested with Vitest;
-    scenes/entities are excluded from unit coverage and verified by **runtime
-    gates** in CI (boot smoke, allocation/perf budget, leak gate, determinism
-    gate, deterministic visual regression, bundle-size budget). See
-    `phaser-testing`. Build pins: `phaser ^4.2.0`, Vite, TypeScript 6.
-
-## Enforced lint rules (prose must match machine enforcement)
-
-The lint config enforces the rules below. Each exists because the prose above
-relies on it — keep them in sync.
-
-**`no-restricted-imports`**
-
-- Importing `phaser` anywhere under `src/logic/**` is banned. The logic core
-  stays engine-free so Vitest runs it without a browser.
-
-**`no-restricted-syntax`** bans:
-
-- Removed v3 idioms: `setPipeline` / `setPostPipeline` / `resetPipeline`,
-  `setTintFill`, `preFX` / `postFX`, `Phaser.Geom.Point`, `Phaser.Struct`,
-  `BitmapMask`, `Mesh`, `Plane`, `Camera3D`. Use the v4 replacements
-  (RenderNodes, Filters, `Phaser.Math.Vector2`, native `Set`/`Map`, GPU layers).
-- `Math.random()` / `Date.now()` / `performance.now()` in `src` game code — use
-  the seeded RND and the scene clock (`this.time.now`).
-- Reusing `game.events` for app messaging — use the dedicated EventsCenter.
-- `debug: true` inside a physics/game config object literal — debug stays off in
-  committed code (toggle locally, never commit it on).
-
-**Direct-`localStorage` ban**
-
-- Direct `localStorage` access outside `src/services/**` is banned. Persist
-  through SaveService (versioned + migrated).
-
-**Custom `eslint-plugin-phaser` rules**
-
-- `no-create-in-update` — no `this.add.*`, `tweens.add`, `time.addEvent`,
-  `physics.add.*`, or `new Phaser.*` inside an `update()` method. Create in
-  `create()`; in the loop, reuse and pool.
-- `no-allocation-in-update` — no object/array literals, closures, or
-  `.map`/`.filter`/`.reduce` chains inside `update()`. Hoist scratch objects.
-- `require-shutdown-cleanup` — a `Scene` that registers persistent external
-  listeners must define a `shutdown` handler that removes them.
-
-## Architecture
-
-- **One scene class per file** under `src/scenes/`, named after the scene key.
-  The scene flow is `Boot → Preloader → MainMenu → Game` (plus overlays). Boot
-  loads only what the Preloader needs; the Preloader loads everything else.
-- **Pure game logic lives in `src/logic/**`** with no `phaser` imports — plain
-  TypeScript that takes and returns data. Scenes/entities are thin orchestrators
-  that wire that logic to GameObjects. See `phaser-testing`.
-- **Keys are typed constants** generated into `src/assets.ts` — never inline
-  magic strings for texture/audio/animation/scene/event keys. Load via asset-pack
-  manifests (`this.load.pack`), not ad-hoc `load.image` lists.
-
-## Performance
-
-- **No allocations in `update()`** and **no object/tween/timer creation in
-  `update()`** (both lint-enforced) — hoist scratch objects, reuse vectors.
-- **Pool, don't churn.** Bullets, enemies, particles, and pickups come from
-  `Group` pools (`get` / `killAndHide`), never `new` / `destroy` per spawn.
-- **Mass rendering uses the GPU layers.** Large sprite fields → `SpriteGPULayer`;
-  large tile maps → `TilemapGPULayer`. Atlas everything (see
-  `phaser-asset-pipeline`); `BitmapText` for high-churn text.
-- Target WebGL; the Canvas renderer is deprecated in v4 and acceptable only as an
-  explicit, documented fallback.
-
-## Verification
-
-Before reporting any change complete: run `bun run typecheck`, `bun run lint`,
-`bun run test`, and `bun run build`. For changes that affect rendering or input,
-verify in the real browser — `bun run dev` plus a Playwright check (the game
-boots, the canvas renders, no console errors). CI additionally runs the runtime
-gates (`phaser-testing`). A green typecheck alone is not proof a game works.
-
-## Game-development personas (subagents)
-
-This plugin ships **game-development persona subagents** under `agents/` —
-reusable *roles* (a publisher, a game designer, a target player, …) that
-critique the game from a non-engineering seat. They complement, and never
-duplicate, Lisa's engineering specialists (architecture, quality, test,
-security, performance). Most are **critics** (they review the design and report
-findings); a couple (`narrative-designer`, `target-player`) also **generate**
-content.
-
-**Role vs. instance.** The persona *role* lives here (genre-neutral, reusable
-across every Phaser game). The persona *instance data* — this game's actual
-target-player archetypes, art direction, economy spec, publisher constraints —
-lives in the project's wiki. Each subagent reads its source-of-truth wiki docs
-(`wiki/design/**`, `wiki/narrative/**`, `wiki/production/**`,
-`wiki/personas/**`, …) and degrades to genre-neutral best practice, saying so,
-when those docs are absent.
-
-| Tier | Personas |
-|------|----------|
-| **Core** (most games) | `game-designer`, `player-advocate`, `narrative-designer`, `level-designer`, `ux-ui-designer`, `game-feel-specialist`, `qa-playtester`, `producer` |
-| **Business & audience** | `publisher`, `marketing-strategist`, `target-player`, `accessibility-advocate` |
-| **Specialist** (opt-in per project) | `combat-designer`, `economy-designer`, `art-director`, `audio-director`, `monetization-designer`, `localization-manager`, `onboarding-advocate`, `product-analyst` |
-
-Invoke a persona as a subagent (e.g. via the Agent tool / `@`-mention) during
-planning and review. Specialist personas are opt-in — enable the ones the
-project's genre warrants (a puzzle game does not need a `combat-designer`); the
-`monetization-designer` should stay off for premium/offline titles.
-
+Full prose — the ten locked architecture decisions, the enforced lint rules, the
+performance contract, and the game-development persona subagents:
+[reference/phaser.md](phaser-reference.mdc).

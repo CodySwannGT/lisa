@@ -12,6 +12,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { materialize } from "./materialize-copy-overwrite.mjs";
+
 const repoRoot = path.resolve(import.meta.dirname, "..");
 const sourceDir = path.join(repoRoot, "src", "opencode", "plugin-templates");
 const destDir = path.join(repoRoot, "dist", "opencode", "plugin-templates");
@@ -24,6 +26,7 @@ const canonicalSupportFiles = [
   "block-no-verify.sh",
   "parity-safety-net.sh",
   "parity-safety-net-heredoc.py",
+  "guard-dedupe.bash",
 ];
 
 fs.rmSync(destDir, { recursive: true, force: true });
@@ -39,7 +42,9 @@ for (const entry of fs.readdirSync(sourceDir, { withFileTypes: true })) {
 }
 
 for (const filename of canonicalSupportFiles) {
-  fs.copyFileSync(
+  // build:dist precedes build:plugins. Stamp fresh authoring sources rather
+  // than copying possibly stale generated hooks, preserving channel parity.
+  materialize(
     path.join(canonicalHookDir, filename),
     path.join(destDir, filename)
   );

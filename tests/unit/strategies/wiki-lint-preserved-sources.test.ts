@@ -141,6 +141,41 @@ const SILENT_NOTE = "# Repository snapshot 2026-05-14\n\nNothing citable.\n";
 /** An authored page with no links at all. */
 const SILENT_PAGE = "# Concept A\n\nAuthored prose with no links.\n";
 
+describe("wiki lint: bare and backticked citations (#4151)", () => {
+  it.each(["", "`"])(
+    "resolves an existing citation delimited by %j",
+    delimiter => {
+      const fixture = makeWiki({
+        authored: `${SILENT_PAGE}\nSource: ${delimiter}wiki/${SOURCE_NOTE}${delimiter}\n`,
+        source: SILENT_NOTE,
+      });
+
+      const result = lint(fixture.root);
+
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain("0 fail, 0 warn, 0 info");
+    }
+  );
+
+  it.each(["", "`"])(
+    "still rejects a missing citation delimited by %j",
+    delimiter => {
+      const fixture = makeWiki({
+        authored: `${SILENT_PAGE}\nSource: ${delimiter}${MISSING_PAGE}${delimiter}\n`,
+        source: SILENT_NOTE,
+      });
+
+      const result = lint(fixture.root);
+
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain(
+        `citation path not found → ${MISSING_PAGE}`
+      );
+      expect(result.stdout).toContain("0 fail, 1 warn, 0 info");
+    }
+  );
+});
+
 describe("wiki lint: preserved sources cannot block (#3622)", () => {
   it("does not block on a preserved note citing paths the subject no longer has", () => {
     const fixture = makeWiki({ authored: SILENT_PAGE, source: CITING_NOTE });

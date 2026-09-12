@@ -6,15 +6,13 @@ allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
 
 # Rework Triage: $ARGUMENTS
 
-Classify why a previous agent attempt at this ticket failed, and convert that cause into a
-structural improvement. This is the self-hardening arm of the lifecycle: every classified
-failure either hardens the harness (an upstream Lisa issue), the project (a provisioning or
-environment ticket), or the spec (a PRD defect flag). A rework cycle that fixes the bug but
-never asks *why the agent got it wrong* guarantees the mistake recurs.
+Classify why the previous attempt failed and repair the actual cause. Apply `do-it-now`'s **Worth doing** guidance before proposing additional hardening. Fixing the defect and its relevant regression test can be sufficient; a failure does not automatically justify another rule, hook, or upstream ticket.
 
 The caller MUST have run `lisa-tracker-read` first and provided the context bundle (all
 comments chronological, linked PRs with review state, issue links, parent epic). Do not
 classify from a bare summary — evidence-free classification is worse than none.
+
+On runtimes without the rule tree (Antigravity), read **Worth doing** in `lisa-track` for the same value and decline policy.
 
 ## Phase 1 — Rework detection
 
@@ -41,8 +39,35 @@ first-attempt work.
    comment posted by `lisa-tracker-evidence` (`[lisa-evidence]` / the vendor evidence
    header). Only markers proving a prior *implementation* attempt qualify —
    `[lisa-rework-triage]` comments and other unrelated `[lisa-*]` annotations never do.
-4. **Explicit rework marker.** A `rework`, `qa-fail`, or `regression` label applied by QA or
-   the verify lifecycle.
+4. **Explicit rework marker.** A `rework` or `regression` label applied by QA or the verify
+   lifecycle, or a **live** QA-failure signal.
+
+   The QA-failure signal is transient, so its bare presence is not the signal — its
+   liveness is. Ask the resolver, never the label list:
+
+   ```bash
+   RESOLVER="${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-plugins/lisa}}/scripts/qa-signal-lifecycle.mjs"
+   node "$RESOLVER" --vendor "<jira|linear|github>" --item bundle.json
+   # bundle.json: { "labels": [...], "comments": [<bodies, oldest first>], "role": "<current>" }
+   ```
+
+   Branch on `outcome`, never on the label being there. The resolver's separate
+   `action` field is `keep` / `clear` / `none`; it is not the liveness verdict:
+
+   | `outcome` | Meaning | What triage does |
+   |---|---|---|
+   | `live` | the failure is unresolved | signal 4 fires — this is rework |
+   | `stale` | a later QA pass, or the certified/terminal role, voided it | signal 4 does **not** fire; **remove the label** (same tracker surface that applied it) and note the repair in the triage comment. Keep evaluating signals 1–3 |
+   | `absent` | no signal | signal 4 does not fire |
+   | `unchecked` | a declared void condition has no predicate | treat as `live` and surface it — a control nothing can evaluate is a defect to report, not an exemption |
+
+   Clearing a stale signal here is the repair path for items labelled before the signal had
+   an inverse; without it that backlog never drains. The `[lisa-qa-fail]` comments are the
+   history and are never touched — a stale signal removed still leaves the failure fully
+   readable, and signal 3 still reads those comments.
+
+   `rework` and `regression` are matched on presence as before. Whether they have the same
+   shape is **unverified** and not claimed here.
 
 Record which signal fired — it is part of the evidence trail.
 
@@ -88,7 +113,12 @@ never one per cycle re-entry.
 
 ## Phase 4 — Route the cause to its hardening destination
 
-Each cause has exactly one destination. File through the proper write path — never raw
+For each primary or secondary cause, first decide whether additional work clears
+`do-it-now`'s **Worth doing** bar. If not, report `Hardening action: none required`
+with a brief reason in the existing triage comment. Do not create a replacement
+learning or a human gate merely to retain the declined observation.
+
+The table gives destinations for accepted additional work. File through the proper write path — never raw
 ticket creation — so every hardening artifact passes the same quality gates as any other
 Lisa work item.
 
@@ -101,7 +131,7 @@ Lisa work item.
 | `prd-defect` | Source PRD | Comment on the PRD (via the `lisa-prd-backlink` lineage) quoting the defective requirement and the QA failure; flag for product review. Do NOT silently edit the PRD — spec changes are a human gate. |
 | `implementation-defect` (no secondary) | None | Normal fix path; the classification comment is the record. Pass the pattern to the `learner` phase — repeated implementation defects of the same shape escalate to `verification-gap`. |
 
-**Secondary causes route too.** A recorded secondary cause triggers its own row's
+**Secondary causes route too — when worthwhile.** A worthwhile secondary cause uses its row's
 destination in addition to the primary's: `implementation-defect` with a
 `verification-gap` secondary files the upstream Lisa issue per the `verification-gap`
 row — the code being wrong does not excuse the verification lifecycle for passing it.
@@ -124,16 +154,16 @@ section differ:
 | Defect | `self-hardening` | A Lisa gate/skill/template did something wrong — a harness bug the kernel must fix. | none |
 | Contribution | `template-candidate` | A generalizable pattern discovered downstream that would benefit every host project — not a defect, a proposed improvement to Lisa's templates/rules/skills. | `## Proposed template change` |
 
-1. **Dedupe first.** `gh issue list -R <upstream> --state open --search "<fingerprint terms>"`
+1. **Dedupe first.** Search open AND closed items and consult `rejection-detection`'s **Proposal rejection memory**, including legacy issues without markers. `gh issue list -R <upstream> --state all --search "<fingerprint terms>"`
    — if an open issue already covers this failure class or pattern, comment the new
    occurrence on it (evidence compounds; duplicates dilute) and link it instead of filing.
 2. **File with the same bar as any ticket:** a three-audience description (what failed or
    improved for the operator, what the harness did or could do, what to change), the
-   verbatim evidence chain (PRD text → ticket AC → QA failure → gate that passed it; for
-   patterns, the downstream occurrences proving generality), and the lane's label:
-   `gh issue create -R <upstream> --title "<gate/skill>: <failure class>" --label self-hardening`
-   for defects, or
-   `gh issue create -R <upstream> --title "<template surface>: <pattern>" --label template-candidate`
+   public-safe evidence chain (PRD text → ticket AC → QA failure → gate that passed it; for
+   patterns, the occurrences proving generality). Invoke `lisa-github-write-issue` against
+   `<upstream>` using the existing public-safe attribution/projection procedure from
+   `upstream-to-lisa`. Pass `build_ready: true` unless an explicit `human_gate` was declared,
+   then pass that reason instead. Use label `self-hardening` for defects or `template-candidate`
    for contributions. A `template-candidate` filing MUST include a
    `## Proposed template change` section naming the Lisa template/rule/skill surface to
    change (e.g. `typescript/package-lisa/package.lisa.json`, a `plugins/src/base` rule)
@@ -170,3 +200,7 @@ which blocks per the normal triage rules.
   bypass the quality gates this loop exists to strengthen.
 - Noise discipline: one triage comment per bounce (fingerprinted), no upstream issue without
   the dedupe search, and upstream issues describe failure *classes*, not single incidents.
+- Never key on a durable mark whose inverse you have not checked. A signal with no expiry
+  degrades toward meaning "this item has been around a while"
+  (`state-changes-without-inverses`), and a deterministic input that degrades is
+  deterministically wrong.

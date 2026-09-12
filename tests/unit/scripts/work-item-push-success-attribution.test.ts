@@ -45,19 +45,38 @@ import { describe, expect, it } from "vitest";
 
 import { pushSuccessLine } from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
 
-/** A commit-side result, with the fields this line reads. */
+/**
+ * A commit-side result, with the fields this line reads.
+ *
+ * `examined` defaults to the sum of the four counters because that is the
+ * invariant `validateCommits` guarantees — every commit it looked at landed in
+ * exactly one of them. Cases that need the counters NOT to add up (a range with
+ * a commit that is neither exempt nor counted) pass `examined` explicitly.
+ * @param over - The counters this case varies
+ * @returns A result object shaped like `validateCommits` returns
+ */
 const result = (over: {
+  examined?: number;
   relevant?: number;
   mergeExempt?: number;
   protectedExempt?: number;
+  releaseExempt?: number;
   verify?: string;
-}): Record<string, unknown> => ({
-  contract: { verify: over.verify ?? "full" },
-  mergeExempt: over.mergeExempt ?? 0,
-  protectedExempt: over.protectedExempt ?? 0,
-  relevant: over.relevant ?? 0,
-  releaseExempt: 0,
-});
+}): Record<string, unknown> => {
+  const mergeExempt = over.mergeExempt ?? 0;
+  const protectedExempt = over.protectedExempt ?? 0;
+  const releaseExempt = over.releaseExempt ?? 0;
+  const relevant = over.relevant ?? 0;
+  return {
+    contract: { verify: over.verify ?? "full" },
+    examined:
+      over.examined ?? mergeExempt + protectedExempt + releaseExempt + relevant,
+    mergeExempt,
+    protectedExempt,
+    releaseExempt,
+    relevant,
+  };
+};
 
 /** The clause that separates the two zero-commit states. */
 const MERGE_CLAUSE = "merge commit(s)";
@@ -100,6 +119,34 @@ describe("a deferral says it deferred", () => {
     // Without this the merge count reads as a count of things that WERE
     // checked, which is the opposite of what it means.
     expect(MERGE_ONLY).toContain("introduces no authored work");
+  });
+
+  it("names gate 3 as the gate that had no subject in this range", () => {
+    // CodySwannGT/lisa#3921, third scenario. "No authored work" says what the
+    // range held; it does not say which requirement therefore went unasked.
+    expect(MERGE_ONLY).toContain("gate 3 had no subject here");
+  });
+
+  it("says gates 4 and 5 were enforced here anyway", () => {
+    // The half that separates a deferral from a skip. A reader who cannot see
+    // this cannot tell whether the gate stood down from one requirement or all
+    // five, and that distinction is the whole point of the clause.
+    expect(MERGE_ONLY).toContain("Nothing else stood down");
+    expect(MERGE_ONLY).toContain("gates 4 and 5 were still enforced here");
+  });
+
+  it("does not claim gate 5 was enforced when the tracker was never contacted", () => {
+    // The rejection control on the sentence above. Under `trailer` there is no
+    // backlink check, so asserting one would be a vacuous success said out loud
+    // — the exact failure this clause was added to prevent.
+    const trailerLevel = pushSuccessLine(
+      result({ mergeExempt: 2, verify: "trailer" }),
+      ""
+    );
+
+    expect(trailerLevel).not.toContain("gates 4 and 5 were still enforced");
+    expect(trailerLevel).toContain("gate 4 was still enforced here");
+    expect(trailerLevel).toContain("gate 5 does not apply");
   });
 });
 

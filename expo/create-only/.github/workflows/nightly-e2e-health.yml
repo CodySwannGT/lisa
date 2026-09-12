@@ -166,6 +166,13 @@ jobs:
     # `scripts/check-template-workflow-refs.mjs`.
     uses: CodySwannGT/lisa/.github/workflows/nightly-e2e-health.yml@main
     with:
+      # Travels with the `uses:` line above — the two are one unit. Lisa's
+      # reusable workflows are tracked at `@main`, so that file changes under
+      # this repository with no pull request here. This is the contract major it
+      # spoke when Lisa seeded this file; the run fails loudly if it has since
+      # declared a break, and says NOT DETERMINED if this line goes missing
+      # (CodySwannGT/lisa#3698).
+      expected_workflow_contract_major: '1'
       branch: dev
       # Structured JSON, schema-validated before any API call. Duplicated
       # labels, unanchored regexes, unknown keys and zero-match patterns are all

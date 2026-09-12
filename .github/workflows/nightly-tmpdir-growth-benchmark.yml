@@ -6,13 +6,29 @@ name: 📅 Temp-scan latency benchmark
 # ## Why the benchmark needed a lane of its own
 #
 # CodySwannGT/lisa#3925 removed the benchmark from the pre-push task — correctly,
-# it costs 253.39 s and writes 300,000 real entries into the shared platform temp
-# root — on the stated grounds that CI still ran it every pull request. It did
+# it writes 300,000 real entries into the shared platform temp root — on the
+# stated grounds that CI still ran it every pull request. It did
 # not. The case is `it.runIf(process.platform === "darwin")` and every CI runner
 # is `ubuntu-latest`, so CI skipped it, and had skipped it before the move too.
 # What the move actually removed was the only automated surface that had EVER
 # executed it: the darwin pre-push gate (CodySwannGT/lisa#3935). This workflow is
 # that surface, restored off the critical path.
+#
+# ## 253.39 s was a contention symptom, not the benchmark's cost
+#
+# #3925 and #3935 both cite 253.39 s as what this benchmark costs, and that
+# figure travelled into design decisions as though it were a property of the
+# code. It is not. It was taken on a dev box under fleet load — roughly a dozen
+# concurrent agents, load1 between 100 and 165. The FIRST run of this lane
+# measured the same file at 33.46 s on an idle hosted runner (run 33935719741,
+# whole job 2 m 03 s). Both figures include building the three real
+# 100,000-entry roots, because the corpus is built inside the timed case. That
+# is roughly 7.5x, and the difference is contention, not the work
+# (CodySwannGT/lisa#3949).
+#
+# A performance figure measured under contention is a symptom, not a cost.
+# `tests/helpers/io-latency-budget.ts` already carries the same lesson in its
+# own header. Cite the idle figure, or name the box the contended one came from.
 #
 # ## Why darwin, stated rather than inherited
 #
@@ -25,21 +41,32 @@ name: 📅 Temp-scan latency benchmark
 # explicitly supports linux through `/proc`. Nothing in the measured path needs
 # darwin.
 #
-# It still runs on darwin, now on purpose, for two reasons that outlive the
-# accident:
+# It still runs on darwin, now on purpose, for ONE reason that outlives the
+# accident — and one former reason that has been demoted to an open question:
 #
 #  1. **The budget is a darwin figure.** `TMPDIR_GROWTH_COMMAND_BUDGET_MS` is
 #     5,000 ms against calibration samples of 169.97 / 170.94 / 527.62 ms taken
 #     on an 18-core M5 Max. No Linux figure has ever been measured. Asserting a
 #     wall-clock budget on an uncalibrated platform is not coverage, it is a
-#     future flake, and #3935 names that as the blocker to moving it.
-#  2. **The corpus cost does not shrink on Linux.** Building three real
-#     100,000-entry roots is the expensive half, and a 2-core hosted runner does
-#     not do it faster. Putting that on every pull request is the same trade
-#     #3925 rejected for the push gate, paid by every branch instead.
+#     future flake, and #3935 names that as the blocker to moving it. This is
+#     what holds the lane here.
+#  2. **The Linux corpus cost is UNMEASURED**, and used to be stated as a
+#     finding. Building three real 100,000-entry roots is the expensive half,
+#     and the claim was that a 2-core hosted runner does not do it faster, so a
+#     per-pull-request Linux lane would hand back the cost #3925 removed. The
+#     only number ever offered for that was the contended 253.39 s above; on an
+#     idle runner the same file takes 33.46 s, which is not obviously
+#     unaffordable per pull request. Nobody has run it on a 2-core Linux runner.
+#     Treat this as a hypothesis until someone does.
 #
-# If a measured Linux figure ever arrives, drop the `runIf` and move this lane to
-# `ubuntu-latest`; the execution proof below is what will tell you it worked.
+# The measurement that settles it: run this file on `ubuntu-latest` with the
+# case's `runIf` lifted, and record the six per-command elapsed times, the
+# whole-case elapsed, and `nproc`. If they sit comfortably inside a defensible
+# budget, drop the `runIf`, set the budget from the LINUX distribution rather
+# than the darwin one, and move this lane to `ubuntu-latest`; the execution
+# proof below is what will tell you it worked. If they do not, record the
+# numbers on #3949 and this lane stays — a closed question instead of an
+# inherited assumption.
 #
 # ## The execution proof is the point
 #
@@ -90,11 +117,12 @@ jobs:
     # tests/unit/config/tmpdir-growth-benchmark-scheduled.test.ts, so changing
     # one without the other fails in milliseconds instead of silently skipping.
     runs-on: macos-latest
-    # The file measured 253.39 s on an 18-core M5 Max, dominated by writing
-    # 300,000 real entries. A hosted macOS runner is slower and unbenchmarked
-    # here, so this is sized with generous room. `timeout-minutes` is a resource
-    # limit, not a quality threshold: the binding assertion is the 5,000 ms
-    # per-command budget inside the case, and raising this weakens nothing.
+    # The file measures 33.46 s on an idle hosted macOS runner (run 33935719741)
+    # and 253.39 s on a fleet-loaded 18-core M5 Max, dominated either way by
+    # writing 300,000 real entries. Sized with generous room for a loaded or
+    # slower runner. `timeout-minutes` is a resource limit, not a quality
+    # threshold: the binding assertion is the 5,000 ms per-command budget inside
+    # the case, and raising this weakens nothing.
     timeout-minutes: 60
     steps:
       - name: 📥 Checkout repository

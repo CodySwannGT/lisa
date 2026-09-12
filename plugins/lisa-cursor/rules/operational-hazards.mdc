@@ -1,0 +1,55 @@
+---
+description: "Operational Hazards — Short-Lived, Expiring, and Read by Sessions That Do Not Exist Yet"
+alwaysApply: true
+---
+
+# Operational Hazards — Short-Lived, Expiring, and Read by Sessions That Do Not Exist Yet
+
+**A broadcast cannot reach a session that starts after it, and the sessions that missed it never
+knew there was something to miss.** The lanes most likely to collide on a port, saturate the
+workers, or re-hit a defect somebody diagnosed an hour ago are precisely the ones that just
+started — so the population a fan-out structurally cannot reach is the population most exposed.
+
+Enumerating peers does not fix it: two sessions listing peers at the same moment returned different
+rosters, so "I told everyone" carries an unknown hole.
+
+## Mandatory
+
+- **Declare a transient hazard instead of announcing it.** A condition another session will hit —
+  a port another lane holds, a saturated resource, a command that dumps credentials, a gate that is
+  red for an environmental reason — is not communicated until this has run:
+
+  ```
+  node "$CLAUDE_PLUGIN_ROOT/hooks/operational-hazards.mjs" --declare <id> \
+    --hazard "<what will go wrong>" \
+    --avoid "<what to do instead>" \
+    --until <YYYY-MM-DD>
+  ```
+
+  `--until` is required and has no default. **An entry that never expires is doctrine, and doctrine
+  belongs in a rule** — a hazard surface without an expiry becomes permanent scripture, which is
+  the failure this exists against. Past its `until`, an entry stops being shown with nobody
+  remembering to remove it.
+
+- **Lift it when it ends.** A declaration nothing can void is the defect the QA-failure signal and
+  the human gate each closed:
+
+  ```
+  node "$CLAUDE_PLUGIN_ROOT/hooks/operational-hazards.mjs" --lift <id> --because "<what resolved it>"
+  ```
+
+- **Read it where no hook runs:** `node "$CLAUDE_PLUGIN_ROOT/hooks/operational-hazards.mjs" --list`.
+
+## What arrives on its own
+
+On Claude Code the ledger is read for you at SessionStart **and SubagentStart** — a subagent
+spawned an hour from now reads it, which no fan-out reaches at all — and re-checked after every
+tool call, so a hazard declared or lifted **while you are running** arrives on your next tool
+result. Two `stat` calls when nothing changed.
+
+An entry naming no evaluable expiry still applies and is reported as `unchecked`, loudly. An expiry
+that lapsed into "no longer shown" would restore permanent scripture while every signal read
+healthy.
+
+Both ledger tiers, what belongs here versus in a rule, and the surfaces with no hook runtime:
+[reference/operational-hazards.md](operational-hazards-reference.mdc).

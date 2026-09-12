@@ -15,6 +15,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   gateForSkipJob,
+  NON_DECLARABLE_JOBS,
   QUALITY_JOB_GATES,
   REGISTRY,
   RETIRED_SKIP_JOB_TOKENS,
@@ -111,6 +112,32 @@ const NOT_DERIVABLE_FROM_THE_NAME: readonly (readonly [string, string])[] = [
  * once a gate exists.
  */
 const UNMAPPABLE: readonly string[] = [];
+
+describe("a job that may not be declared off says why, in the shipped table", () => {
+  /** The shipped rule table, as this file consumes it. */
+  const RULED = NON_DECLARABLE_JOBS as Record<string, { reason: string }>;
+
+  it("gives both jobs a reason a reader can act on", () => {
+    // `quality-non-declarable-jobs.test.ts` asserts the same floor, but it is an
+    // INTEGRATION test and the mutation run never reaches it — so an emptied
+    // reason survived scoring while reading as covered. The reason is the whole
+    // artifact here: the table exists to stop the next agent re-arguing the
+    // ruling, and an empty string re-opens it.
+    expect(
+      Object.keys(RULED).sort((left, right) => left.localeCompare(right))
+    ).toEqual(["gate_config_validity", "skipped_required_checks"]);
+    for (const [job, entry] of Object.entries(RULED)) {
+      expect(entry.reason.length, job).toBeGreaterThanOrEqual(60);
+    }
+  });
+
+  it("names what each job would be switched off FROM", () => {
+    // Not a word count: each reason has to describe the specific circularity
+    // rather than assert that one exists.
+    expect(RULED.gate_config_validity?.reason).toContain("gate declarations");
+    expect(RULED.skipped_required_checks?.reason).toContain("SATISFIED");
+  });
+});
 
 describe("skip_jobs → gate mapping", () => {
   describe("the mapping ships outside the test suite", () => {

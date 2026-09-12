@@ -1033,7 +1033,7 @@ When `github-to-tracker` is invoked AND `tracker = "github"`, both reads and wri
 
 Never overload one label across both lifecycles.
 
-The same separation applies for Linear self-host (`source = "linear"` AND `tracker = "linear"`), with one asymmetry: project-level **labels** (`prd-*`) drive the PRD lifecycle, because a PRD is a Linear Project and Projects carry their own status object rather than Issue workflow states; issue-level **workflow states** (`linear.workflow`) drive the build lifecycle; the sentinel feedback issue carries the issue-level `prd-intake-feedback` label. So on Linear the two lanes are not merely different vocabularies, they are different *mechanisms* — never move a PRD by state or an Issue by `status:*` label.
+The same separation applies for Linear self-host (`source = "linear"` AND `tracker = "linear"`), with one asymmetry: project-level **labels** (`prd-*`) drive the PRD lifecycle, because a PRD is a Linear Project and Projects carry their own status object rather than Issue workflow states; issue-level **workflow states** (`linear.workflow`) drive the build lifecycle; clarifying-question comments go on the Project itself via `commentCreate(input: { projectId, body })`, so the PRD lane needs no issue label of its own (`prd-intake-feedback` survives only to recognise the fabricated feedback issues earlier versions created). So on Linear the two lanes are not merely different vocabularies, they are different *mechanisms* — never move a PRD by state or an Issue by `status:*` label.
 
 ## Notion access (substrate ladder)
 

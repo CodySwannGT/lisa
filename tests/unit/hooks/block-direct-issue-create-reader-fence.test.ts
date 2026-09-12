@@ -111,6 +111,24 @@ describe("searching FOR the pattern is not filing", () => {
 });
 
 describe("the coverage this must not trade away", () => {
+  it.each([
+    'echo "$(gh issue create --title "it\'s broken")"',
+    "echo `gh issue create --title \"it's broken\"` #'",
+    "cat <(gh issue create --title \"it's broken\") #'",
+    "echo x >(gh issue create --title \"it's broken\") #'",
+  ])("refuses unlexable creation inside a substitution: %s", command => {
+    const cwd = projectWithTracker(CONFIG);
+    expect(runHook(bash(command), { cwd }).status).toBe(EXIT_BLOCKED);
+  });
+
+  it("allows an ordinary reader apostrophe without executable substitutions", () => {
+    const cwd = projectWithTracker(CONFIG);
+    expect(
+      runHook(bash("echo the guard's gh issue create behaviour"), { cwd })
+        .status
+    ).toBe(EXIT_ALLOWED);
+  });
+
   it("still refuses RUNNING the same file", () => {
     // The pairing that stops this being a read-only exemption. Same file, same
     // contents; only the command position differs.

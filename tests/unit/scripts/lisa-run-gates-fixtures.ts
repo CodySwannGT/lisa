@@ -50,6 +50,8 @@ export type GateRun = {
   blocked: boolean;
   /** The first required gate that went unproved, or null when none did. */
   blockedBy: string | null;
+  /** Why the run stopped early, or null when it ran to the end. */
+  interrupted: string | null;
   total: number;
   results: GateOutcome[];
   passed: GateOutcome[];
