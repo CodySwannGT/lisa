@@ -2545,7 +2545,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/check-nightly-e2e-health.mjs":
       "cd02b94b4db5134984c7b69f905af71c96bb5aac09a18fb3c6aef5ab0c22cf17",
     "typescript/copy-overwrite/scripts/check-skipped-required-checks.mjs":
-      "a6b8f9c355cf3bb270221547ef0f38fa1e5fcf0b89d2ab6892fab258c10da5bc",
+      "012cdf0a50ecf3ed8379ffb1f3caa503e5377a16d78b0ebd26904f13309cbc13",
     "typescript/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "5806cdc3c80757100f0cd24a8cbd3c581f9a381a925f9ebdd1f4d79881e5de2a",
     "typescript/copy-overwrite/scripts/check-verification-coverage.mjs":
@@ -10476,6 +10476,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/setup-jira-cli-config.test.ts": true,
     "tests/unit/scripts/setup-jira-cli-project-dir.test.ts": true,
     "tests/unit/scripts/shipped-surface.test.ts": true,
+    "tests/unit/scripts/skipped-required-checks-cli.test.ts": true,
     "tests/unit/scripts/skipped-required-checks-wiring.test.ts": true,
     "tests/unit/scripts/skipped-required-checks.test.ts": true,
     "tests/unit/scripts/skipped-required-outcomes.test.ts": true,
