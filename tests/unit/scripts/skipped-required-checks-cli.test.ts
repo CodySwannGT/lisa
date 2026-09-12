@@ -56,7 +56,7 @@ describe("required-check CLI arguments", () => {
       expect(result.status).toBe(1);
       expect(JSON.parse(result.stdout)).toMatchObject({
         ok: false,
-        error: expect.stringContaining(flag.split("=")[0]),
+        error: expect.stringContaining(flag.split("=")[0] ?? flag),
       });
     }
   );
