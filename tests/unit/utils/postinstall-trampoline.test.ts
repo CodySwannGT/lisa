@@ -306,7 +306,7 @@ describe("postinstall-trampoline", () => {
       return dir;
     }
 
-    it("excludes a manager forbidden via engines sentinel even when its lockfile is present (SE-5221)", () => {
+    it("excludes a manager forbidden via engines sentinel even when its lockfile is present", () => {
       // npm-only project with a stray bun.lock — bun must be dropped so the
       // reconciliation never re-creates the bun.lock via `bun install`.
       const dir = withProject([BUN_LOCK, NPM_LOCK], { bun: "please-use-npm" });

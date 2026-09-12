@@ -9856,7 +9856,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 ### Bug Fixes
 
 * **pm:** add bun.lockb detection and jq guard to generated script skeleton ([3ce1ab7](https://github.com/CodySwannGT/lisa/commit/3ce1ab731faadad09943e1e206765e77f9512f2b))
-* **pm:** detect & respect project package manager; scope bun audit to prod (SE-5221) ([7f3993e](https://github.com/CodySwannGT/lisa/commit/7f3993e094e1291f9786b67561ebdf7921ac0485))
+* **pm:** detect & respect project package manager; scope bun audit to prod ([7f3993e](https://github.com/CodySwannGT/lisa/commit/7f3993e094e1291f9786b67561ebdf7921ac0485))
 
 ## [2.171.0](https://github.com/CodySwannGT/lisa/compare/vv2.170.0...v2.171.0) (2026-06-16)
 

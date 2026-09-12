@@ -775,7 +775,7 @@ else
     # npm branch (`npm audit --production`) and the yarn branch
     # (`yarn audit --groups dependencies`). Without it, bun audits
     # devDependencies too and the gate fails on dev-only CVEs that never ship —
-    # the SE-5221 false positive. bun honours `--production` even though
+    # the package-manager selection false positive. bun honours `--production` even though
     # `bun audit --help` omits it from the flag list.
     # Every path out of this block either parses advisory data or blocks the
     # push. The gzip branch below handles the transport shape that was measured;
