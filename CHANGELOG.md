@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.12](https://github.com/CodySwannGT/lisa/compare/v4.55.11...v4.55.12) (2026-09-12)
+
+
+### Bug Fixes
+
+* **privacy:** remove private tracker reference from distributed files ([fd1c8e2](https://github.com/CodySwannGT/lisa/commit/fd1c8e24bfd3a0af9ccdcfe60192b98ec36f8273)), closes [CodySwannGT/lisa#4110](https://github.com/CodySwannGT/lisa/issues/4110) [CodySwannGT/lisa#4110](https://github.com/CodySwannGT/lisa/issues/4110)
+
 ### [4.55.11](https://github.com/CodySwannGT/lisa/compare/v4.55.10...v4.55.11) (2026-09-12)
 
 
