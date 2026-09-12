@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.19](https://github.com/CodySwannGT/lisa/compare/v4.55.18...v4.55.19) (2026-09-12)
+
+
+### Bug Fixes
+
+* handle empty Jira evidence arrays on Bash 3.2 ([8a28667](https://github.com/CodySwannGT/lisa/commit/8a28667dd43a6fef076e68e3a92e2efcab1dcf7e)), closes [CodySwannGT/lisa#3235](https://github.com/CodySwannGT/lisa/issues/3235) [CodySwannGT/lisa#3235](https://github.com/CodySwannGT/lisa/issues/3235)
+* **skills:** centralize local review before PR submission ([4faf541](https://github.com/CodySwannGT/lisa/commit/4faf541468af706bded5e19ea6a0821f2742cb40)), closes [CodySwannGT/lisa#3544](https://github.com/CodySwannGT/lisa/issues/3544)
+
 ### [4.55.18](https://github.com/CodySwannGT/lisa/compare/v4.55.17...v4.55.18) (2026-09-12)
 
 
