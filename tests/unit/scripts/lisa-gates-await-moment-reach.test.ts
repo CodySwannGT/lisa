@@ -1,47 +1,9 @@
 /**
- * Which moments an `await:` declaration can reach, and what happens when it
- * gets there.
+ * Awaited contexts can be enforced at pull-request time. Local and deployment
+ * moments reject them when no consumer can enforce the signal.
  *
- * #3609 fixed a derivation gap at `pull-request` and left two moments
- * unanswered: nobody had ever asked whether the same gap existed at `push` or
- * at `pre-deploy`. The absence of an answer is what this module removes. The
- * two answers are opposite, and neither is the one the shape of the question
- * suggests.
- *
- * **At `push` the gap cannot exist.** Not because it was looked for and not
- * found — because its precondition is unreachable. `validateMoment` refuses an
- * `await:` at every moment in `NO_STATUS_MOMENTS`, so no valid configuration
- * can put an awaited signal there for a second derivation to disagree about.
- * `commit`, `session-start`, `pre-tool` and `post-tool` are refused for the
- * same reason and are swept here alongside it. This is a precondition
- * satisfied by construction, which is exactly the kind that goes untested and
- * then quietly stops holding, so it is asserted over the WHOLE registry rather
- * than for one representative gate.
- *
- * **At the deploy families a different gap is wide open.** `pre-deploy`,
- * `post-deploy` and `continuous` are not in `NO_STATUS_MOMENTS`, so `validate`
- * ACCEPTS `await:` there and `contextsFor` derives the awaited signal's own
- * name — the same derivation `pull-request` makes. What differs is the other
- * half: at `pull-request` that name is a required status check on the
- * generated base ruleset, so the promise is enforced. At a deploy moment
- * nothing consumes it. `lisa-run-gates.mjs` is the only executor those moments
- * have, and it classifies an awaited gate SKIPPED — "no signal exists locally"
- * — which does not fail the run. A gate declared `required` there therefore
- * reports green having proved nothing, and no surface compares the declaration
- * against anything, so nothing says so.
- *
- * That is why the third block below asserts a defect rather than a guarantee.
- * It is the recorded measurement, not an endorsement: when the gap is closed,
- * this block is what must change, and it names what a fix would have to do.
- * CodySwannGT/lisa#4046 tracks closing it, and carries the trap that makes the
- * obvious fix a no-op — both `NO_STATUS_MOMENTS` call sites compare the raw
- * moment key, so adding `pre-deploy` to that list never matches
- * `pre-deploy:production`.
- *
- * Measured at 4.50.3 over the 41-gate registry: 28 gates are legal at `push`
- * and 0 of them accept `await:`; 39 are legal at `pre-deploy` and all 39
- * accept it. This repository declares nothing at any deploy-family moment, so
- * its own exposure today is zero and the whole of it is latent.
+ * Context-name derivation alone does not establish enforcement. The runner
+ * controls below verify that invalid deployment configurations fail execution.
  * @module tests/unit/scripts/lisa-gates-await-moment-reach
  */
 
@@ -172,7 +134,7 @@ describe("the awaited signal's NAME is still derived at deploy moments", () => {
   });
 });
 
-describe("a required awaited gate at a deploy moment proves nothing", () => {
+describe("the runner refuses unsupported awaited deployment gates", () => {
   /**
    * Run the shipped runner against a throwaway config in its own directory.
    * @param moment The moment to run.
