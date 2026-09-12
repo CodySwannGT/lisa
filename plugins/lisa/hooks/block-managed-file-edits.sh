@@ -763,8 +763,8 @@ def parse_env_split(split_string):
     Returns:
         Arguments for the supported subset; otherwise raises UnresolvedEnvSplit.
     """
-    if any(marker in split_string for marker in (BACKSLASH, "#", "$", chr(11), chr(12))):
-        raise UnresolvedEnvSplit("escapes, comments, variable expansion or control whitespace")
+    if any(marker in split_string for marker in (BACKSLASH, "#", "$", chr(96), chr(11), chr(12))):
+        raise UnresolvedEnvSplit("escapes, comments, shell substitution, variable expansion or control whitespace")
     try:
         return shlex.split(split_string, comments=False, posix=True)
     except ValueError as error:

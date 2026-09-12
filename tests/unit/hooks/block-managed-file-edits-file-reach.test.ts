@@ -211,6 +211,18 @@ describe("block-managed-file-edits.sh reach", () => {
       expect(stderr).not.toContain("protection is NOT active");
     });
 
+    it("refuses backquote substitution inside a double-quoted env split string", () => {
+      // Only classifier input: neither env nor the generated tee runs.
+      const backquote = String.fromCharCode(96);
+      const command = `env -S "tee ${backquote}printf '%s%s' scripts/lisa-ho oks/block-no-verify.sh${backquote}"`;
+      const { status, stderr } = runGuard(GUARD, bash(command), {
+        cwd: host,
+        env: { CLAUDE_PROJECT_DIR: host, LISA_ALLOW_MANAGED_FILE_WRITE: "" },
+      });
+      expect(status).toBe(EXIT_BLOCKED);
+      expect(stderr).toContain("cannot resolve env --split-string");
+    });
+
     it("refuses a managed write after shell -c --", () => {
       expect(run(`bash -c -- 'echo tampered > ${MANAGED}'`)).toBe(EXIT_BLOCKED);
     });

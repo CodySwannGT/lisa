@@ -55,7 +55,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "2660d27d111beb79fed7e83feebcabd5f7e565dce99dbb4d861c8dc59ef8a0d7",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
-      "ad0e6212474be551a7557b39a0f99b718b05ee4230f4ee4cbde03d8ba8fd0c85",
+      "087569474640841ce7b767a525e311c53b1c404ec473e9947f45220ee051a7fb",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
       "c00a3659f997c046df3c147b348518aabe452fe6ecbd20a15fea68ac2def2b3f",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
@@ -751,7 +751,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.agy.sh":
       "19cda51fcc113f0b3c184d8907913ab4b49ecb81db80ce7909639194bc9c52d6",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
-      "ed03f03383c8ed874f20b5fc755fb3f484c7cab1e93045712aec7d979ebed327",
+      "764220b81b9eeaebbf0e14b4a41538aed43c7924bab65fef5528531c103a847f",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
       "452466fc87be994084017165a045a5fca77a357d71407d0524980c8bdd975c29",
     "plugins/src/base/hooks/block-no-verify.sh":
@@ -831,7 +831,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/00-rule-index.md":
       "03414cf9ed6fc4c5a3bbc31a31792c821a13418568a11c2175745d1af269cb8a",
     "plugins/src/base/rules/eager/base-rules.md":
-      "109d63a7a1104f478f07511329e687835e278ebed9700261f6e9fb53a8ebb2ba",
+      "3de39af7d5ad74b0b91fb939ec67a76b806d05a4b5c071c3941af6cd4108083c",
     "plugins/src/base/rules/eager/coding-philosophy.md":
       "cf2c52032e0368d81f17f002fed5c957ab350d01fc4a43f66b5f366516bac54a",
     "plugins/src/base/rules/eager/config-resolution.md":
