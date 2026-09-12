@@ -831,7 +831,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/00-rule-index.md":
       "03414cf9ed6fc4c5a3bbc31a31792c821a13418568a11c2175745d1af269cb8a",
     "plugins/src/base/rules/eager/base-rules.md":
-      "8c45ec91948b6cf954291731a2d9bf388ae7401a681e4df09bb39912416044e7",
+      "109d63a7a1104f478f07511329e687835e278ebed9700261f6e9fb53a8ebb2ba",
     "plugins/src/base/rules/eager/coding-philosophy.md":
       "cf2c52032e0368d81f17f002fed5c957ab350d01fc4a43f66b5f366516bac54a",
     "plugins/src/base/rules/eager/config-resolution.md":
@@ -1457,7 +1457,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-ticket-triage/SKILL.md":
       "a4f2e75ee3792418aa3b6621f83c75832eea85ffe670e26e74da808611dcf34f",
     "plugins/src/base/skills/lisa-track/SKILL.md":
-      "8183d681354fc8ccedebbf79f1652e78c0fc97a7854d0df4e60524e52c182edb",
+      "eba36414134a55352089d9464d37d15039bf66e6095dcf5083da871446f7167d",
     "plugins/src/base/skills/lisa-tracker-add-journey/SKILL.md":
       "a3da2e0350bcdebcdcc05f2d7931af868382638d3a28d09d4718f2f458d4be0a",
     "plugins/src/base/skills/lisa-tracker-build-intake/SKILL.md":
