@@ -3785,11 +3785,16 @@ function declarationAdvice(refs) {
  * @param {object[]} findings Accumulator.
  * @param {string[]} commitRefs References the range's commits carry.
  * @param {string[]} bodyRefs References the pull-request body declares.
+ * @param {boolean} rangeIsPartial Whether earlier PR commits are outside this range.
  */
-function reportMapping(findings, commitRefs, bodyRefs) {
+function reportMapping(findings, commitRefs, bodyRefs, rangeIsPartial) {
   if (commitRefs.length === 0 || bodyRefs.length === 0) return;
   const undeclared = commitRefs.filter(ref => !bodyRefs.includes(ref));
-  const unsupported = bodyRefs.filter(ref => !commitRefs.includes(ref));
+  // Earlier pushes may carry the other declarations; full-PR validation
+  // still rejects declarations unsupported by the complete commit range.
+  const unsupported = rangeIsPartial
+    ? []
+    : bodyRefs.filter(ref => !commitRefs.includes(ref));
   // The 1:1 case keeps its own sentence. "Body declares X, commits carry Y" is
   // one disagreement, and splitting it into a missing item plus a spurious one
   // describes a single typo as two faults.
@@ -3878,8 +3883,8 @@ export function mergeOnlyRange(result) {
 /**
  * Check every pull-request requirement and report all of the unmet ones.
  *
- * `rangeIsPartial` is what the PUSH path passes, and it changes exactly one
- * thing: whether a commit side with nothing in it is a violation.
+ * `rangeIsPartial` identifies the push range. Earlier PR commits may carry
+ * declarations absent here, and a merge-only range has no authored work to check.
  *
  * The push path evaluates the UNPUSHED range — deliberately, and for a reason
  * that must not be undone: `parsePushGroups` excludes commits already on the
@@ -3983,7 +3988,7 @@ function validatePrData(outcome, prUrl, prBody, rangeIsPartial = false) {
     collect(findings, IN_THIS_PR, GATE_MAPPING, () =>
       prWorkItems(prBody, contract)
     ) ?? [];
-  reportMapping(findings, commitRefs, bodyRefs);
+  reportMapping(findings, commitRefs, bodyRefs, rangeIsPartial);
   const refs = commitRefs.length > 0 ? commitRefs : bodyRefs;
   // Requirement 4 belongs to `full` alone: it needs tracker WRITE access, and
   // a project that keeps no tracker credentials cannot ever satisfy it. The
