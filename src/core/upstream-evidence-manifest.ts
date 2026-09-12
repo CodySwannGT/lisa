@@ -885,7 +885,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/base-rules.md":
       "938173f9e048a0f8e09bd825d97f2e3a3e97f03fc99037fcdae47a9bfa99f307",
     "plugins/src/base/rules/reference/bdd-e2e-coverage.md":
-      "4eb366dfc83f22c25fe22544f0a2b12f702d0bda3b30a9456364afc50eee767c",
+      "05491cdf9b64327cd0ba8f205242128749700113a61de3c62e43e8787d1971c1",
     "plugins/src/base/rules/reference/blocker-containment.md":
       "b88a8a58cebd4dabcc130439df65b1be54a6f78a6098359e86135d267e41f096",
     "plugins/src/base/rules/reference/claim-archaeology.md":
