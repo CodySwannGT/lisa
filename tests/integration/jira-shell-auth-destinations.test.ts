@@ -71,9 +71,10 @@ afterEach(() => {
 /**
  * Prepare isolated service stubs that record requests and credential encoding.
  * @param server - Configured origin under test; never contacted over the network.
+ * @param files - Numbered evidence files to stage.
  * @returns Isolated paths for the real helper and request recorder.
  */
-function prepareFixture(server: string) {
+function prepareFixture(server: string, files = ["01-log.txt", "02-shot.png"]) {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-jira-auth-"));
   const bin = path.join(root, "bin");
   const evidence = path.join(root, "evidence");
@@ -87,12 +88,7 @@ function prepareFixture(server: string) {
     path.join(config, ".config.yml"),
     `server: ${server}\nlogin: operator@jira.invalid\n`
   );
-  for (const name of [
-    "01-log.txt",
-    "02-shot.png",
-    "comment.md",
-    "comment.txt",
-  ]) {
+  for (const name of [...files, "comment.md", "comment.txt"]) {
     writeFileSync(path.join(evidence, name), "fixture evidence\n");
   }
   writeStub(
@@ -118,15 +114,16 @@ function prepareFixture(server: string) {
  * @param options - Configuration and response controls.
  * @param options.configOnly - Omit environment overrides to exercise config fallback.
  * @param options.redirect - Simulate a signed external attachment redirect.
+ * @param options.files - Numbered evidence files to stage.
  * @returns Process result with all observed credential and request events.
  */
 function runHelper(
   script: string,
   server: string,
   attachment = "12345",
-  options: { configOnly?: boolean; redirect?: boolean } = {}
+  options: { configOnly?: boolean; redirect?: boolean; files?: string[] } = {}
 ) {
-  const { root, bin, evidence, trace } = prepareFixture(server);
+  const { root, bin, evidence, trace } = prepareFixture(server, options.files);
   const download = script === DOWNLOAD;
   const args = download
     ? [attachment, path.join(root, "attachment")]
@@ -154,6 +151,26 @@ function runHelper(
   });
   return { ...result, trace: readFileSync(trace, "utf8") };
 }
+
+describe.each(SOURCES.slice(1))("Jira missing evidence kinds: %s", script => {
+  it("reports absent evidence before any upload", () => {
+    const result = runHelper(script, ORIGIN, undefined, { files: [] });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("No numbered evidence files found");
+    expect(result.stderr).not.toContain("unbound variable");
+    expect(result.trace).not.toContain(AUTH_CONSTRUCTED);
+  });
+
+  it.each([["01-log file.txt"], ["02-shot file.png"]])(
+    "uploads a single evidence kind: %s",
+    file => {
+      const result = runHelper(script, ORIGIN, undefined, { files: [file] });
+      expect(result.status).toBe(0);
+      expect(result.stderr).not.toContain("unbound variable");
+      expect(result.stdout).toContain(file);
+    }
+  );
+});
 
 describe.each(SOURCES)("Jira credential destination: %s", script => {
   it.each(INVALID_SERVERS)(
