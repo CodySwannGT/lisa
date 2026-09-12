@@ -586,7 +586,7 @@ rule's **Proposal rejection memory** section, that marker search MUST cover **op
 tickets (body-enumeration fallback on search-index lag): an **open** match → reference it and ensure
 the `is blocked by` link is present rather than creating a duplicate; a match **closed as _not
 planned_** (GitHub `stateReason == "not_planned"`; the config-resolved equivalent on JIRA/Linear) is
-a **human decline** of that fix ticket — do **not** re-file it unless evidence **postdates the
+a **human decline** of that fix ticket — do **not** re-file it without a materially changed consequence, requirement, or risk addressing the decline, supported by evidence that **postdates the
 decline**, and the re-filed ticket MUST carry BOTH the machine token (`declined <date>; recurred
 <date> in <ref>`) and the human acknowledgment sentence (`You declined this on <date>. It has
 recurred (<date>, <ref>), so we're raising it once more for your review.`); a match closed as

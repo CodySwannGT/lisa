@@ -344,6 +344,9 @@ This gate never blocks a legitimate flat Task/Bug: those have no open children a
 
 #### 3b. Claim
 
+Before the claim mutation, apply `claim-time-guards` — **Value before claim**, or **Worth doing** in `lisa-track` on runtimes without the rule tree (Antigravity). A ready label establishes neither value nor permission to expand scope. Respect the preceding human-hold gate; a declined incidental item consumes this cycle's one processed disposition.
+
+
 **Rejection detection runs first — before the transition below.** Per the vendor-neutral `rejection-detection` rule (cite the slug; do not restate its classification table), classify this Issue at the **top of 3b, BEFORE** the `$READY → $CLAIMED` transition — afterwards the current-lane signal is gone. Read the Issue's history via `lisa-linear-access operation: history id: <ISSUE-ID>`, keyed on **workflow-state** history, and classify it `rejection-reclaim | forward-only | never-left-ready | unknown` (a `rejection-reclaim` is a move back into `$READY` from a later lane). State names come from `.lisa.config.json`, never hardcoded.
 
 > Reading state history is strictly simpler than the label history this used to key on: `IssueHistory` inlines `fromState.name` / `toState.name` on each node, so the transition is read directly with no label-ID resolution against `list-issue-labels` and no reconstruction from `addedLabelIds`/`removedLabelIds` deltas. That reconstruction was lossy — the deltas carry no prior/next full set — which is one more reason the build lane moved to states. A failing/absent history yields `unknown` and the claim proceeds — detection never blocks the build. Issues carrying a learning marker (`[lisa-learning-drop]` / `[lisa-learning-pr]` / `[lisa-learning-upstream-handoff]`) or the `learning:needs-triage` label are never rejection triggers (no learning-about-learning). Carry the classification into the transition and lifecycle below.

@@ -13,13 +13,17 @@ alwaysApply: false
 
 Filing a work item without the ready role is an **incomplete handoff** — build-intake scans the ready lane and nothing else, so the item is never picked up. A correct write plus a missing role still loses the work.
 
+## Value precedes readiness
+
+Apply `do-it-now`'s **Worth doing** guidance before deciding to file. A declined observation produces no ticket and needs no `human_gate`; it is not an incomplete handoff. Build-ready means both worthwhile and complete enough to build. Do not invent work merely to satisfy this filing contract.
+
 ## Omitted means NOT ready — on every tracker
 
 **An omitted `build_ready` is NOT build-ready on JIRA, GitHub, and Linear alike.** Ready is an explicit claim, never an accident of which tracker a project configured. This is a **breaking change** for GitHub and Linear callers, which previously treated omission as ready; `lisa-github-validate-issue` F4's compensating omitted → `true` normalization is removed with it.
 
 ## Every filing declares one of three things
 
-- **`build_ready: true`** — complete enough to build; enters the ready lane for auto-pickup. Required for any complete defect found during other work, so it is claimable next cycle with no human flipping status.
+- **`build_ready: true`** — complete enough to build; enters the ready lane for auto-pickup. Required for an accepted worthwhile defect found during other work, so it is claimable next cycle with no human flipping status.
 - **`human_gate: "<why a human must judge this first>"`** — deliberately held outside the queue. The writer stamps a visible line plus `<!-- [lisa-human-gate] reason=<short-slug> -->` so the hold is auditable.
 - **The container declaration** — `None — container: state rolls up from children`, the canonical line `derived-branch-plan` defines and every writer stamps in place of a Target Backend Environment. A container is never build-ready (`leaf-only-lifecycle`) and needs no gate, so it declares the third thing instead. Deliberately **not** keyed on `--label type:Epic`: a declared type is a claim that costs a leaf nothing and leaves it looking buildable, where the container line costs the item the environment and Branch Plan a leaf needs to be built. It is refused alongside a by-design leaf type (`type:Bug` / `type:Task` / `type:Sub-task` / `type:Improvement`) — an item cannot be a container and a leaf at once.
 
@@ -65,7 +69,7 @@ The safe direction is the implicit one. A ticket that reaches a build queue by a
 
 A writer accepts a filing only when it carries **one** of:
 
-- **`build_ready: true`** — the item is complete enough to build and enters the ready lane for auto-pickup. This is the correct answer for a complete defect found during other work.
+- **`build_ready: true`** — the item is complete enough to build and enters the ready lane for auto-pickup. This is the correct answer for an accepted worthwhile defect found during other work.
 - **`human_gate: "<why a human must judge this first>"`** — the item is deliberately held outside the queue because a human product call is pending. The writer stamps a visible marker on the item so the hold is auditable rather than indistinguishable from an accident:
 
   ```text

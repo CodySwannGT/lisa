@@ -5,12 +5,14 @@ description: "Playwright/e2e coverage-gap…"
 
 # E2E Coverage Gaps
 
+On runtimes without the rule tree (Antigravity), read **Worth doing** in `lisa-track` for the same value and decline policy.
+
 ## Overview
 
 Find where the automated end-to-end (Playwright) suite is **blind**: routes with no test at all, and
 flows that only assert the **happy path** while ignoring error, permission, empty, loading, and edge
 cases. Inventory the app's routes and the existing tests, explore the running app to confirm each gap
-is real and reachable, then file each gap as a **build-ready missing-test work item** so it enters the
+is real and reachable, then group worthwhile gaps into **bounded build-ready missing-test work items** so it enters the
 Lisa lifecycle.
 
 This skill is purely about **automated-coverage gaps**. It does not judge whether the UI is confusing
@@ -62,12 +64,13 @@ Map routes/flows against existing coverage and classify each gap:
 
 ### 5. Explore to Confirm
 
+- Apply `do-it-now`'s **Worth doing** guidance: missing coverage alone is not a defect. Identify a required behavior or credible material risk; decline low-value gaps without filing and group related accepted gaps.
 - Navigate each candidate gap in the running app to confirm it is real, reachable, and worth a test.
   Discard gaps that aren't actually reachable or are intentionally out of scope.
 
-### 6. File One Ticket Per Gap
+### 6. File Bounded Work for Accepted Gaps
 
-Each confirmed gap becomes a leaf **missing-test** work item created via `lisa-tracker-write` (the
+Each accepted gap or coherent group becomes a leaf **missing-test** work item created via `lisa-tracker-write` (the
 vendor-neutral writer — it dispatches to the configured tracker and runs the validation gate; never
 call a vendor `*-write-*` skill directly), `issue_type: Task`, **build-ready per the `ready` flag
 (default `true`)**. Pass `build_ready` explicitly on every create. Each ticket MUST specify:
@@ -80,11 +83,15 @@ call a vendor `*-write-*` skill directly), `issue_type: Task`, **build-ready per
 
 ### Idempotency — don't spam duplicates
 
-Before creating a ticket, search the tracker for an **open** ticket carrying a stable marker
-`[lisa-e2e-coverage-gaps] <gap-key>` in its body (the `<gap-key>` is a stable slug of route + missing
-scenario, e.g. `checkout/payment-declined` or `dashboard/empty-state@mobile`). If one exists, reference
-it instead of duplicating. **Match by the marker, never by title.** A *closed* prior ticket does not
-suppress a genuine new gap.
+Before creating a ticket, follow `rejection-detection` — **Proposal rejection memory**:
+search open AND closed tickets for `[lisa-e2e-coverage-gaps] <gap-key>`, a stable slug
+of route + missing scenario. Match by the marker for any constituent gap, never by title alone. Reuse open matches. For legacy unmarked issues, read
+bodies and closing discussions to establish a semantic match; title similarity
+alone is insufficient. A **Not planned** decision suppresses the same accepted
+limitation, even when seen again later. Re-propose only for a materially changed
+consequence, requirement, or risk that addresses the decline. A completed fix may
+have a real regression, which must be verified before filing. Grouped work retains
+the constituent gap markers so a later pass can find it.
 
 ## Output
 

@@ -22,7 +22,23 @@ continue through the existing path and never override an independently declared 
 
 Establish the tracked-work invariant before any durable project mutation. Discussion and read-only orientation may proceed without this skill; code, configuration, documentation, research artifacts, plans, investigation findings, tests, commits, and pull requests may not.
 
-This flow must return exactly one canonical `(tracker_provider, work_item_ref)` pair or fail closed. It never returns an unvalidated textual guess.
+For accepted work this flow must return exactly one canonical `(tracker_provider, work_item_ref)` pair or fail closed. A declined incidental finding returns only its reason and authorizes no durable implementation. It never returns an unvalidated textual guess.
+
+## Worth doing
+
+Before filing, promoting, or claiming an incidental finding, ask whether the expected benefit justifies implementation, verification, maintenance, CI, and operator attention. Use the evidence already available; no numeric score, new tracking system, or speculative audit is required.
+
+- **Act** on concrete delivery failures, incorrect results, credible material security or data-loss risks, and recurring friction whose repair is worth its cost. A small fix can have a large consequence; security need not wait for an incident.
+- **Bundle** related small repairs when one bounded maintenance task is worth doing. Reuse an existing relevant item where possible. Do not expand unrelated work or create one ticket per wording fix.
+- **Decline** cosmetic preferences, speculative edge cases, duplicate controls, or changes whose likely benefit is smaller than their ongoing cost. Acceptable as-is is a valid engineering decision. Say why briefly in the current report, review, or issue; do not create a ticket, ledger entry, new rule, or human gate merely to record a declined observation.
+
+A reproducible imperfection proves that something happens, not that it deserves factory capacity. A complete specification establishes buildability, not value. Missing enforcement or test coverage alone does not justify new machinery; name the required behavior or credible consequence at risk. Honor explicit user requests, accepted product requirements, and material safety obligations. This rule cannot silently cancel those commitments or excuse failing required checks.
+
+## Prefer less machinery
+
+Start with the smallest sufficient correction at the owning component. Consider removing or consolidating redundant machinery before adding a hook, workflow, abstraction, registry, or test framework. Preserve required behavior and protection, and verify the consequence of the change. An isolated failure does not automatically justify a permanent control for every future session.
+
+For an existing incidental item, read its discussion, linked PRs and dependencies before declining. Close as **Not planned** (configured Jira/Linear equivalent), give the reason, and remove active lifecycle labels. Preserve human holds and committed scope unless cancellation is authorized; resolve effects on active PRs and dependent delivery first. Before re-filing, search open AND closed issues, read legacy unmarked matches, and require materially changed consequences that address the earlier reason. A later observation of the same accepted limitation is insufficient.
 
 ## Phase 1 — Resolve tracker and classify input
 
@@ -41,6 +57,8 @@ This flow must return exactly one canonical `(tracker_provider, work_item_ref)` 
 Invoke `lisa-tracker-read <ref>` and require a live result from the configured project. Reject nonexistent, inaccessible, closed/resolved/terminal, wrong-project, wrong-repository, or container items. Read the returned body, labels and all comments; Phase 3 uses the shared hold classifier so a historical `[lisa-human-gate]` marker with a matching release is not mistaken for an active hold. This live read is mandatory even if caller context already includes ticket text.
 
 ### File or plain text
+
+For incidental findings, apply `do-it-now` before resolving a new leaf. If the finding is declined, return the reason without creating or claiming anything; durable implementation does not start. Explicit user requests and accepted requirements remain in scope.
 
 Search conservatively before creating:
 

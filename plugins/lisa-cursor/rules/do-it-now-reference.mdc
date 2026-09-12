@@ -5,38 +5,20 @@ alwaysApply: false
 
 # Do It Now
 
-## The failure
+Lisa helps projects ship dependable software with less effort. Finish authorized, worthwhile work instead of leaving an unowned promise. This instruction does not turn every imperfection into an obligation.
 
-An agent notices something that needs doing — a lint rule that would have caught the bug it just fixed, a stale comment, a real defect found beside the one it was sent for, a ticket that should be flipped to ready — and writes a sentence about it instead of doing it. "Worth adding a rule for this later." "We should file that." "Follow-up: update the doc."
+## Worth doing
 
-Almost none of those happen. The note lands in a session transcript nobody re-reads, or in a report the human skims once. Even when it survives, the next session pays full price to rebuild the context that made the work obvious — which is the moment you are in right now, and it will not come back this cheap.
+Read **Worth doing** in the `lisa-track` skill for the shared value decision and preference for less machinery. That existing skill is the portable home: Antigravity does not receive the rule tree, but does receive skills. This rule's eager summary and every incidental filing/intake path point to the same guidance.
 
-The originating example: a session closed a non-reproducing bug, found a genuine defect next to it, filed a ticket for the real defect, and then left the ticket sitting outside the ready lane. Every individual step was correct. The handoff was incomplete, and the work sat.
+## Complete the accepted work
 
-## The rule
+Once scope and value are established, do the permitted work now: fix the defect, update documentation made wrong by the change, remove temporary scaffolding, and verify the result. Do not leave an accepted action as a vague follow-up. If worthwhile work must be deferred because it exceeds scope or depends on another change, track the smallest coherent outcome and give the reason.
 
-**If the factory is allowed to do it, do it in this session.** Allowed means: within scope, within your permissions, and not behind an exterior human gate. That covers the great majority of "later" items:
+Protected deployments, held PRDs, and unresolved product decisions still wait outside the factory. Prepare the authorized portion and explain what remains. Routine decisions to decline low-value incidental work belong to the agent; do not send every nit to a human.
 
-- Filing the ticket — and flipping it to the ready role so something picks it up (`tracked-work`).
-- Adding the lint rule, ast-grep pattern, or test that prevents the recurrence (`promotion-contract` — and note that promotion is atomic: enable the control, fix the existing violations, ship the diagnostic, delete the superseded prose).
-- Fixing the flaky test rather than re-running it.
-- Updating the doc, comment, or rule your change just made wrong (`stale-state-claims`).
-- Cleaning up the scaffolding you introduced.
+## Existing backlog
 
-## The exception, and its shape
+Read the issue, current discussion, linked PRs, and dependencies before deciding. A ready label or an agent's prior filing is not proof of value. For an incidental improvement that does not clear the bar, close as **Not planned** (the configured equivalent on Jira/Linear), record a short specific reason, and remove active lifecycle labels. Do not mark declined work completed or implemented. Preserve explicit human holds and committed product scope; if cancellation would affect an active PR or a dependent delivery item, resolve that relationship before closing.
 
-Lisa's exterior gates exist on purpose and this rule does not override them. A protected deployment, a held-back PRD, a low-confidence learning awaiting human review, a product judgement only a person can make — these wait for the human, by design.
-
-The exception is narrower than it first appears, because it applies to the **gated step**, not to the whole item. Do everything up to the gate now:
-
-1. Do the allowed part — file it, write it, prepare it, get it to the edge of the gate.
-2. Mark the gate explicitly, in the tracker, so it is visible outside your session.
-3. Say plainly, in your update, what is waiting on a human and what will happen once they act.
-
-"Waiting on a human" is a state you report, never a place you leave work silently.
-
-## Deferring is a decision
-
-Sometimes not doing it now is genuinely right: the change is out of scope, it would balloon the diff past reviewability, it depends on a decision not yet made, or it belongs to a different work item. Those are legitimate — and they are **decisions**, which means they get said out loud with a reason, and the deferred item becomes tracked work rather than a sentence.
-
-What is never acceptable is the implied deferral: noticing, saying nothing, and moving on. The human cannot act on what you did not tell them, and neither can the next session.
+Before re-filing, consult `rejection-detection`'s **Proposal rejection memory**, including legacy issues without markers. Repeating an accepted limitation is not new evidence that warrants reversing a decline.

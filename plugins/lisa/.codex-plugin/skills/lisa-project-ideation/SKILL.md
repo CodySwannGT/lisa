@@ -249,7 +249,7 @@ Per the `rejection-detection` rule's **Proposal rejection memory** section, that
 cover **open AND closed** PRDs (with a body-enumeration fallback on search-index lag), and a PRD
 **closed as _not planned_** (GitHub `stateReason == "not_planned"`; the config-resolved won't-do/
 canceled equivalent on JIRA/Linear — never a hardcoded lane string) is a **durable human decline**
-that **suppresses** re-proposing that idea. Re-propose only with evidence that **postdates the
+that **suppresses** re-proposing that idea. Re-propose only for a materially changed consequence, requirement, or risk addressing the decline, supported by evidence that **postdates the
 decline**, and state it in the new PRD as BOTH the machine token (`declined <date>; recurred <date>
 in <ref>`) and a human acknowledgment sentence (`You declined this on <date>. It has recurred
 (<date>, <ref>), so we're raising it once more for your review.`). A PRD closed as _completed_ is
@@ -350,7 +350,7 @@ marker-deduped teardown proposal through `lisa-tracker-write` (per `tracked-work
 - **Marker** `<!-- [lisa-automation-retire] key=exploratory-prds -->` plus a visible prose line;
   matched on the marker, never the title; searched **open AND closed** per `rejection-detection`'s
   **Proposal rejection memory**. Treat matches by close state: **open** suppresses another proposal;
-  **Not planned** suppresses another proposal unless new evidence postdates the rejection;
+  **Not planned** suppresses another proposal unless new evidence postdates the rejection and materially changes the consequence, requirement, or risk that justified the decline;
   **Completed** means the prior approved action happened, so a later recurrence may be re-filed.
   When an existing proposal suppresses filing, **the run still records `policy-obsolete` and files
   nothing** — the outcome describes this run, while the ticket is filed exactly once.

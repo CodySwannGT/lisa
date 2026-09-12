@@ -1,5 +1,7 @@
 # Tracked Work
 
+Apply `do-it-now` before creating work from incidental findings. Declining an observation needs no new ticket. Related small accepted repairs may share one bounded maintenance leaf; traceability does not require a separate item for every nit.
+
 Before the first durable project mutation (code, tests, config, docs, committed research/plans/findings, commits, or PRs), establish exactly one live tracker leaf through `lisa-track`. Read-only discussion and orientation are exempt only while they produce no durable artifact.
 
 The mandatory order is: live-validate an explicit ref, or conservatively search and create exactly one valid leaf through `lisa-tracker-write` when no unique match exists; idempotently claim it through `lisa-tracker-claim`; then persist and verify the worktree-local binding with `node scripts/lisa-work-item.mjs link <ref>`. A tracker that answers no, and any claim or binding failure, blocks durable work; a tracker that cannot be reached does not block a commit — the offline checks still run, the skip is loud on stderr, and the required `Work-Item Traceability` check re-runs the live checks with credentials before anything merges.
