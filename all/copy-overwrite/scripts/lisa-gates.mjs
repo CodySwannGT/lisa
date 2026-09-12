@@ -4892,8 +4892,7 @@ function validatePostedBy(id, moment, entry) {
  *    own name from wherever its app runs, and no chain prefixes it — so the
  *    author who declared the override to fix a context would keep requiring
  *    the unchanged one while believing it had been fixed.
- * 2. At a moment where nothing posts a status at all there is no check-run
- *    name for the chain to shape.
+ * 2. Outside pull-request validation, no required check consumes the chain.
  * 3. A blank, non-string or empty level derives `" / <label>"` or
  *    `"<a> /  / <label>"` — strings that read as plausible and that no run has
  *    ever posted. `declaredCallerChain` is what refuses those, and it is the
@@ -4918,11 +4917,11 @@ function validateCallerChain(id, moment, entry) {
         `be "${entry.await}".`,
     ];
   }
-  if (NO_STATUS_MOMENTS.includes(moment)) {
+  const family = momentFamily(moment);
+  if (NO_STATUS_MOMENTS.includes(family) || MOMENT_FAMILIES.includes(family)) {
     return [
-      `${where} names the chain of jobs a check run is posted under, but ` +
-        `nothing posts a check run at "${moment}" — it runs here, before ` +
-        `there is a pull request for a status to attach to. Declare it at ` +
+      `${where} shapes required pull-request check names, but has no consumer ` +
+        `at "${moment}". Declare it at ` +
         `"${PULL_REQUEST}", which is the moment whose context it shapes.`,
     ];
   }
