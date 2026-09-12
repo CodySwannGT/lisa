@@ -85,7 +85,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "f74e292cd3a03a382dce46088ab7f5623e1df94eb7653127eca7eeb4e99c743c",
+      "58cdf4db05dbf6463d405e0691e078034fd3c99d2859a978c0d332458db5c3f3",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -1127,7 +1127,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-generate-claude-remote-build-script/SKILL.md":
       "214ed34793b9758a65930ef2a79eea8e44ee1f6c85a35b92fbc621cb539e0c69",
     "plugins/src/base/skills/lisa-git-commit/SKILL.md":
-      "56320566e9278fb43b4d51c00854f3714dc61edc960292d51962a6f49116ac0f",
+      "2ed235b2bcafa314eb83243edd2ceebd6e241303f5354b7f5766d89046a40bac",
     "plugins/src/base/skills/lisa-git-prune/SKILL.md":
       "11fad06d109538f1a8ee4ef8043bb0e083672e3c9a7cb7ae8a7233c5411d6dd2",
     "plugins/src/base/skills/lisa-git-submit-pr/SKILL.md":
@@ -10497,6 +10497,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/vendored-script-defects.test.ts": true,
     "tests/unit/scripts/verification-coverage.test.ts": true,
     "tests/unit/scripts/work-item-amended-merge-exemption.test.ts": true,
+    "tests/unit/scripts/work-item-authored-trailers.test.ts": true,
     "tests/unit/scripts/work-item-back-merge-exemption.test.ts": true,
     "tests/unit/scripts/work-item-backlink-exactness.test.ts": true,
     "tests/unit/scripts/work-item-cli-binding.test.ts": true,

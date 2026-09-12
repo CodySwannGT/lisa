@@ -5731,6 +5731,16 @@ function commitMessageOf(ref) {
   return result.stdout;
 }
 
+/** Read an unbound author's selection; leave invalid messages for validation. */
+function authoredWorkItem(message) {
+  try {
+    return soleWorkItem(message, trackerContract(), COMMIT_SUBJECT);
+  } catch (error) {
+    if (error instanceof TrackingError) return undefined;
+    throw error;
+  }
+}
+
 function prepareCommitMessage(args) {
   const [file, source = ""] = args;
   if (!file)
@@ -5748,10 +5758,11 @@ function prepareCommitMessage(args) {
   // binding would withhold it in the one case it exists for.
   stampLane(file);
   const state = readState(true);
-  if (!state) return;
-  assertStateBranch(state);
-  const contract = trackerContract();
-  const ref = canonicalizeRef(state.ref, contract);
+  if (state) assertStateBranch(state);
+  const ref = state
+    ? canonicalizeRef(state.ref, trackerContract())
+    : authoredWorkItem(readFileSync(file, "utf8"));
+  if (ref === undefined) return;
   run("git", [
     "interpret-trailers",
     "--in-place",
