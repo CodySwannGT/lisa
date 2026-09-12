@@ -873,7 +873,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/tracked-work.md":
       "e6ac1bcb50e04120d9e4c9a2be1d022cd873071a8b74d34f53f282a03676733e",
     "plugins/src/base/rules/eager/upstream-to-lisa.md":
-      "1d8cb008d3553c62aabf017adfd7b0f9f602743814d7d32e541c046c996d4971",
+      "dcb3075bc48de76f3bae1ad066d0a1e14f82bd244c1015a48f9e2916cabaf03c",
     "plugins/src/base/rules/eager/verification.md":
       "a6cc1d50c5b91080171490edce4d375f136a14790dcbb247ca8b736ad8f55cfd",
     "plugins/src/base/rules/eager/wiki-knowledge-source.md":
@@ -945,7 +945,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/not-blocked-just-waiting.md":
       "bef69d0cefa92e2b8ca589bb27f8e92749140e662d54110e12f0a47890e69f14",
     "plugins/src/base/rules/reference/observability-audit.md":
-      "f2703c01eebfcf2b65dace7e4a8be96ba27d9db643df4744733ee7c1f1e08eea",
+      "b3d211fb46d40a818765d157bd133e349fea609d5da8a7de640f8f2d68b8ae2f",
     "plugins/src/base/rules/reference/operational-hazards.md":
       "208c36bdf12b6164573d5d744f1747a3fd5904d9aaf55ec335c9ba884fcd9d17",
     "plugins/src/base/rules/reference/prd-definition-of-ready.md":
@@ -1117,7 +1117,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
       "96b5c2091ccd22a565935a7b0b917f67998881b81055ce3e4d518319472eac8b",
     "plugins/src/base/skills/lisa-exploratory-qa/SKILL.md":
-      "779fc64d8521db7e166095e6b19e7e66d7d2064acd020351cf43bdebd14506c4",
+      "254b15d65f8da6bfc6a930814004892e4a32ba8946ff1b68c27fec2a57d9e5b4",
     "plugins/src/base/skills/lisa-fix-linter-error/SKILL.md":
       "3a8f01f014ac7f7ac37024c67df1ba07202331542d269d27da3356a7fa0a5599",
     "plugins/src/base/skills/lisa-generate-claude-remote-build-script/SKILL.md":
@@ -1289,13 +1289,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-prd-backlink/SKILL.md":
       "31da3d266e461fe7aaa6a91fd03d68b8f2c0a5399f793606e1efc8a003c7b913",
     "plugins/src/base/skills/lisa-prd-source-write/SKILL.md":
-      "4b84498fbc5d35c73dec124c6af2563781d7ede1879a0a7ca46804fbbc8f6698",
+      "637572a6678f7197aa916427c9f3c8deb4ae4da0e8b22af9692c21c2149837e0",
     "plugins/src/base/skills/lisa-prd-ticket-coverage/SKILL.md":
       "bae8d72632dc7cf0201f2e72c669c5a7778f6e7d2751ac9f9df76e4984782c63",
     "plugins/src/base/skills/lisa-product-walkthrough/SKILL.md":
       "2683d5217c417870a22ff398e72a1e83de6c42be260cda4bdba16dff43a3dd85",
     "plugins/src/base/skills/lisa-project-ideation/SKILL.md":
-      "e87c8d8bda1ee4cde67c0c6bb227e1ea4d261b129b1f226c88c4f98f896846a2",
+      "87e11e6bccb216ad3f6ac8f0a902458160eac343321939c8e9e8124e0f7b79ef",
     "plugins/src/base/skills/lisa-project-ideation/agents/openai.yaml":
       "47700e1874a33a4dba83b046439bae540cfc16ef223341281bceb35b43fcc8a2",
     "plugins/src/base/skills/lisa-project-ideation/examples/evidence-card-format.md":
@@ -1323,13 +1323,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-reproduce-bug/SKILL.md":
       "49dee0ea4d444a6df050d85fd57566497df288490f64b467d0505b1863fc1039",
     "plugins/src/base/skills/lisa-research/SKILL.md":
-      "9e2e7f3d02a18d9bb34f0b9e8c43d6b9b454d0f81987390839d40a84331b20f7",
+      "d2850e4fe0f4bbfb820faad2523f8b339725280fa9c6bd5627705aef2bc8684a",
     "plugins/src/base/skills/lisa-review-implementation/SKILL.md":
       "42134253cca50e384f36eaa085c0a1e6b8772e9f3e912a8d1231f1cd69199858",
     "plugins/src/base/skills/lisa-review-local/SKILL.md":
       "74112f88c721825464d962b05111dafe84173fb370d9522d5e155acc46cc55e9",
     "plugins/src/base/skills/lisa-rework-triage/SKILL.md":
-      "6d1c2a89738cb64c1af7fdbe266a5cc0fa42cfdedcf114bc590b98db12e44134",
+      "a70ccc7c79a6cc3a695d173b7b8bfbe8334af2cdace368fe1520d0b86254fb6f",
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
@@ -1457,7 +1457,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-ticket-triage/SKILL.md":
       "a4f2e75ee3792418aa3b6621f83c75832eea85ffe670e26e74da808611dcf34f",
     "plugins/src/base/skills/lisa-track/SKILL.md":
-      "28f13b2478b1d3300d1ebf35c1219c224a20bca1fc30ed3c8ffd34ef10147273",
+      "08d8e78e7f83098ca77b458bf271c59f2375b27b0a852a3d8412ba001f0b2200",
     "plugins/src/base/skills/lisa-tracker-add-journey/SKILL.md":
       "a3da2e0350bcdebcdcc05f2d7931af868382638d3a28d09d4718f2f458d4be0a",
     "plugins/src/base/skills/lisa-tracker-build-intake/SKILL.md":
@@ -1587,7 +1587,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/directory-structure/scripts/validate_structure.py":
       "fc4af9b262e635adae38dd1fd7e8d2b2831efad748aeb611e8e6e6fe552ed020",
     "plugins/src/expo/skills/e2e-coverage-gaps/SKILL.md":
-      "cedac896b46a8a02e9c1324220a173e9fb05335f059e534a37e93c8b38c86218",
+      "8d732ceb4c4efbf633054003b09821b9cdf27686e457a8f0e98127346ab391d9",
     "plugins/src/expo/skills/eas-update-insights/SKILL.md":
       "bb2796387c2781576d1ed75065559eb06bbd836ad2ca61269f862d9d29f8302c",
     "plugins/src/expo/skills/eas-update-insights/references/channel-insights-schema.md":
@@ -1775,7 +1775,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/harper-fabric/rules/reference/harper-fabric.md":
       "c2c3471d9fb2038dddd42264fad27d818dd707f7a7b743f7b82e80f87d2f125c",
     "plugins/src/harper-fabric/skills/e2e-coverage-gaps/SKILL.md":
-      "cedac896b46a8a02e9c1324220a173e9fb05335f059e534a37e93c8b38c86218",
+      "8d732ceb4c4efbf633054003b09821b9cdf27686e457a8f0e98127346ab391d9",
     "plugins/src/harper-fabric/skills/harper-auth/SKILL.md":
       "6b4c43894959851b2caa8eb7677807d786b31b8644d7abf4b9ac7d7aaf60f0fd",
     "plugins/src/harper-fabric/skills/harper-build-and-deploy/SKILL.md":
@@ -1909,7 +1909,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/rails/agents/ops-specialist.md":
       "3b7f1721cefcec1075927974a388e7c7b74550f26e5f263b9d5c7620c2df044d",
     "plugins/src/rails/commands/e2e-coverage-gaps.md":
-      "a8314237d0ab7475ce915c0b47ba10a14ada2fcdd8737d9eeea277e6e507fbfa",
+      "52f949073d4d1a37573213d3ad63ae1179ac3e642063df1009f083fcf77cdd3b",
     "plugins/src/rails/commands/fix/linter-error.md":
       "8305932f524cf76430d0a9db8f4942395648e2e7a62f0525a9a7796944edccff",
     "plugins/src/rails/commands/improve/code-complexity.md":
@@ -1939,7 +1939,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/rails/skills/active-record-model-best-practices/SKILL.md":
       "9a67bc627618bbe08c7be6b54a6a4eef372a36d3bc940b5f65cc57c7d428f7b4",
     "plugins/src/rails/skills/e2e-coverage-gaps/SKILL.md":
-      "cedac896b46a8a02e9c1324220a173e9fb05335f059e534a37e93c8b38c86218",
+      "8d732ceb4c4efbf633054003b09821b9cdf27686e457a8f0e98127346ab391d9",
     "plugins/src/rails/skills/fix-linter-error/SKILL.md":
       "4366e163b36bde50ca94be8fb6c07cf24bb7f18cd179a744cf820b4d5d899871",
     "plugins/src/rails/skills/improve-code-complexity/SKILL.md":

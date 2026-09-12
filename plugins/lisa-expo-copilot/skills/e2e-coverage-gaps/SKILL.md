@@ -73,7 +73,9 @@ Map routes/flows against existing coverage and classify each gap:
 Each accepted gap or coherent group becomes a leaf **missing-test** work item created via `lisa-tracker-write` (the
 vendor-neutral writer — it dispatches to the configured tracker and runs the validation gate; never
 call a vendor `*-write-*` skill directly), `issue_type: Task`, **build-ready per the `ready` flag
-(default `true`)**. Pass `build_ready` explicitly on every create. Each ticket MUST specify:
+(default `true`)**. For `ready=true`, pass `build_ready: true`. For `ready=false`,
+pass `human_gate: "Coverage work explicitly held for operator prioritization"` instead.
+Each ticket MUST specify:
 
 - The **route/flow** and the exact **user behavior the test must assert**.
 - **Which scenario is missing** (uncovered vs which non-happy path: error / validation / permission /
@@ -84,8 +86,11 @@ call a vendor `*-write-*` skill directly), `issue_type: Task`, **build-ready per
 ### Idempotency — don't spam duplicates
 
 Before creating a ticket, follow `rejection-detection` — **Proposal rejection memory**:
-search open AND closed tickets for `[lisa-e2e-coverage-gaps] <gap-key>`, a stable slug
-of route + missing scenario. Match by the marker for any constituent gap, never by title alone. Reuse open matches. For legacy unmarked issues, read
+use `<!-- [lisa-e2e-coverage-gaps] key=<candidate-key> -->` with the normalized route +
+missing scenario hashed deterministically by that rule's existing formula. Search open AND
+closed tickets, including its body-enumeration fallback for search-index lag. Match by the
+marker for any constituent gap, never by title alone. Reuse open matches. For legacy issues
+without a marker or with the older `[lisa-e2e-coverage-gaps] <gap-key>` slug marker, read
 bodies and closing discussions to establish a semantic match; title similarity
 alone is insufficient. A **Not planned** decision suppresses the same accepted
 limitation, even when seen again later. Re-propose only for a materially changed

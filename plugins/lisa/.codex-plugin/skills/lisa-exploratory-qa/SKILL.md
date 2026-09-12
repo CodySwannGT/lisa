@@ -9,7 +9,7 @@ On runtimes without the rule tree (Antigravity), read **Worth doing** in `lisa-t
 
 ## Overview
 
-Experience the product the way a **brand-new end user** would: drive its real consumer-facing interface and actually try to use it, then surface anything **confusing, broken, or hard to understand**. This is a usability/experience pass, **not** a test-coverage audit (for that, use `e2e-coverage-gaps`). Every finding is filed as a tracked work item so it enters the Lisa lifecycle — no static report file.
+Experience the product the way a **brand-new end user** would: drive its real consumer-facing interface and actually try to use it, then surface anything **confusing, broken, or hard to understand**. This is a usability/experience pass, **not** a test-coverage audit (for that, use `e2e-coverage-gaps`). Accepted worthwhile findings enter the Lisa lifecycle as bounded tracked work — no static report file.
 
 **How you drive the product is owned by the `use-the-product` core skill.** Invoke it first: it detects the product type (web / API / game / CLI / IaC), resolves the target environment and its **mutation policy** (so you never mutate production without an explicit, justified opt-in), and discovers the project's **personas** so you can explore as each one. This skill supplies the **QA lens** — what to look for and how to file it.
 
@@ -86,7 +86,7 @@ Re-running a pass must not refile the same finding. Before creating a ticket, se
 
 - **Open** ticket carrying the marker → reference/update it instead; do not create a second.
 - **Closed as _completed_** → does **not** suppress. A recurrence after a fix is a genuine **regression**, so file the finding.
-- **Closed as _not planned_** (GitHub `stateReason == "not_planned"`; the config-resolved won't-do/canceled equivalent on JIRA/Linear, including a Linear `duplicate` state) → a human **declined** this finding, so **suppress it**. Re-file only with evidence that **postdates the decline** and establishes a materially changed consequence, requirement, or risk addressing the recorded reason, carrying BOTH the machine token (`declined <date>; recurred <date> in <ref>`) and a human acknowledgment sentence (`You declined this on <date>. New evidence (<date>, <ref>) changes the consequence, requirement, or risk: <what changed and why the decline no longer applies>.`).
+- **Closed as _not planned_** (GitHub `stateReason == "not_planned"`; the config-resolved won't-do/canceled equivalent on JIRA/Linear — never infer decline from a hardcoded state name) → a human **declined** this finding, so **suppress it**. Re-file only with evidence that **postdates the decline** and establishes a materially changed consequence, requirement, or risk addressing the recorded reason, carrying BOTH the machine token (`declined <date>; recurred <date> in <ref>`) and a human acknowledgment sentence (`You declined this on <date>. New evidence (<date>, <ref>) changes the consequence, requirement, or risk: <what changed and why the decline no longer applies>.`).
 
 Every filed finding ticket MUST end with the `rejection-detection` **operator footer** as a visible prose line so the operator knows which close-reason silences it:
 

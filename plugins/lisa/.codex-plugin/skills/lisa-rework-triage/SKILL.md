@@ -159,11 +159,11 @@ section differ:
    occurrence on it (evidence compounds; duplicates dilute) and link it instead of filing.
 2. **File with the same bar as any ticket:** a three-audience description (what failed or
    improved for the operator, what the harness did or could do, what to change), the
-   verbatim evidence chain (PRD text → ticket AC → QA failure → gate that passed it; for
-   patterns, the downstream occurrences proving generality), and the lane's label:
-   `gh issue create -R <upstream> --title "<gate/skill>: <failure class>" --label self-hardening`
-   for defects, or
-   `gh issue create -R <upstream> --title "<template surface>: <pattern>" --label template-candidate`
+   public-safe evidence chain (PRD text → ticket AC → QA failure → gate that passed it; for
+   patterns, the occurrences proving generality). Invoke `lisa-github-write-issue` against
+   `<upstream>` using the existing public-safe attribution/projection procedure from
+   `upstream-to-lisa`. Pass `build_ready: true` unless an explicit `human_gate` was declared,
+   then pass that reason instead. Use label `self-hardening` for defects or `template-candidate`
    for contributions. A `template-candidate` filing MUST include a
    `## Proposed template change` section naming the Lisa template/rule/skill surface to
    change (e.g. `typescript/package-lisa/package.lisa.json`, a `plugins/src/base` rule)

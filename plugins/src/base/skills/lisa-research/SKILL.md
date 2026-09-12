@@ -20,8 +20,12 @@ Produce a PRD for the problem in `$ARGUMENTS`, then create it in the configured 
   structured metadata object to forward unchanged to `lisa-prd-source-write`. It carries the
   selected marker, automation id/path when available, persona names, persona evidence references,
   rejected overlap candidates, repo identity, `prd_ready`, selected idea title/key, and expected
-  empirical verification artifact. `research` may use these fields to inform the PRD body, but must
-  not discard, rename, or vendor-render them.
+  empirical verification artifact. When supplied, `reproposal_context` contains the dated decline,
+  new evidence, changed consequence, and the required machine token and human acknowledgment.
+  Include that token and acknowledgment verbatim in the synthesized PRD body before source routing,
+  so the justification survives even when the vendor's metadata renderer does not display this field.
+  Other metadata may inform the PRD body; forward the complete payload unchanged without renaming
+  or vendor-rendering its fields.
 
 ## Orchestration: agent team
 

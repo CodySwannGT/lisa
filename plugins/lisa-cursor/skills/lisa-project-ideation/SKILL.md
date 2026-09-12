@@ -207,7 +207,10 @@ For each idea in the creation set, invoke `/lisa:research` with:
 - a structured `ideation_ledger_payload` handoff containing the selected marker, automation id and
   memory path when available, persona names, persona evidence references, rejected overlap
   candidates, repo identity, `prd_ready`, selected idea title/key, and the expected empirical
-  verification artifact. This payload is the only ideation-run metadata channel between
+  verification artifact. For a justified re-proposal, include `reproposal_context`: the dated
+  decline, dated new evidence reference, materially changed consequence, and the exact machine
+  token and human acknowledgment paragraph specified below. Research must include that paragraph
+  and token in the PRD body. This payload is the only ideation-run metadata channel between
   `project-ideation`, `research`, `prd-source-write`, and the vendor writer; keep GitHub-specific
   rendering out of this skill.
 

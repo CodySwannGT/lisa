@@ -10,7 +10,7 @@ When a worthwhile fix belongs to a Lisa-distributed template, rule, skill, agent
 For an accepted defect:
 
 1. Apply the smallest safe local stopgap if needed to unblock the current task.
-2. Search open and closed Lisa issues, including prior **Not planned** decisions. Reuse an existing relevant issue or file one upstream with the concrete consequence and smallest durable fix. Follow `rejection-detection` for declines; do not refile an accepted limitation.
+2. Search open and closed Lisa issues. Reuse a matching open issue. Honor **Not planned** decisions under `rejection-detection` before filing the concrete consequence and smallest durable fix; do not refile an accepted limitation.
 
 For **copy-overwrite** files, a local fix may be overwritten on the next `lisa apply`. For **create-only** templates, the local fix survives, but new projects still inherit the source defect. Both can justify an upstream fix; neither bypasses the value decision.
 
