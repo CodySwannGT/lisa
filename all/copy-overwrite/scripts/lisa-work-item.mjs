@@ -1970,7 +1970,7 @@ function jiraServerOrigin(server) {
     );
   };
   const parts =
-    /^(?:https:\/\/)?(\[[0-9a-f:.]+\]|[a-z0-9.-]+)(?::([0-9]+))?\/?$/i.exec(
+    /^(?:https:\/\/)?(\[[0-9a-f:.]+\]|[a-z0-9.-]+)(?::(\d+))?\/?$/i.exec(
       server
     );
   if (!parts || /[^\x21-\x7e]/.test(server)) return invalid();
