@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.21](https://github.com/CodySwannGT/lisa/compare/v4.55.20...v4.55.21) (2026-09-12)
+
+
+### Bug Fixes
+
+* **linear:** require the production merge before completion ([d641f70](https://github.com/CodySwannGT/lisa/commit/d641f704aeeca1522da145f5935668535571e093)), closes [CodySwannGT/lisa#3324](https://github.com/CodySwannGT/lisa/issues/3324)
+* **tracking:** name the work item attached to a branch ([c6d028e](https://github.com/CodySwannGT/lisa/commit/c6d028e3a9039ae91dd402cde232fd0c08248cfa)), closes [CodySwannGT/lisa#3540](https://github.com/CodySwannGT/lisa/issues/3540)
+* **tracking:** resolve terminal completion by production environment ([8db1252](https://github.com/CodySwannGT/lisa/commit/8db1252953c6c96f79ccd6c21c34112dcf5e4517)), closes [CodySwannGT/lisa#4096](https://github.com/CodySwannGT/lisa/issues/4096)
+
 ### [4.55.20](https://github.com/CodySwannGT/lisa/compare/v4.55.19...v4.55.20) (2026-09-12)
 
 ### [4.55.19](https://github.com/CodySwannGT/lisa/compare/v4.55.18...v4.55.19) (2026-09-12)
