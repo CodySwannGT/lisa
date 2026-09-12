@@ -43,6 +43,7 @@ import { checkWiki } from "./doctor-wiki.js";
 import { checkDeclaredContexts } from "./doctor-declared-contexts.js";
 import { checkTraceabilityGate } from "./doctor-traceability-gate.js";
 import { checkHookCopyParity } from "./doctor-hook-copy-parity.js";
+import { checkOwnershipBannerDrift } from "./doctor-ownership-banner-drift.js";
 import { checkWorktreeHygiene } from "./doctor-worktree-hygiene.js";
 import { checkWorktreeWorkAtRisk } from "./doctor-worktree-work-at-risk.js";
 import { STARTERS } from "./starters.js";
@@ -458,6 +459,12 @@ export async function runDoctor(
     // for one destination, so a second copy at another path is outside it by
     // construction (CodySwannGT/lisa#2847).
     await checkHookCopyParity(resolvedTarget),
+    // A seeded workflow still wearing the "managed by Lisa, IS replaced" banner
+    // after its template moved to create-only. The banner is the natural place
+    // to look for the ownership contract and nothing contradicts it locally, so
+    // a reader believes it and declines an edit they were entitled to make —
+    // measured, five rounds of review by two parties (CodySwannGT/lisa#3582).
+    await checkOwnershipBannerDrift(resolvedTarget),
     await checkWorktreeHygiene(resolvedTarget),
     // Immediately after the count check, and deliberately separate from it.
     // Hygiene answers "how many checkouts is every crawler walking past"; this
