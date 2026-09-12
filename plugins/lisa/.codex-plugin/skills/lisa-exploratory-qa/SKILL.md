@@ -5,9 +5,11 @@ description: "First-time-user exploratory QA…"
 
 # Exploratory QA
 
+On runtimes without the rule tree (Antigravity), read **Worth doing** in `lisa-track` for the same value and decline policy.
+
 ## Overview
 
-Experience the product the way a **brand-new end user** would: drive its real consumer-facing interface and actually try to use it, then surface anything **confusing, broken, or hard to understand**. This is a usability/experience pass, **not** a test-coverage audit (for that, use `e2e-coverage-gaps`). Every finding is filed as a tracked work item so it enters the Lisa lifecycle — no static report file.
+Experience the product the way a **brand-new end user** would: drive its real consumer-facing interface and actually try to use it, then surface anything **confusing, broken, or hard to understand**. This is a usability/experience pass, **not** a test-coverage audit (for that, use `e2e-coverage-gaps`). Accepted worthwhile findings enter the Lisa lifecycle as bounded tracked work — no static report file.
 
 **How you drive the product is owned by the `use-the-product` core skill.** Invoke it first: it detects the product type (web / API / game / CLI / IaC), resolves the target environment and its **mutation policy** (so you never mutate production without an explicit, justified opt-in), and discovers the project's **personas** so you can explore as each one. This skill supplies the **QA lens** — what to look for and how to file it.
 
@@ -61,7 +63,7 @@ Whether you may create/edit/delete — and as which account — is set by the `u
 
 ## 6. File findings as tracked work
 
-No report file. Every finding becomes a **leaf work item** via `lisa-tracker-write` (the vendor-neutral writer — it dispatches to the configured tracker and runs the validation gate; never call a vendor `*-write-*` skill directly):
+Apply `do-it-now`'s **Worth doing** guidance first. Decline low-value observations in the run summary without a ticket or human gate; bundle related worthwhile minor findings when appropriate. No report file. Every accepted finding becomes a **leaf work item** via `lisa-tracker-write` (the vendor-neutral writer — it dispatches to the configured tracker and runs the validation gate; never call a vendor `*-write-*` skill directly):
 
 Kane never files the work item itself. Even when it marks a failure as a confirmed product bug, run Lisa's marker-based duplicate search, apply the QA lens, and route the finding through `lisa-tracker-write` exactly as for every other controller.
 
@@ -72,7 +74,7 @@ Kane never files the work item itself. Even when it marks a failure as a confirm
 
 Each finding is a flat leaf, so `build_ready` applies directly — pass it explicitly on every create.
 
-**This skill is the named human-gate exception under `ready-role-filing`.** Everywhere else in Lisa, a complete defect found during other work is filed with explicit `build_ready: true` so build-intake claims it next cycle. Exploratory QA is deliberately different, and that difference is ratified rather than drift: its findings are *candidate* defects and usability observations whose **product significance is a human call**, so auto-readying them would push judgment work into the build queue — precisely the failure the gate model exists to prevent. Its default `ready=false` is therefore an **explicit human-gate marker, never a bare omission**: every not-ready create passes `human_gate: "exploratory finding — product significance is a human product call"` alongside `build_ready: false`, and the writer stamps the auditable `[lisa-human-gate]` marker. An operator who wants a pass to feed the queue directly opts in with `ready=true`.
+**This skill is the named human-gate exception under `ready-role-filing`.** For accepted worthwhile work elsewhere in Lisa, a complete defect found during other work is filed with explicit `build_ready: true` so build-intake claims it next cycle. Exploratory QA is deliberately different, and that difference is ratified rather than drift: its findings are *candidate* defects and usability observations whose **product significance is a human call**, so auto-readying them would push judgment work into the build queue — precisely the failure the gate model exists to prevent. Its default `ready=false` is therefore an **explicit human-gate marker, never a bare omission**: every not-ready create passes `human_gate: "exploratory finding — product significance is a human product call"` alongside `build_ready: false`, and the writer stamps the auditable `[lisa-human-gate]` marker. An operator who wants a pass to feed the queue directly opts in with `ready=true`.
 
 (The sibling `e2e-coverage-gaps` skills are the contrast: a missing automated test is not a product question, so they file `build_ready: true` by default.)
 
@@ -80,11 +82,11 @@ Each ticket MUST be a complete spec (the validator rejects thin tickets): a **th
 
 ### Idempotency — don't spam duplicates
 
-Re-running a pass must not refile the same finding. Before creating a ticket, search the tracker for a ticket carrying a stable marker `[lisa-exploratory-qa] <finding-key>` in its body (the `<finding-key>` is a stable slug of surface + symptom, e.g. `settings-modal/horizontal-overflow@tablet`). Per the `rejection-detection` rule's **Proposal rejection memory** section, that marker search MUST cover **open AND closed** tickets (with a body-enumeration fallback on search-index lag), and **match by the marker, never by title.** Then split on how any prior ticket closed:
+Re-running a pass must not refile the same finding. Before creating a ticket, search the tracker for a ticket carrying a stable marker `[lisa-exploratory-qa] <finding-key>` in its body (the `<finding-key>` is a stable slug of surface + symptom, e.g. `settings-modal/horizontal-overflow@tablet`). Per the `rejection-detection` rule's **Proposal rejection memory** section, that marker search MUST cover **open AND closed** tickets (with a body-enumeration fallback on search-index lag), and **match by the marker, never by title alone; for legacy unmarked issues, read the body and closing discussion to establish the semantic match.** Then split on how any prior ticket closed:
 
 - **Open** ticket carrying the marker → reference/update it instead; do not create a second.
 - **Closed as _completed_** → does **not** suppress. A recurrence after a fix is a genuine **regression**, so file the finding.
-- **Closed as _not planned_** (GitHub `stateReason == "not_planned"`; the config-resolved won't-do/canceled equivalent on JIRA/Linear, including a Linear `duplicate` state) → a human **declined** this finding, so **suppress it**. Re-file only with evidence that **postdates the decline**, carrying BOTH the machine token (`declined <date>; recurred <date> in <ref>`) and a human acknowledgment sentence (`You declined this on <date>. It has recurred (<date>, <ref>), so we're raising it once more for your review.`).
+- **Closed as _not planned_** (GitHub `stateReason == "not_planned"`; the config-resolved won't-do/canceled equivalent on JIRA/Linear — never infer decline from a hardcoded state name) → a human **declined** this finding, so **suppress it**. Re-file only with evidence that **postdates the decline** and establishes a materially changed consequence, requirement, or risk addressing the recorded reason, carrying BOTH the machine token (`declined <date>; recurred <date> in <ref>`) and a human acknowledgment sentence (`You declined this on <date>. New evidence (<date>, <ref>) changes the consequence, requirement, or risk: <what changed and why the decline no longer applies>.`).
 
 Every filed finding ticket MUST end with the `rejection-detection` **operator footer** as a visible prose line so the operator knows which close-reason silences it:
 
@@ -150,7 +152,7 @@ teardown proposal through `lisa-tracker-write` (per `tracked-work` + `integratio
 - **Marker** `<!-- [lisa-automation-retire] key=exploratory-bugs -->` plus a visible prose line;
   matched on the marker, never the title; searched **open AND closed** per `rejection-detection`'s
   **Proposal rejection memory**. Treat matches by close state: **open** suppresses another proposal;
-  **Not planned** suppresses another proposal unless new evidence postdates the rejection;
+  **Not planned** suppresses another proposal unless new evidence postdates the rejection and materially changes the consequence, requirement, or risk that justified the decline;
   **Completed** means the prior approved action happened, so a later recurrence may be re-filed.
   When an existing proposal suppresses filing, **the run still records `policy-obsolete` and files
   nothing** — the outcome describes this run, while the ticket is filed exactly once.

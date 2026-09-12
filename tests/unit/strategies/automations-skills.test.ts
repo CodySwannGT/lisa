@@ -306,7 +306,7 @@ const OPEN_AND_CLOSED = "open AND closed";
 const NOT_PLANNED = 'stateReason == "not_planned"';
 const OPERATOR_FOOTER =
   "To stop this from being raised again, close it as **Not planned**";
-const REFILE_ACK = "so we're raising it once more for your review";
+const REFILE_ACK = "You declined this on <date>.";
 const RECOVERY_EXEMPLAR = "restore credentials; nothing was filed this run";
 
 /** All five proposing loops cite the shared contract. */
@@ -407,8 +407,12 @@ describe("proposing loops consult the shared rejection-memory contract (#1800)",
     describe.each(REFILE_TONE_PROPOSERS)("%s re-file tone", slug => {
       const content = readSkill(root, slug);
 
-      it("re-files with a human acknowledgment sentence", () => {
+      it("acknowledges the decline and explains a materially changed consequence", () => {
         expect(content).toContain(REFILE_ACK);
+        expect(content).toContain(
+          "materially changed consequence, requirement, or risk"
+        );
+        expect(content).toContain("why the decline no longer applies");
       });
     });
   });

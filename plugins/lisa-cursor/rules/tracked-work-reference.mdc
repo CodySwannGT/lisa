@@ -5,6 +5,8 @@ alwaysApply: false
 
 # Tracked Work
 
+Apply `do-it-now` before creating work from incidental findings. Declining an observation needs no new ticket. Related small accepted repairs may share one bounded maintenance leaf; traceability does not require a separate item for every nit.
+
 The project tracker is the durable operator-facing record for project work. Every session that will produce a durable project outcome must establish exactly one live configured-tracker leaf before the first durable mutation. Durable outcomes include code, tests, configuration, documentation, committed research or plans, investigation findings, commits, and pull requests. Read-only questions, discussion, and repository orientation are exempt until they turn into durable work.
 
 ## Resolve, claim, bind

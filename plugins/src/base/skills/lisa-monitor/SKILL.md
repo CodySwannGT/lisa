@@ -200,7 +200,7 @@ watching it. Evaluate all three. When all three hold, record `policy-obsolete` a
 - **Marker** `<!-- [lisa-automation-retire] key=monitor -->` plus a visible prose line; matched on
   the marker, never the title; searched **open AND closed** per `rejection-detection`'s **Proposal
   rejection memory**. Treat matches by close state: **open** suppresses another proposal;
-  **Not planned** suppresses another proposal unless new evidence postdates the rejection;
+  **Not planned** suppresses another proposal unless new evidence postdates the rejection and materially changes the consequence, requirement, or risk that justified the decline;
   **Completed** means the prior approved action happened, so a later recurrence may be re-filed.
   When an existing proposal suppresses filing, **the run still records `policy-obsolete` and files
   nothing** — the outcome describes this run, while the ticket is filed exactly once.
