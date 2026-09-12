@@ -1,42 +1,7 @@
 /**
- * A seeded file whose ownership banner contradicts its lane (#3582).
- *
- * Lisa ships two ownership headers and they are opposite contracts:
- * `copy-overwrite` says "managed by Lisa and IS replaced on each run";
- * `create-only` says "this file is YOURS — Lisa will not overwrite it". Which
- * header a TEMPLATE carries is already enforced repo-wide. Nothing checks the
- * copy sitting in an already-seeded consumer.
- *
- * The CDK caller templates moved from the copy-overwrite lane to create-only —
- * verified on `origin/main`, where `cdk/create-only/.github/workflows/` holds
- * `ci.yml` and `deploy.yml` while `cdk/copy-overwrite/.github/workflows/` holds
- * only a `.keep`. A consumer seeded before that move still carries the old
- * banner, which now states the opposite of the truth.
- *
- * ## Why the stale direction is the harmful one
- *
- * MEASURED in the report: a repository had pinned its reusable-workflow refs to
- * immutable SHAs. On the strength of the stale banner a reviewer concluded the
- * pins would be erased on every apply, and nearly reverted them to a moving
- * `@main` ref AND excluded those files from the guard that enforces pinning.
- * The reasoning was sound; the premise was false. It survived five rounds of
- * review by two parties, because the banner is the natural place to look for
- * the ownership contract and nothing contradicts it locally.
- *
- * ## Why this reports and does not rewrite
- *
- * A migration that corrected the banner would have Lisa write into the very
- * file whose new banner promises Lisa will not write into it — self-refuting in
- * the most literal way available, and the consumer who diffs that apply has
- * been handed evidence not to believe the new sentence either. The harm here is
- * a false BELIEF, and a doctor line corrects a belief without touching bytes a
- * consumer owns and may have edited. That asymmetry is the argument: a stale
- * banner makes a reader too conservative, while a banner-rewriting migration
- * can clobber a header a consumer customised.
- *
- * It also catches the drift in BOTH directions, which a one-way rewrite cannot:
- * a copy-overwrite file wearing a create-only banner is the inverse defect, and
- * the same comparison reports it.
+ * Exercise ownership reporting with real consumer files, stack detection, and
+ * shipped templates. A managed banner is stale only for a create-only workflow;
+ * managed and unknown template lanes must never receive ownership reassurance.
  * @module tests/unit/cli/doctor-ownership-banner-drift
  */
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -60,6 +25,9 @@ const MANAGED = [
 ].join("\n");
 
 const roots: string[] = [];
+const UNSAFE_REASSURANCE = "edits to these files are safe";
+const HARPER_APP = "harper-app";
+const TSCONFIG = "tsconfig.json";
 
 afterEach(async () => {
   // Removed, not merely forgotten. The suite's own scratch-leak guard fails a
@@ -73,7 +41,6 @@ afterEach(async () => {
 
 /**
  * Build a throwaway consumer tree with one workflow carrying `header`.
- *
  * @param header - The ownership banner to seed the workflow with
  * @param name - Workflow filename
  * @returns The temp directory acting as the consumer root
@@ -82,6 +49,7 @@ async function consumerWith(header: string, name = "ci.yml"): Promise<string> {
   const root = await mkdtemp(path.join(tmpdir(), "t3582-"));
   roots.push(root);
   await mkdir(path.join(root, ".github", "workflows"), { recursive: true });
+  await writeFile(path.join(root, TSCONFIG), "{}");
   await writeFile(
     path.join(root, ".github", "workflows", name),
     `${header}\n\nname: CI\non: push\n`,
@@ -91,10 +59,19 @@ async function consumerWith(header: string, name = "ci.yml"): Promise<string> {
 }
 
 describe("a seeded caller still wearing the managed banner is reported", () => {
-  it("warns when a create-only workflow carries the copy-overwrite banner", async () => {
-    const result = await checkOwnershipBannerDrift(await consumerWith(MANAGED));
-
+  it.each([
+    ["typescript", TSCONFIG],
+    ["cdk", "cdk.json"],
+    ["expo", "app.json"],
+    ["nestjs", "nest-cli.json"],
+    ["rails", "config/application.rb"],
+  ])("warns for the stale create-only %s workflow", async (_stack, marker) => {
+    const root = await consumerWith(MANAGED);
+    await mkdir(path.dirname(path.join(root, marker)), { recursive: true });
+    await writeFile(path.join(root, marker), "{}");
+    const result = await checkOwnershipBannerDrift(root);
     expect(result.status).toBe("warn");
+    expect(result.detail).toContain("create-only");
   });
 
   it("names the file, so the operator does not have to hunt for it", async () => {
@@ -103,12 +80,13 @@ describe("a seeded caller still wearing the managed banner is reported", () => {
     expect(result.detail).toContain("ci.yml");
   });
 
-  it("says the edits are safe, which is the belief that needs correcting", async () => {
+  it("explains current ownership without promising every future upgrade", async () => {
     // The measured harm was a reader declining an edit they were entitled to
     // make. A finding that only says "drift" leaves that belief in place.
     const result = await checkOwnershipBannerDrift(await consumerWith(MANAGED));
 
-    expect(result.detail).toContain("edits to these files are safe");
+    expect(result.detail).toContain("create-only");
+    expect(result.detail).not.toContain("survive every upgrade");
   });
 
   it("does not tell the operator to run an apply to fix it", async () => {
@@ -120,19 +98,60 @@ describe("a seeded caller still wearing the managed banner is reported", () => {
   });
 });
 
+describe("the detected template lane governs the warning", () => {
+  it("does not flag the managed Phaser workflow", async () => {
+    const root = await consumerWith(MANAGED);
+    await writeFile(
+      path.join(root, "package.json"),
+      JSON.stringify({ dependencies: { phaser: "1" } })
+    );
+    const result = await checkOwnershipBannerDrift(root);
+    expect(result.status).toBe("ok");
+    expect(result.detail).not.toContain(UNSAFE_REASSURANCE);
+  });
+
+  it("does not flag the managed Harper workflow", async () => {
+    const root = await consumerWith(MANAGED);
+    await mkdir(path.join(root, HARPER_APP));
+    await writeFile(
+      path.join(root, HARPER_APP, "config.yaml"),
+      "graphqlSchema: schema.graphql\njsResource: resources.js\nstatic: web\n"
+    );
+    await writeFile(
+      path.join(root, HARPER_APP, "schema.graphql"),
+      "type Query { hello: String }"
+    );
+    const result = await checkOwnershipBannerDrift(root);
+    expect(result.status).toBe("ok");
+    expect(result.detail).not.toContain(UNSAFE_REASSURANCE);
+  });
+
+  it("does not declare ownership when no stack is detected", async () => {
+    const root = await consumerWith(MANAGED);
+    await rm(path.join(root, TSCONFIG));
+    const result = await checkOwnershipBannerDrift(root);
+    expect(result.status).toBe("warn");
+    expect(result.detail).toContain("could not determine");
+    expect(result.detail).not.toContain(UNSAFE_REASSURANCE);
+    expect(result.detail).not.toContain("banner is stale");
+  });
+
+  it("does not call an unshipped workflow create-only", async () => {
+    const result = await checkOwnershipBannerDrift(
+      await consumerWith(MANAGED, "custom.yml")
+    );
+    expect(result.detail).toContain("could not determine");
+    expect(result.detail).not.toContain(UNSAFE_REASSURANCE);
+  });
+});
+
 describe("rejection controls: what must NOT be reported", () => {
   it("passes a create-only workflow carrying the correct banner", async () => {
     // Without this the check could warn on everything and satisfy every
     // assertion above.
     //
-    // It is also the scope boundary, deliberately: the inverse defect — a
-    // copy-overwrite asset wearing a create-only banner — is NOT reported.
-    // Deciding that needs the consumer's lane, and the lane is a property of
-    // their stack, not of the file. `ci.yml` ships create-only on five stacks
-    // and copy-overwrite on two, so this exact input is correct in one
-    // consumer and stale in the next. Passing it is the honest answer from a
-    // check that reads banners; flagging it would be a guess in the direction
-    // that costs a consumer their edits.
+    // The inverse mismatch (a managed template wearing a seeded banner)
+    // remains outside this check's scope; it only classifies managed claims.
     const result = await checkOwnershipBannerDrift(await consumerWith(SEEDED));
 
     expect(result.status).toBe("ok");
