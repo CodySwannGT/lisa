@@ -588,8 +588,7 @@ the `is blocked by` link is present rather than creating a duplicate; a match **
 planned_** (GitHub `stateReason == "not_planned"`; the config-resolved equivalent on JIRA/Linear) is
 a **human decline** of that fix ticket — do **not** re-file it without a materially changed consequence, requirement, or risk addressing the decline, supported by evidence that **postdates the
 decline**, and the re-filed ticket MUST carry BOTH the machine token (`declined <date>; recurred
-<date> in <ref>`) and the human acknowledgment sentence (`You declined this on <date>. It has
-recurred (<date>, <ref>), so we're raising it once more for your review.`); a match closed as
+<date> in <ref>`) and the human acknowledgment sentence (`You declined this on <date>. New evidence (<date>, <ref>) changes the consequence, requirement, or risk: <what changed and why the decline no longer applies>.`); a match closed as
 _completed_ is a regression path, not a decline. Honor the backoff window and state fingerprint
 (Loop prevention) so re-runs over the same unchanged blocker are no-ops.
 

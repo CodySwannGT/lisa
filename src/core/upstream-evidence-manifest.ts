@@ -1295,7 +1295,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-product-walkthrough/SKILL.md":
       "2683d5217c417870a22ff398e72a1e83de6c42be260cda4bdba16dff43a3dd85",
     "plugins/src/base/skills/lisa-project-ideation/SKILL.md":
-      "908741b86190fbca90410c1f8efd52aee946d1801a847747be5d46077987cfd0",
+      "e87c8d8bda1ee4cde67c0c6bb227e1ea4d261b129b1f226c88c4f98f896846a2",
     "plugins/src/base/skills/lisa-project-ideation/agents/openai.yaml":
       "47700e1874a33a4dba83b046439bae540cfc16ef223341281bceb35b43fcc8a2",
     "plugins/src/base/skills/lisa-project-ideation/examples/evidence-card-format.md":
@@ -1319,7 +1319,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-remote-dispatch/scripts/dispatch.mjs":
       "2c51d388ecb681905f6b2280ffefc03434f91bfe4901e637869b716be81ccc93",
     "plugins/src/base/skills/lisa-repair-intake/SKILL.md":
-      "bc957d0f556af5bcd7405408e29867626f923f0b28b03a780380a7f619a703ff",
+      "b2a3023ae2d46d6e9410d562a0c0069be4fb836bb74f1e459627e7087572168a",
     "plugins/src/base/skills/lisa-reproduce-bug/SKILL.md":
       "49dee0ea4d444a6df050d85fd57566497df288490f64b467d0505b1863fc1039",
     "plugins/src/base/skills/lisa-research/SKILL.md":

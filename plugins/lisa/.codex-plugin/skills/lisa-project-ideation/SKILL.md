@@ -251,8 +251,7 @@ cover **open AND closed** PRDs (with a body-enumeration fallback on search-index
 canceled equivalent on JIRA/Linear — never a hardcoded lane string) is a **durable human decline**
 that **suppresses** re-proposing that idea. Re-propose only for a materially changed consequence, requirement, or risk addressing the decline, supported by evidence that **postdates the
 decline**, and state it in the new PRD as BOTH the machine token (`declined <date>; recurred <date>
-in <ref>`) and a human acknowledgment sentence (`You declined this on <date>. It has recurred
-(<date>, <ref>), so we're raising it once more for your review.`). A PRD closed as _completed_ is
+in <ref>`) and a human acknowledgment sentence (`You declined this on <date>. New evidence (<date>, <ref>) changes the consequence, requirement, or risk: <what changed and why the decline no longer applies>.`). A PRD closed as _completed_ is
 not a decline. This is tracker-side memory; the advisory ideation memory ledger stays advisory and
 never overrides it.
 
