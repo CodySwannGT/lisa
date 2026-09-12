@@ -58,8 +58,17 @@ context, and **an absent required context is not a red one** — GitHub simply
 never hears from it. Every instrument reads normal.
 
 A guard makes it worse rather than better. An *unguarded* read of a missing path
-fails the job loudly; a read behind `if [ -f scripts/x.mjs ]` skips, and the
-gate quietly proves nothing. The skip is the dangerous shape.
+fails the job loudly; a read behind `if [ -f scripts/x.mjs ]` **can** skip, and
+then the gate quietly proves nothing. The skip is the dangerous shape.
+
+**"Can" is doing real work in that sentence, and the ledger must respect it.** A
+guard says only that the step is able to tell the path is missing; the branch it
+takes next may fall back, annotate, exit non-zero, or verify its own output
+afterwards. The generated ledger therefore records the guard and the literal
+handling tokens the step's text carries, and refuses to state which of those
+happened — it never read the branch. A narrative that completed the sentence
+anyway was nearly cited as measured evidence of a defect in a step that is in
+fact prior art for this discipline (CodySwannGT/lisa#3860).
 
 ## Why this is not the lesson the repository already knows
 

@@ -2,7 +2,7 @@
 
 > Demoted from the always-on eager tier by CodySwannGT/lisa#3992. The
 > section below is the former eager head, preserved verbatim; the full
-> contract follows it. Reachable on demand via `rules/eager/00-rule-index.md`.
+> contract follows it. Reachable on demand via [the rule index](../eager/00-rule-index.md).
 
 ## Leaf-Only Build-Ready Invariant (load-bearing)
 
@@ -182,7 +182,7 @@ The env rungs are whatever the project configures for `done` — which is **env-
 
 Intermediate-env rollup and terminal native closure are distinct: a parent **rolls up to** an intermediate env (`On Dev`/`On Stg`) as its required leaves reach it, but native closure (next section) fires **only** at the production/terminal `done` value. A parent sitting at `On Stg` is correctly rolled up *and* still open.
 
-**Single-environment collapse (this repo).** Lisa's own deploy has only `main`/`production` (no dev/staging), so `done` is a single value, not a map. For GitHub, the build lifecycle collapses to one chain: `ready → claimed (in-progress) → done`. The rollup terminal state is simply `done`. This is the *collapsed* case of the generic rule, not a different rule — projects with more environments keep the env-keyed map.
+**Single-environment collapse (this repo).** The collapse is a property of the **resolution**, not of the declaration. `.lisa.config.json` declares `github.labels.build.done` as the generic **env-keyed map** — `dev: status:on-dev`, `staging: status:on-stg`, `production: status:done` — which is exactly the shape `lisa-setup-github` creates by default. What this repo lacks is deploy *branches*: `deploy.branches` maps only `production → main`, so `production` is the sole reachable rung and every merge this repo can make resolves to `status:done`. For GitHub the build lifecycle therefore runs one chain in practice: `ready → claimed (in-progress) → done`, and the rollup terminal state is `status:done`. Do not read the collapse as an absent map: code that reads the `done` role must still resolve the merged PR's base branch through `deploy.branches` and take that env's rung, in this repo as in any other — assuming a scalar here would read the wrong rung the moment a deploy branch is added. Projects with more deploy branches differ only in how many rungs are reachable, not in the declared shape.
 
 ## Terminal native closure
 

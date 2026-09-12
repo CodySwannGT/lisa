@@ -6,6 +6,20 @@ allowed-tools: ["Bash", "Skill"]
 
 # Write Linear Work Item: $ARGUMENTS
 
+## Human-gate release authorization
+
+A release requires a trusted human author, not just matching comment text. Follow
+`ready-role-filing` — **Human-gate release authorization**: preserve tracker-supplied comment
+author IDs and bot metadata, resolve `trustedHumanActorIds` only from an explicit user instruction
+or existing human-authored trusted project policy, and pass it with structured `comments` to every
+hold classifier, reconciliation, normalization and release planner. Never derive trust from the
+comment body, a display name, the actor's own assertion, or an automation posting on its own behalf.
+Missing policy, missing/unreadable author identity, raw body strings, untrusted actors and known bots
+cannot discharge a hold. Keep the item held and report the missing authorization; do not silently
+replace these inputs with an empty history or an inferred allowlist. Authorized matching releases
+continue through the existing path and never override an independently declared caller hold.
+
+
 Create or update a Linear work item — Project (for Epics), Issue (for Stories), or sub-Issue (for Sub-tasks) — with all required relationships, metadata, and quality gates. Every section below is mandatory. Thin items are rejected.
 
 Repository name for scoped comments: `basename $(git rev-parse --show-toplevel)`.
@@ -33,40 +47,7 @@ Linear's data model maps Epic / Story / Sub-task to **different entity types**. 
 
 The build lifecycle uses native **workflow states** (`Ready`, `In Progress`, `Blocked`, `On Dev`, `On Stg`, `Done`, plus an optional review state a project may bind), resolved per role from `linear.workflow` — see "Why Linear uses states, not labels" in `config-resolution`. A new **leaf** work unit is created in the configured `ready` state only on explicit `build_ready: true`; omitted or `false` leaves it in the team's default backlog state, and a container is never put in `ready` at all (see the Build-ready control input below).
 
-## Writing by another path? The gates still apply
-
-A team that talks to its tracker through its own script is doing a normal
-thing — the script usually owns the credential plumbing, and Lisa neither
-controls nor wants to control it. What that script does NOT get is either half
-of this skill's quality gate, and nothing about the write says so.
-
-**A read-back is not the missing check.** A bespoke path almost always re-reads
-the issue after writing and confirms the tracker stored what was sent. That is
-worth doing and it is not this. It proves TRANSPORT: the API accepted the
-payload and the field values round-tripped. It cannot fail for the reason these
-gates exist, because it never looks at whether what was sent was any good — a
-issue with no acceptance criteria, no parent, and a human decision left sitting
-in the middle of it round-trips perfectly. That is the dangerous half of the
-shape: a failing control gets investigated, a misread one gets trusted.
-
-So a write by any other path still owes both phases, and both run standalone
-against an item that already exists:
-
-| Phase | Skill | What it costs you |
-|---|---|---|
-| Pre-write validate | `lisa-linear-validate-issue` | Run it on the draft before you send it |
-| Post-write verify | `lisa-linear-verify` | Run it on the live issue after you send it |
-
-```text
-Skill(lisa-linear-validate-issue) with the draft issue, or with a reference to a live one
-Skill(lisa-linear-verify) with ENG-1234
-```
-
-**These are plugin-resident skills invoked through the Skill tool.** They are
-not shell scripts and will not appear in any repository's `scripts/` directory,
-including yours. An agent that searches the repo it is standing in, finds
-nothing, and concludes the capability is absent has made the one mistake that
-turns a local script from the convenient option into the only one.
+For direct API or bespoke script writes, the [bespoke-path contract](#writing-by-a-bespoke-path-your-own-script-direct-api-or-graphql) still requires pre-write validation and post-write verification.
 
 ## Phase 1 — Resolve Intent
 
@@ -299,7 +280,7 @@ If the item modifies an existing user-facing surface, a `lisa-product-walkthroug
 Before create/update, verify each field is populated where applicable:
 
 - **Workflow state**: set the resolved `ready` state (`linear.workflow.ready`, default `Ready`) on a new **leaf** work unit (Bug / Task / Sub-task / Improvement with no child work) per `leaf-only-lifecycle`, **only on explicit `build_ready: true`** (see the Build-ready control input below). A container (Epic Project / Story with sub-issues / Spike) is never put in the build-ready state.
-- **Labels**: taxonomy only — `type:<Kind>`, `repo:<name>`, `component:<name>`, and the `prd-intake-feedback` sentinel. Lifecycle is **not** a label on Linear; do not add `status:*` labels.
+- **Labels**: taxonomy only — `type:<Kind>`, `repo:<name>`, `component:<name>`. Lifecycle is **not** a label on Linear; do not add `status:*` labels.
 - **Native priority field**: 0–4 per Linear's scale; explicit, not "unset".
 - **Native estimate**: per Linear's team-configured estimate scale (often 0–8 Fibonacci); skip for Epic / Spike.
 - **ProjectMilestone**: when the team uses dated milestones, set the milestone on the Project (Epic) or on the Issue (when an Issue belongs to a milestone).
@@ -334,6 +315,19 @@ person scanning a board and to any path that has not yet been routed through the
 If the label does not exist in the tracker, create it, or record that it could not be applied and
 proceed — the marker still holds. Never file the label *instead of* the marker.
 
+**Every marker reader must consult comments.** Use `classifyReadyCandidate` with labels, body, comments and the configured human-needed label, then `planHumanGateRelease` for any release actions. A historical body marker alone is not an active hold after its matching release; unreadable comments leave a hold in place.
+
+**Write a `reason=` the release can name.** The hold's reason is not decoration: a hold ends when a
+`[lisa-human-gate-release]` comment repeating that same `reason=` is recorded on the item by an authorized human, and the
+next intake sweep then takes the marker label off and puts the item back in the build-ready role on
+its own. Matching is per-reason so that a hold declared *after* an earlier release is not born
+discharged. A keyless hold is legal and is discharged by a keyless release; a hold whose reason is a
+paragraph is legal and nobody will reproduce it. Prefer a short slug the person answering it can
+retype. Do **not** instruct anyone to delete the marker from the description to lift the hold — the
+only body write available is a whole-body replacement, so that asks them to rewrite the whole record
+to clear one line, which is why answered holds accumulated instead of being lifted
+(CodySwannGT/lisa#3852). The marker stays as history; the release is recorded beside it.
+
 If a leaf arrives with `build_ready` omitted or `false` **and** no `human_gate`, do not create it: report the incomplete handoff and name both ways to resolve it (`build_ready: true`, or a `human_gate` reason). Containers are exempt — their state rolls up from children, so they need neither.
 
 ## Phase 5.5 — Validate (Pre-write Gate)
@@ -360,7 +354,7 @@ If the validator reports `PASS`, continue to Phase 6.
 
 ### CREATE — Story / Task / Bug / Spike / Improvement (Issue with projectId)
 
-1. Resolve any required Issue labels (`type:<Kind>`, `repo:<name>`, `component:<name>`, `prd-intake-feedback` only if this is a sentinel issue) via `lisa-linear-access operation: list-issue-labels` (create via `lisa-linear-access operation: create-issue-label` if missing). Separately, place a **leaf** work unit in the `ready` lane by passing `lifecycle_role: ready` on the create call below — and only on **explicit `build_ready: true`**, per the Build-ready control input below. Omit the role for a container, and for a leaf whose `build_ready` is `false` or omitted, which then waits in the team's default backlog state for a human to promote it. Ready is an explicit claim, never an omission's default. Never resolve a state ID here and pass it as `stateId`: the access layer resolves the configured `ready` state itself and refuses anything else.
+1. Resolve any required Issue labels (`type:<Kind>`, `repo:<name>`, `component:<name>`) via `lisa-linear-access operation: list-issue-labels` (create via `lisa-linear-access operation: create-issue-label` if missing). Separately, place a **leaf** work unit in the `ready` lane by passing `lifecycle_role: ready` on the create call below — and only on **explicit `build_ready: true`**, per the Build-ready control input below. Omit the role for a container, and for a leaf whose `build_ready` is `false` or omitted, which then waits in the team's default backlog state for a human to promote it. Ready is an explicit claim, never an omission's default. Never resolve a state ID here and pass it as `stateId`: the access layer resolves the configured `ready` state itself and refuses anything else.
 2. Call `lisa-linear-access operation: save-issue` with: `team` (teamId), `title` (summary), `description` (markdown), `projectId` (the Epic Project), `priority` (0–4), `estimate`, `labelIds`, `assignee` if known.
 3. Capture the returned identifier (e.g. `ENG-123`) — Phase 4 sub-tasks need it as `parentId`.
 4. Add relationships from Phase 4b via `save_issue` (relations field) or paired relation calls.
@@ -384,7 +378,7 @@ Call the `lisa-linear-verify` skill on the resulting item. `lisa-linear-verify` 
 
 ## Phase 8 — Announce
 
-Post a creation comment via `lisa-linear-access operation: save-comment` (on the Issue, or on a sentinel issue under the Project for Epic-level announcements) with:
+Post a creation comment via `lisa-linear-access operation: save-comment` — `issue_id:<ID>` for an Issue, `project_id:<ID>` for an Epic-level announcement, which goes on the Project itself. Never create an Issue to carry a Project's announcement. The comment contains:
 
 - `[<repo>]` prefix if the item is repo-scoped
 - Who the item is assigned to (if known)
@@ -392,6 +386,46 @@ Post a creation comment via `lisa-linear-access operation: save-comment` (on the
 - Any remote PRs attached
 
 Skip this step only on UPDATE when no material change was made.
+
+## Writing by a bespoke path (your own script, direct API or GraphQL)
+
+Nothing here stops a consumer from writing to Linear through the Linear GraphQL API directly, a direct API call, or your own script, and nothing should
+try to — a script that owns the credential plumbing is often the only practical transport.
+**The transport is not the gate.** A bespoke write path still owes both halves of the quality
+gate this skill runs, and owes them explicitly, because no phase of this flow will ever run
+for it.
+
+A bespoke script's own read-back does not discharge either obligation. Re-reading the work item
+and confirming Linear stored what was sent **proves transport, not quality**: it shows the
+fields round-tripped and says nothing about whether what was sent clears a single gate. An
+agent that reads `VERIFIED` out of such a script has been told the work item was checked when it
+was not. Measured once, on one work item, on 2026-09-03 (CodySwannGT/lisa#3663): a local
+script's read-back was clean on every field, and the work item then failed gates S5, S9 and S18
+when the validator was run against it by hand.
+
+What a bespoke write path still owes — the same two checks, invoked by hand:
+
+1. **Pre-write validate**, the obligation Phase 5.5 discharges here. Invoke `lisa-linear-validate-issue` via
+   the Skill tool with the proposed spec as a YAML block **before** writing. Never write on a
+   `FAIL` verdict.
+2. **Post-write verify**, the obligation Phase 7 discharges here. Invoke `lisa-linear-verify` via the
+   Skill tool with the identifier of the work item you just wrote — or `lisa-linear-validate-issue` directly in
+   identifier mode, which fetches and validates the live state. Never report success on a
+   `FAIL` verdict.
+
+Both run standalone against an existing live work item; `lisa-linear-validate-issue` documents the copy-pasteable
+invocation under its standalone entry point.
+
+**Three outcomes, never two.** `PASS`, `FAIL` and *could not validate* are distinct results.
+If the validator did not run to a verdict — the skill was unavailable, a credential was
+missing, the work item could not be fetched — that is **not** a pass. Report it as unvalidated and
+say why. Collapsing "could not validate" into "validated" is the same misreading as trusting
+a read-back.
+
+**These are skills, not scripts.** `lisa-linear-validate-issue` and `lisa-linear-verify` are plugin-resident and invoked
+through the Skill tool. They are **not** expected to appear in any repository's `scripts/`
+directory, and their absence from one is not evidence that the capability is missing —
+searching the repository you happen to be standing in is the wrong search.
 
 ## Rules
 

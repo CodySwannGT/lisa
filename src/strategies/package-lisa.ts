@@ -4,6 +4,7 @@ import * as fse from "fs-extra";
 import path from "node:path";
 import semver from "semver";
 import { isPostinstallSafeApply } from "../core/apply-mode.js";
+import { CDK_APP_MARKER } from "../core/cdk-preset-adoption.js";
 import type { FileOperationResult, ProjectType } from "../core/config.js";
 import { PROJECT_TYPE_HIERARCHY, PROJECT_TYPE_ORDER } from "../core/config.js";
 import type { ICopyStrategy, StrategyContext } from "./strategy.interface.js";
@@ -120,7 +121,7 @@ export class PackageLisaStrategy implements ICopyStrategy {
   private readonly APP_JSON = "app.json";
   private readonly EAS_JSON = "eas.json";
   private readonly NEST_CLI_JSON = "nest-cli.json";
-  private readonly CDK_JSON = "cdk.json";
+  private readonly CDK_JSON = CDK_APP_MARKER;
   private readonly HARPER_APP_CONFIG = path.join("harper-app", "config.yaml");
   private readonly HARPER_APP_SCHEMA = path.join(
     "harper-app",

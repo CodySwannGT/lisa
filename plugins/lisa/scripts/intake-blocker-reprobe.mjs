@@ -71,7 +71,7 @@ function declarativeText(body) {
 }
 
 /**
- * Whether an HTML comment on this line carries the marker.
+ * Whether an HTML comment on this line carries the given marker.
  *
  * The second declaration form, and it is not a concession: an HTML comment is
  * invisible when the body is rendered, so nobody writes one to TALK about the
@@ -83,15 +83,16 @@ function declarativeText(body) {
  * `[^\n]*?` runs around a literal is the ambiguous shape this module avoids
  * elsewhere, and an indexOf walk is both linear and easier to be sure about.
  * @param {string} line - One line of the body
+ * @param {string} marker - The literal marker to look for
  * @returns {boolean} True when a comment on this line contains the marker
  */
-function commentCarriesMarker(line) {
+function commentCarriesMarker(line, marker) {
   const segments = line.split("<!--");
   for (let index = 1; index < segments.length; index += 1) {
     const close = segments[index].indexOf("-->");
     const inside =
       close === -1 ? segments[index] : segments[index].slice(0, close);
-    if (inside.includes(HUMAN_GATE_MARKER)) return true;
+    if (inside.includes(marker)) return true;
   }
   return false;
 }
@@ -106,13 +107,14 @@ function commentCarriesMarker(line) {
  * `--body` string and a shell script — where a declaration legitimately sits
  * after other text on its line.
  * @param {string} line - One line of the body
- * @returns {boolean} True when the line declares a hold
+ * @param {string} [marker] - The declaration marker to test for
+ * @returns {boolean} True when the line declares with that marker
  */
-function declaresOnLine(line) {
-  if (line.replace(LEADING_DECORATION, "").startsWith(HUMAN_GATE_MARKER)) {
+function declaresOnLine(line, marker = HUMAN_GATE_MARKER) {
+  if (line.replace(LEADING_DECORATION, "").startsWith(marker)) {
     return true;
   }
-  return commentCarriesMarker(line);
+  return commentCarriesMarker(line, marker);
 }
 
 /**
@@ -175,6 +177,249 @@ export function bodyDeclaresHold(body) {
 }
 
 /**
+ * Marker a comment carries to DISCHARGE a hold.
+ *
+ * ## Why a comment and not the body
+ *
+ * The hold lives in the description, and the only description write this plugin
+ * has is a whole-body replacement — re-read everything, change one line, write
+ * it all back. On an item carrying acceptance criteria, a validation journey
+ * and a managed usage section, "delete one HTML comment" is therefore "rewrite
+ * the record and hope nothing was dropped". A release procedure whose only
+ * implementation risks destroying what it releases is not a release procedure:
+ * the rational move is always to leave the hold, so holds only accumulate
+ * (CodySwannGT/lisa#3852).
+ *
+ * A comment is append-only. It cannot drop a section it never held, and the
+ * same reader that reads the hold reads the discharge.
+ *
+ * ## Why it is not a superstring of the hold marker
+ *
+ * `HUMAN_GATE_MARKER` closes with `]`, so `[lisa-human-gate-release]` does not
+ * contain it. That is load-bearing rather than incidental: a release record
+ * that matched the hold test would declare a fresh hold every time one was
+ * lifted, which is the same trap `NORMALIZATION_HOLD_NOTE_MARKER` documents.
+ */
+export const HUMAN_GATE_RELEASE_MARKER = "[lisa-human-gate-release]";
+
+/** Structured key a hold and its release both name, so they pair up. */
+const REASON_KEY = "reason=";
+
+/**
+ * The comparable form of a hold reason.
+ *
+ * Case and internal whitespace drift between the hand that writes the hold and
+ * the hand that writes the release; the identity of the question does not.
+ * @param {unknown} value - A raw reason string
+ * @returns {string} Its comparable form, empty when there is none
+ */
+function normalizeReason(value) {
+  return String(value ?? "")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * The reason a declaring line names, or the empty key when it names none.
+ *
+ * A keyless declaration is not a defect to be rejected — markers in the wild
+ * carry no `reason=` at all, which is why the hold test is not keyed on one.
+ * The empty string is a real key here: a keyless hold is discharged by a
+ * keyless release and by nothing else, so the two surfaces stay symmetric
+ * whether or not a reason was ever written.
+ * @param {string} line - A line already known to declare
+ * @param {string} marker - The declaration marker it carries
+ * @returns {string} The normalized reason key
+ */
+function reasonOnLine(line, marker) {
+  const at = line.indexOf(marker);
+  if (at === -1) return "";
+  const tail = line.slice(at + marker.length).split("-->")[0];
+  const key = tail.indexOf(REASON_KEY);
+  if (key === -1) return "";
+  return normalizeReason(tail.slice(key + REASON_KEY.length));
+}
+
+/**
+ * The reason keys of every hold a body DECLARES, deduplicated.
+ *
+ * Reuses the precision rule rather than restating it, so a body that merely
+ * discusses the marker yields no holds here for the same reason it reads as
+ * unheld in {@link bodyDeclaresHold}.
+ * @param {unknown} body - The item body
+ * @returns {string[]} One key per declared hold
+ */
+export function humanGateHolds(body) {
+  const keys = declarativeText(body)
+    .split("\n")
+    .filter(line => declaresOnLine(line))
+    .map(line => reasonOnLine(line, HUMAN_GATE_MARKER));
+  return [...new Set(keys)];
+}
+
+/**
+ * Normalize stable provider IDs without case folding or trusting display names.
+ * @param {unknown} value - Provider actor ID
+ * @returns {string} Stable comparison key, or empty when invalid
+ */
+function stableActorId(value) {
+  if (typeof value === "string") return value.trim();
+  return Number.isSafeInteger(value) && value > 0 ? String(value) : "";
+}
+
+/**
+ * Recognize explicit provider bot metadata even for an allowlisted identity.
+ * @param {unknown} actor - Provider or normalized author metadata
+ * @returns {boolean} Whether the metadata identifies automation
+ */
+function isKnownBot(actor) {
+  if (!actor || typeof actor !== "object") return false;
+  const kinds = [
+    actor.type,
+    actor.__typename,
+    actor.accountType,
+    actor.authorType,
+  ];
+  return (
+    actor.botActor != null ||
+    actor.isBot === true ||
+    actor.bot === true ||
+    kinds.some(kind => /^(?:bot|app)$/i.test(String(kind ?? "").trim()))
+  );
+}
+
+/**
+ * Require authenticated provider identity and separately supplied human trust.
+ * Adapters may normalize the ID to authorId, but must preserve bot metadata.
+ * Names, body text and self-asserted authorization flags never confer trust.
+ * @param {unknown} comment - Structured provider comment
+ * @param {ReadonlySet<string>} trustedIds - Explicitly trusted human actor IDs
+ * @returns {boolean} Whether the comment may discharge a human hold
+ */
+function isTrustedHumanComment(comment, trustedIds) {
+  if (!comment || typeof comment !== "object" || Array.isArray(comment))
+    return false;
+  if ([comment, comment.user, comment.author].some(isKnownBot)) return false;
+  const id = stableActorId(
+    comment.authorId ??
+      comment.user?.id ??
+      comment.author?.id ??
+      comment.author?.accountId
+  );
+  return id.length > 0 && trustedIds.has(id);
+}
+
+/**
+ * The reason keys released by explicitly trusted human authors, deduplicated.
+ *
+ * Comments must retain authenticated provider authorship: normalized authorId,
+ * user.id, author.id or author.accountId. The caller supplies trusted human IDs
+ * independently of comment content. Raw strings, missing IDs, known bots and
+ * an absent or empty allowlist fail closed and cannot discharge a hold.
+ * @param {unknown} comments - Structured comments, any order
+ * @param {unknown} trustedHumanActorIds - Explicit trusted human provider IDs
+ * @returns {string[]} One key per authorized recorded release
+ */
+export function humanGateReleases(comments, trustedHumanActorIds = []) {
+  const trustedIds = new Set(
+    (Array.isArray(trustedHumanActorIds) ? trustedHumanActorIds : [])
+      .map(stableActorId)
+      .filter(Boolean)
+  );
+  const bodies = (Array.isArray(comments) ? comments : [])
+    .filter(entry => isTrustedHumanComment(entry, trustedIds))
+    .map(entry => entry.body ?? "");
+  const keys = bodies.flatMap(body =>
+    declarativeText(body)
+      .split("\n")
+      .filter(line => declaresOnLine(line, HUMAN_GATE_RELEASE_MARKER))
+      .map(line => reasonOnLine(line, HUMAN_GATE_RELEASE_MARKER))
+  );
+  return [...new Set(keys)];
+}
+
+/**
+ * Whether every hold on this item has a release recorded against it.
+ *
+ * Matching is per-reason on purpose. A blanket "any release clears everything"
+ * rule would make a hold declared AFTER a release be born discharged, which is
+ * the unsafe direction — the one this fix must not introduce while correcting
+ * the safe one. An item with no declared body hold is discharged only by a
+ * keyless release, which is the form that pairs with a label-only hold.
+ * @param {{ body?: unknown, comments?: unknown, trustedHumanActorIds?: unknown }} input - The item's surfaces
+ * @returns {boolean} True when nothing is left outstanding
+ */
+export function humanGateDischarged(input = {}) {
+  const released = new Set(
+    humanGateReleases(input.comments, input.trustedHumanActorIds)
+  );
+  const holds = humanGateHolds(input.body);
+  if (holds.length === 0) return released.has("");
+  return holds.every(reason => released.has(reason));
+}
+
+/**
+ * The full held-ness verdict for an item, on every surface that carries a hold.
+ *
+ * Split out of {@link isHumanGated} because the release path needs to know more
+ * than yes-or-no: whether a hold existed at all, which reasons are still
+ * outstanding, and whether the durable label needs removing. A caller that only
+ * wants the boolean still gets exactly the boolean.
+ *
+ * The label is treated as a MIRROR of a declared body hold, never as a second
+ * independent hold, because that is how it is written: the vendor writers stamp
+ * both surfaces for one hold, and `planHumanGateReconciliation` adds the label
+ * to an item already carrying the marker. Counting it separately would leave
+ * every mirrored hold permanently outstanding under a keyed release — the exact
+ * defect this function exists to end, one layer down. Only when the body
+ * declares nothing does the label stand as a hold in its own right, and then it
+ * is a keyless one.
+ *
+ * Fails CLOSED on an unreadable discharge: with no comments supplied there are
+ * no releases, so a held item stays held. Holding a gate that may be stale
+ * beats releasing one that is not, and every caller that never passes comments
+ * keeps its current behaviour by construction.
+ * @param {{ labels?: unknown, body?: unknown, comments?: unknown, trustedHumanActorIds?: unknown, humanNeededLabel?: unknown }} input - Candidate surfaces
+ * @returns {{ held: boolean, reason: string, declared: number, outstanding: string[], released: string[], labelPresent: boolean }} Held-ness verdict
+ */
+export function humanGateVerdict(input = {}) {
+  const configured = String(
+    input.humanNeededLabel ?? DEFAULT_HUMAN_NEEDED_LABEL
+  )
+    .trim()
+    .toLowerCase();
+  const labelPresent =
+    configured.length > 0 && normalizeLabels(input.labels).includes(configured);
+  const released = humanGateReleases(
+    input.comments,
+    input.trustedHumanActorIds
+  );
+  const releasedSet = new Set(released);
+  const holds = humanGateHolds(input.body);
+  const outstanding = holds.filter(reason => !releasedSet.has(reason));
+  const base = {
+    declared: holds.length,
+    released,
+    labelPresent,
+  };
+
+  if (outstanding.length > 0) {
+    return { held: true, reason: "hold-outstanding", outstanding, ...base };
+  }
+  if (holds.length > 0) {
+    return { held: false, reason: "hold-released", outstanding: [], ...base };
+  }
+  if (labelPresent) {
+    return releasedSet.has("")
+      ? { held: false, reason: "hold-released", outstanding: [], ...base }
+      : { held: true, reason: "hold-outstanding", outstanding: [""], ...base };
+  }
+
+  return { held: false, reason: "no-hold", outstanding: [], ...base };
+}
+
+/**
  * Whether an item is held for a person, on either surface.
  *
  * Exported deliberately, and it is the ONLY answer to that question anywhere in
@@ -185,23 +430,17 @@ export function bodyDeclaresHold(body) {
  * A path that read labels alone judged such an item unheld and promoted it —
  * which is #3805, and is why this is a shared function rather than a shared
  * convention.
- * @param {{ labels?: unknown, body?: unknown, humanNeededLabel?: unknown }} input - Candidate surfaces
+ *
+ * It is also the only place a hold ENDS, which is why the release lives behind
+ * the same call rather than beside it: a reader that could see the hold but not
+ * its discharge is how the gate became one-way in the first place. Pass the
+ * item's structured comments and trustedHumanActorIds to honor an authorized
+ * release; omit either and the item stays held.
+ * @param {{ labels?: unknown, body?: unknown, comments?: unknown, trustedHumanActorIds?: unknown, humanNeededLabel?: unknown }} input - Candidate surfaces
  * @returns {boolean} True when a person is holding this item
  */
 export function isHumanGated(input) {
-  const configured = String(
-    input.humanNeededLabel ?? DEFAULT_HUMAN_NEEDED_LABEL
-  )
-    .trim()
-    .toLowerCase();
-  if (
-    configured.length > 0 &&
-    normalizeLabels(input.labels).includes(configured)
-  ) {
-    return true;
-  }
-
-  return bodyDeclaresHold(input.body);
+  return humanGateVerdict(input).held;
 }
 
 /**
@@ -247,6 +486,8 @@ function judgeProbe(probe) {
  *   laneType?: unknown
  *   labels?: unknown
  *   body?: unknown
+ *   comments?: unknown
+ *   trustedHumanActorIds?: unknown
  *   humanNeededLabel?: unknown
  *   statedBlocker?: unknown
  *   probe?: { discharged?: unknown, evidence?: unknown } | null
@@ -359,7 +600,7 @@ export const HUMAN_GATE_NOTE_MARKER = "<!-- [lisa-human-gate-reconciled] -->";
  * a parser keyed on the structured field would miss those while appearing to
  * work on every item that happens to have one — reproducing this defect one
  * layer down.
- * @param {{ labels?: unknown, body?: unknown, humanNeededLabel?: unknown }} input - Candidate surfaces
+ * @param {{ labels?: unknown, body?: unknown, comments?: unknown, trustedHumanActorIds?: unknown, humanNeededLabel?: unknown }} input - Candidate surfaces
  * @returns {{ claimable: boolean, reason: string, humanGated: boolean }} Claim verdict
  */
 export function classifyReadyCandidate(input = {}) {
@@ -387,6 +628,8 @@ export function classifyReadyCandidate(input = {}) {
  * @param {{
  *   labels?: unknown
  *   body?: unknown
+ *   comments?: unknown
+ *   trustedHumanActorIds?: unknown
  *   humanNeededLabel?: unknown
  *   readyLabel?: unknown
  *   alreadyNotified?: unknown
@@ -430,6 +673,193 @@ export function planHumanGateReconciliation(input = {}) {
 }
 
 /**
+ * Marker on the note the release path leaves, so a later cycle recognises its
+ * own work instead of commenting again.
+ *
+ * A superstring of neither declaration marker, for the reason
+ * {@link HUMAN_GATE_RELEASE_MARKER} gives: a note ABOUT a release must not read
+ * as a release, or the note announcing one item's discharge would discharge
+ * every item it names.
+ */
+export const HUMAN_GATE_RELEASE_NOTE_MARKER =
+  "<!-- [lisa-human-gate-released] -->";
+
+/**
+ * The one sentence every hold note gives an operator to END the hold.
+ *
+ * One constant, two notes, because the instruction IS the release path as far
+ * as the person reading it is concerned. Two copies of it drift, and a drifted
+ * instruction sends someone to a mechanism that no longer exists — which is
+ * worse than the prose it replaced, since that at least described something
+ * real. It names a comment because the alternative it replaces — "remove the
+ * hold note from the description" — asks for a whole-body rewrite the tooling
+ * has no safe way to perform.
+ */
+const RESUME_INSTRUCTION = [
+  "- To resume it: leave a comment on this item that starts with ",
+  HUMAN_GATE_RELEASE_MARKER,
+  " and repeats the reason the hold in the description names. The next sweep ",
+  "puts it back in the queue on its own. Nothing else has to change — do not ",
+  "edit the description, and do not move it by hand.",
+].join("");
+
+/**
+ * Plan the state repair for an item whose hold has been discharged.
+ *
+ * The exact inverse of {@link planHumanGateReconciliation}, and deliberately
+ * the same shape: that one takes the ready role away and adds the marker label,
+ * this one takes the marker label away and puts the ready role back. A state
+ * change with no inverse is the defect class this pair exists to close
+ * (`state-changes-without-inverses`), and an inverse that is merely *possible*
+ * is not one — it has to sit on a path something actually runs, which is why
+ * this is a planner the intake sweeps call rather than an instruction to an
+ * operator.
+ *
+ * Two refusals are load-bearing:
+ *
+ * - **A still-held item plans nothing.** Every outstanding reason holds the
+ *   whole item, so an item whose second hold has not been answered is not
+ *   half-released.
+ * - **An item that was never held plans nothing.** Without that, this would be
+ *   a path that adds the build-ready role to arbitrary items — a promotion
+ *   mechanism wearing a release mechanism's name.
+ *
+ * The ready role is restored only when the item carries none of the configured
+ * lifecycle labels, mirroring {@link planLabelNormalization}. An item that was
+ * held and has since reached a terminal lane must not be dragged back to the
+ * queue by its own release.
+ *
+ * Idempotent by state rather than by memory: an item already unmarked and
+ * already back in the queue needs nothing, so asking twice yields no second
+ * mutation.
+ * @param {{
+ *   labels?: unknown
+ *   body?: unknown
+ *   comments?: unknown
+ *   trustedHumanActorIds?: unknown
+ *   humanNeededLabel?: unknown
+ *   readyLabel?: unknown
+ *   lifecycleLabels?: unknown
+ *   alreadyNotified?: unknown
+ * }} input - Candidate surfaces plus the configured lane vocabulary
+ * @returns {{ released: boolean, reason: string, discharged: string[], actions: { removeHumanNeededLabel: boolean, addReadyLabel: string | null, comment: boolean } }} Release plan
+ */
+export function planHumanGateRelease(input = {}) {
+  const idle = Object.freeze({
+    removeHumanNeededLabel: false,
+    addReadyLabel: null,
+    comment: false,
+  });
+  const verdict = humanGateVerdict(input);
+  if (verdict.held) {
+    return {
+      released: false,
+      reason: "hold-outstanding",
+      discharged: [],
+      actions: idle,
+    };
+  }
+  if (verdict.declared === 0 && !verdict.labelPresent) {
+    return {
+      released: false,
+      reason: "no-hold",
+      discharged: [],
+      actions: idle,
+    };
+  }
+
+  const needed = String(input.humanNeededLabel ?? DEFAULT_HUMAN_NEEDED_LABEL)
+    .trim()
+    .toLowerCase();
+  // The marker label is excluded from the lane test on both sides. It is one of
+  // the configured lifecycle labels AND it is the label this plan removes, so
+  // counting it would let the hold's own marker prove the item is already in a
+  // lane and veto the restoration — the release would clear the flag and leave
+  // the item in no queue at all, which is the original defect with one fewer
+  // symptom.
+  const labels = normalizeLabels(input.labels).filter(name => name !== needed);
+  const lifecycle = normalizeLabels(input.lifecycleLabels).filter(
+    name => name !== needed
+  );
+  const ready = trimmedString(input.readyLabel);
+  const inLifecycle = lifecycle.some(name => labels.includes(name));
+  const addReadyLabel =
+    ready.length > 0 && !inLifecycle && !labels.includes(ready.toLowerCase())
+      ? ready
+      : null;
+  const actions = {
+    removeHumanNeededLabel: verdict.labelPresent,
+    addReadyLabel,
+    comment:
+      input.alreadyNotified !== true &&
+      (verdict.labelPresent || addReadyLabel !== null),
+  };
+  const changed =
+    actions.removeHumanNeededLabel || addReadyLabel !== null || actions.comment;
+
+  return {
+    released: true,
+    reason: changed ? "release" : "already-released",
+    discharged: verdict.released,
+    actions,
+  };
+}
+
+/**
+ * Render the discharge record a person or a skill leaves to END a hold.
+ *
+ * Generated rather than retyped, because the release names the hold it ends by
+ * its reason and a mistyped reason discharges nothing while looking like it
+ * did. The reason is echoed verbatim from the hold, so the pairing is visible
+ * to a reader as well as to the matcher.
+ * @param {{ reason?: unknown, decidedBy?: unknown, decision?: unknown }} discharge - What was decided, and by whom
+ * @returns {string} Comment body carrying the release marker
+ */
+export function formatHumanGateRelease(discharge = {}) {
+  const reason = trimmedString(discharge.reason);
+  const declaration =
+    reason.length > 0
+      ? `${HUMAN_GATE_RELEASE_MARKER} ${REASON_KEY}${reason}`
+      : HUMAN_GATE_RELEASE_MARKER;
+  const lines = [declaration, "", "**The hold on this item is lifted.**", ""];
+  lines.push(
+    `- What was being asked: ${reason.length > 0 ? reason : "(the hold named no reason)"}`
+  );
+  const decision = trimmedString(discharge.decision);
+  if (decision.length > 0) lines.push(`- What was decided: ${decision}`);
+  const decidedBy = trimmedString(discharge.decidedBy);
+  if (decidedBy.length > 0) lines.push(`- Decided by: ${decidedBy}`);
+  lines.push(
+    "- What happens next: this item goes back into the queue that agents build from."
+  );
+
+  return lines.join("\n");
+}
+
+/**
+ * Render the notice for an item this sweep released.
+ *
+ * Distinct from {@link formatHumanGateNote} for the same reason
+ * {@link formatNormalizationHoldNote} is: the two report opposite events, and
+ * reusing one to report the other tells an operator the wrong thing happened.
+ * @returns {string} Comment body, carrying the marker that keeps a re-run quiet
+ */
+export function formatHumanGateReleaseNote() {
+  return [
+    "**Back in the queue: the hold was answered**",
+    "",
+    "- What was found: this item was being held for a person, and the " +
+      "decision it was waiting for has since been recorded on it.",
+    "- What changed: the hold flag has been taken off and the item has been " +
+      "put back into the queue that agents build from.",
+    "- Nothing was rewritten: the description is exactly as it was, hold note " +
+      "and all, so the history of why it was held stays readable.",
+    "",
+    HUMAN_GATE_RELEASE_NOTE_MARKER,
+  ].join("\n");
+}
+
+/**
  * Marker on the note the normalization sweep leaves, so a later cycle
  * recognises its own work instead of commenting again.
  *
@@ -467,6 +897,8 @@ export const NORMALIZATION_HOLD_NOTE_MARKER =
  * @param {{
  *   labels?: unknown
  *   body?: unknown
+ *   comments?: unknown
+ *   trustedHumanActorIds?: unknown
  *   humanNeededLabel?: unknown
  *   lifecycleLabels?: unknown
  *   readyLabel?: unknown
@@ -529,8 +961,7 @@ export function formatNormalizationHoldNote() {
       "it was not put into the queue that agents work from.",
     "- What changed: nothing at all. It was left exactly as it is, and " +
       "nothing will pick it up on its own.",
-    "- To resume it: remove the hold note from the description, then put it " +
-      "into the build queue.",
+    RESUME_INSTRUCTION,
     "",
     NORMALIZATION_HOLD_NOTE_MARKER,
   ].join("\n");
@@ -553,8 +984,7 @@ export function formatHumanGateNote() {
       "been picked up and built anyway.",
     "- What changed: it has been taken out of that queue and flagged as " +
       "needing a person, so nothing will build it automatically.",
-    "- To resume it: remove the hold note from the description and put it " +
-      "back in the build queue.",
+    RESUME_INSTRUCTION,
     "",
     HUMAN_GATE_NOTE_MARKER,
   ].join("\n");
@@ -595,4 +1025,23 @@ export function summarizeHumanGateHolds(held = []) {
     .filter(name => name.length > 0);
   if (names.length === 0) return "Held for a person: none.";
   return `Held for a person (${String(names.length)}): ${names.join(", ")}.`;
+}
+
+/**
+ * Render the cycle-summary line naming what was RELEASED.
+ *
+ * The counterpart of {@link summarizeHumanGateHolds}, printed even when it is
+ * zero. Without it a release path that has stopped working is indistinguishable
+ * from a cycle where nothing needed releasing — which is exactly how the
+ * missing inverse went unnoticed for as long as it did, and a fix that cannot
+ * be observed to fire is a fix nobody can tell has regressed.
+ * @param {readonly unknown[]} released - Item references released this cycle
+ * @returns {string} One summary line
+ */
+export function summarizeHumanGateReleases(released = []) {
+  const names = (Array.isArray(released) ? released : [])
+    .map(item => trimmedString(item))
+    .filter(name => name.length > 0);
+  if (names.length === 0) return "Released back to the queue: none.";
+  return `Released back to the queue (${String(names.length)}): ${names.join(", ")}.`;
 }

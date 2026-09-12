@@ -52,45 +52,40 @@ import process from "node:process";
 
 import { describe, expect, it } from "vitest";
 
+import {
+  FORBIDDEN_ADVISORY_PATTERNS,
+  SOURCE_GUARD_ROOTS,
+} from "../../../scripts/deployed-guard-advice.mjs";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 /** The BUILT hook, which is what consumers receive. */
 const HOOK_PATH = path.resolve("plugins/lisa/hooks/parity-safety-net.sh");
 
 /** Every shipped spelling of the same guard. All of them govern somewhere. */
-const SHIPPED_COPIES: readonly string[] = [
-  "plugins/src/base/hooks/parity-safety-net.sh",
-  "plugins/lisa/hooks/parity-safety-net.sh",
-  "plugins/lisa-agy/hooks/parity-safety-net.sh",
-  "plugins/lisa-cursor/hooks/parity-safety-net.sh",
-  "plugins/lisa-copilot/hooks/parity-safety-net.sh",
-  "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh",
-].map(relative => path.resolve(relative));
+const SHIPPED_COPIES: readonly string[] = SOURCE_GUARD_ROOTS.map(
+  (root: string) => path.resolve(root, "parity-safety-net.sh")
+);
 
 const EXIT_BLOCKED = 2;
 
 /**
  * Spellings that RECOMMEND the shared stash rather than prohibiting it.
  *
- * **Every pattern here was verified against the real historical bytes, in both
- * directions** — it matches the text that shipped before the fix and does not
- * match the text that shipped after. That check is not ceremony: the first
- * draft of this table required "stash" to appear AFTER "safe alternatives",
- * and in guard 7's actual comment it appears before, so the pattern matched
- * nothing and the suite passed against the very file it was written to catch.
- * A prose pattern that has not been run against the prose it forbids is not
- * evidence of anything. If you add one, revert the relevant file to the commit
- * that carried the bad text and watch the case go red first.
+ * **Defined in `scripts/deployed-guard-advice.mjs`, not here.** The list used
+ * to live in this file, and that made it a fact about SOURCE only. Per
+ * CodySwannGT/lisa#3998 the same patterns are also run over deployed guard
+ * copies — the ones actually serving agents — and two copies of the list would
+ * drift invisibly: this suite would stay green against patterns the deployed
+ * sweep no longer looks for. One list, cited by both, never two.
  *
- * The first three were the shipped refusal text of guards 4 and 3 until #3722;
- * the fourth is guard 7's comment, which #3722 left behind and #3692 removed.
+ * The provenance of each pattern, and why they key on advisory forms rather
+ * than the bare word, is documented beside the definition.
  */
-const ADVISORY: readonly (readonly [string, RegExp])[] = [
-  ["guard 4's old refusal", /use\s+git\s+stash/i],
-  ["guard 3's old refusal", /\(\s*stash\s+or\s+commit/i],
-  ["stash offered as the preservation step", /stash\s+to\s+preserve/i],
-  ["push/pop called a safe alternative", /push\/pop[^.]*safe\s+alternatives?/i],
-];
+const ADVISORY: readonly (readonly [string, RegExp])[] =
+  FORBIDDEN_ADVISORY_PATTERNS.map(
+    (entry: { readonly label: string; readonly pattern: RegExp }) =>
+      [entry.label, entry.pattern] as const
+  );
 
 /**
  * Classify one proposed command. Nothing is executed — the hook is a

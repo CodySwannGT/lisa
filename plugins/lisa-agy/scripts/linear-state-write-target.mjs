@@ -174,8 +174,8 @@ export const resolveStateWriteTarget = ({
     return refuse(
       REFUSALS.MISSING_ROLE,
       "no lifecycle role was declared. Every `stateId` write must name the role " +
-        "it is applying (ready | claimed | blocked | review | done | qa.queue | " +
-        "qa.certified) so the configured target can be resolved instead of trusted."
+        "it is applying (ready | claimed | blocked | review | done) so the " +
+        "configured target can be resolved instead of trusted."
     );
 
   // The environment key belongs to exactly one shape: an env-indexed `done`.

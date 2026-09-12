@@ -72,6 +72,19 @@ const SKIP = new Set(["node_modules", "dist", "coverage", ".git"]);
 const SELF_DIR =
   /^[ \t]*(?:export[ \t]+)?([A-Za-z_]\w*)=(.*\bdirname\b.*(?:BASH_SOURCE|\$0).*)$/gmu;
 
+/**
+ * The same thing said without forking.
+ *
+ * `$(cd "$(dirname …)" && pwd)` costs two processes, which is why a guard on
+ * the per-tool-call path spells it `${BASH_SOURCE[0]%/*}` instead. That is the
+ * identical resolution and it carries the identical shipping obligation, so the
+ * scan has to see both — a spelling this file cannot read is a companion
+ * reference that goes unaudited, and an unaudited companion is exactly the
+ * silence #3483 was.
+ */
+const SELF_DIR_TRIMMED =
+  /^[ \t]*(?:export[ \t]+)?([A-Za-z_]\w*)=(.*\$\{BASH_SOURCE\[0\]%\/\*\}.*)$/gmu;
+
 /** A `/..` segment, only where it ends the path component. */
 const PARENT_STEP = /\/\.\.(?=["'/\s)]|$)/gu;
 
@@ -119,11 +132,20 @@ interface Companion {
 function selfDirectories(file: string, text: string): Map<string, string[]> {
   const directories = new Map<string, string[]>();
   const base = path.dirname(file);
-  for (const match of text.matchAll(SELF_DIR)) {
+  for (const match of [
+    ...text.matchAll(SELF_DIR),
+    ...text.matchAll(SELF_DIR_TRIMMED),
+  ]) {
     const name = match[1];
     const rhs = match[2];
     if (name === undefined || rhs === undefined) continue;
-    const tail = rhs.slice(rhs.lastIndexOf("dirname"));
+    // `/..` segments count only where they walk up from the self-directory
+    // expression, so the tail starts at whichever spelling produced it.
+    const anchor = Math.max(
+      rhs.lastIndexOf("dirname"),
+      rhs.lastIndexOf("%/*}")
+    );
+    const tail = anchor < 0 ? rhs : rhs.slice(anchor);
     const ups = (tail.match(PARENT_STEP) ?? []).length;
     const directory = path.resolve(
       base,

@@ -4,6 +4,7 @@ import { lstat, readFile } from "node:fs/promises";
 import * as fse from "fs-extra";
 import path from "node:path";
 
+import { CDK_APP_MARKER } from "../core/cdk-preset-adoption.js";
 import {
   PROJECT_TYPE_HIERARCHY,
   PROJECT_TYPE_ORDER,
@@ -201,7 +202,7 @@ export async function detectHealthProjectShape(
     fileSignal(projectRoot, "app.json"),
     fileSignal(projectRoot, "eas.json"),
     fileSignal(projectRoot, "nest-cli.json"),
-    fileSignal(projectRoot, "cdk.json"),
+    fileSignal(projectRoot, CDK_APP_MARKER),
     fileSignal(projectRoot, path.join("bin", "rails")),
     fileSignal(projectRoot, path.join("config", "application.rb")),
     fileSignal(projectRoot, path.join(HARPER_APP, "config.yaml")),

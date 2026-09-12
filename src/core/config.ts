@@ -465,6 +465,17 @@ export interface LisaResult {
    * delete paths are not workflows.
    */
   readonly deletedPaths: readonly string[];
+  /**
+   * The same removals as prose, plus every workflow this run DECLINED to
+   * remove, each with the reason.
+   *
+   * `deletedPaths` is enough to reconstruct a `git checkout`; it is not enough
+   * to answer "why did my file go". The reasons already exist — a forced
+   * removal carries the ruling behind it, a refusal carries what Lisa could not
+   * prove — and the caller records them so the answer outlives an install
+   * whose output nobody sees (CodySwannGT/lisa#4071).
+   */
+  readonly deletionNotices: readonly string[];
 }
 
 /**

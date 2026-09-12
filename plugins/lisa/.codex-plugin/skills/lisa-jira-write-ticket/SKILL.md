@@ -6,6 +6,20 @@ allowed-tools: ["Bash", "Skill"]
 
 # Write JIRA Ticket: $ARGUMENTS
 
+## Human-gate release authorization
+
+A release requires a trusted human author, not just matching comment text. Follow
+`ready-role-filing` — **Human-gate release authorization**: preserve tracker-supplied comment
+author IDs and bot metadata, resolve `trustedHumanActorIds` only from an explicit user instruction
+or existing human-authored trusted project policy, and pass it with structured `comments` to every
+hold classifier, reconciliation, normalization and release planner. Never derive trust from the
+comment body, a display name, the actor's own assertion, or an automation posting on its own behalf.
+Missing policy, missing/unreadable author identity, raw body strings, untrusted actors and known bots
+cannot discharge a hold. Keep the item held and report the missing authorization; do not silently
+replace these inputs with an empty history or an inferred allowlist. Authorized matching releases
+continue through the existing path and never override an independently declared caller hold.
+
+
 All Atlassian operations in this skill go through `lisa-atlassian-access`. Do not call MCP tools or `acli` directly.
 
 Create or update a JIRA ticket with all required relationships, metadata, and quality gates. Every section below is mandatory. Thin tickets are rejected.
@@ -307,6 +321,17 @@ person scanning a board and to any path that has not yet been routed through the
 If the label does not exist in the tracker, create it, or record that it could not be applied and
 proceed — the marker still holds. Never file the label *instead of* the marker.
 
+**Write a `reason=` the release can name.** The hold's reason is not decoration: a hold ends when a
+`[lisa-human-gate-release]` comment repeating that same `reason=` is recorded on the item by an authorized human, and the
+next intake sweep then takes the marker label off and puts the item back in the build-ready role on
+its own. Matching is per-reason so that a hold declared *after* an earlier release is not born
+discharged. A keyless hold is legal and is discharged by a keyless release; a hold whose reason is a
+paragraph is legal and nobody will reproduce it. Prefer a short slug the person answering it can
+retype. Do **not** instruct anyone to delete the marker from the description to lift the hold — the
+only body write available is a whole-body replacement, so that asks them to rewrite the whole record
+to clear one line, which is why answered holds accumulated instead of being lifted
+(CodySwannGT/lisa#3852). The marker stays as history; the release is recorded beside it.
+
 If a leaf arrives with `build_ready` omitted or `false` **and** no `human_gate`, do not create it: report the incomplete handoff and name both ways to resolve it (`build_ready: true`, or a `human_gate` reason). Containers are exempt — their status rolls up from children, so they need neither.
 
 ## Phase 5.5 — Validate (Pre-write Gate)
@@ -354,6 +379,46 @@ Post a creation comment via `lisa-atlassian-access` `operation: comment key: <K>
 - Any remote PRs attached
 
 Skip this step only on UPDATE when no material change was made.
+
+## Writing by a bespoke path (your own script, direct API or GraphQL)
+
+Nothing here stops a consumer from writing to JIRA through the JIRA REST API directly, `acli`, or your own script, and nothing should
+try to — a script that owns the credential plumbing is often the only practical transport.
+**The transport is not the gate.** A bespoke write path still owes both halves of the quality
+gate this skill runs, and owes them explicitly, because no phase of this flow will ever run
+for it.
+
+A bespoke script's own read-back does not discharge either obligation. Re-reading the ticket
+and confirming JIRA stored what was sent **proves transport, not quality**: it shows the
+fields round-tripped and says nothing about whether what was sent clears a single gate. An
+agent that reads `VERIFIED` out of such a script has been told the ticket was checked when it
+was not. Measured once, on one ticket, on 2026-09-03 (CodySwannGT/lisa#3663): a local
+script's read-back was clean on every field, and the ticket then failed gates S5, S9 and S18
+when the validator was run against it by hand.
+
+What a bespoke write path still owes — the same two checks, invoked by hand:
+
+1. **Pre-write validate**, the obligation Phase 5.5 discharges here. Invoke `lisa-jira-validate-ticket` via
+   the Skill tool with the proposed spec as a YAML block **before** writing. Never write on a
+   `FAIL` verdict.
+2. **Post-write verify**, the obligation Phase 7 discharges here. Invoke `lisa-jira-verify` via the
+   Skill tool with the identifier of the ticket you just wrote — or `lisa-jira-validate-ticket` directly in
+   identifier mode, which fetches and validates the live state. Never report success on a
+   `FAIL` verdict.
+
+Both run standalone against an existing live ticket; `lisa-jira-validate-ticket` documents the copy-pasteable
+invocation under its standalone entry point.
+
+**Three outcomes, never two.** `PASS`, `FAIL` and *could not validate* are distinct results.
+If the validator did not run to a verdict — the skill was unavailable, a credential was
+missing, the ticket could not be fetched — that is **not** a pass. Report it as unvalidated and
+say why. Collapsing "could not validate" into "validated" is the same misreading as trusting
+a read-back.
+
+**These are skills, not scripts.** `lisa-jira-validate-ticket` and `lisa-jira-verify` are plugin-resident and invoked
+through the Skill tool. They are **not** expected to appear in any repository's `scripts/`
+directory, and their absence from one is not evidence that the capability is missing —
+searching the repository you happen to be standing in is the wrong search.
 
 ## Rules
 

@@ -206,6 +206,19 @@ describe("seeding the gates block preserves what the pre-push hook proves", () =
     // The traceability step runs before any coverage file exists, so it always
     // shells out to this. A stub keeps the fixture off the network without
     // changing which branch the hook takes.
+    //
+    // CLASSIFIED under CodySwannGT/lisa#3797, which swept every fixture that
+    // runs a real hook and asserts a zero exit status for gates given empty
+    // input or replaced with an unconditional success. This one is LEGITIMATE
+    // and is not a second instance of that defect: the subject here is WHICH
+    // built-in steps the hook takes before and after a `gates` block is seeded,
+    // read off the `LISA-RAN:` tokens, so every prover in this fixture is a
+    // stub by construction and this one is the instrument rather than a
+    // disabled gate. The zeros asserted below are an EQUALITY between two runs,
+    // not a clean bill of health for either — nothing here reads as an
+    // end-to-end statement that a push passed. The suite that did read that way
+    // is `push-collects-integration-tree-once.test.ts`, and it now runs the
+    // shipped gate over a real push range with a negative control.
     await fs.writeFile(
       path.join(projectDir, "scripts", "lisa-work-item.mjs"),
       'process.stdout.write("LISA-RAN:work-item-builtin\\n");\n'

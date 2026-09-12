@@ -194,28 +194,43 @@ describe("in-process CLI: backlink", () => {
     );
   });
 
-  it("updates ITS OWN comment when the body drifted, without adding a duplicate", () => {
-    // Keyed on the pull request, not on "a managed comment": a comment that
-    // already names THIS pull request is this pull request's, so a rerun
-    // converges on one comment rather than accumulating them.
+  it("does NOT claim a comment that merely carries the marker and this URL", () => {
+    // This case used to assert the opposite — that a body reading
+    // "<marker> <this PR> (stale trailing note)" was Lisa's to PATCH, on the
+    // reasoning that anything naming THIS pull request is this pull request's
+    // comment. That reasoning is a claim about the ITEM being used to authorise
+    // a write to somebody's COMMENT, and the two are not the same claim
+    // (CodySwannGT/lisa#4028).
+    //
+    // The trailing note here is a stand-in for the real shape: prose that
+    // quotes the marker and the URL, up to and including the gate's own printed
+    // remedy, which contains both. Overwriting it replaced whatever else the
+    // author had written with one line. So the write predicate is now an
+    // identity test — the body must BE `<marker> <url>` — and everything else
+    // is left alone and a new managed comment posted beside it.
+    //
+    // The property the old assertion protected, convergence on one comment per
+    // pull request, is unchanged and asserted directly by the rerun cases: what
+    // moved is only WHICH bodies count as Lisa's to converge.
     const fixture = offlineFixture();
     const log = logPath(fixture);
+    const stranger = `${MARKER} ${PR_URL} (stale trailing note)`;
     const result = cli(
       fixture,
       [BACKLINK, REF_FLAG, REF, PR_URL_FLAG, PR_URL],
       {
-        FAKE_GH_COMMENTS_JSON: JSON.stringify([
-          { body: `${MARKER} ${PR_URL} (stale trailing note)`, id: 11 },
-        ]),
+        FAKE_GH_COMMENTS_JSON: JSON.stringify([{ body: stranger, id: 11 }]),
         FAKE_GH_LOG: log,
       }
     );
+    // No sibling line: a comment nobody managed is not counted as a linked
+    // pull request either, because it is the same predicate saying so.
     expect(result.stdout).toBe(
-      `work-item backlink updated on ${REF}: ${MARKER} ${PR_URL}`
+      `work-item backlink created on ${REF}: ${MARKER} ${PR_URL}`
     );
     const calls = readFileSync(log, "utf8");
-    expect(calls).toContain("--method PATCH");
-    expect(calls).toContain("issues/comments/11");
+    expect(calls).not.toContain("--method PATCH");
+    expect(calls).not.toContain("issues/comments/11");
   });
 
   it("leaves a second pull request's own comment alone when it is already right", () => {
@@ -675,6 +690,48 @@ describe("in-process CLI: sweep", () => {
     const fixture = offlineFixture();
     expect(cli(fixture, ["sweep"]).stdout).toContain("No drift");
   });
+
+  // The sweep's whole output is an absence claim, and the deploy branches are
+  // the only evidence behind it. A branch that resolves to no commit — a
+  // shallow clone, no `origin`, a renamed or never-fetched branch — used to be
+  // skipped silently, so the run reported "No drift" over the whole queue
+  // having read less than it claimed, or nothing at all. That is the same
+  // shape as the truncated-log defect the same function already refuses over.
+  it("refuses when NO configured deploy branch resolves, rather than reporting an absence", () => {
+    const fixture = createFixture({
+      ...githubConfig("trailer"),
+      deploy: { branches: { production: "release/never-fetched" } },
+    });
+    const result = cli(fixture, ["sweep"], {
+      FAKE_GH_LIST_JSON: JSON.stringify([{ number: 42, title: "a leaf" }]),
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(
+      "no configured deploy branch resolves to a commit (release/never-fetched)"
+    );
+    expect(result.stdout).not.toContain("No drift");
+  });
+
+  // Not fatal when SOME evidence was read — a clone that has only ever fetched
+  // `main` is an ordinary state and the sweep is still useful in it. What the
+  // report may not do is stay silent about the branch it could not open, which
+  // is what turns a narrower answer into a wrong one.
+  it("names the deploy branch it could not read in an otherwise clean report", () => {
+    const fixture = createFixture({
+      ...githubConfig("trailer"),
+      deploy: {
+        branches: { dev: "release/never-fetched", production: "main" },
+      },
+    });
+    const result = cli(fixture, ["sweep"], {
+      FAKE_GH_LIST_JSON: JSON.stringify([{ number: 42, title: "a leaf" }]),
+    });
+
+    expect(result.exitCode).toBeUndefined();
+    expect(result.stdout).toContain("No drift");
+    expect(result.stdout).toContain("NOT examined: release/never-fetched");
+  });
 });
 
 /**
@@ -851,6 +908,20 @@ describe("declaredWorkItemNumbers and shippedDeclarations (#3907)", () => {
     ]) {
       expect(declaredWorkItemNumbers(body, REPOSITORY), body).toEqual([]);
     }
+  });
+
+  // A CRLF body. Standing refutation of a relayed review finding that claimed
+  // this line was missed: ECMAScript counts CR as a LineTerminator, so `$`
+  // under `m` matches BEFORE the `\r`, and the terminator never has to admit
+  // one. Kept as a control rather than a comment — the claim is cheap to make
+  // again, and this is what answers it.
+  it("reads a trailer terminated by CRLF", () => {
+    expect(
+      declaredWorkItemNumbers(
+        "fix: a change\r\n\r\nWork-Item: acme/code#42\r\nCo-authored-by: Claude <x@y.z>\r\n",
+        REPOSITORY
+      )
+    ).toEqual([42]);
   });
 
   it("reads no issue number zero or leading zero", () => {

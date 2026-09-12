@@ -405,6 +405,11 @@ function applyCd(current, target) {
  * disagreeing. The scripted form is the one neither covers, and it is the only
  * cell this arm fills.
  *
+ * That reason is a dependency on a runtime Lisa does not ship, and it can
+ * expire without anything here failing. It is pinned at
+ * {@link VERIFIED_RUNTIME_VERSION} and reported when the runtime moves off it
+ * — read that constant before widening this arm.
+ *
  * ## A relative script path is resolved against the cwd the command will have
  *
  * A leading `cd` establishes the directory this guard resolves relative tokens
@@ -514,11 +519,28 @@ function readState(sessionId) {
   }
 }
 
+/**
+ * Write the session's binding state, MERGING over whatever is already there.
+ *
+ * Every caller below hands in all three lifecycle fields explicitly, so the
+ * merge changes nothing for them — `claimedRoot: null` still clears a claim.
+ * What it buys is that a field one writer owns is not silently dropped by
+ * another writer that had no opinion about it: `runtimeNoticed` is written by
+ * {@link noticeRuntimeDrift} and read by nobody else, and a clobbering write
+ * would turn its "reported once" into "reported again after the next
+ * acknowledgement", which is the noise the notice is designed not to be.
+ * @param sessionId - The session whose state file this is
+ * @param state - Fields to write over the recorded state
+ * @returns Whether the write succeeded
+ */
 function writeState(sessionId, state) {
   const file = stateFile(sessionId);
   try {
     mkdirSync(dirname(file), { recursive: true });
-    writeFileSync(file, `${JSON.stringify(state, null, 2)}\n`);
+    writeFileSync(
+      file,
+      `${JSON.stringify({ ...readState(sessionId), ...state }, null, 2)}\n`
+    );
     return true;
   } catch (error) {
     say(`could not record the binding (${error.message}); NOT enforcing`);
@@ -698,6 +720,162 @@ function displaced(bound, observed) {
   ]);
 }
 
+/**
+ * The runtime version the inline-redirect gap was last verified at.
+ *
+ * ## What this constant is a pin ON
+ *
+ * This guard deliberately does NOT refuse an INLINE redirect into another
+ * worktree — `cd <other> && git …`, `git -C <other> …`. The reason is good and
+ * is written out at {@link scriptReachingForeignTree}: the runtime's own
+ * worktree isolation already refuses them, and duplicating a control is how two
+ * controls drift into disagreeing about the same command.
+ *
+ * That reason is a DEPENDENCY on behaviour Lisa does not ship. It was verified
+ * refusing at this version, with the refusal wording "this command names git in
+ * a form too complex to verify that it stays inside the worktree" and
+ * "redirects git to the shared checkout via -C".
+ *
+ * ## Why a pin rather than a test
+ *
+ * The runtime's isolation is not reachable from a unit test: it adjudicates
+ * inside a live worktree-isolated session, and there is no entry point that
+ * takes one hook envelope and returns a verdict the way this guard does. So the
+ * dependency cannot be turned red by writing a test, and a claim that cannot go
+ * red goes stale silently instead (CodySwannGT/lisa#3944).
+ *
+ * What CAN be measured is whether the runtime is still the one the claim was
+ * checked against. That does not prove the behaviour changed — only that nobody
+ * has checked since, which is the honest thing to report and the whole of what
+ * this pin does.
+ *
+ * ## Moving it
+ *
+ * Re-run both inline forms in a worktree-isolated session. Still refused: move
+ * this pin, and say where. Permitted: those two cells are UNCOVERED, and #3944
+ * owns the decision about which of them Lisa takes on.
+ */
+const VERIFIED_RUNTIME_VERSION = "2.1.261";
+
+/** The ticket that owns the inline-redirect dependency and its expiry. */
+const RUNTIME_ASSUMPTION_TICKET = "CodySwannGT/lisa#3944";
+
+/**
+ * This session's runtime version, or null when this is not that runtime.
+ *
+ * Three answers, and the difference between the last two is the point:
+ * - `null` — not Claude Code. Codex, Cursor and Copilot ship this guard too,
+ *   and the assumption above is about a control none of them has. A notice that
+ *   fires on every session of every harness is noise, and noise gets switched
+ *   off.
+ * - `""` — Claude Code, which will not say which version. Read as a DIVERGENCE
+ *   rather than as a match: the assumption is unconfirmed either way, and
+ *   treating an unreadable version as "still 2.1.261" is exactly the silent
+ *   expiry #3944 was filed about.
+ * - a version — take it at its word.
+ *
+ * Both env vars are read because either can be the one a future release keeps.
+ * `AI_AGENT` carries `claude-code_2-1-261_agent`; `CLAUDE_CODE_EXECPATH` ends
+ * in the version directory the running build was launched from.
+ * @param env - Environment to read
+ * @returns The version, `""` when unreadable, or null for another runtime
+ */
+const isDigit = ch => ch >= "0" && ch <= "9";
+
+/** @param value - Segment to test @returns Whether it is all digits */
+const allDigits = value => value.length > 0 && [...value].every(isDigit);
+
+/** @param value - Segment to read @returns Its trailing digit run, else `""` */
+const trailingDigits = value => {
+  let start = value.length;
+  while (start > 0 && isDigit(value[start - 1])) start -= 1;
+  return value.slice(start);
+};
+
+function runtimeVersion(env) {
+  if (!env.CLAUDECODE) return null;
+  const tagged = /claude-code[_-](\d+)[-.](\d+)[-.](\d+)/u.exec(
+    env.AI_AGENT ?? ""
+  );
+  if (tagged) return `${tagged[1]}.${tagged[2]}.${tagged[3]}`;
+  // Read the version off the final path segment by scanning characters rather
+  // than by regex: an unanchored `\d+\.\d+\.\d+` before `$` backtracks
+  // super-linearly on a long execpath, and the version Claude Code launches
+  // from is always the trailing directory name.
+  const segments = (env.CLAUDE_CODE_EXECPATH ?? "").split("/").filter(Boolean);
+  const trailing = segments.length ? segments[segments.length - 1] : "";
+  const parts = trailing.split(".");
+  if (parts.length < 3) return "";
+  const [major, minor, patch] = parts.slice(-3);
+  const majorDigits = trailingDigits(major);
+  if (!majorDigits || !allDigits(minor) || !allDigits(patch)) return "";
+  return `${majorDigits}.${minor}.${patch}`;
+}
+
+/**
+ * The notice text for a runtime the inline-redirect claim was not checked at.
+ * @param version - The observed runtime version, `""` when unreadable
+ * @returns The lines to report
+ */
+function driftNotice(version) {
+  return [
+    "worktree-binding-guard: the inline-redirect gap is UNVERIFIED here.",
+    "",
+    "This guard does not refuse `cd <other-worktree> && git …` or",
+    "`git -C <other-worktree> …`. Those two cells are covered by the runtime's",
+    `own worktree isolation, verified refusing at Claude Code ${VERIFIED_RUNTIME_VERSION}.`,
+    version
+      ? `This session is running ${version}, so that check does not cover it.`
+      : "This session's runtime version could not be read, so nothing covers it.",
+    "",
+    "This does NOT say the runtime stopped refusing them — only that nobody has",
+    "checked since. Run both forms in a worktree-isolated session: still",
+    "refused, move VERIFIED_RUNTIME_VERSION in worktree-binding-guard.mjs;",
+    `permitted, the two cells are uncovered and ${RUNTIME_ASSUMPTION_TICKET}`,
+    "owns what Lisa does about it.",
+  ];
+}
+
+/**
+ * Report, once per session, that the runtime moved off the verified version.
+ *
+ * ## Why SessionStart and not the guarded call
+ *
+ * SessionStart is the guard's first evaluation of a session, it fires exactly
+ * once per start, and its `additionalContext` is the one channel here that the
+ * agent actually reads — the `say()` lines elsewhere in this file are for a
+ * human reading a transcript. A notice attached to a guarded tool call would
+ * either repeat on every Bash command or need a suppression rule of its own.
+ *
+ * ## Why it is recorded rather than counted
+ *
+ * A resume fires SessionStart again for the same session id. The recorded
+ * version is what makes the second one silent, and recording the VERSION rather
+ * than a flag means a runtime that moves twice inside one resumed session is
+ * still reported the second time.
+ *
+ * Never refuses. The dependency is a reporting gap, not a live displacement,
+ * and blocking a session over a version number would be a wall where an
+ * observation belongs.
+ * @param sessionId - The session being started
+ * @param env - Environment to read the runtime version from
+ * @returns Nothing; every path through this allows
+ */
+function noticeRuntimeDrift(sessionId, env) {
+  const version = runtimeVersion(env);
+  if (version === null || version === VERIFIED_RUNTIME_VERSION) return;
+  if (readState(sessionId)?.runtimeNoticed === version) return;
+  writeState(sessionId, { runtimeNoticed: version });
+  process.stdout.write(
+    `${JSON.stringify({
+      hookSpecificOutput: {
+        hookEventName: "SessionStart",
+        additionalContext: driftNotice(version).join("\n"),
+      },
+    })}\n`
+  );
+}
+
 function evaluate(payload) {
   const sessionId = payload.session_id;
   const cwd = payload.cwd;
@@ -710,6 +888,10 @@ function evaluate(payload) {
 
   if (payload.hook_event_name === "SessionStart") {
     recordBaseline(sessionId, observed);
+    // After the baseline, never before: `recordBaseline` writes a fresh state
+    // for a session it has not seen, and the notice's record has to go on top
+    // of that write rather than under it.
+    noticeRuntimeDrift(sessionId, process.env);
     return 0;
   }
   if (payload.tool_name === "EnterWorktree") {

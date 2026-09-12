@@ -51,7 +51,45 @@ import { getHarperFabricVitestConfig } from "../../../src/configs/vitest/harper-
 import { getNestjsVitestConfig } from "../../../src/configs/vitest/nestjs.js";
 import { getPhaserVitestConfig } from "../../../src/configs/vitest/phaser.js";
 import { getTypescriptVitestConfig } from "../../../src/configs/vitest/typescript.js";
-import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  useIoLatencyBudget,
+} from "../../helpers/io-latency-budget.js";
+
+// The two end-to-end cases below start a WHOLE nested runner — tsx,
+// `lisa-test-run` and its two companions, then a complete vitest with the v8
+// coverage provider — where they used to start a bare vitest. That child needs
+// a base above the 6,000ms the flat regime admits here, and the flat regime is
+// the reason it could not have one: with no calibrated case budget, a child
+// bound is judged against `vitest.config.local.ts`'s 120,000ms via
+// `CASE_BUDGET_MARGIN`, which caps the base at 6,000ms. Calling this puts both
+// deadlines on the SAME measured slowdown, so the ratio between them is exact
+// on every machine, and it installs the live margin guard that fails a case
+// whose quiet-equivalent cost climbs past half its base.
+useIoLatencyBudget();
+
+const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
+
+/**
+ * The supervised route every managed test child in this tree is started
+ * through, spelled exactly as the analyzer requires: the runner path, then
+ * `--profile`, `--adapter`, and the `--` that separates the wrapper's own
+ * arguments from the command it supervises.
+ *
+ * `lisa` rather than a fixture-specific profile because the scratch this suite
+ * creates is already named for it — `lisa-cov-fixture-`, `lisa-cov-include-`
+ * and `lisa-cov-scratch-` all carry the `lisa-` prefix that profile registers.
+ */
+const TEST_RUNNER = path.join(REPO_ROOT, "src/cli/lisa-test-run.ts");
+const TEST_RUNNER_ARGS = [
+  "--import",
+  "tsx",
+  TEST_RUNNER,
+  "--profile",
+  "lisa",
+  "--adapter",
+  "vitest",
+] as const;
 
 /** Every stack factory, so a sixth joins these assertions by being listed once. */
 const FACTORIES = [
@@ -300,7 +338,7 @@ const ANSI_PATTERN = new RegExp(
 const withoutAnsi = (text: string): string => text.replace(ANSI_PATTERN, "");
 
 /**
- * This process's environment with the pool marker removed.
+ * This process's environment, with the pool marker removed and temp isolated.
  *
  * `VITEST_POOL_ID` is how the refusal banner tells a run's main process from a
  * pool worker, and it stays silent in a worker so a test that pokes the guard
@@ -308,17 +346,82 @@ const withoutAnsi = (text: string): string => text.replace(ANSI_PATTERN, "");
  * so a fixture would INHERIT that marker and its own main process would fall
  * silent — an artifact of spawning vitest from vitest, and nothing a consumer
  * would ever see. Dropping it restores the real situation: a vitest main
- * process, with no pool marker.
+ * process, with no pool marker. It is dropped whoever the child's parent is:
+ * routing through the supervisor changed nothing about why.
+ *
+ * The temp override is what the supervised route adds. `lisa-test-run` roots
+ * its own scratch — the run root the detached reaper is armed against — at
+ * `TMPDIR`, and pointing that at a base this case created and removes keeps
+ * the supervisor's bookkeeping out of the shared platform temp the parent
+ * suite is itself being audited on.
+ * @param scratchBase - Private temp base for the supervised child
  * @returns A copy of the environment, without the pool marker
  */
-function fixtureEnv(): NodeJS.ProcessEnv {
-  const env = { ...process.env };
+function fixtureEnv(scratchBase: string): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    TMPDIR: scratchBase,
+    TMP: scratchBase,
+    TEMP: scratchBase,
+  };
   delete env["VITEST_POOL_ID"];
   return env;
 }
 
 /**
- * Run vitest against a generated fixture project.
+ * A private temp base for one supervised run, registered for teardown.
+ * @returns The base directory
+ */
+function supervisorScratchBase(): string {
+  const base = mkdtempSync(path.join(tmpdir(), "lisa-cov-scratch-"));
+  temporary.push(base);
+  return base;
+}
+
+/**
+ * Quiet-box budget for one supervised fixture run.
+ *
+ * The bare vitest child this replaced was measured at 400-800ms and given
+ * 6,000ms. What runs now is strictly more: `tsx` compiling `lisa-test-run` and
+ * its module graph, two forked companions handshaking before the payload is
+ * allowed to start, then the same vitest with the same coverage provider, then
+ * a drain and a scratch removal after it exits.
+ *
+ * Measured on this repository, 18 cores, with the conditions stated because a
+ * timing without them is a fact about a machine rather than about this code.
+ * Two runs: `ps aux | grep -c '[v]itest'` = 0 at a 1-minute load average of
+ * 4.5, then = 2 at a load average of 8.1. The two cases cost 2,681/2,899ms and
+ * 2,632/2,692ms wall, on a box whose median `node -e ""` spawn measured 15.6ms
+ * against the 18ms quiet figure the scaler is calibrated to — i.e. a 1.00x
+ * machine, so those numbers are already quiet-equivalent. Nearly all of it is
+ * the child. Supervision costs roughly 2s of that, and buys the reaping.
+ *
+ * 20,000ms is ~7x the slowest measured child and stays under the 30,000ms
+ * ceiling `scaledCaseBudgetFailure` puts on a file calling
+ * {@link useIoLatencyBudget} with the default 60,000ms case base. It is a
+ * LIVENESS bound on a child that has stopped advancing, not a performance
+ * assertion: the live margin guard, which fails a PASSING case above 30,000ms
+ * quiet-equivalent, is what watches the cost.
+ */
+const SUPERVISED_FIXTURE_BASE_MS = 20_000;
+
+/**
+ * Run vitest against a generated fixture project, under supervision.
+ *
+ * The child is started through `lisa-test-run` rather than directly
+ * (CodySwannGT/lisa#3732). A bare vitest child is an unsupervised process: if
+ * this case is killed — a `spawnSync` timeout, a Ctrl-C, a reaped gate command
+ * — the child is reparented rather than reaped, and it keeps a whole vitest
+ * and its pool alive with nobody left who knows they exist. The supervisor
+ * exists precisely to make that unreachable: it arms a DETACHED reaper against
+ * the payload's process group before the payload is allowed to start, so the
+ * group is torn down whether the foreground exits normally, exits with the
+ * payload's failure, or dies without running any cleanup of its own.
+ *
+ * Nothing about what the two cases below assert had to move. `lisa-test-run`
+ * forwards the payload's exit status, and wires stdout and stderr straight
+ * through as separate streams, so the status and the two-stream ordering
+ * assertion mean exactly what they meant when this call was bare.
  * @param include - The coverage.include patterns for the fixture
  * @param sources - Source files to create, relative to the fixture root
  * @returns Exit status, stderr, and both streams concatenated
@@ -332,21 +435,18 @@ function runFixture(
     label: "coverage include fixture",
     command: process.execPath,
     args: [
-      path.resolve("node_modules/vitest/vitest.mjs"),
+      ...TEST_RUNNER_ARGS,
+      "--",
+      process.execPath,
+      path.join(REPO_ROOT, "node_modules/vitest/vitest.mjs"),
       "run",
       "--coverage",
       "--root",
       root,
     ],
     cwd: root,
-    env: fixtureEnv(),
-    // Derived against a measured child, not guessed: these fixtures complete in
-    // roughly 400-800ms each on an idle machine. 6,000ms is the highest base
-    // the budget conformance check admits here — scaled by its 8x slowdown
-    // ceiling it stays comfortably inside the per-case budget, which is what
-    // keeps the CHILD the thing that dies first. A base above that lets the
-    // case die of a vitest timeout instead, and a vitest timeout names nothing.
-    baseMs: 6_000,
+    env: fixtureEnv(supervisorScratchBase()),
+    baseMs: SUPERVISED_FIXTURE_BASE_MS,
   });
   const stderr = withoutAnsi(result.stderr ?? "");
   return {

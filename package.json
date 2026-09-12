@@ -19,8 +19,10 @@
     "lint": "oxlint --disable-nested-config && eslint . --quiet",
     "lint:fix": "oxlint --fix --disable-nested-config && eslint . --fix",
     "lint:slow": "eslint . --config eslint.slow.config.ts --quiet",
-    "typecheck": "tsc --noEmit && bun run typecheck:tests",
+    "typecheck": "tsc --noEmit && bun run typecheck:tests && bun run typecheck:engine-floor",
     "typecheck:tests": "node scripts/check-typecheck-tests.mjs",
+    "typecheck:engine-floor": "node scripts/check-engine-floor.mjs",
+    "measure:scripts-profile-gap": "bun scripts/measure-scripts-profile-gap.mts",
     "format:check": "prettier --check .",
     "format": "prettier --check . --write",
     "knip:check": "knip",
@@ -68,6 +70,7 @@
     "check:empty-subject-guards": "node scripts/check-empty-subject-guards.mjs",
     "check:cwd-resolution-corpus": "node scripts/check-cwd-resolution-corpus.mjs",
     "check:probe-absence-direction": "node scripts/check-probe-absence-direction.mjs",
+    "check:guard-parity-notes": "node scripts/check-guard-parity-notes.mjs",
     "check:shell-guard-refusals": "bun run build && $npm_execpath run lisa-test-run -- --adapter direct -- node scripts/check-shell-guard-refusal-coverage.mjs --trace-out .lisa/shell-guard-trace.jsonl",
     "check:workflow-inputs": "node scripts/detect-stale-workflow-inputs.mjs --project . --project typescript/create-only --project rails/create-only --json",
     "check:conflict-markers": "node all/copy-overwrite/scripts/check-conflict-markers.mjs",
@@ -76,7 +79,9 @@
     "check:merge-drivers": "node scripts/check-merge-driver-registration.mjs",
     "check:failure-signatures": "node plugins/src/base/hooks/failure-signature-index.mjs --check",
     "check:withdrawn-rulings": "node plugins/src/base/hooks/withdrawn-rulings.mjs --check",
+    "check:operational-hazards": "node plugins/src/base/hooks/operational-hazards.mjs --check",
     "check:template-workflow-refs": "node scripts/check-template-workflow-refs.mjs",
+    "check:workflow-contract-assertions": "node scripts/check-workflow-contract-assertions.mjs",
     "check:third-party-action-pins": "node scripts/check-third-party-action-pins.mjs",
     "check:workflow-package-paths": "node scripts/check-workflow-package-paths.mjs",
     "check:delivery-deletion-conflicts": "node scripts/check-delivery-deletion-conflicts.mjs",
@@ -150,7 +155,7 @@
     "form-data": ">=4.0.6",
     "handlebars": ">=4.7.9",
     "lodash": ">=4.18.1",
-    "multer": ">=2.2.0",
+    "multer": ">=2.3.0",
     "nanoid": "^3.3.18",
     "postcss": ">=8.5.18",
     "undici": "^6.28.0",
@@ -159,6 +164,7 @@
     "zod-validation-error": "^4.0.0"
   },
   "overrides": {
+    "smol-toml": "1.7.1",
     "@isaacs/brace-expansion": "^5.0.1",
     "@istanbuljs/load-nyc-config": {
       "js-yaml": "^3.15.1"
@@ -172,7 +178,7 @@
     "form-data": ">=4.0.6",
     "handlebars": ">=4.7.9",
     "lodash": ">=4.18.1",
-    "multer": ">=2.2.0",
+    "multer": ">=2.3.0",
     "nanoid": "^3.3.18",
     "postcss": ">=8.5.18",
     "undici": "^6.28.0",
@@ -181,7 +187,7 @@
     "zod-validation-error": "^4.0.0"
   },
   "name": "@codyswann/lisa",
-  "version": "4.54.9",
+  "version": "4.55.4",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {
@@ -298,7 +304,7 @@
     "picocolors": "^1.0.0",
     "prettier": "^3.3.3",
     "semver": "^7.8.1",
-    "smol-toml": "^1.6.1",
+    "smol-toml": "1.7.1",
     "standard-version": "^9.5.0",
     "ts-jest": "^29.4.9",
     "ts-morph": "^27.0.2",
@@ -308,6 +314,7 @@
     "vitest": "^4.1.9"
   },
   "devDependencies": {
+    "@actions/expressions": "0.3.61",
     "@codyswann/lisa": "^4.33.1",
     "@playwright/test": "^1.61.1",
     "@stryker-mutator/api": "^9.0.0",

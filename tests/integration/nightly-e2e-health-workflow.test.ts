@@ -42,7 +42,13 @@ interface WorkflowJob {
   readonly if?: string;
   readonly permissions?: Record<string, string>;
   readonly with?: Record<string, unknown>;
-  readonly steps?: readonly { readonly uses?: string; readonly run?: string }[];
+  readonly steps?: readonly {
+    readonly name?: string;
+    readonly uses?: string;
+    readonly run?: string;
+    readonly with?: Record<string, unknown>;
+    readonly env?: Record<string, string>;
+  }[];
 }
 
 /** A workflow, as much of it as these tests read. */
@@ -354,11 +360,57 @@ describe("the bypass reaper", () => {
   });
 
   it("never checks out pull-request code under its writable token", () => {
-    // `pull_request_target` runs with a writable token against the BASE repo.
+    // `pull_request_target` runs with a writable token against the BASE repo,
+    // so the hazard is executing the PULL REQUEST's code, not running any code
+    // at all. The reaper does check out — it has to, to re-derive the waiver
+    // through the same guard the gate uses rather than through a second shell
+    // implementation that would drift — and every checkout it performs pins the
+    // BASE ref explicitly.
+    //
+    // The assertion used to be "no checkout step exists", which is a proxy for
+    // this property rather than the property. Pinned as the real rule here:
+    // nothing in this workflow may name the pull request's head.
     const steps = reaper.jobs.reap.steps ?? [];
-    expect(steps.some(step => step.uses?.startsWith("actions/checkout"))).toBe(
-      false
+    const checkouts = steps.filter(step =>
+      step.uses?.startsWith("actions/checkout")
     );
+    expect(checkouts.length).toBeGreaterThan(0);
+    for (const checkout of checkouts) {
+      expect(checkout.with?.ref).toBe(
+        "${{ github.event.pull_request.base.ref }}"
+      );
+      expect(checkout.with?.["persist-credentials"]).toBe(false);
+    }
+    const body = read(REAPER_REL);
+    expect(body).not.toContain("pull_request.head");
+    expect(body).not.toContain("head.sha");
+    expect(body).not.toContain("head_ref");
+  });
+
+  it("writes the durable waiver record BEFORE it strips the label", () => {
+    // The ordering IS the guarantee. The label is the only repository-wide
+    // index of "which merges went past this gate on a waiver"; stripping it
+    // withdraws the REQUEST and erases the INDEX in the same call. A record
+    // written afterwards would be written from a pull request that can no
+    // longer say a waiver was ever involved.
+    const steps = reaper.jobs.reap.steps ?? [];
+    const record = steps.findIndex(step => step.env?.MARKER !== undefined);
+    const strip = steps.findIndex(step => step.env?.LABEL !== undefined);
+    expect(record).toBeGreaterThanOrEqual(0);
+    expect(strip).toBeGreaterThanOrEqual(0);
+    expect(record).toBeLessThan(strip);
+  });
+
+  it("refuses to strip when the waiver could not be re-derived", () => {
+    // `not_determined` means nothing was established. Stripping there would
+    // erase the index without having captured it, which is the one outcome
+    // worse than an untidy label list. The record step exits non-zero, and a
+    // failed step stops the strip step that follows it.
+    const body = read(REAPER_REL);
+    expect(body).toContain(
+      'if [[ "$STATE" != "waived" && "$STATE" != "refused" ]]'
+    );
+    expect(body).toContain("Refusing to write a record");
   });
 });
 

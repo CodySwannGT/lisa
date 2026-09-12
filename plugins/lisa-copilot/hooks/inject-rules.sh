@@ -19,11 +19,19 @@ fi
 ROOT="${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
 RULES_DIR="$ROOT/rules/eager"
 
-# Backward compatibility: if the eager subdir is absent (older Lisa install),
-# fall back to the flat rules/ directory so a partial upgrade still ships rules.
-if [ ! -d "$RULES_DIR" ]; then
-  RULES_DIR="$ROOT/rules"
-fi
+# There is deliberately NO fallback to a flat rules/ directory (#3993).
+#
+# It existed to cover an "older Lisa install", but a plugin's rules and this
+# script ship in the same directory and install as one unit, so that skew cannot
+# arise. What the branch actually did was absorb plugins that never adopted the
+# split: `lisa-phaser` shipped a flat 11,007-byte rules/phaser.md on 2026-06-11,
+# two weeks AFTER the split commit a820527 (2026-05-28), and the fallback
+# injected the whole body at every SessionStart and SubagentStart without any
+# surface reporting it. A quiet success is indistinguishable from a tree that was
+# never split. With the branch gone, an unsplit plugin injects nothing and gets
+# noticed. (The Codex mirror injector keeps its fallback: `.codex/lisa-rules/` is
+# written separately from the script that reads it, so vintage skew IS possible
+# there.)
 
 # Bail silently if no rules directory at all
 [ -d "$RULES_DIR" ] || exit 0

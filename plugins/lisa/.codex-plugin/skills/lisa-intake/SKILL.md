@@ -107,7 +107,7 @@ The single-item skills (`lisa-plan`, `lisa-implement`) and the per-vendor batch 
 4. **Process the first eligible Ready item only** (claim-first ordering for idempotency):
    - Notion PRDs → `lisa-notion-prd-intake` handles per-item: claim (Status=In Review), dry-run validate, branch to Blocked or Ticketed, coverage audit
    - Confluence PRDs → `lisa-confluence-prd-intake` handles per-item: claim (relabel to `prd-in-review`), dry-run validate, branch to `prd-blocked` or `prd-ticketed`, coverage audit
-   - Linear PRDs → `lisa-linear-prd-intake` handles per-item: claim (relabel project to `prd-in-review`), dry-run validate, branch to `prd-blocked` or `prd-ticketed` (with a sentinel feedback issue under each project hosting clarifying-question comments), coverage audit
+   - Linear PRDs → `lisa-linear-prd-intake` handles per-item: claim (relabel project to `prd-in-review`), dry-run validate, branch to `prd-blocked` or `prd-ticketed` (clarifying-question comments posted on the project itself), coverage audit
    - GitHub PRDs → `lisa-github-prd-intake` handles per-item: claim (relabel issue to `prd-in-review`), dry-run validate, branch to `prd-blocked` or `prd-ticketed` (with clarifying-question comments posted directly on the PRD issue), coverage audit
    - JIRA tickets → `lisa-jira-build-intake` handles per-item: claim, dispatch to `lisa-jira-agent`, transition to On Dev on success
    - GitHub build issues (when `tracker = github`) → `lisa-tracker-build-intake` → `lisa-github-build-intake` handles per-item: optional ready-queue assignee filtering, claim (relabel to `status:in-progress`), dispatch to `lisa-github-agent`, relabel to `status:on-dev` on success

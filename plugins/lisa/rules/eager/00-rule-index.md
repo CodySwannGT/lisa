@@ -29,6 +29,7 @@ Paths are relative to this file.
 | `prd-definition-of-ready` | authoring or validating a PRD's requirement atoms | [../reference/prd-definition-of-ready.md](../reference/prd-definition-of-ready.md) |
 | `prd-lifecycle-rollup` | rolling a PRD up from its generated top-level work | [../reference/prd-lifecycle-rollup.md](../reference/prd-lifecycle-rollup.md) |
 | `usage-accounting` | writing the managed `## Lisa Usage` section on an artifact | [../reference/usage-accounting.md](../reference/usage-accounting.md) |
+| `work-item-trailer-definition` | reading, counting, or auditing a `Work-Item:` trailer — BEFORE reaching for `%(trailers)` | [../reference/work-item-trailer-definition.md](../reference/work-item-trailer-definition.md) |
 
 ## Build-intake claim time
 
@@ -67,6 +68,7 @@ Paths are relative to this file.
 
 | Slug | Read it when | Body |
 |---|---|---|
+| `operational-hazards` | looking up or publishing an active operational hazard that other sessions must see | [../reference/operational-hazards.md](../reference/operational-hazards.md) |
 | `automation-runbook-contract` | registering a loop, or ending any flow with its run outcome | [../reference/automation-runbook-contract.md](../reference/automation-runbook-contract.md) |
 | `convergent-review` | reviewing a PR or resolving review findings | [../reference/convergent-review.md](../reference/convergent-review.md) |
 | `credential-substrate-precedence` | writing or editing an `*-access` skill | [../reference/credential-substrate-precedence.md](../reference/credential-substrate-precedence.md) |

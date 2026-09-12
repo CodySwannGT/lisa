@@ -743,7 +743,8 @@ export function createCoordinationRecord(cfg, key, projectId, note) {
         "--output",
         "json",
       ],
-      env
+      env,
+      "creating a coordination record in Bitwarden"
     );
     const created = JSON.parse(raw);
     return {

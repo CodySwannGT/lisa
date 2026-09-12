@@ -42,6 +42,7 @@ const RETIRED_INPUT = "skip_jobs";
  * passing it into a "diverged" verdict that nobody retrofits.
  */
 export const DECLARED_INPUTS: ReadonlySet<string> = new Set([
+  "expected_workflow_contract_major",
   "node_version",
   "package_manager",
   "working_directory",

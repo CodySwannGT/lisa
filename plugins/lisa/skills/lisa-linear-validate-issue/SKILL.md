@@ -19,6 +19,28 @@ Reads `linear.workspace`, `linear.teamKey` from `.lisa.config.json` (with `.loca
 1. **An existing Linear identifier** (e.g. `ENG-123` for an Issue, or `<workspace>/project/<slug>-<id>` for a Project): fetch and validate the live state.
 2. **A proposed item spec** (YAML block, see schema below): validate as-is without touching Linear.
 
+### Standalone entry point — validating an item written by another path
+
+Input form 1 is a **supported entry point in its own right**, not only an internal step of a
+caller flow. Point this skill at any existing item — however it was written, including by a
+bespoke script, a direct API or GraphQL call, or the vendor's own web UI — and it fetches the
+live state and runs the full gate set against it.
+
+Copy-pasteable, via the Skill tool:
+
+```text
+Skill(skill: "lisa-linear-validate-issue", args: "ENG-123")
+```
+
+where the argument is an Issue identifier such as `ENG-123`, or a Project URL. The report it returns is the same structured PASS/FAIL
+report the write path consumes, so a bespoke write path can discharge both the pre-write
+validate and the post-write verify obligation with it (see the bespoke-path section of
+`lisa-linear-write-issue`).
+
+This skill is plugin-resident. It is invoked through the Skill tool and is **not** expected to
+appear in any repository's `scripts/` directory; not finding a shell script by this name is
+not evidence that the capability is absent.
+
 ### Spec schema
 
 ```yaml
@@ -69,24 +91,7 @@ prd_source: "https://notion.so/..."    # set when the Issue was generated from a
 
 If the caller passes only an identifier, fetch the item via `lisa-linear-access operation: get-issue` (Issue) or `lisa-linear-access operation: get-project` (Project), derive the same fields from the fetched data — including `runtime_behavior_change` (derived from the `## Target Backend Environment` declaration per `derived-branch-plan`, and authoritative over any caller assertion), `build_ready` (the Issue's state is the configured `ready` state) and `child_refs` (sub-issues, project-member issues, plus `blocked_by` parentage, resolved as in `lisa-linear-read-issue`) so S15 can classify the item — then run gates.
 
-## Standalone use, against an item that already exists
-
-This is a supported entry point, not only an internal step of a caller flow.
-Point it at a live issue and it fetches and validates the stored state:
-
-```text
-Skill(lisa-linear-validate-issue) with ENG-1234
-```
-
-Use it whenever the issue reached the tracker by some path other than
-`lisa-linear-write-issue` — a team's own script, a workflow step, a cron, anything holding the
-credentials but no skill runtime. Those paths get neither the pre-write nor the
-post-write gate, and their own read-back substitutes for neither: a read-back
-proves the tracker stored what was sent, never that what was sent was any good.
-
-The gate definitions live here on purpose, so every caller picks up a change
-automatically. Running this skill by hand is the same gate the write path runs,
-not an approximation of it.
+For existing items written through another path, use the [standalone entry point](#standalone-entry-point--validating-an-item-written-by-another-path). A transport read-back does not prove the stored specification passes the gates.
 
 ## Gates
 

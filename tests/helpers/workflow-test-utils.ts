@@ -61,6 +61,18 @@ export function loadWorkflow(workflowPath: string): ParsedWorkflow {
 }
 
 /**
+ * Require a job before asserting on its scheduling or steps.
+ * @param workflow Parsed workflow under test.
+ * @param id The expected job identifier.
+ * @returns The job, failing loudly when the subject is missing.
+ */
+export function jobOf(workflow: ParsedWorkflow, id: string): WorkflowJob {
+  const job = workflow.jobs[id];
+  if (!job) throw new Error(`Expected workflow job is missing: ${id}`);
+  return job;
+}
+
+/**
  * Flattens every job's steps into a single list.
  * @param workflow The parsed workflow.
  * @returns All steps across all jobs.

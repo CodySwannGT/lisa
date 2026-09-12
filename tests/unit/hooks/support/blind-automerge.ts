@@ -105,6 +105,12 @@ export type GhBehavior = {
 /** Where a fake `gh` records the arguments it was called with. */
 const CALL_LOG = "gh-calls.log";
 
+/** Prefix for every fake-`gh` bin directory this module mints. */
+const GH_BIN_PREFIX = "lisa-automerge-gh-";
+
+/** The first line of every fake, and the line that records the call. */
+const FAKE_SHEBANG = "#!/usr/bin/env bash";
+
 /**
  * A PATH entry holding a fake `gh` that answers with a fixed payload.
  * @param behavior - What the fake should print and return.
@@ -113,12 +119,12 @@ const CALL_LOG = "gh-calls.log";
 export const fakeGh = (
   behavior: GhBehavior
 ): { bin: string; callLog: string } => {
-  const bin = mkdtempSync(path.join(tmpdir(), "lisa-automerge-gh-"));
+  const bin = mkdtempSync(path.join(tmpdir(), GH_BIN_PREFIX));
   const callLog = path.join(bin, CALL_LOG);
   const stdout =
     behavior.rawStdout ?? JSON.stringify(behavior.payload ?? READY_PR);
   const script = [
-    "#!/usr/bin/env bash",
+    FAKE_SHEBANG,
     `printf '%s\\n' "$*" >> ${JSON.stringify(callLog)}`,
     `printf '%s' ${JSON.stringify(stdout)}`,
     `exit ${behavior.exitCode ?? 0}`,
@@ -306,15 +312,129 @@ export const routingGh = (answers: {
   readonly rules?: unknown;
   readonly rulesExitCode?: number;
 }): { bin: string; callLog: string } => {
-  const bin = mkdtempSync(path.join(tmpdir(), "lisa-automerge-gh-"));
+  const bin = mkdtempSync(path.join(tmpdir(), GH_BIN_PREFIX));
   const callLog = path.join(bin, CALL_LOG);
   const script = [
-    "#!/usr/bin/env bash",
+    FAKE_SHEBANG,
     `printf '%s\\n' "$*" >> ${JSON.stringify(callLog)}`,
     'case "$*" in',
     "  *rules/branches/*)",
     `    printf '%s' ${JSON.stringify(JSON.stringify(answers.rules ?? UNCOVERED_RULES))}`,
     `    exit ${answers.rulesExitCode ?? 0}`,
+    "    ;;",
+    "esac",
+    `printf '%s' ${JSON.stringify(JSON.stringify(answers.pr ?? STACK_BASED_PR))}`,
+    "exit 0",
+    "",
+  ].join("\n");
+  const ghPath = path.join(bin, "gh");
+  writeFileSync(ghPath, script, "utf-8");
+  chmodSync(ghPath, 0o755);
+  return { bin, callLog };
+};
+
+/**
+ * The last commit's check rollup, in the shape GraphQL returns it.
+ *
+ * `gh pr view --json statusCheckRollup` hands back a FLAT list; the GraphQL
+ * node probe has to walk `commits -> commit -> statusCheckRollup -> contexts`
+ * and reshape. A fixture that returned the flat list for both substrates would
+ * make the two probes indistinguishable in the suite — which is exactly the
+ * condition under which the API path could go blind without a test noticing.
+ * @param contexts - The rollup entries, in `gh pr view` shape.
+ * @param hasNextPage - Whether the returned contexts omit another page.
+ * @returns The `commits` sub-object a PullRequest node carries.
+ */
+export const graphqlCommits = (
+  contexts: readonly unknown[],
+  hasNextPage = false
+) => ({
+  nodes: [
+    {
+      commit: {
+        statusCheckRollup: {
+          contexts: {
+            nodes: contexts,
+            pageInfo: { hasNextPage },
+          },
+        },
+      },
+    },
+  ],
+});
+
+/** #3922's check-blocked PR as the GraphQL node probe would see it. */
+export const GRAPHQL_CHECK_BLOCKED_NODE = {
+  number: CHECK_BLOCKED_PR.number,
+  url: CHECK_BLOCKED_PR.url,
+  reviewDecision: null,
+  state: "OPEN",
+  baseRefName: CHECK_BLOCKED_PR.baseRefName,
+  commits: graphqlCommits(CHECK_BLOCKED_PR.statusCheckRollup),
+};
+
+/** The same node with nothing red — the sanctioned batching case. */
+export const GRAPHQL_GREEN_NODE = {
+  ...GRAPHQL_CHECK_BLOCKED_NODE,
+  commits: graphqlCommits([]),
+};
+
+/** A node whose probe answered without a rollup at all. */
+export const GRAPHQL_ROLLUPLESS_NODE = {
+  number: CHECK_BLOCKED_PR.number,
+  url: CHECK_BLOCKED_PR.url,
+  reviewDecision: null,
+  state: "OPEN",
+  baseRefName: CHECK_BLOCKED_PR.baseRefName,
+};
+
+/**
+ * A fake `gh` that answers the GraphQL node probe THROUGH its `--jq` filter.
+ *
+ * The other fakes here print a fixed body whatever they are asked, which means
+ * a probe that requested the wrong fields, or unwrapped the wrong path, is
+ * answered correctly anyway. For the node probe that is not a simplification —
+ * it is the defect under test wearing the fixture as camouflage: the API path
+ * could omit `statusCheckRollup` entirely and a fixed-body fake would still
+ * hand one back. So this fake builds the real envelope and runs the `--jq`
+ * expression the guard actually passed, using the real `jq`.
+ * @param answers - What each endpoint should return.
+ * @param answers.node - The PullRequest node, in GraphQL shape.
+ * @param answers.pr - The payload for a `gh pr view` probe.
+ * @param answers.rules - The rules payload for `rules/branches/<ref>`.
+ * @returns The bin directory and the path of its call log.
+ */
+export const graphqlGh = (answers: {
+  readonly node?: unknown;
+  readonly pr?: unknown;
+  readonly rules?: unknown;
+}): { bin: string; callLog: string } => {
+  const bin = mkdtempSync(path.join(tmpdir(), GH_BIN_PREFIX));
+  const callLog = path.join(bin, CALL_LOG);
+  const envelope = JSON.stringify({
+    data: { node: answers.node ?? GRAPHQL_GREEN_NODE },
+  });
+  const script = [
+    FAKE_SHEBANG,
+    `printf '%s\\n' "$*" >> ${JSON.stringify(callLog)}`,
+    'case "$*" in',
+    "  *rules/branches/*)",
+    `    printf '%s' ${JSON.stringify(JSON.stringify(answers.rules ?? UNCOVERED_RULES))}`,
+    "    exit 0",
+    "    ;;",
+    '  *"api graphql"*)',
+    '    filter=""',
+    '    previous=""',
+    '    for argument in "$@"; do',
+    '      if [ "$previous" = "--jq" ]; then filter="$argument"; fi',
+    '      previous="$argument"',
+    "    done",
+    `    if [ -n "$filter" ]; then`,
+    `      printf '%s' ${JSON.stringify(envelope)} | jq -r "$filter"`,
+    "    else",
+    `      printf '%s' ${JSON.stringify(envelope)}`,
+    "    fi",
+    "    exit 0",
     "    ;;",
     "esac",
     `printf '%s' ${JSON.stringify(JSON.stringify(answers.pr ?? STACK_BASED_PR))}`,

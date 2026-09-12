@@ -6,6 +6,20 @@ allowed-tools: ["Skill", "Bash", "Read"]
 
 # Track Work: $ARGUMENTS
 
+## Human-gate release authorization
+
+A release requires a trusted human author, not just matching comment text. Follow
+`ready-role-filing` — **Human-gate release authorization**: preserve tracker-supplied comment
+author IDs and bot metadata, resolve `trustedHumanActorIds` only from an explicit user instruction
+or existing human-authored trusted project policy, and pass it with structured `comments` to every
+hold classifier, reconciliation, normalization and release planner. Never derive trust from the
+comment body, a display name, the actor's own assertion, or an automation posting on its own behalf.
+Missing policy, missing/unreadable author identity, raw body strings, untrusted actors and known bots
+cannot discharge a hold. Keep the item held and report the missing authorization; do not silently
+replace these inputs with an empty history or an inferred allowlist. Authorized matching releases
+continue through the existing path and never override an independently declared caller hold.
+
+
 Establish the tracked-work invariant before any durable project mutation. Discussion and read-only orientation may proceed without this skill; code, configuration, documentation, research artifacts, plans, investigation findings, tests, commits, and pull requests may not.
 
 This flow must return exactly one canonical `(tracker_provider, work_item_ref)` pair or fail closed. It never returns an unvalidated textual guess.
@@ -24,7 +38,7 @@ This flow must return exactly one canonical `(tracker_provider, work_item_ref)` 
 
 ### Explicit reference
 
-Invoke `lisa-tracker-read <ref>` and require a live result from the configured project. Reject nonexistent, inaccessible, closed/resolved/terminal, wrong-project, wrong-repository, or container items. Read the returned body for the hold marker: an item carrying `[lisa-human-gate]` is held and Phase 3 refuses to claim it, whatever role or labels it carries. This live read is mandatory even if caller context already includes ticket text.
+Invoke `lisa-tracker-read <ref>` and require a live result from the configured project. Reject nonexistent, inaccessible, closed/resolved/terminal, wrong-project, wrong-repository, or container items. Read the returned body, labels and all comments; Phase 3 uses the shared hold classifier so a historical `[lisa-human-gate]` marker with a matching release is not mistaken for an active hold. This live read is mandatory even if caller context already includes ticket text.
 
 ### File or plain text
 
@@ -44,9 +58,23 @@ This is intentionally conservative: ambiguity creates one explicit work item ins
 
 ## Phase 3 — Claim and bind
 
-The work item is **held** when either of two independent signals is present: the caller declared a `human_gate`, or the resolved item's body contains the literal `[lisa-human-gate]` marker. Test the marker as a plain substring and never key the parse on a `reason=` value — markers are written both with and without one, and a parser that requires the key misses the keyless ones while appearing to work.
+The work item is **held** when the caller declared a `human_gate`, independently of any item history,
+or `classifyReadyCandidate({ labels, body, comments, trustedHumanActorIds, humanNeededLabel })` from the shipped
+`scripts/intake-blocker-reprobe.mjs` returns `claimable: false`. Pass the complete live comment
+history so a matching `[lisa-human-gate-release]` discharges the historical body marker. Never
+reimplement heldness as a substring test or as the negation of `planHumanGateRelease().released`:
+that planner also returns `released: false` for an item that was never held. Missing comments fail
+closed for a hold; never infer release from a missing label.
 
-A held item stops the flow here, whatever the resolution outcome and whatever roles or labels the item carries. The marker is the authority: an item can be held while sitting in the build-ready role with no blocked or human-needed label, because a human stamping a hold on live work is the most likely way a gate is ever applied, and the vendor claim contracts reject a closed item or an active blocker but not a marked one. Do not invoke `lisa-tracker-claim`, do not write the worktree binding, and do not begin durable project work. Claiming a held leaf binds a live lane to it and makes it look already-attended, which suppresses exactly the human attention it was filed to attract. Return the structured result below with `claim_outcome: held-by-gate` and `binding_outcome: skipped-human-gate`, name which signal held it in `held_by` and carry the reason verbatim in `gate_reason` alongside the canonical reference, then stop. A marker written without a `reason=` key yields `gate_reason: null` — a missing reason narrows what the result can say, never whether the item is held.
+A held item stops the flow here, whatever roles or labels it carries. Do not invoke
+`lisa-tracker-claim`, write the worktree binding, or begin durable project work. Return
+`claim_outcome: held-by-gate` and `binding_outcome: skipped-human-gate`, name the signal in `held_by`
+and carry its reason verbatim in `gate_reason` (null for a keyless hold), then stop.
+
+For a discharged item, call
+`planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, readyLabel, lifecycleLabels, alreadyNotified })`
+and apply only the returned actions before claiming. Keep the body marker as history; a release
+never overrides a new caller-declared hold or another eligibility check.
 
 Otherwise:
 
@@ -78,5 +106,5 @@ Otherwise:
 - Branch setup may call `node scripts/lisa-work-item.mjs attach-branch` after the feature branch exists.
 - Keep the binding across ordinary interruptions and blocked outcomes so resumed work remains attributable.
 - Clear it only after true terminal completion — merged, deployed/verified where required, tracker evidence/backlink complete, and the work item terminal — by running `node scripts/lisa-work-item.mjs clear` and verifying no current binding remains.
-- A held filing writes no binding at all, so there is nothing to clear. The gate is released by a human, not by this skill: a human removes the `[lisa-human-gate]` marker and flips the leaf into the build-ready role, and a later invocation then resolves it on the ordinary path.
+- A held filing writes no binding at all, so there is nothing to clear. The gate is released by a human decision, but not by a human edit: the person records the decision as a comment on the leaf beginning `[lisa-human-gate-release]` and, for a keyed hold, repeating its `reason=` verbatim. For a keyless hold, the comment begins `[lisa-human-gate-release]` without a `reason=` field. The next intake sweep takes the human-needed marker off and puts the leaf back in the build-ready role on its own (`planHumanGateRelease` in `scripts/intake-blocker-reprobe.mjs`). A later invocation then resolves it on the ordinary path. **Do not tell anyone to delete the marker from the description, and do not delete it here.** The only description write available is a whole-body replacement, so clearing one line means rewriting the entire record — which is why, before this, the rational move was always to leave a hold in place and answered holds only accumulated (CodySwannGT/lisa#3852). The hold stays in the body as history; the release is recorded beside it.
 - A tracker outage, invalid item, failed claim, or failed binding blocks durable work. Never continue untracked and never ask a Git hook to create the item.

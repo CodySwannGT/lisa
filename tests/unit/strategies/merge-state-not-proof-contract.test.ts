@@ -44,6 +44,16 @@ function read(root: string, skill: string): string {
   return readFileSync(path.resolve(root, `skills/${skill}/SKILL.md`), "utf8");
 }
 
+/**
+ * Collapse whitespace so a rule is matched as a sentence, not as the line
+ * breaks the prose happens to wrap at today.
+ * @param source - Skill text
+ * @returns The text with every whitespace run reduced to one space
+ */
+function flat(source: string): string {
+  return source.replace(/\s+/gu, " ");
+}
+
 describe.each(ROOTS)("%s drive-pr conflict proof", root => {
   const skill = read(root, "lisa-drive-pr-to-merge");
 
@@ -55,22 +65,35 @@ describe.each(ROOTS)("%s drive-pr conflict proof", root => {
 
   it("names merge-tree as the local authority", () => {
     expect(skill).toContain("git merge-tree --write-tree");
-    expect(skill).toMatch(/exit 0 = merges clean; exit 1 = real conflict/);
+    // The trial's outcomes, by name. This case originally pinned the comment
+    // `exit 0 = merges clean; exit 1 = real conflict`, which reads the exit
+    // code alone — and that is wrong in the same direction as the cached
+    // field, because a trial that could not RUN also exits 1. The claim kept
+    // here is the one that survives: the skill names the outcomes rather than
+    // leaving the reader to infer them.
+    expect(skill).toContain("CLEAN");
+    expect(skill).toContain("CONFLICTED");
+    expect(skill).toContain("NOT DETERMINED");
   });
 
   it("calls the cached field a hint rather than proof", () => {
-    expect(skill).toMatch(/is a HINT, never proof of a conflict/);
+    // Flattened: the sentence wraps, and where its line happens to break is
+    // not part of the claim.
+    expect(flat(skill)).toMatch(/is a HINT, never proof of a conflict/u);
   });
 
   it("keeps the genuine-conflict path intact", () => {
     // The precision control. A change that stopped resolving conflicts
     // entirely would satisfy every case above and be strictly worse.
-    expect(skill).toMatch(/`merge-tree` exits non-zero:\s*\n?fetch the base/);
+    expect(flat(skill)).toMatch(/trial says CONFLICTED[^.]*fetch the base/u);
   });
 
   it("distrusts computed fields without distrusting stored ones", () => {
-    expect(skill).toMatch(/distrusts the COMPUTED fields, not the API/i);
-    expect(skill).toContain("`autoMergeRequest` is a\nstored setting");
+    // Wording-independent: the rule must be scoped to the computed fields and
+    // must say so about `autoMergeRequest` by name.
+    expect(flat(skill)).toMatch(/narrower than "distrust the API"/iu);
+    expect(flat(skill)).toMatch(/Distrust the \*\*computed\*\* fields/u);
+    expect(flat(skill)).toMatch(/`autoMergeRequest` is a \*stored\* setting/u);
   });
 });
 
@@ -84,7 +107,7 @@ describe.each(ROOTS)("%s repair-intake conflict proof", root => {
   });
 
   it("requires merge-tree before filing a blocker", () => {
-    expect(skill).toContain("git merge-tree --write-tree origin/<base> <head>");
+    expect(skill).toContain("git merge-tree --write-tree");
     expect(skill).toMatch(/[Vv]erify before filing, never after/);
   });
 

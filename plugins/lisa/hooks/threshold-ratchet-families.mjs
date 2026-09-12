@@ -379,8 +379,8 @@ export function extractK6Constraints(conf) {
 /**
  * Extract thresholdRatchet.allow entries from parsed .lisa.config.json.
  * @param {unknown} config Parsed config (may be undefined)
- * @returns {Array<{ file: string, key: string, reason?: string }>} The
- *   well-formed allow entries; malformed entries are dropped
+ * @returns {Array<{ file: string, key: string, reason?: string, until?: unknown }>}
+ *   The well-formed allow entries; malformed entries are dropped
  */
 export function extractAllowEntries(config) {
   const raw = config?.thresholdRatchet?.allow;
@@ -388,4 +388,132 @@ export function extractAllowEntries(config) {
   return raw.filter(
     e => e && typeof e.file === "string" && typeof e.key === "string"
   );
+}
+
+/**
+ * The three states an allow entry's expiry condition can be in.
+ *
+ * THE DEFECT THESE EXIST FOR (#3856). An allow entry is the human-approved way
+ * for a weakening to pass the ratchet, and it had no expiry, no review and no
+ * removal path — nothing read the `reason`, so an exemption granted for a
+ * temporary condition (a migration in flight, a suite being rewritten, a
+ * dependency waiting upstream) outlived the condition and kept applying,
+ * silently, forever. The set of gates actually enforced therefore shrank
+ * monotonically while every individual decision that shrank it was correct at
+ * the time. A control whose exception list only grows converges on no control.
+ *
+ * The shape is taken from `_thresholdsDivergence` in `stryker.conf.json`,
+ * governed by `src/sync/stryker-thresholds-ownership.ts` — the one exemption
+ * surface in this repository that already stops exempting when it goes stale.
+ * Its three properties are reproduced here: the entry records its condition in
+ * a form something can evaluate, the reason says what resolves it, and once the
+ * condition passes the entry stops exempting AND says so, naming the remedy.
+ *
+ * `unchecked` is deliberately NOT `expired`. An entry written before `until`
+ * existed names a condition nothing can evaluate, which is the prose situation
+ * the ticket describes — it is reported every run, loudly, and it keeps
+ * exempting. Refusing it instead would red-wall every project mid-migration
+ * that carries a valid exception, which is the failure the ticket names as
+ * worse than the defect.
+ * @type {Readonly<Record<string, "live"|"expired"|"unchecked">>}
+ */
+export const ALLOW_STATE = Object.freeze({
+  LIVE: "live",
+  EXPIRED: "expired",
+  UNCHECKED: "unchecked",
+});
+
+/** A calendar condition, and the only shape `until` may take. */
+const ISO_DAY = /^(\d{4})-(\d{2})-(\d{2})$/u;
+
+/** An entry is live through the END of its named day, not up to its start. */
+const DAY_MS = 86_400_000;
+
+/**
+ * The instant an `until` condition stops holding.
+ *
+ * Round-tripped through `toISOString` on purpose: `Date.UTC` accepts
+ * out-of-range components and slides them, so `2026-02-31` would silently
+ * become March 3rd and `0099-01-01` would become 1999. An exemption dated a day
+ * that does not exist is a condition nobody can evaluate, and saying so is the
+ * honest answer — quietly moving it would hand the entry a different, longer
+ * life than the one written down.
+ * @param {unknown} until The entry's `until` field
+ * @returns {number | undefined} Epoch ms after which the entry has expired, or
+ *   undefined when `until` is not a calendar day anything can evaluate
+ */
+export function allowEntryExpiry(until) {
+  if (typeof until !== "string") return undefined;
+  const day = until.trim();
+  const match = ISO_DAY.exec(day);
+  if (!match) return undefined;
+  const midnight = Date.UTC(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3])
+  );
+  if (new Date(midnight).toISOString().slice(0, 10) !== day) return undefined;
+  return midnight + DAY_MS;
+}
+
+/**
+ * Name an allow entry so a report says WHICH exemption it is talking about,
+ * and how much it covers.
+ *
+ * File-wide and key-scoped entries are spelled differently because they are
+ * different risks wearing the same shape: `key: "*"` turns off ratchet
+ * protection for every threshold in the file, and in a config diff that reads
+ * as one more approved exception.
+ * @param {{ file: string, key: string }} entry An allow entry, already
+ *   well-formed — `extractAllowEntries` is the only source of these
+ * @returns {string} Operator-readable identification of the entry
+ */
+export function describeAllowScope(entry) {
+  return entry.key === "*"
+    ? `thresholdRatchet.allow entry ${entry.file} → * (file-wide: every key in the file)`
+    : `thresholdRatchet.allow entry ${entry.file} → ${entry.key} (key-scoped)`;
+}
+
+/**
+ * Classify one allow entry's expiry condition, and say what to do about it.
+ * @param {{ file: string, key: string, reason?: unknown, until?: unknown }} entry
+ *   An allow entry
+ * @param {number} now Clock reading, injected so the check is deterministic
+ * @returns {{ state: "live"|"expired"|"unchecked", scope: string, summary: string, detail: string }}
+ *   The state, the entry's identification, a short phrase for a one-line
+ *   mention, and the full sentence naming the entry, its reason and the remedy
+ */
+export function classifyAllowEntry(entry, now) {
+  const scope = describeAllowScope(entry);
+  const because =
+    typeof entry.reason === "string" && entry.reason.trim() !== ""
+      ? ` Reason on record: ${entry.reason.trim()}`
+      : " No reason is recorded.";
+  const expiresAt = allowEntryExpiry(entry.until);
+  if (expiresAt === undefined) {
+    const summary = `names no condition anything can evaluate (until = ${JSON.stringify(entry.until ?? null)})`;
+    return {
+      state: ALLOW_STATE.UNCHECKED,
+      scope,
+      summary,
+      detail: `${scope} ${summary}, so nothing can ever end it. Give it "until": "YYYY-MM-DD" naming the day the exemption is reviewed, or delete it.${because}`,
+    };
+  }
+  const day = String(entry.until).trim();
+  if (now >= expiresAt) {
+    const summary = `expired after ${day}`;
+    return {
+      state: ALLOW_STATE.EXPIRED,
+      scope,
+      summary,
+      detail: `${scope} ${summary} and no longer exempts anything. Delete it, or record a fresh human-approved entry naming the new condition.${because}`,
+    };
+  }
+  const summary = `is live until ${day}`;
+  return {
+    state: ALLOW_STATE.LIVE,
+    scope,
+    summary,
+    detail: `${scope} ${summary}.`,
+  };
 }
