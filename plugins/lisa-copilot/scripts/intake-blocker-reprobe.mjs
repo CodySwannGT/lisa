@@ -259,18 +259,76 @@ export function humanGateHolds(body) {
 }
 
 /**
- * The reason keys every recorded release discharges, deduplicated.
- *
- * Accepts comment bodies as strings or as `{ body }` objects, because the three
- * vendor readers return both shapes and a release that a vendor's payload shape
- * could hide would be a release path that exists on one tracker.
- * @param {unknown} comments - Comment bodies, any order
- * @returns {string[]} One key per recorded release
+ * Normalize stable provider IDs without case folding or trusting display names.
+ * @param {unknown} value - Provider actor ID
+ * @returns {string} Stable comparison key, or empty when invalid
  */
-export function humanGateReleases(comments) {
-  const bodies = (Array.isArray(comments) ? comments : []).map(entry =>
-    typeof entry === "string" ? entry : (entry?.body ?? "")
+function stableActorId(value) {
+  if (typeof value === "string") return value.trim();
+  return Number.isSafeInteger(value) && value > 0 ? String(value) : "";
+}
+
+/**
+ * Recognize explicit provider bot metadata even for an allowlisted identity.
+ * @param {unknown} actor - Provider or normalized author metadata
+ * @returns {boolean} Whether the metadata identifies automation
+ */
+function isKnownBot(actor) {
+  if (!actor || typeof actor !== "object") return false;
+  const kinds = [
+    actor.type,
+    actor.__typename,
+    actor.accountType,
+    actor.authorType,
+  ];
+  return (
+    actor.isBot === true ||
+    actor.bot === true ||
+    kinds.some(kind => /^(?:bot|app)$/i.test(String(kind ?? "").trim()))
   );
+}
+
+/**
+ * Require authenticated provider identity and separately supplied human trust.
+ * Adapters may normalize the ID to authorId, but must preserve bot metadata.
+ * Names, body text and self-asserted authorization flags never confer trust.
+ * @param {unknown} comment - Structured provider comment
+ * @param {ReadonlySet<string>} trustedIds - Explicitly trusted human actor IDs
+ * @returns {boolean} Whether the comment may discharge a human hold
+ */
+function isTrustedHumanComment(comment, trustedIds) {
+  if (!comment || typeof comment !== "object" || Array.isArray(comment))
+    return false;
+  if ([comment, comment.user, comment.author].some(isKnownBot)) return false;
+  const id = stableActorId(
+    comment.authorId ??
+      comment.user?.id ??
+      comment.author?.id ??
+      comment.author?.accountId
+  );
+  return id.length > 0 && trustedIds.has(id);
+}
+
+/**
+ * The reason keys released by explicitly trusted human authors, deduplicated.
+ *
+ * Comments must retain authenticated provider authorship: normalized authorId,
+ * user.id, author.id or author.accountId. The caller supplies trusted human IDs
+ * independently of comment content. Raw strings, missing IDs, known bots and
+ * an absent or empty allowlist fail closed and cannot discharge a hold.
+ * @param {unknown} comments - Structured comments, any order
+ * @param {unknown} trustedHumanActorIds - Explicit trusted human provider IDs
+ * @returns {string[]} One key per authorized recorded release
+ */
+export function humanGateReleases(comments, trustedHumanActorIds = []) {
+  const trustedIds = new Set(
+    (Array.isArray(trustedHumanActorIds) ? trustedHumanActorIds : [])
+      .map(stableActorId)
+      .filter(Boolean)
+  );
+  const bodies = (Array.isArray(comments) ? comments : [])
+    .filter(entry => isTrustedHumanComment(entry, trustedIds))
+    .map(entry => entry.body ?? "");
   const keys = bodies.flatMap(body =>
     declarativeText(body)
       .split("\n")
@@ -288,11 +346,13 @@ export function humanGateReleases(comments) {
  * the unsafe direction — the one this fix must not introduce while correcting
  * the safe one. An item with no declared body hold is discharged only by a
  * keyless release, which is the form that pairs with a label-only hold.
- * @param {{ body?: unknown, comments?: unknown }} input - The item's surfaces
+ * @param {{ body?: unknown, comments?: unknown, trustedHumanActorIds?: unknown }} input - The item's surfaces
  * @returns {boolean} True when nothing is left outstanding
  */
 export function humanGateDischarged(input = {}) {
-  const released = new Set(humanGateReleases(input.comments));
+  const released = new Set(
+    humanGateReleases(input.comments, input.trustedHumanActorIds)
+  );
   const holds = humanGateHolds(input.body);
   if (holds.length === 0) return released.has("");
   return holds.every(reason => released.has(reason));
@@ -319,7 +379,7 @@ export function humanGateDischarged(input = {}) {
  * no releases, so a held item stays held. Holding a gate that may be stale
  * beats releasing one that is not, and every caller that never passes comments
  * keeps its current behaviour by construction.
- * @param {{ labels?: unknown, body?: unknown, comments?: unknown, humanNeededLabel?: unknown }} input - Candidate surfaces
+ * @param {{ labels?: unknown, body?: unknown, comments?: unknown, trustedHumanActorIds?: unknown, humanNeededLabel?: unknown }} input - Candidate surfaces
  * @returns {{ held: boolean, reason: string, declared: number, outstanding: string[], released: string[], labelPresent: boolean }} Held-ness verdict
  */
 export function humanGateVerdict(input = {}) {
@@ -330,7 +390,10 @@ export function humanGateVerdict(input = {}) {
     .toLowerCase();
   const labelPresent =
     configured.length > 0 && normalizeLabels(input.labels).includes(configured);
-  const released = humanGateReleases(input.comments);
+  const released = humanGateReleases(
+    input.comments,
+    input.trustedHumanActorIds
+  );
   const releasedSet = new Set(released);
   const holds = humanGateHolds(input.body);
   const outstanding = holds.filter(reason => !releasedSet.has(reason));
@@ -370,9 +433,9 @@ export function humanGateVerdict(input = {}) {
  * It is also the only place a hold ENDS, which is why the release lives behind
  * the same call rather than beside it: a reader that could see the hold but not
  * its discharge is how the gate became one-way in the first place. Pass the
- * item's comments and a recorded release is honoured; omit them and the item
- * stays held.
- * @param {{ labels?: unknown, body?: unknown, comments?: unknown, humanNeededLabel?: unknown }} input - Candidate surfaces
+ * item's structured comments and trustedHumanActorIds to honor an authorized
+ * release; omit either and the item stays held.
+ * @param {{ labels?: unknown, body?: unknown, comments?: unknown, trustedHumanActorIds?: unknown, humanNeededLabel?: unknown }} input - Candidate surfaces
  * @returns {boolean} True when a person is holding this item
  */
 export function isHumanGated(input) {
@@ -423,6 +486,7 @@ function judgeProbe(probe) {
  *   labels?: unknown
  *   body?: unknown
  *   comments?: unknown
+ *   trustedHumanActorIds?: unknown
  *   humanNeededLabel?: unknown
  *   statedBlocker?: unknown
  *   probe?: { discharged?: unknown, evidence?: unknown } | null
@@ -535,7 +599,7 @@ export const HUMAN_GATE_NOTE_MARKER = "<!-- [lisa-human-gate-reconciled] -->";
  * a parser keyed on the structured field would miss those while appearing to
  * work on every item that happens to have one — reproducing this defect one
  * layer down.
- * @param {{ labels?: unknown, body?: unknown, comments?: unknown, humanNeededLabel?: unknown }} input - Candidate surfaces
+ * @param {{ labels?: unknown, body?: unknown, comments?: unknown, trustedHumanActorIds?: unknown, humanNeededLabel?: unknown }} input - Candidate surfaces
  * @returns {{ claimable: boolean, reason: string, humanGated: boolean }} Claim verdict
  */
 export function classifyReadyCandidate(input = {}) {
@@ -564,6 +628,7 @@ export function classifyReadyCandidate(input = {}) {
  *   labels?: unknown
  *   body?: unknown
  *   comments?: unknown
+ *   trustedHumanActorIds?: unknown
  *   humanNeededLabel?: unknown
  *   readyLabel?: unknown
  *   alreadyNotified?: unknown
@@ -670,6 +735,7 @@ const RESUME_INSTRUCTION = [
  *   labels?: unknown
  *   body?: unknown
  *   comments?: unknown
+ *   trustedHumanActorIds?: unknown
  *   humanNeededLabel?: unknown
  *   readyLabel?: unknown
  *   lifecycleLabels?: unknown
@@ -831,6 +897,7 @@ export const NORMALIZATION_HOLD_NOTE_MARKER =
  *   labels?: unknown
  *   body?: unknown
  *   comments?: unknown
+ *   trustedHumanActorIds?: unknown
  *   humanNeededLabel?: unknown
  *   lifecycleLabels?: unknown
  *   readyLabel?: unknown

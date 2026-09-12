@@ -239,8 +239,8 @@ export const VOID_PREDICATES = Object.freeze({
   "certified-role-reached": ({ role, resolvedRoles }) =>
     normalize(role) !== "" &&
     resolvedRoles.some(name => normalize(name) === normalize(role)),
-  "human-gate-release-recorded": ({ body, comments }) =>
-    humanGateDischarged({ body, comments }),
+  "human-gate-release-recorded": ({ body, comments, trustedHumanActorIds }) =>
+    humanGateDischarged({ body, comments, trustedHumanActorIds }),
 });
 
 /**
@@ -331,6 +331,7 @@ const labelNames = labels =>
  * @param {string} [options.signal] a key of {@link SIGNALS}
  * @param {readonly unknown[]} [options.labels] the item's labels
  * @param {readonly unknown[]} [options.comments] comment bodies, oldest first
+ * @param {readonly unknown[]} [options.trustedHumanActorIds] explicitly trusted human author identities
  * @param {unknown} [options.body] the item's description, for body-marker rows
  * @param {string} [options.role] the item's current lifecycle role name
  * @param {string} options.vendor `jira` | `linear` | `github`
@@ -341,6 +342,7 @@ export const evaluateSignal = ({
   signal = QA_FAILURE_SIGNAL,
   labels,
   comments,
+  trustedHumanActorIds,
   body,
   role = "",
   vendor,
@@ -380,6 +382,7 @@ export const evaluateSignal = ({
     role,
     body,
     comments,
+    trustedHumanActorIds,
     resolvedRoles: voidingRoles({ vendor, config }),
   };
   const unchecked = declared.voidConditions.filter(

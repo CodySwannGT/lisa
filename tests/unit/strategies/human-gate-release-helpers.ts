@@ -82,6 +82,22 @@ export const OTHER_RELEASE = formatHumanGateRelease({ reason: "legal-review" });
 /** Ordinary comment traffic, which is neither a hold nor a release. */
 export const UNRELATED = "Bumping this — any movement on the pricing question?";
 
+/** Stable identity configured by the caller as allowed to release holds. */
+export const TRUSTED_HUMAN_ACTOR_IDS = ["human-owner-1"];
+
+/**
+ * A complete trusted human comment history for existing release scenarios.
+ * @param bodies - Recorded comment bodies, without changing their text.
+ * @returns Vendor comments and the caller's explicit authorization allowlist.
+ */
+export const trustedHistory = (bodies: readonly string[]) => ({
+  comments: bodies.map(body => ({
+    body,
+    author: { id: TRUSTED_HUMAN_ACTOR_IDS[0], type: "User" },
+  })),
+  trustedHumanActorIds: TRUSTED_HUMAN_ACTOR_IDS,
+});
+
 /**
  * Read one skill contract out of a plugin root.
  * @param root - The plugin root, source or generated

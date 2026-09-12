@@ -46,11 +46,13 @@ import {
   READY,
   REASON,
   RELEASE,
+  trustedHistory,
   UNRELATED,
+  TRUSTED_HUMAN_ACTOR_IDS,
 } from "./human-gate-release-helpers.js";
 
 const gated = (comments: readonly string[]): boolean =>
-  isHumanGated({ body: BODY, labels: [NEEDED], comments });
+  isHumanGated({ body: BODY, labels: [NEEDED], ...trustedHistory(comments) });
 
 describe("a discharged hold releases the item", () => {
   it("stops reporting the item as held once the release is recorded", () => {
@@ -64,7 +66,7 @@ describe("a discharged hold releases the item", () => {
       classifyReadyCandidate({
         body: BODY,
         labels: [NEEDED, READY],
-        comments: [RELEASE],
+        ...trustedHistory([RELEASE]),
       })
     ).toEqual({
       claimable: true,
@@ -78,7 +80,7 @@ describe("a discharged hold releases the item", () => {
       laneType: "unstarted",
       body: BODY,
       labels: [NEEDED],
-      comments: [RELEASE],
+      ...trustedHistory([RELEASE]),
       statedBlocker: "",
     });
 
@@ -90,7 +92,7 @@ describe("a discharged hold releases the item", () => {
     const result = planLabelNormalization({
       body: BODY,
       labels: [],
-      comments: [RELEASE],
+      ...trustedHistory([RELEASE]),
       lifecycleLabels: LIFECYCLE,
       readyLabel: READY,
     });
@@ -118,21 +120,30 @@ describe("a hold nobody answered still holds", () => {
   it("holds when only one of two declared holds was answered", () => {
     const twoHolds = `${BODY}\n<!-- ${HUMAN_GATE_MARKER} reason=legal-review -->`;
 
-    expect(isHumanGated({ body: twoHolds, comments: [RELEASE] })).toBe(true);
+    expect(isHumanGated({ body: twoHolds, ...trustedHistory([RELEASE]) })).toBe(
+      true
+    );
     expect(
-      isHumanGated({ body: twoHolds, comments: [RELEASE, OTHER_RELEASE] })
+      isHumanGated({
+        body: twoHolds,
+        ...trustedHistory([RELEASE, OTHER_RELEASE]),
+      })
     ).toBe(false);
   });
 
   it("refuses to claim or promote an unanswered hold", () => {
     expect(
-      classifyReadyCandidate({ body: BODY, labels: [READY], comments: [] })
+      classifyReadyCandidate({
+        body: BODY,
+        labels: [READY],
+        ...trustedHistory([]),
+      })
     ).toEqual({ claimable: false, reason: "human-gate", humanGated: true });
     expect(
       classifyPreWorkCandidate({
         laneType: "unstarted",
         body: BODY,
-        comments: [UNRELATED],
+        ...trustedHistory([UNRELATED]),
         statedBlocker: "",
       }).selectable
     ).toBe(false);
@@ -150,15 +161,22 @@ describe("a hold nobody answered still holds", () => {
 describe("the release is symmetric with the hold it ends", () => {
   it("records the discharge against the reason the hold declared", () => {
     expect(humanGateHolds(BODY)).toEqual([REASON]);
-    expect(humanGateReleases([RELEASE])).toEqual([REASON]);
-    expect(humanGateDischarged({ body: BODY, comments: [RELEASE] })).toBe(true);
+    expect(
+      humanGateReleases(
+        trustedHistory([RELEASE]).comments,
+        TRUSTED_HUMAN_ACTOR_IDS
+      )
+    ).toEqual([REASON]);
+    expect(
+      humanGateDischarged({ body: BODY, ...trustedHistory([RELEASE]) })
+    ).toBe(true);
   });
 
   it("reads the discharge with the same reader that reads the hold", () => {
     const verdict = humanGateVerdict({
       body: BODY,
       labels: [NEEDED],
-      comments: [RELEASE],
+      ...trustedHistory([RELEASE]),
     });
 
     expect(verdict.held).toBe(false);
@@ -171,16 +189,23 @@ describe("the release is symmetric with the hold it ends", () => {
   it("pairs a hold and a release across letter case and spacing drift", () => {
     const loose = `${HUMAN_GATE_RELEASE_MARKER} reason=  Pricing-Tier `;
 
-    expect(isHumanGated({ body: BODY, comments: [loose] })).toBe(false);
+    expect(isHumanGated({ body: BODY, ...trustedHistory([loose]) })).toBe(
+      false
+    );
   });
 
   it("discharges a keyless hold only with a keyless release", () => {
     const keyless = `${HUMAN_GATE_MARKER} someone needs to look at this`;
 
     expect(humanGateHolds(keyless)).toEqual([""]);
-    expect(isHumanGated({ body: keyless, comments: [RELEASE] })).toBe(true);
+    expect(isHumanGated({ body: keyless, ...trustedHistory([RELEASE]) })).toBe(
+      true
+    );
     expect(
-      isHumanGated({ body: keyless, comments: [HUMAN_GATE_RELEASE_MARKER] })
+      isHumanGated({
+        body: keyless,
+        ...trustedHistory([HUMAN_GATE_RELEASE_MARKER]),
+      })
     ).toBe(false);
   });
 
@@ -192,11 +217,14 @@ describe("the release is symmetric with the hold it ends", () => {
   });
 
   it("holds on a label-only item until a keyless release is recorded", () => {
-    expect(isHumanGated({ labels: [NEEDED], comments: [UNRELATED] })).toBe(
-      true
-    );
     expect(
-      isHumanGated({ labels: [NEEDED], comments: [HUMAN_GATE_RELEASE_MARKER] })
+      isHumanGated({ labels: [NEEDED], ...trustedHistory([UNRELATED]) })
+    ).toBe(true);
+    expect(
+      isHumanGated({
+        labels: [NEEDED],
+        ...trustedHistory([HUMAN_GATE_RELEASE_MARKER]),
+      })
     ).toBe(false);
   });
 
@@ -211,13 +239,24 @@ describe("the release is symmetric with the hold it ends", () => {
   it("does not read a comment DISCUSSING a release as a release", () => {
     const chatter = `Should we post a \`${HUMAN_GATE_RELEASE_MARKER}\` here?`;
 
-    expect(humanGateReleases([chatter])).toEqual([]);
-    expect(isHumanGated({ body: BODY, comments: [chatter] })).toBe(true);
+    expect(
+      humanGateReleases(
+        trustedHistory([chatter]).comments,
+        TRUSTED_HUMAN_ACTOR_IDS
+      )
+    ).toEqual([]);
+    expect(isHumanGated({ body: BODY, ...trustedHistory([chatter]) })).toBe(
+      true
+    );
   });
 
-  it("reads a release out of a vendor comment object, not just a string", () => {
-    expect(isHumanGated({ body: BODY, comments: [{ body: RELEASE }] })).toBe(
-      false
-    );
+  it("reads an authorized release out of a vendor comment object", () => {
+    expect(
+      isHumanGated({
+        body: BODY,
+        comments: [{ body: RELEASE, user: { id: TRUSTED_HUMAN_ACTOR_IDS[0] } }],
+        trustedHumanActorIds: TRUSTED_HUMAN_ACTOR_IDS,
+      })
+    ).toBe(false);
   });
 });

@@ -323,7 +323,7 @@ query($id:String!,$after:String){
   project(id:$id){
     comments(first:100,after:$after){
       pageInfo{ hasNextPage endCursor }
-      nodes{ id body createdAt url user{ name } }
+      nodes{ id body createdAt url user{ id name } }
     }
   }
 }
@@ -340,7 +340,7 @@ linear_list_comment_pages() {  # issue|project id -> complete JSON node array
   local anchor="$1" id="$2" after=null nodes='[]' seen='[]'
   local query variables response connection cursor
   case "$anchor" in issue|project) ;; *) echo "Error: invalid comment anchor" >&2; return 1 ;; esac
-  query='query($id:String!,$after:String){'"$anchor"'(id:$id){comments(first:100,after:$after){pageInfo{hasNextPage endCursor} nodes{id body createdAt url user{name}}}}}'
+  query='query($id:String!,$after:String){'"$anchor"'(id:$id){comments(first:100,after:$after){pageInfo{hasNextPage endCursor} nodes{id body createdAt url user{id name}}}}}'
   while :; do
     variables=$(jq -cn --arg id "$id" --argjson after "$after" '{id:$id,after:$after}') || return 1
     response=$(linear_graphql "$query" "$variables") || return 1
@@ -366,6 +366,13 @@ linear_list_comment_pages() {  # issue|project id -> complete JSON node array
   done
 }
 ```
+
+Keep the returned comment objects intact when a caller evaluates a human-gate release. The
+`user.id` is the stable author identity; `user.name` is display text and never authorizes release.
+Pass structured comments and an independently supplied `trustedHumanActorIds` allowlist to the
+shared gate helpers (`ready-role-filing` — Human-gate release authorization). A body-only projection
+loses identity and cannot discharge a hold. Preserve any explicit bot metadata from the provider;
+if identity or trusted policy is unavailable, leave the hold active.
 
 Call `linear_list_comment_pages project "$PROJECT_ID"` for `project_id`, or
 `linear_list_comment_pages issue "$ISSUE_ID"` for `issue_id`. The caller receives
