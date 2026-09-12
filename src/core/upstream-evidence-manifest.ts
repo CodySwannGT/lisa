@@ -2247,7 +2247,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-orphan-test-processes.mjs":
       "123822f43b53a84b619ed97d5c18069feb5964b8216248968a7ab165e345106a",
     "scripts/check-pipeline-status-reads.mjs":
-      "a84a24ff386cdb16bf1c05c7728d5266a4b32c4c46abc227303620ca5b49ddfe",
+      "1fba15dfe50eb060bd229066a35a852679b23c11292981015b5746e1d639fb31",
     "scripts/check-plugins-sync.sh":
       "9bc8d125818bcbaa13796d1b73f354c017dd3d18c7a11c407a6289e51b8245b0",
     "scripts/check-probe-absence-direction.mjs":
@@ -10444,6 +10444,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/nightly-e2e-waiver-record.test.ts": true,
     "tests/unit/scripts/orphaned-branch-bindings.test.ts": true,
     "tests/unit/scripts/per-agent-hook-filter.test.ts": true,
+    "tests/unit/scripts/pipeline-status-continuations.test.ts": true,
     "tests/unit/scripts/placeholder-expiry.test.ts": true,
     "tests/unit/scripts/plugin-parity-drift-helpers.ts": true,
     "tests/unit/scripts/plugin-parity-drift.test.ts": true,
