@@ -6298,7 +6298,7 @@ function main() {
     validateLive(ref, contract);
     const file = writeState(ref, contract.provider, { requireBranch: true });
     return console.log(
-      `work-item binding attached to ${activeBranch()} (${file})`
+      `work-item binding ${ref} attached to ${activeBranch()} (${file})`
     );
   }
   if (command === "clear") {
