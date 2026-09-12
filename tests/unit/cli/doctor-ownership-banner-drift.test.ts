@@ -74,10 +74,14 @@ describe("a seeded caller still wearing the managed banner is reported", () => {
     expect(result.detail).toContain("create-only");
   });
 
-  it("names the file, so the operator does not have to hunt for it", async () => {
-    const result = await checkOwnershipBannerDrift(await consumerWith(MANAGED));
+  it("names the file without rewriting the consumer's workflow", async () => {
+    const root = await consumerWith(MANAGED);
+    const workflow = path.join(root, ".github", "workflows", "ci.yml");
+    const original = await readFile(workflow, "utf8");
+    const result = await checkOwnershipBannerDrift(root);
 
     expect(result.detail).toContain("ci.yml");
+    expect(await readFile(workflow, "utf8")).toBe(original);
   });
 
   it("explains current ownership without promising every future upgrade", async () => {
