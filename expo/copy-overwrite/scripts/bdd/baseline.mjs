@@ -41,6 +41,9 @@ const defect = (code, message) => ({ code, message });
 /** Defect / evidence code, named once. */
 const SCENARIO_DELETED = "scenario-deleted";
 
+/** Coverage map path shared by baseline listing and reading. */
+const COVERAGE_MAP = "bdd/coverage-map.json";
+
 /**
  * Fixed absolute locations git is installed at, tried before anything on PATH.
  *
@@ -157,7 +160,7 @@ function baselineFilesAt(root, revision) {
     "--name-only",
     revision,
     "--",
-    "bdd/coverage-map.json",
+    COVERAGE_MAP,
     "bdd/features",
   ]);
   // probe-direction: fail-closed — `ok: false` reaches `loadBaseline`, which
@@ -168,9 +171,7 @@ function baselineFilesAt(root, revision) {
     files: result.stdout
       .split("\n")
       .map(line => line.trim())
-      .filter(
-        line => line === "bdd/coverage-map.json" || line.endsWith(".feature")
-      ),
+      .filter(line => line === COVERAGE_MAP || line.endsWith(".feature")),
   };
 }
 
@@ -205,7 +206,7 @@ export function loadBaseline(root, revision, headPlatforms = new Set()) {
   }));
   const unreadable = documents.find(document => document.source === null);
   const raw = documents.find(
-    document => document.file === "bdd/coverage-map.json"
+    document => document.file === COVERAGE_MAP
   )?.source;
   let contract = null;
   let error = null;
