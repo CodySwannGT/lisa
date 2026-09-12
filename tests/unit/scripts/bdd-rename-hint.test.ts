@@ -22,7 +22,7 @@ import {
   makeProject,
   messages,
   runGate,
-} from "./bdd/support";
+} from "./bdd/support.js";
 
 /** The stale-evidence defect code, named once. */
 const MAPPING_EVIDENCE = "mapping-evidence";
