@@ -1147,7 +1147,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-read-issue/SKILL.md":
       "b0db6c44d3f3659905313b1a96c6536e2b3856c082bfbc3b2d6f92f349d7f90a",
     "plugins/src/base/skills/lisa-github-sync/SKILL.md":
-      "9130213c0b91f3fbc034d2d5b1cf7f4f238702059f84fb10e67bb8ce9aba83f4",
+      "c6e0f584830168abf8ca7b9a1de269fe168139ddd0c5a1070facf24bb54b86e1",
     "plugins/src/base/skills/lisa-github-to-tracker/SKILL.md":
       "005323919f5f671e541219278dbf8e736cc33b522090611a91f5af88cfa9964f",
     "plugins/src/base/skills/lisa-github-validate-issue/SKILL.md":
@@ -10719,6 +10719,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/github-project-operator-docs.test.ts": true,
     "tests/unit/strategies/github-project-v2-utility.test.ts": true,
     "tests/unit/strategies/github-read-issue-label-history.test.ts": true,
+    "tests/unit/strategies/github-rollup-dedup-guidance.test.ts": true,
     "tests/unit/strategies/github-umbrella-queue-contract.test.ts": true,
     "tests/unit/strategies/github-validator-f2-f4-contract.test.ts": true,
     "tests/unit/strategies/github-writer-project-membership.test.ts": true,

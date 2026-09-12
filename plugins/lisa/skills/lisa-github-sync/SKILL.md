@@ -41,6 +41,8 @@ Optional arguments include `pr_url=<url>` for the live pull request and `merge_s
 
 ### Step 3: Post Update
 
+For `--rollup`, skip this milestone path and use Step 5's classifier decision.
+
 1. **Idempotency check** — read the issue's recent comments. If the most recent comment with the prefix `[claude-sync] <milestone>` matches the current milestone AND the body content is unchanged, skip the post (no duplicate).
 2. **Add the comment**:
 
@@ -48,7 +50,7 @@ Optional arguments include `pr_url=<url>` for the live pull request and `merge_s
    gh issue comment <number> --repo <org>/<repo> --body-file /tmp/sync-comment.md
    ```
 
-   The body must start with `[claude-sync] <milestone>` so the next sync run can dedupe.
+   The body must start with `[claude-sync] <milestone>` so the next sync run can locate it for comparison.
 
 3. **Report** to the user what was synced.
 
@@ -111,7 +113,7 @@ If the `subIssues` field is unavailable (older GHES), fall back to body parentag
 | else (children exist, none started) | — | unchanged — parent keeps its non-ready container label |
 
 - **Blocked dominates — and the rollup must say which child and which kind** — a single blocked child surfaces `status:blocked` on the parent even while siblings progress, so a human sees the parent needs attention. `status:blocked` alone is a single bit and cannot tell a child waiting on an external event from one whose acceptance criteria are unbuildable; the second never clears on its own.
-- **Run the shared classifier for every derived rollup state before writing the label or comment**, not only for `status:blocked`. Include the exact rendered state and child tally in the classifier input alongside the resolved child graph, so its fingerprint and `change.summary` deduplicate the complete rollup note for `status:in-progress`, every env-keyed `done`, and `status:blocked` alike:
+- **Run the shared classifier for every derived rollup state before writing the label or comment**, not only for `status:blocked`. Include the exact rendered state and child tally in the classifier input alongside the resolved child graph, so `change.changed` covers the complete rollup note for `status:in-progress`, every env-keyed `done`, and `status:blocked` alike:
 
 ```bash
 run_rollup_classifier() {
@@ -190,7 +192,7 @@ gh issue edit <parent-number> --repo <org>/<repo> \
 ## Important Notes
 
 - **Never auto-transition labels** — always suggest and let the user / pipeline confirm. The one exception is the explicit `--rollup` parent derivation (Step 5), which moves a *parent's* `status:*` label as the `leaf-only-lifecycle` rule mandates — never a leaf's, and never to `status:ready`.
-- **Idempotent updates** — the `[claude-sync] <milestone>` prefix on the most-recent comment is the dedupe key; the rollup path uses `[claude-sync] rollup`.
+- **Idempotent updates** — compare milestone comments as described in Step 3. For parent rollups, use `[claude-sync] rollup` only to locate the managed comment; use Step 5's persisted fingerprint and `change.changed` decision, never prefix or body equality.
 - **Comment format** — use GitHub-flavored markdown (`##` headings, fenced code blocks). The same template is used for the JIRA path (rendered as wiki markup there); keep the markdown source canonical.
 - **Rollup cites the rule by slug** — parent state derivation follows the `leaf-only-lifecycle` rule's state machine; this skill does not restate the policy.
 
