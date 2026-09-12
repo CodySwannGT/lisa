@@ -6,11 +6,12 @@
  * unchanged when no assignee is resolved. Both source and generated plugin
  * roots are asserted.
  */
-import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
+
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 
@@ -41,9 +42,11 @@ function runReadyQuery(content: string, assignee: string, failed = false) {
     ?.split("```bash")[1]
     ?.split("```")[0];
   if (!snippet) throw new Error("Ready-query example was not found");
-  return spawnSync(
-    "/bin/bash",
-    [
+  return boundedSpawnSync({
+    label: "documented intake ready query",
+    command: "/bin/bash",
+    cwd: path.resolve("."),
+    args: [
       "-c",
       `
     gh() {
@@ -53,18 +56,15 @@ function runReadyQuery(content: string, assignee: string, failed = false) {
     ${snippet}
   `,
     ],
-    {
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        QUEUE_REPO: "owner/repo",
-        READY: "ready",
-        ASSIGNEE: assignee,
-        TEST_ISSUE_PAGES: ISSUE_PAGES,
-        TEST_READ_FAILED: failed ? "1" : "0",
-      },
-    }
-  );
+    env: {
+      ...process.env,
+      QUEUE_REPO: "owner/repo",
+      READY: "ready",
+      ASSIGNEE: assignee,
+      TEST_ISSUE_PAGES: ISSUE_PAGES,
+      TEST_READ_FAILED: failed ? "1" : "0",
+    },
+  });
 }
 
 describe("intake assignee filter", () => {
