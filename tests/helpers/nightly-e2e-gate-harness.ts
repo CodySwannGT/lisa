@@ -24,6 +24,7 @@ import type {
   RunSelection,
   SelectionModule,
 } from "./nightly-e2e-selection-harness";
+import type { WaiverModule } from "./nightly-e2e-waiver-harness.js";
 
 export {
   GATE_CONTEXT,
@@ -135,7 +136,8 @@ export interface Verdict {
 }
 
 /** What the guard exports, as these suites consume it. */
-export interface GateModule extends ReportingModule, SelectionModule {
+export interface GateModule
+  extends ReportingModule, SelectionModule, WaiverModule {
   readonly DECISIVE_CONCLUSIONS: ReadonlySet<string>;
   readonly BYPASS_ABSOLUTE_MAX_HOURS: number;
   readonly REQUIRED_BYPASS_REASON_PATTERN: string;

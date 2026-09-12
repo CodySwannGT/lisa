@@ -20,6 +20,30 @@
  * covered. Two checks for one condition, drifting apart, each making the other
  * look redundant — worse than the wasted diagnosis. Hence `guard` on an entry.
  *
+ * ## A row may only assert what its evidence supports
+ *
+ * One symptom is routinely produced by two OPPOSITE causes, and a row that
+ * names one of them is then confidently wrong half the time. Measured
+ * (CodySwannGT/lisa#3812): a conflict in a path `.gitattributes` maps to a
+ * custom merge driver was attributed to an UNREGISTERED driver while the
+ * driver had in fact run and printed its own diagnosis three lines earlier,
+ * sending the reader to verify registration and away from the resolution
+ * already on their screen. `exit 1` from a merge driver carries "declined" and
+ * "never ran" alike, so an exit code cannot separate them either.
+ *
+ * Two fields exist for that, and both are about evidence rather than prose:
+ *
+ *   - `excludes` withholds a row when the output carries the counter-evidence
+ *     that refutes it. `counterSample` is its proof: text that matches
+ *     `signature` and is nonetheless excluded, so `--check` refuses a
+ *     discriminator that does not discriminate.
+ *   - `determination` measures the checkout at match time and picks the arm
+ *     the measurement supports — including an explicit `unknown` arm. The
+ *     third arm is not a formality: a row that says "not registered" when it
+ *     could not determine registration is the fail-open shape this exists
+ *     against, and absence of driver output is NOT proof a driver did not run
+ *     (a killed command loses its streams, and only a bounded tail is read).
+ *
  * ## Why an index and not more prose
  *
  * The natural fix — "search harder", or "record cross-cutting hazards
@@ -47,8 +71,8 @@
  *
  * ## Why it cannot rot into a decoration
  *
- * `--check` refuses three ways, and each one is a way this could otherwise
- * report all-clear while indexing nothing:
+ * `--check` refuses five ways, and each one is a way this could otherwise
+ * report all-clear while indexing nothing, or while indexing the wrong cause:
  *
  *   - an entry whose cited record no longer contains its anchor — the pointer
  *     rotted, which is exactly what happened to the reference that named
@@ -57,7 +81,12 @@
  *     regex typo silently disables an entry, the same way a malformed ERE
  *     silently disabled a project safety rule in `parity-safety-net.sh`;
  *   - an index that resolves ZERO entries — an empty routing table is a broken
- *     one, never a clean one.
+ *     one, never a clean one;
+ *   - an entry whose `excludes` has no `counterSample` proving it excludes
+ *     something the row would otherwise have claimed, or whose `counterSample`
+ *     is not in fact excluded — a discriminator nothing tests is a decoration;
+ *   - an entry whose `determination` is missing an arm or measures no key, so
+ *     it would have to answer a question it never asked.
  *
  * ## What deliberately does NOT belong here
  *
@@ -115,6 +144,28 @@ const REQUIRED_TEXT_FIELDS = Object.freeze([
  *   explanation already lives. Never moved here; only pointed at.
  * @property {{file: string, anchor: string, name: string}} [guard] The control
  *   that already covers this, when one exists, so nobody builds a second.
+ * @property {string} [excludes] `RegExp` source of counter-evidence. The row
+ *   stays silent when the output contains this, however well `signature` fits.
+ * @property {string} [counterSample] Verbatim output that matches `signature`
+ *   and is excluded anyway — the proof that `excludes` discriminates.
+ * @property {Determination} [determination] A measurement of this checkout
+ *   that chooses which cause the evidence actually supports.
+ */
+
+/**
+ * A question about the checkout, asked at match time, whose answer selects a
+ * cause instead of asserting one.
+ *
+ * Every arm is mandatory, `unknown` included. An unanswerable probe is a real
+ * outcome and must read as one; collapsing it into `present` or `absent`
+ * reintroduces the confident wrong cause the whole field exists against.
+ * @typedef {object} Determination
+ * @property {string} question What is being measured, in one line.
+ * @property {readonly string[]} gitConfigKeys `git config --get` keys to read.
+ * @property {string} present Cause when every key resolves to a value.
+ * @property {string} absent Cause when every key is unset.
+ * @property {string} unknown Cause when the probe could not answer, which
+ *   includes a mixed reading — say so, never guess.
  */
 
 /**
@@ -174,6 +225,21 @@ function compile(entry) {
 }
 
 /**
+ * Compile an entry's counter-evidence pattern.
+ * @param {SignatureEntry} entry The row.
+ * @returns {RegExp|null|undefined} The pattern, `undefined` when the row
+ *   declares none, and `null` when it declares one that does not compile.
+ */
+function compileExcludes(entry) {
+  if (typeof entry?.excludes !== "string") return undefined;
+  try {
+    return new RegExp(entry.excludes);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * The 1-based line an anchor sits on.
  * @param {string} root Repository root.
  * @param {{file: string, anchor: string}} record The pointer.
@@ -185,6 +251,87 @@ export function anchorLine(root, record) {
   const lines = fs.readFileSync(file, "utf8").split("\n");
   const found = lines.findIndex(line => line.includes(record.anchor));
   return found === -1 ? null : found + 1;
+}
+
+/**
+ * Every complaint an entry's counter-evidence earns.
+ *
+ * A discriminator is only worth having if it can be shown to discriminate, so
+ * `counterSample` is mandatory alongside `excludes` and must be output the row
+ * WOULD have claimed without it. Without that proof the field is indistinguish-
+ * able from a regex that never matches, which silently restores the wrong
+ * attribution it was added to prevent (CodySwannGT/lisa#3812).
+ * @param {SignatureEntry} entry The row.
+ * @param {string} label The row's id, for the message.
+ * @param {RegExp|null} pattern The row's compiled `signature`.
+ * @returns {string[]} Human-readable problems, empty when the row is sound.
+ */
+function excludeProblems(entry, label, pattern) {
+  const excludes = compileExcludes(entry);
+  if (excludes === undefined) {
+    return typeof entry?.counterSample === "string"
+      ? [`${label}: has a "counterSample" but no "excludes" to exclude it`]
+      : [];
+  }
+  if (excludes === null) {
+    return [`${label}: "excludes" is not a valid regular expression`];
+  }
+  const sampleProblem = excludes.test(String(entry.sample ?? ""))
+    ? [
+        `${label}: "excludes" excludes its own "sample", so this row can never fire`,
+      ]
+    : [];
+  const counter = entry?.counterSample;
+  if (typeof counter !== "string" || counter.length === 0) {
+    return [
+      ...sampleProblem,
+      `${label}: has "excludes" but no "counterSample", so nothing proves it discriminates`,
+    ];
+  }
+  const matchesSignature =
+    pattern !== null && pattern.test(counter)
+      ? []
+      : [
+          `${label}: "counterSample" does not match "signature", so it never tested the exclusion`,
+        ];
+  const isExcluded = excludes.test(counter)
+    ? []
+    : [
+        `${label}: "counterSample" is not excluded by "excludes", so the discriminator does not discriminate`,
+      ];
+  return [...sampleProblem, ...matchesSignature, ...isExcluded];
+}
+
+/**
+ * Every complaint an entry's determination earns.
+ *
+ * The `unknown` arm is required exactly as hard as the other two. A row that
+ * can only say "present" or "absent" has to answer even when it could not
+ * measure, and answering anyway is the defect (CodySwannGT/lisa#3812).
+ * @param {SignatureEntry} entry The row.
+ * @param {string} label The row's id, for the message.
+ * @returns {string[]} Human-readable problems, empty when the row is sound.
+ */
+function determinationProblems(entry, label) {
+  const determination = entry?.determination;
+  if (determination === undefined) return [];
+  const missingArms = ["question", "present", "absent", "unknown"]
+    .filter(
+      arm =>
+        typeof determination[arm] !== "string" ||
+        determination[arm].length === 0
+    )
+    .map(arm => `${label}: determination "${arm}" is missing or empty`);
+  const keys = determination.gitConfigKeys;
+  const keyProblems =
+    Array.isArray(keys) &&
+    keys.length > 0 &&
+    keys.every(key => typeof key === "string" && key.length > 0)
+      ? []
+      : [
+          `${label}: determination has no "gitConfigKeys", so it measures nothing`,
+        ];
+  return [...missingArms, ...keyProblems];
 }
 
 /**
@@ -223,7 +370,14 @@ function entryProblems(entry, root) {
           `${label}: guard ${entry.guard.file} no longer contains "${entry.guard.anchor}" — the pointer rotted`,
         ]
       : [];
-  return [...missing, ...patternProblems, ...recordProblems, ...guardProblems];
+  return [
+    ...missing,
+    ...patternProblems,
+    ...recordProblems,
+    ...guardProblems,
+    ...excludeProblems(entry, label, pattern),
+    ...determinationProblems(entry, label),
+  ];
 }
 
 /**
@@ -266,9 +420,78 @@ export function matchEntries(text, entries) {
   return entries
     .filter(entry => {
       const pattern = compile(entry);
-      return pattern !== null && pattern.test(scanned);
+      if (pattern === null || !pattern.test(scanned)) return false;
+      const excludes = compileExcludes(entry);
+      // A discriminator that will not compile leaves the row unable to tell
+      // its two causes apart, so the row says nothing. Staying quiet costs a
+      // notice; firing anyway restores the confident wrong cause. `--check`
+      // is what stops this state from lasting.
+      if (excludes === null) return false;
+      return excludes === undefined || !excludes.test(scanned);
     })
     .slice(0, MAX_REPORTED);
+}
+
+/**
+ * Read the `git config` keys a determination names, in this checkout.
+ *
+ * Three outcomes, never two. `git config --get` exits 1 for a key that is
+ * simply unset, which is a real answer; ANY other failure — no git, no
+ * repository, a malformed key — is not an answer and must not be read as one.
+ * A mixed reading is `unknown` too: some registered and some not cannot say
+ * which applies to the path in front of the reader.
+ *
+ * `GIT_*` is stripped from the child environment. Those variables name the
+ * repository a PARENT process was operating on — a git hook exports `GIT_DIR`
+ * and `GIT_INDEX_FILE` to everything it runs — so inheriting them answers about
+ * some other checkout while the notice says "in this checkout".
+ * @param {string} root Directory to ask from.
+ * @param {readonly string[]} keys Config keys to read.
+ * @returns {{verdict: "present"|"absent"|"unknown", readings: string[]}} The
+ *   answer, and what was read per key so the reader can check the working.
+ */
+export function probeGitConfig(root, keys) {
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_"))
+  );
+  const readings = keys.map(key => {
+    try {
+      const value = execFileSync("git", ["config", "--get", key], {
+        cwd: root,
+        env,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      });
+      return { key, state: value.trim().length > 0 ? "present" : "absent" };
+    } catch (cause) {
+      return { key, state: cause?.status === 1 ? "absent" : "unknown" };
+    }
+  });
+  const states = new Set(readings.map(reading => reading.state));
+  return {
+    verdict: states.size === 1 ? [...states][0] : "unknown",
+    readings: readings.map(reading => `${reading.key}=${reading.state}`),
+  };
+}
+
+/**
+ * The cause a row is entitled to state, given what this checkout measures.
+ * @param {SignatureEntry} entry The matched row.
+ * @param {string} root Repository root.
+ * @returns {{measured: string|null, therefore: string|null}} The reading and
+ *   the arm it selects, both null for a row that measures nothing.
+ */
+export function resolveDetermination(entry, root) {
+  const determination = entry?.determination;
+  if (determination === undefined) return { measured: null, therefore: null };
+  const keys = Array.isArray(determination.gitConfigKeys)
+    ? determination.gitConfigKeys
+    : [];
+  const { verdict, readings } = probeGitConfig(root, keys);
+  return {
+    measured: `${determination.question} — ${verdict.toUpperCase()} (${readings.join(", ")})`,
+    therefore: determination[verdict] ?? determination.unknown,
+  };
 }
 
 /**
@@ -277,6 +500,12 @@ export function matchEntries(text, entries) {
  * Worded to stop a rediscovery rather than to start one: it names the cause
  * outright, cites the record with a line number so it is one click away, and
  * says explicitly that the diagnosis is already done.
+ *
+ * A row carrying a `determination` also prints what was measured HERE and the
+ * arm that reading selects — including an arm that says the question was not
+ * answered. Showing the reading rather than only its conclusion is what lets a
+ * reader catch the notice being wrong, which is the failure that produced this
+ * (CodySwannGT/lisa#3812).
  * @param {SignatureEntry} entry The matched row.
  * @param {string} root Repository root.
  * @returns {string} An operator-readable block.
@@ -292,10 +521,16 @@ export function formatNotice(entry, root) {
       : [
           `  ALREADY GUARDED by ${entry.guard.name} (${entry.guard.file}) — do NOT build a second control for this.`,
         ];
+  const { measured, therefore } = resolveDetermination(entry, root);
+  const determined =
+    measured === null
+      ? []
+      : [`  Measured: ${measured}`, `  Therefore: ${therefore}`];
   return [
     `  ${entry.id}`,
     `  Symptom: ${entry.symptom}`,
     `  Cause:   ${entry.cause}`,
+    ...determined,
     `  This is already written down, next to the cause:`,
     ...records,
     ...guard,

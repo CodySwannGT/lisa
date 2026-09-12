@@ -285,7 +285,7 @@ resolved by reading the ticket, never by filing a sibling blind. Then:
 - **Closed via merged work** → done; a genuine regression later is new
   evidence and a new ticket.
 - **Closed unmerged / rejected** → the human declined. **Do NOT re-file**
-  unless new evidence **postdates the rejection** — and when re-filing, state
+  unless new evidence **postdates the rejection** and materially changes the consequence, requirement, or risk that justified the decline — and when re-filing, state
   the postdating evidence explicitly in the ticket ("rejected <date>; recurred
   <date> in <ref>"). Closed-as-rejected tickets ARE the gardener's memory of
   declined recommendations.
@@ -413,7 +413,7 @@ automation, through `lisa-tracker-write` (per `tracked-work` +
   visible prose line; matched on the marker, never the title; searched **open
   AND closed** per `rejection-detection`'s **Proposal rejection memory**. Treat
   matches by close state: **open** suppresses another proposal; **Not planned**
-  suppresses another proposal unless new evidence postdates the rejection;
+  suppresses another proposal unless new evidence postdates the rejection and materially changes the consequence, requirement, or risk that justified the decline;
   **Completed** means the prior approved action happened, so a later recurrence
   may be re-filed. The `[lisa-gardener]` search above stays what it is — the
   candidate evidence, not the dedupe key. When an existing proposal suppresses

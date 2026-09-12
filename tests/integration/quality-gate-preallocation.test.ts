@@ -177,6 +177,8 @@ describe("quality gate preallocation", () => {
     expect(planner?.["runs-on"]).toBe("ubuntu-latest");
     expect(planner?.steps?.map(step => step.name)).toEqual([
       "📥 Checkout repository",
+      "🔖 Assert the caller still understands this workflow",
+      "🧮 Resolve the declared gates no built-in job proves",
       "🗺️ Plan explicit-off gates",
     ]);
     expect(planner?.steps?.some(step => step.name?.includes("Setup"))).toBe(

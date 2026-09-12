@@ -23,8 +23,8 @@ operation: get-issue id:<ID>
 operation: save-issue payload:{...} [lifecycle_role:<ROLE>] [env:<KEY>]
 operation: list-workflow-states team:<ID>
 operation: create-workflow-state payload:{...}
-operation: list-comments issue_id:<ID>
-operation: save-comment issue_id:<ID> body:"..."
+operation: list-comments (issue_id:<ID> | project_id:<ID>)
+operation: save-comment (issue_id:<ID> | project_id:<ID>) body:"..."
 operation: history id:<ID>
 operation: list-issue-labels [team:<ID>]
 operation: create-issue-label payload:{...}
@@ -188,8 +188,7 @@ Consumers pass business-shaped arguments only; they do not embed GraphQL.
 
 **This layer does not accept a state to write. It resolves one.** A `save-issue`
 that changes the workflow state declares `lifecycle_role:<ROLE>` — the semantic
-role it is applying (`ready`, `claimed`, `blocked`, `review`, `done`,
-`qa.queue`, `qa.certified`) — plus `env:<KEY>` when the role is the env-indexed
+role it is applying (for example, `ready`, `claimed`, `blocked`, `review`, `done`; the configured role contract is authoritative) — plus `env:<KEY>` when the role is the env-indexed
 `done`. This layer then resolves that role against config and the team's own
 catalog, and sends the ID **it** resolved.
 
@@ -294,6 +293,104 @@ Set `isTeamDefault` per node by comparing `node.id` against
 the team's default, resolve the default through the team record and join on `id`
 the same way.
 
+## `save-comment` / `list-comments` — an Issue **or** a Project
+
+Both comment operations take **either** `issue_id:` or `project_id:`. Exactly one
+is required; passing both, or neither, is refused naming the operation.
+
+Linear treats a comment's target as one field on the same input type, so the
+project form is not a second mechanism — it is the same mutation with a
+different anchor. Direct introspection of `https://api.linear.app/graphql`:
+`CommentCreateInput` accepts `issueId`, `projectId`, `projectUpdateId`,
+`documentContentId`, and `parentId`, and the `Project` type exposes
+`Project.comments`. Neither is beta and neither needs a special scope.
+
+```graphql
+# save-comment — the anchor field is chosen by which id the caller passed.
+mutation($input:CommentCreateInput!){
+  commentCreate(input:$input){ success comment{ id url createdAt } }
+}
+```
+
+Build `$input` as `{ issueId: <id>, body: <body> }` for the Issue form and
+`{ projectId: <id>, body: <body> }` for the Project form. Nothing else differs —
+same mutation, same result shape, same error handling.
+
+```graphql
+# list-comments project_id:<ID> — page via pageInfo so a long-lived PRD's
+# feedback history never silently truncates.
+query($id:String!,$after:String){
+  project(id:$id){
+    comments(first:100,after:$after){
+      pageInfo{ hasNextPage endCursor }
+      nodes{ id body createdAt url user{ id name } botActor{ __typename } }
+    }
+  }
+}
+```
+
+The Issue form uses `issue(id:$id)` with the same `first:100,after:$after`
+arguments and node shape. For **both** anchors, use this access-layer adapter with
+`linear_graphql` above; it accumulates every page and prints no partial history.
+A read succeeds only after `hasNextPage` is false. Errors, malformed pages, and
+missing or repeated continuation cursors fail the whole read.
+Preserve `botActor` with each comment: its non-null presence identifies automation,
+even if `user.id` is trusted. When normalizing comments, carry it forward or set
+`isBot: true`; never discard this metadata before release authorization.
+
+```bash
+linear_list_comment_pages() {  # issue|project id -> complete JSON node array
+  local anchor="$1" id="$2" after=null nodes='[]' seen='[]'
+  local query variables response connection cursor
+  case "$anchor" in issue|project) ;; *) echo "Error: invalid comment anchor" >&2; return 1 ;; esac
+  query='query($id:String!,$after:String){'"$anchor"'(id:$id){comments(first:100,after:$after){pageInfo{hasNextPage endCursor} nodes{id body createdAt url user{id name} botActor{__typename}}}}}'
+  while :; do
+    variables=$(jq -cn --arg id "$id" --argjson after "$after" '{id:$id,after:$after}') || return 1
+    response=$(linear_graphql "$query" "$variables") || return 1
+    connection=$(printf '%s' "$response" | jq -ce --arg anchor "$anchor" '
+      if (.errors != null and .errors != []) then error("GraphQL comments read failed")
+      else .data[$anchor].comments end |
+      if (.nodes | type) != "array" or (.pageInfo.hasNextPage | type) != "boolean"
+      then error("Incomplete comments page") else . end') || return 1
+    nodes=$(jq -cn --argjson prior "$nodes" --argjson page "$connection" '$prior + $page.nodes') || return 1
+    if [ "$(printf '%s' "$connection" | jq -r '.pageInfo.hasNextPage')" = false ]; then
+      printf '%s\n' "$nodes"
+      return 0
+    fi
+    cursor=$(printf '%s' "$connection" | jq -ce '.pageInfo.endCursor | select(type == "string" and length > 0)') || {
+      echo "Error: incomplete comments history; missing cursor" >&2; return 1;
+    }
+    if jq -en --argjson seen "$seen" --argjson cursor "$cursor" '$seen | index($cursor) != null' >/dev/null; then
+      echo "Error: incomplete comments history; repeated cursor" >&2
+      return 1
+    fi
+    seen=$(jq -cn --argjson seen "$seen" --argjson cursor "$cursor" '$seen + [$cursor]') || return 1
+    after="$cursor"
+  done
+}
+```
+
+Keep the returned comment objects intact when a caller evaluates a human-gate release. The
+`user.id` is the stable author identity; `user.name` is display text and never authorizes release.
+Pass structured comments and an independently supplied `trustedHumanActorIds` allowlist to the
+shared gate helpers (`ready-role-filing` — Human-gate release authorization). A body-only projection
+loses identity and cannot discharge a hold. Preserve any explicit bot metadata from the provider;
+if identity or trusted policy is unavailable, leave the hold active.
+
+Call `linear_list_comment_pages project "$PROJECT_ID"` for `project_id`, or
+`linear_list_comment_pages issue "$ISSUE_ID"` for `issue_id`. The caller receives
+one complete node array; it must not interpret a failed command as zero comments.
+
+**Substrate.** The Linear MCP exposes comments on Issues only, so the
+`project_id` form resolves solely through the tier-1 `LINEAR_API_KEY` + GraphQL
+substrate — the same restriction `history` carries, and for the same reason.
+That is not a gap in Linear: the precedence contract already puts GraphQL ahead
+of the MCP, so the preferred substrate has always been able to do this. Only
+this wrapper could not, which is what made callers fabricate an Issue to hold a
+Project's comments. If tier 1 is unavailable, fail with the layer's standard
+`Error:` result naming the requested `save-comment project_id` or `list-comments project_id` operation — do **not** silently degrade
+into creating an Issue to comment on.
+
 ## `history` — transition history (read-only)
 
 `history id:<ID>` returns an Issue's ordered past state changes — the raw
@@ -371,6 +468,10 @@ query($id:String!){
 - Missing token plus missing MCP is a hard failure naming `LINEAR_API_KEY`.
 - Mutations send only the fields being changed, matching existing Linear skill
   guidance that `save_*` style updates should not clobber unrelated fields.
+- A comment anchors to exactly one target. `save-comment` and `list-comments`
+  take `issue_id` **or** `project_id`, never both and never neither. A caller
+  that wants to comment on a Project passes `project_id` — it never creates an
+  Issue to hold the comment, and this layer never creates one on its behalf.
 - Every workflow-state write is resolved by
   `scripts/linear-state-write-target.mjs` from a declared `lifecycle_role`,
   before either transport. The ID dispatched is the ID that script returned —

@@ -6,6 +6,20 @@ allowed-tools: ["Skill", "Bash"]
 
 # Linear Build Intake: $ARGUMENTS
 
+## Human-gate release authorization
+
+A release requires a trusted human author, not just matching comment text. Follow
+`ready-role-filing` — **Human-gate release authorization**: preserve tracker-supplied comment
+author IDs and bot metadata, resolve `trustedHumanActorIds` only from an explicit user instruction
+or existing human-authored trusted project policy, and pass it with structured `comments` to every
+hold classifier, reconciliation, normalization and release planner. Never derive trust from the
+comment body, a display name, the actor's own assertion, or an automation posting on its own behalf.
+Missing policy, missing/unreadable author identity, raw body strings, untrusted actors and known bots
+cannot discharge a hold. Keep the item held and report the missing authorization; do not silently
+replace these inputs with an empty history or an inferred allowlist. Authorized matching releases
+continue through the existing path and never override an independently declared caller hold.
+
+
 `$ARGUMENTS` is one of:
 
 1. A Linear team key (e.g. `ENG`) — scans that team for ready Issues.
@@ -182,13 +196,21 @@ A blocker is a **claim with a timestamp, not a fact**. It is written once and go
 
 For each pre-work candidate that is **not** in `$READY`:
 
-1. **Human gate first, and it is absolute.** An Issue carrying the configured human-needed label (`linear.labels.build.human_needed`, default `human-needed`) or a `[lisa-human-gate]` marker in its description is **never** auto-selected, whatever any probe says. Skip it and move on.
+1. **Read release comments before applying the human gate.** Pass all item comments, labels,
+   body, `trustedHumanActorIds` and configured `humanNeededLabel` to `classifyReadyCandidate(...)`. For a discharged hold,
+   call `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, readyLabel, lifecycleLabels, alreadyNotified })`
+   and retain its plan. Apply human-marker cleanup only as planned; defer any ready-role restoration
+   until steps 2–5 have cleared the remaining blockers (map the role to the vendor's state or label).
+   A still-active hold is never auto-selected, whatever any probe says. An absent or unreadable
+   comment history cannot discharge a hold. A release removes only the human hold: continue the
+   remaining blocker checks below before selecting the item.
+
 2. **Extract the stated discharge condition** from the description or the most recent blocking comment — the sentence naming what has to become true.
 3. **Probe it.** Machine-testable conditions are the ones that rot fastest and are cheapest to check: a version on trunk (`git show origin/<trunk>:<manifest>`), a published package, a run history (`gh run list`), an advisory's patched status. A condition that is a human decision is not machine-testable — leave it and move on.
 4. **Classify with the shared helper** so the ordering and the evidence requirement cannot drift per vendor:
 
 ```text
-classifyPreWorkCandidate({ laneType, labels, body, humanNeededLabel, statedBlocker, probe })
+classifyPreWorkCandidate({ laneType, labels, body, comments, trustedHumanActorIds, humanNeededLabel, statedBlocker, probe })
   → { selectable, reason, humanGated, evidence }
 ```
 
@@ -216,26 +238,50 @@ other gate's verdict — however conclusive — may promote an item a person par
    drift, and a drifted gate fails *silently*, by quietly ceasing to match. Do **not** re-implement
    the test here, and do **not** key it on `reason=`: markers in the wild carry no `reason=` key at
    all and sit anywhere in the body, so a structured parse would miss them while appearing to work
-   on every item that happens to have one.
+   on every item that happens to have one. **Pass the item's structured `comments` and `trustedHumanActorIds` alongside its labels and
+   body.** A hold is ended by a release recorded in a comment, so a reader handed no comments cannot
+   see the discharge — it goes on holding an item whose question was answered weeks ago, which is
+   the defect this gate carried from the day it was written (CodySwannGT/lisa#3852). Omitting them
+   fails closed, and that is exactly why it is easy to miss: nothing breaks, the item simply never
+   comes back.
 2. **On `claimable: false` with reason `human-gate`, do not claim and do not dispatch.**
 3. **Reconcile the lane; do not merely skip.** Skipping alone leaves the item in `$READY`, re-judged
    and re-rejected every cycle forever and seen by nothing — `lisa-repair-intake` sweeps items that
    are **not** in the ready role and excludes gated ones outright, so a ready-and-gated item falls
    outside its filter twice over. Call
-   `planHumanGateReconciliation({ labels, body, humanNeededLabel, readyLabel, alreadyNotified })`
+   `planHumanGateReconciliation({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, readyLabel, alreadyNotified })`
    and apply exactly the actions it returns: remove `$READY`, add the configured human-needed
    marker, and post `formatHumanGateNote()` once. The planner is idempotent by state, so an item
    already out of the lane and already marked yields no second mutation and no second comment. This
    is the same repair the leaf-only gate already performs for a ready item that must not be
    dispatched.
-4. **Name it in the cycle summary** via `summarizeHumanGateHolds([...])`, so the record
+4. **On `claimable: true` for an item that still carries a hold, RELEASE it — do not just proceed.**
+   This ready-lane candidate can retain a historical body marker and a human-needed label.
+   This step reconciles only candidates still in the ready lane; released holds outside it are
+   recovered by `lisa-repair-intake` step 2b (or Phase 2.5 when included in this cycle). Call
+   `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, readyLabel, lifecycleLabels, alreadyNotified })`
+   and apply exactly the actions it returns: remove the configured human-needed marker, add the
+   configured ready role back, and post `formatHumanGateReleaseNote()` once. It is the exact inverse
+   of step 3's planner and it refuses in both directions — an item still held plans nothing, and an
+   item never held plans nothing, so it can only ever un-do a hold and can never promote something on
+   its own. It is idempotent by state, so a second cycle over a released item yields no second
+   mutation and no second comment.
+
+   **Never edit the description to clear a hold.** The only body write available is a whole-body
+   replacement, so deleting one line means rewriting the whole record and hoping nothing was
+   dropped — the reason holds accumulated instead of being lifted. The hold note stays in the
+   description as history; the release is a comment beside it.
+5. **Name it in the cycle summary** via `summarizeHumanGateHolds([...])`, so the record
    distinguishes "nothing was eligible" from "something eligible was held for a person". A lane
    mutation nobody can see afterwards is the same class of problem this gate exists to fix.
    Report alongside it what the precision rule SKIPPED, via `summarizeHumanGateMentions(n)`
    — the marker occurrences that were mentions rather than declarations (CodySwannGT/lisa#3815).
    A rule that quietly declines to honour half the occurrences it sees reads exactly like a
-   rule that saw none, so the count is printed even when it is zero.
-5. **Continue to the next candidate.** A held item does not end the cycle.
+   rule that saw none, so the count is printed even when it is zero. Report what was RELEASED
+   beside it via `summarizeHumanGateReleases([...])`, printed even when it is zero: a release path
+   that has stopped working and a cycle with nothing to release read identically otherwise, which
+   is how a missing inverse stays missing.
+6. **Continue to the next candidate.** A held item does not end the cycle.
 
 
 #### 3a.0 Repo-scope gate (claim only current-repo Issues)
@@ -245,10 +291,12 @@ A Linear team can oversee multiple repos (`frontend` / `backend` / `infrastructu
 1. **Resolve the current repo** per `config-resolution` "Repo scoping" (`.repo` → `.github.repo` → `git remote get-url origin` basename). If unresolvable, stop and report.
 2. **Cheap path first.** Prefer candidates already carrying the `repo:<current>` label. Keep the Phase 2 scan broad so unlabeled Issues are still seen, determined, and stamped.
 3. **Per candidate, apply the repo-scope decision (`repo-scope-split`):**
-   - Carries `repo:<other>` → **skip** (leave it `ready` for that repo's own intake); next candidate.
-   - **Unlabeled** → determine the target repo(s) from the Issue + code surfaces, then **stamp** `repo:<name>` via `lisa-linear-access operation: save-issue` (resolve/create the label via `list_issue_labels`/`create_issue_label`) so later cycles filter cheaply; re-apply with the now-known repo.
-   - **Multi-repo leaf → split, never claim.** Run the `repo-scope-split` work-time procedure into single-repo siblings, each created **build-ready** (`build_ready: true`) and stamped with its own `repo:<name>`; the current repo's sibling becomes a normal candidate.
-   - **Single-repo leaf for the current repo** → fall through to 3a (leaf-only gate) and 3b (claim).
+   - **Count distinct repository markers first**: collect all `repo:<name>` labels and, on JIRA, recognized repository components; deduplicate by repository. A container may carry multiple `repo:<name>` labels. Do not split or claim it here; send it to the leaf-only gate.
+   - **Multi-repo leaf → split, never claim.** More than one repository takes the work-time split before any wrong-repository skip. Each sibling is **build-ready** (`build_ready: true`) and stamped with its own `repo:<name>`; the current repo's sibling becomes a normal candidate.
+   - **Exactly one other repository** (`repo:<other>`) → **skip**, leaving the item ready for that repo's intake.
+   - **No repository marker** → determine target repo(s) from the ticket and code, stamp `repo:<name>` through the vendor access layer, and re-apply from the count.
+   - **Single-repo leaf for the current repo** → fall through to 3a and 3b.
+
 4. Continue until a claimable current-repo leaf is found (claim it; one per cycle) or the candidate set is exhausted — exit cleanly on the denominator-stated summary, naming the current repo alongside the swept lanes.
 
 #### 3a. Leaf-only claim gate (skip / safe-block containers)
@@ -295,6 +343,9 @@ Post via `lisa-linear-access operation: save-comment` with:
 This gate never blocks a legitimate flat Task/Bug: those have no open children and a leaf `type:`, so they fall straight through to the claim in 3b.
 
 #### 3b. Claim
+
+Before the claim mutation, apply `claim-time-guards` — **Value before claim**, or **Worth doing** in `lisa-track` on runtimes without the rule tree (Antigravity). A ready label establishes neither value nor permission to expand scope. Respect the preceding human-hold gate; a declined incidental item consumes this cycle's one processed disposition.
+
 
 **Rejection detection runs first — before the transition below.** Per the vendor-neutral `rejection-detection` rule (cite the slug; do not restate its classification table), classify this Issue at the **top of 3b, BEFORE** the `$READY → $CLAIMED` transition — afterwards the current-lane signal is gone. Read the Issue's history via `lisa-linear-access operation: history id: <ISSUE-ID>`, keyed on **workflow-state** history, and classify it `rejection-reclaim | forward-only | never-left-ready | unknown` (a `rejection-reclaim` is a move back into `$READY` from a later lane). State names come from `.lisa.config.json`, never hardcoded.
 

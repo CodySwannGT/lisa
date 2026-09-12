@@ -158,15 +158,28 @@ describe("a genuine vacuity finding still blocks under the flag", () => {
 });
 
 describe("the exemption is a value, not a position", () => {
-  it("names exactly the two kinds whose policies say report-only", () => {
+  it("names exactly the three kinds whose policies say report-only", () => {
     // Pinned as a SET, not a list: an entry silently added here would exempt a
     // kind nobody ruled on, which is the same defect in the opposite
     // direction. Compared as sets so the assertion says nothing about order,
     // which no policy depends on.
+    //
+    // THE THIRD ENTRY IS DELIBERATE (#3706). `reviewObjectionUnread` is the
+    // objection probe reporting that it could not read the review objects. It
+    // is the absence of a reading rather than a finding about the code, and the
+    // failure belongs to the gate, not the author — reddening a pull request
+    // because one API call failed is the "gate that gets deleted" shape the
+    // guard names three times over. It is not free: an unread probe CAPS the
+    // published verdict below `REVIEWED`, which is where "failing to read is
+    // not passing" is enforced. Only the exit code is exempt.
     expect(new Set(mod.REPORT_ONLY)).toEqual(
-      new Set([mod.VIOLATIONS["reviewWaived"], mod.VIOLATIONS["reviewCarried"]])
+      new Set([
+        mod.VIOLATIONS["reviewWaived"],
+        mod.VIOLATIONS["reviewCarried"],
+        mod.VIOLATIONS["reviewObjectionUnread"],
+      ])
     );
-    expect(mod.REPORT_ONLY).toHaveLength(2);
+    expect(mod.REPORT_ONLY).toHaveLength(3);
   });
 
   it("every report-only kind answers false whatever the flags say", () => {

@@ -119,11 +119,13 @@ describe.each(ROOTS)("session operating pack in %s", root => {
     expect(eager).toContain("`Safe to close: yes/no — <reason>`");
   });
 
-  it("do-it-now forbids deferring work the factory is allowed to do", () => {
+  it("do-it-now completes accepted work while declining unnecessary expansion", () => {
     const eager = eagerOf(root, DO_IT_NOW);
-    expect(eager).toContain("exterior human gate");
+    expect(eager).toContain("Complete the accepted scope");
+    expect(eager).toContain("Decline unnecessary work");
+    expect(eager).toContain("no ticket, new rule, or human approval");
     expect(eager).toContain(
-      '"I\'ll get to that later" is not an acceptable close'
+      "Human decisions and protected actions still wait at their exterior gate"
     );
   });
 

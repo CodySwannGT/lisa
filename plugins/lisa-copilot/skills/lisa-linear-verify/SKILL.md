@@ -44,25 +44,22 @@ Return the validator's report verbatim — same structured format as `lisa-linea
 
 If the verdict is `FAIL`, the caller should fix the item and re-run verify. Never declare success on a `FAIL` verdict.
 
+## Comparison semantics — semantic, never byte-exact
+
+Verification here re-runs `lisa-linear-validate-issue` against the live work item. It does **not** compare the
+stored body against the sent body byte for byte, and it must never drift to doing so.
+
+Linear normalizes markdown on write. Observed normalizations include rewriting `-` bullets
+as `*`, wrapping a bare URL as an explicit link, and re-segmenting bold emphasis around
+inline code spans — all lossless, all rendering-identical. **A byte-exact comparator cannot
+distinguish vendor markdown normalization from corruption**, so it reports failure on
+perfectly healthy writes and trains its reader to ignore it (CodySwannGT/lisa#3663).
+
+Any comparison of tracker-normalized rich text is therefore semantic, or
+normalize-then-compare. Byte-exact comparison of such text is forbidden.
+
 ## Rules
 
 - Never write to Linear. Read-only.
 - Never short-circuit the validator. Always run the full gate set.
 - If `get_issue` / `get_project` returns an access error, surface it and exit — don't pretend the item is fine.
-
-## Comparison is semantic, never byte-exact
-
-Re-run the validator against the live issue. Do NOT compare the stored body
-against what was sent byte for byte.
-
-The reason is measured rather than theoretical. Trackers normalize markdown on
-write: `-` bullets become `*`, a bare URL is wrapped as `[url](<url>)`, bold
-emphasis is re-segmented around inline code spans. All lossless, all
-rendering-identical, and all of it makes a byte comparator report failure on a
-write that was completely fine. A comparator that cannot tell vendor
-normalization from corruption fails on healthy writes and trains its reader to
-ignore it, which costs more than the check was ever worth.
-
-Compare meaning: run `lisa-linear-validate-issue` against the stored item and let the gates
-decide. Where a single field must be compared directly, normalize both sides
-first.

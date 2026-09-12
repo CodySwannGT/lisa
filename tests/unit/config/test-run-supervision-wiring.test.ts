@@ -37,23 +37,6 @@ const SOURCE_DIAGNOSTIC = "source parse diagnostic";
 const SOURCE_TREE_SCAN_BASE_MS = 300_000;
 
 /**
- * Test files whose direct Vitest child is sanctioned, named one at a time.
- *
- * A bypass matters because an unsupervised Vitest child writes scratch nobody
- * owns. A fixture launch that is already bounded AND rooted in a directory the
- * case itself created and removes owns its own scratch, so it is outside what
- * this guard exists to catch. Listing the file by name rather than matching a
- * shape keeps the guard biting: a NEW direct child anywhere under `tests/`,
- * including a second one in a listed file, still fails this case.
- */
-const SANCTIONED_DIRECT_VITEST_CHILDREN: ReadonlyMap<string, number> = new Map([
-  // Runs vitest against a generated fixture project to observe the coverage
-  // refusal banner a consumer would see. `boundedSpawnSync` caps it, and the
-  // fixture root is created and torn down by the case.
-  ["tests/unit/config/coverage-include-guard.test.ts", 1],
-]);
-
-/**
  * Enumerate TypeScript sources without a hard-coded route roster.
  * @param directory - Directory whose executable descendants are required
  * @returns Every executable source below the directory
@@ -114,21 +97,29 @@ describe("managed test supervision wiring", () => {
         analysis.findings.map(finding => ({ file, finding }))
       );
 
-      const unsanctioned = bypasses.filter(
-        entry => !SANCTIONED_DIRECT_VITEST_CHILDREN.has(entry.file)
-      );
-      // Every sanctioned file still carries EXACTLY the count it was listed
-      // with, so a second direct child added to one of them fails here too.
-      const sanctionedCounts = [
-        ...SANCTIONED_DIRECT_VITEST_CHILDREN.keys(),
-      ].map(
-        file =>
-          [file, bypasses.filter(entry => entry.file === file).length] as const
-      );
-
+      // Every bypass, with no sanctioned-file seam to subtract first.
+      //
+      // There was one, holding one entry — the coverage-include fixture — on
+      // the argument that a bounded child rooted in a directory the case
+      // removes owns its own scratch. Scratch is only half of what an
+      // unsupervised child costs (CodySwannGT/lisa#3732). The other half is the
+      // PROCESS, and a bound does nothing about that: the bound fires by
+      // killing the IMMEDIATE child, and a vitest's pool workers are not the
+      // immediate child. Measured on this repository, killing the immediate
+      // child of a bare fixture launch exactly as the bound would, twice:
+      // one pool worker survived at PPID 1 each time, still running its case.
+      // Through `lisa-test-run` the same kill left zero of seven descendants
+      // alive, because the detached reaper drains the payload's process group
+      // when the foreground dies.
+      //
+      // So the entry was not an exemption, it was an exposure, and the file is
+      // now routed like every other managed child here. The seam went with it:
+      // an allowlist on a guard is a supported way to reintroduce the very
+      // thing the guard exists to refuse, and the two objections that produced
+      // this one — an isolated `TMPDIR` and a deleted `VITEST_POOL_ID` — are
+      // both expressible ON the supervised route.
       expect(findings).toEqual([]);
-      expect(unsanctioned).toEqual([]);
-      expect(sanctionedCounts).toEqual([...SANCTIONED_DIRECT_VITEST_CHILDREN]);
+      expect(bypasses).toEqual([]);
     },
     ioLatencyBudgetMs(SOURCE_TREE_SCAN_BASE_MS)
   );

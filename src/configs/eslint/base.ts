@@ -383,6 +383,40 @@ const jsdocRulesOff: Record<string, "off"> = Object.fromEntries(
  * meet — correctness and bug-finding rules (including the SonarJS rules an
  * external scanner also runs, e.g. `sonarjs/no-alphabetical-sort`) stay ON,
  * because those are precisely what the exclusion was hiding.
+ *
+ * WHAT THIS OVERRIDE COSTS, measured rather than asserted. Every rule below is
+ * argued, and none of those arguments says how much they add up to. Run
+ * `bun run measure:scripts-profile-gap` for today's number: it differences the
+ * config ESLint resolves inside `scripts/` against the config it resolves for
+ * the same extension outside it, then lints the tracked tree with every relaxed
+ * rule put back. Measured 2026-09-06 against Lisa's own `scripts/` tree — 90
+ * tracked files, 1,290 rules resolved for both probes — 33 rules are weaker
+ * here, 1 is STRICTER (`sonarjs/no-ignored-exceptions`, promoted on purpose),
+ * and restoring all 33 reports 1,115 findings across 76 files. Thirteen of the
+ * 33 report nothing, so they suppress a class this tree does not currently
+ * produce. Nothing gates on any of it.
+ *
+ * WHY THAT NUMBER IS NOT SIMPLY A BACKLOG TO BURN DOWN. The largest
+ * contributors are `jsdoc/*` (689) and `functional/no-let` (181) — exactly the
+ * two families this override argues do not apply to a linear CLI. The families
+ * that would be defects wherever they appeared are small and specific:
+ * `sonarjs/slow-regex` (32), `sonarjs/no-os-command-from-path` (5),
+ * `sonarjs/file-permissions` (2). Whether the boundary belongs where it is, per
+ * family rather than in one direction for all 33, is the open question in
+ * CodySwannGT/lisa#3773. It is not settled here, and it is not settled by the
+ * total.
+ *
+ * THE SHIPPED PAYLOAD RESOLVES THIS SAME PROFILE. Every `.mjs` Lisa installs
+ * lives under a `scripts/` directory, so `scriptsFilePatterns` matches it too:
+ * under the config Lisa ships to a consumer, a host's own `scripts/` file and a
+ * Lisa-shipped one resolve to identical severities for all 1,290 rules — zero
+ * differences. What holds the payload higher is not this override but
+ * `tests/unit/config/eslint-shipped-mjs-clean.test.ts`, which re-arms two of
+ * these suppressions over a roster it derives from the git index. So a file
+ * PROMOTED into a shipped tree meets the stricter bar automatically, with no
+ * step for anyone to forget — and a file that stays here never does. That
+ * asymmetry is the ticket's subject; do not read the automatic promotion check
+ * as closing it.
  * @returns {object} ESLint flat config object for standalone scripts
  */
 export const getScriptsFilesOverride = (): Linter.Config => ({

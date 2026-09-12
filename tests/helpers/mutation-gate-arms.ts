@@ -57,6 +57,32 @@ import {
  * weakened score down and the margin up; adding a mutate target WITHOUT adding
  * it here is the move that needs justifying.
  *
+ * `lisa-worktree-guard.mjs` joined for the first reason: it was enrolled in the
+ * mutate list and this roster in the same change (CodySwannGT/lisa#3914). It is
+ * the smallest contributor here — 81 kills of its own 334 valid mutants — and
+ * that is worth stating rather than hiding, because it is the number that
+ * decides whether it belongs. It is not zero, which is the disqualifying case
+ * the bite test's contribution check exists to catch; a guard whose suites kill
+ * nothing can be withheld without changing either score, and "removing nothing
+ * changes nothing" proves nothing about the gate. 81 is a real, if small,
+ * widening of the margin. Its own score is 24.25 because 196 of those mutants
+ * are reported uncovered: ten of its thirteen cases drive the guard as a CLI
+ * through `spawnSync`, and an assertion made in a child process cannot kill a
+ * mutant activated in the parent. That is the same silent-green shape
+ * `lisa-destructive-guard.mjs` had before #2844, arriving through a subprocess
+ * boundary instead of a runtime `import()`, and it is why enrolling this guard
+ * had to be its own change with its own measurement.
+ *
+ * Its effect on the aggregate is bounded rather than run, and deliberately so.
+ * An aggregate is a weighted average, so enrolling a target can only pull it
+ * toward that target's own score by the target's weight: 334 of the list's
+ * ~12,166 valid mutants, under 3%. Against the ENFORCED floor — `thresholds`
+ * `break` 32, not the `declared` 60 recorded in `_thresholdsDivergence` — the
+ * new aggregate falls below 32 only if it was already below ~32.2, and the last
+ * measured whole-list run was 59.03. The predicted drop is about 0.9 points.
+ * That is why this change did not spend hours re-running 12,173 mutants to
+ * learn a number arithmetic already bounds 25 points clear of the bar.
+ *
  * `lisa-destructive-guard.mjs` joined for the second reason rather than the
  * first. It was not added to the mutate list — it was already there, scoring
  * 19.61 because two of its three suites reached it through a runtime `import()`
@@ -80,6 +106,7 @@ export const WITHHELD_GUARDS: readonly string[] = [
   "all/copy-overwrite/scripts/lisa-gates.mjs",
   "typescript/copy-overwrite/scripts/lisa-mutation.mjs",
   "all/copy-overwrite/scripts/lisa-destructive-guard.mjs",
+  "all/copy-overwrite/scripts/lisa-worktree-guard.mjs",
 ];
 
 /**

@@ -70,25 +70,57 @@
 # propagate any further either — a path a followed script merely NAMES is data
 # one file further out, not a third hop.
 #
-# ## Every agent surface reaches this guard
+# ## Every agent surface reaches this guard, and Codex reaches it twice over
 #
-# There is no parity gap left to record. A note here used to record one for
-# three surfaces; every one of those ports now exists, and the note outlived
-# them. It is deleted rather than trimmed, because a stale gap note is
-# worse than none: it OVERSTATES the gap, and a reader who trusts it goes
-# looking for three missing ports, finds two present, and cannot tell which
-# third is real without redoing the measurement from scratch. AGENTS.md asks
-# for a gap to be documented instead of silently dropped — that only works
-# while the document is true.
+# There is no parity gap left to record. A note here used to record one, and it
+# was wrong by the time anyone read it — through two wordings. The first named
+# three surfaces; every one of those ports then shipped and the note stayed
+# unedited. The second named Codex alone, and Codex had never been the gap
+# either: the note and the check that read it were both looking in
+# `src/codex/scripts/`, and `src/codex/hooks-installer.ts` says in its own
+# opening remark that the linked-script layout that directory serves is RETIRED
+# (CodySwannGT/lisa#3750).
+#
+# The note is deleted rather than trimmed, because a stale gap note is worse
+# than none: it OVERSTATES the gap, and a reader who trusts it goes looking for
+# three missing ports, finds two present, and cannot tell which third is real
+# without redoing the measurement from scratch. AGENTS.md asks for a gap to be
+# documented instead of silently dropped — that only works while the document
+# is true.
+#
+# The deeper lesson is not "the note was stale". It is that a note asserting
+# ABSENCE and a check deriving presence from ONE path shape agree with each
+# other for free — the check read the same retired directory the note did, so
+# it returned a clean tick on a claim that was false.
 #
 # Where each surface picks it up, so the next reader measures instead of
 # guessing: Claude and Copilot from `.claude-plugin/plugin.json`, Cursor from
-# `hooks/hooks.json`, Codex from `.codex-plugin/hooks.json` AND from the
-# enforcement-fallback dispatcher, Antigravity from `hooks.json` via the
-# `.agy.sh` adapter beside this file, and OpenCode from
-# `src/opencode/plugin-templates/lisa-block-managed-file-edits.ts`.
-# `tests/unit/hooks/managed-file-guard-parity-note.test.ts` fails if this
-# paragraph goes stale in either direction.
+# `hooks/hooks.json`, Antigravity from `hooks.json` via the `.agy.sh` adapter
+# beside this file, OpenCode from
+# `src/opencode/plugin-templates/lisa-block-managed-file-edits.ts`, and Codex
+# from TWO channels rather than one:
+#
+#   `plugins/lisa/.codex-plugin/hooks.json` registers this guard directly, on
+#   the Codex plugin channel.
+#
+#   `scripts/lisa-enforcement-fallback.sh` names this guard in its roster, and
+#   `src/codex/enforcement-fallback-installer.ts` registers that dispatcher on
+#   `PreToolUse` for `Bash|Edit|Write|apply_patch` — which is how Codex's
+#   `apply_patch` writes are reached at all.
+#
+# Both Codex channels are measured rather than inferred — see
+# `tests/unit/codex/block-managed-file-edits-codex.test.ts`, which drives the
+# registered command as a subprocess in a synthetic host project: a Codex
+# `apply_patch` or `Bash` redirect at a copy-overwrite template exits 2; an
+# ordinary edit to a host-owned file exits 0.
+#
+# Two checks hold this paragraph to the tree.
+# `tests/unit/hooks/managed-file-guard-parity-note.test.ts` fails if it goes
+# stale in either direction — a port that ships without the note being
+# narrowed, and a port REMOVED without it being restored.
+# `check:guard-parity-notes` refuses an absence claim written back in, and now
+# resolves Codex from those two registration channels as well as from a path
+# shape, so it can no longer agree with a false note for free.
 #
 # Exemptions (allowed):
 #   - `LISA_ALLOW_MANAGED_FILE_WRITE` set — the operator's explicit override,
@@ -106,6 +138,27 @@
 set -euo pipefail
 
 input="$(cat)"
+
+# Evaluate once per tool call when this guard is registered on both channels.
+#
+# Lisa reaches an agent through the repository dispatcher AND the plugin
+# manifest, and where both are live the harness runs this guard twice for one
+# tool call. `guard-dedupe.bash` short-circuits the second run ONLY when a
+# byte-identical copy already ALLOWED this exact payload on this exact tool
+# call; a differing vintage, a refusal, and a host with one channel all
+# evaluate exactly as before. Nothing is de-registered by it
+# (CodySwannGT/lisa#3814).
+#
+# Absent library means no dedupe, which is the pre-existing behaviour, so an
+# older channel copy that predates it is unaffected.
+lisa_guard_hook_dir="${BASH_SOURCE[0]%/*}"
+lisa_guard_dedupe_lib="$lisa_guard_hook_dir/guard-dedupe.bash"
+if [ -r "$lisa_guard_dedupe_lib" ]; then
+  # shellcheck source=guard-dedupe.bash
+  . "$lisa_guard_dedupe_lib"
+  trap 'lisa_guard_dedupe_record $?' EXIT
+  lisa_guard_dedupe block-managed-file-edits "$input"
+fi
 
 command -v jq >/dev/null 2>&1 || exit 0
 
@@ -513,6 +566,7 @@ EOF
 import os
 import re
 import shlex
+import sys
 
 command = os.environ.get("MANAGED_EDIT_COMMAND", "")
 project = os.environ.get("MANAGED_EDIT_PROJECT", "") or os.getcwd()
@@ -523,6 +577,7 @@ project = os.environ.get("MANAGED_EDIT_PROJECT", "") or os.getcwd()
 FOLLOW_MAX_BYTES = 262144
 FOLLOW_MAX_FILES = 8
 FOLLOW_MAX_DEPTH = 3
+ENV_SPLIT_UNRESOLVED = 42
 
 # Spelled with chr() rather than backslash escapes on purpose. This source is
 # embedded in a shell heredoc and copied verbatim through several generators
@@ -547,6 +602,16 @@ SOURCE_BUILTINS = {"source", "."}
 FOLLOW_WRAPPERS = {
     "builtin": (frozenset(), 0),
     "command": (frozenset(), 0),
+    # `env bash edit.sh` runs `bash edit.sh`. Its absence here was the one
+    # wrapper on this list a caller reaches for without thinking about
+    # wrappers at all, because `env VAR=value <cmd>` is how a one-off
+    # environment override is spelled. Those `VAR=value` operands need no
+    # positional count: the walk below re-enters its assignment skip on the
+    # next iteration and steps over as many as are present.
+    "env": (
+        frozenset({"-C", "--chdir", "-P", "-u", "--unset"}),
+        0,
+    ),
     "exec": (frozenset({"-a"}), 0),
     "nice": (frozenset({"-n", "--adjustment"}), 0),
     "nohup": (frozenset(), 0),
@@ -678,6 +743,31 @@ def statements(tokens):
     return grouped
 
 
+class UnresolvedEnvSplit(ValueError):
+    """Split-string syntax whose executed arguments cannot be proven here."""
+
+
+def parse_env_split(split_string):
+    """Parse only the env -S subset shared with ordinary quoted arguments.
+
+    GNU env has its own escapes, comments and environment interpolation. Do
+    not pretend shlex implements those, or invent environment values in a
+    pre-execution guard. The operator can spell the resulting command directly.
+
+    Args:
+        split_string: The literal argument supplied to env's split option.
+
+    Returns:
+        Arguments for the supported subset; otherwise raises UnresolvedEnvSplit.
+    """
+    if any(marker in split_string for marker in (BACKSLASH, "#", "$", chr(96), chr(11), chr(12))):
+        raise UnresolvedEnvSplit("escapes, comments, shell substitution, variable expansion or control whitespace")
+    try:
+        return shlex.split(split_string, comments=False, posix=True)
+    except ValueError as error:
+        raise UnresolvedEnvSplit("unbalanced quoting") from error
+
+
 def command_word(statement):
     """The program a statement runs, and the tokens after it.
 
@@ -694,6 +784,7 @@ def command_word(statement):
         its command word is itself the executed script.
     """
     index = 0
+    split_expansions = 0
     while index < len(statement):
         token = statement[index]
         if "=" in token and not token.startswith(("=", "-")):
@@ -708,6 +799,36 @@ def command_word(statement):
             option = statement[index]
             if option == "--":
                 index += 1
+                break
+            # env -S inserts the split string back into env's argument list;
+            # it is executable input, not an option value to discard. Keep
+            # shell -c's quoted operand intact while expanding the env layer.
+            # The known no-operand flags can be combined before S (-vS/-ivS).
+            # Stop at S: the rest belongs to its argument, not more flags.
+            short_split = re.match(r"^-[iv0]*S(.*)$", option)
+            if program == "env" and (
+                option == "--split-string"
+                or option.startswith("--split-string=")
+                or short_split is not None
+            ):
+                consumed = 1
+                if option == "--split-string" or (
+                    short_split is not None and not short_split.group(1)
+                ):
+                    if index + 1 >= len(statement):
+                        raise UnresolvedEnvSplit("missing split-string operand")
+                    split_string = statement[index + 1]
+                    consumed = 2
+                elif option.startswith("--split-string="):
+                    split_string = option.split("=", 1)[1]
+                else:
+                    split_string = short_split.group(1)
+                if split_expansions >= 64:
+                    raise UnresolvedEnvSplit("nested split-string limit")
+                expanded = parse_env_split(split_string)
+                statement = [token] + expanded + statement[index + consumed :]
+                split_expansions += 1
+                index = 0
                 break
             index += 2 if option in separate else 1
         index += positional
@@ -922,7 +1043,11 @@ def collect(text, depth, seen, out):
 
 
 targets = []
-collect(command, 0, set(), targets)
+try:
+    collect(command, 0, set(), targets)
+except UnresolvedEnvSplit as error:
+    sys.stderr.write(str(error) + NEWLINE)
+    sys.exit(ENV_SPLIT_UNRESOLVED)
 for target in targets:
     cleaned = target.strip().strip("'\"")
     if cleaned:
@@ -939,6 +1064,15 @@ PY
       analyzer_status=0
     else
       analyzer_status=$?
+    fi
+    if [ "$analyzer_status" -eq 42 ]; then
+      printf 'Blocked: cannot resolve env --split-string for managed-file protection.\n' >&2
+      printf 'Use an explicit command without split-string escapes, comments or variable expansion.\n' >&2
+      while IFS= read -r analyzer_line; do
+        [ -n "$analyzer_line" ] && printf '  %s\n' "$analyzer_line" >&2
+      done <"$analyzer_stderr"
+      rm -f "$analyzer_stderr"
+      exit 2
     fi
     if [ "$analyzer_status" -ne 0 ]; then
       printf 'block-managed-file-edits: Bash analyzer failed (exit %s); Bash write protection is NOT active\n' "$analyzer_status" >&2

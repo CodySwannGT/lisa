@@ -7,6 +7,9 @@
  * for the CLI.
  */
 import {
+  ALLOW_STATE,
+  classifyAllowEntry,
+  describeAllowScope,
   extractAllowEntries,
   extractK6Constraints,
   extractLighthouseAssertions,
@@ -221,7 +224,7 @@ function compareAllowList(relPath, base, current) {
         file: relPath,
         key: `thresholdRatchet.allow ${entry.file}#${entry.key}`,
         type: "allow-added",
-        message: `${relPath}: new threshold exception for ${entry.file} → ${entry.key}. Exceptions are a human decision: land this entry in its own human-approved change first, then make the threshold change.`,
+        message: `${relPath}: new threshold exception — ${describeAllowScope(entry)}. Exceptions are a human decision: land this entry in its own human-approved change first, then make the threshold change. It needs a reason saying what resolves it and an "until": "YYYY-MM-DD" naming the day it is reviewed, because an exemption that cannot end is a permanent reduction in what the ratchet covers.`,
       });
     }
   }
@@ -311,29 +314,106 @@ export function compareFile(relPath, baselineText, currentText) {
 }
 
 /**
- * Drop findings covered by baseline-side allow entries. `allow-added`
- * findings are never dropped — an exception cannot approve its own creation.
- * @param {Finding[]} findings All findings from the change
- * @param {Array<{ file: string, key: string }>} allowEntries Baseline
- *   (already-merged) allow list
- * @returns {{ blocked: Finding[], allowed: Finding[] }} Findings that still
- *   block vs. findings covered by a recorded exception
+ * Whether an allow entry's file and key cover a finding.
+ * @param {{ file: string, key: string }} entry An allow entry
+ * @param {Finding} finding A finding from the change
+ * @returns {boolean} True when the entry's scope reaches this finding
  */
-export function applyAllowList(findings, allowEntries) {
+function entryCovers(entry, finding) {
+  return (
+    (finding.file === entry.file || finding.file.endsWith(`/${entry.file}`)) &&
+    (entry.key === "*" || entry.key === finding.key)
+  );
+}
+
+/**
+ * Report the allow entries a human has to act on, whether or not this change
+ * touched anything they cover.
+ *
+ * Separate from {@link applyAllowList} because the two answer different
+ * questions and only one of them depends on the change under review. An
+ * exemption that has outlived its condition is dead weight the moment the
+ * condition passes — the way `_thresholdsDivergence` is stale the moment the
+ * two floors agree — and saying so is not conditional on anybody happening to
+ * touch the gate it covered.
+ * @param {Array<{ file: string, key: string, reason?: string, until?: unknown }>} allowEntries
+ *   The allow list being honoured
+ * @param {number} [now] Clock reading, injected so the check is deterministic
+ * @returns {string[]} One line per entry that is expired or unevaluable; empty
+ *   when every entry still names a condition that holds
+ */
+export function describeAllowList(allowEntries, now = Date.now()) {
+  const lines = [];
+  for (const entry of allowEntries) {
+    const { state, detail } = classifyAllowEntry(entry, now);
+    if (state !== ALLOW_STATE.LIVE) lines.push(detail);
+  }
+  return lines;
+}
+
+/**
+ * Drop findings covered by a LIVE baseline-side allow entry.
+ *
+ * Three ways a finding leaves here, and they are deliberately distinct:
+ *
+ *   allowed  a covering entry's condition still holds. Reported, not blocked —
+ *            a project mid-migration is not red-walled by expiry.
+ *   expired  every covering entry's condition has passed. The weakening the
+ *            entry used to permit is REFUSED again, and the refusal names the
+ *            entry, its scope, its reason and the remedy. An expiry that
+ *            lapsed into "allowed" would be worse than no expiry.
+ *   blocked  nothing covered it, or everything that covered it has expired.
+ *
+ * An entry whose condition nothing can evaluate counts as covering, so the
+ * allow list keeps working for entries written before `until` existed;
+ * `describeAllowList` reports those every run instead.
+ *
+ * `allow-added` findings are never dropped, by any entry in any state — an
+ * exception cannot approve its own creation, which is the baseline-side fence
+ * and is untouched here.
+ * @param {Finding[]} findings All findings from the change
+ * @param {Array<{ file: string, key: string, reason?: string, until?: unknown }>} allowEntries
+ *   Baseline (already-merged) allow list
+ * @param {number} [now] Clock reading, injected so the check is deterministic
+ * @returns {{
+ *   blocked: Finding[],
+ *   allowed: Array<{ finding: Finding, entry: { file: string, key: string }, message: string }>,
+ *   expired: Array<{ finding: Finding, entry: { file: string, key: string }, message: string }>,
+ * }} Findings that still block, findings a live exemption covers, and the
+ *   refusals produced by exemptions that have ended
+ */
+export function applyAllowList(findings, allowEntries, now = Date.now()) {
+  const classified = allowEntries.map(entry => ({
+    entry,
+    ...classifyAllowEntry(entry, now),
+  }));
   const blocked = [];
   const allowed = [];
+  const expired = [];
   for (const finding of findings) {
-    const isAllowed =
-      finding.type !== "allow-added" &&
-      allowEntries.some(
-        e =>
-          (finding.file === e.file || finding.file.endsWith(`/${e.file}`)) &&
-          (e.key === "*" || e.key === finding.key)
-      );
-    if (isAllowed) allowed.push(finding);
-    else blocked.push(finding);
+    const covering =
+      finding.type === "allow-added"
+        ? []
+        : classified.filter(c => entryCovers(c.entry, finding));
+    const live = covering.find(c => c.state !== ALLOW_STATE.EXPIRED);
+    if (live) {
+      allowed.push({
+        finding,
+        entry: live.entry,
+        message: `allowed by ${live.scope}, which ${live.summary}. It covers: ${finding.message}`,
+      });
+      continue;
+    }
+    blocked.push(finding);
+    for (const dead of covering) {
+      expired.push({
+        finding,
+        entry: dead.entry,
+        message: `${dead.detail} It used to cover: ${finding.message}`,
+      });
+    }
   }
-  return { blocked, allowed };
+  return { blocked, allowed, expired };
 }
 
 /**
@@ -351,8 +431,9 @@ export function formatReport(findings) {
     "Quality thresholds are a one-way ratchet: they may tighten but never",
     "loosen. Fix the code so it meets the current gate instead of lowering the",
     "gate. If a human decides an exception is genuinely correct, they record it",
-    "in .lisa.config.json under thresholdRatchet.allow (with a reason) in a",
-    "separate human-approved change; this check honors exceptions only after",
-    "they are merged.",
+    "in .lisa.config.json under thresholdRatchet.allow — with a reason saying",
+    'what resolves it, and an "until": "YYYY-MM-DD" naming the day it is',
+    "reviewed — in a separate human-approved change; this check honors an",
+    "exception only after it is merged, and only until its until date passes.",
   ].join("\n");
 }

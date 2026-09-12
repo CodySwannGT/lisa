@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "why": "Every consumer reference to a Lisa reusable workflow tracks @main by ruling (CodySwannGT/lisa#3488). One push here changes what gates — and what ships — in every downstream repository at once, with no PR and no record there. That is intended; the detector for it was missing. Each workflow below declares a contract MAJOR, callers are seeded with the value they were written against, and the workflow asserts the two agree at run time. A compatible change stays green, because receiving compatible changes is the point of tracking @main; a declared break speaks up naming both numbers; a caller that declares nothing gets a loud NOT DETERMINED notice instead of a silent pass.",
+  "bumping": "Bump a major only for a change a caller must react to — a removed or re-typed input, a renamed job whose context someone requires, a verdict that flips direction. Bump it HERE and in the workflow's DECLARED_MAJOR env in the same commit, and update every shipped caller template to the new value in that commit too; scripts/check-workflow-contract-assertions.mjs fails until all three agree. Consumers who already hold a caller template do NOT get the update — caller workflows ship create-only — and going red is exactly what is supposed to happen to them. That is the signal, not a regression in it.",
+  "notSeeded": "Lisa's own workflows call these by local `./.github/workflows/...` reference, which resolves at the same commit as the caller and therefore cannot be stale. Local callers are deliberately not required to seed the assertion; requiring it there would be a check that cannot fail.",
+  "release": "release.yml carries the same assertion as the gate workflows and nothing stricter, and that is a decision rather than a default (#3698 asked for it explicitly). For a gate workflow an unreviewed upstream push changes whether a check goes red; for release.yml it changes how code ships, which is worse. The stricter convention on offer was to fail closed when a caller declares nothing — and that is precisely the move that would break releases fleet-wide on the day it merged, for every consumer holding a create-only deploy.yml Lisa cannot update. A release blocked by the detector is a worse outcome than a release that ships while telling its operator, in the run log, that it could not determine whether release.yml moved. So: same assertion, and the NOT DETERMINED arm is loud rather than fatal.",
+  "workflows": {
+    "build.yml": { "major": 1 },
+    "create-github-issue-on-failure.yml": { "major": 1 },
+    "create-issue-on-failure.yml": { "major": 1 },
+    "create-jira-issue-on-failure.yml": { "major": 1 },
+    "create-linear-issue-on-failure.yml": { "major": 1 },
+    "create-sentry-issue-on-failure.yml": { "major": 1 },
+    "environment-prepare.yml": { "major": 1 },
+    "gates.yml": { "major": 1 },
+    "lighthouse.yml": { "major": 1 },
+    "load-test.yml": { "major": 1 },
+    "maestro-native-e2e.yml": { "major": 1 },
+    "nightly-e2e-health.yml": { "major": 1 },
+    "nightly-e2e-report.yml": { "major": 1 },
+    "nightly-e2e-tracking.yml": { "major": 1 },
+    "playwright-e2e.yml": { "major": 1 },
+    "publish-to-npm.yml": { "major": 1 },
+    "quality-rails.yml": { "major": 1 },
+    "quality.yml": { "major": 1 },
+    "release-rails.yml": { "major": 1 },
+    "release.yml": { "major": 1 },
+    "sentry-deploy.yml": { "major": 1 },
+    "zap-baseline-expo.yml": { "major": 1 },
+    "zap-baseline-nestjs.yml": { "major": 1 }
+  }
+}

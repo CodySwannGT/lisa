@@ -56,7 +56,12 @@ export const DECLARED_OFF = "steps.gate.outputs.configured == 'off'";
  * growing it anywhere in this workflow has to fail here. It stays a list of
  * one — the pre-existing carrier on the SonarCloud fallback path.
  */
-export const PREEXISTING_CONTINUE_ON_ERROR = ["📊 SonarCloud Scan"];
+export const PREEXISTING_CONTINUE_ON_ERROR = [
+  // This transfers an already-built bundle; a failed transfer makes the
+  // consumer rebuild. It does not execute or report a quality gate.
+  "📦 Share the web export with downstream checks",
+  "📊 SonarCloud Scan",
+];
 
 /** The step every façade job runs the project's own prover through. */
 export const GATE_RUN_ID = "gate_run";

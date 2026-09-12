@@ -189,10 +189,6 @@
     "all/copy-overwrite/scripts/": {
       "kind": "reference",
       "why": "Prose, not an invocation: quality.yml names this directory inside the error text of the `test_node_suites` step, telling an operator where the runner should have been. Nothing executes a directory, so existence is the whole claim."
-    },
-    "scripts/": {
-      "kind": "reference",
-      "why": "Prose, not an invocation: quality.yml names this directory in the comment explaining where the pre-move conflict prover lived and why resolving it there made it walk node_modules. Nothing executes a directory, so existence is the whole claim."
     }
   },
 

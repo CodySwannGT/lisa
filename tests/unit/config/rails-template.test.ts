@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { load as loadYaml } from "js-yaml";
+import { classifyProductionDeployIntent } from "../../../src/core/rails-deploy-production-intent.js";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const RAILS_MERGE_SETTINGS = "rails/merge/.claude/settings.json";
@@ -82,27 +83,14 @@ describe("Rails templates", () => {
     // not blocked by its own regression test. What is not acceptable is a
     // bare `# - main`.
     //
-    // The comment must also be ACTIONABLE. `AWS_ACCOUNT_ID_MAIN` is the
-    // load-bearing detail: `noliran/branch-based-secrets` expands
-    // `AWS_ACCOUNT_ID` to `AWS_ACCOUNT_ID_<BRANCH>`, so enabling `main`
-    // without that secret produces a failing production deploy rather than a
-    // working one. A comment saying only "enable when ready" is the bare
-    // `# - main` with more words, and would pass a weaker assertion.
+    // The classifier is shared with the `lisa doctor` check that lets an
+    // ALREADY-seeded project find itself (CodySwannGT/lisa#3779). Asserting
+    // through it rather than beside it is the point: two spellings of "bare"
+    // would drift, and the drift that matters is the doctor check quietly
+    // accepting a shape this guard rejects.
     const deployText = readText(RAILS_DEPLOY);
-    const deploy = loadYaml(deployText) as {
-      readonly on?: {
-        readonly push?: { readonly branches?: readonly string[] };
-      };
-      readonly true?: {
-        readonly push?: { readonly branches?: readonly string[] };
-      };
-    };
-    // `on:` is YAML 1.1 truthy, so js-yaml can key it as `true`.
-    const branches = (deploy.on ?? deploy.true)?.push?.branches ?? [];
 
-    if (branches.includes("main")) return;
-
-    expect(deployText).toContain("AWS_ACCOUNT_ID_MAIN");
+    expect(classifyProductionDeployIntent(deployText)).not.toBe("unstated");
     expect(deployText).toMatch(/opt-in|deliberate/iu);
   });
 });

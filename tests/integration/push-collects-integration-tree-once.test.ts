@@ -19,6 +19,49 @@
  * `vitest list --filesOnly` (which changes nothing about which files are
  * collected — every include, exclude and path filter is passed through), and
  * appends what vitest reports. The assertion counts occurrences.
+ *
+ * THE GATES INSIDE THIS RUN ARE LIVE, and that is a separate property from the
+ * one above. Every case here also asserts the hook exits `0`, which a reader
+ * takes as an end-to-end statement about a push. Until CodySwannGT/lisa#3797 it
+ * was not one: the work-item traceability arm was switched off THREE times over
+ * inside the fixture, so `status === 0` survived whatever that gate did.
+ *
+ *   1. The push range was empty by construction — `refs/remotes/origin/main`
+ *      was pointed at `HEAD`, so the gate passed by having nothing to look at.
+ *   2. `scripts/lisa-work-item.mjs` was then overwritten with `process.exit(0)`.
+ *   3. And neither of those was even the reason it was green. The fixture
+ *      symlinked this repository's whole `node_modules` in, and the hook
+ *      resolves `node_modules/@codyswann/lisa/...` BEFORE `scripts/` — so the
+ *      gate that actually ran was the INSTALLED self-dependency and the stub in
+ *      (2) was never reached at all. That copy is whatever `bun install` last
+ *      put on the machine, which is not this tree's source and on the box this
+ *      was found on was two majors behind the declared pin. A suite whose
+ *      verdict depends on when somebody last installed is not a suite about
+ *      the shipped hook. `stageNodeModules` withholds exactly that one entry.
+ *
+ * Replacing the shipped gate with `process.exit(0)` moved none of it. It now
+ * turns six of the nine cases red, and the third case in each group is the
+ * control that says so directly: a pushed commit carrying no `Work-Item:`
+ * trailer must be REFUSED here.
+ *
+ * SIBLING SCAN (#3797). Every suite under `tests/integration/` that executes a
+ * real hook from this repository and asserts a zero exit status:
+ *
+ *   - this one — the subject, repaired above.
+ *   - `seeded-gates-preserve-hook-outcomes.test.ts` — LEGITIMATE. It supplies
+ *     empty stdin and a stub over `scripts/lisa-work-item.mjs` too, but its
+ *     subject is WHICH built-in steps run before and after a `gates` block is
+ *     seeded, read off `LISA-RAN:` tokens. Every prover in it is a stub by
+ *     design, so the stub is the instrument rather than a disabled gate, and
+ *     its zeros are asserted as an equality between two runs rather than as a
+ *     clean bill of health for either.
+ *   - `push-destination-inheritance.test.ts` — clean. It writes its own hook,
+ *     copies the REAL work-item script in, and carries a negative control that
+ *     asserts a non-zero push status.
+ *
+ * Every other suite that mentions a hook reads its TEXT or runs a shipped
+ * script directly; none of them executes a hook, so none can report one as
+ * passing.
  * @module tests/integration/push-collects-integration-tree-once
  */
 
@@ -27,6 +70,7 @@ import {
   cpSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   symlinkSync,
@@ -68,6 +112,27 @@ const HOOKS = [...trackedHookCopies("pre-push")];
 const UNIT_FILE = "tests/unit/alpha.test.ts";
 const INTEGRATION_FILE = "tests/integration/beta.test.ts";
 const COV_UNIT = "test:cov:unit";
+
+/**
+ * The work item the fixture's pushed commit declares.
+ *
+ * It matches the fixture's own `github` block, so the trailer canonicalizes
+ * against the contract this fixture actually declares rather than borrowing a
+ * real project's identity.
+ */
+const WORK_ITEM_REF = "fixture/fixture#1";
+
+/** The subject line of the commit the fixture actually pushes. */
+const PUSHED_SUBJECT = "feat: the change this push carries";
+
+/** The npm scope this package publishes under. */
+const SELF_SCOPE = "@codyswann";
+
+/** The one package inside that scope the fixture must NOT inherit. */
+const SELF_PACKAGE = "lisa";
+
+/** Paths a real project keeps out of git, and this fixture must too. */
+const FIXTURE_GITIGNORE = "node_modules/\nstub-bin/\ncollected.log\n";
 
 /** The scripts a consumer actually gets, read from the real pin file. */
 const PINS = JSON.parse(
@@ -161,6 +226,47 @@ function stageStubPackageManager(root: string): void {
 }
 
 /**
+ * The fixture's `node_modules`, with the self-dependency deliberately absent.
+ *
+ * The pre-push hook resolves both `lisa-work-item.mjs` and `lisa-gates.mjs`
+ * from `node_modules/@codyswann/lisa/...` FIRST, falling back to `scripts/`
+ * only when that file does not exist. This repository depends on itself, and
+ * that installed copy is two majors behind what this tree ships — so a fixture
+ * that symlinked the whole of `node_modules` in was running the OLD gate and
+ * the OLD registry, and the shipped copies it took the trouble to `cpSync` into
+ * `scripts/` were never reached at all (CodySwannGT/lisa#3797).
+ *
+ * Every other package is symlinked through unchanged, so vitest and everything
+ * the hook shells out to resolve exactly as they did. Only `@codyswann/lisa` is
+ * withheld, and only from the fixture — nothing on disk is modified. A consumer
+ * has no self-dependency, so its `scripts/` copy is what runs; withholding this
+ * one entry is what makes the fixture that consumer rather than this checkout.
+ * @param root - Fixture project root
+ */
+function stageNodeModules(root: string): void {
+  const source = path.join(ROOT, "node_modules");
+  const target = path.join(root, "node_modules");
+  const sourceScope = path.join(source, SELF_SCOPE);
+  const targetScope = path.join(target, SELF_SCOPE);
+  mkdirSync(targetScope, { recursive: true });
+  for (const entry of readdirSync(source)) {
+    if (entry === SELF_SCOPE) continue;
+    symlinkSync(path.join(source, entry), path.join(target, entry), "dir");
+  }
+  // The scope survives; only the self-dependency inside it does not. The other
+  // packages under it are ordinary workspace dependencies with no bearing on
+  // which gate script the hook resolves.
+  for (const entry of readdirSync(sourceScope)) {
+    if (entry === SELF_PACKAGE) continue;
+    symlinkSync(
+      path.join(sourceScope, entry),
+      path.join(targetScope, entry),
+      "dir"
+    );
+  }
+}
+
+/**
  * The environment a git command in the FIXTURE must run under.
  *
  * `GIT_*` is stripped rather than inherited. Vitest runs inside this
@@ -176,12 +282,12 @@ const FIXTURE_GIT_ENV: NodeJS.ProcessEnv = cleanGitEnv();
 
 /**
  * Runs one git command inside the fixture, refusing to continue on failure.
- *
  * @param root - The fixture repository root
  * @param args - Arguments after `git`
+ * @returns Trimmed stdout, for the commands asked a question
  * @throws {Error} When git exits non-zero, naming the command
  */
-function fixtureGit(root: string, ...args: readonly string[]): void {
+function fixtureGit(root: string, ...args: readonly string[]): string {
   // `boundedSpawnSync`, not a bare `spawnSync`: every synchronous child start
   // in this tree must carry a deadline, and `unbounded-spawn-conformance`
   // enforces it. `/usr/bin/env` rather than a bare `git` matches
@@ -200,6 +306,49 @@ function fixtureGit(root: string, ...args: readonly string[]): void {
       `fixture git ${args.join(" ")} failed (${String(done.status)}): ${done.stderr ?? ""}`
     );
   }
+  return (done.stdout ?? "").trim();
+}
+
+/**
+ * Commit everything git can see, and answer with the commit's object id.
+ * @param root - The fixture repository root
+ * @param message - The whole commit message, trailers included
+ * @returns The new commit's object id
+ */
+function commitAll(root: string, message: string): string {
+  fixtureGit(root, "add", "--all");
+  // `--no-verify` because this fixture's own hooks are not the subject and it
+  // has none installed; the hook under test is invoked directly, by hand.
+  fixtureGit(root, "commit", "--no-verify", "-m", message);
+  return fixtureGit(root, "rev-parse", "HEAD");
+}
+
+/**
+ * A base the remote already has, then the commit this push actually carries.
+ *
+ * Until CodySwannGT/lisa#3797 the fixture stopped at the base and pointed
+ * `origin/main` AT it, so the range the traceability gate validates held zero
+ * commits. The range is real now, and `traceable` is what makes it a control:
+ * `true` gives the pushed commit the `Work-Item:` trailer a real push carries
+ * and the gate accepts it; `false` withholds it and the gate must REFUSE. A
+ * fixture that can only produce the first answer has proved nothing by
+ * producing it.
+ *
+ * `main -> main` on purpose. The destination guard refuses a differently named
+ * branch resolving onto a deploy branch and explicitly allows this shape, and
+ * this fixture is about the traceability arm rather than that one.
+ * @param root - The fixture repository root
+ * @param traceable - Whether the pushed commit declares a work item
+ * @returns The pre-push stdin line git would feed the hook
+ */
+function stagePushedRange(root: string, traceable: boolean): string {
+  const message = traceable
+    ? `${PUSHED_SUBJECT}\n\nWork-Item: ${WORK_ITEM_REF}`
+    : PUSHED_SUBJECT;
+  const base = commitAll(root, "fixture: stage the project");
+  fixtureGit(root, "update-ref", "refs/remotes/origin/main", base);
+  writeFileSync(path.join(root, "src.txt"), "the change being pushed\n");
+  return `refs/heads/main ${commitAll(root, message)} refs/heads/main ${base}\n`;
 }
 
 /**
@@ -207,11 +356,16 @@ function fixtureGit(root: string, ...args: readonly string[]): void {
  * the shape every consumer has, and the shape that takes the fallback path.
  * @param options - Fixture options
  * @param options.withCovUnit - Whether `package.json` carries `test:cov:unit`
- * @returns The project root and the path the collection log is written to
+ * @param options.traceable - Whether the pushed commit declares a work item
+ * @returns The project root, the collection log path, and the pushed-refs line
  */
-function stageProject(options: { readonly withCovUnit: boolean }): {
+function stageProject(options: {
+  readonly withCovUnit: boolean;
+  readonly traceable: boolean;
+}): {
   readonly root: string;
   readonly log: string;
+  readonly pushedRefs: string;
 } {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-push-once-"));
   const log = path.join(root, "collected.log");
@@ -236,12 +390,13 @@ function stageProject(options: { readonly withCovUnit: boolean }): {
   // A PRE-PUSH hook runs in a repository that can be pushed, and until #3662
   // this fixture was a bare temp directory. The hook's work-item gate could not
   // compute a push range in it at all, and the ONLY thing keeping that green
-  // was a self-dependency pinned two majors back: `pre-push` resolves the gate
-  // from `node_modules/@codyswann/lisa` FIRST, and the 2.328.0 copy tolerated
-  // the failure where 4.33.x fails closed. Failing closed is the correct
-  // behaviour — a push gate that cannot tell what is being pushed should
-  // refuse — so the bump did not break this test, it stopped a broken test
-  // from passing.
+  // was the INSTALLED self-dependency: `pre-push` resolves the gate from
+  // `node_modules/@codyswann/lisa` first, and the old copy there tolerated the
+  // failure where 4.33.x fails closed. Failing closed is the correct behaviour
+  // — a push gate that cannot tell what is being pushed should refuse — so the
+  // bump did not break this test, it stopped a broken test from passing.
+  // `stageNodeModules` now withholds that copy outright, so the gate this
+  // fixture runs is the one this tree ships rather than the one last installed.
   fixtureGit(root, "init", "--initial-branch=main");
   fixtureGit(root, "config", "user.email", "fixture@example.invalid");
   fixtureGit(root, "config", "user.name", "Fixture");
@@ -260,14 +415,7 @@ function stageProject(options: { readonly withCovUnit: boolean }): {
     path.join(root, "scripts"),
     { recursive: true }
   );
-  // One commit, and an `origin/main` pointing AT it, so the push range is
-  // empty. That is deliberate and worth stating rather than leaving to be
-  // inferred: this suite measures how many times the hook collects the
-  // integration tree, not whether work-item validation accepts a message. An
-  // empty range keeps that gate out of the way HONESTLY — it really has
-  // nothing to validate — instead of feeding it a trailer this fixture would
-  // then be silently asserting things about.
-  // The 4.33.x work-item gate also requires the project declaration every real
+  // The 4.33.x work-item gate requires the project declaration every real
   // consumer has. No `gates` block, so the fallback path this suite exists to
   // exercise is still the one taken.
   writeFileSync(
@@ -275,20 +423,10 @@ function stageProject(options: { readonly withCovUnit: boolean }): {
     `${JSON.stringify({ tracker: "github", github: { org: "fixture", repo: "fixture" } }, null, 2)}
 `
   );
-  fixtureGit(root, "add", "--all");
-  fixtureGit(root, "commit", "--no-verify", "-m", "fixture: stage the project");
-  fixtureGit(root, "update-ref", "refs/remotes/origin/main", "HEAD");
-  writeFileSync(
-    path.join(root, "scripts/lisa-work-item.mjs"),
-    "process.exit(0);\n"
-  );
-  symlinkSync(
-    path.join(ROOT, "node_modules"),
-    path.join(root, "node_modules"),
-    "dir"
-  );
+  writeFileSync(path.join(root, ".gitignore"), FIXTURE_GITIGNORE);
+  stageNodeModules(root);
   stageStubPackageManager(root);
-  return { root, log };
+  return { root, log, pushedRefs: stagePushedRange(root, options.traceable) };
 }
 
 /**
@@ -297,13 +435,17 @@ function stageProject(options: { readonly withCovUnit: boolean }): {
  * @param hook - Repo-relative path to the hook
  * @param options - Fixture options
  * @param options.withCovUnit - Whether `package.json` carries `test:cov:unit`
+ * @param options.traceable - Whether the pushed commit declares a work item
  * @returns The hook's exit status, the collection log, and its output
  */
 function runHook(
   hook: string,
-  options: { readonly withCovUnit: boolean }
+  options: { readonly withCovUnit: boolean; readonly traceable?: boolean }
 ): { readonly status: number; readonly log: string; readonly stdout: string } {
-  const { root, log } = stageProject(options);
+  const { root, log, pushedRefs } = stageProject({
+    withCovUnit: options.withCovUnit,
+    traceable: options.traceable ?? true,
+  });
   const searchPath = [
     path.join(root, "stub-bin"),
     path.join(root, "node_modules/.bin"),
@@ -317,6 +459,11 @@ function runHook(
     baseMs: 30_000,
     cwd: root,
     env: { ...process.env, LISA_COLLECT_LOG: log, PATH: searchPath },
+    // Git feeds the refs being pushed on stdin, and that is the only thing
+    // that tells the traceability gate WHICH range to judge. Without it the
+    // gate falls back to the pusher's local `HEAD` and says so — an answer
+    // about a range nobody asked about (CodySwannGT/lisa#3874).
+    input: pushedRefs,
   });
   return {
     status: child.status ?? -1,
@@ -343,6 +490,11 @@ describe.each(HOOKS)("%s built-in fallback path", hook => {
     () => {
       const result = runHook(hook, { withCovUnit: true });
       expect(result.status, result.stdout).toBe(0);
+      // The zero above is only worth reading because the gates inside the run
+      // were live. This one says the traceability arm judged the pushed range
+      // rather than an empty one: one commit, named as examined.
+      expect(result.stdout).toContain("1 commit(s)");
+      expect(result.stdout).toContain(WORK_ITEM_REF);
       expect(timesCollected(result.log, UNIT_FILE)).toBe(1);
       expect(
         timesCollected(result.log, INTEGRATION_FILE),
@@ -360,6 +512,23 @@ describe.each(HOOKS)("%s built-in fallback path", hook => {
       expect(
         timesCollected(result.log, INTEGRATION_FILE)
       ).toBeGreaterThanOrEqual(1);
+    },
+    ioLatencyBudgetMs(180_000)
+  );
+
+  it(
+    "refuses the push when the pushed commit names no work item",
+    () => {
+      // THE NEGATIVE CONTROL for the two assertions above, and the reason this
+      // case exists at all. A fixture that reports a hook as passing has said
+      // nothing until something proves the same fixture can report one as
+      // failing — and against the pre-#3797 fixture this case could not fail:
+      // the range held no commit to reject, and the gate had been overwritten
+      // with `process.exit(0)` besides.
+      const result = runHook(hook, { withCovUnit: true, traceable: false });
+
+      expect(result.status, result.stdout).not.toBe(0);
+      expect(result.stdout).toContain("gate 3 (commit trailer)");
     },
     ioLatencyBudgetMs(180_000)
   );

@@ -92,7 +92,7 @@ require gitleaks
 # Resolve the package manager from packageManager/engines/lockfiles rather than
 # hardcoding bun: an npm-only project (engines.bun = "please-use-npm", CI runs
 # `npm ci`) must install with npm, never `bun install` — which would create a
-# stray bun.lock and break the project (the SE-5221 regression). jq is required
+# stray bun.lock and break the project (the package-manager selection regression). jq is required
 # above, so the package.json signals are always available here.
 # bun has known proxy package-fetch issues in cloud sessions; retry transient failures.
 detect_package_manager() {

@@ -25,6 +25,7 @@ Output (JSON):
     }
 """
 
+import ipaddress
 import json
 import os
 import re
@@ -33,6 +34,31 @@ import sys
 import urllib.request
 from base64 import b64encode
 from pathlib import Path
+from urllib.parse import urlsplit
+
+
+def server_origin(server):
+    """Validate the base parser's bare HTTPS grammar before accessing a token."""
+    if not server or any(char <= " " or char >= "\x7f" for char in server):
+        return ""
+    try:
+        parsed = urlsplit(server)
+        if (parsed.scheme != "https" or "@" in parsed.netloc
+                or "?" in server or "#" in server
+                or parsed.path not in ("", "/") or not parsed.hostname):
+            return ""
+        host = parsed.hostname
+        if parsed.netloc.startswith("["):
+            host = f"[{ipaddress.IPv6Address(host).compressed}]"
+        elif not re.fullmatch(r"[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*", host):
+            return ""
+        port = parsed.port
+        if port == 0:
+            return ""
+        suffix = f":{port}" if port is not None and port != 443 else ""
+        return f"https://{host}{suffix}"
+    except ValueError:
+        return ""
 
 
 def get_jira_config():
@@ -50,6 +76,12 @@ def get_jira_config():
                 server = line.split(":", 1)[1].strip()
             elif line.startswith("login:"):
                 login = line.split(":", 1)[1].strip()
+
+    # Home configuration remains the operator-owned source; never trust checkout input here.
+    server = server_origin(server)
+    if not server:
+        print("ERROR: Jira server must be a bare HTTPS origin without userinfo, path, query or fragment.", file=sys.stderr)
+        sys.exit(1)
 
     token = os.environ.get("JIRA_API_TOKEN", "")
     if not token:

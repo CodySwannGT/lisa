@@ -23,6 +23,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  branchWorkItemFrom,
   githubBranchIssue,
   noPullRequestToDischarge,
   postDischargeBacklinks,
@@ -2450,6 +2451,117 @@ process.stdout.write(JSON.stringify({ id: 1 }));
     ]);
   });
 
+  /**
+   * Seed the fake tracker with comments nobody managed.
+   * @param store - Path to the comment store.
+   * @param bodies - Bodies to place on the item, in order.
+   */
+  function seed(store: string, bodies: readonly string[]): void {
+    writeFileSync(
+      store,
+      JSON.stringify(bodies.map((body, index) => ({ body, id: index + 1 })))
+    );
+  }
+
+  it("leaves prose that merely mentions the marker and this pull request alone", () => {
+    // The write predicate used to be the READ predicate: marker present plus
+    // the URL as a bare token anywhere in the body. That is the right question
+    // for "is this pull request linked?" and the wrong one for "may I replace
+    // this entire body with one line?" — the first is a claim about the item,
+    // the second a claim about who wrote the comment.
+    const fixture = createFixture();
+    const store = statefulGh(fixture);
+    const prose =
+      `Gate 5 wants [lisa-pr-link] ${PR_URL} on acme/widgets#42. ` +
+      `Notes for whoever picks this up: the unlanded work is on wt-a and wt-b.`;
+    seed(store, [prose]);
+
+    const result = command(fixture, [
+      "backlink",
+      "--ref",
+      "acme/widgets#42",
+      "--pr-url",
+      PR_URL,
+    ]);
+
+    expect(result.status).toBe(0);
+    expect(stored(store)).toEqual([
+      { body: prose, id: 1 },
+      { body: `[lisa-pr-link] ${PR_URL}`, id: 2 },
+    ]);
+  });
+
+  it("leaves the gate's own printed remedy byte-for-byte unchanged", () => {
+    // The remedy the tool prints contains the marker AND the pull request URL
+    // as a bare token on its `--pr-url` line, so pasting a gate failure into a
+    // comment — which is what an operator does to explain why a PR is stuck —
+    // was enough to have that comment claimed and flattened.
+    const fixture = createFixture();
+    const store = statefulGh(fixture);
+    const pasted =
+      `Blocked on gate 5. The one remedy that needs no new branch is the ` +
+      `managed comment \`[lisa-pr-link] ${PR_URL}\` on acme/widgets#42. ` +
+      `Do not post it by hand — run:\n\n` +
+      `    node scripts/lisa-work-item.mjs backlink --ref acme/widgets#42 ` +
+      `--pr-url ${PR_URL}\n\nwhich creates that comment.`;
+    seed(store, [pasted]);
+
+    command(fixture, [
+      "backlink",
+      "--ref",
+      "acme/widgets#42",
+      "--pr-url",
+      PR_URL,
+    ]);
+
+    expect(stored(store)[0]).toEqual({ body: pasted, id: 1 });
+  });
+
+  it("counts pull requests, not mentions, when reporting siblings", () => {
+    // The count is the operator-visible half of the same predicate. Reporting
+    // "1 other pull request already linked" for a prose comment overstates what
+    // is on the item, and it was the line that surfaced the near-miss.
+    const fixture = createFixture();
+    const store = statefulGh(fixture);
+    seed(store, [
+      `triage: gate 5 asks for [lisa-pr-link] ${PR_URL}, still unposted`,
+      `[lisa-pr-link] ${OTHER_PR_URL}`,
+    ]);
+    const third = "https://github.com/acme/code/pull/9";
+
+    const result = command(fixture, [
+      "backlink",
+      "--ref",
+      "acme/widgets#42",
+      "--pr-url",
+      third,
+    ]);
+
+    expect(result.stdout).toContain("1 other pull request already linked");
+    expect(result.stdout).not.toContain("2 other pull requests");
+  });
+
+  it("still updates Lisa's own managed comment in place", () => {
+    // The identity test must not be so strict that a body the provider handed
+    // back with trailing whitespace reads as somebody else's writing.
+    const fixture = createFixture();
+    const store = statefulGh(fixture);
+    seed(store, [`[lisa-pr-link] ${PR_URL}\n`]);
+
+    const result = command(fixture, [
+      "backlink",
+      "--ref",
+      "acme/widgets#42",
+      "--pr-url",
+      PR_URL,
+    ]);
+
+    expect(result.stdout).toContain("updated");
+    expect(stored(store)).toEqual([
+      { body: `[lisa-pr-link] ${PR_URL}`, id: 1 },
+    ]);
+  });
+
   it("writes the comment the traceability check reads", () => {
     // Producer and consumer asserted against each other in one test, because
     // the defect being fixed is precisely that nobody had checked they agree.
@@ -3326,6 +3438,10 @@ describe("githubBranchIssue, in process (#3861)", () => {
     ["qd/3554-release-commit-reachability", "acme/widgets#3554"],
     // A single-character prefix still counts: `[^/]+` must not become `[^/]`.
     ["x/12-short-prefix", "acme/widgets#12"],
+    // Eight digits that are NOT a date. The date rule must be a date rule and
+    // not a length bound, or it starts refusing real numbers on the day the
+    // fleet reaches them.
+    ["fix/20261345-not-a-date", "acme/widgets#20261345"],
   ])("reads %s as %s", (branch, expected) => {
     expect(githubBranchIssue(branch, CONTRACT)).toBe(expected);
   });
@@ -3336,6 +3452,12 @@ describe("githubBranchIssue, in process (#3861)", () => {
     ["chore/upgrade-lisa-4.33.1"],
     // A date stamp. There is no issue 20260903.
     ["stack/queue-drain-20260903"],
+    // The SAME date stamp, moved to the front of the segment, where it fills
+    // the segment exactly and every bound above is satisfied. The trailing
+    // form above is declined for free; this one has to be declined on purpose,
+    // and without it a dated branch refuses every correct commit on it.
+    ["release/20260903-cutover"],
+    ["stack/19991231"],
     // Another tracker's key. Whatever GitHub issue it maps to is not 7728.
     ["fix/se-7728-e2e-coverage-wildcard"],
     // Nothing numeric at all.
@@ -3369,6 +3491,93 @@ describe("githubBranchIssue, in process (#3861)", () => {
       })
     ).toBe("other/repo#7");
   });
+});
+
+// ---------------------------------------------------------------------------
+// The provider dispatch above the branch reader, in process.
+//
+// `githubBranchIssue` is measurable because it is pure and exported; the
+// routing that decides whether it is reached at all was not. Those two
+// conditions were reachable only by SPAWNING the script, and a spawned child
+// loads the file from disk rather than the instrumented module, so their
+// mutants were activated in a process no assertion observes. The gate scored
+// them without being able to kill them — and `if (false)` on the provider arm
+// routes every GitHub branch away from the extractor, restoring the defect
+// #3861 closed, while every CLI case above still passes (#3930).
+//
+// These cases take the branch as an argument, so they touch no repository and
+// spawn nothing.
+// ---------------------------------------------------------------------------
+describe("branchWorkItemFrom, in process (#3930)", () => {
+  const GITHUB = { provider: "github", repository: "acme/widgets" };
+  const JIRA = { provider: "jira", project: "SE" };
+  const LINEAR = { provider: "linear", teamKey: "ENG" };
+
+  it("routes a GitHub contract through the GitHub reading of the branch", () => {
+    // Mutating the provider condition to a constant false loses this: the
+    // branch would fall through to the key-based arm, where a `github`
+    // contract has neither `project` nor `teamKey` and yields undefined.
+    expect(branchWorkItemFrom("fix/3861-github-branch", GITHUB)).toBe(
+      "acme/widgets#3861"
+    );
+  });
+
+  it("routes a Jira contract through the key-based reading, not the GitHub one", () => {
+    // Mutating the provider condition to a constant true loses this: the
+    // GitHub arm would read the leading segment of `fix/…` — there is none
+    // here — and in any case would mint an `owner/repo#n` reference for a
+    // tracker that does not use one.
+    expect(branchWorkItemFrom("feat/se-7220-widgets", JIRA)).toBe("SE-7220");
+  });
+
+  it("routes a Linear contract through the team key, not the GitHub one", () => {
+    expect(branchWorkItemFrom("claude/eng-412-thing", LINEAR)).toBe("ENG-412");
+  });
+
+  it("reads a numeric leading segment as a Jira key only when the key matches", () => {
+    // The dispatch is what keeps a bare-number branch out of the key-based
+    // arm's reach on GitHub and out of the GitHub arm's reach on Jira.
+    expect(branchWorkItemFrom("fix/3861-github-branch", JIRA)).toBeUndefined();
+  });
+
+  it("declines a branch naming a key that is not the configured one", () => {
+    // The key is interpolated into the pattern literally. Escaping it by the
+    // COMPLEMENT of the metacharacter class instead — `\S\E` for `SE` — turns
+    // the key into a wildcard that reads any two-character segment, so this
+    // branch would be misread as SE-12 and refuse a correct commit.
+    expect(branchWorkItemFrom("feat/xe-12-other-key", JIRA)).toBeUndefined();
+  });
+
+  it("matches a key containing regex metacharacters literally", () => {
+    // Not escaping the key at all leaves `.` as a wildcard, so `S.E` reads
+    // `sxe` — a reference minted for a project nobody configured.
+    const dotted = { provider: "jira", project: "S.E" };
+    expect(branchWorkItemFrom("feat/sxe-12", dotted)).toBeUndefined();
+    expect(branchWorkItemFrom("feat/s.e-12", dotted)).toBe("S.E-12");
+  });
+
+  it("declines a key-based contract that configures no key", () => {
+    // `if (!key) return undefined` — dropping it would build a RegExp from
+    // `undefined` and read the literal string "undefined-12" out of a branch.
+    expect(
+      branchWorkItemFrom("feat/se-7220", { provider: "jira" })
+    ).toBeUndefined();
+    expect(
+      branchWorkItemFrom("feat/eng-412", { provider: "linear" })
+    ).toBeUndefined();
+  });
+
+  it.each([[""], [undefined]])(
+    "fails open on a detached HEAD (%s) for every provider",
+    branch => {
+      // A detached HEAD names no branch. Removing the guard would hand an
+      // empty name to both arms; the point is that the fail-open is pinned
+      // rather than incidental.
+      expect(branchWorkItemFrom(branch, GITHUB)).toBeUndefined();
+      expect(branchWorkItemFrom(branch, JIRA)).toBeUndefined();
+      expect(branchWorkItemFrom(branch, LINEAR)).toBeUndefined();
+    }
+  );
 });
 
 /**

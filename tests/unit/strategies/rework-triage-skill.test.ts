@@ -90,7 +90,11 @@ describe("rework-triage self-hardening loop", () => {
       expect(skill).toContain("CodySwannGT/lisa");
       expect(skill).toMatch(/Dedupe first/);
       expect(skill).toContain("self-hardening");
-      expect(skill).toMatch(/gh issue create -R/);
+      expect(skill).toContain("lisa-github-write-issue");
+      expect(skill).toContain("public-safe attribution/projection");
+      expect(skill).toContain("build_ready: true");
+      expect(skill).toContain("human_gate");
+      expect(skill).not.toMatch(/gh issue create -R/);
     });
 
     it("is idempotent per bounce via an explicit posted fingerprint", () => {

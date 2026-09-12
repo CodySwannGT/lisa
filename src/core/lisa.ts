@@ -618,9 +618,13 @@ export class Lisa {
         // they happen to have, including one authored before either existed.
         const basis = resolveDeletionBasis(deletions, relativePath);
         if (!basisAuthorisesDeletion(basis)) {
-          logger.warn(
-            `Kept (no declared basis): ${relativePath} — the manifest lists this path but does not say why it may be removed, so it was not.`
-          );
+          const notice = `Kept (no declared basis): ${relativePath} — the manifest lists this path but does not say why it may be removed, so it was not.`;
+          logger.warn(notice);
+          // Recorded, not merely logged. This is the fail-closed branch, and on
+          // the install path a branch whose only account of itself goes to a
+          // hidden stream is indistinguishable from one that never ran
+          // (CodySwannGT/lisa#4071).
+          this.deletionNotices.push(notice);
           this.counters.skipped++;
           continue;
         }
@@ -1180,6 +1184,7 @@ export class Lisa {
       errors: [],
       stalePaths: [...this.stalePaths],
       deletedPaths: [...this.deletedPaths],
+      deletionNotices: [...this.deletionNotices],
     };
   }
 
@@ -1208,6 +1213,7 @@ export class Lisa {
       errors: [message],
       stalePaths: [...this.stalePaths],
       deletedPaths: [...this.deletedPaths],
+      deletionNotices: [...this.deletionNotices],
     };
   }
 

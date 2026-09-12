@@ -70,7 +70,7 @@ const BLOCKING = new Set(["missing", "invalid"]);
 /**
  * Whether an unpinnable entry is nonetheless usable on this machine.
  *
- * Presence-only, and deliberately not a skip. Dropping the entry entirely would
+ * Executability is required, even when no version floor is declared. Dropping the entry entirely would
  * report clean for a tool that is neither pinned nor installed, which is the
  * vacuous green this module refuses everywhere else. So the probe still decides
  * — it just gets asked, which on this branch it previously never was.
@@ -83,7 +83,12 @@ const BLOCKING = new Set(["missing", "invalid"]);
  * @returns {boolean} Whether the tool is present and good enough to use.
  */
 function usableWithoutPin(step, minVersions) {
-  if (!step.unpinnedForPlatform || !step.found?.present) return false;
+  if (
+    !step.unpinnedForPlatform ||
+    !step.found?.present ||
+    step.found.executable !== true
+  )
+    return false;
   const floor = minVersions[step.name];
   return !floor || compareVersions(step.found.version ?? "0", floor) >= 0;
 }
@@ -228,7 +233,7 @@ export function preflightTools(
 }
 
 /**
- * Count something and agree with itself about the verb.
+ * Format a count with the appropriate noun phrase.
  * @param {number} n How many.
  * @param {string} one Singular noun phrase.
  * @param {string} many Plural noun phrase.
@@ -241,32 +246,8 @@ function count(n, one, many) {
 /**
  * Render a verdict for whoever has to act on it.
  *
- * **The data was already tiered correctly; the layout undid it.** Two of two
- * operators reading this screen on the same morning concluded that a tool Lisa
- * was about to install for them was a blocker, and one of them only found out
- * otherwise by going to look at the machine. The verdict underneath was right
- * both times, which is what makes this a presentation defect rather than a
- * logic one — and per Lisa's own gate rule, everything crossing a gate outward
- * has to be readable by a non-technical operator, because that is who is
- * standing at the gate.
- *
- * Four things worked against that reader at once, and all four are addressed
- * here rather than one:
- *
- *   1. **Order.** The softer tier rendered first, so a reader met an
- *      installable tool while still holding the word FAILED. What stops the
- *      work now comes first, and what Lisa will handle comes after.
- *   2. **Scope.** A bare `FAILED.` says nothing about how much of the screen it
- *      covers. The header now carries counts, so "1 tool blocks; 1 more Lisa
- *      can install for you" is legible before any list is read.
- *   3. **Placement of the instruction.** *"Route the item to blocked"* was the
- *      last line of the whole report and read as applying to everything above
- *      it. That instruction is what a session acts on, which is how a layout
- *      problem became a routing decision. It now sits inside the blocking
- *      section, indented with it, and says "the tools above".
- *   4. **Markers.** The two lists were byte-identical in shape — same indent,
- *      same `name — reason`. A stop and an action now look different at a
- *      glance.
+ * Put blockers first and scope the stop instruction to that section. The
+ * separate installable section must not send usable work to the blocked lane.
  * @param {object} result A {@link preflightTools} result.
  * @returns {string} Operator-readable report, empty when nothing needs saying.
  */
@@ -276,10 +257,6 @@ export function reportTools(result) {
   // The header tracks the exit code. Only a blocked tool is a failure — one
   // Lisa can install is an action with a command attached, and calling that
   // "FAILED" while exiting zero teaches readers that the word means nothing.
-  //
-  // The counts are what scope the word to the part of the screen it owns. A
-  // header that says how many tools it is talking about cannot be read as
-  // covering a list it does not cover.
   const blocking = count(result.blocked.length, "tool blocks", "tools block");
   const spare = result.installable.length
     ? ` ${result.installable.length} more Lisa can install for you.`
@@ -294,16 +271,9 @@ export function reportTools(result) {
         ` install for you.`
       );
     // Nothing to do and nothing to fix; the note below is the whole message.
-    // This third state arrived on main after this branch was cut — a result
-    // carrying only UNVERIFIED tools reaches here, and the two-way header this
-    // branch wrote would have called that "action available" with nothing to
-    // act on.
     return `Tooling preflight passed, with a note.`;
   };
   const lines = [header()];
-  // Blocking first, always. A reader who has been told something FAILED reads
-  // the next thing on screen as the failure, so the next thing on screen has to
-  // be one.
   if (result.blocked.length) {
     lines.push(
       ``,
@@ -316,8 +286,6 @@ export function reportTools(result) {
       lines.push(`  [BLOCKED] ${step.name} — ${step.reason}`);
       if (why) lines.push(`            required because ${why}`);
     }
-    // Indented into the section above and naming it, rather than trailing the
-    // whole report where it silently claimed every tool listed anywhere.
     lines.push(
       ``,
       `  Work needing one of the tools above cannot be completed. Route that`,
@@ -336,11 +304,6 @@ export function reportTools(result) {
       lines.push(`  [INSTALLABLE] ${step.name} — ${step.reason}`);
     }
   }
-  // Kept in main's wording and deliberately left unmarked. The markers above
-  // separate a STOP from an ACTION, and this section is neither: nothing here
-  // blocks and there is nothing to run. Giving it a third marker would say
-  // these tools belong on the same axis as the two tiers this branch exists to
-  // tell apart. It sits last because it is the only section a reader can skip.
   if (result.unverified.length) {
     lines.push(
       ``,

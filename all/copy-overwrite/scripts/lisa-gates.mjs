@@ -173,6 +173,86 @@ const NO_STATUS_MOMENTS = Object.freeze([
 ]);
 
 /**
+ * Why an `await:` cannot be kept at this moment, or null when it can.
+ *
+ * ## The gap this closes (#4046)
+ *
+ * A gate declared `required` at `pre-deploy:<env>` with an `await:` was
+ * ACCEPTED by `validate`, SKIPPED by the only executor that moment has, and
+ * REPORTED GREEN. Reproduced from an injected config at `origin/main`
+ * `8f4d34016`:
+ *
+ *     🚦 Gates at pre-deploy:production:
+ *       SKIPPED  required runtime-web-vulnerability  awaits "External DAST App"; no signal exists locally
+ *     ✅ pre-deploy:production: 0 proved, 0 failed (optional), ... exit 0
+ *
+ * The release the gate was declared to hold proceeds and nothing says the gate
+ * proved nothing — the exact failure this subsystem exists to prevent, sited at
+ * the one moment family with no comparison surface watching it.
+ *
+ * ## FAMILY, NOT THE RAW KEY — the whole reason this is a function
+ *
+ * Both former call sites tested `NO_STATUS_MOMENTS.includes(moment)`, and the
+ * key under test at a deploy moment is `pre-deploy:production`, not
+ * `pre-deploy`. So the obvious fix — adding the family names to that array —
+ * refuses nothing. MEASURED TWICE: once by the agent on #3650, whose 14
+ * assertions all stayed green while the source appeared to implement the
+ * refusal, and again here, where the same mutation left this file's own suite
+ * at an unchanged `11 failed | 6 passed` and the live reproduction still
+ * printing `✅ ... exit 0`. A fix written that way passes its own review and
+ * governs nothing, which is why the comparison is `momentFamily(moment)` and
+ * why it lives in ONE named function rather than at each site.
+ *
+ * `momentFamily` is identity on the fixed moments, so the pre-pull-request set
+ * keeps matching exactly as it did.
+ *
+ * ## TWO REASONS, BECAUSE ONE OF THEM WOULD BE A LIE
+ *
+ * `push` is refused with "there is no pull request yet". At a deploy moment
+ * that sentence is FALSE — a deploy has a commit, and normally a merged pull
+ * request behind it — and an operator who reads it concludes the declaration
+ * will start working once the branch merges, which is the opposite of the
+ * truth. The deploy families are refused for their own reason: the derivation
+ * is fine and there is no CONSUMER. Verified against `origin/main` rather than
+ * assumed — an awaited context has one enforcement consumer,
+ * `lisa-reconcile-policy.mjs`, which writes required status checks onto a
+ * BRANCH RULESET (its `moment` defaults to `pull-request`), and a branch
+ * ruleset governs a merge, never a deploy.
+ *
+ * ## Each family answered, not generalised from `pre-deploy`
+ *
+ * `post-deploy` and `continuous` reach the same answer by the same argument and
+ * are named here rather than inherited: neither has a ruleset, neither has a
+ * pull request in flight, and `continuous` runs on a schedule against a stable
+ * target, so it has no diff and nothing to attach a status to at all.
+ *
+ * @param {string} moment The moment key, environment suffix and all.
+ * @returns {string|null} The reason an awaited signal cannot be kept, or null.
+ */
+function awaitUnkeepableReason(moment) {
+  const family = momentFamily(moment);
+  if (NO_STATUS_MOMENTS.includes(family)) {
+    return (
+      `there is no pull request yet for a signal to post against. An awaited ` +
+      `check that can never fire is a declared guarantee that never runs`
+    );
+  }
+  if (MOMENT_FAMILIES.includes(family)) {
+    return (
+      `nothing at this moment consumes an awaited signal. The name is derived ` +
+      `correctly — "contexts --moment=${moment}" returns it — but the only ` +
+      `consumer of a derived context writes required status checks onto a ` +
+      `BRANCH RULESET, which governs a merge and not a deploy. So the ` +
+      `declaration is accepted, skipped for having no local signal, and ` +
+      `reported green: a "required" gate that proves nothing and holds ` +
+      `nothing. Declare it at "${PULL_REQUEST}", where an awaited signal is ` +
+      `enforced, or give this moment a "run" that actually executes here`
+    );
+  }
+  return null;
+}
+
+/**
  * Moments that gate a *state* rather than a change.
  *
  * Every other moment blocks a diff: the commit, the push, the merge, the
@@ -4717,11 +4797,12 @@ function validateMoment(id, moment, value, known, interceptor, gateRun) {
     );
   }
   if (entry.await) {
-    if (NO_STATUS_MOMENTS.includes(moment)) {
+    // Keyed on the FAMILY, never the raw key — see `awaitUnkeepableReason`,
+    // where the mutation that proves why is recorded.
+    const unkeepable = awaitUnkeepableReason(moment);
+    if (unkeepable !== null) {
       problems.push(
-        `gates."${id}"."${moment}" awaits "${entry.await}", but there is no ` +
-          `pull request yet for a signal to post against. An awaited check ` +
-          `that can never fire is a declared guarantee that never runs.`
+        `gates."${id}"."${moment}" awaits "${entry.await}", but ${unkeepable}.`
       );
     }
     if (entry.run) {

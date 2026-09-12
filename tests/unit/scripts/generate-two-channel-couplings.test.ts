@@ -59,20 +59,19 @@ const APPLY_LANE = ["all", COPY_OVERWRITE, SCRIPTS] as const;
 /** The scaffold-time-only lane an unrefreshed artifact is written into. */
 const CREATE_ONLY_LANE = ["expo", "create-only", SCRIPTS] as const;
 
-/**
- * The staleness classification the fixture coupling carries.
- *
- * Every live coupling must record whether it can detect a STALE artifact, not
- * only an absent one, so a fixture tree that is otherwise in step still fails
- * without this — which is the requirement working rather than a test detail.
- */
-const CLASSIFIED = {
-  [`${WORKFLOW}::scripts/${PROVER}`]: {
-    detects: "existence-only",
-    reason:
-      "Fixture coupling with no verdict-bearing logic; nothing downstream reads a result from it.",
+/** The fixture coupling's stable ledger key. */
+const PROVER_KEY = `${WORKFLOW}::${SCRIPTS}/${PROVER}`;
+
+/** The decision recorded where no handshake is warranted. */
+const NOT_NEEDED = "not-needed";
+
+/** A recorded staleness decision, which every ledgered coupling must carry. */
+const DECIDED = {
+  [PROVER_KEY]: {
+    decision: NOT_NEEDED,
+    reason: "advisory read; a superseded copy cannot reach a wrong verdict",
   },
-};
+} as const;
 
 describe("generate-two-channel-couplings CLI", () => {
   let tempDir: string;
@@ -92,6 +91,28 @@ describe("generate-two-channel-couplings CLI", () => {
       out.mockRestore();
       err.mockRestore();
     }
+  }
+
+  /**
+   * Run the gate and return everything it printed.
+   * @param argv - Arguments after the script name
+   * @returns The captured stdout and stderr, joined
+   */
+  function report(argv: readonly string[]): string {
+    const captured: string[] = [];
+    const capture = (chunk: unknown): boolean => {
+      captured.push(String(chunk));
+      return true;
+    };
+    const out = vi.spyOn(process.stdout, "write").mockImplementation(capture);
+    const err = vi.spyOn(process.stderr, "write").mockImplementation(capture);
+    try {
+      main(argv);
+    } finally {
+      out.mockRestore();
+      err.mockRestore();
+    }
+    return captured.join("");
   }
 
   beforeEach(async () => {
@@ -163,13 +184,9 @@ describe("generate-two-channel-couplings CLI", () => {
     await fs.writeJson(ledgerPath, {
       ...ledger,
       ratified: {
-        [`${WORKFLOW}::scripts/${PROVER}`]:
-          "scaffold-time only, adopted by hand",
+        [PROVER_KEY]: "scaffold-time only, adopted by hand",
       },
-      // A ratified coupling still has to answer the staleness question: the two
-      // record different things — whether the delivery gap is permitted, and
-      // whether an old copy would be noticed (#3687).
-      staleness: CLASSIFIED,
+      staleness: DECIDED,
     });
     expect(run(["--root", root])).toBe(0);
   });
@@ -189,12 +206,7 @@ describe("generate-two-channel-couplings CLI", () => {
     // every failure above is indistinguishable from the gate simply being red.
     await fs.outputFile(path.join(root, ...WORKFLOWS_DIR, WORKFLOW), REUSABLE);
     await fs.outputFile(path.join(root, ...APPLY_LANE, PROVER), ARTIFACT_BODY);
-    run(["--root", root]);
-    const ledgerPath = path.join(root, ...LEDGER);
-    await fs.writeJson(ledgerPath, {
-      ...((await fs.readJson(ledgerPath)) as object),
-      staleness: CLASSIFIED,
-    });
+    await fs.outputJson(path.join(root, ...LEDGER), { staleness: DECIDED });
     expect(run(["--root", root])).toBe(0);
   });
 
@@ -225,6 +237,78 @@ describe("generate-two-channel-couplings CLI", () => {
       "rails/copy-overwrite",
       "typescript/copy-overwrite",
     ]);
+  });
+
+  it("fails on a ledgered coupling with no staleness decision", async () => {
+    // CodySwannGT/lisa#3687, acceptance criterion one. The detection is
+    // derived and free; the decision is the half a person has to make, and
+    // this refusal is what stops entry 24 inheriting "nobody looked".
+    await fs.outputFile(path.join(root, ...WORKFLOWS_DIR, WORKFLOW), REUSABLE);
+    await fs.outputFile(path.join(root, ...APPLY_LANE, PROVER), ARTIFACT_BODY);
+    expect(run(["--root", root])).toBe(1);
+  });
+
+  it("names the unclassified coupling rather than only counting it", async () => {
+    await fs.outputFile(path.join(root, ...WORKFLOWS_DIR, WORKFLOW), REUSABLE);
+    await fs.outputFile(path.join(root, ...APPLY_LANE, PROVER), ARTIFACT_BODY);
+    expect(report(["--root", root])).toContain(`UNCLASSIFIED ${PROVER_KEY}`);
+  });
+
+  it("reports the fleet's staleness coverage with its denominator", async () => {
+    await fs.outputFile(path.join(root, ...WORKFLOWS_DIR, WORKFLOW), REUSABLE);
+    await fs.outputFile(path.join(root, ...APPLY_LANE, PROVER), ARTIFACT_BODY);
+    await fs.outputJson(path.join(root, ...LEDGER), { staleness: DECIDED });
+    const text = report(["--root", root]);
+    expect(text).toContain("staleness detection: 0/1 coupling(s) can detect");
+    expect(text).toContain("1/1 detect absence at most and never age");
+  });
+
+  it("fails on a handshake the tree cannot show", async () => {
+    // Derive it, do not assert it. A hand-authored field that only ever
+    // over-claims is half a check.
+    await fs.outputFile(path.join(root, ...WORKFLOWS_DIR, WORKFLOW), REUSABLE);
+    await fs.outputFile(path.join(root, ...APPLY_LANE, PROVER), ARTIFACT_BODY);
+    await fs.outputJson(path.join(root, ...LEDGER), {
+      staleness: { [PROVER_KEY]: { decision: "handshake" } },
+    });
+    expect(run(["--root", root])).toBe(1);
+  });
+
+  it("fails on an exemption with no reason", async () => {
+    await fs.outputFile(path.join(root, ...WORKFLOWS_DIR, WORKFLOW), REUSABLE);
+    await fs.outputFile(path.join(root, ...APPLY_LANE, PROVER), ARTIFACT_BODY);
+    await fs.outputJson(path.join(root, ...LEDGER), {
+      staleness: { [PROVER_KEY]: { decision: NOT_NEEDED } },
+    });
+    expect(run(["--root", root])).toBe(1);
+  });
+
+  it("fails on a staleness decision whose coupling no longer exists", async () => {
+    await fs.outputFile(path.join(root, ...WORKFLOWS_DIR, WORKFLOW), REUSABLE);
+    await fs.outputFile(path.join(root, ...APPLY_LANE, PROVER), ARTIFACT_BODY);
+    await fs.outputJson(path.join(root, ...LEDGER), {
+      staleness: {
+        ...DECIDED,
+        [`${WORKFLOW}::scripts/gone.mjs`]: {
+          decision: NOT_NEEDED,
+          reason: "nothing reads this",
+        },
+      },
+    });
+    expect(run(["--root", root])).toBe(1);
+  });
+
+  it("carries the recorded decisions forward when it regenerates", async () => {
+    // Regenerating must not quietly drop the one field a person authored, or
+    // the forcing function launders itself away on the next write.
+    await fs.outputFile(path.join(root, ...WORKFLOWS_DIR, WORKFLOW), REUSABLE);
+    await fs.outputFile(path.join(root, ...APPLY_LANE, PROVER), ARTIFACT_BODY);
+    await fs.outputJson(path.join(root, ...LEDGER), { staleness: DECIDED });
+    expect(run(["--root", root])).toBe(0);
+    const ledger = (await fs.readJson(path.join(root, ...LEDGER))) as {
+      staleness: Record<string, { decision: string }>;
+    };
+    expect(ledger.staleness[PROVER_KEY]?.decision).toBe(NOT_NEEDED);
   });
 
   it("passes --check against this repository, where both halves actually exist", () => {

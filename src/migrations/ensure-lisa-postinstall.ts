@@ -24,6 +24,22 @@ const POSTINSTALL_RUNNER_MARKER =
  * install the fix. This is the same invocation the package template writes,
  * so a migration cannot leave older callers on the superseded direct apply.
  *
+ * THE `|| true` STAYS, and a relayed review finding asking for its removal was
+ * weighed and declined. The argument for removing it is sound as far as it
+ * goes: `lisa-postinstall.mjs` exits 0 by contract for an apply that FAILED, so
+ * the only status `|| true` can swallow is an unknown throw from the module
+ * itself — which the module deliberately lets escape. What the argument leaves
+ * out is where the escaped status lands. A non-zero postinstall aborts
+ * `bun install` / `npm ci` outright, so a packaging defect in Lisa would stop
+ * the host installing its dependencies AT ALL, including the version that
+ * fixes it. That is the recorded #318 caution, and it is a worse failure than
+ * a stale template by a wide margin.
+ *
+ * The half of the finding that was real — an unknown throw leaving no failure
+ * marker, so nothing downstream could report it — is fixed where it belongs,
+ * in the runner: it now records the marker before the throw escapes. The
+ * signal is durable and the install still completes.
+ *
  * Exported so tests can execute the real script under `sh` rather than assert
  * on a string.
  */
