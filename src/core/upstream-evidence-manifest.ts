@@ -1679,11 +1679,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/jira-evidence/scripts/post-evidence.sh":
       "33b95d722b465fd72bf81b09b8a103406b1893fa018e35ff563c862c39d68435",
     "plugins/src/expo/skills/jira-journey/SKILL.md":
-      "d677af1dbfc55deaf7f5c4bd0ed9c9d6de0cc2fed7c9395f62f53004185641c0",
+      "f5fecd9f17263f976a7e26d0c47a0d69477da31caaf9e299f5f5eeefbef52c34",
     "plugins/src/expo/skills/jira-journey/scripts/generate-templates.py":
       "0b86be11aa955aa99e6ac72634e475b2945510b345040cdd3ec47afba6ae3cbf",
     "plugins/src/expo/skills/jira-journey/scripts/parse-plan.py":
-      "59a390d17149e37d97680236075fc837789f5286cb078ddd9392cc4b21b25845",
+      "4c777dfa36c4c01216906b20a9ce473a764a71e4fccd29aed465403229d8de6d",
     "plugins/src/expo/skills/jira-verify/SKILL.md":
       "d1705c87d5228e17157779ea31d9433e23d8dc235bda4e02787856d301f40d03",
     "plugins/src/expo/skills/local-state/SKILL.md":
@@ -9417,6 +9417,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/environment-facade-gates.test.ts": true,
     "tests/integration/environment-prepare-workflow.test.ts": true,
     "tests/integration/expo-host-run-scripts-survive-apply.test.ts": true,
+    "tests/integration/expo-jira-parser-origin.test.ts": true,
     "tests/integration/facade-proof-not-step.test.ts": true,
     "tests/integration/failure-issue-workflows.test.ts": true,
     "tests/integration/floor-collisions-gate-fail-closed.test.ts": true,

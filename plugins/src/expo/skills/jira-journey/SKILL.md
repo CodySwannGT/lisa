@@ -17,8 +17,13 @@ Read a JIRA ticket's Validation Journey, execute it via Playwright MCP browser t
 ## Prerequisites
 
 - `JIRA_API_TOKEN` environment variable set
-- `jira-cli` configured — `.lisa/jira-cli/.config.yml` (written by the
-  `setup-jira-cli` SessionStart hook) or `~/.config/.jira/.config.yml`
+- `jira-cli` configured in the operator's `~/.config/.jira/.config.yml`.
+  This Expo parser deliberately remains home-config-only: it does not consume
+  checkout configuration or a `JIRA_SERVER` environment override. Its server must
+  be a bare HTTPS origin with no userinfo, query, fragment, or path prefix.
+  ASCII DNS names, IPv4, and bracketed IPv6 are supported; default port `443`
+  and a root slash are canonicalized away. Whitespace, controls, encoded or
+  non-ASCII hosts, trailing dots, and port zero are rejected before the token is read.
 - `gh` CLI authenticated
 - Playwright MCP server running (browser tools available)
 - Dev server running
