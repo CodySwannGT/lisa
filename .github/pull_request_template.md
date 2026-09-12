@@ -8,10 +8,9 @@
 Required. The Work-Item Traceability check reads this line and compares it to
 the Work-Item trailer on every branch-authored commit — they must match.
 
-The line may sit anywhere in this body, and repeating the SAME reference is
-fine, so a bot appending release notes below it cannot invalidate it. Naming
-two DIFFERENT work items fails, because then nothing says which one this pull
-request is about.
+List one Work-Item line for each item carried by the branch-authored commits.
+The full pull request must declare exactly that set. Lines may sit anywhere
+in the body, and repeating the same reference is harmless.
 
 This repository declares workItem.verify = "full", so the referenced issue must
 also be open, claimed (status:in-progress), scoped to this repository, and

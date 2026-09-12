@@ -149,10 +149,8 @@ const NODE_DEFAULT_MAX_BUFFER = 1024 * 1024;
  * Deadline for one arm, in ms.
  *
  * The weakened pass measured 7.0, 8.1 and 7.5 min on three scheduled samples.
- * 20 min is 2.47x the worst of them — the same multiple
- * `mutation-gate-bite`'s `WEAKENED_DEADLINE_MS` carries, and for the same
- * reason: a tight multiple on a contended box is a flake generator, not a
- * detector.
+ * 20 min is 2.47x the worst of them, allowing contention without exceeding
+ * the workflow's overall ceiling.
  *
  * It matters here in one extra way. A deadline kill arrives as `ETIMEDOUT`,
  * which `gate-capture` names ahead of the status — so an arm killed by THIS

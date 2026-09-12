@@ -77,6 +77,43 @@ function twoItemRange(fixture: Fixture): string {
 }
 
 describe("a range spanning several work items", () => {
+  it.each([
+    {
+      name: "accepts previously pushed declarations",
+      body: BOTH_DECLARED,
+      exitCode: undefined,
+    },
+    {
+      name: "refuses undeclared work in the new push",
+      body: `Work-Item: ${REF}\n`,
+      exitCode: 1,
+    },
+  ])("an incremental push $name", ({ body, exitCode }) => {
+    const fixture = createFixture(githubConfig("trailer"));
+    commit(fixture, FIRST);
+    const remoteOid = git(fixture.root, ["rev-parse", "HEAD"], fixture.env);
+    commit(fixture, SECOND);
+    const localOid = git(fixture.root, ["rev-parse", "HEAD"], fixture.env);
+    const ref = "refs/heads/feature/tracked";
+    const refsFile = path.join(fixture.root, "pushed-refs");
+    writeFileSync(refsFile, `${ref} ${localOid} ${ref} ${remoteOid}\n`);
+
+    const result = cli(fixture, ["validate-push", "origin"], {
+      LISA_PUSHED_REFS_FILE: refsFile,
+      FAKE_GH_PR_JSON: JSON.stringify({
+        body,
+        headRefName: "feature/tracked",
+        state: "OPEN",
+        url: PR_URL,
+      }),
+    });
+
+    expect(result.exitCode).toBe(exitCode);
+    if (exitCode === undefined)
+      expect(result.stdout).toContain("WORK_ITEM_TRACKING_OK 1 commit(s)");
+    else expect(result.stderr).toContain("does not match commit Work-Item");
+  });
+
   it("passes when the body declares every item the commits carry", () => {
     const fixture = createFixture(githubConfig("trailer"));
     const base = twoItemRange(fixture);
