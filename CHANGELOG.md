@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.3](https://github.com/CodySwannGT/lisa/compare/v4.55.2...v4.55.3) (2026-09-12)
+
+
+### Bug Fixes
+
+* close remaining command and intake validation gaps ([6e6f04c](https://github.com/CodySwannGT/lisa/commit/6e6f04cba02283b204a151c1d2ee2bfa5d9db594)), closes [CodySwannGT/lisa#4143](https://github.com/CodySwannGT/lisa/issues/4143) [CodySwannGT/lisa#4143](https://github.com/CodySwannGT/lisa/issues/4143)
+* harden generated guard and lifecycle contracts ([57b8fde](https://github.com/CodySwannGT/lisa/commit/57b8fde28cf5eaeced1673095e25911903c996bb)), closes [CodySwannGT/lisa#4143](https://github.com/CodySwannGT/lisa/issues/4143) [CodySwannGT/lisa#4143](https://github.com/CodySwannGT/lisa/issues/4143)
+* preserve guard byte parity in OpenCode installations ([e77fb82](https://github.com/CodySwannGT/lisa/commit/e77fb82fc9ef9005b4a882bbd7b11e1bd79493a1)), closes [CodySwannGT/lisa#4143](https://github.com/CodySwannGT/lisa/issues/4143) [CodySwannGT/lisa#4143](https://github.com/CodySwannGT/lisa/issues/4143)
+* **quality:** judge only the required contexts this run actually posts ([73dc5cf](https://github.com/CodySwannGT/lisa/commit/73dc5cff8fde4d2f05fdca89b29a6150c60a883d)), closes [CodySwannGT/lisa#4136](https://github.com/CodySwannGT/lisa/issues/4136) [CodySwannGT/lisa#4136](https://github.com/CodySwannGT/lisa/issues/4136)
+* **quality:** judge required-context outcomes, not retired skip_jobs tokens ([e7f8fb3](https://github.com/CodySwannGT/lisa/commit/e7f8fb3a910a4516c210ada2ac2f3a7bb6c694a3)), closes [#3385](https://github.com/CodySwannGT/lisa/issues/3385) [#3599](https://github.com/CodySwannGT/lisa/issues/3599) [#3586](https://github.com/CodySwannGT/lisa/issues/3586) [CodySwannGT/lisa#4136](https://github.com/CodySwannGT/lisa/issues/4136) [CodySwannGT/lisa#4136](https://github.com/CodySwannGT/lisa/issues/4136)
+* refuse unresolved backquote expansion in env split commands ([00f1dec](https://github.com/CodySwannGT/lisa/commit/00f1dec0a64eb21a3b54bbd3dd2bd522e1f8708d)), closes [CodySwannGT/lisa#4143](https://github.com/CodySwannGT/lisa/issues/4143) [CodySwannGT/lisa#4143](https://github.com/CodySwannGT/lisa/issues/4143)
+
+
+### Documentation
+
+* clarify release comments for keyless human holds ([6fe9e75](https://github.com/CodySwannGT/lisa/commit/6fe9e75e084cd1a2887425c12cd7fa6a69af0d63)), closes [CodySwannGT/lisa#4143](https://github.com/CodySwannGT/lisa/issues/4143) [CodySwannGT/lisa#4143](https://github.com/CodySwannGT/lisa/issues/4143)
+
 ### [4.55.2](https://github.com/CodySwannGT/lisa/compare/v4.55.1...v4.55.2) (2026-09-11)
 
 
