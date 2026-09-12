@@ -139,7 +139,6 @@
     "tests/unit/config/coverage-unit-scope-thresholds.test.ts",
     "tests/unit/config/create-only-caller-secrets.test.ts",
     "tests/unit/config/declared-gate-executors.test.ts",
-    "tests/unit/config/dist-rebuild-window.test.ts",
     "tests/unit/config/eslint-ignore-wiki.test.ts",
     "tests/unit/config/gate-default-tasks-resolve.test.ts",
     "tests/unit/config/release-package-identity-workflows.test.ts",
