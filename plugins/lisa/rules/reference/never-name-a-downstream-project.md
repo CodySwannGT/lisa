@@ -23,12 +23,12 @@ Rewrite the prose rather than substituting tokens wherever a placeholder reads b
 
 ## Enforcement is partial, and must not be relied on
 
-`block-host-name-leak` compares against a **curated denylist** and inspects **Bash tool calls only**. Two consequences follow:
+`block-host-name-leak` compares against a **curated denylist** and inspects **Bash tool calls only**. If the detector cannot be loaded, the hook warns and permits the write without inspecting the text. These limits follow:
 
 - a name nobody has added to the list is invisible to it;
 - a write issued by a script that reads its own body — rather than by a CLI given a `--body-file` — never reaches it at all.
 
-So a clean run means "no listed name appeared", never "this text is safe". This rule is default-deny and holds independently of whether the guard fires.
+When the detector is available, a clean run means "no listed name appeared", never "this text is safe". When it is unavailable, no inspection occurred. This rule is default-deny and holds independently of whether the guard fires.
 
 Note also that the denylist cannot be the primary control: this repository is public and `dist/` ships to npm, so the entries most worth catching are the ones least safe to enumerate there.
 

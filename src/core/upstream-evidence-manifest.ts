@@ -945,7 +945,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/measurement-integrity.md":
       "f628573c591e2cbbbbedd22821d40a3687dc14dba3aba5aebdc75c37ebd62494",
     "plugins/src/base/rules/reference/never-name-a-downstream-project.md":
-      "f408a5d2562abf6af48769ef4b803a918baef469895403dafda255d683fcb5c5",
+      "3b591120dc7825e3bb2c52a633d8b1bc8c05dccc0befef2d2e95a73ac2a99e4c",
     "plugins/src/base/rules/reference/not-blocked-just-waiting.md":
       "bef69d0cefa92e2b8ca589bb27f8e92749140e662d54110e12f0a47890e69f14",
     "plugins/src/base/rules/reference/observability-audit.md":
