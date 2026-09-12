@@ -11,6 +11,20 @@
  * This small asynchronous supervisor is invoked through a synchronous parent:
  * it owns the process-group id, applies the deadline, terminates the group, and
  * only then lets the parent continue.
+ *
+ * ## Interrupting a run
+ *
+ * The deadline was never the only way a run ends early. An operator — or an
+ * agent told to free a contended machine — kills the gate runner, and because
+ * this supervisor holds the ONLY handle to the detached group it started,
+ * killing its parent used to leave it reparented to pid 1 with the whole tree
+ * still executing. Measured: the kill reported success, `pgrep` for the runner
+ * returned nothing, and eleven processes carried on (CodySwannGT/lisa#3829).
+ *
+ * So the supervisor watches for the run it serves going away, tears the tree
+ * down through the same single reap the deadline uses, and SAYS SO. A silent
+ * teardown would be the same defect wearing a different face: the operator who
+ * asked for the run to stop cannot tell a stop from a survival either way.
  * @module scripts/lib/process-tree-runner
  */
 
@@ -22,6 +36,16 @@ const KILL_GRACE_MS = 750;
 const REAP_POLL_MS = 25;
 const WINDOWS_TIMEOUT_EXIT_CODE = 255;
 const TERMINATING_SIGNALS = ["SIGINT", "SIGTERM", "SIGHUP"];
+
+/**
+ * How often the supervisor asks whether the run it serves is still there.
+ *
+ * Four times a second. This is a liveness poll, not a budget: the cost of
+ * asking is one `kill(pid, 0)` per watched pid, and the cost of asking too
+ * rarely is measured in whole test suites that keep running for a machine
+ * nobody is watching any more.
+ */
+const ORPHAN_POLL_MS = 250;
 const DEFAULT_REAP_CONTROLS = Object.freeze({
   kill: killTree,
   exists: treeExists,
@@ -41,17 +65,126 @@ export function timeoutVerdictForPlatform(platform) {
     : { code: null, signal: "SIGKILL" };
 }
 
+/**
+ * Whether a pid is worth watching for disappearance.
+ *
+ * `1` is excluded on purpose rather than by accident. It is both the pid an
+ * orphan is reparented ONTO and a process that never exits, so watching it
+ * would arm a condition that can never fire while looking exactly like a
+ * watch that is working.
+ * @param {unknown} value A candidate pid.
+ * @returns {boolean} Whether it names a process that can meaningfully die.
+ */
+export function isWatchablePid(value) {
+  return Number.isInteger(value) && value > 1;
+}
+
+/**
+ * Parse the pids this supervisor was asked to outlive nobody but.
+ * @param {readonly string[]} argv Raw arguments.
+ * @returns {number[]} Watchable pids, in the order given, without duplicates.
+ */
+export function parseWatchPids(argv) {
+  const prefix = "--watch-pid=";
+  const pids = argv
+    .filter(value => value.startsWith(prefix))
+    .map(value => Number(value.slice(prefix.length)))
+    .filter(pid => isWatchablePid(pid));
+  return [...new Set(pids)];
+}
+
 function parseArguments(argv) {
   const timeoutArg = argv.find(value => value.startsWith("--timeout-ms="));
   const separator = argv.indexOf("--");
   const timeoutMs = Number(timeoutArg?.slice("--timeout-ms=".length));
+  const flags = separator >= 0 ? argv.slice(0, separator) : argv;
   const command = separator >= 0 ? argv.slice(separator + 1).join(" ") : "";
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || !command) {
     throw new Error(
-      "usage: process-tree-runner.mjs --timeout-ms=<positive-ms> -- <command>"
+      "usage: process-tree-runner.mjs --timeout-ms=<positive-ms> " +
+        "[--watch-pid=<pid>]... -- <command>"
     );
   }
-  return { command, timeoutMs };
+  return { command, timeoutMs, watchPids: parseWatchPids(flags) };
+}
+
+/**
+ * Whether a pid no longer names a live process.
+ *
+ * Fail-CLOSED, matching every other liveness question in this file: only the
+ * kernel's `ESRCH` proves absence. An `EPERM` — a pid that outlived the run and
+ * was reused by another user's process — means the question was refused, not
+ * answered, and refusing to answer must never be read as "the run is over".
+ * That direction matters here more than anywhere else in the module: a wrong
+ * "gone" tears down a gate run that was still executing correctly.
+ * @param {number} pid The process to ask about.
+ * @param {typeof process.kill} probe Injectable process probe.
+ * @returns {boolean} Whether the process is provably absent.
+ */
+export function pidIsGone(pid, probe = process.kill) {
+  try {
+    probe(pid, 0);
+    return false;
+  } catch (error) {
+    return isAbsentProcessError(error);
+  }
+}
+
+/**
+ * Why this supervisor should stop, if it should.
+ *
+ * Two separable questions, deliberately answered in one place so the report
+ * can name WHICH one fired:
+ *
+ * 1. **Orphaning.** The process that started this supervisor is gone, so the
+ *    verdict this run would produce has no one left to receive it. Detected by
+ *    comparing the parent pid captured at start against the live one — a
+ *    reparented process reads `1` (or a subreaper) instead of its launcher.
+ * 2. **A watched pid died.** The caller named a process further up the chain —
+ *    a git hook, say — whose death means the run is moot even though this
+ *    supervisor's own parent is still alive.
+ *
+ * Watch-pid absence is proved with `pidIsGone`, which fails closed; the
+ * orphan check needs no such care because a changed parent pid is a fact the
+ * kernel reports directly and cannot be refused.
+ * @param {object} options Inputs.
+ * @param {number} options.launchParentPid Parent pid captured at start.
+ * @param {number} options.currentParentPid Parent pid right now.
+ * @param {readonly number[]} [options.watchPids] Pids to outlive nobody but.
+ * @param {(pid: number) => boolean} [options.gone] Injectable absence probe.
+ * @returns {string|null} An operator-readable reason, or null to keep running.
+ */
+export function interruptionReason({
+  launchParentPid,
+  currentParentPid,
+  watchPids = [],
+  gone = pidIsGone,
+}) {
+  if (isWatchablePid(launchParentPid) && currentParentPid !== launchParentPid) {
+    return `the run that started it (pid ${launchParentPid}) exited`;
+  }
+  const dead = watchPids.find(pid => gone(pid));
+  if (dead !== undefined) return `the run it serves (pid ${dead}) exited`;
+  return null;
+}
+
+/**
+ * The line an interrupted supervisor leaves behind.
+ *
+ * A silent teardown reintroduces the defect in a different form: the operator
+ * who asked for the run to stop gets the same silence whether it stopped or
+ * kept running. So this states three things — that the run was INTERRUPTED
+ * rather than completed, why, and what was terminated — and it goes to stderr,
+ * which the gate runner inherits.
+ * @param {string} reason Why the supervisor stopped.
+ * @param {number} pid The process-group leader that was reaped.
+ * @returns {string} One line, for stderr.
+ */
+export function interruptionReport(reason, pid) {
+  return (
+    `🛑 gate command INTERRUPTED — ${reason}; terminated its process tree ` +
+    `(group ${pid}) and every descendant. Nothing was proved by it.`
+  );
 }
 
 /** Whether a failed POSIX process-group operation proved the group is absent. */
@@ -265,7 +398,32 @@ export async function reapTree(pid, controls = DEFAULT_REAP_CONTROLS) {
   throw new Error(`gate process tree ${pid} survived SIGKILL`);
 }
 
-export function supervise(command, timeoutMs, reap = reapTree) {
+/**
+ * Run one command as a supervised process tree.
+ *
+ * The supervisor answers to three ways a run can end early — its deadline, a
+ * terminating signal, and now the run it serves going away — and all three
+ * share one reap, because a tree reaped twice is a tree whose second kill
+ * lands on a recycled pid.
+ * @param {string} command Shell source to supervise.
+ * @param {number} timeoutMs Deadline for the whole tree.
+ * @param {typeof reapTree} [reap] Injectable group reaper.
+ * @param {object} [options] Interrupt-watch seams, injectable for tests.
+ * @param {readonly number[]} [options.watchPids] Pids whose death ends this run.
+ * @param {typeof interruptionReason} [options.detect] Interrupt predicate.
+ * @param {number} [options.pollMs] How often to ask.
+ * @param {(line: string) => void} [options.report] Where the report goes.
+ * @param {number} [options.launchParentPid] Parent pid captured at start.
+ * @returns {Promise<{code: number|null, signal: string|null}>} The verdict.
+ */
+export function supervise(command, timeoutMs, reap = reapTree, options = {}) {
+  const {
+    watchPids = [],
+    detect = interruptionReason,
+    pollMs = ORPHAN_POLL_MS,
+    report = line => process.stderr.write(`${line}\n`),
+    launchParentPid = process.ppid,
+  } = options;
   return new Promise((resolve, reject) => {
     const shell =
       process.platform === "win32"
@@ -336,6 +494,7 @@ export function supervise(command, timeoutMs, reap = reapTree) {
     };
     const cleanup = () => {
       clearDeadline();
+      clearInterval(interruptWatch);
       clearSignalHandlers();
     };
     // Every exit path shares one reap. A signal that arrives while the direct
@@ -376,17 +535,43 @@ export function supervise(command, timeoutMs, reap = reapTree) {
       );
     };
 
-    const relaySignal = signal => {
-      if (terminating) return;
+    // Both early-stop paths below end the same way: reap the tree ONCE, say
+    // what was terminated, then take the signal-shaped exit. `stopWith` exists
+    // so the reporting cannot drift between them — a signal that tears the
+    // tree down silently and a watch that reports is the same defect twice.
+    const stopWith = (reason, signal) => {
+      if (terminating || settled) return;
       terminating = true;
       settling = true;
       clearDeadline();
+      clearInterval(interruptWatch);
       reapOnce().then(() => {
         cleanup();
+        report(interruptionReport(reason, pid));
         // Restore the signal-shaped exit after the detached tree is gone.
         process.kill(process.pid, signal);
       }, failReap);
     };
+    const relaySignal = signal => {
+      stopWith(`it received ${signal}`, signal);
+    };
+    // The wiring this module always had the means for and nothing invoked.
+    // Without it, killing the gate runner leaves this supervisor reparented to
+    // pid 1 with its whole detached tree still executing — measured, and the
+    // reason the tree survives is precisely that this supervisor holds the
+    // only handle to it. Nothing else on the machine knows the group id.
+    const interruptWatch = setInterval(() => {
+      if (terminating || settling || settled) return;
+      const reason = detect({
+        launchParentPid,
+        currentParentPid: process.ppid,
+        watchPids,
+      });
+      // SIGTERM rather than the signal nobody sent: this supervisor was not
+      // signalled, it outlived its purpose, and SIGTERM is the vocabulary the
+      // gate runner already reads as "terminated, therefore no verdict".
+      if (reason !== null) stopWith(reason, "SIGTERM");
+    }, pollMs);
     const deadline = setTimeout(() => {
       timedOut = true;
       terminating = true;
@@ -432,8 +617,10 @@ export function supervise(command, timeoutMs, reap = reapTree) {
 }
 
 async function main() {
-  const { command, timeoutMs } = parseArguments(process.argv.slice(2));
-  const result = await supervise(command, timeoutMs);
+  const { command, timeoutMs, watchPids } = parseArguments(
+    process.argv.slice(2)
+  );
+  const result = await supervise(command, timeoutMs, reapTree, { watchPids });
   if (result.signal) {
     process.kill(process.pid, result.signal);
   } else {

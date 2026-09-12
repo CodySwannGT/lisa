@@ -160,8 +160,24 @@ const NO_VERSION = "missing-version-comment";
  * `uses: <owner>/<repo>[/<subpath>]@<ref>` with anything after it captured, so
  * a trailing `# v1.2.3` can be read. Local (`./path`) and container
  * (`docker://`) references have no owner and never match.
+ *
+ * The value may be QUOTED, and that is not a stylistic detail here. YAML
+ * accepts `uses: "owner/repo@ref"` and `uses: 'owner/repo@ref'` as the same
+ * scalar GitHub Actions resolves identically, but a value class that excluded
+ * quotes could not begin matching at one — so a quoted reference did not fail
+ * the scan, it left it entirely, and the gate reported clean over an entry it
+ * had never inspected. A pin checker that silently skips a spelling is a
+ * vacuous pass on every reference written that way, which is the failure this
+ * gate exists to close rather than to reproduce.
+ *
+ * The closing quote is matched by back-reference so `"a'` cannot read as a
+ * quoted value, and it is consumed by the match so the trailing `# v1.2.3` is
+ * still found by the slice in `findActionRefs`. An unquoted value binds the
+ * group to the empty string, where the back-reference matches empty and the
+ * pattern behaves exactly as it did before.
  */
-const USES_RE = /^[ \t]*(?:-[ \t]*)?uses:[ \t]*(?<value>[^\s"'#]+)/;
+const USES_RE =
+  /^[ \t]*(?:-[ \t]*)?uses:[ \t]*(?<quote>["']?)(?<value>[^\s"'#]+)\k<quote>/;
 
 /** A well-formed action owner. Anchored, so matching is linear. */
 const OWNER_RE = /^[A-Za-z0-9][A-Za-z0-9-]*$/;

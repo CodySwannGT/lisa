@@ -5,6 +5,7 @@ import {
   LISAIGNORE_FILENAME,
   loadIgnorePatterns,
 } from "../../../src/utils/ignore-patterns.js";
+import { isPathInside } from "../../../src/utils/path-utils.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const ESLINT_CONFIG_FILE = "eslint.config.mjs";
@@ -46,7 +47,14 @@ describe("ignore-patterns", () => {
   describe("fixture isolation", () => {
     it("puts the fixture outside the working directory", () => {
       // A fixture under cwd is shared by every concurrent run in the worktree.
-      expect(testDir.startsWith(process.cwd())).toBe(false);
+      //
+      // CodySwannGT/lisa#3808. This was `testDir.startsWith(process.cwd())`,
+      // which decides containment on a string prefix rather than a path
+      // boundary. The fleet convention — worktree at `<TMPDIR>/<name>`, scratch
+      // at `<TMPDIR>/<name>-tmp` — makes the scratch directory a sibling that
+      // string-prefixes the worktree, so this guard failed a green tree and
+      // named a containment violation that had not happened.
+      expect(isPathInside(process.cwd(), testDir)).toBe(false);
     });
 
     it("hands out a distinct directory to every test", () => {

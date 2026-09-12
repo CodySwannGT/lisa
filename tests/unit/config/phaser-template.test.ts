@@ -224,7 +224,9 @@ describe("Phaser templates", () => {
   it("defers to Phaser's official skills and drops duplicative lisa skills", () => {
     // Phaser ships authoritative API skills in node_modules/phaser/skills; the
     // lisa-phaser plugin must point at them, not duplicate (and drift from) them.
-    const rules = readText("plugins/src/phaser/rules/phaser.md");
+    // The pointer lives in the EAGER head (#3993 split the rule into tiers), so
+    // it reaches a session that never asks for the reference body.
+    const rules = readText("plugins/src/phaser/rules/eager/phaser.md");
     expect(rules).toContain("node_modules/phaser/skills");
 
     const skillsDir = path.join(REPO_ROOT, "plugins/src/phaser/skills");

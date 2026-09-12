@@ -25,9 +25,23 @@ export const OWNER_RECEIPT_FILENAME = "lisa-worktree-owner.json";
  * All of them are supplied by the surrounding agent runtime. None is invented
  * by Lisa, because an id Lisa minted per invocation would never match a receipt
  * written by an earlier invocation and would make every claim useless.
+ *
+ * `CLAUDE_CODE_SESSION_ID` is the variable Claude Code actually exports;
+ * `CLAUDE_SESSION_ID` is not set by it and was measured empty in a live session
+ * (CodySwannGT/lisa#3771). With only that spelling in the list this resolver
+ * answered undefined for every Claude session, so `judgeOwnership` could return
+ * "mine" for nobody and the receipt — the only POSITIVE ownership evidence
+ * there is — proved nothing. The unset spelling is kept AFTER the working one
+ * rather than replaced, so a receipt written under it still resolves.
+ *
+ * The lane-attribution list in `all/copy-overwrite/scripts/lisa-work-item.mjs`
+ * is the same fact read by a second reader, and a unit test binds the two: a
+ * lane id and a worktree receipt that disagree about who "mine" is are worse
+ * than either alone.
  */
 export const OWNER_ID_VARIABLES: readonly string[] = Object.freeze([
   "LISA_OWNER_ID",
+  "CLAUDE_CODE_SESSION_ID",
   "CLAUDE_SESSION_ID",
   "CODEX_SESSION_ID",
 ]);

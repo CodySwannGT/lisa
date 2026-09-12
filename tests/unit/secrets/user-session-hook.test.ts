@@ -38,6 +38,9 @@ const RUNNER = "scripts/lisa-remote-env/session-start.sh";
 /** Where user-scoped settings live, relative to home. */
 const SETTINGS = ".claude/settings.json";
 
+/** The default events registered for fresh user settings. */
+const DEFAULT_MATCHER = "startup|resume";
+
 /**
  * A checkout containing the session-start script, plus an empty home.
  * @param withScript Whether the repo actually ships the script.
@@ -84,7 +87,7 @@ describe("installUserSessionHook", () => {
       };
     };
     const entry = written.hooks.SessionStart[0];
-    expect(entry.matcher).toBe("startup|resume");
+    expect(entry.matcher).toBe(DEFAULT_MATCHER);
     // An ABSOLUTE path: the hook fires from whatever directory the session
     // opens in, which is the entire reason this exists.
     expect(entry.hooks[0].command).toBe(`bash '${path.join(repo, RUNNER)}'`);
@@ -130,7 +133,7 @@ describe("installUserSessionHook", () => {
         hooks: {
           SessionStart: [
             {
-              matcher: "startup|resume",
+              matcher: DEFAULT_MATCHER,
               hooks: [
                 { type: "command", command: `bash ${JSON.stringify(script)}` },
               ],
@@ -149,6 +152,71 @@ describe("installUserSessionHook", () => {
     expect(written.hooks.SessionStart[0].hooks).toEqual([
       { type: "command", command: `bash '${script}'` },
     ]);
+  });
+
+  it.each([
+    ["startup", "resume"],
+    ["startup", DEFAULT_MATCHER],
+    [".*", "startup"],
+    ["resume|startup", DEFAULT_MATCHER],
+  ])("preserves distinct matchers %s and %s", (first, second) => {
+    const { repo, home } = scratch();
+    const hook = {
+      type: "command",
+      command: `bash '${path.join(repo, RUNNER)}'`,
+    };
+    const entries = [
+      { matcher: first, hooks: [hook] },
+      { matcher: "other", hooks: [{ command: "other.sh" }] },
+      { matcher: second, hooks: [hook] },
+    ];
+    mkdirSync(path.join(home, ".claude"), { recursive: true });
+    const file = path.join(home, SETTINGS);
+    const original = JSON.stringify({ hooks: { SessionStart: entries } });
+    writeFileSync(file, original);
+    expect(installUserSessionHook(repo, { home }).action).toBe("present");
+    expect(readFileSync(file, "utf8")).toBe(original);
+    expect(installUserSessionHook(repo, { home }).action).toBe("present");
+    expect(readFileSync(file, "utf8")).toBe(original);
+  });
+
+  it("deduplicates identical matchers while preserving unrelated entries", () => {
+    const { repo, home } = scratch();
+    const script = path.join(repo, RUNNER);
+    const hook = { type: "command", command: `bash '${script}'` };
+    const legacy = { ...hook, command: `bash ${JSON.stringify(script)}` };
+    const unrelated = { matcher: "custom", hooks: [{ command: "other.sh" }] };
+    const empty = { matcher: "reserved", hooks: [] };
+    mkdirSync(path.join(home, ".claude"), { recursive: true });
+    const file = path.join(home, SETTINGS);
+    writeFileSync(
+      file,
+      JSON.stringify({
+        hooks: {
+          SessionStart: [
+            unrelated,
+            { matcher: "startup", hooks: [legacy, hook] },
+            empty,
+            { matcher: "startup", hooks: [hook] },
+            { matcher: "resume", hooks: [hook] },
+          ],
+        },
+      })
+    );
+    expect(installUserSessionHook(repo, { home }).action).toBe("migrated");
+    expect(settingsIn(home)).toEqual({
+      hooks: {
+        SessionStart: [
+          unrelated,
+          { matcher: "startup", hooks: [hook] },
+          empty,
+          { matcher: "resume", hooks: [hook] },
+        ],
+      },
+    });
+    const normalized = readFileSync(file, "utf8");
+    expect(installUserSessionHook(repo, { home }).action).toBe("present");
+    expect(readFileSync(file, "utf8")).toBe(normalized);
   });
 
   it("preserves hooks and settings it did not write", () => {

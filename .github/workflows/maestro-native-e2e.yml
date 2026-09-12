@@ -216,6 +216,19 @@ name: 📱 Maestro Native E2E
 on:
   workflow_call:
     inputs:
+      expected_workflow_contract_major:
+        description: >-
+          The contract major of THIS workflow the caller was written against.
+          Consumers track `@main`, so maestro-native-e2e.yml changes under them with no pull
+          request in their repository; comparing this value against the major
+          the workflow declares is the only way a run can tell a compatible
+          change from a breaking one — or from nothing having been looked at.
+          A caller that omits it is told so loudly and never quietly passed.
+          Seeded beside the `uses:` line in every Lisa caller template and
+          enforced by Lisa's `check-workflow-contract-assertions.mjs` gate.
+        required: false
+        default: ''
+        type: string
       platform:
         description: 'Platform(s) to run: all, android, or ios'
         required: false
@@ -587,14 +600,20 @@ on:
           Default 600, copied from the action's own default so nothing changes
           for a caller that sets nothing.
 
-          Lower it to stop paying the full wait for an emulator that already
-          died: the action launches the emulator in the BACKGROUND, so a
-          process that exits at second one is indistinguishable from a slow
-          boot until this timeout expires. Lowering it shortens that wait; it
-          does not improve the message, which still reports a boot timeout
-          rather than the cause. Do not set it below the slowest healthy boot
-          you have measured, or a cold runner will fail a suite that would
-          have passed.
+          YOU PROBABLY DO NOT NEED TO LOWER THIS. An emulator that dies at
+          launch no longer costs the full wait: the launch-FATAL watchdog
+          signals the emulator step as soon as a FATAL appears in the
+          emulator's own log, so the run fails in seconds with the cause
+          named. Lowering the timeout instead is a blunt latency trade — it
+          shortens the wait for a dead emulator and, by exactly the same
+          amount, shortens the patience available to a slow but healthy one.
+          The watchdog costs a healthy boot nothing, because it fires on
+          evidence rather than on elapsed time.
+
+          What lowering it still buys is the case the watchdog cannot see: an
+          emulator that never boots and never logs a FATAL. Do not set it
+          below the slowest healthy boot you have measured, or a cold runner
+          will fail a suite that would have passed.
         required: false
         default: 600
         type: number
@@ -857,7 +876,92 @@ concurrency:
   group: ${{ inputs.concurrency_group != '' && inputs.concurrency_group || format('lisa-maestro-no-serialize-{0}', github.run_id) }}
   cancel-in-progress: false
 
+# ─── The package manager, bound once ────────────────────────────────────────
+# A `${{ }}` expression is substituted into a `run:` body BEFORE the shell
+# parses it, so an interpolated value is shell SOURCE TEXT rather than an
+# argument. `package_manager` is a free-text `type: string` input, so a caller
+# passing `npm; <anything>` had the second half executed (#3793).
+#
+# Bound here, at workflow level, every job and every step reads it as an
+# environment variable — quoted, one argv word, never source.
+#
+# Env-passing is only half the remedy: it stops the injection but still tries
+# to exec whatever the single word names. The other half is the `case` in each
+# job's install step, which fails the job closed on anything outside
+# npm|yarn|pnpm|bun before a command position is ever reached.
+env:
+  PACKAGE_MANAGER: ${{ inputs.package_manager }}
+
 jobs:
+  workflow_contract:
+    # The caller-facing half of the staleness handshake (CodySwannGT/lisa#3698).
+    # `.github/reusable-workflow-contracts.json` records the major, every shipped
+    # caller template is seeded with it, and
+    # `check-workflow-contract-assertions.mjs` in Lisa refuses a template that
+    # takes the `uses:` reference and drops the assertion — the two are one unit.
+    name: 🔖 Workflow Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: 🔖 Assert the caller still understands this workflow
+        env:
+          # The contract major THIS revision speaks. Bump it here and in
+          # .github/reusable-workflow-contracts.json in the same commit, and
+          # reseed every caller template in that commit too.
+          DECLARED_MAJOR: '1'
+          EXPECTED_MAJOR: ${{ inputs.expected_workflow_contract_major }}
+          WORKFLOW_FILE: maestro-native-e2e.yml
+        # Byte-identical to workflow-contract-assertion.sh in Lisa across every
+        # reusable workflow; the gate proves it rather than trusting it.
+        run: |
+          set -eu
+
+          # The consumer-side half of a two-party contract (CodySwannGT/lisa#3698).
+          #
+          # Every consumer reference to a Lisa reusable workflow tracks `@main` by ruling,
+          # not by accident. So this workflow changes under a consumer between two runs of
+          # one pull request, with no PR, no review and no record in their repository.
+          # That is intended. What was missing is any way for them to TELL: an unchanged
+          # workflow and a rewritten one produced the same silence, and an investigation
+          # that fetched `@main` afterwards was reading a different artifact than the run
+          # it was investigating and could not know it.
+          #
+          # This step is the signal, and it deliberately asserts the CONTRACT rather than
+          # the ref. Asserting the ref — a tag, a SHA, a tree hash — goes red on every
+          # legitimate upstream change and is deleted within a week, which is how a
+          # staleness check becomes a staleness problem. The major asserts the property a
+          # caller actually depends on: "the inputs and behaviour you were seeded against
+          # still hold". A compatible change stays green, because receiving compatible
+          # changes is the entire point of tracking `@main`; only a declared break speaks.
+          echo "workflow:                                  ${WORKFLOW_FILE}"
+          echo "contract major declared by this revision:  ${DECLARED_MAJOR}"
+          echo "contract major the caller was seeded with: ${EXPECTED_MAJOR:-<none passed>}"
+
+          # NOT DETERMINED, said out loud.
+          #
+          # A caller that passes nothing is not failed. Caller workflows ship create-only
+          # and are never overwritten, so every consumer seeded before this shipped passes
+          # nothing — while this workflow is live in all of them on their next run.
+          # Failing closed here would redden the entire fleet over a file Lisa cannot
+          # update on their behalf: the two-channel mistake this handshake exists to
+          # catch, committed in the other direction.
+          #
+          # It must not be SILENT either. Silence is the defect. So the run says plainly
+          # that it measured nothing, and says what to add.
+          case "${EXPECTED_MAJOR}" in
+            '' | *[!0-9]*)
+              echo "::warning title=Workflow contract NOT DETERMINED::This run cannot tell whether ${WORKFLOW_FILE} changed under you. Its caller passed expected_workflow_contract_major='${EXPECTED_MAJOR}', which is not a whole number, so there is nothing to compare against the major ${DECLARED_MAJOR} this revision declares. Add 'expected_workflow_contract_major: ${DECLARED_MAJOR}' to the 'with:' block beside your 'uses: ...@main' line. Until you do, this check is measuring nothing and its green means only that."
+              exit 0
+              ;;
+          esac
+
+          if [ "${EXPECTED_MAJOR}" != "${DECLARED_MAJOR}" ]; then
+            echo "::error title=Workflow contract mismatch::${WORKFLOW_FILE} on @main declares contract major ${DECLARED_MAJOR}; this caller was seeded against major ${EXPECTED_MAJOR}. A major bump is Lisa stating that an input or a behaviour you depend on changed in a way you must react to. Read the workflow header for what moved, update this caller, then set expected_workflow_contract_major: ${DECLARED_MAJOR}."
+            exit 1
+          fi
+
+          echo "contract major ${DECLARED_MAJOR} agreed: ${WORKFLOW_FILE} has not declared a break under this caller."
+
   preflight:
     name: 🔍 Preflight
     runs-on: ubuntu-latest
@@ -1010,13 +1114,16 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ "${{ inputs.package_manager }}" = "npm" ]; then
-            npm ci
-          elif [ "${{ inputs.package_manager }}" = "yarn" ]; then
-            yarn install --frozen-lockfile
-          elif [ "${{ inputs.package_manager }}" = "bun" ]; then
-            bun install --frozen-lockfile
-          fi
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
 
       - name: 🧭 Check the build profile can produce a testable app
         # Runs BEFORE the EAS setup and the build, because both mistakes it
@@ -2405,6 +2512,136 @@ jobs:
           exit 1
           MAESTRO_ANDROID_DRIVER
 
+      - name: 🐕 Arm the emulator launch-FATAL watchdog
+        # DETECTION LATENCY, not detection. CodySwannGT/lisa#3853 made a launch
+        # FATAL nameable; the scan step that names it cannot start until the
+        # action has finished waiting, so the named cause still lands a full
+        # `emulator-boot-timeout` after the emulator died. This step is what
+        # makes it land in seconds instead.
+        #
+        # WHY IT SIGNALS THE ACTION AND NOT THE EMULATOR. The obvious design —
+        # kill the emulator so the action's boot wait collapses — cannot work
+        # here, and fails twice over. In the case this exists for the emulator
+        # is ALREADY dead (it exits ~0.2s after printing the FATAL), so there
+        # is nothing left to kill. And the action's wait is not shortened by a
+        # missing device: it polls `adb shell getprop sys.boot_completed` on a
+        # fixed schedule, and "no device" is precisely the state it already
+        # sits in for the whole timeout. Nothing observable from outside ends
+        # that loop except signalling the process running it.
+        #
+        # A background process cannot fail a job and a step cannot fail while
+        # another step is running, so signalling the emulator step's own
+        # process is the mechanism. The step then exits non-zero at once and
+        # the `!cancelled()` scan step immediately after it does all of the
+        # reporting, unchanged. No second reporting path, no sentinel for a
+        # later step to interpret, nothing to keep in agreement with the scan.
+        #
+        # IT CAN ONLY EVER ADVANCE A VERDICT THE SCAN WOULD HAVE REACHED. The
+        # trigger is the scan step's own FATAL pattern over the scan step's own
+        # log file, byte for byte — asserted, not intended. So the watchdog
+        # changes WHEN the run fails and never WHETHER it fails, which is why
+        # it needs no fail-closed behaviour of its own: the scan still owns
+        # that, including on a missing or empty log.
+        #
+        # EVIDENCE-TRIGGERED, NEVER TIME-TRIGGERED. It carries no notion of
+        # "too slow" at all, so a cold or contended runner that takes minutes
+        # to boot is untouched. That is the arm worth testing: a watchdog that
+        # always fired would satisfy the dead-emulator case perfectly.
+        #
+        # COUPLED TO THE PINNED SHA, like the redirect and the copied defaults
+        # on the emulator step. `WATCHDOG_TARGET_PATTERN` names how the runner
+        # lays that action out on disk; a SHA bump, or a runner that stops
+        # extracting actions under `_actions/<owner>/<repo>/`, makes it match
+        # nothing. That is silent by construction, so the reap step warns when
+        # the watchdog never armed or died without saying why — and the run is
+        # still gated by the scan, which is the check that fails it.
+        #
+        # Placed BEFORE the disk preflight, not between it and the action: the
+        # preflight must stay immediately before the emulator step.
+        env:
+          # Must be the path the `emulator-options` redirect writes and the
+          # scan step reads. Wired independently these become three mechanisms
+          # that can disagree; the tests assert all three agree.
+          EMULATOR_LOG: ${{ runner.temp }}/android-emulator.log
+          WATCHDOG_DIR: ${{ runner.temp }}
+          # How the runner names the extracted action on disk. See the
+          # SHA-coupling note above.
+          WATCHDOG_TARGET_PATTERN: _actions/reactivecircus/android-emulator-runner
+          # A LIVENESS BOUND, not a measurement and not a timeout anyone should
+          # tune. GitHub's own job ceiling is 6 hours, so a watchdog capped
+          # here cannot outlive the job it guards even if every other stop path
+          # fails. It sits deliberately far above any boot or suite time, so it
+          # can never be the thing that ends a run.
+          WATCHDOG_MAX_SECONDS: 21600
+          # Restated here rather than left to the script's own fallback, for
+          # the same reason the emulator step copies the action's defaults: a
+          # value that only ever appears as a `:-` fallback is a value nobody
+          # reviews. Two seconds is the action's own `waitForDevice` cadence,
+          # so the watchdog cannot be the slower of the two observers.
+          WATCHDOG_POLL_SECONDS: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          WATCHDOG_SCRIPT="${WATCHDOG_DIR}/emulator-fatal-watchdog.sh"
+          rm -f "${WATCHDOG_DIR}/emulator-fatal-watchdog.status" \
+                "${WATCHDOG_DIR}/emulator-fatal-watchdog.stop" \
+                "${WATCHDOG_DIR}/emulator-fatal-watchdog.pid"
+
+          # Written to a FILE and run as `bash <path>`, rather than passed to
+          # `bash -c '<body>'`. The body names the `pgrep -f` pattern, and a
+          # pattern sitting in the watchdog's own command line would make the
+          # watchdog its own first victim. Quoted heredoc: nothing here is
+          # expanded now, and the loop reads its whole configuration from the
+          # environment it inherits from this step.
+          cat > "$WATCHDOG_SCRIPT" <<'EMULATOR_FATAL_WATCHDOG'
+          set -uo pipefail
+
+          poll="${WATCHDOG_POLL_SECONDS:-2}"
+          deadline="$(( $(date +%s) + ${WATCHDOG_MAX_SECONDS} ))"
+          status_file="${WATCHDOG_DIR}/emulator-fatal-watchdog.status"
+          stop_file="${WATCHDOG_DIR}/emulator-fatal-watchdog.stop"
+
+          while :; do
+            # The scan step's pattern, verbatim. `FATAL` as its own word: a
+            # bare substring match would fire on ordinary prose.
+            if [ -s "$EMULATOR_LOG" ] && grep -q -E '(^|[[:space:]])FATAL([[:space:]]|:|\|)' "$EMULATOR_LOG"; then
+              victims=""
+              # `pgrep` then `kill`, not `pkill`: an explicit list can exclude
+              # this process and its parent, and can be reported afterwards.
+              for pid in $(pgrep -f -- "$WATCHDOG_TARGET_PATTERN" || true); do
+                if [ "$pid" != "$$" ] && [ "$pid" != "$PPID" ] && kill -TERM "$pid" 2>/dev/null; then
+                  victims="${victims} ${pid}"
+                fi
+              done
+              if [ -n "$victims" ]; then
+                printf 'fatal-signalled%s\n' "$victims" > "$status_file"
+              else
+                printf 'fatal-no-target\n' > "$status_file"
+              fi
+              exit 0
+            fi
+            if [ -e "$stop_file" ]; then
+              printf 'stopped\n' > "$status_file"
+              exit 0
+            fi
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              printf 'expired\n' > "$status_file"
+              exit 0
+            fi
+            sleep "$poll"
+          done
+          EMULATOR_FATAL_WATCHDOG
+
+          # `nohup`, stdin from /dev/null and both streams to a file. A
+          # background process holding the step's stdout open can hold the step
+          # itself open, and its output would otherwise interleave into
+          # whichever step happened to be running when it wrote.
+          nohup bash "$WATCHDOG_SCRIPT" \
+            </dev/null \
+            >"${WATCHDOG_DIR}/emulator-fatal-watchdog.out" 2>&1 &
+          echo "$!" > "${WATCHDOG_DIR}/emulator-fatal-watchdog.pid"
+
       - name: 🧹 Reclaim runner disk before the emulator
         # MUST stay immediately before `reactivecircus/android-emulator-runner`.
         # The emulator creates its userdata partition at launch, and a runner
@@ -2704,12 +2941,23 @@ jobs:
         # is the one where the emulator action already failed with a boot
         # timeout. Not `always()` — a cancelled job has no verdict to give.
         #
-        # WHAT THIS DOES NOT DO: it cannot stop the wait. Nothing runs between
-        # the FATAL and the boot timeout inside the action, so this step reads
-        # a corpse ten minutes later. It converts an unexplained timeout into
-        # a named cause; the disk preflight above is what prevents the known
-        # cause from costing the wait at all, and `android_emulator_boot_timeout`
-        # is what a caller lowers to stop paying for a dead emulator.
+        # THIS STEP STILL CANNOT STOP THE WAIT — nothing runs between the
+        # FATAL and the boot timeout inside the action, so on its own it reads
+        # a corpse ten minutes later. What it does is convert an unexplained
+        # timeout into a named cause. Three other things shorten or remove the
+        # wait, and none of them replaces this step: the disk preflight above
+        # prevents the one known cause from costing the wait at all; the
+        # watchdog armed before that preflight signals the emulator step the
+        # moment a FATAL appears, so this scan usually runs seconds rather than
+        # minutes after the death; and `android_emulator_boot_timeout` is the
+        # blunt lever a caller lowers.
+        #
+        # The watchdog matches on THIS step's pattern over THIS step's log, so
+        # it can only ever bring forward a verdict this step would have
+        # reached. Change the pattern here and the watchdog changes with it —
+        # `maestro-native-fatal-watchdog.test.ts` asserts the two are
+        # identical, because a watchdog firing on a rule the scan does not
+        # share would fail runs the scan calls healthy.
         if: ${{ !cancelled() }}
         env:
           EMULATOR_LOG: ${{ runner.temp }}/android-emulator.log
@@ -2748,6 +2996,73 @@ jobs:
           fi
 
           echo "Scanned $(wc -l < "$EMULATOR_LOG") lines of emulator log, no FATAL."
+
+      - name: 🐕 Reap the emulator launch-FATAL watchdog
+        # `always()`, not `!cancelled()`. This step gives no verdict — the scan
+        # above already gave it, whether the watchdog shortened the wait or
+        # not — so its only jobs are to leave no process behind and to say when
+        # the watchdog was NOT guarding. Both are owed on a cancelled run too.
+        #
+        # It never fails the job. An inert watchdog costs latency, not
+        # correctness: the scan step still fails the run and still fails closed
+        # on a missing or empty log. Failing here would turn a degraded
+        # optimisation into an outage, and would do it on healthy runs.
+        if: ${{ always() }}
+        env:
+          WATCHDOG_DIR: ${{ runner.temp }}
+        shell: bash
+        run: |
+          set -uo pipefail
+
+          PID_FILE="${WATCHDOG_DIR}/emulator-fatal-watchdog.pid"
+          STATUS_FILE="${WATCHDOG_DIR}/emulator-fatal-watchdog.status"
+          STOP_FILE="${WATCHDOG_DIR}/emulator-fatal-watchdog.stop"
+
+          if [ ! -f "$PID_FILE" ]; then
+            echo "::warning title=The emulator launch-FATAL watchdog never armed::No PID file at ${PID_FILE}, so nothing was watching the emulator log during the boot wait. A launch FATAL would still have been NAMED by the scan step, but only after the full emulator boot timeout."
+            exit 0
+          fi
+
+          WATCHDOG_PID="$(cat "$PID_FILE")"
+          # Read liveness BEFORE stopping it. A watchdog that exited on its own
+          # without recording why was not guarding anything, and that is the
+          # one state an operator cannot see from a green run.
+          WAS_ALIVE=0
+          if kill -0 "$WATCHDOG_PID" 2>/dev/null; then
+            WAS_ALIVE=1
+          fi
+
+          # Stop file first, so a watchdog mid-poll exits on its own terms and
+          # records that it did. The signal is the fallback.
+          : > "$STOP_FILE"
+          if [ "$WAS_ALIVE" = "1" ]; then
+            kill -TERM "$WATCHDOG_PID" 2>/dev/null || true
+          fi
+
+          WATCHDOG_STATUS="$(cat "$STATUS_FILE" 2>/dev/null || true)"
+
+          case "$WATCHDOG_STATUS" in
+            fatal-signalled*)
+              # Not an annotation. The scan step above is the one voice that
+              # reports the failure; this only records that the wait was cut
+              # short, so a reader can tell a fast failure from a slow one.
+              echo "Watchdog matched a FATAL in the emulator log and signalled the emulator action (pid${WATCHDOG_STATUS#fatal-signalled}), so this run did not pay the rest of the boot timeout. The failure itself is reported by the FATAL scan above."
+              ;;
+            fatal-no-target)
+              echo "::warning title=The watchdog saw a FATAL but had nothing to signal::It matched no process for the emulator action, so the run still paid the boot timeout. This is what a bumped action SHA or a changed runner layout looks like — re-check the watchdog's target pattern against reactivecircus/android-emulator-runner."
+              ;;
+            expired)
+              echo "::warning title=The emulator launch-FATAL watchdog hit its liveness bound::It stopped watching before this step reaped it, so part of the run was unguarded. The bound is a backstop against an orphaned process, not a timeout to tune."
+              ;;
+            *)
+              if [ "$WAS_ALIVE" = "0" ]; then
+                echo "::warning title=The emulator launch-FATAL watchdog exited without saying why::It was already gone when this step ran and recorded no outcome, so it was not watching for some of the boot wait. The FATAL scan above is unaffected and still gates this run."
+              fi
+              # Alive and quiet is the healthy path: no FATAL was ever
+              # matched. It says nothing, per the acceptance criteria — a
+              # healthy run must look exactly as it did before this existed.
+              ;;
+          esac
 
       - name: 🔢 Count executed flows
         # The iOS job carries a byte-identical copy of this step (with the

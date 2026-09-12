@@ -86,6 +86,11 @@
 import { spawnSync } from "node:child_process";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+// Downstream both files land flat in one `scripts/` directory, so this
+// resolves there exactly as it does here. Imported rather than reimplemented:
+// a second lane parser is a second answer to `whose is this?`, and two
+// answers is the state this report exists to end.
+import { parseLaneId, soleWorkItem, workItemLines } from "./lisa-work-item.mjs";
 
 /** Branch name prefixes that are never work-in-flight. */
 const IGNORED_PREFIXES = Object.freeze(["backup/", "gh-readonly-queue/"]);
@@ -133,8 +138,8 @@ const REF_SOURCE = Object.freeze({ NAME: "branch name", TRAILER: "trailer" });
  */
 const REF_IN_SEGMENT = /^(?:[a-z]+-)*[a-z]{0,4}(\d{2,})(?![0-9a-z])/u;
 
-/** A work-item reference inside a `Work-Item:` trailer value. */
-const REF_IN_TRAILER = /(?:^|\D)(\d{2,})/u;
+/** A failed tip read must remain distinguishable from a missing lane stamp. */
+export const UNREADABLE_LANE = "unreadable";
 
 /** `20260904`: a compact `yyyymmdd` date, never a work item. */
 const COMPACT_DATE = /^20\d{6}$/u;
@@ -254,28 +259,66 @@ export function branchesAhead(remote = "origin", base = "main") {
  * The work-item reference a branch is bound to, and how strongly.
  *
  * The trailer is asked first because it is the same binding the commit gate
- * enforces. It is routinely absent — the branch that motivated this check
- * carried no trailer at all — so the branch name is the fallback, reported as
- * an inference rather than as a fact.
+ * enforces — and it is read the way the gate reads it, through the exported
+ * `workItemLines`, over each commit's whole message.
+ *
+ * This used to ask git: `--format=%(trailers:key=Work-Item,valueonly)`. That is
+ * the obvious tool and it is the wrong one. Git's parser sees only a message's
+ * FINAL contiguous block of `Key: value` lines, and this fleet's convention
+ * puts `🤖 Generated with Claude Code` boilerplate below the trailer, which
+ * ends the block. Measured over non-merge commits that name an item: on a
+ * single multi-agent branch git found none on 47 of 51; over full
+ * default-branch history it missed 477 of 1,730. So the claim this docstring
+ * used to make — "it is routinely absent" — was mostly a property of the
+ * reader, not of the branches, and every one of those branches was ruled on
+ * from a branch-name INFERENCE while its canonical binding sat in the message
+ * unread. See the `work-item-trailer-definition` rule (#3747).
+ *
+ * The branch name remains the fallback for a branch that genuinely carries no
+ * trailer, reported as an inference rather than as a fact. A branch naming
+ * several items cannot be classified from one item's state: leave it unresolved
+ * rather than choosing whichever commit git happened to print first.
  * @param {string} branch Short branch name.
  * @param {string} base Default branch name.
  * @param {string} remote Remote name.
  * @param {typeof run} exec Command runner.
+ * @param {object} [contract] Tracker contract; the canonical reader resolves it when omitted.
  * @returns {{ref: string, refSource: string} | undefined} The reference.
  */
-export function workItemRef(branch, base, remote = "origin", exec = run) {
-  const trailers = exec("git", [
+export function workItemRef(
+  branch,
+  base,
+  remote = "origin",
+  exec = run,
+  contract
+) {
+  const messages = exec("git", [
     "log",
-    "--format=%(trailers:key=Work-Item,valueonly,separator=%x2C)",
+    "--format=%B",
     `${remote}/${base}..${remote}/${branch}`,
   ]);
-  const fromTrailer = trailers
-    ?.split(/[\n,]/u)
-    .map(value => value.trim())
-    .find(value => value.length > 0);
-  if (fromTrailer) {
-    const digits = REF_IN_TRAILER.exec(fromTrailer);
-    if (digits) return { ref: digits[1], refSource: REF_SOURCE.TRAILER };
+  if (messages === undefined) return undefined;
+  const values = workItemLines(messages);
+  // The canonical reader omits empty values. Count raw column-zero prefixes
+  // too, so an empty declaration stays invalid even beside a valid trailer.
+  const declarations = messages
+    .split(/\r?\n/)
+    .filter(line => /^work-item:/i.test(line));
+  if (declarations.length !== values.length) return undefined;
+  if (values.length > 0) {
+    try {
+      const canonical = soleWorkItem(messages, contract, "branch commits");
+      // This collector reads GitHub issues. A valid reference for a different
+      // tracker is not a GitHub issue number and cannot be looked up with gh.
+      const ref = canonical.split("#")[1];
+      return ref ? { ref, refSource: REF_SOURCE.TRAILER } : undefined;
+    } catch {
+      // probe-direction: fail-closed — an invalid binding leaves the branch
+      // unresolved, so a guessed issue cannot authorize its classification.
+      // Malformed and conflicting bindings are unknown, never permission to
+      // replace the commit evidence with a guess from the branch name.
+      return undefined;
+    }
   }
   const fromName = refInBranchName(branch);
   return fromName ? { ref: fromName, refSource: REF_SOURCE.NAME } : undefined;
@@ -390,12 +433,19 @@ function parseJson(text) {
  * @param {string} base Default branch name.
  * @param {string} remote Remote name.
  * @param {typeof run} exec Command runner.
+ * @param {object} [contract] Tracker contract, forwarded to the canonical trailer reader.
  * @returns {Map<string, WorkItem>} States, keyed by branch.
  */
-export function workItemStates(branches, base, remote = "origin", exec = run) {
+export function workItemStates(
+  branches,
+  base,
+  remote = "origin",
+  exec = run,
+  contract
+) {
   const states = new Map();
   for (const branch of branches) {
-    const found = workItemRef(branch, base, remote, exec);
+    const found = workItemRef(branch, base, remote, exec, contract);
     if (!found) continue;
     const view = parseJson(
       exec("gh", ["issue", "view", found.ref, "--json", "number,state,url"])
@@ -456,6 +506,38 @@ export function divergences(branches, base, remote = "origin", exec = run) {
 }
 
 /**
+ * The lane that produced each branch's tip commit.
+ *
+ * Every session in this fleet pushes under ONE git identity, so `author.login`
+ * is a constant here and answers nothing: it is the same name on a branch a
+ * live session is still working and on one whose session ended days ago. The
+ * lane stamp is the only thing in the record that differs between them, which
+ * makes it the only thing this report can route on.
+ *
+ * A branch with no stamp is reported as unrouted rather than omitted. Silence
+ * about attribution reads as "nobody made this", and the sweep that motivated
+ * the stamp already reached two wrong conclusions that way.
+ * @param {ReadonlyArray<string>} branches Branch names, without the remote.
+ * @param {string} remote Remote the branches live on.
+ * @param {(command: string, args: string[]) => (string|undefined)} [exec] Runner.
+ * @returns {Map<string, string>} Lane id or UNREADABLE_LANE by branch, absent only when no stamp was found.
+ */
+export function branchLanes(branches, remote = "origin", exec = run) {
+  const lanes = new Map();
+  for (const branch of branches) {
+    const message = exec("git", [
+      "log",
+      "-1",
+      "--format=%B",
+      `${remote}/${branch}`,
+    ]);
+    const lane = message === undefined ? UNREADABLE_LANE : parseLaneId(message);
+    if (lane !== undefined) lanes.set(branch, lane);
+  }
+  return lanes;
+}
+
+/**
  * Branches carrying commits that no pull request has ever covered, each with
  * the tracker's verdict on whether the WORK survived.
  *
@@ -467,12 +549,14 @@ export function divergences(branches, base, remote = "origin", exec = run) {
  * @param {Set<string>} inputs.submitted Branch names that have a pull request.
  * @param {Map<string, WorkItem>} [inputs.items] Work-item states by branch.
  * @param {Map<string, Divergence>} [inputs.divergence] Two-sided counts by branch.
+ * @param {Map<string, string>} [inputs.lanes] Lane id by branch.
  * @returns {ReadonlyArray<Candidate>} The candidates, each carrying a verdict.
  */
 export function orphanedBranches({
   ahead,
   divergence = new Map(),
   items = new Map(),
+  lanes = new Map(),
   submitted,
 }) {
   return ahead
@@ -488,6 +572,7 @@ export function orphanedBranches({
         baseLeads: sides ? sides.baseAhead > 0 : undefined,
         branch: row.branch,
         divergence: sides,
+        lane: lanes.get(row.branch),
         ref: item?.ref,
         refSource: item?.refSource,
         route: item?.route,
@@ -516,6 +601,7 @@ export function main(argv = process.argv.slice(2), probe = {}) {
   const {
     collectAhead = branchesAhead,
     collectDivergence = divergences,
+    collectLanes = branchLanes,
     collectSubmitted = branchesWithPullRequests,
     collectWorkItems = workItemStates,
     log = console.log,
@@ -553,6 +639,7 @@ export function main(argv = process.argv.slice(2), probe = {}) {
     ahead,
     divergence: collectDivergence(candidates, base, remote),
     items: collectWorkItems(candidates, base, remote),
+    lanes: collectLanes(candidates, remote),
     submitted,
   });
   log(
@@ -624,7 +711,25 @@ function renderRow(row, base) {
   lines.push(
     `      ${row.ahead} commit(s) ahead of ${base}${direction(row, base)}`
   );
+  lines.push(`      ${routing(row)}`);
   return lines;
+}
+
+/**
+ * Who this branch can be handed back to.
+ *
+ * The lane is a one-way digest of an id the agent runtime supplied: it names
+ * no session, no URL and no person, and a live session recognises its own work
+ * by deriving the same token rather than by being told whose it is.
+ * @param {Candidate} row A row from `orphanedBranches`.
+ * @returns {string} The routing clause.
+ */
+function routing(row) {
+  if (row.lane === UNREADABLE_LANE)
+    return "tip commit could not be read, so its lane is unknown — retry the read before routing this branch";
+  if (row.lane === undefined)
+    return "no lane on the tip commit, so this cannot be routed to a session — it predates the stamp, or was made outside a Lisa hook";
+  return `produced by ${row.lane} — a session confirms this is its own with \`node scripts/lisa-work-item.mjs lane\``;
 }
 
 /**

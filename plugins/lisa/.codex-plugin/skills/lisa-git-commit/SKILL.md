@@ -33,6 +33,11 @@ Create conventional commits for current changes. Optional hint: $ARGUMENTS
 - `refactor:` for code restructuring
 - `test:` for test additions
 
+For hand-written messages, put prose and attribution text before one final,
+unbroken block of `Key: value` trailers, including `Work-Item:` and
+`Co-authored-by:`. Commit preparation repairs a misplaced work-item reference;
+the original authored line may remain in the message.
+
 ### Never
 
 - use `--no-verify` flag

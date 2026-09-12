@@ -23,6 +23,20 @@ This indirection exists so the gate definitions live in exactly one place (`lisa
 
 Pass through `lisa-jira-validate-ticket`'s structured output unchanged. Do not summarize or paraphrase — downstream callers (e.g. `lisa-jira-agent`'s pre-flight gate) parse the gate lines.
 
+## Comparison semantics — semantic, never byte-exact
+
+Verification here re-runs `lisa-jira-validate-ticket` against the live ticket. It does **not** compare the
+stored body against the sent body byte for byte, and it must never drift to doing so.
+
+JIRA normalizes markdown on write. Observed normalizations include rewriting `-` bullets
+as `*`, wrapping a bare URL as an explicit link, and re-segmenting bold emphasis around
+inline code spans — all lossless, all rendering-identical. **A byte-exact comparator cannot
+distinguish vendor markdown normalization from corruption**, so it reports failure on
+perfectly healthy writes and trains its reader to ignore it (CodySwannGT/lisa#3663).
+
+Any comparison of tracker-normalized rich text is therefore semantic, or
+normalize-then-compare. Byte-exact comparison of such text is forbidden.
+
 ## Notes
 
 - This skill is read-only. It never edits the ticket, posts comments, or changes status.

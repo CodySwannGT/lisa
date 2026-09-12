@@ -245,6 +245,46 @@ describe("findActionRefs", () => {
     ]);
   });
 
+  // A quoted value is the same scalar to YAML and the same action to GitHub,
+  // but a value class that excluded quotes could not begin matching at one —
+  // so the reference did not FAIL the scan, it left it, and the gate reported
+  // clean having inspected nothing. Both quote styles, and both verdicts:
+  // reading a quoted mutable ref is the half that closes the vacuous pass.
+  it.each([['"'], ["'"]])("reads a %s-quoted reference", quote => {
+    const refs = findActionRefs(
+      workflow(`${quote}${ACTION}@${PINNED_SHA}${quote}  # ${VERSION}`)
+    );
+    expect(refs).toEqual([
+      {
+        action: ACTION,
+        kind: THIRD_PARTY,
+        line: 7,
+        owner: VENDOR,
+        ref: PINNED_SHA,
+        version: VERSION,
+      },
+    ]);
+  });
+
+  it("reads a quoted MUTABLE ref, which is what the gate exists to find", () => {
+    expect(findActionRefs(workflow(`"${ACTION}@v1"`))).toEqual([
+      {
+        action: ACTION,
+        kind: THIRD_PARTY,
+        line: 7,
+        owner: VENDOR,
+        ref: "v1",
+        version: null,
+      },
+    ]);
+  });
+
+  // Mismatched quotes are not a quoted value, and must not be read as one by
+  // an opening quote the pattern never closes.
+  it("does not read a mismatched quote pair as a quoted reference", () => {
+    expect(findActionRefs(workflow(`"${ACTION}@v1'`))).toEqual([]);
+  });
+
   it("ignores local and container references, which have no upstream owner", () => {
     const yaml = [
       "    steps:",

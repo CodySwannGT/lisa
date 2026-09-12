@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# This file is managed by Lisa and IS replaced on each `lisa` run.
+# Do not edit directly — durable changes belong upstream in Lisa.
+
 """Classify the only heredoc forms whose payload is non-executable text.
 
 SCOPE — read this before hardening anything here (issue #1993).

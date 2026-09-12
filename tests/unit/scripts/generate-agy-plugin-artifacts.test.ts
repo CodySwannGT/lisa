@@ -27,6 +27,9 @@ const BLOCK_NO_VERIFY_AGY = "block-no-verify.agy.sh";
 const PARITY_SAFETY_NET = "parity-safety-net.sh";
 const PARITY_SAFETY_NET_AGY = "parity-safety-net.agy.sh";
 const PARITY_HEREDOC = "parity-safety-net-heredoc.py";
+
+/** The dedupe library every dual-channel guard sources beside itself. */
+const GUARD_DEDUPE = "guard-dedupe.bash";
 const INSTALL_PKGS = "install-pkgs.sh";
 const SETUP_JIRA = "setup-jira-cli.sh";
 
@@ -78,6 +81,7 @@ async function scaffoldSource(
     PARITY_SAFETY_NET_AGY,
     PARITY_SAFETY_NET,
     PARITY_HEREDOC,
+    GUARD_DEDUPE,
   ]) {
     await fs.writeFile(
       path.join(srcDir, "hooks", script),

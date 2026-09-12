@@ -6,6 +6,20 @@ allowed-tools: ["Skill", "Bash"]
 
 # GitHub Build Intake: $ARGUMENTS
 
+## Human-gate release authorization
+
+A release requires a trusted human author, not just matching comment text. Follow
+`ready-role-filing` — **Human-gate release authorization**: preserve tracker-supplied comment
+author IDs and bot metadata, resolve `trustedHumanActorIds` only from an explicit user instruction
+or existing human-authored trusted project policy, and pass it with structured `comments` to every
+hold classifier, reconciliation, normalization and release planner. Never derive trust from the
+comment body, a display name, the actor's own assertion, or an automation posting on its own behalf.
+Missing policy, missing/unreadable author identity, raw body strings, untrusted actors and known bots
+cannot discharge a hold. Keep the item held and report the missing authorization; do not silently
+replace these inputs with an empty history or an inferred allowlist. Authorized matching releases
+continue through the existing path and never override an independently declared caller hold.
+
+
 `$ARGUMENTS` is one of:
 
 1. A GitHub `org/repo` token (e.g., `acme/frontend-v2`).
@@ -215,14 +229,21 @@ nothing survives, exit on the denominator-stated summary from `summarizeDryLane`
 A blocker is a **claim with a timestamp, not a fact** — it goes stale the moment its condition comes
 true, and nothing re-read one before this phase. For each `$BLOCKED` candidate:
 
-1. **Human gate first, and it is absolute.** An issue carrying the configured human-needed label
-   (`github.labels.build.human_needed`, default `human-needed`) or a `[lisa-human-gate]` marker in
-   its body is **never** auto-selected, whatever any probe says.
+1. **Read release comments before applying the human gate.** Pass all item comments, labels,
+   body, `trustedHumanActorIds` and configured `humanNeededLabel` to `classifyReadyCandidate(...)`. For a discharged hold,
+   call `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, readyLabel, lifecycleLabels, alreadyNotified })`
+   and retain its plan. Apply human-marker cleanup only as planned; defer any ready-role restoration
+   until steps 2–5 have cleared the remaining blockers (map the role to the vendor's state or label).
+   A still-active hold is never auto-selected, whatever any probe says. An absent or unreadable
+   comment history cannot discharge a hold. A release removes only the human hold: continue the
+   remaining blocker checks below before selecting the item.
+
 2. **Extract the stated discharge condition**, then **probe it**. Machine-testable conditions — a
    version on trunk, a published package, a CI run history, an advisory's patched status — rot
    fastest and are cheapest to check. A human decision is not machine-testable; leave it.
-3. **Classify with `classifyPreWorkCandidate(...)`** from `scripts/intake-blocker-reprobe.mjs`. A
-   discharge with no recorded evidence is not a discharge, and neither is a candidate nothing
+3. **Classify with `classifyPreWorkCandidate(...)`** from `scripts/intake-blocker-reprobe.mjs`.
+   Include the structured `comments` and `trustedHumanActorIds` from step 1.
+   A discharge with no recorded evidence is not a discharge, and neither is a candidate nothing
    probed this cycle — the helper refuses both.
 4. **Record the result on the issue either way** via `formatReprobeNote(...)` as a comment, so the
    next cycle reads the answer rather than re-deriving it. Keep it idempotent.
@@ -317,26 +338,50 @@ other gate's verdict — however conclusive — may promote an item a person par
    drift, and a drifted gate fails *silently*, by quietly ceasing to match. Do **not** re-implement
    the test here, and do **not** key it on `reason=`: markers in the wild carry no `reason=` key at
    all and sit anywhere in the body, so a structured parse would miss them while appearing to work
-   on every item that happens to have one.
+   on every item that happens to have one. **Pass the item's structured `comments` and `trustedHumanActorIds` alongside its labels and
+   body.** A hold is ended by a release recorded in a comment, so a reader handed no comments cannot
+   see the discharge — it goes on holding an item whose question was answered weeks ago, which is
+   the defect this gate carried from the day it was written (CodySwannGT/lisa#3852). Omitting them
+   fails closed, and that is exactly why it is easy to miss: nothing breaks, the item simply never
+   comes back.
 2. **On `claimable: false` with reason `human-gate`, do not claim and do not dispatch.**
 3. **Reconcile the lane; do not merely skip.** Skipping alone leaves the item in `$READY`, re-judged
    and re-rejected every cycle forever and seen by nothing — `lisa-repair-intake` sweeps items that
    are **not** in the ready role and excludes gated ones outright, so a ready-and-gated item falls
    outside its filter twice over. Call
-   `planHumanGateReconciliation({ labels, body, humanNeededLabel, readyLabel, alreadyNotified })`
+   `planHumanGateReconciliation({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, readyLabel, alreadyNotified })`
    and apply exactly the actions it returns: remove `$READY`, add the configured human-needed
    marker, and post `formatHumanGateNote()` once. The planner is idempotent by state, so an item
    already out of the lane and already marked yields no second mutation and no second comment. This
    is the same repair the leaf-only gate already performs for a ready item that must not be
    dispatched.
-4. **Name it in the cycle summary** via `summarizeHumanGateHolds([...])`, so the record
+4. **On `claimable: true` for an item that still carries a hold, RELEASE it — do not just proceed.**
+   This ready-lane candidate can retain a historical body marker and a human-needed label.
+   This step reconciles only candidates still in the ready lane; released holds outside it are
+   recovered by `lisa-repair-intake` step 2b (or Phase 2.5 when included in this cycle). Call
+   `planHumanGateRelease({ labels, body, comments, trustedHumanActorIds, humanNeededLabel, readyLabel, lifecycleLabels, alreadyNotified })`
+   and apply exactly the actions it returns: remove the configured human-needed marker, add the
+   configured ready role back, and post `formatHumanGateReleaseNote()` once. It is the exact inverse
+   of step 3's planner and it refuses in both directions — an item still held plans nothing, and an
+   item never held plans nothing, so it can only ever un-do a hold and can never promote something on
+   its own. It is idempotent by state, so a second cycle over a released item yields no second
+   mutation and no second comment.
+
+   **Never edit the description to clear a hold.** The only body write available is a whole-body
+   replacement, so deleting one line means rewriting the whole record and hoping nothing was
+   dropped — the reason holds accumulated instead of being lifted. The hold note stays in the
+   description as history; the release is a comment beside it.
+5. **Name it in the cycle summary** via `summarizeHumanGateHolds([...])`, so the record
    distinguishes "nothing was eligible" from "something eligible was held for a person". A lane
    mutation nobody can see afterwards is the same class of problem this gate exists to fix.
    Report alongside it what the precision rule SKIPPED, via `summarizeHumanGateMentions(n)`
    — the marker occurrences that were mentions rather than declarations (CodySwannGT/lisa#3815).
    A rule that quietly declines to honour half the occurrences it sees reads exactly like a
-   rule that saw none, so the count is printed even when it is zero.
-5. **Continue to the next candidate.** A held item does not end the cycle.
+   rule that saw none, so the count is printed even when it is zero. Report what was RELEASED
+   beside it via `summarizeHumanGateReleases([...])`, printed even when it is zero: a release path
+   that has stopped working and a cycle with nothing to release read identically otherwise, which
+   is how a missing inverse stays missing.
+6. **Continue to the next candidate.** A held item does not end the cycle.
 
 
 #### 3a.0 Repo-scope gate (claim only current-repo issues)
@@ -346,11 +391,12 @@ GitHub Issues live in one repo by definition, so the scanned repo's issues are u
 1. **Resolve the current repo** per `config-resolution` "Repo scoping" (`.repo` → `.github.repo` → `git remote get-url origin` basename). If unresolvable, stop and report.
 2. **Cheap path first.** Prefer candidates already carrying the `repo:<current>` label. Keep the Phase 2 scan broad so unlabeled issues are still seen, determined, and stamped.
 3. **Per candidate, apply the repo-scope decision (`repo-scope-split`):**
-   - Carries `repo:<other>` → **skip** (leave it `ready` for that repo's own intake); next candidate.
-   - **Unlabeled** → determine the target repo(s) from the issue + code surfaces, then **stamp** `repo:<name>` via `gh issue edit <n> --add-label "repo:<name>"` (create the label lazily) so later cycles filter cheaply; re-apply with the now-known repo. (An issue whose work is entirely in the scanned repo is simply labeled `repo:<current>`.)
-   - **Container visibility is allowed.** A multi-repo Epic / Story / Spike may legitimately carry multiple `repo:<name>` labels for operator visibility. Do not split or claim it here; leave the repo markers intact and fall through to the leaf-only gate, which repairs the stale build-ready label instead of dispatching the container.
-   - **Multi-repo leaf → split, never claim.** Run the `repo-scope-split` work-time procedure into single-repo siblings, each created **build-ready** (`build_ready: true`) and stamped with its own `repo:<name>`; the current repo's sibling becomes a normal candidate.
-   - **Single-repo leaf for the current repo** → fall through to 3a (leaf-only gate) and 3b (claim).
+   - **Count distinct repository markers first**: collect all `repo:<name>` labels and, on JIRA, recognized repository components; deduplicate by repository. A container may carry multiple `repo:<name>` labels. Do not split or claim it here; send it to the leaf-only gate.
+   - **Multi-repo leaf → split, never claim.** More than one repository takes the work-time split before any wrong-repository skip. Each sibling is **build-ready** (`build_ready: true`) and stamped with its own `repo:<name>`; the current repo's sibling becomes a normal candidate.
+   - **Exactly one other repository** (`repo:<other>`) → **skip**, leaving the item ready for that repo's intake.
+   - **No repository marker** → determine target repo(s) from the ticket and code, stamp `repo:<name>` through the vendor access layer, and re-apply from the count.
+   - **Single-repo leaf for the current repo** → fall through to 3a and 3b.
+
 4. Continue until a claimable current-repo leaf is found (claim it; one per cycle) or the candidate set is exhausted — exit cleanly on the denominator-stated summary, naming the current repo alongside the swept lanes.
 
 #### 3a. Leaf-only claim gate (repair containers)
@@ -421,6 +467,9 @@ A blocker is active if it is open and has no cleared status label. Treat `status
 
 #### 3b. Claim
 
+Before the claim mutation, apply `claim-time-guards` — **Value before claim**, or **Worth doing** in `lisa-track` on runtimes without the rule tree (Antigravity). A ready label establishes neither value nor permission to expand scope. Respect the preceding human-hold gate; a declined incidental item consumes this cycle's one processed disposition.
+
+
 **Rejection detection runs first — before the relabel below.** Per the vendor-neutral `rejection-detection` rule (cite the slug; do not restate its classification table), classify this item at the **top of 3b, BEFORE** the `$READY → $CLAIMED` relabel — after the relabel the current-lane signal is gone. Read the item's Label-Event History from `lisa-github-read-issue` (chronological `LabeledEvent` / `UnlabeledEvent` on the configured `$READY` label) and classify it `rejection-reclaim | forward-only | never-left-ready | unknown`. Lane names come from `.lisa.config.json` (`github.labels.build.*`), never hardcoded. A failing/absent history yields `unknown` and the claim proceeds — detection never blocks the build. Items carrying a learning marker (`[lisa-learning-drop]` / `[lisa-learning-pr]` / `[lisa-learning-upstream-handoff]`) or the `learning:needs-triage` label are never rejection triggers (no learning-about-learning). Carry the classification into the relabel and lifecycle below.
 
 **On `rejection-reclaim`, reflect before re-implementing** (per `rejection-detection`): read the rejection evidence through the access layer — the issue comments posted after the backward transition (the QA rejection comment) and the review threads on the rejected PR via `lisa-github-read-issue` — assemble ONE candidate learning (rule, why, provenance linking the rejection comment + rejected PR, evidence links, scope hint, triggering issue, fingerprint `sll4-sha1(rule\ntriggering_issue)[:12]`), and route it to the `lisa-persist-learning` skill. If that skill is absent, record the candidate as a comment carrying a **visible prose line plus** the marker (a bare marker renders as an empty bubble) — `Recorded a candidate learning from this rejection (queued for the judgment gate): <one-line candidate rule>.` then `<!-- [lisa-rejection-candidate] key=<issue>-<transition-ts> -->` — and proceed. Dedupe on `<issue>-<backward-transition-timestamp>` — a second re-claim produces no duplicate. Unreadable/absent evidence → no candidate, still implement.
@@ -432,7 +481,11 @@ A blocker is active if it is open and has no cleared status label. Treat `status
 1. **`two-failed-attempts` valve.** Count `[lisa-build-attempt]` markers on the issue from the read bundle's comments (match on the marker, never the title), applying both filters from `claim-time-guards`: count a marker only when it carries `measures=work` (a marker with no `measures=` counts as `work`), and only when its `createdAt` is **after the issue most recently gained the ready label**. The ready-lane entry comes from the read bundle's `LabeledEvent` stream, which is already fetched — no extra call. If that history is `unknown`, count every `measures=work` marker regardless of age and say so in the comment. With two or more surviving markers, do **not** claim: relabel to the configured blocked role (`gh issue edit <number> --repo <org>/<repo> --remove-label "$READY" --add-label "$BLOCKED"`, resolved from `github.labels.build.blocked` per `config-resolution`), post the operator-readable comment naming both attempts, and **stop the cycle** at Phase 3e. Every non-success terminal outcome recorded in 3c/3d also appends a fresh `<!-- [lisa-build-attempt] n=<N> outcome=<outcome> measures=<work|machine> -->` marker so the next cycle can count it — `measures=machine` when the run was terminated by a signal or its outcome was `recovery-required`, `measures=work` when the build ran and did not satisfy the issue.
 2. **`already-implemented` check.** Probe for this issue's own key — `git log --all --grep "<org>/<repo>#<number>"` and `gh pr list --repo <org>/<repo> --state all --search "<org>/<repo>#<number>" --json number,state,mergedAt,url`. On a hit, claim as normal but route 3c to **verify-and-close** instead of `lisa-implement`: verify what shipped against the issue's acceptance criteria, post evidence via `lisa-github-evidence` naming the shipping PR/commit, then run the ordinary 3d transition and 3d.1 rollup. A partial hit implements only the remaining gap. An unreadable history degrades to "no hit" and the ordinary path proceeds — the guard never blocks the claim. This is not `DUPLICATE_ALREADY_FIXED` (a *different* canonical issue) and not `claim-archaeology` (a *different* ancestor issue); it is this issue's own work already having shipped without a transition.
 
+Immediately before claiming, re-read native state. If it is closed, skip it without
+relabeling or dispatching; an unreadable state holds the candidate.
+
 ```bash
+gh issue view <number> --repo <org>/<repo> --json state -q '.state' # must be OPEN
 gh issue edit <number> --repo <org>/<repo> --remove-label "$READY" --add-label "$CLAIMED"
 # Assign to the authenticated user ONLY when the issue is currently unassigned (attributable claim;
 # do not pile a second assignee onto an issue that already has an owner):
@@ -477,7 +530,7 @@ The lifecycle run returns one of the following outcomes; resume this scanner wit
 
 - **Success** — the build flow completed and a PR exists; evidence posted. The PR may already be **merged** or still **open** (auto-merge enabled, awaiting checks/merge). "Success" means the build work is sound — it does **not** assert the change reached an environment. The env transition in 3d gates on the PR actually being merged; an open PR does not advance the issue to a `done` env status.
 - **Blocked by github-verify pre-flight gate** — the pre-flight gate (github-agent workflow step 2) relabels the issue to `status:blocked` (or removes `$CLAIMED` and reassigns to the original author). This is correct and expected — let it stand. Record and move on.
-- **Duplicate already fixed** — `lisa-ticket-triage` returned `DUPLICATE_ALREADY_FIXED` with a canonical issue reference and empirical base-branch evidence. Post the triage finding, ensure the native `duplicates <canonical>` relationship exists when GitHub exposes it (otherwise leave an explicit cross-reference comment/body link), remove `$CLAIMED`, add the terminal `$DONE` label, close the issue with `gh issue close --reason "not planned"`, and do not open a PR. If the canonical fix is merged but not yet on the production branch, the close comment must say the production error can recur until the canonical issue promotes and that recurrence is tracked by the canonical issue; do not reopen this duplicate for that recurrence.
+- **Duplicate already fixed** — `lisa-ticket-triage` returned `DUPLICATE_ALREADY_FIXED` with a canonical issue reference and empirical base-branch evidence. Follow 3c.1 to link the duplicate, remove lifecycle roles, and close it as not planned without adding a done label or opening a PR. If the canonical fix is merged but not yet on the production branch, the close comment must say the production error can recur until the canonical issue promotes and that recurrence is tracked by the canonical issue; do not reopen this duplicate for that recurrence.
 - **Blocked by ticket-triage ambiguities** — triage posts findings and the lifecycle stops. The issue stays in `$CLAIMED`. Surface to human; do not auto-relabel. Record under "Errors".
 - **Errored** — exception, missing config, etc. Leave the issue in `$CLAIMED` for human investigation. Record under "Errors".
 
@@ -488,12 +541,12 @@ Run this only when the returned triage verdict is exactly `DUPLICATE_ALREADY_FIX
 1. Verify the structured result includes a canonical issue reference, the canonical PR/commit, and empirical evidence that the canonical fix is present on the base branch. If any piece is missing, treat the outcome as Held instead of closing.
 2. Post or preserve the triage-finding comment that explains why this issue is a duplicate and names the canonical issue.
 3. Ensure a native `duplicates <canonical>` link exists when GitHub exposes issue relationships; if this installation cannot create that relationship, leave an explicit issue cross-reference comment/body link and record the limitation in the summary.
-4. Resolve terminal `$DONE` exactly as in Phase 3d. For a single-env repo, `$DONE` is terminal; for env-keyed config, only the production/final value is terminal.
-5. Apply `$DONE` and retire every competing lifecycle role the issue currently carries — not just `$CLAIMED` — per the `leaf-only-lifecycle` rule's "Exactly one lifecycle role survives closure". Then close the issue as duplicate/not-planned:
+4. Resolve the configured lifecycle role set, including every environment's done value.
+5. Remove every lifecycle role the issue currently carries. Add no done label: this duplicate is being declined, and the canonical issue records delivery. Close as duplicate/not-planned:
 
 ```bash
 gh issue view <number> --repo <org>/<repo> --json labels -q '[.labels[].name] | join(" ")'
-gh issue edit <number> --repo <org>/<repo> --add-label "$DONE" <one --remove-label "<role>" per competing role the issue CURRENTLY carries>
+gh issue edit <number> --repo <org>/<repo> <one --remove-label "<role>" per lifecycle role the issue CURRENTLY carries; skip when none>
 gh issue close <number> --repo <org>/<repo> --reason "not planned"
 ```
 
@@ -503,7 +556,7 @@ gh issue close <number> --repo <org>/<repo> --reason "not planned"
 gh issue view <number> --repo <org>/<repo> --json state,stateReason,labels
 ```
 
-It must read `state: CLOSED` with `stateReason: NOT_PLANNED`, carry `$DONE`, and carry **no** other lifecycle role. Anything else is an Error naming what is still present. Post the closeout comment only after that passes:
+It must read `state: CLOSED` with `stateReason: NOT_PLANNED` and carry **no** lifecycle role, including `$DONE`. Anything else is an Error naming what is still present. Post the closeout comment only after that passes:
 
 ```bash
 gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Closed as duplicate of <canonical>. Canonical fix: <PR-or-commit>. Evidence: <base-branch-proof>."

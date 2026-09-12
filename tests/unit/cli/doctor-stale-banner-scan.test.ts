@@ -1,0 +1,156 @@
+/**
+ * The fail-closed filesystem seam under the stale-banner check.
+ *
+ * The check's whole value rests on one distinction: a directory that is not
+ * there, versus a directory that declined to be read. `fs-extra`'s `pathExists`
+ * and a bare `catch { return [] }` collapse those into the same shape, and the
+ * collapsed answer condemns every managed banner in the repository at once. So
+ * the seam is pinned directly here rather than only through the check that uses
+ * it — a test that injects its own lister proves the check propagates a
+ * refusal, but proves nothing about whether the real lister ever produces one
+ * (CodySwannGT/lisa#3703).
+ * @module tests/unit/cli/doctor-stale-banner-scan
+ */
+import * as fse from "fs-extra";
+import * as path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import {
+  listDirectory,
+  readHeaderPrefix,
+  shippedDestinations,
+} from "../../../src/cli/doctor-stale-banner-scan.js";
+import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
+
+/**
+ * A path the filesystem refuses to evaluate at all.
+ *
+ * An embedded NUL makes every `node:fs` call reject with
+ * `ERR_INVALID_ARG_VALUE` on every platform, which is a refusal rather than an
+ * absence — the exact distinction under test, reproduced without depending on
+ * `chmod`, which a run as root would silently make a no-op.
+ */
+const UNREADABLE = "unreadable\u0000path";
+
+/** A workflow destination shipped by more than one lane in these fixtures. */
+const CI_WORKFLOW = ".github/workflows/ci.yml";
+
+/** Directory segments of that destination, for building fixture paths. */
+const WORKFLOWS = [".github", "workflows"] as const;
+
+/** The two template strategies these fixtures ship under. */
+const CREATE_ONLY = "create-only";
+const COPY_OVERWRITE = "copy-overwrite";
+
+/** A minimal workflow body, enough for a file to exist. */
+const CI_BODY = "name: ci";
+
+describe("stale-banner filesystem seam", () => {
+  let temp: string;
+
+  beforeEach(async () => {
+    temp = await createTempDir();
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(temp);
+  });
+
+  describe("listDirectory", () => {
+    it("answers empty for a directory that is provably absent", async () => {
+      await expect(listDirectory(path.join(temp, "nowhere"))).resolves.toEqual(
+        []
+      );
+    });
+
+    it("answers empty when the path's parent is a file, not a directory", async () => {
+      await fse.writeFile(path.join(temp, "a-file"), "contents");
+
+      await expect(
+        listDirectory(path.join(temp, "a-file", "child"))
+      ).resolves.toEqual([]);
+    });
+
+    it("throws rather than answering empty when it could not look", async () => {
+      await expect(listDirectory(UNREADABLE)).rejects.toThrow(
+        /could not read/u
+      );
+    });
+
+    it("marks directories as not files, so they are never read as candidates", async () => {
+      await fse.ensureDir(path.join(temp, "nested"));
+      await fse.writeFile(path.join(temp, "plain.yml"), "name: x");
+
+      const entries = await listDirectory(temp);
+
+      expect(entries).toContainEqual({ isFile: true, name: "plain.yml" });
+      expect(entries).toContainEqual({ isFile: false, name: "nested" });
+    });
+  });
+
+  describe("readHeaderPrefix", () => {
+    it("answers undefined for a file that is provably absent", async () => {
+      await expect(
+        readHeaderPrefix(path.join(temp, "missing.yml"))
+      ).resolves.toBeUndefined();
+    });
+
+    it("throws rather than answering undefined when it could not look", async () => {
+      await expect(readHeaderPrefix(UNREADABLE)).rejects.toThrow(
+        /could not read/u
+      );
+    });
+
+    it("reads a bounded prefix rather than the whole file", async () => {
+      const big = path.join(temp, "big.yml");
+      await fse.writeFile(big, `# header\n${"x".repeat(200_000)}`);
+
+      const prefix = await readHeaderPrefix(big);
+
+      expect(prefix?.startsWith("# header")).toBe(true);
+      expect(prefix?.length).toBeLessThan(2048);
+    });
+  });
+
+  describe("shippedDestinations", () => {
+    it("indexes every lane and strategy the package ships", async () => {
+      await fse.outputFile(
+        path.join(temp, "all", COPY_OVERWRITE, "scripts", "gate.mjs"),
+        "// gate"
+      );
+      await fse.outputFile(
+        path.join(temp, "expo", CREATE_ONLY, ...WORKFLOWS, "ci.yml"),
+        CI_BODY
+      );
+      await fse.outputFile(
+        path.join(temp, "all", "merge", ".gitignore"),
+        "node_modules"
+      );
+
+      const index = await shippedDestinations(temp);
+
+      expect(index.get("scripts/gate.mjs")).toBe(COPY_OVERWRITE);
+      expect(index.get(CI_WORKFLOW)).toBe(CREATE_ONLY);
+      expect(index.get(".gitignore")).toBe("other");
+    });
+
+    it("lets a lane that overwrites a path outrank a lane that only seeds it", async () => {
+      await fse.outputFile(
+        path.join(temp, "all", CREATE_ONLY, ...WORKFLOWS, "ci.yml"),
+        CI_BODY
+      );
+      await fse.outputFile(
+        path.join(temp, "expo", COPY_OVERWRITE, ...WORKFLOWS, "ci.yml"),
+        CI_BODY
+      );
+
+      const index = await shippedDestinations(temp);
+
+      expect(index.get(CI_WORKFLOW)).toBe(COPY_OVERWRITE);
+    });
+
+    it("indexes nothing for a package root that holds no template lanes", async () => {
+      await expect(shippedDestinations(temp)).resolves.toEqual(new Map());
+    });
+  });
+});

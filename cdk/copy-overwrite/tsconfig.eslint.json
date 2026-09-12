@@ -8,5 +8,5 @@
     "moduleResolution": "bundler"
   },
   "include": ["**/*.ts"],
-  "exclude": ["node_modules", "dist", "cdk.out"]
+  "exclude": ["node_modules", "dist", "cdk.out", "worktrees"]
 }

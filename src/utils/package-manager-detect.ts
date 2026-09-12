@@ -79,7 +79,7 @@ export const LOCKFILE_REGEN_PLANS: Readonly<
  * npm-only project sets `engines.bun = "please-use-npm"`). Such a manager must
  * never have its lockfile regenerated — even if a stray lockfile for it is
  * present — because doing so re-creates the stray lockfile via that manager's
- * `install`. That is the SE-5221 regression: a stray `bun.lock` in an npm-only
+ * `install`. That is the package-manager selection regression: a stray `bun.lock` in an npm-only
  * project kept alive by `bun install`, which then misroutes the pre-push hook's
  * package-manager detection to the bun branch.
  * @param projectDir - Absolute path to the project directory
@@ -119,7 +119,7 @@ export function enginesForbiddenManagers(
  *
  * Managers opted out via an `engines` sentinel (e.g. `bun = "please-use-npm"`)
  * are dropped even when their lockfile is present, so the reconciliation never
- * re-creates a stray lockfile the project deliberately disallows (SE-5221).
+ * re-creates a stray lockfile the project deliberately disallows.
  * @param projectDir - Absolute path to the project directory
  * @returns Ordered list of detected package managers (possibly empty)
  */

@@ -42,6 +42,22 @@ This conflicts with shipped Lisa behavior. Lisa ships several ratchet families:
   head contains the base" true of every ordinary PR, so ancestry alone would have
   retired Tier 3 entirely.
 
+  *Amended 2026-09-06 (#3856):* an allow entry can now END. The list could only ever
+  get longer — no expiry, no review, no removal, and nothing read the `reason` — so an
+  exemption granted for a temporary condition outlived the condition and kept applying
+  forever, and the set of gates actually enforced shrank monotonically while every
+  individual decision that shrank it was correct at the time. An entry now carries
+  `until: "YYYY-MM-DD"`, the day it is live through; past that day it stops exempting
+  and the weakening it permitted is refused again, naming the entry, its scope, its
+  reason and the remedy. The shape is `_thresholdsDivergence`'s, not a second
+  mechanism: record the condition in an evaluable form, make the reason say what
+  resolves it, and report staleness with the remedy rather than lapsing into
+  "allowed". An entry naming no evaluable condition still exempts — refusing those
+  would red-wall every project mid-migration — but is reported on every ratchet run
+  until somebody gives it a condition or deletes it. `key: "*"` is reported as
+  file-wide, because an exemption covering one key and one covering all of them are
+  different risks wearing the same shape.
+
 Brownfield onboarding depends on ratchets: a red project adopts incrementally instead
 of being blocked until fully remediated.
 

@@ -254,12 +254,14 @@ describe("in-session filing call sites pass build_ready explicitly", () => {
    * SE-6799 case (a real defect found beside a non-reproducing ticket) is
    * claimable by build-intake on the next cycle with no human flipping status.
    */
+  // `lisa-qa-fail` was on this list until the human-QA acceptance family was
+  // retired. It is gone rather than exempted: the contract is about skills that
+  // still exist and still file work.
   const EXPLICIT_READY_CALLERS = [
     "lisa-track",
     "lisa-monitor",
     "lisa-verify-prd",
     "lisa-repair-intake",
-    "lisa-qa-fail",
   ] as const;
 
   describe.each(ROOTS)("%s", root => {

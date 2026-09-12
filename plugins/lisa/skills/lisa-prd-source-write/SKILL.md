@@ -38,6 +38,7 @@ ideation_ledger_payload:              # optional; forwarded unchanged to the ven
   selected_idea: "<selected idea title/key>"
   rejected_overlap_candidates: ["<issue refs/titles considered and rejected>"]
   expected_empirical_verification_artifact: "<artifact ref or unavailable>"
+  reproposal_context: "<optional dated decline, new evidence, changed consequence, token and acknowledgment already included in the PRD body by research>"
 ```
 
 `initial_role` semantics are uniform across vendors (the role STRINGS resolve per vendor from

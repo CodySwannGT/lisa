@@ -119,6 +119,91 @@ export const opencodeVerdicts = (
   return JSON.parse(result.stdout.trim()) as readonly string[];
 };
 
+/**
+ * The bash guard's verdict on a STRUCTURED call.
+ *
+ * The second substrate CodySwannGT/lisa#3753 gave the canonical guard: a
+ * creation arriving as named fields rather than as a command line. The port
+ * reached it one ticket later (CodySwannGT/lisa#3785), and these two drivers
+ * exist so the two implementations are compared on it rather than each being
+ * asserted alone — which is how the shell arm drifted for four tickets before
+ * the parity suite caught it.
+ * @param tool - The tool name the agent is about to call.
+ * @param args - The tool's arguments, as the agent decoded them.
+ * @param cwd - The project directory.
+ * @returns "allow" or "deny".
+ */
+export const bashStructuredVerdict = (
+  tool: string,
+  args: Readonly<Record<string, unknown>>,
+  cwd: string
+): string => {
+  const result = boundedSpawnSync({
+    label: "the block-direct-issue-create bash guard, structured substrate",
+    command: "/bin/bash",
+    args: [HOOK_PATH],
+    cwd,
+    env: {
+      ...process.env,
+      CLAUDE_PROJECT_DIR: "",
+      LISA_ALLOW_DIRECT_ISSUE_CREATE: "",
+    },
+    input: JSON.stringify({ tool_input: args, tool_name: tool }),
+  });
+  return result.status === 2 ? "deny" : "allow";
+};
+
+/**
+ * Every OpenCode verdict on a structured call, from a single Bun process.
+ *
+ * Batched for the same reason the shell driver is: one Bun start per case cost
+ * ~10s and put the file over the pre-push per-test budget, which fails the push
+ * as a test-correctness error rather than as a slow test.
+ * @param cases - The directory, tool and arguments for each case, in order.
+ * @returns One "allow" / "deny" per case, in the same order.
+ */
+export const opencodeStructuredVerdicts = (
+  cases: readonly {
+    readonly dir: string;
+    readonly tool: string;
+    readonly args: Readonly<Record<string, unknown>>;
+  }[]
+): readonly string[] => {
+  const program = `
+    const cases = JSON.parse(process.env.TEST_CASES);
+    const verdicts = [];
+    for (const [index, item] of cases.entries()) {
+      process.chdir(item.dir);
+      const imported = await import(process.env.PLUGIN_URL + "?case=" + index);
+      const plugin = await imported.LisaBlockDirectIssueCreate();
+      try {
+        await plugin["tool.execute.before"](
+          { tool: item.tool },
+          { args: item.args }
+        );
+        verdicts.push("allow");
+      } catch {
+        verdicts.push("deny");
+      }
+    }
+    console.log(JSON.stringify(verdicts));
+  `;
+  const result = boundedSpawnSync({
+    label: "bun evaluating every structured OpenCode plugin case",
+    command: BUN_PATH,
+    args: ["-e", program],
+    baseMs: 30_000,
+    env: {
+      ...process.env,
+      PLUGIN_URL: `file://${PLUGIN_PATH}`,
+      TEST_CASES: JSON.stringify(cases),
+      LISA_ALLOW_DIRECT_ISSUE_CREATE: "",
+    },
+  });
+  expect(result.status, result.stderr).toBe(0);
+  return JSON.parse(result.stdout.trim()) as readonly string[];
+};
+
 /** The upstream repository every caller in these fixtures files into. */
 export const UPSTREAM_REPO = "up-org/up-repo";
 

@@ -46,7 +46,7 @@ The Atlassian MCP exposes attachment metadata but no binary-fetch tool ([JRACLOU
 bash .claude/skills/jira-read-ticket/scripts/download-attachment.sh <id-or-content-url> <output-path>
 ```
 
-Requires `JIRA_SERVER`, `JIRA_LOGIN`, and `JIRA_API_TOKEN` in the environment (same contract as `jira-evidence`). If those are not set the helper exits with code 2 and a clear remediation message — record the URL only and continue.
+Requires `python3` and `JIRA_API_TOKEN`. `JIRA_SERVER` and `JIRA_LOGIN` prefer environment values, then the project's `.lisa/jira-cli/.config.yml`, then the announced home config fallback. Missing credentials produce exit code 2 — record the URL only and continue. The server must be a bare HTTPS origin without userinfo, path prefix, query, or fragment. A full attachment URL must use that same origin; invalid destinations are rejected before Basic authorization is constructed. Signed external downloads receive no Basic credentials and use HTTPS only.
 
 After download, branch on `mimeType`:
 - `image/*` — pass the local path to image-aware downstream tools
