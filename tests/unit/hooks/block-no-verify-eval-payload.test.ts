@@ -108,6 +108,8 @@ const ALLOWED = [
   'eval "echo hello"',
   'eval "cd /tmp"',
   'eval "npm test --no-verify-ssl"',
+  'eval "echo git commit --no-verify -m x"',
+  'bash -c "echo HUSKY=0"',
   'eval "$(some-tool hook bash)"',
   'eval "$CMD"',
   "npm run eval:suite",
@@ -119,13 +121,10 @@ const ALLOWED = [
 /**
  * Inputs that must not crash the parser.
  *
- * A crash exits non-zero with nothing on stdout, and the failure direction is
- * the opposite of what this comment used to say: it is not turned into a
- * spurious BLOCK. On the exit-code protocol any status that is not 2 read as
- * "allow", and on the Codex protocol empty stdout read as "allow" — so a guard
- * that died on every input would have satisfied this whole table silently. The
- * deciders now assert the exit status, which is what makes a crash fail here
- * instead of passing as the most permissive answer available.
+ * An outer shell crash must not count as an allow. An inner Python crash can
+ * instead become a normal denial because the wrappers use `if ! python3`.
+ * Check both the wrapper status and Python diagnostics: either failure must
+ * fail this table rather than masquerade as a valid guard decision.
  */
 const PATHOLOGICAL = [
   "eval",
@@ -143,12 +142,12 @@ const PATHOLOGICAL = [
  * which is exactly how this suite first measured agy as half-inert.
  * @param script - Repository-relative path to the shipped guard copy
  * @param command - The Bash command line the guard is asked to vet
- * @returns The spawn status and stdout, for a protocol adapter to read
+ * @returns The spawn status and output, for a protocol adapter to read
  */
 const runGuard = (
   script: string,
   command: string
-): { status: number | null; stdout: string } => {
+): { status: number | null; stdout: string; stderr: string } => {
   const result = boundedSpawnSync({
     label: `block-no-verify eval (${script})`,
     command: BASH_PATH,
@@ -163,7 +162,16 @@ const runGuard = (
       toolCall: { name: "run_command", args: { CommandLine: command } },
     }),
   });
-  return { status: result.status, stdout: result.stdout };
+  // A child exception can be wrapped into a valid denial on every protocol.
+  // The status alone cannot distinguish that crash from a deliberate refusal.
+  expect(result.stderr).not.toMatch(
+    /Traceback \(most recent call last\):|(?:Syntax|Indentation|Tab)Error:/
+  );
+  return {
+    status: result.status,
+    stdout: result.stdout,
+    stderr: result.stderr,
+  };
 };
 
 /**
@@ -248,13 +256,9 @@ const assertEvalParity = (
     it.each(PATHOLOGICAL)("does not crash on %s", command => {
       // Not asserting a verdict — asserting the parser answered at all.
       //
-      // A traceback does NOT surface here as a spurious refusal, which is what
-      // this comment used to claim. On two of the three protocols a crash is
-      // indistinguishable from the most permissive answer: the exit-code copies
-      // report a non-2 status, and the Codex copy reports empty stdout. Both
-      // read as "allow" unless the status is checked, so a guard that died on
-      // every input would pass this case and every ALLOWED case with it. The
-      // status assertions in the deciders are what make that impossible.
+      // Outer crashes fail the protocol status assertions. Inner Python
+      // crashes fail runGuard's diagnostic check even when the wrapper turns
+      // the exception into a normal denial.
       expect(["deny", "allow"]).toContain(decide(script, command));
     });
   });
@@ -302,6 +306,20 @@ describe("a crashed guard is not read as an allow", () => {
 
   it("fails the agy protocol instead of parsing empty stdout", () => {
     expect(() => decideByAgyJson(crashingGuard(), INNOCENT)).toThrow();
+  });
+
+  it("fails an inner Python crash even when the wrapper reports a denial", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "block-no-verify-crash-"));
+    const file = path.join(dir, "child-crash.sh");
+    crashRoots.push(dir);
+    writeFileSync(
+      file,
+      "#!/usr/bin/env bash\n" +
+        "if ! python3 -c 'raise RuntimeError(\"inert child crash control\")'; then\n" +
+        "  exit 2\nfi\nexit 0\n"
+    );
+
+    expect(() => decideByExitCode(file, INNOCENT)).toThrow();
   });
 });
 

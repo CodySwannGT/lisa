@@ -652,6 +652,15 @@ def shell_starts_command(tokens, index):
     return status == "ok" and not remainder
 
 
+def printed_argument(tokens, index):
+    """Whether a token is data passed to an ordinary echo or printf command."""
+    start = index - 1
+    while start >= 0 and tokens[start] not in COMMAND_SEPARATORS:
+        start -= 1
+    program, _, opaque = command_word(tokens[start + 1:index])
+    return not opaque and program in {"echo", "printf"}
+
+
 def env_uses_split_string(tokens, index):
     """Whether a command-position env invocation uses split-string parsing.
 
@@ -1249,6 +1258,8 @@ def git_skips_verification(text, depth=0):
         # (`HUSKY=1 git commit -n`) simply sits in an earlier token.
         if token != "git" and not token.endswith("/git"):
             continue
+        if printed_argument(scoped_tokens, index):
+            continue
         # The LONG flag, scoped to this invocation's argv rather than matched
         # anywhere on the line. This replaces the unscoped token match that used
         # to live in the flat loop below.
@@ -1276,8 +1287,8 @@ def git_skips_verification(text, depth=0):
 def token_bypass(tokens):
     """Whether any token disables hooks by environment or by git config.
 
-    These stay UNSCOPED, unlike the `--no-verify` match that moved into
-    `git_argv_disables_verification`. The difference is what the token means
+    Printed echo/printf arguments are filtered before this scan. Assignments
+    otherwise stay unscoped, unlike the `--no-verify` argv check. What matters is
     where it appears: `HUSKY=0` and `core.hooksPath=` are assignments that
     configure whatever git runs next, so they legitimately sit before the
     invocation and often on a different line of a script. `--no-verify` is an
@@ -1387,7 +1398,12 @@ def flat_tokens(text):
         The token list, or None.
     """
     try:
-        return [token.strip("();|&") for token in shlex.split(text, posix=True)]
+        tokens = shell_tokens(text)
+        return [
+            token.strip("();|&")
+            for index, token in enumerate(tokens)
+            if not printed_argument(tokens, index)
+        ]
     except ValueError:
         return None
 
