@@ -57,7 +57,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
       "087569474640841ce7b767a525e311c53b1c404ec473e9947f45220ee051a7fb",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "c00a3659f997c046df3c147b348518aabe452fe6ecbd20a15fea68ac2def2b3f",
+      "784028deb1488a4e9fc02a7a0e5e5ddf6d5e3f45b497a13dd16077633fb110f4",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "865f89d7504a7d1c3380449a2790801c60c1cfe5fa8f1aad54ffc51aa8d0cc7f",
     "all/copy-overwrite/scripts/lisa-hooks/guard-dedupe.bash":
@@ -753,9 +753,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.sh":
       "764220b81b9eeaebbf0e14b4a41538aed43c7924bab65fef5528531c103a847f",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
-      "452466fc87be994084017165a045a5fca77a357d71407d0524980c8bdd975c29",
+      "62afd86ef3344de2216afea008e6ac9bf37be7e6f7a42f0e9978243d3363aa90",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "05befc4599dd53c39bfb1b8770928e1909bbb3c2c4e4850fc93e54fb64467489",
+      "5332b2e65e7d821fadc64f0fa227489bcacb8d7a59b9ccd296f6db58517cc0fc",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":
@@ -10041,6 +10041,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-managed-file-edits.test.ts": true,
     "tests/unit/hooks/block-no-verify-command-config.test.ts": true,
     "tests/unit/hooks/block-no-verify-env-platform.test.ts": true,
+    "tests/unit/hooks/block-no-verify-eval-payload.test.ts": true,
     "tests/unit/hooks/block-no-verify-file-reach.test.ts": true,
     "tests/unit/hooks/block-no-verify-missing-jq.test.ts": true,
     "tests/unit/hooks/block-no-verify-nested-shell-parity.test.ts": true,
