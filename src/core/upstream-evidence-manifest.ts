@@ -2015,7 +2015,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/wiki/schema/wiki-structure.schema.json":
       "d44a4fe10cf85b7cf123ff8e1fdbfdfee77a410c48ee2eb5e353dd36247a324f",
     "plugins/src/wiki/scripts/_wiki-lib.mjs":
-      "41351ded2a4d182e46d8937a7f2e47fbc8ef4e9b6684c537140c8e381fb6949e",
+      "3e68b99b1ae92d5ec7ae3418d02642f628abae4f27baa0dc5a33c505768433a3",
     "plugins/src/wiki/scripts/diff-guard.mjs":
       "1912c5f804a09a4ec11c2af27e30fbfcb64f45646eb5c2a601367c4156e74747",
     "plugins/src/wiki/scripts/ensure-gitignore.mjs":
