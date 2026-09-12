@@ -307,7 +307,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/babel.config.js":
       "86503c2f3ccf13749e1c7674c97ab8df4cb28a8d346bd5ddcb65787290b5a9a3",
     "expo/create-only/bdd/coverage-map.json":
-      "b2c247a774494f04712634d4fe2d6592980f79e7115ee11f880475c88ba7816c",
+      "dca3b037b3740bbcc228c85fc63feccc7a5295da5a925e60420accda3eac4059",
     "expo/create-only/bdd/features/.keep":
       "b807c9c94a3b00b93d2463a9b098dac41db227ac1f5b0b1cb746e5e6f68de15d",
     "expo/create-only/e2e.thresholds.json":
@@ -885,7 +885,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/base-rules.md":
       "938173f9e048a0f8e09bd825d97f2e3a3e97f03fc99037fcdae47a9bfa99f307",
     "plugins/src/base/rules/reference/bdd-e2e-coverage.md":
-      "4eb366dfc83f22c25fe22544f0a2b12f702d0bda3b30a9456364afc50eee767c",
+      "05491cdf9b64327cd0ba8f205242128749700113a61de3c62e43e8787d1971c1",
     "plugins/src/base/rules/reference/blocker-containment.md":
       "b88a8a58cebd4dabcc130439df65b1be54a6f78a6098359e86135d267e41f096",
     "plugins/src/base/rules/reference/claim-archaeology.md":
