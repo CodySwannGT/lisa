@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.24](https://github.com/CodySwannGT/lisa/compare/v4.55.23...v4.55.24) (2026-09-12)
+
+
+### Bug Fixes
+
+* reject unreadable BDD baseline files ([bd19189](https://github.com/CodySwannGT/lisa/commit/bd1918918d64fd823a1964b5442c7b3013305a22)), closes [CodySwannGT/lisa#3266](https://github.com/CodySwannGT/lisa/issues/3266) [CodySwannGT/lisa#3266](https://github.com/CodySwannGT/lisa/issues/3266)
+* share the BDD baseline map path ([d288dbb](https://github.com/CodySwannGT/lisa/commit/d288dbbac5f9ab85b37020ee844335dea9f489c6)), closes [CodySwannGT/lisa#3266](https://github.com/CodySwannGT/lisa/issues/3266) [CodySwannGT/lisa#3266](https://github.com/CodySwannGT/lisa/issues/3266)
+
 ### [4.55.23](https://github.com/CodySwannGT/lisa/compare/v4.55.22...v4.55.23) (2026-09-12)
 
 
