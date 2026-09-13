@@ -13,10 +13,13 @@ import { describe, expect, it } from "vitest";
 import {
   contextsFor,
   EVIDENCE_DEFAULTS,
+  INTERCEPTORS,
+  momentLegs,
   needsAt,
   resolveMoment,
   retiredContexts,
 } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
+import { reconcile } from "../../../all/copy-overwrite/scripts/lisa-reconcile-policy.mjs";
 import {
   LINT_LABEL,
   LINT_TASK,
@@ -279,6 +282,33 @@ describe("contextsFor", () => {
       contextsFor(gates, { workflowName: QUALITY, mode: "await" })
     ).toEqual([REVIEW_BOT]);
   });
+
+  it.each(Object.keys(INTERCEPTORS))(
+    "does not require an unowned workflow context for %s",
+    interceptor => {
+      const declared = {
+        ...gates,
+        [interceptor]: { [PULL_REQUEST]: "required" },
+      };
+      expect(contextsFor(declared, { workflowName: QUALITY })).toEqual([
+        LINT_LABEL,
+        REVIEW_BOT,
+      ]);
+      expect(
+        contextsFor(declared, { workflowName: QUALITY, mode: "run" })
+      ).toEqual([LINT_LABEL]);
+      expect(
+        contextsFor(declared, { workflowName: QUALITY, mode: "await" })
+      ).toEqual([REVIEW_BOT]);
+      expect(
+        momentLegs({ gates: declared, moment: PULL_REQUEST })
+      ).not.toContainEqual(expect.objectContaining({ gate: interceptor }));
+      expect(
+        reconcile({ repo: null, gates: declared, workflowName: QUALITY })
+          .declared
+      ).toEqual([LINT_LABEL, REVIEW_BOT]);
+    }
+  );
 
   it("omits optional gates, which are not merge blockers", () => {
     expect(contextsFor(gates, { workflowName: QUALITY })).not.toContain(
