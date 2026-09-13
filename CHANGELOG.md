@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.57.0](https://github.com/CodySwannGT/lisa/compare/v4.56.4...v4.57.0) (2026-09-13)
+
+
+### Features
+
+* save console edits through the existing config endpoint ([09022ed](https://github.com/CodySwannGT/lisa/commit/09022ed1a2147ab3070d67ddcd235e50d30231be)), closes [CodySwannGT/lisa#1528](https://github.com/CodySwannGT/lisa/issues/1528) [CodySwannGT/lisa#1528](https://github.com/CodySwannGT/lisa/issues/1528)
+
 ### [4.56.4](https://github.com/CodySwannGT/lisa/compare/v4.56.3...v4.56.4) (2026-09-13)
 
 
