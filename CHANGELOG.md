@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.56.0](https://github.com/CodySwannGT/lisa/compare/v4.55.34...v4.56.0) (2026-09-13)
+
+
+### Features
+
+* allow Rails callers to select the CI database version ([94ef9b7](https://github.com/CodySwannGT/lisa/commit/94ef9b73967f6e82a4d058763c6a5155ec83dcd5)), closes [CodySwannGT/lisa#4121](https://github.com/CodySwannGT/lisa/issues/4121) [CodySwannGT/lisa#4121](https://github.com/CodySwannGT/lisa/issues/4121)
+
 ### [4.55.34](https://github.com/CodySwannGT/lisa/compare/v4.55.33...v4.55.34) (2026-09-13)
 
 
