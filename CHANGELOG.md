@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.56.1](https://github.com/CodySwannGT/lisa/compare/v4.56.0...v4.56.1) (2026-09-13)
+
+
+### Bug Fixes
+
+* clean owned runner scratch without filename restrictions ([d9eb6ee](https://github.com/CodySwannGT/lisa/commit/d9eb6ee4c04d733acc6ba4968902f5c127cc66e4)), closes [CodySwannGT/lisa#3565](https://github.com/CodySwannGT/lisa/issues/3565) [CodySwannGT/lisa#3565](https://github.com/CodySwannGT/lisa/issues/3565)
+
 ## [4.56.0](https://github.com/CodySwannGT/lisa/compare/v4.55.34...v4.56.0) (2026-09-13)
 
 
