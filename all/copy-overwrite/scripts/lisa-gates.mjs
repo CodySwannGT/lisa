@@ -5721,7 +5721,7 @@ export function callerPrefix(chain) {
  * @param {string[]} [options.previousLabels] Previous labels a caller proves
  * still have a live producer during an explicit overlap window.
  * @param {"run"|"await"} [options.mode] Limit the result to workflow-posted
- * contexts (`run`, including intercepted gates) or external awaited signals.
+ * contexts (`run`) or external awaited signals. Interceptors post no context.
  * @returns {string[]} Sorted, de-duplicated contexts.
  */
 export function contextsFor(gates, options = {}) {
@@ -5741,11 +5741,12 @@ export function contextsFor(gates, options = {}) {
 
   const contexts = resolveMoment({ gates, moment })
     .filter(gate => gate.level === "required")
+    // Interception prevents an action locally; it has no check-run producer.
+    // Requiring a derived workflow name would leave the PR waiting forever.
+    .filter(gate => gate.mode !== "intercept")
     // A workflow ruleset owns every context Lisa or the project posts through
     // a job chain. Awaited signals belong to the generated base ruleset, where
-    // their declaration can retain the external app pin. Intercepted gates are
-    // included in `run`: like an ordinary run gate, their context is derived
-    // from the workflow chain rather than from an external signal name.
+    // their declaration can retain the external app pin.
     .filter(gate =>
       mode === undefined
         ? true
