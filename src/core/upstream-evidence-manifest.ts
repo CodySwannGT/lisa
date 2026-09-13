@@ -9552,6 +9552,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/seeded-gates-preserve-hook-outcomes.test.ts": true,
     "tests/integration/self-pin-drift-gate-wiring.test.ts": true,
     "tests/integration/sentry-deploy-workflow.test.ts": true,
+    "tests/integration/sentry-release-config.test.ts": true,
     "tests/integration/shell-guard-allow-controls.test.ts": true,
     "tests/integration/shell-guard-refusals.test.ts": true,
     "tests/integration/skipped-required-checks-gate-fail-closed.test.ts": true,
