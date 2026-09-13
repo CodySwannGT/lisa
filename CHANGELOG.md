@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.30](https://github.com/CodySwannGT/lisa/compare/v4.55.29...v4.55.30) (2026-09-13)
+
+
+### Bug Fixes
+
+* **ci:** allow a consumer lint time budget ([7c8cc1d](https://github.com/CodySwannGT/lisa/commit/7c8cc1d5a24c43a02f2df24e57099b039544deb0)), closes [CodySwannGT/lisa#4109](https://github.com/CodySwannGT/lisa/issues/4109) [CodySwannGT/lisa#4109](https://github.com/CodySwannGT/lisa/issues/4109)
+* link rule citations to their generated variant files ([8526136](https://github.com/CodySwannGT/lisa/commit/85261360b96849b582fabc7f8552afde9fb6357e)), closes [CodySwannGT/lisa#2140](https://github.com/CodySwannGT/lisa/issues/2140) [CodySwannGT/lisa#2140](https://github.com/CodySwannGT/lisa/issues/2140)
+
 ### [4.55.29](https://github.com/CodySwannGT/lisa/compare/v4.55.28...v4.55.29) (2026-09-13)
 
 
