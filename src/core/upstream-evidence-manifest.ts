@@ -845,7 +845,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/history-audit.md":
       "e2365e3fb28230c643e943d26688a93906afa68e3e1355d3e86d4b22ab3db559",
     "plugins/src/base/rules/eager/integration-access-layer.md":
-      "67d0ca7dfb75598c1929e68089ef44e55c9f29fcbdf31b62bf8fa59b3cba236b",
+      "4f98938b575c301a0f9626f4a074e802bd20363ba6e5874eb5d7dc0e6a7470d3",
     "plugins/src/base/rules/eager/intent-routing.md":
       "a2ef2397a98fb3d991fcfb39b669e289c1e2b697191cbeb6c071d71eca836207",
     "plugins/src/base/rules/eager/learnings-ladder.md":
