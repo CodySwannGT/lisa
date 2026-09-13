@@ -66,6 +66,11 @@ on:
         required: false
         default: 'npm'
         type: string
+      lint_timeout_minutes:
+        description: 'Lint job time budget in minutes. Increase for a measured slow lint chain; this does not change lint rules or other job budgets.'
+        required: false
+        default: 30
+        type: number
       moment:
         # Which set of gates applies. Every job below resolves its gate from
         # `.lisa.config.json` AT THIS MOMENT, so one input decides whether this
@@ -1035,10 +1040,9 @@ jobs:
     # but the debugging spent on a code bug that does not exist, plus the
     # merged PR whose release run concluded `cancelled` and never deployed.
     #
-    # 30 is 2x the worst measured run. The number lives here because a
-    # consumer that declares no lint job of its own cannot override it: the
-    # ceiling is only editable in this shared workflow.
-    timeout-minutes: 30
+    # 30 is 2x the worst measured run. Callers with a measured slower lint
+    # chain can set lint_timeout_minutes without raising other job budgets.
+    timeout-minutes: ${{ inputs.lint_timeout_minutes }}
     needs: [gate_plan]
     if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',lint,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"lint":"skip"')) }}
 
