@@ -2627,9 +2627,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/package-lisa/package.lisa.json":
       "432f6789653fae75a70d679ab9de064282aed7bb63a15c29be1eed0eae19f83e",
     "ui/README.md":
-      "9c4aa65ff4028eedfda1f284d47b620fff7353c07fd8084ccc427fe4c5a1ed72",
+      "cf4ce2f5ecc622472834f57eb66c3a11c98df4cf4a18124aa7b00b1e5d95ab8e",
     "ui/index.html":
-      "9e1a68cd70fe6e74bc615e9f012e5837fa9ad0d828202f998e8cf97551931906",
+      "d933f2bd36aa9a9a52d3d324c77d74991e78d8337c86ae1036614f3fa526d5a0",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -2872,6 +2872,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "audit.ignore.local.json": true,
     "bdd/coverage-map.json": true,
     "bdd/coverage-report.json": true,
+    "bdd/features/lisa-ui-config-save.feature": true,
     "bdd/features/lisa-ui-demo-data.feature": true,
     "bun.lock": true,
     "cdk/copy-overwrite/.github/workflows/.keep": true,
@@ -9200,6 +9201,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/e2e/fixtures/ui-live-status-server.ts": true,
     "tests/e2e/ui-automations-scheduler.spec.ts": true,
     "tests/e2e/ui-ci-quality-jobs.spec.ts": true,
+    "tests/e2e/ui-config-save.spec.ts": true,
     "tests/e2e/ui-demo-data-gate.spec.ts": true,
     "tests/e2e/ui-deploy-pipeline.spec.ts": true,
     "tests/e2e/ui-github-repo-panel.spec.ts": true,
