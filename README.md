@@ -181,6 +181,19 @@ lisa doctor
 
 When Lisa is invoked during installation it prints this next step. Package
 managers that do not run its lifecycle scripts cannot display that notice.
+
+Older Lisa releases can run apply from the outgoing version during an upgrade
+and restore the previous dependency pin. For that one-time upgrade, skip
+lifecycle scripts while replacing the dependency:
+
+```bash
+bun add --dev --exact --ignore-scripts @codyswann/lisa@latest
+```
+
+Then run `lisa apply .` and `lisa doctor` explicitly when you want to update
+project templates. This command avoids executing the older install hooks; it
+does not change the behavior of already-published releases.
+
 Existing host hooks using `LISA_POSTINSTALL=1`, `--postinstall-safe`, or the
 `postinstall` lifecycle also skip template writes, even with `LISA_BOOTSTRAP=1`.
 The existing `--full-apply` flag remains an explicit opt-in for operators who
