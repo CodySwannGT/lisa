@@ -179,6 +179,13 @@ lisa apply .
 lisa doctor
 ```
 
+An incompatible dependency override can stop Lisa, including `doctor`, from
+loading. For the known `minimatch` / `brace-expansion` import failure, the CLI
+reports the parent's declared range, the version Node actually resolves, and
+any direct override in the current directory's `package.json`. It preserves the
+original error and does not change dependencies. Nested selectors and unreadable
+manifests remain unverified; this diagnostic is not a full lockfile audit.
+
 When Lisa is invoked during installation it prints this next step. Package
 managers that do not run its lifecycle scripts cannot display that notice.
 Existing host hooks using `LISA_POSTINSTALL=1`, `--postinstall-safe`, or the
