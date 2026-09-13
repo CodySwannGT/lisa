@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# This file is managed by Lisa and IS replaced on each `lisa` run.
+# Do not edit directly — durable changes belong upstream in Lisa.
+
 # PreToolUse hook for Bash: blocks structural JSON parsing with text tools.
 # Text tools (grep/sed/cut/awk) break on valid JSON — multiline values, escaped
 # quotes, reordered keys, nested objects — producing silently wrong output

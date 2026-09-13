@@ -72,7 +72,9 @@ describe("linear project comments", () => {
       it("maps the project form onto commentCreate and Project.comments", () => {
         expect(skill).toContain("commentCreate(input:$input)");
         expect(skill).toContain(`{ ${PROJECT_ID_FIELD}: <id>, body: <body> }`);
-        expect(squash(skill)).toContain("project(id:$id){ comments(first:100)");
+        expect(squash(skill)).toContain(
+          "project(id:$id){ comments(first:100,after:$after)"
+        );
       });
 
       it("cites the introspected input fields rather than documentation", () => {

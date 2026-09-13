@@ -36,6 +36,7 @@ import {
   OTHER_RELEASE,
   READY,
   RELEASE,
+  trustedHistory,
   readSkill,
 } from "./human-gate-release-helpers.js";
 
@@ -54,7 +55,7 @@ describe("the human gate is a row in the signal registry, not a second lifecycle
       signal: HUMAN_GATE_SIGNAL,
       labels: [NEEDED],
       body: BODY,
-      comments,
+      ...trustedHistory(comments),
       vendor,
       config: CONFIG,
     });
@@ -97,7 +98,7 @@ describe("the human gate is a row in the signal registry, not a second lifecycle
       signal: HUMAN_GATE_SIGNAL,
       labels: [],
       body: BODY,
-      comments: [],
+      ...trustedHistory([]),
       vendor: "github",
       config: CONFIG,
     });
@@ -162,6 +163,7 @@ describe("every copy of the check agrees", () => {
   it("returns the same verdict from all five copies of the reader", async () => {
     const held: boolean[] = [];
     const released: boolean[] = [];
+    const unauthenticated: boolean[] = [];
     for (const root of COPIES) {
       const module = (await import(
         path.resolve(root, "scripts/intake-blocker-reprobe.mjs")
@@ -170,22 +172,31 @@ describe("every copy of the check agrees", () => {
           body?: unknown;
           labels?: unknown;
           comments?: unknown;
+          trustedHumanActorIds?: unknown;
         }) => boolean;
       };
       held.push(
-        module.isHumanGated({ body: BODY, labels: [NEEDED], comments: [] })
+        module.isHumanGated({
+          body: BODY,
+          labels: [NEEDED],
+          ...trustedHistory([]),
+        })
+      );
+      unauthenticated.push(
+        module.isHumanGated({ body: BODY, comments: [RELEASE] })
       );
       released.push(
         module.isHumanGated({
           body: BODY,
           labels: [NEEDED],
-          comments: [RELEASE],
+          ...trustedHistory([RELEASE]),
         })
       );
     }
 
     expect(held).toEqual([true, true, true, true, true]);
     expect(released).toEqual([false, false, false, false, false]);
+    expect(unauthenticated).toEqual([true, true, true, true, true]);
   });
 });
 
@@ -203,7 +214,9 @@ describe("every skill on the release path names the mechanism", () => {
       expect(skill).toContain("planHumanGateRelease");
       expect(skill).toContain("formatHumanGateReleaseNote");
       expect(skill).toContain("summarizeHumanGateReleases");
-      expect(skill).toMatch(/pass the item's `comments`/i);
+      expect(skill).toMatch(
+        /pass the item's structured `comments` and `trustedHumanActorIds`/i
+      );
     }
   });
 

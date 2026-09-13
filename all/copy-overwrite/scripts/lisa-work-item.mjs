@@ -19,6 +19,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { isIP } from "node:net";
 
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 
@@ -48,7 +49,7 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
  * Bump the MINOR whenever a change to this file would alter a verdict the gate
  * reports, so a consumer running old logic can be told how far behind it is.
  */
-export const WORK_ITEM_CONTRACT_VERSION = "1.0.0";
+export const WORK_ITEM_CONTRACT_VERSION = "1.1.0";
 
 /**
  * Subject of a release-bot commit, which is exempt from the work-item trailer.
@@ -777,28 +778,17 @@ function lifecycleContract(config, provider) {
   const roles = deepMerge(defaults, configured ?? {});
   const done = values(roles.done);
   const terminal =
-    typeof roles.done === "string"
-      ? roles.done
-      : (roles.done?.production ?? done.at(-1));
-  // No `active` set any more. It existed for exactly one reader — the claim
-  // check — and dead code inside a mutation-gated file is not merely untidy: it
-  // is a block of mutants nothing can kill, so it lowers the measured score
-  // while proving nothing. `done` still feeds `terminal`, which the completion
-  // writer reads.
-  // Two fields for one role, because matching and naming want opposite things.
-  // `terminal` is the COMPARISON key and stays folded, so a Linear workflow
-  // state configured `Done` still matches the API's `Done`. `terminalName` is
-  // the configured spelling, kept verbatim so a human-facing sentence can name
-  // the state the operator actually typed. Folding both is how the error for a
-  // missing state read `no workflow state named done` about a board whose
-  // state is called `Done` — a message that sends someone looking for a state
-  // that is not what they configured and not what Linear shows them.
-  const terminalName = String(terminal ?? "");
+    typeof roles.done === "string" ? roles.done : roles.done?.production;
+  // Match names case-insensitively while preserving their display spelling.
+  const terminalName = requireString(
+    terminal,
+    `${provider} production done lifecycle role`
+  );
   const byEnvironment = doneRolesByEnvironment(roles.done, terminalName);
   return {
     claimed: requireString(roles.claimed, `${provider} claimed lifecycle role`),
     done: byEnvironment,
-    productionEnvironment: productionEnvironmentOf(byEnvironment, terminalName),
+    productionEnvironment: PRODUCTION,
     ready: requireString(roles.ready, `${provider} ready lifecycle role`),
     roles: lifecycleRoleSet(roles, done),
     terminal: terminalName.toLowerCase(),
@@ -833,26 +823,6 @@ function doneRolesByEnvironment(done, terminalName) {
   // NO environment to apply, which would refuse every completion in a project
   // whose `done` nests. The resolved terminal is always an answer.
   return mapped.length > 0 ? mapped : [[PRODUCTION, terminalName]];
-}
-
-/**
- * Which of the configured environments is the production one.
- *
- * Found by matching the already-resolved TERMINAL ROLE, not by position. The
- * terminal role is the single existing answer to "which role closes an item",
- * so deriving the environment from it means the two can never disagree — and
- * it avoids deriving anything a second, independent way from JSON key order,
- * which is not semantically meaningful and which no schema constrains.
- * @param {[string, string][]} byEnvironment `[environment, role]` pairs.
- * @param {string} terminalName The resolved terminal role's spelling.
- * @returns {string} The production environment's name.
- */
-function productionEnvironmentOf(byEnvironment, terminalName) {
-  const folded = terminalName.trim().toLowerCase();
-  const matched = byEnvironment.find(
-    ([, role]) => role.toLowerCase() === folded
-  );
-  return matched?.[0] ?? PRODUCTION;
 }
 
 /**
@@ -1079,6 +1049,8 @@ function trackerContract(config = readConfig()) {
         "jira.project"
       ).toUpperCase(),
       cloudId: String(config.atlassian?.cloudId ?? "").trim(),
+      // Preserve the input for REST validation; `site` is the legacy acli name.
+      server: String(config.atlassian?.site ?? process.env.JIRA_SERVER ?? ""),
       site: String(config.atlassian?.site ?? process.env.JIRA_SERVER ?? "")
         .replace(/^https?:\/\//, "")
         .replace(/\/$/, ""),
@@ -1097,6 +1069,7 @@ function trackerContract(config = readConfig()) {
         "linear.teamKey"
       ).toUpperCase(),
       lifecycle: lifecycleContract(config, provider),
+      deployBranches: deployBranchEnvironments(config),
     };
   }
   throw new TrackingError(
@@ -1952,18 +1925,65 @@ function jiraStatusCategory(issue) {
   ).toLowerCase();
 }
 
+/**
+ * Accept a legacy bare host or a root-only HTTPS URL before sending credentials.
+ * Reject components URL parsing would silently discard or reinterpret. The
+ * configured site remains the destination authority; this is not a host allowlist.
+ * @param {string} server Configured Jira server.
+ * @returns {string} Canonical HTTPS origin.
+ */
+function jiraServerOrigin(server) {
+  const invalid = () => {
+    // Never echo the supplied value: userinfo may itself contain a credential.
+    throw new TrackingError(
+      "Jira server must be a hostname or a root-only HTTPS URL with a valid host and port; credentials were not sent"
+    );
+  };
+  const parts =
+    /^(?:https:\/\/)?(\[[0-9a-f:.]+\]|[a-z0-9.-]+)(?::(\d+))?\/?$/i.exec(
+      server
+    );
+  if (!parts || /[^\x21-\x7e]/.test(server)) return invalid();
+  const [, host, port] = parts;
+  if (port !== undefined && (Number(port) < 1 || Number(port) > 65535))
+    return invalid();
+  if (host.startsWith("[")) {
+    if (isIP(host.slice(1, -1)) !== 6) return invalid();
+  } else if (/^[0-9.]+$/.test(host)) {
+    if (isIP(host) !== 4) return invalid();
+  } else if (
+    host.length > 253 ||
+    host
+      .split(".")
+      .some(label => !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(label))
+  ) {
+    return invalid();
+  }
+  try {
+    const url = new URL(
+      `https://${host}${port === undefined ? "" : `:${port}`}`
+    );
+    // WHATWG URL accepts alternate IPv4 spellings such as hexadecimal labels.
+    if (!host.startsWith("[") && url.hostname !== host.toLowerCase())
+      return invalid();
+    return url.origin;
+  } catch {
+    return invalid();
+  }
+}
+
 function jiraCredentials(contract) {
   const token = process.env.JIRA_API_TOKEN || process.env.ATLASSIAN_API_TOKEN;
   const login = process.env.JIRA_LOGIN || contract.email;
-  const server = String(contract.site || process.env.JIRA_SERVER || "")
-    .replace(/^https?:\/\//, "")
-    .replace(/\/$/, "");
+  // Offline trailer validation remains available without tracker credentials.
+  if (!token || !login) return undefined;
+  const server = String(contract.server || process.env.JIRA_SERVER || "");
   const baseUrl = contract.cloudId
     ? `https://api.atlassian.com/ex/jira/${encodeURIComponent(contract.cloudId)}`
     : server
-      ? `https://${server}`
+      ? jiraServerOrigin(server)
       : "";
-  return token && login && baseUrl ? { token, login, baseUrl } : undefined;
+  return baseUrl ? { token, login, baseUrl } : undefined;
 }
 
 function jiraIssue(ref, contract) {
@@ -2338,7 +2358,11 @@ function bodyText(body) {
   if (body && typeof body === "object")
     return Object.entries(body)
       .map(([key, value]) =>
-        key === "text" && typeof value === "string" ? value : bodyText(value)
+        key === "text" && typeof value === "string"
+          ? value
+          : value && typeof value === "object"
+            ? bodyText(value)
+            : ""
       )
       .join(" ");
   return "";
@@ -3731,11 +3755,16 @@ function declarationAdvice(refs) {
  * @param {object[]} findings Accumulator.
  * @param {string[]} commitRefs References the range's commits carry.
  * @param {string[]} bodyRefs References the pull-request body declares.
+ * @param {boolean} rangeIsPartial Whether earlier PR commits are outside this range.
  */
-function reportMapping(findings, commitRefs, bodyRefs) {
+function reportMapping(findings, commitRefs, bodyRefs, rangeIsPartial) {
   if (commitRefs.length === 0 || bodyRefs.length === 0) return;
   const undeclared = commitRefs.filter(ref => !bodyRefs.includes(ref));
-  const unsupported = bodyRefs.filter(ref => !commitRefs.includes(ref));
+  // Earlier pushes may carry the other declarations; full-PR validation
+  // still rejects declarations unsupported by the complete commit range.
+  const unsupported = rangeIsPartial
+    ? []
+    : bodyRefs.filter(ref => !commitRefs.includes(ref));
   // The 1:1 case keeps its own sentence. "Body declares X, commits carry Y" is
   // one disagreement, and splitting it into a missing item plus a spurious one
   // describes a single typo as two faults.
@@ -3824,8 +3853,8 @@ export function mergeOnlyRange(result) {
 /**
  * Check every pull-request requirement and report all of the unmet ones.
  *
- * `rangeIsPartial` is what the PUSH path passes, and it changes exactly one
- * thing: whether a commit side with nothing in it is a violation.
+ * `rangeIsPartial` identifies the push range. Earlier PR commits may carry
+ * declarations absent here, and a merge-only range has no authored work to check.
  *
  * The push path evaluates the UNPUSHED range — deliberately, and for a reason
  * that must not be undone: `parsePushGroups` excludes commits already on the
@@ -3929,7 +3958,7 @@ function validatePrData(outcome, prUrl, prBody, rangeIsPartial = false) {
     collect(findings, IN_THIS_PR, GATE_MAPPING, () =>
       prWorkItems(prBody, contract)
     ) ?? [];
-  reportMapping(findings, commitRefs, bodyRefs);
+  reportMapping(findings, commitRefs, bodyRefs, rangeIsPartial);
   const refs = commitRefs.length > 0 ? commitRefs : bodyRefs;
   // Requirement 4 belongs to `full` alone: it needs tracker WRITE access, and
   // a project that keeps no tracker credentials cannot ever satisfy it. The
@@ -4951,7 +4980,7 @@ function githubPullRequestUrl(raw) {
 /**
  * Prove that supplied evidence is a merged PR in this repository.
  * @param {string} prUrl Canonical pull-request URL.
- * @returns {{number:number, repository:string, url:string}} Verified evidence.
+ * @returns {{base:string, number:number, repository:string, url:string}} Verified evidence.
  */
 function mergedPullRequestEvidence(prUrl) {
   const parsed = githubPullRequestUrl(prUrl);
@@ -4968,7 +4997,13 @@ function mergedPullRequestEvidence(prUrl) {
   }
   const result = run(
     "gh",
-    ["pr", "view", parsed.url, "--json", "number,state,mergedAt,url"],
+    [
+      "pr",
+      "view",
+      parsed.url,
+      "--json",
+      "number,state,mergedAt,url,baseRefName",
+    ],
     { allowFailure: true }
   );
   if (result.status !== 0) {
@@ -4988,7 +5023,7 @@ function mergedPullRequestEvidence(prUrl) {
       `refusing to complete from ${parsed.url}: the pull request is not verified merged`
     );
   }
-  return parsed;
+  return { ...parsed, base: String(pr.baseRefName ?? "") };
 }
 
 /**
@@ -5028,6 +5063,18 @@ function completeLinearWorkItem(ref, contract, prUrl) {
     );
   }
   const evidence = mergedPullRequestEvidence(prUrl);
+  const decision = mergedBaseDecision(
+    [{ base: evidence.base, number: evidence.number }],
+    contract.deployBranches,
+    contract.lifecycle
+  );
+  if (!decision.terminal) {
+    throw new TrackingError(
+      `refusing to complete ${ref}: pull request #${evidence.number} merged into ${evidence.base || "an unreadable branch"}, not the configured production branch.\n` +
+        `Deploy branches: ${describeDeployBranches(contract.deployBranches, contract.lifecycle.productionEnvironment)}.\n` +
+        `Merge into the configured production branch before completing this item; if the mapping is wrong, correct deploy.branches in .lisa.config.json.`
+    );
+  }
   const issue = linearCompletionIssue(
     ref,
     token,
@@ -5307,12 +5354,14 @@ function resolvedSinceRev(since) {
 /**
  * The sentence a report owes its reader when the scan was bounded.
  * @param {string | undefined} since The bound as supplied.
- * @returns {string} A qualifying line, or the empty string when unbounded.
+ * @param {string[]} branches Selected deploy branches.
+ * @returns {string} The examined branches and optional revision bound.
  */
-function describeSinceBound(since) {
-  if (since === undefined) return "";
+function describeSinceBound(since, branches) {
+  if (since === undefined)
+    return `\nExamined deploy branches: ${branches.join(", ")}.`;
   return (
-    `\nBounded: only commits a deploy branch gained since ${since} were read, so anything ` +
+    `\nBounded: only commits ${branches.join(", ")} gained since ${since} were read, so anything ` +
     `declared before that is outside this result.`
   );
 }
@@ -5346,15 +5395,16 @@ function describeSinceBound(since) {
  * @param {string} repository `owner/name` the items belong to.
  * @param {object} contract Resolved tracker contract.
  * @param {string} [since] Revision to bound the scan after; see `sweepBound`.
+ * @param {string[]} branches Selected deploy branches.
  * @returns {{declarations: Map<number, string[]>, unresolved: string[]}} Issue
  *   number to declaring commits, and the deploy branches that resolved to
  *   nothing.
  */
-function deployedDeclarations(repository, contract, since) {
+function deployedDeclarations(repository, contract, since, branches) {
   const sinceRev = resolvedSinceRev(since);
   const declarations = new Map();
   const unresolved = [];
-  for (const branch of contract.deployBranches.keys()) {
+  for (const branch of branches) {
     const rev = resolvedBranchRev(branch);
     if (!rev) {
       unresolved.push(branch);
@@ -5388,10 +5438,7 @@ function deployedDeclarations(repository, contract, since) {
       ]);
     }
   }
-  if (
-    unresolved.length > 0 &&
-    unresolved.length === contract.deployBranches.size
-  ) {
+  if (unresolved.length > 0 && unresolved.length === branches.length) {
     throw new TrackingError(
       `no configured deploy branch resolves to a commit (${unresolved.join(", ")}), so no absence of drift can be reported.\n` +
         `Fetch them (\`git fetch origin\`) or correct \`deploy.branches\` in .lisa.config.json; ` +
@@ -5426,6 +5473,36 @@ function describeDeclarations(shas) {
   return rest > 0 ? `${shown.join(", ")}, +${rest} more` : shown.join(", ");
 }
 
+/**
+ * Select the deploy branch whose push a bounded scan describes.
+ * Unbounded manual reports retain their whole-history, all-branch scope.
+ * @param {string[]} args Command arguments.
+ * @param {object} contract Resolved tracker contract.
+ * @param {string | undefined} since Optional lower bound.
+ * @returns {string[]} The explicitly selected or safely inferred branches.
+ */
+function sweepBranches(args, contract, since) {
+  const configured = [...contract.deployBranches.keys()];
+  const index = args.indexOf("--branch");
+  const explicit = index < 0 ? undefined : args[index + 1]?.trim();
+  if (index >= 0 && (!explicit || explicit.startsWith("-"))) {
+    throw new TrackingError("--branch requires a configured deploy branch.");
+  }
+  if (explicit !== undefined) {
+    if (!configured.includes(explicit)) {
+      throw new TrackingError(`Unknown deploy branch: ${explicit}`);
+    }
+    return [explicit];
+  }
+  if (since === undefined) return configured;
+  const candidate = process.env.GITHUB_REF_NAME || currentBranch();
+  if (configured.includes(candidate)) return [candidate];
+  if (configured.length === 1) return configured;
+  throw new TrackingError(
+    "NOT DETERMINED: a bounded sweep must name the pushed deploy branch with --branch."
+  );
+}
+
 function sweep(args) {
   const contract = trackerContract();
   if (contract.provider !== "github") {
@@ -5446,10 +5523,12 @@ function sweep(args) {
     }
   }
   const since = sweepBound(args);
+  const branches = sweepBranches(args, contract, since);
   const { declarations, unresolved } = deployedDeclarations(
     repository,
     contract,
-    since
+    since,
+    branches
   );
   const apply = args.includes("--apply");
   // Named in every report, clean or not. The old clean-result sentence spoke
@@ -5487,14 +5566,14 @@ function sweep(args) {
   if (drifted === 0) {
     const examinedSummary = `Examined ${subjects.size} item(s) across ${roles.length} lifecycle role(s); no role outside ${examined} was queried.`;
     console.log(
-      `No drift: every open item carrying ${examined} is genuinely in flight.\n${examinedSummary}${describeSinceBound(since)}${describeUnresolvedBranches(unresolved)}`
+      `No drift: every open item carrying ${examined} is genuinely in flight.\n${examinedSummary}${describeSinceBound(since, branches)}${describeUnresolvedBranches(unresolved)}`
     );
     return;
   }
   if (!apply) {
     const driftHeadline = `${drifted} open item(s) carrying ${examined} are declared by a commit on a deploy branch.`;
     console.log(
-      `\n${driftHeadline} Re-run with --apply to complete them.${describeSinceBound(since)}${describeUnresolvedBranches(unresolved)}`
+      `\n${driftHeadline} Re-run with --apply to complete them.${describeSinceBound(since, branches)}${describeUnresolvedBranches(unresolved)}`
     );
   }
 }
@@ -5645,6 +5724,16 @@ function commitMessageOf(ref) {
   return result.stdout;
 }
 
+/** Read an unbound author's selection; leave invalid messages for validation. */
+function authoredWorkItem(message) {
+  try {
+    return soleWorkItem(message, trackerContract(), COMMIT_SUBJECT);
+  } catch (error) {
+    if (error instanceof TrackingError) return undefined;
+    throw error;
+  }
+}
+
 function prepareCommitMessage(args) {
   const [file, source = ""] = args;
   if (!file)
@@ -5662,10 +5751,11 @@ function prepareCommitMessage(args) {
   // binding would withhold it in the one case it exists for.
   stampLane(file);
   const state = readState(true);
-  if (!state) return;
-  assertStateBranch(state);
-  const contract = trackerContract();
-  const ref = canonicalizeRef(state.ref, contract);
+  if (state) assertStateBranch(state);
+  const ref = state
+    ? canonicalizeRef(state.ref, trackerContract())
+    : authoredWorkItem(readFileSync(file, "utf8"));
+  if (ref === undefined) return;
   run("git", [
     "interpret-trailers",
     "--in-place",
@@ -6213,7 +6303,7 @@ function main() {
     validateLive(ref, contract);
     const file = writeState(ref, contract.provider, { requireBranch: true });
     return console.log(
-      `work-item binding attached to ${activeBranch()} (${file})`
+      `work-item binding ${ref} attached to ${activeBranch()} (${file})`
     );
   }
   if (command === "clear") {

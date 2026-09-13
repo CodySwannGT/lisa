@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
-# Applies Lisa project configuration and installs required Claude Code plugins.
-# Runs as Lisa's postinstall lifecycle script.
+# Explicit setup helper. Dependency installation leaves project files alone.
 set -euo pipefail
+
+# Inspect the lifecycle before sanitizing the package manager's environment.
+# Older host postinstall commands are also handled by the CLI bootstrap guard.
+if [[ "${npm_lifecycle_event:-}" = "postinstall" ||
+      ( -z "${npm_lifecycle_event:-}" && "${npm_config_user_agent:-}" = bun/* ) ]]; then
+  echo 'lisa: installation leaves project templates unchanged. Run `lisa apply .` to apply updates, or `lisa doctor` to check freshness.'
+  exit 0
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 PACKAGE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"

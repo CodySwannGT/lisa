@@ -357,7 +357,7 @@ jq -e '.linear.workspace' .lisa.config.json >/dev/null
 [ "$(jq -r '.tracker // empty' .lisa.config.json)" = "linear" ] && jq -e '.linear.teamKey' .lisa.config.json >/dev/null
 ```
 
-Confirm what was scaffolded is present: `list-workflow-states` for every build role when Linear is the tracker, `list_project_labels` for `prd-*` (including the terminal `prd-verified`) when Linear is the PRD source. Do NOT expect a `status:*` namespace — it is not part of this model. Report success with the resolved workspace, team key (if any), which namespaces were scaffolded (created vs. already existed), any non-default overrides, and whether `tracker` / `source` were set. Direct the user to `/lisa:intake` to test.
+Confirm what was scaffolded is present: `list-workflow-states` for every build role when Linear is the tracker, `list-project-labels` for `prd-*` (including the terminal `prd-verified`) when Linear is the PRD source. Do NOT expect a `status:*` namespace — it is not part of this model. Report success with the resolved workspace, team key (if any), which namespaces were scaffolded (created vs. already existed), any non-default overrides, and whether `tracker` / `source` were set. Direct the user to `/lisa:intake` to test.
 
 ## Idempotency
 

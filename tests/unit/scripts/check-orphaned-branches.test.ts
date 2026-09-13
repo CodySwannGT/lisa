@@ -16,6 +16,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  UNREADABLE_LANE,
   branchLanes,
   main,
   orphanedBranches,
@@ -323,7 +324,7 @@ describe("lanes read off the branch tip", () => {
     );
     expect(lanes.get("fix/stamped")).toBe("lane-0123456789ab");
     expect(lanes.has("fix/bare")).toBe(false);
-    expect(lanes.has("fix/gone")).toBe(false);
+    expect(lanes.get("fix/gone")).toBe(UNREADABLE_LANE);
   });
 });
 

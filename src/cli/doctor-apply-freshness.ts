@@ -150,8 +150,7 @@ function neverApplied(installed: string): FreshnessCheck {
       `No successful Lisa apply has ever been recorded here (installed Lisa ${installed}; ` +
       `no ${APPLY_RECEIPT_DISPLAY_PATH}). This repo is not receiving template, guardrail, ` +
       `or dependency-floor updates. Run \`${REAPPLY_COMMAND}\` and read the output — ` +
-      "the postinstall bootstrap is non-fatal, so an apply that crashes every time " +
-      "will not stop an install.",
+      "installing Lisa does not apply templates automatically.",
   };
 }
 

@@ -2,7 +2,7 @@
 
 > Demoted from the always-on eager tier by CodySwannGT/lisa#3992. The
 > section below is the former eager head, preserved verbatim; the full
-> contract follows it. Reachable on demand via `rules/eager/00-rule-index.md`.
+> contract follows it. Reachable on demand via [the rule index](../eager/00-rule-index.md).
 
 ## BDD Behavior Contract & E2E Coverage (load-bearing)
 
@@ -109,9 +109,12 @@ platforms it requires and that each named platform has a configured runner.
     {
       "scenario": "BDD-DOMAIN-NNN",
       "platforms": ["<platform>"],
-      "runner": "<runner — required when more than one runner covers a waived platform, so the waiver names which one cannot decide it>",
+      "runner": "<runner>",
       "reason": "why this runner cannot decide this behavior today",
-      "recordedAt": "<ISO date>"
+      "owner": "verification-team",
+      "ticket": "gh-123",
+      "recordedAt": "2026-09-12",
+      "expiresAt": "2026-10-12"
     }
   ],
   "mappings": [
@@ -141,6 +144,11 @@ platforms it requires and that each named platform has a configured runner.
   ]
 }
 ```
+
+The waiver's owner, ticket, and dates are illustrative values: substitute the responsible person
+or team, the real follow-up reference (`gh-123` or `PROJ-123` shape), and a current, bounded
+`YYYY-MM-DD` review window. Name a runner from `runnerPlatforms`; it is required when more than
+one runner covers the waived platform. An expired waiver is rejected, and a waiver is never coverage.
 
 `evidence` is what makes a mapping falsifiable: the gate reads the mapped file and confirms the
 string is still there, so renaming or deleting a test breaks the map loudly instead of leaving a

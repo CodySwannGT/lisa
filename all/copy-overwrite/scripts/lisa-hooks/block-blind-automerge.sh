@@ -283,7 +283,8 @@ NODE_ID_PATTERN = re.compile(r"^[A-Za-z0-9_=-]+$")
 NODE_QUERY = (
     "query($id:ID!){node(id:$id){... on PullRequest"
     "{number url reviewDecision state baseRefName "
-    "commits(last:1){nodes{commit{statusCheckRollup{contexts(first:100){nodes{"
+    "commits(last:1){nodes{commit{statusCheckRollup{contexts(first:100){"
+    "pageInfo{hasNextPage} nodes{"
     "__typename ... on CheckRun{name conclusion} "
     "... on StatusContext{context state}"
     "}}}}}}}}}"
@@ -297,9 +298,13 @@ NODE_QUERY = (
 # checks, which is genuinely not failing and gets an empty list. A node without
 # the scaffolding is a probe that never asked, and it must leave the key absent
 # so the re-target path can tell the two apart instead of reading both as green.
+# A truncated page is equally unreadable: a failing check may be on the next
+# page, so a green first page cannot authorize an uncovered-base re-target.
 NODE_JQ = (
     "if .data.node == null then null else .data.node as $n "
-    "| if ($n | has(\"commits\")) then ($n | del(.commits)) "
+    "| if ($n.commits.nodes[0].commit.statusCheckRollup.contexts.pageInfo.hasNextPage == true) "
+    "then ($n | del(.commits)) "
+    "elif ($n | has(\"commits\")) then ($n | del(.commits)) "
     "+ {statusCheckRollup: "
     "((($n.commits.nodes[0].commit.statusCheckRollup.contexts.nodes)) // [])} "
     "else $n end end"
@@ -1027,9 +1032,9 @@ not read the pull request's checks.
 
 That ref has ZERO required status checks, so the one thing standing between the
 move and a permission-free gate bypass is whether the PR is currently failing —
-and the probe returned no `statusCheckRollup` at all. An absent rollup is not an
-empty one. Reporting the move as the sanctioned green-PR batching case here
-would be a verdict about a question that was never asked.
+and the probe returned no complete `statusCheckRollup`. An absent or truncated
+rollup is not an empty one. Reporting the move as the sanctioned green-PR
+batching case here would claim a result the probe did not establish.
 
 Re-target through `gh pr edit --base` instead, which reads the checks, or fix
 the probe. Do not report the PR as batched until something has actually looked.

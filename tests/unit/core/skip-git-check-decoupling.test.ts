@@ -77,12 +77,6 @@ const FULL = "full";
 const POSTINSTALL_RUNNER =
   "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-postinstall.mjs";
 
-/** The runner implementation where the reduced apply flags now live. */
-const POSTINSTALL_RUNNER_SOURCE = fs.readFileSync(
-  path.resolve("all/copy-overwrite/scripts/lisa-postinstall.mjs"),
-  "utf8"
-);
-
 /**
  * The exact hook text sitting in consumer `package.json` files today, written
  * verbatim rather than derived from the module under test.
@@ -168,32 +162,9 @@ describe("apply mode is decided by the postinstall declaration, not --skip-git-c
   });
 });
 
-describe("the bounded postinstall runner Lisa writes", () => {
-  it("routes the package hook through the bounded runner", () => {
-    // THE BITE on the migration side. Without this the hook stops selecting
-    // the reduced subset the moment the flag stops selecting it, and every
-    // `bun install` in the fleet starts regenerating agent trees.
+describe("the postinstall entry point Lisa writes", () => {
+  it("keeps the existing package hook pointed at the compatible entry point", () => {
     expect(LISA_INVOCATION).toContain(POSTINSTALL_RUNNER);
-    expect(POSTINSTALL_RUNNER_SOURCE).toContain("--postinstall-safe");
-  });
-
-  it("still waives the git check, which it needs for an honest reason", () => {
-    // The install it runs inside has already modified package.json and the
-    // lockfile, so the tree is dirty by construction. Losing this would abort
-    // every postinstall apply in the fleet.
-    expect(POSTINSTALL_RUNNER_SOURCE).toContain("--skip-git-check");
-  });
-
-  it("resolves to the reduced subset it resolved to before", () => {
-    // Reads the bounded runner and puts its explicit flags through the real
-    // decision, rather than expecting the package.json trampoline to duplicate
-    // the apply command it delegates.
-    expect(
-      resolveApplyMode({
-        skipGitCheck: POSTINSTALL_RUNNER_SOURCE.includes("--skip-git-check"),
-        postinstall: POSTINSTALL_RUNNER_SOURCE.includes("--postinstall-safe"),
-      })
-    ).toBe(REDUCED);
   });
 });
 

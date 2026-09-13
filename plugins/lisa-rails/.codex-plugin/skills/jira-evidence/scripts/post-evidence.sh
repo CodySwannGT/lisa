@@ -73,8 +73,38 @@ else
   echo "  writes the project config — or run 'jira init' locally." >&2
   exit 1
 fi
-JIRA_SERVER=$(grep '^server:' "$JIRA_CONFIG" | awk '{print $2}')
+JIRA_SERVER=$(sed -n 's/^server:[[:space:]]*//p' "$JIRA_CONFIG")
 JIRA_USER=$(grep '^login:' "$JIRA_CONFIG" | awk '{print $2}')
+# Validate before constructing credentials; use only the approved HTTPS origin.
+JIRA_SERVER=$(python3 - "$JIRA_SERVER" <<'PY_ORIGIN'
+import ipaddress
+import re
+import sys
+from urllib.parse import urlsplit
+
+raw = sys.argv[1]
+try:
+    if not raw or any(c <= " " or c >= "\x7f" for c in raw):
+        raise ValueError()
+    url = urlsplit(raw)
+    if (url.scheme != "https" or "@" in url.netloc or "?" in raw
+            or "#" in raw or url.path not in ("", "/") or not url.hostname):
+        raise ValueError()
+    host = url.hostname
+    if url.netloc.startswith("["):
+        host = f"[{ipaddress.IPv6Address(host).compressed}]"
+    elif not re.fullmatch(r"[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*", host):
+        raise ValueError()
+    port = url.port
+    if port == 0:
+        raise ValueError()
+    suffix = f":{port}" if port is not None and port != 443 else ""
+    print(f"https://{host}{suffix}")
+except ValueError:
+    sys.exit("ERROR: JIRA_SERVER must be a bare HTTPS origin without userinfo, path, query or fragment.")
+PY_ORIGIN
+)
+
 GH_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner')
 RELEASE_TAG="pr-assets"
 
@@ -94,7 +124,8 @@ while IFS= read -r -d '' f; do
   TEXT_EVIDENCE+=("$f")
 done < <(find "$EVIDENCE_DIR" -maxdepth 1 \( -name '[0-9][0-9]-*.txt' -o -name '[0-9][0-9]-*.json' \) ! -name 'comment.txt' -print0 | sort -z)
 
-ALL_EVIDENCE=("${SCREENSHOTS[@]}" "${TEXT_EVIDENCE[@]}")
+# Bash 3.2 treats an empty array as unset under nounset.
+ALL_EVIDENCE=(${SCREENSHOTS[@]+"${SCREENSHOTS[@]}"} ${TEXT_EVIDENCE[@]+"${TEXT_EVIDENCE[@]}"})
 
 if [[ ${#ALL_EVIDENCE[@]} -eq 0 ]]; then
   echo "ERROR: No numbered evidence files found in $EVIDENCE_DIR (expected NN-*.png, NN-*.txt, or NN-*.json)" >&2
@@ -104,7 +135,7 @@ fi
 echo "Found ${#SCREENSHOTS[@]} screenshots and ${#TEXT_EVIDENCE[@]} text evidence files to upload"
 
 # Compute JIRA auth early (used in steps 3 and 4)
-JIRA_AUTH=$(echo -n "$JIRA_USER:$JIRA_API_TOKEN" | base64)
+JIRA_AUTH=$(printf '%s' "$JIRA_USER:$JIRA_API_TOKEN" | base64 | tr -d '\n')
 
 # ── Step 1: Upload to GitHub pr-assets release ──────────────────────────────
 echo ""

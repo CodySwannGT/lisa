@@ -7,7 +7,7 @@ alwaysApply: false
 
 > Demoted from the always-on eager tier by CodySwannGT/lisa#3992. The
 > section below is the former eager head, preserved verbatim; the full
-> contract follows it. Reachable on demand via `rules/eager/00-rule-index.md`.
+> contract follows it. Reachable on demand via [the rule index](00-rule-index.mdc).
 
 ## Repo Scope & Work-Time Splitting (load-bearing)
 
@@ -47,9 +47,10 @@ A tracker can oversee multiple repos. Build-intake claims only current-repo tick
 
 Then, for each ready candidate:
 
-1. **Read `repo:<name>` label.** Wrong repo → skip. Current repo → leaf-only gate + claim. Unlabeled → determine + stamp + re-apply.
-2. **Multi-repo leaf → split, never claim.** Each split sibling is created build-ready and stamped with its own `repo:<name>`.
-3. **Wrong-repo single-repo leaf → skip** (label keeps it cheap next cycle).
+1. **Count distinct repository markers first** — all `repo:<name>` labels plus recognized JIRA repository components, deduplicated by repository. Containers go to the leaf-only gate; do not split them.
+2. **Multi-repo leaf → split, never claim.** More than one repository uses the work-time split; each sibling is build-ready and stamped with its own `repo:<name>`.
+3. **Exactly one repository:** current repo → leaf-only gate + claim; wrong repo → skip.
+4. **No repository marker:** determine from content and code, stamp the resolved markers, then re-apply this decision from the count.
 
 ---
 
@@ -91,12 +92,10 @@ A ticketing system can oversee multiple repos (one JIRA project / Linear team fo
 
 Resolve the current repo per the `config-resolution` "Repo scoping" section (config `repo` → `github.repo` → git remote basename; stop with a clear error if unresolvable). Then walk the ready candidates in priority order and apply the **repo-scope decision** to each before claiming:
 
-1. **Read the candidate's repo marker** — the `repo:<name>` label (JIRA: also a component equal to a repo name).
-   - **Labeled for another repo** → **skip** cheaply (do not claim, do not re-determine); it stays `ready` for that repo's own intake. Move to the next candidate.
-   - **Labeled for the current repo** → proceed to the leaf-only gate + claim (the cheap, common path once labels exist).
-   - **Unlabeled** → **determine** the target repo(s) from the ticket (description, acceptance criteria, technical approach) confirmed against the actual code surfaces the change requires — the same detection as step 1 of the work-time split. Then **stamp** the resolved `repo:<name>` label(s) so future cycles filter cheaply, and re-apply this decision with the now-known repo.
-2. **Multi-repo leaf → split, never claim.** If determination finds the leaf touches more than one repo, run the **work-time split procedure** below to break it into single-repo siblings — each created **build-ready** (`build_ready: true`, so the build queue auto-claims it) and stamped with its own `repo:<name>`. After the split, the current repo's sibling (if any) becomes a normal current-repo candidate; the others are separate single-repo `ready` leaves for their repos. A multi-repo leaf is never claimed as-is.
-3. **Wrong repo → skip.** A single-repo leaf whose `repo:<name>` ≠ the current repo is left `ready` (and labeled) and skipped; intake moves on until it finds a claimable current-repo leaf, then stops (one item per cycle).
+1. **Count distinct repository markers first** — all `repo:<name>` labels and JIRA components equal to recognized repository names, deduplicated by repository. Containers go to the leaf-only gate and are never split or claimed here.
+2. **Multi-repo leaf → split, never claim.** More than one distinct repository takes the work-time split procedure before any wrong-repository skip. Each sibling is created **build-ready** (`build_ready: true`) and stamped with its own `repo:<name>`. The current repo's sibling, if any, becomes a normal candidate.
+3. **Exactly one repository:** a single-repo leaf for the current repo proceeds to the leaf-only gate + claim; a leaf for another repo is skipped and left ready for its own intake.
+4. **No repository marker:** determine the target repo(s) from description, acceptance criteria, technical approach and actual code surfaces. Stamp the resolved `repo:<name>` labels and re-apply from step 1. Continue until one current-repo leaf is claimed or the candidates are exhausted.
 
 **Query-time pre-filter (the cheapest arm — apply before the per-candidate walk).** When the queue is queryable, scope the candidate **query itself** to the current repo so sibling-repo tickets never even enter the set — instead of pulling the whole project's ready tickets and skipping the wrong ones one-by-one (a full wasted scan when none belong to the current repo, e.g. a JIRA project shared across `frontend`/`backend`/`infrastructure`). On JIRA, append to the JQL:
 

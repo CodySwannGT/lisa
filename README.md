@@ -134,8 +134,8 @@ Then authenticate the things that are *you* rather than the machine account —
 
 ```bash
 git clone … && cd …
-npx -y @codyswann/lisa@latest apply    # lint, hooks, workflows, agent surfaces
-bun install                            # postinstall installs the agent plugins
+npx -y @codyswann/lisa@latest apply    # templates, hooks, workflows, agent plugins
+bun install                            # project dependencies
 npx -y @codyswann/lisa@latest sync     # then set secrets.namespace
 ```
 
@@ -170,33 +170,43 @@ Install Lisa as a development dependency in each project that uses it:
 bun add --dev --trust @codyswann/lisa
 ```
 
-Lisa's dependency `postinstall` runs `lisa apply` for that project. A later
-`bun update @codyswann/lisa` reapplies the updated project-scoped artifacts.
+Installing or updating the dependency changes the package and lockfile, but
+leaves Lisa templates, migrations and agent configuration alone. Apply those
+updates explicitly, then review and commit the resulting project changes:
 
-That bootstrap is **loud but non-fatal**: a failed apply prints the real error
-plus a warning naming the consequence, and still exits 0, because a postinstall
-that aborts would break `bun install` in every environment where apply
-legitimately cannot run. The durable signal is
-`lisa doctor` — a successful apply writes `.lisa/apply-receipt.json`, and doctor
-reports any repo whose receipt is missing or older than the installed Lisa
-("this repo has not successfully applied templates since `<version>`"). Run it
-whenever a project seems to have stopped tracking upstream changes; a repo can
-otherwise sit silently stale for months.
+```bash
+lisa apply .
+lisa doctor
+```
 
-The same check covers a second, quieter gap. A package install runs apply in
-**postinstall-safe** mode — declared by the `LISA_POSTINSTALL=1` /
-`--postinstall-safe` marker every Lisa-written postinstall invocation carries —
-which deliberately skips every
-agent emit — Codex, Claude, agy, Copilot, OpenCode — and the Sonar integration,
-because those rewrite host-owned files. So no `bun install` at any version can
-reconcile `.codex/config.toml`; only a full `lisa apply .` does. Doctor now says
-so instead of reporting such a repo as current.
+An incompatible dependency override can stop Lisa, including `doctor`, from
+loading. For the known `minimatch` / `brace-expansion` import failure, the CLI
+reports the parent's declared range, the version Node actually resolves, and
+any direct override in the current directory's `package.json`. It preserves the
+original error and does not change dependencies. Nested selectors and unreadable
+manifests remain unverified; this diagnostic is not a full lockfile audit.
 
-It covers a third. An unattended apply never replaces a managed file your
+When Lisa is invoked during installation it prints this next step. Package
+managers that do not run its lifecycle scripts cannot display that notice.
+Existing host hooks using `LISA_POSTINSTALL=1`, `--postinstall-safe`, or the
+`postinstall` lifecycle also skip template writes, even with `LISA_BOOTSTRAP=1`.
+The existing `--full-apply` flag remains an explicit opt-in for operators who
+deliberately want a full apply inside a lifecycle script. Other project lifecycle
+scripts remain under the project's control.
+
+Bun omits the lifecycle name for both installation and direct binary calls such
+as `bun run lisa apply .`. Lisa conservatively skips that ambiguous form; use
+`lisa apply .`, `bunx lisa apply .`, a named package script, or `--full-apply`
+for intentional writes.
+
+A successful apply writes `.lisa/apply-receipt.json`. Doctor reports a missing
+or older receipt and incomplete reconciliation from an earlier postinstall-safe
+apply. Dependency installation alone does not mark templates current.
+
+An unattended apply never replaces a managed file your
 project may have customised — that is the point of the mode — so a release that
-changes `eslint.config.ts` leaves yours where it is and names it in the install
-output. That output scrolls away, and what remains is a file that has quietly
-stopped receiving upstream fixes, security fixes included. Apply now records
+changes `eslint.config.ts` leaves yours where it is and names it in the apply
+output. Apply records
 every such path in the receipt, and doctor names them back with the remedy:
 `lisa apply . --refresh-templates=<path>`, **one path at a time**. Do not reach
 for the bare `--refresh-templates` — it is repo-wide and reverts every

@@ -24,8 +24,8 @@ import {
 const probeFrom =
   (installed: Record<string, string | null>) => (name: string) =>
     name in installed
-      ? { present: true, version: installed[name] }
-      : { present: false, version: null };
+      ? { present: true, executable: true, version: installed[name] }
+      : { present: false, executable: false, version: null };
 
 const noTools = { tools: { require: [], install: [] } };
 

@@ -20,6 +20,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { generateCopilotVariant } from "../../../scripts/generate-copilot-plugin-artifacts.mjs";
+import { generateCursorVariant } from "../../../scripts/generate-cursor-plugin-artifacts.mjs";
 import {
   BLOCK_NO_VERIFY,
   CLAUDE_PLUGIN_DIR,
@@ -29,6 +30,7 @@ import {
 } from "./cursor-artifact-helpers";
 
 const ROOT = "${CLAUDE_PLUGIN_ROOT}/hooks/";
+const CITATION_SKILL = "skills/citation/SKILL.md";
 
 const entry = (matcher: string, ...scripts: readonly string[]) => ({
   matcher,
@@ -59,6 +61,62 @@ describe("generate-copilot-plugin-artifacts (issue #1056)", () => {
   afterEach(async () => {
     await fs.rm(tempDir, { force: true, recursive: true });
   });
+
+  it.each(["copilot", "cursor"])(
+    "links bundled rule citations to real %s files without rewriting host rules",
+    async variant => {
+      await scaffoldSource(srcDir, { hooks: {}, withMcp: false });
+      const body = [
+        "Read `.claude/rules/coding-philosophy.md#scope`.",
+        "Read `.claude/rules/eager/verification.md`.",
+        "Keep `.claude/rules/PROJECT_RULES.md` and `.claude/rules/unknown.md`.",
+      ].join("\n");
+      for (const relative of [
+        CITATION_SKILL,
+        "commands/check.md",
+        "agents/check.md",
+        "rules/eager/verification.md",
+      ]) {
+        await fs.outputFile(path.join(srcDir, relative), body);
+      }
+      const generate =
+        variant === "cursor" ? generateCursorVariant : generateCopilotVariant;
+      generate(srcDir, outDir, "1.2.3");
+      for (const relative of [
+        CITATION_SKILL,
+        "commands/lisa/check.md",
+        variant === "cursor" ? "agents/check.md" : "agents/check.agent.md",
+        variant === "cursor"
+          ? "rules/verification.mdc"
+          : "rules/eager/verification.md",
+      ]) {
+        const file = path.join(outDir, relative);
+        const emitted = await fs.readFile(file, "utf8");
+        const links = [...emitted.matchAll(/\]\(([^)]+)\)/g)];
+        expect(links).toHaveLength(2);
+        for (const link of links) {
+          const target = path.resolve(
+            path.dirname(file),
+            (link[1] ?? "").split("#")[0] ?? ""
+          );
+          expect(await fs.pathExists(target)).toBe(true);
+        }
+        expect(links[0]?.[1]).toContain("#scope");
+        expect(emitted).toContain("`.claude/rules/PROJECT_RULES.md`");
+        expect(emitted).toContain("`.claude/rules/unknown.md`");
+        const reference = path.resolve(
+          path.dirname(file),
+          (links[0]?.[1] ?? "").split("#")[0] ?? ""
+        );
+        expect(await fs.readFile(reference, "utf8")).toContain(
+          "Reference rule body"
+        );
+      }
+      expect(await fs.readFile(path.join(srcDir, CITATION_SKILL), "utf8")).toBe(
+        body
+      );
+    }
+  );
 
   describe("subagentStart stripping (hook-firing fix)", () => {
     beforeEach(async () => {

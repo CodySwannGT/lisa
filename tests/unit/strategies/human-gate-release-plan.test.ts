@@ -39,6 +39,7 @@ import {
   READY,
   REASON,
   RELEASE,
+  trustedHistory,
 } from "./human-gate-release-helpers.js";
 
 describe("releasing a hold never rewrites the description", () => {
@@ -46,7 +47,7 @@ describe("releasing a hold never rewrites the description", () => {
     const plan = planHumanGateRelease({
       body: BODY,
       labels: [NEEDED],
-      comments: [RELEASE],
+      ...trustedHistory([RELEASE]),
       readyLabel: READY,
       lifecycleLabels: LIFECYCLE,
     });
@@ -69,7 +70,7 @@ describe("releasing a hold never rewrites the description", () => {
     const plan = planHumanGateRelease({
       body: BODY,
       labels: [NEEDED],
-      comments: [RELEASE],
+      ...trustedHistory([RELEASE]),
       readyLabel: READY,
       lifecycleLabels: LIFECYCLE,
     });
@@ -102,7 +103,7 @@ describe("the release path can only ever un-do a hold", () => {
     const plan = planHumanGateRelease({
       body: BODY,
       labels: [NEEDED],
-      comments: [OTHER_RELEASE],
+      ...trustedHistory([OTHER_RELEASE]),
       readyLabel: READY,
       lifecycleLabels: LIFECYCLE,
     });
@@ -125,7 +126,7 @@ describe("the release path can only ever un-do a hold", () => {
     const plan = planHumanGateRelease({
       body: "An ordinary ticket with no hold on it.",
       labels: [],
-      comments: [RELEASE],
+      ...trustedHistory([RELEASE]),
       readyLabel: READY,
       lifecycleLabels: LIFECYCLE,
     });
@@ -139,7 +140,7 @@ describe("the release path can only ever un-do a hold", () => {
     const plan = planHumanGateRelease({
       body: BODY,
       labels: [NEEDED, "status:done"],
-      comments: [RELEASE],
+      ...trustedHistory([RELEASE]),
       readyLabel: READY,
       lifecycleLabels: LIFECYCLE,
     });
@@ -152,7 +153,7 @@ describe("the release path can only ever un-do a hold", () => {
     const plan = planHumanGateRelease({
       body: BODY,
       labels: [READY],
-      comments: [RELEASE],
+      ...trustedHistory([RELEASE]),
       readyLabel: READY,
       lifecycleLabels: LIFECYCLE,
     });
@@ -172,7 +173,7 @@ describe("the release path can only ever un-do a hold", () => {
     const plan = planHumanGateRelease({
       body: BODY,
       labels: [NEEDED],
-      comments: [RELEASE],
+      ...trustedHistory([RELEASE]),
       readyLabel: READY,
       lifecycleLabels: LIFECYCLE,
     });

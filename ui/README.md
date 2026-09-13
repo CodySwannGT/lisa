@@ -4,11 +4,12 @@ A self-contained, zero-build prototype of the Lisa settings console. It catalogs
 every configuration surface Lisa exposes to host projects and presents it as a
 navigable, editable-looking settings UI.
 
-**Prototype scope:** controls, tabs, dirty-state tracking, and the save bar are
-interactive. Reading real values IS wired up: see `lisa ui` below. The backend
-write contract now routes authorized keys through `POST /api/config`, but the
-page's **Save changes** button deliberately remains disabled until the separate
-save/rehydration UX ships. `gates` is **not** a registry key, so no console
+**Live editing:** when opened through `lisa ui`, **Save changes** sends only
+changed config keys through `POST /api/config`. A confirmed save reloads the
+controls from the server's merged config. Errors keep pending edits visible;
+Discard restores the last loaded or successfully saved values. The standalone
+HTML demo keeps Save disabled. The server rejects keys outside its existing
+write contract. `gates` is **not** a registry key, so no console
 write can touch a gate declaration today — which is why the Doctor section
 reports and never repairs.
 

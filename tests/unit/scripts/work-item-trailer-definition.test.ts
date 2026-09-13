@@ -117,7 +117,8 @@ describe("the input that distinguishes the two trailer definitions (#3747)", () 
       "chore/no-number-here",
       "main",
       "origin",
-      fakeGit
+      fakeGit,
+      CONTRACT
     );
 
     expect(found).toEqual({ ref: "42", refSource: "trailer" });

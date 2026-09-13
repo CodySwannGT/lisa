@@ -35,6 +35,8 @@ import {
   voidingRoles,
 } from "../../../plugins/src/base/scripts/qa-signal-lifecycle.mjs";
 
+const DONE = "status:done";
+
 /** A GitHub-shaped config with every role this evaluation consults bound. */
 const CONFIG = {
   github: {
@@ -47,7 +49,7 @@ const CONFIG = {
         done: {
           dev: "status:on-dev",
           staging: "status:on-stg",
-          production: "status:done",
+          production: DONE,
         },
       },
     },
@@ -118,15 +120,19 @@ describe("the QA-failure signal has an executable inverse", () => {
     expect(result.voided).toEqual([]);
   });
 
-  it("voids on the certified role even with no pass comment to read", () => {
+  it("does NOT void on a state that is merely named like a QA pass", () => {
+    // The `qa.certified` role was retired with the QA acceptance skills that
+    // were its only writers. Only a configured `done` rung voids the signal
+    // now, so a state that reads like certification but is bound to no role
+    // must leave the failure live rather than silently clearing it.
     const result = evaluate({
       labels: ["qa-fail"],
       comments: [FAIL_COMMENT],
       role: "status:qa-certified",
     });
 
-    expect(result.live).toBe(false);
-    expect(result.voided).toContain("certified-role-reached");
+    expect(result.live).toBe(true);
+    expect(result.voided).toEqual([]);
   });
 
   it("voids on a terminal done rung, whatever the tracker's letter case", () => {
@@ -209,11 +215,34 @@ describe("the signal's name is configured, never hardcoded", () => {
       },
     };
 
+    // `qa.certified` is a retired role: even when a stale config still declares
+    // it, only the `done` rungs void the signal.
     expect(voidingRoles({ vendor: "jira", config: jira })).toEqual([
-      "Certified",
       "On Stg",
       "Done",
     ]);
+  });
+
+  it("honours a scalar `done` as well as an env-indexed map", () => {
+    // `done` has two sanctioned shapes. Reading only the map form returns NO
+    // voiding roles for a single-rung project, which holds every QA failure
+    // live forever — and it fails silently, because an empty list is exactly
+    // what a project that binds nothing also produces.
+    const scalar = { jira: { workflow: { done: "Done" } } };
+
+    expect(voidingRoles({ vendor: "jira", config: scalar })).toEqual(["Done"]);
+  });
+
+  it("still voids a live signal when the only terminal state is scalar", () => {
+    const result = evaluateSignal({
+      labels: ["qa-fail"],
+      comments: [FAIL_COMMENT],
+      role: DONE,
+      vendor: "github",
+      config: { github: { labels: { build: { done: DONE } } } },
+    });
+
+    expect(result.live).toBe(false);
   });
 });
 
@@ -263,31 +292,10 @@ const readSkill = (root: string, name: string): string =>
 
 describe("every skill on the QA signal's path resolves it through one module", () => {
   describe.each(SKILL_ROOTS)("%s", root => {
-    it("qa-fail names the void conditions it is applying the signal under", () => {
-      const fail = readSkill(root, "lisa-qa-fail");
-
-      expect(fail).toContain(SCRIPT);
-      expect(fail).toContain("qa.labels.fail");
-      expect(fail).toMatch(/void condition/i);
-      expect(fail).toMatch(/lisa-qa-queue|lisa-qa-clear/);
-    });
-
-    it("qa-queue clears the signal on the pass path and keeps the history", () => {
-      const queue = readSkill(root, "lisa-qa-queue");
-
-      expect(queue).toContain(SCRIPT);
-      expect(queue).toMatch(/remove the .*signal|clear the .*signal/i);
-      expect(queue).toMatch(/history/i);
-      expect(queue).toMatch(/partial/i);
-    });
-
-    it("qa-clear clears the signal when it certifies without a human", () => {
-      const clear = readSkill(root, "lisa-qa-clear");
-
-      expect(clear).toContain(SCRIPT);
-      expect(clear).toMatch(/signal/i);
-    });
-
+    // `lisa-qa-fail`, `lisa-qa-queue` and `lisa-qa-checklist`/`lisa-qa-clear`
+    // were retired: they were an unused human-tester acceptance loop, and they
+    // were the signal's only automatic writers. Rework triage is now the sole
+    // skill on this path, so it is the only one with a contract to enforce.
     it("rework triage reads liveness, not bare label presence", () => {
       const triage = readSkill(root, "lisa-rework-triage");
 

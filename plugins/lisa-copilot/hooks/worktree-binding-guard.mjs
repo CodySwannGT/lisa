@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /**
  * Reconcile the worktree a session was TOLD it is in against the one it is
  * ACTUALLY operating in, and refuse to act while the two disagree.

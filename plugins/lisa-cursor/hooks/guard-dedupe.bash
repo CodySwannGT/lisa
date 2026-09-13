@@ -1,3 +1,6 @@
+# This file is managed by Lisa and IS replaced on each `lisa` run.
+# Do not edit directly — durable changes belong upstream in Lisa.
+
 # shellcheck shell=bash
 # Evaluate a dual-channel guard once per tool call, without de-registering it.
 #
@@ -51,12 +54,9 @@
 #      refusal reaching the agent without the message that explains it. On a
 #      refusal every channel evaluates and speaks exactly as it does today.
 #
-# COST ON THE PATH THAT GETS NO BENEFIT. A host with one channel must not pay
-# for a mechanism it cannot use. The channel check is builtins only — one small
-# file read, no subshell, no fork — and returns before the digest is computed
-# unless a second channel has actually been seen. The digest, and the one `stat`
-# that feeds it the per-call discriminator, are reached only where a second
-# channel is live, which is exactly where they are repaid.
+# State ownership, modes and ancestry are verified before channel discovery.
+# After that validation the channel check uses only builtins, and returns
+# before digesting code or sizing the transcript unless another channel is live.
 
 # Key this guard would memoise under, once computed. Empty means "record
 # nothing on exit".
@@ -74,14 +74,25 @@ lisa_guard_memo_ready=0
 # Digest tool for the memo key, resolved once. Empty disables the memo.
 lisa_guard_memo_digest_tool=""
 
-# Whether a directory is a real directory this user owns, and not a symlink —
-# builtins only, so this costs no process.
-#
-# `-O` is the load-bearing test: a memo planted by another user would suppress a
-# refusal, so a directory this user does not own is never used. The dispatcher
-# validates the whole parent chain before exporting `LISA_GUARD_MEMO_DIR`; this
-# re-checks the leaf rather than trusting the environment variable, because an
-# exported path is an input like any other.
+# Read ownership and all permission bits without accepting output from a
+# failed platform-specific stat invocation.
+# $1 - directory; sets lisa_guard_memo_owner and lisa_guard_memo_mode
+lisa_guard_memo_stat() {
+  local facts=""
+  facts="$(stat -c '%u %a' "$1" 2>/dev/null)" ||
+    facts="$(stat -f '%u %p' "$1" 2>/dev/null)" || return 1
+  lisa_guard_memo_owner="${facts%% *}"
+  lisa_guard_memo_mode="${facts#* }"
+  case "$lisa_guard_memo_owner:$lisa_guard_memo_mode" in
+    *[!0-9:]* | :* | *:) return 1 ;;
+  esac
+  case "$lisa_guard_memo_mode" in *[!0-7]*) return 1 ;; esac
+  lisa_guard_memo_mode=$((8#$lisa_guard_memo_mode & 8#7777))
+}
+
+# Memo leaves must be private even when a sticky shared temp ancestor is safe.
+# Ownership alone allows another local account to plant a session/allow file
+# in an owned but group- or world-writable directory.
 #
 # $1 - candidate directory
 lisa_guard_memo_dir_usable() {
@@ -89,23 +100,42 @@ lisa_guard_memo_dir_usable() {
   [ -d "$1" ] || return 1
   [ ! -L "$1" ] || return 1
   [ -O "$1" ] || return 1
+  lisa_guard_memo_stat "$1" || return 1
+  [ $((lisa_guard_memo_mode & 8#0022)) -eq 0 ]
+}
+
+# Resolve parents physically and verify every ancestor. Plugin hooks do not
+# inherit the dispatcher's trust walk, and exported paths are still inputs.
+# $1 - candidate memo base; sets lisa_guard_memo_base only on success
+lisa_guard_memo_trust_base() {
+  lisa_guard_memo_dir_usable "$1" || return 1
+  local physical=""
+  physical="$(cd "$1" 2>/dev/null && pwd -P)" || return 1
+  local current="$physical"
+  while :; do
+    lisa_guard_memo_stat "$current" || return 1
+    [ "$lisa_guard_memo_owner" = 0 ] || [ -O "$current" ] || return 1
+    if [ $((lisa_guard_memo_mode & 8#0022)) -ne 0 ] &&
+      [ $((lisa_guard_memo_mode & 8#1000)) -eq 0 ]; then
+      return 1
+    fi
+    [ "$current" != / ] || break
+    current="${current%/*}"
+    [ -n "$current" ] || current=/
+  done
+  lisa_guard_memo_base="$physical"
 }
 
 # Establish the memo base directory.
 #
-# Preferred source is `LISA_GUARD_MEMO_DIR`, exported by the dispatcher, which
-# has already resolved `TMPDIR` physically and walked every parent for ownership
-# and mode. Guards it spawns therefore pay nothing for that walk. A guard
-# reached by the plugin channel has no such parent, so it creates the directory
-# itself under `TMPDIR` — private by umask, and used only when this user owns
-# it. If neither works the memo is unavailable and every guard evaluates, which
-# is today's behaviour.
+# Preferred source is `LISA_GUARD_MEMO_DIR`, exported by the dispatcher. Both
+# this input and the plugin channel's TMPDIR fallback receive the same trust
+# checks. Missing state is created privately; untrusted state disables memo use.
 lisa_guard_memo_resolve_base() {
   [ -z "$lisa_guard_memo_base" ] || return 0
 
   local candidate="${LISA_GUARD_MEMO_DIR:-}"
-  if lisa_guard_memo_dir_usable "$candidate"; then
-    lisa_guard_memo_base="$candidate"
+  if lisa_guard_memo_trust_base "$candidate"; then
     return 0
   fi
 
@@ -118,8 +148,7 @@ lisa_guard_memo_resolve_base() {
   if [ ! -e "$candidate" ] && [ ! -L "$candidate" ]; then
     (umask 077 && mkdir -p "$candidate") 2>/dev/null || true
   fi
-  if lisa_guard_memo_dir_usable "$candidate"; then
-    lisa_guard_memo_base="$candidate"
+  if lisa_guard_memo_trust_base "$candidate"; then
     return 0
   fi
   return 1
@@ -165,6 +194,7 @@ lisa_guard_memo_sweep() {
 #
 # $1 - guard name, used only to name the memo file
 # $2 - the raw tool payload this guard was handed on stdin
+# Remaining arguments - files containing delegated verdict code
 lisa_guard_dedupe() {
   local guard_name="${1:-}"
   local payload="${2:-}"
@@ -194,8 +224,7 @@ lisa_guard_dedupe() {
       fresh_session=1
     fi
   fi
-  [ -d "$session_dir" ] || return 0
-  [ ! -L "$session_dir" ] || return 0
+  lisa_guard_memo_dir_usable "$session_dir" || return 0
 
   # Swept once, by the process that created the session directory, so a
   # long-lived machine does not accumulate memo state. Off the hot path by
@@ -278,11 +307,18 @@ lisa_guard_dedupe() {
   case "$transcript_size" in "" | *[!0-9]*) return 0 ;; esac
 
   # One command substitution, covering everything the verdict depends on: the
-  # guard's own bytes, this library's bytes, the payload, and which call it is.
+  # guard's own bytes, this library, delegated code, payload, and call identity.
+  # Keep literal bytes (including trailing newlines), and propagate every read
+  # failure. A successful digest of a partial stream is not proof of identity.
   local key=""
   key="$(
+    set -o pipefail
     {
-      cat "$self_script" "${BASH_SOURCE[0]}" 2>/dev/null
+      local source_file=""
+      for source_file in "$self_script" "${BASH_SOURCE[0]}" "${@:3}"; do
+        cat "$source_file" 2>/dev/null || exit 1
+        printf '\0'
+      done
       printf '\n%s\n' "$payload"
       printf '%s\n' "$transcript_size"
     } | if [ "$lisa_guard_memo_digest_tool" = "shasum" ]; then
@@ -293,6 +329,7 @@ lisa_guard_dedupe() {
   )" || key=""
   key="${key%% *}"
   case "$key" in "" | *[!0-9a-f]*) return 0 ;; esac
+  [ "${#key}" -eq 64 ] || return 0
 
   # One memo file per guard per session, rewritten as the call moves on, so the
   # state directory stays a fixed size however long a session runs. A saturated

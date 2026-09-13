@@ -8,7 +8,7 @@
  * `fs.readFileSync`. Measured on a 44-flow iOS leg, 2026-09-11.
  *
  * The crash was INVISIBLE, which is why it earns a test rather than a fix
- * alone: the workflow step runs the classifier under `|| true` and `exit 0` so
+ * alone: the workflow used to run the classifier under `|| true` and `exit 0` so
  * it can never fail the job (pinned by the suite beside this file), and the
  * classifier treats an absent debug tree as "no evidence". An OOM therefore
  * produces exactly the observable of a run with nothing to classify. On the
@@ -63,6 +63,7 @@ const TREE_MB = FILE_MB * FILE_COUNT;
 let scratch: string;
 let debugRoot: string;
 let reportPath: string;
+let retryReportPath: string;
 
 /**
  * One line of filler, sized so a whole file is an exact number of megabytes.
@@ -120,6 +121,8 @@ beforeAll(async () => {
 </testsuites>
 `
   );
+  retryReportPath = path.join(scratch, "retry-report.xml");
+  await fs.copyFile(reportPath, retryReportPath);
 }, ioLatencyBudgetMs(300_000));
 
 afterAll(async () => {
@@ -210,6 +213,7 @@ describe("classifier memory shape against a large debug tree", () => {
           "--platform=ios",
           `--debug-output=${path.relative(scratch, debugRoot)}`,
           path.relative(scratch, reportPath),
+          path.relative(scratch, retryReportPath),
         ],
         cwd: scratch,
       });
@@ -237,16 +241,18 @@ describe("classifier memory shape against a large debug tree", () => {
       }[];
       expect(
         runs,
-        "the classifier must report the one report it was given"
-      ).toHaveLength(1);
-      expect(
-        runs[0]?.deviceRunEvidence,
-        "the planted fault marker must have been counted"
-      ).toContainEqual({
-        marker: "DeviceServerDiedException",
-        count: 1,
-        artifact: "device-simulator.log",
-      });
+        "the classifier must classify both reports against the debug tree"
+      ).toHaveLength(2);
+      for (const run of runs) {
+        expect(
+          run.deviceRunEvidence,
+          "each report must retain the planted fault marker"
+        ).toContainEqual({
+          marker: "DeviceServerDiedException",
+          count: 1,
+          artifact: "device-simulator.log",
+        });
+      }
     },
     ioLatencyBudgetMs(300_000)
   );

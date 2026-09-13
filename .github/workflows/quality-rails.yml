@@ -53,6 +53,11 @@ on:
         required: false
         type: string
         default: 'test'
+      database_version:
+        description: 'Database image tag for tests (e.g. "8.4" for MySQL or "17" for Postgres). Empty keeps the pinned default.'
+        required: false
+        type: string
+        default: ''
       expected_work_item_contract:
         # The work-item gate's two halves travel by different routes — this
         # workflow by git ref, `scripts/lisa-work-item.mjs` by `lisa apply` — so
@@ -70,7 +75,7 @@ on:
         description: 'Work-item gate contract version this workflow speaks. A MAJOR mismatch against scripts/lisa-work-item.mjs fails the traceability gate closed; an older minor is reported. Bump in lockstep with WORK_ITEM_CONTRACT_VERSION.'
         required: false
         type: string
-        default: '1.0.0'
+        default: '1.1.0'
       skip_jobs:
         # ⚠️ NO SPACES. Each token is matched exactly, as `,<token>,` inside
         # `format(',{0},', inputs.skip_jobs)`. GitHub Actions expression syntax
@@ -680,7 +685,7 @@ jobs:
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',test,') && inputs.database_type == 'postgres' }}
     services:
       postgres:
-        image: postgres:16
+        image: postgres:${{ inputs.database_version || '16' }}
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -742,7 +747,7 @@ jobs:
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',test,') && inputs.database_type == 'mysql' }}
     services:
       mysql:
-        image: mysql:8.0
+        image: mysql:${{ inputs.database_version || '8.0' }}
         env:
           MYSQL_ROOT_PASSWORD: password
           MYSQL_DATABASE: ${{ inputs.database_name }}
@@ -809,7 +814,7 @@ jobs:
     if: ${{ !contains(format(',{0},', inputs.skip_jobs), ',mutation,') && inputs.database_type == 'postgres' }}
     services:
       postgres:
-        image: postgres:16
+        image: postgres:${{ inputs.database_version || '16' }}
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres

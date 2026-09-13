@@ -679,7 +679,7 @@ function summarise(result, priorKills = []) {
         `🛑 ${result.moment}: INTERRUPTED, not completed — ` +
           `${result.interrupted}. ${result.passed.length} of ` +
           `${result.total} gate(s) were proved before it stopped; the rest ` +
-          `were not run. This is NOT a pass.`
+          `were not proved. This is NOT a pass.`
       );
     }
     return lines;
@@ -817,7 +817,7 @@ function verdictFor(gate, { proved, blockedBy, exec, siblings, declarations }) {
  * @param {function({kind: string, gateId: string}): boolean} [options.recordKill]
  *   Kill-marker writer, injectable so marker cardinality can be proved without
  *   writing to the host's shared marker directory.
- * @param {function(): (string|null)} [options.interrupted] Asks, between gates,
+ * @param {function(): (string|null)} [options.interrupted] Asks, between gates and before returning,
  *   whether the run this chain serves is still there. Injectable for the same
  *   reason `exec` is: a test states that the caller went away instead of having
  *   to kill a real hook mid-chain.
@@ -940,6 +940,11 @@ export function runGates({
     if (unproved && gate.level === "required" && !blockedBy)
       blockedBy = gate.id;
   }
+
+  // The caller may disappear while the FINAL gate executes. There is then no
+  // next iteration to observe it, and an optional gate cannot block on its own.
+  // Record the interruption before this result can claim completion.
+  interruption ??= interrupted();
 
   const bucket = state => results.filter(entry => entry.state === state);
   const result = {

@@ -12,6 +12,8 @@ Single chokepoint for all Atlassian operations. Routes each op to a substrate, e
 
 The caller passes one operation plus its arguments. Operations are listed in the dispatch table below. The skill returns either the structured operation result (JSON when the substrate provides it) or a clear error.
 
+For agent-composed JIRA or Confluence comments, apply `lisa-tracker-sync` — **Agent attribution** before posting. Preserve an existing disclosure and the exact format of machine-managed comments.
+
 ```text
 operation: read-ticket  key: PROJ-123
 operation: write-ticket payload: {...}

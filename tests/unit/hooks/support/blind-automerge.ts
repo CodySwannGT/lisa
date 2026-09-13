@@ -342,10 +342,25 @@ export const routingGh = (answers: {
  * make the two probes indistinguishable in the suite — which is exactly the
  * condition under which the API path could go blind without a test noticing.
  * @param contexts - The rollup entries, in `gh pr view` shape.
+ * @param hasNextPage - Whether the returned contexts omit another page.
  * @returns The `commits` sub-object a PullRequest node carries.
  */
-export const graphqlCommits = (contexts: readonly unknown[]) => ({
-  nodes: [{ commit: { statusCheckRollup: { contexts: { nodes: contexts } } } }],
+export const graphqlCommits = (
+  contexts: readonly unknown[],
+  hasNextPage = false
+) => ({
+  nodes: [
+    {
+      commit: {
+        statusCheckRollup: {
+          contexts: {
+            nodes: contexts,
+            pageInfo: { hasNextPage },
+          },
+        },
+      },
+    },
+  ],
 });
 
 /** #3922's check-blocked PR as the GraphQL node probe would see it. */

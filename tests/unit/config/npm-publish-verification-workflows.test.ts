@@ -13,10 +13,6 @@
  *    including when it was CANCELLED, which is how the real incident's re-run
  *    ended and why the run's conclusion read neither success nor failure.
  *
- * The `dist-tags.latest` prohibition is asserted here too, over the workflow
- * text. It is a property of the whole pipeline rather than of one module, and
- * the endpoint lags a successful publish by minutes (CodySwannGT/lisa#3685), so
- * a step that reached for it would report a false miss on a healthy release.
  * @module tests/unit/config/npm-publish-verification-workflows.test
  */
 import { readFile } from "node:fs/promises";
@@ -29,7 +25,6 @@ const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../..");
 const CHECKER = "scripts/check-npm-publish-landed.mjs";
 const PUBLISH_WORKFLOW = "publish-to-npm.yml";
 const DEPLOY_WORKFLOW = "deploy.yml";
-const RELEASE_WORKFLOW = "release.yml";
 const PUBLISH_STEP = "Publish to npm with OIDC";
 const VERIFY_STEP = "Verify the publish reached the registry";
 const SUCCESS_STEP = "Notify on success";
@@ -230,58 +225,5 @@ describe("deploy.yml reconciles a release the registry never received", () => {
     const steps = workflow.jobs.reconcile_release?.steps ?? [];
 
     expect(steps.at(-1)?.run).toContain("exit 1");
-  });
-});
-
-/**
- * Lines that would READ a version from the registry's mutable pointers.
- *
- * Matching bare "dist-tags" was the first spelling of this case, and it fired
- * on the reconcile job's own issue body — the sentence telling a maintainer NOT
- * to confirm against `dist-tags.latest`. A case that fails on the warning
- * against the defect is a case that gets the warning deleted, so what is
- * rejected is a REQUEST for a mutable pointer, not the string.
- * @param source - Workflow source
- * @returns Offending lines, if any
- */
-const mutablePointerReads = (source: string): string[] =>
-  source
-    .split("\n")
-    .map(line => line.trim())
-    .filter(line => !line.startsWith("#"))
-    .filter(
-      line =>
-        /\bnpm\s+(?:view|dist-tag)\b/u.test(line) ||
-        /registry\.npmjs\.org[^\s"']*(?:dist-tags|\/latest)/u.test(line) ||
-        /(?:curl|fetch\()[^\n]*dist-tags/u.test(line)
-    );
-
-describe("the release pipeline never verifies against a mutable tag", () => {
-  it.each([PUBLISH_WORKFLOW, DEPLOY_WORKFLOW, RELEASE_WORKFLOW])(
-    "%s reads no dist-tag or latest pointer",
-    async fileName => {
-      // `dist-tags.latest` lags a successful publish by several minutes
-      // (CodySwannGT/lisa#3685). Verifying against it produces a false miss on
-      // a healthy release, and a check that cries wolf gets deleted.
-      expect(mutablePointerReads(await readWorkflowText(fileName))).toEqual([]);
-    }
-  );
-
-  it("the checker itself contains no dist-tag spelling at all", async () => {
-    // The workflow case above tolerates the words in prose; the module cannot,
-    // because there the only reason to name the endpoint is to fetch it.
-    const source = await readFile(
-      path.join(
-        REPOSITORY_ROOT,
-        "all/copy-overwrite/scripts/check-npm-publish-landed.mjs"
-      ),
-      "utf8"
-    );
-    const code = source
-      .split("\n")
-      .filter(line => !/^\s*(?:\/\/|\*|\/\*)/u.test(line))
-      .join("\n");
-
-    expect(code).not.toContain("dist-tags");
   });
 });

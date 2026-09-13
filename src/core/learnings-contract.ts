@@ -41,8 +41,8 @@ const FINGERPRINT_FIELD_BYTE_OVERHEAD = 17;
 
 /**
  * Average per-entry byte allowance used to DERIVE the whole-file byte budget
- * (`maxTokens = maxEntries * PER_ENTRY_BYTE_ALLOWANCE`), so the entry cap and
- * the byte cap can never contradict. It is the historical v1 average plus the
+ * (`maxTokens = maxEntries * PER_ENTRY_BYTE_ALLOWANCE`). This scales the byte
+ * budget with the entry ceiling. It is the historical v1 average plus the
  * maximum bytes v2 adds when migration persists `fingerprint = id`:
  * `600 + 17 + 128 = 745`. Therefore every accepted 12,000-byte v1 document
  * with at most 20 bounded ids renders as v2 within 14,900 bytes.
@@ -61,7 +61,8 @@ const FINGERPRINT_FIELD_BYTE_OVERHEAD = 17;
  * Historically these were two independently hardcoded numbers — a 20-entry cap
  * and a flat 4000-byte cap — that bound the ledger at ~8 entries, stranding
  * valid captures far under the entry ceiling (CodySwannGT/lisa#1959). Deriving
- * the byte cap from the entry cap removes that contradiction at the source.
+ * the byte cap from the entry cap keeps the two proportional; actual entry
+ * sizes and document framing still determine whether a given ledger fits.
  */
 export const PER_ENTRY_BYTE_ALLOWANCE =
   LEGACY_LEARNINGS_MAX_TOKENS / MAX_ENTRIES +

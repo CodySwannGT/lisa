@@ -357,23 +357,29 @@ describe("quality.yml reusable workflow", () => {
   // #2426: Lisa shipped the guard, the npm scripts and a seeded declaration,
   // but no workflow ran it — so adopters had to wire it by hand and none did.
   describe("the skipped-required-check guard is actually invoked", () => {
-    it("runs the OFFLINE arm as a job on every pull request", () => {
+    it("runs the OUTCOME arm as a job on every pull request", () => {
       const job = workflow.jobs.skipped_required_checks;
       expect(job).toBeDefined();
-      // NO `if:` AT ALL, as of #2933. The job carried a
-      // `skipped_required_checks` skip token, so the guard against silencing a
-      // required check had an off-switch of exactly the kind it exists to
-      // refuse. The owner's ruling was to remove it rather than relocate it
-      // into the gate registry. `quality-non-declarable-jobs.test.ts` holds the
-      // general rule; this case pins the job's own condition.
-      expect(job?.if).toBeUndefined();
+      // NO SKIP CONDITION, as of #2933 — and `always()` is not one. The job
+      // carried a `skipped_required_checks` skip token, so the guard against
+      // silencing a required check had an off-switch of exactly the kind it
+      // exists to refuse. The owner's ruling was to remove it rather than
+      // relocate it into the gate registry. It now `needs:` every sibling to
+      // read their outcomes, and `always()` is what stops a failed or skipped
+      // sibling from skipping it in turn. `quality-non-declarable-jobs.test.ts`
+      // holds the general rule; this case pins the job's own condition.
+      expect(job?.if).toBe("always()");
       const run = job?.steps?.map(step => step.run ?? "").join("\n") ?? "";
       expect(run).toContain("check-skipped-required-checks.mjs");
-      expect(run).toContain('if [ -z "${SKIP_JOBS:-}" ]');
+      expect(run).toContain("--outcomes");
+      // The #3385 shortcut: pass without a prover whenever `skip_jobs` was
+      // empty. Once `skip_jobs` was retired that was every pull request.
+      expect(run).not.toContain("SKIP_JOBS");
       const guardStep = job?.steps?.find(step =>
         step.run?.includes("check-skipped-required-checks.mjs")
       );
-      expect(guardStep?.env?.SKIP_JOBS).toBe("${{ inputs.skip_jobs }}");
+      expect(guardStep?.env?.LISA_JOB_RESULTS).toBe("${{ toJSON(needs) }}");
+      expect(guardStep?.env?.LISA_GATE_MOMENT).toBe("${{ inputs.moment }}");
       // The enforced pull-request path may not depend on network or `gh` auth:
       // a flaky gate gets skipped, and a skipped gate is the false-green class
       // this guard exists to refuse. Since #3599 there is no remote arm to

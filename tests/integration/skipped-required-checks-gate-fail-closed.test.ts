@@ -1,5 +1,5 @@
 /**
- * Proves the skipped-required-check gate fails CLOSED when its inputs are absent.
+ * Proves the skipped-required-check gate fails CLOSED, and bites on OUTCOMES.
  *
  * MEASURED before this existed, on this repository: job
  * `🔍 Quality Checks / 🔒 Skipped Required Checks`, conclusion **success**, with
@@ -15,6 +15,12 @@
  * guard against silencing required checks was itself silently green, on the
  * repository that owns the epic against exactly that shape (#2933).
  *
+ * A later shortcut (#3385) passed without either artifact whenever `skip_jobs`
+ * was empty. Once `skip_jobs` was retired that was every pull request, and a
+ * caller repository merged with a ruleset-required context `skipped` under this
+ * job's green. The step now judges what each required context's job concluded,
+ * and the shortcut is gone.
+ *
  * The step is pulled verbatim out of the workflow and EXECUTED, rather than
  * string-matched, because the property under test is an exit code. A test that
  * greps the YAML for `exit 1` passes against a step whose `exit 1` sits on an
@@ -22,11 +28,11 @@
  * `threshold-ratchet-gate-fail-closed.test.ts`, which pins the same property for
  * the same reason on the gate next to it.
  *
- * Four cases, because fail-closed is only half the claim. A NON-EMPTY skip list
- * with an absent prover fails; a non-empty list with an absent declaration
- * fails; a PLANTED violation fails naming the violation; and an EMPTY list
- * passes without demanding either artifact. Without the last two, a step that
- * failed unconditionally would satisfy every other assertion here.
+ * Five cases, because fail-closed is only half the claim. An absent prover
+ * fails; an absent declaration fails; a SKIPPED required context fails naming
+ * it; a required context that RAN passes, listing what was examined; and a skip
+ * token silencing a required context still fails. Without the passing case, a
+ * step that failed unconditionally would satisfy every other assertion here.
  *
  * @module tests/integration/skipped-required-checks-gate-fail-closed
  */
@@ -46,11 +52,11 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..");
 /** Filename of the prover the gate runs. */
 const SCRIPT_BASENAME = "check-skipped-required-checks.mjs";
 
-/** Where the gate looks for an installed copy, relative to a repo root. */
-const INSTALLED_RELATIVE = path.join("scripts", SCRIPT_BASENAME);
-
-/** The in-repo template directory the gate falls back to. */
+/** The in-repo template directory the prover ships from. */
 const TEMPLATE_DIR = path.join("typescript", "copy-overwrite", "scripts");
+
+/** Where the job checks the prover out, at the workflow's own revision. */
+const PROVER_DIR = path.join(".lisa-workflow-source", TEMPLATE_DIR);
 
 /** The per-repo reviewed snapshot the prover reads. */
 const DECLARATION_RELATIVE = path.join(".github", "required-checks.json");
@@ -58,7 +64,7 @@ const DECLARATION_RELATIVE = path.join(".github", "required-checks.json");
 /** The workflow whose `skip_jobs` the declaration points the prover at. */
 const CI_WORKFLOW = ".github/workflows/ci.yml";
 
-/** One required context, used as the thing a planted skip silences. */
+/** One required context, posted by the `lint` job. */
 const REQUIRED_CONTEXT = "🔍 Quality Checks / 🧹 Lint";
 
 /** `bash` by absolute path — never resolved through a writeable $PATH. */
@@ -77,9 +83,9 @@ function gateStepScript(): string {
   const step = (job?.steps ?? []).find(candidate =>
     candidate.run?.includes(SCRIPT_BASENAME)
   );
-  // The block carries no `${{ }}` expressions, so it runs as written. An absent
-  // job and an absent step collapse to the same empty string, asserted on here
-  // rather than executed.
+  // The block carries no `${{ }}` expressions — every one reaches it through
+  // `env:` — so it runs as written. An absent job and an absent step collapse
+  // to the same empty string, asserted on here rather than executed.
   const script = step?.run ?? "";
 
   expect(
@@ -102,18 +108,25 @@ describe("🔒 Skipped Required Checks gate", () => {
   });
 
   /**
-   * Runs the gate step in the temp workdir.
+   * Runs the gate step in the temp workdir with the environment the job sets.
    *
-   * @param skipJobs The exact workflow input exposed to the guard step.
+   * @param lintResult The `lint` job's result in the simulated run.
    * @returns Exit status and the step's combined output.
    */
-  function runGate(skipJobs = "lint"): { status: number; output: string } {
+  function runGate(lintResult = "success"): { status: number; output: string } {
     const result = boundedSpawnSync({
       label: "the skipped-required-checks gate step",
       command: BASH,
       args: ["-c", gateStepScript()],
       cwd: workdir,
-      env: { ...process.env, SKIP_JOBS: skipJobs },
+      env: {
+        ...process.env,
+        LISA_GATE_MOMENT: "pull-request",
+        LISA_JOB_RESULTS: JSON.stringify({
+          lint: { result: lintResult, outputs: {} },
+        }),
+        LISA_JOB_NAMES: JSON.stringify({ lint: "🧹 Lint" }),
+      },
     });
     return {
       status: result.status ?? -1,
@@ -122,17 +135,16 @@ describe("🔒 Skipped Required Checks gate", () => {
   }
 
   /**
-   * Installs the REAL prover under `scripts/`, with the lib it imports.
+   * Installs the REAL prover where the job's second checkout puts it.
    */
   async function installProver(): Promise<void> {
-    await fs.ensureDir(path.join(workdir, "scripts"));
     await fs.copy(
       path.join(REPO_ROOT, TEMPLATE_DIR, "lib"),
-      path.join(workdir, "scripts", "lib")
+      path.join(workdir, PROVER_DIR, "lib")
     );
     await fs.copy(
       path.join(REPO_ROOT, TEMPLATE_DIR, SCRIPT_BASENAME),
-      path.join(workdir, INSTALLED_RELATIVE)
+      path.join(workdir, PROVER_DIR, SCRIPT_BASENAME)
     );
   }
 
@@ -161,14 +173,14 @@ describe("🔒 Skipped Required Checks gate", () => {
    * @param declarations The `skip_job_declarations` map to write.
    */
   async function writeDeclaration(
-    declarations: Record<string, unknown>
+    declarations: Record<string, unknown> = {}
   ): Promise<void> {
     await fs.ensureDir(path.join(workdir, ".github"));
     await fs.writeJson(path.join(workdir, DECLARATION_RELATIVE), {
       ruleset: {
         repo: "owner/name",
         ids: [1],
-        // Stamped NOW. An expired stamp makes the prover refuse rather than
+        // Stamped. An unstamped snapshot makes the prover refuse rather than
         // answer, which would pass the failure cases for the wrong reason.
         baseline_fetched_at: new Date().toISOString().slice(0, 10),
       },
@@ -178,24 +190,48 @@ describe("🔒 Skipped Required Checks gate", () => {
     });
   }
 
-  it("fails when the prover is absent from BOTH resolution paths", () => {
-    // The measured defect. Lisa's own repository was exactly this case and got
-    // a green required-check guard that examined nothing, forever.
+  it("prefers the prover this repository ships over a fetched copy", async () => {
+    // The path taken in THIS repository, where the workspace already holds the
+    // prover at the revision under test. Without this case the step could read
+    // only a fetched copy and a change to the prover would be proved by
+    // whatever sits on `main`, not by the pull request making it.
+    await fs.copy(
+      path.join(REPO_ROOT, TEMPLATE_DIR, "lib"),
+      path.join(workdir, TEMPLATE_DIR, "lib")
+    );
+    await fs.copy(
+      path.join(REPO_ROOT, TEMPLATE_DIR, SCRIPT_BASENAME),
+      path.join(workdir, TEMPLATE_DIR, SCRIPT_BASENAME)
+    );
+    await writeCallerWorkflow("");
+    await writeDeclaration();
+
+    const { status, output } = runGate("skipped");
+
+    expect(output).toContain(
+      `Prover: ${path.join(TEMPLATE_DIR, SCRIPT_BASENAME)}`
+    );
+    expect(status).not.toBe(0);
+    expect(output).toContain("required_context_skipped");
+  });
+
+  it("fails when the prover was not checked out", () => {
+    // The measured defect, in its original form: a guard that examined nothing
+    // because its prover was not where it looked, reported as a pass.
     const { status, output } = runGate();
 
     expect(status).not.toBe(0);
     expect(output).toContain("::error");
-    expect(output).toContain(INSTALLED_RELATIVE);
-    // The failure must name its own remedy, the way the sibling gate does.
-    expect(output).toContain("lisa apply");
-    // And it must not have reverted to the message it replaced.
+    expect(output).toContain(path.join(PROVER_DIR, SCRIPT_BASENAME));
+    // And it must not have reverted to either message it replaced.
     expect(output).not.toContain("project not yet on this template");
+    expect(output).not.toContain("skip_jobs is empty");
   });
 
   it("fails when the prover resolves but the declaration is absent", async () => {
-    // The step's SECOND `exit 0`. A prover with no snapshot to compare against
-    // cannot answer, and a step that shrugged at that reported success from a
-    // comparison that never happened.
+    // A prover with no snapshot cannot tell which outcomes a merge depends on,
+    // and a step that shrugged at that reported success from a comparison that
+    // never happened.
     await installProver();
 
     const { status, output } = runGate();
@@ -203,12 +239,40 @@ describe("🔒 Skipped Required Checks gate", () => {
     expect(status).not.toBe(0);
     expect(output).toContain("::error");
     expect(output).toContain(DECLARATION_RELATIVE);
-    expect(output).not.toContain("Skipping.");
+    expect(output).toContain("lisa apply");
   });
 
-  it("fails naming the violation when a skip silences a required context", async () => {
-    // The gate BITING, not merely running. Without this case a step that failed
+  it("fails naming the required context whose job SKIPPED", async () => {
+    // The shape that merged under a green guard: no token anywhere, and a
+    // required context that ran zero steps.
+    await installProver();
+    await writeCallerWorkflow("");
+    await writeDeclaration();
+
+    const { status, output } = runGate("skipped");
+
+    expect(status).not.toBe(0);
+    expect(output).toContain("required_context_skipped");
+    expect(output).toContain(REQUIRED_CONTEXT);
+  });
+
+  it("passes when the required context RAN, listing what it examined", async () => {
+    // The gate NOT biting. Without this case a step that failed
     // unconditionally would satisfy every other assertion in this file.
+    await installProver();
+    await writeCallerWorkflow("");
+    await writeDeclaration();
+
+    const { status, output } = runGate("success");
+
+    expect(status).toBe(0);
+    expect(output).toContain("✅ 1 ruleset-required context(s) examined");
+    expect(output).toContain(`\`${REQUIRED_CONTEXT}\` ← job \`lint\``);
+    expect(output).not.toContain("::error");
+  });
+
+  it("still fails naming the violation when a skip token silences a required context", async () => {
+    // The vestigial token arm keeps ADDING findings on top of a clean outcome.
     await installProver();
     await writeCallerWorkflow("lint");
     await writeDeclaration({
@@ -218,21 +282,10 @@ describe("🔒 Skipped Required Checks gate", () => {
       },
     });
 
-    const { status, output } = runGate();
+    const { status, output } = runGate("success");
 
     expect(status).not.toBe(0);
     expect(output).toContain("skipped_required_check");
     expect(output).toContain(REQUIRED_CONTEXT);
-  });
-
-  it("passes without a prover or snapshot when skip_jobs is empty", () => {
-    // With no skipped job, there is nothing that can silence a required
-    // context. Lightweight consumers do not need 2,354 lines of prover code
-    // merely to establish that an empty input is empty (#3385).
-    const { status, output } = runGate("");
-
-    expect(status).toBe(0);
-    expect(output).toContain("skip_jobs is empty");
-    expect(output).not.toContain("::error");
   });
 });

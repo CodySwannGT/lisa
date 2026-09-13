@@ -45,6 +45,7 @@ import {
   EXIT_ALLOWED,
   EXIT_BLOCKED,
   graphqlGh,
+  graphqlCommits,
   GRAPHQL_CHECK_BLOCKED_NODE,
   GRAPHQL_GREEN_NODE,
   GRAPHQL_ROLLUPLESS_NODE,
@@ -246,6 +247,30 @@ describe("block-blind-automerge.sh — uncovered base", () => {
       expect(stderr).toContain("ZERO");
     });
 
+    it("refuses a green first page whose remaining checks are unread", () => {
+      const { bin, callLog } = graphqlGh({
+        node: {
+          ...GRAPHQL_GREEN_NODE,
+          commits: graphqlCommits(
+            Array.from({ length: 100 }, (_, index) => ({
+              __typename: "CheckRun",
+              name: `check-${index}`,
+              conclusion: "SUCCESS",
+            })),
+            true
+          ),
+        },
+        rules: UNCOVERED_RULES,
+      });
+      const command = `${MUTATION_HEAD}pullRequestId:"PR_kwABC",baseRefName:"${STACK_BASE}"}){clientMutationId}}'`;
+
+      const { status, stderr } = runHook(bash(command), { ghBin: bin });
+
+      expect(status).toBe(EXIT_BLOCKED);
+      expect(stderr).toContain("cannot be judged");
+      expect(readFileSync(callLog, "utf-8")).toContain("pageInfo{hasNextPage}");
+    });
+
     // Fails CLOSED, unlike every other unanswerable case in this guard. Once
     // the base is known to enforce nothing, an empty failing-check list is the
     // whole basis for allowing the move — and a rollup that was never returned
@@ -263,7 +288,9 @@ describe("block-blind-automerge.sh — uncovered base", () => {
       const { status, stderr } = runHook(bash(command), { ghBin: bin });
 
       expect(status).toBe(EXIT_BLOCKED);
-      expect(stderr).toMatch(/An absent rollup is not an\s+empty one/);
+      expect(stderr).toMatch(
+        /An absent or truncated\s+rollup is not an empty one/
+      );
     });
   });
 

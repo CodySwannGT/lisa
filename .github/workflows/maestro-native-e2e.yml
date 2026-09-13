@@ -3393,8 +3393,8 @@ jobs:
         # the too-narrow regex the driver's own comment block rejects.
         #
         # NON-GATING BY CONSTRUCTION, and three independent things enforce it:
-        # `continue-on-error` on the step, `|| true` absorbing the classifier's
-        # status through the pipe, and a classifier that exits 0 on every
+        # `continue-on-error` on the step, an explicit warning branch absorbing
+        # classifier failure, and a classifier that exits 0 on every
         # readable report. Any one alone would do; all three are here because
         # the failure is silent, and a diagnostic that can red a green run — or
         # green a red one — is worse than no diagnostic at all. The nightly
@@ -3419,7 +3419,7 @@ jobs:
           # that has not picked up this version ignores it rather than failing.
           MAESTRO_DEBUG_DIR: maestro-debug
         run: |
-          if [[ ! -f "$CLASSIFIER" ]]; then
+          if [[ ! -f scripts/classify-maestro-failures.mjs ]]; then
             echo "No $CLASSIFIER in this repository — skipping flake classification."
             exit 0
           fi
@@ -4295,7 +4295,7 @@ jobs:
           # that has not picked up this version ignores it rather than failing.
           MAESTRO_DEBUG_DIR: maestro-debug
         run: |
-          if [[ ! -f "$CLASSIFIER" ]]; then
+          if [[ ! -f scripts/classify-maestro-failures.mjs ]]; then
             echo "No $CLASSIFIER in this repository — skipping flake classification."
             exit 0
           fi

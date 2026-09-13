@@ -68,6 +68,7 @@ Paths are relative to this file.
 
 | Slug | Read it when | Body |
 |---|---|---|
+| `operational-hazards` | looking up or publishing an active operational hazard that other sessions must see | [../reference/operational-hazards.md](../reference/operational-hazards.md) |
 | `automation-runbook-contract` | registering a loop, or ending any flow with its run outcome | [../reference/automation-runbook-contract.md](../reference/automation-runbook-contract.md) |
 | `convergent-review` | reviewing a PR or resolving review findings | [../reference/convergent-review.md](../reference/convergent-review.md) |
 | `credential-substrate-precedence` | writing or editing an `*-access` skill | [../reference/credential-substrate-precedence.md](../reference/credential-substrate-precedence.md) |
@@ -75,6 +76,7 @@ Paths are relative to this file.
 | `documentation-source-paths` | moving, absorbing, or deleting a docs-like directory | [../reference/documentation-source-paths.md](../reference/documentation-source-paths.md) |
 | `project-learnings` | you need the learnings ledger's entry schema and field semantics | [../reference/project-learnings.md](../reference/project-learnings.md) |
 | `factory-model` | you need the shape of the factory model, not its obligations | [../reference/factory-model.md](../reference/factory-model.md) |
+| `never-name-a-downstream-project` | you are about to refer to a downstream project in writing | [../reference/never-name-a-downstream-project.md](../reference/never-name-a-downstream-project.md) |
 
 The obligations that follow from `factory-model` are in `base-rules`, which is
 eager. This entry is the exposition behind them.

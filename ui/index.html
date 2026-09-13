@@ -1835,14 +1835,15 @@
         id="saveBtn"
         type="button"
         disabled
-        title="read-only: the write-path has not shipped yet"
+        title="Open this console with lisa ui to save changes"
         aria-describedby="saveReadonlyReason"
       >
         Save changes
       </button>
       <span class="status-why readonly-reason" id="saveReadonlyReason">
-        read-only: the write-path has not shipped yet
+        Open this console with lisa ui to save changes
       </span>
+      <span id="saveError" role="alert" hidden></span>
     </div>
     <div class="toast" id="toast"></div>
     <script>
@@ -11053,14 +11054,16 @@
       /* LISA_UI_CATALOG_END */
 
       /* ------------------------------------------------------------------ *
-       * Rendering + interactions (prototype: state is in-memory only)
+       * Rendering + interactions
        * ------------------------------------------------------------------ */
 
       const $nav = document.getElementById("nav");
       const $main = document.getElementById("main");
       const $savebar = document.getElementById("savebar");
       const $toast = document.getElementById("toast");
-      const dirty = new Set();
+      const dirty = new Map();
+      const initialControls = new Map();
+      let saving = false;
       let lisaLiveMode = false;
       let lisaCatalogAudit = null;
       let lisaCatalogPreparation = null;
@@ -11160,16 +11163,41 @@
           .replace(/"/g, "&quot;");
       }
 
-      function markDirty(id, rowEl) {
-        dirty.add(id);
-        if (rowEl) rowEl.classList.add("modified");
+      function markDirty(id, rowEl, value) {
+        const baseline = lisaLiveMode
+          ? liveConfigEntry(window.LISA_LIVE_CONFIG, id)
+          : { present: false };
+        if (
+          baseline.present &&
+          JSON.stringify(baseline.value) === JSON.stringify(value)
+        )
+          dirty.delete(id);
+        else dirty.set(id, value);
+        if (rowEl)
+          rowEl.classList.toggle(
+            "modified",
+            isDirtyRow(rowEl.dataset.configKey || id)
+          );
+        document.getElementById("saveError").hidden = true;
         updateSavebar();
+      }
+      function isDirtyRow(key) {
+        return [...dirty.keys()].some(
+          changed => changed === key || changed.startsWith(key + ".")
+        );
       }
       function updateSavebar() {
         const n = dirty.size;
         document.getElementById("dirtyCount").textContent = n;
         document.getElementById("dirtyPlural").textContent = n === 1 ? "" : "s";
         $savebar.classList.toggle("show", n > 0);
+        document.getElementById("saveBtn").disabled =
+          !lisaLiveMode || saving || n === 0;
+        document.getElementById("saveBtn").textContent = saving
+          ? "Saving…"
+          : "Save changes";
+        document.getElementById("discardBtn").disabled = saving;
+        $main.inert = saving;
       }
       const toastState = { timer: 0 };
       function showToast(message) {
@@ -11184,6 +11212,98 @@
       function clearDirty() {
         dirty.clear();
         updateSavebar();
+      }
+
+      /** Visit existing config rows, including rows inside provider tabs. */
+      function forEachConfigRow(visit) {
+        const walk = blocks =>
+          (blocks || []).forEach(block => {
+            if (block.type === "tabs")
+              (block.tabs || []).forEach(tab => walk(tab.blocks));
+            if (!block.type)
+              (block.rows || []).forEach(row => {
+                if (row.key && row.control) visit(row);
+              });
+          });
+        Object.values(DATA.sections).forEach(section => walk(section.blocks));
+      }
+
+      /** Restore config controls without resetting separately loaded probe results. */
+      function restoreConfigControls() {
+        forEachConfigRow(row => {
+          const original = initialControls.get(row.key);
+          if (!original) return;
+          const entry = lisaLiveMode
+            ? liveConfigEntry(window.LISA_LIVE_CONFIG, row.key)
+            : null;
+          row.control = { ...original };
+          if (entry) {
+            const hydrated =
+              entry.present && hydrateControl(original, entry.value);
+            if (hydrated) row.control = hydrated;
+            else
+              unknownControl(
+                row,
+                entry.present
+                  ? "invalid live config value"
+                  : "missing live config key"
+              );
+          }
+        });
+        clearDirty();
+        document.getElementById("saveError").hidden = true;
+        renderAll();
+        showSection(activeSection);
+      }
+
+      async function saveConfig() {
+        if (!lisaLiveMode || saving || dirty.size === 0) return;
+        const errorNode = document.getElementById("saveError");
+        saving = true;
+        updateSavebar();
+        errorNode.hidden = true;
+        $toast.classList.remove("show");
+        try {
+          if (
+            [...dirty.values()].some(
+              value => typeof value === "number" && !Number.isFinite(value)
+            )
+          )
+            throw new Error("Enter a valid number before saving.");
+          const response = await fetch("/api/config", {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              accept: "application/json",
+            },
+            body: JSON.stringify({ changes: Object.fromEntries(dirty) }),
+          });
+          const result = await response.json();
+          if (!response.ok)
+            throw new Error(
+              result.error ||
+                "Unable to save changes (HTTP " + response.status + ")"
+            );
+          if (
+            result.ok !== true ||
+            !result.config ||
+            typeof result.config !== "object" ||
+            Array.isArray(result.config)
+          )
+            throw new Error(
+              "The server did not confirm the saved configuration. Your changes are still pending."
+            );
+          window.LISA_LIVE_CONFIG = result.config;
+          restoreConfigControls();
+          showToast("Saved changes");
+        } catch (error) {
+          errorNode.textContent =
+            error instanceof Error ? error.message : String(error);
+          errorNode.hidden = false;
+        } finally {
+          saving = false;
+          updateSavebar();
+        }
       }
 
       /** Mark the DOM owner of a catalog value with its audited provenance. */
@@ -11216,6 +11336,17 @@
                table cells ({t, v, syncKey}) and card rows ({control:{value,
                syncKey}}). */
       function syncControlValue(syncKey, value) {
+        forEachConfigRow(row => {
+          if (row.key === syncKey) {
+            const hydrated = hydrateControl(row.control, value);
+            if (hydrated) row.control = hydrated;
+          } else if (
+            row.control.type === "envmap" &&
+            syncKey.startsWith(row.key + ".")
+          ) {
+            row.control[syncKey.slice(row.key.length + 1)] = value;
+          }
+        });
         Object.values(DATA.sections).forEach(section => {
           (section.blocks || []).forEach(block => {
             if (!Array.isArray(block.rows)) return;
@@ -11229,7 +11360,11 @@
                 row.control &&
                 (row.control.syncKey === syncKey || row.key === syncKey)
               ) {
-                row.control.value = value;
+                if (
+                  row.control.type !== "envmap" &&
+                  row.control.type !== "tags"
+                )
+                  row.control.value = value;
               }
             });
           });
@@ -11237,28 +11372,65 @@
         document
           .querySelectorAll('[data-sync-key="' + syncKey + '"]')
           .forEach(node => {
-            if (node.value !== String(value)) node.value = value;
+            if (node.type === "checkbox") {
+              node.checked = value;
+              node.dispatchEvent(new Event("lisa-sync"));
+            } else if (node.value !== String(value)) node.value = value;
           });
-      }
-
-      /* Mark a control as one surface of a shared setting. */
-      function bindSync(input, control) {
-        if (!control || !control.syncKey) return;
-        input.dataset.syncKey = control.syncKey;
-        input.addEventListener("change", () =>
-          syncControlValue(control.syncKey, input.value)
-        );
+        document
+          .querySelectorAll(".row[data-config-key]")
+          .forEach(row =>
+            row.classList.toggle("modified", isDirtyRow(row.dataset.configKey))
+          );
       }
 
       function buildControl(control, dirtyId) {
         const id = dirtyId || "ctl-" + ++ctlSeq;
+        const configKey = dirtyId || (control && control.syncKey);
         const wrap = el("div", "control");
-        const bind = (input, rowFinder) => {
-          input.addEventListener("change", () =>
-            markDirty(
-              id + "·" + ++ctlSeq,
-              rowFinder ? rowFinder(input) : input.closest(".row")
-            )
+        const changed = (value, owner, key = configKey) => {
+          if (lisaLiveMode && configKey && control.type === "envmap") {
+            const baseline = liveConfigEntry(
+              window.LISA_LIVE_CONFIG,
+              configKey
+            );
+            if (typeof baseline.value === "string") {
+              // A legacy scalar means production. Expanding it must retain
+              // that value when the user edits another environment.
+              const expanded = {
+                production: baseline.value,
+                ...(dirty.get(configKey) || {}),
+                [key.slice(configKey.length + 1)]: value,
+              };
+              const restored =
+                Object.keys(expanded).length === 1 &&
+                expanded.production === baseline.value;
+              const next = restored ? baseline.value : expanded;
+              markDirty(configKey, owner, next);
+              syncControlValue(configKey, next);
+              return;
+            }
+          }
+          markDirty(key || id, owner, value);
+          if (key) syncControlValue(key, value);
+        };
+        const bind = (input, rowFinder, key = configKey) => {
+          if (key) input.dataset.syncKey = key;
+          if (lisaLiveMode && !key) input.disabled = true;
+          input.addEventListener(
+            input.type === "text" || input.type === "number"
+              ? "input"
+              : "change",
+            () =>
+              changed(
+                input.type === "checkbox"
+                  ? input.checked
+                  : input.type === "number"
+                    ? input.valueAsNumber
+                    : input.value,
+                rowFinder ? rowFinder(input) : input.closest(".row"),
+                key
+              )
           );
         };
         if (!control) return wrap;
@@ -11278,6 +11450,7 @@
           };
           paintState();
           input.addEventListener("change", paintState);
+          input.addEventListener("lisa-sync", paintState);
           bind(input, i => i.closest(".row") || i.closest("tr"));
           box.appendChild(label);
           box.appendChild(state);
@@ -11304,7 +11477,6 @@
             s.appendChild(opt);
           });
           bind(s, i => i.closest(".row") || i.closest("tr"));
-          bindSync(s, control);
           wrap.appendChild(s);
         } else if (control.type === "text") {
           const i = document.createElement("input");
@@ -11321,9 +11493,11 @@
           const i = document.createElement("input");
           i.type = "number";
           i.className = "ctl num";
-          i.value = control.value;
+          const pendingValue = dirty.has(configKey)
+            ? dirty.get(configKey)
+            : control.value;
+          i.value = Number.isNaN(pendingValue) ? "" : pendingValue;
           bind(i);
-          bindSync(i, control);
           wrap.appendChild(i);
           if (control.unit)
             wrap.appendChild(el("span", "unit", esc(control.unit)));
@@ -11352,7 +11526,7 @@
               if (cb.checked) values.add(o);
               else values.delete(o);
               paint();
-              markDirty(id + "·" + ++ctlSeq, box.closest("tr"));
+              changed([...values], box.closest("tr"));
             });
             lab.appendChild(cb);
             lab.appendChild(el("span", "", esc(o)));
@@ -11376,14 +11550,17 @@
           wrap.appendChild(box);
         } else if (control.type === "tags") {
           const box = el("div", "tagbox");
+          const values = () =>
+            [...box.querySelectorAll(".tag")].map(tag => tag.dataset.value);
           (control.values || []).forEach(v => {
             const t = el("span", "tag", esc(v) + " ");
+            t.dataset.value = v;
             const x = el("button", "", "×");
             x.type = "button";
-            x.title = "Remove (prototype)";
+            x.title = "Remove";
             x.addEventListener("click", () => {
               t.remove();
-              markDirty(id + "·" + v, box.closest(".row"));
+              changed(values(), box.closest(".row"));
             });
             t.appendChild(x);
             box.appendChild(t);
@@ -11391,18 +11568,19 @@
           const add = el("button", "tag-add", "+ add");
           add.type = "button";
           add.addEventListener("click", () => {
-            const v = prompt("Add value (prototype only):");
+            const v = prompt("Add value:");
             if (!v) return;
             const t = el("span", "tag", esc(v) + " ");
+            t.dataset.value = v;
             const x = el("button", "", "×");
             x.type = "button";
             x.addEventListener("click", () => {
               t.remove();
-              markDirty(id + "·rm·" + v, box.closest(".row"));
+              changed(values(), box.closest(".row"));
             });
             t.appendChild(x);
             box.insertBefore(t, add);
-            markDirty(id + "·add·" + v, box.closest(".row"));
+            changed(values(), box.closest(".row"));
           });
           box.appendChild(add);
           wrap.appendChild(box);
@@ -11415,7 +11593,11 @@
             i.type = "text";
             i.className = "ctl mono";
             i.value = control[envName] || "";
-            bind(i, inp => inp.closest(".row"));
+            bind(
+              i,
+              inp => inp.closest(".row"),
+              configKey ? configKey + "." + envName : undefined
+            );
             cell.appendChild(i);
             box.appendChild(cell);
           });
@@ -11483,6 +11665,10 @@
 
       function buildRow(row) {
         const r = el("div", "row");
+        if (row.key) {
+          r.dataset.configKey = row.key;
+          r.classList.toggle("modified", isDirtyRow(row.key));
+        }
         const left = el("div");
         const label = el("div", "label");
         label.appendChild(el("span", "", esc(row.label)));
@@ -13936,7 +14122,18 @@
 
       /* --- boot (deferred so an injected live-config tag after this script is seen) --- */
       function boot() {
+        forEachConfigRow(row =>
+          initialControls.set(row.key, { ...row.control })
+        );
         hydrateFromLiveConfig();
+        if (lisaLiveMode) {
+          document.getElementById("saveBtn").removeAttribute("title");
+          document
+            .getElementById("saveBtn")
+            .removeAttribute("aria-describedby");
+          document.getElementById("saveReadonlyReason").hidden = true;
+        }
+        updateSavebar();
         renderAll();
         showSection(location.hash ? location.hash.slice(1) : "overview");
         if (!document.getElementById("section-" + activeSection))
@@ -13968,10 +14165,11 @@
       });
 
       document.getElementById("discardBtn").addEventListener("click", () => {
-        clearDirty();
-        renderAll();
-        showSection(activeSection);
+        if (!saving) restoreConfigControls();
       });
+      document
+        .getElementById("saveBtn")
+        .addEventListener("click", () => void saveConfig());
 
       document.getElementById("howtoClose").addEventListener("click", () => {
         document.getElementById("howto").close();

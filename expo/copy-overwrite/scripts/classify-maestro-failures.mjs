@@ -731,8 +731,8 @@ export function deviceVerdict(tallies, baselines, markers) {
  * `FATAL ERROR: Reached heap limit` inside `fs.readFileSync`. Measured on a
  * 44-flow iOS leg, 2026-09-11.
  *
- * That crash is invisible: the workflow step runs the classifier under
- * `|| true` and `exit 0` so it can never fail the job — deliberately, and the
+ * That crash was invisible: the workflow used `|| true` and `exit 0`
+ * so the classifier could never fail the job — deliberately, and the
  * suite beside this file pins that — and the docblock above says absence of
  * evidence is normal. So an OOM produces exactly the observable of a run with
  * nothing to classify. On the measured run, the leg's ONE failure was a
@@ -1167,9 +1167,9 @@ export function loadConfig(projectRoot) {
 /**
  * Classify every named report against one project checkout.
  *
- * The debug-output tree is read ONCE and shared across the named reports: it is
- * the observation of a single run, and re-walking it per report would only cost
- * time. A retry arm writes into the same tree, which is correct — retries only
+ * The debug-output iterable is shared across the named reports. Each report
+ * reads it lazily so artifact text is not retained between reports.
+ * A retry arm writes into the same tree, which is correct — retries only
  * re-run flows that already failed, so its evidence is about those same flows.
  * @param {readonly string[]} reportPaths - Report paths
  * @param {{projectRoot: string, platform: string | null, debugRoot?: string | null}} context - Run context

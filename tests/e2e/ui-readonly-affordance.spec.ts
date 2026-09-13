@@ -15,7 +15,7 @@ test("renders mutating console controls as honest read-only affordances", async 
   await expect(save).toBeDisabled();
   await expect(save).toHaveAttribute(
     "title",
-    "read-only: the write-path has not shipped yet"
+    "Open this console with lisa ui to save changes"
   );
   await page.evaluate(() => document.getElementById("saveBtn")?.click());
   await expect(page.locator("#toast")).not.toHaveClass(/show/);

@@ -86,6 +86,8 @@ jobs:
     with:
       environment: ${{ needs.determine_environment.outputs.environment }}
       release_strategy: 'standard-version'
+      # Protected PR CI already proves quality; release retains pre-deploy gates.
+      run_quality_checks: false
       require_approval: false
       require_signatures: false
       generate_sbom: true

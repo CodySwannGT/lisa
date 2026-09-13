@@ -297,7 +297,7 @@ describe("the hold marker has exactly one spelling", () => {
     // what catches a rename of either phrase.
     const gating = ROUTE_NAMES.flatMap(name =>
       skillVariants(name).filter(file => {
-        const contract = readFileSync(file, "utf-8");
+        const contract = readFileSync(file, "utf-8").split(/\s+/u).join(" ");
         return (
           contract.includes(CLAIM_REFUSAL) &&
           contract.includes(CLAIM_INVOCATION)
@@ -305,7 +305,7 @@ describe("the hold marker has exactly one spelling", () => {
       })
     );
     const inverted = gating.filter(file => {
-      const contract = readFileSync(file, "utf-8");
+      const contract = readFileSync(file, "utf-8").split(/\s+/u).join(" ");
       return (
         contract.indexOf(CLAIM_REFUSAL) > contract.indexOf(CLAIM_INVOCATION)
       );

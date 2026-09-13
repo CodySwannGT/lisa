@@ -130,6 +130,16 @@ Select the first ready project returned by Phase 2 and process only that project
 
 #### 3a. Claim
 
+**Preflight project comments before any claim or destination-ticket creation.** Through
+`lisa-linear-access`, resolve an identity-matched tier-1 GraphQL credential and the
+`save-comment project_id` adapter, then read the candidate's complete project comment
+history with `list-comments project_id:<id>`. The issue-only MCP is insufficient for
+this flow. If the required credential, adapter or read is unavailable, return the
+layer's `Error:` naming the project-comment operation and leave the project ready;
+create no tickets and no substitute comment-holder Issue. This is a read-only
+capability preflight, not a test comment. It establishes the available transport;
+later permission changes or write failures still follow the normal error handler.
+
 Transition labels via `lisa-linear-access operation: save-project({id, labels})`: pass the full new label set with `$READY` removed and `$IN_REVIEW` added. This is the idempotency lock — a re-entrant cycle running concurrently won't see this project because its query filters on `label: "$READY"`.
 
 If the update fails (permission error, race condition), log it and skip this project. Do not proceed to validation on a project you didn't successfully claim.
@@ -152,7 +162,7 @@ This call also indirectly invokes `lisa-tracker-source-artifacts` (artifact extr
 
 1. Re-invoke `lisa-linear-to-tracker` with `dry_run: false` to actually write the tickets. This re-runs Phases 1-5 and runs the preservation gate (Phase 5.5).
 2. Capture the created ticket keys from the skill's output.
-3. Post a comment on the project via `lisa-linear-access operation: save-comment project_id:<id>` listing the created tickets (epic, stories, sub-tasks) with their JIRA URLs. Lead with: `"Ticketed by Claude. Created N JIRA issues — see below. Add the $SHIPPED label to the Linear project after the work is delivered."`
+3. Post a comment on the project via `lisa-linear-access operation: save-comment project_id:<id>` listing the created tickets (epic, stories, sub-tasks) with the URLs returned by the configured destination tracker. Lead with: `"Ticketed by Claude. Created N tickets — see below. Add the $SHIPPED label to the Linear project after the work is delivered."`
 4. Transition labels: remove `$IN_REVIEW`, add `$TICKETED` via `save_project`.
 5. **Run Phase 3e (coverage audit)** before considering this PRD done.
 
@@ -396,6 +406,6 @@ Before this skill can run against a Linear workspace or team, the team must adop
 1. Apply the `ready` label (default: `prd-ready`) to projects that are ready for ticketing (replaces the Notion `Status = Ready` flip and the Confluence `prd-ready` page label).
 2. Reserve `in_review`, `blocked`, `ticketed` (defaults: `prd-in-review`, `prd-blocked`, `prd-ticketed`) for this skill — humans should not set them manually except to recover from an error.
 3. (Optional but recommended) Add the `draft` and `shipped` labels (defaults: `prd-draft`, `prd-shipped`) for in-progress PRDs and delivered work respectively, so the full lifecycle is visible at a glance.
-4. The labels must exist as **project labels** in Linear (`list_project_labels` should return them). Issue-level labels with the same names won't work; Linear keeps the two label kinds separate.
+4. The labels must exist as **project labels** in Linear (`list-project-labels` should return them). Issue-level labels with the same names won't work; Linear keeps the two label kinds separate.
 
 If the workspace hasn't adopted these labels, the first run exits with a label-convention error (not the idle empty-set message) — this distinguishes a setup issue from a genuinely empty queue so operators know to apply the convention rather than assuming there is no work. See Phase 2 for how the skill detects this case.

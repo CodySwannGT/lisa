@@ -53,7 +53,7 @@ fi
 # This must NOT key on lockfile presence alone. An npm-only project
 # (engines.bun = "please-use-npm", CI runs `npm ci`) that picks up a stray
 # bun.lock would otherwise get `bun install`, re-create the bun.lock, and break
-# — the SE-5221 regression. The engines/packageManager signals are
+# — the package-manager selection regression. The engines/packageManager signals are
 # authoritative; lockfiles are only a fallback and never override an opt-out.
 detect_package_manager() {
   _field="" _forced="" _forbidden=""

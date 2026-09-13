@@ -22,12 +22,9 @@
  * nothing about the next workflow that acquires the same split, and the issue
  * describes this as an unfixed instance of a recurring class.
  *
- * Reading `vars.NAME` into a DIFFERENTLY named env var is allowed and is not
- * the defect: `release.yml` reads `SENTRY_ORG_VAR: ${{ vars.SENTRY_ORG }}`
- * purely to detect a consumer still configured through the legacy channel and
- * fail loudly instead of skipping. What this test forbids is the value that
- * flows into env var `NAME` coming from the channel the declaration does not
- * advertise.
+ * A secret-first expression with a variable fallback is allowed. What this
+ * test forbids is binding `NAME` exclusively from `vars.NAME` while inviting
+ * callers to configure a secret that the binding ignores.
  *
  * Per the Test Isolation house rule, expected values are HARDCODED.
  *

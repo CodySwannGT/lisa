@@ -17,6 +17,9 @@ Upload captured screenshots and generated templates to GitHub PR description and
 
 ## Prerequisites
 
+- `python3` for destination validation. Configure `server` as a bare HTTPS origin:
+  no userinfo, path prefix, query, or fragment. Invalid destinations are rejected
+  before Basic authorization is constructed.
 - `JIRA_API_TOKEN` environment variable set
 - a jira-cli config — `.lisa/jira-cli/.config.yml` if the `setup-jira-cli`
   SessionStart hook wrote one, otherwise `~/.config/.jira/.config.yml`. `server`
