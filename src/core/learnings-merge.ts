@@ -43,10 +43,7 @@
  * conflict for a human or agent to recompact.
  * @module core/learnings-merge
  */
-import {
-  LEARNINGS_CONTRACT,
-  type LearningEntry,
-} from "./learnings-contract.js";
+import type { LearningEntry } from "./learnings-contract.js";
 import {
   assertDocumentBudget,
   parseLearningsFile,
@@ -413,7 +410,7 @@ function renderWithinBudget(
     const detail = error instanceof Error ? error.message : String(error);
     return {
       kind: "conflict",
-      reason: `${detail} — the union of both branches does not fit the ${LEARNINGS_CONTRACT.maxEntries}-entry budget; consolidate before merging`,
+      reason: detail,
     };
   }
 }
