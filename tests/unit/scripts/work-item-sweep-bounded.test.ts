@@ -266,6 +266,8 @@ describe("sweep --apply --since completes only what the push shipped", () => {
 describe("sweep --since refuses rather than guessing (#3704)", () => {
   it("limits a push to its selected branch even when another deploy branch diverged", () => {
     const fixture = offlineFixture();
+    // The real workflow's branch is ambient, not a branch selected by this case.
+    fixture.env.GITHUB_REF_NAME = "main";
     const configPath = path.join(fixture.root, ".lisa.config.json");
     const config = JSON.parse(readFileSync(configPath, "utf8"));
     writeFileSync(

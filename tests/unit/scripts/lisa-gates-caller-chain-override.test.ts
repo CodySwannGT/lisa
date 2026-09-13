@@ -145,6 +145,32 @@ describe("callerPrefix", () => {
 });
 
 describe("validateGates refuses an override at declaration time", () => {
+  it.each([
+    "pre-deploy:production",
+    "pre-deploy:staging",
+    "post-deploy:production",
+    "continuous:staging",
+    "pre-deploy:preview-123",
+  ])("refuses a caller chain without a consumer at %s", moment => {
+    const problems = validateGates({
+      "runtime-web-vulnerability": {
+        run: LINT_TASK,
+        [moment]: { level: "required", caller_chain: [BROWSER_CALLER] },
+      },
+    }) as string[];
+
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("caller_chain");
+    expect(problems[0]).toContain(moment);
+    expect(problems[0]).toContain("no consumer");
+    expect(problems[0]).not.toContain("before there is a pull request");
+    expect(
+      validateGates({
+        "runtime-web-vulnerability": { run: LINT_TASK, [moment]: "required" },
+      })
+    ).toEqual([]);
+  });
+
   it("refuses one on an awaited moment, where no chain prefixes anything", () => {
     const problems = validateGates({
       "code-review": {

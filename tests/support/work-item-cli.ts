@@ -184,12 +184,8 @@ esac
 case "\${1:-} \${2:-}" in
   "issue view")
     [ "\${FAKE_GH_ISSUE_FAIL:-0}" != "1" ] || { echo "\${FAKE_GH_STDERR:-gone}" >&2; exit 1; }
-    # Successive reads may differ. A completion readback is only INDEPENDENT if
-    # it is a fresh read, and a fake that answers every read identically cannot
-    # tell an independent readback apart from one that echoed the write's own
-    # output. Staging a divergent second answer is what makes the difference
-    # observable. Counted the same way the curl fake counts, so there is one
-    # idiom here rather than two.
+    # Stage successive answers so completion can verify a fresh tracker read.
+    # Use the same counter convention as the curl fake.
     ISSUE_JSON=$FAKE_GH_ISSUE_JSON
     if [ -n "\${FAKE_GH_ISSUE_COUNT_FILE:-}" ]; then
       ISSUE_COUNT=0
@@ -254,6 +250,7 @@ function template(config: object): string {
   const bin = path.join(root, "fake-bin");
   mkdirSync(bin);
   executable(path.join(bin, "gh"), GH_SCRIPT);
+  executable(path.join(bin, "acli"), "exit 1");
   // The default is assigned on its own line rather than written
   // `"${FAKE_CURL_JSON:-{}}"`. That form does NOT mean "default to {}": the
   // expansion ends at the first `}`, so the default is `{` and a stray `}` is
@@ -473,6 +470,7 @@ export function cli(
   try {
     replaceEnv({
       ...fixture.env,
+      GITHUB_REF_NAME: undefined,
       GIT_DIR: path.join(fixture.root, ".git"),
       GIT_WORK_TREE: fixture.root,
       ...overrides,

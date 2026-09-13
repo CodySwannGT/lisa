@@ -23,9 +23,8 @@ export interface CLIOptions {
   /**
    * Declare this apply a package-manager install lifecycle.
    *
-   * The only thing that selects the reduced `postinstall-safe` subset. Every
-   * Lisa-written postinstall invocation carries it, in this spelling or as
-   * `LISA_POSTINSTALL=1` (CodySwannGT/lisa#3066).
+   * Installation skips template writes unless --full-apply explicitly opts in.
+   * Also accepted as LISA_POSTINSTALL=1 for existing host hooks.
    */
   postinstallSafe?: boolean;
   /**
@@ -102,10 +101,8 @@ export function addSharedOptions(command: Command): Command {
     )
     .option(
       "--postinstall-safe",
-      "Declare this apply a package-manager install lifecycle, which runs the " +
-        "reduced postinstall-safe subset: no agent emit (Codex, Claude, agy, " +
-        "Copilot, OpenCode) and no Sonar integration, so an install never " +
-        "regenerates committed agent trees. Equivalent to LISA_POSTINSTALL=1."
+      "Declare an install lifecycle: skip template writes unless --full-apply " +
+        "is explicitly requested. Equivalent to LISA_POSTINSTALL=1."
     )
     .option(
       "--full-apply",

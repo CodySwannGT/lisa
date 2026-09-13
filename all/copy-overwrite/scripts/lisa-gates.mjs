@@ -4892,8 +4892,7 @@ function validatePostedBy(id, moment, entry) {
  *    own name from wherever its app runs, and no chain prefixes it — so the
  *    author who declared the override to fix a context would keep requiring
  *    the unchanged one while believing it had been fixed.
- * 2. At a moment where nothing posts a status at all there is no check-run
- *    name for the chain to shape.
+ * 2. Outside pull-request validation, no required check consumes the chain.
  * 3. A blank, non-string or empty level derives `" / <label>"` or
  *    `"<a> /  / <label>"` — strings that read as plausible and that no run has
  *    ever posted. `declaredCallerChain` is what refuses those, and it is the
@@ -4918,11 +4917,11 @@ function validateCallerChain(id, moment, entry) {
         `be "${entry.await}".`,
     ];
   }
-  if (NO_STATUS_MOMENTS.includes(moment)) {
+  const family = momentFamily(moment);
+  if (NO_STATUS_MOMENTS.includes(family) || MOMENT_FAMILIES.includes(family)) {
     return [
-      `${where} names the chain of jobs a check run is posted under, but ` +
-        `nothing posts a check run at "${moment}" — it runs here, before ` +
-        `there is a pull request for a status to attach to. Declare it at ` +
+      `${where} shapes required pull-request check names, but has no consumer ` +
+        `at "${moment}". Declare it at ` +
         `"${PULL_REQUEST}", which is the moment whose context it shapes.`,
     ];
   }
@@ -5722,7 +5721,7 @@ export function callerPrefix(chain) {
  * @param {string[]} [options.previousLabels] Previous labels a caller proves
  * still have a live producer during an explicit overlap window.
  * @param {"run"|"await"} [options.mode] Limit the result to workflow-posted
- * contexts (`run`, including intercepted gates) or external awaited signals.
+ * contexts (`run`) or external awaited signals. Interceptors post no context.
  * @returns {string[]} Sorted, de-duplicated contexts.
  */
 export function contextsFor(gates, options = {}) {
@@ -5742,11 +5741,12 @@ export function contextsFor(gates, options = {}) {
 
   const contexts = resolveMoment({ gates, moment })
     .filter(gate => gate.level === "required")
+    // Interception prevents an action locally; it has no check-run producer.
+    // Requiring a derived workflow name would leave the PR waiting forever.
+    .filter(gate => gate.mode !== "intercept")
     // A workflow ruleset owns every context Lisa or the project posts through
     // a job chain. Awaited signals belong to the generated base ruleset, where
-    // their declaration can retain the external app pin. Intercepted gates are
-    // included in `run`: like an ordinary run gate, their context is derived
-    // from the workflow chain rather than from an external signal name.
+    // their declaration can retain the external app pin.
     .filter(gate =>
       mode === undefined
         ? true

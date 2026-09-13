@@ -49,6 +49,26 @@ environment  →  materialized file (surfaces that have one)  →  provider
 
 **The middle rung exists only where it must.** A remote agent container prepares itself during setup — before any task exists, and often before network policy would permit a provider call from the task itself — so files written at that moment are the only channel available.
 
+### Recovering AWS access during a task
+
+When an AWS operation reports missing or expired credentials, first resolve
+`LISA_AWS_BOOTSTRAP_JSON` through the ladder above. If available, run the existing
+`scripts/remote-agent-aws-setup.sh` from the trusted installed Lisa plugin/package
+in the project checkout, supplying the bundle only to that subprocess's
+environment. Select the intended namespace, stage and expected account from the
+project configuration. Require its successful account verification; do not
+disable verification or take over another project's default profile to force
+success. Use `lisa-setup-remote-aws` only if installation is missing. Keep the
+bundle private; do not print it or copy it into a second secret provider. Do not
+use `aws sso login` to recover this Lisa-managed bootstrap path.
+
+Before retrying the operation, verify that the selected profile's caller account
+matches the project's expected account; successful authentication alone is not
+enough. If the bundle cannot be resolved or the account mismatches, report that
+specific failure. An SSO-shaped local profile is not evidence that a human login
+is required. Projects explicitly configured for a different access method keep
+that method; do not invent a bootstrap bundle for them.
+
 ## Writing values to disk
 
 The default rule is absolute: **never write a resolved value to disk**, including "temporary" files. A value on disk is a copy that can drift and leak.

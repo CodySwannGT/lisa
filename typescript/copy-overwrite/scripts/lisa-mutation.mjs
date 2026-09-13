@@ -1848,11 +1848,20 @@ export const parseChangedLineRanges = patch => {
  * @param {string} cwd - Project root.
  * @param {string} base - Merge-base sha.
  * @param {string} file - Repository-relative path.
+ * @param {string} [previousFile] - Old path when the file was renamed.
  * @returns {string[]} `path:start-end` entries for current changed lines.
  */
-export const selectChangedLineRanges = (cwd, base, file) =>
+export const selectChangedLineRanges = (cwd, base, file, previousFile = file) =>
   parseChangedLineRanges(
-    git(cwd, ["diff", "--unified=0", "--diff-filter=ACMR", base, "--", file])
+    git(cwd, [
+      "diff",
+      "--find-renames",
+      "--unified=0",
+      "--diff-filter=ACMR",
+      previousFile === file ? base : `${base}:${previousFile}`,
+      "--",
+      file,
+    ])
   ).map(({ start, end }) => `${file}:${start}-${end}`);
 
 /**
@@ -1870,16 +1879,35 @@ export const selectChangedTargets = (cwd, base, patterns) => {
   // a target whose only change is uncommitted is invisible to committed state,
   // so the gate printed "0 mutate targets" and exited 0 while Stryker, pointed
   // at the same tree, had a changed target in front of it.
-  const changed = git(cwd, ["diff", "--name-only", "--diff-filter=ACMRD", base])
-    .split("\n")
-    .map(file => file.trim())
-    .filter(Boolean);
-  const selectedFiles = changed
-    .filter(file => isMutateTarget(file, patterns))
-    .filter(file => fs.existsSync(path.join(cwd, file)));
-  const byFile = selectedFiles.map(file => ({
+  // Split full rewrites so an old name reused after a move remains a possible
+  // source. Include B as well as M: Git filters rewritten source records as B.
+  const names = git(cwd, [
+    "diff",
+    "--find-renames",
+    "--name-status",
+    "--break-rewrites",
+    "-z",
+    "--diff-filter=ACMRDB",
+    base,
+  ]).split("\0");
+  const changed = [];
+  for (let index = 0; names[index]; ) {
+    const status = names[index++];
+    const previousFile = names[index++];
+    const file = /^[RC]/u.test(status) ? names[index++] : previousFile;
+    changed.push({ file, previousFile });
+  }
+  const selectedFiles = changed.filter(({ file }) =>
+    isMutateTarget(file, patterns)
+  );
+  const byFile = selectedFiles.map(({ file, previousFile }) => ({
     file,
-    ranges: selectChangedLineRanges(cwd, base, file),
+    // Preserve deleted targets for classification, without asking Stryker to
+    // open them. A rename compares the old blob with the current destination;
+    // diffing both paths together can include a new file reusing the old name.
+    ranges: fs.existsSync(path.join(cwd, file))
+      ? selectChangedLineRanges(cwd, base, file, previousFile)
+      : [],
   }));
   return {
     changed: changed.length,
@@ -1890,7 +1918,7 @@ export const selectChangedTargets = (cwd, base, patterns) => {
       .map(entry => entry.file),
     // Reported from the diff, not from the selection, because by construction
     // these can never BE in the selection — that is the whole point of them.
-    uninstrumentable: uninstrumentableGuards(changed),
+    uninstrumentable: uninstrumentableGuards(changed.map(({ file }) => file)),
   };
 };
 

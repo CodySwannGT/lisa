@@ -10,6 +10,8 @@ Thin dispatcher. Resolves the configured destination tracker and delegates to th
 
 See the `config-resolution` rule for configuration and dispatch table.
 
+Apply `lisa-tracker-sync` — **Agent attribution** when composing evidence comments; a disclosure already present in the body needs no second trailer.
+
 ## Workflow
 
 1. Resolve tracker config (same logic as `lisa-tracker-write`).
@@ -40,7 +42,7 @@ Apply this when authoring `evidence/comment.md` (and `evidence/comment.txt` for 
 
 The checklist is tracker-agnostic — the same shape works on JIRA, GitHub Issues, and Linear. Vendor skills only own the post/transition mechanics; the comment body is your responsibility.
 
-1. **AI disclosure at the top.** Lead with "Update from Claude (AI agent, not a human)" and address the reporter / QA / PM by name.
+1. **AI disclosure at the top.** Lead with "Update from <actual runtime name> (AI agent)" and address the reporter / QA / PM by name when known. This satisfies the shared attribution convention without a second trailer.
 2. **Own any prior mistake explicitly.** If an earlier triage or build pass got something wrong, say so up front. Don't bury it.
 3. **Numbered step-by-step walk** of what you actually did in the browser/app, in plain language a non-engineer can follow:
    - Exact env (URL, viewport size — e.g. `402×874` for an iOS-sized mobile flow)

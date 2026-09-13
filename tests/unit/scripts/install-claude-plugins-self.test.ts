@@ -347,6 +347,55 @@ afterAll(() => {
 });
 
 describe("install-claude-plugins self postinstall path", () => {
+  it.each([
+    ["self", "npm"],
+    ["consumer", "npm"],
+    ["self", "bun"],
+    ["consumer", "bun"],
+  ])(
+    "leaves project configuration and agent installations alone during %s %s install",
+    async (kind, manager) => {
+      const root = await makeTempRoot();
+      const fakeBin = path.join(root, "bin");
+      const commandLog = path.join(root, COMMAND_LOG);
+      if (kind === "self") await writeSelfProject(root);
+      else await writeDownstreamProject(root);
+      const script =
+        kind === "self"
+          ? await writeSelfLisaScript(root)
+          : await writeInstalledLisaScript(root);
+      await writeFakeAgentBins(fakeBin);
+      await writeFile(commandLog, "");
+      await mkdir(path.join(root, CLAUDE_DIR), { recursive: true });
+      const settingsPath = path.join(root, CLAUDE_DIR, "settings.json");
+      const originalSettings = '{"customSetting":"preserve me"}\n';
+      await writeFile(settingsPath, originalSettings);
+      const originalPackage = await readFile(
+        path.join(root, PACKAGE_JSON_FILE)
+      );
+      const result = await runBoundedBash(script, {
+        env: {
+          ...process.env,
+          HOME: root,
+          CI: "",
+          CODEX_THREAD_ID: "",
+          CLAUDE_CODE_REMOTE: "",
+          npm_lifecycle_event: manager === "npm" ? "postinstall" : "",
+          npm_config_user_agent: manager === "bun" ? "bun/1.3.11" : "npm/10",
+          LISA_BOOTSTRAP: "1",
+          LISA_TEST_COMMAND_LOG: commandLog,
+          PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
+        },
+      });
+      expect(await readFile(commandLog, "utf8")).toBe("");
+      expect(await readFile(settingsPath, "utf8")).toBe(originalSettings);
+      expect(await readFile(path.join(root, PACKAGE_JSON_FILE))).toEqual(
+        originalPackage
+      );
+      expect(result.stdout).toContain("lisa apply");
+    }
+  );
+
   it("removes user-wide Codex plugin surfaces without running full apply", async () => {
     const projectRoot = await makeTempRoot();
     const fakeBin = path.join(projectRoot, "bin");

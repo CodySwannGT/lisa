@@ -15,6 +15,10 @@ export const BUILD_ENV_FINGERPRINTS: readonly string[] = [
 export const BOOTSTRAP_SKIP_NOTICE =
   "lisa: skipped (non-interactive environment; set LISA_BOOTSTRAP=1 to force)";
 
+const INSTALL_SKIP_NOTICE =
+  "lisa: installation leaves project templates unchanged. Run `lisa apply .` " +
+  "to apply updates, or `lisa doctor` to check freshness.";
+
 /**
  * Runtime state used by the bootstrap guard.
  */
@@ -31,6 +35,10 @@ export interface BootstrapEnvironment {
 export interface BootstrapGuardOptions {
   /** Whether the caller requested validate-only mode. */
   readonly validateOnly: boolean;
+  /** Whether the caller explicitly declared an install lifecycle. */
+  readonly postinstall?: boolean;
+  /** Whether the operator explicitly requested writes during installation. */
+  readonly fullApply?: boolean;
   /** Injectable runtime state for tests. Defaults to the current process. */
   readonly environment?: BootstrapEnvironment;
 }
@@ -64,6 +72,25 @@ export function getBootstrapApplySkipNotice(
     env: readProcessEnv(),
     stdinIsTTY: process.stdin.isTTY === true,
   };
+
+  // Bun install and direct `bun run <binary>` omit the lifecycle name. Prefer
+  // a conservative skip; the existing full-apply flag can explicitly opt in.
+  const isUnnamedBun =
+    !environment.env.npm_lifecycle_event &&
+    environment.env.npm_config_user_agent?.startsWith("bun/") === true;
+  const isInstall =
+    options.postinstall === true ||
+    environment.env.LISA_POSTINSTALL === "1" ||
+    environment.env.npm_lifecycle_event === "postinstall" ||
+    isUnnamedBun;
+  if (isInstall && options.fullApply !== true) {
+    return isUnnamedBun
+      ? `${
+          INSTALL_SKIP_NOTICE
+        } Bun did not name its lifecycle; for an intentional apply use ` +
+          `\`bunx lisa apply .\` or pass \`--full-apply\`.`
+      : INSTALL_SKIP_NOTICE;
+  }
 
   if (environment.env[LISA_BOOTSTRAP_ENV] === "1") return undefined;
 

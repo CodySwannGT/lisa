@@ -21,7 +21,7 @@
  * lie about a fresh clone that has never installed.
  * @module core/apply-receipt
  */
-import { mkdir, rename, writeFile } from "node:fs/promises";
+import { mkdir, rename, rm, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { readJsonOrNull } from "../utils/json-utils.js";
 
@@ -318,6 +318,11 @@ export async function recordSuccessfulApply(
     const tempPath = `${receiptPath}.tmp`;
     await writeFile(tempPath, `${JSON.stringify(receipt, null, 2)}\n`, "utf8");
     await rename(tempPath, receiptPath);
+    // Retire a legacy install failure only after an actual successful apply.
+    // If removal is denied, preserve that evidence without losing the receipt.
+    await rm(path.join(root, "node_modules", ".lisa", "apply-failed.json"), {
+      force: true,
+    }).catch(() => false);
     return true;
   } catch {
     return false;

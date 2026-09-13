@@ -11,6 +11,63 @@ const interactive = {
 };
 
 describe("getBootstrapApplySkipNotice", () => {
+  it.each([
+    { npm_lifecycle_event: "postinstall" },
+    { LISA_POSTINSTALL: "1" },
+    { npm_config_user_agent: "bun/1.3.11 npm/? node/v24.3.0" },
+  ])("skips install writes even with the old bootstrap opt-in: %j", markers => {
+    expect(
+      getBootstrapApplySkipNotice({
+        validateOnly: false,
+        environment: {
+          env: { ...markers, LISA_BOOTSTRAP: "1" },
+          stdinIsTTY: true,
+        },
+      })
+    ).toContain("lisa apply");
+  });
+
+  it("skips an explicitly declared install unless full apply is requested", () => {
+    const options = {
+      validateOnly: false,
+      postinstall: true,
+      environment: interactive,
+    };
+    expect(getBootstrapApplySkipNotice(options)).toContain("lisa apply");
+    expect(
+      getBootstrapApplySkipNotice({ ...options, fullApply: true })
+    ).toBeUndefined();
+  });
+
+  it("allows a deliberate full apply from an install hook", () => {
+    expect(
+      getBootstrapApplySkipNotice({
+        validateOnly: false,
+        fullApply: true,
+        environment: {
+          env: { npm_lifecycle_event: "postinstall", LISA_BOOTSTRAP: "1" },
+          stdinIsTTY: false,
+        },
+      })
+    ).toBeUndefined();
+  });
+
+  it("does not mistake an explicit npm apply script for an install", () => {
+    expect(
+      getBootstrapApplySkipNotice({
+        validateOnly: false,
+        environment: {
+          env: {
+            npm_lifecycle_event: "apply",
+            npm_config_user_agent: "bun/1.3.11 npm/? node/v24.3.0",
+            LISA_BOOTSTRAP: "1",
+          },
+          stdinIsTTY: false,
+        },
+      })
+    ).toBeUndefined();
+  });
+
   it("refuses to run apply without a TTY unless explicitly opted in", () => {
     expect(
       getBootstrapApplySkipNotice({

@@ -27,7 +27,7 @@ Confirm that quality gates (tests, typecheck, lint, format) pass. These are prer
 
 ### 2. Classify
 
-Determine which **empirical verification types** apply based on the change. Check each type in the Verification Types table in `.claude/rules/verification.md` against the change scope. Every applicable type requires running the actual system and observing results — not just running tests.
+Determine which **empirical verification types** apply based on the change. Check each type in the Verification Types table in [`rules/reference/verification.md`](../../rules/reference/verification.md) against the change scope. Every applicable type requires running the actual system and observing results — not just running tests.
 
 ### 3. Check Tooling
 

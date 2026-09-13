@@ -32,6 +32,7 @@ import {
 } from "./lib/per-agent-hook-filter.mjs";
 import { nestCommandsUnderLisa } from "./lib/nest-plugin-commands.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+import { rewritePluginRuleCitations } from "./lib/plugin-rule-citations.mjs";
 
 const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -268,6 +269,7 @@ export function generateCopilotVariant(srcDir, outDir, version) {
       fs.rmdirSync(hooksDir);
     }
   }
+  rewritePluginRuleCitations(outDir, "copilot");
 }
 
 // CLI entrypoint.

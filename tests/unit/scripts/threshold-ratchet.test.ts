@@ -191,6 +191,108 @@ describe("threshold-ratchet tier 1", () => {
     const standardConfig = (assertions: object) =>
       JSON.stringify({ ci: { assert: { assertions } } });
 
+    it("compares a newly added forced-reflow ceiling with the consumer default", () => {
+      expect(
+        compareFile(
+          LIGHTHOUSE_FILE,
+          config({}),
+          config({ forcedReflowInsight: { maxNumericValue: 250 } })
+        )
+      ).toEqual([
+        expect.objectContaining({
+          key: "forcedReflowInsight.maxNumericValue",
+          type: "weakened",
+          base: 100,
+          current: 250,
+        }),
+      ]);
+    });
+
+    it.each([75, 100])("allows an added forced-reflow ceiling of %s", value => {
+      expect(
+        compareFile(
+          LIGHTHOUSE_FILE,
+          config({}),
+          config({ forcedReflowInsight: { maxNumericValue: value } })
+        )
+      ).toEqual([]);
+    });
+
+    it("uses an explicit previous ceiling instead of the fallback", () => {
+      expect(
+        compareFile(
+          LIGHTHOUSE_FILE,
+          config({ forcedReflowInsight: { maxNumericValue: 250 } }),
+          config({ forcedReflowInsight: { maxNumericValue: 200 } })
+        )
+      ).toEqual([]);
+    });
+
+    it("does not invent defaults for other audits or config filenames", () => {
+      expect(
+        compareFile(
+          LIGHTHOUSE_FILE,
+          config({}),
+          config({ customAudit: { maxNumericValue: 250 } })
+        )
+      ).toEqual([]);
+      expect(
+        compareFile(
+          ".lighthouserc.json",
+          config({}),
+          config({ forcedReflowInsight: { maxNumericValue: 250 } })
+        )
+      ).toEqual([]);
+    });
+
+    it("uses the detail checker's top-level setting even beside canonical assertions", () => {
+      expect(
+        compareFile(
+          `packages/web/${LIGHTHOUSE_FILE}`,
+          standardConfig({}),
+          JSON.stringify({
+            ci: { assert: { assertions: {} } },
+            assertions: { forcedReflowInsight: { maxNumericValue: 250 } },
+          })
+        )
+      ).toEqual([
+        expect.objectContaining({ base: 100, current: 250, type: "weakened" }),
+      ]);
+    });
+
+    it("never hides a canonical weakening behind a new top-level setting", () => {
+      expect(
+        compareFile(
+          LIGHTHOUSE_FILE,
+          standardConfig({ forcedReflowInsight: { maxNumericValue: 50 } }),
+          JSON.stringify({
+            ci: {
+              assert: {
+                assertions: { forcedReflowInsight: { maxNumericValue: 80 } },
+              },
+            },
+            assertions: { forcedReflowInsight: { maxNumericValue: 75 } },
+          })
+        )
+      ).toEqual([
+        expect.objectContaining({ base: 50, current: 80, type: "weakened" }),
+      ]);
+    });
+
+    it("uses the explicit top-level baseline in a hybrid configuration", () => {
+      const hybrid = (value: number) =>
+        JSON.stringify({
+          ci: { assert: { assertions: {} } },
+          assertions: { forcedReflowInsight: { maxNumericValue: value } },
+        });
+      expect(compareFile(LIGHTHOUSE_FILE, hybrid(100), hybrid(250))).toEqual([
+        expect.objectContaining({ base: 100, current: 250, type: "weakened" }),
+      ]);
+      expect(compareFile(LIGHTHOUSE_FILE, hybrid(250), hybrid(200))).toEqual(
+        []
+      );
+    });
+
     it("blocks lowering a score floor", () => {
       const findings = compareFile(
         LIGHTHOUSE_FILE,

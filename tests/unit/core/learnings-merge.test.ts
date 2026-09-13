@@ -274,6 +274,9 @@ describe("mergeLearningsDocuments", () => {
     const result = mergeLearningsDocuments(undefined, ours, theirs);
     expect(result.kind).toBe("conflict");
     expect(result.kind === "conflict" && result.reason).toMatch(/maxTokens/);
+    expect(result.kind === "conflict" && result.reason).not.toMatch(
+      /entry budget/
+    );
   });
 
   it("refuses to consume a side that already carries conflict markers", () => {

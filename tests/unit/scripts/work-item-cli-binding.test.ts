@@ -160,7 +160,7 @@ describe("in-process CLI: attaching a branch", () => {
     );
     git(fixture.root, ["switch", "-q", "-c", "feature/later"], fixture.env);
     expect(cli(fixture, [ATTACH_BRANCH]).stdout).toContain(
-      "work-item binding attached to feature/later"
+      `work-item binding ${REF} attached to feature/later`
     );
     expect(JSON.parse(readFileSync(stateFile(fixture), "utf8")).branch).toBe(
       "feature/later"

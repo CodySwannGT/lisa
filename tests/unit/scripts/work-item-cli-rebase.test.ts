@@ -58,7 +58,9 @@ describe("in-process CLI: binding during a rebase", () => {
 
     const result = cli(fixture, ["attach-branch"]);
     expect(result.exitCode).toBeUndefined();
-    expect(result.stdout).toContain(`work-item binding attached to ${BRANCH}`);
+    expect(result.stdout).toContain(
+      `work-item binding ${REF} attached to ${BRANCH}`
+    );
     expect(boundBranch(fixture)).toBe(BRANCH);
   });
 
