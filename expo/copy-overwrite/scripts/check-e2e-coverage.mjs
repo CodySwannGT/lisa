@@ -830,8 +830,12 @@ function main() {
   ]) {
     const unmatched = unmatchedVisits({ routes, visits: collected.visits });
     if (unmatched.length > 0) {
+      const limitation =
+        runner === "maestro"
+          ? "Maestro flow-local `env:` declarations are not expanded by this checker, even when the value is defined in the flow. Externally supplied variables are also unavailable to this static scan."
+          : "Interpolated URLs may require runtime values that this static scan cannot resolve.";
       console.log(
-        `[e2e-coverage] ${runner}: ${unmatched.length} navigation(s) matched no route and credited nothing. An unresolved \`\${...}\` hole, a typo, or a renamed screen all look like this — declare a real one with an \`e2e-route: /path\` comment:\n${unmatched
+        `[e2e-coverage] ${runner}: ${unmatched.length} navigation(s) matched no route and credited nothing. ${limitation} Check literal paths for typos or renamed screens. For a test that already reaches the route, declare it with an \`e2e-route: /path\` comment:\n${unmatched
           .map(visit => `  - ${visit.path}  (${visit.files.join(", ")})`)
           .join("\n")}`
       );
