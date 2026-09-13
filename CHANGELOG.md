@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.29](https://github.com/CodySwannGT/lisa/compare/v4.55.28...v4.55.29) (2026-09-13)
+
+
+### Documentation
+
+* attribute agent review and merge messages plainly ([e7b389e](https://github.com/CodySwannGT/lisa/commit/e7b389e0c7df99e6f115a66e238c30dcefb46913)), closes [CodySwannGT/lisa#3625](https://github.com/CodySwannGT/lisa/issues/3625) [CodySwannGT/lisa#3625](https://github.com/CodySwannGT/lisa/issues/3625)
+* disclose agent authorship in tracker comments ([cc4902c](https://github.com/CodySwannGT/lisa/commit/cc4902c228acb3cfb497ead4a92e5858a8530fe8)), closes [CodySwannGT/lisa#3563](https://github.com/CodySwannGT/lisa/issues/3563) [CodySwannGT/lisa#3563](https://github.com/CodySwannGT/lisa/issues/3563)
+* share attribution through the portable tracker skill ([3be5157](https://github.com/CodySwannGT/lisa/commit/3be5157e5c4efc6051e957abdc0d1de4a8cbdf7b)), closes [CodySwannGT/lisa#3563](https://github.com/CodySwannGT/lisa/issues/3563) [CodySwannGT/lisa#3563](https://github.com/CodySwannGT/lisa/issues/3563)
+* shorten the reporting rationale ([b628ce8](https://github.com/CodySwannGT/lisa/commit/b628ce8106c7dd793f9235bb2c64bfc6e53548cd)), closes [CodySwannGT/lisa#3563](https://github.com/CodySwannGT/lisa/issues/3563) [CodySwannGT/lisa#3563](https://github.com/CodySwannGT/lisa/issues/3563)
+
 ### [4.55.28](https://github.com/CodySwannGT/lisa/compare/v4.55.27...v4.55.28) (2026-09-13)
 
 
