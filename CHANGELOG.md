@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.56.4](https://github.com/CodySwannGT/lisa/compare/v4.56.3...v4.56.4) (2026-09-13)
+
+
+### Bug Fixes
+
+* **mutation:** preserve renamed and deleted target semantics ([c0f3c07](https://github.com/CodySwannGT/lisa/commit/c0f3c07bb640d47921953d295b682e0a5b9cfe0c)), closes [CodySwannGT/lisa#3333](https://github.com/CodySwannGT/lisa/issues/3333) [CodySwannGT/lisa#3333](https://github.com/CodySwannGT/lisa/issues/3333)
+
 ### [4.56.3](https://github.com/CodySwannGT/lisa/compare/v4.56.2...v4.56.3) (2026-09-13)
 
 
