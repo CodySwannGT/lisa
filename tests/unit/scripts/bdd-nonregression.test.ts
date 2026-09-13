@@ -13,6 +13,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 import {
   BASELINE,
@@ -20,6 +21,8 @@ import {
   HEALTHY_FEATURES,
   HEALTHY_FILES,
   HEALTHY_MAP,
+  GIT_BIN,
+  HOME_FEATURE_FILE,
   MAP_REL,
   OBLIGATION_UNCOVERED,
   RATIFIED,
@@ -52,6 +55,30 @@ import {
 } from "./bdd/regression-support";
 
 describe("coverage the repo already accepted cannot be given back", () => {
+  it.each([MAP_REL, `bdd/features/${HOME_FEATURE_FILE}`])(
+    "refuses an unreadable baseline blob for %s",
+    relative => {
+      const root = healthyProject();
+      const base = commitAll(root);
+      const oid = boundedSpawnSync({
+        label: "locate fixture baseline blob",
+        command: GIT_BIN,
+        args: ["rev-parse", `${base}:${relative}`],
+        cwd: root,
+      }).stdout.trim();
+      expect(oid).toMatch(/^[a-f0-9]{40}$/u);
+      fs.unlinkSync(
+        path.join(root, ".git", "objects", oid.slice(0, 2), oid.slice(2))
+      );
+
+      const run = runGate(root, { BDD_BASE_SHA: base });
+
+      expect(run.status).toBe(1);
+      expect(messages(run, BASELINE).join(" ")).toContain(relative);
+      expect(messages(run, BASELINE).join(" ")).toContain("could not be read");
+    }
+  );
+
   it("accepts a valid pre-BDD base as an empty bootstrap baseline", () => {
     const root = emptyProject("first-bdd-contract-");
     fs.writeFileSync(path.join(root, "README.md"), "pre-contract project\n");

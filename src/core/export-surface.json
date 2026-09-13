@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 126,
-  "$names": 1242,
+  "$modules": 127,
+  "$names": 1243,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -1003,6 +1003,9 @@
       "isDirectory",
       "isValidSemver",
       "resolveCurrentVersion"
+    ],
+    "scripts/lib/plugin-rule-citations.mjs": [
+      "rewritePluginRuleCitations"
     ],
     "scripts/lib/reusable-workflow-contract.mjs": [
       "diffStaleKeys",

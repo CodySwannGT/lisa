@@ -14,6 +14,7 @@ Recognized optional hints:
 - `target_branch=<branch>` or `base=<branch>` — intended PR base branch.
 - `tracker_provider=<github|linear|jira|none>` — explicit provider when the ref shape is ambiguous.
 - `pr_url=<url>` — live pull request URL, only needed when updating tracker backlinks from an existing PR context.
+- `local_review=<done|pending>` — default `pending`. Reuse `done` only with a completed review result covering the current branch diff; a remembered review or an unavailable reviewer is insufficient.
 - `auto_merge=<true|false>` — whether the PR should merge automatically. Default `true` (existing behavior for every current caller). This skill **never arms the latch itself** in either mode; it passes the value through to the `drive-pr-to-merge` delegation in step 6, which owns the arm decision. With `auto_merge=false` the PR is driven to a clean, green, OPEN state and then left awaiting a human.
 
 ## Workflow
@@ -27,6 +28,9 @@ Recognized optional hints:
 
 1. **Branch Check**: Verify not on `dev`, `staging`, or `main` (cannot create PR from protected branches)
 2. **Commit Check**: Ensure all changes are committed before pushing
+2a. **Local review before push**: Unless `local_review=done` has current evidence, run `lisa-review-local` over the branch diff, address findings through `convergent-review`, and commit any fixes before step 3. This applies regardless of third-party reviewer availability. Reuse an applicable completed review instead of repeating it.
+
+   Report the result as *self-reviewed*; it does not satisfy the ruleset-required third-party review check. If the runtime cannot delegate review, record **local review unavailable**, continue under the existing merge policy, and do not pass `local_review=done`. An unavailable review is not a passing review.
 3. **Push**: Push current branch to remote with `-u` flag and the following environment variable - GIT_SSH_COMMAND="ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=5"
 4. **PR Management**:
    - Check for existing PR on this branch

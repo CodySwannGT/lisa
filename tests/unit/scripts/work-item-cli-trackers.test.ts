@@ -27,6 +27,7 @@ const LOCAL_CONFIG = ".lisa.config.local.json";
 const LINEAR_TOKEN = "linear-token";
 /** The `gh pr view` payload for the merged pull request used as evidence. */
 const MERGED_PR_JSON = JSON.stringify({
+  baseRefName: "main",
   mergedAt: "2026-08-26T00:00:00Z",
   number: 7,
   state: "MERGED",

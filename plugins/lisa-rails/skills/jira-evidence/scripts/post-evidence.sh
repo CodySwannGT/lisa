@@ -124,7 +124,8 @@ while IFS= read -r -d '' f; do
   TEXT_EVIDENCE+=("$f")
 done < <(find "$EVIDENCE_DIR" -maxdepth 1 \( -name '[0-9][0-9]-*.txt' -o -name '[0-9][0-9]-*.json' \) ! -name 'comment.txt' -print0 | sort -z)
 
-ALL_EVIDENCE=("${SCREENSHOTS[@]}" "${TEXT_EVIDENCE[@]}")
+# Bash 3.2 treats an empty array as unset under nounset.
+ALL_EVIDENCE=(${SCREENSHOTS[@]+"${SCREENSHOTS[@]}"} ${TEXT_EVIDENCE[@]+"${TEXT_EVIDENCE[@]}"})
 
 if [[ ${#ALL_EVIDENCE[@]} -eq 0 ]]; then
   echo "ERROR: No numbered evidence files found in $EVIDENCE_DIR (expected NN-*.png, NN-*.txt, or NN-*.json)" >&2

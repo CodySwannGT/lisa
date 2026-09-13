@@ -80,10 +80,10 @@ function printUsageAndExit(): never {
   console.log("                    runs in full, including every agent emit.");
   console.log("  --postinstall-safe");
   console.log(
-    "                    Declare a package-manager install lifecycle: runs the reduced"
+    "                    Declare an install lifecycle: skip template writes unless"
   );
   console.log(
-    "                    subset (no agent emit, no Sonar). Same as LISA_POSTINSTALL=1."
+    "                    --full-apply is requested. Same as LISA_POSTINSTALL=1."
   );
   console.log(
     "  --full-apply      Run the FULL apply even inside a declared postinstall"
@@ -310,8 +310,8 @@ export function getRetiredSkipGitCheckNotice(
     "--skip-git-check now waives ONLY the clean-tree check; this apply runs in " +
     "FULL, including every agent emit and the Sonar integration. It used to " +
     "also select the reduced postinstall-safe subset (CodySwannGT/lisa#3066). " +
-    `Pass --postinstall-safe (or set ${LISA_POSTINSTALL_ENV}=1) if you wanted ` +
-    "the reduced apply."
+    `Install hooks using --postinstall-safe or ${LISA_POSTINSTALL_ENV}=1 now ` +
+    "skip template writes. Run lisa apply explicitly when ready to update templates."
   );
 }
 
@@ -369,7 +369,12 @@ export async function runApply(
   const destDir = resolveDestinationOrExit(destination);
   const logger = new ConsoleLogger();
 
-  const skipNotice = getBootstrapApplySkipNotice({ validateOnly });
+  const postinstall = readPostinstallDeclaration(options);
+  const skipNotice = getBootstrapApplySkipNotice({
+    validateOnly,
+    postinstall,
+    fullApply: options.fullApply ?? false,
+  });
   if (skipNotice !== undefined) {
     console.log(skipNotice);
     return;
@@ -380,7 +385,6 @@ export async function runApply(
   const configFileExists = await projectConfigExists(destDir);
   const harness = resolveHarness(options.harness, projectConfig);
   const refreshTemplates = parseRefreshTemplates(options.refreshTemplates);
-  const postinstall = readPostinstallDeclaration(options);
   const config = buildApplyConfig({
     destDir,
     dryRun,

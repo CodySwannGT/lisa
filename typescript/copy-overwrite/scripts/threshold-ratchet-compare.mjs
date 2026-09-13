@@ -235,6 +235,47 @@ function compareAllowList(relPath, base, current) {
 }
 
 /**
+ * Compare Lighthouse assertions, including the shipped detail checker's default.
+ * Only lighthouserc-config.json's top-level forced-reflow setting is read by
+ * check-lighthouse-details.mjs. Other filenames and audits have no inferred
+ * baseline. The real checker/comparator boundary is covered by a parity test.
+ * @param {string} relPath Repo-relative path
+ * @param {unknown} base Parsed baseline config
+ * @param {unknown} current Parsed current config
+ * @returns {Finding[]} Removed or weakened assertions
+ */
+function compareLighthouse(relPath, base, current) {
+  const baseline = extractLighthouseAssertions(base);
+  const updated = extractLighthouseAssertions(current);
+  const findings = compareConstraints(relPath, baseline, updated);
+  const previous = base?.assertions?.forcedReflowInsight?.maxNumericValue;
+  const added = current?.assertions?.forcedReflowInsight?.maxNumericValue;
+  if (
+    relPath.split("/").at(-1) === "lighthouserc-config.json" &&
+    (previous == null ||
+      base?.ci?.assert?.assertions != null ||
+      current?.ci?.assert?.assertions != null) &&
+    (previous == null ||
+      (typeof previous === "number" && Number.isFinite(previous))) &&
+    typeof added === "number" &&
+    Number.isFinite(added)
+  ) {
+    // This checker reads top-level settings even beside canonical assertions.
+    // Keep its comparison separate so a new setting cannot replace a canonical
+    // bound with the same audit name and hide that bound's weakening.
+    const key = "forcedReflowInsight.maxNumericValue";
+    findings.push(
+      ...compareConstraints(
+        relPath,
+        new Map([[key, { value: previous ?? 100, direction: "max" }]]),
+        new Map([[key, { value: added, direction: "max" }]])
+      )
+    );
+  }
+  return findings;
+}
+
+/**
  * Compare one watched file's baseline and current contents and report every
  * weakening. Pure: no filesystem or git access.
  * @param {string} relPath Repo-relative path (forward slashes)
@@ -304,11 +345,7 @@ export function compareFile(relPath, baselineText, currentText) {
     case "k6":
       return compareK6(relPath, base, current);
     case "lighthouse":
-      return compareConstraints(
-        relPath,
-        extractLighthouseAssertions(base),
-        extractLighthouseAssertions(current)
-      );
+      return compareLighthouse(relPath, base, current);
     case KIND_ALLOW_LIST:
       return compareAllowList(relPath, base, current);
     default:

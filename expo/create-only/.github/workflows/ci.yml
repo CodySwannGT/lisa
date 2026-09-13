@@ -71,6 +71,8 @@ jobs:
   lighthouse:
     name: 💡 Lighthouse CI
     needs: [quality]
+    # This check builds its own export; unrelated quality failures must not hide it.
+    if: ${{ !cancelled() && needs.quality.result != 'cancelled' }}
     uses: CodySwannGT/lisa/.github/workflows/lighthouse.yml@main
     with:
       # Travels with the `uses:` line above — the two are one unit. Lisa's
@@ -86,6 +88,7 @@ jobs:
   zap:
     name: 🕷️ ZAP Baseline Scan
     needs: [quality]
+    if: ${{ !cancelled() && needs.quality.result != 'cancelled' }}
     uses: CodySwannGT/lisa/.github/workflows/zap-baseline-expo.yml@main
     with:
       # Travels with the `uses:` line above — the two are one unit. Lisa's

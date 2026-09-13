@@ -177,7 +177,16 @@ the Linear side produced 31 consecutive false "dry lane" cycles (#2657).
 2. Then sweep the rest of pre-work with the same base JQL, swapping the status clause for
    `statusCategory = "To Do"`, and read the **total open** count (`statusCategory != Done`). The
    open total is what makes an omitted lane arithmetically visible.
-3. Page to exhaustion — a single unpaged `search-issues` call is not a count.
+3. Page each query to exhaustion using the configured access tool's pagination
+   fields. For token-based search, pass the returned `nextPageToken` until the
+   response marks the last page. For offset-based search, advance `startAt` by
+   the number of returned issues until the reported total is reached. Keep the
+   same JQL and ordering throughout, and deduplicate issue keys across pages.
+   A failed page, repeated cursor, or missing continuation while more results
+   are reported makes the read incomplete. Report that condition and end the
+   cycle without dispatching; never report a partial read as an empty queue.
+   If the access tool hides pagination, use its documented complete-list mode
+   or another configured read path that exposes continuation metadata.
 
 Capture each ticket's: key, summary, issue type, priority, assignee, parent (epic), status (with
 its category), labels, components.

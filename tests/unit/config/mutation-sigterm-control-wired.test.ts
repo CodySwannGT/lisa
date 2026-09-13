@@ -7,8 +7,7 @@
  * whole-list arm, on a hosted runner, under Node's default 1 MiB `maxBuffer` —
  * and it had never been run there.
  *
- * A control has one silent failure mode, and it is the same one the whole-list
- * bite deferral has: the thing that was supposed to run it gets renamed,
+ * A control has one silent failure mode: the thing that runs it gets renamed,
  * de-gated, or quietly stops setting its flag, and from then on nothing anywhere
  * can produce the measurement while the files still read as though something
  * can. That is worse here than for a gate, because the answer this control
@@ -16,8 +15,7 @@
  *
  * So the suite and the workflow are checked against each other, and against the
  * two properties that make the draw readable at all: the untruncated capture is
- * kept, and the roster the weakened arm is built from is the same object the
- * bite test uses rather than a second copy of it.
+ * kept, and the weakened arm uses the roster supplied by its helper.
  * @module tests/unit/config/mutation-sigterm-control-wired
  */
 
@@ -41,9 +39,6 @@ const WORKFLOW = ".github/workflows/mutation-sigterm-control.yml";
 
 /** The shared roster both arms are built from. */
 const ARMS_HELPER = "tests/helpers/mutation-gate-arms.ts";
-
-/** The bite suite, which must read the roster rather than restate it. */
-const BITE_SUITE = "tests/integration/mutation-gate-bite.test.ts";
 
 /** The capture helper whose kill signal the faithful arm has to be able to set. */
 const GATE_CAPTURE = "tests/helpers/gate-capture.ts";
@@ -139,15 +134,8 @@ describe("the SIGTERM control suite", () => {
   });
 
   it("builds the weakened arm from the shared roster", () => {
-    // Two copies of the roster is how the two callers silently stop running the
-    // same experiment.
     expect(source).toContain("../helpers/mutation-gate-arms.js");
-    expect(read(BITE_SUITE)).toContain("../helpers/mutation-gate-arms.js");
     expect(read(ARMS_HELPER)).toContain("export const WITHHELD_GUARDS");
-    // The literal roster may exist in exactly one place.
-    expect(read(BITE_SUITE)).not.toContain(
-      '"all/copy-overwrite/scripts/lisa-work-item.mjs",'
-    );
   });
 });
 

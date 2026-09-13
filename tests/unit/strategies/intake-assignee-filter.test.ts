@@ -11,10 +11,68 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+
 const ROOTS = ["plugins/src/base/skills", "plugins/lisa/skills"] as const;
 
 const readSkill = (root: string, slug: string): string =>
   readFileSync(path.resolve(root, slug, "SKILL.md"), "utf8");
+
+const ISSUE_PAGES = JSON.stringify([
+  [
+    { number: 1, labels: [{ name: "ready" }], assignees: [{ login: "sam" }] },
+    { number: 2, labels: [{ name: "ready" }], assignees: [], pull_request: {} },
+  ],
+  [
+    { number: 3, labels: [{ name: "ready" }], assignees: [{ login: "lee" }] },
+    { number: 4, labels: [{ name: "blocked" }], assignees: [] },
+  ],
+]);
+
+/**
+ * Execute the documented query with paged API responses and the real jq filter.
+ * @param content - Source or generated skill text.
+ * @param assignee - Requested assignee, including the @me alias.
+ * @param failed - Whether the API command fails after emitting partial data.
+ * @returns The shell exit status and captured output.
+ */
+function runReadyQuery(content: string, assignee: string, failed = false) {
+  const snippet = content
+    .split("### Phase 2 — Find ready issues")[1]
+    ?.split("```bash")[1]
+    ?.split("```")[0];
+  if (!snippet) throw new Error("Ready-query example was not found");
+  return boundedSpawnSync({
+    label: "documented intake ready query",
+    command: "/bin/bash",
+    cwd: path.resolve("."),
+    args: [
+      "-c",
+      `
+    gh() {
+      [ "$1" = api ] || return 2
+      if [ "$2" = user ]; then printf '%s' sam; return; fi
+      case " $* " in *" repos/owner/repo/issues "*) ;; *) return 2 ;; esac
+      case " $* " in *" --slurp "*) ;; *) return 2 ;; esac
+      case " $* " in
+        *" --paginate "*) printf '%s' "$TEST_ISSUE_PAGES" ;;
+        *) printf '%s' "$TEST_ISSUE_PAGES" | jq '.[0:1]' ;;
+      esac
+      [ "$TEST_READ_FAILED" != 1 ]
+    }
+    ${snippet}
+  `,
+    ],
+    env: {
+      ...process.env,
+      QUEUE_REPO: "owner/repo",
+      READY: "ready",
+      ASSIGNEE: assignee,
+      TEST_ISSUE_PAGES: ISSUE_PAGES,
+      TEST_READ_FAILED: failed ? "1" : "0",
+    },
+  });
+}
 
 describe("intake assignee filter", () => {
   describe.each(ROOTS)("%s/lisa-intake", root => {
@@ -43,12 +101,28 @@ describe("intake assignee filter", () => {
       expect(content).toMatch(/empty default/i);
     });
 
-    it("uses --assignee only when the resolved filter is non-empty", () => {
-      expect(content).toMatch(/if \[ -n "\$ASSIGNEE" \]; then/);
-      expect(content).toMatch(/--assignee "\$ASSIGNEE"/);
-      expect(content).toMatch(
-        /else\s+gh issue list --repo <org>\/<repo> --label "\$READY" --state open/s
-      );
+    it.each([
+      { assignee: "", expected: [1, 3] },
+      { assignee: "sam", expected: [1] },
+      { assignee: "@me", expected: [1] },
+      { assignee: "missing", expected: [] },
+    ])(
+      "selects ready issues across pages for assignee '$assignee'",
+      ({ assignee, expected }) => {
+        const result = runReadyQuery(content, assignee);
+        expect(result.status, result.stderr).toBe(0);
+        expect(
+          JSON.parse(result.stdout).map(
+            (issue: { number: number }) => issue.number
+          )
+        ).toEqual(expected);
+      }
+    );
+
+    it("does not dispatch from partial output when a page read fails", () => {
+      const result = runReadyQuery(content, "", true);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toBe("");
     });
 
     it("preserves shared-queue behavior when no assignee is resolved", () => {

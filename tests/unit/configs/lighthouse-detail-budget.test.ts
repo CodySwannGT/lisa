@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
+import { compareFile } from "../../../plugins/src/base/hooks/threshold-ratchet-compare.mjs";
 import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -14,6 +15,7 @@ const CHECKER = path.join(
   "expo/copy-overwrite/scripts/check-lighthouse-details.mjs"
 );
 const REPORT_DIRECTORY = ".lighthouseci";
+const CONFIG_FILE = "lighthouserc-config.json";
 const EXAMPLE_URL = "http://localhost/example.html";
 const OTHER_URL = "http://localhost/privacy-policy.html";
 
@@ -38,7 +40,7 @@ function projectWithReports(
   });
   if (maximum !== undefined) {
     writeFileSync(
-      path.join(project, "lighthouserc-config.json"),
+      path.join(project, CONFIG_FILE),
       JSON.stringify({
         assertions: {
           forcedReflowInsight: { maxNumericValue: maximum },
@@ -131,6 +133,23 @@ function run(project: string) {
 }
 
 describe("Lighthouse detail budget", () => {
+  it.each([100, 101, 120])(
+    "ratchets added ceilings against the real default at %s ms",
+    maximum => {
+      const project = projectWithReports(runs([maximum, maximum, maximum]));
+      const result = run(project);
+      const findings = compareFile(
+        CONFIG_FILE,
+        "{}",
+        JSON.stringify({
+          assertions: { forcedReflowInsight: { maxNumericValue: maximum } },
+        })
+      );
+      expect(result.status).toBe(maximum === 100 ? 0 : 1);
+      expect(findings).toHaveLength(result.status ?? -1);
+    }
+  );
+
   it("passes measured reflows at or below the configured millisecond ceiling", () => {
     const result = run(
       projectWithReports(
@@ -153,11 +172,7 @@ describe("Lighthouse detail budget", () => {
   it("does not double-count the top-function and bottom-up detail tables", () => {
     const result = run(
       projectWithReports(
-        [
-          reportWithDuplicateTables(75),
-          reportWithDuplicateTables(75),
-          reportWithDuplicateTables(75),
-        ],
+        Array.from({ length: 3 }, () => reportWithDuplicateTables(75)),
         100
       )
     );
@@ -230,13 +245,6 @@ describe("Lighthouse detail budget", () => {
     expect(result.stdout).toContain(
       "forced reflow median <= 150 ms (largest median 120.0 ms)"
     );
-  });
-
-  it("applies the shipped 100 ms default when the host configures nothing", () => {
-    const result = run(projectWithReports(runs([120, 120, 120])));
-
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain("median 120.0 ms of 3 runs exceeds 100 ms");
   });
 
   it("groups runs by finalDisplayedUrl when finalUrl is absent", () => {

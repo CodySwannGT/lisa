@@ -427,20 +427,23 @@ describe("check-skipped-required-checks, the outcome arm", () => {
       expect(inspection?.refusal?.kind).toBe(mod.OUTCOME_REFUSALS.unreadable);
     });
 
-    it("is NOT APPLICABLE at a moment that gates no merge, and examines nothing there", () => {
-      const inspection = mod.inspectOutcomes(
-        [OUTCOMES],
-        { required_contexts: [LINT] },
-        {
-          env: outcomeEnv({ lint: "skipped" }, "continuous:dev"),
-          trust: TRUSTED,
-        }
-      );
-      expect(inspection?.applicable).toBe(false);
-      expect(inspection?.examined).toEqual([]);
-      expect(inspection?.violations).toEqual([]);
-      expect(inspection?.refusal).toBeNull();
-    });
+    it.each(["continuous:dev", "pre-deploy:production", "pre-deploy:staging"])(
+      "is NOT APPLICABLE at %s and examines no PR contexts there",
+      moment => {
+        const inspection = mod.inspectOutcomes(
+          [OUTCOMES],
+          { required_contexts: [LINT] },
+          {
+            env: outcomeEnv({ lint: "skipped" }, moment),
+            trust: TRUSTED,
+          }
+        );
+        expect(inspection?.applicable).toBe(false);
+        expect(inspection?.examined).toEqual([]);
+        expect(inspection?.violations).toEqual([]);
+        expect(inspection?.refusal).toBeNull();
+      }
+    );
   });
 
   describe("the CLI verdict", () => {

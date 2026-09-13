@@ -778,28 +778,17 @@ function lifecycleContract(config, provider) {
   const roles = deepMerge(defaults, configured ?? {});
   const done = values(roles.done);
   const terminal =
-    typeof roles.done === "string"
-      ? roles.done
-      : (roles.done?.production ?? done.at(-1));
-  // No `active` set any more. It existed for exactly one reader — the claim
-  // check — and dead code inside a mutation-gated file is not merely untidy: it
-  // is a block of mutants nothing can kill, so it lowers the measured score
-  // while proving nothing. `done` still feeds `terminal`, which the completion
-  // writer reads.
-  // Two fields for one role, because matching and naming want opposite things.
-  // `terminal` is the COMPARISON key and stays folded, so a Linear workflow
-  // state configured `Done` still matches the API's `Done`. `terminalName` is
-  // the configured spelling, kept verbatim so a human-facing sentence can name
-  // the state the operator actually typed. Folding both is how the error for a
-  // missing state read `no workflow state named done` about a board whose
-  // state is called `Done` — a message that sends someone looking for a state
-  // that is not what they configured and not what Linear shows them.
-  const terminalName = String(terminal ?? "");
+    typeof roles.done === "string" ? roles.done : roles.done?.production;
+  // Match names case-insensitively while preserving their display spelling.
+  const terminalName = requireString(
+    terminal,
+    `${provider} production done lifecycle role`
+  );
   const byEnvironment = doneRolesByEnvironment(roles.done, terminalName);
   return {
     claimed: requireString(roles.claimed, `${provider} claimed lifecycle role`),
     done: byEnvironment,
-    productionEnvironment: productionEnvironmentOf(byEnvironment, terminalName),
+    productionEnvironment: PRODUCTION,
     ready: requireString(roles.ready, `${provider} ready lifecycle role`),
     roles: lifecycleRoleSet(roles, done),
     terminal: terminalName.toLowerCase(),
@@ -834,26 +823,6 @@ function doneRolesByEnvironment(done, terminalName) {
   // NO environment to apply, which would refuse every completion in a project
   // whose `done` nests. The resolved terminal is always an answer.
   return mapped.length > 0 ? mapped : [[PRODUCTION, terminalName]];
-}
-
-/**
- * Which of the configured environments is the production one.
- *
- * Found by matching the already-resolved TERMINAL ROLE, not by position. The
- * terminal role is the single existing answer to "which role closes an item",
- * so deriving the environment from it means the two can never disagree — and
- * it avoids deriving anything a second, independent way from JSON key order,
- * which is not semantically meaningful and which no schema constrains.
- * @param {[string, string][]} byEnvironment `[environment, role]` pairs.
- * @param {string} terminalName The resolved terminal role's spelling.
- * @returns {string} The production environment's name.
- */
-function productionEnvironmentOf(byEnvironment, terminalName) {
-  const folded = terminalName.trim().toLowerCase();
-  const matched = byEnvironment.find(
-    ([, role]) => role.toLowerCase() === folded
-  );
-  return matched?.[0] ?? PRODUCTION;
 }
 
 /**
@@ -1100,6 +1069,7 @@ function trackerContract(config = readConfig()) {
         "linear.teamKey"
       ).toUpperCase(),
       lifecycle: lifecycleContract(config, provider),
+      deployBranches: deployBranchEnvironments(config),
     };
   }
   throw new TrackingError(
@@ -3785,11 +3755,16 @@ function declarationAdvice(refs) {
  * @param {object[]} findings Accumulator.
  * @param {string[]} commitRefs References the range's commits carry.
  * @param {string[]} bodyRefs References the pull-request body declares.
+ * @param {boolean} rangeIsPartial Whether earlier PR commits are outside this range.
  */
-function reportMapping(findings, commitRefs, bodyRefs) {
+function reportMapping(findings, commitRefs, bodyRefs, rangeIsPartial) {
   if (commitRefs.length === 0 || bodyRefs.length === 0) return;
   const undeclared = commitRefs.filter(ref => !bodyRefs.includes(ref));
-  const unsupported = bodyRefs.filter(ref => !commitRefs.includes(ref));
+  // Earlier pushes may carry the other declarations; full-PR validation
+  // still rejects declarations unsupported by the complete commit range.
+  const unsupported = rangeIsPartial
+    ? []
+    : bodyRefs.filter(ref => !commitRefs.includes(ref));
   // The 1:1 case keeps its own sentence. "Body declares X, commits carry Y" is
   // one disagreement, and splitting it into a missing item plus a spurious one
   // describes a single typo as two faults.
@@ -3878,8 +3853,8 @@ export function mergeOnlyRange(result) {
 /**
  * Check every pull-request requirement and report all of the unmet ones.
  *
- * `rangeIsPartial` is what the PUSH path passes, and it changes exactly one
- * thing: whether a commit side with nothing in it is a violation.
+ * `rangeIsPartial` identifies the push range. Earlier PR commits may carry
+ * declarations absent here, and a merge-only range has no authored work to check.
  *
  * The push path evaluates the UNPUSHED range — deliberately, and for a reason
  * that must not be undone: `parsePushGroups` excludes commits already on the
@@ -3983,7 +3958,7 @@ function validatePrData(outcome, prUrl, prBody, rangeIsPartial = false) {
     collect(findings, IN_THIS_PR, GATE_MAPPING, () =>
       prWorkItems(prBody, contract)
     ) ?? [];
-  reportMapping(findings, commitRefs, bodyRefs);
+  reportMapping(findings, commitRefs, bodyRefs, rangeIsPartial);
   const refs = commitRefs.length > 0 ? commitRefs : bodyRefs;
   // Requirement 4 belongs to `full` alone: it needs tracker WRITE access, and
   // a project that keeps no tracker credentials cannot ever satisfy it. The
@@ -5005,7 +4980,7 @@ function githubPullRequestUrl(raw) {
 /**
  * Prove that supplied evidence is a merged PR in this repository.
  * @param {string} prUrl Canonical pull-request URL.
- * @returns {{number:number, repository:string, url:string}} Verified evidence.
+ * @returns {{base:string, number:number, repository:string, url:string}} Verified evidence.
  */
 function mergedPullRequestEvidence(prUrl) {
   const parsed = githubPullRequestUrl(prUrl);
@@ -5022,7 +4997,13 @@ function mergedPullRequestEvidence(prUrl) {
   }
   const result = run(
     "gh",
-    ["pr", "view", parsed.url, "--json", "number,state,mergedAt,url"],
+    [
+      "pr",
+      "view",
+      parsed.url,
+      "--json",
+      "number,state,mergedAt,url,baseRefName",
+    ],
     { allowFailure: true }
   );
   if (result.status !== 0) {
@@ -5042,7 +5023,7 @@ function mergedPullRequestEvidence(prUrl) {
       `refusing to complete from ${parsed.url}: the pull request is not verified merged`
     );
   }
-  return parsed;
+  return { ...parsed, base: String(pr.baseRefName ?? "") };
 }
 
 /**
@@ -5082,6 +5063,18 @@ function completeLinearWorkItem(ref, contract, prUrl) {
     );
   }
   const evidence = mergedPullRequestEvidence(prUrl);
+  const decision = mergedBaseDecision(
+    [{ base: evidence.base, number: evidence.number }],
+    contract.deployBranches,
+    contract.lifecycle
+  );
+  if (!decision.terminal) {
+    throw new TrackingError(
+      `refusing to complete ${ref}: pull request #${evidence.number} merged into ${evidence.base || "an unreadable branch"}, not the configured production branch.\n` +
+        `Deploy branches: ${describeDeployBranches(contract.deployBranches, contract.lifecycle.productionEnvironment)}.\n` +
+        `Merge into the configured production branch before completing this item; if the mapping is wrong, correct deploy.branches in .lisa.config.json.`
+    );
+  }
   const issue = linearCompletionIssue(
     ref,
     token,
@@ -6310,7 +6303,7 @@ function main() {
     validateLive(ref, contract);
     const file = writeState(ref, contract.provider, { requireBranch: true });
     return console.log(
-      `work-item binding attached to ${activeBranch()} (${file})`
+      `work-item binding ${ref} attached to ${activeBranch()} (${file})`
     );
   }
   if (command === "clear") {
