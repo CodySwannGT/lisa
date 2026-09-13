@@ -50,8 +50,15 @@ function runReadyQuery(content: string, assignee: string, failed = false) {
       "-c",
       `
     gh() {
-      if [ "$2" = user ]; then printf '%s' sam;
-      else printf '%s' "$TEST_ISSUE_PAGES"; [ "$TEST_READ_FAILED" != 1 ]; fi
+      [ "$1" = api ] || return 2
+      if [ "$2" = user ]; then printf '%s' sam; return; fi
+      case " $* " in *" repos/owner/repo/issues "*) ;; *) return 2 ;; esac
+      case " $* " in *" --slurp "*) ;; *) return 2 ;; esac
+      case " $* " in
+        *" --paginate "*) printf '%s' "$TEST_ISSUE_PAGES" ;;
+        *) printf '%s' "$TEST_ISSUE_PAGES" | jq '.[0:1]' ;;
+      esac
+      [ "$TEST_READ_FAILED" != 1 ]
     }
     ${snippet}
   `,
