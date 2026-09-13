@@ -5,8 +5,8 @@ import path from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { runUi } from "../../src/cli/ui-cmd.ts";
-import { closeRunUiTestResources } from "./fixtures/run-ui-test-resources.ts";
+import { runUi } from "../../src/cli/ui-cmd.js";
+import { closeRunUiTestResources } from "./fixtures/run-ui-test-resources.js";
 
 const CONFIG_FILE = ".lisa.config.json";
 const STATEMENTS = "quality.testCoverage.global.statements";
