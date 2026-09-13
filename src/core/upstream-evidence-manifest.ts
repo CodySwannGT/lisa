@@ -285,7 +285,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/required-checks.json":
       "8d40acc337c42fbdfc55638dc4ab43b541b975270ecae8fffec9897c13a42884",
     "expo/create-only/.github/workflows/ci.yml":
-      "d343dc43f290b56a1391a78489b32cbf91c79812d376f7d23fb4ad874e55bdb6",
+      "830c60686fef5d1f773812f622a3c40832344a078acf22122c1740ebaa6db18b",
     "expo/create-only/.github/workflows/deploy.yml":
       "755d98702ae6ce07d3cbdee873975efca5c918610567a2196f2ddeeccfaf69c1",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
@@ -9430,6 +9430,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/environment-facade-gates.test.ts": true,
     "tests/integration/environment-prepare-workflow.test.ts": true,
     "tests/integration/expo-host-run-scripts-survive-apply.test.ts": true,
+    "tests/integration/expo-independent-checks.test.ts": true,
     "tests/integration/expo-jira-parser-origin.test.ts": true,
     "tests/integration/facade-proof-not-step.test.ts": true,
     "tests/integration/failure-issue-workflows.test.ts": true,
@@ -9555,6 +9556,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/seeded-gates-preserve-hook-outcomes.test.ts": true,
     "tests/integration/self-pin-drift-gate-wiring.test.ts": true,
     "tests/integration/sentry-deploy-workflow.test.ts": true,
+    "tests/integration/sentry-release-config.test.ts": true,
     "tests/integration/shell-guard-allow-controls.test.ts": true,
     "tests/integration/shell-guard-refusals.test.ts": true,
     "tests/integration/skipped-required-checks-gate-fail-closed.test.ts": true,
