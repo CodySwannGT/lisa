@@ -33,6 +33,22 @@
   "platformWaivers": [],
   "mappings": [
     {
+      "scenario": "BDD-STARTER-001",
+      "runner": "playwright",
+      "platforms": ["web"],
+      "file": "tests/e2e/ui-starter-config.spec.ts",
+      "evidence": "renders all recorded starter entries from the served project configuration",
+      "level": "behavioral"
+    },
+    {
+      "scenario": "BDD-STARTER-002",
+      "runner": "playwright",
+      "platforms": ["web"],
+      "file": "tests/e2e/ui-starter-config.spec.ts",
+      "evidence": "shows an empty starter state without inventing template origins",
+      "level": "behavioral"
+    },
+    {
       "scenario": "BDD-UI-001",
       "runner": "playwright",
       "platforms": ["web"],

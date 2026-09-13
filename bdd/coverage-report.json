@@ -2,8 +2,8 @@
   "schemaVersion": 3,
   "asOf": "2026-08-25",
   "scenarios": {
-    "declared": 10,
-    "required": 10,
+    "declared": 12,
+    "required": 12,
     "excluded": 0,
     "blocked": 0,
     "referenceOnly": 0,
@@ -12,23 +12,23 @@
   "traceability": {
     "note": "Obligations whose aligned automation is mapped AND whose evidence string still resolves — a mapping whose test was renamed or deleted stops counting here immediately, even in bootstrap where the matching defect is only a warning. This is TRACEABILITY coverage, not execution coverage and not a pass rate.",
     "overall": {
-      "covered": 10,
-      "total": 10,
+      "covered": 12,
+      "total": 12,
       "percentage": 100,
       "exact": 100
     },
     "byPlatform": {
       "web": {
-        "covered": 10,
-        "total": 10,
+        "covered": 12,
+        "total": 12,
         "percentage": 100,
         "exact": 100
       }
     },
     "byRunner": {
       "playwright": {
-        "covered": 10,
-        "total": 10,
+        "covered": 12,
+        "total": 12,
         "percentage": 100,
         "exact": 100
       }
@@ -38,7 +38,7 @@
     "supplied": false,
     "note": "No execution evidence supplied. Traceability below proves aligned automation exists, not that it ran or passed.",
     "sources": [],
-    "mappedTests": 10
+    "mappedTests": 12
   },
   "testInventory": {
     "note": "Tests found by walking the roots declared in testDiscovery. A discovered test must be named by a mapping or by an exclusion carrying a reason; anything else is an undisclosed test, not a clean repo.",
@@ -48,8 +48,8 @@
     "roots": [
       "tests/e2e"
     ],
-    "discovered": 66,
-    "disclosed": 66,
+    "discovered": 68,
+    "disclosed": 68,
     "dynamicTitles": 1,
     "undisclosed": [],
     "exclusions": [
@@ -150,9 +150,17 @@
     "ok": true
   },
   "trackers": {
-    "scenariosWithTag": 10,
+    "scenariosWithTag": 12,
     "scenariosWithoutTag": 0,
     "tags": [
+      {
+        "tag": "gh-1520",
+        "url": "https://github.com/CodySwannGT/lisa/issues/1520",
+        "scenarios": [
+          "BDD-STARTER-001",
+          "BDD-STARTER-002"
+        ]
+      },
       {
         "tag": "gh-1547",
         "url": "https://github.com/CodySwannGT/lisa/issues/1547",

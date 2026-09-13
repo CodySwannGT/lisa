@@ -16,6 +16,7 @@
  */
 import * as fse from "fs-extra";
 import * as path from "node:path";
+import { validateStarterConfig } from "../core/project-config-starter.js";
 import { deepMerge, readJsonOrNull, writeJson } from "../utils/index.js";
 import {
   fillMissing,
@@ -278,6 +279,10 @@ export async function runConfigSync(
   const localRaw = await reads.readJson(".lisa.config.local.json");
   const committed = isJsonObject(committedRaw) ? committedRaw : {};
   const local = isJsonObject(localRaw) ? localRaw : {};
+  // Validate each source before child-path population can replace a malformed
+  // starter container, even when an overlay would hide it in the merged view.
+  if (committed.starter !== undefined) validateStarterConfig(committed.starter);
+  if (local.starter !== undefined) validateStarterConfig(local.starter);
 
   const initial: SyncState = {
     committed,

@@ -2627,9 +2627,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/package-lisa/package.lisa.json":
       "432f6789653fae75a70d679ab9de064282aed7bb63a15c29be1eed0eae19f83e",
     "ui/README.md":
-      "9c4aa65ff4028eedfda1f284d47b620fff7353c07fd8084ccc427fe4c5a1ed72",
+      "6232fc3013f862f84799792a90426caa595cfb81ac9691001fd2c0ff969f6ec6",
     "ui/index.html":
-      "9e1a68cd70fe6e74bc615e9f012e5837fa9ad0d828202f998e8cf97551931906",
+      "35fc583ffa5af0785021ff12d86c1c33a110838db3dd090a81ba331a6a01d76c",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -2873,6 +2873,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "bdd/coverage-map.json": true,
     "bdd/coverage-report.json": true,
     "bdd/features/lisa-ui-demo-data.feature": true,
+    "bdd/features/lisa-ui-starter-config.feature": true,
     "bun.lock": true,
     "cdk/copy-overwrite/.github/workflows/.keep": true,
     "cdk/copy-overwrite/eslint.cdk.ts": true,
@@ -9034,6 +9035,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/project-config-kane.ts": true,
     "src/core/project-config-learnings.ts": true,
     "src/core/project-config-nightly-e2e.ts": true,
+    "src/core/project-config-starter.ts": true,
     "src/core/project-config.ts": true,
     "src/core/rails-deploy-production-intent.ts": true,
     "src/core/reconciliation-report.ts": true,
@@ -9211,6 +9213,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/e2e/ui-readonly-affordance.spec.ts": true,
     "tests/e2e/ui-setup-readiness.spec.ts": true,
     "tests/e2e/ui-stacks.spec.ts": true,
+    "tests/e2e/ui-starter-config.spec.ts": true,
     "tests/e2e/ui-version-status.spec.ts": true,
     "tests/fixtures/automation-status/attention-needed-codex.json": true,
     "tests/fixtures/automation-status/partial-support-codex.json": true,
@@ -10911,6 +10914,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/sync/legacy-monitor-thresholds.test.ts": true,
     "tests/unit/sync/linear-workflow-registry.test.ts": true,
     "tests/unit/sync/mutation-floor-divergence.test.ts": true,
+    "tests/unit/sync/starter-config.test.ts": true,
     "tests/unit/sync/stryker-thresholds-ownership.test.ts": true,
     "tests/unit/templates/dependency-decisions-template.test.ts": true,
     "tests/unit/templates/lisa-dependency-decisions-seed.test.ts": true,
