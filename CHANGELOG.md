@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.27](https://github.com/CodySwannGT/lisa/compare/v4.55.26...v4.55.27) (2026-09-13)
+
+
+### Documentation
+
+* recover AWS credentials through the existing bootstrap ([6f5a3c5](https://github.com/CodySwannGT/lisa/commit/6f5a3c5b77a6f66e8a23f6a83707f6883edd73fb)), closes [CodySwannGT/lisa#3481](https://github.com/CodySwannGT/lisa/issues/3481) [CodySwannGT/lisa#3481](https://github.com/CodySwannGT/lisa/issues/3481)
+* shorten the integration access reminder ([e014b39](https://github.com/CodySwannGT/lisa/commit/e014b39073ace4b5326e33dc5c4befb546c5b302)), closes [CodySwannGT/lisa#3481](https://github.com/CodySwannGT/lisa/issues/3481) [CodySwannGT/lisa#3481](https://github.com/CodySwannGT/lisa/issues/3481)
+
 ### [4.55.26](https://github.com/CodySwannGT/lisa/compare/v4.55.25...v4.55.26) (2026-09-13)
 
 
