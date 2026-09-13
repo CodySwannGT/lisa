@@ -174,14 +174,24 @@ A "transition" means: remove the old role label and add the new one, in two `gh 
 ### Phase 2 — Find ready issues
 
 ```bash
-if [ -n "$ASSIGNEE" ]; then
-  gh issue list --repo <org>/<repo> --label "$READY" --assignee "$ASSIGNEE" --state open \
-    --json number,title,labels,assignees,milestone,createdAt --limit 100
-else
-  gh issue list --repo <org>/<repo> --label "$READY" --state open \
-    --json number,title,labels,assignees,milestone,createdAt --limit 100
+# QUEUE_REPO is the resolved <org>/<repo> from Phase 1.
+if [ "${ASSIGNEE:-}" = "@me" ]; then
+  ASSIGNEE=$(gh api user --jq .login) || exit 1
 fi
+ISSUE_PAGES=$(gh api --method GET "repos/$QUEUE_REPO/issues" \
+  -f state=open -f per_page=100 --paginate --slurp) || exit 1
+# The repository issues endpoint also returns pull requests; exclude them.
+ISSUES_JSON=$(printf '%s' "$ISSUE_PAGES" | jq '[.[][] | select(has("pull_request") | not)]') || exit 1
+printf '%s' "$ISSUES_JSON" | jq --arg ready "$READY" --arg assignee "${ASSIGNEE:-}" '
+  [.[] | select(any(.labels[]; .name == $ready))
+       | select($assignee == "" or any(.assignees[]; .login == $assignee))]'
 ```
+
+Wait for every page before choosing work or reporting an empty queue. A failed
+page is an incomplete read: report it and end this cycle without dispatching.
+The REST fields use `created_at` and label/assignee objects. Reuse this complete
+issue snapshot for the lane counts below; apply the assignee filter to candidates
+only, so the repository totals still describe the whole queue.
 
 If empty, run a secondary check to distinguish a genuinely empty queue from an unconfigured repo:
 
@@ -206,8 +216,8 @@ GitHub's data model, not a preference (see "Why labels" above). That makes the o
 - open issues carrying **no** build role label — which this scanner must see anyway in order to
   determine and stamp their repo.
 
-Count each lane and the repo's **total open** count (`gh issue list --state open --limit 1000 --json
-number | jq length`), then build the denominator with the shared helper — GitHub callers pass the
+Count each lane and the repo's **total open** count from `ISSUES_JSON`, then build
+the denominator with the shared helper — GitHub callers pass the
 lane type explicitly, since there is none to read:
 
 ```text
