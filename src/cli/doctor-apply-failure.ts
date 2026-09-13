@@ -110,7 +110,8 @@ export async function checkApplyFailure(
     return {
       name: CHECK_NAME,
       status: "ok",
-      detail: "The last local template apply completed",
+      detail:
+        "No legacy postinstall apply failure is recorded. See template freshness for the current apply state.",
     };
   }
 
@@ -133,8 +134,8 @@ export async function checkApplyFailure(
     name: CHECK_NAME,
     status: "warn",
     detail:
-      `The local template apply FAILED${when}, so this project is frozen at whatever Lisa last wrote — ` +
-      `no template or guardrail updates are reaching it.${cause ? ` Cause: ${cause}` : ""} ` +
-      `Full output: ${APPLY_FAILURE_MARKER}. The install itself is fine; re-run the apply to fix it.`,
+      `An earlier postinstall recorded a failed template apply${when}.` +
+      `${cause ? ` Cause: ${cause}` : ""} Full output: ${APPLY_FAILURE_MARKER}. ` +
+      "Run lisa apply to retry and clear this record after success; template freshness reports the current apply state.",
   };
 }

@@ -113,6 +113,27 @@ describe("recordSuccessfulApply over an existing receipt", () => {
     await cleanupTempDir(root);
   });
 
+  it("retires an earlier install failure after recording successful apply", async () => {
+    const marker = path.join(
+      root,
+      "node_modules",
+      ".lisa",
+      "apply-failed.json"
+    );
+    await fs.outputJson(marker, { exitCode: 1 });
+    expect(
+      await recordSuccessfulApply(root, {
+        lisaVersion: "1.0.1",
+        harness: "claude",
+        applyMode: "full",
+        stalePaths: [],
+        deletedPaths: [],
+      })
+    ).toBe(true);
+    expect(await fs.pathExists(marker)).toBe(false);
+    expect((await readApplyReceipt(root))?.apply_mode).toBe("full");
+  });
+
   it("does not let an idempotent re-apply blank the removal", async () => {
     await fs.outputJson(
       path.join(root, ".lisa", "apply-receipt.json"),
