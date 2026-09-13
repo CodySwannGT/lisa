@@ -134,8 +134,8 @@ Then authenticate the things that are *you* rather than the machine account —
 
 ```bash
 git clone … && cd …
-npx -y @codyswann/lisa@latest apply    # lint, hooks, workflows, agent surfaces
-bun install                            # postinstall installs the agent plugins
+npx -y @codyswann/lisa@latest apply    # templates, hooks, workflows, agent plugins
+bun install                            # project dependencies
 npx -y @codyswann/lisa@latest sync     # then set secrets.namespace
 ```
 
