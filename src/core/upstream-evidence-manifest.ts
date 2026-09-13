@@ -2872,6 +2872,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "audit.ignore.local.json": true,
     "bdd/coverage-map.json": true,
     "bdd/coverage-report.json": true,
+    "bdd/features/lisa-ui-config-save.feature": true,
     "bdd/features/lisa-ui-demo-data.feature": true,
     "bun.lock": true,
     "cdk/copy-overwrite/.github/workflows/.keep": true,
