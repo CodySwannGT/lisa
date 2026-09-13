@@ -8,7 +8,7 @@
  * So each case runs the real step script under a condition that would fail an
  * ordinary step — a classifier that exits non-zero, a classifier that is not
  * installed, a report that was never written — and asserts exit 0 every time.
- * Delete the `|| true`, the missing-file guard, or the trailing `exit 0` and
+ * Remove the failure handling, missing-file guard, or trailing `exit 0` and
  * one of these starts failing, which is the only thing that proves those
  * absorbers are load-bearing rather than decorative.
  */
@@ -228,10 +228,12 @@ function scratchProject(options: {
     );
   }
   if (options.report !== undefined) {
-    fs.writeFileSync(
-      path.join(dir, "maestro-android-report.xml"),
-      options.report
-    );
+    for (const platform of ["android", "ios"]) {
+      fs.writeFileSync(
+        path.join(dir, `maestro-${platform}-report.xml`),
+        options.report
+      );
+    }
   }
   if (options.debugArtifact) {
     // Under `.maestro/`, a HIDDEN directory, because that is where Maestro
@@ -247,129 +249,160 @@ function scratchProject(options: {
   return dir;
 }
 
-describe("maestro-native-e2e flake classification (executed)", () => {
-  beforeAll(async () => {
-    workflow = yaml.load(
-      await fs.readFile(REUSABLE_YML, "utf-8")
-    ) as ReusableWorkflow;
-  });
-
-  it("is declared non-gating on both arms", () => {
-    for (const job of ["android", "ios"]) {
-      const step = classificationStep(job);
-      expect(step["continue-on-error"]).toBe(true);
-      expect(step.shell).toBe("bash");
-      // `!cancelled()` and not `success()`: the classification is at its most
-      // useful precisely on the runs where the suite already went red.
-      expect(step.if).toContain("!cancelled()");
-    }
-  });
-
-  it("reads the report its own arm wrote, never the other arm's", () => {
-    expect(classificationStep("android").env?.MAESTRO_REPORT).toBe(
-      "maestro-android-report.xml"
-    );
-    expect(classificationStep("android").env?.MAESTRO_PLATFORM).toBe("android");
-    expect(classificationStep("ios").env?.MAESTRO_REPORT).toBe(
-      "maestro-ios-report.xml"
-    );
-    expect(classificationStep("ios").env?.MAESTRO_PLATFORM).toBe("ios");
-  });
-
-  it("exits 0 and separates preamble from product on a real red report", () => {
-    const dir = scratchProject({ classifier: "real", report: REPORT_XML });
-    const outcome = runStep(classificationStep("android"), dir);
-    expect(outcome.status).toBe(0);
-    expect(outcome.summary).toContain("1 product");
-    expect(outcome.summary).toContain("1 preamble");
-    // The preamble loss names its gate and the time it took to REACH it:
-    // 105.6s duration minus the gate's 90s ceiling.
-    expect(outcome.summary).toContain("landing:screen");
-    expect(outcome.summary).toContain("15.6s");
-    // And it says out loud that it decides nothing.
-    expect(outcome.summary).toContain("never changes the result of any gate");
-  });
-
-  it("exits 0 when the classifier itself blows up", () => {
-    const dir = scratchProject({ classifier: "failing", report: REPORT_XML });
-    const outcome = runStep(classificationStep("android"), dir);
-    expect(outcome.status).toBe(0);
-  });
-
-  it("exits 0 when the repository has not picked up the classifier yet", () => {
-    const dir = scratchProject({ classifier: "absent", report: REPORT_XML });
-    const outcome = runStep(classificationStep("android"), dir);
-    expect(outcome.status).toBe(0);
-    expect(outcome.output).toContain("skipping flake classification");
-  });
-
-  it("exits 0 when the suite never wrote a report at all", () => {
-    const dir = scratchProject({ classifier: "real" });
-    const outcome = runStep(classificationStep("android"), dir);
-    expect(outcome.status).toBe(0);
-    expect(outcome.output).toContain("to classify");
-  });
-
-  it("names the device column on a blank <failure> the report cannot explain", () => {
-    // End to end through the real step shell: a failure element with NO text,
-    // and the only account of what happened sitting in the debug tree. This is
-    // the measured `DeviceServerDiedException` case.
-    const dir = scratchProject({
-      classifier: "real",
-      report: BLANK_FAILURE_XML,
-      debugArtifact: {
-        name: "commands-(checkout).json",
-        text: '{"error":"maestro.android.DeviceServerDiedException: server died"}',
-      },
+describe.each(["android", "ios"])(
+  "maestro-native-e2e flake classification (%s)",
+  platform => {
+    beforeAll(async () => {
+      workflow = yaml.load(
+        await fs.readFile(REUSABLE_YML, "utf-8")
+      ) as ReusableWorkflow;
     });
-    const outcome = runStep(classificationStep("android"), dir);
-    expect(outcome.status).toBe(0);
-    expect(outcome.summary).toContain("1 device");
-    expect(outcome.summary).toContain("0 product");
-    expect(outcome.summary).toContain("checkout.yaml");
-    expect(outcome.summary).toContain("DeviceServerDiedException");
-  });
 
-  it("leaves the same failure in the product column with no debug tree", () => {
-    // The negative half of the case above, and the reason the device verdict
-    // cannot be coming from the report: identical XML, no run evidence, no
-    // device verdict. The flow is still REPORTED, which it was not before —
-    // a blank `<failure>` used to be dropped from the summary entirely.
-    const dir = scratchProject({
-      classifier: "real",
-      report: BLANK_FAILURE_XML,
+    it("is declared non-gating on both arms", () => {
+      for (const job of ["android", "ios"]) {
+        const step = classificationStep(job);
+        expect(step["continue-on-error"]).toBe(true);
+        expect(step.shell).toBe("bash");
+        // `!cancelled()` and not `success()`: the classification is at its most
+        // useful precisely on the runs where the suite already went red.
+        expect(step.if).toContain("!cancelled()");
+      }
     });
-    const outcome = runStep(classificationStep("android"), dir);
-    expect(outcome.status).toBe(0);
-    expect(outcome.summary).toContain("0 device");
-    expect(outcome.summary).toContain("1 product");
-    expect(outcome.summary).toContain("checkout.yaml");
-    expect(outcome.summary).toContain("(no failure text)");
-  });
 
-  it("is never read by the suite driver, so retry cannot depend on it", () => {
-    // Per-flow retry is keyed on WHICH flow failed and never on why. A device
-    // classifier feeding that decision would reintroduce the too-narrow regex
-    // the driver's own comment block rejects, so the structural fact is
-    // asserted rather than trusted: no step before the classification step
-    // mentions the classifier, and the classification step is last of them.
-    for (const job of ["android", "ios"]) {
-      const steps = workflow.jobs[job]?.steps ?? [];
-      const classifyIndex = steps.findIndex(step =>
-        step.name?.includes("Classify Maestro failures")
+    it("reads the report its own arm wrote, never the other arm's", () => {
+      expect(classificationStep("android").env?.MAESTRO_REPORT).toBe(
+        "maestro-android-report.xml"
       );
-      expect(classifyIndex).toBeGreaterThan(-1);
-      const mentions = steps
-        .map((step, index) => ({ index, step }))
-        .filter(
-          entry =>
-            entry.step.run?.includes(CLASSIFIER_FILE) ||
-            Object.values(entry.step.env ?? {}).some(value =>
-              String(value).includes(CLASSIFIER_FILE)
-            )
-        )
-        .map(entry => entry.index);
-      expect(mentions).toEqual([classifyIndex]);
-    }
-  });
-});
+      expect(classificationStep("android").env?.MAESTRO_PLATFORM).toBe(
+        "android"
+      );
+      expect(classificationStep("ios").env?.MAESTRO_REPORT).toBe(
+        "maestro-ios-report.xml"
+      );
+      expect(classificationStep("ios").env?.MAESTRO_PLATFORM).toBe("ios");
+    });
+
+    it("exits 0 and separates preamble from product on a real red report", () => {
+      const dir = scratchProject({ classifier: "real", report: REPORT_XML });
+      const outcome = runStep(classificationStep(platform), dir);
+      expect(outcome.status).toBe(0);
+      expect(outcome.summary).toContain("1 product");
+      expect(outcome.summary).toContain("1 preamble");
+      // The preamble loss names its gate and the time it took to REACH it:
+      // 105.6s duration minus the gate's 90s ceiling.
+      expect(outcome.summary).toContain("landing:screen");
+      expect(outcome.summary).toContain("15.6s");
+      // And it says out loud that it decides nothing.
+      expect(outcome.summary).toContain("never changes the result of any gate");
+    });
+
+    it("exits 0 when the classifier itself blows up", () => {
+      const dir = scratchProject({ classifier: "failing", report: REPORT_XML });
+      const outcome = runStep(classificationStep(platform), dir);
+      expect(outcome.status).toBe(0);
+    });
+
+    // The case above and this one are a pair, and only together do they say what
+    // the step is for. Alone, "exits 0 when the classifier blows up" is equally
+    // satisfied by a step that discards the status without a word — which is what
+    // `|| true` did, and what made an OOM'd classifier indistinguishable from a
+    // run with nothing to classify. Unable to fail the job is the requirement;
+    // silent about it never was.
+    it("SAYS SO when the classifier blows up, rather than swallowing it", () => {
+      const dir = scratchProject({ classifier: "failing", report: REPORT_XML });
+      const outcome = runStep(classificationStep(platform), dir);
+      expect(outcome.status, "still unable to fail the job").toBe(0);
+      expect(outcome.output).toContain("Flake classification did not run");
+      // The warning has to say what an empty classification MEANS here, because
+      // the reader's mistake is treating absence as "no device fault found".
+      expect(outcome.output).toContain("NO preamble/device verdict");
+    });
+
+    // The negative control for the pair above: on a healthy run the warning must
+    // be absent. A step that printed it unconditionally would pass the case above
+    // while telling every reader their classification is missing.
+    it("stays quiet about classifier failure when the classifier succeeds", () => {
+      const dir = scratchProject({ classifier: "real", report: REPORT_XML });
+      const outcome = runStep(classificationStep(platform), dir);
+      expect(outcome.status).toBe(0);
+      expect(outcome.output).not.toContain("Flake classification did not run");
+    });
+
+    it("exits 0 when the repository has not picked up the classifier yet", () => {
+      const dir = scratchProject({ classifier: "absent", report: REPORT_XML });
+      const outcome = runStep(classificationStep(platform), dir);
+      expect(outcome.status).toBe(0);
+      expect(outcome.output).toContain("skipping flake classification");
+    });
+
+    it("exits 0 when the suite never wrote a report at all", () => {
+      const dir = scratchProject({ classifier: "real" });
+      const outcome = runStep(classificationStep(platform), dir);
+      expect(outcome.status).toBe(0);
+      expect(outcome.output).toContain("to classify");
+    });
+
+    it("names the device column on a blank <failure> the report cannot explain", () => {
+      // End to end through the real step shell: a failure element with NO text,
+      // and the only account of what happened sitting in the debug tree. This is
+      // the measured `DeviceServerDiedException` case.
+      const dir = scratchProject({
+        classifier: "real",
+        report: BLANK_FAILURE_XML,
+        debugArtifact: {
+          name: "commands-(checkout).json",
+          text: '{"error":"maestro.android.DeviceServerDiedException: server died"}',
+        },
+      });
+      const outcome = runStep(classificationStep(platform), dir);
+      expect(outcome.status).toBe(0);
+      expect(outcome.summary).toContain("1 device");
+      expect(outcome.summary).toContain("0 product");
+      expect(outcome.summary).toContain("checkout.yaml");
+      expect(outcome.summary).toContain("DeviceServerDiedException");
+    });
+
+    it("leaves the same failure in the product column with no debug tree", () => {
+      // The negative half of the case above, and the reason the device verdict
+      // cannot be coming from the report: identical XML, no run evidence, no
+      // device verdict. The flow is still REPORTED, which it was not before —
+      // a blank `<failure>` used to be dropped from the summary entirely.
+      const dir = scratchProject({
+        classifier: "real",
+        report: BLANK_FAILURE_XML,
+      });
+      const outcome = runStep(classificationStep(platform), dir);
+      expect(outcome.status).toBe(0);
+      expect(outcome.summary).toContain("0 device");
+      expect(outcome.summary).toContain("1 product");
+      expect(outcome.summary).toContain("checkout.yaml");
+      expect(outcome.summary).toContain("(no failure text)");
+    });
+
+    it("is never read by the suite driver, so retry cannot depend on it", () => {
+      // Per-flow retry is keyed on WHICH flow failed and never on why. A device
+      // classifier feeding that decision would reintroduce the too-narrow regex
+      // the driver's own comment block rejects, so the structural fact is
+      // asserted rather than trusted: no step before the classification step
+      // mentions the classifier, and the classification step is last of them.
+      for (const job of ["android", "ios"]) {
+        const steps = workflow.jobs[job]?.steps ?? [];
+        const classifyIndex = steps.findIndex(step =>
+          step.name?.includes("Classify Maestro failures")
+        );
+        expect(classifyIndex).toBeGreaterThan(-1);
+        const mentions = steps
+          .map((step, index) => ({ index, step }))
+          .filter(
+            entry =>
+              entry.step.run?.includes(CLASSIFIER_FILE) ||
+              Object.values(entry.step.env ?? {}).some(value =>
+                String(value).includes(CLASSIFIER_FILE)
+              )
+          )
+          .map(entry => entry.index);
+        expect(mentions).toEqual([classifyIndex]);
+      }
+    });
+  }
+);

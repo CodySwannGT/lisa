@@ -269,7 +269,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/check-lighthouse-details.mjs":
       "c33678782088725f6e95a07873a4260c347d915518d0c52e107ff3dc0ad32641",
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs":
-      "8c96523e2e5df9ef79b7936afd79ab56d032f608681201e2a989b0b95da6c80b",
+      "8f96ad8dd2626e5a78751a7141a35c5edaa4d0b340f203be1973ac38a75c8caa",
     "expo/copy-overwrite/scripts/lib/bounded-spawn.mjs":
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
     "expo/copy-overwrite/scripts/lib/invoked-as-script.mjs":
@@ -2449,7 +2449,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "ac6c217111a61716a6f456446f8551902cf4506f84bc6ae3bf131bb88990262a",
+      "e0e21ba67175df27bdd231b55ba0760613deda6af114d6851550a00a86358afc",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -9456,6 +9456,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/maestro-build-reuse.test.ts": true,
     "tests/integration/maestro-caller-template.test.ts": true,
     "tests/integration/maestro-checkout-credentials.test.ts": true,
+    "tests/integration/maestro-classifier-debug-tree-memory.test.ts": true,
     "tests/integration/maestro-eas-profile-guard.test.ts": true,
     "tests/integration/maestro-eas-quota-diagnosis.test.ts": true,
     "tests/integration/maestro-environment-prepare.test.ts": true,

@@ -108,8 +108,8 @@
   "detectionCounts": {
     "version-handshake": 4,
     "capability-probe": 0,
-    "existence-only": 4,
-    "no-probe": 13,
+    "existence-only": 5,
+    "no-probe": 12,
     "unchecked": 2
   },
   "decisionCounts": {
@@ -197,19 +197,21 @@
       "channel": "apply",
       "verdict": "apply-lagged",
       "remedy": "run-lisa-apply",
-      "guarded": false,
+      "guarded": true,
       "handling": [
+        "else-branch",
         "exit-zero",
+        "notice-annotation",
         "failure-suppression"
       ],
-      "detection": "no-probe",
+      "detection": "existence-only",
       "stalenessSignals": [],
       "decision": "not-needed",
       "reason": "Advisory classifier over a failure that has already happened. The step carries `exit-zero` and `failure-suppression`, and the job's verdict comes from the suite it annotates rather than from this script — a superseded copy mislabels a failure, it cannot invent or suppress one. Not verdict-bearing, so a handshake is cost without cover.",
       "lanes": [
         "expo/copy-overwrite"
       ],
-      "detail": "`maestro-native-e2e.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/classify-maestro-failures.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (expo/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `exit-zero`, `failure-suppression` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. None of the staleness tokens this scan can see (`artifact-declares-version`, `artifact-answers-version`, `step-requests-version`, `workflow-requests-version`) were found."
+      "detail": "`maestro-native-e2e.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/classify-maestro-failures.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (expo/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. The read sits behind an existence test, which is ALL this scan examined of the step's control flow: it did not read the test's other branch, any fallback, any explicit `exit`, or any verification of the step's output. Whether an absent path skips quietly, falls back, or fails loudly is therefore NOT MEASURED — read the step before concluding it proves nothing. The shape worth ruling out is the silent one, where a skip posts no context and an absent required context is not a red one. The step's text does carry `else-branch`, `exit-zero`, `notice-annotation`, `failure-suppression` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `existence-only`. An existence test and no version probe: this coupling can see that the artifact is MISSING and cannot see that it is OLD. A present copy of any vintage runs, and its verdict is believed. None of the staleness tokens this scan can see (`artifact-declares-version`, `artifact-answers-version`, `step-requests-version`, `workflow-requests-version`) were found."
     },
     {
       "key": "nightly-e2e-health.yml::scripts/check-nightly-e2e-health.mjs",
