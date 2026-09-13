@@ -2319,9 +2319,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-codex-plugin-artifacts.mjs":
       "facb86910c07d1b8025868d24425fdaea7b6efbe282bace5ee5bf23957d6b51a",
     "scripts/generate-copilot-plugin-artifacts.mjs":
-      "7af923118c49101e6ba46da73a8eee8aee9b797e074618aa5345913e638d7cdb",
+      "8589c8b6e7adff3aefd20463d78cb3caa4d23489fffc07fbb9d185cdc63871fa",
     "scripts/generate-cursor-plugin-artifacts.mjs":
-      "45d3bde7b6c55310f0d9436dd68a1bdeefb6fa817be4d15ef745421b39a2cf47",
+      "b0c59ebf8a411a1c4835081ff3a47626868d645e4cebddb7e0e4e795a9cefe24",
     "scripts/generate-export-surface.mjs":
       "f9af22c8809e93e09a1b2dbbdbd23356890b3460524bd8752731ff454d5f13c0",
     "scripts/generate-lisa-owned-hash-ledger.mjs":
@@ -2368,6 +2368,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "7f653c83d9ea65c5fe9ce08f9a8cc19a256852796abe5709035978faee6b4e78",
     "scripts/lib/plugin-cache-resolution.mjs":
       "47a564e2f9d46c0a955defe8eb924f86d7a273098e6ccb118e10f9eeecf3950c",
+    "scripts/lib/plugin-rule-citations.mjs":
+      "574b78843045ec66355f62717ed3ccf54221f86936f390a7bfc92602a9143ad1",
     "scripts/lib/reusable-workflow-contract.d.mts":
       "791f01b55dd7a6b5d9a5f4cb9c44167caa146c2fc3c31a2ae4c2d8a350adc2f1",
     "scripts/lib/reusable-workflow-contract.mjs":
@@ -8629,6 +8631,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/nest-plugin-commands.mjs": true,
     "scripts/lib/per-agent-hook-filter.mjs": true,
     "scripts/lib/plugin-cache-resolution.mjs": true,
+    "scripts/lib/plugin-rule-citations.mjs": true,
     "scripts/lib/reusable-workflow-contract.d.mts": true,
     "scripts/lib/reusable-workflow-contract.mjs": true,
     "scripts/lib/shell-guard-refusal-coverage.mjs": true,
