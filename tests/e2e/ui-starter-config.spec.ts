@@ -62,9 +62,7 @@ test("renders all recorded starter entries from the served project configuration
       })
       .locator("input, select, button");
     await expect(provenanceControls).toHaveCount(0);
-    await page.evaluate(() => {
-      window.location.hash = "testing";
-    });
+    await page.evaluate("window.location.hash = 'testing'");
     const statements = page
       .locator("#section-testing .row")
       .filter({
@@ -84,18 +82,12 @@ test("renders all recorded starter entries from the served project configuration
       )
       .toBe(75);
     await expect(page.locator("#saveBtn")).toBeDisabled();
-    await page.evaluate(() => {
-      window.location.hash = "starters";
-    });
+    await page.evaluate("window.location.hash = 'starters'");
     await expect(provenanceControls).toHaveCount(0);
-    await page.evaluate(() => {
-      window.location.hash = "testing";
-    });
+    await page.evaluate("window.location.hash = 'testing'");
     await statements.fill("80");
     await page.locator("#discardBtn").click();
-    await page.evaluate(() => {
-      window.location.hash = "starters";
-    });
+    await page.evaluate("window.location.hash = 'starters'");
     await expect(provenanceControls).toHaveCount(0);
     expect(
       JSON.parse(await readFile(path.join(root, ".lisa.config.json"), "utf8"))
