@@ -159,7 +159,7 @@ describe("lockfile reconciliation doctor check", () => {
 
     expect(check.status).toBe("warn");
     expect(check.detail).toContain(FROZEN_HINT);
-    expect(check.detail).toContain("re-runs postinstall");
+    expect(check.detail).toContain("other project lifecycle hooks");
   });
 
   it("reports a spawn that never produced a child", async () => {

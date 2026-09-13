@@ -59,8 +59,8 @@ interface ReconciliationCheck {
 const REPAIR_HINT =
   "Repair it with your package manager's script-free install " +
   "(`bun install --ignore-scripts`, `npm install --package-lock-only --ignore-scripts`, " +
-  "`pnpm install --lockfile-only --ignore-scripts`). Do NOT just run a plain install " +
-  "again: that re-runs postinstall, which re-applies and recreates the same drift.";
+  "`pnpm install --lockfile-only --ignore-scripts`). This avoids running other " +
+  "project lifecycle hooks while repairing the lockfile.";
 
 /**
  * Render an ISO timestamp as a plain calendar date, degrading to the raw value.
