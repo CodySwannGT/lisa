@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.33](https://github.com/CodySwannGT/lisa/compare/v4.55.32...v4.55.33) (2026-09-13)
+
+
+### Bug Fixes
+
+* leave template updates to explicit Lisa apply ([8f50ac1](https://github.com/CodySwannGT/lisa/commit/8f50ac1f1705553ad5bd2c65735a7a40b15bb5bf)), closes [CodySwannGT/lisa#4135](https://github.com/CodySwannGT/lisa/issues/4135)
+* preserve the shipped postinstall entry point exports ([56c1f43](https://github.com/CodySwannGT/lisa/commit/56c1f43764e5a2500516577aab235970102c5b63)), closes [CodySwannGT/lisa#4135](https://github.com/CodySwannGT/lisa/issues/4135) [CodySwannGT/lisa#4135](https://github.com/CodySwannGT/lisa/issues/4135)
+
+
+### Documentation
+
+* correct explicit plugin setup instructions ([33da6b6](https://github.com/CodySwannGT/lisa/commit/33da6b663f232fba59caed80856bee07dbf0dfab)), closes [CodySwannGT/lisa#4135](https://github.com/CodySwannGT/lisa/issues/4135) [CodySwannGT/lisa#4135](https://github.com/CodySwannGT/lisa/issues/4135)
+
 ### [4.55.32](https://github.com/CodySwannGT/lisa/compare/v4.55.31...v4.55.32) (2026-09-13)
 
 
