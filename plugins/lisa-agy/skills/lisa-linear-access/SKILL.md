@@ -298,6 +298,8 @@ the same way.
 Both comment operations take **either** `issue_id:` or `project_id:`. Exactly one
 is required; passing both, or neither, is refused naming the operation.
 
+For agent-composed `save-comment` bodies, apply `lisa-tracker-sync` — **Agent attribution** before posting. Preserve an existing disclosure and the exact format of machine-managed comments.
+
 Linear treats a comment's target as one field on the same input type, so the
 project form is not a second mechanism — it is the same mutation with a
 different anchor. Direct introspection of `https://api.linear.app/graphql`:
