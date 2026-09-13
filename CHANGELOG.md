@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.57.1](https://github.com/CodySwannGT/lisa/compare/v4.57.0...v4.57.1) (2026-09-13)
+
+
+### Bug Fixes
+
+* **cli:** explain incompatible override failures at startup ([166d8ca](https://github.com/CodySwannGT/lisa/commit/166d8cadf744ae2e1904a4336db61daafad8c349)), closes [CodySwannGT/lisa#2747](https://github.com/CodySwannGT/lisa/issues/2747) [CodySwannGT/lisa#2747](https://github.com/CodySwannGT/lisa/issues/2747)
+
 ## [4.57.0](https://github.com/CodySwannGT/lisa/compare/v4.56.4...v4.57.0) (2026-09-13)
 
 
