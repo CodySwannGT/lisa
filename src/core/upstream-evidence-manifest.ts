@@ -2627,9 +2627,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/package-lisa/package.lisa.json":
       "432f6789653fae75a70d679ab9de064282aed7bb63a15c29be1eed0eae19f83e",
     "ui/README.md":
-      "6232fc3013f862f84799792a90426caa595cfb81ac9691001fd2c0ff969f6ec6",
+      "4dd2e81ae449da3b5206194b00c9f6b706e06a5f370c3fc888efb4ec94a1d43e",
     "ui/index.html":
-      "35fc583ffa5af0785021ff12d86c1c33a110838db3dd090a81ba331a6a01d76c",
+      "2b11f73430436b3ca85fd0f620194ca3b42cb65a1f98cfadc30a847bed2bd694",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -2872,6 +2872,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "audit.ignore.local.json": true,
     "bdd/coverage-map.json": true,
     "bdd/coverage-report.json": true,
+    "bdd/features/lisa-ui-config-save.feature": true,
     "bdd/features/lisa-ui-demo-data.feature": true,
     "bdd/features/lisa-ui-starter-config.feature": true,
     "bun.lock": true,
@@ -9202,6 +9203,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/e2e/fixtures/ui-live-status-server.ts": true,
     "tests/e2e/ui-automations-scheduler.spec.ts": true,
     "tests/e2e/ui-ci-quality-jobs.spec.ts": true,
+    "tests/e2e/ui-config-save.spec.ts": true,
     "tests/e2e/ui-demo-data-gate.spec.ts": true,
     "tests/e2e/ui-deploy-pipeline.spec.ts": true,
     "tests/e2e/ui-github-repo-panel.spec.ts": true,

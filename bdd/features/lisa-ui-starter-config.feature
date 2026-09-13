@@ -8,6 +8,7 @@ Feature: Project starter provenance in the Lisa console
     Then every recorded entry renders with its own repository, ref, commit, and date
     And demo origins are absent
     And the planned Sync now action remains disabled
+    And saving or discarding other settings keeps provenance read-only and unchanged
 
   @BDD-STARTER-002
   Scenario: Missing provenance has an explicit empty state

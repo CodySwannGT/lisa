@@ -3,16 +3,27 @@
   "schemaVersion": 2,
   "asOf": "2026-08-25",
   "runnerPlatforms": {
-    "playwright": ["web"]
+    "playwright": [
+      "web"
+    ]
   },
   "testDiscovery": {
     "playwright": {
-      "roots": ["tests/e2e"],
-      "extensions": [".spec.ts"],
-      "ignore": ["tests/e2e/fixtures"],
+      "roots": [
+        "tests/e2e"
+      ],
+      "extensions": [
+        ".spec.ts"
+      ],
+      "ignore": [
+        "tests/e2e/fixtures"
+      ],
       "evidence": {
         "kind": "call-title",
-        "functions": ["test", "it"]
+        "functions": [
+          "test",
+          "it"
+        ]
       }
     }
   },
@@ -27,7 +38,9 @@
     "github": {
       "org": "CodySwannGT",
       "defaultRepo": "lisa",
-      "repos": ["lisa"]
+      "repos": [
+        "lisa"
+      ]
     }
   },
   "platformWaivers": [],
@@ -35,7 +48,9 @@
     {
       "scenario": "BDD-STARTER-001",
       "runner": "playwright",
-      "platforms": ["web"],
+      "platforms": [
+        "web"
+      ],
       "file": "tests/e2e/ui-starter-config.spec.ts",
       "evidence": "renders all recorded starter entries from the served project configuration",
       "level": "behavioral"
@@ -43,7 +58,9 @@
     {
       "scenario": "BDD-STARTER-002",
       "runner": "playwright",
-      "platforms": ["web"],
+      "platforms": [
+        "web"
+      ],
       "file": "tests/e2e/ui-starter-config.spec.ts",
       "evidence": "shows an empty starter state without inventing template origins",
       "level": "behavioral"
@@ -51,7 +68,9 @@
     {
       "scenario": "BDD-UI-001",
       "runner": "playwright",
-      "platforms": ["web"],
+      "platforms": [
+        "web"
+      ],
       "file": "tests/e2e/ui-demo-data-gate.spec.ts",
       "evidence": "every-section-live-or-empty",
       "level": "behavioral"
@@ -59,7 +78,9 @@
     {
       "scenario": "BDD-UI-002",
       "runner": "playwright",
-      "platforms": ["web"],
+      "platforms": [
+        "web"
+      ],
       "file": "tests/e2e/ui-demo-data-gate.spec.ts",
       "evidence": "no-sourceless-row-renders-live (including before hydration)",
       "level": "behavioral"
@@ -67,7 +88,9 @@
     {
       "scenario": "BDD-UI-003",
       "runner": "playwright",
-      "platforms": ["web"],
+      "platforms": [
+        "web"
+      ],
       "file": "tests/e2e/ui-demo-data-gate.spec.ts",
       "evidence": "empty-source-no-demo-fallback",
       "level": "behavioral"
@@ -75,7 +98,9 @@
     {
       "scenario": "BDD-UI-004",
       "runner": "playwright",
-      "platforms": ["web"],
+      "platforms": [
+        "web"
+      ],
       "file": "tests/e2e/ui-demo-data-gate.spec.ts",
       "evidence": "direct-file-open-still-renders-demo",
       "level": "behavioral"
@@ -83,7 +108,9 @@
     {
       "scenario": "BDD-UI-005",
       "runner": "playwright",
-      "platforms": ["web"],
+      "platforms": [
+        "web"
+      ],
       "file": "tests/e2e/ui-demo-data-gate.spec.ts",
       "evidence": "guard-fails-on-sourceless-row",
       "level": "behavioral"
@@ -91,7 +118,9 @@
     {
       "scenario": "BDD-UI-006",
       "runner": "playwright",
-      "platforms": ["web"],
+      "platforms": [
+        "web"
+      ],
       "file": "tests/e2e/ui-demo-data-gate.spec.ts",
       "evidence": "acme live negative control",
       "level": "behavioral"
@@ -99,7 +128,9 @@
     {
       "scenario": "BDD-UI-007",
       "runner": "playwright",
-      "platforms": ["web"],
+      "platforms": [
+        "web"
+      ],
       "file": "tests/e2e/ui-demo-data-gate.spec.ts",
       "evidence": "malformed live control shapes and partial composites render unknown",
       "level": "behavioral"
@@ -107,7 +138,9 @@
     {
       "scenario": "BDD-UI-008",
       "runner": "playwright",
-      "platforms": ["web"],
+      "platforms": [
+        "web"
+      ],
       "file": "tests/e2e/ui-demo-data-gate.spec.ts",
       "evidence": "unknown renderer fails closed before exposing its control",
       "level": "behavioral"
@@ -115,7 +148,9 @@
     {
       "scenario": "BDD-UI-009",
       "runner": "playwright",
-      "platforms": ["web"],
+      "platforms": [
+        "web"
+      ],
       "file": "tests/e2e/ui-demo-data-gate.spec.ts",
       "evidence": "preserved Quality jobs rejects an added sourceless row",
       "level": "behavioral"
@@ -123,9 +158,81 @@
     {
       "scenario": "BDD-UI-010",
       "runner": "playwright",
-      "platforms": ["web"],
+      "platforms": [
+        "web"
+      ],
       "file": "tests/e2e/ui-demo-data-gate.spec.ts",
       "evidence": "callout provenance has a browser bite and sourced control",
+      "level": "behavioral"
+    },
+    {
+      "scenario": "BDD-SAVE-001",
+      "runner": "playwright",
+      "platforms": [
+        "web"
+      ],
+      "file": "tests/e2e/ui-config-save.spec.ts",
+      "evidence": "Save writes only three changed keys, rehydrates, and Discard uses the latest saved values",
+      "level": "behavioral"
+    },
+    {
+      "scenario": "BDD-SAVE-002",
+      "runner": "playwright",
+      "platforms": [
+        "web"
+      ],
+      "file": "tests/e2e/ui-config-save.spec.ts",
+      "evidence": "text, select, toggle and environment changes preserve their types and local routing",
+      "level": "behavioral"
+    },
+    {
+      "scenario": "BDD-SAVE-003",
+      "runner": "playwright",
+      "platforms": [
+        "web"
+      ],
+      "file": "tests/e2e/ui-config-save.spec.ts",
+      "evidence": "Save prevents overlapping edits and refuses an unconfirmed response",
+      "level": "behavioral"
+    },
+    {
+      "scenario": "BDD-SAVE-004",
+      "runner": "playwright",
+      "platforms": [
+        "web"
+      ],
+      "file": "tests/e2e/ui-config-save.spec.ts",
+      "evidence": "editing a legacy environment string preserves its production value",
+      "level": "behavioral"
+    },
+    {
+      "scenario": "BDD-SAVE-005",
+      "runner": "playwright",
+      "platforms": [
+        "web"
+      ],
+      "file": "tests/e2e/ui-config-save.spec.ts",
+      "evidence": "a late status render preserves the draft ${JSON.stringify(draft)} before blur",
+      "level": "behavioral"
+    },
+    {
+      "scenario": "BDD-SAVE-006",
+      "runner": "playwright",
+      "platforms": [
+        "web"
+      ],
+      "file": "tests/e2e/ui-config-save.spec.ts",
+      "evidence": "removing one duplicate tag preserves the remaining visible values",
+      "level": "behavioral"
+    },
+    {
+      "scenario": "BDD-SAVE-007",
+      "runner": "playwright",
+      "platforms": [
+        "web"
+      ],
+      "file": "tests/e2e/ui-config-save.spec.ts",
+      "evidence": "a real read-only file refusal preserves pending edits and never reports success",
       "level": "behavioral"
     }
   ],

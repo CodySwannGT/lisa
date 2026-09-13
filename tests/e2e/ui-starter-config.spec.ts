@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -55,6 +55,52 @@ test("renders all recorded starter entries from the served project configuration
     await expect(
       section.getByRole("button", { name: "Sync now", exact: true })
     ).toBeDisabled();
+    const provenanceControls = section
+      .locator(".row")
+      .filter({
+        has: page.locator(".keychip", { hasText: /^starter\.templates\./u }),
+      })
+      .locator("input, select, button");
+    await expect(provenanceControls).toHaveCount(0);
+    await page.evaluate(() => {
+      window.location.hash = "testing";
+    });
+    const statements = page
+      .locator("#section-testing .row")
+      .filter({
+        has: page.getByText("quality.testCoverage.global.statements", {
+          exact: true,
+        }),
+      })
+      .locator('input[type="number"]');
+    await statements.fill("75");
+    await page.locator("#saveBtn").click();
+    await expect
+      .poll(
+        async () =>
+          JSON.parse(
+            await readFile(path.join(root, ".lisa.config.json"), "utf8")
+          ).quality.testCoverage.global.statements
+      )
+      .toBe(75);
+    await expect(page.locator("#saveBtn")).toBeDisabled();
+    await page.evaluate(() => {
+      window.location.hash = "starters";
+    });
+    await expect(provenanceControls).toHaveCount(0);
+    await page.evaluate(() => {
+      window.location.hash = "testing";
+    });
+    await statements.fill("80");
+    await page.locator("#discardBtn").click();
+    await page.evaluate(() => {
+      window.location.hash = "starters";
+    });
+    await expect(provenanceControls).toHaveCount(0);
+    expect(
+      JSON.parse(await readFile(path.join(root, ".lisa.config.json"), "utf8"))
+        .starter.templates
+    ).toEqual(templates);
   } finally {
     await closeRunUiTestResources({ page, server });
     await rm(root, { recursive: true, force: true });
