@@ -145,7 +145,7 @@ Confirm:
 1. The test PASSES against the current code (the change being shipped)
 2. The test ACTUALLY FAILS without the change — observed, not reasoned about
 
-**Step 2 is mandatory for every codified test, and "mentally reverting" does not satisfy it.** Mental reversion is the exact mechanism by which non-functional guards ship: the author believes the assertion is load-bearing, and it is not. Break the guarded property for real, run the test, and read the failure. See `.claude/rules/falsifiable-checks.md` for the four observed ways a check passes while asserting nothing.
+**Step 2 is mandatory for every codified test, and "mentally reverting" does not satisfy it.** Mental reversion is the exact mechanism by which non-functional guards ship: the author believes the assertion is load-bearing, and it is not. Break the guarded property for real, run the test, and read the failure. See [`rules/falsifiable-checks-reference.mdc`](../../rules/falsifiable-checks-reference.mdc) for the four observed ways a check passes while asserting nothing.
 
 Do it one of these ways, in order of preference:
 
@@ -204,7 +204,7 @@ If codification was skipped, an explicit reason recorded in the report (one of t
 ## Rules
 
 - Never claim a verification is codified without running the new test and observing it pass
-- Never claim it is codified without observing it **FAIL** on a real break — mental reversion is not observation, and a test whose failure was never seen is unvalidated, not a gate (`.claude/rules/falsifiable-checks.md`)
+- Never claim it is codified without observing it **FAIL** on a real break — mental reversion is not observation, and a test whose failure was never seen is unvalidated, not a gate ([`rules/falsifiable-checks-reference.mdc`](../../rules/falsifiable-checks-reference.mdc))
 - Never let the assertion be satisfiable by the test's own fixture instead of the artifact under test — bind it to the real document/config/output
 - Never trust a revert-to-verify on generated, schema-validated, or cached input without confirming the input actually changed; a failed generator silently leaves the old artifact and the test "passes" on stale bytes
 - Never disable, skip, or `.skip()` the new test "temporarily" to make CI green — fix the test or fix the underlying change
