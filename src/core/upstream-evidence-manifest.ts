@@ -2627,9 +2627,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/package-lisa/package.lisa.json":
       "432f6789653fae75a70d679ab9de064282aed7bb63a15c29be1eed0eae19f83e",
     "ui/README.md":
-      "4dd2e81ae449da3b5206194b00c9f6b706e06a5f370c3fc888efb4ec94a1d43e",
+      "7e2ae211371f9b9c804fde46040b3d845dede038e649371afadac94226459e08",
     "ui/index.html":
-      "2b11f73430436b3ca85fd0f620194ca3b42cb65a1f98cfadc30a847bed2bd694",
+      "5cd27b7a6069891e65be3db81b8997a8f99794fe615ab72e9350858714819193",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */

@@ -384,7 +384,7 @@ browser payload; the server exposes names and boolean presence only.
 | Health (version status + in-band scan) | `lisa doctor`, `lisa sync --dry-run`, `lisa health`, `/lisa:health` skill |
 | Doctor (what each check proves, where, and whether it blocks a merge) | `all/copy-overwrite/scripts/lisa-gates.mjs`, `.lisa.config.json`, `package.json`, `.husky/`, `.github/workflows/`, branch protection |
 | Core workflow (the delivery-loop slash commands and their automations) | `plugins/src/base/commands/lisa/`, `plugins/src/base/skills/` |
-| Starter templates (provenance + planned two-way sync) | `src/cli/starters.ts`, planned `starter.*` config |
+| Starter templates (provenance + planned two-way sync) | `src/core/project-config-starter.ts`, `src/sync/registry.ts` |
 | General (`harness`, `tracker`, `source`, `repo`, package manager) | `src/core/config.ts`, `plugins/src/base/rules/reference/config-resolution.md` |
 | Project types (8 stacks + template strategies) | `src/detection/`, `src/strategies/`, `<stack>/` template dirs |
 | Coding agents (claude/codex/cursor/agy/copilot/opencode/fleet) | `src/core/lisa.ts`, `scripts/generate-*-plugin-artifacts.mjs` |
