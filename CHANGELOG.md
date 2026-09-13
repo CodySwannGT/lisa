@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.28](https://github.com/CodySwannGT/lisa/compare/v4.55.27...v4.55.28) (2026-09-13)
+
+
+### Bug Fixes
+
+* explain unexpanded Maestro variables in coverage output ([ba308ce](https://github.com/CodySwannGT/lisa/commit/ba308ce3d77da4ff6abf6f1e76d22799b82a72d3)), closes [CodySwannGT/lisa#3503](https://github.com/CodySwannGT/lisa/issues/3503) [CodySwannGT/lisa#3503](https://github.com/CodySwannGT/lisa/issues/3503)
+
 ### [4.55.27](https://github.com/CodySwannGT/lisa/compare/v4.55.26...v4.55.27) (2026-09-13)
 
 
