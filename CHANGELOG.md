@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.34](https://github.com/CodySwannGT/lisa/compare/v4.55.33...v4.55.34) (2026-09-13)
+
+
+### Bug Fixes
+
+* keep independent Expo checks visible after quality failures ([68d96c2](https://github.com/CodySwannGT/lisa/commit/68d96c22cc794ae5bae8c703bb394ba4baa8d464)), closes [CodySwannGT/lisa#2399](https://github.com/CodySwannGT/lisa/issues/2399) [CodySwannGT/lisa#2399](https://github.com/CodySwannGT/lisa/issues/2399)
+* preserve Sentry variable fallback and private metadata ([bd91bc9](https://github.com/CodySwannGT/lisa/commit/bd91bc978ea7b73f5e6c67e84e608d380966fd66)), closes [CodySwannGT/lisa#1673](https://github.com/CodySwannGT/lisa/issues/1673) [CodySwannGT/lisa#1673](https://github.com/CodySwannGT/lisa/issues/1673)
+* report the actual learnings merge budget failure ([fdce511](https://github.com/CodySwannGT/lisa/commit/fdce511b1c7046092cdc6375eb894796d6421981)), closes [CodySwannGT/lisa#3226](https://github.com/CodySwannGT/lisa/issues/3226) [CodySwannGT/lisa#3226](https://github.com/CodySwannGT/lisa/issues/3226)
+
 ### [4.55.33](https://github.com/CodySwannGT/lisa/compare/v4.55.32...v4.55.33) (2026-09-13)
 
 
