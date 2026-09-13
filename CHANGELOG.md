@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.55.26](https://github.com/CodySwannGT/lisa/compare/v4.55.25...v4.55.26) (2026-09-13)
+
+
+### Bug Fixes
+
+* keep Linear queue counts and read claims consistent ([a915536](https://github.com/CodySwannGT/lisa/commit/a915536f2a6d265a31af9ecdafbdddc873ca6162)), closes [CodySwannGT/lisa#3529](https://github.com/CodySwannGT/lisa/issues/3529) [CodySwannGT/lisa#3529](https://github.com/CodySwannGT/lisa/issues/3529)
+* page GitHub and Jira intake reads to completion ([c977426](https://github.com/CodySwannGT/lisa/commit/c9774264adefc089e321e37b9cc1f1e6f5279567)), closes [CodySwannGT/lisa#4105](https://github.com/CodySwannGT/lisa/issues/4105) [CodySwannGT/lisa#4105](https://github.com/CodySwannGT/lisa/issues/4105)
+
 ### [4.55.25](https://github.com/CodySwannGT/lisa/compare/v4.55.24...v4.55.25) (2026-09-13)
 
 ### [4.55.24](https://github.com/CodySwannGT/lisa/compare/v4.55.23...v4.55.24) (2026-09-12)
