@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.57.3](https://github.com/CodySwannGT/lisa/compare/v4.57.2...v4.57.3) (2026-09-13)
+
+
+### Bug Fixes
+
+* **maestro-classifier:** read the debug tree lazily instead of all at once ([d275722](https://github.com/CodySwannGT/lisa/commit/d275722013c7fc8814b3458e1cb189b2d5e07b59)), closes [CodySwannGT/lisa#2400](https://github.com/CodySwannGT/lisa/issues/2400)
+* **maestro-native-e2e:** say when flake classification did not run ([f0dd114](https://github.com/CodySwannGT/lisa/commit/f0dd11486e4b61b8340b85943d3c468c9b19b61d)), closes [CodySwannGT/lisa#2400](https://github.com/CodySwannGT/lisa/issues/2400)
+* **maestro:** verify both classifier arms and preserve repeated report evidence ([6502cda](https://github.com/CodySwannGT/lisa/commit/6502cda5292be0488a17e67b6825a0ba35de5e9d)), closes [CodySwannGT/lisa#2400](https://github.com/CodySwannGT/lisa/issues/2400) [CodySwannGT/lisa#2400](https://github.com/CodySwannGT/lisa/issues/2400)
+
 ### [4.57.2](https://github.com/CodySwannGT/lisa/compare/v4.57.1...v4.57.2) (2026-09-13)
 
 
