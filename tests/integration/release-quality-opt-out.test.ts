@@ -45,6 +45,23 @@ function canVersion(
 }
 
 describe("release quality opt-out", () => {
+  it.each([
+    ["", "production", "pre-deploy:production"],
+    ["", "staging", "pre-deploy:staging"],
+    ["pre-deploy:dev", "production", "pre-deploy:dev"],
+    ["pull-request", "production", "pull-request"],
+  ])("resolves moment %s for %s as %s", (moment, environment, expected) => {
+    const expression = String(jobOf(workflow, "quality").with?.moment)
+      .trim()
+      .slice(3, -2);
+    expect(
+      githubCondition(`(${expression}) == expected`, {
+        inputs: { moment, environment },
+        expected,
+      })
+    ).toBe(true);
+  });
+
   it("preserves quality execution unless the caller opts out", () => {
     expect(
       workflow.on?.workflow_call?.inputs?.run_quality_checks
