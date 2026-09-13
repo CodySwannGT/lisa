@@ -198,43 +198,35 @@ async function configurePayload(
 }
 
 /**
- * Attribute and remove direct-adapter scratch additions after the payload drains.
+ * Remove direct-adapter scratch additions after the payload drains.
+ * The run root's verified ownership is the deletion boundary. Direct runners
+ * may use their own temporary basenames without a Lisa prefix registration.
  * @param state - One foreground supervision state
  */
-function auditDirectScratch(state: SupervisorState): void {
+function cleanupDirectScratch(state: SupervisorState): void {
   if (state.directBaseline === undefined) return;
   const opened = openOwnedScratchRunRoot(state.intent);
   if (opened === undefined) {
-    throw new Error("Direct scratch root disappeared before invocation audit");
+    throw new Error(
+      "Direct scratch root disappeared before invocation cleanup"
+    );
   }
   const additions = readBoundedScratchNames(opened.path).filter(
     name => name !== SCRATCH_OWNER_FILE && !state.directBaseline?.has(name)
-  );
-  const unregistered = additions.filter(
-    name =>
-      !opened.owner.registeredPrefixes.some(prefix => name.startsWith(prefix))
   );
   removeAuthorizedScratchChildren({
     parent: opened.owner.root,
     basenames: additions,
   });
-  if (unregistered.length > 0) {
-    const names = [...unregistered].sort((left, right) =>
-      left === right ? 0 : left < right ? -1 : 1
-    );
-    throw new Error(
-      `Suite ${opened.owner.suiteLabel} leaked ${String(names.length)} unregistered direct scratch fixture(s): ${names.join(", ")}`
-    );
-  }
 }
 
 /**
  * Report a cleanup verdict without replacing an already-failing payload.
- * @param error - Secondary direct-audit failure
+ * @param error - Secondary cleanup failure
  */
-function reportPreservedAuditFailure(error: unknown): void {
+function reportPreservedCleanupFailure(error: unknown): void {
   process.stderr.write(
-    `lisa-test-run direct scratch audit also failed: ${error instanceof Error ? error.message : String(error)}\n`
+    `lisa-test-run direct scratch cleanup also failed: ${error instanceof Error ? error.message : String(error)}\n`
   );
 }
 
@@ -300,10 +292,10 @@ async function finishSuccess(
   await drainSupervisedTarget(state.target);
   if (state.bootstrap !== undefined) await stopBootstrap(state.bootstrap);
   try {
-    auditDirectScratch(state);
+    cleanupDirectScratch(state);
   } catch (error) {
     if (outcome.code === 0 && outcome.signal === null) throw error;
-    reportPreservedAuditFailure(error);
+    reportPreservedCleanupFailure(error);
   }
   removeOwnedScratchRunRoot(state.intent);
   // eslint-disable-next-line code-organization/enforce-statement-order -- disarm is meaningful only after foreground removal

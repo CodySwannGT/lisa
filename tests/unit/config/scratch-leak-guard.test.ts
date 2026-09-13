@@ -1,4 +1,4 @@
-/** Black-box proof that one suite fails on its own unregistered temp leak. */
+/** Black-box proof of Vitest leak detection and owned direct-runner cleanup. */
 import {
   existsSync,
   mkdtempSync,
@@ -228,53 +228,70 @@ describe("direct lisa-test-run leak attribution", () => {
     expect(existsSync(owned)).toBe(false);
   });
 
-  it("cleans registered direct children and fails the creating invocation on unregistered children", () => {
-    const base = temporaryTestRunDirectory(
-      "lisa-test-run-direct-leak-",
-      registerTestRunDirectory
-    );
-    const runDirect = (prefix: string, exitCode = 0) =>
-      boundedSpawnSync({
-        label: `lisa-test-run direct ${prefix}`,
-        command: process.execPath,
-        args: [
-          "--import",
-          "tsx",
-          TEST_RUNNER,
-          "--profile",
-          "node",
-          "--adapter",
-          "direct",
-          "--",
-          process.execPath,
-          "-e",
-          `const fs=require("node:fs"),os=require("node:os"),path=require("node:path");for(let i=0;i<3;i+=1)fs.mkdtempSync(path.join(os.tmpdir(),${JSON.stringify(prefix)}));process.exit(${String(exitCode)})`,
-        ],
-        baseMs: 5_000,
-        cwd: REPO_ROOT,
-        env: {
-          ...process.env,
-          TMPDIR: base,
-          TMP: base,
-          TEMP: base,
-          LISA_TEST_SCRATCH_SUITE: undefined,
-          LISA_TEST_SCRATCH_PREFIXES: undefined,
-          LISA_TEST_SCRATCH_LEASE: undefined,
-        },
-      });
+  it.each([
+    "lisa",
+    "typescript",
+    "npm-package",
+    "node",
+    "expo",
+    "nestjs",
+    "cdk",
+    "harper-fabric",
+    "phaser",
+  ])(
+    "cleans owned direct scratch for %s without changing the payload verdict",
+    profile => {
+      const base = temporaryTestRunDirectory(
+        "lisa-test-run-direct-leak-",
+        registerTestRunDirectory
+      );
+      const outside = path.join(base, "outside.txt");
+      writeFileSync(outside, "preserve outside the owned run root");
+      const runDirect = (prefix: string, exitCode = 0) =>
+        boundedSpawnSync({
+          label: `lisa-test-run direct ${prefix}`,
+          command: process.execPath,
+          args: [
+            "--import",
+            "tsx",
+            TEST_RUNNER,
+            "--profile",
+            profile,
+            "--adapter",
+            "direct",
+            "--",
+            process.execPath,
+            "-e",
+            `const fs=require("node:fs"),os=require("node:os"),path=require("node:path");for(let i=0;i<3;i+=1)fs.mkdtempSync(path.join(os.tmpdir(),${JSON.stringify(prefix)}));process.exit(${String(exitCode)})`,
+          ],
+          baseMs: 5_000,
+          cwd: REPO_ROOT,
+          env: {
+            ...process.env,
+            TMPDIR: base,
+            TMP: base,
+            TEMP: base,
+            LISA_TEST_SCRATCH_SUITE: undefined,
+            LISA_TEST_SCRATCH_PREFIXES: undefined,
+            LISA_TEST_SCRATCH_LEASE: undefined,
+          },
+        });
 
-    const registered = runDirect("node-");
-    const unregistered = runDirect("rogue-");
-    const childFailure = runDirect("rogue-fail-", 23);
+      const conventional = runDirect("node-");
+      const arbitrary = runDirect("runner-cache-");
+      const childFailure = runDirect("runner-fail-", 23);
 
-    expect(registered.status).toBe(0);
-    expect(unregistered.status).toBe(1);
-    expect(unregistered.stderr).toMatch(
-      /Suite node leaked 3 unregistered direct scratch fixture/u
-    );
-    expect(unregistered.stderr).toMatch(/rogue-/u);
-    expect(childFailure.status).toBe(23);
-    expect(childFailure.stderr).toMatch(/direct scratch audit also failed/u);
-    expect(readdirSync(path.join(base, SCRATCH_NAMESPACE))).toEqual([]);
-  });
+      expect(conventional.status).toBe(0);
+      expect(arbitrary.status).toBe(0);
+      expect(arbitrary.stderr).not.toMatch(/unregistered direct scratch/u);
+      expect(childFailure.status).toBe(23);
+      expect(childFailure.stderr).not.toMatch(
+        /direct scratch cleanup also failed/u
+      );
+      expect(readdirSync(path.join(base, SCRATCH_NAMESPACE))).toEqual([]);
+      expect(readFileSync(outside, "utf8")).toBe(
+        "preserve outside the owned run root"
+      );
+    }
+  );
 });
