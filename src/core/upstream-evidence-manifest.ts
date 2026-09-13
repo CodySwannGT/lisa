@@ -861,7 +861,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/operational-hazards.md":
       "9acb3b13a6b3f7d993c7fc37cf70fa94947119c4d59e6295217cafe9f13c6c58",
     "plugins/src/base/rules/eager/report-actionability.md":
-      "57fc67f1096bc0f7219ab90a3e7db5e44d333b0b8a2bb660696a4e038e0221fd",
+      "b817c042d834fb046ead75db19cf827322b1abfbb0886fd4545213dd68a80554",
     "plugins/src/base/rules/eager/security-audit-handling.md":
       "1f6effe92be66736a0c9fab634c5fdd6ad1e789865faa67bb783c67ddb4ad490",
     "plugins/src/base/rules/eager/session-status-updates.md":

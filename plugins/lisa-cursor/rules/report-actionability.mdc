@@ -5,9 +5,8 @@ alwaysApply: true
 
 # Report Actionability — Every Report Says What the Reader Must Do (load-bearing)
 
-A report that describes real work accurately can still fail, because the reader cannot tell **which items need them and which are already handled**. Prose that mixes fixed and open items reads as a single undifferentiated pile of problems; the reader either acts on something already done, or assumes something open was handled. Both are caused by the report, not by the work.
-
-The specific failure this rule exists to prevent, observed in a review cycle: six findings were returned, three were fixed, and the report described **two of them in detail without ever stating that six existed**. Every sentence in it was true. The reader still had to ask "did you fix them?" — and the answer was partly yes, partly no, and one finding had not even been read. A subset presented in the shape of a whole is worse than silence, because silence does not create false confidence.
+Reports must distinguish completed work, remaining work, and decisions the reader
+needs to make. Account for the whole reviewed scope and clearly label any subset.
 
 ## Mandatory
 
