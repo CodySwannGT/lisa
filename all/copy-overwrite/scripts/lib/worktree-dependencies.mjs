@@ -1,3 +1,6 @@
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
@@ -23,7 +26,11 @@ export function worktreeDependencyProblem(cwd = process.cwd()) {
     if (localModules || existsSync(join(root, "node_modules"))) return null;
     const marker = join(root, ".git");
     if (!statSync(marker).isFile()) return null;
-    const gitdir = /^gitdir:\s*(.+)$/m.exec(readFileSync(marker, "utf8"))?.[1];
+    const gitdir = readFileSync(marker, "utf8")
+      .split("\n")
+      .find(line => line.startsWith("gitdir:"))
+      ?.slice("gitdir:".length)
+      .trim();
     if (!gitdir) return null;
     const control = resolve(root, gitdir.trim());
     // commondir distinguishes a linked worktree from a submodule's .git file.

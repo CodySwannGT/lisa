@@ -61,7 +61,7 @@ describe("mutation control scheduling", () => {
     const task = taskAt("pull-request");
     expect(task).toBe("test:integration");
     expect(script(task as string)).toBe(
-      "$npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration"
+      "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration"
     );
   });
 });

@@ -41,9 +41,9 @@ describe("Phaser package template controls", () => {
     // it. Asserting the host-facing key here would re-assert the defect.
     expect(template.force?.scripts).toMatchObject({
       "test:lisa":
-        "lisa-test-run --profile phaser --adapter vitest -- vitest run",
+        "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile phaser --adapter vitest -- vitest run",
       "test:cov:lisa":
-        "lisa-test-run --profile phaser --adapter vitest -- vitest run --coverage",
+        "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile phaser --adapter vitest -- vitest run --coverage",
     });
   });
 
@@ -2026,7 +2026,9 @@ describe("PackageLisaStrategy", () => {
       );
 
       const content = await fs.readJson(destPath);
-      expect(content.scripts.build).toBe("tsc && node dist/build/build.js");
+      expect(content.scripts.build).toBe(
+        "node scripts/lib/worktree-dependencies.mjs && tsc && node dist/build/build.js"
+      );
       expect(content.scripts.seed).toBe(
         "bun run build && node dist/scripts/seed.js"
       );
@@ -2223,7 +2225,7 @@ describe("PackageLisaStrategy", () => {
       "package.lisa.json"
     );
     const maestroSupervision =
-      "lisa-test-run --profile expo --adapter direct -- ";
+      "node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile expo --adapter direct -- ";
     const expectedMaestroScripts = {
       "maestro:test": `${maestroSupervision}maestro test .maestro/flows`,
       "maestro:test:ios": `${maestroSupervision}maestro test -p ios .maestro/flows`,

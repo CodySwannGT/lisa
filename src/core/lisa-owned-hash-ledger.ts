@@ -472,10 +472,12 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "fb68902c68b4cd156f26d2f743364f611a54b833bc445b5144b4c844f553f188",
   ]),
   "scripts/lib/worktree-dependencies.d.mts": Object.freeze([
+    "66f77b767869f57185b819ca6f294ad0706348b50eba12f78af2430d9c8775df",
     "acc2b7a00f1e6f806359c6609e58743b6293f17f3a5ac30abd18b1a22fab8bfc",
   ]),
   "scripts/lib/worktree-dependencies.mjs": Object.freeze([
     "027069f33cdd75bb2dcf06c507848885fc9bfb918f7b967e7ce84a31815133b1",
+    "31cb1cd96e7bd692d10ed2c26aa83c6b0580e48dbe6d2393edf9652970def091",
   ]),
   "scripts/lisa-clean-git-env.sh": Object.freeze([
     "d15af6f13eedbca41046070972380e69fc0af8f7d903aac12b8644389b9a0c91",
@@ -1779,10 +1781,12 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "fb68902c68b4cd156f26d2f743364f611a54b833bc445b5144b4c844f553f188",
   ]),
   "scripts/lib/worktree-dependencies.d.mts": Object.freeze([
+    "66f77b767869f57185b819ca6f294ad0706348b50eba12f78af2430d9c8775df",
     "acc2b7a00f1e6f806359c6609e58743b6293f17f3a5ac30abd18b1a22fab8bfc",
   ]),
   "scripts/lib/worktree-dependencies.mjs": Object.freeze([
     "027069f33cdd75bb2dcf06c507848885fc9bfb918f7b967e7ce84a31815133b1",
+    "31cb1cd96e7bd692d10ed2c26aa83c6b0580e48dbe6d2393edf9652970def091",
   ]),
   "scripts/lisa-clean-git-env.sh": Object.freeze([
     "d15af6f13eedbca41046070972380e69fc0af8f7d903aac12b8644389b9a0c91",

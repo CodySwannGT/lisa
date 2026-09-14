@@ -33,9 +33,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs":
       "cffebe7feca1b5cce7b514bd1b5e991375cbc20607dff70385699e474e36b4d3",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.d.mts":
-      "acc2b7a00f1e6f806359c6609e58743b6293f17f3a5ac30abd18b1a22fab8bfc",
+      "66f77b767869f57185b819ca6f294ad0706348b50eba12f78af2430d9c8775df",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs":
-      "027069f33cdd75bb2dcf06c507848885fc9bfb918f7b967e7ce84a31815133b1",
+      "31cb1cd96e7bd692d10ed2c26aa83c6b0580e48dbe6d2393edf9652970def091",
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
       "014a94647efc636cbce961364a82f03c1f3c1e54a55e9d21508fded88dce49c4",
     "all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs":
@@ -2391,9 +2391,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/workflow-contract-probe.mjs":
       "73fee544253390b0e859090a23b9810bdcf14a19ca1dd17649d8d82d20ef69dc",
     "scripts/lib/worktree-dependencies.d.mts":
-      "acc2b7a00f1e6f806359c6609e58743b6293f17f3a5ac30abd18b1a22fab8bfc",
+      "66f77b767869f57185b819ca6f294ad0706348b50eba12f78af2430d9c8775df",
     "scripts/lib/worktree-dependencies.mjs":
-      "027069f33cdd75bb2dcf06c507848885fc9bfb918f7b967e7ce84a31815133b1",
+      "31cb1cd96e7bd692d10ed2c26aa83c6b0580e48dbe6d2393edf9652970def091",
     "scripts/lisa-assert-eas-profile.mjs":
       "624e40d7f33ca17208fc6b7a19320a785cff19da5d2ff8062b67a432b2a34022",
     "scripts/lisa-commit-and-pr-local.sh":
