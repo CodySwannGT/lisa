@@ -14,7 +14,7 @@ import {
   scanForLoadFailures,
   type RunPage,
   type ScannedRun,
-} from "../../../src/core/reusable-workflow-load-scan.js";
+} from "../../../all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs";
 
 /** A run that loaded nothing despite declaring a reusable workflow. */
 const LOAD_FAILURE: ScannedRun = {

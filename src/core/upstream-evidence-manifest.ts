@@ -20,6 +20,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "4b6e1d444c50da031b848215913df7bfe87091b5eee2debfb60d5d0c42abe343",
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs":
       "95f91f2a74ed4e523d064d5d374eadd1c1114f03a3a4fa41532c9b0fd32089de",
+    "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
+      "5f4d14068165d58bf285bd638d3aed2692f0c5f6fba6449111abade46646b3ec",
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
@@ -32,6 +34,18 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs":
       "cffebe7feca1b5cce7b514bd1b5e991375cbc20607dff70385699e474e36b4d3",
+    "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.d.mts":
+      "289c57b7cf1de7c2b5a2e89de8e706d53fc590592b8f3ba08ba41e04f97fd343",
+    "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs":
+      "bd4d15cebb584b75aa4da8c07be23d5777c26d9948f4d8e5446f95b6a34d3629",
+    "all/copy-overwrite/scripts/lib/reusable-workflow-load-failure.d.mts":
+      "1389d12dd75deddf8dc6b56dbb0f4286dc839bd5530c08511a16d89d0dfcb7b3",
+    "all/copy-overwrite/scripts/lib/reusable-workflow-load-failure.mjs":
+      "135740db804f470a6c99c5eee8d508ad8059cd98468d5f0c1910a50690fade4a",
+    "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.d.mts":
+      "7916579bdff3848f248f84755ebde97b9e7ccfd4d59627cab7b6e78d05196316",
+    "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs":
+      "0bf29533a5879e01385777c3a71d9c83f6694cd1162a7db234db47546065e7b0",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.d.mts":
       "66f77b767869f57185b819ca6f294ad0706348b50eba12f78af2430d9c8775df",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs":
@@ -100,6 +114,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "fd260fd9b2934d0d698a8098dfff07fedc071849d588e602d773666678c3d540",
     "all/create-only/.github/workflows/continuous-gates.yml":
       "d4b3aa4eeefec7fba06587aa596f7d4df1bed58b9613b49a9a97f71821c8a937",
+    "all/create-only/.github/workflows/workflow-load-failure-sweep.yml":
+      "bbf593111c0de87758d7a8ba420982470ac1b9fc461c60569b26c6d41ed36988",
     "all/create-only/.lisaignore":
       "735dc0a28a19e3aebc3d71b1ddf8b077e96ab17013d0f1c49d87c08558a315df",
     "all/create-only/scripts/remote-agent-aws-setup.sh":
@@ -2288,8 +2304,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "bb3c959fe67a6f481a9b8442a5a9a51a49599b4efd8fbefe3329fdf5c96b9c02",
     "scripts/check-workflow-contract-assertions.mjs":
       "ea31f1ddaf2cea36177dc1415e8dd5e324b2c36d26453c43f4ae100cbf68471d",
-    "scripts/check-workflow-load-failures.ts":
-      "494113253fd4830e79e658429c15533c045ac8c5ad3ec365e3dc2a39742f8d2c",
+    "scripts/check-workflow-load-failures.mjs":
+      "31e8404316dc95527ff87ee2bcbc7d19bcf70f6cb54b608fd7235e9c767506a1",
     "scripts/check-workflow-package-paths.mjs":
       "07ebf3f8a4504f6231c5ae492ecda7f95a80a0fa5f0424b9d3368544b1b612dd",
     "scripts/claude-remote-setup.sh":
@@ -2459,7 +2475,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "f20f4f852cc09140fcc592cf1f476697944f9980aa6400cc0112907569cba7a6",
+      "4dfcb0ad08d7bfc46fdbdffd5ffaf0584af63122f19e7c569c2da7426b76fb1f",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -2797,12 +2813,19 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/check-state-classification.mjs": true,
     "all/copy-overwrite/scripts/check-third-party-action-pins.mjs": true,
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs": true,
+    "all/copy-overwrite/scripts/check-workflow-load-failures.mjs": true,
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs": true,
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs": true,
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs": true,
     "all/copy-overwrite/scripts/lib/kill-marks.mjs": true,
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs": true,
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs": true,
+    "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.d.mts": true,
+    "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs": true,
+    "all/copy-overwrite/scripts/lib/reusable-workflow-load-failure.d.mts": true,
+    "all/copy-overwrite/scripts/lib/reusable-workflow-load-failure.mjs": true,
+    "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.d.mts": true,
+    "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs": true,
     "all/copy-overwrite/scripts/lib/worktree-dependencies.d.mts": true,
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs": true,
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs": true,
@@ -2837,6 +2860,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json": true,
     "all/create-only/.agents/rules/README.md": true,
     "all/create-only/.github/workflows/continuous-gates.yml": true,
+    "all/create-only/.github/workflows/workflow-load-failure-sweep.yml": true,
     "all/create-only/.lisaignore": true,
     "all/create-only/scripts/remote-agent-aws-setup.sh": true,
     "all/create-only/specs/.keep": true,
@@ -8608,7 +8632,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/check-ui-demo-data.mjs": true,
     "scripts/check-whole-output-guards.mjs": true,
     "scripts/check-workflow-contract-assertions.mjs": true,
-    "scripts/check-workflow-load-failures.ts": true,
+    "scripts/check-workflow-load-failures.mjs": true,
     "scripts/check-workflow-package-paths.mjs": true,
     "scripts/claude-remote-setup.sh": true,
     "scripts/clean-dist.mjs": true,
@@ -9065,9 +9089,6 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/project-config.ts": true,
     "src/core/rails-deploy-production-intent.ts": true,
     "src/core/reconciliation-report.ts": true,
-    "src/core/reusable-workflow-load-adapter.ts": true,
-    "src/core/reusable-workflow-load-failure.ts": true,
-    "src/core/reusable-workflow-load-scan.ts": true,
     "src/core/reusable-workflow-pin.ts": true,
     "src/core/safe-relative-markdown-path.ts": true,
     "src/core/self-apply.ts": true,
@@ -10038,6 +10059,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/upstream-attribution-file-safety.test.ts": true,
     "tests/unit/core/upstream-attribution-integrity.test.ts": true,
     "tests/unit/core/workflow-deletion-ownership.test.ts": true,
+    "tests/unit/core/workflow-load-consumer.test.ts": true,
     "tests/unit/core/workflow-load-failure-wiring.test.ts": true,
     "tests/unit/core/workflow-reference-guard.test.ts": true,
     "tests/unit/detection/cdk-app-shape.test.ts": true,

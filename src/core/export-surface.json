@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 129,
-  "$names": 1246,
+  "$modules": 133,
+  "$names": 1260,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -84,6 +84,13 @@
       "substituteMarker",
       "substitutePosted"
     ],
+    "all/copy-overwrite/scripts/check-workflow-load-failures.mjs": [
+      "buildPopulationTest",
+      "describe",
+      "ghRequest",
+      "main",
+      "runCli"
+    ],
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs": [
       "DEFAULT_CHILD_BUDGET_MS",
       "boundedExecFileSync",
@@ -131,6 +138,21 @@
       "supervise",
       "timeoutVerdictForPlatform",
       "windowsTreeExists"
+    ],
+    "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs": [
+      "RUNS_PER_PAGE",
+      "createRunPageFetcher",
+      "jobsPath",
+      "runPath",
+      "runsPath"
+    ],
+    "all/copy-overwrite/scripts/lib/reusable-workflow-load-failure.mjs": [
+      "callerDeclaresReusableWorkflow",
+      "classifyRunLoad",
+      "windowCoverage"
+    ],
+    "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs": [
+      "scanForLoadFailures"
     ],
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs": [
       "worktreeDependencyProblem"

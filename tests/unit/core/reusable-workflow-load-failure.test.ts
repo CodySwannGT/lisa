@@ -44,7 +44,7 @@ import {
   callerDeclaresReusableWorkflow,
   classifyRunLoad,
   windowCoverage,
-} from "../../../src/core/reusable-workflow-load-failure.js";
+} from "../../../all/copy-overwrite/scripts/lib/reusable-workflow-load-failure.mjs";
 
 /** The start of the window used by the coverage assertions. */
 const WINDOW_START = "2026-09-02T00:00:00Z";
