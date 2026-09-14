@@ -15,6 +15,12 @@
 # nightly cron + workflow_dispatch platform picker; see
 # expo/create-only/.github/workflows/maestro-e2e.yml.
 #
+# Isolated flow retries use the current job's started_at and suite timeout.
+# A retry must fit its measured flow duration, driver startup allowance and
+# one minute for reporting. Unknown timing declines the retry and retains the
+# original failure. First-attempt results and the active retry are written
+# before launching it, so cancellation does not discard the established result.
+#
 # Environment contract: forwarded to the flows as `-e` variables are (1)
 # every key declared in the `maestro_env` input, (2) every key declared in
 # the MAESTRO_SECRET_ENV secret (same KEY=VALUE format, for sensitive values
@@ -1978,6 +1984,33 @@ jobs:
     # suite must never do quietly.
     if: ${{ !cancelled() && needs.preflight.outputs.run_android == 'true' && contains(fromJSON('["success", "skipped"]'), needs.pre_suite.result) && contains(fromJSON('["success", "skipped"]'), needs.inter_leg_prepare.result) }}
     steps:
+      - name: ⏱️ Read the retry deadline
+        if: ${{ inputs.android_flow_retry_tag != '' && inputs.android_flow_retry_attempts > 0 }}
+        continue-on-error: true
+        timeout-minutes: 1
+        uses: actions/github-script@v8
+        env:
+          SUITE_TIMEOUT_MINUTES: ${{ inputs.suite_timeout_minutes }}
+        with:
+          script: |
+            core.exportVariable('LISA_MAESTRO_SUITE_DEADLINE', '');
+            try {
+              const jobs = await github.paginate('GET /repos/{owner}/{repo}/actions/runs/{run_id}/attempts/{attempt_number}/jobs', {
+                ...context.repo, run_id: context.runId,
+                attempt_number: Number(process.env.GITHUB_RUN_ATTEMPT || '1'), per_page: 100
+              });
+              const current = jobs.filter(job => job.status === 'in_progress' &&
+                process.env.RUNNER_NAME && job.runner_name === process.env.RUNNER_NAME);
+              const started = current.length === 1 ? Date.parse(current[0].started_at) : NaN;
+              const minutes = Number(process.env.SUITE_TIMEOUT_MINUTES);
+              if (!Number.isFinite(started) || !Number.isFinite(minutes) || minutes <= 0) {
+                throw new Error('Job timing unavailable');
+              }
+              core.exportVariable('LISA_MAESTRO_SUITE_DEADLINE', String(Math.floor(started / 1000 + minutes * 60)));
+            } catch {
+              core.warning('Job timing unavailable; isolated retries will be declined and original failures retained.');
+            }
+
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
         with:
@@ -2223,6 +2256,7 @@ jobs:
           EXECUTED=0
           FAILED_COUNT=0
           SKIPPED_COUNT=0
+          TIME_DECLINED=0
           RETRIED=0
           RECOVERED=0
           UNRECOVERED=0
@@ -2356,6 +2390,7 @@ jobs:
               echo "recovered=$RECOVERED"
               echo "unrecovered=$UNRECOVERED"
               echo "not_eligible=$SKIPPED_COUNT"
+              echo "time_declined=$TIME_DECLINED"
               echo "retry_rate_percent=$RATE"
               echo "rate_breach=$BREACH"
               LC_ALL=C sort "$ROWS"
@@ -2375,10 +2410,65 @@ jobs:
             fi
           }
 
+          # Use the job start (including setup), not the suite start. Reserve a
+          # minute for reporting plus the configured/default Maestro driver startup.
+          # Missing timing declines optional work; it never erases the original failure.
+          retry_fits_budget() {
+            python3 - maestro-android-report.xml "$1" "${LISA_MAESTRO_SUITE_DEADLINE:-}" "$(date +%s)" "${MAESTRO_DRIVER_STARTUP_TIMEOUT:-120000}" <<'RETRY_TIME'
+          import math, os, sys, xml.etree.ElementTree as ET
+          try:
+              report, flow, deadline, now, startup = sys.argv[1:]
+              def key(value):
+                  return os.path.splitext(os.path.basename(value))[0]
+              cases = list(ET.parse(report).getroot().iter('testcase'))
+              matches = [case for case in cases if case.get('file') and
+                         os.path.abspath(case.get('file')) == os.path.abspath(flow)]
+              if not matches:
+                  matches = [case for case in cases if
+                             key(case.get('file') or case.get('name', '')) == key(flow)]
+                  if len(matches) != 1:
+                      raise ValueError('Ambiguous duration')
+              times = [float(case.get('time', 'nan')) for case in matches]
+              startup = float(startup) / 1000
+              if not times or any(not math.isfinite(t) or t < 0 for t in times) or not math.isfinite(startup) or startup < 0:
+                  raise ValueError('Missing duration')
+              required = math.ceil(max(times) + startup) + 60
+              remaining = int(deadline) - int(now)
+          except (ValueError, OSError, ET.ParseError):
+              print('::warning title=Maestro retry time budget::Timing or flow duration unavailable; retaining the original failure.')
+              sys.exit(1)
+          if remaining < required:
+              print(f'::warning title=Maestro retry time budget::{max(0, remaining)}s remain; this retry needs {required}s including startup and reporting. Retaining the original failure.')
+              sys.exit(1)
+          RETRY_TIME
+          }
+
+          publish_original_results() {
+            python3 - maestro-android-report.xml <<'RETRY_RESULTS' | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
+          import sys, xml.etree.ElementTree as ET
+          print('### First-attempt flow results (before isolated retries)')
+          try:
+              for case in ET.parse(sys.argv[1]).getroot().iter('testcase'):
+                  failed = case.find('failure') is not None or case.find('error') is not None or case.get('status') in ('ERROR', 'FAILURE')
+                  skipped = case.find('skipped') is not None or case.get('status') == 'SKIPPED'
+                  name = (case.get('file') or case.get('name') or '(unnamed flow)').replace('\n', '\\n')
+                  print(('FAIL' if failed else 'SKIP' if skipped else 'PASS') + ' ' + name + '  ')
+          except (OSError, ET.ParseError):
+              print('Report unreadable; the original suite failure stands.')
+          RETRY_RESULTS
+          }
+
+          checkpoint_retry() {
+            write_ledger
+            printf 'active_retry=%s\nactive_attempt=%s\n' "$1" "$2" | tee -a "$LEDGER"
+            printf '\nRetry in progress: %s (attempt %s). If this step is cancelled without a later result, this was the active retry.\n' "$1" "$2" | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
+          }
+
           retry_failed_flows() {
             if [ -f maestro-android-report.xml ]; then
               EXECUTED=$(count_testcases maestro-android-report.xml)
               FAILED_LIST=$(failed_flow_files maestro-android-report.xml)
+              publish_original_results
             else
               FAILED_LIST=""
             fi
@@ -2448,11 +2538,19 @@ jobs:
               attempt=0
               outcome=unrecovered
               while [ "$attempt" -lt "$FLOW_RETRY_ATTEMPTS" ]; do
+                if ! retry_fits_budget "$flow"; then
+                  TIME_DECLINED=$(( TIME_DECLINED + 1 ))
+                  outcome=time-budget
+                  printf 'Retry declined: %s. Original failure retained.\n' "$flow" | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
+                  break
+                fi
                 attempt=$(( attempt + 1 ))
+                checkpoint_retry "$flow" "$(( attempt + 1 ))"
                 slug=$(printf '%s' "$flow" | tr -c 'A-Za-z0-9._-' '-')
                 retry_report="maestro-android-retry-${slug}-${attempt}.xml"
                 echo "::warning title=Maestro flow retried (android)::$flow failed and is being re-run on its own (attempt $(( attempt + 1 ))). A retry is a SYMPTOM. Read the maestro-android-retries artifact before treating this run as a clean green."
                 if run_target "$retry_report" "$flow" 2>&1 | tee "maestro-android-retry-${slug}-${attempt}.log"; then
+                  printf "Retry completed: %s (attempt %s), command returned success.\n" "$flow" "$(( attempt + 1 ))" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
                   ran=0
                   if [ -f "$retry_report" ]; then
                     ran=$(count_testcases "$retry_report")
@@ -2468,13 +2566,15 @@ jobs:
                   fi
                   outcome=recovered
                   break
+                else
+                  printf "Retry completed: %s (attempt %s), command failed.\n" "$flow" "$(( attempt + 1 ))" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
                 fi
               done
-              RETRIED=$(( RETRIED + 1 ))
+              if [ "$attempt" -gt 0 ]; then RETRIED=$(( RETRIED + 1 )); fi
               record_row "$flow" "$(( attempt + 1 ))" "$outcome"
               if [ "$outcome" = "recovered" ]; then
                 RECOVERED=$(( RECOVERED + 1 ))
-              else
+              elif [ "$attempt" -gt 0 ]; then
                 UNRECOVERED=$(( UNRECOVERED + 1 ))
               fi
             done <<< "$ELIGIBLE_LIST"
@@ -3348,6 +3448,7 @@ jobs:
           RECOVERED=$(key recovered)
           UNRECOVERED=$(key unrecovered)
           NOT_ELIGIBLE=$(key not_eligible)
+          TIME_DECLINED=$(key time_declined)
           RATE=$(key retry_rate_percent)
           THRESHOLD=$(key retry_rate_threshold_percent)
           BREACH=$(key rate_breach)
@@ -3372,6 +3473,10 @@ jobs:
           fi
           if [[ "$BREACH" == "true" ]]; then
             echo "::error title=Android retry budget exceeded::$FAILED of $EXECUTED flow(s) failed their first attempt (${RATE}%), above the ${THRESHOLD}% budget. Nothing was retried and this arm is FAILED. Retry is not the lever here — find out why the arm is losing flows."
+            exit 1
+          fi
+          if [[ "${TIME_DECLINED:-0}" -gt 0 ]]; then
+            echo "::error title=Maestro retry time budget::$TIME_DECLINED flow(s) had a retry declined because job time was insufficient or unknown. Their original failures stand."
             exit 1
           fi
           if [[ "${UNRECOVERED:-0}" -gt 0 ]]; then
@@ -3522,6 +3627,33 @@ jobs:
     # `!cancelled()` alone would not fail closed on a failed pre-suite.
     if: ${{ !cancelled() && needs.preflight.outputs.run_ios == 'true' && contains(fromJSON('["success", "skipped"]'), needs.pre_suite.result) }}
     steps:
+      - name: ⏱️ Read the retry deadline
+        if: ${{ inputs.ios_flow_retry_tag != '' && inputs.ios_flow_retry_attempts > 0 }}
+        continue-on-error: true
+        timeout-minutes: 1
+        uses: actions/github-script@v8
+        env:
+          SUITE_TIMEOUT_MINUTES: ${{ inputs.suite_timeout_minutes }}
+        with:
+          script: |
+            core.exportVariable('LISA_MAESTRO_SUITE_DEADLINE', '');
+            try {
+              const jobs = await github.paginate('GET /repos/{owner}/{repo}/actions/runs/{run_id}/attempts/{attempt_number}/jobs', {
+                ...context.repo, run_id: context.runId,
+                attempt_number: Number(process.env.GITHUB_RUN_ATTEMPT || '1'), per_page: 100
+              });
+              const current = jobs.filter(job => job.status === 'in_progress' &&
+                process.env.RUNNER_NAME && job.runner_name === process.env.RUNNER_NAME);
+              const started = current.length === 1 ? Date.parse(current[0].started_at) : NaN;
+              const minutes = Number(process.env.SUITE_TIMEOUT_MINUTES);
+              if (!Number.isFinite(started) || !Number.isFinite(minutes) || minutes <= 0) {
+                throw new Error('Job timing unavailable');
+              }
+              core.exportVariable('LISA_MAESTRO_SUITE_DEADLINE', String(Math.floor(started / 1000 + minutes * 60)));
+            } catch {
+              core.warning('Job timing unavailable; isolated retries will be declined and original failures retained.');
+            }
+
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
         with:
@@ -3771,6 +3903,7 @@ jobs:
           EXECUTED=0
           FAILED_COUNT=0
           SKIPPED_COUNT=0
+          TIME_DECLINED=0
           RETRIED=0
           RECOVERED=0
           UNRECOVERED=0
@@ -3904,6 +4037,7 @@ jobs:
               echo "recovered=$RECOVERED"
               echo "unrecovered=$UNRECOVERED"
               echo "not_eligible=$SKIPPED_COUNT"
+              echo "time_declined=$TIME_DECLINED"
               echo "retry_rate_percent=$RATE"
               echo "rate_breach=$BREACH"
               LC_ALL=C sort "$ROWS"
@@ -3923,10 +4057,65 @@ jobs:
             fi
           }
 
+          # Use the job start (including setup), not the suite start. Reserve a
+          # minute for reporting plus the configured/default Maestro driver startup.
+          # Missing timing declines optional work; it never erases the original failure.
+          retry_fits_budget() {
+            python3 - maestro-ios-report.xml "$1" "${LISA_MAESTRO_SUITE_DEADLINE:-}" "$(date +%s)" "${MAESTRO_DRIVER_STARTUP_TIMEOUT:-120000}" <<'RETRY_TIME'
+          import math, os, sys, xml.etree.ElementTree as ET
+          try:
+              report, flow, deadline, now, startup = sys.argv[1:]
+              def key(value):
+                  return os.path.splitext(os.path.basename(value))[0]
+              cases = list(ET.parse(report).getroot().iter('testcase'))
+              matches = [case for case in cases if case.get('file') and
+                         os.path.abspath(case.get('file')) == os.path.abspath(flow)]
+              if not matches:
+                  matches = [case for case in cases if
+                             key(case.get('file') or case.get('name', '')) == key(flow)]
+                  if len(matches) != 1:
+                      raise ValueError('Ambiguous duration')
+              times = [float(case.get('time', 'nan')) for case in matches]
+              startup = float(startup) / 1000
+              if not times or any(not math.isfinite(t) or t < 0 for t in times) or not math.isfinite(startup) or startup < 0:
+                  raise ValueError('Missing duration')
+              required = math.ceil(max(times) + startup) + 60
+              remaining = int(deadline) - int(now)
+          except (ValueError, OSError, ET.ParseError):
+              print('::warning title=Maestro retry time budget::Timing or flow duration unavailable; retaining the original failure.')
+              sys.exit(1)
+          if remaining < required:
+              print(f'::warning title=Maestro retry time budget::{max(0, remaining)}s remain; this retry needs {required}s including startup and reporting. Retaining the original failure.')
+              sys.exit(1)
+          RETRY_TIME
+          }
+
+          publish_original_results() {
+            python3 - maestro-ios-report.xml <<'RETRY_RESULTS' | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
+          import sys, xml.etree.ElementTree as ET
+          print('### First-attempt flow results (before isolated retries)')
+          try:
+              for case in ET.parse(sys.argv[1]).getroot().iter('testcase'):
+                  failed = case.find('failure') is not None or case.find('error') is not None or case.get('status') in ('ERROR', 'FAILURE')
+                  skipped = case.find('skipped') is not None or case.get('status') == 'SKIPPED'
+                  name = (case.get('file') or case.get('name') or '(unnamed flow)').replace('\n', '\\n')
+                  print(('FAIL' if failed else 'SKIP' if skipped else 'PASS') + ' ' + name + '  ')
+          except (OSError, ET.ParseError):
+              print('Report unreadable; the original suite failure stands.')
+          RETRY_RESULTS
+          }
+
+          checkpoint_retry() {
+            write_ledger
+            printf 'active_retry=%s\nactive_attempt=%s\n' "$1" "$2" | tee -a "$LEDGER"
+            printf '\nRetry in progress: %s (attempt %s). If this step is cancelled without a later result, this was the active retry.\n' "$1" "$2" | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
+          }
+
           retry_failed_flows() {
             if [ -f maestro-ios-report.xml ]; then
               EXECUTED=$(count_testcases maestro-ios-report.xml)
               FAILED_LIST=$(failed_flow_files maestro-ios-report.xml)
+              publish_original_results
             else
               FAILED_LIST=""
             fi
@@ -3996,11 +4185,19 @@ jobs:
               attempt=0
               outcome=unrecovered
               while [ "$attempt" -lt "$FLOW_RETRY_ATTEMPTS" ]; do
+                if ! retry_fits_budget "$flow"; then
+                  TIME_DECLINED=$(( TIME_DECLINED + 1 ))
+                  outcome=time-budget
+                  printf 'Retry declined: %s. Original failure retained.\n' "$flow" | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
+                  break
+                fi
                 attempt=$(( attempt + 1 ))
+                checkpoint_retry "$flow" "$(( attempt + 1 ))"
                 slug=$(printf '%s' "$flow" | tr -c 'A-Za-z0-9._-' '-')
                 retry_report="maestro-ios-retry-${slug}-${attempt}.xml"
                 echo "::warning title=Maestro flow retried (ios)::$flow failed and is being re-run on its own (attempt $(( attempt + 1 ))). A retry is a SYMPTOM. Read the maestro-ios-retries artifact before treating this run as a clean green."
                 if run_target "$retry_report" "$flow" 2>&1 | tee "maestro-ios-retry-${slug}-${attempt}.log"; then
+                  printf "Retry completed: %s (attempt %s), command returned success.\n" "$flow" "$(( attempt + 1 ))" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
                   ran=0
                   if [ -f "$retry_report" ]; then
                     ran=$(count_testcases "$retry_report")
@@ -4016,13 +4213,15 @@ jobs:
                   fi
                   outcome=recovered
                   break
+                else
+                  printf "Retry completed: %s (attempt %s), command failed.\n" "$flow" "$(( attempt + 1 ))" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
                 fi
               done
-              RETRIED=$(( RETRIED + 1 ))
+              if [ "$attempt" -gt 0 ]; then RETRIED=$(( RETRIED + 1 )); fi
               record_row "$flow" "$(( attempt + 1 ))" "$outcome"
               if [ "$outcome" = "recovered" ]; then
                 RECOVERED=$(( RECOVERED + 1 ))
-              else
+              elif [ "$attempt" -gt 0 ]; then
                 UNRECOVERED=$(( UNRECOVERED + 1 ))
               fi
             done <<< "$ELIGIBLE_LIST"
@@ -4250,6 +4449,7 @@ jobs:
           RECOVERED=$(key recovered)
           UNRECOVERED=$(key unrecovered)
           NOT_ELIGIBLE=$(key not_eligible)
+          TIME_DECLINED=$(key time_declined)
           RATE=$(key retry_rate_percent)
           THRESHOLD=$(key retry_rate_threshold_percent)
           BREACH=$(key rate_breach)
@@ -4274,6 +4474,10 @@ jobs:
           fi
           if [[ "$BREACH" == "true" ]]; then
             echo "::error title=iOS retry budget exceeded::$FAILED of $EXECUTED flow(s) failed their first attempt (${RATE}%), above the ${THRESHOLD}% budget. Nothing was retried and this arm is FAILED. Retry is not the lever here — find out why the arm is losing flows."
+            exit 1
+          fi
+          if [[ "${TIME_DECLINED:-0}" -gt 0 ]]; then
+            echo "::error title=Maestro retry time budget::$TIME_DECLINED flow(s) had a retry declined because job time was insufficient or unknown. Their original failures stand."
             exit 1
           fi
           if [[ "${UNRECOVERED:-0}" -gt 0 ]]; then

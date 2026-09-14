@@ -20,7 +20,11 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
-import { LEDGER_FILE, seedFixture } from "./maestro-android-retry-fixtures";
+import {
+  LEDGER_FILE,
+  seedFixture,
+  seedClock,
+} from "./maestro-android-retry-fixtures";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REUSABLE_YML = path.resolve(
@@ -65,6 +69,7 @@ export interface StepResult {
   attempts: number;
   output: string;
   ledger: string | null;
+  summary: string;
 }
 
 /** Outcome of executing the retry-budget gate against a ledger. */
@@ -79,10 +84,16 @@ export interface GateResult {
 export type RetryMode =
   | "retry-passes"
   | "retry-fails"
-  | "retry-executes-nothing";
+  | "retry-executes-nothing"
+  | "retry-kills-driver";
 
 /** Knobs for one suite-driver execution. */
 export interface RunOptions {
+  report?: string;
+  platform?: "android" | "ios";
+  deadlineSeconds?: number | null;
+  missingDuration?: boolean;
+  clockAdvanceSeconds?: number;
   mode?: RetryMode;
   /** Flow basenames the fixture report marks as failed. */
   failing?: readonly string[];
@@ -231,6 +242,64 @@ const runCapturing = (
 };
 
 /**
+ * Prepare the real platform driver and its isolated reporting environment.
+ * @param workflow - Parsed reusable workflow.
+ * @param dir - Owned fixture directory.
+ * @param seed - Original JUnit report fixture.
+ * @param options - Timing and platform controls.
+ * @returns Driver invocation and environment.
+ */
+async function prepareDriver(
+  workflow: ReusableWorkflow,
+  dir: string,
+  seed: string,
+  options: RunOptions
+) {
+  const {
+    platform = "android",
+    missingDuration = false,
+    clockAdvanceSeconds = 0,
+  } = options;
+  const summary = path.join(dir, "summary");
+  await fs.writeFile(summary, "");
+  if (options.report) await fs.writeFile(seed, options.report);
+  if (missingDuration) {
+    await fs.writeFile(
+      seed,
+      (await fs.readFile(seed, "utf-8")).replaceAll(' time="20"', "")
+    );
+  }
+  const fixtureEnv = await seedClock(dir, summary, clockAdvanceSeconds);
+  // The driver-writing step, executed verbatim, in the working directory the
+  // emulator action then runs from.
+  if (platform === "android")
+    boundedExecFileSync({
+      label: "the write-the-Android-suite-driver step",
+      command: BASH,
+      args: [
+        "-eo",
+        "pipefail",
+        "-c",
+        androidRun(workflow, "Write the Android suite driver"),
+      ],
+      cwd: dir,
+      env: fixtureEnv,
+    });
+  const invocation =
+    platform === "android" ? driverInvocation(workflow) : "bash ios-driver.sh";
+  if (platform === "ios") {
+    const step = workflow.jobs.ios.steps?.find(
+      candidate => candidate.env?.FLOW_RETRY_TAG
+    );
+    if (!step?.run) throw new Error("Missing iOS suite step");
+    const script = path.join(dir, "ios-driver.sh");
+    await fs.writeFile(script, `set -eo pipefail\n${step.run}`);
+  }
+
+  return { summary, fixtureEnv, invocation };
+}
+
+/**
  * Runs the real driver against a fixture project, through the real
  * emulator-script line, under `sh -c` as the action does.
  * @param workflow - The parsed workflow
@@ -243,6 +312,8 @@ export const runSuiteDriver = async (
 ): Promise<StepResult> => {
   const {
     mode = "retry-passes",
+    platform = "android",
+    deadlineSeconds = 3600,
     failing = ["flow-07"],
     tagged = failing,
     tag = "retryable",
@@ -262,28 +333,24 @@ export const runSuiteDriver = async (
       repeatFailing,
     });
 
-    // The driver-writing step, executed verbatim, in the working directory the
-    // emulator action then runs from.
-    boundedExecFileSync({
-      label: "the write-the-Android-suite-driver step",
-      command: BASH,
-      args: [
-        "-eo",
-        "pipefail",
-        "-c",
-        androidRun(workflow, "Write the Android suite driver"),
-      ],
-      cwd: dir,
-      env: process.env,
-    });
+    const { summary, fixtureEnv, invocation } = await prepareDriver(
+      workflow,
+      dir,
+      seed,
+      options
+    );
 
     const { status, output } = runCapturing(
       SH,
-      ["-c", driverInvocation(workflow)],
+      ["-c", `export STUB_DRIVER_PID=$$; exec ${invocation}`],
       {
         cwd: dir,
         env: {
-          ...process.env,
+          ...fixtureEnv,
+          LISA_MAESTRO_SUITE_DEADLINE:
+            deadlineSeconds === null
+              ? ""
+              : String(Math.floor(Date.now() / 1000) + deadlineSeconds),
           FLOW_RUNNER: stub,
           FLOWS_DIR: ".maestro/flows",
           MAESTRO_E2E_ARGS: "",
@@ -297,9 +364,10 @@ export const runSuiteDriver = async (
         },
       }
     );
-    const ledgerPath = path.join(dir, LEDGER_FILE);
+    const ledgerPath = path.join(dir, LEDGER_FILE.replace("android", platform));
     return {
       status,
+      summary: await fs.readFile(summary, "utf-8"),
       attempts: Number((await fs.readFile(counter, "utf-8")).trim()),
       output,
       ledger: (await fs.pathExists(ledgerPath))
