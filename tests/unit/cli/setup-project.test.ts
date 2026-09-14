@@ -25,7 +25,9 @@ function createDeps(authenticated: boolean): {
   runApply: ReturnType<typeof vi.fn>;
   runCommand: ReturnType<typeof vi.fn>;
 } {
-  const runApply = vi.fn(async () => undefined);
+  const runApply = vi.fn(async (destination: string | undefined) => {
+    if (destination) await mkdir(destination, { recursive: true });
+  });
   const runCommand = vi.fn(async (command: string, args: readonly string[]) => {
     if (
       command === "gh" &&
@@ -36,7 +38,21 @@ function createDeps(authenticated: boolean): {
     }
   });
 
-  return { deps: { runApply, runCommand }, runApply, runCommand };
+  const captureCommand = vi.fn(
+    async (command: string, args: readonly string[]) => {
+      if (command === "gh")
+        return args.includes(".default_branch")
+          ? "main"
+          : `${"a".repeat(40)}\t${"b".repeat(40)}`;
+      if (args.includes("HEAD^{tree}")) return "b".repeat(40);
+      return args[0] === "symbolic-ref" ? "main" : "a".repeat(40);
+    }
+  );
+  return {
+    deps: { runApply, runCommand, captureCommand },
+    runApply,
+    runCommand,
+  };
 }
 
 describe("runSetupProject", () => {

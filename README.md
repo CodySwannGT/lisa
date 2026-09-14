@@ -235,6 +235,19 @@ servers, or configuration. Other harnesses retain their existing delivery
 behavior. For a new project, run the CLI ephemerally with
 `bunx @codyswann/lisa setup-project ...`.
 
+Successful starter creation records the repository, tracked branch and copied
+revision in `starter.templates`. Git clones record their own head before setup
+replaces the clone history; GitHub template creation checks the copied tree
+against the captured starter revision before recording it.
+
+For an existing project, run `lisa starter adopt owner/repository --path .`
+(optionally `--ref branch-or-tag`). Adoption records the chosen current revision
+as the baseline for future changes; it does not reconcile existing project files.
+Repeating adoption for an already tracked repository leaves its baseline intact,
+even if the remote has advanced. The command does not write to the starter or
+publish project changes. If setup's overlay application fails, finish repairing
+that project before deliberately adopting its baseline.
+
 For Codex, apply emits a repository marketplace containing only the base Lisa
 plugin plus detected stacks and explicitly configured features. When Codex has
 those plugins installed, enabled, and trusted, it loads their native skills,

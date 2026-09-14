@@ -135,6 +135,7 @@ export function validateStarterConfig(
   if (value === undefined) return undefined;
   const starter = requireObject(value, "starter");
   return {
+    ...starter,
     ...(starter.templates === undefined
       ? {}
       : { templates: validateStarterTemplates(starter.templates) }),

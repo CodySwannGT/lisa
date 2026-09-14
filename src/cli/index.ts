@@ -24,6 +24,7 @@ import {
 import { runSetupWiki } from "./setup-wiki.js";
 import { addSharedOptions, type CLIOptions } from "./shared-options.js";
 import { SETUP_TYPES } from "./starters.js";
+import { addStarterCommand } from "./starter-cmd.js";
 import {
   addStandardsProofCommand,
   runStandardsProofCli,
@@ -373,6 +374,7 @@ export function createProgram(
   });
 
   addMaintenanceCommands(program, deps);
+  addStarterCommand(program);
 
   return program;
 }
