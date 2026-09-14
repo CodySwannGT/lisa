@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.58.0](https://github.com/CodySwannGT/lisa/compare/v4.57.6...v4.58.0) (2026-09-14)
+
+
+### Features
+
+* **doctor:** report a workflow whose ownership banner is stale ([7778066](https://github.com/CodySwannGT/lisa/commit/777806631c6da6ba96a47410ca1402a097c6379a)), closes [CodySwannGT/lisa#3582](https://github.com/CodySwannGT/lisa/issues/3582)
+
+
+### Bug Fixes
+
+* **doctor:** resolve workflow ownership before advising edits ([5018b60](https://github.com/CodySwannGT/lisa/commit/5018b6076f570bb855f442199bf0b05835230538)), closes [CodySwannGT/lisa#4113](https://github.com/CodySwannGT/lisa/issues/4113) [CodySwannGT/lisa#4113](https://github.com/CodySwannGT/lisa/issues/4113)
+
+
+### Documentation
+
+* **doctor:** state the banner check's one direction instead of claiming two ([84e41ca](https://github.com/CodySwannGT/lisa/commit/84e41cafbf82f274195f64d4f11f543e7d58d6be)), closes [CodySwannGT/lisa#3582](https://github.com/CodySwannGT/lisa/issues/3582)
+
 ### [4.57.6](https://github.com/CodySwannGT/lisa/compare/v4.57.5...v4.57.6) (2026-09-14)
 
 
