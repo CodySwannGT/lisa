@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.59.2](https://github.com/CodySwannGT/lisa/compare/v4.59.1...v4.59.2) (2026-09-14)
+
+
+### Bug Fixes
+
+* **nightly-e2e:** read whether a killed run hit its time limit ([1a8d7f7](https://github.com/CodySwannGT/lisa/commit/1a8d7f7728e3f7580eff10e7ad4e443ff6075163)), closes [CodySwannGT/lisa#3492](https://github.com/CodySwannGT/lisa/issues/3492)
+* preserve unknown nightly timeout causes on partial reads ([688040d](https://github.com/CodySwannGT/lisa/commit/688040de9bffe09c5c11caffca2e4f739736573a)), closes [CodySwannGT/lisa#3492](https://github.com/CodySwannGT/lisa/issues/3492) [CodySwannGT/lisa#3492](https://github.com/CodySwannGT/lisa/issues/3492)
+
 ### [4.59.1](https://github.com/CodySwannGT/lisa/compare/v4.59.0...v4.59.1) (2026-09-14)
 
 
