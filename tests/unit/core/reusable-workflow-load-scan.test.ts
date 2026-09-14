@@ -106,8 +106,33 @@ describe("finding load failures across a covered window", () => {
     // Three pages read, and it stopped once it was past the window rather than
     // reading all five it was allowed.
     expect(seen).toEqual([1, 2, 3]);
-    expect(result.loadFailures.map(f => f.id)).toEqual([1, 3]);
+    expect(result.loadFailures.map(f => f.id)).toEqual([1]);
     expect(result.covered).toBe(true);
+  });
+
+  it("excludes boundary and older failures from a mixed final page", async () => {
+    const { fetchPage, seen } = pager([
+      {
+        runs: [
+          ORDINARY,
+          { ...LOAD_FAILURE, id: 3, createdAt: WINDOW_START },
+          { ...LOAD_FAILURE, id: 4, createdAt: "2026-09-04T23:59:59Z" },
+        ],
+        hasMore: true,
+      },
+    ]);
+
+    const result = await scanForLoadFailures({
+      fetchPage,
+      windowStart: WINDOW_START,
+      inPopulation,
+      maxPages: 5,
+    });
+
+    expect(result.loadFailures).toEqual([]);
+    expect(result.inspected).toBe(3);
+    expect(result.covered).toBe(true);
+    expect(seen).toEqual([1]);
   });
 });
 

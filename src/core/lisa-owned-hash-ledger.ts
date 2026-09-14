@@ -500,6 +500,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lib/reusable-workflow-load-scan.mjs": Object.freeze([
     "0bf29533a5879e01385777c3a71d9c83f6694cd1162a7db234db47546065e7b0",
+    "6203064d0403906016f6700b092551ff561b811fb9c02cbbdec59b85b0af81b0",
     "66fb27cc1de6baf48acf908715624c04b7738f831944a6c1c9daff50383026be",
   ]),
   "scripts/lib/worktree-dependencies.d.mts": Object.freeze([
@@ -1845,6 +1846,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lib/reusable-workflow-load-scan.mjs": Object.freeze([
     "0bf29533a5879e01385777c3a71d9c83f6694cd1162a7db234db47546065e7b0",
+    "6203064d0403906016f6700b092551ff561b811fb9c02cbbdec59b85b0af81b0",
     "66fb27cc1de6baf48acf908715624c04b7738f831944a6c1c9daff50383026be",
   ]),
   "scripts/lib/worktree-dependencies.d.mts": Object.freeze([

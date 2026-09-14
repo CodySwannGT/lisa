@@ -45,9 +45,9 @@ function findingFor(run, inPopulation) {
  * @returns The scan state after absorbing this page
  */
 function absorb(state, page, request) {
-  const findings = page.runs.map(run =>
-    findingFor(run, request.inPopulation(run.path))
-  );
+  const findings = page.runs
+    .filter(run => !reachedWindow(run, request.windowStart))
+    .map(run => findingFor(run, request.inPopulation(run.path)));
   const oldest = page.runs.at(-1)?.createdAt ?? state.oldestSeen;
   const reached = page.runs.some(run =>
     reachedWindow(run, request.windowStart)
