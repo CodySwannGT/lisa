@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.60.0](https://github.com/CodySwannGT/lisa/compare/v4.59.5...v4.60.0) (2026-09-14)
+
+
+### Features
+
+* **starter:** capture creation provenance and adopt existing projects ([0e593b2](https://github.com/CodySwannGT/lisa/commit/0e593b262087e136f0680ec60bc8cec1338c82ec)), closes [CodySwannGT/lisa#1521](https://github.com/CodySwannGT/lisa/issues/1521) [CodySwannGT/lisa#1521](https://github.com/CodySwannGT/lisa/issues/1521)
+
 ### [4.59.5](https://github.com/CodySwannGT/lisa/compare/v4.59.4...v4.59.5) (2026-09-14)
 
 
