@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.60.4](https://github.com/CodySwannGT/lisa/compare/v4.60.3...v4.60.4) (2026-09-14)
+
+
+### Bug Fixes
+
+* **hooks:** distinguish literal display text from commands ([4792841](https://github.com/CodySwannGT/lisa/commit/479284196a1b7e33b3b37e05278ec43077fc8886)), closes [CodySwannGT/lisa#4106](https://github.com/CodySwannGT/lisa/issues/4106) [CodySwannGT/lisa#4106](https://github.com/CodySwannGT/lisa/issues/4106)
+* **hooks:** retain computed output targets in guard scans ([f40a6c3](https://github.com/CodySwannGT/lisa/commit/f40a6c34e036116fb8b2315b596ed0f100769fd5)), closes [CodySwannGT/lisa#4106](https://github.com/CodySwannGT/lisa/issues/4106) [CodySwannGT/lisa#4106](https://github.com/CodySwannGT/lisa/issues/4106)
+
 ### [4.60.3](https://github.com/CodySwannGT/lisa/compare/v4.60.2...v4.60.3) (2026-09-14)
 
 
