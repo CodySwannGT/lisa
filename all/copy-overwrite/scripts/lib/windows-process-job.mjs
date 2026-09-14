@@ -92,7 +92,22 @@ export function startWindowsProcessJob(command) {
       );
     } finally {
       clearTimeout(timer);
+      if (!closed) {
+        // Give a killed helper time to close before a CLI rejection exits Node.
+        // Still bound failure when the OS cannot stop the helper promptly.
+        await Promise.race([
+          completion,
+          new Promise(resolve => {
+            timer = setTimeout(resolve, 1000);
+          }),
+        ]);
+        clearTimeout(timer);
+      }
       if (closed) rmSync(directory, { recursive: true, force: true });
+      else
+        child.once("close", () =>
+          rmSync(directory, { recursive: true, force: true })
+        );
     }
   };
   return { child, reap };

@@ -88,6 +88,8 @@ public static class LisaWindowsProcessJob
     static extern IntPtr GetCurrentProcess();
     [DllImport("kernel32.dll", SetLastError = true)]
     static extern IntPtr GetStdHandle(int kind);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    static extern IntPtr CreateFileW(string name, uint access, uint share, IntPtr attributes, uint creation, uint flags, IntPtr template);
     [DllImport("kernel32.dll", SetLastError = true)]
     static extern bool DuplicateHandle(IntPtr sourceProcess, IntPtr source, IntPtr targetProcess, out IntPtr target, uint access, bool inherit, uint options);
 
@@ -98,9 +100,25 @@ public static class LisaWindowsProcessJob
 
     static IntPtr StandardHandle(int kind)
     {
-        IntPtr result;
-        Check(DuplicateHandle(GetCurrentProcess(), GetStdHandle(kind), GetCurrentProcess(), out result, 0, true, 2), "Duplicate gate standard handle");
-        return result;
+        IntPtr source = GetStdHandle(kind);
+        bool absent = source == IntPtr.Zero || source == new IntPtr(-1);
+        if (absent)
+        {
+            // Services may have no standard handles. Supply EOF/discard devices
+            // while preserving any real redirected handles supplied by callers.
+            source = CreateFileW("NUL", kind == -10 ? 0x80000000u : 0x40000000u, 3, IntPtr.Zero, 3, 0, IntPtr.Zero);
+            Check(source != new IntPtr(-1), "Open absent gate standard handle");
+        }
+        try
+        {
+            IntPtr result;
+            Check(DuplicateHandle(GetCurrentProcess(), source, GetCurrentProcess(), out result, 0, true, 2), "Duplicate gate standard handle");
+            return result;
+        }
+        finally
+        {
+            if (absent) CloseHandle(source);
+        }
     }
 
     static void TerminateAndWait(IntPtr job)

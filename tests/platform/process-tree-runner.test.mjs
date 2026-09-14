@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { env } from "node:process";
 import { test } from "node:test";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   fixture,
   fixtureProcess,
@@ -71,6 +71,53 @@ for (const code of [0, 17, 124, 128, 143, 255]) {
       assert.ifError(result.error);
       assert.equal(result.status, code, result.stderr);
       assert.equal(result.signal, null);
+    }
+  );
+}
+
+for (const absent of [0, -1]) {
+  test(
+    `Windows native job accepts absent standard handles (${absent})`,
+    windowsOnly,
+    t => {
+      const root = mkdtempSync(path.join(tmpdir(), "lisa-windows-handles-"));
+      t.after(() => rmSync(root, { recursive: true, force: true }));
+      const result = spawnSync(
+        path.join(
+          windowsRoot,
+          "System32",
+          "WindowsPowerShell",
+          "v1.0",
+          "powershell.exe"
+        ),
+        [
+          "-NoLogo",
+          "-NoProfile",
+          "-NonInteractive",
+          "-File",
+          fileURLToPath(
+            new URL("./windows-missing-handles.ps1", import.meta.url)
+          ),
+          "-NativeSource",
+          path.join(path.dirname(supervisor), "windows-process-job.cs"),
+          "-ControlDirectory",
+          root,
+          "-AbsentHandle",
+          String(absent),
+        ],
+        {
+          encoding: "utf8",
+          timeout: 30000,
+          env: { ...env, TEMP: root, TMP: root },
+        }
+      );
+      assert.ifError(result.error);
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(readFileSync(path.join(root, "result.txt"), "utf8"), "17");
+      assert.equal(
+        readFileSync(path.join(root, "launch.txt"), "utf8").trim(),
+        "launched"
+      );
     }
   );
 }

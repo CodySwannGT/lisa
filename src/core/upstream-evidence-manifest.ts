@@ -47,9 +47,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs":
       "6203064d0403906016f6700b092551ff561b811fb9c02cbbdec59b85b0af81b0",
     "all/copy-overwrite/scripts/lib/windows-process-job.cs":
-      "8de9cd7b38c7afd0b837de9baa4cb8d3ddceeb0a1b434862e2ad3549044a6790",
+      "bf32dc865bd16c03181df1564e2576ce308e952d21bc7a71571b2138532763f9",
     "all/copy-overwrite/scripts/lib/windows-process-job.mjs":
-      "109224c7c0d98447117f78a794a70df07925370a1ab01945bf0369f5bfe498b8",
+      "d7362a646468f87805b6d9e87fe61f2a2a97b4d481b31627a634edb66229f19d",
     "all/copy-overwrite/scripts/lib/windows-process-job.ps1":
       "d73b15152703d7f195d1e06f7d7cee5437373237fcd74fe68afbd79fccebc1ba",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.d.mts":
@@ -9652,6 +9652,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/zero-collection-gate-bite.test.ts": true,
     "tests/platform/lint-staged-preflight.test.mjs": true,
     "tests/platform/process-tree-runner.test.mjs": true,
+    "tests/platform/windows-missing-handles.ps1": true,
     "tests/platform/windows-process-fixture.mjs": true,
     "tests/support/git-executable.ts": true,
     "tests/support/prune-fixtures.ts": true,
@@ -10580,6 +10581,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/vacuous-required-checks.test.ts": true,
     "tests/unit/scripts/vendored-script-defects.test.ts": true,
     "tests/unit/scripts/verification-coverage.test.ts": true,
+    "tests/unit/scripts/windows-process-job.test.ts": true,
     "tests/unit/scripts/work-item-amended-merge-exemption.test.ts": true,
     "tests/unit/scripts/work-item-authored-trailers.test.ts": true,
     "tests/unit/scripts/work-item-back-merge-exemption.test.ts": true,
