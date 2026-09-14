@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.60.1](https://github.com/CodySwannGT/lisa/compare/v4.60.0...v4.60.1) (2026-09-14)
+
+
+### Bug Fixes
+
+* **learnings:** unify rule identities and preserve configured paths ([f274d5a](https://github.com/CodySwannGT/lisa/commit/f274d5abd9b1b27da65088bdd57473f14f7b05d6)), closes [CodySwannGT/lisa#3262](https://github.com/CodySwannGT/lisa/issues/3262) [CodySwannGT/lisa#3262](https://github.com/CodySwannGT/lisa/issues/3262)
+
 ## [4.60.0](https://github.com/CodySwannGT/lisa/compare/v4.59.5...v4.60.0) (2026-09-14)
 
 
