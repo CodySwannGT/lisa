@@ -2786,6 +2786,7 @@ jobs:
 
     outputs:
       registry_path: ${{ steps.registry.outputs.path }}
+      coverage_artifact_id: ${{ steps.coverage_artifact.outputs.artifact-id }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -3102,6 +3103,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: 🧪 Run unit tests with coverage
+        id: test_coverage
         if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured == 'false'
         run: |
           if [ "$PACKAGE_MANAGER" = "npm" ]; then
@@ -3114,6 +3116,26 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
+
+      # Both declared test commands and the built-in fallback can produce
+      # coverage. A unique name keeps repeated workflow calls from colliding.
+      - name: 📦 Name the coverage artifact
+        id: coverage_name
+        if: always() && !cancelled() && (steps.gate_run.outcome == 'success' || steps.gate_run.outcome == 'failure' || steps.test_coverage.outcome == 'success' || steps.test_coverage.outcome == 'failure')
+        run: |
+          set -euo pipefail
+          COVERAGE_ID="$(node -p 'crypto.randomUUID()')"
+          echo "name=coverage-$COVERAGE_ID" >> "$GITHUB_OUTPUT"
+
+      - name: 📤 Upload coverage for the scan job
+        id: coverage_artifact
+        if: always() && !cancelled() && steps.coverage_name.outputs.name != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.coverage_name.outputs.name }}
+          path: ${{ inputs.working_directory || '.' }}/coverage
+          if-no-files-found: ignore
+          retention-days: 1
 
       - name: ⏭️ Skip unit tests (no test:unit script)
         if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'
@@ -7190,7 +7212,7 @@ jobs:
     name: 🔍 Static Security Analysis
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [gate_plan]
+    needs: [gate_plan, test_unit]
     if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',sonarcloud,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"sonarcloud":"skip"')) }}
     steps:
       - name: 📥 Checkout repository
@@ -7198,6 +7220,16 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0 # Full depth for proper analysis
+
+      # No artifact means no download; a failed transfer of an existing artifact
+      # remains a failure. Keep this before both configured and built-in scans.
+      - name: 📥 Download coverage from the unit-test job
+        id: coverage_download
+        if: always() && !cancelled() && needs.test_unit.outputs.coverage_artifact_id != ''
+        uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ needs.test_unit.outputs.coverage_artifact_id }}
+          path: ${{ inputs.working_directory || '.' }}/coverage
 
       # Gate façade — contract and fallback rationale documented in full on the
       # 🧹 Lint job above.
@@ -7338,10 +7370,12 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: -Dsonar.qualitygate.wait=true
+          projectBaseDir: ${{ inputs.working_directory || '.' }}
         continue-on-error: true
 
       - name: 🔍 Validate SonarCloud results
         if: steps.gate.outputs.configured == 'false' && (steps.check_sonar.outputs.has_token == 'true')
+        working-directory: ${{ inputs.working_directory || '.' }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
