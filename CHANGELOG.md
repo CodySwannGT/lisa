@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.60.2](https://github.com/CodySwannGT/lisa/compare/v4.60.1...v4.60.2) (2026-09-14)
+
+
+### Bug Fixes
+
+* **ci:** budget isolated Maestro retries before launch ([5a79811](https://github.com/CodySwannGT/lisa/commit/5a79811bef8a211e358c142aac7be793986a72dc)), closes [CodySwannGT/lisa#4133](https://github.com/CodySwannGT/lisa/issues/4133) [CodySwannGT/lisa#4133](https://github.com/CodySwannGT/lisa/issues/4133)
+* **ci:** match retry duration to the full flow path ([f00f0c5](https://github.com/CodySwannGT/lisa/commit/f00f0c513fe071feaf178697fd6780d117062f47)), closes [CodySwannGT/lisa#4133](https://github.com/CodySwannGT/lisa/issues/4133) [CodySwannGT/lisa#4133](https://github.com/CodySwannGT/lisa/issues/4133)
+
 ### [4.60.1](https://github.com/CodySwannGT/lisa/compare/v4.60.0...v4.60.1) (2026-09-14)
 
 
