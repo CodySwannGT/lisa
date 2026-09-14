@@ -491,7 +491,11 @@ Before the claim mutation, apply `claim-time-guards` — **Value before claim**,
 1. **`two-failed-attempts` valve.** Count `[lisa-build-attempt]` markers on the issue from the read bundle's comments (match on the marker, never the title), applying both filters from `claim-time-guards`: count a marker only when it carries `measures=work` (a marker with no `measures=` counts as `work`), and only when its `createdAt` is **after the issue most recently gained the ready label**. The ready-lane entry comes from the read bundle's `LabeledEvent` stream, which is already fetched — no extra call. If that history is `unknown`, count every `measures=work` marker regardless of age and say so in the comment. With two or more surviving markers, do **not** claim: relabel to the configured blocked role (`gh issue edit <number> --repo <org>/<repo> --remove-label "$READY" --add-label "$BLOCKED"`, resolved from `github.labels.build.blocked` per `config-resolution`), post the operator-readable comment naming both attempts, and **stop the cycle** at Phase 3e. Every non-success terminal outcome recorded in 3c/3d also appends a fresh `<!-- [lisa-build-attempt] n=<N> outcome=<outcome> measures=<work|machine> -->` marker so the next cycle can count it — `measures=machine` when the run was terminated by a signal or its outcome was `recovery-required`, `measures=work` when the build ran and did not satisfy the issue.
 2. **`already-implemented` check.** Probe for this issue's own key — `git log --all --grep "<org>/<repo>#<number>"` and `gh pr list --repo <org>/<repo> --state all --search "<org>/<repo>#<number>" --json number,state,mergedAt,url`. On a hit, claim as normal but route 3c to **verify-and-close** instead of `lisa-implement`: verify what shipped against the issue's acceptance criteria, post evidence via `lisa-github-evidence` naming the shipping PR/commit, then run the ordinary 3d transition and 3d.1 rollup. A partial hit implements only the remaining gap. An unreadable history degrades to "no hit" and the ordinary path proceeds — the guard never blocks the claim. This is not `DUPLICATE_ALREADY_FIXED` (a *different* canonical issue) and not `claim-archaeology` (a *different* ancestor issue); it is this issue's own work already having shipped without a transition.
 
+Immediately before claiming, re-read native state. If it is closed, skip it without
+relabeling or dispatching; an unreadable state holds the candidate.
+
 ```bash
+gh issue view <number> --repo <org>/<repo> --json state -q '.state' # must be OPEN
 gh issue edit <number> --repo <org>/<repo> --remove-label "$READY" --add-label "$CLAIMED"
 # Assign to the authenticated user ONLY when the issue is currently unassigned (attributable claim;
 # do not pile a second assignee onto an issue that already has an owner):
@@ -536,7 +540,7 @@ The lifecycle run returns one of the following outcomes; resume this scanner wit
 
 - **Success** — the build flow completed and a PR exists; evidence posted. The PR may already be **merged** or still **open** (auto-merge enabled, awaiting checks/merge). "Success" means the build work is sound — it does **not** assert the change reached an environment. The env transition in 3d gates on the PR actually being merged; an open PR does not advance the issue to a `done` env status.
 - **Blocked by github-verify pre-flight gate** — the pre-flight gate (github-agent workflow step 2) relabels the issue to `status:blocked` (or removes `$CLAIMED` and reassigns to the original author). This is correct and expected — let it stand. Record and move on.
-- **Duplicate already fixed** — `lisa-ticket-triage` returned `DUPLICATE_ALREADY_FIXED` with a canonical issue reference and empirical base-branch evidence. Post the triage finding, ensure the native `duplicates <canonical>` relationship exists when GitHub exposes it (otherwise leave an explicit cross-reference comment/body link), remove `$CLAIMED`, add the terminal `$DONE` label, close the issue with `gh issue close --reason "not planned"`, and do not open a PR. If the canonical fix is merged but not yet on the production branch, the close comment must say the production error can recur until the canonical issue promotes and that recurrence is tracked by the canonical issue; do not reopen this duplicate for that recurrence.
+- **Duplicate already fixed** — `lisa-ticket-triage` returned `DUPLICATE_ALREADY_FIXED` with a canonical issue reference and empirical base-branch evidence. Follow 3c.1 to link the duplicate, remove lifecycle roles, and close it as not planned without adding a done label or opening a PR. If the canonical fix is merged but not yet on the production branch, the close comment must say the production error can recur until the canonical issue promotes and that recurrence is tracked by the canonical issue; do not reopen this duplicate for that recurrence.
 - **Blocked by ticket-triage ambiguities** — triage posts findings and the lifecycle stops. The issue stays in `$CLAIMED`. Surface to human; do not auto-relabel. Record under "Errors".
 - **Errored** — exception, missing config, etc. Leave the issue in `$CLAIMED` for human investigation. Record under "Errors".
 
@@ -547,12 +551,12 @@ Run this only when the returned triage verdict is exactly `DUPLICATE_ALREADY_FIX
 1. Verify the structured result includes a canonical issue reference, the canonical PR/commit, and empirical evidence that the canonical fix is present on the base branch. If any piece is missing, treat the outcome as Held instead of closing.
 2. Post or preserve the triage-finding comment that explains why this issue is a duplicate and names the canonical issue.
 3. Ensure a native `duplicates <canonical>` link exists when GitHub exposes issue relationships; if this installation cannot create that relationship, leave an explicit issue cross-reference comment/body link and record the limitation in the summary.
-4. Resolve terminal `$DONE` exactly as in Phase 3d. For a single-env repo, `$DONE` is terminal; for env-keyed config, only the production/final value is terminal.
-5. Apply `$DONE` and retire every competing lifecycle role the issue currently carries — not just `$CLAIMED` — per the `leaf-only-lifecycle` rule's "Exactly one lifecycle role survives closure". Then close the issue as duplicate/not-planned:
+4. Resolve the configured lifecycle role set, including every environment's done value.
+5. Remove every lifecycle role the issue currently carries. Add no done label: this duplicate is being declined, and the canonical issue records delivery. Close as duplicate/not-planned:
 
 ```bash
 gh issue view <number> --repo <org>/<repo> --json labels -q '[.labels[].name] | join(" ")'
-gh issue edit <number> --repo <org>/<repo> --add-label "$DONE" <one --remove-label "<role>" per competing role the issue CURRENTLY carries>
+gh issue edit <number> --repo <org>/<repo> <one --remove-label "<role>" per lifecycle role the issue CURRENTLY carries; skip when none>
 gh issue close <number> --repo <org>/<repo> --reason "not planned"
 ```
 
@@ -562,7 +566,7 @@ gh issue close <number> --repo <org>/<repo> --reason "not planned"
 gh issue view <number> --repo <org>/<repo> --json state,stateReason,labels
 ```
 
-It must read `state: CLOSED` with `stateReason: NOT_PLANNED`, carry `$DONE`, and carry **no** other lifecycle role. Anything else is an Error naming what is still present. Post the closeout comment only after that passes:
+It must read `state: CLOSED` with `stateReason: NOT_PLANNED` and carry **no** lifecycle role, including `$DONE`. Anything else is an Error naming what is still present. Post the closeout comment only after that passes:
 
 ```bash
 gh issue comment <number> --repo <org>/<repo> --body "[claude-build-intake] Closed as duplicate of <canonical>. Canonical fix: <PR-or-commit>. Evidence: <base-branch-proof>."

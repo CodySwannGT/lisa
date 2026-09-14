@@ -66,17 +66,15 @@ export const DEFAULT_TERMINAL_LIFECYCLE_LABEL = "status:done";
  */
 export const IMPLAUSIBLE_CLAIM_WINDOW_SECONDS = 300;
 
-/**
- * Both directions a lifecycle label can contradict native state.
- *
- * Emitted on every drift result so a repair pass cannot walk one direction and
- * silently leave the other accumulating — the asymmetry that let TUN-556 and
- * TUN-503 sit on a terminal `status:done` while still natively open.
- */
+/** Report each contradiction; abandoned closures must not earn a done label. */
 export const LIFECYCLE_DRIFT_DIRECTIONS = [
   "terminal-label-open-state",
   "open-label-closed-state",
+  "open-label-abandoned-state",
 ];
+
+/** The closure reason that means the work will deliberately NOT be done. */
+const NOT_PLANNED = "not_planned";
 
 /**
  * @typedef {{ readonly login?: string, readonly type?: string }} Actor
@@ -277,22 +275,13 @@ export function resolveClaimability({ trusted, config }) {
 }
 
 /**
- * Detect lifecycle labels that contradict native state, in BOTH directions.
- *
- * `directionsWalked` is always the full direction list, so a caller reporting
- * "clean" is asserting it looked at both — the failure mode refinement #1 of
- * issue #2539 describes, where only the auto-complete direction was ever
- * repaired and the reverse rotted unobserved.
- *
- * `excludeLabels` removes labels from consideration entirely. Callers MUST pass
- * the untrusted set here: `open-label-closed-state` is a repair direction that
- * WRITES (it advances the label to the terminal `done` role), so without this a
- * bot-applied label the classifier just refused to believe would still drive a
- * real label write — the guard would launder the very input it rejected.
+ * Detect every native-state contradiction, excluding untrusted labels.
+ * Only an explicit not-planned reason selects the retire-only repair.
  *
  * @param {{
  *   readonly labels?: readonly (string | { readonly name?: string })[]
  *   readonly state?: string
+ *   readonly stateReason?: string
  *   readonly terminalLabels?: readonly string[]
  *   readonly excludeLabels?: readonly string[]
  * }} input
@@ -317,6 +306,11 @@ export function detectLifecycleDrift(input = {}) {
     String(input.state ?? "")
       .trim()
       .toLowerCase() === "closed";
+  const abandoned =
+    closed &&
+    String(input.stateReason ?? "")
+      .trim()
+      .toLowerCase() === NOT_PLANNED;
   const allLifecycleLabels = normalizeLabelNames(input.labels).filter(
     isLifecycleLabel
   );
@@ -333,7 +327,14 @@ export function detectLifecycleDrift(input = {}) {
       return [{ direction: "terminal-label-open-state", label }];
     }
     if (!isTerminal && closed) {
-      return [{ direction: "open-label-closed-state", label }];
+      return [
+        {
+          direction: abandoned
+            ? "open-label-abandoned-state"
+            : "open-label-closed-state",
+          label,
+        },
+      ];
     }
     return [];
   });
@@ -538,6 +539,8 @@ async function main() {
   const drift = detectLifecycleDrift({
     labels: issue.labels,
     state: issue.state,
+    // REST and GitHub CLI use different field names for the same reason.
+    stateReason: issue.state_reason ?? issue.stateReason,
     terminalLabels: terminalLifecycleLabels(payload.config),
     excludeLabels: trust.untrusted.map(entry => entry.label),
   });

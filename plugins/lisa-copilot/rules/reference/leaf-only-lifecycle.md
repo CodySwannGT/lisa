@@ -67,7 +67,7 @@ Three constraints on how it is done:
 
 - **Remove only roles the item actually carries.** Naming an absent label is a 404, which fails a clean closure and makes a repeat run fail where the first one succeeded.
 - **Verify by re-reading.** Confirm the final closed state and the unique terminal role from a **fresh read of the item**, never from the write's own response. A write that reports success is not evidence of the state it intended to produce — asserting otherwise is the same defect as the drift being repaired, one layer up.
-- **Never re-complete an abandoned item.** Applying a terminal `done` role to an item someone already closed as not-planned rewrites their decision that the work would not be done, and afterwards the two are indistinguishable. Refuse and say so. This does not restrict the duplicate closeout below, which is a flow deliberately closing an open item as not-planned rather than overwriting a closure that already exists.
+- **Never re-complete an abandoned item.** Refuse to apply a terminal `done` role to work closed as not-planned. Duplicate closeout below remains allowed, but removes lifecycle labels without adding a done label; verify that no lifecycle role remains.
 
 Trackers with a native lifecycle field (JIRA, Linear) get exclusivity for free: the field that closes the item is the field a queue scan filters on, so the two cannot disagree. GitHub Issues has no lifecycle beyond open/closed, so Lisa synthesizes one in labels and inherits a reconciliation duty the others do not have. That asymmetry is tracked separately in `CodySwannGT/lisa#3479`; this section is the obligation, not the redesign.
 
