@@ -163,7 +163,7 @@ describe("the gate a leg is emitted for", () => {
   });
 
   it("emits no leg for a prover built in to the governing facade", () => {
-    const gates = { "artifact-freshness": { [COMMIT]: "required" } };
+    const gates = { "credential-leakage": { [COMMIT]: "required" } };
     const [resolved] = resolveMoment({
       gates,
       moment: COMMIT,

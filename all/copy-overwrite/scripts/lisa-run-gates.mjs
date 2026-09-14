@@ -293,6 +293,9 @@ function skipReason(gate) {
   if (gate.mode === "await") {
     return `awaits "${gate.awaits}"; no signal exists locally`;
   }
+  if (gate.mode === "builtin") {
+    return "delegated to the built-in facade; no local task ran or verdict was proved";
+  }
   return null;
 }
 
@@ -1086,9 +1089,13 @@ const UNPROVED_STATES = new Set([
 export function provenFloor({ gates, moment, wired = [], result = null }) {
   const declared = coveredFloor({ gates, moment, wired });
   if (!result) return [];
+  // Delegation leaves the built-in responsible for running the check; adding
+  // it to the coverage file would tell that same hook to stand down.
   const unproved = new Set(
     (result.results ?? [])
-      .filter(entry => UNPROVED_STATES.has(entry.state))
+      .filter(
+        entry => entry.mode === "builtin" || UNPROVED_STATES.has(entry.state)
+      )
       .map(entry => entry.id)
   );
   return declared.filter(id => !unproved.has(id));

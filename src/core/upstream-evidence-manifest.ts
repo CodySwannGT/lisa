@@ -11,7 +11,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-npm-publish-landed.mjs":
       "bba6114e5e4643575749210819acfda207260ac1db5fcb48c33c320c3a9503ca",
     "all/copy-overwrite/scripts/check-orphaned-branches.mjs":
-      "83206471fc667f84b40e844d5290f365e02efc0c7552b27f29276d16fcaaf4cc",
+      "1f450d2492ca0bcdba440f6b403c1deee0f35e749c54d2ed5c5ddc696d5ab896",
     "all/copy-overwrite/scripts/check-release-package-identity.mjs":
       "a0f17592d4436de4c240f7c78512537581aa2ed5e89f0caf1fe890694163a873",
     "all/copy-overwrite/scripts/check-state-classification.mjs":
@@ -65,7 +65,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "b82db330e65f7e9461f4b1ce52e12a475e4f0d63eef3543398c4c32e7507d1eb",
+      "16fa33bfbedb9980526130be5d1ce09159ebe7df918f723b2a9b66164917944b",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
       "b17d73c02245d64ae96ba4b9ec642f5a54a827accb1af292a4600a98e1a596f4",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
@@ -95,9 +95,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
       "2a826523a4f4fc58bfa0a24e2cf02504218dd68b4baffb346966dff705dea9b0",
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
-      "adbf8dccc221ec83641f1f5358ccafc9ec70a4ea6372ae6ad874603d767d693d",
+      "263860fba7fadae3c1096973eaf4f25dca1683ef2ce64279dea6845ac90faf6a",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "b626eac6ab946467edda52da4a38b0c3c023f188487aaed55d32ee98dbd1df9e",
+      "7e04168dffa0caa5d8dfb127a9be462a81f4512e86a57455df5708154bfb19b0",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -10335,6 +10335,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/check-learnings-budget.test.ts": true,
     "tests/unit/scripts/check-npm-publish-landed.test.ts": true,
     "tests/unit/scripts/check-orphan-test-processes.test.ts": true,
+    "tests/unit/scripts/check-orphaned-branches-evidence.test.ts": true,
     "tests/unit/scripts/check-orphaned-branches.test.ts": true,
     "tests/unit/scripts/check-pipeline-status-reads.test.ts": true,
     "tests/unit/scripts/check-probe-absence-direction.test.ts": true,
@@ -10401,6 +10402,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-environment-prepare.test.ts": true,
     "tests/unit/scripts/lisa-gates-await-deploy-refusal.test.ts": true,
     "tests/unit/scripts/lisa-gates-await-moment-reach.test.ts": true,
+    "tests/unit/scripts/lisa-gates-builtin-contract.test.ts": true,
     "tests/unit/scripts/lisa-gates-caller-chain-override.test.ts": true,
     "tests/unit/scripts/lisa-gates-caller-chain.test.ts": true,
     "tests/unit/scripts/lisa-gates-declared-executors.test.ts": true,

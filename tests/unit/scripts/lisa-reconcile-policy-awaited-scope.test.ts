@@ -96,6 +96,27 @@ const checksIn = (
     .required_status_checks;
 
 describe("an awaited declaration carries its ruleset into the comparison", () => {
+  it("keeps the default Actions pin when an explicit record overrides await", () => {
+    const result = reconcileContexts({
+      declared: [SONAR],
+      live: [liveCheck(BASE, 7, ACTIONS_ID)],
+      records: [{ context: SONAR, ruleset: BASE }],
+      awaited: [{ context: SONAR, ruleset: BASE }],
+    });
+    expect(result.missing).toEqual([]);
+    expect(result.matched).toEqual([SONAR]);
+  });
+
+  it("does not accept an unpinned check for the overriding Actions declaration", () => {
+    const result = reconcileContexts({
+      declared: [SONAR],
+      live: [liveCheck(BASE, 7, null)],
+      records: [{ context: SONAR, ruleset: BASE }],
+      awaited: [{ context: SONAR, ruleset: BASE }],
+    });
+    expect(result.missing).toEqual([SONAR]);
+  });
+
   it("keeps the awaited home missing when only another ruleset requires it", () => {
     // The whole defect, at the comparison boundary: the awaited home is
     // `base`, the live check is in `release`, and a name-only record answered
@@ -264,6 +285,22 @@ describe("an awaited repair reaches the ruleset it was routed to", () => {
 });
 
 describe("awaited scope, end to end", () => {
+  it("repairs an overriding explicit record with its default Actions pin", () => {
+    const gh = gitHub({ rulesets: [baseRuleset([])], settings: {} });
+    reconcile({
+      repo: REPO,
+      gates: PINNED_AWAIT_GATES,
+      requiredChecks: { [BASE]: [{ context: SONAR }] },
+      gh,
+    });
+    const written = writes(recorded(gh.mock.calls));
+    expect(written).toHaveLength(1);
+    expect(
+      JSON.parse(written[0].input as string).rules[0].parameters
+        .required_status_checks
+    ).toEqual([{ context: SONAR, integration_id: ACTIONS_ID }]);
+  });
+
   /**
    * A repository carrying `base` and `release`, only one of which requires it.
    * @param requiredIn - The ruleset that already requires the awaited context.
