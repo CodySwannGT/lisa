@@ -11,7 +11,7 @@
   "contracts": {
     "plugins/lisa/skills/lisa-secrets-access/scripts/resolve-expo-token.mjs": {
       "kind": "executed",
-      "since": "4.60.0",
+      "since": "4.59.3",
       "degradation": "The provider step is opt-in: explicit EXPO_TOKEN or absent LISA_SECRETS_BOOTSTRAP skips resolution on older packages. Opting in before upgrading reports the required package upgrade. The existing explicit-token workflow remains supported.",
       "why": "build.yml uses the resolver only for the new provider bootstrap input; the isolated adapter and workflow tests prove token precedence and the older-package upgrade refusal.",
       "probes": [
