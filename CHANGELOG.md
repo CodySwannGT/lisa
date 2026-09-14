@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.60.8](https://github.com/CodySwannGT/lisa/compare/v4.60.7...v4.60.8) (2026-09-14)
+
+
+### Bug Fixes
+
+* align gate ownership and preserve complete evidence ([677f6a4](https://github.com/CodySwannGT/lisa/commit/677f6a44cc5485827ad0d47f4655a6eebd325112)), closes [CodySwannGT/lisa#4144](https://github.com/CodySwannGT/lisa/issues/4144)
+
 ### [4.60.7](https://github.com/CodySwannGT/lisa/compare/v4.60.6...v4.60.7) (2026-09-14)
 
 
