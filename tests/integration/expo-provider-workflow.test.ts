@@ -1,10 +1,16 @@
-import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import yaml from "js-yaml";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import {
+  boundedSpawnSync,
+  useIoLatencyBudget,
+} from "../helpers/io-latency-budget.js";
+
+useIoLatencyBudget();
 
 /** Workflow step fields exercised by the authentication fixtures. */
 type Step = {
@@ -38,21 +44,19 @@ afterEach(() => rmSync(root, { recursive: true, force: true }));
  * @returns The captured subprocess result.
  */
 function execute(script: string, extra: Record<string, string>) {
-  return spawnSync(
-    "/bin/bash",
-    ["--noprofile", "--norc", "-eo", "pipefail", "-c", script],
-    {
-      cwd: root,
-      encoding: "utf8",
-      env: {
-        PATH: process.env.PATH,
-        BASH_ENV: "/dev/null",
-        ENV: "/dev/null",
-        GITHUB_OUTPUT: join(root, "output"),
-        ...extra,
-      },
-    }
-  );
+  return boundedSpawnSync({
+    label: "Expo workflow fixture",
+    command: "/bin/bash",
+    args: ["--noprofile", "--norc", "-eo", "pipefail", "-c", script],
+    cwd: root,
+    env: {
+      PATH: process.env.PATH,
+      BASH_ENV: "/dev/null",
+      ENV: "/dev/null",
+      GITHUB_OUTPUT: join(root, "output"),
+      ...extra,
+    },
+  });
 }
 
 describe("Expo provider eligibility", () => {

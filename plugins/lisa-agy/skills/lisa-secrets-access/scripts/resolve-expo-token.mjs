@@ -54,26 +54,33 @@ async function resolveToken() {
   return get("EXPO_TOKEN", cfg);
 }
 
-try {
-  const destination = process.env.GITHUB_ENV;
-  if (!destination) throw new Error("GITHUB_ENV is required");
-  const token = await resolveToken();
-  if (token) {
-    const masked = token
-      .replaceAll("%", "%25")
-      .replaceAll("\r", "%0D")
-      .replaceAll("\n", "%0A");
-    console.log(`::add-mask::${masked}`);
-    const delimiter = randomUUID();
-    appendFileSync(
-      destination,
-      `EXPO_TOKEN<<${delimiter}\n${token}\n${delimiter}\n`
-    );
-  }
-} catch {
-  // Provider errors can contain captured subprocess output. Never echo it.
-  console.error(
-    "Unable to resolve EXPO_TOKEN. Check the configured provider, bootstrap input, and secrets.require; ensure the runner can install its provider CLI."
+if (process.argv.includes("--help")) {
+  // Safe to inspect without preparing a provider or reading/exporting a token.
+  console.log("Environment: EXPO_TOKEN LISA_SECRETS_BOOTSTRAP GITHUB_ENV");
+  console.log(
+    "An explicit EXPO_TOKEN takes precedence; otherwise resolve through the configured provider and export only EXPO_TOKEN to GITHUB_ENV."
   );
-  process.exitCode = 1;
-}
+} else
+  try {
+    const destination = process.env.GITHUB_ENV;
+    if (!destination) throw new Error("GITHUB_ENV is required");
+    const token = await resolveToken();
+    if (token) {
+      const masked = token
+        .replaceAll("%", "%25")
+        .replaceAll("\r", "%0D")
+        .replaceAll("\n", "%0A");
+      console.log(`::add-mask::${masked}`);
+      const delimiter = randomUUID();
+      appendFileSync(
+        destination,
+        `EXPO_TOKEN<<${delimiter}\n${token}\n${delimiter}\n`
+      );
+    }
+  } catch {
+    // Provider errors can contain captured subprocess output. Never echo it.
+    console.error(
+      "Unable to resolve EXPO_TOKEN. Check the configured provider, bootstrap input, and secrets.require; ensure the runner can install its provider CLI."
+    );
+    process.exitCode = 1;
+  }

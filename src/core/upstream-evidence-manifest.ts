@@ -1365,7 +1365,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
       "735434e25bf1db9f2f7eb3d5ede8361cba01b922d65931393bd36e6f96531654",
     "plugins/src/base/skills/lisa-secrets-access/scripts/resolve-expo-token.mjs":
-      "3d7b37a68ae4048e97ae5cc3176e6b62a6db863f45391a3d863fdb5ec95dfe90",
+      "68cb92cd24525372088b69dc9dd6c8b2f0518e0980892aa596eb54627b396c1b",
     "plugins/src/base/skills/lisa-secrets-access/scripts/resolve-secret.mjs":
       "4170220c95f410072f3871f58938b7575684254480d0645e3dbb1535cf09d7a7",
     "plugins/src/base/skills/lisa-secrets-access/scripts/rotate-secret.mjs":
@@ -2287,7 +2287,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-workflow-load-failures.ts":
       "494113253fd4830e79e658429c15533c045ac8c5ad3ec365e3dc2a39742f8d2c",
     "scripts/check-workflow-package-paths.mjs":
-      "d057c7666ad048cfbd11a1ef83ad1e13fb1c61a9d399ec83221c99c4256728a1",
+      "07ebf3f8a4504f6231c5ae492ecda7f95a80a0fa5f0424b9d3368544b1b612dd",
     "scripts/claude-remote-setup.sh":
       "5947c48ee78f2efdf321f6a516e0aad427ac77345ce26d4e29d0eecc5cd5d307",
     "scripts/clean-dist.mjs":
@@ -2385,7 +2385,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/upstream-manifest-staleness.mjs":
       "c69fc5ba10228b7f4f8d0068db27ee8a289143094fa8718b14af83f4af31f76d",
     "scripts/lib/workflow-contract-probe.mjs":
-      "e51e2872bfc074fccd27cb814d2a4b14e45b3981290a98300b415beecc2b1ec8",
+      "73fee544253390b0e859090a23b9810bdcf14a19ca1dd17649d8d82d20ef69dc",
     "scripts/lisa-assert-eas-profile.mjs":
       "624e40d7f33ca17208fc6b7a19320a785cff19da5d2ff8062b67a432b2a34022",
     "scripts/lisa-commit-and-pr-local.sh":
@@ -10555,6 +10555,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-trailer-definition.test.ts": true,
     "tests/unit/scripts/work-item-unreachable-ancestry.test.ts": true,
     "tests/unit/scripts/workflow-contract-assertion.test.ts": true,
+    "tests/unit/scripts/workflow-optional-package-path.test.ts": true,
     "tests/unit/secrets/automation-workflow.test.ts": true,
     "tests/unit/secrets/aws-bootstrap-derivation.test.ts": true,
     "tests/unit/secrets/aws-bootstrap-publication-budget.test.ts": true,

@@ -1,4 +1,3 @@
-import { spawnSync } from "node:child_process";
 import {
   mkdtempSync,
   mkdirSync,
@@ -11,6 +10,13 @@ import { join, resolve } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import {
+  boundedSpawnSync,
+  useIoLatencyBudget,
+} from "../helpers/io-latency-budget.js";
+
+useIoLatencyBudget();
+
 const script = resolve(
   "plugins/src/base/skills/lisa-secrets-access/scripts/resolve-expo-token.mjs"
 );
@@ -21,12 +27,15 @@ let root: string;
 /**
  * Run the actual resolver with only synthetic credentials and an owned home.
  * @param extra - Synthetic environment overrides.
+ * @param args - Resolver arguments, including the side-effect-free help path.
  * @returns The captured subprocess result.
  */
-function run(extra: Record<string, string> = {}) {
-  return spawnSync(process.execPath, [script], {
+function run(extra: Record<string, string> = {}, args: string[] = []) {
+  return boundedSpawnSync({
+    label: "Expo provider token fixture",
+    command: process.execPath,
+    args: [script, ...args],
     cwd: root,
-    encoding: "utf8",
     env: {
       PATH: `${join(root, "bin")}:${process.env.PATH}`,
       HOME: root,
@@ -69,6 +78,18 @@ console.log(JSON.stringify([{key:'EXPO_TOKEN',value:'fixture-expo-token'}, {key:
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 describe("Expo token resolution in an Actions job", () => {
+  it("describes its inputs without resolving or exporting credentials", () => {
+    const result = run({ EXPO_TOKEN: "must-not-print", FIXTURE_FAIL: "1" }, [
+      "--help",
+    ]);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(
+      "EXPO_TOKEN LISA_SECRETS_BOOTSTRAP GITHUB_ENV"
+    );
+    expect(result.stdout).not.toContain("must-not-print");
+    expect(readFileSync(join(root, ENV_FILE), "utf8")).toBe("");
+    expect(result.stderr).toBe("");
+  });
   it("resolves the configured provider and exports only a masked Expo token", () => {
     const result = run();
     expect(result.status).toBe(0);
