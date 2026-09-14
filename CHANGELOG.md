@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.59.5](https://github.com/CodySwannGT/lisa/compare/v4.59.4...v4.59.5) (2026-09-14)
+
+
+### Bug Fixes
+
+* **cdk:** refuse pull-request role overrides before requesting credentials ([c1fe93b](https://github.com/CodySwannGT/lisa/commit/c1fe93b78cccc22ce786970633bccaa9f0a75880)), closes [CodySwannGT/lisa#4093](https://github.com/CodySwannGT/lisa/issues/4093) [CodySwannGT/lisa#4093](https://github.com/CodySwannGT/lisa/issues/4093)
+
 ### [4.59.4](https://github.com/CodySwannGT/lisa/compare/v4.59.3...v4.59.4) (2026-09-14)
 
 
