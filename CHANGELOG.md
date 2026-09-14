@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.60.3](https://github.com/CodySwannGT/lisa/compare/v4.60.2...v4.60.3) (2026-09-14)
+
+
+### Bug Fixes
+
+* **worktrees:** diagnose borrowed parent dependencies before tools run ([24ef70a](https://github.com/CodySwannGT/lisa/commit/24ef70afc952544c927869251b32b72a72aa90c9)), closes [#4070](https://github.com/CodySwannGT/lisa/issues/4070) [CodySwannGT/lisa#4070](https://github.com/CodySwannGT/lisa/issues/4070) [CodySwannGT/lisa#4070](https://github.com/CodySwannGT/lisa/issues/4070)
+* **worktrees:** keep dependency preflight compatible with shipped checks ([08bfc17](https://github.com/CodySwannGT/lisa/commit/08bfc17237ce3116a7d794f99a5de820bcb40ca8)), closes [CodySwannGT/lisa#4070](https://github.com/CodySwannGT/lisa/issues/4070) [CodySwannGT/lisa#4070](https://github.com/CodySwannGT/lisa/issues/4070)
+* **worktrees:** preflight Phaser development and size commands ([6e0fe22](https://github.com/CodySwannGT/lisa/commit/6e0fe22fb06b0c98d5efc5f1dc65ea2bf0b89e41)), closes [CodySwannGT/lisa#4070](https://github.com/CodySwannGT/lisa/issues/4070) [CodySwannGT/lisa#4070](https://github.com/CodySwannGT/lisa/issues/4070)
+* **worktrees:** retain unit coverage selection behind dependency preflight ([f51a232](https://github.com/CodySwannGT/lisa/commit/f51a232ce2c50c7cadcb1f30b16245666d61aa99)), closes [CodySwannGT/lisa#4070](https://github.com/CodySwannGT/lisa/issues/4070) [CodySwannGT/lisa#4070](https://github.com/CodySwannGT/lisa/issues/4070)
+
 ### [4.60.2](https://github.com/CodySwannGT/lisa/compare/v4.60.1...v4.60.2) (2026-09-14)
 
 
