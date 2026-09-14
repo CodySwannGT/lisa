@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  closeSync,
+  mkdtempSync,
+  openSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { env } from "node:process";
@@ -91,13 +98,17 @@ setInterval(() => {}, 1000);
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 fs.writeFileSync(${JSON.stringify(shellPath)}, JSON.stringify({ pid: process.ppid }));
+console.log('WINDOWS_GATE_SHELL_STARTED', process.ppid);
 const child = spawn(process.execPath, [${JSON.stringify(childPath)}], {
   detached: true, stdio: 'ignore'
 });
 child.unref();
 const deadline = Date.now() + 10000;
 const waiting = setInterval(() => {
-  if (fs.existsSync(${JSON.stringify(readyPath)})) clearInterval(waiting);
+  if (fs.existsSync(${JSON.stringify(readyPath)})) {
+    console.log('WINDOWS_GATE_CHILD_READY', child.pid);
+    clearInterval(waiting);
+  }
   else if (Date.now() > deadline) process.exit(2);
 }, 20);
 `
@@ -147,6 +158,33 @@ function observe(f, result) {
   return true;
 }
 
+/**
+ * Capture diagnostics without waiting for inherited output pipes to close.
+ * @param {object} f Owned fixture paths and command.
+ * @returns {object} Actual process result and the captured output files.
+ */
+function runSupervisor(f) {
+  const outputPath = path.join(f.root, "supervisor.stdout");
+  const errorPath = path.join(f.root, "supervisor.stderr");
+  const output = openSync(outputPath, "w");
+  const errors = openSync(errorPath, "w");
+  try {
+    const result = spawnSync(
+      process.execPath,
+      [supervisor, "--timeout-ms=20000", "--", f.command],
+      { cwd: f.root, stdio: ["ignore", output, errors], timeout: 30000 }
+    );
+    return {
+      ...result,
+      stdout: readFileSync(outputPath, "utf8"),
+      stderr: readFileSync(errorPath, "utf8"),
+    };
+  } finally {
+    closeSync(output);
+    closeSync(errors);
+  }
+}
+
 test(
   "control: a Windows shell can exit while its detached descendant lives",
   windowsOnly,
@@ -170,14 +208,15 @@ test(
   windowsOnly,
   t => {
     const f = fixture(t);
-    const result = spawnSync(
-      process.execPath,
-      [supervisor, "--timeout-ms=20000", "--", f.command],
-      {
-        cwd: f.root,
-        encoding: "utf8",
-        timeout: 30000,
-      }
+    const result = runSupervisor(f);
+    t.diagnostic(
+      JSON.stringify({
+        status: result.status,
+        signal: result.signal,
+        error: result.error?.code,
+        stdout: result.stdout,
+        stderr: result.stderr,
+      })
     );
     assert.equal(
       observe(f, result),
