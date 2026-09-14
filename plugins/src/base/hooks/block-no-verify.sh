@@ -40,7 +40,7 @@
 # Add a name here in the same commit that closes a vector. A hardening that
 # forgets to is invisible to refresh, and shows up as an unexplained diff at
 # review time instead of a named capability.
-# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, env-split-string, git-config-key, git-config-parameters, git-config-parameters-append, git-config-parameters-expansion, heredoc-shell-word, herestring-aware, no-verify-short, nested-shell-no-verify, nested-shell-long-options, env-split-string-abbrev, command-wrapper-normalization, executed-script-reach, source-builtin-reach, stdin-redirect-reach, wrapper-positional-operand, dispatcher-exec-position, tilde-script-reach, shell-option-stdin-reach
+# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, env-split-string, git-config-key, git-config-parameters, git-config-parameters-append, git-config-parameters-expansion, heredoc-shell-word, herestring-aware, no-verify-short, nested-shell-no-verify, nested-shell-long-options, env-split-string-abbrev, command-wrapper-normalization, executed-script-reach, source-builtin-reach, stdin-redirect-reach, wrapper-positional-operand, dispatcher-exec-position, tilde-script-reach, shell-option-stdin-reach, eval-payload
 #
 # Shell-token matching avoids false positives from issue bodies, heredocs, and
 # commit-message prose while still catching quoted real argv values such as
@@ -649,6 +649,15 @@ def shell_starts_command(tokens, index):
     return status == "ok" and not remainder
 
 
+def printed_argument(tokens, index):
+    """Whether a token is data passed to an ordinary echo or printf command."""
+    start = index - 1
+    while start >= 0 and tokens[start] not in COMMAND_SEPARATORS:
+        start -= 1
+    program, _, opaque = command_word(tokens[start + 1:index])
+    return not opaque and program in {"echo", "printf"}
+
+
 def env_uses_split_string(tokens, index):
     """Whether a command-position env invocation uses split-string parsing.
 
@@ -1246,6 +1255,8 @@ def git_skips_verification(text, depth=0):
         # (`HUSKY=1 git commit -n`) simply sits in an earlier token.
         if token != "git" and not token.endswith("/git"):
             continue
+        if printed_argument(scoped_tokens, index):
+            continue
         # The LONG flag, scoped to this invocation's argv rather than matched
         # anywhere on the line. This replaces the unscoped token match that used
         # to live in the flat loop below.
@@ -1273,8 +1284,8 @@ def git_skips_verification(text, depth=0):
 def token_bypass(tokens):
     """Whether any token disables hooks by environment or by git config.
 
-    These stay UNSCOPED, unlike the `--no-verify` match that moved into
-    `git_argv_disables_verification`. The difference is what the token means
+    Printed echo/printf arguments are filtered before this scan. Assignments
+    otherwise stay unscoped, unlike the `--no-verify` argv check. What matters is
     where it appears: `HUSKY=0` and `core.hooksPath=` are assignments that
     configure whatever git runs next, so they legitimately sit before the
     invocation and often on a different line of a script. `--no-verify` is an
@@ -1384,9 +1395,45 @@ def flat_tokens(text):
         The token list, or None.
     """
     try:
-        return [token.strip("();|&") for token in shlex.split(text, posix=True)]
+        tokens = shell_tokens(text)
+        return [
+            token.strip("();|&")
+            for index, token in enumerate(tokens)
+            if not printed_argument(tokens, index)
+        ]
     except ValueError:
         return None
+
+
+def eval_payloads(scoped_tokens):
+    """Command strings an `eval` in command position would execute.
+
+    `eval` takes no options: it concatenates its arguments and runs the result,
+    so the payload is every token up to the next separator, joined by a space.
+    Quoting is already gone by the time `shell_tokens` hands them over, which is
+    exactly why the payload is invisible to every other scan here — the argv
+    scan sees one opaque token and the git scan sees no `git` token at all.
+
+    Args:
+        scoped_tokens: Tokens of one command line.
+
+    Returns:
+        A list of payload strings, one per `eval` found in command position.
+    """
+    payloads = []
+    for index, token in enumerate(scoped_tokens):
+        if token.rsplit("/", 1)[-1] != "eval":
+            continue
+        if not shell_starts_command(scoped_tokens, index):
+            continue
+        collected = []
+        for follow in scoped_tokens[index + 1 :]:
+            if follow in COMMAND_SEPARATORS:
+                break
+            collected.append(follow)
+        if collected:
+            payloads.append(" ".join(collected))
+    return payloads
 
 
 def verdict(text, depth=0, followed=None):
@@ -1402,6 +1449,48 @@ def verdict(text, depth=0, followed=None):
     """
     if git_skips_verification(text):
         return True
+    # RECURSION, NOT A TWELFTH SPELLING (#3531). `eval` is the builtin that takes
+    # a command string, and it was absent from both recursion sets: it is not a
+    # SHELL_PROGRAM (no `-c` payload) and, unlike `builtin`, not a prefix wrapper
+    # whose argv carries through. So every vector this guard blocks was restored
+    # by writing it inside `eval "..."` — measured on origin/main, nine of them,
+    # including `git push --no-verify`, `core.hooksPath`, `HUSKY=0`, one behind a
+    # separator and one behind a `command` wrapper.
+    #
+    # Enumerating spelling twelve is how spelling thirteen appears, and this
+    # repository has twice declined an arms race of that shape. Recursing through
+    # `verdict` instead gives the payload the IDENTICAL analysis, so anything
+    # covered outside is covered inside — including checks the reporter's own
+    # suggested patch would have missed, because it recursed into the git half
+    # only and `HUSKY=0` and `core.hooksPath` live in `token_bypass`.
+    #
+    # Bounded by the same budget as a followed script: unbounded recursion on
+    # adversarial input is itself a denial of the guard, and a Python traceback
+    # exits non-zero, which the wrapper turns into a spurious block.
+    if depth < FOLLOW_MAX_DEPTH:
+        try:
+            eval_scoped = shell_tokens(text)
+        except ValueError:
+            eval_scoped = []
+        for payload in eval_payloads(eval_scoped):
+            if verdict(payload, depth + 1, followed):
+                return True
+        # AND INSIDE A NESTED SHELL. `git_skips_verification` already recurses
+        # into a `bash -c` payload, but only into ITSELF — so it carries the git
+        # half down and leaves `eval`, `HUSKY=0` and `core.hooksPath` behind.
+        # `bash -c 'eval "git commit --no-verify -m x"'` survived round one for
+        # exactly that reason, and it was found by running the adversarial round
+        # rather than by reasoning about it. Recursing the payload through
+        # `verdict` gives every level the whole analysis.
+        for index, token in enumerate(eval_scoped):
+            if token.rsplit("/", 1)[-1] not in SHELL_PROGRAMS:
+                continue
+            if not shell_starts_command(eval_scoped, index):
+                continue
+            nested = nested_shell_payload(eval_scoped, index)
+            if isinstance(nested, str) and verdict(nested, depth + 1, followed):
+                return True
+
     tokens = flat_tokens(text)
     if tokens is not None and token_bypass(tokens):
         return True
