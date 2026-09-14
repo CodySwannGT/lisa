@@ -138,7 +138,11 @@ describe("Expo host-facing run commands survive a full apply", () => {
         template.force.scripts[key] !== undefined ||
         template.defaults.scripts[key] === undefined ||
         !(template.adopt.scripts[key] ?? []).includes(
-          template.defaults.scripts[key] ?? ""
+          // Adoption describes prior installs, before the new preflight.
+          (template.defaults.scripts[key] ?? "").replace(
+            "node scripts/lib/worktree-dependencies.mjs && ",
+            ""
+          )
         )
     );
     expect(misclassified).toEqual([]);

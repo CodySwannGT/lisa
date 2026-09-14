@@ -2507,7 +2507,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-contents/.husky/pre-commit":
       "170a599896e3cf0773fcbc9fa12d49051a864698220b70e8f4b1ea6cca063365",
     "typescript/copy-contents/.husky/pre-push":
-      "4498f26ea035a6d24dd845f18f9ce718330d6184780482f88458cf7ab3e22380",
+      "7e2c82cbd021548b2cb7f7032d305e55ce81d75fdbefb5296c6eaaef87ae54bd",
     "typescript/copy-contents/.husky/prepare-commit-msg":
       "4a719c20da65653f266e7c8a346b5546ad05f1dfa34665fc7fec47e89d2f58d1",
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":

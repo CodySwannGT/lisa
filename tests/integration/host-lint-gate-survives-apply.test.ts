@@ -127,7 +127,13 @@ describe("a host gate chained into lint survives the shipped apply", () => {
     await fs.writeJson(path.join(projectDir, PACKAGE_JSON), {
       name: HOST_NAME,
       version: "1.0.0",
-      scripts: { lint: shippedLintBase() },
+      // Seed the previously shipped command, before the dependency preflight.
+      scripts: {
+        lint: shippedLintBase().replace(
+          "node scripts/lib/worktree-dependencies.mjs && ",
+          ""
+        ),
+      },
     });
 
     const scripts = await applyShippedTemplates();
