@@ -1421,7 +1421,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/environment.mjs":
       "3b9be11691d81a896fc779c37fb6d69e8e7222f95e23f84aa03d4e590f9d9108",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/preflight-tools.mjs":
-      "70cdbb8e993c8dd58be8a1d7792e0a55d946c5e6e4ef6338ab6710fe2f5f893e",
+      "324b7826e6cb98b274ab09a25f1c29ae6877bc827032642cabccfe1ef21fcc99",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
       "b8967bec0d35f5e30d1c9347c5002ce795adf52841d6a13999eaf152d9a0587b",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/tool-floor.mjs":
@@ -10571,6 +10571,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/note-format.test.ts": true,
     "tests/unit/secrets/preflight-hardening.test.ts": true,
     "tests/unit/secrets/preflight-secrets.test.ts": true,
+    "tests/unit/secrets/preflight-tools-report.test.ts": true,
     "tests/unit/secrets/preflight-tools.test.ts": true,
     "tests/unit/secrets/profile-sourcing.test.ts": true,
     "tests/unit/secrets/prompt-secret.test.ts": true,

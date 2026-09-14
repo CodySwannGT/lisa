@@ -233,7 +233,21 @@ export function preflightTools(
 }
 
 /**
+ * Format a count with the appropriate noun phrase.
+ * @param {number} n How many.
+ * @param {string} one Singular noun phrase.
+ * @param {string} many Plural noun phrase.
+ * @returns {string} A counted phrase such as "1 tool" or "3 tools".
+ */
+function count(n, one, many) {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
+/**
  * Render a verdict for whoever has to act on it.
+ *
+ * Put blockers first and scope the stop instruction to that section. The
+ * separate installable section must not send usable work to the blocked lane.
  * @param {object} result A {@link preflightTools} result.
  * @returns {string} Operator-readable report, empty when nothing needs saying.
  */
@@ -243,41 +257,52 @@ export function reportTools(result) {
   // The header tracks the exit code. Only a blocked tool is a failure — one
   // Lisa can install is an action with a command attached, and calling that
   // "FAILED" while exiting zero teaches readers that the word means nothing.
+  const blocking = count(result.blocked.length, "tool blocks", "tools block");
+  const spare = result.installable.length
+    ? ` ${result.installable.length} more Lisa can install for you.`
+    : ``;
   const header = () => {
-    if (result.blocked.length) return "Tooling preflight FAILED.";
+    if (result.blocked.length)
+      return `Tooling preflight FAILED — ${blocking}.${spare}`;
     if (result.installable.length)
-      return "Tooling preflight — action available.";
+      return (
+        `Tooling preflight — action available. Nothing blocks;` +
+        ` ${count(result.installable.length, "tool", "tools")} Lisa can` +
+        ` install for you.`
+      );
     // Nothing to do and nothing to fix; the note below is the whole message.
-    return "Tooling preflight passed, with a note.";
+    return `Tooling preflight passed, with a note.`;
   };
   const lines = [header()];
-  if (result.installable.length) {
-    lines.push(
-      ``,
-      `Lisa can install these itself — they are pinned and checksummed.`,
-      `Run /lisa:setup:local-env to place them:`,
-      ``
-    );
-    for (const step of result.installable) {
-      lines.push(`  ${step.name} — ${step.reason}`);
-    }
-  }
   if (result.blocked.length) {
     lines.push(
       ``,
-      `These need you. Lisa has no pinned artifact it can place:`,
+      `STOP — these block the work. Lisa has no pinned artifact it can place,`,
+      `so it cannot fix them for you:`,
       ``
     );
     for (const step of result.blocked) {
       const why = result.reasons[step.name];
-      lines.push(`  ${step.name} — ${step.reason}`);
-      if (why) lines.push(`      required because ${why}`);
+      lines.push(`  [BLOCKED] ${step.name} — ${step.reason}`);
+      if (why) lines.push(`            required because ${why}`);
     }
     lines.push(
       ``,
-      `Work needing one of these cannot be completed. Route the item to`,
-      `blocked with this reason rather than claiming it and stopping partway.`
+      `  Work needing one of the tools above cannot be completed. Route that`,
+      `  item to blocked citing that tool, rather than claiming it and`,
+      `  stopping partway. Nothing else in this report is a reason to stop.`
     );
+  }
+  if (result.installable.length) {
+    lines.push(
+      ``,
+      `NOT A BLOCKER — Lisa can install these itself; they are pinned and`,
+      `checksummed. Run /lisa:setup:local-env to place them:`,
+      ``
+    );
+    for (const step of result.installable) {
+      lines.push(`  [INSTALLABLE] ${step.name} — ${step.reason}`);
+    }
   }
   if (result.unverified.length) {
     lines.push(
