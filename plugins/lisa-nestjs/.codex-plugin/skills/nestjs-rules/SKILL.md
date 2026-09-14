@@ -51,11 +51,9 @@ In this project, **entity files (`src/database/entities/*.ts`) are the single so
 2. Run `bun run migration:generate --name=<DescriptiveName>` to produce the migration from the diff.
 3. Review the generated migration, then commit both the entity change and the migration together.
 
-If a schema change cannot be expressed via the entity model, the entity model is wrong — fix the entity, do not hand-write the migration.
+### Generate Schema Migrations
 
-### Never Create Migration Files Manually
-
-Never create or modify a TypeORM migration file directly. Use `migration:generate` from `package.json`:
+Use `migration:generate` from `package.json` for changes represented by entity metadata:
 
 ```bash
 bun run migration:generate --name=<DescriptiveName>
@@ -69,18 +67,15 @@ Some changes genuinely cannot be derived from entity diffs:
 - **Data backfills** (populating a new column from existing rows)
 - **Data transformations** (splitting a column, normalizing values)
 - **One-off cleanup** (deleting orphaned rows before a constraint is added)
+- **Database maintenance** (refreshing planner statistics with `ANALYZE`)
 
-These are legitimate cases for a hand-written migration, but they are **out-of-band** — they bypass the entity-as-source-of-truth contract. When you encounter one:
+Use the project's established migration process for these cases. Document the rationale and verification in the migration's class comment so future readers understand why it was not generated. Apply the authorization already given for the work; the default edit hook does not record or verify human approval.
 
-1. **Stop and tell the user.** Explain what change is needed and why it cannot be expressed via the entity model.
-2. **Get explicit approval** before writing the migration by hand.
-3. Document the rationale in the migration's class comment so future readers understand why this one was not generated.
-
-Do not silently hand-write a migration for a backfill or seed-data change. The user must know that the entity-as-source-of-truth contract is being intentionally bypassed for this case.
+A project that supports direct migration edits can declare its own `migration-provenance` check at `pre-tool` in `.lisa.config.json`. The Claude and Codex hooks run that check for the targeted migration and permit the edit only when it passes. The check must validate the project's migration policy; an unconditional success command proves nothing. Without a declared check, the built-in still refuses the edit. OpenCode's migration adapter currently does not support this exception path and continues to refuse it.
 
 ### Enforcement
 
-The `lisa-nestjs` plugin ships a `PreToolUse` hook (`block-migration-edits.sh`) that blocks `Write`/`Edit` on any path matching `**/migrations/*.ts` or `**/migrations/*.js`. The block surfaces this rule's guidance to remind you to either (a) edit the entity instead, or (b) ask the user before proceeding with an out-of-band migration.
+The `lisa-nestjs` plugin's default `PreToolUse` hook (`block-migration-edits.sh`) refuses `Write`/`Edit` on paths matching `**/migrations/*.ts` or `**/migrations/*.js`. Codex also inspects `apply_patch`; its migration matcher and OpenCode's matcher cover numbered TypeScript migration filenames. These are direct-edit checks, not an audit of migration authorship: they do not inspect Bash writes. Do not switch tools to evade a refusal. Use the supported project check where available.
 
 ### Why Auto-Generation
 

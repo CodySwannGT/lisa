@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Lisa-managed Codex hook script (PreToolUse Edit|Write|apply_patch).
+# This scopes direct edit tools; it does not verify approval or establish the
+# provenance of files written through other tools.
 # Blocks edits to TypeORM migration files. Use `bun run migration:generate`
 # to regenerate from entity diffs instead — hand-written migrations drift
 # from entity metadata and break the schema/migration contract.
@@ -71,8 +73,8 @@ fi
 # there is no `cd` here — the Claude copy needs one because a PreToolUse hook
 # there establishes none.
 #
-# ONE PROPERTY, so there is no all-or-nothing question here: this hook proves
-# `migration-provenance` and nothing else.
+# A project may supply its own `migration-provenance` check for these edits.
+# The built-in only refuses the scoped Edit/Write/apply_patch calls.
 # ---------------------------------------------------------------------------
 # shellcheck source=/dev/null
 . "${SCRIPT_DIR}/lisa-edit-gate.sh"
@@ -103,8 +105,14 @@ while IFS= read -r FILE_PATH; do
 TypeORM migrations must be regenerated from entity diffs:
   bun run migration:generate -- src/database/migrations/<descriptive-name>
 
-Hand-written migrations drift from entity metadata and break the schema
-contract. Modify the entity, run the generator, then commit the result.
+Out-of-band migrations (backfills, seed data, maintenance) cannot always
+come from entity diffs. A project that supports these edits can declare a
+\`migration-provenance\` check at \`pre-tool\` in .lisa.config.json. The hook
+runs that check and uses its result to permit or refuse the edit.
+
+Document the migration's rationale and verification in its class comment.
+This default hook cannot verify human approval. It inspects Edit, Write and
+apply_patch, not Bash writes. Do not switch tools to evade its refusal.
 EOF
       exit 2
       ;;

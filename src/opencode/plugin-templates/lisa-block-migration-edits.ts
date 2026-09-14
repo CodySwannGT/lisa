@@ -10,6 +10,9 @@
  * straight from `output.args.filePath`. Throwing in `tool.execute.before`
  * cancels the tool call and surfaces the message to the agent (verified-by-run
  * on opencode 1.16.2).
+ * This adapter does not delegate to a project's migration-provenance check;
+ * unlike the Claude and Codex adapters, it cannot permit those exceptions.
+ * It neither verifies human approval nor inspects Bash writes.
  *
  * NOTE: This file is a template Lisa copies verbatim into a host project's
  * `.opencode/plugin/`. It is intentionally excluded from this repo's tsconfig
@@ -35,8 +38,13 @@ const LisaBlockMigrationEdits = async () => {
           "TypeORM migrations must be regenerated from entity diffs:",
           "  bun run migration:generate -- src/database/migrations/<descriptive-name>",
           "",
-          "Hand-written migrations drift from entity metadata and break the",
-          "schema contract. Modify the entity, run the generator, then commit.",
+          "Out-of-band migrations (backfills, seed data, maintenance) cannot",
+          "always come from entity diffs. Document their rationale and verification.",
+          "",
+          "This OpenCode adapter only inspects edit/write and cannot verify",
+          "human approval. It does not yet support the project migration-provenance",
+          "exception check available in the Claude and Codex adapters, so it keeps",
+          "refusing this edit. Do not switch tools to evade the refusal.",
         ].join("\n")
       );
     },

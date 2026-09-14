@@ -2,7 +2,9 @@
 # This file is managed by Lisa.
 # Do not edit directly — changes will be overwritten on the next `lisa` run.
 
-# PreToolUse hook: block Write/Edit on TypeORM migration files.
+# PreToolUse hook: block Write/Edit on TypeORM migration files by default.
+# This scopes direct edit tools; it does not verify approval or establish the
+# provenance of files written through other tools.
 # NestJS projects must use `bun run migration:generate` to create migrations
 # from entity diffs. Hand-written migrations drift from entity metadata and
 # break the schema/migration contract.
@@ -79,8 +81,8 @@ LISA_HOOK_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
 # That is what keeps an undeclared project on exactly the command, and exactly
 # the exit status, it had before.
 #
-# ONE PROPERTY, so there is no all-or-nothing question here: this hook proves
-# `migration-provenance` and nothing else.
+# A project may supply its own `migration-provenance` check for these edits.
+# The built-in only refuses the scoped Write/Edit calls.
 # ---------------------------------------------------------------------------
 if [ -n "${CLAUDE_PROJECT_DIR:-}" ] &&
   [ -f "$LISA_HOOK_DIR/lisa-edit-gate.sh" ] &&
@@ -98,7 +100,7 @@ if [ -n "${CLAUDE_PROJECT_DIR:-}" ] &&
 fi
 
 cat >&2 <<EOF
-❌ Blocked: Direct edits to TypeORM migration files are not allowed.
+❌ Blocked: This default hook refuses Write/Edit on TypeORM migration files.
 
 File: $FILE_PATH
 
@@ -110,20 +112,14 @@ artifact — generate them from entity diffs:
   2. Run: bun run migration:generate --name=<DescriptiveName>
   3. Review the generated migration; commit entity + migration together.
 
-If a schema change cannot be expressed via the entity model, the entity
-model is wrong — fix the entity, do not hand-write the migration.
+Out-of-band migrations (backfills, seed data, maintenance) cannot always
+come from entity diffs. A project that supports these edits can declare a
+\`migration-provenance\` check at \`pre-tool\` in .lisa.config.json. The hook
+runs that check and uses its result to permit or refuse the edit.
 
-OUT-OF-BAND MIGRATIONS (seed data, backfills, data transformations,
-one-off cleanup): these genuinely cannot come from entity diffs. They
-are legitimate but they bypass the entity-as-source-of-truth contract.
-
-If you believe this edit is an out-of-band migration:
-  1. STOP and tell the user what change is needed and why it cannot
-     be expressed via the entity model.
-  2. Get explicit approval before proceeding.
-  3. Document the rationale in the migration's class comment.
-
-Do NOT silently hand-write a migration. See the nestjs-rules skill
-for the full rationale.
+Document the migration's rationale and verification in its class comment.
+This default hook cannot verify human approval and does not inspect Bash
+writes. Do not switch tools to evade its refusal. See the nestjs-rules skill
+for the supported project-check path.
 EOF
 exit 2

@@ -17,7 +17,8 @@
  * about, so it is fixed rather than preserved — and a divergence nobody wrote
  * down is indistinguishable from a regression, so it is asserted in both
  * directions here.
- *
+ * #4128 also corrects the migration refusal's approval wording; those cases
+ * retain the status/command comparison and separately assert the new guidance.
  * @module tests/integration/pre-tool-refusal-equivalence
  */
 
@@ -92,7 +93,20 @@ describe("an undeclared project sees no change", () => {
         );
 
         expect(afterRun.status).toBe(beforeRun.status);
-        expect(afterRun.stderr).toBe(beforeRun.stderr);
+        if (
+          subject.gate === "migration-provenance" &&
+          payload === subject.refuses
+        ) {
+          // #4128 corrects the old refusal's unverifiable approval promise.
+          // Preserve the historical fixture and prove the new message here.
+          expect(afterRun.stderr).toContain("cannot verify human approval");
+          expect(afterRun.stderr).toContain("migration-provenance");
+          expect(afterRun.stderr).not.toMatch(
+            /Get explicit approval|command not found/u
+          );
+        } else {
+          expect(afterRun.stderr).toBe(beforeRun.stderr);
+        }
         expect(afterRun.trace).toEqual(beforeRun.trace);
       }
     }
