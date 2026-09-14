@@ -683,7 +683,8 @@ LISA_BLOCKER_NODE
    invoke `resolveBlockerEdges` as shown above; never create a second resolver in the host.
    It returns `dissolve` / `keep` / `escalate` per edge.
    **Dissolve the edge in the SAME write that records the ruling, then read the relation back and
-   confirm it is gone.** Only when every edge dissolves → move `blocked → claimed`, then run the
+   confirm it is gone.** Only when the parsed edge set is non-empty and the resolver returns
+   `proceed: true` with every edge dissolved → move `blocked → claimed`, then run the
    same agent-dispatch + post-agent `claimed → done` sequence as the stalled-`claimed` path above
    (one-cycle recovery). If the agent re-blocks, move back to `blocked` — a valid outcome.
 
@@ -773,22 +774,16 @@ native-open / active / unresolved:
 4. Post a compact `[lisa-repair-intake]` note only when the native close-out changed state or when
    an actionable setup error must be surfaced. Do not spam already-closed terminal items.
 
-### Lifecycle label contradicts native state — walk BOTH directions
+### Lifecycle label contradicts native state — walk every direction
 
-A lifecycle label can lie in two ways, and historically only one of them had an owner:
+Use the existing detector to check native state and closure reason together.
+`directionsWalked` reports all three repair directions:
 
-| label | native state | owned by |
+| Label | Native state | Repair |
 |---|---|---|
-| terminal `done` role | still open / active | the `Build terminal-open` section above |
-| non-terminal role (`ready`, `claimed`, `blocked`, or any other `status:` member) | closed / completed | **nothing, until now** |
-
-A pass that walks one direction leaves the other accumulating silently. Measured on the Linear TUN
-board: **TUN-556 and TUN-503 both carry a terminal `status:done` while still natively open in
-`On Dev`** — invisible to intake and indistinguishable from handled, exactly like a bot-applied
-`status:in-progress` on GitHub.
-
-Resolve both directions in one pass with the shipped detector, which always reports
-`directionsWalked` covering both, so a "clean" verdict is an assertion that both were examined.
+| Terminal `done` role | Open / active | Follow `Build terminal-open` above |
+| Non-terminal lifecycle role | Closed as `COMPLETED` or reason absent | Advance to the configured terminal role |
+| Non-terminal lifecycle role | Closed as `NOT_PLANNED` | Remove the stale role and add nothing |
 
 **Build the classifier input inside this cycle. Never consume a temp file another skill wrote.**
 repair-intake runs as its own cycle, so borrowing `lisa-github-build-intake`'s scratch file fails
@@ -801,6 +796,9 @@ silent-clean verdict this section promises cannot happen.
 TRUST_DIR=$(mktemp -d)
 trap 'rm -rf "$TRUST_DIR"' EXIT
 
+# REST, not `gh issue view`: this payload carries `state_reason`, and the reason is
+# what separates the two closed directions. A read that drops it makes a NOT_PLANNED
+# closure indistinguishable from a completion at the exact moment one of them WRITES.
 gh api "repos/<org>/<repo>/issues/<n>" > "$TRUST_DIR/issue.json"
 
 # --paginate emits ONE ARRAY PER PAGE; --slurp + `add` flattens all of them so a
@@ -835,14 +833,18 @@ The `excluded` array reports what was held back; surface it, do not repair it.
 1. **`terminal-label-open-state`** → hand to the `Build terminal-open → native close` section above.
    Do not restate its rules; the terminality test lives there (intermediate env rungs like
    `status:on-dev` / `status:on-stg` are **not** terminal).
-2. **`open-label-closed-state`** → the previously unowned direction. The item is natively closed or
-   completed while still wearing a non-terminal lifecycle role. Advance the label to the env-resolved
-   terminal `done` role and post one idempotent `[lisa-repair-intake]` note. This is a write on
-   **Lisa's own** lifecycle surface, not a contest with another writer.
+2. **`open-label-closed-state`** → the previously unowned direction. The item is natively closed as
+   **completed** while still wearing a non-terminal lifecycle role. Advance the label to the
+   env-resolved terminal `done` role and post one idempotent `[lisa-repair-intake]` note. This is a
+   write on **Lisa's own** lifecycle surface, not a contest with another writer.
    Apply the leaf/container check from the **Lifecycle ownership guard** section *before* this
    branch: repair-intake owns container repair, so a natively-closed `ready` **leaf** is skipped
    here and left to the build lane rather than claimed by this pass.
-3. **Vendor caveat — Linear.** On Linear the lifecycle surface is the native workflow **state**, not a
+3. **`open-label-abandoned-state`** → closed as **`NOT_PLANNED`**. Remove the stale
+   non-terminal role and add nothing: declined work has not shipped. Post one idempotent
+   `[lisa-repair-intake]` note naming the closure reason. This removal also applies to closed
+   ready leaves, before the ordinary ready-leaf skip; it never claims or dispatches them.
+4. **Vendor caveat — Linear.** On Linear the lifecycle surface is the native workflow **state**, not a
    `status:*` label (see `config-resolution`). A `status:*` label there is leftover cruft that no
    repair direction reads, which is precisely why TUN-556 and TUN-503 rotted. Treat Linear's native
    state as authoritative and remove the contradicting stale label; never move the state to match a
@@ -1417,8 +1419,9 @@ It MAY:
   terminal `done`.
 - Reconcile a **container** wrongly carrying the build-ready `ready` role (a leaf-only-invariant
   violation) by rolling it up from its children and removing the `ready`, with a
-  `[lisa-repair-intake]` audit note. This is the one `ready`-touching exception (see MUST NOT) and
-  applies only to containers, never to leaves.
+  `[lisa-repair-intake]` audit note.
+- Remove stale lifecycle labels from a natively closed `NOT_PLANNED` item, including a ready
+  leaf. Add no done label and do not claim or dispatch it.
 - Move a PRD with fully terminal generated work to `shipped` and close/archive the source artifact
   where the source vendor supports native close-out, per `prd-lifecycle-rollup`.
 - Repair missing native GitHub child links by replaying the same-repo, idempotent `addSubIssue`
@@ -1439,9 +1442,8 @@ It MUST NOT:
   (empty parent token / `Top-level work:` entries) may become PRD children.
 - Apply a build `done` value other than via the env-resolution rules, or close a native item at
   any value other than the true terminal `done` (see `leaf-only-lifecycle`).
-- Touch `ready` **leaves** (that is `lisa-intake`'s lane). A container carrying `ready` is the
-  documented exception above — repair-intake reconciles it because `ready` on a parent is an
-  invariant violation, not the human "claim this leaf" signal intake owns.
+- Touch `ready` **leaves** except to remove stale labels from a natively closed `NOT_PLANNED`
+  item as above. Open ready leaves remain `lisa-intake`'s lane.
 - Move a GitHub issue that already carries a configured lifecycle label back to `ready` merely
   because some other label looks stale. Official lifecycle labels remain authoritative.
 

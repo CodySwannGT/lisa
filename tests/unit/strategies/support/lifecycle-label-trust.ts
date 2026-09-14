@@ -11,6 +11,7 @@
 
 export const READY = "status:ready";
 export const IN_PROGRESS = "status:in-progress";
+export const BLOCKED = "status:blocked";
 export const DONE = "status:done";
 export const FICTIONAL = "status:whatever";
 
