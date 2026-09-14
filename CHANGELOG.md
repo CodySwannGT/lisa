@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.57.5](https://github.com/CodySwannGT/lisa/compare/v4.57.4...v4.57.5) (2026-09-14)
+
+
+### Bug Fixes
+
+* **guards:** keep printed payload text out of bypass checks ([da60e05](https://github.com/CodySwannGT/lisa/commit/da60e0502510ac8b6d569bb68a4b3b3f423a1259)), closes [CodySwannGT/lisa#3531](https://github.com/CodySwannGT/lisa/issues/3531) [CodySwannGT/lisa#3531](https://github.com/CodySwannGT/lisa/issues/3531)
+* **hooks:** recurse into an eval payload so no bypass hides inside it ([53a5118](https://github.com/CodySwannGT/lisa/commit/53a5118ec1bd7a2bc8efa58da74a3cdbe7887ef4)), closes [#3606](https://github.com/CodySwannGT/lisa/issues/3606) [#3481](https://github.com/CodySwannGT/lisa/issues/3481) [CodySwannGT/lisa#3531](https://github.com/CodySwannGT/lisa/issues/3531)
+
 ### [4.57.4](https://github.com/CodySwannGT/lisa/compare/v4.57.3...v4.57.4) (2026-09-14)
 
 
