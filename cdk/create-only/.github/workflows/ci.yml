@@ -82,42 +82,30 @@ jobs:
           # with nothing in it naming the subject that was rejected. You would
           # only discover it the day you reach for the manual-dispatch path.
           #
-          # To adopt the least-privileged default, create a role (default name
-          # CiReadOnlyServiceRole) in each account, with:
+          # Before enabling pull-request validation, create CiReadOnlyServiceRole
+          # in each account, with:
           #   - a trust policy on the GitHub OIDC provider whose
           #     token.actions.githubusercontent.com:sub condition is
           #     repo:<owner>/<repo>:pull_request
           #   - read-only permissions, plus whatever the CDK bootstrap lookup
           #     role needs for `cdk synth` / `cdk diff`.
-          # Name it something else? Set the repository VARIABLE
-          # CDK_CI_READ_ONLY_ROLE_NAME. Haven't provisioned it yet? Set that
-          # same variable to DeployServiceRole — behaviour is then identical to
-          # a repo scaffolded before this seam existed, and nothing here breaks.
+          # Leave CDK_CI_READ_ONLY_ROLE_NAME unset. A different name is not
+          # proof of read-only permissions, so PR runs reject every override.
+          # Do not use the deploy role as a setup shortcut. Its IAM trust policy
+          # must exclude pull_request subjects and allow only the intended
+          # deployment refs/environments; workflow checks cannot enforce IAM
+          # permissions against a PR that edits the workflow itself.
+          # Existing repositories must deliberately adopt this create-only
+          # workflow update and correct any overly broad role trust policies.
           # ─────────────────────────────────────────────────────────────────
           if [ "${{ github.event_name }}" == "pull_request" ]; then
-            ROLE_NAME="${CDK_CI_READ_ONLY_ROLE_NAME:-CiReadOnlyServiceRole}"
+            if [ -n "$CDK_CI_READ_ONLY_ROLE_NAME" ]; then
+              echo "::error title=Pull-request role override refused::Provision CiReadOnlyServiceRole with the documented read-only permissions and pull-request trust policy, then unset CDK_CI_READ_ONLY_ROLE_NAME. Deployment credentials cannot be used as a setup shortcut. No AWS role has been requested."
+              exit 1
+            fi
+            ROLE_NAME="CiReadOnlyServiceRole"
           else
             ROLE_NAME="DeployServiceRole"
-          fi
-
-          # Say so when the compatibility escape hatch is the thing in force.
-          #
-          # Nothing provisions the read-only role for you, so the cheapest way
-          # to make a fresh repository's CI go green is to point this variable
-          # at DeployServiceRole — which restores exactly the over-privileged
-          # default the split removed. The escape hatch is easier than the fix,
-          # so without this line the path of least resistance quietly re-creates
-          # the problem and every check stays green: the identity assertion
-          # below compares against the role that was SELECTED, so it confirms
-          # the deploy role as correct and prints a tick next to it.
-          #
-          # A warning rather than a failure, deliberately. The override is
-          # documented and legitimate while a repository is being set up;
-          # failing it would break the path the comment above tells people to
-          # take. What it must not do is stay invisible.
-          if [ "${{ github.event_name }}" == "pull_request" ] \
-            && [ "$ROLE_NAME" == "DeployServiceRole" ]; then
-            echo "::warning title=Pull-request validation is holding deploy rights::This pull request assumed DeployServiceRole to run read-only checks (cdk synth, cdk diff, tests), because CDK_CI_READ_ONLY_ROLE_NAME is set to DeployServiceRole. That is the compatibility setting, not the default. While it is in force, anyone who can open a pull request against this repository can obtain deployment credentials for the target account. To fix it: create the read-only role described in .github/workflows/ci.yml in each account, then unset this repository variable."
           fi
 
           echo "role_name=$ROLE_NAME" >> $GITHUB_OUTPUT
