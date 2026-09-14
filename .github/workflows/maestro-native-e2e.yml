@@ -2420,9 +2420,15 @@ jobs:
               report, flow, deadline, now, startup = sys.argv[1:]
               def key(value):
                   return os.path.splitext(os.path.basename(value))[0]
-              cases = ET.parse(report).getroot().iter('testcase')
-              times = [float(case.get('time', 'nan')) for case in cases
-                       if key(case.get('file') or case.get('name', '')) == key(flow)]
+              cases = list(ET.parse(report).getroot().iter('testcase'))
+              matches = [case for case in cases if case.get('file') and
+                         os.path.abspath(case.get('file')) == os.path.abspath(flow)]
+              if not matches:
+                  matches = [case for case in cases if
+                             key(case.get('file') or case.get('name', '')) == key(flow)]
+                  if len(matches) != 1:
+                      raise ValueError('Ambiguous duration')
+              times = [float(case.get('time', 'nan')) for case in matches]
               startup = float(startup) / 1000
               if not times or any(not math.isfinite(t) or t < 0 for t in times) or not math.isfinite(startup) or startup < 0:
                   raise ValueError('Missing duration')
@@ -4061,9 +4067,15 @@ jobs:
               report, flow, deadline, now, startup = sys.argv[1:]
               def key(value):
                   return os.path.splitext(os.path.basename(value))[0]
-              cases = ET.parse(report).getroot().iter('testcase')
-              times = [float(case.get('time', 'nan')) for case in cases
-                       if key(case.get('file') or case.get('name', '')) == key(flow)]
+              cases = list(ET.parse(report).getroot().iter('testcase'))
+              matches = [case for case in cases if case.get('file') and
+                         os.path.abspath(case.get('file')) == os.path.abspath(flow)]
+              if not matches:
+                  matches = [case for case in cases if
+                             key(case.get('file') or case.get('name', '')) == key(flow)]
+                  if len(matches) != 1:
+                      raise ValueError('Ambiguous duration')
+              times = [float(case.get('time', 'nan')) for case in matches]
               startup = float(startup) / 1000
               if not times or any(not math.isfinite(t) or t < 0 for t in times) or not math.isfinite(startup) or startup < 0:
                   raise ValueError('Missing duration')

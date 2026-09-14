@@ -4,7 +4,11 @@ import {
   loadWorkflow,
   runSuiteDriver,
 } from "./support/maestro-android-retry-harness.js";
-import { reading, rows } from "./support/maestro-android-retry-fixtures.js";
+import {
+  buildReport,
+  reading,
+  rows,
+} from "./support/maestro-android-retry-fixtures.js";
 
 describe.each(["android", "ios"] as const)("%s retry time budget", platform => {
   it("declines a retry that cannot finish and retains the original failure", async () => {
@@ -21,6 +25,30 @@ describe.each(["android", "ios"] as const)("%s retry time budget", platform => {
     );
     expect(result.summary).toContain("FAIL .maestro/flows/flow-07.yaml");
   });
+
+  it.each([
+    { path: ".maestro/flows/flow-07.yaml", sibling: true, expected: 2 },
+    { path: "./.maestro/flows/flow-07.yaml", sibling: true, expected: 2 },
+    { path: "flow-07.yaml", sibling: false, expected: 2 },
+    { path: "flow-07.yaml", sibling: true, expected: 1 },
+  ])(
+    "matches duration to the intended flow: %j",
+    async ({ path, sibling, expected }) => {
+      const report = buildReport(["flow-07"])
+        .replace('file=".maestro/flows/flow-07.yaml"', `file="${path}"`)
+        .replace(
+          "</testsuite>",
+          `${sibling ? '<testcase file="profile/flow-07.yaml" time="1000"/>' : ""}</testsuite>`
+        );
+      const result = await runSuiteDriver(await loadWorkflow(), {
+        platform,
+        report,
+        deadlineSeconds: 400,
+      });
+      expect(result.attempts).toBe(expected);
+      expect(result.status === 0).toBe(expected === 2);
+    }
+  );
 
   it("still retries and recovers when enough job time remains", async () => {
     const result = await runSuiteDriver(await loadWorkflow(), {

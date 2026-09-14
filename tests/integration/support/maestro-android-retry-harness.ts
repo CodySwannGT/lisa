@@ -89,6 +89,7 @@ export type RetryMode =
 
 /** Knobs for one suite-driver execution. */
 export interface RunOptions {
+  report?: string;
   platform?: "android" | "ios";
   deadlineSeconds?: number | null;
   missingDuration?: boolean;
@@ -261,6 +262,7 @@ async function prepareDriver(
   } = options;
   const summary = path.join(dir, "summary");
   await fs.writeFile(summary, "");
+  if (options.report) await fs.writeFile(seed, options.report);
   if (missingDuration) {
     await fs.writeFile(
       seed,
@@ -290,10 +292,8 @@ async function prepareDriver(
       candidate => candidate.env?.FLOW_RETRY_TAG
     );
     if (!step?.run) throw new Error("Missing iOS suite step");
-    await fs.writeFile(
-      path.join(dir, "ios-driver.sh"),
-      `set -eo pipefail\n${step.run}`
-    );
+    const script = path.join(dir, "ios-driver.sh");
+    await fs.writeFile(script, `set -eo pipefail\n${step.run}`);
   }
 
   return { summary, fixtureEnv, invocation };
