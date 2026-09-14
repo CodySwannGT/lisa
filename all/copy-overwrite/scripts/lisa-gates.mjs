@@ -1619,6 +1619,9 @@ const NO_FALLBACK_PROVER = "(none — the fallback announces the absent adapter)
 
 /**
  * What each façade job runs when nothing resolves, and under which step names.
+ * `unconditional` is opt-in: only fallbacks that run or fail for missing
+ * prerequisites may own a taskless declaration. Optional service scans and
+ * legacy audit paths that swallow execution failures do not qualify.
  *
  * Keyed by job id so the gate comes from `QUALITY_JOB_GATES` rather than being
  * written twice. `steps` are the exact step names carrying
@@ -1710,6 +1713,7 @@ const QUALITY_FALLBACKS = Object.freeze({
     steps: ["🗑️ Run dead code detection (knip)"],
   },
   learnings_budget: {
+    unconditional: true,
     // The built-in runs Lisa's own in-tree checker on the Lisa source repo and
     // the published CLI everywhere else, AT THE PROJECT'S OWN VERSION — read
     // from its `@codyswann/lisa` dependency range, because the literal that
@@ -1810,6 +1814,7 @@ const QUALITY_FALLBACKS = Object.freeze({
     ],
   },
   floor_collisions: {
+    unconditional: true,
     // Two candidate paths, and Lisa's own repository ships the script as a
     // template rather than installing it — so the built-in chooses between
     // them at run time and a single named task cannot reproduce the choice.
@@ -1936,6 +1941,7 @@ function qualityInvocations() {
       artifact,
       job,
       command: entry.command,
+      unconditional: entry.unconditional === true,
       steps: Object.freeze([...entry.steps]),
       seedRun:
         entry.seedRun === undefined ? null : Object.freeze([...entry.seedRun]),
@@ -1974,12 +1980,14 @@ function prePushInvocation(gate, command, seedRun) {
  * @param {string} gate Registry gate id.
  * @param {string} command What the built-in else-branch runs.
  * @param {string[]|null} seedRun Candidate task names, or null for the registry default.
+ * @param {boolean} [unconditional] The fallback fails when its prover cannot run.
  * @returns {object} A frozen inventory entry.
  */
-function preCommitInvocation(gate, command, seedRun) {
+function preCommitInvocation(gate, command, seedRun, unconditional = false) {
   return Object.freeze({
     gate,
     moment: COMMIT,
+    unconditional,
     surface: "pre-commit-hook",
     artifact: PRE_COMMIT_HOOK,
     job: null,
@@ -2066,6 +2074,7 @@ function onEditInvocation(gate, artifact, command) {
 function preToolRefusalInvocation(gate, artifact, command) {
   return Object.freeze({
     gate,
+    unconditional: true,
     moment: PRE_TOOL,
     hookEvent: "PreToolUse",
     surface: "pre-tool-refusal-hook",
@@ -2284,8 +2293,9 @@ export const HARDCODED_INVOCATIONS = Object.freeze([
     "gitleaks protect --staged --redact -v",
     // Nothing a project could name reproduces this: the built-in also builds
     // a combined ignore file out of .gitleaksignore and .gitleaksignore.local
-    // before scanning, and degrades to a warning when gitleaks is absent.
-    []
+    // before scanning, and blocks when gitleaks is absent.
+    [],
+    true
   ),
   // ONE invocation, THREE properties — `lint-staged` runs oxlint/eslint,
   // prettier and `ast-grep scan` in a single pass, which is why the hook
@@ -5414,7 +5424,9 @@ export function resolveMoment({
     // registry's explicit statement that the default task is descriptive and
     // is not shipped. When the matching hard-coded invocation exists, keep the
     // declaration visible (so contexts and requiredness still derive from it)
-    // but let that invocation take its documented fallback path. An explicit
+    // but only delegate to an explicitly unconditional prover. A fallback that
+    // skips for missing credentials or files cannot carry a required property.
+    // An explicit
     // `run:` still replaces the fallback, and an unexpectedly present default
     // script still runs, so this cannot hide a prover the project supplied.
     const facadeBuiltIn =
@@ -5431,7 +5443,7 @@ export function resolveMoment({
           invocation.gate === id &&
           invocation.moment === moment &&
           invocation.facade === CONSULTS_THEN_FALLS_BACK &&
-          invocation.command !== NO_FALLBACK_PROVER
+          invocation.unconditional === true
       );
 
     resolved.push({

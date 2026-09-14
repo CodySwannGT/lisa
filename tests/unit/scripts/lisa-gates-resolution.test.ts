@@ -108,11 +108,7 @@ describe("resolveMoment", () => {
   });
 
   it("keeps a bare declare-only gate on its facade built-in", () => {
-    for (const id of [
-      "dependency-vulnerability",
-      "learnings-budget",
-      "static-security",
-    ]) {
+    for (const id of ["learnings-budget", "security-floor-integrity"]) {
       const [resolved] = resolveMoment({
         gates: { [id]: { [PULL_REQUEST]: "required" } },
         moment: PULL_REQUEST,

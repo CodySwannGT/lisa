@@ -434,7 +434,6 @@ describe("awaited ruleset overlaps", () => {
           rulesetId: 7,
         },
       ],
-      records: [{ context: LINT, ruleset: BASE }],
       awaited: [{ context: LINT, ruleset: BASE }],
     });
 
@@ -458,10 +457,7 @@ describe("awaited ruleset overlaps", () => {
           rulesetId: 8,
         },
       ],
-      records: [
-        { context: LINT, ruleset: BASE },
-        { context: LINT, ruleset: "release" },
-      ],
+      records: [{ context: LINT, ruleset: "release" }],
       awaited: [{ context: LINT, ruleset: BASE }],
     });
 

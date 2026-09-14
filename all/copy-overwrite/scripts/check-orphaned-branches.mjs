@@ -200,25 +200,36 @@ export function defaultBranch(remote = "origin") {
  */
 export function branchesWithPullRequests() {
   const json = run("gh", [
-    "pr",
-    "list",
-    "--state",
-    "all",
-    "--limit",
-    "1000",
-    "--json",
-    "headRefName",
+    "api",
+    "graphql",
+    "--paginate",
+    "--slurp",
+    "-F",
+    "owner={owner}",
+    "-F",
+    "name={repo}",
+    "-f",
+    "query=query($owner:String!,$name:String!,$endCursor:String){repository(owner:$owner,name:$name){pullRequests(first:100,after:$endCursor){nodes{headRefName}pageInfo{hasNextPage endCursor}}}}",
   ]);
   if (json === undefined) return undefined;
   try {
-    const rows = JSON.parse(json);
-    return new Set(
-      Array.isArray(rows)
-        ? rows
-            .map(row => row?.headRefName)
-            .filter(name => typeof name === "string")
-        : []
-    );
+    const pages = JSON.parse(json);
+    if (!Array.isArray(pages) || pages.length === 0) return undefined;
+    const rows = [];
+    for (const [index, page] of pages.entries()) {
+      const { nodes, pageInfo } = page?.data?.repository?.pullRequests ?? {};
+      if (
+        !Array.isArray(nodes) ||
+        nodes.some(row => typeof row?.headRefName !== "string") ||
+        pageInfo?.hasNextPage !== index < pages.length - 1 ||
+        (pageInfo.hasNextPage &&
+          (typeof pageInfo.endCursor !== "string" || !pageInfo.endCursor))
+      ) {
+        return undefined;
+      }
+      rows.push(...nodes);
+    }
+    return new Set(rows.map(row => row.headRefName));
   } catch {
     // probe-direction: fail-closed — unparseable output is not an empty pull-
     // request set. `main` turns undefined into EXIT.UNAVAILABLE, so a branch is
@@ -249,8 +260,10 @@ export function branchesAhead(remote = "origin", base = "main") {
       "--count",
       `${remote}/${base}..${remote}/${branch}`,
     ]);
-    const ahead = Number.parseInt(count ?? "", 10);
-    if (Number.isFinite(ahead) && ahead > 0) rows.push({ ahead, branch });
+    if (count === undefined || !/^\d+$/.test(count)) return undefined;
+    const ahead = Number(count);
+    if (!Number.isSafeInteger(ahead)) return undefined;
+    if (ahead > 0) rows.push({ ahead, branch });
   }
   return rows;
 }

@@ -690,7 +690,6 @@ export function reconcileContexts({
   const liveContexts = live ?? [];
   const declaredNames = new Set(declared ?? []);
   const byName = (a, b) => a.localeCompare(b);
-  const awaitedDeclarations = awaited ?? [];
 
   // The unit of declaration is a (ruleset, context) PAIR, not a name. A name
   // set cannot hold `build` required by both `base` and `release`, so a live
@@ -707,6 +706,10 @@ export function reconcileContexts({
       // chain is not a source of declared policy.
       ...(Object.hasOwn(pins, name) ? { integration_id: pins[name] } : {}),
     }));
+  const awaitedDeclarations = effectiveAwaitedRecords(
+    awaited ?? [],
+    supplied ?? reconstituted
+  );
   const byContext = new Map();
   for (const record of supplied ?? reconstituted) {
     if (!declaredNames.has(record?.context)) continue;
@@ -805,6 +808,23 @@ export function reconcileContexts({
       .filter(name => !missingNames.has(name))
       .sort(byName),
   };
+}
+
+/**
+ * Explicit ruleset records override awaited declarations of the same pair.
+ * @param {object[]} awaited External check declarations.
+ * @param {object[]} records Explicit required-check records.
+ * @returns {object[]} Awaited records that still govern a pair.
+ */
+function effectiveAwaitedRecords(awaited, records) {
+  return awaited.filter(
+    record =>
+      !records.some(
+        explicit =>
+          explicit.context === record.context &&
+          explicit.ruleset === record.ruleset
+      )
+  );
 }
 
 /**
@@ -1552,13 +1572,16 @@ export function reconcile({
   // comparison record, that record is what the repair reads its pin off — so
   // omitting it here would have the repair write the context unpinned and
   // silently discard the one app the project said may post it.
-  const awaitedDeclarations = awaited.map(context => ({
-    context,
-    ...(resolvedAwaitedHome === null ? {} : { ruleset: resolvedAwaitedHome }),
-    ...(Object.hasOwn(declaredAwaitedPins, context)
-      ? { integration_id: declaredAwaitedPins[context] }
-      : {}),
-  }));
+  const awaitedDeclarations = effectiveAwaitedRecords(
+    awaited.map(context => ({
+      context,
+      ...(resolvedAwaitedHome === null ? {} : { ruleset: resolvedAwaitedHome }),
+      ...(Object.hasOwn(declaredAwaitedPins, context)
+        ? { integration_id: declaredAwaitedPins[context] }
+        : {}),
+    })),
+    configured.records
+  );
   const contexts = reconcileContexts({
     declared,
     live: live.contexts,
