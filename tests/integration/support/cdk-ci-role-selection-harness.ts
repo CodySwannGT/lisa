@@ -149,7 +149,14 @@ function spawnStep(
   return spawnSync(SHELL, ["-e", script], {
     cwd,
     encoding: "utf8",
-    env: { ...process.env, GITHUB_OUTPUT: outputs, ...env },
+    env: {
+      PATH: process.env.PATH,
+      HOME: cwd,
+      BASH_ENV: "/dev/null",
+      ENV: "/dev/null",
+      GITHUB_OUTPUT: outputs,
+      ...env,
+    },
     timeout: RUN_TIMEOUT_MS,
   });
 }
