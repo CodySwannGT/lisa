@@ -1,3 +1,6 @@
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 import type { RunPage } from "./reusable-workflow-load-scan.mjs";
 export declare const RUNS_PER_PAGE = 100;
 export type GithubRequest = (path: string) => Promise<unknown>;

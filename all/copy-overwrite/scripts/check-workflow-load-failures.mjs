@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-// This file is managed by Lisa and replaced on each Lisa update.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 import { execFile } from "node:child_process";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";

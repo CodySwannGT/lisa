@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs":
       "95f91f2a74ed4e523d064d5d374eadd1c1114f03a3a4fa41532c9b0fd32089de",
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
-      "5f4d14068165d58bf285bd638d3aed2692f0c5f6fba6449111abade46646b3ec",
+      "ea31d735ec0bb40fd9f254c53f58422cb5fd3b46af3bd7136eb27de5a01a9d40",
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
@@ -35,17 +35,17 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs":
       "cffebe7feca1b5cce7b514bd1b5e991375cbc20607dff70385699e474e36b4d3",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.d.mts":
-      "289c57b7cf1de7c2b5a2e89de8e706d53fc590592b8f3ba08ba41e04f97fd343",
+      "da1eebc33c5215bc81ab4202c649a5af6b39e3d42f71f94cb2424e3535849154",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs":
-      "bd4d15cebb584b75aa4da8c07be23d5777c26d9948f4d8e5446f95b6a34d3629",
+      "221907a625a11aad3081110f1b9467384abec90b506e0cc3aacb261ab7711e7e",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-failure.d.mts":
-      "1389d12dd75deddf8dc6b56dbb0f4286dc839bd5530c08511a16d89d0dfcb7b3",
+      "5fc0231ba95c7d3af6274facdb3e855605ede40c43d1a7ae35c7be2b4ed04407",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-failure.mjs":
-      "135740db804f470a6c99c5eee8d508ad8059cd98468d5f0c1910a50690fade4a",
+      "02fca68fc8308527d3f00c83d2bb8700fdbc6201c485e811178060a75fdbd41e",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.d.mts":
-      "7916579bdff3848f248f84755ebde97b9e7ccfd4d59627cab7b6e78d05196316",
+      "6b05d968fcf03fcb1465f45f0d65806e622b3be2204b4e2b080b4f1291bffec1",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs":
-      "0bf29533a5879e01385777c3a71d9c83f6694cd1162a7db234db47546065e7b0",
+      "66fb27cc1de6baf48acf908715624c04b7738f831944a6c1c9daff50383026be",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.d.mts":
       "66f77b767869f57185b819ca6f294ad0706348b50eba12f78af2430d9c8775df",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs":
@@ -115,7 +115,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/create-only/.github/workflows/continuous-gates.yml":
       "d4b3aa4eeefec7fba06587aa596f7d4df1bed58b9613b49a9a97f71821c8a937",
     "all/create-only/.github/workflows/workflow-load-failure-sweep.yml":
-      "bbf593111c0de87758d7a8ba420982470ac1b9fc461c60569b26c6d41ed36988",
+      "3ce24f9d82495a2f327c1705333c049bbb7c7a65170329d530295d23c6c7ad2d",
     "all/create-only/.lisaignore":
       "735dc0a28a19e3aebc3d71b1ddf8b077e96ab17013d0f1c49d87c08558a315df",
     "all/create-only/scripts/remote-agent-aws-setup.sh":
@@ -2535,7 +2535,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "0775c6feb7638122e8b68d611cd709bf270f7b5adb5d0d2baa9afab8a6c0fc42",
     "typescript/copy-overwrite/.prettierignore":
-      "01b13f98063d719e0bf6e3e591f8069446fea8979fbb773d1c89e51f5bb4b9a9",
+      "e2538ae1b5ef5d64733c3d6c07292495ead71603dfca2b37fda4a9ed080deb9a",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":

@@ -1,4 +1,6 @@
-// This file is managed by Lisa and replaced on each Lisa update.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /**
  * Conclusions worth spending two extra requests on.
  *

@@ -77,6 +77,7 @@ scripts/check-third-party-action-pins.mjs
 scripts/check-third-party-review-evidence.mjs
 scripts/check-threshold-ratchet.mjs
 scripts/check-verification-coverage.mjs
+scripts/check-workflow-load-failures.mjs
 scripts/classify-maestro-failures.mjs
 scripts/lisa-command-envelope.mjs
 scripts/lisa-commit-msg-gates.mjs

@@ -1,4 +1,5 @@
-# Seeded by Lisa. This workflow is yours to customise.
+# Seeded by Lisa on first setup — this file is YOURS.
+# Lisa will not overwrite it. (copy-overwrite assets ARE replaced each run.)
 name: 🧩 Reusable Workflow Load Sweep
 
 on:

@@ -1,3 +1,6 @@
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 import { type RunLoadClass } from "./reusable-workflow-load-failure.mjs";
 export interface ScannedRun {
   readonly id: number;
