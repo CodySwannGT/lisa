@@ -56,7 +56,7 @@ function execute(script: string, extra: Record<string, string>) {
 }
 
 describe("Expo provider eligibility", () => {
-  const check = deploy.jobs.check_eas_setup.steps.find(
+  const check = deploy.jobs.check_eas_setup!.steps.find(
     step => step.id === "check"
   )!.run!;
   it.each([
@@ -81,8 +81,8 @@ describe("Expo provider eligibility", () => {
 });
 
 describe.each([
-  { steps: build.jobs.build.steps },
-  { steps: deploy.jobs.deploy.steps },
+  { steps: build.jobs.build!.steps },
+  { steps: deploy.jobs.deploy!.steps },
 ])("Expo authentication steps", ({ steps }) => {
   it("installs Lisa before resolving, then supplies the resolved token to Expo", () => {
     const install = steps.findIndex(
@@ -95,7 +95,7 @@ describe.each([
     expect(install).toBeGreaterThan(-1);
     expect(resolve).toBeGreaterThan(install);
     expect(expo).toBeGreaterThan(resolve);
-    expect(steps[expo].with?.token).toBe(
+    expect(steps[expo]?.with?.token).toBe(
       "${{ secrets.EXPO_TOKEN || env.EXPO_TOKEN }}"
     );
   });
