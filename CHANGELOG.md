@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.59.1](https://github.com/CodySwannGT/lisa/compare/v4.59.0...v4.59.1) (2026-09-14)
+
+
+### Bug Fixes
+
+* **repair-intake:** split closed-item drift on the closure reason ([e430688](https://github.com/CodySwannGT/lisa/commit/e4306882d728ec276ca06f61b97c2ce0e36e8d5a)), closes [CodySwannGT/lisa#3479](https://github.com/CodySwannGT/lisa/issues/3479)
+
+
+### Documentation
+
+* **tests:** say the closure-reason fixtures are miscased on purpose ([7a7db53](https://github.com/CodySwannGT/lisa/commit/7a7db53175301f06677956fd53ad802c3d8dd2e5)), closes [#3529](https://github.com/CodySwannGT/lisa/issues/3529) [CodySwannGT/lisa#3479](https://github.com/CodySwannGT/lisa/issues/3479)
+
 ## [4.59.0](https://github.com/CodySwannGT/lisa/compare/v4.58.1...v4.59.0) (2026-09-14)
 
 
