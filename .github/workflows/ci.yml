@@ -48,3 +48,16 @@ jobs:
           node dist/index.js --version
           node dist/index.js --help | grep -q "setup-project"
           node dist/index.js --help | grep -q "setup-wiki"
+  windows_preflight:
+    name: Windows lint-staged preflight
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: '22.21.1'
+      - name: Verify native Windows tool resolution
+        run: node --test tests/platform/lint-staged-preflight.test.mjs

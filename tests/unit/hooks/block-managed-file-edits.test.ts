@@ -28,7 +28,10 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
+import {
+  boundedExecFileSync,
+  ChildFailure,
+} from "../../helpers/io-latency-budget.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
@@ -49,6 +52,8 @@ const BASH = "/bin/bash";
 
 /** A copy-overwrite template used across the cases. */
 const MANAGED = "scripts/classify-maestro-failures.mjs";
+const IGNORE_FILE = ".lisaignore";
+const GENERATED_CONSEQUENCE = "REGENERATES this file";
 
 let project: string;
 
@@ -82,7 +87,7 @@ function runGuard(filePath: string): number {
  * @returns Nothing.
  */
 const ignoreFile = (body: string): void =>
-  writeFileSync(path.join(project, ".lisaignore"), body, "utf8");
+  writeFileSync(path.join(project, IGNORE_FILE), body, "utf8");
 
 beforeEach(() => {
   project = mkdtempSync(path.join(tmpdir(), "lisa-guard-"));
@@ -321,6 +326,48 @@ describe("the refusal explains the fork route", () => {
  * CodySwannGT/lisa#2632.
  */
 describe("generated paths get the opposite consequence", () => {
+  it("emits generated-file remedies rather than template-fork instructions", () => {
+    const migrations = path.join(
+      project,
+      "node_modules/@codyswann/lisa/dist/migrations"
+    );
+    mkdirSync(migrations, { recursive: true });
+    writeFileSync(
+      path.join(migrations, "generated-paths.js"),
+      'export const prefixes = [".fixture/generated"];\n'
+    );
+    try {
+      boundedExecFileSync({
+        label: GUARD_LABEL,
+        command: BASH,
+        args: [GUARD],
+        input: JSON.stringify({
+          tool_name: "Write",
+          tool_input: {
+            file_path: path.join(project, ".fixture/generated/tool.sh"),
+          },
+        }),
+        env: {
+          PATH: process.env.PATH,
+          BASH_ENV: "/dev/null",
+          ENV: "/dev/null",
+          CLAUDE_PROJECT_DIR: project,
+        },
+        stdio: "pipe",
+      });
+      throw new Error("Expected the generated write to be refused");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ChildFailure);
+      const failure = error as ChildFailure;
+      expect(failure.exitCode).toBe(2);
+      expect(failure.stderr).toContain(GENERATED_CONSEQUENCE);
+      expect(failure.stderr).toContain("next explicit");
+      expect(failure.stderr).not.toContain("copy-overwrite");
+      expect(failure.stderr).not.toContain(IGNORE_FILE);
+      expect(failure.stderr).not.toContain("next `bun install`");
+    }
+  });
+
   it("names the generated set from the installed package, not from a copy here", () => {
     // The prefixes live in dist/migrations/generated-paths.js, which the
     // vendoring migration also imports. A list restated inside the hook would
@@ -331,14 +378,14 @@ describe("generated paths get the opposite consequence", () => {
   });
 
   it("tells a generated file its edit is REGENERATED away", () => {
-    expect(hookText()).toContain("REGENERATES this file");
+    expect(hookText()).toContain(GENERATED_CONSEQUENCE);
   });
 
   it("keeps the two consequences distinct in the refusal text", () => {
     // If these ever collapse into one message, the guard has started lying to
     // one of its two populations.
     const text = hookText();
-    expect(text).toContain("REGENERATES this file");
+    expect(text).toContain(GENERATED_CONSEQUENCE);
     expect(text).toContain("KEEP your edit");
   });
 });

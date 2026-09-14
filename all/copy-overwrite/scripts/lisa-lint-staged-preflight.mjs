@@ -46,10 +46,11 @@
  *
  * This guard does not read the file's first bytes looking for a shebang or an
  * object-file magic number and reason about what the kernel would do with them.
- * It spawns each executable, shell-less, exactly as lint-staged will, and
+ * On POSIX it spawns each executable, shell-less, as lint-staged will, and
  * watches for the `spawn` event. `ENOEXEC`, `ENOENT` and `EACCES` all arrive as
  * an `error` event instead, which is the signal. The probe passes when — and
- * only when — the operating system really started the process.
+ * only when — the operating system really started the process. Windows also
+ * requires where.exe to resolve the tool before accepting its shell startup.
  *
  * `--version` is the probe argument because every tool Lisa ships in
  * `.lintstagedrc.json` answers it instantly. The exit code is deliberately
@@ -75,7 +76,7 @@
  *   reports loudly. It has no path to a silent pass.
  * @module scripts/lisa-lint-staged-preflight
  */
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
@@ -202,17 +203,39 @@ export const probeEnv = cwd => {
 /**
  * Start one executable and report whether the operating system started it.
  *
- * Shell-less on POSIX, matching how lint-staged spawns and therefore matching
- * the `ENOEXEC` this guard exists to catch. On win32 the shell is used because
- * that is how `.cmd` shims are invoked there; `ENOEXEC` in the sense meant here
- * is a POSIX `execve` outcome and has no win32 counterpart.
+ * Shell-less on POSIX. Windows first resolves the requested tool with where.exe
+ * using the same cwd, PATH and PATHEXT, then starts its shell. A shell spawn by
+ * itself cannot establish that the requested command exists.
  * @param {string} executable - Name or path to start.
  * @param {string} cwd - Directory to start it in.
  * @param {NodeJS.ProcessEnv} env - Environment to start it with.
  * @returns {Promise<{ executable: string, started: boolean, code?: string, detail?: string }>} Probe outcome.
  */
-export const probe = (executable, cwd, env) =>
-  new Promise(resolve => {
+export const probe = async (executable, cwd, env) => {
+  if (process.platform === "win32") {
+    const available = await new Promise(resolve => {
+      execFile(
+        path.join(
+          env.SystemRoot ?? env.SYSTEMROOT ?? "C:\\Windows",
+          "System32",
+          "where.exe"
+        ),
+        ["/q", executable],
+        { cwd, env, timeout: PROBE_TIMEOUT_MS, windowsHide: true },
+        error => resolve(error === null)
+      );
+    });
+    if (!available) {
+      return {
+        executable,
+        started: false,
+        code: "UNAVAILABLE",
+        detail:
+          "Windows could not resolve this tool; check its installation and PATH.",
+      };
+    }
+  }
+  return new Promise(resolve => {
     let settled = false;
     /**
      * Resolve once, ignoring any later event from the same child.
@@ -257,6 +280,7 @@ export const probe = (executable, cwd, env) =>
       settle({ executable, started: true });
     });
   });
+};
 
 /**
  * Refuse to continue, saying what could not be established.

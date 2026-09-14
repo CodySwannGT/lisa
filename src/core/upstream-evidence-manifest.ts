@@ -51,11 +51,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
       "b17d73c02245d64ae96ba4b9ec642f5a54a827accb1af292a4600a98e1a596f4",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "942f5bb0360ab56a082a2ca66a7a43ee5db2e336a25478c9600d59dd7192d8cd",
+      "75795acf3203a3965ce0989939d16d12bfd76ac725a57818ad8d414ff101e705",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "2660d27d111beb79fed7e83feebcabd5f7e565dce99dbb4d861c8dc59ef8a0d7",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
-      "087569474640841ce7b767a525e311c53b1c404ec473e9947f45220ee051a7fb",
+      "214e45a38f60ab375934236cd3d8529f521873a5b8765261334d594534f10391",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
       "784028deb1488a4e9fc02a7a0e5e5ddf6d5e3f45b497a13dd16077633fb110f4",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
@@ -73,7 +73,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh":
       "9b0d2d4690850a550ccc79a8c3bb1c0de1cca1f2d8a3550e2bed6daa7afcf7c4",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
-      "76c568bb393c47ef0e48bf0aaaa092be60ab137e79a5bb39b03cd83decd7b91e",
+      "2379d4fc5174ae4727997a0d88d43a0212941d91bdebaf790caadd20a8c59810",
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
       "2a826523a4f4fc58bfa0a24e2cf02504218dd68b4baffb346966dff705dea9b0",
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
@@ -737,7 +737,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "7ec3db9a519a5ce95277d75ab347d2ee52970bc4ccb7ae554bccba8628290c19",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "e689d8a49677eaf56c3d10bf0d782f93d0a1f8049111003d7e00b8351de943b2",
+      "d222bfc787007a6a3bf218dd291a3f426e0895b1b94da5b16b736c150941f451",
     "plugins/src/base/hooks/block-host-name-leak.agy.sh":
       "9522a2db621178d9cee5bf70ff3948251c5043868f372924bfee19126dbd1c41",
     "plugins/src/base/hooks/block-host-name-leak.mjs":
@@ -751,7 +751,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.agy.sh":
       "19cda51fcc113f0b3c184d8907913ab4b49ecb81db80ce7909639194bc9c52d6",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
-      "764220b81b9eeaebbf0e14b4a41538aed43c7924bab65fef5528531c103a847f",
+      "5d7cfcd2444a0c3251a02f7ed79917e28962cffe121e499eb5715444aa489a89",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
       "62afd86ef3344de2216afea008e6ac9bf37be7e6f7a42f0e9978243d3363aa90",
     "plugins/src/base/hooks/block-no-verify.sh":
@@ -9592,6 +9592,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/workflow-deletion-ownership.test.ts": true,
     "tests/integration/workflow-expression-not-truncated.test.ts": true,
     "tests/integration/zero-collection-gate-bite.test.ts": true,
+    "tests/platform/lint-staged-preflight.test.mjs": true,
     "tests/support/git-executable.ts": true,
     "tests/support/prune-fixtures.ts": true,
     "tests/support/work-item-cli.ts": true,

@@ -215,6 +215,36 @@ describe("block-direct-issue-create.sh declarations", () => {
  * exists to close.
  */
 describe("shell operators inside quoted arguments", () => {
+  it.each([
+    '--title="Trim config; org preference"',
+    '--title=prefix"quoted && data"suffix',
+    "--title=prefix'quoted | data'suffix",
+    '--title="quoted;"unquoted"||tail"',
+    "--title=escaped\\;operator",
+    '--title=";&"',
+  ])(
+    "allows quoted or escaped operators within a mixed source word: %s",
+    title => {
+      const { status } = runHook(
+        bash(
+          `gh issue create ${title} --body-file /tmp/b.md --label "type:Task" --label "status:ready"`
+        ),
+        { cwd: projectWithTracker() }
+      );
+      expect(status).toBe(EXIT_ALLOWED);
+    }
+  );
+
+  it("still finds an unquoted separator beside a quoted segment of the same word", () => {
+    const { status } = runHook(
+      bash(
+        'gh issue create --label "status:ready" --title="quoted;data"&&gh issue create --title undeclared'
+      ),
+      { cwd: projectWithTracker() }
+    );
+    expect(status).toBe(EXIT_BLOCKED);
+  });
+
   it("allows a declared create whose title contains a semicolon", () => {
     const { status } = runHook(
       bash(
