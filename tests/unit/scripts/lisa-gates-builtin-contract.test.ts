@@ -46,7 +46,7 @@ describe("built-in facade ownership", () => {
       moment,
       scripts: {},
     });
-    expect(gate.mode).toBe("run");
+    expect(gate?.mode).toBe("run");
   });
 
   it("reports facade delegation without claiming a local pass or failure", () => {
