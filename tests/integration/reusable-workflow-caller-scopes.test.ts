@@ -142,6 +142,10 @@ const BASELINE: Readonly<Record<string, ScopeMap>> = {
     "pull-requests": "write",
   },
   "quality.yml": { contents: "read" },
+  // Temporary branch-only #3763 fixture with a new caller in this same change.
+  // That caller grants contents: read; no installed caller predates this file.
+  // Keep this entry with the fixture and do not merge either into main.
+  "registry-observation-fixture.yml": { contents: "read" },
   "release-rails.yml": { contents: "write" },
   "release.yml": { contents: "write", "pull-requests": "read" },
   "sentry-deploy.yml": { contents: "read" },

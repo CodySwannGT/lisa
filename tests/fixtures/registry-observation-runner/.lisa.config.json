@@ -1,0 +1,17 @@
+{
+  "gates": {
+    "runner": "bun run",
+    "code-style": {
+      "pull-request": {
+        "level": "required",
+        "run": "probe:gate"
+      }
+    },
+    "test-correctness": {
+      "pull-request": {
+        "level": "required",
+        "run": "probe:gate"
+      }
+    }
+  }
+}

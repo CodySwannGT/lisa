@@ -2475,7 +2475,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "f1bc91e7a6ea18ce8d476bd2d4d99782d9c50ac4212db26e463c9836b2333c19",
+      "da154f5d29182bfed8f7cd1b4d45f1b89754223d057681fa6ffe7a3209dc3f1a",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -2774,6 +2774,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/publish-to-npm.yml": true,
     ".github/workflows/quality-rails.yml": true,
     ".github/workflows/quality.yml": true,
+    ".github/workflows/registry-observation-fixture.yml": true,
+    ".github/workflows/registry-observation-probe.yml": true,
     ".github/workflows/release-rails.yml": true,
     ".github/workflows/release.yml": true,
     ".github/workflows/review-evidence.yml": true,
@@ -9339,6 +9341,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/queue-status-prd-readers/github.json": true,
     "tests/fixtures/queue-status-prd-readers/linear.json": true,
     "tests/fixtures/queue-status-prd-readers/notion.json": true,
+    "tests/fixtures/registry-observation-runner/bun.lock": true,
+    "tests/fixtures/registry-observation-runner/package.json": true,
+    "tests/fixtures/registry-observation-runner/probe-gate.test.cjs": true,
     "tests/fixtures/state-contract/adopter/migrations/0001_initial.sql": true,
     "tests/fixtures/state-contract/adopter/state/inventory.json": true,
     "tests/fixtures/state-contract/adopter/state/state-contract.json": true,

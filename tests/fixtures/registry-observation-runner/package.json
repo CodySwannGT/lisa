@@ -1,0 +1,11 @@
+{
+  "name": "registry-observation-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "probe:gate": "node --test probe-gate.test.cjs"
+  },
+  "devDependencies": {
+    "@codyswann/lisa": "4.60.9"
+  }
+}

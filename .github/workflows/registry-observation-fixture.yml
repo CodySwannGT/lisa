@@ -1,0 +1,692 @@
+# Temporary branch-only evidence for #3763. Do not merge this fixture into main.
+# Production quality.yml is unchanged. Resolver and comparison shell bodies are copied verbatim.
+name: Issue 3763 runner observation fixture
+on:
+  workflow_call:
+    inputs:
+      scenario:
+        required: true
+        type: string
+      node_version:
+        description: Node.js version to use
+        required: false
+        default: 22.21.1
+        type: string
+      package_manager:
+        description: Package manager to use (npm, yarn, or bun)
+        required: false
+        default: bun
+        type: string
+      working_directory:
+        description: Directory to run commands in (if not root)
+        required: false
+        default: fixture
+        type: string
+      moment:
+        description:
+          'Which gate set applies: a fixed moment (pull-request, push,
+          commit) or a family with an environment (continuous:dev,
+          pre-deploy:production). Defaults to pull-request; an unrecognised
+          value fails the run.'
+        required: false
+        default: pull-request
+        type: string
+      skip_jobs:
+        description:
+          Jobs to skip. Comma-separated with NO SPACES — tokens are matched
+          exactly, so `lint, lint_slow` silently skips nothing beyond `lint`.
+          (lint,lint_slow,typecheck,test:unit,test:mutation,test:integration,test:e2e,maestro_e2e,playwright_e2e,e2e_coverage,bdd_coverage,state_classification,learnings_budget,threshold_ratchet,work_item_traceability,format,build,test_node_suites,dead_code,conflict_markers,sg_scan,floor_collisions,npm_security_scan,github_issue)
+        required: false
+        default: ''
+        type: string
+      lint_timeout_minutes:
+        description:
+          Lint job time budget in minutes. Increase for a measured slow lint
+          chain; this does not change lint rules or other job budgets.
+        required: false
+        default: 30
+        type: number
+      combine_planning_checks:
+        description:
+          Run workflow compatibility and declared-gate planning in the
+          preallocation job. Enable only when the separate planning job contexts
+          are not required by branch protection; gate execution and per-gate
+          contexts stay unchanged.
+        required: false
+        type: boolean
+        default: false
+      cache_dependencies:
+        description: Reuse package download caches while still running the full
+          lockfile-based dependency installation in every job.
+        required: false
+        type: boolean
+        default: false
+permissions:
+  contents: read
+env:
+  PACKAGE_MANAGER: ${{ inputs.package_manager }}
+jobs:
+  lisa_identity:
+    permissions:
+      contents: read
+    name: 🔖 Which Lisa Ran This
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      registry_path: ${{ steps.stamp.outputs.registry_path }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          path: source
+          fetch-depth: 1
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+      - name: 🍞 Setup Bun
+        if: inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.8
+      - name: 💾 Restore package downloads
+        if: inputs.cache_dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.npm
+            ~/.bun/install/cache
+            ~/.cache/yarn
+            ~/.local/share/pnpm/store
+          key:
+            downloads-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.package_manager
+            }}-${{ inputs.node_version }}-${{ hashFiles('**/bun.lock',
+            '**/bun.lockb', '**/package-lock.json', '**/yarn.lock',
+            '**/pnpm-lock.yaml') }}
+          restore-keys: >
+            downloads-v1-${{ runner.os }}-${{ runner.arch }}-${{
+            inputs.package_manager }}-${{ inputs.node_version }}-
+      - name: Prepare the same two-copy host fixture
+        working-directory: .
+        run: >
+          set -euo pipefail
+
+          test ! -e fixture
+
+          mkdir fixture
+
+          cp source/tests/fixtures/registry-observation-runner/package.json source/tests/fixtures/registry-observation-runner/bun.lock source/tests/fixtures/registry-observation-runner/.lisa.config.json source/tests/fixtures/registry-observation-runner/probe-gate.test.cjs fixture/
+
+          cp -R source/all/copy-overwrite/scripts fixture/scripts
+
+          printf "\n// Controlled checked-in fixture copy for issue 3763.\n" >> fixture/scripts/lisa-gates.mjs
+
+          sha256sum source/.github/workflows/quality.yml fixture/package.json fixture/bun.lock fixture/scripts/lisa-gates.mjs
+      - name: 📥 Install dependencies
+        env:
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: >
+          set -uo pipefail
+
+          case "$PACKAGE_MANAGER" in
+            npm) timeout 600 npm ci ;;
+            yarn) timeout 600 yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && timeout 600 pnpm install --frozen-lockfile ;;
+            bun) timeout 600 bun install --frozen-lockfile ;;
+            *) false ;;
+          esac || echo "::warning title=Lisa identity resolved without an install::Installing dependencies with '$PACKAGE_MANAGER' did not succeed here, so node_modules may be absent and the stamp below names whichever copy of the registry is checked in. Read its \`registry path\` before comparing its digests against a gate job's."
+
+          exit 0
+        working-directory: ${{ inputs.working_directory || '.' }}
+        if: inputs.scenario != 'divergence'
+      - name: 🔖 Report which Lisa is running
+        id: stamp
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: >
+          set -uo pipefail
+
+          RESOLVER=""
+
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+
+          if [ -z "$RESOLVER" ]; then
+            # The wrapper's identity is all this path can honestly claim. It
+            # deliberately does NOT render the full stamp with `unknown` in
+            # every field, because that reads like a stamp that resolved and
+            # found nothing rather than one that could not be produced.
+            #
+            # An EMPTY output rather than a placeholder, for the same reason:
+            # the comparison downstream has to be able to tell "this job
+            # resolved nothing" from "this job resolved a different copy", and
+            # a stand-in string reads as the second.
+            echo "registry_path=" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Lisa identity unavailable::This project ships no gate registry, so nothing can name the enforcement bytes that produced the reports below. The workflow that ran them is ${WORKFLOW_REF}@${WORKFLOW_SHA}."
+            exit 0
+          fi
+
+          echo "registry_path=$(cd "$(dirname "$RESOLVER")" && pwd -P)/$(basename "$RESOLVER")" >> "$GITHUB_OUTPUT"
+
+          node "$RESOLVER" identity --format=github || true
+        working-directory: ${{ inputs.working_directory || '.' }}
+    defaults:
+      run:
+        working-directory: fixture
+  gate_plan:
+    permissions:
+      contents: read
+    name: 🗺️ Gate Preallocation Plan
+    runs-on: ubuntu-latest
+    outputs:
+      plan: ${{ steps.plan.outputs.plan }}
+      registry_path: ${{ steps.plan.outputs.registry_path }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          path: source
+          fetch-depth: 1
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+      - name: Prepare the same two-copy host fixture
+        working-directory: .
+        run: >
+          set -euo pipefail
+
+          test ! -e fixture
+
+          mkdir fixture
+
+          cp source/tests/fixtures/registry-observation-runner/package.json source/tests/fixtures/registry-observation-runner/bun.lock source/tests/fixtures/registry-observation-runner/.lisa.config.json source/tests/fixtures/registry-observation-runner/probe-gate.test.cjs fixture/
+
+          cp -R source/all/copy-overwrite/scripts fixture/scripts
+
+          printf "\n// Controlled checked-in fixture copy for issue 3763.\n" >> fixture/scripts/lisa-gates.mjs
+
+          sha256sum source/.github/workflows/quality.yml fixture/package.json fixture/bun.lock fixture/scripts/lisa-gates.mjs
+      - name: 🗺️ Plan explicit-off gates
+        id: plan
+        if: always()
+        env:
+          GATE_MOMENT: ${{ inputs.moment }}
+          EXPECTED_PLAN_KEYS: lint,lint_slow,typecheck,verification_coverage,test_unit,test_mutation,test_integration,playwright_e2e_aggregate,format,build,work_item_traceability,performance_budget,test_node_suites,environment_reset,environment_reseed,dead_code,learnings_budget,conflict_markers,sg_scan,npm_security_scan,threshold_ratchet,e2e_coverage,bdd_coverage,state_classification,floor_collisions,secret_scanning,license_compliance,maestro_e2e,sonarcloud,snyk
+        run: >
+          set -uo pipefail
+
+          PLAN="{}"
+
+          RESOLVER=""
+
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+
+
+          if [ -z "$RESOLVER" ]; then
+            echo "::warning::No compatible gate planner was found; running every existing quality job."
+          else
+            ERROR_FILE="$(mktemp)"
+            if CANDIDATE_PLAN="$(node "$RESOLVER" quality-plan --moment="$GATE_MOMENT" 2>"$ERROR_FILE")" &&
+              PLAN_JSON="$CANDIDATE_PLAN" node -e '
+                const plan = JSON.parse(process.env.PLAN_JSON || "");
+                if (!plan || Array.isArray(plan) || typeof plan !== "object") process.exit(1);
+                if (Object.values(plan).some(value => value !== "run" && value !== "skip")) process.exit(1);
+                const expected = (process.env.EXPECTED_PLAN_KEYS || "").split(",").sort();
+                const actual = Object.keys(plan).sort();
+                if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) process.exit(1);
+              '; then
+              PLAN="$CANDIDATE_PLAN"
+            else
+              echo "::warning::Gate planning was unavailable or invalid; running every existing quality job."
+              sed 's/^/gate-plan: /' "$ERROR_FILE"
+            fi
+            rm -f "$ERROR_FILE"
+          fi
+
+
+          echo "plan=$PLAN" >> "$GITHUB_OUTPUT"
+
+          if [ -n "$RESOLVER" ]; then
+            echo "registry_path=$(cd "$(dirname "$RESOLVER")" && pwd -P)/$(basename "$RESOLVER")" >> "$GITHUB_OUTPUT"
+          else
+            echo "registry_path=" >> "$GITHUB_OUTPUT"
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+    defaults:
+      run:
+        working-directory: fixture
+  lint:
+    permissions:
+      contents: read
+    name: 🧹 Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.lint_timeout_minutes }}
+    needs:
+      - gate_plan
+    if:
+      ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs),
+      ',lint,') && (needs.gate_plan.result != 'success' ||
+      !contains(needs.gate_plan.outputs.plan, '"lint":"skip"')) }}
+    outputs:
+      registry_path: ${{ steps.registry.outputs.path }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          path: source
+          fetch-depth: 1
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+      - name: 🍞 Setup Bun
+        if: inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.8
+      - name: Prepare the same two-copy host fixture
+        working-directory: .
+        run: >
+          set -euo pipefail
+
+          test ! -e fixture
+
+          mkdir fixture
+
+          cp source/tests/fixtures/registry-observation-runner/package.json source/tests/fixtures/registry-observation-runner/bun.lock source/tests/fixtures/registry-observation-runner/.lisa.config.json source/tests/fixtures/registry-observation-runner/probe-gate.test.cjs fixture/
+
+          cp -R source/all/copy-overwrite/scripts fixture/scripts
+
+          printf "\n// Controlled checked-in fixture copy for issue 3763.\n" >> fixture/scripts/lisa-gates.mjs
+
+          sha256sum source/.github/workflows/quality.yml fixture/package.json fixture/bun.lock fixture/scripts/lisa-gates.mjs
+      - name: 📥 Install dependencies
+        run: >
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
+      - name: 🎛️ Resolve the code-style gate
+        id: gate
+        env:
+          GATE_ID: code-style
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: >
+          set -euo pipefail
+
+          RESOLVER=""
+
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+
+          # Both are emitted BEFORE the early exit, so the report step below can
+
+          # name its gate and reuse this resolution even on the path where no
+
+          # resolver exists at all — which is the path most installed projects
+
+          # are on, and the one that most needs saying out loud.
+
+          echo "gate=$GATE_ID" >> "$GITHUB_OUTPUT"
+
+          echo "resolver=$RESOLVER" >> "$GITHUB_OUTPUT"
+
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+
+          const level = hit && ["required", "optional", "off"].includes(hit.level) ? hit.level : "";
+
+          if (hit && !level) { console.error(`::error::gates.${id} declares level ${JSON.stringify(hit.level)}, which is not one of "required", "optional" or "off".`); process.exit(1); }
+
+          if (level === "off") return process.stdout.write("configured=off\nlevel=off\n");
+
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+
+          if (!task) return process.stdout.write(`configured=false\nlevel=${level}\n`);
+
+          const declared = (require("./.lisa.config.json").gates || {}).runner;
+
+          const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
+
+          const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
+
+          const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
+
+          if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
+
+          if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
+
+          process.stdout.write(`configured=true\nlevel=${level}\nrunner=${runner}\ntask=${task}\n`); });
+
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+      - name: 🧭 Record which registry copy this job resolved
+        id: registry
+        if: always()
+        env:
+          RESOLVER: ${{ steps.gate.outputs.resolver }}
+        run: >
+          set -uo pipefail
+
+          if [ -n "$RESOLVER" ] && [ -f "$RESOLVER" ]; then
+            echo "path=$(cd "$(dirname "$RESOLVER")" && pwd -P)/$(basename "$RESOLVER")" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=" >> "$GITHUB_OUTPUT"
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+      - name: 🧹 Run the code-style gate
+        id: gate_run
+        continue-on-error: ${{ steps.gate.outputs.level == 'optional' }}
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+    defaults:
+      run:
+        working-directory: fixture
+  test_unit:
+    permissions:
+      contents: read
+    name: 🧪 Run Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs:
+      - gate_plan
+    if:
+      ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs),
+      ',test:unit,') && (needs.gate_plan.result != 'success' ||
+      !contains(needs.gate_plan.outputs.plan, '"test_unit":"skip"')) }}
+    outputs:
+      registry_path: ${{ steps.registry.outputs.path }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          path: source
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+      - name: 🍞 Setup Bun
+        if: inputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.8
+      - name: Prepare the same two-copy host fixture
+        working-directory: .
+        run: >
+          set -euo pipefail
+
+          test ! -e fixture
+
+          mkdir fixture
+
+          cp source/tests/fixtures/registry-observation-runner/package.json source/tests/fixtures/registry-observation-runner/bun.lock source/tests/fixtures/registry-observation-runner/.lisa.config.json source/tests/fixtures/registry-observation-runner/probe-gate.test.cjs fixture/
+
+          cp -R source/all/copy-overwrite/scripts fixture/scripts
+
+          printf "\n// Controlled checked-in fixture copy for issue 3763.\n" >> fixture/scripts/lisa-gates.mjs
+
+          sha256sum source/.github/workflows/quality.yml fixture/package.json fixture/bun.lock fixture/scripts/lisa-gates.mjs
+      - name: 📦 Install dependencies
+        run: >
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *)
+              echo "::error::package_manager must be one of npm, yarn, pnpm, bun (got: $PACKAGE_MANAGER)."
+              exit 1
+              ;;
+          esac
+        working-directory: ${{ inputs.working_directory || '.' }}
+      - name: 🎛️ Resolve the test-correctness gate
+        id: gate
+        env:
+          GATE_ID: test-correctness
+          FALLBACK_RUNNER: ${{ inputs.package_manager }} run
+          GATE_MOMENT: ${{ inputs.moment }}
+        run: >
+          set -euo pipefail
+
+          RESOLVER=""
+
+          for candidate in "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs" "scripts/lisa-gates.mjs" "all/copy-overwrite/scripts/lisa-gates.mjs"; do
+            if [ -f "$candidate" ]; then RESOLVER="$candidate"; break; fi
+          done
+
+          # Both are emitted BEFORE the early exit, so the report step below can
+
+          # name its gate and reuse this resolution even on the path where no
+
+          # resolver exists at all — which is the path most installed projects
+
+          # are on, and the one that most needs saying out loud.
+
+          echo "gate=$GATE_ID" >> "$GITHUB_OUTPUT"
+
+          echo "resolver=$RESOLVER" >> "$GITHUB_OUTPUT"
+
+          if [ -z "$RESOLVER" ]; then echo "configured=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+
+          node "$RESOLVER" list --moment="$GATE_MOMENT" --json --include-off | node -e '
+
+          let raw = ""; process.stdin.on("data", d => { raw += d }).on("end", () => {
+
+          const id = process.env.GATE_ID, hit = JSON.parse(raw || "[]").find(g => g.id === id);
+
+          const level = hit && ["required", "optional", "off"].includes(hit.level) ? hit.level : "";
+
+          if (hit && !level) { console.error(`::error::gates.${id} declares level ${JSON.stringify(hit.level)}, which is not one of "required", "optional" or "off".`); process.exit(1); }
+
+          if (level === "off") return process.stdout.write("configured=off\nlevel=off\n");
+
+          const task = hit && hit.mode === "run" && hit.task ? hit.task : "";
+
+          if (!task) return process.stdout.write(`configured=false\nlevel=${level}\n`);
+
+          const declared = (require("./.lisa.config.json").gates || {}).runner;
+
+          const runner = declared === undefined ? process.env.FALLBACK_RUNNER : declared;
+
+          const plain = (value, pattern) => typeof value === "string" && pattern.test(value);
+
+          const head = typeof runner === "string" ? runner.trim().split(" ")[0] : "";
+
+          if (!plain(task, /^[A-Za-z0-9:._@\/= -]+$/)) { console.error(`::error::gates.${id} resolves to task "${task}", which is not a plain word.`); process.exit(1); }
+
+          if (!plain(runner, /^[A-Za-z0-9._@\/= -]+$/) || !head || [":", "true", "false", "echo", "printf"].includes(head)) { console.error(`::error::gates.runner is ${JSON.stringify(runner)}, which is not a task runner; gates.${id} would have run "${runner} ${task}". A runner must be a plain STRING, may not contain a colon, and may not be a shell no-op.`); process.exit(1); }
+
+          process.stdout.write(`configured=true\nlevel=${level}\nrunner=${runner}\ntask=${task}\n`); });
+
+          ' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ inputs.working_directory || '.' }}
+      - name: 🧭 Record which registry copy this job resolved
+        id: registry
+        if: always()
+        env:
+          RESOLVER: ${{ steps.gate.outputs.resolver }}
+        run: >
+          set -uo pipefail
+
+          if [ -n "$RESOLVER" ] && [ -f "$RESOLVER" ]; then
+            echo "path=$(cd "$(dirname "$RESOLVER")" && pwd -P)/$(basename "$RESOLVER")" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=" >> "$GITHUB_OUTPUT"
+          fi
+        working-directory: ${{ inputs.working_directory || '.' }}
+      - name: 🧪 Run the test-correctness gate
+        id: gate_run
+        continue-on-error: ${{ steps.gate.outputs.level == 'optional' }}
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+          GATE_RUNNER: ${{ steps.gate.outputs.runner }}
+          GATE_TASK: ${{ steps.gate.outputs.task }}
+        run: $GATE_RUNNER $GATE_TASK
+        working-directory: ${{ inputs.working_directory || '.' }}
+    defaults:
+      run:
+        working-directory: fixture
+  registry_path_agreement:
+    permissions:
+      contents: read
+    name: 🧭 Which Copy The Gates Ran
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs:
+      - lisa_identity
+      - gate_plan
+      - lint
+      - test_unit
+    if: ${{ always() }}
+    steps:
+      - name: Induce a comparison child-process failure only in the crash case
+        if: inputs.scenario == 'comparison-crash'
+        run: >
+          set -euo pipefail
+
+          probe_bin=$(mktemp -d "$RUNNER_TEMP/registry-observation-no-node.XXXXXX")
+
+          printf "#!/bin/sh\necho REGISTRY_OBSERVATION_INDUCED_NODE_FAILURE >&2\nexit 73\n" > "$probe_bin/node"
+
+          chmod +x "$probe_bin/node"
+
+          echo "$probe_bin" >> "$GITHUB_PATH"
+      - name: 🧭 Compare the stamped copy against the executed copy
+        env:
+          STAMP_PATH: ${{ needs.lisa_identity.outputs.registry_path }}
+          STAMP_RESULT: ${{ needs.lisa_identity.result }}
+          LINT_PATH: ${{ needs.lint.outputs.registry_path }}
+          LINT_RESULT: ${{ needs.lint.result }}
+          TEST_UNIT_PATH: ${{ needs.test_unit.outputs.registry_path }}
+          TEST_UNIT_RESULT: ${{ needs.test_unit.result }}
+          PLAN_PATH: ${{ needs.gate_plan.outputs.registry_path }}
+          PLAN_RESULT: ${{ needs.gate_plan.result }}
+        run: >
+          set -uo pipefail
+
+          VERDICT_FILE="$(mktemp)"
+
+          export VERDICT_FILE
+
+          node -e '
+
+          const fs = require("node:fs");
+
+          const env = process.env;
+
+          const observe = (name, role, resolvedPath, result) => ({
+            name,
+            role,
+            path: (resolvedPath || "").trim(),
+            result: result || "unknown",
+          });
+
+          const stamp = observe("lisa_identity", "stamped the run", env.STAMP_PATH, env.STAMP_RESULT);
+
+          const executed = [
+            observe("lint", "executed a gate", env.LINT_PATH, env.LINT_RESULT),
+            observe("test_unit", "executed a gate", env.TEST_UNIT_PATH, env.TEST_UNIT_RESULT),
+          ];
+
+          const noted = observe("gate_plan", "planned without installing", env.PLAN_PATH, env.PLAN_RESULT);
+
+          const all = [stamp, ...executed, noted];
+
+          const resolved = executed.filter(job => job.path !== "");
+
+          let verdict = "NOT_DETERMINED";
+
+          let why;
+
+          if (stamp.path === "") {
+            why = "the identity job reported no resolved registry path (result=" + stamp.result + "), so the stamp was compared against nothing. This is NOT the finding that the two copies differ: one of them could not be resolved at all.";
+          } else if (resolved.length === 0) {
+            why = "no gate-executing job reported a resolved registry path (" + executed.map(job => job.name + " result=" + job.result).join(", ") + "), so nothing on this run executed a copy the stamp could be checked against. This is NOT the finding that the two copies differ.";
+          } else {
+            const diverged = resolved.filter(job => job.path !== stamp.path);
+            verdict = diverged.length === 0 ? "AGREED" : "DIVERGED";
+            why = diverged.length === 0
+              ? "the identity job stamped " + stamp.path + " and " + resolved.map(job => job.name).join(", ") + " executed that same copy."
+              : "the identity job stamped " + stamp.path + " while " + diverged.map(job => job.name + " executed " + job.path).join(" and ") + ". The digests the stamp reports are of a copy the gates did not run.";
+          }
+
+          const cell = job => (job.path === "" ? "(none resolved)" : job.path);
+
+          const summary = [
+            "## Which copy the gates ran",
+            "",
+            "**" + verdict + "** - " + why,
+            "",
+            "| job | role | result | resolved registry |",
+            "| --- | --- | --- | --- |",
+            ...all.map(job => "| " + job.name + " | " + job.role + " | " + job.result + " | " + cell(job) + " |"),
+            "",
+            "gate_plan is REPORTED, NOT ASSERTED. It resolves the registry without installing dependencies, so it can land on a copy the gate-executing jobs never run. That is a real gap, tracked on its own; naming it here is what stops this comparison from passing by leaving it out.",
+            "",
+          ].join("\n");
+
+          if (env.GITHUB_STEP_SUMMARY) {
+            try {
+              fs.appendFileSync(env.GITHUB_STEP_SUMMARY, summary + "\n");
+            } catch (error) {
+              console.log("::warning::The run summary for the registry-path comparison could not be written: " + error.message);
+            }
+          }
+
+          const observed = all.map(job => job.name + "=" + cell(job)).join(" ");
+
+          console.log("::" + (verdict === "AGREED" ? "notice" : "error") + " title=Which copy the gates ran - " + verdict + "::" + why + " Observed: " + observed);
+
+          if (env.VERDICT_FILE) fs.writeFileSync(env.VERDICT_FILE, verdict);
+
+          process.exit(verdict === "AGREED" ? 0 : verdict === "DIVERGED" ? 1 : 2);
+
+          ' || true
+
+          VERDICT=""
+
+          if [ -s "$VERDICT_FILE" ]; then VERDICT="$(cat "$VERDICT_FILE")"; fi
+
+          rm -f "$VERDICT_FILE"
+
+          case "$VERDICT" in
+            AGREED | DIVERGED | NOT_DETERMINED) ;;
+            *)
+              echo "::error title=Which copy the gates ran - NOT_DETERMINED::The comparison did not run to completion, so nothing on this run established that the identity stamp names the copy the gate jobs executed. A verdict that cannot be read is reported as unobserved, never as agreement."
+              ;;
+          esac
+
+          exit 0

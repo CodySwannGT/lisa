@@ -1,0 +1,21 @@
+# Temporary branch-only evidence for #3763. Do not merge this fixture into main.
+# Production quality.yml is unchanged. Resolver and comparison shell bodies are copied verbatim.
+name: Issue 3763 controlled runner observations
+on:
+  push:
+    branches:
+      - test/3763-runner-observation
+permissions:
+  contents: read
+jobs:
+  observe:
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario:
+          - agreement
+          - divergence
+          - comparison-crash
+    uses: ./.github/workflows/registry-observation-fixture.yml
+    with:
+      scenario: ${{ matrix.scenario }}
