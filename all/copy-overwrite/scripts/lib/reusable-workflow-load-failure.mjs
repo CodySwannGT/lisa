@@ -1,63 +1,5 @@
-/**
- * Distinguish a reusable workflow that failed to LOAD from one that failed to
- * RUN (CodySwannGT/lisa#3581).
- *
- * When an upstream commit makes a reusable workflow unparseable, GitHub
- * rejects the file before creating any job. The run has zero jobs, no
- * annotation naming the offending line, and a display `name` that degrades to
- * its `path` because GitHub never got as far as reading the `name:` key.
- * Nothing that watches for a failing JOB can see it — there is no red job to
- * open. Sibling module `core/reusable-workflow-pin` records the same failure
- * from the other end: "Actions creates zero jobs, so a required check is
- * ABSENT rather than red."
- *
- * ## Which moment this is open at
- *
- * On a pull request the exposure is CLOSED, and by something that already
- * exists: `check-skipped-required-checks --pr=<n>` raises
- * `absent_required_check` for a ruleset-required context that posted no
- * check-run at all, and a required context that never reports blocks the
- * merge regardless. Off a pull request — a `push` or `schedule` handler — no
- * arm looks. That is where the incident behind this ticket happened: a
- * consumer's handler failed five times in a row before anyone noticed, ~40
- * minutes after the upstream commit landed, with nothing changed on the
- * consumer side. So the gap is not that detection was never built; it is that
- * detection exists at exactly one moment and the failure occurs at every
- * moment.
- *
- * ## The one arm that discriminates, and the three that do not
- *
- * `referenced_workflows` on `GET /repos/{owner}/{repo}/actions/runs/{id}`
- * carries the resolved SHA of every reusable workflow a run actually used. A
- * caller that DECLARED one and RESOLVED ZERO did not parse; there is no other
- * way to reach that state.
- *
- * It is only meaningful INSIDE its population — runs whose caller declares a
- * reusable workflow at all. Measured on one consumer, 19 failing runs in a
- * day: the 5 in population all resolved at least one; the 14 outside it all
- * resolved zero. Read bare, the field reports 14 false positives out of 19.
- *
- * Three cheaper signals are each refuted by a measured run:
- *
- *  - `conclusion == "failure"` — six failures in that window, four load
- *    failures.
- *  - `jobs == 0` — one run IN the population resolved its workflow and still
- *    produced zero jobs, so an empty run is not the signature.
- *  - `name == path` — a display coincidence. Any workflow that omits `name:`
- *    satisfies it while perfectly healthy, so it corroborates and never
- *    decides.
- *
- * ## The false-red this must not become
- *
- * A dead runner produces a nearly identical run: `conclusion: failure`, no
- * useful output, nothing to open. The difference is structural and total —
- * **a load failure has NO JOBS AT ALL; a dead runner has JOBS THAT EXIST AND
- * ARE EMPTY.** Collapsing them would report every runner outage as a Lisa
- * regression. A skipped or cancelled run is excluded for the same reason: it
- * never intended to resolve anything, so calling it a load failure would be a
- * control that can only manufacture a red.
- * @module core/reusable-workflow-load-failure
- */
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
 
 /**
  * A job-level `uses:` naming a reusable workflow in another repository.
@@ -70,7 +12,6 @@
  */
 const CROSS_REPO_USES =
   /^[ \t]*uses:[ \t]*["']?[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+\/\.github\/workflows\/[A-Za-z0-9._-]+\.ya?ml@[^\s"'#]+/u;
-
 /**
  * A job-level `uses:` naming a reusable workflow in the caller's own
  * repository.
@@ -83,10 +24,8 @@ const CROSS_REPO_USES =
  */
 const LOCAL_USES =
   /^[ \t]*uses:[ \t]*["']?\.\/\.github\/workflows\/[A-Za-z0-9._-]+\.ya?ml/u;
-
 /** Whether a line is entirely a YAML comment. */
 const COMMENT_LINE = /^\s*#/u;
-
 /**
  * Conclusions that can be reached before a single job is created.
  *
@@ -96,37 +35,7 @@ const COMMENT_LINE = /^\s*#/u;
  * never a load failure, and treating it as one is how a detector starts
  * inventing reds.
  */
-const PRE_JOB_FAILURES: readonly string[] = ["failure", "startup_failure"];
-
-/** How a run's relationship to reusable-workflow loading was resolved. */
-export type RunLoadClass =
-  /** In population, declared a reusable workflow, resolved none. */
-  | "load-failure"
-  /** Jobs exist but are empty — a runner problem, not a parse problem. */
-  | "dead-runner"
-  /** Resolved at least one reusable workflow; it loaded. */
-  | "resolved"
-  /** The caller declares no reusable workflow, so the field says nothing. */
-  | "out-of-population"
-  /** Never intended to resolve anything. */
-  | "skipped"
-  /** Terminated without running and without failing. */
-  | "inconclusive"
-  /** Not finished; asking yet would read an unfinished field. */
-  | "in-flight";
-
-/** The four run facts this classification needs. */
-export interface RunLoadFacts {
-  /** Whether the caller workflow declares a reusable workflow at all. */
-  readonly inPopulation: boolean;
-  /** Length of the run's `referenced_workflows` array. */
-  readonly referencedCount: number;
-  /** Number of jobs the run created. */
-  readonly jobCount: number;
-  /** The run's `conclusion`, or null while it is still in flight. */
-  readonly conclusion: string | null;
-}
-
+const PRE_JOB_FAILURES = ["failure", "startup_failure"];
 /**
  * Whether a caller workflow declares any reusable workflow.
  *
@@ -138,7 +47,7 @@ export interface RunLoadFacts {
  * @param source - Full text of a caller's workflow file
  * @returns True when at least one non-comment line calls a reusable workflow
  */
-export function callerDeclaresReusableWorkflow(source: string): boolean {
+export function callerDeclaresReusableWorkflow(source) {
   return source
     .split("\n")
     .some(
@@ -147,7 +56,6 @@ export function callerDeclaresReusableWorkflow(source: string): boolean {
         (CROSS_REPO_USES.test(line) || LOCAL_USES.test(line))
     );
 }
-
 /**
  * Classify what a finished run says about reusable-workflow loading.
  *
@@ -161,9 +69,8 @@ export function callerDeclaresReusableWorkflow(source: string): boolean {
  * @param facts - The four run facts
  * @returns The single class this run belongs to
  */
-export function classifyRunLoad(facts: RunLoadFacts): RunLoadClass {
+export function classifyRunLoad(facts) {
   const { inPopulation, referencedCount, jobCount, conclusion } = facts;
-
   if (conclusion === null) return "in-flight";
   if (conclusion === "skipped") return "skipped";
   // Resolution outranks the population gate: see the note above.
@@ -174,25 +81,6 @@ export function classifyRunLoad(facts: RunLoadFacts): RunLoadClass {
   if (!PRE_JOB_FAILURES.includes(conclusion)) return "inconclusive";
   return "load-failure";
 }
-
-/** How far back a page set actually read. */
-export interface WindowScan {
-  /** Timestamp of the oldest run read, or null when none was read. */
-  readonly oldestSeen: string | null;
-  /** Timestamp the caller intended to cover back to. */
-  readonly windowStart: string;
-  /** Whether paging stopped because the history ran out. */
-  readonly exhausted: boolean;
-}
-
-/** Whether a scan covered its window, and why not when it did not. */
-export interface WindowVerdict {
-  /** True only when every run in the window was actually read. */
-  readonly covered: boolean;
-  /** Operator-readable reason, empty when covered. */
-  readonly reason: string;
-}
-
 /**
  * Whether a page set actually covered the window it claims to report on.
  *
@@ -206,21 +94,18 @@ export interface WindowVerdict {
  * @param scan - How far back the page set reached
  * @returns Covered, or not covered with the reason
  */
-export function windowCoverage(scan: WindowScan): WindowVerdict {
+export function windowCoverage(scan) {
   const { oldestSeen, windowStart, exhausted } = scan;
-
   // An exhausted history is covered even when it stops short: a repository
   // younger than the window has no earlier runs to read, and refusing it
   // would be a red nobody can ever clear.
   if (exhausted) return { covered: true, reason: "" };
-
   if (oldestSeen === null) {
     return {
       covered: false,
       reason: `read no runs at all, so it did not reach ${windowStart}. An empty read is not an empty window.`,
     };
   }
-
   const oldest = Date.parse(oldestSeen);
   const start = Date.parse(windowStart);
   if (Number.isNaN(oldest) || Number.isNaN(start)) {
@@ -229,13 +114,11 @@ export function windowCoverage(scan: WindowScan): WindowVerdict {
       reason: `could not read \`${oldestSeen}\` or \`${windowStart}\` as a timestamp, so it did not reach the start of the window. An unreadable bound is not a satisfied one.`,
     };
   }
-
   if (oldest > start) {
     return {
       covered: false,
       reason: `paging stopped at ${oldestSeen} and did not reach ${windowStart}, so any load failure older than that was never read. Page further, or narrow the window.`,
     };
   }
-
   return { covered: true, reason: "" };
 }

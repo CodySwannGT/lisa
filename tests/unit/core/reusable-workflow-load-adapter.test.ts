@@ -22,7 +22,7 @@ import {
   runPath,
   runsPath,
   RUNS_PER_PAGE,
-} from "../../../src/core/reusable-workflow-load-adapter.js";
+} from "../../../all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs";
 
 /** The repository the stub answers for. */
 const REPO = "CodySwannGT/lisa";
@@ -170,21 +170,23 @@ describe("rejection controls", () => {
     expect(asked).toContain(runPath(REPO, 2));
   });
 
-  it("does not invent a count from a malformed body", async () => {
-    // An unreadable response must not read as "resolved nothing, no jobs" in a
-    // way that manufactures a load failure downstream — it yields zeroes, and
-    // the population gate plus the conclusion gate are what stop it there.
+  it("rejects an unreadable run list instead of claiming empty history", async () => {
     const { request } = stub({
       [runsPath(REPO, 1, 2)]: { workflow_runs: "not-an-array" },
     });
 
+    await expect(
+      createRunPageFetcher({ repo: REPO, request, perPage: 2 })(1)
+    ).rejects.toThrow("expected workflow_runs array");
+  });
+
+  it("accepts a genuinely empty run history", async () => {
+    const { request } = stub({ [runsPath(REPO, 1, 2)]: { workflow_runs: [] } });
     const page = await createRunPageFetcher({
       repo: REPO,
       request,
       perPage: 2,
     })(1);
-
-    expect(page.runs).toEqual([]);
-    expect(page.hasMore).toBe(false);
+    expect(page).toEqual({ runs: [], hasMore: false });
   });
 });

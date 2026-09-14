@@ -27,7 +27,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildPopulationTest,
   describe as report,
-} from "../../../scripts/check-workflow-load-failures.js";
+} from "../../../all/copy-overwrite/scripts/check-workflow-load-failures.mjs";
 
 /** Repository root, four levels up from this file. */
 const ROOT = path.resolve(import.meta.dirname, "../../..");
@@ -42,7 +42,7 @@ function source(relative: string): string {
 }
 
 /** The production entry point. */
-const ENTRY = "scripts/check-workflow-load-failures.ts";
+const ENTRY = "all/copy-overwrite/scripts/check-workflow-load-failures.mjs";
 
 /** The scheduled workflow that runs it. */
 const WORKFLOW = ".github/workflows/workflow-load-failure-sweep.yml";
@@ -54,9 +54,9 @@ describe("the entry point actually calls the detector", () => {
   it("imports the scanner and the adapter", () => {
     const entry = source(ENTRY);
 
-    expect(entry).toContain("reusable-workflow-load-scan.js");
-    expect(entry).toContain("reusable-workflow-load-adapter.js");
-    expect(entry).toContain("reusable-workflow-load-failure.js");
+    expect(entry).toContain("reusable-workflow-load-scan.mjs");
+    expect(entry).toContain("reusable-workflow-load-adapter.mjs");
+    expect(entry).toContain("reusable-workflow-load-failure.mjs");
   });
 
   it("invokes the scan rather than merely importing it", () => {
@@ -84,7 +84,7 @@ describe("a scheduled surface runs it at the failing moment", () => {
     };
 
     expect(pkg.scripts[SCRIPT_NAME]).toContain(
-      "scripts/check-workflow-load-failures.ts"
+      "scripts/check-workflow-load-failures.mjs"
     );
   });
 
@@ -97,8 +97,10 @@ describe("a scheduled surface runs it at the failing moment", () => {
     expect(workflow).toContain("cron:");
   });
 
-  it("has that workflow invoke the npm script", () => {
-    expect(source(WORKFLOW)).toContain(SCRIPT_NAME);
+  it("has that workflow invoke the shared Node script", () => {
+    expect(source(WORKFLOW)).toContain(
+      "node scripts/check-workflow-load-failures.mjs"
+    );
   });
 
   it("gives the workflow permission to read run history", () => {

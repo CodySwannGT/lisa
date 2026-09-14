@@ -97,7 +97,7 @@
     "workflows": 23,
     "steps": 781,
     "couplings": 33,
-    "inventory": 80
+    "inventory": 87
   },
   "counts": {
     "package-backed": 10,
