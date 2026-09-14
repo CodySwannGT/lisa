@@ -997,6 +997,84 @@ export function countDecisiveJobs(jobs) {
   return jobs.filter(job => DECISIVE_CONCLUSIONS.has(job?.conclusion)).length;
 }
 
+/** GitHub's explicit job-ceiling diagnostic; unrecognized wording stays unknown. */
+const TIMEOUT_ANNOTATION = /exceeded the maximum execution time/iu;
+
+/** Bound diagnostic requests; larger matrices remain unattributed. */
+const TIMEOUT_PROBE_JOB_CAP = 20;
+
+/**
+ * Restrict authenticated annotation reads to this repository's check runs.
+ * Preserve Enterprise API prefixes when deriving the relative request path.
+ * @param {object} api - Configured API root and repository.
+ * @param {object} job - Job returned by the Actions API.
+ * @returns {string|null} Repository-scoped API path, or null.
+ */
+function checkRunPath(api, job) {
+  const url = job?.check_run_url;
+  if (typeof url !== "string") return null;
+  if (typeof api?.apiUrl !== "string") return null;
+  const prefix = `${api.apiUrl}/repos/${api.repo}/check-runs/`;
+  if (!url.startsWith(prefix) || !/^\d+$/u.test(url.slice(prefix.length)))
+    return null;
+  return url.slice(api.apiUrl.length);
+}
+
+/**
+ * Read explicit timeout evidence without changing the scored verdict.
+ * Missing, failed or partial reads remain unknown; absence does not prove
+ * that an operator cancelled the run.
+ * @param {object} api - API coordinates.
+ * @param {ReadonlyArray<object>|null|undefined} jobs - The scored run's jobs.
+ * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep.
+ * @returns {Promise<boolean|null>} Timeout found, absent, or unknown.
+ */
+export async function readTimeoutEvidence(api, jobs, wait) {
+  if (!Array.isArray(jobs)) return null;
+  const candidates = jobs.filter(
+    job => !DECISIVE_CONCLUSIONS.has(job?.conclusion)
+  );
+  // No indecisive job means nothing was killed part-way, which is a different
+  // statement from "we looked and found nothing" — the caller only asks this
+  // about a run that did not finish.
+  if (candidates.length === 0 || candidates.length > TIMEOUT_PROBE_JOB_CAP)
+    return null;
+  let readEverything = true;
+  for (const job of candidates) {
+    const path = checkRunPath(api, job);
+    if (path === null) {
+      readEverything = false;
+      continue;
+    }
+    let result;
+    try {
+      result = await apiGet(api, `${path}/annotations?per_page=100`, wait);
+    } catch {
+      readEverything = false;
+      continue;
+    }
+    // A 404 is `null`, and a body that is not the documented array is a shape
+    // this cannot read. Both are unread, not empty — counting either as "no
+    // annotations" would manufacture the absence of evidence.
+    if (result === null || !Array.isArray(result.body)) {
+      readEverything = false;
+      continue;
+    }
+    if (
+      result.body.some(entry =>
+        TIMEOUT_ANNOTATION.test(String(entry?.message ?? ""))
+      )
+    )
+      return true;
+    if (
+      result.body.length >= 100 ||
+      result.headers.get("link")?.includes('rel="next"')
+    )
+      readEverything = false;
+  }
+  return readEverything ? false : null;
+}
+
 /**
  * Reads the scope markers a run published, from its artifact NAMES.
  *
@@ -2039,13 +2117,13 @@ export function formatFinding(finding) {
  * which run it scores is the same defect one layer down, so the selection is not
  * conditional on anything having gone wrong.
  *
- * A scored run that reached NO verdict also names its cause, from the job
- * counts the walk already read. `cancelled` is overloaded across a displaced
- * duplicate, a job killed at its own `timeout-minutes` ceiling, and an operator
- * cancel; "0 of 1 job(s) reached a verdict" and "7 of 8" are different enough
- * that a reader can tell "it never started" from "it ran out of time" without
- * opening the run. That costs nothing — the counts come from jobs already
- * fetched, and no workflow job configuration is read to produce them.
+ * A scored run that reached NO verdict also names its cause. The job counts
+ * come free from the walk and separate "it never started" from "it started and
+ * stopped"; what they cannot separate is why it stopped, and the earlier
+ * version of this comment claimed they could — it read "7 of 8" as "it ran out
+ * of time", which is true of a ceiling kill and false of an operator cancel.
+ * That guess is now a read: `readTimeoutEvidence` asks GitHub whether it killed
+ * a job at its ceiling, and `describeShortfall` says only what came back.
  *
  * A DECISIVE conclusion gets no such suffix. `success` and `failure` already say
  * what happened, and appending job arithmetic to every green is noise.
@@ -2053,6 +2131,43 @@ export function formatFinding(finding) {
  * @param {object|null|undefined} selection - The finding's selection record
  * @returns {string|null} One trailing line, or null when there is nothing to say
  */
+/**
+ * Names why an inconclusive run stopped, to whatever resolution is evidenced.
+ *
+ * Four answers, and the boundary between the last two is the point. A run that
+ * reached no verdict of its own is one of: a duplicate the concurrency group
+ * displaced before it scored anything, a job killed at its `timeout-minutes`
+ * ceiling, an operator pressing cancel, a newer run displacing this one
+ * mid-flight, a runner evicted underneath it, or a `needs:` dependency failing
+ * and taking its dependents with it.
+ *
+ * Only the ceiling kill is a statement about the software or its budget. An
+ * operator cancel is a human decision and says nothing about health, so
+ * reporting the two alike cries wolf: it presents a decision somebody made as a
+ * suite that exhausted its time. It cannot hide a regression in the other
+ * direction — the run is scored and blocks either way, and only the diagnosis
+ * differed — which is why this is a reporting-resolution fix and changes
+ * nothing about which runs are scoreable.
+ *
+ * The residual is named as unattributed rather than as "an operator cancel",
+ * because nothing here proves a human did anything. The evidence available says
+ * a ceiling was hit or does not say so; claiming the negative as a positive
+ * would be the same category error one layer along.
+ * @param {object} selection - The finding's selection record
+ * @returns {string} A clause completing "so it …"
+ */
+function describeShortfall(selection) {
+  if (selection.decisiveJobs === 0) return "tested nothing";
+  if (selection.timedOut === true) return "was killed at a time limit";
+  if (selection.timedOut === false)
+    return (
+      "stopped before finishing, with no time-limit evidence on any " +
+      "unfinished job — an operator cancel, a displaced duplicate, an evicted " +
+      "runner and a failed dependency all land here"
+    );
+  return "ran but did not finish, for a reason this gate could not read";
+}
+
 export function formatSelection(selection) {
   if (!selection) return null;
   const conclusion = selection.conclusion ?? null;
@@ -2061,7 +2176,7 @@ export function formatSelection(selection) {
     typeof selection.decisiveJobs === "number" &&
     typeof selection.totalJobs === "number";
   const cause = counted
-    ? ` — ${selection.decisiveJobs} of ${selection.totalJobs} job(s) reached a verdict, so it ${selection.decisiveJobs === 0 ? "tested nothing" : "ran but did not finish"}`
+    ? ` — ${selection.decisiveJobs} of ${selection.totalJobs} job(s) reached a verdict, so it ${describeShortfall(selection)}`
     : "";
   const scored = `↳ scored run ${selection.runId ?? "?"} (${conclusion ?? "no conclusion"}${cause}, ${selection.createdAt ?? "unknown time"})`;
   const fallback = selection.fellBack
@@ -3350,6 +3465,18 @@ async function selectScoredRun(api, candidates, freshnessHours, now, wait) {
   // honest report is "this was scored because nothing better existed", not a
   // line contradicting itself.
   const skipped = walkedPast.filter(entry => entry.runId !== run.id);
+  const decisiveJobs = countDecisiveJobs(jobs);
+  // Asked only of the one shape that is ambiguous: a run that reached no
+  // verdict of its own yet scored some of its jobs. A decisive run has already
+  // said what happened, and a run with nothing decisive tested nothing — both
+  // are named without this, so neither pays for it. That keeps the common path
+  // at exactly the request count it had before.
+  const timedOut =
+    jobsComplete &&
+    !DECISIVE_CONCLUSIONS.has(run.conclusion ?? null) &&
+    decisiveJobs > 0
+      ? await readTimeoutEvidence(api, jobs, wait)
+      : null;
   return {
     run,
     jobs,
@@ -3360,7 +3487,8 @@ async function selectScoredRun(api, candidates, freshnessHours, now, wait) {
       createdAt: run.created_at ?? null,
       // Carried for the SCORED run too, not only the skipped ones, so an
       // inconclusive verdict can name its cause. See `formatSelection`.
-      decisiveJobs: countDecisiveJobs(jobs),
+      decisiveJobs,
+      timedOut,
       totalJobs: jobs.length,
       fellBack: chosen === null && walkedPast.length > 0,
       skipped: Object.freeze(skipped.map(entry => Object.freeze(entry))),
