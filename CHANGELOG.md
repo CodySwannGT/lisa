@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.58.1](https://github.com/CodySwannGT/lisa/compare/v4.58.0...v4.58.1) (2026-09-14)
+
+
+### Documentation
+
+* document one-time upgrades from legacy Lisa ([f88020d](https://github.com/CodySwannGT/lisa/commit/f88020dfd3b8956a69ecced161222438f439aa65)), closes [CodySwannGT/lisa#3505](https://github.com/CodySwannGT/lisa/issues/3505) [CodySwannGT/lisa#3505](https://github.com/CodySwannGT/lisa/issues/3505)
+
 ## [4.58.0](https://github.com/CodySwannGT/lisa/compare/v4.57.6...v4.58.0) (2026-09-14)
 
 
