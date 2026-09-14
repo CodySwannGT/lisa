@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.57.4](https://github.com/CodySwannGT/lisa/compare/v4.57.3...v4.57.4) (2026-09-14)
+
+
+### Bug Fixes
+
+* **preflight:** render a stop and an action as different things ([4c53974](https://github.com/CodySwannGT/lisa/commit/4c53974bd89d0977e7640b4c827d36754e246656)), closes [CodySwannGT/lisa#3478](https://github.com/CodySwannGT/lisa/issues/3478)
+* **preflight:** sync main and finish report tiering ([950a99a](https://github.com/CodySwannGT/lisa/commit/950a99a91bf844fed5139990a3914da39a944834)), closes [CodySwannGT/lisa#3478](https://github.com/CodySwannGT/lisa/issues/3478) [CodySwannGT/lisa#3478](https://github.com/CodySwannGT/lisa/issues/3478)
+
 ### [4.57.3](https://github.com/CodySwannGT/lisa/compare/v4.57.2...v4.57.3) (2026-09-13)
 
 
