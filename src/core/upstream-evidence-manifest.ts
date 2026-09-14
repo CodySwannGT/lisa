@@ -2874,7 +2874,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "bdd/coverage-report.json": true,
     "bdd/features/lisa-ui-config-save.feature": true,
     "bdd/features/lisa-ui-demo-data.feature": true,
-    "bdd/features/lisa-ui-starter-config.feature": true,
+    "bdd/features/lisa-ui-starter-settings.feature": true,
     "bun.lock": true,
     "cdk/copy-overwrite/.github/workflows/.keep": true,
     "cdk/copy-overwrite/eslint.cdk.ts": true,
