@@ -156,6 +156,7 @@ describe("setup-project invocation", () => {
       {
         runApply,
         runCommand: DEFAULT_SETUP_PROJECT_DEPENDENCIES.runCommand,
+        captureCommand: DEFAULT_SETUP_PROJECT_DEPENDENCIES.captureCommand,
       }
     );
   });
