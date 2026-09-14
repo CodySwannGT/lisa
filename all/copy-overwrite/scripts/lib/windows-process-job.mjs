@@ -33,7 +33,8 @@ export function startWindowsProcessJob(command) {
       powershell,
       ["-NoLogo", "-NoProfile", "-NonInteractive", "-File", script],
       {
-        detached: true,
+        // The native job supplies isolation. Keep the helper attached so
+        // Windows PowerShell retains the caller's standard handles.
         stdio: "inherit",
         env: {
           ...env,
@@ -87,7 +88,7 @@ export function startWindowsProcessJob(command) {
       }
     } catch (error) {
       throw new Error(
-        `Windows gate cleanup was not verified: ${error.message}`
+        `Windows gate cleanup was not verified (helper exit ${child.exitCode ?? child.signalCode ?? "pending"}): ${error.message}`
       );
     } finally {
       clearTimeout(timer);

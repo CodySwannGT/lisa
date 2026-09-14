@@ -511,6 +511,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "8de9cd7b38c7afd0b837de9baa4cb8d3ddceeb0a1b434862e2ad3549044a6790",
   ]),
   "scripts/lib/windows-process-job.mjs": Object.freeze([
+    "109224c7c0d98447117f78a794a70df07925370a1ab01945bf0369f5bfe498b8",
     "33fb198c1c5f32e6a615741eb21ee22a86d38701c6137bc00c72a273c2ad4b76",
     "e448bb4c092d6ae5c868352f355c78e6d8d549cdd6a12c505ca0a5923e0cae62",
   ]),
@@ -1876,6 +1877,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "8de9cd7b38c7afd0b837de9baa4cb8d3ddceeb0a1b434862e2ad3549044a6790",
   ]),
   "scripts/lib/windows-process-job.mjs": Object.freeze([
+    "109224c7c0d98447117f78a794a70df07925370a1ab01945bf0369f5bfe498b8",
     "33fb198c1c5f32e6a615741eb21ee22a86d38701c6137bc00c72a273c2ad4b76",
     "e448bb4c092d6ae5c868352f355c78e6d8d549cdd6a12c505ca0a5923e0cae62",
   ]),

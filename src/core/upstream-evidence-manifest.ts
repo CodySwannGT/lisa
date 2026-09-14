@@ -49,7 +49,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/windows-process-job.cs":
       "8de9cd7b38c7afd0b837de9baa4cb8d3ddceeb0a1b434862e2ad3549044a6790",
     "all/copy-overwrite/scripts/lib/windows-process-job.mjs":
-      "33fb198c1c5f32e6a615741eb21ee22a86d38701c6137bc00c72a273c2ad4b76",
+      "109224c7c0d98447117f78a794a70df07925370a1ab01945bf0369f5bfe498b8",
     "all/copy-overwrite/scripts/lib/windows-process-job.ps1":
       "d73b15152703d7f195d1e06f7d7cee5437373237fcd74fe68afbd79fccebc1ba",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.d.mts":
