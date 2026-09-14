@@ -112,6 +112,10 @@ const STUB_RUNNER = [
   '  echo "[FAILED] a flow reported a failure"',
   "  exit 1",
   "fi",
+  'if [ "$STUB_MODE" = "retry-kills-driver" ]; then',
+  '  kill -KILL "$STUB_DRIVER_PID"',
+  "  exit 1",
+  "fi",
   'if [ "$STUB_MODE" = "retry-fails" ]; then',
   '  printf \'<testsuites><testsuite tests="1" failures="1"><testcase name="x" file="%s" status="ERROR"><failure></failure></testcase></testsuite></testsuites>\' "$target" > "$out"',
   "  exit 1",
@@ -228,3 +232,38 @@ export const ledgerOf = (
     ...flowRows,
   ].join("\n");
 };
+
+/**
+ * Seed an isolated clock and summary environment for the native drivers.
+ * @param dir - Owned fixture directory.
+ * @param summary - Step summary path.
+ * @param clockAdvanceSeconds - Seconds consumed at each clock read.
+ * @returns Isolated process environment.
+ */
+export async function seedClock(
+  dir: string,
+  summary: string,
+  clockAdvanceSeconds: number
+) {
+  const bin = path.join(dir, "bin");
+  const clock = path.join(dir, "clock");
+  await fs.ensureDir(bin);
+  if (clockAdvanceSeconds > 0) {
+    await fs.writeFile(clock, String(Math.floor(Date.now() / 1000)));
+    await fs.writeFile(
+      path.join(bin, "date"),
+      '#!/bin/bash\nn=$(cat "$STUB_CLOCK")\nprintf "%s\\n" "$n"\nprintf "%s\\n" "$(( n + STUB_CLOCK_ADVANCE ))" > "$STUB_CLOCK"\n',
+      { mode: 0o755 }
+    );
+  }
+  const fixtureEnv = {
+    PATH: `${bin}:${process.env.PATH ?? ""}`,
+    HOME: dir,
+    BASH_ENV: "/dev/null",
+    ENV: "/dev/null",
+    GITHUB_STEP_SUMMARY: summary,
+    STUB_CLOCK: clock,
+    STUB_CLOCK_ADVANCE: String(clockAdvanceSeconds),
+  };
+  return fixtureEnv;
+}

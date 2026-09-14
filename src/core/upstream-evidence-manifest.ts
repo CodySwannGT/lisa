@@ -2451,7 +2451,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "e5d1c9ea128f9472a8a95cd1adaf24d36badef984cb7296de688e0e858983749",
+      "14b103e1808634323183922f3962cbbfb9e32a8582747a93fbad5aca2f2a51f6",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -9490,6 +9490,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/maestro-native-flake-classification.test.ts": true,
     "tests/integration/maestro-native-flow-runner.test.ts": true,
     "tests/integration/maestro-native-per-flow-retry.test.ts": true,
+    "tests/integration/maestro-native-retry-deadline.test.ts": true,
+    "tests/integration/maestro-native-retry-time-budget.test.ts": true,
     "tests/integration/maestro-native-suite-scope.test.ts": true,
     "tests/integration/maestro-native-workflow.test.ts": true,
     "tests/integration/maestro-native-zero-flow.test.ts": true,

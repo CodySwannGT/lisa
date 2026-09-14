@@ -299,6 +299,9 @@ describe("maestro-native-e2e per-flow retry (executed)", () => {
       const env = {
         ...process.env,
         PATH: `${bin}:${process.env.PATH ?? ""}`,
+        LISA_MAESTRO_SUITE_DEADLINE: String(
+          Math.floor(Date.now() / 1000) + 3600
+        ),
         FLOW_RUNNER: stub,
         FLOWS_DIR: ".maestro/flows",
         MAESTRO_E2E_ARGS: "",
