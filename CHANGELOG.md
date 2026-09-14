@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.60.9](https://github.com/CodySwannGT/lisa/compare/v4.60.8...v4.60.9) (2026-09-14)
+
+
+### Bug Fixes
+
+* honor operator-approved shared rule edits ([95f3f59](https://github.com/CodySwannGT/lisa/commit/95f3f59544fd270c5236c752364c8fba5430adba)), closes [CodySwannGT/lisa#3594](https://github.com/CodySwannGT/lisa/issues/3594) [CodySwannGT/lisa#3594](https://github.com/CodySwannGT/lisa/issues/3594)
+
 ### [4.60.8](https://github.com/CodySwannGT/lisa/compare/v4.60.7...v4.60.8) (2026-09-14)
 
 
