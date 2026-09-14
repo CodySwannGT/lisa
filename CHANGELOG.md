@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.60.7](https://github.com/CodySwannGT/lisa/compare/v4.60.6...v4.60.7) (2026-09-14)
+
+
+### Bug Fixes
+
+* deliver unit coverage to the scan job ([4a3e5eb](https://github.com/CodySwannGT/lisa/commit/4a3e5ebca785d91d4cf95e9ef85fce3f9f23ecea)), closes [CodySwannGT/lisa#3847](https://github.com/CodySwannGT/lisa/issues/3847) [CodySwannGT/lisa#3847](https://github.com/CodySwannGT/lisa/issues/3847)
+
 ### [4.60.6](https://github.com/CodySwannGT/lisa/compare/v4.60.5...v4.60.6) (2026-09-14)
 
 
