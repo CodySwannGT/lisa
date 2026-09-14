@@ -26,7 +26,7 @@ If no learnings exist, report "No learnings to process" and complete.
 
 For each `mistake`/`learning` candidate, build the ledger entry the executable contract validates. The `LEARNINGS_CONTRACT` caps apply — an over-cap entry cannot persist; tighten it or drop it, never truncate by hand:
 
-- `fingerprint` — the deterministic content-version token: `learner-` + the first 12 hex chars of `sha1(normalized_rule)`. Recompute it from the fully consolidated rule; never estimate it.
+- `fingerprint` — `learningFingerprint(rule)` from `@codyswann/lisa/learnings`, computed from the final consolidated rule. Every ledger writer uses this rule-only identity; evidence links and workflow markers are separate.
 - `id` — set `id = fingerprint` for a new capture. On an exact stamped consolidation the writer carries forward the deterministic primary target id, while `fingerprint` changes with the new content.
 - `rule` — the actionable learning, **≤ 240 characters and ≤ 2 lines** per `LEARNINGS_CONTRACT`.
 - `why` — the causal claim (why the rule holds).
@@ -46,6 +46,8 @@ LEARNINGS_FILE=$(node -e 'import("@codyswann/lisa/learnings").then(async m => { 
 ```
 
 For each candidate entry:
+
+Compare `learningFingerprint(existing.rule)` with `learningFingerprint(candidate.rule)` before writing. An equal rule is already captured, even if its legacy id or fingerprint uses another prefix; preserve those stored values and report the existing id. Distinct rules may cite the same evidence. For a changed consolidation, keep the exact parsed legacy stamps in `supersede`; never migrate ids or fingerprints merely to adopt the helper.
 
 1. **Consolidation check (mandatory before writing).** Parse existing entries with `parseLearningsFile` from `@codyswann/lisa/learnings` and look for a related entry — same failure class, overlapping topic, or near-duplicate wording.
    - **Related entry found** → consolidate, do not sibling. Copy each target's exact parsed version stamp and write via `persistConsolidatedLearning(projectRoot, entry, { supersede: [{ id: <related id>, fingerprint: <related fingerprint> }], onStaleSupersede: targets => report(targets) })`, merging the still-true content of the superseded entry into the new rule and keeping the earliest `first_learned`. Stamps are checked together inside the lock: if any is stale, the writer removes none, safely appends the new fingerprint, and reports the mismatch. A near-duplicate sibling is a bug, not an entry.

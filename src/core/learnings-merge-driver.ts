@@ -100,7 +100,14 @@ export const OPERATIONAL_HAZARDS_LEDGER = ".lisa/HAZARDS.jsonl";
  * @returns Single `.gitattributes` line, without a trailing newline
  */
 export function buildLearningsAttributeLine(ledgerPath: string): string {
-  return `${ledgerPath} merge=${LEARNINGS_MERGE_DRIVER_NAME}`;
+  // A configured path names one file, not a wildcard or every matching basename.
+  const anchored =
+    ledgerPath.includes("/") && !/^[#!]/u.test(ledgerPath)
+      ? ledgerPath
+      : `/${ledgerPath}`;
+  const literal = anchored.replace(/[?*[\]]/gu, "\\$&");
+  const pattern = /[\s"\\]/u.test(literal) ? JSON.stringify(literal) : literal;
+  return `${pattern} merge=${LEARNINGS_MERGE_DRIVER_NAME}`;
 }
 
 /**

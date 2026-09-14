@@ -39,6 +39,36 @@ const RULE_PATHS = [
 const read = (relative: string): string =>
   readFileSync(path.resolve(relative), "utf8");
 
+describe.each([...LEARNER_PATHS, ...PERSIST_PATHS, ...DEBRIEF_PATHS])(
+  "shared ledger fingerprint (%s)",
+  writerPath => {
+    it("uses the canonical rule fingerprint and preserves legacy identities", () => {
+      const writer = read(writerPath);
+      expect(writer).toContain("learningFingerprint");
+      expect(writer).toMatch(/legacy.*(?:id|fingerprint)/is);
+      expect(writer).not.toContain("`debrief-` +");
+      expect(writer).not.toContain(
+        "fingerprint` = the deterministic Phase 0 fingerprint"
+      );
+    });
+  }
+);
+
+describe.each(DEBRIEF_PATHS)(
+  "debrief durable-write boundary (%s)",
+  skillPath => {
+    it("requires a pull request and never deduplicates distinct rules by evidence", () => {
+      const skill = read(skillPath);
+      expect(skill).toContain("lisa-persist-learning");
+      expect(skill).toMatch(/pull request/i);
+      expect(skill).not.toContain(
+        "evidence link that doubles as a fingerprint"
+      );
+      expect(skill).not.toContain("apply` does not commit");
+    });
+  }
+);
+
 describe.each(LEARNER_PATHS)("learner v2 entry contract (%s)", agentPath => {
   it("builds an eight-field entry and stamps exact consolidation targets", () => {
     const agent = read(agentPath);

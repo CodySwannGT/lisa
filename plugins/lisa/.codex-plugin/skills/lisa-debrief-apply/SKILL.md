@@ -44,6 +44,8 @@ The three knowledge categories — **recurring gotcha**, **process friction**, a
 
 For each such Accepted row:
 
+Use the branch, PR deduplication, commit, submission and confidence-routing sequence in `lisa-persist-learning` Phase 3. The human's Accepted disposition supplies the high-confidence durable-learning decision here. Before writing, create or reuse the learning branch in an isolated worktree; never write the ledger in the default-branch checkout. Submit a pull request carrying only the resolved ledger or overflow surface. Keep the triage-document update separate. A local write alone is not an applied learning: report the PR and whether it is pending or merged.
+
 1. **Resolve the ledger path (never hardcode).** Use `resolveProjectLearningsFile` from `@codyswann/lisa/learnings` — the `learnings.file` override, else the default `.lisa/PROJECT_LEARNINGS.md` (a cold path, never an auto-loaded rules tree):
 
    ```bash
@@ -55,10 +57,10 @@ For each such Accepted row:
    - **No related entry** → append via `persistLearningEntry(projectRoot, entry)`.
 
 3. **Entry mapping (eight fields).**
-   - `fingerprint` — `debrief-` + the first 12 hex characters of `sha1(normalized_rule + "\n" + sorted_provenance.join("\n"))`, where the rule is lowercased with whitespace collapsed and provenance is sorted by codepoint. Compute it mechanically, never estimate it.
+   - `fingerprint` — `learningFingerprint(rule)` from `@codyswann/lisa/learnings`, computed from the final consolidated rule. Keep workflow/PR markers separate: use the `lisa-persist-learning` Phase 0 occurrence key with the stable triage-document reference as `triggering_issue`; the rule distinguishes rows sharing that reference.
    - `id` — initially `id = fingerprint`. On an exact stamped consolidation the writer carries forward the deterministic primary target id; report the returned id in the run summary.
    - `rule` / `why` — from the row's `Summary` and the category-specific guidance in the routing table above (≤240 chars, ≤2 lines).
-   - `provenance` — **the triage-doc row's evidence links**. This is the same evidence link that doubles as the idempotency fingerprint below, so the row's provenance is what a later re-apply scans for.
+   - `provenance` — **the triage-doc row's evidence links**. Evidence supports a rule; it is not the rule's identity, and one event may support several distinct lessons.
    - `first_learned` = `last_confirmed` = today (ISO date; on consolidation keep the superseded entry's earliest `first_learned`).
    - `confidence` = **`high`**. A human marking the row **Accept** is corroboration — an independent human judgement that the learning is real — so a debrief-accepted entry starts higher than the learner's single-occurrence auto-capture (which defaults to `low`). A duplicate fingerprint fails before mutation. The writer re-asserts the entry and token budgets; an over-budget failure means consolidate harder or drop, never truncate by hand.
 
@@ -66,16 +68,16 @@ For each such Accepted row:
 
 ## Idempotency
 
-`apply` is safe to re-run. Each Accepted row carries an evidence link that doubles as a fingerprint. Before writing, check whether the destination already cites that fingerprint:
+`apply` is safe to re-run. Compute the final rule's fingerprint before checking its destination:
 
-- **Knowledge categories (gotcha, friction, drift) → ledger.** Parse the ledger once with `parseLearningsFile` from `@codyswann/lisa/learnings` and scan the entries' `provenance` for the row's evidence link. If any entry's provenance already contains it, the row is already persisted — skip the write. This replaces the old scattered-file greps (memory files, host rules, `AGENTS.md`): provenance in the single governed ledger is now the one fingerprint surface.
+- **Knowledge categories (gotcha, friction, drift) → ledger.** Read the default-branch ledger through `parseLearningsFile` from `@codyswann/lisa/learnings` and compare `learningFingerprint(existing.rule)` with `learningFingerprint(candidate.rule)`. An equal rule there is already captured: preserve its legacy id and fingerprint, report that id, and skip the write. A rule present only on an open PR branch remains pending, not applied; reuse that PR. For changed consolidations use exact parsed legacy stamps in `supersede`; never rewrite them merely to adopt the helper. Distinct rules sharing provenance must both be considered. Also reuse the existing PR when its workflow marker is present, including a PR not yet merged.
 - **Other categories** keep their existing destination check (the tracker for the ticket marker, the PRD for the defect comment, `intent-routing.md` for the edge-case citation).
 
 If the fingerprint is already present, skip the write and note the row as `already-applied` in the run summary. This lets the human triage a doc incrementally (mark a few, run apply, mark more, run apply again) without producing duplicates.
 
 ## Updating the triage doc
 
-After each Accepted row is persisted, replace its `[ ] Accept` checkbox with `[x] Applied — <one-line summary of what was written>`. This makes the triage doc itself the audit log of what was acted on. If a write fails (e.g., tracker is unreachable), mark the row `[!] Apply failed — <reason>` and continue with the rest. Never abort the whole run because one row failed.
+After a learning PR merges (or the rule is already in the default-branch ledger), replace the row's `[ ] Accept` checkbox with `[x] Applied — <entry id and PR>`. While the PR is open, leave the row Accepted and record `Pending PR: <url>` so a rerun reuses it. Other destinations retain their successful-write marking. If a write or submission fails, mark the row `[!] Apply failed — <reason>` and continue with the rest.
 
 ## Output
 
@@ -101,4 +103,4 @@ Failed:
 Triage doc updated in place: <path>
 ```
 
-If anything is written to a tracker, suggest the human commit the local file changes (the learnings ledger, intent-routing) when ready — `apply` does not commit.
+Report ledger PRs and their pending/merged state in the summary. Other local changes, such as the triage document or intent-routing checklist, remain separate from those PRs and may be committed through the project's normal flow.
