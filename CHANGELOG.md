@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.60.5](https://github.com/CodySwannGT/lisa/compare/v4.60.4...v4.60.5) (2026-09-14)
+
+
+### Bug Fixes
+
+* deliver workflow load scans to consumers ([03638ff](https://github.com/CodySwannGT/lisa/commit/03638ff885022eba9b53d488113f12567ae8f5d0)), closes [CodySwannGT/lisa#4107](https://github.com/CodySwannGT/lisa/issues/4107) [CodySwannGT/lisa#4107](https://github.com/CodySwannGT/lisa/issues/4107)
+* keep workflow load findings inside scan window ([e2878d7](https://github.com/CodySwannGT/lisa/commit/e2878d7a84cfcf5b331adb39ab390009163af0e2)), closes [CodySwannGT/lisa#4107](https://github.com/CodySwannGT/lisa/issues/4107) [CodySwannGT/lisa#4107](https://github.com/CodySwannGT/lisa/issues/4107)
+* preserve workflow scan template ownership ([b179601](https://github.com/CodySwannGT/lisa/commit/b179601c419aeba1a3189216fa1aaeae7ea19406)), closes [CodySwannGT/lisa#4107](https://github.com/CodySwannGT/lisa/issues/4107) [CodySwannGT/lisa#4107](https://github.com/CodySwannGT/lisa/issues/4107)
+
 ### [4.60.4](https://github.com/CodySwannGT/lisa/compare/v4.60.3...v4.60.4) (2026-09-14)
 
 
