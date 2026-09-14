@@ -81,14 +81,14 @@
   "defaults": {
     "scripts": {
       "build": "node scripts/lib/worktree-dependencies.mjs && vite build",
-      "dev": "vite",
+      "dev": "node scripts/lib/worktree-dependencies.mjs && vite",
       "format:check": "$npm_execpath run format:check:lisa",
       "knip:check": "$npm_execpath run knip:check:lisa",
       "lint": "$npm_execpath run lint:lisa",
       "lint:slow": "$npm_execpath run lint:slow:lisa",
-      "preview": "vite preview",
+      "preview": "node scripts/lib/worktree-dependencies.mjs && vite preview",
       "sg:scan": "$npm_execpath run sg:scan:lisa",
-      "size": "size-limit",
+      "size": "node scripts/lib/worktree-dependencies.mjs && size-limit",
       "test": "$npm_execpath run test:lisa",
       "test:cov": "$npm_execpath run test:cov:lisa",
       "test:cov:unit": "$npm_execpath run test:cov:unit:lisa",

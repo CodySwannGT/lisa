@@ -10,6 +10,7 @@ import {
 } from "../helpers/io-latency-budget.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
+const LIB = "all/copy-overwrite/scripts/lib";
 const runner = path.join(root, "all/copy-overwrite/scripts/lisa-run-gates.mjs");
 const hook = path.join(
   root,
@@ -188,14 +189,11 @@ describe("nested worktree dependency boundary", () => {
         run(f.nested, "npm", ["run", "--silent", "knip:check"]).stdout
       ).toContain("PARENT_KNIP_EXECUTED");
       await fs.copy(
-        path.join(
-          root,
-          "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs"
-        ),
+        path.join(root, LIB, "worktree-dependencies.mjs"),
         path.join(f.nested, "scripts/lib/worktree-dependencies.mjs")
       );
       await fs.copy(
-        path.join(root, "all/copy-overwrite/scripts/lib/invoked-as-script.mjs"),
+        path.join(root, LIB, "invoked-as-script.mjs"),
         path.join(f.nested, "scripts/lib/invoked-as-script.mjs")
       );
       await fs.writeJson(manifest, {
@@ -266,56 +264,61 @@ describe("nested worktree dependency boundary", () => {
     }
   );
 
-  it.each([ROOT_LIFECYCLE, "phaser build"])(
-    "checks before %s can launch build tools",
-    async kind => {
-      const f = await fixture();
-      const source =
-        kind === ROOT_LIFECYCLE
-          ? PACKAGE_FILE
-          : "phaser/package-lisa/package.lisa.json";
-      const manifest = (await fs.readJson(path.join(root, source))) as {
-        scripts: Record<string, string>;
-        defaults: { scripts: Record<string, string> };
-      };
-      const scripts =
-        kind === ROOT_LIFECYCLE
-          ? {
-              ...manifest.scripts,
-              test: "node -e \"console.log('UNEXPECTED_TEST')\"",
-            }
-          : manifest.defaults.scripts;
-      try {
-        await fs.writeJson(path.join(f.nested, PACKAGE_FILE), { scripts });
-        for (const name of [
-          "worktree-dependencies.mjs",
-          "invoked-as-script.mjs",
-        ]) {
-          await fs.copy(
-            path.join(root, "all/copy-overwrite/scripts/lib", name),
-            path.join(f.nested, "scripts/lib", name)
-          );
-        }
-        await fs.outputFile(
-          path.join(f.nested, "scripts/clean-dist.mjs"),
-          "console.log('UNEXPECTED_CLEAN'); process.exit(1);\n"
+  it.each([
+    ROOT_LIFECYCLE,
+    "phaser build",
+    "phaser dev",
+    "phaser preview",
+    "phaser size",
+  ])("checks before %s can launch build tools", async kind => {
+    const f = await fixture();
+    const source =
+      kind === ROOT_LIFECYCLE
+        ? PACKAGE_FILE
+        : "phaser/package-lisa/package.lisa.json";
+    const manifest = (await fs.readJson(path.join(root, source))) as {
+      scripts: Record<string, string>;
+      defaults: { scripts: Record<string, string> };
+    };
+    const scripts =
+      kind === ROOT_LIFECYCLE
+        ? {
+            ...manifest.scripts,
+            test: "node -e \"console.log('UNEXPECTED_TEST')\"",
+          }
+        : manifest.defaults.scripts;
+    try {
+      await fs.writeJson(path.join(f.nested, PACKAGE_FILE), { scripts });
+      for (const name of [
+        "worktree-dependencies.mjs",
+        "invoked-as-script.mjs",
+      ]) {
+        await fs.copy(
+          path.join(root, LIB, name),
+          path.join(f.nested, "scripts/lib", name)
         );
+      }
+      await fs.outputFile(
+        path.join(f.nested, "scripts/clean-dist.mjs"),
+        "console.log('UNEXPECTED_CLEAN'); process.exit(1);\n"
+      );
+      for (const binary of ["vite", "size-limit"]) {
         await fs.outputFile(
-          path.join(f.primary, "node_modules/.bin/vite"),
-          "#!/bin/sh\necho UNEXPECTED_VITE\n",
+          path.join(f.primary, "node_modules/.bin", binary),
+          "#!/bin/sh\necho UNEXPECTED_BINARY\n",
           { mode: 0o755 }
         );
-        const result = run(f.nested, "npm", [
-          "run",
-          "--silent",
-          kind === ROOT_LIFECYCLE ? "test" : "build",
-        ]);
-        expect(result.status).not.toBe(0);
-        expect(result.stderr).toContain(PARENT_MESSAGE);
-        expect(result.stdout).not.toContain("UNEXPECTED_");
-      } finally {
-        await fs.remove(f.temp);
       }
+      const result = run(f.nested, "npm", [
+        "run",
+        "--silent",
+        kind === ROOT_LIFECYCLE ? "test" : kind.slice("phaser ".length),
+      ]);
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain(PARENT_MESSAGE);
+      expect(result.stdout).not.toContain("UNEXPECTED_");
+    } finally {
+      await fs.remove(f.temp);
     }
-  );
+  });
 });
