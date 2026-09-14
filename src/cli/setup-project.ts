@@ -4,6 +4,14 @@ import { readdir, rm } from "node:fs/promises";
 import * as path from "node:path";
 import { type CLIOptions } from "./shared-options.js";
 import { isSetupType, resolveStarter, SETUP_TYPES } from "./starters.js";
+import type { StarterTemplate } from "../core/project-config-starter.js";
+import {
+  captureCommand,
+  readClonedStarter,
+  readGitHubStarter,
+  recordStarterProvenance,
+  type CaptureCommand,
+} from "./starter-provenance.js";
 
 /**
  * Parsed options for the setup-project command.
@@ -16,6 +24,7 @@ export interface SetupProjectOptions extends CLIOptions {
  * Injectable collaborators for setup-project.
  */
 export interface SetupProjectDependencies {
+  captureCommand: CaptureCommand;
   runApply: (
     destination: string | undefined,
     options: CLIOptions
@@ -49,6 +58,7 @@ export const DEFAULT_SETUP_PROJECT_DEPENDENCIES: SetupProjectDependencies = {
     throw new Error("runApply dependency was not configured");
   },
   runCommand,
+  captureCommand,
 };
 
 /**
@@ -119,7 +129,7 @@ async function cloneStarter(
   type: string,
   destination: string,
   deps: SetupProjectDependencies
-): Promise<void> {
+): Promise<StarterTemplate> {
   if (!isSetupType(type)) {
     throw new Error(
       `Unknown setup type ${JSON.stringify(type)}. Valid types: ${SETUP_TYPES.join(", ")}`
@@ -132,6 +142,11 @@ async function cloneStarter(
   const starterRef = `${starter.owner}/${starter.repo}`;
 
   if (await ghIsAuthenticated(deps)) {
+    const snapshot = await readGitHubStarter(
+      starterRef,
+      undefined,
+      deps.captureCommand
+    );
     await deps.runCommand(
       "gh",
       [
@@ -145,15 +160,45 @@ async function cloneStarter(
       ],
       { cwd: parentDir }
     );
-    return;
+    const copiedTree = await deps.captureCommand(
+      "git",
+      ["rev-parse", "HEAD^{tree}"],
+      { cwd: destination }
+    );
+    if (copiedTree !== snapshot.tree) {
+      throw new Error(
+        "The starter changed during creation; its copied files do not match the captured revision. No provenance was recorded."
+      );
+    }
+    return snapshot.template;
   }
 
+  return await cloneWithoutGitHub(starterRef, destination, deps);
+}
+
+/**
+ * Retain the public clone's provenance before starting fresh project history.
+ * @param starterRef - Starter repository.
+ * @param destination - Clone directory.
+ * @param deps - Setup collaborators.
+ * @returns The copied starter revision.
+ */
+async function cloneWithoutGitHub(
+  starterRef: string,
+  destination: string,
+  deps: SetupProjectDependencies
+): Promise<StarterTemplate> {
   await deps.runCommand("git", [
     "clone",
     "--depth=1",
     `https://github.com/${starterRef}.git`,
     destination,
   ]);
+  const provenance = await readClonedStarter(
+    starterRef,
+    destination,
+    deps.captureCommand
+  );
   await rm(path.join(destination, ".git"), { recursive: true, force: true });
   await deps.runCommand("git", ["init", "-b", "main"], { cwd: destination });
   await deps.runCommand("git", ["add", "--all"], { cwd: destination });
@@ -172,6 +217,7 @@ async function cloneStarter(
     ],
     { cwd: destination }
   );
+  return provenance;
 }
 
 /**
@@ -200,16 +246,18 @@ export async function runSetupProject(
   const resolvedDestination = path.resolve(
     destination ?? `./${options.type}-app`
   );
-
-  if (!(await directoryIsNonEmpty(resolvedDestination))) {
-    if (options.dryRun || options.validate) {
-      console.log(
-        `Would create ${resolvedDestination} from ${resolveStarter(options.type).owner}/${resolveStarter(options.type).repo}`
-      );
-    } else {
-      await cloneStarter(options.type, resolvedDestination, dependencies);
-    }
+  const empty = !(await directoryIsNonEmpty(resolvedDestination));
+  const preview = options.dryRun || options.validate;
+  if (empty && preview) {
+    console.log(
+      `Would create ${resolvedDestination} from ${resolveStarter(options.type).owner}/${resolveStarter(options.type).repo}`
+    );
   }
-
+  const provenance =
+    empty && !preview
+      ? await cloneStarter(options.type, resolvedDestination, dependencies)
+      : undefined;
   await dependencies.runApply(resolvedDestination, toCliOptions(options));
+  if (provenance)
+    await recordStarterProvenance(resolvedDestination, provenance, true);
 }
