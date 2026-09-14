@@ -11,6 +11,11 @@ import * as fs from "fs-extra";
 import os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  boundedSpawnSync,
+  useIoLatencyBudget,
+} from "../../helpers/io-latency-budget.js";
+import { cleanGitEnv, resolveGit } from "../../support/git-executable.js";
 import type { ProjectType } from "../../../src/core/config.js";
 import { SilentLogger } from "../../../src/logging/silent-logger.js";
 import { EnsureLearningsGitattributesMigration } from "../../../src/migrations/ensure-learnings-gitattributes.js";
@@ -20,6 +25,7 @@ const GITATTRIBUTES = ".gitattributes";
 const DEFAULT_LEDGER = ".lisa/PROJECT_LEARNINGS.md";
 const RELOCATED = "docs/knowledge/PROJECT_LEARNINGS.md";
 const CONFIG_FILE = ".lisa.config.json";
+useIoLatencyBudget();
 
 describe("EnsureLearningsGitattributesMigration", () => {
   const migration = new EnsureLearningsGitattributesMigration();
@@ -67,6 +73,43 @@ describe("EnsureLearningsGitattributesMigration", () => {
     expect(contents).toContain(`${RELOCATED} merge=`);
     expect(contents).not.toContain(`${DEFAULT_LEDGER} merge=`);
   });
+
+  it.each([
+    ["docs/my notes/PROJECT_LEARNINGS.md", "docs/my/PROJECT_LEARNINGS.md"],
+    [
+      "docs/knowledge[1]/PROJECT_LEARNINGS.md",
+      "docs/knowledge1/PROJECT_LEARNINGS.md",
+    ],
+    ["#notes.md", "elsewhere/#notes.md"],
+    ["#notes/PROJECT_LEARNINGS.md", "notes/PROJECT_LEARNINGS.md"],
+    ["!notes/PROJECT_LEARNINGS.md", "notes/PROJECT_LEARNINGS.md"],
+    ['docs/my"notes/PROJECT_LEARNINGS.md', "docs/mynotes/PROJECT_LEARNINGS.md"],
+  ])(
+    "binds the literal configured path %s in Git",
+    async (ledger, unrelated) => {
+      const git = (args: string[]) =>
+        boundedSpawnSync({
+          label: "learning attributes in Git",
+          command: resolveGit(),
+          args,
+          cwd: projectDir,
+          env: cleanGitEnv(),
+        });
+      expect(git(["init", "-q"]).status).toBe(0);
+      await fs.writeJson(path.join(projectDir, CONFIG_FILE), {
+        learnings: { file: ledger },
+      });
+      await migration.apply(ctx());
+      for (const file of [ledger, ledger.replace(/\.md$/u, ".overflow.md")]) {
+        const result = git(["check-attr", "-z", "merge", "--", file]);
+        expect(result.status).toBe(0);
+        expect(result.stderr).toBe("");
+        expect(result.stdout.split("\0").at(-2)).toBe("lisa-learnings");
+      }
+      const other = git(["check-attr", "-z", "merge", "--", unrelated]);
+      expect(other.stdout.split("\0").at(-2)).toBe("unspecified");
+    }
+  );
 
   it("preserves host-authored attributes outside the managed block", async () => {
     await fs.outputFile(

@@ -1,5 +1,6 @@
 export * from "./learnings-alias.js";
 export * from "./learnings-contract.js";
+export * from "./learning-fingerprint.js";
 export {
   parseLearningsDocument,
   type ParsedLearningsDocument,

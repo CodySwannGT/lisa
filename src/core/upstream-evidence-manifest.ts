@@ -559,7 +559,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/jira-build-intake.md":
       "51397c08fe09380f53bd630fb81ff28905a532ea71336a424e944c28a0c2db55",
     "plugins/src/base/agents/learner.md":
-      "1e43e74801354e3ed29beed787a673b99599b442d69d8f769829273fdd1c293b",
+      "f2bd83a552c27e771a1fa1d1a7a347565590f397c826e252432df3b3317c48bb",
     "plugins/src/base/agents/learning-judge.md":
       "28618c3e20a0f790e4d254a9c8118645774233f19e3042b3cfeddf4ffbaf783a",
     "plugins/src/base/agents/learnings-synthesizer.md":
@@ -1099,7 +1099,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-cross-pollinate/SKILL.md":
       "d1d33a149cab2de0d0b4c7ddc6bb2f67f43a097e5f551f642b1cb076747a5a05",
     "plugins/src/base/skills/lisa-debrief-apply/SKILL.md":
-      "2f9fe30f786ac171f9177bac6f151fc6f12117386ba8f08938240edc6db46a9c",
+      "90943bebb7c6b911705106e737f8be643f05720d11ca0beb32568cdb584991c5",
     "plugins/src/base/skills/lisa-debrief/SKILL.md":
       "6a0981107f907d3362ab0001f46412b76a70ec5ecc37ea1cd1def6ce4a38c9ee",
     "plugins/src/base/skills/lisa-delivery-effectiveness/SKILL.md":
@@ -1283,7 +1283,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-performance-review/SKILL.md":
       "351542c256e54940e6d672a70606b8414425c6435ae6f026841bcc02f9fce9c4",
     "plugins/src/base/skills/lisa-persist-learning/SKILL.md":
-      "49645f53dd819ffe080eab5a68b93e2c74eaad3d87609646cb71c9e7587958d8",
+      "cf982c64eb948a0f428be826e7276f4563d9e6b9bc02562204327de50d64924b",
     "plugins/src/base/skills/lisa-plan/SKILL.md":
       "9c372e106afd53ff988046119cf36b0f6519c4426775dd8ad3c9d9baeee5d3e2",
     "plugins/src/base/skills/lisa-plugin-sync-explain/SKILL.md":
@@ -9002,6 +9002,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/kane-pilot-report.ts": true,
     "src/core/kane-pilot-types.ts": true,
     "src/core/kane-pilot.ts": true,
+    "src/core/learning-fingerprint.ts": true,
     "src/core/learnings-alias.ts": true,
     "src/core/learnings-budget-check.ts": true,
     "src/core/learnings-contract.ts": true,
@@ -9934,6 +9935,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/kane-cli.test.ts": true,
     "tests/unit/core/kane-pilot.test.ts": true,
     "tests/unit/core/kane-readiness.test.ts": true,
+    "tests/unit/core/learning-fingerprint.test.ts": true,
     "tests/unit/core/learnings-alias-provenance.test.ts": true,
     "tests/unit/core/learnings-barrel.test.ts": true,
     "tests/unit/core/learnings-budget-check.test.ts": true,
