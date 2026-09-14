@@ -71,7 +71,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "75795acf3203a3965ce0989939d16d12bfd76ac725a57818ad8d414ff101e705",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
-      "48fe34021b0e91170edf8901d92765cdadf1ade1d22dfc69144559c114f184b6",
+      "73ac5af581d16992dd9cc273b4e2f6b55bd6a2629abe23b7658563cf433e082c",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
       "214e45a38f60ab375934236cd3d8529f521873a5b8765261334d594534f10391",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
@@ -111,7 +111,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
       "6b7afe4ffeba8aaa53871d8855172f7eacde05953b1321145218ec638ff5c1c4",
     "all/create-only/.agents/rules/README.md":
-      "fd260fd9b2934d0d698a8098dfff07fedc071849d588e602d773666678c3d540",
+      "d4fda2b0b5862afa92c4ddf29daa53218df0d5fe4f051901cdfc53ac266bdbf8",
     "all/create-only/.github/workflows/continuous-gates.yml":
       "d4b3aa4eeefec7fba06587aa596f7d4df1bed58b9613b49a9a97f71821c8a937",
     "all/create-only/.github/workflows/workflow-load-failure-sweep.yml":
@@ -767,7 +767,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
-      "6c1e647628aa7f4ffa1f9e85f775476336c60c75c02c5096c5ce008c26ee7a70",
+      "e173660e092bef3eed00b3b3688f7cdd0d7e3ec2e44423af3118e9f0aad6d6ac",
     "plugins/src/base/hooks/block-managed-file-edits.agy.sh":
       "19cda51fcc113f0b3c184d8907913ab4b49ecb81db80ce7909639194bc9c52d6",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
@@ -919,7 +919,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/coding-philosophy.md":
       "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9",
     "plugins/src/base/rules/reference/config-resolution.md":
-      "727717f06ba0c6bcce46cbad62b7ce818ab0a5b30e9dba4cac3bbeb1ae05a993",
+      "1ed9492c876b187149a45e28a41aeb5775493c904751a9edb0067838b6f1121e",
     "plugins/src/base/rules/reference/control-reachability.md":
       "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a",
     "plugins/src/base/rules/reference/convergent-review.md":
@@ -979,7 +979,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/pre-flight-autofill.md":
       "3cb2a0e402ae468640d9021a7086e00323fa3cd34d9f061910f6caaff51f9e5f",
     "plugins/src/base/rules/reference/project-learnings.md":
-      "4c267636d842ba87953edcfafb1a15c41d82166a84f87e93f20dc2ea504ad717",
+      "e51677d91c6dfeaa33e91e1f9f16f6a39b2ea007b852822cf7970e607c05c0ec",
     "plugins/src/base/rules/reference/promotion-contract.md":
       "fe07cbdbd15393471d08903cce53b80b8899b2ff3bc0b0041b46c1c7003b7e6c",
     "plugins/src/base/rules/reference/readiness-rubric.md":

@@ -48,10 +48,8 @@ const REWORK_TRIAGE_PATHS = [
 ] as const;
 
 /**
- * Every host-rules surface that must carry the human-authored-only contract:
- * the seeded canonical directory shipped to hosts, and Lisa's own surviving
- * legacy single-file rules (retained during the transition — reclassifying it
- * is human-gated gardener work, not an automated rewrite).
+ * Host-rules surfaces keep machine-captured knowledge in the learning flow.
+ * Operator-directed edits are separate from automated learning promotion.
  */
 const PROJECT_RULES_PATHS = [
   ".claude/rules/PROJECT_RULES.md",
@@ -161,21 +159,13 @@ describe.each(REWORK_TRIAGE_PATHS)(
 );
 
 describe.each(PROJECT_RULES_PATHS)(
-  "host-rules human-authored-only contract (%s)",
+  "host-rules learning boundary (%s)",
   rulesPath => {
     const rules = read(rulesPath);
-
-    it("states the file is human-authored only", () => {
-      expect(rules).toMatch(/human-authored only/i);
-    });
 
     it("routes machine-captured knowledge to the ledger and the gardener", () => {
       expect(rules).toMatch(/PROJECT_LEARNINGS\.md/);
       expect(rules).toMatch(/gardener|learnings:audit|learnings-audit/i);
-    });
-
-    it("treats existing content as first-run gardener candidates", () => {
-      expect(rules).toMatch(/first-run.*candidates|candidates.*first-run/i);
     });
   }
 );

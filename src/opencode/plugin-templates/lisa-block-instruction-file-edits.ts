@@ -7,9 +7,9 @@
  * session for the project. Agents appending their own findings is how they grow
  * into hundreds of lines of stale, ticket-specific trivia.
  *
- * Port of Lisa's canonical hook `block-instruction-file-edits.sh`. OpenCode
- * exposes only `edit` / `write` filesystem tools (no `apply_patch`), so the file
- * path comes straight from `output.args.filePath`. Throwing in
+ * Adapter for Lisa's hook `block-instruction-file-edits.sh`. This adapter
+ * handles `edit` / `write`; shell screening belongs to the shell dispatcher
+ * where installed. The file path comes from `output.args.filePath`. Throwing in
  * `tool.execute.before` cancels the tool call and surfaces the message to the
  * agent.
  *
@@ -35,10 +35,11 @@ const LisaBlockInstructionFileEdits = async () => {
       const filePath = String(output.args?.filePath ?? "");
       if (!filePath) return;
       if (/(^|\/)(node_modules|dist)\//.test(filePath)) return;
-      // The operator's explicit override, named in the refusal below.
+      // Existing operator-configured override; not proof of conversation approval.
       if (process.env["LISA_ALLOW_INSTRUCTION_FILE_WRITE"]) return;
-      // Lisa's own marker-bounded regions replace in place and cannot grow the
-      // file, so they are never the unbounded append this guard exists to stop.
+      // Existing parity gap: this adapter accepts a content marker; the shell
+      // guard requires bounded old/new replacement pairs. Do not describe this
+      // weaker exemption as authorization or proof that an edit cannot grow.
       if (String(output.args?.content ?? "").includes("<!-- LISA_")) return;
       const base = (filePath.split("/").pop() ?? "").toLowerCase();
       if (!INSTRUCTION_FILES.has(base)) return;
@@ -46,25 +47,27 @@ const LisaBlockInstructionFileEdits = async () => {
         [
           `block-instruction-file-edits: refusing to write ${filePath}.`,
           "",
-          "WHY: this is a session-instruction file, not a place to record what",
-          "you just learned. Every line in it loads into the context of every",
-          "agent, in every future session, in this project, forever. It is",
-          "human-curated on purpose.",
+          "WHY: this session-instruction file is loaded into future agent sessions.",
+          "Appending incidental findings makes every later session carry those notes.",
+          "This adapter cannot read or authenticate conversation approval.",
           "",
-          "WHERE IT GOES INSTEAD — take the first one that fits:",
+          "If an operator already requested a standing-rule edit, that authorization",
+          "is enough for the requested change. Use the relevant topic file in",
+          ".agents/rules/ when no other destination was specified. All six agents",
+          "read it through the existing AGENTS.md pointer. Edit it directly; do not",
+          "require learning capture, another ticket, or repeated approval.",
           "",
-          "1. Every agent needs it every session, only in this project? That is a",
-          "   project rule — capture it with /lisa:persist-learning so it lands in",
-          "   the learnings ledger. The gardener (/lisa:learnings:audit) proposes",
-          "   promotion into the host-rules directory .agents/rules/ as a human-gated ticket.",
-          "2. It changes how an existing skill behaves? Edit that skill's SKILL.md.",
-          "3. It is true beyond this project? Propose it upstream via",
-          "   /lisa:cross-pollinate, or open an issue on CodySwannGT/lisa.",
-          "4. Otherwise it is background, not a standing instruction — write it",
-          "   into the project documentation (wiki/ or docs/).",
+          "If the operator explicitly named this guarded file, preserve that target",
+          "and use the runtime's authorized edit path, or report this restriction.",
+          "Do not silently move the edit, switch tools to evade this refusal, or",
+          "set an override yourself. The existing operator-configured",
+          "LISA_ALLOW_INSTRUCTION_FILE_WRITE=1 escape hatch is not proof of consent.",
           "",
-          "If a human explicitly asked for this edit, re-run with",
-          "LISA_ALLOW_INSTRUCTION_FILE_WRITE=1 set.",
+          "For an agent's own finding, first decide whether it is worth maintaining.",
+          "Decline one-off trivia and unnecessary rules. Durable project knowledge",
+          "can use /lisa:persist-learning; procedures belong with their SKILL.md;",
+          "background belongs in existing documentation. Use /lisa:cross-pollinate",
+          "only for a material, reusable upstream improvement.",
         ].join("\n")
       );
     },
