@@ -248,12 +248,14 @@ untouched. The runtime keeps accepting those deprecated aliases, prefers the
 provider-neutral key when both are present, and `lisa doctor` warns until a
 project finishes migrating.
 
-## Starter provenance & sync (planned — documented, not wired)
+## Starter provenance and sync preferences
 
-The **Starter templates** section of the console documents this contract; no
-engine exists yet. A project records which starter repo(s) it was generated
-from (`lisa setup-project` already knows them — `src/cli/starters.ts`) and
-stays connected to them in both directions:
+The **Starter templates** section reads independent entries from the project's
+`starter.templates` array. Missing entries render an empty state. `lisa sync`
+populates the registered configuration defaults with `_lisaSync.populated`
+provenance; it does not stamp origins or run a starter synchronization engine.
+Automatic sync and upstream proposals default to off. The proposed engine
+described below remains planned.
 
 ```jsonc
 "starter": {
@@ -268,7 +270,7 @@ stays connected to them in both directions:
   "sync": {
     "auto": false,                          // scheduled sync via a lisa-auto cron
     "strategy": "pull-request",             // or "direct-when-clean"
-    "upstreamProposals": true,              // open issues in the starter repo
+    "upstreamProposals": false,             // off until the classifier is validated
     "proposalLabel": "starter-upstream-proposal"
   }
 }
@@ -290,8 +292,8 @@ labeled `proposalLabel`, containing detailed instructions on what was changed
 and how to apply it to the starter. Anything referencing project names,
 product features, secrets, or business logic is never proposed.
 
-When the engine lands, `starter.*` should join the `lisa sync` registry so
-the section above governs it like every other setting.
+`starter.templates` and `starter.sync` use the shared sync registry and config
+reader. Changing these settings does not execute the planned engine.
 
 ## Health (shared skill and CLI available)
 
@@ -382,7 +384,7 @@ browser payload; the server exposes names and boolean presence only.
 | Health (version status + in-band scan) | `lisa doctor`, `lisa sync --dry-run`, `lisa health`, `/lisa:health` skill |
 | Doctor (what each check proves, where, and whether it blocks a merge) | `all/copy-overwrite/scripts/lisa-gates.mjs`, `.lisa.config.json`, `package.json`, `.husky/`, `.github/workflows/`, branch protection |
 | Core workflow (the delivery-loop slash commands and their automations) | `plugins/src/base/commands/lisa/`, `plugins/src/base/skills/` |
-| Starter templates (provenance + planned two-way sync) | `src/cli/starters.ts`, planned `starter.*` config |
+| Starter templates (provenance + planned two-way sync) | `src/core/project-config-starter.ts`, `src/sync/registry.ts` |
 | General (`harness`, `tracker`, `source`, `repo`, package manager) | `src/core/config.ts`, `plugins/src/base/rules/reference/config-resolution.md` |
 | Project types (8 stacks + template strategies) | `src/detection/`, `src/strategies/`, `<stack>/` template dirs |
 | Coding agents (claude/codex/cursor/agy/copilot/opencode/fleet) | `src/core/lisa.ts`, `scripts/generate-*-plugin-artifacts.mjs` |

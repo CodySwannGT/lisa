@@ -2627,9 +2627,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/package-lisa/package.lisa.json":
       "432f6789653fae75a70d679ab9de064282aed7bb63a15c29be1eed0eae19f83e",
     "ui/README.md":
-      "cf4ce2f5ecc622472834f57eb66c3a11c98df4cf4a18124aa7b00b1e5d95ab8e",
+      "7e2ae211371f9b9c804fde46040b3d845dede038e649371afadac94226459e08",
     "ui/index.html":
-      "d933f2bd36aa9a9a52d3d324c77d74991e78d8337c86ae1036614f3fa526d5a0",
+      "5cd27b7a6069891e65be3db81b8997a8f99794fe615ab72e9350858714819193",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -2874,6 +2874,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "bdd/coverage-report.json": true,
     "bdd/features/lisa-ui-config-save.feature": true,
     "bdd/features/lisa-ui-demo-data.feature": true,
+    "bdd/features/lisa-ui-starter-settings.feature": true,
     "bun.lock": true,
     "cdk/copy-overwrite/.github/workflows/.keep": true,
     "cdk/copy-overwrite/eslint.cdk.ts": true,
@@ -9037,6 +9038,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/project-config-kane.ts": true,
     "src/core/project-config-learnings.ts": true,
     "src/core/project-config-nightly-e2e.ts": true,
+    "src/core/project-config-starter.ts": true,
     "src/core/project-config.ts": true,
     "src/core/rails-deploy-production-intent.ts": true,
     "src/core/reconciliation-report.ts": true,
@@ -9215,6 +9217,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/e2e/ui-readonly-affordance.spec.ts": true,
     "tests/e2e/ui-setup-readiness.spec.ts": true,
     "tests/e2e/ui-stacks.spec.ts": true,
+    "tests/e2e/ui-starter-config.spec.ts": true,
     "tests/e2e/ui-version-status.spec.ts": true,
     "tests/fixtures/automation-status/attention-needed-codex.json": true,
     "tests/fixtures/automation-status/partial-support-codex.json": true,
@@ -10922,6 +10925,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/sync/legacy-monitor-thresholds.test.ts": true,
     "tests/unit/sync/linear-workflow-registry.test.ts": true,
     "tests/unit/sync/mutation-floor-divergence.test.ts": true,
+    "tests/unit/sync/starter-config.test.ts": true,
     "tests/unit/sync/stryker-thresholds-ownership.test.ts": true,
     "tests/unit/templates/dependency-decisions-template.test.ts": true,
     "tests/unit/templates/lisa-dependency-decisions-seed.test.ts": true,

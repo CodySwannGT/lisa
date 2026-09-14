@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.59.0](https://github.com/CodySwannGT/lisa/compare/v4.58.1...v4.59.0) (2026-09-14)
+
+
+### Features
+
+* **config:** back starter provenance with project settings ([150fea0](https://github.com/CodySwannGT/lisa/commit/150fea018476806a9eac2ee287950fb22ce61b15)), closes [CodySwannGT/lisa#1520](https://github.com/CodySwannGT/lisa/issues/1520) [CodySwannGT/lisa#1520](https://github.com/CodySwannGT/lisa/issues/1520)
+
+
+### Bug Fixes
+
+* **console:** keep starter Gherkin outside the config-file lint glob ([137ca52](https://github.com/CodySwannGT/lisa/commit/137ca522ca15e81de0bed49ed02ae6a2a99e770d)), closes [CodySwannGT/lisa#1520](https://github.com/CodySwannGT/lisa/issues/1520)
+
+
+### Documentation
+
+* **ui:** point starter settings to their shipped implementation ([e7c6703](https://github.com/CodySwannGT/lisa/commit/e7c67031a27e72725975e6d9f422fb3826ac2a0e)), closes [CodySwannGT/lisa#1520](https://github.com/CodySwannGT/lisa/issues/1520) [CodySwannGT/lisa#1520](https://github.com/CodySwannGT/lisa/issues/1520)
+
 ### [4.58.1](https://github.com/CodySwannGT/lisa/compare/v4.58.0...v4.58.1) (2026-09-14)
 
 

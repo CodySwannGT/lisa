@@ -1882,6 +1882,13 @@
        * lies such as `"false"` → on and `{}` → `[object Object]`.
        */
       function hydrateControl(control, value) {
+        if (
+          control.format === "paths" &&
+          Array.isArray(value) &&
+          value.every(item => typeof item === "string")
+        ) {
+          return { ...control, value: value.join(", ") || "(empty scope)" };
+        }
         if (control.type === "toggle" && typeof value === "boolean") {
           return { ...control, value };
         }
@@ -7690,13 +7697,13 @@
       DATA.sections.starters = {
         title: "Starter templates",
         desc: "Which starter repo(s) this project was generated from, and how it stays connected to them — pulling upstream starter improvements down into the project, and proposing generic project additions back up to the starter.",
-        src: ".lisa.config.json starter.* · src/cli/starters.ts",
+        src: ".lisa.config.json starter.* · src/core/project-config-starter.ts",
         blocks: [
           {
             type: "callout",
             staticCopy: "published starter-sync scope",
             variant: "warn",
-            text: "<b>Planned feature.</b> This page documents the starter-sync contract and its settings; the sync engine and upstream-proposal flow are not wired up yet. Controls here preview the intended behavior.",
+            text: "<b>Starter provenance.</b> Entries and preferences come from project configuration. The sync engine and upstream-proposal flow are planned; changing a preference does not run either operation.",
           },
           {
             type: "flow",
@@ -10917,7 +10924,7 @@
           if (
             !node ||
             typeof node !== "object" ||
-            Array.isArray(node) ||
+            (Array.isArray(node) && !/^(0|[1-9]\d*)$/.test(segment)) ||
             !Object.hasOwn(node, segment)
           ) {
             return { present: false, value: undefined };
@@ -11062,7 +11069,7 @@
       const $savebar = document.getElementById("savebar");
       const $toast = document.getElementById("toast");
       const dirty = new Map();
-      const initialControls = new Map();
+      const initialControls = new WeakMap();
       let saving = false;
       let lisaLiveMode = false;
       let lisaCatalogAudit = null;
@@ -11231,7 +11238,7 @@
       /** Restore config controls without resetting separately loaded probe results. */
       function restoreConfigControls() {
         forEachConfigRow(row => {
-          const original = initialControls.get(row.key);
+          const original = initialControls.get(row);
           if (!original) return;
           const entry = lisaLiveMode
             ? liveConfigEntry(window.LISA_LIVE_CONFIG, row.key)
@@ -12815,9 +12822,72 @@
         DATA.sections.remote.blocks[0].rows = variableRows;
         DATA.sections.remote.blocks[1].rows = startupRows;
       }
+      function configureStarterTemplates(config) {
+        const entries = config?.starter?.templates;
+        const templates = Array.isArray(entries) ? entries : [];
+        const cards = templates.map((entry, index) => {
+          const key = `starter.templates.${index}`;
+          return {
+            card: `Template ${index + 1}`,
+            note: key,
+            rows: [
+              {
+                key: `${key}.repo`,
+                label: "Starter repository",
+                control: stat("", "mono"),
+              },
+              {
+                key: `${key}.ref`,
+                label: "Tracked ref",
+                control: stat("", "mono"),
+              },
+              {
+                key: `${key}.lastSync.sha`,
+                label: "Last synced commit",
+                control: stat("", "mono"),
+              },
+              {
+                key: `${key}.lastSync.at`,
+                label: "Last synced at",
+                control: stat("", "mono"),
+              },
+              ...(entry && Object.hasOwn(entry, "paths")
+                ? [
+                    {
+                      key: `${key}.paths`,
+                      label: "Path scope",
+                      control: { ...stat("", "mono"), format: "paths" },
+                    },
+                  ]
+                : []),
+            ],
+          };
+        });
+        if (cards.length === 0) {
+          cards.push({
+            type: "callout",
+            liveSource: "config:starter.templates",
+            variant: "info",
+            text:
+              entries === undefined || Array.isArray(entries)
+                ? "No starter templates recorded for this project."
+                : "Starter templates are unavailable: expected a configuration array.",
+          });
+        }
+        const blocks = DATA.sections.starters.blocks;
+        const firstTemplate = blocks.findIndex(block =>
+          block.note?.startsWith("starter.templates[")
+        );
+        DATA.sections.starters.blocks = blocks.flatMap((block, index) => {
+          if (!block.note?.startsWith("starter.templates[")) return [block];
+          return index === firstTemplate ? cards : [];
+        });
+      }
+
       function hydrateFromLiveConfig() {
         lisaLiveMode = Object.hasOwn(window, "LISA_LIVE_CONFIG");
         const cfg = lisaLiveMode ? window.LISA_LIVE_CONFIG : {};
+        if (lisaLiveMode) configureStarterTemplates(cfg);
         lisaCatalogAudit = auditUiCatalog(DATA);
         if (lisaLiveMode) {
           lisaCatalogPreparation = prepareUiCatalogForLive(DATA, cfg);
@@ -14122,9 +14192,7 @@
 
       /* --- boot (deferred so an injected live-config tag after this script is seen) --- */
       function boot() {
-        forEachConfigRow(row =>
-          initialControls.set(row.key, { ...row.control })
-        );
+        forEachConfigRow(row => initialControls.set(row, { ...row.control }));
         hydrateFromLiveConfig();
         if (lisaLiveMode) {
           document.getElementById("saveBtn").removeAttribute("title");
