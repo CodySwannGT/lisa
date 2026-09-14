@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.57.6](https://github.com/CodySwannGT/lisa/compare/v4.57.5...v4.57.6) (2026-09-14)
+
+
+### Bug Fixes
+
+* **guard:** stop a prose comment refusing a file that files nothing ([46e578b](https://github.com/CodySwannGT/lisa/commit/46e578bd5340b3c9c3b7a5784670b38884e8ae89)), closes [CodySwannGT/lisa#3551](https://github.com/CodySwannGT/lisa/issues/3551)
+* **guard:** sync main and resolve issue guard review ([8597f91](https://github.com/CodySwannGT/lisa/commit/8597f91756484e9d5c89468dde863c81f9221369)), closes [CodySwannGT/lisa#3551](https://github.com/CodySwannGT/lisa/issues/3551) [CodySwannGT/lisa#3551](https://github.com/CodySwannGT/lisa/issues/3551)
+
 ### [4.57.5](https://github.com/CodySwannGT/lisa/compare/v4.57.4...v4.57.5) (2026-09-14)
 
 
