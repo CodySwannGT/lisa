@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.60.6](https://github.com/CodySwannGT/lisa/compare/v4.60.5...v4.60.6) (2026-09-14)
+
+
+### Bug Fixes
+
+* make migration refusal guidance match enforcement ([03d3f40](https://github.com/CodySwannGT/lisa/commit/03d3f408e5bf3a017d20322c76c340bc1b75aa5b)), closes [CodySwannGT/lisa#4128](https://github.com/CodySwannGT/lisa/issues/4128) [CodySwannGT/lisa#4128](https://github.com/CodySwannGT/lisa/issues/4128)
+
 ### [4.60.5](https://github.com/CodySwannGT/lisa/compare/v4.60.4...v4.60.5) (2026-09-14)
 
 
