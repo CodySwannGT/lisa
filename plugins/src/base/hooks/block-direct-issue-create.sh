@@ -1002,6 +1002,25 @@ GLUED_OPERATORS = ("&&", "||", ";;", ";", "|", "&")
 SEGMENT_BOUNDARIES = set(GLUED_OPERATORS) | {"(", ")", "{", "}"}
 
 
+def strip_full_line_comments(text):
+    """Blank lines beginning with `#` after optional whitespace.
+
+    This bounded fallback prevents ordinary prose comments from matching a
+    creation token after an apostrophe defeats shlex (CodySwannGT/lisa#3551).
+    It does not determine quote context: a leading `#` inside a multiline
+    string is also removed. This is a textual guard, not shell interpretation.
+
+    Args:
+        text: The raw command or file text.
+
+    Returns:
+        The text with whole-line comments blanked, line count preserved.
+    """
+    return "\n".join(
+        "" if line.lstrip().startswith("#") else line for line in text.split("\n")
+    )
+
+
 def strip_heredocs(text):
     """Drop heredoc bodies so quoted prose cannot be read as argv.
 
@@ -2341,7 +2360,8 @@ def scan(text, depth, from_file=False):
         # `unparseable_reads_only` for why this does not narrow the fallback.
         if unparseable_reads_only(text):
             return None
-        if UNPARSEABLE_CREATION.search(text):
+        # Ignore whole-line prose comments when applying the fallback matcher.
+        if UNPARSEABLE_CREATION.search(strip_full_line_comments(text)):
             return (
                 "an unparseable command that reads as a tracker creation",
                 [ready_role],
