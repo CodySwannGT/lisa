@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.59.3](https://github.com/CodySwannGT/lisa/compare/v4.59.2...v4.59.3) (2026-09-14)
+
+
+### Bug Fixes
+
+* align Expo adapter declaration with its patch release ([1840710](https://github.com/CodySwannGT/lisa/commit/1840710eac38f1c4f127a2db5e0b6d768e5928aa)), closes [CodySwannGT/lisa#2137](https://github.com/CodySwannGT/lisa/issues/2137) [CodySwannGT/lisa#2137](https://github.com/CodySwannGT/lisa/issues/2137)
+* **ci:** distinguish Expo token export failures ([e2261fd](https://github.com/CodySwannGT/lisa/commit/e2261fd5ef14b2bdd52380b4bac8386f5ecd3ab6)), closes [CodySwannGT/lisa#2137](https://github.com/CodySwannGT/lisa/issues/2137) [CodySwannGT/lisa#2137](https://github.com/CodySwannGT/lisa/issues/2137)
+* **expo:** resolve provider-backed tokens in build and deploy ([df696a3](https://github.com/CodySwannGT/lisa/commit/df696a3aaac7c1098dea57eee19202bf9627e5db)), closes [CodySwannGT/lisa#2137](https://github.com/CodySwannGT/lisa/issues/2137) [CodySwannGT/lisa#2137](https://github.com/CodySwannGT/lisa/issues/2137)
+* preserve older Expo callers and bound provider test processes ([3a2024f](https://github.com/CodySwannGT/lisa/commit/3a2024feb0fc419627d57403ae919e2c82f682ff)), closes [CodySwannGT/lisa#2137](https://github.com/CodySwannGT/lisa/issues/2137) [CodySwannGT/lisa#2137](https://github.com/CodySwannGT/lisa/issues/2137)
+
 ### [4.59.2](https://github.com/CodySwannGT/lisa/compare/v4.59.1...v4.59.2) (2026-09-14)
 
 
