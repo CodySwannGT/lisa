@@ -67,7 +67,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/guard-dedupe.bash":
       "c86555450a5d0e87dce1918ded0d894a6d9c2df5f4f8ca740d134cb018322481",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
-      "79113d3d884b411ea5ba05c255e4d36f514796442f61dcbce5561d8eeed83f30",
+      "b37b843b738fd0c1c6f9639551cf64c409263064819bb820e3daa6af8c94d443",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
       "e6a7f34b68e7c0f1c91669aa90dbbc52d475776efd48922b4cfdf6c4736ccec0",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
@@ -799,7 +799,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/operational-hazards.sh":
       "d924b576559ea341d1b5bea88a44db7c3bf0b357ed62aab0611e6660ef5f155f",
     "plugins/src/base/hooks/parity-safety-net-heredoc.py":
-      "4520d10b81e95f9c9a8b54fe8d061c6dc7b578be8b1b7bdd27fecd9dc7bc49cd",
+      "5ea0bc9310ce1225405f2c208b4b398d1fda3069402ceba3a6049b466d213352",
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":

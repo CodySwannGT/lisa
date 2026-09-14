@@ -260,7 +260,7 @@ def literal_display_projection(command: str) -> str:
             continue
         target = shell_tokens(command[redirect.end():])
         if target and len(target) == 1 and not any(
-            char in target[0] for char in "$`\\\n\r"
+            char in target[0] for char in "$`\\\n\r*?[]~"
         ):
             return "printf '%s' literal-display-content " + redirect[0] + " " + shlex.quote(target[0])
     return command

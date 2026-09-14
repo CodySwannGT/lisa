@@ -68,22 +68,25 @@ describe("display content cannot hide execution", () => {
   });
 });
 
-describe("formats that can write or expand keep the original guard input", () => {
-  it.each(["%n", "%10n", "$FORMAT", "*", "?", "[a-z]", "~"])(
-    "does not project format %s",
-    format => {
-      const command = `printf ${format} written`;
-      const result = boundedSpawnSync({
-        label: "literal display classification",
-        command: "python3",
-        args: [
-          path.resolve("plugins/src/base/hooks/parity-safety-net-heredoc.py"),
-          "--literal-display",
-        ],
-        input: command,
-      });
-      expect(result.status).toBe(0);
-      expect(result.stdout).toBe(command);
-    }
-  );
+describe("unsupported operands keep the original guard input", () => {
+  it.each([
+    ...["%n", "%10n", "$FORMAT", "*", "?", "[a-z]", "~"].map(
+      format => `printf ${format} written`
+    ),
+    ...["AG*", "AGENTS.m?", "[AC]*.md", "~/AGENTS.md", "$TARGET"].map(
+      target => `printf '%s' notes > ${target}`
+    ),
+  ])("does not project %s", command => {
+    const result = boundedSpawnSync({
+      label: "literal display classification",
+      command: "python3",
+      args: [
+        path.resolve("plugins/src/base/hooks/parity-safety-net-heredoc.py"),
+        "--literal-display",
+      ],
+      input: command,
+    });
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe(command);
+  });
 });
