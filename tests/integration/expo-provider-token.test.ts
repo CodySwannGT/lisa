@@ -130,6 +130,29 @@ describe("Expo token resolution in an Actions job", () => {
     expect(readFileSync(join(root, ENV_FILE), "utf8")).toBe("");
   });
 
+  it("reports a missing Actions environment file before resolving a token", () => {
+    const result = run({ GITHUB_ENV: "", FIXTURE_FAIL: "1" });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toBe(
+      "GITHUB_ENV is required to export EXPO_TOKEN.\n"
+    );
+    expect(result.stdout).toBe("");
+  });
+
+  it("reports export failures without exposing filesystem errors or tokens", () => {
+    const result = run({
+      GITHUB_ENV: root,
+      EXPO_TOKEN: "fixture-export-token",
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toBe(
+      "Unable to write EXPO_TOKEN to GITHUB_ENV. Check the runner's environment file.\n"
+    );
+    expect(result.stderr).not.toContain(root);
+    expect(result.stderr).not.toContain("fixture-export-token");
+    expect(result.stdout).toBe("::add-mask::fixture-export-token\n");
+  });
+
   it("keeps the declared secret allowlist enforced", () => {
     const config = JSON.parse(readFileSync(join(root, CONFIG_FILE), "utf8"));
     config.secrets.require = ["OTHER_TOKEN"];

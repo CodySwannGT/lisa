@@ -60,10 +60,13 @@ if (process.argv.includes("--help")) {
   console.log(
     "An explicit EXPO_TOKEN takes precedence; otherwise resolve through the configured provider and export only EXPO_TOKEN to GITHUB_ENV."
   );
-} else
+} else {
+  let failureMessage = "GITHUB_ENV is required to export EXPO_TOKEN.";
   try {
     const destination = process.env.GITHUB_ENV;
     if (!destination) throw new Error("GITHUB_ENV is required");
+    failureMessage =
+      "Unable to resolve EXPO_TOKEN. Check the configured provider, bootstrap input, and secrets.require; ensure the runner can install its provider CLI.";
     const token = await resolveToken();
     if (token) {
       const masked = token
@@ -72,6 +75,8 @@ if (process.argv.includes("--help")) {
         .replaceAll("\n", "%0A");
       console.log(`::add-mask::${masked}`);
       const delimiter = randomUUID();
+      failureMessage =
+        "Unable to write EXPO_TOKEN to GITHUB_ENV. Check the runner's environment file.";
       appendFileSync(
         destination,
         `EXPO_TOKEN<<${delimiter}\n${token}\n${delimiter}\n`
@@ -79,8 +84,7 @@ if (process.argv.includes("--help")) {
     }
   } catch {
     // Provider errors can contain captured subprocess output. Never echo it.
-    console.error(
-      "Unable to resolve EXPO_TOKEN. Check the configured provider, bootstrap input, and secrets.require; ensure the runner can install its provider CLI."
-    );
+    console.error(failureMessage);
     process.exitCode = 1;
   }
+}
