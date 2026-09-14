@@ -1820,10 +1820,10 @@ function reportRefusal(moment, problems, out) {
 
 /**
  * CLI entry point. Every exit path is one of `EXIT`.
+ * @param {string[]} [argv] Arguments after the script name.
  * @returns {number} The process exit code.
  */
-function main() {
-  const argv = process.argv.slice(2);
+export function main(argv = process.argv.slice(2)) {
   const moment = readFlag(argv, "moment");
   const coveragePath = readFlag(argv, "coverage");
   const evidencePath = readFlag(argv, "evidence");
