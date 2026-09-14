@@ -2,6 +2,7 @@
 /** Public entrypoint for birth-bound test supervision and scratch cleanup. */
 // @ts-expect-error -- the shipped JavaScript helper carries the same checked JSDoc signature
 import { invokedAsScript } from "../../scripts/lib/invoked-as-script.mjs";
+import { worktreeDependencyProblem } from "../../all/copy-overwrite/scripts/lib/worktree-dependencies.mjs";
 
 import {
   resolveScratchRouteProfile,
@@ -69,6 +70,8 @@ async function main(): Promise<void> {
   const invocation = invocationOrExit();
   if (invocation === undefined) return;
   try {
+    const dependencyProblem = worktreeDependencyProblem();
+    if (dependencyProblem) throw new Error(dependencyProblem);
     const outcome = await superviseTestRun(
       invocation.argv,
       invocation.profile,

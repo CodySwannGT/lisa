@@ -32,6 +32,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs":
       "cffebe7feca1b5cce7b514bd1b5e991375cbc20607dff70385699e474e36b4d3",
+    "all/copy-overwrite/scripts/lib/worktree-dependencies.d.mts":
+      "acc2b7a00f1e6f806359c6609e58743b6293f17f3a5ac30abd18b1a22fab8bfc",
+    "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs":
+      "027069f33cdd75bb2dcf06c507848885fc9bfb918f7b967e7ce84a31815133b1",
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
       "014a94647efc636cbce961364a82f03c1f3c1e54a55e9d21508fded88dce49c4",
     "all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs":
@@ -79,7 +83,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "adbf8dccc221ec83641f1f5358ccafc9ec70a4ea6372ae6ad874603d767d693d",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "3a343f0257d544a3103c881344cf02bdcbcd41b4f34fb8617a0b0d9431eddba6",
+      "b6e9a72e9126f5290a61022a78edac5def3863da38ebec5d9f7261ba50e30276",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -155,7 +159,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/merge/.oxlintrc.json":
       "f7d248cf8a89561374d7e68e24aa780f4a6a523938475ad685f034ce0194d75c",
     "cdk/package-lisa/package.lisa.json":
-      "1798bf52b1bff6b36c8794fcf4e3850a1d20f6929b6e8cf643b682ed0555b503",
+      "79e2e4333973f1a3d553b7a284c1cd1d9b2939ad2442057e2b7702ec63991040",
     "eslint-plugin-code-organization/README.md":
       "e70c9e262ce3a97e1f9fe1897ffa71e3d1b124f10486b90ead5d4a5252977826",
     "eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js":
@@ -345,7 +349,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
-      "4d6225d29629ef8d44cb311cfeca1d9b3510cffbb19cb08fa2ee9f3e2a707ccd",
+      "471e463f9d4384614f594a7f2789de571e84651a3f2c094c862c877991fb76df",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -385,7 +389,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/merge/.oxlintrc.json":
       "b41ea588eed47e0f1532aab5f6226b82586269b84edd1947bdde603e0a8513fa",
     "harper-fabric/package-lisa/package.lisa.json":
-      "92d495f87276313ad8bf05bc3f375d1da109b0730bac7a4e1a3c6ca5a278096d",
+      "d93162a4077db908b8fe589fc269cd347f94f0f4c18d3b57e988cf524ba0c062",
     "nestjs/copy-overwrite/eslint.config.ts":
       "300895743cd8e3041f164902e1c8e509d8ef07474848a70621ac354d73595477",
     "nestjs/copy-overwrite/eslint.nestjs.ts":
@@ -473,11 +477,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
-      "8554201adbb007c6740dae539fd83ad271fd01c55de064544e9e1e8a685e09ac",
+      "80137280d2fc3b24f7668b131ed21d6a65178aa88eb15c36c13637fd852f25a7",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
       "20760529dd59186baf870fb2d0ac555ff95bc3dc75ea96ba4564bf37d61f708e",
     "npm-package/package-lisa/package.lisa.json":
-      "69fb783efa083994d499f5927619b6e59cb280835f241b2737758e1e9eb1bf7d",
+      "7d6a779d8ae0ee211b1c3983a5fbbca31b5f12ed3e95fd3f76104f11bd91abaa",
     "oxlint/base.json":
       "8cbc563bdfbbaf455742cef24d33676f45b55baf1ea62b529018b2d112d70f8a",
     "oxlint/cdk.json":
@@ -533,7 +537,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/merge/.oxlintrc.json":
       "02c0d70e6e07bc0e981f94a1e2ccd01a2c295c4c66e8b8ea9b2f363d44fa5c06",
     "phaser/package-lisa/package.lisa.json":
-      "1f83d7a6680dd1e87688be53b2717dee812355c1c55660aa6353091b7b457e1e",
+      "086f40595036c432e74a633744ffea23b133494c391750e25f830cd4c30e1b9b",
     "plugins/src/base/agents/architecture-specialist.md":
       "076feb3a09ef056628bc33242f93278ce6b00f55878984a18a9337d326b5e1d4",
     "plugins/src/base/agents/bug-fixer.md":
@@ -2386,6 +2390,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "c69fc5ba10228b7f4f8d0068db27ee8a289143094fa8718b14af83f4af31f76d",
     "scripts/lib/workflow-contract-probe.mjs":
       "73fee544253390b0e859090a23b9810bdcf14a19ca1dd17649d8d82d20ef69dc",
+    "scripts/lib/worktree-dependencies.d.mts":
+      "acc2b7a00f1e6f806359c6609e58743b6293f17f3a5ac30abd18b1a22fab8bfc",
+    "scripts/lib/worktree-dependencies.mjs":
+      "027069f33cdd75bb2dcf06c507848885fc9bfb918f7b967e7ce84a31815133b1",
     "scripts/lisa-assert-eas-profile.mjs":
       "624e40d7f33ca17208fc6b7a19320a785cff19da5d2ff8062b67a432b2a34022",
     "scripts/lisa-commit-and-pr-local.sh":
@@ -2451,7 +2459,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "14b103e1808634323183922f3962cbbfb9e32a8582747a93fbad5aca2f2a51f6",
+      "f20f4f852cc09140fcc592cf1f476697944f9980aa6400cc0112907569cba7a6",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -2627,7 +2635,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "432f6789653fae75a70d679ab9de064282aed7bb63a15c29be1eed0eae19f83e",
+      "25be68dbba6cdc730e57b8d5785e80022ca745adab841c80cb1b6d8fd0b7fb77",
     "ui/README.md":
       "7e2ae211371f9b9c804fde46040b3d845dede038e649371afadac94226459e08",
     "ui/index.html":
@@ -2795,6 +2803,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/kill-marks.mjs": true,
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs": true,
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs": true,
+    "all/copy-overwrite/scripts/lib/worktree-dependencies.d.mts": true,
+    "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs": true,
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs": true,
     "all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs": true,
     "all/copy-overwrite/scripts/lisa-cross-worktree-guard.mjs": true,
@@ -8649,6 +8659,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/shipped-surface.mjs": true,
     "scripts/lib/upstream-manifest-staleness.mjs": true,
     "scripts/lib/workflow-contract-probe.mjs": true,
+    "scripts/lib/worktree-dependencies.d.mts": true,
+    "scripts/lib/worktree-dependencies.mjs": true,
     "scripts/lisa-assert-eas-profile.mjs": true,
     "scripts/lisa-commit-and-pr-local.sh": true,
     "scripts/lisa-commit-msg-gates.mjs": true,
@@ -9606,6 +9618,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/work-item-contract-handshake.test.ts": true,
     "tests/integration/workflow-deletion-ownership.test.ts": true,
     "tests/integration/workflow-expression-not-truncated.test.ts": true,
+    "tests/integration/worktree-dependency-boundary.test.ts": true,
     "tests/integration/zero-collection-gate-bite.test.ts": true,
     "tests/platform/lint-staged-preflight.test.mjs": true,
     "tests/support/git-executable.ts": true,

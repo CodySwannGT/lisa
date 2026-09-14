@@ -380,18 +380,21 @@ describe("test:integration governance and layout (#3070)", () => {
           force?: { scripts?: Record<string, string> };
           adopt?: { scripts?: Record<string, readonly string[]> };
         };
-        const forced = template.force?.scripts?.[INTEGRATION_LISA];
+        const forced = template.force?.scripts?.[INTEGRATION_LISA] ?? "";
         const adopted = template.adopt?.scripts?.[INTEGRATION] ?? [];
 
-        expect(forced).toMatch(
+        const preflight = "node scripts/lib/worktree-dependencies.mjs && ";
+        expect(forced.startsWith(preflight)).toBe(true);
+        expect(forced.slice(preflight.length)).toMatch(
           new RegExp(
             `^lisa-test-run --profile ${typeName} --adapter vitest -- vitest run`,
             "u"
           )
         );
         expect(forced).not.toContain("--passWithNoTests");
-        expect(adopted).toContain(`${forced} --passWithNoTests`);
-        const profileLegacy = forced?.replace(" --adapter vitest", "");
+        const historical = forced.slice(preflight.length);
+        expect(adopted).toContain(`${historical} --passWithNoTests`);
+        const profileLegacy = historical.replace(" --adapter vitest", "");
         const unprofiledLegacy = profileLegacy?.replace(
           `--profile ${typeName} `,
           ""

@@ -66,6 +66,7 @@ import {
 } from "./lib/kill-marks.mjs";
 import { boundedSpawnSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+import { worktreeDependencyProblem } from "./lib/worktree-dependencies.mjs";
 import {
   interruptionReason,
   isWatchablePid,
@@ -1884,6 +1885,13 @@ function main() {
     if (written) return code;
     return code === EXIT.BLOCKED ? EXIT.BLOCKED : EXIT.RUNNER_FAILED;
   };
+
+  const dependencyProblem = worktreeDependencyProblem();
+  if (dependencyProblem) {
+    console.error(dependencyProblem);
+    if (coveragePath) writeCoverage(coveragePath, []);
+    return settle(EXIT.BLOCKED, EVIDENCE_VERDICT.BLOCKED);
+  }
 
   let config;
   try {
