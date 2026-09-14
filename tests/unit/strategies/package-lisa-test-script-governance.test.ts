@@ -201,7 +201,13 @@ describe("host-facing test scripts are governed pairs, not forced values", () =>
           ...(template.adopt?.scripts?.[key] ?? []),
           ...(parent.adopt?.scripts?.[key] ?? []),
         ];
-        return !recognised.includes(forced);
+        // The dependency preflight was added after these legacy host values
+        // shipped. It does not change which historical commands adoption owns.
+        const historical = forced.replace(
+          /^node scripts\/lib\/worktree-dependencies\.mjs && /u,
+          ""
+        );
+        return !recognised.includes(historical);
       });
 
       // Without this, a host whose script still holds Lisa's own old value is

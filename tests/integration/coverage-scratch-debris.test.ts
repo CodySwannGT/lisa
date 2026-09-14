@@ -246,7 +246,13 @@ function seededReportsDir(): string {
  */
 function scratchFiles(dir: string): string[] {
   const scratch = path.join(dir, ".tmp");
-  return fs.existsSync(scratch) ? fs.readdirSync(scratch) : [];
+  try {
+    return fs.readdirSync(scratch);
+  } catch (error) {
+    // The provider can remove the directory while this poll is reading it.
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
 }
 
 /**

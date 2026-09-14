@@ -310,16 +310,16 @@ describe("local test command covers the same files as CI", () => {
     // delegating — is unchanged and now strictly stronger; only the literal
     // moved.
     expect(scripts["lisa-test-run"]).toBe(
-      "bun run build && node dist/cli/lisa-test-run.js --profile lisa"
+      "node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa"
     );
   });
 
   it("runs the same vitest invocation locally as CI, differing only by coverage", () => {
     expect(scripts.test).toBe(
-      "$npm_execpath run lisa-test-run -- --adapter vitest -- vitest run"
+      "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run"
     );
     expect(scripts["test:cov"]).toBe(
-      "$npm_execpath run lisa-test-run -- --adapter vitest -- vitest run --coverage"
+      "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run --coverage"
     );
   });
 

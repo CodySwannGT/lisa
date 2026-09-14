@@ -66,6 +66,7 @@ import {
 } from "./lib/kill-marks.mjs";
 import { boundedSpawnSync, isChildTimeout } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
+import { worktreeDependencyProblem } from "./lib/worktree-dependencies.mjs";
 import {
   interruptionReason,
   isWatchablePid,
@@ -1819,10 +1820,10 @@ function reportRefusal(moment, problems, out) {
 
 /**
  * CLI entry point. Every exit path is one of `EXIT`.
+ * @param {string[]} [argv] Arguments after the script name.
  * @returns {number} The process exit code.
  */
-function main() {
-  const argv = process.argv.slice(2);
+export function main(argv = process.argv.slice(2)) {
   const moment = readFlag(argv, "moment");
   const coveragePath = readFlag(argv, "coverage");
   const evidencePath = readFlag(argv, "evidence");
@@ -1884,6 +1885,13 @@ function main() {
     if (written) return code;
     return code === EXIT.BLOCKED ? EXIT.BLOCKED : EXIT.RUNNER_FAILED;
   };
+
+  const dependencyProblem = worktreeDependencyProblem();
+  if (dependencyProblem) {
+    console.error(dependencyProblem);
+    if (coveragePath) writeCoverage(coveragePath, []);
+    return settle(EXIT.BLOCKED, EVIDENCE_VERDICT.BLOCKED);
+  }
 
   let config;
   try {

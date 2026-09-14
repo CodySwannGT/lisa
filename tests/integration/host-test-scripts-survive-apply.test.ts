@@ -170,7 +170,11 @@ describe("a host's test-script composition survives the shipped apply", () => {
 
   it("migrates a host that never customised test:cov onto the reserved base", async () => {
     const scripts = await applyShippedTemplates({
-      "test:cov": shippedBase("test:cov"),
+      // This host still carries the command shipped before the preflight.
+      "test:cov": shippedBase("test:cov").replace(
+        "node scripts/lib/worktree-dependencies.mjs && ",
+        ""
+      ),
     });
 
     expect(scripts["test:cov"]).toBe("$npm_execpath run test:cov:lisa");
@@ -179,7 +183,10 @@ describe("a host's test-script composition survives the shipped apply", () => {
 
   it("migrates an untouched test:node while preserving its reserved base", async () => {
     const scripts = await applyShippedTemplates({
-      "test:node": shippedBase("test:node"),
+      "test:node": shippedBase("test:node").replace(
+        "node scripts/lib/worktree-dependencies.mjs && ",
+        ""
+      ),
     });
 
     expect(scripts["test:node"]).toBe("$npm_execpath run test:node:lisa");

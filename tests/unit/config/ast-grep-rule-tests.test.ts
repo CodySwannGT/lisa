@@ -44,6 +44,7 @@ const RULE_TESTS_DIR = "ast-grep/rule-tests";
 const RULE_TEST_SCRIPT = "sg:test";
 const SCAN_BIN = "ast-grep scan";
 const RULE_TEST_BIN = "ast-grep test";
+const PREFLIGHT = "node scripts/lib/worktree-dependencies.mjs && ";
 /**
  * The rule-test invocation, distinguished from the skip notice's remediation
  * text, which also names `ast-grep test`. Matching loosely would let the
@@ -377,10 +378,10 @@ describe("ast-grep rule tests execute", () => {
 
 describe("ast-grep rule tests are wired to a runnable script", () => {
   it("defines the rule-test script in this repository", () => {
-    const manifest = JSON.parse(readText("package.json")) as {
+    const { scripts } = JSON.parse(readText("package.json")) as {
       scripts: Record<string, string>;
     };
-    expect(manifest.scripts[RULE_TEST_SCRIPT]).toBe(RULE_TEST_BIN);
+    expect(scripts[RULE_TEST_SCRIPT]).toBe(`${PREFLIGHT}${RULE_TEST_BIN}`);
   });
 
   it("forces the rule-test script onto every stack that forces the scan script", () => {
@@ -398,8 +399,8 @@ describe("ast-grep rule tests are wired to a runnable script", () => {
       // `sg:scan:lisa` base and only DEFAULTS `sg:scan` to invoke it, so a host
       // can chain its own scans onto the name CI runs. The governed value is
       // the base; asserting on the bare name would read the delegation.
-      expect(scripts["sg:scan:lisa"]).toBe(SCAN_BIN);
-      expect(scripts[RULE_TEST_SCRIPT]).toBe(RULE_TEST_BIN);
+      expect(scripts["sg:scan:lisa"]).toBe(`${PREFLIGHT}${SCAN_BIN}`);
+      expect(scripts[RULE_TEST_SCRIPT]).toBe(`${PREFLIGHT}${RULE_TEST_BIN}`);
     }
   });
 });

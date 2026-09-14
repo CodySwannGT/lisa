@@ -92,6 +92,7 @@ const GATE_SOURCE = path.join(
 
 /** Exact wrapper plus registered nested mutation scratch prefixes. */
 const MUTATION_COMMAND =
+  "node scripts/lib/worktree-dependencies.mjs && " +
   'LISA_TEST_SCRATCH_PREFIXES=\'["lisa-mutation-","worker-"]\' ' +
   "$npm_execpath run lisa-test-run -- --adapter direct -- " +
   "node scripts/lisa-mutation.mjs";
@@ -174,7 +175,8 @@ describe("mutation gate wiring", () => {
         )
       ) as { readonly force: { readonly scripts: Record<string, string> } };
       expect(stackManifest.force.scripts["test:mutation"]).toBe(
-        `LISA_TEST_SCRATCH_PREFIXES='["lisa-mutation-","worker-"]' ` +
+        "node scripts/lib/worktree-dependencies.mjs && " +
+          `LISA_TEST_SCRATCH_PREFIXES='["lisa-mutation-","worker-"]' ` +
           `lisa-test-run --profile ${stack} --adapter direct -- ` +
           `node scripts/lisa-mutation.mjs`
       );

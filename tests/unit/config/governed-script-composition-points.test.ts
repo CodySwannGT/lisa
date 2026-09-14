@@ -167,14 +167,21 @@ describe("governed script composition points", () => {
       expect(uninvoked).toEqual([]);
     });
 
-    it("lists every reserved base's current value in its adopt list", () => {
+    it("retains each reserved base's historical command in its adopt list", () => {
       const bases = GATE_SCRIPTS.map(name => `${name}${BASE_SUFFIX}`).filter(
         name => name in forced
       );
       const unlisted = bases.filter(base => {
         const composed = base.slice(0, -BASE_SUFFIX.length);
         const legacy = adopted[composed];
-        return !Array.isArray(legacy) || !legacy.includes(forced[base]);
+        const current = forced[base];
+        if (typeof current !== "string") return true;
+        // The new preflight is not a historical host command to adopt.
+        const historical = current.replace(
+          "node scripts/lib/worktree-dependencies.mjs && ",
+          ""
+        );
+        return !Array.isArray(legacy) || !legacy.includes(historical);
       });
 
       expect(unlisted).toEqual([]);
@@ -213,7 +220,9 @@ describe("governed script composition points", () => {
         readTemplate(TYPESCRIPT_TEMPLATE).defaults
       );
 
-      expect(forced["test:integration:lisa"]).toBe(command);
+      expect(forced["test:integration:lisa"]).toBe(
+        `node scripts/lib/worktree-dependencies.mjs && ${command}`
+      );
       expect(ownDefaults["test:integration"]).toBe(
         inheritsDefault ? undefined : INTEGRATION_DELEGATION
       );

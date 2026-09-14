@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 127,
-  "$names": 1243,
+  "$modules": 129,
+  "$names": 1246,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -131,6 +131,9 @@
       "supervise",
       "timeoutVerdictForPlatform",
       "windowsTreeExists"
+    ],
+    "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs": [
+      "worktreeDependencyProblem"
     ],
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs": [
       "COMMAND_ENVELOPE_SCHEMA",
@@ -321,6 +324,7 @@
       "compareCodeUnits",
       "coveredFloor",
       "evidenceDocument",
+      "main",
       "provenFloor",
       "runGates",
       "spawnExec",
@@ -1052,6 +1056,9 @@
       "readContractDeclaration",
       "resolveExecutedPath",
       "runProbe"
+    ],
+    "scripts/lib/worktree-dependencies.mjs": [
+      "worktreeDependencyProblem"
     ],
     "scripts/lisa-assert-eas-profile.mjs": [
       "main",
