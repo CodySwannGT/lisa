@@ -81,9 +81,34 @@ collide.
 - The **build-intake flows** advance `last_confirmed` at claim time
   (`confirmLearningEntry`, below).
 
-Promotion to a higher rung (skill, eager rule, executable control, upstream
-ticket) is never a writer here — it is the gardener's job, gated by a human
+Automated promotion of a captured learning to a higher rung (skill, eager rule,
+executable control, upstream ticket) is the gardener's job, gated by a human
 flipping a tracker ticket to `status:ready`.
+
+## Operator-directed standing rules
+
+An operator's instruction to add, revise, or remove a standing rule is already
+authorization for that specific edit. It is not a new machine-captured learning.
+Make the requested change directly, preserving unrelated content; do not require
+learning capture, a promotion ticket, or repeated approval for the same decision.
+"Human-authored" describes who controls the rule, not who types the approved edit.
+
+Use the existing topic file under `.agents/rules/`, or create a short one there,
+when the operator has not specified another destination. The `AGENTS.md` host-rules
+pointer reaches Claude Code, Codex, Cursor, OpenCode, Antigravity, and Copilot.
+These shared rules are not a Claude-only surface, and they do not need to be
+copied into every agent's startup file.
+
+If the operator explicitly named a guarded startup file, do not substitute a
+different destination or switch tools to evade a refusal. Use the runtime's
+authorized edit path, or report the specific remaining runtime restriction.
+The existing instruction-file override is an operator-configured escape hatch,
+not proof of human approval; agents must not set it to work around a refusal.
+No new approval token is needed for ordinary authorized edits to shared host rules.
+
+This does not authorize agents to promote their own incidental findings. Decline
+one-off notes and unnecessary rules; use the existing learning flow only for
+durable knowledge worth maintaining.
 
 ## Claim-time confirmation (`last_confirmed`)
 
@@ -111,7 +136,7 @@ warning, apply no entry, and do not block unrelated work.
 Precedence:
 
 1. System, developer, user, and repo instructions still outrank learnings.
-2. Committed host rules (`.agents/rules/`) remain durable human-authored
+2. Committed host rules (`.agents/rules/`) remain durable, operator-controlled
    guidance.
 3. Project learnings add recent operational knowledge, but never rewrite or
    append to host rules.

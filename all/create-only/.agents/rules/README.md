@@ -7,8 +7,11 @@ Antigravity (`agy`) all reach it through the Lisa-managed pointer block in
 
 ## Ownership
 
-This directory is **human-authored only** — the humans' decree surface. Lisa
-never writes rule bodies into it, and never edits or deletes a file in it.
+The host controls this directory. Lisa's installer never overwrites its rules.
+An agent may make a specific edit an operator has requested or approved,
+including simplifying or removing a rule. Honor that existing authorization;
+do not send the same decision through learning capture, another ticket, or a
+second approval. Preserve unrelated rules and the operator's intended meaning.
 
 - Lisa's own rules live in its per-agent plugins and arrive by their own route.
   Do not copy them here.
@@ -17,10 +20,8 @@ never writes rule bodies into it, and never edits or deletes a file in it.
   executable contract, and only the gardener (`/lisa:learnings:audit`) ever
   proposes a promotion out of it — as a human-gated tracker ticket, never a
   silent agent rewrite.
-- Rules already sitting here are first-run gardener candidates like any other
-  knowledge: expect prose that restates what a lint rule or hook already
-  enforces to earn a promote-and-delete ticket, so this directory shrinks
-  instead of growing.
+- An incidental finding is not permission to add or change a standing rule.
+  Decline one-off trivia and rules whose maintenance costs exceed their value.
 
 ## What belongs here
 
@@ -40,6 +41,12 @@ Create a Markdown file per topic (for example `deploys.md`, `data-migrations.md`
 with a heading and a handful of imperative rules. Keep each file short: this
 directory is read in full whenever an agent consults it, so length is a real
 cost paid on every consultation.
+
+For an approved standing ruling, update the relevant topic file or create one
+here using ordinary editing tools. The existing pointer in `AGENTS.md` makes it
+available to all six supported agents; this directory is not Claude-specific.
+If the operator explicitly named another file, honor that target and any active
+runtime restrictions rather than silently moving the edit here.
 
 This README is a Lisa-seeded starter and is never overwritten — edit or delete
 it freely once the directory has real content.

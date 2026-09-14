@@ -8,7 +8,7 @@
  * block in `AGENTS.md` (Claude via the `@AGENTS.md` import in `CLAUDE.md`) — and
  * no agent loads host rules twice.
  *
- * Pointer only. Lisa never writes rule bodies into `AGENTS.md` or into
+ * Pointer only. Lisa's installer never writes rule bodies into `AGENTS.md` or into
  * `.agents/rules/`; that is what distinguishes this block from the legacy
  * `LISA_RULES_START..END` bake that PR #1150 removed.
  *
@@ -92,7 +92,7 @@ export function buildHostRulesPointer(legacyRulesFile?: string): string {
     LISA_HOST_RULES_START_MARKER,
     "## Host Rules",
     "",
-    `Read every file under \`${HOST_RULES_DIR}/\` for this project's standing rules.`,
+    `Read every file under \`${HOST_RULES_DIR}/\`. Make operator-requested rule edits directly; no learning-promotion step is needed.`,
     ...transitionSentence(legacyRulesFile),
     LISA_HOST_RULES_END_MARKER,
   ].join("\n");

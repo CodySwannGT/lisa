@@ -24,11 +24,9 @@
 #      Reads (`cat AGENTS.md`, `rg pattern AGENTS.md`) never fire.
 #
 # Exemptions (allowed):
-#   - `LISA_ALLOW_INSTRUCTION_FILE_WRITE` set — the operator's explicit override,
-#     named in the refusal so a human who really wants the edit can take it;
-#   - payloads carrying a `<!-- LISA_` marker: Lisa's own marker-bounded regions
-#     (the agy project-learnings bridge, cross-pollinate's rule section) replace
-#     in place on re-run and cannot grow the file;
+#   - `LISA_ALLOW_INSTRUCTION_FILE_WRITE` set in the operator's runtime config.
+#     This cooperative override does not authenticate conversation approval;
+#   - Edit/MultiEdit replacing only bounded `<!-- LISA_` regions on both sides;
 #   - paths under `node_modules/` or `dist/` — vendored copies, not the host's.
 set -euo pipefail
 
@@ -58,8 +56,8 @@ fi
 
 command -v jq >/dev/null 2>&1 || exit 0
 
-# The operator's override. Checked before anything else so it is always the
-# cheapest way out of a refusal a human deliberately wants to overrule.
+# Existing operator-configured override. This hook sees tool payloads, not the
+# conversation; the environment variable is not proof of who approved an edit.
 if [ -n "${LISA_ALLOW_INSTRUCTION_FILE_WRITE:-}" ]; then
   exit 0
 fi
@@ -129,34 +127,27 @@ refuse() {
   cat >&2 <<EOF
 BLOCKED: refusing to write \`$target\`.
 
-WHY: this is a session-instruction file, not a place to record what you just
-learned. Every line in it is loaded into the context of every agent, in every
-future session, in this project, forever. It is human-curated on purpose. An
-agent appending its own findings is how these files grow into hundreds of lines
-of stale, ticket-specific trivia that every later session pays for and half of
-which was only ever true once.
+WHY: this session-instruction file is loaded into future agent sessions.
+Appending incidental findings makes every later session carry those notes.
+This hook checks write patterns; it cannot read or authenticate conversation approval.
 
-WHERE IT GOES INSTEAD — take the first one that fits:
+If an operator already requested a standing-rule edit, that authorization is
+enough for the requested change. Use the relevant topic file in \`.agents/rules/\`
+when no other destination was specified. All six supported agents read that
+directory through the existing \`AGENTS.md\` pointer. Edit it directly; do not
+require learning capture, another ticket, or repeated approval for the same ruling.
 
-1. Every agent genuinely needs this in every session, and only in this project.
-   That is a project rule — but do not write it yourself. Capture it with
-   \`/lisa:persist-learning\` so it lands in the learnings ledger with provenance
-   and a confidence score. The gardener (\`/lisa:learnings:audit\`) then proposes
-   promotion into the host-rules directory \`.agents/rules/\` as a human-gated ticket.
+If the operator explicitly named this guarded file, preserve that target and
+use the runtime's authorized edit path, or report this remaining restriction.
+Do not silently move the edit, switch tools to evade this refusal, or set an
+override yourself. The existing operator-configured
+\`LISA_ALLOW_INSTRUCTION_FILE_WRITE=1\` escape hatch is not proof of consent.
 
-2. It changes how an existing skill should behave. Edit that skill's SKILL.md.
-   Knowledge belongs next to the procedure it modifies, not in a global preamble.
-
-3. It is true beyond this project. Propose it upstream to Lisa via
-   \`/lisa:cross-pollinate\`, or open an issue on CodySwannGT/lisa. A local copy of
-   a general rule silently drifts the moment upstream changes.
-
-4. None of the above — it is background someone may want to look up, not a
-   standing instruction. Write it into the project documentation (\`wiki/\` or
-   \`docs/\`).
-
-If a human explicitly asked for this edit, they can re-run with
-\`LISA_ALLOW_INSTRUCTION_FILE_WRITE=1\` set, which bypasses this guard.
+For an agent's own finding, first decide whether it is worth maintaining.
+Decline one-off trivia and unnecessary rules. Durable project knowledge can
+use \`/lisa:persist-learning\`; procedural knowledge belongs with its SKILL.md;
+background belongs in existing project documentation. Use
+\`/lisa:cross-pollinate\` only for a material, reusable upstream improvement.
 EOF
   exit 2
 }

@@ -59,7 +59,7 @@ Resolved path for this project: `.lisa/PROJECT_LEARNINGS.md`.
 <!-- LISA_HOST_RULES_START -->
 ## Host Rules
 
-Read every file under `.agents/rules/` for this project's standing rules.
+Read every file under `.agents/rules/`. Make operator-requested rule edits directly; no learning-promotion step is needed.
 Also read `.claude/rules/PROJECT_RULES.md`, unless your runtime auto-loads it —
 Claude Code auto-loads `.claude/rules/`.
 <!-- LISA_HOST_RULES_END -->

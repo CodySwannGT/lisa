@@ -291,7 +291,7 @@ fi
 Host-authored operating rules live in `.agents/rules/` — **fixed, not configurable**. One directory, every agent.
 
 - **Not a native auto-load tree.** `.claude/rules`, `.cursor/rules`, and `.github/instructions` are; `.agents/rules` deliberately is not. Every agent reaches it through the single Lisa-managed pointer block in `AGENTS.md` (Claude via the `@AGENTS.md` import in `CLAUDE.md`), so no agent loads host rules twice.
-- **Host-owned.** Lisa never writes rule bodies into `.agents/rules/`, and never edits or deletes a file there. Lisa's own rules originate in its plugins and arrive by their own route.
+- **Host-owned.** Lisa's installer never overwrites host rule bodies. Agents may make specific operator-requested edits directly, without recapturing the approved decision as a learning or promotion ticket; see **Operator-directed standing rules** in `project-learnings.md`. Lisa's own rules arrive through its plugins.
 - **Not the learnings ledger.** `.agents/rules` is reserved in the auto-loaded-tree blocklist, so a `learnings.file` override can never resolve inside it.
 - **Transition.** A project that still has the retired `.claude/rules/PROJECT_RULES.md` keeps it, untouched and authoritative. The pointer block names it so agents whose runtime does not auto-load `.claude/rules/` still find it. Moving that content is a human-gated decision, never an automated rewrite.
 
