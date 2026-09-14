@@ -2908,7 +2908,33 @@ jobs:
             # after the action's boot wait has completed, then prove the
             # device is online before installing or starting Maestro.
             adb kill-server
-            adb start-server
+            # `kill-server` returns as soon as it has asked the daemon to
+            # exit, NOT once port 5037 is released, so the `start-server` on
+            # the next line can race the dying daemon's socket. When it loses,
+            # two daemons fork and one dies on `could not install *smartsocket*
+            # listener: Address already in use`; the client then reports
+            # `failed to start daemon` / `error: cannot connect to daemon` and
+            # this line exits 255. That kills the whole arm at its SECOND
+            # command — before the install, before Maestro — so the leg
+            # publishes no report and reads as "the Android suite tested
+            # nothing" rather than as a transient bind collision.
+            #
+            # Bounded retry, not a wait: the collision is decided by whether
+            # the socket is free at the instant of the call, so re-issuing it
+            # is the fix and sleeping longer up front is only a slower version
+            # of the same gamble. `kill-server` is repeated inside the loop
+            # because a half-started daemon is exactly the state that loses
+            # the next attempt too.
+            #
+            # The bare `adb start-server` after the loop is the assertion, and
+            # it is what keeps this loud: it is idempotent (a running daemon
+            # exits 0 immediately), so it costs nothing on the happy path,
+            # while a daemon that is genuinely unable to start still fails the
+            # step with adb's own message. Do not fold it into the loop with a
+            # `|| true` — that is the shape that turns this into a step which
+            # cannot go red. One line, because the action runs each script
+            # LINE through its own `sh -c` and a continuation does not survive.
+            for attempt in 1 2 3 4 5; do adb start-server && break; echo "::warning::adb start-server lost the port-5037 race (attempt $attempt/5); killing and retrying"; adb kill-server >/dev/null 2>&1 || true; sleep 3; done; adb start-server
             adb wait-for-device
             adb shell getprop sys.boot_completed | grep -q 1
             adb install app-android.apk
@@ -3393,8 +3419,8 @@ jobs:
         # the too-narrow regex the driver's own comment block rejects.
         #
         # NON-GATING BY CONSTRUCTION, and three independent things enforce it:
-        # `continue-on-error` on the step, `|| true` absorbing the classifier's
-        # status through the pipe, and a classifier that exits 0 on every
+        # `continue-on-error` on the step, an explicit warning branch absorbing
+        # classifier failure, and a classifier that exits 0 on every
         # readable report. Any one alone would do; all three are here because
         # the failure is silent, and a diagnostic that can red a green run — or
         # green a red one — is worse than no diagnostic at all. The nightly
@@ -3419,7 +3445,7 @@ jobs:
           # that has not picked up this version ignores it rather than failing.
           MAESTRO_DEBUG_DIR: maestro-debug
         run: |
-          if [[ ! -f "$CLASSIFIER" ]]; then
+          if [[ ! -f scripts/classify-maestro-failures.mjs ]]; then
             echo "No $CLASSIFIER in this repository — skipping flake classification."
             exit 0
           fi
@@ -3430,9 +3456,26 @@ jobs:
           # An absent debug tree is normal — a suite that died before Maestro
           # started never wrote one — and the classifier reads it as "no
           # evidence", which yields no device verdict rather than an error.
-          node "$CLASSIFIER" --markdown --platform="$MAESTRO_PLATFORM" \
+          #
+          # Still unable to fail the job — `exit 0` below, plus this step's
+          # `continue-on-error` — but no longer SILENT about it. `|| true`
+          # discarded the status with no trace, and combined with "no evidence
+          # is normal" that made a dead classifier indistinguishable from a run
+          # with nothing to classify. Measured 2026-09-11: the classifier OOM'd
+          # reading a 3.5 GB debug tree, the step went green, and the leg's one
+          # failure — a simulator launch failure, exactly the device fault this
+          # classifier exists to name — was read as a flow failure instead.
+          #
+          # So the absence of a classification below now has two possible
+          # meanings and the warning says which. Do not reduce this to `|| true`
+          # again: that is not a smaller diagnostic, it is none.
+          if node "$CLASSIFIER" --markdown --platform="$MAESTRO_PLATFORM" \
             --debug-output="$MAESTRO_DEBUG_DIR" "$MAESTRO_REPORT" \
-            | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}" || true
+            | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"; then
+            :
+          else
+            echo "::warning title=Flake classification did not run (${MAESTRO_PLATFORM})::$CLASSIFIER exited non-zero, so this leg has NO preamble/device verdict. An empty classification is THIS failure, not a clean run — do not read it as 'no device fault'."
+          fi
           exit 0
 
       - name: 📤 Upload Maestro debug output
@@ -4278,7 +4321,7 @@ jobs:
           # that has not picked up this version ignores it rather than failing.
           MAESTRO_DEBUG_DIR: maestro-debug
         run: |
-          if [[ ! -f "$CLASSIFIER" ]]; then
+          if [[ ! -f scripts/classify-maestro-failures.mjs ]]; then
             echo "No $CLASSIFIER in this repository — skipping flake classification."
             exit 0
           fi
@@ -4289,9 +4332,26 @@ jobs:
           # An absent debug tree is normal — a suite that died before Maestro
           # started never wrote one — and the classifier reads it as "no
           # evidence", which yields no device verdict rather than an error.
-          node "$CLASSIFIER" --markdown --platform="$MAESTRO_PLATFORM" \
+          #
+          # Still unable to fail the job — `exit 0` below, plus this step's
+          # `continue-on-error` — but no longer SILENT about it. `|| true`
+          # discarded the status with no trace, and combined with "no evidence
+          # is normal" that made a dead classifier indistinguishable from a run
+          # with nothing to classify. Measured 2026-09-11: the classifier OOM'd
+          # reading a 3.5 GB debug tree, the step went green, and the leg's one
+          # failure — a simulator launch failure, exactly the device fault this
+          # classifier exists to name — was read as a flow failure instead.
+          #
+          # So the absence of a classification below now has two possible
+          # meanings and the warning says which. Do not reduce this to `|| true`
+          # again: that is not a smaller diagnostic, it is none.
+          if node "$CLASSIFIER" --markdown --platform="$MAESTRO_PLATFORM" \
             --debug-output="$MAESTRO_DEBUG_DIR" "$MAESTRO_REPORT" \
-            | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}" || true
+            | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"; then
+            :
+          else
+            echo "::warning title=Flake classification did not run (${MAESTRO_PLATFORM})::$CLASSIFIER exited non-zero, so this leg has NO preamble/device verdict. An empty classification is THIS failure, not a clean run — do not read it as 'no device fault'."
+          fi
           exit 0
 
       - name: 📤 Upload Maestro debug output

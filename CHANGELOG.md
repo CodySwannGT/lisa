@@ -2,6 +2,84 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.58.1](https://github.com/CodySwannGT/lisa/compare/v4.58.0...v4.58.1) (2026-09-14)
+
+
+### Documentation
+
+* document one-time upgrades from legacy Lisa ([f88020d](https://github.com/CodySwannGT/lisa/commit/f88020dfd3b8956a69ecced161222438f439aa65)), closes [CodySwannGT/lisa#3505](https://github.com/CodySwannGT/lisa/issues/3505) [CodySwannGT/lisa#3505](https://github.com/CodySwannGT/lisa/issues/3505)
+
+## [4.58.0](https://github.com/CodySwannGT/lisa/compare/v4.57.6...v4.58.0) (2026-09-14)
+
+
+### Features
+
+* **doctor:** report a workflow whose ownership banner is stale ([7778066](https://github.com/CodySwannGT/lisa/commit/777806631c6da6ba96a47410ca1402a097c6379a)), closes [CodySwannGT/lisa#3582](https://github.com/CodySwannGT/lisa/issues/3582)
+
+
+### Bug Fixes
+
+* **doctor:** resolve workflow ownership before advising edits ([5018b60](https://github.com/CodySwannGT/lisa/commit/5018b6076f570bb855f442199bf0b05835230538)), closes [CodySwannGT/lisa#4113](https://github.com/CodySwannGT/lisa/issues/4113) [CodySwannGT/lisa#4113](https://github.com/CodySwannGT/lisa/issues/4113)
+
+
+### Documentation
+
+* **doctor:** state the banner check's one direction instead of claiming two ([84e41ca](https://github.com/CodySwannGT/lisa/commit/84e41cafbf82f274195f64d4f11f543e7d58d6be)), closes [CodySwannGT/lisa#3582](https://github.com/CodySwannGT/lisa/issues/3582)
+
+### [4.57.6](https://github.com/CodySwannGT/lisa/compare/v4.57.5...v4.57.6) (2026-09-14)
+
+
+### Bug Fixes
+
+* **guard:** stop a prose comment refusing a file that files nothing ([46e578b](https://github.com/CodySwannGT/lisa/commit/46e578bd5340b3c9c3b7a5784670b38884e8ae89)), closes [CodySwannGT/lisa#3551](https://github.com/CodySwannGT/lisa/issues/3551)
+* **guard:** sync main and resolve issue guard review ([8597f91](https://github.com/CodySwannGT/lisa/commit/8597f91756484e9d5c89468dde863c81f9221369)), closes [CodySwannGT/lisa#3551](https://github.com/CodySwannGT/lisa/issues/3551) [CodySwannGT/lisa#3551](https://github.com/CodySwannGT/lisa/issues/3551)
+
+### [4.57.5](https://github.com/CodySwannGT/lisa/compare/v4.57.4...v4.57.5) (2026-09-14)
+
+
+### Bug Fixes
+
+* **guards:** keep printed payload text out of bypass checks ([da60e05](https://github.com/CodySwannGT/lisa/commit/da60e0502510ac8b6d569bb68a4b3b3f423a1259)), closes [CodySwannGT/lisa#3531](https://github.com/CodySwannGT/lisa/issues/3531) [CodySwannGT/lisa#3531](https://github.com/CodySwannGT/lisa/issues/3531)
+* **hooks:** recurse into an eval payload so no bypass hides inside it ([53a5118](https://github.com/CodySwannGT/lisa/commit/53a5118ec1bd7a2bc8efa58da74a3cdbe7887ef4)), closes [#3606](https://github.com/CodySwannGT/lisa/issues/3606) [#3481](https://github.com/CodySwannGT/lisa/issues/3481) [CodySwannGT/lisa#3531](https://github.com/CodySwannGT/lisa/issues/3531)
+
+### [4.57.4](https://github.com/CodySwannGT/lisa/compare/v4.57.3...v4.57.4) (2026-09-14)
+
+
+### Bug Fixes
+
+* **preflight:** render a stop and an action as different things ([4c53974](https://github.com/CodySwannGT/lisa/commit/4c53974bd89d0977e7640b4c827d36754e246656)), closes [CodySwannGT/lisa#3478](https://github.com/CodySwannGT/lisa/issues/3478)
+* **preflight:** sync main and finish report tiering ([950a99a](https://github.com/CodySwannGT/lisa/commit/950a99a91bf844fed5139990a3914da39a944834)), closes [CodySwannGT/lisa#3478](https://github.com/CodySwannGT/lisa/issues/3478) [CodySwannGT/lisa#3478](https://github.com/CodySwannGT/lisa/issues/3478)
+
+### [4.57.3](https://github.com/CodySwannGT/lisa/compare/v4.57.2...v4.57.3) (2026-09-13)
+
+
+### Bug Fixes
+
+* **maestro-classifier:** read the debug tree lazily instead of all at once ([d275722](https://github.com/CodySwannGT/lisa/commit/d275722013c7fc8814b3458e1cb189b2d5e07b59)), closes [CodySwannGT/lisa#2400](https://github.com/CodySwannGT/lisa/issues/2400)
+* **maestro-native-e2e:** say when flake classification did not run ([f0dd114](https://github.com/CodySwannGT/lisa/commit/f0dd11486e4b61b8340b85943d3c468c9b19b61d)), closes [CodySwannGT/lisa#2400](https://github.com/CodySwannGT/lisa/issues/2400)
+* **maestro:** verify both classifier arms and preserve repeated report evidence ([6502cda](https://github.com/CodySwannGT/lisa/commit/6502cda5292be0488a17e67b6825a0ba35de5e9d)), closes [CodySwannGT/lisa#2400](https://github.com/CodySwannGT/lisa/issues/2400) [CodySwannGT/lisa#2400](https://github.com/CodySwannGT/lisa/issues/2400)
+
+### [4.57.2](https://github.com/CodySwannGT/lisa/compare/v4.57.1...v4.57.2) (2026-09-13)
+
+
+### Bug Fixes
+
+* **maestro-native-e2e:** retry adb start-server past the port-5037 race ([55b4423](https://github.com/CodySwannGT/lisa/commit/55b44236e257f4c04b140f46478ec5ad13e53158)), closes [#2400](https://github.com/CodySwannGT/lisa/issues/2400) [CodySwannGT/lisa#2400](https://github.com/CodySwannGT/lisa/issues/2400)
+
+### [4.57.1](https://github.com/CodySwannGT/lisa/compare/v4.57.0...v4.57.1) (2026-09-13)
+
+
+### Bug Fixes
+
+* **cli:** explain incompatible override failures at startup ([166d8ca](https://github.com/CodySwannGT/lisa/commit/166d8cadf744ae2e1904a4336db61daafad8c349)), closes [CodySwannGT/lisa#2747](https://github.com/CodySwannGT/lisa/issues/2747) [CodySwannGT/lisa#2747](https://github.com/CodySwannGT/lisa/issues/2747)
+
+## [4.57.0](https://github.com/CodySwannGT/lisa/compare/v4.56.4...v4.57.0) (2026-09-13)
+
+
+### Features
+
+* save console edits through the existing config endpoint ([09022ed](https://github.com/CodySwannGT/lisa/commit/09022ed1a2147ab3070d67ddcd235e50d30231be)), closes [CodySwannGT/lisa#1528](https://github.com/CodySwannGT/lisa/issues/1528) [CodySwannGT/lisa#1528](https://github.com/CodySwannGT/lisa/issues/1528)
+
 ### [4.56.4](https://github.com/CodySwannGT/lisa/compare/v4.56.3...v4.56.4) (2026-09-13)
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { CommanderError } from "commander";
-import { createProgram } from "./cli/index.js";
+import { describeCliDependencyFailure } from "./cli-load-diagnostic.js";
 
 /**
  * Run the Lisa CLI entrypoint.
@@ -12,6 +12,13 @@ import { createProgram } from "./cli/index.js";
  * @returns Promise that resolves after Commander completes
  */
 async function main(): Promise<void> {
+  const { createProgram } = await import("./cli/index.js").catch(
+    async error => {
+      const diagnostic = await describeCliDependencyFailure(error);
+      if (diagnostic !== null) console.error(diagnostic);
+      throw error;
+    }
+  );
   const program = createProgram();
   program.exitOverride();
   try {

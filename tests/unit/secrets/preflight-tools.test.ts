@@ -166,7 +166,7 @@ describe("reportTools", () => {
     });
     expect(text).toContain("Lisa can install these itself");
     expect(text).toContain("maestro");
-    expect(text).toContain("These need you");
+    expect(text).toContain("STOP — these block the work");
     expect(text).toContain("gh");
     expect(text).toContain(`required because ${TRACKER_GH}`);
   });
@@ -325,8 +325,8 @@ describe("a tool with no pin for this platform", () => {
     );
     const text = reportTools(result);
     expect(text).not.toContain("FAILED");
-    expect(text).not.toContain("Route the item to");
-    expect(text).not.toContain("These need you");
+    expect(text).not.toContain("Route that");
+    expect(text).not.toContain("STOP — these block the work");
     expect(text).toContain("cannot vouch");
     expect(text).toContain("2.1.0");
     expect(text).toContain("Nothing here blocks your work");

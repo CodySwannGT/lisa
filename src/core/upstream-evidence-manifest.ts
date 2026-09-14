@@ -51,13 +51,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
       "b17d73c02245d64ae96ba4b9ec642f5a54a827accb1af292a4600a98e1a596f4",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
-      "530b8bff3969ea7101cece4e3bc7e20c2dcbca765f07cb39904ab02d5d09bbfc",
+      "942f5bb0360ab56a082a2ca66a7a43ee5db2e336a25478c9600d59dd7192d8cd",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "2660d27d111beb79fed7e83feebcabd5f7e565dce99dbb4d861c8dc59ef8a0d7",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
       "087569474640841ce7b767a525e311c53b1c404ec473e9947f45220ee051a7fb",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "c00a3659f997c046df3c147b348518aabe452fe6ecbd20a15fea68ac2def2b3f",
+      "784028deb1488a4e9fc02a7a0e5e5ddf6d5e3f45b497a13dd16077633fb110f4",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "865f89d7504a7d1c3380449a2790801c60c1cfe5fa8f1aad54ffc51aa8d0cc7f",
     "all/copy-overwrite/scripts/lisa-hooks/guard-dedupe.bash":
@@ -269,7 +269,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/check-lighthouse-details.mjs":
       "c33678782088725f6e95a07873a4260c347d915518d0c52e107ff3dc0ad32641",
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs":
-      "8c96523e2e5df9ef79b7936afd79ab56d032f608681201e2a989b0b95da6c80b",
+      "8f96ad8dd2626e5a78751a7141a35c5edaa4d0b340f203be1973ac38a75c8caa",
     "expo/copy-overwrite/scripts/lib/bounded-spawn.mjs":
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
     "expo/copy-overwrite/scripts/lib/invoked-as-script.mjs":
@@ -737,7 +737,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "7ec3db9a519a5ce95277d75ab347d2ee52970bc4ccb7ae554bccba8628290c19",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
-      "26de8b02a1688f76d5ad331dcebee5517c32b2996f386ad36d65c7614abeb948",
+      "e689d8a49677eaf56c3d10bf0d782f93d0a1f8049111003d7e00b8351de943b2",
     "plugins/src/base/hooks/block-host-name-leak.agy.sh":
       "9522a2db621178d9cee5bf70ff3948251c5043868f372924bfee19126dbd1c41",
     "plugins/src/base/hooks/block-host-name-leak.mjs":
@@ -753,9 +753,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.sh":
       "764220b81b9eeaebbf0e14b4a41538aed43c7924bab65fef5528531c103a847f",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
-      "452466fc87be994084017165a045a5fca77a357d71407d0524980c8bdd975c29",
+      "62afd86ef3344de2216afea008e6ac9bf37be7e6f7a42f0e9978243d3363aa90",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "05befc4599dd53c39bfb1b8770928e1909bbb3c2c4e4850fc93e54fb64467489",
+      "5332b2e65e7d821fadc64f0fa227489bcacb8d7a59b9ccd296f6db58517cc0fc",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":
@@ -1421,7 +1421,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/environment.mjs":
       "3b9be11691d81a896fc779c37fb6d69e8e7222f95e23f84aa03d4e590f9d9108",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/preflight-tools.mjs":
-      "70cdbb8e993c8dd58be8a1d7792e0a55d946c5e6e4ef6338ab6710fe2f5f893e",
+      "324b7826e6cb98b274ab09a25f1c29ae6877bc827032642cabccfe1ef21fcc99",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/setup-remote-env.mjs":
       "b8967bec0d35f5e30d1c9347c5002ce795adf52841d6a13999eaf152d9a0587b",
     "plugins/src/base/skills/lisa-setup-remote-env/scripts/tool-floor.mjs":
@@ -2449,7 +2449,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "ac6c217111a61716a6f456446f8551902cf4506f84bc6ae3bf131bb88990262a",
+      "e0e21ba67175df27bdd231b55ba0760613deda6af114d6851550a00a86358afc",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -2627,9 +2627,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/package-lisa/package.lisa.json":
       "432f6789653fae75a70d679ab9de064282aed7bb63a15c29be1eed0eae19f83e",
     "ui/README.md":
-      "9c4aa65ff4028eedfda1f284d47b620fff7353c07fd8084ccc427fe4c5a1ed72",
+      "cf4ce2f5ecc622472834f57eb66c3a11c98df4cf4a18124aa7b00b1e5d95ab8e",
     "ui/index.html":
-      "9e1a68cd70fe6e74bc615e9f012e5837fa9ad0d828202f998e8cf97551931906",
+      "d933f2bd36aa9a9a52d3d324c77d74991e78d8337c86ae1036614f3fa526d5a0",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -2872,6 +2872,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "audit.ignore.local.json": true,
     "bdd/coverage-map.json": true,
     "bdd/coverage-report.json": true,
+    "bdd/features/lisa-ui-config-save.feature": true,
     "bdd/features/lisa-ui-demo-data.feature": true,
     "bun.lock": true,
     "cdk/copy-overwrite/.github/workflows/.keep": true,
@@ -8688,6 +8689,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/agy/mcp-installer.ts": true,
     "src/agy/plugin-installer.ts": true,
     "src/claude/claude-md-installer.ts": true,
+    "src/cli-load-diagnostic.ts": true,
     "src/cli/apply.ts": true,
     "src/cli/check-learnings-budget-cmd.ts": true,
     "src/cli/cross-pollinate-cmd.ts": true,
@@ -8726,6 +8728,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-nightly-e2e-guard-shell.ts": true,
     "src/cli/doctor-nightly-e2e-guard.ts": true,
     "src/cli/doctor-override-floor-conflicts.ts": true,
+    "src/cli/doctor-ownership-banner-drift.ts": true,
     "src/cli/doctor-project-type.ts": true,
     "src/cli/doctor-rails-deploy-intent.ts": true,
     "src/cli/doctor-readiness-action-pins.ts": true,
@@ -9200,6 +9203,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/e2e/fixtures/ui-live-status-server.ts": true,
     "tests/e2e/ui-automations-scheduler.spec.ts": true,
     "tests/e2e/ui-ci-quality-jobs.spec.ts": true,
+    "tests/e2e/ui-config-save.spec.ts": true,
     "tests/e2e/ui-demo-data-gate.spec.ts": true,
     "tests/e2e/ui-deploy-pipeline.spec.ts": true,
     "tests/e2e/ui-github-repo-panel.spec.ts": true,
@@ -9453,6 +9457,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/maestro-build-reuse.test.ts": true,
     "tests/integration/maestro-caller-template.test.ts": true,
     "tests/integration/maestro-checkout-credentials.test.ts": true,
+    "tests/integration/maestro-classifier-debug-tree-memory.test.ts": true,
     "tests/integration/maestro-eas-profile-guard.test.ts": true,
     "tests/integration/maestro-eas-quota-diagnosis.test.ts": true,
     "tests/integration/maestro-environment-prepare.test.ts": true,
@@ -9619,6 +9624,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/doctor-nightly-e2e-guard-scan.test.ts": true,
     "tests/unit/cli/doctor-nightly-e2e-guard.test.ts": true,
     "tests/unit/cli/doctor-override-floor-conflicts.test.ts": true,
+    "tests/unit/cli/doctor-ownership-banner-drift.test.ts": true,
     "tests/unit/cli/doctor-project-type.test.ts": true,
     "tests/unit/cli/doctor-rails-deploy-intent.test.ts": true,
     "tests/unit/cli/doctor-readiness-blockers.test.ts": true,
@@ -9699,6 +9705,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/lisa-test-run-process-group.test.ts": true,
     "tests/unit/cli/lisa-test-run-protocol-state.test.ts": true,
     "tests/unit/cli/merge-learnings-cmd.test.ts": true,
+    "tests/unit/cli/override-load-diagnostic.test.ts": true,
     "tests/unit/cli/parse-refresh-templates.test.ts": true,
     "tests/unit/cli/postinstall-declaration.test.ts": true,
     "tests/unit/cli/prompts.test.ts": true,
@@ -10032,6 +10039,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-blind-automerge-uncovered-base.test.ts": true,
     "tests/unit/hooks/block-blind-automerge.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-bypasses.test.ts": true,
+    "tests/unit/hooks/block-direct-issue-create-comment-lex.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-container.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-cross-repo.test.ts": true,
     "tests/unit/hooks/block-direct-issue-create-data-paths.test.ts": true,
@@ -10054,6 +10062,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-managed-file-edits.test.ts": true,
     "tests/unit/hooks/block-no-verify-command-config.test.ts": true,
     "tests/unit/hooks/block-no-verify-env-platform.test.ts": true,
+    "tests/unit/hooks/block-no-verify-eval-payload.test.ts": true,
     "tests/unit/hooks/block-no-verify-file-reach.test.ts": true,
     "tests/unit/hooks/block-no-verify-missing-jq.test.ts": true,
     "tests/unit/hooks/block-no-verify-nested-shell-parity.test.ts": true,
@@ -10566,6 +10575,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/note-format.test.ts": true,
     "tests/unit/secrets/preflight-hardening.test.ts": true,
     "tests/unit/secrets/preflight-secrets.test.ts": true,
+    "tests/unit/secrets/preflight-tools-report.test.ts": true,
     "tests/unit/secrets/preflight-tools.test.ts": true,
     "tests/unit/secrets/profile-sourcing.test.ts": true,
     "tests/unit/secrets/prompt-secret.test.ts": true,
