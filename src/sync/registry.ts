@@ -11,6 +11,11 @@
  * @module sync/registry
  */
 import { validateHealthSchedule } from "../health/contract.js";
+import {
+  STARTER_SYNC_DEFAULTS,
+  validateStarterSync,
+  validateStarterTemplates,
+} from "../core/project-config-starter.js";
 import type { JsonValue } from "./json-path.js";
 import type { LegacyAliasMapping } from "./legacy-aliases.js";
 import {
@@ -134,6 +139,18 @@ const COVERAGE_DEFAULTS: JsonValue = {
  * that belong in `.lisa.config.local.json`.
  */
 export const SYNC_REGISTRY: readonly SyncedSetting[] = [
+  {
+    key: "starter.templates",
+    defaultValue: [],
+    validate: validateStarterTemplates,
+    description: "Declared starter origins and independent sync provenance",
+  },
+  {
+    key: "starter.sync",
+    defaultValue: STARTER_SYNC_DEFAULTS,
+    validate: validateStarterSync,
+    description: "Starter sync preferences (engine not yet available)",
+  },
   {
     key: "harness",
     defaultValue: "claude",

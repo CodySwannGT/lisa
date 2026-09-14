@@ -11,6 +11,10 @@ import * as fse from "fs-extra";
 import { readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import {
+  validateStarterConfig,
+  type StarterConfig,
+} from "./project-config-starter.js";
+import {
   ACCEPTED_HARNESS_INPUTS,
   DEFAULT_HARNESS,
   HARNESS_ALIASES,
@@ -103,6 +107,8 @@ export interface ProjectConfig {
   readonly verification?: VerificationConfig;
   /** Optional nightly-E2E automation behavior. */
   readonly nightlyE2E?: NightlyE2EConfig;
+  /** Starter provenance and synchronization preferences. */
+  readonly starter?: StarterConfig;
 }
 
 /**
@@ -295,12 +301,14 @@ export function validateProjectConfig(
   const learnings = validateLearningsConfig(obj.learnings, configPath);
   const verification = validateVerificationConfig(obj.verification, configPath);
   const nightlyE2E = validateNightlyE2EConfig(obj.nightlyE2E, configPath);
+  const starter = validateStarterConfig(obj.starter);
   return {
     ...(harness === undefined ? {} : { harness }),
     ...(projectRulesFile === undefined ? {} : { projectRulesFile }),
     ...(learnings === undefined ? {} : { learnings }),
     ...(verification === undefined ? {} : { verification }),
     ...(nightlyE2E === undefined ? {} : { nightlyE2E }),
+    ...(starter === undefined ? {} : { starter }),
   };
 }
 
