@@ -49,7 +49,8 @@ if [ -r "$lisa_guard_dedupe_lib" ]; then
   # shellcheck source=guard-dedupe.bash
   . "$lisa_guard_dedupe_lib"
   trap 'lisa_guard_dedupe_record $?' EXIT
-  lisa_guard_dedupe block-instruction-file-edits "$input"
+  lisa_guard_dedupe block-instruction-file-edits "$input" \
+    "$lisa_guard_hook_dir/parity-safety-net-heredoc.py"
 fi
 
 command -v jq >/dev/null 2>&1 || exit 0
@@ -183,6 +184,15 @@ EOF
     if ! printf '%s' "$command_str" |
       grep -Eqi '(agents|claude|copilot-instructions)\.md'; then
       exit 0
+    fi
+    # Literal printf/echo arguments are content. The shared projection keeps
+    # the real redirect target, and leaves executable/ambiguous syntax intact.
+    if [[ "$command_str" =~ ^[[:blank:]]*(printf|echo)[[:blank:]] ]] \
+      && command -v python3 >/dev/null 2>&1; then
+      if display_projection="$(printf '%s' "$command_str" | python3 \
+        "$lisa_guard_hook_dir/parity-safety-net-heredoc.py" --literal-display 2>/dev/null)"; then
+        command_str="$display_projection"
+      fi
     fi
     # Write signatures only. A bare mention (`cat AGENTS.md`, `rg x AGENTS.md`)
     # is a read and must stay allowed — the filename has to appear as the target

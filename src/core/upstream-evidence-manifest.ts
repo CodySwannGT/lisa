@@ -57,7 +57,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "75795acf3203a3965ce0989939d16d12bfd76ac725a57818ad8d414ff101e705",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
-      "2660d27d111beb79fed7e83feebcabd5f7e565dce99dbb4d861c8dc59ef8a0d7",
+      "48fe34021b0e91170edf8901d92765cdadf1ade1d22dfc69144559c114f184b6",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
       "214e45a38f60ab375934236cd3d8529f521873a5b8765261334d594534f10391",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
@@ -67,9 +67,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/guard-dedupe.bash":
       "c86555450a5d0e87dce1918ded0d894a6d9c2df5f4f8ca740d134cb018322481",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
-      "a76959fff54b59af0d46cc8066d75bdfaf8bfd0591505663ab7cfcdf38f34fa6",
+      "79113d3d884b411ea5ba05c255e4d36f514796442f61dcbce5561d8eeed83f30",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "db56b49f8a069f5a2f7d352b4f880d8637c3b82ae106e9bf148747f0de424dce",
+      "e6a7f34b68e7c0f1c91669aa90dbbc52d475776efd48922b4cfdf6c4736ccec0",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
@@ -751,7 +751,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-instruction-file-edits.agy.sh":
       "aa249cae53caeb3e0fb6d6af114e2756084f45a2896332fb063a9f20e4902125",
     "plugins/src/base/hooks/block-instruction-file-edits.sh":
-      "d2a8efddff3bcafc9a6b04b28e02cf3db75f98b1f9d90af3ca365fc3bb50c043",
+      "6c1e647628aa7f4ffa1f9e85f775476336c60c75c02c5096c5ce008c26ee7a70",
     "plugins/src/base/hooks/block-managed-file-edits.agy.sh":
       "19cda51fcc113f0b3c184d8907913ab4b49ecb81db80ce7909639194bc9c52d6",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
@@ -799,11 +799,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/operational-hazards.sh":
       "d924b576559ea341d1b5bea88a44db7c3bf0b357ed62aab0611e6660ef5f155f",
     "plugins/src/base/hooks/parity-safety-net-heredoc.py":
-      "f21b1232ac82bd0e42d2ba43c68f4cc4546334fc885ba31747881f427097ef78",
+      "4520d10b81e95f9c9a8b54fe8d061c6dc7b578be8b1b7bdd27fecd9dc7bc49cd",
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "f0bf8390d9d857b7a1da17504dceb9699c1d4399bcf70d543c3a509caf70888c",
+      "4693b532d4f406af6d9559382d35cb65a77782a611a0cba2838d182c71690472",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -10154,6 +10154,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/inject-rules.test.ts": true,
     "tests/unit/hooks/install-pkgs-worktree-node-modules.test.ts": true,
     "tests/unit/hooks/lint-on-edit.test.ts": true,
+    "tests/unit/hooks/literal-display-content.test.ts": true,
     "tests/unit/hooks/managed-file-guard-parity-note.test.ts": true,
     "tests/unit/hooks/operational-hazards-wiring.test.ts": true,
     "tests/unit/hooks/operational-hazards.test.ts": true,

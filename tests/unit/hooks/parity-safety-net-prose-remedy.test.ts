@@ -1,48 +1,10 @@
 /**
- * The destructive-operation refusal must name a remedy that can be performed.
+ * A refused prose command must name the working file-based remedy.
  *
- * The guard's false-positive class — a destructive command quoted as PROSE
- * inside a display command, with its target in the same quoted run — is known,
- * documented in the guard's own source, and deliberately accepted: upstream
- * exempts those through an engine-only DISPLAY_COMMANDS list a grep hook cannot
- * replicate, and the #3106 scoping explicitly does not reach it. This suite
- * does not contest that judgement and moves no verdict.
- *
- * What it pins is the MESSAGE. The refusal used to end in "narrow the command
- * so it no longer matches the guard", which this class cannot follow: when the
- * destructive text is a commit message, an issue body or a results table, the
- * string IS the deliverable and there is no narrower spelling that still says
- * what it must say. Measured on CodySwannGT/lisa#3191: three refusals in about
- * twenty minutes of one session — a memory index line, a results table in an
- * issue comment, and a commit body — each costing a detour that always
- * succeeded. A gate routed around every time teaches that being blocked is a
- * formality, and a printed remedy that cannot be performed is worse than none,
- * because an operator acts on it.
- *
- * The remedy that works was already in this file, one surface over: the sibling
- * heredoc refusal teaches "write the payload to a file with the Write tool,
- * then execute that file directly". The same shape carries the prose class —
- * write the text with the Write tool, pass it by path — because the guards scan
- * the COMMAND and never the file.
- *
- * ## Why the remedy appears on every refusal
- *
- * `block()` prints one shared text with two named branches, so a genuinely
- * executing delete sees the prose branch too. That is deliberate rather than
- * sloppy: the guard is a text scan and cannot tell the two apart, which is the
- * exact reason the message must name both and let the reader pick. The suite
- * therefore asserts the remedy is PRESENT on the prose class and asserts
- * nothing about its absence elsewhere.
- *
- * ## Bite evidence
- *
- * Per CodySwannGT/lisa#3111 a shell guard cannot be mutation-tested, so a
- * payload table with a control on BOTH sides is the only bite evidence
- * available, and per CodySwannGT/lisa#3190 a suite that exercises one side
- * proves nothing. Both sides are here: the eight genuinely-executing forms are
- * negative controls that must stay refused, and a harmless command must stay
- * permitted with no refusal text at all.
- * @module tests/unit/hooks/parity-safety-net-prose-remedy
+ * Single literal printf/echo commands are recognized by the shared classifier
+ * (#4106). Other command families retain the original scan, so issue bodies
+ * and commit messages can still need --body-file or -F. Preserve that guidance
+ * across shipped copies and retain the executing-command refusal controls.
  */
 import path from "node:path";
 
@@ -111,15 +73,10 @@ const classify = (command: string, hook: string = HOOK_PATH): Verdict => {
 /**
  * The accepted false-positive class, as measured on CodySwannGT/lisa#3191.
  *
- * Every one of these writes text and deletes nothing. They stay refused — this
- * ticket does not widen the matcher — but the refusal must now hand them a
- * remedy they can actually perform.
+ * These command families remain outside the literal display grammar. Their
+ * refusal must hand the operator a remedy they can perform.
  */
 const PROSE: readonly (readonly [string, string])[] = [
-  [
-    "a note appended to a memory file",
-    `printf '%s\\n' 'the ${DELETE} / guard fires here' >> notes.md`,
-  ],
   [
     "an issue comment quoting the syntax",
     `gh issue comment 1 --body 'the ${DELETE} / guard fires here'`,
@@ -127,11 +84,6 @@ const PROSE: readonly (readonly [string, string])[] = [
   [
     "a commit message quoting the syntax",
     `git commit -m 'fix: stop allowing ${DELETE} / when grep errors'`,
-  ],
-  ["prose echoed to the terminal", `echo 'a note about ${DELETE} / in docs'`],
-  [
-    "a markdown results table written to a file",
-    `echo '| ${DELETE} / | BLOCKED |' > table.md`,
   ],
 ];
 
@@ -165,8 +117,7 @@ const IMPOSSIBLE_ADVICE = "narrow the command";
 describe("parity-safety-net: the refusal names a workable remedy (#3191)", () => {
   describe("the accepted prose class keeps its verdict", () => {
     it.each(PROSE)("still refuses %s", (_label, command) => {
-      // The matcher is not being widened. Stated as an assertion so a later
-      // change that quietly permits one of these is caught here.
+      // These are outside the single-printer grammar.
       expect(classify(command).status).toBe(EXIT_BLOCKED);
     });
   });

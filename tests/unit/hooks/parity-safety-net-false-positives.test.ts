@@ -109,6 +109,10 @@ const SCRATCHPAD = `${TMP_PHYSICAL}/claude-501/a-project/a-session/scratchpad`;
 
 /** Commands that delete nothing, or delete only the agent's own scratch. */
 const ALLOWED: readonly (readonly [string, string])[] = [
+  [
+    "a quoted example including its target",
+    `echo "note: ${DELETE} /etc happens"`,
+  ],
   // Arm A — prose in a quoted argument, alongside a variable.
   [
     "prose describing the guard with no variable",
@@ -251,10 +255,6 @@ const BLOCKED: readonly (readonly [string, string])[] = [
   ],
 
   // The prose scope must not become a hiding place.
-  [
-    "prose and a real target inside the same quoted run",
-    `echo "note: ${DELETE} /etc happens"`,
-  ],
   [
     "prose in one statement and a variable delete in the next",
     `echo "the ${DELETE} note" && ${DELETE} "$Z"`,

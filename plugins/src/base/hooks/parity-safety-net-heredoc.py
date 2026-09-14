@@ -226,6 +226,46 @@ def shell_tokens(prefix: str) -> list[str] | None:
         return None
 
 
+def literal_display_projection(command: str) -> str:
+    """Remove data from one literal printer, retaining its real output target.
+
+    Reuse the literal simple-command grammar: pipes, chains, substitutions,
+    comments and ambiguous syntax keep the original scan. This is not a shell
+    parser or an execution exemption. ANSI-C quoting and computed targets also
+    keep their original scan rather than guessing their expanded spelling.
+    """
+    if "$'" in command:
+        return command
+
+    def printer(text: str) -> bool:
+        tokens = shell_tokens(text)
+        if not tokens or len(tokens) < 2:
+            return False
+        if tokens[0] == "echo":
+            return True
+        if tokens[0] != "printf":
+            return False
+        arguments = tokens[2:] if tokens[1] == "--" else tokens[1:]
+        if not arguments or arguments[0].startswith("-"):
+            return False
+        # %n writes a variable (including an evaluated array subscript), and a
+        # dynamic format could select it. Only known display conversions qualify.
+        remaining = re.sub(r"%%|%[sbqQ]", "", arguments[0])
+        return not any(char in remaining for char in "%$`*?[]~")
+
+    if printer(command):
+        return "printf '%s' literal-display-content"
+    for redirect in re.finditer(r">>|>\||>", command):
+        if not printer(command[:redirect.start()]):
+            continue
+        target = shell_tokens(command[redirect.end():])
+        if target and len(target) == 1 and not any(
+            char in target[0] for char in "$`\\\n\r"
+        ):
+            return "printf '%s' literal-display-content " + redirect[0] + " " + shlex.quote(target[0])
+    return command
+
+
 def is_allowed_gh(tokens: list[str]) -> bool:
     return (
         len(tokens) >= 3
@@ -902,6 +942,9 @@ def marker_is_closed(command: str, marker: Marker) -> bool:
 
 def main() -> int:
     command = sys.stdin.read()
+    if sys.argv[1:] == ["--literal-display"]:
+        print(literal_display_projection(command), end="")
+        return SAFE
     if "<<" not in command:
         print(command, end="")
         return SAFE

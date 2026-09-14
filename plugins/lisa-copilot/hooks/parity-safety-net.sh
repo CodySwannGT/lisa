@@ -431,6 +431,18 @@ case "$command_str" in
     ;;
 esac
 
+custom_command_for_guards="$command_for_guards"
+# A single literal printer writes data, not shell commands. Keep its actual
+# redirection in the scan; unsupported syntax and unavailable parsing retain
+# the original text. Chained commands and shell substitutions never qualify.
+if [[ "$command_for_guards" =~ ^[[:blank:]]*(printf|echo)[[:blank:]] ]] \
+  && command -v python3 >/dev/null 2>&1; then
+  if display_projection="$(printf '%s' "$command_for_guards" | python3 \
+    "$lisa_guard_hook_dir/parity-safety-net-heredoc.py" --literal-display 2>/dev/null)"; then
+    command_for_guards="$display_projection"
+  fi
+fi
+
 # ─── Follow execution into the file a command RUNS (issue #3612) ─────────────
 #
 # Every guard below classifies SHELL COMMAND TEXT, and until this block existed
@@ -2380,6 +2392,9 @@ fi
 # 16. Project-local custom rules. Each non-comment line is an ERE; a match blocks.
 rules_file="${SAFETY_NET_RULES_FILE:-${CLAUDE_PROJECT_DIR:-$PWD}/.claude/safety-net-rules.txt}"
 if [ -f "$rules_file" ]; then
+  # Custom rules can intentionally govern text itself, so preserve their input.
+  custom_command_str="$(printf '%s\n%s' "$custom_command_for_guards" "$followed_text" \
+    | awk '{ if (sub(/\\$/, "")) printf "%s ", $0; else print }')"
   while IFS= read -r rule || [ -n "$rule" ]; do
     case "$rule" in
       '' | '#'*) continue ;;
@@ -2393,7 +2408,7 @@ if [ -f "$rules_file" ]; then
     # not a refusal. The `||` puts the pipeline in a condition context, where
     # a non-zero status is expected rather than fatal.
     rule_status=0
-    printf '%s' "$normalized_command_str" | grep -Eiq -- "$rule" || rule_status=$?
+    printf '%s' "$custom_command_str" | grep -Eiq -- "$rule" || rule_status=$?
     case "$rule_status" in
       0) block "matched a project custom safety rule (${rules_file##*/}): $rule" ;;
       1) ;; # no match
