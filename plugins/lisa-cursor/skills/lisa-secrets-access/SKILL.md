@@ -188,6 +188,18 @@ On the GitHub Actions surface the repository secret and the exported environment
 
 There is no map of secret IDs, deliberately. Copying an ID per secret is the same duplication in a smaller costume, and lookup is by name.
 
+### Expo workflow pilot
+
+The reusable Expo build workflow and the Expo deploy template can resolve `EXPO_TOKEN` from the project's configured provider. An explicit `EXPO_TOKEN` repository secret still takes precedence. Projects without a provider bootstrap keep their existing behavior.
+
+For provider-backed Expo authentication, install a Lisa package containing `resolve-expo-token.mjs`, declare the provider and bootstrap in `.lisa.config.json`, and include `EXPO_TOKEN` if `secrets.require` is present. The workflow prepares only that provider's CLI through Lisa's existing installer, which uses checksum-pinned downloads for Bitwarden. Providers requiring manual setup must already be installed on the runner. The resolver respects the provider grant and `secrets.narrow`, masks the selected token, and writes only `EXPO_TOKEN` to the current job's environment. The bootstrap stays inside the resolver subprocess; the vault is not materialized into the job environment.
+
+The build workflow's optional `LISA_SECRETS_BOOTSTRAP` secret input accepts the existing repository bootstrap secret. This input is an alias, not another stored credential: the resolver maps it to `bootstrap.key` inside its process. The Expo caller template forwards `secrets.BWS_ACCESS_TOKEN` by default. If your stored bootstrap has a different name, update its three references: the eligibility check, the reusable build call, and the deploy job's resolution step.
+
+The eligibility check only establishes that an explicit token or a configured provider plus bootstrap is available. Each build or deploy job resolves its own token and must authenticate with Expo. A provider-backed caller using an older Lisa package fails with an upgrade instruction before invoking Expo.
+
+The deploy caller is a **create-only** template. Existing projects must deliberately apply these caller changes after upgrading Lisa; a normal sync does not overwrite their workflow. This pilot does not convert other workflow credentials. `DEPLOY_KEY` remains available before dependency installation for checkout. Do not remove an existing Expo repository secret until a provider-only run has authenticated successfully.
+
 ## The exposure boundary
 
 **The provider's own scoping is the default allowlist.** The machine account's project grants *are* the permitted set; restating that as a list in config would duplicate a boundary the provider already enforces.

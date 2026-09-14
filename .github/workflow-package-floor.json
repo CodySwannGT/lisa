@@ -9,6 +9,25 @@
   "probeShapes": "Two shapes cover every executed path here, both measured against three released tarballs on 2026-08-24. PROVE: run the artifact with the workflow's own arguments against a fixture that contains something to examine, and require the count it reports to clear a declared minimum — this is #2951's defect stated as an assertion. REFUSE: hand the artifact a deliberately invalid value for the very parameter the workflow supplies, and require it to reject the value AND enumerate the domain it would have accepted; the non-vacuity count is the size of that enumeration, and `contains` pins the exact token the workflow passes. Refuse probes have no side effects, which is what makes it safe to run a dispatcher and a secret rotator out of a tarball. An artifact that lost the flag prints a generic usage line, enumerates nothing, counts zero, and fails.",
 
   "contracts": {
+    "plugins/lisa/skills/lisa-secrets-access/scripts/resolve-expo-token.mjs": {
+      "kind": "executed",
+      "since": "4.59.3",
+      "degradation": "The provider step is opt-in: explicit EXPO_TOKEN or absent LISA_SECRETS_BOOTSTRAP skips resolution on older packages. Opting in before upgrading reports the required package upgrade. The existing explicit-token workflow remains supported.",
+      "why": "build.yml uses the resolver only for the new provider bootstrap input; the isolated adapter and workflow tests prove token precedence and the older-package upgrade refusal.",
+      "probes": [
+        {
+          "argv": ["--help"],
+          "expectExit": 0,
+          "why": "Inspect the released resolver's input interface without preparing a provider, reading credentials, or writing GITHUB_ENV. Authentication behavior is covered by isolated synthetic integration tests.",
+          "signal": {
+            "pattern": "Environment: ([^\\n]+)",
+            "shape": "list",
+            "min": 3,
+            "contains": ["EXPO_TOKEN", "LISA_SECRETS_BOOTSTRAP", "GITHUB_ENV"]
+          }
+        }
+      ]
+    },
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": {
       "kind": "executed",
       "why": "quality.yml's `conflict_markers` job runs it as `node \"$PROVER\" --root .` and treats exit 0 as proof that no leftover merge markers are tracked. This is the artifact whose move started #2951.",

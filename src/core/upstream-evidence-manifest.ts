@@ -287,7 +287,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/ci.yml":
       "830c60686fef5d1f773812f622a3c40832344a078acf22122c1740ebaa6db18b",
     "expo/create-only/.github/workflows/deploy.yml":
-      "755d98702ae6ce07d3cbdee873975efca5c918610567a2196f2ddeeccfaf69c1",
+      "dfadbe4393392507d00595c686c622580c95f98fc7a2f6c3de422d869ea57521",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
       "8d95742b6aba4ad0d4fdb688548ff0b3933828ab911441d46562fcee9bfa427e",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
@@ -1337,7 +1337,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-root-cause-analysis/SKILL.md":
       "3fa14217ca36b238ebb8203d18f10eaaf98a3647f949cdada6cb9f56ddf9ed50",
     "plugins/src/base/skills/lisa-secrets-access/SKILL.md":
-      "503617363fde042af3f02ee8e48a50ebf8e06f2cf6ca0b71cbe94774b4a2ab42",
+      "6afe30e463c6bda5ba6320480fbb10afcb52b3eb8d91f0a6ded03c3bc86bb3d0",
     "plugins/src/base/skills/lisa-secrets-access/scripts/aws-bootstrap.mjs":
       "7f6acaa7ac13f31ebbd12e41000b5796536f1fe708684e59f79ab23b85ee08f0",
     "plugins/src/base/skills/lisa-secrets-access/scripts/bootstrap-store.mjs":
@@ -1364,6 +1364,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "cca130bdd73b73c807baffc660510a37c3d7504ad0d6959a4bd28b141caf21db",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
       "735434e25bf1db9f2f7eb3d5ede8361cba01b922d65931393bd36e6f96531654",
+    "plugins/src/base/skills/lisa-secrets-access/scripts/resolve-expo-token.mjs":
+      "0252b0a7760721ec52d0f24cf1a6b3c7895de2602c51a5665ad20be947756026",
     "plugins/src/base/skills/lisa-secrets-access/scripts/resolve-secret.mjs":
       "4170220c95f410072f3871f58938b7575684254480d0645e3dbb1535cf09d7a7",
     "plugins/src/base/skills/lisa-secrets-access/scripts/rotate-secret.mjs":
@@ -2285,7 +2287,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-workflow-load-failures.ts":
       "494113253fd4830e79e658429c15533c045ac8c5ad3ec365e3dc2a39742f8d2c",
     "scripts/check-workflow-package-paths.mjs":
-      "d057c7666ad048cfbd11a1ef83ad1e13fb1c61a9d399ec83221c99c4256728a1",
+      "07ebf3f8a4504f6231c5ae492ecda7f95a80a0fa5f0424b9d3368544b1b612dd",
     "scripts/claude-remote-setup.sh":
       "5947c48ee78f2efdf321f6a516e0aad427ac77345ce26d4e29d0eecc5cd5d307",
     "scripts/clean-dist.mjs":
@@ -2383,7 +2385,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lib/upstream-manifest-staleness.mjs":
       "c69fc5ba10228b7f4f8d0068db27ee8a289143094fa8718b14af83f4af31f76d",
     "scripts/lib/workflow-contract-probe.mjs":
-      "e51e2872bfc074fccd27cb814d2a4b14e45b3981290a98300b415beecc2b1ec8",
+      "73fee544253390b0e859090a23b9810bdcf14a19ca1dd17649d8d82d20ef69dc",
     "scripts/lisa-assert-eas-profile.mjs":
       "624e40d7f33ca17208fc6b7a19320a785cff19da5d2ff8062b67a432b2a34022",
     "scripts/lisa-commit-and-pr-local.sh":
@@ -2449,7 +2451,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "e0e21ba67175df27bdd231b55ba0760613deda6af114d6851550a00a86358afc",
+      "e5d1c9ea128f9472a8a95cd1adaf24d36badef984cb7296de688e0e858983749",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -3859,6 +3861,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/providers.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/read-secret-note.mjs": true,
+    "plugins/lisa-agy/skills/lisa-secrets-access/scripts/resolve-expo-token.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/resolve-secret.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/rotate-secret.mjs": true,
     "plugins/lisa-agy/skills/lisa-secrets-access/scripts/routing-floor.mjs": true,
@@ -4344,6 +4347,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/providers.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/read-secret-note.mjs": true,
+    "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/resolve-expo-token.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/resolve-secret.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/rotate-secret.mjs": true,
     "plugins/lisa-copilot/skills/lisa-secrets-access/scripts/routing-floor.mjs": true,
@@ -4815,6 +4819,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/providers.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/read-secret-note.mjs": true,
+    "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/resolve-expo-token.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/resolve-secret.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/rotate-secret.mjs": true,
     "plugins/lisa-cursor/skills/lisa-secrets-access/scripts/routing-floor.mjs": true,
@@ -6876,6 +6881,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/providers.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/read-secret-note.mjs": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/resolve-expo-token.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/resolve-secret.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/rotate-secret.mjs": true,
     "plugins/lisa/.codex-plugin/skills/lisa-secrets-access/scripts/routing-floor.mjs": true,
@@ -7528,6 +7534,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-secrets-access/scripts/providers.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/read-secret-note.mjs": true,
+    "plugins/lisa/skills/lisa-secrets-access/scripts/resolve-expo-token.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/resolve-secret.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/rotate-secret.mjs": true,
     "plugins/lisa/skills/lisa-secrets-access/scripts/routing-floor.mjs": true,
@@ -8060,6 +8067,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs": true,
+    "plugins/src/base/skills/lisa-secrets-access/scripts/resolve-expo-token.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/resolve-secret.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/rotate-secret.mjs": true,
     "plugins/src/base/skills/lisa-secrets-access/scripts/routing-floor.mjs": true,
@@ -9439,6 +9447,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/expo-host-run-scripts-survive-apply.test.ts": true,
     "tests/integration/expo-independent-checks.test.ts": true,
     "tests/integration/expo-jira-parser-origin.test.ts": true,
+    "tests/integration/expo-provider-token.test.ts": true,
+    "tests/integration/expo-provider-workflow.test.ts": true,
     "tests/integration/facade-proof-not-step.test.ts": true,
     "tests/integration/failure-issue-workflows.test.ts": true,
     "tests/integration/floor-collisions-gate-fail-closed.test.ts": true,
@@ -10545,6 +10555,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-trailer-definition.test.ts": true,
     "tests/unit/scripts/work-item-unreachable-ancestry.test.ts": true,
     "tests/unit/scripts/workflow-contract-assertion.test.ts": true,
+    "tests/unit/scripts/workflow-optional-package-path.test.ts": true,
     "tests/unit/secrets/automation-workflow.test.ts": true,
     "tests/unit/secrets/aws-bootstrap-derivation.test.ts": true,
     "tests/unit/secrets/aws-bootstrap-publication-budget.test.ts": true,

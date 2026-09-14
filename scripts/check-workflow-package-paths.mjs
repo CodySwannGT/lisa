@@ -111,6 +111,7 @@ import path from "node:path";
 import { boundedExecFileSync } from "./lib/bounded-spawn.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import {
+  compareVersions,
   declarationGaps,
   probeReleases,
   readContractDeclaration,
@@ -489,10 +490,17 @@ export function releaseContains(entries, candidate) {
  * @param {Record<string, readonly string[]>} listings - Version to entry list
  * @returns {readonly string[]} One operator-readable line per failure
  */
-export function findBreakages(groups, listings) {
+export function findBreakages(groups, listings, contracts = {}) {
   return Object.entries(listings).flatMap(([version, entries]) =>
     groups
-      .filter(group => !group.paths.some(p => releaseContains(entries, p)))
+      .filter(
+        group =>
+          !group.paths.some(
+            p =>
+              releaseContains(entries, p) ||
+              introducedLater(version, contracts[p])
+          )
+      )
       .map(
         group =>
           `${version}: ${group.workflow} step "${group.step}" resolves ${group.paths
@@ -501,6 +509,17 @@ export function findBreakages(groups, listings) {
               " or "
             )}, and release ${version} contains none of them. Merging this breaks every consumer still on ${version}.`
       )
+  );
+}
+
+/** A declared optional feature may predate its package artifact only on known older releases. */
+function introducedLater(version, contract) {
+  return (
+    /^\d+\.\d+\.\d+$/.test(version) &&
+    typeof contract?.since === "string" &&
+    typeof contract.degradation === "string" &&
+    contract.degradation.length >= 40 &&
+    compareVersions(version, contract.since) < 0
   );
 }
 
@@ -567,7 +586,7 @@ function main() {
         });
 
   const breakages = [
-    ...findBreakages(claims.groups, listings),
+    ...findBreakages(claims.groups, listings, declaration.contracts),
     ...gaps.undeclared,
     ...gaps.stale,
     ...contracts.violations,
@@ -579,6 +598,19 @@ function main() {
     releasesExamined: Object.keys(listings),
     contractProbesExecuted: contracts.executed,
     contractProbesDeferred: contracts.deferred,
+    packagePathsDeferred: Object.entries(listings).flatMap(
+      ([version, entries]) =>
+        Object.entries(declaration.contracts)
+          .filter(
+            ([where, contract]) =>
+              !releaseContains(entries, where) &&
+              introducedLater(version, contract)
+          )
+          .map(
+            ([where, contract]) =>
+              `${version}: ${where} introduced in ${contract.since}; ${contract.degradation}`
+          )
+    ),
     contractProbesRun: contracts.probed,
     unattributed: claims.unattributed,
     breakages,
@@ -591,6 +623,8 @@ function main() {
       `Examined ${report.packagePathsExamined} package path(s) across ${report.stepsExamined} step(s) in ${report.workflowsExamined} workflow(s), against release(s) ${report.releasesExamined.join(", ")}. Executed ${report.contractProbesExecuted} contract probe(s).\n`
     );
     for (const line of contracts.deferred)
+      process.stdout.write(`  · ${line}\n`);
+    for (const line of report.packagePathsDeferred)
       process.stdout.write(`  · ${line}\n`);
     for (const line of breakages) process.stdout.write(`  ✗ ${line}\n`);
   }

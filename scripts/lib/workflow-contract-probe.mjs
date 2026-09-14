@@ -151,6 +151,17 @@ export function readContractDeclaration(declared) {
     );
   }
   for (const [where, entry] of Object.entries(contracts)) {
+    if (
+      entry?.since !== undefined &&
+      (typeof entry.since !== "string" ||
+        !/^\d+\.\d+\.\d+$/.test(entry.since) ||
+        typeof entry.degradation !== "string" ||
+        entry.degradation.length < 40)
+    ) {
+      throw new Error(
+        `contracts["${where}"]: since needs a release version and degradation must explain the older caller's behavior`
+      );
+    }
     if (!CONTRACT_KINDS.has(entry?.kind)) {
       throw new Error(
         `contracts["${where}"]: kind must be one of ${[...CONTRACT_KINDS].join(", ")}`
