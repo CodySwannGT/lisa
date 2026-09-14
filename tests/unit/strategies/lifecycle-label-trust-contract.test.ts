@@ -133,6 +133,20 @@ describe("lifecycle-label trust contract (#2539)", () => {
       expect(section).toContain("TUN-556 and TUN-503");
     });
 
+    it("forbids advancing a not-planned closure to the terminal role", () => {
+      // The skill must preserve the classifier's retire-only outcome.
+      const repair = read(root, REPAIR_INTAKE);
+      const section = repair.slice(
+        repair.indexOf("Lifecycle label contradicts native state"),
+        repair.indexOf("Bot-authored lifecycle label")
+      );
+
+      expect(section).toContain("open-label-abandoned-state");
+      expect(section).toContain(
+        "non-terminal role and add nothing: declined work has not shipped"
+      );
+    });
+
     it("names Linear's native state as authoritative over a stale label", () => {
       expect(read(root, REPAIR_INTAKE)).toContain(
         "never move the state to match a label"
