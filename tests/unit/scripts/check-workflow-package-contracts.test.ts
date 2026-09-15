@@ -588,7 +588,7 @@ describe("a released artifact must still honour its declared contract (#2982)", 
 
       // Hardcoded rather than derived: a count computed from the same file it
       // checks would move with any edit and pin nothing.
-      expect(executed.length).toBe(10);
+      expect(executed.length).toBe(11);
       for (const [, entry] of executed) {
         expect(entry.probes?.length ?? 0).toBeGreaterThan(0);
       }

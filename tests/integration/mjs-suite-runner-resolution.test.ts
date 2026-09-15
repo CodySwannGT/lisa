@@ -76,6 +76,14 @@ const seed = (runners: Readonly<Record<string, number>>): string => {
     mkdirSync(path.dirname(full), { recursive: true });
     writeFileSync(full, `process.exit(${status});\n`, "utf8");
   }
+  if (Object.hasOwn(runners, PACKAGE_COPY)) {
+    // This fixture represents the supported legacy package route. A packaged
+    // runner without its manifest is an incomplete installation, not legacy.
+    writeFileSync(
+      path.join(dir, "node_modules/@codyswann/lisa/package.json"),
+      JSON.stringify({ version: "3.42.0" })
+    );
+  }
   return dir;
 };
 
