@@ -47,7 +47,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs":
       "6203064d0403906016f6700b092551ff561b811fb9c02cbbdec59b85b0af81b0",
     "all/copy-overwrite/scripts/lib/windows-process-job.cs":
-      "bf32dc865bd16c03181df1564e2576ce308e952d21bc7a71571b2138532763f9",
+      "7bbe3b13bfc35ca2a0b85fbee9a8f0a6549bf8b05997f6ce4b361bd09d924218",
     "all/copy-overwrite/scripts/lib/windows-process-job.mjs":
       "d7362a646468f87805b6d9e87fe61f2a2a97b4d481b31627a634edb66229f19d",
     "all/copy-overwrite/scripts/lib/windows-process-job.ps1":

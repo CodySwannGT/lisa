@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 
+/// <summary>Runs a shell inside a retained job and confirms its descendants have exited.</summary>
 public static class LisaWindowsProcessJob
 {
     [StructLayout(LayoutKind.Sequential)]
@@ -62,42 +63,61 @@ public static class LisaWindowsProcessJob
         public uint ProcessId, ThreadId;
     }
 
+    /// <summary>Creates the helper-owned job handle, which is never inherited by the shell.</summary>
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     static extern IntPtr CreateJobObjectW(IntPtr attributes, string name);
+    /// <summary>Applies the job limits used to kill members when its final handle closes.</summary>
     [DllImport("kernel32.dll", SetLastError = true)]
     static extern bool SetInformationJobObject(IntPtr job, int kind, ref ExtendedLimits value, uint size);
+    /// <summary>Reads job accounting so cleanup can confirm zero active processes.</summary>
     [DllImport("kernel32.dll", SetLastError = true)]
     static extern bool QueryInformationJobObject(IntPtr job, int kind, out Accounting value, uint size, IntPtr returned);
+    /// <summary>Requests termination of every process retained in the job.</summary>
     [DllImport("kernel32.dll", SetLastError = true)]
     static extern bool TerminateJobObject(IntPtr job, uint code);
+    /// <summary>Measures or initializes storage for the two process-creation attributes.</summary>
     [DllImport("kernel32.dll", SetLastError = true)]
     static extern bool InitializeProcThreadAttributeList(IntPtr list, int count, uint flags, ref IntPtr size);
+    /// <summary>Adds the job binding or restricted inherited-handle list before process creation.</summary>
     [DllImport("kernel32.dll", SetLastError = true)]
     static extern bool UpdateProcThreadAttribute(IntPtr list, uint flags, IntPtr attribute, IntPtr value, IntPtr size, IntPtr previous, IntPtr returned);
+    /// <summary>Releases initialized attribute-list contents before their backing memory is freed.</summary>
     [DllImport("kernel32.dll")]
     static extern void DeleteProcThreadAttributeList(IntPtr list);
+    /// <summary>Creates the shell with job membership and explicit standard handles already assigned.</summary>
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     static extern bool CreateProcessW(string application, StringBuilder command, IntPtr processAttributes, IntPtr threadAttributes, bool inheritHandles, uint flags, IntPtr environment, string directory, ref StartupInfoEx startup, out ProcessInformation process);
+    /// <summary>Polls the shell handle while allowing stop-file and owner-exit checks.</summary>
     [DllImport("kernel32.dll", SetLastError = true)]
     static extern uint WaitForSingleObject(IntPtr handle, uint milliseconds);
+    /// <summary>Reads the shell exit code after its process handle signals completion.</summary>
     [DllImport("kernel32.dll", SetLastError = true)]
     static extern bool GetExitCodeProcess(IntPtr process, out uint code);
+    /// <summary>Releases an owned native handle without closing borrowed caller handles.</summary>
     [DllImport("kernel32.dll", SetLastError = true)]
     static extern bool CloseHandle(IntPtr handle);
+    /// <summary>Supplies the current-process pseudo handle for standard-handle duplication.</summary>
     [DllImport("kernel32.dll")]
     static extern IntPtr GetCurrentProcess();
+    /// <summary>Reads a borrowed standard handle, which may be absent in a service process.</summary>
     [DllImport("kernel32.dll", SetLastError = true)]
     static extern IntPtr GetStdHandle(int kind);
+    /// <summary>Opens a temporary NUL device handle when a standard stream is absent.</summary>
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     static extern IntPtr CreateFileW(string name, uint access, uint share, IntPtr attributes, uint creation, uint flags, IntPtr template);
+    /// <summary>Creates an inheritable duplicate while retaining ownership of the original handle.</summary>
     [DllImport("kernel32.dll", SetLastError = true)]
     static extern bool DuplicateHandle(IntPtr sourceProcess, IntPtr source, IntPtr targetProcess, out IntPtr target, uint access, bool inherit, uint options);
 
+    /// <summary>Throws with the captured native error when an operation reports failure.</summary>
     static void Check(bool ok, string operation)
     {
         if (!ok) throw new Win32Exception(Marshal.GetLastWin32Error(), operation);
     }
 
+    /// <summary>Returns an owned inheritable standard handle, substituting NUL only when absent.</summary>
+    /// <param name="kind">The native standard-input, output, or error handle identifier.</param>
+    /// <returns>A duplicate that Run must close after the contained command finishes.</returns>
     static IntPtr StandardHandle(int kind)
     {
         IntPtr source = GetStdHandle(kind);
@@ -121,6 +141,8 @@ public static class LisaWindowsProcessJob
         }
     }
 
+    /// <summary>Terminates job members and waits up to five seconds for empty membership.</summary>
+    /// <param name="job">The retained job handle; this method does not close it.</param>
     static void TerminateAndWait(IntPtr job)
     {
         Check(TerminateJobObject(job, 255), "Terminate gate job");
@@ -135,9 +157,15 @@ public static class LisaWindowsProcessJob
         }
     }
 
-    // The helper owns the job outside its membership. No PID lookup is needed
-    // to terminate descendants after their shell exits. A helper crash closes
-    // its non-inherited job handle and kills the job as a backstop.
+    /// <summary>Runs a contained command and reaps its descendants before returning.</summary>
+    /// <remarks>
+    /// The helper owns the job outside its membership. A helper crash closes
+    /// its non-inherited job handle and kills the job as a backstop.
+    /// </remarks>
+    /// <param name="command">The shell command, forwarded without rewriting its arguments.</param>
+    /// <param name="controlDirectory">The caller-owned directory containing the stop marker.</param>
+    /// <param name="parent">The retained owner process whose exit requests cancellation.</param>
+    /// <returns>The shell exit code, or 255 when interrupted before normal completion.</returns>
     public static int Run(string command, string controlDirectory, Process parent)
     {
         IntPtr job = IntPtr.Zero, attributes = IntPtr.Zero;

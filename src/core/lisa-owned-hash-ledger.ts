@@ -508,6 +508,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lib/windows-process-job.cs": Object.freeze([
     "198c23dfee840abaad516d84e70c943eca565baf13d54bc143c8e7f925be038c",
+    "7bbe3b13bfc35ca2a0b85fbee9a8f0a6549bf8b05997f6ce4b361bd09d924218",
     "8de9cd7b38c7afd0b837de9baa4cb8d3ddceeb0a1b434862e2ad3549044a6790",
     "bf32dc865bd16c03181df1564e2576ce308e952d21bc7a71571b2138532763f9",
   ]),
@@ -1877,6 +1878,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lib/windows-process-job.cs": Object.freeze([
     "198c23dfee840abaad516d84e70c943eca565baf13d54bc143c8e7f925be038c",
+    "7bbe3b13bfc35ca2a0b85fbee9a8f0a6549bf8b05997f6ce4b361bd09d924218",
     "8de9cd7b38c7afd0b837de9baa4cb8d3ddceeb0a1b434862e2ad3549044a6790",
     "bf32dc865bd16c03181df1564e2576ce308e952d21bc7a71571b2138532763f9",
   ]),
