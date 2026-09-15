@@ -10,6 +10,38 @@ Single source of truth for the "watch a PR and clear every blocker until it
 merges" loop. Other skills delegate here instead of re-implementing it. Runs
 **inline** (the current agent does the fixes — it does not require an agent team).
 
+## Landing a change set
+
+Callers that start with changes to apply, rather than an existing PR, use this
+driver's shared mechanical adapter at
+`node_modules/@codyswann/lisa/dist/cli/pr-landing.js`. The `lisa starter sync`
+CLI calls the same functions. Do not copy their Git/PR commands into another
+orchestrator.
+
+1. `inspectLanding(project)` snapshots the source branch. Pass it to
+   `preparePullRequest(snapshot, base)` to create an isolated worktree, or obtain
+   the URL of an already-open starter PR. Existing working-tree edits stay put.
+   Node projects use Lisa's existing `install-pkgs.sh` worktree bootstrap so normal
+   commit/push hooks can run; failures retain the worktree for inspection.
+2. Apply the caller's changes in the returned `worktree`. Take a clean
+   `inspectLanding(worktree)` snapshot before applying. On a failure, retain that
+   worktree and report it; do not commit a partially failed operation.
+3. `commitLanding(before, changedPaths, title, { workItem, coAuthor })` commits
+   only declared changes through normal hooks. Supply real attribution when
+   applicable; do not invent a tracker item or agent identity.
+4. `publishPullRequest(landing, title, body)` pushes the explicit feature ref
+   and opens the PR. It does not enable auto-merge. A no-op needs no PR.
+5. Continue this skill with the returned PR URL. Starter-sync callers use
+   `auto_merge=false`: make the PR reviewable and leave it open. A standalone CLI
+   invocation reports the URL; the calling agent or native automation resumes
+   this existing review loop. The CLI itself does not run an LLM or reproduce
+   CI-fixing and review logic.
+
+All six agent surfaces receive this shared adapter and workflow. After success,
+remove the temporary PR body and call `releasePullRequestWorktree(landing)`;
+it refuses dirty removal and never forces cleanup. Failed work stays available
+for the same driver to inspect and finish.
+
 ## Inputs (`$ARGUMENTS`, all optional)
 
 - `pr=<number|url>` — the PR to drive. Default: the PR for the current branch

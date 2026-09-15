@@ -248,6 +248,19 @@ even if the remote has advanced. The command does not write to the starter or
 publish project changes. If setup's overlay application fails, finish repairing
 that project before deliberately adopting its baseline.
 
+Run `lisa starter sync --path .` after committing the starter configuration.
+The default opens a PR from an isolated worktree and preserves pending edits in
+the current checkout. `--base` selects the destination branch (default: the
+current branch). The PR stays open; the calling agent can use the existing
+`lisa-drive-pr-to-merge` workflow with `auto_merge=false` for review and checks.
+Set `starter.sync.strategy` to `direct-when-clean` to commit locally instead;
+this mode refuses tracked or untracked pending changes and does not push.
+Both modes run without prompts and honor normal Git hooks. Supply `--work-item`
+and `--co-author` when the project requires commit attribution. `--json` emits
+the result on stdout, with Git and hook output on stderr. Failed operations keep
+their worktree for inspection; retry creates a fresh isolated attempt or returns
+an already-open sync PR. No command writes to the starter repository.
+
 For Codex, apply emits a repository marketplace containing only the base Lisa
 plugin plus detected stacks and explicitly configured features. When Codex has
 those plugins installed, enabled, and trusted, it loads their native skills,

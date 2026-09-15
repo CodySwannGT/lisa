@@ -1141,7 +1141,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "ab7bb855fd3ebe321e41b0143815f202b70f6ba38f6678791d6d9e933e0c3fd8",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "b4fd88c58252e6caee1e61cbc3309e8267c6fb24cd24e95c75a47b5a473ff3de",
+      "c914ecde69bd7c2c1efe8b9d4de7167f5d7f189ba62dac2bb8fa1ad2d2d8d737",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -8879,6 +8879,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/lisa-test-run-supervisor.ts": true,
     "src/cli/lisa-test-run.ts": true,
     "src/cli/merge-learnings-cmd.ts": true,
+    "src/cli/pr-landing.ts": true,
     "src/cli/print-update-warning.ts": true,
     "src/cli/prompts.ts": true,
     "src/cli/prune-commands.ts": true,
@@ -8894,6 +8895,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/standards-proof-cmd.ts": true,
     "src/cli/starter-cmd.ts": true,
     "src/cli/starter-provenance.ts": true,
+    "src/cli/starter-sync-command.ts": true,
     "src/cli/starter-sync-content.ts": true,
     "src/cli/starter-sync-source.ts": true,
     "src/cli/starter-sync-write.ts": true,
@@ -9787,6 +9789,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/shared-options.test.ts": true,
     "tests/unit/cli/starter-adopt.test.ts": true,
     "tests/unit/cli/starter-provenance.test.ts": true,
+    "tests/unit/cli/starter-sync-command.test.ts": true,
     "tests/unit/cli/starter-sync-source.test.ts": true,
     "tests/unit/cli/starter-sync-write.test.ts": true,
     "tests/unit/cli/starter-sync.test.ts": true,
