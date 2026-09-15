@@ -1,7 +1,7 @@
 /** Windows helper cleanup must release scratch even after a delayed close. */
 import { type ChildProcess, spawn } from "node:child_process";
 import { EventEmitter } from "node:events";
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 
@@ -72,4 +72,26 @@ it("reads the receipt before removing a normally closed helper's scratch", async
   child.emit("close");
   await expect(job.reap()).resolves.toBeUndefined();
   expect(existsSync(directory)).toBe(false);
+});
+
+it("stops the helper and awaits close when its stop marker cannot be written", async () => {
+  vi.useFakeTimers();
+  const { child, job, directory } = helper();
+  mkdirSync(path.join(directory, "stop"));
+  const settled = vi.fn();
+  const result = job.reap().catch(settled);
+  try {
+    expect(child.kill).toHaveBeenCalledWith("SIGKILL");
+    await vi.advanceTimersByTimeAsync(100);
+    expect(settled).not.toHaveBeenCalled();
+    child.emit("close");
+    await result;
+    expect(settled).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining("stop") })
+    );
+    expect(existsSync(directory)).toBe(false);
+  } finally {
+    child.emit("close");
+    await result;
+  }
 });

@@ -253,3 +253,56 @@ setInterval(() => {
     assert.equal(observe(f, result, result.status), false);
   }
 );
+
+test(
+  "Windows stop-marker failure terminates the job while its caller remains alive",
+  windowsOnly,
+  t => {
+    const f = fixture(t, true);
+    const receipt = path.join(f.root, "failed-stop.json");
+    const probe = path.join(f.root, "failed-stop.mjs");
+    writeFileSync(
+      probe,
+      `
+import { supervise } from ${JSON.stringify(pathToFileURL(supervisor).href)};
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+const root = ${JSON.stringify(f.root)};
+let blocked = false;
+const prepare = setInterval(() => {
+  if (!existsSync(${JSON.stringify(f.readyPath)})) return;
+  const name = readdirSync(root).find(entry => entry.startsWith('lisa-windows-job-'));
+  if (!name) return;
+  mkdirSync(path.join(root, name, 'stop'));
+  blocked = true;
+  clearInterval(prepare);
+}, 20);
+let failure;
+try { await supervise('node launcher.cjs', 10000); }
+catch (error) { failure = error.message; }
+finally { clearInterval(prepare); }
+const { pid } = JSON.parse(readFileSync(${JSON.stringify(f.readyPath)}, 'utf8'));
+let alive = true;
+try { process.kill(pid, 0); }
+catch (error) { if (error.code === 'ESRCH') alive = false; else throw error; }
+writeFileSync(${JSON.stringify(receipt)}, JSON.stringify({ blocked, failure, alive }));
+`
+    );
+    const result = spawnSync(process.execPath, [probe], {
+      cwd: f.root,
+      encoding: "utf8",
+      timeout: 30000,
+      env: { ...env, TEMP: f.root, TMP: f.root },
+    });
+    assert.ifError(result.error);
+    assert.equal(result.status, 0, result.stderr);
+    const actual = JSON.parse(readFileSync(receipt, "utf8"));
+    assert.equal(actual.blocked, true);
+    assert.match(actual.failure, /cleanup was not verified.*stop/u);
+    assert.equal(
+      actual.alive,
+      false,
+      "a live caller observed its descendant still running after cleanup failed"
+    );
+  }
+);

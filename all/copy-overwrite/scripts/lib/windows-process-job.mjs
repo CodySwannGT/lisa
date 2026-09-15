@@ -87,6 +87,11 @@ export function startWindowsProcessJob(command) {
         throw new Error("Windows gate helper did not confirm an empty job");
       }
     } catch (error) {
+      // A failed stop-file write must still close the job owner. Its native
+      // KILL_ON_JOB_CLOSE limit stops contained processes; the finally block
+      // waits for helper close before removing scratch. Keep this a failure:
+      // forced termination cannot provide the normal empty-job receipt.
+      if (!closed && !child.killed) child.kill("SIGKILL");
       throw new Error(
         `Windows gate cleanup was not verified (helper exit ${child.exitCode ?? child.signalCode ?? "pending"}): ${error.message}`
       );
