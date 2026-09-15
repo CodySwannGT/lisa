@@ -125,7 +125,7 @@ describe("the hardcoded-invocation inventory", () => {
         hook.indexOf("# Whether a declared gate covers")
       );
       // Report-only is the whole design: seeding has to guarantee a declaration
-      // before an absent one may be fatal, or this becomes a gate nobody
+      // before changing the absence behavior, or this becomes a gate nobody
       // declared, failing pushes across the fleet it was shipped to measure.
       expect(body).toContain("|| true");
       expect(body).toContain("return 0");

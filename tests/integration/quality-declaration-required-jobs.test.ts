@@ -45,8 +45,8 @@ const DECLARATION_PRESENT = "steps.declaration.outputs.present == 'true'";
  * `tests/helpers/committed-case-table.ts` spells out: an `.each` over an
  * emptied table registers zero cases and reports green, and the set comparison
  * below is satisfied by both sides being empty — at its loudest exactly when
- * every stand-down has quietly gone. `[]` would be legitimate, and is the goal
- * once #3147 lands, but it has to be WRITTEN here to become so.
+ * every stand-down has quietly gone. #3147 deliberately retains this opt-in
+ * behavior for inactive callers; changing it requires an explicit decision.
  */
 const COMMITTED: readonly string[] = ["verification_coverage"];
 

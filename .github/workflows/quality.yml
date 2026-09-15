@@ -1853,7 +1853,7 @@ jobs:
           GATE_MOMENT: ${{ inputs.moment }}
         run: |
           set -euo pipefail
-          echo "::warning::coverage-adequacy is not declared at ${GATE_MOMENT}, so this job proved NOTHING and reported green. It is the one job in quality.yml that stands down instead of falling back to a built-in, recorded as DECLARATION_REQUIRED_JOBS in lisa-gates.mjs and owned by CodySwannGT/lisa#3147. Turn it on by setting gates.coverage-adequacy.pull-request in .lisa.config.json to {\"level\":\"required\",\"run\":\"check:verification\"}."
+          echo "::warning::coverage-adequacy is not enabled at ${GATE_MOMENT}; no verification-spec check ran. It may remain undeclared. Lisa updates preserve existing opt-ins (CodySwannGT/lisa#3147). To enable it, set gates.coverage-adequacy.pull-request in .lisa.config.json to {\"level\":\"required\",\"run\":\"check:verification\"}."
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: ✅ Require a verification (e2e) spec delta on feat/fix

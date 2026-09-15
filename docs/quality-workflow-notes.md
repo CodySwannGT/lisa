@@ -291,9 +291,11 @@ warning saying so. That is byte-for-byte the outcome those 20 already had
 from a skipped job, so the collapse cannot redden them; and it inverts the
 registry's general rule for exactly one job, which is why the inversion is
 written down rather than merely done. The entry is
-`DECLARATION_REQUIRED_JOBS` in scripts/lisa-gates.mjs, owned by #3147 —
-the fleet migration that seeds a declaration into every caller and then
-makes the stand-down fatal, restoring the invariant with no exception.
+`DECLARATION_REQUIRED_JOBS` in scripts/lisa-gates.mjs. #3147 preserves an
+existing literal opt-in during a Lisa update, before a managed caller can
+be overwritten, and migrates it to the equivalent declaration. Explicit
+current choices take precedence. Inactive projects can remain undeclared;
+there is no requirement to make their stand-down fatal or add paperwork.
 ```
 
 ## Note 7

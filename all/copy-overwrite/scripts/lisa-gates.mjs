@@ -1440,7 +1440,7 @@ export const UNGATED_QUALITY_JOBS = Object.freeze({});
  * fallback runs a bespoke check most of them fail, because an undeclared gate
  * falls back rather than standing down. The collapse was survivable only
  * because the job was ALSO made to stand down when nothing declares its gate —
- * see `DECLARATION_REQUIRED_JOBS`, which is where that debt now lives.
+ * see `DECLARATION_REQUIRED_JOBS`, which records that intentional opt-in.
  */
 export const DUAL_ADOPTION_CONTROLS = Object.freeze({});
 
@@ -1469,11 +1469,11 @@ export const DUAL_ADOPTION_CONTROLS = Object.freeze({});
  * refactor. Standing down instead reproduces, byte for byte, the green skipped
  * job those callers already had.
  *
- * `owner` is the issue that RETIRES the entry, so the inversion carries its own
- * expiry rather than becoming permanent by inattention. Retiring it is a fleet
- * migration and not an edit: every caller has to declare the gate explicitly —
- * `off` for the ones that never ran it, `required` with `run: check:verification`
- * for the ones that did — and only then can an absent declaration be made fatal.
+ * `owner` records the scope decision. #3147 preserves existing opt-ins during
+ * updates; it does not require inactive projects to declare this gate or make
+ * their absence fatal. An opt-in check may remain opt-in. The declaration is
+ * still the single ongoing control, with explicit `required`, `optional`, and
+ * `off` choices taking precedence over a migrated legacy input.
  *
  * `tests/integration/hardcoded-invocation-inventory.test.ts` refuses a façade
  * job that reports green having run nothing UNLESS it is recorded here, and
@@ -1756,8 +1756,9 @@ const QUALITY_FALLBACKS = Object.freeze({
     // fallback can be retired; for an undeclared project this built-in proves
     // nothing at all, so a seeded `required` would not take a built-in over —
     // it would switch a check ON, which is the reddening #3021 exists to
-    // prevent. Turning it on is a decision, made per repository under #3147,
-    // and `check:verification` is the task that reproduces it when it is.
+    // prevent. #3147 migrates an existing literal opt-in before it is lost;
+    // inactive callers remain undeclared. `check:verification` reproduces the
+    // check for those callers that already selected it.
     command: "(bespoke — requires a verification spec delta on feat/fix)",
     seedRun: [],
     steps: ["✅ Require a verification (e2e) spec delta on feat/fix"],
