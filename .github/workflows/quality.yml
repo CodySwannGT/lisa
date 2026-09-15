@@ -5750,6 +5750,8 @@ jobs:
           # one is a per-repo fork that silently stops receiving fixes. A
           # project that installed the package but has not run `lisa apply`
           # has a working runner and used to be told it had none.
+          WRAPPER="node_modules/@codyswann/lisa/dist/cli/lisa-test-run.js"
+          RUNNER=""
           for candidate in \
             "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-test-node.mjs" \
             "scripts/lisa-test-node.mjs"; do
@@ -5762,7 +5764,36 @@ jobs:
           fi
 
           echo "Running .mjs suites via $RUNNER"
-          node "$RUNNER"
+          # Earlier direct adapters rejected scratch names even after cleaning
+          # them. Preserve those packages legacy behavior until 4.56.1, where
+          # cleanup relies on ownership of the whole invocation directory.
+          ROUTE=$(node --input-type=module -e '
+              import { existsSync, readFileSync } from "node:fs";
+              const manifest = "node_modules/@codyswann/lisa/package.json";
+              if (!existsSync(manifest)) {
+                if (process.argv[1].startsWith("node_modules/") || existsSync(process.argv[2])) {
+                  console.error("::error title=Lisa package manifest missing::Cannot select .mjs supervision without the installed package.json. Reinstall the Lisa package.");
+                  process.exit(1);
+                }
+                console.log("legacy");
+                process.exit(0);
+              }
+              const version = JSON.parse(readFileSync(manifest, "utf8")).version;
+              const match = typeof version === "string" && /^(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/.exec(version);
+              if (!match) throw new Error("Cannot resolve the installed Lisa version for .mjs supervision");
+              const [major, minor, patch] = match.slice(1, 4).map(Number);
+              console.log(major > 4 || (major === 4 && (minor > 56 || (minor === 56 && patch >= 1))) ? "supervised" : "legacy");
+            ' "$RUNNER" "$WRAPPER")
+          if [ "$ROUTE" = "supervised" ]; then
+            if [ ! -f "$WRAPPER" ]; then
+              echo "::error title=.mjs supervisor missing::The installed Lisa package requires dist/cli/lisa-test-run.js, but that asset is missing. Reinstall the package before running suites."
+              exit 1
+            fi
+            node "$WRAPPER" --profile node --adapter direct -- node "$RUNNER"
+          else
+            echo "::warning title=Legacy .mjs suite runner::This older or applied-only Lisa installation runs .mjs suites without scratch supervision. Upgrade @codyswann/lisa to 4.56.1 or newer to enable it."
+            node "$RUNNER"
+          fi
         working-directory: ${{ inputs.working_directory || '.' }}
 
   # Environment facade. The TASK IS THE VERIFY, NOT THE RESET: a gate whose

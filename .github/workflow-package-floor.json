@@ -9,6 +9,31 @@
   "probeShapes": "Two shapes cover every executed path here, both measured against three released tarballs on 2026-08-24. PROVE: run the artifact with the workflow's own arguments against a fixture that contains something to examine, and require the count it reports to clear a declared minimum — this is #2951's defect stated as an assertion. REFUSE: hand the artifact a deliberately invalid value for the very parameter the workflow supplies, and require it to reject the value AND enumerate the domain it would have accepted; the non-vacuity count is the size of that enumeration, and `contains` pins the exact token the workflow passes. Refuse probes have no side effects, which is what makes it safe to run a dispatcher and a secret rotator out of a tarball. An artifact that lost the flag prints a generic usage line, enumerates nothing, counts zero, and fails.",
 
   "contracts": {
+    "dist/cli/lisa-test-run.js": {
+      "kind": "executed",
+      "since": "4.56.1",
+      "degradation": "The unconfigured .mjs fallback supervises packages at 4.56.1 or newer, whose direct adapter cleans owned scratch without rejecting arbitrary names. Older packages and applied-only installations retain the existing runner with a warning; newer packages refuse a missing supervisor before executing suites. The supported package floor remains 3.42.0.",
+      "why": "quality.yml invokes the shipped supervisor once with the node profile and direct adapter. Workflow integration fixtures exercise both runner locations, child results, and scratch cleanup.",
+      "probes": [
+        {
+          "argv": ["--profile", "node", "--adapter", "direct", "--", "node", "-e", "require('node:fs').writeFileSync(require('node:path').join(require('node:os').tmpdir(), 'runner-cache-proof'), 'owned'); console.log('supervised child count: 1')"],
+          "fixture": "bare-project",
+          "expectExit": 0,
+          "why": "Execute the released supervisor with the workflow arguments and require output from its real child.",
+          "since": "4.56.1",
+          "degradation": "The unconfigured .mjs fallback supervises packages at 4.56.1 or newer, whose direct adapter cleans owned scratch without rejecting arbitrary names. Older packages and applied-only installations retain the existing runner with a warning; newer packages refuse a missing supervisor before executing suites. The supported package floor remains 3.42.0.",
+          "signal": {
+            "pattern": "supervised child count: (\\d+)",
+            "shape": "count",
+            "min": 1
+          }
+        }
+      ]
+    },
+    "package.json": {
+      "kind": "reference",
+      "why": "The .mjs fallback reads the installed version to distinguish supported legacy installations from newer packages missing their promised supervisor. It does not execute the manifest."
+    },
     "plugins/lisa/skills/lisa-secrets-access/scripts/resolve-expo-token.mjs": {
       "kind": "executed",
       "since": "4.59.3",
