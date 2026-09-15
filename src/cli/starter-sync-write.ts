@@ -1,4 +1,13 @@
-import { lstat, mkdir, realpath, rm } from "node:fs/promises";
+import {
+  link,
+  lstat,
+  mkdir,
+  mkdtemp,
+  realpath,
+  rename,
+  rmdir,
+  unlink,
+} from "node:fs/promises";
 import path from "node:path";
 import {
   readProjectFile,
@@ -63,6 +72,66 @@ async function unchanged(
 }
 
 /**
+ * Restore a displaced entry without overwriting another concurrent replacement.
+ * @param root - Canonical consumer root.
+ * @param name - Original relative path.
+ * @param quarantine - Private path holding the displaced entry.
+ */
+async function restoreDisplaced(
+  root: string,
+  name: string,
+  quarantine: string
+): Promise<void> {
+  try {
+    await parents(root, name, false);
+    await link(quarantine, resolveProjectPath(root, name));
+    await unlink(quarantine);
+  } catch {
+    throw new Error(
+      `Starter destination changed during sync: ${name}; displaced entry preserved at ${path.relative(root, quarantine)}`
+    );
+  }
+}
+
+/**
+ * Pin a deletion by moving it privately and checking identity before unlinking.
+ * @param root - Canonical consumer root.
+ * @param name - Relative owned-file path.
+ * @param expected - Contents and permissions that justified deletion.
+ */
+async function removeUnchanged(
+  root: string,
+  name: string,
+  expected: ProjectFileSnapshot
+): Promise<void> {
+  const target = resolveProjectPath(root, name);
+  const directory = await mkdtemp(
+    path.join(path.dirname(target), ".lisa-starter-remove-")
+  );
+  const quarantine = path.join(directory, "entry");
+  try {
+    const before = await lstat(target);
+    await unchanged(root, name, expected);
+    await rename(target, quarantine);
+    try {
+      const after = await lstat(quarantine);
+      if (before.dev !== after.dev || before.ino !== after.ino)
+        throw new Error(`Starter destination changed during sync: ${name}`);
+      await unchanged(root, path.relative(root, quarantine), expected);
+      await unchanged(root, name, undefined);
+      await unlink(quarantine);
+    } catch (error) {
+      await restoreDisplaced(root, name, quarantine);
+      throw error;
+    }
+  } finally {
+    await rmdir(directory).catch((error: NodeJS.ErrnoException) => {
+      if (error.code !== "ENOTEMPTY") throw error;
+    });
+  }
+}
+
+/**
  * Publish one guarded file update; an interrupted apply retains its old baseline.
  * @param root - Canonical consumer root.
  * @param name - Validated relative path.
@@ -83,7 +152,7 @@ export async function writeStarterFile(
   await unchanged(root, name, expected);
   const target = resolveProjectPath(root, name);
   if (bytes === undefined) {
-    if (expected !== undefined) await rm(target);
+    if (expected !== undefined) await removeUnchanged(root, name, expected);
     return;
   }
   await writeFileAtomically(target, bytes, {

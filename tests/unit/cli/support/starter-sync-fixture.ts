@@ -1,4 +1,3 @@
-/* eslint-disable functional/no-let -- fixture lifecycle retains disposable paths and revisions between setup and assertions */
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -20,12 +19,16 @@ const BEGIN = "# BEGIN: AI GUARDRAILS";
 const END = "# END: AI GUARDRAILS";
 const OLD = "export const version = 'old';\n";
 const NEW = "export const version = 'new';\n";
+// eslint-disable-next-line functional/no-let -- fixture setup reassigns the disposable root
 let root: string;
+// eslint-disable-next-line functional/no-let -- fixture setup reassigns the source path
 let starter: string;
+// eslint-disable-next-line functional/no-let -- fixture setup reassigns the consumer path
 let project: string;
+// eslint-disable-next-line functional/no-let -- fixture setup records each initial revision
 let baseline: string;
+// eslint-disable-next-line functional/no-let -- fixture setup records each successor revision
 let head: string;
-/* eslint-enable functional/no-let -- only lifecycle state above requires reassignment */
 
 /**
  * Execute real Git against only the disposable source repository.

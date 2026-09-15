@@ -9788,6 +9788,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/starter-adopt.test.ts": true,
     "tests/unit/cli/starter-provenance.test.ts": true,
     "tests/unit/cli/starter-sync-source.test.ts": true,
+    "tests/unit/cli/starter-sync-write.test.ts": true,
     "tests/unit/cli/starter-sync.test.ts": true,
     "tests/unit/cli/starters.test.ts": true,
     "tests/unit/cli/stash-prune-policy.test.ts": true,

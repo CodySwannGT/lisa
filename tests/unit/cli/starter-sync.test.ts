@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, stat, symlink } from "node:fs/promises";
+import { chmod, mkdir, readFile, rm, stat, symlink } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { StarterTemplate } from "../../../src/core/project-config-starter.js";
@@ -25,6 +25,25 @@ import {
 } from "./support/starter-sync-fixture.js";
 
 describe("starter synchronization against disposable Git history", () => {
+  it("preserves an existing empty file when the starter adds the same governed path", async () => {
+    const added = "scripts/lib/worktree-dependencies.mjs";
+    await put(project, added, "");
+    await put(starter, added, NEW);
+    git("add", ".");
+    git("commit", "--quiet", "-m", "Add governed path");
+    expect((await sync())[0]?.state).toBe("failed");
+    expect(await readFile(path.join(project, added), "utf8")).toBe("");
+    expect((await config()).starter.templates[0].lastSync.sha).toBe(baseline);
+  });
+
+  it("preserves a local executable-bit change and its retry baseline", async () => {
+    await chmod(path.join(project, OWNED), 0o755);
+    expect((await sync())[0]?.state).toBe("failed");
+    expect(await readFile(path.join(project, OWNED), "utf8")).toBe(OLD);
+    expect((await stat(path.join(project, OWNED))).mode & 0o111).toBe(0o111);
+    expect((await config()).starter.templates[0].lastSync.sha).toBe(baseline);
+  });
+
   it.each(["update", "remove"])(
     "preserves a marker mention outside the managed block during %s",
     async operation => {

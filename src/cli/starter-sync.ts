@@ -242,7 +242,9 @@ async function applyChange(
   if (
     !partial &&
     current !== undefined &&
-    !current.bytes.equals(change.before?.bytes ?? Buffer.alloc(0))
+    (change.before === undefined ||
+      !current.bytes.equals(change.before.bytes) ||
+      Boolean(current.mode & 0o111) !== (change.before.mode === "100755"))
   )
     throw new Error(`Starter change conflicts with local changes: ${name}`);
   await writeStarterFile(root, name, current, bytes, mode);
