@@ -12,6 +12,29 @@ const BEGIN_MARKER_PREFIX = "# BEGIN: AI GUARDRAILS";
 const END_MARKER_PREFIX = "# END: AI GUARDRAILS";
 
 /**
+ * Locate complete marker lines without matching prose that mentions a marker.
+ * @param content - Existing file content.
+ * @param begin - Complete opening marker.
+ * @param end - Complete closing marker.
+ * @returns Block offsets excluding the closing line's newline, when present.
+ */
+export function findCopyContentsBlock(
+  content: string,
+  begin: string,
+  end: string
+): { start: number; end: number } | undefined {
+  const lines = [...content.matchAll(/^[^\n]*$/gmu)];
+  const opening = lines.find(line => line[0].replace(/\r$/u, "") === begin);
+  if (opening === undefined) return undefined;
+  const closing = lines.find(
+    line => line.index > opening.index && line[0].replace(/\r$/u, "") === end
+  );
+  return closing === undefined
+    ? undefined
+    : { start: opening.index, end: closing.index + end.length };
+}
+
+/**
  * Produce the exact copy-contents result without reading or writing files.
  * @param sourceContent - Lisa-managed source block
  * @param destinationContent - Existing host content
@@ -29,16 +52,15 @@ export function mergeCopyContents(
   const suffix = begin.slice(BEGIN_MARKER_PREFIX.length);
   const matchingEnd = `${END_MARKER_PREFIX}${suffix}`;
   const end = lines.includes(matchingEnd) ? matchingEnd : END_MARKER_PREFIX;
-  const startIndex = destinationContent.indexOf(begin);
-  const endIndex = destinationContent.indexOf(end, startIndex + begin.length);
-  if (startIndex !== -1 && endIndex !== -1) {
+  const block = findCopyContentsBlock(destinationContent, begin, end);
+  if (block !== undefined) {
     const trimmedSource = sourceContent.endsWith("\n")
       ? sourceContent.slice(0, -1)
       : sourceContent;
     return (
-      destinationContent.slice(0, startIndex) +
+      destinationContent.slice(0, block.start) +
       trimmedSource +
-      destinationContent.slice(endIndex + end.length)
+      destinationContent.slice(block.end)
     );
   }
   const prefix = destinationContent.endsWith("\n") ? "\n" : "\n\n";

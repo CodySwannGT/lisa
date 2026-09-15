@@ -55,7 +55,7 @@ export interface AtomicWriteOptions {
  */
 export async function writeFileAtomically(
   target: string,
-  content: string,
+  content: string | Uint8Array,
   options: AtomicWriteOptions = {}
 ): Promise<void> {
   const directory = path.dirname(target);
@@ -81,7 +81,7 @@ export async function writeFileAtomically(
  */
 async function writeDurableTemporary(
   temporary: string,
-  content: string,
+  content: string | Uint8Array,
   options: AtomicWriteOptions
 ): Promise<void> {
   const handle =

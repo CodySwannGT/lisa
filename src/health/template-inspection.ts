@@ -68,7 +68,7 @@ export type ManagedTemplateCategory =
   | typeof WORKFLOWS;
 
 /** One applicable template after Lisa ownership filters. */
-interface TemplateCandidate {
+export interface TemplateCandidate {
   readonly type: string;
   readonly strategy: CopyStrategy;
   readonly source: string;
@@ -360,7 +360,7 @@ async function pendingDeletions(
  * @param types
  * @param config
  */
-async function applicableCandidates(
+export async function applicableCandidates(
   lisaRoot: string,
   projectRoot: string,
   types: readonly ProjectType[],
