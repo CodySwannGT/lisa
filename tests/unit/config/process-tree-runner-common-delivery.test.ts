@@ -21,6 +21,13 @@ const SOURCE = "all/copy-overwrite/scripts/lib/process-tree-runner.mjs";
 /** Installed destination governed by the append-only Lisa-owned hash ledger. */
 const DESTINATION = "scripts/lib/process-tree-runner.mjs";
 
+/** Native helper files installed beside the common supervisor. */
+const WINDOWS_HELPERS = [
+  "windows-process-job.mjs",
+  "windows-process-job.ps1",
+  "windows-process-job.cs",
+];
+
 /**
  * Gate runner that resolves the supervisor beside itself after installation.
  */
@@ -58,6 +65,17 @@ describe("one supervisor serves every coding-agent harness", () => {
       /lisa-(claude|codex|cursor|agy|copilot|opencode)/u
     );
   });
+
+  it.each(WINDOWS_HELPERS)(
+    "ships native helper %s with matching inventories",
+    filename => {
+      const source = `all/copy-overwrite/scripts/lib/${filename}`;
+      const destination = `scripts/lib/${filename}`;
+      const sourceDigest = digest(source);
+      expect(LISA_OWNED_HASH_LEDGER[destination]).toContain(sourceDigest);
+      expect(UPSTREAM_EVIDENCE_MANIFEST[source]).toBe(sourceDigest);
+    }
+  );
 
   it("binds canonical bytes into both generated inventories", () => {
     const sourceDigest = digest(SOURCE);

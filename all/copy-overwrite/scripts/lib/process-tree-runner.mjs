@@ -3,14 +3,18 @@
 // Do not edit directly — durable changes belong upstream in Lisa.
 
 /**
- * Run one shell command in its own process group and reap the whole group.
+ * Run one shell command in a process boundary and reap every descendant.
  *
  * Node's synchronous timeout signals only the direct child. A gate command is
  * a tree (shell, package manager, test workers), so killing only the shell
  * leaves descendants running against scratch state the caller then removes.
  * This small asynchronous supervisor is invoked through a synchronous parent:
  * it owns the process-group id, applies the deadline, terminates the group, and
- * only then lets the parent continue.
+ * only then lets the parent continue. On Windows, the common PowerShell helper
+ * owns a native Job Object because a shell PID cannot identify descendants
+ * after the shell exits. Windows 10 / Server 2016 or newer and the installed
+ * Windows PowerShell execution policy must permit that helper; startup failure
+ * rejects the command without an uncontained fallback.
  *
  * ## Interrupting a run
  *
@@ -31,6 +35,7 @@
 import { spawn, spawnSync } from "node:child_process";
 
 import { invokedAsScript } from "./invoked-as-script.mjs";
+import { startWindowsProcessJob } from "./windows-process-job.mjs";
 
 const KILL_GRACE_MS = 750;
 const REAP_POLL_MS = 25;
@@ -407,7 +412,7 @@ export async function reapTree(pid, controls = DEFAULT_REAP_CONTROLS) {
  * lands on a recycled pid.
  * @param {string} command Shell source to supervise.
  * @param {number} timeoutMs Deadline for the whole tree.
- * @param {typeof reapTree} [reap] Injectable group reaper.
+ * @param {typeof reapTree} [reap] Injectable POSIX group reaper. Windows retains its native job owner.
  * @param {object} [options] Interrupt-watch seams, injectable for tests.
  * @param {readonly number[]} [options.watchPids] Pids whose death ends this run.
  * @param {typeof interruptionReason} [options.detect] Interrupt predicate.
@@ -425,14 +430,7 @@ export function supervise(command, timeoutMs, reap = reapTree, options = {}) {
     launchParentPid = process.ppid,
   } = options;
   return new Promise((resolve, reject) => {
-    const shell =
-      process.platform === "win32"
-        ? process.env.ComSpec || "cmd.exe"
-        : "/bin/sh";
-    const shellArgs =
-      process.platform === "win32"
-        ? ["/d", "/s", "/c", command]
-        : ["-c", command];
+    let windowsJob;
     let pendingSignal;
     let dispatchSignal = signal => {
       pendingSignal ??= signal;
@@ -455,7 +453,11 @@ export function supervise(command, timeoutMs, reap = reapTree, options = {}) {
 
     const child = (() => {
       try {
-        return spawn(shell, shellArgs, {
+        if (process.platform === "win32") {
+          windowsJob = startWindowsProcessJob(command);
+          return windowsJob.child;
+        }
+        return spawn("/bin/sh", ["-c", command], {
           detached: true,
           env: process.env,
           stdio: "inherit",
@@ -501,7 +503,7 @@ export function supervise(command, timeoutMs, reap = reapTree, options = {}) {
     // shell's close handler is reaping must join that operation instead of
     // starting a second kill sequence or taking the default signal action.
     const reapOnce = () => {
-      reapPromise ??= reap(pid);
+      reapPromise ??= windowsJob ? windowsJob.reap() : reap(pid);
       return reapPromise;
     };
     const finish = async (code, signal) => {

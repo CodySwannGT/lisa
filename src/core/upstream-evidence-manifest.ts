@@ -33,7 +33,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs":
       "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs":
-      "cffebe7feca1b5cce7b514bd1b5e991375cbc20607dff70385699e474e36b4d3",
+      "f248672f91e4f1b7a604278762e1b6a037ea05356ff9ce70d31057ae3c257d83",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.d.mts":
       "da1eebc33c5215bc81ab4202c649a5af6b39e3d42f71f94cb2424e3535849154",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs":
@@ -46,6 +46,12 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "6b05d968fcf03fcb1465f45f0d65806e622b3be2204b4e2b080b4f1291bffec1",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs":
       "6203064d0403906016f6700b092551ff561b811fb9c02cbbdec59b85b0af81b0",
+    "all/copy-overwrite/scripts/lib/windows-process-job.cs":
+      "7bbe3b13bfc35ca2a0b85fbee9a8f0a6549bf8b05997f6ce4b361bd09d924218",
+    "all/copy-overwrite/scripts/lib/windows-process-job.mjs":
+      "599628647c03ac22fe7cd5df22219a70b67e449cc893cc85564a93d658df2c2d",
+    "all/copy-overwrite/scripts/lib/windows-process-job.ps1":
+      "d73b15152703d7f195d1e06f7d7cee5437373237fcd74fe68afbd79fccebc1ba",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.d.mts":
       "66f77b767869f57185b819ca6f294ad0706348b50eba12f78af2430d9c8775df",
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs":
@@ -2475,7 +2481,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "f1bc91e7a6ea18ce8d476bd2d4d99782d9c50ac4212db26e463c9836b2333c19",
+      "6bade15e5b356d121a535981c177c6ed5df3bf46a40fce483d428db2ea0a90ca",
     "scripts/update-node-version.ts":
       "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
     "scripts/update-test-skill-paths.mjs":
@@ -2826,6 +2832,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-failure.mjs": true,
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.d.mts": true,
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs": true,
+    "all/copy-overwrite/scripts/lib/windows-process-job.cs": true,
+    "all/copy-overwrite/scripts/lib/windows-process-job.mjs": true,
+    "all/copy-overwrite/scripts/lib/windows-process-job.ps1": true,
     "all/copy-overwrite/scripts/lib/worktree-dependencies.d.mts": true,
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs": true,
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs": true,
@@ -9643,6 +9652,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/worktree-dependency-boundary.test.ts": true,
     "tests/integration/zero-collection-gate-bite.test.ts": true,
     "tests/platform/lint-staged-preflight.test.mjs": true,
+    "tests/platform/process-tree-runner.test.mjs": true,
+    "tests/platform/windows-missing-handles.ps1": true,
+    "tests/platform/windows-process-fixture.mjs": true,
     "tests/support/git-executable.ts": true,
     "tests/support/prune-fixtures.ts": true,
     "tests/support/work-item-cli.ts": true,
@@ -10571,6 +10583,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/vacuous-required-checks.test.ts": true,
     "tests/unit/scripts/vendored-script-defects.test.ts": true,
     "tests/unit/scripts/verification-coverage.test.ts": true,
+    "tests/unit/scripts/windows-process-job.test.ts": true,
     "tests/unit/scripts/work-item-amended-merge-exemption.test.ts": true,
     "tests/unit/scripts/work-item-authored-trailers.test.ts": true,
     "tests/unit/scripts/work-item-back-merge-exemption.test.ts": true,

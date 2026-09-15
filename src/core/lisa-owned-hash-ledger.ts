@@ -476,7 +476,9 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "cffebe7feca1b5cce7b514bd1b5e991375cbc20607dff70385699e474e36b4d3",
     "d9ce218e754bf28a8d3d9b3b92c34ae9ce2e7b22182d31d9a87302ba33cc0151",
     "eb73088635fddf236fca92d1c94324a889c503843155d436835b96d3ed6fa1f1",
+    "f248672f91e4f1b7a604278762e1b6a037ea05356ff9ce70d31057ae3c257d83",
     "fb68902c68b4cd156f26d2f743364f611a54b833bc445b5144b4c844f553f188",
+    "fe045e89990248b735281275a736ab54861fdb003af3267cd1166c4f1489b91b",
   ]),
   "scripts/lib/reusable-workflow-load-adapter.d.mts": Object.freeze([
     "289c57b7cf1de7c2b5a2e89de8e706d53fc590592b8f3ba08ba41e04f97fd343",
@@ -504,6 +506,24 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "0bf29533a5879e01385777c3a71d9c83f6694cd1162a7db234db47546065e7b0",
     "6203064d0403906016f6700b092551ff561b811fb9c02cbbdec59b85b0af81b0",
     "66fb27cc1de6baf48acf908715624c04b7738f831944a6c1c9daff50383026be",
+  ]),
+  "scripts/lib/windows-process-job.cs": Object.freeze([
+    "198c23dfee840abaad516d84e70c943eca565baf13d54bc143c8e7f925be038c",
+    "7bbe3b13bfc35ca2a0b85fbee9a8f0a6549bf8b05997f6ce4b361bd09d924218",
+    "8de9cd7b38c7afd0b837de9baa4cb8d3ddceeb0a1b434862e2ad3549044a6790",
+    "bf32dc865bd16c03181df1564e2576ce308e952d21bc7a71571b2138532763f9",
+  ]),
+  "scripts/lib/windows-process-job.mjs": Object.freeze([
+    "109224c7c0d98447117f78a794a70df07925370a1ab01945bf0369f5bfe498b8",
+    "33fb198c1c5f32e6a615741eb21ee22a86d38701c6137bc00c72a273c2ad4b76",
+    "599628647c03ac22fe7cd5df22219a70b67e449cc893cc85564a93d658df2c2d",
+    "bc7cbab9ff259b4858c35b74803f962375277eb56b57d7b7cb05ddbd8aa73063",
+    "d7362a646468f87805b6d9e87fe61f2a2a97b4d481b31627a634edb66229f19d",
+    "e448bb4c092d6ae5c868352f355c78e6d8d549cdd6a12c505ca0a5923e0cae62",
+  ]),
+  "scripts/lib/windows-process-job.ps1": Object.freeze([
+    "5b978f201be9a035001f0cc4a7e8da76a67f26e6f99da91907747c4d65d58f1b",
+    "d73b15152703d7f195d1e06f7d7cee5437373237fcd74fe68afbd79fccebc1ba",
   ]),
   "scripts/lib/worktree-dependencies.d.mts": Object.freeze([
     "66f77b767869f57185b819ca6f294ad0706348b50eba12f78af2430d9c8775df",
@@ -1829,7 +1849,9 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "cffebe7feca1b5cce7b514bd1b5e991375cbc20607dff70385699e474e36b4d3",
     "d9ce218e754bf28a8d3d9b3b92c34ae9ce2e7b22182d31d9a87302ba33cc0151",
     "eb73088635fddf236fca92d1c94324a889c503843155d436835b96d3ed6fa1f1",
+    "f248672f91e4f1b7a604278762e1b6a037ea05356ff9ce70d31057ae3c257d83",
     "fb68902c68b4cd156f26d2f743364f611a54b833bc445b5144b4c844f553f188",
+    "fe045e89990248b735281275a736ab54861fdb003af3267cd1166c4f1489b91b",
   ]),
   "scripts/lib/reusable-workflow-load-adapter.d.mts": Object.freeze([
     "289c57b7cf1de7c2b5a2e89de8e706d53fc590592b8f3ba08ba41e04f97fd343",
@@ -1857,6 +1879,24 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "0bf29533a5879e01385777c3a71d9c83f6694cd1162a7db234db47546065e7b0",
     "6203064d0403906016f6700b092551ff561b811fb9c02cbbdec59b85b0af81b0",
     "66fb27cc1de6baf48acf908715624c04b7738f831944a6c1c9daff50383026be",
+  ]),
+  "scripts/lib/windows-process-job.cs": Object.freeze([
+    "198c23dfee840abaad516d84e70c943eca565baf13d54bc143c8e7f925be038c",
+    "7bbe3b13bfc35ca2a0b85fbee9a8f0a6549bf8b05997f6ce4b361bd09d924218",
+    "8de9cd7b38c7afd0b837de9baa4cb8d3ddceeb0a1b434862e2ad3549044a6790",
+    "bf32dc865bd16c03181df1564e2576ce308e952d21bc7a71571b2138532763f9",
+  ]),
+  "scripts/lib/windows-process-job.mjs": Object.freeze([
+    "109224c7c0d98447117f78a794a70df07925370a1ab01945bf0369f5bfe498b8",
+    "33fb198c1c5f32e6a615741eb21ee22a86d38701c6137bc00c72a273c2ad4b76",
+    "599628647c03ac22fe7cd5df22219a70b67e449cc893cc85564a93d658df2c2d",
+    "bc7cbab9ff259b4858c35b74803f962375277eb56b57d7b7cb05ddbd8aa73063",
+    "d7362a646468f87805b6d9e87fe61f2a2a97b4d481b31627a634edb66229f19d",
+    "e448bb4c092d6ae5c868352f355c78e6d8d549cdd6a12c505ca0a5923e0cae62",
+  ]),
+  "scripts/lib/windows-process-job.ps1": Object.freeze([
+    "5b978f201be9a035001f0cc4a7e8da76a67f26e6f99da91907747c4d65d58f1b",
+    "d73b15152703d7f195d1e06f7d7cee5437373237fcd74fe68afbd79fccebc1ba",
   ]),
   "scripts/lib/worktree-dependencies.d.mts": Object.freeze([
     "66f77b767869f57185b819ca6f294ad0706348b50eba12f78af2430d9c8775df",
