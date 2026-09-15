@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.60.12](https://github.com/CodySwannGT/lisa/compare/v4.60.11...v4.60.12) (2026-09-15)
+
+
+### Bug Fixes
+
+* **windows:** handle absent streams and delayed helper close ([40092ca](https://github.com/CodySwannGT/lisa/commit/40092ca7b467f30f07da5b21c66ba656a488808b)), closes [CodySwannGT/lisa#3310](https://github.com/CodySwannGT/lisa/issues/3310) [CodySwannGT/lisa#3310](https://github.com/CodySwannGT/lisa/issues/3310)
+* **windows:** inherit the caller console for the job helper ([83afeea](https://github.com/CodySwannGT/lisa/commit/83afeea14a1ba89a756fe3a15b9cf37c145fdc56)), closes [CodySwannGT/lisa#3310](https://github.com/CodySwannGT/lisa/issues/3310)
+* **windows:** retain gate descendants in a native job ([5f6584e](https://github.com/CodySwannGT/lisa/commit/5f6584e630c04dadaebaa04226d99b4a58476cf0)), closes [CodySwannGT/lisa#3310](https://github.com/CodySwannGT/lisa/issues/3310)
+* **windows:** stop job helper when cancellation write fails ([7b8b719](https://github.com/CodySwannGT/lisa/commit/7b8b7197274f184ad9063ca62a97ec489b832c4c)), closes [CodySwannGT/lisa#3310](https://github.com/CodySwannGT/lisa/issues/3310) [CodySwannGT/lisa#3310](https://github.com/CodySwannGT/lisa/issues/3310)
+
+
+### Documentation
+
+* **windows:** describe native job handle contracts ([173d880](https://github.com/CodySwannGT/lisa/commit/173d880d0f6c638f9268a2fa1b17f014f0e898f9)), closes [CodySwannGT/lisa#3310](https://github.com/CodySwannGT/lisa/issues/3310) [CodySwannGT/lisa#3310](https://github.com/CodySwannGT/lisa/issues/3310)
+
 ### [4.60.11](https://github.com/CodySwannGT/lisa/compare/v4.60.10...v4.60.11) (2026-09-15)
 
 
