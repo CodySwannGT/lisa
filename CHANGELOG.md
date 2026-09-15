@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.60.10](https://github.com/CodySwannGT/lisa/compare/v4.60.9...v4.60.10) (2026-09-15)
+
+
+### Bug Fixes
+
+* **migrations:** preserve existing verification opt-ins ([1786a61](https://github.com/CodySwannGT/lisa/commit/1786a615c2bbeef88e378956b5ee5dab62331e9b)), closes [CodySwannGT/lisa#3147](https://github.com/CodySwannGT/lisa/issues/3147) [CodySwannGT/lisa#3147](https://github.com/CodySwannGT/lisa/issues/3147)
+
 ### [4.60.9](https://github.com/CodySwannGT/lisa/compare/v4.60.8...v4.60.9) (2026-09-14)
 
 
