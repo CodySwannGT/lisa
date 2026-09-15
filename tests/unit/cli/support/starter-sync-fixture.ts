@@ -1,9 +1,12 @@
 /* eslint-disable functional/no-let -- fixture lifecycle retains disposable paths and revisions between setup and assertions */
-import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach } from "vitest";
+import { boundedExecFileSync } from "../../../helpers/io-latency-budget.js";
+import { resolveGit } from "../../../support/git-executable.js";
+
+const GIT = resolveGit();
 
 import { syncStarterTemplates } from "../../../../src/cli/starter-sync.js";
 import type { StarterTemplate } from "../../../../src/core/project-config-starter.js";
@@ -30,8 +33,12 @@ let head: string;
  * @returns Command output without its final newline.
  */
 function git(...args: string[]): string {
-  // eslint-disable-next-line sonarjs/no-os-command-from-path -- the test runner supplies Git; arguments target only an owned fixture
-  return execFileSync("git", args, { cwd: starter, encoding: "utf8" }).trim();
+  return boundedExecFileSync({
+    label: "starter fixture Git",
+    command: GIT,
+    args,
+    cwd: starter,
+  }).trim();
 }
 
 /**
@@ -43,10 +50,14 @@ function git(...args: string[]): string {
 function gitFile(revision: string, name: string) {
   const entry = git("ls-tree", revision, "--", name);
   if (!entry) return undefined;
-  // eslint-disable-next-line sonarjs/no-os-command-from-path -- read-only Git supplied by the test runner, with separate arguments
-  const bytes = execFileSync("git", ["show", `${revision}:${name}`], {
-    cwd: starter,
-  });
+  const bytes = Buffer.from(
+    boundedExecFileSync({
+      label: "starter fixture file",
+      command: GIT,
+      args: ["show", `${revision}:${name}`],
+      cwd: starter,
+    })
+  );
   return { bytes, mode: entry.split(" ")[0]! };
 }
 

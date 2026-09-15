@@ -148,7 +148,7 @@ describe("pre-push Git environment isolation", () => {
       '[ "${GIT_WORK_TREE+x}" != "x" ]',
       '[ "${GIT_INDEX_FILE+x}" != "x" ]',
       '[ "${GIT_PREFIX+x}" != "x" ]',
-      "exec /usr/bin/git rev-parse --show-toplevel",
+      `exec "${GIT}" rev-parse --show-toplevel`,
     ].join(" && ");
 
     const discovered = boundedExecFileSync({
@@ -157,7 +157,7 @@ describe("pre-push Git environment isolation", () => {
       args: [RAILS_ENV_WRAPPER, "/bin/sh", "-c", assertion],
       cwd: fixture.root,
       env: {
-        PATH: "/usr/bin:/bin",
+        PATH: `${path.dirname(GIT)}:/usr/bin:/bin`,
         GIT_DIR: poisonedGitDir,
         GIT_WORK_TREE: poisonedRoot,
         GIT_INDEX_FILE: path.join(poisonedGitDir, "index"),
