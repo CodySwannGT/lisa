@@ -65,7 +65,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "16fa33bfbedb9980526130be5d1ce09159ebe7df918f723b2a9b66164917944b",
+      "cb6aa9df3e9ee0c488ce3bebe40ac16b618cb8b2ffe57d1d753774bda34d98d6",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
       "b17d73c02245d64ae96ba4b9ec642f5a54a827accb1af292a4600a98e1a596f4",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
@@ -9165,6 +9165,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/migrations/generated-paths.ts": true,
     "src/migrations/index.ts": true,
     "src/migrations/migration.interface.ts": true,
+    "src/migrations/preserve-verification-opt-ins.ts": true,
     "src/migrations/prune-retired-claude-deny-rules.ts": true,
     "src/migrations/reconcile-claude-stack-plugins.ts": true,
     "src/migrations/untrack-codex-marketplace.ts": true,
@@ -10265,6 +10266,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/migrations/migration-registry.test.ts": true,
     "tests/unit/migrations/pinned-reusable-workflow-absent-callee.test.ts": true,
     "tests/unit/migrations/postinstall-failure-surfacing.test.ts": true,
+    "tests/unit/migrations/preserve-verification-opt-ins.test.ts": true,
     "tests/unit/migrations/prune-retired-claude-deny-rules.test.ts": true,
     "tests/unit/migrations/reconcile-claude-stack-plugins.test.ts": true,
     "tests/unit/migrations/seeded-gates-install-restraint.test.ts": true,
