@@ -419,7 +419,9 @@ export async function reapTree(pid, controls = DEFAULT_REAP_CONTROLS) {
  * @param {number} [options.pollMs] How often to ask.
  * @param {(line: string) => void} [options.report] Where the report goes.
  * @param {number} [options.launchParentPid] Parent pid captured at start.
- * @returns {Promise<{code: number|null, signal: string|null}>} The verdict.
+ * @returns {Promise<{code: number|null, signal: string|null}>} The command
+ * verdict after its process boundary is empty. Rejects when launch or reaping
+ * fails.
  */
 export function supervise(command, timeoutMs, reap = reapTree, options = {}) {
   const {

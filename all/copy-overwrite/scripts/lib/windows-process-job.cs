@@ -163,9 +163,11 @@ public static class LisaWindowsProcessJob
     /// its non-inherited job handle and kills the job as a backstop.
     /// </remarks>
     /// <param name="command">The shell command, forwarded without rewriting its arguments.</param>
-    /// <param name="controlDirectory">The caller-owned directory containing the stop marker.</param>
+    /// <param name="controlDirectory">The caller-owned directory where a stop marker may be created.</param>
     /// <param name="parent">The retained owner process whose exit requests cancellation.</param>
     /// <returns>The shell exit code, or 255 when interrupted before normal completion.</returns>
+    /// <exception cref="Win32Exception">A native job, handle, or process operation fails.</exception>
+    /// <exception cref="TimeoutException">The job remains nonempty for five seconds after termination.</exception>
     public static int Run(string command, string controlDirectory, Process parent)
     {
         IntPtr job = IntPtr.Zero, attributes = IntPtr.Zero;

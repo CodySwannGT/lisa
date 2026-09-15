@@ -11,9 +11,16 @@ import { fileURLToPath } from "node:url";
 const CLEANUP_TIMEOUT_MS = 30000;
 
 /**
- * Launch the Windows shell in a native job and return its cleanup operation.
+ * Launch the Windows shell in a native job using a temporary control directory.
+ * The returned cleanup asks a running helper to stop and resolves only after
+ * the helper confirms that its job is empty. Scratch is removed when the helper
+ * closes or fails to start.
  * @param {string} command Shell source to run.
- * @returns {{child: import("node:child_process").ChildProcess, reap: () => Promise<void>}} Native process boundary.
+ * @returns {{child: import("node:child_process").ChildProcess, reap: () => Promise<void>}}
+ * Native process boundary whose cleanup rejects when the helper cannot verify
+ * an empty job.
+ * @throws {Error} When temporary directory creation or synchronous spawn setup
+ * fails.
  */
 export function startWindowsProcessJob(command) {
   const directory = mkdtempSync(path.join(tmpdir(), "lisa-windows-job-"));
