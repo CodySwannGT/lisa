@@ -2,6 +2,8 @@
 
 Long explanations from the quality workflow live here to keep its source below GitHub's workflow size limit. Each source comment links to its corresponding note.
 
+The Expo route check (`check-e2e-coverage.mjs`) measures route references in test source and explicit annotations. It runs no tests and does not establish that a route was visited or an assertion passed. Registry-driven and indirect navigation can be absent from the scan. Treat its percentage as a static planning signal alongside actual runner results; an `e2e-route:` annotation declares a reference without proving execution. Existing thresholds, exemptions, and exit codes are unchanged. This reporting clarification avoids adding a separate runtime reporter and artifact pipeline (#3445).
+
 ## Note 1
 
 ```text

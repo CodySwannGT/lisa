@@ -3,26 +3,24 @@
 // Do not edit directly — durable changes belong upstream in Lisa.
 
 /**
- * check-e2e-coverage — aggregate e2e route/screen coverage gate (Expo).
+ * check-e2e-coverage — static test-source route references (Expo).
  *
- * The e2e counterpart of the unit-test coverage thresholds: where Vitest/Jest
- * gate on line coverage, this gates on SURFACE coverage — the percentage of
- * expo-router routes exercised by at least one e2e spec, computed per runner:
+ * This gates the percentage of expo-router routes referenced in test source,
+ * computed per runner. It does not execute tests or prove they passed:
  *
- *   - Playwright: routes visited via `page.goto("<path>")` in e2e specs
+ *   - Playwright: literal `page.goto("<path>")` references in e2e specs
  *     (top-level `e2e/` or nested `tests/e2e/` trees).
- *   - Maestro: screens opened via `openLink: <deep link>` in `.maestro/` flows.
+ *   - Maestro: literal `openLink: <deep link>` references in `.maestro/` flows.
  *
  * Maestro is black-box (no code-coverage hook exists for a compiled native
  * app), so route coverage is the shared metric both runners can honor. A spec
  * or flow that reaches a screen by tapping rather than deep-linking can declare
  * it with an `e2e-route: /path` comment annotation (JS/TS or YAML comment).
  *
- * Coverage is inferred from source text, so a navigation the source does not
- * spell out is not coverage this gate can see. It is credited to nothing and
- * PRINTED as an unmatched navigation — never guessed at. An unresolved template
- * hole is the sharpest case: `${...}` matches a route's dynamic segment, which
- * accepts any value anyway, and nothing else. See `routeMatchesVisit`.
+ * Indirect or registry-driven navigation may produce no detectable reference.
+ * Extracted literals that match no route are printed as unmatched references.
+ * An unresolved template hole matches a route's dynamic segment, which accepts
+ * any value anyway, and nothing else. See `routeMatchesVisit`.
  *
  * Thresholds default to 80% per runner and are project-tunable via
  * `e2e.thresholds.json` (create-only, same convention as vitest.thresholds.json):
@@ -717,6 +715,9 @@ function collectVisitedPaths({
  */
 function main() {
   const root = process.env.E2E_COVERAGE_ROOT || process.cwd();
+  console.log(
+    "[e2e-coverage] Static route references from test source and explicit annotations; no tests were executed. Registry-driven or indirect navigation may be absent from this scan. Use the runner's results to establish whether tests passed."
+  );
   const appDir = ["app", "src/app"]
     .map(candidate => path.join(root, candidate))
     .find(candidate => fs.existsSync(candidate));
@@ -843,7 +844,7 @@ function main() {
   }
 
   for (const [runner, verdict] of Object.entries(result.runners)) {
-    const summary = `${verdict.covered}/${verdict.total} routes (${verdict.percentage.toFixed(1)}% vs ${verdict.threshold}% required)`;
+    const summary = `${verdict.covered}/${verdict.total} routes referenced in test source (${verdict.percentage.toFixed(1)}% vs ${verdict.threshold}% required)`;
     if (verdict.threshold === 0) {
       console.log(
         `[e2e-coverage] ${runner}: gate disabled (threshold 0) — ${summary}`
@@ -853,7 +854,7 @@ function main() {
     } else {
       console.error(`[e2e-coverage] ${runner}: FAIL — ${summary}`);
       console.error(
-        `[e2e-coverage] ${runner}: screens with no e2e test yet:\n${verdict.missing
+        `[e2e-coverage] ${runner}: routes without a detected test-source reference:\n${verdict.missing
           .map(route => `  - ${route}`)
           .join("\n")}`
       );
@@ -861,7 +862,7 @@ function main() {
   }
   if (!result.ok) {
     console.error(
-      "[e2e-coverage] FAIL: some screens have no end-to-end test. Add a Playwright spec (page.goto) or Maestro flow (openLink) that reaches each screen listed above, add an `e2e-route: /path` comment to a spec that already reaches it by navigation, or adjust e2e.thresholds.json."
+      "[e2e-coverage] FAIL: detected route references are below the configured threshold. Review the listed routes and existing tests. If a test reaches a route indirectly, an `e2e-route: /path` comment can declare that reference; this scan cannot verify the claim. Add missing tests where needed, or adjust e2e.thresholds.json to the project's intended scope."
     );
     process.exit(1);
   }

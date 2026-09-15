@@ -285,7 +285,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
       "d245e5e37cdff4e68b2a659b38e42266bdbd8662d44eed342b38dc820b523171",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
-      "3be14aace24f67a9b90b0e8ef844880c66d642c86b3624834abe10273065b3ba",
+      "99764b136eaa7bba3b7abf78f60bc6805f8c008a9cac59c78c5eadba35cecdc7",
     "expo/copy-overwrite/scripts/check-lighthouse-details.mjs":
       "c33678782088725f6e95a07873a4260c347d915518d0c52e107ff3dc0ad32641",
     "expo/copy-overwrite/scripts/classify-maestro-failures.mjs":
