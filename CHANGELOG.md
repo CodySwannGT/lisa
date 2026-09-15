@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.62.1](https://github.com/CodySwannGT/lisa/compare/v4.62.0...v4.62.1) (2026-09-15)
+
+
+### Bug Fixes
+
+* **ci:** supervise compatible mjs fallback runs ([d3bc243](https://github.com/CodySwannGT/lisa/commit/d3bc2434525395e590beedeb227a07d77f51ac2b)), closes [CodySwannGT/lisa#3406](https://github.com/CodySwannGT/lisa/issues/3406)
+
 ## [4.62.0](https://github.com/CodySwannGT/lisa/compare/v4.61.0...v4.62.0) (2026-09-15)
 
 
