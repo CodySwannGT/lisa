@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.61.0](https://github.com/CodySwannGT/lisa/compare/v4.60.12...v4.61.0) (2026-09-15)
+
+
+### Features
+
+* sync retained starter changes with existing ownership ([#1525](https://github.com/CodySwannGT/lisa/issues/1525)) ([8cf3d48](https://github.com/CodySwannGT/lisa/commit/8cf3d4851ebe55f0d19ece2ff67c8093b27e2832))
+
+
+### Bug Fixes
+
+* preserve local starter files across conflicts and deletion races ([a397b56](https://github.com/CodySwannGT/lisa/commit/a397b56e43c8f8aada3234cdd1866366d7f584d4)), closes [CodySwannGT/lisa#1525](https://github.com/CodySwannGT/lisa/issues/1525) [CodySwannGT/lisa#1525](https://github.com/CodySwannGT/lisa/issues/1525)
+* retain starter deletion recovery error causes ([e4095fa](https://github.com/CodySwannGT/lisa/commit/e4095fa90ef60fb8e04635acd18b5111da6c7e69)), closes [CodySwannGT/lisa#1525](https://github.com/CodySwannGT/lisa/issues/1525) [CodySwannGT/lisa#1525](https://github.com/CodySwannGT/lisa/issues/1525)
+
 ### [4.60.12](https://github.com/CodySwannGT/lisa/compare/v4.60.11...v4.60.12) (2026-09-15)
 
 
