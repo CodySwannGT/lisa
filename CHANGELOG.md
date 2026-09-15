@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.60.11](https://github.com/CodySwannGT/lisa/compare/v4.60.10...v4.60.11) (2026-09-15)
+
+
+### Bug Fixes
+
+* **quality:** describe static route evidence accurately ([0a2fe6e](https://github.com/CodySwannGT/lisa/commit/0a2fe6eb4214bdab37c0da755a05918ea055c229)), closes [CodySwannGT/lisa#3445](https://github.com/CodySwannGT/lisa/issues/3445) [CodySwannGT/lisa#3445](https://github.com/CodySwannGT/lisa/issues/3445)
+
 ### [4.60.10](https://github.com/CodySwannGT/lisa/compare/v4.60.9...v4.60.10) (2026-09-15)
 
 
