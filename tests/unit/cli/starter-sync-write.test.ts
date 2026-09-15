@@ -9,7 +9,7 @@ const FS_MODULE = "node:fs/promises";
 
 vi.mock("node:fs/promises", async importOriginal => {
   const actual = await importOriginal<typeof fs>();
-  return { ...actual, rename: vi.fn(actual.rename), rm: vi.fn(actual.rm) };
+  return { ...actual, rename: vi.fn(actual.rename) };
 });
 
 describe("starter deletion preserves concurrent edits", () => {
@@ -32,6 +32,13 @@ describe("starter deletion preserves concurrent edits", () => {
         0o644
       ).catch((caught: unknown) => caught);
       expect(error).toBeInstanceOf(Error);
+      expect((error as Error).cause).toBeInstanceOf(AggregateError);
+      expect(((error as Error).cause as AggregateError).errors).toEqual([
+        expect.objectContaining({
+          message: "Starter destination changed during sync: owned.txt",
+        }),
+        expect.objectContaining({ code: "EEXIST" }),
+      ]);
       const recovery = (error as Error).message.split(
         "; displaced entry preserved at "
       )[1];
@@ -63,17 +70,12 @@ describe("starter deletion preserves concurrent edits", () => {
           await replace();
           await actual.rename(from, to);
         });
-        vi.mocked(fs.rm).mockImplementationOnce(async (file, options) => {
-          await replace();
-          await actual.rm(file, options);
-        });
         await expect(
           writeStarterFile(root, "owned.txt", expected, undefined, 0o644)
         ).rejects.toThrow(/changed during sync/);
         expect(await fs.readFile(target, "utf8")).toBe(bytes);
       } finally {
         vi.mocked(fs.rename).mockReset().mockImplementation(actual.rename);
-        vi.mocked(fs.rm).mockReset().mockImplementation(actual.rm);
         await cleanupTempDir(root);
       }
     }

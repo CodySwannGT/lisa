@@ -76,19 +76,22 @@ async function unchanged(
  * @param root - Canonical consumer root.
  * @param name - Original relative path.
  * @param quarantine - Private path holding the displaced entry.
+ * @param failure - Original verification or removal error.
  */
 async function restoreDisplaced(
   root: string,
   name: string,
-  quarantine: string
+  quarantine: string,
+  failure: unknown
 ): Promise<void> {
   try {
     await parents(root, name, false);
     await link(quarantine, resolveProjectPath(root, name));
     await unlink(quarantine);
-  } catch {
+  } catch (error) {
     throw new Error(
-      `Starter destination changed during sync: ${name}; displaced entry preserved at ${path.relative(root, quarantine)}`
+      `Starter destination changed during sync: ${name}; displaced entry preserved at ${path.relative(root, quarantine)}`,
+      { cause: new AggregateError([failure, error]) }
     );
   }
 }
@@ -121,7 +124,7 @@ async function removeUnchanged(
       await unchanged(root, name, undefined);
       await unlink(quarantine);
     } catch (error) {
-      await restoreDisplaced(root, name, quarantine);
+      await restoreDisplaced(root, name, quarantine, error);
       throw error;
     }
   } finally {
