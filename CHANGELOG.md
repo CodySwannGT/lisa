@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.62.0](https://github.com/CodySwannGT/lisa/compare/v4.61.0...v4.62.0) (2026-09-15)
+
+
+### Features
+
+* land starter sync through shared PR driver mechanics ([104d17a](https://github.com/CodySwannGT/lisa/commit/104d17a0a32a8b9a930ca4d1760b93e3c1f3680e)), closes [CodySwannGT/lisa#1533](https://github.com/CodySwannGT/lisa/issues/1533) [CodySwannGT/lisa#1533](https://github.com/CodySwannGT/lisa/issues/1533)
+
 ## [4.61.0](https://github.com/CodySwannGT/lisa/compare/v4.60.12...v4.61.0) (2026-09-15)
 
 
