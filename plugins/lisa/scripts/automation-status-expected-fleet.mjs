@@ -41,6 +41,10 @@ export const AUTOMATION_EXPECTED_CADENCES = {
     human: "once a day",
     rrule: "FREQ=DAILY;INTERVAL=1",
   },
+  "starter-sync": {
+    human: "once a day",
+    rrule: "FREQ=DAILY;INTERVAL=1",
+  },
   "learnings-audit": {
     human: "once a week",
     rrule: "FREQ=WEEKLY;INTERVAL=1",
@@ -331,6 +335,17 @@ export function resolveExpectedAutomationFleet(input = {}) {
         identity,
         "learnings-audit",
         "The weekly gardener loop is opt-in and this project has not opted in, so nobody is auditing its knowledge surfaces. Run /lisa:setup-automations learnings-audit=true to enable it.",
+        "opt-in"
+      )
+    );
+  }
+
+  if (config.starter?.sync?.auto === true) {
+    expected.push(
+      createExpectedEntry(
+        identity,
+        "starter-sync",
+        "/lisa:starter-sync",
         "opt-in"
       )
     );

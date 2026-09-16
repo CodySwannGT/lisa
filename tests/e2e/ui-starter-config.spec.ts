@@ -54,7 +54,7 @@ test("renders all recorded starter entries from the served project configuration
     await expect(section).not.toContainText("upstream commits since");
     await expect(
       section.getByRole("button", { name: "Sync now", exact: true })
-    ).toBeDisabled();
+    ).toBeEnabled();
     const provenanceControls = section
       .locator(".row")
       .filter({

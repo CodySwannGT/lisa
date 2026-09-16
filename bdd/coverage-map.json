@@ -234,6 +234,16 @@
       "file": "tests/e2e/ui-config-save.spec.ts",
       "evidence": "a real read-only file refusal preserves pending edits and never reports success",
       "level": "behavioral"
+    },
+    {
+      "scenario": "BDD-STARTER-003",
+      "runner": "playwright",
+      "platforms": [
+        "web"
+      ],
+      "file": "tests/e2e/ui-starter-sync.spec.ts",
+      "evidence": "reports a PR, nothing to do, and a real failure without generic success",
+      "level": "behavioral"
     }
   ],
   "exclusions": [

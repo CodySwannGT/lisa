@@ -197,6 +197,26 @@ closed by the next run's dedupe or the human), not mutual exclusion; manual
 runs should first confirm the cron is not due or running. Tear-down removes
 it with the rest of the `lisa-auto-<project>-*` set.
 
+**Optional automation — starter sync.** Read `starter.sync.auto` from the
+project's current config. Only the boolean `true` opts in (default **false**).
+When true, reconcile exactly one `lisa-auto-<project>-starter-sync` registration
+running `/lisa:starter-sync` once a **day** (`FREQ=DAILY;INTERVAL=1`) in the
+verified durable project checkout. Use the current runtime's native scheduler
+and update an existing registration by its exact name rather than duplicating
+it. Its prompt must identify this as a scheduled invocation, require a fresh
+check of `starter.sync.auto` before mutation, and carry the literal command on
+its own line. The `lisa-starter-sync` skill calls the shipped CLI and preserves
+its configured landing strategy; an open PR is not an applied update.
+
+When false or absent, remove any exact `lisa-auto-<project>-starter-sync`
+registration using that same native scheduler, leaving all other schedules
+alone. Read the scheduler back after either operation and report the observed
+name, target, cadence, or verified absence. Saving the console toggle only saves
+config: run this reconciliation to change the registration. If scheduler access
+is unavailable, report registration/removal as **unverified**, not successful;
+do not write its backing files or install another scheduler. This representation
+gap applies to any runtime without a native recurring-task tool.
+
 **Optional automation — the health cron.** When `health.schedule` in
 `.lisa.config.json` is `daily` or `weekly` (default **off**, which registers
 nothing), additionally create `lisa-auto-<project>-health-drift` running

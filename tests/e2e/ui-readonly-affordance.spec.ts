@@ -23,16 +23,15 @@ test("renders mutating console controls as honest read-only affordances", async 
 
   await page.goto(`${UI_URL}#starters`);
   const syncNow = page.getByRole("button", { name: "Sync now" });
-  await expect(syncNow).toBeDisabled();
-  await expect(syncNow).toHaveAttribute(
-    "title",
-    "read-only: starter sync has not shipped yet"
+  await syncNow.click();
+  await expect(page.locator("#starterSyncStatus")).toContainText(
+    "Open this project with lisa ui to run starter sync."
   );
-  await expect(
-    page.locator("#section-starters .readonly-reason", {
-      hasText: "read-only: starter sync has not shipped yet",
-    })
-  ).toBeVisible();
+  await expect(page.locator("#starterSyncStatus")).toHaveAttribute(
+    "role",
+    "alert"
+  );
+  await expect(page.locator("#toast")).not.toHaveClass(/show/);
 
   await page.goto(`${UI_URL}#setup`);
   const firstChecklistButton = page.locator("#section-setup .ck").first();

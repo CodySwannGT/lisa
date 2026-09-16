@@ -1848,6 +1848,14 @@
     <div class="toast" id="toast"></div>
     <script>
       "use strict";
+      // The launch fragment is never sent to the HTTP server. Keep the capability
+      // only in this page's memory and remove it before normal section routing.
+      const starterSyncCapability = (() => {
+        const match = /^#lisa-token=([a-f0-9]{64})$/u.exec(location.hash);
+        if (match)
+          history.replaceState(null, "", location.pathname + location.search);
+        return match ? match[1] : null;
+      })();
       document.title = "Lisa Console — Project Settings";
 
       /* ------------------------------------------------------------------ *
@@ -7703,7 +7711,7 @@
             type: "callout",
             staticCopy: "published starter-sync scope",
             variant: "warn",
-            text: "<b>Starter provenance.</b> Entries and preferences come from project configuration. The sync engine and upstream-proposal flow are planned; changing a preference does not run either operation.",
+            text: "<b>Starter provenance.</b> Entries and preferences come from project configuration. Sync now checks for starter updates and applies them using the selected strategy. Automatic sync requires scheduler setup after saving. Upstream proposals are not yet connected to this console.",
           },
           {
             type: "flow",
@@ -7791,7 +7799,7 @@
               {
                 key: "starter.sync.auto",
                 label: "Automatic sync",
-                desc: "On: check the upstream starter on a schedule (a lisa-auto cron) and apply new changes without being asked. Off: sync only runs manually.",
+                desc: "On: check the starter daily using the runtime scheduler. After saving, run setup-automations to create or remove the schedule. Off: sync only runs manually.",
                 control: tog(false),
               },
               {
@@ -7811,8 +7819,10 @@
                 control: {
                   type: "button",
                   label: "Sync now",
-                  disabled: true,
-                  reason: "read-only: starter sync has not shipped yet",
+                  action: "run-starter-sync",
+                  id: "runStarterSyncButton",
+                  statusId: "starterSyncStatus",
+                  statusMessage: "Ready to check for starter updates",
                 },
               },
             ],
@@ -11619,15 +11629,18 @@
               b.title = control.reason;
               b.setAttribute("aria-describedby", id + "-reason");
             }
-          } else {
-            b.addEventListener("click", () => {
-              if (control.action === "run-health") {
-                void runHealthCheck();
-                return;
-              }
-              showToast(control.toast || "Prototype action");
-            });
           }
+          b.addEventListener("click", () => {
+            if (control.action === "run-starter-sync") {
+              void runStarterSyncFromConsole(control);
+              return;
+            }
+            if (control.action === "run-health") {
+              void runHealthCheck();
+              return;
+            }
+            showToast(control.toast || "Prototype action");
+          });
           wrap.appendChild(b);
           if (control.statusId) {
             const status = el(
@@ -11639,6 +11652,8 @@
               )
             );
             status.id = control.statusId;
+            if (control.action === "run-starter-sync")
+              paintStarterSyncStatus(status, control);
             status.setAttribute(
               "role",
               control.statusRole === "alert" ? "alert" : "status"
@@ -13607,6 +13622,108 @@
         })();
         setupReadinessInFlight = request;
         return request;
+      }
+
+      /** Render only text and a validated PR URL from the real landing result. */
+      function paintStarterSyncStatus(status, control) {
+        status.textContent = control.statusMessage;
+        if (control.resultUrl) {
+          const link = document.createElement("a");
+          link.href = control.resultUrl;
+          link.textContent = "View pull request";
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          status.append(" ", link);
+        }
+      }
+
+      /** Call the existing landing path, preserving its three distinct outcomes. */
+      async function runStarterSyncFromConsole(control) {
+        if (control.disabled) return;
+        const update = (message, failed = false) => {
+          control.statusMessage = message;
+          control.statusRole = failed ? "alert" : "status";
+          const button = document.getElementById(control.id);
+          const status = document.getElementById(control.statusId);
+          if (button) button.disabled = !!control.disabled;
+          if (status) {
+            status.setAttribute("role", control.statusRole);
+            status.setAttribute("aria-live", failed ? "assertive" : "polite");
+            paintStarterSyncStatus(status, control);
+          }
+        };
+        control.resultUrl = null;
+        if (!lisaLiveMode) {
+          update("Open this project with lisa ui to run starter sync.", true);
+          return;
+        }
+        if (!starterSyncCapability) {
+          update(
+            "Open the console using its terminal launch link to authorize starter sync.",
+            true
+          );
+          return;
+        }
+        if (saving || dirty.size > 0) {
+          update("Save or discard pending settings before syncing.", true);
+          return;
+        }
+        control.disabled = true;
+        update(
+          "Checking the starter and running the configured landing strategy…"
+        );
+        try {
+          const response = await fetch("/api/starter-sync", {
+            method: "POST",
+            cache: "no-store",
+            headers: { "x-lisa-starter-token": starterSyncCapability },
+          });
+          const result = await response.json();
+          if (!response.ok || result.state === "failed")
+            throw new Error(
+              result.error ||
+                "Starter sync failed. Check the Lisa console terminal for details."
+            );
+          if (result.state === "current") {
+            update("Nothing to do — the starter is already current.");
+          } else if (
+            result.state === "committed" &&
+            typeof result.commit === "string" &&
+            result.commit
+          ) {
+            update("Starter changes committed: " + result.commit);
+          } else if (
+            result.state === "pull-request" &&
+            typeof result.url === "string"
+          ) {
+            const url = new URL(result.url);
+            if (url.protocol !== "https:" || url.username || url.password)
+              throw new Error(
+                "Starter sync returned an invalid pull request URL."
+              );
+            control.resultUrl = url.href;
+            update(
+              "Starter update pull request is open for review. The project's baseline has not advanced." +
+                (result.worktree
+                  ? " Changes were retained at " + result.worktree + "."
+                  : "")
+            );
+          } else {
+            throw new Error(
+              "The server did not return a recognized starter-sync outcome."
+            );
+          }
+        } catch (error) {
+          update(
+            "Starter sync failed: " +
+              (error instanceof Error ? error.message : String(error)),
+            true
+          );
+        } finally {
+          control.disabled = false;
+          const button = document.getElementById(control.id);
+          if (button) button.disabled = false;
+        }
       }
 
       /** Run exactly one deterministic Health v1 check through the local server. */

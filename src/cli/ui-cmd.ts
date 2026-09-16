@@ -8,6 +8,8 @@
  * @module cli/ui-cmd
  */
 /* eslint-disable max-lines -- the central UI route registry stays auditable in one module */
+import type { Command } from "commander";
+import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import * as http from "node:http";
@@ -35,6 +37,10 @@ import {
 import { createEnabledPluginsProbe } from "./ui-enabled-plugins.js";
 import { createAutomationsProbe } from "./ui-automations.js";
 import { createObservabilityProviderProbes } from "./ui-observability-providers.js";
+import {
+  createUiStarterSyncHandler,
+  type UiStarterSyncDependencies,
+} from "./ui-starter-sync.js";
 import { serveConfigWrite } from "./ui-config-write.js";
 import {
   createGateReportHandler,
@@ -113,18 +119,49 @@ export interface UiCmdOptions {
   readonly port?: string;
   /** Set false (via --no-sync) to skip the config sync on startup */
   readonly sync?: boolean;
+  /** Optional attribution for starter-sync commits made through this console. */
+  readonly workItem?: string;
+  readonly coAuthor?: string;
 }
 
 /** Injectable runtime collaborators for `lisa ui`. */
 export interface UiRuntimeDependencies {
+  /** Trusted in-process host receives the private launch URL instead of printing it. */
+  readonly onListening?: (launchUrl: string) => void;
   /** Status probes exposed by GET /api/status. */
   readonly probes?: readonly StatusProbe[];
   /** Health storage and execution boundaries exposed by /api/health. */
   readonly health?: Partial<UiHealthDependencies>;
+  /** Existing starter-sync command invoked by the console write endpoint. */
+  readonly starterSync?: Partial<UiStarterSyncDependencies>;
   /** Read-only setup-readiness boundaries exposed by /api/setup-readiness. */
   readonly setupReadiness?: SetupReadinessDependencies;
   /** Read-only gate-report boundaries exposed by /api/gate-report. */
   readonly gateReport?: GateReportDependencies;
+}
+
+/**
+ * Register the console and its server-bound starter attribution.
+ * @param program - Root CLI program.
+ * @param run - Console startup operation.
+ */
+export function addUiCommand(program: Command, run: typeof runUi): void {
+  program
+    .command("ui")
+    .description(
+      "Serve the Lisa settings console for a project (runs a config sync first)"
+    )
+    .argument("[path]", "Project directory (defaults to current directory)")
+    .option("--port <port>", "Port to listen on", "4780")
+    .option("--no-sync", "Skip the config sync on startup")
+    .option("--work-item <ref>", "Work item for starter-sync commits")
+    .option(
+      "--co-author <identity>",
+      "Actual agent co-author for starter-sync commits"
+    )
+    .action(async (targetPath: string | undefined, options: UiCmdOptions) => {
+      await run(targetPath, options);
+    });
 }
 
 /**
@@ -372,21 +409,36 @@ function isLoopbackHost(host: string | undefined): boolean {
  * @param page - Hydrated settings console HTML
  * @param probes - Live-status probes registered for this server
  * @param destDir - Project root served by this UI process
+ * @param starterCapability - Per-launch credential for the Git-mutating route
  * @param healthDependencies - Injectable Health v1 storage/run boundaries
  * @param setupReadinessDependencies - Injectable read-only Setup boundaries
  * @param gateReportDependencies - Injectable read-only Doctor boundaries
+ * @param starterSyncDependencies - Existing starter landing operation
+ * @param options - Server-bound commit attribution
  * @returns Loopback HTTP request handler
  */
 function createUiRequestHandler(
   page: string,
   probes: readonly StatusProbe[],
   destDir: string,
+  starterCapability: string,
   healthDependencies: Partial<UiHealthDependencies> = {},
   setupReadinessDependencies: SetupReadinessDependencies = {},
-  gateReportDependencies: GateReportDependencies = {}
+  gateReportDependencies: GateReportDependencies = {},
+  starterSyncDependencies: Partial<UiStarterSyncDependencies> = {},
+  options: UiCmdOptions = {}
 ): http.RequestListener {
   const readSnapshot = createStatusSnapshotReader(probes);
   const serveHealth = createUiHealthHandler(destDir, healthDependencies);
+  const serveStarterSync = createUiStarterSyncHandler(
+    {
+      path: destDir,
+      ...(options.workItem ? { workItem: options.workItem } : {}),
+      ...(options.coAuthor ? { coAuthor: options.coAuthor } : {}),
+    },
+    starterCapability,
+    starterSyncDependencies
+  );
   const serveGateReport = createGateReportHandler(
     destDir,
     gateReportDependencies
@@ -413,6 +465,10 @@ function createUiRequestHandler(
     }
     if (pathname === "/api/config") {
       serveConfigWrite(request, response, destDir);
+      return;
+    }
+    if (pathname === "/api/starter-sync") {
+      serveStarterSync(request, response);
       return;
     }
     if (pathname === "/api/health") {
@@ -471,6 +527,7 @@ export async function runUi(
     getProcessEnvironment()
   );
   const page = injectLiveConfig(html, config, remoteEnvironment);
+  const starterCapability = randomBytes(32).toString("hex");
   const probes = dependencies.probes ?? [
     createGithubAuthProbe(destDir),
     createEnabledPluginsProbe(destDir),
@@ -487,9 +544,12 @@ export async function runUi(
       page,
       probes,
       destDir,
+      starterCapability,
       dependencies.health,
       dependencies.setupReadiness,
-      dependencies.gateReport
+      dependencies.gateReport,
+      dependencies.starterSync,
+      options
     )
   );
   await new Promise<void>(resolve => {
@@ -498,8 +558,10 @@ export async function runUi(
   const address = server.address();
   const boundPort =
     typeof address === "object" && address !== null ? address.port : port;
+  const launchUrl = `http://127.0.0.1:${boundPort}/#lisa-token=${starterCapability}`;
   console.log(`Lisa console for ${destDir}`);
-  console.log(`  → http://127.0.0.1:${boundPort}`);
+  if (dependencies.onListening) dependencies.onListening(launchUrl);
+  else console.log(`  → ${launchUrl}`);
   console.log("Press Ctrl+C to stop.");
   return server;
 }

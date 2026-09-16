@@ -1,0 +1,4 @@
+display_name: "Starter Sync"
+short_description: "Run one starter sync using Lisa's existing engine and landing command"
+default_prompt:
+  - "Use $lisa-starter-sync: Run one starter sync using Lisa's existing engine and landing command."

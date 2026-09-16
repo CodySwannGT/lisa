@@ -84,13 +84,31 @@ describe("sync and ui invocation", () => {
   it("routes ui options to the ui action, including --no-sync", async () => {
     const { program, runUi } = createTestProgram();
 
-    await program.parseAsync(["ui", DEST, "--port", "5001", "--no-sync"], {
-      from: "user",
-    });
+    await program.parseAsync(
+      [
+        "ui",
+        DEST,
+        "--port",
+        "5001",
+        "--no-sync",
+        "--work-item",
+        "CodySwannGT/lisa#1534",
+        "--co-author",
+        "Codex <codex@openai.com>",
+      ],
+      {
+        from: "user",
+      }
+    );
 
     expect(runUi).toHaveBeenCalledWith(
       DEST,
-      expect.objectContaining({ port: "5001", sync: false })
+      expect.objectContaining({
+        port: "5001",
+        sync: false,
+        workItem: "CodySwannGT/lisa#1534",
+        coAuthor: "Codex <codex@openai.com>",
+      })
     );
   });
 
