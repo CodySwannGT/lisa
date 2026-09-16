@@ -263,4 +263,4 @@ The rollup contract is additive across the hierarchy: PRDs may roll up Epics/Sto
 Idempotency is enforced by `entry_id` for direct entries and by the fixed rollup token field order for totals.
 ## Delivery observations
 
-The optional effectiveness extension, clock definitions, and recurrence storage contract live in the [portable usage-accounting reference](../../skills/lisa-usage-accounting/references/effectiveness.md), shared by every supported agent. The primary 17-field usage token remains unchanged.
+Read `references/effectiveness.md` in the `lisa-usage-accounting` skill for the optional effectiveness extension, clock definitions, and recurrence storage contract shared by every supported agent. The primary 17-field usage token remains unchanged.

@@ -1,9 +1,14 @@
-import { execFileSync, execFile } from "node:child_process";
+import { execFile } from "node:child_process";
 import { mkdtemp, readFile, writeFile, rm, symlink } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  boundedExecFileSync,
+  ioLatencyBudgetMs,
+} from "../../helpers/io-latency-budget.js";
+import { resolveGit } from "../../support/git-executable.js";
 import * as atomicWriter from "../../../src/utils/atomic-file-write.js";
 import {
   parseRecurrences,
@@ -16,6 +21,7 @@ import {
 
 const directories: string[] = [];
 const PORCELAIN = "--porcelain";
+const GIT = resolveGit();
 const RECURRENCE: FailureRecurrence = {
   invariant: "Preserve every observed occurrence",
   surface: "ledger:recurrence",
@@ -45,9 +51,10 @@ const OBSERVATION = {
  * @returns Trimmed output
  */
 function git(root: string, ...args: string[]) {
-  // eslint-disable-next-line sonarjs/no-os-command-from-path -- fixed git executable in an isolated fixture
-  return execFileSync("git", ["-C", root, ...args], {
-    encoding: "utf8",
+  return boundedExecFileSync({
+    label: "effectiveness fixture git",
+    command: GIT,
+    args: ["-C", root, ...args],
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
 }
@@ -148,17 +155,21 @@ describe("durable recurrence history", () => {
     const script = `const {recordRecurrence}=await import(process.argv[1]); await recordRecurrence(process.argv[2],JSON.parse(process.argv[3]));`;
     await Promise.all(
       Array.from({ length: 4 }, (_, i) =>
-        promisify(execFile)(process.execPath, [
-          "--input-type=module",
-          "-e",
-          script,
-          modulePath,
-          root,
-          JSON.stringify({
-            ...RECURRENCE,
-            occurrenceRef: `tracker:failure-${i}`,
-          }),
-        ])
+        promisify(execFile)(
+          process.execPath,
+          [
+            "--input-type=module",
+            "-e",
+            script,
+            modulePath,
+            root,
+            JSON.stringify({
+              ...RECURRENCE,
+              occurrenceRef: `tracker:failure-${i}`,
+            }),
+          ],
+          { timeout: ioLatencyBudgetMs(15_000) }
+        )
       )
     );
     expect((await readEffectivenessReport(root)).recurrences[0]?.count).toBe(4);
@@ -219,11 +230,12 @@ describe("local timing and operator reports", () => {
     const cli = path.resolve("dist/index.js");
     await recordRecurrence(root, RECURRENCE);
     const before = git(root, "status", PORCELAIN);
-    const output = execFileSync(
-      process.execPath,
-      [cli, "effectiveness", "report"],
-      { cwd: root, encoding: "utf8" }
-    );
+    const output = boundedExecFileSync({
+      label: "effectiveness CLI report",
+      command: process.execPath,
+      args: [cli, "effectiveness", "report"],
+      cwd: root,
+    });
     expect(JSON.parse(output).recurrences[0].count).toBe(1);
     expect(git(root, "status", PORCELAIN)).toBe(before);
   });
