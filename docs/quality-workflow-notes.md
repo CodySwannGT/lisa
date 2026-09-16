@@ -434,6 +434,12 @@ workflow answers to the config; this is the one job that judges it.
 
 ## Note 10
 
+The shared `.mjs` suite job runs only at the `pull-request` moment. Tooling
+tests belong to PR verification; deployments do not rerun them. The job-level
+condition enforces this even if a consumer's older gate planner fails or asks
+for the job to run. Consumers need no deployment-specific opt-out or package
+upgrade. PR declarations, cancellation, and explicit skip behavior still apply.
+
 ```text
 DELIBERATE DIVERGENCE from the façade's fallback contract, which
 elsewhere reproduces "today's behavior" byte for byte for an
