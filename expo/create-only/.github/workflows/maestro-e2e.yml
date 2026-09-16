@@ -36,18 +36,14 @@ name: 📱 Maestro Native E2E
 #                      `echo "MAESTRO_X=$V" >> "$MAESTRO_PRE_SUITE_ENV"`.
 #                      If it fails, no suite runs — that is deliberate.
 #
-#   setup_command      runs in EACH platform job, and the two platform jobs
-#                      run CONCURRENTLY — so it executes twice, at the same
-#                      time, on two runners. Only idempotent, read-only,
-#                      per-leg work is safe here. A destructive sweep or a
-#                      read-modify-write in this seam is a live race: both
-#                      runners answer "does it exist?" against the same
-#                      pre-write state and both act on the answer.
+#   setup_command      runs in EACH platform job. Keep it read-only and
+#                      idempotent: it may run concurrently if a project later
+#                      uses independent environments and disables ordering.
 
 on:
   schedule:
     # Nightly against the default branch. Offset from other nightly suites
-    # (e.g. a Playwright nightly) so backend load doesn't overlap.
+    # (e.g. a Playwright nightly). The shared lock below prevents overlap.
     - cron: '0 9 * * *'
   workflow_dispatch:
     inputs:
@@ -78,8 +74,8 @@ permissions:
   # LEG_ORDER_TOKEN secret below are what let `serialize_platform_legs` read
   # when the iOS leg finished.
   #
-  # Drop this line and nothing breaks — the ordering job reports the gap and
-  # lets the Android leg start. You lose the ordering, not the suite.
+  # If ordering cannot be established, between-leg preparation refuses to
+  # reset and blocks Android so it cannot wipe a running iOS suite.
   actions: read
 
 # Keyed on the ENVIRONMENT this suite drives, not on the ref. Every run of this
@@ -124,32 +120,19 @@ jobs:
       #   echo "MAESTRO_SEED_ID=$SEED" >> "$MAESTRO_PRE_SUITE_ENV"
       # pre_suite_install_dependencies: true  # only if it needs node_modules
       #
-      # Once per PLATFORM, concurrently — read-only, idempotent work only.
+      # Once per PLATFORM — read-only, idempotent work only.
       # setup_command: node scripts/maestro/read-platform-config.mjs
       #
-      # Uncomment when another suite drives the SAME backend — typically a
-      # Playwright nightly calling quality.yml, which takes an input of the same
-      # name. Pass both the identical string and they queue instead of running
-      # at once against one database and one set of test accounts. Key it on the
-      # environment; must differ from this workflow's own group above. Staggered
-      # crons are not a substitute: a run waits for a hosted runner before it
-      # starts, and those waits have been measured at 2h24m and 6h55m — longer
-      # than any stagger, so the suite scheduled first can begin hours after the
-      # one scheduled second.
-      # concurrency_group: 'e2e-shared-test-user-dev'
-      #
-      # Uncomment when both platform legs sign in as the SAME test account. The
-      # legs run concurrently by default and each one's sign-in invalidates the
-      # other's session, so the loser hits a sign-in screen mid-suite and fails
-      # an assertion that has nothing wrong with it. This runs iOS first, then
-      # Android. It is ordering, not gating: a FAILING iOS leg still releases
-      # Android, so turning it on never narrows what gets tested. Needs the
-      # `actions: read` permission above AND the LEG_ORDER_TOKEN secret below;
-      # without either it reports the gap and runs the legs concurrently rather
-      # than failing. Leave it off if your legs use per-platform accounts — the
-      # concurrency is free coverage in that case. The cost when on is the suite
-      # taking iOS PLUS Android instead of the slower of the two.
-      # serialize_platform_legs: true
+      # Both seeded suites reset the development environment. Keep this group
+      # identical to playwright-e2e.yml and distinct from the caller's own group.
+      # A schedule offset cannot prevent overlap when hosted runners queue.
+      concurrency_group: 'e2e-shared-development'
+      # iOS must finish before its fixtures are reset for Android, even when
+      # the platforms use different accounts. A completed iOS failure still
+      # allows Android to run; unknown iOS state blocks the destructive reset.
+      # Requires actions: read and the forwarded LEG_ORDER_TOKEN below.
+      serialize_platform_legs: true
+      prepare_between_legs: true
       #
       # Uncomment when EAS build quota — not build freshness — is what limits
       # this suite. On Expo's Free plan the monthly iOS quota is what stops the

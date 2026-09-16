@@ -127,8 +127,28 @@ describe("maestro-native-e2e leg ordering — job graph", () => {
       const permissions = caller.permissions as Record<string, string>;
       const text = fs.readFileSync(CALLER_YML, "utf-8");
       expect(permissions.actions).toBe("read");
-      expect(text).toContain(`# ${SERIALIZE}: true`);
+      expect(text).toContain(`${SERIALIZE}: true`);
       expect(text).toContain("LEG_ORDER_TOKEN:");
+    });
+
+    it("requires proven ordering exactly when a between-leg reset is requested", () => {
+      const step = (workflow.jobs[LEG_ORDER].steps ?? [])[0];
+      const guard = (step.env as Record<string, string>).PREPARE_BETWEEN_LEGS;
+      expect(guard).toBeDefined();
+      for (const [environment, between, expected] of [
+        ["development", true, true],
+        ["", true, false],
+        ["development", false, false],
+      ] as const) {
+        expect(
+          evaluateIf(guard, {
+            inputs: {
+              prepare_environment: environment,
+              prepare_between_legs: between,
+            },
+          })
+        ).toBe(expected);
+      }
     });
 
     it("takes the ordering token as a secret, not a declared scope", () => {
