@@ -740,6 +740,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "1d2e94fd9f21988ce6d4be2ce4268b8c0bb020eb7cd7baf8ca65def7d8a4f5bc",
     "plugins/src/base/commands/setup/workstation.md":
       "57ea736ded92d97c6914dde5354f631532cca46ddefc9bd9cdf89edd6d08dd9f",
+    "plugins/src/base/commands/starter-sync.md":
+      "e2241b7fcfe425bfe151cfa98f64fccac97038528e8ed62cc375e66ccf9436da",
     "plugins/src/base/commands/sync-down.md":
       "4e974cb9745a4fd680f4a55f859d31fa8cf3cb28afa739b40a2e1a99de31e034",
     "plugins/src/base/commands/tear-down-automations.md":
@@ -1035,7 +1037,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/automation-status-contract-drift.mjs":
       "5f3f327fddedd6870017a86f2702d9cbb17352384fb225ab353eed54241182ef",
     "plugins/src/base/scripts/automation-status-expected-fleet.mjs":
-      "a7c2463547d28403455ec739772b12c3821e2cde387da3d31e831de1442b25d5",
+      "d5905236202b13ec9a7fd9221b16d0748cad41bd344ad1de24d89ca81c64bebe",
     "plugins/src/base/scripts/automation-status-report.mjs":
       "520f77645c5b7cab3f69848fb5cf19e8b1d802cd1f8ce6a35aa36a0bf6a0d146",
     "plugins/src/base/scripts/automation-status-run-history.mjs":
@@ -1415,7 +1417,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-atlassian/SKILL.md":
       "d1945a471afa5454ef4f6dffa52decf7df0ec3f411dadaf5d4bc95aeeb8ca6e2",
     "plugins/src/base/skills/lisa-setup-automations/SKILL.md":
-      "960d84a85574f9b03122510ba4fe7a225437a4fde605a5e6e26aad22af8916e6",
+      "520dbf5c1735c038ef6607eafefb6914e4e24a434c6abb2b057c6065efbf6bb6",
     "plugins/src/base/skills/lisa-setup-automations/scripts/generate-workflow.mjs":
       "c13e287c8beb6f847b03c93298b8a3fb211e65ce897e63692933377f8c4303f1",
     "plugins/src/base/skills/lisa-setup-confluence/SKILL.md":
@@ -1474,6 +1476,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "c8145b880f2595e73b2b7a5a117037e56f1f32d7be3b2ce485d83f420c7c1ea9",
     "plugins/src/base/skills/lisa-spec-conformance/SKILL.md":
       "50e79afcfabf16d36273325aabb58571c9a0e1cafe7a2865e2da10c6d46571eb",
+    "plugins/src/base/skills/lisa-starter-sync/SKILL.md":
+      "b5aa3055ca4365ac55c677e64d666499756cb1cad2c30175603c240ba03cdc9c",
     "plugins/src/base/skills/lisa-sync-down/SKILL.md":
       "82a6fea4fac40554505778827387d3be8c27e4d7d37e8c6f1258e5a3b65c6163",
     "plugins/src/base/skills/lisa-task-decomposition/SKILL.md":
@@ -2659,9 +2663,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/package-lisa/package.lisa.json":
       "25be68dbba6cdc730e57b8d5785e80022ca745adab841c80cb1b6d8fd0b7fb77",
     "ui/README.md":
-      "7e2ae211371f9b9c804fde46040b3d845dede038e649371afadac94226459e08",
+      "2230349ad038be03bf75d70aa4031880ce722525f47dda4312eaebc2de2d9d06",
     "ui/index.html":
-      "5cd27b7a6069891e65be3db81b8997a8f99794fe615ab72e9350858714819193",
+      "974820f8d7b49ad6109b0a055a1894d3143ef4d5a2c58894ef0482766cf317b2",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -3695,6 +3699,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/commands/lisa/setup/remote-env.md": true,
     "plugins/lisa-agy/commands/lisa/setup/sonar.md": true,
     "plugins/lisa-agy/commands/lisa/setup/workstation.md": true,
+    "plugins/lisa-agy/commands/lisa/starter-sync.md": true,
     "plugins/lisa-agy/commands/lisa/sync-down.md": true,
     "plugins/lisa-agy/commands/lisa/tear-down-automations.md": true,
     "plugins/lisa-agy/commands/lisa/track.md": true,
@@ -3946,6 +3951,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-setup-workstation/scripts/workstation.mjs": true,
     "plugins/lisa-agy/skills/lisa-sonarcloud-access/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-spec-conformance/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-starter-sync/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-sync-down/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-task-decomposition/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-task-triage/SKILL.md": true,
@@ -4079,6 +4085,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/commands/lisa/setup/remote-env.md": true,
     "plugins/lisa-copilot/commands/lisa/setup/sonar.md": true,
     "plugins/lisa-copilot/commands/lisa/setup/workstation.md": true,
+    "plugins/lisa-copilot/commands/lisa/starter-sync.md": true,
     "plugins/lisa-copilot/commands/lisa/sync-down.md": true,
     "plugins/lisa-copilot/commands/lisa/tear-down-automations.md": true,
     "plugins/lisa-copilot/commands/lisa/track.md": true,
@@ -4432,6 +4439,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-setup-workstation/scripts/workstation.mjs": true,
     "plugins/lisa-copilot/skills/lisa-sonarcloud-access/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-spec-conformance/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-starter-sync/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-sync-down/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-task-decomposition/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-task-triage/SKILL.md": true,
@@ -4550,6 +4558,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/commands/lisa/setup/remote-env.md": true,
     "plugins/lisa-cursor/commands/lisa/setup/sonar.md": true,
     "plugins/lisa-cursor/commands/lisa/setup/workstation.md": true,
+    "plugins/lisa-cursor/commands/lisa/starter-sync.md": true,
     "plugins/lisa-cursor/commands/lisa/sync-down.md": true,
     "plugins/lisa-cursor/commands/lisa/tear-down-automations.md": true,
     "plugins/lisa-cursor/commands/lisa/track.md": true,
@@ -4904,6 +4913,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-setup-workstation/scripts/workstation.mjs": true,
     "plugins/lisa-cursor/skills/lisa-sonarcloud-access/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-spec-conformance/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-starter-sync/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-sync-down/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-task-decomposition/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-task-triage/SKILL.md": true,
@@ -6985,6 +6995,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-sonarcloud-access/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-spec-conformance/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-spec-conformance/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-starter-sync/SKILL.md": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-starter-sync/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-sync-down/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-sync-down/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-task-decomposition/SKILL.md": true,
@@ -7131,6 +7143,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/commands/setup/remote-env.md": true,
     "plugins/lisa/commands/setup/sonar.md": true,
     "plugins/lisa/commands/setup/workstation.md": true,
+    "plugins/lisa/commands/starter-sync.md": true,
     "plugins/lisa/commands/sync-down.md": true,
     "plugins/lisa/commands/tear-down-automations.md": true,
     "plugins/lisa/commands/track.md": true,
@@ -7638,6 +7651,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-sonarcloud-access/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-spec-conformance/SKILL.md": true,
     "plugins/lisa/skills/lisa-spec-conformance/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-starter-sync/SKILL.md": true,
+    "plugins/lisa/skills/lisa-starter-sync/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-sync-down/SKILL.md": true,
     "plugins/lisa/skills/lisa-sync-down/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-task-decomposition/SKILL.md": true,
@@ -7785,6 +7800,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/commands/setup/remote-env.md": true,
     "plugins/src/base/commands/setup/sonar.md": true,
     "plugins/src/base/commands/setup/workstation.md": true,
+    "plugins/src/base/commands/starter-sync.md": true,
     "plugins/src/base/commands/sync-down.md": true,
     "plugins/src/base/commands/tear-down-automations.md": true,
     "plugins/src/base/commands/track.md": true,
@@ -8152,6 +8168,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-setup-workstation/scripts/workstation.mjs": true,
     "plugins/src/base/skills/lisa-sonarcloud-access/SKILL.md": true,
     "plugins/src/base/skills/lisa-spec-conformance/SKILL.md": true,
+    "plugins/src/base/skills/lisa-starter-sync/SKILL.md": true,
     "plugins/src/base/skills/lisa-sync-down/SKILL.md": true,
     "plugins/src/base/skills/lisa-task-decomposition/SKILL.md": true,
     "plugins/src/base/skills/lisa-task-triage/SKILL.md": true,
@@ -8931,12 +8948,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/ui-lisa-version.ts": true,
     "src/cli/ui-observability-checks.ts": true,
     "src/cli/ui-observability-providers.ts": true,
+    "src/cli/ui-request-origin.ts": true,
     "src/cli/ui-setup-readiness-config.ts": true,
     "src/cli/ui-setup-readiness-contract.ts": true,
     "src/cli/ui-setup-readiness-install.ts": true,
     "src/cli/ui-setup-readiness-local.ts": true,
     "src/cli/ui-setup-readiness-remote.ts": true,
     "src/cli/ui-setup-readiness.ts": true,
+    "src/cli/ui-starter-sync.ts": true,
     "src/cli/ui-status-json.ts": true,
     "src/cli/ui-status.ts": true,
     "src/cli/update-check-hook.ts": true,
@@ -9278,6 +9297,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/e2e/ui-setup-readiness.spec.ts": true,
     "tests/e2e/ui-stacks.spec.ts": true,
     "tests/e2e/ui-starter-config.spec.ts": true,
+    "tests/e2e/ui-starter-sync.spec.ts": true,
     "tests/e2e/ui-version-status.spec.ts": true,
     "tests/fixtures/automation-status/attention-needed-codex.json": true,
     "tests/fixtures/automation-status/partial-support-codex.json": true,
@@ -9822,6 +9842,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/ui-setup-readiness-endpoint.test.ts": true,
     "tests/unit/cli/ui-setup-readiness-renderer.test.ts": true,
     "tests/unit/cli/ui-setup-readiness.test.ts": true,
+    "tests/unit/cli/ui-starter-sync.test.ts": true,
     "tests/unit/cli/ui-status-contract.test.ts": true,
     "tests/unit/cli/ui-status-endpoint.test.ts": true,
     "tests/unit/cli/ui-status-http-edge.test.ts": true,

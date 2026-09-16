@@ -30,7 +30,7 @@ import {
   runStandardsProofCli,
 } from "./standards-proof-cmd.js";
 import { runSync, type SyncCmdOptions } from "./sync-cmd.js";
-import { runUi, type UiCmdOptions } from "./ui-cmd.js";
+import { runUi, addUiCommand } from "./ui-cmd.js";
 import { runUpdate } from "./update-cmd.js";
 import { runUpdateCheck } from "./update-check.js";
 import { addUpdateCheckHook } from "./update-check-hook.js";
@@ -264,17 +264,7 @@ function addMaintenanceCommands(
       }
     });
 
-  program
-    .command("ui")
-    .description(
-      "Serve the Lisa settings console for a project (runs a config sync first)"
-    )
-    .argument("[path]", PATH_ARG_DESCRIPTION)
-    .option("--port <port>", "Port to listen on", "4780")
-    .option("--no-sync", "Skip the config sync on startup")
-    .action(async (targetPath: string | undefined, options: UiCmdOptions) => {
-      await deps.runUi(targetPath, options);
-    });
+  addUiCommand(program, deps.runUi);
 
   addGateCommands(program, deps);
   addKaneCommands(program, deps);

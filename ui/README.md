@@ -416,3 +416,25 @@ supplying example identifiers.
   `callout`), so adding a setting is a data edit, not a DOM edit.
 - Search box filters rows/cards within the active section.
 - URL hash routes to a section (e.g. `ui/index.html#linting`).
+
+## Starter sync
+
+The starters section's **Sync now** button calls the same `lisa starter sync`
+landing command as the terminal. It displays **nothing to do**, the resulting
+commit, the open PR link, or the actual failure. A PR remains pending review;
+opening it does not advance the project's baseline. Save or discard pending
+console settings first, and commit starter configuration before opening a sync
+PR. Sync never writes to a starter remote.
+
+For projects requiring commit attribution, start the console with
+`lisa ui . --work-item <existing-ref> --co-author '<actual-agent-identity>'`.
+Those values and the destination are bound at startup; browser requests cannot
+choose another project. Git hooks remain enabled. Overlapping requests receive
+an explicit already-running response.
+
+After saving `starter.sync.auto`, run `lisa-setup-automations` with the current
+agent runtime to reconcile its optional daily `lisa-auto-<project>-starter-sync`
+registration. Turning the setting off removes that registration on reconciliation;
+the scheduled command also checks the setting before mutation. The console does
+not claim that a saved setting proves a live schedule. Runtimes without native
+scheduler access report registration/removal as unverified.

@@ -22,6 +22,7 @@ const MONITOR_ID = "monitor";
 const EXPLORATORY_BUGS_ID = "exploratory-bugs";
 const EXPLORATORY_PRDS_ID = "exploratory-prds";
 const LEARNINGS_AUDIT_ID = "learnings-audit";
+const DAILY_CADENCE = "once a day";
 const WEEKLY_CADENCE = "once a week";
 const WEEKLY_RRULE = "FREQ=WEEKLY;INTERVAL=1";
 const OPT_IN_GROUP = "opt-in";
@@ -34,6 +35,35 @@ const OPT_IN_GROUP = "opt-in";
 const runbook = (id: string): string => `.lisa/automations/${id}.runbook.md`;
 
 describe("automation-status expected fleet (#799)", () => {
+  it.each([true, false, undefined, "true"])(
+    "requires explicit boolean opt-in for starter sync (%s)",
+    auto => {
+      const fleet = resolveExpectedAutomationFleet({
+        config: {
+          tracker: "github",
+          github: { org: "CodySwannGT", repo: "lisa" },
+          starter: { sync: { auto } },
+        },
+      });
+      const sync = fleet.expected.filter(entry => entry.id === "starter-sync");
+      if (auto !== true) {
+        expect(sync).toEqual([]);
+        return;
+      }
+      expect(sync).toEqual([
+        {
+          id: "starter-sync",
+          automationId: "lisa-auto-codyswanngt-lisa-starter-sync",
+          expectedCadence: DAILY_CADENCE,
+          expectedRRule: "FREQ=DAILY;INTERVAL=1",
+          expectedCommand: "/lisa:starter-sync",
+          group: "opt-in",
+          runbookPath: ".lisa/automations/starter-sync.runbook.md",
+        },
+      ]);
+    }
+  );
+
   it("resolves the self-host GitHub Lisa fleet and flags unsupported exploratory-bugs", () => {
     const fleet = resolveExpectedAutomationFleet({
       config: {
@@ -70,7 +100,7 @@ describe("automation-status expected fleet (#799)", () => {
       expect.objectContaining({
         id: MONITOR_ID,
         automationId: "lisa-auto-codyswanngt-lisa-monitor",
-        expectedCadence: "once a day",
+        expectedCadence: DAILY_CADENCE,
         expectedRRule: "FREQ=DAILY;INTERVAL=1",
         expectedCommand: "/lisa:monitor",
         group: "core",
@@ -205,7 +235,7 @@ describe("automation-status expected fleet (#799)", () => {
     expect(fleet.expected).toContainEqual(
       expect.objectContaining({
         id: "exploratory-bugs",
-        expectedCadence: "once a day",
+        expectedCadence: DAILY_CADENCE,
         expectedCommand: "/lisa-expo:exploratory-qa ready=true",
       })
     );
