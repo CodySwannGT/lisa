@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.62.2](https://github.com/CodySwannGT/lisa/compare/v4.62.1...v4.62.2) (2026-09-16)
+
+
+### Bug Fixes
+
+* refuse native environment resets when ordering is unknown ([fb10b36](https://github.com/CodySwannGT/lisa/commit/fb10b36bd0fb6c2299697dfaa16fc6cbec0e2044)), closes [CodySwannGT/lisa#4224](https://github.com/CodySwannGT/lisa/issues/4224) [CodySwannGT/lisa#4224](https://github.com/CodySwannGT/lisa/issues/4224)
+
 ### [4.62.1](https://github.com/CodySwannGT/lisa/compare/v4.62.0...v4.62.1) (2026-09-15)
 
 
