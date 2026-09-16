@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.63.0](https://github.com/CodySwannGT/lisa/compare/v4.62.4...v4.63.0) (2026-09-16)
+
+
+### Features
+
+* connect console starter sync and optional scheduling ([5444429](https://github.com/CodySwannGT/lisa/commit/5444429c8a1eb919f882018a43ca80c737b6ce81)), closes [CodySwannGT/lisa#1534](https://github.com/CodySwannGT/lisa/issues/1534) [CodySwannGT/lisa#1534](https://github.com/CodySwannGT/lisa/issues/1534) [CodySwannGT/lisa#1534](https://github.com/CodySwannGT/lisa/issues/1534)
+
+
+### Bug Fixes
+
+* **bdd:** map starter sync console outcomes ([cf1d198](https://github.com/CodySwannGT/lisa/commit/cf1d1983d28723985aecec9dce274d9a6893b2cc)), closes [CodySwannGT/lisa#1534](https://github.com/CodySwannGT/lisa/issues/1534) [CodySwannGT/lisa#1534](https://github.com/CodySwannGT/lisa/issues/1534)
+* **ui:** require a launch capability for starter sync ([a4a079d](https://github.com/CodySwannGT/lisa/commit/a4a079d8a9171e68669a813b32c748d9994aa2eb)), closes [CodySwannGT/lisa#1534](https://github.com/CodySwannGT/lisa/issues/1534) [CodySwannGT/lisa#1534](https://github.com/CodySwannGT/lisa/issues/1534)
+
+
+### Documentation
+
+* describe the connected starter sync control ([d1cf7d2](https://github.com/CodySwannGT/lisa/commit/d1cf7d20631b67b088c1d054734ac1556dfff849)), closes [CodySwannGT/lisa#1534](https://github.com/CodySwannGT/lisa/issues/1534) [CodySwannGT/lisa#1534](https://github.com/CodySwannGT/lisa/issues/1534)
+
 ### [4.62.4](https://github.com/CodySwannGT/lisa/compare/v4.62.3...v4.62.4) (2026-09-16)
 
 
