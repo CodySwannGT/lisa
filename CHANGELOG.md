@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.62.3](https://github.com/CodySwannGT/lisa/compare/v4.62.2...v4.62.3) (2026-09-16)
+
+
+### Bug Fixes
+
+* anchor inherited scratch leases to the active temp root ([a6f8531](https://github.com/CodySwannGT/lisa/commit/a6f853118bd3144d35ff8eff9dce966b4047f149)), closes [CodySwannGT/lisa#3206](https://github.com/CodySwannGT/lisa/issues/3206) [CodySwannGT/lisa#3206](https://github.com/CodySwannGT/lisa/issues/3206)
+
 ### [4.62.2](https://github.com/CodySwannGT/lisa/compare/v4.62.1...v4.62.2) (2026-09-16)
 
 
