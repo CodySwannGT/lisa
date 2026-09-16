@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.64.0](https://github.com/CodySwannGT/lisa/compare/v4.63.0...v4.64.0) (2026-09-16)
+
+
+### Features
+
+* **accounting:** retain sourced delivery observations and recurring failures ([7283746](https://github.com/CodySwannGT/lisa/commit/7283746ee018353de759ea2d247828a7cdd98a59)), closes [CodySwannGT/lisa#4231](https://github.com/CodySwannGT/lisa/issues/4231) [CodySwannGT/lisa#4231](https://github.com/CodySwannGT/lisa/issues/4231)
+
+
+### Bug Fixes
+
+* **accounting:** preserve portable references and bounded test execution ([9b2e6cc](https://github.com/CodySwannGT/lisa/commit/9b2e6ccd89c15e51db510e9f7e0dcd9944d36a96)), closes [CodySwannGT/lisa#4231](https://github.com/CodySwannGT/lisa/issues/4231) [CodySwannGT/lisa#4231](https://github.com/CodySwannGT/lisa/issues/4231)
+* **accounting:** reject observations without a usage entry ([5d4da26](https://github.com/CodySwannGT/lisa/commit/5d4da2632306f1b0746ad888e7e07654a29c855d)), closes [CodySwannGT/lisa#4231](https://github.com/CodySwannGT/lisa/issues/4231) [CodySwannGT/lisa#4231](https://github.com/CodySwannGT/lisa/issues/4231)
+
 ## [4.63.0](https://github.com/CodySwannGT/lisa/compare/v4.62.4...v4.63.0) (2026-09-16)
 
 
