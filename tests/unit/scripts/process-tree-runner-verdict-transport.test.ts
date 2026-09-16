@@ -21,6 +21,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import * as processTreeRunner from "../../../all/copy-overwrite/scripts/lib/process-tree-runner.mjs";
 
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import {
   cleanupTokenProcesses,
   descendantSignalFixture,
@@ -112,9 +113,19 @@ describe.skipIf(process.platform === "win32")(
         ].join("\n")
       );
       chmodSync(fakePs, 0o755);
-      process.env.PATH = `${root}${path.delimiter}${originalPath ?? ""}`;
 
       try {
+        // Prepare the fresh executable before applying the process-table
+        // probe's one-second bound. On macOS, first execution of this fixture
+        // can take seconds even when subsequent executions take milliseconds.
+        const ready = boundedSpawnSync({
+          label: "large process-table fixture startup",
+          command: fakePs,
+          args: [],
+          stdio: "ignore",
+        });
+        expect(ready.status).toBe(0);
+        process.env.PATH = `${root}${path.delimiter}${originalPath ?? ""}`;
         expect(tokenProcessIds(token)).toEqual([1]);
       } finally {
         process.env.PATH = originalPath;
