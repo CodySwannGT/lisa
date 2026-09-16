@@ -709,6 +709,15 @@ export function parseLisaUsageSection(
     }
   );
 
+  const entryIds = new Set(entries.map(entry => entry.entryId));
+  for (const entryId of effectiveness.keys()) {
+    if (!entryIds.has(entryId)) {
+      throw new Error(
+        `Effectiveness observation has no usage entry: ${entryId}`
+      );
+    }
+  }
+
   return { entries, rollup: parseLisaUsageRollup(section), range };
 }
 

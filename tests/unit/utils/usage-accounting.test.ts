@@ -110,6 +110,19 @@ describe("usage-accounting utilities", () => {
     });
     const parsed = parseLisaUsageSection(original);
     expect(parsed.entries[0]).toEqual(observed);
+    const orphaned = original.replace(
+      "lisa:usage-effectiveness entry_id=observed-entry",
+      "lisa:usage-effectiveness entry_id=missing-entry"
+    );
+    expect(() => parseLisaUsageSection(orphaned)).toThrow(
+      "Effectiveness observation has no usage entry: missing-entry"
+    );
+    expect(() =>
+      upsertLisaUsageSection(orphaned, {
+        entries: [legacy],
+        rollup: parsed.rollup!,
+      })
+    ).toThrow("Effectiveness observation has no usage entry: missing-entry");
     const legacyRefresh = upsertLisaUsageSection(original, {
       entries: [{ ...legacy, cost: 0.5 }],
       rollup: parsed.rollup!,
