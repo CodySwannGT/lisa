@@ -6,12 +6,17 @@ import * as path from "node:path";
 import { removeAuthorizedScratchChild } from "./scratch-authority.js";
 import {
   createScratchOwnerRecord,
+  processBirthFingerprint,
   readScratchOwnerRecord,
   scratchPathIdentity,
   writeScratchOwnerRecord,
   type ScratchOwnerRecordV1,
   type ScratchPathIdentity,
 } from "./scratch-owner.js";
+import {
+  SCRATCH_NAMESPACE,
+  scratchBaseDir,
+} from "./scratch-namespace-authority.js";
 import {
   openOwnedScratchRunRoot,
   type ScratchRunRootIntentV1,
@@ -182,7 +187,8 @@ function validateSuiteRoot(lease: ScratchSupervisionLeaseV1): {
   if (
     namespace.dev !== lease.namespace.dev ||
     namespace.ino !== lease.namespace.ino ||
-    path.dirname(namespace.canonicalPath) !== lease.baseCanonicalPath
+    namespace.canonicalPath !==
+      path.join(lease.baseCanonicalPath, SCRATCH_NAMESPACE)
   ) {
     throw new Error("Scratch supervision namespace identity changed");
   }
@@ -199,6 +205,51 @@ function validateSuiteRoot(lease: ScratchSupervisionLeaseV1): {
     throw new Error("Scratch supervision suite token or identity changed");
   }
   return { path: rootPath, identity };
+}
+
+/**
+ * Anchor inherited authority before setup redirects this process's temp path.
+ * @param lease - Parsed inherited lease.
+ */
+export function assertScratchSupervisionTempRoot(
+  lease: ScratchSupervisionLeaseV1
+): void {
+  const suite = validateSuiteRoot(lease);
+  const current = scratchPathIdentity(scratchBaseDir());
+  if (current.canonicalPath === lease.baseCanonicalPath) return;
+  // The direct adapter starts inside the suite; nested workers inherit a
+  // marked worker directory. Neither permits an unrelated temp base.
+  if (
+    current.canonicalPath === suite.path &&
+    current.dev === suite.identity.dev &&
+    current.ino === suite.identity.ino
+  )
+    return;
+  if (
+    path.dirname(current.canonicalPath) !== suite.path ||
+    !/^worker-\d+-[a-f0-9]{16}$/u.test(path.basename(current.canonicalPath))
+  ) {
+    throw new Error(
+      "Scratch supervision lease does not belong to this process temp root"
+    );
+  }
+  const owner = readScratchOwnerRecord(current.canonicalPath);
+  // Inherited nested authority requires an OS-verifiable birth. Missing or
+  // unsupported platform probes refuse; Windows managed supervision is not
+  // supported. PID liveness alone must not authorize this entry path.
+  if (
+    owner.namespace.canonicalPath !== suite.path ||
+    owner.namespace.dev !== suite.identity.dev ||
+    owner.namespace.ino !== suite.identity.ino ||
+    owner.root.canonicalPath !== current.canonicalPath ||
+    owner.root.dev !== current.dev ||
+    owner.root.ino !== current.ino ||
+    processBirthFingerprint(owner.pid) !== owner.processBirthFingerprint
+  ) {
+    throw new Error(
+      "Scratch supervision inherited temp worker authority changed"
+    );
+  }
 }
 
 /**

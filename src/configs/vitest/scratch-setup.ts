@@ -38,6 +38,7 @@ import { env } from "node:process";
 
 import {
   SCRATCH_SUPERVISION_LEASE_ENV,
+  assertScratchSupervisionTempRoot,
   createScratchSupervisionLease,
   createSupervisedWorkerScope,
   parseScratchSupervisionLease,
@@ -223,7 +224,10 @@ export const installScratchRoot = (): string => {
     // assertion demands `LISA_TEST_SCRATCH_SUITE` be set, which is the
     // wrapper's job, so an unsupervised run fails it every time. Running it
     // here would trade one collection-time throw for another.
-    if (ownedSuiteRoot === undefined) assertScratchRouteProfile(lease);
+    if (ownedSuiteRoot === undefined) {
+      assertScratchRouteProfile(lease);
+      assertScratchSupervisionTempRoot(lease);
+    }
     return createSupervisedWorkerScope(lease);
   })();
   const root = worker.path;
