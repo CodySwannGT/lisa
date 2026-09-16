@@ -55,9 +55,7 @@ test("reports a PR, nothing to do, and a real failure without generic success", 
   try {
     await page.goto(launchUrl);
     await expect(page).not.toHaveURL(/lisa-token/u);
-    await page.evaluate(() => {
-      location.hash = "starters";
-    });
+    await page.evaluate("window.location.hash = 'starters'");
     const button = page.getByRole("button", { name: "Sync now", exact: true });
     const status = page.locator("#starterSyncStatus");
     await button.click();
