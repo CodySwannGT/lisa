@@ -52,14 +52,17 @@ const RECORDED = DUAL_ADOPTION_CONTROLS as Record<
 const GOVERNED = QUALITY_JOB_GATES as Record<string, string | undefined>;
 
 /**
- * The input every job's `if:` legitimately reads without being a second control.
+ * Caller context a job's `if:` can read without adding an adoption toggle.
  *
  * `skip_jobs` is the legacy escape the registry is replacing, and it is a
  * property of the CALLER rather than an adoption state of the job. Its own
  * retirement is tracked elsewhere; counting it here would put every job in this
  * table and say nothing.
+ * `moment` identifies the lifecycle event rather than whether a consumer adopts
+ * a check. Tooling suites use it to restrict execution to pull requests; the
+ * node-suites-pr-only contract tests that lifecycle restriction directly.
  */
-const NOT_AN_ADOPTION_CONTROL = new Set(["skip_jobs"]);
+const NOT_AN_ADOPTION_CONTROL = new Set(["skip_jobs", "moment"]);
 
 /**
  * Alphabetical order both sides of a set comparison are put into.
@@ -71,7 +74,7 @@ const NOT_AN_ADOPTION_CONTROL = new Set(["skip_jobs"]);
 const byName = (left: string, right: string): number =>
   left.localeCompare(right);
 
-/** Every gated job whose `if:` reads an input beyond `skip_jobs`, derived. */
+/** Every gated job whose `if:` reads an input beyond caller context, derived. */
 const derived: Record<string, string[]> = (() => {
   const found: Record<string, string[]> = {};
   for (const file of WORKFLOW_FILES) {

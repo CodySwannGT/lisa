@@ -5604,7 +5604,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [gate_plan]
-    if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test_node_suites,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_node_suites":"skip"')) }}
+    # Tooling suites are PR checks. Enforce this in the shared workflow so an
+    # older consumer's planner cannot run them again during a deployment.
+    if: ${{ always() && !cancelled() && inputs.moment == 'pull-request' && !contains(format(',{0},', inputs.skip_jobs), ',test_node_suites,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_node_suites":"skip"')) }}
 
     steps:
       - name: 📥 Checkout repository
