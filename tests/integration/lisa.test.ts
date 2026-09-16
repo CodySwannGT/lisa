@@ -32,6 +32,21 @@ import {
 } from "../helpers/test-utils.js";
 import { ioLatencyBudgetMs } from "../helpers/io-latency-budget.js";
 
+// Marketplace installation is outside this suite's file-generation assertions.
+// Never install into the operator's real agents while generating test projects.
+vi.mock("../../src/agy/plugin-installer.js", () => ({
+  installAgyPlugin: vi.fn().mockResolvedValue({
+    attempted: false,
+    installed: false,
+  }),
+}));
+vi.mock("../../src/copilot/plugin-installer.js", () => ({
+  installCopilotPlugin: vi.fn().mockResolvedValue({
+    attempted: false,
+    installed: false,
+  }),
+}));
+
 const PACKAGE_JSON = "package.json";
 const SETTINGS_JSON = "settings.json";
 const TEST_TXT = "test.txt";
@@ -69,12 +84,19 @@ describe("Lisa Integration Tests", () => {
 
   beforeEach(async () => {
     tempDir = await createTempDir();
+    // Full fleet apply also reconciles user-scoped Antigravity MCP settings.
+    // Keep that real filesystem behavior inside this fixture's owned tree.
+    const home = path.join(tempDir, "home");
+    await fs.ensureDir(home);
+    vi.stubEnv("HOME", home);
+    vi.stubEnv("USERPROFILE", home);
     lisaDir = path.join(tempDir, "lisa");
     destDir = path.join(tempDir, "project");
     await createMockLisaDir(lisaDir);
   });
 
   afterEach(async () => {
+    vi.unstubAllEnvs();
     await cleanupTempDir(tempDir);
   });
 
@@ -622,6 +644,11 @@ describe("Lisa Integration Tests", () => {
       // precisely the `.codex` reconciliation no `bun install` can perform.
       expect(await fs.pathExists(staleCodexAgentPath)).toBe(false);
       expect(await fs.pathExists(path.join(destDir, "AGENTS.md"))).toBe(true);
+      expect(
+        await fs.readJson(
+          path.join(tempDir, "home", ".gemini", "config", "mcp_config.json")
+        )
+      ).toEqual({ mcpServers: {} });
       const hooks = await fs.readJson(
         path.join(destDir, CODEX_DIR, "hooks.json")
       );
