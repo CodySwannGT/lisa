@@ -246,7 +246,7 @@ const buildConflictRepo = (failPush: boolean): ConflictRepo => {
   );
 
   // PATH shims. `npx` stands in for standard-version's deterministic
-  // `--release-as` re-stamp; `sleep` no-ops the backoff. The re-stamp uses
+  // `--release-as` re-stamp. The re-stamp uses
   // sed (not a spawned node) to keep the subprocess/FD footprint minimal under
   // the full parallel suite.
   fs.writeFileSync(
@@ -272,7 +272,6 @@ const buildConflictRepo = (failPush: boolean): ConflictRepo => {
       "exit 0",
     ].join("\n")
   );
-  fs.writeFileSync(path.join(binDir, "sleep"), "#!/usr/bin/env bash\nexit 0\n");
   if (failPush) {
     // Force every push to fail so the cap-exhaustion escalation path is
     // exercised. Non-push git subcommands pass through to the real binary.
@@ -290,7 +289,6 @@ const buildConflictRepo = (failPush: boolean): ConflictRepo => {
     fs.chmodSync(path.join(binDir, "git"), 0o700);
   }
   fs.chmodSync(path.join(binDir, "npx"), 0o700);
-  fs.chmodSync(path.join(binDir, "sleep"), 0o700);
 
   return {
     root,
@@ -318,7 +316,10 @@ const runStep = (
     },
   };
   let lastErr: unknown;
-  fs.writeFileSync(scriptFile, script);
+  // Backoff is intentionally a no-op in this fixture. A shell function avoids
+  // spawning a fresh executable just to return: a traced macOS run exhausted
+  // the unchanged child deadline at the former sleep-shim invocation.
+  fs.writeFileSync(scriptFile, `sleep() { :; }\n${script}`);
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
       return boundedSpawnSync({
