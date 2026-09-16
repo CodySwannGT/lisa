@@ -69,6 +69,16 @@ For each inspected queue, report:
 
 The report should stay terminal-first and immediately actionable: observable queue facts first, then the smallest useful next step.
 
+## Delivery effort
+
+Alongside queue counts, run the read-only `lisa effectiveness report`. Show observed
+human interventions per accepted outcome, its numerator/denominator, and evidence
+sources. State that this covers locally observed outcomes; absent reports or null
+attention mean **unknown**, not zero. If queue-wide coverage has not been verified,
+do not imply the ratio describes the whole queue. Show the separate run clocks and
+committed recurring-failure counts when present. Do not create reports, change
+tracker state, or use PR/token counts as outcome-value proxies from this skill.
+
 ## Pull request arming (#3903)
 
 Alongside the two work queues, report the **arming state of the repo's open pull requests**. A PR whose `autoMergeRequest` is `null` is fully green and permanently unmergeable: every check passes, `mergeStateStatus` is green, nothing complains, and it waits forever. Green-and-unarmed and green-and-waiting read identically on every other surface, so this is the one place that asks the question.

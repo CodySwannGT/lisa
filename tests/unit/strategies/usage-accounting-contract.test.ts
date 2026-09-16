@@ -231,9 +231,11 @@ describe("usage-accounting contract docs", () => {
       );
     });
 
-    it("documents deterministic rewrite rules with no timestamps", () => {
+    it("keeps rewrite timestamps out of the primary token and preamble", () => {
       expect(content).toMatch(/byte-identical output/i);
-      expect(content).toMatch(/Do not include timestamps/i);
+      expect(content).toMatch(
+        /Do not add timestamps to the section preamble or primary usage token/i
+      );
       expect(content).toMatch(/Sort direct entries deterministically/i);
     });
   });

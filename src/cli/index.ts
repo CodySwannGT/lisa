@@ -39,6 +39,7 @@ import { addEnvironmentCommand } from "./environment-cmd.js";
 import { addRemoteEnvCommand } from "./remote-env-cmd.js";
 import { addWorkstationCommand } from "./workstation-cmd.js";
 import { getPackageVersion } from "./version.js";
+import { addEffectivenessCommand } from "./effectiveness-cmd.js";
 
 /**
  * Injectable collaborators for {@link createProgram}. Defaults wire the real
@@ -243,6 +244,7 @@ function addMaintenanceCommands(
     });
 
   addWorkstationCommand(program);
+  addEffectivenessCommand(program);
   addRemoteEnvCommand(program);
   addEnvironmentCommand(program);
   addDoctorCommand(program, deps);

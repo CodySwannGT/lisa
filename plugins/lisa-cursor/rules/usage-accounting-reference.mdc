@@ -257,6 +257,10 @@ The rollup contract is additive across the hierarchy: PRDs may roll up Epics/Sto
 - Re-running with the same logical entry set must produce byte-identical output. Rewriting a legacy
   primary-only marker or the 2.222.0 transitional marker migrates once to the canonical
   primary-plus-extension layout; subsequent rewrites are byte-identical.
-- Do not include timestamps in the section preamble or token lines.
+- Do not add timestamps to the section preamble or primary usage token. Sourced
+  lifecycle timestamps belong only in the optional effectiveness extension.
 
 Idempotency is enforced by `entry_id` for direct entries and by the fixed rollup token field order for totals.
+## Delivery observations
+
+The optional effectiveness extension, clock definitions, and recurrence storage contract live in the [portable usage-accounting reference](../../skills/lisa-usage-accounting/references/effectiveness.md), shared by every supported agent. The primary 17-field usage token remains unchanged.

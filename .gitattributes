@@ -33,6 +33,7 @@
 # collision this ledger exists to prevent. Entries carry an expiry and
 # stop applying on their own, so the file drains without an editor.
 .lisa/HAZARDS.jsonl merge=union
+.lisa/RECURRENCES.jsonl merge=union
 
 # END: AI GUARDRAILS
 

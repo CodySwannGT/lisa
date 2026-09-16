@@ -168,9 +168,9 @@ describe.each(SKILL_PATHS)("gardener skill runbook (%s)", skillPath => {
     expect(skill).toMatch(/trim/i);
     expect(skill).toMatch(/collapse/i);
     expect(skill).toMatch(/lowercase/i);
-    // Deterministic Bash hash, truncated to 12 hex chars.
-    expect(skill).toContain("shasum -a 256");
-    expect(skill).toContain("cut -c1-12");
+    // Shared executable fingerprint, truncated to 12 hex chars.
+    expect(skill).toContain("lisa effectiveness fingerprint --input");
+    expect(skill).toContain("12 SHA-256");
     expect(skill).toMatch(/never estimated by the model/i);
   });
 

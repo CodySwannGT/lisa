@@ -47,6 +47,7 @@ export function addUpdateCheckHook(
 function isUpdateCheckExempt(actionCommand: Command): boolean {
   return (
     actionCommand.parent?.name() === "kane" ||
+    actionCommand.parent?.name() === "effectiveness" ||
     UPDATE_CHECK_EXEMPT_COMMANDS.includes(actionCommand.name()) ||
     (GATE_COMMAND_NAMES as readonly string[]).includes(actionCommand.name())
   );
