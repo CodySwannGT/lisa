@@ -140,6 +140,15 @@ the managed comment path.
 
 ### Step 3 — Apply the requested operation
 
+For lifecycle rows, include the optional `effectiveness` observations defined in
+[portable effectiveness reference](references/effectiveness.md): four separate clocks, explicit unknowns, sourced human
+events, Lisa version, and worker configuration revision. Preserve extensions on old
+rows. After the canonical host write passes readback, mirror the row through
+`lisa effectiveness record --input <json-file>` for local status reports. On a
+confirmed recurrence after its control shipped, use `lisa effectiveness recurrence
+--input <json-file>` with the stable source event identity; commit that history
+through normal checks. Do not infer human minutes or invent missing runtime telemetry.
+
 All three operations use the shared utilities and rule contract; they differ only in which inputs
 they require and whether they recompute child totals:
 

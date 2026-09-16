@@ -2,6 +2,11 @@
 
 import { collectLisaUsageChildArtifacts } from "./usage-accounting-rollup.js";
 import { sumNullableDecimals } from "./decimal-sum.js";
+import {
+  parseEffectivenessTokens,
+  renderEffectivenessToken,
+  type EffectivenessObservation,
+} from "./effectiveness.js";
 
 export const LISA_USAGE_HEADING = "## Lisa Usage";
 
@@ -14,6 +19,7 @@ export interface LisaUsageEntry {
   cost: number | null;
   currency: string | null;
   entryId: string;
+  effectiveness?: EffectivenessObservation;
   flow: string;
   inputTokens: number | null;
   measuredSubsetTokens?: number | null;
@@ -349,9 +355,18 @@ export function mergeLisaUsageEntries(
   const incoming = new Map(
     nextEntries.map(entry => [entry.entryId, entry] as const)
   );
-  const mergedExisting = existingEntries.map(
-    entry => incoming.get(entry.entryId) ?? entry
-  );
+  const mergedExisting = existingEntries.map(entry => {
+    const next = incoming.get(entry.entryId);
+    return next === undefined
+      ? entry
+      : {
+          ...next,
+          ...(next.effectiveness === undefined &&
+          entry.effectiveness !== undefined
+            ? { effectiveness: entry.effectiveness }
+            : {}),
+        };
+  });
   const appended = nextEntries.filter(
     entry =>
       !existingEntries.some(existing => existing.entryId === entry.entryId)
@@ -529,7 +544,7 @@ export function createLisaUsageRollup(
 export function renderLisaUsageEntryToken(entry: LisaUsageEntry): string {
   const primaryToken = `<!-- lisa:usage-entry entry_id=${encodeTokenValue(entry.entryId)} flow=${encodeTokenValue(entry.flow)} run_id=${encodeTokenValue(entry.runId)} provider=${encodeTokenValue(entry.provider)} model=${encodeTokenValue(entry.model)} source=${encodeTokenValue(entry.source)} input_tokens=${renderNullable(entry.inputTokens)} cached_input_tokens=${renderNullable(entry.cachedInputTokens)} output_tokens=${renderNullable(entry.outputTokens)} reasoning_tokens=${renderNullable(entry.reasoningTokens)} total_tokens=${renderNullable(entry.totalTokens)} cost=${renderNullable(entry.cost)} currency=${renderNullable(entry.currency)} pricing_status=${encodeTokenValue(entry.pricingStatus)} pricing_source=${renderNullable(entry.pricingSource)} artifact_ref=${encodeTokenValue(entry.artifactRef)} parent_artifact_ref=${entry.parentArtifactRef === null ? "" : encodeTokenValue(entry.parentArtifactRef)} -->`;
   const measuredSubsetToken = `<!-- lisa:usage-entry-measured-subset entry_id=${encodeTokenValue(entry.entryId)} measured_subset_tokens=${renderNullable(entry.measuredSubsetTokens ?? null)} -->`;
-  return `${primaryToken} ${measuredSubsetToken}`;
+  return `${primaryToken} ${measuredSubsetToken}${renderEffectivenessToken(entry.entryId, entry.effectiveness)}`;
 }
 
 /**
@@ -635,6 +650,7 @@ export function parseLisaUsageSection(
 ): ParsedLisaUsageSection {
   const range = findUsageSectionRange(document);
   const section = range ? document.slice(range.start, range.end) : "";
+  const effectiveness = parseEffectivenessTokens(section);
   const measuredSubsets = new Map(
     Array.from(
       section.matchAll(MEASURED_SUBSET_PATTERN),
@@ -663,6 +679,9 @@ export function parseLisaUsageSection(
           : parseReleasedMeasuredSubset(match[12] ?? "");
       return {
         entryId,
+        ...(effectiveness.has(entryId)
+          ? { effectiveness: effectiveness.get(entryId)! }
+          : {}),
         flow: decodeTokenValue(match[2] ?? ""),
         runId: decodeTokenValue(match[3] ?? ""),
         provider: decodeTokenValue(match[4] ?? ""),
@@ -689,6 +708,15 @@ export function parseLisaUsageSection(
       };
     }
   );
+
+  const entryIds = new Set(entries.map(entry => entry.entryId));
+  for (const entryId of effectiveness.keys()) {
+    if (!entryIds.has(entryId)) {
+      throw new Error(
+        `Effectiveness observation has no usage entry: ${entryId}`
+      );
+    }
+  }
 
   return { entries, rollup: parseLisaUsageRollup(section), range };
 }

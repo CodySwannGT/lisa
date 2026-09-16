@@ -260,10 +260,19 @@ computed **deterministically — never estimated by the model**:
 
 1. **Normalize** the invariant text: trim leading/trailing whitespace,
    collapse every internal whitespace run to a single space, lowercase.
-2. **Hash** in Bash: `printf '%s' "$normalized" | shasum -a 256 | cut -c1-12`.
+2. **Hash** through the shared implementation: write the invariant to a text file
+   and run `lisa effectiveness fingerprint --input <file>`. This performs the
+   normalization above and returns the first 12 SHA-256 hex characters.
 
 The same knowledge item therefore always produces the same key across runs,
 regardless of which session computes it.
+
+Read `lisa effectiveness report` for committed post-control recurrence counts by
+the same `<surface>+<invariant-hash>` key. Cite the count and occurrence sources as
+evidence when deciding whether a control helped. Missing history means unknown,
+not a successful control. Counts do not automatically justify a new ticket: apply
+the existing worth-doing judgment. The learning entry's content-version fingerprint
+is a different identifier and must not be substituted for this invariant hash.
 
 Before filing anything, search the tracker for the marker in
 **open AND closed** issues — and key the search on the deterministic

@@ -177,6 +177,7 @@ export function renderLearningsGitattributesBlock(ledgerPath: string): string {
     "# collision this ledger exists to prevent. Entries carry an expiry and",
     "# stop applying on their own, so the file drains without an editor.",
     `${OPERATIONAL_HAZARDS_LEDGER} merge=union`,
+    ".lisa/RECURRENCES.jsonl merge=union",
     "",
     GITATTRIBUTES_END_MARKER,
     "",

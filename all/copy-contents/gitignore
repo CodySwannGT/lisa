@@ -269,6 +269,7 @@ expo-env.d.ts
 # adding this line does not untrack a file already committed
 # (CodySwannGT/lisa#3046).
 .lisa/readiness.json
+.lisa/effectiveness/
 
 # Remote-dispatch ledger. Records the sessions this machine started so a later
 # run can find them. Per developer by construction — each fires their own

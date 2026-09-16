@@ -4,6 +4,7 @@ import {
   createLisaUsageRollup,
   LISA_USAGE_HEADING,
   parseLisaUsageSection,
+  renderLisaUsageEntryToken,
   type LisaUsageChildArtifact,
   type LisaUsageEntry,
   type LisaUsageRollup,
@@ -78,6 +79,74 @@ function makeRollup(overrides: Partial<LisaUsageRollup> = {}): LisaUsageRollup {
 }
 
 describe("usage-accounting utilities", () => {
+  it("round-trips effectiveness beside the unchanged legacy token", () => {
+    const legacy = makeEntry({
+      entryId: "observed-entry",
+      runId: "observed-run",
+    });
+    const observed: LisaUsageEntry = {
+      ...legacy,
+      effectiveness: {
+        schema: 1,
+        lisaVersion: "4.62.3",
+        workerConfigRevision: null,
+        workerWallMs: null,
+        feedbackMs: null,
+        workerSource: null,
+        attention: null,
+        readyAt: null,
+        acceptedAt: null,
+        lifecycleSources: null,
+        reworkSources: null,
+      },
+    };
+    const legacyToken = renderLisaUsageEntryToken(legacy);
+    expect(renderLisaUsageEntryToken(observed).startsWith(legacyToken)).toBe(
+      true
+    );
+    const original = upsertLisaUsageSection(ARTIFACT_DOCUMENT, {
+      entries: [observed],
+      rollup: createLisaUsageRollup([observed]),
+    });
+    const parsed = parseLisaUsageSection(original);
+    expect(parsed.entries[0]).toEqual(observed);
+    const orphaned = original.replace(
+      "lisa:usage-effectiveness entry_id=observed-entry",
+      "lisa:usage-effectiveness entry_id=missing-entry"
+    );
+    expect(() => parseLisaUsageSection(orphaned)).toThrow(
+      "Effectiveness observation has no usage entry: missing-entry"
+    );
+    expect(() =>
+      upsertLisaUsageSection(orphaned, {
+        entries: [legacy],
+        rollup: parsed.rollup!,
+      })
+    ).toThrow("Effectiveness observation has no usage entry: missing-entry");
+    const legacyRefresh = upsertLisaUsageSection(original, {
+      entries: [{ ...legacy, cost: 0.5 }],
+      rollup: parsed.rollup!,
+    });
+    expect(parseLisaUsageSection(legacyRefresh).entries[0]).toMatchObject({
+      cost: 0.5,
+      effectiveness: observed.effectiveness,
+    });
+    expect(
+      upsertLisaUsageSection(original, {
+        entries: parsed.entries,
+        rollup: parsed.rollup!,
+      })
+    ).toBe(original);
+    expect(
+      parseLisaUsageSection(`${LISA_USAGE_HEADING}\n${legacyToken}`).entries[0]
+    ).not.toHaveProperty("effectiveness");
+    expect(() =>
+      parseLisaUsageSection(
+        `${original}\n<!-- lisa:usage-effectiveness entry_id=observed-entry data=broken -->`
+      )
+    ).toThrow();
+  });
+
   it("appends the managed Lisa Usage section when none exists", () => {
     const original = [ARTIFACT_HEADING, "", "Body content."].join("\n");
     const entry = makeEntry({ entryId: "entry-1", runId: "run-1" });

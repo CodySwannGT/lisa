@@ -260,6 +260,7 @@ expo-env.d.ts
 # adding this line does not untrack a file already committed
 # (CodySwannGT/lisa#3046).
 .lisa/readiness.json
+.lisa/effectiveness/
 
 # Two-snapshot local temp-growth measurement. It records machine paths, inode
 # identity and live process ownership, so it is runtime evidence, not source.

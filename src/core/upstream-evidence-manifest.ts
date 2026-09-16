@@ -3,9 +3,9 @@
 export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
   Object.freeze({
     "all/copy-contents/.gitattributes":
-      "c30d90e57bc00e674e8a35d7d61d41ad10d40943f4f682704e1e8517c8124fa1",
+      "e5e115d084d4c7ff855ab9b39285c725f39700af54f73ef2e90845f1b8d72c36",
     "all/copy-contents/gitignore":
-      "66e105ae1b6874e6c587d128a04ff5a5005bf923759fc41cc31d73b9ba44bacf",
+      "5daf7f69f80d9ae03e7ccd01fa44d756f2e11367e41c2e05937a8ef0bb8d34b6",
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
       "8a4b2cab9ac32a855e2adc1a7a3c6f7a9ac35dcb75cda2fac7eea144ced50098",
     "all/copy-overwrite/scripts/check-npm-publish-landed.mjs":
@@ -1017,7 +1017,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/upstream-to-lisa.md":
       "e98974e4f48af05f788323c92badae6a97a2feec1ca8e8a9c05ddc3e3c948492",
     "plugins/src/base/rules/reference/usage-accounting.md":
-      "e1a4da4121e5636af7093b9b3dd8b8ce4261caad35063346964fdf58c8615aa5",
+      "64ee616bdad7c16d5cc4b9eb44384de261b0616ec3343d4c05a88ddede3d89ea",
     "plugins/src/base/rules/reference/verification.md":
       "9ae8db87b37c7700687fabd1b8632b3cddd0f1f1e4b04384c604f88f160056ed",
     "plugins/src/base/rules/reference/wiki-knowledge-source.md":
@@ -1249,7 +1249,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-kane-browser/SKILL.md":
       "e082517cb42f437eeb22b3935aa0fef09299874736e55184e88d2b64f7860a7d",
     "plugins/src/base/skills/lisa-learnings-audit/SKILL.md":
-      "ca79cd7fed7e9ca0965c2fcfa8266f2ebfb4ff9cc5fc53dc59343849e5373540",
+      "d024319d44688cbd69bedd91e5e87b92378998bd3b3594e083ca975a61980079",
     "plugins/src/base/skills/lisa-linear-access/SKILL.md":
       "83cbf20e7a9f5e5289f609f16079a95897aac5964380305d4a5193438230f965",
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
@@ -1345,7 +1345,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-quality-review/SKILL.md":
       "774c290f702842f8f751dcdf0e28e74b54e8efa299194c4a29475355da8c22e2",
     "plugins/src/base/skills/lisa-queue-status/SKILL.md":
-      "4bbb45c2db8d928897e2b901913b952860bbceaab3e9e7ffe54a71a4d60842a0",
+      "9b82907d52f24cc8d17044bf100d1391063b94d04c436b3b0b6f2cad0fe7277f",
     "plugins/src/base/skills/lisa-remote-dispatch/SKILL.md":
       "f3c48120a206d01db45f849ca5b61690d572abc16bc36d559a4cacc8f9422c06",
     "plugins/src/base/skills/lisa-remote-dispatch/scripts/dispatch.mjs":
@@ -1519,7 +1519,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-tracker-write/SKILL.md":
       "3c2e12ef37a8e20abe4d7ce4d01799dc2bc7b5304f6a18108da8f2318be31da1",
     "plugins/src/base/skills/lisa-usage-accounting/SKILL.md":
-      "838da4ca08fb6e6a4bc14b6cb5446be93c4565f468f169a1ec68435d275d1ef8",
+      "436e3d802fa0ec518103ef5ce4ca1c677bc6458fcaac9153d56cf752e03a593f",
+    "plugins/src/base/skills/lisa-usage-accounting/references/effectiveness.md":
+      "d34e7b4951bc26caf15625e081e8273a11ee8ca1bde6137750f4b687fca7e8bf",
     "plugins/src/base/skills/lisa-use-the-product/SKILL.md":
       "ab3f3ab475b7c97c3409f502b80d688816b1ff4b8e3dfeec7715d93ca41e3fa0",
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md":
@@ -3974,6 +3976,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-agy/skills/lisa-tracker-verify/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-tracker-write/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-usage-accounting/SKILL.md": true,
+    "plugins/lisa-agy/skills/lisa-usage-accounting/references/effectiveness.md": true,
     "plugins/lisa-agy/skills/lisa-use-the-product/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-validate-tracker-mapping/SKILL.md": true,
     "plugins/lisa-agy/skills/lisa-verification-lifecycle/SKILL.md": true,
@@ -4462,6 +4465,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/skills/lisa-tracker-verify/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-tracker-write/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-usage-accounting/SKILL.md": true,
+    "plugins/lisa-copilot/skills/lisa-usage-accounting/references/effectiveness.md": true,
     "plugins/lisa-copilot/skills/lisa-use-the-product/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-validate-tracker-mapping/SKILL.md": true,
     "plugins/lisa-copilot/skills/lisa-verification-lifecycle/SKILL.md": true,
@@ -4936,6 +4940,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/skills/lisa-tracker-verify/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-tracker-write/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-usage-accounting/SKILL.md": true,
+    "plugins/lisa-cursor/skills/lisa-usage-accounting/references/effectiveness.md": true,
     "plugins/lisa-cursor/skills/lisa-use-the-product/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-validate-tracker-mapping/SKILL.md": true,
     "plugins/lisa-cursor/skills/lisa-verification-lifecycle/SKILL.md": true,
@@ -7040,6 +7045,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/.codex-plugin/skills/lisa-tracker-write/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-usage-accounting/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-usage-accounting/agents/openai.yaml": true,
+    "plugins/lisa/.codex-plugin/skills/lisa-usage-accounting/references/effectiveness.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-use-the-product/SKILL.md": true,
     "plugins/lisa/.codex-plugin/skills/lisa-use-the-product/agents/openai.yaml": true,
     "plugins/lisa/.codex-plugin/skills/lisa-validate-tracker-mapping/SKILL.md": true,
@@ -7696,6 +7702,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/skills/lisa-tracker-write/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-usage-accounting/SKILL.md": true,
     "plugins/lisa/skills/lisa-usage-accounting/agents/openai.yaml": true,
+    "plugins/lisa/skills/lisa-usage-accounting/references/effectiveness.md": true,
     "plugins/lisa/skills/lisa-use-the-product/SKILL.md": true,
     "plugins/lisa/skills/lisa-use-the-product/agents/openai.yaml": true,
     "plugins/lisa/skills/lisa-validate-tracker-mapping/SKILL.md": true,
@@ -8191,6 +8198,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/skills/lisa-tracker-verify/SKILL.md": true,
     "plugins/src/base/skills/lisa-tracker-write/SKILL.md": true,
     "plugins/src/base/skills/lisa-usage-accounting/SKILL.md": true,
+    "plugins/src/base/skills/lisa-usage-accounting/references/effectiveness.md": true,
     "plugins/src/base/skills/lisa-use-the-product/SKILL.md": true,
     "plugins/src/base/skills/lisa-validate-tracker-mapping/SKILL.md": true,
     "plugins/src/base/skills/lisa-verification-lifecycle/SKILL.md": true,
@@ -8856,6 +8864,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/doctor-worktree-hygiene.ts": true,
     "src/cli/doctor-worktree-work-at-risk.ts": true,
     "src/cli/doctor.ts": true,
+    "src/cli/effectiveness-cmd.ts": true,
     "src/cli/environment-cmd.ts": true,
     "src/cli/file-upstream-cmd.ts": true,
     "src/cli/gate-commands.ts": true,
@@ -9062,6 +9071,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/deploy-release-dependence.ts": true,
     "src/core/downstream-names.ts": true,
     "src/core/downstream-references.ts": true,
+    "src/core/effectiveness-store.ts": true,
     "src/core/enforcement-census-report.ts": true,
     "src/core/enforcement-census.ts": true,
     "src/core/enforcement-coverage.ts": true,
@@ -9262,6 +9272,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/utils/atomic-file-write.ts": true,
     "src/utils/decimal-sum.ts": true,
     "src/utils/directory-sync.ts": true,
+    "src/utils/effectiveness.ts": true,
     "src/utils/fibonacci.ts": true,
     "src/utils/file-operations.ts": true,
     "src/utils/ignore-patterns.ts": true,
@@ -10017,6 +10028,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/cdk-preset-adoption.test.ts": true,
     "tests/unit/core/deletion-basis.test.ts": true,
     "tests/unit/core/deploy-release-dependence.test.ts": true,
+    "tests/unit/core/effectiveness-store.test.ts": true,
     "tests/unit/core/enforcement-census-roster.test.ts": true,
     "tests/unit/core/enforcement-census.test.ts": true,
     "tests/unit/core/find-age-predicate-truncation.test.ts": true,
@@ -10854,6 +10866,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/drive-pr-hold-gate.test.ts": true,
     "tests/unit/strategies/drive-pr-review-re-request-contract.test.ts": true,
     "tests/unit/strategies/easignore-worktree-exclusion.test.ts": true,
+    "tests/unit/strategies/effectiveness-parity.test.ts": true,
     "tests/unit/strategies/env-promotion-completeness.test.ts": true,
     "tests/unit/strategies/evidence-ref-contract.test.ts": true,
     "tests/unit/strategies/evidence-reference-contract.test.ts": true,
@@ -11051,6 +11064,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/transaction/backup.test.ts": true,
     "tests/unit/utils/atomic-file-write.test.ts": true,
     "tests/unit/utils/directory-sync.test.ts": true,
+    "tests/unit/utils/effectiveness.test.ts": true,
     "tests/unit/utils/fibonacci.test.ts": true,
     "tests/unit/utils/file-operations.test.ts": true,
     "tests/unit/utils/ignore-patterns-bootstrap.test.ts": true,
