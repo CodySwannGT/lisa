@@ -107,11 +107,7 @@ export const createClassifierTree = (): ClassifierTree => {
       { mode: 0o755 }
     );
   }
-  writeFileSync(
-    path.join(tree.stubBin, "node"),
-    `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} "$@"\n`,
-    { mode: 0o755 }
-  );
+  symlinkSync(process.execPath, path.join(tree.stubBin, "node"));
   return tree;
 };
 
