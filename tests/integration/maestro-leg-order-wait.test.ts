@@ -16,7 +16,8 @@
  *   return. That is the whole feature.
  *
  *   DEGRADATION — when it cannot tell what the iOS job is doing, it exits 0 and
- *   says the ordering was SKIPPED. It never exits non-zero, because row 26 of
+ *   says the ordering was SKIPPED when no between-leg reset is requested.
+ *   A requested reset instead fails closed on unknown iOS state. Row 26 of
  *   the nightly gate turns any non-success job into a `fail` verdict for the
  *   whole suite (docs/nightly-e2e-gate.md), which would block the merge gate on
  *   a night when both legs were green. Releasing costs one night of overlap —
@@ -227,6 +228,62 @@ describe.skipIf(!hasJq)("maestro-native-e2e leg ordering — the wait", () => {
         await api.close();
       }
     });
+  });
+
+  describe("unknown ordering with a between-leg reset", () => {
+    it.each([
+      { label: "missing token", overrides: { GH_TOKEN: "" } },
+      { label: "API refusal", overrides: {} },
+      {
+        label: "exhausted transport retries",
+        overrides: { MAX_TRANSIENT: "1" },
+        status: 502,
+      },
+    ])("refuses $label before the reset", async ({ overrides, status }) => {
+      const api = await startRefusingApi(status ?? 403);
+      try {
+        const result = await runWaitStep(workflow, LEG_ORDER, api, {
+          PREPARE_BETWEEN_LEGS: "true",
+          ...overrides,
+        });
+        expect(result.status).toBe(1);
+        expect(result.stdout).toContain("Cannot prepare between legs");
+        expect(result.stdout).not.toContain(FINISHED);
+      } finally {
+        await api.close();
+      }
+    });
+
+    it("refuses when no iOS job can be found", async () => {
+      const api = await startFakeApi([[ANDROID_API_JOB]]);
+      try {
+        const result = await runWaitStep(workflow, LEG_ORDER, api, {
+          PREPARE_BETWEEN_LEGS: "true",
+          PRE_SUITE_TIMEOUT_MINUTES: "0",
+          DISCOVERY_SLACK_MINUTES: "0",
+        });
+        expect(result.status).toBe(1);
+        expect(result.stdout).toContain("Cannot prepare between legs");
+      } finally {
+        await api.close();
+      }
+    });
+
+    it.each(["success", "failure"])(
+      "permits preparation after completed iOS %s",
+      async conclusion => {
+        const api = await startFakeApi([[iosApiJob("completed", conclusion)]]);
+        try {
+          const result = await runWaitStep(workflow, LEG_ORDER, api, {
+            PREPARE_BETWEEN_LEGS: "true",
+          });
+          expect(result.status).toBe(0);
+          expect(result.stdout).toContain(FINISHED);
+        } finally {
+          await api.close();
+        }
+      }
+    );
   });
 
   describe("a failing iOS leg does not suppress Android", () => {

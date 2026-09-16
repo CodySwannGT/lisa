@@ -195,3 +195,60 @@ describe("environment-prepare — inputs and permissions", () => {
     }
   });
 });
+
+/**
+ * Read the shipped caller that first-time Expo projects receive.
+ * @param suite - Seeded web or native suite.
+ * @returns Parsed caller inputs, permissions, and locking configuration.
+ */
+function seededCaller(suite: "maestro" | "playwright"): {
+  concurrency: { group: string; "cancel-in-progress": boolean };
+  permissions: Record<string, string>;
+  jobs: Record<
+    string,
+    {
+      with: Record<string, string | boolean>;
+      secrets?: Record<string, string>;
+    }
+  >;
+} {
+  return yaml.load(
+    readFileSync(
+      path.join(
+        REPO_ROOT,
+        "expo/create-only/.github/workflows",
+        `${suite}-e2e.yml`
+      ),
+      "utf8"
+    )
+  ) as ReturnType<typeof seededCaller>;
+}
+
+describe("seeded suites sharing a prepared environment", () => {
+  it("holds the same environment lock across web and native suites", () => {
+    const native = seededCaller("maestro");
+    const web = seededCaller("playwright");
+    const nativeInputs = native.jobs.maestro?.with ?? {};
+    const webInputs = web.jobs.playwright?.with ?? {};
+    expect(nativeInputs.prepare_environment).toBe("development");
+    expect(webInputs.prepare_environment).toBe(
+      nativeInputs.prepare_environment
+    );
+    expect(nativeInputs.concurrency_group).toBe("e2e-shared-development");
+    expect(webInputs.concurrency_group).toBe(nativeInputs.concurrency_group);
+    for (const caller of [native, web]) {
+      expect(caller.concurrency.group).not.toBe(nativeInputs.concurrency_group);
+      expect(caller.concurrency["cancel-in-progress"]).toBe(false);
+    }
+  });
+
+  it("orders native legs and prepares again before Android", () => {
+    const native = seededCaller("maestro");
+    expect(native.jobs.maestro?.with.serialize_platform_legs).toBe(true);
+    expect(native.jobs.maestro?.with.prepare_between_legs).toBe(true);
+    expect(native.permissions.actions).toBe("read");
+    expect(native.jobs.maestro?.secrets?.LEG_ORDER_TOKEN).toBe(
+      "${{ secrets.GITHUB_TOKEN }}"
+    );
+  });
+});

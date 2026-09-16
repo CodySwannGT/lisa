@@ -148,8 +148,8 @@ jobs:
       # Cross-run mutex on whatever this suite shares with the OTHER suites that
       # touch the same backend. Deliberately DISTINCT from this workflow's own
       # top-level `concurrency` group above — a shared group between a parent
-      # run and the child run it is waiting on deadlocks. Join maestro-e2e.yml
-      # to the same group if the two suites share test accounts or fixtures.
+      # run and the child run it is waiting on deadlocks. maestro-e2e.yml uses
+      # this same group because both seeded suites reset development.
       concurrency_group: 'e2e-shared-development'
       # Return the environment to a known state BEFORE the suite, rather than
       # cleaning up after it. Cleanup-after is best-effort: it does not run when

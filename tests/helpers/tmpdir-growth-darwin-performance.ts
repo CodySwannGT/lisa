@@ -42,6 +42,43 @@ interface DarwinBatchCommand {
 }
 
 /**
+ * Establish executable fixture readiness before measuring production batches.
+ * @param shim - Newly written forwarding executable.
+ * @param environment - Fixture subprocess environment.
+ * @param log - Batch log; startup gets a separate adjacent file.
+ */
+function prepareDarwinBatchShim(
+  shim: string,
+  environment: NodeJS.ProcessEnv,
+  log: string
+): void {
+  // A fresh executable can wait for macOS assessment before entering its body.
+  // Establish fixture readiness separately from the production one-second batch
+  // deadline, and retain this extra invocation in its own log rather than
+  // counting it as one of the five snapshot batches.
+  const startupStarted = performance.now();
+  const startup = spawnSync(
+    shim,
+    ["-p", String(process.pid), "-o", "pid=", "-o", "lstart="],
+    {
+      encoding: "utf8",
+      env: { ...environment, LISA_PS_BATCH_LOG: `${log}.startup` },
+      killSignal: "SIGKILL",
+      timeout: TMPDIR_GROWTH_COMMAND_BUDGET_MS,
+    }
+  );
+  if (startup.error !== undefined) throw startup.error;
+  expect(startup.status, startup.stderr).toBe(0);
+  process.stdout.write(
+    `LISA_TMPDIR_GROWTH_SHIM_STARTUP_TRACE=${JSON.stringify({
+      elapsedMs: performance.now() - startupStarted,
+      status: startup.status,
+      pid: process.pid,
+    })}\n`
+  );
+}
+
+/**
  * Install the forwarding ps shim and run the production-default snapshot.
  * @param script - Public measurement module
  * @param register - Test cleanup registry
@@ -77,6 +114,7 @@ IFS=$old_ifs
     "utf8"
   );
   fs.chmodSync(shim, 0o700);
+  prepareDarwinBatchShim(shim, environment, log);
   return {
     log,
     result: spawnSync(

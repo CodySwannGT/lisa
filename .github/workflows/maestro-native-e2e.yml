@@ -94,7 +94,8 @@
 #
 # `serialize_platform_legs: true` runs iOS to completion first, then Android.
 # It is OFF by default, because a project whose legs use per-platform accounts
-# gets its whole suite in the length of its slowest leg and should keep that.
+# can run concurrently when it does not reset shared state between legs.
+# The seeded caller prepares shared state, so it explicitly enables ordering.
 #
 # ORDERING, NOT GATING. A FAILING iOS leg still releases Android. Anything else
 # would let a single flaky iOS flow delete the Android suite from the night and
@@ -113,12 +114,10 @@
 #     is a `startup_failure` for the CALLER'S ENTIRE RUN, decided before the run
 #     starts, so no `if:` and no unset input can contain it. That is the #2046
 #     rule; this feature broke it once (#2566) and the job carries the full note.
-#   • NO degraded path fails this job. A missing token, a 403, a flaky API, a
-#     renamed iOS job — each warns loudly and lets Android start, which is the
-#     behaviour every run had before this feature existed. Failing instead would
-#     be worse than the contention: row 26 of the nightly gate turns any
-#     non-success job into a `fail` verdict for the whole suite, blocking the
-#     merge gate on a night when both legs were green.
+#   • Unknown ordering blocks a requested between-leg reset and Android, so a
+#     missing token, API outage, or renamed iOS job cannot permit a destructive
+#     reset while iOS may still be running. Without that reset, the job warns
+#     and releases Android, preserving the existing degraded behavior.
 #   • Opting IN costs an idle ubuntu-latest runner for as long as the iOS suite
 #     takes, plus one held job slot. The default path does not pay it: with the
 #     input unset the job runs no steps and ends in seconds. Wall clock is the
@@ -803,8 +802,9 @@ on:
           Android — ordering here is "after", never "only if it passed". The
           cost of turning it on is the suite taking iOS PLUS Android instead of
           the slower of the two, and one idle ubuntu-latest runner held for the
-          length of the iOS suite; leave it off if your legs use per-platform
-          accounts, because the concurrency is free coverage in that case.
+          length of the iOS suite. Separate accounts permit concurrency only
+          when the legs do not reset shared state between them. Shared
+          between-leg preparation requires ordering even with separate accounts.
         required: false
         default: false
         type: boolean
@@ -816,9 +816,9 @@ on:
           pre_suite_timeout_minutes + suite_timeout_minutes — and it cannot be
           derived from them, because GitHub Actions expressions have no
           arithmetic operators at all. Raise it in lockstep if you raise either
-          of those. Timing out here does not lose the Android leg: that job runs
-          on `!cancelled()`, so a blown budget degrades to today's concurrent
-          legs with a red job naming the cause.
+          of those. A timeout blocks between-leg preparation and Android when
+          that reset is requested. Without between-leg preparation, Android
+          may proceed with concurrent legs and a red job naming the cause.
         required: false
         default: 150
         type: number
@@ -840,8 +840,9 @@ on:
           without DECLARING a scope. Declaring one instead would be a
           `startup_failure` for the entire run of every caller granting less
           (#2046), which is why this is a secret and not a `permissions:` entry.
-          Absent or unscoped, the ordering job reports the gap and lets the
-          Android leg start — it never fails the run over it.
+          Absent or unscoped, the ordering job fails when between-leg
+          preparation is requested, preventing a reset under a running iOS
+          suite. Otherwise it warns and lets Android start.
         required: false
 
 # `actions: read` is what makes `serialize_platform_legs` capable of ordering
@@ -1650,9 +1651,11 @@ jobs:
           # be this workflow's own token, capped by the `contents: read` above
           # and therefore never able to read the jobs list — and widening that
           # cap is the escalation the job comment forbids. Empty when the caller
-          # did not wire the secret, which the script reports and releases on
-          # rather than failing.
+          # did not wire the secret. Unknown ordering blocks a requested
+          # between-leg reset; otherwise the script warns and releases.
           GH_TOKEN: ${{ secrets.LEG_ORDER_TOKEN }}
+          # Unknown ordering must block a destructive between-leg reset.
+          PREPARE_BETWEEN_LEGS: ${{ inputs.prepare_environment != '' && inputs.prepare_between_legs }}
           API_URL: ${{ github.api_url }}
           REPOSITORY: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
@@ -1687,20 +1690,15 @@ jobs:
           started=$SECONDS
           transient=0
 
-          # EVERY degraded path lands here, and none of them fails the job.
-          #
-          # `leg_order` can only ever DELAY the Android leg. When it cannot tell
-          # what the iOS leg is doing it has two options and both are bad:
-          # release Android (the legs overlap for one night — exactly the
-          # behaviour of every run before this feature existed) or fail (which
-          # row 26 of the nightly gate turns into a `fail` verdict for the whole
-          # suite, blocking the merge gate on a night when both legs were green
-          # — see docs/nightly-e2e-gate.md). Releasing is strictly the smaller
-          # harm, so the annotation is the alarm and the run stays green.
-          #
-          # What this must NEVER do is claim the iOS leg finished. It says the
-          # ordering was skipped and why.
+          # Without between-leg preparation, an API failure preserves the
+          # existing warning-and-release behavior. With a reset requested,
+          # unknown iOS state must fail: inter_leg_prepare uses this result to
+          # refuse the reset and Android remains blocked on preparation.
           release() {
+            if [[ "${PREPARE_BETWEEN_LEGS:-false}" == "true" ]]; then
+              echo "::error title=Cannot prepare between legs::$1 The iOS leg may still be running. Refusing the between-leg reset and Android run until ordering is established."
+              exit 1
+            fi
             # Deliberately worded to share NO phrase with the success line
             # above it. These two messages are the only way a reader — or the
             # test suite — can tell "the legs were ordered" from "the ordering
@@ -1818,7 +1816,7 @@ jobs:
           elif [[ "$RUN_IOS" != "true" || "$RUN_ANDROID" != "true" ]]; then
             echo "Only one platform leg is in this run (ios=$RUN_IOS android=$RUN_ANDROID) — nothing to order."
           else
-            echo "iOS leg complete; the Android leg is released."
+            echo "Ordering step finished; see its result above."
           fi
 
   inter_leg_prepare:
