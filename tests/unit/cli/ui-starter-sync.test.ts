@@ -33,21 +33,86 @@ async function start(
   run: () => Promise<StarterLandingResult>,
   options: UiCmdOptions = {}
 ) {
+  let launchUrl = "";
   resources.server = await runUi(
     resources.dir,
     { port: "0", sync: false, ...options },
     {
       probes: [],
+      onListening: value => {
+        launchUrl = value;
+      },
       starterSync: { run },
     }
   );
   const address = resources.server.address();
   if (!address || typeof address === "string") throw new Error("No listener");
   const origin = `http://127.0.0.1:${address.port}`;
-  return { origin, url: `${origin}/api/starter-sync` };
+  const token = new URL(launchUrl).hash.slice("#lisa-token=".length);
+  return {
+    origin,
+    url: `${origin}/api/starter-sync`,
+    token,
+    headers: { origin, "x-lisa-starter-token": token },
+  };
 }
 
 describe("console starter sync", () => {
+  it("rejects native clients with matching headers but no launch capability", async () => {
+    const run = vi.fn(async () => current);
+    const { origin, url } = await start(run);
+    const response = await fetch(url, { method: "POST", headers: { origin } });
+    expect(response.status).toBe(403);
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it("does not expose the capability through HTTP and rejects guessed tokens", async () => {
+    const run = vi.fn(async () => current);
+    const { origin, url, token } = await start(run);
+    for (const route of ["/", "/index.html", "/api/status"]) {
+      expect(await (await fetch(`${origin}${route}`)).text()).not.toContain(
+        token
+      );
+    }
+    for (const supplied of ["", "guess", "0".repeat(64), "é".repeat(64)]) {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { origin, "x-lisa-starter-token": supplied },
+      });
+      expect(response.status).toBe(403);
+    }
+    expect(
+      (
+        await fetch(`${url}?token=${token}`, {
+          method: "POST",
+          headers: { origin },
+        })
+      ).status
+    ).toBe(403);
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it("rejects a previous launch token and accepts only the new launch", async () => {
+    const run = vi.fn(async () => current);
+    const old = await start(run);
+    resources.server?.closeAllConnections();
+    await new Promise<void>(resolve =>
+      resources.server?.close(() => resolve())
+    );
+    const next = await start(run);
+    expect(next.token).not.toBe(old.token);
+    const stale = await fetch(next.url, {
+      method: "POST",
+      headers: { origin: next.origin, "x-lisa-starter-token": old.token },
+    });
+    expect(stale.status).toBe(403);
+    expect(run).not.toHaveBeenCalled();
+    expect(
+      (await fetch(next.url, { method: "POST", headers: next.headers })).status
+    ).toBe(200);
+    expect(run).toHaveBeenCalledOnce();
+  });
+
   it.each([
     current,
     { state: "committed", commit: "abc123", results: [] },
@@ -60,10 +125,10 @@ describe("console starter sync", () => {
     "returns the actual $state outcome from the bound project",
     async outcome => {
       const run = vi.fn(async () => outcome);
-      const { origin, url } = await start(run);
+      const { url, headers } = await start(run);
       const response = await fetch(`${url}?path=/other`, {
         method: "POST",
-        headers: { origin },
+        headers,
       });
       expect(response.status).toBe(200);
       expect(response.headers.get("cache-control")).toBe("no-store");
@@ -78,10 +143,10 @@ describe("console starter sync", () => {
       workItem: "CodySwannGT/lisa#1534",
       coAuthor: "Codex <codex@openai.com>",
     };
-    const { origin, url } = await start(run, attribution);
+    const { url, headers } = await start(run, attribution);
     const response = await fetch(url, {
       method: "POST",
-      headers: { origin, "content-type": "application/json" },
+      headers: { ...headers, "content-type": "application/json" },
       body: JSON.stringify({
         path: "/another-project",
         workItem: "forged",
@@ -94,7 +159,7 @@ describe("console starter sync", () => {
 
   it("rejects other origins and read methods without running a sync", async () => {
     const run = vi.fn(async () => current);
-    const { origin, url } = await start(run);
+    const { origin, url, headers } = await start(run);
     for (const invalid of [
       undefined,
       "null",
@@ -104,12 +169,14 @@ describe("console starter sync", () => {
     ]) {
       const response = await fetch(url, {
         method: "POST",
-        headers: invalid ? { origin: invalid } : {},
+        headers: invalid
+          ? { ...headers, origin: invalid }
+          : { "x-lisa-starter-token": headers["x-lisa-starter-token"] },
       });
       expect(response.status).toBe(403);
     }
     for (const method of ["GET", "HEAD", "PUT", "DELETE"]) {
-      const response = await fetch(url, { method, headers: { origin } });
+      const response = await fetch(url, { method, headers });
       expect(response.status).toBe(405);
       expect(response.headers.get("allow")).toBe("POST");
     }
@@ -121,14 +188,14 @@ describe("console starter sync", () => {
       .fn()
       .mockRejectedValueOnce(new Error("Starter ref is not resolvable"))
       .mockResolvedValueOnce(current);
-    const { origin, url } = await start(run);
-    const failed = await fetch(url, { method: "POST", headers: { origin } });
+    const { url, headers } = await start(run);
+    const failed = await fetch(url, { method: "POST", headers });
     expect(failed.status).toBe(500);
     expect(await failed.json()).toEqual({
       state: "failed",
       error: "Starter ref is not resolvable",
     });
-    const retry = await fetch(url, { method: "POST", headers: { origin } });
+    const retry = await fetch(url, { method: "POST", headers });
     expect(await retry.json()).toEqual(current);
     expect(run).toHaveBeenCalledTimes(2);
   });
@@ -139,11 +206,11 @@ describe("console starter sync", () => {
       release = resolve;
     });
     const run = vi.fn(async () => pending);
-    const { origin, url } = await start(run);
-    const first = fetch(url, { method: "POST", headers: { origin } });
+    const { url, headers } = await start(run);
+    const first = fetch(url, { method: "POST", headers });
     await vi.waitFor(() => expect(run).toHaveBeenCalledOnce());
     try {
-      const second = await fetch(url, { method: "POST", headers: { origin } });
+      const second = await fetch(url, { method: "POST", headers });
       expect(second.status).toBe(409);
       expect(await second.json()).toMatchObject({
         state: "failed",

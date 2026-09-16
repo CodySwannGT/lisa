@@ -9,6 +9,7 @@
  */
 /* eslint-disable max-lines -- the central UI route registry stays auditable in one module */
 import type { Command } from "commander";
+import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import * as http from "node:http";
@@ -125,6 +126,8 @@ export interface UiCmdOptions {
 
 /** Injectable runtime collaborators for `lisa ui`. */
 export interface UiRuntimeDependencies {
+  /** Trusted in-process host receives the private launch URL instead of printing it. */
+  readonly onListening?: (launchUrl: string) => void;
   /** Status probes exposed by GET /api/status. */
   readonly probes?: readonly StatusProbe[];
   /** Health storage and execution boundaries exposed by /api/health. */
@@ -406,6 +409,7 @@ function isLoopbackHost(host: string | undefined): boolean {
  * @param page - Hydrated settings console HTML
  * @param probes - Live-status probes registered for this server
  * @param destDir - Project root served by this UI process
+ * @param starterCapability - Per-launch credential for the Git-mutating route
  * @param healthDependencies - Injectable Health v1 storage/run boundaries
  * @param setupReadinessDependencies - Injectable read-only Setup boundaries
  * @param gateReportDependencies - Injectable read-only Doctor boundaries
@@ -417,6 +421,7 @@ function createUiRequestHandler(
   page: string,
   probes: readonly StatusProbe[],
   destDir: string,
+  starterCapability: string,
   healthDependencies: Partial<UiHealthDependencies> = {},
   setupReadinessDependencies: SetupReadinessDependencies = {},
   gateReportDependencies: GateReportDependencies = {},
@@ -431,6 +436,7 @@ function createUiRequestHandler(
       ...(options.workItem ? { workItem: options.workItem } : {}),
       ...(options.coAuthor ? { coAuthor: options.coAuthor } : {}),
     },
+    starterCapability,
     starterSyncDependencies
   );
   const serveGateReport = createGateReportHandler(
@@ -521,6 +527,7 @@ export async function runUi(
     getProcessEnvironment()
   );
   const page = injectLiveConfig(html, config, remoteEnvironment);
+  const starterCapability = randomBytes(32).toString("hex");
   const probes = dependencies.probes ?? [
     createGithubAuthProbe(destDir),
     createEnabledPluginsProbe(destDir),
@@ -537,6 +544,7 @@ export async function runUi(
       page,
       probes,
       destDir,
+      starterCapability,
       dependencies.health,
       dependencies.setupReadiness,
       dependencies.gateReport,
@@ -550,8 +558,10 @@ export async function runUi(
   const address = server.address();
   const boundPort =
     typeof address === "object" && address !== null ? address.port : port;
+  const launchUrl = `http://127.0.0.1:${boundPort}/#lisa-token=${starterCapability}`;
   console.log(`Lisa console for ${destDir}`);
-  console.log(`  → http://127.0.0.1:${boundPort}`);
+  if (dependencies.onListening) dependencies.onListening(launchUrl);
+  else console.log(`  → ${launchUrl}`);
   console.log("Press Ctrl+C to stop.");
   return server;
 }

@@ -1848,6 +1848,14 @@
     <div class="toast" id="toast"></div>
     <script>
       "use strict";
+      // The launch fragment is never sent to the HTTP server. Keep the capability
+      // only in this page's memory and remove it before normal section routing.
+      const starterSyncCapability = (() => {
+        const match = /^#lisa-token=([a-f0-9]{64})$/u.exec(location.hash);
+        if (match)
+          history.replaceState(null, "", location.pathname + location.search);
+        return match ? match[1] : null;
+      })();
       document.title = "Lisa Console — Project Settings";
 
       /* ------------------------------------------------------------------ *
@@ -13649,6 +13657,13 @@
           update("Open this project with lisa ui to run starter sync.", true);
           return;
         }
+        if (!starterSyncCapability) {
+          update(
+            "Open the console using its terminal launch link to authorize starter sync.",
+            true
+          );
+          return;
+        }
         if (saving || dirty.size > 0) {
           update("Save or discard pending settings before syncing.", true);
           return;
@@ -13661,6 +13676,7 @@
           const response = await fetch("/api/starter-sync", {
             method: "POST",
             cache: "no-store",
+            headers: { "x-lisa-starter-token": starterSyncCapability },
           });
           const result = await response.json();
           if (!response.ok || result.state === "failed")

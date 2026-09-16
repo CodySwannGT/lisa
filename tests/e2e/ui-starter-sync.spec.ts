@@ -1,6 +1,5 @@
 /** Browser regression; live PR and native scheduler proof remain separate acceptance checks. */
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
@@ -33,11 +32,15 @@ test("reports a PR, nothing to do, and a real failure without generic success", 
     new Error("Starter ref is not resolvable <script>alert(1)</script>"),
     { state: "committed", results: [], commit: "abc123" },
   ];
+  let launchUrl = "";
   const server = await runUi(
     root,
     { port: "0", sync: false },
     {
       probes: [],
+      onListening: value => {
+        launchUrl = value;
+      },
       starterSync: {
         run: async options => {
           expect(options?.path).toBe(root);
@@ -50,9 +53,11 @@ test("reports a PR, nothing to do, and a real failure without generic success", 
     }
   );
   try {
-    await page.goto(
-      `http://127.0.0.1:${(server.address() as AddressInfo).port}/#starters`
-    );
+    await page.goto(launchUrl);
+    await expect(page).not.toHaveURL(/lisa-token/u);
+    await page.evaluate(() => {
+      location.hash = "starters";
+    });
     const button = page.getByRole("button", { name: "Sync now", exact: true });
     const status = page.locator("#starterSyncStatus");
     await button.click();
@@ -74,6 +79,10 @@ test("reports a PR, nothing to do, and a real failure without generic success", 
     await expect(status).toContainText("Starter changes committed: abc123");
     await expect(status).toHaveAttribute("role", "status");
     expect(outcomes).toHaveLength(0);
+    await page.reload();
+    await button.click();
+    await expect(status).toContainText("terminal launch link");
+    await expect(status).toHaveAttribute("role", "alert");
   } finally {
     await closeRunUiTestResources({ page, server });
     await rm(root, { recursive: true, force: true });

@@ -432,6 +432,14 @@ Those values and the destination are bound at startup; browser requests cannot
 choose another project. Git hooks remain enabled. Overlapping requests receive
 an explicit already-running response.
 
+Open the full launch link printed by `lisa ui` to authorize starter sync. Its
+per-launch token travels in the URL fragment, is removed from the address bar,
+and remains only in page memory. The server requires that token as well as the
+same-origin check before Git mutations; plain loopback access is insufficient.
+After a reload, reopen the terminal link. Do not share that link. This protects
+the starter-sync route from other local users; it is not whole-console
+authentication and does not protect against processes already running as you.
+
 After saving `starter.sync.auto`, run `lisa-setup-automations` with the current
 agent runtime to reconcile its optional daily `lisa-auto-<project>-starter-sync`
 registration. Turning the setting off removes that registration on reconciliation;
