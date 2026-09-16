@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.62.4](https://github.com/CodySwannGT/lisa/compare/v4.62.3...v4.62.4) (2026-09-16)
+
+
+### Bug Fixes
+
+* **ci:** run tooling node suites only on pull requests ([603912a](https://github.com/CodySwannGT/lisa/commit/603912ad89d359a82c4a35ea479f17c420da87c5)), closes [CodySwannGT/lisa#4230](https://github.com/CodySwannGT/lisa/issues/4230) [CodySwannGT/lisa#4230](https://github.com/CodySwannGT/lisa/issues/4230)
+
 ### [4.62.3](https://github.com/CodySwannGT/lisa/compare/v4.62.2...v4.62.3) (2026-09-16)
 
 
