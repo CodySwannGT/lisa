@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.64.1](https://github.com/CodySwannGT/lisa/compare/v4.64.0...v4.64.1) (2026-09-19)
+
+
+### Bug Fixes
+
+* stop and report missing required access immediately ([97b6c75](https://github.com/CodySwannGT/lisa/commit/97b6c758cb479835e1463ee15f23f4888c317115)), closes [CodySwannGT/lisa#4240](https://github.com/CodySwannGT/lisa/issues/4240)
+
 ## [4.64.0](https://github.com/CodySwannGT/lisa/compare/v4.63.0...v4.64.0) (2026-09-16)
 
 
