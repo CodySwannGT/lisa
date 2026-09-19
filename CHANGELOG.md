@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.64.4](https://github.com/CodySwannGT/lisa/compare/v4.64.3...v4.64.4) (2026-09-19)
+
+
+### Bug Fixes
+
+* **ci:** fail empty seeded nightly workflows ([d0f4bc2](https://github.com/CodySwannGT/lisa/commit/d0f4bc22553474872e5f49b9084638665928fdb1)), closes [CodySwannGT/lisa#4239](https://github.com/CodySwannGT/lisa/issues/4239)
+
 ### [4.64.3](https://github.com/CodySwannGT/lisa/compare/v4.64.2...v4.64.3) (2026-09-19)
 
 
