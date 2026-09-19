@@ -169,22 +169,28 @@ function compareStryker(relPath, base, current) {
   // effect was 0 -> 69 and 0 -> 75 files mutated (CodySwannGT/lisa#4243).
   const baseRoots = [...baseMutate.positives].map(globRoot);
   /**
-   * Whether a root lies inside territory the baseline already mutated.
+   * Whether an exclusion might touch any baseline positive.
    *
-   * Exact equality is not enough. With a baseline of `src/**` a change can add
-   * `src/new/**` and `!src/new/**`: the exclusion removes files the baseline
-   * ALREADY mutated, but `src/new` is not literally `src`, so an equality test
-   * would read it as fresh territory and suppress a real weakening.
+   * Both containment directions matter: excluding `src` removes a baseline
+   * rooted at `src/existing`, too. An empty prefix (wildcards, braces, classes
+   * or extglobs at the root) might cover everything. We grant an exemption
+   * only for provably disjoint territory, never from a guessed glob overlap.
    * @param {string} root A rooted glob prefix
-   * @returns {boolean} True when a baseline root equals or contains it
+   * @returns {boolean} True when overlap cannot be ruled out
    */
-  const coveredByBase = root =>
+  const overlapsBase = root =>
     baseRoots.some(
-      base => base !== "" && (root === base || root.startsWith(`${base}/`))
+      base =>
+        root === "" ||
+        base === "" ||
+        root === base ||
+        root.startsWith(`${base}/`) ||
+        base.startsWith(`${root}/`)
     );
   const addedRoots = [...currentMutate.positives]
+    .filter(positive => !baseMutate.positives.has(positive))
     .map(globRoot)
-    .filter(root => root !== "" && !coveredByBase(root));
+    .filter(root => root !== "");
   /**
    * Whether a root lies inside territory THIS change is adding.
    * @param {string} root A rooted glob prefix
@@ -195,7 +201,7 @@ function compareStryker(relPath, base, current) {
   for (const negation of currentMutate.negations) {
     if (baseMutate.negations.has(negation)) continue;
     const root = globRoot(negation);
-    if (!coveredByBase(root) && underAdded(root)) continue;
+    if (!overlapsBase(root) && underAdded(root)) continue;
     findings.push({
       file: relPath,
       key: `mutate ${negation}`,

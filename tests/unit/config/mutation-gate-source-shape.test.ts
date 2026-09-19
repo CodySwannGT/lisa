@@ -76,8 +76,6 @@ describe("how the gate reclaims a sandbox", () => {
     expect(spawn).toBeGreaterThan(0);
     expect(sweep).toBeLessThan(spawn);
     // And it is inside `runStryker`, not before one of its callers.
-    expect(source.indexOf("const runStryker = (cwd, selected)")).toBeLessThan(
-      sweep
-    );
+    expect(source.indexOf("const runStryker = (")).toBeLessThan(sweep);
   });
 });

@@ -47,9 +47,10 @@
  *   `nothing-to-mutate`, in a block that states no mutant was generated and no
  *   score was computed. Exit 0.
  * - **The mutate configuration selects nothing in this repository at all** —
- *   a misconfigured gate, permanently inert, green forever. Reported as
- *   `inert-mutate-config` and it FAILS, exit 1. Distinguishing the two costs
- *   one `git ls-files`.
+ *   report the missed source roots even while disabled. When enabled, derive
+ *   tracked TypeScript roots unless sourceDirs was explicitly declared. If no
+ *   viable selection results, report `inert-mutate-config` and FAIL, exit 1.
+ *   A viable project selection is never widened by derivation.
  * - **Something changed that no mutation tool can reach** — a shell guard.
  *   Reported as `uninstrumentable-language`, exit 0, because it is not a test
  *   failure. It is separated from `nothing-to-mutate` because the two are
@@ -991,6 +992,8 @@ const declarationFromSourceDirs = cwd => {
     mutate: mutateFromSourceDirs(clean),
     source: `.lisa.config.json quality.mutation.sourceDirs (${clean.join(", ")})`,
     explicit: true,
+    sourceDirs: true,
+    overrideMutate: true,
   };
 };
 
@@ -2631,12 +2634,13 @@ const runStrykerCaptured = (cwd, entry, env, deadlineMs) => {
  * reachable by accident — an empty diff selection is reported as
  * `nothing-to-mutate` and returns long before here.
  * @param {string} cwd - Project root.
- * @param {readonly string[]} selected - Repository-relative paths, or empty for
+ * @param {readonly string[]} selected - Paths or resolved patterns, or empty for
  *   the project's own `mutate` patterns.
+ * @param {boolean} wholeList - Keep test-runner diff scoping empty for --all.
  * @returns {{code: number, output: string|null}} Stryker's status, and its
  *   output when this machine could keep a copy.
  */
-const runStryker = (cwd, selected) => {
+const runStryker = (cwd, selected, wholeList = false) => {
   const scope = selected.join(",");
   const base = strykerEntry(cwd);
   const sandbox = runSandboxName(resolveSandboxRoot(cwd));
@@ -2659,7 +2663,9 @@ const runStryker = (cwd, selected) => {
     // narrow with it. A project that ignores it loses nothing, and a project
     // that reads it can only ever REMOVE suites — which removes kills and
     // lowers the score — so no value of this can turn a failing gate green.
-    MUTATION_SCOPE: scope,
+    // Resolved patterns are not changed file paths. Whole-list runs must not
+    // accidentally ask a test runner to narrow its suite to these globs.
+    MUTATION_SCOPE: wholeList ? "" : scope,
   };
   // Reclaim before the run, never after — see `sweepSandboxes`. Here rather
   // than at either call site so the `--all` path cannot be given a different
@@ -2805,13 +2811,10 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
   }
 
   if (countMutateTargetsInRepo(cwd, patterns) === 0) {
-    // The patterns are inert. What happens next turns on whether the project
-    // DECLARED them. Substituting a different mutate list for one a project
-    // wrote down would be the same quiet override CodySwannGT/lisa#3668 exists
-    // to prevent, so an explicit declaration still fails — it just now says
-    // where the source actually is. Where nothing was declared and this is
-    // Lisa's own fallback guessing `src/**`, there is no decision to override
-    // and deriving the answer is strictly better than dying on a guess.
+    // An inert scaffolded or project-written list needs the same repair.
+    // Explicit sourceDirs are authoritative; otherwise derive tracked roots
+    // only after proving the configured selection is empty, and report the
+    // substitution. A viable project mutate list always retains its scope.
     const roots = deriveSourceRoots(cwd);
     const suggestion =
       roots.length > 0
@@ -2830,8 +2833,8 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
       const detail = suggestion
         ? [
             `⚠️  AND the \`mutate\` patterns from ${declaration.source} select NO`,
-            "   tracked file, so this gate is not merely off — switching it on would",
-            "   report success forever without mutating anything.",
+            "   tracked file. Before switching it on, declare the source directories;",
+            "   the candidate roots below show where tracked source exists.",
             `   Source in this repository looks like it lives in: ${suggestion}`,
             "   Declare it under quality.mutation.sourceDirs in .lisa.config.json.",
           ].join("\n")
@@ -2847,18 +2850,19 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
     // derivation that yields roots but no selectable file still fails closed
     // instead of letting the gate run on the inert patterns it started with.
     let substituted = false;
-    if (!declaration.explicit && roots.length > 0) {
+    if (!declaration.sourceDirs && roots.length > 0) {
       const derived = {
         mutate: mutateFromSourceDirs(roots.map(entry => entry.root)),
         source: `source roots derived from tracked files (${suggestion})`,
         explicit: false,
+        overrideMutate: true,
       };
       const derivedPatterns = compileMutatePatterns(derived.mutate);
       if (countMutateTargetsInRepo(cwd, derivedPatterns) > 0) {
         substituted = true;
         console.log(
           `⚠️  ${declaration.source} select NO tracked file, and this project\n` +
-            "   declares no mutate list of its own. Deriving one from what the\n" +
+            "   declares no source directories. Deriving patterns from what the\n" +
             `   repository tracks: ${suggestion}\n` +
             "   Declare quality.mutation.sourceDirs in .lisa.config.json to make\n" +
             "   this explicit and stop the guessing."
@@ -2927,7 +2931,10 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
       `🧬 ${OUTCOMES.wholeList} — Stryker over every pattern in ` +
         `${declaration.source}, with no diff scoping.`
     );
-    const reported = reportRun(cwd, runStryker(cwd, []), null);
+    // Stryker cannot read Lisa's sourceDirs or an in-memory derived list.
+    // Preserve native config loading unless resolution replaced that list.
+    const selected = declaration.overrideMutate ? declaration.mutate : [];
+    const reported = reportRun(cwd, runStryker(cwd, selected, true), null);
     return finish(OUTCOMES.wholeList, reported.code, reported.measured);
   }
 

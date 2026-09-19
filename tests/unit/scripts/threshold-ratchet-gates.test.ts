@@ -24,6 +24,8 @@ const SRC_GLOB = "src/**/*.ts";
 const SPEC_NEGATION = "!src/**/*.spec.ts";
 /** A source root the baseline does NOT cover — genuinely new territory. */
 const ADDED_ROOT_GLOB = "lib/**/*.ts";
+const NARROW_ROOT = "src/existing/**/*.ts";
+const LIB_NEGATION = "!lib/**";
 const P95_BOUND = "p(95)<1000";
 const RATE_UPPER = "rate<0.05";
 const RATE_LOWER = "rate>=0.99";
@@ -131,6 +133,39 @@ describe("threshold-ratchet tiers 2 and 3", () => {
       expect(findings).toHaveLength(1);
       expect(findings[0].type).toBe(TYPE_EXEMPTION);
       expect(findings[0].key).toBe("mutate !src/new/**");
+    });
+
+    it.each([
+      ["wildcard baseline", "**/*.ts", ADDED_ROOT_GLOB, LIB_NEGATION],
+      ["enclosing exclusion", NARROW_ROOT, SRC_GLOB, "!src/**"],
+      ["brace baseline", "{src,lib}/**/*.ts", ADDED_ROOT_GLOB, LIB_NEGATION],
+      ["class baseline", "[sl]ib/**/*.ts", ADDED_ROOT_GLOB, LIB_NEGATION],
+      ["extglob baseline", "@(src|lib)/**/*.ts", ADDED_ROOT_GLOB, LIB_NEGATION],
+      ["relative baseline", "./lib/**/*.ts", ADDED_ROOT_GLOB, LIB_NEGATION],
+    ])(
+      "refuses shrinking coverage through %s",
+      (_name, original, added, excluded) => {
+        const findings = compareFile(
+          STRYKER_FILE,
+          JSON.stringify({ mutate: [original] }),
+          JSON.stringify({ mutate: [original, added, excluded] })
+        );
+        expect(findings.map(finding => finding.key)).toContain(
+          `mutate ${excluded}`
+        );
+      }
+    );
+
+    it("allows an exclusion in a new sibling of a narrower baseline root", () => {
+      expect(
+        compareFile(
+          STRYKER_FILE,
+          JSON.stringify({ mutate: [NARROW_ROOT] }),
+          JSON.stringify({
+            mutate: [NARROW_ROOT, SRC_GLOB, "!src/new/**/*.spec.ts"],
+          })
+        )
+      ).toHaveLength(0);
     });
 
     it("allows an exclusion nested inside a newly added root", () => {

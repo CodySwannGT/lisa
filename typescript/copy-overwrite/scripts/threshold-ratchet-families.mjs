@@ -323,9 +323,13 @@ export function extractStrykerMutate(conf) {
  */
 export function globRoot(glob) {
   const bare = glob.startsWith("!") ? glob.slice(1) : glob;
+  // Backslash escapes and parent traversal make textual containment unsafe.
+  // An unknown prefix overlaps everything rather than granting an exemption.
+  if (bare.includes("\\") || bare.split("/").includes("..")) return "";
   const rooted = [];
   for (const segment of bare.split("/")) {
-    if (segment.includes("*") || segment.includes("?")) break;
+    if (segment === "." || segment === "") continue;
+    if (["*", "?", "{", "[", "("].some(meta => segment.includes(meta))) break;
     rooted.push(segment);
   }
   return rooted.join("/");
