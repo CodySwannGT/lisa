@@ -2,7 +2,7 @@
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
   "$modules": 134,
-  "$names": 1261,
+  "$names": 1268,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -584,6 +584,7 @@
       "extractStrykerConstraints",
       "extractStrykerMutate",
       "familyFor",
+      "globRoot",
       "parseJson",
       "parseK6Expression"
     ],
@@ -1417,9 +1418,12 @@
       "DEFAULT_SHELL_EVIDENCE_FILE",
       "DEFAULT_TEMP_DIR_NAME",
       "DEFAULT_TIMEOUT_SHARE_CEILING_PCT",
+      "DERIVABLE_EXTENSIONS",
       "FALLBACK_MUTATE",
       "JSON_CONFIG_NAMES",
       "MIN_DETECTED_FOR_SHARE",
+      "NON_SOURCE_MARKERS",
+      "NON_SOURCE_ROOTS",
       "OUTCOMES",
       "SHELL_EVIDENCE",
       "SHELL_EVIDENCE_TRACE_VAR",
@@ -1435,6 +1439,7 @@
       "classifyStrykerFailure",
       "compileMutatePatterns",
       "countMutateTargetsInRepo",
+      "deriveSourceRoots",
       "describeShellGuardEvidence",
       "envFlag",
       "fileDigest",
@@ -1443,6 +1448,7 @@
       "isMutateTarget",
       "isStrykerParseable",
       "judgeTimeoutAccounting",
+      "mutateFromSourceDirs",
       "normalizePath",
       "parseChangedLineRanges",
       "parseMutantTally",
@@ -1530,6 +1536,7 @@
       "extractStrykerConstraints",
       "extractStrykerMutate",
       "familyFor",
+      "globRoot",
       "parseJson",
       "parseK6Expression"
     ]

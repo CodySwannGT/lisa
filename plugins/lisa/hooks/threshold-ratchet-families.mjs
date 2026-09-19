@@ -309,6 +309,30 @@ export function extractStrykerMutate(conf) {
 }
 
 /**
+ * The literal directory prefix a glob is rooted at, before any wildcard.
+ *
+ * `lib/**\/*.spec.ts` and `!lib/**\/*.d.ts` are both rooted at `lib`. This is
+ * what lets the ratchet tell territory a change ADDED from territory it
+ * already covered: an exclusion inside a newly added root cannot shrink a
+ * gate, because nothing there was being mutated a moment ago.
+ * @param {string} glob A stryker mutate entry, with or without a leading `!`
+ * @returns {string} The rooted prefix, or "" when the glob starts with a wildcard
+ */
+export function globRoot(glob) {
+  const bare = glob.startsWith("!") ? glob.slice(1) : glob;
+  // Backslash escapes and parent traversal make textual containment unsafe.
+  // An unknown prefix overlaps everything rather than granting an exemption.
+  if (bare.includes("\\") || bare.split("/").includes("..")) return "";
+  const rooted = [];
+  for (const segment of bare.split("/")) {
+    if (segment === "." || segment === "") continue;
+    if (["*", "?", "{", "[", "("].some(meta => segment.includes(meta))) break;
+    rooted.push(segment);
+  }
+  return rooted.join("/");
+}
+
+/**
  * Parse one k6 threshold expression (`p(95)<1000`, `rate>=0.99`, …) into a
  * ratchet constraint. Upper bounds (`<`, `<=`) may only decrease; lower
  * bounds (`>`, `>=`) may only increase. Hand-parsed — no regex.

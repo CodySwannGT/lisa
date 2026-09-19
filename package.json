@@ -5,7 +5,7 @@
     "build:dist:in-place": "node scripts/lib/worktree-dependencies.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs",
     "lisa-test-run": "node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa",
     "test:integration": "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration",
-    "test:integration:push": "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration --exclude='**/mutation-gate-bite.test.ts' --exclude='**/mutation-gate-diff-bite.test.ts' --exclude='**/mutation-sigterm-control.test.ts' --exclude='**/mutation-performance-fixture.test.ts' --exclude='**/mutation-performance-packed-apply.test.ts'",
+    "test:integration:push": "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration --exclude='**/mutation-gate-bite.test.ts' --exclude='**/mutation-gate-diff-bite.test.ts' --exclude='**/mutation-sigterm-control.test.ts' --exclude='**/mutation-performance-fixture.test.ts' --exclude='**/mutation-performance-packed-apply.test.ts' --exclude='**/mutation-source-roots.test.ts'",
     "postinstall": "bash ./scripts/install-claude-plugins.sh || true; node ./scripts/install-generated-artifact-merge-driver.mjs || true; [ ! -f tsconfig.json ] || tsc -p tsconfig.json || true",
     "pretest": "bun run build",
     "test": "node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run",

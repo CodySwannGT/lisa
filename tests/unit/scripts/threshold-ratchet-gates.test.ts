@@ -22,6 +22,10 @@ const VITEST_FILE = "vitest.thresholds.json";
 const KEY_LINES = "global.lines";
 const SRC_GLOB = "src/**/*.ts";
 const SPEC_NEGATION = "!src/**/*.spec.ts";
+/** A source root the baseline does NOT cover — genuinely new territory. */
+const ADDED_ROOT_GLOB = "lib/**/*.ts";
+const NARROW_ROOT = "src/existing/**/*.ts";
+const LIB_NEGATION = "!lib/**";
 const P95_BOUND = "p(95)<1000";
 const RATE_UPPER = "rate<0.05";
 const RATE_LOWER = "rate>=0.99";
@@ -93,6 +97,105 @@ describe("threshold-ratchet tiers 2 and 3", () => {
       const findings = compareFile(STRYKER_FILE, base, current);
       expect(findings).toHaveLength(1);
       expect(findings[0].type).toBe(TYPE_EXEMPTION);
+    });
+
+    it("allows exclusions scoped to a root the change is adding", () => {
+      // Repairing an inert mutate list adds source roots AND the test-file
+      // exclusions that belong with them. Judged pattern-by-pattern those
+      // exclusions read as weakenings; in fact nothing under `lib/` was being
+      // mutated a moment ago, so the gate can only have grown. Two repositories
+      // hit this repairing a gate whose real effect was 0 -> 69 and 0 -> 75
+      // files mutated (CodySwannGT/lisa#4243).
+      const current = JSON.stringify({
+        thresholds: { high: 80, low: 60, break: 60 },
+        mutate: [
+          SRC_GLOB,
+          SPEC_NEGATION,
+          ADDED_ROOT_GLOB,
+          "!lib/**/*.spec.ts",
+          "!lib/**/*.d.ts",
+        ],
+      });
+      expect(compareFile(STRYKER_FILE, base, current)).toHaveLength(0);
+    });
+
+    it("still flags an exclusion inside a SUBDIRECTORY of a baseline root", () => {
+      // The hole an exact root comparison leaves, found in review of #4244.
+      // Baseline covers `src/**`. Adding `src/new/**` plus `!src/new/**` reads
+      // as new territory under equality — `src/new` is not literally `src` —
+      // but every file there was ALREADY being mutated, so the exclusion is a
+      // real weakening wearing the shape of a widening.
+      const current = JSON.stringify({
+        thresholds: { high: 80, low: 60, break: 60 },
+        mutate: [SRC_GLOB, SPEC_NEGATION, "src/new/**/*.ts", "!src/new/**"],
+      });
+      const findings = compareFile(STRYKER_FILE, base, current);
+      expect(findings).toHaveLength(1);
+      expect(findings[0].type).toBe(TYPE_EXEMPTION);
+      expect(findings[0].key).toBe("mutate !src/new/**");
+    });
+
+    it.each([
+      ["wildcard baseline", "**/*.ts", ADDED_ROOT_GLOB, LIB_NEGATION],
+      ["enclosing exclusion", NARROW_ROOT, SRC_GLOB, "!src/**"],
+      ["brace baseline", "{src,lib}/**/*.ts", ADDED_ROOT_GLOB, LIB_NEGATION],
+      ["class baseline", "[sl]ib/**/*.ts", ADDED_ROOT_GLOB, LIB_NEGATION],
+      ["extglob baseline", "@(src|lib)/**/*.ts", ADDED_ROOT_GLOB, LIB_NEGATION],
+      ["relative baseline", "./lib/**/*.ts", ADDED_ROOT_GLOB, LIB_NEGATION],
+    ])(
+      "refuses shrinking coverage through %s",
+      (_name, original, added, excluded) => {
+        const findings = compareFile(
+          STRYKER_FILE,
+          JSON.stringify({ mutate: [original] }),
+          JSON.stringify({ mutate: [original, added, excluded] })
+        );
+        expect(findings.map(finding => finding.key)).toContain(
+          `mutate ${excluded}`
+        );
+      }
+    );
+
+    it("allows an exclusion in a new sibling of a narrower baseline root", () => {
+      expect(
+        compareFile(
+          STRYKER_FILE,
+          JSON.stringify({ mutate: [NARROW_ROOT] }),
+          JSON.stringify({
+            mutate: [NARROW_ROOT, SRC_GLOB, "!src/new/**/*.spec.ts"],
+          })
+        )
+      ).toHaveLength(0);
+    });
+
+    it("allows an exclusion nested inside a newly added root", () => {
+      // The other side of the same boundary: `lib` is genuinely new, so an
+      // exclusion deeper inside it still narrows only territory this change
+      // introduced.
+      const current = JSON.stringify({
+        thresholds: { high: 80, low: 60, break: 60 },
+        mutate: [SRC_GLOB, SPEC_NEGATION, ADDED_ROOT_GLOB, "!lib/generated/**"],
+      });
+      expect(compareFile(STRYKER_FILE, base, current)).toHaveLength(0);
+    });
+
+    it("still flags an exclusion inside a root it already covered", () => {
+      // The other half of the rule, and the one that keeps it honest: adding a
+      // new root must not launder an exclusion that genuinely shrinks coverage
+      // of an existing one.
+      const current = JSON.stringify({
+        thresholds: { high: 80, low: 60, break: 60 },
+        mutate: [
+          SRC_GLOB,
+          SPEC_NEGATION,
+          ADDED_ROOT_GLOB,
+          "!src/hard-stuff/**",
+        ],
+      });
+      const findings = compareFile(STRYKER_FILE, base, current);
+      expect(findings).toHaveLength(1);
+      expect(findings[0].type).toBe(TYPE_EXEMPTION);
+      expect(findings[0].key).toBe("mutate !src/hard-stuff/**");
     });
 
     it("flags removing a mutate target", () => {

@@ -355,7 +355,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/scripts/zap-baseline.sh":
       "7ecfcb911f2f2284eb672c9eb960a1588792a984a713cb2e5f5d9963b32af910",
     "expo/create-only/stryker.conf.json":
-      "e9efa9734ca0ae536327fa3ef53f2f3c9effd71a425cc8a2316feceea21d32ef",
+      "d92363c46eeacb202e9d7370acbfdb298c39f12125a89a97a56e12e5fadfae6d",
     "expo/create-only/tsconfig.json":
       "fdb99e32d1588e75735755d7b5caab406ad8387c21a3d820cd3b40cb9218a191",
     "expo/create-only/tsconfig.local.json":
@@ -837,9 +837,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/sonar-secrets.sh":
       "8ec9d8eab090fd8aed69b6378160ae607b4341923ed076d9a5d08bf44d238064",
     "plugins/src/base/hooks/threshold-ratchet-compare.mjs":
-      "bb7153af84312c6795b7471e8763d3371613aa688c04289af196b9cb2fc5842d",
+      "14724e0c41bb77fdec158dacbc263d416741f9df4c862769ea832da97f3fab39",
     "plugins/src/base/hooks/threshold-ratchet-families.mjs":
-      "be34a18a8dc3adb516023ba2dbcdb00012d9defdeedf15c0f5711f742b6f91b6",
+      "3e0eb370454c693ae09c4c5e2fcdbc31cea9ad8d9edd11df87e1dceaba170ab5",
     "plugins/src/base/hooks/threshold-ratchet.mjs":
       "c9d7d91705baba1adb9ff7cb2ce29b1fe43a16630f5fb847bb657101ca43756b",
     "plugins/src/base/hooks/threshold-ratchet.sh":
@@ -2207,9 +2207,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/scripts/lisa-scratch-run.sh":
       "ef3c38f8d1d2f48ba265e21f841310d25142228dac57b0a5742c7d902113ca9a",
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "95a97e7814e4292a07af43ec2bd21e4332744d6bced9a259f77c757f32ef51e1",
+      "99a97f830b1ee3388e8714602a4a3f188387c0389ac9d2a7b4b898f20f39a7a7",
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs":
-      "ab9ef18c310f50dab91832418ef41147dbfdfcf05f87ebd1d1badace76ae5a77",
+      "15b8dd22f25795127258cb9bf0271253bb9e285cf735177d157037a5cc4663f8",
     "rails/copy-overwrite/sgconfig.yml":
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "rails/create-only/.github/workflows/ci.yml":
@@ -2595,7 +2595,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "typescript/copy-overwrite/scripts/lisa-mutation.mjs":
-      "3bf3c1df330f7c0060f07b1f23226ad0ff167368cc445b79e6ed6778b05a2ff4",
+      "9897bb65a2bcc35d5977908aacc4317fa282fae5fa7d4b17db626e7289d07253",
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-action.mjs":
       "640b65e1caba4ba33e19e4a1ff49f869a99c15eb7d59a88498a5b2466acf438e",
     "typescript/copy-overwrite/scripts/nightly-e2e-provider-github-jira.mjs":
@@ -2613,9 +2613,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/scripts/reconcile-nightly-e2e-tracking.mjs":
       "d061c7513acdf1e187cf916dca53432a06a78e43bd0068a0b315ad351a4b72db",
     "typescript/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
-      "95a97e7814e4292a07af43ec2bd21e4332744d6bced9a259f77c757f32ef51e1",
+      "99a97f830b1ee3388e8714602a4a3f188387c0389ac9d2a7b4b898f20f39a7a7",
     "typescript/copy-overwrite/scripts/threshold-ratchet-families.mjs":
-      "ab9ef18c310f50dab91832418ef41147dbfdfcf05f87ebd1d1badace76ae5a77",
+      "15b8dd22f25795127258cb9bf0271253bb9e285cf735177d157037a5cc4663f8",
     "typescript/copy-overwrite/sgconfig.yml":
       "ff5b62de42eb969a851fdc53ee6932a32ffe010b567ed2c62460ed454ad2a24f",
     "typescript/copy-overwrite/tsconfig.eslint.json":
@@ -2647,7 +2647,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/mutation.gate.json":
       "53adce2f6ef53f4a46d896210828610bf4f9b1f45ebbf6c7cf0addf9982a161a",
     "typescript/create-only/stryker.conf.json":
-      "dbe6aa034de3734aab06d5f5a2dedaf4b073528da9efa6307400049a475aafae",
+      "ac8007387a7b3511a1f79a928eb32f9620af1e48af4a4764f0bd25dfb66bced2",
     "typescript/create-only/tsconfig.local.json":
       "727931ff950c5606b74040963429407c820743dfd20cb1732656eca963575208",
     "typescript/create-only/vitest.config.local.ts":
@@ -9585,6 +9585,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/mutation-performance-fixture.test.ts": true,
     "tests/integration/mutation-performance-packed-apply.test.ts": true,
     "tests/integration/mutation-sigterm-control.test.ts": true,
+    "tests/integration/mutation-source-roots.test.ts": true,
     "tests/integration/native-build-push-range.test.ts": true,
     "tests/integration/nightly-e2e-gate-contract-doc.test.ts": true,
     "tests/integration/nightly-e2e-grace-wiring.test.ts": true,
