@@ -164,15 +164,35 @@ function compareStryker(relPath, base, current) {
   // AND the test-file exclusions that belong with them, and every one of those
   // exclusions read as a weakening. Measured on two repositories whose real
   // effect was 0 -> 69 and 0 -> 75 files mutated (CodySwannGT/lisa#4243).
-  const baseRoots = new Set([...baseMutate.positives].map(globRoot));
-  const addedRoots = new Set(
-    [...currentMutate.positives]
-      .map(globRoot)
-      .filter(root => root !== "" && !baseRoots.has(root))
-  );
+  const baseRoots = [...baseMutate.positives].map(globRoot);
+  /**
+   * Whether a root lies inside territory the baseline already mutated.
+   *
+   * Exact equality is not enough. With a baseline of `src/**` a change can add
+   * `src/new/**` and `!src/new/**`: the exclusion removes files the baseline
+   * ALREADY mutated, but `src/new` is not literally `src`, so an equality test
+   * would read it as fresh territory and suppress a real weakening.
+   * @param {string} root A rooted glob prefix
+   * @returns {boolean} True when a baseline root equals or contains it
+   */
+  const coveredByBase = root =>
+    baseRoots.some(
+      base => base !== "" && (root === base || root.startsWith(`${base}/`))
+    );
+  const addedRoots = [...currentMutate.positives]
+    .map(globRoot)
+    .filter(root => root !== "" && !coveredByBase(root));
+  /**
+   * Whether a root lies inside territory THIS change is adding.
+   * @param {string} root A rooted glob prefix
+   * @returns {boolean} True when an added root equals or contains it
+   */
+  const underAdded = root =>
+    addedRoots.some(added => root === added || root.startsWith(`${added}/`));
   for (const negation of currentMutate.negations) {
     if (baseMutate.negations.has(negation)) continue;
-    if (addedRoots.has(globRoot(negation))) continue;
+    const root = globRoot(negation);
+    if (!coveredByBase(root) && underAdded(root)) continue;
     findings.push({
       file: relPath,
       key: `mutate ${negation}`,

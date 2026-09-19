@@ -22,6 +22,8 @@ const VITEST_FILE = "vitest.thresholds.json";
 const KEY_LINES = "global.lines";
 const SRC_GLOB = "src/**/*.ts";
 const SPEC_NEGATION = "!src/**/*.spec.ts";
+/** A source root the baseline does NOT cover — genuinely new territory. */
+const ADDED_ROOT_GLOB = "lib/**/*.ts";
 const P95_BOUND = "p(95)<1000";
 const RATE_UPPER = "rate<0.05";
 const RATE_LOWER = "rate>=0.99";
@@ -107,10 +109,37 @@ describe("threshold-ratchet tiers 2 and 3", () => {
         mutate: [
           SRC_GLOB,
           SPEC_NEGATION,
-          "lib/**/*.ts",
+          ADDED_ROOT_GLOB,
           "!lib/**/*.spec.ts",
           "!lib/**/*.d.ts",
         ],
+      });
+      expect(compareFile(STRYKER_FILE, base, current)).toHaveLength(0);
+    });
+
+    it("still flags an exclusion inside a SUBDIRECTORY of a baseline root", () => {
+      // The hole an exact root comparison leaves, found in review of #4244.
+      // Baseline covers `src/**`. Adding `src/new/**` plus `!src/new/**` reads
+      // as new territory under equality — `src/new` is not literally `src` —
+      // but every file there was ALREADY being mutated, so the exclusion is a
+      // real weakening wearing the shape of a widening.
+      const current = JSON.stringify({
+        thresholds: { high: 80, low: 60, break: 60 },
+        mutate: [SRC_GLOB, SPEC_NEGATION, "src/new/**/*.ts", "!src/new/**"],
+      });
+      const findings = compareFile(STRYKER_FILE, base, current);
+      expect(findings).toHaveLength(1);
+      expect(findings[0].type).toBe(TYPE_EXEMPTION);
+      expect(findings[0].key).toBe("mutate !src/new/**");
+    });
+
+    it("allows an exclusion nested inside a newly added root", () => {
+      // The other side of the same boundary: `lib` is genuinely new, so an
+      // exclusion deeper inside it still narrows only territory this change
+      // introduced.
+      const current = JSON.stringify({
+        thresholds: { high: 80, low: 60, break: 60 },
+        mutate: [SRC_GLOB, SPEC_NEGATION, ADDED_ROOT_GLOB, "!lib/generated/**"],
       });
       expect(compareFile(STRYKER_FILE, base, current)).toHaveLength(0);
     });
@@ -121,7 +150,12 @@ describe("threshold-ratchet tiers 2 and 3", () => {
       // of an existing one.
       const current = JSON.stringify({
         thresholds: { high: 80, low: 60, break: 60 },
-        mutate: [SRC_GLOB, SPEC_NEGATION, "lib/**/*.ts", "!src/hard-stuff/**"],
+        mutate: [
+          SRC_GLOB,
+          SPEC_NEGATION,
+          ADDED_ROOT_GLOB,
+          "!src/hard-stuff/**",
+        ],
       });
       const findings = compareFile(STRYKER_FILE, base, current);
       expect(findings).toHaveLength(1);

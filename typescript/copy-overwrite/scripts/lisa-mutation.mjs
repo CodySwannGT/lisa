@@ -836,6 +836,15 @@ export const resolveMutateDeclaration = cwd => {
  * @type {readonly string[]}
  */
 /**
+ * Extensions derivation counts, and the ones `mutateFromSourceDirs` emits.
+ *
+ * Kept as one list because the two MUST agree: a root derived from files the
+ * generated patterns cannot select produces a suggestion that selects nothing.
+ * @type {readonly string[]}
+ */
+export const DERIVABLE_EXTENSIONS = Object.freeze([".ts", ".tsx"]);
+
+/**
  * Filename markers that mean "not the project's own mutable source".
  *
  * Compared against the basename with its final extension removed, so
@@ -871,7 +880,15 @@ export const NON_SOURCE_ROOTS = Object.freeze([
  */
 const isDerivableSource = file => {
   const normalized = normalizePath(file);
-  if (!isStrykerParseable(normalized)) return false;
+  // Deliberately NARROWER than `isStrykerParseable`. Derivation exists to feed
+  // `mutateFromSourceDirs`, which emits `.ts`/`.tsx` patterns only — counting a
+  // `.js` or `.vue` file here would report a root whose derived patterns then
+  // select nothing, which is a suggestion that cannot work and, worse, a
+  // non-zero root count that used to let an inert gate run on unchanged
+  // patterns. The two must agree on what counts, so they share this list.
+  if (!DERIVABLE_EXTENSIONS.includes(path.extname(normalized).toLowerCase())) {
+    return false;
+  }
   // Suffix comparison rather than one alternating regex: the pattern that
   // expresses this compactly (`(?:\.spec|\.test)\.[cm]?[jt]sx?$`) is exactly
   // the shape the ReDoS rule flags, and this runs over every tracked path.
@@ -2825,6 +2842,11 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
       return finish(OUTCOMES.disabled, 0);
     }
 
+    // Tracks whether a WORKING set of patterns was actually installed. The
+    // failure below keys on this rather than on `roots.length`, so a
+    // derivation that yields roots but no selectable file still fails closed
+    // instead of letting the gate run on the inert patterns it started with.
+    let substituted = false;
     if (!declaration.explicit && roots.length > 0) {
       const derived = {
         mutate: mutateFromSourceDirs(roots.map(entry => entry.root)),
@@ -2833,6 +2855,7 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
       };
       const derivedPatterns = compileMutatePatterns(derived.mutate);
       if (countMutateTargetsInRepo(cwd, derivedPatterns) > 0) {
+        substituted = true;
         console.log(
           `⚠️  ${declaration.source} select NO tracked file, and this project\n` +
             "   declares no mutate list of its own. Deriving one from what the\n" +
@@ -2845,7 +2868,7 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
       }
     }
 
-    if (declaration.explicit || roots.length === 0) {
+    if (!substituted) {
       const where = suggestion
         ? [
             `   Source in this repository looks like it lives in: ${suggestion}`,

@@ -1631,6 +1631,27 @@ describe("the gate end to end", () => {
     expect(output()).toContain("lambdas/ (1 file)");
   });
 
+  it("fails an inert gate whose only source is in a language it cannot derive", () => {
+    // Found in review of #4244. `deriveSourceRoots` once counted every
+    // Stryker-parseable file while `mutateFromSourceDirs` emitted only
+    // .ts/.tsx patterns, so a JavaScript repository produced roots > 0 AND
+    // derived patterns selecting 0 — skipping substitution and skipping the
+    // failure branch, leaving the gate running on the inert patterns it
+    // started with. That is the exact outcome this whole change exists to
+    // prevent, reachable through the fix for it.
+    write(root, GATE_FILE, ENABLED_GATE);
+    write(root, "api/handler.js", "export const handler = 1;\n");
+    write(root, DOC, "base\n");
+    commit(root, "base");
+    git(root, ["checkout", "-q", "-b", TOPIC]);
+    write(root, "api/handler.js", "export const handler = 2;\n");
+    commit(root, TOPIC);
+    fakeStryker(root, 0);
+
+    expect(runGate(root)).toBe(1);
+    expect(output()).toContain(OUTCOMES.inertConfig);
+  });
+
   it("lets quality.mutation.sourceDirs override a scaffolded stryker config", () => {
     // The only lever that reaches an ALREADY-scaffolded repository:
     // stryker.conf.json ships create-only, so a layout the scaffold guessed
