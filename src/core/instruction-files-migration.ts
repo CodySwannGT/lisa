@@ -215,7 +215,8 @@ export function stripAgyProjectLearningsBridge(body: string): string {
 }
 
 /**
- * Build the exact bounded Antigravity project-learnings bridge block.
+ * Build the bounded Antigravity startup bridge. Antigravity does not load the
+ * plugin eager rules, so its missing-access instruction is repeated here.
  * @param projectLearningsFile - Project-relative resolved learnings path.
  * @returns Managed bridge block with surrounding markers.
  */
@@ -232,6 +233,9 @@ export function buildAgyProjectLearningsBridge(
     "If it is malformed, warn once and ignore it.",
     "",
     `Resolved path for this project: \`${projectLearningsFile}\`.`,
+    "",
+    "- If you can't reach something you need, such as a repository, a secret, an API, or a connector, say exactly what's missing in your first message and stop. Don't substitute, mock, or guess.",
+    "If the missing access is discovered after work begins, say exactly what's missing in your next message and stop.",
     LISA_PROJECT_LEARNINGS_END_MARKER,
   ].join("\n");
 }

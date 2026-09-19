@@ -54,6 +54,9 @@ read the raw ledger wholesale into context. If it is absent, continue silently.
 If it is malformed, warn once and ignore it.
 
 Resolved path for this project: `.lisa/PROJECT_LEARNINGS.md`.
+
+- If you can't reach something you need, such as a repository, a secret, an API, or a connector, say exactly what's missing in your first message and stop. Don't substitute, mock, or guess.
+If the missing access is discovered after work begins, say exactly what's missing in your next message and stop.
 <!-- LISA_PROJECT_LEARNINGS_END -->
 
 <!-- LISA_HOST_RULES_START -->

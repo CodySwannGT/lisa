@@ -1,9 +1,14 @@
 # Tool Access Gate
 
+- If you can't reach something you need, such as a repository, a secret, an API, or a connector, say exactly what's missing in your first message and stop. Don't substitute, mock, or guess.
+
+If the missing access is discovered after work begins, say exactly what's
+missing in your next message and stop.
+
 A flow may only take on work it can actually finish. If completing a work item —
 including its empirical verification — requires an external tool or system the
-agent cannot access, the flow must **break out and report the missing access on
-the work item**, never work around it. This is the flow-side arm of the factory
+agent cannot access, the flow must **tell the user exactly what access is missing and stop**, never
+work around it. This is the flow-side arm of the factory
 contract: intake validates that the factory has "the tooling *and provable
 access to that tooling*"; this gate re-proves that promise at execution time and
 enforces it for tools discovered mid-flow.
@@ -31,7 +36,8 @@ enforces it for tools discovered mid-flow.
    environment.
 2. **Continuously** — the moment a previously unknown tool requirement surfaces
    mid-flow (e.g. verification turns out to need CloudWatch log capture), probe
-   it right then and record the new tool + probe result in the same places the
+   it right then. If access is unavailable, report it and stop. Otherwise, record
+   the new tool + probe result in the same places the
    preflight wrote to (the plan/tracker artifact and the affected tasks'
    `metadata.required_access`) before continuing. Discovery timing changes
    nothing about the protocol.
@@ -62,44 +68,31 @@ Example probes:
 | Deploy target | reach the target environment with the credentials the verify step will use |
 | Device/browser harness | the harness's own doctor/smoke entry (e.g. `playwright --version` plus a trivial headless launch) |
 
-A probe failure only counts **after exhausting the documented credential
-sources** (the same order the `verification` rule mandates): project e2e
-config/fixtures, `.lisa.config.local.json` and environment variables, then
-documented work-item credentials (e.g. `Sign-in Required`). Missing access you
-could have resolved from those sources is not a blocker — resolve it and
-proceed.
+Resolve credentials through the documented sources before probing: project
+e2e config/fixtures, `.lisa.config.local.json` and environment variables, then
+documented work-item credentials (e.g. `Sign-in Required`). If the documented
+access path or probe cannot provide the required access, report the gap and
+stop. Do not continue exploring substitute sources after confirming the gap.
 
-Record the enumeration and probe results in the flow's plan/tracker artifact
+Record successful probes in the flow's plan/tracker artifact
 (and task `metadata.required_access` where the flow's task contract carries
 it), so the verifier can confirm the gate ran.
 
 ## On failure: break out, never work around
 
-When a required tool fails its probe:
+When required access is unavailable, tell the user and stop. Use the first
+message if the gap is already known, or the next message if it is discovered
+mid-task. The message must state:
 
-1. **Stop the affected work immediately.** Do not start (or continue)
-   implementation whose completion condition cannot be proven.
-2. **Update the work item with an "Access Needed" comment** containing, for
-   each missing tool:
-   - a one-sentence plain-English summary a non-technical operator can act on
-     ("Lisa needs read access to the app's AWS logs to prove this fix works");
-   - the tool and the operation it is needed for (which acceptance criterion /
-     verification step);
-   - the exact access to grant: env var name, credential/role/permission, or
-     account invitation required;
-   - the probe command that must pass once access is granted.
-3. **Transition the work item to the configured blocked state** and apply the
-   configured `human_needed` / needs-human marker — missing access is a
-   **human-only blocker** (someone must provision credentials or grant access);
-   do not fabricate a build-ready ticket for it.
-4. **Release the verification gate honestly**: write the verdict with
-   `status: "blocked"`, and mark each acceptance criterion whose proof depends
-   on the missing tool as `status: "blocked"` with the missing-access
-   diagnosis as its `evidence`; unaffected criteria keep their real
-   `pass`/`fail` result.
-5. **Resume only when the probe passes.** When access is granted, re-run the
-   recorded probe before continuing; `repair-intake` re-validates blocked items
-   whose blockers cleared.
+- the exact resource that cannot be reached and the operation it blocks;
+- the observed failure and, if known, the credential name, role, permission, or
+  invitation needed — never secret values, and never a guessed diagnosis;
+- the read-only probe that must pass before work can resume.
+
+Do not substitute, mock, guess, or continue other tasks as a workaround.
+Reporting does not depend on access to a tracker, and it does not require
+creating a new ticket. Resume after the required access is available and its
+probe passes.
 
 ### Forbidden workarounds
 
@@ -116,6 +109,6 @@ None of the following ever substitutes for missing access:
   ticket points at).
 - Silently narrowing scope so the inaccessible part is "out of scope".
 
-If a *partial* set of tasks is unaffected by the missing access, those tasks may
-complete, but the work item as a whole must not be marked terminal-done while
-any acceptance criterion's proof is blocked on access.
+Keep results already obtained, but stop further work until the required access
+is available. An inaccessible tracker does not prevent reporting the blocker
+to the user. Do not claim blocked acceptance criteria have passed.

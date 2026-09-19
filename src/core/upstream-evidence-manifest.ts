@@ -899,7 +899,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/stale-state-claims.md":
       "faf5057f5910237b8d5048dbcccb73e0cd03762a8eefbeae43b5d0153104a85a",
     "plugins/src/base/rules/eager/tool-access-gate.md":
-      "a5413a43ec353f768586e0a1cde3836db025cb5d8b80821020602995e71aa296",
+      "854eb5b16a8e0f51fe7caa0517c10d1ec5ded5ca7324c8304beddc7b81befcf2",
     "plugins/src/base/rules/eager/tracked-work.md":
       "e6ac1bcb50e04120d9e4c9a2be1d022cd873071a8b74d34f53f282a03676733e",
     "plugins/src/base/rules/eager/upstream-to-lisa.md":
@@ -1011,7 +1011,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/stale-state-claims.md":
       "6329e1a7629f9a12f10454c767842aecee4964df8b7bb4aebda9dde3c0959c2a",
     "plugins/src/base/rules/reference/tool-access-gate.md":
-      "70fcd6cd92dc003a40886b1bef02540e6401f5b70ba97308d42bbbddc0206eab",
+      "29579f403648d3b550b8b7e5fba01986fba8d3f0f285b5b5bf6bb0a839f7f10e",
     "plugins/src/base/rules/reference/tracked-work.md":
       "eb8e7ceb11ba16dc5443ae2b1c83cce544a35db84af97d04aeca6018654fe9e0",
     "plugins/src/base/rules/reference/upstream-to-lisa.md":
