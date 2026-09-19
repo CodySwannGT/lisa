@@ -46,6 +46,14 @@ describe("design-source-of-truth rule contract", () => {
     const eager = read(root, "rules/reference/design-source-of-truth.md");
     const reference = read(root, "rules/reference/design-source-of-truth.md");
 
+    it("documents the explicit opt-out without exempting design-value binding", () => {
+      expect(reference).toContain("designSource.enabled");
+      expect(reference).toContain("SKIPPED: designSource.enabled=false");
+      expect(reference).toContain("design-value-binding");
+      expect(reference).not.toContain("is not exempt");
+      expect(reference).not.toContain("that is not an exemption");
+    });
+
     it("ships as a paired rule with a non-trivial body on both sides", () => {
       expect(eager.length).toBeGreaterThan(500);
       expect(reference.length).toBeGreaterThan(2000);
@@ -134,6 +142,17 @@ describe("design-source-of-truth rule contract", () => {
         "design-source-of-truth"
       );
     });
+
+    it.each(CITING_SKILLS)(
+      "%s omits provenance work only on explicit false",
+      skill => {
+        const consumer = read(root, `skills/${skill}/SKILL.md`);
+        expect(consumer).toContain("designSource.enabled");
+        expect(consumer).toMatch(/boolean `false`/);
+        expect(consumer).toMatch(/omit.*design-source/i);
+        expect(consumer).toMatch(/do not.*(?:Figma|marker)/i);
+      }
+    );
 
     it("the review path runs the gate and treats a FAIL as blocking", () => {
       const reviewLocal = read(root, "skills/lisa-review-local/SKILL.md");

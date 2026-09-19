@@ -18,14 +18,20 @@ One deterministic gate runs ahead of the judgement-based review and is exempt
 from the confidence filtering below, because it is decided by a script rather
 than by an agent's opinion.
 
-**Design-source gate (`design-source-of-truth` rule).** Run it against the
-branch diff before step 1:
+**Design-source gate (`design-source-of-truth` rule).** First read
+`designSource.enabled` in `.lisa.config.json`. Only boolean `false` opts out:
+omit the design-source review step; do not request DESIGN-SOURCE markers, Figma
+nodes, or Figma access for this obligation. Record `SKIPPED: designSource.enabled=false`
+in the review. Absent, true, or invalid values keep enforcement enabled.
+The separate design-value binding review below still applies.
+
+When enabled, run the gate against the branch diff before step 1:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT:-.}/scripts/design-source-gate.mjs" --base=main --head=HEAD
 ```
 
-Exit 0 = PASS, exit 1 = FAIL. A FAIL is a **blocking** review finding and is
+Exit 0 = PASS or explicit SKIPPED, exit 1 = FAIL. A FAIL is a **blocking** review finding and is
 reported verbatim at the top of the review — it is never scored, never filtered
 by confidence, and never demoted to a nitpick. It qualifies under
 `convergent-review` because it names a concrete failure scenario: the design

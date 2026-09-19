@@ -19,7 +19,11 @@
  * at the source; it is the exception, not the default, and the gate reports
  * every one of them so review can challenge it.
  *
- * **The gate fails closed.** Anything it cannot resolve into one of those two
+ * Projects with no design source may explicitly set `designSource.enabled`
+ * to boolean false. The gate reports SKIPPED before resolving the diff; all
+ * other values retain the default enforcement.
+ *
+ * **When enabled, the gate fails closed.** Anything it cannot resolve into one of those two
  * declarations is a violation: no annotation, a malformed one, a file that both
  * cites Figma and denies having a source, a changed file it could not read, or
  * a diff it could not compute. A gate that returns PASS when it could not look
@@ -32,7 +36,7 @@
  * to all of it — it asks only whether the design source is declared.
  *
  * Run it: `node design-source-gate.mjs --base=origin/main [--head=HEAD] [--json]`
- * Exit 0 = PASS, 1 = FAIL (any violation, or anything unresolvable), 2 = usage.
+ * Exit 0 = PASS or SKIPPED, 1 = FAIL (any violation, or anything unresolvable), 2 = usage.
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync, realpathSync } from "node:fs";
@@ -338,10 +342,10 @@ export const VIOLATION_STATUSES = new Set([
  *   files?: readonly { path: string, changeType?: string, content?: string | null }[] | null,
  *   diffError?: string | null,
  *   figmaAccess?: boolean,
- *   config?: { include?: readonly string[], exclude?: readonly string[] }
+ *   config?: { enabled?: unknown, include?: readonly string[], exclude?: readonly string[] }
  * }} input Change under evaluation.
  * @returns {{
- *   verdict: "PASS" | "FAIL",
+ *   verdict: "PASS" | "FAIL" | "SKIPPED",
  *   reasons: string[],
  *   violations: object[],
  *   exceptions: object[],
@@ -352,6 +356,21 @@ export const VIOLATION_STATUSES = new Set([
  * }} The gate result.
  */
 export function evaluateDesignSource(input = {}) {
+  // Only the explicit boolean opts out: a missing or mistyped setting must
+  // never silently remove enforcement from an existing adopter.
+  if (input.config?.enabled === false) {
+    return {
+      verdict: "SKIPPED",
+      reasons: ["designSource.enabled=false"],
+      violations: [],
+      exceptions: [],
+      syncBackPreferred: [],
+      sealed: [],
+      notApplicable: [],
+      summary: { judged: 0, sealed: 0, exceptions: 0, violations: 0 },
+    };
+  }
+
   const reasons = [];
   const files = Array.isArray(input.files) ? input.files : null;
 
@@ -452,7 +471,7 @@ export function collectChangedFiles(base, head) {
 /**
  * Read the optional `designSource` block from `.lisa.config.json`.
  *
- * @returns {{ include?: string[], exclude?: string[] }} Project overrides, or {}.
+ * @returns {{ enabled?: unknown, include?: string[], exclude?: string[] }} Project overrides, or {}.
  */
 function readProjectConfig() {
   try {
@@ -471,6 +490,9 @@ function readProjectConfig() {
  * @returns {string} Report text.
  */
 export function renderReport(result) {
+  if (result.verdict === "SKIPPED") {
+    return "design-source gate: SKIPPED: designSource.enabled=false";
+  }
   const lines = [`design-source gate: ${result.verdict}`];
 
   if (result.verdict === "PASS") {
@@ -534,15 +556,15 @@ export function runCli(argv) {
     return 2;
   }
 
-  const { files, diffError } = collectChangedFiles(
-    base,
-    args.get("head") ?? "HEAD"
-  );
+  const config = readProjectConfig();
+  const change =
+    config.enabled === false
+      ? {}
+      : collectChangedFiles(base, args.get("head") ?? "HEAD");
   const result = evaluateDesignSource({
-    files,
-    diffError,
+    ...change,
     figmaAccess: args.get("figma-access") === "true",
-    config: readProjectConfig(),
+    config,
   });
 
   process.stdout.write(
@@ -550,7 +572,7 @@ export function runCli(argv) {
       ? `${JSON.stringify(result, null, 2)}\n`
       : `${renderReport(result)}\n`
   );
-  return result.verdict === "PASS" ? 0 : 1;
+  return result.verdict === "FAIL" ? 1 : 0;
 }
 
 /**
