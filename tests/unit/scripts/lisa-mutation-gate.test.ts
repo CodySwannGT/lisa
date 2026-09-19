@@ -75,6 +75,18 @@ const GUARD_MJS = "scripts/lisa-gates.mjs";
 /** A committed switch that turns the gate on against `main`. */
 const ENABLED_GATE = '{"enabled":true,"since":"main"}';
 
+/** A committed switch that leaves the gate off — the shipped default. */
+const DISABLED_GATE = '{"enabled":false,"since":"main"}';
+
+/**
+ * A mutate glob rooted at a directory the fixtures never create.
+ *
+ * Standing in for the real defect: a scaffolded list naming a directory the
+ * repository does not have selects nothing, and a gate selecting nothing
+ * reports success forever.
+ */
+const ABSENT_ROOT_GLOB = "app/**/*.ts";
+
 /** The mutate target every end-to-end scenario changes. */
 const GUARD_TS = "src/guard.ts";
 
@@ -666,6 +678,11 @@ describe("mutate declaration provenance", () => {
     expect(resolveMutateDeclaration(root)).toEqual({
       mutate: ["guards/*"],
       source: STRYKER_CONF,
+      // `explicit` marks a list the project wrote down, as opposed to Lisa's
+      // fallback guess. Only a non-explicit list may be replaced by derived
+      // source roots — substituting one for a list a project declared is the
+      // quiet override the inert-config check exists to prevent.
+      explicit: true,
     });
   });
 
@@ -977,7 +994,7 @@ describe("diff scoping against a real repository", () => {
 
   it("reports zero when the patterns match nothing tracked", () => {
     expect(
-      countMutateTargetsInRepo(root, compileMutatePatterns(["app/**/*.ts"]))
+      countMutateTargetsInRepo(root, compileMutatePatterns([ABSENT_ROOT_GLOB]))
     ).toBe(0);
   });
 });
@@ -1062,7 +1079,7 @@ describe("the gate end to end", () => {
   };
 
   it("self-skips when the project has not opted in", () => {
-    write(root, GATE_FILE, '{"enabled":false,"since":"main"}');
+    write(root, GATE_FILE, DISABLED_GATE);
     write(root, "README.md", "x\n");
     commit(root, "base");
     fakeStryker(root, 1);
@@ -1543,7 +1560,7 @@ describe("the gate end to end", () => {
     // Distinguishing this from the case above is what makes the case above
     // safe to exit 0 on. A gate whose patterns match no tracked file is not
     // satisfied — it is switched on and wired to nothing.
-    scenario(["app/**/*.ts"], [DOC]);
+    scenario([ABSENT_ROOT_GLOB], [DOC]);
     fakeStryker(root, 0);
 
     expect(runGate(root)).toBe(1);
@@ -1555,8 +1572,81 @@ describe("the gate end to end", () => {
         "   in this repository, so this gate can never generate a mutant and would\n" +
         "   report success on every run forever. That is not a pass — it is a gate\n" +
         "   that is switched on and wired to nothing.\n" +
+        // The exit code is the contract; naming where the source actually is
+        // is what turns "fix your patterns" into something actionable. The
+        // repository whose gate this was found inert in had 66 source files
+        // one directory away from the pattern that missed them all.
+        "   Source in this repository looks like it lives in: src/ (1 file)\n" +
+        "   Declare it under quality.mutation.sourceDirs in .lisa.config.json,\n" +
+        "   or widen `mutate` in your Stryker config.\n" +
         "   Fix the `mutate` patterns in your Stryker config, or turn the gate off."
     );
+  });
+
+  it("tells a DISABLED gate that its patterns are also wired to nothing", () => {
+    // The pair that hid each other. Disabled is the default and used to return
+    // before the inert probe ran, so a repository could carry both conditions
+    // for months and report neither — which is exactly what happened to a CDK
+    // project with 69 source files and a scaffolded `src/**` list
+    // (CodySwannGT/lisa#4243).
+    scenario([ABSENT_ROOT_GLOB], [DOC]);
+    write(root, GATE_FILE, DISABLED_GATE);
+
+    expect(runGate(root)).toBe(0);
+    expect(output()).toContain(OUTCOMES.disabled);
+    expect(output()).toContain("select NO");
+    expect(output()).toContain("src/ (1 file)");
+    expect(output()).toContain("quality.mutation.sourceDirs");
+  });
+
+  it("does not nag a disabled gate whose patterns are viable", () => {
+    // The warning above must fire on a real defect and nothing else, or it
+    // becomes noise on every push in every repository that has not opted in.
+    scenario(["src/**/*.ts"], [GUARD_TS]);
+    write(root, GATE_FILE, DISABLED_GATE);
+
+    expect(runGate(root)).toBe(0);
+    expect(output()).toBe(
+      '⚪ mutation-gate: disabled — mutation.gate.json says "enabled": false. Skipping.\n' +
+        '   Flip "enabled": true (and tune thresholds.break in stryker.conf.json) to turn it on.'
+    );
+  });
+
+  it("derives source roots when the project declared no mutate list", () => {
+    // No Stryker config at all, so the list in play is Lisa's own `src/**`
+    // guess. There is no project decision to override here, which is what
+    // makes deriving safe — unlike the explicit case above, which still fails.
+    write(root, GATE_FILE, ENABLED_GATE);
+    write(root, "lambdas/handler.ts", "export const handler = 1;\n");
+    write(root, DOC, "base\n");
+    commit(root, "base");
+    git(root, ["checkout", "-q", "-b", TOPIC]);
+    write(root, "lambdas/handler.ts", "export const handler = 2;\n");
+    commit(root, TOPIC);
+    fakeStryker(root, 0);
+
+    runGate(root);
+    expect(output()).not.toContain(OUTCOMES.inertConfig);
+    expect(output()).toContain("declares no mutate list of its own");
+    expect(output()).toContain("lambdas/ (1 file)");
+  });
+
+  it("lets quality.mutation.sourceDirs override a scaffolded stryker config", () => {
+    // The only lever that reaches an ALREADY-scaffolded repository:
+    // stryker.conf.json ships create-only, so a layout the scaffold guessed
+    // wrong can never be corrected there from upstream.
+    scenario([ABSENT_ROOT_GLOB], [DOC]);
+    write(
+      root,
+      ".lisa.config.json",
+      JSON.stringify({ quality: { mutation: { sourceDirs: ["src"] } } })
+    );
+    commit(root, "declare source dirs");
+    fakeStryker(root, 0);
+
+    runGate(root);
+    expect(output()).not.toContain(OUTCOMES.inertConfig);
+    expect(output()).toContain("quality.mutation.sourceDirs");
   });
 
   it("refuses a selected path Stryker's --mutate cannot represent", () => {
@@ -1588,7 +1678,7 @@ describe("the gate end to end", () => {
 
   it("lets MUTATION_ENABLED turn a disabled gate on", () => {
     scenario([SRC_TS], [GUARD_TS]);
-    write(root, GATE_FILE, '{"enabled":false,"since":"main"}');
+    write(root, GATE_FILE, DISABLED_GATE);
     fakeStryker(root, 0);
     process.env.MUTATION_ENABLED = "true";
 

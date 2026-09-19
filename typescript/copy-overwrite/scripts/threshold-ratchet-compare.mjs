@@ -21,6 +21,7 @@ import {
   extractStrykerConstraints,
   extractStrykerMutate,
   familyFor,
+  globRoot,
   parseJson,
 } from "./threshold-ratchet-families.mjs";
 
@@ -157,15 +158,30 @@ function compareStryker(relPath, base, current) {
   );
   const baseMutate = extractStrykerMutate(base);
   const currentMutate = extractStrykerMutate(current);
+  // Roots the gate already covered, and roots this change adds. An exclusion
+  // scoped to a newly added root narrows territory that was not being mutated
+  // a moment ago, so it cannot shrink the gate — the change is a net widening.
+  //
+  // Without this, repairing an INERT `mutate` list is unreachable without a
+  // human-approved ratchet exception: the repair necessarily adds source roots
+  // AND the test-file exclusions that belong with them, and every one of those
+  // exclusions read as a weakening. Measured on two repositories whose real
+  // effect was 0 -> 69 and 0 -> 75 files mutated (CodySwannGT/lisa#4243).
+  const baseRoots = new Set([...baseMutate.positives].map(globRoot));
+  const addedRoots = new Set(
+    [...currentMutate.positives]
+      .map(globRoot)
+      .filter(root => root !== "" && !baseRoots.has(root))
+  );
   for (const negation of currentMutate.negations) {
-    if (!baseMutate.negations.has(negation)) {
-      findings.push({
-        file: relPath,
-        key: `mutate ${negation}`,
-        type: TYPE_EXEMPTION_ADDED,
-        message: `${relPath}: new mutation-testing exclusion "${negation}" — excluding files from a gate is a weakening.`,
-      });
-    }
+    if (baseMutate.negations.has(negation)) continue;
+    if (addedRoots.has(globRoot(negation))) continue;
+    findings.push({
+      file: relPath,
+      key: `mutate ${negation}`,
+      type: TYPE_EXEMPTION_ADDED,
+      message: `${relPath}: new mutation-testing exclusion "${negation}" — excluding files from a gate is a weakening.`,
+    });
   }
   for (const positive of baseMutate.positives) {
     if (!currentMutate.positives.has(positive)) {

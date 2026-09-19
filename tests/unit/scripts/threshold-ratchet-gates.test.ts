@@ -95,6 +95,40 @@ describe("threshold-ratchet tiers 2 and 3", () => {
       expect(findings[0].type).toBe(TYPE_EXEMPTION);
     });
 
+    it("allows exclusions scoped to a root the change is adding", () => {
+      // Repairing an inert mutate list adds source roots AND the test-file
+      // exclusions that belong with them. Judged pattern-by-pattern those
+      // exclusions read as weakenings; in fact nothing under `lib/` was being
+      // mutated a moment ago, so the gate can only have grown. Two repositories
+      // hit this repairing a gate whose real effect was 0 -> 69 and 0 -> 75
+      // files mutated (CodySwannGT/lisa#4243).
+      const current = JSON.stringify({
+        thresholds: { high: 80, low: 60, break: 60 },
+        mutate: [
+          SRC_GLOB,
+          SPEC_NEGATION,
+          "lib/**/*.ts",
+          "!lib/**/*.spec.ts",
+          "!lib/**/*.d.ts",
+        ],
+      });
+      expect(compareFile(STRYKER_FILE, base, current)).toHaveLength(0);
+    });
+
+    it("still flags an exclusion inside a root it already covered", () => {
+      // The other half of the rule, and the one that keeps it honest: adding a
+      // new root must not launder an exclusion that genuinely shrinks coverage
+      // of an existing one.
+      const current = JSON.stringify({
+        thresholds: { high: 80, low: 60, break: 60 },
+        mutate: [SRC_GLOB, SPEC_NEGATION, "lib/**/*.ts", "!src/hard-stuff/**"],
+      });
+      const findings = compareFile(STRYKER_FILE, base, current);
+      expect(findings).toHaveLength(1);
+      expect(findings[0].type).toBe(TYPE_EXEMPTION);
+      expect(findings[0].key).toBe("mutate !src/hard-stuff/**");
+    });
+
     it("flags removing a mutate target", () => {
       const current = JSON.stringify({
         thresholds: { high: 80, low: 60, break: 60 },

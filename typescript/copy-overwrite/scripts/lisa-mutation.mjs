@@ -780,7 +780,7 @@ const declarationFromJson = (cwd, name) => {
   try {
     const conf = JSON.parse(fs.readFileSync(path.join(cwd, name), "utf8"));
     if (Array.isArray(conf.mutate) && conf.mutate.length > 0) {
-      return { mutate: conf.mutate, source: name };
+      return { mutate: conf.mutate, source: name, explicit: true };
     }
     return {
       mutate: FALLBACK_MUTATE,
@@ -804,6 +804,9 @@ const declarationFromJson = (cwd, name) => {
  * @returns {{mutate: readonly string[], source: string}} Declaration and origin.
  */
 export const resolveMutateDeclaration = cwd => {
+  const declared = declarationFromSourceDirs(cwd);
+  if (declared) return declared;
+
   const found = JSON_CONFIG_NAMES.find(name =>
     fs.existsSync(path.join(cwd, name))
   );
@@ -817,6 +820,160 @@ export const resolveMutateDeclaration = cwd => {
     source: unreadable
       ? `Lisa's fallback patterns (${unreadable} is JavaScript, which this gate does not evaluate)`
       : "Lisa's fallback patterns (no Stryker config found)",
+  };
+};
+
+/**
+ * Top-level directories that are never a project's own source.
+ *
+ * Deliberately short. Every entry here is a directory whose contents would be
+ * wrong to mutate rather than merely unusual to mutate, because a false
+ * entry in this list silently shrinks a derived gate and derivation only runs
+ * where the project's own config already selected nothing. `scripts` is
+ * absent on purpose: shipped guard scripts are exactly the code a mutation
+ * gate most wants, and excluding them is the defect CodySwannGT/lisa#3668
+ * was filed about.
+ * @type {readonly string[]}
+ */
+/**
+ * Filename markers that mean "not the project's own mutable source".
+ *
+ * Compared against the basename with its final extension removed, so
+ * `guard.spec.ts` yields `guard.spec` and matches `.spec`.
+ * @type {readonly string[]}
+ */
+export const NON_SOURCE_MARKERS = Object.freeze([
+  ".spec",
+  ".test",
+  ".d",
+  ".stories",
+]);
+
+export const NON_SOURCE_ROOTS = Object.freeze([
+  "__mocks__",
+  "__tests__",
+  "build",
+  "coverage",
+  "dist",
+  "e2e",
+  "fixtures",
+  "node_modules",
+  "out",
+  "test",
+  "tests",
+  "vendor",
+]);
+
+/**
+ * Whether a tracked file is a project's own mutable source.
+ * @param {string} file - Repository-relative path.
+ * @returns {boolean} True when it is source rather than a test or artifact.
+ */
+const isDerivableSource = file => {
+  const normalized = normalizePath(file);
+  if (!isStrykerParseable(normalized)) return false;
+  // Suffix comparison rather than one alternating regex: the pattern that
+  // expresses this compactly (`(?:\.spec|\.test)\.[cm]?[jt]sx?$`) is exactly
+  // the shape the ReDoS rule flags, and this runs over every tracked path.
+  const base = normalized.slice(normalized.lastIndexOf("/") + 1);
+  const marker = base.slice(0, base.lastIndexOf("."));
+  if (NON_SOURCE_MARKERS.some(suffix => marker.endsWith(suffix))) return false;
+  const [root] = normalized.split("/");
+  return normalized.includes("/") && !NON_SOURCE_ROOTS.includes(root);
+};
+
+/**
+ * Source roots inferred from what the repository actually tracks.
+ *
+ * This exists because the scaffolded `mutate` list is a GUESS about layout —
+ * `src/**` for the TypeScript and Expo profiles — and a guess that misses
+ * produces a gate wired to nothing rather than an error. Derivation is only
+ * ever consulted when the project's own declaration already selects zero
+ * files, so it cannot quietly override a working configuration; it turns a
+ * dead end into a working gate and says so.
+ * @param {string} cwd - Project root.
+ * @returns {{root: string, files: number}[]} Roots with source, most first.
+ */
+export const deriveSourceRoots = cwd => {
+  let tracked;
+  try {
+    tracked = git(cwd, ["ls-files"]).split("\n");
+  } catch {
+    // probe-direction: fail-closed — an unreadable index yields no roots, and
+    // no roots means no suggestion and no derived fallback, so an enabled gate
+    // with an inert list still fails rather than quietly running against a
+    // guess. The sibling `countMutateTargetsInRepo` deliberately goes the other
+    // way on the same failure, because there an unreadable index must not block
+    // a push over something unrelated to mutation testing.
+    return [];
+  }
+  const counts = new Map();
+  for (const file of tracked) {
+    if (!file || !isDerivableSource(file)) continue;
+    const [root] = normalizePath(file).split("/");
+    counts.set(root, (counts.get(root) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([root, files]) => ({ root, files }))
+    .sort((a, b) => b.files - a.files || a.root.localeCompare(b.root));
+};
+
+/**
+ * A mutate list covering the given directories, with the usual exclusions.
+ * @param {readonly string[]} dirs - Source directories, repo-relative.
+ * @returns {string[]} Stryker `mutate` patterns.
+ */
+export const mutateFromSourceDirs = dirs => [
+  ...dirs.flatMap(dir => [`${dir}/**/*.ts`, `${dir}/**/*.tsx`]),
+  ...dirs.flatMap(dir => [
+    `!${dir}/**/*.spec.ts`,
+    `!${dir}/**/*.spec.tsx`,
+    `!${dir}/**/*.test.ts`,
+    `!${dir}/**/*.test.tsx`,
+    `!${dir}/**/*.d.ts`,
+    `!${dir}/**/*.stories.tsx`,
+  ]),
+];
+
+/**
+ * The project's declared source directories, if it declares any.
+ *
+ * Reading this from `.lisa.config.json` rather than from the Stryker config
+ * is the point: `stryker.conf.json` ships create-only, so a layout the
+ * scaffold guessed wrong can never be corrected upstream for a repository
+ * that already exists. A config key can.
+ * @param {string} cwd - Project root.
+ * @returns {{mutate: readonly string[], source: string} | null} Declaration.
+ */
+const declarationFromSourceDirs = cwd => {
+  const configPath = path.join(cwd, ".lisa.config.json");
+  if (!fs.existsSync(configPath)) return null;
+  let dirs;
+  try {
+    const conf = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    dirs = conf?.quality?.mutation?.sourceDirs;
+  } catch {
+    // A malformed project config is not this gate's error to report; the
+    // Stryker config is still a usable declaration, so fall through to it.
+    return null;
+  }
+  if (!Array.isArray(dirs) || dirs.length === 0) return null;
+  // Trailing slashes trimmed by hand rather than with `/\/+$/`: this value
+  // comes from a config file, and a `+` anchored at the end is the shape the
+  // ReDoS rule flags on attacker-influenced input.
+  const trimTrailingSlashes = dir => {
+    let end = dir.length;
+    while (end > 0 && dir[end - 1] === "/") end -= 1;
+    return dir.slice(0, end);
+  };
+  const clean = dirs
+    .filter(dir => typeof dir === "string" && dir.length > 0)
+    .map(dir => trimTrailingSlashes(normalizePath(dir)));
+  if (clean.length === 0) return null;
+  return {
+    mutate: mutateFromSourceDirs(clean),
+    source: `.lisa.config.json quality.mutation.sourceDirs (${clean.join(", ")})`,
+    explicit: true,
   };
 };
 
@@ -2602,19 +2759,26 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
   // as a defect; the behaviour is pinned by a test rather than by this note.
   const since = process.env.MUTATION_SINCE || gate.since || "main";
 
-  if (!enabled) {
-    console.log(
-      `⚪ ${OUTCOMES.disabled} — mutation.gate.json says "enabled": false. Skipping.\n` +
-        '   Flip "enabled": true (and tune thresholds.break in stryker.conf.json) to turn it on.'
-    );
-    return finish(OUTCOMES.disabled, 0);
-  }
-
-  const declaration = resolveMutateDeclaration(cwd);
+  // Resolved BEFORE the enabled check on purpose. A disabled gate used to
+  // return here, so a repository whose patterns also selected nothing learned
+  // neither fact — and disabled is the default, so the two hid each other for
+  // as long as nobody turned the gate on. Detection is also the only thing
+  // that reaches an ALREADY-scaffolded repository: `stryker.conf.json` ships
+  // create-only, so a layout the scaffold guessed wrong can never be
+  // corrected there from upstream (CodySwannGT/lisa#4243).
+  let declaration = resolveMutateDeclaration(cwd);
   let patterns;
   try {
     patterns = compileMutatePatterns(declaration.mutate);
   } catch (error) {
+    if (!enabled) {
+      console.log(
+        `⚪ ${OUTCOMES.disabled} — mutation.gate.json says "enabled": false. Skipping.\n` +
+          `   Heads up: the \`mutate\` patterns in ${declaration.source} do not compile,\n` +
+          "   so this gate would fail immediately if it were switched on."
+      );
+      return finish(OUTCOMES.disabled, 0);
+    }
     console.error(
       `❌ ${OUTCOMES.invalidMutatePattern}\n` +
         `   ${error instanceof Error ? error.message : String(error)}\n` +
@@ -2624,15 +2788,93 @@ export const runGate = (cwd = process.cwd(), argv = []) => {
   }
 
   if (countMutateTargetsInRepo(cwd, patterns) === 0) {
-    console.error(
-      `❌ ${OUTCOMES.inertConfig}\n` +
-        `   The mutate patterns from ${declaration.source} select NO tracked file\n` +
-        "   in this repository, so this gate can never generate a mutant and would\n" +
-        "   report success on every run forever. That is not a pass — it is a gate\n" +
-        "   that is switched on and wired to nothing.\n" +
-        "   Fix the `mutate` patterns in your Stryker config, or turn the gate off."
+    // The patterns are inert. What happens next turns on whether the project
+    // DECLARED them. Substituting a different mutate list for one a project
+    // wrote down would be the same quiet override CodySwannGT/lisa#3668 exists
+    // to prevent, so an explicit declaration still fails — it just now says
+    // where the source actually is. Where nothing was declared and this is
+    // Lisa's own fallback guessing `src/**`, there is no decision to override
+    // and deriving the answer is strictly better than dying on a guess.
+    const roots = deriveSourceRoots(cwd);
+    const suggestion =
+      roots.length > 0
+        ? roots
+            .map(
+              entry =>
+                `${entry.root}/ (${entry.files} file${entry.files === 1 ? "" : "s"})`
+            )
+            .join(", ")
+        : null;
+
+    if (!enabled) {
+      // A repository with no source at all is not "wired to nothing" in any
+      // way worth warning about, so the extra notice fires only when there IS
+      // source the patterns are missing.
+      const detail = suggestion
+        ? [
+            `⚠️  AND the \`mutate\` patterns from ${declaration.source} select NO`,
+            "   tracked file, so this gate is not merely off — switching it on would",
+            "   report success forever without mutating anything.",
+            `   Source in this repository looks like it lives in: ${suggestion}`,
+            "   Declare it under quality.mutation.sourceDirs in .lisa.config.json.",
+          ].join("\n")
+        : '   Flip "enabled": true (and tune thresholds.break in stryker.conf.json) to turn it on.';
+      console.log(
+        `⚪ ${OUTCOMES.disabled} — mutation.gate.json says "enabled": false. Skipping.\n${detail}`
+      );
+      return finish(OUTCOMES.disabled, 0);
+    }
+
+    if (!declaration.explicit && roots.length > 0) {
+      const derived = {
+        mutate: mutateFromSourceDirs(roots.map(entry => entry.root)),
+        source: `source roots derived from tracked files (${suggestion})`,
+        explicit: false,
+      };
+      const derivedPatterns = compileMutatePatterns(derived.mutate);
+      if (countMutateTargetsInRepo(cwd, derivedPatterns) > 0) {
+        console.log(
+          `⚠️  ${declaration.source} select NO tracked file, and this project\n` +
+            "   declares no mutate list of its own. Deriving one from what the\n" +
+            `   repository tracks: ${suggestion}\n` +
+            "   Declare quality.mutation.sourceDirs in .lisa.config.json to make\n" +
+            "   this explicit and stop the guessing."
+        );
+        declaration = derived;
+        patterns = derivedPatterns;
+      }
+    }
+
+    if (declaration.explicit || roots.length === 0) {
+      const where = suggestion
+        ? [
+            `   Source in this repository looks like it lives in: ${suggestion}`,
+            "   Declare it under quality.mutation.sourceDirs in .lisa.config.json,",
+            "   or widen `mutate` in your Stryker config.",
+          ].join("\n")
+        : [
+            "   No candidate source directory could be derived either, so this",
+            "   repository may simply have no mutable source yet.",
+          ].join("\n");
+      console.error(
+        [
+          `❌ ${OUTCOMES.inertConfig}`,
+          `   The mutate patterns from ${declaration.source} select NO tracked file`,
+          "   in this repository, so this gate can never generate a mutant and would",
+          "   report success on every run forever. That is not a pass — it is a gate",
+          "   that is switched on and wired to nothing.",
+          where,
+          "   Fix the `mutate` patterns in your Stryker config, or turn the gate off.",
+        ].join("\n")
+      );
+      return finish(OUTCOMES.inertConfig, 1);
+    }
+  } else if (!enabled) {
+    console.log(
+      `⚪ ${OUTCOMES.disabled} — mutation.gate.json says "enabled": false. Skipping.\n` +
+        '   Flip "enabled": true (and tune thresholds.break in stryker.conf.json) to turn it on.'
     );
-    return finish(OUTCOMES.inertConfig, 1);
+    return finish(OUTCOMES.disabled, 0);
   }
 
   const unparseable = selectUninstrumentableMutateTargets(cwd, patterns);
