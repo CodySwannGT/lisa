@@ -1592,6 +1592,18 @@ function configAt(ref) {
 }
 
 /**
+ * Check whether a fully qualified branch ref exists locally.
+ * @param {string} ref Candidate local or remote-tracking ref.
+ * @returns {boolean} Whether Git can resolve the ref.
+ */
+function branchRefExists(ref) {
+  return (
+    run("git", ["rev-parse", "-q", "--verify", ref], { allowFailure: true })
+      .status === 0
+  );
+}
+
+/**
  * Existing refs for every branch the deploy chain declares.
  *
  * Remote-tracking first, because that is the copy CI fetched from the forge and
@@ -1616,11 +1628,7 @@ function deployChainRefs(configRef, remote) {
     const candidate = [
       `refs/remotes/${remote}/${name}`,
       `refs/heads/${name}`,
-    ].find(
-      ref =>
-        run("git", ["rev-parse", "-q", "--verify", ref], { allowFailure: true })
-          .status === 0
-    );
+    ].find(branchRefExists);
     if (candidate && !refs.includes(candidate)) refs.push(candidate);
   }
   return refs;
@@ -1660,9 +1668,23 @@ function protectedCommits(commits, configRef, remote) {
       .split("\n")
       .filter(Boolean)
   );
-  return new Set(commits.filter(sha => !unreached.has(sha)));
+  /**
+   * Check whether a deploy-chain ref already contains the commit.
+   * @param {string} sha Commit in the candidate range.
+   * @returns {boolean} Whether a deploy-chain ref already contains it.
+   */
+  function onDeployChain(sha) {
+    return !unreached.has(sha);
+  }
+  return new Set(commits.filter(onDeployChain));
 }
 
+/**
+ * Classify the merge, release, and protected-branch exemptions.
+ * @param {string} sha Commit to classify.
+ * @param {Set<string>} onProtectedBranch Commits already on the deploy chain.
+ * @returns {string | undefined} The exemption reason, if one applies.
+ */
 function commitExemption(sha, onProtectedBranch = new Set()) {
   if (isMergeCommit(sha)) return "merge";
   if (RELEASE_SUBJECT.test(git(["show", "-s", "--format=%s", sha])))
@@ -6074,6 +6096,11 @@ function reportPushGroup(outcome, pr, label, scope) {
   console.log(unresolvedPushReport(outcome.result, label, scope));
 }
 
+/**
+ * Validate pushed commits and the available pull-request tracking evidence.
+ * @param {string[]} args CLI arguments identifying the remote and pushed refs.
+ * @returns {void} Prints verified evidence or throws a tracking error.
+ */
 function validatePush(args) {
   const remote = args[0] && !args[0].startsWith("-") ? args[0] : "origin";
   // `--refs <file>` / `LISA_PUSHED_REFS_FILE` names the captured pre-push
@@ -6217,6 +6244,11 @@ export function postDischargeBacklinks(
   return changed;
 }
 
+/**
+ * Check a pull-request range and its separate body and backlink requirements.
+ * @param {string[]} args CLI arguments selecting the range and PR evidence.
+ * @returns {void} Prints verified evidence or throws a tracking error.
+ */
 function validatePr(args) {
   const base = option(args, "--base", "LISA_PR_BASE_SHA");
   const head = option(args, "--head", "LISA_PR_HEAD_SHA") || "HEAD";
