@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.64.2](https://github.com/CodySwannGT/lisa/compare/v4.64.1...v4.64.2) (2026-09-19)
+
+
+### Bug Fixes
+
+* **gates:** honor explicit design source opt-out ([7e0d445](https://github.com/CodySwannGT/lisa/commit/7e0d445e90495d5187d1142e6e9059cdd96e957d)), closes [CodySwannGT/lisa#4237](https://github.com/CodySwannGT/lisa/issues/4237)
+
 ### [4.64.1](https://github.com/CodySwannGT/lisa/compare/v4.64.0...v4.64.1) (2026-09-19)
 
 
