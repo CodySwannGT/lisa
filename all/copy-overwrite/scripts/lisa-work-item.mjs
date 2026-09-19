@@ -1592,6 +1592,18 @@ function configAt(ref) {
 }
 
 /**
+ * Check whether a fully qualified branch ref exists locally.
+ * @param {string} ref Candidate local or remote-tracking ref.
+ * @returns {boolean} Whether Git can resolve the ref.
+ */
+function branchRefExists(ref) {
+  return (
+    run("git", ["rev-parse", "-q", "--verify", ref], { allowFailure: true })
+      .status === 0
+  );
+}
+
+/**
  * Existing refs for every branch the deploy chain declares.
  *
  * Remote-tracking first, because that is the copy CI fetched from the forge and
@@ -1616,16 +1628,7 @@ function deployChainRefs(configRef, remote) {
     const candidate = [
       `refs/remotes/${remote}/${name}`,
       `refs/heads/${name}`,
-    ].find(
-      /**
-       * Check whether this fully qualified branch ref exists locally.
-       * @param {string} ref Candidate local or remote-tracking ref.
-       * @returns {boolean} Whether Git can resolve the ref.
-       */
-      ref =>
-        run("git", ["rev-parse", "-q", "--verify", ref], { allowFailure: true })
-          .status === 0
-    );
+    ].find(branchRefExists);
     if (candidate && !refs.includes(candidate)) refs.push(candidate);
   }
   return refs;
@@ -1665,16 +1668,15 @@ function protectedCommits(commits, configRef, remote) {
       .split("\n")
       .filter(Boolean)
   );
-  return new Set(
-    commits.filter(
-      /**
-       * Keep commits excluded from the walk outside the deploy chain.
-       * @param {string} sha Commit in the candidate range.
-       * @returns {boolean} Whether a deploy-chain ref already contains it.
-       */
-      sha => !unreached.has(sha)
-    )
-  );
+  /**
+   * Keep commits excluded from the walk outside the deploy chain.
+   * @param {string} sha Commit in the candidate range.
+   * @returns {boolean} Whether a deploy-chain ref already contains it.
+   */
+  function onDeployChain(sha) {
+    return !unreached.has(sha);
+  }
+  return new Set(commits.filter(onDeployChain));
 }
 
 /**
