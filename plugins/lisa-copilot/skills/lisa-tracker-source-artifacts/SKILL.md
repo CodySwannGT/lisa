@@ -93,7 +93,9 @@ Mocks define visual *intent*, not implementation shortcut. Every UI-touching tic
 
 If no existing component fits, building a new one is an explicit decision that must be recorded in the ticket (with rationale) before implementation. Lovable-generated components are never the reuse target — always use the project's own components.
 
-The divergence note above covers the **ticket** side of this event. The **code** side is governed by the `design-source-of-truth` rule: a UI surface built with no Figma source behind it is either synced back to Figma and annotated `DESIGN-SOURCE: <figma-url>`, or explicitly marked `DESIGN-SOURCE: none — not in Figma`, and review fails closed if neither happened. Cite the rule for the code obligation rather than restating it here — a ticket comment closes with the ticket, the annotation stays with the surface.
+Before adding the code-side obligation to ticket or teammate instructions, read `designSource.enabled` in `.lisa.config.json`. Only boolean `false` opts out: omit the design-source step; do not request DESIGN-SOURCE markers, Figma nodes, or Figma access for this obligation. Absent, true, or invalid values keep enforcement enabled. Preserve supplied artifacts and component-reuse requirements regardless; `design-value-binding` remains independent.
+
+When enabled, the divergence note above covers the **ticket** side of this event. The **code** side is governed by the `design-source-of-truth` rule: a UI surface built with no Figma source behind it is either synced back to Figma and annotated `DESIGN-SOURCE: <figma-url>`, or explicitly marked `DESIGN-SOURCE: none — not in Figma`, and review fails closed if neither happened. Cite the rule for the code obligation rather than restating it here — a ticket comment closes with the ticket, the annotation stays with the surface.
 
 ## 8. Preservation gate (run after creating tickets)
 

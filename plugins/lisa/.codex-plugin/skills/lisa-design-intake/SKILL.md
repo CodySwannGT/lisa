@@ -14,7 +14,7 @@ This skill carries the **judgment**. It does not carry the **policy** — that i
 
 ## What this is not
 
-`design-source-of-truth` and `scripts/design-source-gate.mjs` already ask whether a changed surface **declares where its design came from**. This asks the orthogonal question: are the **values on it bound**. Both apply. A surface can cite a perfectly valid design node and still paint a literal that no variable backs — that is the case this skill exists for, and it is invisible to the other gate.
+`design-source-of-truth` and `scripts/design-source-gate.mjs` already ask whether a changed surface **declares where its design came from**. This asks the orthogonal question: are the **values on it bound**. Design-source declarations apply unless the project explicitly sets `designSource.enabled` to boolean `false`; that opt-out does not disable this skill or `design-value-binding`. A surface can cite a perfectly valid design node and still paint a literal that no variable backs — that is the case this skill exists for, and it is invisible to the other gate.
 
 ## Why this gate is executable and not advisory
 

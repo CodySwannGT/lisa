@@ -1,18 +1,41 @@
 # Design Source of Truth
 
 > Demoted from the always-on eager tier by CodySwannGT/lisa#3992. The
-> section below is the former eager head, preserved verbatim; the full
+> section below is the former eager head, maintained with the full
 > contract follows it. Reachable on demand via [the rule index](../eager/00-rule-index.md).
 
 ## Design Source of Truth (load-bearing)
 
-**Figma is the design source of truth, and every UI surface a change touches declares where its design came from.** A changed UI surface that neither cites a Figma node nor carries the designated marker is a contract violation — and so is a surface whose declaration the gate cannot resolve.
+**When enabled, Figma is the design source of truth, and every UI surface a change touches declares where its design came from.** A changed UI surface that neither cites a Figma node nor carries the designated marker is a contract violation — and so is a surface whose declaration the gate cannot resolve.
 
 **One vendor-neutral contract, cited by** `lisa-implement`, `lisa-tdd-implementation`, `lisa-review-local`, `lisa-quality-review`, and `lisa-tracker-source-artifacts` (the `leaf-only-lifecycle` / `repo-scope-split` precedent: one shared slug, never divergent per-skill prose).
 
+## Explicit project opt-out
+
+A project with **no design source at all** may set this in `.lisa.config.json`:
+
+```json
+{ "designSource": { "enabled": false } }
+```
+
+Only `designSource.enabled` set to boolean `false` opts out. Absent, true, and
+invalid values retain the default enforcement. The explicit configuration is
+the auditable record; it replaces per-file exception markers for this project.
+The gate exits 0 with `SKIPPED: designSource.enabled=false` before resolving the
+diff. JSON output reports `verdict: "SKIPPED"`, the config key in `reasons`, and
+zero judged surfaces. A skip does not claim that surfaces passed inspection.
+
+When opted out, the five consuming skills omit the design-source step from
+plans, tickets, teammate instructions, and review; they do not ask for markers,
+Figma nodes, or Figma access for this obligation. All declaration, sync-back,
+and fail-closed requirements below apply only when enabled. Host design-system
+rules, `design-value-binding`, and `bdd-e2e-coverage` remain independent and
+unchanged. A project that has Figma must still not use `exclude` to hide its UI
+tree from this contract.
+
 ## Membership
 
-Membership is **surface, not repo name or file extension**: a file is in scope the moment a change makes it render something user-observable — a screen, component, layout, style token, visual state, or markup a user reads. Barrels, pure-logic modules, tests, stories, generated output, and vendored code are out. Projects narrow or widen the default detection through `designSource.include` / `designSource.exclude` in `.lisa.config.json`; they never turn the obligation off.
+Membership is **surface, not repo name or file extension**: a file is in scope the moment a change makes it render something user-observable — a screen, component, layout, style token, visual state, or markup a user reads. Barrels, pure-logic modules, tests, stories, generated output, and vendored code are out. Projects narrow or widen the default detection through `designSource.include` / `designSource.exclude` in `.lisa.config.json`; those filters never turn the obligation off. Only the explicit project opt-out above does.
 
 ## The two declarations
 
@@ -39,7 +62,7 @@ Projects that carry their own design-system rules (`figma-design-system`, `desig
 
 ## Bootstrap and degradation
 
-Adoption never demands a retroactive backfill: the gate judges **only the surfaces this change touched**. Pre-existing unannotated UI is burndown, recorded and worked down, not this work item's blocker. If a project has no Figma at all, that is not an exemption — every changed surface carries the marker, and the resulting exception list is the honest record of how much of the product lives outside its design source. Behavior obligations for the same surfaces are unchanged and still governed by `bdd-e2e-coverage`.
+Adoption never demands a retroactive backfill: the gate judges **only the surfaces this change touched**. Pre-existing unannotated UI is burndown, recorded and worked down, not this work item's blocker. A project with no design source may use the explicit project opt-out above; otherwise every changed surface still needs a declaration. Behavior obligations for the same surfaces are unchanged and still governed by `bdd-e2e-coverage`.
 
 ---
 
@@ -188,7 +211,7 @@ Two consequences worth stating plainly:
 node design-source-gate.mjs --base=origin/main [--head=HEAD] [--figma-access] [--json]
 ```
 
-Exit `0` = PASS, `1` = FAIL, `2` = usage error. It classifies every changed file into one status:
+Exit `0` = PASS or explicit SKIPPED, `1` = FAIL, `2` = usage error. When enabled, it classifies every changed file into one status:
 
 | Status | Verdict | Meaning |
 |---|---|---|
@@ -231,8 +254,7 @@ so a repository with hundreds of unannotated legacy components can adopt the con
 and be green on Tuesday. Pre-existing unannotated UI is **burndown**: recorded, worked down
 opportunistically as files are touched, never treated as the current work item's blocker.
 
-A project with no Figma at all is not exempt. Every changed surface carries the marker, and the
-resulting exception list is the honest, mounting record of how much of the product lives outside its
-design source — which is far more useful than an exemption flag that makes the question disappear.
-Deleting or excluding a surface to make the gate green is a violation of the same kind as deleting a
-BDD scenario to improve coverage: mark it, do not drop it.
+A project with no design source may opt out explicitly using `designSource.enabled: false`.
+Without that explicit opt-out, every changed surface still declares its source. In an enabled
+project, deleting or excluding a surface to make the gate green is a violation of the same kind as
+deleting a BDD scenario to improve coverage: mark it, do not drop it.
