@@ -1,13 +1,13 @@
 /** Execute the seeded nightly guard and its real gate runner. */
 import * as fs from "fs-extra";
 import { load } from "js-yaml";
-import { spawnSync } from "node:child_process";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { CreateOnlyStrategy } from "../../src/strategies/create-only.js";
+import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
 
 const ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -78,10 +78,11 @@ function execute(
     .flatMap(job => job.steps ?? [])
     .find(value => value.id === id);
   if (!step?.run) throw new Error(`${file} has no executable ${id} step`);
-  const options = {
+  const result = boundedSpawnSync({
+    command: "/bin/bash",
+    args: ["-e", "-s"],
+    label: `${file} ${id}`,
     cwd: project,
-    encoding: "utf8" as const,
-    timeout: 30_000,
     input: step.run,
     env: {
       ...process.env,
@@ -89,8 +90,7 @@ function execute(
       GITHUB_OUTPUT: path.join(project, "output"),
       GITHUB_STEP_SUMMARY: path.join(project, "summary"),
     },
-  };
-  const result = spawnSync("/bin/bash", ["-e", "-s"], options);
+  });
   expect(result.error).toBeUndefined();
   expect(result.signal).toBeNull();
   return { status: result.status, output: `${result.stdout}${result.stderr}` };
