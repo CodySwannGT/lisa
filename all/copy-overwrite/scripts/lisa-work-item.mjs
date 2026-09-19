@@ -1469,6 +1469,10 @@ function messageSubject(message) {
   return message.split(/\r?\n/, 1)[0] ?? "";
 }
 
+/**
+ * Check whether Git has an unfinished merge in this checkout.
+ * @returns {boolean} Whether MERGE_HEAD can be resolved.
+ */
 function isMergeInProgress() {
   return (
     run("git", ["rev-parse", "-q", "--verify", "MERGE_HEAD"], {
@@ -1692,6 +1696,12 @@ function commitExemption(sha, onProtectedBranch = new Set()) {
   return onProtectedBranch.has(sha) ? "protected" : undefined;
 }
 
+/**
+ * Parse a JSON response and identify its source when parsing fails.
+ * @param {string} text JSON response text.
+ * @param {string} context Source to name in a tracking error.
+ * @returns {unknown} The parsed JSON value.
+ */
 function safeJson(text, context) {
   try {
     return JSON.parse(text);
@@ -3063,11 +3073,17 @@ function validateMessage(message, options = {}) {
   return { ref, contract, issue };
 }
 
+/**
+ * Read the complete message for a commit, including its tracking trailers.
+ * @param {string} sha Commit object id or revision.
+ * @returns {string} The commit message reported by Git.
+ */
 function commitMessage(sha) {
   return git(["show", "-s", RAW_MESSAGE_FORMAT, sha]);
 }
 
 /**
+ * Validate each new commit and count the already-traced exemptions.
  * @param {string[]} commits Commits to check.
  * @param {string | undefined} configRef Commit-ish whose config declares the
  *   deploy chain — the range's BASE, never the head. See `configAt`.
@@ -5789,6 +5805,11 @@ function prepareCommitMessage(args) {
   ]);
 }
 
+/**
+ * Validate the commit-message file supplied by the commit hook.
+ * @param {string[]} args CLI arguments beginning with the message file path.
+ * @returns {void} Prints verified evidence or throws a tracking error.
+ */
 function validateCommit(args) {
   const file = args[0];
   if (!file)
