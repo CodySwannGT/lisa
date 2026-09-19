@@ -119,7 +119,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/create-only/.agents/rules/README.md":
       "d4fda2b0b5862afa92c4ddf29daa53218df0d5fe4f051901cdfc53ac266bdbf8",
     "all/create-only/.github/workflows/continuous-gates.yml":
-      "d4b3aa4eeefec7fba06587aa596f7d4df1bed58b9613b49a9a97f71821c8a937",
+      "7ef94a95dee4650e91a2b226122936fa4609ad57f3acbb50f4a9f357e486d2eb",
     "all/create-only/.github/workflows/workflow-load-failure-sweep.yml":
       "3ce24f9d82495a2f327c1705333c049bbb7c7a65170329d530295d23c6c7ad2d",
     "all/create-only/.lisaignore":
@@ -9511,6 +9511,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/cdk-ci-role-selection.test.ts": true,
     "tests/integration/ci-concurrency-policy.test.ts": true,
     "tests/integration/cli-smoke.test.ts": true,
+    "tests/integration/continuous-gates-empty.test.ts": true,
     "tests/integration/coverage-scratch-debris.test.ts": true,
     "tests/integration/deletion-basis-manifests.test.ts": true,
     "tests/integration/deletion-reference-guard.test.ts": true,

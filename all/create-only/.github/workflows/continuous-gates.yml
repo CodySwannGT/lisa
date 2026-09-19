@@ -19,8 +19,8 @@
 #
 # This workflow runs exactly what the `gates` block of `.lisa.config.json`
 # declares at `continuous:<environment>`, and nothing else. Out of the box that
-# is nothing, and the run says so rather than reporting a green that implies a
-# proof. To use it, declare a gate at this moment:
+# is nothing, and this workflow fails with a configuration message until at
+# least one check is enabled for that environment. To use it, declare a gate:
 #
 # ```json
 # "gates": {
@@ -64,8 +64,48 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  configured:
+    name: Configure continuous checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22.21.1'
+      # This prerequisite belongs to this scheduled caller. Other callers of
+      # gates.yml keep their existing behavior when a moment declares no gates.
+      - name: Require checks for this environment
+        id: require_gates
+        env:
+          GATE_MOMENT: continuous:${{ inputs.environment || 'production' }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { existsSync } from 'node:fs';
+          import { resolve } from 'node:path';
+          import { pathToFileURL } from 'node:url';
+          const resolver = [
+            'scripts/lisa-gates.mjs',
+            'node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-gates.mjs',
+            'all/copy-overwrite/scripts/lisa-gates.mjs',
+          ].find(file => existsSync(file));
+          if (!resolver) {
+            console.error('Cannot check continuous gates. Run lisa apply to install the gate resolver. No checks ran.');
+            process.exit(1);
+          }
+          const { readGates, resolveMoment } = await import(pathToFileURL(resolve(resolver)).href);
+          const moment = process.env.GATE_MOMENT;
+          const { gates, runner } = readGates();
+          if (resolveMoment({ gates, runner, moment }).length === 0) {
+            console.error(`No checks ran: configure at least one required or optional gate at ${moment} in .lisa.config.json. Gates set to off do not run.`);
+            process.exit(1);
+          }
+          console.log(`Checks configured for ${moment}; continuing to the gate runner.`);
+          NODE
   continuous:
     name: 🌙 Continuous Gates
+    needs: configured
     uses: CodySwannGT/lisa/.github/workflows/gates.yml@main
     with:
       # Travels with the `uses:` line above — the two are one unit. Lisa's

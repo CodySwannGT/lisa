@@ -1,0 +1,41 @@
+{
+  "plan": "Fail empty newly seeded nightly workflows",
+  "type": "bug",
+  "acceptance_criteria": [
+    "Empty selected continuous environment fails clearly",
+    "Other environments and off gates do not count",
+    "Declared gates retain normal results",
+    "Shared runner defaults and create-only ownership unchanged"
+  ],
+  "relevant_documentation": "Explorer researched seed workflow, gates reusable, resolver and existing deploy integration tests. Implement a caller-owned prerequisite job using shipped resolver; no reusable input or global response setting.",
+  "testing_requirements": [
+    "Execute real seeded guard shell under bash -e against missing/empty/other-environment/off/passing/failing fixtures",
+    "Run existing deploy empty-success controls",
+    "Verify create-only preserves an existing workflow",
+    "Hosted CI must execute new regression suite"
+  ],
+  "skills": [
+    "lisa-implement",
+    "lisa-drive-pr-to-merge"
+  ],
+  "learnings": [],
+  "required_access": [
+    {
+      "tool": "GitHub repo/issues/actions",
+      "probe": "gh issue view 4239; gh pr view 4244 with checks",
+      "status": "pass"
+    },
+    {
+      "tool": "npm registry",
+      "probe": "exact version 4.62.4 HTTP 200; bun install frozen lockfile",
+      "status": "pass"
+    }
+  ],
+  "verification": {
+    "type": "cli-test",
+    "command": "Execute actual YAML guard and reusable gate shell against temporary project with no gates, then with configured real pass/fail commands",
+    "expected": "No gates exits 1 with environment and configuration remedy; configured proof commands run and their result is preserved"
+  },
+  "target_environment": "Assumption: production \u2014 remote default main maps uniquely",
+  "target_branch": "main"
+}
