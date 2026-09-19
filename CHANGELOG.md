@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.64.3](https://github.com/CodySwannGT/lisa/compare/v4.64.2...v4.64.3) (2026-09-19)
+
+
+### Bug Fixes
+
+* **mutation:** close two holes CodeRabbit found in the review ([bd20fd0](https://github.com/CodySwannGT/lisa/commit/bd20fd080c8083df7bc56aa39aaddd91d94a03fa)), closes [CodySwannGT/lisa#4243](https://github.com/CodySwannGT/lisa/issues/4243) [CodySwannGT/lisa#4243](https://github.com/CodySwannGT/lisa/issues/4243)
+* **mutation:** preserve coverage when resolving source roots ([fa0e9f5](https://github.com/CodySwannGT/lisa/commit/fa0e9f5e32595bd609a6d5de5c24b36368e52cce)), closes [CodySwannGT/lisa#4243](https://github.com/CodySwannGT/lisa/issues/4243)
+* **mutation:** report an inert mutate list, and let a repair past the ratchet ([9b7101e](https://github.com/CodySwannGT/lisa/commit/9b7101e2c7d068647a81044b31c1fbf5d77074b5)), closes [#3668](https://github.com/CodySwannGT/lisa/issues/3668) [CodySwannGT/lisa#4243](https://github.com/CodySwannGT/lisa/issues/4243) [CodySwannGT/lisa#4243](https://github.com/CodySwannGT/lisa/issues/4243)
+
 ### [4.64.2](https://github.com/CodySwannGT/lisa/compare/v4.64.1...v4.64.2) (2026-09-19)
 
 
