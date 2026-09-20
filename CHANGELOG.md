@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.64.6](https://github.com/CodySwannGT/lisa/compare/v4.64.5...v4.64.6) (2026-09-20)
+
+
+### Documentation
+
+* **work-item:** cover helpers counted beside sync changes ([4c0fc26](https://github.com/CodySwannGT/lisa/commit/4c0fc266e95bc6e7939ebac4dd0d5903b9a84ac0)), closes [CodySwannGT/lisa#4253](https://github.com/CodySwannGT/lisa/issues/4253) [CodySwannGT/lisa#4253](https://github.com/CodySwannGT/lisa/issues/4253)
+* **work-items:** cover adjacent commit message helpers ([097080d](https://github.com/CodySwannGT/lisa/commit/097080d9eab2c0c2760283db8b8f182a5e2d6c04)), closes [CodySwannGT/lisa#4253](https://github.com/CodySwannGT/lisa/issues/4253) [CodySwannGT/lisa#4253](https://github.com/CodySwannGT/lisa/issues/4253)
+
 ### [4.64.5](https://github.com/CodySwannGT/lisa/compare/v4.64.4...v4.64.5) (2026-09-20)
 
 
