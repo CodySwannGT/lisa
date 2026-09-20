@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.64.7](https://github.com/CodySwannGT/lisa/compare/v4.64.6...v4.64.7) (2026-09-20)
+
+
+### Bug Fixes
+
+* **bdd:** recognize landed deployment branch obligations ([6672fb8](https://github.com/CodySwannGT/lisa/commit/6672fb88485b4172e8dba66c5a1fd3e795d4f9aa)), closes [CodySwannGT/lisa#4255](https://github.com/CodySwannGT/lisa/issues/4255) [CodySwannGT/lisa#4255](https://github.com/CodySwannGT/lisa/issues/4255)
+
+
+### Documentation
+
+* **bdd:** explain fail-closed history lookup ([fbf7a2a](https://github.com/CodySwannGT/lisa/commit/fbf7a2ab8c8f3a1b353c1ca9e2bc5872b75d348d)), closes [CodySwannGT/lisa#4255](https://github.com/CodySwannGT/lisa/issues/4255) [CodySwannGT/lisa#4255](https://github.com/CodySwannGT/lisa/issues/4255)
+
 ### [4.64.6](https://github.com/CodySwannGT/lisa/compare/v4.64.5...v4.64.6) (2026-09-20)
 
 
