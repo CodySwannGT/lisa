@@ -514,7 +514,8 @@ export function landedObligations(root, base, platforms) {
       ),
     ].filter(key => !accepted.has(key));
   } catch {
-    // Malformed target configuration cannot establish any landed obligation.
+    // probe-direction: fail-closed — unreadable history grants no exemption,
+    // so the original newly-uncovered obligation remains a gate failure.
     return [];
   }
 }
