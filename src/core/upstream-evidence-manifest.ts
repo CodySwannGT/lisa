@@ -269,7 +269,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd-matrix.mjs":
       "8611fa2329660bcb1cbffaf70091c35d49f1635c13d89b85a68fbbe7ec25e69e",
     "expo/copy-overwrite/scripts/bdd/baseline.mjs":
-      "f0ecb378f32e98d0bdb15414cdc8e740b2999ddb8050388886ce74fc8be3d62f",
+      "75fc14f851792b4a77d9a9857626a0dd8e7f77574cd45bac8a54f4105163bd16",
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
       "7b47fd4a705aecd7c898f7fbbda4689d3fceda2dfe1bc959a06941f119d2e313",
     "expo/copy-overwrite/scripts/bdd/discover.mjs":
@@ -289,7 +289,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/waivers.mjs":
       "4011bcc9643b93522d2082363a2e9de3309d92f82ec054d2988860bb7cd3d16c",
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
-      "d245e5e37cdff4e68b2a659b38e42266bdbd8662d44eed342b38dc820b523171",
+      "2f7252fb80fc397cd3fbc5b54ca71ea02ffca1b8cd92c1f94846be8de2e65674",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
       "99764b136eaa7bba3b7abf78f60bc6805f8c008a9cac59c78c5eadba35cecdc7",
     "expo/copy-overwrite/scripts/check-lighthouse-details.mjs":
@@ -10363,6 +10363,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/absent-required-checks.test.ts": true,
     "tests/unit/scripts/ast-grep-enforcement.test.ts": true,
     "tests/unit/scripts/bdd-adoption.test.ts": true,
+    "tests/unit/scripts/bdd-deploy-chain.test.ts": true,
     "tests/unit/scripts/bdd-discovery.test.ts": true,
     "tests/unit/scripts/bdd-envelope.test.ts": true,
     "tests/unit/scripts/bdd-exclusions.test.ts": true,

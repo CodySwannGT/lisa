@@ -62,6 +62,7 @@ import {
   subjectFor,
 } from "./bdd/envelope.mjs";
 import {
+  landedObligations,
   checkCoverageRegression,
   checkDeletions,
   checkNewObligations,
@@ -264,6 +265,7 @@ function validateAll({
       ),
     ];
   }
+  const newObligations = checkNewObligations({ baseline, contract, scenarios });
   return [
     ...defects,
     ...checkCoverageRegression({
@@ -271,7 +273,15 @@ function validateAll({
       contract,
       scenarios,
     }),
-    ...checkNewObligations({ baseline, contract, scenarios }),
+    ...checkNewObligations({
+      baseline,
+      contract,
+      scenarios,
+      landed:
+        newObligations.length === 0
+          ? []
+          : landedObligations(root, options.baseSha, platforms),
+    }),
     ...checkDeletions({
       baseIds: baseline.scenarioIds,
       scenarios,

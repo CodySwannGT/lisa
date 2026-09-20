@@ -432,8 +432,16 @@ function routeTaken(key, { retired }) {
  * @param {object} input - Baseline plus the head contract and scenarios.
  * @returns {object[]} Defects found.
  */
-export function checkNewObligations({ baseline, contract, scenarios }) {
-  const before = obligationKeys(baseline.scenarios, baseline.contract);
+export function checkNewObligations({
+  baseline,
+  contract,
+  scenarios,
+  landed = [],
+}) {
+  const before = new Set([
+    ...obligationKeys(baseline.scenarios, baseline.contract),
+    ...landed,
+  ]);
   const covered = acceptedKeys(scenarios, contract);
   return [...obligationKeys(scenarios, contract)]
     .filter(key => !before.has(key) && !covered.has(key))
@@ -445,6 +453,71 @@ export function checkNewObligations({ baseline, contract, scenarios }) {
         `${scenario}:${platform} is new here and nothing covers it. New behavior arrives mapped to an automated test or waived with a dated, owned platformWaivers entry — the contract does not accept a third answer. (Behavior that was already uncovered before this change is burndown, not a defect, and is listed in the report's gaps.)`
       );
     });
+}
+
+/**
+ * Find obligations already landed on a configured deployment branch.
+ *
+ * Read the branch names from the immutable target base, never the proposed
+ * config. Use shared ancestry with fetched remote refs, excluding HEAD itself:
+ * the commit being checked cannot establish its own historical exemption.
+ * Only uncovered source obligations qualify; source mappings cannot be dropped.
+ * This affects only whether an obligation is newly authored. Target coverage,
+ * deletion, mapping, waiver and floor checks still use their original inputs.
+ * Unreadable history grants no exemption, and uncovered history stays a gap.
+ * @param {string} root - Repository root.
+ * @param {string} base - Immutable target base revision.
+ * @param {string[]} platforms - Platforms declared by the current contract.
+ * @returns {string[]} Keys of obligations already present in landed history.
+ */
+export function landedObligations(root, base, platforms) {
+  const source = showAtRevision(root, base, ".lisa.config.json");
+  if (!source) return [];
+  try {
+    const branches = JSON.parse(source)?.deploy?.branches;
+    if (!branches || typeof branches !== "object" || Array.isArray(branches))
+      return [];
+    const head = git(root, ["rev-parse", "HEAD"]).stdout.trim();
+    const revisions = [
+      ...new Set(
+        Object.values(branches).flatMap(branch => {
+          if (typeof branch !== "string") return [];
+          const ref = `refs/remotes/origin/${branch}`;
+          if (!git(root, ["check-ref-format", ref]).ok) return [];
+          const shared = git(root, ["merge-base", ref, "HEAD"]);
+          const revision = shared.stdout.trim();
+          if (
+            !shared.ok ||
+            revision === head ||
+            git(root, ["merge-base", "--is-ancestor", revision, base]).ok
+          )
+            return [];
+          return [revision];
+        })
+      ),
+    ];
+    const priors = revisions.map(revision =>
+      loadBaseline(root, revision, platforms)
+    );
+    if (priors.some(prior => !prior.available)) return [];
+    const accepted = new Set(
+      priors.flatMap(prior => [
+        ...acceptedKeys(prior.scenarios, prior.contract),
+        ...waivedKeys(prior.contract),
+      ])
+    );
+    return [
+      ...new Set(
+        priors.flatMap(prior => [
+          ...obligationKeys(prior.scenarios, prior.contract),
+        ])
+      ),
+    ].filter(key => !accepted.has(key));
+  } catch {
+    // probe-direction: fail-closed — unreadable history grants no exemption,
+    // so the original newly-uncovered obligation remains a gate failure.
+    return [];
+  }
 }
 
 /**
