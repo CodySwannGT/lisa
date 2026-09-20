@@ -11,7 +11,7 @@ import {
   EXTRA_SPEC,
   EXTRA_SPEC_BODY,
   EXTRA_WAIVER,
-} from "./bdd/regression-support";
+} from "./bdd/regression-support.js";
 import {
   GIT_BIN,
   WEB,
@@ -25,7 +25,7 @@ import {
   hermeticEnv,
   readMap,
   writeMap,
-} from "./bdd/support";
+} from "./bdd/support.js";
 
 const CONFIG = ".lisa.config.json";
 const REF = "refs/remotes/origin/staging";
