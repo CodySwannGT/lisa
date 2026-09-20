@@ -1465,6 +1465,11 @@ function exactWorkItem(message, contract = trackerContract()) {
   }
 }
 
+/**
+ * Extract the first line of a commit message.
+ * @param {string} message Complete commit message.
+ * @returns {string} The subject, or an empty string for an empty message.
+ */
 function messageSubject(message) {
   return message.split(/\r?\n/, 1)[0] ?? "";
 }
@@ -3058,6 +3063,13 @@ function assertIdentityMatches(ref, contract) {
   assertBranchMatches(ref, contract);
 }
 
+/**
+ * Check the work-item trailer, checkout identity, and live issue status.
+ * Release commits and explicitly allowed merges return their exemption.
+ * @param {string} message Complete commit message.
+ * @param {object} options Whether to allow the merge exemption.
+ * @returns {object} The exemption or verified work-item evidence.
+ */
 function validateMessage(message, options = {}) {
   if (
     options.allowMergeExemption &&
@@ -5772,6 +5784,12 @@ function authoredWorkItem(message) {
   }
 }
 
+/**
+ * Stamp lane attribution and add the selected work-item trailer.
+ * Leave merge and release messages unchanged.
+ * @param {string[]} args Message file path and optional Git message source.
+ * @returns {void} Updates the message file in place when applicable.
+ */
 function prepareCommitMessage(args) {
   const [file, source = ""] = args;
   if (!file)
