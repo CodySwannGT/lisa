@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.64.8](https://github.com/CodySwannGT/lisa/compare/v4.64.7...v4.64.8) (2026-09-20)
+
+
+### Bug Fixes
+
+* **sync:** preserve stricter thresholds before committing ([f5bdf5b](https://github.com/CodySwannGT/lisa/commit/f5bdf5bf24d897f190d310193bafe9a646b0a206)), closes [CodySwannGT/lisa#4256](https://github.com/CodySwannGT/lisa/issues/4256) [CodySwannGT/lisa#4256](https://github.com/CodySwannGT/lisa/issues/4256)
+
 ### [4.64.7](https://github.com/CodySwannGT/lisa/compare/v4.64.6...v4.64.7) (2026-09-20)
 
 
