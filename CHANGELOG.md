@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.64.5](https://github.com/CodySwannGT/lisa/compare/v4.64.4...v4.64.5) (2026-09-20)
+
+
+### Code Refactoring
+
+* **work-item:** name documented sync predicates ([4bf1aa4](https://github.com/CodySwannGT/lisa/commit/4bf1aa4a396f2c28fa36a1b751b87237a76f1b41)), closes [CodySwannGT/lisa#4250](https://github.com/CodySwannGT/lisa/issues/4250) [CodySwannGT/lisa#4250](https://github.com/CodySwannGT/lisa/issues/4250)
+
+
+### Documentation
+
+* **work-item:** clarify deploy-chain exemption summaries ([e266b17](https://github.com/CodySwannGT/lisa/commit/e266b17768f0d610335869e2f6567e1848e61a6f)), closes [CodySwannGT/lisa#4250](https://github.com/CodySwannGT/lisa/issues/4250) [CodySwannGT/lisa#4250](https://github.com/CodySwannGT/lisa/issues/4250)
+* **work-item:** explain sync validation entry points ([ac57b0c](https://github.com/CodySwannGT/lisa/commit/ac57b0cdcaf1565333fa960d374eadeb5c327294)), closes [CodySwannGT/lisa#4250](https://github.com/CodySwannGT/lisa/issues/4250) [CodySwannGT/lisa#4250](https://github.com/CodySwannGT/lisa/issues/4250)
+
 ### [4.64.4](https://github.com/CodySwannGT/lisa/compare/v4.64.3...v4.64.4) (2026-09-19)
 
 
