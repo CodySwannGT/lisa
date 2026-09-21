@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.64.9](https://github.com/CodySwannGT/lisa/compare/v4.64.8...v4.64.9) (2026-09-21)
+
+
+### Bug Fixes
+
+* **tests:** stop the eslint template suite running discarded warn rules ([e461581](https://github.com/CodySwannGT/lisa/commit/e4615814a15f698355df1b215539096c3cdfd961)), closes [CodySwannGT/lisa#4264](https://github.com/CodySwannGT/lisa/issues/4264) [CodySwannGT/lisa#4264](https://github.com/CodySwannGT/lisa/issues/4264)
+
 ### [4.64.8](https://github.com/CodySwannGT/lisa/compare/v4.64.7...v4.64.8) (2026-09-20)
 
 
