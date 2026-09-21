@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.65.0](https://github.com/CodySwannGT/lisa/compare/v4.64.9...v4.65.0) (2026-09-21)
+
+
+### Features
+
+* **rules:** require ASD-STE100 in every response ([7478c8e](https://github.com/CodySwannGT/lisa/commit/7478c8efdf493d9df7eb45b13cb0ae06a795d9ff)), closes [CodySwannGT/lisa#4263](https://github.com/CodySwannGT/lisa/issues/4263) [CodySwannGT/lisa#4263](https://github.com/CodySwannGT/lisa/issues/4263)
+
 ### [4.64.9](https://github.com/CodySwannGT/lisa/compare/v4.64.8...v4.64.9) (2026-09-21)
 
 
