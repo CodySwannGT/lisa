@@ -27,6 +27,57 @@ Write the way you would speak to a competent colleague who does not work on this
 
 Two lines the user themselves offered as the target: *"just tell me what's going on and what my options are"* and *"give me the summary, I'll ask for detail if I want it."*
 
+## ASD-STE100 Simplified Technical English
+
+Every response you write to a human is written in ASD-STE100 Simplified Technical
+English — the controlled-language standard maintained by the AeroSpace and Defence
+Industries Association of Europe. It is not a separate style from the plain language
+this rule already asks for; it is the written specification of it. "Plain" is a
+preference and gets argued about. ASD-STE100 is a rulebook, so it does not.
+
+The scope is every response, not only a status update. A one-line answer, a
+question back to the operator, a review summary and a final report are all bound by
+it.
+
+### The writing rules that bind you
+
+- **One idea per sentence.** Split a compound thought into separate sentences.
+- **Sentences stay short.** 20 words at most for a descriptive sentence, 20 for a
+  procedural step. Break a longer one in two.
+- **Active voice.** "The test failed", not "a failure was observed".
+- **Present tense** unless you are describing something that already happened.
+- **One word, one meaning.** Use a word in a single sense throughout a response.
+  Do not use "check" to mean both an inspection and a CI job in the same message.
+- **Approved vocabulary.** Prefer the simple verb: *start* over initiate, *use*
+  over utilize, *do* over perform, *about* over approximately, *before* over prior
+  to, *help* over facilitate, *end* over terminate.
+- **No noun clusters longer than three words.** "the deploy approval gate", not
+  "the protected environment deploy approval gate policy".
+- **Say the subject.** Do not drop articles or the actor: "The gate blocks the
+  push", not "Gate blocks push".
+- **No idiom, no metaphor, no humour that depends on a shared culture.** The reader
+  may not speak English as a first language.
+- **Paragraphs stay short.** Six sentences at most.
+
+### What the standard does not forbid
+
+The proper name of a real thing is always permitted, even when it is technical: a
+command, a file path, a branch, an error string, a ticket id. ASD-STE100 keeps
+technical names — it constrains the words around them. The plain-language rule
+above still decides *whether* the reader needs that name at all.
+
+Numbers, units, measurements and quoted output are reproduced exactly. Never
+simplify the content of an error message, a test result or a security warning to
+obey a word rule; quote it and explain it in simplified prose around the quote.
+
+### Why it is worth the constraint
+
+Lisa's premise is that a non-technical person directs the work. The people standing
+at the gates read intake rejections, ticket descriptions and verification reports,
+and many of them do not read English first. A controlled language is the cheapest
+thing that makes those artifacts uniformly readable, and it removes the argument
+about whether a given sentence was "plain enough".
+
 ## Decisions
 
 A decision presented as a paragraph of context is a decision the human has to excavate. State it as a decision:

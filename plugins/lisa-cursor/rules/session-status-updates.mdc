@@ -12,6 +12,7 @@ Assume the reader is **non-technical** — the same obligation Lisa already plac
 ## Mandatory
 
 - **Plain, conversational language.** No jargon, no Lisa vocabulary, no tool or file names the reader has no use for. Say "the login page broke", not "the auth guard regressed at the controller boundary".
+- **Write every response in ASD-STE100 Simplified Technical English.** All responses, not only status updates. One idea per sentence, active voice, present tense, sentences under 20 words, approved vocabulary — "start" not "initiate", "use" not "utilize". The proper name of a real thing (a command, a file, an error) is always permitted.
 - **A decision is presented as a decision** — never buried in a status paragraph the reader has to mine. State the choice, give **your recommendation**, and name the **ramifications** of each option in one line apiece.
 - **End every update with a close line**, exactly this shape:
 

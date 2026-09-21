@@ -893,7 +893,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/eager/security-audit-handling.md":
       "1f6effe92be66736a0c9fab634c5fdd6ad1e789865faa67bb783c67ddb4ad490",
     "plugins/src/base/rules/eager/session-status-updates.md":
-      "bbb42e86b8eb68334b8b9c0bc70beb4895a54015e097bf745fc92156b3e24766",
+      "d2d657eda85ce00c3c0699e1c32bc0080df1140b940f9271800f233953f91b4c",
     "plugins/src/base/rules/eager/settled-decisions.md":
       "ae1e8d1292db266038af41d9313708a3fba437c036de043ec6b0311418b56017",
     "plugins/src/base/rules/eager/stale-state-claims.md":
@@ -1005,7 +1005,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/security-audit-handling.md":
       "9633e11ac89af26444a272449f36fe03f26e61fab40ca16a0ab50464725f7d8c",
     "plugins/src/base/rules/reference/session-status-updates.md":
-      "8c34dc9399d6b20103edb3ed8d214aaa05a97065e4c78d8010f394cd041b3320",
+      "8878eceb7d81ee4d1ebd51f2f179e659ce36fac3ee7d04bc8631f44923d5e9ae",
     "plugins/src/base/rules/reference/settled-decisions.md":
       "a26eb4e879ab33468d2c55c1cf8128fbbfbec9c2cb634d9dd9f008304ad9aa05",
     "plugins/src/base/rules/reference/stale-state-claims.md":
