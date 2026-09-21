@@ -171,8 +171,44 @@ function createConsumer(stack: string, managedSource?: string): string {
   return fixture;
 }
 
+/** Severity ESLint reports for a finding this suite asserts on. */
+const ERROR_SEVERITY = 2;
+
+/**
+ * Resolved severity of one entry in a calculated config's `rules` map.
+ *
+ * `calculateConfigForFile` normalises each entry to `[severity, ...options]`
+ * with a numeric severity, but the string spellings are accepted too so a
+ * future normalisation change degrades to "treat it as an error" — the safe
+ * direction, because an over-counted error rule is still run.
+ * @param entry - One value from a calculated config's `rules` map
+ * @returns 0, 1, or 2
+ */
+function resolvedSeverity(entry: unknown): number {
+  const severity = Array.isArray(entry) ? entry[0] : entry;
+  if (severity === 2 || severity === "error") return ERROR_SEVERITY;
+  if (severity === 1 || severity === "warn") return 1;
+  return 0;
+}
+
 /**
  * Error-level findings the shipped profile reports for a fixture's template.
+ *
+ * Only `severity === 2` is asserted on, and a rule the profile resolves below
+ * `error` cannot produce one — so the rules below `error` are switched off
+ * before the lint that is measured. This is a cost change, never a coverage
+ * change: the set of error-level findings is identical either way.
+ *
+ * It is worth doing because the discarded work dominated the suite. Measured on
+ * this repository at 4.64.8, Expo alone: `lintFiles` 416,490ms, of which
+ * `tailwindcss/no-custom-classname` — `warn` in the profile Lisa ships — was
+ * 415,460ms, or 99.9%. The other five stacks were ~500ms each, so the whole
+ * suite was one discarded warn rule. It exceeded the 300,000ms budget and
+ * blocked the pre-push gate (CodySwannGT/lisa#4263).
+ *
+ * Severity is resolved FOR THE FILE ABOUT TO BE LINTED rather than read off the
+ * factory output, so a per-file override that raises a rule to `error` keeps it
+ * enabled. Reading the factory's own array would miss exactly that case.
  * @param stack - Stack whose profile to build
  * @param fixture - Consumer-shaped checkout to lint
  * @returns One `line:col rule — message` line per error
@@ -188,18 +224,46 @@ async function errorsInTemplate(
         `template must be added to FACTORIES, never silently skipped.`
     );
   }
+  const shipped = factory({
+    tsconfigRootDir: fixture,
+    ignorePatterns: [],
+  }) as ESLint.Options["overrideConfig"];
+  const target = path.join(fixture, MANAGED_CONFIG);
+
+  const resolved = await new ESLint({
+    cwd: fixture,
+    overrideConfigFile: true,
+    overrideConfig: shipped,
+  }).calculateConfigForFile(target);
+
+  const rules = Object.entries(resolved.rules ?? {});
+  const belowError = rules.filter(
+    ([, entry]) => resolvedSeverity(entry) < ERROR_SEVERITY
+  );
+
+  // VACUITY GUARD. A silencing map that swallowed the error rules too would
+  // make every assertion in this file pass for the wrong reason, and it would
+  // pass FASTER, which is the direction nobody investigates.
+  if (belowError.length >= rules.length) {
+    throw new Error(
+      `The shipped ${stack} profile resolved ${rules.length} rule(s) and none ` +
+        `at error severity for ${MANAGED_CONFIG}. Refusing to lint with every ` +
+        `rule off — an empty ruleset reports no errors for any template.`
+    );
+  }
+
   const eslint = new ESLint({
     cwd: fixture,
     overrideConfigFile: true,
-    overrideConfig: factory({
-      tsconfigRootDir: fixture,
-      ignorePatterns: [],
-    }) as ESLint.Options["overrideConfig"],
+    overrideConfig: [
+      ...(Array.isArray(shipped) ? shipped : [shipped]),
+      { rules: Object.fromEntries(belowError.map(([rule]) => [rule, "off"])) },
+    ] as ESLint.Options["overrideConfig"],
   });
-  const results = await eslint.lintFiles([path.join(fixture, MANAGED_CONFIG)]);
+  const results = await eslint.lintFiles([target]);
   return results.flatMap(result =>
     result.messages
-      .filter(message => message.severity === 2)
+      .filter(message => message.severity === ERROR_SEVERITY)
       .map(
         message =>
           `${message.line}:${message.column} ${message.ruleId} — ${message.message}`
