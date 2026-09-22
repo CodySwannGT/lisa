@@ -24,6 +24,25 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_MAX_RUNTIME_MS } from "../../../all/copy-overwrite/scripts/check-npm-publish-landed.mjs";
 
 const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../..");
+
+/**
+ * Wall time a job needs for everything that is NOT the registry wait.
+ *
+ * Checkout, Node setup, and — in the reconcile job — the retract and
+ * file-an-issue steps that run after the verdict. A cap that clears the
+ * checker's runtime by less than this is arithmetically "bigger" and still
+ * kills the job before it can act on what it learned.
+ */
+const JOB_OVERHEAD_MS = 5 * 60_000;
+
+/**
+ * GitHub's implicit job timeout when a workflow declares none.
+ *
+ * A job with no `timeout-minutes` is not uncapped, and treating it as absent
+ * would make the assertions below vacuous for exactly the job that carries no
+ * declaration today.
+ */
+const GITHUB_DEFAULT_TIMEOUT_MINUTES = 360;
 const CHECKER = "scripts/check-npm-publish-landed.mjs";
 const PUBLISH_WORKFLOW = "publish-to-npm.yml";
 const DEPLOY_WORKFLOW = "deploy.yml";
@@ -144,6 +163,27 @@ describe("publish-to-npm.yml proves the publish landed", () => {
     expect(verify?.run).toContain("--version");
     expect(verify?.run).toContain("$RELEASE_VERSION");
     expect(publish?.env?.["RELEASE_VERSION"]).toContain("inputs.version");
+  });
+
+  it("gives the PUBLISH job time for the same wait, whatever it declares", async () => {
+    // The binding that was missing. `reconcile_release` runs only AFTER a
+    // publish job has already failed; the publish job runs the same checker,
+    // with the same defaults, on EVERY release. So the cap that matters most
+    // was the one nothing asserted.
+    //
+    // It declares no `timeout-minutes` today, which is fine — GitHub's implicit
+    // 360 clears the runtime comfortably. What was missing is anything that
+    // notices if someone later adds a tight one. Reading the declaration as
+    // "absent, therefore unbounded" would make this case vacuous for precisely
+    // the job it exists to cover, so the implicit default stands in.
+    const workflow = await readWorkflow(PUBLISH_WORKFLOW);
+    const cap =
+      workflow.jobs.publish?.["timeout-minutes"] ??
+      GITHUB_DEFAULT_TIMEOUT_MINUTES;
+
+    expect(cap * 60_000 - DEFAULT_MAX_RUNTIME_MS).toBeGreaterThanOrEqual(
+      JOB_OVERHEAD_MS
+    );
   });
 
   it("gates the step on nothing, so no condition can quietly switch it off", async () => {
@@ -273,6 +313,26 @@ describe("deploy.yml reconciles a release the registry never received", () => {
     const cap = workflow.jobs.reconcile_release?.["timeout-minutes"];
 
     expect(cap).toBeDefined();
-    expect((cap ?? 0) * 60_000).toBeGreaterThan(DEFAULT_MAX_RUNTIME_MS);
+    expect((cap ?? 0) * 60_000).toBeGreaterThan(
+      DEFAULT_MAX_RUNTIME_MS + JOB_OVERHEAD_MS
+    );
+  });
+
+  it("clears the runtime by enough to still DO something afterwards", async () => {
+    // Bare `>` is the same shape of mistake one size down. A cap of 63 minutes
+    // exceeds the 62m15s runtime and leaves 45 seconds for checkout, Node
+    // setup, the retract step and the file-an-issue step — so the job would be
+    // killed just after learning the answer and just before acting on it, and
+    // a test asserting only `>` would call that correct.
+    //
+    // This is the margin clause the checker's own window already carries,
+    // applied to the cap: a budget sized to the exact worst case fails on the
+    // first thing that is slightly worse.
+    const workflow = await readWorkflow(DEPLOY_WORKFLOW);
+    const cap = workflow.jobs.reconcile_release?.["timeout-minutes"] ?? 0;
+
+    expect(cap * 60_000 - DEFAULT_MAX_RUNTIME_MS).toBeGreaterThanOrEqual(
+      JOB_OVERHEAD_MS
+    );
   });
 });
