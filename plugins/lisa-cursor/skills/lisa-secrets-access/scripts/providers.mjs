@@ -430,6 +430,24 @@ export function fetchRaw(cfg) {
 }
 
 /**
+ * The argument vector a provider CLI is actually spawned with.
+ *
+ * `bws` 2.1.0 colours its output even into a pipe and ignores `NO_COLOR`,
+ * `TERM=dumb` and `CLICOLOR=0` alike, so `bws secret list --output json`
+ * arrives as ANSI-wrapped JSON and `JSON.parse` fails on the first escape
+ * byte — for EVERY secret, including a known-good control. Its own `--color`
+ * flag is the one switch it honours, and it is a global option that must
+ * precede the subcommand. It is applied here rather than at each call site
+ * because a call site that forgets it reproduces the outage in silence.
+ * @param {string} bin Executable name.
+ * @param {readonly string[]} args Arguments the caller composed.
+ * @returns {string[]} Arguments with the CLI's colour switched off.
+ */
+export function providerArgs(bin, args) {
+  return bin === "bws" ? ["--color", "no", ...args] : [...args];
+}
+
+/**
  * Run a provider CLI, keeping its output off any shared stream.
  * @param {string} bin Executable name.
  * @param {string[]} args Arguments.
@@ -438,7 +456,7 @@ export function fetchRaw(cfg) {
  */
 function run(bin, args, env, operation = "talking to the secrets provider") {
   try {
-    return boundedChildOutput(bin, args, {
+    return boundedChildOutput(bin, providerArgs(bin, args), {
       encoding: "utf8",
       env,
       stdio: ["ignore", "pipe", "pipe"],
