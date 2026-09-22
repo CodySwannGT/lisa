@@ -54,14 +54,111 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 /** Public npm registry, the default for every Lisa release. */
 const DEFAULT_REGISTRY = "https://registry.npmjs.org";
 
-/** How many times to ask before settling on an answer. */
-const DEFAULT_ATTEMPTS = 5;
+/**
+ * How many times to ask before settling on an answer.
+ *
+ * WHY THIS IS 150 AND NOT FIVE.
+ *
+ * npm accepts a publish and makes it fetchable some minutes later. Its own
+ * notice says so, in the same log as the publish: "Your package is being
+ * processed and may take a few minutes to become available." The lag is
+ * recorded independently in CodySwannGT/lisa#3685.
+ *
+ * The previous defaults asked 5 times, 3s apart — about 15 seconds of wall
+ * time, against a delay npm describes in minutes. Every release run went red on
+ * a publish that had worked. Measured on this repository: 4.64.5 through 4.65.0
+ * all failed this check and all reached the registry.
+ *
+ * Two propagations were timed end to end, and the spread is the point:
+ *
+ *   4.64.9  published 19:35:42Z  visible 19:42:21Z   6m39s
+ *   4.65.0  published 16:38:57Z  visible 16:57:00Z  18m03s
+ *
+ * A window sized to the first would have failed the second — this is not a
+ * hypothetical, it happened: a 14m45s window was written against the 6m39s
+ * figure and the very next release took 18m03s. Three "did not reach npm"
+ * tickets were filed automatically for these false misses and closed again.
+ *
+ * The damage is not the red tick, it is the lost signal. A release that
+ * genuinely fails to publish now looks exactly like the four that succeeded —
+ * and that state was live here: 4.65.0 was tagged while its publish job was
+ * skipped, and nothing distinguished it from the false alarms.
+ *
+ * So the window is sized to the worst measurement with margin, not guessed:
+ * 150 attempts, 15s apart, is 37m15s of sleeping — 2.06x the 18m03s observed.
+ * The margin is the part that matters. The distribution is wide and only two
+ * points of it are known, so a window sized to the exact worst case is a window
+ * that fails on the next release slightly worse than it.
+ *
+ * Widening costs nothing on the normal path, because the loop exits on the
+ * first `published` verdict. It costs only on a publish that genuinely failed,
+ * which is rare, and waiting is the correct thing to do there: the alternative
+ * is the state this replaces, where a real miss and a slow success printed the
+ * same red tick.
+ * @see DEFAULT_DELAY_MS
+ */
+const DEFAULT_ATTEMPTS = 150;
 
-/** Pause between attempts, in milliseconds. */
-const DEFAULT_DELAY_MS = 3000;
+/** Pause between attempts, in milliseconds. @see DEFAULT_ATTEMPTS */
+const DEFAULT_DELAY_MS = 15_000;
 
 /** Maximum wall time for one registry attempt, including body parsing. */
 const DEFAULT_ATTEMPT_TIMEOUT_MS = 10_000;
+
+/**
+ * Wall time the shipped defaults spend SLEEPING before settling on a miss.
+ *
+ * Exported so the window is a checkable property rather than two numbers
+ * nobody multiplies. The defaults were the one thing the tests never exercised
+ * — every case passed `attempts` and `delayMs` explicitly — which is how a
+ * 15-second window survived against a delay measured in minutes.
+ *
+ * This is the figure to compare against a PROPAGATION measurement, because
+ * propagation is what the sleeping is for. It is NOT the figure to compare
+ * against a job timeout — see {@link DEFAULT_MAX_RUNTIME_MS}.
+ */
+export const DEFAULT_WINDOW_MS = (DEFAULT_ATTEMPTS - 1) * DEFAULT_DELAY_MS;
+
+/**
+ * Longest the shipped defaults can RUN before returning a verdict.
+ *
+ * Sleeping is not the only thing this check spends time on. Every attempt also
+ * gets up to {@link DEFAULT_ATTEMPT_TIMEOUT_MS} of its own, and a registry that
+ * hangs rather than answering burns all of it — a timed-out attempt returns
+ * `unprovable`, which is retryable, so the slow path is the one that runs every
+ * attempt to its deadline AND sleeps between them.
+ *
+ * 150 × 10s + 149 × 15s = 62m15s, against 37m15s of sleeping alone. The two
+ * differ by 25 minutes, and the smaller one is the seductive number because it
+ * is the one the widening was about.
+ *
+ * Caught in review on the pull request that introduced it: the job cap was set
+ * to 50 minutes against `DEFAULT_WINDOW_MS`, so a hanging registry would have
+ * had the job killed 12 minutes before the checker could answer — the inert
+ * control that same change was written to prevent, reproduced one field over.
+ * The test bound the cap to the sleeping figure, so it could not have caught
+ * it: it measured the wrong quantity and passed.
+ *
+ * This is the figure a job timeout must clear. Bind a cap to this, never to
+ * {@link DEFAULT_WINDOW_MS}.
+ */
+export const DEFAULT_MAX_RUNTIME_MS =
+  DEFAULT_ATTEMPTS * DEFAULT_ATTEMPT_TIMEOUT_MS + DEFAULT_WINDOW_MS;
+
+/**
+ * Longest publish-to-visible propagation measured on this package.
+ *
+ * `@codyswann/lisa@4.65.0`, 2026-09-22: publish step finished 16:38:57Z, the
+ * exact-version URL first answered 200 at 16:57:00Z — 18m03s. The previous
+ * release, 4.64.9, took 6m39s, so this figure is 2.7x its predecessor and the
+ * distribution is plainly wide.
+ *
+ * Exported so a test can require {@link DEFAULT_WINDOW_MS} to clear it with
+ * margin, and so a future reader can re-measure and contradict it rather than
+ * trusting a bare number. Raise it when a longer propagation is OBSERVED, never
+ * to make a failing release green.
+ */
+export const MEASURED_PROPAGATION_MS = 1_083_000;
 
 /** The line a caller greps for. Never printed without a real verdict behind it. */
 const VERDICT_PREFIX = "npm-publish-landed:";

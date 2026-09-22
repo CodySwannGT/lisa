@@ -9,7 +9,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-conflict-markers.mjs":
       "8a4b2cab9ac32a855e2adc1a7a3c6f7a9ac35dcb75cda2fac7eea144ced50098",
     "all/copy-overwrite/scripts/check-npm-publish-landed.mjs":
-      "bba6114e5e4643575749210819acfda207260ac1db5fcb48c33c320c3a9503ca",
+      "64ab045af386169a7f669bd5e90c8bec75f9edd722f7d5ea07ad8fd1d58022a6",
     "all/copy-overwrite/scripts/check-orphaned-branches.mjs":
       "1f450d2492ca0bcdba440f6b403c1deee0f35e749c54d2ed5c5ddc696d5ab896",
     "all/copy-overwrite/scripts/check-release-package-identity.mjs":

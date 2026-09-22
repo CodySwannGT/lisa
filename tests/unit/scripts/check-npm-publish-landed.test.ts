@@ -32,6 +32,8 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  DEFAULT_WINDOW_MS,
+  MEASURED_PROPAGATION_MS,
   exactVersionUrl,
   main,
   verifyPublish,
@@ -431,4 +433,88 @@ describe("check-npm-publish-landed exit codes and report", () => {
       ).rejects.toThrow("--attempts must be a positive safe integer");
     }
   );
+});
+
+describe("the shipped defaults wait long enough for npm to catch up", () => {
+  // These are the one thing the cases above never exercise. Every other case
+  // passes `attempts` and `delayMs` explicitly, so a default window of ~15
+  // seconds sat under a full test file and no case could fail because of it.
+  // That is how it survived against a delay npm describes in minutes.
+
+  it("waits longer than the propagation measured on a real release", () => {
+    // 4.65.0, 2026-09-22: published 16:38:57Z, visible 16:57:00Z — 18m03s.
+    // 4.64.9 the day before took 6m39s. Five releases in that run failed this
+    // check and every one of them reached the registry.
+    expect(DEFAULT_WINDOW_MS).toBeGreaterThan(MEASURED_PROPAGATION_MS);
+  });
+
+  it("clears that measurement with margin rather than by a hair", () => {
+    // Not hypothetical. A 14m45s window was written against the 6m39s figure
+    // and the very next release took 18m03s — a budget sized to the single
+    // worst observation fails on the next one slightly worse, and the remedy
+    // then reads as "raise it again". Twice the measured figure is the floor,
+    // so the margin is asserted rather than hoped for.
+    expect(DEFAULT_WINDOW_MS).toBeGreaterThanOrEqual(
+      MEASURED_PROPAGATION_MS * 2
+    );
+  });
+
+  it("reports a late publish as landed, using the defaults and nothing else", async () => {
+    // The real shape: 404 for a while, then the version appears. The old
+    // defaults gave up during the 404s and failed the release. `attempts` and
+    // `delayMs` are deliberately NOT passed — the defaults are the subject.
+    const late = [
+      ...Array.from({ length: 20 }, () => ({ status: 404 }) as StubResponse),
+      { status: 200, body: { version: VERSION } } as StubResponse,
+    ];
+    const seen: string[] = [];
+
+    const outcome = await verifyPublish({
+      packageName: PACKAGE,
+      version: VERSION,
+      registry: REGISTRY,
+      fetchImpl: stubFetch(late, seen),
+      sleep: async (): Promise<void> => undefined,
+    });
+
+    expect(outcome.verdict).toBe("published");
+    expect(seen).toHaveLength(21);
+  });
+
+  it("still reports a publish that never appears as missing", async () => {
+    // The widened window must not turn a real miss into a pass. 4.65.0 was
+    // tagged while its publish job was skipped entirely, and that case has to
+    // stay loud.
+    const never = Array.from(
+      { length: 200 },
+      () => ({ status: 404 }) as StubResponse
+    );
+
+    const outcome = await verifyPublish({
+      packageName: PACKAGE,
+      version: VERSION,
+      registry: REGISTRY,
+      fetchImpl: stubFetch(never, []),
+      sleep: async (): Promise<void> => undefined,
+    });
+
+    expect(outcome.verdict).toBe("missing");
+  });
+
+  it("stops asking as soon as the version appears", async () => {
+    // Widening the window costs nothing on the normal path only if the loop
+    // exits on the first `published` verdict. If it ever polled to exhaustion,
+    // every successful release would pay the full wait.
+    const seen: string[] = [];
+
+    await verifyPublish({
+      packageName: PACKAGE,
+      version: VERSION,
+      registry: REGISTRY,
+      fetchImpl: stubFetch([{ status: 200, body: { version: VERSION } }], seen),
+      sleep: async (): Promise<void> => undefined,
+    });
+
+    expect(seen).toHaveLength(1);
+  });
 });
