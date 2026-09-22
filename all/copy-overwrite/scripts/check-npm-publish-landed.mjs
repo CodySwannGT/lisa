@@ -54,11 +54,60 @@ import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 /** Public npm registry, the default for every Lisa release. */
 const DEFAULT_REGISTRY = "https://registry.npmjs.org";
 
-/** How many times to ask before settling on an answer. */
-const DEFAULT_ATTEMPTS = 5;
+/**
+ * How many times to ask before settling on an answer.
+ *
+ * WHY THIS IS SIXTY AND NOT FIVE.
+ *
+ * npm accepts a publish and makes it fetchable some minutes later. Its own
+ * notice says so, in the same log as the publish: "Your package is being
+ * processed and may take a few minutes to become available." The lag is
+ * recorded independently in CodySwannGT/lisa#3685.
+ *
+ * The previous defaults asked 5 times, 3s apart — about 15 seconds of wall
+ * time, against a delay npm describes in minutes. Every release run went red on
+ * a publish that had worked. Measured on this repository: 4.64.5 through 4.64.9
+ * all failed this check and all reached the registry, and 4.64.9 was timed at
+ * **6 minutes 39 seconds** from the publish step to a 200 on its exact-version
+ * URL. Three "did not reach npm" tickets were filed automatically for those
+ * false misses and closed again.
+ *
+ * The damage is not the red tick, it is the lost signal. A release that
+ * genuinely fails to publish now looks exactly like the four that succeeded —
+ * and that state was live here: 4.65.0 was tagged while its publish job was
+ * skipped, and nothing distinguished it from the false alarms.
+ *
+ * So the window is sized to the measurement, not guessed: 60 attempts, 15s
+ * apart, is 14m45s of sleeping — about 2.2x the worst propagation observed.
+ * Widening it costs nothing on the normal path, because the loop exits on the
+ * first `published` verdict; it costs only on a publish that genuinely failed,
+ * which is rare and worth waiting out.
+ * @see DEFAULT_DELAY_MS
+ */
+const DEFAULT_ATTEMPTS = 60;
 
-/** Pause between attempts, in milliseconds. */
-const DEFAULT_DELAY_MS = 3000;
+/** Pause between attempts, in milliseconds. @see DEFAULT_ATTEMPTS */
+const DEFAULT_DELAY_MS = 15_000;
+
+/**
+ * Wall time the shipped defaults spend sleeping before settling on a miss.
+ *
+ * Exported so the window is a checkable property rather than two numbers
+ * nobody multiplies. The defaults were the one thing the tests never exercised
+ * — every case passed `attempts` and `delayMs` explicitly — which is how a
+ * 15-second window survived against a delay measured in minutes.
+ */
+export const DEFAULT_WINDOW_MS = (DEFAULT_ATTEMPTS - 1) * DEFAULT_DELAY_MS;
+
+/**
+ * Longest publish-to-visible propagation measured on this package.
+ *
+ * `@codyswann/lisa@4.64.9`, 2026-09-21: publish step finished 19:35:42Z, the
+ * exact-version URL first answered 200 at 19:42:21Z. Exported so a test can
+ * require {@link DEFAULT_WINDOW_MS} to clear it with margin, and so a future
+ * reader can re-measure and contradict it rather than trusting a bare number.
+ */
+export const MEASURED_PROPAGATION_MS = 399_000;
 
 /** Maximum wall time for one registry attempt, including body parsing. */
 const DEFAULT_ATTEMPT_TIMEOUT_MS = 10_000;

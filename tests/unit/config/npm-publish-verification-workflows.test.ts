@@ -21,6 +21,8 @@ import * as path from "node:path";
 import yaml from "js-yaml";
 import { describe, expect, it } from "vitest";
 
+import { DEFAULT_WINDOW_MS } from "../../../all/copy-overwrite/scripts/check-npm-publish-landed.mjs";
+
 const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../..");
 const CHECKER = "scripts/check-npm-publish-landed.mjs";
 const PUBLISH_WORKFLOW = "publish-to-npm.yml";
@@ -49,6 +51,8 @@ interface WorkflowStep {
 interface WorkflowJob {
   /** Condition gating the job. */
   if?: string;
+  /** Wall-clock ceiling GitHub kills the job at. */
+  "timeout-minutes"?: number;
   /** Job-level environment, where release identity now enters (#3717). */
   env?: Record<string, string>;
   /** Jobs this one waits for. */
@@ -225,5 +229,43 @@ describe("deploy.yml reconciles a release the registry never received", () => {
     const steps = workflow.jobs.reconcile_release?.steps ?? [];
 
     expect(steps.at(-1)?.run).toContain("exit 1");
+  });
+
+  it("does not narrow the wait with its own --attempts override", async () => {
+    // It used to pass `--attempts 3`, about 6 seconds — SHORTER than the
+    // default it overrode, and far shorter than the 6m39s propagation measured
+    // on 4.64.9. Two windows meant two chances to be too short, and the
+    // narrower one was the override. There is one window now, sized beside the
+    // measurement that justifies it, and this case is what stops a second one
+    // reappearing here.
+    const workflow = await readWorkflow(DEPLOY_WORKFLOW);
+    const steps = workflow.jobs.reconcile_release?.steps ?? [];
+    const ask = steps.find(step => step.run?.includes(CHECKER) === true);
+
+    // Shell comments are stripped first. The comment beside the invocation
+    // names the flag it removed, and matching that text would fail this case
+    // for saying why — a guard defeated by its own explanation.
+    const commands = (ask?.run ?? "")
+      .split("\n")
+      .filter(line => !line.trimStart().startsWith("#"))
+      .join("\n");
+
+    expect(ask).toBeDefined();
+    expect(commands).toContain(CHECKER);
+    expect(commands).not.toMatch(/--attempts\s/);
+    expect(commands).not.toMatch(/--delay-ms\s/);
+  });
+
+  it("gives the job more wall time than the checker spends waiting", async () => {
+    // The trap this closes. Widening the checker's wait to 14m45s under a job
+    // capped at 10 minutes makes the fix INERT, and worse than inert: the job
+    // is killed mid-wait, so the run reads `cancelled` rather than `failure`,
+    // and a cancelled run is exactly the state that hid the original incident.
+    // Binding the two numbers is what stops one moving without the other.
+    const workflow = await readWorkflow(DEPLOY_WORKFLOW);
+    const cap = workflow.jobs.reconcile_release?.["timeout-minutes"];
+
+    expect(cap).toBeDefined();
+    expect((cap ?? 0) * 60_000).toBeGreaterThan(DEFAULT_WINDOW_MS);
   });
 });
