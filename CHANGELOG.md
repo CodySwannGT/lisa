@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.65.1](https://github.com/CodySwannGT/lisa/compare/v4.65.0...v4.65.1) (2026-09-22)
+
+
+### Bug Fixes
+
+* **ci:** bind the job cap to runtime, not to sleeping time ([b023d9d](https://github.com/CodySwannGT/lisa/commit/b023d9d0fecdbb07477a1190e4e524480d7be16a)), closes [CodySwannGT/lisa#4268](https://github.com/CodySwannGT/lisa/issues/4268) [CodySwannGT/lisa#4268](https://github.com/CodySwannGT/lisa/issues/4268)
+* **ci:** size the publish wait to the worst propagation, not the first ([855c19e](https://github.com/CodySwannGT/lisa/commit/855c19eea8413c6e6c207de0869b928711b554b0)), closes [CodySwannGT/lisa#4268](https://github.com/CodySwannGT/lisa/issues/4268) [CodySwannGT/lisa#4268](https://github.com/CodySwannGT/lisa/issues/4268)
+* **ci:** wait long enough for npm to make a publish fetchable ([59c8580](https://github.com/CodySwannGT/lisa/commit/59c85802b9ccd1fdd3cfe8f06b079847d76459bf)), closes [CodySwannGT/lisa#3685](https://github.com/CodySwannGT/lisa/issues/3685) [CodySwannGT/lisa#4268](https://github.com/CodySwannGT/lisa/issues/4268) [CodySwannGT/lisa#4268](https://github.com/CodySwannGT/lisa/issues/4268)
+* **secrets:** spawn bws with --color no so its JSON can be parsed ([b53d265](https://github.com/CodySwannGT/lisa/commit/b53d265626c66fcd5beb4e7c88b0c5aa73d6b40a)), closes [CodySwannGT/lisa#4271](https://github.com/CodySwannGT/lisa/issues/4271)
+
 ## [4.65.0](https://github.com/CodySwannGT/lisa/compare/v4.64.9...v4.65.0) (2026-09-21)
 
 
