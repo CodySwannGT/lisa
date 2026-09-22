@@ -102,15 +102,48 @@ const DEFAULT_ATTEMPTS = 150;
 /** Pause between attempts, in milliseconds. @see DEFAULT_ATTEMPTS */
 const DEFAULT_DELAY_MS = 15_000;
 
+/** Maximum wall time for one registry attempt, including body parsing. */
+const DEFAULT_ATTEMPT_TIMEOUT_MS = 10_000;
+
 /**
- * Wall time the shipped defaults spend sleeping before settling on a miss.
+ * Wall time the shipped defaults spend SLEEPING before settling on a miss.
  *
  * Exported so the window is a checkable property rather than two numbers
  * nobody multiplies. The defaults were the one thing the tests never exercised
  * — every case passed `attempts` and `delayMs` explicitly — which is how a
  * 15-second window survived against a delay measured in minutes.
+ *
+ * This is the figure to compare against a PROPAGATION measurement, because
+ * propagation is what the sleeping is for. It is NOT the figure to compare
+ * against a job timeout — see {@link DEFAULT_MAX_RUNTIME_MS}.
  */
 export const DEFAULT_WINDOW_MS = (DEFAULT_ATTEMPTS - 1) * DEFAULT_DELAY_MS;
+
+/**
+ * Longest the shipped defaults can RUN before returning a verdict.
+ *
+ * Sleeping is not the only thing this check spends time on. Every attempt also
+ * gets up to {@link DEFAULT_ATTEMPT_TIMEOUT_MS} of its own, and a registry that
+ * hangs rather than answering burns all of it — a timed-out attempt returns
+ * `unprovable`, which is retryable, so the slow path is the one that runs every
+ * attempt to its deadline AND sleeps between them.
+ *
+ * 150 × 10s + 149 × 15s = 62m15s, against 37m15s of sleeping alone. The two
+ * differ by 25 minutes, and the smaller one is the seductive number because it
+ * is the one the widening was about.
+ *
+ * Caught in review on the pull request that introduced it: the job cap was set
+ * to 50 minutes against `DEFAULT_WINDOW_MS`, so a hanging registry would have
+ * had the job killed 12 minutes before the checker could answer — the inert
+ * control that same change was written to prevent, reproduced one field over.
+ * The test bound the cap to the sleeping figure, so it could not have caught
+ * it: it measured the wrong quantity and passed.
+ *
+ * This is the figure a job timeout must clear. Bind a cap to this, never to
+ * {@link DEFAULT_WINDOW_MS}.
+ */
+export const DEFAULT_MAX_RUNTIME_MS =
+  DEFAULT_ATTEMPTS * DEFAULT_ATTEMPT_TIMEOUT_MS + DEFAULT_WINDOW_MS;
 
 /**
  * Longest publish-to-visible propagation measured on this package.
@@ -126,9 +159,6 @@ export const DEFAULT_WINDOW_MS = (DEFAULT_ATTEMPTS - 1) * DEFAULT_DELAY_MS;
  * to make a failing release green.
  */
 export const MEASURED_PROPAGATION_MS = 1_083_000;
-
-/** Maximum wall time for one registry attempt, including body parsing. */
-const DEFAULT_ATTEMPT_TIMEOUT_MS = 10_000;
 
 /** The line a caller greps for. Never printed without a real verdict behind it. */
 const VERDICT_PREFIX = "npm-publish-landed:";

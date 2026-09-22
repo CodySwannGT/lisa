@@ -194,10 +194,15 @@ jobs:
     # Must exceed the checker's own wait, or the job is killed mid-wait and the
     # widened window is inert — a control that reports a worse outcome than the
     # one it replaced, because a cancellation says even less than a failure.
-    # The checker sleeps up to 37m15s (DEFAULT_WINDOW_MS); 50 leaves room for
-    # checkout, Node setup and the retract/file steps that follow. The two
-    # numbers are bound by a test, so neither can move without the other.
-    timeout-minutes: 50
+    # Bind this to DEFAULT_MAX_RUNTIME_MS, never to DEFAULT_WINDOW_MS. Sleeping
+    # is 37m15s, but every attempt also carries its own 10s request deadline and
+    # a hanging registry burns all of them, so the checker can run 62m15s before
+    # it answers. This cap was 50 against the sleeping figure and would have
+    # killed the job 12 minutes early — the inert control this change exists to
+    # prevent, one field over. 75 leaves room for checkout, Node setup and the
+    # retract/file steps that follow. A test binds the two, so neither moves
+    # without the other.
+    timeout-minutes: 75
     needs: [determine_environment, release, publish_npm]
     if: ${{ always() && needs.release.result == 'success' && needs.release.outputs.tag != '' && (needs.publish_npm.result == 'failure' || needs.publish_npm.result == 'cancelled') }}
     steps:

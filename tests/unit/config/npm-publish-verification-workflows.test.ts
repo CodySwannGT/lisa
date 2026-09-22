@@ -21,7 +21,7 @@ import * as path from "node:path";
 import yaml from "js-yaml";
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_WINDOW_MS } from "../../../all/copy-overwrite/scripts/check-npm-publish-landed.mjs";
+import { DEFAULT_MAX_RUNTIME_MS } from "../../../all/copy-overwrite/scripts/check-npm-publish-landed.mjs";
 
 const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "../../..");
 const CHECKER = "scripts/check-npm-publish-landed.mjs";
@@ -256,16 +256,23 @@ describe("deploy.yml reconciles a release the registry never received", () => {
     expect(commands).not.toMatch(/--delay-ms\s/);
   });
 
-  it("gives the job more wall time than the checker spends waiting", async () => {
-    // The trap this closes. Widening the checker's wait to 14m45s under a job
-    // capped at 10 minutes makes the fix INERT, and worse than inert: the job
-    // is killed mid-wait, so the run reads `cancelled` rather than `failure`,
-    // and a cancelled run is exactly the state that hid the original incident.
-    // Binding the two numbers is what stops one moving without the other.
+  it("gives the job more wall time than the checker can possibly RUN", async () => {
+    // The trap this closes. A widened wait under a job cap that expires first
+    // makes the fix INERT, and worse than inert: the job is killed mid-wait, so
+    // the run reads `cancelled` rather than `failure`, and a cancelled run is
+    // exactly the state that hid the original incident.
+    //
+    // Bound to DEFAULT_MAX_RUNTIME_MS, not DEFAULT_WINDOW_MS. That distinction
+    // is the whole case. An earlier version of this test asserted the sleeping
+    // figure — 37m15s — while the checker can actually run 62m15s once each
+    // attempt's own 10s request deadline is counted. The cap was set to 50
+    // minutes and this test passed, because it measured the wrong quantity. A
+    // hanging registry would have killed the job 12 minutes before the checker
+    // could answer, and nothing here would have said so.
     const workflow = await readWorkflow(DEPLOY_WORKFLOW);
     const cap = workflow.jobs.reconcile_release?.["timeout-minutes"];
 
     expect(cap).toBeDefined();
-    expect((cap ?? 0) * 60_000).toBeGreaterThan(DEFAULT_WINDOW_MS);
+    expect((cap ?? 0) * 60_000).toBeGreaterThan(DEFAULT_MAX_RUNTIME_MS);
   });
 });
