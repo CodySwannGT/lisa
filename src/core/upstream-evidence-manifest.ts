@@ -1387,7 +1387,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-secrets-access/scripts/prompt-secret.mjs":
       "22b28bcdf49b9b0fcd1b15639e031655efacc028b74d48d57e2275f3e1557508",
     "plugins/src/base/skills/lisa-secrets-access/scripts/providers.mjs":
-      "47668dfeb2fe95aac0263d464b9a83233d6eabe811825ec42edf1e91a8e18740",
+      "46996ea3e23f9284face2cdbc3ac2e5f23295ac4b6f5b81a42633cce2ed06268",
     "plugins/src/base/skills/lisa-secrets-access/scripts/publish-aws-bootstrap.mjs":
       "cca130bdd73b73c807baffc660510a37c3d7504ad0d6959a4bd28b141caf21db",
     "plugins/src/base/skills/lisa-secrets-access/scripts/read-secret-note.mjs":
@@ -10711,6 +10711,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/secrets/prompt-secret.test.ts": true,
     "tests/unit/secrets/propagate-declaration.test.ts": true,
     "tests/unit/secrets/propagate-secret.test.ts": true,
+    "tests/unit/secrets/provider-cli-color.test.ts": true,
     "tests/unit/secrets/publish-aws-bootstrap.test.ts": true,
     "tests/unit/secrets/remote-dispatch-claude-web.test.ts": true,
     "tests/unit/secrets/remote-dispatch.test.ts": true,
