@@ -442,17 +442,18 @@ describe("the shipped defaults wait long enough for npm to catch up", () => {
   // That is how it survived against a delay npm describes in minutes.
 
   it("waits longer than the propagation measured on a real release", () => {
-    // 4.64.9, 2026-09-21: publish step finished 19:35:42Z, the exact-version
-    // URL first answered 200 at 19:42:21Z — 6m39s. Four releases before it
-    // failed this check and reached the registry too.
+    // 4.65.0, 2026-09-22: published 16:38:57Z, visible 16:57:00Z — 18m03s.
+    // 4.64.9 the day before took 6m39s. Five releases in that run failed this
+    // check and every one of them reached the registry.
     expect(DEFAULT_WINDOW_MS).toBeGreaterThan(MEASURED_PROPAGATION_MS);
   });
 
   it("clears that measurement with margin rather than by a hair", () => {
-    // A budget sized to the single worst observation fails on the next one that
-    // is slightly worse, and the remedy then reads as "raise it again". Twice
-    // the measured figure is the floor, so the margin is asserted rather than
-    // hoped for.
+    // Not hypothetical. A 14m45s window was written against the 6m39s figure
+    // and the very next release took 18m03s — a budget sized to the single
+    // worst observation fails on the next one slightly worse, and the remedy
+    // then reads as "raise it again". Twice the measured figure is the floor,
+    // so the margin is asserted rather than hoped for.
     expect(DEFAULT_WINDOW_MS).toBeGreaterThanOrEqual(
       MEASURED_PROPAGATION_MS * 2
     );
