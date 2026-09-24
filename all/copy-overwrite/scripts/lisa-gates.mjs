@@ -1703,6 +1703,11 @@ const QUALITY_FALLBACKS = Object.freeze({
     steps: ["🌱 No environment reseed adapter declared"],
   },
   npm_security_scan: {
+    // Every package-manager branch fails when the audit yields no report
+    // (retried first — it is a network call), so a mode-only declaration may
+    // delegate here. Without the flag it fell through to `security:audit`, a
+    // descriptive task Lisa does not ship (#3359).
+    unconditional: true,
     command: "<package-manager> audit, filtered through audit.ignore*.json",
     seedRun: [SECURITY_AUDIT_TASK],
     steps: ["📋 Load audit exclusions", "🔒 Run security audit"],

@@ -31,7 +31,6 @@ describe("built-in facade ownership", () => {
   );
 
   it.each([
-    ["dependency-vulnerability", PULL_REQUEST],
     ["dependency-vulnerability", "push"],
     ["static-security", PULL_REQUEST],
     ["credential-leakage", PULL_REQUEST],
@@ -47,6 +46,26 @@ describe("built-in facade ownership", () => {
       scripts: {},
     });
     expect(gate?.mode).toBe("run");
+  });
+
+  // The CI audit fallback fails when the audit yields no advisory data, so it
+  // may own a mode-only declaration. Without the flag the gate fell through to
+  // the registry's descriptive `security:audit` task, which Lisa does not ship
+  // (#3359, regressed by #4144).
+  it("keeps a mode-only dependency-vulnerability declaration on the built-in audit", () => {
+    const [gate] = resolveMoment({
+      gates: { "dependency-vulnerability": { [PULL_REQUEST]: "required" } },
+      moment: PULL_REQUEST,
+      runner: "bun run",
+      scripts: {},
+    });
+    expect(gate).toMatchObject({
+      id: "dependency-vulnerability",
+      level: "required",
+      mode: "builtin",
+      task: null,
+      command: null,
+    });
   });
 
   it("reports facade delegation without claiming a local pass or failure", () => {

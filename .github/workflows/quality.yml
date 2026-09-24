@@ -7100,6 +7100,22 @@ jobs:
         run: |
           GHSA_IDS="${{ steps.audit_exclusions.outputs.ghsa_ids }}"
           CVE_IDS="${{ steps.audit_exclusions.outputs.cve_ids }}"
+          # Fail closed (lisa-gates.mjs marks this `unconditional`): a pass needs
+          # the manager's own report shape ($1, over slurped output). The audit
+          # is a network call, so a missing report is retried before failing.
+          AUDIT_OUT="$(mktemp)"
+          audit_capture() {
+            _shape="$1"; shift
+            for _try in 1 2 3; do
+              "$@" > "$AUDIT_OUT" 2>/dev/null || true
+              # bun can print gzip-compressed JSON on stdout.
+              if gzip -dc "$AUDIT_OUT" > "$AUDIT_OUT.d" 2>/dev/null; then mv "$AUDIT_OUT.d" "$AUDIT_OUT"; fi
+              if jq -e -s "$_shape" "$AUDIT_OUT" >/dev/null 2>&1; then return 0; fi
+              if [ "$_try" -lt 3 ]; then sleep 5; fi
+            done
+            echo "::error::'$*' printed no advisory report, so nothing was audited. This is NOT a clean result and NOT a finding."
+            exit 1
+          }
 
           if [ "$PACKAGE_MANAGER" = "npm" ]; then
             # Build jq exclusion filter for npm audit GHSA IDs
@@ -7112,7 +7128,8 @@ jobs:
               fi
             done
 
-            AUDIT_JSON=$(npm audit --production --json 2>/dev/null || true)
+            audit_capture '.[0].vulnerabilities | type == "object"' npm audit --production --json
+            AUDIT_JSON=$(cat "$AUDIT_OUT")
             if [ -n "$NPM_EXCLUDE_FILTER" ]; then
               UNFIXED_HIGH=$(echo "$AUDIT_JSON" | jq "[.vulnerabilities | to_entries[] | select(.value.severity == \"high\" or .value.severity == \"critical\") | .value.via[] | select(type == \"object\") | .url | ltrimstr(\"https://github.com/advisories/\")] | unique | map(select($NPM_EXCLUDE_FILTER | not)) | length")
             else
@@ -7155,10 +7172,11 @@ jobs:
               COMBINED_FILTER="((.data.advisory.cves | any($CVE_FILTER)))"
             fi
 
+            audit_capture 'any(.[]; .type == "auditSummary")' yarn audit --groups dependencies --json
             if [ -n "$COMBINED_FILTER" ]; then
-              yarn audit --groups dependencies --json | jq -r "select(.type == \"auditAdvisory\") | select(.data.advisory.severity == \"high\" or .data.advisory.severity == \"critical\") | select(($COMBINED_FILTER) | not) | .data.advisory" > high_vulns.json
+              jq -r "select(.type == \"auditAdvisory\") | select(.data.advisory.severity == \"high\" or .data.advisory.severity == \"critical\") | select(($COMBINED_FILTER) | not) | .data.advisory" "$AUDIT_OUT" > high_vulns.json
             else
-              yarn audit --groups dependencies --json | jq -r 'select(.type == "auditAdvisory") | select(.data.advisory.severity == "high" or .data.advisory.severity == "critical") | .data.advisory' > high_vulns.json
+              jq -r 'select(.type == "auditAdvisory") | select(.data.advisory.severity == "high" or .data.advisory.severity == "critical") | .data.advisory' "$AUDIT_OUT" > high_vulns.json
             fi
 
             if [ -s high_vulns.json ]; then
@@ -7171,37 +7189,14 @@ jobs:
           elif [ "$PACKAGE_MANAGER" = "bun" ]; then
             GHSA_IDS_JSON=$(printf '%s\n' $GHSA_IDS | jq -R . | jq -s 'map(select(length > 0))')
             CVE_IDS_JSON=$(printf '%s\n' $CVE_IDS | jq -R . | jq -s 'map(select(length > 0))')
-            # `--production` scopes the audit to production dependencies, matching
-            # every other audit path: the pre-push hook's bun branch
-            # (`bun audit --production`, which documents this same rationale), and
-            # both this workflow's own npm branch (`npm audit --production`) and
-            # yarn branch (`yarn audit --groups dependencies`). Without it, bun
-            # alone audited devDependencies too, so this gate failed on dev-only
-            # build-tool advisories that never ship (e.g. audiosprite -> underscore/
-            # minimist) while the identical local hook passed — a confusing
-            # local/CI split. Dev-dependency / supply-chain coverage is owned by
-            # the dedicated Snyk step (`--all-projects`), not this ship-scope gate.
+            # `--production` matches every other audit path (the pre-push hook,
+            # npm `--production`, yarn `--groups dependencies`). Without it bun
+            # alone failed on dev-only advisories that never ship while the local
+            # hook passed; dev/supply-chain coverage is the Snyk step's job.
             # bun honours `--production` even though `bun audit --help` omits it.
-            AUDIT_OUTPUT="$(mktemp)"
-            bun audit --production --json > "$AUDIT_OUTPUT" 2>/dev/null || true
-            if [ ! -s "$AUDIT_OUTPUT" ]; then
-              AUDIT_JSON="{}"
-            elif jq empty "$AUDIT_OUTPUT" >/dev/null 2>&1; then
-              AUDIT_JSON=$(cat "$AUDIT_OUTPUT")
-            else
-              # Bun can return gzip-compressed JSON on stdout while still
-              # reporting a parse error on stderr. Normalize that transport
-              # shape before applying Lisa's advisory allowlist.
-              DECOMPRESSED_AUDIT_OUTPUT="$(mktemp)"
-              gzip -dc "$AUDIT_OUTPUT" > "$DECOMPRESSED_AUDIT_OUTPUT" 2>/dev/null || true
-              if jq empty "$DECOMPRESSED_AUDIT_OUTPUT" >/dev/null 2>&1; then
-                AUDIT_JSON=$(cat "$DECOMPRESSED_AUDIT_OUTPUT")
-              else
-                AUDIT_JSON=$(cat "$AUDIT_OUTPUT")
-              fi
-              rm -f "$DECOMPRESSED_AUDIT_OUTPUT"
-            fi
-            rm -f "$AUDIT_OUTPUT"
+            # A clean audit prints `{}`; empty stdout is no longer read as one.
+            audit_capture 'length == 1 and (.[0] | type == "object")' bun audit --production --json
+            AUDIT_JSON=$(cat "$AUDIT_OUT")
 
             BUN_HIGH_VULNS=$(echo "$AUDIT_JSON" | jq \
               --argjson ghsa_ids "$GHSA_IDS_JSON" \

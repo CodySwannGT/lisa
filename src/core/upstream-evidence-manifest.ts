@@ -71,7 +71,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
-      "cb6aa9df3e9ee0c488ce3bebe40ac16b618cb8b2ffe57d1d753774bda34d98d6",
+      "ae742fef65b049aea83029056456a1f3495a4d1aef83c1a959c6d9ec784f1477",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
       "b17d73c02245d64ae96ba4b9ec642f5a54a827accb1af292a4600a98e1a596f4",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
@@ -9617,6 +9617,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/publish-npm-injection.test.ts": true,
     "tests/integration/push-collects-integration-tree-once.test.ts": true,
     "tests/integration/push-destination-inheritance.test.ts": true,
+    "tests/integration/quality-audit-fail-closed.test.ts": true,
     "tests/integration/quality-combined-planning.test.ts": true,
     "tests/integration/quality-declaration-required-jobs.test.ts": true,
     "tests/integration/quality-download-cache.test.ts": true,
