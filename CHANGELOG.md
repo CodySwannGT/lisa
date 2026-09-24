@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.65.3](https://github.com/CodySwannGT/lisa/compare/v4.65.2...v4.65.3) (2026-09-24)
+
+
+### Bug Fixes
+
+* **gates:** keep audit stderr and reject bun error bodies ([647e3e3](https://github.com/CodySwannGT/lisa/commit/647e3e361127ca164ee1e494dd4fb3bd6b293968)), closes [CodySwannGT/lisa#3359](https://github.com/CodySwannGT/lisa/issues/3359) [CodySwannGT/lisa#3359](https://github.com/CodySwannGT/lisa/issues/3359)
+* **gates:** keep mode-only dependency-vulnerability on the built-in audit ([fbbffba](https://github.com/CodySwannGT/lisa/commit/fbbffbadbccaad038d963f0e7e34818b8688f8fd)), closes [#4144](https://github.com/CodySwannGT/lisa/issues/4144) [CodySwannGT/lisa#3359](https://github.com/CodySwannGT/lisa/issues/3359) [CodySwannGT/lisa#3359](https://github.com/CodySwannGT/lisa/issues/3359)
+
 ### [4.65.2](https://github.com/CodySwannGT/lisa/compare/v4.65.1...v4.65.2) (2026-09-22)
 
 ### [4.65.1](https://github.com/CodySwannGT/lisa/compare/v4.65.0...v4.65.1) (2026-09-22)
