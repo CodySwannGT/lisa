@@ -52,8 +52,16 @@ describe("built-in facade ownership", () => {
   // may own a mode-only declaration. Without the flag the gate fell through to
   // the registry's descriptive `security:audit` task, which Lisa does not ship
   // (#3359, regressed by #4144).
-  it("keeps a mode-only dependency-vulnerability declaration on the built-in audit", () => {
-    const [gate] = resolveMoment({
+  //
+  // The flag is read while the module LOADS, and per-test mutation coverage
+  // credits load-time code to whichever test imported the module first. So
+  // this case loads a fresh copy inside the test body, which makes the
+  // mutation gate run it against a flipped flag.
+  it("keeps a mode-only dependency-vulnerability declaration on the built-in audit", async () => {
+    vi.resetModules();
+    const fresh =
+      await import("../../../all/copy-overwrite/scripts/lisa-gates.mjs");
+    const [gate] = fresh.resolveMoment({
       gates: { "dependency-vulnerability": { [PULL_REQUEST]: "required" } },
       moment: PULL_REQUEST,
       runner: "bun run",
