@@ -7107,13 +7107,14 @@ jobs:
           audit_capture() {
             _shape="$1"; shift
             for _try in 1 2 3; do
-              "$@" > "$AUDIT_OUT" 2>/dev/null || true
+              "$@" > "$AUDIT_OUT" 2> "$AUDIT_OUT.err" || true
               # bun can print gzip-compressed JSON on stdout.
               if gzip -dc "$AUDIT_OUT" > "$AUDIT_OUT.d" 2>/dev/null; then mv "$AUDIT_OUT.d" "$AUDIT_OUT"; fi
               if jq -e -s "$_shape" "$AUDIT_OUT" >/dev/null 2>&1; then return 0; fi
               if [ "$_try" -lt 3 ]; then sleep 5; fi
             done
             echo "::error::'$*' printed no advisory report, so nothing was audited. This is NOT a clean result and NOT a finding."
+            tail -n 20 "$AUDIT_OUT.err" 2>/dev/null || true
             exit 1
           }
 
@@ -7195,7 +7196,7 @@ jobs:
             # hook passed; dev/supply-chain coverage is the Snyk step's job.
             # bun honours `--production` even though `bun audit --help` omits it.
             # A clean audit prints `{}`; empty stdout is no longer read as one.
-            audit_capture 'length == 1 and (.[0] | type == "object")' bun audit --production --json
+            audit_capture 'length == 1 and (.[0] | type == "object") and all(.[0][]; type == "array")' bun audit --production --json
             AUDIT_JSON=$(cat "$AUDIT_OUT")
 
             BUN_HIGH_VULNS=$(echo "$AUDIT_JSON" | jq \

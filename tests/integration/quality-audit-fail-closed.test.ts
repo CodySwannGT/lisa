@@ -44,6 +44,7 @@ const STUB = [
   'echo "$n" > "$STUB_DIR/count"',
   'f="$STUB_DIR/out-$n"; [ -f "$f" ] || f="$STUB_DIR/out"',
   '[ -f "$f" ] && cat "$f"',
+  'echo "stub cause: registry unreachable" >&2',
   "exit 1",
 ].join("\n");
 
@@ -161,6 +162,8 @@ describe.each(["npm", "yarn", "bun"] as const)(
       expect(result.output).toContain(NOT_RUN);
       expect(result.output).not.toContain(CLEAN);
       expect(result.count).toBe(3);
+      // The audit's own stderr is the only record of WHY it did not run.
+      expect(result.output).toContain("stub cause: registry unreachable");
     });
 
     it("fails when the audit prints something other than a report", () => {
@@ -183,6 +186,18 @@ describe.each(["npm", "yarn", "bun"] as const)(
       expect(result.output).toContain(CLEAN);
       expect(result.count).toBe(2);
     });
+
+    it.runIf(manager === "bun")(
+      "fails when bun prints a registry error body as JSON",
+      () => {
+        const result = run(manager, {
+          out: JSON.stringify({ error: "403 Forbidden" }),
+        });
+        expect(result.status, result.output).toBe(1);
+        expect(result.output).toContain(NOT_RUN);
+        expect(result.output).not.toContain(CLEAN);
+      }
+    );
 
     it("fails on a high advisory as a finding, not as an unrun audit", () => {
       const result = run(manager, { out: report.high });
