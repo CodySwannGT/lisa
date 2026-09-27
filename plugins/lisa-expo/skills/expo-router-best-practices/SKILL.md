@@ -426,6 +426,7 @@ const { width } = useWindowDimensions();
 For detailed documentation on specific topics, refer to:
 
 - `references/official-docs.md` - Condensed official Expo Router documentation
+- `references/static-export-verification.md` - Asserting enumerated routes, per-route titles, and initial HTML after `expo export`
 - `scripts/generate-route.py` - Route scaffolding script
 
 Official Documentation: https://docs.expo.dev/router/introduction/

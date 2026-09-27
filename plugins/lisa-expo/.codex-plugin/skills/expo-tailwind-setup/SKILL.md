@@ -478,3 +478,10 @@ Add className to component props:
 ```tsx
 type Props = React.ComponentProps<typeof RNView> & { className?: string };
 ```
+
+The same rule applies at every styling API boundary — `useCssElement`,
+`cssInterop`, or `styled()`: type the wrapped component's props explicitly
+(`React.ComponentProps<typeof X> & { className?: string }`) and pass props
+through, rather than casting to a wider type. A cast compiles over a
+prop-shape drift that an explicit type would refuse — the boundary is where
+the drift is cheapest to catch.

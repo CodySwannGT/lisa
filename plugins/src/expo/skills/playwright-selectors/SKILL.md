@@ -394,6 +394,31 @@ Components from third-party libraries (e.g., `react-native-bouncy-checkbox`, `re
 
 ---
 
+## Reveal-on-Focus Assertions
+
+`toBeVisible()` proves the element exists and is not hidden — it does NOT
+prove the element crossed onto the screen. A focused element scrolled off-view
+still reports visible. For any "focus reveals the element" behavior (skip
+links, focus-trapped modals, scroll-into-view containers), assert on layout,
+not just visibility:
+
+```typescript
+// Rejects when the element has no box at all (display: none, detached).
+const box = await page.getByTestId("dialog:panel").boundingBox();
+expect(box).not.toBeNull();
+
+// Then prove it is actually inside the viewport — the part toBeVisible()
+// cannot say.
+await expect(page.getByTestId("dialog:panel")).toBeInViewport();
+```
+
+Pair them: `boundingBox()` answers "is there a box" (null means never laid
+out), `toBeInViewport()` answers "did it cross onto the screen". An assertion
+that skips the null check reads a missing layout as a viewport miss, which is
+a different bug.
+
+---
+
 ## Implementation Checklist
 
 When adding E2E test coverage to a component:
