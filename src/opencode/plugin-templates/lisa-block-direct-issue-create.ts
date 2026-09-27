@@ -584,10 +584,12 @@ const LisaBlockDirectIssueCreate = async () => {
   /**
    * Tool names that are never a tracker creation, skipped before anything else.
    *
-   * The canonical guard's own list, transcribed rather than adapted. It is a
-   * cost gate, not a correctness gate — none of these names would survive the
-   * verb and noun tests below anyway — so keeping it identical costs nothing
-   * and removes one way for the two implementations to disagree.
+   * The canonical guard's own list, transcribed rather than adapted. It is
+   * mostly a cost gate, but not ONLY one: `TaskCreate` and friends satisfy
+   * both shape tests below, so for the `Task*` family this set is also the
+   * correctness decision — the canonical guard allows them unconditionally,
+   * and a port that skips them here rather than below is the only way to
+   * stay exactly as strict, never stricter.
    */
   const STRUCTURED_SKIP: ReadonlySet<string> = new Set([
     "Bash",
@@ -599,6 +601,19 @@ const LisaBlockDirectIssueCreate = async () => {
     "Grep",
     "Task",
     "TodoWrite",
+    // The `Task*` family is the runtime's in-session task list — LOCAL
+    // scratch, not a tracker write. `TaskCreate` satisfies both shape gates
+    // (create-verb + task noun) and carries `"type": "bug"` metadata the
+    // lisa-implement skill prescribes; absent from this set it is refused as
+    // a tracker creation here while the canonical guard allows it — making
+    // this port STRICTER, the one direction it is documented never to take
+    // (CodySwannGT/lisa#4274).
+    "TaskCreate",
+    "TaskGet",
+    "TaskList",
+    "TaskOutput",
+    "TaskStop",
+    "TaskUpdate",
   ]);
   /**
    * A creation verb in a tool name, matched on SHAPE rather than on a list of

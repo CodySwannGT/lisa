@@ -182,6 +182,24 @@ const CASES: readonly StructuredCase[] = [
     args: { todos: [] },
     expected: "allow",
   },
+  {
+    label: "a local task-list write that matches both shape gates",
+    // `TaskCreate` carries a create-verb AND a task noun, so it survives the
+    // shape classifier — the canonical guard skips it by name as in-session
+    // scratch (CodySwannGT/lisa#4274), and the port's STRUCTURED_SKIP is the
+    // transcription of that list. This case is what keeps the two sets equal.
+    config: GITHUB_CALLER,
+    tool: "TaskCreate",
+    args: { description: "d", subject: "s", type: "bug" },
+    expected: "allow",
+  },
+  {
+    label: "the rest of the local task-list family",
+    config: GITHUB_CALLER,
+    tool: "TaskUpdate",
+    args: { id: "1", status: "completed" },
+    expected: "allow",
+  },
 ];
 
 let bash: readonly string[] = [];
