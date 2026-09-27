@@ -6,6 +6,7 @@ export type RunLoadClass =
   | "dead-runner"
   | "resolved"
   | "out-of-population"
+  | "startup-failure"
   | "skipped"
   | "inconclusive"
   | "in-flight";

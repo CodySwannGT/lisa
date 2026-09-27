@@ -29,6 +29,7 @@ function findingFor(run, inPopulation) {
   return {
     id: run.id,
     path: run.path,
+    createdAt: run.createdAt,
     verdict: classifyRunLoad({
       inPopulation,
       referencedCount: run.referencedCount,
@@ -95,7 +96,18 @@ export async function scanForLoadFailures(request) {
     loadFailures: final.findings.filter(
       finding => finding.verdict === "load-failure"
     ),
+    // Runs that never started are reported beside load failures, not folded
+    // into them: GitHub attributes them to a placeholder path, so they carry
+    // no caller declaration for the load check to evaluate — but they are
+    // exactly the org-outage signature this sweep exists to catch (#4276).
+    startupFailures: final.findings.filter(
+      finding => finding.verdict === "startup-failure"
+    ),
     inspected: final.inspected,
+    // `findings` holds exactly the runs inside the window — the fetched count
+    // also covers the out-of-window tail row that ended paging, so a "every
+    // run in the window" judgement must measure against this, not `inspected`.
+    inWindow: final.findings.length,
     covered: coverage.covered,
     reason: coverage.reason,
   };

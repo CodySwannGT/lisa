@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs":
       "95f91f2a74ed4e523d064d5d374eadd1c1114f03a3a4fa41532c9b0fd32089de",
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
-      "ea31d735ec0bb40fd9f254c53f58422cb5fd3b46af3bd7136eb27de5a01a9d40",
+      "fddbb47321be74b6d0a1a5e2508e0e08268560d36126d834f9de3b91f1dff15c",
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
@@ -39,13 +39,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs":
       "221907a625a11aad3081110f1b9467384abec90b506e0cc3aacb261ab7711e7e",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-failure.d.mts":
-      "5fc0231ba95c7d3af6274facdb3e855605ede40c43d1a7ae35c7be2b4ed04407",
+      "cf800562913b01c2fd3989288ebaa1c2d21655050fa563d3ee51655301880f55",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-failure.mjs":
-      "02fca68fc8308527d3f00c83d2bb8700fdbc6201c485e811178060a75fdbd41e",
+      "69c03a62c73f538415ac58430c637c61e17f02221999e58c07927209b54bd23f",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.d.mts":
-      "6b05d968fcf03fcb1465f45f0d65806e622b3be2204b4e2b080b4f1291bffec1",
+      "318a262a0976f1e3559252c78f55a64e2ef32b11833a66d2d39d22161c813e90",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-scan.mjs":
-      "6203064d0403906016f6700b092551ff561b811fb9c02cbbdec59b85b0af81b0",
+      "32e9968d27b7edead16c232bb93bebb8118dd24d175a837f61c2e1ff324dc223",
     "all/copy-overwrite/scripts/lib/windows-process-job.cs":
       "7bbe3b13bfc35ca2a0b85fbee9a8f0a6549bf8b05997f6ce4b361bd09d924218",
     "all/copy-overwrite/scripts/lib/windows-process-job.mjs":

@@ -66,6 +66,14 @@ export function callerDeclaresReusableWorkflow(source) {
  * under-detecting population gate can never manufacture a load-failure
  * verdict — it can only cause one to be missed, which is the direction a
  * detector should fail in.
+ *
+ * `startup_failure` sits before the population gate for the opposite reason:
+ * a run that never STARTED cannot be judged by what its caller declared —
+ * nothing was built, so there is no declaration to check it against. GitHub
+ * attributes such runs to a placeholder workflow (`BuildFailed`, `state:
+ * deleted`, empty name), which is out-of-population by construction, so
+ * gating this conclusion on population was a blind spot that reported OK
+ * through an entire org-wide Actions outage. CodySwannGT/lisa#4276.
  * @param facts - The four run facts
  * @returns The single class this run belongs to
  */
@@ -75,6 +83,9 @@ export function classifyRunLoad(facts) {
   if (conclusion === "skipped") return "skipped";
   // Resolution outranks the population gate: see the note above.
   if (referencedCount > 0) return "resolved";
+  // A run GitHub could not start is a finding whatever path carries it —
+  // the placeholder attribution makes population unanswerable by design.
+  if (conclusion === "startup_failure") return "startup-failure";
   if (!inPopulation) return "out-of-population";
   // Jobs that exist and are empty are a dead runner, not a parse failure.
   if (jobCount > 0) return "dead-runner";

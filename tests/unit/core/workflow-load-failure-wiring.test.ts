@@ -44,11 +44,27 @@ function source(relative: string): string {
 /** The production entry point. */
 const ENTRY = "all/copy-overwrite/scripts/check-workflow-load-failures.mjs";
 
+/**
+ * A placeholder-attributed never-started run, shaped as `describe` consumes it.
+ * @param id - The run id
+ * @param createdAt - The run's timestamp
+ * @returns One `startupFailures` entry
+ */
+function startupFailure(id: number, createdAt: string) {
+  return { id, path: "BuildFailed", createdAt, verdict: "startup-failure" };
+}
+
 /** The scheduled workflow that runs it. */
 const WORKFLOW = ".github/workflows/workflow-load-failure-sweep.yml";
 
 /** The npm script name the workflow invokes. */
 const SCRIPT_NAME = "check:workflow-load-failures";
+
+/** First startup_failure timestamp shared by the outage-shape tests. */
+const T_FIRST = "2026-09-27T05:00:00Z";
+
+/** Last startup_failure timestamp shared by the outage-shape tests. */
+const T_LAST = "2026-09-27T06:00:00Z";
 
 describe("the entry point actually calls the detector", () => {
   it("imports the scanner and the adapter", () => {
@@ -70,10 +86,66 @@ describe("the entry point actually calls the detector", () => {
   });
 
   it("treats an uncovered window as a non-zero exit, not a pass", () => {
-    // The one-page implementation's false green is a two-condition exit here.
-    expect(source(ENTRY)).toContain(
-      "result.covered && result.loadFailures.length === 0 ? 0 : 1"
-    );
+    // The one-page implementation's false green is a three-condition exit:
+    // covered window, no load failures, AND no never-started runs (#4276 —
+    // a startup_failure run is attributed to a placeholder path and never
+    // enters the load-failure population, so the second condition alone
+    // reported OK through an org-wide outage).
+    expect(source(ENTRY)).toContain("result.covered");
+    expect(source(ENTRY)).toContain("result.loadFailures.length === 0");
+    expect(source(ENTRY)).toContain("startupFailures.length === 0");
+  });
+
+  it("flags a run that never started, whatever workflow path carries it", () => {
+    // CodySwannGT/lisa#4276: GitHub attributes a run it cannot build to the
+    // placeholder workflow `BuildFailed`, out-of-population by construction.
+    const text = report({
+      loadFailures: [],
+      startupFailures: [startupFailure(11, T_FIRST)],
+      inspected: 12,
+      covered: true,
+      reason: "",
+    });
+
+    expect(text).toContain("startup_failure");
+    expect(text).toContain("run 11");
+    expect(text).toContain("BuildFailed");
+    expect(text).not.toContain("OK.");
+  });
+
+  it("names the org-outage shape when every inspected run failed to start", () => {
+    const text = report({
+      loadFailures: [],
+      startupFailures: [
+        startupFailure(11, T_FIRST),
+        startupFailure(12, T_LAST),
+      ],
+      inspected: 2,
+      covered: true,
+      reason: "",
+    });
+
+    expect(text).toContain("EVERY run in the window failed to start");
+    expect(text).toContain(`First: ${T_FIRST}`);
+    expect(text).toContain(`Last: ${T_LAST}`);
+  });
+
+  it("still names the outage shape when a tail row outside the window padded inspected", () => {
+    // Paging ends on a run older than the window, so `inspected` can exceed
+    // the in-window count by one. The outage call compares against `inWindow`.
+    const text = report({
+      loadFailures: [],
+      startupFailures: [
+        startupFailure(11, T_FIRST),
+        startupFailure(12, T_LAST),
+      ],
+      inspected: 3,
+      inWindow: 2,
+      covered: true,
+      reason: "",
+    });
+
+    expect(text).toContain("EVERY run in the window failed to start");
   });
 });
 
