@@ -36,6 +36,20 @@ const ORDINARY: ScannedRun = {
   conclusion: "failure",
 };
 
+/**
+ * A run GitHub could not build, attributed to the placeholder workflow.
+ * `BuildFailed` is definitionally out-of-population — no caller file declares
+ * it — which is exactly how the outage at CodySwannGT/lisa#4276 went unseen.
+ */
+const PLACEHOLDER: ScannedRun = {
+  id: 5,
+  path: "BuildFailed",
+  createdAt: "2026-09-05T10:00:00Z",
+  referencedCount: 0,
+  jobCount: 0,
+  conclusion: "startup_failure",
+};
+
 /** A window start that the fixture pages sit inside. */
 const WINDOW_START = "2026-09-05T00:00:00Z";
 
@@ -133,6 +147,54 @@ describe("finding load failures across a covered window", () => {
     expect(result.inspected).toBe(3);
     expect(result.covered).toBe(true);
     expect(seen).toEqual([1]);
+  });
+
+  it("collects a placeholder-attributed startup_failure as its own class", async () => {
+    // #4276: the run is out-of-population by construction, so it must land in
+    // `startupFailures`, not in `loadFailures` and not in silence.
+    const { fetchPage } = pager([
+      { runs: [PLACEHOLDER, ORDINARY], hasMore: false },
+    ]);
+
+    const result = await scanForLoadFailures({
+      fetchPage,
+      windowStart: WINDOW_START,
+      inPopulation,
+      maxPages: 5,
+    });
+
+    expect(result.startupFailures.map(f => f.id)).toEqual([5]);
+    expect(result.loadFailures).toEqual([]);
+    expect(result.covered).toBe(true);
+  });
+
+  it("counts in-window runs apart from the tail row that ended paging", async () => {
+    // Paging stops on the first run older than the window, so the fetched
+    // count can exceed the in-window count by one — the "every run failed to
+    // start" judgement in the report reads `inWindow`, not `inspected`.
+    const { fetchPage } = pager([
+      {
+        runs: [
+          PLACEHOLDER,
+          {
+            ...ORDINARY,
+            createdAt: "2026-09-04T23:59:00Z",
+          },
+        ],
+        hasMore: false,
+      },
+    ]);
+
+    const result = await scanForLoadFailures({
+      fetchPage,
+      windowStart: WINDOW_START,
+      inPopulation,
+      maxPages: 5,
+    });
+
+    expect(result.inspected).toBe(2);
+    expect(result.inWindow).toBe(1);
+    expect(result.covered).toBe(true);
   });
 });
 

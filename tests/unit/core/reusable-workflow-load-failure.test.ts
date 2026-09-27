@@ -119,6 +119,45 @@ describe("a load failure is in-population with nothing resolved", () => {
   });
 });
 
+describe("a startup_failure run never reached the population gate", () => {
+  // CodySwannGT/lisa#4276: GitHub attributes a run it cannot build to the
+  // placeholder workflow `BuildFailed` — out-of-population by construction —
+  // so gating this conclusion on population reported OK through an org-wide
+  // Actions outage.
+  it("flags a startup_failure recorded under the BuildFailed placeholder", () => {
+    expect(
+      classifyRunLoad({
+        inPopulation: false,
+        referencedCount: 0,
+        jobCount: 0,
+        conclusion: "startup_failure",
+      })
+    ).toBe("startup-failure");
+  });
+
+  it("flags an in-population startup_failure the same way", () => {
+    expect(
+      classifyRunLoad({
+        inPopulation: true,
+        referencedCount: 0,
+        jobCount: 0,
+        conclusion: "startup_failure",
+      })
+    ).toBe("startup-failure");
+  });
+
+  it("still lets resolution settle the question first", () => {
+    expect(
+      classifyRunLoad({
+        inPopulation: false,
+        referencedCount: 2,
+        jobCount: 0,
+        conclusion: "startup_failure",
+      })
+    ).toBe("resolved");
+  });
+});
+
 describe("rejection controls: the shapes that must NOT be load failures", () => {
   it("does not flag a run outside the population that resolved nothing", () => {
     // THE control for the population gate: 14 of the 19 measured runs.

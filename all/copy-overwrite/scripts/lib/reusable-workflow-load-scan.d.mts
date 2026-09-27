@@ -23,11 +23,14 @@ export interface ScanRequest {
 export interface ScanFinding {
   readonly id: number;
   readonly path: string;
+  readonly createdAt: string;
   readonly verdict: RunLoadClass;
 }
 export interface ScanResult {
   readonly loadFailures: readonly ScanFinding[];
+  readonly startupFailures: readonly ScanFinding[];
   readonly inspected: number;
+  readonly inWindow: number;
   readonly covered: boolean;
   readonly reason: string;
 }

@@ -393,7 +393,9 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/check-workflow-load-failures.mjs": Object.freeze([
     "494113253fd4830e79e658429c15533c045ac8c5ad3ec365e3dc2a39742f8d2c",
     "5f4d14068165d58bf285bd638d3aed2692f0c5f6fba6449111abade46646b3ec",
+    "bb193cdbdc581a898f0b7f194a2e9688297d2f9fd9418d50ef4cdc56c0649a4e",
     "ea31d735ec0bb40fd9f254c53f58422cb5fd3b46af3bd7136eb27de5a01a9d40",
+    "fddbb47321be74b6d0a1a5e2508e0e08268560d36126d834f9de3b91f1dff15c",
   ]),
   "scripts/classify-maestro-failures.mjs": Object.freeze([
     "01d8d8a78054d179357b334f024c97e8246305b269917aa9bb60b9367b552cd4",
@@ -499,20 +501,26 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/lib/reusable-workflow-load-failure.d.mts": Object.freeze([
     "1389d12dd75deddf8dc6b56dbb0f4286dc839bd5530c08511a16d89d0dfcb7b3",
     "5fc0231ba95c7d3af6274facdb3e855605ede40c43d1a7ae35c7be2b4ed04407",
+    "cf800562913b01c2fd3989288ebaa1c2d21655050fa563d3ee51655301880f55",
   ]),
   "scripts/lib/reusable-workflow-load-failure.mjs": Object.freeze([
     "02fca68fc8308527d3f00c83d2bb8700fdbc6201c485e811178060a75fdbd41e",
     "135740db804f470a6c99c5eee8d508ad8059cd98468d5f0c1910a50690fade4a",
+    "69c03a62c73f538415ac58430c637c61e17f02221999e58c07927209b54bd23f",
     "e7e6fbf7bfe479733d37e45bf03806721455239a1cb0150b0f7d578a10f8dbba",
   ]),
   "scripts/lib/reusable-workflow-load-scan.d.mts": Object.freeze([
+    "318a262a0976f1e3559252c78f55a64e2ef32b11833a66d2d39d22161c813e90",
+    "3c745373fe2bbf16e5a0588e1040a9a81c9edf90b18470f0d38bc9cc814132f6",
     "6b05d968fcf03fcb1465f45f0d65806e622b3be2204b4e2b080b4f1291bffec1",
     "7916579bdff3848f248f84755ebde97b9e7ccfd4d59627cab7b6e78d05196316",
   ]),
   "scripts/lib/reusable-workflow-load-scan.mjs": Object.freeze([
     "0bf29533a5879e01385777c3a71d9c83f6694cd1162a7db234db47546065e7b0",
+    "32e9968d27b7edead16c232bb93bebb8118dd24d175a837f61c2e1ff324dc223",
     "6203064d0403906016f6700b092551ff561b811fb9c02cbbdec59b85b0af81b0",
     "66fb27cc1de6baf48acf908715624c04b7738f831944a6c1c9daff50383026be",
+    "b2f9b750e651c3f91bbbf2e8dbdfcb0dc23f8080085842c19cc00729a1333b30",
   ]),
   "scripts/lib/windows-process-job.cs": Object.freeze([
     "198c23dfee840abaad516d84e70c943eca565baf13d54bc143c8e7f925be038c",
@@ -1794,7 +1802,9 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   "scripts/check-workflow-load-failures.mjs": Object.freeze([
     "494113253fd4830e79e658429c15533c045ac8c5ad3ec365e3dc2a39742f8d2c",
     "5f4d14068165d58bf285bd638d3aed2692f0c5f6fba6449111abade46646b3ec",
+    "bb193cdbdc581a898f0b7f194a2e9688297d2f9fd9418d50ef4cdc56c0649a4e",
     "ea31d735ec0bb40fd9f254c53f58422cb5fd3b46af3bd7136eb27de5a01a9d40",
+    "fddbb47321be74b6d0a1a5e2508e0e08268560d36126d834f9de3b91f1dff15c",
   ]),
   "scripts/classify-maestro-failures.mjs": Object.freeze([
     "6af05ffc7a6d253fef6139f8058ded15b0a97e6888b0b4ca228b3b111bb3b613",
@@ -1898,20 +1908,26 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   "scripts/lib/reusable-workflow-load-failure.d.mts": Object.freeze([
     "1389d12dd75deddf8dc6b56dbb0f4286dc839bd5530c08511a16d89d0dfcb7b3",
     "5fc0231ba95c7d3af6274facdb3e855605ede40c43d1a7ae35c7be2b4ed04407",
+    "cf800562913b01c2fd3989288ebaa1c2d21655050fa563d3ee51655301880f55",
   ]),
   "scripts/lib/reusable-workflow-load-failure.mjs": Object.freeze([
     "02fca68fc8308527d3f00c83d2bb8700fdbc6201c485e811178060a75fdbd41e",
     "135740db804f470a6c99c5eee8d508ad8059cd98468d5f0c1910a50690fade4a",
+    "69c03a62c73f538415ac58430c637c61e17f02221999e58c07927209b54bd23f",
     "e7e6fbf7bfe479733d37e45bf03806721455239a1cb0150b0f7d578a10f8dbba",
   ]),
   "scripts/lib/reusable-workflow-load-scan.d.mts": Object.freeze([
+    "318a262a0976f1e3559252c78f55a64e2ef32b11833a66d2d39d22161c813e90",
+    "3c745373fe2bbf16e5a0588e1040a9a81c9edf90b18470f0d38bc9cc814132f6",
     "6b05d968fcf03fcb1465f45f0d65806e622b3be2204b4e2b080b4f1291bffec1",
     "7916579bdff3848f248f84755ebde97b9e7ccfd4d59627cab7b6e78d05196316",
   ]),
   "scripts/lib/reusable-workflow-load-scan.mjs": Object.freeze([
     "0bf29533a5879e01385777c3a71d9c83f6694cd1162a7db234db47546065e7b0",
+    "32e9968d27b7edead16c232bb93bebb8118dd24d175a837f61c2e1ff324dc223",
     "6203064d0403906016f6700b092551ff561b811fb9c02cbbdec59b85b0af81b0",
     "66fb27cc1de6baf48acf908715624c04b7738f831944a6c1c9daff50383026be",
+    "b2f9b750e651c3f91bbbf2e8dbdfcb0dc23f8080085842c19cc00729a1333b30",
   ]),
   "scripts/lib/windows-process-job.cs": Object.freeze([
     "198c23dfee840abaad516d84e70c943eca565baf13d54bc143c8e7f925be038c",
