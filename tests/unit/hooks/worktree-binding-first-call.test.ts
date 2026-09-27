@@ -54,6 +54,7 @@ import {
   buildFixture,
   runGuard,
   SESSION,
+  stateKey,
   type Fixture,
 } from "./support/worktree-binding.js";
 
@@ -95,7 +96,7 @@ function recordedBaseline(fixture: Fixture): string | null {
     const file = path.join(
       fixture.state,
       "worktree-binding",
-      `${SESSION}.json`
+      `${stateKey(SESSION)}.json`
     );
     return JSON.parse(readFileSync(file, "utf8")).boundRoot ?? null;
   } catch {

@@ -509,6 +509,20 @@ function stateFile(bindingKey) {
 }
 
 /**
+ * Percent-escape every byte that is not filename-safe, so the output cannot
+ * contain `-` at all and two escaped parts can be joined on `--` without the
+ * joiner ever being smuggled in from either side.
+ *
+ * `:` and friends are folded too — the key lands in a filename and `:` is
+ * illegal on Windows/NTFS (CodySwannGT/lisa#4277).
+ * @param {string} value - One component of the binding key
+ * @returns {string} A component containing only `[A-Za-z0-9._]` and `%XX`
+ */
+function keyPart(value) {
+  return encodeURIComponent(value).replaceAll("-", "%2D");
+}
+
+/**
  * The identity a binding belongs to.
  *
  * Parallel subagents share the session's `session_id`, so keying the binding
@@ -521,22 +535,58 @@ function stateFile(bindingKey) {
  * session-scoped key it always had, which is also the fallback for runtimes
  * that never send the field.
  *
- * The key lands in a filename, so the composite is folded into a set that is
- * legal on every filesystem — `:` is not, which rules it out as a separator
- * and as tolerated session_id content on Windows hosts.
+ * Both shapes escape every component with {@link keyPart}, so the session key
+ * `x` and the agent key `a--b` live in disjoint namespaces: an escaped
+ * component never contains `-`, a main-session key is one component, an
+ * agent key is two joined by the only `--` the string can hold. Session
+ * "s%2Da--c" cannot collide with session "s-a" + agent "c", and neither can
+ * collide across the two shapes (CodySwannGT/lisa#4294).
  */
 function bindingKey(payload) {
   const agent = payload?.agent_id;
-  if (typeof agent !== "string" || !agent) return payload.session_id;
-  return `${payload.session_id}--${agent}`.replaceAll(/[^A-Za-z0-9._-]/g, "_");
+  if (typeof agent !== "string" || !agent) return keyPart(payload.session_id);
+  return `${keyPart(payload.session_id)}--${keyPart(agent)}`;
 }
 
-function readState(sessionId) {
-  try {
-    return JSON.parse(readFileSync(stateFile(sessionId), "utf8"));
-  } catch {
-    return null;
+/**
+ * The keys earlier versions wrote for this payload, newest first.
+ *
+ * The v1 key was the raw `session_id` (single shared file per session). v2
+ * joined raw session and agent on `--`. Both are readable on upgrade so a
+ * mid-session deploy does not silently re-baseline an established binding —
+ * the ambiguity in a legacy `a--b` key is resolved toward the interpretation
+ * the lookup is making, and the next write lands on the current key while the
+ * legacy file is left to age out.
+ * @param {object} payload - The hook payload
+ * @returns {string[]} Zero or more legacy keys this payload may have written
+ */
+function legacyKeys(payload) {
+  const agent = payload?.agent_id;
+  const session = payload.session_id;
+  if (typeof agent === "string" && agent) {
+    // v2 wrote the sanitised composite. v1 never wrote a per-agent file — an
+    // agent falling back to the shared session file is the #4277 bug again,
+    // so the list stops there.
+    const san = value => value.replaceAll(/[^A-Za-z0-9._-]/g, "_");
+    return [`${san(session)}--${san(agent)}`];
   }
+  // v1 and v2 both keyed the main agent on the raw session id — but only when
+  // that id contains no `--`. One that does spells exactly the composite
+  // shape agent bindings now write, so reading it could hand this session a
+  // stranger's binding. Losing the v1 binding for such an id re-baselines
+  // once; the alternative is reading a file whose owner cannot be proven.
+  return session.includes("--") ? [] : [session];
+}
+
+function readState(bindingKeyValue, payload) {
+  for (const key of [bindingKeyValue, ...legacyKeys(payload)]) {
+    try {
+      return JSON.parse(readFileSync(stateFile(key), "utf8"));
+    } catch {
+      // Not written under this key — try the next older one.
+    }
+  }
+  return null;
 }
 
 /**
@@ -549,17 +599,23 @@ function readState(sessionId) {
  * {@link noticeRuntimeDrift} and read by nobody else, and a clobbering write
  * would turn its "reported once" into "reported again after the next
  * acknowledgement", which is the noise the notice is designed not to be.
- * @param sessionId - The session whose state file this is
+ * @param bindingKeyValue - The key whose state file this is
  * @param state - Fields to write over the recorded state
+ * @param payload - The hook payload, for legacy-key reads while a binding is
+ *   migrating to the current key format
  * @returns Whether the write succeeded
  */
-function writeState(sessionId, state) {
-  const file = stateFile(sessionId);
+function writeState(bindingKeyValue, state, payload) {
+  const file = stateFile(bindingKeyValue);
   try {
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(
       file,
-      `${JSON.stringify({ ...readState(sessionId), ...state }, null, 2)}\n`
+      `${JSON.stringify(
+        { ...readState(bindingKeyValue, payload), ...state },
+        null,
+        2
+      )}\n`
     );
     return true;
   } catch (error) {
@@ -634,19 +690,24 @@ function claimedRoot(toolInput, cwd) {
  *
  * Returns nothing on purpose, like its sibling below: SessionStart has no call
  * to refuse, so every path through it allows.
- * @param sessionId - The session this baseline belongs to
+ * @param bindingKeyValue - The key this baseline belongs to
  * @param observed - The worktree root the session started in
+ * @param payload - The hook payload, for legacy-key reads
  */
-function recordBaseline(sessionId, observed) {
+function recordBaseline(bindingKeyValue, observed, payload) {
   // Never overwrite. A resumed session, a reconnect, or anything else that
   // fires the event twice must not be able to launder a displaced binding into
   // a fresh baseline — which is the whole failure this exists to close.
-  if (readState(sessionId)?.boundRoot) return;
-  writeState(sessionId, {
-    boundRoot: observed,
-    claimedRoot: null,
-    updatedAt: new Date().toISOString(),
-  });
+  if (readState(bindingKeyValue, payload)?.boundRoot) return;
+  writeState(
+    bindingKeyValue,
+    {
+      boundRoot: observed,
+      claimedRoot: null,
+      updatedAt: new Date().toISOString(),
+    },
+    payload
+  );
 }
 
 /**
@@ -660,12 +721,16 @@ function recordBaseline(sessionId, observed) {
 function recordClaim(payload, observed) {
   const claimed = claimedRoot(payload.tool_input, payload.cwd);
   if (!claimed || claimed === observed) return;
-  const previous = readState(bindingKey(payload));
-  writeState(bindingKey(payload), {
-    boundRoot: previous?.boundRoot ?? observed,
-    claimedRoot: claimed,
-    updatedAt: new Date().toISOString(),
-  });
+  const previous = readState(bindingKey(payload), payload);
+  writeState(
+    bindingKey(payload),
+    {
+      boundRoot: previous?.boundRoot ?? observed,
+      claimedRoot: claimed,
+      updatedAt: new Date().toISOString(),
+    },
+    payload
+  );
 }
 
 function refuse(lines) {
@@ -701,11 +766,15 @@ function handleAcceptance(payload, observed) {
       acceptanceLine(observed),
     ]);
   }
-  writeState(bindingKey(payload), {
-    boundRoot: observed,
-    claimedRoot: null,
-    updatedAt: new Date().toISOString(),
-  });
+  writeState(
+    bindingKey(payload),
+    {
+      boundRoot: observed,
+      claimedRoot: null,
+      updatedAt: new Date().toISOString(),
+    },
+    payload
+  );
   say(`bound to ${observed}`);
   return 0;
 }
@@ -877,15 +946,16 @@ function driftNotice(version) {
  * Never refuses. The dependency is a reporting gap, not a live displacement,
  * and blocking a session over a version number would be a wall where an
  * observation belongs.
- * @param sessionId - The session being started
+ * @param bindingKeyValue - The key being started
  * @param env - Environment to read the runtime version from
+ * @param payload - The hook payload, for legacy-key reads
  * @returns Nothing; every path through this allows
  */
-function noticeRuntimeDrift(sessionId, env) {
+function noticeRuntimeDrift(bindingKeyValue, env, payload) {
   const version = runtimeVersion(env);
   if (version === null || version === VERIFIED_RUNTIME_VERSION) return;
-  if (readState(sessionId)?.runtimeNoticed === version) return;
-  writeState(sessionId, { runtimeNoticed: version });
+  if (readState(bindingKeyValue, payload)?.runtimeNoticed === version) return;
+  writeState(bindingKeyValue, { runtimeNoticed: version }, payload);
   process.stdout.write(
     `${JSON.stringify({
       hookSpecificOutput: {
@@ -908,11 +978,11 @@ function evaluate(payload) {
   if (!observed) return 0;
 
   if (payload.hook_event_name === "SessionStart") {
-    recordBaseline(binding, observed);
+    recordBaseline(binding, observed, payload);
     // After the baseline, never before: `recordBaseline` writes a fresh state
     // for a session it has not seen, and the notice's record has to go on top
     // of that write rather than under it.
-    noticeRuntimeDrift(binding, process.env);
+    noticeRuntimeDrift(binding, process.env, payload);
     return 0;
   }
   if (payload.tool_name === "EnterWorktree") {
@@ -924,7 +994,7 @@ function evaluate(payload) {
   const accepted = handleAcceptance(payload, observed);
   if (accepted !== null) return accepted;
 
-  const state = readState(binding);
+  const state = readState(binding, payload);
   if (!state?.boundRoot) {
     // No baseline means SessionStart did not run for this session — an older
     // install, a runtime that fires no such event, a harness that skips it.
@@ -933,22 +1003,30 @@ function evaluate(payload) {
     // refusing. Treating it as a refusal would turn a floor into a wall on
     // every surface where the event does not fire, and a wall gets switched
     // off, which costs the whole guard.
-    writeState(binding, {
-      boundRoot: observed,
-      claimedRoot: null,
-      updatedAt: new Date().toISOString(),
-    });
+    writeState(
+      binding,
+      {
+        boundRoot: observed,
+        claimedRoot: null,
+        updatedAt: new Date().toISOString(),
+      },
+      payload
+    );
     return 0;
   }
   if (state.claimedRoot && state.claimedRoot !== observed) {
     return unconfirmedSwitch(state.claimedRoot, observed);
   }
   if (state.claimedRoot === observed) {
-    writeState(binding, {
-      boundRoot: observed,
-      claimedRoot: null,
-      updatedAt: new Date().toISOString(),
-    });
+    writeState(
+      binding,
+      {
+        boundRoot: observed,
+        claimedRoot: null,
+        updatedAt: new Date().toISOString(),
+      },
+      payload
+    );
     return 0;
   }
   if (state.boundRoot !== observed) return displaced(state.boundRoot, observed);

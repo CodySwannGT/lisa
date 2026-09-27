@@ -182,6 +182,30 @@ on:
         required: false
       SENTRY_PROJECT:
         required: false
+      # The scanner secrets quality.yml declares, re-declared here so a caller
+      # using an explicit `secrets:` map (every shipped deploy.yml template —
+      # `inherit` is refused there under SonarCloud's "only pass required
+      # secrets" rule) can hand them through. Undeclared secrets are dropped
+      # at this hop, which left the deploy-path quality run with no token and
+      # a Sonar step that silently skipped (CodySwannGT/lisa#4287). The
+      # tracker secrets (JIRA_API_TOKEN/JIRA_LOGIN/LINEAR_API_KEY) are NOT
+      # declared: quality.yml's work_item_traceability job is pull_request
+      # only and never runs on this path.
+      SONAR_TOKEN:
+        description: 'SonarCloud token, forwarded to the quality checks call'
+        required: false
+      SNYK_TOKEN:
+        description: 'Snyk token, forwarded to the quality checks call'
+        required: false
+      GITGUARDIAN_API_KEY:
+        description: 'GitGuardian key, forwarded to the quality checks call'
+        required: false
+      FOSSA_API_KEY:
+        description: 'FOSSA key, forwarded to the quality checks call'
+        required: false
+      MAESTRO_API_KEY:
+        description: 'Maestro Cloud key, forwarded to the quality checks call'
+        required: false
 
 # ─── The package manager, bound once ────────────────────────────────────────
 # A `${{ }}` expression is substituted into a `run:` body BEFORE the shell
@@ -493,7 +517,19 @@ jobs:
       moment: ${{ inputs.moment || format('pre-deploy:{0}', inputs.environment) }}
       node_version: ${{ inputs.node_version }}
       package_manager: ${{ inputs.package_manager }}
-    secrets: inherit
+    # Explicit map, not `secrets: inherit`: the caller-facing `workflow_call`
+    # declarations above are only authoritative because each declared secret is
+    # demonstrably READ by this workflow, and passing the five scanner tokens by
+    # name is the read (reusable-workflow-secret-channel.test.ts pins that
+    # invariant). The tracker secrets quality.yml also declares
+    # (JIRA_API_TOKEN/JIRA_LOGIN/LINEAR_API_KEY) are deliberately NOT forwarded:
+    # work_item_traceability is pull_request-only and never runs on this path.
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+      FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+      MAESTRO_API_KEY: ${{ secrets.MAESTRO_API_KEY }}
 
   # Version management with observability
   version:

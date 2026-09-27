@@ -7428,12 +7428,16 @@ jobs:
             CE_TASK_ID=$(grep -E '^ceTaskId=' "$REPORT_FILE" | cut -d= -f2-)
 
             if [ -z "$SERVER_URL" ] || [ -z "$CE_TASK_ID" ]; then
-              echo "::error::Could not extract serverUrl or ceTaskId from report-task.txt; failing build."
+              echo "::error::missing serverUrl/ceTaskId in report-task.txt"
               exit 1
             fi
 
-            # Query SonarCloud CE task API to get the actual error message
-            TASK_JSON=$(curl -s -u "$SONAR_TOKEN:" "$SERVER_URL/api/ce/task?id=$CE_TASK_ID")
+            # Bearer via a 0600 header file — org tokens reject basic
+            # auth, and argv would leak the token (lisa#4287).
+            AUTH_HEADER_FILE=$(mktemp); chmod 600 "$AUTH_HEADER_FILE"
+            trap 'rm -f "$AUTH_HEADER_FILE"' EXIT
+            printf 'Authorization: Bearer %s\n' "$SONAR_TOKEN" > "$AUTH_HEADER_FILE"
+            TASK_JSON=$(curl -s -H "@$AUTH_HEADER_FILE" "$SERVER_URL/api/ce/task?id=$CE_TASK_ID")
             ERROR_MSG=$(echo "$TASK_JSON" | jq -r '.task.errorMessage // ""')
 
             # Only allow line-limit quota errors to pass

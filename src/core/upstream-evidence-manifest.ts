@@ -93,7 +93,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
-      "3752c6cf578a6a7306c744b628a132c130790d9b82f7fd56e38bc4483f5fbafa",
+      "950bf5f05ba099832f13ae37cec29c0356982c6069c39049af9eaa3f07bc8f0a",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh":
       "9b0d2d4690850a550ccc79a8c3bb1c0de1cca1f2d8a3550e2bed6daa7afcf7c4",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
@@ -163,7 +163,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/create-only/.github/workflows/ci.yml":
       "7c5aaf999dbfea2f8480de470a9b3feef2a27cce6e4517d9aa438d343c62cc22",
     "cdk/create-only/.github/workflows/deploy.yml":
-      "ce03110bf5b41927aace02700442d92da248b781b1dad020073402412a4e82f7",
+      "023cf9e80efc77f8401b61927d5b5a2bd7becdb3233e03ecbd112df16a371561",
     "cdk/create-only/cdk.json":
       "f89030d8fe145a1dbabd59d89ddee4e16984f222d737f7fcf6b778d911e9fe40",
     "cdk/create-only/stryker.conf.json":
@@ -313,7 +313,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/ci.yml":
       "830c60686fef5d1f773812f622a3c40832344a078acf22122c1740ebaa6db18b",
     "expo/create-only/.github/workflows/deploy.yml":
-      "dfadbe4393392507d00595c686c622580c95f98fc7a2f6c3de422d869ea57521",
+      "44e110314e660fc15f332cb4ae0885692b79be89dadd32e3ba10d23dfbb50d3e",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
       "11e6db515412702672edea910223b808be168b3d1f9ec15c349f44f3edcff247",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
@@ -481,7 +481,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/workflows/ci.yml":
       "fb85b8dc792dfc493c532cddb305a86255c7442881653ff3a4ddb8cd25bece7e",
     "nestjs/create-only/.github/workflows/deploy.yml":
-      "05be9690eebf55fa740bbb4f27c0f4f9f0759e1f0e125fecd6a13bfc3651ab05",
+      "47f2978590a6b6da863b986475faaaf70f8d174b9b88cc395d2eaa31f4d972bb",
     "nestjs/create-only/.zap/baseline.conf":
       "a7cd559b014555ef2efe7a6ce129384ec376ce4d66d5bc3ae9e2f3f883172c4d",
     "nestjs/create-only/scripts/zap-baseline.sh":
@@ -853,7 +853,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/withdrawn-rulings.sh":
       "5dbf429b6ec73c3c29fb96008efa1015feaa4812c1b4bb26aaa5d0b904a0ff9c",
     "plugins/src/base/hooks/worktree-binding-guard.mjs":
-      "d570243f47ab81cfeb7f305615e599cd858ba8a111ac28ffdd5d25d1b8a391ab",
+      "b6ed86cfd696e97a1167240da5d1a56398c322419260181f91d7538ebfd898b5",
     "plugins/src/base/hooks/worktree-binding-guard.sh":
       "92511fa2fe3de504a78d0d79a2cacffac545baa1d0264cab0ca999a487adb98f",
     "plugins/src/base/rules/eager/00-rule-index.md":
@@ -2529,7 +2529,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "tsconfig/typescript.json":
       "8cf66a6535640e0a723e24bdf7a2d8e58a634c451f0754875c7880811381a914",
     "typescript/copy-contents/.husky/commit-msg":
-      "4aa01b8e02b48f3595bfb56701e4fc9cd330de2cdfe79905a5c0a00684cb2e75",
+      "8fa515baea88ec519eb64540aaae22a78fc8a8c28852cca6065af0e133e3702b",
     "typescript/copy-contents/.husky/post-checkout":
       "f3abc4528e12d3ad2bc48b236d19f105e2817595c744156a558c62ae5551ccfb",
     "typescript/copy-contents/.husky/post-merge":
@@ -9987,6 +9987,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/rails-template.test.ts": true,
     "tests/unit/config/release-package-identity-workflows.test.ts": true,
     "tests/unit/config/release-push-retry.test.ts": true,
+    "tests/unit/config/release-quality-secret-forwarding.test.ts": true,
     "tests/unit/config/repo-scan-exclusions.test.ts": true,
     "tests/unit/config/required-checks-declaration.test.ts": true,
     "tests/unit/config/reusable-workflow-secret-channel.test.ts": true,

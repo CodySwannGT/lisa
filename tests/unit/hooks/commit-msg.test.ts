@@ -39,6 +39,9 @@ const CLAUDE_TRAILER = "Co-authored-by: Claude <noreply@anthropic.com>";
 const DEVIN_TRAILER = "Co-authored-by: Devin <devin@cognition.ai>";
 const OPENCODE_TRAILER = "Co-authored-by: OpenCode <noreply@opencode.ai>";
 const OPENCODE_AGENT_TRAILER = "AI-Agent: OpenCode";
+const DEVIN_AGENT_TRAILER = "AI-Agent: Devin";
+const DEVIN_MODEL_TRAILER = "AI-Model: cognition/swe-2";
+const DEVIN_EFFORT_TRAILER = "AI-Effort: not exposed by runtime";
 const OPENCODE_MODEL_HINT = "AI-Model: <provider/model>";
 const OPENCODE_EFFORT_HINT = "AI-Effort: <effort or runtime value>";
 const WORK_ITEM_REF = "acme/widgets#42";
@@ -154,9 +157,9 @@ describe("commit-msg hook diagnostics", () => {
         "",
         WORK_ITEM_TRAILER,
         DEVIN_TRAILER,
-        "AI-Agent: Devin",
-        "AI-Model: cognition/swe-2",
-        "AI-Effort: not exposed by runtime",
+        DEVIN_AGENT_TRAILER,
+        DEVIN_MODEL_TRAILER,
+        DEVIN_EFFORT_TRAILER,
         "",
       ].join("\n"),
     });
@@ -181,6 +184,80 @@ describe("commit-msg hook diagnostics", () => {
     expect(result.stdout).toContain("AI-Agent");
     expect(result.stdout).toContain("AI-Model");
     expect(result.stdout).toContain("AI-Effort");
+  });
+
+  it("rejects AI metadata written in body prose, not the trailer block", () => {
+    // The AI-* checks read the same parsed trailer block the co-author list
+    // comes from — an "AI-Agent:" line in prose is not attribution metadata
+    // and must not satisfy the gate. CodySwannGT/lisa#4282.
+    const project = createProject({
+      binName: "npx",
+      binBody: PASSING_COMMITLINT_BIN,
+      message: [
+        VALID_SUBJECT,
+        "",
+        "Authored with assistance; metadata recorded inline:",
+        DEVIN_AGENT_TRAILER,
+        DEVIN_MODEL_TRAILER,
+        DEVIN_EFFORT_TRAILER,
+        "",
+        WORK_ITEM_TRAILER,
+        DEVIN_TRAILER,
+        "",
+      ].join("\n"),
+    });
+
+    const result = runHook(project);
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("AI-Agent");
+  });
+
+  it("rejects metadata that attests to no listed co-author", () => {
+    // A commit whose only co-author is human — or whose AI-Agent names an
+    // agent that is not a co-author — is refused: the block must attest to
+    // someone actually listed. CodySwannGT/lisa#4294.
+    const project = createProject({
+      binName: "npx",
+      binBody: PASSING_COMMITLINT_BIN,
+      message: [
+        VALID_SUBJECT,
+        "",
+        WORK_ITEM_TRAILER,
+        "Co-authored-by: Jane Doe <jane@example.com>",
+        DEVIN_AGENT_TRAILER,
+        DEVIN_MODEL_TRAILER,
+        DEVIN_EFFORT_TRAILER,
+        "",
+      ].join("\n"),
+    });
+
+    const result = runHook(project);
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("AI-Agent");
+  });
+
+  it("accepts a human co-author when the driving agent is also listed", () => {
+    const project = createProject({
+      binName: "npx",
+      binBody: PASSING_COMMITLINT_BIN,
+      message: [
+        VALID_SUBJECT,
+        "",
+        WORK_ITEM_TRAILER,
+        "Co-authored-by: Jane Doe <jane@example.com>",
+        DEVIN_TRAILER,
+        DEVIN_AGENT_TRAILER,
+        DEVIN_MODEL_TRAILER,
+        DEVIN_EFFORT_TRAILER,
+        "",
+      ].join("\n"),
+    });
+
+    const result = runHook(project);
+
+    expect(result.status).toBe(0);
   });
 
   it("rejects a non-fleet co-author even when a fleet trailer is present", () => {

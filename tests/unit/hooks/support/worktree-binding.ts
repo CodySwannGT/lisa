@@ -27,6 +27,23 @@ export const BLOCKED = 2;
 export const ALLOWED = 0;
 
 export const SESSION = "session-under-test";
+
+/**
+ * The state-file name the guard writes for a (session, agent) pair.
+ *
+ * Mirrors `keyPart`/`bindingKey` in the guard on purpose — the suite asserts
+ * on the filename that lands in LISA_STATE_HOME, and mirroring is what makes
+ * the assertion a black-box check rather than a re-derivation the guard
+ * itself performed.
+ * @param session - The payload's session_id
+ * @param agent - The payload's agent_id, when one is present
+ * @returns The `${key}.json` key the guard resolves
+ */
+export function stateKey(session: string, agent?: string): string {
+  const enc = (value: string) =>
+    encodeURIComponent(value).replaceAll("-", "%2D");
+  return agent === undefined ? enc(session) : `${enc(session)}--${enc(agent)}`;
+}
 /** Git's quiet flag, named because the fixture repeats it. */
 export const QUIET = "-q";
 /** This guard's spawn label, named because every case spawns it. */
