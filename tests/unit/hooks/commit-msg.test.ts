@@ -37,6 +37,7 @@ const VALID_SUBJECT = "fix: clarify hook output";
 const PASSING_COMMITLINT_BIN = "exit 0\n";
 const CLAUDE_TRAILER = "Co-authored-by: Claude <noreply@anthropic.com>";
 const DEVIN_TRAILER = "Co-authored-by: Devin <devin@cognition.ai>";
+const HUMAN_TRAILER = "Co-authored-by: Jane Doe <jane@example.com>";
 const OPENCODE_TRAILER = "Co-authored-by: OpenCode <noreply@opencode.ai>";
 const OPENCODE_AGENT_TRAILER = "AI-Agent: OpenCode";
 const DEVIN_AGENT_TRAILER = "AI-Agent: Devin";
@@ -224,8 +225,33 @@ describe("commit-msg hook diagnostics", () => {
         VALID_SUBJECT,
         "",
         WORK_ITEM_TRAILER,
-        "Co-authored-by: Jane Doe <jane@example.com>",
+        HUMAN_TRAILER,
         DEVIN_AGENT_TRAILER,
+        DEVIN_MODEL_TRAILER,
+        DEVIN_EFFORT_TRAILER,
+        "",
+      ].join("\n"),
+    });
+
+    const result = runHook(project);
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("AI-Agent");
+  });
+
+  it("rejects an AI-Agent value that only substring-matches the trailer prefix", () => {
+    // "AI-Agent: Co-authored-by" substring-matches every co-author trailer
+    // line while naming nobody — the check compares against the extracted
+    // co-author NAME, not the raw line. CodySwannGT/lisa#4294.
+    const project = createProject({
+      binName: "npx",
+      binBody: PASSING_COMMITLINT_BIN,
+      message: [
+        VALID_SUBJECT,
+        "",
+        WORK_ITEM_TRAILER,
+        HUMAN_TRAILER,
+        "AI-Agent: Co-authored-by",
         DEVIN_MODEL_TRAILER,
         DEVIN_EFFORT_TRAILER,
         "",
@@ -246,7 +272,7 @@ describe("commit-msg hook diagnostics", () => {
         VALID_SUBJECT,
         "",
         WORK_ITEM_TRAILER,
-        "Co-authored-by: Jane Doe <jane@example.com>",
+        HUMAN_TRAILER,
         DEVIN_TRAILER,
         DEVIN_AGENT_TRAILER,
         DEVIN_MODEL_TRAILER,

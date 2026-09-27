@@ -10,7 +10,7 @@
  * main agent keeps the session-scoped one it always had.
  * @module tests/unit/hooks/worktree-binding-parallel-agents
  */
-import { mkdirSync, realpathSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, realpathSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -21,7 +21,11 @@ import {
   BLOCKED,
   buildFixture,
   runGuard,
+  stateKey,
 } from "./support/worktree-binding.js";
+
+/** The state directory the guard writes under LISA_STATE_HOME. */
+const BINDING_DIR = "worktree-binding";
 
 describe("the binding guard scopes bindings to the agent, not just the session", () => {
   it("lets two subagents sharing a session each bind their own worktree", () => {
@@ -141,6 +145,42 @@ describe("the binding guard scopes bindings to the agent, not just the session",
     ).toBe(BLOCKED);
   });
 
+  it("keeps an agent id containing '*' filename-legal", () => {
+    // `encodeURIComponent` does not escape `*`, but NTFS forbids it in
+    // filenames — the key must hand-escape it or the write throws on
+    // Windows and the binding silently fails open. CodySwannGT/lisa#4294.
+    const fixture = buildFixture();
+    const starredAgent = "agent*7";
+
+    const first = runGuard({
+      cwd: fixture.a,
+      state: fixture.state,
+      session: "s",
+      agent: starredAgent,
+    });
+    expect(first.status).toBe(ALLOWED);
+    // The state file must exist under an escaped name — and since the key
+    // went through keyPart, `*` became %2A and never reached the filename.
+    expect(
+      existsSync(
+        path.join(
+          fixture.state,
+          BINDING_DIR,
+          `${stateKey("s", starredAgent)}.json`
+        )
+      )
+    ).toBe(true);
+    // The binding holds: the same pair in a different tree is refused.
+    expect(
+      runGuard({
+        cwd: fixture.b,
+        state: fixture.state,
+        session: "s",
+        agent: starredAgent,
+      }).status
+    ).toBe(BLOCKED);
+  });
+
   it("reads a binding an older key format wrote, so an upgrade keeps it", () => {
     // State files persist under LISA_STATE_HOME across installs. A binding
     // recorded under the previous `session--agent` (sanitised, unescaped) key
@@ -148,11 +188,11 @@ describe("the binding guard scopes bindings to the agent, not just the session",
     // fail-open the guard exists against (CodySwannGT/lisa#4294).
     const fixture = buildFixture();
     const legacyKey = "session-under-test--legacy-agent";
-    mkdirSync(path.join(fixture.state, "worktree-binding"), {
+    mkdirSync(path.join(fixture.state, BINDING_DIR), {
       recursive: true,
     });
     writeFileSync(
-      path.join(fixture.state, "worktree-binding", `${legacyKey}.json`),
+      path.join(fixture.state, BINDING_DIR, `${legacyKey}.json`),
       `${JSON.stringify(
         {
           boundRoot: realpathSync(fixture.a),
