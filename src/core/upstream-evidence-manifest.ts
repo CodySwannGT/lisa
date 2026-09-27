@@ -1685,13 +1685,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/expo-module/references/native-view.md":
       "cde788f4dfad2b56be9395d76939527b43e35216fc2ed970adb24b4000a7a9f4",
     "plugins/src/expo/skills/expo-router-best-practices/SKILL.md":
-      "ebc1531b5d70708b08e64f0ea84da9b646412b13cfd81d3b48df3a2400760b09",
+      "88c732a3baea4f4139d998ef537a911877d30a8e9be8f0e8dd72bd898be8df74",
     "plugins/src/expo/skills/expo-router-best-practices/references/official-docs.md":
       "849421c6f67795029e3492764d5788538908f0b3c92ed6f913c38aac39362f8b",
+    "plugins/src/expo/skills/expo-router-best-practices/references/static-export-verification.md":
+      "7fa726d5067cb0cb4bc09448487404abce9e8a7d8d2c5bdbcb7124b9dd8c2b71",
     "plugins/src/expo/skills/expo-router-best-practices/scripts/generate-route.py":
       "1052201f8d85c10e4a01b5052821261c78d333906e78bda9a6a2bc935334f5d4",
     "plugins/src/expo/skills/expo-tailwind-setup/SKILL.md":
-      "6abfc223a376571e0ee84014b3b474a3f2828ac2ebcde59c5c2b6b4bc802e233",
+      "f5edb02234f1f9075cccc47335ec452d230ac65262908d06e107ed20d008e2d2",
     "plugins/src/expo/skills/expo-ui-jetpack-compose/SKILL.md":
       "79c542e21876ae7bc01ec1bcd84f0ae4057e5bc0823c417326bcea4451cbc870",
     "plugins/src/expo/skills/expo-ui-swift-ui/SKILL.md":
@@ -1761,7 +1763,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/playwright-ci-debugging/SKILL.md":
       "5160df3f83df8ff469fa51e384564e5264f493ec90a85e75eff5839bb0bd7157",
     "plugins/src/expo/skills/playwright-selectors/SKILL.md":
-      "2fbc6b2d0b5765a60dad30dfdbd88abaa6916ff442e32ff638fec9508a8c29d8",
+      "5ade5011fadb680a52255bf50c11dab7f5382334887f36b69d2b50e101cbc576",
     "plugins/src/expo/skills/reduce-complexity/SKILL.md":
       "301a43335f398507652b1c37198d76f693b180519c90f379d6e53121a695a38e",
     "plugins/src/expo/skills/reduce-complexity/references/extraction-strategies.md":
@@ -1775,7 +1777,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/testing-library/references/expo-router-testing.md":
       "cf0dd309940dc0fea9eba22f32051622e53a53342749ad061f6061c461afa270",
     "plugins/src/expo/skills/testing-library/references/mocking-patterns.md":
-      "7251e4c5eb7a17502732a81de97ccdcf0dc89831f6a6ccb98455df914b87f67d",
+      "b0011f6aaca6e4b7670624d81cf167648c161e995b79b9d2a50017e61ff20885",
     "plugins/src/expo/skills/testing-library/references/query-priority.md":
       "5e997368d2a33d7c2086764221b2f9589e5364c68c7d5611a6203c0278b9f286",
     "plugins/src/expo/skills/upgrading-expo/SKILL.md":
@@ -5022,6 +5024,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-expo-agy/skills/expo-module/references/native-view.md": true,
     "plugins/lisa-expo-agy/skills/expo-router-best-practices/SKILL.md": true,
     "plugins/lisa-expo-agy/skills/expo-router-best-practices/references/official-docs.md": true,
+    "plugins/lisa-expo-agy/skills/expo-router-best-practices/references/static-export-verification.md": true,
     "plugins/lisa-expo-agy/skills/expo-router-best-practices/scripts/generate-route.py": true,
     "plugins/lisa-expo-agy/skills/expo-tailwind-setup/SKILL.md": true,
     "plugins/lisa-expo-agy/skills/expo-ui-jetpack-compose/SKILL.md": true,
@@ -5150,6 +5153,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-expo-copilot/skills/expo-module/references/native-view.md": true,
     "plugins/lisa-expo-copilot/skills/expo-router-best-practices/SKILL.md": true,
     "plugins/lisa-expo-copilot/skills/expo-router-best-practices/references/official-docs.md": true,
+    "plugins/lisa-expo-copilot/skills/expo-router-best-practices/references/static-export-verification.md": true,
     "plugins/lisa-expo-copilot/skills/expo-router-best-practices/scripts/generate-route.py": true,
     "plugins/lisa-expo-copilot/skills/expo-tailwind-setup/SKILL.md": true,
     "plugins/lisa-expo-copilot/skills/expo-ui-jetpack-compose/SKILL.md": true,
@@ -5280,6 +5284,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-expo-cursor/skills/expo-module/references/native-view.md": true,
     "plugins/lisa-expo-cursor/skills/expo-router-best-practices/SKILL.md": true,
     "plugins/lisa-expo-cursor/skills/expo-router-best-practices/references/official-docs.md": true,
+    "plugins/lisa-expo-cursor/skills/expo-router-best-practices/references/static-export-verification.md": true,
     "plugins/lisa-expo-cursor/skills/expo-router-best-practices/scripts/generate-route.py": true,
     "plugins/lisa-expo-cursor/skills/expo-tailwind-setup/SKILL.md": true,
     "plugins/lisa-expo-cursor/skills/expo-ui-jetpack-compose/SKILL.md": true,
@@ -5422,6 +5427,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-expo/.codex-plugin/skills/expo-router-best-practices/SKILL.md": true,
     "plugins/lisa-expo/.codex-plugin/skills/expo-router-best-practices/agents/openai.yaml": true,
     "plugins/lisa-expo/.codex-plugin/skills/expo-router-best-practices/references/official-docs.md": true,
+    "plugins/lisa-expo/.codex-plugin/skills/expo-router-best-practices/references/static-export-verification.md": true,
     "plugins/lisa-expo/.codex-plugin/skills/expo-router-best-practices/scripts/generate-route.py": true,
     "plugins/lisa-expo/.codex-plugin/skills/expo-tailwind-setup/SKILL.md": true,
     "plugins/lisa-expo/.codex-plugin/skills/expo-tailwind-setup/agents/openai.yaml": true,
@@ -5599,6 +5605,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-expo/skills/expo-router-best-practices/SKILL.md": true,
     "plugins/lisa-expo/skills/expo-router-best-practices/agents/openai.yaml": true,
     "plugins/lisa-expo/skills/expo-router-best-practices/references/official-docs.md": true,
+    "plugins/lisa-expo/skills/expo-router-best-practices/references/static-export-verification.md": true,
     "plugins/lisa-expo/skills/expo-router-best-practices/scripts/generate-route.py": true,
     "plugins/lisa-expo/skills/expo-tailwind-setup/SKILL.md": true,
     "plugins/lisa-expo/skills/expo-tailwind-setup/agents/openai.yaml": true,
@@ -8282,6 +8289,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/expo/skills/expo-module/references/native-view.md": true,
     "plugins/src/expo/skills/expo-router-best-practices/SKILL.md": true,
     "plugins/src/expo/skills/expo-router-best-practices/references/official-docs.md": true,
+    "plugins/src/expo/skills/expo-router-best-practices/references/static-export-verification.md": true,
     "plugins/src/expo/skills/expo-router-best-practices/scripts/generate-route.py": true,
     "plugins/src/expo/skills/expo-tailwind-setup/SKILL.md": true,
     "plugins/src/expo/skills/expo-ui-jetpack-compose/SKILL.md": true,

@@ -588,3 +588,25 @@ afterAll(() => {
   console.error = originalError;
 });
 ```
+
+## Migrating jest.mock Usage
+
+When moving a test file onto the managed setup, scope the migration to the
+file under your hand — a suite-wide mock sweep is where subtle behavior
+changes hide.
+
+- **Prefer renderer-compatible mocks.** A mock that works in the Node
+  environment but reads `window`, native modules, or ESM-only entry points
+  fails under the jsdom/renderer the Expo preset provides. Mock the seam your
+  component actually imports (`jest.mock("nativewind", ...)`,
+  `jest.mock("@/lib/env", ...)`) — never reach around it to mock a transitive
+  dependency.
+- **Keep factories stable and hoisted.** Jest hoists `jest.mock` calls above
+  imports, so a factory cannot close over outer variables. Everything the
+  factory needs must come from `jest.requireActual`, `jest.requireMock`, or a
+  `mock`-prefixed name. A factory that silently returns a different shape per
+  run is the migration failure that surfaces as unrelated flakes.
+- **Check version compatibility, not history.** A pinned workaround for an
+  old jest-expo/Expo SDK issue is not a permanent blocker — verify whether the
+  current versions still need it before carrying it forward. Historical Expo
+  issues expire; copy them forward only when they reproduce.
