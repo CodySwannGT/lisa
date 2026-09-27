@@ -213,6 +213,53 @@ describe("commit-msg hook diagnostics", () => {
     expect(result.stdout).toContain("AI-Agent");
   });
 
+  it("rejects metadata that attests to no listed co-author", () => {
+    // A commit whose only co-author is human — or whose AI-Agent names an
+    // agent that is not a co-author — is refused: the block must attest to
+    // someone actually listed. CodySwannGT/lisa#4294.
+    const project = createProject({
+      binName: "npx",
+      binBody: PASSING_COMMITLINT_BIN,
+      message: [
+        VALID_SUBJECT,
+        "",
+        WORK_ITEM_TRAILER,
+        "Co-authored-by: Jane Doe <jane@example.com>",
+        DEVIN_AGENT_TRAILER,
+        DEVIN_MODEL_TRAILER,
+        DEVIN_EFFORT_TRAILER,
+        "",
+      ].join("\n"),
+    });
+
+    const result = runHook(project);
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("AI-Agent");
+  });
+
+  it("accepts a human co-author when the driving agent is also listed", () => {
+    const project = createProject({
+      binName: "npx",
+      binBody: PASSING_COMMITLINT_BIN,
+      message: [
+        VALID_SUBJECT,
+        "",
+        WORK_ITEM_TRAILER,
+        "Co-authored-by: Jane Doe <jane@example.com>",
+        DEVIN_TRAILER,
+        DEVIN_AGENT_TRAILER,
+        DEVIN_MODEL_TRAILER,
+        DEVIN_EFFORT_TRAILER,
+        "",
+      ].join("\n"),
+    });
+
+    const result = runHook(project);
+
+    expect(result.status).toBe(0);
+  });
+
   it("rejects a non-fleet co-author even when a fleet trailer is present", () => {
     // Per-entry judgement: a fleet trailer must not mask a sibling co-author
     // that owes AI-* metadata.

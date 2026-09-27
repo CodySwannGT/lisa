@@ -10,6 +10,9 @@
  * main agent keeps the session-scoped one it always had.
  * @module tests/unit/hooks/worktree-binding-parallel-agents
  */
+import { mkdirSync, realpathSync, writeFileSync } from "node:fs";
+import path from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -71,8 +74,8 @@ describe("the binding guard scopes bindings to the agent, not just the session",
 
   it("keeps a session id ending in the separator apart from an agent id", () => {
     // The composite key is a FILENAME, so the `--` joiner must be
-    // unambiguous: session "s--agent" with no agent_id names the same file as
-    // session "s" with agent "agent" unless each half is escaped first.
+    // unambiguous: session "s--agent" + agent "c" and session "s" + agent
+    // "agent--c" are different pairs and must not name the same state file.
     const fixture = buildFixture();
 
     expect(
@@ -101,6 +104,75 @@ describe("the binding guard scopes bindings to the agent, not just the session",
         session: "s--agent",
         agent: "c",
       }).status
+    ).toBe(BLOCKED);
+  });
+
+  it("keeps a main-session key out of the agent-scoped namespace", () => {
+    // Every component is escaped, so a main session named "s%2Da--c" must NOT
+    // read the file the (session "s-a", agent "c") pair wrote — the raw
+    // session id used to be able to smuggle an already-composed key.
+    const fixture = buildFixture();
+
+    expect(
+      runGuard({
+        cwd: fixture.a,
+        state: fixture.state,
+        session: "s-a",
+        agent: "c",
+      }).status
+    ).toBe(ALLOWED);
+    // The lookalike main session binds fresh rather than inheriting the
+    // agent's binding.
+    expect(
+      runGuard({
+        cwd: fixture.b,
+        state: fixture.state,
+        session: "s%2Da--c",
+      }).status
+    ).toBe(ALLOWED);
+    // And the agent's binding is still bound where it started.
+    expect(
+      runGuard({
+        cwd: fixture.b,
+        state: fixture.state,
+        session: "s-a",
+        agent: "c",
+      }).status
+    ).toBe(BLOCKED);
+  });
+
+  it("reads a binding an older key format wrote, so an upgrade keeps it", () => {
+    // State files persist under LISA_STATE_HOME across installs. A binding
+    // recorded under the previous `session--agent` (sanitised, unescaped) key
+    // must still be honoured — silently re-baselining it is exactly the
+    // fail-open the guard exists against (CodySwannGT/lisa#4294).
+    const fixture = buildFixture();
+    const legacyKey = "session-under-test--legacy-agent";
+    mkdirSync(path.join(fixture.state, "worktree-binding"), {
+      recursive: true,
+    });
+    writeFileSync(
+      path.join(fixture.state, "worktree-binding", `${legacyKey}.json`),
+      `${JSON.stringify(
+        {
+          boundRoot: realpathSync(fixture.a),
+          claimedRoot: null,
+          updatedAt: "2026-01-01T00:00:00.000Z",
+        },
+        null,
+        2
+      )}\n`
+    );
+
+    // The legacy binding still binds: operating in the recorded tree allows,
+    // operating anywhere else is displaced.
+    expect(
+      runGuard({ cwd: fixture.a, state: fixture.state, agent: "legacy-agent" })
+        .status
+    ).toBe(ALLOWED);
+    expect(
+      runGuard({ cwd: fixture.b, state: fixture.state, agent: "legacy-agent" })
+        .status
     ).toBe(BLOCKED);
   });
 });

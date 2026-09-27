@@ -154,9 +154,12 @@ echo "🤖 Checking for AI co-authorship..."
 # name cannot tell a human from a non-fleet agent, so both are held to the
 # same rule. The AI-* trailers describe the commit's DRIVER, not every
 # co-author — a human pairing alongside an agent is covered by the agent's
-# block, while a commit with ONLY a human co-author is refused by the first
-# gate below, which is the verdict this gate exists to give.
-# CodySwannGT/lisa#4282.
+# block, while a commit with ONLY a human co-author is refused by the check
+# below: its AI-Agent trailer must name a listed co-author, and a human-only
+# trailer block has no agent to name. (A human could still write
+# "AI-Agent: <their own name>" to self-attest as the agent — the trailer is
+# the attestation surface, not a proof, so the gate documents rather than
+# polices that.) CodySwannGT/lisa#4282, CodySwannGT/lisa#4294.
 LISA_FLEET_AGENT_RE="Claude|Codex|Cursor|OpenCode|Antigravity|Copilot"
 # Co-authors come from the message's trailer block via git-interpret-trailers —
 # a "Co-authored-by:" string inside prose is not attribution — and every entry
@@ -192,6 +195,12 @@ if [ "$nonfleet_coauthor" -eq 1 ]; then
       missing_agent_metadata=1
     fi
   done
+  # The AI-Agent trailer must also NAME one of the listed co-authors —
+  # metadata attesting to nobody in the trailer block is not attribution.
+  ai_agent=$(printf '%s\n' "$ALL_TRAILERS" | grep -iE "^AI-Agent:" | head -1 | sed -E 's/^[^:]+:[[:space:]]*//;s/[[:space:]]*$//')
+  if [ -n "$ai_agent" ] && ! printf '%s\n' "$COAUTHOR_TRAILERS" | grep -Fqi "$ai_agent"; then
+    missing_agent_metadata=1
+  fi
   if [ "$missing_agent_metadata" -eq 1 ]; then
     echo ""
     echo "❌ Non-fleet agents must include AI metadata trailers!"
@@ -203,6 +212,9 @@ if [ "$nonfleet_coauthor" -eq 1 ]; then
     echo "  AI-Agent: <agent name>"
     echo "  AI-Model: <provider/model>"
     echo "  AI-Effort: <effort or runtime value>"
+    echo ""
+    echo "The AI-Agent value must name one of the commit's Co-authored-by"
+    echo "entries — it attests to which listed author is the driving agent."
     echo ""
     lisa_commit_gate_families ai-coauthorship
     exit 1

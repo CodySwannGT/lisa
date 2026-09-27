@@ -31,6 +31,7 @@ import {
   runGuard,
   runRaw,
   SESSION,
+  stateKey,
   trackTempDir,
 } from "./support/worktree-binding.js";
 
@@ -41,7 +42,11 @@ describe("worktree-binding-guard", () => {
     expect(result.status).toBe(ALLOWED);
     const recorded = JSON.parse(
       readFileSync(
-        path.join(fixture.state, "worktree-binding", `${SESSION}.json`),
+        path.join(
+          fixture.state,
+          "worktree-binding",
+          `${stateKey(SESSION)}.json`
+        ),
         "utf8"
       )
     );
