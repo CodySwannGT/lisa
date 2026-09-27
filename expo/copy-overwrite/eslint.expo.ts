@@ -3,7 +3,7 @@
  * Do not edit directly — durable changes belong upstream in Lisa.
  */
 
-/* eslint-disable max-lines-per-function -- config file needs a lot of lines */
+/* eslint-disable max-lines, max-lines-per-function -- config file needs a lot of lines */
 /**
  * ESLint 9 Flat Config - Expo Stack
  *
@@ -508,4 +508,4 @@ export function getExpoConfig({
   ];
 }
 
-/* eslint-enable max-lines-per-function -- config file needs a lot of lines */
+/* eslint-enable max-lines, max-lines-per-function -- config file needs a lot of lines */

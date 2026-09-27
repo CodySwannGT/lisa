@@ -251,7 +251,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/eslint.config.ts":
       "bb02718e1a809151c282d5fc54a1b570fe1cc86236dc1e5f2bcb570b06a22baa",
     "expo/copy-overwrite/eslint.expo.ts":
-      "9fa4e74810370bcb89d833774ebbf6193bb5d3e166c5efd9b7273f9506277137",
+      "e43d528568450ba2acfc943c5dea07a34f0a03550ec739ba531f6d5a4bf234d7",
     "expo/copy-overwrite/eslint.slow.config.ts":
       "48d6a35be75450becde07d30d859c970c48a0438e730845272629c8ec677d3eb",
     "expo/copy-overwrite/jest.config.ts":
@@ -9934,6 +9934,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/eslint-plugin-phaser.test.ts": true,
     "tests/unit/config/eslint-plugin-ui-standards-design-value.test.ts": true,
     "tests/unit/config/eslint-shipped-config-templates.test.ts": true,
+    "tests/unit/config/eslint-shipped-max-lines.test.ts": true,
     "tests/unit/config/eslint-shipped-mjs-clean.test.ts": true,
     "tests/unit/config/eslint-shipped-mjs-coverage.test.ts": true,
     "tests/unit/config/eslint-test-files-override.test.ts": true,
