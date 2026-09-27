@@ -553,6 +553,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/lisa-commit-msg-gates.mjs": Object.freeze([
     "5d587fd849cef02e9706d084ac2b508f3885da0ba59b76311e3b666f4fbff01e",
     "99422b4912cd660ddeb5ec5ab9fc333e57fa5763e711117a00b06dd2eda0bbb7",
+    "df7a2b76125830d3e1ef95f0ab7524657603671ecd90968a78d164f9a31c4adc",
   ]),
   "scripts/lisa-cross-worktree-guard.mjs": Object.freeze([
     "2ca521021c535be700caaaf4755a54363f685a9a85e435624833cb838a072c5d",
@@ -940,6 +941,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "772202ddd42d626625ff719666afbbe83445d8bae1bc7c0fb5ffdcb402be83f8",
     "7f55986eb29f8ace8616595da4bbe60d80a96f9f29b24fb72efd66bb96b22464",
     "80998c022d907cb2442f93f1356caf8f8f7f50e27cfd44e491f95177b98da458",
+    "8b17a697b8a5d0ad13fc2c6012a76915183fc74f3fa1b3eb3fbf8658ca587343",
     "8e19d5f1ba7abe3d22fbee47ff8e0fad76b965ccca20b8849e3c43ab07d9a4ef",
     "90115e7e9d61ff6b0ab64d5154783805ac41e968dcaf398c7a807e76c3f07a9e",
     "9404c374cbd90a0860410080f1044d087c51d84bb4c0a37343c2b632c3a9d03b",
@@ -973,6 +975,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "f7ae7f75c84d00d730f525a2f7779afe7fd68e0f81b58f955739718a4890dd35",
     "fa8f4a6517eacd9266feb7afd62398cdf2075d4824cac24b45bb64ad0cd18c86",
     "fb487a2d54b05a8d3268ce46e64b044a68896827941eb9e6e25b975e76762e13",
+    "ff15992834e3bb911a560a6f65be76a791a8cd262f36b18972f25a8dc36d7c00",
   ]),
   "scripts/lisa-hooks/sonar-secrets.sh": Object.freeze([
     "18e63683064305dab1200456896cbb9384ab35ee6bc51d3789ffbba46d1b1081",
@@ -1949,6 +1952,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lisa-commit-msg-gates.mjs": Object.freeze([
     "5d587fd849cef02e9706d084ac2b508f3885da0ba59b76311e3b666f4fbff01e",
+    "df7a2b76125830d3e1ef95f0ab7524657603671ecd90968a78d164f9a31c4adc",
   ]),
   "scripts/lisa-cross-worktree-guard.mjs": Object.freeze([
     "2ca521021c535be700caaaf4755a54363f685a9a85e435624833cb838a072c5d",
@@ -2291,6 +2295,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "772202ddd42d626625ff719666afbbe83445d8bae1bc7c0fb5ffdcb402be83f8",
     "7f55986eb29f8ace8616595da4bbe60d80a96f9f29b24fb72efd66bb96b22464",
     "80998c022d907cb2442f93f1356caf8f8f7f50e27cfd44e491f95177b98da458",
+    "8b17a697b8a5d0ad13fc2c6012a76915183fc74f3fa1b3eb3fbf8658ca587343",
     "8e19d5f1ba7abe3d22fbee47ff8e0fad76b965ccca20b8849e3c43ab07d9a4ef",
     "90115e7e9d61ff6b0ab64d5154783805ac41e968dcaf398c7a807e76c3f07a9e",
     "9404c374cbd90a0860410080f1044d087c51d84bb4c0a37343c2b632c3a9d03b",
@@ -2323,6 +2328,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "f7ae7f75c84d00d730f525a2f7779afe7fd68e0f81b58f955739718a4890dd35",
     "fa8f4a6517eacd9266feb7afd62398cdf2075d4824cac24b45bb64ad0cd18c86",
     "fb487a2d54b05a8d3268ce46e64b044a68896827941eb9e6e25b975e76762e13",
+    "ff15992834e3bb911a560a6f65be76a791a8cd262f36b18972f25a8dc36d7c00",
   ]),
   "scripts/lisa-hooks/sonar-secrets.sh": Object.freeze([
     "18e63683064305dab1200456896cbb9384ab35ee6bc51d3789ffbba46d1b1081",
