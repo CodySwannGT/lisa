@@ -144,11 +144,17 @@ describe("the deploy path delivers scanner secrets to quality.yml", () => {
       path.join(ROOT, ".github/workflows/quality.yml"),
       "utf-8"
     );
-    const taskQuery = body
-      .split("\n")
-      .find(line => line.includes("api/ce/task"));
+    const lines = body.split("\n");
+    const taskQuery = lines.find(line => line.includes("api/ce/task"));
     expect(taskQuery).toBeDefined();
-    expect(taskQuery).toContain("Authorization: Bearer $SONAR_TOKEN");
+    // Bearer auth, carried in a header FILE rather than argv so the token
+    // never appears in the runner's process list.
+    expect(taskQuery).toContain('-H "@$AUTH_HEADER_FILE"');
     expect(taskQuery).not.toContain('-u "$SONAR_TOKEN:"');
+    expect(
+      lines.some(line =>
+        line.includes("printf 'Authorization: Bearer %s\\n' \"$SONAR_TOKEN\"")
+      )
+    ).toBe(true);
   });
 });

@@ -7435,8 +7435,14 @@ jobs:
             # Query SonarCloud CE task API to get the actual error message.
             # Bearer, not `-u token:` — SonarCloud's org-scoped tokens reject
             # basic auth, so the quota check below silently misread every
-            # failure when the project used one (CodySwannGT/lisa#4287).
-            TASK_JSON=$(curl -s -H "Authorization: Bearer $SONAR_TOKEN" "$SERVER_URL/api/ce/task?id=$CE_TASK_ID")
+            # failure when the project used one (CodySwannGT/lisa#4287). The
+            # header travels through a 0600 file rather than argv, where any
+            # process listing on the runner could read the token.
+            AUTH_HEADER_FILE=$(mktemp)
+            chmod 600 "$AUTH_HEADER_FILE"
+            trap 'rm -f "$AUTH_HEADER_FILE"' EXIT
+            printf 'Authorization: Bearer %s\n' "$SONAR_TOKEN" > "$AUTH_HEADER_FILE"
+            TASK_JSON=$(curl -s -H "@$AUTH_HEADER_FILE" "$SERVER_URL/api/ce/task?id=$CE_TASK_ID")
             ERROR_MSG=$(echo "$TASK_JSON" | jq -r '.task.errorMessage // ""')
 
             # Only allow line-limit quota errors to pass
