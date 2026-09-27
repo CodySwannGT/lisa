@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.66.2](https://github.com/CodySwannGT/lisa/compare/v4.66.1...v4.66.2) (2026-09-27)
+
+
+### Bug Fixes
+
+* **hooks:** accept the full agent fleet in the commit-msg co-authorship gate ([41bbda0](https://github.com/CodySwannGT/lisa/commit/41bbda02eec2ec488888edb78626f0012d0924bd)), closes [CodySwannGT/lisa#4282](https://github.com/CodySwannGT/lisa/issues/4282) [CodySwannGT/lisa#4282](https://github.com/CodySwannGT/lisa/issues/4282)
+
 ### [4.66.1](https://github.com/CodySwannGT/lisa/compare/v4.66.0...v4.66.1) (2026-09-27)
 
 
