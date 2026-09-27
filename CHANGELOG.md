@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.66.4](https://github.com/CodySwannGT/lisa/compare/v4.66.3...v4.66.4) (2026-09-27)
+
+
+### Bug Fixes
+
+* **hooks:** match AI-Agent to co-author names and escape NTFS-hostile key bytes ([c9bf04f](https://github.com/CodySwannGT/lisa/commit/c9bf04f788461a568ae3b1a3eee2b7b2441d71d3)), closes [CodySwannGT/lisa#4294](https://github.com/CodySwannGT/lisa/issues/4294) [CodySwannGT/lisa#4294](https://github.com/CodySwannGT/lisa/issues/4294)
+
 ### [4.66.3](https://github.com/CodySwannGT/lisa/compare/v4.66.2...v4.66.3) (2026-09-27)
 
 
