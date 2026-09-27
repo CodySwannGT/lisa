@@ -91,4 +91,40 @@ describe("required-check CLI arguments", () => {
     expect(result.status).toBe(1);
     expect(JSON.parse(result.stdout).error).toContain("was retired");
   });
+
+  it("refuses a `workflows` entry that escapes the repository root", () => {
+    // S8707 regression (CodySwannGT/lisa#4279): `workflows` entries arrive
+    // from a JSON document — an operator-shaped string — so a traversal-
+    // shaped value must be refused BEFORE `readFileSync` sees the path.
+    writeFileSync(
+      path.join(root, ".github/required-checks.json"),
+      JSON.stringify({
+        enforcement: "warn",
+        required_contexts: [],
+        skip_job_declarations: {},
+        workflows: ["../../outside/workflows/evil.yml"],
+      })
+    );
+
+    const result = invoke([root, "--json"]);
+
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      ok: false,
+      error: expect.stringContaining("outside the repository root"),
+    });
+  });
+
+  it("accepts a rootDir containing `..` that resolves back inside itself", () => {
+    // The other half of the fix: argv-shaped input is NORMALISED, not
+    // refused outright — a traversal-shaped string that lands back inside
+    // the root still works.
+    const nested = path.join(root, "nested");
+    mkdirSync(nested, { recursive: true });
+
+    const result = invoke([path.join(nested, ".."), "--json"]);
+
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout)).not.toHaveProperty("error");
+  });
 });
