@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.66.0](https://github.com/CodySwannGT/lisa/compare/v4.65.8...v4.66.0) (2026-09-27)
+
+
+### Features
+
+* **workflows:** thread a run id through maestro e2e for sweepable accounts ([bd43b98](https://github.com/CodySwannGT/lisa/commit/bd43b98e50ffd2ec3aa3bf9305019b5d44bebc85)), closes [CodySwannGT/lisa#4275](https://github.com/CodySwannGT/lisa/issues/4275) [CodySwannGT/lisa#4275](https://github.com/CodySwannGT/lisa/issues/4275)
+
+
+### Bug Fixes
+
+* **hooks:** key the worktree binding by agent_id for parallel subagents ([4c1d98f](https://github.com/CodySwannGT/lisa/commit/4c1d98f8c62469495f2d95551accc8bb3c86d8d3)), closes [CodySwannGT/lisa#4277](https://github.com/CodySwannGT/lisa/issues/4277) [CodySwannGT/lisa#4277](https://github.com/CodySwannGT/lisa/issues/4277)
+
 ### [4.65.8](https://github.com/CodySwannGT/lisa/compare/v4.65.7...v4.65.8) (2026-09-27)
 
 
