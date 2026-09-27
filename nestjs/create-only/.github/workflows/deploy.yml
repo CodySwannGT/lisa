@@ -149,6 +149,16 @@ jobs:
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
       SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+      # Scanner tokens release.yml re-declares and forwards to quality.yml —
+      # without them the deploy-path quality run silently skips Sonar, Snyk,
+      # GitGuardian, FOSSA and Maestro (CodySwannGT/lisa#4287). Tracker
+      # credentials are deliberately absent: work_item_traceability is
+      # pull_request-only and never runs on the release path.
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+      FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+      MAESTRO_API_KEY: ${{ secrets.MAESTRO_API_KEY }}
 
   verify_aws_credentials:
     name: Verify AWS Credentials
