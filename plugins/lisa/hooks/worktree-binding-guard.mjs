@@ -526,12 +526,17 @@ function stateFile(bindingKey) {
  *
  * The key lands in a filename, so the composite is folded into a set that is
  * legal on every filesystem — `:` is not, which rules it out as a separator
- * and as tolerated session_id content on Windows hosts.
+ * and as tolerated session_id content on Windows hosts. Each half is
+ * sanitised first and then has `-` percent-escaped, so the `--` joiner cannot
+ * be smuggled in from either side: `session "a--b" + agent "c"` and
+ * `session "a" + agent "b--c"` must not name the same state file.
  */
 function bindingKey(payload) {
   const agent = payload?.agent_id;
   if (typeof agent !== "string" || !agent) return payload.session_id;
-  return `${payload.session_id}--${agent}`.replaceAll(/[^A-Za-z0-9._-]/g, "_");
+  const enc = value =>
+    value.replaceAll(/[^A-Za-z0-9._-]/g, "_").replaceAll("-", "%2D");
+  return `${enc(payload.session_id)}--${enc(agent)}`;
 }
 
 function readState(sessionId) {

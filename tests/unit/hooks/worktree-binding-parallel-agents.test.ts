@@ -68,4 +68,39 @@ describe("the binding guard scopes bindings to the agent, not just the session",
       BLOCKED
     );
   });
+
+  it("keeps a session id ending in the separator apart from an agent id", () => {
+    // The composite key is a FILENAME, so the `--` joiner must be
+    // unambiguous: session "s--agent" with no agent_id names the same file as
+    // session "s" with agent "agent" unless each half is escaped first.
+    const fixture = buildFixture();
+
+    expect(
+      runGuard({
+        cwd: fixture.a,
+        state: fixture.state,
+        session: "s--agent",
+        agent: "c",
+      }).status
+    ).toBe(ALLOWED);
+    // A different (session, agent) pair that would spell the same key if the
+    // parts were not escaped: it must bind fresh, not displace.
+    expect(
+      runGuard({
+        cwd: fixture.b,
+        state: fixture.state,
+        session: "s",
+        agent: "agent--c",
+      }).status
+    ).toBe(ALLOWED);
+    // And the first pair is still bound where it started.
+    expect(
+      runGuard({
+        cwd: fixture.b,
+        state: fixture.state,
+        session: "s--agent",
+        agent: "c",
+      }).status
+    ).toBe(BLOCKED);
+  });
 });
