@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.65.8](https://github.com/CodySwannGT/lisa/compare/v4.65.7...v4.65.8) (2026-09-27)
+
+
+### Bug Fixes
+
+* **expo:** exempt managed eslint.expo.ts from the consumer max-lines threshold ([c32e2eb](https://github.com/CodySwannGT/lisa/commit/c32e2eb39e198f390fbc126ab335924f7244c516)), closes [CodySwannGT/lisa#4278](https://github.com/CodySwannGT/lisa/issues/4278) [CodySwannGT/lisa#4278](https://github.com/CodySwannGT/lisa/issues/4278)
+
 ### [4.65.7](https://github.com/CodySwannGT/lisa/compare/v4.65.6...v4.65.7) (2026-09-27)
 
 
