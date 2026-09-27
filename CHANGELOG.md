@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.66.3](https://github.com/CodySwannGT/lisa/compare/v4.66.2...v4.66.3) (2026-09-27)
+
+
+### Bug Fixes
+
+* **ci:** forward scanner secrets through release.yml to quality.yml ([690f0cc](https://github.com/CodySwannGT/lisa/commit/690f0cca84c0a42bcd0c97462db65f4c11c41e44)), closes [CodySwannGT/lisa#4287](https://github.com/CodySwannGT/lisa/issues/4287) [CodySwannGT/lisa#4287](https://github.com/CodySwannGT/lisa/issues/4287)
+* **ci:** keep the Sonar token out of the runner's process list ([5fb5c3c](https://github.com/CodySwannGT/lisa/commit/5fb5c3c735f1676b71dd434591231d599b38bc6b)), closes [CodySwannGT/lisa#4287](https://github.com/CodySwannGT/lisa/issues/4287) [CodySwannGT/lisa#4287](https://github.com/CodySwannGT/lisa/issues/4287)
+* **ci:** trim the CE-task step back under the 500 KB workflow limit ([a210b64](https://github.com/CodySwannGT/lisa/commit/a210b646a7d2011dcd7a3eb8a7cc9be3e9051fd3)), closes [CodySwannGT/lisa#4287](https://github.com/CodySwannGT/lisa/issues/4287) [CodySwannGT/lisa#4287](https://github.com/CodySwannGT/lisa/issues/4287)
+* **hooks:** close the review findings on binding keys and commit-msg ([3c9d044](https://github.com/CodySwannGT/lisa/commit/3c9d04465721936d14c42ce4ddf267e701cdbb44)), closes [CodySwannGT/lisa#4294](https://github.com/CodySwannGT/lisa/issues/4294) [CodySwannGT/lisa#4294](https://github.com/CodySwannGT/lisa/issues/4294)
+* **hooks:** escape binding-key parts so session and agent cannot collide ([8a8ecc8](https://github.com/CodySwannGT/lisa/commit/8a8ecc83887e8c1cf1a3fec6b3fc73de0cd1f1d8)), closes [CodySwannGT/lisa#4294](https://github.com/CodySwannGT/lisa/issues/4294) [CodySwannGT/lisa#4294](https://github.com/CodySwannGT/lisa/issues/4294)
+* **hooks:** satisfy strict null checks in the max-lines test ([2def446](https://github.com/CodySwannGT/lisa/commit/2def4460e149cff66d328e147adc721a78d6541f)), closes [CodySwannGT/lisa#4294](https://github.com/CodySwannGT/lisa/issues/4294) [CodySwannGT/lisa#4294](https://github.com/CodySwannGT/lisa/issues/4294)
+* **hooks:** scope commit-msg AI metadata checks to the trailer block ([f076a39](https://github.com/CodySwannGT/lisa/commit/f076a3957a488a70c3683d88892379526358d916)), closes [CodySwannGT/lisa#4294](https://github.com/CodySwannGT/lisa/issues/4294) [CodySwannGT/lisa#4294](https://github.com/CodySwannGT/lisa/issues/4294)
+* **opencode:** transcribe the Task* tools into STRUCTURED_SKIP ([4a7671c](https://github.com/CodySwannGT/lisa/commit/4a7671c795127b319f58067a77448931171b3f65)), closes [CodySwannGT/lisa#4294](https://github.com/CodySwannGT/lisa/issues/4294) [CodySwannGT/lisa#4294](https://github.com/CodySwannGT/lisa/issues/4294)
+
 ### [4.66.2](https://github.com/CodySwannGT/lisa/compare/v4.66.1...v4.66.2) (2026-09-27)
 
 
