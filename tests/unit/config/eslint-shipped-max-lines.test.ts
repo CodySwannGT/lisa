@@ -77,7 +77,7 @@ function oversizedManagedSources(): readonly string[] {
 function disablesMaxLines(line: string): boolean {
   const directive = /eslint-disable(?:-next-line)?\s+([^*]*)/.exec(line);
   if (directive === null) return false;
-  const rules = directive[1].split("--")[0];
+  const rules = (directive[1] ?? "").split("--")[0] ?? "";
   return rules.split(/[\s,]+/).includes("max-lines");
 }
 
