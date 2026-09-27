@@ -393,7 +393,9 @@ block_heredoc() {
     block "$1" "Heredoc commit invocations are blocked (the payload is executable shell).
 Fix: write the commit message to a file and run \`git commit -F <file>\`.
 Every commit must also carry a Co-authored-by trailer for a supported agent
-(Claude/Codex/OpenCode) — the commit-msg hook enforces this."
+(Claude/Codex/Cursor/OpenCode/Antigravity/Copilot). OpenCode, and any agent
+outside that fleet (e.g. Devin), must also carry AI-Agent/AI-Model/AI-Effort
+trailers — the commit-msg hook enforces this."
   fi
   block "$1" "Heredoc payloads are blocked here (the payload is executable shell).
 Fix: write the payload to a file with the Write tool, then run the file

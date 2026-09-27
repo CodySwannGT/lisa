@@ -99,7 +99,7 @@ export const FAMILIES = Object.freeze([
     title: "AI co-authorship",
     detect: /grep[^\n]{0,20}-Eiq[^\n]{0,10}"Co-authored-by:/i,
     requirement:
-      "The message carries a `Co-authored-by:` trailer naming a supported coding agent — Claude, Codex, or OpenCode. OpenCode also needs `AI-Agent`, `AI-Model` and `AI-Effort` trailers.",
+      "The message carries a `Co-authored-by:` trailer naming a supported coding agent — Claude, Codex, Cursor, OpenCode, Antigravity, or Copilot. OpenCode also needs `AI-Agent`, `AI-Model` and `AI-Effort` trailers; agents outside the fleet satisfy the gate with the same three metadata trailers.",
   }),
 ]);
 

@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- per-agent attribution cases each need a full fixture message; the suite tracks one gate across the whole fleet (#4282) */
 /**
  * Regression tests for the commit-msg hook diagnostics.
  *
@@ -34,6 +35,8 @@ const SH_PATH = "/bin/sh";
 const GIT_PATH = resolveGit();
 const VALID_SUBJECT = "fix: clarify hook output";
 const PASSING_COMMITLINT_BIN = "exit 0\n";
+const CLAUDE_TRAILER = "Co-authored-by: Claude <noreply@anthropic.com>";
+const DEVIN_TRAILER = "Co-authored-by: Devin <devin@cognition.ai>";
 const OPENCODE_TRAILER = "Co-authored-by: OpenCode <noreply@opencode.ai>";
 const OPENCODE_AGENT_TRAILER = "AI-Agent: OpenCode";
 const OPENCODE_MODEL_HINT = "AI-Model: <provider/model>";
@@ -101,14 +104,151 @@ describe("commit-msg hook diagnostics", () => {
 
     expect(result.status).toBe(1);
     expect(result.stdout).toContain("Expected one of these trailers:");
-    expect(result.stdout).toContain(
-      "Co-authored-by: Claude <noreply@anthropic.com>"
-    );
+    expect(result.stdout).toContain(CLAUDE_TRAILER);
     expect(result.stdout).toContain("Co-authored-by: Codex <codex@openai.com>");
+    expect(result.stdout).toContain(
+      "Co-authored-by: Cursor <noreply@cursor.com>"
+    );
     expect(result.stdout).toContain(OPENCODE_TRAILER);
+    expect(result.stdout).toContain(
+      "Co-authored-by: Antigravity <noreply@google.com>"
+    );
+    expect(result.stdout).toContain(
+      "Co-authored-by: Copilot <noreply@github.com>"
+    );
     expect(result.stdout).toContain(OPENCODE_AGENT_TRAILER);
     expect(result.stdout).toContain(OPENCODE_MODEL_HINT);
     expect(result.stdout).toContain(OPENCODE_EFFORT_HINT);
+  });
+
+  it("accepts every fleet agent's trailer alone", () => {
+    // The gate must cover the whole supported fleet — Claude, Codex, Cursor,
+    // OpenCode, Antigravity, Copilot — not just the three it started with.
+    // CodySwannGT/lisa#4282.
+    for (const trailer of [
+      "Co-authored-by: Cursor <noreply@cursor.com>",
+      "Co-authored-by: Antigravity <noreply@google.com>",
+      "Co-authored-by: Copilot <noreply@github.com>",
+    ]) {
+      const project = createProject({
+        binName: "npx",
+        binBody: PASSING_COMMITLINT_BIN,
+        message: `${VALID_SUBJECT}\n\n${WORK_ITEM_TRAILER}\n${trailer}\n`,
+      });
+
+      const result = runHook(project);
+
+      expect(result.status, `refused ${trailer}`).toBe(0);
+    }
+  });
+
+  it("accepts a non-fleet agent carrying AI metadata trailers", () => {
+    // Devin is not in Lisa's plugin fleet, but the gate enforces attribution,
+    // not agent gatekeeping: the AI-Agent/AI-Model/AI-Effort block keeps the
+    // commit auditable. CodySwannGT/lisa#4282.
+    const project = createProject({
+      binName: "npx",
+      binBody: PASSING_COMMITLINT_BIN,
+      message: [
+        VALID_SUBJECT,
+        "",
+        WORK_ITEM_TRAILER,
+        DEVIN_TRAILER,
+        "AI-Agent: Devin",
+        "AI-Model: cognition/swe-2",
+        "AI-Effort: not exposed by runtime",
+        "",
+      ].join("\n"),
+    });
+
+    const result = runHook(project);
+
+    expect(result.status).toBe(0);
+  });
+
+  it("rejects a non-fleet agent missing AI metadata trailers", () => {
+    const project = createProject({
+      binName: "npx",
+      binBody: PASSING_COMMITLINT_BIN,
+      message: [VALID_SUBJECT, "", WORK_ITEM_TRAILER, DEVIN_TRAILER, ""].join(
+        "\n"
+      ),
+    });
+
+    const result = runHook(project);
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("AI-Agent");
+    expect(result.stdout).toContain("AI-Model");
+    expect(result.stdout).toContain("AI-Effort");
+  });
+
+  it("rejects a non-fleet co-author even when a fleet trailer is present", () => {
+    // Per-entry judgement: a fleet trailer must not mask a sibling co-author
+    // that owes AI-* metadata.
+    const project = createProject({
+      binName: "npx",
+      binBody: PASSING_COMMITLINT_BIN,
+      message: [
+        VALID_SUBJECT,
+        "",
+        WORK_ITEM_TRAILER,
+        CLAUDE_TRAILER,
+        DEVIN_TRAILER,
+        "",
+      ].join("\n"),
+    });
+
+    const result = runHook(project);
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("AI-Agent");
+  });
+
+  it("ignores a co-author named in prose, not the trailer block", () => {
+    // A "Co-authored-by:" string inside the message body is not attribution —
+    // only the git trailer block counts.
+    const project = createProject({
+      binName: "npx",
+      binBody: PASSING_COMMITLINT_BIN,
+      message: [
+        VALID_SUBJECT,
+        "",
+        "Review note: Co-authored-by: Devin <devin@cognition.ai> was discussed",
+        "during pairing and is named here in passing.",
+        "",
+        WORK_ITEM_TRAILER,
+        CLAUDE_TRAILER,
+        "",
+      ].join("\n"),
+    });
+
+    const result = runHook(project);
+
+    expect(result.status).toBe(0);
+  });
+
+  it("does not count a body mention as co-authorship", () => {
+    const project = createProject({
+      binName: "npx",
+      binBody: PASSING_COMMITLINT_BIN,
+      message: [
+        VALID_SUBJECT,
+        "",
+        "The diff was pair-reviewed; see Co-authored-by: Devin",
+        "<devin@cognition.ai> in the notes.",
+        "",
+        WORK_ITEM_TRAILER,
+        "",
+      ].join("\n"),
+    });
+
+    const result = runHook(project);
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain(
+      "Commit message must include AI co-authorship"
+    );
   });
 
   it("accepts OpenCode attribution with model and effort metadata", () => {
@@ -265,7 +405,7 @@ describe("commit message content cannot break the hook's own parsing", () => {
         BACKSLASH_C_SUBJECT,
         "",
         WORK_ITEM_TRAILER,
-        "Co-authored-by: Claude <noreply@anthropic.com>",
+        CLAUDE_TRAILER,
         "",
       ].join("\n"),
     });
@@ -292,3 +432,5 @@ describe("commit message content cannot break the hook's own parsing", () => {
     expect(result.stdout).toContain("must include AI co-authorship");
   });
 });
+
+/* eslint-enable max-lines -- re-enable after the commit-msg attribution suite */
