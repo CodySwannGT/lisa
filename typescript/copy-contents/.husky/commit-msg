@@ -193,9 +193,26 @@ if [ "$nonfleet_coauthor" -eq 1 ]; then
   done
   # The AI-Agent trailer must also NAME one of the listed co-authors —
   # metadata attesting to nobody in the trailer block is not attribution.
+  # Compare against the extracted NAME (the same "strip email" transform the
+  # co-author loop above applies), not the raw trailer line: a substring
+  # match would let "AI-Agent: Co-authored-by" satisfy the check without
+  # naming anyone.
   ai_agent=$(printf '%s\n' "$ALL_TRAILERS" | grep -iE "^AI-Agent:" | head -1 | sed -E 's/^[^:]+:[[:space:]]*//;s/[[:space:]]*$//')
-  if [ -n "$ai_agent" ] && ! printf '%s\n' "$COAUTHOR_TRAILERS" | grep -Fqi "$ai_agent"; then
-    missing_agent_metadata=1
+  if [ -n "$ai_agent" ]; then
+    ai_agent_lc=$(printf '%s' "$ai_agent" | tr '[:upper:]' '[:lower:]')
+    ai_agent_names_someone=0
+    while IFS= read -r trailer; do
+      [ -z "$trailer" ] && continue
+      coauthor_name=$(printf '%s' "${trailer#*:}" | sed -e 's/<[^>]*>//g' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' | tr '[:upper:]' '[:lower:]')
+      if [ "$coauthor_name" = "$ai_agent_lc" ]; then
+        ai_agent_names_someone=1
+      fi
+    done <<LISA_COAUTHOR_NAME_CHECK
+$COAUTHOR_TRAILERS
+LISA_COAUTHOR_NAME_CHECK
+    if [ "$ai_agent_names_someone" -eq 0 ]; then
+      missing_agent_metadata=1
+    fi
   fi
   if [ "$missing_agent_metadata" -eq 1 ]; then
     echo ""

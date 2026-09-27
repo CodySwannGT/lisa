@@ -517,12 +517,19 @@ function stateFile(bindingKey) {
  * joiner ever being smuggled in from either side.
  *
  * `:` and friends are folded too — the key lands in a filename and `:` is
- * illegal on Windows/NTFS (CodySwannGT/lisa#4277).
+ * illegal on Windows/NTFS (CodySwannGT/lisa#4277). `encodeURIComponent`
+ * leaves `! ' ( ) *` alone, and `*` is equally illegal on Windows, so they
+ * are escaped by hand.
  * @param {string} value - One component of the binding key
- * @returns {string} A component containing only `[A-Za-z0-9._]` and `%XX`
+ * @returns {string} A component containing only `[A-Za-z0-9._~]` and `%XX`
  */
 function keyPart(value) {
-  return encodeURIComponent(value).replaceAll("-", "%2D");
+  return encodeURIComponent(value)
+    .replaceAll(
+      /[!'()*]/g,
+      c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`
+    )
+    .replaceAll("-", "%2D");
 }
 
 /**

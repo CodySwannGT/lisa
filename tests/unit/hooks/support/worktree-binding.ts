@@ -41,7 +41,12 @@ export const SESSION = "session-under-test";
  */
 export function stateKey(session: string, agent?: string): string {
   const enc = (value: string) =>
-    encodeURIComponent(value).replaceAll("-", "%2D");
+    encodeURIComponent(value)
+      .replaceAll(
+        /[!'()*]/g,
+        c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`
+      )
+      .replaceAll("-", "%2D");
   return agent === undefined ? enc(session) : `${enc(session)}--${enc(agent)}`;
 }
 /** Git's quiet flag, named because the fixture repeats it. */
