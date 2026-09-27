@@ -195,7 +195,16 @@ if [ "$tool_name" != "Bash" ]; then
   # not recognised and is allowed. That is a fail-open, and it is the honest
   # cost of refusing to enumerate. Add shapes here as they are measured.
   case "$tool_name" in
-    Bash | Read | Write | Edit | MultiEdit | Glob | Grep | Task | TodoWrite)
+    Bash | Read | Write | Edit | MultiEdit | Glob | Grep | Task | TodoWrite | \
+      TaskCreate | TaskGet | TaskList | TaskOutput | TaskStop | TaskUpdate)
+      # The `Task*` family is Claude Code's in-session task list — LOCAL
+      # scratch, not a tracker write. `TaskCreate` carries `"type": "bug"`
+      # metadata the lisa-implement skill itself prescribes, so its name
+      # satisfies both shape gates below (create-verb + task noun) and was
+      # refused as "a tracker creation through TaskCreate"
+      # (CodySwannGT/lisa#4274). MCP creations are namespaced `mcp__*__*` and
+      # can never collide with a bare built-in name, so enumerating the
+      # built-ins here does not reopen the shape matcher for real filings.
       exit 0
       ;;
   esac
