@@ -352,7 +352,7 @@
  */
 
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
 
 import { boundedExecFileSync } from "./lib/bounded-spawn.mjs";
@@ -383,6 +383,36 @@ export const DECLARATION_PATH = ".github/required-checks.json";
  * because `[ \t]*` has already eaten it.
  */
 const SKIP_JOBS_LINE = /^[ \t]*skip_jobs[ \t]*:[ \t]*((?:\S.*)?)$/;
+
+/**
+ * Resolve `relative` under `root` and refuse a result that escapes it.
+ *
+ * Both inputs are operator-shaped strings: `rootDir` arrives from this CLI's
+ * own argv and `workflows` entries arrive from a JSON document, so every path
+ * this guard reads passes through one containment check. `resolve` collapses
+ * `..` segments BEFORE the boundary test, so a traversal-shaped value fails
+ * here instead of reaching `readFileSync` — the explicit refusal is also what
+ * separates "read nothing because nothing was there" from "read something the
+ * guard was never pointed at". (SonarCloud jssecurity:S8707 — the
+ * normalise-then-bound check is the barrier the rule asks for between an
+ * argv-shaped string and a filesystem read. CodySwannGT/lisa#4279.)
+ *
+ * @param {string} root - Directory the result must stay inside
+ * @param {string} relative - Path to resolve against `root`
+ * @param {string} what - What the path names, for the refusal message
+ * @returns {string} The resolved path, inside `root`
+ * @throws {Error} When the resolved path escapes `root`
+ */
+function resolveWithinRoot(root, relative, what) {
+  const base = resolve(root);
+  const target = resolve(base, relative);
+  if (target !== base && !target.startsWith(`${base}${sep}`)) {
+    throw new Error(
+      `check-skipped-required-checks: ${what} ${JSON.stringify(relative)} resolves outside the repository root. Refusing to read a path this guard was not pointed at.`
+    );
+  }
+  return target;
+}
 
 /** Matches the tail permitted after a quoted scalar's closing quote. */
 const TRAILING_COMMENT_ONLY = /^\s*(?:#.*)?$/;
@@ -932,7 +962,7 @@ export function readSkipJobs(contents, sourcePath, options = {}) {
  * @throws {Error} When the file is absent or structurally unusable
  */
 export function loadDeclaration(rootDir) {
-  const path = resolve(rootDir, DECLARATION_PATH);
+  const path = resolveWithinRoot(rootDir, DECLARATION_PATH, "the declaration");
   if (!existsSync(path)) {
     throw new Error(
       `check-skipped-required-checks: ${DECLARATION_PATH} does not exist. This guard rests on two REVIEWED SNAPSHOTS that cannot be derived from the repository — the ruleset's required contexts, and what each \`skip_jobs\` token silences. Create it (Lisa ships a seed) rather than deleting the guard.`
@@ -1152,7 +1182,7 @@ export function collectSkipJobTokens(rootDir, workflows) {
   const sources = {};
   const violations = [];
   for (const relative of workflows) {
-    const path = resolve(rootDir, relative);
+    const path = resolveWithinRoot(rootDir, relative, "`workflows` entry");
     if (!existsSync(path)) {
       throw new Error(
         `check-skipped-required-checks: \`workflows\` names ${relative}, which does not exist. A guard that reads nothing reports a clean bill of health for a repository it never looked at.`
