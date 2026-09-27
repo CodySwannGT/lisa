@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.66.1](https://github.com/CodySwannGT/lisa/compare/v4.66.0...v4.66.1) (2026-09-27)
+
+
+### Documentation
+
+* **expo:** adopt reviewed testing guidance from the Gunner rules audit ([fa70ce9](https://github.com/CodySwannGT/lisa/commit/fa70ce95452acc57a58fee43b8f812cd80438e04)), closes [CodySwannGT/lisa#4262](https://github.com/CodySwannGT/lisa/issues/4262) [CodySwannGT/lisa#4262](https://github.com/CodySwannGT/lisa/issues/4262)
+
 ## [4.66.0](https://github.com/CodySwannGT/lisa/compare/v4.65.8...v4.66.0) (2026-09-27)
 
 
