@@ -503,9 +503,32 @@ function reachesOut(script, foreign, bound) {
   ]);
 }
 
-function stateFile(sessionId) {
+function stateFile(bindingKey) {
   const home = process.env.LISA_STATE_HOME || join(homedir(), ".lisa");
-  return join(home, "worktree-binding", `${sessionId}.json`);
+  return join(home, "worktree-binding", `${bindingKey}.json`);
+}
+
+/**
+ * The identity a binding belongs to.
+ *
+ * Parallel subagents share the session's `session_id`, so keying the binding
+ * on it alone made each subagent's guarded call read the binding a sibling
+ * recorded — the sibling's worktree then read as "changed underneath it" and
+ * its writes were refused, or an acknowledgement rebound the file out from
+ * under the sibling (CodySwannGT/lisa#4277). The payload's `agent_id` is what
+ * distinguishes a subagent from the main agent, so a caller carrying one gets
+ * its own state file. The main agent carries no `agent_id` and keeps the
+ * session-scoped key it always had, which is also the fallback for runtimes
+ * that never send the field.
+ *
+ * The key lands in a filename, so the composite is folded into a set that is
+ * legal on every filesystem — `:` is not, which rules it out as a separator
+ * and as tolerated session_id content on Windows hosts.
+ */
+function bindingKey(payload) {
+  const agent = payload?.agent_id;
+  if (typeof agent !== "string" || !agent) return payload.session_id;
+  return `${payload.session_id}--${agent}`.replaceAll(/[^A-Za-z0-9._-]/g, "_");
 }
 
 function readState(sessionId) {
@@ -637,8 +660,8 @@ function recordBaseline(sessionId, observed) {
 function recordClaim(payload, observed) {
   const claimed = claimedRoot(payload.tool_input, payload.cwd);
   if (!claimed || claimed === observed) return;
-  const previous = readState(payload.session_id);
-  writeState(payload.session_id, {
+  const previous = readState(bindingKey(payload));
+  writeState(bindingKey(payload), {
     boundRoot: previous?.boundRoot ?? observed,
     claimedRoot: claimed,
     updatedAt: new Date().toISOString(),
@@ -678,7 +701,7 @@ function handleAcceptance(payload, observed) {
       acceptanceLine(observed),
     ]);
   }
-  writeState(payload.session_id, {
+  writeState(bindingKey(payload), {
     boundRoot: observed,
     claimedRoot: null,
     updatedAt: new Date().toISOString(),
@@ -880,15 +903,16 @@ function evaluate(payload) {
     say("payload carries no session id or cwd; binding is NOT enforced");
     return 0;
   }
+  const binding = bindingKey(payload);
   const observed = worktreeRoot(cwd);
   if (!observed) return 0;
 
   if (payload.hook_event_name === "SessionStart") {
-    recordBaseline(sessionId, observed);
+    recordBaseline(binding, observed);
     // After the baseline, never before: `recordBaseline` writes a fresh state
     // for a session it has not seen, and the notice's record has to go on top
     // of that write rather than under it.
-    noticeRuntimeDrift(sessionId, process.env);
+    noticeRuntimeDrift(binding, process.env);
     return 0;
   }
   if (payload.tool_name === "EnterWorktree") {
@@ -900,7 +924,7 @@ function evaluate(payload) {
   const accepted = handleAcceptance(payload, observed);
   if (accepted !== null) return accepted;
 
-  const state = readState(sessionId);
+  const state = readState(binding);
   if (!state?.boundRoot) {
     // No baseline means SessionStart did not run for this session — an older
     // install, a runtime that fires no such event, a harness that skips it.
@@ -909,7 +933,7 @@ function evaluate(payload) {
     // refusing. Treating it as a refusal would turn a floor into a wall on
     // every surface where the event does not fire, and a wall gets switched
     // off, which costs the whole guard.
-    writeState(sessionId, {
+    writeState(binding, {
       boundRoot: observed,
       claimedRoot: null,
       updatedAt: new Date().toISOString(),
@@ -920,7 +944,7 @@ function evaluate(payload) {
     return unconfirmedSwitch(state.claimedRoot, observed);
   }
   if (state.claimedRoot === observed) {
-    writeState(sessionId, {
+    writeState(binding, {
       boundRoot: observed,
       claimedRoot: null,
       updatedAt: new Date().toISOString(),
