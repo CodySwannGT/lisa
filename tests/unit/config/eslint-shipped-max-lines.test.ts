@@ -72,6 +72,11 @@ describe("oversized managed templates exempt themselves from max-lines", () => {
         overrideConfig: {
           files: ["**/*.ts", "**/*.tsx"],
           languageOptions: { parser: tseslint.parser },
+          // Unused disables are errors HERE so the exemption cannot rot: if a
+          // managed file shrinks back under the floor, its file-level
+          // `eslint-disable max-lines` fails this lint instead of sitting
+          // silently.
+          linterOptions: { reportUnusedDisableDirectives: "error" },
           rules: {
             "max-lines": ["error", { max: FLOOR_MAX_LINES }],
             // Enabled so the file-level disable that also names this rule is a
