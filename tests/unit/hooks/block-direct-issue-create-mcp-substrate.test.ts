@@ -244,6 +244,35 @@ describe("block-direct-issue-create.sh substrates", () => {
       ["Glob", { tool_name: "Glob", tool_input: { pattern: "*" } }],
       ["TodoWrite", { tool_name: "TodoWrite", tool_input: { todos: [] } }],
       ["Task", { tool_name: "Task", tool_input: { prompt: "x" } }],
+      // Claude Code's in-session task list is LOCAL scratch — no tracker is
+      // written — yet `TaskCreate` satisfies both shape gates (create-verb +
+      // task noun), and `lisa-implement` prescribes a metadata block carrying
+      // `"type": "bug"`, so its own required step was refused as a filing.
+      // CodySwannGT/lisa#4274.
+      [
+        "TaskCreate with lisa-implement's bug metadata block",
+        {
+          tool_name: "TaskCreate",
+          tool_input: {
+            subject: "reproduce the defect",
+            description: "x",
+            type: "bug",
+            plan: "fix/4274-taskcreate",
+            acceptance_criteria: ["the call is allowed"],
+            relevant_documentation: [],
+            testing_requirements: [],
+            skills: [],
+            learnings: [],
+            required_access: [],
+            verification: "unit test",
+          },
+        },
+      ],
+      ["TaskUpdate", { tool_name: "TaskUpdate", tool_input: { taskId: "1" } }],
+      ["TaskList", { tool_name: "TaskList", tool_input: {} }],
+      ["TaskGet", { tool_name: "TaskGet", tool_input: { taskId: "1" } }],
+      ["TaskOutput", { tool_name: "TaskOutput", tool_input: { task_id: "1" } }],
+      ["TaskStop", { tool_name: "TaskStop", tool_input: { task_id: "1" } }],
       ["an MCP tool with no creation shape", mcp("mcp__sentry__get_issue", {})],
     ])(ALLOWS, (_label, payload) => {
       expect(run(payload)).toBe(EXIT_ALLOWED);
