@@ -31,6 +31,24 @@
 # (they may legitimately differ — e.g. `app_dev` on Android vs `app-dev` on
 # iOS).
 #
+# ── RUN ID / SWEEPABLE TEST ACCOUNTS (`run_id` / MAESTRO_RUN_ID) ─────────────
+#
+# Every run exposes ONE run-scoped identifier as `MAESTRO_RUN_ID` — to flows
+# through the same `-e` forwarding above, to `pre_suite_command` and
+# `setup_command` as a real env var. It resolves to the `run_id` input when
+# the caller passes one, else `<github.run_id>-<github.run_attempt>`: stable
+# within the run, unique across dispatches and re-runs, and readable off the
+# Actions run afterwards without any device-written registry.
+#
+# The account-naming convention built on it is `tester+<runId><ordinal>` —
+# e.g. `tester+31557572592-1-0` for the first account of that run — and the
+# same run id namespaces uploads a flow creates (card photos, documents). A
+# reset or sweep job then enumerates every account/upload whose name carries
+# the run id and deletes exactly that set, which is what makes a suite's
+# throwaway state removable after the job ends. A run pinned through the
+# `run_id` input is how a caller joins several invocations under one
+# sweepable namespace.
+#
 # ── SUITES THAT SHARE AN ENVIRONMENT MUST SHARE A CONCURRENCY GROUP ──────────
 #
 # A portfolio rule, not per-project advice. If two suites drive one backend —
@@ -338,6 +356,17 @@ on:
         type: string
       maestro_env:
         description: 'Newline-separated KEY=VALUE pairs exported before the run; MAESTRO_* keys are forwarded to flows'
+        required: false
+        default: ''
+        type: string
+      run_id:
+        description: >-
+          Identifier flows read as MAESTRO_RUN_ID, namespacing the throwaway
+          accounts and uploads a run mints so a sweep can enumerate and delete
+          exactly what THIS run created. Empty (the default) resolves to
+          `<github.run_id>-<github.run_attempt>` — stable for the run, unique
+          across dispatches and re-runs. Pass your own only when one namespace
+          must span more than one run.
         required: false
         default: ''
         type: string
@@ -1505,11 +1534,18 @@ jobs:
         env:
           E2E_ENV_INPUT: ${{ inputs.maestro_env }}
           E2E_SECRET_ENV_INPUT: ${{ secrets.MAESTRO_SECRET_ENV }}
+          RESOLVED_RUN_ID: ${{ inputs.run_id || format('{0}-{1}', github.run_id, github.run_attempt) }}
         run: |
           printf '%s\n%s\n' "$E2E_ENV_INPUT" "$E2E_SECRET_ENV_INPUT" | while IFS= read -r line; do
             [[ -z "$line" || "$line" == \#* || "$line" != *=* ]] && continue
             echo "$line" >> "$GITHUB_ENV"
           done
+          # The run namespace for throwaway accounts/uploads — see the header's
+          # run-id section. A caller who already supplies MAESTRO_RUN_ID through
+          # maestro_env owns their namespace, so theirs stands.
+          if ! grep -q '^MAESTRO_RUN_ID=' "$GITHUB_ENV"; then
+            echo "MAESTRO_RUN_ID=$RESOLVED_RUN_ID" >> "$GITHUB_ENV"
+          fi
 
       - name: 🗂️ Open the pre-suite export file
         # The cross-job counterpart to $GITHUB_ENV. Created empty so the command
@@ -1540,7 +1576,7 @@ jobs:
           # so nothing a caller or a command sets can widen what is permitted to
           # cross the job boundary.
           KEY_ALLOWLIST='^MAESTRO_[A-Za-z0-9_]+$'
-          RESERVED_KEYS='MAESTRO_E2E_ARGS MAESTRO_PRE_SUITE_ENV'
+          RESERVED_KEYS='MAESTRO_E2E_ARGS MAESTRO_PRE_SUITE_ENV MAESTRO_RUN_ID'
 
           PAIRS=""
           if [[ -n "${MAESTRO_PRE_SUITE_ENV:-}" && -f "$MAESTRO_PRE_SUITE_ENV" ]]; then
@@ -2084,11 +2120,18 @@ jobs:
         env:
           E2E_ENV_INPUT: ${{ inputs.maestro_env }}
           E2E_SECRET_ENV_INPUT: ${{ secrets.MAESTRO_SECRET_ENV }}
+          RESOLVED_RUN_ID: ${{ inputs.run_id || format('{0}-{1}', github.run_id, github.run_attempt) }}
         run: |
           printf '%s\n%s\n' "$E2E_ENV_INPUT" "$E2E_SECRET_ENV_INPUT" | while IFS= read -r line; do
             [[ -z "$line" || "$line" == \#* || "$line" != *=* ]] && continue
             echo "$line" >> "$GITHUB_ENV"
           done
+          # The run namespace for throwaway accounts/uploads — see the header's
+          # run-id section. A caller who already supplies MAESTRO_RUN_ID through
+          # maestro_env owns their namespace, so theirs stands.
+          if ! grep -q '^MAESTRO_RUN_ID=' "$GITHUB_ENV"; then
+            echo "MAESTRO_RUN_ID=$RESOLVED_RUN_ID" >> "$GITHUB_ENV"
+          fi
 
       - name: 🧭 Apply pre-suite env
         # $GITHUB_ENV is per-job, so the pre-suite command's exports arrive as a
@@ -3744,11 +3787,18 @@ jobs:
         env:
           E2E_ENV_INPUT: ${{ inputs.maestro_env }}
           E2E_SECRET_ENV_INPUT: ${{ secrets.MAESTRO_SECRET_ENV }}
+          RESOLVED_RUN_ID: ${{ inputs.run_id || format('{0}-{1}', github.run_id, github.run_attempt) }}
         run: |
           printf '%s\n%s\n' "$E2E_ENV_INPUT" "$E2E_SECRET_ENV_INPUT" | while IFS= read -r line; do
             [[ -z "$line" || "$line" == \#* || "$line" != *=* ]] && continue
             echo "$line" >> "$GITHUB_ENV"
           done
+          # The run namespace for throwaway accounts/uploads — see the header's
+          # run-id section. A caller who already supplies MAESTRO_RUN_ID through
+          # maestro_env owns their namespace, so theirs stands.
+          if ! grep -q '^MAESTRO_RUN_ID=' "$GITHUB_ENV"; then
+            echo "MAESTRO_RUN_ID=$RESOLVED_RUN_ID" >> "$GITHUB_ENV"
+          fi
 
       - name: 🧭 Apply pre-suite env
         # See the android job's copy: $GITHUB_ENV is per-job, so the pre-suite

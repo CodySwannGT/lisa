@@ -112,6 +112,12 @@ jobs:
       #   MAESTRO_TEST_PHONE=0000000000
       #   MAESTRO_TEST_OTP=555555
       #
+      # MAESTRO_RUN_ID namespaces the throwaway accounts and uploads a run
+      # mints (convention: tester+<runId><ordinal>) so a sweep can delete
+      # exactly one run's state. It defaults to the run's own id; uncomment to
+      # pin a shared namespace across invocations you will sweep together.
+      # run_id: 'my-sweep-namespace'
+      #
       # Once per run, before either platform starts — resets, sweeps, seeding.
       # pre_suite_command: |
       #   node scripts/maestro/prune-e2e-fixtures.mjs

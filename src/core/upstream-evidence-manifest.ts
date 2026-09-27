@@ -315,7 +315,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/deploy.yml":
       "dfadbe4393392507d00595c686c622580c95f98fc7a2f6c3de422d869ea57521",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
-      "a3a253c8def57dec942160efed44045dfbb3a438cd3d9e3ea93b63f6d0762cb1",
+      "11e6db515412702672edea910223b808be168b3d1f9ec15c349f44f3edcff247",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
       "02c9ddf80eaaec34eae35abf70cc8f39a7c6e43245cd742421acc188ea59b208",
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
@@ -9580,6 +9580,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/maestro-native-zero-flow.test.ts": true,
     "tests/integration/maestro-pre-suite-exports.test.ts": true,
     "tests/integration/maestro-pre-suite-seam.test.ts": true,
+    "tests/integration/maestro-run-id.test.ts": true,
     "tests/integration/mjs-suite-runner-resolution.test.ts": true,
     "tests/integration/mutation-gate-bite.test.ts": true,
     "tests/integration/mutation-gate-diff-bite.test.ts": true,
