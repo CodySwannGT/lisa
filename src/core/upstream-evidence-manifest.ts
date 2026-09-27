@@ -93,7 +93,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
-      "8f10bad2ac2549356e613021839d7678b9cea9bf099d3a6c171d4f0f7f909a76",
+      "3752c6cf578a6a7306c744b628a132c130790d9b82f7fd56e38bc4483f5fbafa",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh":
       "9b0d2d4690850a550ccc79a8c3bb1c0de1cca1f2d8a3550e2bed6daa7afcf7c4",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
@@ -853,7 +853,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/withdrawn-rulings.sh":
       "5dbf429b6ec73c3c29fb96008efa1015feaa4812c1b4bb26aaa5d0b904a0ff9c",
     "plugins/src/base/hooks/worktree-binding-guard.mjs":
-      "8647522f3941b975ab43df2489af7de37b7024f004af1b32c4c0b3ec5df460c1",
+      "d570243f47ab81cfeb7f305615e599cd858ba8a111ac28ffdd5d25d1b8a391ab",
     "plugins/src/base/hooks/worktree-binding-guard.sh":
       "92511fa2fe3de504a78d0d79a2cacffac545baa1d0264cab0ca999a487adb98f",
     "plugins/src/base/rules/eager/00-rule-index.md":
@@ -10304,6 +10304,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/worktree-binding-guard-script-reach.test.ts": true,
     "tests/unit/hooks/worktree-binding-guard-wrapper.test.ts": true,
     "tests/unit/hooks/worktree-binding-guard.test.ts": true,
+    "tests/unit/hooks/worktree-binding-parallel-agents.test.ts": true,
     "tests/unit/hooks/worktree-binding-runtime-assumption.test.ts": true,
     "tests/unit/hooks/worktree-create-failure.test.ts": true,
     "tests/unit/hooks/worktree-create.test.ts": true,

@@ -121,6 +121,8 @@ export interface Call {
   readonly tool?: string;
   readonly input?: Record<string, unknown>;
   readonly session?: string;
+  /** Subagent id; absent on the main agent's payloads. */
+  readonly agent?: string;
   readonly state: string;
   /** Hook event, for the cases that are not a tool call. */
   readonly event?: string;
@@ -166,6 +168,7 @@ export function runGuard(call: Call) {
     tool_name: call.tool ?? "Bash",
     tool_input: call.input ?? { command: "echo hello" },
     ...(call.event === undefined ? {} : { hook_event_name: call.event }),
+    ...(call.agent === undefined ? {} : { agent_id: call.agent }),
   };
   return boundedSpawnSync({
     label: GUARD_LABEL,
