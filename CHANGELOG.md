@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.65.5](https://github.com/CodySwannGT/lisa/compare/v4.65.4...v4.65.5) (2026-09-27)
+
+
+### Bug Fixes
+
+* **plugins:** exempt Claude's local Task* tools in block-direct-issue-create ([eb4c308](https://github.com/CodySwannGT/lisa/commit/eb4c30842728555c1c6607c00e6ac59c25a7fbef)), closes [CodySwannGT/lisa#4274](https://github.com/CodySwannGT/lisa/issues/4274) [CodySwannGT/lisa#4274](https://github.com/CodySwannGT/lisa/issues/4274)
+* **typescript:** bound all file reads to the repository root in check-skipped-required-checks ([28d4bde](https://github.com/CodySwannGT/lisa/commit/28d4bde8c0f2e29b4c376de86094b7af443d0e63)), closes [CodySwannGT/lisa#4279](https://github.com/CodySwannGT/lisa/issues/4279) [CodySwannGT/lisa#4279](https://github.com/CodySwannGT/lisa/issues/4279)
+
 ### [4.65.4](https://github.com/CodySwannGT/lisa/compare/v4.65.3...v4.65.4) (2026-09-27)
 
 ### [4.65.3](https://github.com/CodySwannGT/lisa/compare/v4.65.2...v4.65.3) (2026-09-24)
