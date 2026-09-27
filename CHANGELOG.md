@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.65.7](https://github.com/CodySwannGT/lisa/compare/v4.65.6...v4.65.7) (2026-09-27)
+
+
+### Bug Fixes
+
+* **all:** flag startup_failure runs in the workflow-load sweep ([0b518df](https://github.com/CodySwannGT/lisa/commit/0b518df66ac3259424cdbfb5509e2d43ca21cf72)), closes [CodySwannGT/lisa#4276](https://github.com/CodySwannGT/lisa/issues/4276) [CodySwannGT/lisa#4276](https://github.com/CodySwannGT/lisa/issues/4276)
+
 ### [4.65.6](https://github.com/CodySwannGT/lisa/compare/v4.65.5...v4.65.6) (2026-09-27)
 
 ### [4.65.5](https://github.com/CodySwannGT/lisa/compare/v4.65.4...v4.65.5) (2026-09-27)
