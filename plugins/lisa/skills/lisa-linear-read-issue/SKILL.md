@@ -43,7 +43,7 @@ Call `lisa-linear-access operation: get-issue`. Extract and preserve:
 - Attachment URLs (capture, do not download unless needed)
 
 **Comments**
-Fetch ALL comments via `lisa-linear-access operation: list-comments({issueId: <id>})` in chronological order. Walk thread parents/children — Linear comments are threaded via `parentId`. Do not truncate. For each comment:
+Fetch ALL comments via `lisa-linear-access operation: list-comments({issueId: <id>})` in chronological order. Page to exhaustion: request the next page while `pageInfo.hasNextPage` is true, passing `endCursor` as `after`, and never stop at the first page. Walk thread parents/children — Linear comments are threaded via `parentId`. Do not truncate. Linear reports no comment total, so `<total>` is the fetched count once `hasNextPage` is false, and `unknown` when a page fails — in which case set `comments_complete: false` and say so at the top of the Comments section. For each comment:
 - Author, timestamp, body
 - Flag comments that contain: credentials, reproduction steps, status updates from stakeholders, decisions, or triage headers.
 
@@ -137,7 +137,8 @@ Produce a single structured output the caller can pass verbatim to downstream ag
 ### Validation Journey
 <section or "None">
 
-### Comments (<count>)
+### Comments (<fetched> of <total>; comments_complete: <true|false>)
+<when incomplete: "INCOMPLETE — <fetched> of <total> comments read via <substrate>">
 <chronological comments, flagged items called out>
 
 ### Attachments

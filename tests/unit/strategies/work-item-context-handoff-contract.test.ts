@@ -151,6 +151,17 @@ describe.each(skillPaths("lisa-implement"))(
       expect(skill).not.toContain("overwriting any earlier copy");
     });
 
+    it("keeps credential values out of the inventory and everything copied from it", () => {
+      expect(skill).toContain(
+        "**A `credential` gist names only the kind and the location**"
+      );
+      expect(skill).toMatch(/never the secret value or identifier/);
+      expect(skill).toMatch(
+        /never copy it into task descriptions, teammate prompts, plan or roster files, tracker comments, or PR text/
+      );
+      expect(skill).toMatch(/`lisa-track` leaves an existing file untouched/);
+    });
+
     it("returns the absolute path", () => {
       expect(skill).toContain(
         "Return `work_item_context: <absolute path of the file>`"
@@ -172,9 +183,15 @@ describe.each(skillPaths("lisa-track"))(
 
     it("is the first write, in the same order lisa-implement states", () => {
       expect(skill).toMatch(
-        /This is the first write; when `lisa-implement` forwarded a `caller_bundle`/
+        /this is the first write; when `lisa-implement` forwarded a `caller_bundle`/
       );
       expect(skill).toContain("`## Comment inventory` section");
+    });
+
+    it("never clobbers an existing file on a re-run that forwarded a caller bundle", () => {
+      expect(skill).toMatch(
+        /Re-run safety: when a `caller_bundle` was forwarded for this work item and the file already exists, do not overwrite it/
+      );
     });
   }
 );
@@ -228,7 +245,58 @@ describe.each(
     expect(body).toMatch(/report that to the team lead and stop/);
     expect(body).toMatch(/never proceed from memory/);
   });
+
+  it("keeps a credential-flagged secret inside the context file", () => {
+    expect(body).toMatch(
+      /secret quoted in a credential-flagged comment never leaves that file/
+    );
+    expect(body).toMatch(
+      /keep the value or identifier out of code, commits, task notes, prompts, plan or roster files, tracker comments, and PR text/
+    );
+  });
 });
+
+const COMPLETENESS_HEADING =
+  "### Comments (<fetched> of <total>; comments_complete: <true|false>)";
+
+describe.each(skillPaths("lisa-github-read-issue"))(
+  "lisa-github-read-issue always paginates comments (%s)",
+  skillPath => {
+    const skill = read(skillPath);
+
+    it("reads comments through the paginated endpoint unconditionally", () => {
+      expect(skill).toContain(
+        "always through the paginated endpoint: `gh api repos/<org>/<repo>/issues/<number>/comments --paginate`"
+      );
+      expect(skill).not.toContain("If pagination matters");
+    });
+
+    it("emits the shared completeness heading and INCOMPLETE line", () => {
+      expect(skill).toContain(COMPLETENESS_HEADING);
+      expect(skill).toContain('"INCOMPLETE — <fetched> of <total>');
+      expect(skill).toMatch(/set `comments_complete: false`/);
+    });
+  }
+);
+
+describe.each(skillPaths("lisa-linear-read-issue"))(
+  "lisa-linear-read-issue pages comments to exhaustion (%s)",
+  skillPath => {
+    const skill = read(skillPath);
+
+    it("follows pageInfo until hasNextPage is false", () => {
+      expect(skill).toMatch(
+        /Page to exhaustion: request the next page while `pageInfo.hasNextPage` is true/
+      );
+    });
+
+    it("emits the shared completeness heading and INCOMPLETE line", () => {
+      expect(skill).toContain(COMPLETENESS_HEADING);
+      expect(skill).toContain('"INCOMPLETE — <fetched> of <total>');
+      expect(skill).toMatch(/set `comments_complete: false`/);
+    });
+  }
+);
 
 describe.each(skillPaths("lisa-atlassian-access"))(
   "lisa-atlassian-access paginates comment reads (%s)",
