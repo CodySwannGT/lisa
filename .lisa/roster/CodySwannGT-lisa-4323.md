@@ -13,7 +13,7 @@ EXCLUDE - lisa:product-specialist - no user-facing UI; the operator-facing behav
 EXCLUDE - lisa:quality-specialist - lisa-git-submit-pr runs local review plus CodeRabbit on the PR.
 EXCLUDE - lisa:spec-conformance-specialist - verification-specialist checks the 8 Gherkin scenarios directly.
 EXCLUDE - lisa:debug-specialist - root cause already established by grep evidence on 394e2c9.
-EXCLUDE - lisa:security-specialist - no auth, secrets, or input-handling code changes (only an ignore entry for a local file).
+INCLUDE - lisa:security-specialist - (amended after PR review) the change persists tracker comments, which may quote credentials, to a local file and defines how that content moves between agents; it needs a CWE-200 review of the handoff, the ignore and EAS-upload exclusions, and the prompt/task/tracker surfaces.
 EXCLUDE - lisa:performance-specialist - no runtime code path.
 EXCLUDE - lisa:builder - this is a Fix; bug-fixer is the matching type.
 EXCLUDE - lisa:git-history-analyzer - history not needed to decide the fix.
