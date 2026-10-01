@@ -19,3 +19,6 @@
 3. Verify (verification-specialist) — independent verdict.
 4. Learnings (learner).
 5. PR → merge → release → npm.
+
+## Tooling-gap candidates
+- {"marker":"lisa-tooling-gap","desire":"hook-friendly way to commit a RED test separately while plugins/src is dirty","why":"lets TDD RED land as its own commit instead of only in the report","provenance":["CodySwannGT/lisa#4323"]}
