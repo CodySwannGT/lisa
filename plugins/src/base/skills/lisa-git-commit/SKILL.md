@@ -19,9 +19,9 @@ Create conventional commits for current changes. Optional hint: $ARGUMENTS
 
 1. **Branch Check**: If on `dev`, `staging`, or `main`, create a feature branch named after the changes
 2. **Commit Strategy**: Group related changes into logical conventional commits (feat, fix, chore, docs, etc.)
-3. **Commit ALL Files**: Every file must be assigned to a commit group - no file gets left out or unstaged
+3. **Commit ALL Files**: Every file must be assigned to a commit group - no file gets left out or unstaged. **Local-only exception:** never stage `.lisa/work-item-context.md`, or any other file the work-item context contract marks local-only, even when it is untracked and not ignored — it can quote credentials from tracker comments. Leave it untracked, and say in your report that it was left out and why.
 4. **Commit Creation**: Stage and commit each group with clear messages
-5. **Verification**: Run `git status` to confirm working directory is clean - must show "nothing to commit"
+5. **Verification**: Run `git status` to confirm working directory is clean - must show "nothing to commit" (apart from a local-only file left untracked under rule 3)
 
 ### Use conventional commit format
 

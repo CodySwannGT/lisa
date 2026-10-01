@@ -219,7 +219,7 @@ describe.each(
   it("writes the bundle to the file first and passes only its path", () => {
     const skill = read(skillPath);
     expect(skill).toMatch(
-      /before invoking `lisa-implement`, write the bundle verbatim/
+      /before invoking `lisa-implement`, run the ignore guard below, then write the bundle verbatim/
     );
     expect(skill).toContain(
       "pass only `caller_bundle_path=<absolute path>` in the invocation"

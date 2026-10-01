@@ -1155,7 +1155,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-generate-claude-remote-build-script/SKILL.md":
       "214ed34793b9758a65930ef2a79eea8e44ee1f6c85a35b92fbc621cb539e0c69",
     "plugins/src/base/skills/lisa-git-commit/SKILL.md":
-      "2ed235b2bcafa314eb83243edd2ceebd6e241303f5354b7f5766d89046a40bac",
+      "5bd0cf02c5e274351c8eb32978f59416c23ffba4af7acf1cf5103a8d9b0a3b74",
     "plugins/src/base/skills/lisa-git-prune/SKILL.md":
       "11fad06d109538f1a8ee4ef8043bb0e083672e3c9a7cb7ae8a7233c5411d6dd2",
     "plugins/src/base/skills/lisa-git-submit-pr/SKILL.md":
@@ -1163,7 +1163,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-add-journey/SKILL.md":
       "4ceda3474a9b32abae835c2676e8cb2b7e888c6ba04b95843dbe7254293bbf32",
     "plugins/src/base/skills/lisa-github-build-intake/SKILL.md":
-      "6ee1df2943d167e5a018876f8e6db6efc6b527c47851779d782a4204e86e7e3e",
+      "7f57561de7ab16b2187129866d8aa0b420bb676cd8b0fd9bb90d206da5686bbd",
     "plugins/src/base/skills/lisa-github-claim/SKILL.md":
       "71301c6d45d7eb5523e74aa7f070bb2becf57ca68fb8bde9e02ee937b78815f7",
     "plugins/src/base/skills/lisa-github-create/SKILL.md":
@@ -1195,7 +1195,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-health/SKILL.md":
       "dfdb08a863e78bff42671793dcec29cfae0654db18ebf66a4aa77aeb56ddb775",
     "plugins/src/base/skills/lisa-implement/SKILL.md":
-      "6c8bdde234ad86adcb49615736267a7cdd64e0bf373da91a13bb7ab16735bc13",
+      "20e62c4eacfbb77e0713ed4e552524e035a582f676d057d246cb43b714508deb",
     "plugins/src/base/skills/lisa-improve-code-complexity/SKILL.md":
       "24ab5b193b409db6ee6bee981a1c0a48d08991782d7846116ad01658c8bc1ae8",
     "plugins/src/base/skills/lisa-improve-harness/SKILL.md":
@@ -1217,7 +1217,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-jira-add-journey/SKILL.md":
       "a00606cc7927f034e847f34d7e44e72fa7f3a14ddf6a469deb7eae1e06531fd7",
     "plugins/src/base/skills/lisa-jira-build-intake/SKILL.md":
-      "924876d998980e387bc717e13e89044e5e77621bbcc38178f3f86e86d62ee841",
+      "a6cdec3ebf1d9471e575a43cd7483f3302696be36d3305a149a54cf8d212e2e2",
     "plugins/src/base/skills/lisa-jira-claim/SKILL.md":
       "9c4935441a4e6b55df0949178f96e927184c4909bffff8929b39a304bc5ac00a",
     "plugins/src/base/skills/lisa-jira-create/SKILL.md":
@@ -1255,7 +1255,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "e63ae35df1a928dac7b42535ce11e77e8c617e60838ba319f22081400e87886e",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
-      "7b314d1e73b36816377944de5312b48b2ce972d50ce74a51e1f777b4342d771e",
+      "6856f74e56258a622dbe0710e695f8024559155a5480cc439124e4cadcac20b7",
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md":
       "efde30b5eac8b2cc56499ce391bd3d43ebb017c4ce948b5d547b52acb66715bb",
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":
@@ -1493,7 +1493,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-ticket-triage/SKILL.md":
       "a4f2e75ee3792418aa3b6621f83c75832eea85ffe670e26e74da808611dcf34f",
     "plugins/src/base/skills/lisa-track/SKILL.md":
-      "68d6447454b3f37626fecaea5a38a3bdd98fce7fb3b636c3e5e67cbaac72f6cd",
+      "0e1410e64144b13f28945c3c56dbc391ee0c299915fa51402649c3b93e33a1ec",
     "plugins/src/base/skills/lisa-tracker-add-journey/SKILL.md":
       "a3da2e0350bcdebcdcc05f2d7931af868382638d3a28d09d4718f2f458d4be0a",
     "plugins/src/base/skills/lisa-tracker-build-intake/SKILL.md":
@@ -11066,6 +11066,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/wiki-status-verdicts.test.ts": true,
     "tests/unit/strategies/work-item-comment-completeness-contract.test.ts": true,
     "tests/unit/strategies/work-item-context-handoff-contract.test.ts": true,
+    "tests/unit/strategies/work-item-context-local-only-contract.test.ts": true,
     "tests/unit/sync/config-sync-artifacts.test.ts": true,
     "tests/unit/sync/config-sync.test.ts": true,
     "tests/unit/sync/health-schedule.test.ts": true,
