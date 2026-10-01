@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.66.5](https://github.com/CodySwannGT/lisa/compare/v4.66.4...v4.66.5) (2026-10-01)
+
+
+### Bug Fixes
+
+* **agents:** scope the work-item context gate to work-item tasks ([c8da64d](https://github.com/CodySwannGT/lisa/commit/c8da64df4c6b2ffe3bf9c9aeb1ca707558eb3372)), closes [CodySwannGT/lisa#4323](https://github.com/CodySwannGT/lisa/issues/4323) [CodySwannGT/lisa#4323](https://github.com/CodySwannGT/lisa/issues/4323)
+* **deps:** bump brace-expansion to patched releases within each major ([528c0b9](https://github.com/CodySwannGT/lisa/commit/528c0b98ec9035a544816e3f9c29ec23631b4d99)), closes [CodySwannGT/lisa#4323](https://github.com/CodySwannGT/lisa/issues/4323) [CodySwannGT/lisa#4323](https://github.com/CodySwannGT/lisa/issues/4323)
+* **skills:** carve the local-only exception into lisa-git-commit's blanket rules ([9a9a7b1](https://github.com/CodySwannGT/lisa/commit/9a9a7b1bcb69e74c57a22e3ea5d8593369507b28)), closes [CodySwannGT/lisa#4323](https://github.com/CodySwannGT/lisa/issues/4323) [CodySwannGT/lisa#4323](https://github.com/CodySwannGT/lisa/issues/4323)
+* **skills:** close the work-item context handoff gaps found in verification ([3ddd9cb](https://github.com/CodySwannGT/lisa/commit/3ddd9cbfa423fe46471c3e090ae2db0036c48066)), closes [CodySwannGT/lisa#4323](https://github.com/CodySwannGT/lisa/issues/4323) [CodySwannGT/lisa#4323](https://github.com/CodySwannGT/lisa/issues/4323)
+* **skills:** default work-item tasks to the context file and carve every commit-all step ([a14d9df](https://github.com/CodySwannGT/lisa/commit/a14d9df87a5ae403fe9dfb68292d1221f711bbf5)), closes [CodySwannGT/lisa#4323](https://github.com/CodySwannGT/lisa/issues/4323) [CodySwannGT/lisa#4323](https://github.com/CodySwannGT/lisa/issues/4323)
+* **skills:** flatten paginated GitHub comment pages before counting ([f2f1cba](https://github.com/CodySwannGT/lisa/commit/f2f1cbacd134560e5c49b922680adffe0f7755c2)), closes [CodySwannGT/lisa#4323](https://github.com/CodySwannGT/lisa/issues/4323) [CodySwannGT/lisa#4323](https://github.com/CodySwannGT/lisa/issues/4323)
+* **skills:** guard the work-item context file as local-only before every write ([10e9823](https://github.com/CodySwannGT/lisa/commit/10e9823d2f51ceb3ddb467b7fb3aa95fec42844a)), closes [CodySwannGT/lisa#4323](https://github.com/CodySwannGT/lisa/issues/4323) [CodySwannGT/lisa#4323](https://github.com/CodySwannGT/lisa/issues/4323)
+* **skills:** hand the caller bundle over by file path, never by prompt text ([8a772e5](https://github.com/CodySwannGT/lisa/commit/8a772e5d52a0d69b4ef89c44b26febbf95062710)), closes [CodySwannGT/lisa#4323](https://github.com/CodySwannGT/lisa/issues/4323) [CodySwannGT/lisa#4323](https://github.com/CodySwannGT/lisa/issues/4323)
+* **skills:** keep credentials out of the inventory and paginate every tracker's comments ([575b464](https://github.com/CodySwannGT/lisa/commit/575b464766d2c0725b9ce57c39cbb3d28879da9c)), closes [CodySwannGT/lisa#4323](https://github.com/CodySwannGT/lisa/issues/4323) [CodySwannGT/lisa#4323](https://github.com/CodySwannGT/lisa/issues/4323)
+* **skills:** persist the full work-item bundle and make every agent read it ([5efd547](https://github.com/CodySwannGT/lisa/commit/5efd547e8d8829031f64938408573e2ef8f0c853)), closes [CodySwannGT/lisa#4323](https://github.com/CodySwannGT/lisa/issues/4323) [CodySwannGT/lisa#4323](https://github.com/CodySwannGT/lisa/issues/4323)
+
 ### [4.66.4](https://github.com/CodySwannGT/lisa/compare/v4.66.3...v4.66.4) (2026-09-27)
 
 
