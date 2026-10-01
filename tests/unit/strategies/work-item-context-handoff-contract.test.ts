@@ -30,6 +30,8 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const CONTEXT_FILE = ".lisa/work-item-context.md";
+const PATH_ONLY_RULE =
+  "Bundle text, and any credential value in it, never appears in a spawn prompt, task description, or Skill argument — only its path.";
 
 const SKILL_ROOTS = [
   "plugins/src/base/skills",
@@ -131,12 +133,16 @@ describe.each(skillPaths("lisa-implement"))(
       );
     });
 
-    it("has the lead forward a caller bundle verbatim into the resolver's spawn prompt", () => {
-      // The resolver can persist only what it receives; before this, it was
-      // handed `lisa-track $ARGUMENTS` alone and the caller bundle went nowhere.
-      expect(skill).toMatch(
-        /pastes that bundle verbatim into the input-resolver's spawn prompt under a `caller_bundle:` heading/
+    it("has the lead forward a caller bundle to the resolver by path only", () => {
+      // The resolver can persist only what it receives, but pasting the bundle
+      // into a spawn prompt would copy any credential it quotes into the prompt
+      // (CWE-200). The handoff is the git-ignored file; only its path travels.
+      expect(skill).toContain(
+        "The lead forwards only `caller_bundle_path: <absolute path>` in the input-resolver's spawn prompt"
       );
+      expect(skill).toContain(PATH_ONLY_RULE);
+      expect(skill).not.toMatch(/pastes that bundle verbatim/);
+      expect(skill).not.toContain("`caller_bundle:`");
     });
 
     it("writes the flagged inventory into the file as a trailing section", () => {
@@ -183,14 +189,14 @@ describe.each(skillPaths("lisa-track"))(
 
     it("is the first write, in the same order lisa-implement states", () => {
       expect(skill).toMatch(
-        /this is the first write; when `lisa-implement` forwarded a `caller_bundle`/
+        /this is the first write; when `lisa-implement` forwarded a `caller_bundle_path`/
       );
       expect(skill).toContain("`## Comment inventory` section");
     });
 
-    it("never clobbers an existing file on a re-run that forwarded a caller bundle", () => {
+    it("never clobbers an existing file when a caller bundle path was forwarded", () => {
       expect(skill).toMatch(
-        /Re-run safety: when a `caller_bundle` was forwarded for this work item and the file already exists, do not overwrite it/
+        /When a `caller_bundle_path` was forwarded for this work item and the file already exists, do not overwrite it/
       );
     });
   }
@@ -208,6 +214,17 @@ describe.each(
         `bundle[^\\n]*persist[^\\n]*${CONTEXT_FILE.replace(/[./]/g, "\\$&")}`
       )
     );
+  });
+
+  it("writes the bundle to the file first and passes only its path", () => {
+    const skill = read(skillPath);
+    expect(skill).toMatch(
+      /before invoking `lisa-implement`, write the bundle verbatim/
+    );
+    expect(skill).toContain(
+      "pass only `caller_bundle_path=<absolute path>` in the invocation"
+    );
+    expect(skill).toContain(PATH_ONLY_RULE);
   });
 });
 
@@ -255,110 +272,6 @@ describe.each(
     );
   });
 });
-
-const COMPLETENESS_HEADING =
-  "### Comments (<fetched> of <total>; comments_complete: <true|false>)";
-
-describe.each(skillPaths("lisa-github-read-issue"))(
-  "lisa-github-read-issue always paginates comments (%s)",
-  skillPath => {
-    const skill = read(skillPath);
-
-    it("reads comments through the paginated endpoint unconditionally", () => {
-      expect(skill).toContain(
-        "`gh api repos/<org>/<repo>/issues/<number>/comments --paginate --slurp | jq 'add // []'`"
-      );
-      // `--paginate` alone prints one array per page; a count over that raw
-      // output undercounts, so completeness must be measured after flattening.
-      expect(skill).toMatch(
-        /The fetched count is the number of comments after flattening/
-      );
-      expect(skill).not.toContain("If pagination matters");
-    });
-
-    it("emits the shared completeness heading and INCOMPLETE line", () => {
-      expect(skill).toContain(COMPLETENESS_HEADING);
-      expect(skill).toContain('"INCOMPLETE — <fetched> of <total>');
-      expect(skill).toMatch(/set `comments_complete: false`/);
-    });
-  }
-);
-
-describe.each(skillPaths("lisa-linear-read-issue"))(
-  "lisa-linear-read-issue pages comments to exhaustion (%s)",
-  skillPath => {
-    const skill = read(skillPath);
-
-    it("follows pageInfo until hasNextPage is false", () => {
-      expect(skill).toMatch(
-        /Page to exhaustion: request the next page while `pageInfo.hasNextPage` is true/
-      );
-    });
-
-    it("emits the shared completeness heading and INCOMPLETE line", () => {
-      expect(skill).toContain(COMPLETENESS_HEADING);
-      expect(skill).toContain('"INCOMPLETE — <fetched> of <total>');
-      expect(skill).toMatch(/set `comments_complete: false`/);
-    });
-  }
-);
-
-describe.each(skillPaths("lisa-atlassian-access"))(
-  "lisa-atlassian-access paginates comment reads (%s)",
-  skillPath => {
-    const skill = read(skillPath);
-
-    it("dispatches a comments read operation against the paginated endpoint", () => {
-      expect(skill).toMatch(
-        /\| `comments key:<K>`[^\n]*\/comment\?startAt=<n>&maxResults=100&orderBy=created/
-      );
-    });
-
-    it("documents pagination until exhausted in the comments section itself", () => {
-      const body = section(
-        skill,
-        "### `comments` — every comment on one issue"
-      );
-      expect(body).toContain("startAt + maxResults >= total");
-      expect(body).toMatch(/never silently truncated/);
-    });
-
-    it("marks an MCP-only capped read incomplete with fetched-versus-total counts", () => {
-      const body = section(
-        skill,
-        "### `comments` — every comment on one issue"
-      );
-      expect(body).toContain(
-        "`comments_complete`, `comments_fetched`, and `comments_total`"
-      );
-      expect(body).toMatch(
-        /only the MCP substrate[^\n]*`comments_complete: false`/
-      );
-    });
-  }
-);
-
-describe.each(skillPaths("lisa-jira-read-ticket"))(
-  "lisa-jira-read-ticket uses the paginated read (%s)",
-  skillPath => {
-    const skill = read(skillPath);
-
-    it("reads the primary ticket's comments through the comments operation", () => {
-      expect(skill).toContain("`operation: comments key: <TICKET-KEY>`");
-    });
-
-    it("reads the epic parent's comments through the comments operation", () => {
-      expect(skill).toContain("`operation: comments key: <EPIC-KEY>`");
-    });
-
-    it("surfaces incomplete comments in the bundle", () => {
-      expect(skill).toMatch(/reports `comments_complete: false`[^\n]*MCP-only/);
-      expect(skill).toContain(
-        "### Comments (<fetched> of <total>; comments_complete: <true|false>)"
-      );
-    });
-  }
-);
 
 describe("the context file is ignored, not the .lisa directory", () => {
   const rules = (relativePath: string): readonly string[] =>
