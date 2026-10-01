@@ -1155,7 +1155,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-generate-claude-remote-build-script/SKILL.md":
       "214ed34793b9758a65930ef2a79eea8e44ee1f6c85a35b92fbc621cb539e0c69",
     "plugins/src/base/skills/lisa-git-commit/SKILL.md":
-      "5bd0cf02c5e274351c8eb32978f59416c23ffba4af7acf1cf5103a8d9b0a3b74",
+      "0e6ccd385ecdb9a579f3c25a22f770c3a30286e6f8f601316783ecb9d1ad2617",
     "plugins/src/base/skills/lisa-git-prune/SKILL.md":
       "11fad06d109538f1a8ee4ef8043bb0e083672e3c9a7cb7ae8a7233c5411d6dd2",
     "plugins/src/base/skills/lisa-git-submit-pr/SKILL.md":

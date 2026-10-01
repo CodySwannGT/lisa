@@ -95,6 +95,25 @@ describe.each(skillPaths("lisa-git-commit"))(
       expect(skill).toMatch(/even when it is untracked and not ignored/);
       expect(skill).toMatch(/Leave it untracked, and say in your report/);
     });
+
+    it("carves the exception into every blanket commit-everything rule", () => {
+      // A blanket "Never" rule left unqualified contradicts the exception, and
+      // an agent resolving that conflict toward "commit everything" pushes the
+      // credentials the exception exists to protect.
+      const never = skill.slice(skill.indexOf("### Never"));
+      for (const rule of [
+        "- stash changes - ALL changes must be committed",
+        "- skip or exclude any files from the commit",
+        "- leave uncommitted changes in the working directory",
+        "- ask the user which files to commit - commit everything",
+      ]) {
+        const line = never.split("\n").find(l => l.startsWith(rule)) ?? "";
+        expect(line).toContain("local-only `.lisa/work-item-context.md`");
+      }
+      expect(skill).toMatch(
+        /Every rule below that says "all" or "everything" excludes the local-only `\.lisa\/work-item-context\.md`/
+      );
+    });
   }
 );
 
