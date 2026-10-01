@@ -242,8 +242,10 @@ describe.each(
     expect(body).toContain(CONTEXT_FILE);
   });
 
-  it("reads the file in full before acting", () => {
-    expect(body).toMatch(/in full before/);
+  it("reads the file in full first when the task belongs to a work item", () => {
+    expect(body).toMatch(
+      /^When your task belongs to a tracked work item — it names `work_item_context` or a work-item ref — read the work-item context file in full before/m
+    );
   });
 
   it("treats flagged comments as obligations", () => {
@@ -258,9 +260,13 @@ describe.each(
     expect(body).toMatch(/at the root of the bound worktree/);
   });
 
-  it("stops and reports a missing file instead of working from memory", () => {
-    expect(body).toMatch(/report that to the team lead and stop/);
-    expect(body).toMatch(/never proceed from memory/);
+  it("fails closed for a work-item task, and lets a non-work-item task use its own source", () => {
+    expect(body).toMatch(
+      /If a work-item task's context file is missing or unreadable, report that to the team lead and stop — never proceed from memory/
+    );
+    expect(body).toMatch(
+      /A task with no work item — one that hands you a plan file, a PRD, a raw error, or a log — proceeds from the source the task supplies/
+    );
   });
 
   it("keeps a credential-flagged secret inside the context file", () => {

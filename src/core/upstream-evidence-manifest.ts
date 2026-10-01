@@ -561,15 +561,15 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/package-lisa/package.lisa.json":
       "955c3e7489877e16e29641859be3c77a4de8a356dc837f66577f5ea60511bf79",
     "plugins/src/base/agents/architecture-specialist.md":
-      "9c29b5554b97c6a7f0e5f09b2c300d36798f230aad7de03de67ad7c5c9cf8062",
+      "f3a6dc29fa920e229257db873d013ead5d227dd13230709189ebde490b27db94",
     "plugins/src/base/agents/bug-fixer.md":
-      "1d319ac4f47f2632e91e6e7fdf19e129547c66df2391b87ce3c7a00d5bf93b37",
+      "24984bea991572a593d0d6d7268938afc0b563a589e7db7e671616432556a4f4",
     "plugins/src/base/agents/builder.md":
-      "0abe67723edcd08e0e089c4b920df2f2f1dec072533d598a65eec9c91d9d2a58",
+      "6e9b7938cce38e40a4f62460c97a0f658a8a634c37a0072bc62097855c045375",
     "plugins/src/base/agents/confluence-prd-intake.md":
       "735df81802464abe79fa0f3878ad66dc13a8bf8a8420da28f31392c6e1e3693c",
     "plugins/src/base/agents/debug-specialist.md":
-      "25e4446aa9d06d2fea1f83cb5d8448ed5d109d9f6b063b156717d0e73fe9b5c7",
+      "ba1f3e1f5b871548ac4011af16c42076fdf3b74a4cc3de5476a8cf700ef0cb9f",
     "plugins/src/base/agents/eval-specialist.md":
       "9abdbf2b356ab1a5881bf993cf77ef6eb37c5e196693456e3f31f4557e43e4d0",
     "plugins/src/base/agents/git-history-analyzer.md":
@@ -603,21 +603,21 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/agents/pr-mining-specialist.md":
       "2bf5b933b43ddfbcc9c67f9b98bd68bc6c99ab0c47dca96dcd9e340960df8e55",
     "plugins/src/base/agents/product-specialist.md":
-      "237a46ec29e1f65b279c3b7ecd7510f67447348ce53b0905479a0d06617ab932",
+      "7bb51dc8269ea707c40c45b98e0f088e3c43d51a76210259b2c233d972499e11",
     "plugins/src/base/agents/quality-specialist.md":
-      "a91a20d21e26bc33abdc5f7110be3d9e37f60ffca8e1993426775c3e3bd5779e",
+      "50d3b6ba09a6999e89f2c8f304fa14b9463273bf9e56f68b9ad9051ebf6fb09f",
     "plugins/src/base/agents/security-specialist.md":
       "0952dee7bf1c04f978b0f8125a91425bf639e9b645de1a4b05ad945b9041bea7",
     "plugins/src/base/agents/skill-evaluator.md":
       "56bfb1ffbf0fdea0993b324f96b1c837444909c650b2093cefb3f60fdf27df44",
     "plugins/src/base/agents/spec-conformance-specialist.md":
-      "7723f2ab57d81b3edddc26ccab65c882aab0941a95c605926a3609f63fb6f9c0",
+      "1f336cbeb920dfe51482edc437ee47142b82b407bc29fa19a02faca039dedeb4",
     "plugins/src/base/agents/test-specialist.md":
-      "a05bc8b7c0f906c21520bd0cf7af67882c423db3f66d5753dbbb114eca1f6dca",
+      "f1880c9ab8366982193fa55f928242826deb71ebec3189d1ea518cd39ef08900",
     "plugins/src/base/agents/tracker-mining-specialist.md":
       "fef49c3ca8622c83a54d34b3f960471e0f2ad50e6889f691585b0f208180f6bd",
     "plugins/src/base/agents/verification-specialist.md":
-      "bd95d7410d3c4f19fcc0dd134f2af0020caec19aee3f3199f3e6fd3c5b887bbc",
+      "69d91311386ef82d80ea6c12c9ad8fd3adf0be8316853b53a1f9ac5607bfef1c",
     "plugins/src/base/commands/agent-ready.md":
       "b1bc19c90330b9885b44f733e83cc6b44afa9b5e9fd2e9aba99995480e0829e1",
     "plugins/src/base/commands/analyze-claude-remote.md":
