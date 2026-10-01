@@ -57,6 +57,8 @@ The team lead does NOT read the input directly. The first task on the team's pla
 
 The input-resolver invokes `lisa-track $ARGUMENTS` and owns its complete resolve -> claim -> bind transaction:
 
+**Forward a caller-supplied bundle.** When this skill was invoked with a context bundle already attached (a build-intake or repair-intake dispatch), the lead pastes that bundle verbatim into the input-resolver's spawn prompt under a `caller_bundle:` heading, next to `lisa-track $ARGUMENTS`. Forwarding text the lead already holds is not reading the ticket; summarizing or trimming it on the way is forbidden, because the resolver can persist only what it receives.
+
 - **Explicit ticket:** call `lisa-tracker-read` against the configured tracker and require a live open/unresolved current-project leaf. **Mismatch guard:** if the ticket format/project does not match the configured tracker (for example, a GitHub URL when `tracker` is `jira`), stop — never auto-translate vendors or trust pasted/stale ticket text. The read captures comments, graph, and metadata, not just the description.
 - **Specification file:** read the entire file without offset or limit, preserve it as the resolved input, and follow the plain-text resolution path below.
 - **Plain text or file contents:** search the configured project conservatively for open leaves describing the same outcome. Live-validate every candidate through `lisa-tracker-read`; reuse only exactly one high-confidence match. When there is no unique match (zero or ambiguous candidates), synthesize one complete single-repository leaf and invoke `lisa-tracker-write` exactly once with `build_ready: true`, then live-read its canonical returned ref. Never create a thin placeholder, hierarchy, or container.
@@ -68,8 +70,9 @@ The input-resolver invokes `lisa-track $ARGUMENTS` and owns its complete resolve
   ```
 
   Require a successful readback of that worktree-local binding. On detached HEAD, `branch: null` is the expected pending binding; after branch creation the mandatory `attach-branch` step below must replace it before any commit. Tracker or binding failure stops the flow; never continue untracked.
-- **Persist the bundle verbatim to `.lisa/work-item-context.md`.** Write the vendor read skill's context bundle unedited — description, every comment in full and in order, graph, and metadata — to `${LISA_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-.}}/.lisa/work-item-context.md`, overwriting any earlier copy. Never summarize, trim, or paraphrase it; downstream agents act on this file, so anything left out of it is lost to them. The file is worktree-local and git-ignored; never stage it. **Caller-supplied bundle:** when the caller (for example a build-intake dispatch) already passed a full context bundle, persist that caller-supplied bundle instead of discarding it, appending only what the live read adds; the live validation and claim still run exactly as above.
-- Return `work_item_context: .lisa/work-item-context.md`, `tracker_provider`, canonical `work_item_ref`, resolution outcome, claim outcome, and verified binding to the team lead, plus a per-comment inventory — one line per comment with author, date, one-line gist, and flags for any decision, constraint, credential/access, or reproduction step it carries. The inventory indexes the file; it never replaces it. The team lead then proceeds to roster selection.
+- **Persist the bundle verbatim to `.lisa/work-item-context.md`.** There is one writer order. `lisa-track` has already written its live read, unedited, to `<worktree root>/.lisa/work-item-context.md`. With no `caller_bundle`, keep that file as written. With a caller-supplied bundle, persist it instead of discarding it: overwrite the file with the caller bundle verbatim, then append under `## Added by live read` only what the live read carries that the caller bundle lacks (newer comments, changed status or graph). Either way the live validation and claim still run exactly as above. Never summarize, trim, or paraphrase the bundle; downstream agents act on this file, so anything left out of it is lost to them. The file is worktree-local and git-ignored; never stage it.
+- **Append the per-comment inventory to the file.** Finish the file with a trailing `## Comment inventory` section: one line per comment with author, date, one-line gist, and flags from `decision|constraint|credential|repro` for each decision, constraint, credential/access note, or reproduction step it carries. The inventory indexes the bundle above it; it never replaces it.
+- Return `work_item_context: <absolute path of the file>`, the same per-comment inventory, `tracker_provider`, canonical `work_item_ref`, resolution outcome, claim outcome, and verified binding to the team lead, who then proceeds to roster selection.
 
 The input resolver may perform these tracker and local-binding operations before the Roster Decision because they are the mandatory gate that establishes what work the team is allowed to do. No project source, documentation, plan artifact, branch, or task may be created or changed before this transaction succeeds. Read-only discussion/orientation outside an Implement flow remains exempt per the `tracked-work` rule.
 
@@ -212,7 +215,7 @@ Using the general-purpose agent in Team Lead session, create tasks needed to com
 
 Every task MUST include this JSON metadata block. Do NOT omit `skills` (use `[]` if none), `learnings` (use `[]` if none), `required_access` (use `[]` if the task needs no external tool), `work_item_context`, or `verification`.
 
-Every task description and every teammate prompt names `.lisa/work-item-context.md` and tells the teammate to read it in full before acting; each comment the resolver's inventory flagged is an obligation the plan and the verification must each address explicitly.
+Every task description and every teammate prompt names the absolute `work_item_context` path the resolver returned (the worktree's `.lisa/work-item-context.md`), pastes the resolver's per-comment inventory, and tells the teammate to read the file in full before acting; each comment the inventory flagged is an obligation the plan and the verification must each address explicitly.
 
 ```json
 {
@@ -220,7 +223,7 @@ Every task description and every teammate prompt names `.lisa/work-item-context.
   "type": "spike|bug|task|epic|story",
   "acceptance_criteria": ["..."],
   "relevant_documentation": "",
-  "work_item_context": ".lisa/work-item-context.md",
+  "work_item_context": "<absolute path returned by the resolver, ending in .lisa/work-item-context.md>",
   "testing_requirements": ["..."],
   "skills": ["..."],
   "learnings": [{ "kind": "mistake", "note": "one line", "evidence": "optional ref" }],

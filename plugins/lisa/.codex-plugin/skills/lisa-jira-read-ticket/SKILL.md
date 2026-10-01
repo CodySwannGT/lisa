@@ -56,7 +56,7 @@ After download, branch on `mimeType`:
 
 ### Comments
 
-Fetch ALL comments in chronological order via `lisa-atlassian-access` `operation: comments key: <TICKET-KEY>`, which pages until every comment is read — the comments embedded in `read-ticket` are only the first page. Do not truncate. If a page fails, mark the comments incomplete with the count read out of `total`. For each:
+Fetch ALL comments in chronological order via `lisa-atlassian-access` `operation: comments key: <TICKET-KEY>`, which pages until every comment is read — the comments embedded in `read-ticket` are only the first page. Do not truncate. If the result reports `comments_complete: false` (a failed page, or an MCP-only read that could not page), say so at the top of the bundle's Comments section with the fetched-versus-total counts, so no downstream agent mistakes a partial set for the whole. For each:
 - Author, timestamp, body
 - Flag comments that contain: credentials, reproduction steps, status updates from stakeholders, decisions, or triage headers like `[repo-name]`
 
@@ -135,7 +135,8 @@ Produce a single structured output that the caller can pass verbatim to downstre
 ### Validation Journey
 <section or "None">
 
-### Comments (<count>)
+### Comments (<fetched> of <total>; comments_complete: <true|false>)
+<when incomplete: "INCOMPLETE — <fetched> of <total> comments read via <substrate>">
 <chronological comments, flagged items called out>
 
 ### Attachments

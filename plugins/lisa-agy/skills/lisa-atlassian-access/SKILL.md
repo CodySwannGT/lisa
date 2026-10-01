@@ -432,6 +432,7 @@ Operations not in this table are unsupported — add an adapter row before using
 - **Shape.** For each entry in `comments[]` emit `{ id, author, created, body }` — `author.displayName`/`accountId`, `created` (ISO timestamp), and `body` converted from ADF to plain text with headings, lists, code, and links preserved.
 - **Pagination.** Start at `startAt=0` and request the next page until `startAt + maxResults >= total`, preserving order across pages. Never stop at the first page.
 - **Empty is valid.** An issue with no comments returns `total: 0`; that is a result, not an error.
+- **Completeness fields.** Every result carries `comments_complete`, `comments_fetched`, and `comments_total`; `comments_complete: true` only when `comments_fetched == comments_total`. When only the MCP substrate is available and it cannot page past its first batch, return what it gave with `comments_complete: false` and the fetched-versus-total counts — never present a capped set as the whole.
 - **Graceful degrade.** A failed page (network, auth, missing substrate) returns the substrate contract's `Error:` result for that page. Callers record the issue's comments as **incomplete** — naming how many of `total` were read — so a partial set is never silently truncated into looking complete.
 
 ### Step 4 — Return result

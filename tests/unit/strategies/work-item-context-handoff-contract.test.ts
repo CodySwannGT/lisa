@@ -120,10 +120,41 @@ describe.each(skillPaths("lisa-implement"))(
       expect(skill).toMatch(/live validation and claim still run/);
     });
 
-    it("makes every task carry the context file path", () => {
-      expect(skill).toContain(`"work_item_context": "${CONTEXT_FILE}"`);
+    it("makes every task carry the absolute context file path and the inventory", () => {
+      expect(skill).toMatch(
+        /"work_item_context": "<absolute path[^"]*\.lisa\/work-item-context\.md>"/
+      );
       expect(skill).toMatch(/Do NOT omit[^\n]*`work_item_context`/);
       expect(skill).toMatch(/every teammate prompt[^\n]*work-item-context/i);
+      expect(skill).toMatch(
+        /every teammate prompt[^\n]*pastes the resolver's per-comment inventory/i
+      );
+    });
+
+    it("has the lead forward a caller bundle verbatim into the resolver's spawn prompt", () => {
+      // The resolver can persist only what it receives; before this, it was
+      // handed `lisa-track $ARGUMENTS` alone and the caller bundle went nowhere.
+      expect(skill).toMatch(
+        /pastes that bundle verbatim into the input-resolver's spawn prompt under a `caller_bundle:` heading/
+      );
+    });
+
+    it("writes the flagged inventory into the file as a trailing section", () => {
+      expect(skill).toContain("trailing `## Comment inventory` section");
+      expect(skill).toContain("`decision|constraint|credential|repro`");
+    });
+
+    it("states one writer order: keep the live read, or caller bundle plus live additions", () => {
+      expect(skill).toContain("There is one writer order.");
+      expect(skill).toMatch(/`lisa-track` has already written its live read/);
+      expect(skill).toMatch(/append under `## Added by live read` only/);
+      expect(skill).not.toContain("overwriting any earlier copy");
+    });
+
+    it("returns the absolute path", () => {
+      expect(skill).toContain(
+        "Return `work_item_context: <absolute path of the file>`"
+      );
     });
   }
 );
@@ -131,8 +162,19 @@ describe.each(skillPaths("lisa-implement"))(
 describe.each(skillPaths("lisa-track"))(
   "lisa-track returns the context file (%s)",
   skillPath => {
-    it("names the context file in the structured return block", () => {
-      expect(read(skillPath)).toContain(`work_item_context: ${CONTEXT_FILE}`);
+    const skill = read(skillPath);
+
+    it("names the absolute context file path in the structured return block", () => {
+      expect(skill).toContain(
+        `work_item_context: <absolute path to ${CONTEXT_FILE}>`
+      );
+    });
+
+    it("is the first write, in the same order lisa-implement states", () => {
+      expect(skill).toMatch(
+        /This is the first write; when `lisa-implement` forwarded a `caller_bundle`/
+      );
+      expect(skill).toContain("`## Comment inventory` section");
     });
   }
 );
@@ -172,6 +214,19 @@ describe.each(
 
   it("treats flagged comments as obligations", () => {
     expect(body).toMatch(/flagged comment[^\n]*obligation/i);
+    expect(body).toContain("`## Comment inventory`");
+  });
+
+  it("reads the absolute path its task gives, falling back to the bound worktree", () => {
+    expect(body).toContain(
+      "absolute path your task gives as `work_item_context`"
+    );
+    expect(body).toMatch(/at the root of the bound worktree/);
+  });
+
+  it("stops and reports a missing file instead of working from memory", () => {
+    expect(body).toMatch(/report that to the team lead and stop/);
+    expect(body).toMatch(/never proceed from memory/);
   });
 });
 
@@ -194,6 +249,19 @@ describe.each(skillPaths("lisa-atlassian-access"))(
       expect(body).toContain("startAt + maxResults >= total");
       expect(body).toMatch(/never silently truncated/);
     });
+
+    it("marks an MCP-only capped read incomplete with fetched-versus-total counts", () => {
+      const body = section(
+        skill,
+        "### `comments` — every comment on one issue"
+      );
+      expect(body).toContain(
+        "`comments_complete`, `comments_fetched`, and `comments_total`"
+      );
+      expect(body).toMatch(
+        /only the MCP substrate[^\n]*`comments_complete: false`/
+      );
+    });
   }
 );
 
@@ -208,6 +276,13 @@ describe.each(skillPaths("lisa-jira-read-ticket"))(
 
     it("reads the epic parent's comments through the comments operation", () => {
       expect(skill).toContain("`operation: comments key: <EPIC-KEY>`");
+    });
+
+    it("surfaces incomplete comments in the bundle", () => {
+      expect(skill).toMatch(/reports `comments_complete: false`[^\n]*MCP-only/);
+      expect(skill).toContain(
+        "### Comments (<fetched> of <total>; comments_complete: <true|false>)"
+      );
     });
   }
 );

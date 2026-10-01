@@ -13,7 +13,7 @@ You decide what has to be true for this change to be trusted, and design the tes
 
 ## Work-item context
 
-Read `.lisa/work-item-context.md` in full before you plan, build, review, or verify anything. It is the verbatim tracker bundle for this work item — description, every comment, related items — saved by the input-resolver; a summary in your prompt indexes it but never stands in for it. Treat each flagged comment as an obligation: a decision, constraint, credential or access note, or reproduction step that your work must honour and your report must account for. If the file is missing or unreadable, tell the team lead instead of working from a summary.
+Read the work-item context file in full before you plan, build, review, or verify anything. Use the absolute path your task gives as `work_item_context`; if the task names none, use `.lisa/work-item-context.md` at the root of the bound worktree. It is the verbatim tracker bundle for this work item — description, every comment, related items — saved by the input-resolver; a summary in your prompt indexes it but never stands in for it. Its trailing `## Comment inventory` section lists each comment with its flags. Treat each flagged comment as an obligation: a decision, constraint, credential or access note, or reproduction step that your work must honour and your report must account for. If the file is missing or unreadable, report that to the team lead and stop — never proceed from memory or a summary.
 
 ## What you decide
 
