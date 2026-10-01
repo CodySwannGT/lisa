@@ -225,6 +225,11 @@ expo-env.d.ts
 # Freshness-bound standards proof is local runtime evidence, not knowledge.
 .lisa/standards/latest.json
 
+# Verbatim work-item bundle written by /lisa:implement's input-resolver. It can
+# quote credentials from tracker comments and is per-worktree state; rosters
+# and plans beside it stay trackable, so ignore the exact path only.
+.lisa/work-item-context.md
+
 # Remote-dispatch ledger. Records the sessions this machine started so a later
 # run can find them. Per developer by construction — each fires their own
 # routine under their own account — so committing it would collide on every

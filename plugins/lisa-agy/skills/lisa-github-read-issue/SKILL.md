@@ -63,13 +63,13 @@ Any other `##` section: capture under `extra_sections` so callers can see PRDs t
 
 ### Comments
 
-Fetch ALL comments. Do not truncate. The `comments` field from `gh issue view --json comments` includes author, body, createdAt for each. Flag comments that contain:
+Fetch ALL comments, always through the paginated endpoint, flattened into one array: `gh api repos/<org>/<repo>/issues/<number>/comments --paginate --slurp | jq 'add // []'` (author, body, created_at for each). `--paginate` alone emits one JSON array per page, so reading or counting its raw output undercounts; `--slurp` plus `jq 'add'` flattens the pages first. The `comments` field of `gh issue view --json` is not the source of record — it can be capped. Do not truncate. The fetched count is the number of comments after flattening (`... | jq 'add // [] | length'`); compare it with the issue's `comments` total (`gh api repos/<org>/<repo>/issues/<number> --jq .comments`); if they differ or a page fails, set `comments_complete: false` and say so at the top of the Comments section. Flag comments that contain:
 - Credentials, reproduction steps
 - Status updates from stakeholders
 - Decisions
 - Triage headers like `[<repo>]`
 
-If pagination matters (issues with hundreds of comments), use `gh api repos/<org>/<repo>/issues/<number>/comments --paginate` to get the full set.
+Pagination is unconditional — never skip `--paginate` because an issue looks short.
 
 ## Phase 3 — Fetch Sub-issue Graph (Parent + Children)
 
@@ -244,7 +244,8 @@ Produce a single structured output that the caller can pass verbatim to downstre
 #### Source Artifacts / Source Precedence / Links / Relationship Search / Repository / Sign-in Required / Target Backend Environment / Open Questions / Current Product
 <each verbatim, omit those not present>
 
-### Comments (<count>)
+### Comments (<fetched> of <total>; comments_complete: <true|false>)
+<when incomplete: "INCOMPLETE — <fetched> of <total> comments read via <substrate>">
 <chronological comments with author + ISO timestamp + body. Flagged items called out.>
 
 ## Sub-issue graph

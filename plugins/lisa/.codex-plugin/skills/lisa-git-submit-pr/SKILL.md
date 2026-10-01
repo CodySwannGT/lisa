@@ -27,7 +27,7 @@ Recognized optional hints:
 ### Apply these requirements
 
 1. **Branch Check**: Verify not on `dev`, `staging`, or `main` (cannot create PR from protected branches)
-2. **Commit Check**: Ensure all changes are committed before pushing
+2. **Commit Check**: Ensure all changes are committed before pushing — except the local-only `.lisa/work-item-context.md`, which is never staged even when untracked and not ignored; an untracked copy of it does not fail this check.
 2a. **Local review before push**: Unless `local_review=done` has current evidence, run `lisa-review-local` over the branch diff, address findings through `convergent-review`, and commit any fixes before step 3. This applies regardless of third-party reviewer availability. Reuse an applicable completed review instead of repeating it.
 
    Report the result as *self-reviewed*; it does not satisfy the ruleset-required third-party review check. If the runtime cannot delegate review, record **local review unavailable**, continue under the existing merge policy, and do not pass `local_review=done`. An unavailable review is not a passing review.

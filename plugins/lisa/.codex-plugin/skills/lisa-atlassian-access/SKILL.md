@@ -367,6 +367,7 @@ Substrate column meanings (ordering per `credential-substrate-precedence`):
 | `transition key:<K> to:<S>` | guarded fallback only: `acli jira workitem transition --key <K> --status "<S>" --yes` + post-read tenant assertion | `mcp__plugin_atlassian_atlassian__transitionJiraIssue` | resolve transition id then `POST https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/issue/<K>/transitions` |
 | `transitions key:<K>` — **false friend:** available transitions from current status, **NOT** past history; for history use `changelog` | (not exposed) | `mcp__plugin_atlassian_atlassian__getTransitionsForJiraIssue` | `GET https://<SITE>/rest/api/3/issue/<K>/transitions` |
 | `changelog key:<K>` (read; ordered past status transitions) | (not exposed) | (not exposed) | `GET https://<SITE>/rest/api/3/issue/<K>?expand=changelog` |
+| `comments key:<K>` (read; all comments, paginated) — **not** `comment`, which is the write | (not exposed) | `mcp__plugin_atlassian_atlassian__getJiraIssue` (comment field only; may be capped — page via curl when `total` exceeds what it returned) | `GET https://<SITE>/rest/api/3/issue/<K>/comment?startAt=<n>&maxResults=100&orderBy=created` |
 | `comment key:<K> body:<B>` | guarded fallback only: `acli jira workitem comment add --key <K> --body "<B>"` + post-read tenant assertion | `mcp__plugin_atlassian_atlassian__addCommentToJiraIssue` | `POST https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/issue/<K>/comment` |
 | `link from:<K> to:<K2> type:<T>` | guarded fallback only: `acli jira workitem link create --in <K> --out <K2> --type "<T>" --yes` + direction and tenant assertion (see direction note) | `mcp__plugin_atlassian_atlassian__createJiraIssueLink` | `POST https://api.atlassian.com/ex/jira/<CLOUDID>/rest/api/3/issueLink` |
 | `remote-links key:<K>` | (not exposed) | `mcp__plugin_atlassian_atlassian__getJiraIssueRemoteIssueLinks` | `GET https://<SITE>/rest/api/3/issue/<K>/remotelink` |
@@ -422,6 +423,17 @@ Operations not in this table are unsupported — add an adapter row before using
 - **Empty is valid.** An issue that never transitioned returns an **empty** history — an empty history is a valid result, not an error. Callers treat empty as "never left its initial status".
 - **Pagination / truncation.** The issue-resource changelog (`?expand=changelog`) truncates busy issues (`changelog.maxResults`/`total`/`startAt`). When `total` exceeds what the issue resource returned, page the dedicated endpoint `GET https://<SITE>/rest/api/3/issue/<K>/changelog?startAt=<n>` until `startAt + maxResults >= total`, preserving order across pages. A silently truncated history is a correctness bug for detection.
 - **Graceful degrade — never block the build.** A failed changelog fetch (network, auth, missing substrate) returns the substrate contract's `Error:` result. Callers MUST treat that as **unknown** history and proceed — a history read failure never blocks the build.
+
+### `comments` — every comment on one issue
+
+`comments key:<K>` returns every comment on a JIRA issue, oldest first. `read-ticket` embeds only the first page of comments in the issue resource (`fields.comment` carries its own `startAt`/`maxResults`/`total`), so a busy ticket's later comments — often the decisions and constraints — are missing from it.
+
+- **Substrate.** JIRA REST `GET https://<SITE>/rest/api/3/issue/<K>/comment?startAt=<n>&maxResults=100&orderBy=created` (a read, so the `<SITE>` gateway is allowed after the token account check). acli exposes no paginated comment list; the MCP `getJiraIssue` comment field is used only when no token is available and is subject to the same first-page cap.
+- **Shape.** For each entry in `comments[]` emit `{ id, author, created, body }` — `author.displayName`/`accountId`, `created` (ISO timestamp), and `body` converted from ADF to plain text with headings, lists, code, and links preserved.
+- **Pagination.** Start at `startAt=0` and request the next page until `startAt + maxResults >= total`, preserving order across pages. Never stop at the first page.
+- **Empty is valid.** An issue with no comments returns `total: 0`; that is a result, not an error.
+- **Completeness fields.** Every result carries `comments_complete`, `comments_fetched`, and `comments_total`; `comments_complete: true` only when `comments_fetched == comments_total`. When only the MCP substrate is available and it cannot page past its first batch, return what it gave with `comments_complete: false` and the fetched-versus-total counts — never present a capped set as the whole.
+- **Graceful degrade.** A failed page (network, auth, missing substrate) returns the substrate contract's `Error:` result for that page. Callers record the issue's comments as **incomplete** — naming how many of `total` were read — so a partial set is never silently truncated into looking complete.
 
 ### Step 4 — Return result
 
