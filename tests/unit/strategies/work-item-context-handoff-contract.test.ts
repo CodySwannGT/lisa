@@ -258,14 +258,19 @@ describe.each(
       "absolute path your task gives as `work_item_context`"
     );
     expect(body).toMatch(/at the root of the bound worktree/);
+    // A work-item task delegated with only a prose summary names neither field;
+    // without this default it would skip the file it most needs.
+    expect(body).toContain(
+      "If the task concerns a tracker work item but names neither, check for `.lisa/work-item-context.md` at the bound worktree root, or for a bound work item via `node scripts/lisa-work-item.mjs current`"
+    );
   });
 
   it("fails closed for a work-item task, and lets a non-work-item task use its own source", () => {
     expect(body).toMatch(
-      /If a work-item task's context file is missing or unreadable, report that to the team lead and stop — never proceed from memory/
+      /If a work item is named or bound and its context file is missing or unreadable, report that to the team lead and stop — never proceed from memory/
     );
     expect(body).toMatch(
-      /A task with no work item — one that hands you a plan file, a PRD, a raw error, or a log — proceeds from the source the task supplies/
+      /Only a task whose source is a plan file, a PRD, a raw error, or a log, with no work item bound to the worktree, proceeds from the source the task supplies/
     );
   });
 

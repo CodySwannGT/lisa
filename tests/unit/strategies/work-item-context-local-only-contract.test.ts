@@ -30,9 +30,11 @@ const SKILL_ROOTS = [
   "plugins/lisa-copilot/skills",
 ] as const;
 
+const IMPLEMENT = "lisa-implement";
+
 const WRITERS = [
   "lisa-track",
-  "lisa-implement",
+  IMPLEMENT,
   "lisa-github-build-intake",
   "lisa-jira-build-intake",
   "lisa-linear-build-intake",
@@ -117,6 +119,32 @@ describe.each(skillPaths("lisa-git-commit"))(
   }
 );
 
+describe.each([
+  ...pairs([IMPLEMENT]).map(
+    ([skill, skillPath]) =>
+      [
+        skill,
+        skillPath,
+        "If it shows up in git status, it gets committed (unless it contains secrets) — except the local-only `.lisa/work-item-context.md`, which is never staged",
+      ] as const
+  ),
+  ...pairs(["lisa-git-submit-pr"]).map(
+    ([skill, skillPath]) =>
+      [
+        skill,
+        skillPath,
+        "Ensure all changes are committed before pushing — except the local-only `.lisa/work-item-context.md`, which is never staged",
+      ] as const
+  ),
+])(
+  "%s carves the local-only file out of its commit-everything step (%s)",
+  (_skill, skillPath, carveOut) => {
+    it("never stages the context file even when it is untracked and not ignored", () => {
+      expect(read(skillPath)).toContain(carveOut);
+    });
+  }
+);
+
 describe.each(pairs(BUILD_INTAKE_SKILLS))(
   "%s never hands over a stale bundle (%s)",
   (_skill, skillPath) => {
@@ -128,7 +156,7 @@ describe.each(pairs(BUILD_INTAKE_SKILLS))(
   }
 );
 
-describe.each(skillPaths("lisa-implement"))(
+describe.each(skillPaths(IMPLEMENT))(
   "lisa-implement bounds the context file's reach and lifetime (%s)",
   skillPath => {
     const skill = read(skillPath);
