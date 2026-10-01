@@ -63,7 +63,7 @@ Any other `##` section: capture under `extra_sections` so callers can see PRDs t
 
 ### Comments
 
-Fetch ALL comments, always through the paginated endpoint: `gh api repos/<org>/<repo>/issues/<number>/comments --paginate` (author, body, created_at for each). The `comments` field of `gh issue view --json` is not the source of record — it can be capped. Do not truncate. Compare the fetched count with the issue's `comments` total (`gh api repos/<org>/<repo>/issues/<number> --jq .comments`); if they differ or a page fails, set `comments_complete: false` and say so at the top of the Comments section. Flag comments that contain:
+Fetch ALL comments, always through the paginated endpoint, flattened into one array: `gh api repos/<org>/<repo>/issues/<number>/comments --paginate --slurp | jq 'add // []'` (author, body, created_at for each). `--paginate` alone emits one JSON array per page, so reading or counting its raw output undercounts; `--slurp` plus `jq 'add'` flattens the pages first. The `comments` field of `gh issue view --json` is not the source of record — it can be capped. Do not truncate. The fetched count is the number of comments after flattening (`... | jq 'add // [] | length'`); compare it with the issue's `comments` total (`gh api repos/<org>/<repo>/issues/<number> --jq .comments`); if they differ or a page fails, set `comments_complete: false` and say so at the top of the Comments section. Flag comments that contain:
 - Credentials, reproduction steps
 - Status updates from stakeholders
 - Decisions

@@ -266,7 +266,12 @@ describe.each(skillPaths("lisa-github-read-issue"))(
 
     it("reads comments through the paginated endpoint unconditionally", () => {
       expect(skill).toContain(
-        "always through the paginated endpoint: `gh api repos/<org>/<repo>/issues/<number>/comments --paginate`"
+        "`gh api repos/<org>/<repo>/issues/<number>/comments --paginate --slurp | jq 'add // []'`"
+      );
+      // `--paginate` alone prints one array per page; a count over that raw
+      // output undercounts, so completeness must be measured after flattening.
+      expect(skill).toMatch(
+        /The fetched count is the number of comments after flattening/
       );
       expect(skill).not.toContain("If pagination matters");
     });

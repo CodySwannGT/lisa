@@ -1177,7 +1177,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-github-project-v2/SKILL.md":
       "80fac6d91ae36c6e130c220d9d35c5a20e6610d790fbb91343503f49cdb9ec3a",
     "plugins/src/base/skills/lisa-github-read-issue/SKILL.md":
-      "195ef186442d68e6804007acad2269a2dd70a48f29e5a93fab77e0849f145d78",
+      "fdd57e2c9f9f271a410d2532260eb3e58cefaeb58d3e53743c865bd303ec1367",
     "plugins/src/base/skills/lisa-github-sync/SKILL.md":
       "3ecdd4bf91f1dd409cf2a8bd82b998cb7f9220e5e592195a0fa4040f4e53f6c6",
     "plugins/src/base/skills/lisa-github-to-tracker/SKILL.md":
