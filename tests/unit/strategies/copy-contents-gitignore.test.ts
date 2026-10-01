@@ -30,6 +30,8 @@ const ROSTER = ".lisa/roster.md";
  */
 const ROSTER_PER_FLOW = ".lisa/roster/CodySwannGT-lisa-3395.md";
 const CROSS_POLLINATION_LOCK = ".lisa/cross-pollination.lock.json";
+/** Verbatim work-item bundle (#4323): ignored by exact path, rosters stay trackable. */
+const WORK_ITEM_CONTEXT = ".lisa/work-item-context.md";
 const AUTOMATION_RUN_RECORD = ".lisa/automations/runs/probe-loop.jsonl";
 const AUTOMATION_RUNBOOK = ".lisa/automations/probe-loop.runbook.md";
 const CHECK_IGNORE = "check-ignore";
@@ -232,6 +234,13 @@ describe("CopyContentsStrategy — dotless gitignore shipping", () => {
       cwd: destDir,
       env: gitEnv,
     });
+    const context = boundedSpawnSync({
+      label: "git check-ignore work-item-context.md",
+      command: GIT_BIN,
+      args: [CHECK_IGNORE, "-q", WORK_ITEM_CONTEXT],
+      cwd: destDir,
+      env: gitEnv,
+    });
     const status = boundedExecFileSync({
       label: "git status --short",
       command: GIT_BIN,
@@ -249,6 +258,7 @@ describe("CopyContentsStrategy — dotless gitignore shipping", () => {
     // legacy assertion above kept passing.
     expect(rosterPerFlow.status).toBe(1);
     expect(lock.status).toBe(1);
+    expect(context.status).toBe(0);
     expect(status).not.toContain(VERIFICATION_STATUS);
     expect(status).not.toContain(STANDARDS_PROOF);
     expect(status).toContain(ROSTER);

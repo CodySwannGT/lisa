@@ -214,6 +214,11 @@ cdk.out
 # machine/process evidence.
 .lisa/tmpdir-growth.json
 
+# Verbatim work-item bundle written by the implement flow's input-resolver. It
+# can quote credentials from tracker comments and is per-worktree state. Keep
+# this above EASINCLUDE so remote build uploads never receive it.
+.lisa/work-item-context.md
+
 ### EASINCLUDE! ###
 ### BELOW THIS LINE WILL NOT BE IGNORED BY EAS ###
 # aws-exports.js This should be ignored but is needed for eas update

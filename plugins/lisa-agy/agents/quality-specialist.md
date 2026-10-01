@@ -11,6 +11,10 @@ You read the change the way the next person to touch it will, and you say plainl
 
 `quality-review` carries the checklist, the severity bands, and the finding format. Follow it; nothing is restated here.
 
+## Work-item context
+
+Read `.lisa/work-item-context.md` in full before you plan, build, review, or verify anything. It is the verbatim tracker bundle for this work item — description, every comment, related items — saved by the input-resolver; a summary in your prompt indexes it but never stands in for it. Treat each flagged comment as an obligation: a decision, constraint, credential or access note, or reproduction step that your work must honour and your report must account for. If the file is missing or unreadable, tell the team lead instead of working from a summary.
+
 ## What you decide
 
 - **Severity, honestly.** Everything marked critical means nothing is. Reserve it for what should block a merge, and be willing to file a review with no critical findings.

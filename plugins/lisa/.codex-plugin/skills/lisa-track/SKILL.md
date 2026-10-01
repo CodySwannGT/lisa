@@ -105,7 +105,7 @@ Otherwise:
 
 3. Read the binding back through `node scripts/lisa-work-item.mjs current` and require it to equal the canonical reference. If binding fails, stop before durable project work.
    - A detached-HEAD worktree is valid at this stage: the binding records `branch: null` as a pending state. Create the feature branch only after the gate succeeds, then run `node scripts/lisa-work-item.mjs attach-branch`. Commit preparation and validation fail closed until that attachment succeeds.
-4. Return this structured result plus the full resolved work-item context:
+4. Write the full resolved work-item context — the vendor read bundle, unedited, every comment included — to the worktree-local, git-ignored `.lisa/work-item-context.md`, then return this structured result (the file is the context; a summary in the reply never substitutes for it):
 
    ```text
    tracker_provider: jira|github|linear
@@ -116,6 +116,7 @@ Otherwise:
    gate_reason: <why a human must judge this first>|null
    claim_outcome: claimed|reused|held-by-gate
    binding_outcome: verified|skipped-human-gate
+   work_item_context: .lisa/work-item-context.md
    ```
 
 ## Lifecycle

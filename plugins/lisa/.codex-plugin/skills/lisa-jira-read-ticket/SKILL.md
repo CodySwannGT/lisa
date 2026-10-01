@@ -56,7 +56,7 @@ After download, branch on `mimeType`:
 
 ### Comments
 
-Fetch ALL comments in chronological order. Do not truncate. For each:
+Fetch ALL comments in chronological order via `lisa-atlassian-access` `operation: comments key: <TICKET-KEY>`, which pages until every comment is read — the comments embedded in `read-ticket` are only the first page. Do not truncate. If a page fails, mark the comments incomplete with the count read out of `total`. For each:
 - Author, timestamp, body
 - Flag comments that contain: credentials, reproduction steps, status updates from stakeholders, decisions, or triage headers like `[repo-name]`
 
@@ -94,7 +94,7 @@ For each linked ticket, invoke `lisa-atlassian-access` with `operation: read-tic
 
 If the primary ticket has an epic parent (or IS an epic):
 
-1. Fetch the epic itself via `lisa-atlassian-access` `operation: read-ticket key: <EPIC-KEY>` — full description, acceptance criteria, all comments, Validation Journey.
+1. Fetch the epic itself via `lisa-atlassian-access` `operation: read-ticket key: <EPIC-KEY>` — full description, acceptance criteria, Validation Journey — and its comments, all of them, via `lisa-atlassian-access` `operation: comments key: <EPIC-KEY>`.
 2. Find epic siblings via JQL:
    ```jql
    "Epic Link" = <EPIC-KEY> AND key != <TICKET-KEY>

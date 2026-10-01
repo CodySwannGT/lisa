@@ -68,7 +68,8 @@ The input-resolver invokes `lisa-track $ARGUMENTS` and owns its complete resolve
   ```
 
   Require a successful readback of that worktree-local binding. On detached HEAD, `branch: null` is the expected pending binding; after branch creation the mandatory `attach-branch` step below must replace it before any commit. Tracker or binding failure stops the flow; never continue untracked.
-- Return the full resolved work-item context plus `tracker_provider`, canonical `work_item_ref`, resolution outcome, claim outcome, and verified binding to the team lead, who then proceeds to roster selection.
+- **Persist the bundle verbatim to `.lisa/work-item-context.md`.** Write the vendor read skill's context bundle unedited — description, every comment in full and in order, graph, and metadata — to `${LISA_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-.}}/.lisa/work-item-context.md`, overwriting any earlier copy. Never summarize, trim, or paraphrase it; downstream agents act on this file, so anything left out of it is lost to them. The file is worktree-local and git-ignored; never stage it. **Caller-supplied bundle:** when the caller (for example a build-intake dispatch) already passed a full context bundle, persist that caller-supplied bundle instead of discarding it, appending only what the live read adds; the live validation and claim still run exactly as above.
+- Return `work_item_context: .lisa/work-item-context.md`, `tracker_provider`, canonical `work_item_ref`, resolution outcome, claim outcome, and verified binding to the team lead, plus a per-comment inventory — one line per comment with author, date, one-line gist, and flags for any decision, constraint, credential/access, or reproduction step it carries. The inventory indexes the file; it never replaces it. The team lead then proceeds to roster selection.
 
 The input resolver may perform these tracker and local-binding operations before the Roster Decision because they are the mandatory gate that establishes what work the team is allowed to do. No project source, documentation, plan artifact, branch, or task may be created or changed before this transaction succeeds. Read-only discussion/orientation outside an Implement flow remains exempt per the `tracked-work` rule.
 
@@ -209,7 +210,9 @@ The same gate applies **continuously**: if a tool requirement surfaces mid-flow 
 
 Using the general-purpose agent in Team Lead session, create tasks needed to complete the request.
 
-Every task MUST include this JSON metadata block. Do NOT omit `skills` (use `[]` if none), `learnings` (use `[]` if none), `required_access` (use `[]` if the task needs no external tool) or `verification`.
+Every task MUST include this JSON metadata block. Do NOT omit `skills` (use `[]` if none), `learnings` (use `[]` if none), `required_access` (use `[]` if the task needs no external tool), `work_item_context`, or `verification`.
+
+Every task description and every teammate prompt names `.lisa/work-item-context.md` and tells the teammate to read it in full before acting; each comment the resolver's inventory flagged is an obligation the plan and the verification must each address explicitly.
 
 ```json
 {
@@ -217,6 +220,7 @@ Every task MUST include this JSON metadata block. Do NOT omit `skills` (use `[]`
   "type": "spike|bug|task|epic|story",
   "acceptance_criteria": ["..."],
   "relevant_documentation": "",
+  "work_item_context": ".lisa/work-item-context.md",
   "testing_requirements": ["..."],
   "skills": ["..."],
   "learnings": [{ "kind": "mistake", "note": "one line", "evidence": "optional ref" }],
