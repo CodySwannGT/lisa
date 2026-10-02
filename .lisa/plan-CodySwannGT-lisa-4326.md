@@ -141,3 +141,21 @@ T4 completed after independent review and all applicable local quality gates pas
 Pre-publication packed-artifact proof found same-version package cache substitution despite matching version and lock integrity. T3 MLD now records isolated artifact caches and full installed-byte comparison. Capture-only learner contract persistence is in progress before PR; runtime source and its passed gates remain unchanged. Independent verification will bind to the final commit after capture.
 
 Learner capture completed through the executable contract, consolidating the existing fresh-worktree prerequisite entry. Stable id sll4-8968b24e50aa, fingerprint learning-c832e9edbfc7d06e1eca; prior rule/evidence/oldest date preserved,20entries and13186/14900bytes, exactstamp matched and no stale targets. Budget check passes.
+
+## Codification checkpoint
+
+The independent verifier completed all local packed-artifact TS/CDK, six-harness and explicit-default checks at 694ea306. Shipping remains in progress because the full installed-host journey was only in outside-repo scripts. T5 now includes a regular committed integration regression at tests/integration/shared-runtime-packed-hosts.test.ts with bounded fixtures/helpers. It must fail for the original stale policy using identical final test bytes and pass the updated branch, including real install, exact tar-member identity, host execution, frozen repeat, stable offline CDK synth and zero managed changes on the second adoption apply. Runtime policy source remains unchanged.
+
+The fixture begins with one bootstrap setup apply followed by two adoption applies. The inherited bare-bootstrap gate delta is retained as a documented limitation. Source review, final staged artifact regeneration and applicable full gates follow this test addition. Prior 694ea evidence remains bound to its original artifact rather than being relabeled as later evidence.
+
+Current context inventory includes full plan comment 5961220400, CodySwannGT actor292923, created2026-10-02T20:47:04Z, decision, no new constraints, no secrets.
+
+## Current codification handoff
+
+The identical final six-file regression inputs passed independent source review. At source HEAD694ea306/staged treef4e49516636a74de800dfb113173a99a053a1343 the exact supervisor returned exit0, one file/two cases passed. Baseline cf55/staged tree2d8326426284cc43ad649f8fc5256a260ace8b76 returned exit1, two cases failed on real generated Node22.21.1 before host install. All hashes are in /tmp/lisa-4326-codification/final-inputs.json; the baseline is a separate object store at /tmp/lisa-4326-codification-red.
+
+TS and CDK executed genuine typecheck and one/two native unit cases. Every7,522 regular packed member matched after actual installs, second adoptions and frozen repeats produced zero managed-byte deltas, and two actual no-lookups CDK synth templates had identical raw bytes. One bootstrap setup plus two adoption applies is explicit. Final candidate tar SHA256219c47321c1bb4214abd3e91789e7e5c9c699102769254edf9c4c227bfd08076 is a local candidate, not publication proof.
+
+Current task statuses are T1/T2/T3 completed, T4/T5 in progress, T6 pending. Historical checkpoints above retain their original source identity. The next gates are canonical nonblocking learning capture, staged input/artifact consistency, applicable full repository gates, normal commit, independent exact-commit verification, named successful PR CI, merge and actual configured release/publication with exact registry-artifact installed-host proof. No older evidence is relabeled to a new head.
+
+Canonical capture consolidated the nested-host lease/profile/temp-root discovery into the existing packed-proof setup entry, preserving stable ID and oldest date. Current stamp learning-29a7e548ca264ca3e66d;20entries13412/14900bytes; explicit budget check passed. Other narrower MLD is retained in task metadata and tests. No six-file regression input changed.
