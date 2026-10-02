@@ -154,6 +154,10 @@ export function startDetachedRefresh(script, cachePath, spawnImpl = spawn) {
 
 /**
  * Fetch npm latest and write it to the cache in the CLI's shape.
+ *
+ * probe-direction: neutral — a failed fetch writes nothing, so the next
+ * session reports "npm latest: unknown" (or the older cached value, labelled
+ * stale); no gate reads this value, it only shapes advisory context.
  * @param {string} cachePath Absolute cache path.
  * @param {{fetchImpl?: typeof fetch, now?: () => Date}} [deps] Injected for tests.
  * @returns {Promise<string | null>} The version written, or null.

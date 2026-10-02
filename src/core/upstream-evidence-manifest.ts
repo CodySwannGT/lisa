@@ -803,7 +803,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/enforce-verification-gate.sh":
       "29885d07ff6da70f193ea0f0691d63f324deb79fbd7ede519596415875d94458",
     "plugins/src/base/hooks/enforcement-vintage-npm.mjs":
-      "ca2779d59c7ee8058c40b98c9e9e67e811405a3cda2df7c1c37e7141506bb72c",
+      "157ca4f9d0021c90f1307e5ada4cbc8ff3d78def4662bf4dfe6de9c5ae0497cc",
     "plugins/src/base/hooks/enforcement-vintage.mjs":
       "e781652d20440ff19270c880ec23de3dff80a6e66496db0e5f7ee84397e2e219",
     "plugins/src/base/hooks/enforcement-vintage.sh":
