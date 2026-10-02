@@ -92,6 +92,7 @@ scripts/lisa-postinstall.mjs
 scripts/lisa-reconcile-policy.mjs
 scripts/lisa-run-gates.mjs
 scripts/lisa-schema-validate.mjs
+scripts/lisa-self-update.mjs
 scripts/lisa-test-node.mjs
 scripts/lisa-work-item.mjs
 scripts/lisa-worktree-guard.mjs
