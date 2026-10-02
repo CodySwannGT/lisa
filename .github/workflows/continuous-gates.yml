@@ -64,6 +64,6 @@ jobs:
     uses: ./.github/workflows/gates.yml
     with:
       moment: continuous:${{ inputs.environment || 'main' }}
-      node_version: '22.21.1'
+      node_version: '22.23.3'
       package_manager: 'bun'
     secrets: inherit

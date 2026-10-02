@@ -22,7 +22,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
-          node-version: '22.21.1'
+          node-version: '22.23.3'
           package-manager-cache: false
       # Keep this a local script: the detector must run when an upstream
       # reusable workflow cannot load. It needs Node and gh, with no dependencies.

@@ -70,7 +70,9 @@ function sha256(relative: string): string {
 
 describe("legacy #2448 compatibility", () => {
   // These digests track whatever the legacy reporter is on main, and are
-  // refreshed only when main deliberately changes it under its own review --
+  // refreshed only when its bytes deliberately change under their own review --
+  // The shared Node22 patch refresh changes only the node_version default.
+  // Schedule, permissions, input cardinality and reporting logic remain locked.
   // most recently the `@main` staleness handshake, which gave the reusable an
   // `expected_workflow_contract_major` input plus the job that asserts it, and
   // seeded the matching value beside the caller's `uses:`. Before that, "track
@@ -79,14 +81,9 @@ describe("legacy #2448 compatibility", () => {
   // handshake job runs before the report and reads none of its state, and the
   // three parsed-contract cases below are what prove a refreshed digest still
   // describes the same reporter.
-  // The lock they enforce is that the CONFIGURABLE tracking work on this branch
-  // leaves the legacy per-suite reporter untouched, so a digest that moves
-  // because of a commit on this branch is the failure it exists to catch. The
-  // three parsed-contract cases below are what prove a refreshed digest still
-  // describes the same reporter.
-  it("preserves the exact released reusable and caller bytes", () => {
+  it("preserves the exact reviewed reusable and caller bytes", () => {
     expect(sha256(LEGACY_REL)).toBe(
-      "e534f08d95f07fdac3d8b2951f0af7e8ad70c84ee23e5d7d816947aeda9217c2"
+      "9ce3eb6db588b5d9438ca53fbeb493aa7b10f7fb292279f1a823f7c113d4b7a4"
     );
     expect(sha256(LEGACY_CALLER_REL)).toBe(
       "002f9a3bb88e1ff964195f413e385313c6d6f868e6d003b787663903d6bbd3a9"
