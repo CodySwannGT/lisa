@@ -135,3 +135,9 @@ T2/T3 source work completed; T4 independent source review passed, with remaining
 ## Quality checkpoint
 
 T4 completed after independent review and all applicable local quality gates passed. Unit coverage1359files25635passed2existing skipped; integration177files3188passed9existing skipped. Coverage82.88% statements,75.85% branches,88.52% functions,83.86% lines meets thresholds. Fast/slow lint, format, typecheck, Knip, ast-grep, plugin sync and7artifact checks pass. Learner independently reports no learnings to process for empty MLD. T5 final commit-bound actual CLI proof and T6 CI/release/evidence remain pending.
+
+## Later learning capture
+
+Pre-publication packed-artifact proof found same-version package cache substitution despite matching version and lock integrity. T3 MLD now records isolated artifact caches and full installed-byte comparison. Capture-only learner contract persistence is in progress before PR; runtime source and its passed gates remain unchanged. Independent verification will bind to the final commit after capture.
+
+Learner capture completed through the executable contract, consolidating the existing fresh-worktree prerequisite entry. Stable id sll4-8968b24e50aa, fingerprint learning-c832e9edbfc7d06e1eca; prior rule/evidence/oldest date preserved,20entries and13186/14900bytes, exactstamp matched and no stale targets. Budget check passes.

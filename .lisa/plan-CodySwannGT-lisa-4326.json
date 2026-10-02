@@ -310,7 +310,13 @@
           "lisa-implement",
           "lisa-test-strategy"
         ],
-        "learnings": [],
+        "learnings": [
+          {
+            "kind": "learning",
+            "note": "For same-version packed-artifact proof, isolate package-manager caches per artifact and compare installed package bytes with tarball contents; matching version and lock integrity did not prevent stale cached files.",
+            "evidence": "CodySwannGT/lisa#4326; /tmp/lisa-runtime-4326/evidence/quality-and-template-review-final.log"
+          }
+        ],
         "required_access": [
           {
             "tool": "GitHub tracker and Git transport \u2014 CodySwannGT/lisa",
@@ -435,7 +441,7 @@
       "title": "Independently prove generated TS/CDK adoption and idempotence",
       "owner": "independent-verification-specialist",
       "metadata_owner": "independent-verification-specialist",
-      "status": "pending",
+      "status": "in_progress",
       "blockedBy": [
         "T4"
       ],
@@ -602,5 +608,5 @@
   ],
   "created_at": "2026-10-02T20:24:03.196078+00:00",
   "research_status": "complete \u2014 explorer corrected security-floor group coverage before implementation",
-  "learning_capture": "Independent learner issue_validator reviewed completed T1-T3 and reviewMLD; all[]; no learnings to process."
+  "learning_capture": "Contract capture completed by runtime_implementation learner role: consolidated stableid sll4-8968b24e50aa, fingerprint learning-c832e9edbfc7d06e1eca; exactstamp matched; stale=[];20entries13186/14900bytes; budgetPASS."
 }
