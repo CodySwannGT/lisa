@@ -425,7 +425,6 @@ export function run(argv, stdin, env = process.env) {
           projectDir,
           env,
           nowMs: Date.now(),
-          isOlder,
         }),
       }),
     },

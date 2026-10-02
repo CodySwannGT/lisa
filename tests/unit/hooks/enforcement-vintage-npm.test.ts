@@ -28,18 +28,20 @@ import {
   cachedNpmLatest,
   needsRefresh,
   npmLatestCachePath,
+  precedes,
   projectPin,
   refreshNpmLatest,
   renderNpmRows,
   resolveNpmState,
   startDetachedRefresh,
 } from "../../../plugins/src/base/hooks/enforcement-vintage-npm.mjs";
-import { isOlder } from "../../../plugins/src/base/hooks/enforcement-vintage.mjs";
 
 /** Version the fabricated host installed. */
 const PINNED = "4.40.0";
 /** Version npm publishes in the fabricated cache. */
 const PUBLISHED = "4.66.5";
+/** A release candidate of the published version. */
+const RC1 = `${PUBLISHED}-rc.1`;
 /** A fixed clock, so freshness is deterministic. */
 const NOW = Date.parse("2026-10-02T12:00:00.000Z");
 /** Inside the 6-hour window. */
@@ -170,6 +172,31 @@ describe("enforcement-vintage npm rows: module", () => {
     expect(projectPin(scratch("empty"))).toBeNull();
   });
 
+  it("orders versions by semver precedence, prereleases included", () => {
+    expect(precedes(RC1, PUBLISHED)).toBe(true);
+    expect(precedes(PUBLISHED, RC1)).toBe(false);
+    expect(precedes(RC1, "4.66.5-rc.2")).toBe(true);
+    expect(precedes("4.66.5-rc.2", "4.66.5-rc.10")).toBe(true);
+    expect(precedes("4.66.5-alpha", "4.66.5-beta")).toBe(true);
+    expect(precedes("4.66.5-1", "4.66.5-alpha")).toBe(true);
+    expect(precedes("4.9.0", "4.10.0")).toBe(true);
+    expect(precedes(PUBLISHED, PUBLISHED)).toBe(false);
+    expect(precedes("4.66.5+build.1", PUBLISHED)).toBe(false);
+  });
+
+  it("reports a prerelease pin as behind the stable release", () => {
+    const state = resolveNpmState({
+      projectDir: cache(
+        install(scratch("prerelease"), `${PUBLISHED}-rc.1`),
+        PUBLISHED,
+        FRESH_AT
+      ),
+      env: { LISA_SKIP_UPDATE_CHECK: "1" },
+      nowMs: NOW,
+    });
+    expect(state.projectBehind).toBe(true);
+  });
+
   it("reads freshness from the cache timestamp", () => {
     const root = scratch("cache");
     expect(cachedNpmLatest(npmLatestCachePath(root), NOW)).toBeNull();
@@ -223,7 +250,6 @@ describe("enforcement-vintage npm rows: module", () => {
       projectDir: scratch("no-pin"),
       env: {},
       nowMs: NOW,
-      isOlder,
       spawnImpl: spawnImpl as never,
     });
     expect(none.pin).toBeNull();
@@ -237,7 +263,6 @@ describe("enforcement-vintage npm rows: module", () => {
       ),
       env: {},
       nowMs: NOW,
-      isOlder,
       spawnImpl: spawnImpl as never,
     });
     expect(behind).toMatchObject({ refreshing: true, projectBehind: true });

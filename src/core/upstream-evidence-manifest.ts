@@ -107,7 +107,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-self-update.mjs":
-      "1a455b97fc2e978a3bd039e327067b4c7ced7395808eed8eb4baa25c2b9c05e7",
+      "80dc15053af22133cfe50e48484b24b098eb9f2095999b649694ad11ce64175a",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
@@ -803,9 +803,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/enforce-verification-gate.sh":
       "29885d07ff6da70f193ea0f0691d63f324deb79fbd7ede519596415875d94458",
     "plugins/src/base/hooks/enforcement-vintage-npm.mjs":
-      "157ca4f9d0021c90f1307e5ada4cbc8ff3d78def4662bf4dfe6de9c5ae0497cc",
+      "2eba9cb3cf3609e99ba597e55cce9ff37a38f1ac0c89a70ab4b7fa942233ac29",
     "plugins/src/base/hooks/enforcement-vintage.mjs":
-      "e781652d20440ff19270c880ec23de3dff80a6e66496db0e5f7ee84397e2e219",
+      "02331994c9306355c532ca37cd4c4d71abe16c19283d9b03f55363cd48124324",
     "plugins/src/base/hooks/enforcement-vintage.sh":
       "e23cb84a0035c86805ce7aada15adae6634a5a8cb68a9e2ba677ab1953721b97",
     "plugins/src/base/hooks/failure-signature-index.mjs":

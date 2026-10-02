@@ -94,6 +94,9 @@ describe("lisa-self-update: decisions", () => {
     expect(isOlder("4.9.0", "4.10.0")).toBe(true);
     expect(isOlder("4.10.0", "4.9.0")).toBe(false);
     expect(isOlder(NEW, NEW)).toBe(false);
+    expect(isOlder(`${NEW}-rc.1`, NEW)).toBe(true);
+    expect(isOlder(NEW, `${NEW}-rc.1`)).toBe(false);
+    expect(isOlder(`${NEW}+build.1`, NEW)).toBe(false);
   });
 
   it("plans an update only when installed is behind latest", () => {

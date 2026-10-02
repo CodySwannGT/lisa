@@ -163,7 +163,22 @@ export function isOlder(a, b) {
   const left = release(a);
   const right = release(b);
   const index = left.findIndex((value, i) => value !== right[i]);
-  return index !== -1 && left[index] < right[index];
+  if (index !== -1) return left[index] < right[index];
+  // Same release: a prerelease of it is older than the release itself
+  // (`4.66.5-rc.1` → `4.66.5`). npm `latest` is never a prerelease, so two
+  // prereleases are not compared here.
+  return prerelease(a) !== "" && prerelease(b) === "";
+}
+
+/**
+ * The prerelease suffix of a version, without build metadata.
+ * @param {string} version Version string.
+ * @returns {string} The suffix, or "" for a release.
+ */
+function prerelease(version) {
+  const core = String(version).split("+")[0];
+  const dash = core.indexOf("-");
+  return dash === -1 ? "" : core.slice(dash + 1);
 }
 
 /**

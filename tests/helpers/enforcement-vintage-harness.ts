@@ -264,8 +264,8 @@ export function contextFromLoadedCopy(
       options.configDir,
     ],
     env: {
-      LISA_SKIP_UPDATE_CHECK: "1",
       ...baseEnv,
+      LISA_SKIP_UPDATE_CHECK: "1",
       CLAUDE_PLUGIN_ROOT: options.claimedRoot,
     },
     input: "{}",
@@ -293,10 +293,11 @@ export function hookRunner(baseEnv: NodeJS.ProcessEnv): HookRunner {
       command: "/bin/bash",
       args: [path.join(options.pluginRoot, HOOKS, path.basename(HOOK))],
       env: {
-        // No suite may reach npm: the detached npm-latest refresh is driven
-        // by unit tests with an injected spawn instead.
-        LISA_SKIP_UPDATE_CHECK: "1",
         ...baseEnv,
+        // No suite may reach npm: the detached npm-latest refresh is driven
+        // by unit tests with an injected spawn instead. Set AFTER the
+        // inherited environment so an inherited "0" cannot re-enable it.
+        LISA_SKIP_UPDATE_CHECK: "1",
         CLAUDE_PLUGIN_ROOT: options.pluginRoot,
         CLAUDE_PROJECT_DIR: options.projectDir,
         CLAUDE_CONFIG_DIR: options.configDir,

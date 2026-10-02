@@ -48,6 +48,56 @@ const NPM_LATEST_URL = "https://registry.npmjs.org/@codyswann/lisa/latest";
 const VERSION_SHAPE = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.+-]+)?$/u;
 
 /**
+ * Compare two prerelease identifier lists by semver precedence.
+ * @param {string[]} a Identifiers of the first prerelease.
+ * @param {string[]} b Identifiers of the second prerelease.
+ * @returns {number} Negative when `a` precedes `b`, positive when it follows.
+ */
+function comparePrerelease(a, b) {
+  for (let index = 0; index < Math.max(a.length, b.length); index += 1) {
+    if (a[index] === undefined) return -1;
+    if (b[index] === undefined) return 1;
+    if (a[index] === b[index]) continue;
+    const numeric = /^\d+$/u;
+    if (numeric.test(a[index]) && numeric.test(b[index])) {
+      return Number(a[index]) - Number(b[index]);
+    }
+    if (numeric.test(a[index])) return -1;
+    if (numeric.test(b[index])) return 1;
+    return a[index] < b[index] ? -1 : 1;
+  }
+  return 0;
+}
+
+/**
+ * Whether version `a` has lower semver precedence than `b`.
+ *
+ * Prerelease-aware on purpose: a project pinned to `4.66.5-rc.1` is BEHIND a
+ * published `4.66.5`, and comparing release fields alone would call it current.
+ * Build metadata is ignored, as semver requires.
+ * @param {string} a Candidate older version.
+ * @param {string} b Candidate newer version.
+ * @returns {boolean} True when `a` precedes `b`.
+ */
+export function precedes(a, b) {
+  const split = version => {
+    const [core, pre] = String(version).split("+")[0].split(/-(.*)/su);
+    const fields = core.split(".").map(field => Number(field) || 0);
+    return { fields, pre: pre ? pre.split(".") : [] };
+  };
+  const left = split(a);
+  const right = split(b);
+  for (let index = 0; index < 3; index += 1) {
+    const l = left.fields[index] ?? 0;
+    const r = right.fields[index] ?? 0;
+    if (l !== r) return l < r;
+  }
+  if (left.pre.length === 0) return false;
+  if (right.pre.length === 0) return true;
+  return comparePrerelease(left.pre, right.pre) < 0;
+}
+
+/**
  * Parse a JSON file, or return null.
  * @param {string} file Absolute path.
  * @returns {any} Parsed JSON, or null when unreadable or malformed.
@@ -218,7 +268,7 @@ export function renderNpmRows(state) {
 
 /**
  * Resolve everything the npm rows need, starting a refresh when warranted.
- * @param {{projectDir: string, script?: string, env: NodeJS.ProcessEnv, nowMs: number, isOlder: (a: string, b: string) => boolean, spawnImpl?: typeof spawn}} input Inputs.
+ * @param {{projectDir: string, script?: string, env: NodeJS.ProcessEnv, nowMs: number, spawnImpl?: typeof spawn}} input Inputs.
  * @returns {{pin: {version: string, source: string} | null, latest: {version: string, fetchedAt: string, fresh: boolean} | null, refreshing: boolean, projectBehind: boolean}} Resolved rows.
  */
 export function resolveNpmState(input) {
@@ -237,7 +287,7 @@ export function resolveNpmState(input) {
         input.spawnImpl
       );
     const projectBehind = Boolean(
-      latest && input.isOlder(pin.version, latest.version)
+      latest && precedes(pin.version, latest.version)
     );
     return { pin, latest, refreshing, projectBehind };
   } catch {
