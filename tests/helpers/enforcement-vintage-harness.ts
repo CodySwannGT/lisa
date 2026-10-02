@@ -28,6 +28,8 @@ import { boundedSpawnSync } from "./io-latency-budget.js";
 export const HOOK = "plugins/src/base/hooks/enforcement-vintage.sh";
 /** The renderer the hook delegates to. */
 export const RENDERER = "plugins/src/base/hooks/enforcement-vintage.mjs";
+/** The renderer's sibling for the project-pin and npm-latest rows. */
+export const NPM_MODULE = "plugins/src/base/hooks/enforcement-vintage-npm.mjs";
 /** Directory every plugin payload keeps its hooks in. */
 const HOOKS = "hooks";
 /** Manifest directory a Claude plugin dates itself from. */
@@ -98,6 +100,10 @@ export function pluginCopy(version: string): string {
   copyFileSync(
     path.resolve(RENDERER),
     path.join(root, HOOKS, path.basename(RENDERER))
+  );
+  copyFileSync(
+    path.resolve(NPM_MODULE),
+    path.join(root, HOOKS, path.basename(NPM_MODULE))
   );
   if (version) {
     mkdirSync(path.join(root, MANIFEST_DIR), { recursive: true });
@@ -257,7 +263,11 @@ export function contextFromLoadedCopy(
       "--config-dir",
       options.configDir,
     ],
-    env: { ...baseEnv, CLAUDE_PLUGIN_ROOT: options.claimedRoot },
+    env: {
+      ...baseEnv,
+      LISA_SKIP_UPDATE_CHECK: "1",
+      CLAUDE_PLUGIN_ROOT: options.claimedRoot,
+    },
     input: "{}",
   });
   const parsed = result.stdout
@@ -284,6 +294,10 @@ export function hookRunner(baseEnv: NodeJS.ProcessEnv): HookRunner {
       args: [path.join(options.pluginRoot, HOOKS, path.basename(HOOK))],
       env: {
         ...baseEnv,
+        // No suite may reach npm: the detached npm-latest refresh is driven
+        // by unit tests with an injected spawn instead. Set AFTER the
+        // inherited environment so an inherited "0" cannot re-enable it.
+        LISA_SKIP_UPDATE_CHECK: "1",
         CLAUDE_PLUGIN_ROOT: options.pluginRoot,
         CLAUDE_PROJECT_DIR: options.projectDir,
         CLAUDE_CONFIG_DIR: options.configDir,

@@ -106,6 +106,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "7e04168dffa0caa5d8dfb127a9be462a81f4512e86a57455df5708154bfb19b0",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
+    "all/copy-overwrite/scripts/lisa-self-update.mjs":
+      "80dc15053af22133cfe50e48484b24b098eb9f2095999b649694ad11ce64175a",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
@@ -120,6 +122,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "d4fda2b0b5862afa92c4ddf29daa53218df0d5fe4f051901cdfc53ac266bdbf8",
     "all/create-only/.github/workflows/continuous-gates.yml":
       "42ec4cb8e0ba45e0288f07881b8f93497468afd3cba3ef0cbb4d0ea4c4ae240a",
+    "all/create-only/.github/workflows/lisa-update.yml":
+      "9c1c05ffe39a6d5e41a3e82afbbc227097e071b26d2bbc56281ef1373c5a035d",
     "all/create-only/.github/workflows/workflow-load-failure-sweep.yml":
       "eaf0dc7d59b83a8525207c763db4c955ccef05c4fab16b9407d36d1b53513670",
     "all/create-only/.lisaignore":
@@ -798,8 +802,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "104922ba5912b797bf9ce15881dcef76916ea1782ac1e669151265b7db9fb263",
     "plugins/src/base/hooks/enforce-verification-gate.sh":
       "29885d07ff6da70f193ea0f0691d63f324deb79fbd7ede519596415875d94458",
+    "plugins/src/base/hooks/enforcement-vintage-npm.mjs":
+      "2eba9cb3cf3609e99ba597e55cce9ff37a38f1ac0c89a70ab4b7fa942233ac29",
     "plugins/src/base/hooks/enforcement-vintage.mjs":
-      "06599ee8b5ae9e24125b12b5d79f0c704a71535efe3f27705b2db7e53a0c6ba1",
+      "02331994c9306355c532ca37cd4c4d71abe16c19283d9b03f55363cd48124324",
     "plugins/src/base/hooks/enforcement-vintage.sh":
       "e23cb84a0035c86805ce7aada15adae6634a5a8cb68a9e2ba677ab1953721b97",
     "plugins/src/base/hooks/failure-signature-index.mjs":
@@ -2489,7 +2495,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "6bade15e5b356d121a535981c177c6ed5df3bf46a40fce483d428db2ea0a90ca",
+      "0d125d75f78b1a9b1e65af54420c324da04a49e1632f2c527207d05a38bf023d",
     "scripts/update-node-version.ts":
       "0059067c14001c2f7e75beb2628d1a46f935c7b01ce61871db71b6849ef62dca",
     "scripts/update-test-skill-paths.mjs":
@@ -2549,7 +2555,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "6d07ac247e81cd42c2c20abf8dfe504413d6b2422e4aba9b2c975a776f155921",
     "typescript/copy-overwrite/.prettierignore":
-      "e2538ae1b5ef5d64733c3d6c07292495ead71603dfca2b37fda4a9ed080deb9a",
+      "d053814ee3c03955ab680049d281dc60357c14be8423b0790c7117fe2b4c61d1",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -2870,6 +2876,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs": true,
     "all/copy-overwrite/scripts/lisa-run-gates.mjs": true,
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs": true,
+    "all/copy-overwrite/scripts/lisa-self-update.mjs": true,
     "all/copy-overwrite/scripts/lisa-test-node.mjs": true,
     "all/copy-overwrite/scripts/lisa-work-item.mjs": true,
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs": true,
@@ -2877,6 +2884,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json": true,
     "all/create-only/.agents/rules/README.md": true,
     "all/create-only/.github/workflows/continuous-gates.yml": true,
+    "all/create-only/.github/workflows/lisa-update.yml": true,
     "all/create-only/.github/workflows/workflow-load-failure-sweep.yml": true,
     "all/create-only/.lisaignore": true,
     "all/create-only/scripts/remote-agent-aws-setup.sh": true,
@@ -4111,6 +4119,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-copilot/hooks/cleanup-stale-worktrees.sh": true,
     "plugins/lisa-copilot/hooks/discharge-work-item-gates.sh": true,
     "plugins/lisa-copilot/hooks/enforce-verification-gate.sh": true,
+    "plugins/lisa-copilot/hooks/enforcement-vintage-npm.mjs": true,
     "plugins/lisa-copilot/hooks/enforcement-vintage.mjs": true,
     "plugins/lisa-copilot/hooks/enforcement-vintage.sh": true,
     "plugins/lisa-copilot/hooks/failure-signature-index.mjs": true,
@@ -4585,6 +4594,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa-cursor/hooks/cleanup-stale-worktrees.sh": true,
     "plugins/lisa-cursor/hooks/discharge-work-item-gates.sh": true,
     "plugins/lisa-cursor/hooks/enforce-verification-gate.sh": true,
+    "plugins/lisa-cursor/hooks/enforcement-vintage-npm.mjs": true,
     "plugins/lisa-cursor/hooks/enforcement-vintage.mjs": true,
     "plugins/lisa-cursor/hooks/enforcement-vintage.sh": true,
     "plugins/lisa-cursor/hooks/failure-signature-index.mjs": true,
@@ -7186,6 +7196,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/lisa/hooks/discharge-work-item-gates.sh": true,
     "plugins/lisa/hooks/enforce-team-first.sh": true,
     "plugins/lisa/hooks/enforce-verification-gate.sh": true,
+    "plugins/lisa/hooks/enforcement-vintage-npm.mjs": true,
     "plugins/lisa/hooks/enforcement-vintage.mjs": true,
     "plugins/lisa/hooks/enforcement-vintage.sh": true,
     "plugins/lisa/hooks/failure-signature-index.mjs": true,
@@ -7844,6 +7855,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "plugins/src/base/hooks/discharge-work-item-gates.sh": true,
     "plugins/src/base/hooks/enforce-team-first.sh": true,
     "plugins/src/base/hooks/enforce-verification-gate.sh": true,
+    "plugins/src/base/hooks/enforcement-vintage-npm.mjs": true,
     "plugins/src/base/hooks/enforcement-vintage.mjs": true,
     "plugins/src/base/hooks/enforcement-vintage.sh": true,
     "plugins/src/base/hooks/failure-signature-index.mjs": true,
@@ -10233,6 +10245,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/enforcement-fallback-zero-guards.test.ts": true,
     "tests/unit/hooks/enforcement-fallback.test.ts": true,
     "tests/unit/hooks/enforcement-gates-e2e.test.ts": true,
+    "tests/unit/hooks/enforcement-vintage-npm.test.ts": true,
     "tests/unit/hooks/enforcement-vintage-wiring.test.ts": true,
     "tests/unit/hooks/enforcement-vintage.test.ts": true,
     "tests/unit/hooks/env-split-string-reference.test.ts": true,
@@ -10552,6 +10565,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/lisa-run-gates-worktree-dependencies.test.ts": true,
     "tests/unit/scripts/lisa-run-gates-zero-collection.test.ts": true,
     "tests/unit/scripts/lisa-run-gates.test.ts": true,
+    "tests/unit/scripts/lisa-self-update.test.ts": true,
     "tests/unit/scripts/lisa-test-node.test.ts": true,
     "tests/unit/scripts/lisa-work-item-complete.test.ts": true,
     "tests/unit/scripts/lisa-work-item.test.ts": true,

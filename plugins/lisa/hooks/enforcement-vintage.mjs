@@ -52,6 +52,7 @@ import { readFileSync, existsSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { realpathSync } from "fs";
+import { renderNpmRows, resolveNpmState } from "./enforcement-vintage-npm.mjs";
 
 /** Marker the block is wrapped in, so an agent can cite it by name. */
 const BLOCK_TAG = "lisa-enforcement-vintage";
@@ -336,6 +337,15 @@ export function renderBlock(state) {
       `newest on this disk: lisa ${state.newest.version} at ${state.newest.source}`
     );
   }
+  const npm = renderNpmRows(
+    state.npm ?? {
+      pin: null,
+      latest: null,
+      refreshing: false,
+      projectBehind: false,
+    }
+  );
+  npm.rows.forEach(row => lines.push(row));
   lines.push("");
   if (state.behind || !state.running.version || state.treeBehind) {
     lines.push(
@@ -362,6 +372,10 @@ export function renderBlock(state) {
         "observed here match the newest copy this machine holds. State the version anyway " +
         "when you report on guard or contract behaviour; it is only current until the next release."
     );
+  }
+  if (npm.guidance.length > 0) {
+    lines.push("");
+    npm.guidance.forEach(line => lines.push(line));
   }
   lines.push(`</${BLOCK_TAG}>`);
   return lines.join("\n");
@@ -405,9 +419,14 @@ export function run(argv, stdin, env = process.env) {
   return JSON.stringify({
     hookSpecificOutput: {
       hookEventName: eventName(stdin),
-      additionalContext: renderBlock(
-        resolveState({ hooksDir, projectDir, configDir })
-      ),
+      additionalContext: renderBlock({
+        ...resolveState({ hooksDir, projectDir, configDir }),
+        npm: resolveNpmState({
+          projectDir,
+          env,
+          nowMs: Date.now(),
+        }),
+      }),
     },
   });
 }

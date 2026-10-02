@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.67.0](https://github.com/CodySwannGT/lisa/compare/v4.66.5...v4.67.0) (2026-10-02)
+
+
+### Features
+
+* let host projects pull their own Lisa updates ([efda704](https://github.com/CodySwannGT/lisa/commit/efda704e651ec2e995c86a04495805606390e991)), closes [CodySwannGT/lisa#4325](https://github.com/CodySwannGT/lisa/issues/4325) [CodySwannGT/lisa#4325](https://github.com/CodySwannGT/lisa/issues/4325)
+
+
+### Bug Fixes
+
+* **hooks:** record the probe direction of the npm-latest refresh ([0b481a6](https://github.com/CodySwannGT/lisa/commit/0b481a6cbd264d34f5bb2ab0971a64d7ed310fa9)), closes [CodySwannGT/lisa#4325](https://github.com/CodySwannGT/lisa/issues/4325) [CodySwannGT/lisa#4325](https://github.com/CodySwannGT/lisa/issues/4325)
+* treat a prerelease pin as behind its stable release ([693ac97](https://github.com/CodySwannGT/lisa/commit/693ac977d53148a2b921a6a8aaffc21329094b16)), closes [#4327](https://github.com/CodySwannGT/lisa/issues/4327) [CodySwannGT/lisa#4325](https://github.com/CodySwannGT/lisa/issues/4325) [CodySwannGT/lisa#4325](https://github.com/CodySwannGT/lisa/issues/4325)
+
 ### [4.66.5](https://github.com/CodySwannGT/lisa/compare/v4.66.4...v4.66.5) (2026-10-01)
 
 
