@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.68.0](https://github.com/CodySwannGT/lisa/compare/v4.67.0...v4.68.0) (2026-10-03)
+
+
+### Features
+
+* keep Lisa's own self-dependency on the latest release ([9b72290](https://github.com/CodySwannGT/lisa/commit/9b72290118c4f6f5e672d756343d7bbf5c3ba01f)), closes [#2279](https://github.com/CodySwannGT/lisa/issues/2279) [#3662](https://github.com/CodySwannGT/lisa/issues/3662) [#3768](https://github.com/CodySwannGT/lisa/issues/3768) [#4280](https://github.com/CodySwannGT/lisa/issues/4280) [CodySwannGT/lisa#4331](https://github.com/CodySwannGT/lisa/issues/4331) [CodySwannGT/lisa#4331](https://github.com/CodySwannGT/lisa/issues/4331)
+
+
+### Bug Fixes
+
+* keep the update token away from installs and close superseded PRs on reuse ([0594e3e](https://github.com/CodySwannGT/lisa/commit/0594e3e048a5bad219a13c27174f89e46e61d0b5)), closes [#4336](https://github.com/CodySwannGT/lisa/issues/4336) [CodySwannGT/lisa#4331](https://github.com/CodySwannGT/lisa/issues/4331) [CodySwannGT/lisa#4331](https://github.com/CodySwannGT/lisa/issues/4331)
+* **security:** exclude the unpatched braces stack-exhaustion advisory ([1ac0633](https://github.com/CodySwannGT/lisa/commit/1ac0633a4d1d2afdd3ed68563b67218d6aa79b6a)), closes [CodySwannGT/lisa#4331](https://github.com/CodySwannGT/lisa/issues/4331) [CodySwannGT/lisa#4331](https://github.com/CodySwannGT/lisa/issues/4331)
+
 ## [4.67.0](https://github.com/CodySwannGT/lisa/compare/v4.66.5...v4.67.0) (2026-10-02)
 
 
