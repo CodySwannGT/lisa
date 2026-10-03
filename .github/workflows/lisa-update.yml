@@ -32,6 +32,15 @@
 name: 🔄 Lisa Update
 
 on:
+  # Lisa only (CodySwannGT/lisa#4331): in this repository the script runs in
+  # self mode, moving Lisa's dependency on its own published copy. Run it right
+  # after each release, not just daily, so the copy Lisa checks itself with is
+  # never more than one release behind. The script's loop guard keeps a
+  # self-bump from chasing the release its own merge cuts.
+  workflow_run:
+    workflows: ['Release and Deploy']
+    types: [completed]
+    branches: [main]
   schedule:
     # 06:00 UTC daily.
     - cron: '0 6 * * *'
@@ -47,6 +56,8 @@ concurrency:
 jobs:
   update:
     name: 🔄 Open a Lisa update pull request
+    # A failed release published nothing new to move to.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
