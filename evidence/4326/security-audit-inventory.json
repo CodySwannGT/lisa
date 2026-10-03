@@ -12,13 +12,13 @@
     },
     {
       "locator": ".lisa/plan-CodySwannGT-lisa-4326.md",
-      "bytes": 29327,
-      "sha256": "0a787c60cffe3048db00bfb1cc2668c50dccfce71bdd08809966a4c900bdc79f"
+      "bytes": 29934,
+      "sha256": "2f452e2b637ffac2ddf95120187194d7633aca7ce981a113bbf191ff4c37bab3"
     },
     {
       "locator": ".lisa/plan-CodySwannGT-lisa-4326.json",
-      "bytes": 146795,
-      "sha256": "7df6bc50cda060bf8fa4cdaa75095f1c9fcdcee59f637041905461a2acfac84f"
+      "bytes": 149025,
+      "sha256": "6b6ecad4d2bb84eb639570608b37558c215d691fb7629a44b9966d3746f3325d"
     },
     {
       "locator": "evidence/4326/security-audit-review.md",
@@ -36,5 +36,5 @@
       "sha256": "2a89a9d828ad0b43dc8c9e4b45e92a9138e672d6d3f7b3b3f19c2c5f08cb6b8f"
     }
   ],
-  "plan_carrier_update": "Later operator metadata records exacta7 corePASS, actualfocused106PASS/strict-name-validator failure, and independently reviewed title-only working106/unique-name success. Newhead/runtime/CI/release/publication pending; historical security observations unchanged."
+  "plan_carrier_update": "Later metadata records historicala7 core/106-name failure, correctedtitle working106PASS, and latestmain4.68 reconciliation with only new global vfj exemptions removed; localapproveda7bd unchanged. FinalmergeB/runtime/push/CI/publication pending."
 }

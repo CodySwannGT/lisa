@@ -1,0 +1,148 @@
+{
+  "exclusions": [
+    {
+      "id": "GHSA-5j98-mcp5-4vw2",
+      "cve": "CVE-2025-64756",
+      "package": "glob",
+      "reason": "Command injection exploitable only via the `glob` CLI `-c`/`--cmd` flag; library API callers are unaffected and no deployable code paths invoke the CLI"
+    },
+    {
+      "id": "GHSA-8qq5-rm4j-mr97",
+      "package": "node-tar",
+      "reason": "Arbitrary file overwrite/symlink poisoning during tar extraction; requires extracting attacker-controlled archives, which no production code path does"
+    },
+    {
+      "id": "GHSA-37qj-frw5-hhjh",
+      "package": "fast-xml-parser",
+      "reason": "RangeError DoS triggered only when parsing attacker-controlled XML with numeric entities; no production code parses untrusted XML"
+    },
+    {
+      "id": "GHSA-3ppc-4f35-3m26",
+      "package": "minimatch",
+      "reason": "ReDoS via repeated wildcards in attacker-supplied glob patterns; no runtime code path passes untrusted input to minimatch"
+    },
+    {
+      "id": "GHSA-7r86-cg39-jmmj",
+      "package": "minimatch",
+      "reason": "ReDoS via multiple non-adjacent GLOBSTAR segments in attacker-supplied glob patterns; no runtime code path passes untrusted input to minimatch"
+    },
+    {
+      "id": "GHSA-23c5-xmqv-rm74",
+      "package": "minimatch",
+      "reason": "ReDoS via nested extglob patterns; requires attacker-supplied glob input which no runtime code path accepts"
+    },
+    {
+      "id": "GHSA-2g4f-4pwh-qvx6",
+      "package": "ajv",
+      "reason": "ReDoS requires the `$data` keyword option enabled in a schema; no projects enable `$data` or accept untrusted schemas at runtime"
+    },
+    {
+      "id": "GHSA-jmr7-xgp7-cmfj",
+      "package": "fast-xml-parser",
+      "reason": "DoS via DOCTYPE entity expansion; requires parsing attacker-controlled XML with DOCTYPE, which no production code path does"
+    },
+    {
+      "id": "GHSA-m7jm-9gc2-mpf2",
+      "package": "fast-xml-parser",
+      "reason": "Entity encoding bypass via regex injection in DOCTYPE entity names; requires parsing attacker-controlled XML, which no production code path does"
+    },
+    {
+      "id": "GHSA-8gc5-j5rx-235r",
+      "package": "fast-xml-parser",
+      "reason": "Numeric entity expansion bypass; requires parsing attacker-controlled XML with expansion limits in play, which no production code path does"
+    },
+    {
+      "id": "GHSA-r6q2-hw4h-h46w",
+      "package": "node-tar",
+      "reason": "Race condition during tar extraction on macOS APFS; requires extracting attacker-controlled archives, which no production code path does"
+    },
+    {
+      "id": "GHSA-34x7-hfp2-rc4v",
+      "package": "node-tar",
+      "reason": "Arbitrary file creation via hardlink path traversal during extraction; requires extracting attacker-controlled archives, which no production code path does"
+    },
+    {
+      "id": "GHSA-83g3-92jg-28cx",
+      "package": "node-tar",
+      "reason": "Arbitrary file read/write via hardlink target escape during extraction; requires extracting attacker-controlled archives, which no production code path does"
+    },
+    {
+      "id": "GHSA-3h5v-q93c-6h6q",
+      "package": "ws",
+      "reason": "DoS requires attacker-controlled HTTP header volume against a `ws` WebSocket server. Keep this exclusion only if your project's ingress controls (e.g., gateway, load balancer, reverse proxy) enforce header count limits before traffic reaches the Node process."
+    },
+    {
+      "id": "GHSA-w532-jxjh-hjhj",
+      "cve": "CVE-2025-29907",
+      "package": "jsPDF",
+      "reason": "ReDoS requires attacker-controlled input to `addImage`. Keep this exclusion only if `addImage` is never called with untrusted image paths or buffers sourced from user input."
+    },
+    {
+      "id": "GHSA-8mvj-3j78-4qmw",
+      "cve": "CVE-2025-57810",
+      "package": "jsPDF",
+      "reason": "DoS requires attacker-controlled input to `addImage`. Keep this exclusion only if `addImage` is never called with untrusted image paths or buffers sourced from user input."
+    },
+    {
+      "id": "GHSA-36jr-mh4h-2g58",
+      "package": "d3-color",
+      "reason": "ReDoS requires attacker-controlled color strings passed to d3-color's parser. Keep this exclusion only if no runtime code path passes untrusted input (e.g., user-supplied color values) to d3-color functions."
+    },
+    {
+      "id": "GHSA-chqc-8p9q-pq6q",
+      "package": "basic-ftp",
+      "reason": "FTP command injection via CRLF requires attacker-controlled FTP command construction. Keep this exclusion only if no production code path uses FTP or passes untrusted input to FTP command parameters."
+    },
+    {
+      "id": "GHSA-6v7q-wjvx-w8wg",
+      "package": "basic-ftp",
+      "reason": "FTP command injection via CRLF in credentials/MKD commands requires attacker-controlled FTP parameters. Transitive via @lhci/cli > proxy-agent > pac-proxy-agent > get-uri > basic-ftp. Keep this exclusion only if no production code path uses FTP or passes untrusted input to FTP command parameters."
+    },
+    {
+      "id": "GHSA-r5fr-rjxr-66jc",
+      "package": "lodash",
+      "reason": "Code injection via `_.template` requires attacker-controlled input to `_.template` interpolation. Keep this exclusion only if no runtime code path invokes `_.template` with untrusted data."
+    },
+    {
+      "id": "GHSA-jg4p-7fhp-p32p",
+      "package": "@hapi/content",
+      "reason": "ReDoS requires attacker-controlled HTTP Content-Type or Content-Disposition headers parsed by @hapi/content. Keep this exclusion only if no deployable code paths parse untrusted HTTP headers using this package."
+    },
+    {
+      "id": "GHSA-3p68-rc4w-qgx5",
+      "package": "axios",
+      "reason": "SSRF via NO_PROXY hostname normalization bypass requires attacker influence over proxy configuration. Keep this exclusion only if proxy settings (NO_PROXY, HTTP_PROXY, etc.) are never derived from untrusted input."
+    },
+    {
+      "id": "GHSA-fvcv-3m26-pcqx",
+      "package": "axios",
+      "reason": "Cloud metadata exfiltration requires attacker-controlled outbound request header values. Keep this exclusion only if axios request headers are never sourced from untrusted input."
+    },
+    {
+      "id": "GHSA-2v35-w6hq-6mfw",
+      "package": "@xmldom/xmldom",
+      "reason": "Uncontrolled recursion in XML serialization leading to DoS. Transitive via expo > @expo/config-plugins > @expo/plist; only serializes developer-authored plist files at build/prebuild time, no runtime code path parses or serializes attacker-controlled XML."
+    },
+    {
+      "id": "GHSA-f6ww-3ggp-fr8h",
+      "package": "@xmldom/xmldom",
+      "reason": "XML injection via unvalidated DocumentType serialization. Transitive via expo > @expo/config-plugins > @expo/plist; only serializes developer-authored plist files at build/prebuild time, no runtime code path serializes attacker-controlled XML."
+    },
+    {
+      "id": "GHSA-x6wf-f3px-wcqx",
+      "package": "@xmldom/xmldom",
+      "reason": "XML node injection via unvalidated processing instruction serialization. Transitive via expo > @expo/config-plugins > @expo/plist; only serializes developer-authored plist files at build/prebuild time, no runtime code path serializes attacker-controlled XML."
+    },
+    {
+      "id": "GHSA-j759-j44w-7fr8",
+      "package": "@xmldom/xmldom",
+      "reason": "XML node injection via unvalidated comment serialization. Transitive via expo > @expo/config-plugins > @expo/plist; only serializes developer-authored plist files at build/prebuild time, no runtime code path serializes attacker-controlled XML."
+    },
+    {
+      "id": "GHSA-vfj7-8cjw-p6xm",
+      "cve": "CVE-2026-93687",
+      "package": "braces",
+      "reason": "Stack-exhaustion DoS (uncaught RangeError) via deeply nested brace patterns; no patched release exists. Keep this exclusion only if no runtime code path passes attacker-supplied glob or brace patterns to braces/micromatch (dev tooling expanding repo-owned globs is unaffected)."
+    }
+  ]
+}

@@ -1879,5 +1879,32 @@
       "new_B": "unknown_pending_normalcommit",
       "independent_helper_review": "pending"
     }
+  },
+  "latest_main_468_reconciliation": {
+    "recorded_before_managed_config_edit_at": "2026-10-03T15:58:51.196979+00:00",
+    "feature_parent": "39f62275c0675adfb21655dcd17564e4b8d08364",
+    "upstream_main": "728d35afbd3de4d522023e0b65fd0f730c94820c",
+    "upstream_version": "4.68.0",
+    "normal_no_commit_merge_actual_exit": 0,
+    "merge_conflicts": [],
+    "upstream_own_changes": "Self-dependency updater/security-token isolation/superseded-PR handling, release manifests/changelog and generated artifacts are retained.",
+    "new_inherited_global_exception": "Commit1ac0633a4d adds GHSA-vfj7-8cjw-p6xm to rootmanaged andshared TypeScript configs. Its repo-owned/non-attacker/unaffected rationale conflicts with the previously demonstrated Knip PR-configured glob path.",
+    "policy_action": "Remove only GHSA-vfj7-8cjw-p6xm from these two managed configs, preserving every other byte/order/item. Approvedrootlocal932byte/a7bd waiver remains exactlyunchanged. No shared/customer waiver is authorized by this flow.",
+    "owned_policy_paths": [
+      "audit.ignore.config.json",
+      "typescript/copy-overwrite/audit.ignore.config.json"
+    ],
+    "validation": "Capture exact badbaselinecfg2, prove ID removed and allotheritems identical, localapprovedID retained, stage/regenerate2artifacts/frozeninstall/build/normalmergecommit/independent actualfinalBcore+strict106+normalpush/currentCI/publicrelease actual.",
+    "future_B_and_runtime": "pending; no historicalrecord relabel",
+    "durable_packet": "evidence/4326/main-468-reconciliation",
+    "independent_working_review_sha256": "a05304f31eb5897019fea3f452600d8abf72eb9d95706e0f500dc83f382ae4ad",
+    "merged_install_build_sha256": "d6e9005c0a931e013e8e9bb2b3239470e87073715bf0bd24621eb6271c041961",
+    "frozen_install_actual_exit": 0,
+    "build_dist_actual_exit": 0,
+    "all_five_policy_inputs_unchanged_by_install_build": true,
+    "main468_final_core_preparation_sha256": "891bc0ad1270cb75e98ce23467c22b0c0c9deeeec43c679314d70c0fb2ff8882",
+    "versioned_promoter_expected_parent": "39f62275c0675adfb21655dcd17564e4b8d08364",
+    "previous_canonical_v2_head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+    "final_B": "unknown_pending_normalmergecommit"
   }
 }

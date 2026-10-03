@@ -187,7 +187,7 @@
     "zod-validation-error": "^4.0.0"
   },
   "name": "@codyswann/lisa",
-  "version": "4.67.0",
+  "version": "4.68.0",
   "description": "Claude Code governance framework that applies guardrails, guidance, and automated enforcement to projects",
   "main": "dist/index.js",
   "exports": {
@@ -315,7 +315,7 @@
   },
   "devDependencies": {
     "@actions/expressions": "0.3.61",
-    "@codyswann/lisa": "^4.65.3",
+    "@codyswann/lisa": "^4.67.0",
     "@playwright/test": "^1.61.1",
     "@stryker-mutator/api": "^9.0.0",
     "@stryker-mutator/core": "^9.0.0",

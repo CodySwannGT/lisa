@@ -107,7 +107,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-self-update.mjs":
-      "80dc15053af22133cfe50e48484b24b098eb9f2095999b649694ad11ce64175a",
+      "80d07132cffc8532e79f75acb1d1053c034800bec9b81b354131d4248934b02e",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
@@ -123,7 +123,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/create-only/.github/workflows/continuous-gates.yml":
       "42ec4cb8e0ba45e0288f07881b8f93497468afd3cba3ef0cbb4d0ea4c4ae240a",
     "all/create-only/.github/workflows/lisa-update.yml":
-      "9c1c05ffe39a6d5e41a3e82afbbc227097e071b26d2bbc56281ef1373c5a035d",
+      "5fb8822126277d0e4c89d3086857653f313f74a13d96f3aeeae97a0f4ccd81b6",
     "all/create-only/.github/workflows/workflow-load-failure-sweep.yml":
       "eaf0dc7d59b83a8525207c763db4c955ccef05c4fab16b9407d36d1b53513670",
     "all/create-only/.lisaignore":
@@ -2460,6 +2460,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "3e10b5a4c113e3aa895c6a09f063045eb198dbdabb11a00be87bea1477c91fbb",
     "scripts/lisa-ruleset-reach.mjs":
       "e51b12092062379e7317b368c89a789e2067ec302388e557ea84a29a35ffc238",
+    "scripts/lisa-self-update.mjs":
+      "047c1077f8f9f95cd8138f3d38372fba9fe6d6c378d03c3a6e91518a337e3ffb",
     "scripts/lisa-update-local.sh":
       "eb031a6bb4735e5096ac52efc3ef027233485c86524a83cd7f258d0b6f7b985b",
     "scripts/lisa-work-item.mjs":
@@ -2781,6 +2783,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/lifecycle-terminal-transition.yml": true,
     ".github/workflows/lighthouse.yml": true,
     ".github/workflows/lisa-build-intake.yml": true,
+    ".github/workflows/lisa-update.yml": true,
     ".github/workflows/load-test.yml": true,
     ".github/workflows/maestro-native-e2e.yml": true,
     ".github/workflows/mutation-performance-baseline.yml": true,
@@ -3075,6 +3078,21 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4326/history/quality-gates.log": true,
     "evidence/4326/history/quality-state.json": true,
     "evidence/4326/inventory.json": true,
+    "evidence/4326/main-468-reconciliation/README.md": true,
+    "evidence/4326/main-468-reconciliation/baseline-regression.log": true,
+    "evidence/4326/main-468-reconciliation/before-merge.json": true,
+    "evidence/4326/main-468-reconciliation/fixed-success-and-edge.log": true,
+    "evidence/4326/main-468-reconciliation/independent-review.json": true,
+    "evidence/4326/main-468-reconciliation/inventory.json": true,
+    "evidence/4326/main-468-reconciliation/managed-scope-reconciliation.json": true,
+    "evidence/4326/main-468-reconciliation/merge-exit.json": true,
+    "evidence/4326/main-468-reconciliation/merge.log": true,
+    "evidence/4326/main-468-reconciliation/merged-build-dist.log": true,
+    "evidence/4326/main-468-reconciliation/merged-frozen-install.log": true,
+    "evidence/4326/main-468-reconciliation/merged-install-build.json": true,
+    "evidence/4326/main-468-reconciliation/quality-and-template-review.log": true,
+    "evidence/4326/main-468-reconciliation/upstream-root-audit-ignore.json": true,
+    "evidence/4326/main-468-reconciliation/upstream-shared-audit-ignore.json": true,
     "evidence/4326/nested-host-admission-repair/README.md": true,
     "evidence/4326/nested-host-admission-repair/baseline-identical-final-regression-proof.json": true,
     "evidence/4326/nested-host-admission-repair/baseline-regression.log": true,
@@ -8824,6 +8842,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lisa-remote-env/setup.sh": true,
     "scripts/lisa-ruleset-payload.mjs": true,
     "scripts/lisa-ruleset-reach.mjs": true,
+    "scripts/lisa-self-update.mjs": true,
     "scripts/lisa-update-local.sh": true,
     "scripts/lisa-work-item.mjs": true,
     "scripts/materialize-copy-overwrite.mjs": true,

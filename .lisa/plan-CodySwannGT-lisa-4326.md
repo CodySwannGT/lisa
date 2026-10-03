@@ -199,3 +199,7 @@ Source implementation T3 is complete. T4/T5/T6 remain in progress for normal fin
 The exact a7f832 core replay passed. Its focused normal-wrapper invocation passed all106 tests, but the evidence validator rejected four duplicated root undefined titles. A dotted Vitest placeholder caused the reporting defect. Change the title separator only, preserve the actual106 output and validator failure, and prove the distinct reported names before a normal followup commit and genuine new-head verification. Production policy, assertions and the strict unique-name validator remain unchanged.
 
 Working-input correction now passes all106 cases and the unchanged strict named-case validator, with four distinct root map/dependency labels. Only the title separator changed. Scoped lint/format passed, no compiler rerun was needed, and old source/report/helper bytes remain preserved. Exact futureB/runtime/CI/publication are still pending.
+
+## Upstream4.68 reconciliation, recorded before policy edit
+
+Latestmain728d35 introduces self-update fixes and version4.68, which are retained. It also introduces a global/shared braces exemption on the disproved repo-owned/unaffected rationale. Remove only this newly inherited advisory item from the two managed configs, preserving the approved root-local a7bd bytes and all other upstream work. The actual Knip evidence already established PR-controlled reachability. Capture the upstream baseline and exact scoped reconciliation before genuine new-head verification; old a7 runtime remains historical.

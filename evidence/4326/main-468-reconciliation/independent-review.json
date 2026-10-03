@@ -1,0 +1,535 @@
+{
+  "schema_version": 1,
+  "status": "PASS_SCOPED_WORKING_MERGE_POLICY_REVIEW",
+  "reviewer": "issue_validator",
+  "captured_at": "2026-10-03T16:07:35.432956+00:00",
+  "blocking_findings": [],
+  "findings": [],
+  "actual_feature_HEAD": "39f62275c0675adfb21655dcd17564e4b8d08364",
+  "actual_MERGE_HEAD": "728d35afbd3de4d522023e0b65fd0f730c94820c",
+  "common_base": "4bb326e655301ad1188a57583b804fc03fe29003",
+  "unmerged_entries": 0,
+  "scoped_policy_records": [
+    {
+      "path": "audit.ignore.config.json",
+      "bad_main": {
+        "path": "/tmp/lisa-4326-codification/main-468-reconciliation/upstream-root-audit-ignore.json",
+        "bytes": 6903,
+        "sha256": "075f55ebba8f60f58a9c72c4feccad6a820784446004e3139134a241e567a24e"
+      },
+      "working": {
+        "path": "/tmp/lisa-4326-implementation/audit.ignore.config.json",
+        "bytes": 6542,
+        "sha256": "2db0e25dac1397a5f46d13efa9a3539e264b28244cbdbe2f35f2f541f220d5e2"
+      },
+      "exact_feature39_bytes_restored": true,
+      "removed_only": [
+        {
+          "id": "GHSA-vfj7-8cjw-p6xm",
+          "cve": "CVE-2026-93687",
+          "package": "braces",
+          "reason": "Stack-exhaustion DoS via deeply nested brace patterns; no patched release exists (<= 3.0.3). Transitive via micromatch in jest/lint-staged/fast-glob dev tooling, which only expands repo-owned glob patterns, never attacker-supplied input"
+        }
+      ],
+      "all_other_items_identical": true,
+      "remaining_items": 33
+    },
+    {
+      "path": "typescript/copy-overwrite/audit.ignore.config.json",
+      "bad_main": {
+        "path": "/tmp/lisa-4326-codification/main-468-reconciliation/upstream-shared-audit-ignore.json",
+        "bytes": 8020,
+        "sha256": "c19a374d02e01a484cd1965522879839ba7945b3cc06c9b22e05e6742ecb2b09"
+      },
+      "working": {
+        "path": "/tmp/lisa-4326-implementation/typescript/copy-overwrite/audit.ignore.config.json",
+        "bytes": 7618,
+        "sha256": "8635c912e0d41177f545f22248b2acc9f9683b3c04e5ade7829a8fa809966a0d"
+      },
+      "exact_feature39_bytes_restored": true,
+      "removed_only": [
+        {
+          "id": "GHSA-vfj7-8cjw-p6xm",
+          "cve": "CVE-2026-93687",
+          "package": "braces",
+          "reason": "Stack-exhaustion DoS (uncaught RangeError) via deeply nested brace patterns; no patched release exists. Keep this exclusion only if no runtime code path passes attacker-supplied glob or brace patterns to braces/micromatch (dev tooling expanding repo-owned globs is unaffected)."
+        }
+      ],
+      "all_other_items_identical": true,
+      "remaining_items": 27
+    }
+  ],
+  "upstream_only_paths": 59,
+  "upstream_only_actual_working_index_main_blob_records": [
+    {
+      "path": ".github/workflows/lisa-update.yml",
+      "bytes": 4807,
+      "sha256": "b1a939ac9c67f5f012c79b91c3ce8aafda8b15acf9c5ed398fec34d24af6b295",
+      "main_git_blob": "98dec44e816621efeb60a5fae5a20dc896411249"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "bytes": 1050781,
+      "sha256": "7edfee99b62fc8698ac13b6e510b475c942eb14ab920c141731b4d67469100be",
+      "main_git_blob": "18d23a13a9f76afa4f4d16fdea613acd1c4df644"
+    },
+    {
+      "path": "all/copy-overwrite/scripts/lisa-self-update.mjs",
+      "bytes": 36116,
+      "sha256": "80d07132cffc8532e79f75acb1d1053c034800bec9b81b354131d4248934b02e",
+      "main_git_blob": "a8866632c5fce54b9dd4e26b29832eddb2a3ce8c"
+    },
+    {
+      "path": "all/create-only/.github/workflows/lisa-update.yml",
+      "bytes": 4188,
+      "sha256": "5fb8822126277d0e4c89d3086857653f313f74a13d96f3aeeae97a0f4ccd81b6",
+      "main_git_blob": "ab027a53ca0fd069edb2fdcc2cc4cb35a0fbf3f9"
+    },
+    {
+      "path": "plugins/lisa-agy/plugin.json",
+      "bytes": 193,
+      "sha256": "bbe85a3115b4de2b46ea7db7fe2303245cbbd720bf0c76d7665e5f923964f1ad",
+      "main_git_blob": "4ef6b847298b3ab94b76e0474eb49985dcb8cb06"
+    },
+    {
+      "path": "plugins/lisa-cdk-agy/plugin.json",
+      "bytes": 183,
+      "sha256": "aef426497a512500e8788625c7c8cd8d915b2380e723dcd79b7257de2a86c478",
+      "main_git_blob": "536fbb99b9ef887a733125578c98c3b10653c658"
+    },
+    {
+      "path": "plugins/lisa-cdk-copilot/.claude-plugin/plugin.json",
+      "bytes": 183,
+      "sha256": "aef426497a512500e8788625c7c8cd8d915b2380e723dcd79b7257de2a86c478",
+      "main_git_blob": "536fbb99b9ef887a733125578c98c3b10653c658"
+    },
+    {
+      "path": "plugins/lisa-cdk-cursor/.claude-plugin/plugin.json",
+      "bytes": 183,
+      "sha256": "aef426497a512500e8788625c7c8cd8d915b2380e723dcd79b7257de2a86c478",
+      "main_git_blob": "536fbb99b9ef887a733125578c98c3b10653c658"
+    },
+    {
+      "path": "plugins/lisa-cdk/.claude-plugin/plugin.json",
+      "bytes": 198,
+      "sha256": "193329e2e81a4ca4d80beb2d9e988feda020abae664b121f81aac6300ef4ce2b",
+      "main_git_blob": "b69b8f786c8299b6b98741692a65e8ae96a3ccfa"
+    },
+    {
+      "path": "plugins/lisa-cdk/.codex-plugin/plugin.json",
+      "bytes": 661,
+      "sha256": "cfd7a7d9ca250e461508c5d131b3d7b280449dbdaa84231c59bda0b52d0fe8bd",
+      "main_git_blob": "41f22b954c6a61f45dec4198534ee8b51a955e0b"
+    },
+    {
+      "path": "plugins/lisa-copilot/.claude-plugin/plugin.json",
+      "bytes": 6560,
+      "sha256": "32992a48a58387af4f6ba99677ac74f03e1ed527c0703a7432315b78911e089a",
+      "main_git_blob": "4014bc0698c5335a9d82822c1a77050dd7d50299"
+    },
+    {
+      "path": "plugins/lisa-cursor/.claude-plugin/plugin.json",
+      "bytes": 193,
+      "sha256": "bbe85a3115b4de2b46ea7db7fe2303245cbbd720bf0c76d7665e5f923964f1ad",
+      "main_git_blob": "4ef6b847298b3ab94b76e0474eb49985dcb8cb06"
+    },
+    {
+      "path": "plugins/lisa-expo-agy/plugin.json",
+      "bytes": 226,
+      "sha256": "e47a272892c552df6f442ec95355c9612bf5f700c6c496733069e33d2bcfbf1e",
+      "main_git_blob": "cdf565ef12e5f0b38bd4f00ec27024169cbd01ba"
+    },
+    {
+      "path": "plugins/lisa-expo-copilot/.claude-plugin/plugin.json",
+      "bytes": 577,
+      "sha256": "3753b40f189d0e9c5a3734912486b363f37cc02f7ad74631b1c1962e12fd0a4a",
+      "main_git_blob": "6f7f9b599f24fcfc0816996c8ea9dd345c1d3051"
+    },
+    {
+      "path": "plugins/lisa-expo-cursor/.claude-plugin/plugin.json",
+      "bytes": 226,
+      "sha256": "e47a272892c552df6f442ec95355c9612bf5f700c6c496733069e33d2bcfbf1e",
+      "main_git_blob": "cdf565ef12e5f0b38bd4f00ec27024169cbd01ba"
+    },
+    {
+      "path": "plugins/lisa-expo/.claude-plugin/plugin.json",
+      "bytes": 472,
+      "sha256": "081f91b7fddd39425a60c7b8c0f2ffb377a8fcebcd27be9d7f2b1bb2cd471b57",
+      "main_git_blob": "c6fa6011fbe41a69a019bf2e8b38d0763014acee"
+    },
+    {
+      "path": "plugins/lisa-expo/.codex-plugin/plugin.json",
+      "bytes": 909,
+      "sha256": "bca629bc0dd6794935e79a40481438f43e95a040340727b84e9f54a9449ad1e6",
+      "main_git_blob": "8172bdca18a891dd01d0844898691387ea181d3e"
+    },
+    {
+      "path": "plugins/lisa-harper-fabric-agy/plugin.json",
+      "bytes": 228,
+      "sha256": "94392f88c91ae3cac705a6978d8eb574e880770ac80578340a9416b13c8822eb",
+      "main_git_blob": "14433a9d98d80fca05dc9efe554bfa6ccb0cef8a"
+    },
+    {
+      "path": "plugins/lisa-harper-fabric-copilot/.claude-plugin/plugin.json",
+      "bytes": 976,
+      "sha256": "24e78eb574c707789a8f078b421694ce6d0d0cedafd4ea34ca2cbb46913a5d78",
+      "main_git_blob": "c0c99599e1d0c5fd6b62ae1288edb44d75dbdb8a"
+    },
+    {
+      "path": "plugins/lisa-harper-fabric-cursor/.claude-plugin/plugin.json",
+      "bytes": 228,
+      "sha256": "94392f88c91ae3cac705a6978d8eb574e880770ac80578340a9416b13c8822eb",
+      "main_git_blob": "14433a9d98d80fca05dc9efe554bfa6ccb0cef8a"
+    },
+    {
+      "path": "plugins/lisa-harper-fabric/.claude-plugin/plugin.json",
+      "bytes": 1198,
+      "sha256": "d05a2ef80bf2d9e9c985fa1943659d29e9406e8915e8845d054392deba18c32a",
+      "main_git_blob": "ef144c999a8721f1fa214f8ae910dafa5a23ace3"
+    },
+    {
+      "path": "plugins/lisa-harper-fabric/.codex-plugin/plugin.json",
+      "bytes": 942,
+      "sha256": "a86c6309ec5239f1a1f95332bc6760a00b62b9caddf4a33261ba440e37d2d9bf",
+      "main_git_blob": "c5024c08c9673ba49f572ecc7f1a9fbce8800a5e"
+    },
+    {
+      "path": "plugins/lisa-nestjs-agy/plugin.json",
+      "bytes": 243,
+      "sha256": "c0798ea413e54e1ff4e2e4fd08050c580985ba6419657943277a27f00284957f",
+      "main_git_blob": "10f585fb35c27da8182e351ea9620fc590c248a0"
+    },
+    {
+      "path": "plugins/lisa-nestjs-copilot/.claude-plugin/plugin.json",
+      "bytes": 498,
+      "sha256": "fcdf5bb5f7d6f90fee23fe73deedcba831652bd258360bb2a80793a3c75707b4",
+      "main_git_blob": "d0d1d0d60964736c4e7df17b0e6c3674d59e5b7d"
+    },
+    {
+      "path": "plugins/lisa-nestjs-cursor/.claude-plugin/plugin.json",
+      "bytes": 243,
+      "sha256": "c0798ea413e54e1ff4e2e4fd08050c580985ba6419657943277a27f00284957f",
+      "main_git_blob": "10f585fb35c27da8182e351ea9620fc590c248a0"
+    },
+    {
+      "path": "plugins/lisa-nestjs/.claude-plugin/plugin.json",
+      "bytes": 498,
+      "sha256": "0545d24c0be90f37256ff52fbe61d030331ee381324763f33195271764e14080",
+      "main_git_blob": "8475ffab8321047bb79e9d139f92e932c5235164"
+    },
+    {
+      "path": "plugins/lisa-nestjs/.codex-plugin/plugin.json",
+      "bytes": 833,
+      "sha256": "b19ea69919da3cddfadfacbe492e47d14e92fc330643cdd7aa2e8ca5e7baf044",
+      "main_git_blob": "c44a70f18f71ee30cb962298a54db183120d64e8"
+    },
+    {
+      "path": "plugins/lisa-openclaw-agy/plugin.json",
+      "bytes": 270,
+      "sha256": "9b85c577b81a0a30e2f329433a220f3473b82a79a44ca64927c65e3b4debd4e0",
+      "main_git_blob": "106b828e4d8b852987e9f640eb97225fefd6986d"
+    },
+    {
+      "path": "plugins/lisa-openclaw-copilot/.claude-plugin/plugin.json",
+      "bytes": 270,
+      "sha256": "9b85c577b81a0a30e2f329433a220f3473b82a79a44ca64927c65e3b4debd4e0",
+      "main_git_blob": "106b828e4d8b852987e9f640eb97225fefd6986d"
+    },
+    {
+      "path": "plugins/lisa-openclaw-cursor/.claude-plugin/plugin.json",
+      "bytes": 270,
+      "sha256": "9b85c577b81a0a30e2f329433a220f3473b82a79a44ca64927c65e3b4debd4e0",
+      "main_git_blob": "106b828e4d8b852987e9f640eb97225fefd6986d"
+    },
+    {
+      "path": "plugins/lisa-openclaw/.claude-plugin/plugin.json",
+      "bytes": 270,
+      "sha256": "9b85c577b81a0a30e2f329433a220f3473b82a79a44ca64927c65e3b4debd4e0",
+      "main_git_blob": "106b828e4d8b852987e9f640eb97225fefd6986d"
+    },
+    {
+      "path": "plugins/lisa-openclaw/.codex-plugin/plugin.json",
+      "bytes": 1168,
+      "sha256": "937d86d518ac5530c0d2acf60dd496cc639d15d39080dce1178b19a9ae9f0b70",
+      "main_git_blob": "8d601d74a2aab3b3567e0eba86c7eb32a01a0ce4"
+    },
+    {
+      "path": "plugins/lisa-phaser-agy/plugin.json",
+      "bytes": 218,
+      "sha256": "caa3882c4b50377b8874c4c803c2f57f474b3ac5c50a060e47902c81715a2bf0",
+      "main_git_blob": "e0b98187a198b803b5d4fd672ec9dff76464dc69"
+    },
+    {
+      "path": "plugins/lisa-phaser-copilot/.claude-plugin/plugin.json",
+      "bytes": 456,
+      "sha256": "0ba0f93b33649f6ce8c4deddf30831beffe26f8cb8cb02d7e810780316e95b17",
+      "main_git_blob": "5d06dfad22b931e17b687d90e29d50dc1f69c958"
+    },
+    {
+      "path": "plugins/lisa-phaser-cursor/.claude-plugin/plugin.json",
+      "bytes": 218,
+      "sha256": "caa3882c4b50377b8874c4c803c2f57f474b3ac5c50a060e47902c81715a2bf0",
+      "main_git_blob": "e0b98187a198b803b5d4fd672ec9dff76464dc69"
+    },
+    {
+      "path": "plugins/lisa-phaser/.claude-plugin/plugin.json",
+      "bytes": 678,
+      "sha256": "e0e41d0108159d3765b5dc8f3eb514beee8008ad7c333d9e6778ef1b3b18ec6f",
+      "main_git_blob": "4ec37fb7450a07088943121e905098303ba77560"
+    },
+    {
+      "path": "plugins/lisa-phaser/.codex-plugin/plugin.json",
+      "bytes": 729,
+      "sha256": "f7cac80685b5b0bda06f36eba5ba739d61bc0dc5d69ac724b62e6d7ead2ca54a",
+      "main_git_blob": "568184efdd18ce914278c16b533fd0248466a1a1"
+    },
+    {
+      "path": "plugins/lisa-rails-agy/plugin.json",
+      "bytes": 240,
+      "sha256": "1b0ac12703941da9038be6b95bf2e4db0da3fd257079344b4348732e25065b74",
+      "main_git_blob": "37b3ba160e6537d7ed610b2274569f47797a17df"
+    },
+    {
+      "path": "plugins/lisa-rails-copilot/.claude-plugin/plugin.json",
+      "bytes": 839,
+      "sha256": "833bb24310a2cadaeb234f1262002b3af56022b64264527e6352f636022dc1fa",
+      "main_git_blob": "1a8e5b79715ec0089842078d73671d972cb925c5"
+    },
+    {
+      "path": "plugins/lisa-rails-cursor/.claude-plugin/plugin.json",
+      "bytes": 240,
+      "sha256": "1b0ac12703941da9038be6b95bf2e4db0da3fd257079344b4348732e25065b74",
+      "main_git_blob": "37b3ba160e6537d7ed610b2274569f47797a17df"
+    },
+    {
+      "path": "plugins/lisa-rails/.claude-plugin/plugin.json",
+      "bytes": 1061,
+      "sha256": "936e581a2b42f62c7a7371e23caa792efbc8ace13c204fdababd22c8bd84d50a",
+      "main_git_blob": "3a92c05b8e246745fc268ccd2fd1bfd664898143"
+    },
+    {
+      "path": "plugins/lisa-rails/.codex-plugin/plugin.json",
+      "bytes": 852,
+      "sha256": "b57269a5a3ab957aafa431462d93451b75ab29f27d4a94dd7ba8688d21afd9d0",
+      "main_git_blob": "7cfff04d5dc1ee158f2c0cd4fb78d0ceb30f1979"
+    },
+    {
+      "path": "plugins/lisa-typescript-agy/plugin.json",
+      "bytes": 280,
+      "sha256": "357e7544f1c0941802c23b2c3d759dd8b8107a9a13c664589421c1a4459c1ec8",
+      "main_git_blob": "645e4a10fb10dacdbff320ead5fdfe373ad7fc1f"
+    },
+    {
+      "path": "plugins/lisa-typescript-copilot/.claude-plugin/plugin.json",
+      "bytes": 1024,
+      "sha256": "1df4ad24f1a17ada8f3b162145070c4c00fd2973a72a2d9e231153daeab28e79",
+      "main_git_blob": "1c1b86c3927f756dbb7dd6dac7b7b54cda2bfee6"
+    },
+    {
+      "path": "plugins/lisa-typescript-cursor/.claude-plugin/plugin.json",
+      "bytes": 280,
+      "sha256": "357e7544f1c0941802c23b2c3d759dd8b8107a9a13c664589421c1a4459c1ec8",
+      "main_git_blob": "645e4a10fb10dacdbff320ead5fdfe373ad7fc1f"
+    },
+    {
+      "path": "plugins/lisa-typescript/.claude-plugin/plugin.json",
+      "bytes": 1024,
+      "sha256": "72f1512764c975e8c4a6ed418efd22ed2dccb6f75232b6ba4a4fff8a33a066f8",
+      "main_git_blob": "9bfb9198922d8039c761286ef9628a4cb8ae3288"
+    },
+    {
+      "path": "plugins/lisa-typescript/.codex-plugin/plugin.json",
+      "bytes": 775,
+      "sha256": "a54cc136a79c53701b26442bf8a19aced49ed046954573fac3c9ec501fb104d0",
+      "main_git_blob": "8dbaf0a60604845de36d9e6a61f21fdddd9c6b28"
+    },
+    {
+      "path": "plugins/lisa-wiki-agy/plugin.json",
+      "bytes": 204,
+      "sha256": "8a787319a65aab3ab4befd276c9fd28e52dfd6940436c8b211d234e74e5a3095",
+      "main_git_blob": "ee1e06bd47399da9ed83cb3f8f76bb3a3c9f7976"
+    },
+    {
+      "path": "plugins/lisa-wiki-copilot/.claude-plugin/plugin.json",
+      "bytes": 204,
+      "sha256": "8a787319a65aab3ab4befd276c9fd28e52dfd6940436c8b211d234e74e5a3095",
+      "main_git_blob": "ee1e06bd47399da9ed83cb3f8f76bb3a3c9f7976"
+    },
+    {
+      "path": "plugins/lisa-wiki-cursor/.claude-plugin/plugin.json",
+      "bytes": 204,
+      "sha256": "8a787319a65aab3ab4befd276c9fd28e52dfd6940436c8b211d234e74e5a3095",
+      "main_git_blob": "ee1e06bd47399da9ed83cb3f8f76bb3a3c9f7976"
+    },
+    {
+      "path": "plugins/lisa-wiki/.claude-plugin/plugin.json",
+      "bytes": 204,
+      "sha256": "8a787319a65aab3ab4befd276c9fd28e52dfd6940436c8b211d234e74e5a3095",
+      "main_git_blob": "ee1e06bd47399da9ed83cb3f8f76bb3a3c9f7976"
+    },
+    {
+      "path": "plugins/lisa-wiki/.codex-plugin/plugin.json",
+      "bytes": 1090,
+      "sha256": "a66baf1f98e85f0d7034c932ef3d4939c7f3ac8aa55fe5ac54521a56d76ff88d",
+      "main_git_blob": "22c9cd337181e3012340d3f106865bb2c6748930"
+    },
+    {
+      "path": "plugins/lisa/.claude-plugin/plugin.json",
+      "bytes": 10345,
+      "sha256": "4f6cfaf3ba3439e813a9e96ccb6ecc42fa1f03019baea0e2d63face538908d6d",
+      "main_git_blob": "b7fc77b08574219c2ff0f651763606323c7bebee"
+    },
+    {
+      "path": "plugins/lisa/.codex-plugin/plugin.json",
+      "bytes": 921,
+      "sha256": "608c8c4115e5785e35322efad08972b551bfd9b6e2d1d1eef64ef3166bb368db",
+      "main_git_blob": "1bc96e533678d1241156bd723c34a3ed3a7bc87d"
+    },
+    {
+      "path": "scripts/lisa-self-update.mjs",
+      "bytes": 607,
+      "sha256": "047c1077f8f9f95cd8138f3d38372fba9fe6d6c378d03c3a6e91518a337e3ffb",
+      "main_git_blob": "376fb78f1079e7c59768587206a885827bdf291d"
+    },
+    {
+      "path": "src/core/export-surface.json",
+      "bytes": 42344,
+      "sha256": "80328aec20647cbff0590a7fb541c6eeacf9367283bf29862575d37b1e2f00c7",
+      "main_git_blob": "36366e5cd4ea42cacc8ff41bca0c53fb4f102916"
+    },
+    {
+      "path": "src/core/lisa-owned-hash-ledger.ts",
+      "bytes": 186197,
+      "sha256": "140c06dd5376df7770512a427b3121c92d25d109389a4ecd21949dd5f36e1da9",
+      "main_git_blob": "b4eadcb13c0ac11301472d47dd9eea7cccea0b58"
+    },
+    {
+      "path": "src/core/nightly-e2e-guard-behavior-certificate.ts",
+      "bytes": 2714,
+      "sha256": "a45098b9da82d619df21e4de0c443e866eb031e0ccd1001115f93af76589531e",
+      "main_git_blob": "7c8f2f5040346910b3dfe14e75325b5bd595f792"
+    },
+    {
+      "path": "tests/unit/scripts/lisa-self-update.test.ts",
+      "bytes": 23178,
+      "sha256": "a501c4493912a8d9fbfa4f87081723566266c5d7e7f38f809d0b1cb349c1c6b2",
+      "main_git_blob": "a4aa782dd518f60f7b7c08def4235765750ee56e"
+    }
+  ],
+  "only_three_upstream_feature_overlap_paths": [
+    "bun.lock",
+    "package.json",
+    "src/core/upstream-evidence-manifest.ts"
+  ],
+  "overlap_preservation": {
+    "package_version": "4.68.0",
+    "self_dependency_range": "^4.67.0",
+    "locked_self_version_observed": "4.67.0",
+    "original_runtime_and_HTTP_force_ownership_preserved": true,
+    "derived_manifest_final_regeneration_and_full_merge_index_review_pending": true
+  },
+  "security_reason": {
+    "historical_actual_Knip_configured_entry_failure": {
+      "path": "/tmp/lisa-4326-codification/audit-477b0767/knip-config-control/receipt.json",
+      "bytes": 2876,
+      "sha256": "4714f8eadb67c25def1b97028599f999b975a934d4f924a3aacf6e549e98f7cf"
+    },
+    "independently_checked_config_and_raw_log_hashes": [
+      {
+        "path": "/tmp/lisa-4326-codification/audit-477b0767/knip-config-control/benign/knip.json",
+        "bytes": 53,
+        "sha256": "9a287415b28c0b03a168d2466acdf9b81a72cd3905b809c474aeb0e6774bfc45"
+      },
+      {
+        "path": "/tmp/lisa-4326-codification/audit-477b0767/knip-config-control/benign.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "/tmp/lisa-4326-codification/audit-477b0767/knip-config-control/deep/knip.json",
+        "bytes": 7051,
+        "sha256": "cfa06de84eb055a6f9f102305159a3bbd82a8d6ca9fbe89e1ef406d7ebecf677"
+      },
+      {
+        "path": "/tmp/lisa-4326-codification/audit-477b0767/knip-config-control/deep.log",
+        "bytes": 1134,
+        "sha256": "00a05e5e6ae631fb6341afb8d496d6d3e2d516c85d1fa5396f830ceb1575438e"
+      }
+    ],
+    "benign_exit": 0,
+    "deep_exit": 1,
+    "input_pattern_length": 7014,
+    "bounded_scope": "Existing actual dev-tool PR/config-controlled path contradicts universal never-attacker/unaffected rationale. No claim of new production runtime or consumer exposure is required to remove the inherited blanket exemption.",
+    "approved_root_local_exception": {
+      "path": "/tmp/lisa-4326-implementation/audit.ignore.local.json",
+      "bytes": 932,
+      "sha256": "a7bd5588e0d1edec667ef9331267ba9c4c74c142097111c2e3c5a911578b8d12"
+    },
+    "user_approval_not_extended_to_managed_shared_exemptions": true,
+    "other33_and27_items_untouched": true
+  },
+  "source10_unchanged_e509_title_preserved": {
+    "tests/fixtures/shared-runtime-hosts/process.ts": "c6e1fd79773d1c9b611af48328e60ef177c72b1f82807a1bd6b78b3bfad4d5c3",
+    "tests/fixtures/shared-runtime-hosts/journey.ts": "895e11735ce1575d9fdb5f15c1688e8f698a89130141209dfc2013fbea3d9321",
+    "tests/fixtures/shared-runtime-hosts/artifact.ts": "a64007acc0afce7c5e50f2b54568bfcb9d382dcd1cddc251025dc038a8f9a910",
+    "tests/fixtures/shared-runtime-hosts/assertions.ts": "3a44300da10845875a0c395dc0856954bbec04772280d7f2337f6f083fec0006",
+    "tests/fixtures/shared-runtime-hosts/host.ts": "9a5c7a618bef8dd9a2d60a51b6c123196e022aa690babcbb57a6cd1be3d419fa",
+    "tests/integration/shared-runtime-packed-hosts.test.ts": "d46d50bd3495f8ac676fbe94c0b0e810792a22eda8dd651860317ef4dda09ac3",
+    "tests/unit/config/forced-http-security-floors.test.ts": "e50953738d9cf898461c04bd44a7174a254623a3a761a3261c55380b7ff290a7",
+    "tests/unit/config/security-pin-floors.test.ts": "3fccc624768e5a2a7c7281c4a7fb8e6d1eb96d48574ae22b2fd11ab361a9fe05",
+    "tests/unit/config/postinstall-ci-guard.test.ts": "9b4a9bd2b6257c6bfc7954c93670ec6da14312971f2d6d98851109e2652f9e90",
+    "tests/unit/fixtures/shared-runtime-native-deadline.test.ts": "630c598d872673783fa3a8e3a8354083c6ae02c0be30f3470cfed6e541da3352"
+  },
+  "append_only_original_plan_AC_preserved": true,
+  "root_metadata": {
+    "path": "/tmp/lisa-4326-implementation/.lisa/plan-CodySwannGT-lisa-4326.json",
+    "bytes": 148288,
+    "sha256": "0fcc6064c25b3b9b2c0bcdc0edfbe77c12acda018cbbb1d914ec07cb6aebc6be"
+  },
+  "historical_context": {
+    "path": "/tmp/lisa-4326-implementation/.lisa/work-item-context.md",
+    "bytes": 232750,
+    "sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+  },
+  "historical_v2": {
+    "path": "/tmp/lisa-4326-implementation/.lisa/verification-status.json",
+    "bytes": 47229,
+    "sha256": "92adf1eb1faaa10332d3fe735b63af8898c3372b50ebe644f90e6cb25f4520b4"
+  },
+  "ledger_20entries": {
+    "path": "/tmp/lisa-4326-implementation/.lisa/PROJECT_LEARNINGS.md",
+    "bytes": 13897,
+    "sha256": "aa56ba5c64624a5df72b6e8ce59befecc84095161a01874de2fb6e7409e11821"
+  },
+  "historical_actual_a7_core": {
+    "path": "/tmp/lisa-4326-codification/independent-repaired-final-B/execution-receipt.json",
+    "bytes": 52007,
+    "sha256": "849a0980fd0ddf119379d46f265039a1024245fa0f0e408775a79669000485af"
+  },
+  "historical_failed_a7_supplement": {
+    "path": "/tmp/lisa-4326-codification/focused-repaired-a7f832f-local/driver-postprocessing-failure.json",
+    "bytes": 1106,
+    "sha256": "47d4e045218ef47fca26cadee65d1d2d6ba94482d1ad3cc1834a6e0a24f81bce"
+  },
+  "candidate_future_contract": {
+    "path": "/tmp/lisa-4326-codification/main-468-independent-review/candidate-input-contract.json",
+    "bytes": 3848,
+    "sha256": "a6c5d674fdc9571475fe47eb7d7597d9f49ab6ce5f54df50ef5526a8a3a251d7"
+  },
+  "no_other_upstream_work_reverted_observed": true,
+  "product_tests_or_runtime_reruns": 0,
+  "source_index_plan_ledger_context_verdict_tracker_writes": false,
+  "not_established": [
+    "Final merge-index and normal merge commit B",
+    "Root-owned frozen install/build and generated artifacts",
+    "Fresh new-B core/strict106/88record evidence/promotion",
+    "New-head normal push/remote CI/review",
+    "PR merge/configured deploy release/publicR/source106HTTP/tracker terminal completion"
+  ],
+  "not_established_reviewed": true,
+  "seal": {
+    "algorithm": "sha256",
+    "scope": "JSON indent2 plus newline without seal",
+    "sha256": "e6031dcfc0d8e32c50f53a611d5c1ec423d427f88c044253feb3ab916637a4e9"
+  }
+}
