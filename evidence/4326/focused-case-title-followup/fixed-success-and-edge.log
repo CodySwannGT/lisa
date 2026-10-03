@@ -1,0 +1,18 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /private/tmp/lisa-4326-implementation
+
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts (31 tests) 6ms
+ ✓ tests/unit/config/security-pin-floors.test.ts (38 tests) 4ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts (34 tests) 27ms
+ ✓ tests/unit/fixtures/shared-runtime-native-deadline.test.ts (3 tests) 1536ms
+     ✓ gives an actual child the explicit control-plus-work wall deadline  1532ms
+
+ Test Files  4 passed (4)
+      Tests  106 passed (106)
+   Start at  11:29:49
+   Duration  1.94s (transform 359ms, setup 389ms, import 445ms, tests 1.57s, environment 0ms)
+
+JSON report written to /tmp/lisa-4326-codification/focused-case-title-followup/focused-controls-vitest.json

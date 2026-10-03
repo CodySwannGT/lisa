@@ -1819,5 +1819,65 @@
     "preparation_receipt_sha256": "38b2530a9261f2296d764d91a52414655c91815e538db67f2ac3ca962dc72e57",
     "independent_review_sha256": "14ea35326b34a42a71d80a758ef88c06dd0045e3e0b9bad585f66466ad3a1cf2",
     "status": "Prepared/reviewed only; 100 pure controls, zero product runtime. Future actual B/R unknown."
+  },
+  "named_repair_control_followup": {
+    "recorded_before_source_write_at": "2026-10-03T15:27:43.844173+00:00",
+    "source_head_at_observation": "a7f832f56c8b90757e32fd5611228b23aef89e23",
+    "core_actual_exit": 0,
+    "core_execution_receipt_sha256": "849a0980fd0ddf119379d46f265039a1024245fa0f0e408775a79669000485af",
+    "supplement_actual_wrapper_tests": {
+      "passed": 106,
+      "failed": 0,
+      "pending": 0
+    },
+    "supplement_validator_actual_exit": 1,
+    "cause": "Vitest treats dotted $section.$name placeholders as a nested property; four root HTTP-force cases were reported as root undefined. Fix title separator only; preserve meaningful unique-name guard and actual failed output.",
+    "owned_source": "tests/unit/config/forced-http-security-floors.test.ts",
+    "approved_action": "Change title separator, actual working-input 106 normal-wrapper run plus reviewed report validation, scoped source format/lint, independent delta review, normal commit, fresh exact-final replay and supplement before push.",
+    "no_runtime_assertion_or_policy_change": true,
+    "original_failed_output": "/tmp/lisa-4326-codification/focused-repaired-a7f832f-local/driver-postprocessing-failure.json",
+    "future_commit_runtime_CI_release": "pending; no old record reidentity or invented success",
+    "local_verdict_adaptation_before_helper_write": {
+      "recorded_at": "2026-10-03T15:33:47.132195+00:00",
+      "original_promoter_sha256": "9e3df4a0dc5f10f488764f92323f57e0251ffbdd63b693205f4e08c8269df1b7",
+      "problem": "Title-only followup yields finalB parenta7f832 while unchanged prior canonicalv2 belongs to61580. Original adapter wrongly conflates prior-verdict artifact with immediate parent. No a7 verdict can be fabricated because its named106 supplement failed validation.",
+      "authorized_external_versioned_change": "Mandatory --expected-parent a7f832 plus actualfirstparent equality; prior61580 mustbeactualancestor finalB and muststillmatch immutable priorcanonicalv2/core-source-after seal. Preserve exactnewhead88-record controls, fullcontext/livecomment guards and original adapter.",
+      "source_policy_change": false,
+      "actual_new_B": "unknown_pending_normal_commit"
+    },
+    "working_input_status": "PASS106_AND_UNCHANGED_STRICT_NAME_VALIDATOR",
+    "source_title_old_sha256": "06c57251993a57ff812dab686d49b36533c6058c2c9a5a43d2fd9bde473a6df0",
+    "source_title_new_sha256": "e50953738d9cf898461c04bd44a7174a254623a3a761a3261c55380b7ff290a7",
+    "source_handoff_sha256": "f54f3e4404d156f1a5975e055e66f5893cab13e1ffb415c051b3b84da19bf927",
+    "source_handoff_path": "/tmp/lisa-4326-codification/focused-case-title-followup/handoff.json",
+    "durable_packet": "evidence/4326/focused-case-title-followup",
+    "counts": {
+      "total": 106,
+      "passed": 106,
+      "failed": 0,
+      "skipped": 0,
+      "floor_files": [
+        34,
+        38,
+        31
+      ],
+      "deadline_file": 3
+    },
+    "compiler": "Not rerun for a title-string-only edit; preceding actual canonical compiler0 remains historical and quarantine unchanged.",
+    "quality": "Actual scoped ESLint/Oxlint/SonarJS/Prettier0; ownedprocesses absent",
+    "named_final_core_preparation_sha256": "531d50bbc32088091fd34ec0315bcce9d6d38ddc8cf5d568028905014873f189",
+    "new_head_runtime_push_CI_public_status": "pending; sourceB notyetcommitted. Historicala7 core andfailedstrictsupplement immutable.",
+    "independent_working_review_sha256": "8ca4293707864dca1a603ba4d5ecf2c505cac03193cdb73d87a3d55cd3a1b725",
+    "learning_disposition": "Task-only Vitest dotted-placeholder observation, 102 other reported names unchanged; no project ledger delta. Independent review classifies incremental string-only defect, no repeated compiler/source baseline needed.",
+    "versioned_promoter_preparation": {
+      "path": "/tmp/lisa-4326-codification/promote-current-local-verdict-with-named-repair.py",
+      "sha256": "0df5d1745c286a6b516f5c6a845e1225e11e390369e2f079ca968a8ffd2e4c20",
+      "receipt_sha256": "84f5b3c446d83dbbc62e44445100c1e5bd07aa8958d1d37f42be678e98ed1067",
+      "controls": "AST/help0; mandatory-parent omission2;11 local synthetic ancestry controls0,3eligible/8rejected; no actualpromotion",
+      "expected_parent": "a7f832f56c8b90757e32fd5611228b23aef89e23",
+      "previous_canonical_head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+      "new_B": "unknown_pending_normalcommit",
+      "independent_helper_review": "pending"
+    }
   }
 }

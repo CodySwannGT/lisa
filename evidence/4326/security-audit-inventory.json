@@ -12,13 +12,13 @@
     },
     {
       "locator": ".lisa/plan-CodySwannGT-lisa-4326.md",
-      "bytes": 28415,
-      "sha256": "9d5355893d2367b2fffd571452d516be33e3706a189bdbd1d89d919f23a0c6ce"
+      "bytes": 29327,
+      "sha256": "0a787c60cffe3048db00bfb1cc2668c50dccfce71bdd08809966a4c900bdc79f"
     },
     {
       "locator": ".lisa/plan-CodySwannGT-lisa-4326.json",
-      "bytes": 142310,
-      "sha256": "9a3ac3de2eac1a217d8ab38122db5316173c1b3bbe43524709eb46109c98633a"
+      "bytes": 146795,
+      "sha256": "7df6bc50cda060bf8fa4cdaa75095f1c9fcdcee59f637041905461a2acfac84f"
     },
     {
       "locator": "evidence/4326/security-audit-review.md",
@@ -36,5 +36,5 @@
       "sha256": "2a89a9d828ad0b43dc8c9e4b45e92a9138e672d6d3f7b3b3f19c2c5f08cb6b8f"
     }
   ],
-  "plan_carrier_update": "Plan files append later compatible CI delivery repair; raw observed477 security evidence and exact approved audit configuration remain unchanged. Hashes describe the current stored plan carriers, not a claim that later plans were observed at477."
+  "plan_carrier_update": "Later operator metadata records exacta7 corePASS, actualfocused106PASS/strict-name-validator failure, and independently reviewed title-only working106/unique-name success. Newhead/runtime/CI/release/publication pending; historical security observations unchanged."
 }

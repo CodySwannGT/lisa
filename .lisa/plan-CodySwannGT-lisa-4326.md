@@ -193,3 +193,9 @@ The native fixture-only repair passes3 focused controls and both genuine two-CPU
 The learner captured the independently proposed239-character stamped consolidation through the actual executable contract. The ledger retains20 entries and all19 unrelated exact JSONL bytes, totaling13897 bytes under14900. Confidence stays medium for one observed cause. No skill, human rule, memory or standalone issue promotion occurred.
 
 Source implementation T3 is complete. T4/T5/T6 remain in progress for normal final commit, exact committed-head core runtime plus106 focused controls, all normal push gates, current-head remote CI/review, actual merge/configured release/public artifact and typed tracker readback. Latest fetched main4bb326e655301ad1188a57583b804fc03fe29003 is an ancestor of615, so no extra sync merge is required. External proof helpers are prepared and independently reviewed with100 pure controls only. No future execution or shipping success is inferred.
+
+## Named repair-control followup, recorded before source edit
+
+The exact a7f832 core replay passed. Its focused normal-wrapper invocation passed all106 tests, but the evidence validator rejected four duplicated root undefined titles. A dotted Vitest placeholder caused the reporting defect. Change the title separator only, preserve the actual106 output and validator failure, and prove the distinct reported names before a normal followup commit and genuine new-head verification. Production policy, assertions and the strict unique-name validator remain unchanged.
+
+Working-input correction now passes all106 cases and the unchanged strict named-case validator, with four distinct root map/dependency labels. Only the title separator changed. Scoped lint/format passed, no compiler rerun was needed, and old source/report/helper bytes remain preserved. Exact futureB/runtime/CI/publication are still pending.

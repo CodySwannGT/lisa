@@ -156,7 +156,7 @@ describe("forced HTTP security floors", () => {
       }))
     )
   )(
-    "root $section.$name also excludes every release below its patch",
+    "root $section / $name also excludes every release below its patch",
     ({ section, name, expected }) => {
       const root = fs.readJsonSync(path.join(REPO_ROOT, PACKAGE_JSON));
       expect(root[section][name]).toBe(expected);
