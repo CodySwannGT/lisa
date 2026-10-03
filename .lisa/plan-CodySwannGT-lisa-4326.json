@@ -70,14 +70,18 @@
       "id": 5960670067,
       "author": "CodySwannGT",
       "author_id": 292923,
-      "flags": ["decision"],
+      "flags": [
+        "decision"
+      ],
       "gist": "Accepted single-repository build-ready task with validation evidence obligations; no secrets."
     },
     {
       "id": 5960770263,
       "author": "CodySwannGT",
       "author_id": 292923,
-      "flags": ["decision"],
+      "flags": [
+        "decision"
+      ],
       "gist": "Managed implementation claim; preserve attributable binding; no secrets."
     }
   ],
@@ -118,14 +122,18 @@
             "id": 5960670067,
             "author": "CodySwannGT",
             "author_id": 292923,
-            "flags": ["decision"],
+            "flags": [
+              "decision"
+            ],
             "gist": "Accepted single-repository build-ready task with validation evidence obligations; no secrets."
           },
           {
             "id": 5960770263,
             "author": "CodySwannGT",
             "author_id": 292923,
-            "flags": ["decision"],
+            "flags": [
+              "decision"
+            ],
             "gist": "Managed implementation claim; preserve attributable binding; no secrets."
           },
           {
@@ -133,7 +141,9 @@
             "author": "CodySwannGT",
             "author_id": 292923,
             "created_at": "2026-10-02T20:47:04Z",
-            "flags": ["decision"],
+            "flags": [
+              "decision"
+            ],
             "gist": "Plan sync confirms scope and exact artifact proof; no new constraints; no secrets.",
             "secrets": false
           }
@@ -141,7 +151,10 @@
         "testing_requirements": [
           "No implementation starts before required access passes."
         ],
-        "skills": ["lisa-implement", "lisa-track"],
+        "skills": [
+          "lisa-implement",
+          "lisa-track"
+        ],
         "learnings": [],
         "required_access": [
           {
@@ -182,7 +195,9 @@
       "owner": "implementation-worker",
       "metadata_owner": "implementation-worker",
       "status": "completed",
-      "blockedBy": ["T1"],
+      "blockedBy": [
+        "T1"
+      ],
       "description": "Read /tmp/lisa-4326-implementation/.lisa/work-item-context.md in full before acting. Comment inventory: [{\"id\": 5960670067, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Accepted single-repository build-ready task with validation evidence obligations; no secrets.\"}, {\"id\": 5960770263, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Managed implementation claim; preserve attributable binding; no secrets.\"}] Preserve unrelated work. No secrets observed; no live AWS/host deployment authorized or required.",
       "metadata": {
         "plan": "Refresh shared Node22 runtime and test-tool security floors",
@@ -199,14 +214,18 @@
             "id": 5960670067,
             "author": "CodySwannGT",
             "author_id": 292923,
-            "flags": ["decision"],
+            "flags": [
+              "decision"
+            ],
             "gist": "Accepted single-repository build-ready task with validation evidence obligations; no secrets."
           },
           {
             "id": 5960770263,
             "author": "CodySwannGT",
             "author_id": 292923,
-            "flags": ["decision"],
+            "flags": [
+              "decision"
+            ],
             "gist": "Managed implementation claim; preserve attributable binding; no secrets."
           },
           {
@@ -214,7 +233,9 @@
             "author": "CodySwannGT",
             "author_id": 292923,
             "created_at": "2026-10-02T20:47:04Z",
-            "flags": ["decision"],
+            "flags": [
+              "decision"
+            ],
             "gist": "Plan sync confirms scope and exact artifact proof; no new constraints; no secrets.",
             "secrets": false
           }
@@ -223,7 +244,9 @@
           "Capture baseline-regression test-run-log before changing source.",
           "Assert target patch minima, permitted majors, ownership, shared runtime parity and actual apply behavior."
         ],
-        "skills": ["lisa-test-strategy"],
+        "skills": [
+          "lisa-test-strategy"
+        ],
         "learnings": [],
         "required_access": [
           {
@@ -265,7 +288,9 @@
       "owner": "implementation-worker",
       "metadata_owner": "implementation-worker",
       "status": "completed",
-      "blockedBy": ["T2"],
+      "blockedBy": [
+        "T2"
+      ],
       "description": "Read /tmp/lisa-4326-implementation/.lisa/work-item-context.md in full before acting. Comment inventory: [{\"id\": 5960670067, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Accepted single-repository build-ready task with validation evidence obligations; no secrets.\"}, {\"id\": 5960770263, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Managed implementation claim; preserve attributable binding; no secrets.\"}] Preserve unrelated work. No secrets observed; no live AWS/host deployment authorized or required.",
       "metadata": {
         "plan": "Refresh shared Node22 runtime and test-tool security floors",
@@ -283,14 +308,18 @@
             "id": 5960670067,
             "author": "CodySwannGT",
             "author_id": 292923,
-            "flags": ["decision"],
+            "flags": [
+              "decision"
+            ],
             "gist": "Accepted single-repository build-ready task with validation evidence obligations; no secrets."
           },
           {
             "id": 5960770263,
             "author": "CodySwannGT",
             "author_id": 292923,
-            "flags": ["decision"],
+            "flags": [
+              "decision"
+            ],
             "gist": "Managed implementation claim; preserve attributable binding; no secrets."
           },
           {
@@ -298,7 +327,9 @@
             "author": "CodySwannGT",
             "author_id": 292923,
             "created_at": "2026-10-02T20:47:04Z",
-            "flags": ["decision"],
+            "flags": [
+              "decision"
+            ],
             "gist": "Plan sync confirms scope and exact artifact proof; no new constraints; no secrets.",
             "secrets": false
           }
@@ -308,7 +339,10 @@
           "Exercise absent/default and explicit host-owned pins, plus forced stack overrides.",
           "Actual CLI fixture applies and real installs are required; textual checks alone cannot close task."
         ],
-        "skills": ["lisa-implement", "lisa-test-strategy"],
+        "skills": [
+          "lisa-implement",
+          "lisa-test-strategy"
+        ],
         "learnings": [
           {
             "kind": "learning",
@@ -356,7 +390,9 @@
       "owner": "independent-quality-specialist",
       "metadata_owner": "independent-quality-specialist",
       "status": "in_progress",
-      "blockedBy": ["T3"],
+      "blockedBy": [
+        "T3"
+      ],
       "description": "Read /tmp/lisa-4326-implementation/.lisa/work-item-context.md in full before acting. Comment inventory: [{\"id\": 5960670067, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Accepted single-repository build-ready task with validation evidence obligations; no secrets.\"}, {\"id\": 5960770263, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Managed implementation claim; preserve attributable binding; no secrets.\"}] Preserve unrelated work. No secrets observed; no live AWS/host deployment authorized or required.",
       "metadata": {
         "plan": "Refresh shared Node22 runtime and test-tool security floors",
@@ -367,21 +403,25 @@
           "No new SonarJS lint/security violations; remote SonarCloud is unconfigured and must not be asserted.",
           "Review suggestions corrected before final proof."
         ],
-        "relevant_documentation": "Canonical issue context, all comments and Validation Journey (read in full).\nREADME.md:130-224 documents explicit Lisa apply and bun install; installation alone does not apply templates.\nsrc/cli/index.ts apply command; src/cli/apply.ts --yes and --no-update-check supported.\nRoot package.json + package.lisa.json; typescript, cdk, npm-package, nestjs, phaser and harper-fabric package-lisa templates own runtime/test tool values.\nNode policy surfaces include root .nvmrc, typescript/copy-overwrite/.nvmrc, shared/stack create-only workflows and expo/create-only/eas.json.\nTypeScript package template Node/Vitest/coverage defaults preserve explicit host values by ownership contract; other stack force sections upgrade Lisa-owned versions.\nscripts/check-security-floors.mjs audits force/defaults/merge groups (GOVERNANCE_GROUPS, line75) against high/critical advisories; it does not change host ownership or centrally hard-code these Vitest/Vite minima.\nExisting shipped integration composition/updater removal fixes are dependencies to consume, not new work.\nHost rules: stage inputs, regenerate both artifacts, stage outputs, check artifacts; no downstream project identities in published artifacts.\nLearnings projection: install dependencies and build:dist in fresh worktrees before TS tests; regression must reach real changed surfaces.\nscripts/update-node-version.ts misses current paths; direct owned-surface inventory is authoritative, not that stale updater.\nFixture references: tests/integration/apply-reports-unchanged-manifest.test.ts real Lisa.apply orchestration and host-test-scripts-survive-apply.test.ts shipped PackageLisaStrategy inputs.\nImmutable packed CLI reference: tests/integration/lisa-test-run-packed-bin.test.ts uses git checkout-index, isolated build:dist:in-place and npm pack --ignore-scripts; actual CLI verification must be from exact branch artifact.\nscripts/mutation-performance-measure.mjs prepare --subject-sha <exactHEAD> --tarball <absolute.tgz> --output <outsideRepoDir> already applies exact packed CLI twice to8stacks and checks governed hashes; extend empirical CDK host with genuine App/Stack, Template assertion and actual cdk synth, since grade.ts alone is not synth proof.\nEmpirical clean-fixture CLI: CI=1 LISA_BOOTSTRAP=1 node <packedRoot>/dist/index.js apply <host> --yes --no-update-check --harness=cursor, with fixture-local gh sentinel guarding against accidental remote repo creation; compare six-harness package/.nvmrc policy parity rather than equating different agent file bytes.",
+        "relevant_documentation": "Canonical issue context, all comments and Validation Journey (read in full).\nREADME.md:130-224 documents explicit Lisa apply and bun install; installation alone does not apply templates.\nsrc/cli/index.ts apply command; src/cli/apply.ts --yes and --no-update-check supported.\nRoot package.json + package.lisa.json; typescript, cdk, npm-package, nestjs, phaser and harper-fabric package-lisa templates own runtime/test tool values.\nNode policy surfaces include root .nvmrc, typescript/copy-overwrite/.nvmrc, shared/stack create-only workflows and expo/create-only/eas.json.\nTypeScript package template Node/Vitest/coverage defaults preserve explicit host values by ownership contract; other stack force sections upgrade Lisa-owned versions.\nscripts/check-security-floors.mjs audits force/defaults/merge groups (GOVERNANCE_GROUPS, line75) against high/critical advisories; it does not change host ownership or centrally hard-code these Vitest/Vite minima.\nExisting shipped integration composition/updater removal fixes are dependencies to consume, not new work.\nHost rules: stage inputs, regenerate both artifacts, stage outputs, check artifacts; no downstream project identities in published artifacts.\nLearnings projection: install dependencies and build:dist in fresh worktrees before TS tests; regression must reach real changed surfaces.\nscripts/update-node-version.ts misses current paths; direct owned-surface inventory is authoritative, not that stale updater.\nFixture references: tests/integration/apply-reports-unchanged-manifest.test.ts real Lisa.apply orchestration and host-test-scripts-survive-apply.test.ts shipped PackageLisaStrategy inputs.\nImmutable packed CLI reference: tests/integration/lisa-test-run-packed-bin.test.ts uses git checkout-index, isolated build:dist:in-place and npm pack --ignore-scripts; actual CLI verification must be from exact branch artifact.\nscripts/mutation-performance-measure.mjs prepare --subject-sha <exactHEAD> --tarball <absolute.tgz> --output <outsideRepoDir> already applies exact packed CLI twice to8stacks and checks governed hashes; extend empirical CDK host with genuine App/Stack, Template assertion and actual cdk synth, since grade.ts alone is not synth proof.\nEmpirical clean-fixture CLI: CI=1 LISA_BOOTSTRAP=1 node <packedRoot>/dist/index.js apply <host> --yes --no-update-check --harness=cursor, with fixture-local gh sentinel guarding against accidental remote repo creation; compare six-harness package/.nvmrc policy parity rather than equating different agent file bytes.\nApproved root-local advisory disposition: evidence/4326/security-audit-review.md; all historical runtime observations retain their actual heads. Fresh exact-commit verification and normal shipping remain required.",
         "work_item_context": "/tmp/lisa-4326-implementation/.lisa/work-item-context.md",
         "comment_inventory": [
           {
             "id": 5960670067,
             "author": "CodySwannGT",
             "author_id": 292923,
-            "flags": ["decision"],
+            "flags": [
+              "decision"
+            ],
             "gist": "Accepted single-repository build-ready task with validation evidence obligations; no secrets."
           },
           {
             "id": 5960770263,
             "author": "CodySwannGT",
             "author_id": 292923,
-            "flags": ["decision"],
+            "flags": [
+              "decision"
+            ],
             "gist": "Managed implementation claim; preserve attributable binding; no secrets."
           },
           {
@@ -389,7 +429,9 @@
             "author": "CodySwannGT",
             "author_id": 292923,
             "created_at": "2026-10-02T20:47:04Z",
-            "flags": ["decision"],
+            "flags": [
+              "decision"
+            ],
             "gist": "Plan sync confirms scope and exact artifact proof; no new constraints; no secrets.",
             "secrets": false
           }
@@ -399,7 +441,10 @@
           "Stage actual inputs before both artifact regenerations; check generated outputs and no identity leakage.",
           "Record all failures and genuine unaffected baseline findings separately."
         ],
-        "skills": ["lisa-review-implementation", "lisa-quality-review"],
+        "skills": [
+          "lisa-review-implementation",
+          "lisa-quality-review"
+        ],
         "learnings": [],
         "required_access": [
           {
@@ -441,7 +486,9 @@
       "owner": "independent-verification-specialist",
       "metadata_owner": "independent-verification-specialist",
       "status": "in_progress",
-      "blockedBy": ["T4"],
+      "blockedBy": [
+        "T4"
+      ],
       "description": "Read /tmp/lisa-4326-implementation/.lisa/work-item-context.md in full before acting. Comment inventory: [{\"id\": 5960670067, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Accepted single-repository build-ready task with validation evidence obligations; no secrets.\"}, {\"id\": 5960770263, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Managed implementation claim; preserve attributable binding; no secrets.\"}] Preserve unrelated work. No secrets observed; no live AWS/host deployment authorized or required.",
       "metadata": {
         "plan": "Refresh shared Node22 runtime and test-tool security floors",
@@ -451,21 +498,25 @@
           "Independent schema-v2 verdict binds each code-unit/cli-runtime/source-merge claim to matching branch artifact SHA and appropriate evidence kinds.",
           "All three named issue artifacts (baseline-regression, fixed-success-and-edge, quality-and-template-review) are present."
         ],
-        "relevant_documentation": "Canonical issue context, all comments and Validation Journey (read in full).\nREADME.md:130-224 documents explicit Lisa apply and bun install; installation alone does not apply templates.\nsrc/cli/index.ts apply command; src/cli/apply.ts --yes and --no-update-check supported.\nRoot package.json + package.lisa.json; typescript, cdk, npm-package, nestjs, phaser and harper-fabric package-lisa templates own runtime/test tool values.\nNode policy surfaces include root .nvmrc, typescript/copy-overwrite/.nvmrc, shared/stack create-only workflows and expo/create-only/eas.json.\nTypeScript package template Node/Vitest/coverage defaults preserve explicit host values by ownership contract; other stack force sections upgrade Lisa-owned versions.\nscripts/check-security-floors.mjs audits force/defaults/merge groups (GOVERNANCE_GROUPS, line75) against high/critical advisories; it does not change host ownership or centrally hard-code these Vitest/Vite minima.\nExisting shipped integration composition/updater removal fixes are dependencies to consume, not new work.\nHost rules: stage inputs, regenerate both artifacts, stage outputs, check artifacts; no downstream project identities in published artifacts.\nLearnings projection: install dependencies and build:dist in fresh worktrees before TS tests; regression must reach real changed surfaces.\nscripts/update-node-version.ts misses current paths; direct owned-surface inventory is authoritative, not that stale updater.\nFixture references: tests/integration/apply-reports-unchanged-manifest.test.ts real Lisa.apply orchestration and host-test-scripts-survive-apply.test.ts shipped PackageLisaStrategy inputs.\nImmutable packed CLI reference: tests/integration/lisa-test-run-packed-bin.test.ts uses git checkout-index, isolated build:dist:in-place and npm pack --ignore-scripts; actual CLI verification must be from exact branch artifact.\nscripts/mutation-performance-measure.mjs prepare --subject-sha <exactHEAD> --tarball <absolute.tgz> --output <outsideRepoDir> already applies exact packed CLI twice to8stacks and checks governed hashes; extend empirical CDK host with genuine App/Stack, Template assertion and actual cdk synth, since grade.ts alone is not synth proof.\nEmpirical clean-fixture CLI: CI=1 LISA_BOOTSTRAP=1 node <packedRoot>/dist/index.js apply <host> --yes --no-update-check --harness=cursor, with fixture-local gh sentinel guarding against accidental remote repo creation; compare six-harness package/.nvmrc policy parity rather than equating different agent file bytes.\nIndependent codification review: /tmp/lisa-runtime-4326-independent/generated-r2-694ea306/evidence/codification-review.md. Runtime proof at 694ea306 passes locally but the native installed-host journey was outside-repo only; regular integration regression is required before push.\nGenerated baseline means one setup/bootstrap apply followed by two adoption applies. Preserve the inherited bootstrap gate delta as an investigation limit; require clean fixture Git before each actual apply and zero full managed-byte delta after the second adoption.",
+        "relevant_documentation": "Canonical issue context, all comments and Validation Journey (read in full).\nREADME.md:130-224 documents explicit Lisa apply and bun install; installation alone does not apply templates.\nsrc/cli/index.ts apply command; src/cli/apply.ts --yes and --no-update-check supported.\nRoot package.json + package.lisa.json; typescript, cdk, npm-package, nestjs, phaser and harper-fabric package-lisa templates own runtime/test tool values.\nNode policy surfaces include root .nvmrc, typescript/copy-overwrite/.nvmrc, shared/stack create-only workflows and expo/create-only/eas.json.\nTypeScript package template Node/Vitest/coverage defaults preserve explicit host values by ownership contract; other stack force sections upgrade Lisa-owned versions.\nscripts/check-security-floors.mjs audits force/defaults/merge groups (GOVERNANCE_GROUPS, line75) against high/critical advisories; it does not change host ownership or centrally hard-code these Vitest/Vite minima.\nExisting shipped integration composition/updater removal fixes are dependencies to consume, not new work.\nHost rules: stage inputs, regenerate both artifacts, stage outputs, check artifacts; no downstream project identities in published artifacts.\nLearnings projection: install dependencies and build:dist in fresh worktrees before TS tests; regression must reach real changed surfaces.\nscripts/update-node-version.ts misses current paths; direct owned-surface inventory is authoritative, not that stale updater.\nFixture references: tests/integration/apply-reports-unchanged-manifest.test.ts real Lisa.apply orchestration and host-test-scripts-survive-apply.test.ts shipped PackageLisaStrategy inputs.\nImmutable packed CLI reference: tests/integration/lisa-test-run-packed-bin.test.ts uses git checkout-index, isolated build:dist:in-place and npm pack --ignore-scripts; actual CLI verification must be from exact branch artifact.\nscripts/mutation-performance-measure.mjs prepare --subject-sha <exactHEAD> --tarball <absolute.tgz> --output <outsideRepoDir> already applies exact packed CLI twice to8stacks and checks governed hashes; extend empirical CDK host with genuine App/Stack, Template assertion and actual cdk synth, since grade.ts alone is not synth proof.\nEmpirical clean-fixture CLI: CI=1 LISA_BOOTSTRAP=1 node <packedRoot>/dist/index.js apply <host> --yes --no-update-check --harness=cursor, with fixture-local gh sentinel guarding against accidental remote repo creation; compare six-harness package/.nvmrc policy parity rather than equating different agent file bytes.\nIndependent codification review: /tmp/lisa-runtime-4326-independent/generated-r2-694ea306/evidence/codification-review.md. Runtime proof at 694ea306 passes locally but the native installed-host journey was outside-repo only; regular integration regression is required before push.\nGenerated baseline means one setup/bootstrap apply followed by two adoption applies. Preserve the inherited bootstrap gate delta as an investigation limit; require clean fixture Git before each actual apply and zero full managed-byte delta after the second adoption.\nApproved root-local advisory disposition: evidence/4326/security-audit-review.md; all historical runtime observations retain their actual heads. Fresh exact-commit verification and normal shipping remain required.",
         "work_item_context": "/tmp/lisa-4326-implementation/.lisa/work-item-context.md",
         "comment_inventory": [
           {
             "id": 5960670067,
             "author": "CodySwannGT",
             "author_id": 292923,
-            "flags": ["decision"],
+            "flags": [
+              "decision"
+            ],
             "gist": "Accepted single-repository build-ready task with validation evidence obligations; no secrets."
           },
           {
             "id": 5960770263,
             "author": "CodySwannGT",
             "author_id": 292923,
-            "flags": ["decision"],
+            "flags": [
+              "decision"
+            ],
             "gist": "Managed implementation claim; preserve attributable binding; no secrets."
           },
           {
@@ -473,7 +524,9 @@
             "author": "CodySwannGT",
             "author_id": 292923,
             "created_at": "2026-10-02T20:47:04Z",
-            "flags": ["decision"],
+            "flags": [
+              "decision"
+            ],
             "gist": "Plan sync confirms scope and exact artifact proof; no new constraints; no secrets.",
             "secrets": false
           }
@@ -485,7 +538,10 @@
           "No browser/device harness applies to CLI/template-only surface; no live AWS or host deployment required.",
           "Regular committed integration tests must exercise immutable packed CLI installation into generated TS/CDK hosts, actual typecheck/unit/offline synth, exact installed tar-member bytes, frozen reinstall and zero managed delta on the second adoption apply. Capture identical new test bytes failing stale policy on the original base and passing the updated branch."
         ],
-        "skills": ["lisa-verify", "lisa-codify-verification"],
+        "skills": [
+          "lisa-verify",
+          "lisa-codify-verification"
+        ],
         "learnings": [
           {
             "kind": "learning",
@@ -548,7 +604,9 @@
       "owner": "lifecycle-specialist",
       "metadata_owner": "lifecycle-specialist",
       "status": "pending",
-      "blockedBy": ["T5"],
+      "blockedBy": [
+        "T5"
+      ],
       "description": "Read /tmp/lisa-4326-implementation/.lisa/work-item-context.md in full before acting. Comment inventory: [{\"id\": 5960670067, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Accepted single-repository build-ready task with validation evidence obligations; no secrets.\"}, {\"id\": 5960770263, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Managed implementation claim; preserve attributable binding; no secrets.\"}] Preserve unrelated work. No secrets observed; no live AWS/host deployment authorized or required.",
       "metadata": {
         "plan": "Refresh shared Node22 runtime and test-tool security floors",
@@ -559,21 +617,25 @@
           "Target main contains the exact merge; configured release/publish run succeeds for that merge or an including descendant; exact published registry artifact identity and installed-host runtime are independently verified.",
           "Post source evidence and usage, native terminal done/closure, rollup when applicable; clear binding and context only after terminal proof."
         ],
-        "relevant_documentation": "Canonical issue context, all comments and Validation Journey (read in full).\nREADME.md:130-224 documents explicit Lisa apply and bun install; installation alone does not apply templates.\nsrc/cli/index.ts apply command; src/cli/apply.ts --yes and --no-update-check supported.\nRoot package.json + package.lisa.json; typescript, cdk, npm-package, nestjs, phaser and harper-fabric package-lisa templates own runtime/test tool values.\nNode policy surfaces include root .nvmrc, typescript/copy-overwrite/.nvmrc, shared/stack create-only workflows and expo/create-only/eas.json.\nTypeScript package template Node/Vitest/coverage defaults preserve explicit host values by ownership contract; other stack force sections upgrade Lisa-owned versions.\nscripts/check-security-floors.mjs audits force/defaults/merge groups (GOVERNANCE_GROUPS, line75) against high/critical advisories; it does not change host ownership or centrally hard-code these Vitest/Vite minima.\nExisting shipped integration composition/updater removal fixes are dependencies to consume, not new work.\nHost rules: stage inputs, regenerate both artifacts, stage outputs, check artifacts; no downstream project identities in published artifacts.\nLearnings projection: install dependencies and build:dist in fresh worktrees before TS tests; regression must reach real changed surfaces.\nscripts/update-node-version.ts misses current paths; direct owned-surface inventory is authoritative, not that stale updater.\nFixture references: tests/integration/apply-reports-unchanged-manifest.test.ts real Lisa.apply orchestration and host-test-scripts-survive-apply.test.ts shipped PackageLisaStrategy inputs.\nImmutable packed CLI reference: tests/integration/lisa-test-run-packed-bin.test.ts uses git checkout-index, isolated build:dist:in-place and npm pack --ignore-scripts; actual CLI verification must be from exact branch artifact.\nscripts/mutation-performance-measure.mjs prepare --subject-sha <exactHEAD> --tarball <absolute.tgz> --output <outsideRepoDir> already applies exact packed CLI twice to8stacks and checks governed hashes; extend empirical CDK host with genuine App/Stack, Template assertion and actual cdk synth, since grade.ts alone is not synth proof.\nEmpirical clean-fixture CLI: CI=1 LISA_BOOTSTRAP=1 node <packedRoot>/dist/index.js apply <host> --yes --no-update-check --harness=cursor, with fixture-local gh sentinel guarding against accidental remote repo creation; compare six-harness package/.nvmrc policy parity rather than equating different agent file bytes.",
+        "relevant_documentation": "Canonical issue context, all comments and Validation Journey (read in full).\nREADME.md:130-224 documents explicit Lisa apply and bun install; installation alone does not apply templates.\nsrc/cli/index.ts apply command; src/cli/apply.ts --yes and --no-update-check supported.\nRoot package.json + package.lisa.json; typescript, cdk, npm-package, nestjs, phaser and harper-fabric package-lisa templates own runtime/test tool values.\nNode policy surfaces include root .nvmrc, typescript/copy-overwrite/.nvmrc, shared/stack create-only workflows and expo/create-only/eas.json.\nTypeScript package template Node/Vitest/coverage defaults preserve explicit host values by ownership contract; other stack force sections upgrade Lisa-owned versions.\nscripts/check-security-floors.mjs audits force/defaults/merge groups (GOVERNANCE_GROUPS, line75) against high/critical advisories; it does not change host ownership or centrally hard-code these Vitest/Vite minima.\nExisting shipped integration composition/updater removal fixes are dependencies to consume, not new work.\nHost rules: stage inputs, regenerate both artifacts, stage outputs, check artifacts; no downstream project identities in published artifacts.\nLearnings projection: install dependencies and build:dist in fresh worktrees before TS tests; regression must reach real changed surfaces.\nscripts/update-node-version.ts misses current paths; direct owned-surface inventory is authoritative, not that stale updater.\nFixture references: tests/integration/apply-reports-unchanged-manifest.test.ts real Lisa.apply orchestration and host-test-scripts-survive-apply.test.ts shipped PackageLisaStrategy inputs.\nImmutable packed CLI reference: tests/integration/lisa-test-run-packed-bin.test.ts uses git checkout-index, isolated build:dist:in-place and npm pack --ignore-scripts; actual CLI verification must be from exact branch artifact.\nscripts/mutation-performance-measure.mjs prepare --subject-sha <exactHEAD> --tarball <absolute.tgz> --output <outsideRepoDir> already applies exact packed CLI twice to8stacks and checks governed hashes; extend empirical CDK host with genuine App/Stack, Template assertion and actual cdk synth, since grade.ts alone is not synth proof.\nEmpirical clean-fixture CLI: CI=1 LISA_BOOTSTRAP=1 node <packedRoot>/dist/index.js apply <host> --yes --no-update-check --harness=cursor, with fixture-local gh sentinel guarding against accidental remote repo creation; compare six-harness package/.nvmrc policy parity rather than equating different agent file bytes.\nApproved root-local advisory disposition: evidence/4326/security-audit-review.md; all historical runtime observations retain their actual heads. Fresh exact-commit verification and normal shipping remain required.",
         "work_item_context": "/tmp/lisa-4326-implementation/.lisa/work-item-context.md",
         "comment_inventory": [
           {
             "id": 5960670067,
             "author": "CodySwannGT",
             "author_id": 292923,
-            "flags": ["decision"],
+            "flags": [
+              "decision"
+            ],
             "gist": "Accepted single-repository build-ready task with validation evidence obligations; no secrets."
           },
           {
             "id": 5960770263,
             "author": "CodySwannGT",
             "author_id": 292923,
-            "flags": ["decision"],
+            "flags": [
+              "decision"
+            ],
             "gist": "Managed implementation claim; preserve attributable binding; no secrets."
           },
           {
@@ -581,7 +643,9 @@
             "author": "CodySwannGT",
             "author_id": 292923,
             "created_at": "2026-10-02T20:47:04Z",
-            "flags": ["decision"],
+            "flags": [
+              "decision"
+            ],
             "gist": "Plan sync confirms scope and exact artifact proof; no new constraints; no secrets.",
             "secrets": false
           }
@@ -636,8 +700,8 @@
   "research_status": "complete \u2014 explorer corrected security-floor group coverage before implementation",
   "learning_capture": "Contract-only learner consolidated nested generated-host native leases/profile and fixture-owned temp roots into existing packed-proof setup entry sll4-8968b24e50aa; oldest date preserved, new stamp learning-29a7e548ca264ca3e66d; one T5 occurrence/medium,20entries13412/14900bytes; explicit budgetPASS; exact disposition /tmp/lisa-4326-codification/learning-capture.json. Other narrower MLD stays in tests/task evidence.",
   "codification_gate": "implemented and focused RED/GREEN proven at staged tree f4e49516636a74de800dfb113173a99a053a1343; normal repository integration regression exists; stable full gates, commit-bound verification and named remote CI execution remain pending.",
-  "context_sha256": "d02e10efa7b264066bd92e054c653d5ec58e9356fa45c5c0ffada025016a7ca6",
-  "context_bytes": 35895,
+  "context_sha256": "add7246b90c2dd82bdc40d814a764ddc580f2f81b6c9f0ba25926ae24969273c",
+  "context_bytes": 127636,
   "codification_evidence": {
     "source_head": "694ea306c583146cc31b2d7635783ef2cc8c78eb",
     "source_index_tree": "f4e49516636a74de800dfb113173a99a053a1343",
@@ -652,5 +716,21 @@
     "cases": 2,
     "regular_packed_members": 7522,
     "source_policy_changed_by_codification": false
+  },
+  "security_audit_disposition": {
+    "id": "GHSA-vfj7-8cjw-p6xm",
+    "operator_authorization": {
+      "source": "current user conversation",
+      "date": "2026-10-03",
+      "exact_message": "approve the exception",
+      "approved_draft_sha256": "a7bd5588e0d1edec667ef9331267ba9c4c74c142097111c2e3c5a911578b8d12"
+    },
+    "scope": "Single root-local audit exception; no shared template, hook, threshold, package or lock change",
+    "impact": "Actual Knip configuration can exhaust braces expansion stack; repository-data validation availability risk accepted explicitly",
+    "manual_review_by": "2026-10-16T23:59:59Z",
+    "expiry_enforced": false,
+    "evidence": "evidence/4326/security-audit-review.md",
+    "fresh_commit_verification": "pending",
+    "learning_capture": []
   }
 }
