@@ -34,8 +34,8 @@
       "kind": "test-run-log",
       "locator": "evidence/4326/history/baseline-regression.log",
       "artifact_head_sha": "cf55d5f03806fa21e346c1bec6f45110030a13e2",
-      "sha256": "ada80ba80fce3625301a1ba797a4193a44cd8f769ec8cf93406c44cd57863025",
-      "bytes": 10350,
+      "sha256": "4720f0fc2f390fc7b80216b7a7761c2f37adf484a9e625c88a1bef56e5fd28cc",
+      "bytes": 10348,
       "captured_at": "2026-10-02T22:23:16.003809+00:00"
     },
     {
@@ -151,8 +151,8 @@
       "kind": "cli-output",
       "locator": "evidence/4326/history/quality-gates.log",
       "artifact_head_sha": "694ea306c583146cc31b2d7635783ef2cc8c78eb",
-      "sha256": "07e18c4ac28e7dff05320980319b20b0c360c6cca9de648ac9e1fe7c952953d2",
-      "bytes": 20667,
+      "sha256": "2b2c8d4510e936c2776e221abc3de48fad0fd398f38e5405041681f2ff3716cb",
+      "bytes": 19951,
       "captured_at": "2026-10-02T22:53:10.375992+00:00"
     },
     {
@@ -160,7 +160,7 @@
       "kind": "state-dump",
       "locator": "evidence/4326/verdict.json",
       "artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee",
-      "sha256": "b766a80d6f51441a1c251eac730378d355eaaf5bdc19172c0f76169dd35b90a6",
+      "sha256": "1e770078f670c8f6c24ca5d4a5638e85cd64d4b51f3af27200203d806f04f4c6",
       "bytes": 14957,
       "captured_at": "2026-10-03T00:43:59.383649+00:00"
     },
@@ -169,8 +169,8 @@
       "kind": "state-dump",
       "locator": "evidence/4326/README.md",
       "artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee",
-      "sha256": "6a16495cb99ec45168679c162a37b08f0c4ef4bc9dd4c81a01820ec9b5178014",
-      "bytes": 2546,
+      "sha256": "5b00d43268a9d2a9770a5e1ed94eaed019763e0d1aedc1da15b673fe4ef9e5e4",
+      "bytes": 2637,
       "captured_at": "2026-10-03T00:43:59.383649+00:00"
     }
   ],
@@ -665,5 +665,5 @@
     }
   ],
   "digest_scope": "Every payload file; inventory excludes itself. External preparation receipt seals inventory.",
-  "sanitization": "ANSI/operator/ephemeral paths replaced; documented bounded excerpts; no private snapshots/tarballs/cache/secrets."
+  "sanitization": "ANSI/operator/ephemeral paths replaced; documented bounded excerpts; no private snapshots/tarballs/cache/secrets. Rendered historical transcript trailing whitespace/blank EOF lines normalized; original source digests unchanged."
 }

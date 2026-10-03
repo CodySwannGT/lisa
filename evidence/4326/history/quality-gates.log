@@ -1,0 +1,415 @@
+Historical observed source HEAD 694ea306c583146cc31b2d7635783ef2cc8c78eb; staged index 6201b177f0a46664f1125a4a20cad2263e2c8cd6; not current B execution.
+
+COMMAND ["bun", "run", "typecheck"]
+ACTUAL EXIT 0
+OBSERVED AT 2026-10-02T22:39:27.559887+00:00
+$ node scripts/lib/worktree-dependencies.mjs && tsc --noEmit && bun run typecheck:tests && bun run typecheck:engine-floor
+$ node scripts/check-typecheck-tests.mjs
+type-correctness (tests): 362 file(s) with 1542 error(s); 362 quarantined.
+✅ No type errors outside the quarantine, and no stale quarantine entries.
+$ node scripts/check-engine-floor.mjs
+type-correctness (engine floor): engines.node "22.23.3" → Node 22 → --lib es2024. 13268 diagnostic(s) at that library, of which 0 are attributable to the floor.
+Measured backlog (NOT gated): 13268 diagnostic(s) survive at --lib esnext and are unrelated to the engine floor.
+✅ Nothing in the shipped JavaScript outruns Node 22.
+
+COMMAND ["bun", "run", "lint"]
+ACTUAL EXIT 0
+OBSERVED AT 2026-10-02T22:40:11.233455+00:00
+$ node scripts/lib/worktree-dependencies.mjs && oxlint --disable-nested-config && eslint . --quiet
+
+  ⚠ eslint(no-control-regex): Unexpected control characters
+    ╭─[src/cli/starter-sync-source.ts:56:9]
+ 55 │     !normalized ||
+ 56 │     /[\\\u0000-\u001f]/u.test(normalized) ||
+    ·         ───┬── ───┬──
+    ·            │      ╰── 'U+001F' is a control character.
+    ·            ╰── 'U+0000' is a control character.
+ 57 │     /^[a-z]:/iu.test(normalized) ||
+    ╰────
+  help: Avoid matching control characters in regular expressions. If intentional, consider using a Unicode escape instead.
+
+  ⚠ eslint(no-control-regex): Unexpected control character
+     ╭─[tests/fixtures/shared-runtime-hosts/journey.ts:240:17]
+ 239 │       .readFileSync(path.join(candidate.logs, `${stack}-unit.log`), "utf8")
+ 240 │       .replace(/\u001b\[[0-9;]*m/g, ""),
+     ·                 ───┬──
+     ·                    ╰── 'U+001B' is a control character.
+ 241 │     "nonzero actual host unit execution"
+     ╰────
+  help: Avoid matching control characters in regular expressions. If intentional, consider using a Unicode escape instead.
+
+Found 2 warnings and 0 errors.
+Finished in 260ms on 2760 files with 110 rules using 18 threads.
+
+COMMAND ["bun", "run", "lint:slow"]
+ACTUAL EXIT 0
+OBSERVED AT 2026-10-02T22:40:26.960532+00:00
+$ node scripts/lib/worktree-dependencies.mjs && eslint . --config eslint.slow.config.ts --quiet
+
+COMMAND ["bun", "run", "format:check"]
+ACTUAL EXIT 0
+OBSERVED AT 2026-10-02T22:40:39.562951+00:00
+$ node scripts/lib/worktree-dependencies.mjs && prettier --check .
+Checking formatting...
+All matched files use Prettier code style!
+
+COMMAND ["bun", "run", "knip:check"]
+ACTUAL EXIT 0
+OBSERVED AT 2026-10-02T22:40:44.544018+00:00
+$ node scripts/lib/worktree-dependencies.mjs && knip
+Configuration hints (21)
+[src/**/*.ts, …]           knip.json  Remove, or move unused top-level entry to one of "workspaces"
+[src/**/*.ts, …]           knip.json  Remove, or move unused top-level project to one of "workspaces"
+@ast-grep/cli              knip.json  Remove from ignoreDependencies
+@commitlint/cli            knip.json  Remove from ignoreDependencies
+eslint-config-prettier     knip.json  Remove from ignoreDependencies
+husky                      knip.json  Remove from ignoreDependencies
+jiti                       knip.json  Remove from ignoreDependencies
+lint-staged                knip.json  Remove from ignoreDependencies
+prettier                   knip.json  Remove from ignoreDependencies
+tsx                        knip.json  Remove from ignoreDependencies
+ast-grep                   knip.json  Remove from ignoreBinaries
+eslint                     knip.json  Remove from ignoreBinaries
+husky                      knip.json  Remove from ignoreBinaries
+knip                       knip.json  Remove from ignoreBinaries
+oxlint                     knip.json  Remove from ignoreBinaries
+playwright                 knip.json  Remove from ignoreBinaries
+prettier                   knip.json  Remove from ignoreBinaries
+standard-version           knip.json  Remove from ignoreBinaries
+tsc                        knip.json  Remove from ignoreBinaries
+tsx                        knip.json  Remove from ignoreBinaries
+...1 more similar hints
+
+COMMAND ["bun", "run", "sg:scan"]
+ACTUAL EXIT 0
+OBSERVED AT 2026-10-02T22:40:44.991023+00:00
+$ node scripts/lib/worktree-dependencies.mjs && ast-grep scan
+
+COMMAND ["bun", "run", "sg:test"]
+ACTUAL EXIT 0
+OBSERVED AT 2026-10-02T22:40:45.099973+00:00
+$ node scripts/lib/worktree-dependencies.mjs && ast-grep test
+Running 7 tests
+
+----------- Case Details -----------
+PASS phaser-no-raw-webgl-context  ....
+PASS harper-no-full-table-scan  ........
+PASS no-day-truncating-file-age-predicate  ...........
+PASS phaser-no-canvas-renderer  ...
+PASS harper-no-empty-conditions-with-sort  .....
+PASS harper-require-statuscode-on-thrown-error  ......
+PASS harper-no-early-return-in-search-loop  ....
+
+test result: ok. 7 passed; 0 failed;
+
+COMMAND ["bun", "run", "check:artifacts"]
+ACTUAL EXIT 0
+OBSERVED AT 2026-10-02T22:40:45.836196+00:00
+$ node scripts/run-artifact-checks.mjs check:upstream-evidence-manifest check:lisa-owned-hash-ledger check:nightly-guard-certificate check:two-channel-couplings check:deletion-basis check:export-surface check:merge-coverage
+▸ check:upstream-evidence-manifest
+▸ check:lisa-owned-hash-ledger
+Lisa-owned hash ledger records every shipped artifact (89 entries).
+Digest provenance: 1149 of 1242 derived from this repository's history, 93 carried forward only.
+Carried forward and KEPT — no run has derived these from history, which is expected under a shallower clone and is not on its own evidence of a stray entry:
+  scripts/bdd/baseline.mjs 1cac6b75292fb71e31289763b11497edbadcf4bd086714080ceb2fbf00914fe0
+  scripts/bdd/parse.mjs 9260e1c0da2b888299dbeafd082ad309faa57969dcdb1bc6a4376d72c192c560
+  scripts/check-bdd-coverage.mjs 816f593ac025cba4af81062ddfd24af8297c5189ae8761afd3b01afe05471baf
+  scripts/check-conflict-markers.mjs 635c60842f6fa27eb18a491f646e10fa7af7bd7a5b00e6d47cc22fefddea22e3
+  scripts/check-e2e-coverage.mjs 5c666bc36267bb4008e074638be96856676957ff79e0506c7a6e073bce5319e6
+  scripts/check-e2e-coverage.mjs ba0ef5a744700fb708a20a70aef6330f966c0daae9af7371b20fa95ca9389826
+  scripts/check-nightly-e2e-health.mjs 278679aba0d7ca08ce3429015076cd0f227d8b4dfe75875b2fce1cfd4133af0d
+  scripts/check-nightly-e2e-health.mjs 7ea334ded4c0583c2c9f333b7720ec3284c30d2bd33644303e056df2da21deee
+  scripts/check-nightly-e2e-health.mjs 85c770dad54809d44de2fcd779653e1019669fdf122a23a975acede4f95a3398
+  scripts/check-nightly-e2e-health.mjs 86b277e9e55d1f290e258b9d8ba3d31f58e926e9b0e01414fd75b29d724ad370
+  scripts/check-nightly-e2e-health.mjs 8b01530e8eda16d93a4e13e47e17b20b22355507cf72cf9af4a7e49fe33efb8e
+  scripts/check-nightly-e2e-health.mjs 8fa4d22caf08a53a13a47838d25d0a9cf4dfb51f2bd9fb422d92e5a04401cc40
+  scripts/check-nightly-e2e-health.mjs c10309edfe0c896bddb501f7bd9d7c4c96856836ce6ee75e95c43c09102c3a92
+  scripts/check-nightly-e2e-health.mjs d71a994be5295951bb7958864730d7b99f1c600ce3f6efa7f3484f173e0b2a54
+  scripts/check-nightly-e2e-health.mjs d78f0c64364f3cfad1d95aed64d9878ccf05f5b5d3e09ceb0bb8a75772b41ad2
+  scripts/check-nightly-e2e-health.mjs df4e945a145f88eb2e2d705b2c2292605600067488beec4dd2cbee3ee8632bd8
+  scripts/check-nightly-e2e-health.mjs e4d6b1f8d05aaa53e3d8ec13dc0094928b88ecbbc79320719937daf3afb785bd
+  scripts/check-nightly-e2e-health.mjs f0bf5102f8eb188bc4ff62f81849a96181aa5c397cae865ef7f1c00b7c1c9fc2
+  scripts/check-nightly-e2e-health.mjs f2cdb9d8a682ca0083ce71ccae267a9622f6b9935baf34091752c6ec25590e6e
+  scripts/check-verification-coverage.mjs 6ffb097fb742caaf51af18b15a166eb18ee479633ceb3e6ac82eabba45c3d36b
+  scripts/classify-maestro-failures.mjs 01d8d8a78054d179357b334f024c97e8246305b269917aa9bb60b9367b552cd4
+  scripts/lib/gate-failure-diagnosis.mjs 6b72a6a71078c838fdb0531e74898a5e36d942cad424b20480e2cd370b5264eb
+  scripts/lisa-commit-msg-gates.mjs 99422b4912cd660ddeb5ec5ab9fc333e57fa5763e711117a00b06dd2eda0bbb7
+  scripts/lisa-floor-collisions.mjs 3136d9c30b9f2945c555c0545fc9dac5ebf9135bda5e89330e351b4313ee8b89
+  scripts/lisa-gates.mjs 004a7cb02d1a7198c4f656c8e85ec31f98aa93de219c719519b8e46f74214aaa
+  ... and 68 more: every digest in LISA_OWNED_HASH_LEDGER that LISA_OWNED_HASH_HISTORY_DERIVED does not list for the same destination.
+▸ check:nightly-guard-certificate
+Nightly guard behavior certificate is current.
+▸ check:two-channel-couplings
+two-channel delivery: inspected 23 reusable workflow(s), 784 step(s), 33 caller-tree read(s) against 90 delivered path(s).
+  package-backed: 10
+  apply-lagged: 21
+  never-delivered: 0
+  undelivered: 2
+staleness detection: 4/23 coupling(s) can detect a stale artifact (version handshake); 0/23 detect it at one capability floor only; 17/23 detect absence at most and never age; 2/23 could not be checked (nothing is delivered at the path, so there is no artifact to ask).
+  version-handshake: 4
+  capability-probe: 0
+  existence-only: 5
+  no-probe: 12
+  unchecked: 2
+  decision handshake: 4
+  decision not-needed: 11
+  decision warranted: 8
+▸ check:deletion-basis
+deletion basis: 249 declared path(s) classified, of which 244 still carry `needs-review`.
+  244 reason(s) remain unwritten. Each one replaced by `legacy: <reason>` is a path whose removal somebody has justified in writing.
+▸ check:export-surface
+▸ check:merge-coverage
+generated-artifact merge coverage: 5 artifact(s) declared, 2 merge-driver covered, 3 declared unsupported and still unparseable by the driver.
+check:artifacts OK - all 7 generated-artifact checks passed.
+
+COMMAND ["bun", "run", "check:plugins"]
+ACTUAL EXIT 0
+OBSERVED AT 2026-10-02T22:40:49.784532+00:00
+$ bash scripts/check-plugins-sync.sh
+$ bash scripts/build-plugins.sh
+✓ Plugin artifacts are in sync with plugins/src.
+✓ 36 generated files outside plugins/ match their sources.
+✓ Marketplace registers every built plugin.
+
+COMMAND ["bun", "run", "check:guard-parity-notes"]
+ACTUAL EXIT 0
+OBSERVED AT 2026-10-02T22:40:49.927381+00:00
+$ node scripts/check-guard-parity-notes.mjs
+check:guard-parity-notes — read 72 guard source(s) and recognised 0 parity claim(s).
+  Not audited by this sweep:
+    · generated copies of a guard — they inherit the source note scanned here
+    · gaps stated outside the claim grammar (see the module remarks)
+    · understated gaps: a note that omits a genuinely missing surface passes
+    · whether a present port file is actually registered for its agent
+    · a delivery channel absent from SURFACES — presence is only as complete as the ports and registries named there
+  ✔ Every parity note that records a missing port names a surface the tree agrees is missing.
+
+COMMAND ["bun", "run", "check:rules-pairing"]
+ACTUAL EXIT 0
+OBSERVED AT 2026-10-02T22:40:50.773295+00:00
+$ bash scripts/check-rules-pairing.sh
+✓ Every eager rule has its paired reference body (and vice versa).
+
+COMMAND ["bun", "run", "check:failure-signatures"]
+ACTUAL EXIT 0
+OBSERVED AT 2026-10-02T22:40:50.888087+00:00
+$ node plugins/src/base/hooks/failure-signature-index.mjs --check
+failure-signature index: 5 entries resolve to a live record
+
+COMMAND ["bun", "run", "check:withdrawn-rulings"]
+ACTUAL EXIT 0
+OBSERVED AT 2026-10-02T22:40:50.968813+00:00
+$ node plugins/src/base/hooks/withdrawn-rulings.mjs --check
+withdrawn-rulings: 1 withdrawal(s), ledger well-formed
+
+COMMAND ["bun", "run", "check:operational-hazards"]
+ACTUAL EXIT 0
+OBSERVED AT 2026-10-02T22:40:51.086744+00:00
+$ node plugins/src/base/hooks/operational-hazards.mjs --check
+operational-hazards: 0 live, 0 unchecked, 0 expired, 0 lifted; ledger well-formed
+
+COMMAND ["bun", "run", "check:learnings-budget"]
+ACTUAL EXIT 0
+OBSERVED AT 2026-10-02T22:40:51.200898+00:00
+$ bun scripts/check-learnings-budget.ts
+"<local-path>": learnings budget passed (0/20 entries, 72/14900 maxTokens)
+"<local-path>": learnings budget saturated (20/20 entries, 13412/14900 maxTokens) — every one of the 20 entry slots is taken, so the next learning captured here will be rejected. Retire or promote an entry with the gardener (`/lisa:learnings:audit`); raising the cap is not the remedy
+
+COMMAND ["bun", "run", "check:behavior-contract"]
+ACTUAL EXIT 1
+OBSERVED AT 2026-10-02T22:40:51.318604+00:00
+$ BDD_COVERAGE_ROOT=. node expo/copy-overwrite/scripts/check-bdd-coverage.mjs
+[bdd-coverage] baseline: BDD_BASE_SHA is required: without a base revision the gate cannot tell coverage that was given back from coverage that was never there, so it refuses to claim either.
+[bdd-coverage] bdd-coverage: failed; 20 scenarios declared, traceability 20/20 (100%), no execution evidence supplied, 0 waived, 1 findings
+error: script "check:behavior-contract" exited with code 1
+
+COMMAND ["bun", "run", "check:behavior-contract"]
+ACTUAL EXIT 0
+OBSERVED AT 2026-10-02T22:42:21.510829+00:00
+$ BDD_COVERAGE_ROOT=. node expo/copy-overwrite/scripts/check-bdd-coverage.mjs
+[bdd-coverage] bdd-coverage: completed; 20 scenarios declared, traceability 20/20 (100%), no execution evidence supplied, 0 waived, 0 findings
+
+COMMAND ["bun", "run", "check:conflict-markers"]
+ACTUAL EXIT 0
+OBSERVED AT 2026-10-02T22:42:22.068022+00:00
+$ node all/copy-overwrite/scripts/check-conflict-markers.mjs
+✓ no leftover conflict markers in 8943 tracked files
+
+COMMAND ["bun", "run", "test:cov:unit"]
+ACTUAL EXIT 0
+OBSERVED AT 2026-10-02T22:45:56.521043+00:00
+ Test Files  1359 passed (1359)
+      Tests  25635 passed | 2 skipped (25637)
+   Start at  18:42:34
+   Duration  199.04s (transform 12.89s, setup 71.85s, import 114.69s, tests 1332.67s, environment 66ms)
+
+
+[large preceding fixture chatter/per-file coverage table omitted; metrics retained in quality-state.json]
+
+COMMAND ["bun", "run", "test:integration"]
+ACTUAL EXIT 0
+OBSERVED AT 2026-10-02T22:50:59.886429+00:00
+$ node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run tests/integration
+$ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run tests/integration
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v4.66.5)
+Built plugins/lisa-typescript (v4.66.5)
+Built plugins/lisa-expo (v4.66.5)
+Built plugins/lisa-nestjs (v4.66.5)
+Built plugins/lisa-cdk (v4.66.5)
+Built plugins/lisa-harper-fabric (v4.66.5)
+Built plugins/lisa-phaser (v4.66.5)
+Built plugins/lisa-rails (v4.66.5)
+Built plugins/lisa-wiki (v4.66.5)
+Built plugins/lisa-openclaw (v4.66.5)
+Generated Cursor variant at <local-path> (v4.66.5)
+Generated Cursor variant at <local-path> (v4.66.5)
+Generated Cursor variant at <local-path> (v4.66.5)
+Generated Cursor variant at <local-path> (v4.66.5)
+Generated Cursor variant at <local-path> (v4.66.5)
+Generated Cursor variant at <local-path> (v4.66.5)
+Generated Cursor variant at <local-path> (v4.66.5)
+Generated Cursor variant at <local-path> (v4.66.5)
+Generated Cursor variant at <local-path> (v4.66.5)
+Generated Cursor variant at <local-path> (v4.66.5)
+Generated agy variant at <local-path> (v4.66.5)
+Generated agy variant at <local-path> (v4.66.5)
+Generated agy variant at <local-path> (v4.66.5)
+Generated agy variant at <local-path> (v4.66.5)
+Generated agy variant at <local-path> (v4.66.5)
+Generated agy variant at <local-path> (v4.66.5)
+Generated agy variant at <local-path> (v4.66.5)
+Generated agy variant at <local-path> (v4.66.5)
+Generated agy variant at <local-path> (v4.66.5)
+Generated agy variant at <local-path> (v4.66.5)
+Generated Copilot variant at <local-path> (v4.66.5)
+Generated Copilot variant at <local-path> (v4.66.5)
+Generated Copilot variant at <local-path> (v4.66.5)
+Generated Copilot variant at <local-path> (v4.66.5)
+Generated Copilot variant at <local-path> (v4.66.5)
+Generated Copilot variant at <local-path> (v4.66.5)
+Generated Copilot variant at <local-path> (v4.66.5)
+Generated Copilot variant at <local-path> (v4.66.5)
+Generated Copilot variant at <local-path> (v4.66.5)
+Generated Copilot variant at <local-path> (v4.66.5)
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 <local-path>
+
+{
+  "plan": {
+    "repoPath": "/private<scratch-path>",
+    "verdicts": [
+      {
+        "path": "/private<scratch-path>",
+        "eligible": false,
+        "blockers": [
+          "primary-checkout",
+          "uncommitted-changes"
+        ]
+      },
+      {
+        "path": "/private<scratch-path>",
+        "eligible": true,
+        "blockers": []
+      }
+    ],
+    "facts": [
+      {
+        "path": "/private<scratch-path>",
+        "branch": "main",
+        "isPrimary": true,
+        "isCurrent": false,
+        "locked": false,
+        "liveHolders": 0,
+        "readable": true,
+        "ownership": "unclaimed",
+        "idleSeconds": 0,
+        "trackedChanges": 0,
+        "untrackedFiles": 1,
+        "unpushedCommits": 0
+      },
+      {
+        "path": "/private<scratch-path>",
+        "branch": "finished",
+        "isPrimary": false,
+        "isCurrent": false,
+        "locked": false,
+        "liveHolders": 0,
+        "readable": true,
+        "ownership": "unclaimed",
+        "idleSeconds": 0,
+        "trackedChanges": 0,
+        "untrackedFiles": 0,
+        "unpushedCommits": 0
+      }
+    ],
+    "livenessAvailable": true,
+    "prunableRegistrations": []
+  },
+  "outcomes": [],
+  "forgottenRegistrations": 0
+}
+Claimed /private<scratch-path> for agent-a.
+Receipt: /private<scratch-path> (inside the git control plane, so it never dirties the working tree).
+Claimed /private<scratch-path> for agent-a.
+Receipt: /private<scratch-path> (inside the git control plane, so it never dirties the working tree).
+{
+  "stack": "typescript",
+  "sourceHead": "694ea306c583146cc31b2d7635783ef2cc8c78eb",
+  "indexTree": "6201b177f0a46664f1125a4a20cad2263e2c8cd6",
+  "tarballSha256": "3d33a16bb3f481d38cd2d2d69e83ee5fe3b6c8db4250ef14b02862ff0da05bad",
+  "packedRegularMemberCount": 7522,
+  "setupCalls": 1,
+  "adoptionCalls": 2,
+  "versions": {
+    "vitest": "4.1.11",
+    "@vitest/coverage-v8": "4.1.11",
+    "vite": "8.3.2",
+    "typescript": "6.0.3",
+    "eslint": "9.39.5",
+    "knip": "5.88.1",
+    "husky": "8.0.3"
+  },
+  "managedFileCount": 145,
+  "secondAdoptionDelta": [],
+  "frozenInstallDelta": [],
+  "allPackedMemberBytesMatch": true,
+  "nativeUnitCount": 1,
+  "synthTemplateSha256": null,
+  "caseWallMs": 139867
+}
+{
+  "stack": "cdk",
+  "sourceHead": "694ea306c583146cc31b2d7635783ef2cc8c78eb",
+  "indexTree": "6201b177f0a46664f1125a4a20cad2263e2c8cd6",
+  "tarballSha256": "3d33a16bb3f481d38cd2d2d69e83ee5fe3b6c8db4250ef14b02862ff0da05bad",
+  "packedRegularMemberCount": 7522,
+  "setupCalls": 1,
+  "adoptionCalls": 2,
+  "versions": {
+    "vitest": "4.1.11",
+    "@vitest/coverage-v8": "4.1.11",
+    "vite": "8.3.2",
+    "typescript": "6.0.3",
+    "eslint": "9.39.5",
+    "knip": "5.88.1",
+    "husky": "8.0.3"
+  },
+  "managedFileCount": 153,
+  "secondAdoptionDelta": [],
+  "frozenInstallDelta": [],
+  "allPackedMemberBytesMatch": true,
+  "nativeUnitCount": 2,
+  "synthTemplateSha256": "327b8040bacb11b38966aa3b3b6154ca993983713758a715383b7a58ffe69b1b",
+  "caseWallMs": 109409
+}
+
+ Test Files  178 passed (178)
+      Tests  3190 passed | 9 skipped (3199)
+   Start at  18:46:03
+   Duration  294.51s (transform 4.23s, setup 10.94s, import 23.43s, tests 714.19s, environment 9ms)

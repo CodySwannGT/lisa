@@ -14,7 +14,7 @@ Final-head required CI, successful push, PR merge/main lineage, configured relea
 
 ## Sanitization and ownership
 
-Only non-executable JSON, Markdown and logs. ANSI and operator/ephemeral paths are replaced; large plugin chatter, unrelated fixture output and per-file coverage tables are explicitly excerpted. Original digests/bytes/timestamps/heads remain in `inventory.json`. Outcomes, versions and test identities are retained. No tarballs, dependency trees, private AGY snapshots, credentials, full machine/process logs or executables.
+Only non-executable JSON, Markdown and logs. ANSI and operator/ephemeral paths are replaced; rendered trailing whitespace and blank EOF lines in historical transcripts are normalized; large plugin chatter, unrelated fixture output and per-file coverage tables are explicitly excerpted. Original digests/bytes/timestamps/heads remain in `inventory.json`. Outcomes, versions and test identities are retained. No tarballs, dependency trees, private AGY snapshots, credentials, full machine/process logs or executables.
 
 Root npm `files` whitelist excludes `evidence/`. Prettier explicitly ignores `evidence/**`; ESLint/Oxlint have no blanket evidence-ignore, but these files are outside executable-language inputs. Knip/coverage/typecheck source roots exclude the pack. Tracked source-manifest bookkeeping can include evidence hashes.
 
