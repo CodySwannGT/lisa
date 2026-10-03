@@ -167,6 +167,12 @@
       "id": "GHSA-h67p-54hq-rp68",
       "package": "js-yaml",
       "reason": "Quadratic-complexity DoS in merge key handling — dev tooling and direct helper dependency, no untrusted YAML parsing path"
+    },
+    {
+      "id": "GHSA-vfj7-8cjw-p6xm",
+      "cve": "CVE-2026-93687",
+      "package": "braces",
+      "reason": "Stack-exhaustion DoS via deeply nested brace patterns; no patched release exists (<= 3.0.3). Transitive via micromatch in jest/lint-staged/fast-glob dev tooling, which only expands repo-owned glob patterns, never attacker-supplied input"
     }
   ]
 }
