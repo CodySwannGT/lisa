@@ -7,7 +7,6 @@
  * else swept into it, and no commit at all on a deploy branch.
  * @module tests/unit/scripts/lisa-work-item-pending-update
  */
-import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -15,6 +14,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { commitPendingLisaUpdate } from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 /** The work item being bound. */
 const REF = "o/r#7";
@@ -41,17 +41,15 @@ function markerFile(root: string): string {
  * @returns Trimmed stdout
  */
 function git(cwd: string, args: string[]): string {
-  return execFileSync("git", args, {
+  return boundedExecFileSync({
+    label: `git ${args[0] ?? ""}`,
+    command: "git",
+    args,
     cwd,
-    encoding: "utf8",
     env: {
       PATH: process.env["PATH"] ?? "",
       HOME: cwd,
       GIT_CONFIG_NOSYSTEM: "1",
-      GIT_AUTHOR_NAME: "t",
-      GIT_AUTHOR_EMAIL: "t@example.com",
-      GIT_COMMITTER_NAME: "t",
-      GIT_COMMITTER_EMAIL: "t@example.com",
     },
   }).trim();
 }
@@ -65,6 +63,10 @@ function git(cwd: string, args: string[]): string {
 function repoWithPendingUpdate(branch: string): string {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-pending-update-"));
   git(root, ["init", "--quiet", "--initial-branch", "main"]);
+  // Repository-local identity: the commit under test runs with the real
+  // environment, and CI runners carry no global git identity.
+  git(root, ["config", "user.name", "t"]);
+  git(root, ["config", "user.email", "t@example.com"]);
   writeFileSync(path.join(root, PKG), "{}\n");
   writeFileSync(path.join(root, "feature.ts"), "export {};\n");
   git(root, ["add", "-A"]);
