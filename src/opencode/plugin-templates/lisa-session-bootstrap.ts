@@ -6,8 +6,9 @@
  *   - install-pkgs.sh   → install dependencies when node_modules is missing
  *   - setup-jira-cli.sh → write jira-cli config from environment variables, only
  *     when the project's configured tracker is jira
+ *   - auto-update.sh    → update the project to the latest Lisa (autoUpdate)
  *
- * Both are fully fail-open (wrapped in try/catch) so a package-manager or
+ * All are fully fail-open (wrapped in try/catch) so a package-manager or
  * filesystem hiccup never bricks OpenCode startup, mirroring the Codex scripts.
  * install only runs on the first session of a fresh checkout (node_modules
  * absent), so the common case is a cheap no-op.
@@ -59,6 +60,32 @@ export const LisaSessionBootstrap = async ({
     }
   } catch {
     // fail open — never block startup on a dependency-install error
+  }
+
+  // auto-update: the same engine as the Claude/Codex/Cursor/Copilot SessionStart
+  // hook (CodySwannGT/lisa#4337), run from the project's installed Lisa package,
+  // which ships `plugins/lisa/hooks/`. It is not a guard, so it is not staged
+  // beside this plugin; running it from node_modules is safe even though it
+  // rewrites node_modules, because Node has loaded it before anything changes.
+  // It runs after install so it sees the installed version, honours
+  // `autoUpdate: false`, only touches a clean tree, and reports what it did.
+  // OpenCode has no context-injection channel here, so the report goes to the
+  // console the session shows.
+  try {
+    const engine = `${root}/node_modules/@codyswann/lisa/plugins/lisa/hooks/auto-update.mjs`;
+    if (existsSync(engine) && Bun.which("node")) {
+      const result = await $`node ${engine} --project-dir ${root}`
+        .cwd(root)
+        .quiet()
+        .nothrow();
+      const text = String(result.stdout ?? "").trim();
+      if (text) {
+        const context = JSON.parse(text)?.hookSpecificOutput?.additionalContext;
+        if (context) console.error(context);
+      }
+    }
+  } catch {
+    // fail open — a session must start even when the update cannot run
   }
 
   // setup-jira-cli: write jira-cli config from environment variables and non-secret Lisa config.

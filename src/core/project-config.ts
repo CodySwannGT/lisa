@@ -109,6 +109,12 @@ export interface ProjectConfig {
   readonly nightlyE2E?: NightlyE2EConfig;
   /** Starter provenance and synchronization preferences. */
   readonly starter?: StarterConfig;
+  /**
+   * Update this project to the latest Lisa when an agent session starts
+   * (CodySwannGT/lisa#4337). On when absent; `false` opts out. The update runs
+   * locally, only on a clean working tree, and lands as its own commit.
+   */
+  readonly autoUpdate?: boolean;
 }
 
 /**

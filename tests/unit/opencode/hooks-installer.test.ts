@@ -327,6 +327,8 @@ describe("opencode/hooks-installer", () => {
       // sibling of themselves, which has to be staged with them or the
       // reference resolves to nothing.
       expect(result.managedFiles).toHaveLength(files.length + 5);
+      // The auto-update engine is NOT among them: it runs from the installed
+      // package (CodySwannGT/lisa#4337), so it adds nothing to this count.
     });
   });
 

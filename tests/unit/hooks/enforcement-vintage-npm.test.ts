@@ -114,8 +114,10 @@ describe("enforcement-vintage npm rows: the shipped hook", () => {
     expect(row(block, PIN_ROW)).toContain(`lisa ${PINNED}`);
     expect(row(block, NPM_ROW)).toContain(`lisa ${PUBLISHED}`);
     expect(block).toContain(BEHIND);
-    expect(block).toContain("Do NOT upgrade Lisa inside the current task");
-    expect(block).toContain("lisa/update-*");
+    expect(block).toContain(
+      "Do NOT upgrade Lisa by hand inside the current task"
+    );
+    expect(block).toContain("lisa-auto-update block");
   });
 
   it("says nothing about being behind when the project matches npm", () => {
