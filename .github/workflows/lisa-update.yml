@@ -73,6 +73,9 @@ jobs:
         with:
           token: ${{ secrets.PAT }}
           fetch-depth: 0
+          # Keep the token out of .git/config, where every dependency lifecycle
+          # script could read it. The updater authenticates git per command.
+          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: '22.21.1'
@@ -94,7 +97,9 @@ jobs:
           git config user.email 'lisa-update@users.noreply.github.com'
       - name: Open the update pull request
         env:
-          GH_TOKEN: ${{ secrets.PAT }}
+          # Not GH_TOKEN: the updater hands the credential only to the commands
+          # that talk to GitHub, never to installs or lifecycle scripts.
+          LISA_UPDATE_TOKEN: ${{ secrets.PAT }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           LISA_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           LISA_UPDATE_WORK_ITEM: ${{ vars.LISA_UPDATE_WORK_ITEM }}

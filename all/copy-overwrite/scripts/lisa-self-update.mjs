@@ -462,6 +462,51 @@ function readJson(file) {
   }
 }
 
+/** Variables that can carry the GitHub credential; never inherited by default. */
+const TOKEN_VARS = ["LISA_UPDATE_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"];
+
+/**
+ * An environment with every GitHub credential removed.
+ * @param {NodeJS.ProcessEnv} env Source environment.
+ * @returns {NodeJS.ProcessEnv} A copy without credentials.
+ */
+export function withoutToken(env) {
+  return Object.fromEntries(
+    Object.entries(env).filter(([key]) => !TOKEN_VARS.includes(key))
+  );
+}
+
+/**
+ * The environment one command runs with: the credential reaches only the
+ * commands that talk to GitHub. Installs, the bump and the apply run without
+ * it, because they execute dependency lifecycle scripts, and a compromised
+ * release must not be able to read a token that can push and merge. `gh` gets
+ * `GH_TOKEN`; git fetch and push get an auth header through git's environment
+ * config (never argv, which other processes can read); the work-item backlink
+ * shells out to `gh`.
+ * @param {readonly string[]} argv Command and arguments.
+ * @param {NodeJS.ProcessEnv | undefined} env Environment the caller supplied.
+ * @param {string | undefined} token GitHub credential, if any.
+ * @returns {NodeJS.ProcessEnv} The environment to spawn with.
+ */
+export function commandEnv(argv, env, token) {
+  const base = withoutToken(env ?? process.env);
+  if (!token) return base;
+  const talksToGithub =
+    argv[0] === "gh" || (argv[0] === "node" && argv.includes("backlink"));
+  if (talksToGithub) return { ...base, GH_TOKEN: token };
+  if (argv[0] === "git" && (argv[1] === "fetch" || argv[1] === "push")) {
+    const basic = Buffer.from(`x-access-token:${token}`).toString("base64");
+    return {
+      ...base,
+      GIT_CONFIG_COUNT: "1",
+      GIT_CONFIG_KEY_0: "http.https://github.com/.extraheader",
+      GIT_CONFIG_VALUE_0: `AUTHORIZATION: basic ${basic}`,
+    };
+  }
+  return base;
+}
+
 /**
  * Run a command, inheriting nothing but the environment given.
  * @param {string[]} argv Command and arguments.
@@ -475,7 +520,7 @@ export function runCommand(argv, options) {
       argv.slice(1),
       {
         cwd: options.cwd,
-        env: options.env ?? process.env,
+        env: options.env ?? withoutToken(process.env),
         maxBuffer: 64 * 1024 * 1024,
       },
       (error, stdout, stderr) => {
@@ -785,7 +830,7 @@ async function buildBranch(ctx, plan, manager, selfMode = false) {
  * @returns {Promise<string>} The pull request URL.
  */
 async function publish(ctx, plan, base, selfMode = false) {
-  const { root, run, repo, log, workItem } = ctx;
+  const { root, run, repo, workItem } = ctx;
   await run(["git", "push", "--force", "-u", "origin", plan.branch], {
     cwd: root,
   });
@@ -811,6 +856,24 @@ async function publish(ctx, plan, base, selfMode = false) {
     { cwd: root }
   );
   if (workItem) await backlink(ctx, url);
+  await closeSupersededPullRequests(ctx, plan, url);
+  await armAutoMerge(ctx, url);
+  return url;
+}
+
+/**
+ * Close every other open update pull request as superseded by `url`.
+ *
+ * Runs for a newly opened AND a reused pull request: a run that stopped after
+ * `gh pr create` would otherwise leave older update PRs open forever, because
+ * every later run takes the reuse path.
+ * @param {object} ctx Context.
+ * @param {{to: string, branch: string}} plan The update.
+ * @param {string} url The pull request carrying this update.
+ * @returns {Promise<void>} Resolves once every superseded PR is closed.
+ */
+async function closeSupersededPullRequests(ctx, plan, url) {
+  const { root, run, repo, log } = ctx;
   const open = JSON.parse(
     await run(
       [
@@ -846,8 +909,6 @@ async function publish(ctx, plan, base, selfMode = false) {
     );
     log(`Closed superseded pull request #${number}.`);
   }
-  await armAutoMerge(ctx, url);
-  return url;
 }
 
 /**
@@ -890,12 +951,16 @@ async function checkoutBase(ctx, base) {
 
 /**
  * Run the whole flow.
- * @param {{root: string, repo: string, dryRun: boolean, workItem?: string, run?: typeof runCommand, log?: (line: string) => void, defaultBranch?: string}} options Options.
+ * @param {{root: string, repo: string, dryRun: boolean, workItem?: string, token?: string, run?: typeof runCommand, log?: (line: string) => void, defaultBranch?: string}} options Options.
  * @returns {Promise<number>} Exit code.
  */
 export async function main(options) {
   const ctx = {
-    run: runCommand,
+    run: (argv, opts) =>
+      runCommand(argv, {
+        ...opts,
+        env: commandEnv(argv, opts?.env, options.token),
+      }),
     log: line => console.log(line),
     ...options,
   };
@@ -931,6 +996,7 @@ export async function main(options) {
   const existing = await openUpdatePullRequest(ctx, plan.branch);
   if (existing) {
     ctx.log(`lisa-self-update: ${existing} already carries this update.`);
+    await closeSupersededPullRequests(ctx, plan, existing);
     await armAutoMerge(ctx, existing);
     return 0;
   }
@@ -962,6 +1028,9 @@ export async function runCli() {
       repo,
       dryRun: flags.dryRun,
       workItem: process.env.LISA_UPDATE_WORK_ITEM || undefined,
+      // The workflow passes LISA_UPDATE_TOKEN; a hand run may rely on GH_TOKEN,
+      // or on neither, in which case gh and git use their own stored login.
+      token: process.env.LISA_UPDATE_TOKEN || process.env.GH_TOKEN || undefined,
       defaultBranch: process.env.LISA_DEFAULT_BRANCH || undefined,
     });
   } catch (error) {

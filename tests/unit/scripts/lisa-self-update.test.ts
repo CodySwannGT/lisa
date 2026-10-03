@@ -21,6 +21,7 @@ import {
   chooseMergeFlag,
   choosePackageManager,
   chooseSelfTarget,
+  commandEnv,
   commitMessage,
   declaresLisa,
   isOlder,
@@ -34,6 +35,7 @@ import {
   receiptProblem,
   selfBumpSubject,
   supersededPullRequests,
+  withoutToken,
   workItemBody,
   workItemLabels,
 } from "../../../all/copy-overwrite/scripts/lisa-self-update.mjs";
@@ -590,12 +592,14 @@ describe("lisa-self-update: Lisa updating itself", () => {
     const root = lisaRepo(NEW);
     const { run: base, seen } = selfRunner(root, ["feat: x"]);
     const run = async (argv: string[]): Promise<string> => {
-      if (
-        argv.slice(0, 3).join(" ") === "gh pr list" &&
-        !argv.includes("--search")
-      ) {
+      if (argv.slice(0, 3).join(" ") === "gh pr list") {
         seen.push(argv);
-        return PR_URL;
+        return argv.includes("--search")
+          ? JSON.stringify([
+              { number: 5, headRefName: "lisa/update-4.67.0" },
+              { number: 6, headRefName: SELF_BRANCH },
+            ])
+          : PR_URL;
       }
       return base(argv);
     };
@@ -603,6 +607,61 @@ describe("lisa-self-update: Lisa updating itself", () => {
     const lines = commandLines(seen);
     expect(lines.some(line => line.startsWith(ISSUE_CREATE))).toBe(false);
     expect(lines.some(line => line.startsWith("git push"))).toBe(false);
+    // A run that stopped after `gh pr create` left older update PRs open;
+    // the reuse path must still close them.
+    expect(lines.some(line => line.startsWith("gh pr close 5"))).toBe(true);
+    expect(lines.some(line => line.startsWith("gh pr close 6"))).toBe(false);
     expect(lines).toContain(`gh pr merge ${PR_URL} --auto --merge`);
+  });
+});
+
+describe("lisa-self-update: the credential reaches only GitHub calls", () => {
+  const token = "ghp_example";
+  const env = {
+    PATH: "/bin",
+    LISA_UPDATE_TOKEN: token,
+    GH_TOKEN: token,
+    GITHUB_TOKEN: token,
+  };
+
+  it("strips every credential variable", () => {
+    expect(withoutToken(env)).toEqual({ PATH: "/bin" });
+  });
+
+  it("gives installs, the bump and the apply no credential", () => {
+    for (const argv of [
+      ["bun", "install", "--frozen-lockfile"],
+      ["bun", "add", "-D", `${LISA}@^${NEW}`],
+      ["node", "node_modules/@codyswann/lisa/dist/index.js", "--yes", "."],
+      ["git", "commit", "-m", "x"],
+    ]) {
+      const result = commandEnv(argv, env, token);
+      expect(JSON.stringify(result)).not.toContain(token);
+    }
+  });
+
+  it("hands gh and the backlink GH_TOKEN", () => {
+    expect(commandEnv(["gh", "pr", "create"], env, token).GH_TOKEN).toBe(token);
+    expect(
+      commandEnv(["node", "scripts/lisa-work-item.mjs", "backlink"], env, token)
+        .GH_TOKEN
+    ).toBe(token);
+  });
+
+  it("authenticates git fetch and push through env config, never argv", () => {
+    const result = commandEnv(["git", "push", "origin", "b"], env, token);
+    expect(result.GH_TOKEN).toBeUndefined();
+    expect(result.GIT_CONFIG_KEY_0).toBe(
+      "http.https://github.com/.extraheader"
+    );
+    const credential = `x-access-token:${token}`;
+    const basic = Buffer.from(credential).toString("base64");
+    expect(result.GIT_CONFIG_VALUE_0).toBe(`AUTHORIZATION: basic ${basic}`);
+  });
+
+  it("adds nothing when no credential was supplied", () => {
+    expect(
+      commandEnv(["gh", "pr", "list"], { PATH: "/bin" }, undefined)
+    ).toEqual({ PATH: "/bin" });
   });
 });

@@ -107,7 +107,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-self-update.mjs":
-      "a123e9cdc7b090cec1ebaad1061487ed3fe7ae41ff29114182decb739c58ca7e",
+      "80d07132cffc8532e79f75acb1d1053c034800bec9b81b354131d4248934b02e",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
@@ -123,7 +123,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/create-only/.github/workflows/continuous-gates.yml":
       "7ef94a95dee4650e91a2b226122936fa4609ad57f3acbb50f4a9f357e486d2eb",
     "all/create-only/.github/workflows/lisa-update.yml":
-      "7fd71e48b7b84460eeef86e2f8e00b59001bd23071a54a9406d8e7e604e7fc4d",
+      "5fb8822126277d0e4c89d3086857653f313f74a13d96f3aeeae97a0f4ccd81b6",
     "all/create-only/.github/workflows/workflow-load-failure-sweep.yml":
       "3ce24f9d82495a2f327c1705333c049bbb7c7a65170329d530295d23c6c7ad2d",
     "all/create-only/.lisaignore":
