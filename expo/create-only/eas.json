@@ -5,7 +5,7 @@
   },
   "build": {
     "base": {
-      "node": "22.21.1",
+      "node": "22.23.3",
       "resourceClass": "large",
       "env": {
         "NODE_OPTIONS": "--max-old-space-size=4096",

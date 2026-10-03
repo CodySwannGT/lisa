@@ -121,11 +121,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/create-only/.agents/rules/README.md":
       "d4fda2b0b5862afa92c4ddf29daa53218df0d5fe4f051901cdfc53ac266bdbf8",
     "all/create-only/.github/workflows/continuous-gates.yml":
-      "7ef94a95dee4650e91a2b226122936fa4609ad57f3acbb50f4a9f357e486d2eb",
+      "42ec4cb8e0ba45e0288f07881b8f93497468afd3cba3ef0cbb4d0ea4c4ae240a",
     "all/create-only/.github/workflows/lisa-update.yml":
       "9c1c05ffe39a6d5e41a3e82afbbc227097e071b26d2bbc56281ef1373c5a035d",
     "all/create-only/.github/workflows/workflow-load-failure-sweep.yml":
-      "3ce24f9d82495a2f327c1705333c049bbb7c7a65170329d530295d23c6c7ad2d",
+      "eaf0dc7d59b83a8525207c763db4c955ccef05c4fab16b9407d36d1b53513670",
     "all/create-only/.lisaignore":
       "735dc0a28a19e3aebc3d71b1ddf8b077e96ab17013d0f1c49d87c08558a315df",
     "all/create-only/scripts/remote-agent-aws-setup.sh":
@@ -165,9 +165,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/copy-overwrite/vitest.config.ts":
       "c7f309d4f43d9188b9c067cb4900b2bdbacfbd28d135a6a2e6313cb0a37b030f",
     "cdk/create-only/.github/workflows/ci.yml":
-      "7c5aaf999dbfea2f8480de470a9b3feef2a27cce6e4517d9aa438d343c62cc22",
+      "49cb9ae3db7a90fd427b866406126b159bcd59962926047d672b6628cac88683",
     "cdk/create-only/.github/workflows/deploy.yml":
-      "023cf9e80efc77f8401b61927d5b5a2bd7becdb3233e03ecbd112df16a371561",
+      "0b906d71ba35b4824c6638c89a8a7ddde6cf7a2130155cac55bcc1e70226f74d",
     "cdk/create-only/cdk.json":
       "f89030d8fe145a1dbabd59d89ddee4e16984f222d737f7fcf6b778d911e9fe40",
     "cdk/create-only/stryker.conf.json":
@@ -185,7 +185,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/merge/.oxlintrc.json":
       "f7d248cf8a89561374d7e68e24aa780f4a6a523938475ad685f034ce0194d75c",
     "cdk/package-lisa/package.lisa.json":
-      "79e2e4333973f1a3d553b7a284c1cd1d9b2939ad2442057e2b7702ec63991040",
+      "86267110cd76829442a003ab398a9c107385b2355dc589194f0e10ccd586955d",
     "eslint-plugin-code-organization/README.md":
       "e70c9e262ce3a97e1f9fe1897ffa71e3d1b124f10486b90ead5d4a5252977826",
     "eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js":
@@ -315,13 +315,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/required-checks.json":
       "8d40acc337c42fbdfc55638dc4ab43b541b975270ecae8fffec9897c13a42884",
     "expo/create-only/.github/workflows/ci.yml":
-      "830c60686fef5d1f773812f622a3c40832344a078acf22122c1740ebaa6db18b",
+      "84651096cc79e3e05a57f917540dce2835ea6c5e701146368b62c08a0a6b0c85",
     "expo/create-only/.github/workflows/deploy.yml":
-      "44e110314e660fc15f332cb4ae0885692b79be89dadd32e3ba10d23dfbb50d3e",
+      "33947a64659bc48baa0b187f453d401bb02af47ed4e4f531610f2c5562388f0d",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
       "11e6db515412702672edea910223b808be168b3d1f9ec15c349f44f3edcff247",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
-      "02c9ddf80eaaec34eae35abf70cc8f39a7c6e43245cd742421acc188ea59b208",
+      "c5219d7968ca772fb7fb1a4edc8b9e519996fe5cc497c562395dec4cd2706048",
     "expo/create-only/.github/workflows/nightly-e2e-health.yml":
       "560d40504494ca7d98a99dbe27535f91aceff19e8f98b51ddf9a8f24f559e535",
     "expo/create-only/.github/workflows/nightly-e2e-report.yml":
@@ -329,7 +329,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/nightly-e2e-tracking.yml":
       "b1b181a8362c6891480f8e333ca5f7fdd29f6dbc4973d07fd0b70592ba16e881",
     "expo/create-only/.github/workflows/playwright-e2e.yml":
-      "05f379b75c60e51711f58074b5eeac3e4105a54a8c840b3f3fa43f8b5f8d92fd",
+      "0729c66cc30f7910cec1396f35fb9a93b8fd4d1bc9cc753291864fdcbc3bf0b3",
     "expo/create-only/.maestro/flake-classification.json":
       "8a9469ac2d3b7cb885b4a48ea2dc942aa4ad5deb1a12b05818f62811cac6b0d5",
     "expo/create-only/.zap/baseline.conf":
@@ -343,7 +343,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/e2e.thresholds.json":
       "23ac9bab7fe84cfa542785156425e020af9baabdbeb1a53293ae7e2395e4dd92",
     "expo/create-only/eas.json":
-      "3d710e6c1ac1d40e60aab765c8766f276a5ee1012057b0eda405eac54d301321",
+      "68ab4e1c0ba0a90d49a8b605394569f0738d2a042be03c9487884f0226db1799",
     "expo/create-only/jest.config.local.ts":
       "0647741c9df4cecc1b7c285e28bfbec217994f0b7984eecf81ca47095e936754",
     "expo/create-only/jest.config.react-native-mock.js":
@@ -381,7 +381,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/copy-contents/gitignore":
       "d091c40fd0ea3068491f1be0d6510090ae872ca95d0d058ef4595d6492d13897",
     "harper-fabric/copy-overwrite/.github/workflows/ci.yml":
-      "ccef2ec19da13266bf47c44e1de9bdac4afc65c60037b8e3f4c43e20b3b7f9cd",
+      "1e51fd8cb8156ff3e79931bbed80e646b6fb46744b6c1bd39fa5a1da966f64aa",
     "harper-fabric/copy-overwrite/ast-grep/rules/harper/no-early-return-in-search-loop.yml":
       "8b9f1c93ebdd4f760978df01b166de90a78e751f7b4c907bded98f2862b4ac01",
     "harper-fabric/copy-overwrite/ast-grep/rules/harper/no-empty-conditions-with-sort.yml":
@@ -401,9 +401,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/copy-overwrite/vitest.config.ts":
       "94ee60be0e9a4b735cf1b053143751c9968465ff04fb59fbdfc252e7413ff337",
     "harper-fabric/create-only/.github/workflows/deploy.yml":
-      "ffe74236f7896488c041f46c63d43a7b31f9ba45b9c8d47b47326888386f3ef9",
+      "4cf724370ecff208906ee9f0bc9ea4fb31bddea20bd68b8c6ef5364d71548f0f",
     "harper-fabric/create-only/.github/workflows/zap-baseline.yml":
-      "068d8bea3d2ccf4fca97b8d3f8f23734b9feb37b3faea6d5a10ed219e0cc783b",
+      "74cc5f02e862e090a0332c5b244936d27a9926220738466482221ff7dcf20a27",
     "harper-fabric/create-only/.zap/baseline.conf":
       "68aae4b1b9b5b7253b5aeb792d72b58f64e5eda1dcf8f3062bd9d77494a5a22f",
     "harper-fabric/create-only/scripts/zap-baseline.sh":
@@ -415,7 +415,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/merge/.oxlintrc.json":
       "b41ea588eed47e0f1532aab5f6226b82586269b84edd1947bdde603e0a8513fa",
     "harper-fabric/package-lisa/package.lisa.json":
-      "d93162a4077db908b8fe589fc269cd347f94f0f4c18d3b57e988cf524ba0c062",
+      "dbfca02e64339a8702e7d071859b12d9d3b444fb6724a0c486c4c1408804be95",
     "nestjs/copy-overwrite/eslint.config.ts":
       "300895743cd8e3041f164902e1c8e509d8ef07474848a70621ac354d73595477",
     "nestjs/copy-overwrite/eslint.nestjs.ts":
@@ -483,9 +483,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/required-checks.json":
       "6de377accd8355091e31ee7b3e412187d2268650ecbeb6c2cba42923c594cfc0",
     "nestjs/create-only/.github/workflows/ci.yml":
-      "fb85b8dc792dfc493c532cddb305a86255c7442881653ff3a4ddb8cd25bece7e",
+      "800a0147bbda0ddb4f3b54af88494ad873e3df3be7151a7224d1189ad98954af",
     "nestjs/create-only/.github/workflows/deploy.yml":
-      "47f2978590a6b6da863b986475faaaf70f8d174b9b88cc395d2eaa31f4d972bb",
+      "07c1be9e329492fd2ae5311e134f6369404991a7512c0851a2d52c4712f7b13d",
     "nestjs/create-only/.zap/baseline.conf":
       "a7cd559b014555ef2efe7a6ce129384ec376ce4d66d5bc3ae9e2f3f883172c4d",
     "nestjs/create-only/scripts/zap-baseline.sh":
@@ -503,11 +503,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
-      "80137280d2fc3b24f7668b131ed21d6a65178aa88eb15c36c13637fd852f25a7",
+      "45f56767727b1f536825c4efae969f3307774fd07887edce8f0cce06ebd2959d",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
       "20760529dd59186baf870fb2d0ac555ff95bc3dc75ea96ba4564bf37d61f708e",
     "npm-package/package-lisa/package.lisa.json":
-      "7d6a779d8ae0ee211b1c3983a5fbbca31b5f12ed3e95fd3f76104f11bd91abaa",
+      "2a61fd5f0e27578e58ac9b1368cf5d6ad4df15591348f1f3ea97cd2c6d24974f",
     "oxlint/base.json":
       "8cbc563bdfbbaf455742cef24d33676f45b55baf1ea62b529018b2d112d70f8a",
     "oxlint/cdk.json":
@@ -527,7 +527,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/copy-contents/gitignore":
       "4b8d1a5817d35f64f5d4859f9184ebe2e1dc42e63f8e9269fff233e2ec258d6c",
     "phaser/copy-overwrite/.github/workflows/ci.yml":
-      "d5e2561c51b95bf12bbd566e7a95b2609041bc59d5932f50b3a088fc765b3769",
+      "04db4432eb98857e99bf98a211ef527a98bcec40db43f63e2dfdef2d7fae6538",
     "phaser/copy-overwrite/.husky/pre-push.verify":
       "d03bc6d18e20c368d37abd4d1000589cbbfb67afab0ad58da4f18ed73ec65ee9",
     "phaser/copy-overwrite/ast-grep/rule-tests/.gitkeep":
@@ -563,7 +563,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/merge/.oxlintrc.json":
       "02c0d70e6e07bc0e981f94a1e2ccd01a2c295c4c66e8b8ea9b2f363d44fa5c06",
     "phaser/package-lisa/package.lisa.json":
-      "955c3e7489877e16e29641859be3c77a4de8a356dc837f66577f5ea60511bf79",
+      "43af75dea40431d7c6daac5f38046cba768c8860749e465ba81c2429d7859ad5",
     "plugins/src/base/agents/architecture-specialist.md":
       "2346c37ddce2b1ff059938d71be05f5f23acfe28066bcba4f9a1070ed6727a93",
     "plugins/src/base/agents/bug-fixer.md":
@@ -2497,7 +2497,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/two-channel-couplings.json":
       "0d125d75f78b1a9b1e65af54420c324da04a49e1632f2c527207d05a38bf023d",
     "scripts/update-node-version.ts":
-      "dcfec9f8666f65925deb9efdc8a4bebb6c3f41d9fa1c1365be23edb82c40fffa",
+      "0059067c14001c2f7e75beb2628d1a46f935c7b01ce61871db71b6849ef62dca",
     "scripts/update-test-skill-paths.mjs":
       "e26a3ac716c33013e22bf5223a58457452f5af2038218a0e3a51c244eab5ddc9",
     "scripts/verify-health-agentic-built.mjs":
@@ -2549,11 +2549,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.claude/hooks/worktree-create.sh":
       "888cfd16bd1ac04f9f8a835eae62f8bd2c956de654bce12ce9a6a52947b121ca",
     "typescript/copy-overwrite/.github/GITHUB_ACTIONS.md":
-      "4289146bae8e112049387d4be86941c563b02376a06f0238364aaf3e61c2b127",
+      "4cd22faec1ca477e34bf7f61640b7eb20329d097b19add57a9909f5905fd37ed",
     "typescript/copy-overwrite/.lintstagedrc.json":
       "058f6bb7ce5b734ba3e62774b1f769c94053c574f2b4db3e59515c325e49c0ef",
     "typescript/copy-overwrite/.nvmrc":
-      "0775c6feb7638122e8b68d611cd709bf270f7b5adb5d0d2baa9afab8a6c0fc42",
+      "6d07ac247e81cd42c2c20abf8dfe504413d6b2422e4aba9b2c975a776f155921",
     "typescript/copy-overwrite/.prettierignore":
       "d053814ee3c03955ab680049d281dc60357c14be8423b0790c7117fe2b4c61d1",
     "typescript/copy-overwrite/.prettierrc.json":
@@ -2635,11 +2635,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/.github/required-checks.json":
       "9be2f3170b7c57cad1a483752d3c882213e90f36ece677d1dd4a1b1c1c66b76a",
     "typescript/create-only/.github/workflows/ci.yml":
-      "694f9b9c15f55b8f81352a054521018c1297f22c3da0dca138282ca6eff905e7",
+      "1fb1da5cf5623b2e44d1d33f104daf65ca44cee1bb0e46df063916ed8bca951b",
     "typescript/create-only/.github/workflows/review-evidence.yml":
-      "42ecfb09718a16695259ace28875f8fbb2fa59bcafc799302bb797d000d45654",
+      "b1d0df98c55d06e44cbf3f8186a16763881a5155949c5189825fdc88589ed4c1",
     "typescript/create-only/.github/workflows/third-party-review-evidence.yml":
-      "8f1a3b04fa483c59ac4513a2d16eabf4a3e3bba447a562734b1f35fba2552769",
+      "ef20afa53051eb899996d86b8b696ee5407892d73a737b372e50f5d023a0df8d",
     "typescript/create-only/.gitleaksignore":
       "6927d376648675331801c798a4390b652a22a3e5d350cd26f36d42c10af02d67",
     "typescript/create-only/audit.ignore.local.json":
@@ -2671,11 +2671,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "25be68dbba6cdc730e57b8d5785e80022ca745adab841c80cb1b6d8fd0b7fb77",
+      "0d8e9dbcd1a3f45d46cf2796d521637cf9df69b63e9d35e3a6b560b18f9353a3",
     "ui/README.md":
       "7a67d7bdd49ff214ca204cc4e54ba70c37aa05fd6cc1e314fd9441a53eafc752",
     "ui/index.html":
-      "6d00b131fc789170c79e119f2ec7dd89c45bf0abf21033d41b929f5ef4247631",
+      "3ca3e2ef53fa35ffee3d54b8eeaecd9a6a29a019a9db5b46184affd010b34f1d",
   });
 
 /** Exact paths tracked by the public Lisa repository at generation time. */
@@ -3030,6 +3030,27 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/1537/authenticated-real-values.png": true,
     "evidence/1537/probe-failure-degrades-not-fabricates.png": true,
     "evidence/1537/unauthenticated-unknown-states.png": true,
+    "evidence/4326/README.md": true,
+    "evidence/4326/cdk-template.json": true,
+    "evidence/4326/diagnosis/focused-1.log": true,
+    "evidence/4326/diagnosis/focused-2.log": true,
+    "evidence/4326/diagnosis/focused-3.log": true,
+    "evidence/4326/diagnosis/state.json": true,
+    "evidence/4326/failed-normal-push.log": true,
+    "evidence/4326/fixed-success-and-edge.log": true,
+    "evidence/4326/history/baseline-regression.log": true,
+    "evidence/4326/history/baseline-state.json": true,
+    "evidence/4326/history/quality-gates.log": true,
+    "evidence/4326/history/quality-state.json": true,
+    "evidence/4326/inventory.json": true,
+    "evidence/4326/policy-test-report.json": true,
+    "evidence/4326/quality-and-template-review.log": true,
+    "evidence/4326/security-audit-inventory.json": true,
+    "evidence/4326/security-audit-observation.json": true,
+    "evidence/4326/security-audit-production.json": true,
+    "evidence/4326/security-audit-review.md": true,
+    "evidence/4326/state.json": true,
+    "evidence/4326/verdict.json": true,
     "evidence/copilot-hook-mcp-probe-1056.md": true,
     "evidence/cursor-rule-probe-1055.md": true,
     "expo/copy-overwrite/.easignore.extra": true,
@@ -9407,6 +9428,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/queue-status-prd-readers/github.json": true,
     "tests/fixtures/queue-status-prd-readers/linear.json": true,
     "tests/fixtures/queue-status-prd-readers/notion.json": true,
+    "tests/fixtures/shared-runtime-hosts/artifact.ts": true,
+    "tests/fixtures/shared-runtime-hosts/assertions.ts": true,
+    "tests/fixtures/shared-runtime-hosts/host.ts": true,
+    "tests/fixtures/shared-runtime-hosts/journey.ts": true,
+    "tests/fixtures/shared-runtime-hosts/process.ts": true,
     "tests/fixtures/state-contract/adopter/migrations/0001_initial.sql": true,
     "tests/fixtures/state-contract/adopter/state/inventory.json": true,
     "tests/fixtures/state-contract/adopter/state/state-contract.json": true,
@@ -9688,6 +9714,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/self-pin-drift-gate-wiring.test.ts": true,
     "tests/integration/sentry-deploy-workflow.test.ts": true,
     "tests/integration/sentry-release-config.test.ts": true,
+    "tests/integration/shared-runtime-packed-hosts.test.ts": true,
     "tests/integration/shell-guard-allow-controls.test.ts": true,
     "tests/integration/shell-guard-refusals.test.ts": true,
     "tests/integration/skipped-required-checks-gate-fail-closed.test.ts": true,
@@ -10133,6 +10160,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/reusable-workflow-pin.test.ts": true,
     "tests/unit/core/role-agent-template-contract.test.ts": true,
     "tests/unit/core/self-apply.test.ts": true,
+    "tests/unit/core/shared-runtime-policy.test.ts": true,
     "tests/unit/core/skill-frontmatter-contract.test.ts": true,
     "tests/unit/core/skip-git-check-decoupling.test.ts": true,
     "tests/unit/core/sonar-integration.test.ts": true,

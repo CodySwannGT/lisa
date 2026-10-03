@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "artifact_head_sha": "477b0767479e6fe1756ac617d0a052b53ff7f74e",
+  "captured_at": "2026-10-03T01:29:40.353400+00:00",
+  "normal_push": {
+    "command": [
+      "git",
+      "push",
+      "-u",
+      "origin",
+      "codex/4326-refresh-shared-runtime-security-floors"
+    ],
+    "started_at": "2026-10-03T01:06:54.628147+00:00",
+    "ended_at": "2026-10-03T01:17:24.838978+00:00",
+    "exit": 1,
+    "head": "477b0767479e6fe1756ac617d0a052b53ff7f74e",
+    "log_sha256": "295dae006b8defc6530fc59d64a5c49d942edaf8dd4321c22c7ea904bd9b268d",
+    "hook_bypass": false
+  },
+  "declared_push_gates": {
+    "proved": 14,
+    "failed": 0,
+    "not_proved": 0,
+    "killed": 0
+  },
+  "unit": {
+    "files": 1360,
+    "passed": 25666,
+    "skipped": 2,
+    "failed": 0
+  },
+  "coverage_percent": {
+    "statements": 82.88,
+    "branches": 75.85,
+    "functions": 88.52,
+    "lines": 83.86
+  },
+  "push_integration": {
+    "files": 172,
+    "passed": 3178,
+    "skipped": 2,
+    "failed": 0,
+    "scope": "Existing test:integration:push exclusions retained; no full unfiltered integration claim"
+  },
+  "production_audit": {
+    "raw_exit": 1,
+    "residual_unexcluded_high_or_critical": [
+      {
+        "package": "braces",
+        "id": "GHSA-vfj7-8cjw-p6xm"
+      }
+    ],
+    "raw_json_sha256": "2a89a9d828ad0b43dc8c9e4b45e92a9138e672d6d3f7b3b3f19c2c5f08cb6b8f"
+  },
+  "registry_latest": {
+    "braces": "3.0.3",
+    "micromatch": "4.0.8",
+    "chokidar": "5.0.0"
+  },
+  "impact_evaluation": "Confirmed actual root Knip CLI entry-data brace expansion; rung4 operator approved exact single repository-local exception. Raw finding not fixed.",
+  "not_established": [
+    "Successful git push",
+    "Required CI at this head",
+    "Merge/publication",
+    "No raw audit findings"
+  ],
+  "authorization": {
+    "source": "operator conversation",
+    "date": "2026-10-03",
+    "exact_message": "approve the exception",
+    "approved_draft_sha256": "a7bd5588e0d1edec667ef9331267ba9c4c74c142097111c2e3c5a911578b8d12"
+  },
+  "knip_cli_control": {
+    "source_head": "477b0767479e6fe1756ac617d0a052b53ff7f74e",
+    "scope": "Actual installed root Knip CLI with disposable entry config data; source/index unchanged",
+    "node": "22.23.3",
+    "records": [
+      {
+        "name": "benign",
+        "argv": [
+          "/tmp/lisa-runtime-4326-independent/runtime/node-v22.23.3-darwin-arm64/bin/node",
+          "/tmp/lisa-4326-implementation/node_modules/knip/bin/knip.js",
+          "--directory",
+          "/tmp/lisa-4326-codification/audit-477b0767/knip-config-control/benign",
+          "--config",
+          "/tmp/lisa-4326-codification/audit-477b0767/knip-config-control/benign/knip.json",
+          "--no-progress"
+        ],
+        "started_at": "2026-10-03T01:32:36.769518+00:00",
+        "exit": 0,
+        "pattern_length": 16,
+        "config_sha256": "9a287415b28c0b03a168d2466acdf9b81a72cd3905b809c474aeb0e6774bfc45",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output": ""
+      },
+      {
+        "name": "deep",
+        "argv": [
+          "/tmp/lisa-runtime-4326-independent/runtime/node-v22.23.3-darwin-arm64/bin/node",
+          "/tmp/lisa-4326-implementation/node_modules/knip/bin/knip.js",
+          "--directory",
+          "/tmp/lisa-4326-codification/audit-477b0767/knip-config-control/deep",
+          "--config",
+          "/tmp/lisa-4326-codification/audit-477b0767/knip-config-control/deep/knip.json",
+          "--no-progress"
+        ],
+        "started_at": "2026-10-03T01:32:37.019347+00:00",
+        "exit": 1,
+        "pattern_length": 7014,
+        "config_sha256": "cfa06de84eb055a6f9f102305159a3bbd82a8d6ca9fbe89e1ef406d7ebecf677",
+        "log_sha256": "00a05e5e6ae631fb6341afb8d496d6d3e2d516c85d1fa5396f830ceb1575438e",
+        "output": "/private/tmp/lisa-4326-implementation/node_modules/braces/lib/expand.js:98\n        queue.push(append(queue.pop(), child.value));\n                   ^\n\nRangeError: Maximum call stack size exceeded\n    at walk (/private/tmp/lisa-4326-implementation/node_modules/braces/lib/expand.js:98:20)\n    at walk (/private/tmp/lisa-4326-implementation/node_modules/braces/lib/expand.js:103:9)\n    at walk (/private/tmp/lisa-4326-implementation/node_modules/braces/lib/expand.js:103:9)\n    at walk (/private/tmp/lisa-4326-implementation/node_modules/braces/lib/expand.js:103:9)\n    at walk (/private/tmp/lisa-4326-implementation/node_modules/braces/lib/expand.js:103:9)\n    at walk (/private/tmp/lisa-4326-implementation/node_modules/braces/lib/expand.js:103:9)\n    at walk (/private/tmp/lisa-4326-implementation/node_modules/braces/lib/expand.js:103:9)\n    at walk (/private/tmp/lisa-4326-implementation/node_modules/braces/lib/expand.js:103:9)\n    at walk (/private/tmp/lisa-4326-implementation/node_modules/braces/lib/expand.js:103:9)\n    at walk (/private/tmp/lisa-4326-implementation/node_modules/braces/lib/expand.js:103:9)\n\nNode.js v22.23.3\n"
+      }
+    ]
+  },
+  "independent_review_sha256": "4dca966f6cdc80c75bda180c9b580c2acd165825ac69ed4792d5ceefbe8c96b7",
+  "local_exception_not_yet_applied_when_draft_created": true
+}

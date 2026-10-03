@@ -1,0 +1,462 @@
+Observed source HEAD b3398fa371bf63c5383ec101855fc7e1d6c7efee; tree f6cdb672446b2d744a149e6114e6a48663079d74; local candidate only.
+
+=== node-version.log ===
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:03:07.979671+00:00", "cwd": "<local-path>", "argv": ["<local-path>", "--version"]}
+v22.23.3
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:03:08.097066+00:00", "exit": 0, "wall_s": 0.11}
+
+=== source-build.log ===
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:04:19.992274+00:00", "cwd": "<local-path>", "argv": ["bun", "run", "build"]}
+$ bun run build:dist && bun run build:plugins
+[bounded excerpt: plugin-registration/file-copy chatter omitted; original digest in inventory]
+Generated agy variant at <local-path> (v4.67.0)
+Generated agy variant at <local-path> (v4.67.0)
+Generated agy variant at <local-path> (v4.67.0)
+Generated agy variant at <local-path> (v4.67.0)
+Generated agy variant at <local-path> (v4.67.0)
+Generated Copilot variant at <local-path> (v4.67.0)
+Generated Copilot variant at <local-path> (v4.67.0)
+Generated Copilot variant at <local-path> (v4.67.0)
+Generated Copilot variant at <local-path> (v4.67.0)
+Generated Copilot variant at <local-path> (v4.67.0)
+Generated Copilot variant at <local-path> (v4.67.0)
+Generated Copilot variant at <local-path> (v4.67.0)
+Generated Copilot variant at <local-path> (v4.67.0)
+Generated Copilot variant at <local-path> (v4.67.0)
+Generated Copilot variant at <local-path> (v4.67.0)
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:04:26.469783+00:00", "exit": 0, "wall_s": 6.475}
+
+=== source-tracked-build-stability.log ===
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:04:26.470287+00:00", "cwd": "<local-path>", "argv": ["git", "diff", "--exit-code", "HEAD", "--"]}
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:04:27.012459+00:00", "exit": 0, "wall_s": 0.54}
+
+=== typescript-bootstrap.log ===
+2026-10-03T00:05:54.037Z ["<local-path>","<local-path>@codyswann/lisa/dist/index.js","apply","<local-path>","--yes","--no-update-check","--harness=cursor"]
+
+[bounded excerpt: plugin-registration/file-copy chatter omitted; original digest in inventory]
+  Out of date:   1 files (managed templates changed; NOT updated)
+  Appended:      0 files (copy-contents)
+  Merged:        2 files (JSON merged)
+  Deleted:       0 files
+[WARN] 1 managed file(s) changed upstream but were left as-is:
+[WARN]   tsconfig.json
+[INFO] A non-interactive apply will not replace a file your project may have customised.
+[INFO] To take upstream's version of one, name it: `lisa apply . --refresh-templates=<path>`.
+[INFO] Name them ONE AT A TIME. Bare `--refresh-templates` is repo-wide and reverts every deliberate fork at once.
+[INFO] To keep yours instead, add the path to .lisaignore. Either way, decide — an unread file stops receiving upstream fixes, security fixes included.
+  Migrations:    3 files applied
+
+Project types: all typescript
+
+[INFO] Syncing lockfiles to match updated package.json...
+elapsed_ms=32590 exit=0 signal=null
+
+=== typescript-first-adoption.log ===
+2026-10-03T00:06:26.772Z ["<local-path>","<local-path>@codyswann/lisa/dist/index.js","apply","<local-path>","--yes","--no-update-check","--harness=cursor"]
+
+[bounded excerpt: plugin-registration/file-copy chatter omitted; original digest in inventory]
+  Out of date:   1 files (managed templates changed; NOT updated)
+  Appended:      0 files (copy-contents)
+  Merged:        1 files (JSON merged)
+  Deleted:       0 files
+[WARN] 1 managed file(s) changed upstream but were left as-is:
+[WARN]   tsconfig.json
+[INFO] A non-interactive apply will not replace a file your project may have customised.
+[INFO] To take upstream's version of one, name it: `lisa apply . --refresh-templates=<path>`.
+[INFO] Name them ONE AT A TIME. Bare `--refresh-templates` is repo-wide and reverts every deliberate fork at once.
+[INFO] To keep yours instead, add the path to .lisaignore. Either way, decide — an unread file stops receiving upstream fixes, security fixes included.
+  Migrations:    1 files applied
+
+Project types: all typescript
+
+[INFO] Postinstall reconciliation skipped: package.json unchanged by this apply
+elapsed_ms=20545 exit=0 signal=null
+
+=== typescript-second-adoption.log ===
+2026-10-03T00:07:22.316Z ["<local-path>","<local-path>@codyswann/lisa/dist/index.js","apply","<local-path>","--yes","--no-update-check","--harness=cursor"]
+
+[bounded excerpt: plugin-registration/file-copy chatter omitted; original digest in inventory]
+  Overwritten:   0 files (approved or Lisa-owned)
+  Out of date:   1 files (managed templates changed; NOT updated)
+  Appended:      0 files (copy-contents)
+  Merged:        1 files (JSON merged)
+  Deleted:       0 files
+[WARN] 1 managed file(s) changed upstream but were left as-is:
+[WARN]   tsconfig.json
+[INFO] A non-interactive apply will not replace a file your project may have customised.
+[INFO] To take upstream's version of one, name it: `lisa apply . --refresh-templates=<path>`.
+[INFO] Name them ONE AT A TIME. Bare `--refresh-templates` is repo-wide and reverts every deliberate fork at once.
+[INFO] To keep yours instead, add the path to .lisaignore. Either way, decide — an unread file stops receiving upstream fixes, security fixes included.
+
+Project types: all typescript
+
+[INFO] Postinstall reconciliation skipped: package.json unchanged by this apply
+elapsed_ms=28998 exit=0 signal=null
+
+=== typescript-install.log ===
+2026-10-03T00:06:47.322Z ["bun","install","--registry","http://127.0.0.1:55699","--network-concurrency","8","--cache-dir","<local-path>"]
+bun install v1.3.11 (af24e281)
+Resolving dependencies
+Resolved, downloaded and extracted [2112]
+Saved lockfile
+
+$ [ -n "$CI" ] || LISA_BOOTSTRAP=1 node node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-postinstall.mjs || true
+$ node -e "if (process.env.INIT_CWD?.includes('.serverless')) process.exit(0); process.exit(1);" || husky install || true
+husky - Git hooks installed
+
++ @ast-grep/cli@0.40.5 (v0.45.3 available)
++ @codyswann/lisa@4.67.0
++ @stryker-mutator/core@9.6.1 (v10.0.0 available)
++ @stryker-mutator/vitest-runner@9.6.1 (v10.0.0 available)
++ @vitest/coverage-v8@4.1.11 (v5.0.3 available)
++ eslint@9.39.5 (v10.12.0 available)
++ eslint-plugin-oxlint@1.86.0
++ fast-check@4.10.2
++ husky@8.0.3 (v9.1.7 available)
++ oxlint@1.86.0
++ oxlint-tsgolint@0.24.0 (v7.0.2003 available)
++ prettier@3.9.9
++ typescript@6.0.3 (v7.0.2 available)
++ vitest@4.1.11 (v5.0.3 available)
+
+991 packages installed [29.90s]
+elapsed_ms=29922 exit=0 signal=null
+
+=== typescript-frozen.log ===
+2026-10-03T00:07:51.321Z ["bun","install","--registry","http://127.0.0.1:55699","--network-concurrency","8","--cache-dir","<local-path>","--frozen-lockfile"]
+bun install v1.3.11 (af24e281)
+
+$ [ -n "$CI" ] || LISA_BOOTSTRAP=1 node node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-postinstall.mjs || true
+$ node -e "if (process.env.INIT_CWD?.includes('.serverless')) process.exit(0); process.exit(1);" || husky install || true
+husky - Git hooks installed
+
+Checked 1157 installs across 1128 packages (no changes) [190.00ms]
+elapsed_ms=195 exit=0 signal=null
+
+=== typescript-typecheck.log ===
+2026-10-03T00:07:18.399Z ["bun","run","typecheck"]
+$ $npm_execpath run typecheck:lisa
+$ node scripts/lib/worktree-dependencies.mjs && tsc --noEmit
+elapsed_ms=426 exit=0 signal=null
+
+=== typescript-unit.log ===
+2026-10-03T00:07:18.825Z ["bun","run","test:unit"]
+$ $npm_execpath run test:unit:lisa
+$ node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile typescript --adapter vitest -- vitest run --exclude='**/integration/**'
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:22:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 <local-path>
+
+Sourcemap for "<local-path>@codyswann/lisa/dist/configs/vitest/scratch-setup.js" points to missing source files
+Sourcemap for "<local-path>@codyswann/lisa/dist/configs/vitest/scratch-leak-setup.js" points to missing source files
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  20:07:20
+   Duration  110ms (transform 17ms, setup 35ms, import 4ms, tests 1ms, environment 0ms)
+
+elapsed_ms=3452 exit=0 signal=null
+
+=== cdk-bootstrap.log ===
+2026-10-03T00:07:51.993Z ["<local-path>","<local-path>@codyswann/lisa/dist/index.js","apply","<local-path>","--yes","--no-update-check","--harness=cursor"]
+
+[bounded excerpt: plugin-registration/file-copy chatter omitted; original digest in inventory]
+  Out of date:   1 files (managed templates changed; NOT updated)
+  Appended:      0 files (copy-contents)
+  Merged:        4 files (JSON merged)
+  Deleted:       0 files
+[WARN] 1 managed file(s) changed upstream but were left as-is:
+[WARN]   tsconfig.json
+[INFO] A non-interactive apply will not replace a file your project may have customised.
+[INFO] To take upstream's version of one, name it: `lisa apply . --refresh-templates=<path>`.
+[INFO] Name them ONE AT A TIME. Bare `--refresh-templates` is repo-wide and reverts every deliberate fork at once.
+[INFO] To keep yours instead, add the path to .lisaignore. Either way, decide — an unread file stops receiving upstream fixes, security fixes included.
+  Migrations:    3 files applied
+
+Project types: all typescript cdk
+
+[INFO] Syncing lockfiles to match updated package.json...
+elapsed_ms=34836 exit=0 signal=null
+
+=== cdk-first-adoption.log ===
+2026-10-03T00:08:26.966Z ["<local-path>","<local-path>@codyswann/lisa/dist/index.js","apply","<local-path>","--yes","--no-update-check","--harness=cursor"]
+
+[bounded excerpt: plugin-registration/file-copy chatter omitted; original digest in inventory]
+  Out of date:   1 files (managed templates changed; NOT updated)
+  Appended:      0 files (copy-contents)
+  Merged:        1 files (JSON merged)
+  Deleted:       0 files
+[WARN] 1 managed file(s) changed upstream but were left as-is:
+[WARN]   tsconfig.json
+[INFO] A non-interactive apply will not replace a file your project may have customised.
+[INFO] To take upstream's version of one, name it: `lisa apply . --refresh-templates=<path>`.
+[INFO] Name them ONE AT A TIME. Bare `--refresh-templates` is repo-wide and reverts every deliberate fork at once.
+[INFO] To keep yours instead, add the path to .lisaignore. Either way, decide — an unread file stops receiving upstream fixes, security fixes included.
+  Migrations:    1 files applied
+
+Project types: all typescript cdk
+
+[INFO] Postinstall reconciliation skipped: package.json unchanged by this apply
+elapsed_ms=25789 exit=0 signal=null
+
+=== cdk-second-adoption.log ===
+2026-10-03T00:09:05.705Z ["<local-path>","<local-path>@codyswann/lisa/dist/index.js","apply","<local-path>","--yes","--no-update-check","--harness=cursor"]
+
+[bounded excerpt: plugin-registration/file-copy chatter omitted; original digest in inventory]
+  Overwritten:   0 files (approved or Lisa-owned)
+  Out of date:   1 files (managed templates changed; NOT updated)
+  Appended:      0 files (copy-contents)
+  Merged:        1 files (JSON merged)
+  Deleted:       0 files
+[WARN] 1 managed file(s) changed upstream but were left as-is:
+[WARN]   tsconfig.json
+[INFO] A non-interactive apply will not replace a file your project may have customised.
+[INFO] To take upstream's version of one, name it: `lisa apply . --refresh-templates=<path>`.
+[INFO] Name them ONE AT A TIME. Bare `--refresh-templates` is repo-wide and reverts every deliberate fork at once.
+[INFO] To keep yours instead, add the path to .lisaignore. Either way, decide — an unread file stops receiving upstream fixes, security fixes included.
+
+Project types: all typescript cdk
+
+[INFO] Postinstall reconciliation skipped: package.json unchanged by this apply
+elapsed_ms=28628 exit=0 signal=null
+
+=== cdk-install.log ===
+2026-10-03T00:08:52.762Z ["bun","install","--registry","http://127.0.0.1:55699","--network-concurrency","8","--cache-dir","<local-path>"]
+bun install v1.3.11 (af24e281)
+Resolving dependencies
+Resolved, downloaded and extracted [76]
+Saved lockfile
+
+$ [ -n "$CI" ] || LISA_BOOTSTRAP=1 node node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-postinstall.mjs || true
+$ husky install || true
+husky - Git hooks installed
+
++ @ast-grep/cli@0.40.5 (v0.45.3 available)
++ @codyswann/lisa@4.67.0
++ @stryker-mutator/core@9.6.1 (v10.0.0 available)
++ @stryker-mutator/vitest-runner@9.6.1 (v10.0.0 available)
++ @vitest/coverage-v8@4.1.11 (v5.0.3 available)
++ aws-cdk@2.1144.0
++ esbuild@0.28.2
++ eslint@9.39.5 (v10.12.0 available)
++ eslint-plugin-oxlint@1.86.0
++ fast-check@4.10.2
++ husky@8.0.3 (v9.1.7 available)
++ oxlint@1.86.0
++ oxlint-tsgolint@0.24.0 (v7.0.2003 available)
++ prettier@3.9.9
++ typescript@6.0.3 (v7.0.2 available)
++ vite@8.3.2
++ vitest@4.1.11 (v5.0.3 available)
++ @aws-cdk/aws-amplify-alpha@2.260.0-alpha.0
++ aws-cdk-github-oidc@2.4.1 (v5.2.0 available)
++ aws-cdk-lib@2.260.0 (v2.272.0 available)
++ constructs@10.8.1
++ source-map-support@0.5.21
+
+1011 packages installed [4.95s]
+elapsed_ms=4966 exit=0 signal=null
+
+=== cdk-frozen.log ===
+2026-10-03T00:09:34.344Z ["bun","install","--registry","http://127.0.0.1:55699","--network-concurrency","8","--cache-dir","<local-path>","--frozen-lockfile"]
+bun install v1.3.11 (af24e281)
+
+$ [ -n "$CI" ] || LISA_BOOTSTRAP=1 node node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-postinstall.mjs || true
+$ husky install || true
+husky - Git hooks installed
+
+Checked 1179 installs across 1148 packages (no changes) [177.00ms]
+elapsed_ms=182 exit=0 signal=null
+
+=== cdk-typecheck.log ===
+2026-10-03T00:08:58.889Z ["bun","run","typecheck"]
+$ $npm_execpath run typecheck:lisa
+$ node scripts/lib/worktree-dependencies.mjs && tsc --noEmit
+elapsed_ms=1579 exit=0 signal=null
+
+=== cdk-unit.log ===
+2026-10-03T00:09:00.468Z ["bun","run","test:unit"]
+$ $npm_execpath run test:unit:lisa
+$ node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile cdk --adapter vitest -- vitest run --exclude='**/integration/**'
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:22:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 <local-path>
+
+Sourcemap for "<local-path>@codyswann/lisa/dist/configs/vitest/scratch-setup.js" points to missing source files
+Sourcemap for "<local-path>@codyswann/lisa/dist/configs/vitest/scratch-leak-setup.js" points to missing source files
+
+ Test Files  2 passed (2)
+      Tests  2 passed (2)
+   Start at  20:09:01
+   Duration  327ms (transform 53ms, setup 81ms, import 150ms, tests 76ms, environment 0ms)
+
+elapsed_ms=3699 exit=0 signal=null
+
+=== cdk-first-synth.log ===
+2026-10-03T00:09:04.167Z ["bun","run","cdk","synth","--no-lookups","--quiet"]
+$ cdk synth --no-lookups --quiet
+A reserved context key ('context.aws:') key was found in <local-path>, it might cause surprising behavior and should be removed.
+A reserved context key ('context.aws:') key was found in <local-path>, it might cause surprising behavior and should be removed.
+AI agent detected
+81 feature flags are not configured. Run 'cdk flags --unstable=flags' to learn more.
+elapsed_ms=1501 exit=0 signal=null
+
+=== cdk-second-synth.log ===
+2026-10-03T00:09:34.961Z ["bun","run","cdk","synth","--no-lookups","--quiet"]
+$ cdk synth --no-lookups --quiet
+A reserved context key ('context.aws:') key was found in <local-path>, it might cause surprising behavior and should be removed.
+A reserved context key ('context.aws:') key was found in <local-path>, it might cause surprising behavior and should be removed.
+AI agent detected
+81 feature flags are not configured. Run 'cdk flags --unstable=flags' to learn more.
+elapsed_ms=955 exit=0 signal=null
+
+=== claude-apply.log ===
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:10:06.826568+00:00", "cwd": "<local-path>", "argv": ["<local-path>", "<local-path>@codyswann/lisa/dist/index.js", "apply", "<local-path>", "--yes", "--no-update-check", "--harness=claude"]}
+
+[bounded excerpt: plugin-registration/file-copy chatter omitted; original digest in inventory]
+  Out of date:   1 files (managed templates changed; NOT updated)
+  Appended:      0 files (copy-contents)
+  Merged:        2 files (JSON merged)
+  Deleted:       0 files
+[WARN] 1 managed file(s) changed upstream but were left as-is:
+[WARN]   tsconfig.json
+[INFO] A non-interactive apply will not replace a file your project may have customised.
+[INFO] To take upstream's version of one, name it: `lisa apply . --refresh-templates=<path>`.
+[INFO] Name them ONE AT A TIME. Bare `--refresh-templates` is repo-wide and reverts every deliberate fork at once.
+[INFO] To keep yours instead, add the path to .lisaignore. Either way, decide — an unread file stops receiving upstream fixes, security fixes included.
+  Migrations:    5 files applied
+
+Project types: all typescript
+
+[INFO] Syncing lockfiles to match updated package.json...
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:10:40.552077+00:00", "exit": 0, "wall_s": 33.723}
+
+=== codex-apply.log ===
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:10:41.106998+00:00", "cwd": "<local-path>", "argv": ["<local-path>", "<local-path>@codyswann/lisa/dist/index.js", "apply", "<local-path>", "--yes", "--no-update-check", "--harness=codex"]}
+
+[bounded excerpt: plugin-registration/file-copy chatter omitted; original digest in inventory]
+  Out of date:   1 files (managed templates changed; NOT updated)
+  Appended:      0 files (copy-contents)
+  Merged:        2 files (JSON merged)
+  Deleted:       0 files
+[WARN] 1 managed file(s) changed upstream but were left as-is:
+[WARN]   tsconfig.json
+[INFO] A non-interactive apply will not replace a file your project may have customised.
+[INFO] To take upstream's version of one, name it: `lisa apply . --refresh-templates=<path>`.
+[INFO] Name them ONE AT A TIME. Bare `--refresh-templates` is repo-wide and reverts every deliberate fork at once.
+[INFO] To keep yours instead, add the path to .lisaignore. Either way, decide — an unread file stops receiving upstream fixes, security fixes included.
+  Migrations:    5 files applied
+
+Project types: all typescript
+
+[INFO] Syncing lockfiles to match updated package.json...
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:11:13.678031+00:00", "exit": 0, "wall_s": 32.568}
+
+=== cursor-apply.log ===
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:11:14.234106+00:00", "cwd": "<local-path>", "argv": ["<local-path>", "<local-path>@codyswann/lisa/dist/index.js", "apply", "<local-path>", "--yes", "--no-update-check", "--harness=cursor"]}
+
+[bounded excerpt: plugin-registration/file-copy chatter omitted; original digest in inventory]
+  Out of date:   1 files (managed templates changed; NOT updated)
+  Appended:      0 files (copy-contents)
+  Merged:        2 files (JSON merged)
+  Deleted:       0 files
+[WARN] 1 managed file(s) changed upstream but were left as-is:
+[WARN]   tsconfig.json
+[INFO] A non-interactive apply will not replace a file your project may have customised.
+[INFO] To take upstream's version of one, name it: `lisa apply . --refresh-templates=<path>`.
+[INFO] Name them ONE AT A TIME. Bare `--refresh-templates` is repo-wide and reverts every deliberate fork at once.
+[INFO] To keep yours instead, add the path to .lisaignore. Either way, decide — an unread file stops receiving upstream fixes, security fixes included.
+  Migrations:    5 files applied
+
+Project types: all typescript
+
+[INFO] Syncing lockfiles to match updated package.json...
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:11:52.359757+00:00", "exit": 0, "wall_s": 38.123}
+
+=== opencode-apply.log ===
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:11:52.905969+00:00", "cwd": "<local-path>", "argv": ["<local-path>", "<local-path>@codyswann/lisa/dist/index.js", "apply", "<local-path>", "--yes", "--no-update-check", "--harness=opencode"]}
+
+[bounded excerpt: plugin-registration/file-copy chatter omitted; original digest in inventory]
+  Out of date:   1 files (managed templates changed; NOT updated)
+  Appended:      0 files (copy-contents)
+  Merged:        2 files (JSON merged)
+  Deleted:       0 files
+[WARN] 1 managed file(s) changed upstream but were left as-is:
+[WARN]   tsconfig.json
+[INFO] A non-interactive apply will not replace a file your project may have customised.
+[INFO] To take upstream's version of one, name it: `lisa apply . --refresh-templates=<path>`.
+[INFO] Name them ONE AT A TIME. Bare `--refresh-templates` is repo-wide and reverts every deliberate fork at once.
+[INFO] To keep yours instead, add the path to .lisaignore. Either way, decide — an unread file stops receiving upstream fixes, security fixes included.
+  Migrations:    5 files applied
+
+Project types: all typescript
+
+[INFO] Syncing lockfiles to match updated package.json...
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:12:31.806777+00:00", "exit": 0, "wall_s": 38.898}
+
+=== agy-apply.log ===
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:12:32.359942+00:00", "cwd": "<local-path>", "argv": ["<local-path>", "<local-path>@codyswann/lisa/dist/index.js", "apply", "<local-path>", "--yes", "--no-update-check", "--harness=agy"]}
+
+[bounded excerpt: plugin-registration/file-copy chatter omitted; original digest in inventory]
+  Out of date:   1 files (managed templates changed; NOT updated)
+  Appended:      0 files (copy-contents)
+  Merged:        2 files (JSON merged)
+  Deleted:       0 files
+[WARN] 1 managed file(s) changed upstream but were left as-is:
+[WARN]   tsconfig.json
+[INFO] A non-interactive apply will not replace a file your project may have customised.
+[INFO] To take upstream's version of one, name it: `lisa apply . --refresh-templates=<path>`.
+[INFO] Name them ONE AT A TIME. Bare `--refresh-templates` is repo-wide and reverts every deliberate fork at once.
+[INFO] To keep yours instead, add the path to .lisaignore. Either way, decide — an unread file stops receiving upstream fixes, security fixes included.
+  Migrations:    5 files applied
+
+Project types: all typescript
+
+[INFO] Syncing lockfiles to match updated package.json...
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:13:10.262039+00:00", "exit": 0, "wall_s": 37.898}
+
+=== copilot-apply.log ===
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:13:10.814820+00:00", "cwd": "<local-path>", "argv": ["<local-path>", "<local-path>@codyswann/lisa/dist/index.js", "apply", "<local-path>", "--yes", "--no-update-check", "--harness=copilot"]}
+
+[bounded excerpt: plugin-registration/file-copy chatter omitted; original digest in inventory]
+  Out of date:   1 files (managed templates changed; NOT updated)
+  Appended:      0 files (copy-contents)
+  Merged:        2 files (JSON merged)
+  Deleted:       0 files
+[WARN] 1 managed file(s) changed upstream but were left as-is:
+[WARN]   tsconfig.json
+[INFO] A non-interactive apply will not replace a file your project may have customised.
+[INFO] To take upstream's version of one, name it: `lisa apply . --refresh-templates=<path>`.
+[INFO] Name them ONE AT A TIME. Bare `--refresh-templates` is repo-wide and reverts every deliberate fork at once.
+[INFO] To keep yours instead, add the path to .lisaignore. Either way, decide — an unread file stops receiving upstream fixes, security fixes included.
+  Migrations:    5 files applied
+
+Project types: all typescript
+
+[INFO] Syncing lockfiles to match updated package.json...
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:13:48.659830+00:00", "exit": 0, "wall_s": 37.842}
+
+=== explicit-default-control-apply.log ===
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:13:49.199735+00:00", "cwd": "<local-path>", "argv": ["<local-path>", "<local-path>@codyswann/lisa/dist/index.js", "apply", "<local-path>", "--yes", "--no-update-check", "--harness=cursor"]}
+
+[bounded excerpt: plugin-registration/file-copy chatter omitted; original digest in inventory]
+  Out of date:   1 files (managed templates changed; NOT updated)
+  Appended:      0 files (copy-contents)
+  Merged:        2 files (JSON merged)
+  Deleted:       0 files
+[WARN] 1 managed file(s) changed upstream but were left as-is:
+[WARN]   tsconfig.json
+[INFO] A non-interactive apply will not replace a file your project may have customised.
+[INFO] To take upstream's version of one, name it: `lisa apply . --refresh-templates=<path>`.
+[INFO] Name them ONE AT A TIME. Bare `--refresh-templates` is repo-wide and reverts every deliberate fork at once.
+[INFO] To keep yours instead, add the path to .lisaignore. Either way, decide — an unread file stops receiving upstream fixes, security fixes included.
+  Migrations:    5 files applied
+
+Project types: all typescript
+
+[INFO] Syncing lockfiles to match updated package.json...
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:14:23.365281+00:00", "exit": 0, "wall_s": 34.163}

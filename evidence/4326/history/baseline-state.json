@@ -1,0 +1,33 @@
+{
+  "artifact": {
+    "repository": "CodySwannGT/lisa",
+    "head_sha": "cf55d5f03806fa21e346c1bec6f45110030a13e2",
+    "source_tree": "5fd1b3e97a5b096fca9c6fcddd6211ce177248fc",
+    "test_overlay_index_tree": "2d8326426284cc43ad649f8fc5256a260ace8b76",
+    "environment": "historical isolated baseline plus exact regression overlay",
+    "observed_at": "2026-10-02T22:23:16.003809+00:00"
+  },
+  "policy_reporter": {
+    "failed": 15,
+    "passed": 1,
+    "exit_explicitly_recorded": false,
+    "result": "failed as expected"
+  },
+  "packed_reporter": {
+    "failed": 2,
+    "passed": 0,
+    "supervisor_exit": 1,
+    "wall_s": 147.304,
+    "failure": "literal generated Node policy22.21.1 versus22.23.3 before expensive host install"
+  },
+  "identical_six_inputs": {
+    "tests/integration/shared-runtime-packed-hosts.test.ts": "d46d50bd3495f8ac676fbe94c0b0e810792a22eda8dd651860317ef4dda09ac3",
+    "tests/fixtures/shared-runtime-hosts/artifact.ts": "a64007acc0afce7c5e50f2b54568bfcb9d382dcd1cddc251025dc038a8f9a910",
+    "tests/fixtures/shared-runtime-hosts/assertions.ts": "3a44300da10845875a0c395dc0856954bbec04772280d7f2337f6f083fec0006",
+    "tests/fixtures/shared-runtime-hosts/host.ts": "9a5c7a618bef8dd9a2d60a51b6c123196e022aa690babcbb57a6cd1be3d419fa",
+    "tests/fixtures/shared-runtime-hosts/journey.ts": "7779a65608f94c1b0bffde3febc1f09afb8d8897742312968e43405e1eb9d694",
+    "tests/fixtures/shared-runtime-hosts/process.ts": "0df1503ec17a2e6f172d7b787cf7d83d3b80a3f7251eefc7e74644b679d219a1"
+  },
+  "historical": true,
+  "not_a_public_artifact": true
+}

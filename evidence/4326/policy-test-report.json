@@ -1,0 +1,232 @@
+{
+  "numTotalTestSuites": 2,
+  "numPassedTestSuites": 2,
+  "numFailedTestSuites": 0,
+  "numPendingTestSuites": 0,
+  "numTotalTests": 16,
+  "numPassedTests": 16,
+  "numFailedTests": 0,
+  "numPendingTests": 0,
+  "numTodoTests": 0,
+  "snapshot": {
+    "added": 0,
+    "failure": false,
+    "filesAdded": 0,
+    "filesRemoved": 0,
+    "filesRemovedList": [],
+    "filesUnmatched": 0,
+    "filesUpdated": 0,
+    "matched": 0,
+    "total": 0,
+    "unchecked": 0,
+    "uncheckedKeysByFile": [],
+    "unmatched": 0,
+    "updated": 0,
+    "didUpdate": false
+  },
+  "startTime": 1790985868070,
+  "success": true,
+  "testResults": [
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "shared runtime patch policy"
+          ],
+          "fullName": "shared runtime patch policy typescript supplies coordinated patched test-tool floors",
+          "status": "passed",
+          "title": "typescript supplies coordinated patched test-tool floors",
+          "duration": 2.814041999999972,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "shared runtime patch policy"
+          ],
+          "fullName": "shared runtime patch policy cdk supplies coordinated patched test-tool floors",
+          "status": "passed",
+          "title": "cdk supplies coordinated patched test-tool floors",
+          "duration": 0.8306670000000054,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "shared runtime patch policy"
+          ],
+          "fullName": "shared runtime patch policy nestjs supplies coordinated patched test-tool floors",
+          "status": "passed",
+          "title": "nestjs supplies coordinated patched test-tool floors",
+          "duration": 0.5563750000000027,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "shared runtime patch policy"
+          ],
+          "fullName": "shared runtime patch policy npm-package supplies coordinated patched test-tool floors",
+          "status": "passed",
+          "title": "npm-package supplies coordinated patched test-tool floors",
+          "duration": 0.4235830000000078,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "shared runtime patch policy"
+          ],
+          "fullName": "shared runtime patch policy phaser supplies coordinated patched test-tool floors",
+          "status": "passed",
+          "title": "phaser supplies coordinated patched test-tool floors",
+          "duration": 0.49395800000002055,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "shared runtime patch policy"
+          ],
+          "fullName": "shared runtime patch policy harper-fabric supplies coordinated patched test-tool floors",
+          "status": "passed",
+          "title": "harper-fabric supplies coordinated patched test-tool floors",
+          "duration": 0.3482500000000073,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "shared runtime patch policy"
+          ],
+          "fullName": "shared runtime patch policy clean TypeScript hosts get patched defaults under claude",
+          "status": "passed",
+          "title": "clean TypeScript hosts get patched defaults under claude",
+          "duration": 6.655666999999994,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "shared runtime patch policy"
+          ],
+          "fullName": "shared runtime patch policy clean TypeScript hosts get patched defaults under codex",
+          "status": "passed",
+          "title": "clean TypeScript hosts get patched defaults under codex",
+          "duration": 3.5885829999999714,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "shared runtime patch policy"
+          ],
+          "fullName": "shared runtime patch policy clean TypeScript hosts get patched defaults under cursor",
+          "status": "passed",
+          "title": "clean TypeScript hosts get patched defaults under cursor",
+          "duration": 4.366666000000009,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "shared runtime patch policy"
+          ],
+          "fullName": "shared runtime patch policy clean TypeScript hosts get patched defaults under opencode",
+          "status": "passed",
+          "title": "clean TypeScript hosts get patched defaults under opencode",
+          "duration": 3.7306669999999826,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "shared runtime patch policy"
+          ],
+          "fullName": "shared runtime patch policy clean TypeScript hosts get patched defaults under agy",
+          "status": "passed",
+          "title": "clean TypeScript hosts get patched defaults under agy",
+          "duration": 3.83299999999997,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "shared runtime patch policy"
+          ],
+          "fullName": "shared runtime patch policy clean TypeScript hosts get patched defaults under copilot",
+          "status": "passed",
+          "title": "clean TypeScript hosts get patched defaults under copilot",
+          "duration": 3.251000000000033,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "shared runtime patch policy"
+          ],
+          "fullName": "shared runtime patch policy preserves explicitly configured host-owned defaults",
+          "status": "passed",
+          "title": "preserves explicitly configured host-owned defaults",
+          "duration": 3.273832999999968,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "shared runtime patch policy"
+          ],
+          "fullName": "shared runtime patch policy upgrades CDK-owned forced tools while preserving its host-owned Node default",
+          "status": "passed",
+          "title": "upgrades CDK-owned forced tools while preserving its host-owned Node default",
+          "duration": 4.264291000000014,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "shared runtime patch policy"
+          ],
+          "fullName": "shared runtime patch policy keeps root/source Node and Vite policy aligned with the shared runtime file",
+          "status": "passed",
+          "title": "keeps root/source Node and Vite policy aligned with the shared runtime file",
+          "duration": 0.7620839999999589,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "shared runtime patch policy"
+          ],
+          "fullName": "shared runtime patch policy the Node updater reaches current tracked surfaces and leaves historical data alone",
+          "status": "passed",
+          "title": "the Node updater reaches current tracked surfaces and leaves historical data alone",
+          "duration": 120.13862499999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1790985868494,
+      "endTime": 1790985868653.1387,
+      "status": "passed",
+      "message": "",
+      "name": "<local-path>"
+    }
+  ]
+}

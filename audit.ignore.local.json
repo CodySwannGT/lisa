@@ -1,3 +1,14 @@
 {
-  "exclusions": []
+  "exclusions": [
+    {
+      "id": "GHSA-vfj7-8cjw-p6xm",
+      "cve": "CVE-2026-93687",
+      "package": "braces",
+      "reason": "Temporary repository-specific exception: braces3.0.3 has no published fixed version. Knip consumes repository-controlled glob patterns and can be crashed by deeply nested braces, including through PR changes to its entry config. This accepts validation-process availability risk for reviewed checkouts rather than claiming the dependency is safe or dev-only. It does not authorize processing untrusted glob input in a service, adding the exception to shared templates, or suppressing any other advisory. Recheck registry/upstream by 2026-10-16 and remove once a compatible fix is available. See evidence/4326/security-audit-review.md.",
+      "owner": "CodySwannGT",
+      "review_by": "2026-10-16T23:59:59Z",
+      "tracking": "CodySwannGT/lisa#4326",
+      "expiry_enforced": false
+    }
+  ]
 }

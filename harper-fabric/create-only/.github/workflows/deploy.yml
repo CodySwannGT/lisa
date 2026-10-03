@@ -41,7 +41,7 @@ jobs:
       # (CodySwannGT/lisa#3698).
       expected_workflow_contract_major: '1'
       moment: pre-deploy:${{ github.ref_name }}
-      node_version: '22.21.1'
+      node_version: '22.23.3'
       package_manager: 'bun'
     # No `secrets:` key: gates.yml declares none in its `workflow_call`, so
     # passing any grants everything to a callee that reads nothing (#3065).
@@ -64,7 +64,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '22.21.1'
+          node-version: '22.23.3'
           package-manager-cache: false
 
       - name: Setup Bun
@@ -132,7 +132,7 @@ jobs:
       # (CodySwannGT/lisa#3698).
       expected_workflow_contract_major: '1'
       moment: post-deploy:${{ github.ref_name }}
-      node_version: '22.21.1'
+      node_version: '22.23.3'
       package_manager: 'bun'
     # No `secrets:` key: gates.yml declares none in its `workflow_call`, so
     # passing any grants everything to a callee that reads nothing (#3065).

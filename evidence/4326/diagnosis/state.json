@@ -1,0 +1,503 @@
+{
+  "head": "b3398fa371bf63c5383ec101855fc7e1d6c7efee",
+  "tree": "f6cdb672446b2d744a149e6114e6a48663079d74",
+  "classification": "Unchanged empirical filesystem ratio failure not reproduced in 3 focused coverage runs; consistent with transient full-suite timing contention, exact cause unproven",
+  "original_failure": {
+    "test": "tests/unit/helpers/fs-latency-budget.test.ts:178",
+    "ratio": 0.24871806346649503,
+    "strict_lower_bound": 0.25,
+    "percent_below_lower_bound": 0.5127746134019895,
+    "native_case_ms": 740,
+    "files": 1360,
+    "passed": 25665,
+    "failed": 1,
+    "skipped": 2,
+    "exit": 1,
+    "integration": "NOT-RUN; no integration claim"
+  },
+  "source_proof": {
+    "compared_paths": 125,
+    "unchanged_across_cf55_19af_b339": 124,
+    "unrelated_changed_helper": "tests/helpers/enforcement-vintage-harness.ts",
+    "changed_helper_used_by_failure": false,
+    "relevant_test_helpers_vitest_support_and_wiring": "unchanged across all three",
+    "all125_current_bytes_match_b339": true
+  },
+  "focused": [
+    {
+      "n": 1,
+      "started_at": "2026-10-03T00:25:31.431029+00:00",
+      "ended_at": "2026-10-03T00:25:35.773368+00:00",
+      "duration_s": 4.342,
+      "exit": 1,
+      "passed": 19,
+      "failed": 0,
+      "pending": 0,
+      "total": 19,
+      "test_success": true,
+      "coverage_enabled": true,
+      "unchanged_thresholds": true,
+      "log_sha256": "0c9718ed70ad7ca34ea6b6a8335f99d17d9058d3d04075032cb6229d86ad8d92",
+      "report_sha256": "1d085eb83e97dfae76cfb08743a4b122bcb62f6c91b5e77b4b33974bd039eb3f",
+      "empirical_cases": [
+        {
+          "name": "the probe stands for the operation it is a proxy for agrees with a real corpus deletion measured in the same window",
+          "status": "passed",
+          "duration": 179.07820799999996,
+          "failureMessages": []
+        }
+      ],
+      "coverage_floor_failures": [
+        "ERROR: Coverage for lines (0.71%) does not meet global threshold (75%)",
+        "ERROR: Coverage for functions (0.38%) does not meet global threshold (60%)",
+        "ERROR: Coverage for statements (0.69%) does not meet global threshold (74%)",
+        "ERROR: Coverage for branches (0.42%) does not meet global threshold (65%)"
+      ],
+      "load_average": [
+        2.99169921875,
+        4.5517578125,
+        4.34912109375
+      ],
+      "observed_pre_run_node_vitest_processes": 0
+    },
+    {
+      "n": 2,
+      "started_at": "2026-10-03T00:25:35.866458+00:00",
+      "ended_at": "2026-10-03T00:25:40.148299+00:00",
+      "duration_s": 4.282,
+      "exit": 1,
+      "passed": 19,
+      "failed": 0,
+      "pending": 0,
+      "total": 19,
+      "test_success": true,
+      "coverage_enabled": true,
+      "unchanged_thresholds": true,
+      "log_sha256": "83ccf5df2e2bbf01e62291d67adbc329ce77203a3fbd625054cafb6def228c2c",
+      "report_sha256": "b74786fc48ba28e948191374fbfb771ebd73833bc256372130caaf13a8dbdfe9",
+      "empirical_cases": [
+        {
+          "name": "the probe stands for the operation it is a proxy for agrees with a real corpus deletion measured in the same window",
+          "status": "passed",
+          "duration": 177.618042,
+          "failureMessages": []
+        }
+      ],
+      "coverage_floor_failures": [
+        "ERROR: Coverage for lines (0.71%) does not meet global threshold (75%)",
+        "ERROR: Coverage for functions (0.38%) does not meet global threshold (60%)",
+        "ERROR: Coverage for statements (0.69%) does not meet global threshold (74%)",
+        "ERROR: Coverage for branches (0.42%) does not meet global threshold (65%)"
+      ],
+      "load_average": [
+        4.193359375,
+        4.77490234375,
+        4.4287109375
+      ],
+      "observed_pre_run_node_vitest_processes": 0
+    },
+    {
+      "n": 3,
+      "started_at": "2026-10-03T00:25:40.239598+00:00",
+      "ended_at": "2026-10-03T00:25:44.499727+00:00",
+      "duration_s": 4.26,
+      "exit": 1,
+      "passed": 19,
+      "failed": 0,
+      "pending": 0,
+      "total": 19,
+      "test_success": true,
+      "coverage_enabled": true,
+      "unchanged_thresholds": true,
+      "log_sha256": "a31694171f3e8dfc22e169f65f1bf212f1b0a5fc3798ff6b0f03d7b4451e07cb",
+      "report_sha256": "c30e7126a168ca7e36ecc14b1fa9c9a38ea3278bfec2fddb7627f49d492052d9",
+      "empirical_cases": [
+        {
+          "name": "the probe stands for the operation it is a proxy for agrees with a real corpus deletion measured in the same window",
+          "status": "passed",
+          "duration": 197.65574999999998,
+          "failureMessages": []
+        }
+      ],
+      "coverage_floor_failures": [
+        "ERROR: Coverage for lines (0.71%) does not meet global threshold (75%)",
+        "ERROR: Coverage for functions (0.38%) does not meet global threshold (60%)",
+        "ERROR: Coverage for statements (0.69%) does not meet global threshold (74%)",
+        "ERROR: Coverage for branches (0.42%) does not meet global threshold (65%)"
+      ],
+      "load_average": [
+        4.337890625,
+        4.794921875,
+        4.4375
+      ],
+      "observed_pre_run_node_vitest_processes": 0
+    }
+  ],
+  "focused_assertion_inventory": [
+    {
+      "run": 1,
+      "assertions": [
+        {
+          "name": "fsSlowdownFactorFrom reports the quiet reference as exactly 1",
+          "status": "passed",
+          "duration": 0.7739170000000115,
+          "failureMessages": []
+        },
+        {
+          "name": "fsSlowdownFactorFrom never returns a factor below 1, so a budget can only widen",
+          "status": "passed",
+          "duration": 0.08066700000000537,
+          "failureMessages": []
+        },
+        {
+          "name": "fsSlowdownFactorFrom scales linearly between the floor and the ceiling",
+          "status": "passed",
+          "duration": 0.11170800000002146,
+          "failureMessages": []
+        },
+        {
+          "name": "fsSlowdownFactorFrom clamps at the ceiling, so a pathological box cannot buy silence",
+          "status": "passed",
+          "duration": 0.05145799999999667,
+          "failureMessages": []
+        },
+        {
+          "name": "fsSlowdownFactorFrom treats an unusable reading as no information rather than as fast",
+          "status": "passed",
+          "duration": 0.06987499999999613,
+          "failureMessages": []
+        },
+        {
+          "name": "fsLatencyBudgetMs never derives a budget below its quiet-box base",
+          "status": "passed",
+          "duration": 8.77324999999999,
+          "failureMessages": []
+        },
+        {
+          "name": "fsLatencyBudgetMs stays under the base times the ceiling",
+          "status": "passed",
+          "duration": 0.07908299999999713,
+          "failureMessages": []
+        },
+        {
+          "name": "fsLatencyBudgetMs is the base times this worker's measured filesystem slowdown",
+          "status": "passed",
+          "duration": 0.06433300000000486,
+          "failureMessages": []
+        },
+        {
+          "name": "fsLatencyBudgetMs remembers the measurement rather than re-probing on every call",
+          "status": "passed",
+          "duration": 0.04562500000000114,
+          "failureMessages": []
+        },
+        {
+          "name": "measureUnlinkLatencyUs returns a positive finite per-entry cost",
+          "status": "passed",
+          "duration": 6.098582999999991,
+          "failureMessages": []
+        },
+        {
+          "name": "the probe stands for the operation it is a proxy for agrees with a real corpus deletion measured in the same window",
+          "status": "passed",
+          "duration": 179.07820799999996,
+          "failureMessages": []
+        },
+        {
+          "name": "the shape the ticket was filed on the spawn factor under-reports a slow filesystem and the probe does not",
+          "status": "passed",
+          "duration": 0.15583400000002712,
+          "failureMessages": []
+        },
+        {
+          "name": "the shape the ticket was filed on derives the wider budget for the same base, at that observation",
+          "status": "passed",
+          "duration": 0.06400000000002137,
+          "failureMessages": []
+        },
+        {
+          "name": "the shape the ticket was filed on records the machine state the observation was taken under",
+          "status": "passed",
+          "duration": 0.053541999999993095,
+          "failureMessages": []
+        },
+        {
+          "name": "the derivation cites what it was measured from names the measured cost, the quiet reference, and the ceiling",
+          "status": "passed",
+          "duration": 8.335292000000038,
+          "failureMessages": []
+        },
+        {
+          "name": "the deletion-dominated call sites are wired to it the live 100k-entry teardown scales on the filesystem proxy",
+          "status": "passed",
+          "duration": 0.5771250000000236,
+          "failureMessages": []
+        },
+        {
+          "name": "the deletion-dominated call sites are wired to it the unit teardown whose corpus was shrunk instead scales on the filesystem proxy",
+          "status": "passed",
+          "duration": 0.10316599999998743,
+          "failureMessages": []
+        },
+        {
+          "name": "the deletion-dominated call sites are wired to it the packed-bin scratch-tree teardown scales on the filesystem proxy",
+          "status": "passed",
+          "duration": 0.3337500000000091,
+          "failureMessages": []
+        },
+        {
+          "name": "the deletion-dominated call sites are wired to it leaves the spawn-dominated cases in those files on the spawn proxy",
+          "status": "passed",
+          "duration": 0.07108299999998735,
+          "failureMessages": []
+        }
+      ],
+      "original_report_sha256": "1d085eb83e97dfae76cfb08743a4b122bcb62f6c91b5e77b4b33974bd039eb3f",
+      "original_report_bytes": 5606338
+    },
+    {
+      "run": 2,
+      "assertions": [
+        {
+          "name": "fsSlowdownFactorFrom reports the quiet reference as exactly 1",
+          "status": "passed",
+          "duration": 0.7498329999999953,
+          "failureMessages": []
+        },
+        {
+          "name": "fsSlowdownFactorFrom never returns a factor below 1, so a budget can only widen",
+          "status": "passed",
+          "duration": 0.08475000000001387,
+          "failureMessages": []
+        },
+        {
+          "name": "fsSlowdownFactorFrom scales linearly between the floor and the ceiling",
+          "status": "passed",
+          "duration": 0.12187499999998863,
+          "failureMessages": []
+        },
+        {
+          "name": "fsSlowdownFactorFrom clamps at the ceiling, so a pathological box cannot buy silence",
+          "status": "passed",
+          "duration": 0.051791999999977634,
+          "failureMessages": []
+        },
+        {
+          "name": "fsSlowdownFactorFrom treats an unusable reading as no information rather than as fast",
+          "status": "passed",
+          "duration": 0.06687500000001023,
+          "failureMessages": []
+        },
+        {
+          "name": "fsLatencyBudgetMs never derives a budget below its quiet-box base",
+          "status": "passed",
+          "duration": 8.744458000000009,
+          "failureMessages": []
+        },
+        {
+          "name": "fsLatencyBudgetMs stays under the base times the ceiling",
+          "status": "passed",
+          "duration": 0.08650000000000091,
+          "failureMessages": []
+        },
+        {
+          "name": "fsLatencyBudgetMs is the base times this worker's measured filesystem slowdown",
+          "status": "passed",
+          "duration": 0.06083300000000236,
+          "failureMessages": []
+        },
+        {
+          "name": "fsLatencyBudgetMs remembers the measurement rather than re-probing on every call",
+          "status": "passed",
+          "duration": 0.045000000000015916,
+          "failureMessages": []
+        },
+        {
+          "name": "measureUnlinkLatencyUs returns a positive finite per-entry cost",
+          "status": "passed",
+          "duration": 5.519082999999995,
+          "failureMessages": []
+        },
+        {
+          "name": "the probe stands for the operation it is a proxy for agrees with a real corpus deletion measured in the same window",
+          "status": "passed",
+          "duration": 177.618042,
+          "failureMessages": []
+        },
+        {
+          "name": "the shape the ticket was filed on the spawn factor under-reports a slow filesystem and the probe does not",
+          "status": "passed",
+          "duration": 0.15350000000000819,
+          "failureMessages": []
+        },
+        {
+          "name": "the shape the ticket was filed on derives the wider budget for the same base, at that observation",
+          "status": "passed",
+          "duration": 0.0654999999999859,
+          "failureMessages": []
+        },
+        {
+          "name": "the shape the ticket was filed on records the machine state the observation was taken under",
+          "status": "passed",
+          "duration": 0.05858400000005304,
+          "failureMessages": []
+        },
+        {
+          "name": "the derivation cites what it was measured from names the measured cost, the quiet reference, and the ceiling",
+          "status": "passed",
+          "duration": 7.959042000000011,
+          "failureMessages": []
+        },
+        {
+          "name": "the deletion-dominated call sites are wired to it the live 100k-entry teardown scales on the filesystem proxy",
+          "status": "passed",
+          "duration": 0.12424999999996089,
+          "failureMessages": []
+        },
+        {
+          "name": "the deletion-dominated call sites are wired to it the unit teardown whose corpus was shrunk instead scales on the filesystem proxy",
+          "status": "passed",
+          "duration": 0.07183400000002393,
+          "failureMessages": []
+        },
+        {
+          "name": "the deletion-dominated call sites are wired to it the packed-bin scratch-tree teardown scales on the filesystem proxy",
+          "status": "passed",
+          "duration": 0.06216699999998809,
+          "failureMessages": []
+        },
+        {
+          "name": "the deletion-dominated call sites are wired to it leaves the spawn-dominated cases in those files on the spawn proxy",
+          "status": "passed",
+          "duration": 0.06266699999997627,
+          "failureMessages": []
+        }
+      ],
+      "original_report_sha256": "b74786fc48ba28e948191374fbfb771ebd73833bc256372130caaf13a8dbdfe9",
+      "original_report_bytes": 5606333
+    },
+    {
+      "run": 3,
+      "assertions": [
+        {
+          "name": "fsSlowdownFactorFrom reports the quiet reference as exactly 1",
+          "status": "passed",
+          "duration": 0.7795830000000024,
+          "failureMessages": []
+        },
+        {
+          "name": "fsSlowdownFactorFrom never returns a factor below 1, so a budget can only widen",
+          "status": "passed",
+          "duration": 0.08120800000000372,
+          "failureMessages": []
+        },
+        {
+          "name": "fsSlowdownFactorFrom scales linearly between the floor and the ceiling",
+          "status": "passed",
+          "duration": 0.10758400000000279,
+          "failureMessages": []
+        },
+        {
+          "name": "fsSlowdownFactorFrom clamps at the ceiling, so a pathological box cannot buy silence",
+          "status": "passed",
+          "duration": 0.05216700000002561,
+          "failureMessages": []
+        },
+        {
+          "name": "fsSlowdownFactorFrom treats an unusable reading as no information rather than as fast",
+          "status": "passed",
+          "duration": 0.0725829999999803,
+          "failureMessages": []
+        },
+        {
+          "name": "fsLatencyBudgetMs never derives a budget below its quiet-box base",
+          "status": "passed",
+          "duration": 8.655790999999994,
+          "failureMessages": []
+        },
+        {
+          "name": "fsLatencyBudgetMs stays under the base times the ceiling",
+          "status": "passed",
+          "duration": 0.07079200000001151,
+          "failureMessages": []
+        },
+        {
+          "name": "fsLatencyBudgetMs is the base times this worker's measured filesystem slowdown",
+          "status": "passed",
+          "duration": 0.05158399999999119,
+          "failureMessages": []
+        },
+        {
+          "name": "fsLatencyBudgetMs remembers the measurement rather than re-probing on every call",
+          "status": "passed",
+          "duration": 0.04200000000000159,
+          "failureMessages": []
+        },
+        {
+          "name": "measureUnlinkLatencyUs returns a positive finite per-entry cost",
+          "status": "passed",
+          "duration": 5.557333999999997,
+          "failureMessages": []
+        },
+        {
+          "name": "the probe stands for the operation it is a proxy for agrees with a real corpus deletion measured in the same window",
+          "status": "passed",
+          "duration": 197.65574999999998,
+          "failureMessages": []
+        },
+        {
+          "name": "the shape the ticket was filed on the spawn factor under-reports a slow filesystem and the probe does not",
+          "status": "passed",
+          "duration": 0.16116700000003448,
+          "failureMessages": []
+        },
+        {
+          "name": "the shape the ticket was filed on derives the wider budget for the same base, at that observation",
+          "status": "passed",
+          "duration": 0.06537500000001728,
+          "failureMessages": []
+        },
+        {
+          "name": "the shape the ticket was filed on records the machine state the observation was taken under",
+          "status": "passed",
+          "duration": 0.051791000000037,
+          "failureMessages": []
+        },
+        {
+          "name": "the derivation cites what it was measured from names the measured cost, the quiet reference, and the ceiling",
+          "status": "passed",
+          "duration": 8.248249999999985,
+          "failureMessages": []
+        },
+        {
+          "name": "the deletion-dominated call sites are wired to it the live 100k-entry teardown scales on the filesystem proxy",
+          "status": "passed",
+          "duration": 0.10841699999997445,
+          "failureMessages": []
+        },
+        {
+          "name": "the deletion-dominated call sites are wired to it the unit teardown whose corpus was shrunk instead scales on the filesystem proxy",
+          "status": "passed",
+          "duration": 0.068916999999999,
+          "failureMessages": []
+        },
+        {
+          "name": "the deletion-dominated call sites are wired to it the packed-bin scratch-tree teardown scales on the filesystem proxy",
+          "status": "passed",
+          "duration": 0.05520899999999074,
+          "failureMessages": []
+        },
+        {
+          "name": "the deletion-dominated call sites are wired to it leaves the spawn-dominated cases in those files on the spawn proxy",
+          "status": "passed",
+          "duration": 0.055999999999983174,
+          "failureMessages": []
+        }
+      ],
+      "original_report_sha256": "c30e7126a168ca7e36ecc14b1fa9c9a38ea3278bfec2fddb7627f49d492052d9",
+      "original_report_bytes": 5606336
+    }
+  ],
+  "verification_boundary": "57 assertion passes across three19-case executions, including three real ratio passes. All commands remain exit1 on whole-repo coverage floors; no full-quality or push success claimed. No timings mocked and no assertions/floors changed. Focused sequential execution does not reproduce the full suite concurrent workload.",
+  "normal_retry_or_current_delivery_not_established": true
+}

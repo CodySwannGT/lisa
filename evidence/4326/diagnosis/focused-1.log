@@ -1,0 +1,31 @@
+{"head": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "started_at": "2026-10-03T00:25:31.431029+00:00", "argv": ["<local-path>", "dist/cli/lisa-test-run.js", "--profile", "lisa", "--adapter", "vitest", "--", "vitest", "run", "--coverage", "--exclude=**/integration/**", "--exclude=**/*.integration.*", "--exclude=**/measure-tmpdir-growth-performance.test.ts", "tests/unit/helpers/fs-latency-budget.test.ts", "--reporter=default", "--reporter=json", "--outputFile.json=<local-path>"], "coverage_scope": "unit", "load_average": [2.99169921875, 4.5517578125, 4.34912109375], "observed_node_vitest_runner_processes": 0}
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 <local-path>
+      Coverage enabled with v8
+
+ ✓ tests/unit/helpers/fs-latency-budget.test.ts (19 tests) 207ms
+
+ Test Files  1 passed (1)
+      Tests  19 passed (19)
+   Start at  20:25:31
+   Duration  1.50s (transform 61ms, setup 80ms, import 102ms, tests 207ms, environment 0ms)
+
+JSON report written to <local-path>
+ % Coverage report from v8
+
+[per-file coverage table omitted; original report/log digests retained]
+=============================== Coverage summary ===============================
+Statements   : 0.69% ( 142/20424 )
+Branches     : 0.42% ( 63/14888 )
+Functions    : 0.38% ( 21/5418 )
+Lines        : 0.71% ( 137/19158 )
+================================================================================
+ERROR: Coverage for lines (0.71%) does not meet global threshold (75%)
+ERROR: Coverage for functions (0.38%) does not meet global threshold (60%)
+ERROR: Coverage for statements (0.69%) does not meet global threshold (74%)
+ERROR: Coverage for branches (0.42%) does not meet global threshold (65%)
+
+Actual command exit: 1 (global coverage floors); 19 assertions passed, zero failed.
