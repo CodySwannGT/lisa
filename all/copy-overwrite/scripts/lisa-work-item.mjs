@@ -70,6 +70,8 @@ const ZERO_OID = /^0+$/;
 /** `git` pretty-format that prints a commit message body verbatim. */
 const RAW_MESSAGE_FORMAT = "--format=%B";
 const MARKER = "[lisa-pr-link]";
+/** `git rev-parse` flag resolving a path inside this worktree's git dir. */
+const GIT_PATH = "--git-path";
 /**
  * The deploy environment whose done role is terminal — the only one that
  * closes a work item. Named once because three separate readers compare
@@ -641,7 +643,7 @@ function projectRoot() {
 }
 
 function statePath() {
-  return resolve(git(["rev-parse", "--git-path", "lisa/work-item.json"]));
+  return resolve(git(["rev-parse", GIT_PATH, "lisa/work-item.json"]));
 }
 
 /** Canonical prefix on a fully qualified local branch ref. */
@@ -659,9 +661,7 @@ function currentBranch() {
  */
 function rebaseBranch() {
   for (const stateDir of ["rebase-merge", "rebase-apply"]) {
-    const file = resolve(
-      git(["rev-parse", "--git-path", `${stateDir}/head-name`])
-    );
+    const file = resolve(git(["rev-parse", GIT_PATH, `${stateDir}/head-name`]));
     if (!existsSync(file)) continue;
     const headName = readFileSync(file, "utf8").trim();
     if (headName.startsWith(HEADS_PREFIX)) {
@@ -4334,6 +4334,75 @@ function bind(args) {
   validateLive(ref, contract);
   const file = writeState(ref, contract.provider);
   console.log(`work-item bound: ${ref} (${file})`);
+  commitPendingLisaUpdate(ref, contract);
+}
+
+/**
+ * Commit a Lisa update the session-start auto-update left pending
+ * (CodySwannGT/lisa#4337), as its own commit carrying the work item just bound.
+ *
+ * The auto-update cannot commit on a deploy branch, or before a work item is
+ * bound in a project that requires one on every commit, so it records the
+ * changed files in `<git-dir>/lisa/pending-update.json` and leaves them in the
+ * tree. Binding a work item on a feature branch is the earliest moment both
+ * conditions hold and the latest moment before a feature commit could sweep the
+ * update into itself — so the update goes first, alone.
+ *
+ * Best effort: a failure is reported and the marker kept, never thrown — the
+ * binding the caller asked for has already succeeded.
+ * @param {string} ref Canonical work-item ref just bound.
+ * @param {object} contract Tracker contract (for deploy branches).
+ * @param {string} [cwd] Repository directory; the process cwd by default.
+ */
+export function commitPendingLisaUpdate(ref, contract, cwd = process.cwd()) {
+  const marker = resolve(
+    cwd,
+    git(["rev-parse", GIT_PATH, "lisa/pending-update.json"], { cwd })
+  );
+  let pending;
+  try {
+    pending = JSON.parse(readFileSync(marker, "utf8"));
+  } catch {
+    return;
+  }
+  const branch = git(["branch", "--show-current"], { cwd });
+  if (!branch || contract.deployBranches?.has?.(branch)) return;
+  const dirty = new Set(
+    git(["status", "--porcelain"], { cwd })
+      .split("\n")
+      .filter(Boolean)
+      .map(line => line.slice(3).replace(/^"|"$/gu, ""))
+  );
+  const files = (pending.files ?? []).filter(file => dirty.has(file));
+  if (files.length === 0) {
+    rmSync(marker, { force: true });
+    return;
+  }
+  try {
+    git(["add", "--", ...files], { cwd });
+    // The project's own commit hooks run here (lint-staged, commit gates), so
+    // the default child deadline is far too short for them.
+    git(
+      [
+        "commit",
+        "-m",
+        `chore(deps): update Lisa to ${pending.to}\n\nApplied automatically at session start: Lisa ${pending.from} to ${pending.to}, including the template changes \`lisa apply\` makes for it.\n\nWork-Item: ${ref}\n`,
+      ],
+      { cwd, timeout: 10 * 60 * 1000 }
+    );
+    rmSync(marker, { force: true });
+    console.log(
+      `Committed the pending Lisa ${pending.to} update first, as its own commit, under ${ref}.`
+    );
+  } catch (error) {
+    run("git", ["reset", "--quiet", "--", ...files], {
+      cwd,
+      allowFailure: true,
+    });
+    console.error(
+      `The pending Lisa ${pending.to} update could not be committed (${String(error?.message ?? error).split("\n")[0]}). Its files are still in the working tree; commit them as their own commit before feature work.`
+    );
+  }
 }
 
 /**
@@ -6373,9 +6442,10 @@ function main() {
     const ref = canonicalizeRef(state.ref, contract);
     validateLive(ref, contract);
     const file = writeState(ref, contract.provider, { requireBranch: true });
-    return console.log(
+    console.log(
       `work-item binding ${ref} attached to ${activeBranch()} (${file})`
     );
+    return commitPendingLisaUpdate(ref, contract);
   }
   if (command === "clear") {
     rmSync(statePath(), { force: true });

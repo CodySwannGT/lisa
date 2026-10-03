@@ -135,7 +135,8 @@
     ".claude/rules/intent-routing.md",
     ".claude/rules/security-audit-handling.md",
     ".claude/rules/verification.md",
-    ".lisa-manifest"
+    ".lisa-manifest",
+    ".github/workflows/lisa-update.yml"
   ],
   "keep": [
     "scripts/setup-deploy-key.sh",
@@ -275,6 +276,7 @@
     ".claude/rules/intent-routing.md": "needs-review",
     ".claude/rules/security-audit-handling.md": "needs-review",
     ".claude/rules/verification.md": "needs-review",
-    ".lisa-manifest": "needs-review"
+    ".lisa-manifest": "needs-review",
+    ".github/workflows/lisa-update.yml": "legacy: the scheduled Lisa Update workflow (4.67.0-4.68.x) opened update pull requests as a bot and so needed a PAT secret in every repository; replaced by the local session-start auto-update (CodySwannGT/lisa#4337), which needs no token"
   }
 }
