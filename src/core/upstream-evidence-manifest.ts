@@ -107,7 +107,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-self-update.mjs":
-      "80dc15053af22133cfe50e48484b24b098eb9f2095999b649694ad11ce64175a",
+      "80d07132cffc8532e79f75acb1d1053c034800bec9b81b354131d4248934b02e",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
@@ -123,7 +123,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/create-only/.github/workflows/continuous-gates.yml":
       "7ef94a95dee4650e91a2b226122936fa4609ad57f3acbb50f4a9f357e486d2eb",
     "all/create-only/.github/workflows/lisa-update.yml":
-      "9c1c05ffe39a6d5e41a3e82afbbc227097e071b26d2bbc56281ef1373c5a035d",
+      "5fb8822126277d0e4c89d3086857653f313f74a13d96f3aeeae97a0f4ccd81b6",
     "all/create-only/.github/workflows/workflow-load-failure-sweep.yml":
       "3ce24f9d82495a2f327c1705333c049bbb7c7a65170329d530295d23c6c7ad2d",
     "all/create-only/.lisaignore":
@@ -2460,6 +2460,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "3e10b5a4c113e3aa895c6a09f063045eb198dbdabb11a00be87bea1477c91fbb",
     "scripts/lisa-ruleset-reach.mjs":
       "e51b12092062379e7317b368c89a789e2067ec302388e557ea84a29a35ffc238",
+    "scripts/lisa-self-update.mjs":
+      "047c1077f8f9f95cd8138f3d38372fba9fe6d6c378d03c3a6e91518a337e3ffb",
     "scripts/lisa-update-local.sh":
       "eb031a6bb4735e5096ac52efc3ef027233485c86524a83cd7f258d0b6f7b985b",
     "scripts/lisa-work-item.mjs":
@@ -2579,7 +2581,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/ast-grep/utils/.gitkeep":
       "6792ca57f00ff5a84a4713a08308a8ab3144858b0b0d9f8251b8c26c48948fb7",
     "typescript/copy-overwrite/audit.ignore.config.json":
-      "8635c912e0d41177f545f22248b2acc9f9683b3c04e5ade7829a8fa809966a0d",
+      "c19a374d02e01a484cd1965522879839ba7945b3cc06c9b22e05e6742ecb2b09",
     "typescript/copy-overwrite/commitlint.config.cjs":
       "a9f07b7097eee82e531dedfe3c1011ec61dc8c85c26d5430314a5999dc0675cc",
     "typescript/copy-overwrite/eslint.config.ts":
@@ -2781,6 +2783,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/lifecycle-terminal-transition.yml": true,
     ".github/workflows/lighthouse.yml": true,
     ".github/workflows/lisa-build-intake.yml": true,
+    ".github/workflows/lisa-update.yml": true,
     ".github/workflows/load-test.yml": true,
     ".github/workflows/maestro-native-e2e.yml": true,
     ".github/workflows/mutation-performance-baseline.yml": true,
@@ -8755,6 +8758,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lisa-remote-env/setup.sh": true,
     "scripts/lisa-ruleset-payload.mjs": true,
     "scripts/lisa-ruleset-reach.mjs": true,
+    "scripts/lisa-self-update.mjs": true,
     "scripts/lisa-update-local.sh": true,
     "scripts/lisa-work-item.mjs": true,
     "scripts/materialize-copy-overwrite.mjs": true,

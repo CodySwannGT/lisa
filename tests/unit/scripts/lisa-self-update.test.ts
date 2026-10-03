@@ -20,16 +20,24 @@ import {
   chooseBase,
   chooseMergeFlag,
   choosePackageManager,
+  chooseSelfTarget,
+  commandEnv,
   commitMessage,
   declaresLisa,
   isOlder,
+  isSelfManifest,
   main,
+  onlySelfBumps,
   packageCommands,
   parseFlags,
   planUpdate,
   pullRequestBody,
   receiptProblem,
+  selfBumpSubject,
   supersededPullRequests,
+  withoutToken,
+  workItemBody,
+  workItemLabels,
 } from "../../../all/copy-overwrite/scripts/lisa-self-update.mjs";
 
 /** Installed version in the fabricated host. */
@@ -44,6 +52,12 @@ const REPO = "owner/host";
 const PR_URL = "https://github.com/owner/host/pull/7";
 /** Manifest filename. */
 const MANIFEST = "package.json";
+/** The package being kept current. */
+const LISA = "@codyswann/lisa";
+/** Command prefix that opens a pull request. */
+const PR_CREATE = "gh pr create";
+/** Command prefix that files a work item. */
+const ISSUE_CREATE = "gh issue create";
 
 describe("lisa-self-update: decisions", () => {
   it("refuses an unknown flag instead of ignoring it", () => {
@@ -52,13 +66,9 @@ describe("lisa-self-update: decisions", () => {
   });
 
   it("only updates projects that install Lisa from npm, never Lisa itself", () => {
-    expect(declaresLisa({ devDependencies: { "@codyswann/lisa": "^4" } })).toBe(
-      true
-    );
-    expect(declaresLisa({ dependencies: { "@codyswann/lisa": "4.0.0" } })).toBe(
-      true
-    );
-    expect(declaresLisa({ name: "@codyswann/lisa" })).toBe(false);
+    expect(declaresLisa({ devDependencies: { [LISA]: "^4" } })).toBe(true);
+    expect(declaresLisa({ dependencies: { [LISA]: "4.0.0" } })).toBe(true);
+    expect(declaresLisa({ name: LISA })).toBe(false);
     expect(declaresLisa({ devDependencies: {} })).toBe(false);
     expect(declaresLisa(null)).toBe(false);
   });
@@ -207,7 +217,7 @@ function host(options: {
     path.join(root, MANIFEST),
     JSON.stringify({
       name: "host",
-      devDependencies: { "@codyswann/lisa": `^${options.installed}` },
+      devDependencies: { [LISA]: `^${options.installed}` },
       engines: options.engines ?? {},
     })
   );
@@ -238,7 +248,7 @@ function fakeRunner(
   const defaults: Record<string, string> = {
     "npm view": NEW,
     "gh pr list": "",
-    "gh pr create": PR_URL,
+    [PR_CREATE]: PR_URL,
     "gh api": JSON.stringify({
       allow_auto_merge: true,
       allow_merge_commit: true,
@@ -290,7 +300,7 @@ describe("lisa-self-update: the whole flow", () => {
     ].map(expected => lines.findIndex(line => line.startsWith(expected)));
     expect(order.every(index => index >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
-    expect(lines.some(line => line.startsWith("gh pr create"))).toBe(true);
+    expect(lines.some(line => line.startsWith(PR_CREATE))).toBe(true);
   });
 
   it("uses npm when engines forbids bun, even with a bun lockfile", async () => {
@@ -315,7 +325,7 @@ describe("lisa-self-update: the whole flow", () => {
     });
     const lines = seen.map(argv => argv.join(" "));
     expect(lines.some(line => line.startsWith("git push"))).toBe(false);
-    expect(lines.some(line => line.startsWith("gh pr create"))).toBe(false);
+    expect(lines.some(line => line.startsWith(PR_CREATE))).toBe(false);
     expect(logs.join("\n")).toContain("Lisa is current");
   });
 
@@ -375,5 +385,283 @@ describe("lisa-self-update: the whole flow", () => {
     expect(lines.some(line => line.startsWith("gh pr close 4"))).toBe(true);
     expect(lines.some(line => line.startsWith("gh pr merge"))).toBe(false);
     expect(logs.join("\n")).toContain("Auto-merge is not enabled");
+  });
+});
+
+/** The release Lisa's own manifest has just cut. */
+const RELEASED = "4.68.0";
+/** A subject the release workflow writes. */
+const RELEASE_COMMIT = `chore(release): ${RELEASED} [skip ci] [skip-cd]`;
+/** Lisa's own repository. */
+const LISA_REPO = "CodySwannGT/lisa";
+/** The per-update work item the fake tracker hands back. */
+const FILED = `${LISA_REPO}#77`;
+/** The update branch for {@link RELEASED}. */
+const SELF_BRANCH = `lisa/update-${RELEASED}`;
+
+/**
+ * Lisa's own repository: its manifest is `@codyswann/lisa` itself, it pins a
+ * published copy of itself, and it tracks work in GitHub Issues.
+ * @param installed - The self-dependency currently installed
+ * @returns Absolute project root
+ */
+function lisaRepo(installed: string): string {
+  const root = host({ installed });
+  writeFileSync(
+    path.join(root, MANIFEST),
+    JSON.stringify({
+      name: LISA,
+      version: RELEASED,
+      devDependencies: { [LISA]: `^${installed}` },
+      engines: { npm: "please-use-bun", bun: "1.3.8" },
+    })
+  );
+  writeFileSync(
+    path.join(root, ".lisa.config.json"),
+    JSON.stringify({
+      tracker: "github",
+      github: { org: "CodySwannGT", repo: "lisa" },
+      deploy: { branches: { production: "main" } },
+    })
+  );
+  mkdirSync(path.join(root, "scripts"), { recursive: true });
+  writeFileSync(path.join(root, "scripts", "lisa-work-item.mjs"), "");
+  return root;
+}
+
+/**
+ * A runner for Lisa's own repository, answering the self-mode questions.
+ * @param root - Project root, so the fake bump can update node_modules
+ * @param subjects - Commit subjects between the pinned and released tags
+ * @returns The runner and the commands it saw
+ */
+function selfRunner(
+  root: string,
+  subjects: readonly string[]
+): { run: (argv: string[]) => Promise<string>; seen: string[][] } {
+  const { run: base, seen } = fakeRunner(root, {
+    [ISSUE_CREATE]: `https://github.com/${LISA_REPO}/issues/77`,
+  });
+  const run = async (argv: string[]): Promise<string> => {
+    if (argv[0] === "npm" && argv[1] === "view") {
+      seen.push(argv);
+      return argv[2] === `@codyswann/lisa@${RELEASED}` ? RELEASED : NEW;
+    }
+    if (argv[0] === "git" && argv[1] === "log") {
+      seen.push(argv);
+      return subjects.join("\n");
+    }
+    if (argv[0] === "bun" && argv[1] === "add") {
+      writeFileSync(
+        path.join(root, "node_modules", "@codyswann", "lisa", MANIFEST),
+        JSON.stringify({ version: RELEASED })
+      );
+    }
+    return base(argv);
+  };
+  return { run, seen };
+}
+
+/**
+ * Every command a run made, as single lines.
+ * @param seen - Recorded argv arrays
+ * @returns Joined command lines
+ */
+function commandLines(seen: readonly string[][]): string[] {
+  return seen.map(argv => argv.join(" "));
+}
+
+describe("lisa-self-update: Lisa updating itself", () => {
+  it("recognises only Lisa's own manifest as self", () => {
+    expect(isSelfManifest({ name: LISA })).toBe(true);
+    expect(isSelfManifest({ name: "host" })).toBe(false);
+    expect(isSelfManifest(null)).toBe(false);
+  });
+
+  it("targets the release main just cut once npm serves it", () => {
+    expect(chooseSelfTarget(RELEASED, true, NEW)).toBe(RELEASED);
+    expect(chooseSelfTarget(RELEASED, false, NEW)).toBe(NEW);
+    expect(chooseSelfTarget(OLD, true, NEW)).toBe(NEW);
+    expect(chooseSelfTarget(RELEASED, true, null)).toBe(RELEASED);
+    expect(chooseSelfTarget(undefined, false, null)).toBeNull();
+  });
+
+  it("treats a release that only carries self-bumps as the same release", () => {
+    expect(onlySelfBumps([RELEASE_COMMIT, selfBumpSubject(NEW)])).toBe(true);
+    expect(onlySelfBumps([])).toBe(true);
+    expect(onlySelfBumps([RELEASE_COMMIT, "fix: something real"])).toBe(false);
+    expect(
+      onlySelfBumps([`chore(release): ${RELEASED} [skip ci] trailing`])
+    ).toBe(false);
+  });
+
+  it("files a fresh work item per update, only for GitHub-tracked projects", () => {
+    expect(
+      workItemLabels({
+        tracker: "github",
+        github: {
+          repo: "lisa",
+          labels: { build: { ready: "r", claimed: "c" } },
+        },
+      })
+    ).toEqual({ ready: "r", claimed: "c", repo: "repo:lisa" });
+    expect(
+      workItemLabels({ tracker: "github", github: { repo: "x" } })
+    ).toEqual({
+      ready: "status:ready",
+      claimed: "status:in-progress",
+      repo: "repo:x",
+    });
+    expect(workItemLabels({ tracker: "jira" })).toBeNull();
+    expect(workItemLabels(null)).toBeNull();
+    expect(workItemBody({ from: OLD, to: NEW }, true)).toContain(
+      "## Acceptance Criteria"
+    );
+  });
+
+  it("declares the work item in the PR body", () => {
+    expect(pullRequestBody({ from: OLD, to: NEW }, FILED, true)).toContain(
+      `\nWork-Item: ${FILED}\n`
+    );
+  });
+
+  it("does not chase the release its own merge cut", async () => {
+    const root = lisaRepo(NEW);
+    const { run, seen } = selfRunner(root, [
+      RELEASE_COMMIT,
+      selfBumpSubject(NEW),
+    ]);
+    const logs: string[] = [];
+    await main({
+      root,
+      repo: LISA_REPO,
+      dryRun: false,
+      run,
+      log: line => logs.push(line),
+    });
+    const lines = commandLines(seen);
+    expect(lines).toContain(
+      `git log --no-merges --format=%s v${NEW}..v${RELEASED}`
+    );
+    expect(lines.some(line => line.startsWith(ISSUE_CREATE))).toBe(false);
+    expect(lines.some(line => line.startsWith("git push"))).toBe(false);
+    expect(logs.join("\n")).toContain("effectively current");
+  });
+
+  it("bumps the self-dependency with a work item and no template apply", async () => {
+    const root = lisaRepo(NEW);
+    const { run, seen } = selfRunner(root, [
+      RELEASE_COMMIT,
+      "feat: something that shipped",
+    ]);
+    await main({ root, repo: LISA_REPO, dryRun: false, run, log: () => {} });
+    const lines = commandLines(seen);
+    const order = [
+      ISSUE_CREATE,
+      "gh issue edit 77",
+      `git checkout -B ${SELF_BRANCH}`,
+      `bun add -D @codyswann/lisa@^${RELEASED}`,
+      "git commit",
+      `git push --force -u origin ${SELF_BRANCH}`,
+      PR_CREATE,
+      `node scripts/lisa-work-item.mjs backlink --ref ${FILED} --pr-url ${PR_URL}`,
+      `gh pr merge ${PR_URL} --auto --merge`,
+    ].map(expected => lines.findIndex(line => line.startsWith(expected)));
+    expect(order.every(index => index >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(lines.some(line => line.includes("dist/index.js"))).toBe(false);
+    const commit = seen.find(argv => argv[1] === "commit") ?? [];
+    expect(commit[3]).toContain(selfBumpSubject(RELEASED));
+    expect(commit[3]).toContain(`Work-Item: ${FILED}`);
+    const created =
+      seen.find(argv => argv.slice(0, 3).join(" ") === PR_CREATE) ?? [];
+    expect(created.at(-1)).toContain(`Work-Item: ${FILED}`);
+  });
+
+  it("fails loudly when the bump did not install the target", async () => {
+    const root = lisaRepo(NEW);
+    const { run: base } = selfRunner(root, ["feat: x"]);
+    const run = async (argv: string[]): Promise<string> =>
+      argv[0] === "bun" && argv[1] === "add" ? "" : base(argv);
+    await expect(
+      main({ root, repo: LISA_REPO, dryRun: false, run, log: () => {} })
+    ).rejects.toThrow(/installed 4\.66\.5, not 4\.68\.0/u);
+  });
+
+  it("reuses an open update PR instead of filing a second work item", async () => {
+    const root = lisaRepo(NEW);
+    const { run: base, seen } = selfRunner(root, ["feat: x"]);
+    const run = async (argv: string[]): Promise<string> => {
+      if (argv.slice(0, 3).join(" ") === "gh pr list") {
+        seen.push(argv);
+        return argv.includes("--search")
+          ? JSON.stringify([
+              { number: 5, headRefName: "lisa/update-4.67.0" },
+              { number: 6, headRefName: SELF_BRANCH },
+            ])
+          : PR_URL;
+      }
+      return base(argv);
+    };
+    await main({ root, repo: LISA_REPO, dryRun: false, run, log: () => {} });
+    const lines = commandLines(seen);
+    expect(lines.some(line => line.startsWith(ISSUE_CREATE))).toBe(false);
+    expect(lines.some(line => line.startsWith("git push"))).toBe(false);
+    // A run that stopped after `gh pr create` left older update PRs open;
+    // the reuse path must still close them.
+    expect(lines.some(line => line.startsWith("gh pr close 5"))).toBe(true);
+    expect(lines.some(line => line.startsWith("gh pr close 6"))).toBe(false);
+    expect(lines).toContain(`gh pr merge ${PR_URL} --auto --merge`);
+  });
+});
+
+describe("lisa-self-update: the credential reaches only GitHub calls", () => {
+  const token = "ghp_example";
+  const env = {
+    PATH: "/bin",
+    LISA_UPDATE_TOKEN: token,
+    GH_TOKEN: token,
+    GITHUB_TOKEN: token,
+  };
+
+  it("strips every credential variable", () => {
+    expect(withoutToken(env)).toEqual({ PATH: "/bin" });
+  });
+
+  it("gives installs, the bump and the apply no credential", () => {
+    for (const argv of [
+      ["bun", "install", "--frozen-lockfile"],
+      ["bun", "add", "-D", `${LISA}@^${NEW}`],
+      ["node", "node_modules/@codyswann/lisa/dist/index.js", "--yes", "."],
+      ["git", "commit", "-m", "x"],
+    ]) {
+      const result = commandEnv(argv, env, token);
+      expect(JSON.stringify(result)).not.toContain(token);
+    }
+  });
+
+  it("hands gh and the backlink GH_TOKEN", () => {
+    expect(commandEnv(["gh", "pr", "create"], env, token).GH_TOKEN).toBe(token);
+    expect(
+      commandEnv(["node", "scripts/lisa-work-item.mjs", "backlink"], env, token)
+        .GH_TOKEN
+    ).toBe(token);
+  });
+
+  it("authenticates git fetch and push through env config, never argv", () => {
+    const result = commandEnv(["git", "push", "origin", "b"], env, token);
+    expect(result.GH_TOKEN).toBeUndefined();
+    expect(result.GIT_CONFIG_KEY_0).toBe(
+      "http.https://github.com/.extraheader"
+    );
+    const credential = `x-access-token:${token}`;
+    const basic = Buffer.from(credential).toString("base64");
+    expect(result.GIT_CONFIG_VALUE_0).toBe(`AUTHORIZATION: basic ${basic}`);
+  });
+
+  it("adds nothing when no credential was supplied", () => {
+    expect(
+      commandEnv(["gh", "pr", "list"], { PATH: "/bin" }, undefined)
+    ).toEqual({ PATH: "/bin" });
   });
 });
