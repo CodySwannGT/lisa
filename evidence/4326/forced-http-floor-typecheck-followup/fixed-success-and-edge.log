@@ -1,0 +1,116 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /private/tmp/lisa-4326-implementation
+
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates guard Lisa postinstall with CI-skip prefix > package.lisa.json either omits postinstall or prefixes it with the CI guard 1ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates guard Lisa postinstall with CI-skip prefix > typescript/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates guard Lisa postinstall with CI-skip prefix > expo/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates guard Lisa postinstall with CI-skip prefix > nestjs/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates guard Lisa postinstall with CI-skip prefix > cdk/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates guard Lisa postinstall with CI-skip prefix > harper-fabric/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates guard Lisa postinstall with CI-skip prefix > phaser/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates guard Lisa postinstall with CI-skip prefix > npm-package/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > package.lisa.json does not declare @codyswann/lisa in any force block 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > typescript/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > expo/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > nestjs/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > cdk/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > harper-fabric/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > phaser/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > npm-package/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > typescript/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > expo/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > nestjs/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > cdk/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > harper-fabric/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > phaser/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates never force-pin Lisa's own version > npm-package/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json prepare scripts install hooks after successful builds > package.lisa.json runs husky install only after a successful build 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json prepare scripts install hooks after successful builds > npm-package/package-lisa/package.lisa.json runs husky install only after a successful build 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates carry force-governed CVE floors > typescript template floors systeminformation (harperdb GHSA-5xpp-75jx-m839) 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates carry force-governed CVE floors > typescript template keeps undici on the File-exporting v6 line 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates carry force-governed CVE floors > expo template floors websocket-driver (RN-firebase GHSA-xv26-6w52-cph6) 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > package.lisa.json templates carry force-governed CVE floors > expo template floors fast-xml-parser (GHSA-8r6m-32jq-jx6q) 0ms
+ ✓ tests/unit/config/postinstall-ci-guard.test.ts > EnsureLisaPostinstallMigration injects CI-guarded invocation > the migration's LISA_INVOCATION constant starts with the CI guard 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > collects both real axios force sites without gaps 1ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > collects both real undici force sites without gaps 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-m8m8-qj5v-23w3': shipped force.'overrides' 'axios' excludes '>= 1.15.2, < 1.20.0' 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-m8m8-qj5v-23w3': shipped force.'resolutions' 'axios' excludes '>= 1.15.2, < 1.20.0' 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-r4gj-5m52-g5wh': shipped force.'overrides' 'axios' excludes '>= 1.17.0, < 1.20.0' 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-r4gj-5m52-g5wh': shipped force.'resolutions' 'axios' excludes '>= 1.17.0, < 1.20.0' 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-c29m-xwm3-cm6r': shipped force.'overrides' 'axios' excludes '>= 1.16.1, < 1.20.0' 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-c29m-xwm3-cm6r': shipped force.'resolutions' 'axios' excludes '>= 1.16.1, < 1.20.0' 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-mghh-pgcx-3jjj': shipped force.'overrides' 'axios' excludes '>= 1.15.0, < 1.20.0' 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-mghh-pgcx-3jjj': shipped force.'resolutions' 'axios' excludes '>= 1.15.0, < 1.20.0' 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-x97p-jq2g-jp4f': shipped force.'overrides' 'axios' excludes '>= 1.15.1, < 1.20.0' 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-x97p-jq2g-jp4f': shipped force.'resolutions' 'axios' excludes '>= 1.15.1, < 1.20.0' 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-3pq3-5fj3-cg6v': shipped force.'overrides' 'axios' excludes '>= 1.13.0, < 1.20.0' 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-3pq3-5fj3-cg6v': shipped force.'resolutions' 'axios' excludes '>= 1.13.0, < 1.20.0' 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-542g-h47m-68v8': shipped force.'overrides' 'axios' excludes '>= 1.13.0, < 1.20.0' 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-542g-h47m-68v8': shipped force.'resolutions' 'axios' excludes '>= 1.13.0, < 1.20.0' 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-rfgv-xxqx-mfg5': shipped force.'overrides' 'undici' excludes '>= 6.7.0, < 6.28.1' 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-rfgv-xxqx-mfg5': shipped force.'resolutions' 'undici' excludes '>= 6.7.0, < 6.28.1' 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-m8m8-qj5v-23w3': rejects the vulnerable control and clears the patched endpoint 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-r4gj-5m52-g5wh': rejects the vulnerable control and clears the patched endpoint 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-c29m-xwm3-cm6r': rejects the vulnerable control and clears the patched endpoint 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-mghh-pgcx-3jjj': rejects the vulnerable control and clears the patched endpoint 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-x97p-jq2g-jp4f': rejects the vulnerable control and clears the patched endpoint 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-3pq3-5fj3-cg6v': rejects the vulnerable control and clears the patched endpoint 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-542g-h47m-68v8': rejects the vulnerable control and clears the patched endpoint 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > 'GHSA-rfgv-xxqx-mfg5': rejects the vulnerable control and clears the patched endpoint 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > root undefined also excludes every release below its patch 1ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > root undefined also excludes every release below its patch 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > root undefined also excludes every release below its patch 3ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > forced HTTP security floors > root undefined also excludes every release below its patch 0ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > shipped HTTP force policy adoption > typescript full/restricted(postinstall=false) apply repairs stale host floors 9ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > shipped HTTP force policy adoption > typescript full/restricted(postinstall=true) apply repairs stale host floors 5ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > shipped HTTP force policy adoption > cdk full/restricted(postinstall=false) apply repairs stale host floors 5ms
+ ✓ tests/unit/config/forced-http-security-floors.test.ts > shipped HTTP force policy adoption > cdk full/restricted(postinstall=true) apply repairs stale host floors 4ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > finds the templates it is meant to police 1ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'cdk/package-lisa/package.lisa.json' forces 'esbuild' in 'devDependencies' at '^0.28.1', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'cdk/package-lisa/package.lisa.json' forces 'vite' in 'devDependencies' at '^8.3.2', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'expo/package-lisa/package.lisa.json' forces 'tar' in 'dependencies' at '>=7.5.21', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'expo/package-lisa/package.lisa.json' forces '@isaacs/brace-expansion' in 'overrides' at '^5.0.1', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'expo/package-lisa/package.lisa.json' forces 'fast-xml-parser' in 'overrides' at '^5.10.1', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'expo/package-lisa/package.lisa.json' forces 'tar' in 'overrides' at '>=7.5.21', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'expo/package-lisa/package.lisa.json' forces 'websocket-driver' in 'overrides' at '>=0.7.5', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'expo/package-lisa/package.lisa.json' forces '@isaacs/brace-expansion' in 'resolutions' at '^5.0.1', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'expo/package-lisa/package.lisa.json' forces 'fast-xml-parser' in 'resolutions' at '^5.10.1', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'expo/package-lisa/package.lisa.json' forces 'tar' in 'resolutions' at '>=7.5.21', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'expo/package-lisa/package.lisa.json' forces 'websocket-driver' in 'resolutions' at '>=0.7.5', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'nestjs/package-lisa/package.lisa.json' forces 'vite' in 'devDependencies' at '^8.3.2', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'npm-package/package-lisa/package.lisa…' forces 'vite' in 'devDependencies' at '^8.3.2', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'package.lisa.json' forces 'vite' in 'devDependencies' at '^8.3.2', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'package.lisa.json' forces 'smol-toml' in 'overrides' at '1.7.1', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces '@isaacs/brace-expansion' in 'overrides' at '^5.0.1', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'axios' in 'overrides' at '>=1.20.0', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'esbuild' in 'overrides' at '>=0.28.1', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'handlebars' in 'overrides' at '>=4.7.9', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'lodash' in 'overrides' at '>=4.18.1', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'multer' in 'overrides' at '>=2.3.0', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'undici' in 'overrides' at '^6.28.1', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'vite' in 'overrides' at '^8.3.2', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'ws' in 'overrides' at '>=8.21.0', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'form-data' in 'overrides' at '>=4.0.6', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'systeminformation' in 'overrides' at '>=5.31.7', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces '@isaacs/brace-expansion' in 'resolutions' at '^5.0.1', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'axios' in 'resolutions' at '>=1.20.0', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'esbuild' in 'resolutions' at '>=0.28.1', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'handlebars' in 'resolutions' at '>=4.7.9', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'lodash' in 'resolutions' at '>=4.18.1', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'multer' in 'resolutions' at '>=2.3.0', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'undici' in 'resolutions' at '^6.28.1', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'vite' in 'resolutions' at '^8.3.2', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'ws' in 'resolutions' at '>=8.21.0', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'form-data' in 'resolutions' at '>=4.0.6', admitting nothing below its advisory floor 0ms
+ ✓ tests/unit/config/security-pin-floors.test.ts > shipped security pin floors > 'typescript/package-lisa/package.lisa.…' forces 'systeminformation' in 'resolutions' at '>=5.31.7', admitting nothing below its advisory floor 0ms
+
+ Test Files  3 passed (3)
+      Tests  103 passed (103)
+   Start at  10:06:25
+   Duration  405ms (transform 294ms, setup 289ms, import 295ms, tests 43ms, environment 0ms)
+
+JSON report written to /tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/green-type-followup/test-report.json

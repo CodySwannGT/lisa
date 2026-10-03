@@ -1,0 +1,392 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-10-03T14:31:10.317959+00:00",
+  "reviewer": "issue_validator",
+  "status": "PASS_BOUNDED_WORKING_INPUT_SOURCE_RUNTIME_REVIEW",
+  "findings": [],
+  "blocking_findings": [],
+  "scope": "Independent read-only source and supplied actual runtime evidence review; no empirical rerun. All189 external actual files read for digest/size verification; selected raw logs, native reports, source assertion/helper behavior and complete source tree metadata independently assessed.",
+  "handoff": {
+    "path": "/tmp/lisa-4326-codification/nested-host-admission-implementation/handoff.json",
+    "bytes": 4754,
+    "sha256": "e88faa4a6a11c7e626d03257649c89b57282297bd927f6b10cafd1f56b801de5"
+  },
+  "static_review": {
+    "path": "/tmp/lisa-4326-codification/nested-host-admission-review/static-review.json",
+    "bytes": 5921,
+    "sha256": "bce6dc0605725721e52984f0c95e18e20bc14c2256f86c6bc9a31ce1842902ee",
+    "current_three_owned_inputs_match_exact_review": true
+  },
+  "owned_inputs": [
+    {
+      "path": "tests/fixtures/shared-runtime-hosts/process.ts",
+      "bytes": 4114,
+      "sha256": "c6e1fd79773d1c9b611af48328e60ef177c72b1f82807a1bd6b78b3bfad4d5c3"
+    },
+    {
+      "path": "tests/fixtures/shared-runtime-hosts/journey.ts",
+      "bytes": 9495,
+      "sha256": "895e11735ce1575d9fdb5f15c1688e8f698a89130141209dfc2013fbea3d9321"
+    },
+    {
+      "path": "tests/unit/fixtures/shared-runtime-native-deadline.test.ts",
+      "bytes": 2651,
+      "sha256": "630c598d872673783fa3a8e3a8354083c6ae02c0be30f3470cfed6e541da3352"
+    }
+  ],
+  "context": {
+    "path": "/tmp/lisa-4326-implementation/.lisa/work-item-context.md",
+    "bytes": 232750,
+    "sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a",
+    "complete_context_read_and_unchanged": true,
+    "primary_inventory": [
+      5960670067,
+      5960770263,
+      5961220400,
+      5963134813,
+      5963143821
+    ]
+  },
+  "plan": {
+    "json": {
+      "bytes": 130341,
+      "sha256": "f99999b39ea8c878c17593ca6721dafb6b1964d8c5637e10b9a811fe2e808c39"
+    },
+    "markdown": {
+      "bytes": 26414,
+      "sha256": "0cd9d8370b701c0eb1a6cb6969ecbded1a191394b2cbe7d0e4d1c4e4c303b66c"
+    },
+    "current_completion_and_repair_scope_reviewed": true
+  },
+  "evidence_inventory": {
+    "path": "/tmp/lisa-4326-codification/nested-host-admission-implementation/evidence-inventory.json",
+    "bytes": 46587,
+    "sha256": "56ebe6b12294c024cd589bf40264084bda26e7d466455d48fd1d0484a64577d1",
+    "actual_record_count": 189,
+    "all_actual_record_SHA256_and_bytes_match": true
+  },
+  "controlled_lineage": {
+    "actual_source_head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+    "red_private_index": "b1626241b617d071be22d18b3fa394993ee67399",
+    "green_private_index": "ed44e90744e7a44c55401f1451192dcfe0536556",
+    "baseline_head": "cf55d5f03806fa21e346c1bec6f45110030a13e2",
+    "baseline_private_index": "f7f5f424c6561ad2ca4eef15db3120a857ea5b8d",
+    "independently_compared_source_paths": 8973,
+    "actual_changed_mode_type_blob_paths": [
+      "tests/fixtures/shared-runtime-hosts/journey.ts",
+      "tests/fixtures/shared-runtime-hosts/process.ts",
+      "tests/unit/fixtures/shared-runtime-native-deadline.test.ts"
+    ],
+    "all_other_source_paths_and_modes_unchanged": true,
+    "final_six_baseline_and_green_blob_modes_identical": true,
+    "final_six_working_hashes": {
+      "tests/fixtures/shared-runtime-hosts/process.ts": "c6e1fd79773d1c9b611af48328e60ef177c72b1f82807a1bd6b78b3bfad4d5c3",
+      "tests/fixtures/shared-runtime-hosts/journey.ts": "895e11735ce1575d9fdb5f15c1688e8f698a89130141209dfc2013fbea3d9321",
+      "tests/fixtures/shared-runtime-hosts/artifact.ts": "a64007acc0afce7c5e50f2b54568bfcb9d382dcd1cddc251025dc038a8f9a910",
+      "tests/fixtures/shared-runtime-hosts/assertions.ts": "3a44300da10845875a0c395dc0856954bbec04772280d7f2337f6f083fec0006",
+      "tests/fixtures/shared-runtime-hosts/host.ts": "9a5c7a618bef8dd9a2d60a51b6c123196e022aa690babcbb57a6cd1be3d419fa",
+      "tests/integration/shared-runtime-packed-hosts.test.ts": "d46d50bd3495f8ac676fbe94c0b0e810792a22eda8dd651860317ef4dda09ac3"
+    },
+    "boundary": "OriginalHEAD615 with private indexed working inputs ed44 is not a new committed B. Local candidate metadata/publicPublication:false remains authoritative; no current CI or public package proof."
+  },
+  "RED": {
+    "scope": "Old helper on genuine Linux capacity-one normal supervised native wrapper",
+    "actual_exit": 1,
+    "failed_cases": 2,
+    "node": "22.23.3",
+    "bun": "1.3.11",
+    "available_parallelism": 2,
+    "capacity": 1,
+    "actual_default_admission_wait_ms": 120000,
+    "actual_native_limits_ms": 60000,
+    "observed_native_elapsed_ms": [
+      60030,
+      60007
+    ],
+    "native_payload_completed": false,
+    "TS_rank": 2,
+    "CDK_rank": 3,
+    "real_TS_reaper_drain_failure_retained": true,
+    "note": "CDK observes3 live roots after prior failed-drain rather than pretending both old cases had rank2; source deficiency still old60s timer killing before real120s release.",
+    "suite_log": {
+      "bytes": 7863,
+      "sha256": "0faed6ed183ac4c2a9521a2c0542b9606eb8f84312308c53cbdbd4d1b573c3b4"
+    }
+  },
+  "GREEN": {
+    "scope": "Same real Linux2CPU/cap1 normal wrapper, complete two actual packed generated-host journeys",
+    "actual_exit": 0,
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0,
+    "node": "22.23.3",
+    "bun": "1.3.11",
+    "actual_admission_on": true,
+    "actual_default_wait_then_overcapacity_release": true,
+    "cases": [
+      {
+        "stack": "typescript",
+        "full_hook_duration_ms": 152242.064445,
+        "body_duration_ms": 152240,
+        "machine_slowdown": 1.0,
+        "quiet_equivalent_ms": 152242.064445,
+        "unchanged_case_base_ms": 600000,
+        "unchanged_margin_fraction": 0.5,
+        "unchanged_scaled_margin_ms": 300000.0,
+        "margin_headroom_ms": 147757.935555,
+        "unit_work_budget_ms": 60000.0,
+        "unit_wall_deadline_ms": 182000.0,
+        "actual_overcapacity_default_release": true,
+        "actual_unit_elapsed_ms": 122801,
+        "native_unit_count": 1,
+        "proof": {
+          "stack": "typescript",
+          "sourceHead": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+          "indexTree": "ed44e90744e7a44c55401f1451192dcfe0536556",
+          "tarballSha256": "4bf51ccc3c508507812d8c1f34efe8c0bbc7a69ce91d91ca479871feca8f8313",
+          "packedRegularMemberCount": 7528,
+          "setupCalls": 1,
+          "adoptionCalls": 2,
+          "versions": {
+            "vitest": "4.1.11",
+            "@vitest/coverage-v8": "4.1.11",
+            "vite": "8.3.2",
+            "typescript": "6.0.3",
+            "eslint": "9.39.5",
+            "knip": "5.88.1",
+            "husky": "8.0.3"
+          },
+          "managedFileCount": 146,
+          "secondAdoptionDelta": [],
+          "frozenInstallDelta": [],
+          "allPackedMemberBytesMatch": true,
+          "nativeUnitCount": 1,
+          "synthTemplateSha256": null,
+          "caseWallMs": 152240
+        }
+      },
+      {
+        "stack": "cdk",
+        "full_hook_duration_ms": 133554.31439499996,
+        "body_duration_ms": 133553,
+        "machine_slowdown": 1.0,
+        "quiet_equivalent_ms": 133554.31439499996,
+        "unchanged_case_base_ms": 600000,
+        "unchanged_margin_fraction": 0.5,
+        "unchanged_scaled_margin_ms": 300000.0,
+        "margin_headroom_ms": 166445.68560500004,
+        "unit_work_budget_ms": 60000.0,
+        "unit_wall_deadline_ms": 182000.0,
+        "actual_overcapacity_default_release": true,
+        "actual_unit_elapsed_ms": 123122,
+        "native_unit_count": 2,
+        "proof": {
+          "stack": "cdk",
+          "sourceHead": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+          "indexTree": "ed44e90744e7a44c55401f1451192dcfe0536556",
+          "tarballSha256": "4bf51ccc3c508507812d8c1f34efe8c0bbc7a69ce91d91ca479871feca8f8313",
+          "packedRegularMemberCount": 7528,
+          "setupCalls": 1,
+          "adoptionCalls": 2,
+          "versions": {
+            "vitest": "4.1.11",
+            "@vitest/coverage-v8": "4.1.11",
+            "vite": "8.3.2",
+            "typescript": "6.0.3",
+            "eslint": "9.39.5",
+            "knip": "5.88.1",
+            "husky": "8.0.3"
+          },
+          "managedFileCount": 154,
+          "secondAdoptionDelta": [],
+          "frozenInstallDelta": [],
+          "allPackedMemberBytesMatch": true,
+          "nativeUnitCount": 2,
+          "synthTemplateSha256": "327b8040bacb11b38966aa3b3b6154ca993983713758a715383b7a58ffe69b1b",
+          "caseWallMs": 133553
+        }
+      }
+    ],
+    "installed_member_checks": "Unchanged assertInstalledBytes compares every7528 regular oracle tar member against tool and each installed host after first/frozen installs, with separate integrity and version checks. Successful full suite observes those real assertions; reviewer did not rerun installations.",
+    "genuine_checkpoints_and_managed_byte_assertions": "One bootstrap setup plus two adoption applies per host, actual normal+frozen Bun installs, original native TS1/CDK2 counts, typechecks, unchanged zero full managed-byte second/frozen deltas.",
+    "synth": "Both actual no-lookups CDK synth commands exited0, unchanged source compares raw Buffer bytes and nonmissing assembly; proof template SHA327b8040bacb11b38966aa3b3b6154ca993983713758a715383b7a58ffe69b1b. No normalization or AWS execution.",
+    "suite_log": {
+      "bytes": 5668,
+      "sha256": "76f320842effd233730227e42b8ff885bda1b671000577cde98f4851742fc0a9"
+    },
+    "report": {
+      "bytes": 1456,
+      "sha256": "ccaf6890376933470fd22fbf9b3e2f0aa942c65a9a9d62da131d2b0814f81100"
+    }
+  },
+  "margin": {
+    "actual_full_case_hook_durations_ms": [
+      152242.064445,
+      133554.31439499996
+    ],
+    "observed_s": 1,
+    "unchanged_case_base_ms": 600000,
+    "unchanged_margin_fraction": 0.5,
+    "unchanged_quiet_ceiling_ms": 300000,
+    "PASS": true,
+    "measurement": "Installed runner start precedes beforeEach and duration follows afterEach/cleanup; JSON reporter directly emits it. Independently read those implementation lines; full JSON case durations match. This empirical measurement exceeds body-only duration and satisfies original margin."
+  },
+  "baseline_control": {
+    "head": "cf55d5f03806fa21e346c1bec6f45110030a13e2",
+    "actual_exit": 1,
+    "failed": 2,
+    "skipped": 0,
+    "failure": "Both generatedNode22.21.1 policy assertions fail before host install, under actualNode22.23.3 with identical final6 tests/helpers. Not queue timeout or unrelated fixture error.",
+    "report": {
+      "bytes": 2645,
+      "sha256": "302f3caf5bb298d9bb3b3c3cafe58ce8657febf3bb456ae69e1e813073f38318"
+    }
+  },
+  "focused_control": {
+    "actual_normal_GREEN": "3/3 cases passed; real child1500ms completion marker/exit0 preserved",
+    "actual_corrected_RED": "3fail:2missing-new-function assertions plus actual plain child SIGKILL107ms. Only real child case independently demonstrates old work-only timer failure; missing function failures are not misclassified as fleet admission.",
+    "prior_initial_setup_error": "Retained separately, not counted as product RED."
+  },
+  "typecheck_reconciliation": {
+    "old_whole_tests_failure": "Historical only: exactly2floor nullable endpoint errors. Native owned3 not quarantined; no weakening.",
+    "current_independent_followup": {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-review/typecheck-followup-review.json",
+      "bytes": 21413,
+      "sha256": "2a88d182966eee1a0d180238af957f06b45237225c41f8ff245325562b48a691"
+    },
+    "actual_current_compiler_exit": 0,
+    "current_floor_test_sha256": "06c57251993a57ff812dab686d49b36533c6058c2c9a5a43d2fd9bde473a6df0",
+    "boundary": "Canonical whole-tests gate14:06:27-14:06:36 explicitly retains inherited362file/1542diagnostic quarantine and current06c572floor guard; new native/floor files are outside quarantine. Current3native hashes equal the independently sealed static review and final worker handoff. No historical compiler failure transferred to GREEN."
+  },
+  "ownership_cleanup": {
+    "original_source_HEAD_unchanged": true,
+    "original_index_cached_diff_empty": true,
+    "context_unchanged": true,
+    "native_owned3_current_hashes_fixed": true,
+    "unrelated_root_floor_ownership_preserved": true,
+    "three_actual_docker_containers_independently_inspected_stopped": [
+      {
+        "name": "/lisa-4326-admission-red",
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-10-03T13:50:52.826046875Z",
+          "FinishedAt": "2026-10-03T14:18:09.187592716Z"
+        }
+      },
+      {
+        "name": "/lisa-4326-admission-green",
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-10-03T14:04:02.209799004Z",
+          "FinishedAt": "2026-10-03T14:18:09.186871674Z"
+        }
+      },
+      {
+        "name": "/lisa-4326-admission-baseline",
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-10-03T14:13:11.0806688Z",
+          "FinishedAt": "2026-10-03T14:18:09.184647174Z"
+        }
+      }
+    ],
+    "container_stop_exit137_distinct_from_suite_GREEN_exit0": true
+  },
+  "MLD": [
+    {
+      "kind": "mistake",
+      "note": "Native host subprocess deadlines must include real unscaled fleet admission and poll delay before the existing machine-scaled payload budget; retain independent host leases/admission and original case margin. Real capacity-one RED/GREEN proves the missing phase.",
+      "confidence": "medium",
+      "occurrences_established": 1,
+      "two_host_cases_are_not_two_occurrences": true,
+      "evidence": [
+        "/tmp/lisa-4326-codification/nested-host-admission-implementation/capacity-one-old-fixture-red-proof.json",
+        "/tmp/lisa-4326-codification/nested-host-admission-implementation/capacity-one-green-proof.json",
+        "/tmp/lisa-4326-codification/nested-host-admission-implementation/controlled-input-comparison.json"
+      ]
+    }
+  ],
+  "learning_capture": {
+    "status": "PROPOSED_STAMPED_CONSOLIDATION_ONLY_PENDING_ROOT_REVIEW",
+    "reason": "Actionable measured boundary extends existing packed-proof setup rule; consolidate related entry instead of a near-duplicate sibling. Prior runtime build, independent wrapper leases/temp roots, isolated reused-version caches and full-byte lessons remain in compressed rule and original why/provenance.",
+    "ledger": {
+      "path": "/tmp/lisa-4326-implementation/.lisa/PROJECT_LEARNINGS.md",
+      "bytes": 13412,
+      "sha256": "2e17f678167517eb89cf452de59fd51b55972c24d4d60d4f395269df6b559c9f",
+      "entries": 20
+    },
+    "supersede": [
+      {
+        "id": "sll4-8968b24e50aa",
+        "fingerprint": "learning-29a7e548ca264ca3e66d"
+      }
+    ],
+    "entry": {
+      "id": "sll4-8968b24e50aa",
+      "fingerprint": "learning-5748d1868aedacf8b7d4",
+      "rule": "Before fresh Lisa tests/commits, install/build:dist. Packed proofs need own leases/temp roots, isolated same-version caches and full installed tar-byte checks. Native deadlines add unscaled admission+poll to scaled work; keep case margins.",
+      "why": "#1706/PR1792 hit missing builds. In #4326, Bun reused old bytes despite new lock integrity. T5 also inherited an outer wrapper profile/lease and leaked node-gyp scratch; separate host leases and owned temp roots passed native guards. T5 is one occurrence, with failure logs and independent review. The native fixture omitted real fleet admission wait. A capacity-one normal-wrapper RED killed both hosts before admission; additive unscaled admission/poll plus scaled work passed real120s release without changing the case margin. Two host cases establish one cause/occurrence.",
+      "provenance": [
+        "https://github.com/CodySwannGT/lisa/pull/1792",
+        "https://github.com/CodySwannGT/lisa/issues/1706",
+        "https://github.com/CodySwannGT/lisa/issues/4326",
+        "CodySwannGT/lisa@2ae7c88592a6b11fe9b182b02069b9bcbc6c11f2",
+        "CodySwannGT/lisa#4326:T5",
+        "tests/fixtures/shared-runtime-hosts/journey.ts",
+        "/tmp/lisa-4326-codified-green-focused.log",
+        "/tmp/lisa-4326-codification/final-green/evidence/cdk-proof.json",
+        "CodySwannGT/lisa#4326:T5:nested-host-admission-repair",
+        "tests/fixtures/shared-runtime-hosts/process.ts",
+        "/tmp/lisa-4326-codification/nested-host-admission-implementation/capacity-one-green-proof.json"
+      ],
+      "first_learned": "2026-07-19",
+      "last_confirmed": "2026-10-03",
+      "confidence": "medium"
+    },
+    "rule_characters": 239,
+    "rendered_entry_count": 20,
+    "pure_executable_contract_entry_validation_and_render_budget_pass": true,
+    "rendered_bytes": 13897,
+    "max_bytes": 14900,
+    "fingerprint_actual_shipped_helper_computed": "learning-5748d1868aedacf8b7d4",
+    "oldest_date_preserved": "2026-07-19",
+    "medium_single_occurrence": true,
+    "ledger_or_overflow_writer_called": false,
+    "no_actual_capture_or_budget_failure_claim": true,
+    "no_skill_rule_plugin_memory_ticket_promotion": true,
+    "root_owns_any_future_contract_write": true
+  },
+  "not_established": [
+    "Fresh final committed artifact runtime",
+    "Whole final source quality gates",
+    "Successful named current-head required remote CI",
+    "Merge/configured release/public npm artifact",
+    "AWS/deployed downstream production"
+  ],
+  "tests_or_product_runtime_rerun": false,
+  "mutations": "External final-review only; no source/ledger/context/index/plan/verdict/tracker writes."
+}

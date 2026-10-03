@@ -1,0 +1,480 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-10-03T14:13:05.034513+00:00",
+  "reviewer": "issue_validator",
+  "status": "PASS_BOUNDED_TYPECHECK_FOLLOWUP",
+  "findings": [],
+  "blocking_findings": [],
+  "scope": "Independent read-only reconciliation of the explicit null parse guard and supplied final-byte floor regression/typecheck/scoped-quality receipts; no test rerun or new committed/CI/public claim.",
+  "observed_head_sha": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+  "context": {
+    "path": "/tmp/lisa-4326-implementation/.lisa/work-item-context.md",
+    "bytes": 232750,
+    "sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+  },
+  "summary": {
+    "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/implementation-summary-v2-typecheck.json",
+    "bytes": 88736,
+    "sha256": "26e4903607244e3cf0f363e30cb13ea3332e93f8551dd1f9eac4f21ce2717079"
+  },
+  "prior_review": {
+    "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-review/review.json",
+    "bytes": 13984,
+    "sha256": "44d3b896e51ae007c6c108a3f4b8e4ae34636cb3d58706565217ea041799f6ae",
+    "retained_unchanged": true,
+    "disposition": "Historical old-e591 runtime/source review. It never established canonical test typecheck; new guard and current compiler result are reconciled here."
+  },
+  "owned_inputs": [
+    {
+      "path": "package.json",
+      "bytes": 18163,
+      "sha256": "2173468d94df335e63d8e146711fed39de0b3fec4777825fa6d0646a5c8ed57e",
+      "changed_vs_prior": false
+    },
+    {
+      "path": "bun.lock",
+      "bytes": 380850,
+      "sha256": "8e5b8a0f6bab515eeb1bb2129a57c544a2a4070600dadc57376ee2204f1a241f",
+      "changed_vs_prior": false
+    },
+    {
+      "path": "typescript/package-lisa/package.lisa.json",
+      "bytes": 8891,
+      "sha256": "7def55c6827128599f12306354266781d1a1bc22a3a468471822153841ed280c",
+      "changed_vs_prior": false
+    },
+    {
+      "path": "tests/unit/config/security-pin-floors.test.ts",
+      "bytes": 5132,
+      "sha256": "3fccc624768e5a2a7c7281c4a7fb8e6d1eb96d48574ae22b2fd11ab361a9fe05",
+      "changed_vs_prior": false
+    },
+    {
+      "path": "tests/unit/config/postinstall-ci-guard.test.ts",
+      "bytes": 9697,
+      "sha256": "9b4a9bd2b6257c6bfc7954c93670ec6da14312971f2d6d98851109e2652f9e90",
+      "changed_vs_prior": false
+    },
+    {
+      "path": "tests/unit/config/forced-http-security-floors.test.ts",
+      "bytes": 7997,
+      "sha256": "06c57251993a57ff812dab686d49b36533c6058c2c9a5a43d2fd9bde473a6df0",
+      "changed_vs_prior": true
+    }
+  ],
+  "delta": {
+    "path": "tests/unit/config/forced-http-security-floors.test.ts",
+    "before_sha256": "e591c06af84b3b06c01e6159b1fc7f3fb53c33f28efbe9c8a95d96784ac51883",
+    "after_sha256": "06c57251993a57ff812dab686d49b36533c6058c2c9a5a43d2fd9bde473a6df0",
+    "old_bytes_independently_reconstructed_from_exact_endpoint_block": true,
+    "only_change": "Bind both lowestPermitted results, throw on either null, then retain both original withinRange endpoint expectations. Real guard narrows number[] without cast, non-null assertion, skip or suppression. Malformed test data now fails explicitly; all valid controls unchanged.",
+    "five_other_owned_inputs_unchanged": true
+  },
+  "records": [
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/red-type-followup-61580/execution-receipt.json",
+      "bytes": 38750,
+      "sha256": "28ad7226c71ddd5f4e1c7062cf25e53ab9093e862360792ddf6d7ee338dca857"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/red-type-followup-61580/command.log",
+      "bytes": 43358,
+      "sha256": "96a314ce0df7778c38cc431d177aafd06dee8d333dfa4db1ffc76d82e218292d"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/red-type-followup-61580/test-report.json",
+      "bytes": 76797,
+      "sha256": "51a187b2e12f2a927619c9d17dfa1e7e32e914d327739192be224c0fa7b9fe59"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/red-type-followup-61580/started.json",
+      "bytes": 1579,
+      "sha256": "5b1ba9ae1df1a67e32b6661464a35306eb368bee3374fc165baaeb6a13f6edc5"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/green-type-followup/execution-receipt.json",
+      "bytes": 33439,
+      "sha256": "ac3b4799b0de84372ef7b92e7bfbdd69162c13c666cfd0efc74a35a15c3687a1"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/green-type-followup/command.log",
+      "bytes": 21642,
+      "sha256": "dc801bafa4dccf49af04c474ad6b5294254e98fa72b0c9822bd18c648facb57c"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/green-type-followup/test-report.json",
+      "bytes": 44252,
+      "sha256": "882ab0e7d6d3e81e90bab7f835b26789ac2741417d3397a4ba141e95c2c76897"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/green-type-followup/started.json",
+      "bytes": 1520,
+      "sha256": "90b714a4dc6d050c615e4d9960cf5ae6279a4de6966fcc85ea2c632ad025ce13"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-tests-typecheck/execution-receipt.json",
+      "bytes": 539,
+      "sha256": "f690d3fed8ae890288e298e7f3f0f75342c054987ef4d3328e37bcebb603d995"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-tests-typecheck/command.log",
+      "bytes": 151,
+      "sha256": "dcc7bfe13efb7b860377a1e4ff156455845c60b7d4467e46e227dfaf8a5b5617"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-tests-typecheck/started.json",
+      "bytes": 360,
+      "sha256": "3b5985b77bf28c97f6c91457ef8bdea453449e9a0a8edff723330e2a76c3fdf6"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-fast-lint/execution-receipt.json",
+      "bytes": 514,
+      "sha256": "1c4006bbb3de9f9a27f93d994c3d1d494a91464b73f8e244e8e1ca91aad9dc6f"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-fast-lint/command.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-fast-lint/started.json",
+      "bytes": 335,
+      "sha256": "0f686f0422ef6c81db9f355591227f9faa8f83228fb49ee26daa64836e8f95c2"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-oxlint/execution-receipt.json",
+      "bytes": 527,
+      "sha256": "761f7024318cc3d693ad4d9ce5e73543ca90053a061b6b98b8db6118fc914bce"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-oxlint/command.log",
+      "bytes": 91,
+      "sha256": "3e3626f62c7daf89ef62407d5e3b33088b7d358e318c83cea2795d8fdb8a244f"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-oxlint/started.json",
+      "bytes": 348,
+      "sha256": "317a42b3eb7662dbe2823ad73a20e1505c14dbef08b852d0e25cb7f8e7cb5f02"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-slow-lint/execution-receipt.json",
+      "bytes": 558,
+      "sha256": "65e018705bb01127c157551d6973bd45eb20ad42d18ead57dc7a5d142f6ff121"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-slow-lint/command.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-slow-lint/started.json",
+      "bytes": 380,
+      "sha256": "9a711c249994af2d65447d60a35310bbdfdc5db071a8a2ea569a5414b4cb6922"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-format/execution-receipt.json",
+      "bytes": 513,
+      "sha256": "a3c66b96f347c447c4116957338bc8b1a822c448ea0bf17067797e44fe1126e4"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-format/command.log",
+      "bytes": 66,
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-format/started.json",
+      "bytes": 334,
+      "sha256": "00ecdd9e90857d3bec6c34498308d666aeabd3701afbbd53830af5f6d64efbd1"
+    }
+  ],
+  "all23_records_hash_and_size_match": true,
+  "actual_commands": [
+    {
+      "label": "red-type-followup-61580",
+      "argv": [
+        "/tmp/lisa-runtime-4326-independent/runtime/node-v22.23.3-darwin-arm64/bin/node",
+        "dist/cli/lisa-test-run.js",
+        "--profile",
+        "lisa",
+        "--adapter",
+        "vitest",
+        "--",
+        "vitest",
+        "run",
+        "tests/unit/config/forced-http-security-floors.test.ts",
+        "tests/unit/config/security-pin-floors.test.ts",
+        "tests/unit/config/postinstall-ci-guard.test.ts",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile=/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/red-type-followup-61580/test-report.json"
+      ],
+      "cwd": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580",
+      "head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+      "test_inputs_sha256": {
+        "tests/unit/config/forced-http-security-floors.test.ts": "06c57251993a57ff812dab686d49b36533c6058c2c9a5a43d2fd9bde473a6df0",
+        "tests/unit/config/security-pin-floors.test.ts": "3fccc624768e5a2a7c7281c4a7fb8e6d1eb96d48574ae22b2fd11ab361a9fe05",
+        "tests/unit/config/postinstall-ci-guard.test.ts": "9b4a9bd2b6257c6bfc7954c93670ec6da14312971f2d6d98851109e2652f9e90"
+      },
+      "source_policy_sha256": {
+        "package.json": "6b3de847a41b02ee8717db8355087b7886d49d6ebcc4bfd87a0a9a5052df812a",
+        "typescript/package-lisa/package.lisa.json": "0d8e9dbcd1a3f45d46cf2796d521637cf9df69b63e9d35e3a6b560b18f9353a3",
+        "bun.lock": "1ab4fdd8c9af0d2790ab6b9330067c1be5a7dae1a917032adc17a33c5ccff605"
+      },
+      "started_at": "2026-10-03T14:06:06.259056+00:00",
+      "timeout_seconds": 900,
+      "pid": 52310,
+      "actual_exit": 1,
+      "ended_at": "2026-10-03T14:06:09.179424+00:00",
+      "wall_seconds": 2.899,
+      "log_sha256": "96a314ce0df7778c38cc431d177aafd06dee8d333dfa4db1ffc76d82e218292d",
+      "test_inputs_after_sha256": {
+        "tests/unit/config/forced-http-security-floors.test.ts": "06c57251993a57ff812dab686d49b36533c6058c2c9a5a43d2fd9bde473a6df0",
+        "tests/unit/config/security-pin-floors.test.ts": "3fccc624768e5a2a7c7281c4a7fb8e6d1eb96d48574ae22b2fd11ab361a9fe05",
+        "tests/unit/config/postinstall-ci-guard.test.ts": "9b4a9bd2b6257c6bfc7954c93670ec6da14312971f2d6d98851109e2652f9e90"
+      },
+      "report_sha256": "51a187b2e12f2a927619c9d17dfa1e7e32e914d327739192be224c0fa7b9fe59",
+      "counts": {
+        "numTotalTests": 103,
+        "numPassedTests": 74,
+        "numFailedTests": 29,
+        "numPendingTests": 0,
+        "numTotalTestSuites": 11,
+        "numPassedTestSuites": 4,
+        "numFailedTestSuites": 7
+      },
+      "pid_currently_absent": true
+    },
+    {
+      "label": "green-type-followup",
+      "argv": [
+        "/tmp/lisa-runtime-4326-independent/runtime/node-v22.23.3-darwin-arm64/bin/node",
+        "dist/cli/lisa-test-run.js",
+        "--profile",
+        "lisa",
+        "--adapter",
+        "vitest",
+        "--",
+        "vitest",
+        "run",
+        "tests/unit/config/forced-http-security-floors.test.ts",
+        "tests/unit/config/security-pin-floors.test.ts",
+        "tests/unit/config/postinstall-ci-guard.test.ts",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile=/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/green-type-followup/test-report.json"
+      ],
+      "cwd": "/tmp/lisa-4326-implementation",
+      "head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+      "test_inputs_sha256": {
+        "tests/unit/config/forced-http-security-floors.test.ts": "06c57251993a57ff812dab686d49b36533c6058c2c9a5a43d2fd9bde473a6df0",
+        "tests/unit/config/security-pin-floors.test.ts": "3fccc624768e5a2a7c7281c4a7fb8e6d1eb96d48574ae22b2fd11ab361a9fe05",
+        "tests/unit/config/postinstall-ci-guard.test.ts": "9b4a9bd2b6257c6bfc7954c93670ec6da14312971f2d6d98851109e2652f9e90"
+      },
+      "source_policy_sha256": {
+        "package.json": "2173468d94df335e63d8e146711fed39de0b3fec4777825fa6d0646a5c8ed57e",
+        "typescript/package-lisa/package.lisa.json": "7def55c6827128599f12306354266781d1a1bc22a3a468471822153841ed280c",
+        "bun.lock": "8e5b8a0f6bab515eeb1bb2129a57c544a2a4070600dadc57376ee2204f1a241f"
+      },
+      "started_at": "2026-10-03T14:06:25.037047+00:00",
+      "timeout_seconds": 900,
+      "pid": 52467,
+      "actual_exit": 0,
+      "ended_at": "2026-10-03T14:06:27.865447+00:00",
+      "wall_seconds": 2.828,
+      "log_sha256": "dc801bafa4dccf49af04c474ad6b5294254e98fa72b0c9822bd18c648facb57c",
+      "test_inputs_after_sha256": {
+        "tests/unit/config/forced-http-security-floors.test.ts": "06c57251993a57ff812dab686d49b36533c6058c2c9a5a43d2fd9bde473a6df0",
+        "tests/unit/config/security-pin-floors.test.ts": "3fccc624768e5a2a7c7281c4a7fb8e6d1eb96d48574ae22b2fd11ab361a9fe05",
+        "tests/unit/config/postinstall-ci-guard.test.ts": "9b4a9bd2b6257c6bfc7954c93670ec6da14312971f2d6d98851109e2652f9e90"
+      },
+      "report_sha256": "882ab0e7d6d3e81e90bab7f835b26789ac2741417d3397a4ba141e95c2c76897",
+      "counts": {
+        "numTotalTests": 103,
+        "numPassedTests": 103,
+        "numFailedTests": 0,
+        "numPendingTests": 0,
+        "numTotalTestSuites": 11,
+        "numPassedTestSuites": 11,
+        "numFailedTestSuites": 0
+      },
+      "pid_currently_absent": true
+    },
+    {
+      "label": "type-followup-tests-typecheck",
+      "argv": [
+        "/tmp/lisa-runtime-4326-independent/runtime/node-v22.23.3-darwin-arm64/bin/node",
+        "scripts/check-typecheck-tests.mjs"
+      ],
+      "cwd": "/tmp/lisa-4326-implementation",
+      "started_at": "2026-10-03T14:06:27.887135+00:00",
+      "timeout_seconds": 900,
+      "auth_source": "not requested",
+      "pid": 52522,
+      "actual_exit": 0,
+      "ended_at": "2026-10-03T14:06:36.254403+00:00",
+      "wall_seconds": 8.367,
+      "log_sha256": "dcc7bfe13efb7b860377a1e4ff156455845c60b7d4467e46e227dfaf8a5b5617",
+      "pid_currently_absent": true
+    },
+    {
+      "label": "type-followup-fast-lint",
+      "argv": [
+        "node_modules/.bin/eslint",
+        "tests/unit/config/forced-http-security-floors.test.ts",
+        "--quiet"
+      ],
+      "cwd": "/tmp/lisa-4326-implementation",
+      "started_at": "2026-10-03T14:06:39.685637+00:00",
+      "timeout_seconds": 900,
+      "auth_source": "not requested",
+      "pid": 52583,
+      "actual_exit": 0,
+      "ended_at": "2026-10-03T14:06:43.389580+00:00",
+      "wall_seconds": 3.704,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "pid_currently_absent": true
+    },
+    {
+      "label": "type-followup-oxlint",
+      "argv": [
+        "node_modules/.bin/oxlint",
+        "tests/unit/config/forced-http-security-floors.test.ts",
+        "--disable-nested-config"
+      ],
+      "cwd": "/tmp/lisa-4326-implementation",
+      "started_at": "2026-10-03T14:06:43.410984+00:00",
+      "timeout_seconds": 900,
+      "auth_source": "not requested",
+      "pid": 52598,
+      "actual_exit": 0,
+      "ended_at": "2026-10-03T14:06:43.533752+00:00",
+      "wall_seconds": 0.123,
+      "log_sha256": "3e3626f62c7daf89ef62407d5e3b33088b7d358e318c83cea2795d8fdb8a244f",
+      "pid_currently_absent": true
+    },
+    {
+      "label": "type-followup-slow-lint",
+      "argv": [
+        "node_modules/.bin/eslint",
+        "tests/unit/config/forced-http-security-floors.test.ts",
+        "--config",
+        "eslint.slow.config.ts",
+        "--quiet"
+      ],
+      "cwd": "/tmp/lisa-4326-implementation",
+      "started_at": "2026-10-03T14:06:43.554821+00:00",
+      "timeout_seconds": 900,
+      "auth_source": "not requested",
+      "pid": 52600,
+      "actual_exit": 0,
+      "ended_at": "2026-10-03T14:06:47.125312+00:00",
+      "wall_seconds": 3.57,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "pid_currently_absent": true
+    },
+    {
+      "label": "type-followup-format",
+      "argv": [
+        "node_modules/.bin/prettier",
+        "--check",
+        "tests/unit/config/forced-http-security-floors.test.ts"
+      ],
+      "cwd": "/tmp/lisa-4326-implementation",
+      "started_at": "2026-10-03T14:06:47.145399+00:00",
+      "timeout_seconds": 900,
+      "auth_source": "not requested",
+      "pid": 52607,
+      "actual_exit": 0,
+      "ended_at": "2026-10-03T14:06:47.269495+00:00",
+      "wall_seconds": 0.124,
+      "log_sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+      "pid_currently_absent": true
+    }
+  ],
+  "regression": {
+    "same_final_test_bytes_before_and_after_each_run_and_both_worktrees": true,
+    "actual_baseline_source_matches_615_git_blobs": true,
+    "RED": {
+      "actual_exit": 1,
+      "tests": 103,
+      "failed": 29,
+      "passed": 74,
+      "skipped": 0,
+      "all_failures_actual_AssertionError": true,
+      "new_advisory_site_failures": 16,
+      "new_root_failures": 4,
+      "new_full_restricted_strategy_adoption_failures": 4,
+      "existing_ratchet_guard_failures": 5,
+      "presence_and_patched_vulnerable_controls_preserved": true
+    },
+    "GREEN": {
+      "actual_exit": 0,
+      "tests": 103,
+      "passed": 103,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "compiler": {
+    "actual_command": "node scripts/check-typecheck-tests.mjs",
+    "actual_exit": 0,
+    "raw_output": "type-correctness (tests): 362 file(s) with 1542 error(s); 362 quarantined.\n\u2705 No type errors outside the quarantine, and no stale quarantine entries.\n",
+    "boundary": "Inherited362file/1542diagnostic quarantine remains disclosed; no errors outside it and no stale entries. New floor test is not quarantined.",
+    "quarantine": {
+      "bytes": 21313,
+      "sha256": "7d0f04e77105d7fac7a2bbfdffae8a2732a0ada06ad6bb4c04092b3eb875ca52"
+    },
+    "quarantine_matches_HEAD": true
+  },
+  "scoped_quality": {
+    "ESLint": 0,
+    "Oxlint": 0,
+    "SonarJS_slow_ESLint": 0,
+    "Prettier": 0,
+    "all7_owned_command_pids_currently_absent": true
+  },
+  "MLD": [
+    {
+      "kind": "mistake",
+      "note": "Vitest transpilation passed a nullable endpoint call that the canonical test typechecker correctly rejected. Added explicit parse-result guard and repeated final-byte RED/GREEN; prior execution proofs retained as historical, not type-safe.",
+      "confidence": "medium",
+      "occurrences_established": 1,
+      "evidence": [
+        "CodySwannGT/lisa#4326:T3-compatible-floor-typecheck-followup",
+        "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/implementation-summary-v2-typecheck.json",
+        "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-tests-typecheck/command.log",
+        "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/red-type-followup-61580/test-report.json",
+        "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/green-type-followup/test-report.json"
+      ]
+    }
+  ],
+  "learning_capture_disposition": {
+    "disposition": "task-only; no ledger delta proposed",
+    "reason": "A single nullable endpoint mistake and the runtime-versus-compiler boundary are retained in task evidence. Canonical test typecheck is already required and caught it; this supplies no new project-specific durable instruction or changed existing rule. Reviewer confirmation is corroboration of this one occurrence, not recurrence.",
+    "ledger": {
+      "path": "/tmp/lisa-4326-implementation/.lisa/PROJECT_LEARNINGS.md",
+      "bytes": 13412,
+      "sha256": "2e17f678167517eb89cf452de59fd51b55972c24d4d60d4f395269df6b559c9f",
+      "entries": 20
+    },
+    "exact_duplicate_claim": false,
+    "related_existing_general_control_entry": "learner-957558c39a34",
+    "consolidation_or_append_required": false,
+    "confidence": "medium",
+    "no_writer_or_fingerprint_or_budget_operation_attempted": true,
+    "persistence_failure": null,
+    "ledger_write": false,
+    "rule_skill_plugin_memory_or_ticket_changes": false
+  },
+  "not_established": [
+    "Full current-tree repository gates",
+    "Native capacity-one full packed-host replay",
+    "Final committed artifact runtime",
+    "Successful new-head required CI",
+    "Merge/configured release/public npm artifact",
+    "Whole unfiltered audit clean"
+  ],
+  "mutations": "Only this external review receipt; source/context/plan/index/ledger/verdict/tracker unchanged.",
+  "tests_or_runtime_rerun": false,
+  "validity": "Source reconciliation valid only for the six exact recorded hashes; further source edits require review reconciliation."
+}

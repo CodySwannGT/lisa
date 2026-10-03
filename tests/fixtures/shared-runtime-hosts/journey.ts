@@ -8,7 +8,7 @@ import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
 import { resolveGit } from "../../support/git-executable.js";
 import { type Candidate } from "./artifact.js";
 import { seedHost, snapshot, write } from "./host.js";
-import { run } from "./process.js";
+import { nativeUnitDeadlineMs, run } from "./process.js";
 import {
   assertGeneratedPolicy,
   installedVersions,
@@ -232,7 +232,8 @@ async function nativeChecks(
     hostEnv,
     candidate.logs,
     `${stack}-unit`,
-    60_000
+    60_000,
+    nativeUnitDeadlineMs(hostEnv)
   );
   expect(
     fs

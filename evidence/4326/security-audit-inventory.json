@@ -12,13 +12,13 @@
     },
     {
       "locator": ".lisa/plan-CodySwannGT-lisa-4326.md",
-      "bytes": 22769,
-      "sha256": "06ddf479d7da01fb09232d431e84e4048a96a6e549a95316d9db80fd103207a5"
+      "bytes": 28415,
+      "sha256": "9d5355893d2367b2fffd571452d516be33e3706a189bdbd1d89d919f23a0c6ce"
     },
     {
       "locator": ".lisa/plan-CodySwannGT-lisa-4326.json",
-      "bytes": 64642,
-      "sha256": "bfd1e59145417a4dfcf3b4de4cd182bdf505c4d9e5971067e5ad9f5c8cad4605"
+      "bytes": 142310,
+      "sha256": "9a3ac3de2eac1a217d8ab38122db5316173c1b3bbe43524709eb46109c98633a"
     },
     {
       "locator": "evidence/4326/security-audit-review.md",
@@ -35,5 +35,6 @@
       "bytes": 9080,
       "sha256": "2a89a9d828ad0b43dc8c9e4b45e92a9138e672d6d3f7b3b3f19c2c5f08cb6b8f"
     }
-  ]
+  ],
+  "plan_carrier_update": "Plan files append later compatible CI delivery repair; raw observed477 security evidence and exact approved audit configuration remain unchanged. Hashes describe the current stored plan carriers, not a claim that later plans were observed at477."
 }

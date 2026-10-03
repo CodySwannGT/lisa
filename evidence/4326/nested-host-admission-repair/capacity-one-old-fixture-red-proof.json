@@ -1,0 +1,38 @@
+{
+  "status": "INTENDED_RED",
+  "exit": 1,
+  "failed_cases": 2,
+  "source_head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+  "source_index_tree": "b1626241b617d071be22d18b3fa394993ee67399",
+  "available_parallelism": 2,
+  "capacity": 1,
+  "original_frozen6": {
+    "tests/fixtures/shared-runtime-hosts/process.ts": "0df1503ec17a2e6f172d7b787cf7d83d3b80a3f7251eefc7e74644b679d219a1",
+    "tests/fixtures/shared-runtime-hosts/journey.ts": "7779a65608f94c1b0bffde3febc1f09afb8d8897742312968e43405e1eb9d694",
+    "tests/fixtures/shared-runtime-hosts/artifact.ts": "a64007acc0afce7c5e50f2b54568bfcb9d382dcd1cddc251025dc038a8f9a910",
+    "tests/fixtures/shared-runtime-hosts/assertions.ts": "3a44300da10845875a0c395dc0856954bbec04772280d7f2337f6f083fec0006",
+    "tests/fixtures/shared-runtime-hosts/host.ts": "9a5c7a618bef8dd9a2d60a51b6c123196e022aa690babcbb57a6cd1be3d419fa",
+    "tests/integration/shared-runtime-packed-hosts.test.ts": "d46d50bd3495f8ac676fbe94c0b0e810792a22eda8dd651860317ef4dda09ac3"
+  },
+  "cases": [
+    {
+      "stack": "typescript",
+      "expected_admission_deadline_ms": 120000,
+      "actual_old_child_limit_ms": 60000,
+      "failed_before_native_execution": true,
+      "log_sha256": "2faf8a8fb66d4738a04f0f8d64574e16267e12ab6611e7950e30b2ce6dada343",
+      "red_rank": 2,
+      "red_reaper_warning_retained": true
+    },
+    {
+      "stack": "cdk",
+      "expected_admission_deadline_ms": 120000,
+      "actual_old_child_limit_ms": 60000,
+      "failed_before_native_execution": true,
+      "log_sha256": "12730fd2ead30f7a698c67a12366633a231b8cc775bbc947c695dcc1e3e4f139",
+      "red_rank": 3,
+      "red_reaper_warning_retained": false
+    }
+  ],
+  "suite_log_sha256": "0faed6ed183ac4c2a9521a2c0542b9606eb8f84312308c53cbdbd4d1b573c3b4"
+}

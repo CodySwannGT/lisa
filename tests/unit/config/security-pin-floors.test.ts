@@ -30,10 +30,13 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
  *
  * A floor here may only ever move UP. Raising one is a fix; lowering one to
  * make a pin pass is reintroducing the bug this file exists to catch.
+ * Axios1.20.0 and Undici6.28.1 were rechecked against primary high advisories
+ * on 2026-10-03; their exact ranges are codified in
+ * forced-http-security-floors.test.ts. Other entries retain their provenance.
  */
 const ADVISORY_FLOORS: Readonly<Record<string, string>> = {
   "@isaacs/brace-expansion": "5.0.1",
-  axios: "1.18.0",
+  axios: "1.20.0",
   esbuild: "0.28.1",
   "fast-xml-parser": "5.10.1",
   "form-data": "4.0.6",
@@ -43,7 +46,7 @@ const ADVISORY_FLOORS: Readonly<Record<string, string>> = {
   "smol-toml": "1.7.1",
   systeminformation: "5.31.7",
   tar: "7.5.21",
-  undici: "6.28.0",
+  undici: "6.28.1",
   vite: "8.3.2",
   "websocket-driver": "0.7.5",
   ws: "8.21.0",

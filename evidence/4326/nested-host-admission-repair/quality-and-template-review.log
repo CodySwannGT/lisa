@@ -1,0 +1,56 @@
+{
+  "scope": "Working-input native owner observations; old compiler failure retained and later current compiler0 established separately in floor typecheck packet",
+  "commands": [
+    {
+      "argv": [
+        "bun",
+        "run",
+        "test:unit",
+        "--",
+        "tests/unit/fixtures/shared-runtime-native-deadline.test.ts"
+      ],
+      "exit": 0,
+      "started_at": "2026-10-03T14:04:38.825340+00:00",
+      "ended_at": "2026-10-03T14:04:49.848765+00:00",
+      "sha256": "546aebc4b202186ea862ea2966d0f64f65cfd9b30b7715fcb86f933804952f08"
+    },
+    {
+      "argv": [
+        "node_modules/.bin/prettier",
+        "--check",
+        "tests/fixtures/shared-runtime-hosts/process.ts",
+        "tests/fixtures/shared-runtime-hosts/journey.ts",
+        "tests/unit/fixtures/shared-runtime-native-deadline.test.ts"
+      ],
+      "exit": 0,
+      "started_at": "2026-10-03T14:04:49.849135+00:00",
+      "ended_at": "2026-10-03T14:04:49.986895+00:00",
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    {
+      "argv": [
+        "node_modules/.bin/eslint",
+        "tests/fixtures/shared-runtime-hosts/process.ts",
+        "tests/fixtures/shared-runtime-hosts/journey.ts",
+        "tests/unit/fixtures/shared-runtime-native-deadline.test.ts",
+        "--quiet"
+      ],
+      "exit": 0,
+      "started_at": "2026-10-03T14:04:49.987375+00:00",
+      "ended_at": "2026-10-03T14:04:54.239250+00:00",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "node",
+        "scripts/check-typecheck-tests.mjs"
+      ],
+      "exit": 1,
+      "started_at": "2026-10-03T14:04:54.239644+00:00",
+      "ended_at": "2026-10-03T14:05:02.493084+00:00",
+      "sha256": "abee91048972669ef2ea7718e344b8d8d00039d0751f1f0d842891cf7526a61e"
+    }
+  ],
+  "focused_output": "$ node scripts/lib/worktree-dependencies.mjs && $npm_execpath run lisa-test-run -- --adapter vitest -- vitest run --exclude='**/integration/**' --exclude='**/*.integration.*' tests/unit/fixtures/shared-runtime-native-deadline.test.ts\n$ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run \"--exclude=**/integration/**\" \"--exclude=**/*.integration.*\" tests/unit/fixtures/shared-runtime-native-deadline.test.ts\n$ bun run build:dist && bun run build:plugins\n$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs\n$ bash scripts/build-plugins.sh\nBuilt plugins/lisa (v4.67.0)\nBuilt plugins/lisa-typescript (v4.67.0)\nBuilt plugins/lisa-expo (v4.67.0)\nBuilt plugins/lisa-nestjs (v4.67.0)\nBuilt plugins/lisa-cdk (v4.67.0)\nBuilt plugins/lisa-harper-fabric (v4.67.0)\nBuilt plugins/lisa-phaser (v4.67.0)\nBuilt plugins/lisa-rails (v4.67.0)\nBuilt plugins/lisa-wiki (v4.67.0)\nBuilt plugins/lisa-openclaw (v4.67.0)\nGenerated Cursor variant at /private/tmp/lisa-4326-implementation/plugins/lisa-cursor (v4.67.0)\nGenerated Cursor variant at /private/tmp/lisa-4326-implementation/plugins/lisa-typescript-cursor (v4.67.0)\nGenerated Cursor variant at /private/tmp/lisa-4326-implementation/plugins/lisa-expo-cursor (v4.67.0)\nGenerated Cursor variant at /private/tmp/lisa-4326-implementation/plugins/lisa-nestjs-cursor (v4.67.0)\nGenerated Cursor variant at /private/tmp/lisa-4326-implementation/plugins/lisa-cdk-cursor (v4.67.0)\nGenerated Cursor variant at /private/tmp/lisa-4326-implementation/plugins/lisa-harper-fabric-cursor (v4.67.0)\nGenerated Cursor variant at /private/tmp/lisa-4326-implementation/plugins/lisa-phaser-cursor (v4.67.0)\nGenerated Cursor variant at /private/tmp/lisa-4326-implementation/plugins/lisa-rails-cursor (v4.67.0)\nGenerated Cursor variant at /private/tmp/lisa-4326-implementation/plugins/lisa-wiki-cursor (v4.67.0)\nGenerated Cursor variant at /private/tmp/lisa-4326-implementation/plugins/lisa-openclaw-cursor (v4.67.0)\nGenerated agy variant at /private/tmp/lisa-4326-implementation/plugins/lisa-agy (v4.67.0)\nGenerated agy variant at /private/tmp/lisa-4326-implementation/plugins/lisa-typescript-agy (v4.67.0)\nGenerated agy variant at /private/tmp/lisa-4326-implementation/plugins/lisa-expo-agy (v4.67.0)\nGenerated agy variant at /private/tmp/lisa-4326-implementation/plugins/lisa-nestjs-agy (v4.67.0)\nGenerated agy variant at /private/tmp/lisa-4326-implementation/plugins/lisa-cdk-agy (v4.67.0)\nGenerated agy variant at /private/tmp/lisa-4326-implementation/plugins/lisa-harper-fabric-agy (v4.67.0)\nGenerated agy variant at /private/tmp/lisa-4326-implementation/plugins/lisa-phaser-agy (v4.67.0)\nGenerated agy variant at /private/tmp/lisa-4326-implementation/plugins/lisa-rails-agy (v4.67.0)\nGenerated agy variant at /private/tmp/lisa-4326-implementation/plugins/lisa-wiki-agy (v4.67.0)\nGenerated agy variant at /private/tmp/lisa-4326-implementation/plugins/lisa-openclaw-agy (v4.67.0)\nGenerated Copilot variant at /private/tmp/lisa-4326-implementation/plugins/lisa-copilot (v4.67.0)\nGenerated Copilot variant at /private/tmp/lisa-4326-implementation/plugins/lisa-typescript-copilot (v4.67.0)\nGenerated Copilot variant at /private/tmp/lisa-4326-implementation/plugins/lisa-expo-copilot (v4.67.0)\nGenerated Copilot variant at /private/tmp/lisa-4326-implementation/plugins/lisa-nestjs-copilot (v4.67.0)\nGenerated Copilot variant at /private/tmp/lisa-4326-implementation/plugins/lisa-cdk-copilot (v4.67.0)\nGenerated Copilot variant at /private/tmp/lisa-4326-implementation/plugins/lisa-harper-fabric-copilot (v4.67.0)\nGenerated Copilot variant at /private/tmp/lisa-4326-implementation/plugins/lisa-phaser-copilot (v4.67.0)\nGenerated Copilot variant at /private/tmp/lisa-4326-implementation/plugins/lisa-rails-copilot (v4.67.0)\nGenerated Copilot variant at /private/tmp/lisa-4326-implementation/plugins/lisa-wiki-copilot (v4.67.0)\nGenerated Copilot variant at /private/tmp/lisa-4326-implementation/plugins/lisa-openclaw-copilot (v4.67.0)\n(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:\n  - import \"./vitest.config.local\" without a file extension (vitest.config.ts:21:25). Add the file extension\nSet `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.\n\n RUN  v4.1.11 /private/tmp/lisa-4326-implementation\n\n\n Test Files  1 passed (1)\n      Tests  3 passed (3)\n   Start at  10:04:45\n   Duration  1.97s (transform 115ms, setup 91ms, import 199ms, tests 1.53s, environment 0ms)\n\n",
+  "historical_compiler_failure_current_followup": "evidence/4326/forced-http-floor-typecheck-followup/quality-and-template-review.log"
+}

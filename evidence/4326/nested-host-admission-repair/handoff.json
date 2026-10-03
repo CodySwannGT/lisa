@@ -1,0 +1,72 @@
+{
+  "status": "READY_FOR_INDEPENDENT_SOURCE_REVIEW",
+  "captured_at": "2026-10-03T14:19:50.662207+00:00",
+  "ownership": [
+    "tests/fixtures/shared-runtime-hosts/process.ts",
+    "tests/fixtures/shared-runtime-hosts/journey.ts",
+    "tests/unit/fixtures/shared-runtime-native-deadline.test.ts"
+  ],
+  "source_head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+  "source_index_unstaged_original": "1e8230f09648cdfeadfbfdba8729b18581e13749",
+  "owned_hashes": {
+    "tests/fixtures/shared-runtime-hosts/process.ts": "c6e1fd79773d1c9b611af48328e60ef177c72b1f82807a1bd6b78b3bfad4d5c3",
+    "tests/fixtures/shared-runtime-hosts/journey.ts": "895e11735ce1575d9fdb5f15c1688e8f698a89130141209dfc2013fbea3d9321",
+    "tests/unit/fixtures/shared-runtime-native-deadline.test.ts": "630c598d872673783fa3a8e3a8354083c6ae02c0be30f3470cfed6e541da3352"
+  },
+  "final_fixture6_hashes": {
+    "tests/fixtures/shared-runtime-hosts/process.ts": "c6e1fd79773d1c9b611af48328e60ef177c72b1f82807a1bd6b78b3bfad4d5c3",
+    "tests/fixtures/shared-runtime-hosts/journey.ts": "895e11735ce1575d9fdb5f15c1688e8f698a89130141209dfc2013fbea3d9321",
+    "tests/fixtures/shared-runtime-hosts/artifact.ts": "a64007acc0afce7c5e50f2b54568bfcb9d382dcd1cddc251025dc038a8f9a910",
+    "tests/fixtures/shared-runtime-hosts/assertions.ts": "3a44300da10845875a0c395dc0856954bbec04772280d7f2337f6f083fec0006",
+    "tests/fixtures/shared-runtime-hosts/host.ts": "9a5c7a618bef8dd9a2d60a51b6c123196e022aa690babcbb57a6cd1be3d419fa",
+    "tests/integration/shared-runtime-packed-hosts.test.ts": "d46d50bd3495f8ac676fbe94c0b0e810792a22eda8dd651860317ef4dda09ac3"
+  },
+  "context": {
+    "bytes": 232750,
+    "sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+  },
+  "scope": "Unit-only explicit unscaled production admissionDeadlineMs+ADMISSION_POLL_MS added to existing scaled60s work; nonfinite/disabled/unfit rejected; unchanged600s case/0.5margin/native assertions.",
+  "focused_unit": {
+    "exit": 0,
+    "passed_tests": 3,
+    "failed_tests": 0,
+    "log": "/tmp/lisa-4326-codification/nested-host-admission-implementation/final-focused-unit.log",
+    "sha256": "546aebc4b202186ea862ea2966d0f64f65cfd9b30b7715fcb86f933804952f08",
+    "negative_control": "/tmp/lisa-4326-codification/nested-host-admission-implementation/focused-red-corrected.json"
+  },
+  "scoped_quality": "/tmp/lisa-4326-codification/nested-host-admission-implementation/final-owned-quality.json",
+  "test_typecheck_last_observation": "Owned new test typechecks. Last whole-tests gate failed only two floor-worker nullable-version errors; root/worker owns repair and final gate. No quarantine touched.",
+  "capacity_one_original_red": "/tmp/lisa-4326-codification/nested-host-admission-implementation/capacity-one-old-fixture-red-proof.json",
+  "capacity_one_candidate_green": "/tmp/lisa-4326-codification/nested-host-admission-implementation/capacity-one-green-proof.json",
+  "identical_final_cf55_red": "/tmp/lisa-4326-codification/nested-host-admission-implementation/baseline-identical-final-regression-proof.json",
+  "controlled_input_comparison": "/tmp/lisa-4326-codification/nested-host-admission-implementation/controlled-input-comparison.json",
+  "margin_measurement_source": "/tmp/lisa-4326-codification/nested-host-admission-implementation/margin-measurement-code.json",
+  "preservation": "/tmp/lisa-4326-codification/nested-host-admission-implementation/source-preservation-terminal.json",
+  "cleanup": "/tmp/lisa-4326-codification/nested-host-admission-implementation/owned-container-cleanup.json",
+  "evidence_inventory": {
+    "path": "/tmp/lisa-4326-codification/nested-host-admission-implementation/evidence-inventory.json",
+    "sha256": "56ebe6b12294c024cd589bf40264084bda26e7d466455d48fd1d0484a64577d1",
+    "count": 189
+  },
+  "historical_setup_failures_preserved": [
+    "Initial focused RED had asynchronous temp helper misuse; preserved, superseded by corrected actual3caseRED.",
+    "Private Docker RED initial gitadd rejected copied ownership; sourcechown correction only isolatedcontainer.",
+    "Private Docker GREEN initial newfilecopy failed absentnewdirectory; mkdir exactprivate path then resumed completedsetup.",
+    "Postproof initial cross-container gitdiff attempted unavailableobject; replaced with exactseparate recursive mode/type/object/path map comparison."
+  ],
+  "not_established": [
+    "fresh final-commit runtime",
+    "new-head GitHub CI",
+    "shipping/public/merge/release completion"
+  ],
+  "prohibited_actions_not_performed": [
+    "original staging",
+    "commit",
+    "push",
+    "tracker/context/verdict edits",
+    "fleet admission disabling",
+    "global HOME repurposing",
+    "margin/case budget widening",
+    "fixture assertion removal"
+  ]
+}

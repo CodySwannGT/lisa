@@ -1,0 +1,57 @@
+{
+  "argv": [
+    "/usr/local/bin/docker",
+    "stop",
+    "--time",
+    "3",
+    "lisa-4326-admission-red",
+    "lisa-4326-admission-green",
+    "lisa-4326-admission-baseline"
+  ],
+  "exit": 0,
+  "started_at": "2026-10-03T14:18:06.149086+00:00",
+  "ended_at": "2026-10-03T14:18:09.786737+00:00",
+  "log_sha256": "0ac548cf6eb0fe83073551c22ef76336396b47faa1dd851876c76d6a63349d42",
+  "states": {
+    "lisa-4326-admission-red": {
+      "Status": "exited",
+      "Running": false,
+      "Paused": false,
+      "Restarting": false,
+      "OOMKilled": false,
+      "Dead": false,
+      "Pid": 0,
+      "ExitCode": 137,
+      "Error": "",
+      "StartedAt": "2026-10-03T13:50:52.826046875Z",
+      "FinishedAt": "2026-10-03T14:18:09.187592716Z"
+    },
+    "lisa-4326-admission-green": {
+      "Status": "exited",
+      "Running": false,
+      "Paused": false,
+      "Restarting": false,
+      "OOMKilled": false,
+      "Dead": false,
+      "Pid": 0,
+      "ExitCode": 137,
+      "Error": "",
+      "StartedAt": "2026-10-03T14:04:02.209799004Z",
+      "FinishedAt": "2026-10-03T14:18:09.186871674Z"
+    },
+    "lisa-4326-admission-baseline": {
+      "Status": "exited",
+      "Running": false,
+      "Paused": false,
+      "Restarting": false,
+      "OOMKilled": false,
+      "Dead": false,
+      "Pid": 0,
+      "ExitCode": 137,
+      "Error": "",
+      "StartedAt": "2026-10-03T14:13:11.0806688Z",
+      "FinishedAt": "2026-10-03T14:18:09.184647174Z"
+    }
+  },
+  "scope": "Only exact three newly owned isolated reproduction containers stopped. Sources, artifacts and containers retained; no original-worktree/global process changes."
+}
