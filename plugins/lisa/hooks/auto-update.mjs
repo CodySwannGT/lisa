@@ -123,8 +123,8 @@ function readJson(file) {
  */
 export function readLisaConfig(projectDir) {
   return {
-    ...(readJson(path.join(projectDir, ".lisa.config.json")) ?? {}),
-    ...(readJson(path.join(projectDir, ".lisa.config.local.json")) ?? {}),
+    ...readJson(path.join(projectDir, ".lisa.config.json")),
+    ...readJson(path.join(projectDir, ".lisa.config.local.json")),
   };
 }
 
