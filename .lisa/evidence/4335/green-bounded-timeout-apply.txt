@@ -1,0 +1,208 @@
+[WARN] --skip-git-check now waives ONLY the clean-tree check; this apply runs in FULL, including every agent emit and the Sonar integration. It used to also select the reduced postinstall-safe subset (CodySwannGT/lisa#3066). Install hooks using --postinstall-safe or LISA_POSTINSTALL=1 now skip template writes. Run lisa apply explicitly when ready to update templates.
+
+========================================
+    Lisa Project Bootstrapper
+========================================
+
+[INFO] Lisa directory: <lisa-worktree>
+[INFO] Destination:    <anonymous-host>
+
+[INFO] Backup directory: /var/folders/_2/29n6gy1s42777swvq24j3fh00000gn/T/lisa-backup-MbIoZV
+[INFO] Processing common configurations (all/)...
+[INFO] Processing all/copy-overwrite...
+[OK] Copied: scripts/check-conflict-markers.mjs
+[OK] Copied: scripts/check-npm-publish-landed.mjs
+[OK] Copied: scripts/check-orphaned-branches.mjs
+[OK] Copied: scripts/check-release-package-identity.mjs
+[OK] Copied: scripts/check-state-classification.mjs
+[OK] Copied: scripts/check-third-party-action-pins.mjs
+[OK] Copied: scripts/check-third-party-review-evidence.mjs
+[OK] Copied: scripts/check-workflow-load-failures.mjs
+[OK] Copied: scripts/lib/bounded-spawn.mjs
+[OK] Copied: scripts/lib/gate-failure-diagnosis.mjs
+[OK] Copied: scripts/lib/invoked-as-script.mjs
+[OK] Copied: scripts/lib/kill-marks.mjs
+[OK] Copied: scripts/lib/placeholder-expiry.mjs
+[OK] Copied: scripts/lib/process-tree-runner.mjs
+[OK] Copied: scripts/lib/reusable-workflow-load-adapter.d.mts
+[OK] Copied: scripts/lib/reusable-workflow-load-adapter.mjs
+[OK] Copied: scripts/lib/reusable-workflow-load-failure.d.mts
+[OK] Copied: scripts/lib/reusable-workflow-load-failure.mjs
+[OK] Copied: scripts/lib/reusable-workflow-load-scan.d.mts
+[OK] Copied: scripts/lib/reusable-workflow-load-scan.mjs
+[OK] Copied: scripts/lib/windows-process-job.cs
+[OK] Copied: scripts/lib/windows-process-job.mjs
+[OK] Copied: scripts/lib/windows-process-job.ps1
+[OK] Copied: scripts/lib/worktree-dependencies.d.mts
+[OK] Copied: scripts/lib/worktree-dependencies.mjs
+[OK] Copied: scripts/lisa-command-envelope.mjs
+[OK] Copied: scripts/lisa-commit-msg-gates.mjs
+[OK] Copied: scripts/lisa-cross-worktree-guard.mjs
+[OK] Copied: scripts/lisa-destructive-guard.mjs
+[OK] Copied: scripts/lisa-enforcement-fallback.sh
+[OK] Copied: scripts/lisa-environment-prepare.mjs
+[OK] Copied: scripts/lisa-floor-collisions.mjs
+[OK] Copied: scripts/lisa-gates.mjs
+[OK] Copied: scripts/lisa-hooks/block-blind-automerge.sh
+[OK] Copied: scripts/lisa-hooks/block-direct-issue-create.sh
+[OK] Copied: scripts/lisa-hooks/block-instruction-file-edits.sh
+[OK] Copied: scripts/lisa-hooks/block-managed-file-edits.sh
+[OK] Copied: scripts/lisa-hooks/block-no-verify.sh
+[OK] Copied: scripts/lisa-hooks/block-shell-json-parsing.sh
+[OK] Copied: scripts/lisa-hooks/guard-dedupe.bash
+[OK] Copied: scripts/lisa-hooks/parity-safety-net-heredoc.py
+[OK] Copied: scripts/lisa-hooks/parity-safety-net.sh
+[OK] Copied: scripts/lisa-hooks/sonar-secrets.sh
+[OK] Copied: scripts/lisa-hooks/worktree-binding-guard.mjs
+[OK] Copied: scripts/lisa-hooks/worktree-binding-guard.sh
+[OK] Copied: scripts/lisa-lint-staged-preflight.mjs
+[OK] Copied: scripts/lisa-postinstall.mjs
+[OK] Copied: scripts/lisa-reconcile-policy.mjs
+[OK] Copied: scripts/lisa-run-gates.mjs
+[OK] Copied: scripts/lisa-schema-validate.mjs
+[OK] Copied: scripts/lisa-self-update.mjs
+[OK] Copied: scripts/lisa-test-node.mjs
+[OK] Copied: scripts/lisa-work-item.mjs
+[OK] Copied: scripts/lisa-worktree-guard.mjs
+[OK] Copied: scripts/schemas/lisa-command-envelope.v1.schema.json
+[OK] Copied: scripts/schemas/lisa-state-contract.v1.schema.json
+[INFO] Processing all/copy-contents...
+[OK] Copied: .gitattributes
+[OK] Copied: .gitignore
+[INFO] Processing all/create-only...
+[OK] Created: .agents/rules/README.md
+[OK] Created: .github/workflows/continuous-gates.yml
+[OK] Created: .github/workflows/lisa-update.yml
+[OK] Created: .github/workflows/workflow-load-failure-sweep.yml
+[OK] Created: .lisa/ACCOUNTABILITY.md
+[OK] Created: .lisa/DEPENDENCY_DECISIONS.md
+[OK] Created: .lisa/PROJECT_LEARNINGS.md
+[OK] Created: .lisaignore
+[OK] Created: scripts/remote-agent-aws-setup.sh
+[OK] Created: specs/.keep
+[OK] Created: state/README.md
+[OK] Created: state/state-contract.example.json
+[INFO] Processing all/merge...
+[OK] Copied: .claude/settings.json
+[INFO] Processing rails configurations...
+[INFO] Processing rails/copy-overwrite...
+[OK] Copied: .rubocop.yml
+[OK] Copied: .versionrc
+[OK] Copied: Gemfile.lisa
+[OK] Copied: ast-grep/rule-tests/.gitkeep
+[OK] Copied: ast-grep/rules/no-day-truncating-file-age-predicate.yml
+[OK] Copied: ast-grep/rules/ruby/no-find-by-sql-without-params.yml
+[OK] Copied: ast-grep/rules/ruby/no-params-without-permit.yml
+[OK] Copied: ast-grep/rules/ruby/no-raw-sql-in-where.yml
+[OK] Copied: ast-grep/rules/ruby/no-skip-before-action-without-scope.yml
+[OK] Copied: ast-grep/rules/ruby/no-unsafe-send.yml
+[OK] Copied: ast-grep/rules/ruby/no-update-columns.yml
+[OK] Copied: ast-grep/utils/.gitkeep
+[OK] Copied: config/initializers/version.rb
+[OK] Copied: lefthook.yml
+[OK] Copied: scripts/check-threshold-ratchet.mjs
+[OK] Copied: scripts/lisa-clean-git-env.sh
+[OK] Copied: scripts/lisa-scratch-run.sh
+[OK] Copied: scripts/threshold-ratchet-compare.mjs
+[OK] Copied: scripts/threshold-ratchet-families.mjs
+[OK] Copied: sgconfig.yml
+[INFO] Processing rails/copy-contents...
+[INFO] Backup created: .lisabak/2026-10-03-232535/Gemfile
+[OK] Merged: Gemfile
+[OK] Copied: scripts/lisa-mutation.sh
+[INFO] Processing rails/create-only...
+[OK] Created: .github/workflows/ci.yml
+[OK] Created: .github/workflows/deploy.yml
+[OK] Created: .mise.toml
+[OK] Created: .mutant.yml
+[OK] Created: .reek.yml
+[OK] Created: .rspec
+[OK] Created: .rubocop.local.yml
+[OK] Created: .rubocop_todo.yml
+[OK] Created: .simplecov
+[OK] Created: VERSION
+[OK] Created: mutation.gate.yml
+[OK] Created: rubocop.thresholds.yml
+[OK] Created: simplecov.thresholds.json
+[OK] Created: sonar-project.properties
+[OK] Created: spec/rails_helper.rb
+[OK] Created: spec/spec_helper.rb
+[INFO] Processing rails/merge...
+[INFO] Backup created: .lisabak/2026-10-03-232535/.claude/settings.json
+[OK] Merged: .claude/settings.json
+[INFO] Processing deletions for all...
+[INFO] Kept (protected): .coderabbit.yml
+[INFO] Kept (protected): scripts/setup-deploy-key.sh
+[INFO] Kept (protected): HUMAN.md
+[INFO] Processing deletions for rails...
+[INFO] Running migrations...
+[OK] registered the lisa-learnings merge driver
+[OK] Added 3 harness glob(s) to sonar.exclusions (.codex/**, .opencode/**, .agents/**)
+[OK] Pinned 3 Lisa reusable-workflow caller file(s) at 728d35afbd3de4d522023e0b65fd0f730c94820c (v4.68.0)
+[INFO] Codex emit: 30 agents, 1 repository enforcement fallback plus plugin-bundled hooks, 190 native skills from 2 project plugins, 1 MCP servers, settings created
+[INFO] Instruction files: reconciled host-rules pointer in AGENTS.md
+[INFO] Registering plugins with Claude Code (project scope)...
+[OK] Registered plugin: lisa@lisa
+[WARN] Could not register plugin: safety-net@cc-marketplace
+[OK] Registered plugin: code-simplifier@claude-plugins-official
+[OK] Registered plugin: code-review@claude-plugins-official
+[OK] Registered plugin: coderabbit@claude-plugins-official
+
+REPEAT
+[WARN] --skip-git-check now waives ONLY the clean-tree check; this apply runs in FULL, including every agent emit and the Sonar integration. It used to also select the reduced postinstall-safe subset (CodySwannGT/lisa#3066). Install hooks using --postinstall-safe or LISA_POSTINSTALL=1 now skip template writes. Run lisa apply explicitly when ready to update templates.
+
+========================================
+    Lisa Project Bootstrapper
+========================================
+
+[INFO] Lisa directory: <lisa-worktree>
+[INFO] Destination:    <anonymous-host>
+
+[INFO] Backup directory: /var/folders/_2/29n6gy1s42777swvq24j3fh00000gn/T/lisa-backup-rBcF3h
+[INFO] Processing common configurations (all/)...
+[INFO] Processing all/copy-overwrite...
+[INFO] Processing all/copy-contents...
+[INFO] Processing all/create-only...
+[INFO] Processing all/merge...
+[INFO] Backup created: .lisabak/2026-10-03-232942/.claude/settings.json
+[OK] Merged: .claude/settings.json
+[INFO] Processing rails configurations...
+[INFO] Processing rails/copy-overwrite...
+[INFO] Processing rails/copy-contents...
+[INFO] Processing rails/create-only...
+[INFO] Processing rails/merge...
+[INFO] Processing deletions for all...
+[INFO] Kept (protected): .coderabbit.yml
+[INFO] Kept (protected): scripts/setup-deploy-key.sh
+[INFO] Kept (protected): HUMAN.md
+[INFO] Processing deletions for rails...
+[INFO] Running migrations...
+[INFO] Codex emit: 30 agents, 1 repository enforcement fallback plus plugin-bundled hooks, 190 native skills from 2 project plugins, 1 MCP servers, settings merged
+[INFO] Registering plugins with Claude Code (project scope)...
+[OK] Registered plugin: lisa@lisa
+[WARN] Could not register plugin: safety-net@cc-marketplace
+[OK] Registered plugin: code-simplifier@claude-plugins-official
+[OK] Registered plugin: code-review@claude-plugins-official
+[OK] Registered plugin: coderabbit@claude-plugins-official
+[OK] Registered plugin: sentry@claude-plugins-official
+[OK] Registered plugin: skill-creator@claude-plugins-official
+[OK] Registered plugin: ruby-lsp@claude-plugins-official
+[OK] Registered plugin: lisa-rails@lisa
+[OK] Registered plugin: impeccable@impeccable
+[OK] Updated marketplace: lisa
+
+========================================
+    Lisa Installation Complete!
+========================================
+
+  Copied:        0 files
+  Skipped:     109 files (identical or create-only)
+  Overwritten:   0 files (approved or Lisa-owned)
+  Out of date:   0 files (managed templates changed; NOT updated)
+  Appended:      0 files (copy-contents)
+  Merged:        1 files (JSON merged)
+  Deleted:       0 files
+
+Project types: all rails
+
+[INFO] Postinstall reconciliation skipped: package.json unchanged by this apply

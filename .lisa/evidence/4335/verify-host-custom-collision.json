@@ -1,0 +1,12 @@
+{
+  "captured_at": "2026-10-03T23:41:56.289Z",
+  "probe": "current built installHookCompatibility",
+  "scenario": "Host-authored untagged catalog-name regular file retains original Lisa header, with no ownership manifest",
+  "managed": [
+    "hooks/lisa/block-no-verify.sh"
+  ],
+  "hostAuthoredPreserved": false,
+  "markerPreserved": false,
+  "before_sha256": "eb8e056ddbc8770c8aea57a3113176a2f3109d9a2a4c65738447aab9c45cc468",
+  "after_sha256": "4cd71d71a4458922a5d81c0256c20b76102f20085699117f2734a64f6db56ddf"
+}

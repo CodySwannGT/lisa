@@ -1,0 +1,15 @@
+$ node scripts/lib/worktree-dependencies.mjs && oxlint --disable-nested-config && eslint . --quiet
+
+  ! eslint(no-control-regex): Unexpected control characters
+    ,-[src/cli/starter-sync-source.ts:56:9]
+ 55 |     !normalized ||
+ 56 |     /[\\\u0000-\u001f]/u.test(normalized) ||
+    :         ^^^|^^ ^^^|^^
+    :            |      `-- 'U+001F' is a control character.
+    :            `-- 'U+0000' is a control character.
+ 57 |     /^[a-z]:/iu.test(normalized) ||
+    `----
+  help: Avoid matching control characters in regular expressions. If intentional, consider using a Unicode escape instead.
+
+Found 1 warning and 0 errors.
+Finished in 493ms on 2777 files with 110 rules using 18 threads.

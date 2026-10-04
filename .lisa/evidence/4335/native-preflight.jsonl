@@ -1,0 +1,9 @@
+{"type":"thread.started","thread_id":"01a103e6-594a-74e1-83ac-36955c37dcb2"}
+{"type":"item.completed","item":{"id":"item_0","type":"error","message":"Codex is ignoring 1 unrecognized configuration setting. Check for typos or deprecated settings.\n  project (/Users/cody/.codex/worktrees/8050/lisa/.codex/config.toml): `commit_attribution` is ignored."}}
+{"type":"item.completed","item":{"id":"item_1","type":"error","message":"Codex is ignoring 1 unrecognized configuration setting. Check for typos or deprecated settings.\n  project (/Users/cody/.codex/worktrees/8050/lisa/.codex/config.toml): `commit_attribution` is ignored."}}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_2","type":"agent_message","text":"I’ll run `pwd` once and report the agent type catalog directly from the exposed native tool schema."}}
+{"type":"item.started","item":{"id":"item_3","type":"command_execution","command":"/bin/zsh -lc pwd","aggregated_output":"","exit_code":null,"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_3","type":"command_execution","command":"/bin/zsh -lc pwd","aggregated_output":"/Users/cody/.codex/worktrees/8050/lisa\n","exit_code":0,"status":"completed"}}
+{"type":"item.completed","item":{"id":"item_4","type":"agent_message","text":"- Observed `pwd`: `/Users/cody/.codex/worktrees/8050/lisa`\n- Exact specialist catalog: no `agent_type` enum is exposed in the native `spawn_agent` schema.\n- Session access succeeded: shell returned exit code `0`. Authentication status was not independently verified.\n\nThis does not establish fresh-host hook verification."}}
+{"type":"turn.completed","usage":{"input_tokens":53180,"cached_input_tokens":39552,"cache_write_input_tokens":0,"output_tokens":275,"reasoning_output_tokens":138}}

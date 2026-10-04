@@ -17,7 +17,7 @@ describe("codex/project-hooks-cleanup", () => {
 
   afterEach(async () => cleanupTempDir(destDir));
 
-  it("removes Lisa handlers and directories while preserving host hooks", async () => {
+  it("retires tagged handlers without deleting commands loaded by an active session", async () => {
     const hooksPath = path.join(destDir, CODEX_DIR, "hooks.json");
     await fs.outputJson(hooksPath, {
       hooks: {
@@ -56,10 +56,10 @@ describe("codex/project-hooks-cleanup", () => {
     ]);
     expect(
       await fs.pathExists(path.join(destDir, CODEX_DIR, "hooks", "lisa"))
-    ).toBe(false);
+    ).toBe(true);
     expect(await fs.pathExists(path.join(destDir, CODEX_DIR, LISA_RULES))).toBe(
-      false
+      true
     );
-    expect(result.deleted).toHaveLength(2);
+    expect(result.deleted).toEqual([]);
   });
 });

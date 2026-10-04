@@ -1,0 +1,11 @@
+{
+  "captured_at": "2026-10-04T03:06:13.435Z",
+  "shipping_head_sha": null,
+  "scope": "Final local source/build freeze; shipping identity pending",
+  "hashes": {
+    "src/codex/hooks-installer.ts": "f416dff70db62658466baf578aaf6432cedfaacf791d24112a4774345066a9e8",
+    "dist/codex/hooks-installer.js": "a3b614a5f885f17b070da96a64b9b867160dcf54f414285058507e55e36b5f0f",
+    "src/core/upstream-evidence-manifest.ts": "5512154e7241017b865c24beab5d93ae18803aa455777def4a3fe958bd9eeaa0",
+    "dist/core/upstream-evidence-manifest.js": "c99c32a33018431d1e588bf5733e11604eb873d09f7746bb37ebf9a879d39f22"
+  }
+}

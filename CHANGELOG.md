@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.69.3](https://github.com/CodySwannGT/lisa/compare/v4.69.2...v4.69.3) (2026-10-04)
+
+
+### Bug Fixes
+
+* isolate generated Rails helper before application boot ([dabb40a](https://github.com/CodySwannGT/lisa/commit/dabb40a7ac0888e3f13d0febdbc71256e3d4d1f2)), closes [#4332](https://github.com/CodySwannGT/lisa/issues/4332) [CodySwannGT/lisa#4332](https://github.com/CodySwannGT/lisa/issues/4332)
+* keep quality workflow within platform size limit ([d4bd268](https://github.com/CodySwannGT/lisa/commit/d4bd26827dc40f2b9ad2a0634360b0c10c3c9360)), closes [CodySwannGT/lisa#4332](https://github.com/CodySwannGT/lisa/issues/4332)
+
+### [4.69.2](https://github.com/CodySwannGT/lisa/compare/v4.69.1...v4.69.2) (2026-10-04)
+
+
+### Bug Fixes
+
+* **codex:** preserve active hooks through explicit apply ([fc01d0d](https://github.com/CodySwannGT/lisa/commit/fc01d0dbc88073cf859c2f7715fd12877110c332)), closes [CodySwannGT/lisa#4335](https://github.com/CodySwannGT/lisa/issues/4335)
+
 ### [4.69.1](https://github.com/CodySwannGT/lisa/compare/v4.69.0...v4.69.1) (2026-10-04)
 
 

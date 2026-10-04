@@ -288,6 +288,18 @@ into the project and unrelated Lisa stacks are not loaded. Project settings use
 `[features].hooks`; the deprecated `codex_hooks` key is removed during
 reconciliation.
 
+During an explicit Codex hook migration, including `--refresh-templates`, apply
+retains previously installed hook commands as functional regular copies with
+their helpers and rule data. An active session can keep using its loaded
+commands while a fresh session uses the current generated fallback. Host hooks
+remain intact. Keep the managed compatibility files recorded in
+`.codex/.lisa-managed.json` rather than deleting them during a running session.
+Review changed project hook definitions through Codex’s `/hooks` interface
+before trusting them in a fresh session. Automatic postinstall still skips
+agent configuration changes. This retirement
+boundary belongs to the Codex project overlay. The other supported agents do
+not delete this shell-command layout during apply.
+
 Remote coding environments use one vendor-neutral AWS bootstrap rather than
 repository-specific or agent-specific IAM users. Run `/lisa:setup-remote-aws`
 to install the common setup script and native Cursor/Copilot adapters; Claude,
@@ -375,6 +387,8 @@ A downstream project can add the same knowledge base on demand rather than recei
 > "Does my project have Lisa's knowledge base enabled? If not, walk me through enabling and bootstrapping it using whatever the current install and setup commands are."
 
 ## Extending or contributing to Lisa
+
+Rails consumers can follow the [test helper isolation and existing-consumer migration guide](docs/rails-test-isolation.md).
 
 If you're changing Lisa itself: author agent content and templates at their source, never in generated output, and rebuild so the distributed artifacts regenerate. Lisa applies its own standards to itself, so the same gates that guard downstream projects guard this one — including the requirement to prove your change works.
 

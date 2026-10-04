@@ -1,0 +1,30 @@
+$ node scripts/generate-lisa-owned-hash-ledger.mjs
+Wrote 90 ledger entries.
+Digest provenance: 1155 of 1248 derived from this repository's history, 93 carried forward only.
+Carried forward and KEPT — no run has derived these from history, which is expected under a shallower clone and is not on its own evidence of a stray entry:
+  scripts/bdd/baseline.mjs 1cac6b75292fb71e31289763b11497edbadcf4bd086714080ceb2fbf00914fe0
+  scripts/bdd/parse.mjs 9260e1c0da2b888299dbeafd082ad309faa57969dcdb1bc6a4376d72c192c560
+  scripts/check-bdd-coverage.mjs 816f593ac025cba4af81062ddfd24af8297c5189ae8761afd3b01afe05471baf
+  scripts/check-conflict-markers.mjs 635c60842f6fa27eb18a491f646e10fa7af7bd7a5b00e6d47cc22fefddea22e3
+  scripts/check-e2e-coverage.mjs 5c666bc36267bb4008e074638be96856676957ff79e0506c7a6e073bce5319e6
+  scripts/check-e2e-coverage.mjs ba0ef5a744700fb708a20a70aef6330f966c0daae9af7371b20fa95ca9389826
+  scripts/check-nightly-e2e-health.mjs 278679aba0d7ca08ce3429015076cd0f227d8b4dfe75875b2fce1cfd4133af0d
+  scripts/check-nightly-e2e-health.mjs 7ea334ded4c0583c2c9f333b7720ec3284c30d2bd33644303e056df2da21deee
+  scripts/check-nightly-e2e-health.mjs 85c770dad54809d44de2fcd779653e1019669fdf122a23a975acede4f95a3398
+  scripts/check-nightly-e2e-health.mjs 86b277e9e55d1f290e258b9d8ba3d31f58e926e9b0e01414fd75b29d724ad370
+  scripts/check-nightly-e2e-health.mjs 8b01530e8eda16d93a4e13e47e17b20b22355507cf72cf9af4a7e49fe33efb8e
+  scripts/check-nightly-e2e-health.mjs 8fa4d22caf08a53a13a47838d25d0a9cf4dfb51f2bd9fb422d92e5a04401cc40
+  scripts/check-nightly-e2e-health.mjs c10309edfe0c896bddb501f7bd9d7c4c96856836ce6ee75e95c43c09102c3a92
+  scripts/check-nightly-e2e-health.mjs d71a994be5295951bb7958864730d7b99f1c600ce3f6efa7f3484f173e0b2a54
+  scripts/check-nightly-e2e-health.mjs d78f0c64364f3cfad1d95aed64d9878ccf05f5b5d3e09ceb0bb8a75772b41ad2
+  scripts/check-nightly-e2e-health.mjs df4e945a145f88eb2e2d705b2c2292605600067488beec4dd2cbee3ee8632bd8
+  scripts/check-nightly-e2e-health.mjs e4d6b1f8d05aaa53e3d8ec13dc0094928b88ecbbc79320719937daf3afb785bd
+  scripts/check-nightly-e2e-health.mjs f0bf5102f8eb188bc4ff62f81849a96181aa5c397cae865ef7f1c00b7c1c9fc2
+  scripts/check-nightly-e2e-health.mjs f2cdb9d8a682ca0083ce71ccae267a9622f6b9935baf34091752c6ec25590e6e
+  scripts/check-verification-coverage.mjs 6ffb097fb742caaf51af18b15a166eb18ee479633ceb3e6ac82eabba45c3d36b
+  scripts/classify-maestro-failures.mjs 01d8d8a78054d179357b334f024c97e8246305b269917aa9bb60b9367b552cd4
+  scripts/lib/gate-failure-diagnosis.mjs 6b72a6a71078c838fdb0531e74898a5e36d942cad424b20480e2cd370b5264eb
+  scripts/lisa-commit-msg-gates.mjs 99422b4912cd660ddeb5ec5ab9fc333e57fa5763e711117a00b06dd2eda0bbb7
+  scripts/lisa-floor-collisions.mjs 3136d9c30b9f2945c555c0545fc9dac5ebf9135bda5e89330e351b4313ee8b89
+  scripts/lisa-gates.mjs 004a7cb02d1a7198c4f656c8e85ec31f98aa93de219c719519b8e46f74214aaa
+  ... and 68 more: every digest in LISA_OWNED_HASH_LEDGER that LISA_OWNED_HASH_HISTORY_DERIVED does not list for the same destination.

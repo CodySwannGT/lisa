@@ -1,0 +1,16 @@
+{
+  "captured_at": "2026-10-04T02:53:28.334Z",
+  "scenario": "Unowned host-authored symlink target has a matching catalog suffix but is outside any Lisa package; no manifest or tagged hook",
+  "managed": [],
+  "stillSymlink": true,
+  "hostBehaviorPreserved": true,
+  "before": {
+    "status": 0,
+    "stdout": "HOST_AUTHORED_LINK_MARKER"
+  },
+  "after": {
+    "status": 0,
+    "stdout": "HOST_AUTHORED_LINK_MARKER"
+  },
+  "built_source_sha256": "a3b614a5f885f17b070da96a64b9b867160dcf54f414285058507e55e36b5f0f"
+}

@@ -16,8 +16,26 @@ Prior separate Rails/npm research and implementation remain credited. Original
 roster and complete reports are archived verbatim in ignored private context.
 Their source reviews are historical; changed bytes require new review.
 
-The current parent instruction authorizes diagnosis, ordinary repair and logical
-normal-hook donor commits. It does not authorize push, PR, CI, release, closure
-or main merge. Historical hold/classifier evidence remains unchanged. The
+The donor-stage instruction authorized diagnosis, ordinary repair and logical
+normal-hook donor commits. Historical hold/classifier evidence remains unchanged. The
 rejected npm adversarial controls remain UNVERIFIED with no acceptance credit.
 Four audit dispositions remain visible. MLD: `[]`.
+
+## Current delivery decision
+
+Current direct session authority authorizes latest-main integration, one new
+tooling PR, normal required review/CI, merge, genuine release and immutable owned
+consumer verification. Closure still requires complete authored evidence.
+The former role threads are absent from the live native catalog. Bounded generic
+roles below continue their responsibilities with inherited runtime defaults;
+there are no callable named specialist types. Prior reports remain historical.
+
+| Role | Current ownership | Boundary |
+| --- | --- | --- |
+| Coordinator | Latest-main conflict integration, dependency inputs/lock, derived artifacts, normal commits and delivery | Preserve released safety helpers/hooks and unrelated lanes; no rejected controls |
+| Safe-helper integration engineer | Rails helper/coverage integration and focused regression expectations, only explicitly assigned files | No dependency edits, policy changes, delivery or foreign targets |
+| Current-byte source reviewer | Read-only final combined diff and private review report | No source, index, build or delivery mutations |
+| Empirical verifier | Owned isolated targets, private receipts and cleanup | Actual combined compiled apply, coverage/safe-helper and packed bootstrap proof; no source edits or rejected controls |
+
+The coordinator assigns files before each bounded task. Public evidence remains
+anonymous; exact runtime and target identities live only in ignored context.

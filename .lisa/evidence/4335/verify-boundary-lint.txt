@@ -1,0 +1,7 @@
+
+/Users/cody/.codex/worktrees/8050/lisa/.lisa/evidence/4335/verify-boundary.mjs
+  195:3   error  Make sure the "PATH" variable only contains fixed, unwriteable directories  sonarjs/no-os-command-from-path
+  242:20  error  'tools' is not defined                                                      no-undef
+  242:45  error  'tools' is not defined                                                      no-undef
+
+✖ 3 problems (3 errors, 0 warnings)

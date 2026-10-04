@@ -1,0 +1,71 @@
+{
+  "captured_at": "2026-10-04T02:49:32.552Z",
+  "branch": "codex/4335-active-hook-retirement",
+  "base_sha": "728d35afbd3de4d522023e0b65fd0f730c94820c",
+  "verification_status": "in_progress",
+  "shipping_identity": null,
+  "implementation_frozen": true,
+  "gates": {
+    "build_dist": {
+      "status": 0
+    },
+    "managed_units": {
+      "status": 0,
+      "files": 7,
+      "passed": 58,
+      "log": ".lisa/evidence/4335/green-unit-ownership.log",
+      "command": "node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- node node_modules/vitest/vitest.mjs run tests/unit/codex/project-hooks-cleanup.test.ts tests/unit/codex/manifest.test.ts tests/unit/codex/hooks-installer-rules-mirror.test.ts tests/unit/codex/hook-compatibility.test.ts tests/unit/codex/hook-source-ownership.test.ts tests/unit/codex/hooks-installer.test.ts tests/unit/cli/doctor.test.ts --reporter verbose"
+    },
+    "generated_artifacts": {
+      "status": 0,
+      "passed": 7,
+      "log": ".lisa/evidence/4335/green-artifacts.log"
+    },
+    "module_syntax": {
+      "status": 0,
+      "files": 4
+    },
+    "diff_check": {
+      "status": 0
+    }
+  },
+  "source_sha256": {
+    "README.md": "900a4c2610c25f82e0b080e559bb0ba95aca049d7c04fb2c7ad92dc2efbb76ed",
+    "src/codex/hooks-installer.ts": "ba4147f7d1437dcd44111c986c92d9a44d7fbbaee01a16b62448c064930bb22f",
+    "src/codex/project-hooks-cleanup.ts": "86d5aedc304fa6a4bc14c399b8125c84834501fed528bbfa63dacb4ef201c056",
+    "src/codex/project-overlay.ts": "71080a5d0e9c47eab6e1080100f139640401de26b5d6bbff7805ea1496a67b64",
+    "src/codex/manifest.ts": "e36811ef44362711cffb53e9f8dce6375ca1eb4d3d1f1d51d704cf6fc10cb6d8",
+    "src/cli/doctor-legacy-overlay.ts": "3d450d0fa0a3f7b76c9a91ec8c374ca3b00e97d8a0ecfb70041ee76b3aac519f",
+    "src/core/upstream-evidence-manifest.ts": "5512154e7241017b865c24beab5d93ae18803aa455777def4a3fe958bd9eeaa0",
+    "dist/codex/hooks-installer.js": "1ee20b05440d9dc4d255368cac1eb09959165ad13bcdd6d52040b596d87a98d1",
+    "dist/core/upstream-evidence-manifest.js": "c99c32a33018431d1e588bf5733e11604eb873d09f7746bb37ebf9a879d39f22",
+    "tests/support/codex-compatibility-proof.mjs": "0d7272b125c4598532eae9aa005a7cf85cb150723f339f5b28b31a6237b62ba8",
+    "tests/support/codex-compatibility-seed.mjs": "86ef5cb85fb14c5c6ae258f64beb760f32d97fb190986284504f6a15350f69d6",
+    "tests/support/codex-compatibility-state.mjs": "6517e571d305ab815b9ab119ca26877753277d1aaf136cc822d4c26bee635bb0",
+    "tests/unit/codex/hook-compatibility.test.ts": "1724080e3000684b3b46bb15283013a2c455ac6d68f842b521b1ce67a524df52",
+    "tests/unit/codex/hook-source-ownership.test.ts": "d1488e97a64f0b75830c2a8d6225f8617e0a435905d92fdfc51cd9ac3b2a3490",
+    "tests/unit/codex/project-hooks-cleanup.test.ts": "c101fbdae5cce02fa918871ca34f8adc22d8ca4f1643e46aefbdf30bf3df16ea",
+    "tests/integration/codex-active-hooks.test.ts": "25813dfe8701cc02e7f145a6763b329600b674071abdfecfd0f5074b3bb763ff",
+    ".lisa/evidence/4335/green-reproduce.mjs": "927a029715a0a0dbcdad1d285659f74f3eebab52dd7c3173fb5f7ec4a7913a18"
+  },
+  "limitations": [
+    "Earlier worker GREEN replay preceded final ownership fixes; independent verifier owns aligned final replay and native-session proof.",
+    "Final managed integration replay after support-module relocation remains pending its serial CLI rendezvous.",
+    "No shipping commit, pull request, release or consumer adoption identity exists."
+  ],
+  "mld_candidates": [],
+  "ownership_regression": {
+    "red": {
+      "status": 1,
+      "failed": 3,
+      "passed": 6,
+      "log": ".lisa/evidence/4335/green-symlink-regression-red.log"
+    },
+    "green": {
+      "status": 0,
+      "passed": 11,
+      "log": ".lisa/evidence/4335/green-symlink-regression-green.log"
+    },
+    "final_gate": "58 of 58 named unit cases passed after test file split"
+  }
+}

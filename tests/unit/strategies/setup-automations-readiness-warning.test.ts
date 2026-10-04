@@ -12,6 +12,15 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
+import {
+  installHooks,
+  installHookCompatibility,
+} from "../../../src/codex/hooks-installer.js";
+import { retireProjectHooks } from "../../../src/codex/project-hooks-cleanup.js";
+import { installCodexEnforcementFallback } from "../../../src/codex/enforcement-fallback-installer.js";
+import { parseHooksFile } from "../../../src/codex/hooks-merger.js";
+import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import { createTempDir, cleanupTempDir } from "../../helpers/test-utils.js";
 
 const SKILL_ROOTS = [
   "plugins/src/base/skills",
@@ -243,12 +252,51 @@ describe("RRR rubric six-agent parity backstop (#1859)", () => {
       expect(generator).toMatch(/no full rules tree in agy artifacts/i);
     });
 
-    it("Codex mirrors the shared rules and injects the eager tier", () => {
-      const installer = read("src/codex/hooks-installer.ts");
-      expect(installer).toContain("mirrorLisaRules");
-      expect(installer).toContain("LISA_RULES_SUBDIR");
-      expect(installer).toMatch(/id: "inject-rules"/);
-      expect(installer).toMatch(/event: "SessionStart"/);
+    it("Codex keeps loaded eager injection functional while fresh hooks use the fallback", async () => {
+      const host = await createTempDir();
+      try {
+        const installed = await installHooks(process.cwd(), host, []);
+        const previous = parseHooksFile(
+          readFileSync(path.join(host, ".codex/hooks.json"), "utf8")
+        );
+        expect(
+          previous.hooks?.SessionStart?.flatMap(group => group.hooks).some(
+            hook => hook._lisaId === "inject-rules"
+          )
+        ).toBe(true);
+        await installHookCompatibility(
+          process.cwd(),
+          host,
+          [],
+          installed.managedFiles
+        );
+        await retireProjectHooks(host, installed.managedFiles);
+        await installCodexEnforcementFallback(host);
+        const current = parseHooksFile(
+          readFileSync(path.join(host, ".codex/hooks.json"), "utf8")
+        );
+        expect(Object.keys(current.hooks ?? {})).toEqual(["PreToolUse"]);
+        expect(
+          current.hooks?.PreToolUse?.flatMap(group => group.hooks).map(
+            hook => hook._lisaId
+          )
+        ).toEqual(["enforcement-fallback"]);
+        const injected = boundedSpawnSync({
+          command: "/bin/bash",
+          args: [path.join(host, ".codex/hooks/lisa/inject-rules.sh")],
+          cwd: host,
+          input: "{}",
+          label: "Codex readiness eager rules injection",
+        });
+        expect(injected.status).toBe(0);
+        const context: string = JSON.parse(injected.stdout).hookSpecificOutput
+          .additionalContext;
+        expect(context).toContain(
+          read("plugins/lisa/rules/eager/00-rule-index.md").trim()
+        );
+      } finally {
+        await cleanupTempDir(host);
+      }
     });
 
     it("OpenCode mirrors the shared rules and loads the eager tier natively", () => {

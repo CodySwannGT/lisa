@@ -1,0 +1,11 @@
+{"type":"thread.started","thread_id":"01a104d8-705b-7d03-9715-20a0cdf97428"}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"I’ll run the requested local probes in order and report the observed refusal and any hook loading or trust warning."}}
+{"type":"item.started","item":{"id":"item_1","type":"command_execution","command":"/bin/zsh -lc pwd","aggregated_output":"","exit_code":null,"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_1","type":"command_execution","command":"/bin/zsh -lc pwd","aggregated_output":"<anonymous-host>\n","exit_code":0,"status":"completed"}}
+{"type":"item.started","item":{"id":"item_2","type":"file_change","changes":[{"path":"<anonymous-host>/native-probe.txt","kind":"add"}],"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_2","type":"file_change","changes":[{"path":"<anonymous-host>/native-probe.txt","kind":"add"}],"status":"completed"}}
+{"type":"item.started","item":{"id":"item_3","type":"command_execution","command":"/bin/zsh -lc 'cat native-probe.txt'","aggregated_output":"","exit_code":null,"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_3","type":"command_execution","command":"/bin/zsh -lc 'cat native-probe.txt'","aggregated_output":"fresh-native-session\n","exit_code":0,"status":"completed"}}
+{"type":"item.completed","item":{"id":"item_4","type":"agent_message","text":"- `pwd` returned `<anonymous-host>`.\n- `git commit --no-verify --dry-run` was refused before execution by the PreToolUse hook: “Blocked: this command bypasses pre-commit/pre-push hooks.”\n- The refusal identified `scripts/lisa-hooks/block-no-verify.sh` and warned that its Lisa 4.68.0 copy was **stale**, with 4.68.1 on this machine.\n- `apply_patch` added `native-probe.txt` once. `cat native-probe.txt` succeeded and returned `fresh-native-session`.\n- No native hook loading or trust warning was observed. Stopped without further changes."}}
+{"type":"turn.completed","usage":{"input_tokens":144874,"cached_input_tokens":121856,"cache_write_input_tokens":0,"output_tokens":488,"reasoning_output_tokens":91}}

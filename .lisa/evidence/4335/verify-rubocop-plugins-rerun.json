@@ -1,0 +1,8 @@
+{
+  "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/rubocop-on-edit.sh\"",
+  "status": 0,
+  "stdout": "Inspecting 1 file\n.\n\n1 file inspected, no offenses detected\n",
+  "stderr": "rubocop-yard extension supports plugin, specify `plugins: rubocop-yard` instead of `require: rubocop-yard` in /private<anonymous-host>/.rubocop.yml.\nFor more information, see https://docs.rubocop.org/rubocop/plugin_migration_guide.html.\n",
+  "corrected": "# frozen_string_literal: true\n\nvalue = 1\nputs value\n",
+  "setup": "Normally installed all six real plugins required by restored shipped Rails configuration"
+}
