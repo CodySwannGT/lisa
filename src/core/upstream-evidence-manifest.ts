@@ -2249,7 +2249,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/create-only/sonar-project.properties":
       "58f0618863149a49aa39dc96eca498e8338f24e7d0237fb654ac85920ba57e15",
     "rails/create-only/spec/rails_helper.rb":
-      "5a96010d99c78f75713fc44fed6bba5f2631f94f5d1cc08d96f80601faeee843",
+      "b12256cd12baf050efc960417ad426ffaa2d7de13f2dda4523c6fdcd5be9a582",
     "rails/create-only/spec/spec_helper.rb":
       "56ca48d2519ece7a856fe7941ea8acf2d9f1d53aee03321f230300907dc20712",
     "rails/deletions.json":
@@ -2495,7 +2495,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "6bade15e5b356d121a535981c177c6ed5df3bf46a40fce483d428db2ea0a90ca",
+      "d8e22c6970c604df7588d313fdf79ba7676fff01740e6151b6a5fc77391cae02",
     "scripts/update-node-version.ts":
       "0059067c14001c2f7e75beb2628d1a46f935c7b01ce61871db71b6849ef62dca",
     "scripts/update-test-skill-paths.mjs":
@@ -2976,6 +2976,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "docs/maestro-flake-classification.md": true,
     "docs/nightly-e2e-gate.md": true,
     "docs/quality-workflow-notes.md": true,
+    "docs/rails-test-isolation.md": true,
     "docs/remote-agent-aws.md": true,
     "docs/wiki-inbox/.gitkeep": true,
     "docs/wiki-inbox/2026-08-12-lisa-improvement-notes.md": true,
@@ -9497,6 +9498,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/queue-status-prd-readers/github.json": true,
     "tests/fixtures/queue-status-prd-readers/linear.json": true,
     "tests/fixtures/queue-status-prd-readers/notion.json": true,
+    "tests/fixtures/rails-helper-test-isolation/config/boot.rb": true,
+    "tests/fixtures/rails-helper-test-isolation/config/environment.rb": true,
+    "tests/fixtures/rails-helper-test-isolation/rspec/rails.rb": true,
+    "tests/fixtures/rails-helper-test-isolation/spec/spec_helper.rb": true,
     "tests/fixtures/shared-runtime-hosts/artifact.ts": true,
     "tests/fixtures/shared-runtime-hosts/assertions.ts": true,
     "tests/fixtures/shared-runtime-hosts/host.ts": true,
@@ -9762,6 +9767,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-verification-coverage-collapse.test.ts": true,
     "tests/integration/quality-workflow-size.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,
+    "tests/integration/rails-helper-test-isolation.test.ts": true,
     "tests/integration/rails-learnings-budget-gate.test.ts": true,
     "tests/integration/rails-scratch-authority.test.ts": true,
     "tests/integration/rails-scratch-lifecycle.test.ts": true,
@@ -9802,6 +9808,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/support/maestro-leg-order-harness.ts": true,
     "tests/integration/support/pre-tool-refusal-fixture.ts": true,
     "tests/integration/support/pre-tool-refusal-harness.ts": true,
+    "tests/integration/support/rails-helper-fixture.ts": true,
     "tests/integration/support/rails-learnings-budget-gate.ts": true,
     "tests/integration/support/rails-scratch-supervisor.ts": true,
     "tests/integration/support/reusable-workflow-scopes.ts": true,
