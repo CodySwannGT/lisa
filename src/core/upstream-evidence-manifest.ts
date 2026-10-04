@@ -181,7 +181,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/merge/.oxlintrc.json":
       "f7d248cf8a89561374d7e68e24aa780f4a6a523938475ad685f034ce0194d75c",
     "cdk/package-lisa/package.lisa.json":
-      "5f44baaca20a20adde58a7419f2a3acc8d7af4b8e19e77ed43afd3549581fbe6",
+      "1f2c040feda7165e0d93f8b3cf8a60eaa61aa375c1cd8359eaad6d2e3be1b97a",
     "eslint-plugin-code-organization/README.md":
       "e70c9e262ce3a97e1f9fe1897ffa71e3d1b124f10486b90ead5d4a5252977826",
     "eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js":

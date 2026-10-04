@@ -195,6 +195,8 @@ minimum peers. Existing OIDC dependency choices stay host-owned, including exact
 [versioned API](https://github.com/aripalo/aws-cdk-github-oidc/blob/v5.2.0/API.md)
 and update its application trust configuration deliberately. Lisa generates no
 OIDC constructs and does not migrate application IAM policies.
+CDK applies also preserve existing package executables and advertise none for
+a fresh source-only app; Lisa does not generate `bin/infrastructure.js`.
 Applying twice with the same Lisa version keeps managed content unchanged.
 Install dependencies after applying, then verify the installed versions and
 lockfile alongside the host's test, typecheck and offline synth commands.

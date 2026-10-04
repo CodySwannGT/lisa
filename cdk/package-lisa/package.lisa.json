@@ -33,9 +33,6 @@
       "@stryker-mutator/core": "^9.0.0",
       "@stryker-mutator/vitest-runner": "^9.0.0"
     },
-    "bin": {
-      "infrastructure": "bin/infrastructure.js"
-    },
     "private": true,
     "overrides": {
       "aws-cdk-lib": "$aws-cdk-lib",

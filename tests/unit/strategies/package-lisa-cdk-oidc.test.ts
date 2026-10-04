@@ -130,4 +130,29 @@ describe("supported CDK OIDC template", () => {
     ).rejects.toThrow("dependencies.constructs cannot be merged");
     expect(await fs.readFile(destination, "utf8")).toBe(original);
   });
+
+  it("adds no phantom executable to a source-only CDK application", async () => {
+    await fs.writeJson(destination, { name: "host" });
+    await strategy.apply(SOURCE, destination, PACKAGE_JSON, context);
+    const written = await fs.readJson(destination);
+    expect(written).not.toHaveProperty("bin");
+    expect(
+      await fs.pathExists(path.join(projectDir, "bin/infrastructure.js"))
+    ).toBe(false);
+  });
+
+  it("preserves legitimate host bin mappings without adding a phantom entry", async () => {
+    const hostBin = { "host-tool": "bin/host-tool.js" };
+    await fs.outputFile(
+      path.join(projectDir, "bin/host-tool.js"),
+      "#!/usr/bin/env node\n"
+    );
+    await fs.writeJson(destination, { name: "host", bin: hostBin });
+    await strategy.apply(SOURCE, destination, PACKAGE_JSON, context);
+    const written = await fs.readJson(destination);
+    expect(written.bin).toEqual(hostBin);
+    expect(
+      await fs.pathExists(path.join(projectDir, hostBin["host-tool"]))
+    ).toBe(true);
+  });
 });

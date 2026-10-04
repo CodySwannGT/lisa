@@ -164,9 +164,9 @@ describe("what admission to the CDK preset actually costs", () => {
     };
     const force = cdkTemplate.force ?? {};
 
-    // Admission still adds the bin entry and constructs peer, while OIDC
-    // stays host-owned through defaults instead of forcing an API migration.
-    expect(force.bin).toEqual({ infrastructure: "bin/infrastructure.js" });
+    // Admission adds the constructs peer, while OIDC and executable
+    // advertisements stay host-owned instead of forcing application changes.
+    expect(force).not.toHaveProperty("bin");
     expect(force.dependencies).toMatchObject({ constructs: "^10.7.2" });
     expect(force.dependencies).not.toHaveProperty("aws-cdk-github-oidc");
     expect(cdkTemplate.defaults).toMatchObject({
