@@ -91,6 +91,11 @@ import {
 } from "./learnings-file-safety.js";
 import { APPLY_RECEIPT_DISPLAY_PATH } from "./apply-receipt.js";
 import {
+  PLUGIN_PROBE_TIMEOUT_MS,
+  PLUGIN_REGISTRATION_TIMEOUT_MS,
+  runPluginCommand,
+} from "./plugin-command.js";
+import {
   basisAuthorisesDeletion,
   resolveDeletionBasis,
 } from "./deletion-basis.js";
@@ -137,12 +142,14 @@ export interface LisaDependencies {
 }
 
 /**
- * Shape of the promisified exec function used for Claude CLI plugin commands.
+ * Command boundary used for Claude CLI plugin registration.
  */
 type PluginExecAsync = (
   cmd: string,
   opts: Record<string, unknown>
 ) => Promise<unknown>;
+/** Generic fallback when a plugin command has no readable error. */
+const PLUGIN_COMMAND_FAILED = "command failed";
 
 /**
  * Main Lisa orchestrator
@@ -848,8 +855,6 @@ export class Lisa {
    * Register plugins from merged settings.json with Claude Code at project scope
    */
   private async registerPlugins(): Promise<void> {
-    const { logger } = this.deps;
-
     if (this.config.dryRun) {
       return;
     }
@@ -872,26 +877,50 @@ export class Lisa {
       return;
     }
 
-    const plugins = Object.keys(
+    const plugins = Object.entries(
       settings.enabledPlugins as Record<string, boolean>
-    );
+    )
+      .filter(([, enabled]) => enabled === true)
+      .map(([plugin]) => plugin);
 
     if (plugins.length === 0) {
       return;
     }
 
-    const { exec: execCb } = await import("node:child_process");
-    const { promisify } = await import("node:util");
-    const execAsync = promisify(execCb);
+    const operationDeadline = Date.now() + PLUGIN_REGISTRATION_TIMEOUT_MS;
+    const execAsync: PluginExecAsync = async (command, options) =>
+      await runPluginCommand(command.split(" ").slice(1), {
+        cwd: this.config.destDir,
+        timeoutMs: Math.min(
+          Number(options.timeout),
+          operationDeadline - Date.now()
+        ),
+      });
 
     try {
-      await execAsync("command -v claude", { shell: "/bin/sh" });
-    } catch {
-      logger.info("Claude CLI not found, skipping plugin registration");
+      await execAsync("claude --version", { timeout: PLUGIN_PROBE_TIMEOUT_MS });
+    } catch (error) {
+      this.reportPluginProbeFailure(error);
       return;
     }
 
     await this.installPluginsAndUpdateMarketplace(execAsync, plugins);
+  }
+
+  /**
+   * Distinguish a missing optional CLI from a failed or timed-out real probe.
+   * @param error - Probe failure
+   */
+  private reportPluginProbeFailure(error: unknown): void {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      this.deps.logger.info(
+        "Claude CLI not found, skipping plugin registration"
+      );
+      return;
+    }
+    this.deps.logger.warn(
+      `Claude CLI probe failed; plugin registration will retry (${error instanceof Error ? error.message : PLUGIN_COMMAND_FAILED})`
+    );
   }
 
   /**
@@ -933,25 +962,52 @@ export class Lisa {
 
     logger.info("Registering plugins with Claude Code (project scope)...");
 
+    const sync = { succeeded: true };
     if (fullSync) {
       // Best-effort cache refresh. Individual plugin installs below will still
       // report whether the marketplace entry is available.
-      await this.updateLisaMarketplace(execAsync, false);
+      sync.succeeded = await this.updateLisaMarketplace(execAsync, false);
     }
 
     for (const plugin of toInstall) {
       if (!validPluginName.test(plugin)) {
         logger.warn(`Skipping invalid plugin name: ${plugin}`);
+        sync.succeeded = false;
         continue;
       }
-      await this.installPlugin(execAsync, plugin);
+      const installed = await this.installPlugin(execAsync, plugin);
+      sync.succeeded = installed && sync.succeeded;
     }
 
     // Post-install refresh must run whenever installs happened: installing can
     // register the marketplace for the first time, and without a refresh newly
     // added skills are not discovered ("Unknown skill" in nightly CI — #320).
-    await this.updateLisaMarketplace(execAsync, true);
+    const refreshed = await this.updateLisaMarketplace(execAsync, true);
 
+    await this.recordPluginSyncOutcome(
+      version,
+      fullSync,
+      sync.succeeded && refreshed
+    );
+  }
+
+  /**
+   * Record only a completed sync, keeping failures eligible for a later retry.
+   * @param version - Current Lisa version
+   * @param fullSync - Whether a version change required every plugin
+   * @param completed - Whether all required commands succeeded
+   */
+  private async recordPluginSyncOutcome(
+    version: string,
+    fullSync: boolean,
+    completed: boolean
+  ): Promise<void> {
+    if (!completed) {
+      this.deps.logger.warn(
+        "Plugin registration incomplete; sync marker unchanged, retry on the next apply"
+      );
+      return;
+    }
     if (fullSync) {
       // Always the project's OWN marker (destDir): a full sync run from a
       // linked worktree only reinstalled plugins for the worktree's
@@ -1027,12 +1083,12 @@ export class Lisa {
    * @param execAsync - Promisified exec function for running shell commands
    * @param announce - Whether to log the outcome (silent for the pre-install
    *   best-effort refresh)
-   * @returns Promise that resolves when the refresh attempt completes
+   * @returns Whether the refresh command succeeded
    */
   private async updateLisaMarketplace(
     execAsync: PluginExecAsync,
     announce: boolean
-  ): Promise<void> {
+  ): Promise<boolean> {
     const { logger } = this.deps;
     try {
       await execAsync(
@@ -1042,10 +1098,14 @@ export class Lisa {
       if (announce) {
         logger.success("Updated marketplace: lisa");
       }
-    } catch {
+      return true;
+    } catch (error) {
       if (announce) {
-        logger.warn("Could not update marketplace: lisa");
+        logger.warn(
+          `Could not update marketplace: lisa (${error instanceof Error ? error.message : PLUGIN_COMMAND_FAILED})`
+        );
       }
+      return false;
     }
   }
 
@@ -1053,12 +1113,12 @@ export class Lisa {
    * Install a single plugin at project scope via the Claude CLI.
    * @param execAsync - Promisified exec function for running shell commands
    * @param plugin - Plugin identifier (already validated)
-   * @returns Promise that resolves when the install attempt completes
+   * @returns Whether the install command succeeded
    */
   private async installPlugin(
     execAsync: PluginExecAsync,
     plugin: string
-  ): Promise<void> {
+  ): Promise<boolean> {
     const { logger } = this.deps;
     try {
       await execAsync(
@@ -1066,17 +1126,24 @@ export class Lisa {
         this.pluginExecOptions()
       );
       logger.success(`Registered plugin: ${plugin}`);
-    } catch {
-      logger.warn(`Could not register plugin: ${plugin}`);
+      return true;
+    } catch (error) {
+      logger.warn(
+        `Could not register plugin: ${plugin} (${error instanceof Error ? error.message : PLUGIN_COMMAND_FAILED})`
+      );
+      return false;
     }
   }
 
   /**
    * Exec options shared by all Claude CLI plugin commands.
-   * @returns Options object with the project cwd and POSIX shell
+   * @returns Options object with the project cwd and registration budget
    */
   private pluginExecOptions(): Record<string, unknown> {
-    return { cwd: this.config.destDir, shell: "/bin/sh" };
+    return {
+      cwd: this.config.destDir,
+      timeout: PLUGIN_REGISTRATION_TIMEOUT_MS,
+    };
   }
 
   /**
@@ -1110,7 +1177,7 @@ export class Lisa {
     try {
       const result = (await execAsync("claude plugin list --json", {
         cwd: this.config.destDir,
-        shell: "/bin/sh",
+        timeout: PLUGIN_PROBE_TIMEOUT_MS,
       })) as { stdout?: unknown };
       const parsed: unknown = JSON.parse(String(result.stdout ?? ""));
       if (!Array.isArray(parsed)) {
