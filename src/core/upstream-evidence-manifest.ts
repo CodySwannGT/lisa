@@ -2205,7 +2205,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/ast-grep/utils/.gitkeep":
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "rails/copy-overwrite/config/initializers/version.rb":
-      "703bdfcceb031f38d19ddebe7ae3d432051f0d444ab7467b406ddd8e451ec9c7",
+      "9304268500aada31d8bd158dca4274888d10db4e30f8dadd9bf23a01d67f2480",
     "rails/copy-overwrite/lefthook.yml":
       "c0969fba8a2826155c4009cfaa8bcf986ebd0cc1513867fe7f9aa8077005edb3",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
@@ -9674,6 +9674,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/rails-scratch-authority.test.ts": true,
     "tests/integration/rails-scratch-lifecycle.test.ts": true,
     "tests/integration/rails-scratch-ownership.test.ts": true,
+    "tests/integration/rails-version-initializer.test.ts": true,
     "tests/integration/registry-path-agreement.test.ts": true,
     "tests/integration/release-changelog-entry.test.ts": true,
     "tests/integration/release-changelog-push-recovery.test.ts": true,
