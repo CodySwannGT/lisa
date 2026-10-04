@@ -24,6 +24,10 @@ const TO = "4.68.0";
 const PKG = "package.json";
 /** `git log` arguments printing the last commit's subject. */
 const LAST_SUBJECT = ["log", "-1", "--format=%s"];
+/** `git show` arguments listing the files the last commit touched. */
+const HEAD_FILES = ["show", "--name-only", "--format=", "HEAD"];
+/** An unrelated feature edit sitting beside the pending update. */
+const FEATURE_FILE = "feature.ts";
 
 /**
  * The pending-update marker inside a fixture repository.
@@ -68,12 +72,12 @@ function repoWithPendingUpdate(branch: string): string {
   git(root, ["config", "user.name", "t"]);
   git(root, ["config", "user.email", "t@example.com"]);
   writeFileSync(path.join(root, PKG), "{}\n");
-  writeFileSync(path.join(root, "feature.ts"), "export {};\n");
+  writeFileSync(path.join(root, FEATURE_FILE), "export {};\n");
   git(root, ["add", "-A"]);
   git(root, ["commit", "--quiet", "-m", "init"]);
   if (branch !== "main") git(root, ["checkout", "--quiet", "-b", branch]);
   writeFileSync(path.join(root, PKG), '{"v":1}\n');
-  writeFileSync(path.join(root, "feature.ts"), "export const x = 1;\n");
+  writeFileSync(path.join(root, FEATURE_FILE), "export const x = 1;\n");
   mkdirSync(path.join(root, ".git", "lisa"), { recursive: true });
   writeFileSync(
     markerFile(root),
@@ -86,6 +90,15 @@ function repoWithPendingUpdate(branch: string): string {
 const CONTRACT = { deployBranches: new Map([["main", "production"]]) };
 
 describe("lisa-work-item: a pending Lisa update is committed first", () => {
+  it("keeps a feature edit the user already staged out of the update commit", () => {
+    const root = repoWithPendingUpdate("feat/x");
+    git(root, ["add", FEATURE_FILE]);
+    commitPendingLisaUpdate(REF, CONTRACT, root);
+    expect(git(root, HEAD_FILES)).toBe(PKG);
+    // Still staged, still the user's, still uncommitted.
+    expect(git(root, ["diff", "--cached", "--name-only"])).toBe(FEATURE_FILE);
+  });
+
   it("commits only the update's files, with the bound item's trailer", () => {
     const root = repoWithPendingUpdate("feat/x");
     commitPendingLisaUpdate(REF, CONTRACT, root);
@@ -93,7 +106,7 @@ describe("lisa-work-item: a pending Lisa update is committed first", () => {
     expect(git(root, ["log", "-1", "--format=%B"])).toContain(
       `Work-Item: ${REF}`
     );
-    expect(git(root, ["show", "--name-only", "--format=", "HEAD"])).toBe(PKG);
+    expect(git(root, HEAD_FILES)).toBe(PKG);
     // The feature edit stays out of the update commit.
     expect(git(root, ["status", "--porcelain"])).toBe("M feature.ts");
     expect(existsSync(markerFile(root))).toBe(false);

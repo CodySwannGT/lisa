@@ -83,6 +83,15 @@ export const LisaSessionBootstrap = async ({
         const context = JSON.parse(text)?.hookSpecificOutput?.additionalContext;
         if (context) console.error(context);
       }
+    } else if (
+      existsSync(`${root}/node_modules/@codyswann/lisa/package.json`)
+    ) {
+      // This plugin is only written by an apply of a Lisa that ships the
+      // engine, so an installed Lisa without it means node_modules is older
+      // than the project's own files. Say so rather than skipping silently.
+      console.error(
+        "lisa-auto-update: the installed @codyswann/lisa predates this project's Lisa files, so the session-start update could not run. Run your package install to bring node_modules up to date."
+      );
     }
   } catch {
     // fail open — a session must start even when the update cannot run

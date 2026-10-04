@@ -4367,11 +4367,19 @@ export function commitPendingLisaUpdate(ref, contract, cwd = process.cwd()) {
   }
   const branch = git(["branch", "--show-current"], { cwd });
   if (!branch || contract.deployBranches?.has?.(branch)) return;
+  // Untrimmed and NUL-delimited: a porcelain record starts with a significant
+  // space, and a rename record is followed by a record naming its source.
+  const records = run(
+    "git",
+    ["status", "--porcelain=v1", "-z", "--untracked-files=all"],
+    { cwd }
+  )
+    .stdout.split("\0")
+    .filter(Boolean);
   const dirty = new Set(
-    git(["status", "--porcelain"], { cwd })
-      .split("\n")
-      .filter(Boolean)
-      .map(line => line.slice(3).replace(/^"|"$/gu, ""))
+    records
+      .filter((_record, index) => !/^[RC]/u.test(records[index - 1] ?? ""))
+      .map(record => record.slice(3))
   );
   const files = (pending.files ?? []).filter(file => dirty.has(file));
   if (files.length === 0) {
@@ -4380,13 +4388,18 @@ export function commitPendingLisaUpdate(ref, contract, cwd = process.cwd()) {
   }
   try {
     git(["add", "--", ...files], { cwd });
-    // The project's own commit hooks run here (lint-staged, commit gates), so
-    // the default child deadline is far too short for them.
+    // `--only` commits exactly these paths, so a feature edit the user had
+    // already staged stays staged and out of the update commit. The project's
+    // own commit hooks run here (lint-staged, commit gates), so the default
+    // child deadline is far too short for them.
     git(
       [
         "commit",
+        "--only",
         "-m",
         `chore(deps): update Lisa to ${pending.to}\n\nApplied automatically at session start: Lisa ${pending.from} to ${pending.to}, including the template changes \`lisa apply\` makes for it.\n\nWork-Item: ${ref}\n`,
+        "--",
+        ...files,
       ],
       { cwd, timeout: 10 * 60 * 1000 }
     );

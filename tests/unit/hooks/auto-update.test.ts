@@ -4,6 +4,10 @@
  * `auto-update-session.test.ts`.
  * @module tests/unit/hooks/auto-update.test
  */
+import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -13,7 +17,11 @@ import {
   choosePackageManager,
   commitDecision,
   envelope,
+  lockIsAbandoned,
   onlyUpdateCommits,
+  parsePorcelainZ,
+  releaseLock,
+  takeLock,
   updateMessage,
   updateSubject,
 } from "../../../plugins/src/base/hooks/auto-update.mjs";
@@ -102,6 +110,36 @@ describe("auto-update: decisions", () => {
     expect(updateMessage(OLD, NEW, null).split("\n")[0]).toBe(
       updateSubject(NEW)
     );
+  });
+
+  it("reads status records without losing the leading space or a rename's source", () => {
+    expect(
+      parsePorcelainZ(" M package.json\0R  new.ts\0old.ts\0?? .lisa/x.json\0")
+    ).toEqual(["package.json", "new.ts", ".lisa/x.json"]);
+  });
+
+  it("never reaps a lock whose owner is alive, and reaps one whose owner is gone", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "lisa-auto-update-lock-"));
+    const lock = path.join(dir, "auto-update.lock");
+    const now = Date.now();
+    expect(takeLock(lock, now)).toBe(true);
+    // Held by this live process: refused, however old the clock says it is.
+    expect(takeLock(lock, now + 10 * 60 * 60 * 1000)).toBe(false);
+    expect(lockIsAbandoned(lock, now + 10 * 60 * 60 * 1000)).toBe(false);
+    releaseLock(lock);
+    expect(existsSync(lock)).toBe(false);
+    // A lock naming a process that no longer exists is reaped.
+    writeFileSync(lock, JSON.stringify({ pid: 2 ** 22 + 7, at: now }));
+    expect(lockIsAbandoned(lock, now)).toBe(true);
+    expect(takeLock(lock, now)).toBe(true);
+  });
+
+  it("never deletes a lock another session holds", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "lisa-auto-update-lock-"));
+    const lock = path.join(dir, "auto-update.lock");
+    writeFileSync(lock, JSON.stringify({ pid: process.ppid, at: Date.now() }));
+    releaseLock(lock);
+    expect(existsSync(lock)).toBe(true);
   });
 
   it("says nothing when there is nothing to say", () => {

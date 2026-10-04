@@ -60,6 +60,8 @@ export interface World {
   readonly bumpWorks?: boolean;
   /** Whether `git commit` succeeds. */
   readonly commitWorks?: boolean;
+  /** Whether release tags can be read (self mode); false fails log and fetch. */
+  readonly tagsReadable?: boolean;
 }
 
 /**
@@ -187,6 +189,10 @@ export function fakeRunner(
       () => (updated.current ? CHANGED.join("\n") : (world.dirtyBefore ?? "")),
     ],
     [
+      line => line.startsWith("git status --porcelain=v1 -z"),
+      () => (updated.current ? `${CHANGED.join("\0")}\0` : ""),
+    ],
+    [
       line => line === "git branch --show-current",
       () => world.branch ?? FEATURE,
     ],
@@ -204,6 +210,10 @@ export function fakeRunner(
     }
     if (line.startsWith(COMMIT) && world.commitWorks === false) {
       throw new Error("commit-msg hook refused");
+    }
+    const tagRead = line.startsWith("git log ") || line.startsWith("git fetch");
+    if (tagRead && world.tagsReadable === false) {
+      throw new Error("could not read from remote repository");
     }
     updated.current = applySideEffects(root, world, argv) || updated.current;
     return answers.find(([matches]) => matches(line))?.[1]() ?? "";

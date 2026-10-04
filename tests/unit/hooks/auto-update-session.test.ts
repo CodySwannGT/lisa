@@ -167,6 +167,14 @@ describe("auto-update: Lisa updating itself", () => {
     expect(text).toContain("self-dependency");
   });
 
+  it("reports unreadable release tags instead of failing silently", async () => {
+    const { text, seen } = await sessionStart(project({ self: true }), {
+      tagsReadable: false,
+    });
+    expect(text).toContain("release tags needed to check it could not be read");
+    expect(ran(seen, BUMP)).toBe(false);
+  });
+
   it("does not chase the release its own update cut", async () => {
     const { text, seen } = await sessionStart(project({ self: true }), {
       subjects: [

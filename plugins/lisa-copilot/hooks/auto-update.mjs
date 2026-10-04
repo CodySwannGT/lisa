@@ -76,8 +76,11 @@ export const AUTO_UPDATE_DEFAULT = true;
 /** The project manifest. */
 const MANIFEST = "package.json";
 
-/** A lock older than this belongs to a session that died mid-update. */
-const STALE_LOCK_MS = 20 * 60 * 1000;
+/**
+ * A lock with no readable owner older than this is reaped. Locks that name a
+ * live owner are never reaped by age (see {@link lockIsAbandoned}).
+ */
+const STALE_LOCK_MS = 2 * 60 * 60 * 1000;
 
 /** Lockfiles in tie-break order, with the manager that writes each. */
 const LOCKFILES = [
@@ -93,6 +96,36 @@ const RELEASE_SUBJECT = /^chore\(release\): \S+ \[skip ci\](?: \[skip-cd\])?$/u;
 
 /** Subject of a Lisa update commit; the self-mode loop guard keys on it. */
 const UPDATE_SUBJECT = /^chore\(deps\): update Lisa to \S+$/u;
+
+/**
+ * `git status` in its machine form: NUL-delimited, unquoted paths, one record
+ * per untracked FILE rather than per directory.
+ */
+const STATUS_Z = [
+  "git",
+  "status",
+  "--porcelain=v1",
+  "-z",
+  "--untracked-files=all",
+];
+
+/**
+ * Paths a NUL-delimited `git status --porcelain=v1 -z` reports. A rename or
+ * copy record is followed by an extra record holding its SOURCE path, which is
+ * skipped: the destination is the path to stage.
+ * @param {string} output Raw command output.
+ * @returns {string[]} Changed paths.
+ */
+export function parsePorcelainZ(output) {
+  const records = output.split("\0").filter(Boolean);
+  const paths = [];
+  for (let index = 0; index < records.length; index += 1) {
+    const record = records[index];
+    paths.push(record.slice(3));
+    if (/^[RC]/u.test(record)) index += 1;
+  }
+  return paths;
+}
 
 /**
  * Subject of the commit an update makes.
@@ -298,30 +331,85 @@ export function runCommand(argv, options) {
           );
           return;
         }
-        resolve(String(stdout).trim());
+        // trimEnd, never trim: `git status --porcelain` starts a record with a
+        // significant space (" M path"), and trimming it corrupts the path.
+        resolve(String(stdout).trimEnd());
       }
     );
   });
 }
 
 /**
- * Take the per-worktree update lock, clearing one a dead session left behind.
+ * Whether a process is alive. EPERM means it exists but is not ours to signal.
+ * @param {number} pid Process id.
+ * @returns {boolean} True when the process exists.
+ */
+function processAlive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return /** @type {NodeJS.ErrnoException} */ (error).code === "EPERM";
+  }
+}
+
+/**
+ * Whether an existing lock may be reaped: only when its owner is provably
+ * gone. An update has no deadline, so age alone never proves a holder dead;
+ * a lock whose owner cannot be read is protected until it is far older than
+ * any update could run.
+ * @param {string} lockFile Absolute lock path.
+ * @param {number} nowMs Current time.
+ * @returns {boolean} True when the holder is gone.
+ */
+export function lockIsAbandoned(lockFile, nowMs) {
+  try {
+    const owner = JSON.parse(readFileSync(lockFile, "utf8"));
+    if (Number.isInteger(owner?.pid)) return !processAlive(owner.pid);
+  } catch {
+    // unreadable or empty: fall through to the grace period
+  }
+  try {
+    return nowMs - statSync(lockFile).mtimeMs > STALE_LOCK_MS;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Take the per-worktree update lock, recording this process as its owner and
+ * reaping a lock only when its owner is gone.
  * @param {string} lockFile Absolute lock path.
  * @param {number} nowMs Current time.
  * @returns {boolean} Whether the lock was taken.
  */
 export function takeLock(lockFile, nowMs) {
   mkdirSync(path.dirname(lockFile), { recursive: true });
-  try {
-    if (nowMs - statSync(lockFile).mtimeMs > STALE_LOCK_MS) rmSync(lockFile);
-  } catch {
-    // no lock yet
+  if (existsSync(lockFile) && lockIsAbandoned(lockFile, nowMs)) {
+    rmSync(lockFile, { force: true });
   }
   try {
-    closeSync(openSync(lockFile, "wx"));
+    const fd = openSync(lockFile, "wx");
+    writeFileSync(fd, JSON.stringify({ pid: process.pid, at: nowMs }));
+    closeSync(fd);
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Release the lock only if this process still owns it, so a session never
+ * deletes a lock another session legitimately holds.
+ * @param {string} lockFile Absolute lock path.
+ */
+export function releaseLock(lockFile) {
+  try {
+    if (JSON.parse(readFileSync(lockFile, "utf8"))?.pid === process.pid) {
+      rmSync(lockFile, { force: true });
+    }
+  } catch {
+    // already gone, or not ours to judge
   }
 }
 
@@ -393,7 +481,17 @@ async function plan(ctx) {
       skip: `Lisa ${to} is available (this project has ${from}), but the working tree has uncommitted changes, so nothing was changed. It updates at the start of a session that begins on a clean tree.`,
     };
   }
-  if (selfMode && (await selfPinIsCurrent(ctx, from, to))) return { skip: "" };
+  if (selfMode) {
+    // probe-direction: fail-closed — an unreadable release range updates
+    // nothing; it is reported, never read as "current" or as "behind".
+    const current = await selfPinIsCurrent(ctx, from, to).catch(() => null);
+    if (current === null) {
+      return {
+        skip: `Lisa ${to} is available, but the release tags needed to check it could not be read (offline?), so nothing was changed.`,
+      };
+    }
+    if (current) return { skip: "" };
+  }
   const lockfiles = LOCKFILES.map(([file]) => file).filter(file =>
     existsSync(path.join(projectDir, file))
   );
@@ -475,12 +573,7 @@ async function applyUpdate(ctx, update) {
  */
 async function settle(ctx, update) {
   const { projectDir, run } = ctx;
-  const changed = (
-    await run(["git", "status", "--porcelain"], { cwd: projectDir })
-  )
-    .split("\n")
-    .filter(Boolean)
-    .map(line => line.slice(3).replace(/^"|"$/gu, ""));
+  const changed = parsePorcelainZ(await run(STATUS_Z, { cwd: projectDir }));
   const branch = await run(["git", "branch", "--show-current"], {
     cwd: projectDir,
   });
@@ -504,8 +597,11 @@ async function settle(ctx, update) {
         [
           "git",
           "commit",
+          "--only",
           "-m",
           updateMessage(update.from, update.to, decision.workItem),
+          "--",
+          ...changed,
         ],
         { cwd: projectDir }
       );
@@ -595,7 +691,7 @@ export async function autoUpdate(input) {
   } catch (error) {
     return `Lisa ${update.to} is available but the automatic update failed: ${String(error.message).split("\n")[0]}. The working tree may hold a partial update; review it with \`git status\` before other work, or set "autoUpdate": false to stop these attempts.`;
   } finally {
-    rmSync(lock, { force: true });
+    releaseLock(lock);
   }
 }
 

@@ -109,7 +109,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "5431cf37016c8096c7c8e570a95f3b09ef7943917a1eb6ec2ebe599e240bec8f",
+      "c8cea225a598e8856ed3afac2531f6f7e1235b5cee280f85ef311e70887b6a62",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -759,7 +759,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/commands/wiki/install.md":
       "51392cf053c17edd549bfbaba5d19ce669dc79021aafa7cfa100324ad38de11f",
     "plugins/src/base/hooks/auto-update.mjs":
-      "b2b78e309367b526498585c92925dba1ac612663dcd82d130bfdb63828b467dd",
+      "862e8410f1dc791309de47abb54f2ac66c532605b508a86591f35f1fc08b168d",
     "plugins/src/base/hooks/auto-update.sh":
       "4e09fb31e8d697b0f62d775b8b2bd4c535f9cfcf2423d99329cd4844a614b8af",
     "plugins/src/base/hooks/block-blind-automerge.agy.sh":
