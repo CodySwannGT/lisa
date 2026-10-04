@@ -170,6 +170,19 @@ const SCRIPT_RULES = {
     agy: false,
     copilot: true,
   },
+  // Session-start local Lisa update (CodySwannGT/lisa#4337). Every harness with
+  // a session-start event gets it; OpenCode runs the same engine from its
+  // session bootstrap plugin. Documented gap: agy has no SessionStart event, so
+  // agy sessions never auto-update — the project still updates the next time a
+  // session on any other harness starts in it, and `lisa doctor` reports a
+  // stale install on every agent.
+  "auto-update.sh": {
+    claude: true,
+    codex: true,
+    cursor: true,
+    agy: false,
+    copilot: true,
+  },
   "inject-flow-context.sh": {
     claude: true,
     codex: true,

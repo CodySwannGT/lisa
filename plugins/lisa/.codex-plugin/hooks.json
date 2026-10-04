@@ -217,6 +217,16 @@
         ]
       },
       {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/auto-update.sh",
+            "timeout": 600
+          }
+        ]
+      },
+      {
         "matcher": "",
         "hooks": [
           {

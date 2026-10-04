@@ -111,6 +111,10 @@
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/enforcement-vintage.sh"
       },
       {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/auto-update.sh",
+        "matcher": "startup"
+      },
+      {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/setup-jira-cli.sh"
       },
       {

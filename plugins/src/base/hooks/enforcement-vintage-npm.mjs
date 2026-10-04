@@ -259,8 +259,8 @@ export function renderNpmRows(state) {
   const guidance = state.projectBehind
     ? [
         `PROJECT BEHIND — this project installs lisa ${state.pin?.version} while lisa ${state.latest?.version} is published.`,
-        "- Do NOT upgrade Lisa inside the current task: a version bump plus its template apply belongs in its own pull request, never mixed into feature work.",
-        "- Check for an open pull request on a `lisa/update-*` branch. If none is open, the project's Lisa Update workflow (`.github/workflows/lisa-update.yml`) opens one on its schedule; say so in your report, and if that workflow is missing, recommend running `lisa apply` once so the project receives it.",
+        "- Do NOT upgrade Lisa by hand inside the current task. The session-start auto-update applies it on a clean tree as its own commit; see the lisa-auto-update block for what it did this session.",
+        '- If it did not run (autoUpdate is false, the tree was dirty, or it failed), say so in your report; the update happens at the start of the next session on a clean tree, or with "autoUpdate" left on.',
       ]
     : [];
   return { rows, guidance };
