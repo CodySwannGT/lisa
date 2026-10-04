@@ -158,16 +158,19 @@ describe("what admission to the CDK preset actually costs", () => {
   it("names the CDK template as the sole source of the reported merge", async () => {
     const cdkTemplate = (await fs.readJson(
       path.join(REPO_ROOT, "cdk", "package-lisa", "package.lisa.json")
-    )) as { force?: Record<string, unknown> };
+    )) as {
+      force?: Record<string, unknown>;
+      defaults?: Record<string, unknown>;
+    };
     const force = cdkTemplate.force ?? {};
 
-    // The `bin` entry and the CDK runtime dependencies the issue reports being
-    // backed out downstream both come from here. Detection is what admits it,
-    // which is why narrowing detection removes this instance at the source.
+    // Admission still adds the bin entry and constructs peer, while OIDC
+    // stays host-owned through defaults instead of forcing an API migration.
     expect(force.bin).toEqual({ infrastructure: "bin/infrastructure.js" });
-    expect(force.dependencies).toMatchObject({
-      "aws-cdk-github-oidc": expect.any(String),
-      constructs: expect.any(String),
+    expect(force.dependencies).toMatchObject({ constructs: "^10.7.2" });
+    expect(force.dependencies).not.toHaveProperty("aws-cdk-github-oidc");
+    expect(cdkTemplate.defaults).toMatchObject({
+      dependencies: { "aws-cdk-github-oidc": "^5.2.0" },
     });
   });
 });
