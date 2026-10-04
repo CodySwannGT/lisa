@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.69.0](https://github.com/CodySwannGT/lisa/compare/v4.68.1...v4.69.0) (2026-10-04)
+
+
+### Features
+
+* auto-update Lisa locally at session start and drop the PAT workflow ([d3542c8](https://github.com/CodySwannGT/lisa/commit/d3542c8b6517a035d15a403c31b18636b12c1470)), closes [#4331](https://github.com/CodySwannGT/lisa/issues/4331) [CodySwannGT/lisa#4337](https://github.com/CodySwannGT/lisa/issues/4337) [CodySwannGT/lisa#4337](https://github.com/CodySwannGT/lisa/issues/4337)
+
+
+### Bug Fixes
+
+* address review on the session-start auto-update ([508902b](https://github.com/CodySwannGT/lisa/commit/508902b95dcc02f0140b4120aab51eac91969268)), closes [#4338](https://github.com/CodySwannGT/lisa/issues/4338) [CodySwannGT/lisa#4337](https://github.com/CodySwannGT/lisa/issues/4337) [CodySwannGT/lisa#4337](https://github.com/CodySwannGT/lisa/issues/4337)
+* address second review pass on the session-start auto-update ([eedef5f](https://github.com/CodySwannGT/lisa/commit/eedef5f4a3f9041d824c266539c68db484a2dac3)), closes [#4338](https://github.com/CodySwannGT/lisa/issues/4338) [CodySwannGT/lisa#4337](https://github.com/CodySwannGT/lisa/issues/4337) [CodySwannGT/lisa#4337](https://github.com/CodySwannGT/lisa/issues/4337)
+
 ### [4.68.1](https://github.com/CodySwannGT/lisa/compare/v4.68.0...v4.68.1) (2026-10-04)
 
 
