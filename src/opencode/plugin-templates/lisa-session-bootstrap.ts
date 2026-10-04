@@ -73,7 +73,11 @@ export const LisaSessionBootstrap = async ({
   // console the session shows.
   try {
     const engine = `${root}/node_modules/@codyswann/lisa/plugins/lisa/hooks/auto-update.mjs`;
-    if (existsSync(engine) && Bun.which("node")) {
+    if (existsSync(engine) && !Bun.which("node")) {
+      console.error(
+        "lisa-auto-update: node is not on PATH, so the session-start Lisa update could not run. Install Node.js (or add it to PATH) to enable it."
+      );
+    } else if (existsSync(engine)) {
       const result = await $`node ${engine} --project-dir ${root}`
         .cwd(root)
         .quiet()

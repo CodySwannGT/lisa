@@ -4376,11 +4376,19 @@ export function commitPendingLisaUpdate(ref, contract, cwd = process.cwd()) {
   )
     .stdout.split("\0")
     .filter(Boolean);
-  const dirty = new Set(
-    records
-      .filter((_record, index) => !/^[RC]/u.test(records[index - 1] ?? ""))
-      .map(record => record.slice(3))
+  // A rename or copy (flagged in either status column) is followed by its
+  // SOURCE record, a bare path. Both paths belong to the change, so both count.
+  const { paths } = records.reduce(
+    (state, record) =>
+      state.source
+        ? { paths: [...state.paths, record], source: false }
+        : {
+            paths: [...state.paths, record.slice(3)],
+            source: /[RC]/u.test(record.slice(0, 2)),
+          },
+    { paths: [], source: false }
   );
+  const dirty = new Set(paths);
   const files = (pending.files ?? []).filter(file => dirty.has(file));
   if (files.length === 0) {
     rmSync(marker, { force: true });

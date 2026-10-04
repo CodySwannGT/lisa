@@ -4,7 +4,7 @@
  * `auto-update-session.test.ts`.
  * @module tests/unit/hooks/auto-update.test
  */
-import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -33,6 +33,14 @@ const ITEM = "o/r#1";
 const TRACKED = { tracker: "github" };
 /** The lockfile Bun writes. */
 const BUN_LOCK = "bun.lock";
+
+/**
+ * A fresh directory to hold a lock file.
+ * @returns Absolute directory path
+ */
+function lockDir(): string {
+  return mkdtempSync(path.join(tmpdir(), "lisa-auto-update-lock-"));
+}
 
 describe("auto-update: decisions", () => {
   it("is on unless the config, the environment or CI turns it off", () => {
@@ -115,11 +123,13 @@ describe("auto-update: decisions", () => {
   it("reads status records without losing the leading space or a rename's source", () => {
     expect(
       parsePorcelainZ(" M package.json\0R  new.ts\0old.ts\0?? .lisa/x.json\0")
-    ).toEqual(["package.json", "new.ts", ".lisa/x.json"]);
+    ).toEqual(["package.json", "new.ts", "old.ts", ".lisa/x.json"]);
+    // A rename flagged in the WORKTREE column carries its source the same way.
+    expect(parsePorcelainZ(" R b.ts\0a.ts\0")).toEqual(["b.ts", "a.ts"]);
   });
 
   it("never reaps a lock whose owner is alive, and reaps one whose owner is gone", () => {
-    const dir = mkdtempSync(path.join(tmpdir(), "lisa-auto-update-lock-"));
+    const dir = lockDir();
     const lock = path.join(dir, "auto-update.lock");
     const now = Date.now();
     expect(takeLock(lock, now)).toBe(true);
@@ -134,8 +144,22 @@ describe("auto-update: decisions", () => {
     expect(takeLock(lock, now)).toBe(true);
   });
 
+  it("keeps a lock whose owner cannot be read, and frees one that is gone", () => {
+    const dir = lockDir();
+    // A directory where the lock file should be: reading it fails with EISDIR,
+    // which says nothing about the owner, so the lock stays protected.
+    const unreadable = path.join(dir, "held.lock");
+    mkdirSync(unreadable);
+    expect(lockIsAbandoned(unreadable, Date.now() + 10 * 60 * 60 * 1000)).toBe(
+      false
+    );
+    expect(lockIsAbandoned(path.join(dir, "missing.lock"), Date.now())).toBe(
+      true
+    );
+  });
+
   it("never deletes a lock another session holds", () => {
-    const dir = mkdtempSync(path.join(tmpdir(), "lisa-auto-update-lock-"));
+    const dir = lockDir();
     const lock = path.join(dir, "auto-update.lock");
     writeFileSync(lock, JSON.stringify({ pid: process.ppid, at: Date.now() }));
     releaseLock(lock);

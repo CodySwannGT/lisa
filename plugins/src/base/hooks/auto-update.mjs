@@ -111,8 +111,9 @@ const STATUS_Z = [
 
 /**
  * Paths a NUL-delimited `git status --porcelain=v1 -z` reports. A rename or
- * copy record is followed by an extra record holding its SOURCE path, which is
- * skipped: the destination is the path to stage.
+ * copy record (flagged in either status column) is followed by an extra record
+ * holding its SOURCE path; both are returned, because a path-limited commit
+ * must carry the source's removal as well as the destination.
  * @param {string} output Raw command output.
  * @returns {string[]} Changed paths.
  */
@@ -122,7 +123,13 @@ export function parsePorcelainZ(output) {
   for (let index = 0; index < records.length; index += 1) {
     const record = records[index];
     paths.push(record.slice(3));
-    if (/^[RC]/u.test(record)) index += 1;
+    // A rename or copy can be flagged in EITHER status column, and its source
+    // record follows. Both paths belong to the change: staging only the
+    // destination would leave the source's deletion behind.
+    if (/[RC]/u.test(record.slice(0, 2)) && records[index + 1] !== undefined) {
+      paths.push(records[index + 1]);
+      index += 1;
+    }
   }
   return paths;
 }
@@ -363,11 +370,19 @@ function processAlive(pid) {
  * @returns {boolean} True when the holder is gone.
  */
 export function lockIsAbandoned(lockFile, nowMs) {
+  let text;
   try {
-    const owner = JSON.parse(readFileSync(lockFile, "utf8"));
+    text = readFileSync(lockFile, "utf8");
+  } catch (error) {
+    // Only a lock that is GONE is free. A permission or I/O error says nothing
+    // about whether its owner is running, so the lock stays protected.
+    return /** @type {NodeJS.ErrnoException} */ (error).code === "ENOENT";
+  }
+  try {
+    const owner = JSON.parse(text);
     if (Number.isInteger(owner?.pid)) return !processAlive(owner.pid);
   } catch {
-    // unreadable or empty: fall through to the grace period
+    // empty or partly written: fall through to the grace period
   }
   try {
     return nowMs - statSync(lockFile).mtimeMs > STALE_LOCK_MS;
