@@ -181,7 +181,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/merge/.oxlintrc.json":
       "f7d248cf8a89561374d7e68e24aa780f4a6a523938475ad685f034ce0194d75c",
     "cdk/package-lisa/package.lisa.json":
-      "86267110cd76829442a003ab398a9c107385b2355dc589194f0e10ccd586955d",
+      "902f6157ced5adbf1783240c02bb71e28ed3db838905755e04197aaae03fa09c",
     "eslint-plugin-code-organization/README.md":
       "e70c9e262ce3a97e1f9fe1897ffa71e3d1b124f10486b90ead5d4a5252977826",
     "eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js":
@@ -371,7 +371,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/merge/.oxlintrc.json":
       "95b3069256c0040be0ef1a5adae46d14687ad56fb18f473a653ba2de45d106bb",
     "expo/package-lisa/package.lisa.json":
-      "471e463f9d4384614f594a7f2789de571e84651a3f2c094c862c877991fb76df",
+      "4a2e6df44b00c5c7eacf786b95dc211f902c8ea567be824dbb100f33d5d1deef",
     "harper-fabric/copy-contents/.prettierignore":
       "478c782f4c5611187e21584dfd5522e37fc636c5eb03394fea3db45321c6712c",
     "harper-fabric/copy-contents/gitignore":
@@ -411,7 +411,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/merge/.oxlintrc.json":
       "b41ea588eed47e0f1532aab5f6226b82586269b84edd1947bdde603e0a8513fa",
     "harper-fabric/package-lisa/package.lisa.json":
-      "dbfca02e64339a8702e7d071859b12d9d3b444fb6724a0c486c4c1408804be95",
+      "203f4cae4999768ac3190cf12c22a9837a710938b6cf1913d69997bab99b8353",
     "nestjs/copy-overwrite/eslint.config.ts":
       "300895743cd8e3041f164902e1c8e509d8ef07474848a70621ac354d73595477",
     "nestjs/copy-overwrite/eslint.nestjs.ts":
@@ -499,7 +499,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
-      "45f56767727b1f536825c4efae969f3307774fd07887edce8f0cce06ebd2959d",
+      "66a5242a7486aa82a147fa6d50ec1071fda5e964f3127ab7c4f980150fae0b57",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
       "20760529dd59186baf870fb2d0ac555ff95bc3dc75ea96ba4564bf37d61f708e",
     "npm-package/package-lisa/package.lisa.json":
@@ -559,7 +559,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "phaser/merge/.oxlintrc.json":
       "02c0d70e6e07bc0e981f94a1e2ccd01a2c295c4c66e8b8ea9b2f363d44fa5c06",
     "phaser/package-lisa/package.lisa.json":
-      "43af75dea40431d7c6daac5f38046cba768c8860749e465ba81c2429d7859ad5",
+      "09a185f2f46cda72c314cf13d9bf3f9a0d8a865496d73c5bdd02888b81cfe759",
     "plugins/src/base/agents/architecture-specialist.md":
       "2346c37ddce2b1ff059938d71be05f5f23acfe28066bcba4f9a1070ed6727a93",
     "plugins/src/base/agents/bug-fixer.md":
@@ -2181,11 +2181,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-contents/scripts/lisa-mutation.sh":
       "dfe6e7a208fe72d02355548d9aba8484748b7d95eca0bf989043008311af29c4",
     "rails/copy-overwrite/.rubocop.yml":
-      "641857d3540f8b5a4524e3815ce4e1162ab4010b0d8663b1edb2abdad41dbf09",
+      "e66d8cb195af1ca73e0dbeb08877bf6e6766e226717613c34d6e5bd52457cc97",
     "rails/copy-overwrite/.versionrc":
       "b6c4c0258819fa186a91d96cdeac7a017f36cfe1d2c59ccb69cff75c1a8598e0",
     "rails/copy-overwrite/Gemfile.lisa":
-      "c73ab0f02fe764ce2953761272d5302ef1f5cc17f346c70697f2d638a11b5a4d",
+      "50c6fb6bf7ebf76e1f3e65e8100ac5e33177185013c94c4f19967015a3328f75",
     "rails/copy-overwrite/ast-grep/rule-tests/.gitkeep":
       "fd9b902271d9cbaca0ead2a1e659776db904c10b06ceed7e5bc43fa57b89aba1",
     "rails/copy-overwrite/ast-grep/rules/no-day-truncating-file-age-predicate.yml":
@@ -2237,7 +2237,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/create-only/.rubocop_todo.yml":
       "2b35494aef30e0ffac4f00fed16f06a6f0ed7929b683f008f3185efded3ba37f",
     "rails/create-only/.simplecov":
-      "76aea970faa9692967e79abe7d88fadd03510dda81599e34424a4711a431743a",
+      "24ade15d624f8f46e5cedc30b9152595cc2b456aeb56a016003796b53231095b",
     "rails/create-only/VERSION":
       "6b13789e43e5485634533de16a65d8ba9d34c4c9758588b665805435f80eb115",
     "rails/create-only/mutation.gate.yml":
@@ -2249,9 +2249,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/create-only/sonar-project.properties":
       "58f0618863149a49aa39dc96eca498e8338f24e7d0237fb654ac85920ba57e15",
     "rails/create-only/spec/rails_helper.rb":
-      "5a96010d99c78f75713fc44fed6bba5f2631f94f5d1cc08d96f80601faeee843",
+      "c3a5afa0aaa422e1cf7249aaebbbb6e08fc0e8bbdf6415e611d511a0172a939d",
     "rails/create-only/spec/spec_helper.rb":
-      "56ca48d2519ece7a856fe7941ea8acf2d9f1d53aee03321f230300907dc20712",
+      "e159fe6f5ce9b8783ca61effb36e3c5a947e7c8306246353eceb34e340601976",
     "rails/deletions.json":
       "3d620c23be802104f69d2b4438b0d1922979ad2b5c5eb0ee85213cd4adb17fb2",
     "rails/github-rulesets/quality-checks.json":
@@ -2510,8 +2510,12 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "9016663d16c93d0d0d74b41a957d200cd3aa8ef5b12e0879d24ba5ea041ab307",
     "scripts/verify-learner-frontmatter-built.mjs":
       "b8ac0240726721a047811e98d42f661426abc3e427a0c86f3b20082eb498809d",
+    "scripts/verify-npm-advisories-4333.mjs":
+      "f0a94aead747c28cf1317d999a4eb80ae027461a43ed22b5b996173a5a096aae",
     "scripts/verify-packed-learnings-contract.mjs":
       "2227b32f3b3dc2dc6817a60b4998b64881c03e30ecd15cb52b6d6f95a5870613",
+    "scripts/verify-rails-tooling.rb":
+      "5e7a52c1929c9eba873d2fc1f0baa1cc684e9913d4b27c5c42819bb1ac0539cf",
     "scripts/workflow-contract-assertion.sh":
       "191b5e766e1defb3bee3befbc8354abd9a46d3989eede7a420cd8893885df137",
     "tsconfig/base.json":
@@ -2671,7 +2675,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/merge/.oxlintrc.json":
       "9504c20db80470c242c4ffe8cccad6951ed8141dfb5bf6503053e0b2712ab276",
     "typescript/package-lisa/package.lisa.json":
-      "7def55c6827128599f12306354266781d1a1bc22a3a468471822153841ed280c",
+      "50c615f7fb8ff483a55d68349d803fd46441e19afbb13bb29f8e82759d096011",
     "ui/README.md":
       "7a67d7bdd49ff214ca204cc4e54ba70c37aa05fd6cc1e314fd9441a53eafc752",
     "ui/index.html":
@@ -2975,7 +2979,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "docs/kane-cli-pilot.example.json": true,
     "docs/maestro-flake-classification.md": true,
     "docs/nightly-e2e-gate.md": true,
+    "docs/npm-advisory-dispositions.md": true,
     "docs/quality-workflow-notes.md": true,
+    "docs/rails-tooling-migration.md": true,
     "docs/remote-agent-aws.md": true,
     "docs/wiki-inbox/.gitkeep": true,
     "docs/wiki-inbox/2026-08-12-lisa-improvement-notes.md": true,
@@ -8870,7 +8876,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/verify-health-contract-built.mjs": true,
     "scripts/verify-health-deterministic-built.mjs": true,
     "scripts/verify-learner-frontmatter-built.mjs": true,
+    "scripts/verify-npm-advisories-4333.mjs": true,
     "scripts/verify-packed-learnings-contract.mjs": true,
+    "scripts/verify-rails-tooling.rb": true,
     "scripts/workflow-contract-assertion.sh": true,
     "sgconfig.yml": true,
     "shipped-removals.json": true,
@@ -10096,6 +10104,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/process-tree-runner-common-delivery.test.ts": true,
     "tests/unit/config/rails-scratch-supervisor-routes.test.ts": true,
     "tests/unit/config/rails-template.test.ts": true,
+    "tests/unit/config/rails-tooling-refresh.test.ts": true,
     "tests/unit/config/release-package-identity-workflows.test.ts": true,
     "tests/unit/config/release-push-retry.test.ts": true,
     "tests/unit/config/release-quality-secret-forwarding.test.ts": true,
@@ -10213,6 +10222,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/lisa-skill-sources.test.ts": true,
     "tests/unit/core/nightly-e2e-pull-request-triggers.test.ts": true,
     "tests/unit/core/no-downstream-project-names.test.ts": true,
+    "tests/unit/core/npm-advisory-governance-4333.test.ts": true,
     "tests/unit/core/override-floors.test.ts": true,
     "tests/unit/core/packed-learnings-contract.test.ts": true,
     "tests/unit/core/plugin-sync-marker.test.ts": true,

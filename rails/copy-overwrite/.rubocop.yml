@@ -16,8 +16,6 @@ plugins:
   - rubocop-rspec
   - rubocop-capybara
   - rubocop-factory_bot
-
-require:
   - rubocop-yard
 
 AllCops:

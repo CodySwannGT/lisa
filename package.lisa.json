@@ -31,22 +31,22 @@
       "@commitlint/cli": "^20.3.1",
       "@commitlint/config-conventional": "^20.3.1",
       "@eslint-community/eslint-plugin-eslint-comments": "^4.5.0",
-      "eslint": "^9.39.0",
+      "eslint": "^9.39.5",
       "eslint-config-prettier": "^10.0.0",
-      "prettier": "^3.3.3",
+      "prettier": "3.8.0",
       "husky": "^8.0.0",
       "lint-staged": "^16.2.7",
-      "@eslint/eslintrc": "^3.2.0",
-      "@eslint/js": "^9.39.0",
+      "@eslint/eslintrc": "^3.3.7",
+      "@eslint/js": "^9.39.5",
       "eslint-import-resolver-typescript": "^4.4.4",
       "eslint-plugin-import": "^2.32.0",
       "eslint-plugin-functional": "^9.0.0",
       "jiti": "^2.4.0",
       "eslint-plugin-jsdoc": "^61.5.0",
       "eslint-plugin-prettier": "^5.5.0",
-      "eslint-plugin-sonarjs": "^4.0.0",
-      "eslint-plugin-oxlint": "^1.62.0",
-      "oxlint": "^1.62.0",
+      "eslint-plugin-sonarjs": "4.0.3",
+      "eslint-plugin-oxlint": "1.62.0",
+      "oxlint": "1.62.0",
       "oxlint-tsgolint": "^0.22.1",
       "jscodeshift": "0.15.2",
       "standard-version": "^9.5.0",
@@ -57,20 +57,23 @@
       "@types/lodash.merge": "^4.6.0",
       "@types/node": "^22.0.0",
       "tsx": "^4.0.0",
-      "knip": "^5.0.0",
+      "knip": "5.82.1",
       "@ast-grep/cli": "^0.40.4",
-      "vite": "^8.3.2"
+      "vite": "^8.3.2",
+      "tailwindcss": "^3.4.19"
     },
     "overrides": {
       "smol-toml": "1.7.1",
       "browserslist": ">=4.28.8",
       "deepmerge-ts": "^8.0.1",
       "nanoid": "^3.3.18",
-      "vite": "$vite"
+      "vite": "$vite",
+      "qs": "^6.16.0"
     },
     "resolutions": {
       "vite": "$vite",
-      "nanoid": "^3.3.18"
+      "nanoid": "^3.3.18",
+      "qs": "^6.16.0"
     }
   },
   "defaults": {

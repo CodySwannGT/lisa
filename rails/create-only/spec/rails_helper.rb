@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 # Seeded by Lisa on first setup — this file is YOURS.
 # Lisa will not overwrite it. (copy-overwrite assets ARE replaced each run.)
 
@@ -14,8 +15,8 @@ require 'rspec/rails'
 
 begin
   ActiveRecord::Migration.maintain_test_schema!
-rescue ActiveRecord::PendingMigrationError => e
-  raise e.to_s.strip
+rescue ActiveRecord::PendingMigrationError => error
+  raise error.to_s.strip
 end
 
 RSpec.configure do |config|

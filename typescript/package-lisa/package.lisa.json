@@ -31,8 +31,8 @@
       "typecheck:lisa": "node scripts/lib/worktree-dependencies.mjs && tsc --noEmit"
     },
     "devDependencies": {
-      "eslint-plugin-oxlint": "^1.62.0",
-      "oxlint": "^1.62.0",
+      "eslint-plugin-oxlint": "1.62.0",
+      "oxlint": "1.62.0",
       "oxlint-tsgolint": "^0.24.0",
       "@stryker-mutator/core": "^9.0.0",
       "@stryker-mutator/vitest-runner": "^9.0.0",
@@ -49,7 +49,9 @@
       "vite": "^8.3.2",
       "ws": ">=8.21.0",
       "form-data": ">=4.0.6",
-      "systeminformation": ">=5.31.7"
+      "systeminformation": ">=5.31.7",
+      "qs": "^6.16.0",
+      "deepmerge-ts": "^8.0.1"
     },
     "overrides": {
       "@isaacs/brace-expansion": "^5.0.1",
@@ -62,16 +64,18 @@
       "vite": "^8.3.2",
       "ws": ">=8.21.0",
       "form-data": ">=4.0.6",
-      "systeminformation": ">=5.31.7"
+      "systeminformation": ">=5.31.7",
+      "qs": "^6.16.0",
+      "deepmerge-ts": "^8.0.1"
     }
   },
   "defaults": {
     "devDependencies": {
       "@ast-grep/cli": "^0.40.4",
       "@vitest/coverage-v8": "^4.1.11",
-      "eslint": "^9.39.0",
+      "eslint": "^9.39.5",
       "husky": "^8.0.0",
-      "prettier": "^3.3.3",
+      "prettier": "3.8.0",
       "typescript": "^6.0.3",
       "vitest": "^4.1.11"
     },
