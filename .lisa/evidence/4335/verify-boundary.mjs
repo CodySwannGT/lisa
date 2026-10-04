@@ -9,6 +9,7 @@ import {
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import {
+  GIT_BIN,
   root,
   evidence,
   host,
@@ -201,12 +202,12 @@ for (const file of [
   "ast-grep/rules/ruby/no-unsafe-send.yml",
 ])
   hashes[`anonymous-host/${file}`] = sha(await readFile(path.join(host, file)));
-const diff = spawnSync("/usr/bin/git", ["diff", "HEAD", "--binary"], {
+const diff = spawnSync(GIT_BIN, ["diff", "HEAD", "--binary"], {
   cwd: root,
   encoding: "utf8",
 }).stdout;
 const sourcePaths = spawnSync(
-  "/usr/bin/git",
+  GIT_BIN,
   ["status", "--porcelain", "--untracked-files=all"],
   { cwd: root, encoding: "utf8" }
 )

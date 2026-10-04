@@ -1,0 +1,475 @@
+{
+  "method": "ps aux substring count matching vi+test, sampled every two seconds",
+  "samples": 90,
+  "process_count_min": 1,
+  "process_count_max": 26,
+  "load_1m_min": 9.2841796875,
+  "load_1m_max": 35.83935546875,
+  "readings": [
+    {
+      "at": "2026-10-04T13:51:53.844800+00:00",
+      "vitest_processes_ps_aux": 22,
+      "load_1m": 14.8447265625
+    },
+    {
+      "at": "2026-10-04T13:51:56.074256+00:00",
+      "vitest_processes_ps_aux": 24,
+      "load_1m": 24.78662109375
+    },
+    {
+      "at": "2026-10-04T13:51:58.356314+00:00",
+      "vitest_processes_ps_aux": 25,
+      "load_1m": 24.78662109375
+    },
+    {
+      "at": "2026-10-04T13:52:00.586804+00:00",
+      "vitest_processes_ps_aux": 26,
+      "load_1m": 24.48291015625
+    },
+    {
+      "at": "2026-10-04T13:52:02.799535+00:00",
+      "vitest_processes_ps_aux": 25,
+      "load_1m": 24.48291015625
+    },
+    {
+      "at": "2026-10-04T13:52:05.022053+00:00",
+      "vitest_processes_ps_aux": 26,
+      "load_1m": 24.48291015625
+    },
+    {
+      "at": "2026-10-04T13:52:07.222356+00:00",
+      "vitest_processes_ps_aux": 25,
+      "load_1m": 26.04541015625
+    },
+    {
+      "at": "2026-10-04T13:52:09.494279+00:00",
+      "vitest_processes_ps_aux": 23,
+      "load_1m": 26.04541015625
+    },
+    {
+      "at": "2026-10-04T13:52:11.697279+00:00",
+      "vitest_processes_ps_aux": 23,
+      "load_1m": 25.64111328125
+    },
+    {
+      "at": "2026-10-04T13:52:13.925735+00:00",
+      "vitest_processes_ps_aux": 22,
+      "load_1m": 25.64111328125
+    },
+    {
+      "at": "2026-10-04T13:52:16.149098+00:00",
+      "vitest_processes_ps_aux": 22,
+      "load_1m": 35.83935546875
+    },
+    {
+      "at": "2026-10-04T13:52:18.366711+00:00",
+      "vitest_processes_ps_aux": 17,
+      "load_1m": 35.83935546875
+    },
+    {
+      "at": "2026-10-04T13:52:20.504852+00:00",
+      "vitest_processes_ps_aux": 9,
+      "load_1m": 33.44970703125
+    },
+    {
+      "at": "2026-10-04T13:52:22.647882+00:00",
+      "vitest_processes_ps_aux": 11,
+      "load_1m": 33.44970703125
+    },
+    {
+      "at": "2026-10-04T13:52:24.815054+00:00",
+      "vitest_processes_ps_aux": 11,
+      "load_1m": 33.44970703125
+    },
+    {
+      "at": "2026-10-04T13:52:26.934218+00:00",
+      "vitest_processes_ps_aux": 9,
+      "load_1m": 31.17138671875
+    },
+    {
+      "at": "2026-10-04T13:52:29.067150+00:00",
+      "vitest_processes_ps_aux": 7,
+      "load_1m": 31.17138671875
+    },
+    {
+      "at": "2026-10-04T13:52:31.192079+00:00",
+      "vitest_processes_ps_aux": 7,
+      "load_1m": 28.7548828125
+    },
+    {
+      "at": "2026-10-04T13:52:33.354972+00:00",
+      "vitest_processes_ps_aux": 7,
+      "load_1m": 28.7548828125
+    },
+    {
+      "at": "2026-10-04T13:52:35.475869+00:00",
+      "vitest_processes_ps_aux": 7,
+      "load_1m": 26.7724609375
+    },
+    {
+      "at": "2026-10-04T13:52:37.610102+00:00",
+      "vitest_processes_ps_aux": 7,
+      "load_1m": 26.7724609375
+    },
+    {
+      "at": "2026-10-04T13:52:39.720434+00:00",
+      "vitest_processes_ps_aux": 6,
+      "load_1m": 26.7724609375
+    },
+    {
+      "at": "2026-10-04T13:52:41.862030+00:00",
+      "vitest_processes_ps_aux": 10,
+      "load_1m": 25.02880859375
+    },
+    {
+      "at": "2026-10-04T13:52:44.004080+00:00",
+      "vitest_processes_ps_aux": 10,
+      "load_1m": 25.02880859375
+    },
+    {
+      "at": "2026-10-04T13:52:46.135119+00:00",
+      "vitest_processes_ps_aux": 10,
+      "load_1m": 23.4248046875
+    },
+    {
+      "at": "2026-10-04T13:52:48.241657+00:00",
+      "vitest_processes_ps_aux": 5,
+      "load_1m": 23.4248046875
+    },
+    {
+      "at": "2026-10-04T13:52:50.352082+00:00",
+      "vitest_processes_ps_aux": 4,
+      "load_1m": 21.708984375
+    },
+    {
+      "at": "2026-10-04T13:52:52.458402+00:00",
+      "vitest_processes_ps_aux": 4,
+      "load_1m": 21.708984375
+    },
+    {
+      "at": "2026-10-04T13:52:54.572278+00:00",
+      "vitest_processes_ps_aux": 4,
+      "load_1m": 21.708984375
+    },
+    {
+      "at": "2026-10-04T13:52:56.696771+00:00",
+      "vitest_processes_ps_aux": 4,
+      "load_1m": 21.73193359375
+    },
+    {
+      "at": "2026-10-04T13:52:58.811919+00:00",
+      "vitest_processes_ps_aux": 4,
+      "load_1m": 21.73193359375
+    },
+    {
+      "at": "2026-10-04T13:53:00.929505+00:00",
+      "vitest_processes_ps_aux": 4,
+      "load_1m": 20.4716796875
+    },
+    {
+      "at": "2026-10-04T13:53:03.047334+00:00",
+      "vitest_processes_ps_aux": 4,
+      "load_1m": 20.4716796875
+    },
+    {
+      "at": "2026-10-04T13:53:05.154737+00:00",
+      "vitest_processes_ps_aux": 4,
+      "load_1m": 20.4716796875
+    },
+    {
+      "at": "2026-10-04T13:53:07.263008+00:00",
+      "vitest_processes_ps_aux": 4,
+      "load_1m": 19.6328125
+    },
+    {
+      "at": "2026-10-04T13:53:09.363172+00:00",
+      "vitest_processes_ps_aux": 4,
+      "load_1m": 19.6328125
+    },
+    {
+      "at": "2026-10-04T13:53:11.473580+00:00",
+      "vitest_processes_ps_aux": 4,
+      "load_1m": 18.380859375
+    },
+    {
+      "at": "2026-10-04T13:53:13.579979+00:00",
+      "vitest_processes_ps_aux": 4,
+      "load_1m": 18.380859375
+    },
+    {
+      "at": "2026-10-04T13:53:15.686021+00:00",
+      "vitest_processes_ps_aux": 4,
+      "load_1m": 16.98876953125
+    },
+    {
+      "at": "2026-10-04T13:53:17.809870+00:00",
+      "vitest_processes_ps_aux": 4,
+      "load_1m": 16.98876953125
+    },
+    {
+      "at": "2026-10-04T13:53:19.917888+00:00",
+      "vitest_processes_ps_aux": 4,
+      "load_1m": 16.98876953125
+    },
+    {
+      "at": "2026-10-04T13:53:22.033689+00:00",
+      "vitest_processes_ps_aux": 4,
+      "load_1m": 15.9482421875
+    },
+    {
+      "at": "2026-10-04T13:53:24.147897+00:00",
+      "vitest_processes_ps_aux": 4,
+      "load_1m": 15.9482421875
+    },
+    {
+      "at": "2026-10-04T13:53:26.253992+00:00",
+      "vitest_processes_ps_aux": 4,
+      "load_1m": 15.0712890625
+    },
+    {
+      "at": "2026-10-04T13:53:28.380891+00:00",
+      "vitest_processes_ps_aux": 4,
+      "load_1m": 15.0712890625
+    },
+    {
+      "at": "2026-10-04T13:53:30.488191+00:00",
+      "vitest_processes_ps_aux": 4,
+      "load_1m": 13.8642578125
+    },
+    {
+      "at": "2026-10-04T13:53:32.612717+00:00",
+      "vitest_processes_ps_aux": 2,
+      "load_1m": 13.8642578125
+    },
+    {
+      "at": "2026-10-04T13:53:34.738913+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 13.8642578125
+    },
+    {
+      "at": "2026-10-04T13:53:36.872900+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 13.5546875
+    },
+    {
+      "at": "2026-10-04T13:53:39.004806+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 13.5546875
+    },
+    {
+      "at": "2026-10-04T13:53:41.111297+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 12.70947265625
+    },
+    {
+      "at": "2026-10-04T13:53:43.245507+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 12.70947265625
+    },
+    {
+      "at": "2026-10-04T13:53:45.361057+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 12.33203125
+    },
+    {
+      "at": "2026-10-04T13:53:47.466396+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 12.33203125
+    },
+    {
+      "at": "2026-10-04T13:53:49.579599+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 12.33203125
+    },
+    {
+      "at": "2026-10-04T13:53:51.720966+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 11.98486328125
+    },
+    {
+      "at": "2026-10-04T13:53:53.854200+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 11.98486328125
+    },
+    {
+      "at": "2026-10-04T13:53:55.982599+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 11.50537109375
+    },
+    {
+      "at": "2026-10-04T13:53:58.095521+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 11.50537109375
+    },
+    {
+      "at": "2026-10-04T13:54:00.212094+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 11.50537109375
+    },
+    {
+      "at": "2026-10-04T13:54:02.319511+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 11.544921875
+    },
+    {
+      "at": "2026-10-04T13:54:04.421972+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 11.544921875
+    },
+    {
+      "at": "2026-10-04T13:54:06.531169+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 10.9404296875
+    },
+    {
+      "at": "2026-10-04T13:54:08.645456+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 10.9404296875
+    },
+    {
+      "at": "2026-10-04T13:54:10.753582+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 10.54443359375
+    },
+    {
+      "at": "2026-10-04T13:54:12.863154+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 10.54443359375
+    },
+    {
+      "at": "2026-10-04T13:54:14.966695+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 10.54443359375
+    },
+    {
+      "at": "2026-10-04T13:54:17.071681+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 10.58056640625
+    },
+    {
+      "at": "2026-10-04T13:54:19.173301+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 10.58056640625
+    },
+    {
+      "at": "2026-10-04T13:54:21.292037+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 10.05322265625
+    },
+    {
+      "at": "2026-10-04T13:54:23.416929+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 10.05322265625
+    },
+    {
+      "at": "2026-10-04T13:54:25.531231+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 9.888671875
+    },
+    {
+      "at": "2026-10-04T13:54:27.653938+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 9.888671875
+    },
+    {
+      "at": "2026-10-04T13:54:29.764912+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 9.888671875
+    },
+    {
+      "at": "2026-10-04T13:54:31.876592+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 9.6572265625
+    },
+    {
+      "at": "2026-10-04T13:54:33.985915+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 9.6572265625
+    },
+    {
+      "at": "2026-10-04T13:54:36.090819+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 9.2841796875
+    },
+    {
+      "at": "2026-10-04T13:54:38.204688+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 9.2841796875
+    },
+    {
+      "at": "2026-10-04T13:54:40.345571+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 9.90185546875
+    },
+    {
+      "at": "2026-10-04T13:54:42.453949+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 9.90185546875
+    },
+    {
+      "at": "2026-10-04T13:54:44.562402+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 9.90185546875
+    },
+    {
+      "at": "2026-10-04T13:54:46.670727+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 9.82958984375
+    },
+    {
+      "at": "2026-10-04T13:54:48.777517+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 9.82958984375
+    },
+    {
+      "at": "2026-10-04T13:54:50.890306+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 9.5224609375
+    },
+    {
+      "at": "2026-10-04T13:54:53.013008+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 9.5224609375
+    },
+    {
+      "at": "2026-10-04T13:54:55.129798+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 9.5224609375
+    },
+    {
+      "at": "2026-10-04T13:54:57.253892+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 9.48046875
+    },
+    {
+      "at": "2026-10-04T13:54:59.392046+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 9.48046875
+    },
+    {
+      "at": "2026-10-04T13:55:01.529493+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 9.44189453125
+    },
+    {
+      "at": "2026-10-04T13:55:03.653810+00:00",
+      "vitest_processes_ps_aux": 1,
+      "load_1m": 9.44189453125
+    }
+  ],
+  "integration": {
+    "started_at": "2026-10-04T13:51:50.000Z",
+    "finished_at": "2026-10-04T13:53:29.760Z",
+    "case_elapsed_ms": 98275,
+    "suite_elapsed_ms": 99760,
+    "samples_within_suite": 45,
+    "raw_matching_rows_min": 4,
+    "raw_matching_rows_max": 26,
+    "load_1m_min": 14.8447265625,
+    "load_1m_max": 35.83935546875,
+    "sampler_matching_rows": 1,
+    "matching_processes_excluding_sampler_min": 3,
+    "matching_processes_excluding_sampler_max": 25,
+    "limitation": "Raw ps aux matches include the Python sampler because its argument names the vitest_processes field; one sampler row also remained after Vitest exited. Sampling began 3.8 seconds after suite start."
+  }
+}

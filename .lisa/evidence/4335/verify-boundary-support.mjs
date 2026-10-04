@@ -1,4 +1,5 @@
 import { mkdtemp, mkdir, readFile, writeFile, symlink } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
@@ -6,7 +7,14 @@ import { createHash } from "node:crypto";
 
 const root = process.cwd(),
   evidence = path.join(root, ".lisa/evidence/4335");
-const GIT_BIN = "/usr/bin/git";
+const GIT_BIN = [
+  "/Library/Developer/CommandLineTools/usr/bin/git",
+  "/Applications/Xcode.app/Contents/Developer/usr/bin/git",
+  "/usr/bin/git",
+  "/opt/homebrew/bin/git",
+  "/usr/local/bin/git",
+].find(existsSync);
+if (!GIT_BIN) throw Error("A verified Git executable is required");
 const host = await mkdtemp(
   path.join(tmpdir(), "lisa-4335-verify-anonymous-host-")
 );
@@ -210,6 +218,7 @@ run("git-track-host-files", "git", [
 commands.forEach(c => run(`before-${c.id}`, "bash", ["-c", c.command], "{}\n"));
 
 export {
+  GIT_BIN,
   root,
   evidence,
   host,
