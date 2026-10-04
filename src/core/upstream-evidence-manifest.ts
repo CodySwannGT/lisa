@@ -9819,6 +9819,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/platform/process-tree-runner.test.mjs": true,
     "tests/platform/windows-missing-handles.ps1": true,
     "tests/platform/windows-process-fixture.mjs": true,
+    "tests/support/codex-compatibility-candidate.mjs": true,
     "tests/support/codex-compatibility-proof.mjs": true,
     "tests/support/codex-compatibility-seed.mjs": true,
     "tests/support/codex-compatibility-state.mjs": true,

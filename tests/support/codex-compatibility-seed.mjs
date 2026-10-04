@@ -3,7 +3,7 @@ import { mkdir, symlink, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { installHooks } from "../../dist/codex/hooks-installer.js";
 import {
-  root,
+  candidate,
   host,
   evidence,
   saved,
@@ -39,8 +39,8 @@ export async function seedCompatibilityHost() {
   );
   await output("sample.rb", "puts 'anonymous fixture'\n");
   await mkdir(path.join(host, "node_modules/@codyswann"), { recursive: true });
-  await symlink(root, path.join(host, INSTALLED_LISA), "dir");
-  await installHooks(root, host, ["rails"]);
+  await symlink(candidate, path.join(host, INSTALLED_LISA), "dir");
+  await installHooks(candidate, host, ["rails"]);
   for (const command of commands) {
     const destination = path.join(
       host,

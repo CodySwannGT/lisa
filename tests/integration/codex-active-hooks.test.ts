@@ -33,6 +33,12 @@ it("keeps exact legacy commands functional across explicit full refresh and pack
   expect(report.greenEstablished).toBe(true);
   expect(report.after).toHaveLength(4);
   expect(report.apply.status).toBe(0);
+  expect(report.candidateIdentity.publicPublication).toBe(false);
+  expect(report.candidateIdentity.sourceHead).toMatch(/^[a-f0-9]{40}$/u);
+  expect(report.candidateIdentity.indexTree).toMatch(/^[a-f0-9]{40}$/u);
+  for (const [file, digest] of Object.entries(report.sourceHashesBefore)) {
+    expect(report.candidateIdentity.copiedHashes[file], file).toBe(digest);
+  }
   expect(
     report.checks.filter((check: { passed: boolean }) => !check.passed)
   ).toEqual([]);

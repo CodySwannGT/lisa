@@ -4,13 +4,20 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { createCompatibilityCandidate } from "./codex-compatibility-candidate.mjs";
 const ANONYMOUS_HOST = "<anonymous-host>";
 const INSTALLED_LISA = "node_modules/@codyswann/lisa";
 const root = process.cwd();
 const evidence =
   process.env.LISA_COMPAT_EVIDENCE ?? path.join(root, ".lisa/evidence/4335");
 await mkdir(evidence, { recursive: true });
-const host = await mkdtemp(path.join(tmpdir(), "lisa-4335-green-anonymous-"));
+const scratch = await mkdtemp(
+  path.join(tmpdir(), "lisa-4335-green-anonymous-")
+);
+const host = path.join(scratch, "host");
+const candidate = path.join(scratch, "candidate");
+await mkdir(host);
+const candidateIdentity = await createCompatibilityCandidate(root, candidate);
 const saved = JSON.parse(
   await readFile(
     path.join(root, ".lisa/evidence/4335/red-saved-hooks.json"),
@@ -30,6 +37,7 @@ const redact = str =>
   str
     .replaceAll(`/private${host}`, ANONYMOUS_HOST)
     .replaceAll(host, ANONYMOUS_HOST)
+    .replaceAll(candidate, "<local-candidate>")
     .replaceAll(root, "<lisa-worktree>");
 /**
  * Run a bounded host process and sanitize its captured streams.
@@ -99,6 +107,9 @@ export {
   root,
   evidence,
   host,
+  scratch,
+  candidate,
+  candidateIdentity,
   saved,
   commands,
   run,

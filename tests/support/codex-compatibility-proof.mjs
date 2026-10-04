@@ -12,6 +12,9 @@ import {
   root,
   evidence,
   host,
+  scratch,
+  candidate,
+  candidateIdentity,
   commands,
   run,
   hash,
@@ -30,7 +33,7 @@ try {
     .filter(c => c.event !== "SessionStart")
     .map(c => ({ ...c, ...run("bash", ["-c", c.command], "{}\n") }));
   const applyArgs = [
-    path.join(root, "dist/index.js"),
+    path.join(candidate, "dist/index.js"),
     "--no-update-check",
     "apply",
     host,
@@ -208,7 +211,7 @@ try {
     scannerAfter.status === 1,
     scannerAfter
   );
-  await symlink(root, path.join(host, INSTALLED_LISA), "dir");
+  await symlink(candidate, path.join(host, INSTALLED_LISA), "dir");
   const repeat = run("node", applyArgs);
   const second = JSON.parse(
     await readFile(path.join(host, ".codex/.lisa-managed.json"), "utf8")
@@ -245,6 +248,13 @@ try {
     "implementation bytes unchanged during replay",
     JSON.stringify(sourceHashesBefore) === JSON.stringify(sourceHashes)
   );
+  check(
+    "original checkout metadata unchanged by private candidate",
+    candidateIdentity.originalManifest.equals(
+      await readFile(path.join(root, "package.json"))
+    )
+  );
+  const { originalManifest, ...identity } = candidateIdentity;
   const report = {
     captured_at: new Date().toISOString(),
     base_sha: "728d35afbd3de4d522023e0b65fd0f730c94820c",
@@ -257,11 +267,12 @@ try {
     sourceHashesBefore,
     sourceHashes,
     compatibilityHashes: firstHashes,
+    candidateIdentity: identity,
     greenEstablished: checks.every(c => c.passed),
     limitations: [
       "Dispatch spies establish operation/exit contracts. Independent verifier must exercise actual local scanner/linter.",
       "Native fresh-session hook trust/loading requires independent verification.",
-      "Uncommitted local source identity only. CI, shipping identity, release and delivery remain pending.",
+      "Private local candidate identity only; public CI/release completion remains pending.",
     ],
   };
   await writeFile(
@@ -273,16 +284,18 @@ try {
     `${apply.stdout + apply.stderr}\nREPEAT\n${repeat.stdout}${repeat.stderr}`
   );
   console.log(
-    JSON.stringify(
-      {
-        greenEstablished: report.greenEstablished,
-        checks: checks.map(({ name, passed }) => ({ name, passed })),
-      },
-      null,
-      2
-    )
+    JSON.stringify({
+      greenEstablished: report.greenEstablished,
+      candidateIdentity: identity,
+      checks: checks.map(({ name, passed, details }) => ({
+        name,
+        passed,
+        ...(!passed ? { details } : {}),
+      })),
+      ...(!report.greenEstablished ? { apply, repeat } : {}),
+    })
   );
   if (!report.greenEstablished) process.exitCode = 1;
 } finally {
-  await rm(host, { recursive: true, force: true });
+  await rm(scratch, { recursive: true, force: true });
 }
