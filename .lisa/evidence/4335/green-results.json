@@ -1,0 +1,1613 @@
+{
+  "captured_at": "2026-10-03T23:39:10.276Z",
+  "base_sha": "728d35afbd3de4d522023e0b65fd0f730c94820c",
+  "host": "<anonymous-host>",
+  "before": [
+    {
+      "event": "PreToolUse",
+      "id": "block-no-verify",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/block-no-verify.sh\"",
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "event": "PostToolUse",
+      "id": "shell-write-nudge",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/shell-write-nudge.sh\"",
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "event": "PostToolUse",
+      "id": "sg-scan-on-edit",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/sg-scan-on-edit.sh\"",
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "event": "PostToolUse",
+      "id": "rubocop-on-edit",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/rubocop-on-edit.sh\"",
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "apply": {
+    "command": "node <lisa-worktree>/dist/index.js --no-update-check apply <anonymous-host> --yes --skip-git-check --refresh-templates --harness codex",
+    "status": 0,
+    "signal": null,
+    "stdout": "[WARN] --skip-git-check now waives ONLY the clean-tree check; this apply runs in FULL, including every agent emit and the Sonar integration. It used to also select the reduced postinstall-safe subset (CodySwannGT/lisa#3066). Install hooks using --postinstall-safe or LISA_POSTINSTALL=1 now skip template writes. Run lisa apply explicitly when ready to update templates.\n\n========================================\n    Lisa Project Bootstrapper\n========================================\n\n[INFO] Lisa directory: <lisa-worktree>\n[INFO] Destination:    <anonymous-host>\n\n[INFO] Backup directory: /var/folders/_2/29n6gy1s42777swvq24j3fh00000gn/T/lisa-backup-cNHQha\n[INFO] Processing common configurations (all/)...\n[INFO] Processing all/copy-overwrite...\n[OK] Copied: scripts/check-conflict-markers.mjs\n[OK] Copied: scripts/check-npm-publish-landed.mjs\n[OK] Copied: scripts/check-orphaned-branches.mjs\n[OK] Copied: scripts/check-release-package-identity.mjs\n[OK] Copied: scripts/check-state-classification.mjs\n[OK] Copied: scripts/check-third-party-action-pins.mjs\n[OK] Copied: scripts/check-third-party-review-evidence.mjs\n[OK] Copied: scripts/check-workflow-load-failures.mjs\n[OK] Copied: scripts/lib/bounded-spawn.mjs\n[OK] Copied: scripts/lib/gate-failure-diagnosis.mjs\n[OK] Copied: scripts/lib/invoked-as-script.mjs\n[OK] Copied: scripts/lib/kill-marks.mjs\n[OK] Copied: scripts/lib/placeholder-expiry.mjs\n[OK] Copied: scripts/lib/process-tree-runner.mjs\n[OK] Copied: scripts/lib/reusable-workflow-load-adapter.d.mts\n[OK] Copied: scripts/lib/reusable-workflow-load-adapter.mjs\n[OK] Copied: scripts/lib/reusable-workflow-load-failure.d.mts\n[OK] Copied: scripts/lib/reusable-workflow-load-failure.mjs\n[OK] Copied: scripts/lib/reusable-workflow-load-scan.d.mts\n[OK] Copied: scripts/lib/reusable-workflow-load-scan.mjs\n[OK] Copied: scripts/lib/windows-process-job.cs\n[OK] Copied: scripts/lib/windows-process-job.mjs\n[OK] Copied: scripts/lib/windows-process-job.ps1\n[OK] Copied: scripts/lib/worktree-dependencies.d.mts\n[OK] Copied: scripts/lib/worktree-dependencies.mjs\n[OK] Copied: scripts/lisa-command-envelope.mjs\n[OK] Copied: scripts/lisa-commit-msg-gates.mjs\n[OK] Copied: scripts/lisa-cross-worktree-guard.mjs\n[OK] Copied: scripts/lisa-destructive-guard.mjs\n[OK] Copied: scripts/lisa-enforcement-fallback.sh\n[OK] Copied: scripts/lisa-environment-prepare.mjs\n[OK] Copied: scripts/lisa-floor-collisions.mjs\n[OK] Copied: scripts/lisa-gates.mjs\n[OK] Copied: scripts/lisa-hooks/block-blind-automerge.sh\n[OK] Copied: scripts/lisa-hooks/block-direct-issue-create.sh\n[OK] Copied: scripts/lisa-hooks/block-instruction-file-edits.sh\n[OK] Copied: scripts/lisa-hooks/block-managed-file-edits.sh\n[OK] Copied: scripts/lisa-hooks/block-no-verify.sh\n[OK] Copied: scripts/lisa-hooks/block-shell-json-parsing.sh\n[OK] Copied: scripts/lisa-hooks/guard-dedupe.bash\n[OK] Copied: scripts/lisa-hooks/parity-safety-net-heredoc.py\n[OK] Copied: scripts/lisa-hooks/parity-safety-net.sh\n[OK] Copied: scripts/lisa-hooks/sonar-secrets.sh\n[OK] Copied: scripts/lisa-hooks/worktree-binding-guard.mjs\n[OK] Copied: scripts/lisa-hooks/worktree-binding-guard.sh\n[OK] Copied: scripts/lisa-lint-staged-preflight.mjs\n[OK] Copied: scripts/lisa-postinstall.mjs\n[OK] Copied: scripts/lisa-reconcile-policy.mjs\n[OK] Copied: scripts/lisa-run-gates.mjs\n[OK] Copied: scripts/lisa-schema-validate.mjs\n[OK] Copied: scripts/lisa-self-update.mjs\n[OK] Copied: scripts/lisa-test-node.mjs\n[OK] Copied: scripts/lisa-work-item.mjs\n[OK] Copied: scripts/lisa-worktree-guard.mjs\n[OK] Copied: scripts/schemas/lisa-command-envelope.v1.schema.json\n[OK] Copied: scripts/schemas/lisa-state-contract.v1.schema.json\n[INFO] Processing all/copy-contents...\n[OK] Copied: .gitattributes\n[OK] Copied: .gitignore\n[INFO] Processing all/create-only...\n[OK] Created: .agents/rules/README.md\n[OK] Created: .github/workflows/continuous-gates.yml\n[OK] Created: .github/workflows/lisa-update.yml\n[OK] Created: .github/workflows/workflow-load-failure-sweep.yml\n[OK] Created: .lisa/ACCOUNTABILITY.md\n[OK] Created: .lisa/DEPENDENCY_DECISIONS.md\n[OK] Created: .lisa/PROJECT_LEARNINGS.md\n[OK] Created: .lisaignore\n[OK] Created: scripts/remote-agent-aws-setup.sh\n[OK] Created: specs/.keep\n[OK] Created: state/README.md\n[OK] Created: state/state-contract.example.json\n[INFO] Processing all/merge...\n[OK] Copied: .claude/settings.json\n[INFO] Processing rails configurations...\n[INFO] Processing rails/copy-overwrite...\n[OK] Copied: .rubocop.yml\n[OK] Copied: .versionrc\n[OK] Copied: Gemfile.lisa\n[OK] Copied: ast-grep/rule-tests/.gitkeep\n[OK] Copied: ast-grep/rules/no-day-truncating-file-age-predicate.yml\n[OK] Copied: ast-grep/rules/ruby/no-find-by-sql-without-params.yml\n[OK] Copied: ast-grep/rules/ruby/no-params-without-permit.yml\n[OK] Copied: ast-grep/rules/ruby/no-raw-sql-in-where.yml\n[OK] Copied: ast-grep/rules/ruby/no-skip-before-action-without-scope.yml\n[OK] Copied: ast-grep/rules/ruby/no-unsafe-send.yml\n[OK] Copied: ast-grep/rules/ruby/no-update-columns.yml\n[OK] Copied: ast-grep/utils/.gitkeep\n[OK] Copied: config/initializers/version.rb\n[OK] Copied: lefthook.yml\n[OK] Copied: scripts/check-threshold-ratchet.mjs\n[OK] Copied: scripts/lisa-clean-git-env.sh\n[OK] Copied: scripts/lisa-scratch-run.sh\n[OK] Copied: scripts/threshold-ratchet-compare.mjs\n[OK] Copied: scripts/threshold-ratchet-families.mjs\n[OK] Copied: sgconfig.yml\n[INFO] Processing rails/copy-contents...\n[INFO] Backup created: .lisabak/2026-10-03-233418/Gemfile\n[OK] Merged: Gemfile\n[OK] Copied: scripts/lisa-mutation.sh\n[INFO] Processing rails/create-only...\n[OK] Created: .github/workflows/ci.yml\n[OK] Created: .github/workflows/deploy.yml\n[OK] Created: .mise.toml\n[OK] Created: .mutant.yml\n[OK] Created: .reek.yml\n[OK] Created: .rspec\n[OK] Created: .rubocop.local.yml\n[OK] Created: .rubocop_todo.yml\n[OK] Created: .simplecov\n[OK] Created: VERSION\n[OK] Created: mutation.gate.yml\n[OK] Created: rubocop.thresholds.yml\n[OK] Created: simplecov.thresholds.json\n[OK] Created: sonar-project.properties\n[OK] Created: spec/rails_helper.rb\n[OK] Created: spec/spec_helper.rb\n[INFO] Processing rails/merge...\n[INFO] Backup created: .lisabak/2026-10-03-233418/.claude/settings.json\n[OK] Merged: .claude/settings.json\n[INFO] Processing deletions for all...\n[INFO] Kept (protected): .coderabbit.yml\n[INFO] Kept (protected): scripts/setup-deploy-key.sh\n[INFO] Kept (protected): HUMAN.md\n[INFO] Processing deletions for rails...\n[INFO] Running migrations...\n[OK] registered the lisa-learnings merge driver\n[OK] Added 3 harness glob(s) to sonar.exclusions (.codex/**, .opencode/**, .agents/**)\n[OK] Pinned 3 Lisa reusable-workflow caller file(s) at 728d35afbd3de4d522023e0b65fd0f730c94820c (v4.68.0)\n[INFO] Codex emit: 30 agents, 1 repository enforcement fallback plus plugin-bundled hooks, 190 native skills from 2 project plugins, 1 MCP servers, settings created\n[INFO] Instruction files: reconciled host-rules pointer in AGENTS.md\n[INFO] Registering plugins with Claude Code (project scope)...\n[OK] Registered plugin: lisa@lisa\n[WARN] Could not register plugin: safety-net@cc-marketplace\n[OK] Registered plugin: code-simplifier@claude-plugins-official\n[OK] Registered plugin: code-review@claude-plugins-official\n[OK] Registered plugin: coderabbit@claude-plugins-official\n[OK] Registered plugin: sentry@claude-plugins-official\n[OK] Registered plugin: skill-creator@claude-plugins-official\n[OK] Registered plugin: ruby-lsp@claude-plugins-official\n[OK] Registered plugin: lisa-rails@lisa\n[OK] Registered plugin: impeccable@impeccable\n[OK] Updated marketplace: lisa\n\n========================================\n    Lisa Installation Complete!\n========================================\n\n  Copied:      108 files\n  Skipped:       0 files (identical or create-only)\n  Overwritten:   0 files (approved or Lisa-owned)\n  Out of date:   0 files (managed templates changed; NOT updated)\n  Appended:      0 files (copy-contents)\n  Merged:        2 files (JSON merged)\n  Deleted:       0 files\n  Migrations:    3 files applied\n\nProject types: all rails\n\n[INFO] Postinstall reconciliation skipped: package.json unchanged by this apply\n",
+    "stderr": ""
+  },
+  "after": [
+    {
+      "event": "PreToolUse",
+      "id": "block-no-verify",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/block-no-verify.sh\"",
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "event": "PostToolUse",
+      "id": "shell-write-nudge",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/shell-write-nudge.sh\"",
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "event": "PostToolUse",
+      "id": "sg-scan-on-edit",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/sg-scan-on-edit.sh\"",
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "event": "PostToolUse",
+      "id": "rubocop-on-edit",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/rubocop-on-edit.sh\"",
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "repeat": {
+    "command": "node <lisa-worktree>/dist/index.js --no-update-check apply <anonymous-host> --yes --skip-git-check --refresh-templates --harness codex",
+    "status": 0,
+    "signal": null,
+    "stdout": "[WARN] --skip-git-check now waives ONLY the clean-tree check; this apply runs in FULL, including every agent emit and the Sonar integration. It used to also select the reduced postinstall-safe subset (CodySwannGT/lisa#3066). Install hooks using --postinstall-safe or LISA_POSTINSTALL=1 now skip template writes. Run lisa apply explicitly when ready to update templates.\n\n========================================\n    Lisa Project Bootstrapper\n========================================\n\n[INFO] Lisa directory: <lisa-worktree>\n[INFO] Destination:    <anonymous-host>\n\n[INFO] Backup directory: /var/folders/_2/29n6gy1s42777swvq24j3fh00000gn/T/lisa-backup-Ljy2Qy\n[INFO] Processing common configurations (all/)...\n[INFO] Processing all/copy-overwrite...\n[INFO] Processing all/copy-contents...\n[INFO] Processing all/create-only...\n[INFO] Processing all/merge...\n[INFO] Backup created: .lisabak/2026-10-03-233647/.claude/settings.json\n[OK] Merged: .claude/settings.json\n[INFO] Processing rails configurations...\n[INFO] Processing rails/copy-overwrite...\n[INFO] Processing rails/copy-contents...\n[INFO] Processing rails/create-only...\n[INFO] Processing rails/merge...\n[INFO] Processing deletions for all...\n[INFO] Kept (protected): .coderabbit.yml\n[INFO] Kept (protected): scripts/setup-deploy-key.sh\n[INFO] Kept (protected): HUMAN.md\n[INFO] Processing deletions for rails...\n[INFO] Running migrations...\n[INFO] Codex emit: 30 agents, 1 repository enforcement fallback plus plugin-bundled hooks, 190 native skills from 2 project plugins, 1 MCP servers, settings merged\n[INFO] Registering plugins with Claude Code (project scope)...\n[OK] Registered plugin: lisa@lisa\n[WARN] Could not register plugin: safety-net@cc-marketplace\n[OK] Registered plugin: code-simplifier@claude-plugins-official\n[OK] Registered plugin: code-review@claude-plugins-official\n[OK] Registered plugin: coderabbit@claude-plugins-official\n[OK] Registered plugin: sentry@claude-plugins-official\n[OK] Registered plugin: skill-creator@claude-plugins-official\n[OK] Registered plugin: ruby-lsp@claude-plugins-official\n[OK] Registered plugin: lisa-rails@lisa\n[OK] Registered plugin: impeccable@impeccable\n[OK] Updated marketplace: lisa\n\n========================================\n    Lisa Installation Complete!\n========================================\n\n  Copied:        0 files\n  Skipped:     109 files (identical or create-only)\n  Overwritten:   0 files (approved or Lisa-owned)\n  Out of date:   0 files (managed templates changed; NOT updated)\n  Appended:      0 files (copy-contents)\n  Merged:        1 files (JSON merged)\n  Deleted:       0 files\n\nProject types: all rails\n\n[INFO] Postinstall reconciliation skipped: package.json unchanged by this apply\n",
+    "stderr": ""
+  },
+  "checks": [
+    {
+      "name": "normal explicit full apply including refresh succeeds",
+      "passed": true,
+      "details": {
+        "status": 0
+      }
+    },
+    {
+      "name": "all four exact saved Pre/Post commands remain executable",
+      "passed": true,
+      "details": [
+        {
+          "event": "PreToolUse",
+          "id": "block-no-verify",
+          "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/block-no-verify.sh\"",
+          "status": 0,
+          "signal": null,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "event": "PostToolUse",
+          "id": "shell-write-nudge",
+          "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/shell-write-nudge.sh\"",
+          "status": 0,
+          "signal": null,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "event": "PostToolUse",
+          "id": "sg-scan-on-edit",
+          "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/sg-scan-on-edit.sh\"",
+          "status": 0,
+          "signal": null,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "event": "PostToolUse",
+          "id": "rubocop-on-edit",
+          "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/rubocop-on-edit.sh\"",
+          "status": 0,
+          "signal": null,
+          "stdout": "",
+          "stderr": ""
+        }
+      ]
+    },
+    {
+      "name": "legacy policy executes real native deny",
+      "passed": true,
+      "details": {
+        "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/block-no-verify.sh\"",
+        "status": 0,
+        "signal": null,
+        "stdout": "{\n  \"hookSpecificOutput\": {\n    \"hookEventName\": \"PreToolUse\",\n    \"permissionDecision\": \"deny\",\n    \"permissionDecisionReason\": \"Blocked: this command bypasses pre-commit/pre-push hooks (--no-verify or its short form -n, HUSKY=0, or core.hooksPath disabling). `git commit -n` and a cluster such as `-nm \\\"msg\\\"` skip pre-commit exactly as completely as the long flag. Fix the underlying issue (security audit, lint, typecheck, tests, formatting) instead. If a fix is genuinely impossible, ask the user to make the risk-acceptance decision and add a specific documented ignore; never bypass the hook.\"\n  }\n}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "name": "legacy shell-write notice recognizes tracked writes",
+      "passed": true,
+      "details": {
+        "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/shell-write-nudge.sh\"",
+        "status": 0,
+        "signal": null,
+        "stdout": "",
+        "stderr": "Lisa notice: prefer Edit/Write for tracked file edits so lint-on-edit can see the change.\n"
+      }
+    },
+    {
+      "name": "scanner real dispatch and failure propagation",
+      "passed": true,
+      "details": {
+        "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/sg-scan-on-edit.sh\"",
+        "status": 1,
+        "signal": null,
+        "stdout": "",
+        "stderr": "",
+        "dispatch": "scan sample.rb\n"
+      }
+    },
+    {
+      "name": "linter safe correction then check and failure propagation",
+      "passed": true,
+      "details": {
+        "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/rubocop-on-edit.sh\"",
+        "status": 1,
+        "signal": null,
+        "stdout": "",
+        "stderr": "",
+        "dispatch": "exec rubocop -a sample.rb\nexec rubocop sample.rb\n"
+      }
+    },
+    {
+      "name": "saved SessionStart injects real rules content",
+      "passed": true,
+      "details": {
+        "status": 0,
+        "context_bytes": 81932
+      }
+    },
+    {
+      "name": "fresh configuration uses only current fallback and keeps host handler",
+      "passed": true,
+      "details": {
+        "hooks": {
+          "PreToolUse": [
+            {
+              "matcher": "Bash",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "printf host-handler-preserved"
+                }
+              ]
+            },
+            {
+              "matcher": "Bash|Edit|Write|apply_patch",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "/bin/bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/scripts/lisa-enforcement-fallback.sh\"",
+                  "_lisaManaged": true,
+                  "_lisaId": "enforcement-fallback",
+                  "timeout": 30,
+                  "statusMessage": "Checking Lisa enforcement policy"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "current fallback refuses through real repository guard",
+      "passed": true,
+      "details": {
+        "command": "bash -c /bin/bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/scripts/lisa-enforcement-fallback.sh\"",
+        "status": 2,
+        "signal": null,
+        "stdout": "",
+        "stderr": "Blocked: this command bypasses pre-commit/pre-push hooks (--no-verify or its\nshort form -n, HUSKY=0, or core.hooksPath disabling). `git commit -n` and a\ncluster such as `-nm \"msg\"` skip pre-commit exactly as completely as the long\nflag. Fix the underlying issue (security audit, lint,\ntypecheck, tests, formatting) instead. If a fix is genuinely impossible, ask the\nuser to make the risk-acceptance decision and add a specific documented ignore;\nnever bypass the hook.\nRefused by <anonymous-host>/scripts/lisa-hooks/block-no-verify.sh (lisa 4.68.0)\nworktree-binding-guard: payload carries no session id or cwd; binding is NOT enforced\n"
+      }
+    },
+    {
+      "name": "regular source-owned copy: hooks/lisa/inject-rules.sh",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: hooks/lisa/install-pkgs.sh",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: hooks/lisa/setup-jira-cli.sh",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: hooks/lisa/block-no-verify.sh",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: hooks/lisa/shell-write-nudge.sh",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: hooks/lisa/sg-scan-on-edit.sh",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: hooks/lisa/rubocop-on-edit.sh",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: hooks/lisa/_extract-edit-paths.sh",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: hooks/lisa/lisa-edit-gate.sh",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/00-rule-index.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/base-rules.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/coding-philosophy.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/config-resolution.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/do-it-now.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/empirical-inquiry.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/falsifiable-checks.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/history-audit.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/integration-access-layer.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/intent-routing.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/learnings-ladder.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/local-ci-first.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/measurement-integrity.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/never-name-a-downstream-project.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/not-blocked-just-waiting.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/operational-hazards.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/report-actionability.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/security-audit-handling.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/session-status-updates.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/settled-decisions.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/stale-state-claims.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/tool-access-gate.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/tracked-work.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/upstream-to-lisa.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/verification.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/wiki-knowledge-source.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/withdrawn-rulings.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/automation-runbook-contract.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/base-rules.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/bdd-e2e-coverage.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/blocker-containment.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/claim-archaeology.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/claim-evidence-mapping.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/claim-time-guards.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/coding-philosophy.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/config-resolution.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/control-reachability.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/convergent-review.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/credential-substrate-precedence.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/dependency-decision-records.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/dependency-internalization-kit.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/dependency-trust-classes.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/deployed-state-readback.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/derived-branch-plan.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/design-source-of-truth.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/design-value-binding.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/do-it-now.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/documentation-source-paths.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/empirical-inquiry.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/factory-model.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/falsifiable-checks.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/history-audit.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/integration-access-layer.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/intent-routing.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/leaf-only-lifecycle.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/learnings-ladder.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/local-ci-first.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/measurement-integrity.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/never-name-a-downstream-project.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/not-blocked-just-waiting.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/observability-audit.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/operational-hazards.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/prd-definition-of-ready.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/prd-lifecycle-rollup.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/pre-flight-autofill.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/project-learnings.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/promotion-contract.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/readiness-rubric.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/ready-role-filing.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/rejection-detection.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/repo-scope-split.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/report-actionability.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/reset-seed-coverage.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/security-audit-handling.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/session-status-updates.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/settled-decisions.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/stale-state-claims.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/tool-access-gate.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/tracked-work.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/upstream-to-lisa.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/usage-accounting.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/verification.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/wiki-knowledge-source.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/withdrawn-rulings.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/work-item-definition-of-ready.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/work-item-trailer-definition.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/eager/rails-conventions.md",
+      "passed": true
+    },
+    {
+      "name": "regular source-owned copy: lisa-rules/reference/rails-conventions.md",
+      "passed": true
+    },
+    {
+      "name": "copied commands survive actual package unlink",
+      "passed": true,
+      "details": [
+        {
+          "event": "PreToolUse",
+          "id": "block-no-verify",
+          "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/block-no-verify.sh\"",
+          "status": 0,
+          "signal": null,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "event": "PostToolUse",
+          "id": "shell-write-nudge",
+          "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/shell-write-nudge.sh\"",
+          "status": 0,
+          "signal": null,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "event": "PostToolUse",
+          "id": "sg-scan-on-edit",
+          "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/sg-scan-on-edit.sh\"",
+          "status": 0,
+          "signal": null,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "event": "PostToolUse",
+          "id": "rubocop-on-edit",
+          "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/rubocop-on-edit.sh\"",
+          "status": 0,
+          "signal": null,
+          "stdout": "",
+          "stderr": ""
+        }
+      ]
+    },
+    {
+      "name": "copied helper closure still scans after package unlink",
+      "passed": true,
+      "details": {
+        "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/sg-scan-on-edit.sh\"",
+        "status": 1,
+        "signal": null,
+        "stdout": "",
+        "stderr": ""
+      }
+    },
+    {
+      "name": "repeated full apply stable compatibility bytes and paths",
+      "passed": true,
+      "details": {
+        "status": 0,
+        "firstHashes": {
+          "hooks/lisa/inject-rules.sh": {
+            "sha256": "304b995ea6c2843baf8b90ee2bbae1c855154689db50ef7b6246cd54c76dfb45"
+          },
+          "hooks/lisa/install-pkgs.sh": {
+            "sha256": "e770fae7b1816aa693ff00a3c26064a7bf2f6685784f34a1bc3d3e2d8c2a1da8"
+          },
+          "hooks/lisa/setup-jira-cli.sh": {
+            "sha256": "b98bd6536ef01a3dc9be184603e4d13feed4f36f8e74977b2a3f5edfafeaba1c"
+          },
+          "hooks/lisa/block-no-verify.sh": {
+            "sha256": "4cd71d71a4458922a5d81c0256c20b76102f20085699117f2734a64f6db56ddf"
+          },
+          "hooks/lisa/shell-write-nudge.sh": {
+            "sha256": "b04ceb3328290c5bacaedced35dffaecf97241953b5b886e13431393a4462720"
+          },
+          "hooks/lisa/sg-scan-on-edit.sh": {
+            "sha256": "bc7c1e96a044aa811e96c2d79c8a361a46659f913e07aa1f165a4f2ec55bcbd4"
+          },
+          "hooks/lisa/rubocop-on-edit.sh": {
+            "sha256": "8bb9b44c2d97768762e1a12580f7a595a947f733726849ee85c93b2f83f5867a"
+          },
+          "hooks/lisa/_extract-edit-paths.sh": {
+            "sha256": "f5f760b4dc1f15851869b44cf830d5f935627e76af30b2291a64a82bfc1bfda9"
+          },
+          "hooks/lisa/lisa-edit-gate.sh": {
+            "sha256": "0a8d9a043f04b15b71bb500ff03cf1e67e4ac292181a5d596ddf078f301e671f"
+          },
+          "lisa-rules/eager/00-rule-index.md": {
+            "sha256": "ec1348b307edeb1e974c56c7d3e395116eb998415f100bab1004b8b11b7f20cc"
+          },
+          "lisa-rules/eager/base-rules.md": {
+            "sha256": "3de39af7d5ad74b0b91fb939ec67a76b806d05a4b5c071c3941af6cd4108083c"
+          },
+          "lisa-rules/eager/coding-philosophy.md": {
+            "sha256": "cf2c52032e0368d81f17f002fed5c957ab350d01fc4a43f66b5f366516bac54a"
+          },
+          "lisa-rules/eager/config-resolution.md": {
+            "sha256": "f064147ecc33144ef1512fc1abeda253fcb420038eef498a5b986db0ea631639"
+          },
+          "lisa-rules/eager/do-it-now.md": {
+            "sha256": "d7b7635686cb803353b433d43801d3f6960e9804394c587c473337976640d44b"
+          },
+          "lisa-rules/eager/empirical-inquiry.md": {
+            "sha256": "67aa64ba3ecc4f3cd761111d2562662e0a2acf7892703b14ec83f7f7b073e670"
+          },
+          "lisa-rules/eager/falsifiable-checks.md": {
+            "sha256": "8bf1a2b02cd1c44674ba3a131fa42f115ba693d66402264a3a365fdfaf656d1f"
+          },
+          "lisa-rules/eager/history-audit.md": {
+            "sha256": "e2365e3fb28230c643e943d26688a93906afa68e3e1355d3e86d4b22ab3db559"
+          },
+          "lisa-rules/eager/integration-access-layer.md": {
+            "sha256": "4f98938b575c301a0f9626f4a074e802bd20363ba6e5874eb5d7dc0e6a7470d3"
+          },
+          "lisa-rules/eager/intent-routing.md": {
+            "sha256": "a2ef2397a98fb3d991fcfb39b669e289c1e2b697191cbeb6c071d71eca836207"
+          },
+          "lisa-rules/eager/learnings-ladder.md": {
+            "sha256": "58f70031f7ad720254e73db53f4f328f35cdce2a562c8f62e403be842abccab0"
+          },
+          "lisa-rules/eager/local-ci-first.md": {
+            "sha256": "8a0369f3b23c4c9906194ea2d5b6dab44bb82dee753571b7e3e27ed799a289f5"
+          },
+          "lisa-rules/eager/measurement-integrity.md": {
+            "sha256": "aff22dd8dfce9b527348c641a996374257fa8a552298713aae524c83858c2aa9"
+          },
+          "lisa-rules/eager/never-name-a-downstream-project.md": {
+            "sha256": "091f07a28baa5da6c19953a394a0cae39dd51abd46a3f23a3f113dd98462f912"
+          },
+          "lisa-rules/eager/not-blocked-just-waiting.md": {
+            "sha256": "bd96e3a61bfd9ddf27d88b6cb62948c701b6335e9758a081cd5c1fc63048d9be"
+          },
+          "lisa-rules/eager/operational-hazards.md": {
+            "sha256": "9acb3b13a6b3f7d993c7fc37cf70fa94947119c4d59e6295217cafe9f13c6c58"
+          },
+          "lisa-rules/eager/report-actionability.md": {
+            "sha256": "b817c042d834fb046ead75db19cf827322b1abfbb0886fd4545213dd68a80554"
+          },
+          "lisa-rules/eager/security-audit-handling.md": {
+            "sha256": "1f6effe92be66736a0c9fab634c5fdd6ad1e789865faa67bb783c67ddb4ad490"
+          },
+          "lisa-rules/eager/session-status-updates.md": {
+            "sha256": "d2d657eda85ce00c3c0699e1c32bc0080df1140b940f9271800f233953f91b4c"
+          },
+          "lisa-rules/eager/settled-decisions.md": {
+            "sha256": "ae1e8d1292db266038af41d9313708a3fba437c036de043ec6b0311418b56017"
+          },
+          "lisa-rules/eager/stale-state-claims.md": {
+            "sha256": "faf5057f5910237b8d5048dbcccb73e0cd03762a8eefbeae43b5d0153104a85a"
+          },
+          "lisa-rules/eager/tool-access-gate.md": {
+            "sha256": "854eb5b16a8e0f51fe7caa0517c10d1ec5ded5ca7324c8304beddc7b81befcf2"
+          },
+          "lisa-rules/eager/tracked-work.md": {
+            "sha256": "e6ac1bcb50e04120d9e4c9a2be1d022cd873071a8b74d34f53f282a03676733e"
+          },
+          "lisa-rules/eager/upstream-to-lisa.md": {
+            "sha256": "dcb3075bc48de76f3bae1ad066d0a1e14f82bd244c1015a48f9e2916cabaf03c"
+          },
+          "lisa-rules/eager/verification.md": {
+            "sha256": "a6cc1d50c5b91080171490edce4d375f136a14790dcbb247ca8b736ad8f55cfd"
+          },
+          "lisa-rules/eager/wiki-knowledge-source.md": {
+            "sha256": "b3ae63fca40461fef19779d8f0c971553963ed8fe9c22fc504da3d8e757b3a36"
+          },
+          "lisa-rules/eager/withdrawn-rulings.md": {
+            "sha256": "46bdcbaa845ab906bd7f83e86d18860a1a54162520b8fb7101f6b23c5e1e816f"
+          },
+          "lisa-rules/reference/automation-runbook-contract.md": {
+            "sha256": "e4b64b042b650bccc26f04ef68fe76a182be265ace4674daa4f9c8e8c24bd626"
+          },
+          "lisa-rules/reference/base-rules.md": {
+            "sha256": "938173f9e048a0f8e09bd825d97f2e3a3e97f03fc99037fcdae47a9bfa99f307"
+          },
+          "lisa-rules/reference/bdd-e2e-coverage.md": {
+            "sha256": "05491cdf9b64327cd0ba8f205242128749700113a61de3c62e43e8787d1971c1"
+          },
+          "lisa-rules/reference/blocker-containment.md": {
+            "sha256": "b88a8a58cebd4dabcc130439df65b1be54a6f78a6098359e86135d267e41f096"
+          },
+          "lisa-rules/reference/claim-archaeology.md": {
+            "sha256": "a452f3ff48396954e75c15cc441af7b89648b4b93851e907148854a03afc0ed0"
+          },
+          "lisa-rules/reference/claim-evidence-mapping.md": {
+            "sha256": "d517dd46224bfd97e2b988a317837dcf099977ae35caa98bb3458ffac606081d"
+          },
+          "lisa-rules/reference/claim-time-guards.md": {
+            "sha256": "a50664632190c94a68df74cf8e1893552e1507f0162e3dc497615a8360b40007"
+          },
+          "lisa-rules/reference/coding-philosophy.md": {
+            "sha256": "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9"
+          },
+          "lisa-rules/reference/config-resolution.md": {
+            "sha256": "1ed9492c876b187149a45e28a41aeb5775493c904751a9edb0067838b6f1121e"
+          },
+          "lisa-rules/reference/control-reachability.md": {
+            "sha256": "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a"
+          },
+          "lisa-rules/reference/convergent-review.md": {
+            "sha256": "e4366235924386d19dea11a09e3a5c7e302146bc95e9dbdf27fbc2078d7e6e1a"
+          },
+          "lisa-rules/reference/credential-substrate-precedence.md": {
+            "sha256": "15026888dcb2dbc04165e07316beace4f27efc1972389ae06cb8f5549be656c7"
+          },
+          "lisa-rules/reference/dependency-decision-records.md": {
+            "sha256": "67addfd328a6fb0af195537aff4a66363063d29d1af7e3939f93c895cb14716e"
+          },
+          "lisa-rules/reference/dependency-internalization-kit.md": {
+            "sha256": "d3c15de04e45193c99406b18f91ce5fa0593add4bb587edcc26d0908fd3bfba6"
+          },
+          "lisa-rules/reference/dependency-trust-classes.md": {
+            "sha256": "e36d4ed62c815f3529e90650a25639cdcc4e84710c22c8e42127335016d42734"
+          },
+          "lisa-rules/reference/deployed-state-readback.md": {
+            "sha256": "3ef5a52ddb8658ae53a7222dd25414380a7bdf6040c6a5271e7a6e8c73d1d654"
+          },
+          "lisa-rules/reference/derived-branch-plan.md": {
+            "sha256": "0a076ed19f605be8a9a1f4366e8fa6a2e00ce0cfd578b59ab9fb0a6398b21b3b"
+          },
+          "lisa-rules/reference/design-source-of-truth.md": {
+            "sha256": "5e612ef4fe8c1b9879c315c02fbefeed4c3c7661003ecd7c260b096c4b989c54"
+          },
+          "lisa-rules/reference/design-value-binding.md": {
+            "sha256": "ec74ad33f0335a5fdc16ec09b967e8bc96d04936289298b8992e374d929c90ca"
+          },
+          "lisa-rules/reference/do-it-now.md": {
+            "sha256": "97dce1a2b18ff82233e0849a59fd2a910c5b8ea8fe3ae8114eb2733e0b6de052"
+          },
+          "lisa-rules/reference/documentation-source-paths.md": {
+            "sha256": "529e414e224f44758be34f33f9f93dd0291980f1af150eb732a47afaa6585b9f"
+          },
+          "lisa-rules/reference/empirical-inquiry.md": {
+            "sha256": "8cb166ab9eff4eb30287822a4d7843f76884d70d683d7c61d6a7ffd4ff9f7159"
+          },
+          "lisa-rules/reference/factory-model.md": {
+            "sha256": "b28a2ea4df7c33390111667a2807d9003cf8c9a14829f6fb0dbc929b05bfed3a"
+          },
+          "lisa-rules/reference/falsifiable-checks.md": {
+            "sha256": "8fab1429274b80f8dc82e4cdead0023ccc8ddd333f3d7d99cd3e0456578a90ab"
+          },
+          "lisa-rules/reference/history-audit.md": {
+            "sha256": "20a46390f71fadda499c61193d430c3d53df49b55a4cefa50a112f82fa4b05ef"
+          },
+          "lisa-rules/reference/integration-access-layer.md": {
+            "sha256": "c5fc07f5f46ba1f99403b6e4fd5603d153411a9bb1838bea320b26a5bd5273d6"
+          },
+          "lisa-rules/reference/intent-routing.md": {
+            "sha256": "988f8f45b41056c2adaa1a3e5f6ea926ac56a2fd041c07f98a9c2b271050efdd"
+          },
+          "lisa-rules/reference/leaf-only-lifecycle.md": {
+            "sha256": "caa31885b5ed834124159d0523f954c8248311dfd46aa1da07ab1782513d1648"
+          },
+          "lisa-rules/reference/learnings-ladder.md": {
+            "sha256": "4b6760e8ec58dea0e646cfa1b0518f468cc959ef3be55e3f87c225ec076f53c7"
+          },
+          "lisa-rules/reference/local-ci-first.md": {
+            "sha256": "4db796a9e159d25e5edd0d8d8d713b6556a3024a96e3882a50e19928b0e81a18"
+          },
+          "lisa-rules/reference/measurement-integrity.md": {
+            "sha256": "f628573c591e2cbbbbedd22821d40a3687dc14dba3aba5aebdc75c37ebd62494"
+          },
+          "lisa-rules/reference/never-name-a-downstream-project.md": {
+            "sha256": "3b591120dc7825e3bb2c52a633d8b1bc8c05dccc0befef2d2e95a73ac2a99e4c"
+          },
+          "lisa-rules/reference/not-blocked-just-waiting.md": {
+            "sha256": "bef69d0cefa92e2b8ca589bb27f8e92749140e662d54110e12f0a47890e69f14"
+          },
+          "lisa-rules/reference/observability-audit.md": {
+            "sha256": "b3d211fb46d40a818765d157bd133e349fea609d5da8a7de640f8f2d68b8ae2f"
+          },
+          "lisa-rules/reference/operational-hazards.md": {
+            "sha256": "208c36bdf12b6164573d5d744f1747a3fd5904d9aaf55ec335c9ba884fcd9d17"
+          },
+          "lisa-rules/reference/prd-definition-of-ready.md": {
+            "sha256": "3388bc1acf47c5cadc5fcefb8fd16b66b23e09aae5e290a208ffcb9c2e7a8a9a"
+          },
+          "lisa-rules/reference/prd-lifecycle-rollup.md": {
+            "sha256": "de8aa6881f815f58326c797159b149dd3f838692b8e622b562d1ea578341e741"
+          },
+          "lisa-rules/reference/pre-flight-autofill.md": {
+            "sha256": "3cb2a0e402ae468640d9021a7086e00323fa3cd34d9f061910f6caaff51f9e5f"
+          },
+          "lisa-rules/reference/project-learnings.md": {
+            "sha256": "e51677d91c6dfeaa33e91e1f9f16f6a39b2ea007b852822cf7970e607c05c0ec"
+          },
+          "lisa-rules/reference/promotion-contract.md": {
+            "sha256": "fe07cbdbd15393471d08903cce53b80b8899b2ff3bc0b0041b46c1c7003b7e6c"
+          },
+          "lisa-rules/reference/readiness-rubric.md": {
+            "sha256": "d3ebc3fa6bacd80696613e116ab9c3ece5384d47238ad78ae6cde2f85ebf32d7"
+          },
+          "lisa-rules/reference/ready-role-filing.md": {
+            "sha256": "fc0f5d4620c764dc06b4c8a0258f50f2e5182df0d4366ebc0018d299541c7ccc"
+          },
+          "lisa-rules/reference/rejection-detection.md": {
+            "sha256": "77b412b24b9c4169b94dd8a1bfae27ca82d10b17ff47e7f484f0b0624dff4b55"
+          },
+          "lisa-rules/reference/repo-scope-split.md": {
+            "sha256": "20b1aa6999a9376d7b9990c0022f40a4d48d5d09af9c709bf1b6ead3f1443b16"
+          },
+          "lisa-rules/reference/report-actionability.md": {
+            "sha256": "42fa86bb189467c7bc7ee64f6ebccd3926bb2aaf512ee5a498c232025b8a364b"
+          },
+          "lisa-rules/reference/reset-seed-coverage.md": {
+            "sha256": "cfbb50fc9fdb6f0a354255802392adc717ea18af65aca92cc866416bf9256d91"
+          },
+          "lisa-rules/reference/security-audit-handling.md": {
+            "sha256": "9633e11ac89af26444a272449f36fe03f26e61fab40ca16a0ab50464725f7d8c"
+          },
+          "lisa-rules/reference/session-status-updates.md": {
+            "sha256": "8878eceb7d81ee4d1ebd51f2f179e659ce36fac3ee7d04bc8631f44923d5e9ae"
+          },
+          "lisa-rules/reference/settled-decisions.md": {
+            "sha256": "a26eb4e879ab33468d2c55c1cf8128fbbfbec9c2cb634d9dd9f008304ad9aa05"
+          },
+          "lisa-rules/reference/stale-state-claims.md": {
+            "sha256": "6329e1a7629f9a12f10454c767842aecee4964df8b7bb4aebda9dde3c0959c2a"
+          },
+          "lisa-rules/reference/tool-access-gate.md": {
+            "sha256": "29579f403648d3b550b8b7e5fba01986fba8d3f0f285b5b5bf6bb0a839f7f10e"
+          },
+          "lisa-rules/reference/tracked-work.md": {
+            "sha256": "eb8e7ceb11ba16dc5443ae2b1c83cce544a35db84af97d04aeca6018654fe9e0"
+          },
+          "lisa-rules/reference/upstream-to-lisa.md": {
+            "sha256": "e98974e4f48af05f788323c92badae6a97a2feec1ca8e8a9c05ddc3e3c948492"
+          },
+          "lisa-rules/reference/usage-accounting.md": {
+            "sha256": "64ee616bdad7c16d5cc4b9eb44384de261b0616ec3343d4c05a88ddede3d89ea"
+          },
+          "lisa-rules/reference/verification.md": {
+            "sha256": "9ae8db87b37c7700687fabd1b8632b3cddd0f1f1e4b04384c604f88f160056ed"
+          },
+          "lisa-rules/reference/wiki-knowledge-source.md": {
+            "sha256": "725a7415a0606f85164722bd4b4975bce1f496cc43c97e45b224810b1a685189"
+          },
+          "lisa-rules/reference/withdrawn-rulings.md": {
+            "sha256": "34afe0413fce11872ac99b87e6323c59a754db7992c5fb054a56845af0723785"
+          },
+          "lisa-rules/reference/work-item-definition-of-ready.md": {
+            "sha256": "3f38ba302aa76d946acaaa4f67e50fa4afa649b8b471f17d9d7b4e6cf8f1fe07"
+          },
+          "lisa-rules/reference/work-item-trailer-definition.md": {
+            "sha256": "2997766dc8ab61bf63891781dc9e86339a47ca35eddd4ca387bd7cc0ce85f2a5"
+          },
+          "lisa-rules/eager/rails-conventions.md": {
+            "sha256": "10030d8159ae75c13c1b19d81694bf5649371c30cc6ceeed44948cd852138c5a"
+          },
+          "lisa-rules/reference/rails-conventions.md": {
+            "sha256": "e2db55d2b4d2f6b7f937ac1f9f386c5f48c4155ace34501f917e3471d22bfa3c"
+          }
+        },
+        "secondHashes": {
+          "hooks/lisa/inject-rules.sh": {
+            "sha256": "304b995ea6c2843baf8b90ee2bbae1c855154689db50ef7b6246cd54c76dfb45"
+          },
+          "hooks/lisa/install-pkgs.sh": {
+            "sha256": "e770fae7b1816aa693ff00a3c26064a7bf2f6685784f34a1bc3d3e2d8c2a1da8"
+          },
+          "hooks/lisa/setup-jira-cli.sh": {
+            "sha256": "b98bd6536ef01a3dc9be184603e4d13feed4f36f8e74977b2a3f5edfafeaba1c"
+          },
+          "hooks/lisa/block-no-verify.sh": {
+            "sha256": "4cd71d71a4458922a5d81c0256c20b76102f20085699117f2734a64f6db56ddf"
+          },
+          "hooks/lisa/shell-write-nudge.sh": {
+            "sha256": "b04ceb3328290c5bacaedced35dffaecf97241953b5b886e13431393a4462720"
+          },
+          "hooks/lisa/sg-scan-on-edit.sh": {
+            "sha256": "bc7c1e96a044aa811e96c2d79c8a361a46659f913e07aa1f165a4f2ec55bcbd4"
+          },
+          "hooks/lisa/rubocop-on-edit.sh": {
+            "sha256": "8bb9b44c2d97768762e1a12580f7a595a947f733726849ee85c93b2f83f5867a"
+          },
+          "hooks/lisa/_extract-edit-paths.sh": {
+            "sha256": "f5f760b4dc1f15851869b44cf830d5f935627e76af30b2291a64a82bfc1bfda9"
+          },
+          "hooks/lisa/lisa-edit-gate.sh": {
+            "sha256": "0a8d9a043f04b15b71bb500ff03cf1e67e4ac292181a5d596ddf078f301e671f"
+          },
+          "lisa-rules/eager/00-rule-index.md": {
+            "sha256": "ec1348b307edeb1e974c56c7d3e395116eb998415f100bab1004b8b11b7f20cc"
+          },
+          "lisa-rules/eager/base-rules.md": {
+            "sha256": "3de39af7d5ad74b0b91fb939ec67a76b806d05a4b5c071c3941af6cd4108083c"
+          },
+          "lisa-rules/eager/coding-philosophy.md": {
+            "sha256": "cf2c52032e0368d81f17f002fed5c957ab350d01fc4a43f66b5f366516bac54a"
+          },
+          "lisa-rules/eager/config-resolution.md": {
+            "sha256": "f064147ecc33144ef1512fc1abeda253fcb420038eef498a5b986db0ea631639"
+          },
+          "lisa-rules/eager/do-it-now.md": {
+            "sha256": "d7b7635686cb803353b433d43801d3f6960e9804394c587c473337976640d44b"
+          },
+          "lisa-rules/eager/empirical-inquiry.md": {
+            "sha256": "67aa64ba3ecc4f3cd761111d2562662e0a2acf7892703b14ec83f7f7b073e670"
+          },
+          "lisa-rules/eager/falsifiable-checks.md": {
+            "sha256": "8bf1a2b02cd1c44674ba3a131fa42f115ba693d66402264a3a365fdfaf656d1f"
+          },
+          "lisa-rules/eager/history-audit.md": {
+            "sha256": "e2365e3fb28230c643e943d26688a93906afa68e3e1355d3e86d4b22ab3db559"
+          },
+          "lisa-rules/eager/integration-access-layer.md": {
+            "sha256": "4f98938b575c301a0f9626f4a074e802bd20363ba6e5874eb5d7dc0e6a7470d3"
+          },
+          "lisa-rules/eager/intent-routing.md": {
+            "sha256": "a2ef2397a98fb3d991fcfb39b669e289c1e2b697191cbeb6c071d71eca836207"
+          },
+          "lisa-rules/eager/learnings-ladder.md": {
+            "sha256": "58f70031f7ad720254e73db53f4f328f35cdce2a562c8f62e403be842abccab0"
+          },
+          "lisa-rules/eager/local-ci-first.md": {
+            "sha256": "8a0369f3b23c4c9906194ea2d5b6dab44bb82dee753571b7e3e27ed799a289f5"
+          },
+          "lisa-rules/eager/measurement-integrity.md": {
+            "sha256": "aff22dd8dfce9b527348c641a996374257fa8a552298713aae524c83858c2aa9"
+          },
+          "lisa-rules/eager/never-name-a-downstream-project.md": {
+            "sha256": "091f07a28baa5da6c19953a394a0cae39dd51abd46a3f23a3f113dd98462f912"
+          },
+          "lisa-rules/eager/not-blocked-just-waiting.md": {
+            "sha256": "bd96e3a61bfd9ddf27d88b6cb62948c701b6335e9758a081cd5c1fc63048d9be"
+          },
+          "lisa-rules/eager/operational-hazards.md": {
+            "sha256": "9acb3b13a6b3f7d993c7fc37cf70fa94947119c4d59e6295217cafe9f13c6c58"
+          },
+          "lisa-rules/eager/report-actionability.md": {
+            "sha256": "b817c042d834fb046ead75db19cf827322b1abfbb0886fd4545213dd68a80554"
+          },
+          "lisa-rules/eager/security-audit-handling.md": {
+            "sha256": "1f6effe92be66736a0c9fab634c5fdd6ad1e789865faa67bb783c67ddb4ad490"
+          },
+          "lisa-rules/eager/session-status-updates.md": {
+            "sha256": "d2d657eda85ce00c3c0699e1c32bc0080df1140b940f9271800f233953f91b4c"
+          },
+          "lisa-rules/eager/settled-decisions.md": {
+            "sha256": "ae1e8d1292db266038af41d9313708a3fba437c036de043ec6b0311418b56017"
+          },
+          "lisa-rules/eager/stale-state-claims.md": {
+            "sha256": "faf5057f5910237b8d5048dbcccb73e0cd03762a8eefbeae43b5d0153104a85a"
+          },
+          "lisa-rules/eager/tool-access-gate.md": {
+            "sha256": "854eb5b16a8e0f51fe7caa0517c10d1ec5ded5ca7324c8304beddc7b81befcf2"
+          },
+          "lisa-rules/eager/tracked-work.md": {
+            "sha256": "e6ac1bcb50e04120d9e4c9a2be1d022cd873071a8b74d34f53f282a03676733e"
+          },
+          "lisa-rules/eager/upstream-to-lisa.md": {
+            "sha256": "dcb3075bc48de76f3bae1ad066d0a1e14f82bd244c1015a48f9e2916cabaf03c"
+          },
+          "lisa-rules/eager/verification.md": {
+            "sha256": "a6cc1d50c5b91080171490edce4d375f136a14790dcbb247ca8b736ad8f55cfd"
+          },
+          "lisa-rules/eager/wiki-knowledge-source.md": {
+            "sha256": "b3ae63fca40461fef19779d8f0c971553963ed8fe9c22fc504da3d8e757b3a36"
+          },
+          "lisa-rules/eager/withdrawn-rulings.md": {
+            "sha256": "46bdcbaa845ab906bd7f83e86d18860a1a54162520b8fb7101f6b23c5e1e816f"
+          },
+          "lisa-rules/reference/automation-runbook-contract.md": {
+            "sha256": "e4b64b042b650bccc26f04ef68fe76a182be265ace4674daa4f9c8e8c24bd626"
+          },
+          "lisa-rules/reference/base-rules.md": {
+            "sha256": "938173f9e048a0f8e09bd825d97f2e3a3e97f03fc99037fcdae47a9bfa99f307"
+          },
+          "lisa-rules/reference/bdd-e2e-coverage.md": {
+            "sha256": "05491cdf9b64327cd0ba8f205242128749700113a61de3c62e43e8787d1971c1"
+          },
+          "lisa-rules/reference/blocker-containment.md": {
+            "sha256": "b88a8a58cebd4dabcc130439df65b1be54a6f78a6098359e86135d267e41f096"
+          },
+          "lisa-rules/reference/claim-archaeology.md": {
+            "sha256": "a452f3ff48396954e75c15cc441af7b89648b4b93851e907148854a03afc0ed0"
+          },
+          "lisa-rules/reference/claim-evidence-mapping.md": {
+            "sha256": "d517dd46224bfd97e2b988a317837dcf099977ae35caa98bb3458ffac606081d"
+          },
+          "lisa-rules/reference/claim-time-guards.md": {
+            "sha256": "a50664632190c94a68df74cf8e1893552e1507f0162e3dc497615a8360b40007"
+          },
+          "lisa-rules/reference/coding-philosophy.md": {
+            "sha256": "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9"
+          },
+          "lisa-rules/reference/config-resolution.md": {
+            "sha256": "1ed9492c876b187149a45e28a41aeb5775493c904751a9edb0067838b6f1121e"
+          },
+          "lisa-rules/reference/control-reachability.md": {
+            "sha256": "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a"
+          },
+          "lisa-rules/reference/convergent-review.md": {
+            "sha256": "e4366235924386d19dea11a09e3a5c7e302146bc95e9dbdf27fbc2078d7e6e1a"
+          },
+          "lisa-rules/reference/credential-substrate-precedence.md": {
+            "sha256": "15026888dcb2dbc04165e07316beace4f27efc1972389ae06cb8f5549be656c7"
+          },
+          "lisa-rules/reference/dependency-decision-records.md": {
+            "sha256": "67addfd328a6fb0af195537aff4a66363063d29d1af7e3939f93c895cb14716e"
+          },
+          "lisa-rules/reference/dependency-internalization-kit.md": {
+            "sha256": "d3c15de04e45193c99406b18f91ce5fa0593add4bb587edcc26d0908fd3bfba6"
+          },
+          "lisa-rules/reference/dependency-trust-classes.md": {
+            "sha256": "e36d4ed62c815f3529e90650a25639cdcc4e84710c22c8e42127335016d42734"
+          },
+          "lisa-rules/reference/deployed-state-readback.md": {
+            "sha256": "3ef5a52ddb8658ae53a7222dd25414380a7bdf6040c6a5271e7a6e8c73d1d654"
+          },
+          "lisa-rules/reference/derived-branch-plan.md": {
+            "sha256": "0a076ed19f605be8a9a1f4366e8fa6a2e00ce0cfd578b59ab9fb0a6398b21b3b"
+          },
+          "lisa-rules/reference/design-source-of-truth.md": {
+            "sha256": "5e612ef4fe8c1b9879c315c02fbefeed4c3c7661003ecd7c260b096c4b989c54"
+          },
+          "lisa-rules/reference/design-value-binding.md": {
+            "sha256": "ec74ad33f0335a5fdc16ec09b967e8bc96d04936289298b8992e374d929c90ca"
+          },
+          "lisa-rules/reference/do-it-now.md": {
+            "sha256": "97dce1a2b18ff82233e0849a59fd2a910c5b8ea8fe3ae8114eb2733e0b6de052"
+          },
+          "lisa-rules/reference/documentation-source-paths.md": {
+            "sha256": "529e414e224f44758be34f33f9f93dd0291980f1af150eb732a47afaa6585b9f"
+          },
+          "lisa-rules/reference/empirical-inquiry.md": {
+            "sha256": "8cb166ab9eff4eb30287822a4d7843f76884d70d683d7c61d6a7ffd4ff9f7159"
+          },
+          "lisa-rules/reference/factory-model.md": {
+            "sha256": "b28a2ea4df7c33390111667a2807d9003cf8c9a14829f6fb0dbc929b05bfed3a"
+          },
+          "lisa-rules/reference/falsifiable-checks.md": {
+            "sha256": "8fab1429274b80f8dc82e4cdead0023ccc8ddd333f3d7d99cd3e0456578a90ab"
+          },
+          "lisa-rules/reference/history-audit.md": {
+            "sha256": "20a46390f71fadda499c61193d430c3d53df49b55a4cefa50a112f82fa4b05ef"
+          },
+          "lisa-rules/reference/integration-access-layer.md": {
+            "sha256": "c5fc07f5f46ba1f99403b6e4fd5603d153411a9bb1838bea320b26a5bd5273d6"
+          },
+          "lisa-rules/reference/intent-routing.md": {
+            "sha256": "988f8f45b41056c2adaa1a3e5f6ea926ac56a2fd041c07f98a9c2b271050efdd"
+          },
+          "lisa-rules/reference/leaf-only-lifecycle.md": {
+            "sha256": "caa31885b5ed834124159d0523f954c8248311dfd46aa1da07ab1782513d1648"
+          },
+          "lisa-rules/reference/learnings-ladder.md": {
+            "sha256": "4b6760e8ec58dea0e646cfa1b0518f468cc959ef3be55e3f87c225ec076f53c7"
+          },
+          "lisa-rules/reference/local-ci-first.md": {
+            "sha256": "4db796a9e159d25e5edd0d8d8d713b6556a3024a96e3882a50e19928b0e81a18"
+          },
+          "lisa-rules/reference/measurement-integrity.md": {
+            "sha256": "f628573c591e2cbbbbedd22821d40a3687dc14dba3aba5aebdc75c37ebd62494"
+          },
+          "lisa-rules/reference/never-name-a-downstream-project.md": {
+            "sha256": "3b591120dc7825e3bb2c52a633d8b1bc8c05dccc0befef2d2e95a73ac2a99e4c"
+          },
+          "lisa-rules/reference/not-blocked-just-waiting.md": {
+            "sha256": "bef69d0cefa92e2b8ca589bb27f8e92749140e662d54110e12f0a47890e69f14"
+          },
+          "lisa-rules/reference/observability-audit.md": {
+            "sha256": "b3d211fb46d40a818765d157bd133e349fea609d5da8a7de640f8f2d68b8ae2f"
+          },
+          "lisa-rules/reference/operational-hazards.md": {
+            "sha256": "208c36bdf12b6164573d5d744f1747a3fd5904d9aaf55ec335c9ba884fcd9d17"
+          },
+          "lisa-rules/reference/prd-definition-of-ready.md": {
+            "sha256": "3388bc1acf47c5cadc5fcefb8fd16b66b23e09aae5e290a208ffcb9c2e7a8a9a"
+          },
+          "lisa-rules/reference/prd-lifecycle-rollup.md": {
+            "sha256": "de8aa6881f815f58326c797159b149dd3f838692b8e622b562d1ea578341e741"
+          },
+          "lisa-rules/reference/pre-flight-autofill.md": {
+            "sha256": "3cb2a0e402ae468640d9021a7086e00323fa3cd34d9f061910f6caaff51f9e5f"
+          },
+          "lisa-rules/reference/project-learnings.md": {
+            "sha256": "e51677d91c6dfeaa33e91e1f9f16f6a39b2ea007b852822cf7970e607c05c0ec"
+          },
+          "lisa-rules/reference/promotion-contract.md": {
+            "sha256": "fe07cbdbd15393471d08903cce53b80b8899b2ff3bc0b0041b46c1c7003b7e6c"
+          },
+          "lisa-rules/reference/readiness-rubric.md": {
+            "sha256": "d3ebc3fa6bacd80696613e116ab9c3ece5384d47238ad78ae6cde2f85ebf32d7"
+          },
+          "lisa-rules/reference/ready-role-filing.md": {
+            "sha256": "fc0f5d4620c764dc06b4c8a0258f50f2e5182df0d4366ebc0018d299541c7ccc"
+          },
+          "lisa-rules/reference/rejection-detection.md": {
+            "sha256": "77b412b24b9c4169b94dd8a1bfae27ca82d10b17ff47e7f484f0b0624dff4b55"
+          },
+          "lisa-rules/reference/repo-scope-split.md": {
+            "sha256": "20b1aa6999a9376d7b9990c0022f40a4d48d5d09af9c709bf1b6ead3f1443b16"
+          },
+          "lisa-rules/reference/report-actionability.md": {
+            "sha256": "42fa86bb189467c7bc7ee64f6ebccd3926bb2aaf512ee5a498c232025b8a364b"
+          },
+          "lisa-rules/reference/reset-seed-coverage.md": {
+            "sha256": "cfbb50fc9fdb6f0a354255802392adc717ea18af65aca92cc866416bf9256d91"
+          },
+          "lisa-rules/reference/security-audit-handling.md": {
+            "sha256": "9633e11ac89af26444a272449f36fe03f26e61fab40ca16a0ab50464725f7d8c"
+          },
+          "lisa-rules/reference/session-status-updates.md": {
+            "sha256": "8878eceb7d81ee4d1ebd51f2f179e659ce36fac3ee7d04bc8631f44923d5e9ae"
+          },
+          "lisa-rules/reference/settled-decisions.md": {
+            "sha256": "a26eb4e879ab33468d2c55c1cf8128fbbfbec9c2cb634d9dd9f008304ad9aa05"
+          },
+          "lisa-rules/reference/stale-state-claims.md": {
+            "sha256": "6329e1a7629f9a12f10454c767842aecee4964df8b7bb4aebda9dde3c0959c2a"
+          },
+          "lisa-rules/reference/tool-access-gate.md": {
+            "sha256": "29579f403648d3b550b8b7e5fba01986fba8d3f0f285b5b5bf6bb0a839f7f10e"
+          },
+          "lisa-rules/reference/tracked-work.md": {
+            "sha256": "eb8e7ceb11ba16dc5443ae2b1c83cce544a35db84af97d04aeca6018654fe9e0"
+          },
+          "lisa-rules/reference/upstream-to-lisa.md": {
+            "sha256": "e98974e4f48af05f788323c92badae6a97a2feec1ca8e8a9c05ddc3e3c948492"
+          },
+          "lisa-rules/reference/usage-accounting.md": {
+            "sha256": "64ee616bdad7c16d5cc4b9eb44384de261b0616ec3343d4c05a88ddede3d89ea"
+          },
+          "lisa-rules/reference/verification.md": {
+            "sha256": "9ae8db87b37c7700687fabd1b8632b3cddd0f1f1e4b04384c604f88f160056ed"
+          },
+          "lisa-rules/reference/wiki-knowledge-source.md": {
+            "sha256": "725a7415a0606f85164722bd4b4975bce1f496cc43c97e45b224810b1a685189"
+          },
+          "lisa-rules/reference/withdrawn-rulings.md": {
+            "sha256": "34afe0413fce11872ac99b87e6323c59a754db7992c5fb054a56845af0723785"
+          },
+          "lisa-rules/reference/work-item-definition-of-ready.md": {
+            "sha256": "3f38ba302aa76d946acaaa4f67e50fa4afa649b8b471f17d9d7b4e6cf8f1fe07"
+          },
+          "lisa-rules/reference/work-item-trailer-definition.md": {
+            "sha256": "2997766dc8ab61bf63891781dc9e86339a47ca35eddd4ca387bd7cc0ce85f2a5"
+          },
+          "lisa-rules/eager/rails-conventions.md": {
+            "sha256": "10030d8159ae75c13c1b19d81694bf5649371c30cc6ceeed44948cd852138c5a"
+          },
+          "lisa-rules/reference/rails-conventions.md": {
+            "sha256": "e2db55d2b4d2f6b7f937ac1f9f386c5f48c4155ace34501f917e3471d22bfa3c"
+          }
+        }
+      }
+    },
+    {
+      "name": "host-authored script intact",
+      "passed": true
+    },
+    {
+      "name": "implementation bytes unchanged during replay",
+      "passed": true
+    }
+  ],
+  "sourceHashesBefore": {
+    "src/codex/hooks-installer.ts": {
+      "sha256": "684937f518f65e1b758224c3de77035c6d3445cd57fde44e08c3b98dfcc56b9c"
+    },
+    "src/codex/project-hooks-cleanup.ts": {
+      "sha256": "86d5aedc304fa6a4bc14c399b8125c84834501fed528bbfa63dacb4ef201c056"
+    },
+    "src/codex/project-overlay.ts": {
+      "sha256": "71080a5d0e9c47eab6e1080100f139640401de26b5d6bbff7805ea1496a67b64"
+    },
+    "dist/codex/hooks-installer.js": {
+      "sha256": "c5e2e8e5f3bbb591f5ab550f1ff2fd09cad506aba943cd91f0bcd4c2acf89490"
+    }
+  },
+  "sourceHashes": {
+    "src/codex/hooks-installer.ts": {
+      "sha256": "684937f518f65e1b758224c3de77035c6d3445cd57fde44e08c3b98dfcc56b9c"
+    },
+    "src/codex/project-hooks-cleanup.ts": {
+      "sha256": "86d5aedc304fa6a4bc14c399b8125c84834501fed528bbfa63dacb4ef201c056"
+    },
+    "src/codex/project-overlay.ts": {
+      "sha256": "71080a5d0e9c47eab6e1080100f139640401de26b5d6bbff7805ea1496a67b64"
+    },
+    "dist/codex/hooks-installer.js": {
+      "sha256": "c5e2e8e5f3bbb591f5ab550f1ff2fd09cad506aba943cd91f0bcd4c2acf89490"
+    }
+  },
+  "compatibilityHashes": {
+    "hooks/lisa/inject-rules.sh": {
+      "sha256": "304b995ea6c2843baf8b90ee2bbae1c855154689db50ef7b6246cd54c76dfb45"
+    },
+    "hooks/lisa/install-pkgs.sh": {
+      "sha256": "e770fae7b1816aa693ff00a3c26064a7bf2f6685784f34a1bc3d3e2d8c2a1da8"
+    },
+    "hooks/lisa/setup-jira-cli.sh": {
+      "sha256": "b98bd6536ef01a3dc9be184603e4d13feed4f36f8e74977b2a3f5edfafeaba1c"
+    },
+    "hooks/lisa/block-no-verify.sh": {
+      "sha256": "4cd71d71a4458922a5d81c0256c20b76102f20085699117f2734a64f6db56ddf"
+    },
+    "hooks/lisa/shell-write-nudge.sh": {
+      "sha256": "b04ceb3328290c5bacaedced35dffaecf97241953b5b886e13431393a4462720"
+    },
+    "hooks/lisa/sg-scan-on-edit.sh": {
+      "sha256": "bc7c1e96a044aa811e96c2d79c8a361a46659f913e07aa1f165a4f2ec55bcbd4"
+    },
+    "hooks/lisa/rubocop-on-edit.sh": {
+      "sha256": "8bb9b44c2d97768762e1a12580f7a595a947f733726849ee85c93b2f83f5867a"
+    },
+    "hooks/lisa/_extract-edit-paths.sh": {
+      "sha256": "f5f760b4dc1f15851869b44cf830d5f935627e76af30b2291a64a82bfc1bfda9"
+    },
+    "hooks/lisa/lisa-edit-gate.sh": {
+      "sha256": "0a8d9a043f04b15b71bb500ff03cf1e67e4ac292181a5d596ddf078f301e671f"
+    },
+    "lisa-rules/eager/00-rule-index.md": {
+      "sha256": "ec1348b307edeb1e974c56c7d3e395116eb998415f100bab1004b8b11b7f20cc"
+    },
+    "lisa-rules/eager/base-rules.md": {
+      "sha256": "3de39af7d5ad74b0b91fb939ec67a76b806d05a4b5c071c3941af6cd4108083c"
+    },
+    "lisa-rules/eager/coding-philosophy.md": {
+      "sha256": "cf2c52032e0368d81f17f002fed5c957ab350d01fc4a43f66b5f366516bac54a"
+    },
+    "lisa-rules/eager/config-resolution.md": {
+      "sha256": "f064147ecc33144ef1512fc1abeda253fcb420038eef498a5b986db0ea631639"
+    },
+    "lisa-rules/eager/do-it-now.md": {
+      "sha256": "d7b7635686cb803353b433d43801d3f6960e9804394c587c473337976640d44b"
+    },
+    "lisa-rules/eager/empirical-inquiry.md": {
+      "sha256": "67aa64ba3ecc4f3cd761111d2562662e0a2acf7892703b14ec83f7f7b073e670"
+    },
+    "lisa-rules/eager/falsifiable-checks.md": {
+      "sha256": "8bf1a2b02cd1c44674ba3a131fa42f115ba693d66402264a3a365fdfaf656d1f"
+    },
+    "lisa-rules/eager/history-audit.md": {
+      "sha256": "e2365e3fb28230c643e943d26688a93906afa68e3e1355d3e86d4b22ab3db559"
+    },
+    "lisa-rules/eager/integration-access-layer.md": {
+      "sha256": "4f98938b575c301a0f9626f4a074e802bd20363ba6e5874eb5d7dc0e6a7470d3"
+    },
+    "lisa-rules/eager/intent-routing.md": {
+      "sha256": "a2ef2397a98fb3d991fcfb39b669e289c1e2b697191cbeb6c071d71eca836207"
+    },
+    "lisa-rules/eager/learnings-ladder.md": {
+      "sha256": "58f70031f7ad720254e73db53f4f328f35cdce2a562c8f62e403be842abccab0"
+    },
+    "lisa-rules/eager/local-ci-first.md": {
+      "sha256": "8a0369f3b23c4c9906194ea2d5b6dab44bb82dee753571b7e3e27ed799a289f5"
+    },
+    "lisa-rules/eager/measurement-integrity.md": {
+      "sha256": "aff22dd8dfce9b527348c641a996374257fa8a552298713aae524c83858c2aa9"
+    },
+    "lisa-rules/eager/never-name-a-downstream-project.md": {
+      "sha256": "091f07a28baa5da6c19953a394a0cae39dd51abd46a3f23a3f113dd98462f912"
+    },
+    "lisa-rules/eager/not-blocked-just-waiting.md": {
+      "sha256": "bd96e3a61bfd9ddf27d88b6cb62948c701b6335e9758a081cd5c1fc63048d9be"
+    },
+    "lisa-rules/eager/operational-hazards.md": {
+      "sha256": "9acb3b13a6b3f7d993c7fc37cf70fa94947119c4d59e6295217cafe9f13c6c58"
+    },
+    "lisa-rules/eager/report-actionability.md": {
+      "sha256": "b817c042d834fb046ead75db19cf827322b1abfbb0886fd4545213dd68a80554"
+    },
+    "lisa-rules/eager/security-audit-handling.md": {
+      "sha256": "1f6effe92be66736a0c9fab634c5fdd6ad1e789865faa67bb783c67ddb4ad490"
+    },
+    "lisa-rules/eager/session-status-updates.md": {
+      "sha256": "d2d657eda85ce00c3c0699e1c32bc0080df1140b940f9271800f233953f91b4c"
+    },
+    "lisa-rules/eager/settled-decisions.md": {
+      "sha256": "ae1e8d1292db266038af41d9313708a3fba437c036de043ec6b0311418b56017"
+    },
+    "lisa-rules/eager/stale-state-claims.md": {
+      "sha256": "faf5057f5910237b8d5048dbcccb73e0cd03762a8eefbeae43b5d0153104a85a"
+    },
+    "lisa-rules/eager/tool-access-gate.md": {
+      "sha256": "854eb5b16a8e0f51fe7caa0517c10d1ec5ded5ca7324c8304beddc7b81befcf2"
+    },
+    "lisa-rules/eager/tracked-work.md": {
+      "sha256": "e6ac1bcb50e04120d9e4c9a2be1d022cd873071a8b74d34f53f282a03676733e"
+    },
+    "lisa-rules/eager/upstream-to-lisa.md": {
+      "sha256": "dcb3075bc48de76f3bae1ad066d0a1e14f82bd244c1015a48f9e2916cabaf03c"
+    },
+    "lisa-rules/eager/verification.md": {
+      "sha256": "a6cc1d50c5b91080171490edce4d375f136a14790dcbb247ca8b736ad8f55cfd"
+    },
+    "lisa-rules/eager/wiki-knowledge-source.md": {
+      "sha256": "b3ae63fca40461fef19779d8f0c971553963ed8fe9c22fc504da3d8e757b3a36"
+    },
+    "lisa-rules/eager/withdrawn-rulings.md": {
+      "sha256": "46bdcbaa845ab906bd7f83e86d18860a1a54162520b8fb7101f6b23c5e1e816f"
+    },
+    "lisa-rules/reference/automation-runbook-contract.md": {
+      "sha256": "e4b64b042b650bccc26f04ef68fe76a182be265ace4674daa4f9c8e8c24bd626"
+    },
+    "lisa-rules/reference/base-rules.md": {
+      "sha256": "938173f9e048a0f8e09bd825d97f2e3a3e97f03fc99037fcdae47a9bfa99f307"
+    },
+    "lisa-rules/reference/bdd-e2e-coverage.md": {
+      "sha256": "05491cdf9b64327cd0ba8f205242128749700113a61de3c62e43e8787d1971c1"
+    },
+    "lisa-rules/reference/blocker-containment.md": {
+      "sha256": "b88a8a58cebd4dabcc130439df65b1be54a6f78a6098359e86135d267e41f096"
+    },
+    "lisa-rules/reference/claim-archaeology.md": {
+      "sha256": "a452f3ff48396954e75c15cc441af7b89648b4b93851e907148854a03afc0ed0"
+    },
+    "lisa-rules/reference/claim-evidence-mapping.md": {
+      "sha256": "d517dd46224bfd97e2b988a317837dcf099977ae35caa98bb3458ffac606081d"
+    },
+    "lisa-rules/reference/claim-time-guards.md": {
+      "sha256": "a50664632190c94a68df74cf8e1893552e1507f0162e3dc497615a8360b40007"
+    },
+    "lisa-rules/reference/coding-philosophy.md": {
+      "sha256": "fed8381f16a5d6793a49d84d5813d62125808cb2f4981a558b119cf63e2586d9"
+    },
+    "lisa-rules/reference/config-resolution.md": {
+      "sha256": "1ed9492c876b187149a45e28a41aeb5775493c904751a9edb0067838b6f1121e"
+    },
+    "lisa-rules/reference/control-reachability.md": {
+      "sha256": "0883f3480de79bcaa4a9da5685192c014d9267d0a12aed8153bba8c51161129a"
+    },
+    "lisa-rules/reference/convergent-review.md": {
+      "sha256": "e4366235924386d19dea11a09e3a5c7e302146bc95e9dbdf27fbc2078d7e6e1a"
+    },
+    "lisa-rules/reference/credential-substrate-precedence.md": {
+      "sha256": "15026888dcb2dbc04165e07316beace4f27efc1972389ae06cb8f5549be656c7"
+    },
+    "lisa-rules/reference/dependency-decision-records.md": {
+      "sha256": "67addfd328a6fb0af195537aff4a66363063d29d1af7e3939f93c895cb14716e"
+    },
+    "lisa-rules/reference/dependency-internalization-kit.md": {
+      "sha256": "d3c15de04e45193c99406b18f91ce5fa0593add4bb587edcc26d0908fd3bfba6"
+    },
+    "lisa-rules/reference/dependency-trust-classes.md": {
+      "sha256": "e36d4ed62c815f3529e90650a25639cdcc4e84710c22c8e42127335016d42734"
+    },
+    "lisa-rules/reference/deployed-state-readback.md": {
+      "sha256": "3ef5a52ddb8658ae53a7222dd25414380a7bdf6040c6a5271e7a6e8c73d1d654"
+    },
+    "lisa-rules/reference/derived-branch-plan.md": {
+      "sha256": "0a076ed19f605be8a9a1f4366e8fa6a2e00ce0cfd578b59ab9fb0a6398b21b3b"
+    },
+    "lisa-rules/reference/design-source-of-truth.md": {
+      "sha256": "5e612ef4fe8c1b9879c315c02fbefeed4c3c7661003ecd7c260b096c4b989c54"
+    },
+    "lisa-rules/reference/design-value-binding.md": {
+      "sha256": "ec74ad33f0335a5fdc16ec09b967e8bc96d04936289298b8992e374d929c90ca"
+    },
+    "lisa-rules/reference/do-it-now.md": {
+      "sha256": "97dce1a2b18ff82233e0849a59fd2a910c5b8ea8fe3ae8114eb2733e0b6de052"
+    },
+    "lisa-rules/reference/documentation-source-paths.md": {
+      "sha256": "529e414e224f44758be34f33f9f93dd0291980f1af150eb732a47afaa6585b9f"
+    },
+    "lisa-rules/reference/empirical-inquiry.md": {
+      "sha256": "8cb166ab9eff4eb30287822a4d7843f76884d70d683d7c61d6a7ffd4ff9f7159"
+    },
+    "lisa-rules/reference/factory-model.md": {
+      "sha256": "b28a2ea4df7c33390111667a2807d9003cf8c9a14829f6fb0dbc929b05bfed3a"
+    },
+    "lisa-rules/reference/falsifiable-checks.md": {
+      "sha256": "8fab1429274b80f8dc82e4cdead0023ccc8ddd333f3d7d99cd3e0456578a90ab"
+    },
+    "lisa-rules/reference/history-audit.md": {
+      "sha256": "20a46390f71fadda499c61193d430c3d53df49b55a4cefa50a112f82fa4b05ef"
+    },
+    "lisa-rules/reference/integration-access-layer.md": {
+      "sha256": "c5fc07f5f46ba1f99403b6e4fd5603d153411a9bb1838bea320b26a5bd5273d6"
+    },
+    "lisa-rules/reference/intent-routing.md": {
+      "sha256": "988f8f45b41056c2adaa1a3e5f6ea926ac56a2fd041c07f98a9c2b271050efdd"
+    },
+    "lisa-rules/reference/leaf-only-lifecycle.md": {
+      "sha256": "caa31885b5ed834124159d0523f954c8248311dfd46aa1da07ab1782513d1648"
+    },
+    "lisa-rules/reference/learnings-ladder.md": {
+      "sha256": "4b6760e8ec58dea0e646cfa1b0518f468cc959ef3be55e3f87c225ec076f53c7"
+    },
+    "lisa-rules/reference/local-ci-first.md": {
+      "sha256": "4db796a9e159d25e5edd0d8d8d713b6556a3024a96e3882a50e19928b0e81a18"
+    },
+    "lisa-rules/reference/measurement-integrity.md": {
+      "sha256": "f628573c591e2cbbbbedd22821d40a3687dc14dba3aba5aebdc75c37ebd62494"
+    },
+    "lisa-rules/reference/never-name-a-downstream-project.md": {
+      "sha256": "3b591120dc7825e3bb2c52a633d8b1bc8c05dccc0befef2d2e95a73ac2a99e4c"
+    },
+    "lisa-rules/reference/not-blocked-just-waiting.md": {
+      "sha256": "bef69d0cefa92e2b8ca589bb27f8e92749140e662d54110e12f0a47890e69f14"
+    },
+    "lisa-rules/reference/observability-audit.md": {
+      "sha256": "b3d211fb46d40a818765d157bd133e349fea609d5da8a7de640f8f2d68b8ae2f"
+    },
+    "lisa-rules/reference/operational-hazards.md": {
+      "sha256": "208c36bdf12b6164573d5d744f1747a3fd5904d9aaf55ec335c9ba884fcd9d17"
+    },
+    "lisa-rules/reference/prd-definition-of-ready.md": {
+      "sha256": "3388bc1acf47c5cadc5fcefb8fd16b66b23e09aae5e290a208ffcb9c2e7a8a9a"
+    },
+    "lisa-rules/reference/prd-lifecycle-rollup.md": {
+      "sha256": "de8aa6881f815f58326c797159b149dd3f838692b8e622b562d1ea578341e741"
+    },
+    "lisa-rules/reference/pre-flight-autofill.md": {
+      "sha256": "3cb2a0e402ae468640d9021a7086e00323fa3cd34d9f061910f6caaff51f9e5f"
+    },
+    "lisa-rules/reference/project-learnings.md": {
+      "sha256": "e51677d91c6dfeaa33e91e1f9f16f6a39b2ea007b852822cf7970e607c05c0ec"
+    },
+    "lisa-rules/reference/promotion-contract.md": {
+      "sha256": "fe07cbdbd15393471d08903cce53b80b8899b2ff3bc0b0041b46c1c7003b7e6c"
+    },
+    "lisa-rules/reference/readiness-rubric.md": {
+      "sha256": "d3ebc3fa6bacd80696613e116ab9c3ece5384d47238ad78ae6cde2f85ebf32d7"
+    },
+    "lisa-rules/reference/ready-role-filing.md": {
+      "sha256": "fc0f5d4620c764dc06b4c8a0258f50f2e5182df0d4366ebc0018d299541c7ccc"
+    },
+    "lisa-rules/reference/rejection-detection.md": {
+      "sha256": "77b412b24b9c4169b94dd8a1bfae27ca82d10b17ff47e7f484f0b0624dff4b55"
+    },
+    "lisa-rules/reference/repo-scope-split.md": {
+      "sha256": "20b1aa6999a9376d7b9990c0022f40a4d48d5d09af9c709bf1b6ead3f1443b16"
+    },
+    "lisa-rules/reference/report-actionability.md": {
+      "sha256": "42fa86bb189467c7bc7ee64f6ebccd3926bb2aaf512ee5a498c232025b8a364b"
+    },
+    "lisa-rules/reference/reset-seed-coverage.md": {
+      "sha256": "cfbb50fc9fdb6f0a354255802392adc717ea18af65aca92cc866416bf9256d91"
+    },
+    "lisa-rules/reference/security-audit-handling.md": {
+      "sha256": "9633e11ac89af26444a272449f36fe03f26e61fab40ca16a0ab50464725f7d8c"
+    },
+    "lisa-rules/reference/session-status-updates.md": {
+      "sha256": "8878eceb7d81ee4d1ebd51f2f179e659ce36fac3ee7d04bc8631f44923d5e9ae"
+    },
+    "lisa-rules/reference/settled-decisions.md": {
+      "sha256": "a26eb4e879ab33468d2c55c1cf8128fbbfbec9c2cb634d9dd9f008304ad9aa05"
+    },
+    "lisa-rules/reference/stale-state-claims.md": {
+      "sha256": "6329e1a7629f9a12f10454c767842aecee4964df8b7bb4aebda9dde3c0959c2a"
+    },
+    "lisa-rules/reference/tool-access-gate.md": {
+      "sha256": "29579f403648d3b550b8b7e5fba01986fba8d3f0f285b5b5bf6bb0a839f7f10e"
+    },
+    "lisa-rules/reference/tracked-work.md": {
+      "sha256": "eb8e7ceb11ba16dc5443ae2b1c83cce544a35db84af97d04aeca6018654fe9e0"
+    },
+    "lisa-rules/reference/upstream-to-lisa.md": {
+      "sha256": "e98974e4f48af05f788323c92badae6a97a2feec1ca8e8a9c05ddc3e3c948492"
+    },
+    "lisa-rules/reference/usage-accounting.md": {
+      "sha256": "64ee616bdad7c16d5cc4b9eb44384de261b0616ec3343d4c05a88ddede3d89ea"
+    },
+    "lisa-rules/reference/verification.md": {
+      "sha256": "9ae8db87b37c7700687fabd1b8632b3cddd0f1f1e4b04384c604f88f160056ed"
+    },
+    "lisa-rules/reference/wiki-knowledge-source.md": {
+      "sha256": "725a7415a0606f85164722bd4b4975bce1f496cc43c97e45b224810b1a685189"
+    },
+    "lisa-rules/reference/withdrawn-rulings.md": {
+      "sha256": "34afe0413fce11872ac99b87e6323c59a754db7992c5fb054a56845af0723785"
+    },
+    "lisa-rules/reference/work-item-definition-of-ready.md": {
+      "sha256": "3f38ba302aa76d946acaaa4f67e50fa4afa649b8b471f17d9d7b4e6cf8f1fe07"
+    },
+    "lisa-rules/reference/work-item-trailer-definition.md": {
+      "sha256": "2997766dc8ab61bf63891781dc9e86339a47ca35eddd4ca387bd7cc0ce85f2a5"
+    },
+    "lisa-rules/eager/rails-conventions.md": {
+      "sha256": "10030d8159ae75c13c1b19d81694bf5649371c30cc6ceeed44948cd852138c5a"
+    },
+    "lisa-rules/reference/rails-conventions.md": {
+      "sha256": "e2db55d2b4d2f6b7f937ac1f9f386c5f48c4155ace34501f917e3471d22bfa3c"
+    }
+  },
+  "greenEstablished": true,
+  "limitations": [
+    "Dispatch spies establish operation/exit contracts. Independent verifier must exercise actual local scanner/linter.",
+    "Native fresh-session hook trust/loading requires independent verification.",
+    "Uncommitted local source identity only. CI, shipping identity, release and delivery remain pending."
+  ],
+  "public_capture_format": "Path-keyed hash values are explicit sha256 objects. Original complete capture retained in ignored run storage; command outputs/results unchanged."
+}

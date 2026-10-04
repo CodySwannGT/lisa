@@ -1,0 +1,143 @@
+{
+  "captured_at": "2026-10-04T03:06:30.790Z",
+  "branch": "codex/4335-active-hook-retirement",
+  "base_sha": "728d35afbd3de4d522023e0b65fd0f730c94820c",
+  "verification_status": "in_progress",
+  "shipping_identity": null,
+  "implementation_frozen": true,
+  "gates": {
+    "build_dist": {
+      "status": 0
+    },
+    "managed_units": {
+      "status": 0,
+      "files": 7,
+      "passed": 59,
+      "log": ".lisa/evidence/4335/green-unit-ownership.log",
+      "command": "node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- node node_modules/vitest/vitest.mjs run tests/unit/codex/project-hooks-cleanup.test.ts tests/unit/codex/manifest.test.ts tests/unit/codex/hooks-installer-rules-mirror.test.ts tests/unit/codex/hook-compatibility.test.ts tests/unit/codex/hook-source-ownership.test.ts tests/unit/codex/hooks-installer.test.ts tests/unit/cli/doctor.test.ts --reporter verbose"
+    },
+    "generated_artifacts": {
+      "status": 0,
+      "passed": 7,
+      "log": ".lisa/evidence/4335/green-artifacts.log"
+    },
+    "module_syntax": {
+      "status": 0,
+      "files": 4
+    },
+    "diff_check": {
+      "status": 0
+    },
+    "managed_integration": {
+      "status": 0,
+      "passed": 1,
+      "log": ".lisa/evidence/4335/green-final-managed-integration.log",
+      "command": "node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- node node_modules/vitest/vitest.mjs run tests/integration/codex-active-hooks.test.ts --reporter verbose"
+    },
+    "postinstall_controls": {
+      "status": 0,
+      "passed": 3,
+      "skipped": 48,
+      "log": ".lisa/evidence/4335/green-final-postinstall-controls.log",
+      "selection": [
+        "preserves host-owned config during postinstall-safe apply",
+        "does not regenerate committed agent trees during postinstall-safe apply",
+        "DOES regenerate committed agent trees when only the git check is waived"
+      ]
+    },
+    "fallback_controls": {
+      "status": 0,
+      "passed": 7,
+      "log": ".lisa/evidence/4335/green-final-fallback-controls.log",
+      "files": [
+        "tests/unit/codex/enforcement-fallback-installer.test.ts",
+        "tests/unit/codex/codex-overlay-artifact-classification.test.ts"
+      ]
+    },
+    "full_lint": {
+      "status": 0,
+      "owner": "coordinator",
+      "log": ".lisa/evidence/4335/coordinator-ready-lint.txt"
+    },
+    "typecheck": {
+      "status": 0,
+      "owner": "coordinator",
+      "log": ".lisa/evidence/4335/coordinator-ready-typecheck.txt"
+    }
+  },
+  "source_sha256": {
+    "README.md": "900a4c2610c25f82e0b080e559bb0ba95aca049d7c04fb2c7ad92dc2efbb76ed",
+    "src/codex/hooks-installer.ts": "f416dff70db62658466baf578aaf6432cedfaacf791d24112a4774345066a9e8",
+    "src/codex/project-hooks-cleanup.ts": "86d5aedc304fa6a4bc14c399b8125c84834501fed528bbfa63dacb4ef201c056",
+    "src/codex/project-overlay.ts": "71080a5d0e9c47eab6e1080100f139640401de26b5d6bbff7805ea1496a67b64",
+    "src/codex/manifest.ts": "e36811ef44362711cffb53e9f8dce6375ca1eb4d3d1f1d51d704cf6fc10cb6d8",
+    "src/cli/doctor-legacy-overlay.ts": "3d450d0fa0a3f7b76c9a91ec8c374ca3b00e97d8a0ecfb70041ee76b3aac519f",
+    "src/core/upstream-evidence-manifest.ts": "5512154e7241017b865c24beab5d93ae18803aa455777def4a3fe958bd9eeaa0",
+    "dist/codex/hooks-installer.js": "a3b614a5f885f17b070da96a64b9b867160dcf54f414285058507e55e36b5f0f",
+    "dist/core/upstream-evidence-manifest.js": "c99c32a33018431d1e588bf5733e11604eb873d09f7746bb37ebf9a879d39f22",
+    "tests/support/codex-compatibility-proof.mjs": "0d7272b125c4598532eae9aa005a7cf85cb150723f339f5b28b31a6237b62ba8",
+    "tests/support/codex-compatibility-seed.mjs": "86ef5cb85fb14c5c6ae258f64beb760f32d97fb190986284504f6a15350f69d6",
+    "tests/support/codex-compatibility-state.mjs": "6517e571d305ab815b9ab119ca26877753277d1aaf136cc822d4c26bee635bb0",
+    "tests/unit/codex/hook-compatibility.test.ts": "1724080e3000684b3b46bb15283013a2c455ac6d68f842b521b1ce67a524df52",
+    "tests/unit/codex/hook-source-ownership.test.ts": "b4e14d17e8e9e9f456d71a58a470287db5f9943d87c1a7f81226340bce6276af",
+    "tests/unit/codex/project-hooks-cleanup.test.ts": "c101fbdae5cce02fa918871ca34f8adc22d8ca4f1643e46aefbdf30bf3df16ea",
+    "tests/integration/codex-active-hooks.test.ts": "25813dfe8701cc02e7f145a6763b329600b674071abdfecfd0f5074b3bb763ff",
+    ".lisa/evidence/4335/green-reproduce.mjs": "927a029715a0a0dbcdad1d285659f74f3eebab52dd7c3173fb5f7ec4a7913a18"
+  },
+  "limitations": [
+    "Retained independent security/quality review and delivery contracts remain coordinator-owned.",
+    "No shipping commit, pull request, release or consumer adoption identity exists."
+  ],
+  "mld_candidates": [],
+  "ownership_regression": {
+    "red": {
+      "status": 1,
+      "failed": 3,
+      "passed": 6,
+      "log": ".lisa/evidence/4335/green-symlink-regression-red.log"
+    },
+    "green": {
+      "status": 0,
+      "passed": 11,
+      "log": ".lisa/evidence/4335/green-symlink-regression-green.log"
+    },
+    "final_gate": "59 of 59 named unit cases passed, including actual compiled child Node"
+  },
+  "package_runtime_regression": {
+    "red": {
+      "status": 1,
+      "failed": 1,
+      "passed": 1,
+      "log": ".lisa/evidence/4335/green-package-runtime-red.log"
+    },
+    "green": {
+      "status": 0,
+      "passed": 2,
+      "log": ".lisa/evidence/4335/green-package-runtime-green.log"
+    },
+    "behavior": "Actual compiled package-source admission succeeds; guard emits native deny after package removal"
+  },
+  "staged_own_patch_paths": [
+    "README.md",
+    "src/codex/hooks-installer.ts",
+    "src/codex/project-hooks-cleanup.ts",
+    "src/codex/project-overlay.ts",
+    "src/codex/manifest.ts",
+    "src/cli/doctor-legacy-overlay.ts",
+    "src/core/upstream-evidence-manifest.ts",
+    "tests/support/codex-compatibility-proof.mjs",
+    "tests/support/codex-compatibility-seed.mjs",
+    "tests/support/codex-compatibility-state.mjs",
+    "tests/unit/codex/hook-compatibility.test.ts",
+    "tests/unit/codex/hook-source-ownership.test.ts",
+    "tests/unit/codex/project-hooks-cleanup.test.ts",
+    "tests/integration/codex-active-hooks.test.ts",
+    ".lisa/evidence/4335/green-reproduce.mjs"
+  ],
+  "unstaged_own_source_paths": [],
+  "own_patch_diffstat": {
+    "files": 15,
+    "additions": 1362,
+    "deletions": 45
+  }
+}

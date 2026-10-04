@@ -1,0 +1,120 @@
+{
+  "work_item_ref": "CodySwannGT/lisa#4335",
+  "worktree": "/Users/cody/.codex/worktrees/8050/lisa",
+  "branch": "codex/4335-active-hook-retirement",
+  "base_sha": "728d35afbd3de4d522023e0b65fd0f730c94820c",
+  "target_branch": "main",
+  "local_status": "ready_for_parent_review",
+  "verification_status": "in_progress",
+  "shipping_identity": null,
+  "binding_readback": {
+    "version": 1,
+    "branch": "codex/4335-active-hook-retirement",
+    "provider": "github",
+    "ref": "CodySwannGT/lisa#4335"
+  },
+  "accepted_claim_resolution": ".lisa/automations/runs/4335-resolution.json",
+  "private_context": {
+    "path": "/Users/cody/.codex/worktrees/8050/lisa/.lisa/work-item-context.md",
+    "sha256": "68dd7e14957e5a5ed21875017e7f9d8aa393de158a4c5d7bf88b4e327eab66a2",
+    "ignored": true,
+    "unchanged": true
+  },
+  "implementation": {
+    "paths_and_hashes": ".lisa/evidence/4335/green-worker-final-gates.json",
+    "diff": ".lisa/automations/runs/4335-local-implementation.diff",
+    "diff_sha256": "8072a985ac98d6dd1646ea43f95d9f8604abd9111bb9e079c65c88ca1dfdc08b",
+    "path_count": 15,
+    "added_lines": 1362,
+    "removed_lines": 45,
+    "source_sha256": "f416dff70db62658466baf578aaf6432cedfaacf791d24112a4774345066a9e8",
+    "compiled_sha256": "a3b614a5f885f17b070da96a64b9b867160dcf54f414285058507e55e36b5f0f",
+    "frozen_file_hashes_checked": 17,
+    "hash_mismatches": 0
+  },
+  "prerequisites": {
+    "node": "22.22.0",
+    "bun": "1.3.11",
+    "dependencies": "Normal worktree-local frozen-lockfile installation completed",
+    "dist": "Built before compiled and TypeScript integration execution",
+    "native_codex": "0.160.0; actual fresh session executed",
+    "real_linters": "ast-grep 0.40.5 and RuboCop 1.91.0 with required plugins installed normally"
+  },
+  "proof": {
+    "red": ".lisa/evidence/4335/red-results.json",
+    "red_result": "Full apply exit 0; all four saved commands changed from exit 0 to genuine missing-file exit 127",
+    "green": ".lisa/evidence/4335/verify-boundary-results.json",
+    "green_result": "Full apply and repeated apply exit 0; every saved command stays functional after apply and package replacement; actual deny, correction, scanner rejection and shell notice observed",
+    "native": ".lisa/evidence/4335/verify-native-results.json",
+    "native_session": "01a104d8-705b-7d03-9715-20a0cdf97428",
+    "native_result": "Four actual hook envelopes; prohibited harmless dry-run request rejected before execution; allowed edit and read completed",
+    "independent_review": ".lisa/verification-CodySwannGT-lisa-4335.md",
+    "review_result": "Three ownership failures and compiled runtime failure corrected and independently verified; no remaining measured local blocker"
+  },
+  "quality_gates": {
+    "lint": {
+      "exit_code": 0,
+      "log": ".lisa/evidence/4335/coordinator-ready-lint.txt"
+    },
+    "typecheck": {
+      "exit_code": 0,
+      "log": ".lisa/evidence/4335/coordinator-ready-typecheck.txt"
+    },
+    "focused_units": {
+      "passed": 59,
+      "log": ".lisa/evidence/4335/green-unit-ownership.log"
+    },
+    "full_apply_integration": {
+      "passed": 1,
+      "log": ".lisa/evidence/4335/green-final-managed-integration.log"
+    },
+    "postinstall_and_full_apply_controls": {
+      "passed": 3,
+      "log": ".lisa/evidence/4335/green-final-postinstall-controls.log"
+    },
+    "fallback_and_overlay_controls": {
+      "passed": 7,
+      "log": ".lisa/evidence/4335/green-final-fallback-controls.log"
+    },
+    "indexed_artifacts": {
+      "passed": 7,
+      "log": ".lisa/evidence/4335/coordinator-indexed-artifacts.txt"
+    },
+    "indexed_anonymity": {
+      "passed": 13,
+      "log": ".lisa/evidence/4335/coordinator-indexed-anonymity.txt"
+    }
+  },
+  "preservation": {
+    "guards_config_and_rules_unchanged": true,
+    "original_body_hold_history_and_private_context_preserved": true,
+    "binding_retained": true,
+    "unrelated_evidence_worktrees_and_workspace_registry_not_modified": true,
+    "commits_pushes_prs_releases_or_issue_closure": false
+  },
+  "limitations": [
+    "Fresh native hooks were reviewed and trusted through the normal supported UI",
+    "Native installed-version staleness advisory retained; hashes identify the measured local code",
+    "Typecheck uses the existing project quarantine and engine-floor contract; lint retains one unrelated existing warning",
+    "Other native harnesses were not executed; source review found no equivalent destructive retirement surface",
+    "Local evidence does not establish a shipping artifact or hostile package-name provenance"
+  ],
+  "remaining": [
+    "Parent retained security and quality review",
+    "Normal Lisa git-submit and drive-to-merge contracts after authorization",
+    "Shipping identity and CI named-regression execution",
+    "Released package and runtime verification",
+    "Canonical evidence, usage and terminal tracker readback",
+    "Clear binding and private context only after true terminal completion"
+  ],
+  "mld_candidates": [],
+  "evidence_rendering": {
+    "diff": "Exact diff retained in ignored local run storage",
+    "terminal_logs": "Only trailing blank lines normalized in three public text logs; original bytes retained in ignored run storage",
+    "raw_logs": [
+      ".lisa/automations/runs/4335-raw-coordinator-anonymity.txt",
+      ".lisa/automations/runs/4335-raw-verify-boundary-lint.txt",
+      ".lisa/automations/runs/4335-raw-coordinator-indexed-anonymity.txt"
+    ]
+  }
+}

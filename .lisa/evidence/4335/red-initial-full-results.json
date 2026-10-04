@@ -1,0 +1,137 @@
+{
+  "captured_at": "2026-10-03T22:40:10.410Z",
+  "base_sha": "728d35afbd3de4d522023e0b65fd0f730c94820c",
+  "legacy_version": "2.217.1",
+  "legacy_source_revision": "ad7454e02b6420a09fd7d90139d04cbb4839fae4",
+  "host": "<anonymous-host>",
+  "gitInit": {
+    "command": "git init --initial-branch=main",
+    "status": 0,
+    "signal": null,
+    "stdout": "Initialized empty Git repository in /private<anonymous-host>/.git/\n",
+    "stderr": ""
+  },
+  "payload": "{}\n",
+  "sourceHashes": {
+    "historical/hooks.json": "8be2d3baeaf7728a2237e5a1b09ce6270d18bd74c752867d5ae17ea3c6de99ef",
+    "2.217.1/block-no-verify.sh": "b9f3745d5ec4e341be0c6bea456288a4000c7e916385fa1ae585ded518bb432c",
+    "2.217.1/shell-write-nudge.sh": "b04ceb3328290c5bacaedced35dffaecf97241953b5b886e13431393a4462720",
+    "2.217.1/sg-scan-on-edit.sh": "98ab52dd0186777055b974b097f6c6ef8fe7b833afd8dca5d35bcaa5a1324717",
+    "2.217.1/rubocop-on-edit.sh": "95100da533bbadff876f7b43f53e43c239e4bf9bc459b2fec381c4b18ac2a1a2",
+    "2.217.1/_extract-edit-paths.sh": "e97058eff34323e8c21e6f954fe7d14b11c6fdb0882af3f9989b11692ded8b29",
+    "dist/index.js": "10c4c29ef3e49fc3769d367f4c086e349700001dfe031262deda113677cbf865",
+    "dist/codex/project-hooks-cleanup.js": "76a5acb76cda20f627f415b2b56eb907bd867bb4cb16320f9bd0e1783ea150be",
+    "dist/codex/enforcement-fallback-installer.js": "d156de89e96315f924292b8e8d57371dd7f94655f8d020dfc5caf95664ed10e5"
+  },
+  "before": [
+    {
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/block-no-verify.sh\"",
+      "id": "block-no-verify",
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/shell-write-nudge.sh\"",
+      "id": "shell-write-nudge",
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Edit|Write|apply_patch",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/sg-scan-on-edit.sh\"",
+      "id": "sg-scan-on-edit",
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Edit|Write|apply_patch",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/rubocop-on-edit.sh\"",
+      "id": "rubocop-on-edit",
+      "status": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "apply": {
+    "command": "node <lisa-worktree>/dist/index.js --no-update-check apply <anonymous-host> --yes --skip-git-check --refresh-templates",
+    "status": 0,
+    "signal": null,
+    "stdout": "[WARN] --skip-git-check now waives ONLY the clean-tree check; this apply runs in FULL, including every agent emit and the Sonar integration. It used to also select the reduced postinstall-safe subset (CodySwannGT/lisa#3066). Install hooks using --postinstall-safe or LISA_POSTINSTALL=1 now skip template writes. Run lisa apply explicitly when ready to update templates.\n\n========================================\n    Lisa Project Bootstrapper\n========================================\n\n[INFO] Lisa directory: <lisa-worktree>\n[INFO] Destination:    <anonymous-host>\n\n[INFO] Backup directory: /var/folders/_2/29n6gy1s42777swvq24j3fh00000gn/T/lisa-backup-UtzsHF\n[INFO] Processing common configurations (all/)...\n[INFO] Processing all/copy-overwrite...\n[OK] Copied: scripts/check-conflict-markers.mjs\n[OK] Copied: scripts/check-npm-publish-landed.mjs\n[OK] Copied: scripts/check-orphaned-branches.mjs\n[OK] Copied: scripts/check-release-package-identity.mjs\n[OK] Copied: scripts/check-state-classification.mjs\n[OK] Copied: scripts/check-third-party-action-pins.mjs\n[OK] Copied: scripts/check-third-party-review-evidence.mjs\n[OK] Copied: scripts/check-workflow-load-failures.mjs\n[OK] Copied: scripts/lib/bounded-spawn.mjs\n[OK] Copied: scripts/lib/gate-failure-diagnosis.mjs\n[OK] Copied: scripts/lib/invoked-as-script.mjs\n[OK] Copied: scripts/lib/kill-marks.mjs\n[OK] Copied: scripts/lib/placeholder-expiry.mjs\n[OK] Copied: scripts/lib/process-tree-runner.mjs\n[OK] Copied: scripts/lib/reusable-workflow-load-adapter.d.mts\n[OK] Copied: scripts/lib/reusable-workflow-load-adapter.mjs\n[OK] Copied: scripts/lib/reusable-workflow-load-failure.d.mts\n[OK] Copied: scripts/lib/reusable-workflow-load-failure.mjs\n[OK] Copied: scripts/lib/reusable-workflow-load-scan.d.mts\n[OK] Copied: scripts/lib/reusable-workflow-load-scan.mjs\n[OK] Copied: scripts/lib/windows-process-job.cs\n[OK] Copied: scripts/lib/windows-process-job.mjs\n[OK] Copied: scripts/lib/windows-process-job.ps1\n[OK] Copied: scripts/lib/worktree-dependencies.d.mts\n[OK] Copied: scripts/lib/worktree-dependencies.mjs\n[OK] Copied: scripts/lisa-command-envelope.mjs\n[OK] Copied: scripts/lisa-commit-msg-gates.mjs\n[OK] Copied: scripts/lisa-cross-worktree-guard.mjs\n[OK] Copied: scripts/lisa-destructive-guard.mjs\n[OK] Copied: scripts/lisa-enforcement-fallback.sh\n[OK] Copied: scripts/lisa-environment-prepare.mjs\n[OK] Copied: scripts/lisa-floor-collisions.mjs\n[OK] Copied: scripts/lisa-gates.mjs\n[OK] Copied: scripts/lisa-hooks/block-blind-automerge.sh\n[OK] Copied: scripts/lisa-hooks/block-direct-issue-create.sh\n[OK] Copied: scripts/lisa-hooks/block-instruction-file-edits.sh\n[OK] Copied: scripts/lisa-hooks/block-managed-file-edits.sh\n[OK] Copied: scripts/lisa-hooks/block-no-verify.sh\n[OK] Copied: scripts/lisa-hooks/block-shell-json-parsing.sh\n[OK] Copied: scripts/lisa-hooks/guard-dedupe.bash\n[OK] Copied: scripts/lisa-hooks/parity-safety-net-heredoc.py\n[OK] Copied: scripts/lisa-hooks/parity-safety-net.sh\n[OK] Copied: scripts/lisa-hooks/sonar-secrets.sh\n[OK] Copied: scripts/lisa-hooks/worktree-binding-guard.mjs\n[OK] Copied: scripts/lisa-hooks/worktree-binding-guard.sh\n[OK] Copied: scripts/lisa-lint-staged-preflight.mjs\n[OK] Copied: scripts/lisa-postinstall.mjs\n[OK] Copied: scripts/lisa-reconcile-policy.mjs\n[OK] Copied: scripts/lisa-run-gates.mjs\n[OK] Copied: scripts/lisa-schema-validate.mjs\n[OK] Copied: scripts/lisa-self-update.mjs\n[OK] Copied: scripts/lisa-test-node.mjs\n[OK] Copied: scripts/lisa-work-item.mjs\n[OK] Copied: scripts/lisa-worktree-guard.mjs\n[OK] Copied: scripts/schemas/lisa-command-envelope.v1.schema.json\n[OK] Copied: scripts/schemas/lisa-state-contract.v1.schema.json\n[INFO] Processing all/copy-contents...\n[OK] Copied: .gitattributes\n[OK] Copied: .gitignore\n[INFO] Processing all/create-only...\n[OK] Created: .agents/rules/README.md\n[OK] Created: .github/workflows/continuous-gates.yml\n[OK] Created: .github/workflows/lisa-update.yml\n[OK] Created: .github/workflows/workflow-load-failure-sweep.yml\n[OK] Created: .lisa/ACCOUNTABILITY.md\n[OK] Created: .lisa/DEPENDENCY_DECISIONS.md\n[OK] Created: .lisa/PROJECT_LEARNINGS.md\n[OK] Created: .lisaignore\n[OK] Created: scripts/remote-agent-aws-setup.sh\n[OK] Created: specs/.keep\n[OK] Created: state/README.md\n[OK] Created: state/state-contract.example.json\n[INFO] Processing all/merge...\n[OK] Copied: .claude/settings.json\n[INFO] Processing deletions for all...\n[INFO] Kept (protected): .coderabbit.yml\n[INFO] Kept (protected): scripts/setup-deploy-key.sh\n[INFO] Kept (protected): HUMAN.md\n[INFO] Running migrations...\n[OK] registered the lisa-learnings merge driver\n[OK] Pinned 1 Lisa reusable-workflow caller file(s) at 728d35afbd3de4d522023e0b65fd0f730c94820c (v4.68.0)\n[INFO] Codex emit: 29 agents, 1 repository enforcement fallback plus plugin-bundled hooks, 170 native skills from 1 project plugins, 1 MCP servers, settings created\n[INFO] Instruction files: reconciled host-rules pointer in AGENTS.md\n[INFO] Registering plugins with Claude Code (project scope)...\n[OK] Registered plugin: lisa@lisa\n[WARN] Could not register plugin: safety-net@cc-marketplace\n[OK] Registered plugin: code-simplifier@claude-plugins-official\n[OK] Registered plugin: code-review@claude-plugins-official\n[OK] Registered plugin: coderabbit@claude-plugins-official\n[WARN] Could not register plugin: sentry@claude-plugins-official\n[OK] Registered plugin: skill-creator@claude-plugins-official\n[OK] Updated marketplace: lisa\n\n========================================\n    Lisa Installation Complete!\n========================================\n\n  Copied:       71 files\n  Skipped:       0 files (identical or create-only)\n  Overwritten:   0 files (approved or Lisa-owned)\n  Out of date:   0 files (managed templates changed; NOT updated)\n  Appended:      0 files (copy-contents)\n  Merged:        0 files (JSON merged)\n  Deleted:       0 files\n  Migrations:    2 files applied\n\nProject types: all\n\n[INFO] Postinstall reconciliation skipped: package.json unchanged by this apply\n",
+    "stderr": ""
+  },
+  "after": [
+    {
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/block-no-verify.sh\"",
+      "id": "block-no-verify",
+      "status": 127,
+      "signal": null,
+      "stdout": "",
+      "stderr": "bash: /private<anonymous-host>/.codex/hooks/lisa/block-no-verify.sh: No such file or directory\n"
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/shell-write-nudge.sh\"",
+      "id": "shell-write-nudge",
+      "status": 127,
+      "signal": null,
+      "stdout": "",
+      "stderr": "bash: /private<anonymous-host>/.codex/hooks/lisa/shell-write-nudge.sh: No such file or directory\n"
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Edit|Write|apply_patch",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/sg-scan-on-edit.sh\"",
+      "id": "sg-scan-on-edit",
+      "status": 127,
+      "signal": null,
+      "stdout": "",
+      "stderr": "bash: /private<anonymous-host>/.codex/hooks/lisa/sg-scan-on-edit.sh: No such file or directory\n"
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Edit|Write|apply_patch",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/rubocop-on-edit.sh\"",
+      "id": "rubocop-on-edit",
+      "status": 127,
+      "signal": null,
+      "stdout": "",
+      "stderr": "bash: /private<anonymous-host>/.codex/hooks/lisa/rubocop-on-edit.sh: No such file or directory\n"
+    }
+  ],
+  "generatedHooks": {
+    "hooks": {
+      "PreToolUse": [
+        {
+          "matcher": "Bash|Edit|Write|apply_patch",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "/bin/bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/scripts/lisa-enforcement-fallback.sh\"",
+              "_lisaManaged": true,
+              "_lisaId": "enforcement-fallback",
+              "timeout": 30,
+              "statusMessage": "Checking Lisa enforcement policy"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "redEstablished": true
+}

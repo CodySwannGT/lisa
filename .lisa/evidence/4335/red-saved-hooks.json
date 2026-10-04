@@ -1,0 +1,92 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/inject-rules.sh\"",
+            "_lisaManaged": true,
+            "_lisaId": "inject-rules",
+            "statusMessage": "Injecting Lisa rules into session context"
+          }
+        ]
+      },
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/install-pkgs.sh\"",
+            "_lisaManaged": true,
+            "_lisaId": "install-pkgs",
+            "statusMessage": "Checking project dependencies"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/setup-jira-cli.sh\"",
+            "_lisaManaged": true,
+            "_lisaId": "setup-jira-cli",
+            "statusMessage": "Preparing Jira CLI configuration"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/block-no-verify.sh\"",
+            "_lisaManaged": true,
+            "_lisaId": "block-no-verify",
+            "statusMessage": "Checking shell command policy"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/shell-write-nudge.sh\"",
+            "_lisaManaged": true,
+            "_lisaId": "shell-write-nudge",
+            "statusMessage": "Checking shell write visibility"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/sg-scan-on-edit.sh\"",
+            "_lisaManaged": true,
+            "_lisaId": "sg-scan-on-edit"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/rubocop-on-edit.sh\"",
+            "_lisaManaged": true,
+            "_lisaId": "rubocop-on-edit"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,5 @@
+- Observed `pwd`: `/Users/cody/.codex/worktrees/8050/lisa`
+- Exact specialist catalog: no `agent_type` enum is exposed in the native `spawn_agent` schema.
+- Session access succeeded: shell returned exit code `0`. Authentication status was not independently verified.
+
+This does not establish fresh-host hook verification.

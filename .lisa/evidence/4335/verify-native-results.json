@@ -1,0 +1,41 @@
+{
+  "captured_at": "2026-10-04T02:58:10.963Z",
+  "command": "codex exec -C <anonymous-host> --ephemeral --json <bounded verification prompt>",
+  "status": {
+    "code": 0,
+    "signal": null
+  },
+  "thread_ids": [
+    "01a104d8-705b-7d03-9715-20a0cdf97428"
+  ],
+  "probe": "fresh-native-session\n",
+  "witnessCount": 4,
+  "commandCompletions": [
+    {
+      "command": "/bin/zsh -lc pwd",
+      "status": "completed",
+      "exit_code": 0,
+      "output": "<anonymous-host>\n"
+    },
+    {
+      "command": "/bin/zsh -lc 'cat native-probe.txt'",
+      "status": "completed",
+      "exit_code": 0,
+      "output": "fresh-native-session\n"
+    }
+  ],
+  "fileCompletions": [
+    {
+      "status": "completed",
+      "changes": [
+        {
+          "path": "<anonymous-host>/native-probe.txt",
+          "kind": "add"
+        }
+      ]
+    }
+  ],
+  "stderr": "Reading additional input from stdin...\n2026-10-04T02:57:36.547749Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: \"Bearer realm=\\\"OAuth\\\", resource_metadata=\\\"https://mcp.sentry.dev/.well-known/oauth-protected-resource/mcp\\\"\" })\n2026-10-04T02:57:36.601634Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: \"Bearer resource_metadata=\\\"https://mcp.atlassian.com/.well-known/oauth-protected-resource/v2/mcp\\\"\" })\n2026-10-04T02:57:51.179804Z ERROR codex_core::tools::router: error=Command blocked by PreToolUse hook: Blocked: this command bypasses pre-commit/pre-push hooks (--no-verify or its\nshort form -n, HUSKY=0, or core.hooksPath disabling). `git commit -n` and a\ncluster such as `-nm \"msg\"` skip pre-commit exactly as completely as the long\nflag. Fix the underlying issue (security audit, lint,\ntypecheck, tests, formatting) instead. If a fix is genuinely impossible, ask the\nuser to make the risk-acceptance decision and add a specific documented ignore;\nnever bypass the hook.\nRefused by <anonymous-host>/scripts/lisa-hooks/block-no-verify.sh (lisa 4.68.0, STALE — 4.68.1 is on this machine)\n\nTHIS VERDICT MAY NOT REFLECT CURRENT SOURCE — the copy that produced it\nis not provably current (lisa 4.68.0, STALE — 4.68.1 is on this machine).\n  repair: run `npx @codyswann/lisa apply` to rewrite these guards\nBefore filing a defect on this behaviour, read the guard on your\nintegration branch. Re-running the command confirms nothing: it asks\nthe same stale copy again.. Command: git commit --no-verify --dry-run\n",
+  "transcript_sha256": "746dd2fac84c78dda204bdccfa62948688792cf57bffefeac525684fdeca2011",
+  "shipping_head_sha": null
+}

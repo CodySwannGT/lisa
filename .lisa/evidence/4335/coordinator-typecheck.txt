@@ -1,0 +1,8 @@
+$ node scripts/lib/worktree-dependencies.mjs && tsc --noEmit && bun run typecheck:tests && bun run typecheck:engine-floor
+$ node scripts/check-typecheck-tests.mjs
+type-correctness (tests): 362 file(s) with 1542 error(s); 362 quarantined.
+✅ No type errors outside the quarantine, and no stale quarantine entries.
+$ node scripts/check-engine-floor.mjs
+type-correctness (engine floor): engines.node "22.21.1" → Node 22 → --lib es2024. 13397 diagnostic(s) at that library, of which 0 are attributable to the floor.
+Measured backlog (NOT gated): 13397 diagnostic(s) survive at --lib esnext and are unrelated to the engine floor.
+✅ Nothing in the shipped JavaScript outruns Node 22.
