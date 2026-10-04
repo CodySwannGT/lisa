@@ -137,12 +137,6 @@
       "id": "GHSA-j759-j44w-7fr8",
       "package": "@xmldom/xmldom",
       "reason": "XML node injection via unvalidated comment serialization. Transitive via expo > @expo/config-plugins > @expo/plist; only serializes developer-authored plist files at build/prebuild time, no runtime code path serializes attacker-controlled XML."
-    },
-    {
-      "id": "GHSA-vfj7-8cjw-p6xm",
-      "cve": "CVE-2026-93687",
-      "package": "braces",
-      "reason": "Stack-exhaustion DoS (uncaught RangeError) via deeply nested brace patterns; no patched release exists. Keep this exclusion only if no runtime code path passes attacker-supplied glob or brace patterns to braces/micromatch (dev tooling expanding repo-owned globs is unaffected)."
     }
   ]
 }

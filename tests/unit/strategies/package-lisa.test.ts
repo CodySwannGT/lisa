@@ -2110,7 +2110,7 @@ describe("PackageLisaStrategy", () => {
       );
       const template = readTsTemplate();
 
-      expect(template.force.resolutions["vite"]).toBe(">=8.0.16");
+      expect(template.force.resolutions["vite"]).toBe("^8.3.2");
       expect(template.force.overrides["vite"]).toBe(
         rootPackageJson.devDependencies.vite
       );

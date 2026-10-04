@@ -1,0 +1,315 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-10-03T13:46:01.280541+00:00",
+  "status": "PASS-bounded-source-and-evidence-review",
+  "blocking_findings": [],
+  "findings": [],
+  "review_scope": "Six owned uncommitted compatible floor/test/lock changes. Source observed at61580 parent; fixture CI-repair work and root plan/metadata/derived ownership excluded. No future commit, all repository gates, remote CI/release or public artifact success certified.",
+  "context": {
+    "full_bytes_read": 232750,
+    "path": "/tmp/lisa-4326-implementation/.lisa/work-item-context.md",
+    "sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a",
+    "original_business_AC_preserved": true,
+    "operator_braces_exception_scope_unchanged": true
+  },
+  "summary_sha256": "f006383376a2d632f7d529f59b31afbab86c87edae0de7340983e64538444e73",
+  "owned_files": [
+    {
+      "path": "package.json",
+      "bytes": 18163,
+      "sha256": "2173468d94df335e63d8e146711fed39de0b3fec4777825fa6d0646a5c8ed57e"
+    },
+    {
+      "path": "bun.lock",
+      "bytes": 380850,
+      "sha256": "8e5b8a0f6bab515eeb1bb2129a57c544a2a4070600dadc57376ee2204f1a241f"
+    },
+    {
+      "path": "typescript/package-lisa/package.lisa.json",
+      "bytes": 8891,
+      "sha256": "7def55c6827128599f12306354266781d1a1bc22a3a468471822153841ed280c"
+    },
+    {
+      "path": "tests/unit/config/security-pin-floors.test.ts",
+      "bytes": 5132,
+      "sha256": "3fccc624768e5a2a7c7281c4a7fb8e6d1eb96d48574ae22b2fd11ab361a9fe05"
+    },
+    {
+      "path": "tests/unit/config/postinstall-ci-guard.test.ts",
+      "bytes": 9697,
+      "sha256": "9b4a9bd2b6257c6bfc7954c93670ec6da14312971f2d6d98851109e2652f9e90"
+    },
+    {
+      "path": "tests/unit/config/forced-http-security-floors.test.ts",
+      "bytes": 7782,
+      "sha256": "e591c06af84b3b06c01e6159b1fc7f3fb53c33f28efbe9c8a95d96784ac51883"
+    }
+  ],
+  "observed_source_head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+  "source_review": [
+    {
+      "paths": [
+        "package.json:149",
+        "typescript/package-lisa/package.lisa.json:43",
+        "bun.lock:117"
+      ],
+      "observation": "Both overrides/resolutions align to Axios>=1.20.0 and Undici^6.28.1; existing operators and force ownership retained. Only corresponding values change; no strategy/checker or exception weakening. Known compatible patch endpoints and actual primary ranges were independently matched to reviewed immutable receipts."
+    },
+    {
+      "path": "tests/unit/config/forced-http-security-floors.test.ts:119",
+      "observation": "34 cases comprise2real collector presence checks,16actualadvisory\u00d7force-site tests using production collector/comparator,8vulnerable/patched endpoint controls,4root intersection checks,4full/restrictedTS/CDK actual PackageLisaStrategy applications and repeat-byte checks. Genuine helperseed retained; explicit host scripts,unrelated maps and TS/default pins protected. These are code-unit strategy observations; full installedCLI remains separate required proof."
+    },
+    {
+      "paths": [
+        "tests/unit/config/security-pin-floors.test.ts:36",
+        "tests/unit/config/postinstall-ci-guard.test.ts:34"
+      ],
+      "observation": "Existing ratchets moved upward to actual patched releases; the postinstall Undici expected range follows the same sourceforce repair. No skipped tests/new waivers."
+    },
+    {
+      "path": "bun.lock",
+      "observation": "Compared all bytes against61580 HEAD after exactly two replacements; every other byte equal. Neither target exists as a resolved root package entry. Genuine normal and frozen installs actual0 and unchanged existing nested-override warning disclosed; no installed target version claim."
+    }
+  ],
+  "evidence_review": {
+    "all28_records": [
+      {
+        "path": "frozen-bun-install/command.log",
+        "bytes": 877,
+        "sha256": "e7b0a1253925766bb0fe67a1e9e2a50583161f840496e14cdf40746f3ad9efb3"
+      },
+      {
+        "path": "green-final/command.log",
+        "bytes": 21635,
+        "sha256": "100d24e78bf01d10b79029f17c7d894fa7e0c0c09cb3763d2481d57ef2982911"
+      },
+      {
+        "path": "green-patched/command.log",
+        "bytes": 23679,
+        "sha256": "fb3555d9cdfef1ce9a2dbb433eb3bb58c1997237ca24d75a5f29661bcea0331a"
+      },
+      {
+        "path": "live-strict-floor/command.log",
+        "bytes": 134,
+        "sha256": "552660b6143471b283e12e190e5f3cb671b2a2488cd847397d8cce294d8ff610"
+      },
+      {
+        "path": "normal-bun-install/command.log",
+        "bytes": 893,
+        "sha256": "b8620e54da46c5d01ba3ccbfa10e03570bc1ae7b79689f26826047730591541b"
+      },
+      {
+        "path": "red-baseline-61580/command.log",
+        "bytes": 44954,
+        "sha256": "1aa9d25b57ccb97bbdfe6f8d6769b52abca05a923ea16d1db6cf440a69ddf0ac"
+      },
+      {
+        "path": "red-final-61580/command.log",
+        "bytes": 43349,
+        "sha256": "829025e51bd677c0b3da46f98f25455565f6a33b27f0ff84cfe1f25b2aca162a"
+      },
+      {
+        "path": "scoped-fast-lint/command.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "scoped-fast-lint-final/command.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "scoped-format-final/command.log",
+        "bytes": 66,
+        "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+      },
+      {
+        "path": "scoped-oxlint-final/command.log",
+        "bytes": 92,
+        "sha256": "e20f019f5c0365e5671b3c1b85263cd32af2cd19880355b2cb00d9fbbda65588"
+      },
+      {
+        "path": "scoped-slow-lint-final/command.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "frozen-bun-install/execution-receipt.json",
+        "bytes": 508,
+        "sha256": "03bf11ebf85a9b9e90106e338d2d048d893a0bda99c97b9e04dd1c606cdb7d3c"
+      },
+      {
+        "path": "green-final/execution-receipt.json",
+        "bytes": 33423,
+        "sha256": "4e3a966c949b4a7f606f96ffaa33b764d097e1861596b0b05fe41a5a64246899"
+      },
+      {
+        "path": "green-patched/execution-receipt.json",
+        "bytes": 33425,
+        "sha256": "0f4ebb719f11588234cbdaefcc9956edc2bb69c9d52c94a86355928af656421e"
+      },
+      {
+        "path": "live-strict-floor/execution-receipt.json",
+        "bytes": 568,
+        "sha256": "ab51d24c8d34defb97cb607d1dbdd14428763ed846bb5158e5c53457bb6e5e7e"
+      },
+      {
+        "path": "normal-bun-install/execution-receipt.json",
+        "bytes": 482,
+        "sha256": "142185eabd659b06c44b23d2efe36bb4be0d9d242afe8303e83de76af8da6d1b"
+      },
+      {
+        "path": "red-baseline-61580/execution-receipt.json",
+        "bytes": 33436,
+        "sha256": "a8129eca16ac3db60217d21baa27749385bb22ef8e571dc4d8afa06fe04eecec"
+      },
+      {
+        "path": "red-final-61580/execution-receipt.json",
+        "bytes": 38734,
+        "sha256": "b437df9f00e0ab5068ee33b112fe47a8c7b3302c2e66507f23fc62640451578c"
+      },
+      {
+        "path": "scoped-fast-lint/execution-receipt.json",
+        "bytes": 709,
+        "sha256": "023a308defc873e80d21c454943e908037d6e5351ec0e85b6a37082b06cef053"
+      },
+      {
+        "path": "scoped-fast-lint-final/execution-receipt.json",
+        "bytes": 715,
+        "sha256": "eeb9c7ae6267edda392d9b026ef0d82052af44fd273ef925c8a28726026a6b97"
+      },
+      {
+        "path": "scoped-format-final/execution-receipt.json",
+        "bytes": 786,
+        "sha256": "cd09a8539e4df9b1fd70dac7b567e02f30ceb556f11210701beddc4a89d50551"
+      },
+      {
+        "path": "scoped-oxlint-final/execution-receipt.json",
+        "bytes": 725,
+        "sha256": "26d945de51327672f0ac9284f75bd897f64ce284b2f9f9cbfbd42808f324f548"
+      },
+      {
+        "path": "scoped-slow-lint-final/execution-receipt.json",
+        "bytes": 760,
+        "sha256": "88d91f8cd766f4e386a04f5fbe9d132fdf3cdf6567b8117aa36a1e289a176d4e"
+      },
+      {
+        "path": "green-final/test-report.json",
+        "bytes": 44239,
+        "sha256": "9ac5bccf6760fb07d63d3cb534e5f4b5631a8f42a7af0ca719b43d03fe4a58e6"
+      },
+      {
+        "path": "green-patched/test-report.json",
+        "bytes": 45243,
+        "sha256": "827aaebb994cfda1f13356af377a825d6f8f15f5785ede457af2753a40e88bd0"
+      },
+      {
+        "path": "red-baseline-61580/test-report.json",
+        "bytes": 75430,
+        "sha256": "599129bd44f05c7784c09b28e35381177eb1ba031c27d7111ab02a05b78b52e5"
+      },
+      {
+        "path": "red-final-61580/test-report.json",
+        "bytes": 76815,
+        "sha256": "035b8e9067a4bf57546f8b18ff0d44f49f543bc092d0578c9dff0d5f65d88a61"
+      }
+    ],
+    "hashes_and_sizes_match": true,
+    "same_final_test_inputs_RED_GREEN": {
+      "tests/unit/config/forced-http-security-floors.test.ts": "e591c06af84b3b06c01e6159b1fc7f3fb53c33f28efbe9c8a95d96784ac51883",
+      "tests/unit/config/security-pin-floors.test.ts": "3fccc624768e5a2a7c7281c4a7fb8e6d1eb96d48574ae22b2fd11ab361a9fe05",
+      "tests/unit/config/postinstall-ci-guard.test.ts": "9b4a9bd2b6257c6bfc7954c93670ec6da14312971f2d6d98851109e2652f9e90"
+    },
+    "baseline_source_policy_matches_61580_git_blobs": true,
+    "baseline_tests_match_current_owned_test_bytes": true,
+    "RED": {
+      "actual_exit": 1,
+      "tests": 103,
+      "failed": 29,
+      "passed": 74,
+      "new_tests": 34,
+      "new_failed": 24,
+      "advisory_site_collisions": 16,
+      "root_failures": 4,
+      "actual_strategy_adoption_failures": 4,
+      "presence_and_endpoint_controls_passed": 10
+    },
+    "GREEN": {
+      "actual_exit": 0,
+      "tests": 103,
+      "passed": 103,
+      "failed": 0,
+      "skipped": 0
+    },
+    "live_strict_checker": {
+      "actual_exit": 0,
+      "packages": 199,
+      "manifests": 8,
+      "raw_log_sha256": "552660b6143471b283e12e190e5f3cb671b2a2488cd847397d8cce294d8ff610",
+      "checker_workflow_unchanged": true
+    },
+    "initial_fixture_error": "Initial restricted CDK test dropped aws-cdk-lib backing direct dependency. Initial receipts and mistaken classification preserved; correction records1fixture error. Final exact-test baseline failed24new actualfloor assertions; no fixture error counted as a product regression.",
+    "scoped_quality_actual_exits": {
+      "scoped-fast-lint-final": 0,
+      "scoped-oxlint-final": 0,
+      "scoped-slow-lint-final": 0,
+      "scoped-format-final": 0
+    }
+  },
+  "ownership": {
+    "audit_exception_unchanged_sha256": "a7bd5588e0d1edec667ef9331267ba9c4c74c142097111c2e3c5a911578b8d12",
+    "ledger_unchanged_sha256": "2e17f678167517eb89cf452de59fd51b55972c24d4d60d4f395269df6b559c9f",
+    "checker_unchanged_sha256": "9cdb39f3d995b2f5539e0f2dc9de4b06d8539886efaa821f7964687e9a41609a",
+    "workflow_unchanged_sha256": "a4dfc3c46d2bf4e8521f5005ff491809b7a58bdb75ca35279f4560ebcf59ad4c",
+    "six_owned_hashes_match_worker_seal": true,
+    "unowned_note": "Worker before/after protection recorded. Current own independent snapshot shows only5existing ownedpaths plus root-owned plans/security-inventory changed since workerbefore; new ownedtestuntracked. Other fixture/process/journey files excluded from thisreview if separately edited. No unrelated revert/write made."
+  },
+  "MLD": [
+    {
+      "kind": "mistake",
+      "note": "Preserve helper-seeded manifest dependency fields when customizing supported-stack fixtures. The first restricted CDK fixture removed the direct dependency behind its shipped $aws-cdk-lib override; the corrected seed must be replayed on the unchanged baseline before counting product regressions.",
+      "evidence": [
+        "CodySwannGT/lisa#4326:compatible-floor-repair",
+        "tests/unit/config/forced-http-security-floors.test.ts:215",
+        "baseline-classification-correction.json",
+        "green-patched/command.log",
+        "red-final-61580/test-report.json"
+      ],
+      "confidence": "medium",
+      "occurrences_established": 1,
+      "ledger_assessment": "No exact existing rule duplicate. Related fixture/packed-host entry sll4-8968b24e50aa should be assessed for stamped consolidation under the capture-only contract; current20-entry ledger is full. Root owns any contract write, optional failure is nonblocking. No rule/source promotion or recurrence claim."
+    },
+    {
+      "kind": "learning",
+      "note": "A declared override-floor bump is not an installed package upgrade: neither Axios nor Undici is a resolved root lock node here, and genuine normal/frozen regeneration changed only the two override strings.",
+      "evidence": [
+        "bun.lock",
+        "normal-bun-install/command.log",
+        "frozen-bun-install/command.log"
+      ],
+      "ledger_assessment": "Verification-boundary refinement related to existing sll4-8968b24e50aa installed-bytes-versus-version/lock rule. Prefer consolidation or task-only evidence, not a near-duplicate sibling. This task does not establish installed root Axios/Undici versions.",
+      "confidence": "medium",
+      "occurrences_established": 1
+    }
+  ],
+  "learning_disposition": {
+    "ledger_entries": 20,
+    "ledger_bytes": 13412,
+    "exact_duplicate_new_seed_rule": false,
+    "related_entry_id": "sll4-8968b24e50aa",
+    "root_owns_capture": true,
+    "ledger_mutated": false,
+    "no_optional_capture_failure_invented": true,
+    "no_high_recurrence_claim": true
+  },
+  "not_established": [
+    "Final normal source commit",
+    "Derived artifact regeneration/new-head whole quality gates",
+    "New exact-head installed packed CLI replay",
+    "Required remoteCI namedhostcases succeeding after nestedadmission repair",
+    "Merge/release/public npm proof",
+    "Whole unfiltered audit clean or deployed runtime safety"
+  ],
+  "tests_or_runtime_rerun": false,
+  "mutations": "External review/MLD receipt only; no source/context/plan/index/ledger/verdict/tracker writes."
+}

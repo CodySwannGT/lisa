@@ -1,0 +1,75 @@
+{
+  "scope": "Precommit latestmain4.68 merge and narrowly scoped managed-audit correction with historical real-vulnerability rationale; futureB/runtime/CI/release notestablished",
+  "files": [
+    {
+      "locator": "evidence/4326/main-468-reconciliation/README.md",
+      "bytes": 1220,
+      "sha256": "4ef0389c06a171436b08787593c3cba277468db2ebe8b495e49b408f807cff12"
+    },
+    {
+      "locator": "evidence/4326/main-468-reconciliation/baseline-regression.log",
+      "bytes": 1497,
+      "sha256": "e28ef21b4bf5067d935df4786e512ad7039663452c2cd27cb1cea671941d8af3"
+    },
+    {
+      "locator": "evidence/4326/main-468-reconciliation/before-merge.json",
+      "bytes": 611,
+      "sha256": "9c10eed19b4926d92de160e4f7aae406f2a7cbfa1b177b8e14278e7767567732"
+    },
+    {
+      "locator": "evidence/4326/main-468-reconciliation/fixed-success-and-edge.log",
+      "bytes": 1478,
+      "sha256": "c3d6836fe7d591be17ad338ce82134a4008b6f0ba5ed9e1918e600769d0244a4"
+    },
+    {
+      "locator": "evidence/4326/main-468-reconciliation/independent-review.json",
+      "bytes": 23182,
+      "sha256": "a05304f31eb5897019fea3f452600d8abf72eb9d95706e0f500dc83f382ae4ad"
+    },
+    {
+      "locator": "evidence/4326/main-468-reconciliation/managed-scope-reconciliation.json",
+      "bytes": 1307,
+      "sha256": "624713ae40bb08fbcae49b712a7146168339529899cc00751fc954b98a02c699"
+    },
+    {
+      "locator": "evidence/4326/main-468-reconciliation/merge-exit.json",
+      "bytes": 70,
+      "sha256": "610260dddfe9250eda428b944fdef8b1957e853623d6de999c2abf1aa09285eb"
+    },
+    {
+      "locator": "evidence/4326/main-468-reconciliation/merge.log",
+      "bytes": 166,
+      "sha256": "f721c3082cbde707abd179b5b093a3e1e7aecbdff7f221c80cb2f7a6a55e8a83"
+    },
+    {
+      "locator": "evidence/4326/main-468-reconciliation/merged-build-dist.log",
+      "bytes": 173,
+      "sha256": "d7fe6deaad9c0a5b1e769a9da80067644fe2cd6256b5ab173868ac8d713abdeb"
+    },
+    {
+      "locator": "evidence/4326/main-468-reconciliation/merged-frozen-install.log",
+      "bytes": 869,
+      "sha256": "997955550a71b22a8039bbacb2f8f29a634d7a42ecc1b1507a83d9c6155b90cb"
+    },
+    {
+      "locator": "evidence/4326/main-468-reconciliation/merged-install-build.json",
+      "bytes": 2083,
+      "sha256": "d6e9005c0a931e013e8e9bb2b3239470e87073715bf0bd24621eb6271c041961"
+    },
+    {
+      "locator": "evidence/4326/main-468-reconciliation/quality-and-template-review.log",
+      "bytes": 3377,
+      "sha256": "f0102c201f2bab65e6f54cb4a87d0f2f4937e046f7de4f5989104d2a341764c4"
+    },
+    {
+      "locator": "evidence/4326/main-468-reconciliation/upstream-root-audit-ignore.json",
+      "bytes": 6903,
+      "sha256": "075f55ebba8f60f58a9c72c4feccad6a820784446004e3139134a241e567a24e"
+    },
+    {
+      "locator": "evidence/4326/main-468-reconciliation/upstream-shared-audit-ignore.json",
+      "bytes": 8020,
+      "sha256": "c19a374d02e01a484cd1965522879839ba7945b3cc06c9b22e05e6742ecb2b09"
+    }
+  ]
+}

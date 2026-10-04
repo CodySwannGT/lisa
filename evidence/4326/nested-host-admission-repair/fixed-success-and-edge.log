@@ -1,0 +1,110 @@
+$ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run tests/integration/shared-runtime-packed-hosts.test.ts "--reporter=default" "--reporter=json" "--outputFile.json=/evidence-observer/green-vitest.json"
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v4.67.0)
+Built plugins/lisa-typescript (v4.67.0)
+Built plugins/lisa-expo (v4.67.0)
+Built plugins/lisa-nestjs (v4.67.0)
+Built plugins/lisa-cdk (v4.67.0)
+Built plugins/lisa-harper-fabric (v4.67.0)
+Built plugins/lisa-phaser (v4.67.0)
+Built plugins/lisa-rails (v4.67.0)
+Built plugins/lisa-wiki (v4.67.0)
+Built plugins/lisa-openclaw (v4.67.0)
+Generated Cursor variant at /source/plugins/lisa-cursor (v4.67.0)
+Generated Cursor variant at /source/plugins/lisa-typescript-cursor (v4.67.0)
+Generated Cursor variant at /source/plugins/lisa-expo-cursor (v4.67.0)
+Generated Cursor variant at /source/plugins/lisa-nestjs-cursor (v4.67.0)
+Generated Cursor variant at /source/plugins/lisa-cdk-cursor (v4.67.0)
+Generated Cursor variant at /source/plugins/lisa-harper-fabric-cursor (v4.67.0)
+Generated Cursor variant at /source/plugins/lisa-phaser-cursor (v4.67.0)
+Generated Cursor variant at /source/plugins/lisa-rails-cursor (v4.67.0)
+Generated Cursor variant at /source/plugins/lisa-wiki-cursor (v4.67.0)
+Generated Cursor variant at /source/plugins/lisa-openclaw-cursor (v4.67.0)
+Generated agy variant at /source/plugins/lisa-agy (v4.67.0)
+Generated agy variant at /source/plugins/lisa-typescript-agy (v4.67.0)
+Generated agy variant at /source/plugins/lisa-expo-agy (v4.67.0)
+Generated agy variant at /source/plugins/lisa-nestjs-agy (v4.67.0)
+Generated agy variant at /source/plugins/lisa-cdk-agy (v4.67.0)
+Generated agy variant at /source/plugins/lisa-harper-fabric-agy (v4.67.0)
+Generated agy variant at /source/plugins/lisa-phaser-agy (v4.67.0)
+Generated agy variant at /source/plugins/lisa-rails-agy (v4.67.0)
+Generated agy variant at /source/plugins/lisa-wiki-agy (v4.67.0)
+Generated agy variant at /source/plugins/lisa-openclaw-agy (v4.67.0)
+Generated Copilot variant at /source/plugins/lisa-copilot (v4.67.0)
+Generated Copilot variant at /source/plugins/lisa-typescript-copilot (v4.67.0)
+Generated Copilot variant at /source/plugins/lisa-expo-copilot (v4.67.0)
+Generated Copilot variant at /source/plugins/lisa-nestjs-copilot (v4.67.0)
+Generated Copilot variant at /source/plugins/lisa-cdk-copilot (v4.67.0)
+Generated Copilot variant at /source/plugins/lisa-harper-fabric-copilot (v4.67.0)
+Generated Copilot variant at /source/plugins/lisa-phaser-copilot (v4.67.0)
+Generated Copilot variant at /source/plugins/lisa-rails-copilot (v4.67.0)
+Generated Copilot variant at /source/plugins/lisa-wiki-copilot (v4.67.0)
+Generated Copilot variant at /source/plugins/lisa-openclaw-copilot (v4.67.0)
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.11 [39m[90m/source[39m
+
+{
+  "stack": "typescript",
+  "sourceHead": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+  "indexTree": "ed44e90744e7a44c55401f1451192dcfe0536556",
+  "tarballSha256": "4bf51ccc3c508507812d8c1f34efe8c0bbc7a69ce91d91ca479871feca8f8313",
+  "packedRegularMemberCount": 7528,
+  "setupCalls": 1,
+  "adoptionCalls": 2,
+  "versions": {
+    "vitest": "4.1.11",
+    "@vitest/coverage-v8": "4.1.11",
+    "vite": "8.3.2",
+    "typescript": "6.0.3",
+    "eslint": "9.39.5",
+    "knip": "5.88.1",
+    "husky": "8.0.3"
+  },
+  "managedFileCount": 146,
+  "secondAdoptionDelta": [],
+  "frozenInstallDelta": [],
+  "allPackedMemberBytesMatch": true,
+  "nativeUnitCount": 1,
+  "synthTemplateSha256": null,
+  "caseWallMs": 152240
+}
+{
+  "stack": "cdk",
+  "sourceHead": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+  "indexTree": "ed44e90744e7a44c55401f1451192dcfe0536556",
+  "tarballSha256": "4bf51ccc3c508507812d8c1f34efe8c0bbc7a69ce91d91ca479871feca8f8313",
+  "packedRegularMemberCount": 7528,
+  "setupCalls": 1,
+  "adoptionCalls": 2,
+  "versions": {
+    "vitest": "4.1.11",
+    "@vitest/coverage-v8": "4.1.11",
+    "vite": "8.3.2",
+    "typescript": "6.0.3",
+    "eslint": "9.39.5",
+    "knip": "5.88.1",
+    "husky": "8.0.3"
+  },
+  "managedFileCount": 154,
+  "secondAdoptionDelta": [],
+  "frozenInstallDelta": [],
+  "allPackedMemberBytesMatch": true,
+  "nativeUnitCount": 2,
+  "synthTemplateSha256": "327b8040bacb11b38966aa3b3b6154ca993983713758a715383b7a58ffe69b1b",
+  "caseWallMs": 133553
+}
+ [32m✓[39m tests/integration/shared-runtime-packed-hosts.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 319412[2mms[22m[39m
+     [33m[2m✓[22m[39m typescript: patched installs, native execution and two idempotent adoptions [33m 152242[2mms[22m[39m
+     [33m[2m✓[22m[39m cdk: patched installs, native execution and two idempotent adoptions [33m 133554[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+[2m   Start at [22m 14:06:03
+[2m   Duration [22m 319.81s[2m (transform 117ms, setup 113ms, import 109ms, tests 319.41s, environment 0ms)[22m
+
+JSON report written to /evidence-observer/green-vitest.json

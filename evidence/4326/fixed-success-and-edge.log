@@ -1,0 +1,89 @@
+Observed committed HEAD b3398fa371bf63c5383ec101855fc7e1d6c7efee; source tree f6cdb672446b2d744a149e6114e6a48663079d74
+
+=== EXACT COMMITTED 16-CASE POLICY ===
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:04:27.012848+00:00", "cwd": "<local-path>", "argv": ["<local-path>", "<local-path>", "--profile", "lisa", "--adapter", "vitest", "--", "vitest", "run", "tests/unit/core/shared-runtime-policy.test.ts", "--reporter=default", "--reporter=json", "--outputFile.json=<local-path>"]}
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 <local-path>
+
+ ✓ tests/unit/core/shared-runtime-policy.test.ts (16 tests) 161ms
+
+ Test Files  1 passed (1)
+      Tests  16 passed (16)
+   Start at  20:04:28
+   Duration  570ms (transform 114ms, setup 77ms, import 194ms, tests 161ms, environment 0ms)
+
+JSON report written to <local-path>
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:04:30.830941+00:00", "exit": 0, "wall_s": 3.816}
+
+=== EXACT COMMITTED TWO-CASE GENERATED HOST JOURNEY ===
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:04:30.835152+00:00", "cwd": "<local-path>", "argv": ["<local-path>", "<local-path>", "--profile", "lisa", "--adapter", "vitest", "--", "vitest", "run", "tests/integration/shared-runtime-packed-hosts.test.ts", "--reporter=default", "--reporter=json", "--outputFile.json=<local-path>"]}
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 <local-path>
+
+{
+  "stack": "typescript",
+  "sourceHead": "b3398fa371bf63c5383ec101855fc7e1d6c7efee",
+  "indexTree": "f6cdb672446b2d744a149e6114e6a48663079d74",
+  "tarballSha256": "2c4b000918e36d996c67c3b075f8f7b58fd59af4ae68cfd4ddb1833910e4dbed",
+  "packedRegularMemberCount": 7528,
+  "setupCalls": 1,
+  "adoptionCalls": 2,
+  "versions": {
+    "vitest": "4.1.11",
+    "@vitest/coverage-v8": "4.1.11",
+    "vite": "8.3.2",
+    "typescript": "6.0.3",
+    "eslint": "9.39.5",
+    "knip": "5.88.1",
+    "husky": "8.0.3"
+  },
+  "managedFileCount": 147,
+  "secondAdoptionDelta": [],
+  "frozenInstallDelta": [],
+  "allPackedMemberBytesMatch": true,
+  "nativeUnitCount": 1,
+  "synthTemplateSha256": null,
+  "caseWallMs": 117941
+}
+{
+  "stack": "cdk",
+  "sourceHead": "b3398fa371bf63c5383ec101855fc7e1d6c7efee",
+  "indexTree": "f6cdb672446b2d744a149e6114e6a48663079d74",
+  "tarballSha256": "2c4b000918e36d996c67c3b075f8f7b58fd59af4ae68cfd4ddb1833910e4dbed",
+  "packedRegularMemberCount": 7528,
+  "setupCalls": 1,
+  "adoptionCalls": 2,
+  "versions": {
+    "vitest": "4.1.11",
+    "@vitest/coverage-v8": "4.1.11",
+    "vite": "8.3.2",
+    "typescript": "6.0.3",
+    "eslint": "9.39.5",
+    "knip": "5.88.1",
+    "husky": "8.0.3"
+  },
+  "managedFileCount": 155,
+  "secondAdoptionDelta": [],
+  "frozenInstallDelta": [],
+  "allPackedMemberBytesMatch": true,
+  "nativeUnitCount": 2,
+  "synthTemplateSha256": "327b8040bacb11b38966aa3b3b6154ca993983713758a715383b7a58ffe69b1b",
+  "caseWallMs": 103975
+}
+ ✓ tests/integration/shared-runtime-packed-hosts.test.ts (2 tests) 317544ms
+     ✓ typescript: patched installs, native execution and two idempotent adoptions  117943ms
+     ✓ cdk: patched installs, native execution and two idempotent adoptions  103976ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  20:04:31
+   Duration  317.89s (transform 68ms, setup 80ms, import 132ms, tests 317.54s, environment 0ms)
+
+JSON report written to <local-path>
+{"artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee", "captured_at": "2026-10-03T00:09:51.192563+00:00", "exit": 0, "wall_s": 320.35}

@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "observed_historical_artifact_head_sha": "477b0767479e6fe1756ac617d0a052b53ff7f74e",
+  "authorization": "Direct operator conversation on2026-10-03; exact approved proposal independently hashed",
+  "scope": "Approved local security-audit supplement, separate from unchanged original17filehistoricalinventory",
+  "original_inventory_sha256": "ce0252e580f3f551f92f57e9f47620ffb2b5dcbb26f0cfd688df2c80ba126a1e",
+  "files": [
+    {
+      "locator": "audit.ignore.local.json",
+      "bytes": 932,
+      "sha256": "a7bd5588e0d1edec667ef9331267ba9c4c74c142097111c2e3c5a911578b8d12"
+    },
+    {
+      "locator": ".lisa/plan-CodySwannGT-lisa-4326.md",
+      "bytes": 29934,
+      "sha256": "2f452e2b637ffac2ddf95120187194d7633aca7ce981a113bbf191ff4c37bab3"
+    },
+    {
+      "locator": ".lisa/plan-CodySwannGT-lisa-4326.json",
+      "bytes": 149025,
+      "sha256": "6b6ecad4d2bb84eb639570608b37558c215d691fb7629a44b9966d3746f3325d"
+    },
+    {
+      "locator": "evidence/4326/security-audit-review.md",
+      "bytes": 3642,
+      "sha256": "ad2c28c9544d624a1a3d95cb36bc706ae3031f31b4e0b98d404a394ab66cb8b6"
+    },
+    {
+      "locator": "evidence/4326/security-audit-observation.json",
+      "bytes": 5180,
+      "sha256": "5e499768f81328a4f73b296a84aeffebcc44a15f6b1585b30e3f96e69f3ab08a"
+    },
+    {
+      "locator": "evidence/4326/security-audit-production.json",
+      "bytes": 9080,
+      "sha256": "2a89a9d828ad0b43dc8c9e4b45e92a9138e672d6d3f7b3b3f19c2c5f08cb6b8f"
+    }
+  ],
+  "plan_carrier_update": "Later metadata records historicala7 core/106-name failure, correctedtitle working106PASS, and latestmain4.68 reconciliation with only new global vfj exemptions removed; localapproveda7bd unchanged. FinalmergeB/runtime/push/CI/publication pending."
+}

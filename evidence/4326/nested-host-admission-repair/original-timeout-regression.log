@@ -1,0 +1,111 @@
+$ node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run tests/integration/shared-runtime-packed-hosts.test.ts
+$ bun run build:dist && bun run build:plugins
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+$ bash scripts/build-plugins.sh
+Built plugins/lisa (v4.67.0)
+Built plugins/lisa-typescript (v4.67.0)
+Built plugins/lisa-expo (v4.67.0)
+Built plugins/lisa-nestjs (v4.67.0)
+Built plugins/lisa-cdk (v4.67.0)
+Built plugins/lisa-harper-fabric (v4.67.0)
+Built plugins/lisa-phaser (v4.67.0)
+Built plugins/lisa-rails (v4.67.0)
+Built plugins/lisa-wiki (v4.67.0)
+Built plugins/lisa-openclaw (v4.67.0)
+Generated Cursor variant at /source/plugins/lisa-cursor (v4.67.0)
+Generated Cursor variant at /source/plugins/lisa-typescript-cursor (v4.67.0)
+Generated Cursor variant at /source/plugins/lisa-expo-cursor (v4.67.0)
+Generated Cursor variant at /source/plugins/lisa-nestjs-cursor (v4.67.0)
+Generated Cursor variant at /source/plugins/lisa-cdk-cursor (v4.67.0)
+Generated Cursor variant at /source/plugins/lisa-harper-fabric-cursor (v4.67.0)
+Generated Cursor variant at /source/plugins/lisa-phaser-cursor (v4.67.0)
+Generated Cursor variant at /source/plugins/lisa-rails-cursor (v4.67.0)
+Generated Cursor variant at /source/plugins/lisa-wiki-cursor (v4.67.0)
+Generated Cursor variant at /source/plugins/lisa-openclaw-cursor (v4.67.0)
+Generated agy variant at /source/plugins/lisa-agy (v4.67.0)
+Generated agy variant at /source/plugins/lisa-typescript-agy (v4.67.0)
+Generated agy variant at /source/plugins/lisa-expo-agy (v4.67.0)
+Generated agy variant at /source/plugins/lisa-nestjs-agy (v4.67.0)
+Generated agy variant at /source/plugins/lisa-cdk-agy (v4.67.0)
+Generated agy variant at /source/plugins/lisa-harper-fabric-agy (v4.67.0)
+Generated agy variant at /source/plugins/lisa-phaser-agy (v4.67.0)
+Generated agy variant at /source/plugins/lisa-rails-agy (v4.67.0)
+Generated agy variant at /source/plugins/lisa-wiki-agy (v4.67.0)
+Generated agy variant at /source/plugins/lisa-openclaw-agy (v4.67.0)
+Generated Copilot variant at /source/plugins/lisa-copilot (v4.67.0)
+Generated Copilot variant at /source/plugins/lisa-typescript-copilot (v4.67.0)
+Generated Copilot variant at /source/plugins/lisa-expo-copilot (v4.67.0)
+Generated Copilot variant at /source/plugins/lisa-nestjs-copilot (v4.67.0)
+Generated Copilot variant at /source/plugins/lisa-cdk-copilot (v4.67.0)
+Generated Copilot variant at /source/plugins/lisa-harper-fabric-copilot (v4.67.0)
+Generated Copilot variant at /source/plugins/lisa-phaser-copilot (v4.67.0)
+Generated Copilot variant at /source/plugins/lisa-rails-copilot (v4.67.0)
+Generated Copilot variant at /source/plugins/lisa-wiki-copilot (v4.67.0)
+Generated Copilot variant at /source/plugins/lisa-openclaw-copilot (v4.67.0)
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.11 [39m[90m/source[39m
+
+ [31m❯[39m tests/integration/shared-runtime-packed-hosts.test.ts [2m([22m[2m2 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[33m 211490[2mms[22m[39m
+[31m     [31m×[31m typescript: patched installs, native execution and two idempotent adoptions[39m[33m 110008[2mms[22m[39m
+[31m     [31m×[31m cdk: patched installs, native execution and two idempotent adoptions[39m[33m 70838[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 2 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m tests/integration/shared-runtime-packed-hosts.test.ts[2m > [22mshared runtime through exact packed CLI and generated hosts[2m > [22mtypescript: patched installs, native execution and two idempotent adoptions
+[31m[1mError[22m: typescript-unit: exit null, signal SIGKILL
+2026-10-03T13:58:45.377Z ["bun","run","test:unit"]
+$ $npm_execpath run test:unit:lisa
+$ node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile typescript --adapter vitest -- vitest run --exclude='**/integration/**'
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:22:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[31m
+
+[1m[30m[46m RUN [49m[31m[22m [36mv4.1.11 [31m[90m/tmp/lisa-scratch/run-144-1791035846912-b5b25343/worker-922-cb6f7573cfe35d06/lisa-shared-runtime-packed-hosts-q4LpeJ/typescript[31m
+
+lisa fleet admission: waiting for a worker slot — 2 run(s) live, this run is #2, 1 may execute at once. Starting anyway in 120s. Set LISA_FLEET_ADMISSION=off to disable this wait.
+elapsed_ms=60030 exit=null signal=SIGKILL
+[39m
+[36m [2m❯[22m ChildProcess.<anonymous> tests/fixtures/shared-runtime-hosts/process.ts:[2m66:13[22m[39m
+    [90m 64|[39m         [35melse[39m
+    [90m 65|[39m           [34mreject[39m(
+    [90m 66|[39m             [35mnew[39m [33mError[39m(
+    [90m   |[39m             [31m^[39m
+    [90m 67|[39m               `${label}: exit ${code}, signal ${signal}\n${fs.readFile…
+    [90m 68|[39m             )
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/integration/shared-runtime-packed-hosts.test.ts[2m > [22mshared runtime through exact packed CLI and generated hosts[2m > [22mcdk: patched installs, native execution and two idempotent adoptions
+[31m[1mError[22m: cdk-unit: exit null, signal SIGKILL
+2026-10-03T13:59:56.240Z ["bun","run","test:unit"]
+$ $npm_execpath run test:unit:lisa
+$ node scripts/lib/worktree-dependencies.mjs && lisa-test-run --profile cdk --adapter vitest -- vitest run --exclude='**/integration/**'
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:22:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[31m
+
+[1m[30m[46m RUN [49m[31m[22m [36mv4.1.11 [31m[90m/tmp/lisa-scratch/run-144-1791035846912-b5b25343/worker-922-cb6f7573cfe35d06/lisa-shared-runtime-packed-hosts-q4LpeJ/cdk[31m
+
+lisa fleet admission: waiting for a worker slot — 3 run(s) live, this run is #3, 1 may execute at once. Starting anyway in 120s. Set LISA_FLEET_ADMISSION=off to disable this wait.
+elapsed_ms=60007 exit=null signal=SIGKILL
+[39m
+[36m [2m❯[22m ChildProcess.<anonymous> tests/fixtures/shared-runtime-hosts/process.ts:[2m66:13[22m[39m
+    [90m 64|[39m         [35melse[39m
+    [90m 65|[39m           [34mreject[39m(
+    [90m 66|[39m             [35mnew[39m [33mError[39m(
+    [90m   |[39m             [31m^[39m
+    [90m 67|[39m               `${label}: exit ${code}, signal ${signal}\n${fs.readFile…
+    [90m 68|[39m             )
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m2 failed[39m[22m[90m (2)[39m
+[2m   Start at [22m 13:57:27
+[2m   Duration [22m 211.93s[2m (transform 117ms, setup 118ms, import 116ms, tests 211.49s, environment 0ms)[22m
+
+error: script "lisa-test-run" exited with code 1

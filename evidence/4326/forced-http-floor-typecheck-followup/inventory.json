@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "observed_historical_baseline_head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+  "scope": "Uncommitted exact new test bytes; new committed source/public/CI pending",
+  "captured_at": "2026-10-03T14:12:02.053465+00:00",
+  "handoff_sha256": "26e4903607244e3cf0f363e30cb13ea3332e93f8551dd1f9eac4f21ce2717079",
+  "prior_handoff_sha256": "f006383376a2d632f7d529f59b31afbab86c87edae0de7340983e64538444e73",
+  "files": [
+    {
+      "locator": "evidence/4326/forced-http-floor-typecheck-followup/implementation-summary.json",
+      "bytes": 88736,
+      "sha256": "26e4903607244e3cf0f363e30cb13ea3332e93f8551dd1f9eac4f21ce2717079",
+      "origin": "Actual complete sealed v2 followup handoff, original unchanged"
+    },
+    {
+      "locator": "evidence/4326/forced-http-floor-typecheck-followup/baseline-regression.log",
+      "bytes": 43358,
+      "sha256": "96a314ce0df7778c38cc431d177aafd06dee8d333dfa4db1ffc76d82e218292d",
+      "origin": "Actual unchanged raw red-type-followup-61580/command.log"
+    },
+    {
+      "locator": "evidence/4326/forced-http-floor-typecheck-followup/fixed-success-and-edge.log",
+      "bytes": 21642,
+      "sha256": "dc801bafa4dccf49af04c474ad6b5294254e98fa72b0c9822bd18c648facb57c",
+      "origin": "Actual unchanged raw green-type-followup/command.log"
+    },
+    {
+      "locator": "evidence/4326/forced-http-floor-typecheck-followup/quality-and-template-review.log",
+      "bytes": 4037,
+      "sha256": "f0b38c68d9619026dbf7b82295c69c2b2bc7d9e852483a903721b79cf6035181",
+      "origin": "Actual five compiler/quality command receipts and outputs"
+    },
+    {
+      "locator": "evidence/4326/forced-http-floor-typecheck-followup/README.md",
+      "bytes": 1231,
+      "sha256": "370742361dd5e3ff3e9541f9ae7fb52775234777691be1a50f759a0260b74fec",
+      "origin": "Root documentation of actual compilation correction and limits"
+    },
+    {
+      "locator": "evidence/4326/forced-http-floor-typecheck-followup/independent-review.json",
+      "bytes": 21413,
+      "sha256": "2a88d182966eee1a0d180238af957f06b45237225c41f8ff245325562b48a691",
+      "origin": "Actual independent unchanged final typing/focused/quality followup review"
+    }
+  ]
+}

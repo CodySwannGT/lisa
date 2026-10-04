@@ -1,0 +1,36 @@
+{
+  "argv": [
+    "/tmp/lisa-runtime-4326-independent/runtime/node-v22.23.3-darwin-arm64/bin/node",
+    "/tmp/lisa-4326-implementation/dist/cli/lisa-test-run.js",
+    "--profile",
+    "lisa",
+    "--adapter",
+    "vitest",
+    "--",
+    "vitest",
+    "run",
+    "tests/unit/config/forced-http-security-floors.test.ts",
+    "tests/unit/config/security-pin-floors.test.ts",
+    "tests/unit/config/postinstall-ci-guard.test.ts",
+    "tests/unit/fixtures/shared-runtime-native-deadline.test.ts",
+    "--reporter=default",
+    "--reporter=json",
+    "--outputFile.json=/tmp/lisa-4326-codification/focused-case-title-followup/focused-controls-vitest.json"
+  ],
+  "cwd": "/tmp/lisa-4326-implementation",
+  "source_head": "a7f832f56c8b90757e32fd5611228b23aef89e23",
+  "proof_scope": "Working source with one title-only delta; not future committed-head proof",
+  "started_at": "2026-10-03T15:29:49.245553+00:00",
+  "source_hashes": {
+    "tests/unit/config/forced-http-security-floors.test.ts": "e50953738d9cf898461c04bd44a7174a254623a3a761a3261c55380b7ff290a7",
+    "tests/unit/config/security-pin-floors.test.ts": "3fccc624768e5a2a7c7281c4a7fb8e6d1eb96d48574ae22b2fd11ab361a9fe05",
+    "tests/unit/config/postinstall-ci-guard.test.ts": "9b4a9bd2b6257c6bfc7954c93670ec6da14312971f2d6d98851109e2652f9e90",
+    "tests/unit/fixtures/shared-runtime-native-deadline.test.ts": "630c598d872673783fa3a8e3a8354083c6ae02c0be30f3470cfed6e541da3352"
+  },
+  "pid": 13300,
+  "actual_exit": 0,
+  "wall_s": 4.503,
+  "ended_at": "2026-10-03T15:29:53.749343+00:00",
+  "log_sha256": "fe58f32b1796c21f7ad7d361ed262e81c237915b00001fb0b8d446611ab1090a",
+  "report_sha256": "733227af23c2297196ec7e5b1fc4f0771114c5e6800a41d0c0c7f94662896ed3"
+}

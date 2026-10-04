@@ -1,0 +1,1407 @@
+{
+  "schema_version": 2,
+  "captured_at": "2026-10-03T14:08:08.385180+00:00",
+  "prior_sealed_summary_sha256": "f006383376a2d632f7d529f59b31afbab86c87edae0de7340983e64538444e73",
+  "typecheck_finding": "Prior Vitest runtime103 and scoped quality did not establish type safety: lowestPermitted endpoints return number[]|null, passed unguarded to withinRange(number[]). Added explicit meaningful null guard, no cast/suppression.",
+  "current_source_head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+  "proof_scope": "Uncommitted exact new test bytes; new committed source/public/CI pending",
+  "before_owned_hashes": {
+    "package.json": "2173468d94df335e63d8e146711fed39de0b3fec4777825fa6d0646a5c8ed57e",
+    "bun.lock": "8e5b8a0f6bab515eeb1bb2129a57c544a2a4070600dadc57376ee2204f1a241f",
+    "typescript/package-lisa/package.lisa.json": "7def55c6827128599f12306354266781d1a1bc22a3a468471822153841ed280c",
+    "tests/unit/config/security-pin-floors.test.ts": "3fccc624768e5a2a7c7281c4a7fb8e6d1eb96d48574ae22b2fd11ab361a9fe05",
+    "tests/unit/config/postinstall-ci-guard.test.ts": "9b4a9bd2b6257c6bfc7954c93670ec6da14312971f2d6d98851109e2652f9e90",
+    "tests/unit/config/forced-http-security-floors.test.ts": "e591c06af84b3b06c01e6159b1fc7f3fb53c33f28efbe9c8a95d96784ac51883"
+  },
+  "after_owned_hashes": {
+    "package.json": "2173468d94df335e63d8e146711fed39de0b3fec4777825fa6d0646a5c8ed57e",
+    "bun.lock": "8e5b8a0f6bab515eeb1bb2129a57c544a2a4070600dadc57376ee2204f1a241f",
+    "typescript/package-lisa/package.lisa.json": "7def55c6827128599f12306354266781d1a1bc22a3a468471822153841ed280c",
+    "tests/unit/config/security-pin-floors.test.ts": "3fccc624768e5a2a7c7281c4a7fb8e6d1eb96d48574ae22b2fd11ab361a9fe05",
+    "tests/unit/config/postinstall-ci-guard.test.ts": "9b4a9bd2b6257c6bfc7954c93670ec6da14312971f2d6d98851109e2652f9e90",
+    "tests/unit/config/forced-http-security-floors.test.ts": "06c57251993a57ff812dab686d49b36533c6058c2c9a5a43d2fd9bde473a6df0"
+  },
+  "five_other_floor_source_hashes_unchanged": true,
+  "same_final_test_bytes_red_green": true,
+  "red_counts": {
+    "numTotalTests": 103,
+    "numPassedTests": 74,
+    "numFailedTests": 29,
+    "numPendingTests": 0,
+    "numTotalTestSuites": 11,
+    "numPassedTestSuites": 4,
+    "numFailedTestSuites": 7
+  },
+  "green_counts": {
+    "numTotalTests": 103,
+    "numPassedTests": 103,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTotalTestSuites": 11,
+    "numPassedTestSuites": 11,
+    "numFailedTestSuites": 0
+  },
+  "actual_three_files": 3,
+  "command_receipts": {
+    "red-type-followup-61580": {
+      "label": "red-type-followup-61580",
+      "argv": [
+        "/tmp/lisa-runtime-4326-independent/runtime/node-v22.23.3-darwin-arm64/bin/node",
+        "dist/cli/lisa-test-run.js",
+        "--profile",
+        "lisa",
+        "--adapter",
+        "vitest",
+        "--",
+        "vitest",
+        "run",
+        "tests/unit/config/forced-http-security-floors.test.ts",
+        "tests/unit/config/security-pin-floors.test.ts",
+        "tests/unit/config/postinstall-ci-guard.test.ts",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile=/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/red-type-followup-61580/test-report.json"
+      ],
+      "cwd": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580",
+      "head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+      "test_inputs_sha256": {
+        "tests/unit/config/forced-http-security-floors.test.ts": "06c57251993a57ff812dab686d49b36533c6058c2c9a5a43d2fd9bde473a6df0",
+        "tests/unit/config/security-pin-floors.test.ts": "3fccc624768e5a2a7c7281c4a7fb8e6d1eb96d48574ae22b2fd11ab361a9fe05",
+        "tests/unit/config/postinstall-ci-guard.test.ts": "9b4a9bd2b6257c6bfc7954c93670ec6da14312971f2d6d98851109e2652f9e90"
+      },
+      "source_policy_sha256": {
+        "package.json": "6b3de847a41b02ee8717db8355087b7886d49d6ebcc4bfd87a0a9a5052df812a",
+        "typescript/package-lisa/package.lisa.json": "0d8e9dbcd1a3f45d46cf2796d521637cf9df69b63e9d35e3a6b560b18f9353a3",
+        "bun.lock": "1ab4fdd8c9af0d2790ab6b9330067c1be5a7dae1a917032adc17a33c5ccff605"
+      },
+      "started_at": "2026-10-03T14:06:06.259056+00:00",
+      "timeout_seconds": 900,
+      "pid": 52310,
+      "actual_exit": 1,
+      "ended_at": "2026-10-03T14:06:09.179424+00:00",
+      "wall_seconds": 2.899,
+      "log_sha256": "96a314ce0df7778c38cc431d177aafd06dee8d333dfa4db1ffc76d82e218292d",
+      "test_inputs_after_sha256": {
+        "tests/unit/config/forced-http-security-floors.test.ts": "06c57251993a57ff812dab686d49b36533c6058c2c9a5a43d2fd9bde473a6df0",
+        "tests/unit/config/security-pin-floors.test.ts": "3fccc624768e5a2a7c7281c4a7fb8e6d1eb96d48574ae22b2fd11ab361a9fe05",
+        "tests/unit/config/postinstall-ci-guard.test.ts": "9b4a9bd2b6257c6bfc7954c93670ec6da14312971f2d6d98851109e2652f9e90"
+      },
+      "report_sha256": "51a187b2e12f2a927619c9d17dfa1e7e32e914d327739192be224c0fa7b9fe59",
+      "counts": {
+        "numTotalTests": 103,
+        "numPassedTests": 74,
+        "numFailedTests": 29,
+        "numPendingTests": 0,
+        "numTotalTestSuites": 11,
+        "numPassedTestSuites": 4,
+        "numFailedTestSuites": 7
+      },
+      "assertions": [
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors collects both real axios force sites without gaps",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors collects both real undici force sites without gaps",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-m8m8-qj5v-23w3': shipped force.'overrides' 'axios' excludes '>= 1.15.2, < 1.20.0'",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-m8m8-qj5v-23w3': shipped force.'resolutions' 'axios' excludes '>= 1.15.2, < 1.20.0'",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-r4gj-5m52-g5wh': shipped force.'overrides' 'axios' excludes '>= 1.17.0, < 1.20.0'",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-r4gj-5m52-g5wh': shipped force.'resolutions' 'axios' excludes '>= 1.17.0, < 1.20.0'",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-c29m-xwm3-cm6r': shipped force.'overrides' 'axios' excludes '>= 1.16.1, < 1.20.0'",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-c29m-xwm3-cm6r': shipped force.'resolutions' 'axios' excludes '>= 1.16.1, < 1.20.0'",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-mghh-pgcx-3jjj': shipped force.'overrides' 'axios' excludes '>= 1.15.0, < 1.20.0'",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-mghh-pgcx-3jjj': shipped force.'resolutions' 'axios' excludes '>= 1.15.0, < 1.20.0'",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-x97p-jq2g-jp4f': shipped force.'overrides' 'axios' excludes '>= 1.15.1, < 1.20.0'",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-x97p-jq2g-jp4f': shipped force.'resolutions' 'axios' excludes '>= 1.15.1, < 1.20.0'",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-3pq3-5fj3-cg6v': shipped force.'overrides' 'axios' excludes '>= 1.13.0, < 1.20.0'",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-3pq3-5fj3-cg6v': shipped force.'resolutions' 'axios' excludes '>= 1.13.0, < 1.20.0'",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-542g-h47m-68v8': shipped force.'overrides' 'axios' excludes '>= 1.13.0, < 1.20.0'",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-542g-h47m-68v8': shipped force.'resolutions' 'axios' excludes '>= 1.13.0, < 1.20.0'",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-rfgv-xxqx-mfg5': shipped force.'overrides' 'undici' excludes '>= 6.7.0, < 6.28.1'",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-rfgv-xxqx-mfg5': shipped force.'resolutions' 'undici' excludes '>= 6.7.0, < 6.28.1'",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-m8m8-qj5v-23w3': rejects the vulnerable control and clears the patched endpoint",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-r4gj-5m52-g5wh': rejects the vulnerable control and clears the patched endpoint",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-c29m-xwm3-cm6r': rejects the vulnerable control and clears the patched endpoint",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-mghh-pgcx-3jjj': rejects the vulnerable control and clears the patched endpoint",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-x97p-jq2g-jp4f': rejects the vulnerable control and clears the patched endpoint",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-3pq3-5fj3-cg6v': rejects the vulnerable control and clears the patched endpoint",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-542g-h47m-68v8': rejects the vulnerable control and clears the patched endpoint",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-rfgv-xxqx-mfg5': rejects the vulnerable control and clears the patched endpoint",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors root undefined also excludes every release below its patch",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors root undefined also excludes every release below its patch",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors root undefined also excludes every release below its patch",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors root undefined also excludes every release below its patch",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "shipped HTTP force policy adoption typescript full/restricted(postinstall=false) apply repairs stale host floors",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "shipped HTTP force policy adoption typescript full/restricted(postinstall=true) apply repairs stale host floors",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "shipped HTTP force policy adoption cdk full/restricted(postinstall=false) apply repairs stale host floors",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "shipped HTTP force policy adoption cdk full/restricted(postinstall=true) apply repairs stale host floors",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates guard Lisa postinstall with CI-skip prefix package.lisa.json either omits postinstall or prefixes it with the CI guard",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates guard Lisa postinstall with CI-skip prefix typescript/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates guard Lisa postinstall with CI-skip prefix expo/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates guard Lisa postinstall with CI-skip prefix nestjs/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates guard Lisa postinstall with CI-skip prefix cdk/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates guard Lisa postinstall with CI-skip prefix harper-fabric/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates guard Lisa postinstall with CI-skip prefix phaser/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates guard Lisa postinstall with CI-skip prefix npm-package/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version package.lisa.json does not declare @codyswann/lisa in any force block",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version typescript/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version expo/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version nestjs/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version cdk/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version harper-fabric/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version phaser/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version npm-package/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version typescript/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version expo/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version nestjs/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version cdk/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version harper-fabric/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version phaser/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version npm-package/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json prepare scripts install hooks after successful builds package.lisa.json runs husky install only after a successful build",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json prepare scripts install hooks after successful builds npm-package/package-lisa/package.lisa.json runs husky install only after a successful build",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates carry force-governed CVE floors typescript template floors systeminformation (harperdb GHSA-5xpp-75jx-m839)",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates carry force-governed CVE floors typescript template keeps undici on the File-exporting v6 line",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates carry force-governed CVE floors expo template floors websocket-driver (RN-firebase GHSA-xv26-6w52-cph6)",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates carry force-governed CVE floors expo template floors fast-xml-parser (GHSA-8r6m-32jq-jx6q)",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "EnsureLisaPostinstallMigration injects CI-guarded invocation the migration's LISA_INVOCATION constant starts with the CI guard",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors finds the templates it is meant to police",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'cdk/package-lisa/package.lisa.json' forces 'esbuild' in 'devDependencies' at '^0.28.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'cdk/package-lisa/package.lisa.json' forces 'vite' in 'devDependencies' at '^8.3.2', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'expo/package-lisa/package.lisa.json' forces 'tar' in 'dependencies' at '>=7.5.21', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'expo/package-lisa/package.lisa.json' forces '@isaacs/brace-expansion' in 'overrides' at '^5.0.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'expo/package-lisa/package.lisa.json' forces 'fast-xml-parser' in 'overrides' at '^5.10.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'expo/package-lisa/package.lisa.json' forces 'tar' in 'overrides' at '>=7.5.21', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'expo/package-lisa/package.lisa.json' forces 'websocket-driver' in 'overrides' at '>=0.7.5', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'expo/package-lisa/package.lisa.json' forces '@isaacs/brace-expansion' in 'resolutions' at '^5.0.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'expo/package-lisa/package.lisa.json' forces 'fast-xml-parser' in 'resolutions' at '^5.10.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'expo/package-lisa/package.lisa.json' forces 'tar' in 'resolutions' at '>=7.5.21', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'expo/package-lisa/package.lisa.json' forces 'websocket-driver' in 'resolutions' at '>=0.7.5', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'nestjs/package-lisa/package.lisa.json' forces 'vite' in 'devDependencies' at '^8.3.2', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'npm-package/package-lisa/package.lisa\u2026' forces 'vite' in 'devDependencies' at '^8.3.2', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'package.lisa.json' forces 'vite' in 'devDependencies' at '^8.3.2', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'package.lisa.json' forces 'smol-toml' in 'overrides' at '1.7.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces '@isaacs/brace-expansion' in 'overrides' at '^5.0.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'axios' in 'overrides' at '>=1.18.0', admitting nothing below its advisory floor",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'esbuild' in 'overrides' at '>=0.28.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'handlebars' in 'overrides' at '>=4.7.9', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'lodash' in 'overrides' at '>=4.18.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'multer' in 'overrides' at '>=2.3.0', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'undici' in 'overrides' at '^6.28.0', admitting nothing below its advisory floor",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'vite' in 'overrides' at '^8.3.2', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'ws' in 'overrides' at '>=8.21.0', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'form-data' in 'overrides' at '>=4.0.6', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'systeminformation' in 'overrides' at '>=5.31.7', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces '@isaacs/brace-expansion' in 'resolutions' at '^5.0.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'axios' in 'resolutions' at '>=1.18.0', admitting nothing below its advisory floor",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'esbuild' in 'resolutions' at '>=0.28.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'handlebars' in 'resolutions' at '>=4.7.9', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'lodash' in 'resolutions' at '>=4.18.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'multer' in 'resolutions' at '>=2.3.0', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'undici' in 'resolutions' at '^6.28.0', admitting nothing below its advisory floor",
+          "status": "failed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'vite' in 'resolutions' at '^8.3.2', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'ws' in 'resolutions' at '>=8.21.0', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'form-data' in 'resolutions' at '>=4.0.6', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'systeminformation' in 'resolutions' at '>=5.31.7', admitting nothing below its advisory floor",
+          "status": "passed"
+        }
+      ]
+    },
+    "green-type-followup": {
+      "label": "green-type-followup",
+      "argv": [
+        "/tmp/lisa-runtime-4326-independent/runtime/node-v22.23.3-darwin-arm64/bin/node",
+        "dist/cli/lisa-test-run.js",
+        "--profile",
+        "lisa",
+        "--adapter",
+        "vitest",
+        "--",
+        "vitest",
+        "run",
+        "tests/unit/config/forced-http-security-floors.test.ts",
+        "tests/unit/config/security-pin-floors.test.ts",
+        "tests/unit/config/postinstall-ci-guard.test.ts",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile=/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/green-type-followup/test-report.json"
+      ],
+      "cwd": "/tmp/lisa-4326-implementation",
+      "head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+      "test_inputs_sha256": {
+        "tests/unit/config/forced-http-security-floors.test.ts": "06c57251993a57ff812dab686d49b36533c6058c2c9a5a43d2fd9bde473a6df0",
+        "tests/unit/config/security-pin-floors.test.ts": "3fccc624768e5a2a7c7281c4a7fb8e6d1eb96d48574ae22b2fd11ab361a9fe05",
+        "tests/unit/config/postinstall-ci-guard.test.ts": "9b4a9bd2b6257c6bfc7954c93670ec6da14312971f2d6d98851109e2652f9e90"
+      },
+      "source_policy_sha256": {
+        "package.json": "2173468d94df335e63d8e146711fed39de0b3fec4777825fa6d0646a5c8ed57e",
+        "typescript/package-lisa/package.lisa.json": "7def55c6827128599f12306354266781d1a1bc22a3a468471822153841ed280c",
+        "bun.lock": "8e5b8a0f6bab515eeb1bb2129a57c544a2a4070600dadc57376ee2204f1a241f"
+      },
+      "started_at": "2026-10-03T14:06:25.037047+00:00",
+      "timeout_seconds": 900,
+      "pid": 52467,
+      "actual_exit": 0,
+      "ended_at": "2026-10-03T14:06:27.865447+00:00",
+      "wall_seconds": 2.828,
+      "log_sha256": "dc801bafa4dccf49af04c474ad6b5294254e98fa72b0c9822bd18c648facb57c",
+      "test_inputs_after_sha256": {
+        "tests/unit/config/forced-http-security-floors.test.ts": "06c57251993a57ff812dab686d49b36533c6058c2c9a5a43d2fd9bde473a6df0",
+        "tests/unit/config/security-pin-floors.test.ts": "3fccc624768e5a2a7c7281c4a7fb8e6d1eb96d48574ae22b2fd11ab361a9fe05",
+        "tests/unit/config/postinstall-ci-guard.test.ts": "9b4a9bd2b6257c6bfc7954c93670ec6da14312971f2d6d98851109e2652f9e90"
+      },
+      "report_sha256": "882ab0e7d6d3e81e90bab7f835b26789ac2741417d3397a4ba141e95c2c76897",
+      "counts": {
+        "numTotalTests": 103,
+        "numPassedTests": 103,
+        "numFailedTests": 0,
+        "numPendingTests": 0,
+        "numTotalTestSuites": 11,
+        "numPassedTestSuites": 11,
+        "numFailedTestSuites": 0
+      },
+      "assertions": [
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors collects both real axios force sites without gaps",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors collects both real undici force sites without gaps",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-m8m8-qj5v-23w3': shipped force.'overrides' 'axios' excludes '>= 1.15.2, < 1.20.0'",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-m8m8-qj5v-23w3': shipped force.'resolutions' 'axios' excludes '>= 1.15.2, < 1.20.0'",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-r4gj-5m52-g5wh': shipped force.'overrides' 'axios' excludes '>= 1.17.0, < 1.20.0'",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-r4gj-5m52-g5wh': shipped force.'resolutions' 'axios' excludes '>= 1.17.0, < 1.20.0'",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-c29m-xwm3-cm6r': shipped force.'overrides' 'axios' excludes '>= 1.16.1, < 1.20.0'",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-c29m-xwm3-cm6r': shipped force.'resolutions' 'axios' excludes '>= 1.16.1, < 1.20.0'",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-mghh-pgcx-3jjj': shipped force.'overrides' 'axios' excludes '>= 1.15.0, < 1.20.0'",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-mghh-pgcx-3jjj': shipped force.'resolutions' 'axios' excludes '>= 1.15.0, < 1.20.0'",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-x97p-jq2g-jp4f': shipped force.'overrides' 'axios' excludes '>= 1.15.1, < 1.20.0'",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-x97p-jq2g-jp4f': shipped force.'resolutions' 'axios' excludes '>= 1.15.1, < 1.20.0'",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-3pq3-5fj3-cg6v': shipped force.'overrides' 'axios' excludes '>= 1.13.0, < 1.20.0'",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-3pq3-5fj3-cg6v': shipped force.'resolutions' 'axios' excludes '>= 1.13.0, < 1.20.0'",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-542g-h47m-68v8': shipped force.'overrides' 'axios' excludes '>= 1.13.0, < 1.20.0'",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-542g-h47m-68v8': shipped force.'resolutions' 'axios' excludes '>= 1.13.0, < 1.20.0'",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-rfgv-xxqx-mfg5': shipped force.'overrides' 'undici' excludes '>= 6.7.0, < 6.28.1'",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-rfgv-xxqx-mfg5': shipped force.'resolutions' 'undici' excludes '>= 6.7.0, < 6.28.1'",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-m8m8-qj5v-23w3': rejects the vulnerable control and clears the patched endpoint",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-r4gj-5m52-g5wh': rejects the vulnerable control and clears the patched endpoint",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-c29m-xwm3-cm6r': rejects the vulnerable control and clears the patched endpoint",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-mghh-pgcx-3jjj': rejects the vulnerable control and clears the patched endpoint",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-x97p-jq2g-jp4f': rejects the vulnerable control and clears the patched endpoint",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-3pq3-5fj3-cg6v': rejects the vulnerable control and clears the patched endpoint",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-542g-h47m-68v8': rejects the vulnerable control and clears the patched endpoint",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors 'GHSA-rfgv-xxqx-mfg5': rejects the vulnerable control and clears the patched endpoint",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors root undefined also excludes every release below its patch",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors root undefined also excludes every release below its patch",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors root undefined also excludes every release below its patch",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "forced HTTP security floors root undefined also excludes every release below its patch",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "shipped HTTP force policy adoption typescript full/restricted(postinstall=false) apply repairs stale host floors",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "shipped HTTP force policy adoption typescript full/restricted(postinstall=true) apply repairs stale host floors",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "shipped HTTP force policy adoption cdk full/restricted(postinstall=false) apply repairs stale host floors",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+          "name": "shipped HTTP force policy adoption cdk full/restricted(postinstall=true) apply repairs stale host floors",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates guard Lisa postinstall with CI-skip prefix package.lisa.json either omits postinstall or prefixes it with the CI guard",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates guard Lisa postinstall with CI-skip prefix typescript/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates guard Lisa postinstall with CI-skip prefix expo/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates guard Lisa postinstall with CI-skip prefix nestjs/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates guard Lisa postinstall with CI-skip prefix cdk/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates guard Lisa postinstall with CI-skip prefix harper-fabric/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates guard Lisa postinstall with CI-skip prefix phaser/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates guard Lisa postinstall with CI-skip prefix npm-package/package-lisa/package.lisa.json either omits postinstall or prefixes it with the CI guard",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version package.lisa.json does not declare @codyswann/lisa in any force block",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version typescript/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version expo/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version nestjs/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version cdk/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version harper-fabric/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version phaser/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version npm-package/package-lisa/package.lisa.json does not declare @codyswann/lisa in any force block",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version typescript/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version expo/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version nestjs/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version cdk/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version harper-fabric/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version phaser/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates never force-pin Lisa's own version npm-package/package-lisa/package.lisa.json governs @codyswann/lisa via defaults when it pins a version at all",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json prepare scripts install hooks after successful builds package.lisa.json runs husky install only after a successful build",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json prepare scripts install hooks after successful builds npm-package/package-lisa/package.lisa.json runs husky install only after a successful build",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates carry force-governed CVE floors typescript template floors systeminformation (harperdb GHSA-5xpp-75jx-m839)",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates carry force-governed CVE floors typescript template keeps undici on the File-exporting v6 line",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates carry force-governed CVE floors expo template floors websocket-driver (RN-firebase GHSA-xv26-6w52-cph6)",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "package.lisa.json templates carry force-governed CVE floors expo template floors fast-xml-parser (GHSA-8r6m-32jq-jx6q)",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+          "name": "EnsureLisaPostinstallMigration injects CI-guarded invocation the migration's LISA_INVOCATION constant starts with the CI guard",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors finds the templates it is meant to police",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'cdk/package-lisa/package.lisa.json' forces 'esbuild' in 'devDependencies' at '^0.28.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'cdk/package-lisa/package.lisa.json' forces 'vite' in 'devDependencies' at '^8.3.2', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'expo/package-lisa/package.lisa.json' forces 'tar' in 'dependencies' at '>=7.5.21', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'expo/package-lisa/package.lisa.json' forces '@isaacs/brace-expansion' in 'overrides' at '^5.0.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'expo/package-lisa/package.lisa.json' forces 'fast-xml-parser' in 'overrides' at '^5.10.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'expo/package-lisa/package.lisa.json' forces 'tar' in 'overrides' at '>=7.5.21', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'expo/package-lisa/package.lisa.json' forces 'websocket-driver' in 'overrides' at '>=0.7.5', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'expo/package-lisa/package.lisa.json' forces '@isaacs/brace-expansion' in 'resolutions' at '^5.0.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'expo/package-lisa/package.lisa.json' forces 'fast-xml-parser' in 'resolutions' at '^5.10.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'expo/package-lisa/package.lisa.json' forces 'tar' in 'resolutions' at '>=7.5.21', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'expo/package-lisa/package.lisa.json' forces 'websocket-driver' in 'resolutions' at '>=0.7.5', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'nestjs/package-lisa/package.lisa.json' forces 'vite' in 'devDependencies' at '^8.3.2', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'npm-package/package-lisa/package.lisa\u2026' forces 'vite' in 'devDependencies' at '^8.3.2', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'package.lisa.json' forces 'vite' in 'devDependencies' at '^8.3.2', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'package.lisa.json' forces 'smol-toml' in 'overrides' at '1.7.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces '@isaacs/brace-expansion' in 'overrides' at '^5.0.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'axios' in 'overrides' at '>=1.20.0', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'esbuild' in 'overrides' at '>=0.28.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'handlebars' in 'overrides' at '>=4.7.9', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'lodash' in 'overrides' at '>=4.18.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'multer' in 'overrides' at '>=2.3.0', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'undici' in 'overrides' at '^6.28.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'vite' in 'overrides' at '^8.3.2', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'ws' in 'overrides' at '>=8.21.0', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'form-data' in 'overrides' at '>=4.0.6', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'systeminformation' in 'overrides' at '>=5.31.7', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces '@isaacs/brace-expansion' in 'resolutions' at '^5.0.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'axios' in 'resolutions' at '>=1.20.0', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'esbuild' in 'resolutions' at '>=0.28.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'handlebars' in 'resolutions' at '>=4.7.9', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'lodash' in 'resolutions' at '>=4.18.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'multer' in 'resolutions' at '>=2.3.0', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'undici' in 'resolutions' at '^6.28.1', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'vite' in 'resolutions' at '^8.3.2', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'ws' in 'resolutions' at '>=8.21.0', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'form-data' in 'resolutions' at '>=4.0.6', admitting nothing below its advisory floor",
+          "status": "passed"
+        },
+        {
+          "file": "/private/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+          "name": "shipped security pin floors 'typescript/package-lisa/package.lisa.\u2026' forces 'systeminformation' in 'resolutions' at '>=5.31.7', admitting nothing below its advisory floor",
+          "status": "passed"
+        }
+      ]
+    },
+    "type-followup-tests-typecheck": {
+      "label": "type-followup-tests-typecheck",
+      "argv": [
+        "/tmp/lisa-runtime-4326-independent/runtime/node-v22.23.3-darwin-arm64/bin/node",
+        "scripts/check-typecheck-tests.mjs"
+      ],
+      "cwd": "/tmp/lisa-4326-implementation",
+      "started_at": "2026-10-03T14:06:27.887135+00:00",
+      "timeout_seconds": 900,
+      "auth_source": "not requested",
+      "pid": 52522,
+      "actual_exit": 0,
+      "ended_at": "2026-10-03T14:06:36.254403+00:00",
+      "wall_seconds": 8.367,
+      "log_sha256": "dcc7bfe13efb7b860377a1e4ff156455845c60b7d4467e46e227dfaf8a5b5617"
+    },
+    "type-followup-fast-lint": {
+      "label": "type-followup-fast-lint",
+      "argv": [
+        "node_modules/.bin/eslint",
+        "tests/unit/config/forced-http-security-floors.test.ts",
+        "--quiet"
+      ],
+      "cwd": "/tmp/lisa-4326-implementation",
+      "started_at": "2026-10-03T14:06:39.685637+00:00",
+      "timeout_seconds": 900,
+      "auth_source": "not requested",
+      "pid": 52583,
+      "actual_exit": 0,
+      "ended_at": "2026-10-03T14:06:43.389580+00:00",
+      "wall_seconds": 3.704,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "type-followup-oxlint": {
+      "label": "type-followup-oxlint",
+      "argv": [
+        "node_modules/.bin/oxlint",
+        "tests/unit/config/forced-http-security-floors.test.ts",
+        "--disable-nested-config"
+      ],
+      "cwd": "/tmp/lisa-4326-implementation",
+      "started_at": "2026-10-03T14:06:43.410984+00:00",
+      "timeout_seconds": 900,
+      "auth_source": "not requested",
+      "pid": 52598,
+      "actual_exit": 0,
+      "ended_at": "2026-10-03T14:06:43.533752+00:00",
+      "wall_seconds": 0.123,
+      "log_sha256": "3e3626f62c7daf89ef62407d5e3b33088b7d358e318c83cea2795d8fdb8a244f"
+    },
+    "type-followup-slow-lint": {
+      "label": "type-followup-slow-lint",
+      "argv": [
+        "node_modules/.bin/eslint",
+        "tests/unit/config/forced-http-security-floors.test.ts",
+        "--config",
+        "eslint.slow.config.ts",
+        "--quiet"
+      ],
+      "cwd": "/tmp/lisa-4326-implementation",
+      "started_at": "2026-10-03T14:06:43.554821+00:00",
+      "timeout_seconds": 900,
+      "auth_source": "not requested",
+      "pid": 52600,
+      "actual_exit": 0,
+      "ended_at": "2026-10-03T14:06:47.125312+00:00",
+      "wall_seconds": 3.57,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "type-followup-format": {
+      "label": "type-followup-format",
+      "argv": [
+        "node_modules/.bin/prettier",
+        "--check",
+        "tests/unit/config/forced-http-security-floors.test.ts"
+      ],
+      "cwd": "/tmp/lisa-4326-implementation",
+      "started_at": "2026-10-03T14:06:47.145399+00:00",
+      "timeout_seconds": 900,
+      "auth_source": "not requested",
+      "pid": 52607,
+      "actual_exit": 0,
+      "ended_at": "2026-10-03T14:06:47.269495+00:00",
+      "wall_seconds": 0.124,
+      "log_sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    }
+  },
+  "test_typecheck_log": "type-correctness (tests): 362 file(s) with 1542 error(s); 362 quarantined.\n\u2705 No type errors outside the quarantine, and no stale quarantine entries.\n",
+  "prior_evidence_preserved": true,
+  "remaining_owned_runner_or_supervisor": [],
+  "records": [
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/red-type-followup-61580/execution-receipt.json",
+      "bytes": 38750,
+      "sha256": "28ad7226c71ddd5f4e1c7062cf25e53ab9093e862360792ddf6d7ee338dca857"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/red-type-followup-61580/command.log",
+      "bytes": 43358,
+      "sha256": "96a314ce0df7778c38cc431d177aafd06dee8d333dfa4db1ffc76d82e218292d"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/red-type-followup-61580/test-report.json",
+      "bytes": 76797,
+      "sha256": "51a187b2e12f2a927619c9d17dfa1e7e32e914d327739192be224c0fa7b9fe59"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/red-type-followup-61580/started.json",
+      "bytes": 1579,
+      "sha256": "5b1ba9ae1df1a67e32b6661464a35306eb368bee3374fc165baaeb6a13f6edc5"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/green-type-followup/execution-receipt.json",
+      "bytes": 33439,
+      "sha256": "ac3b4799b0de84372ef7b92e7bfbdd69162c13c666cfd0efc74a35a15c3687a1"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/green-type-followup/command.log",
+      "bytes": 21642,
+      "sha256": "dc801bafa4dccf49af04c474ad6b5294254e98fa72b0c9822bd18c648facb57c"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/green-type-followup/test-report.json",
+      "bytes": 44252,
+      "sha256": "882ab0e7d6d3e81e90bab7f835b26789ac2741417d3397a4ba141e95c2c76897"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/green-type-followup/started.json",
+      "bytes": 1520,
+      "sha256": "90b714a4dc6d050c615e4d9960cf5ae6279a4de6966fcc85ea2c632ad025ce13"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-tests-typecheck/execution-receipt.json",
+      "bytes": 539,
+      "sha256": "f690d3fed8ae890288e298e7f3f0f75342c054987ef4d3328e37bcebb603d995"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-tests-typecheck/command.log",
+      "bytes": 151,
+      "sha256": "dcc7bfe13efb7b860377a1e4ff156455845c60b7d4467e46e227dfaf8a5b5617"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-tests-typecheck/started.json",
+      "bytes": 360,
+      "sha256": "3b5985b77bf28c97f6c91457ef8bdea453449e9a0a8edff723330e2a76c3fdf6"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-fast-lint/execution-receipt.json",
+      "bytes": 514,
+      "sha256": "1c4006bbb3de9f9a27f93d994c3d1d494a91464b73f8e244e8e1ca91aad9dc6f"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-fast-lint/command.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-fast-lint/started.json",
+      "bytes": 335,
+      "sha256": "0f686f0422ef6c81db9f355591227f9faa8f83228fb49ee26daa64836e8f95c2"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-oxlint/execution-receipt.json",
+      "bytes": 527,
+      "sha256": "761f7024318cc3d693ad4d9ce5e73543ca90053a061b6b98b8db6118fc914bce"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-oxlint/command.log",
+      "bytes": 91,
+      "sha256": "3e3626f62c7daf89ef62407d5e3b33088b7d358e318c83cea2795d8fdb8a244f"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-oxlint/started.json",
+      "bytes": 348,
+      "sha256": "317a42b3eb7662dbe2823ad73a20e1505c14dbef08b852d0e25cb7f8e7cb5f02"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-slow-lint/execution-receipt.json",
+      "bytes": 558,
+      "sha256": "65e018705bb01127c157551d6973bd45eb20ad42d18ead57dc7a5d142f6ff121"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-slow-lint/command.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-slow-lint/started.json",
+      "bytes": 380,
+      "sha256": "9a711c249994af2d65447d60a35310bbdfdc5db071a8a2ea569a5414b4cb6922"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-format/execution-receipt.json",
+      "bytes": 513,
+      "sha256": "a3c66b96f347c447c4116957338bc8b1a822c448ea0bf17067797e44fe1126e4"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-format/command.log",
+      "bytes": 66,
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    {
+      "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/type-followup-format/started.json",
+      "bytes": 334,
+      "sha256": "00ecdd9e90857d3bec6c34498308d666aeabd3701afbbd53830af5f6d64efbd1"
+    }
+  ],
+  "task_mld": [
+    {
+      "kind": "mistake",
+      "note": "Vitest transpilation passed a nullable endpoint call that the canonical test typechecker correctly rejected. Added explicit parse-result guard and repeated final-byte RED/GREEN; prior execution proofs retained as historical, not type-safe."
+    }
+  ],
+  "not_established": [
+    "Full broad repository gates",
+    "Final commit runtime",
+    "New required remote CI",
+    "Public release"
+  ]
+}

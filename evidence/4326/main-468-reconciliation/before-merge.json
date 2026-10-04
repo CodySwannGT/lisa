@@ -1,0 +1,8 @@
+{
+  "recorded_before_merge_at": "2026-10-03T15:57:58.915308+00:00",
+  "head": "39f62275c0675adfb21655dcd17564e4b8d08364",
+  "main": "728d35afbd3de4d522023e0b65fd0f730c94820c",
+  "scope": "Merge latest release/self-update changes; root-only approved waiver remains unchanged. Remove only newly inherited managed/shared vfj exemption because actual PR-controlled Knip glob disproves unaffected/non-attacker premise; all unrelated upstream changes preserved.",
+  "approved_local_sha256": "a7bd5588e0d1edec667ef9331267ba9c4c74c142097111c2e3c5a911578b8d12",
+  "future_commit_runtime_CI_release": "not established"
+}

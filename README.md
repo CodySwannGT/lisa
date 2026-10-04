@@ -186,6 +186,22 @@ any direct override in the current directory's `package.json`. It preserves the
 original error and does not change dependencies. Nested selectors and unreadable
 manifests remain unverified; this diagnostic is not a full lockfile audit.
 
+Clean TypeScript and CDK hosts receive the shared Node 22.23.3 baseline,
+Vitest and coverage-v8 4.1.11 minimums, and a Vite 8.3.2 minimum within Vite 8.
+Lisa retains the TypeScript 6, ESLint 9, Knip 5, Husky 8 and Vitest 4 families.
+Applying twice with the same Lisa version keeps managed content unchanged.
+Install dependencies after applying, then verify the installed versions and
+lockfile alongside the host's test, typecheck and offline synth commands.
+
+Package template ownership still applies. Explicit TypeScript Node and test-tool
+`defaults` survive an apply, while CDK's `force` test tools advance to the shared
+patch floor. Existing create-only workflow and Expo EAS files stay host-owned.
+The overwritten `.nvmrc` supplies the shared Node runtime. Review older explicit
+pins and create-only workflow inputs before adopting this baseline in an
+existing host. Maintainers can run `bun run update-node-version` after changing
+the root `.nvmrc` to update current tracked runtime surfaces without rewriting
+historical plans or generic test fixtures.
+
 When Lisa is invoked during installation it prints this next step. Package
 managers that do not run its lifecycle scripts cannot display that notice.
 

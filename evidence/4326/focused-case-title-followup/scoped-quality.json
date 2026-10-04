@@ -1,0 +1,64 @@
+[
+  {
+    "label": "fast-lint",
+    "argv": [
+      "node_modules/.bin/eslint",
+      "tests/unit/config/forced-http-security-floors.test.ts",
+      "--quiet"
+    ],
+    "cwd": "/tmp/lisa-4326-implementation",
+    "started_at": "2026-10-03T15:30:36.803654+00:00",
+    "pid": 13602,
+    "actual_exit": 0,
+    "ended_at": "2026-10-03T15:30:41.747718+00:00",
+    "wall_s": 4.944,
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "label": "oxlint",
+    "argv": [
+      "node_modules/.bin/oxlint",
+      "tests/unit/config/forced-http-security-floors.test.ts",
+      "--disable-nested-config"
+    ],
+    "cwd": "/tmp/lisa-4326-implementation",
+    "started_at": "2026-10-03T15:30:41.748111+00:00",
+    "pid": 13620,
+    "actual_exit": 0,
+    "ended_at": "2026-10-03T15:30:41.819608+00:00",
+    "wall_s": 0.072,
+    "log_sha256": "a19328bfe59bbba2b05ac93f6bda1185a683950537c3198b7999fced7280c225"
+  },
+  {
+    "label": "slow-lint",
+    "argv": [
+      "node_modules/.bin/eslint",
+      "tests/unit/config/forced-http-security-floors.test.ts",
+      "--config",
+      "eslint.slow.config.ts",
+      "--quiet"
+    ],
+    "cwd": "/tmp/lisa-4326-implementation",
+    "started_at": "2026-10-03T15:30:41.819896+00:00",
+    "pid": 13621,
+    "actual_exit": 0,
+    "ended_at": "2026-10-03T15:30:45.344104+00:00",
+    "wall_s": 3.524,
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "label": "format",
+    "argv": [
+      "node_modules/.bin/prettier",
+      "--check",
+      "tests/unit/config/forced-http-security-floors.test.ts"
+    ],
+    "cwd": "/tmp/lisa-4326-implementation",
+    "started_at": "2026-10-03T15:30:45.344516+00:00",
+    "pid": 13630,
+    "actual_exit": 0,
+    "ended_at": "2026-10-03T15:30:45.472874+00:00",
+    "wall_s": 0.128,
+    "log_sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+  }
+]

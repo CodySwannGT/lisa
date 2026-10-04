@@ -1,0 +1,69 @@
+{
+  "source_head": "694ea306c583146cc31b2d7635783ef2cc8c78eb",
+  "index_before": "6201b177f0a46664f1125a4a20cad2263e2c8cd6",
+  "index_after": "6201b177f0a46664f1125a4a20cad2263e2c8cd6",
+  "versions": {
+    "node": "v22.23.3",
+    "bun": "1.3.11"
+  },
+  "logical_script_count": 19,
+  "invocation_count": 20,
+  "invocation_correction": "missing explicit BDD_BASE_SHA; corrected invocation passed",
+  "bdd_base_provenance": {
+    "invocation_base": "cf55d5f03806fa21e346c1bec6f45110030a13e2",
+    "meaning": "original implementation base assigned by root",
+    "current_origin_main": "4bb326e655301ad1188a57583b804fc03fe29003",
+    "workflow_fallback_merge_base": "cf55d5f03806fa21e346c1bec6f45110030a13e2"
+  },
+  "limitations": {
+    "test_typecheck_quarantined_files": 362,
+    "test_typecheck_quarantined_errors": 1542,
+    "engine_floor_ungated_backlog_diagnostics": 13268,
+    "bdd_execution_evidence": "unsupplied; gate reports traceability/non-regression only",
+    "coverage_skipped_tests": 2,
+    "integration_skipped_tests": 9,
+    "deployment_or_release_performed": false
+  },
+  "unit": {
+    "script": "bun run test:cov:unit",
+    "exit": 0,
+    "files": {
+      "passed": 1359,
+      "total": 1359
+    },
+    "tests": {
+      "passed": 25635,
+      "skipped": 2,
+      "total": 25637
+    },
+    "coverage": {
+      "statements": 82.88,
+      "branches": 75.85,
+      "functions": 88.52,
+      "lines": 83.86
+    },
+    "log_sha256": "6fd1cb01649cad456861521974460953e471580cbbba7d5ff75d7f55e793ed90"
+  },
+  "integration": {
+    "command": "bun run test:integration",
+    "exit": 0,
+    "files": {
+      "passed": 178,
+      "total": 178
+    },
+    "tests": {
+      "passed": 3190,
+      "skipped": 9,
+      "total": 3199
+    },
+    "vitest_wall_s": 294.51,
+    "operator_wall_s": 303.32,
+    "new_named_cases": [
+      "typescript: patched installs, native execution and two idempotent adoptions",
+      "cdk: patched installs, native execution and two idempotent adoptions"
+    ],
+    "new_cases_executed": 2
+  },
+  "historical": true,
+  "not_relabelled_as_B": true
+}

@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.69.1](https://github.com/CodySwannGT/lisa/compare/v4.69.0...v4.69.1) (2026-10-04)
+
+
+### Bug Fixes
+
+* refresh HTTP floors and native host deadlines ([a7f832f](https://github.com/CodySwannGT/lisa/commit/a7f832f56c8b90757e32fd5611228b23aef89e23)), closes [CodySwannGT/lisa#4326](https://github.com/CodySwannGT/lisa/issues/4326)
+* refresh shared runtime and test security floors ([2ae7c88](https://github.com/CodySwannGT/lisa/commit/2ae7c88592a6b11fe9b182b02069b9bcbc6c11f2)), closes [CodySwannGT/lisa#4326](https://github.com/CodySwannGT/lisa/issues/4326)
+* refresh shared runtime security floors and verify packed hosts ([#4328](https://github.com/CodySwannGT/lisa/issues/4328)) ([a92a562](https://github.com/CodySwannGT/lisa/commit/a92a562e151c408629f983ae2952a2eff7138f7e)), closes [CodySwannGT/lisa#4326](https://github.com/CodySwannGT/lisa/issues/4326)
+
+
+### Documentation
+
+* capture packed artifact identity verification lesson ([694ea30](https://github.com/CodySwannGT/lisa/commit/694ea306c583146cc31b2d7635783ef2cc8c78eb)), closes [CodySwannGT/lisa#4326](https://github.com/CodySwannGT/lisa/issues/4326)
+* include reviewed runtime verification transcripts for [#4326](https://github.com/CodySwannGT/lisa/issues/4326) ([477b076](https://github.com/CodySwannGT/lisa/commit/477b0767479e6fe1756ac617d0a052b53ff7f74e))
+* preserve runtime verification evidence for [#4326](https://github.com/CodySwannGT/lisa/issues/4326) ([91eb11f](https://github.com/CodySwannGT/lisa/commit/91eb11fbdc66c910434043f6f1e3b3ec01471b0d))
+
+## [4.69.0](https://github.com/CodySwannGT/lisa/compare/v4.68.1...v4.69.0) (2026-10-04)
+
+
+### Features
+
+* auto-update Lisa locally at session start and drop the PAT workflow ([d3542c8](https://github.com/CodySwannGT/lisa/commit/d3542c8b6517a035d15a403c31b18636b12c1470)), closes [#4331](https://github.com/CodySwannGT/lisa/issues/4331) [CodySwannGT/lisa#4337](https://github.com/CodySwannGT/lisa/issues/4337) [CodySwannGT/lisa#4337](https://github.com/CodySwannGT/lisa/issues/4337)
+
+
+### Bug Fixes
+
+* address review on the session-start auto-update ([508902b](https://github.com/CodySwannGT/lisa/commit/508902b95dcc02f0140b4120aab51eac91969268)), closes [#4338](https://github.com/CodySwannGT/lisa/issues/4338) [CodySwannGT/lisa#4337](https://github.com/CodySwannGT/lisa/issues/4337) [CodySwannGT/lisa#4337](https://github.com/CodySwannGT/lisa/issues/4337)
+* address second review pass on the session-start auto-update ([eedef5f](https://github.com/CodySwannGT/lisa/commit/eedef5f4a3f9041d824c266539c68db484a2dac3)), closes [#4338](https://github.com/CodySwannGT/lisa/issues/4338) [CodySwannGT/lisa#4337](https://github.com/CodySwannGT/lisa/issues/4337) [CodySwannGT/lisa#4337](https://github.com/CodySwannGT/lisa/issues/4337)
+
+### [4.68.1](https://github.com/CodySwannGT/lisa/compare/v4.68.0...v4.68.1) (2026-10-04)
+
+
+### Bug Fixes
+
+* **rails:** preserve magic-comment spacing in version initializer ([7f18ea6](https://github.com/CodySwannGT/lisa/commit/7f18ea60083e2f94ed5c1a2dcb5bbe790dbad954)), closes [CodySwannGT/lisa#4334](https://github.com/CodySwannGT/lisa/issues/4334)
+
 ## [4.68.0](https://github.com/CodySwannGT/lisa/compare/v4.67.0...v4.68.0) (2026-10-03)
 
 

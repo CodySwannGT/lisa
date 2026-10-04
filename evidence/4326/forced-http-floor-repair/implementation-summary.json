@@ -1,0 +1,307 @@
+{
+  "schema_version": 1,
+  "ticket": "CodySwannGT/lisa#4326",
+  "captured_at": "2026-10-03T13:29:43.769249+00:00",
+  "observed_source_head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+  "scope": "compatible forced Axios1.20.0 / Undici6.28.1 floor CI repair; uncommitted source, not publication proof",
+  "context_bytes": 232750,
+  "context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a",
+  "owned_changed_paths": [
+    "package.json",
+    "bun.lock",
+    "typescript/package-lisa/package.lisa.json",
+    "tests/unit/config/security-pin-floors.test.ts",
+    "tests/unit/config/postinstall-ci-guard.test.ts",
+    "tests/unit/config/forced-http-security-floors.test.ts"
+  ],
+  "owned_final_sha256": {
+    "package.json": "2173468d94df335e63d8e146711fed39de0b3fec4777825fa6d0646a5c8ed57e",
+    "bun.lock": "8e5b8a0f6bab515eeb1bb2129a57c544a2a4070600dadc57376ee2204f1a241f",
+    "typescript/package-lisa/package.lisa.json": "7def55c6827128599f12306354266781d1a1bc22a3a468471822153841ed280c",
+    "tests/unit/config/security-pin-floors.test.ts": "3fccc624768e5a2a7c7281c4a7fb8e6d1eb96d48574ae22b2fd11ab361a9fe05",
+    "tests/unit/config/postinstall-ci-guard.test.ts": "9b4a9bd2b6257c6bfc7954c93670ec6da14312971f2d6d98851109e2652f9e90",
+    "tests/unit/config/forced-http-security-floors.test.ts": "e591c06af84b3b06c01e6159b1fc7f3fb53c33f28efbe9c8a95d96784ac51883"
+  },
+  "tracked_changes_since_before": [
+    "bun.lock",
+    "package.json",
+    "tests/unit/config/postinstall-ci-guard.test.ts",
+    "tests/unit/config/security-pin-floors.test.ts",
+    "typescript/package-lisa/package.lisa.json"
+  ],
+  "all_unowned_tracked_bytes_unchanged_since_before": true,
+  "protected_and_historical_sha256": {
+    "audit.ignore.local.json": "a7bd5588e0d1edec667ef9331267ba9c4c74c142097111c2e3c5a911578b8d12",
+    "src/core/lisa-owned-hash-ledger.ts": "2e28592438831c1b513e459a3c6ce8b1c64f98d7b7ecee0ba157d5bdf2310cc0",
+    "src/core/upstream-evidence-manifest.ts": "a3f8e7a69a4c581c9693d890db638f7ef0ad1de55538da7e16c02bc8fe60626e",
+    ".lisa/PROJECT_LEARNINGS.md": "2e17f678167517eb89cf452de59fd51b55972c24d4d60d4f395269df6b559c9f",
+    "scripts/check-security-floors.mjs": "9cdb39f3d995b2f5539e0f2dc9de4b06d8539886efaa821f7964687e9a41609a",
+    ".github/workflows/security-floors.yml": "a4dfc3c46d2bf4e8521f5005ff491809b7a58bdb75ca35279f4560ebcf59ad4c",
+    "tests/integration/shared-runtime-packed-hosts.test.ts": "d46d50bd3495f8ac676fbe94c0b0e810792a22eda8dd651860317ef4dda09ac3",
+    "tests/fixtures/shared-runtime-hosts/artifact.ts": "a64007acc0afce7c5e50f2b54568bfcb9d382dcd1cddc251025dc038a8f9a910",
+    "tests/fixtures/shared-runtime-hosts/assertions.ts": "3a44300da10845875a0c395dc0856954bbec04772280d7f2337f6f083fec0006",
+    "tests/fixtures/shared-runtime-hosts/host.ts": "9a5c7a618bef8dd9a2d60a51b6c123196e022aa690babcbb57a6cd1be3d419fa",
+    "tests/fixtures/shared-runtime-hosts/journey.ts": "7779a65608f94c1b0bffde3febc1f09afb8d8897742312968e43405e1eb9d694",
+    "tests/fixtures/shared-runtime-hosts/process.ts": "0df1503ec17a2e6f172d7b787cf7d83d3b80a3f7251eefc7e74644b679d219a1",
+    "evidence/4326/README.md": "5b00d43268a9d2a9770a5e1ed94eaed019763e0d1aedc1da15b673fe4ef9e5e4",
+    "evidence/4326/cdk-template.json": "327b8040bacb11b38966aa3b3b6154ca993983713758a715383b7a58ffe69b1b",
+    "evidence/4326/diagnosis/focused-1.log": "823449e998b012cc8748156cb12b85ea54a48dabfa621caaa8bd69e5faaecf50",
+    "evidence/4326/diagnosis/focused-2.log": "518de05492a650c0e0a5e6589003c4cfbb323021b4772523224390a21b6167f6",
+    "evidence/4326/diagnosis/focused-3.log": "2cc91aa1694189a155f44ca1b89435307ad3e02ef9ac1097f809983ccd807ea4",
+    "evidence/4326/diagnosis/state.json": "b32fdb189ba11d65d5109b545cd6525e44714ff5b977aa27f05ac9ece3f8bf55",
+    "evidence/4326/failed-normal-push.log": "c0dba4328a7be4de92a9ca45af564c5e0ee44479d0cb684090c8f35589722439",
+    "evidence/4326/fixed-success-and-edge.log": "4ea7b96559f2df57ebe2df39c7f56a8d8df39039f157196e9e61f2e541e0c9d4",
+    "evidence/4326/history/baseline-regression.log": "4720f0fc2f390fc7b80216b7a7761c2f37adf484a9e625c88a1bef56e5fd28cc",
+    "evidence/4326/history/baseline-state.json": "8075fe2c46de009236be6b24d8eb3b048075262906d34488a0428e36828b724e",
+    "evidence/4326/history/quality-gates.log": "2b2c8d4510e936c2776e221abc3de48fad0fd398f38e5405041681f2ff3716cb",
+    "evidence/4326/history/quality-state.json": "71aa9d86e9e983e96a3edc0287a058dcaf85f4a07e743f0261a31f5d82ef4958",
+    "evidence/4326/inventory.json": "ce0252e580f3f551f92f57e9f47620ffb2b5dcbb26f0cfd688df2c80ba126a1e",
+    "evidence/4326/policy-test-report.json": "b439dfed2d95250f36df14bb93f0bcd2067cf0369253b788220edb78ea23f5ec",
+    "evidence/4326/quality-and-template-review.log": "7d20fe7bbbcb31f2447c01bf8275063dcbd771250cde5437bbbdae5ef97dcc89",
+    "evidence/4326/security-audit-observation.json": "5e499768f81328a4f73b296a84aeffebcc44a15f6b1585b30e3f96e69f3ab08a",
+    "evidence/4326/security-audit-production.json": "2a89a9d828ad0b43dc8c9e4b45e92a9138e672d6d3f7b3b3f19c2c5f08cb6b8f",
+    "evidence/4326/security-audit-review.md": "ad2c28c9544d624a1a3d95cb36bc706ae3031f31b4e0b98d404a394ab66cb8b6",
+    "evidence/4326/state.json": "72e0c0963db83cb88a753a58281303f5f07f29b84770953c49bac10887b51b62",
+    "evidence/4326/verdict.json": "1e770078f670c8f6c24ca5d4a5638e85cd64d4b51f3af27200203d806f04f4c6"
+  },
+  "original_runtime_fixture_count": 6,
+  "same_final_test_bytes_red_green": true,
+  "final_red": {
+    "isolated_checkout": "/tmp/lisa-4326-codification/forced-floor-ci-repair-implementation/baseline-61580",
+    "head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+    "actual_exit": 1,
+    "tests": 103,
+    "failed": 29,
+    "passed": 74,
+    "files": 3,
+    "new_test_cases": 34,
+    "new_failed": 24,
+    "new_passed": 10,
+    "actual_advisory_site_collisions": 16,
+    "actual_adoption_floor_failures": 4,
+    "root_floor_failures": 4,
+    "existing_ratchet_failures": 4,
+    "existing_undici_guard_failures": 1,
+    "wall_seconds": 2.892,
+    "receipt": "red-final-61580/execution-receipt.json"
+  },
+  "final_green": {
+    "actual_exit": 0,
+    "tests": 103,
+    "passed": 103,
+    "failed": 0,
+    "skipped": 0,
+    "files": 3,
+    "new_test_cases": 34,
+    "wall_seconds": 2.885,
+    "receipt": "green-final/execution-receipt.json"
+  },
+  "live_strict_floor": {
+    "actual_exit": 0,
+    "packages_checked": 199,
+    "manifests_checked": 8,
+    "receipt": "live-strict-floor/execution-receipt.json",
+    "original_prover_and_workflow_unchanged": true,
+    "no_advisory_suppression_added": true
+  },
+  "lock": {
+    "generated_by": "normal CI=1 bun install, scripts/hooks active",
+    "actual_delta": "two declared override strings only; every other lock byte identical to615",
+    "new_installed_axios_undici_versions": null,
+    "reason": "neither target appears in root locked packages; no installed package resolution claim",
+    "frozen_install_receipt": "frozen-bun-install/execution-receipt.json",
+    "inherited_warning": "Bun warns nested overrides unsupported; unchanged existing @istanbuljs/load-nyc-config override retained, no scope expansion"
+  },
+  "scoped_quality": {
+    "scoped-fast-lint-final": {
+      "actual_exit": 0,
+      "wall_seconds": 4.151,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "scoped-oxlint-final": {
+      "actual_exit": 0,
+      "wall_seconds": 0.129,
+      "log_sha256": "e20f019f5c0365e5671b3c1b85263cd32af2cd19880355b2cb00d9fbbda65588"
+    },
+    "scoped-slow-lint-final": {
+      "actual_exit": 0,
+      "wall_seconds": 5.018,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "scoped-format-final": {
+      "actual_exit": 0,
+      "wall_seconds": 0.176,
+      "log_sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    }
+  },
+  "initial_control_history": {
+    "initial_red": "red-baseline-61580",
+    "first_green": "green-patched",
+    "fixture_failure": "Restricted CDK seed discarded aws-cdk-lib direct dependency; corrected by preserving genuine helper-generated seed manifest. Original receipts and incorrect first classification retained, correction separately recorded. Final baseline is24 genuine new floor assertion failures, not fixture errors."
+  },
+  "task_mld": {
+    "learnings": [
+      {
+        "kind": "mistake",
+        "note": "Initial restricted CDK fixture replaced the seeded manifest and removed the direct dependency backing the shipped $aws-cdk-lib override; preserving seed fields fixed it before final identical-byte RED/GREEN.",
+        "evidence": "green-patched/command.log and baseline-classification-correction.json"
+      },
+      {
+        "kind": "learning",
+        "note": "Root lock declares Axios/Undici overrides but contains neither package as a resolved node; normal Bun regeneration changed only the two override strings.",
+        "evidence": "normal-bun-install/command.log and exact lock delta"
+      }
+    ]
+  },
+  "remaining_owned_runner_or_supervisor": [],
+  "git_status": " M .lisa/plan-CodySwannGT-lisa-4326.json\n M .lisa/plan-CodySwannGT-lisa-4326.md\n M bun.lock\n M evidence/4326/security-audit-inventory.json\n M package.json\n M tests/unit/config/postinstall-ci-guard.test.ts\n M tests/unit/config/security-pin-floors.test.ts\n M typescript/package-lisa/package.lisa.json\n?? tests/unit/config/forced-http-security-floors.test.ts\n",
+  "not_established": [
+    "normal source commit",
+    "current new-head packed runtime replay",
+    "new-head required remote CI",
+    "merge",
+    "source release/public npm verification"
+  ],
+  "records": [
+    {
+      "path": "frozen-bun-install/command.log",
+      "bytes": 877,
+      "sha256": "e7b0a1253925766bb0fe67a1e9e2a50583161f840496e14cdf40746f3ad9efb3"
+    },
+    {
+      "path": "green-final/command.log",
+      "bytes": 21635,
+      "sha256": "100d24e78bf01d10b79029f17c7d894fa7e0c0c09cb3763d2481d57ef2982911"
+    },
+    {
+      "path": "green-patched/command.log",
+      "bytes": 23679,
+      "sha256": "fb3555d9cdfef1ce9a2dbb433eb3bb58c1997237ca24d75a5f29661bcea0331a"
+    },
+    {
+      "path": "live-strict-floor/command.log",
+      "bytes": 134,
+      "sha256": "552660b6143471b283e12e190e5f3cb671b2a2488cd847397d8cce294d8ff610"
+    },
+    {
+      "path": "normal-bun-install/command.log",
+      "bytes": 893,
+      "sha256": "b8620e54da46c5d01ba3ccbfa10e03570bc1ae7b79689f26826047730591541b"
+    },
+    {
+      "path": "red-baseline-61580/command.log",
+      "bytes": 44954,
+      "sha256": "1aa9d25b57ccb97bbdfe6f8d6769b52abca05a923ea16d1db6cf440a69ddf0ac"
+    },
+    {
+      "path": "red-final-61580/command.log",
+      "bytes": 43349,
+      "sha256": "829025e51bd677c0b3da46f98f25455565f6a33b27f0ff84cfe1f25b2aca162a"
+    },
+    {
+      "path": "scoped-fast-lint/command.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "scoped-fast-lint-final/command.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "scoped-format-final/command.log",
+      "bytes": 66,
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    {
+      "path": "scoped-oxlint-final/command.log",
+      "bytes": 92,
+      "sha256": "e20f019f5c0365e5671b3c1b85263cd32af2cd19880355b2cb00d9fbbda65588"
+    },
+    {
+      "path": "scoped-slow-lint-final/command.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "frozen-bun-install/execution-receipt.json",
+      "bytes": 508,
+      "sha256": "03bf11ebf85a9b9e90106e338d2d048d893a0bda99c97b9e04dd1c606cdb7d3c"
+    },
+    {
+      "path": "green-final/execution-receipt.json",
+      "bytes": 33423,
+      "sha256": "4e3a966c949b4a7f606f96ffaa33b764d097e1861596b0b05fe41a5a64246899"
+    },
+    {
+      "path": "green-patched/execution-receipt.json",
+      "bytes": 33425,
+      "sha256": "0f4ebb719f11588234cbdaefcc9956edc2bb69c9d52c94a86355928af656421e"
+    },
+    {
+      "path": "live-strict-floor/execution-receipt.json",
+      "bytes": 568,
+      "sha256": "ab51d24c8d34defb97cb607d1dbdd14428763ed846bb5158e5c53457bb6e5e7e"
+    },
+    {
+      "path": "normal-bun-install/execution-receipt.json",
+      "bytes": 482,
+      "sha256": "142185eabd659b06c44b23d2efe36bb4be0d9d242afe8303e83de76af8da6d1b"
+    },
+    {
+      "path": "red-baseline-61580/execution-receipt.json",
+      "bytes": 33436,
+      "sha256": "a8129eca16ac3db60217d21baa27749385bb22ef8e571dc4d8afa06fe04eecec"
+    },
+    {
+      "path": "red-final-61580/execution-receipt.json",
+      "bytes": 38734,
+      "sha256": "b437df9f00e0ab5068ee33b112fe47a8c7b3302c2e66507f23fc62640451578c"
+    },
+    {
+      "path": "scoped-fast-lint/execution-receipt.json",
+      "bytes": 709,
+      "sha256": "023a308defc873e80d21c454943e908037d6e5351ec0e85b6a37082b06cef053"
+    },
+    {
+      "path": "scoped-fast-lint-final/execution-receipt.json",
+      "bytes": 715,
+      "sha256": "eeb9c7ae6267edda392d9b026ef0d82052af44fd273ef925c8a28726026a6b97"
+    },
+    {
+      "path": "scoped-format-final/execution-receipt.json",
+      "bytes": 786,
+      "sha256": "cd09a8539e4df9b1fd70dac7b567e02f30ceb556f11210701beddc4a89d50551"
+    },
+    {
+      "path": "scoped-oxlint-final/execution-receipt.json",
+      "bytes": 725,
+      "sha256": "26d945de51327672f0ac9284f75bd897f64ce284b2f9f9cbfbd42808f324f548"
+    },
+    {
+      "path": "scoped-slow-lint-final/execution-receipt.json",
+      "bytes": 760,
+      "sha256": "88d91f8cd766f4e386a04f5fbe9d132fdf3cdf6567b8117aa36a1e289a176d4e"
+    },
+    {
+      "path": "green-final/test-report.json",
+      "bytes": 44239,
+      "sha256": "9ac5bccf6760fb07d63d3cb534e5f4b5631a8f42a7af0ca719b43d03fe4a58e6"
+    },
+    {
+      "path": "green-patched/test-report.json",
+      "bytes": 45243,
+      "sha256": "827aaebb994cfda1f13356af377a825d6f8f15f5785ede457af2753a40e88bd0"
+    },
+    {
+      "path": "red-baseline-61580/test-report.json",
+      "bytes": 75430,
+      "sha256": "599129bd44f05c7784c09b28e35381177eb1ba031c27d7111ab02a05b78b52e5"
+    },
+    {
+      "path": "red-final-61580/test-report.json",
+      "bytes": 76815,
+      "sha256": "035b8e9067a4bf57546f8b18ff0d44f49f543bc092d0578c9dff0d5f65d88a61"
+    }
+  ]
+}

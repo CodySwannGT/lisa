@@ -1,0 +1,349 @@
+{
+  "schema_version": 1,
+  "ticket": "CodySwannGT/lisa#4326",
+  "captured_at": "2026-10-03T13:06:33.666823+00:00",
+  "mode": "bounded read-only inventory and proposed regression design; no source/Git/tracker/context/verdict writes or tests executed",
+  "source_head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+  "source_clean": true,
+  "source_paths_sha256": {
+    "package.json": "6b3de847a41b02ee8717db8355087b7886d49d6ebcc4bfd87a0a9a5052df812a",
+    "typescript/package-lisa/package.lisa.json": "0d8e9dbcd1a3f45d46cf2796d521637cf9df69b63e9d35e3a6b560b18f9353a3",
+    "bun.lock": "1ab4fdd8c9af0d2790ab6b9330067c1be5a7dae1a917032adc17a33c5ccff605",
+    "tests/unit/config/security-pin-floors.test.ts": "3e4d754791af5ccf010bcb1c07dbbbae9cda5387bc0b642c6745fd94a946763e",
+    "tests/unit/config/postinstall-ci-guard.test.ts": "ebaa46006d722d1f9d3bffeb21a21d2adcfc6a950bf68e50bfbc642aef934161",
+    "tests/unit/scripts/security-floors.test.ts": "fe067c9a503010fab64018ad921285c0d0d5cfdeef4513f3f279eb2f6922360f",
+    "scripts/check-security-floors.mjs": "9cdb39f3d995b2f5539e0f2dc9de4b06d8539886efaa821f7964687e9a41609a",
+    ".github/workflows/security-floors.yml": "a4dfc3c46d2bf4e8521f5005ff491809b7a58bdb75ca35279f4560ebcf59ad4c",
+    "src/strategies/package-lisa.ts": "817eed33dbc8cc58ddde29d03df531629d179074700ac0cd2ec36cc55d089d60",
+    "audit.ignore.local.json": "a7bd5588e0d1edec667ef9331267ba9c4c74c142097111c2e3c5a911578b8d12"
+  },
+  "actual_failed_log": {
+    "path": "/tmp/lisa-4326-codification/remote-approved-61580e1b/security-floors-job-log.log",
+    "bytes": 20098,
+    "sha256": "31405cf28e435e046df12095d295c0e5011ebccbec00e07b972d66eec21d11ca",
+    "command": "node scripts/check-security-floors.mjs --strict",
+    "exit": 1,
+    "unique_high_advisories": 8,
+    "rows": 16,
+    "axios_rows": 14,
+    "undici_rows": 2
+  },
+  "primary_evidence": {
+    "advisories_path": "/tmp/lisa-4326-codification/forced-floor-registry-recheck/primary-advisories-receipt.json",
+    "advisories_sha256": "27721c180241216841123ed0daa951f57cf02aaca0a9f3a21d16075c659b2bcd",
+    "registry_path": "/tmp/lisa-4326-codification/forced-floor-registry-recheck/receipt.json",
+    "registry_sha256": "b49cfe65e1ef2de7a91f8b4e94663ed92ebac63eecf261aeffd431d5756232d9",
+    "advisories": [
+      {
+        "id": "GHSA-m8m8-qj5v-23w3",
+        "url": "https://github.com/advisories/GHSA-m8m8-qj5v-23w3",
+        "captured_at": "2026-10-03T13:02:09.714547+00:00",
+        "severity": "high",
+        "updated_at": "2026-09-30T15:32:57Z",
+        "sha256": "226721c3253962a1949fa6312a000a1c510fc86ed3c5fd1485e9c96055e649d3",
+        "vulnerabilities": [
+          {
+            "package": {
+              "ecosystem": "npm",
+              "name": "axios"
+            },
+            "vulnerable_version_range": ">= 1.15.2, < 1.20.0",
+            "first_patched_version": "1.20.0",
+            "vulnerable_functions": []
+          }
+        ]
+      },
+      {
+        "id": "GHSA-r4gj-5m52-g5wh",
+        "url": "https://github.com/advisories/GHSA-r4gj-5m52-g5wh",
+        "captured_at": "2026-10-03T13:02:10.312277+00:00",
+        "severity": "high",
+        "updated_at": "2026-09-30T15:32:00Z",
+        "sha256": "160e439b048e2281704e872955daa5968375abf741affadb548b3f697f670750",
+        "vulnerabilities": [
+          {
+            "package": {
+              "ecosystem": "npm",
+              "name": "axios"
+            },
+            "vulnerable_version_range": ">= 1.17.0, < 1.20.0",
+            "first_patched_version": "1.20.0",
+            "vulnerable_functions": []
+          }
+        ]
+      },
+      {
+        "id": "GHSA-c29m-xwm3-cm6r",
+        "url": "https://github.com/advisories/GHSA-c29m-xwm3-cm6r",
+        "captured_at": "2026-10-03T13:02:10.835561+00:00",
+        "severity": "high",
+        "updated_at": "2026-09-30T15:03:23Z",
+        "sha256": "3c81202fe4b6ab880b540e4403102d04a131acde1b3b09fa2788d2f7934b2c2d",
+        "vulnerabilities": [
+          {
+            "package": {
+              "ecosystem": "npm",
+              "name": "axios"
+            },
+            "vulnerable_version_range": ">= 1.16.1, < 1.20.0",
+            "first_patched_version": "1.20.0",
+            "vulnerable_functions": []
+          }
+        ]
+      },
+      {
+        "id": "GHSA-mghh-pgcx-3jjj",
+        "url": "https://github.com/advisories/GHSA-mghh-pgcx-3jjj",
+        "captured_at": "2026-10-03T13:02:11.433510+00:00",
+        "severity": "high",
+        "updated_at": "2026-09-30T15:03:03Z",
+        "sha256": "9311100ca12183827b2433964838459af0573bee152de7a810b8c649b1d5f65c",
+        "vulnerabilities": [
+          {
+            "package": {
+              "ecosystem": "npm",
+              "name": "axios"
+            },
+            "vulnerable_version_range": ">= 1.15.0, < 1.20.0",
+            "first_patched_version": "1.20.0",
+            "vulnerable_functions": []
+          }
+        ]
+      },
+      {
+        "id": "GHSA-x97p-jq2g-jp4f",
+        "url": "https://github.com/advisories/GHSA-x97p-jq2g-jp4f",
+        "captured_at": "2026-10-03T13:02:11.971348+00:00",
+        "severity": "high",
+        "updated_at": "2026-09-30T15:02:48Z",
+        "sha256": "18b71ebadaa6a6f3d442b052a92920273f83ea94e4628a06604b0038d87e92a3",
+        "vulnerabilities": [
+          {
+            "package": {
+              "ecosystem": "npm",
+              "name": "axios"
+            },
+            "vulnerable_version_range": ">= 0.28.0, < 0.34.0",
+            "first_patched_version": "0.34.0",
+            "vulnerable_functions": []
+          },
+          {
+            "package": {
+              "ecosystem": "npm",
+              "name": "axios"
+            },
+            "vulnerable_version_range": ">= 1.15.1, < 1.20.0",
+            "first_patched_version": "1.20.0",
+            "vulnerable_functions": []
+          }
+        ]
+      },
+      {
+        "id": "GHSA-3pq3-5fj3-cg6v",
+        "url": "https://github.com/advisories/GHSA-3pq3-5fj3-cg6v",
+        "captured_at": "2026-10-03T13:02:12.489390+00:00",
+        "severity": "high",
+        "updated_at": "2026-09-30T15:02:15Z",
+        "sha256": "afd84c2ea3c64e15aa5e6ece19c9124bab5615f94b921ef8d0c45d0f8ca7dd3d",
+        "vulnerabilities": [
+          {
+            "package": {
+              "ecosystem": "npm",
+              "name": "axios"
+            },
+            "vulnerable_version_range": ">= 1.13.0, < 1.20.0",
+            "first_patched_version": "1.20.0",
+            "vulnerable_functions": []
+          }
+        ]
+      },
+      {
+        "id": "GHSA-542g-h47m-68v8",
+        "url": "https://github.com/advisories/GHSA-542g-h47m-68v8",
+        "captured_at": "2026-10-03T13:02:12.980892+00:00",
+        "severity": "high",
+        "updated_at": "2026-09-30T15:01:08Z",
+        "sha256": "2ad208867908b5884f5fedd51297763d40e6712e84df0957270b04e3767aa047",
+        "vulnerabilities": [
+          {
+            "package": {
+              "ecosystem": "npm",
+              "name": "axios"
+            },
+            "vulnerable_version_range": ">= 1.13.0, < 1.20.0",
+            "first_patched_version": "1.20.0",
+            "vulnerable_functions": []
+          }
+        ]
+      },
+      {
+        "id": "GHSA-rfgv-xxqx-mfg5",
+        "url": "https://github.com/advisories/GHSA-rfgv-xxqx-mfg5",
+        "captured_at": "2026-10-03T13:02:13.474757+00:00",
+        "severity": "high",
+        "updated_at": "2026-09-29T18:21:41Z",
+        "sha256": "d46bb113edc92af53e2c238778dba9f0beccfc14114e2c80c18284cc132ea1cd",
+        "vulnerabilities": [
+          {
+            "package": {
+              "ecosystem": "npm",
+              "name": "undici"
+            },
+            "vulnerable_version_range": ">= 6.7.0, < 6.28.1",
+            "first_patched_version": "6.28.1",
+            "vulnerable_functions": []
+          },
+          {
+            "package": {
+              "ecosystem": "npm",
+              "name": "undici"
+            },
+            "vulnerable_version_range": ">= 7.0.0, < 7.29.1",
+            "first_patched_version": "7.29.1",
+            "vulnerable_functions": []
+          },
+          {
+            "package": {
+              "ecosystem": "npm",
+              "name": "undici"
+            },
+            "vulnerable_version_range": ">= 8.0.0, < 8.10.2",
+            "first_patched_version": "8.10.2",
+            "vulnerable_functions": []
+          }
+        ]
+      }
+    ],
+    "registry": [
+      {
+        "url": "https://registry.npmjs.org/axios/1.20.0",
+        "captured_at": "2026-10-03T13:01:35.574391+00:00",
+        "package": "axios",
+        "version": "1.20.0",
+        "engines": null,
+        "sha256": "a39c8d109ba0bb1aa5a3f759468a0225c2f2bb96eae9ef3d18d742fa35d4c873",
+        "dist_integrity": "sha512-r8aOh8j9cGKpgQAqpzrUHnSIc6a59Y3Xf/cv8sy1DrHCkZHzQGEuoq1tARk6qSyDdtQGSDgpb9kFlruzPvrgwg==",
+        "deprecated": null
+      },
+      {
+        "url": "https://registry.npmjs.org/undici/6.28.1",
+        "captured_at": "2026-10-03T13:01:35.883179+00:00",
+        "package": "undici",
+        "version": "6.28.1",
+        "engines": {
+          "node": ">=18.17"
+        },
+        "sha256": "c2d9901dfa0bff5dbeb1012c4a86d980083fe323a68ecc4f3be9d122aa3d221d",
+        "dist_integrity": "sha512-zWpdTVD54H48CIybL0rWQ3ukpb9d23wM7eH5RtfdmeP70cWHNjtfo7P4vZX+5CoDcO53J4Pu5uXp7lNfjc6DRA==",
+        "deprecated": null
+      }
+    ]
+  },
+  "canonical_policy": {
+    "typescript/package-lisa/package.lisa.json": {
+      "force.overrides.axios": {
+        "current": ">=1.18.0",
+        "proposed": ">=1.20.0"
+      },
+      "force.resolutions.axios": {
+        "current": ">=1.18.0",
+        "proposed": ">=1.20.0"
+      },
+      "force.overrides.undici": {
+        "current": "^6.28.0",
+        "proposed": "^6.28.1"
+      },
+      "force.resolutions.undici": {
+        "current": "^6.28.0",
+        "proposed": "^6.28.1"
+      }
+    },
+    "package.json": {
+      "overrides.axios": {
+        "current": ">=1.15.2",
+        "proposed": ">=1.20.0"
+      },
+      "resolutions.axios": {
+        "current": ">=1.15.2",
+        "proposed": ">=1.20.0"
+      },
+      "overrides.undici": {
+        "current": "^6.28.0",
+        "proposed": "^6.28.1"
+      },
+      "resolutions.undici": {
+        "current": "^6.28.0",
+        "proposed": "^6.28.1"
+      }
+    }
+  },
+  "complete_tracked_inventory": {
+    "method": "git ls-files -z; parse all tracked package.json and package.lisa.json objects recursively for exact axios/undici keys; git grep exact existing range literals",
+    "only_declaring_manifests": [
+      "package.json",
+      "typescript/package-lisa/package.lisa.json"
+    ],
+    "root_package_lisa_has_target_keys": false,
+    "nested_policy_mirrors": [],
+    "stack_inheritance": "PackageLisaStrategy loadMergedTemplate expands parent hierarchy and loads all/typescript/specific stack; target force keys have no child redeclarations. No nested mirror policy files need value edits.",
+    "historical_literals_to_preserve": [
+      "CHANGELOG.md",
+      "wiki/sources/github/2026-05-14-git-and-pr-history.md",
+      "src/core/override-floors.ts bounded-range explanatory example",
+      "tests/unit/core/override-floors.test.ts synthetic semver controls",
+      "tests/unit/cli/doctor-override-floor-conflicts.test.ts synthetic stale-host fixture",
+      "tests/unit/cli/doctor-readiness-supply-chain.test.ts synthetic doctor fixture",
+      "tests/unit/strategies/package-lisa.test.ts unrelated EOVERRIDE preservation control"
+    ]
+  },
+  "current_root_lock": {
+    "axios": {
+      "declared_override": ">=1.15.2",
+      "resolved_package_entries": []
+    },
+    "undici": {
+      "declared_override": "^6.28.0",
+      "resolved_package_entries": []
+    },
+    "method": "parse bun.lock JSONC trailing commas; inspect all packages keys and package identity strings, not just direct dependencies",
+    "followup": "Normal real install/lock generation is required after root override edits. Expect target override metadata change; inspect actual resolution delta instead of inventing installed target versions."
+  },
+  "mandatory_existing_test_updates": [
+    {
+      "path": "tests/unit/config/security-pin-floors.test.ts",
+      "change": "Raise only Axios ratchet1.18.0\u21921.20.0 and Undici6.28.0\u21926.28.1; record Oct3 primary provenance without implying unrelated floors refreshed.",
+      "real_behavior": "Collects every git-tracked manifest force literal; semver intersects actual forced range with below-patch range."
+    },
+    {
+      "path": "tests/unit/config/postinstall-ci-guard.test.ts",
+      "change": "UNDICI_V6_RANGE ^6.28.0\u2192^6.28.1 and explanatory latest-advisory provenance; preserve v6 File-export constraint.",
+      "real_behavior": "Reads shipped force.overrides/resolutions; two assertions currently require old exact range."
+    }
+  ],
+  "deterministic_control_proposal": {
+    "status": "design only; not executed",
+    "strongest_boundary": "Add minimal immutable primary advisory fixture data for all seven Axios high advisories + Undici6 high branch to existing security-floor unit tests; call production collectFloors() against real tracked manifests and production withinRange(site.lowest, fixture.vulnerable_version_range). Assert both expected force sites are actually present per package before checking all rows, preventing a vacuous pass. Preserve high/critical semantics; include GHSA, upstream URL, captured date, real first_patched_version/range provenance.",
+    "red": "Identical final test bytes against exact615 baseline must reject all sixteen actual template sites, while updated ratchet rejects four template Axios/Undici entries. No expensive install needed to prove the policy defect.",
+    "green": "After only compatible range corrections, identical tests pass using real source collection/comparison; test the patched endpoint explicitly and preceding vulnerable endpoint as comparator negative controls. Root destination two maps also must admit no version below1.20.0/6.28.1.",
+    "adoption": "Use actual shipped TypeScript policy in PackageLisaStrategy full and restricted postinstall-safe apply fixtures: stale host overrides/resolutions are raised, unrelated host scripts/default declarations preserved, inherited CDK behavior follows shared policy. Do not edit strategy. Existing exact packed CLI TS/CDK journey and six unchanged runtime fixtures remain required at new head; installed target packages may be absent, so check real generated manifest force values without falsely claiming installed target bytes.",
+    "normal_ci_routes": [
+      "bun run test:unit (unit security-pin, postinstall, collector/comparator and strategy controls included)",
+      "bun run test:integration (existing gate-step and packed-host tests remain ordinary lanes)",
+      "node scripts/check-security-floors.mjs --strict (actual authenticated live full advisory gate after correction; no suppressions)"
+    ]
+  },
+  "generated_artifacts": {
+    "bun.lock": "Real normal install updates root override metadata; no manual editing",
+    "src/core/upstream-evidence-manifest.ts": "Root owns sequential regeneration after final staged edits/evidence; content hashes change for package/template/lock/tests. Never hand-edit.",
+    "src/core/lisa-owned-hash-ledger.ts": "Root owns existing normal check/regeneration. Generator hashes Lisa-owned copy-overwrite source paths only; package-lisa source is not copy-overwrite so two value edits alone should not add owned-file entries; inspect actual delta rather than assume ledger changes.",
+    "plugin_mirrors": "No executable plugin source/template changes needed for these policy values; no plugin-sync repair indicated."
+  },
+  "constraints": [
+    "No production checker edits, threshold changes, ignore additions, advisory suppressions or coverage narrowing.",
+    "Preserve exact approved root braces ignore and Oct16 manual review; approval is not authorization to waive these Axios/Undici advisories.",
+    "Preserve Node22.23.3, Vitest/coverage4.1.11, Vite8.3.2, all six frozen native packed-host inputs and original issue AC.",
+    "Axios floor preserves existing >= operator; Undici preserves caret and major6. No newly introduced upper bound or broad direct dependency refresh.",
+    "No claim of public CI/release pass from research or prior615 local runtime."
+  ],
+  "scope_review_receipt": "/tmp/lisa-4326-codification/forced-floor-ci-repair-scope.json"
+}

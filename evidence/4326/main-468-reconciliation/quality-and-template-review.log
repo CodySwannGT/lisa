@@ -1,0 +1,71 @@
+Actual frozeninstall/build command receipt and raw outputs, followed by independent scoped review summary.
+{
+  "commands": [
+    {
+      "argv": [
+        "bun",
+        "install",
+        "--frozen-lockfile"
+      ],
+      "started_at": "2026-10-03T16:06:33.489794+00:00",
+      "ended_at": "2026-10-03T16:06:37.482001+00:00",
+      "actual_exit": 0,
+      "wall_s": 3.992,
+      "log": "/tmp/lisa-4326-codification/main-468-reconciliation/merged-frozen-install.log",
+      "log_sha256": "997955550a71b22a8039bbacb2f8f29a634d7a42ecc1b1507a83d9c6155b90cb"
+    },
+    {
+      "argv": [
+        "bun",
+        "run",
+        "build:dist"
+      ],
+      "started_at": "2026-10-03T16:06:37.499567+00:00",
+      "ended_at": "2026-10-03T16:06:40.489739+00:00",
+      "actual_exit": 0,
+      "wall_s": 2.99,
+      "log": "/tmp/lisa-4326-codification/main-468-reconciliation/merged-build-dist.log",
+      "log_sha256": "d7fe6deaad9c0a5b1e769a9da80067644fe2cd6256b5ab173868ac8d713abdeb"
+    }
+  ],
+  "policy_before": {
+    "package.json": "666d391cd4be2d2864e82496ac8ad4f75726e4d9a08b11cef42affa2d90cb2f6",
+    "bun.lock": "ba6aefd79d8ba10d150296889948e99f14d075fb43d0037624fa6ebb74ca0896",
+    "typescript/package-lisa/package.lisa.json": "7def55c6827128599f12306354266781d1a1bc22a3a468471822153841ed280c",
+    "audit.ignore.config.json": "2db0e25dac1397a5f46d13efa9a3539e264b28244cbdbe2f35f2f541f220d5e2",
+    "typescript/copy-overwrite/audit.ignore.config.json": "8635c912e0d41177f545f22248b2acc9f9683b3c04e5ade7829a8fa809966a0d"
+  },
+  "policy_after": {
+    "package.json": "666d391cd4be2d2864e82496ac8ad4f75726e4d9a08b11cef42affa2d90cb2f6",
+    "bun.lock": "ba6aefd79d8ba10d150296889948e99f14d075fb43d0037624fa6ebb74ca0896",
+    "typescript/package-lisa/package.lisa.json": "7def55c6827128599f12306354266781d1a1bc22a3a468471822153841ed280c",
+    "audit.ignore.config.json": "2db0e25dac1397a5f46d13efa9a3539e264b28244cbdbe2f35f2f541f220d5e2",
+    "typescript/copy-overwrite/audit.ignore.config.json": "8635c912e0d41177f545f22248b2acc9f9683b3c04e5ade7829a8fa809966a0d"
+  },
+  "source_head": "39f62275c0675adfb21655dcd17564e4b8d08364",
+  "merge_head": "728d35afbd3de4d522023e0b65fd0f730c94820c"
+}
+
+FROZEN INSTALL
+bun install v1.3.11 (af24e281)
+Resolving dependencies
+Resolved, downloaded and extracted [0]
+169 |     "@istanbuljs/load-nyc-config": {
+                                         ^
+warn: Bun currently does not support nested "overrides"
+   at /private/tmp/lisa-4326-implementation/package.json:169:36
+
+$ bash ./scripts/install-claude-plugins.sh || true; node ./scripts/install-generated-artifact-merge-driver.mjs || true; [ ! -f tsconfig.json ] || tsc -p tsconfig.json || true
+lisa: installation leaves project templates unchanged. Run `lisa apply .` to apply updates, or `lisa doctor` to check freshness.
+lisa-generated-artifact: already registered for 2 path(s)
+$ node -e "if (process.env.INIT_CWD?.includes('.serverless')) process.exit(0); process.exit(1);" || husky install || true
+husky - Git hooks installed
+
++ @codyswann/lisa@4.67.0
+
+14 packages installed [3.98s]
+
+BUILD
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs
+
+Independent review: a05304f31eb5897019fea3f452600d8abf72eb9d95706e0f500dc83f382ae4ad; actualnewB/CI/publication pending.

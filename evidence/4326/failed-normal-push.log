@@ -1,0 +1,50 @@
+{
+  "command": [
+    "git",
+    "push",
+    "origin",
+    "codex/4326-refresh-shared-runtime-security-floors"
+  ],
+  "started_at": "2026-10-03T00:17:50.586928+00:00",
+  "ended_at": "2026-10-03T00:21:53.930810+00:00",
+  "exit": 1,
+  "head": "b3398fa371bf63c5383ec101855fc7e1d6c7efee",
+  "log_sha256": "b95af1b975e1277ce1d3c312aa4b3a3a9ba23af457b40e1bcdcb1e66e044c336",
+  "hook_bypass": false
+}
+[bounded original stdout/stderr excerpt; preceding unrelated fixture chatter omitted]
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/helpers/fs-latency-budget.test.ts > the probe stands for the operation it is a proxy for > agrees with a real corpus deletion measured in the same window
+AssertionError: expected 0.24871806346649503 to be greater than 0.25
+ ❯ tests/unit/helpers/fs-latency-budget.test.ts:178:19
+    176|     const ratio = probeUs / realUs;
+    177|
+    178|     expect(ratio).toBeGreaterThan(1 / AGREEMENT_TOLERANCE);
+       |                   ^
+    179|     expect(ratio).toBeLessThan(AGREEMENT_TOLERANCE);
+    180|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1359 passed (1360)
+      Tests  1 failed | 25665 passed | 2 skipped (25668)
+   Start at  20:18:43
+   Duration  188.28s (transform 13.13s, setup 67.34s, import 106.40s, tests 1238.10s, environment 60ms)
+
+error: script "lisa-test-run" exited with code 1
+error: script "test:cov:unit:push" exited with code 1
+  UNPROVABLE required coverage-adequacy           bun run test:cov:unit:push (exit 1) — 1 test(s) ran and failed. That is a test-correctness failure, so coverage-adequacy was never measured by this run
+      ↳ tests/unit/helpers/fs-latency-budget.test.ts
+  FAILED     required test-correctness            bun run test:cov:unit:push (exit 1) — 1 test(s) ran and failed (proved by the coverage-adequacy run)
+      ↳ tests/unit/helpers/fs-latency-budget.test.ts
+  NOT-RUN    required test-integration            verdict UNKNOWN — never ran; coverage-adequacy failed first and this gate is too expensive to run for information alone
+❌ required gate FAILED: test-correctness — bun run test:cov:unit:push (exit 1) — 1 test(s) ran and failed (proved by the coverage-adequacy run)
+❓ required gate NOT PROVED: coverage-adequacy — bun run test:cov:unit:push (exit 1) — 1 test(s) ran and failed. That is a test-correctness failure, so coverage-adequacy was never measured by this run
+❓ 1 gate(s) UNKNOWN — never ran, verdict not established: test-integration
+   Each of those may pass or fail; this run does not say which. coverage-adequacy failed first and stopped them.
+
+❌ Push blocked: a required gate failed. See the FAILED line above.
+
+error: failed to push some refs to 'https://github.com/CodySwannGT/lisa.git'

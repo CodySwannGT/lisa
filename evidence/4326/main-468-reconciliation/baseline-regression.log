@@ -1,0 +1,29 @@
+Actual main728 inherited vfj in both root/shared managed configs. Their exact JSON payloads are retained; the scope reconciliation records2bad-baseline violations, not a new unit-run claim.
+{
+  "captured_at": "2026-10-03T15:59:53.210181+00:00",
+  "status": "PASS_MANAGED_SCOPE_RECONCILIATION",
+  "records": [
+    {
+      "path": "audit.ignore.config.json",
+      "bad_baseline_sha256": "075f55ebba8f60f58a9c72c4feccad6a820784446004e3139134a241e567a24e",
+      "fixed_sha256": "2db0e25dac1397a5f46d13efa9a3539e264b28244cbdbe2f35f2f541f220d5e2",
+      "all_other_items_identical": true,
+      "removed_only": "GHSA-vfj7-8cjw-p6xm",
+      "remaining_items": 33
+    },
+    {
+      "path": "typescript/copy-overwrite/audit.ignore.config.json",
+      "bad_baseline_sha256": "c19a374d02e01a484cd1965522879839ba7945b3cc06c9b22e05e6742ecb2b09",
+      "fixed_sha256": "8635c912e0d41177f545f22248b2acc9f9683b3c04e5ade7829a8fa809966a0d",
+      "all_other_items_identical": true,
+      "removed_only": "GHSA-vfj7-8cjw-p6xm",
+      "remaining_items": 27
+    }
+  ],
+  "approved_local_sha256": "a7bd5588e0d1edec667ef9331267ba9c4c74c142097111c2e3c5a911578b8d12",
+  "baseline_violations": 2,
+  "fixed_managed_violations": 0,
+  "root_local_still_approved": true,
+  "reason": "Previously observed Knip CLI admits PR-controlled configured glob patterns. Upstream global/unaffected assumptions are contradicted; preserve only this flows approved root-local acceptance.",
+  "runtime_CI_publication_established": false
+}
