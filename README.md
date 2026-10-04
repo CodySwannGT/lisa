@@ -388,6 +388,8 @@ A downstream project can add the same knowledge base on demand rather than recei
 
 ## Extending or contributing to Lisa
 
+Rails consumers can follow the [test helper isolation and existing-consumer migration guide](docs/rails-test-isolation.md).
+
 If you're changing Lisa itself: author agent content and templates at their source, never in generated output, and rebuild so the distributed artifacts regenerate. Lisa applies its own standards to itself, so the same gates that guard downstream projects guard this one — including the requirement to prove your change works.
 
 > **Prompt for your coding agent**
