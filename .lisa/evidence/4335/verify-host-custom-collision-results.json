@@ -1,0 +1,19 @@
+{
+  "captured_at": "2026-10-04T02:53:28.339Z",
+  "probe": "current built installHookCompatibility",
+  "scenario": "Host-authored untagged catalog-name regular file retains original Lisa header, with no ownership manifest",
+  "managed": [],
+  "hostAuthoredPreserved": true,
+  "markerPreserved": true,
+  "beforeCommand": {
+    "status": 0,
+    "stdout": "HOST_CUSTOM_MARKER\n"
+  },
+  "afterCommand": {
+    "status": 0,
+    "stdout": "HOST_CUSTOM_MARKER\n"
+  },
+  "before_sha256": "eb8e056ddbc8770c8aea57a3113176a2f3109d9a2a4c65738447aab9c45cc468",
+  "after_sha256": "eb8e056ddbc8770c8aea57a3113176a2f3109d9a2a4c65738447aab9c45cc468",
+  "built_source_sha256": "a3b614a5f885f17b070da96a64b9b867160dcf54f414285058507e55e36b5f0f"
+}

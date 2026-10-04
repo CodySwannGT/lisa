@@ -31,6 +31,8 @@ export interface LisaManagedManifest {
    * Used to identify which files to delete when they stop being shipped.
    */
   readonly files: readonly string[];
+  /** Intentional copied commands/data retained for already-loaded sessions. */
+  readonly hookCompatibilityFiles?: readonly string[];
 }
 
 /**
@@ -59,16 +61,21 @@ export async function readManagedManifest(
  * Write the Lisa-managed manifest to disk, replacing any existing content.
  * @param destDir - Absolute path to the destination project root
  * @param files - Sorted list of relative-to-`.codex/` file paths Lisa shipped
+ * @param hookCompatibilityFiles Intentional copied legacy paths.
  */
 export async function writeManagedManifest(
   destDir: string,
-  files: readonly string[]
+  files: readonly string[],
+  hookCompatibilityFiles: readonly string[] = []
 ): Promise<void> {
   const codexDir = path.join(destDir, ".codex");
   await fse.ensureDir(codexDir);
   const manifestPath = path.join(codexDir, LISA_MANAGED_MANIFEST_FILENAME);
   const manifest: LisaManagedManifest = {
     files: [...files].sort((a, b) => a.localeCompare(b)),
+    ...(hookCompatibilityFiles.length > 0
+      ? { hookCompatibilityFiles: [...hookCompatibilityFiles] }
+      : {}),
   };
   await writeFile(
     manifestPath,
@@ -122,5 +129,25 @@ function validateManifest(
       `Invalid Lisa-managed manifest at ${manifestPath}: "files" must contain only strings`
     );
   }
-  return { files: Object.freeze(files) };
+  if (
+    obj.hookCompatibilityFiles !== undefined &&
+    (!Array.isArray(obj.hookCompatibilityFiles) ||
+      obj.hookCompatibilityFiles.some(
+        file => typeof file !== "string" || !files.includes(file)
+      ))
+  ) {
+    throw new Error(
+      `Invalid Lisa-managed manifest at ${manifestPath}: compatibility files must be managed files`
+    );
+  }
+  return {
+    files: Object.freeze(files),
+    ...(obj.hookCompatibilityFiles !== undefined
+      ? {
+          hookCompatibilityFiles: Object.freeze(
+            obj.hookCompatibilityFiles as string[]
+          ),
+        }
+      : {}),
+  };
 }

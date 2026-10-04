@@ -1,0 +1,22 @@
+$ node scripts/lib/worktree-dependencies.mjs && oxlint --disable-nested-config && eslint . --quiet
+
+  ! eslint(no-control-regex): Unexpected control characters
+    ,-[src/cli/starter-sync-source.ts:56:9]
+ 55 |     !normalized ||
+ 56 |     /[\\\u0000-\u001f]/u.test(normalized) ||
+    :         ^^^|^^ ^^^|^^
+    :            |      `-- 'U+001F' is a control character.
+    :            `-- 'U+0000' is a control character.
+ 57 |     /^[a-z]:/iu.test(normalized) ||
+    `----
+  help: Avoid matching control characters in regular expressions. If intentional, consider using a Unicode escape instead.
+
+Found 1 warning and 0 errors.
+Finished in 444ms on 2777 files with 110 rules using 18 threads.
+
+/Users/cody/.codex/worktrees/8050/lisa/.lisa/evidence/4335/verify-write-verdict.mjs
+  62:46  error  Define a constant instead of duplicating this literal 6 times  sonarjs/no-duplicate-string
+
+✖ 1 problem (1 error, 0 warnings)
+
+error: script "lint" exited with code 1

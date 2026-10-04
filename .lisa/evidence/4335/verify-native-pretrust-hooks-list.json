@@ -1,0 +1,16 @@
+{
+  "captured_at": "2026-10-04T00:53:42.257Z",
+  "method": "hooks/list",
+  "startupStderr": "2026-10-04T00:53:42.192786Z ERROR codex_app_server: Project-local config, hooks, and exec policies are disabled in the following folders until the project is trusted, but skills still load.\n    1. <anonymous-host>/.codex\n       To load project-local config, hooks, and exec policies, add <anonymous-host> as a trusted project in /Users/cody/.codex/config.toml.\n\n",
+  "entries": [
+    {
+      "cwd": "<anonymous-host>",
+      "sourceCounts": {
+        "plugin": 4
+      },
+      "errors": [],
+      "warnings": [],
+      "projectHooks": []
+    }
+  ]
+}

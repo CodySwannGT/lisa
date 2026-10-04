@@ -1,0 +1,17 @@
+{
+  "captured_at": "2026-10-04T00:03:03.692Z",
+  "scenario": "Source-owned legacy hook with unowned host-authored regular companion and no manifest",
+  "managed": [
+    "hooks/lisa/rubocop-on-edit.sh",
+    "hooks/lisa/_extract-edit-paths.sh",
+    "hooks/lisa/lisa-edit-gate.sh"
+  ],
+  "hostAuthoredPreserved": false,
+  "afterCommand": {
+    "status": 0,
+    "stdout": ""
+  },
+  "before_sha256": "4ba8345658b9b72b24e1eb617a076dd7e86578eecc8131aea6902a067c36ba0d",
+  "after_sha256": "f5f760b4dc1f15851869b44cf830d5f935627e76af30b2291a64a82bfc1bfda9",
+  "built_source_sha256": "c5e2e8e5f3bbb591f5ab550f1ff2fd09cad506aba943cd91f0bcd4c2acf89490"
+}

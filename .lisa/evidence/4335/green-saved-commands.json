@@ -1,0 +1,37 @@
+[
+  {
+    "event": "SessionStart",
+    "id": "inject-rules",
+    "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/inject-rules.sh\""
+  },
+  {
+    "event": "SessionStart",
+    "id": "install-pkgs",
+    "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/install-pkgs.sh\""
+  },
+  {
+    "event": "SessionStart",
+    "id": "setup-jira-cli",
+    "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/setup-jira-cli.sh\""
+  },
+  {
+    "event": "PreToolUse",
+    "id": "block-no-verify",
+    "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/block-no-verify.sh\""
+  },
+  {
+    "event": "PostToolUse",
+    "id": "shell-write-nudge",
+    "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/shell-write-nudge.sh\""
+  },
+  {
+    "event": "PostToolUse",
+    "id": "sg-scan-on-edit",
+    "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/sg-scan-on-edit.sh\""
+  },
+  {
+    "event": "PostToolUse",
+    "id": "rubocop-on-edit",
+    "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/rubocop-on-edit.sh\""
+  }
+]

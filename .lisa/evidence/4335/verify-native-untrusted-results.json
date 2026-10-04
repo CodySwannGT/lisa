@@ -1,0 +1,16 @@
+{
+  "captured_at": "2026-10-03T23:47:44.014Z",
+  "command": "codex exec -C <anonymous-host> --ephemeral --json <bounded verification prompt>",
+  "status": {
+    "code": 0,
+    "signal": null
+  },
+  "thread_ids": [
+    "01a10427-de1e-7093-8805-28f37a0522e0"
+  ],
+  "probe": "fresh-native-session\n",
+  "witnessCount": 0,
+  "stderr": "Reading additional input from stdin...\n2026-10-03T23:44:45.190847Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: \"Bearer realm=\\\"OAuth\\\", resource_metadata=\\\"https://mcp.sentry.dev/.well-known/oauth-protected-resource/mcp\\\"\" })\n2026-10-03T23:44:45.308013Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: \"Bearer resource_metadata=\\\"https://mcp.atlassian.com/.well-known/oauth-protected-resource/v2/mcp\\\"\" })\n2026-10-03T23:44:48.136107Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: \"Bearer realm=\\\"OAuth\\\", resource_metadata=\\\"https://mcp.sentry.dev/.well-known/oauth-protected-resource/mcp\\\"\" })\n2026-10-03T23:44:49.046558Z ERROR codex_models_manager::manager: failed to refresh available models: request timed out\n2026-10-03T23:44:49.360854Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: \"Bearer resource_metadata=\\\"https://mcp.atlassian.com/.well-known/oauth-protected-resource/v2/mcp\\\"\" })\n",
+  "transcript_sha256": "2571d7db2395da8da8af83d12f9681ac2cf86b9373723bf7799f7df86dcaead0",
+  "shipping_head_sha": null
+}

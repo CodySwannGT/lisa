@@ -1,0 +1,34 @@
+{
+  "captured_at": "2026-10-03T22:43:53.893Z",
+  "sourceHashes": {
+    "sg-scan-on-edit.sh": "bc7c1e96a044aa811e96c2d79c8a361a46659f913e07aa1f165a4f2ec55bcbd4",
+    "_extract-edit-paths.sh": "f5f760b4dc1f15851869b44cf830d5f935627e76af30b2291a64a82bfc1bfda9",
+    "lisa-edit-gate.sh": "0a8d9a043f04b15b71bb500ff03cf1e67e4ac292181a5d596ddf078f301e671f"
+  },
+  "payload": "{\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"sample.rb\"}}",
+  "before": {
+    "linked": {
+      "status": 1,
+      "stdout": "ast-grep invoked: scan sample.rb\n",
+      "stderr": ""
+    },
+    "copied": {
+      "status": 1,
+      "stdout": "ast-grep invoked: scan sample.rb\n",
+      "stderr": ""
+    }
+  },
+  "after": {
+    "linked": {
+      "status": 127,
+      "stdout": "",
+      "stderr": "bash: .codex/hooks/lisa/sg-scan-on-edit.sh: No such file or directory\n"
+    },
+    "copied": {
+      "status": 1,
+      "stdout": "ast-grep invoked: scan sample.rb\n",
+      "stderr": ""
+    }
+  },
+  "conclusion": "Regular copies keep entrypoints and sourced helpers operational when the installed package is replaced. Absolute package symlinks lose their targets."
+}

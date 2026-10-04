@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "1791068862s since unix epoch",
+  "overallStatus": "warning",
+  "codexVersion": "0.160.0",
+  "checks": {
+    "app_server.status": {
+      "status": "ok",
+      "summary": "background server is running"
+    },
+    "auth.credentials": {
+      "status": "ok",
+      "summary": "auth is configured"
+    },
+    "config.load": {
+      "status": "warning",
+      "summary": "config loaded"
+    }
+  },
+  "hooks_enabled": true,
+  "capture_scope": "Native version, auth availability, config loading and hooks feature only. Secret storage details and irrelevant provider configuration excluded."
+}

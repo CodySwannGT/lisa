@@ -1,0 +1,374 @@
+{
+  "captured_at": "2026-10-03T23:42:04.395Z",
+  "base_sha": "728d35afbd3de4d522023e0b65fd0f730c94820c",
+  "shipping_head_sha": null,
+  "host": "<anonymous-host>",
+  "saved_commands_sha256": "3d026201fb3c2893d270def0d0f60e81ad0087e9fbaebbef39878412550fa2e3",
+  "runs": [
+    {
+      "id": "git-init",
+      "command": "git init --initial-branch=main",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "Initialized empty Git repository in <anonymous-host>/.git/\n",
+      "stderr": ""
+    },
+    {
+      "id": "git-track-host-files",
+      "command": "git add sample.rb scripts/host-hook.mjs config/application.rb",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "before-block-no-verify",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/block-no-verify.sh\"",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "before-shell-write-nudge",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/shell-write-nudge.sh\"",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "before-sg-scan-on-edit",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/sg-scan-on-edit.sh\"",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "before-rubocop-on-edit",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/rubocop-on-edit.sh\"",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "explicit-full-apply",
+      "command": "node <lisa-worktree>/dist/index.js --no-update-check apply <anonymous-host> --yes --skip-git-check --refresh-templates --harness codex",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "[WARN] --skip-git-check now waives ONLY the clean-tree check; this apply runs in FULL, including every agent emit and the Sonar integration. It used to also select the reduced postinstall-safe subset (CodySwannGT/lisa#3066). Install hooks using --postinstall-safe or LISA_POSTINSTALL=1 now skip template writes. Run lisa apply explicitly when ready to update templates.\n\n========================================\n    Lisa Project Bootstrapper\n========================================\n\n[INFO] Lisa directory: <lisa-worktree>\n[INFO] Destination:    <anonymous-host>\n\n[INFO] Backup directory: /var/folders/_2/29n6gy1s42777swvq24j3fh00000gn/T/lisa-backup-NGTykd\n[INFO] Processing common configurations (all/)...\n[INFO] Processing all/copy-overwrite...\n[OK] Copied: scripts/check-conflict-markers.mjs\n[OK] Copied: scripts/check-npm-publish-landed.mjs\n[OK] Copied: scripts/check-orphaned-branches.mjs\n[OK] Copied: scripts/check-release-package-identity.mjs\n[OK] Copied: scripts/check-state-classification.mjs\n[OK] Copied: scripts/check-third-party-action-pins.mjs\n[OK] Copied: scripts/check-third-party-review-evidence.mjs\n[OK] Copied: scripts/check-workflow-load-failures.mjs\n[OK] Copied: scripts/lib/bounded-spawn.mjs\n[OK] Copied: scripts/lib/gate-failure-diagnosis.mjs\n[OK] Copied: scripts/lib/invoked-as-script.mjs\n[OK] Copied: scripts/lib/kill-marks.mjs\n[OK] Copied: scripts/lib/placeholder-expiry.mjs\n[OK] Copied: scripts/lib/process-tree-runner.mjs\n[OK] Copied: scripts/lib/reusable-workflow-load-adapter.d.mts\n[OK] Copied: scripts/lib/reusable-workflow-load-adapter.mjs\n[OK] Copied: scripts/lib/reusable-workflow-load-failure.d.mts\n[OK] Copied: scripts/lib/reusable-workflow-load-failure.mjs\n[OK] Copied: scripts/lib/reusable-workflow-load-scan.d.mts\n[OK] Copied: scripts/lib/reusable-workflow-load-scan.mjs\n[OK] Copied: scripts/lib/windows-process-job.cs\n[OK] Copied: scripts/lib/windows-process-job.mjs\n[OK] Copied: scripts/lib/windows-process-job.ps1\n[OK] Copied: scripts/lib/worktree-dependencies.d.mts\n[OK] Copied: scripts/lib/worktree-dependencies.mjs\n[OK] Copied: scripts/lisa-command-envelope.mjs\n[OK] Copied: scripts/lisa-commit-msg-gates.mjs\n[OK] Copied: scripts/lisa-cross-worktree-guard.mjs\n[OK] Copied: scripts/lisa-destructive-guard.mjs\n[OK] Copied: scripts/lisa-enforcement-fallback.sh\n[OK] Copied: scripts/lisa-environment-prepare.mjs\n[OK] Copied: scripts/lisa-floor-collisions.mjs\n[OK] Copied: scripts/lisa-gates.mjs\n[OK] Copied: scripts/lisa-hooks/block-blind-automerge.sh\n[OK] Copied: scripts/lisa-hooks/block-direct-issue-create.sh\n[OK] Copied: scripts/lisa-hooks/block-instruction-file-edits.sh\n[OK] Copied: scripts/lisa-hooks/block-managed-file-edits.sh\n[OK] Copied: scripts/lisa-hooks/block-no-verify.sh\n[OK] Copied: scripts/lisa-hooks/block-shell-json-parsing.sh\n[OK] Copied: scripts/lisa-hooks/guard-dedupe.bash\n[OK] Copied: scripts/lisa-hooks/parity-safety-net-heredoc.py\n[OK] Copied: scripts/lisa-hooks/parity-safety-net.sh\n[OK] Copied: scripts/lisa-hooks/sonar-secrets.sh\n[OK] Copied: scripts/lisa-hooks/worktree-binding-guard.mjs\n[OK] Copied: scripts/lisa-hooks/worktree-binding-guard.sh\n[OK] Copied: scripts/lisa-lint-staged-preflight.mjs\n[OK] Copied: scripts/lisa-postinstall.mjs\n[OK] Copied: scripts/lisa-reconcile-policy.mjs\n[OK] Copied: scripts/lisa-run-gates.mjs\n[OK] Copied: scripts/lisa-schema-validate.mjs\n[OK] Copied: scripts/lisa-self-update.mjs\n[OK] Copied: scripts/lisa-test-node.mjs\n[OK] Copied: scripts/lisa-work-item.mjs\n[OK] Copied: scripts/lisa-worktree-guard.mjs\n[OK] Copied: scripts/schemas/lisa-command-envelope.v1.schema.json\n[OK] Copied: scripts/schemas/lisa-state-contract.v1.schema.json\n[INFO] Processing all/copy-contents...\n[OK] Copied: .gitattributes\n[OK] Copied: .gitignore\n[INFO] Processing all/create-only...\n[OK] Created: .agents/rules/README.md\n[OK] Created: .github/workflows/continuous-gates.yml\n[OK] Created: .github/workflows/lisa-update.yml\n[OK] Created: .github/workflows/workflow-load-failure-sweep.yml\n[OK] Created: .lisa/ACCOUNTABILITY.md\n[OK] Created: .lisa/DEPENDENCY_DECISIONS.md\n[OK] Created: .lisa/PROJECT_LEARNINGS.md\n[OK] Created: .lisaignore\n[OK] Created: scripts/remote-agent-aws-setup.sh\n[OK] Created: specs/.keep\n[OK] Created: state/README.md\n[OK] Created: state/state-contract.example.json\n[INFO] Processing all/merge...\n[OK] Copied: .claude/settings.json\n[INFO] Processing rails configurations...\n[INFO] Processing rails/copy-overwrite...\n[OK] Copied: .rubocop.yml\n[OK] Copied: .versionrc\n[OK] Copied: Gemfile.lisa\n[OK] Copied: ast-grep/rule-tests/.gitkeep\n[OK] Copied: ast-grep/rules/no-day-truncating-file-age-predicate.yml\n[OK] Copied: ast-grep/rules/ruby/no-find-by-sql-without-params.yml\n[OK] Copied: ast-grep/rules/ruby/no-params-without-permit.yml\n[OK] Copied: ast-grep/rules/ruby/no-raw-sql-in-where.yml\n[OK] Copied: ast-grep/rules/ruby/no-skip-before-action-without-scope.yml\n[OK] Copied: ast-grep/rules/ruby/no-unsafe-send.yml\n[OK] Copied: ast-grep/rules/ruby/no-update-columns.yml\n[OK] Copied: ast-grep/utils/.gitkeep\n[OK] Copied: config/initializers/version.rb\n[OK] Copied: lefthook.yml\n[OK] Copied: scripts/check-threshold-ratchet.mjs\n[OK] Copied: scripts/lisa-clean-git-env.sh\n[OK] Copied: scripts/lisa-scratch-run.sh\n[OK] Copied: scripts/threshold-ratchet-compare.mjs\n[OK] Copied: scripts/threshold-ratchet-families.mjs\n[OK] Copied: sgconfig.yml\n[INFO] Processing rails/copy-contents...\n[INFO] Backup created: .lisabak/2026-10-03-233932/Gemfile\n[OK] Merged: Gemfile\n[OK] Copied: scripts/lisa-mutation.sh\n[INFO] Processing rails/create-only...\n[OK] Created: .github/workflows/ci.yml\n[OK] Created: .github/workflows/deploy.yml\n[OK] Created: .mise.toml\n[OK] Created: .mutant.yml\n[OK] Created: .reek.yml\n[OK] Created: .rspec\n[OK] Created: .rubocop.local.yml\n[OK] Created: .rubocop_todo.yml\n[OK] Created: .simplecov\n[OK] Created: VERSION\n[OK] Created: mutation.gate.yml\n[OK] Created: rubocop.thresholds.yml\n[OK] Created: simplecov.thresholds.json\n[OK] Created: sonar-project.properties\n[OK] Created: spec/rails_helper.rb\n[OK] Created: spec/spec_helper.rb\n[INFO] Processing rails/merge...\n[INFO] Backup created: .lisabak/2026-10-03-233932/.claude/settings.json\n[OK] Merged: .claude/settings.json\n[INFO] Processing deletions for all...\n[INFO] Kept (protected): .coderabbit.yml\n[INFO] Kept (protected): scripts/setup-deploy-key.sh\n[INFO] Kept (protected): HUMAN.md\n[INFO] Processing deletions for rails...\n[INFO] Running migrations...\n[OK] registered the lisa-learnings merge driver\n[OK] Added 3 harness glob(s) to sonar.exclusions (.codex/**, .opencode/**, .agents/**)\n[OK] Pinned 3 Lisa reusable-workflow caller file(s) at 728d35afbd3de4d522023e0b65fd0f730c94820c (v4.68.0)\n[INFO] Codex emit: 30 agents, 1 repository enforcement fallback plus plugin-bundled hooks, 190 native skills from 2 project plugins, 1 MCP servers, settings created\n[INFO] Instruction files: reconciled host-rules pointer in AGENTS.md\n[INFO] Registering plugins with Claude Code (project scope)...\n[OK] Registered plugin: lisa@lisa\n[WARN] Could not register plugin: safety-net@cc-marketplace\n[OK] Registered plugin: code-simplifier@claude-plugins-official\n[OK] Registered plugin: code-review@claude-plugins-official\n[OK] Registered plugin: coderabbit@claude-plugins-official\n[OK] Registered plugin: sentry@claude-plugins-official\n[OK] Registered plugin: skill-creator@claude-plugins-official\n[OK] Registered plugin: ruby-lsp@claude-plugins-official\n[OK] Registered plugin: lisa-rails@lisa\n[OK] Registered plugin: impeccable@impeccable\n[OK] Updated marketplace: lisa\n\n========================================\n    Lisa Installation Complete!\n========================================\n\n  Copied:      108 files\n  Skipped:       0 files (identical or create-only)\n  Overwritten:   0 files (approved or Lisa-owned)\n  Out of date:   0 files (managed templates changed; NOT updated)\n  Appended:      0 files (copy-contents)\n  Merged:        2 files (JSON merged)\n  Deleted:       0 files\n  Migrations:    3 files applied\n\nProject types: all rails\n\n[INFO] Postinstall reconciliation skipped: package.json unchanged by this apply\n",
+      "stderr": ""
+    },
+    {
+      "id": "after-block-no-verify",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/block-no-verify.sh\"",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "after-shell-write-nudge",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/shell-write-nudge.sh\"",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "after-sg-scan-on-edit",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/sg-scan-on-edit.sh\"",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "after-rubocop-on-edit",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/rubocop-on-edit.sh\"",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "legacy-real-deny",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/block-no-verify.sh\"",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "{\n  \"hookSpecificOutput\": {\n    \"hookEventName\": \"PreToolUse\",\n    \"permissionDecision\": \"deny\",\n    \"permissionDecisionReason\": \"Blocked: this command bypasses pre-commit/pre-push hooks (--no-verify or its short form -n, HUSKY=0, or core.hooksPath disabling). `git commit -n` and a cluster such as `-nm \\\"msg\\\"` skip pre-commit exactly as completely as the long flag. Fix the underlying issue (security audit, lint, typecheck, tests, formatting) instead. If a fix is genuinely impossible, ask the user to make the risk-acceptance decision and add a specific documented ignore; never bypass the hook.\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "id": "fallback-real-block",
+      "command": "bash -c /bin/bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/scripts/lisa-enforcement-fallback.sh\"",
+      "status": 2,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": "Blocked: this command bypasses pre-commit/pre-push hooks (--no-verify or its\nshort form -n, HUSKY=0, or core.hooksPath disabling). `git commit -n` and a\ncluster such as `-nm \"msg\"` skip pre-commit exactly as completely as the long\nflag. Fix the underlying issue (security audit, lint,\ntypecheck, tests, formatting) instead. If a fix is genuinely impossible, ask the\nuser to make the risk-acceptance decision and add a specific documented ignore;\nnever bypass the hook.\nRefused by <anonymous-host>/scripts/lisa-hooks/block-no-verify.sh (lisa 4.68.0)\nworktree-binding-guard: payload carries no session id or cwd; binding is NOT enforced\n"
+    },
+    {
+      "id": "legacy-legitimate-command",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/block-no-verify.sh\"",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "fallback-legitimate-command",
+      "command": "bash -c /bin/bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/scripts/lisa-enforcement-fallback.sh\"",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": "worktree-binding-guard: payload carries no session id or cwd; binding is NOT enforced\n"
+    },
+    {
+      "id": "legacy-real-shell-write-notice",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/shell-write-nudge.sh\"",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": "Lisa notice: prefer Edit/Write for tracked file edits so lint-on-edit can see the change.\n"
+    },
+    {
+      "id": "real-rubocop-before",
+      "command": "bundle exec rubocop --only Layout/SpaceAroundOperators sample.rb",
+      "status": 1,
+      "signal": null,
+      "error": null,
+      "stdout": "Inspecting 1 file\nC\n\nOffenses:\n\nsample.rb:2:6: C: [Correctable] Layout/SpaceAroundOperators: Surrounding space missing for operator =.\nvalue=1\n     ^\n\n1 file inspected, 1 offense detected, 1 offense autocorrectable\n",
+      "stderr": ""
+    },
+    {
+      "id": "legacy-real-rubocop-autocorrect",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/rubocop-on-edit.sh\"",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "Inspecting 1 file\n.\n\n1 file inspected, no offenses detected\n",
+      "stderr": ""
+    },
+    {
+      "id": "legacy-real-rubocop-error",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/rubocop-on-edit.sh\"",
+      "status": 1,
+      "signal": null,
+      "error": null,
+      "stdout": "Inspecting 1 file\nF\n\nOffenses:\n\nsample.rb:1:1: F: Lint/Syntax: expected an end to close the def statement\n(Using Ruby 3.4 parser; configure using TargetRubyVersion parameter, under AllCops)\ndef broken(\n^^^\nsample.rb:1:12: F: Lint/Syntax: unexpected end-of-input; expected a ) to close the parameters\n(Using Ruby 3.4 parser; configure using TargetRubyVersion parameter, under AllCops)\ndef broken( ...\n           \n\n1 file inspected, 2 offenses detected\n",
+      "stderr": ""
+    },
+    {
+      "id": "legacy-real-scanner-error",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/sg-scan-on-edit.sh\"",
+      "status": 1,
+      "signal": null,
+      "error": null,
+      "stdout": "error[no-unsafe-send]: Avoid using send/public_send with dynamic input — this can execute arbitrary methods. Use a whitelist or case statement instead.\n  ┌─ sample.rb:1:1\n  │\n1 │ object.send(params[:action])\n  │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  │\n  = If intentional, extract the method name into a constant whitelist and validate before calling.\n\nwarning[no-params-without-permit]: Direct params access without strong parameters. Use params.require(:model).permit(:attr1, :attr2) instead.\n  ┌─ sample.rb:1:13\n  │\n1 │ object.send(params[:action])\n  │             ^^^^^^^^^^^^^^^\n  │\n  = Define a private method like def user_params; params.require(:user).permit(:name, :email); end\n\nError: 1 error(s) found in code.\nHelp: Scan succeeded and found error level diagnostics in the codebase.\n\n",
+      "stderr": ""
+    },
+    {
+      "id": "legacy-real-scanner-clean",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/sg-scan-on-edit.sh\"",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "repeat-full-apply",
+      "command": "node <lisa-worktree>/dist/index.js --no-update-check apply <anonymous-host> --yes --skip-git-check --refresh-templates --harness codex",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "[WARN] --skip-git-check now waives ONLY the clean-tree check; this apply runs in FULL, including every agent emit and the Sonar integration. It used to also select the reduced postinstall-safe subset (CodySwannGT/lisa#3066). Install hooks using --postinstall-safe or LISA_POSTINSTALL=1 now skip template writes. Run lisa apply explicitly when ready to update templates.\n\n========================================\n    Lisa Project Bootstrapper\n========================================\n\n[INFO] Lisa directory: <lisa-worktree>\n[INFO] Destination:    <anonymous-host>\n\n[INFO] Backup directory: /var/folders/_2/29n6gy1s42777swvq24j3fh00000gn/T/lisa-backup-A35qVY\n[INFO] Processing common configurations (all/)...\n[INFO] Processing all/copy-overwrite...\n[INFO] Processing all/copy-contents...\n[INFO] Processing all/create-only...\n[INFO] Processing all/merge...\n[INFO] Backup created: .lisabak/2026-10-03-234059/.claude/settings.json\n[OK] Merged: .claude/settings.json\n[INFO] Processing rails configurations...\n[INFO] Processing rails/copy-overwrite...\n[INFO] Backup created: .lisabak/2026-10-03-234059/.rubocop.yml\n[OK] Overwritten: .rubocop.yml\n[INFO] Processing rails/copy-contents...\n[INFO] Processing rails/create-only...\n[INFO] Processing rails/merge...\n[INFO] Processing deletions for all...\n[INFO] Kept (protected): .coderabbit.yml\n[INFO] Kept (protected): scripts/setup-deploy-key.sh\n[INFO] Kept (protected): HUMAN.md\n[INFO] Processing deletions for rails...\n[INFO] Running migrations...\n[INFO] Codex emit: 30 agents, 1 repository enforcement fallback plus plugin-bundled hooks, 190 native skills from 2 project plugins, 1 MCP servers, settings merged\n[INFO] Registering plugins with Claude Code (project scope)...\n[OK] Registered plugin: lisa@lisa\n[WARN] Could not register plugin: safety-net@cc-marketplace\n[OK] Registered plugin: code-simplifier@claude-plugins-official\n[OK] Registered plugin: code-review@claude-plugins-official\n[OK] Registered plugin: coderabbit@claude-plugins-official\n[OK] Registered plugin: sentry@claude-plugins-official\n[OK] Registered plugin: skill-creator@claude-plugins-official\n[OK] Registered plugin: ruby-lsp@claude-plugins-official\n[OK] Registered plugin: lisa-rails@lisa\n[OK] Registered plugin: impeccable@impeccable\n[OK] Updated marketplace: lisa\n\n========================================\n    Lisa Installation Complete!\n========================================\n\n  Copied:        0 files\n  Skipped:     108 files (identical or create-only)\n  Overwritten:   1 files (approved or Lisa-owned)\n  Out of date:   0 files (managed templates changed; NOT updated)\n  Appended:      0 files (copy-contents)\n  Merged:        1 files (JSON merged)\n  Deleted:       0 files\n\nProject types: all rails\n\n[INFO] Postinstall reconciliation skipped: package.json unchanged by this apply\n",
+      "stderr": ""
+    },
+    {
+      "id": "package-replacement-block-no-verify",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/block-no-verify.sh\"",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "package-replacement-shell-write-nudge",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/shell-write-nudge.sh\"",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "package-replacement-sg-scan-on-edit",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/sg-scan-on-edit.sh\"",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "package-replacement-rubocop-on-edit",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/rubocop-on-edit.sh\"",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "package-replacement-old-deny",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/block-no-verify.sh\"",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "{\n  \"hookSpecificOutput\": {\n    \"hookEventName\": \"PreToolUse\",\n    \"permissionDecision\": \"deny\",\n    \"permissionDecisionReason\": \"Blocked: this command bypasses pre-commit/pre-push hooks (--no-verify or its short form -n, HUSKY=0, or core.hooksPath disabling). `git commit -n` and a cluster such as `-nm \\\"msg\\\"` skip pre-commit exactly as completely as the long flag. Fix the underlying issue (security audit, lint, typecheck, tests, formatting) instead. If a fix is genuinely impossible, ask the user to make the risk-acceptance decision and add a specific documented ignore; never bypass the hook.\"\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "id": "package-replacement-fallback-block",
+      "command": "bash -c /bin/bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/scripts/lisa-enforcement-fallback.sh\"",
+      "status": 2,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": "Blocked: this command bypasses pre-commit/pre-push hooks (--no-verify or its\nshort form -n, HUSKY=0, or core.hooksPath disabling). `git commit -n` and a\ncluster such as `-nm \"msg\"` skip pre-commit exactly as completely as the long\nflag. Fix the underlying issue (security audit, lint,\ntypecheck, tests, formatting) instead. If a fix is genuinely impossible, ask the\nuser to make the risk-acceptance decision and add a specific documented ignore;\nnever bypass the hook.\nRefused by <anonymous-host>/scripts/lisa-hooks/block-no-verify.sh (lisa 4.68.0)\nworktree-binding-guard: payload carries no session id or cwd; binding is NOT enforced\n"
+    },
+    {
+      "id": "package-replacement-real-scanner",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/sg-scan-on-edit.sh\"",
+      "status": 1,
+      "signal": null,
+      "error": null,
+      "stdout": "warning[no-params-without-permit]: Direct params access without strong parameters. Use params.require(:model).permit(:attr1, :attr2) instead.\n  ┌─ sample.rb:1:13\n  │\n1 │ object.send(params[:action])\n  │             ^^^^^^^^^^^^^^^\n  │\n  = Define a private method like def user_params; params.require(:user).permit(:name, :email); end\n\nerror[no-unsafe-send]: Avoid using send/public_send with dynamic input — this can execute arbitrary methods. Use a whitelist or case statement instead.\n  ┌─ sample.rb:1:1\n  │\n1 │ object.send(params[:action])\n  │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  │\n  = If intentional, extract the method name into a constant whitelist and validate before calling.\n\nError: 1 error(s) found in code.\nHelp: Scan succeeded and found error level diagnostics in the codebase.\n\n",
+      "stderr": ""
+    },
+    {
+      "id": "package-replacement-real-rubocop",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/rubocop-on-edit.sh\"",
+      "status": 1,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": "cannot load such file -- rubocop-rails\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/feature_loader.rb:46:in 'RuboCop::FeatureLoader#load'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/feature_loader.rb:21:in 'RuboCop::FeatureLoader.load'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/plugin/loader.rb:87:in 'RuboCop::Plugin::Loader.require_plugin'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/plugin/loader.rb:71:in 'RuboCop::Plugin::Loader.constantize'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/plugin/loader.rb:63:in 'RuboCop::Plugin::Loader.constantize_plugin_from'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/plugin/loader.rb:25:in 'block in RuboCop::Plugin::Loader.load'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/plugin/loader.rb:22:in 'Hash#each'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/plugin/loader.rb:22:in 'Enumerable#filter_map'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/plugin/loader.rb:22:in 'RuboCop::Plugin::Loader.load'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/plugin.rb:38:in 'RuboCop::Plugin.integrate_plugins'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/config_loader_resolver.rb:15:in 'RuboCop::ConfigLoaderResolver#resolve_plugins'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/config_loader.rb:62:in 'RuboCop::ConfigLoader.load_file'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/config_loader.rb:129:in 'RuboCop::ConfigLoader.configuration_from_file'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/config_store.rb:73:in 'RuboCop::ConfigStore#for_dir'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/config_store.rb:52:in 'RuboCop::ConfigStore#for_pwd'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/result_cache.rb:92:in 'block in RuboCop::ResultCache.cache_root'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/cache_config.rb:9:in 'RuboCop::CacheConfig.root_dir'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/result_cache.rb:91:in 'RuboCop::ResultCache.cache_root'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/cli.rb:170:in 'RuboCop::CLI#act_on_options'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/cli.rb:49:in 'block in RuboCop::CLI#run'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/cli.rb:88:in 'RuboCop::CLI#profile_if_needed'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/lib/rubocop/cli.rb:45:in 'RuboCop::CLI#run'\n/private<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/gems/rubocop-1.91.0/exe/rubocop:15:in '<top (required)>'\n/Users/cody/.local/share/mise/installs/ruby/4.0.1/lib/ruby/4.0.0/rubygems.rb:303:in 'Kernel#load'\n/Users/cody/.local/share/mise/installs/ruby/4.0.1/lib/ruby/4.0.0/rubygems.rb:303:in 'Gem.activate_and_load_bin_path'\n<anonymous-tool-host>/vendor/bundle/ruby/4.0.0/bin/rubocop:25:in '<top (required)>'\n/Users/cody/.local/share/mise/installs/ruby/4.0.1/lib/ruby/4.0.0/bundler/cli/exec.rb:61:in 'Kernel.load'\n/Users/cody/.local/share/mise/installs/ruby/4.0.1/lib/ruby/4.0.0/bundler/cli/exec.rb:61:in 'Bundler::CLI::Exec#kernel_load'\n/Users/cody/.local/share/mise/installs/ruby/4.0.1/lib/ruby/4.0.0/bundler/cli/exec.rb:24:in 'Bundler::CLI::Exec#run'\n/Users/cody/.local/share/mise/installs/ruby/4.0.1/lib/ruby/4.0.0/bundler/cli.rb:500:in 'Bundler::CLI#exec'\n/Users/cody/.local/share/mise/installs/ruby/4.0.1/lib/ruby/4.0.0/bundler/vendor/thor/lib/thor/command.rb:28:in 'Bundler::Thor::Command#run'\n/Users/cody/.local/share/mise/installs/ruby/4.0.1/lib/ruby/4.0.0/bundler/vendor/thor/lib/thor/invocation.rb:127:in 'Bundler::Thor::Invocation#invoke_command'\n/Users/cody/.local/share/mise/installs/ruby/4.0.1/lib/ruby/4.0.0/bundler/vendor/thor/lib/thor.rb:538:in 'Bundler::Thor.dispatch'\n/Users/cody/.local/share/mise/installs/ruby/4.0.1/lib/ruby/4.0.0/bundler/cli.rb:35:in 'Bundler::CLI.dispatch'\n/Users/cody/.local/share/mise/installs/ruby/4.0.1/lib/ruby/4.0.0/bundler/vendor/thor/lib/thor/base.rb:584:in 'Bundler::Thor::Base::ClassMethods#start'\n/Users/cody/.local/share/mise/installs/ruby/4.0.1/lib/ruby/4.0.0/bundler/cli.rb:29:in 'Bundler::CLI.start'\n/Users/cody/.local/share/mise/installs/ruby/4.0.1/lib/ruby/gems/4.0.0/gems/bundler-4.0.3/exe/bundle:28:in 'block in <top (required)>'\n/Users/cody/.local/share/mise/installs/ruby/4.0.1/lib/ruby/4.0.0/bundler/friendly_errors.rb:118:in 'Bundler.with_friendly_errors'\n/Users/cody/.local/share/mise/installs/ruby/4.0.1/lib/ruby/gems/4.0.0/gems/bundler-4.0.3/exe/bundle:20:in '<top (required)>'\n/Users/cody/.local/share/mise/installs/ruby/4.0.1/lib/ruby/4.0.0/rubygems.rb:303:in 'Kernel#load'\n/Users/cody/.local/share/mise/installs/ruby/4.0.1/lib/ruby/4.0.0/rubygems.rb:303:in 'Gem.activate_and_load_bin_path'\n/Users/cody/.local/share/mise/installs/ruby/4.0.1/bin/bundle:25:in '<main>'\n"
+    },
+    {
+      "id": "package-replacement-real-shell-write",
+      "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/shell-write-nudge.sh\"",
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "",
+      "stderr": "Lisa notice: prefer Edit/Write for tracked file edits so lint-on-edit can see the change.\n"
+    }
+  ],
+  "generatedHooks": {
+    "hooks": {
+      "PreToolUse": [
+        {
+          "matcher": "Bash|Edit|Write|apply_patch",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "node scripts/host-hook.mjs",
+              "timeout": 10
+            }
+          ]
+        },
+        {
+          "matcher": "Bash|Edit|Write|apply_patch",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "/bin/bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/scripts/lisa-enforcement-fallback.sh\"",
+              "_lisaManaged": true,
+              "_lisaId": "enforcement-fallback",
+              "timeout": 30,
+              "statusMessage": "Checking Lisa enforcement policy"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "regularCopies": [
+    {
+      "name": "block-no-verify.sh",
+      "isRegular": true
+    },
+    {
+      "name": "shell-write-nudge.sh",
+      "isRegular": true
+    },
+    {
+      "name": "sg-scan-on-edit.sh",
+      "isRegular": true
+    },
+    {
+      "name": "rubocop-on-edit.sh",
+      "isRegular": true
+    },
+    {
+      "name": "_extract-edit-paths.sh",
+      "isRegular": true
+    },
+    {
+      "name": "lisa-edit-gate.sh",
+      "isRegular": true
+    }
+  ],
+  "rubocopCorrected": "# frozen_string_literal: true\n\nvalue = 1\nputs value\n",
+  "repeatHooksStable": true,
+  "repeatManifestStable": true,
+  "sourceHashes": {
+    "src/codex/hooks-installer.ts": "684937f518f65e1b758224c3de77035c6d3445cd57fde44e08c3b98dfcc56b9c",
+    "src/codex/project-overlay.ts": "71080a5d0e9c47eab6e1080100f139640401de26b5d6bbff7805ea1496a67b64",
+    "src/codex/project-hooks-cleanup.ts": "86d5aedc304fa6a4bc14c399b8125c84834501fed528bbfa63dacb4ef201c056",
+    "dist/codex/hooks-installer.js": "c5e2e8e5f3bbb591f5ab550f1ff2fd09cad506aba943cd91f0bcd4c2acf89490",
+    "dist/codex/project-overlay.js": "2e0fbd84c2d5e0ed64988d3cf6cee343f8d7b35281596246ce1eef7b98982fc3",
+    "dist/codex/project-hooks-cleanup.js": "7519f28bb2ae8f0c70ec423b7a72b4e16036388d39355f9b8eff4e329b35ea61",
+    "dist/index.js": "10c4c29ef3e49fc3769d367f4c086e349700001dfe031262deda113677cbf865"
+  },
+  "trackedPatchSha256": "1a559e642af2b57ee3ebe85ab5e81dc6a2c47b05e047ba89023bbe3a2a1f42fa",
+  "localPatchSourceHashes": {
+    "README.md": "def9314ef225a9675d996f061ab1bffe13798629864f009b8282b3cef10a9827",
+    "src/cli/doctor-legacy-overlay.ts": "3d450d0fa0a3f7b76c9a91ec8c374ca3b00e97d8a0ecfb70041ee76b3aac519f",
+    "src/codex/hooks-installer.ts": "684937f518f65e1b758224c3de77035c6d3445cd57fde44e08c3b98dfcc56b9c",
+    "src/codex/manifest.ts": "e36811ef44362711cffb53e9f8dce6375ca1eb4d3d1f1d51d704cf6fc10cb6d8",
+    "src/codex/project-hooks-cleanup.ts": "86d5aedc304fa6a4bc14c399b8125c84834501fed528bbfa63dacb4ef201c056",
+    "src/codex/project-overlay.ts": "71080a5d0e9c47eab6e1080100f139640401de26b5d6bbff7805ea1496a67b64",
+    "src/core/upstream-evidence-manifest.ts": "f0e8d40a047a0ed50c3fdd054e6e37f000be2915af1926c39863c18829ed55bc",
+    "tests/integration/codex-active-hooks.test.ts": "25813dfe8701cc02e7f145a6763b329600b674071abdfecfd0f5074b3bb763ff",
+    "tests/unit/codex/hook-compatibility.test.ts": "76b7969a8b983bca990f8db1611c0e825e000a34d5ade8128c73bc692f999495",
+    "tests/unit/codex/project-hooks-cleanup.test.ts": "c101fbdae5cce02fa918871ca34f8adc22d8ca4f1643e46aefbdf30bf3df16ea"
+  },
+  "localSourceFingerprintSha256": "82618db0af2237a9fcf23da8a2f8e7247d940ea792803e0cf35c9446e5291717",
+  "limitations": [
+    "Local uncommitted patch only; shipping identity pending",
+    "Real ast-grep uses shipped Rails no-unsafe-send error rule in anonymous supported-stack fixture",
+    "RuboCop uses normally installed isolated verifier bundle via BUNDLE_GEMFILE"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "src/codex/project-hooks-cleanup.ts": "dd5417924e1056a93631364d3c7e311baa5af73b957f1470b47fbecf182717b8",
+  "src/codex/project-overlay.ts": "75eac1e49624d3a2ea9e570830eaee29256fdcece039795d22009f3b6563281d",
+  "src/codex/enforcement-fallback-installer.ts": "41ef1ed63e902d94bac7932a3881f293d811a83e7d3259d298920b29e9661311",
+  "src/codex/hooks-installer.ts": "461d860842364e4916a9aa8062c4fc8823fdd4a342a65b184944ded813857e8b",
+  "src/codex/manifest.ts": "c0e1600f1ec9df8179c31b3847cac3ace1aacba4376986442c7d83e42475a63e",
+  "src/cli/doctor-legacy-overlay.ts": "401926f7bf7d4ac907cdd14d2bf18b906138cb92db6fb232fdd32f69eb13d877",
+  "src/core/lisa.ts": "5af184009bb006aabdd81d5cef19b68f9fd089d445e082a4d8a1138c57c8bebd",
+  "src/codex/scripts/shell-write-nudge.sh": "b04ceb3328290c5bacaedced35dffaecf97241953b5b886e13431393a4462720",
+  "src/codex/scripts/sg-scan-on-edit.sh": "bc7c1e96a044aa811e96c2d79c8a361a46659f913e07aa1f165a4f2ec55bcbd4",
+  "src/codex/scripts/rubocop-on-edit.sh": "8bb9b44c2d97768762e1a12580f7a595a947f733726849ee85c93b2f83f5867a",
+  "src/codex/scripts/lisa-edit-gate.sh": "0a8d9a043f04b15b71bb500ff03cf1e67e4ac292181a5d596ddf078f301e671f",
+  "src/opencode/hooks-installer.ts": "338da7d8325f320c4a98d10d06490fa5ea1818ff9ba42bcc095562c093ad49ca",
+  "scripts/copy-codex-scripts.mjs": "2d7082d5033088c85f66995aee9e3ee1e7751435e65bfde8e1cb002e6689d476",
+  "tests/unit/codex/project-hooks-cleanup.test.ts": "91484d072e1bf7806f485191c3569326f2f53571d881521f312619d77fcaa986",
+  "tests/unit/codex/hooks-installer.test.ts": "5f83a5de53dc64ffba5afd8ba9ad02a82bf6cf19d9e25ba6c86942ccdb4c2da5",
+  "tests/integration/lisa.test.ts": "955e24ae37d2b78b8a7b24f0ea232d9ab6bfc6015c98c6483679cf9aaa3e7d74"
+}

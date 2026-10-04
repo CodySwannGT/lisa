@@ -1,0 +1,100 @@
+{
+  "plan": "Preserve active Codex commands through explicit hook migration",
+  "work_item_ref": "CodySwannGT/lisa#4335",
+  "tracker_provider": "github",
+  "branch": "codex/4335-active-hook-retirement",
+  "base_sha": "728d35afbd3de4d522023e0b65fd0f730c94820c",
+  "target_branch": "main",
+  "roster": ".lisa/roster/CodySwannGT-lisa-4335.md",
+  "delivery_boundary": "reviewable local patch and independent local verification; parent owns subsequent review and submission",
+  "local_source_sha256": {
+    "src/codex/hooks-installer.ts": "f416dff70db62658466baf578aaf6432cedfaacf791d24112a4774345066a9e8",
+    "dist/codex/hooks-installer.js": "a3b614a5f885f17b070da96a64b9b867160dcf54f414285058507e55e36b5f0f"
+  },
+  "shipping_identity": null,
+  "mld_candidates": [],
+  "local_result": {
+    "status": "ready_for_parent_review",
+    "implementation_paths": ".lisa/evidence/4335/green-worker-final-gates.json",
+    "independent_review": ".lisa/verification-CodySwannGT-lisa-4335.md",
+    "red": ".lisa/evidence/4335/red-results.json",
+    "green": ".lisa/evidence/4335/verify-boundary-results.json",
+    "native": ".lisa/evidence/4335/verify-native-results.json",
+    "native_session": "01a104d8-705b-7d03-9715-20a0cdf97428",
+    "focused_units_passed": 59,
+    "full_apply_integration_passed": 1,
+    "postinstall_full_apply_controls_passed": 3,
+    "fallback_overlay_controls_passed": 7,
+    "full_lint": ".lisa/evidence/4335/coordinator-ready-lint.txt",
+    "typecheck": ".lisa/evidence/4335/coordinator-ready-typecheck.txt",
+    "final_indexed_checks": "passed",
+    "limitations": ["Native hooks were reviewed and trusted through the supported UI", "Native version-staleness diagnostic remains recorded", "Other harnesses have no equivalent destructive retirement surface in bounded source review; their native runtimes were not executed", "Parent retained review and shipping contracts remain outstanding"]
+  },
+  "work_item_context": "/Users/cody/.codex/worktrees/8050/lisa/.lisa/work-item-context.md",
+  "comment_inventory": [
+    "5970067571: original filing records audit-prioritization and evidence obligations; flags decision,constraint,repro",
+    "5974061058: automation records direct current user authorization, preserves history and delegates roster decision to parent; flags decision,constraint",
+    "5974063072: documented Lisa claim starts the implement flow; flags decision"
+  ],
+  "effective_completion_condition": "Saved exact legacy Pre/Post commands execute after explicit full apply and refresh, prohibited operations return blocking verdicts from real guard code, intended post-edit behavior executes, current fresh generated hooks execute, host hooks survive, and repeated apply and package replacement remain stable. Observe the actual fresh native Codex boundary. Shipping verification stays in_progress until the parent supplies shipping identity.",
+  "tasks": [
+    {
+      "id": "research",
+      "owner": "/root/explorer_4335",
+      "status": "complete",
+      "metadata": {
+        "owner": "/root/explorer_4335",
+        "plan": "Preserve active Codex commands through explicit hook migration",
+        "type": "spike",
+        "acceptance_criteria": ["Recover exact historical commands and reproduce genuine missing-file exit 127 across explicit apply before designing a correction", "Return a minimal ownership-based functional compatibility design and measured agent-parity surfaces"],
+        "relevant_documentation": ".lisa/research-CodySwannGT-lisa-4335.md; Codex project-overlay, project-hooks-cleanup, hooks-installer, enforcement-fallback-installer, manifest and doctor-legacy-overlay; core postinstall boundary; focused Codex suites and CLI integration",
+        "work_item_context": "/Users/cody/.codex/worktrees/8050/lisa/.lisa/work-item-context.md",
+        "testing_requirements": ["Exact commands saved before apply and executed afterwards with safe payloads in an anonymous disposable host"],
+        "skills": ["lisa-implement"],
+        "learnings": [],
+        "required_access": [{"tool":"GitHub repository/history","probe":"verified full issue/vendor bundle and origin fetch","status":"pass"},{"tool":"npm registry","probe":"HTTP 200 for baseline and migration package metadata","status":"pass"}],
+        "verification": {"type":"cli-test","command":"Execute saved command strings after baseline explicit full apply in the disposable host","expected":"All four deleted legacy entry points reproduce missing-file exit 127"}
+      }
+    },
+    {
+      "id": "implement",
+      "owner": "/root/worker_4335",
+      "status": "complete",
+      "blockedBy": ["research"],
+      "metadata": {
+        "owner":"/root/worker_4335",
+        "plan":"Preserve active Codex commands through explicit hook migration",
+        "type":"bug",
+        "acceptance_criteria":["Every already-loaded legacy command remains executable and functional after explicit full apply including refresh", "Fresh sessions use the current fallback and host-authored hooks remain intact"],
+        "relevant_documentation":".lisa/research-CodySwannGT-lisa-4335.md and red-results.json; owned source catalog/copy closure, postinstall-only prior mitigation, manifest/doctor ownership and Codex-specific parity findings",
+        "work_item_context":"/Users/cody/.codex/worktrees/8050/lisa/.lisa/work-item-context.md",
+        "testing_requirements":["Focused upstream unit/integration coverage plus actual saved-command execution", "Real guard rejection and functional lint/shell-write behavior", "Repeated apply and symlink/package replacement", "Preserve unowned regular and symlink hook/helper/rule behavior using positive package/source ownership", "Run the package-identity branch under actual compiled Node ESM", "Build dist before TypeScript integration tests"],
+        "skills":["lisa-implement"],
+        "learnings":[],
+        "required_access":[{"tool":"worktree-local Node/Bun dependencies","probe":"CI=1 bun install --frozen-lockfile installed 1075 packages; bun run build:dist exited 0","status":"pass"}],
+        "verification":{"type":"cli-test","command":"Apply the local built package to the disposable host and replay every saved command with safe and prohibited payloads","expected":"No missing scripts, real rejection of prohibited operations, functional post-edit policy and stable repeated apply"}
+      }
+    },
+    {
+      "id":"verify",
+      "owner":"/root/default_verify_4335",
+      "status":"complete",
+      "blockedBy":["implement"],
+      "metadata":{
+        "owner":"/root/default_verify_4335",
+        "plan":"Preserve active Codex commands through explicit hook migration",
+        "type":"task",
+        "acceptance_criteria":["Independently reproduce GREEN behavior from the local patch and inspect enforcement and parity", "Run an actual fresh native Codex session against the anonymous host", "Write schema-v2 verdict in_progress until shipping identity exists"],
+        "relevant_documentation":".lisa/research-CodySwannGT-lisa-4335.md; exact saved command replay in red-results.json; subsequent worker patch and functional compatibility closure",
+        "work_item_context":"/Users/cody/.codex/worktrees/8050/lisa/.lisa/work-item-context.md",
+        "testing_requirements":["Observe real command results independently of implementation tests", "Do not establish runtime behavior from source regex alone", "Record evidence/source hashes and limits"],
+        "skills":["lisa-implement"],
+        "learnings":[],
+        "required_access":[{"tool":"native Codex CLI","probe":"codex login status reports ChatGPT login; normal codex exec --ephemeral ran pwd with exit 0 and completed; transcript .lisa/evidence/4335/native-preflight.jsonl","status":"pass"}],
+        "verification":{"type":"cli-test","command":"Replay legacy/current hooks in a separate anonymous disposable host and execute a fresh native Codex session","expected":"Commands stay functional, guard blocks occur, host hooks survive, and the native fresh boundary runs the current fallback"}
+      }
+    }
+  ],
+  "shipping_requirements":["Parent security/quality review", "Normal git-submit and drive-to-merge gates", "CI named regression-spec execution proof", "Released artifact/runtime verification and canonical shipping identity", "Tracker evidence, usage and terminal lifecycle readback"],
+  "status":"in_progress"
+}

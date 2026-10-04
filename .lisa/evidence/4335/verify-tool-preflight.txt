@@ -1,0 +1,34 @@
+Fetching gem metadata from https://rubygems.org/...........
+Resolving dependencies...
+Fetching ast 2.4.3
+Fetching parallel 2.3.0
+Fetching json 3.0.2
+Fetching language_server-protocol 3.17.0.6
+Fetching lint_roller 1.1.0
+Fetching racc 1.8.1
+Fetching prism 1.9.0
+Fetching rainbow 3.1.1
+Fetching regexp_parser 2.13.1
+Fetching ruby-progressbar 1.13.0
+Fetching unicode-emoji 4.3.0
+Installing ast 2.4.3
+Installing lint_roller 1.1.0
+Installing rainbow 3.1.1
+Installing racc 1.8.1 with native extensions
+Installing ruby-progressbar 1.13.0
+Fetching parser 3.3.12.0
+Installing language_server-protocol 3.17.0.6
+Installing regexp_parser 2.13.1
+Installing parallel 2.3.0
+Installing json 3.0.2 with native extensions
+Installing unicode-emoji 4.3.0
+Fetching unicode-display_width 3.3.0
+Installing unicode-display_width 3.3.0
+Installing parser 3.3.12.0
+Installing prism 1.9.0 with native extensions
+Fetching rubocop-ast 1.50.0
+Installing rubocop-ast 1.50.0
+Fetching rubocop 1.91.0
+Installing rubocop 1.91.0
+Bundle complete! 1 Gemfile dependency, 15 gems now installed.
+Bundled gems are installed into `<anonymous-tool-host>/vendor/bundle`

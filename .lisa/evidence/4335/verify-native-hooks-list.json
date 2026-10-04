@@ -1,0 +1,56 @@
+{
+  "captured_at": "2026-10-04T02:57:34.497Z",
+  "method": "hooks/list",
+  "startupStderr": "",
+  "entries": [
+    {
+      "cwd": "<anonymous-host>",
+      "sourceCounts": {
+        "project": 2,
+        "plugin": 4
+      },
+      "errors": [],
+      "warnings": [],
+      "projectHooks": [
+        {
+          "key": "<anonymous-host>/.codex/hooks.json:pre_tool_use:0:0",
+          "eventName": "preToolUse",
+          "handlerType": "command",
+          "command": "node scripts/host-hook.mjs",
+          "async": false,
+          "matcher": "Bash|Edit|Write|apply_patch",
+          "timeoutSec": 10,
+          "statusMessage": null,
+          "additionalContextLimit": null,
+          "sourcePath": "<anonymous-host>/.codex/hooks.json",
+          "source": "project",
+          "pluginId": null,
+          "displayOrder": 0,
+          "enabled": true,
+          "isManaged": false,
+          "currentHash": "sha256:f8a2509b7c69c5cb7fbe97b3a870027fe9de6de8ee4af159f79131a7473b193e",
+          "trustStatus": "trusted"
+        },
+        {
+          "key": "<anonymous-host>/.codex/hooks.json:pre_tool_use:1:0",
+          "eventName": "preToolUse",
+          "handlerType": "command",
+          "command": "/bin/bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/scripts/lisa-enforcement-fallback.sh\"",
+          "async": false,
+          "matcher": "Bash|Edit|Write|apply_patch",
+          "timeoutSec": 30,
+          "statusMessage": "Checking Lisa enforcement policy",
+          "additionalContextLimit": null,
+          "sourcePath": "<anonymous-host>/.codex/hooks.json",
+          "source": "project",
+          "pluginId": null,
+          "displayOrder": 1,
+          "enabled": true,
+          "isManaged": false,
+          "currentHash": "sha256:0fe9711472bf6f8450b6b3cf43df4e5cb253032de5546f6ac46d4585b23f3368",
+          "trustStatus": "trusted"
+        }
+      ]
+    }
+  ]
+}

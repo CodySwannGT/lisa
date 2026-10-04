@@ -1,0 +1,18 @@
+{
+  "captured_at": "2026-10-04T02:53:28.342Z",
+  "scenario": "Source-owned legacy hook with unowned host-authored regular companion and no manifest",
+  "managed": null,
+  "error": "Cannot migrate Codex hooks: .codex/hooks/lisa/_extract-edit-paths.sh contains host-owned content. No compatibility files were changed. Preserve it and resolve the source ownership conflict before applying again.",
+  "hostAuthoredPreserved": true,
+  "hookConfigPreserved": true,
+  "loadedEntrypointPreserved": true,
+  "loadedEntrypointStillSymlink": true,
+  "unexpectedCompanionCreated": false,
+  "afterCommand": {
+    "status": 0,
+    "stdout": "HOST_AUTHORED_HELPER\n"
+  },
+  "before_sha256": "4ba8345658b9b72b24e1eb617a076dd7e86578eecc8131aea6902a067c36ba0d",
+  "after_sha256": "4ba8345658b9b72b24e1eb617a076dd7e86578eecc8131aea6902a067c36ba0d",
+  "built_source_sha256": "a3b614a5f885f17b070da96a64b9b867160dcf54f414285058507e55e36b5f0f"
+}

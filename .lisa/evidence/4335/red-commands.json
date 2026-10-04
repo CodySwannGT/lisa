@@ -1,0 +1,26 @@
+[
+  {
+    "event": "PreToolUse",
+    "matcher": "Bash",
+    "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/block-no-verify.sh\"",
+    "id": "block-no-verify"
+  },
+  {
+    "event": "PostToolUse",
+    "matcher": "Bash",
+    "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/shell-write-nudge.sh\"",
+    "id": "shell-write-nudge"
+  },
+  {
+    "event": "PostToolUse",
+    "matcher": "Edit|Write|apply_patch",
+    "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/sg-scan-on-edit.sh\"",
+    "id": "sg-scan-on-edit"
+  },
+  {
+    "event": "PostToolUse",
+    "matcher": "Edit|Write|apply_patch",
+    "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/rubocop-on-edit.sh\"",
+    "id": "rubocop-on-edit"
+  }
+]

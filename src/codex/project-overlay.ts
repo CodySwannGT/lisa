@@ -11,6 +11,7 @@ import { createDetectorRegistry } from "../detection/index.js";
 import { discoverLisaAgents, installAgents } from "./agent-installer.js";
 import { installAgentsMd } from "./agents-md-installer.js";
 import { installCodexEnforcementFallback } from "./enforcement-fallback-installer.js";
+import { installHookCompatibility } from "./hooks-installer.js";
 import { readManagedManifest, writeManagedManifest } from "./manifest.js";
 import { installCodexMcpConfig } from "./mcp-installer.js";
 import { installCodexMarketplace } from "./plugin-marketplace-installer.js";
@@ -58,6 +59,12 @@ export async function installCodexProjectOverlay(
     destDir,
     previous.files
   );
+  const compatibilityFiles = await installHookCompatibility(
+    lisaDir,
+    destDir,
+    detectedTypes,
+    previous.files
+  );
   const hooksCleanupResult = await retireProjectHooks(destDir, previous.files);
   const hooksResult = await installCodexEnforcementFallback(destDir);
   const settingsResult = await installSettings(destDir);
@@ -84,11 +91,13 @@ export async function installCodexProjectOverlay(
       new Set([
         ...agentResult.managedFiles,
         ...hooksResult.managedFiles,
+        ...compatibilityFiles,
         ...settingsResult.managedFiles,
         ...mcpResult.managedFiles,
         ...skillsResult.managedFiles,
       ])
-    )
+    ),
+    compatibilityFiles
   );
 
   return {

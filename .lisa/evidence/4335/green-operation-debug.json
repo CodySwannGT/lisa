@@ -1,0 +1,18 @@
+{
+  "scanner": {
+    "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/sg-scan-on-edit.sh\"",
+    "status": 1,
+    "signal": null,
+    "stdout": "",
+    "stderr": ""
+  },
+  "linter": {
+    "command": "bash -c bash \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/lisa/rubocop-on-edit.sh\"",
+    "status": 1,
+    "signal": null,
+    "stdout": "",
+    "stderr": ""
+  },
+  "scannerLog": "scan sample.rb\n",
+  "linterLog": "exec rubocop -a sample.rb\nexec rubocop sample.rb\n"
+}
