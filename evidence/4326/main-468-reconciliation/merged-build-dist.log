@@ -1,0 +1,1 @@
+$ node scripts/lib/worktree-dependencies.mjs && node scripts/clean-dist.mjs && tsc && node scripts/copy-codex-scripts.mjs && node scripts/copy-opencode-plugin-templates.mjs

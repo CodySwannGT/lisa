@@ -1,0 +1,161 @@
+{
+  "scope": "Actual working-tree focused checks; committed artifact/CI/merge/public release not established",
+  "observed_baseline_head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+  "commands": [
+    {
+      "receipt": {
+        "label": "live-strict-floor",
+        "argv": [
+          "/tmp/lisa-runtime-4326-independent/runtime/node-v22.23.3-darwin-arm64/bin/node",
+          "scripts/check-security-floors.mjs",
+          "--strict"
+        ],
+        "cwd": "/tmp/lisa-4326-implementation",
+        "started_at": "2026-10-03T13:23:23.071277+00:00",
+        "timeout_seconds": 900,
+        "auth_source": "gh auth token injected only into child",
+        "pid": 6546,
+        "actual_exit": 0,
+        "ended_at": "2026-10-03T13:24:00.979705+00:00",
+        "wall_seconds": 37.908,
+        "log_sha256": "552660b6143471b283e12e190e5f3cb671b2a2488cd847397d8cce294d8ff610"
+      },
+      "output": "## Security floors\n\nNo force-pinned floor permits a high or critical vulnerable release. 199 package(s) across 8 manifest(s) checked.\n"
+    },
+    {
+      "receipt": {
+        "label": "normal-bun-install",
+        "argv": [
+          "/Users/cody/.local/share/mise/installs/node/22.22.0/bin/bun",
+          "install"
+        ],
+        "cwd": "/tmp/lisa-4326-implementation",
+        "started_at": "2026-10-03T13:22:56.719396+00:00",
+        "timeout_seconds": 900,
+        "auth_source": "not requested",
+        "pid": 1657,
+        "actual_exit": 0,
+        "ended_at": "2026-10-03T13:23:00.932926+00:00",
+        "wall_seconds": 4.213,
+        "log_sha256": "b8620e54da46c5d01ba3ccbfa10e03570bc1ae7b79689f26826047730591541b"
+      },
+      "output": "bun install v1.3.11 (af24e281)\nResolving dependencies\nResolved, downloaded and extracted [24]\n169 |     \"@istanbuljs/load-nyc-config\": {\n                                         ^\nwarn: Bun currently does not support nested \"overrides\"\n   at /private/tmp/lisa-4326-implementation/package.json:169:36\nSaved lockfile\n\n$ bash ./scripts/install-claude-plugins.sh || true; node ./scripts/install-generated-artifact-merge-driver.mjs || true; [ ! -f tsconfig.json ] || tsc -p tsconfig.json || true\nlisa: installation leaves project templates unchanged. Run `lisa apply .` to apply updates, or `lisa doctor` to check freshness.\nlisa-generated-artifact: already registered for 2 path(s)\n$ node -e \"if (process.env.INIT_CWD?.includes('.serverless')) process.exit(0); process.exit(1);\" || husky install || true\nhusky - Git hooks installed\n\nChecked 1385 installs across 1207 packages (no changes) [4.19s]\n"
+    },
+    {
+      "receipt": {
+        "label": "frozen-bun-install",
+        "argv": [
+          "/Users/cody/.local/share/mise/installs/node/22.22.0/bin/bun",
+          "install",
+          "--frozen-lockfile"
+        ],
+        "cwd": "/tmp/lisa-4326-implementation",
+        "started_at": "2026-10-03T13:27:50.653739+00:00",
+        "timeout_seconds": 900,
+        "auth_source": "not requested",
+        "pid": 64116,
+        "actual_exit": 0,
+        "ended_at": "2026-10-03T13:27:53.911153+00:00",
+        "wall_seconds": 3.257,
+        "log_sha256": "e7b0a1253925766bb0fe67a1e9e2a50583161f840496e14cdf40746f3ad9efb3"
+      },
+      "output": "bun install v1.3.11 (af24e281)\nResolving dependencies\nResolved, downloaded and extracted [0]\n169 |     \"@istanbuljs/load-nyc-config\": {\n                                         ^\nwarn: Bun currently does not support nested \"overrides\"\n   at /private/tmp/lisa-4326-implementation/package.json:169:36\n\n$ bash ./scripts/install-claude-plugins.sh || true; node ./scripts/install-generated-artifact-merge-driver.mjs || true; [ ! -f tsconfig.json ] || tsc -p tsconfig.json || true\nlisa: installation leaves project templates unchanged. Run `lisa apply .` to apply updates, or `lisa doctor` to check freshness.\nlisa-generated-artifact: already registered for 2 path(s)\n$ node -e \"if (process.env.INIT_CWD?.includes('.serverless')) process.exit(0); process.exit(1);\" || husky install || true\nhusky - Git hooks installed\n\nChecked 1385 installs across 1207 packages (no changes) [3.23s]\n"
+    },
+    {
+      "receipt": {
+        "label": "scoped-fast-lint-final",
+        "argv": [
+          "/tmp/lisa-runtime-4326-independent/runtime/node-v22.23.3-darwin-arm64/bin/node",
+          "node_modules/eslint/bin/eslint.js",
+          "tests/unit/config/forced-http-security-floors.test.ts",
+          "tests/unit/config/security-pin-floors.test.ts",
+          "tests/unit/config/postinstall-ci-guard.test.ts",
+          "--quiet"
+        ],
+        "cwd": "/tmp/lisa-4326-implementation",
+        "started_at": "2026-10-03T13:27:50.653720+00:00",
+        "timeout_seconds": 900,
+        "auth_source": "not requested",
+        "pid": 64117,
+        "actual_exit": 0,
+        "ended_at": "2026-10-03T13:27:54.804931+00:00",
+        "wall_seconds": 4.151,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "output": ""
+    },
+    {
+      "receipt": {
+        "label": "scoped-oxlint-final",
+        "argv": [
+          "/tmp/lisa-runtime-4326-independent/runtime/node-v22.23.3-darwin-arm64/bin/node",
+          "node_modules/oxlint/bin/oxlint",
+          "tests/unit/config/forced-http-security-floors.test.ts",
+          "tests/unit/config/security-pin-floors.test.ts",
+          "tests/unit/config/postinstall-ci-guard.test.ts",
+          "--disable-nested-config"
+        ],
+        "cwd": "/tmp/lisa-4326-implementation",
+        "started_at": "2026-10-03T13:27:50.653693+00:00",
+        "timeout_seconds": 900,
+        "auth_source": "not requested",
+        "pid": 64115,
+        "actual_exit": 0,
+        "ended_at": "2026-10-03T13:27:50.782830+00:00",
+        "wall_seconds": 0.129,
+        "log_sha256": "e20f019f5c0365e5671b3c1b85263cd32af2cd19880355b2cb00d9fbbda65588"
+      },
+      "output": "Found 0 warnings and 0 errors.\nFinished in 39ms on 3 files with 110 rules using 18 threads.\n"
+    },
+    {
+      "receipt": {
+        "label": "scoped-slow-lint-final",
+        "argv": [
+          "/tmp/lisa-runtime-4326-independent/runtime/node-v22.23.3-darwin-arm64/bin/node",
+          "node_modules/eslint/bin/eslint.js",
+          "tests/unit/config/forced-http-security-floors.test.ts",
+          "tests/unit/config/security-pin-floors.test.ts",
+          "tests/unit/config/postinstall-ci-guard.test.ts",
+          "--config",
+          "eslint.slow.config.ts",
+          "--quiet"
+        ],
+        "cwd": "/tmp/lisa-4326-implementation",
+        "started_at": "2026-10-03T13:26:22.525279+00:00",
+        "timeout_seconds": 900,
+        "auth_source": "not requested",
+        "pid": 54118,
+        "actual_exit": 0,
+        "ended_at": "2026-10-03T13:26:27.543736+00:00",
+        "wall_seconds": 5.018,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "output": ""
+    },
+    {
+      "receipt": {
+        "label": "scoped-format-final",
+        "argv": [
+          "/tmp/lisa-runtime-4326-independent/runtime/node-v22.23.3-darwin-arm64/bin/node",
+          "node_modules/prettier/bin/prettier.cjs",
+          "--check",
+          "package.json",
+          "typescript/package-lisa/package.lisa.json",
+          "tests/unit/config/forced-http-security-floors.test.ts",
+          "tests/unit/config/security-pin-floors.test.ts",
+          "tests/unit/config/postinstall-ci-guard.test.ts"
+        ],
+        "cwd": "/tmp/lisa-4326-implementation",
+        "started_at": "2026-10-03T13:26:22.525303+00:00",
+        "timeout_seconds": 900,
+        "auth_source": "not requested",
+        "pid": 54119,
+        "actual_exit": 0,
+        "ended_at": "2026-10-03T13:26:22.701899+00:00",
+        "wall_seconds": 0.176,
+        "log_sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+      },
+      "output": "Checking formatting...\nAll matched files use Prettier code style!\n"
+    }
+  ]
+}

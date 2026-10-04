@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "scope": "Native working-input repair with honest original and final fixture/control identities; no new committed/remote/public claim",
+  "captured_at": "2026-10-03T14:36:54.605292+00:00",
+  "worker_handoff_sha256": "e88faa4a6a11c7e626d03257649c89b57282297bd927f6b10cafd1f56b801de5",
+  "full_external189_inventory_sha256": "56ebe6b12294c024cd589bf40264084bda26e7d466455d48fd1d0484a64577d1",
+  "files": [
+    {
+      "locator": "evidence/4326/nested-host-admission-repair/handoff.json",
+      "bytes": 4754,
+      "sha256": "e88faa4a6a11c7e626d03257649c89b57282297bd927f6b10cafd1f56b801de5",
+      "origin": "Actual unchanged sealed worker record handoff.json"
+    },
+    {
+      "locator": "evidence/4326/nested-host-admission-repair/final-frozen6.json",
+      "bytes": 731,
+      "sha256": "01a340a897626b541aaf14120806148b8e16b6ebd1deef8b56b9f03ec4349e76",
+      "origin": "Actual unchanged sealed worker record final-frozen6.json"
+    },
+    {
+      "locator": "evidence/4326/nested-host-admission-repair/capacity-one-old-fixture-red-proof.json",
+      "bytes": 1767,
+      "sha256": "58c0d2c28b3dc2e32f312927d03cc055d921cb8a3234046e448c9a2d1e17070e",
+      "origin": "Actual unchanged sealed worker record capacity-one-old-fixture-red-proof.json"
+    },
+    {
+      "locator": "evidence/4326/nested-host-admission-repair/capacity-one-green-proof.json",
+      "bytes": 3531,
+      "sha256": "1db18c320703bf94d4f53df2e6e774c13177e5a9482894e2c01b1ed70ab49ea5",
+      "origin": "Actual unchanged sealed worker record capacity-one-green-proof.json"
+    },
+    {
+      "locator": "evidence/4326/nested-host-admission-repair/baseline-identical-final-regression-proof.json",
+      "bytes": 1378,
+      "sha256": "e98c4382a65fac11631c8d31900c8d39c4818e45d516c498c949fda8ea8dc1f2",
+      "origin": "Actual unchanged sealed worker record baseline-identical-final-regression-proof.json"
+    },
+    {
+      "locator": "evidence/4326/nested-host-admission-repair/controlled-input-comparison.json",
+      "bytes": 3446,
+      "sha256": "61c6de2809b79d32321af40ecc92f083084c78d80eb545dde18df37c4a4056a6",
+      "origin": "Actual unchanged sealed worker record controlled-input-comparison.json"
+    },
+    {
+      "locator": "evidence/4326/nested-host-admission-repair/margin-measurement-code.json",
+      "bytes": 713,
+      "sha256": "0107508eb839c3e26860ef779163b564d05d6e4659d68eea782984d021bd89f5",
+      "origin": "Actual unchanged sealed worker record margin-measurement-code.json"
+    },
+    {
+      "locator": "evidence/4326/nested-host-admission-repair/owned-container-cleanup.json",
+      "bytes": 1632,
+      "sha256": "8146a4cc1adddb045c9620f8f159b5b3df777c53a194c7e85d2925cc4fcb1d18",
+      "origin": "Actual unchanged sealed worker record owned-container-cleanup.json"
+    },
+    {
+      "locator": "evidence/4326/nested-host-admission-repair/baseline-regression.log",
+      "bytes": 5695,
+      "sha256": "fe4b2743151890def266626c966a86ba15af40a8cc71dafd950d435afa9c32af",
+      "origin": "Actual unchanged cf55 final-fixture policy RED log"
+    },
+    {
+      "locator": "evidence/4326/nested-host-admission-repair/original-timeout-regression.log",
+      "bytes": 7863,
+      "sha256": "0faed6ed183ac4c2a9521a2c0542b9606eb8f84312308c53cbdbd4d1b573c3b4",
+      "origin": "Actual unchanged capacity-one original-helper timeout RED log"
+    },
+    {
+      "locator": "evidence/4326/nested-host-admission-repair/fixed-success-and-edge.log",
+      "bytes": 5668,
+      "sha256": "76f320842effd233730227e42b8ff885bda1b671000577cde98f4851742fc0a9",
+      "origin": "Actual unchanged capacity-one complete native GREEN log"
+    },
+    {
+      "locator": "evidence/4326/nested-host-admission-repair/quality-and-template-review.log",
+      "bytes": 6787,
+      "sha256": "0bf00d898376fb8fd1473232de7febcc2b26b93332fe23065325ccc1eab1f150",
+      "origin": "Actual focused3 and scoped quality records, no compiler failure relabeling"
+    },
+    {
+      "locator": "evidence/4326/nested-host-admission-repair/independent-review.json",
+      "bytes": 18255,
+      "sha256": "e176f11076c0c9095a00c5ab285c2eb0e131dd8c0215b9d41a9a41699d6aa63d",
+      "origin": "Actual complete independent189record/source/runtime review; embedded learner proposal is preparation until separate actual capture receipt"
+    },
+    {
+      "locator": "evidence/4326/nested-host-admission-repair/README.md",
+      "bytes": 2339,
+      "sha256": "6d478233c61614f2f9803bdd901a0eead7a67fe3fb1ee68d34bbf55257bfb2e3",
+      "origin": "Root explanation of actual observations and limits"
+    },
+    {
+      "locator": "evidence/4326/nested-host-admission-repair/learning-capture.json",
+      "bytes": 10174,
+      "sha256": "9d3b9214d3ae15922c660abd7af373127b4103db8268a988874fad95e41089f0",
+      "origin": "Actual locked stamped capture-only learner contract write after independent proposal/rootreview"
+    }
+  ]
+}

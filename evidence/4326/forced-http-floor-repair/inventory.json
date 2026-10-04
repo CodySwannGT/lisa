@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "observed_historical_baseline_head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+  "artifact_scope": "Uncommitted working-tree compatible HTTP floors; fresh committed artifact delivery remains pending",
+  "captured_at": "2026-10-03T13:42:55.189856+00:00",
+  "handoff_sha256": "f006383376a2d632f7d529f59b31afbab86c87edae0de7340983e64538444e73",
+  "files": [
+    {
+      "locator": "evidence/4326/forced-http-floor-repair/baseline-regression.log",
+      "bytes": 43349,
+      "sha256": "829025e51bd677c0b3da46f98f25455565f6a33b27f0ff84cfe1f25b2aca162a",
+      "origin": "red-final-61580/command.log",
+      "original_raw_sha256": "829025e51bd677c0b3da46f98f25455565f6a33b27f0ff84cfe1f25b2aca162a",
+      "normalization": "Per-line trailing whitespace removed for tracked text; original complete raw bytes preserved in sealed external receipt."
+    },
+    {
+      "locator": "evidence/4326/forced-http-floor-repair/fixed-success-and-edge.log",
+      "bytes": 21635,
+      "sha256": "100d24e78bf01d10b79029f17c7d894fa7e0c0c09cb3763d2481d57ef2982911",
+      "origin": "green-final/command.log",
+      "original_raw_sha256": "100d24e78bf01d10b79029f17c7d894fa7e0c0c09cb3763d2481d57ef2982911",
+      "normalization": "Per-line trailing whitespace removed for tracked text; original complete raw bytes preserved in sealed external receipt."
+    },
+    {
+      "locator": "evidence/4326/forced-http-floor-repair/implementation-summary.json",
+      "bytes": 14377,
+      "sha256": "f006383376a2d632f7d529f59b31afbab86c87edae0de7340983e64538444e73",
+      "origin": "Sealed working-tree handoff"
+    },
+    {
+      "locator": "evidence/4326/forced-http-floor-repair/red-final-61580-receipt.json",
+      "bytes": 38734,
+      "sha256": "b437df9f00e0ab5068ee33b112fe47a8c7b3302c2e66507f23fc62640451578c",
+      "origin": "red-final-61580/execution-receipt.json"
+    },
+    {
+      "locator": "evidence/4326/forced-http-floor-repair/green-final-receipt.json",
+      "bytes": 33423,
+      "sha256": "4e3a966c949b4a7f606f96ffaa33b764d097e1861596b0b05fe41a5a64246899",
+      "origin": "green-final/execution-receipt.json"
+    },
+    {
+      "locator": "evidence/4326/forced-http-floor-repair/quality-and-template-review.log",
+      "bytes": 7972,
+      "sha256": "129f30239f163cef25e18f6a52ce2e99fd7dc62f04f6d731450f1b88ee7ed7db",
+      "origin": "Seven actual command receipts and logs"
+    },
+    {
+      "locator": "evidence/4326/forced-http-floor-repair/primary-advisory-research.json",
+      "bytes": 16394,
+      "sha256": "b7ab93e7658ee8b0518add61681a56e473ada4508d90869f1201c2eb378ddd34",
+      "origin": "Official primary advisory and npm branch-compatible patch research"
+    },
+    {
+      "locator": "evidence/4326/forced-http-floor-repair/README.md",
+      "bytes": 2090,
+      "sha256": "5023431c25f566aea48a15e7b1d511a1e45d788f4e4384fa635fdf9963d7eb0a",
+      "origin": "Root documentation of actual evidence and limitations"
+    },
+    {
+      "locator": "evidence/4326/forced-http-floor-repair/review.json",
+      "bytes": 13984,
+      "sha256": "44d3b896e51ae007c6c108a3f4b8e4ae34636cb3d58706565217ea041799f6ae",
+      "origin": "Independent review of actual six-file floor patch and original nine-file packet; these extra review payloads are inventory-bound separately, not retroactively claimed reviewed."
+    },
+    {
+      "locator": "evidence/4326/forced-http-floor-repair/learning-capture-disposition.json",
+      "bytes": 6355,
+      "sha256": "2bf75b03858b1e8e1eebff65fdc50cdc9fde2504fa5e092a223831bddb3a34e5",
+      "origin": "Independent review of actual six-file floor patch and original nine-file packet; these extra review payloads are inventory-bound separately, not retroactively claimed reviewed."
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "scope": "Immutable actual a7f832106-runtime-pass/strict-name-validator-failure plus corrected-title working-input106+unique-names success; no later-head/CI/publication inference",
+  "files": [
+    {
+      "locator": "evidence/4326/focused-case-title-followup/README.md",
+      "bytes": 1198,
+      "sha256": "a88e5b15c50f062dc2047f2ab8163e8f264aa9608a1728657c0e5dd899ea8dd9"
+    },
+    {
+      "locator": "evidence/4326/focused-case-title-followup/baseline-regression.log",
+      "bytes": 2121,
+      "sha256": "48f5ca99c446b07e4375daac22d9dc2247b19c882f452121982729e43e72a7b7"
+    },
+    {
+      "locator": "evidence/4326/focused-case-title-followup/baseline-report.json",
+      "bytes": 45689,
+      "sha256": "48d219ecf4c8a00896fbcb0add52dffe42868db7e647a44101e328788aad76ba"
+    },
+    {
+      "locator": "evidence/4326/focused-case-title-followup/fixed-report.json",
+      "bytes": 45639,
+      "sha256": "733227af23c2297196ec7e5b1fc4f0771114c5e6800a41d0c0c7f94662896ed3"
+    },
+    {
+      "locator": "evidence/4326/focused-case-title-followup/fixed-success-and-edge.log",
+      "bytes": 1048,
+      "sha256": "fe58f32b1796c21f7ad7d361ed262e81c237915b00001fb0b8d446611ab1090a"
+    },
+    {
+      "locator": "evidence/4326/focused-case-title-followup/focused-command.json",
+      "bytes": 1712,
+      "sha256": "68a3b13cfd5d7523e41b03c5c8d4897fb1ef34249071defd2ce4b2caa9e47092"
+    },
+    {
+      "locator": "evidence/4326/focused-case-title-followup/handoff.json",
+      "bytes": 10758,
+      "sha256": "f54f3e4404d156f1a5975e055e66f5893cab13e1ffb415c051b3b84da19bf927"
+    },
+    {
+      "locator": "evidence/4326/focused-case-title-followup/independent-review.json",
+      "bytes": 14571,
+      "sha256": "8ca4293707864dca1a603ba4d5ecf2c505cac03193cdb73d87a3d55cd3a1b725"
+    },
+    {
+      "locator": "evidence/4326/focused-case-title-followup/quality-and-template-review.log",
+      "bytes": 327,
+      "sha256": "1820208b61edd2e7f65c7a6784ae9118e3c8276d311e2fc8fafb81d96d31433e"
+    },
+    {
+      "locator": "evidence/4326/focused-case-title-followup/scoped-quality.json",
+      "bytes": 1924,
+      "sha256": "da605c6d532758bcf379275eca9039cbcb093e06eaa538792a9eb3eb6fa49c4b"
+    },
+    {
+      "locator": "evidence/4326/focused-case-title-followup/validator-error-observed.txt",
+      "bytes": 901,
+      "sha256": "a5e58bba1eceb6c244696c81b8556c167f74e0f36b0f354ae9f0922f42bcf9f0"
+    },
+    {
+      "locator": "evidence/4326/focused-case-title-followup/validator-failure.json",
+      "bytes": 1106,
+      "sha256": "47d4e045218ef47fca26cadee65d1d2d6ba94482d1ad3cc1834a6e0a24f81bce"
+    },
+    {
+      "locator": "evidence/4326/focused-case-title-followup/validator-green.json",
+      "bytes": 17570,
+      "sha256": "19abf444b67b70f76da8b8f4f374b6a3019745e583c18171f4638028dbf542f3"
+    }
+  ]
+}

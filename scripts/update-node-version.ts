@@ -15,6 +15,7 @@
  * bun scripts/update-node-version.ts
  * ```
  */
+import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -35,17 +36,21 @@ interface ReplacementPattern {
 }
 
 const WORKFLOW_PATTERNS: readonly ReplacementPattern[] = [
-  // node_version: '22.21.1' (workflow input defaults)
+  // Include reusable-workflow defaults and expression fallbacks as well as
+  // ordinary callers. Only Node-shaped keys are rewritten.
   {
-    pattern: /(node_version:\s*['"])[\d.]+(['"])/g,
+    pattern: /((?:node_version|node-version):\s*['"]?)\d+\.\d+\.\d+(['"]?)/g,
     replacement: VERSION_REPLACEMENT,
   },
-  // node-version: '22.21.1' (actions/setup-node)
   {
-    pattern: /(node-version:\s*['"])[\d.]+(['"])/g,
+    pattern:
+      /(node_version:\n(?: +(?:description|type|required):[^\n]*\n)* +default: *['"])\d+\.\d+\.\d+(['"])/g,
     replacement: VERSION_REPLACEMENT,
   },
-  // node-version: '22.x' (major version pattern)
+  {
+    pattern: /(node-version:.*?\|\|\s*['"])\d+\.\d+\.\d+(['"])/g,
+    replacement: VERSION_REPLACEMENT,
+  },
   {
     pattern: /(node-version:\s*['"])\d+\.x(['"])/g,
     replacement: "$1{{major}}.x$2",
@@ -53,43 +58,39 @@ const WORKFLOW_PATTERNS: readonly ReplacementPattern[] = [
 ];
 
 const PACKAGE_JSON_PATTERN: ReplacementPattern = {
-  pattern: /("node":\s*["'])[\d.]+(["'])/g,
+  pattern: /("node":\s*["'](?:>=\s*)?)\d+\.\d+\.\d+(["'])/g,
   replacement: VERSION_REPLACEMENT,
 };
 
 /**
- * Files to update (relative to project root)
+ * Current tracked runtime surfaces, rather than the removed merge/workflow
+ * paths used by the original updater. Historical plans and test fixtures are
+ * deliberately excluded. Adding a shipped stack workflow needs no list edit.
+ * @returns Existing repository-relative files governed by shared Node policy
  */
-const FILES_TO_UPDATE: readonly string[] = [
-  // This project's workflows
-  ".github/workflows/ci.yml",
-  ".github/workflows/quality.yml",
-  ".github/workflows/publish-to-npm.yml",
-
-  // TypeScript template workflows
-  "typescript/copy-overwrite/.github/workflows/quality.yml",
-  "typescript/copy-overwrite/.github/workflows/release.yml",
-  "typescript/copy-overwrite/.github/workflows/create-github-issue-on-failure.yml",
-  "typescript/copy-overwrite/.github/workflows/create-jira-issue-on-failure.yml",
-  "typescript/copy-overwrite/.github/workflows/create-sentry-issue-on-failure.yml",
-  "typescript/merge/package.json",
-
-  // Expo template workflows
-  "expo/copy-overwrite/.github/workflows/ci.yml",
-  "expo/copy-overwrite/.github/workflows/deploy.yml",
-  "expo/copy-overwrite/.github/workflows/build.yml",
-  "expo/copy-overwrite/.github/workflows/lighthouse.yml",
-
-  // NestJS template workflows
-  "nestjs/copy-overwrite/.github/workflows/ci.yml",
-  "nestjs/copy-overwrite/.github/workflows/deploy.yml",
-
-  // CDK template workflows
-  "cdk/copy-overwrite/workflows/ci.yml",
-
-  // npm-package template workflows
-  "npm-package/copy-overwrite/.github/workflows/publish-to-npm.yml",
-];
+function filesToUpdate(): readonly string[] {
+  return execFileSync("git", ["ls-files", "-z"], {
+    cwd: PROJECT_ROOT,
+    encoding: "utf8",
+  })
+    .split("\0")
+    .filter(
+      file =>
+        [
+          "package.json",
+          "package.lisa.json",
+          "typescript/copy-overwrite/.nvmrc",
+          "expo/create-only/eas.json",
+        ].includes(file) ||
+        /^(?:typescript|cdk|nestjs|npm-package|phaser|harper-fabric)\/package-lisa\/package\.lisa\.json$/.test(
+          file
+        ) ||
+        /^\.github\/workflows\/[^/]+\.ya?ml$/.test(file) ||
+        /^(?:all|typescript|cdk|expo|nestjs|npm-package|phaser|harper-fabric)\/(?:copy-overwrite|create-only)\/\.github\/workflows\/[^/]+\.ya?ml$/.test(
+          file
+        )
+    );
+}
 
 /**
  * Reads the Node.js version from .nvmrc
@@ -100,7 +101,7 @@ function readNvmrcVersion(): string {
 
   if (!/^\d+\.\d+\.\d+$/.test(content)) {
     throw new Error(
-      `Invalid version format in .nvmrc: "${content}". Expected semver (e.g., 22.21.1)`
+      `Invalid version format in .nvmrc: "${content}". Expected semver (e.g., 22.23.3)`
     );
   }
 
@@ -133,9 +134,16 @@ function updateFile(
   let content = originalContent;
   let totalChanges = 0;
 
-  const patterns = filePath.endsWith(".json")
-    ? [PACKAGE_JSON_PATTERN]
-    : WORKFLOW_PATTERNS;
+  if (filePath.endsWith(".nvmrc")) {
+    content = `${version}\n`;
+    totalChanges = Number(content !== originalContent);
+  }
+
+  const patterns = filePath.endsWith(".nvmrc")
+    ? []
+    : filePath.endsWith(".json")
+      ? [PACKAGE_JSON_PATTERN]
+      : WORKFLOW_PATTERNS;
 
   patterns.forEach(({ pattern, replacement }) => {
     const resolvedReplacement = replacement
@@ -179,7 +187,7 @@ function main(): void {
   let filesUpdated = 0;
   let totalChanges = 0;
 
-  FILES_TO_UPDATE.forEach(file => {
+  filesToUpdate().forEach(file => {
     const result = updateFile(file, version, majorVersion);
     if (result.updated) {
       filesUpdated++;
@@ -193,7 +201,7 @@ function main(): void {
 
   if (filesUpdated > 0) {
     console.log(
-      "\nRemember to commit these changes and regenerate package-lock.json if needed."
+      "\nRemember to commit these changes and refresh the repository lockfile if needed."
     );
   }
 }

@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-10-03T13:50:14.663509+00:00",
+  "status": "PASS-capture-disposition-and-durable-packet-review",
+  "blocking_findings": [],
+  "learner_contract": {
+    "path": "plugins/src/base/agents/learner.md",
+    "sha256": "f2bd83a552c27e771a1fa1d1a7a347565590f397c826e252432df3b3317c48bb",
+    "full_read": true,
+    "capture_only": true,
+    "no_promotion_or_ticket_filing": true
+  },
+  "task_MLD": {
+    "path": "/tmp/lisa-4326-codification/forced-floor-ci-repair-review/task-mld.json",
+    "bytes": 2124,
+    "sha256": "a5f27b02733b5827bbf402730a9580a82eba77d842fbaf5606a288db81bd7374",
+    "candidates_processed": 2,
+    "confidence_preserved": "medium, one occurrence each"
+  },
+  "candidate_dispositions": [
+    {
+      "candidate": 1,
+      "kind": "mistake",
+      "disposition": "task-only; no new standing ledger rule",
+      "reason": "The exact CDK fixture manifest replacement is a corrected local fixture-design detail, preserved with its initial failure and corrected identical-test baseline. The general need for genuine deliberate-failure controls is already represented by learner-957558c39a34. No additional broad instruction or executable contract change is justified by this one seed edit. The earlier review identified a possible candidate, not a mandatory persistence decision.",
+      "exact_duplicate_claimed": false,
+      "related_entries": [
+        "learner-957558c39a34",
+        "sll4-8968b24e50aa"
+      ],
+      "evidence_preserved_in_durable_packet": true,
+      "confidence": "medium",
+      "occurrences_established": 1
+    },
+    {
+      "candidate": 2,
+      "kind": "learning",
+      "disposition": "covered by existing verification-boundary entry; no duplicate sibling",
+      "reason": "No installed root Axios/Undici node is established by two override declarations. Existing sll4-8968b24e50aa requires installed byte evidence rather than version/lock integrity. Package-specific absence and unchanged lock resolutions remain task evidence; they add no distinct durable rule. This is semantic coverage, not a claimed identical helper fingerprint or writer-thrown duplicate.",
+      "related_entry": {
+        "id": "sll4-8968b24e50aa",
+        "fingerprint": "learning-29a7e548ca264ca3e66d"
+      },
+      "confidence": "medium",
+      "occurrences_established": 1
+    }
+  ],
+  "ledger": {
+    "path": "/tmp/lisa-4326-implementation/.lisa/PROJECT_LEARNINGS.md",
+    "entries": 20,
+    "bytes": 13412,
+    "sha256": "2e17f678167517eb89cf452de59fd51b55972c24d4d60d4f395269df6b559c9f",
+    "unchanged": true,
+    "proposed_delta": [],
+    "writer_invoked": false,
+    "budget_error_or_saturation_signal_claimed": false,
+    "reason_no_write": "No new or changed durable instruction qualifies; not a budget-forced drop. No unnecessary fingerprint computation, stamped consolidation or append was attempted."
+  },
+  "durable_packet": {
+    "directory": "evidence/4326/forced-http-floor-repair",
+    "files": [
+      {
+        "path": "evidence/4326/forced-http-floor-repair/baseline-regression.log",
+        "bytes": 43349,
+        "sha256": "829025e51bd677c0b3da46f98f25455565f6a33b27f0ff84cfe1f25b2aca162a"
+      },
+      {
+        "path": "evidence/4326/forced-http-floor-repair/fixed-success-and-edge.log",
+        "bytes": 21635,
+        "sha256": "100d24e78bf01d10b79029f17c7d894fa7e0c0c09cb3763d2481d57ef2982911"
+      },
+      {
+        "path": "evidence/4326/forced-http-floor-repair/implementation-summary.json",
+        "bytes": 14377,
+        "sha256": "f006383376a2d632f7d529f59b31afbab86c87edae0de7340983e64538444e73"
+      },
+      {
+        "path": "evidence/4326/forced-http-floor-repair/red-final-61580-receipt.json",
+        "bytes": 38734,
+        "sha256": "b437df9f00e0ab5068ee33b112fe47a8c7b3302c2e66507f23fc62640451578c"
+      },
+      {
+        "path": "evidence/4326/forced-http-floor-repair/green-final-receipt.json",
+        "bytes": 33423,
+        "sha256": "4e3a966c949b4a7f606f96ffaa33b764d097e1861596b0b05fe41a5a64246899"
+      },
+      {
+        "path": "evidence/4326/forced-http-floor-repair/quality-and-template-review.log",
+        "bytes": 7972,
+        "sha256": "129f30239f163cef25e18f6a52ce2e99fd7dc62f04f6d731450f1b88ee7ed7db"
+      },
+      {
+        "path": "evidence/4326/forced-http-floor-repair/primary-advisory-research.json",
+        "bytes": 16394,
+        "sha256": "b7ab93e7658ee8b0518add61681a56e473ada4508d90869f1201c2eb378ddd34"
+      },
+      {
+        "path": "evidence/4326/forced-http-floor-repair/README.md",
+        "bytes": 2090,
+        "sha256": "5023431c25f566aea48a15e7b1d511a1e45d788f4e4384fa635fdf9963d7eb0a"
+      },
+      {
+        "path": "evidence/4326/forced-http-floor-repair/inventory.json",
+        "bytes": 2963,
+        "sha256": "91d307fbf53fa92804c4a3a7be2dbaf3b7b648eccfa95ac1a8582b21b1decbca"
+      }
+    ],
+    "all_eight_payload_inventory_hashes_sizes_verified": true,
+    "inventory_self_digest_captured": true,
+    "five_original_payloads_byte_identical_to_external_sealed_source": true,
+    "seven_quality_command_receipts_and_outputs_exact": true,
+    "readability": "README clearly separates baseline61580/testmergeT and uncommitted working-tree repair, final identical103-case controls, initial fixture error, genuine strict/normal/frozen/scoped checks and pending future delivery. Both logs are complete and their stored/original digests match; declared whitespace normalization is non-lossy for observed bytes. Structured receipts bind each command/input/assertion.",
+    "boundaries": "No new committed artifact, full repository gates, installed root target versions, whole audit-clean, remote CI success, merge or public release claim. Existing braces exception explicitly separate and unchanged. Earlier research proposal remains timestamped design-only.",
+    "secret_or_downstream_identity_findings": [],
+    "private_global_configuration_or_tokens_included": false,
+    "non_executable_files": true,
+    "future_commit_identity_unknown": true
+  },
+  "not_established": [
+    "Future exact-commit full quality/push/runtime/remote CI proof",
+    "Merge/public release/tracker closure"
+  ],
+  "source_or_product_tests_rerun": false,
+  "mutations": "Only this external learning-capture-disposition.json; no source, ledger, plan, index, worker fixture, context, v2 or tracker changes."
+}

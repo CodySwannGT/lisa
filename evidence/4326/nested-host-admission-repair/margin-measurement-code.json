@@ -1,0 +1,12 @@
+{
+  "installed_runner": "node_modules/@vitest/runner/dist/chunk-artifact.js",
+  "runner_sha256": "bf6af6d2f4469911879a67e83b8f9e7b20332cf42795032c53457b10ccc1c617",
+  "start_line": 2921,
+  "before_each_line": 2948,
+  "after_each_line": 2974,
+  "duration_line": 3052,
+  "json_reporter": "node_modules/vitest/dist/chunks/index.UpGiHP7g.js",
+  "reporter_sha256": "cdafaf8e508042dddba72f8c7bbae84e2836ddb6b06c7026520c35d91af4e798",
+  "json_duration_line": 3572,
+  "interpretation": "JSON assertionResults.duration spans complete case including before/after hooks; divided by logged unchanged workerSpawnSlowdown it upper-bounds actual margin window; require <=300000ms quiet-equivalent and both native cases PASS."
+}

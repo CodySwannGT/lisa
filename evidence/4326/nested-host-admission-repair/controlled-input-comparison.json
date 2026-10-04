@@ -1,0 +1,52 @@
+{
+  "red_green_source_head_identical": true,
+  "red_green_index_changed_paths": [
+    "tests/fixtures/shared-runtime-hosts/journey.ts",
+    "tests/fixtures/shared-runtime-hosts/process.ts",
+    "tests/unit/fixtures/shared-runtime-native-deadline.test.ts"
+  ],
+  "all_other_red_green_source_blobs_and_modes_unchanged": true,
+  "baseline_and_green_final_fixture6_identical": true,
+  "comparison": "Actual separate-tree ls-tree recursive mode/type/object/path maps, not attempting unavailable cross-container objects.",
+  "records": [
+    {
+      "label": "old-fixture-red",
+      "head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+      "index_tree": "b1626241b617d071be22d18b3fa394993ee67399",
+      "fixture_hashes": {
+        "tests/fixtures/shared-runtime-hosts/process.ts": "0df1503ec17a2e6f172d7b787cf7d83d3b80a3f7251eefc7e74644b679d219a1",
+        "tests/fixtures/shared-runtime-hosts/journey.ts": "7779a65608f94c1b0bffde3febc1f09afb8d8897742312968e43405e1eb9d694",
+        "tests/fixtures/shared-runtime-hosts/artifact.ts": "a64007acc0afce7c5e50f2b54568bfcb9d382dcd1cddc251025dc038a8f9a910",
+        "tests/fixtures/shared-runtime-hosts/assertions.ts": "3a44300da10845875a0c395dc0856954bbec04772280d7f2337f6f083fec0006",
+        "tests/fixtures/shared-runtime-hosts/host.ts": "9a5c7a618bef8dd9a2d60a51b6c123196e022aa690babcbb57a6cd1be3d419fa",
+        "tests/integration/shared-runtime-packed-hosts.test.ts": "d46d50bd3495f8ac676fbe94c0b0e810792a22eda8dd651860317ef4dda09ac3"
+      }
+    },
+    {
+      "label": "candidate-green",
+      "head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+      "index_tree": "ed44e90744e7a44c55401f1451192dcfe0536556",
+      "fixture_hashes": {
+        "tests/fixtures/shared-runtime-hosts/process.ts": "c6e1fd79773d1c9b611af48328e60ef177c72b1f82807a1bd6b78b3bfad4d5c3",
+        "tests/fixtures/shared-runtime-hosts/journey.ts": "895e11735ce1575d9fdb5f15c1688e8f698a89130141209dfc2013fbea3d9321",
+        "tests/fixtures/shared-runtime-hosts/artifact.ts": "a64007acc0afce7c5e50f2b54568bfcb9d382dcd1cddc251025dc038a8f9a910",
+        "tests/fixtures/shared-runtime-hosts/assertions.ts": "3a44300da10845875a0c395dc0856954bbec04772280d7f2337f6f083fec0006",
+        "tests/fixtures/shared-runtime-hosts/host.ts": "9a5c7a618bef8dd9a2d60a51b6c123196e022aa690babcbb57a6cd1be3d419fa",
+        "tests/integration/shared-runtime-packed-hosts.test.ts": "d46d50bd3495f8ac676fbe94c0b0e810792a22eda8dd651860317ef4dda09ac3"
+      }
+    },
+    {
+      "label": "baseline-final-fixture-red",
+      "head": "cf55d5f03806fa21e346c1bec6f45110030a13e2",
+      "index_tree": "f7f5f424c6561ad2ca4eef15db3120a857ea5b8d",
+      "fixture_hashes": {
+        "tests/fixtures/shared-runtime-hosts/process.ts": "c6e1fd79773d1c9b611af48328e60ef177c72b1f82807a1bd6b78b3bfad4d5c3",
+        "tests/fixtures/shared-runtime-hosts/journey.ts": "895e11735ce1575d9fdb5f15c1688e8f698a89130141209dfc2013fbea3d9321",
+        "tests/fixtures/shared-runtime-hosts/artifact.ts": "a64007acc0afce7c5e50f2b54568bfcb9d382dcd1cddc251025dc038a8f9a910",
+        "tests/fixtures/shared-runtime-hosts/assertions.ts": "3a44300da10845875a0c395dc0856954bbec04772280d7f2337f6f083fec0006",
+        "tests/fixtures/shared-runtime-hosts/host.ts": "9a5c7a618bef8dd9a2d60a51b6c123196e022aa690babcbb57a6cd1be3d419fa",
+        "tests/integration/shared-runtime-packed-hosts.test.ts": "d46d50bd3495f8ac676fbe94c0b0e810792a22eda8dd651860317ef4dda09ac3"
+      }
+    }
+  ]
+}

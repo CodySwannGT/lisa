@@ -1,0 +1,210 @@
+Baseline policy source: cf55d5f03806fa21e346c1bec6f45110030a13e2
+Historical test overlay is not a published commit.
+
+=== ORIGINAL POLICY REPORTER (15 failed / 1 passed) ===
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 <local-path>
+
+ ❯ tests/unit/core/shared-runtime-policy.test.ts (16 tests | 15 failed) 105ms
+     × typescript supplies coordinated patched test-tool floors 6ms
+     × cdk supplies coordinated patched test-tool floors 1ms
+     × nestjs supplies coordinated patched test-tool floors 1ms
+     × npm-package supplies coordinated patched test-tool floors 1ms
+     × phaser supplies coordinated patched test-tool floors 1ms
+     × harper-fabric supplies coordinated patched test-tool floors 0ms
+     × clean TypeScript hosts get patched defaults under claude 6ms
+     × clean TypeScript hosts get patched defaults under codex 4ms
+     × clean TypeScript hosts get patched defaults under cursor 3ms
+     × clean TypeScript hosts get patched defaults under opencode 3ms
+     × clean TypeScript hosts get patched defaults under agy 3ms
+     × clean TypeScript hosts get patched defaults under copilot 3ms
+     × upgrades CDK-owned forced tools while preserving its host-owned Node default 4ms
+     × keeps root/source Node and Vite policy aligned with the shared runtime file 0ms
+     × the Node updater reaches current tracked surfaces and leaves historical data alone 64ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 15 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/core/shared-runtime-policy.test.ts > shared runtime patch policy > typescript supplies coordinated patched test-tool floors
+ FAIL  tests/unit/core/shared-runtime-policy.test.ts > shared runtime patch policy > cdk supplies coordinated patched test-tool floors
+ FAIL  tests/unit/core/shared-runtime-policy.test.ts > shared runtime patch policy > nestjs supplies coordinated patched test-tool floors
+ FAIL  tests/unit/core/shared-runtime-policy.test.ts > shared runtime patch policy > npm-package supplies coordinated patched test-tool floors
+ FAIL  tests/unit/core/shared-runtime-policy.test.ts > shared runtime patch policy > phaser supplies coordinated patched test-tool floors
+ FAIL  tests/unit/core/shared-runtime-policy.test.ts > shared runtime patch policy > harper-fabric supplies coordinated patched test-tool floors
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectFloor tests/unit/core/shared-runtime-policy.test.ts:68:52
+     66|   expect(range).toBeDefined();
+     67|   expect(minVersion(range as string)?.major).toBe(major);
+     68|   expect(intersects(range as string, `<${floor}`)).toBe(false);
+       |                                                    ^
+     69| }
+     70|
+ ❯ tests/unit/core/shared-runtime-policy.test.ts:132:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/15]⎯
+
+ FAIL  tests/unit/core/shared-runtime-policy.test.ts > shared runtime patch policy > clean TypeScript hosts get patched defaults under claude
+ FAIL  tests/unit/core/shared-runtime-policy.test.ts > shared runtime patch policy > clean TypeScript hosts get patched defaults under codex
+ FAIL  tests/unit/core/shared-runtime-policy.test.ts > shared runtime patch policy > clean TypeScript hosts get patched defaults under cursor
+ FAIL  tests/unit/core/shared-runtime-policy.test.ts > shared runtime patch policy > clean TypeScript hosts get patched defaults under opencode
+ FAIL  tests/unit/core/shared-runtime-policy.test.ts > shared runtime patch policy > clean TypeScript hosts get patched defaults under agy
+ FAIL  tests/unit/core/shared-runtime-policy.test.ts > shared runtime patch policy > clean TypeScript hosts get patched defaults under copilot
+AssertionError: expected '22.21.1' to be '22.23.3' // Object.is equality
+
+Expected: "22.23.3"
+Received: "22.21.1"
+
+ ❯ tests/unit/core/shared-runtime-policy.test.ts:145:36
+    143|     async harness => {
+    144|       const result = await applyTemplate("typescript", {}, harness);
+    145|       expect(result.engines?.node).toBe(NODE_PATCH);
+       |                                    ^
+    146|       expectFloor(result.devDependencies?.vitest, VITEST_FLOOR, 4);
+    147|       expectFloor(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/15]⎯
+
+ FAIL  tests/unit/core/shared-runtime-policy.test.ts > shared runtime patch policy > upgrades CDK-owned forced tools while preserving its host-owned Node default
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectFloor tests/unit/core/shared-runtime-policy.test.ts:68:52
+     66|   expect(range).toBeDefined();
+     67|   expect(minVersion(range as string)?.major).toBe(major);
+     68|   expect(intersects(range as string, `<${floor}`)).toBe(false);
+       |                                                    ^
+     69| }
+     70|
+ ❯ tests/unit/core/shared-runtime-policy.test.ts:186:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/15]⎯
+
+ FAIL  tests/unit/core/shared-runtime-policy.test.ts > shared runtime patch policy > keeps root/source Node and Vite policy aligned with the shared runtime file
+AssertionError: expected '22.21.1' to be '22.23.3' // Object.is equality
+
+Expected: "22.23.3"
+Received: "22.21.1"
+
+ ❯ tests/unit/core/shared-runtime-policy.test.ts:196:75
+    194|
+    195|   it("keeps root/source Node and Vite policy aligned with the shared r…
+    196|     expect((await fs.readFile(path.join(ROOT, ".nvmrc"), "utf8")).trim…
+       |                                                                           ^
+    197|       NODE_PATCH
+    198|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/15]⎯
+
+ FAIL  tests/unit/core/shared-runtime-policy.test.ts > shared runtime patch policy > the Node updater reaches current tracked surfaces and leaves historical data alone
+AssertionError: expected '22.21.1\n' to contain '22.23.3'
+
+- Expected
++ Received
+
+- 22.23.3
++ 22.21.1
++
+
+ ❯ tests/unit/core/shared-runtime-policy.test.ts:266:67
+    264|       file => !file.startsWith("tests/")
+    265|     )) {
+    266|       expect(await fs.readFile(path.join(tempDir, file), "utf8")).toCo…
+       |                                                                   ^
+    267|         NODE_PATCH
+    268|       );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/15]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  15 failed | 1 passed (16)
+   Start at  16:49:49
+   Duration  539ms (transform 130ms, setup 90ms, import 201ms, tests 105ms, environment 0ms)
+
+
+=== IDENTICAL SIX-INPUT PACKED HOST CONTROL ===
+{
+  "cwd": "<local-path>",
+  "argv": [
+    "<local-path>",
+    "<local-path>",
+    "--profile",
+    "lisa",
+    "--adapter",
+    "vitest",
+    "--",
+    "vitest",
+    "run",
+    "tests/integration/shared-runtime-packed-hosts.test.ts",
+    "--reporter=default",
+    "--reporter=json",
+    "--outputFile.json=<local-path>"
+  ]
+}
+vitest.config.ts (19:7) [UNRESOLVED_IMPORT] Could not resolve '@codyswann/lisa/vitest/typescript' in vitest.config.ts
+    ╭─[ vitest.config.ts:19:8 ]
+    │
+ 19 │ } from "@codyswann/lisa/vitest/typescript";
+    │        ─────────────────┬─────────────────
+    │                         ╰─────────────────── Module not found, treating it as an external dependency
+────╯
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vitest.config.local" without a file extension (vitest.config.ts:21:25). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 <local-path>
+
+Sourcemap for "<local-path>@codyswann/lisa/dist/configs/vitest/scratch-setup.js" points to missing source files
+Sourcemap for "<local-path>@codyswann/lisa/dist/configs/vitest/scratch-leak-setup.js" points to missing source files
+ ❯ tests/integration/shared-runtime-packed-hosts.test.ts (2 tests | 2 failed) 144486ms
+     × typescript: patched installs, native execution and two idempotent adoptions 56421ms
+     × cdk: patched installs, native execution and two idempotent adoptions 57133ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/integration/shared-runtime-packed-hosts.test.ts > shared runtime through exact packed CLI and generated hosts > typescript: patched installs, native execution and two idempotent adoptions
+ FAIL  tests/integration/shared-runtime-packed-hosts.test.ts > shared runtime through exact packed CLI and generated hosts > cdk: patched installs, native execution and two idempotent adoptions
+AssertionError: generated Node policy: expected '22.21.1' to be '22.23.3' // Object.is equality
+
+Expected: "22.23.3"
+Received: "22.21.1"
+
+ ❯ assertGeneratedPolicy tests/fixtures/shared-runtime-hosts/assertions.ts:18:58
+     16|     fs.readFileSync(path.join(host, MANIFEST), "utf8")
+     17|   );
+     18|   expect(manifest.engines.node, "generated Node policy").toBe(NODE_VER…
+       |                                                          ^
+     19|   expect(fs.readFileSync(path.join(host, ".nvmrc"), "utf8").trim()).to…
+     20|     NODE_VERSION
+ ❯ adoptBaseline tests/fixtures/shared-runtime-hosts/journey.ts:172:3
+ ❯ verifyHost tests/fixtures/shared-runtime-hosts/journey.ts:332:3
+ ❯ tests/integration/shared-runtime-packed-hosts.test.ts:60:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  18:20:51
+   Duration  144.83s (transform 69ms, setup 68ms, import 152ms, tests 144.49s, environment 0ms)
+
+JSON report written to <local-path>
+
+Actual supervisor exit: 1
+Original policy source HEAD: cf55d5f03806fa21e346c1bec6f45110030a13e2
+Observed packed index tree: 2d8326426284cc43ad649f8fc5256a260ace8b76

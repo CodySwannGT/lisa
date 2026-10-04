@@ -1,0 +1,1910 @@
+{
+  "schema_version": 1,
+  "name": "Refresh shared Node22 runtime and test-tool security floors",
+  "work_item_ref": "CodySwannGT/lisa#4326",
+  "tracker_provider": "github",
+  "flow": "Implement",
+  "work_type": "Build",
+  "worktree": "/tmp/lisa-4326-implementation",
+  "work_item_context": "/tmp/lisa-4326-implementation/.lisa/work-item-context.md",
+  "roster": "/tmp/lisa-4326-implementation/.lisa/roster/CodySwannGT-lisa-4326.md",
+  "branch": "codex/4326-refresh-shared-runtime-security-floors",
+  "target_environment": "Assumption: production \u2014 remote default branch main",
+  "base_branch": "main",
+  "target_branch": "main",
+  "base_sha": "cf55d5f03806fa21e346c1bec6f45110030a13e2",
+  "branch_plan_reconciliation": "match",
+  "binding_verified": true,
+  "preflight_status": "pass",
+  "required_access": [
+    {
+      "tool": "GitHub tracker and Git transport \u2014 CodySwannGT/lisa",
+      "probe": "gh repo view CodySwannGT/lisa --json defaultBranchRef,viewerPermission; gh issue view 4326 --repo CodySwannGT/lisa; git ls-remote --heads origin main",
+      "status": "pass",
+      "evidence": "main; ADMIN; issue open/in-progress assigned authenticated actor; cf55d5f03806fa21e346c1bec6f45110030a13e2 refs/heads/main"
+    },
+    {
+      "tool": "npm registry package metadata/artifacts",
+      "probe": "GET https://registry.npmjs.org/vitest/4.1.11; GET https://registry.npmjs.org/%40vitest%2Fcoverage-v8/4.1.11; GET https://registry.npmjs.org/vite/8.3.2",
+      "status": "pass",
+      "evidence": "All exact versions exist with dist.tarball; Vitest/Vite engines accept Node22.23.3."
+    },
+    {
+      "tool": "Official Node release distribution",
+      "probe": "GET https://nodejs.org/dist/index.json; select version v22.23.3",
+      "status": "pass",
+      "evidence": "v22.23.3 released2026-09-23; Jod LTS; osx-arm64-tar available."
+    },
+    {
+      "tool": "GitHub Actions and branch-protection/ruleset surfaces",
+      "probe": "gh api repos/CodySwannGT/lisa/actions/workflows; gh api repos/CodySwannGT/lisa/actions/runs -f branch=main -f per_page=3 --method GET; gh api repos/CodySwannGT/lisa/rulesets/18805189; gh api repos/CodySwannGT/lisa/rulesets/11912821",
+      "status": "pass",
+      "evidence": "Active CI and reusable quality workflows readable; 13 quality checks plus CodeRabbit and GitGuardian required. Current base includes concluded-success workflow readbacks. Sonar token absent; no standalone SonarCloud proof claim."
+    },
+    {
+      "tool": "Docker Linux capacity-one real supervisor reproduction",
+      "probe": "docker info --format OS/CPU, actual daemon linux18CPUs before sourceGO; worker actual isolated Node22.23.3/Bun1.3.11 availableParallelism2 and frozen dependency install exited0",
+      "status": "pass",
+      "boundary": "Tool access/prerequisites only; full regression completion not inferred.",
+      "recorded_at": "2026-10-03T14:03:22.643819+00:00",
+      "metadata_timing_disclosure": "Root probed Docker successfully before implementationGO; explicit required_access entry recorded now after prerequisite results. No claim that this metadata entry existed at originalGO."
+    }
+  ],
+  "local_tool_versions": {
+    "node": "22.22.0",
+    "bun": "1.3.11",
+    "npm": "10.9.4"
+  },
+  "required_runtime": "22.23.3 \u2014 install/use in isolated proof; current PATH version is not runtime proof",
+  "research": [
+    "Canonical issue context, all comments and Validation Journey (read in full).",
+    "README.md:130-224 documents explicit Lisa apply and bun install; installation alone does not apply templates.",
+    "src/cli/index.ts apply command; src/cli/apply.ts --yes and --no-update-check supported.",
+    "Root package.json + package.lisa.json; typescript, cdk, npm-package, nestjs, phaser and harper-fabric package-lisa templates own runtime/test tool values.",
+    "Node policy surfaces include root .nvmrc, typescript/copy-overwrite/.nvmrc, shared/stack create-only workflows and expo/create-only/eas.json.",
+    "TypeScript package template Node/Vitest/coverage defaults preserve explicit host values by ownership contract; other stack force sections upgrade Lisa-owned versions.",
+    "scripts/check-security-floors.mjs audits force/defaults/merge groups (GOVERNANCE_GROUPS, line75) against high/critical advisories; it does not change host ownership or centrally hard-code these Vitest/Vite minima.",
+    "Existing shipped integration composition/updater removal fixes are dependencies to consume, not new work.",
+    "Host rules: stage inputs, regenerate both artifacts, stage outputs, check artifacts; no downstream project identities in published artifacts.",
+    "Learnings projection: install dependencies and build:dist in fresh worktrees before TS tests; regression must reach real changed surfaces.",
+    "scripts/update-node-version.ts misses current paths; direct owned-surface inventory is authoritative, not that stale updater.",
+    "Fixture references: tests/integration/apply-reports-unchanged-manifest.test.ts real Lisa.apply orchestration and host-test-scripts-survive-apply.test.ts shipped PackageLisaStrategy inputs.",
+    "Immutable packed CLI reference: tests/integration/lisa-test-run-packed-bin.test.ts uses git checkout-index, isolated build:dist:in-place and npm pack --ignore-scripts; actual CLI verification must be from exact branch artifact.",
+    "scripts/mutation-performance-measure.mjs prepare --subject-sha <exactHEAD> --tarball <absolute.tgz> --output <outsideRepoDir> already applies exact packed CLI twice to8stacks and checks governed hashes; extend empirical CDK host with genuine App/Stack, Template assertion and actual cdk synth, since grade.ts alone is not synth proof.",
+    "Empirical clean-fixture CLI: CI=1 LISA_BOOTSTRAP=1 node <packedRoot>/dist/index.js apply <host> --yes --no-update-check --harness=cursor, with fixture-local gh sentinel guarding against accidental remote repo creation; compare six-harness package/.nvmrc policy parity rather than equating different agent file bytes.",
+    "Compatible CI floor repair research: actual SecurityFloors run37124259201/job111206277064 at B61580/Td1b18c reported16 collisions. Official GitHub advisories and npm metadata confirm Axios1.20.0 and Undici6.28.1 available within supported bands. Root package.json and typescript/package-lisa/package.lisa.json both override/resolution maps must agree; normally regenerate bun.lock. scripts/check-security-floors.mjs production collectFloors/withinRange plus actual shipped PackageLisaStrategy full/restricted adoption are controls. Existing security-pin-floors and postinstall-ci-guard expectations must ratchet. No checker/workflow/ignore/threshold weakening. Original packed-host fixtures and historical evidence remain unchanged."
+  ],
+  "comment_inventory": [
+    {
+      "id": 5960670067,
+      "actor_id": 292923,
+      "actor": "CodySwannGT",
+      "type": "User",
+      "body_sha256": "0b2bf53ff60c223bd8002ff51fdfdf7d29fc628204706f488db769cb9189a22b",
+      "created_at": "2026-10-02T20:11:13Z",
+      "updated_at": "2026-10-02T20:11:13Z",
+      "flags": [
+        "AI-protocol-progress"
+      ],
+      "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+      "source": "originating issue4326",
+      "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+    },
+    {
+      "id": 5960770263,
+      "actor_id": 292923,
+      "actor": "CodySwannGT",
+      "type": "User",
+      "body_sha256": "5a4350dab19bbf3eca9b925371b1e05b2ab63ec4192919dbfd8479d147fc6b22",
+      "created_at": "2026-10-02T20:17:09Z",
+      "updated_at": "2026-10-02T20:17:09Z",
+      "flags": [
+        "AI-protocol-progress"
+      ],
+      "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+      "source": "originating issue4326",
+      "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+    },
+    {
+      "id": 5961220400,
+      "actor_id": 292923,
+      "actor": "CodySwannGT",
+      "type": "User",
+      "body_sha256": "967a0b4066c466976989f2f12a1c425f26c2f480b7a3d4af6adefe698b6b0dfc",
+      "created_at": "2026-10-02T20:47:04Z",
+      "updated_at": "2026-10-02T20:47:04Z",
+      "flags": [
+        "AI-protocol-progress"
+      ],
+      "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+      "source": "originating issue4326",
+      "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+    },
+    {
+      "id": 5963134813,
+      "actor_id": 292923,
+      "actor": "CodySwannGT",
+      "type": "User",
+      "body_sha256": "c9fe22333642bc97cee679b4becc1d47c126a7c7fff06a6e5f9fb88cfd734b8c",
+      "created_at": "2026-10-02T23:34:59Z",
+      "updated_at": "2026-10-02T23:34:59Z",
+      "flags": [
+        "AI-protocol-progress"
+      ],
+      "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+      "source": "originating issue4326",
+      "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+    },
+    {
+      "id": 5963143821,
+      "actor_id": 292923,
+      "actor": "CodySwannGT",
+      "type": "User",
+      "body_sha256": "190e7e79b477ea2b0f7bb0c47bedafa8531e325caa024f02c08f07e4a4b1167e",
+      "created_at": "2026-10-02T23:35:59Z",
+      "updated_at": "2026-10-02T23:35:59Z",
+      "flags": [
+        "AI-protocol-progress"
+      ],
+      "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+      "source": "originating issue4326",
+      "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+    },
+    {
+      "id": 5963132830,
+      "actor_id": 136622811,
+      "actor": "coderabbitai[bot]",
+      "type": "Bot",
+      "body_sha256": "0b78ce3f4bc95e25a79a81e638ce8173193f349bc12b52264b7e15fc7f9144da",
+      "created_at": "2026-10-02T23:34:47Z",
+      "updated_at": "2026-10-03T13:04:35Z",
+      "flags": [
+        "automated-review"
+      ],
+      "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+      "source": "related PR4328",
+      "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+    }
+  ],
+  "comment_obligations": [
+    "5960670067: accepted single-repository source scope, all scenarios, three named evidence artifacts and ownership rules are explicit deliverables.",
+    "5960770263: continue claimed work in verified bound feature worktree; clear only after terminal completion."
+  ],
+  "effective_completion_condition": "One explicit bare bootstrap setup followed by two adoption applies per clean generated TypeScript/CDK Git host. The exact packed CLI under Node22.23.3 and genuine supported installs must succeed; generated runtime policy, supported tool majors, patched Vitest/coverage/Vite floors, lock/installed versions and every regular tar-member byte must agree. Second adoption and frozen reinstall have zero managed-byte changes; actual native typecheck/nonzero units and repeat no-lookups CDK synth succeed. The committed native regression must be named in successful required PR CI. Derived-main merge, successful configured release/publication and exact registry-artifact installed-host verification must precede terminal issue/evidence/usage/backlink cleanup. No AWS deployment or production consumer adoption is claimed.",
+  "proof_command": "PATH=<verified Node22.23.3 directory>:<worktree>/node_modules/.bin:$PATH node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run tests/integration/shared-runtime-packed-hosts.test.ts; final verification repeats actual packed CLI installs/typecheck/native units/second-adoption/frozen/no-lookups synth against the exact committed artifact and then the exact published registry artifact.",
+  "constraints": [
+    "No Node major change or unsupported toolchain major migration.",
+    "No host scheduler enablement, live AWS/deployed infrastructure work.",
+    "No change to explicit default-owned host settings through unauthorized force conversion.",
+    "No unrelated worktree changes or downstream identities in published Lisa artifacts.",
+    "No standalone SonarCloud verdict: token absent and project scan unconfigured; required configured CI/static lint evidence remains mandatory."
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Derive branch, attach binding and prove required access",
+      "owner": "planning-specialist",
+      "metadata_owner": "planning-specialist",
+      "status": "completed",
+      "blockedBy": [],
+      "description": "Read /tmp/lisa-4326-implementation/.lisa/work-item-context.md in full before acting. Comment inventory: [{\"id\": 5960670067, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Accepted single-repository build-ready task with validation evidence obligations; no secrets.\"}, {\"id\": 5960770263, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Managed implementation claim; preserve attributable binding; no secrets.\"}] Preserve unrelated work. No secrets observed; no live AWS/host deployment authorized or required.",
+      "metadata": {
+        "plan": "Refresh shared Node22 runtime and test-tool security floors",
+        "type": "task",
+        "acceptance_criteria": [
+          "Production maps to remote main; ticket Branch Plan matches recomputation.",
+          "Feature branch is clean and synced onto origin/main; attached binding matches canonical ref.",
+          "GitHub/npm/official Node/CI access proven against named targets; no substituted service."
+        ],
+        "relevant_documentation": "Canonical issue context, all comments and Validation Journey (read in full).\nREADME.md:130-224 documents explicit Lisa apply and bun install; installation alone does not apply templates.\nsrc/cli/index.ts apply command; src/cli/apply.ts --yes and --no-update-check supported.\nRoot package.json + package.lisa.json; typescript, cdk, npm-package, nestjs, phaser and harper-fabric package-lisa templates own runtime/test tool values.\nNode policy surfaces include root .nvmrc, typescript/copy-overwrite/.nvmrc, shared/stack create-only workflows and expo/create-only/eas.json.\nTypeScript package template Node/Vitest/coverage defaults preserve explicit host values by ownership contract; other stack force sections upgrade Lisa-owned versions.\nscripts/check-security-floors.mjs audits force/defaults/merge groups (GOVERNANCE_GROUPS, line75) against high/critical advisories; it does not change host ownership or centrally hard-code these Vitest/Vite minima.\nExisting shipped integration composition/updater removal fixes are dependencies to consume, not new work.\nHost rules: stage inputs, regenerate both artifacts, stage outputs, check artifacts; no downstream project identities in published artifacts.\nLearnings projection: install dependencies and build:dist in fresh worktrees before TS tests; regression must reach real changed surfaces.\nscripts/update-node-version.ts misses current paths; direct owned-surface inventory is authoritative, not that stale updater.\nFixture references: tests/integration/apply-reports-unchanged-manifest.test.ts real Lisa.apply orchestration and host-test-scripts-survive-apply.test.ts shipped PackageLisaStrategy inputs.\nImmutable packed CLI reference: tests/integration/lisa-test-run-packed-bin.test.ts uses git checkout-index, isolated build:dist:in-place and npm pack --ignore-scripts; actual CLI verification must be from exact branch artifact.\nscripts/mutation-performance-measure.mjs prepare --subject-sha <exactHEAD> --tarball <absolute.tgz> --output <outsideRepoDir> already applies exact packed CLI twice to8stacks and checks governed hashes; extend empirical CDK host with genuine App/Stack, Template assertion and actual cdk synth, since grade.ts alone is not synth proof.\nEmpirical clean-fixture CLI: CI=1 LISA_BOOTSTRAP=1 node <packedRoot>/dist/index.js apply <host> --yes --no-update-check --harness=cursor, with fixture-local gh sentinel guarding against accidental remote repo creation; compare six-harness package/.nvmrc policy parity rather than equating different agent file bytes.",
+        "work_item_context": "/tmp/lisa-4326-implementation/.lisa/work-item-context.md",
+        "comment_inventory": [
+          {
+            "id": 5960670067,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "0b2bf53ff60c223bd8002ff51fdfdf7d29fc628204706f488db769cb9189a22b",
+            "created_at": "2026-10-02T20:11:13Z",
+            "updated_at": "2026-10-02T20:11:13Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5960770263,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "5a4350dab19bbf3eca9b925371b1e05b2ab63ec4192919dbfd8479d147fc6b22",
+            "created_at": "2026-10-02T20:17:09Z",
+            "updated_at": "2026-10-02T20:17:09Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5961220400,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "967a0b4066c466976989f2f12a1c425f26c2f480b7a3d4af6adefe698b6b0dfc",
+            "created_at": "2026-10-02T20:47:04Z",
+            "updated_at": "2026-10-02T20:47:04Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5963134813,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "c9fe22333642bc97cee679b4becc1d47c126a7c7fff06a6e5f9fb88cfd734b8c",
+            "created_at": "2026-10-02T23:34:59Z",
+            "updated_at": "2026-10-02T23:34:59Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5963143821,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "190e7e79b477ea2b0f7bb0c47bedafa8531e325caa024f02c08f07e4a4b1167e",
+            "created_at": "2026-10-02T23:35:59Z",
+            "updated_at": "2026-10-02T23:35:59Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5963132830,
+            "actor_id": 136622811,
+            "actor": "coderabbitai[bot]",
+            "type": "Bot",
+            "body_sha256": "0b78ce3f4bc95e25a79a81e638ce8173193f349bc12b52264b7e15fc7f9144da",
+            "created_at": "2026-10-02T23:34:47Z",
+            "updated_at": "2026-10-03T13:04:35Z",
+            "flags": [
+              "automated-review"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "related PR4328",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          }
+        ],
+        "testing_requirements": [
+          "No implementation starts before required access passes."
+        ],
+        "skills": [
+          "lisa-implement",
+          "lisa-track"
+        ],
+        "learnings": [],
+        "required_access": [
+          {
+            "tool": "GitHub tracker and Git transport \u2014 CodySwannGT/lisa",
+            "probe": "gh repo view CodySwannGT/lisa --json defaultBranchRef,viewerPermission; gh issue view 4326 --repo CodySwannGT/lisa; git ls-remote --heads origin main",
+            "status": "pass",
+            "evidence": "main; ADMIN; issue open/in-progress assigned authenticated actor; cf55d5f03806fa21e346c1bec6f45110030a13e2 refs/heads/main"
+          },
+          {
+            "tool": "npm registry package metadata/artifacts",
+            "probe": "GET https://registry.npmjs.org/vitest/4.1.11; GET https://registry.npmjs.org/%40vitest%2Fcoverage-v8/4.1.11; GET https://registry.npmjs.org/vite/8.3.2",
+            "status": "pass",
+            "evidence": "All exact versions exist with dist.tarball; Vitest/Vite engines accept Node22.23.3."
+          },
+          {
+            "tool": "Official Node release distribution",
+            "probe": "GET https://nodejs.org/dist/index.json; select version v22.23.3",
+            "status": "pass",
+            "evidence": "v22.23.3 released2026-09-23; Jod LTS; osx-arm64-tar available."
+          },
+          {
+            "tool": "GitHub Actions and branch-protection/ruleset surfaces",
+            "probe": "gh api repos/CodySwannGT/lisa/actions/workflows; gh api repos/CodySwannGT/lisa/actions/runs -f branch=main -f per_page=3 --method GET; gh api repos/CodySwannGT/lisa/rulesets/18805189; gh api repos/CodySwannGT/lisa/rulesets/11912821",
+            "status": "pass",
+            "evidence": "Active CI and reusable quality workflows readable; 13 quality checks plus CodeRabbit and GitGuardian required. Current base includes concluded-success workflow readbacks. Sonar token absent; no standalone SonarCloud proof claim."
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "git rev-parse HEAD origin/main; git branch --show-current; node scripts/lisa-work-item.mjs current; gh issue view 4326 --repo CodySwannGT/lisa --json state,assignees,labels",
+          "expected": "Same base SHA; dedicated codex/4326-refresh-shared-runtime-security-floors; binding github/ref4326 and attached branch; open in-progress claim."
+        },
+        "comment_inventory_context_bytes": 232750,
+        "comment_inventory_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+      }
+    },
+    {
+      "id": "T2",
+      "title": "Add focused red-before-green policy regressions",
+      "owner": "implementation-worker",
+      "metadata_owner": "implementation-worker",
+      "status": "completed",
+      "blockedBy": [
+        "T1"
+      ],
+      "description": "Read /tmp/lisa-4326-implementation/.lisa/work-item-context.md in full before acting. Comment inventory: [{\"id\": 5960670067, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Accepted single-repository build-ready task with validation evidence obligations; no secrets.\"}, {\"id\": 5960770263, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Managed implementation claim; preserve attributable binding; no secrets.\"}] Preserve unrelated work. No secrets observed; no live AWS/host deployment authorized or required.",
+      "metadata": {
+        "plan": "Refresh shared Node22 runtime and test-tool security floors",
+        "type": "task",
+        "acceptance_criteria": [
+          "New tests/unit/core/shared-runtime-policy.test.ts reaches all changed runtime/template/test-tool surfaces.",
+          "Baseline failures directly demonstrate stale default/forced policy and coverage-version pairing.",
+          "Explicit host-owned defaults remain preserved while Lisa forced ownership upgrades."
+        ],
+        "relevant_documentation": "Canonical issue context, all comments and Validation Journey (read in full).\nREADME.md:130-224 documents explicit Lisa apply and bun install; installation alone does not apply templates.\nsrc/cli/index.ts apply command; src/cli/apply.ts --yes and --no-update-check supported.\nRoot package.json + package.lisa.json; typescript, cdk, npm-package, nestjs, phaser and harper-fabric package-lisa templates own runtime/test tool values.\nNode policy surfaces include root .nvmrc, typescript/copy-overwrite/.nvmrc, shared/stack create-only workflows and expo/create-only/eas.json.\nTypeScript package template Node/Vitest/coverage defaults preserve explicit host values by ownership contract; other stack force sections upgrade Lisa-owned versions.\nscripts/check-security-floors.mjs audits force/defaults/merge groups (GOVERNANCE_GROUPS, line75) against high/critical advisories; it does not change host ownership or centrally hard-code these Vitest/Vite minima.\nExisting shipped integration composition/updater removal fixes are dependencies to consume, not new work.\nHost rules: stage inputs, regenerate both artifacts, stage outputs, check artifacts; no downstream project identities in published artifacts.\nLearnings projection: install dependencies and build:dist in fresh worktrees before TS tests; regression must reach real changed surfaces.\nscripts/update-node-version.ts misses current paths; direct owned-surface inventory is authoritative, not that stale updater.\nFixture references: tests/integration/apply-reports-unchanged-manifest.test.ts real Lisa.apply orchestration and host-test-scripts-survive-apply.test.ts shipped PackageLisaStrategy inputs.\nImmutable packed CLI reference: tests/integration/lisa-test-run-packed-bin.test.ts uses git checkout-index, isolated build:dist:in-place and npm pack --ignore-scripts; actual CLI verification must be from exact branch artifact.\nscripts/mutation-performance-measure.mjs prepare --subject-sha <exactHEAD> --tarball <absolute.tgz> --output <outsideRepoDir> already applies exact packed CLI twice to8stacks and checks governed hashes; extend empirical CDK host with genuine App/Stack, Template assertion and actual cdk synth, since grade.ts alone is not synth proof.\nEmpirical clean-fixture CLI: CI=1 LISA_BOOTSTRAP=1 node <packedRoot>/dist/index.js apply <host> --yes --no-update-check --harness=cursor, with fixture-local gh sentinel guarding against accidental remote repo creation; compare six-harness package/.nvmrc policy parity rather than equating different agent file bytes.",
+        "work_item_context": "/tmp/lisa-4326-implementation/.lisa/work-item-context.md",
+        "comment_inventory": [
+          {
+            "id": 5960670067,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "0b2bf53ff60c223bd8002ff51fdfdf7d29fc628204706f488db769cb9189a22b",
+            "created_at": "2026-10-02T20:11:13Z",
+            "updated_at": "2026-10-02T20:11:13Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5960770263,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "5a4350dab19bbf3eca9b925371b1e05b2ab63ec4192919dbfd8479d147fc6b22",
+            "created_at": "2026-10-02T20:17:09Z",
+            "updated_at": "2026-10-02T20:17:09Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5961220400,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "967a0b4066c466976989f2f12a1c425f26c2f480b7a3d4af6adefe698b6b0dfc",
+            "created_at": "2026-10-02T20:47:04Z",
+            "updated_at": "2026-10-02T20:47:04Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5963134813,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "c9fe22333642bc97cee679b4becc1d47c126a7c7fff06a6e5f9fb88cfd734b8c",
+            "created_at": "2026-10-02T23:34:59Z",
+            "updated_at": "2026-10-02T23:34:59Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5963143821,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "190e7e79b477ea2b0f7bb0c47bedafa8531e325caa024f02c08f07e4a4b1167e",
+            "created_at": "2026-10-02T23:35:59Z",
+            "updated_at": "2026-10-02T23:35:59Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5963132830,
+            "actor_id": 136622811,
+            "actor": "coderabbitai[bot]",
+            "type": "Bot",
+            "body_sha256": "0b78ce3f4bc95e25a79a81e638ce8173193f349bc12b52264b7e15fc7f9144da",
+            "created_at": "2026-10-02T23:34:47Z",
+            "updated_at": "2026-10-03T13:04:35Z",
+            "flags": [
+              "automated-review"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "related PR4328",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          }
+        ],
+        "testing_requirements": [
+          "Capture baseline-regression test-run-log before changing source.",
+          "Assert target patch minima, permitted majors, ownership, shared runtime parity and actual apply behavior."
+        ],
+        "skills": [
+          "lisa-test-strategy"
+        ],
+        "learnings": [],
+        "required_access": [
+          {
+            "tool": "GitHub tracker and Git transport \u2014 CodySwannGT/lisa",
+            "probe": "gh repo view CodySwannGT/lisa --json defaultBranchRef,viewerPermission; gh issue view 4326 --repo CodySwannGT/lisa; git ls-remote --heads origin main",
+            "status": "pass",
+            "evidence": "main; ADMIN; issue open/in-progress assigned authenticated actor; cf55d5f03806fa21e346c1bec6f45110030a13e2 refs/heads/main"
+          },
+          {
+            "tool": "npm registry package metadata/artifacts",
+            "probe": "GET https://registry.npmjs.org/vitest/4.1.11; GET https://registry.npmjs.org/%40vitest%2Fcoverage-v8/4.1.11; GET https://registry.npmjs.org/vite/8.3.2",
+            "status": "pass",
+            "evidence": "All exact versions exist with dist.tarball; Vitest/Vite engines accept Node22.23.3."
+          },
+          {
+            "tool": "Official Node release distribution",
+            "probe": "GET https://nodejs.org/dist/index.json; select version v22.23.3",
+            "status": "pass",
+            "evidence": "v22.23.3 released2026-09-23; Jod LTS; osx-arm64-tar available."
+          },
+          {
+            "tool": "GitHub Actions and branch-protection/ruleset surfaces",
+            "probe": "gh api repos/CodySwannGT/lisa/actions/workflows; gh api repos/CodySwannGT/lisa/actions/runs -f branch=main -f per_page=3 --method GET; gh api repos/CodySwannGT/lisa/rulesets/18805189; gh api repos/CodySwannGT/lisa/rulesets/11912821",
+            "status": "pass",
+            "evidence": "Active CI and reusable quality workflows readable; 13 quality checks plus CodeRabbit and GitGuardian required. Current base includes concluded-success workflow readbacks. Sonar token absent; no standalone SonarCloud proof claim."
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "node dist/index.js apply /tmp/lisa-runtime-4326/baseline-typescript --yes --no-update-check; node -p \"require('/tmp/lisa-runtime-4326/baseline-typescript/package.json').engines.node\"",
+          "expected": "Baseline generated policy visibly remains22.21.1; new regression suite fails intended assertions before implementation."
+        },
+        "comment_inventory_context_bytes": 232750,
+        "comment_inventory_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+      },
+      "completion_evidence": "Exact current focused test:16/16 green,15/16 fail on original base archive; baseline/fixed logs in /tmp/lisa-runtime-4326/evidence."
+    },
+    {
+      "id": "T3",
+      "title": "Update owned runtime/security floors with docs and locks",
+      "owner": "implementation-worker",
+      "metadata_owner": "implementation-worker",
+      "status": "completed",
+      "blockedBy": [
+        "T2"
+      ],
+      "description": "Read /tmp/lisa-4326-implementation/.lisa/work-item-context.md in full before acting. Comment inventory: [{\"id\": 5960670067, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Accepted single-repository build-ready task with validation evidence obligations; no secrets.\"}, {\"id\": 5960770263, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Managed implementation claim; preserve attributable binding; no secrets.\"}] Preserve unrelated work. No secrets observed; no live AWS/host deployment authorized or required.",
+      "metadata": {
+        "plan": "Refresh shared Node22 runtime and test-tool security floors",
+        "type": "task",
+        "acceptance_criteria": [
+          "Node22.23.3 consistent across owned shared runtime surfaces.",
+          "Vitest/coverage minima4.1.11 paired and Vite minimum8.3.2 in supported majors.",
+          "Corresponding source/destination templates, documentation and real lock resolutions updated together.",
+          "Preserve existing force/defaults/merge ownership and scoped deepmerge-ts8 override."
+        ],
+        "relevant_documentation": "Canonical issue context, all comments and Validation Journey (read in full).\nREADME.md:130-224 documents explicit Lisa apply and bun install; installation alone does not apply templates.\nsrc/cli/index.ts apply command; src/cli/apply.ts --yes and --no-update-check supported.\nRoot package.json + package.lisa.json; typescript, cdk, npm-package, nestjs, phaser and harper-fabric package-lisa templates own runtime/test tool values.\nNode policy surfaces include root .nvmrc, typescript/copy-overwrite/.nvmrc, shared/stack create-only workflows and expo/create-only/eas.json.\nTypeScript package template Node/Vitest/coverage defaults preserve explicit host values by ownership contract; other stack force sections upgrade Lisa-owned versions.\nscripts/check-security-floors.mjs audits force/defaults/merge groups (GOVERNANCE_GROUPS, line75) against high/critical advisories; it does not change host ownership or centrally hard-code these Vitest/Vite minima.\nExisting shipped integration composition/updater removal fixes are dependencies to consume, not new work.\nHost rules: stage inputs, regenerate both artifacts, stage outputs, check artifacts; no downstream project identities in published artifacts.\nLearnings projection: install dependencies and build:dist in fresh worktrees before TS tests; regression must reach real changed surfaces.\nscripts/update-node-version.ts misses current paths; direct owned-surface inventory is authoritative, not that stale updater.\nFixture references: tests/integration/apply-reports-unchanged-manifest.test.ts real Lisa.apply orchestration and host-test-scripts-survive-apply.test.ts shipped PackageLisaStrategy inputs.\nImmutable packed CLI reference: tests/integration/lisa-test-run-packed-bin.test.ts uses git checkout-index, isolated build:dist:in-place and npm pack --ignore-scripts; actual CLI verification must be from exact branch artifact.\nscripts/mutation-performance-measure.mjs prepare --subject-sha <exactHEAD> --tarball <absolute.tgz> --output <outsideRepoDir> already applies exact packed CLI twice to8stacks and checks governed hashes; extend empirical CDK host with genuine App/Stack, Template assertion and actual cdk synth, since grade.ts alone is not synth proof.\nEmpirical clean-fixture CLI: CI=1 LISA_BOOTSTRAP=1 node <packedRoot>/dist/index.js apply <host> --yes --no-update-check --harness=cursor, with fixture-local gh sentinel guarding against accidental remote repo creation; compare six-harness package/.nvmrc policy parity rather than equating different agent file bytes.\nCompatible CI floor repair research: actual SecurityFloors run37124259201/job111206277064 at B61580/Td1b18c reported16 collisions. Official GitHub advisories and npm metadata confirm Axios1.20.0 and Undici6.28.1 available within supported bands. Root package.json and typescript/package-lisa/package.lisa.json both override/resolution maps must agree; normally regenerate bun.lock. scripts/check-security-floors.mjs production collectFloors/withinRange plus actual shipped PackageLisaStrategy full/restricted adoption are controls. Existing security-pin-floors and postinstall-ci-guard expectations must ratchet. No checker/workflow/ignore/threshold weakening. Original packed-host fixtures and historical evidence remain unchanged.\nRequired native CI repair: full failed run37124259486 job111206306083 and /tmp/lisa-4326-codification/nested-host-admission-research.json (SHA256 19bd24bae327a6ce201db0aca207e0c4c8f69203c6f5c9055dd4260cc4882221). Unit work deadline must compose real bounded admission plus poll without scaling control wait or weakening native assertions/case margin. Read full current ignored context before work. Linux capacity-one real wrapped RED/GREEN and final-fixture cf55 policy RED required.",
+        "work_item_context": "/tmp/lisa-4326-implementation/.lisa/work-item-context.md",
+        "comment_inventory": [
+          {
+            "id": 5960670067,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "0b2bf53ff60c223bd8002ff51fdfdf7d29fc628204706f488db769cb9189a22b",
+            "created_at": "2026-10-02T20:11:13Z",
+            "updated_at": "2026-10-02T20:11:13Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5960770263,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "5a4350dab19bbf3eca9b925371b1e05b2ab63ec4192919dbfd8479d147fc6b22",
+            "created_at": "2026-10-02T20:17:09Z",
+            "updated_at": "2026-10-02T20:17:09Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5961220400,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "967a0b4066c466976989f2f12a1c425f26c2f480b7a3d4af6adefe698b6b0dfc",
+            "created_at": "2026-10-02T20:47:04Z",
+            "updated_at": "2026-10-02T20:47:04Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5963134813,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "c9fe22333642bc97cee679b4becc1d47c126a7c7fff06a6e5f9fb88cfd734b8c",
+            "created_at": "2026-10-02T23:34:59Z",
+            "updated_at": "2026-10-02T23:34:59Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5963143821,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "190e7e79b477ea2b0f7bb0c47bedafa8531e325caa024f02c08f07e4a4b1167e",
+            "created_at": "2026-10-02T23:35:59Z",
+            "updated_at": "2026-10-02T23:35:59Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5963132830,
+            "actor_id": 136622811,
+            "actor": "coderabbitai[bot]",
+            "type": "Bot",
+            "body_sha256": "0b78ce3f4bc95e25a79a81e638ce8173193f349bc12b52264b7e15fc7f9144da",
+            "created_at": "2026-10-02T23:34:47Z",
+            "updated_at": "2026-10-03T13:04:35Z",
+            "flags": [
+              "automated-review"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "related PR4328",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          }
+        ],
+        "testing_requirements": [
+          "Rerun focused suite green without weakening assertions.",
+          "Exercise absent/default and explicit host-owned pins, plus forced stack overrides.",
+          "Actual CLI fixture applies and real installs are required; textual checks alone cannot close task."
+        ],
+        "skills": [
+          "lisa-implement",
+          "lisa-test-strategy"
+        ],
+        "learnings": [
+          {
+            "kind": "learning",
+            "note": "For same-version packed-artifact proof, isolate package-manager caches per artifact and compare installed package bytes with tarball contents; matching version and lock integrity did not prevent stale cached files.",
+            "evidence": "CodySwannGT/lisa#4326; /tmp/lisa-runtime-4326/evidence/quality-and-template-review-final.log"
+          },
+          {
+            "kind": "mistake",
+            "note": "Preserve helper-seeded manifest dependency fields when customizing supported-stack fixtures. The first restricted CDK fixture removed the direct dependency behind its shipped $aws-cdk-lib override; the corrected seed must be replayed on the unchanged baseline before counting product regressions.",
+            "evidence": [
+              "CodySwannGT/lisa#4326:compatible-floor-repair",
+              "tests/unit/config/forced-http-security-floors.test.ts:215",
+              "baseline-classification-correction.json",
+              "green-patched/command.log",
+              "red-final-61580/test-report.json"
+            ],
+            "confidence": "medium",
+            "occurrences_established": 1,
+            "ledger_assessment": "No exact existing rule duplicate. Related fixture/packed-host entry sll4-8968b24e50aa should be assessed for stamped consolidation under the capture-only contract; current20-entry ledger is full. Root owns any contract write, optional failure is nonblocking. No rule/source promotion or recurrence claim."
+          },
+          {
+            "kind": "learning",
+            "note": "A declared override-floor bump is not an installed package upgrade: neither Axios nor Undici is a resolved root lock node here, and genuine normal/frozen regeneration changed only the two override strings.",
+            "evidence": [
+              "bun.lock",
+              "normal-bun-install/command.log",
+              "frozen-bun-install/command.log"
+            ],
+            "ledger_assessment": "Verification-boundary refinement related to existing sll4-8968b24e50aa installed-bytes-versus-version/lock rule. Prefer consolidation or task-only evidence, not a near-duplicate sibling. This task does not establish installed root Axios/Undici versions.",
+            "confidence": "medium",
+            "occurrences_established": 1
+          },
+          {
+            "kind": "mistake",
+            "note": "Vitest transpilation passed a nullable endpoint call rejected by the canonical test compiler; an explicit guard and final-byte RED/GREEN/typecheck repaired it without casts or quarantine changes.",
+            "evidence": "evidence/4326/forced-http-floor-typecheck-followup/inventory.json"
+          }
+        ],
+        "required_access": [
+          {
+            "tool": "GitHub tracker and Git transport \u2014 CodySwannGT/lisa",
+            "probe": "gh repo view CodySwannGT/lisa --json defaultBranchRef,viewerPermission; gh issue view 4326 --repo CodySwannGT/lisa; git ls-remote --heads origin main",
+            "status": "pass",
+            "evidence": "main; ADMIN; issue open/in-progress assigned authenticated actor; cf55d5f03806fa21e346c1bec6f45110030a13e2 refs/heads/main"
+          },
+          {
+            "tool": "npm registry package metadata/artifacts",
+            "probe": "GET https://registry.npmjs.org/vitest/4.1.11; GET https://registry.npmjs.org/%40vitest%2Fcoverage-v8/4.1.11; GET https://registry.npmjs.org/vite/8.3.2",
+            "status": "pass",
+            "evidence": "All exact versions exist with dist.tarball; Vitest/Vite engines accept Node22.23.3."
+          },
+          {
+            "tool": "Official Node release distribution",
+            "probe": "GET https://nodejs.org/dist/index.json; select version v22.23.3",
+            "status": "pass",
+            "evidence": "v22.23.3 released2026-09-23; Jod LTS; osx-arm64-tar available."
+          },
+          {
+            "tool": "GitHub Actions and branch-protection/ruleset surfaces",
+            "probe": "gh api repos/CodySwannGT/lisa/actions/workflows; gh api repos/CodySwannGT/lisa/actions/runs -f branch=main -f per_page=3 --method GET; gh api repos/CodySwannGT/lisa/rulesets/18805189; gh api repos/CodySwannGT/lisa/rulesets/11912821",
+            "status": "pass",
+            "evidence": "Active CI and reusable quality workflows readable; 13 quality checks plus CodeRabbit and GitGuardian required. Current base includes concluded-success workflow readbacks. Sonar token absent; no standalone SonarCloud proof claim."
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "CI=1 LISA_BOOTSTRAP=1 node <packedRoot>/dist/index.js apply /tmp/lisa-runtime-4326/typescript --yes --no-update-check --harness=cursor; CI=1 LISA_BOOTSTRAP=1 node <packedRoot>/dist/index.js apply /tmp/lisa-runtime-4326/cdk --yes --no-update-check --harness=cursor; bun install --cwd /tmp/lisa-runtime-4326/typescript; bun install --cwd /tmp/lisa-runtime-4326/cdk; inspect installed manifests and bun.lock",
+          "expected": "Both built-CLI generated hosts and installs exit0; installed versions meet declared floors and retain majors."
+        },
+        "ci_floor_repair": {
+          "discovered_at": "2026-10-03",
+          "baseline_head_sha": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+          "actual_ci_checkout_sha": "d1b18c694b93a04a7a8eebcb4756cb3130b6063d",
+          "workflow": ".github/workflows/security-floors.yml",
+          "run_id": 37124259201,
+          "job_id": 111206277064,
+          "actual_job_conclusion": "failure",
+          "actual_log_sha256": "31405cf28e435e046df12095d295c0e5011ebccbec00e07b972d66eec21d11ca",
+          "scope": "Ordinary compatible two-package forced-floor CI delivery repair; original Node22/Vitest4/Vite8 acceptance criteria and all ownership behavior retained. This is agent scope analysis, not new operator authorization or retroactive original AC.",
+          "targets": {
+            "axios": ">=1.20.0",
+            "undici": "^6.28.1"
+          },
+          "source_paths": [
+            "package.json",
+            "bun.lock",
+            "typescript/package-lisa/package.lisa.json"
+          ],
+          "test_paths": [
+            "tests/unit/config/security-pin-floors.test.ts",
+            "tests/unit/config/postinstall-ci-guard.test.ts",
+            "tests/unit/config/forced-http-security-floors.test.ts"
+          ],
+          "primary_advisories": [
+            "GHSA-m8m8-qj5v-23w3",
+            "GHSA-r4gj-5m52-g5wh",
+            "GHSA-c29m-xwm3-cm6r",
+            "GHSA-mghh-pgcx-3jjj",
+            "GHSA-x97p-jq2g-jp4f",
+            "GHSA-3pq3-5fj3-cg6v",
+            "GHSA-542g-h47m-68v8",
+            "GHSA-rfgv-xxqx-mfg5"
+          ],
+          "required_control": "Identical immutable eight-primary-advisory regression bytes reject actual baseline shared force ranges at16 sites before source value changes, then pass actual collector/comparator plus root destination floors and real full/restricted shipped-policy adoption with unowned defaults preserved.",
+          "source_owner": "implement_input_resolver",
+          "scope_review_sha256": "37e13f199d0dbf6542e4d780de633672473b2f8a4ab61cd862974d1ddecad0ac",
+          "research_sha256": "b7ab93e7658ee8b0518add61681a56e473ada4508d90869f1201c2eb378ddd34",
+          "verification_status": "pending",
+          "learning_capture": []
+        },
+        "nested_host_admission_repair": {
+          "observed_baseline_source_head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+          "actual_failed_ci_checkout": "d1b18c694b93a04a7a8eebcb4756cb3130b6063d",
+          "run_id": 37124259486,
+          "job_id": 111206306083,
+          "actual_conclusion": "failure",
+          "actual_log_sha256": "0f003762e78a3ba7c88c2309a6ddc54014f99a58bc89eb6a81f91b50e35cf4c4",
+          "research_path": "/tmp/lisa-4326-codification/nested-host-admission-research.json",
+          "research_sha256": "19bd24bae327a6ce201db0aca207e0c4c8f69203c6f5c9055dd4260cc4882221",
+          "scope": "Existing required native packed-host regression and delivery repair, not a change to fleet scheduler or original acceptance criteria. Native unit deadline omitted bounded admission phase.",
+          "source_owner": "plan_quality",
+          "source_paths": [
+            "tests/fixtures/shared-runtime-hosts/process.ts",
+            "tests/fixtures/shared-runtime-hosts/journey.ts"
+          ],
+          "new_focused_test_path": "tests/unit/fixtures/shared-runtime-native-deadline.test.ts",
+          "formula": "admissionDeadlineMs(actual hostEnv) + ADMISSION_POLL_MS + ioLatencyBudgetMs(existing 60000ms unit work)",
+          "preserved": "Admission enabled, genuine independent host wrapper/lease, actual TS1/CDK2 tests, case600s and margin0.5, every native byte/synth/idempotence assertion. No deadline shortening or parent-slot reuse.",
+          "required_controls": [
+            "Actual Linux capacity-one normal outer wrapper reproduces historical current fixture timeout, then same environment complete native GREEN with actual120s admission expiry release.",
+            "Identical newly frozen six fixture bytes against cf55 produce intended stale policy RED; then candidate GREEN.",
+            "New exact source commit independent packed replay and successful current-head CI."
+          ],
+          "status": "implementation_pending",
+          "learning_capture": []
+        },
+        "comment_inventory_context_bytes": 232750,
+        "comment_inventory_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a",
+        "required_typecheck_followup": {
+          "captured_at": "2026-10-03T14:05:28.490595+00:00",
+          "diagnostic_sha256": "1953251065c023a1935e9d56d4cb69d123583563e69fd3d0bacb1ed242456cfb",
+          "actual_failure": "New floor test lines141/142 number[]|null arguments not narrowed; prior focused runtime/lint PASS did not establish typecheck.",
+          "owner": "implement_input_resolver",
+          "path": "tests/unit/config/forced-http-security-floors.test.ts",
+          "required": "Minimal explicit null guard or equivalent real narrowing; final-byte original615 RED103/29FAIL then candidateGREEN103; actual test typecheck and scoped quality. Prior raw proof kept historical.",
+          "status": "PASS-working-tree-only",
+          "implementation_summary_sha256": "26e4903607244e3cf0f363e30cb13ea3332e93f8551dd1f9eac4f21ce2717079",
+          "independent_review_sha256": "2a88d182966eee1a0d180238af957f06b45237225c41f8ff245325562b48a691",
+          "final_test_sha256": "06c57251993a57ff812dab686d49b36533c6058c2c9a5a43d2fd9bde473a6df0",
+          "durable_packet": "evidence/4326/forced-http-floor-typecheck-followup/inventory.json"
+        }
+      },
+      "completion_evidence": "Owned runtime/floor policy source completed at2ae7c885; required installed-host integration codification added at staged treef4e49516636a74de800dfb113173a99a053a1343. Identical six inputs fail2/2 oncf55 generated Node22.21.1 and pass2/2 on candidate; exact source-bound evidence in codification_evidence. Final ship identity is not yet established."
+    },
+    {
+      "id": "T4",
+      "title": "Independently review ownership, parity and complete quality gates",
+      "owner": "independent-quality-specialist",
+      "metadata_owner": "independent-quality-specialist",
+      "status": "in_progress",
+      "blockedBy": [
+        "T3"
+      ],
+      "description": "Read /tmp/lisa-4326-implementation/.lisa/work-item-context.md in full before acting. Comment inventory: [{\"id\": 5960670067, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Accepted single-repository build-ready task with validation evidence obligations; no secrets.\"}, {\"id\": 5960770263, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Managed implementation claim; preserve attributable binding; no secrets.\"}] Preserve unrelated work. No secrets observed; no live AWS/host deployment authorized or required.",
+      "metadata": {
+        "plan": "Refresh shared Node22 runtime and test-tool security floors",
+        "type": "task",
+        "acceptance_criteria": [
+          "Review source and destination together, all six agent surfaces and default semantics.",
+          "Typecheck, lint/slow, formatting, unit/coverage, integration, artifact/template parity and relevant offline synth checks pass.",
+          "No new SonarJS lint/security violations; remote SonarCloud is unconfigured and must not be asserted.",
+          "Review suggestions corrected before final proof."
+        ],
+        "relevant_documentation": "Canonical issue context, all comments and Validation Journey (read in full).\nREADME.md:130-224 documents explicit Lisa apply and bun install; installation alone does not apply templates.\nsrc/cli/index.ts apply command; src/cli/apply.ts --yes and --no-update-check supported.\nRoot package.json + package.lisa.json; typescript, cdk, npm-package, nestjs, phaser and harper-fabric package-lisa templates own runtime/test tool values.\nNode policy surfaces include root .nvmrc, typescript/copy-overwrite/.nvmrc, shared/stack create-only workflows and expo/create-only/eas.json.\nTypeScript package template Node/Vitest/coverage defaults preserve explicit host values by ownership contract; other stack force sections upgrade Lisa-owned versions.\nscripts/check-security-floors.mjs audits force/defaults/merge groups (GOVERNANCE_GROUPS, line75) against high/critical advisories; it does not change host ownership or centrally hard-code these Vitest/Vite minima.\nExisting shipped integration composition/updater removal fixes are dependencies to consume, not new work.\nHost rules: stage inputs, regenerate both artifacts, stage outputs, check artifacts; no downstream project identities in published artifacts.\nLearnings projection: install dependencies and build:dist in fresh worktrees before TS tests; regression must reach real changed surfaces.\nscripts/update-node-version.ts misses current paths; direct owned-surface inventory is authoritative, not that stale updater.\nFixture references: tests/integration/apply-reports-unchanged-manifest.test.ts real Lisa.apply orchestration and host-test-scripts-survive-apply.test.ts shipped PackageLisaStrategy inputs.\nImmutable packed CLI reference: tests/integration/lisa-test-run-packed-bin.test.ts uses git checkout-index, isolated build:dist:in-place and npm pack --ignore-scripts; actual CLI verification must be from exact branch artifact.\nscripts/mutation-performance-measure.mjs prepare --subject-sha <exactHEAD> --tarball <absolute.tgz> --output <outsideRepoDir> already applies exact packed CLI twice to8stacks and checks governed hashes; extend empirical CDK host with genuine App/Stack, Template assertion and actual cdk synth, since grade.ts alone is not synth proof.\nEmpirical clean-fixture CLI: CI=1 LISA_BOOTSTRAP=1 node <packedRoot>/dist/index.js apply <host> --yes --no-update-check --harness=cursor, with fixture-local gh sentinel guarding against accidental remote repo creation; compare six-harness package/.nvmrc policy parity rather than equating different agent file bytes.\nApproved root-local advisory disposition: evidence/4326/security-audit-review.md; all historical runtime observations retain their actual heads. Fresh exact-commit verification and normal shipping remain required.\nCompatible CI floor repair research: actual SecurityFloors run37124259201/job111206277064 at B61580/Td1b18c reported16 collisions. Official GitHub advisories and npm metadata confirm Axios1.20.0 and Undici6.28.1 available within supported bands. Root package.json and typescript/package-lisa/package.lisa.json both override/resolution maps must agree; normally regenerate bun.lock. scripts/check-security-floors.mjs production collectFloors/withinRange plus actual shipped PackageLisaStrategy full/restricted adoption are controls. Existing security-pin-floors and postinstall-ci-guard expectations must ratchet. No checker/workflow/ignore/threshold weakening. Original packed-host fixtures and historical evidence remain unchanged.\nRequired native CI repair: full failed run37124259486 job111206306083 and /tmp/lisa-4326-codification/nested-host-admission-research.json (SHA256 19bd24bae327a6ce201db0aca207e0c4c8f69203c6f5c9055dd4260cc4882221). Unit work deadline must compose real bounded admission plus poll without scaling control wait or weakening native assertions/case margin. Read full current ignored context before work. Linux capacity-one real wrapped RED/GREEN and final-fixture cf55 policy RED required.",
+        "work_item_context": "/tmp/lisa-4326-implementation/.lisa/work-item-context.md",
+        "comment_inventory": [
+          {
+            "id": 5960670067,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "0b2bf53ff60c223bd8002ff51fdfdf7d29fc628204706f488db769cb9189a22b",
+            "created_at": "2026-10-02T20:11:13Z",
+            "updated_at": "2026-10-02T20:11:13Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5960770263,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "5a4350dab19bbf3eca9b925371b1e05b2ab63ec4192919dbfd8479d147fc6b22",
+            "created_at": "2026-10-02T20:17:09Z",
+            "updated_at": "2026-10-02T20:17:09Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5961220400,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "967a0b4066c466976989f2f12a1c425f26c2f480b7a3d4af6adefe698b6b0dfc",
+            "created_at": "2026-10-02T20:47:04Z",
+            "updated_at": "2026-10-02T20:47:04Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5963134813,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "c9fe22333642bc97cee679b4becc1d47c126a7c7fff06a6e5f9fb88cfd734b8c",
+            "created_at": "2026-10-02T23:34:59Z",
+            "updated_at": "2026-10-02T23:34:59Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5963143821,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "190e7e79b477ea2b0f7bb0c47bedafa8531e325caa024f02c08f07e4a4b1167e",
+            "created_at": "2026-10-02T23:35:59Z",
+            "updated_at": "2026-10-02T23:35:59Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5963132830,
+            "actor_id": 136622811,
+            "actor": "coderabbitai[bot]",
+            "type": "Bot",
+            "body_sha256": "0b78ce3f4bc95e25a79a81e638ce8173193f349bc12b52264b7e15fc7f9144da",
+            "created_at": "2026-10-02T23:34:47Z",
+            "updated_at": "2026-10-03T13:04:35Z",
+            "flags": [
+              "automated-review"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "related PR4328",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          }
+        ],
+        "testing_requirements": [
+          "Run repository documented gates, not silently reduced substitutes.",
+          "Stage actual inputs before both artifact regenerations; check generated outputs and no identity leakage.",
+          "Record all failures and genuine unaffected baseline findings separately."
+        ],
+        "skills": [
+          "lisa-review-implementation",
+          "lisa-quality-review"
+        ],
+        "learnings": [],
+        "required_access": [
+          {
+            "tool": "GitHub tracker and Git transport \u2014 CodySwannGT/lisa",
+            "probe": "gh repo view CodySwannGT/lisa --json defaultBranchRef,viewerPermission; gh issue view 4326 --repo CodySwannGT/lisa; git ls-remote --heads origin main",
+            "status": "pass",
+            "evidence": "main; ADMIN; issue open/in-progress assigned authenticated actor; cf55d5f03806fa21e346c1bec6f45110030a13e2 refs/heads/main"
+          },
+          {
+            "tool": "npm registry package metadata/artifacts",
+            "probe": "GET https://registry.npmjs.org/vitest/4.1.11; GET https://registry.npmjs.org/%40vitest%2Fcoverage-v8/4.1.11; GET https://registry.npmjs.org/vite/8.3.2",
+            "status": "pass",
+            "evidence": "All exact versions exist with dist.tarball; Vitest/Vite engines accept Node22.23.3."
+          },
+          {
+            "tool": "Official Node release distribution",
+            "probe": "GET https://nodejs.org/dist/index.json; select version v22.23.3",
+            "status": "pass",
+            "evidence": "v22.23.3 released2026-09-23; Jod LTS; osx-arm64-tar available."
+          },
+          {
+            "tool": "GitHub Actions and branch-protection/ruleset surfaces",
+            "probe": "gh api repos/CodySwannGT/lisa/actions/workflows; gh api repos/CodySwannGT/lisa/actions/runs -f branch=main -f per_page=3 --method GET; gh api repos/CodySwannGT/lisa/rulesets/18805189; gh api repos/CodySwannGT/lisa/rulesets/11912821",
+            "status": "pass",
+            "evidence": "Active CI and reusable quality workflows readable; 13 quality checks plus CodeRabbit and GitGuardian required. Current base includes concluded-success workflow readbacks. Sonar token absent; no standalone SonarCloud proof claim."
+          },
+          {
+            "tool": "Docker Linux capacity-one real supervisor reproduction",
+            "probe": "docker info --format OS/CPU, actual daemon linux18CPUs before sourceGO; worker actual isolated Node22.23.3/Bun1.3.11 availableParallelism2 and frozen dependency install exited0",
+            "status": "pass",
+            "boundary": "Tool access/prerequisites only; full regression completion not inferred.",
+            "recorded_at": "2026-10-03T14:03:22.643819+00:00",
+            "metadata_timing_disclosure": "Root probed Docker successfully before implementationGO; explicit required_access entry recorded now after prerequisite results. No claim that this metadata entry existed at originalGO."
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "node dist/index.js --version; node dist/index.js apply /tmp/lisa-runtime-4326/review-host --yes --no-update-check; git diff --stat; git diff --check",
+          "expected": "Built branch CLI executes and generated host exposes updated owned policy; independent review finds no unmet scope/ownership/parity obligations."
+        },
+        "ci_floor_repair": {
+          "discovered_at": "2026-10-03",
+          "baseline_head_sha": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+          "actual_ci_checkout_sha": "d1b18c694b93a04a7a8eebcb4756cb3130b6063d",
+          "workflow": ".github/workflows/security-floors.yml",
+          "run_id": 37124259201,
+          "job_id": 111206277064,
+          "actual_job_conclusion": "failure",
+          "actual_log_sha256": "31405cf28e435e046df12095d295c0e5011ebccbec00e07b972d66eec21d11ca",
+          "scope": "Ordinary compatible two-package forced-floor CI delivery repair; original Node22/Vitest4/Vite8 acceptance criteria and all ownership behavior retained. This is agent scope analysis, not new operator authorization or retroactive original AC.",
+          "targets": {
+            "axios": ">=1.20.0",
+            "undici": "^6.28.1"
+          },
+          "source_paths": [
+            "package.json",
+            "bun.lock",
+            "typescript/package-lisa/package.lisa.json"
+          ],
+          "test_paths": [
+            "tests/unit/config/security-pin-floors.test.ts",
+            "tests/unit/config/postinstall-ci-guard.test.ts",
+            "tests/unit/config/forced-http-security-floors.test.ts"
+          ],
+          "primary_advisories": [
+            "GHSA-m8m8-qj5v-23w3",
+            "GHSA-r4gj-5m52-g5wh",
+            "GHSA-c29m-xwm3-cm6r",
+            "GHSA-mghh-pgcx-3jjj",
+            "GHSA-x97p-jq2g-jp4f",
+            "GHSA-3pq3-5fj3-cg6v",
+            "GHSA-542g-h47m-68v8",
+            "GHSA-rfgv-xxqx-mfg5"
+          ],
+          "required_control": "Identical immutable eight-primary-advisory regression bytes reject actual baseline shared force ranges at16 sites before source value changes, then pass actual collector/comparator plus root destination floors and real full/restricted shipped-policy adoption with unowned defaults preserved.",
+          "source_owner": "implement_input_resolver",
+          "scope_review_sha256": "37e13f199d0dbf6542e4d780de633672473b2f8a4ab61cd862974d1ddecad0ac",
+          "research_sha256": "b7ab93e7658ee8b0518add61681a56e473ada4508d90869f1201c2eb378ddd34",
+          "verification_status": "pending",
+          "learning_capture": []
+        },
+        "nested_host_admission_repair": {
+          "observed_baseline_source_head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+          "actual_failed_ci_checkout": "d1b18c694b93a04a7a8eebcb4756cb3130b6063d",
+          "run_id": 37124259486,
+          "job_id": 111206306083,
+          "actual_conclusion": "failure",
+          "actual_log_sha256": "0f003762e78a3ba7c88c2309a6ddc54014f99a58bc89eb6a81f91b50e35cf4c4",
+          "research_path": "/tmp/lisa-4326-codification/nested-host-admission-research.json",
+          "research_sha256": "19bd24bae327a6ce201db0aca207e0c4c8f69203c6f5c9055dd4260cc4882221",
+          "scope": "Existing required native packed-host regression and delivery repair, not a change to fleet scheduler or original acceptance criteria. Native unit deadline omitted bounded admission phase.",
+          "source_owner": "plan_quality",
+          "source_paths": [
+            "tests/fixtures/shared-runtime-hosts/process.ts",
+            "tests/fixtures/shared-runtime-hosts/journey.ts"
+          ],
+          "new_focused_test_path": "tests/unit/fixtures/shared-runtime-native-deadline.test.ts",
+          "formula": "admissionDeadlineMs(actual hostEnv) + ADMISSION_POLL_MS + ioLatencyBudgetMs(existing 60000ms unit work)",
+          "preserved": "Admission enabled, genuine independent host wrapper/lease, actual TS1/CDK2 tests, case600s and margin0.5, every native byte/synth/idempotence assertion. No deadline shortening or parent-slot reuse.",
+          "required_controls": [
+            "Actual Linux capacity-one normal outer wrapper reproduces historical current fixture timeout, then same environment complete native GREEN with actual120s admission expiry release.",
+            "Identical newly frozen six fixture bytes against cf55 produce intended stale policy RED; then candidate GREEN.",
+            "New exact source commit independent packed replay and successful current-head CI."
+          ],
+          "status": "PASS-working-input-source-and-controls; fresh committed artifact/remote/public still pending",
+          "learning_capture": {
+            "status": "actual executable locked-stamped-capture PASS",
+            "receipt_sha256": "9d3b9214d3ae15922c660abd7af373127b4103db8268a988874fad95e41089f0",
+            "ledger_sha256": "aa56ba5c64624a5df72b6e8ce59befecc84095161a01874de2fb6e7409e11821",
+            "entries": 20,
+            "bytes": 13897,
+            "budget": 14900,
+            "fingerprint": "learning-5748d1868aedacf8b7d4",
+            "confidence": "medium",
+            "occurrences": 1,
+            "other19_exact_bytes_unchanged": true,
+            "oldest_date": "2026-07-19",
+            "source_skill_rules_promotion": false
+          },
+          "access_probe": {
+            "tool": "Docker Linux capacity-one real supervisor reproduction",
+            "probe": "docker info --format OS/CPU, actual daemon linux18CPUs before sourceGO; worker actual isolated Node22.23.3/Bun1.3.11 availableParallelism2 and frozen dependency install exited0",
+            "status": "pass",
+            "boundary": "Tool access/prerequisites only; full regression completion not inferred.",
+            "recorded_at": "2026-10-03T14:03:22.643819+00:00",
+            "metadata_timing_disclosure": "Root probed Docker successfully before implementationGO; explicit required_access entry recorded now after prerequisite results. No claim that this metadata entry existed at originalGO."
+          },
+          "handoff_sha256": "e88faa4a6a11c7e626d03257649c89b57282297bd927f6b10cafd1f56b801de5",
+          "independent_review_sha256": "e176f11076c0c9095a00c5ab285c2eb0e131dd8c0215b9d41a9a41699d6aa63d",
+          "durable_packet": "evidence/4326/nested-host-admission-repair/inventory.json",
+          "final_frozen6": {
+            "tests/fixtures/shared-runtime-hosts/process.ts": "c6e1fd79773d1c9b611af48328e60ef177c72b1f82807a1bd6b78b3bfad4d5c3",
+            "tests/fixtures/shared-runtime-hosts/journey.ts": "895e11735ce1575d9fdb5f15c1688e8f698a89130141209dfc2013fbea3d9321",
+            "tests/fixtures/shared-runtime-hosts/artifact.ts": "a64007acc0afce7c5e50f2b54568bfcb9d382dcd1cddc251025dc038a8f9a910",
+            "tests/fixtures/shared-runtime-hosts/assertions.ts": "3a44300da10845875a0c395dc0856954bbec04772280d7f2337f6f083fec0006",
+            "tests/fixtures/shared-runtime-hosts/host.ts": "9a5c7a618bef8dd9a2d60a51b6c123196e022aa690babcbb57a6cd1be3d419fa",
+            "tests/integration/shared-runtime-packed-hosts.test.ts": "d46d50bd3495f8ac676fbe94c0b0e810792a22eda8dd651860317ef4dda09ac3"
+          }
+        },
+        "comment_inventory_context_bytes": 232750,
+        "comment_inventory_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a",
+        "proof_helper_extension": {
+          "research_receipt": "/tmp/lisa-4326-codification/new-fixture-proof-helper-research-v2.json",
+          "research_sha256": "ff546490a89887e8b23607693e961c8b9f1c95a15cb3d3b3384d0b4112a19884",
+          "source_core_unchanged_sha256": "c6e541e9c848841b5d4a7900c4d648b4a06b22df657aff3b487e908a8e4887d0",
+          "design": "Keep original exact-head core/85index immutable; independently run four final focused files against same exact B, then augmented original85+3record index88. Separate source-at-R frozen install/build/unit proof and literal policy of unmodified installed official public package/hosts. All current full comments bound through fresh paginated resolver/context SHA+bytes.",
+          "external_implementation_owner": "implement_input_resolver",
+          "source_changes_authorized": false,
+          "future_execution_or_delivery_proof_established": false,
+          "preparation_receipt_sha256": "38b2530a9261f2296d764d91a52414655c91815e538db67f2ac3ca962dc72e57",
+          "independent_review_sha256": "14ea35326b34a42a71d80a758ef88c06dd0045e3e0b9bad585f66466ad3a1cf2",
+          "status": "Prepared/reviewed only; 100 pure controls, zero product runtime. Future actual B/R unknown."
+        },
+        "required_typecheck_followup": {
+          "captured_at": "2026-10-03T14:05:28.490595+00:00",
+          "diagnostic_sha256": "1953251065c023a1935e9d56d4cb69d123583563e69fd3d0bacb1ed242456cfb",
+          "actual_failure": "New floor test lines141/142 number[]|null arguments not narrowed; prior focused runtime/lint PASS did not establish typecheck.",
+          "owner": "implement_input_resolver",
+          "path": "tests/unit/config/forced-http-security-floors.test.ts",
+          "required": "Minimal explicit null guard or equivalent real narrowing; final-byte original615 RED103/29FAIL then candidateGREEN103; actual test typecheck and scoped quality. Prior raw proof kept historical.",
+          "status": "PASS-working-tree-only",
+          "implementation_summary_sha256": "26e4903607244e3cf0f363e30cb13ea3332e93f8551dd1f9eac4f21ce2717079",
+          "independent_review_sha256": "2a88d182966eee1a0d180238af957f06b45237225c41f8ff245325562b48a691",
+          "final_test_sha256": "06c57251993a57ff812dab686d49b36533c6058c2c9a5a43d2fd9bde473a6df0",
+          "durable_packet": "evidence/4326/forced-http-floor-typecheck-followup/inventory.json"
+        }
+      },
+      "completion_evidence": "Independent six-input source review PASS/no findings; source and baseline six working/staged/tree hashes independently matched. Previous694ea full local gates retain prior identity. Stable-index full applicable gates after plan/learning/artifact staging are required next."
+    },
+    {
+      "id": "T5",
+      "title": "Codify and independently prove installed TS/CDK adoption",
+      "owner": "independent-verification-specialist",
+      "metadata_owner": "independent-verification-specialist",
+      "status": "in_progress",
+      "blockedBy": [
+        "T4"
+      ],
+      "description": "Read /tmp/lisa-4326-implementation/.lisa/work-item-context.md in full before acting. Comment inventory: [{\"id\": 5960670067, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Accepted single-repository build-ready task with validation evidence obligations; no secrets.\"}, {\"id\": 5960770263, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Managed implementation claim; preserve attributable binding; no secrets.\"}] Preserve unrelated work. No secrets observed; no live AWS/host deployment authorized or required.",
+      "metadata": {
+        "plan": "Refresh shared Node22 runtime and test-tool security floors",
+        "type": "task",
+        "acceptance_criteria": [
+          "Both clean generated TS/CDK hosts complete two actual CLI applies and real installs with exit0; all generated shared Node22 surfaces equal22.23.3, installed vitest/coverage are compatible4.x >=4.1.11 and Vite8.x >=8.3.2, install-lock versions agree with node_modules, second apply has zero managed-content delta, supported host execution and offline CDK synth succeed, no unplanned major or IAM/resource contract changes. Repo quality gates are additional prerequisites. Final branch is merged to derived main, configured required CI/review checks conclude success for shipped head, source evidence and usage/backlinks are posted, issue is terminal only after this proof, and binding/context are cleared only then.",
+          "Independent schema-v2 verdict binds each code-unit/cli-runtime/source-merge claim to matching branch artifact SHA and appropriate evidence kinds.",
+          "All three named issue artifacts (baseline-regression, fixed-success-and-edge, quality-and-template-review) are present."
+        ],
+        "relevant_documentation": "Canonical issue context, all comments and Validation Journey (read in full).\nREADME.md:130-224 documents explicit Lisa apply and bun install; installation alone does not apply templates.\nsrc/cli/index.ts apply command; src/cli/apply.ts --yes and --no-update-check supported.\nRoot package.json + package.lisa.json; typescript, cdk, npm-package, nestjs, phaser and harper-fabric package-lisa templates own runtime/test tool values.\nNode policy surfaces include root .nvmrc, typescript/copy-overwrite/.nvmrc, shared/stack create-only workflows and expo/create-only/eas.json.\nTypeScript package template Node/Vitest/coverage defaults preserve explicit host values by ownership contract; other stack force sections upgrade Lisa-owned versions.\nscripts/check-security-floors.mjs audits force/defaults/merge groups (GOVERNANCE_GROUPS, line75) against high/critical advisories; it does not change host ownership or centrally hard-code these Vitest/Vite minima.\nExisting shipped integration composition/updater removal fixes are dependencies to consume, not new work.\nHost rules: stage inputs, regenerate both artifacts, stage outputs, check artifacts; no downstream project identities in published artifacts.\nLearnings projection: install dependencies and build:dist in fresh worktrees before TS tests; regression must reach real changed surfaces.\nscripts/update-node-version.ts misses current paths; direct owned-surface inventory is authoritative, not that stale updater.\nFixture references: tests/integration/apply-reports-unchanged-manifest.test.ts real Lisa.apply orchestration and host-test-scripts-survive-apply.test.ts shipped PackageLisaStrategy inputs.\nImmutable packed CLI reference: tests/integration/lisa-test-run-packed-bin.test.ts uses git checkout-index, isolated build:dist:in-place and npm pack --ignore-scripts; actual CLI verification must be from exact branch artifact.\nscripts/mutation-performance-measure.mjs prepare --subject-sha <exactHEAD> --tarball <absolute.tgz> --output <outsideRepoDir> already applies exact packed CLI twice to8stacks and checks governed hashes; extend empirical CDK host with genuine App/Stack, Template assertion and actual cdk synth, since grade.ts alone is not synth proof.\nEmpirical clean-fixture CLI: CI=1 LISA_BOOTSTRAP=1 node <packedRoot>/dist/index.js apply <host> --yes --no-update-check --harness=cursor, with fixture-local gh sentinel guarding against accidental remote repo creation; compare six-harness package/.nvmrc policy parity rather than equating different agent file bytes.\nIndependent codification review: /tmp/lisa-runtime-4326-independent/generated-r2-694ea306/evidence/codification-review.md. Runtime proof at 694ea306 passes locally but the native installed-host journey was outside-repo only; regular integration regression is required before push.\nGenerated baseline means one setup/bootstrap apply followed by two adoption applies. Preserve the inherited bootstrap gate delta as an investigation limit; require clean fixture Git before each actual apply and zero full managed-byte delta after the second adoption.\nApproved root-local advisory disposition: evidence/4326/security-audit-review.md; all historical runtime observations retain their actual heads. Fresh exact-commit verification and normal shipping remain required.\nCompatible CI floor repair research: actual SecurityFloors run37124259201/job111206277064 at B61580/Td1b18c reported16 collisions. Official GitHub advisories and npm metadata confirm Axios1.20.0 and Undici6.28.1 available within supported bands. Root package.json and typescript/package-lisa/package.lisa.json both override/resolution maps must agree; normally regenerate bun.lock. scripts/check-security-floors.mjs production collectFloors/withinRange plus actual shipped PackageLisaStrategy full/restricted adoption are controls. Existing security-pin-floors and postinstall-ci-guard expectations must ratchet. No checker/workflow/ignore/threshold weakening. Original packed-host fixtures and historical evidence remain unchanged.\nRequired native CI repair: full failed run37124259486 job111206306083 and /tmp/lisa-4326-codification/nested-host-admission-research.json (SHA256 19bd24bae327a6ce201db0aca207e0c4c8f69203c6f5c9055dd4260cc4882221). Unit work deadline must compose real bounded admission plus poll without scaling control wait or weakening native assertions/case margin. Read full current ignored context before work. Linux capacity-one real wrapped RED/GREEN and final-fixture cf55 policy RED required.",
+        "work_item_context": "/tmp/lisa-4326-implementation/.lisa/work-item-context.md",
+        "comment_inventory": [
+          {
+            "id": 5960670067,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "0b2bf53ff60c223bd8002ff51fdfdf7d29fc628204706f488db769cb9189a22b",
+            "created_at": "2026-10-02T20:11:13Z",
+            "updated_at": "2026-10-02T20:11:13Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5960770263,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "5a4350dab19bbf3eca9b925371b1e05b2ab63ec4192919dbfd8479d147fc6b22",
+            "created_at": "2026-10-02T20:17:09Z",
+            "updated_at": "2026-10-02T20:17:09Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5961220400,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "967a0b4066c466976989f2f12a1c425f26c2f480b7a3d4af6adefe698b6b0dfc",
+            "created_at": "2026-10-02T20:47:04Z",
+            "updated_at": "2026-10-02T20:47:04Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5963134813,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "c9fe22333642bc97cee679b4becc1d47c126a7c7fff06a6e5f9fb88cfd734b8c",
+            "created_at": "2026-10-02T23:34:59Z",
+            "updated_at": "2026-10-02T23:34:59Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5963143821,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "190e7e79b477ea2b0f7bb0c47bedafa8531e325caa024f02c08f07e4a4b1167e",
+            "created_at": "2026-10-02T23:35:59Z",
+            "updated_at": "2026-10-02T23:35:59Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5963132830,
+            "actor_id": 136622811,
+            "actor": "coderabbitai[bot]",
+            "type": "Bot",
+            "body_sha256": "0b78ce3f4bc95e25a79a81e638ce8173193f349bc12b52264b7e15fc7f9144da",
+            "created_at": "2026-10-02T23:34:47Z",
+            "updated_at": "2026-10-03T13:04:35Z",
+            "flags": [
+              "automated-review"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "related PR4328",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          }
+        ],
+        "testing_requirements": [
+          "Use fresh fixtures with no explicit override for shared default propagation; separate control with explicit pins proves defaults preserve caller ownership.",
+          "Install real dependencies, read installed package manifests and lock content, run actual Node22.23.3 and no-lookup CDK synth.",
+          "Use one built artifact for both applies; compare managed bytes, excluding documented transient machine receipts only.",
+          "No browser/device harness applies to CLI/template-only surface; no live AWS or host deployment required.",
+          "Regular committed integration tests must exercise immutable packed CLI installation into generated TS/CDK hosts, actual typecheck/unit/offline synth, exact installed tar-member bytes, frozen reinstall and zero managed delta on the second adoption apply. Capture identical new test bytes failing stale policy on the original base and passing the updated branch."
+        ],
+        "skills": [
+          "lisa-verify",
+          "lisa-codify-verification"
+        ],
+        "learnings": [
+          {
+            "kind": "learning",
+            "note": "Use the exact supervisor per-file command for isolated integration runs; appending a file to the directory-filtered test:integration script still starts the broader suite. An initial invocation began all integration tests; its owned process tree was stopped and exact native file filtering used afterward.",
+            "evidence": "/tmp/lisa-4326-codified-green.log"
+          },
+          {
+            "kind": "learning",
+            "note": "Nested generated-host native test wrappers need their own normal profile and lease; do not inherit the outer Lisa suite identity. Isolate child TMPDIR under the owned fixture for real installs. The first wrapped journey observed a profile conflict and a Bun/node-gyp unregistered scratch leak; a fresh host wrapper lease plus owned child temp root passed without disabling native guards.",
+            "evidence": "/tmp/lisa-4326-codified-green-focused.log"
+          },
+          {
+            "kind": "learning",
+            "note": "Resolve a manifest override reference such as $vite before asserting its literal floor, then verify the actual installed version and lock. CDK correctly uses a direct dependency reference while TypeScript carries the literal override; both resolved Vite8.3.2.",
+            "evidence": "/tmp/lisa-4326-codification/final-green"
+          },
+          {
+            "kind": "learning",
+            "note": "For full artifact-byte identity, compare each regular member with native Buffer.compare instead of structural Buffer equality. The candidate has7,522 members/57MB. Structural comparison inflated the corrected two-case run to453.86s; the native full-byte final run passed in238.23s with measured whole cases108.451s/94.043s. This observed run difference also includes machine-pressure variation and is not a controlled speedup benchmark.",
+            "evidence": "/tmp/lisa-4326-codification/final-green/vitest.json"
+          },
+          {
+            "kind": "learning",
+            "note": "Native child wall deadlines must include the actual unscaled admission deadline and one poll before the unchanged scaled work budget; genuine capacity-one RED/GREEN fit existing case margins. Two host cases prove one cause, not recurrence.",
+            "evidence": "evidence/4326/nested-host-admission-repair/inventory.json"
+          }
+        ],
+        "required_access": [
+          {
+            "tool": "GitHub tracker and Git transport \u2014 CodySwannGT/lisa",
+            "probe": "gh repo view CodySwannGT/lisa --json defaultBranchRef,viewerPermission; gh issue view 4326 --repo CodySwannGT/lisa; git ls-remote --heads origin main",
+            "status": "pass",
+            "evidence": "main; ADMIN; issue open/in-progress assigned authenticated actor; cf55d5f03806fa21e346c1bec6f45110030a13e2 refs/heads/main"
+          },
+          {
+            "tool": "npm registry package metadata/artifacts",
+            "probe": "GET https://registry.npmjs.org/vitest/4.1.11; GET https://registry.npmjs.org/%40vitest%2Fcoverage-v8/4.1.11; GET https://registry.npmjs.org/vite/8.3.2",
+            "status": "pass",
+            "evidence": "All exact versions exist with dist.tarball; Vitest/Vite engines accept Node22.23.3."
+          },
+          {
+            "tool": "Official Node release distribution",
+            "probe": "GET https://nodejs.org/dist/index.json; select version v22.23.3",
+            "status": "pass",
+            "evidence": "v22.23.3 released2026-09-23; Jod LTS; osx-arm64-tar available."
+          },
+          {
+            "tool": "GitHub Actions and branch-protection/ruleset surfaces",
+            "probe": "gh api repos/CodySwannGT/lisa/actions/workflows; gh api repos/CodySwannGT/lisa/actions/runs -f branch=main -f per_page=3 --method GET; gh api repos/CodySwannGT/lisa/rulesets/18805189; gh api repos/CodySwannGT/lisa/rulesets/11912821",
+            "status": "pass",
+            "evidence": "Active CI and reusable quality workflows readable; 13 quality checks plus CodeRabbit and GitGuardian required. Current base includes concluded-success workflow readbacks. Sonar token absent; no standalone SonarCloud proof claim."
+          },
+          {
+            "tool": "Docker Linux capacity-one real supervisor reproduction",
+            "probe": "docker info --format OS/CPU, actual daemon linux18CPUs before sourceGO; worker actual isolated Node22.23.3/Bun1.3.11 availableParallelism2 and frozen dependency install exited0",
+            "status": "pass",
+            "boundary": "Tool access/prerequisites only; full regression completion not inferred.",
+            "recorded_at": "2026-10-03T14:03:22.643819+00:00",
+            "metadata_timing_disclosure": "Root probed Docker successfully before implementationGO; explicit required_access entry recorded now after prerequisite results. No claim that this metadata entry existed at originalGO."
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "PATH=<verified Node22.23.3 directory>:<worktree>/node_modules/.bin:$PATH node dist/cli/lisa-test-run.js --profile lisa --adapter vitest -- vitest run tests/integration/shared-runtime-packed-hosts.test.ts; independently execute identical committed test bytes against original cf55d5f03806fa21e346c1bec6f45110030a13e2 and the final immutable artifact, then run configured full quality/CI gates.",
+          "expected": "One explicit bare bootstrap setup followed by two adoption applies per clean generated TypeScript/CDK Git host. The exact packed CLI under Node22.23.3 and genuine supported installs must succeed; generated runtime policy, supported tool majors, patched Vitest/coverage/Vite floors, lock/installed versions and every regular tar-member byte must agree. Second adoption and frozen reinstall have zero managed-byte changes; actual native typecheck/nonzero units and repeat no-lookups CDK synth succeed. The committed native regression must be named in successful required PR CI. Derived-main merge, successful configured release/publication and exact registry-artifact installed-host verification must precede terminal issue/evidence/usage/backlink cleanup. No AWS deployment or production consumer adoption is claimed."
+        },
+        "ci_floor_repair": {
+          "discovered_at": "2026-10-03",
+          "baseline_head_sha": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+          "actual_ci_checkout_sha": "d1b18c694b93a04a7a8eebcb4756cb3130b6063d",
+          "workflow": ".github/workflows/security-floors.yml",
+          "run_id": 37124259201,
+          "job_id": 111206277064,
+          "actual_job_conclusion": "failure",
+          "actual_log_sha256": "31405cf28e435e046df12095d295c0e5011ebccbec00e07b972d66eec21d11ca",
+          "scope": "Ordinary compatible two-package forced-floor CI delivery repair; original Node22/Vitest4/Vite8 acceptance criteria and all ownership behavior retained. This is agent scope analysis, not new operator authorization or retroactive original AC.",
+          "targets": {
+            "axios": ">=1.20.0",
+            "undici": "^6.28.1"
+          },
+          "source_paths": [
+            "package.json",
+            "bun.lock",
+            "typescript/package-lisa/package.lisa.json"
+          ],
+          "test_paths": [
+            "tests/unit/config/security-pin-floors.test.ts",
+            "tests/unit/config/postinstall-ci-guard.test.ts",
+            "tests/unit/config/forced-http-security-floors.test.ts"
+          ],
+          "primary_advisories": [
+            "GHSA-m8m8-qj5v-23w3",
+            "GHSA-r4gj-5m52-g5wh",
+            "GHSA-c29m-xwm3-cm6r",
+            "GHSA-mghh-pgcx-3jjj",
+            "GHSA-x97p-jq2g-jp4f",
+            "GHSA-3pq3-5fj3-cg6v",
+            "GHSA-542g-h47m-68v8",
+            "GHSA-rfgv-xxqx-mfg5"
+          ],
+          "required_control": "Identical immutable eight-primary-advisory regression bytes reject actual baseline shared force ranges at16 sites before source value changes, then pass actual collector/comparator plus root destination floors and real full/restricted shipped-policy adoption with unowned defaults preserved.",
+          "source_owner": "implement_input_resolver",
+          "scope_review_sha256": "37e13f199d0dbf6542e4d780de633672473b2f8a4ab61cd862974d1ddecad0ac",
+          "research_sha256": "b7ab93e7658ee8b0518add61681a56e473ada4508d90869f1201c2eb378ddd34",
+          "verification_status": "pending",
+          "learning_capture": []
+        },
+        "nested_host_admission_repair": {
+          "observed_baseline_source_head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+          "actual_failed_ci_checkout": "d1b18c694b93a04a7a8eebcb4756cb3130b6063d",
+          "run_id": 37124259486,
+          "job_id": 111206306083,
+          "actual_conclusion": "failure",
+          "actual_log_sha256": "0f003762e78a3ba7c88c2309a6ddc54014f99a58bc89eb6a81f91b50e35cf4c4",
+          "research_path": "/tmp/lisa-4326-codification/nested-host-admission-research.json",
+          "research_sha256": "19bd24bae327a6ce201db0aca207e0c4c8f69203c6f5c9055dd4260cc4882221",
+          "scope": "Existing required native packed-host regression and delivery repair, not a change to fleet scheduler or original acceptance criteria. Native unit deadline omitted bounded admission phase.",
+          "source_owner": "plan_quality",
+          "source_paths": [
+            "tests/fixtures/shared-runtime-hosts/process.ts",
+            "tests/fixtures/shared-runtime-hosts/journey.ts"
+          ],
+          "new_focused_test_path": "tests/unit/fixtures/shared-runtime-native-deadline.test.ts",
+          "formula": "admissionDeadlineMs(actual hostEnv) + ADMISSION_POLL_MS + ioLatencyBudgetMs(existing 60000ms unit work)",
+          "preserved": "Admission enabled, genuine independent host wrapper/lease, actual TS1/CDK2 tests, case600s and margin0.5, every native byte/synth/idempotence assertion. No deadline shortening or parent-slot reuse.",
+          "required_controls": [
+            "Actual Linux capacity-one normal outer wrapper reproduces historical current fixture timeout, then same environment complete native GREEN with actual120s admission expiry release.",
+            "Identical newly frozen six fixture bytes against cf55 produce intended stale policy RED; then candidate GREEN.",
+            "New exact source commit independent packed replay and successful current-head CI."
+          ],
+          "status": "PASS-working-input-source-and-controls; fresh committed artifact/remote/public still pending",
+          "learning_capture": {
+            "status": "actual executable locked-stamped-capture PASS",
+            "receipt_sha256": "9d3b9214d3ae15922c660abd7af373127b4103db8268a988874fad95e41089f0",
+            "ledger_sha256": "aa56ba5c64624a5df72b6e8ce59befecc84095161a01874de2fb6e7409e11821",
+            "entries": 20,
+            "bytes": 13897,
+            "budget": 14900,
+            "fingerprint": "learning-5748d1868aedacf8b7d4",
+            "confidence": "medium",
+            "occurrences": 1,
+            "other19_exact_bytes_unchanged": true,
+            "oldest_date": "2026-07-19",
+            "source_skill_rules_promotion": false
+          },
+          "access_probe": {
+            "tool": "Docker Linux capacity-one real supervisor reproduction",
+            "probe": "docker info --format OS/CPU, actual daemon linux18CPUs before sourceGO; worker actual isolated Node22.23.3/Bun1.3.11 availableParallelism2 and frozen dependency install exited0",
+            "status": "pass",
+            "boundary": "Tool access/prerequisites only; full regression completion not inferred.",
+            "recorded_at": "2026-10-03T14:03:22.643819+00:00",
+            "metadata_timing_disclosure": "Root probed Docker successfully before implementationGO; explicit required_access entry recorded now after prerequisite results. No claim that this metadata entry existed at originalGO."
+          },
+          "handoff_sha256": "e88faa4a6a11c7e626d03257649c89b57282297bd927f6b10cafd1f56b801de5",
+          "independent_review_sha256": "e176f11076c0c9095a00c5ab285c2eb0e131dd8c0215b9d41a9a41699d6aa63d",
+          "durable_packet": "evidence/4326/nested-host-admission-repair/inventory.json",
+          "final_frozen6": {
+            "tests/fixtures/shared-runtime-hosts/process.ts": "c6e1fd79773d1c9b611af48328e60ef177c72b1f82807a1bd6b78b3bfad4d5c3",
+            "tests/fixtures/shared-runtime-hosts/journey.ts": "895e11735ce1575d9fdb5f15c1688e8f698a89130141209dfc2013fbea3d9321",
+            "tests/fixtures/shared-runtime-hosts/artifact.ts": "a64007acc0afce7c5e50f2b54568bfcb9d382dcd1cddc251025dc038a8f9a910",
+            "tests/fixtures/shared-runtime-hosts/assertions.ts": "3a44300da10845875a0c395dc0856954bbec04772280d7f2337f6f083fec0006",
+            "tests/fixtures/shared-runtime-hosts/host.ts": "9a5c7a618bef8dd9a2d60a51b6c123196e022aa690babcbb57a6cd1be3d419fa",
+            "tests/integration/shared-runtime-packed-hosts.test.ts": "d46d50bd3495f8ac676fbe94c0b0e810792a22eda8dd651860317ef4dda09ac3"
+          }
+        },
+        "comment_inventory_context_bytes": 232750,
+        "comment_inventory_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a",
+        "proof_helper_extension": {
+          "research_receipt": "/tmp/lisa-4326-codification/new-fixture-proof-helper-research-v2.json",
+          "research_sha256": "ff546490a89887e8b23607693e961c8b9f1c95a15cb3d3b3384d0b4112a19884",
+          "source_core_unchanged_sha256": "c6e541e9c848841b5d4a7900c4d648b4a06b22df657aff3b487e908a8e4887d0",
+          "design": "Keep original exact-head core/85index immutable; independently run four final focused files against same exact B, then augmented original85+3record index88. Separate source-at-R frozen install/build/unit proof and literal policy of unmodified installed official public package/hosts. All current full comments bound through fresh paginated resolver/context SHA+bytes.",
+          "external_implementation_owner": "implement_input_resolver",
+          "source_changes_authorized": false,
+          "future_execution_or_delivery_proof_established": false,
+          "preparation_receipt_sha256": "38b2530a9261f2296d764d91a52414655c91815e538db67f2ac3ca962dc72e57",
+          "independent_review_sha256": "14ea35326b34a42a71d80a758ef88c06dd0045e3e0b9bad585f66466ad3a1cf2",
+          "status": "Prepared/reviewed only; 100 pure controls, zero product runtime. Future actual B/R unknown."
+        },
+        "nested_host_learning_capture": {
+          "status": "actual executable locked-stamped-capture PASS",
+          "receipt_sha256": "9d3b9214d3ae15922c660abd7af373127b4103db8268a988874fad95e41089f0",
+          "ledger_sha256": "aa56ba5c64624a5df72b6e8ce59befecc84095161a01874de2fb6e7409e11821",
+          "entries": 20,
+          "bytes": 13897,
+          "budget": 14900,
+          "fingerprint": "learning-5748d1868aedacf8b7d4",
+          "confidence": "medium",
+          "occurrences": 1,
+          "other19_exact_bytes_unchanged": true,
+          "oldest_date": "2026-07-19",
+          "source_skill_rules_promotion": false
+        }
+      },
+      "completion_evidence": "Codified highest practical journey is implemented and proven RED/GREEN before commit:1 file/2 cases, TS1 native unit/CDK2 units, actual typecheck/synth, full7522 member byte checks and zero second/frozen changes. Independent final committed/publication artifact verification remains pending."
+    },
+    {
+      "id": "T6",
+      "title": "Ship through configured CI, record evidence/usage and close source leaf",
+      "owner": "lifecycle-specialist",
+      "metadata_owner": "lifecycle-specialist",
+      "status": "in_progress",
+      "blockedBy": [
+        "T5"
+      ],
+      "description": "Read /tmp/lisa-4326-implementation/.lisa/work-item-context.md in full before acting. Comment inventory: [{\"id\": 5960670067, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Accepted single-repository build-ready task with validation evidence obligations; no secrets.\"}, {\"id\": 5960770263, \"author\": \"CodySwannGT\", \"author_id\": 292923, \"flags\": [\"decision\"], \"gist\": \"Managed implementation claim; preserve attributable binding; no secrets.\"}] Preserve unrelated work. No secrets observed; no live AWS/host deployment authorized or required.",
+      "metadata": {
+        "plan": "Refresh shared Node22 runtime and test-tool security floors",
+        "type": "task",
+        "acceptance_criteria": [
+          "Logical scoped commits, PR into derived main and two-way non-closing work-item backlink.",
+          "All required quality checks, CodeRabbit/GitGuardian and unresolved-thread gates satisfied, then merge verified.",
+          "Target main contains the exact merge; configured release/publish run succeeds for that merge or an including descendant; exact published registry artifact identity and installed-host runtime are independently verified.",
+          "Post source evidence and usage, native terminal done/closure, rollup when applicable; clear binding and context only after terminal proof."
+        ],
+        "relevant_documentation": "Canonical issue context, all comments and Validation Journey (read in full).\nREADME.md:130-224 documents explicit Lisa apply and bun install; installation alone does not apply templates.\nsrc/cli/index.ts apply command; src/cli/apply.ts --yes and --no-update-check supported.\nRoot package.json + package.lisa.json; typescript, cdk, npm-package, nestjs, phaser and harper-fabric package-lisa templates own runtime/test tool values.\nNode policy surfaces include root .nvmrc, typescript/copy-overwrite/.nvmrc, shared/stack create-only workflows and expo/create-only/eas.json.\nTypeScript package template Node/Vitest/coverage defaults preserve explicit host values by ownership contract; other stack force sections upgrade Lisa-owned versions.\nscripts/check-security-floors.mjs audits force/defaults/merge groups (GOVERNANCE_GROUPS, line75) against high/critical advisories; it does not change host ownership or centrally hard-code these Vitest/Vite minima.\nExisting shipped integration composition/updater removal fixes are dependencies to consume, not new work.\nHost rules: stage inputs, regenerate both artifacts, stage outputs, check artifacts; no downstream project identities in published artifacts.\nLearnings projection: install dependencies and build:dist in fresh worktrees before TS tests; regression must reach real changed surfaces.\nscripts/update-node-version.ts misses current paths; direct owned-surface inventory is authoritative, not that stale updater.\nFixture references: tests/integration/apply-reports-unchanged-manifest.test.ts real Lisa.apply orchestration and host-test-scripts-survive-apply.test.ts shipped PackageLisaStrategy inputs.\nImmutable packed CLI reference: tests/integration/lisa-test-run-packed-bin.test.ts uses git checkout-index, isolated build:dist:in-place and npm pack --ignore-scripts; actual CLI verification must be from exact branch artifact.\nscripts/mutation-performance-measure.mjs prepare --subject-sha <exactHEAD> --tarball <absolute.tgz> --output <outsideRepoDir> already applies exact packed CLI twice to8stacks and checks governed hashes; extend empirical CDK host with genuine App/Stack, Template assertion and actual cdk synth, since grade.ts alone is not synth proof.\nEmpirical clean-fixture CLI: CI=1 LISA_BOOTSTRAP=1 node <packedRoot>/dist/index.js apply <host> --yes --no-update-check --harness=cursor, with fixture-local gh sentinel guarding against accidental remote repo creation; compare six-harness package/.nvmrc policy parity rather than equating different agent file bytes.\nApproved root-local advisory disposition: evidence/4326/security-audit-review.md; all historical runtime observations retain their actual heads. Fresh exact-commit verification and normal shipping remain required.\nCompatible CI floor repair research: actual SecurityFloors run37124259201/job111206277064 at B61580/Td1b18c reported16 collisions. Official GitHub advisories and npm metadata confirm Axios1.20.0 and Undici6.28.1 available within supported bands. Root package.json and typescript/package-lisa/package.lisa.json both override/resolution maps must agree; normally regenerate bun.lock. scripts/check-security-floors.mjs production collectFloors/withinRange plus actual shipped PackageLisaStrategy full/restricted adoption are controls. Existing security-pin-floors and postinstall-ci-guard expectations must ratchet. No checker/workflow/ignore/threshold weakening. Original packed-host fixtures and historical evidence remain unchanged.\nRequired native CI repair: full failed run37124259486 job111206306083 and /tmp/lisa-4326-codification/nested-host-admission-research.json (SHA256 19bd24bae327a6ce201db0aca207e0c4c8f69203c6f5c9055dd4260cc4882221). Unit work deadline must compose real bounded admission plus poll without scaling control wait or weakening native assertions/case margin. Read full current ignored context before work. Linux capacity-one real wrapped RED/GREEN and final-fixture cf55 policy RED required.",
+        "work_item_context": "/tmp/lisa-4326-implementation/.lisa/work-item-context.md",
+        "comment_inventory": [
+          {
+            "id": 5960670067,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "0b2bf53ff60c223bd8002ff51fdfdf7d29fc628204706f488db769cb9189a22b",
+            "created_at": "2026-10-02T20:11:13Z",
+            "updated_at": "2026-10-02T20:11:13Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5960770263,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "5a4350dab19bbf3eca9b925371b1e05b2ab63ec4192919dbfd8479d147fc6b22",
+            "created_at": "2026-10-02T20:17:09Z",
+            "updated_at": "2026-10-02T20:17:09Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5961220400,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "967a0b4066c466976989f2f12a1c425f26c2f480b7a3d4af6adefe698b6b0dfc",
+            "created_at": "2026-10-02T20:47:04Z",
+            "updated_at": "2026-10-02T20:47:04Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5963134813,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "c9fe22333642bc97cee679b4becc1d47c126a7c7fff06a6e5f9fb88cfd734b8c",
+            "created_at": "2026-10-02T23:34:59Z",
+            "updated_at": "2026-10-02T23:34:59Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5963143821,
+            "actor_id": 292923,
+            "actor": "CodySwannGT",
+            "type": "User",
+            "body_sha256": "190e7e79b477ea2b0f7bb0c47bedafa8531e325caa024f02c08f07e4a4b1167e",
+            "created_at": "2026-10-02T23:35:59Z",
+            "updated_at": "2026-10-02T23:35:59Z",
+            "flags": [
+              "AI-protocol-progress"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "originating issue4326",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          },
+          {
+            "id": 5963132830,
+            "actor_id": 136622811,
+            "actor": "coderabbitai[bot]",
+            "type": "Bot",
+            "body_sha256": "0b78ce3f4bc95e25a79a81e638ce8173193f349bc12b52264b7e15fc7f9144da",
+            "created_at": "2026-10-02T23:34:47Z",
+            "updated_at": "2026-10-03T13:04:35Z",
+            "flags": [
+              "automated-review"
+            ],
+            "gist": "Full text retained in current ignored context; retain task constraints, no inferred human authorization, waiver or hold release.",
+            "source": "related PR4328",
+            "reviewed_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+          }
+        ],
+        "testing_requirements": [
+          "Read current PR checks/run conclusions, never status alone.",
+          "Do not close issue from a merge-triggered closing keyword before source verification/evidence.",
+          "Maintain root goal scope; later consumer adoption leaves remain separate."
+        ],
+        "skills": [
+          "lisa-git-submit-pr",
+          "lisa-tracker-sync",
+          "lisa-tracker-evidence",
+          "lisa-usage-accounting"
+        ],
+        "learnings": [],
+        "required_access": [
+          {
+            "tool": "GitHub tracker and Git transport \u2014 CodySwannGT/lisa",
+            "probe": "gh repo view CodySwannGT/lisa --json defaultBranchRef,viewerPermission; gh issue view 4326 --repo CodySwannGT/lisa; git ls-remote --heads origin main",
+            "status": "pass",
+            "evidence": "main; ADMIN; issue open/in-progress assigned authenticated actor; cf55d5f03806fa21e346c1bec6f45110030a13e2 refs/heads/main"
+          },
+          {
+            "tool": "npm registry package metadata/artifacts",
+            "probe": "GET https://registry.npmjs.org/vitest/4.1.11; GET https://registry.npmjs.org/%40vitest%2Fcoverage-v8/4.1.11; GET https://registry.npmjs.org/vite/8.3.2",
+            "status": "pass",
+            "evidence": "All exact versions exist with dist.tarball; Vitest/Vite engines accept Node22.23.3."
+          },
+          {
+            "tool": "Official Node release distribution",
+            "probe": "GET https://nodejs.org/dist/index.json; select version v22.23.3",
+            "status": "pass",
+            "evidence": "v22.23.3 released2026-09-23; Jod LTS; osx-arm64-tar available."
+          },
+          {
+            "tool": "GitHub Actions and branch-protection/ruleset surfaces",
+            "probe": "gh api repos/CodySwannGT/lisa/actions/workflows; gh api repos/CodySwannGT/lisa/actions/runs -f branch=main -f per_page=3 --method GET; gh api repos/CodySwannGT/lisa/rulesets/18805189; gh api repos/CodySwannGT/lisa/rulesets/11912821",
+            "status": "pass",
+            "evidence": "Active CI and reusable quality workflows readable; 13 quality checks plus CodeRabbit and GitGuardian required. Current base includes concluded-success workflow readbacks. Sonar token absent; no standalone SonarCloud proof claim."
+          },
+          {
+            "tool": "Docker Linux capacity-one real supervisor reproduction",
+            "probe": "docker info --format OS/CPU, actual daemon linux18CPUs before sourceGO; worker actual isolated Node22.23.3/Bun1.3.11 availableParallelism2 and frozen dependency install exited0",
+            "status": "pass",
+            "boundary": "Tool access/prerequisites only; full regression completion not inferred.",
+            "recorded_at": "2026-10-03T14:03:22.643819+00:00",
+            "metadata_timing_disclosure": "Root probed Docker successfully before implementationGO; explicit required_access entry recorded now after prerequisite results. No claim that this metadata entry existed at originalGO."
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "gh pr view <created-pr> --repo CodySwannGT/lisa --json state,mergedAt,mergeCommit,baseRefName,statusCheckRollup; git merge-base --is-ancestor <merge-sha> origin/main; gh issue view 4326 --repo CodySwannGT/lisa --json state,labels,comments; node scripts/lisa-work-item.mjs current",
+          "expected": "Verified merged PR into main with successful required terminal checks, visible evidence/backlinks/usage, issue closed with configured terminal label, no binding or context remaining after cleanup."
+        },
+        "ci_floor_repair": {
+          "discovered_at": "2026-10-03",
+          "baseline_head_sha": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+          "actual_ci_checkout_sha": "d1b18c694b93a04a7a8eebcb4756cb3130b6063d",
+          "workflow": ".github/workflows/security-floors.yml",
+          "run_id": 37124259201,
+          "job_id": 111206277064,
+          "actual_job_conclusion": "failure",
+          "actual_log_sha256": "31405cf28e435e046df12095d295c0e5011ebccbec00e07b972d66eec21d11ca",
+          "scope": "Ordinary compatible two-package forced-floor CI delivery repair; original Node22/Vitest4/Vite8 acceptance criteria and all ownership behavior retained. This is agent scope analysis, not new operator authorization or retroactive original AC.",
+          "targets": {
+            "axios": ">=1.20.0",
+            "undici": "^6.28.1"
+          },
+          "source_paths": [
+            "package.json",
+            "bun.lock",
+            "typescript/package-lisa/package.lisa.json"
+          ],
+          "test_paths": [
+            "tests/unit/config/security-pin-floors.test.ts",
+            "tests/unit/config/postinstall-ci-guard.test.ts",
+            "tests/unit/config/forced-http-security-floors.test.ts"
+          ],
+          "primary_advisories": [
+            "GHSA-m8m8-qj5v-23w3",
+            "GHSA-r4gj-5m52-g5wh",
+            "GHSA-c29m-xwm3-cm6r",
+            "GHSA-mghh-pgcx-3jjj",
+            "GHSA-x97p-jq2g-jp4f",
+            "GHSA-3pq3-5fj3-cg6v",
+            "GHSA-542g-h47m-68v8",
+            "GHSA-rfgv-xxqx-mfg5"
+          ],
+          "required_control": "Identical immutable eight-primary-advisory regression bytes reject actual baseline shared force ranges at16 sites before source value changes, then pass actual collector/comparator plus root destination floors and real full/restricted shipped-policy adoption with unowned defaults preserved.",
+          "source_owner": "implement_input_resolver",
+          "scope_review_sha256": "37e13f199d0dbf6542e4d780de633672473b2f8a4ab61cd862974d1ddecad0ac",
+          "research_sha256": "b7ab93e7658ee8b0518add61681a56e473ada4508d90869f1201c2eb378ddd34",
+          "verification_status": "pending",
+          "learning_capture": []
+        },
+        "nested_host_admission_repair": {
+          "observed_baseline_source_head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+          "actual_failed_ci_checkout": "d1b18c694b93a04a7a8eebcb4756cb3130b6063d",
+          "run_id": 37124259486,
+          "job_id": 111206306083,
+          "actual_conclusion": "failure",
+          "actual_log_sha256": "0f003762e78a3ba7c88c2309a6ddc54014f99a58bc89eb6a81f91b50e35cf4c4",
+          "research_path": "/tmp/lisa-4326-codification/nested-host-admission-research.json",
+          "research_sha256": "19bd24bae327a6ce201db0aca207e0c4c8f69203c6f5c9055dd4260cc4882221",
+          "scope": "Existing required native packed-host regression and delivery repair, not a change to fleet scheduler or original acceptance criteria. Native unit deadline omitted bounded admission phase.",
+          "source_owner": "plan_quality",
+          "source_paths": [
+            "tests/fixtures/shared-runtime-hosts/process.ts",
+            "tests/fixtures/shared-runtime-hosts/journey.ts"
+          ],
+          "new_focused_test_path": "tests/unit/fixtures/shared-runtime-native-deadline.test.ts",
+          "formula": "admissionDeadlineMs(actual hostEnv) + ADMISSION_POLL_MS + ioLatencyBudgetMs(existing 60000ms unit work)",
+          "preserved": "Admission enabled, genuine independent host wrapper/lease, actual TS1/CDK2 tests, case600s and margin0.5, every native byte/synth/idempotence assertion. No deadline shortening or parent-slot reuse.",
+          "required_controls": [
+            "Actual Linux capacity-one normal outer wrapper reproduces historical current fixture timeout, then same environment complete native GREEN with actual120s admission expiry release.",
+            "Identical newly frozen six fixture bytes against cf55 produce intended stale policy RED; then candidate GREEN.",
+            "New exact source commit independent packed replay and successful current-head CI."
+          ],
+          "status": "PASS-working-input-source-and-controls; fresh committed artifact/remote/public still pending",
+          "learning_capture": {
+            "status": "actual executable locked-stamped-capture PASS",
+            "receipt_sha256": "9d3b9214d3ae15922c660abd7af373127b4103db8268a988874fad95e41089f0",
+            "ledger_sha256": "aa56ba5c64624a5df72b6e8ce59befecc84095161a01874de2fb6e7409e11821",
+            "entries": 20,
+            "bytes": 13897,
+            "budget": 14900,
+            "fingerprint": "learning-5748d1868aedacf8b7d4",
+            "confidence": "medium",
+            "occurrences": 1,
+            "other19_exact_bytes_unchanged": true,
+            "oldest_date": "2026-07-19",
+            "source_skill_rules_promotion": false
+          },
+          "access_probe": {
+            "tool": "Docker Linux capacity-one real supervisor reproduction",
+            "probe": "docker info --format OS/CPU, actual daemon linux18CPUs before sourceGO; worker actual isolated Node22.23.3/Bun1.3.11 availableParallelism2 and frozen dependency install exited0",
+            "status": "pass",
+            "boundary": "Tool access/prerequisites only; full regression completion not inferred.",
+            "recorded_at": "2026-10-03T14:03:22.643819+00:00",
+            "metadata_timing_disclosure": "Root probed Docker successfully before implementationGO; explicit required_access entry recorded now after prerequisite results. No claim that this metadata entry existed at originalGO."
+          },
+          "handoff_sha256": "e88faa4a6a11c7e626d03257649c89b57282297bd927f6b10cafd1f56b801de5",
+          "independent_review_sha256": "e176f11076c0c9095a00c5ab285c2eb0e131dd8c0215b9d41a9a41699d6aa63d",
+          "durable_packet": "evidence/4326/nested-host-admission-repair/inventory.json",
+          "final_frozen6": {
+            "tests/fixtures/shared-runtime-hosts/process.ts": "c6e1fd79773d1c9b611af48328e60ef177c72b1f82807a1bd6b78b3bfad4d5c3",
+            "tests/fixtures/shared-runtime-hosts/journey.ts": "895e11735ce1575d9fdb5f15c1688e8f698a89130141209dfc2013fbea3d9321",
+            "tests/fixtures/shared-runtime-hosts/artifact.ts": "a64007acc0afce7c5e50f2b54568bfcb9d382dcd1cddc251025dc038a8f9a910",
+            "tests/fixtures/shared-runtime-hosts/assertions.ts": "3a44300da10845875a0c395dc0856954bbec04772280d7f2337f6f083fec0006",
+            "tests/fixtures/shared-runtime-hosts/host.ts": "9a5c7a618bef8dd9a2d60a51b6c123196e022aa690babcbb57a6cd1be3d419fa",
+            "tests/integration/shared-runtime-packed-hosts.test.ts": "d46d50bd3495f8ac676fbe94c0b0e810792a22eda8dd651860317ef4dda09ac3"
+          }
+        },
+        "comment_inventory_context_bytes": 232750,
+        "comment_inventory_context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a",
+        "proof_helper_extension": {
+          "research_receipt": "/tmp/lisa-4326-codification/new-fixture-proof-helper-research-v2.json",
+          "research_sha256": "ff546490a89887e8b23607693e961c8b9f1c95a15cb3d3b3384d0b4112a19884",
+          "source_core_unchanged_sha256": "c6e541e9c848841b5d4a7900c4d648b4a06b22df657aff3b487e908a8e4887d0",
+          "design": "Keep original exact-head core/85index immutable; independently run four final focused files against same exact B, then augmented original85+3record index88. Separate source-at-R frozen install/build/unit proof and literal policy of unmodified installed official public package/hosts. All current full comments bound through fresh paginated resolver/context SHA+bytes.",
+          "external_implementation_owner": "implement_input_resolver",
+          "source_changes_authorized": false,
+          "future_execution_or_delivery_proof_established": false,
+          "preparation_receipt_sha256": "38b2530a9261f2296d764d91a52414655c91815e538db67f2ac3ca962dc72e57",
+          "independent_review_sha256": "14ea35326b34a42a71d80a758ef88c06dd0045e3e0b9bad585f66466ad3a1cf2",
+          "status": "Prepared/reviewed only; 100 pure controls, zero product runtime. Future actual B/R unknown."
+        }
+      }
+    }
+  ],
+  "created_at": "2026-10-02T20:24:03.196078+00:00",
+  "research_status": "complete \u2014 explorer corrected security-floor group coverage before implementation",
+  "learning_capture": "Contract-only learner consolidated nested generated-host native leases/profile and fixture-owned temp roots into existing packed-proof setup entry sll4-8968b24e50aa; oldest date preserved, new stamp learning-29a7e548ca264ca3e66d; one T5 occurrence/medium,20entries13412/14900bytes; explicit budgetPASS; exact disposition /tmp/lisa-4326-codification/learning-capture.json. Other narrower MLD stays in tests/task evidence. Compatible floor repair learner assessment retained in evidence/4326/forced-http-floor-repair/learning-capture-disposition.json; both task-specific or already-covered candidates not captured, legitimate empty ledgerdelta, existing20entry ledger byte-identical. Native admission-boundary consolidation captured through actual executable contract, receipt9d3b9214: unchanged19other JSONL entries,20total/13897bytes under14900,239char rule, medium singlecause, no promotion. Original2e17 ledger preserved externally.",
+  "codification_gate": "implemented and focused RED/GREEN proven at staged tree f4e49516636a74de800dfb113173a99a053a1343; normal repository integration regression exists; stable full gates, commit-bound verification and named remote CI execution remain pending.",
+  "context_sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a",
+  "context_bytes": 232750,
+  "codification_evidence": {
+    "source_head": "694ea306c583146cc31b2d7635783ef2cc8c78eb",
+    "source_index_tree": "f4e49516636a74de800dfb113173a99a053a1343",
+    "baseline_head": "cf55d5f03806fa21e346c1bec6f45110030a13e2",
+    "baseline_index_tree": "2d8326426284cc43ad649f8fc5256a260ace8b76",
+    "inputs_inventory": "/tmp/lisa-4326-codification/final-inputs.json",
+    "independent_review": "/tmp/lisa-4326-codification/independent-review.json",
+    "red": "/tmp/lisa-4326-codification/final-red/summary.json",
+    "green": "/tmp/lisa-4326-codification/final-green/summary.json",
+    "supervisor_red_exit": 1,
+    "supervisor_green_exit": 0,
+    "cases": 2,
+    "regular_packed_members": 7522,
+    "source_policy_changed_by_codification": false
+  },
+  "security_audit_disposition": {
+    "id": "GHSA-vfj7-8cjw-p6xm",
+    "operator_authorization": {
+      "source": "current user conversation",
+      "date": "2026-10-03",
+      "exact_message": "approve the exception",
+      "approved_draft_sha256": "a7bd5588e0d1edec667ef9331267ba9c4c74c142097111c2e3c5a911578b8d12"
+    },
+    "scope": "Single root-local audit exception; no shared template, hook, threshold, package or lock change",
+    "impact": "Actual Knip configuration can exhaust braces expansion stack; repository-data validation availability risk accepted explicitly",
+    "manual_review_by": "2026-10-16T23:59:59Z",
+    "expiry_enforced": false,
+    "evidence": "evidence/4326/security-audit-review.md",
+    "fresh_commit_verification": "Historical61580 exact runtime and normal push passed; additional SecurityFloors workflow failed inherited Axios/Undici minima. Compatible repair requires new actual-head verification; accepted braces proposal/scope unchanged.",
+    "learning_capture": []
+  },
+  "ci_floor_repair": {
+    "discovered_at": "2026-10-03",
+    "baseline_head_sha": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+    "actual_ci_checkout_sha": "d1b18c694b93a04a7a8eebcb4756cb3130b6063d",
+    "workflow": ".github/workflows/security-floors.yml",
+    "run_id": 37124259201,
+    "job_id": 111206277064,
+    "actual_job_conclusion": "failure",
+    "actual_log_sha256": "31405cf28e435e046df12095d295c0e5011ebccbec00e07b972d66eec21d11ca",
+    "scope": "Ordinary compatible two-package forced-floor CI delivery repair; original Node22/Vitest4/Vite8 acceptance criteria and all ownership behavior retained. This is agent scope analysis, not new operator authorization or retroactive original AC.",
+    "targets": {
+      "axios": ">=1.20.0",
+      "undici": "^6.28.1"
+    },
+    "source_paths": [
+      "package.json",
+      "bun.lock",
+      "typescript/package-lisa/package.lisa.json"
+    ],
+    "test_paths": [
+      "tests/unit/config/security-pin-floors.test.ts",
+      "tests/unit/config/postinstall-ci-guard.test.ts",
+      "tests/unit/config/forced-http-security-floors.test.ts"
+    ],
+    "primary_advisories": [
+      "GHSA-m8m8-qj5v-23w3",
+      "GHSA-r4gj-5m52-g5wh",
+      "GHSA-c29m-xwm3-cm6r",
+      "GHSA-mghh-pgcx-3jjj",
+      "GHSA-x97p-jq2g-jp4f",
+      "GHSA-3pq3-5fj3-cg6v",
+      "GHSA-542g-h47m-68v8",
+      "GHSA-rfgv-xxqx-mfg5"
+    ],
+    "required_control": "Identical immutable eight-primary-advisory regression bytes reject actual baseline shared force ranges at16 sites before source value changes, then pass actual collector/comparator plus root destination floors and real full/restricted shipped-policy adoption with unowned defaults preserved.",
+    "source_owner": "implement_input_resolver",
+    "scope_review_sha256": "37e13f199d0dbf6542e4d780de633672473b2f8a4ab61cd862974d1ddecad0ac",
+    "research_sha256": "b7ab93e7658ee8b0518add61681a56e473ada4508d90869f1201c2eb378ddd34",
+    "verification_status": "PASS actual final same-byte103 baseline29 intendedFAIL/74pass then103GREEN/zero skips, existing canonical test compiler gate0 with unchanged quarantine, scopednew-filequality0 and independentfollowup review2a88. Fiveotherfloor source hashes and strictchecker unchanged. Newcommittedartifact/remote/public pending.",
+    "learning_capture": "Capture-only learner disposition2bf75b...: exact seed mistake remains in task/regression evidence; general valid-control rule already present, lock-not-installed observation overlaps existing packedbytes-vs-lock entry. Medium single-occurrence; no ledgerdelta and no invented capture failure.",
+    "implementation_summary_sha256": "f006383376a2d632f7d529f59b31afbab86c87edae0de7340983e64538444e73",
+    "independent_review_sha256": "44d3b896e51ae007c6c108a3f4b8e4ae34636cb3d58706565217ea041799f6ae",
+    "durable_packet": "evidence/4326/forced-http-floor-repair/inventory.json",
+    "learning_occurrence": "One actual floor implementation occurrence recorded only in T3; review corroboration is not additional recurrence.",
+    "required_typecheck_followup": {
+      "captured_at": "2026-10-03T14:05:28.490595+00:00",
+      "diagnostic_sha256": "1953251065c023a1935e9d56d4cb69d123583563e69fd3d0bacb1ed242456cfb",
+      "actual_failure": "New floor test lines141/142 number[]|null arguments not narrowed; prior focused runtime/lint PASS did not establish typecheck.",
+      "owner": "implement_input_resolver",
+      "path": "tests/unit/config/forced-http-security-floors.test.ts",
+      "required": "Minimal explicit null guard or equivalent real narrowing; final-byte original615 RED103/29FAIL then candidateGREEN103; actual test typecheck and scoped quality. Prior raw proof kept historical.",
+      "status": "PASS-working-tree-only",
+      "implementation_summary_sha256": "26e4903607244e3cf0f363e30cb13ea3332e93f8551dd1f9eac4f21ce2717079",
+      "independent_review_sha256": "2a88d182966eee1a0d180238af957f06b45237225c41f8ff245325562b48a691",
+      "final_test_sha256": "06c57251993a57ff812dab686d49b36533c6058c2c9a5a43d2fd9bde473a6df0",
+      "durable_packet": "evidence/4326/forced-http-floor-typecheck-followup/inventory.json"
+    }
+  },
+  "nested_host_admission_repair": {
+    "observed_baseline_source_head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+    "actual_failed_ci_checkout": "d1b18c694b93a04a7a8eebcb4756cb3130b6063d",
+    "run_id": 37124259486,
+    "job_id": 111206306083,
+    "actual_conclusion": "failure",
+    "actual_log_sha256": "0f003762e78a3ba7c88c2309a6ddc54014f99a58bc89eb6a81f91b50e35cf4c4",
+    "research_path": "/tmp/lisa-4326-codification/nested-host-admission-research.json",
+    "research_sha256": "19bd24bae327a6ce201db0aca207e0c4c8f69203c6f5c9055dd4260cc4882221",
+    "scope": "Existing required native packed-host regression and delivery repair, not a change to fleet scheduler or original acceptance criteria. Native unit deadline omitted bounded admission phase.",
+    "source_owner": "plan_quality",
+    "source_paths": [
+      "tests/fixtures/shared-runtime-hosts/process.ts",
+      "tests/fixtures/shared-runtime-hosts/journey.ts"
+    ],
+    "new_focused_test_path": "tests/unit/fixtures/shared-runtime-native-deadline.test.ts",
+    "formula": "admissionDeadlineMs(actual hostEnv) + ADMISSION_POLL_MS + ioLatencyBudgetMs(existing 60000ms unit work)",
+    "preserved": "Admission enabled, genuine independent host wrapper/lease, actual TS1/CDK2 tests, case600s and margin0.5, every native byte/synth/idempotence assertion. No deadline shortening or parent-slot reuse.",
+    "required_controls": [
+      "Actual Linux capacity-one normal outer wrapper reproduces historical current fixture timeout, then same environment complete native GREEN with actual120s admission expiry release.",
+      "Identical newly frozen six fixture bytes against cf55 produce intended stale policy RED; then candidate GREEN.",
+      "New exact source commit independent packed replay and successful current-head CI."
+    ],
+    "status": "PASS-working-input-source-and-controls; fresh committed artifact/remote/public still pending",
+    "learning_capture": {
+      "status": "actual executable locked-stamped-capture PASS",
+      "receipt_sha256": "9d3b9214d3ae15922c660abd7af373127b4103db8268a988874fad95e41089f0",
+      "ledger_sha256": "aa56ba5c64624a5df72b6e8ce59befecc84095161a01874de2fb6e7409e11821",
+      "entries": 20,
+      "bytes": 13897,
+      "budget": 14900,
+      "fingerprint": "learning-5748d1868aedacf8b7d4",
+      "confidence": "medium",
+      "occurrences": 1,
+      "other19_exact_bytes_unchanged": true,
+      "oldest_date": "2026-07-19",
+      "source_skill_rules_promotion": false
+    },
+    "access_probe": {
+      "tool": "Docker Linux capacity-one real supervisor reproduction",
+      "probe": "docker info --format OS/CPU, actual daemon linux18CPUs before sourceGO; worker actual isolated Node22.23.3/Bun1.3.11 availableParallelism2 and frozen dependency install exited0",
+      "status": "pass",
+      "boundary": "Tool access/prerequisites only; full regression completion not inferred.",
+      "recorded_at": "2026-10-03T14:03:22.643819+00:00",
+      "metadata_timing_disclosure": "Root probed Docker successfully before implementationGO; explicit required_access entry recorded now after prerequisite results. No claim that this metadata entry existed at originalGO."
+    },
+    "handoff_sha256": "e88faa4a6a11c7e626d03257649c89b57282297bd927f6b10cafd1f56b801de5",
+    "independent_review_sha256": "e176f11076c0c9095a00c5ab285c2eb0e131dd8c0215b9d41a9a41699d6aa63d",
+    "durable_packet": "evidence/4326/nested-host-admission-repair/inventory.json",
+    "final_frozen6": {
+      "tests/fixtures/shared-runtime-hosts/process.ts": "c6e1fd79773d1c9b611af48328e60ef177c72b1f82807a1bd6b78b3bfad4d5c3",
+      "tests/fixtures/shared-runtime-hosts/journey.ts": "895e11735ce1575d9fdb5f15c1688e8f698a89130141209dfc2013fbea3d9321",
+      "tests/fixtures/shared-runtime-hosts/artifact.ts": "a64007acc0afce7c5e50f2b54568bfcb9d382dcd1cddc251025dc038a8f9a910",
+      "tests/fixtures/shared-runtime-hosts/assertions.ts": "3a44300da10845875a0c395dc0856954bbec04772280d7f2337f6f083fec0006",
+      "tests/fixtures/shared-runtime-hosts/host.ts": "9a5c7a618bef8dd9a2d60a51b6c123196e022aa690babcbb57a6cd1be3d419fa",
+      "tests/integration/shared-runtime-packed-hosts.test.ts": "d46d50bd3495f8ac676fbe94c0b0e810792a22eda8dd651860317ef4dda09ac3"
+    }
+  },
+  "proof_helper_extension": {
+    "research_receipt": "/tmp/lisa-4326-codification/new-fixture-proof-helper-research-v2.json",
+    "research_sha256": "ff546490a89887e8b23607693e961c8b9f1c95a15cb3d3b3384d0b4112a19884",
+    "source_core_unchanged_sha256": "c6e541e9c848841b5d4a7900c4d648b4a06b22df657aff3b487e908a8e4887d0",
+    "design": "Keep original exact-head core/85index immutable; independently run four final focused files against same exact B, then augmented original85+3record index88. Separate source-at-R frozen install/build/unit proof and literal policy of unmodified installed official public package/hosts. All current full comments bound through fresh paginated resolver/context SHA+bytes.",
+    "external_implementation_owner": "implement_input_resolver",
+    "source_changes_authorized": false,
+    "future_execution_or_delivery_proof_established": false,
+    "preparation_receipt_sha256": "38b2530a9261f2296d764d91a52414655c91815e538db67f2ac3ca962dc72e57",
+    "independent_review_sha256": "14ea35326b34a42a71d80a758ef88c06dd0045e3e0b9bad585f66466ad3a1cf2",
+    "status": "Prepared/reviewed only; 100 pure controls, zero product runtime. Future actual B/R unknown."
+  },
+  "named_repair_control_followup": {
+    "recorded_before_source_write_at": "2026-10-03T15:27:43.844173+00:00",
+    "source_head_at_observation": "a7f832f56c8b90757e32fd5611228b23aef89e23",
+    "core_actual_exit": 0,
+    "core_execution_receipt_sha256": "849a0980fd0ddf119379d46f265039a1024245fa0f0e408775a79669000485af",
+    "supplement_actual_wrapper_tests": {
+      "passed": 106,
+      "failed": 0,
+      "pending": 0
+    },
+    "supplement_validator_actual_exit": 1,
+    "cause": "Vitest treats dotted $section.$name placeholders as a nested property; four root HTTP-force cases were reported as root undefined. Fix title separator only; preserve meaningful unique-name guard and actual failed output.",
+    "owned_source": "tests/unit/config/forced-http-security-floors.test.ts",
+    "approved_action": "Change title separator, actual working-input 106 normal-wrapper run plus reviewed report validation, scoped source format/lint, independent delta review, normal commit, fresh exact-final replay and supplement before push.",
+    "no_runtime_assertion_or_policy_change": true,
+    "original_failed_output": "/tmp/lisa-4326-codification/focused-repaired-a7f832f-local/driver-postprocessing-failure.json",
+    "future_commit_runtime_CI_release": "pending; no old record reidentity or invented success",
+    "local_verdict_adaptation_before_helper_write": {
+      "recorded_at": "2026-10-03T15:33:47.132195+00:00",
+      "original_promoter_sha256": "9e3df4a0dc5f10f488764f92323f57e0251ffbdd63b693205f4e08c8269df1b7",
+      "problem": "Title-only followup yields finalB parenta7f832 while unchanged prior canonicalv2 belongs to61580. Original adapter wrongly conflates prior-verdict artifact with immediate parent. No a7 verdict can be fabricated because its named106 supplement failed validation.",
+      "authorized_external_versioned_change": "Mandatory --expected-parent a7f832 plus actualfirstparent equality; prior61580 mustbeactualancestor finalB and muststillmatch immutable priorcanonicalv2/core-source-after seal. Preserve exactnewhead88-record controls, fullcontext/livecomment guards and original adapter.",
+      "source_policy_change": false,
+      "actual_new_B": "unknown_pending_normal_commit"
+    },
+    "working_input_status": "PASS106_AND_UNCHANGED_STRICT_NAME_VALIDATOR",
+    "source_title_old_sha256": "06c57251993a57ff812dab686d49b36533c6058c2c9a5a43d2fd9bde473a6df0",
+    "source_title_new_sha256": "e50953738d9cf898461c04bd44a7174a254623a3a761a3261c55380b7ff290a7",
+    "source_handoff_sha256": "f54f3e4404d156f1a5975e055e66f5893cab13e1ffb415c051b3b84da19bf927",
+    "source_handoff_path": "/tmp/lisa-4326-codification/focused-case-title-followup/handoff.json",
+    "durable_packet": "evidence/4326/focused-case-title-followup",
+    "counts": {
+      "total": 106,
+      "passed": 106,
+      "failed": 0,
+      "skipped": 0,
+      "floor_files": [
+        34,
+        38,
+        31
+      ],
+      "deadline_file": 3
+    },
+    "compiler": "Not rerun for a title-string-only edit; preceding actual canonical compiler0 remains historical and quarantine unchanged.",
+    "quality": "Actual scoped ESLint/Oxlint/SonarJS/Prettier0; ownedprocesses absent",
+    "named_final_core_preparation_sha256": "531d50bbc32088091fd34ec0315bcce9d6d38ddc8cf5d568028905014873f189",
+    "new_head_runtime_push_CI_public_status": "pending; sourceB notyetcommitted. Historicala7 core andfailedstrictsupplement immutable.",
+    "independent_working_review_sha256": "8ca4293707864dca1a603ba4d5ecf2c505cac03193cdb73d87a3d55cd3a1b725",
+    "learning_disposition": "Task-only Vitest dotted-placeholder observation, 102 other reported names unchanged; no project ledger delta. Independent review classifies incremental string-only defect, no repeated compiler/source baseline needed.",
+    "versioned_promoter_preparation": {
+      "path": "/tmp/lisa-4326-codification/promote-current-local-verdict-with-named-repair.py",
+      "sha256": "0df5d1745c286a6b516f5c6a845e1225e11e390369e2f079ca968a8ffd2e4c20",
+      "receipt_sha256": "84f5b3c446d83dbbc62e44445100c1e5bd07aa8958d1d37f42be678e98ed1067",
+      "controls": "AST/help0; mandatory-parent omission2;11 local synthetic ancestry controls0,3eligible/8rejected; no actualpromotion",
+      "expected_parent": "a7f832f56c8b90757e32fd5611228b23aef89e23",
+      "previous_canonical_head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+      "new_B": "unknown_pending_normalcommit",
+      "independent_helper_review": "pending"
+    }
+  },
+  "latest_main_468_reconciliation": {
+    "recorded_before_managed_config_edit_at": "2026-10-03T15:58:51.196979+00:00",
+    "feature_parent": "39f62275c0675adfb21655dcd17564e4b8d08364",
+    "upstream_main": "728d35afbd3de4d522023e0b65fd0f730c94820c",
+    "upstream_version": "4.68.0",
+    "normal_no_commit_merge_actual_exit": 0,
+    "merge_conflicts": [],
+    "upstream_own_changes": "Self-dependency updater/security-token isolation/superseded-PR handling, release manifests/changelog and generated artifacts are retained.",
+    "new_inherited_global_exception": "Commit1ac0633a4d adds GHSA-vfj7-8cjw-p6xm to rootmanaged andshared TypeScript configs. Its repo-owned/non-attacker/unaffected rationale conflicts with the previously demonstrated Knip PR-configured glob path.",
+    "policy_action": "Remove only GHSA-vfj7-8cjw-p6xm from these two managed configs, preserving every other byte/order/item. Approvedrootlocal932byte/a7bd waiver remains exactlyunchanged. No shared/customer waiver is authorized by this flow.",
+    "owned_policy_paths": [
+      "audit.ignore.config.json",
+      "typescript/copy-overwrite/audit.ignore.config.json"
+    ],
+    "validation": "Capture exact badbaselinecfg2, prove ID removed and allotheritems identical, localapprovedID retained, stage/regenerate2artifacts/frozeninstall/build/normalmergecommit/independent actualfinalBcore+strict106+normalpush/currentCI/publicrelease actual.",
+    "future_B_and_runtime": "pending; no historicalrecord relabel",
+    "durable_packet": "evidence/4326/main-468-reconciliation",
+    "independent_working_review_sha256": "a05304f31eb5897019fea3f452600d8abf72eb9d95706e0f500dc83f382ae4ad",
+    "merged_install_build_sha256": "d6e9005c0a931e013e8e9bb2b3239470e87073715bf0bd24621eb6271c041961",
+    "frozen_install_actual_exit": 0,
+    "build_dist_actual_exit": 0,
+    "all_five_policy_inputs_unchanged_by_install_build": true,
+    "main468_final_core_preparation_sha256": "891bc0ad1270cb75e98ce23467c22b0c0c9deeeec43c679314d70c0fb2ff8882",
+    "versioned_promoter_expected_parent": "39f62275c0675adfb21655dcd17564e4b8d08364",
+    "previous_canonical_v2_head": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+    "final_B": "unknown_pending_normalmergecommit"
+  }
+}

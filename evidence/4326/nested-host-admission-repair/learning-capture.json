@@ -1,0 +1,216 @@
+{
+  "schema_version": 1,
+  "status": "CAPTURED_EXACT_STAMPED_CONSOLIDATION",
+  "started_at": "2026-10-03T14:37:45.370Z",
+  "captured_at": "2026-10-03T14:37:45.532Z",
+  "preflight": {
+    "source_review": {
+      "path": "/tmp/lisa-4326-codification/nested-host-admission-review/final-review.json",
+      "bytes": 18255,
+      "sha256": "e176f11076c0c9095a00c5ab285c2eb0e131dd8c0215b9d41a9a41699d6aa63d"
+    },
+    "root_before_write_approval": {
+      "path": "/tmp/lisa-4326-codification/nested-host-admission-metadata/ledger-capture-before-write.json",
+      "bytes": 990,
+      "sha256": "987f30583222e79dbea34458139b682fc13b458a96fb2ee008347987530c70fc"
+    },
+    "resolved_config_path": ".lisa/PROJECT_LEARNINGS.md",
+    "absolute_ledger_path": "/tmp/lisa-4326-implementation/.lisa/PROJECT_LEARNINGS.md",
+    "before": {
+      "path": "/tmp/lisa-4326-implementation/.lisa/PROJECT_LEARNINGS.md",
+      "bytes": 13412,
+      "sha256": "2e17f678167517eb89cf452de59fd51b55972c24d4d60d4f395269df6b559c9f"
+    },
+    "archive": {
+      "path": "/tmp/lisa-4326-codification/nested-host-admission-review/learning-capture-before-2e17f678.md",
+      "bytes": 13412,
+      "sha256": "2e17f678167517eb89cf452de59fd51b55972c24d4d60d4f395269df6b559c9f"
+    },
+    "module": "/tmp/lisa-4326-implementation/dist/core/learnings.js",
+    "module_identity": {
+      "path": "/tmp/lisa-4326-implementation/dist/core/learnings.js",
+      "bytes": 759,
+      "sha256": "1e13abe36a975a414d20cf039d755772a26f0ade9272c056d7e9ba61cbee8ba8"
+    },
+    "supersede": [
+      {
+        "id": "sll4-8968b24e50aa",
+        "fingerprint": "learning-29a7e548ca264ca3e66d"
+      }
+    ],
+    "candidate": {
+      "id": "sll4-8968b24e50aa",
+      "fingerprint": "learning-5748d1868aedacf8b7d4",
+      "rule": "Before fresh Lisa tests/commits, install/build:dist. Packed proofs need own leases/temp roots, isolated same-version caches and full installed tar-byte checks. Native deadlines add unscaled admission+poll to scaled work; keep case margins.",
+      "why": "#1706/PR1792 hit missing builds. In #4326, Bun reused old bytes despite new lock integrity. T5 also inherited an outer wrapper profile/lease and leaked node-gyp scratch; separate host leases and owned temp roots passed native guards. T5 is one occurrence, with failure logs and independent review. The native fixture omitted real fleet admission wait. A capacity-one normal-wrapper RED killed both hosts before admission; additive unscaled admission/poll plus scaled work passed real120s release without changing the case margin. Two host cases establish one cause/occurrence.",
+      "provenance": [
+        "https://github.com/CodySwannGT/lisa/pull/1792",
+        "https://github.com/CodySwannGT/lisa/issues/1706",
+        "https://github.com/CodySwannGT/lisa/issues/4326",
+        "CodySwannGT/lisa@2ae7c88592a6b11fe9b182b02069b9bcbc6c11f2",
+        "CodySwannGT/lisa#4326:T5",
+        "tests/fixtures/shared-runtime-hosts/journey.ts",
+        "/tmp/lisa-4326-codified-green-focused.log",
+        "/tmp/lisa-4326-codification/final-green/evidence/cdk-proof.json",
+        "CodySwannGT/lisa#4326:T5:nested-host-admission-repair",
+        "tests/fixtures/shared-runtime-hosts/process.ts",
+        "/tmp/lisa-4326-codification/nested-host-admission-implementation/capacity-one-green-proof.json"
+      ],
+      "first_learned": "2026-07-19",
+      "last_confirmed": "2026-10-03",
+      "confidence": "medium"
+    },
+    "rule_characters": 239,
+    "planned_entries": 20,
+    "planned_bytes": 13897,
+    "max_bytes": 14900,
+    "entry_fingerprint_and_document_budget_pass": true
+  },
+  "writer_calls": 1,
+  "persisted_path": "/tmp/lisa-4326-implementation/.lisa/PROJECT_LEARNINGS.md",
+  "after": {
+    "path": "/tmp/lisa-4326-implementation/.lisa/PROJECT_LEARNINGS.md",
+    "bytes": 13897,
+    "sha256": "aa56ba5c64624a5df72b6e8ce59befecc84095161a01874de2fb6e7409e11821"
+  },
+  "entry": {
+    "id": "sll4-8968b24e50aa",
+    "fingerprint": "learning-5748d1868aedacf8b7d4",
+    "rule": "Before fresh Lisa tests/commits, install/build:dist. Packed proofs need own leases/temp roots, isolated same-version caches and full installed tar-byte checks. Native deadlines add unscaled admission+poll to scaled work; keep case margins.",
+    "why": "#1706/PR1792 hit missing builds. In #4326, Bun reused old bytes despite new lock integrity. T5 also inherited an outer wrapper profile/lease and leaked node-gyp scratch; separate host leases and owned temp roots passed native guards. T5 is one occurrence, with failure logs and independent review. The native fixture omitted real fleet admission wait. A capacity-one normal-wrapper RED killed both hosts before admission; additive unscaled admission/poll plus scaled work passed real120s release without changing the case margin. Two host cases establish one cause/occurrence.",
+    "provenance": [
+      "https://github.com/CodySwannGT/lisa/pull/1792",
+      "https://github.com/CodySwannGT/lisa/issues/1706",
+      "https://github.com/CodySwannGT/lisa/issues/4326",
+      "CodySwannGT/lisa@2ae7c88592a6b11fe9b182b02069b9bcbc6c11f2",
+      "CodySwannGT/lisa#4326:T5",
+      "tests/fixtures/shared-runtime-hosts/journey.ts",
+      "/tmp/lisa-4326-codified-green-focused.log",
+      "/tmp/lisa-4326-codification/final-green/evidence/cdk-proof.json",
+      "CodySwannGT/lisa#4326:T5:nested-host-admission-repair",
+      "tests/fixtures/shared-runtime-hosts/process.ts",
+      "/tmp/lisa-4326-codification/nested-host-admission-implementation/capacity-one-green-proof.json"
+    ],
+    "first_learned": "2026-07-19",
+    "last_confirmed": "2026-10-03",
+    "confidence": "medium"
+  },
+  "staleSupersede": [],
+  "aliasesDropped": [],
+  "postparse": {
+    "entries": 20,
+    "other19_JSONL_bytes_unchanged": [
+      "learner-05f076eeb2dc",
+      "learner-18d90d72b4f7",
+      "learner-1cf6c2d3200c",
+      "learner-3d247953d51d",
+      "learner-40cd26e15dd5",
+      "learner-7d2279fdb1d7",
+      "learner-877ffd76cc31",
+      "learner-9533fb99de37",
+      "learner-957558c39a34",
+      "learner-9d1e3d4c7fda",
+      "learner-9eda4b5320ec",
+      "learner-b82818cffd5f",
+      "learner-c38678d60c08",
+      "learner-c7bafb50eda3",
+      "learner-f2255ca6f248",
+      "learner-fc554b8b2a65",
+      "learning-22dda6424a706fc9d881",
+      "learning-48dd83fa08e6c3123574",
+      "model-computed-ids-break-dedupe"
+    ],
+    "duplicate_ids": false,
+    "duplicate_fingerprints": false,
+    "oldest_date_preserved": "2026-07-19",
+    "confidence": "medium",
+    "occurrences": 1,
+    "rule_characters": 239,
+    "bytes": 13897,
+    "max_bytes": 14900,
+    "budget_pass": true
+  },
+  "protected_files": [
+    {
+      "path": "/tmp/lisa-4326-implementation/tests/fixtures/shared-runtime-hosts/process.ts",
+      "bytes": 4114,
+      "sha256": "c6e1fd79773d1c9b611af48328e60ef177c72b1f82807a1bd6b78b3bfad4d5c3"
+    },
+    {
+      "path": "/tmp/lisa-4326-implementation/tests/fixtures/shared-runtime-hosts/journey.ts",
+      "bytes": 9495,
+      "sha256": "895e11735ce1575d9fdb5f15c1688e8f698a89130141209dfc2013fbea3d9321"
+    },
+    {
+      "path": "/tmp/lisa-4326-implementation/tests/unit/fixtures/shared-runtime-native-deadline.test.ts",
+      "bytes": 2651,
+      "sha256": "630c598d872673783fa3a8e3a8354083c6ae02c0be30f3470cfed6e541da3352"
+    },
+    {
+      "path": "/tmp/lisa-4326-implementation/package.json",
+      "bytes": 18163,
+      "sha256": "2173468d94df335e63d8e146711fed39de0b3fec4777825fa6d0646a5c8ed57e"
+    },
+    {
+      "path": "/tmp/lisa-4326-implementation/bun.lock",
+      "bytes": 380850,
+      "sha256": "8e5b8a0f6bab515eeb1bb2129a57c544a2a4070600dadc57376ee2204f1a241f"
+    },
+    {
+      "path": "/tmp/lisa-4326-implementation/typescript/package-lisa/package.lisa.json",
+      "bytes": 8891,
+      "sha256": "7def55c6827128599f12306354266781d1a1bc22a3a468471822153841ed280c"
+    },
+    {
+      "path": "/tmp/lisa-4326-implementation/tests/unit/config/security-pin-floors.test.ts",
+      "bytes": 5132,
+      "sha256": "3fccc624768e5a2a7c7281c4a7fb8e6d1eb96d48574ae22b2fd11ab361a9fe05"
+    },
+    {
+      "path": "/tmp/lisa-4326-implementation/tests/unit/config/postinstall-ci-guard.test.ts",
+      "bytes": 9697,
+      "sha256": "9b4a9bd2b6257c6bfc7954c93670ec6da14312971f2d6d98851109e2652f9e90"
+    },
+    {
+      "path": "/tmp/lisa-4326-implementation/tests/unit/config/forced-http-security-floors.test.ts",
+      "bytes": 7997,
+      "sha256": "06c57251993a57ff812dab686d49b36533c6058c2c9a5a43d2fd9bde473a6df0"
+    },
+    {
+      "path": "/tmp/lisa-4326-implementation/.lisa/work-item-context.md",
+      "bytes": 232750,
+      "sha256": "283bf22e5ee741c70b3a3a33c4189e118d3fb39083f9362fc40b9131e482d92a"
+    },
+    {
+      "path": "/tmp/lisa-4326-implementation/.lisa/verification-status.json",
+      "bytes": 47229,
+      "sha256": "92adf1eb1faaa10332d3fe735b63af8898c3372b50ebe644f90e6cb25f4520b4"
+    },
+    {
+      "path": "/tmp/lisa-4326-implementation/.lisa/plan-CodySwannGT-lisa-4326.json",
+      "bytes": 132199,
+      "sha256": "38172d18b769422c6fe8ec279cfdec0f78f902e908948ac2f945d192bd6abe69"
+    },
+    {
+      "path": "/tmp/lisa-4326-implementation/.lisa/plan-CodySwannGT-lisa-4326.md",
+      "bytes": 26414,
+      "sha256": "0cd9d8370b701c0eb1a6cb6969ecbded1a191394b2cbe7d0e4d1c4e4c303b66c"
+    }
+  ],
+  "protected_files_unchanged": true,
+  "HEAD_unchanged": "61580e1bc54b26aa9d2825c000b1e958e7655389",
+  "index_unchanged": true,
+  "before_archive_unchanged": true,
+  "driver": {
+    "path": "/tmp/lisa-4326-codification/nested-host-admission-review/capture-approved-learning.mjs",
+    "bytes": 7799,
+    "sha256": "b86f7d8f16b416be7f91101df270f06ff474167578d5e2bade43e6aa0473687f"
+  },
+  "mutations": "Only approved canonical ledger through actual executable locked writer; its normal ignored lock and external archive/receipt. No stage/commit/source/context/plan/verdict/tracker/rules/skills/memory/overflow/promotions.",
+  "actual_product_tests_or_runtime_executed": false,
+  "seal": {
+    "algorithm": "SHA256",
+    "scope": "JSON.stringify(receipt_without_seal,null,2)+newline",
+    "sha256": "528634982dd0a7372c29679beb7da9f13a0790993feb1b1b714d420beb538329"
+  }
+}

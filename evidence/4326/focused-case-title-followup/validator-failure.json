@@ -1,0 +1,24 @@
+{
+  "captured_at": "2026-10-03T15:26:41.464872+00:00",
+  "source_head": "a7f832f56c8b90757e32fd5611228b23aef89e23",
+  "actual_driver_exit": 1,
+  "actual_vitest_summary": {
+    "success": true,
+    "numTotalTests": 106,
+    "numPassedTests": 106,
+    "numFailedTests": 0,
+    "numPendingTests": 0
+  },
+  "report_sha256": "48d219ecf4c8a00896fbcb0add52dffe42868db7e647a44101e328788aad76ba",
+  "duplicate_titles": [
+    {
+      "file": "/private/tmp/lisa-4326-codification/independent-repaired-final-B/committed-source/tests/unit/config/forced-http-security-floors.test.ts",
+      "title": "forced HTTP security floors root undefined also excludes every release below its patch",
+      "count": 4
+    }
+  ],
+  "failure": "Reviewed helper rejects missing/duplicated named cases. Vitest interprets $section.$name as nested property, producing four root undefined cases. Source title needs distinct placeholder separator; do not weaken validator or rewrite this report.",
+  "core_replay_remains_actual_pass_at_a7f832_only": true,
+  "source_mutated_by_supplement": false,
+  "remote_public_not_established": true
+}

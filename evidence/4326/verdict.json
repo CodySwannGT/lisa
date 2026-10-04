@@ -1,0 +1,326 @@
+{
+  "schema_version": 2,
+  "ticket": "CodySwannGT/lisa#4326",
+  "plan": "Refresh shared Node22 runtime and test-tool security floors",
+  "commit": "b3398fa371bf63c5383ec101855fc7e1d6c7efee",
+  "lisaVersion": "4.67.0",
+  "agent": "Codex AI evidence-carrier preparer; runtime/source review provenance retained externally",
+  "stampedAt": "2026-10-03T00:43:59.383649+00:00",
+  "status": "in_progress",
+  "overall_verdict": "in_progress",
+  "verification_level": "PARTIALLY VERIFIED",
+  "artifact": {
+    "repository": "CodySwannGT/lisa",
+    "head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee",
+    "source_tree": "f6cdb672446b2d744a149e6114e6a48663079d74",
+    "environment": "fresh exact local clone; actualNode22.23.3/Bun1.3.11; offline fake-account CDK",
+    "observed_at": "2026-10-03T00:14:23.366656+00:00",
+    "base_sha": "cf55d5f03806fa21e346c1bec6f45110030a13e2",
+    "build_id": "independent-final-b3398fa3-local-candidate",
+    "package_sha256": "2c4b000918e36d996c67c3b075f8f7b58fd59af4ae68cfd4ddb1833910e4dbed",
+    "public_release_established": false
+  },
+  "storage_commit": null,
+  "storage_commit_note": "Prospective proof carrier is unknown and never replaces observed source heads.",
+  "drift": "progress",
+  "criteria": [
+    {
+      "criterion": "Supported patches propagate",
+      "status": "pass",
+      "note": "At B: actual22.23.3; Vitest/coverage4.1.11; Vite8.3.2; setup1/adoptions2 per TS/CDK; zero second/frozen managed delta."
+    },
+    {
+      "criterion": "Supported majors remain stable",
+      "status": "pass",
+      "note": "At B: actualTS6.0.3/ESLint9.39.5/Knip5.88.1/Husky8.0.3/Vitest4.1.11; native units1/2 and typechecks pass; raw CDK synths identical."
+    },
+    {
+      "criterion": "Current normal shipping prerequisites",
+      "status": "fail",
+      "note": "Normal push exit1:25665 units passed/1failed/2skipped; integration not run. Three focused19-case runs pass assertions but exit1 on unchanged whole-repo coverage floors. No gate override/success inferred."
+    },
+    {
+      "criterion": "Remote delivery and final evidence attachment",
+      "status": "fail",
+      "note": "Pending final-head CI, merge/release/public npm verification, durable carrier commit and originating issue attachment/readback."
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "AC-patches",
+      "statement": "Real generated TS/CDK hosts resolve patched versions and second/frozen adoptions produce zero managed delta.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "quality-and-template-review.log",
+        "state.json"
+      ],
+      "not_established": [
+        "Current normal push failed (one real filesystem ratio test); its integration lane did not run. Three focused diagnoses each pass all19 assertions but exit1 on whole-repository coverage floors. Exact timing-failure cause unproven.",
+        "Required remote PR CI at final carrier/head, successful push, merge/main ancestry, configured release conclusion, exact public npm artifact/runtime and terminal tracker evidence remain pending."
+      ]
+    },
+    {
+      "claim_id": "AC-majors",
+      "statement": "Actual installed TS6/ESLint9/Knip5/Husky8/Vitest4 pass native checks; repeat offline CDK templates match.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "quality-and-template-review.log",
+        "state.json",
+        "cdk-template.json"
+      ],
+      "not_established": [
+        "Current normal push failed (one real filesystem ratio test); its integration lane did not run. Three focused diagnoses each pass all19 assertions but exit1 on whole-repository coverage floors. Exact timing-failure cause unproven.",
+        "Required remote PR CI at final carrier/head, successful push, merge/main ancestry, configured release conclusion, exact public npm artifact/runtime and terminal tracker evidence remain pending."
+      ]
+    },
+    {
+      "claim_id": "AC-ownership",
+      "statement": "Six real harness applies agree on runtime policy; explicit host-owned Node/Vitest/coverage defaults survive.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "quality-and-template-review.log",
+        "state.json"
+      ],
+      "not_established": [
+        "Current normal push failed (one real filesystem ratio test); its integration lane did not run. Three focused diagnoses each pass all19 assertions but exit1 on whole-repository coverage floors. Exact timing-failure cause unproven.",
+        "Required remote PR CI at final carrier/head, successful push, merge/main ancestry, configured release conclusion, exact public npm artifact/runtime and terminal tracker evidence remain pending."
+      ]
+    },
+    {
+      "claim_id": "AC-policy",
+      "statement": "All16 exact committed policy cases pass.",
+      "boundary": "code-unit",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "test-run-log"
+      ],
+      "status": "established",
+      "evidence_refs": [
+        "fixed-success-and-edge.log",
+        "policy-test-report.json"
+      ],
+      "not_established": [
+        "Current normal push failed (one real filesystem ratio test); its integration lane did not run. Three focused diagnoses each pass all19 assertions but exit1 on whole-repository coverage floors. Exact timing-failure cause unproven.",
+        "Required remote PR CI at final carrier/head, successful push, merge/main ancestry, configured release conclusion, exact public npm artifact/runtime and terminal tracker evidence remain pending."
+      ]
+    },
+    {
+      "claim_id": "GATE-shipment",
+      "statement": "Final change passes normal push/required CI, merges and is published with exact release/artifact/terminal evidence.",
+      "boundary": "cli",
+      "required_for_gate": true,
+      "required_evidence_kinds": [
+        "cli-output"
+      ],
+      "status": "not-established",
+      "evidence_refs": [
+        "failed-normal-push.log"
+      ],
+      "not_established": [
+        "Current normal push failed (one real filesystem ratio test); its integration lane did not run. Three focused diagnoses each pass all19 assertions but exit1 on whole-repository coverage floors. Exact timing-failure cause unproven.",
+        "Required remote PR CI at final carrier/head, successful push, merge/main ancestry, configured release conclusion, exact public npm artifact/runtime and terminal tracker evidence remain pending.",
+        "Prospective storage commit unknown. B runtime remains B; historical baseline/staged quality retain observed heads/index trees. No public candidate publication inferred."
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "fixed-success-and-edge.log",
+      "kind": "test-run-log",
+      "locator": "evidence/4326/fixed-success-and-edge.log",
+      "artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee",
+      "sha256": "4ea7b96559f2df57ebe2df39c7f56a8d8df39039f157196e9e61f2e541e0c9d4",
+      "bytes": 4212,
+      "captured_at": "2026-10-03T00:14:23.366656+00:00"
+    },
+    {
+      "evidence_id": "quality-and-template-review.log",
+      "kind": "cli-output",
+      "locator": "evidence/4326/quality-and-template-review.log",
+      "artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee",
+      "sha256": "7d20fe7bbbcb31f2447c01bf8275063dcbd771250cde5437bbbdae5ef97dcc89",
+      "bytes": 25954,
+      "captured_at": "2026-10-03T00:14:23.366656+00:00"
+    },
+    {
+      "evidence_id": "state.json",
+      "kind": "state-dump",
+      "locator": "evidence/4326/state.json",
+      "artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee",
+      "sha256": "72e0c0963db83cb88a753a58281303f5f07f29b84770953c49bac10887b51b62",
+      "bytes": 6809,
+      "captured_at": "2026-10-03T00:14:23.366656+00:00"
+    },
+    {
+      "evidence_id": "cdk-template.json",
+      "kind": "state-dump",
+      "locator": "evidence/4326/cdk-template.json",
+      "artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee",
+      "sha256": "327b8040bacb11b38966aa3b3b6154ca993983713758a715383b7a58ffe69b1b",
+      "bytes": 1371,
+      "captured_at": "2026-10-03T00:14:23.366656+00:00"
+    },
+    {
+      "evidence_id": "policy-test-report.json",
+      "kind": "test-run-log",
+      "locator": "evidence/4326/policy-test-report.json",
+      "artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee",
+      "sha256": "b439dfed2d95250f36df14bb93f0bcd2067cf0369253b788220edb78ea23f5ec",
+      "bytes": 8000,
+      "captured_at": "2026-10-03T00:14:23.366656+00:00"
+    },
+    {
+      "evidence_id": "failed-normal-push.log",
+      "kind": "cli-output",
+      "locator": "evidence/4326/failed-normal-push.log",
+      "artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee",
+      "sha256": "c0dba4328a7be4de92a9ca45af564c5e0ee44479d0cb684090c8f35589722439",
+      "bytes": 2815,
+      "captured_at": "2026-10-03T00:21:53.930810+00:00"
+    },
+    {
+      "evidence_id": "diagnosis/focused-1.log",
+      "kind": "cli-output",
+      "locator": "evidence/4326/diagnosis/focused-1.log",
+      "artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee",
+      "sha256": "823449e998b012cc8748156cb12b85ea54a48dabfa621caaa8bd69e5faaecf50",
+      "bytes": 2067,
+      "captured_at": "2026-10-03T00:25:35.773368+00:00"
+    },
+    {
+      "evidence_id": "diagnosis/focused-2.log",
+      "kind": "cli-output",
+      "locator": "evidence/4326/diagnosis/focused-2.log",
+      "artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee",
+      "sha256": "518de05492a650c0e0a5e6589003c4cfbb323021b4772523224390a21b6167f6",
+      "bytes": 2065,
+      "captured_at": "2026-10-03T00:25:40.148299+00:00"
+    },
+    {
+      "evidence_id": "diagnosis/focused-3.log",
+      "kind": "cli-output",
+      "locator": "evidence/4326/diagnosis/focused-3.log",
+      "artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee",
+      "sha256": "2cc91aa1694189a155f44ca1b89435307ad3e02ef9ac1097f809983ccd807ea4",
+      "bytes": 2057,
+      "captured_at": "2026-10-03T00:25:44.499727+00:00"
+    },
+    {
+      "evidence_id": "diagnosis/state.json",
+      "kind": "state-dump",
+      "locator": "evidence/4326/diagnosis/state.json",
+      "artifact_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee",
+      "sha256": "b32fdb189ba11d65d5109b545cd6525e44714ff5b977aa27f05ac9ece3f8bf55",
+      "bytes": 19689,
+      "captured_at": "2026-10-03T00:27:24.646081+00:00"
+    }
+  ],
+  "historical_evidence": [
+    {
+      "evidence_id": "history/baseline-regression.log",
+      "kind": "test-run-log",
+      "locator": "evidence/4326/history/baseline-regression.log",
+      "artifact_head_sha": "cf55d5f03806fa21e346c1bec6f45110030a13e2",
+      "sha256": "4720f0fc2f390fc7b80216b7a7761c2f37adf484a9e625c88a1bef56e5fd28cc",
+      "bytes": 10348,
+      "captured_at": "2026-10-02T22:23:16.003809+00:00"
+    },
+    {
+      "evidence_id": "history/baseline-state.json",
+      "kind": "state-dump",
+      "locator": "evidence/4326/history/baseline-state.json",
+      "artifact_head_sha": "cf55d5f03806fa21e346c1bec6f45110030a13e2",
+      "sha256": "8075fe2c46de009236be6b24d8eb3b048075262906d34488a0428e36828b724e",
+      "bytes": 1568,
+      "captured_at": "2026-10-02T22:23:16.003809+00:00"
+    },
+    {
+      "evidence_id": "history/quality-state.json",
+      "kind": "state-dump",
+      "locator": "evidence/4326/history/quality-state.json",
+      "artifact_head_sha": "694ea306c583146cc31b2d7635783ef2cc8c78eb",
+      "sha256": "71aa9d86e9e983e96a3edc0287a058dcaf85f4a07e743f0261a31f5d82ef4958",
+      "bytes": 2079,
+      "captured_at": "2026-10-02T22:53:10.375992+00:00"
+    },
+    {
+      "evidence_id": "history/quality-gates.log",
+      "kind": "cli-output",
+      "locator": "evidence/4326/history/quality-gates.log",
+      "artifact_head_sha": "694ea306c583146cc31b2d7635783ef2cc8c78eb",
+      "sha256": "2b2c8d4510e936c2776e221abc3de48fad0fd398f38e5405041681f2ff3716cb",
+      "bytes": 19951,
+      "captured_at": "2026-10-02T22:53:10.375992+00:00"
+    }
+  ],
+  "manifest": [
+    {
+      "name": "baseline-regression",
+      "kind": "test-run-log",
+      "locator": "evidence/4326/history/baseline-regression.log",
+      "observed_head_sha": "cf55d5f03806fa21e346c1bec6f45110030a13e2",
+      "historical": true
+    },
+    {
+      "name": "fixed-success-and-edge",
+      "kind": "test-run-log",
+      "locator": "evidence/4326/fixed-success-and-edge.log",
+      "observed_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee"
+    },
+    {
+      "name": "quality-and-template-review",
+      "kind": "cli-output",
+      "locator": "evidence/4326/quality-and-template-review.log",
+      "observed_head_sha": "b3398fa371bf63c5383ec101855fc7e1d6c7efee",
+      "prior_full_prerequisites": "evidence/4326/history/quality-gates.log",
+      "current_failed_gate": "evidence/4326/failed-normal-push.log"
+    }
+  ],
+  "not_established": [
+    "Current normal push failed (one real filesystem ratio test); its integration lane did not run. Three focused diagnoses each pass all19 assertions but exit1 on whole-repository coverage floors. Exact timing-failure cause unproven.",
+    "Required remote PR CI at final carrier/head, successful push, merge/main ancestry, configured release conclusion, exact public npm artifact/runtime and terminal tracker evidence remain pending.",
+    "Prospective storage commit unknown. B runtime remains B; historical baseline/staged quality retain observed heads/index trees. No public candidate publication inferred.",
+    "Inherited362-file/1542-error typecheck quarantine,13268 engine-floor backlog diagnostics,2unit skips and9integration skips remain. BDD gate establishes traceability/non-regression only; actual BDD execution evidence not supplied.",
+    "AWS deployment/live consumer adoption, bare first-ever bootstrap idempotence, hosted-agent execution and equality of agent files not established."
+  ],
+  "not_established_reviewed": true,
+  "source_context": {
+    "sha256": "16924e054bc8013a4dafd64c2135f1125ffeeffc71643485460d4d44ae8634c7",
+    "bytes": 71750,
+    "full_read": true,
+    "comment_count": 5,
+    "comment_ids": [
+      5960670067,
+      5960770263,
+      5961220400,
+      5963134813,
+      5963143821
+    ]
+  },
+  "observed_delivery_identities": {
+    "B": "b3398fa371bf63c5383ec101855fc7e1d6c7efee",
+    "B_tree": "f6cdb672446b2d744a149e6114e6a48663079d74",
+    "T": null,
+    "M": null,
+    "R": null,
+    "release_run": null,
+    "public_version": null,
+    "note": "B is local feature merge of main, not remote PR merge M. No final remote checkout supplied."
+  },
+  "canonical_local_session_verdict_changed": false
+}

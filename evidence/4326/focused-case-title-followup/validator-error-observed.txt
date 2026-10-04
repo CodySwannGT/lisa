@@ -1,0 +1,15 @@
+Captured from the actual tool-return stderr after the one focused driver invocation exited 1. No command rerun.
+
+Traceback (most recent call last):
+  File "/tmp/lisa-4326-codification/verify-focused-repair-controls.py", line 495, in <module>
+    main()
+    ~~~~^^
+  File "/tmp/lisa-4326-codification/verify-focused-repair-controls.py", line 439, in main
+    counts=validate_report(read(report),source,a.deadline_cases)
+  File "/tmp/lisa-4326-codification/verify-focused-repair-controls.py", line 108, in validate_report
+    need(all(isinstance(n, str) and n for n in names) and len(names) == len(set(names)),
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+         'Missing or duplicated named case')
+  File "/tmp/lisa-4326-codification/verify-focused-repair-controls.py", line 44, in need
+    raise ValueError(message)
+ValueError: Missing or duplicated named case
