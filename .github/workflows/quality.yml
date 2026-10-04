@@ -3495,25 +3495,11 @@ jobs:
       contents: read
     name: 🧪 Run Integration Tests
     runs-on: ubuntu-latest
-    # 60 rather than 30, derived from measurement, not rounded to fit.
-    #
-    # Seven same-day baseline runs of this job measured 19.9, 20.1, 20.2, 23.4,
-    # 24.9, 25.4 and 26.5 minutes: mean 22.9, sd 2.8, so mean+3sd is 31.4. The
-    # old 30-minute ceiling therefore sat INSIDE the job's own upper tail - it
-    # was cancelling healthy runs and reporting the cancellation as a failed
-    # gate, which is a measurement being destroyed rather than a gate biting.
-    #
-    # 60 is this workflow's own budget for the same class of work: the job's
-    # dominant cost is Stryker, and `test_mutation` above already allows 60
-    # minutes for a mutation run. It is 2.3x the worst measured run here, which
-    # also leaves room for a per-case budget strictly beneath it (see
-    # GATE_RUN_BUDGET_MS in tests/integration/mutation-gate-bite.test.ts) so the
-    # test reports WHICH case overran instead of the job dying anonymously.
-    #
-    # `timeout-minutes` is a resource limit, not a quality threshold: raising it
-    # moves no coverage floor and relaxes no assertion. It is also not an answer
-    # to why this job went from ~1 minute to ~25 - that regression is tracked
-    # separately and is not fixed by giving it more room.
+    # Seven baseline runs measured 19.9–26.5 minutes (mean22.9, sd2.8;
+    # mean+3sd31.4), so30 cancelled healthy runs. 60 matches test_mutation's
+    # Stryker budget and leaves room for shorter GATE_RUN_BUDGET_MS cases.
+    # This resource limit changes no quality assertion; the ~1→~25 minute
+    # regression remains separately tracked.
     timeout-minutes: 60
     needs: [gate_plan]
     if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test:integration,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_integration":"skip"')) }}
