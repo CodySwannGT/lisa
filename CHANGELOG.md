@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.68.1](https://github.com/CodySwannGT/lisa/compare/v4.68.0...v4.68.1) (2026-10-04)
+
+
+### Bug Fixes
+
+* **rails:** preserve magic-comment spacing in version initializer ([7f18ea6](https://github.com/CodySwannGT/lisa/commit/7f18ea60083e2f94ed5c1a2dcb5bbe790dbad954)), closes [CodySwannGT/lisa#4334](https://github.com/CodySwannGT/lisa/issues/4334)
+
 ## [4.68.0](https://github.com/CodySwannGT/lisa/compare/v4.67.0...v4.68.0) (2026-10-03)
 
 
