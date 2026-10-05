@@ -116,6 +116,13 @@ on:
         required: false
 
 jobs:
+  history_secrets:
+    name: History Secrets
+    permissions:
+      contents: read
+    uses: ./.github/workflows/history-secrets.yml
+    with:
+      expected_workflow_contract_major: '1'
   workflow_contract:
     # The caller-facing half of the staleness handshake (CodySwannGT/lisa#3698).
     # `.github/reusable-workflow-contracts.json` records the major, every shipped

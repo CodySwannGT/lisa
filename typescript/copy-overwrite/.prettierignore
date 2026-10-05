@@ -86,9 +86,11 @@ scripts/lisa-destructive-guard.mjs
 scripts/lisa-environment-prepare.mjs
 scripts/lisa-floor-collisions.mjs
 scripts/lisa-gates.mjs
+scripts/lisa-history-secrets.mjs
 scripts/lisa-lint-staged-preflight.mjs
 scripts/lisa-mutation.mjs
 scripts/lisa-postinstall.mjs
+scripts/lisa-rails-prepush.mjs
 scripts/lisa-reconcile-policy.mjs
 scripts/lisa-run-gates.mjs
 scripts/lisa-schema-validate.mjs

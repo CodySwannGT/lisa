@@ -326,3 +326,7 @@ ROOT admits /Users/cody/workspace/lisa-4347-capture-commit on codex/4347-capture
 ## Capture clean build prerequisite
 
 ROOT admits genuine original build:dist after missing compiled ESLint entry caused normal hook exit1. Positively owned missing ignored projection dist only; preserve full original script, source five and exact nine staged paths, no implementation-dist copy/link or hook/config override. Build/readback precedes unchanged normal commit retry; failed receipt retained.
+
+## Builder non-destructive source continuation
+
+ROOT admits same actor and source responsibilities in already owned clean capture worktree /Users/cody/workspace/lisa-4347-capture-commit, codex/4347-capture-repair. Original56 dirty bytes/HEAD677/index/context/binding remain untouched; denied seven-path discard stays rejected. Ordinary exact04 main merge, only two generated conflicts with authenticated main input seed/four official generators, genuine build and normal merge hooks; then exact49-source manifest copies without frozen-five or metadata overwrite. Append only newer own metadata delta/current cwd ownership. Same catalogue/criteria/private proof provenance; source checks/different review before focused commits. No new claim/model/team/guard/provider/VM/runtime authority.

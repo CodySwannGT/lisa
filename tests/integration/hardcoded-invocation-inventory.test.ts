@@ -3,11 +3,10 @@
  * ship, not the ones that shipped when it was written.
  *
  * A table of "what runs a command nothing declared" is only worth having if it
- * cannot go stale, and it can go stale in BOTH directions:
- *
- *   * an entry naming a step, a job or a script that is gone reports a gap
+ * cannot go stale, and it can go stale in BOTH directions. An entry naming
+ * a step, a job or a script that is gone reports a gap
  *     that no longer exists, and
- *   * a façade job, a `lisa_gate_covers` call or an `-on-edit.sh` hook with no
+ * A façade job, a `lisa_gate_covers` call or an `-on-edit.sh` hook with no
  *     entry is a gap the inventory silently omits — the failure mode that
  *     matters, because the whole point of the table is to be exhaustive.
  *
@@ -19,6 +18,7 @@ import * as fs from "fs-extra";
 import * as path from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { loadWorkflow } from "../helpers/workflow-test-utils.js";
+import { REGISTRY } from "../../all/copy-overwrite/scripts/lisa-gates.mjs";
 import {
   FACADE_WORKFLOWS,
   NOT_CONFIGURED,
@@ -139,6 +139,26 @@ describe("the hardcoded-invocation inventory", () => {
           entry => [entry.job as string, entry.gate]
         )
       );
+      // A declared-only prover has no unconfigured fallback invocation. Derive
+      // its nested route from real workflow bytes and verify registry ownership.
+      for (const [job, definition] of Object.entries(
+        workflowOf(QUALITY_YML).jobs
+      )) {
+        if (definition.uses !== "./.github/workflows/history-secrets.yml")
+          continue;
+        const nested = workflowOf(".github/workflows/history-secrets.yml");
+        const step = nested.jobs["scan"]?.steps?.find(
+          candidate => candidate.env?.["GATE_ID"]
+        );
+        const gate = step?.env?.["GATE_ID"];
+        expect(typeof gate).toBe("string");
+        expect(REGISTRY[gate as keyof typeof REGISTRY]).toMatchObject({
+          ownedFacadeAt: ["push", "pull-request"],
+        });
+        expect(step?.run).toContain("historyPolicy(process.cwd()");
+        expect(step?.run).toContain("if (!gate)");
+        recorded.set(job, String(gate));
+      }
       for (const [job, gate] of Object.entries(gates.QUALITY_JOB_GATES)) {
         expect(recorded.get(job)).toBe(gate);
       }

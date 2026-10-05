@@ -1194,6 +1194,14 @@ describe("Lisa Integration Tests", () => {
 
       expect(result.success).toBe(true);
       expect(result.detectedTypes).toContain("rails");
+      const config = await fs.readJson(path.join(destDir, LISA_CONFIG_JSON));
+      expect(config.gates["introduced-history-credential-leakage"]).toEqual({
+        push: "required",
+        "pull-request": {
+          level: "required",
+          caller_chain: ["Quality Checks", "History Secrets"],
+        },
+      });
     });
 
     it("does not apply typescript pack to Rails project", async () => {
@@ -1288,8 +1296,10 @@ describe("Lisa Integration Tests", () => {
       expect(content).toContain(
         "types: [opened, synchronize, reopened, labeled, unlabeled]"
       );
-      expect(content).toContain("uses: ./.github/workflows/quality.yml");
-      expect(content).toContain("secrets: inherit");
+      expect(content).toContain(
+        "uses: CodySwannGT/lisa/.github/workflows/quality-rails.yml@main"
+      );
+      expect(content).toContain("secrets:");
     });
 
     it("deploys quality.yml with workflow_call trigger via create-only", async () => {

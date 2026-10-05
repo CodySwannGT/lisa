@@ -876,6 +876,18 @@ export const REGISTRY = Object.freeze({
       "Proved by the gitleaks binary in the pre-commit built-in and by a hosted scanner in CI. Neither is a package script.",
     moments: COMMIT_ONWARD,
   },
+  "introduced-history-credential-leakage": {
+    label: "🔐 Introduced History Credential Leakage",
+    summary:
+      "Every actual introduced Git history range is scanner-clean and fully redacted.",
+    task: "security:check-introduced-history",
+    declareOnly:
+      "When declared, the emitted scripts/lisa-history-secrets.mjs proves the actual range with a pinned offline scanner, without a package script.",
+    ownedFacadeAt: [PUSH, PULL_REQUEST],
+    needs: NO_INSTALL,
+    moments: [PUSH, PULL_REQUEST],
+    work: "introduced commits scanned",
+  },
   "dependency-vulnerability": {
     label: "🔒 Security Scan",
     summary: "No known high or critical advisory in shipped dependencies.",
@@ -1091,6 +1103,7 @@ export const REGISTRY = Object.freeze({
  * the two disagree, which is what keeps a static copy true.
  */
 export const QUALITY_JOB_GATES = Object.freeze({
+  history_secrets: "introduced-history-credential-leakage",
   lint: CODE_STYLE,
   lint_slow: "code-style-slow",
   typecheck: "type-correctness",
@@ -3123,6 +3136,7 @@ export const REUSE_CLASSES = Object.freeze(Object.values(REUSE_CLASS));
  * A project overrides a row with `gates.<id>.reuse` in `.lisa.config.json`.
  */
 export const GATE_REUSE_CLASS = Object.freeze({
+  "introduced-history-credential-leakage": { class: REUSE_CLASS.NEVER },
   accessibility: { class: REUSE_CLASS.NEVER },
   // A guard whose job is to detect a stale generated artifact must not itself
   // be satisfied by a record of a previous run, and it costs seconds.
@@ -5441,16 +5455,18 @@ export function resolveMoment({
       declared === null &&
       definition?.declareOnly !== undefined &&
       definition?.shippedAs === undefined &&
-      scripts !== null &&
-      typeof scripts === "object" &&
-      !Object.hasOwn(scripts, task) &&
-      HARDCODED_INVOCATIONS.some(
-        invocation =>
-          invocation.gate === id &&
-          invocation.moment === moment &&
-          invocation.facade === CONSULTS_THEN_FALLS_BACK &&
-          invocation.unconditional === true
-      );
+      ((scripts !== null &&
+        typeof scripts === "object" &&
+        !Object.hasOwn(scripts, task)) ||
+        (id === "introduced-history-credential-leakage" && scripts === null)) &&
+      (definition?.ownedFacadeAt?.includes(moment) ||
+        HARDCODED_INVOCATIONS.some(
+          invocation =>
+            invocation.gate === id &&
+            invocation.moment === moment &&
+            invocation.facade === CONSULTS_THEN_FALLS_BACK &&
+            invocation.unconditional === true
+        ));
 
     resolved.push({
       id,

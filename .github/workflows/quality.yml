@@ -323,6 +323,14 @@ env:
   PACKAGE_MANAGER: ${{ inputs.package_manager }}
 
 jobs:
+  history_secrets:
+    name: History Secrets
+    permissions: { contents: read }
+    uses: ./.github/workflows/history-secrets.yml
+    with:
+      expected_workflow_contract_major: '1'
+      moment: ${{ inputs.moment }}
+      working_directory: ${{ inputs.working_directory || '.' }}
   workflow_contract:
     # The caller-facing half of the staleness handshake (CodySwannGT/lisa#3698).
     # `.github/reusable-workflow-contracts.json` records the major, every shipped
@@ -762,7 +770,7 @@ jobs:
         if: always()
         env:
           GATE_MOMENT: ${{ inputs.moment }}
-          EXPECTED_PLAN_KEYS: lint,lint_slow,typecheck,verification_coverage,test_unit,test_mutation,test_integration,playwright_e2e_aggregate,format,build,work_item_traceability,performance_budget,test_node_suites,environment_reset,environment_reseed,dead_code,learnings_budget,conflict_markers,sg_scan,npm_security_scan,threshold_ratchet,e2e_coverage,bdd_coverage,state_classification,floor_collisions,secret_scanning,license_compliance,maestro_e2e,sonarcloud,snyk
+          EXPECTED_PLAN_KEYS: history_secrets,lint,lint_slow,typecheck,verification_coverage,test_unit,test_mutation,test_integration,playwright_e2e_aggregate,format,build,work_item_traceability,performance_budget,test_node_suites,environment_reset,environment_reseed,dead_code,learnings_budget,conflict_markers,sg_scan,npm_security_scan,threshold_ratchet,e2e_coverage,bdd_coverage,state_classification,floor_collisions,secret_scanning,license_compliance,maestro_e2e,sonarcloud,snyk
         run: |
           set -uo pipefail
           PLAN="{}"
@@ -4437,6 +4445,7 @@ jobs:
       [
         workflow_contract,
         registry_path_agreement,
+        history_secrets,
         gate_legs,
         gate_plan,
         declared_gates,
@@ -4550,6 +4559,7 @@ jobs:
           LISA_JOB_NAMES: |
             {
               "workflow_contract": "🔖 Workflow Contract",
+              "history_secrets": "History Secrets",
               "registry_path_agreement": "🧭 Which Copy The Gates Ran",
               "gate_legs": "🧮 Declared Gate Legs",
               "gate_plan": "🗺️ Gate Preallocation Plan",

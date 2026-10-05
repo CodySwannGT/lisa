@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.70.1](https://github.com/CodySwannGT/lisa/compare/v4.70.0...v4.70.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* **security:** honor published release pins in history journey ([08f90da](https://github.com/CodySwannGT/lisa/commit/08f90da83c1b8c16022d3bbc50ec0803bd477644)), closes [#4345](https://github.com/CodySwannGT/lisa/issues/4345) [CodySwannGT/lisa#4345](https://github.com/CodySwannGT/lisa/issues/4345)
+
+## [4.70.0](https://github.com/CodySwannGT/lisa/compare/v4.69.5...v4.70.0) (2026-10-05)
+
+
+### Features
+
+* **security:** add redacted introduced-history scanner core ([2115981](https://github.com/CodySwannGT/lisa/commit/21159817ffc450ded4478cce038b87af11529bbf)), closes [CodySwannGT/lisa#4345](https://github.com/CodySwannGT/lisa/issues/4345)
+* **security:** require introduced-history scanning for Rails and CI ([f5ae273](https://github.com/CodySwannGT/lisa/commit/f5ae2738ed232b0c9405ba696d7619e95ede4f34)), closes [CodySwannGT/lisa#4345](https://github.com/CodySwannGT/lisa/issues/4345)
+
+
+### Bug Fixes
+
+* **security:** explain fail-closed scanner audit probe ([5844e34](https://github.com/CodySwannGT/lisa/commit/5844e34905333ef293a8efbf8320fc070c249e8a)), closes [CodySwannGT/lisa#4345](https://github.com/CodySwannGT/lisa/issues/4345)
+* **security:** harden history route bootstrap and event handling ([8713bb8](https://github.com/CodySwannGT/lisa/commit/8713bb88f0861e402e978eed281159a1052be6b1)), closes [CodySwannGT/lisa#4345](https://github.com/CodySwannGT/lisa/issues/4345)
+
 ### [4.69.5](https://github.com/CodySwannGT/lisa/compare/v4.69.4...v4.69.5) (2026-10-05)
 
 

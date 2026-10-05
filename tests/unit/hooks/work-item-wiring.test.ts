@@ -420,8 +420,15 @@ describe("work-item Git enforcement wiring", () => {
       "node scripts/lisa-work-item.mjs validate-commit {1}"
     );
     expect(lefthook).toContain(
-      "node scripts/lisa-work-item.mjs validate-push {1}"
+      'await import("./scripts/lisa-rails-prepush.mjs")'
     );
+    expect(lefthook).toContain("await main(process.argv.slice(1))");
     expect(lefthook.match(/use_stdin: true/g)).toHaveLength(1);
+    const wrapper = read("all/copy-overwrite/scripts/lisa-rails-prepush.mjs");
+    expect(wrapper).toContain("input = readFileSync(0);");
+    expect(wrapper).toContain('"lisa-work-item.mjs"');
+    expect(wrapper).toContain('["validate-push", ...remoteArgs]');
+    expect(wrapper).toContain('import("./lisa-history-secrets.mjs")');
+    expect(wrapper).toMatch(/spawnSync[\s\S]+input,/u);
   });
 });
