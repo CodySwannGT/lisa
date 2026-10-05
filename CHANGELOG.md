@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.69.5](https://github.com/CodySwannGT/lisa/compare/v4.69.4...v4.69.5) (2026-10-05)
+
+
+### Bug Fixes
+
+* **core:** bound optional plugin registration lifecycle ([f1acee3](https://github.com/CodySwannGT/lisa/commit/f1acee3348444932c03e37ef7bc6691bdebfb379)), closes [CodySwannGT/lisa#4333](https://github.com/CodySwannGT/lisa/issues/4333)
+* **tooling:** make fresh dependency and registration gates reliable ([c36a894](https://github.com/CodySwannGT/lisa/commit/c36a894ac37be0c7fccdd68d78a93a74be170de3)), closes [CodySwannGT/lisa#4333](https://github.com/CodySwannGT/lisa/issues/4333)
+* **tooling:** refresh Rails tools and npm advisory floors ([096032a](https://github.com/CodySwannGT/lisa/commit/096032a7ec688c60c9f01c3e4b357f97ca48dd05)), closes [CodySwannGT/lisa#4333](https://github.com/CodySwannGT/lisa/issues/4333)
+
+
+### Documentation
+
+* **tooling:** record scoped local proof and remaining limits ([fb19c80](https://github.com/CodySwannGT/lisa/commit/fb19c8046ab48a9e574bc87e8b1eefafbd8394a9)), closes [CodySwannGT/lisa#4333](https://github.com/CodySwannGT/lisa/issues/4333)
+* **tooling:** seal combined refresh verification ([d1fe5f8](https://github.com/CodySwannGT/lisa/commit/d1fe5f82af3d74db688809632e4c8b36765214a9)), closes [CodySwannGT/lisa#4333](https://github.com/CodySwannGT/lisa/issues/4333)
+
 ### [4.69.4](https://github.com/CodySwannGT/lisa/compare/v4.69.3...v4.69.4) (2026-10-05)
 
 
