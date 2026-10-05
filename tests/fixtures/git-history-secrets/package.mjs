@@ -11,12 +11,59 @@ const CONFIG = ".lisa.config.json";
 const HOOK = "lefthook.yml";
 const CI = ".github/workflows/ci.yml";
 /**
+ * Resolve the installed archive's caller through the same authority as full apply.
+ * Release stamps are bound to the version tag by the publish identity gate.
+ * @param installed - Actual immutable archive installation directory
+ * @param command - Bounded actual subprocess authority
+ * @param requireFact - Failing assertion authority for this fixture
+ * @returns Exact release ref, or explicitly qualified unstamped candidate ref
+ */
+export const resolvePackageCaller = (installed, command, requireFact) => {
+  const result = command(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      `import { pathToFileURL } from "node:url";
+import { readFileSync } from "node:fs";
+const installed = process.argv[1];
+const authority = await import(pathToFileURL(installed + "/dist/core/lisa-release-pin.js"));
+const readers = await import(pathToFileURL(installed + "/dist/cli/version.js"));
+const deps = {
+  readVersion: readers.getPackageVersion,
+  readStampedCommit: readers.getPackageReleaseCommit,
+  readStampedTag: readers.getPackageReleaseTag,
+  resolveTagCommit: authority.resolveTagCommitFromGit,
+};
+try {
+  const pin = await authority.resolveReleasePin(installed, deps);
+  console.log(JSON.stringify({ ref: pin.sha, version: pin.version, qualification: "release-pin" }));
+} catch (error) {
+  const declared = JSON.parse(readFileSync(installed + "/package.json", "utf8"));
+  if (!(error instanceof authority.UnresolvableReleasePinError) ||
+      error.reason !== "unreleased" || deps.readStampedCommit() !== null ||
+      deps.readStampedTag() !== null || Object.hasOwn(declared, "lisaReleaseCommit") ||
+      Object.hasOwn(declared, "lisaReleaseTag")) throw error;
+  console.log(JSON.stringify({ ref: "main", version: deps.readVersion(), qualification: "unstamped-candidate" }));
+}`,
+      installed,
+    ],
+    installed
+  );
+  requireFact(
+    result.status === 0,
+    "Installed package release identity cannot be resolved."
+  );
+  return JSON.parse(String(result.stdout));
+};
+/**
  * Inspect actual applied caller and hook routes, never invented local workflow copies.
  * @param emitted - Real applied consumer directory
  * @param requireFact - Failing assertion authority for this fixture
+ * @param expectedCaller - Exact identity resolved from the installed archive
  * @returns Observed concrete caller identity
  */
-export const verifyAppliedRoutes = (emitted, requireFact) => {
+export const verifyAppliedRoutes = (emitted, requireFact, expectedCaller) => {
   const config = JSON.parse(readFileSync(join(emitted, CONFIG), "utf8"));
   const ci = load(readFileSync(join(emitted, CI), "utf8"));
   const callers = Object.entries(ci.jobs ?? {}).filter(([, job]) =>
@@ -33,7 +80,8 @@ export const verifyAppliedRoutes = (emitted, requireFact) => {
   const hook = load(readFileSync(join(emitted, HOOK), "utf8"));
   const route = hook["pre-push"]?.commands?.["work-item"];
   requireFact(
-    job.uses === "CodySwannGT/lisa/.github/workflows/quality-rails.yml@main" &&
+    job.uses ===
+      `CodySwannGT/lisa/.github/workflows/quality-rails.yml@${expectedCaller.ref}` &&
       job.with?.expected_workflow_contract_major === "1" &&
       declaration.push === "required" &&
       declaration["pull-request"].level === "required" &&
@@ -98,6 +146,11 @@ export const emitArtifacts = harness => {
         "Immutable package dependency installation failed."
       );
       const installed = join(installation, "node_modules/@codyswann/lisa");
+      const expectedCaller = resolvePackageCaller(
+        installed,
+        command,
+        requireFact
+      );
       write(emitted, "Gemfile", "source 'https://rubygems.org'\ngem 'rails'\n");
       write(emitted, "config/application.rb", "require 'rails/all'\n");
       write(
@@ -165,7 +218,9 @@ export const emitArtifacts = harness => {
               "History Secrets",
           "Actual caller chain is not declared as required."
         );
-        applyRoutes.push(verifyAppliedRoutes(emitted, requireFact));
+        applyRoutes.push(
+          verifyAppliedRoutes(emitted, requireFact, expectedCaller)
+        );
         for (const file of artifacts.filter(file => file !== CI)) {
           const owner =
             file === HOOK ? "rails/copy-overwrite" : "all/copy-overwrite";
@@ -204,8 +259,9 @@ export const emitArtifacts = harness => {
           artifacts.map((file, index) => [file, applyHashes[0][index]])
         ),
         ciCallers: applyRoutes,
+        callerIdentity: expectedCaller,
         hostedWorkflowScope:
-          "The emitted caller references upstream @main; hosted workflow bytes are verified separately against actual released gitHead.",
+          "The emitted caller exactly matches the installed release pin, or is explicitly qualified as an unstamped candidate; hosted workflow bytes are verified separately against actual released gitHead.",
       });
     } else {
       cpSync(
