@@ -211,3 +211,32 @@ the empirical result digest is
 Owned registries are terminal, observer file descriptors are closed, focused
 fixtures are removed and no owned vendor or runtime children remain. Required
 head-specific CI/review and immutable publication evidence remain separate.
+
+
+## Ordinary fixture startup repair during delivery
+
+Normal integration commit `c46e59b76b55bdc8ba867fd53cd1e632cae30c0c`
+passed every required local push gate, including 25,757 unit tests and 3,232
+integration tests with two existing skips each, but the Git transfer timed out.
+Provider and Git readbacks both retained the earlier remote head, so that
+invocation earns no delivery credit. Its exact normal retry then failed one
+owned lifecycle test: a 500 ms timeout preceded the fixture PID receipt.
+Coverage was unprovable on that failed retry and integration did not run.
+
+A bounded 750 ms synthetic startup reproduces the same natural timeout/ENOENT
+RED without resource pressure. The fixture now publishes its complete receipt
+atomically only after actual child IPC readiness. The control waits on a real
+scheduler with a calibrated I/O bound, then advances only its test deadline
+clock: both processes are alive and no group signal occurred at logical 499 ms;
+at logical 500 ms, the real API sends SIGTERM/SIGKILL, rejects with the timeout
+reason, clears timers and removes both processes. This is controlled-clock unit
+evidence with real processes/signals, not a new 500 ms wall-time claim. Product
+deadlines, registration behavior, guards and all ordinary success/failure modes
+are unchanged. Finally cleanup restores real timers even after a failed test.
+
+All 22 focused lifecycle/budget-conformance cases pass, along with scoped type,
+format, lint, syntax and conflict checks. An initial polling attempt also failed
+because Vitest polling advances fake timers; the final readiness wait avoids
+that coupling. Complete failed and corrected receipts remain private. Earlier
+local package proof requires exact unchanged package identity; actual new-head
+CI/review, publication and fresh released-consumer acceptance remain pending.

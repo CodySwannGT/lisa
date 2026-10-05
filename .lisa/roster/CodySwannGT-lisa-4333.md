@@ -110,3 +110,19 @@ only if the actual merge conflicts there. Read-only review owns the exact
 combined candidate and verifier owns fresh compiled-package/application proof.
 No foreign lane files, context or index are operated on. Prior package proof
 is historical if packaged bytes change; all required guards remain enabled.
+
+
+### Ordinary timeout-fixture startup diagnosis
+
+The terminal normal push retry failed one owned lifecycle control because the
+500 ms timeout elapsed before the real fixture wrote its parent/child receipt.
+The same available generic npm implementation agent receives bounded process-test
+repair ownership for `tests/unit/core/plugin-command-lifecycle.test.ts` and
+`tests/helpers/__fixtures__/plugin-registration-cli.mjs` only. Its previous npm
+input assignment is idle; no dependency or product-source ownership is added.
+Preserve the timeout arm, real subprocess and process-group cleanup assertions;
+prove the startup coupling and use an ordinary deterministic test boundary.
+No product/global deadlines, guard settings, signal semantics or rejected npm
+controls may change. Root owns reports/artifacts and normal hooks; the same
+read-only reviewer binds changed bytes, and the same verifier owns independent
+focused empirical evidence and package identity.

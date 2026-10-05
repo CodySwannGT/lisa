@@ -1,5 +1,6 @@
 /** Ordinary subprocess success, failure and deadline cleanup observations. */
 import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runPluginCommand } from "../../../src/core/plugin-command.js";
@@ -82,24 +83,74 @@ describe("plugin command lifecycle", () => {
   });
   it("terminates its ordinary waiting command and its inherited subprocess", async () => {
     const receipt = path.join(root, "processes.json");
-    await expect(
-      runPluginCommand(["wait", receipt], { cwd: root, timeoutMs: 500 })
-    ).rejects.toThrow("timed out");
-    const ids = JSON.parse(await readFile(receipt, "utf8")) as {
-      parent: number;
-      child: number;
-    };
-    await expect
-      .poll(() => {
-        return [ids.parent, ids.child].every(pid => {
-          try {
-            process.kill(pid, 0);
-            return false;
-          } catch {
-            return true;
-          }
-        });
-      })
-      .toBe(true);
+    const realSetTimeout = globalThis.setTimeout.bind(globalThis);
+    // Only the command clock is controlled: real Node startup, child IPC and
+    // process-group signals remain real. Startup deliberately exceeds 500 ms,
+    // so the deadline control cannot accidentally measure worker contention.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const signals = vi.spyOn(process, "kill");
+    const outcome = runPluginCommand(["wait", receipt, "750"], {
+      cwd: root,
+      timeoutMs: 500,
+    });
+    // Observe rejection immediately, including when readiness itself fails.
+    const settled = { value: false };
+    void outcome.then(
+      () => {
+        settled.value = true;
+      },
+      () => {
+        settled.value = true;
+      }
+    );
+    try {
+      // Vitest's expect.poll advances fake timers. Poll the atomic IPC receipt
+      // using the captured real scheduler and a calibrated I/O liveness bound.
+      const readinessDeadline = Date.now() + ioLatencyBudgetMs(5000);
+      while (!existsSync(receipt) && Date.now() < readinessDeadline) {
+        await new Promise(resolve => realSetTimeout(resolve, 25));
+      }
+      expect(existsSync(receipt)).toBe(true);
+      const ids = JSON.parse(await readFile(receipt, "utf8")) as {
+        parent: number;
+        child: number;
+      };
+      await vi.advanceTimersByTimeAsync(499);
+      expect(settled.value).toBe(false);
+      for (const pid of [ids.parent, ids.child]) {
+        expect(() => process.kill(pid, 0)).not.toThrow();
+      }
+      expect(signals).not.toHaveBeenCalledWith(-ids.parent, "SIGTERM");
+      expect(signals).not.toHaveBeenCalledWith(-ids.parent, "SIGKILL");
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(outcome).rejects.toThrow("timed out");
+      expect(signals).toHaveBeenCalledWith(-ids.parent, "SIGTERM");
+      expect(signals).toHaveBeenCalledWith(-ids.parent, "SIGKILL");
+      expect(vi.getTimerCount()).toBe(0);
+      await expect
+        .poll(
+          () => {
+            return [ids.parent, ids.child].every(pid => {
+              try {
+                process.kill(pid, 0);
+                return false;
+              } catch {
+                return true;
+              }
+            });
+          },
+          { timeout: ioLatencyBudgetMs(5000) }
+        )
+        .toBe(true);
+    } finally {
+      // On a failed readiness/assertion, exercise only this invocation's real
+      // termination and grace callbacks before restoring the worker's clock.
+      try {
+        await vi.advanceTimersByTimeAsync(2500);
+      } finally {
+        vi.useRealTimers();
+      }
+      await outcome.catch(() => undefined);
+    }
   });
 });

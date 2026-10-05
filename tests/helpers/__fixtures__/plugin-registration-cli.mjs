@@ -1,8 +1,9 @@
 /** Synthetic vendor-command process for ordinary lifecycle tests only. */
 import { spawn } from "node:child_process";
-import { appendFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, renameSync, writeFileSync } from "node:fs";
+import { setTimeout as delay } from "node:timers/promises";
 
-const [mode, receipt] = process.argv.slice(2);
+const [mode, receipt, startupDelay = "0"] = process.argv.slice(2);
 appendFileSync("calls.jsonl", `${JSON.stringify(process.argv.slice(2))}\n`);
 if (mode === "success") {
   process.stdin.resume();
@@ -10,12 +11,19 @@ if (mode === "success") {
 } else if (mode === "failure") {
   process.exitCode = 7;
 } else if (mode === "wait") {
-  const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
-    stdio: "inherit",
+  await delay(Number(startupDelay));
+  const child = spawn(process.execPath, [process.argv[1], "child"], {
+    stdio: ["ignore", "inherit", "inherit", "ipc"],
   });
-  writeFileSync(
-    receipt,
-    JSON.stringify({ parent: process.pid, child: child.pid })
-  );
+  child.once("message", () => {
+    writeFileSync(
+      `${receipt}.pending`,
+      JSON.stringify({ parent: process.pid, child: child.pid })
+    );
+    renameSync(`${receipt}.pending`, receipt);
+  });
   setInterval(() => {}, 1000);
+} else if (mode === "child") {
+  setInterval(() => {}, 1000);
+  process.send("ready");
 }
