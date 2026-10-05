@@ -22,12 +22,20 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "95f91f2a74ed4e523d064d5d374eadd1c1114f03a3a4fa41532c9b0fd32089de",
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
       "fddbb47321be74b6d0a1a5e2508e0e08268560d36126d834f9de3b91f1dff15c",
+    "all/copy-overwrite/scripts/lib/automation-provenance-contract.mjs":
+      "7f110aca808c9890ae917315baf5baf3b9a0c74457bfc1b138e4151e97924d0d",
+    "all/copy-overwrite/scripts/lib/automation-provenance-local.mjs":
+      "83080a248047f46942758c5367545a0a7e044030933d4e4fbbd70486c2331190",
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "c565984dcd33bc5d26a126c25cec9a0734d87c0d9540479168a77f51b980809f",
+    "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs":
+      "d45f481ef27532fd822f6f46731083b90f61fbcdab2e26069c61616122359611",
+    "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs":
+      "60d74d266cfacc582a3d6d6ff8be78e6b4e204370067955c2ec7a843a810f863",
     "all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs":
-      "ccc79dd091d8fc17eba40a7cb8e8bd02d04df49635204d9a26ab900d9ba3e517",
+      "b8638a16ef385bba61e97663691627739011e54febc80be74a9c00281202f882",
     "all/copy-overwrite/scripts/lib/history-secret-git.mjs":
       "102276aef106e07b2b385fe8f2d3b54a9d30381633a22e07d5d74a5db9ddf320",
     "all/copy-overwrite/scripts/lib/history-secret-policy.mjs":
@@ -65,7 +73,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs":
       "31cb1cd96e7bd692d10ed2c26aa83c6b0580e48dbe6d2393edf9652970def091",
     "all/copy-overwrite/scripts/lisa-automation-provenance.mjs":
-      "a5e427361d3e2427ee1af174ff91d0554e83ffeb475ce8ff3964e7d08cdf29c1",
+      "a4acfd66630067f5dfdda22951ade554cb4a8e0e16558729a3770225dce2a278",
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
       "014a94647efc636cbce961364a82f03c1f3c1e54a55e9d21508fded88dce49c4",
     "all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs":
@@ -2509,7 +2517,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "c413ad5c3f29325340d875fdc1c2f4744e9f0cfaa2fc7a44582fa6020e7ec291",
+      "136587c4bb38ff962100cd7cfa4ca8dc485d64716455c8b774313ae122ef1bdf",
     "scripts/update-node-version.ts":
       "0059067c14001c2f7e75beb2628d1a46f935c7b01ce61871db71b6849ef62dca",
     "scripts/update-test-skill-paths.mjs":
@@ -2853,8 +2861,12 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/check-third-party-action-pins.mjs": true,
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs": true,
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs": true,
+    "all/copy-overwrite/scripts/lib/automation-provenance-contract.mjs": true,
+    "all/copy-overwrite/scripts/lib/automation-provenance-local.mjs": true,
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs": true,
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs": true,
+    "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs": true,
+    "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs": true,
     "all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs": true,
     "all/copy-overwrite/scripts/lib/history-secret-git.mjs": true,
     "all/copy-overwrite/scripts/lib/history-secret-policy.mjs": true,

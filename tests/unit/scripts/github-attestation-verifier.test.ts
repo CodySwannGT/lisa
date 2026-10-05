@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   mkdtempSync,
   readFileSync,
+  readdirSync,
   renameSync,
   rmSync,
   symlinkSync,
@@ -10,16 +11,26 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+import { boundedSpawnSync } from "../../../all/copy-overwrite/scripts/lib/bounded-spawn.mjs";
 import {
   ACTIONS_ISSUER,
   assertVerifiedAttestation,
+  RECOVERY_PREDICATE,
   ghJson,
   PROPOSAL_PREDICATE,
   sha256,
   verifyDescriptorAttestation,
 } from "../../../all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs";
 
+import {
+  assertHistoricalAttestation,
+  assertRecoveryAttestation,
+  validateRecovery,
+} from "../../../all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs";
+
 const NOW = Date.parse("2026-10-05T12:00:00Z");
+const EXPIRED_TIME = "2026-10-05T11:00:00Z";
 const BASE = "a".repeat(40);
 const SIGNER = "b".repeat(40);
 const DIGEST = "c".repeat(64);
@@ -79,6 +90,84 @@ const scratch: string[] = [];
 afterEach(() =>
   scratch.splice(0).forEach(path => rmSync(path, { recursive: true }))
 );
+
+describe("real no-write Git commit identity construction", () => {
+  it.each(["sha1", "sha256"])(
+    "matches literal raw Git identity and refuses wrong descriptor format: %s",
+    format => {
+      const directory = mkdtempSync(join(tmpdir(), "lisa-commit-identity-"));
+      scratch.push(directory);
+      const options = {
+        cwd: directory,
+        env: { PATH: process.env.PATH, HOME: directory },
+        encoding: "utf8" as const,
+        timeout: 30_000,
+        maxBuffer: 1_048_576,
+      };
+      const git = (args: string[], input?: Buffer) =>
+        boundedSpawnSync("git", args, { ...options, input });
+      expect(git(["init", `--object-format=${format}`]).status).toBe(0);
+      const message = Buffer.from("chore: exact é bytes\n\n", "utf8");
+      const width = format === "sha1" ? 40 : 64;
+      const descriptor = {
+        tree: "a".repeat(width),
+        parent: "b".repeat(width),
+        author: "Fixture <fixture@example.invalid> 1234567890 +0000",
+        committer: "Fixture <fixture@example.invalid> 1234567890 +0000",
+        messageSha256: sha256(message),
+      };
+      const raw = Buffer.concat([
+        Buffer.from(
+          `tree ${descriptor.tree}\nparent ${descriptor.parent}\nauthor ${descriptor.author}\ncommitter ${descriptor.committer}\n\n`
+        ),
+        message,
+      ]);
+      const objects = join(directory, ".git/objects");
+      const before = readdirSync(objects, {
+        recursive: true,
+        encoding: "utf8",
+      }).sort((left, right) => left.localeCompare(right));
+      const expected = git(["hash-object", "-t", "commit", "--stdin"], raw);
+      expect(expected.status).toBe(0);
+      const module = pathToFileURL(
+        join(
+          process.cwd(),
+          "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs"
+        )
+      ).href;
+      const program = `import{predictedCommit}from ${JSON.stringify(module)};const data=JSON.parse(process.argv[1]);console.log(predictedCommit(data.descriptor,Buffer.from(data.message,'base64')));`;
+      const predict = (value: typeof descriptor) =>
+        boundedSpawnSync(
+          process.execPath,
+          [
+            "--input-type=module",
+            "-e",
+            program,
+            JSON.stringify({
+              descriptor: value,
+              message: message.toString("base64"),
+            }),
+          ],
+          options
+        );
+      const actual = predict(descriptor);
+      expect(actual.status).toBe(0);
+      expect(actual.stdout).toBe(expected.stdout);
+      expect(
+        readdirSync(objects, { recursive: true, encoding: "utf8" }).sort(
+          (left, right) => left.localeCompare(right)
+        )
+      ).toEqual(before);
+      expect(git(["cat-file", "-e", expected.stdout.trim()]).status).not.toBe(
+        0
+      );
+      expect(
+        predict({ ...descriptor, parent: "b".repeat(width === 40 ? 64 : 40) })
+          .status
+      ).not.toBe(0);
+    }
+  );
+});
 
 /** This program exercises the actual bounded process, not signature issuance. */
 function verifierProgram() {
@@ -265,7 +354,7 @@ describe("verified certificate and durable signing-time policy", () => {
     }
   );
 
-  it.each(["2026-10-05T11:00:00Z", "2026-10-05T13:00:00Z", "invalid"])(
+  it.each([EXPIRED_TIME, "2026-10-05T13:00:00Z", "invalid"])(
     "refuses expired/future/invalid authorization: %s",
     timestamp => {
       const output = result();
@@ -309,5 +398,167 @@ describe("verified certificate and durable signing-time policy", () => {
         NOW
       )
     ).toThrow();
+  });
+});
+
+/** These controls qualify closed recovery decisions, never hosted signatures. */
+describe("explicit historical origin and fresh recovery roles", () => {
+  const origin = {
+    ...DESCRIPTOR,
+    proposalKey: DIGEST,
+    policySha256: DIGEST,
+    claimCommentId: "18",
+    claimSha256: DIGEST,
+    queue: POLICY.repository,
+    workItem: "acme/widgets#42",
+    tree: SIGNER,
+    messageSha256: DIGEST,
+  };
+  const recovery = {
+    version: 1,
+    purpose: "resume-identical-npm-proposal",
+    repository: POLICY.repository,
+    repositoryId: "123",
+    ownerId: "456",
+    queue: origin.queue,
+    workItem: origin.workItem,
+    proposalKey: DIGEST,
+    bindingKey: origin.proposalKey,
+    npmPolicySha256: DIGEST,
+    automationPolicySha256: origin.policySha256,
+    originDescriptorSha256: DIGEST,
+    originRunId: origin.runId,
+    originRunAttempt: origin.runAttempt,
+    commit: "d".repeat(40),
+    parent: BASE,
+    tree: origin.tree,
+    messageSha256: DIGEST,
+    claimCommentId: origin.claimCommentId,
+    claimSha256: DIGEST,
+    leafBodySha256: DIGEST,
+    branch: `lisa/npm-${DIGEST}`,
+    expectedBranchHead: null,
+    prNumber: null,
+    expectedPrHead: null,
+    runId: "5678",
+    runAttempt: "2",
+  };
+  const historicalRun = {
+    run_started_at: "2026-10-05T10:00:00Z",
+    updated_at: "2026-10-05T11:01:00Z",
+  };
+  const claim = { created_at: "2026-10-05T10:01:00Z" };
+
+  it("authenticates old origin within provider chronology while ordinary v1 expires", () => {
+    const output = result();
+    output[0]!.verificationResult.verifiedTimestamps[0]!.timestamp =
+      EXPIRED_TIME;
+    expect(() =>
+      assertVerifiedAttestation(output, origin, DIGEST, POLICY, NOW)
+    ).toThrow();
+    expect(
+      assertHistoricalAttestation(
+        output,
+        origin,
+        DIGEST,
+        POLICY,
+        historicalRun,
+        claim,
+        NOW
+      ).issuer
+    ).toBe(ACTIONS_ISSUER);
+    expect(() =>
+      assertHistoricalAttestation(
+        output,
+        origin,
+        DIGEST,
+        POLICY,
+        { ...historicalRun, updated_at: "2026-10-05T10:20:00Z" },
+        claim,
+        NOW
+      )
+    ).toThrow();
+    expect(() =>
+      assertHistoricalAttestation(
+        output,
+        origin,
+        DIGEST,
+        POLICY,
+        historicalRun,
+        { created_at: "2026-10-05T11:20:00Z" },
+        NOW
+      )
+    ).toThrow();
+    expect(() =>
+      assertHistoricalAttestation(
+        output,
+        origin,
+        DIGEST,
+        POLICY,
+        {},
+        claim,
+        NOW
+      )
+    ).toThrow();
+  });
+
+  it("binds fresh recovery to original immutable subject without changing its run", () => {
+    expect(validateRecovery(recovery, origin, DIGEST, POLICY)).toEqual(
+      recovery
+    );
+    const output = result();
+    output[0]!.verificationResult.statement.predicateType = RECOVERY_PREDICATE;
+    output[0]!.verificationResult.statement.subject[0]!.name = "recovery.json";
+    output[0]!.verificationResult.signature.certificate.runInvocationURI =
+      "https://github.com/acme/widgets/actions/runs/5678/attempts/2";
+    expect(
+      assertRecoveryAttestation(output, recovery, DIGEST, POLICY, NOW).issuer
+    ).toBe(ACTIONS_ISSUER);
+    expect(() =>
+      assertVerifiedAttestation(output, origin, DIGEST, POLICY, NOW)
+    ).toThrow();
+    expect(() =>
+      assertRecoveryAttestation(result(), recovery, DIGEST, POLICY, NOW)
+    ).toThrow();
+    output[0]!.verificationResult.verifiedTimestamps[0]!.timestamp =
+      EXPIRED_TIME;
+    expect(() =>
+      assertRecoveryAttestation(output, recovery, DIGEST, POLICY, NOW)
+    ).toThrow();
+  });
+
+  it.each([
+    "originDescriptorSha256",
+    "originRunId",
+    "bindingKey",
+    "parent",
+    "tree",
+    "messageSha256",
+    "claimCommentId",
+    "claimSha256",
+    "automationPolicySha256",
+    "queue",
+    "workItem",
+    "repositoryId",
+    "ownerId",
+  ])("rejects changed immutable recovery %s", field => {
+    expect(() =>
+      validateRecovery(
+        { ...recovery, [field]: "foreign" },
+        origin,
+        DIGEST,
+        POLICY
+      )
+    ).toThrow();
+  });
+
+  it("refuses extra fields, partial destination, traversal and same invocation replay", () => {
+    for (const value of [
+      { ...recovery, ignoreExpiry: true },
+      { ...recovery, expectedBranchHead: "d".repeat(40), prNumber: 9 },
+      { ...recovery, branch: "../foreign" },
+      { ...recovery, runId: origin.runId, runAttempt: origin.runAttempt },
+    ])
+      expect(() => validateRecovery(value, origin, DIGEST, POLICY)).toThrow();
   });
 });

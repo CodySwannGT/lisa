@@ -8,6 +8,8 @@ import { boundedSpawnSync } from "./bounded-spawn.mjs";
 export const ACTIONS_ISSUER = "https://token.actions.githubusercontent.com";
 export const PROPOSAL_PREDICATE =
   "https://lisa.dev/attestations/npm-proposal/v1";
+export const RECOVERY_PREDICATE =
+  "https://lisa.dev/attestations/npm-recovery/v1";
 
 /** Hash exact bytes; never an estimated identifier. */
 export function sha256(value) {
@@ -86,7 +88,7 @@ function matchCertificate(certificate, descriptor, policy) {
 }
 
 /** Only authenticated observer times count; current-time-only is insufficient. */
-function matchSigningTime(timestamps, policy, now) {
+export function matchSigningTime(timestamps, policy, now) {
   requireProof(
     Array.isArray(timestamps) &&
       timestamps.length > 0 &&
@@ -114,13 +116,14 @@ function matchSigningTime(timestamps, policy, now) {
   }
 }
 
-/** Additional checks consume verified official output, never a decoded bundle. */
-export function assertVerifiedAttestation(
+/** Fixed role matching never accepts a caller-selected expiry or predicate waiver. */
+export function verifiedRole(
   results,
   descriptor,
   digest,
   policy,
-  now = Date.now()
+  predicate,
+  name
 ) {
   requireProof(
     Array.isArray(results) && results.length === 1,
@@ -132,7 +135,7 @@ export function assertVerifiedAttestation(
     "unsupported statement"
   );
   requireProof(
-    result.statement.predicateType === PROPOSAL_PREDICATE,
+    result.statement.predicateType === predicate,
     "wrong predicate type"
   );
   const subjects = result.statement.subject;
@@ -141,13 +144,70 @@ export function assertVerifiedAttestation(
     "ambiguous subject"
   );
   requireProof(
-    subjects[0].name === "descriptor.json" &&
-      subjects[0].digest?.sha256 === digest,
-    "descriptor subject differs"
+    subjects[0].name === name && subjects[0].digest?.sha256 === digest,
+    "proof subject differs"
   );
   matchCertificate(result.signature?.certificate, descriptor, policy);
+  return result;
+}
+
+/** Ordinary v1 remains short-lived current authorization. */
+export function assertVerifiedAttestation(
+  results,
+  descriptor,
+  digest,
+  policy,
+  now = Date.now()
+) {
+  const result = verifiedRole(
+    results,
+    descriptor,
+    digest,
+    policy,
+    PROPOSAL_PREDICATE,
+    "descriptor.json"
+  );
   matchSigningTime(result.verifiedTimestamps, policy, now);
   return result.signature.certificate;
+}
+
+/** The three explicit entry points select fixed official verification roles. */
+export function officialResult(
+  policy,
+  identity,
+  file,
+  bundle,
+  predicate,
+  execute
+) {
+  return ghJson(
+    policy,
+    [
+      "attestation",
+      "verify",
+      file,
+      "--bundle",
+      bundle,
+      "--repo",
+      policy.repository,
+      "--signer-workflow",
+      policy.signerWorkflow,
+      "--signer-digest",
+      policy.signerDigest,
+      "--source-digest",
+      identity.parent,
+      "--source-ref",
+      "refs/heads/main",
+      "--predicate-type",
+      predicate,
+      "--cert-oidc-issuer",
+      ACTIONS_ISSUER,
+      "--deny-self-hosted-runners",
+      "--format",
+      "json",
+    ],
+    execute
+  );
 }
 
 /** Invoke official signature/root/timestamp verification before applying policy. */
@@ -158,96 +218,20 @@ export function verifyDescriptorAttestation(
   digest,
   execute = boundedSpawnSync
 ) {
-  const args = [
-    "attestation",
-    "verify",
-    paths.descriptor,
-    "--bundle",
-    paths.bundle,
-    "--repo",
-    policy.repository,
-    "--signer-workflow",
-    policy.signerWorkflow,
-    "--signer-digest",
-    policy.signerDigest,
-    "--source-digest",
-    descriptor.parent,
-    "--source-ref",
-    "refs/heads/main",
-    "--predicate-type",
-    PROPOSAL_PREDICATE,
-    "--cert-oidc-issuer",
-    ACTIONS_ISSUER,
-    "--deny-self-hosted-runners",
-    "--format",
-    "json",
-  ];
-  const result = ghJson(policy, args, execute);
-  return assertVerifiedAttestation(result, descriptor, digest, policy);
+  return assertVerifiedAttestation(
+    officialResult(
+      policy,
+      descriptor,
+      paths.descriptor,
+      paths.bundle,
+      PROPOSAL_PREDICATE,
+      execute
+    ),
+    descriptor,
+    digest,
+    policy
+  );
 }
 
-/** Read current provider state without granting a write or accepting an outage. */
-export function verifyCurrentProvider(
-  policy,
-  descriptor,
-  execute = boundedSpawnSync
-) {
-  const read = endpoint =>
-    ghJson(policy, ["api", "--hostname", "github.com", endpoint], execute);
-  const repo = read(`repos/${policy.repository}`);
-  requireProof(
-    String(repo.id) === policy.repositoryId &&
-      String(repo.owner?.id) === policy.ownerId,
-    "provider repository identity differs"
-  );
-  requireProof(
-    repo.full_name === policy.repository && repo.default_branch === "main",
-    "provider main scope differs"
-  );
-  const main = read(`repos/${policy.repository}/git/ref/heads/main`);
-  requireProof(
-    main.ref === "refs/heads/main" && main.object?.sha === descriptor.parent,
-    "provider main base differs"
-  );
-  const run = read(
-    `repos/${policy.repository}/actions/runs/${descriptor.runId}/attempts/${descriptor.runAttempt}`
-  );
-  requireProof(
-    String(run.id) === descriptor.runId &&
-      String(run.run_attempt) === descriptor.runAttempt,
-    "provider run differs"
-  );
-  requireProof(
-    run.head_sha === descriptor.parent &&
-      run.head_branch === "main" &&
-      run.status === "in_progress",
-    "stale/cancelled provider run"
-  );
-  requireProof(
-    String(run.head_repository?.id) === policy.repositoryId &&
-      policy.allowedTriggers.includes(run.event),
-    "fork/unapproved provider run"
-  );
-  const comment = read(
-    `repos/${descriptor.queue}/issues/comments/${descriptor.claimCommentId}`
-  );
-  const issueNumber = descriptor.workItem.slice(
-    descriptor.workItem.lastIndexOf("#") + 1
-  );
-  requireProof(
-    String(comment.id) === descriptor.claimCommentId &&
-      comment.issue_url ===
-        `https://api.github.com/repos/${descriptor.queue}/issues/${issueNumber}`,
-    "claim scope differs"
-  );
-  requireProof(
-    String(comment.user?.id) === policy.claimActorId &&
-      comment.user?.type === "Bot",
-    "claim actor differs"
-  );
-  requireProof(
-    typeof comment.body === "string" &&
-      sha256(comment.body) === descriptor.claimSha256,
-    "claim announcement changed"
-  );
-}
+// Compatibility exports retain ordinary callers without top-level provider work.
+export { verifyCurrentProvider } from "./github-attestation-provider.mjs";

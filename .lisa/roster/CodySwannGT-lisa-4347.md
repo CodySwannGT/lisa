@@ -330,3 +330,25 @@ ROOT admits genuine original build:dist after missing compiled ESLint entry caus
 ## Builder non-destructive source continuation
 
 ROOT admits same actor and source responsibilities in already owned clean capture worktree /Users/cody/workspace/lisa-4347-capture-commit, codex/4347-capture-repair. Original56 dirty bytes/HEAD677/index/context/binding remain untouched; denied seven-path discard stays rejected. Ordinary exact04 main merge, only two generated conflicts with authenticated main input seed/four official generators, genuine build and normal merge hooks; then exact49-source manifest copies without frozen-five or metadata overwrite. Append only newer own metadata delta/current cwd ownership. Same catalogue/criteria/private proof provenance; source checks/different review before focused commits. No new claim/model/team/guard/provider/VM/runtime authority.
+
+## Preserved historical integration admission
+
+The following newer original-checkout record is retained as history only: its restoration was natively refused before execution. Current continuation never changes the original checkout.
+
+## Builder ordinary capture commit integration
+
+ROOT admits exact seven-path temporary restoration only after positively preserving all56dirty inputs and proving accepted062ae74 equality/current677/binding/index/no newer metadata. Ordinary ff-only merge, then sole recorded integration metadata append and full other-byte/context/binding readback. No stash/reset/clean/glob, source scope, provider/runtime/VM GO or history rewrite.
+
+Actual continuation: normal merge72f3cff5b70978ca20d698bd897f6cde8c74f314 has ordered parents062ae74cc66f327b4d894098c6760cfa4117fd79 and04c57b040ecc65b9682e84875606f4843a437266, with four genuine generators/build/original hooks terminal0. Exact49-source copies matched current original hashes, only five allowed existing destinations matched their unchanged committed bases, and all56 original bytes/HEAD677/index/binding/context remain intact. Implementation continues only in this owned capture cwd/branch; frozen five and source-only qualification limits remain unchanged.
+
+## Focused recovery source decomposition
+
+ROOT admitted exactly lib/automation-provenance-contract.mjs and lib/automation-provenance-local.mjs before creation, owned by this existing builder. Preserve unchanged canonical JSON/schema/committed policy/npm proposal contract and bounded private-byte/Git/local descriptor/context/snapshot responsibilities, existing facade public exports, fixed authority/readback/error/cleanup order, no side effects/cycles. Existing two tests only; actual same-owner graph inventory and mechanical AST regeneration. Different review then clean group-only projection and normal focused commit, preserving original56/frozen five/foreign work. No new provider-readback, provider writes, VM or runtime scope.
+
+ROOT admitted existing recovery module/test real Git hash-object construction before edits: exact raw bytes/fixed no-write argv, bounded genuine status/one-line ID/current object format, actual identity/no-write controls. Keep existing40-character recovery schema and no end-to-end SHA256 inference. No suppression/algorithm indirection/provider/runtime authority.
+
+ROOT admitted unchanged predictedCommit move into owned local helper before edits, with recovery compatibility re-export and no new path/behavior/authority. Existing verifier/provider cycle predates extraction; accurate graph and cold import-order controls prove no new cycle/initialization work, without claiming acyclic source. Routine eight-file static/lint/test corrections are authorized; new substantive boundaries still require decision.
+
+## Focused recovery normal commit projection
+
+ROOT distinct source PASS ff55e9235a6029994b790bb00dce43e8ce3eedee75c23a356bb5bba4c2167b69 matches frozen8/proofs11; seven private log mode repairs preserve bytes. This existing builder owns clean /Users/cody/workspace/lisa-4347-recovery-commit codex/4347-recovery-source from72, only frozen8 plus own2metadata and actual four official derived outputs. Genuine existing4347 context/local link/attach, unchanged installed dependencies and own build; full official type/artifact checks before normal canonical/Codex/LaneId commit. Preserve both older checkouts and bindings, no new claim/source leakage/floor/guard changes. Source/code-unit status only; no provider/VM/runtime/push or whole4347 GO.

@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 141,
-  "$names": 1302,
+  "$modules": 145,
+  "$names": 1331,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -94,6 +94,24 @@
       "main",
       "runCli"
     ],
+    "all/copy-overwrite/scripts/lib/automation-provenance-contract.mjs": [
+      "DESCRIPTOR_KEYS",
+      "FILES",
+      "HEX",
+      "OBJECT_ID",
+      "canonicalJson",
+      "exactKeys",
+      "npmProposal",
+      "trustedConfiguration"
+    ],
+    "all/copy-overwrite/scripts/lib/automation-provenance-local.mjs": [
+      "canonicalContext",
+      "git",
+      "localDescriptor",
+      "predictedCommit",
+      "privateBytes",
+      "proofSnapshot"
+    ],
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs": [
       "DEFAULT_CHILD_BUDGET_MS",
       "boundedExecFileSync",
@@ -112,14 +130,33 @@
       "tempRootPopulation",
       "terminatedDocComments"
     ],
+    "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs": [
+      "verifyAssignable",
+      "verifyCurrentProvider",
+      "verifyHistoricalProvider",
+      "verifyRecoveryProvider"
+    ],
+    "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs": [
+      "assertHistoricalAttestation",
+      "assertRecoveryAttestation",
+      "predictedCommit",
+      "validateRecovery",
+      "verifyHistoricalDescriptor",
+      "verifyRecoveryAttestation",
+      "verifyRecoveryOrigin"
+    ],
     "all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs": [
       "ACTIONS_ISSUER",
       "PROPOSAL_PREDICATE",
+      "RECOVERY_PREDICATE",
       "assertPinnedVerifier",
       "assertVerifiedAttestation",
       "ghJson",
+      "matchSigningTime",
+      "officialResult",
       "requireProof",
       "sha256",
+      "verifiedRole",
       "verifyCurrentProvider",
       "verifyDescriptorAttestation"
     ],
