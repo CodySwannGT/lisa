@@ -6,7 +6,6 @@
  * cost hint with one safe negative answer: `off`. Every other answer — an
  * absent declaration, an old resolver, malformed output, or a failed planner
  * job — must run the existing job and its current fallback unchanged.
- *
  * @module tests/integration/quality-gate-preallocation
  */
 
@@ -33,6 +32,7 @@ interface PlannedWorkflowJob extends WorkflowJob {
 
 /** Independent scheduling contract: changing production mappings must fail. */
 const EXPECTED_JOB_GATES = Object.freeze({
+  history_secrets: "introduced-history-credential-leakage",
   lint: "code-style",
   lint_slow: "code-style-slow",
   typecheck: "type-correctness",
@@ -78,9 +78,9 @@ const facadeJobs = Object.entries(workflow.jobs)
   .filter(([, job]) => job.steps?.some(step => step.id === "gate"))
   .map(([jobId]) => jobId);
 
-/** Every registry-mapped job that still lives in quality.yml. */
+/** Registry-mapped in-job facades own preallocation; nested routes resolve their own declarations. */
 const plannedJobs = Object.keys(EXPECTED_JOB_GATES).filter(job =>
-  Object.hasOwn(workflow.jobs, job)
+  facadeJobs.includes(job)
 );
 
 /**

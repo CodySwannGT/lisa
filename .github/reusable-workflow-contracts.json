@@ -13,6 +13,7 @@
     "create-sentry-issue-on-failure.yml": { "major": 1 },
     "environment-prepare.yml": { "major": 1 },
     "gates.yml": { "major": 1 },
+    "history-secrets.yml": { "major": 1 },
     "lighthouse.yml": { "major": 1 },
     "load-test.yml": { "major": 1 },
     "maestro-native-e2e.yml": { "major": 1 },

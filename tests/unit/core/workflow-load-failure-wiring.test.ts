@@ -192,11 +192,13 @@ describe("the entry point's own behaviour, executed", () => {
   it("derives the population from this repository's real workflows", async () => {
     const inPopulation = await buildPopulationTest(ROOT);
 
-    // `ci.yml` calls a Lisa reusable workflow; `quality.yml` IS one, which is
-    // the distinction the gate turns on — a callee is not a caller. The sweep
-    // workflow added by this lane uses only step actions, so it is out too.
+    // `quality.yml` is both a reusable callee and a caller of its same-commit
+    // nested history gate. Population follows actual `uses:` edges; being a
+    // callee does not exclude a nested caller. The sweep uses only step actions.
     expect(inPopulation(".github/workflows/ci.yml")).toBe(true);
-    expect(inPopulation(".github/workflows/quality.yml")).toBe(false);
+    expect(inPopulation(".github/workflows/quality.yml")).toBe(true);
+    expect(inPopulation(".github/workflows/quality-rails.yml")).toBe(true);
+    expect(inPopulation(".github/workflows/history-secrets.yml")).toBe(false);
     expect(
       inPopulation(".github/workflows/workflow-load-failure-sweep.yml")
     ).toBe(false);

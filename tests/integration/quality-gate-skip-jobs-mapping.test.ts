@@ -19,6 +19,7 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { loadWorkflow } from "../helpers/workflow-test-utils.js";
 
 import {
   QUALITY_JOB_GATES,
@@ -60,6 +61,15 @@ function tokensIn(condition: string | undefined): string[] {
  * @returns The `GATE_ID` its resolve step declares, or null
  */
 const gateOf = (job: string, file: string): string | null => {
+  const definition = workflowIn(file).jobs[job];
+  if (definition?.uses === "./.github/workflows/history-secrets.yml") {
+    const nested = loadWorkflow(".github/workflows/history-secrets.yml");
+    const step = nested.jobs["scan"]?.steps?.find(
+      entry => entry.env?.["GATE_ID"]
+    );
+    const id = step?.env?.["GATE_ID"];
+    return typeof id === "string" ? id : null;
+  }
   const resolve = (workflowIn(file).jobs[job]?.steps ?? []).find(
     step => step.id === "gate"
   );
