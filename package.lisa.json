@@ -46,9 +46,15 @@
       "eslint-plugin-prettier": "^5.5.0",
       "eslint-plugin-sonarjs": "4.0.3",
       "eslint-plugin-oxlint": "1.62.0",
+      "esbuild": "^0.28.2",
       "oxlint": "1.62.0",
       "oxlint-tsgolint": "^0.22.1",
       "jscodeshift": "0.15.2",
+      "glob": "^13.0.6",
+      "graceful-fs": "^4.2.11",
+      "yaml": "^2.9.1",
+      "jest-haste-map": "^30.5.1",
+      "jest-regex-util": "^30.5.0",
       "standard-version": "^9.5.0",
       "ts-morph": "^27.0.2",
       "typescript": "^6.0.3",
@@ -68,10 +74,12 @@
       "deepmerge-ts": "^8.0.1",
       "nanoid": "^3.3.18",
       "vite": "$vite",
+      "esbuild": "$esbuild",
       "qs": "^6.16.0"
     },
     "resolutions": {
       "vite": "$vite",
+      "esbuild": "$esbuild",
       "nanoid": "^3.3.18",
       "qs": "^6.16.0"
     }

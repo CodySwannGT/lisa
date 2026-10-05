@@ -167,7 +167,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/create-only/cdk.json":
       "f89030d8fe145a1dbabd59d89ddee4e16984f222d737f7fcf6b778d911e9fe40",
     "cdk/create-only/stryker.conf.json":
-      "9ccc4dc3fc72f8bb848794214a7784d233fa35558f12514ce16cf0fba59aa4be",
+      "3490157f983d831defe56f014ffcf49c57e22381a4a180cc9facf2de0238dcf5",
     "cdk/create-only/tsconfig.local.json":
       "d26253827e21fd7c41d30565fe3d339675f119e00bb24c5713a01f57ccd06602",
     "cdk/create-only/vitest.config.local.ts":
@@ -211,7 +211,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "eslint-plugin-component-structure/lib/view-file-scope.js":
       "d24c4477ebba4a815344a655e932657b695ac06489f3f7f742ba2b6c137b15ec",
     "eslint-plugin-component-structure/package.json":
-      "99d0173760de800fd83d4f781f0a7817d148a714b8d34aaff7b3c636490adcdd",
+      "d7d7ba887bfc487bfdcdb598d1e56bedc740be33f1e3591a0f95bd9e4ada2fe6",
     "eslint-plugin-component-structure/rules/enforce-component-structure.js":
       "0f2c8118534c5602fda6d8637c3a6e3c2f33cd2a753e84b9d4ac92300997df81",
     "eslint-plugin-component-structure/rules/no-hooks-in-view.js":
@@ -355,7 +355,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/scripts/zap-baseline.sh":
       "7ecfcb911f2f2284eb672c9eb960a1588792a984a713cb2e5f5d9963b32af910",
     "expo/create-only/stryker.conf.json":
-      "d92363c46eeacb202e9d7370acbfdb298c39f12125a89a97a56e12e5fadfae6d",
+      "bb2ba45f180d7172377c6ef0ed6d40e15e111c72ae7080edb81ca01faa916eb7",
     "expo/create-only/tsconfig.json":
       "fdb99e32d1588e75735755d7b5caab406ad8387c21a3d820cd3b40cb9218a191",
     "expo/create-only/tsconfig.local.json":
@@ -2659,7 +2659,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/create-only/mutation.gate.json":
       "53adce2f6ef53f4a46d896210828610bf4f9b1f45ebbf6c7cf0addf9982a161a",
     "typescript/create-only/stryker.conf.json":
-      "ac8007387a7b3511a1f79a928eb32f9620af1e48af4a4764f0bd25dfb66bced2",
+      "13aa8b4515f093133645fb3bf115c8f52991fd4f956501a9aae22d320a1dbb9a",
     "typescript/create-only/tsconfig.local.json":
       "727931ff950c5606b74040963429407c820743dfd20cb1732656eca963575208",
     "typescript/create-only/vitest.config.local.ts":

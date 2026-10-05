@@ -103,3 +103,59 @@ the empirical result has digest
 Every retained entry was independently checked against its exact bytes. Owned
 MySQL removal, registration-process termination and fixture cleanup are
 confirmed, with no cleanup blockers. Findings and MLD are both `[]`.
+
+## Required CI and review repair
+
+The first PR head passed normal local push gates but fresh CI exposed undeclared
+direct test imports hidden by the older local hoisted tree. A default pinned-Bun
+install reproduced the six type-check failures; explicit root test dependencies
+and a workspace-owned parser declaration repair the package boundaries without
+changing any resolved library version or expanding host templates. The unchanged
+type quarantine passes; focused runtime regressions pass 28 and 38 tests.
+
+Fresh CI also exposed Stryker sibling discovery in the isolated layout. Explicit
+supported runner registration repairs the actual runner path in the root and
+shared stack configs. Seven real mutation regression cases pass; the negative
+case now requires a measured below-score verdict. Targets, thresholds and
+deadlines remain unchanged. Existing create-only hosts need the documented
+runner declaration migration.
+
+The completed third-party review identified two valid registration defects.
+Incomplete incremental sync now removes only its project marker for a full
+retry, and final cleanup errors settle the command as a failure after both
+timers are cleared, preserving earlier command errors. Focused RED has three
+failures; repaired GREEN passes all thirteen cases. The first-head CI failures
+and review objections remain retained; they are not current all-green proof.
+
+The protected registry-config read rejected by automatic approval remained
+unread and was not retried. A separate ambiguous receipt-writing shell batch
+was rejected before execution; its documented file-driver form completed
+without safeguard changes. Neither changes the absolute rejected npm-control
+disposition or grants those controls any acceptance credit. Fresh compiled
+package proof and independent current-byte review must bind the repaired head.
+
+The fresh repaired packaging attempt then refused the newly direct esbuild
+declaration because npm requires its override specification to agree with the
+direct dependency. A stable repeat produced the same `EOVERRIDE`; this was not
+a build race. No packed bootstrap or full application credit comes from those
+attempts. The normal correction references the unchanged direct declaration
+from both override inputs. Fresh normal and frozen Bun installs and actual npm
+pack now pass, with esbuild still resolved to 0.28.2 and no package-version
+changes. The reviewer recorded the missed compatibility constraint before
+re-review. Fresh application and final candidate evidence remain separate.
+
+## Repaired candidate application proof
+
+Independent verification of the corrected local tar completed both packed-host
+journeys. Their unchanged base, work and wall bootstrap budgets are 60 seconds:
+TypeScript bootstrap finished in 18.181 seconds and CDK in 19.868 seconds, with
+seven and eight real plugin registrations respectively. Fresh installed Rails
+and Node/CDK full applications finished successfully in 19.384 and 18.135
+seconds. All 7,551 packed members matched installed bytes. The prior packaging
+refusals receive no credit for these later successes.
+
+This candidate is an unpublished local 4.69.3 package, not the official release.
+Source review finds no remaining issue after resolving the direct-override
+constraint. Unchanged Ruby safety and coverage inputs retain their exact scoped
+earlier proof. Required new-head CI/review, merge, publication and a fresh
+immutable released-consumer verification still remain to be observed.

@@ -1,7 +1,7 @@
 /* eslint-disable max-lines -- Main orchestrator class with apply/validate operations */
 import * as fse from "fs-extra";
 import { existsSync } from "node:fs";
-import { readFile, stat, writeFile } from "node:fs/promises";
+import { readFile, stat, unlink, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import pc from "picocolors";
 import type { IPrompter } from "../cli/prompts.js";
@@ -1003,8 +1003,9 @@ export class Lisa {
     completed: boolean
   ): Promise<void> {
     if (!completed) {
+      await this.invalidatePluginSyncMarker();
       this.deps.logger.warn(
-        "Plugin registration incomplete; sync marker unchanged, retry on the next apply"
+        "Plugin registration incomplete; retry on the next apply"
       );
       return;
     }
@@ -1015,6 +1016,19 @@ export class Lisa {
       // the primary skip the forced reinstall it still needs after a
       // version bump.
       await this.writePluginSyncMarker(version);
+    }
+  }
+
+  /** Remove only this project's marker so incomplete incremental syncs retry. */
+  private async invalidatePluginSyncMarker(): Promise<void> {
+    try {
+      await unlink(this.pluginSyncMarkerPath());
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+      const message = error instanceof Error ? error.message : String(error);
+      this.deps.logger.warn(
+        `Could not invalidate plugin sync marker: ${message}`
+      );
     }
   }
 

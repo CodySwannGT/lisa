@@ -17,6 +17,28 @@ export interface PluginCommandOptions {
 }
 
 /**
+ * Preserve the command's failure before attempting final cleanup.
+ * @param failure - Earlier stream or command error
+ * @param timedOut - Whether the operation exceeded its deadline
+ * @param code - Observed process exit code
+ * @returns Original failure, timeout, nonzero exit, or no command error
+ */
+function completionError(
+  failure: Error | undefined,
+  timedOut: boolean,
+  code: number | null
+): Error | undefined {
+  return (
+    failure ??
+    (timedOut
+      ? new Error("Plugin command timed out")
+      : code !== 0
+        ? new Error(`Plugin command exited ${String(code)}`)
+        : undefined)
+  );
+}
+
+/**
  * Run the vendor CLI without a shell or input prompts, with a command deadline.
  * POSIX cleanup covers the owned process group. Windows retains direct-child
  * termination only; descendant cleanup is not established on that platform.
@@ -89,13 +111,16 @@ export async function runPluginCommand(
     child.on("close", code => {
       // A CLI may exit while leaving a background child. The detached group
       // was created by this invocation, so remaining members are ours alone.
-      signal("SIGKILL");
       clearTimeout(deadline);
       clearTimeout(killTimer);
-      if (failure !== undefined) reject(failure);
-      else if (timedOut) reject(new Error("Plugin command timed out"));
-      else if (code !== 0)
-        reject(new Error(`Plugin command exited ${String(code)}`));
+      const commandError = completionError(failure, timedOut, code);
+      try {
+        signal("SIGKILL");
+      } catch (error) {
+        reject(commandError ?? error);
+        return;
+      }
+      if (commandError !== undefined) reject(commandError);
       else resolve({ stdout });
     });
   });

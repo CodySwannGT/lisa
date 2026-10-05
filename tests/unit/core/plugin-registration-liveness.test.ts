@@ -20,6 +20,11 @@ vi.mock("../../../src/core/plugin-command.js", async importOriginal => ({
   runPluginCommand: vi.fn().mockResolvedValue({ stdout: "[]" }),
 }));
 
+const PLUGIN_ID = "lisa@lisa";
+const MARKER_NAME = ".lisa-plugins-synced";
+const MARKETPLACE_UPDATE = "claude plugin marketplace update lisa";
+const PLUGIN_INSTALL = "claude plugin install lisa@lisa --scope project";
+
 /** Existing private orchestrator surface exercised without new public API. */
 interface RegistrationSurface {
   registerPlugins(): Promise<void>;
@@ -73,13 +78,11 @@ describe("optional plugin registration retry state", () => {
           throw new Error("ordinary CLI failure");
         return { stdout: "" };
       },
-      ["lisa@lisa"]
+      [PLUGIN_ID]
     );
-    expect(commands).toContain(
-      "claude plugin install lisa@lisa --scope project"
-    );
+    expect(commands).toContain(PLUGIN_INSTALL);
     await expect(
-      readFile(path.join(root, ".claude", ".lisa-plugins-synced"))
+      readFile(path.join(root, ".claude", MARKER_NAME))
     ).rejects.toMatchObject({ code: "ENOENT" });
   });
   it("does not attempt explicitly disabled project plugins", async () => {
@@ -92,6 +95,40 @@ describe("optional plugin registration retry state", () => {
     expect(runPluginCommand).not.toHaveBeenCalled();
   });
 
+  it("invalidates a matching marker after an incremental refresh failure and retries the full sync", async () => {
+    await registration.installPluginsAndUpdateMarketplace(
+      async () => ({ stdout: "" }),
+      [PLUGIN_ID]
+    );
+    const marker = path.join(root, ".claude", MARKER_NAME);
+    const version = await readFile(marker, "utf8");
+    await registration.installPluginsAndUpdateMarketplace(
+      async command => {
+        if (command.includes("marketplace update"))
+          throw new Error("ordinary refresh failure");
+        return { stdout: "[]" };
+      },
+      [PLUGIN_ID]
+    );
+    await expect(readFile(marker)).rejects.toMatchObject({ code: "ENOENT" });
+    const commands: string[] = [];
+    await registration.installPluginsAndUpdateMarketplace(
+      async command => {
+        commands.push(command);
+        return {
+          stdout: JSON.stringify([{ id: PLUGIN_ID, projectPath: root }]),
+        };
+      },
+      [PLUGIN_ID]
+    );
+    expect(commands).toEqual([
+      MARKETPLACE_UPDATE,
+      PLUGIN_INSTALL,
+      MARKETPLACE_UPDATE,
+    ]);
+    expect(await readFile(marker, "utf8")).toBe(version);
+  });
+
   it("records a sync only after every command succeeds and supplies bounded command budgets", async () => {
     const commands: string[] = [];
     const budgets: unknown[] = [];
@@ -101,12 +138,12 @@ describe("optional plugin registration retry state", () => {
         budgets.push(options.timeout);
         return { stdout: "" };
       },
-      ["lisa@lisa"]
+      [PLUGIN_ID]
     );
     expect(commands).toEqual([
-      "claude plugin marketplace update lisa",
-      "claude plugin install lisa@lisa --scope project",
-      "claude plugin marketplace update lisa",
+      MARKETPLACE_UPDATE,
+      PLUGIN_INSTALL,
+      MARKETPLACE_UPDATE,
     ]);
     expect(
       budgets.every(
@@ -114,12 +151,7 @@ describe("optional plugin registration retry state", () => {
       )
     ).toBe(true);
     expect(
-      (
-        await readFile(
-          path.join(root, ".claude", ".lisa-plugins-synced"),
-          "utf8"
-        )
-      ).trim()
+      (await readFile(path.join(root, ".claude", MARKER_NAME), "utf8")).trim()
     ).not.toBe("");
   });
 });
