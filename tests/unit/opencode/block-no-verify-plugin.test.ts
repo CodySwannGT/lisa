@@ -190,6 +190,37 @@ describe("OpenCode block-no-verify plugin", () => {
     expect(invoke("grep -n foo src/app.ts")).toBe("allow");
   });
 
+  it.each([";", "\n", "&&", "||", "|"])(
+    "allows a configuration read before a safe command separated by %s",
+    separator => {
+      expect(
+        invoke(`git config --get core.hooksPath ${separator} git status`)
+      ).toBe("allow");
+    }
+  );
+
+  it("allows the value-pattern operand of a configuration read", () => {
+    expect(invoke("git config --get core.hooksPath /dev/null")).toBe("allow");
+  });
+
+  it("still blocks a hooks relocation after a configuration read", () => {
+    expect(
+      invoke(
+        "git config --get core.hooksPath; git config core.hooksPath /tmp/empty"
+      )
+    ).toContain("deny:");
+  });
+
+  it("blocks a quoted operator used as an actual hooks destination", () => {
+    expect(invoke("git config core.hooksPath ';'")).toContain("deny:");
+  });
+
+  it("still blocks a verification bypass after a configuration read", () => {
+    expect(
+      invoke(`git config --get core.hooksPath; git commit ${LONG_FLAG}`)
+    ).toContain("deny:");
+  });
+
   it("allows the dry-run spelling of -n on git push", () => {
     expect(invoke("git push -n origin main")).toBe("allow");
   });

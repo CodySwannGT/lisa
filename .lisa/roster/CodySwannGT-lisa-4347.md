@@ -1,0 +1,63 @@
+# Roster Decision: CodySwannGT/lisa#4347
+
+Existing Lisa Implement parent team; no new team or specialist is spawned here. Bounded input resolution terminal and independently read back: sole canonical leaf4347, claim5987643647, current bound branch codex/4347-generic-npm-producer at694f06d31be324bfc6675bb818d73f77904afd89. Full ignored0600 context SHAb008f6e9147e687cec70bc82a78abc2033a1cefd228064c4df17e4e1a8841ad4. ROOT checked all48 sealed resolver artifacts, no mismatches. Main sole integration. Every currently exposed outer type follows.
+
+EXCLUDE - casey - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - chief - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - felix - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lex - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+INCLUDE - lisa-architecture-specialist - Existing research actor maps generic producer data flow and exact proposed paths, without source edits.
+EXCLUDE - lisa-bug-fixer - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+INCLUDE - lisa-builder - Later separately admitted bounded builder owns named managed producer/workflow/tests only after research acceptance.
+EXCLUDE - lisa-confluence-prd-intake - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lisa-debug-specialist - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lisa-eval-specialist - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lisa-git-history-analyzer - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lisa-github-agent - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lisa-github-build-intake - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lisa-github-prd-intake - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lisa-jira-agent - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lisa-jira-build-intake - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lisa-learner - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lisa-learning-judge - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lisa-learnings-synthesizer - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lisa-linear-agent - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lisa-linear-build-intake - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lisa-linear-prd-intake - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lisa-notion-prd-intake - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lisa-ops-specialist - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lisa-performance-specialist - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lisa-pr-mining-specialist - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lisa-product-specialist - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lisa-quality-specialist - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+INCLUDE - lisa-security-specialist - ROOT source security review will be separate from builder; credential isolation, parsing and scope boundaries are required.
+EXCLUDE - lisa-skill-evaluator - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+INCLUDE - lisa-spec-conformance-specialist - ROOT current-byte source/spec review remains separate from empirical verification.
+EXCLUDE - lisa-test-specialist - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - lisa-tracker-mining-specialist - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+INCLUDE - lisa-verification-specialist - A different existing actor independently proves actual npm/attribution/token/retry/provider boundaries after frozen source.
+EXCLUDE - mark - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - parker - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - sally - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+EXCLUDE - default - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+INCLUDE - explorer - Existing outer credential_security_review is the nearest read-only equivalent and owns bounded design/access research before implementation.
+EXCLUDE - worker - Outside this GitHub/npm leaf or duplicates the selected bounded responsibility; no separate assignment.
+
+Current assignment BEFORE execution: existing /root/credential_security_review only performs supported configured tracker relationship update in the caller worktree, then returns here for bounded read-only generic producer architecture/access research. No source/test/runtime/install/apply/commits/push/PR/CI/closure/newchildren. Later source paths and builder remain unadmitted. Public authored upstream artifacts must remain anonymous and contain no caller identity/path. Research requires full context/comment consumption, exact supported npm/provenance/publisher/gate contracts and named missing-access diagnosis.
+
+
+## Research accepted; exact bounded builder ownership and transport qualification
+
+ROOT fully read876e53bfhandoff/design/policy/eightbasenames/reusablecontracts/accessgaps/allcontrols/threatmodel and matchedall32sealedreceipts. No implementationGO inferred. Existingresearchactor /root/credential_security_review now admitted builder beforeexecution; complete40typeroster unchanged, ROOT current-source/security/spec separate and a DIFFERENT actualempiricalactor later. You are not alone, preserveallforeignwork/rules/privatecontext/commenthistory.
+
+First actualnormalfetch/fast-forward of currentmain after694fbase (published4333v4.69.5/currentrelease4510d40e...), preserveuntrackedownplan/roster/binding, oldresearchbase/provenance. Readactualnewhead/generator/helper/hooks parity and rehash relevant contracts before source edit; no conflictsorforeignsource replacement. No currentmain shortcut/force/ref rewrite. Publicauthoredmaterialanonymousonly, no caller identity or path.
+
+Exactnewsourceownership: all/copy-overwrite/scripts/lisa-npm-updater.mjs; all/copy-overwrite/scripts/lib/npm-update-contract.mjs; all/copy-overwrite/scripts/lib/npm-update-github.mjs; .github/workflows/npm-updater.yml (workflow_callonly); tests/unit/scripts/npm-update-contract.test.ts; tests/unit/scripts/npm-update-github.test.ts; tests/integration/npm-updater.test.ts; docs/npm-updater.md. ExistingREADME.md shortanonymouspointer andtwoofficialgeneratedsrc/core/lisa-owned-hash-ledger.ts/upstream-evidence-manifest.ts (officialgeneratorsonly) plusownplan/roster/privateignored600/700proof. No localupdater/validator/hook/policy/templateotherpaths/package/version/tag/activehostschedule changes. If structuralfunction/linebudgets requireanother module proposeexactbasename/necessitybeforeedit. Actualqualityfloors/manifestparity kept; no copiedtraceability parser.
+
+D1 narrowdeterministic fixedtemplate GitHubadapter is admitted toactual configuredtracker-write/read/claim contract, exhaustive semanticpre/postscope/leaffields/configuredlifecycle/comment/ownership/hold/retry/providerreadback gates, not transport-onlyquality. No runtimeSkillRPC invented, nogeneric alternateunknowntrackerwriter or exemptbotflag. D3 require explicitassignablemaintainer204from trustedhostpolicy beforewrite, preservedclaimexistingowner; defaultactualActionsauthorneverfakeDependabot. D2 settingsactivation NOT admitted in thisbuilder: implementedfailclosed diagnostic/writtenownedcallerconfiguration, laterordinarydeliveryactivation inownedanonymousproofhost. No accessabsenceinresearch; actualbotpublication unproved.
+
+D4 transportchoice conditionallyadmitted ascode/proof design: four physicallyisolatedjobs, privilegedpublisherexecutes onlypinnedtrustedbase/releasedcode, no npm/candidatehooks or writecredentialexposureinprepare/gateprocesses. Beforeprivilegedpublication implementation, privatelyprove actualunchangedhostcommit/prepushhookentry originalargv/stdin/ranges with credential-freejob, complete refs/requiredgatefailures/workingpositive/previousbadcommit rejection andkill/cleanup. Prefer actuallytriggerednormalGitmechanism; directhookcallifused muststateactualboundary/equivalence and cannotmasquerade asordinaryremoteGitpush. NormalhostGitchecks/hookcode/config remainuntouched. TrustedGitdata/ref APIpublisher maypublish onlyexactsame previouslygatedrawcommit/tree/parent/message/blobmetadata, independentlyvalidatefullyboundrun/artifact/proposal/policy/helper/source+two-file diff andrequiredhooksreceiptbeforemutation, returnedSHAmustequalsgatedSHAor fail; no identityrewriting/forcedrefs/bodyonlyrepair/emptygoodcommit. Actualindependent review/empiricalequivalence mandatory beforeGO, not an assumedwaiver. If real equivalence unsupported, STOPthischoice/report exact gap, no --no-verify/HUSKY0/core.hooksPath override or privilegedgitpush fallback. Requiredhosthookwrites unavailable fail clearly ratherthan skip, fullprovidernoliveread≠pass.
+
+Before actualnpmfixture prove genuineNode/npm/registry/git/genuineownedprivateworkroot. Actualinstalledis-number6→7 materializedtree/outdated1/manifest-lockintegrity/ci unchangedhash, maliciousnames/scripts/environment/output/time/foreignscope/recovery/duplicates/stalelock/providerfailures andpositivecleanup reachingcontrols. Actualprovider mutation/livepublisher/approval/PR/release tests remain laterafterlocalsource/review/normalmerge/release; mocksneverlabel genuinehostedproof. No deliberatevulnerablepackage fixtures or livecredentialexposure. No packageManagerconversion/Lisa-onlygenericversionbumps/staticimplementation4347reuse forfutureupdates. RealreleasedLisaexclude requiresprovenlocalfullapplyowner.
+
+Meaningfulfocusedunit/integration/TDD and applicablelint/type/artifact generation, no per-leafhostedCI/push/PR/installbroadapply/merge/release/closure. Serializedgenerator/prepack/guardreadwindows; preserveoriginalhistoricalfailures/regenerategeneratorsstagefirst. Freeze actualsource/proof/handoff and stopforROOT/differentverifier. No newteam/children. Finalpublish/approval/currentheadchecks/actualreleasedpackageanonymousconsumerapply/reapply remainrequired; allcriteria intact. Learnings[] valid, norawledger/promotion.

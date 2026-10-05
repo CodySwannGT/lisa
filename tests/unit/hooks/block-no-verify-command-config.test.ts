@@ -81,6 +81,45 @@ const ADAPTERS = [
 
 describe.each(ADAPTERS)("%s command-scope no-verify guard", (_name, decide) => {
   it.each([
+    "git config --get core.hooksPath; git status",
+    "git config --get core.hooksPath\ngit status",
+    "git config --get core.hooksPath && git status",
+    "git config --get core.hooksPath || git status",
+    "git config --get core.hooksPath | cat",
+    "git config --get core.hooksPath /dev/null",
+    "git config --get core.hooksPath ';'",
+    "git config --get-all CORE.HOOKSPATH; git status",
+    "git config --get-regexp core.hooksPath /dev/null; git status",
+    "git config core.hooksPath; git status",
+    "git config get core.hooksPath; git status",
+    "git config --local --get core.hooksPath; git status",
+    "git config --file config.fixture --get core.hooksPath; git status",
+    "command git config --get core.hooksPath; git status",
+  ])("allows the read-only configuration query %s", command => {
+    expect(decide(command)).toBe("allow");
+  });
+
+  it.each([
+    "git config --get core.hooksPath; git config core.hooksPath /dev/null",
+    "git config --get core.hooksPath\ngit config set core.hooksPath /tmp/empty",
+    "git config --get core.hooksPath && git commit --no-verify -m x",
+    "git config --get core.hooksPath || HUSKY=0 git commit -m x",
+    "git config --get core.hooksPath | git -c core.hooksPath=/dev/null commit -m x",
+    "git config --get core.hooksPath; eval 'git config core.hooksPath /dev/null'",
+    "git -c core.hooksPath=/dev/null config --get core.hooksPath",
+    "git config --get core.hooksPath; git config --replace-all core.hooksPath /tmp/empty",
+    "git config --get core.hooksPath; git --config-env=core.hooksPath=HOOKS status",
+    "git config --get core.hooksPath; GIT_CONFIG_KEY_0=core.hooksPath git status",
+    "git config core.hooksPath ';'",
+    'git config core.hooksPath "|"',
+    "git config core.hooksPath \\;",
+    "git config set core.hooksPath '&&'",
+    "git config --get core.hooksPath; git config core.hooksPath ';'",
+  ])("still refuses an independent bypass in %s", command => {
+    expect(decide(command)).toBe("deny");
+  });
+
+  it.each([
     `env -S 'bash -c "git commit --no-verify"'`,
     `env -v -S 'bash -c "git commit --no-verify"'`,
     `env -vS 'sh -c "git commit -n"'`,
