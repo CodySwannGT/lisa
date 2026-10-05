@@ -75,7 +75,7 @@ lisa
 
 ## Source Artifacts
 Reference: [Published OIDC 5.2.0 peer/engine metadata](https://registry.npmjs.org/aws-cdk-github-oidc/5.2.0).
-Reference: [OIDC 5.2.0 API documentation](https://github.com/aripalo/aws-cdk-github-oidc/blob/v5.2.0/API.md).
+Reference: [OIDC 5.2.0 API documentation](https://unpkg.com/aws-cdk-github-oidc@5.2.0/API.md).
 
 ## Source Precedence
 Business rules: this bug's acceptance criteria and existing range-preservation contract. Data/API compatibility: the published package metadata and versioned vendor API reference. Visual and flow axes: not applicable; no UI is changed. Conflicts must be reported rather than resolved by weakening the guard.
@@ -111,3 +111,6 @@ Independent root review, required CI and exact public package/apply readback rem
 The same CDK package force.bin advertised bin/infrastructure.js although no generator emits it. Root owns this integrated-source defect review. Builder adds source-only app/no-bin and explicit legitimate-host-bin RED/GREEN, removes only the forced advertisement and narrowly updates the old detection assertion. Existing host bin choices remain unchanged.
 
 Executable follow-up proof: the two new real-template cases failed on the reviewed first commit (fresh no-bin gets a phantom advertisement; explicit host mapping gets an extra phantom key), while the five OIDC/peer cases passed. Removing only force.bin makes all110cases in4files pass, preserving actual host executable content and mapping. The affected detection assertion now pins absence of forced bin. No generic merge behavior or executable generation changed.
+
+## Full-suite follow-up
+The normal pre-push run found that the installed-base adoption tables still named OIDC as forced and assumed a current forced bin. Align the shipped-table assertion with the current template while retaining explicit historical OIDC/bin diagnostics. Link the same published versioned API through its package artifact URL, without changing the reference guard. Preserve the actual failed full-suite run and rerun normal gates.

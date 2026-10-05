@@ -71,12 +71,11 @@ export const CDK_PRESET_ARTIFACTS = [
  * check states them rather than saying "some dependencies".
  */
 export const CDK_PRESET_FORCED_DEPENDENCIES = [
-  "aws-cdk-github-oidc",
   "constructs",
   "source-map-support",
 ] as const;
 
-/** The `bin` entry the CDK preset force-merges, and the file it names. */
+/** Historical `bin` entry older CDK presets force-merged; current applies preserve host bins. */
 export const CDK_PRESET_BIN_ENTRY = {
   name: "infrastructure",
   target: "bin/infrastructure.js",

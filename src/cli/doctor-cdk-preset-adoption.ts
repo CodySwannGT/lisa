@@ -194,8 +194,8 @@ async function resolveAppEntry(
 }
 
 /**
- * Which of the preset's force-merged package.json entries this repository
- * still carries, stated so the reader knows what to back out.
+ * Which current or historical preset package.json entries this repository
+ * still carries, stated so the reader knows what to review.
  * @param manifest - Parsed `package.json`, or null when absent
  * @returns Operator-readable clauses, empty when none are present
  */
@@ -220,9 +220,12 @@ function describeMergedEntries(manifest: unknown): readonly string[] {
     merged.length > 0
       ? [`runtime dependencies \`${merged.join("`, `")}\` in ${PACKAGE_JSON}`]
       : [],
+    "aws-cdk-github-oidc" in dependencies
+      ? ["a host-owned or legacy `aws-cdk-github-oidc` dependency"]
+      : [],
     bin[CDK_PRESET_BIN_ENTRY.name] === CDK_PRESET_BIN_ENTRY.target
       ? [
-          `a \`bin.${CDK_PRESET_BIN_ENTRY.name}\` entry pointing at ` +
+          `a legacy \`bin.${CDK_PRESET_BIN_ENTRY.name}\` entry pointing at ` +
             `\`${CDK_PRESET_BIN_ENTRY.target}\``,
         ]
       : [],
@@ -234,7 +237,9 @@ const REMEDY =
   "Nothing here is removed automatically: the repository may since have come " +
   "to depend on something the preset delivered. Decide per file, then keep " +
   `the decision by making sure no \`${CDK_APP_MARKER}\` is present — while ` +
-  "one is, every apply re-merges the entries above";
+  "one is, every apply re-merges the preset's current forced entries. " +
+  "OIDC dependency choices and existing bins are host-owned; current applies " +
+  "do not remove legacy entries";
 
 /**
  * The consequence worth stating, because it is the one that reports success.
@@ -369,9 +374,7 @@ function ineligibleDetail(
         `(\`${missingEntry}\`) that does not exist, so the marker is one ` +
         "Lisa seeded rather than one this repository wrote";
   const merged =
-    delivered.length > 0
-      ? ` It also force-merged ${delivered.join(" and ")}.`
-      : "";
+    delivered.length > 0 ? ` It also carries ${delivered.join(" and ")}.` : "";
   return (
     "This repository carries the CDK application preset it was never " +
     `eligible for: \`${presetArtifacts.join("`, `")}\` are present and ` +
