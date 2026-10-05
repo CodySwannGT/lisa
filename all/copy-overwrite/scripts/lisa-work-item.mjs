@@ -1084,7 +1084,7 @@ function canonicalizeRef(raw, contract = trackerContract()) {
     // port or decode a path that this input contract deliberately refuses.
     const match =
       /^([^\s/#]+\/[^\s/#]+)#([1-9]\d*)$/.exec(value) ??
-      /^https:\/\/github\.com\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)\/issues\/([1-9][0-9]*)$/.exec(
+      /^https:\/\/github\.com\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)\/issues\/([1-9]\d*)$/.exec(
         value
       );
     if (!match)
