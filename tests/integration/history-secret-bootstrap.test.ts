@@ -53,6 +53,56 @@ const runHook = (cwd: string) =>
     baseMs: 30000,
   });
 describe("managed history bootstrap redaction", () => {
+  it("uses environment event inputs when CI explicitly selects a scanner", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "history-ci-env-"));
+    try {
+      cpSync(sourceScripts, join(cwd, "scripts"), { recursive: true });
+      expect(
+        boundedSpawnSync({
+          label: "CI fallback Git fixture",
+          command: "git",
+          args: ["init", "-q"],
+          cwd,
+          baseMs: 30000,
+        }).status
+      ).toBe(0);
+      const event = join(cwd, "event.json");
+      writeFileSync(
+        event,
+        JSON.stringify({ before: "a".repeat(40), after: zero, deleted: true }),
+        { mode: 0o600 }
+      );
+      for (const args of [
+        ["ci", "--scanner", process.execPath],
+        [
+          "ci",
+          "--event",
+          event,
+          "--event-name",
+          "push",
+          "--scanner",
+          process.execPath,
+        ],
+      ]) {
+        const result = boundedSpawnSync({
+          label: "actual CI event fallback",
+          command: process.execPath,
+          args: [join(cwd, "scripts", SCANNER_ENTRY), ...args],
+          env: {
+            ...process.env,
+            GITHUB_EVENT_PATH: event,
+            GITHUB_EVENT_NAME: "push",
+          },
+          cwd,
+          baseMs: 30000,
+        });
+        expect(result.status).toBe(0);
+        expect(String(result.stdout)).toContain(NO_HISTORY);
+      }
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
   it("withholds absent or noncallable invocation exports and thrown guard errors", () => {
     const value = randomBytes(32).toString("hex");
     const cwd = mkdtempSync(join(tmpdir(), `history-${value}-`));

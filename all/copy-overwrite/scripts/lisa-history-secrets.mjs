@@ -66,10 +66,14 @@ export const main = async (
         cwd
       );
     else {
+      const explicitEvent = args[1] === "--event";
       let event;
       try {
         event = JSON.parse(
-          readFileSync(args[2] ?? process.env.GITHUB_EVENT_PATH, "utf8")
+          readFileSync(
+            explicitEvent ? args[2] : process.env.GITHUB_EVENT_PATH,
+            "utf8"
+          )
         );
       } catch {
         throw new HistorySecretError(
@@ -78,7 +82,7 @@ export const main = async (
       }
       pairs = eventPairs(
         event,
-        args[4] ?? process.env.GITHUB_EVENT_NAME,
+        explicitEvent ? args[4] : process.env.GITHUB_EVENT_NAME,
         width
       );
     }

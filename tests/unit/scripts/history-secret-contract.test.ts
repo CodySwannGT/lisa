@@ -45,6 +45,13 @@ describe("required introduced history contract", () => {
       eventPairs({ before: oid, after: zero, deleted: true }, "push", 40)
     ).toEqual([{ before: oid, after: zero }]);
     expect(() => eventPairs({}, "workflow_dispatch", 40)).toThrow(/actual/u);
+    expect(() =>
+      eventPairs(
+        { pull_request: { base: { sha: zero }, head: { sha: oid } } },
+        "pull_request_target",
+        40
+      )
+    ).toThrow(/Unsupported CI event/u);
   });
   it("refuses absent, malformed and inconsistent supplied deletion IDs", () => {
     for (const after of [undefined, "private payload", oid])

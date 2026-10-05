@@ -6,6 +6,55 @@
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, cpSync } from "node:fs";
 import { join } from "node:path";
+import { load } from "js-yaml";
+const CONFIG = ".lisa.config.json";
+const HOOK = "lefthook.yml";
+const CI = ".github/workflows/ci.yml";
+/**
+ * Inspect actual applied caller and hook routes, never invented local workflow copies.
+ * @param emitted - Real applied consumer directory
+ * @param requireFact - Failing assertion authority for this fixture
+ * @returns Observed concrete caller identity
+ */
+export const verifyAppliedRoutes = (emitted, requireFact) => {
+  const config = JSON.parse(readFileSync(join(emitted, CONFIG), "utf8"));
+  const ci = load(readFileSync(join(emitted, CI), "utf8"));
+  const callers = Object.entries(ci.jobs ?? {}).filter(([, job]) =>
+    /(?:^|\/)quality-rails\.yml@/u.test(job.uses ?? "")
+  );
+  if (callers.length !== 1)
+    requireFact(
+      false,
+      "Applied CI must have exactly one Rails quality caller."
+    );
+  const [id, job] = callers[0];
+  const callerChain = [job.name ?? id, "History Secrets"];
+  const declaration = config.gates["introduced-history-credential-leakage"];
+  const hook = load(readFileSync(join(emitted, HOOK), "utf8"));
+  const route = hook["pre-push"]?.commands?.["work-item"];
+  requireFact(
+    job.uses === "CodySwannGT/lisa/.github/workflows/quality-rails.yml@main" &&
+      job.with?.expected_workflow_contract_major === "1" &&
+      declaration.push === "required" &&
+      declaration["pull-request"].level === "required" &&
+      JSON.stringify(declaration["pull-request"].caller_chain) ===
+        JSON.stringify(callerChain),
+    "Applied CI caller, contract major and required declaration disagree."
+  );
+  requireFact(
+    route?.use_stdin === true &&
+      route.run.includes('await import("./scripts/lisa-rails-prepush.mjs")') &&
+      route.run.includes("await main(process.argv.slice(1))"),
+    "Applied Rails hook is not bound to the managed stdin scanner facade."
+  );
+  return {
+    id,
+    name: job.name ?? id,
+    uses: job.uses,
+    expectedWorkflowContractMajor: job.with.expected_workflow_contract_major,
+    callerChain,
+  };
+};
 export const emitArtifacts = harness => {
   const {
     SCANNER_ENTRY,
@@ -53,7 +102,7 @@ export const emitArtifacts = harness => {
       write(emitted, "config/application.rb", "require 'rails/all'\n");
       write(
         emitted,
-        ".lisa.config.json",
+        CONFIG,
         JSON.stringify({
           gates: {
             runner: "just",
@@ -73,9 +122,11 @@ export const emitArtifacts = harness => {
         "scripts/lib/history-secret-git.mjs",
         "scripts/lib/history-secret-policy.mjs",
         "scripts/lib/history-secret-scanner.mjs",
-        "lefthook.yml",
+        HOOK,
+        CI,
       ];
       const applyHashes = [];
+      const applyRoutes = [];
       for (const _attempt of [0, 1]) {
         const apply = command(
           "env",
@@ -114,18 +165,17 @@ export const emitArtifacts = harness => {
               "History Secrets",
           "Actual caller chain is not declared as required."
         );
-        const bytes = readFileSync(join(emitted, SCANNER_ENTRY));
-        requireFact(
-          bytes.equals(
-            readFileSync(
-              join(
-                installed,
-                "all/copy-overwrite/scripts/lisa-history-secrets.mjs"
-              )
-            )
-          ),
-          "Applied scanner differs from immutable archive bytes."
-        );
+        applyRoutes.push(verifyAppliedRoutes(emitted, requireFact));
+        for (const file of artifacts.filter(file => file !== CI)) {
+          const owner =
+            file === HOOK ? "rails/copy-overwrite" : "all/copy-overwrite";
+          requireFact(
+            readFileSync(join(emitted, file)).equals(
+              readFileSync(join(installed, owner, file))
+            ),
+            "Applied history helper or hook differs from immutable archive bytes."
+          );
+        }
         const hashes = artifacts.map(file =>
           createHash("sha256")
             .update(readFileSync(join(emitted, file)))
@@ -153,6 +203,9 @@ export const emitArtifacts = harness => {
         artifactHashes: Object.fromEntries(
           artifacts.map((file, index) => [file, applyHashes[0][index]])
         ),
+        ciCallers: applyRoutes,
+        hostedWorkflowScope:
+          "The emitted caller references upstream @main; hosted workflow bytes are verified separately against actual released gitHead.",
       });
     } else {
       cpSync(
@@ -162,7 +215,7 @@ export const emitArtifacts = harness => {
       );
       cpSync(
         join(upstream, "rails/copy-overwrite/lefthook.yml"),
-        join(emitted, "lefthook.yml")
+        join(emitted, HOOK)
       );
     }
   } catch {

@@ -11,6 +11,8 @@ import { EnsureRequiredHistorySecretGateMigration } from "../../../src/migration
 import type { MigrationContext } from "../../../src/migrations/migration.interface.js";
 import { SilentLogger } from "../../../src/logging/silent-logger.js";
 const CONFIG = ".lisa.config.json";
+const WORKFLOWS = ".github/workflows";
+const CI = ".github/workflows/ci.yml";
 describe("Rails required history migration", () => {
   it("seeds only the authored property and reapplies without drift", async () => {
     const projectDir = await mkdtemp(join(tmpdir(), "history-policy-"));
@@ -23,9 +25,9 @@ describe("Rails required history migration", () => {
       logger: new SilentLogger(),
     } as MigrationContext;
     try {
-      await mkdir(join(projectDir, ".github/workflows"), { recursive: true });
+      await mkdir(join(projectDir, WORKFLOWS), { recursive: true });
       await writeFile(
-        join(projectDir, ".github/workflows/ci.yml"),
+        join(projectDir, CI),
         "jobs:\n  quality:\n    name: Quality Checks\n    uses: CodySwannGT/lisa/.github/workflows/quality-rails.yml@main\n"
       );
       const original = {
@@ -54,12 +56,99 @@ describe("Rails required history migration", () => {
         "required"
       );
       expect((await migration.apply(ctx)).action).toBe("noop");
+      const declaration = config.gates["introduced-history-credential-leakage"];
+      config.gates["introduced-history-credential-leakage"] = {
+        "pull-request": {
+          caller_chain: declaration["pull-request"].caller_chain,
+          level: "required",
+        },
+        push: "required",
+      };
+      await writeFile(join(projectDir, CONFIG), JSON.stringify(config));
+      expect((await migration.apply(ctx)).action).toBe("noop");
       expect(
         await migration.applies({ ...ctx, detectedTypes: ["typescript"] })
       ).toBe(false);
       config.gates["introduced-history-credential-leakage"].push = "off";
       await writeFile(join(projectDir, CONFIG), JSON.stringify(config));
       await expect(migration.apply(ctx)).rejects.toThrow(/conflicts/u);
+    } finally {
+      await rm(projectDir, { recursive: true, force: true });
+    }
+  });
+  it("declares an absent config and dry-runs without writing with a concrete caller", async () => {
+    const projectDir = await mkdtemp(join(tmpdir(), "history-policy-missing-"));
+    const migration = new EnsureRequiredHistorySecretGateMigration();
+    const ctx = {
+      projectDir,
+      lisaDir: projectDir,
+      detectedTypes: ["rails"],
+      dryRun: false,
+      logger: new SilentLogger(),
+    } as MigrationContext;
+    try {
+      await mkdir(join(projectDir, WORKFLOWS), { recursive: true });
+      await writeFile(
+        join(projectDir, CI),
+        "jobs:\n  quality:\n    name: Quality Checks\n    uses: CodySwannGT/lisa/.github/workflows/quality-rails.yml@main\n"
+      );
+      expect((await migration.apply({ ...ctx, dryRun: true })).action).toBe(
+        "applied"
+      );
+      await expect(readFile(join(projectDir, CONFIG))).rejects.toMatchObject({
+        code: "ENOENT",
+      });
+      expect((await migration.apply(ctx)).action).toBe("applied");
+      const config = JSON.parse(
+        await readFile(join(projectDir, CONFIG), "utf8")
+      );
+      expect(config.gates["introduced-history-credential-leakage"]).toEqual({
+        push: "required",
+        "pull-request": {
+          level: "required",
+          caller_chain: ["Quality Checks", "History Secrets"],
+        },
+      });
+    } finally {
+      await rm(projectDir, { recursive: true, force: true });
+    }
+  });
+  it("refuses invalid config and gate shapes and unreadable paths without rewriting", async () => {
+    const projectDir = await mkdtemp(join(tmpdir(), "history-policy-invalid-"));
+    const migration = new EnsureRequiredHistorySecretGateMigration();
+    const ctx = {
+      projectDir,
+      lisaDir: projectDir,
+      detectedTypes: ["rails"],
+      dryRun: false,
+      logger: new SilentLogger(),
+    } as MigrationContext;
+    try {
+      await mkdir(join(projectDir, WORKFLOWS), { recursive: true });
+      await writeFile(
+        join(projectDir, CI),
+        "jobs:\n  quality:\n    uses: CodySwannGT/lisa/.github/workflows/quality-rails.yml@main\n"
+      );
+      for (const invalid of [
+        "{private-malformed",
+        "null",
+        "[]",
+        "true",
+        '"private-config"',
+        '{"gates":null}',
+        '{"gates":[]}',
+        '{"gates":"private-gates"}',
+        '{"gates":true}',
+      ]) {
+        await writeFile(join(projectDir, CONFIG), invalid);
+        await expect(migration.apply(ctx)).rejects.toThrow(
+          /readable|configuration|gates/u
+        );
+        expect(await readFile(join(projectDir, CONFIG), "utf8")).toBe(invalid);
+      }
+      await rm(join(projectDir, CONFIG));
+      await mkdir(join(projectDir, CONFIG));
+      await expect(migration.apply(ctx)).rejects.toThrow(/readable/u);
     } finally {
       await rm(projectDir, { recursive: true, force: true });
     }

@@ -127,7 +127,7 @@ export const parsePush = (input, width, cwd = process.cwd()) => {
 
 /** Events carry actual IDs, never a guessed checkout HEAD. */
 export const eventPairs = (event, name, width) => {
-  if (name === "pull_request" || name === "pull_request_target")
+  if (name === "pull_request")
     return [
       {
         before: event.pull_request?.base?.sha,

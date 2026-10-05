@@ -28,6 +28,9 @@ interface HistoryWorkflow {
     {
       readonly uses?: string;
       readonly steps?: readonly {
+        readonly name?: string;
+        readonly if?: string;
+        readonly uses?: string;
         readonly run?: string;
         readonly env?: Record<string, string>;
       }[];
@@ -36,6 +39,7 @@ interface HistoryWorkflow {
 }
 const root = resolve(import.meta.dirname, "../..");
 const CONFIG = ".lisa.config.json";
+const SOURCE_SCRIPTS = "all/copy-overwrite/scripts";
 const NO_SCANNER_RESULT = "No scanner safety result claimed";
 const workflow = load(
   readFileSync(join(root, ".github/workflows/history-secrets.yml"), "utf8")
@@ -66,6 +70,71 @@ const runFacade = (
     baseMs: 30000,
   });
 describe("actual shared history facade", () => {
+  it("rejects privileged pull request events before checking out caller code", () => {
+    const steps = workflow.jobs["scan"]?.steps ?? [];
+    const index = steps.findIndex(entry =>
+      entry.if?.includes("pull_request_target")
+    );
+    expect(index).toBeGreaterThanOrEqual(0);
+    expect(index).toBeLessThan(
+      steps.findIndex(entry => entry.uses?.startsWith("actions/checkout@"))
+    );
+    const result = boundedSpawnSync({
+      label: "actual unsupported event refusal",
+      command: "bash",
+      args: ["-c", steps[index]?.run ?? ""],
+      cwd: root,
+      baseMs: 30000,
+    });
+    expect(result.status).toBe(1);
+    expect(String(result.stdout) + String(result.stderr)).toContain(
+      "pull_request"
+    );
+  });
+  it("preserves authored incompatible-policy guidance and withholds parser payloads", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "history-policy-guidance-"));
+    try {
+      cpSync(join(root, SOURCE_SCRIPTS), join(cwd, "scripts"), {
+        recursive: true,
+      });
+      const runPolicy = () =>
+        boundedSpawnSync({
+          label: "actual policy guidance",
+          command: process.execPath,
+          args: [
+            "--input-type=module",
+            "-e",
+            'const { historyPolicy } = await import("./scripts/lib/history-secret-policy.mjs"); try { historyPolicy(process.cwd(), "push"); } catch(error) { console.error(error.message); process.exitCode = 1; }',
+          ],
+          cwd,
+          baseMs: 30000,
+        });
+      writeFileSync(
+        join(cwd, CONFIG),
+        JSON.stringify({
+          gates: {
+            "introduced-history-credential-leakage": { push: "optional" },
+          },
+        })
+      );
+      const incompatible = runPolicy();
+      expect(incompatible.status).toBe(1);
+      expect(String(incompatible.stderr)).toContain(
+        "authored required history route is incompatible"
+      );
+      writeFileSync(join(cwd, "package.json"), "{private-parser-payload");
+      const malformed = runPolicy();
+      expect(malformed.status).toBe(1);
+      expect(String(malformed.stderr)).toContain(
+        "raw configuration errors are withheld"
+      );
+      expect(String(malformed.stdout) + String(malformed.stderr)).not.toContain(
+        "private-parser-payload"
+      );
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
   it("withholds invalid directory and missing-entry bootstrap paths", () => {
     const value = randomBytes(32).toString("hex");
     const cwd = mkdtempSync(join(tmpdir(), `history-${value}-`));
@@ -81,7 +150,7 @@ describe("actual shared history facade", () => {
       expect(
         String(invalidDirectory.stdout) + String(invalidDirectory.stderr)
       ).not.toContain(value);
-      cpSync(join(root, "all/copy-overwrite/scripts"), join(cwd, "scripts"), {
+      cpSync(join(root, SOURCE_SCRIPTS), join(cwd, "scripts"), {
         recursive: true,
       });
       writeFileSync(
@@ -167,7 +236,7 @@ describe("actual shared history facade", () => {
   it("executes real emitted manifest-free deletion semantics and fails malformed policy", () => {
     const cwd = mkdtempSync(join(tmpdir(), "history-facade-"));
     try {
-      cpSync(join(root, "all/copy-overwrite/scripts"), join(cwd, "scripts"), {
+      cpSync(join(root, SOURCE_SCRIPTS), join(cwd, "scripts"), {
         recursive: true,
       });
       mkdirSync(join(cwd, "repository"));

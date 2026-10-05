@@ -27,9 +27,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "c565984dcd33bc5d26a126c25cec9a0734d87c0d9540479168a77f51b980809f",
     "all/copy-overwrite/scripts/lib/history-secret-git.mjs":
-      "254907d808a76d4f338d1cb86e9262c7e2992386a79cd417bc65b385f8253715",
+      "102276aef106e07b2b385fe8f2d3b54a9d30381633a22e07d5d74a5db9ddf320",
     "all/copy-overwrite/scripts/lib/history-secret-policy.mjs":
-      "055975dbd86140f650cd2412c8487ab35980688d7c82f3e79af1897ce9ae8b60",
+      "ca75ebbc45fca4c52400612ae818d231a28289b50a70f6cdee6feb51b144896f",
     "all/copy-overwrite/scripts/lib/history-secret-scanner.mjs":
       "6afcb5ea42d8f9046a17e2253d4ddbefdf9025b150870afda23db77796f05f25",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
@@ -79,7 +79,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "f8cd07bdcdfc4066467635d86dc2a17337d4adacdd8829745482877dbd838f5e",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
-      "2d6ae84741703a300d78379eb4bdf3935815aba715cb163a34378418d17eadf0",
+      "6887f865cee4cca397cac9f0efb366f2e5b9d4c68596f0306775709e354a85d2",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
       "b17d73c02245d64ae96ba4b9ec642f5a54a827accb1af292a4600a98e1a596f4",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
@@ -2505,7 +2505,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "7d397e536af7dffa9f8f5ec493cd1af2f40473e5a6af1fe64475c95828aad5c0",
+      "ec4f8ed2fb9faecb88420b54bdb9a23d37303d4d458ef225171dc6f5cb27f637",
     "scripts/update-node-version.ts":
       "0059067c14001c2f7e75beb2628d1a46f935c7b01ce61871db71b6849ef62dca",
     "scripts/update-test-skill-paths.mjs":

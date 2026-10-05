@@ -30,7 +30,8 @@ export const historyPolicy = (cwd, moment) => {
         "The authored required history route is incompatible. Run full Lisa apply and review its required managed facade declaration."
       );
     return policy;
-  } catch {
+  } catch (error) {
+    if (error instanceof HistorySecretError) throw error;
     throw new HistorySecretError(
       "Required history policy could not be resolved. Repair project JSON and run full Lisa apply; raw configuration errors are withheld."
     );

@@ -5,8 +5,9 @@
  */
 import * as path from "node:path";
 import { readFile } from "node:fs/promises";
+import { isDeepStrictEqual } from "node:util";
 import { load } from "js-yaml";
-import { readJsonOrNull, writeJson } from "../utils/json-utils.js";
+import { writeJson } from "../utils/json-utils.js";
 import type {
   Migration,
   MigrationContext,
@@ -26,6 +27,33 @@ interface HistoryCaller {
     string,
     { readonly uses?: string; readonly name?: string }
   >;
+}
+/**
+ * Initialize only an absent file; malformed or unreadable policy stays blocked.
+ * @param configPath - Actual project configuration path
+ * @returns Valid configuration with unrelated fields retained
+ */
+async function readHistoryConfig(configPath: string): Promise<HistoryConfig> {
+  try {
+    const parsed: unknown = JSON.parse(await readFile(configPath, "utf8"));
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed))
+      throw new Error("Invalid configuration object");
+    const config = parsed as HistoryConfig;
+    if (
+      config.gates !== undefined &&
+      (config.gates === null ||
+        typeof config.gates !== "object" ||
+        Array.isArray(config.gates))
+    )
+      throw new Error("Invalid gates object");
+    return config;
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT")
+      return {};
+    throw new Error(
+      "Rails required history scanning needs a readable .lisa.config.json with valid configuration and gates objects. Repair project configuration and run full Lisa apply; raw errors are withheld."
+    );
+  }
 }
 /** Declare an authored required property only during deliberate full Rails apply. */
 export class EnsureRequiredHistorySecretGateMigration implements Migration {
@@ -56,11 +84,7 @@ export class EnsureRequiredHistorySecretGateMigration implements Migration {
           "Required history policy is withheld during dependency install. Run a full Lisa apply to review and declare the Rails route.",
       };
     const configPath = path.join(ctx.projectDir, CONFIG);
-    const config = await readJsonOrNull<HistoryConfig>(configPath);
-    if (config === null)
-      throw new Error(
-        "Rails required history scanning needs a readable .lisa.config.json. Repair project configuration and run full Lisa apply."
-      );
+    const config = await readHistoryConfig(configPath);
     const gates = config.gates ?? {};
     const caller = load(
       await readFile(
@@ -84,7 +108,7 @@ export class EnsureRequiredHistorySecretGateMigration implements Migration {
       },
     };
     if (gates[PROPERTY] !== undefined) {
-      if (JSON.stringify(gates[PROPERTY]) !== JSON.stringify(declaration))
+      if (!isDeepStrictEqual(gates[PROPERTY], declaration))
         throw new Error(
           "The required introduced-history property conflicts with the managed Rails route. Review its required push/pull-request declaration and managed scanner facade before applying; other policies were preserved."
         );
