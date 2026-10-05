@@ -181,7 +181,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/merge/.oxlintrc.json":
       "f7d248cf8a89561374d7e68e24aa780f4a6a523938475ad685f034ce0194d75c",
     "cdk/package-lisa/package.lisa.json":
-      "902f6157ced5adbf1783240c02bb71e28ed3db838905755e04197aaae03fa09c",
+      "c5bf1f2199c99db02f79e91f11d8a66d3ff5fca55ba6aa2a96301dba71fa52ab",
     "eslint-plugin-code-organization/README.md":
       "e70c9e262ce3a97e1f9fe1897ffa71e3d1b124f10486b90ead5d4a5252977826",
     "eslint-plugin-code-organization/__tests__/enforce-statement-order.test.js":
@@ -11112,6 +11112,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/monitor-threshold-compatibility.test.ts": true,
     "tests/unit/strategies/multi-repo-container-decomposition.test.ts": true,
     "tests/unit/strategies/not-established-section-contract.test.ts": true,
+    "tests/unit/strategies/package-lisa-cdk-oidc.test.ts": true,
     "tests/unit/strategies/package-lisa-integration-script-layout.test.ts": true,
     "tests/unit/strategies/package-lisa-override-floor-remedy.test.ts": true,
     "tests/unit/strategies/package-lisa-script-composition.test.ts": true,

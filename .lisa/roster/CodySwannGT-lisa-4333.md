@@ -100,3 +100,13 @@ its existing latency-budget import to apply the documented calibration helper.
 Product deadlines, control semantics and the conformance guard remain unchanged.
 The reviewer independently binds the changed test; root owns reports/artifacts
 and normal hooks, and the verifier retains unchanged product-package proof.
+### Advanced-main integration ownership
+
+Live main advanced while normal delivery gates ran, and the PR now reports a
+conflict. Root owns normal merge integration and scoped conflict resolution,
+preserving every inherited main feature without implementing another ticket.
+The existing npm owner owns overlapping dependency inputs and generated lock
+only if the actual merge conflicts there. Read-only review owns the exact
+combined candidate and verifier owns fresh compiled-package/application proof.
+No foreign lane files, context or index are operated on. Prior package proof
+is historical if packaged bytes change; all required guards remain enabled.

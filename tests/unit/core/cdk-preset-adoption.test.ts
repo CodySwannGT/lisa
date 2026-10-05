@@ -19,7 +19,6 @@ import { describe, expect, it } from "vitest";
 import {
   CDK_APP_MARKER,
   CDK_PRESET_ARTIFACTS,
-  CDK_PRESET_BIN_ENTRY,
   CDK_PRESET_FORCED_DEPENDENCIES,
   cdkAppEntrySource,
   classifyCdkPresetAdoption,
@@ -125,16 +124,14 @@ describe("CDK preset tables track what the preset actually ships", () => {
     )) as {
       force: {
         dependencies: Record<string, string>;
-        bin: Record<string, string>;
+        bin?: Record<string, string>;
       };
     };
 
     expect([...CDK_PRESET_FORCED_DEPENDENCIES].sort(byName)).toEqual(
       Object.keys(template.force.dependencies).sort(byName)
     );
-    expect(template.force.bin[CDK_PRESET_BIN_ENTRY.name]).toBe(
-      CDK_PRESET_BIN_ENTRY.target
-    );
+    expect(template.force.bin).toBeUndefined();
   });
 
   it("uses the same marker the CDK stack seeds under create-only", async () => {

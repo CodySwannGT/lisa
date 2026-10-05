@@ -167,3 +167,47 @@ ordinary repair calibrates that same base with the existing latency helper,
 preserving product deadlines and the conformance guard. All 22 focused lifecycle
 and conformance tests now pass. The failed push receipt
 is retained; it does not prove delivery to the remote branch.
+
+
+## Advanced published-main integration
+
+Live published main advanced to 4.69.4 at
+`694f06d31be324bfc6675bb818d73f77904afd89` while delivery checks ran.
+The normal merge preserves all inherited CDK preset adoption behavior and the
+released Rails safety and hook changes. Its single dependency-template conflict
+keeps main’s OIDC 5.2 default, constructs 10.7.2 default and removal of legacy
+forced OIDC and phantom bin mapping, together with the scoped CDK 2.272, exact
+Oxlint pair and advisory fixes. The owner’s 100 existing template, OIDC and
+advisory-governance tests pass. No root dependency or lock change was needed.
+
+Earlier unpublished 4.69.3 package observations are historical; the combined
+4.69.4 candidate requires fresh compilation, installed application proof and
+independent current-byte review before the next normal push.
+
+
+The advanced-main candidate passes all eleven scoped quality checks and
+independent current-byte source review, with findings and MLD both `[]`. Fresh
+local 4.69.4 tar SHA256
+`500dfcbe3a3067f8cce97b661d2fbed84d9e88f6636d71f10eb31bd63e35ae7b`
+matches all 7,551 regular members across packed and freshly installed targets.
+Real Rails and Node/CDK full applications terminate successfully in 25.366 and
+21.267 seconds, with eight actual vendor registrations each.
+
+The separate staged packed-journey tar is
+`890d88cb` (full identity retained in the private manifest), with 7,540 regular
+members; it is distinct from the manual application tar above. Both fresh
+packed-host journeys pass. TypeScript/CDK bootstraps take
+18.539/23.245 seconds under the unchanged 60,000 ms base; the existing measured
+latency calibration of 1.0214838333333331 gives actual work/wall budgets of
+61,289 ms. No deadline was changed by verification. Five freshly emitted Ruby
+seeds and their harness match earlier joint tooling evidence exactly; that is
+explicit local identity reuse, not a new database or joint-tool run. Fresh
+released-consumer joint tooling and audits remain required after publication.
+
+The 127-entry raw manifest digest is
+`638c46886467a22e5fd0697ea01a1292ad28c7c51deef4a2ce64991a3c5579e5`;
+the empirical result digest is
+`7e7d2a41be74113e768d51e4be64748c8c532bf6a2d4c7cedc10b122841d24ba`.
+Owned registries are terminal, observer file descriptors are closed, focused
+fixtures are removed and no owned vendor or runtime children remain. Required
+head-specific CI/review and immutable publication evidence remain separate.
