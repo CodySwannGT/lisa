@@ -123,6 +123,8 @@ child.once("close", (status, signal) => {
           )
         );
       } catch {
+        // probe-direction: fail-closed — unreadable or malformed audit denies
+        // scanner success because successful Git execution cannot be proved.
         return false;
       }
     },

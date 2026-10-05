@@ -86,3 +86,15 @@ Implement roles, preserving independence.
 All other catalogue dispositions above remain in effect. No Claude inference,
 model/guard/trust/approval/hook/floor override, foreign work mutation or #4347
 coordination takeover is authorized.
+
+
+### Demonstrated push-gate repair
+
+Native scoped builder: Codex `/root/builder_4345_gate_annotation`, thread
+`01a10ab2-18ed-78f3-801c-8ce982e74da7`.
+
+INCLUDE - generic scoped builder - required unit execution found the owned
+scanner audit catch missing its required fail-closed probe-direction annotation.
+This worker may add only that explanation. Coordinator owns official derived
+artifact regeneration. The independent integration reviewer reviews the exact
+changed boundary. No scanner behavior change or broad suite exception is allowed.

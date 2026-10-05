@@ -458,6 +458,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lib/history-secret-scanner.mjs": Object.freeze([
     "501452c19be923616a6ea1ed9443c86cbac14e4aa3073e579f6af82d1423a2c9",
+    "6afcb5ea42d8f9046a17e2253d4ddbefdf9025b150870afda23db77796f05f25",
     "ff90535b7c6f24f48651ab93d204a1530c6bfaa8e6169d3aa83ab069c1a1ef22",
   ]),
   "scripts/lib/invoked-as-script.mjs": Object.freeze([
@@ -1908,6 +1909,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lib/history-secret-scanner.mjs": Object.freeze([
     "501452c19be923616a6ea1ed9443c86cbac14e4aa3073e579f6af82d1423a2c9",
+    "6afcb5ea42d8f9046a17e2253d4ddbefdf9025b150870afda23db77796f05f25",
     "ff90535b7c6f24f48651ab93d204a1530c6bfaa8e6169d3aa83ab069c1a1ef22",
   ]),
   "scripts/lib/invoked-as-script.mjs": Object.freeze([
