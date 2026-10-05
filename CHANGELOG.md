@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.69.4](https://github.com/CodySwannGT/lisa/compare/v4.69.3...v4.69.4) (2026-10-05)
+
+
+### Bug Fixes
+
+* **cdk:** align adoption diagnostics with host-owned contracts ([c405496](https://github.com/CodySwannGT/lisa/commit/c4054966064e3c3a80da5f81422ce54a9dc4f265)), closes [CodySwannGT/lisa#4343](https://github.com/CodySwannGT/lisa/issues/4343)
+* **cdk:** default to compatible host-owned OIDC version ([2df22fe](https://github.com/CodySwannGT/lisa/commit/2df22fe21ba6fbd25ddaa0f3572301b6a7646078)), closes [CodySwannGT/lisa#4343](https://github.com/CodySwannGT/lisa/issues/4343)
+* **cdk:** keep legacy dependency names in core adoption tables ([36f83c4](https://github.com/CodySwannGT/lisa/commit/36f83c4c7a87adcb453a17b00896ca804e6d06b4)), closes [CodySwannGT/lisa#4343](https://github.com/CodySwannGT/lisa/issues/4343)
+* **cdk:** preserve host-owned executable advertisements ([5f99ea2](https://github.com/CodySwannGT/lisa/commit/5f99ea2b9cb689e55029305855458d1a37e2b5e3)), closes [CodySwannGT/lisa#4343](https://github.com/CodySwannGT/lisa/issues/4343)
+
 ### [4.69.3](https://github.com/CodySwannGT/lisa/compare/v4.69.2...v4.69.3) (2026-10-04)
 
 
