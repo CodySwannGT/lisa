@@ -26,6 +26,10 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "c565984dcd33bc5d26a126c25cec9a0734d87c0d9540479168a77f51b980809f",
+    "all/copy-overwrite/scripts/lib/history-secret-git.mjs":
+      "254907d808a76d4f338d1cb86e9262c7e2992386a79cd417bc65b385f8253715",
+    "all/copy-overwrite/scripts/lib/history-secret-scanner.mjs":
+      "501452c19be923616a6ea1ed9443c86cbac14e4aa3073e579f6af82d1423a2c9",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lib/kill-marks.mjs":
@@ -72,6 +76,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "345832c63c85df32acbed9b183b06239fc10ccb1491bd11607b5840ac1d18573",
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "ae742fef65b049aea83029056456a1f3495a4d1aef83c1a959c6d9ec784f1477",
+    "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
+      "2d6ae84741703a300d78379eb4bdf3935815aba715cb163a34378418d17eadf0",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
       "b17d73c02245d64ae96ba4b9ec642f5a54a827accb1af292a4600a98e1a596f4",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
@@ -2495,7 +2501,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "d8e22c6970c604df7588d313fdf79ba7676fff01740e6151b6a5fc77391cae02",
+      "e7a000c41a06d9f12ab4fc6f899a8f1f79d69f2f39fe6d697c9a7bdb45fc9f92",
     "scripts/update-node-version.ts":
       "0059067c14001c2f7e75beb2628d1a46f935c7b01ce61871db71b6849ef62dca",
     "scripts/update-test-skill-paths.mjs":
@@ -2555,7 +2561,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "6d07ac247e81cd42c2c20abf8dfe504413d6b2422e4aba9b2c975a776f155921",
     "typescript/copy-overwrite/.prettierignore":
-      "e2538ae1b5ef5d64733c3d6c07292495ead71603dfca2b37fda4a9ed080deb9a",
+      "5f5eb65a3385d61ee8eb5bd479d9ce35537ca114625451b11fc144f1cc73f246",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -2836,6 +2842,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs": true,
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs": true,
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs": true,
+    "all/copy-overwrite/scripts/lib/history-secret-git.mjs": true,
+    "all/copy-overwrite/scripts/lib/history-secret-scanner.mjs": true,
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs": true,
     "all/copy-overwrite/scripts/lib/kill-marks.mjs": true,
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs": true,
@@ -2859,6 +2867,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs": true,
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs": true,
     "all/copy-overwrite/scripts/lisa-gates.mjs": true,
+    "all/copy-overwrite/scripts/lisa-history-secrets.mjs": true,
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh": true,
@@ -9465,6 +9474,13 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/edit-time-pre-facade/typescript-format-on-edit.sh": true,
     "tests/fixtures/edit-time-pre-facade/typescript-lint-on-edit.sh": true,
     "tests/fixtures/edit-time-pre-facade/typescript-sg-scan-on-edit.sh": true,
+    "tests/fixtures/git-history-secrets/errors.mjs": true,
+    "tests/fixtures/git-history-secrets/graphs.mjs": true,
+    "tests/fixtures/git-history-secrets/harness.mjs": true,
+    "tests/fixtures/git-history-secrets/journey.mjs": true,
+    "tests/fixtures/git-history-secrets/native-push.mjs": true,
+    "tests/fixtures/git-history-secrets/package.mjs": true,
+    "tests/fixtures/git-history-secrets/report-mode.mjs": true,
     "tests/fixtures/harness-parity-council/first-round-failed.json": true,
     "tests/fixtures/harness-parity-council/first-round-responded.json": true,
     "tests/fixtures/harness-parity-council/first-round-timed-out.json": true,
@@ -9667,6 +9683,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/gate-shipped-as-operator-surfaces.test.ts": true,
     "tests/integration/hardcoded-invocation-fixture.ts": true,
     "tests/integration/hardcoded-invocation-inventory.test.ts": true,
+    "tests/integration/history-secret-bootstrap.test.ts": true,
     "tests/integration/host-lint-gate-survives-apply.test.ts": true,
     "tests/integration/host-test-scripts-survive-apply.test.ts": true,
     "tests/integration/inventory-covers-shipped-artifacts.test.ts": true,
@@ -10601,6 +10618,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/generate-two-channel-couplings.test.ts": true,
     "tests/unit/scripts/generated-artifact-merge-coverage.test.ts": true,
     "tests/unit/scripts/github-governance.test.ts": true,
+    "tests/unit/scripts/history-secret-contract.test.ts": true,
     "tests/unit/scripts/install-claude-plugins-self.test.ts": true,
     "tests/unit/scripts/invoked-as-script.test.ts": true,
     "tests/unit/scripts/jira-cli-config-consumption.test.ts": true,

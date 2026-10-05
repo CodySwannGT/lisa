@@ -450,6 +450,12 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "d234617dc907bb563455419957f2f419702fcd1c10b9d39e19d5bab8ca962008",
     "e07bab7dc4c4c296e2007cf26fab694b1238545dc37816e88d849606d8f9e760",
   ]),
+  "scripts/lib/history-secret-git.mjs": Object.freeze([
+    "254907d808a76d4f338d1cb86e9262c7e2992386a79cd417bc65b385f8253715",
+  ]),
+  "scripts/lib/history-secret-scanner.mjs": Object.freeze([
+    "501452c19be923616a6ea1ed9443c86cbac14e4aa3073e579f6af82d1423a2c9",
+  ]),
   "scripts/lib/invoked-as-script.mjs": Object.freeze([
     "302b3578d333717f61d0181a69f7b23a8bdf735c59fd5e95dc2da3da05896670",
     "4dd64efca0ff5841d0f3f27869c7bcc1c939571e6022f4b1823f7ef0d97b5d78",
@@ -775,6 +781,10 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "f8ebc11f8bbb27ce8cea883044687f7c023302a928de1d917209cae84274367a",
     "f9e94e7daa0fffedefb224882c2944f66a8f39d60e6a4c1f4410975a7f98ef24",
     "fbd68cf571985d7cfccf0f280cfe8112955849126e44d27d55ad619f9abb79ef",
+  ]),
+  "scripts/lisa-history-secrets.mjs": Object.freeze([
+    "2d6ae84741703a300d78379eb4bdf3935815aba715cb163a34378418d17eadf0",
+    "7b55063eb78d7796aeb1d9c1de8b66882ccbfcb524e33773757ffa307d987177",
   ]),
   "scripts/lisa-hooks/block-blind-automerge.sh": Object.freeze([
     "3f58a1bc31a36ae1720591013cd59fd3e9046c865aae2a795b29a2405aefb6a1",
@@ -1881,6 +1891,12 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "d234617dc907bb563455419957f2f419702fcd1c10b9d39e19d5bab8ca962008",
     "e07bab7dc4c4c296e2007cf26fab694b1238545dc37816e88d849606d8f9e760",
   ]),
+  "scripts/lib/history-secret-git.mjs": Object.freeze([
+    "254907d808a76d4f338d1cb86e9262c7e2992386a79cd417bc65b385f8253715",
+  ]),
+  "scripts/lib/history-secret-scanner.mjs": Object.freeze([
+    "501452c19be923616a6ea1ed9443c86cbac14e4aa3073e579f6af82d1423a2c9",
+  ]),
   "scripts/lib/invoked-as-script.mjs": Object.freeze([
     "302b3578d333717f61d0181a69f7b23a8bdf735c59fd5e95dc2da3da05896670",
     "4dd64efca0ff5841d0f3f27869c7bcc1c939571e6022f4b1823f7ef0d97b5d78",
@@ -2161,6 +2177,10 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "f8ae8672df5cc6e8485bbb5d9292a19ee0cac4d9b02c3489869f3352c61d8d2e",
     "f8ebc11f8bbb27ce8cea883044687f7c023302a928de1d917209cae84274367a",
     "fbd68cf571985d7cfccf0f280cfe8112955849126e44d27d55ad619f9abb79ef",
+  ]),
+  "scripts/lisa-history-secrets.mjs": Object.freeze([
+    "2d6ae84741703a300d78379eb4bdf3935815aba715cb163a34378418d17eadf0",
+    "7b55063eb78d7796aeb1d9c1de8b66882ccbfcb524e33773757ffa307d987177",
   ]),
   "scripts/lisa-hooks/block-blind-automerge.sh": Object.freeze([
     "3f58a1bc31a36ae1720591013cd59fd3e9046c865aae2a795b29a2405aefb6a1",
