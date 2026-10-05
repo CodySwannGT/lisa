@@ -34,6 +34,7 @@ const PROCESS_TREE_RUNNER = path.resolve(
   "all/copy-overwrite/scripts/lib/process-tree-runner.mjs"
 );
 const LONG_RUNNER_TIMEOUT_ARGUMENT = "--timeout-ms=30000";
+const CAPTURE_DESCRIPTOR_ARGUMENT = "--capture-fd=3";
 /**
  * Enough measured-machine time for the planted Node descendant to start and
  * write its PID before the supervisor deliberately expires. A fixed 100ms
@@ -713,9 +714,9 @@ syncBuiltinESMExports();
     }
   );
 
-  it.skipIf(process.platform === "win32")(
-    "fails closed when process-group cleanup authority is uncertain",
-    async () => {
+  it.skipIf(process.platform === "win32").each([false, true])(
+    "fails closed when process-group cleanup authority is uncertain (capture %s)",
+    async capture => {
       const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-reap-denied-"));
       roots.push(root);
       const pidFile = path.join(root, GRANDCHILD_PID_FILENAME);
@@ -767,10 +768,11 @@ process.on = (event, listener) => {
           preloadFile,
           PROCESS_TREE_RUNNER,
           LONG_RUNNER_TIMEOUT_ARGUMENT,
+          ...(capture ? [CAPTURE_DESCRIPTOR_ARGUMENT] : []),
           "--",
           command,
         ],
-        { stdio: ["ignore", "ignore", "pipe"] }
+        { stdio: ["ignore", "ignore", "pipe", "ignore"] }
       );
       let supervisorIdentity: string | undefined;
       let stderr = "";
@@ -912,3 +914,184 @@ process.kill = (pid, signal) => {
     }
   );
 });
+
+describe.skipIf(process.platform === "win32")(
+  "supervisor diagnostic capture",
+  () => {
+    it("retains only the bounded tail while preserving a real exit 17", () => {
+      const source =
+        'process.stdout.write("a".repeat(700000) + "TAIL"); process.exitCode = 17;';
+      const result = boundedSpawnSync(
+        process.execPath,
+        [
+          PROCESS_TREE_RUNNER,
+          LONG_RUNNER_TIMEOUT_ARGUMENT,
+          CAPTURE_DESCRIPTOR_ARGUMENT,
+          "--",
+          `${shellQuote(process.execPath)} -e ${shellQuote(source)}`,
+        ],
+        {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe", "pipe"],
+          maxBuffer: 2 * 1024 * 1024,
+          timeout: ioLatencyBudgetMs(5_000),
+        }
+      );
+      expect(result.status).toBe(17);
+      expect(result.stdout).toHaveLength(700004);
+      expect(result.output[3]).toHaveLength(512 * 1024);
+      expect(String(result.output[3])).toMatch(/TAIL$/u);
+    });
+
+    it("streams output before the command terminates", async () => {
+      const source =
+        'process.stdout.write("STREAM-READY\\n"); setTimeout(() => process.exit(17), 700);';
+      const child = spawn(
+        process.execPath,
+        [
+          PROCESS_TREE_RUNNER,
+          LONG_RUNNER_TIMEOUT_ARGUMENT,
+          CAPTURE_DESCRIPTOR_ARGUMENT,
+          "--",
+          `${shellQuote(process.execPath)} -e ${shellQuote(source)}`,
+        ],
+        { stdio: ["ignore", "pipe", "pipe", "pipe"] }
+      );
+      let streamed = "";
+      let ended = false;
+      child.stdout?.on("data", chunk => {
+        streamed += String(chunk);
+      });
+      child.stdio[3]?.on("data", () => {});
+      const completion = new Promise<{
+        code: number | null;
+        signal: string | null;
+      }>(resolve => {
+        child.once("close", (code, signal) => {
+          ended = true;
+          resolve({ code, signal });
+        });
+      });
+      try {
+        expect(
+          await waitForProcessCondition(() => streamed.includes("STREAM-READY"))
+        ).toBe(true);
+        expect(ended).toBe(false);
+        expect(await completion).toEqual({ code: 17, signal: null });
+      } finally {
+        if (!ended) child.kill("SIGTERM");
+        await completion;
+      }
+    });
+
+    it("retains no-verdict identity and output after a capture-mode deadline", () => {
+      const result = boundedSpawnSync(
+        process.execPath,
+        [
+          PROCESS_TREE_RUNNER,
+          FIXTURE_RUNNER_TIMEOUT_ARGUMENT,
+          CAPTURE_DESCRIPTOR_ARGUMENT,
+          "--",
+          "printf 'TIMEOUT-READY\\n'; sleep 30",
+        ],
+        {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe", "pipe"],
+          timeout: ioLatencyBudgetMs(5_000),
+        }
+      );
+      expect(result.status).toBeNull();
+      expect(result.signal).toBe("SIGKILL");
+      expect(String(result.output[3])).toContain("TIMEOUT-READY");
+    });
+
+    it("keeps exit 17 when the diagnostic descriptor is unavailable without rerunning", () => {
+      const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-capture-fault-"));
+      roots.push(root);
+      const attempts = path.join(root, "attempts");
+      const result = boundedSpawnSync(
+        process.execPath,
+        [
+          PROCESS_TREE_RUNNER,
+          LONG_RUNNER_TIMEOUT_ARGUMENT,
+          CAPTURE_DESCRIPTOR_ARGUMENT,
+          "--",
+          `printf 'once\\n' >> ${shellQuote(attempts)}; printf 'diagnostic'; exit 17`,
+        ],
+        {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+          timeout: ioLatencyBudgetMs(5_000),
+        }
+      );
+      expect(result.status).toBe(17);
+      expect(result.stderr).toContain("OS verdict retained");
+      expect(readFileSync(attempts, "utf8")).toBe("once\n");
+    });
+
+    it("fails boundedly when the command output close notification never arrives", () => {
+      const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-capture-drain-"));
+      roots.push(root);
+      const preloadFile = path.join(root, "missing-close-notification.mjs");
+      writeFileSync(
+        preloadFile,
+        `import childProcess from "node:child_process";
+import { syncBuiltinESMExports } from "node:module";
+const spawn = childProcess.spawn;
+childProcess.spawn = (...args) => {
+  const child = spawn(...args);
+  const once = child.once.bind(child);
+  child.once = (event, listener) => event === "close" ? child : once(event, listener);
+  return child;
+};
+syncBuiltinESMExports();
+`
+      );
+      const result = boundedSpawnSync(
+        process.execPath,
+        [
+          "--import",
+          preloadFile,
+          PROCESS_TREE_RUNNER,
+          LONG_RUNNER_TIMEOUT_ARGUMENT,
+          CAPTURE_DESCRIPTOR_ARGUMENT,
+          "--",
+          "printf 'drain-control'; exit 17",
+        ],
+        {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe", "pipe"],
+          timeout: ioLatencyBudgetMs(5_000),
+        }
+      );
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("diagnostic output did not close");
+    });
+
+    it("reaps a descendant holding output pipes before returning the shell exit", () => {
+      const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-capture-pipe-"));
+      roots.push(root);
+      const pidFile = path.join(root, GRANDCHILD_PID_FILENAME);
+      const command = blockingNodeCommand({ root, pidFile });
+      const result = boundedSpawnSync(
+        process.execPath,
+        [
+          PROCESS_TREE_RUNNER,
+          FIXTURE_RUNNER_TIMEOUT_ARGUMENT,
+          CAPTURE_DESCRIPTOR_ARGUMENT,
+          "--",
+          `${command} & while test ! -f ${shellQuote(pidFile)}; do sleep 0.01; done; exit 17`,
+        ],
+        {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe", "pipe"],
+          timeout: ioLatencyBudgetMs(5_000),
+        }
+      );
+      expect(result.status).toBe(17);
+      expect(processIsRunnable(Number(readFileSync(pidFile, "utf8")))).toBe(
+        false
+      );
+    });
+  }
+);

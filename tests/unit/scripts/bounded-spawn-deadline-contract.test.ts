@@ -22,7 +22,7 @@
  * @module tests/unit/scripts/bounded-spawn-deadline-contract
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * The error Node attaches to a child it killed at its deadline.
@@ -66,6 +66,11 @@ const SCRIPTS = Object.freeze({
 
 beforeEach(() => {
   boundedSpawnSync.mockReset();
+  vi.stubEnv("LISA_GATES_CAPTURE", undefined);
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe("a killed child reaching lisa-environment-prepare", () => {
@@ -117,30 +122,34 @@ describe("a killed child reaching lisa-environment-prepare", () => {
 });
 
 describe("a killed child reaching the lisa-run-gates executor", () => {
-  it("passes capture paths as environment data rather than shell source", async () => {
+  it("dispatches the original command once and retains its OS nonzero status", async () => {
     boundedSpawnSync.mockImplementation(() => ({
-      status: 0,
-      stdout: "",
-      stderr: "",
+      status: 17,
+      output: [null, null, null, "diagnostic"],
       error: undefined,
     }));
     const { spawnExec } =
       await import("../../../all/copy-overwrite/scripts/lisa-run-gates.mjs");
 
-    spawnExec(GATE_COMMAND);
-
-    const [executable, args, options] = boundedSpawnSync.mock.calls[1] as [
+    expect(spawnExec(GATE_COMMAND)).toEqual({
+      code: 17,
+      output: process.platform === "win32" ? null : "diagnostic",
+    });
+    expect(boundedSpawnSync).toHaveBeenCalledTimes(1);
+    const [executable, args, options] = boundedSpawnSync.mock.calls[0] as [
       string,
       string[],
-      { env: Record<string, string> },
+      { env?: Record<string, string>; stdio: string | string[] },
     ];
-    const script = args.at(-1) ?? "";
     expect(executable).toBe(process.execPath);
     expect(args[0]).toContain("process-tree-runner.mjs");
-    expect(script).toContain('"$LISA_GATE_STATUS_PATH"');
-    expect(script).toContain('"$LISA_GATE_LOG_PATH"');
-    expect(script).not.toContain(options.env.LISA_GATE_STATUS_PATH);
-    expect(script).not.toContain(options.env.LISA_GATE_LOG_PATH);
+    expect(args.at(-1)).toBe(GATE_COMMAND);
+    expect(options.env).toBeUndefined();
+    expect(options.stdio).toEqual(
+      process.platform === "win32"
+        ? "inherit"
+        : ["inherit", "inherit", "inherit", "pipe"]
+    );
   });
 
   it("reports code null rather than throwing when the gate command is killed", async () => {
@@ -156,34 +165,52 @@ describe("a killed child reaching the lisa-run-gates executor", () => {
     });
   });
 
-  it("reports code null when the capture probe survives but the gate is killed", async () => {
-    boundedSpawnSync.mockImplementation((command: string, args: string[]) => {
-      // The `command -v tee` probe answers normally; only the gate is killed.
-      if (args?.[1]?.includes("command -v tee"))
-        return { status: 0, stdout: "", stderr: "", error: undefined };
+  it("reports unknown for a killed captured command without retrying", async () => {
+    boundedSpawnSync.mockImplementation(() => {
       throw killedError();
     });
     const { spawnExec } =
       await import("../../../all/copy-overwrite/scripts/lisa-run-gates.mjs");
 
-    expect(spawnExec(GATE_COMMAND)).toEqual({
-      code: null,
-      output: null,
-    });
+    expect(spawnExec(GATE_COMMAND)).toEqual({ code: null, output: null });
+    expect(boundedSpawnSync).toHaveBeenCalledTimes(1);
+    const args = boundedSpawnSync.mock.calls[0]?.[1] as string[];
+    expect(args.at(-1)).toBe(GATE_COMMAND);
+    expect(args.includes("--capture-fd=3")).toBe(process.platform !== "win32");
   });
 
-  it("treats a killed capture probe as a capability it cannot confirm", async () => {
-    // A probe killed at its deadline must answer "no capture", not escape. The
-    // probe exists to avoid claiming a capability the runner cannot confirm;
-    // a throw out of it converts an unconfirmable capability into a crash.
-    boundedSpawnSync.mockImplementation((command: string, args: string[]) => {
-      if (args?.[1]?.includes("command -v tee")) throw killedError();
-      return { status: 7, stdout: "", stderr: "", error: undefined };
-    });
+  it("retains OS nonzero status when diagnostic output is unavailable", async () => {
+    boundedSpawnSync.mockImplementation(() => ({
+      status: 7,
+      stdout: "",
+      stderr: "",
+      error: undefined,
+    }));
     const { spawnExec } =
       await import("../../../all/copy-overwrite/scripts/lisa-run-gates.mjs");
 
     expect(spawnExec(GATE_COMMAND)).toEqual({ code: 7, output: null });
+    expect(boundedSpawnSync).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the capture-disabled timeout unknown on its original plain route", async () => {
+    vi.stubEnv("LISA_GATES_CAPTURE", "0");
+    boundedSpawnSync.mockImplementation(() => {
+      throw killedError();
+    });
+    const { spawnExec } =
+      await import("../../../all/copy-overwrite/scripts/lisa-run-gates.mjs");
+
+    expect(spawnExec(GATE_COMMAND)).toEqual({ code: null, output: null });
+    expect(boundedSpawnSync).toHaveBeenCalledTimes(1);
+    const [, args, options] = boundedSpawnSync.mock.calls[0] as [
+      string,
+      string[],
+      { stdio: string },
+    ];
+    expect(options.stdio).toBe("inherit");
+    expect(args).not.toContain("--capture-fd=3");
+    expect(args.at(-1)).toBe(GATE_COMMAND);
   });
 
   it("still re-raises a failure that is not a deadline", async () => {

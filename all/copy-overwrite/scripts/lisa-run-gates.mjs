@@ -41,15 +41,7 @@
  * @module lisa-run-gates
  */
 
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -1142,12 +1134,6 @@ function readPackageScripts(cwd) {
 }
 
 /**
- * How much of a gate's output is kept for diagnosis. A suite of 14,000 tests
- * prints megabytes; the signatures that matter are all near the end.
- */
-const CAPTURE_TAIL_BYTES = 512 * 1024;
-
-/**
  * Hang-detector deadline for one gate command, in milliseconds.
  *
  * Two hours, and deliberately not the shared default. The child here is the
@@ -1218,7 +1204,7 @@ function runInterruption() {
  */
 function runProcessTree(command, options = {}) {
   const timeout = options.timeout ?? GATE_COMMAND_BUDGET_MS;
-  const { shell: _shell, ...childOptions } = options;
+  const { shell: _shell, capture = false, ...childOptions } = options;
   // The supervisor already ends itself when THIS process dies; naming the
   // process above it is what covers the measured incident, where the hook was
   // killed and the runner — not the supervisor — was the orphan that kept the
@@ -1228,7 +1214,14 @@ function runProcessTree(command, options = {}) {
     : [];
   return boundedSpawnSync(
     process.execPath,
-    [PROCESS_TREE_RUNNER, `--timeout-ms=${timeout}`, ...watch, "--", command],
+    [
+      PROCESS_TREE_RUNNER,
+      `--timeout-ms=${timeout}`,
+      ...watch,
+      ...(capture ? ["--capture-fd=3"] : []),
+      "--",
+      command,
+    ],
     {
       ...childOptions,
       timeout: timeout + PROCESS_TREE_REAP_BUDGET_MS,
@@ -1278,110 +1271,36 @@ function plainExec(command) {
 }
 
 /**
- * Whether this machine can tee a gate's output without changing its verdict.
+ * Run a gate with live output and a supervisor-owned diagnostic tail.
  *
- * Probed rather than assumed: on a shell without `tee` — Windows `cmd`, a
- * stripped container — the wrapper below would produce no status file, and the
- * runner would report every gate as terminated. A capability the runner cannot
- * confirm is one it does not use.
- * @returns {boolean} Whether to take the capturing path.
- */
-function captureAvailable() {
-  if (process.env.LISA_GATES_CAPTURE === "0") return false;
-  // The one child in this file that is NOT a project gate command, so it takes
-  // the shared default rather than the two-hour ceiling: `command -v tee`
-  // answers immediately or the shell is broken.
-  try {
-    const probe = boundedSpawnSync("sh", ["-c", "command -v tee"], {
-      stdio: "ignore",
-    });
-    return !probe.error && probe.status === 0;
-  } catch (error) {
-    // A probe killed at its deadline has not confirmed anything, and this
-    // function's whole contract is that an unconfirmed capability goes unused.
-    // Letting the throw escape would convert "cannot tell" into a crash, and
-    // the fallback path it guards answers the question perfectly well.
-    if (isChildTimeout(error)) return false;
-    throw error;
-  }
-}
-
-/**
- * Read back what the wrapper recorded, keeping only the tail of the log.
- * @param {string} statusPath File the wrapper wrote the exit code into.
- * @param {string} logPath File the wrapper tee'd the output into.
- * @returns {{code: number|null, output: string|null}} The recorded answer.
- */
-function readCaptured(statusPath, logPath) {
-  let output = null;
-  try {
-    output = readFileSync(logPath, "utf8").slice(-CAPTURE_TAIL_BYTES);
-  } catch {
-    output = null;
-  }
-  try {
-    const code = Number.parseInt(readFileSync(statusPath, "utf8").trim(), 10);
-    // Fail closed. An unreadable status is not a zero: the one thing this
-    // runner may never do is turn "I do not know" into "it passed".
-    return { code: Number.isInteger(code) ? code : null, output };
-  } catch {
-    return { code: null, output };
-  }
-}
-
-/**
- * The default executor: run the command in a shell, streaming AND recording.
- *
- * stdio is inherited so a failing gate's own output reaches the operator
- * unaltered and as it happens — a push gate runs for minutes and an operator
- * needs to watch it, not receive it in a lump at the end. `tee` is what lets
- * both be true: the operator sees the stream, and the runner keeps a copy to
- * say WHICH failure it was rather than only that there was one.
- *
- * The price is that the command's stdout is a pipe rather than a terminal, so
- * tools that colourise or animate for a TTY print their plain form. That is a
- * deliberate trade: a plain, diagnosable failure beats a coloured, mute one.
- * `LISA_GATES_CAPTURE=0` buys the colour back at the cost of the diagnosis.
- *
- * The exit code comes from a status file written INSIDE the pipeline, never
- * from the pipeline itself — a pipeline reports `tee`'s status, which is
- * almost always zero, and reading it would report every failing gate as
- * passing. That is the single most dangerous mistake available here.
- * @param {string} command The command line to run.
- * @returns {{code: number|null, output: string|null}} Exit code and output.
+ * The extra pipe belongs only to the supervisor and its caller: the command
+ * inherits stdin and two output pipes, never the diagnostic descriptor. No
+ * child-writable status record participates in the verdict. Capture failures
+ * retain the supervised OS result and never execute the command a second time.
+ * Windows retains its existing native-job/plain route. Capture remains opt-out
+ * for commands that require inherited terminal handles.
+ * @param {string} command Shell source to run once.
+ * @returns {{code: number|null, output: string|null}} OS status and diagnostic tail.
  */
 export function spawnExec(command) {
-  if (!captureAvailable()) return plainExec(command);
-  let dir;
-  try {
-    dir = mkdtempSync(join(tmpdir(), "lisa-gate-run-"));
-  } catch {
+  if (process.env.LISA_GATES_CAPTURE === "0" || process.platform === "win32") {
     return plainExec(command);
   }
-  const logPath = join(dir, "output.log");
-  const statusPath = join(dir, "status");
-  // Newline-separated inside a group, so a command ending in a trailing
-  // comment or redirection still has `echo` run as its own statement.
-  // Paths travel as data, never as shell source. A TMPDIR containing a quote,
-  // newline, dollar sign, or command substitution must not be able to break
-  // this wrapper or execute content merely because mkdtemp inherited it.
-  const script = `{\n${command}\necho $? > "$LISA_GATE_STATUS_PATH"\n} 2>&1 | tee "$LISA_GATE_LOG_PATH"\n`;
   try {
-    const child = runProcessTree(script, {
-      env: {
-        ...process.env,
-        LISA_GATE_LOG_PATH: logPath,
-        LISA_GATE_STATUS_PATH: statusPath,
-      },
-      stdio: "inherit",
+    const child = runProcessTree(command, {
+      capture: true,
+      stdio: ["inherit", "inherit", "inherit", "pipe"],
       timeout: GATE_COMMAND_BUDGET_MS,
     });
     if (child.error) return { code: null, output: null };
-    return readCaptured(statusPath, logPath);
+    const captured = child.output?.[3];
+    return {
+      code: child.status,
+      output:
+        captured === null || captured === undefined ? null : String(captured),
+    };
   } catch (error) {
     return killedOrRethrow(error);
-  } finally {
-    rmSync(dir, { force: true, recursive: true });
   }
 }
 

@@ -33,10 +33,13 @@
  */
 
 import { spawn, spawnSync } from "node:child_process";
+import { writeSync } from "node:fs";
 
 import { invokedAsScript } from "./invoked-as-script.mjs";
 import { startWindowsProcessJob } from "./windows-process-job.mjs";
 
+/** Diagnostic memory stays bounded independently of the complete live stream. */
+const CAPTURE_TAIL_BYTES = 512 * 1024;
 const KILL_GRACE_MS = 750;
 const REAP_POLL_MS = 25;
 const WINDOWS_TIMEOUT_EXIT_CODE = 255;
@@ -110,7 +113,19 @@ function parseArguments(argv) {
         "[--watch-pid=<pid>]... -- <command>"
     );
   }
-  return { command, timeoutMs, watchPids: parseWatchPids(flags) };
+  const captureFlags = flags.filter(value => value.startsWith("--capture-fd="));
+  if (
+    captureFlags.length > 1 ||
+    captureFlags.some(value => value !== "--capture-fd=3")
+  ) {
+    throw new Error("capture requires the fixed caller descriptor 3");
+  }
+  return {
+    command,
+    timeoutMs,
+    watchPids: parseWatchPids(flags),
+    captureFd: captureFlags.length === 1 ? 3 : undefined,
+  };
 }
 
 /**
@@ -404,6 +419,79 @@ export async function reapTree(pid, controls = DEFAULT_REAP_CONTROLS) {
 }
 
 /**
+ * Bound pipe drainage after tree reap by the existing two-phase cleanup budget.
+ * A missing close notification cannot postpone a verdict indefinitely; it is
+ * cleanup failure, and retained pipes are detached before the failure returns.
+ * @param {import("node:child_process").ChildProcess} child Owned command shell.
+ * @param {Promise<unknown>} closed Already-armed output completion observation.
+ * @returns {Promise<void>} Confirmed drainage, or a terminal cleanup failure.
+ */
+async function waitForOutputClose(child, closed) {
+  let timer;
+  try {
+    await Promise.race([
+      closed,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          child.stdout?.destroy();
+          child.stderr?.destroy();
+          reject(
+            new Error("gate diagnostic output did not close after tree reap")
+          );
+        }, KILL_GRACE_MS * 2);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Forward command output immediately, retaining only a bounded diagnostic tail.
+ * The fixed caller descriptor is deliberately absent from the child's stdio.
+ * Waiting for close drains the pipes AFTER exit has already started tree reap.
+ * A broken diagnostic sink cannot replace the actual process verdict.
+ * @param {import("node:child_process").ChildProcess} child Owned command shell.
+ * @param {number|undefined} descriptor Optional caller-only descriptor.
+ * @returns {() => Promise<void>} Drain and publish diagnostics once.
+ */
+function captureChildOutput(child, descriptor) {
+  if (descriptor === undefined) return async () => {};
+  let tail = Buffer.alloc(0);
+  let publication;
+  const closed = new Promise(resolve => child.once("close", resolve));
+  for (const stream of [child.stdout, child.stderr]) {
+    stream.on("data", chunk => {
+      tail =
+        chunk.length >= CAPTURE_TAIL_BYTES
+          ? Buffer.from(chunk.subarray(-CAPTURE_TAIL_BYTES))
+          : Buffer.concat([
+              tail.subarray(-Math.max(0, CAPTURE_TAIL_BYTES - chunk.length)),
+              chunk,
+            ]);
+    });
+    stream.pipe(process.stdout, { end: false });
+  }
+  const publish = async () => {
+    await waitForOutputClose(child, closed);
+    try {
+      let offset = 0;
+      while (offset < tail.length) {
+        offset += writeSync(descriptor, tail, offset, tail.length - offset);
+      }
+    } catch {
+      process.stderr.write(
+        "gate diagnostic capture unavailable; OS verdict retained\n"
+      );
+    }
+  };
+  return () => {
+    publication ??= publish();
+    return publication;
+  };
+}
+
+/**
  * Run one command as a supervised process tree.
  *
  * The supervisor answers to three ways a run can end early — its deadline, a
@@ -419,6 +507,7 @@ export async function reapTree(pid, controls = DEFAULT_REAP_CONTROLS) {
  * @param {number} [options.pollMs] How often to ask.
  * @param {(line: string) => void} [options.report] Where the report goes.
  * @param {number} [options.launchParentPid] Parent pid captured at start.
+ * @param {3} [options.captureFd] Fixed caller-only diagnostic descriptor.
  * @returns {Promise<{code: number|null, signal: string|null}>} The verdict.
  */
 export function supervise(command, timeoutMs, reap = reapTree, options = {}) {
@@ -428,7 +517,14 @@ export function supervise(command, timeoutMs, reap = reapTree, options = {}) {
     pollMs = ORPHAN_POLL_MS,
     report = line => process.stderr.write(`${line}\n`),
     launchParentPid = process.ppid,
+    captureFd,
   } = options;
+  if (
+    captureFd !== undefined &&
+    (captureFd !== 3 || process.platform === "win32")
+  ) {
+    throw new Error("diagnostic capture requires POSIX caller descriptor 3");
+  }
   return new Promise((resolve, reject) => {
     let windowsJob;
     let pendingSignal;
@@ -460,7 +556,8 @@ export function supervise(command, timeoutMs, reap = reapTree, options = {}) {
         return spawn("/bin/sh", ["-c", command], {
           detached: true,
           env: process.env,
-          stdio: "inherit",
+          stdio:
+            captureFd === undefined ? "inherit" : ["inherit", "pipe", "pipe"],
         });
       } catch (error) {
         clearSignalHandlers();
@@ -486,6 +583,7 @@ export function supervise(command, timeoutMs, reap = reapTree, options = {}) {
       return;
     }
 
+    const publishCapture = captureChildOutput(child, captureFd);
     let timedOut = false;
     let settled = false;
     let settling = false;
@@ -500,7 +598,7 @@ export function supervise(command, timeoutMs, reap = reapTree, options = {}) {
       clearSignalHandlers();
     };
     // Every exit path shares one reap. A signal that arrives while the direct
-    // shell's close handler is reaping must join that operation instead of
+    // shell's exit handler is reaping must join that operation instead of
     // starting a second kill sequence or taking the default signal action.
     const reapOnce = () => {
       reapPromise ??= windowsJob ? windowsJob.reap() : reap(pid);
@@ -514,6 +612,7 @@ export function supervise(command, timeoutMs, reap = reapTree, options = {}) {
       // exits. Reap that residue fully before returning a verdict too.
       try {
         await reapOnce();
+        await publishCapture();
         settled = true;
         cleanup();
         resolve({ code, signal });
@@ -530,6 +629,8 @@ export function supervise(command, timeoutMs, reap = reapTree, options = {}) {
       // the handle and rejecting makes the supervisor terminal instead of
       // leaving its promise pending behind a live event-loop reference.
       child.unref();
+      child.stdout?.destroy();
+      child.stderr?.destroy();
       reject(
         new Error(
           `gate process-tree supervisor failed: ${error instanceof Error ? error.message : String(error)}`
@@ -547,12 +648,15 @@ export function supervise(command, timeoutMs, reap = reapTree, options = {}) {
       settling = true;
       clearDeadline();
       clearInterval(interruptWatch);
-      reapOnce().then(() => {
-        cleanup();
-        report(interruptionReport(reason, pid));
-        // Restore the signal-shaped exit after the detached tree is gone.
-        process.kill(process.pid, signal);
-      }, failReap);
+      reapOnce()
+        .then(async () => {
+          await publishCapture();
+          cleanup();
+          report(interruptionReport(reason, pid));
+          // Restore the signal-shaped exit after the detached tree is gone.
+          process.kill(process.pid, signal);
+        })
+        .catch(failReap);
     };
     const relaySignal = signal => {
       stopWith(`it received ${signal}`, signal);
@@ -579,21 +683,24 @@ export function supervise(command, timeoutMs, reap = reapTree, options = {}) {
       terminating = true;
       settling = true;
       clearDeadline();
-      reapOnce().then(() => {
-        cleanup();
-        const verdict = timeoutVerdictForPlatform(process.platform);
-        // A signal-shaped result is the existing gate runner vocabulary for
-        // "no verdict". It also prevents an ordinary exit code such as 124
-        // from being confused with a user command that returned that code.
-        if (verdict.signal === null) {
-          // Windows has no signal-shaped process result. 255 is a dedicated
-          // supervisor timeout code with a documented (but unavoidable)
-          // collision risk, well outside ordinary command exit conventions.
-          process.exit(verdict.code);
-        } else {
-          process.kill(process.pid, verdict.signal);
-        }
-      }, failReap);
+      reapOnce()
+        .then(async () => {
+          await publishCapture();
+          cleanup();
+          const verdict = timeoutVerdictForPlatform(process.platform);
+          // A signal-shaped result is the existing gate runner vocabulary for
+          // "no verdict". It also prevents an ordinary exit code such as 124
+          // from being confused with a user command that returned that code.
+          if (verdict.signal === null) {
+            // Windows has no signal-shaped process result. 255 is a dedicated
+            // supervisor timeout code with a documented (but unavoidable)
+            // collision risk, well outside ordinary command exit conventions.
+            process.exit(verdict.code);
+          } else {
+            process.kill(process.pid, verdict.signal);
+          }
+        })
+        .catch(failReap);
     }, timeoutMs);
 
     dispatchSignal = relaySignal;
@@ -607,9 +714,9 @@ export function supervise(command, timeoutMs, reap = reapTree, options = {}) {
         reject(error);
       }, failReap);
     });
-    child.once("close", (code, signal) => {
+    child.once("exit", (code, signal) => {
       // On timeout, wait for the forced group reap above before this supervisor
-      // ends. Exiting on the direct shell's close is the race that used to leave
+      // ends. Exiting before the complete group reap is the race that used to leave
       // its descendants alive.
       if (!timedOut) void finish(code, signal);
     });
@@ -619,10 +726,13 @@ export function supervise(command, timeoutMs, reap = reapTree, options = {}) {
 }
 
 async function main() {
-  const { command, timeoutMs, watchPids } = parseArguments(
+  const { command, timeoutMs, watchPids, captureFd } = parseArguments(
     process.argv.slice(2)
   );
-  const result = await supervise(command, timeoutMs, reapTree, { watchPids });
+  const result = await supervise(command, timeoutMs, reapTree, {
+    watchPids,
+    captureFd,
+  });
   if (result.signal) {
     process.kill(process.pid, result.signal);
   } else {
