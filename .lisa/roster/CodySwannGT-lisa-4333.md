@@ -92,3 +92,11 @@ ordinary direct/override consistency without lowering the supported bound or
 changing package versions. The verifier owns isolated packaging/application
 proof and the reviewer owns report-only review of the changed final bytes.
 Earlier source review and fresh-package refusals remain historical evidence.
+### Required polling-budget conformance follow-up
+
+The normal push refused an uncalibrated timeout in the new promise-settlement
+assertion. The same registration owner receives only the lifecycle test and
+its existing latency-budget import to apply the documented calibration helper.
+Product deadlines, control semantics and the conformance guard remain unchanged.
+The reviewer independently binds the changed test; root owns reports/artifacts
+and normal hooks, and the verifier retains unchanged product-package proof.

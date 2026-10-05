@@ -159,3 +159,11 @@ Source review finds no remaining issue after resolving the direct-override
 constraint. Unchanged Ruby safety and coverage inputs retain their exact scoped
 earlier proof. Required new-head CI/review, merge, publication and a fresh
 immutable released-consumer verification still remain to be observed.
+
+The subsequent normal push refused one test-harness polling budget: the new
+settlement assertion used an uncalibrated five-second timeout. Its required
+unit run passed 25,749 cases with one conformance failure and two skips. The
+ordinary repair calibrates that same base with the existing latency helper,
+preserving product deadlines and the conformance guard. All 22 focused lifecycle
+and conformance tests now pass. The failed push receipt
+is retained; it does not prove delivery to the remote branch.

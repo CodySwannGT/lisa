@@ -3,6 +3,7 @@ import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runPluginCommand } from "../../../src/core/plugin-command.js";
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 describe("plugin command lifecycle", () => {
@@ -61,7 +62,9 @@ describe("plugin command lifecycle", () => {
           settled.value = true;
         }
       );
-      await expect.poll(() => settled.value, { timeout: 5000 }).toBe(true);
+      await expect
+        .poll(() => settled.value, { timeout: ioLatencyBudgetMs(5000) })
+        .toBe(true);
       await expect(outcome).rejects.toThrow(
         mode === "failure" ? "exited 7" : "ordinary cleanup permission error"
       );
