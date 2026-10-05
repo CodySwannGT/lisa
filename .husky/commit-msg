@@ -123,6 +123,21 @@ if [ $COMMITLINT_STATUS -ne 0 ]; then
   exit 1
 fi
 
+# A present automation reference is checked after the ordinary gates. It never
+# waives tracking or commitlint, and malformed proof cannot fall through to AI.
+if grep -qiE '^[[:space:]]*Automation-Provenance[[:space:]]*:' "$COMMIT_MSG_FILE"; then
+  AUTOMATION_SCRIPT="scripts/lisa-automation-provenance.mjs"
+  if [ ! -f "$AUTOMATION_SCRIPT" ]; then
+    AUTOMATION_SCRIPT="all/copy-overwrite/scripts/lisa-automation-provenance.mjs"
+  fi
+  if [ ! -f "$AUTOMATION_SCRIPT" ] || ! node "$AUTOMATION_SCRIPT" "$COMMIT_MSG_FILE"; then
+    echo "❌ Commit blocked: invalid automation provenance."
+    exit 1
+  fi
+  echo "Authenticated non-AI automation provenance verified."
+  exit 0
+fi
+
 # Check for Co-Authored-By line (skip for merge commits)
 COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
 # `printf '%s\n'`, never `echo "$COMMIT_MSG"`. Under a POSIX/XSI `echo` the

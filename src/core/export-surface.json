@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 134,
-  "$names": 1273,
+  "$modules": 136,
+  "$names": 1286,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -112,6 +112,17 @@
       "tempRootPopulation",
       "terminatedDocComments"
     ],
+    "all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs": [
+      "ACTIONS_ISSUER",
+      "PROPOSAL_PREDICATE",
+      "assertPinnedVerifier",
+      "assertVerifiedAttestation",
+      "ghJson",
+      "requireProof",
+      "sha256",
+      "verifyCurrentProvider",
+      "verifyDescriptorAttestation"
+    ],
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs": [
       "invokedAsScript"
     ],
@@ -162,6 +173,11 @@
     ],
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs": [
       "worktreeDependencyProblem"
+    ],
+    "all/copy-overwrite/scripts/lisa-automation-provenance.mjs": [
+      "automationReference",
+      "canonicalJson",
+      "verifyAutomationProvenance"
     ],
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs": [
       "COMMAND_ENVELOPE_SCHEMA",
@@ -404,6 +420,7 @@
       "renderLaneTrailer",
       "resetGhVersionCheck",
       "resolveCallerLaneId",
+      "resolveWorkItemContext",
       "run",
       "runCli",
       "shippedDeclarations",

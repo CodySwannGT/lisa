@@ -1447,6 +1447,38 @@ export function soleWorkItem(text, contract, subject) {
 }
 
 /**
+ * Resolve a required binding through the authoritative tracker contract.
+ * Consumers supplying trusted committed configuration avoid reparsing trailers
+ * or treating raw `current` output as a checked branch/queue identity.
+ * This does not change ordinary offline/live validation semantics.
+ * @param {string} message Complete final commit message.
+ * @param {object} [options] Trusted configuration and strict live requirement.
+ * @returns {object} Canonical identity and optional actual provider evidence.
+ */
+export function resolveWorkItemContext(message, options = {}) {
+  const contract = trackerContract(options.config ?? readConfig());
+  const state = readState(false);
+  const ref = soleWorkItem(message, contract, COMMIT_SUBJECT);
+  assertStateBranch(state);
+  assertStateMatches(ref, contract);
+  if (options.requireLive && contract.provider !== "github") {
+    throw new TrackingError("Automation provenance requires GitHub tracking");
+  }
+  const issue = options.requireLive
+    ? githubIssue(ref, contract, options.execute ?? run)
+    : undefined;
+  return {
+    ref,
+    provider: contract.provider,
+    repository: contract.repository,
+    identityRepo: contract.identityRepo,
+    branch: state.branch,
+    lifecycle: contract.lifecycle,
+    issue,
+  };
+}
+
+/**
  * The one work item a COMMIT message names.
  * @param {string} message Commit message.
  * @param {object} contract Resolved tracker contract.
@@ -1806,7 +1838,7 @@ function typeFromLabels(labels) {
  * @param {string|number} number GitHub issue number.
  * @returns {string[]} State of every sub-issue.
  */
-function githubHierarchy(ref, contract, number) {
+function githubHierarchy(ref, contract, number, execute = run) {
   const [owner, repo] = contract.repository.split("/");
   const query =
     "query($owner:String!,$repo:String!,$number:Int!,$after:String){repository(owner:$owner,name:$repo){issue(number:$number){subIssues(first:100,after:$after){nodes{state}pageInfo{hasNextPage endCursor}}}}}";
@@ -1827,7 +1859,7 @@ function githubHierarchy(ref, contract, number) {
       `number=${number}`,
     ];
     if (cursor.after) args.push("-F", `after=${cursor.after}`);
-    const result = run("gh", args, { allowFailure: true });
+    const result = execute("gh", args, { allowFailure: true });
     if (result.status !== 0) throw githubFailure(result, ref);
 
     const response = safeJson(result.stdout, `GitHub issue ${ref} hierarchy`);
@@ -1915,10 +1947,10 @@ export function resetGhVersionCheck() {
   ghVersionChecked = false;
 }
 
-function githubIssue(ref, contract) {
-  assertGhVersion();
+function githubIssue(ref, contract, execute = run) {
+  assertGhVersion(execute);
   const number = ref.slice(ref.lastIndexOf("#") + 1);
-  const result = run(
+  const result = execute(
     "gh",
     [
       "issue",
@@ -1948,7 +1980,7 @@ function githubIssue(ref, contract) {
   assertLeaf(
     ref,
     typeFromLabels(issue.labels),
-    githubHierarchy(ref, contract, number)
+    githubHierarchy(ref, contract, number, execute)
   );
   return issue;
 }
