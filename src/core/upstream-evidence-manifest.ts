@@ -119,7 +119,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "bd4f958b214726b7eecdf66b17167e25f32b823a4cd54b431f87ee0c55c95d4c",
+      "e94675ad68dd4254ad96fb1f2f67eb58447d4eb4f04475200d449f4932c78824",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":

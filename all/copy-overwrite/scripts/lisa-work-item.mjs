@@ -1080,7 +1080,13 @@ function trackerContract(config = readConfig()) {
 function canonicalizeRef(raw, contract = trackerContract()) {
   const value = String(raw ?? "").trim();
   if (contract.provider === "github") {
-    const match = /^([^\s/#]+\/[^\s/#]+)#([1-9]\d*)$/.exec(value);
+    // Match authored URL bytes before normalization: URL parsers can erase a
+    // port or decode a path that this input contract deliberately refuses.
+    const match =
+      /^([^\s/#]+\/[^\s/#]+)#([1-9]\d*)$/.exec(value) ??
+      /^https:\/\/github\.com\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)\/issues\/([1-9][0-9]*)$/.exec(
+        value
+      );
     if (!match)
       throw new TrackingError(
         `Invalid GitHub Work-Item '${value}'; expected owner/repo#123`
@@ -1438,6 +1444,18 @@ export function soleWorkItem(text, contract, subject) {
   const refs = [
     ...new Set(values.map(value => canonicalizeRef(value, contract))),
   ];
+  // Canonical repeats (including repository case variants) retain their
+  // meaning. Mixing the URL and canonical representations is two authored
+  // declarations even when normalization would collapse their identity.
+  if (
+    contract.provider === "github" &&
+    values.some(value => value.startsWith("https://github.com/")) &&
+    values.some(value => !value.startsWith("https://github.com/"))
+  ) {
+    throw new TrackingError(
+      `${subject[0].toUpperCase()}${subject.slice(1)} mixes URL and canonical Work-Item declarations; it must name exactly one`
+    );
+  }
   if (refs.length > 1) {
     throw new TrackingError(
       `${subject[0].toUpperCase()}${subject.slice(1)} names ${refs.length} different work items (${refs.join(", ")}); it must name exactly one`

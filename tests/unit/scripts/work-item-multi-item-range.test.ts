@@ -77,6 +77,57 @@ function twoItemRange(fixture: Fixture): string {
 }
 
 describe("a range spanning several work items", () => {
+  it("requires a verified backlink after normalizing an issue URL", () => {
+    const fixture = createFixture();
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    commit(
+      fixture,
+      "feat: linked item\n\nWork-Item: https://github.com/acme/widgets/issues/42"
+    );
+    const result = cli(fixture, [
+      VALIDATE_PR,
+      BASE,
+      base,
+      BODY_FILE,
+      bodyFile(fixture, `Work-Item: ${REF}\n`),
+      PR_URL_FLAG,
+      PR_URL,
+    ]);
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("has no verified backlink");
+  });
+
+  it.each([
+    { body: BOTH_DECLARED, exitCode: undefined },
+    { body: `Work-Item: ${REF}\n`, exitCode: 1 },
+  ])(
+    "validates issue URLs against exact incremental PR declarations ($exitCode)",
+    ({ body, exitCode }) => {
+      const fixture = createFixture(githubConfig("trailer"));
+      const remoteOid = commit(fixture, FIRST);
+      const localOid = commit(
+        fixture,
+        "feat: introduced\n\nWork-Item: https://github.com/acme/widgets/issues/43"
+      );
+      const refsFile = path.join(fixture.root, "pushed-refs");
+      const ref = "refs/heads/feature/tracked";
+      writeFileSync(refsFile, `${ref} ${localOid} ${ref} ${remoteOid}\n`);
+      const result = cli(fixture, ["validate-push", "origin"], {
+        LISA_PUSHED_REFS_FILE: refsFile,
+        FAKE_GH_PR_JSON: JSON.stringify({
+          body,
+          headRefName: "feature/tracked",
+          state: "OPEN",
+          url: PR_URL,
+        }),
+      });
+      expect(result.exitCode).toBe(exitCode);
+      if (exitCode === undefined)
+        expect(result.stdout).toContain("WORK_ITEM_TRACKING_OK 1 commit(s)");
+      else expect(result.stderr).toContain("does not match commit Work-Item");
+    }
+  );
+
   it.each([
     {
       name: "accepts previously pushed declarations",

@@ -302,6 +302,133 @@ function githubConfig(repository = "widgets"): object {
   return { tracker: "github", github: { org: "acme", repo: repository } };
 }
 
+describe("GitHub issue URLs through the actual CLI", () => {
+  it("links an eligible issue URL and emits a canonical binding and trailer", () => {
+    const fixture = createFixture();
+    const linked = command(fixture, [
+      "link",
+      "https://github.com/ACME/Widgets/issues/42",
+    ]);
+    expect(linked.stderr).toBe("");
+    expect(linked.status).toBe(0);
+    expect(JSON.parse(readFileSync(stateFilePath(fixture), "utf8")).ref).toBe(
+      "acme/widgets#42"
+    );
+    const message = path.join(fixture.root, "MSG");
+    writeFileSync(message, "fix: supported input\n");
+    expect(
+      command(fixture, ["prepare-commit-msg", message, "message"]).status
+    ).toBe(0);
+    expect(readFileSync(message, "utf8")).toContain(
+      "Work-Item: acme/widgets#42"
+    );
+    expect(readFileSync(message, "utf8")).not.toContain("https://github.com");
+  });
+
+  it.each([
+    "https://github.com/acme/widgets/issues/42".replace("https:", "http:"),
+    "https://github.com.evil.test/acme/widgets/issues/42",
+    "https://user@github.com/acme/widgets/issues/42",
+    "https://github.com:443/acme/widgets/issues/42",
+    "https://github.com/acme/widgets/issues/42?query=1",
+    "https://github.com/acme/widgets/issues/42#fragment",
+    "https://github.com/acme/%77idgets/issues/42",
+    "https://github.com/acme/widgets/issues/%34%32",
+    "https://github.com/acme/widgets/issues/42/extra",
+    "https://github.com/acme/widgets/issues/42/",
+    "https://github.com/acme/widgets/issues/0",
+    "https://github.com/acme/widgets/issues/042",
+    "https://github.com/acme/widgets/issues/-42",
+    "https://github.com/acme/widgets/issues/4.2",
+    "https://github.com/acme/widgets/pull/42",
+    "https://GITHUB.COM/acme/widgets/issues/42",
+    "https://github.com/acme/other/issues/42",
+  ])("refuses unsupported issue URL %s at commit validation", ref => {
+    const fixture = createFixture({
+      ...githubConfig(),
+      workItem: { verify: "trailer" },
+    });
+    const message = path.join(fixture.root, "MSG");
+    writeFileSync(message, `fix: unsupported input\n\nWork-Item: ${ref}\n`);
+    expect(command(fixture, ["validate-commit", message]).status).toBe(1);
+  });
+
+  it.each([
+    {
+      declarations: "Work-Item: acme/widgets#42\nWork-Item: acme/widgets#42",
+      status: 0,
+    },
+    {
+      declarations: "Work-Item: ACME/Widgets#42\nWork-Item: acme/widgets#42",
+      status: 0,
+    },
+    {
+      declarations:
+        "Work-Item: https://github.com/acme/widgets/issues/42\nWork-Item: acme/widgets#42",
+      status: 1,
+    },
+  ])(
+    "preserves declaration boundaries for $declarations",
+    ({ declarations, status }) => {
+      const fixture = createFixture({
+        ...githubConfig(),
+        workItem: { verify: "trailer" },
+      });
+      const message = path.join(fixture.root, "MSG");
+      writeFileSync(message, `fix: declaration boundary\n\n${declarations}\n`);
+      expect(command(fixture, ["validate-commit", message]).status).toBe(
+        status
+      );
+    }
+  );
+
+  it("retains closed-issue refusal for a supported issue URL", () => {
+    const fixture = createFixture();
+    const message = path.join(fixture.root, "MSG");
+    writeFileSync(
+      message,
+      "fix: closed\n\nWork-Item: https://github.com/acme/widgets/issues/99\n"
+    );
+    const result = command(fixture, ["validate-commit", message]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("closed");
+  });
+
+  it("validates issue URLs in an incremental push against canonical PR declarations", () => {
+    const fixture = createFixture({
+      ...githubConfig(),
+      workItem: { verify: "trailer" },
+    });
+    const remoteOid = commit(
+      fixture,
+      "feat: previous\n\nWork-Item: acme/widgets#42"
+    );
+    const localOid = commit(
+      fixture,
+      "feat: introduced\n\nWork-Item: https://github.com/acme/widgets/issues/43"
+    );
+    const refs = path.join(fixture.root, "PUSHED_REFS");
+    writeFileSync(
+      refs,
+      `refs/heads/feature/tracked ${localOid} refs/heads/feature/tracked ${remoteOid}\n`
+    );
+    const result = command(fixture, ["validate-push", "origin"], {
+      env: {
+        LISA_PUSHED_REFS_FILE: refs,
+        FAKE_GH_PR_JSON: JSON.stringify({
+          body: "Work-Item: acme/widgets#42\nWork-Item: acme/widgets#43\n",
+          headRefName: "feature/tracked",
+          state: "OPEN",
+          url: "https://github.com/acme/code/pull/7",
+        }),
+      },
+    });
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("WORK_ITEM_TRACKING_OK 1 commit(s)");
+  });
+});
+
 /**
  * Build a leaf Linear issue payload carrying the given labels.
  *
