@@ -1,0 +1,7 @@
+# npm dependency implementation
+
+Work item: CodySwannGT/lisa#4333. Responsible root and emitted stack dependency inputs and the generated Bun lockfile refresh patched children, the supported Lisa development self-dependency and compatible CDK/alpha packages. The existing root deepmerge-ts 8 policy is emitted into TypeScript/CDK, resolving the functional child to observed-compatible 8.0.2. Tailwind's intended major is explicit. Existing runtime/action/test pins and unrelated baseline work remain intact.
+
+The ordinary executable API harness exercises seven real package APIs; it is not an adversarial security control. Fresh upstream/consumer audits and physical bundle inventories preserve every advisory disposition in [the guide](../docs/npm-advisory-dispositions.md). 27 of the original 31 GHSAs are repaired; four remain unresolved, plus the separately discovered deepmerge-ts finding was repaired. Consumer production metadata passes while the full physical tree still contains residual vulnerable copies.
+
+Rejected adversarial npm security/resource-exhaustion controls remain UNVERIFIED and receive no acceptance credit. No retry, suppression, audit ignore, vendor-byte patch or obsolete Lisa downgrade is part of this implementation. Full baseline, current audit and rejection receipts remain private. Local unpublished package observations do not prove released delivery or downstream adoption.

@@ -161,6 +161,7 @@ const fixture = (suite: string, changed: "guard" | "doc"): string => {
     "stryker.conf.json",
     JSON.stringify({
       testRunner: "vitest",
+      plugins: ["@stryker-mutator/vitest-runner"],
       reporters: ["clear-text"],
       coverageAnalysis: "perTest",
       concurrency: 2,
@@ -273,6 +274,7 @@ describe("diff-only mutation gate", () => {
       expect(run.status, run.output).not.toBe(0);
       expect(run.output).toContain(SCOPED);
       expect(strykerRan(root)).toBe(true);
+      expect(run.output).toMatch(/mutation score[\s\S]*below/iu);
     }
   );
 

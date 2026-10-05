@@ -10,7 +10,13 @@ const wrapperPid = Number(process.env["LISA_CDK_SYNTH_WRAPPER_PID"]);
 const fixtureTimeout =
   arm.startsWith("sig") || arm === "whole-sigkill"
     ? Number.POSITIVE_INFINITY
-    : 500;
+    : arm === "timeout"
+      ? 500
+      : undefined;
+
+// Ordinary synth cases inherit the CDK factory's 10-second budget. The short
+// override belongs only to the deliberate timeout arm; signal arms stay live
+// until their wrapper receives the lifecycle signal under test.
 
 /**
  * Signal the exact foreground wrapper whose PID survived the gated shell exec.

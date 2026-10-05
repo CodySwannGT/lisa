@@ -1,0 +1,7 @@
+# Rails tooling implementation
+
+Work item: CodySwannGT/lisa#4333. The five shared Rails seeds refresh eight tool families, load the YARD plugin through the supported RuboCop plugin mechanism, and start SimpleCov before application loading using its current API. Existing coverage floors remain 80% line / 70% branch. Create-only files retain their ownership semantics; all six agents consume equivalent shared sources.
+
+The executable Rails harness uses real tools with synthetic application data. Historical isolated Ruby 3.4.8 / Rails 8.1.4 proof includes 29 linted files with no offenses, a Brakeman scan with no warnings, six RSpec examples, fresh 16/16 covered lines and 2/2 branches, eight database-consistency checker families, and an HTTP 200 profiling request with observed SQL. Paired ordinary failures and corrected successes exercise the changed plugin, matcher, consistency and coverage APIs.
+
+Original constraints were tested before refresh; intentionally retained upper bounds and future migration steps are documented in [the migration guide](../docs/rails-tooling-migration.md). Raw tool output, exact owned database/resource identities and package hashes remain private. The historical generated fixture explicitly reconciled duplicate Brakeman declarations between the stock Gemfile and Gemfile.lisa before bundle resolution. This is not stock zero-edit readiness. Those historical tooling results do not retroactively prove the later failed full applies. Current registration repair and independent terminal package proof are reported separately.

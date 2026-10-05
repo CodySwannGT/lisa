@@ -1,8 +1,10 @@
 # frozen_string_literal: true
+
 # Seeded by Lisa on first setup — this file is YOURS.
 # Lisa will not overwrite it. (copy-overwrite assets ARE replaced each run.)
 
 require 'simplecov'
+SimpleCov.start
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|
