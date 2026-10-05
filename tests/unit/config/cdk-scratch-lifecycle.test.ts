@@ -93,9 +93,19 @@ describe("AWS CDK default synth scratch lifecycle", () => {
     expect(result.assembly).toContain(`${SCRATCH_NAMESPACE}${path.sep}run-`);
     expect(result.assembly).toContain(`${path.sep}worker-`);
     expect(existsSync(result.assembly as string)).toBe(false);
-    expect(result.run.status).toBe(expected.code);
+    expect(result.run.status, result.diagnosis).toBe(expected.code);
     expect(result.run.signal).toBe(expected.signal);
     expect(result.run.error).toBeUndefined();
+    const output = `${result.run.stdout}\n${result.run.stderr}`;
+    if (arm === "fail") {
+      // An incidental synth timeout must not stand in for the intended
+      // assertion failure while producing the same process exit status.
+      expect(output).toMatch(/expected.*fail.*pass/u);
+      expect(output).not.toContain("Test timed out");
+    }
+    if (arm === "timeout") {
+      expect(output).toContain("Test timed out in 500ms");
+    }
   });
 
   it("cleans one SIGKILLed run while preserving a second live worker and run", async () => {

@@ -43,7 +43,7 @@ async function seedPresetArtifacts(projectRoot: string): Promise<void> {
 }
 
 /**
- * Plant the package.json entries the CDK preset force-merges.
+ * Plant historical package.json entries older CDK presets force-merged.
  * @param projectRoot - Absolute project root
  * @returns Nothing
  */
@@ -79,6 +79,12 @@ describe("doctor CDK preset-adoption check", () => {
     expect(check.detail).toContain("tsconfig.cdk.json");
     expect(check.detail).toContain("aws-cdk-github-oidc");
     expect(check.detail).toContain("bin/infrastructure.js");
+    expect(check.detail).toContain("legacy `bin.infrastructure`");
+    expect(check.detail).toContain(
+      "host-owned or legacy `aws-cdk-github-oidc`"
+    );
+    expect(check.detail).toContain("current forced entries");
+    expect(check.detail).not.toContain("It also force-merged");
     expect(check.detail).toContain("knip");
   });
 

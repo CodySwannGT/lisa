@@ -54,3 +54,35 @@ Claude inference, change model, push or perform remote delivery. Research is
 read-only except its assigned audit report. Reviewer and verifier cannot repair
 source. Actual agent UUIDs and phase manifests are recorded in private stage
 state before their results are accepted.
+
+
+## Authorized DELIVERY continuation
+
+Native coordinator: Codex `/root`, session
+`01a10aa3-dc3a-7ca2-be03-c8ee8faa0bdf`. This invocation continues the existing
+parent Implement flow for #4345 only. The preceding local-donor stage has ended.
+Its no-delivery restriction applies to that stage. The operator separately
+authorized normal push, one batch PR, required review/check resolution, ancestry-
+preserving main merge, real release verification and released AC9 acceptance.
+
+Native catalogue delta: `collaboration.list_agents` currently exposes this
+coordinator only. `collaboration.spawn_agent` exposes generic inherited agents,
+without a specialist selector. No model override, new outer team, new issue or
+new claim is permitted. The existing research, builder, source reviewer and
+DIFFERENT empirical verifier remain the accepted independent local roles.
+
+INCLUDE - bounded delivery coordinator - owns current-main integration, ordinary
+hooks, batch PR linkage, hosted checks/reviews, merge and release readback.
+INCLUDE - github-agent obligations - coordinator performs only this leaf's
+supported lifecycle/backlink/evidence writes after live validation.
+INCLUDE - independent source reviewer - needed only if integration or a
+concrete failed gate changes reviewed source.
+INCLUDE - DIFFERENT released-consumer verifier - must independently apply and
+reapply the actual immutable published archive to a fresh anonymous Rails
+consumer and prove exact emitted helper/hook/CI adoption before AC9 acceptance.
+EXCLUDE - additional builders or outer team - no source rebuild is needed on
+unchanged accepted bytes. Concrete changed-boundary work returns to bounded
+Implement roles, preserving independence.
+All other catalogue dispositions above remain in effect. No Claude inference,
+model/guard/trust/approval/hook/floor override, foreign work mutation or #4347
+coordination takeover is authorized.

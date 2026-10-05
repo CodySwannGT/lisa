@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { dirname, join, relative, sep } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 
 import { replacePathSepForRegex } from "jest-regex-util";
 import {
@@ -86,7 +86,7 @@ describe("getExpoJestConfig haste traversal", () => {
     };
     mutableGracefulFs.readdir = (...args: unknown[]): unknown => {
       if (recordVisitedDirectories) {
-        visitedDirectories.push(String(args[0]));
+        visitedDirectories.push(resolve(String(args[0])));
       }
       return Reflect.apply(
         originalReaddir as (...parameters: unknown[]) => unknown,

@@ -18,8 +18,7 @@
       "watch": "node scripts/lib/worktree-dependencies.mjs && tsc -w"
     },
     "dependencies": {
-      "aws-cdk-github-oidc": "^2.4.1",
-      "constructs": "^10.4.5",
+      "constructs": "^10.7.2",
       "source-map-support": "^0.5.21"
     },
     "devDependencies": {
@@ -28,31 +27,33 @@
       "vite": "^8.3.2",
       "vitest": "^4.1.11",
       "@vitest/coverage-v8": "^4.1.11",
-      "eslint-plugin-oxlint": "^1.62.0",
-      "oxlint": "^1.62.0",
+      "eslint-plugin-oxlint": "1.62.0",
+      "oxlint": "1.62.0",
       "oxlint-tsgolint": "^0.24.0",
       "@stryker-mutator/core": "^9.0.0",
       "@stryker-mutator/vitest-runner": "^9.0.0"
-    },
-    "bin": {
-      "infrastructure": "bin/infrastructure.js"
     },
     "private": true,
     "overrides": {
       "aws-cdk-lib": "$aws-cdk-lib",
       "esbuild": "$esbuild",
-      "vite": "$vite"
+      "vite": "$vite",
+      "qs": "^6.16.0",
+      "deepmerge-ts": "^8.0.1"
     },
     "resolutions": {
       "aws-cdk-lib": "$aws-cdk-lib",
       "esbuild": "$esbuild",
-      "vite": "$vite"
+      "vite": "$vite",
+      "qs": "^6.16.0",
+      "deepmerge-ts": "^8.0.1"
     }
   },
   "defaults": {
     "dependencies": {
-      "@aws-cdk/aws-amplify-alpha": "^2.260.0-alpha.0",
-      "aws-cdk-lib": "2.260.0"
+      "aws-cdk-github-oidc": "^5.2.0",
+      "@aws-cdk/aws-amplify-alpha": "^2.272.0-alpha.0",
+      "aws-cdk-lib": "2.272.0"
     },
     "engines": {
       "npm": ">= 10.9.4",

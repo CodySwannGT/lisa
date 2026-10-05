@@ -1,6 +1,8 @@
 {
   "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
   "testRunner": "jest",
+  "_pluginsComment": "Resolve the declared runner explicitly for isolated dependency layouts instead of relying on sibling package discovery.",
+  "plugins": ["@stryker-mutator/jest-runner"],
   "jest": {
     "projectType": "custom",
     "configFile": "jest.config.ts",

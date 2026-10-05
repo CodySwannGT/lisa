@@ -2,6 +2,8 @@
   "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
   "_comment": "CDK owns this child-stack override because conventional CDK source lives in lib/ and bin/. Inheriting TypeScript's src-only mutate list makes the mutation gate inert in a CDK repository with no src/ directory. src remains eligible for hybrid repositories.",
   "testRunner": "vitest",
+  "_pluginsComment": "Resolve the declared runner explicitly for isolated dependency layouts instead of relying on sibling package discovery.",
+  "plugins": ["@stryker-mutator/vitest-runner"],
   "reporters": [
     "clear-text",
     "progress",

@@ -2517,7 +2517,7 @@ describe("PackageLisaStrategy", () => {
       const content = await fs.readJson(destPath);
       // Forced tooling wins over the project's pin.
       expect(content.dependencies.zod).toBe("^4.3.5");
-      expect(content.devDependencies.oxlint).toBe("^1.62.0");
+      expect(content.devDependencies.oxlint).toBe("1.62.0");
     });
 
     it("removes the inherited Vitest mutation runner from Expo projects", async () => {
@@ -2653,9 +2653,9 @@ describe("PackageLisaStrategy", () => {
       }
       // Exact pins (not just "is defined") so an accidental version bump in
       // the template is caught by this regression test.
-      expect(template.defaults.dependencies["aws-cdk-lib"]).toBe("2.260.0");
+      expect(template.defaults.dependencies["aws-cdk-lib"]).toBe("2.272.0");
       expect(template.defaults.dependencies["@aws-cdk/aws-amplify-alpha"]).toBe(
-        "^2.260.0-alpha.0"
+        "^2.272.0-alpha.0"
       );
     });
 
