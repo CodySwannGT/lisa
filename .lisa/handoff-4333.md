@@ -35,3 +35,71 @@ Historical joint Ruby tooling proof is reused only against identical seed/harnes
 CI, release delivery, downstream adoption and six independent agent journeys remain unproved. Complete-flow usage/cost is unknown; the private accounting uses one cumulative native snapshot. Binding and the original hold/history remain intact; current direct session repair authority is recorded honestly, without a fabricated human release.
 
 Automatic approval review rejected adversarial npm security/resource-exhaustion controls with “This content was flagged for possible cybersecurity risk.” Those controls remain UNVERIFIED with no acceptance credit and were not retried, recast or routed elsewhere. Complete originals and precise rejection receipts remain in ignored private context.
+
+## Current-main delivery continuation
+
+The preceding sections preserve donor-stage observations. Current direct session
+authority now authorizes one tooling PR and normal review, CI, merge, release and
+immutable owned-consumer verification. This changes the delivery boundary while
+retaining the historical hold and classifier record.
+
+Normal-hook integration commit `6134c125a61e99bd6b6c07955a6ee7c58c585e2c`
+has donor HEAD `fb19c8046ab48a9e574bc87e8b1eefafbd8394a9` and published
+4.69.3 main `ce7d04cb888627d03cdbe74191bc2a09a5e15184` as its parents.
+The released Rails safety helper matches main exactly; coverage starts through
+the refreshed spec helper. Thirteen released hook/compatibility surfaces also
+match main. The combined 30-file source digest is
+`e2eaa8de3cd49d2ce00efa258675e078e27673f95aef90717be55a6ab734b43e`.
+
+Independent current-byte source review reports findings `[]`, MLD `[]`.
+Combined focused gates pass 181 tests. Build, typecheck, both regenerated
+artifacts, normal slow lint, dead-code detection, all Git-visible code lint and
+tracked formatting pass. Whole-worktree lint also inspected ignored operational
+proof helpers and failed there; this is retained separately from the passing
+Git-visible source checks. Required CI must still run normally in its fresh
+checkout.
+
+Independent combined packed-host verification passes both journeys, with
+TypeScript/CDK bootstraps in 24.580/26.615 seconds under the unchanged 60-second
+base. Actual compiled Rails and Node/CDK full applies terminate successfully in
+30.935/21.986 seconds with vendor registration. The combined local raw tar is
+`75a36f7ea67d18e8d7a35acc128cfaa5463d0f47af84ef74968cd0a84989ae86`;
+this remains unpublished local proof. Fresh joint Ruby tooling now passes:
+29-file RuboCop with zero offenses, 79-check Brakeman with zero warnings and seven
+RSpec examples with zero failures. Measured coverage is 16/16 lines and 2/2
+branches; deliberate line and branch floor failures exit 2, followed by a
+restored passing run. The 80/70 floors remain unchanged. The emitted safety
+helper stays byte-exact; its pre-boot environment refusal also passes.
+
+Fresh owned MySQL 8.4 proof positively identifies all four isolated test roles
+before connections. Missing-index RED is followed by repaired schema and
+consistency success, and the real HTTP profiler observes SQL while advanced
+debug remains disabled. Stock fixture lint corrections, duplicate declarations,
+an explicit case-sensitive fixture collation and setup refusals remain disclosed
+preparation steps. They do not prove zero-edit stock readiness. A repeated
+index-positive log label retained identical raw bytes, but its earlier timing
+receipt was reconstructed from retained output and is labeled as such privately.
+No historical failure was relabeled as a product success.
+
+Fresh ordinary API checks pass seven cases. Raw audits remain upstream 1/1 and
+consumer 1/0, with the same four physical-tree residuals. The pre-existing local
+braces exception was preserved without modification; normal hook treatment of
+that exception does not turn the raw audit into a clean result. The development
+self-dependency floor recorded earlier admits the current supported release;
+the integration preserves Node/Bun/Actions/test pins and the released source.
+
+Inactive owned runtime copies were archived with exact membership, regular-file
+hashes and symlink targets before normal retirement. The two private archives
+retain 10,063 and 27,009 members. Top-level failed receipts, full authored context,
+rejected-control originals and active proof remained intact. No foreign target
+or shared vendor cache was removed. Publication, release readback, CI and issue
+completion still require their own terminal evidence.
+
+The independent combined verification is now terminal. Its 330-entry raw
+manifest has digest
+`e8cb40f2aade38d6d30d59bfe3eae4cc46b6f64549970142ada19c628ead7f1d`;
+the empirical result has digest
+`025819ea83b1777502d3fda9de67d7dc6f12a5f925a8427a6dd670358a9a1558`.
+Every retained entry was independently checked against its exact bytes. Owned
+MySQL removal, registration-process termination and fixture cleanup are
+confirmed, with no cleanup blockers. Findings and MLD are both `[]`.

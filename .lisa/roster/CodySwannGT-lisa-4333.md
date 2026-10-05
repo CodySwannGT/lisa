@@ -26,8 +26,9 @@ Four audit dispositions remain visible. MLD: `[]`.
 Current direct session authority authorizes latest-main integration, one new
 tooling PR, normal required review/CI, merge, genuine release and immutable owned
 consumer verification. Closure still requires complete authored evidence.
-The former role threads are absent from the live native catalog. Bounded generic
-roles below continue their responsibilities with inherited runtime defaults;
+The former role threads were absent from the initial live listing but remain
+resumable through native follow-up operations. The same bounded generic roles
+continue their responsibilities with inherited runtime defaults;
 there are no callable named specialist types. Prior reports remain historical.
 
 | Role | Current ownership | Boundary |
@@ -39,3 +40,9 @@ there are no callable named specialist types. Prior reports remain historical.
 
 The coordinator assigns files before each bounded task. Public evidence remains
 anonymous; exact runtime and target identities live only in ignored context.
+
+The three-way integration required no source conflict repair: the combined
+Rails helper is exactly current main, with coverage startup retained separately
+in the refreshed spec helper. Source review and empirical verification remain
+separate roles. A bounded npm implementer follow-up inspects historical owned
+scratch residue only, with a private report and no source/cleanup authority.
