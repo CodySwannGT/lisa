@@ -114,3 +114,5 @@ Executable follow-up proof: the two new real-template cases failed on the review
 
 ## Full-suite follow-up
 The normal pre-push run found that the installed-base adoption tables still named OIDC as forced and assumed a current forced bin. Align the shipped-table assertion with the current template while retaining explicit historical OIDC/bin diagnostics. Link the same published versioned API through its package artifact URL, without changing the reference guard. Preserve the actual failed full-suite run and rerun normal gates.
+
+The second complete pre-push run identified the existing CDK source-ownership guard: package names belong in the core adoption module, not the CLI reporter. Keep that guard unchanged, move the historical dependency list into its existing core owner, and rerun the actual CDK app-shape suite as well as the strategy and diagnostic cases. The failed run remains historical evidence.

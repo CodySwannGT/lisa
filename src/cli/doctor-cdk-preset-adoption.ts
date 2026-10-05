@@ -29,6 +29,7 @@ import {
   CDK_PRESET_ARTIFACTS,
   CDK_PRESET_BIN_ENTRY,
   CDK_PRESET_FORCED_DEPENDENCIES,
+  CDK_PRESET_LEGACY_DEPENDENCIES,
   cdkAppEntrySource,
   classifyCdkPresetAdoption,
   type CdkAppEntry,
@@ -220,9 +221,9 @@ function describeMergedEntries(manifest: unknown): readonly string[] {
     merged.length > 0
       ? [`runtime dependencies \`${merged.join("`, `")}\` in ${PACKAGE_JSON}`]
       : [],
-    "aws-cdk-github-oidc" in dependencies
-      ? ["a host-owned or legacy `aws-cdk-github-oidc` dependency"]
-      : [],
+    CDK_PRESET_LEGACY_DEPENDENCIES.filter(name => name in dependencies).map(
+      name => `a host-owned or legacy \`${name}\` dependency`
+    ),
     bin[CDK_PRESET_BIN_ENTRY.name] === CDK_PRESET_BIN_ENTRY.target
       ? [
           `a legacy \`bin.${CDK_PRESET_BIN_ENTRY.name}\` entry pointing at ` +

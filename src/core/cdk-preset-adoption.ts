@@ -75,6 +75,9 @@ export const CDK_PRESET_FORCED_DEPENDENCIES = [
   "source-map-support",
 ] as const;
 
+/** Dependencies older presets forced, now preserved as host-owned choices. */
+export const CDK_PRESET_LEGACY_DEPENDENCIES = ["aws-cdk-github-oidc"] as const;
+
 /** Historical `bin` entry older CDK presets force-merged; current applies preserve host bins. */
 export const CDK_PRESET_BIN_ENTRY = {
   name: "infrastructure",
