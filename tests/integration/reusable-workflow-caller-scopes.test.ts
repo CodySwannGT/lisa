@@ -100,6 +100,10 @@ const BASELINE: Readonly<Record<string, ScopeMap>> = {
   // `contents: read` is the floor any caller already holds, since a caller
   // that cannot read contents cannot check itself out.
   "gates.yml": { contents: "read" },
+  // New route, not a widened existing workflow. Its new same-commit callers
+  // explicitly grant contents:read, which their checkout jobs already require.
+  // No provider, actions, checks or write scope is added. Freeze this minimum.
+  "history-secrets.yml": { contents: "read" },
   "lighthouse.yml": {},
   "load-test.yml": {},
   // `contents: read` only. The leg-ordering job reads the jobs API through the

@@ -60,6 +60,7 @@ interface Step {
 
 /** One job, as this suite reads it. */
 interface Job {
+  uses?: string;
   name?: string;
   strategy?: { matrix?: unknown; "fail-fast"?: boolean };
   steps?: Step[];
@@ -181,6 +182,23 @@ describe("no gate is proved twice", () => {
       .map(match => match[1])
       .filter((gate): gate is string => gate !== undefined)
   );
+  // The declared-only history prover lives in a same-commit nested workflow.
+  // Derive its real block rather than inventing an unconfigured fallback row.
+  for (const job of Object.values(JOBS)) {
+    if (job.uses !== "./.github/workflows/history-secrets.yml") continue;
+    const nested = yaml.load(
+      fs.readFileSync(path.join(process.cwd(), job.uses), "utf8")
+    ) as { jobs: Record<string, Job> };
+    for (const step of Object.values(nested.jobs).flatMap(
+      entry => entry.steps ?? []
+    )) {
+      if (
+        step.env?.["GATE_ID"] &&
+        step.run?.includes("historyPolicy(process.cwd()")
+      )
+        HARDCODED.add(step.env["GATE_ID"]);
+    }
+  }
 
   it("finds the hand-written blocks at all, so the comparison is not vacuous", () => {
     // The floor is high on purpose. An earlier draft matched `[a-z-]+` and

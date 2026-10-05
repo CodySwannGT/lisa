@@ -9,11 +9,15 @@
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import {
+  accessSync,
   chmodSync,
+  constants,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -45,6 +49,85 @@ export const PINS = Object.freeze({
   },
 });
 const digest = bytes => createHash("sha256").update(bytes).digest("hex");
+const shellQuote = value => `'${value.replaceAll("'", "'\\''")}'`;
+
+/** Audit the actual vendor Git children: Gitleaks can swallow their failures. */
+const auditedGit = scratch => {
+  const environment = gitEnvironment();
+  const binary = (environment.PATH ?? "")
+    .split(delimiter)
+    .map(directory => resolve(directory || ".", "git"))
+    .find(candidate => {
+      try {
+        accessSync(candidate, constants.X_OK);
+        return statSync(candidate).isFile();
+      } catch {
+        return false;
+      }
+    });
+  if (!binary)
+    throw new HistorySecretError(
+      "Git is unavailable for scanner execution. Restore Git on PATH and retry; safety is unproved."
+    );
+  const directory = join(scratch, "audited-git");
+  mkdirSync(directory, { mode: 0o700 });
+  const record = join(directory, "status.jsonl");
+  writeFileSync(record, "", { mode: 0o600 });
+  const launcher = join(directory, "audit.mjs");
+  // Inherit streaming stdin/stdout/stderr. Only status is captured here; the
+  // parent contains vendor diagnostics. The child deadline precedes the
+  // vendor's 120-second deadline, which precedes the outer 130-second deadline.
+  writeFileSync(
+    launcher,
+    `import { spawn } from "node:child_process";
+import { appendFileSync } from "node:fs";
+const args = process.argv.slice(2);
+let failure = false;
+const child = spawn(${JSON.stringify(binary)}, args, {
+  stdio: "inherit", timeout: 110000, killSignal: "SIGKILL"
+});
+child.once("error", () => { failure = true; });
+child.once("close", (status, signal) => {
+  appendFileSync(${JSON.stringify(record)}, JSON.stringify({
+    log: args[0] === "-C" && args[2] === "log",
+    status, signal, failure
+  }) + "\\n", { mode: 0o600 });
+  process.exitCode = !failure && !signal && status === 0 ? 0 : 1;
+});
+`,
+    { mode: 0o600 }
+  );
+  writeFileSync(
+    join(directory, "git"),
+    `#!/bin/sh\nexec ${shellQuote(process.execPath)} ${shellQuote(launcher)} "$@"\n`,
+    { mode: 0o700 }
+  );
+  return {
+    environment: {
+      ...environment,
+      PATH: `${directory}${delimiter}${environment.PATH ?? ""}`,
+    },
+    begin: () => writeFileSync(record, "", { mode: 0o600 }),
+    succeeded: () => {
+      try {
+        const rows = readFileSync(record, "utf8")
+          .trim()
+          .split("\n")
+          .filter(Boolean)
+          .map(line => JSON.parse(line));
+        return (
+          rows.some(row => row.log === true) &&
+          rows.every(
+            row =>
+              row.status === 0 && row.signal === null && row.failure === false
+          )
+        );
+      } catch {
+        return false;
+      }
+    },
+  };
+};
 const pin = () => {
   const selected = PINS[`${process.platform}_${process.arch}`];
   if (!selected)
@@ -177,8 +260,10 @@ export const scanCommits = (commits, cwd, requested) => {
       mode: 0o600,
     });
     const findings = [];
+    const audit = auditedGit(scratch);
     for (let offset = 0; offset < commits.length; offset += 100) {
       const group = commits.slice(offset, offset + 100);
+      audit.begin();
       const result = spawnSync(
         scanner,
         [
@@ -192,6 +277,10 @@ export const scanCommits = (commits, cwd, requested) => {
           "--redact=100",
           "--no-banner",
           "--no-color",
+          "--log-level",
+          "error",
+          "--platform",
+          "none",
           "--exit-code",
           "42",
           "--timeout",
@@ -205,12 +294,19 @@ export const scanCommits = (commits, cwd, requested) => {
         ],
         {
           cwd: scratch,
-          env: gitEnvironment(),
+          env: audit.environment,
           timeout: 130000,
           maxBuffer: 16 * 1024 * 1024,
         }
       );
-      if (result.error || result.signal || ![0, 42].includes(result.status))
+      if (
+        result.error ||
+        result.signal ||
+        ![0, 42].includes(result.status) ||
+        result.stdout.length ||
+        result.stderr.length ||
+        !audit.succeeded()
+      )
         throw new HistorySecretError(
           "Gitleaks 8.30.1 execution/configuration failed. Repair the pinned scanner and complete Git objects; no safety result was established."
         );

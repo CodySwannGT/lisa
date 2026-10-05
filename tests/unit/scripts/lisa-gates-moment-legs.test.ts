@@ -477,6 +477,7 @@ const JOB_BACKED = [
   "environment-reseed",
   "environment-reset",
   "format-conformance",
+  "introduced-history-credential-leakage",
   "journey-coverage",
   "learnings-budget",
   "license-compliance",

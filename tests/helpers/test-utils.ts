@@ -205,6 +205,8 @@ export async function createRailsProject(dir: string): Promise<void> {
     path.join(dir, GEMFILE),
     'source "https://rubygems.org"\ngem "rails"\n'
   );
+  // The required managed Rails route needs explicit readable host configuration.
+  await fs.writeJson(path.join(dir, ".lisa.config.json"), {});
 }
 
 /**
@@ -314,9 +316,12 @@ export async function createMockLisaDir(dir: string): Promise<void> {
     '[tools]\nruby = "3.4.8"\n'
   );
   await fs.ensureDir(path.join(railsCreateOnly, ".github", "workflows"));
-  await fs.writeFile(
-    path.join(railsCreateOnly, ".github", "workflows", "ci.yml"),
-    "name: CI\n\non:\n  pull_request:\n    types: [opened, synchronize, reopened, labeled, unlabeled]\n  workflow_dispatch:\n\njobs:\n  quality:\n    name: Quality Checks\n    uses: ./.github/workflows/quality.yml\n    secrets: inherit\n"
+  await fs.copyFile(
+    path.resolve(
+      import.meta.dirname,
+      "../../rails/create-only/.github/workflows/ci.yml"
+    ),
+    path.join(railsCreateOnly, ".github", "workflows", "ci.yml")
   );
   await fs.writeFile(
     path.join(railsCreateOnly, ".github", "workflows", "quality.yml"),

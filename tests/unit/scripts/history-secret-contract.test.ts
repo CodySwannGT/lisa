@@ -8,6 +8,7 @@ import {
   parsePush,
   eventPairs,
 } from "../../../all/copy-overwrite/scripts/lib/history-secret-git.mjs";
+import { resolveMoment } from "../../../all/copy-overwrite/scripts/lisa-gates.mjs";
 const oid = "a".repeat(40);
 const zero = "0".repeat(40);
 describe("required introduced history contract", () => {
@@ -56,5 +57,29 @@ describe("required introduced history contract", () => {
     expect(eventPairs({ before: oid, after: oid }, "push", 40)).toEqual([
       { before: oid, after: oid },
     ]);
+  });
+  it("resolves only the new manifest-free owned facade and preserves unrelated choices", () => {
+    const gates = {
+      "introduced-history-credential-leakage": {
+        push: "required",
+        "pull-request": "required",
+      },
+      "credential-leakage": { "pull-request": "off" },
+    };
+    for (const moment of ["push", "pull-request"])
+      expect(
+        resolveMoment({ gates, moment, scripts: null }).find(
+          (entry: { id: string }) =>
+            entry.id === "introduced-history-credential-leakage"
+        )
+      ).toMatchObject({ level: "required", mode: "builtin", command: null });
+    expect(
+      resolveMoment({
+        gates,
+        moment: "pull-request",
+        scripts: null,
+        includeOff: true,
+      }).find((entry: { id: string }) => entry.id === "credential-leakage")
+    ).toMatchObject({ level: "off" });
   });
 });

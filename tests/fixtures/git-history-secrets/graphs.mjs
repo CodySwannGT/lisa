@@ -3,13 +3,23 @@
  * @description Actual synthetic history journey boundary witnesses.
  * @module history-secrets-fixtures
  */
-/**
- * Exercise introduced commit graphs with the actual supported scanner.
- * @param harness - Private disposable fixture operations
- * @returns Git boundaries reused by the failure and event controls
- */
+import { cpSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 export const graphCases = harness => {
-  const { git, commit, secret, initialize, scan } = harness;
+  const {
+    args,
+    option,
+    observations,
+    command,
+    requireFact,
+    git,
+    write,
+    commit,
+    secret,
+    initialize,
+    emitted,
+    scan,
+  } = harness;
   try {
     const zero = "0".repeat(40);
     const fixture = initialize("multiref");
@@ -69,6 +79,67 @@ export const graphCases = harness => {
       42
     );
     scan(cwd, "empty", [], 0);
+    write(
+      cwd,
+      ".lisa.config.json",
+      JSON.stringify({
+        gates: {
+          "introduced-history-credential-leakage": { push: "required" },
+        },
+      })
+    );
+    const trace = join(cwd, "scripts");
+    cpSync(join(emitted, "scripts"), trace, { recursive: true });
+    write(
+      cwd,
+      "scripts/lisa-work-item.mjs",
+      `import{readFileSync,writeFileSync}from'node:fs';writeFileSync('trace-input',readFileSync(0),{mode:0o600});console.error(${JSON.stringify(harness.values[0])});process.exitCode=1;\n`
+    );
+    const wrapper = command(
+      process.execPath,
+      [join(trace, "lisa-rails-prepush.mjs"), "origin"],
+      cwd,
+      multi.input
+    );
+    requireFact(
+      wrapper.status === 1 &&
+        readFileSync(join(cwd, "trace-input"), "utf8") === multi.input,
+      "Traceability fan-out on finding failed."
+    );
+    observations.push({
+      name: "buffered-stdin-fan-out-even-on-finding",
+      exit: wrapper.status,
+    });
+    const lefthook = args.includes("--lefthook")
+      ? resolve(option("--lefthook"))
+      : "lefthook";
+    cpSync(join(emitted, "lefthook.yml"), join(cwd, "lefthook.yml"));
+    const hook = command(
+      lefthook,
+      [
+        "run",
+        "pre-push",
+        "origin",
+        "--command",
+        "work-item",
+        "--no-auto-install",
+        "--no-tty",
+        "--colors",
+        "off",
+      ],
+      cwd,
+      multi.input
+    );
+    requireFact(
+      hook.status === 1 &&
+        readFileSync(join(cwd, "trace-input"), "utf8") === multi.input &&
+        hook.stdout.includes("generic-api-key"),
+      "Actual emitted Lefthook stdin route failed."
+    );
+    observations.push({
+      name: "actual-emitted-lefthook-multiref",
+      exit: hook.status,
+    });
     git(cwd, "checkout", "-q", "first");
     git(cwd, "merge", "--no-ff", "second", "-m", "merge fixture");
     const merged = git(cwd, "rev-parse", "HEAD");

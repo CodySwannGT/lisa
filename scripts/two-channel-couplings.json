@@ -4,6 +4,10 @@
     "quality.yml::scripts/generate-nightly-e2e-guard-certificate.mjs": "Lisa-source-only branch. Both reusable jobs require `github.repository == 'CodySwannGT/lisa'` before the step can start, and the run body repeats that exact repository guard before checking this artifact path. Ordinary and private host callers therefore skip the step without reading or fetching from their own tree. The scoped branch fetches only the immutable refs needed to behavior-test Lisa's own retained certificate inputs. Ratified because the caller-tree read is unreachable outside this repository, not because an undelivered host dependency is tolerated."
   },
   "staleness": {
+    "history-secrets.yml::scripts/lib/history-secret-policy.mjs": {
+      "decision": "warranted",
+      "reason": "Verdict-bearing required route delivered through full Lisa apply. An absent policy helper fails its import with static actionable guidance; the existence test chooses the emitted or Lisa-source directory and does not measure age. A successful historyPolicy import and required builtin resolution establish capability only. Neither the reusable workflow's contract major nor the pinned Gitleaks binary checksum/version establishes the installed policy/range helper's contract version. A superseded helper could interpret the declaration or required facade differently, so an artifact version handshake is warranted and remains an open obligation rather than a claimed handshake or exemption."
+    },
     "create-github-issue-on-failure.yml::scripts/nightly-e2e-provider-action.mjs": {
       "decision": "not-needed",
       "reason": "Advisory transport, not a verdict. The script files and reconciles a tracker issue about a nightly run that has ALREADY failed; it posts no check context and no job depends on its answer. A superseded copy files a differently-shaped issue, which lands in front of a human who can see it — the visible failure, not the believed-red one this dimension exists to catch. A handshake here would gate issue filing on a version comparison and buy no cover."
@@ -94,14 +98,14 @@
     }
   },
   "inspected": {
-    "workflows": 23,
-    "steps": 786,
-    "couplings": 33,
-    "inventory": 93
+    "workflows": 24,
+    "steps": 788,
+    "couplings": 34,
+    "inventory": 95
   },
   "counts": {
     "package-backed": 10,
-    "apply-lagged": 21,
+    "apply-lagged": 22,
     "never-delivered": 0,
     "undelivered": 2
   },
@@ -109,13 +113,13 @@
     "version-handshake": 4,
     "capability-probe": 0,
     "existence-only": 5,
-    "no-probe": 12,
+    "no-probe": 13,
     "unchecked": 2
   },
   "decisionCounts": {
     "handshake": 4,
     "not-needed": 11,
-    "warranted": 8
+    "warranted": 9
   },
   "couplings": [
     {
@@ -189,6 +193,26 @@
         "typescript/copy-overwrite"
       ],
       "detail": "`create-sentry-issue-on-failure.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/nightly-e2e-provider-action.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (typescript/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text carries none of the tokens this scan can see (`else-branch`, `exit-zero`, `exit-nonzero`, `error-annotation`, `notice-annotation`, `failure-suppression`), which is a statement about those names and not about the step's behaviour. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. None of the staleness tokens this scan can see (`artifact-declares-version`, `artifact-answers-version`, `step-requests-version`, `workflow-requests-version`) were found."
+    },
+    {
+      "key": "history-secrets.yml::scripts/lib/history-secret-policy.mjs",
+      "workflow": "history-secrets.yml",
+      "path": "scripts/lib/history-secret-policy.mjs",
+      "channel": "apply",
+      "verdict": "apply-lagged",
+      "remedy": "run-lisa-apply",
+      "guarded": false,
+      "handling": [
+        "else-branch"
+      ],
+      "detection": "no-probe",
+      "stalenessSignals": [],
+      "decision": "warranted",
+      "reason": "Verdict-bearing required route delivered through full Lisa apply. An absent policy helper fails its import with static actionable guidance; the existence test chooses the emitted or Lisa-source directory and does not measure age. A successful historyPolicy import and required builtin resolution establish capability only. Neither the reusable workflow's contract major nor the pinned Gitleaks binary checksum/version establishes the installed policy/range helper's contract version. A superseded helper could interpret the declaration or required facade differently, so an artifact version handshake is warranted and remains an open obligation rather than a claimed handshake or exemption.",
+      "lanes": [
+        "all/copy-overwrite"
+      ],
+      "detail": "`history-secrets.yml` is delivered at `@main`, so this step is live in every consumer on their next run. It reads `scripts/lib/history-secret-policy.mjs` from the CALLER's tree with no package-relative candidate, and Lisa delivers that path on the `lisa apply` channel (all/copy-overwrite). The two halves land in the wrong order: this step is live everywhere immediately, the file it needs is live only where somebody applied. No existence test guards the read, which is ALL this scan examined of the step's control flow: it did not read anything that could absorb the failure. An absent path most likely fails the job loudly — the better of the two failures, because it is visible — but that is inferred from the missing guard, NOT MEASURED. The step's text does carry `else-branch` — located in the step, deliberately NOT related to this read, and enough to make \"it skips silently\" a claim to check rather than assume. STALENESS (a separate dimension from the delivery verdict above): `no-probe`. Neither an existence test nor a version probe bears on this read, so nothing here distinguishes a current artifact from an absent or a superseded one. None of the staleness tokens this scan can see (`artifact-declares-version`, `artifact-answers-version`, `step-requests-version`, `workflow-requests-version`) were found."
     },
     {
       "key": "maestro-native-e2e.yml::scripts/classify-maestro-failures.mjs",

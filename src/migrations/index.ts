@@ -12,6 +12,7 @@ import { EnsurePlaywrightDedicatedCallerMigration } from "./ensure-playwright-de
 import { EnsurePushDefaultSafeMigration } from "./ensure-push-default-safe.js";
 import { EnsureQualityCallerScopesMigration } from "./ensure-quality-caller-scopes.js";
 import { EnsureSeededGatesMigration } from "./ensure-seeded-gates.js";
+import { EnsureRequiredHistorySecretGateMigration } from "./ensure-required-history-secret-gate.js";
 import { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes-lisa-harness.js";
 import { EnsureThirdPartyActionPinsMigration } from "./ensure-third-party-action-pins.js";
 import { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
@@ -47,6 +48,7 @@ export { EnsurePlaywrightDedicatedCallerMigration } from "./ensure-playwright-de
 export { EnsurePushDefaultSafeMigration } from "./ensure-push-default-safe.js";
 export { EnsureQualityCallerScopesMigration } from "./ensure-quality-caller-scopes.js";
 export { EnsureSeededGatesMigration } from "./ensure-seeded-gates.js";
+export { EnsureRequiredHistorySecretGateMigration } from "./ensure-required-history-secret-gate.js";
 export { EnsureSonarExcludesLisaHarnessMigration } from "./ensure-sonar-excludes-lisa-harness.js";
 export { EnsureThirdPartyActionPinsMigration } from "./ensure-third-party-action-pins.js";
 export { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-local-files-fallback.js";
@@ -84,6 +86,7 @@ export class MigrationRegistry {
       new EnsurePushDefaultSafeMigration(),
       new EnsureQualityCallerScopesMigration(),
       new EnsureSeededGatesMigration(),
+      new EnsureRequiredHistorySecretGateMigration(),
       new PreserveVerificationOptInsMigration(),
       new EnsureSonarExcludesLisaHarnessMigration(),
       new EnsureThirdPartyActionPinsMigration(),

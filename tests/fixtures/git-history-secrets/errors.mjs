@@ -5,6 +5,7 @@
  */
 import { mkdirSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { vendorErrorCases } from "./vendor-errors.mjs";
 export const errorCases = (harness, fixture) => {
   const {
     SCANNER_ENTRY,
@@ -23,6 +24,7 @@ export const errorCases = (harness, fixture) => {
     scan,
   } = harness;
   try {
+    vendorErrorCases(harness);
     const { zero, cwd, base, earlier, second, multi } = fixture;
     for (const [name, event, eventName] of [
       [
