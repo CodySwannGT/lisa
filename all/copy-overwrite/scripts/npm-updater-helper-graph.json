@@ -103,6 +103,23 @@
       "dynamicImports": [],
       "children": []
     },
+    "lib/history-secret-evidence-shape.mjs": {
+      "sha256": "f9b606645b9f3d55031e9cd0caf874395ae17ec6425f4a2adf6ca29e87560f0e",
+      "staticImports": [],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/history-secret-evidence.mjs": {
+      "sha256": "81247f4a85322a96e5ef049acec12b84925cc8fbac90b4a6811479f8a311e2b2",
+      "staticImports": [
+        "lib/history-secret-evidence-shape.mjs",
+        "lib/history-secret-git.mjs",
+        "node:child_process",
+        "node:crypto"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
     "lib/history-secret-git.mjs": {
       "sha256": "102276aef106e07b2b385fe8f2d3b54a9d30381633a22e07d5d74a5db9ddf320",
       "staticImports": [
@@ -125,8 +142,9 @@
       "children": []
     },
     "lib/history-secret-scanner.mjs": {
-      "sha256": "a68a4ba784699c470e1525ed3cd2f31f399cc80472d2bf5653d936bf3252c658",
+      "sha256": "d77fc82db53ffbfef6bd714b600ed9f8b711cf52bbf630020efa4841ae5f083c",
       "staticImports": [
+        "lib/history-secret-evidence.mjs",
         "lib/history-secret-git.mjs",
         "node:child_process",
         "node:crypto",
@@ -402,7 +420,7 @@
       "children": []
     },
     "lib/npm-update-helper-inventory.mjs": {
-      "sha256": "009027d139bad70f711306101dfa8c3c1e6d3ff2989820b1d8eff02b87504323",
+      "sha256": "39bf4d553af77101e03946ebd4769a303af1098d8f5f938c3a3259695d59d065",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
@@ -908,7 +926,7 @@
       "children": []
     },
     "lisa-history-secrets.mjs": {
-      "sha256": "6887f865cee4cca397cac9f0efb366f2e5b9d4c68596f0306775709e354a85d2",
+      "sha256": "966301ef764ddd5cfb37d26c22dd2dc4712496e67f63adddde9635fec6f6136c",
       "staticImports": [
         "node:fs"
       ],
@@ -999,7 +1017,7 @@
       "children": []
     },
     "lisa-work-item.mjs": {
-      "sha256": "7610def8e7cb165c43a7676e5ec4dc58356767b23d513d3296eed34ec0c2da10",
+      "sha256": "b396e85f1652e07e8b64e32cb310331156ee1bb61fb1d8a7973b896dd2522004",
       "staticImports": [
         "lib/invoked-as-script.mjs",
         "node:child_process",

@@ -19,6 +19,7 @@ import { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-loc
 import { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared.js";
 import { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
 import { PruneRetiredClaudeDenyRulesMigration } from "./prune-retired-claude-deny-rules.js";
+import { PruneRetiredEntireHooksMigration } from "./prune-retired-entire-hooks.js";
 import { PreserveVerificationOptInsMigration } from "./preserve-verification-opt-ins.js";
 import { ReconcileClaudeStackPluginsMigration } from "./reconcile-claude-stack-plugins.js";
 import { UntrackCodexMarketplaceMigration } from "./untrack-codex-marketplace.js";
@@ -55,6 +56,7 @@ export { EnsureTsconfigLocalFilesFallbackMigration } from "./ensure-tsconfig-loc
 export { EnsureWikiSourceDeclaredMigration } from "./ensure-wiki-source-declared.js";
 export { EnsureTsconfigLocalIncludesMigration } from "./ensure-tsconfig-local-includes.js";
 export { PruneRetiredClaudeDenyRulesMigration } from "./prune-retired-claude-deny-rules.js";
+export { PruneRetiredEntireHooksMigration } from "./prune-retired-entire-hooks.js";
 export { PreserveVerificationOptInsMigration } from "./preserve-verification-opt-ins.js";
 export { ReconcileClaudeStackPluginsMigration } from "./reconcile-claude-stack-plugins.js";
 export { UntrackCodexMarketplaceMigration } from "./untrack-codex-marketplace.js";
@@ -92,6 +94,7 @@ export class MigrationRegistry {
       new EnsureThirdPartyActionPinsMigration(),
       new EnsureWikiSourceDeclaredMigration(),
       new PruneRetiredClaudeDenyRulesMigration(),
+      new PruneRetiredEntireHooksMigration(),
       new ReconcileClaudeStackPluginsMigration(),
       new UntrackCodexMarketplaceMigration(),
       // Last: every other workflow migration has finished editing caller files,

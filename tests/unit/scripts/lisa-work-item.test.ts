@@ -1,4 +1,4 @@
-/* eslint-disable max-lines, sonarjs/no-duplicate-string, jsdoc/require-param, jsdoc/require-returns, @eslint-community/eslint-comments/disable-enable-pair -- one hermetic fake-provider fixture exercises the full local tracking contract */
+/* eslint-disable sonarjs/no-duplicate-string, @eslint-community/eslint-comments/disable-enable-pair -- one hermetic fake-provider fixture exercises the full local tracking contract */
 /**
  * Hermetic tests for Lisa's provider-neutral work-item Git gate.
  *
@@ -302,6 +302,40 @@ printf '%s\\n' "$FAKE_CURL_JSON"`
 function githubConfig(repository = "widgets"): object {
   return { tracker: "github", github: { org: "acme", repo: repository } };
 }
+
+describe("qualified GitHub references through the actual push CLI", () => {
+  it("validates every qualified commit in the captured push range against the PR body", () => {
+    const fixture = createFixture({
+      ...githubConfig(),
+      workItem: { verify: "trailer" },
+    });
+    const remoteOid = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    commit(fixture, "fix: qualified\n\nWork-Item: github/acme/widgets#42");
+    const localOid = commit(
+      fixture,
+      "fix: canonical\n\nWork-Item: acme/widgets#42"
+    );
+    const refs = path.join(fixture.root, "PUSHED_REFS");
+    writeFileSync(
+      refs,
+      `refs/heads/feature/tracked ${localOid} refs/heads/feature/tracked ${remoteOid}\n`
+    );
+    const result = command(fixture, ["validate-push", "origin"], {
+      env: {
+        LISA_PUSHED_REFS_FILE: refs,
+        FAKE_GH_PR_JSON: JSON.stringify({
+          body: "Work-Item: github/acme/widgets#42\n",
+          headRefName: "feature/tracked",
+          state: "OPEN",
+          url: "https://github.com/acme/code/pull/7",
+        }),
+      },
+    });
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("WORK_ITEM_TRACKING_OK 2 commit(s)");
+  });
+});
 
 describe("GitHub issue URLs through the actual CLI", () => {
   it("links an eligible issue URL and emits a canonical binding and trailer", () => {

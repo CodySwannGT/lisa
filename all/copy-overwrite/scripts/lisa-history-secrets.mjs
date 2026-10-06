@@ -25,6 +25,7 @@ export const main = async (
     const {
       HistorySecretError,
       objectWidth,
+      gitRead,
       parsePush,
       eventPairs,
       introducedCommits,
@@ -91,7 +92,13 @@ export const main = async (
       console.log("No introduced history. Scanner was not run.");
       return 0;
     }
-    const result = scanCommits(commits, cwd, scanner);
+    const heads = pairs
+      .filter(pair => !/^0+$/u.test(pair.after))
+      .map(pair =>
+        gitRead(["rev-parse", "--verify", `${pair.after}^{commit}`], cwd)
+      )
+      .filter(head => commits.includes(head));
+    const result = scanCommits(commits, cwd, scanner, heads);
     console.log(JSON.stringify(result));
     if (result.findings.length > 0) {
       console.error(

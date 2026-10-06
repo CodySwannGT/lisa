@@ -212,7 +212,7 @@ fi
 
 # Strip only hook entries that reference deleted .claude/hooks/*.sh scripts
 # (hooks moved to plugin.json; file-path hooks would produce "No such file or directory" errors).
-# Preserve inline command hooks (e.g. `command -v entire ...`, `echo ...`) and stack-template hooks
+# Preserve host-owned inline command hooks (e.g. reviewed wrappers, `echo ...`) and stack-template hooks
 # from rails/merge/.claude/settings.json.
 if [ "$IS_LISA_SELF" != "true" ] && [ -f "$SETTINGS_FILE" ] && command -v python3 >/dev/null 2>&1; then
   python3 - "$SETTINGS_FILE" <<'PYEOF'

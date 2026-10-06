@@ -20,6 +20,8 @@ const COMMON = [
   "lib/worktree-dependencies.mjs",
   "lib/history-secret-git.mjs",
   "lib/history-secret-scanner.mjs",
+  "lib/history-secret-evidence.mjs",
+  "lib/history-secret-evidence-shape.mjs",
   "lib/history-secret-policy.mjs",
   "lib/github-attestation-verifier.mjs",
   "lib/github-attestation-provider.mjs",

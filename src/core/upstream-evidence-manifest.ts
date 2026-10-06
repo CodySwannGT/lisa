@@ -36,12 +36,16 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "60d74d266cfacc582a3d6d6ff8be78e6b4e204370067955c2ec7a843a810f863",
     "all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs":
       "68d69315436c7c60870b67f74efce36e979cf0823cdbbbb68b3e0a06ef017a4f",
+    "all/copy-overwrite/scripts/lib/history-secret-evidence-shape.mjs":
+      "f9b606645b9f3d55031e9cd0caf874395ae17ec6425f4a2adf6ca29e87560f0e",
+    "all/copy-overwrite/scripts/lib/history-secret-evidence.mjs":
+      "81247f4a85322a96e5ef049acec12b84925cc8fbac90b4a6811479f8a311e2b2",
     "all/copy-overwrite/scripts/lib/history-secret-git.mjs":
       "102276aef106e07b2b385fe8f2d3b54a9d30381633a22e07d5d74a5db9ddf320",
     "all/copy-overwrite/scripts/lib/history-secret-policy.mjs":
       "ca75ebbc45fca4c52400612ae818d231a28289b50a70f6cdee6feb51b144896f",
     "all/copy-overwrite/scripts/lib/history-secret-scanner.mjs":
-      "a68a4ba784699c470e1525ed3cd2f31f399cc80472d2bf5653d936bf3252c658",
+      "d77fc82db53ffbfef6bd714b600ed9f8b711cf52bbf630020efa4841ae5f083c",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lib/kill-marks.mjs":
@@ -83,7 +87,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs":
       "42ed900aefea88879bd158815eda09e6b98d85953316251e5bdab04bcad4c200",
     "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs":
-      "009027d139bad70f711306101dfa8c3c1e6d3ff2989820b1d8eff02b87504323",
+      "39bf4d553af77101e03946ebd4769a303af1098d8f5f938c3a3259695d59d065",
     "all/copy-overwrite/scripts/lib/npm-update-helper.mjs":
       "d6ad6d094f56a1d08fabbae7e2df90779f7912d3380a4c9e792b305863901dda",
     "all/copy-overwrite/scripts/lib/npm-update-hook-installation.mjs":
@@ -193,7 +197,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "f8cd07bdcdfc4066467635d86dc2a17337d4adacdd8829745482877dbd838f5e",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
-      "6887f865cee4cca397cac9f0efb366f2e5b9d4c68596f0306775709e354a85d2",
+      "966301ef764ddd5cfb37d26c22dd2dc4712496e67f63adddde9635fec6f6136c",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
       "b17d73c02245d64ae96ba4b9ec642f5a54a827accb1af292a4600a98e1a596f4",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
@@ -235,7 +239,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "7610def8e7cb165c43a7676e5ec4dc58356767b23d513d3296eed34ec0c2da10",
+      "b396e85f1652e07e8b64e32cb310331156ee1bb61fb1d8a7973b896dd2522004",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/npm-updater-gate-runtime.json":
@@ -245,7 +249,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "260d194175737ed1cfdf6d208696bb58d035a45b2fd27c83a54e75be65ab5cb0",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "6ae05afed835da768a443d2286fff480925f6a81633ccbc540c859a50a720fe2",
+      "7b1d6bba391f105b9d53b91773fd207c9a5e9b5bfcd638e1e6b579d507279d7d",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -2391,7 +2395,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/github-rulesets/quality-checks.json":
       "0ec1c366589edbaa6b8f45f940cef3ada5ed7b1a956d98d3fa6034b0f78fbc7c",
     "rails/merge/.claude/settings.json":
-      "16c30d17bc6941a1ffa7fce54a5ab2e87101f7ea77a69b1d695eccd07e156ab7",
+      "01174bd607fe8166e3b588a5679940e598a7b81affae7cd318d4efe47375c156",
     "scripts/build-plugins.sh":
       "dde267c18daf60ca6e3d7bbad3bbad9ed3d63e84c8340bed5895da588d5bbe92",
     "scripts/check-cwd-resolution-corpus.mjs":
@@ -2513,7 +2517,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/github-status-check.sh":
       "c6a4a13ff5cf689fcbd7a6aca718f9e7d46d54ccb6687f662b055c1ca20e792f",
     "scripts/install-claude-plugins.sh":
-      "f3937ab03c84775fb4d09ff9db7a8b6b84c9fc261c8e6cb0bf28c5c713b842d0",
+      "2a4c722029731c2e57837cec9662fbbbf56f1ed9fde868be593a1267e5055349",
     "scripts/install-generated-artifact-merge-driver.mjs":
       "61e2b4fc532e8b356cb751b1ff42eb712376728eec76f8edf2c3dec19acf1bd4",
     "scripts/internal-agy-skill-policy.json":
@@ -2631,7 +2635,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "e61af37a95d2275c761f7d501670863261030b3538927cb8ec4b4a0f14dd67c8",
+      "9d84057de7636fefa4b5b3845eaf7faf7cd029fd6af66bda1ff3975473784516",
     "scripts/update-node-version.ts":
       "0059067c14001c2f7e75beb2628d1a46f935c7b01ce61871db71b6849ef62dca",
     "scripts/update-test-skill-paths.mjs":
@@ -2983,6 +2987,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs": true,
     "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs": true,
     "all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs": true,
+    "all/copy-overwrite/scripts/lib/history-secret-evidence-shape.mjs": true,
+    "all/copy-overwrite/scripts/lib/history-secret-evidence.mjs": true,
     "all/copy-overwrite/scripts/lib/history-secret-git.mjs": true,
     "all/copy-overwrite/scripts/lib/history-secret-policy.mjs": true,
     "all/copy-overwrite/scripts/lib/history-secret-scanner.mjs": true,
@@ -3180,6 +3186,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "docs/design/two-channel-delivery.md": true,
     "docs/design/uat-acceptance-verification-gate.md": true,
     "docs/e2e-bdd-coverage.md": true,
+    "docs/history-evidence.md": true,
     "docs/kane-cli-integration.md": true,
     "docs/kane-cli-pilot.example.json": true,
     "docs/maestro-flake-classification.md": true,
@@ -9540,6 +9547,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/migrations/migration.interface.ts": true,
     "src/migrations/preserve-verification-opt-ins.ts": true,
     "src/migrations/prune-retired-claude-deny-rules.ts": true,
+    "src/migrations/prune-retired-entire-hooks.ts": true,
     "src/migrations/reconcile-claude-stack-plugins.ts": true,
     "src/migrations/untrack-codex-marketplace.ts": true,
     "src/opencode/agent-installer.ts": true,
@@ -9688,6 +9696,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/git-history-secrets/journey.mjs": true,
     "tests/fixtures/git-history-secrets/native-push.mjs": true,
     "tests/fixtures/git-history-secrets/package.mjs": true,
+    "tests/fixtures/git-history-secrets/portable-evidence.mjs": true,
     "tests/fixtures/git-history-secrets/report-mode.mjs": true,
     "tests/fixtures/git-history-secrets/vendor-errors.mjs": true,
     "tests/fixtures/harness-parity-council/first-round-failed.json": true,
@@ -10708,6 +10717,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/migrations/postinstall-failure-surfacing.test.ts": true,
     "tests/unit/migrations/preserve-verification-opt-ins.test.ts": true,
     "tests/unit/migrations/prune-retired-claude-deny-rules.test.ts": true,
+    "tests/unit/migrations/prune-retired-entire-hooks.test.ts": true,
     "tests/unit/migrations/reconcile-claude-stack-plugins.test.ts": true,
     "tests/unit/migrations/seeded-gates-install-restraint.test.ts": true,
     "tests/unit/migrations/untrack-codex-marketplace.test.ts": true,

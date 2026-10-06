@@ -7,6 +7,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, cpSync } from "node:fs";
 import { join } from "node:path";
 import { load } from "js-yaml";
+export { runEvidenceCases } from "./portable-evidence.mjs";
 const CONFIG = ".lisa.config.json";
 const HOOK = "lefthook.yml";
 const CI = ".github/workflows/ci.yml";
@@ -175,6 +176,8 @@ export const emitArtifacts = harness => {
         "scripts/lib/history-secret-git.mjs",
         "scripts/lib/history-secret-policy.mjs",
         "scripts/lib/history-secret-scanner.mjs",
+        "scripts/lib/history-secret-evidence.mjs",
+        "scripts/lib/history-secret-evidence-shape.mjs",
         HOOK,
         CI,
       ];
