@@ -31,7 +31,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/history-secret-policy.mjs":
       "ca75ebbc45fca4c52400612ae818d231a28289b50a70f6cdee6feb51b144896f",
     "all/copy-overwrite/scripts/lib/history-secret-scanner.mjs":
-      "223cc0e59b19b60e0e78a8a85710cab634ef90cd4661b5a5d608455afbf9c4c4",
+      "a68a4ba784699c470e1525ed3cd2f31f399cc80472d2bf5653d936bf3252c658",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lib/kill-marks.mjs":
