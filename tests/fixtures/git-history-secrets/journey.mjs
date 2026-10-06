@@ -7,7 +7,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { existsSync, rmSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { createHarness } from "./harness.mjs";
-import { emitArtifacts } from "./package.mjs";
+import { emitArtifacts, runEvidenceCases } from "./package.mjs";
 import { graphCases } from "./graphs.mjs";
 import { errorCases } from "./errors.mjs";
 import { nativePushCases } from "./native-push.mjs";
@@ -202,8 +202,6 @@ function evidenceCases() {
     write(cwd, "credential.txt", secret())
   );
   fixture("digest-other-default-rule", map(), 42, cwd => {
-    // The pinned AWS detector requires base32, not hexadecimal. Unique random
-    // symbols retain its entropy floor and cannot end in its EXAMPLE allowlist.
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
     const symbols = [...randomBytes(alphabet.length)]
       .map((byte, index) => ({ byte, symbol: alphabet[index] }))
@@ -279,8 +277,8 @@ function evidenceCases() {
 }
 try {
   emitArtifacts(harness);
-  evidenceCases();
-  if (!harness.args.includes("--evidence-only")) {
+  const portable = runEvidenceCases(harness, evidenceCases);
+  if (!portable && !harness.args.includes("--evidence-only")) {
     const fixture = graphCases(harness);
     reportModeCase(harness, fixture);
     errorCases(harness, fixture);
