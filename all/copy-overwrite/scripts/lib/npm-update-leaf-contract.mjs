@@ -2,6 +2,7 @@
 /** Pure environment, lifecycle and fixed Task data cannot import live claim or quality orchestration. */
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { required } from "./npm-update-contract.mjs";
+import { trackerContract } from "../lisa-work-item.mjs";
 
 /** Immutable host config, not candidate data or local aliases, chooses lifecycle. */
 export function leafRoles(config, repository) {
@@ -21,26 +22,31 @@ export function leafRoles(config, repository) {
     "configured ProjectV2 coordination requires the ordinary writer"
   );
   const build = config.github.labels?.build ?? {};
+  const contract = trackerContract(config);
   const targetEnvironment = environment(config);
-  const done = build.done ?? "status:done";
-  const terminal = typeof done === "string" ? done : done?.[targetEnvironment];
+  const terminal =
+    contract.lifecycle.done.find(([name]) => name === targetEnvironment)?.[1] ??
+    contract.lifecycle.terminalName;
   required(
     typeof terminal === "string" && terminal.trim().length > 0,
     "configured main environment terminal label is missing"
   );
-  const terminals = typeof done === "string" ? [done] : Object.values(done);
+  const terminals = contract.lifecycle.done.map(([, role]) => role);
   required(
     terminals.every(
       label => typeof label === "string" && label.trim().length > 0
     ),
     "configured terminal labels are invalid"
   );
-  const later = [build.claimed ?? "status:in-progress", build.review].filter(
-    label => label && !terminals.includes(label)
+  const later = contract.lifecycle.roles.filter(
+    label =>
+      label !== contract.lifecycle.ready &&
+      label !== (build.blocked ?? "status:blocked") &&
+      !terminals.includes(label)
   );
   return {
-    ready: build.ready ?? "status:ready",
-    claimed: build.claimed ?? "status:in-progress",
+    ready: contract.lifecycle.ready,
+    claimed: contract.lifecycle.claimed,
     blocked: build.blocked ?? "status:blocked",
     human: build.human_needed ?? "human-needed",
     terminal,
@@ -49,16 +55,18 @@ export function leafRoles(config, repository) {
   };
 }
 
-/** Potential runtime dependency changes require one actual main environment mapping. */
+/** Reuse the canonical default while refusing an explicitly ambiguous main mapping. */
 export function environment(config) {
   const matches = Object.entries(config.deploy?.branches ?? {}).filter(
     ([, branch]) => branch === "main"
   );
   required(
-    matches.length === 1,
+    matches.length <= 1,
     "main requires one unambiguous configured runtime environment"
   );
-  return matches[0][0];
+  const target = trackerContract(config).deployBranches.get("main");
+  required(target, "main has no configured runtime environment");
+  return target;
 }
 
 /** A standalone, build-ready Task has complete implementation and terminal evidence. */

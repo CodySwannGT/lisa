@@ -2,34 +2,74 @@
 /** Current-head checks and human approval retain their real integration and reviewer identities. @module npm-updater */
 import { workItemLines } from "../lisa-work-item.mjs";
 import { required } from "./npm-update-contract.mjs";
+import { sha256 } from "./github-attestation-verifier.mjs";
+
+/** The publisher consumes evidence of the actual ordinary commit and both original hook streams. */
+export function ordinaryGateReceipt(
+  context,
+  object,
+  hook,
+  streams,
+  destination,
+  remote
+) {
+  return {
+    raw: object.raw.toString("base64"),
+    receipt: {
+      version: 1,
+      proposalKey: context.proposal.key,
+      parent: context.proposal.parent,
+      tree: context.preview.descriptor.tree,
+      commit: object.head,
+      commitExit: object.committed.code,
+      pushExit: streams.destination.exit,
+      refs: streams.destination.refs,
+      audit: streams.audit,
+      destination: streams.destination,
+      destinationHead: destination.expectedBranchHead,
+      remote,
+      range: object.ranges,
+      hookSha256: hook.sourceSha256,
+      hookManager: hook.manager,
+      hookSource: hook.source,
+      hookWrapperSha256: hook.wrapperSha256,
+      commitLogSha256: sha256(
+        Buffer.concat([object.committed.stdout, object.committed.stderr])
+      ),
+      pushLogSha256: streams.destination.logSha256,
+    },
+  };
+}
 
 /** Original writer commands retain independent current authorization at each boundary. */
 export async function publicationBacklink(
-  { api, cwd, proposal, allocation, commit, authorize },
+  { api, cwd, proposal, allocation, commit, authorize, controller },
   pr
 ) {
   await authorize();
-  await api.workItem(cwd, [
-    "backlink",
-    "--ref",
-    allocation.workItem,
-    "--pr-url",
-    pr.html_url,
-  ]);
+  await api.workItem(
+    cwd,
+    ["backlink", "--ref", allocation.workItem, "--pr-url", pr.html_url],
+    { ...controller, proposal, allocation, commit, pr }
+  );
   await authorize();
-  await api.workItem(cwd, [
-    "validate-pr",
-    "--base",
-    proposal.parent,
-    "--head",
-    commit.sha,
-    "--pr-number",
-    String(pr.number),
-    "--repo",
-    proposal.repository,
-    "--pr-url",
-    pr.html_url,
-  ]);
+  await api.workItem(
+    cwd,
+    [
+      "validate-pr",
+      "--base",
+      proposal.parent,
+      "--head",
+      commit.sha,
+      "--pr-number",
+      String(pr.number),
+      "--repo",
+      proposal.repository,
+      "--pr-url",
+      pr.html_url,
+    ],
+    { ...controller, proposal, allocation, commit, pr }
+  );
 }
 
 /** A fixed snapshot refuses foreign existing refs or PRs before any mutation. */

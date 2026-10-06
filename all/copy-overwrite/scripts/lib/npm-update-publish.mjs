@@ -18,7 +18,8 @@ import {
 import { readJson, readBytes, runProcess } from "./npm-update-process.mjs";
 import { existsSync } from "node:fs";
 import { verifyRecoveryOrigin } from "./github-attestation-recovery.mjs";
-import { refTransport, descriptorFor } from "./npm-update-gate.mjs";
+import { descriptorFor } from "./npm-update-gate.mjs";
+import { assertGateTransport } from "./npm-update-gate-hooks.mjs";
 import {
   publicationBody,
   assertPublicationPolicy,
@@ -117,6 +118,7 @@ export async function publishDestination({
   allocation,
   commit,
   authorize,
+  controller,
 }) {
   const snapshot = await destinationRef(
     api,
@@ -160,7 +162,7 @@ export async function publishDestination({
     "actual publisher identity or immutable PR base differs"
   );
   await publicationBacklink(
-    { api, cwd, proposal, allocation, commit, authorize },
+    { api, cwd, proposal, allocation, commit, authorize, controller },
     pr
   );
   return {
@@ -186,6 +188,7 @@ export async function publishProposal({
   raw,
   cwd,
 }) {
+  const deadline = Date.now() + 900_000;
   validateProposal(proposal, policy);
   const commit = validateRawCommit(raw, descriptor, cwd);
   required(
@@ -206,9 +209,16 @@ export async function publishProposal({
       receipt.pushExit === 0,
     "ordinary gate receipt differs"
   );
-  refTransport(`lisa/npm-${proposal.key}`, commit.sha, receipt.refs);
+  assertGateTransport(
+    receipt,
+    `lisa/npm-${proposal.key}`,
+    commit.sha,
+    proposal.parent,
+    receipt.destinationHead
+  );
   required(
     receipt.remote === `https://github.com/${policy.repository}.git` &&
+      receipt.refs === receipt.destination.refs &&
       canonicalJson(receipt.range) === canonicalJson([commit.sha]),
     "gated transport range differs"
   );
@@ -246,6 +256,7 @@ export async function publishProposal({
     allocation,
     commit,
     authorize,
+    controller: { config, policy, descriptor, proof, deadline },
   });
 }
 

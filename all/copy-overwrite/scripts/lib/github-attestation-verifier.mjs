@@ -171,6 +171,34 @@ export function assertVerifiedAttestation(
   return result.signature.certificate;
 }
 
+/** Shared literal argv does not replace official verification or authorization policy. */
+export function officialArguments(policy, identity, file, bundle, predicate) {
+  return [
+    "attestation",
+    "verify",
+    file,
+    "--bundle",
+    bundle,
+    "--repo",
+    policy.repository,
+    "--signer-workflow",
+    policy.signerWorkflow,
+    "--signer-digest",
+    policy.signerDigest,
+    "--source-digest",
+    identity.parent,
+    "--source-ref",
+    "refs/heads/main",
+    "--predicate-type",
+    predicate,
+    "--cert-oidc-issuer",
+    ACTIONS_ISSUER,
+    "--deny-self-hosted-runners",
+    "--format",
+    "json",
+  ];
+}
+
 /** The three explicit entry points select fixed official verification roles. */
 export function officialResult(
   policy,
@@ -182,30 +210,7 @@ export function officialResult(
 ) {
   return ghJson(
     policy,
-    [
-      "attestation",
-      "verify",
-      file,
-      "--bundle",
-      bundle,
-      "--repo",
-      policy.repository,
-      "--signer-workflow",
-      policy.signerWorkflow,
-      "--signer-digest",
-      policy.signerDigest,
-      "--source-digest",
-      identity.parent,
-      "--source-ref",
-      "refs/heads/main",
-      "--predicate-type",
-      predicate,
-      "--cert-oidc-issuer",
-      ACTIONS_ISSUER,
-      "--deny-self-hosted-runners",
-      "--format",
-      "json",
-    ],
+    officialArguments(policy, identity, file, bundle, predicate),
     execute
   );
 }

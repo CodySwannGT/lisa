@@ -2,37 +2,12 @@
 /** Original hook transport distinguishes artifact audit from actual remote state. */
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { required, OBJECT, keys } from "./npm-update-contract.mjs";
-import { existsSync, lstatSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { sha256 } from "./github-attestation-verifier.mjs";
 export { managedTemplateMembers } from "./npm-update-helper-graph.mjs";
-
-/** Legacy Husky readback retains old behavior; full original manager isolation is still unqualified. */
-export async function originalPrePush(cwd, command) {
-  const setting = (await command(["config", "--get", "core.hooksPath"])).stdout
-    .toString()
-    .trim();
-  required(
-    [".husky", ".husky/_"].includes(setting),
-    "ordinary installed Husky hooks are required"
-  );
-  const original = join(cwd, ".husky/pre-push");
-  const wrapper = join(cwd, setting, "pre-push");
-  required(
-    [original, wrapper].every(
-      path =>
-        existsSync(path) &&
-        lstatSync(path).isFile() &&
-        !lstatSync(path).isSymbolicLink()
-    ),
-    "original pre-push installation is missing or aliased"
-  );
-  const committed = await command(["show", "HEAD:.husky/pre-push"]);
-  required(
-    readFileSync(original).equals(committed.stdout),
-    "original pre-push source differs from committed source"
-  );
-  return wrapper;
-}
+export {
+  originalPrePush,
+  originalHookInstallation,
+} from "./npm-update-hook-installation.mjs";
 
 /** Private parent-created tuples remain data; their configuration and helper authority is qualified separately. */
 function configuredTuple(route, graph) {
@@ -206,4 +181,32 @@ export function assertGateTransport(
       "original full audit or destination gate differs"
     );
   }
+}
+
+/** A no-op destination cannot substitute for an independently successful complete-range audit. */
+export async function runGateStreams(
+  branch,
+  commit,
+  parent,
+  destination,
+  execute
+) {
+  const streams = gateStreams(branch, commit, parent, destination);
+  const receipt = {};
+  for (const role of ["audit", "destination"]) {
+    const result = await execute(streams[role].refs);
+    required(
+      result?.code === 0 &&
+        Buffer.isBuffer(result.stdout) &&
+        Buffer.isBuffer(result.stderr),
+      `ordinary ${role} gate failed or native result is invalid`
+    );
+    receipt[role] = {
+      ...streams[role],
+      exit: result.code,
+      logSha256: sha256(Buffer.concat([result.stdout, result.stderr])),
+    };
+  }
+  assertGateTransport(receipt, branch, commit, parent, destination);
+  return receipt;
 }

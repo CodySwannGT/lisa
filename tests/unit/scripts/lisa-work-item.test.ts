@@ -245,7 +245,8 @@ case "\${1:-} \${2:-}" in
   # nonzero through the catch-all below, which is invisible to any assertion
   # that does not check the status — see the positive-control test.
   "api --paginate")
-    printf '%s\\n' "\${FAKE_GH_COMMENTS_JSON:-[]}"
+    [ "\${3:-}" = "--slurp" ] || { echo 'missing native slurp pagination' >&2; exit 70; }
+    printf '[%s]\\n' "\${FAKE_GH_COMMENTS_JSON:-[]}"
     ;;
   "api --method")
     [ -z "\${FAKE_GH_POSTED_FILE:-}" ] || printf 'posted\\n' > "$FAKE_GH_POSTED_FILE"
@@ -2446,7 +2447,13 @@ const method = at("--method") || "GET";
 const endpoint = args.find(a => a.startsWith("repos/")) || "";
 const field = at("--field") || "";
 const body = field.startsWith("body=") ? field.slice(5) : "";
-if (method === "GET") { process.stdout.write(JSON.stringify(comments)); process.exit(0); }
+if (method === "GET") {
+  const pages = [];
+  for (let offset = 0; offset < comments.length; offset += 100) pages.push(comments.slice(offset, offset + 100));
+  if (!pages.length) pages.push([]);
+  process.stdout.write(args.includes("--slurp") ? JSON.stringify(pages) : pages.map(page => JSON.stringify(page)).join("\\n"));
+  process.exit(0);
+}
 if (method === "POST") comments.push({ id: comments.length + 1, body });
 else if (method === "PATCH") {
   const id = Number(endpoint.split("/").pop());
@@ -2471,6 +2478,35 @@ process.stdout.write(JSON.stringify({ id: 1 }));
         }[])
       : [];
   }
+
+  it("updates the same PR on a later native slurped comment page and preserves all earlier human comments", () => {
+    const fixture = createFixture();
+    const store = statefulGh(fixture);
+    const humans = Array.from({ length: 100 }, (_, index) => ({
+      id: index + 1,
+      body: `Human comment ${index}`,
+    }));
+    writeFileSync(
+      store,
+      JSON.stringify([
+        ...humans,
+        { id: 101, body: `[lisa-pr-link] ${PR_URL}\n` },
+      ])
+    );
+    const result = command(fixture, [
+      "backlink",
+      "--ref",
+      "acme/widgets#42",
+      "--pr-url",
+      PR_URL,
+    ]);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("updated");
+    expect(stored(store)).toEqual([
+      ...humans,
+      { id: 101, body: `[lisa-pr-link] ${PR_URL}` },
+    ]);
+  });
 
   it("creates the managed comment on an issue that has none", () => {
     const fixture = createFixture();

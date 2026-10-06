@@ -16,7 +16,6 @@ import {
 } from "./lib/npm-update-contract.mjs";
 import {
   readJson,
-  readBytes,
   writeJson,
   runProcess,
   phaseDirectory,
@@ -30,6 +29,7 @@ import {
   finalizeAuthorization,
 } from "./lib/npm-update-authorization.mjs";
 import { gateProposal } from "./lib/npm-update-gate.mjs";
+import { readGateProof } from "./lib/npm-update-gate-proof.mjs";
 import { sha256 } from "./lib/github-attestation-verifier.mjs";
 
 /** Only committed policy grants authority; ignored/local config cannot activate Actions. */
@@ -173,7 +173,7 @@ export async function main(argv = process.argv.slice(2)) {
       policy,
       allocation,
       preview,
-      bundle: readBytes(join(output, "bundle.json"), 1_048_576),
+      ...readGateProof(output),
       token: process.env.GH_TOKEN,
       config,
     });

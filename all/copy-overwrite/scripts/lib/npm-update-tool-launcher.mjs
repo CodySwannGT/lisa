@@ -12,6 +12,7 @@ import {
 } from "./npm-update-orchestrator.mjs";
 import { executeWorker, binaryDigest } from "./npm-update-isolation.mjs";
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
+import { validateGhProfile } from "./npm-update-gh-dispatch.mjs";
 
 const TOOLS = new Set([
   "node",
@@ -86,10 +87,8 @@ export function launcherContext(file) {
       value.cwd.startsWith("/"),
     "invalid controller launcher context"
   );
-  required(
-    value.version !== 3 || value.provider === null,
-    "non-null provider authority is unsupported"
-  );
+  if (value.version === 3 && value.provider !== null)
+    validateGhProfile(value.provider);
   const root = lstatSync(value.root);
   required(
     root.isDirectory() &&
@@ -143,7 +142,20 @@ function executionContract(value) {
       timeout: 1_800_000,
       maximum: 8_388_608,
     };
-  keys(value, ["allowed", "timeout", "maximum"]);
+  required(
+    value && typeof value === "object" && !Array.isArray(value),
+    "invalid execution contract object"
+  );
+  keys(value, [
+    "allowed",
+    "timeout",
+    "maximum",
+    ...(value.signal !== undefined ? ["signal"] : []),
+  ]);
+  required(
+    value.signal === undefined || value.signal instanceof AbortSignal,
+    "invalid controller cancellation signal"
+  );
   const allowed = Array.isArray(value.allowed) ? [...value.allowed] : [];
   required(
     allowed.length > 0 &&
@@ -163,7 +175,12 @@ function executionContract(value) {
       value.maximum <= 8_388_608,
     "invalid execution contract deadline or output bound"
   );
-  return { allowed, timeout: value.timeout, maximum: value.maximum };
+  return {
+    allowed,
+    timeout: value.timeout,
+    maximum: value.maximum,
+    ...(value.signal !== undefined ? { signal: value.signal } : {}),
+  };
 }
 
 /**

@@ -953,7 +953,7 @@ describe("original object reconstruction remains Git data", () => {
           token: "fixture-read-only",
           config: {},
         })
-      ).rejects.toThrow(/runtime|platform|isolation/);
+      ).rejects.toThrow(/runtime|platform|isolation|hosted/);
       expect((await git(["rev-parse", "HEAD"])).stdout.toString().trim()).toBe(
         parent
       );
@@ -983,7 +983,7 @@ describe("complete authenticated helper closure", () => {
     const bytes = new Map<string, Buffer>();
     for (const member of members)
       bytes.set(member, await helperAuditSource(member));
-    expect(members.length).toBe(73);
+    expect(members.length).toBe(89);
     expect(auditControllerClosure(manifest, bytes)).toEqual(
       [...members].sort((left, right) => left.localeCompare(right))
     );

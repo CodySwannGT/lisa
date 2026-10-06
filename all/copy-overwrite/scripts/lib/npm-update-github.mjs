@@ -4,10 +4,9 @@ import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { assertPinnedVerifier } from "./github-attestation-verifier.mjs";
 import { required } from "./npm-update-contract.mjs";
 import { runProcess } from "./npm-update-process.mjs";
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { gitObjectId } from "./npm-update-object.mjs";
 import { FILES } from "./npm-update-contract.mjs";
+import { executeCanonicalHelper } from "./npm-update-controller-factory.mjs";
 /** Explicit minimum gh identity and token; no caller/candidate executable override. */
 const HOST_OPTION = "--hostname";
 const GITHUB_HOST = "github.com";
@@ -152,30 +151,26 @@ export class GitHub {
     );
   }
   /** Invoke the shipped tracker writer/validator, preserving configured full/trailer mode. */
-  async workItem(cwd, args) {
+  async workItem(cwd, args, authority) {
     required(
       ["backlink", "validate-pr"].includes(args[0]) &&
         args.every(value => typeof value === "string"),
       "unsupported traceability operation"
     );
-    return this.execute(
-      process.execPath,
-      [
-        fileURLToPath(new URL("../lisa-work-item.mjs", import.meta.url)),
-        ...args,
-      ],
-      {
-        cwd,
-        env: {
-          PATH: `${dirname(this.policy.ghExecutable)}:${dirname(process.execPath)}:/usr/bin:/bin`,
-          HOME: NO_HOME,
-          GH_TOKEN: this.token,
-          GH_HOST: GITHUB_HOST,
-          GITHUB_REPOSITORY: this.policy.repository,
-          GIT_TERMINAL_PROMPT: "0",
-        },
-        timeout: 120_000,
-      }
+    required(
+      authority?.config && authority?.pr && authority?.descriptor,
+      "authenticated publication controller authority is absent"
+    );
+    const phase =
+      args[0] === "backlink"
+        ? "publication-backlink"
+        : "publication-validate-pr";
+    return executeCanonicalHelper(
+      { ...authority, cwd, token: this.token },
+      phase,
+      args[0],
+      authority.pr,
+      args
     );
   }
   /** Git API writes reproduce only the already qualified raw commit and complete tree. */

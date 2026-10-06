@@ -5,102 +5,12 @@ import { createHash } from "node:crypto";
 import { isBuiltin } from "node:module";
 import { posix } from "node:path";
 
-const COMMON = [
-  "lisa-work-item.mjs",
-  "lisa-automation-provenance.mjs",
-  "lisa-rails-prepush.mjs",
-  "lisa-history-secrets.mjs",
-  "lisa-gates.mjs",
-  "lisa-run-gates.mjs",
-  "lisa-commit-msg-gates.mjs",
-  "lisa-test-node.mjs",
-  "lib/invoked-as-script.mjs",
-  "lib/bounded-spawn.mjs",
-  "lib/process-tree-runner.mjs",
-  "lib/windows-process-job.mjs",
-  "lib/windows-process-job.ps1",
-  "lib/windows-process-job.cs",
-  "lib/kill-marks.mjs",
-  "lib/gate-failure-diagnosis.mjs",
-  "lib/worktree-dependencies.mjs",
-  "lib/history-secret-git.mjs",
-  "lib/history-secret-scanner.mjs",
-  "lib/history-secret-policy.mjs",
-  "lib/github-attestation-verifier.mjs",
-  "lib/github-attestation-provider.mjs",
-  "lib/github-attestation-recovery.mjs",
-  "lib/automation-provenance-contract.mjs",
-  "lib/automation-provenance-local.mjs",
-];
-const RAILS = [
-  "lisa-clean-git-env.sh",
-  "lisa-scratch-run.sh",
-  "check-threshold-ratchet.mjs",
-  "threshold-ratchet-families.mjs",
-  "threshold-ratchet-compare.mjs",
-];
-const PRODUCER = [
-  "allocate",
-  "authorization",
-  "checkpoint",
-  "contract",
-  "execution-adapter",
-  "gate-hooks",
-  "gate-install",
-  "gate",
-  "github",
-  "helper",
-  "helper-graph",
-  "invariants",
-  "isolation",
-  "leaf",
-  "leaf-contract",
-  "npm",
-  "object",
-  "orchestrator",
-  "owner",
-  "prepare",
-  "process",
-  "process-core",
-  "publication",
-  "publish",
-  "quality",
-  "recovery",
-  "runtime-archive",
-  "runtime-graph",
-  "runtime-transport",
-  "runtime",
-  "tool-launcher",
-  "worker-environment",
-  "worker-inspection",
-  "worker-lifecycle",
-  "worker-policy",
-];
-const CONTROLS = [
-  "lib/npm-update-helper-graph.mjs",
-  "npm-updater-helper-graph.json",
-];
-const PACKAGE = [
-  "package/plugins/lisa/scripts/intake-blocker-reprobe.mjs",
-  "package/plugins/lisa/scripts/intake-prework-denominator.mjs",
-];
-
-/** Only reviewed upstream templates and fixed classifier package members can enter the inventory. */
-export function managedTemplateMembers() {
-  return new Map([
-    ...[
-      ...COMMON,
-      "lisa-npm-updater.mjs",
-      "npm-updater-helper-graph.json",
-      "npm-updater-gate-runtime.json",
-      "npm-updater-gate-supervisor.c",
-      "npm-updater-gate.Dockerfile",
-      ...PRODUCER.map(name => `lib/npm-update-${name}.mjs`),
-    ].map(member => [member, `all/copy-overwrite/scripts/${member}`]),
-    ...RAILS.map(member => [member, `rails/copy-overwrite/scripts/${member}`]),
-    ["lisa-mutation.sh", "rails/copy-contents/scripts/lisa-mutation.sh"],
-  ]);
-}
+import {
+  managedTemplateMembers,
+  HELPER_CONTROLS as CONTROLS,
+  HELPER_PACKAGE_MEMBERS as PACKAGE,
+} from "./npm-update-helper-inventory.mjs";
+export { managedTemplateMembers } from "./npm-update-helper-inventory.mjs";
 
 /** Relative normalized names never authorize traversal, URLs, absolute paths or unknown helpers. */
 function memberPath(member) {

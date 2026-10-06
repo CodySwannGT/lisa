@@ -16,6 +16,8 @@ import {
 } from "./npm-update-orchestrator.mjs";
 import { binaryDigest } from "./npm-update-isolation.mjs";
 import { required } from "./npm-update-contract.mjs";
+import { canonicalJson } from "../lisa-automation-provenance.mjs";
+import { createGhDispatcher } from "./npm-update-gh-dispatch.mjs";
 
 const ENTRY = fileURLToPath(import.meta.url);
 const LAUNCHER = fileURLToPath(
@@ -73,6 +75,8 @@ function childEnvironment(options, contextFile, canonical) {
     "unqualified nested Node environment loader"
   );
   delete env.LISA_NPM_DISPATCH_CONTEXT;
+  delete env.GH_TOKEN;
+  delete env.GITHUB_TOKEN;
   if (canonical) env.LISA_NPM_DISPATCH_CONTEXT = contextFile;
   return env;
 }
@@ -162,9 +166,21 @@ function invocationArguments(args, options) {
 /** This instruments exclusively trusted code; it is not a sandbox for arbitrary same-process JS. */
 export function initializeAdapter(contextFile) {
   const context = launcherContext(contextFile);
+  const provider = scopedProvider(context);
   for (const method of ["spawn", "spawnSync", "execFileSync"])
     childProcess[method] = (command, args, options) => {
       const normalized = invocationArguments(args, options);
+      if (
+        provider &&
+        (command === "gh" || command === context.provider.nativeGh.path)
+      )
+        return provider(
+          method,
+          command,
+          normalized.args,
+          normalized.options,
+          ORIGINAL.spawnSync
+        );
       const selected = nestedInvocation(
         context,
         contextFile,
@@ -196,6 +212,11 @@ export function initializeAdapter(contextFile) {
       options = {};
     }
     const normalized = invocationArguments(args, options);
+    required(
+      !provider ||
+        (command !== "gh" && command !== context.provider.nativeGh.path),
+      "credentialed GH requires synchronous canonical dispatch"
+    );
     const selected = nestedInvocation(
       context,
       contextFile,
@@ -211,6 +232,51 @@ export function initializeAdapter(contextFile) {
     );
   };
   syncBuiltinESMExports();
+}
+
+/** Graph membership and immutable argv/cwd qualify this genuine parent-owned canonical caller. */
+function scopedProvider(context) {
+  if (!context.provider) return null;
+  const profile = context.provider;
+  const preload = ["--import", pathToFileURL(ENTRY).href];
+  required(
+    canonicalJson(process.execArgv.slice(0, 2)) === canonicalJson(preload),
+    "GH caller lacks qualified instrumentation"
+  );
+  const actual = [...process.execArgv.slice(2), ...process.argv.slice(1)];
+  required(
+    canonicalJson(actual) === canonicalJson(profile.invocation.args) &&
+      realpathSync(process.cwd()) === profile.invocation.cwd &&
+      Object.hasOwn(context.graph, profile.invocation.entry),
+    "GH caller tuple differs"
+  );
+  required(
+    actual[0] === profile.invocation.entry ||
+      context.routes?.some(
+        route =>
+          route.tool === "node" &&
+          route.entry === profile.invocation.entry &&
+          canonicalJson(route.args) === canonicalJson(actual) &&
+          route.cwd === profile.cwd
+      ),
+    "GH caller entry differs"
+  );
+  const route = controllerRoute(
+    "node",
+    actual,
+    context.graph,
+    currentGraph(controllerGraph(context.graph, context.routes)),
+    profile.cwd,
+    context.routes,
+    process.env
+  );
+  required(
+    route === "controller" &&
+      realpathSync(process.execPath) === context.controller.node.path &&
+      binaryDigest(process.execPath) === context.controller.node.sha256,
+    "GH caller graph or interpreter differs"
+  );
+  return createGhDispatcher(profile, process.env.GH_TOKEN);
 }
 
 if (

@@ -861,7 +861,7 @@ describe("actual main environment terminal policy", () => {
       ).rejects.toThrow(/terminal/);
     }
   });
-  it("refuses an unmapped terminal policy and preserves scalar and default policy", () => {
+  it("reuses canonical environment defaults and preserves scalar terminal policy", () => {
     const mapped = { ...config, deploy: { branches: { dev: "main" } } };
     const missing = {
       ...mapped,
@@ -870,13 +870,15 @@ describe("actual main environment terminal policy", () => {
         labels: { build: { done: { production: "done-production" } } },
       },
     };
-    expect(() => leafRoles(missing, policy.repository)).toThrow(/terminal/);
+    expect(leafRoles(missing, policy.repository).terminal).toBe(
+      "status:on-dev"
+    );
     expect(
       leafRoles(
         { ...mapped, github: { ...mapped.github, labels: { build: {} } } },
         policy.repository
       ).terminal
-    ).toBe("status:done");
+    ).toBe("status:on-dev");
     expect(
       leafRoles(
         {

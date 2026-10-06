@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 181,
-  "$names": 1494,
+  "$modules": 197,
+  "$names": 1548,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -153,6 +153,7 @@
       "assertVerifiedAttestation",
       "ghJson",
       "matchSigningTime",
+      "officialArguments",
       "officialResult",
       "requireProof",
       "sha256",
@@ -202,6 +203,9 @@
       "prepareAuthorization",
       "recoveryRecord"
     ],
+    "all/copy-overwrite/scripts/lib/npm-update-broker-client.mjs": [
+      "invokeControllerRecipe"
+    ],
     "all/copy-overwrite/scripts/lib/npm-update-checkpoint.mjs": [
       "checkpointComments",
       "decodeCheckpoint",
@@ -226,6 +230,20 @@
       "validateProposal",
       "validateRawCommit"
     ],
+    "all/copy-overwrite/scripts/lib/npm-update-controller-broker.mjs": [
+      "startControllerBroker"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-controller-factory.mjs": [
+      "canonicalHelperArguments",
+      "controllerDeadline",
+      "controllerSubject",
+      "controllerTools",
+      "executeCanonicalHelper"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-controller-recipe.mjs": [
+      "checkedRecipe",
+      "executeRecipe"
+    ],
     "all/copy-overwrite/scripts/lib/npm-update-execution-adapter.mjs": [
       "initializeAdapter"
     ],
@@ -235,7 +253,9 @@
       "controllerGraph",
       "gateStreams",
       "managedTemplateMembers",
-      "originalPrePush"
+      "originalHookInstallation",
+      "originalPrePush",
+      "runGateStreams"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-gate-install.mjs": [
       "installDependencies",
@@ -245,10 +265,32 @@
       "sealDependencies",
       "validateRuntime"
     ],
+    "all/copy-overwrite/scripts/lib/npm-update-gate-proof.mjs": [
+      "installGateProof",
+      "readGateProof",
+      "validateGateProof",
+      "writeGateProof"
+    ],
     "all/copy-overwrite/scripts/lib/npm-update-gate.mjs": [
       "descriptorFor",
       "gateProposal",
       "refTransport"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-gh-dispatch.mjs": [
+      "createGhDispatcher",
+      "validateGhProfile"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-gh-grants.mjs": [
+      "createGhState",
+      "observeGhResponse",
+      "prepareGhRequest",
+      "recoveryPage"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-gh-requests.mjs": [
+      "createGhRequests",
+      "createGhState",
+      "observeGhResponse",
+      "prepareGhRequest"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-github.mjs": [
       "GitHub"
@@ -263,12 +305,41 @@
       "managedTemplateMembers",
       "validateHelperManifest"
     ],
+    "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs": [
+      "HELPER_CONTROLS",
+      "HELPER_PACKAGE_MEMBERS",
+      "managedTemplateMembers"
+    ],
     "all/copy-overwrite/scripts/lib/npm-update-helper.mjs": [
       "canonicalClassifier",
       "helperOwner",
       "qualifiedControllerGraph",
       "qualifiedHelperFiles",
       "qualifiedManagedFiles"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-hook-installation.mjs": [
+      "originalHookInstallation",
+      "originalPrePush"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-hook-provider.mjs": [
+      "HOOK_READ_SLOTS",
+      "requestHookRead",
+      "startHookReadBroker"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-hook-read-client.mjs": [
+      "hookNativeResult",
+      "synchronousHookRead"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs": [
+      "assertHostedGate",
+      "createHostedGate",
+      "remainingGateTime"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-hosted-hook.mjs": [
+      "hookEntry",
+      "hookReadSlot",
+      "hostedHookContext",
+      "tokenFreeHookEnvironment"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-invariants.mjs": [
       "UpdaterError",
@@ -296,6 +367,9 @@
       "inspectLeaf",
       "leafRoles",
       "qualityGates"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-native-process.mjs": [
+      "runProcess"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-npm.mjs": [
       "archiveIntegrity",
@@ -354,6 +428,7 @@
       "assertPublication",
       "assertPublicationPolicy",
       "destinationSnapshot",
+      "ordinaryGateReceipt",
       "publicationBacklink",
       "publicationBody"
     ],
@@ -694,6 +769,7 @@
       "WORK_ITEM_CONTRACT_VERSION",
       "ancestryUnreachable",
       "assertGhVersion",
+      "backlinkBody",
       "backlinkReport",
       "branchWorkItemFrom",
       "carriesLabel",
@@ -702,9 +778,13 @@
       "declaredWorkItemNumbers",
       "deployBranchEnvironments",
       "deriveLaneId",
+      "githubBacklinkComments",
+      "githubBacklinkListArgs",
       "githubBranchIssue",
       "githubFailure",
       "githubFailureReason",
+      "githubHierarchyArgs",
+      "githubIssueViewArgs",
       "judgeLane",
       "labelNamesOf",
       "mergeOnlyRange",
@@ -712,6 +792,7 @@
       "mergedPullRequestsIn",
       "noPullRequestToDischarge",
       "parseLaneId",
+      "partitionBacklinks",
       "postDischargeBacklinks",
       "pullRequestViewArgs",
       "pushSuccessLine",
@@ -724,6 +805,7 @@
       "shippedDeclarations",
       "soleWorkItem",
       "textContainsBacklink",
+      "trackerContract",
       "unreachableAncestryRefusal",
       "unresolvedPushReport",
       "workItemLines"
@@ -1289,6 +1371,10 @@
       "generateNightlyGuardBehaviorCertificate",
       "runCertificateCli",
       "verifyNightlyGuardBehavior"
+    ],
+    "scripts/generate-npm-updater-helper-graph.mjs": [
+      "auditedHelperEdges",
+      "generatedHelperGraph"
     ],
     "scripts/generate-upstream-evidence-manifest.mjs": [
       "UPSTREAM_EVIDENCE_MANIFEST",
