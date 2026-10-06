@@ -3544,7 +3544,24 @@ function prWorkItems(body, contract) {
     throw new TrackingError(
       "No Work-Item trailer anywhere in the pull request body"
     );
-  return [...new Set(values.map(value => canonicalizeRef(value, contract)))];
+  const declared = values.map(value => ({
+    value,
+    ref: canonicalizeRef(value, contract),
+  }));
+  // Validation precedes representation checks; canonical GitHub refs lack ://.
+  const urlRefs = new Set(
+    declared.filter(({ value }) => value.includes("://")).map(({ ref }) => ref)
+  );
+  if (
+    contract.provider === "github" &&
+    declared.some(
+      ({ value, ref }) => !value.includes("://") && urlRefs.has(ref)
+    )
+  )
+    throw new TrackingError(
+      "Pull request body mixes URL and canonical Work-Item declarations for the same work item"
+    );
+  return [...new Set(declared.map(({ ref }) => ref))];
 }
 
 /**

@@ -18,7 +18,7 @@
  *
  * See `tests/support/work-item-cli.ts` for why these run in-process.
  */
-import { writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterAll, afterEach, describe, expect, it } from "vitest";
@@ -42,14 +42,24 @@ import {
 } from "../../support/work-item-cli.js";
 
 const VALIDATE_PR = "validate-pr";
+const VALIDATE_PUSH = "validate-push";
+const FEATURE = "feature/tracked";
+const PUSH_REF = `refs/heads/${FEATURE}`;
+const PUSHED_REFS = "pushed-refs";
+const PR_GATE = "gate 4 (pull-request declaration)";
 const BASE = "--base";
 const BODY_FILE = "--body-file";
 const PR_URL_FLAG = "--pr-url";
 const SECOND = "feat: second item\n\nWork-Item: acme/widgets#43";
 const FIRST = `feat: first item\n\nWork-Item: ${REF}`;
 const BOTH_DECLARED = `Work-Item: ${REF}\nWork-Item: ${OTHER_REF}\n`;
+const declarationRoots = new Set<string>();
 
-afterEach(cleanupFixtures);
+afterEach(() => {
+  cleanupFixtures();
+  for (const root of declarationRoots) expect(existsSync(root)).toBe(false);
+  declarationRoots.clear();
+});
 afterAll(cleanupTemplates);
 
 /**
@@ -74,6 +84,43 @@ function twoItemRange(fixture: Fixture): string {
   commit(fixture, FIRST);
   commit(fixture, SECOND);
   return base;
+}
+
+/**
+ * Reach PR declaration validation with a real full or incremental Git range.
+ * @param body - The authored pull-request declarations.
+ * @param route - The CLI entrypoint to exercise.
+ * @returns The captured CLI outcome.
+ */
+function declarationResult(
+  body: string,
+  route: typeof VALIDATE_PR | typeof VALIDATE_PUSH
+) {
+  const fixture = createFixture(githubConfig("trailer"));
+  declarationRoots.add(fixture.root);
+  const base = twoItemRange(fixture);
+  if (route === VALIDATE_PR)
+    return cli(fixture, [
+      VALIDATE_PR,
+      BASE,
+      base,
+      BODY_FILE,
+      bodyFile(fixture, body),
+    ]);
+  const ref = PUSH_REF;
+  const refsFile = path.join(fixture.root, PUSHED_REFS);
+  const localOid = git(fixture.root, ["rev-parse", "HEAD"], fixture.env);
+  const remoteOid = git(fixture.root, ["rev-parse", "HEAD^"], fixture.env);
+  writeFileSync(refsFile, `${ref} ${localOid} ${ref} ${remoteOid}\n`);
+  return cli(fixture, [route, "origin"], {
+    LISA_PUSHED_REFS_FILE: refsFile,
+    FAKE_GH_PR_JSON: JSON.stringify({
+      body,
+      headRefName: FEATURE,
+      state: "OPEN",
+      url: PR_URL,
+    }),
+  });
 }
 
 describe("a range spanning several work items", () => {
@@ -109,14 +156,14 @@ describe("a range spanning several work items", () => {
         fixture,
         "feat: introduced\n\nWork-Item: https://github.com/acme/widgets/issues/43"
       );
-      const refsFile = path.join(fixture.root, "pushed-refs");
-      const ref = "refs/heads/feature/tracked";
+      const refsFile = path.join(fixture.root, PUSHED_REFS);
+      const ref = PUSH_REF;
       writeFileSync(refsFile, `${ref} ${localOid} ${ref} ${remoteOid}\n`);
-      const result = cli(fixture, ["validate-push", "origin"], {
+      const result = cli(fixture, [VALIDATE_PUSH, "origin"], {
         LISA_PUSHED_REFS_FILE: refsFile,
         FAKE_GH_PR_JSON: JSON.stringify({
           body,
-          headRefName: "feature/tracked",
+          headRefName: FEATURE,
           state: "OPEN",
           url: PR_URL,
         }),
@@ -145,15 +192,15 @@ describe("a range spanning several work items", () => {
     const remoteOid = git(fixture.root, ["rev-parse", "HEAD"], fixture.env);
     commit(fixture, SECOND);
     const localOid = git(fixture.root, ["rev-parse", "HEAD"], fixture.env);
-    const ref = "refs/heads/feature/tracked";
-    const refsFile = path.join(fixture.root, "pushed-refs");
+    const ref = PUSH_REF;
+    const refsFile = path.join(fixture.root, PUSHED_REFS);
     writeFileSync(refsFile, `${ref} ${localOid} ${ref} ${remoteOid}\n`);
 
-    const result = cli(fixture, ["validate-push", "origin"], {
+    const result = cli(fixture, [VALIDATE_PUSH, "origin"], {
       LISA_PUSHED_REFS_FILE: refsFile,
       FAKE_GH_PR_JSON: JSON.stringify({
         body,
-        headRefName: "feature/tracked",
+        headRefName: FEATURE,
         state: "OPEN",
         url: PR_URL,
       }),
@@ -340,6 +387,64 @@ describe("a range spanning several work items", () => {
       BODY_FILE,
       bodyFile(fixture, `Work-Item: ${REF}\n`),
     ]);
-    expect(result.stderr).toContain("gate 4 (pull-request declaration)");
+    expect(result.stderr).toContain(PR_GATE);
   });
 });
+
+describe.each([VALIDATE_PR, VALIDATE_PUSH] as const)(
+  "%s pull-request declaration representations",
+  route => {
+    const url42 = "https://github.com/acme/widgets/issues/42";
+    const url43 = "https://github.com/acme/widgets/issues/43";
+    const declarations = (...refs: string[]) =>
+      refs.map(ref => `Work-Item: ${ref}\n`).join("");
+
+    it.each([
+      ["URL before canonical", declarations(url42, REF, OTHER_REF)],
+      ["canonical before URL", declarations(REF, url42, OTHER_REF)],
+      [
+        "URL repository case variant",
+        declarations(
+          "https://github.com/ACME/WIDGETS/issues/42",
+          REF,
+          OTHER_REF
+        ),
+      ],
+      [
+        "second item amid earlier declarations",
+        declarations(REF, url43, OTHER_REF),
+      ],
+    ])("refuses mixed same-item PR declarations: %s", (_name, body) => {
+      const result = declarationResult(body, route);
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain(PR_GATE);
+      expect(result.stderr).toContain("mixes URL and canonical");
+    });
+
+    it.each([
+      ["URL and canonical distinct items", declarations(url42, OTHER_REF)],
+      ["canonical and URL distinct items", declarations(REF, url43)],
+      ["both URLs", declarations(url42, url43)],
+      ["both canonical", BOTH_DECLARED],
+      ["canonical repetition", declarations(REF, REF, OTHER_REF)],
+      ["canonical casing", declarations(REF, "ACME/Widgets#42", OTHER_REF)],
+      ["URL repetition", declarations(url42, url42, url43)],
+    ])("accepts preserved PR declarations: %s", (_name, body) => {
+      const result = declarationResult(body, route);
+      expect(result.exitCode).toBeUndefined();
+      expect(result.stdout).toContain(
+        `WORK_ITEM_TRACKING_OK ${route === VALIDATE_PR ? 2 : 1} commit(s)`
+      );
+    });
+
+    it("keeps malformed body issue URLs visible and refused", () => {
+      const result = declarationResult(
+        declarations(`${url42}?unexpected=1`, OTHER_REF),
+        route
+      );
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain("Invalid GitHub Work-Item");
+      expect(result.stderr).toContain(PR_GATE);
+    });
+  }
+);
