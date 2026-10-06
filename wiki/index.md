@@ -32,7 +32,7 @@ Last updated by connector ingest on 2026-06-14 for Lisa `2.165.6` and current mo
 - [Template Governance](architecture/template-governance.md)
   - Current template surface includes Phaser 4, Harper Fabric workflow/realtime guard additions, and the esbuild audit-ignore template exclusion.
 - [Coding-Agent Parity Architecture](architecture/coding-agent-parity.md)
-- [Lisa Hook Per-Agent Ship List](architecture/lisa-hook-per-agent-ship-list.md)
+- [Lisa Hook Per-Agent Ship List](architecture/lisa-hook-per-agent-ship-list.md), including retired automatic Entire registrations and host-owned capture opt-in
   - Codex uses activated plugin hooks plus one tagged repository enforcement dispatcher; marketplace selection alone is not treated as hook-liveness proof.
 - [Lisa Console UI](architecture/lisa-console-ui.md)
 - [Pattern B Per-Agent Plugin Fan-Out Specification](architecture/pattern-b-fan-out-spec.md)

@@ -58,39 +58,38 @@ Each script under `plugins/src/base/hooks/`:
 
 ## `entire hooks claude-code <event>` calls
 
-The `plugin.json` also registers calls to the external `entire` CLI on multiple events (`entire hooks claude-code <user-prompt-submit|post-task|post-todo|pre-task|stop|session-start|session-end>`). These are Lisa's coordinator that runs analytics + flow management for Claude Code specifically. Each call is wrapped in `command -v entire >/dev/null 2>&1 && entire hooks claude-code <event> || true` so the absence of `entire` is graceful.
+**Retired automatic registrations ([#4356](https://github.com/CodySwannGT/lisa/issues/4356)).** Lisa no longer registers the seven external Entire commands in the base Claude plugin or Rails settings template. The presence of an executable on PATH is not a host decision to capture sessions. The post-strategy `prune-retired-entire-hooks` migration removes only the exact historical `command -v entire >/dev/null 2>&1 && entire hooks claude-code <event> || true` command hooks from project settings, preserving other hooks and group metadata. It removes a group only when pruning made that group empty.
 
-- The `claude-code` subcommand string is hardcoded — `entire` does NOT have parallel subcommands for codex/cursor/agy/copilot (verified by reading the literal command string).
-- **Ship on Claude only**. Strip from all other per-agent plugin variants.
+Session capture requires a reviewed host-owned wrapper registered in native project hook settings with a distinct command identity. See the [opt-in guidance](../../README.md). The migration does not read session stores, user/global/local settings, or third-party plugins. Fresh sessions must load the updated installed plugin. The non-Claude generators retain their existing rejection of legacy Claude-specific Entire inputs; no supported Lisa variant ships automatic capture registrations.
 
 ## Per-agent ship-list (the Pattern B input contract)
 
 | Hook entry | Event | Claude variant | Codex variant | Cursor variant | agy variant | Copilot variant |
 | --- | --- | --- | --- | --- | --- | --- |
-| `entire hooks claude-code user-prompt-submit` | UserPromptSubmit | ship | strip | strip | strip | strip |
+| `entire hooks claude-code user-prompt-submit` | UserPromptSubmit | retired | strip | strip | strip | strip |
 | `${CLAUDE_PLUGIN_ROOT}/hooks/enforce-team-first.sh` (UserPromptSubmit) | UserPromptSubmit | ship | strip | strip | strip | strip |
-| `entire hooks claude-code post-task` (matcher=Task) | PostToolUse | ship | strip | strip | strip | strip |
-| `entire hooks claude-code post-todo` (matcher=TodoWrite) | PostToolUse | ship | strip | strip | strip | strip |
+| `entire hooks claude-code post-task` (matcher=Task) | PostToolUse | retired | strip | strip | strip | strip |
+| `entire hooks claude-code post-todo` (matcher=TodoWrite) | PostToolUse | retired | strip | strip | strip | strip |
 | `${CLAUDE_PLUGIN_ROOT}/hooks/enforce-team-first.sh` (matcher=TeamCreate) | PostToolUse | ship | strip | strip | strip | strip |
-| `entire hooks claude-code pre-task` (matcher=Task) | PreToolUse | ship | strip | strip | strip | strip |
+| `entire hooks claude-code pre-task` (matcher=Task) | PreToolUse | retired | strip | strip | strip | strip |
 | `${CLAUDE_PLUGIN_ROOT}/hooks/block-no-verify.sh` (matcher=Bash) | PreToolUse | ship | ship | ship | ship | ship |
 | `${CLAUDE_PLUGIN_ROOT}/hooks/enforce-team-first.sh` (PreToolUse) | PreToolUse | ship | strip | strip | strip | strip |
 | ~~`${CLAUDE_PLUGIN_ROOT}/hooks/notify-ntfy.sh`~~ | ~~Stop~~ | **RETIRED (ticket-1054)** — entry removed from `plugins/src/base/.claude-plugin/plugin.json` | — | — | — | — |
-| `entire hooks claude-code stop` | Stop | ship | strip | strip | strip | strip |
+| `entire hooks claude-code stop` | Stop | retired | strip | strip | strip | strip |
 | `${CLAUDE_PLUGIN_ROOT}/hooks/install-pkgs.sh` (matcher=startup) | SessionStart | ship | ship | ship | **STRIP** (agy has no SessionStart event) | ship |
 | `${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh` | SessionStart | ship | ship | **STRIP** (rules ship as native `.mdc`; issue #1055) | **STRIP** (agy has no SessionStart event; AGENTS.md is rule-free — bake removed 2026-06-06, PR #1150; no eager-rule injection on agy) | ship |
 | `${CLAUDE_PLUGIN_ROOT}/hooks/enforcement-vintage.sh` | SessionStart | ship | ship | ship | **STRIP** (agy has no SessionStart event) | ship |
 | `${CLAUDE_PLUGIN_ROOT}/hooks/setup-jira-cli.sh` | SessionStart | ship | ship | ship | **STRIP** (agy has no SessionStart event) | ship |
-| `entire hooks claude-code session-start` | SessionStart | ship | strip | strip | strip | strip |
+| `entire hooks claude-code session-start` | SessionStart | retired | strip | strip | strip | strip |
 | `${CLAUDE_PLUGIN_ROOT}/hooks/inject-rules.sh` (SubagentStart) | SubagentStart | ship | ship | strip | strip | strip (Copilot has no SubagentStart) |
 | `${CLAUDE_PLUGIN_ROOT}/hooks/enforcement-vintage.sh` (SubagentStart) | SubagentStart | ship | ship | ship | strip (no event) | **strip (Copilot has no SubagentStart)** |
 | `${CLAUDE_PLUGIN_ROOT}/hooks/inject-flow-context.sh` | SubagentStart | ship | ship | strip | strip | strip |
 | `${CLAUDE_PLUGIN_ROOT}/hooks/enforce-team-first.sh` (SubagentStart) | SubagentStart | ship | strip | strip | strip | strip |
-| `entire hooks claude-code session-end` | SessionEnd | ship | strip (no event) | strip | strip | strip |
+| `entire hooks claude-code session-end` | SessionEnd | retired | strip (no event) | strip | strip | strip |
 
 ## Net by per-agent variant
 
-- **Claude (`plugins/lisa/`)** — ships every hook. Status quo, no change.
+- **Claude (`plugins/lisa/`)** — ships the governance hooks; automatic Entire registrations are retired and capture is a host-owned opt-in.
 - **Codex (`plugins/lisa/` via `.codex-plugin` pointer)** — ships universally-applicable + SubagentStart hooks (`block-no-verify.sh`, `inject-rules.sh`, `inject-flow-context.sh`, `install-pkgs.sh`, `setup-jira-cli.sh`). Strips all `entire hooks claude-code *` calls and `enforce-team-first.sh`. `lisa apply` publishes only the base, detected-stack, and explicitly configured plugin entries in the repository `.agents/plugins/marketplace.json`. Because a catalog entry does not prove that a plugin is installed, enabled, trusted, and live in the current session, apply also tagged-merges one project `PreToolUse` handler into `.codex/hooks.json`. It dispatches the repository-owned enforcement fallback for shell and edit tools, while preserving host hooks; Codex's normal project-hook trust still applies.
 - **Cursor (`plugins/lisa-cursor/`)** — ships `block-no-verify.sh`, `install-pkgs.sh`, `setup-jira-cli.sh`, written to a standalone **`hooks/hooks.json`** in Cursor's schema (`{version:1, hooks:{<camelCaseEvent>:[{command:"${CURSOR_PLUGIN_ROOT}/hooks/<script>.sh", matcher?}]}}`; flat per-event arrays) — the manifest's `hooks` field is REMOVED. Commands use the `${CURSOR_PLUGIN_ROOT}` token (NOT a bare `./`): Cursor plugin hooks run with the opened project root as cwd, so a relative path would not resolve to the bundled script and could be shadowed by a repo-local `./hooks/*` (issue #1055). **STRIPS `inject-rules.sh`** entirely: rules are delivered as native Cursor `.mdc` files (issue #1055 — eager `rules/<name>.mdc` `alwaysApply:true`, reference `rules/<name>-reference.mdc` `alwaysApply:false`), which is the single rules-once path; Cursor does NOT auto-load the nested `.md` tree. Renames `.mcp.json` → `mcp.json`. Strips Claude-specific entire calls and enforce-team-first. Strips inject-flow-context (Cursor SubagentStart unverified — defer until research refresh). NOTE: plugin-bundled hook FIRING is not verifiable via the `cursor-agent` CLI (only project `.cursor/hooks.json` fires headless); the regression suite asserts file SHAPE.
 - **agy (`plugins/lisa-agy/`)** — only `block-no-verify` is agy-portable (PreToolUse). `install-pkgs`/`setup-jira-cli`/`enforcement-vintage` are SessionStart, which agy hooks don't support; `inject-rules`/`enforce-team-first`/`inject-flow-context`/the `entire` calls are stripped as on Cursor. Delivery: a PLUGIN-BUNDLED root `hooks.json` (agy schema, matcher `run_command` per shell-surface guard — `""` for `block-direct-issue-create`, whose structured substrate is `call_mcp_tool` — command → `$HOME/.gemini/config/plugins/lisa-agy/hooks/block-no-verify.agy.sh`) emitted by `generate-agy-plugin-artifacts.mjs`, plus the agy-protocol script under the variant's `hooks/`. It rides along with `agy plugin install`. The generated `plugins/lisa-agy/` artifact ships the root `hooks.json` + `hooks/block-no-verify.agy.sh` but **no `mcp_config.json`, no `.mcp.json`, no `rules/`, no `hooks/hooks.json` subdir** — MCP goes through the runtime installer (`installAgyMcpConfig` → user-global `~/.gemini/config/mcp_config.json`). Rules: as of 2026-06-06 (PR #1150) agy gets no eager-rule injection — `AGENTS.md` is rule-free and the old bake is removed (was: "rules through the AGENTS.md bake"). Stack variants carry no manifest hooks, so they emit no `hooks.json`. _(ticket-1054: superseded both the original "ships no hooks" finding and the interim "subdir hooks"/"runtime installer" approaches — agy loads a ROOT-level plugin hooks.json.)_

@@ -12,15 +12,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code user-prompt-submit || true"
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-team-first.sh"
           }
         ]
@@ -36,24 +27,6 @@
       }
     ],
     "PostToolUse": [
-      {
-        "matcher": "Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code post-task || true"
-          }
-        ]
-      },
-      {
-        "matcher": "TodoWrite",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code post-todo || true"
-          }
-        ]
-      },
       {
         "matcher": "Bash",
         "hooks": [
@@ -128,15 +101,6 @@
       }
     ],
     "PreToolUse": [
-      {
-        "matcher": "Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code pre-task || true"
-          }
-        ]
-      },
       {
         "matcher": "Bash",
         "hooks": [
@@ -220,15 +184,6 @@
       }
     ],
     "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code stop || true"
-          }
-        ]
-      },
       {
         "matcher": "",
         "hooks": [
@@ -323,15 +278,6 @@
         ]
       },
       {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code session-start || true"
-          }
-        ]
-      },
-      {
         "hooks": [
           {
             "type": "command",
@@ -415,15 +361,6 @@
       }
     ],
     "SessionEnd": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "command -v entire >/dev/null 2>&1 && entire hooks claude-code session-end || true"
-          }
-        ]
-      },
       {
         "matcher": "",
         "hooks": [
