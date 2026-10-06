@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.70.3](https://github.com/CodySwannGT/lisa/compare/v4.70.2...v4.70.3) (2026-10-06)
+
+
+### Bug Fixes
+
+* normalize qualified GitHub work-item references ([b273785](https://github.com/CodySwannGT/lisa/commit/b273785f97b7e68f6f33e34bc8973ecd827cea61)), closes [github/CodySwannGT/lisa#4357](https://github.com/github/CodySwannGT/lisa/issues/4357)
+* **privacy:** retire automatic Entire session hooks ([b360868](https://github.com/CodySwannGT/lisa/commit/b360868c06f0730dba5c650dba1acc216cad4989)), closes [CodySwannGT/lisa#4356](https://github.com/CodySwannGT/lisa/issues/4356)
+
 ### [4.70.2](https://github.com/CodySwannGT/lisa/compare/v4.70.1...v4.70.2) (2026-10-06)
 
 
