@@ -1,4 +1,5 @@
-/* This file is managed by Lisa. Durable changes belong upstream. */
+/* This file is managed by Lisa and IS replaced on each `lisa` run.
+ * Do not edit directly — durable changes belong upstream in Lisa. */
 /* The fixed nonroot PID1 retains deadline/verdict authority across child exec. */
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>

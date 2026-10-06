@@ -14,7 +14,38 @@ import {
   auditedHelperEdges,
   generatedHelperGraph,
 } from "../../../scripts/generate-npm-updater-helper-graph.mjs";
-import { managedTemplateMembers } from "../../../all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs";
+import {
+  managedTemplateMembers,
+  classifierGraphMatches,
+} from "../../../all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs";
+
+describe("literal canonical classifier qualification", () => {
+  const literal =
+    'import { isPreWorkLaneType } from "./intake-prework-denominator.mjs";';
+  const classify = (
+    first: string,
+    second = "export function isPreWorkLaneType() {}"
+  ) => classifierGraphMatches([Buffer.from(first), Buffer.from(second)]);
+  it("retains the one exact dependency and ordinary exported declarations", () => {
+    expect(classify(`${literal}\nexport function humanGateVerdict() {}`)).toBe(
+      true
+    );
+  });
+  it.each([
+    'import "./extra.mjs";',
+    'import\n{ value } from "./extra.mjs";',
+    'export { value }\nfrom "./extra.mjs";',
+    'export * from "./extra.mjs";',
+    'const foreign = import("./extra.mjs");',
+    'export const marker = 1; export { value } from "./extra.mjs";',
+    'export function local() {} export { value } from "./extra.mjs";',
+    'const marker = 1; export { value } from "./extra.mjs";',
+    'const marker = 1; import { value } from "./extra.mjs";',
+  ])("refuses additional import/re-export authority: %s", extra => {
+    expect(classify(`${literal}\n${extra}`)).toBe(false);
+    expect(classify(literal, extra)).toBe(false);
+  });
+});
 
 async function sourceFixture(
   operation: (root: string, first: string) => Promise<void>

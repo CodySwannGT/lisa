@@ -1,4 +1,6 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Twenty-five fixed writer checks retain semantic quality independently of storage. */
 import { required } from "./npm-update-contract.mjs";
 import { environment, buildDraft } from "./npm-update-leaf-contract.mjs";

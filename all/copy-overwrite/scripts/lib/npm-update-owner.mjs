@@ -1,4 +1,6 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Released lifecycle and current native registration qualify a local Lisa owner. */
 import { join } from "node:path";
 import { existsSync, lstatSync } from "node:fs";
@@ -14,6 +16,21 @@ import {
 
 /** A genuine second clone keeps released lifecycle effects out of the source checkout. */
 const PLUGIN_HOOKS = "plugins/lisa/.codex-plugin/hooks.json";
+
+/** Native registration is data; no candidate session hook is executed. */
+export function nativeHooksEnabled(native) {
+  // This bounded native registration shape refuses multiline TOML strings.
+  if (native.includes('"""') || native.includes("'''")) return false;
+  const lines = native.split("\n").map(line => line.split("#", 1)[0].trim());
+  const begin = lines.indexOf("[features]");
+  if (begin < 0 || begin !== lines.lastIndexOf("[features]")) return false;
+  const tail = lines.slice(begin + 1);
+  const end = tail.findIndex(line => line.startsWith("["));
+  const hooks = tail
+    .slice(0, end < 0 ? tail.length : end)
+    .filter(line => /^hooks\b/.test(line));
+  return hooks.length === 1 && /^hooks[ \t]*=[ \t]*true$/.test(hooks[0]);
+}
 
 async function ownerCheckout(cwd, app, policy, env) {
   const child = (command, args, options = {}) =>
@@ -107,10 +124,7 @@ async function localSessionOwner(app, installed, config) {
     65_536,
     false
   ).toString("utf8");
-  required(
-    /\[features\]\s*\n(?:[^[]*\n)?hooks\s*=\s*true\b/.test(native),
-    "current native hooks are not enabled"
-  );
+  required(nativeHooksEnabled(native), "current native hooks are not enabled");
   return "codex-plugin-session-start";
 }
 

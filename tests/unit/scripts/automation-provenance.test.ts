@@ -11,7 +11,10 @@ import {
 import path from "node:path";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 
-import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  ioLatencyBudgetMs,
+} from "../../helpers/io-latency-budget.js";
 import { canonicalJson } from "../../../all/copy-overwrite/scripts/lisa-automation-provenance.mjs";
 import {
   sha256,
@@ -434,21 +437,25 @@ describe.each(HOOKS)("exact raw message bytes: %s", hookPath => {
 });
 
 describe("full hook and checkout transport fixtures (not live issuance)", () => {
-  it("refuses a hung live canonical resolver even when the inherited deadline is zero", () => {
-    const p = proposalFixture();
-    installProof(p);
-    writeFileSync(
-      path.join(p.f.root, PROVIDER_FILE),
-      JSON.stringify({ ...providerData(p), hangIssue: true })
-    );
-    p.f.env.LISA_WORK_ITEM_TIMEOUT_MS = "0";
-    const result = hook(p.f, ROOT_HOOK, MESSAGE + MARKER, 45_000);
-    expect(result.status).toBe(1);
-    expect(result.stdout).toContain("invalid automation provenance");
-    expect(readFileSync(path.join(p.f.root, CALLS_FILE), "utf8")).toContain(
-      "issue view 42"
-    );
-  }, 55_000);
+  it(
+    "refuses a hung live canonical resolver even when the inherited deadline is zero",
+    () => {
+      const p = proposalFixture();
+      installProof(p);
+      writeFileSync(
+        path.join(p.f.root, PROVIDER_FILE),
+        JSON.stringify({ ...providerData(p), hangIssue: true })
+      );
+      p.f.env.LISA_WORK_ITEM_TIMEOUT_MS = "0";
+      const result = hook(p.f, ROOT_HOOK, MESSAGE + MARKER, 45_000);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("invalid automation provenance");
+      expect(readFileSync(path.join(p.f.root, CALLS_FILE), "utf8")).toContain(
+        "issue view 42"
+      );
+    },
+    ioLatencyBudgetMs(55_000)
+  );
   it.each(HOOKS)(
     "reaches verified non-AI branch with exact final proposal: %s",
     hookPath => {

@@ -2,7 +2,7 @@
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
   "$modules": 199,
-  "$names": 1552,
+  "$names": 1559,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -306,6 +306,7 @@
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs": [
       "assertManagedSelection",
       "auditControllerClosure",
+      "classifierGraphMatches",
       "controllerMembers",
       "helperManifest",
       "managedClosure",
@@ -314,8 +315,10 @@
       "validateHelperManifest"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs": [
+      "CLASSIFIER_MEMBERS",
       "HELPER_CONTROLS",
       "HELPER_PACKAGE_MEMBERS",
+      "OWNER_MEMBERS",
       "managedTemplateMembers"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-helper.mjs": [
@@ -382,6 +385,7 @@
     "all/copy-overwrite/scripts/lib/npm-update-npm.mjs": [
       "archiveIntegrity",
       "effectiveEngineStrict",
+      "findLisaPackageOwner",
       "registryVersion",
       "runNpm"
     ],
@@ -400,6 +404,7 @@
       "registerNamespace"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-owner.mjs": [
+      "nativeHooksEnabled",
       "qualifyLisaOwner",
       "releasedLisaIdentity",
       "validateOwnerReceipt"
@@ -438,7 +443,8 @@
       "destinationSnapshot",
       "ordinaryGateReceipt",
       "publicationBacklink",
-      "publicationBody"
+      "publicationBody",
+      "publicationProof"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-publish.mjs": [
       "assertPublication",
@@ -486,6 +492,7 @@
       "assertRubyEnvironment",
       "inspectedEnvironment",
       "isInstallerRole",
+      "isProviderTransport",
       "workerEnvironment"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-worker-inspection.mjs": [

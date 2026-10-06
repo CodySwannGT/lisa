@@ -1,7 +1,10 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Literal original tool invocations enter a qualified worker before application code loads. */
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { resolve, sep } from "node:path";
+import { invokedAsScript } from "./invoked-as-script.mjs";
 import { lstatSync, realpathSync } from "node:fs";
 import { required, keys } from "./npm-update-contract.mjs";
 import { readJson, runProcess } from "./npm-update-process.mjs";
@@ -277,10 +280,7 @@ async function main() {
   process.exitCode = result.code;
 }
 
-if (
-  process.argv[1] &&
-  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-)
+if (invokedAsScript(import.meta.url))
   main().catch(error => {
     process.stderr.write(`npm tool dispatch: ${error.message}\n`);
     process.exitCode = 1;

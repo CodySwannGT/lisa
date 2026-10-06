@@ -1,4 +1,6 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** A disposable CI gate exposes only a fixed read capability; publisher credentials never enter this job. */
 import { createServer, createConnection } from "node:net";
 import { chmodSync, lstatSync, realpathSync, unlinkSync } from "node:fs";

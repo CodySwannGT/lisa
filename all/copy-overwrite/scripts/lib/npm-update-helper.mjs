@@ -1,8 +1,10 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Independent Git or registry archive authority qualifies canonical helpers before import. */
 import { createRequire } from "node:module";
 import { createHash } from "node:crypto";
-import { dirname, join, parse } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { existsSync, lstatSync, realpathSync } from "node:fs";
 import { required, VERSION, OBJECT } from "./npm-update-contract.mjs";
@@ -11,7 +13,15 @@ import {
   runProcess,
   withPrivateRoot,
 } from "./npm-update-process-core.mjs";
-import { runNpm, archiveIntegrity } from "./npm-update-npm.mjs";
+import {
+  runNpm,
+  archiveIntegrity,
+  findLisaPackageOwner,
+} from "./npm-update-npm.mjs";
+import {
+  CLASSIFIER_MEMBERS as MEMBERS,
+  OWNER_MEMBERS,
+} from "./npm-update-helper-inventory.mjs";
 import {
   managedTemplateMembers,
   helperManifest,
@@ -19,37 +29,14 @@ import {
   managedControllerSelection,
   auditControllerClosure,
   assertManagedSelection,
+  classifierGraphMatches,
 } from "./npm-update-helper-graph.mjs";
 
 const PACKAGE = "@codyswann/lisa";
-const MEMBERS = [
-  "plugins/lisa/scripts/intake-blocker-reprobe.mjs",
-  "plugins/lisa/scripts/intake-prework-denominator.mjs",
-];
-const OWNER_MEMBERS = [
-  "plugins/lisa/hooks/auto-update.mjs",
-  "plugins/lisa/hooks/auto-update.sh",
-  "plugins/lisa/.codex-plugin/hooks.json",
-];
-
-/** Ascend from the actual executing or resolved entry; never identify the host's manifest as Lisa. */
-function packageOwner(entry) {
-  let directory = dirname(realpathSync(entry));
-  const root = parse(directory).root;
-  while (directory !== root) {
-    const manifest = join(directory, "package.json");
-    if (existsSync(manifest)) {
-      const metadata = JSON.parse(readBytes(manifest, 1_048_576, false));
-      if (metadata.name === PACKAGE) return { root: directory, metadata };
-    }
-    directory = dirname(directory);
-  }
-  return undefined;
-}
 
 /** Native package resolution supports both upstream and actual emitted managed layouts. */
 export function helperOwner() {
-  const local = packageOwner(fileURLToPath(import.meta.url));
+  const local = findLisaPackageOwner(fileURLToPath(import.meta.url));
   if (local) return { ...local, source: existsSync(join(local.root, ".git")) };
   let entry;
   try {
@@ -59,7 +46,7 @@ export function helperOwner() {
       "npm updater: qualified installed Lisa helper is unavailable"
     );
   }
-  const installed = packageOwner(entry);
+  const installed = findLisaPackageOwner(entry);
   required(installed, "resolved helper has no canonical Lisa package owner");
   return { ...installed, source: false };
 }
@@ -76,26 +63,6 @@ function helperBytes(root, members) {
     );
     return readBytes(file, 1_048_576, false);
   });
-}
-
-/** The unchanged classifier has precisely one qualified canonical dependency. */
-function canonicalGraph(bytes) {
-  const text = bytes.map(value =>
-    new TextDecoder("utf8", { fatal: true }).decode(value)
-  );
-  const imports =
-    text[0].match(
-      /^\s*(?:import|export)\s+.*\bfrom\s+["'][^"']+["'];?\s*$/gm
-    ) ?? [];
-  required(
-    imports.length === 1 &&
-      imports[0].trim() ===
-        'import { isPreWorkLaneType } from "./intake-prework-denominator.mjs";' &&
-      !/\bimport\s*\(/.test(text[0]) &&
-      !/^\s*(?:import|export)\s+.*\bfrom\b/m.test(text[1]) &&
-      !/\bimport\s*\(/.test(text[1]),
-    "canonical helper import graph differs"
-  );
 }
 
 /** Current committed Git identity supplies source-local authority; production pins the approved signer. */
@@ -312,7 +279,10 @@ export async function qualifiedControllerGraph(cwd, config, entries) {
 /** No canonical package code is imported until independent authority qualifies its fixed graph. */
 export async function canonicalClassifier(config) {
   const owner = await qualifiedHelperFiles(config, MEMBERS);
-  canonicalGraph(MEMBERS.map(member => owner.bytes.get(member)));
+  required(
+    classifierGraphMatches(MEMBERS.map(member => owner.bytes.get(member))),
+    "canonical helper import graph differs"
+  );
   const module = await import(pathToFileURL(join(owner.root, MEMBERS[0])).href);
   required(
     typeof module.humanGateVerdict === "function",

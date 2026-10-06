@@ -1,7 +1,6 @@
 /** Native IPC/process controls use a synthetic GH executable, never authentic provider proof. */
 import { describe, expect, it } from "vitest";
 import {
-  mkdtempSync,
   realpathSync,
   readFileSync,
   writeFileSync,
@@ -21,10 +20,15 @@ import {
   writeJson,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
 import { hostedHookContext } from "../../../all/copy-overwrite/scripts/lib/npm-update-hosted-hook.mjs";
+import { createSupervisedUnixFixture } from "../../helpers/supervised-unix-fixture.js";
+import { SCRATCH_SUPERVISION_LEASE_ENV } from "../../../src/configs/vitest/scratch-supervision.js";
 
 async function fixture(operation: (state: any) => Promise<void>) {
-  // eslint-disable-next-line sonarjs/publicly-writable-directories -- mkdtemp creates an owned0700 nonce; native Unix sockets require a short absolute path.
-  const root = realpathSync(mkdtempSync("/tmp/lisa-hook-read-"));
+  const scratch = createSupervisedUnixFixture(
+    "hook-reader.sock",
+    process.env[SCRATCH_SUPERVISION_LEASE_ENV]
+  );
+  const root = scratch.root;
   const gh = join(root, "native-gh-fixture");
   writeFileSync(
     gh,
@@ -70,7 +74,7 @@ async function fixture(operation: (state: any) => Promise<void>) {
     });
   } finally {
     await broker?.close();
-    rmSync(root, { recursive: true });
+    scratch.close();
   }
 }
 const options = {

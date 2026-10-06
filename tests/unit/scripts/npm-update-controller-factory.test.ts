@@ -94,7 +94,7 @@ describe("controller-derived canonical helper recipes", () => {
       controllerSubject(
         {
           ...context,
-          allocation: { ...context.allocation, workItem: "other/repo#42" },
+          allocation: { ...context.allocation, workItem: "acme/other#42" },
         },
         stagePhase,
         null
@@ -103,7 +103,7 @@ describe("controller-derived canonical helper recipes", () => {
     expect(() =>
       controllerSubject(context, "publication-backlink", {
         ...pr,
-        html_url: "https://github.com/other/repo/pull/12",
+        html_url: "https://github.com/acme/other/pull/12",
       })
     ).toThrow(/PR/);
     expect(() =>

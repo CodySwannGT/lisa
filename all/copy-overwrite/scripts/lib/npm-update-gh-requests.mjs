@@ -1,4 +1,6 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Controller-derived literal GH requests narrow canonical parsing without replacing it. */
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { required, keys } from "./npm-update-contract.mjs";
@@ -13,10 +15,12 @@ import {
   PROPOSAL_PREDICATE,
   RECOVERY_PREDICATE,
 } from "./github-attestation-verifier.mjs";
+const BACKLINK_PHASE = "publication-backlink";
+const STAGE_PHASE = "stage-read";
 const PHASES = [
-  "stage-read",
+  STAGE_PHASE,
   "hook-read",
-  "publication-backlink",
+  BACKLINK_PHASE,
   "publication-validate-pr",
 ];
 const ID = /^[1-9]\d*$/;
@@ -72,7 +76,7 @@ function checkedSubject(subject) {
     /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/.test(subject.maintainer) &&
       Array.isArray(subject.proofs) &&
       subject.proofs.length <= 2 &&
-      (subject.phase !== "stage-read" || subject.proofs.length === 0),
+      (subject.phase !== STAGE_PHASE || subject.proofs.length === 0),
     "invalid GH phase proof scope"
   );
   if (subject.recovery !== null) {
@@ -103,7 +107,7 @@ function ordinaryRequests(subject) {
       ),
     },
   ];
-  if (subject.phase !== "stage-read")
+  if (subject.phase !== STAGE_PHASE)
     records.push({
       kind: "plain",
       args: pullRequestViewArgs(
@@ -112,7 +116,7 @@ function ordinaryRequests(subject) {
         subject.repository
       ),
     });
-  if (subject.phase === "publication-backlink")
+  if (subject.phase === BACKLINK_PHASE)
     records.push({
       kind: "comments",
       args: githubBacklinkListArgs(subject.tracker, subject.issue),

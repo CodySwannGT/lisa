@@ -1,4 +1,6 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Bounded public checkpoint storage is data only, never provenance authority. */
 import { TextDecoder } from "node:util";
 import { canonicalJson } from "../lisa-automation-provenance.mjs";

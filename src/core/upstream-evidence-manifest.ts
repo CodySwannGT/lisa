@@ -23,19 +23,19 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
       "fddbb47321be74b6d0a1a5e2508e0e08268560d36126d834f9de3b91f1dff15c",
     "all/copy-overwrite/scripts/lib/automation-provenance-contract.mjs":
-      "7f110aca808c9890ae917315baf5baf3b9a0c74457bfc1b138e4151e97924d0d",
+      "69dba85e2a57e1b89f6dfb9dc98a253d2e5317c9d000eeafc6bbd1649e740bd3",
     "all/copy-overwrite/scripts/lib/automation-provenance-local.mjs":
-      "83080a248047f46942758c5367545a0a7e044030933d4e4fbbd70486c2331190",
+      "78f660ae1567b8254536323e547f1b8d806837fa554d580db84c5d69603cab0a",
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "c565984dcd33bc5d26a126c25cec9a0734d87c0d9540479168a77f51b980809f",
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs":
-      "d45f481ef27532fd822f6f46731083b90f61fbcdab2e26069c61616122359611",
+      "43be8987bd5af04130eedcc256f8a3c5667d3648dfdf37b0fb7d3ce28f417c08",
     "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs":
-      "60d74d266cfacc582a3d6d6ff8be78e6b4e204370067955c2ec7a843a810f863",
+      "adb3e7bbc8d3986a84c2934181b5518c96a2690e7cfef7d6ff77a405c6a957d7",
     "all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs":
-      "68d69315436c7c60870b67f74efce36e979cf0823cdbbbb68b3e0a06ef017a4f",
+      "d7eb4fb96dd697f9abbd5132ffde5ec47d2972f9d5c0725529b57b8f54e06dc3",
     "all/copy-overwrite/scripts/lib/history-secret-evidence-shape.mjs":
       "f9b606645b9f3d55031e9cd0caf874395ae17ec6425f4a2adf6ca29e87560f0e",
     "all/copy-overwrite/scripts/lib/history-secret-evidence.mjs":
@@ -51,107 +51,107 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/kill-marks.mjs":
       "13388da7203b02ba84a845abd7885074bc8a495e215437a97122060d69367030",
     "all/copy-overwrite/scripts/lib/npm-update-allocate.mjs":
-      "b7e08b6e432ff135caa782de65de34e8a14e12e92b1db9522a085156f41b412e",
+      "f28cd52c08836bd7cf18a14e18e1f69293bbb2c84e2da77ddbcd267d71f6c11e",
     "all/copy-overwrite/scripts/lib/npm-update-authorization.mjs":
-      "3750f4c343d8c7c57a1c9fe13b318f4e9c4d0dacb33f412c91018fcdea8f563d",
+      "d383f76f31b4d65ff8e385e957410d594ac9381b12fbd82a76c572bd639fa80c",
     "all/copy-overwrite/scripts/lib/npm-update-broker-client.mjs":
-      "e493b2556fbc9a7b16fb1d1ba46f9a8b1bff06a616bbe7df8ad3454a4946202d",
+      "bb785fc64de1dfeb09241d228c11eaf7aaf3821bafa96da4bc37f2bac28cd8d0",
     "all/copy-overwrite/scripts/lib/npm-update-checkpoint.mjs":
-      "bf1f8bd4cfd5317fb9078e0efaa8c66850616a29bf61968baacf2a1842e26a1b",
+      "1c0c9d1442d65cc848a80bce010fc0d7d9f3792b9080df03ce3286177b4d37a0",
     "all/copy-overwrite/scripts/lib/npm-update-contract.mjs":
-      "c0d43613e4675bd3ec4585040d87a21821ec40b32739502d9124863f4e3e6ee0",
+      "6905dd9d5747702ab502b66bcb38b6d4dcb30127f02466d29b3905f53c27981d",
     "all/copy-overwrite/scripts/lib/npm-update-controller-broker.mjs":
-      "c760d88acd727aa6d74da339574ee5412f0af87c2e5fa8f8121533cb09b4edd1",
+      "f9d4ac64a5793f754619d4a50ec9a57814692374503add68aaaebc56123c2ec4",
     "all/copy-overwrite/scripts/lib/npm-update-controller-factory.mjs":
-      "d486c2d84faba6ec7e5dd21bd707881cc9b9742496c317c451637a0d12964eb4",
+      "8b5af4dc0a2569168869b4fd2694c7a042b446ea5ca646bfd3f127f490097ded",
     "all/copy-overwrite/scripts/lib/npm-update-controller-recipe.mjs":
-      "c4e13feb3eb556c300dfe263fabe7a372e1f4399e974a0b024490ebbfdc0ccf4",
+      "fd67b592564fdbd6fe0963681a389cdd6689ea882f3b5fe125b38b4fdbf00062",
     "all/copy-overwrite/scripts/lib/npm-update-execution-adapter.mjs":
-      "f01a20295de226bbf15c6fd2c3044525bbc7840508a84c1c1ec1e4445ebfeca5",
+      "8362b9fbef64ba8c3cc9668bcbf13d0a37073b63fbff990acab84254b91c1b11",
     "all/copy-overwrite/scripts/lib/npm-update-gate-hooks.mjs":
-      "d08af0c2c920ee98b1973f82929739c475cbad0048f9253f6532fa5fdadf4359",
+      "cb235496feb720a7497bce027c137476086f172485020494744d85e6a0310a5b",
     "all/copy-overwrite/scripts/lib/npm-update-gate-install.mjs":
-      "bbeffd67211537624b5569059f3cf3d0d261abd8d0c2bcdcabff8cab8b60e950",
+      "393b12abc3f5a714ce4006222e1c005e1be0cd0e64ac5111977d4db3f8ba7636",
     "all/copy-overwrite/scripts/lib/npm-update-gate-proof.mjs":
-      "675dd7b79637203178618f8db4ea196acab0b9e76efd65d4c571d95f0b5d9f2c",
+      "7d7ded577a86d2df88fa826d9fe325b0a378db97120f41acba6c9b81cade949f",
     "all/copy-overwrite/scripts/lib/npm-update-gate.mjs":
-      "e4092dd8436b785c27438beb82fa35179fc8fc8ffb8bdbdbb086c6211f658f2d",
+      "86b3b29736b5abee8d3f53844084805f4e5d85ad6537488f7d2da284d2146207",
     "all/copy-overwrite/scripts/lib/npm-update-gh-dispatch.mjs":
-      "920f3daee4a2a2dc6fa1752a31e5194cdf0d6ac552643e41bad81e6d2bc83451",
+      "d78a187dfeb31aa8f5e7ecb38b5902dd4e034d52dca1527ac115dc591de90997",
     "all/copy-overwrite/scripts/lib/npm-update-gh-grants.mjs":
-      "39cdf37db1ceae3b104038c1e25735a7f805d04f2ab2a7001a853f633485718d",
+      "4be8bcfa098b7f7f9cdfe6d7a1f110e5e4fb1e6181bd12d0b7f620f569293f09",
     "all/copy-overwrite/scripts/lib/npm-update-gh-requests.mjs":
-      "851e92a7ac89561e1bd5cc962691722e5268c33141d5f31586e0b7a11f20141d",
+      "0bfd950560242d6b9ecb93f8d7162e68cb420b631e39d24663ccf803712a4c22",
     "all/copy-overwrite/scripts/lib/npm-update-github.mjs":
-      "c1293afee9cc78d5688155a7e4d5b4f23541c191d62646da4e5443c54c56203b",
+      "5026c943e0ce87318a713806c1d609022d9818cd51a04b444b95285aa5aeadf8",
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs":
-      "42ed900aefea88879bd158815eda09e6b98d85953316251e5bdab04bcad4c200",
+      "7100aa6554d59c6a8f6fafefb983c12359b8cf727b8e4657362eba045051dd4e",
     "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs":
-      "39bf4d553af77101e03946ebd4769a303af1098d8f5f938c3a3259695d59d065",
+      "da1bd212a20406c060d26c52bc8e67dac3fef51afafb604042b9c6e26b07bdb6",
     "all/copy-overwrite/scripts/lib/npm-update-helper.mjs":
-      "d6ad6d094f56a1d08fabbae7e2df90779f7912d3380a4c9e792b305863901dda",
+      "f4012383184237aa0a7ca21847864fdcc2241f94fd3d2cd6d82a6345763e5824",
     "all/copy-overwrite/scripts/lib/npm-update-hook-installation.mjs":
-      "feb1d41a0ee516f049ed52a44dbaef9360fa1c0757f71ec7d630f517300aba5b",
+      "83c4503b12ae53cb894f0d03d31d9cce8c23efec56d27f7a8252120fc5ea6c47",
     "all/copy-overwrite/scripts/lib/npm-update-hook-preload.mjs":
-      "00738607ccff7bc70bdf4ea09e837a27670ca383e06f7b78878f869ac84e2c46",
+      "8f0f067a434bfb7fd5234bc2bb9a0e03a40de3df237c7ca12a5ca934855b656e",
     "all/copy-overwrite/scripts/lib/npm-update-hook-provider.mjs":
-      "a3c4b86dce057182c0a021f8aaf3ee4ad7c86c5b0001ef45395fb52ab9347cf7",
+      "bd93922b384cffefacec80bb31a7ad9fb737076a14c425c58434ef20f3310369",
     "all/copy-overwrite/scripts/lib/npm-update-hook-read-client.mjs":
-      "58a8f34e4509e765582fd312e48c5b93cc4f162ec00b24994bbd5b83be6f3640",
+      "724f22f7a1d5525fca6ed593f70d6da2ffc05bf66f2b178393064fd4d86708b1",
     "all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs":
-      "740486390e023fbe491b4be594604cb426e86755b921d9812775994e0669bf0b",
+      "ec148d15f5ea4289a273acbad3326f9f42d102079718cf0e64f3e468f9dff056",
     "all/copy-overwrite/scripts/lib/npm-update-hosted-hook.mjs":
-      "7930e76c5fa51817e2317826c37c448b905d8902c48efdd4f2bb72e69d6ff26d",
+      "e3801b5908bedcc1f98d16584b4c3eb37c5529565465b2827be44aac63444577",
     "all/copy-overwrite/scripts/lib/npm-update-invariants.mjs":
-      "eff38b42849e37516f8b2c4fce2d6e81fe53d1999d36fe6b59ea450410131cd9",
+      "866525d6b23523dc5d45cd1ed7794e31f84be5cc636288cc05d0e54d0cee63a6",
     "all/copy-overwrite/scripts/lib/npm-update-isolation.mjs":
-      "84e78beb0d40be335a8d41211999d6246e65ee85f3ddaaf0d4379f83de90c53d",
+      "66ec5390a0af0e016880c781eae47b8c60d6fca0c79ef500e1926e42eae043bf",
     "all/copy-overwrite/scripts/lib/npm-update-leaf-contract.mjs":
-      "8e350005d0affde78741e23616d3690fb2ccea8a471ab6f2534e0615ad3ae01f",
+      "8e7bcfb1d604f2d49cd86c1964330a84d4f8a4945feb5e5a9d4f72e2aa03dc07",
     "all/copy-overwrite/scripts/lib/npm-update-leaf.mjs":
-      "ff9c0fb53cfbdc0565b59df6310a0af0d2bb1eb9b2055049e5de85db0a1585f9",
+      "0cc4210470edf0042a61a74799d570b2a1a3e524dca03faca78e49ad88a4dfb9",
     "all/copy-overwrite/scripts/lib/npm-update-native-process.mjs":
-      "496a990a47f3b25a54853752f8874f6d85fdb7e5a01144bdb3875307c4bf51ed",
+      "29dc444ecb1736be991faffc7439865bcecc2cf19a81f8cefd574f9bb5a40917",
     "all/copy-overwrite/scripts/lib/npm-update-npm.mjs":
-      "adbf70257ab6cf309e7dcbbc8b42a11a6cd8eee398e85e9d5ee6885ae1a2bff4",
+      "70c1b1be0acb1e0a503bddf400be32ca163847e439b192acd98a7d63c1927b15",
     "all/copy-overwrite/scripts/lib/npm-update-object.mjs":
-      "b06f1bc632aeed73744fd6aa56e8f75da34c9d68fe9b6341188c60fc5fd1f25e",
+      "3116e80306bef9e40d02ea5f184f9ba7ce08f8ade9b3d405f9669d95b8f19fb7",
     "all/copy-overwrite/scripts/lib/npm-update-orchestrator.mjs":
-      "3bf831d84eadaa4dc5a45b82167fc7cf7bb08515aa8741653f09de2d376d4b14",
+      "e7756896d163affcfc0604e1e7d97c88b6633dcbd7b7982af4f05db4d13aec93",
     "all/copy-overwrite/scripts/lib/npm-update-owner.mjs":
-      "0ef3522a95d66ad8a92282b02de5a26ad2e14fb6ea9b7dfba21df6b3dd7cb9e7",
+      "d2a0e25442f35f55a5d308c8e072398bcd5580ad6f6624c91340a907b5c97ca5",
     "all/copy-overwrite/scripts/lib/npm-update-prepare.mjs":
-      "ab6b79fbd04ae7b39fca25321ca88087af5693d6dbe808fed19ef67ea90ee08e",
+      "dcd25565c5139c788f91f695bacf3af5e95a564be66382b9d42af418e19d8aca",
     "all/copy-overwrite/scripts/lib/npm-update-process-core.mjs":
-      "5a34573de688e3173b907f1c6071fddbafbd6d33f798fa3147d233cfae4f95ea",
+      "411b06976f7ff95a9471a23095c486b46f0add3aed2da5c2740edc98ead74af3",
     "all/copy-overwrite/scripts/lib/npm-update-process.mjs":
-      "d9400b18f1ac3638b02ed4304774967a2cd9cfe77ee1173c03b4fddfeaf699a2",
+      "5d557574eeee9fd40d3f421715ddb95f0e7239acc9a43c8eefefea3b7d63b47c",
     "all/copy-overwrite/scripts/lib/npm-update-publication.mjs":
-      "37e02adfd6d57f1df664421cfef0fbe2e835a54b8b073c05c4a198573c2bdbe8",
+      "4bef866f22884283a43d38d417e064ddb9a8a8ef7efea55edec75852da0f15b4",
     "all/copy-overwrite/scripts/lib/npm-update-publish.mjs":
-      "0d001e9feda68468b423ad424a7ea777ed842cd8530f48e237f52a83716a8ffd",
+      "54dd9a80639e1299d289615f6cbb91a4679d708111a605f1540c733a8fa53942",
     "all/copy-overwrite/scripts/lib/npm-update-quality.mjs":
-      "f28c9000837d2b8b7ce6cd3c63efa60472a3b3f24bd9a22dace67f1f44f624b5",
+      "dcbdf3dc6e15caafa39184d8d5d4c978dfcc5fb8d3dcdb228053a5299936f7b6",
     "all/copy-overwrite/scripts/lib/npm-update-recovery.mjs":
-      "84104b2fa043c6bd38bcaae8fb4862f7d262aab9e64063170c991e4ece16f103",
+      "03102ec2285c99f985577e3fef20b63c32055712d46c3c9464741756a8eccff0",
     "all/copy-overwrite/scripts/lib/npm-update-runtime-archive.mjs":
-      "673ba6fe275c14fb89a67c9f4e4b3b77f0dc12966e2eb3050c42380be09e3235",
+      "e7e9a5577921ad2db4c4d0f003f9b5de90f0050ac0107286a7df49e6b7778679",
     "all/copy-overwrite/scripts/lib/npm-update-runtime-graph.mjs":
-      "bda85d501e4c87f1ed8c9b022405a326535aa4bba2ab2890e99e227406c3e9ee",
+      "bc0de7f8ae94ee5280b655e0bd931388f3d75b1d44d94b8c61a3de4cc00e0aa0",
     "all/copy-overwrite/scripts/lib/npm-update-runtime-transport.mjs":
-      "2a38692e646bdf336db754d62ecfc91d063cf28c759b3420fad44ee50847c07a",
+      "67ea042e386b27bcd9aecbbfdbc9008d4c673bdc7ab69d970b174299e91b19d3",
     "all/copy-overwrite/scripts/lib/npm-update-runtime.mjs":
-      "dbac6a9b721c7c43c53ac94ec9eadc925b277645cc1e2937ef408c6db6dfcef6",
+      "2c4bcf43ddb93a4078a7abb26429f8228bc2fe77d020cfec6cfb83bccb002c60",
     "all/copy-overwrite/scripts/lib/npm-update-tool-launcher.mjs":
-      "cbc47196e76295e0d0d0d8cabc0c201be077b977edfab63ab6f6bdcf0d7fb79b",
+      "03e58c15ceee04a80a2c2a597454132ab742fc13c878eb1cb742a6ee0e045045",
     "all/copy-overwrite/scripts/lib/npm-update-worker-environment.mjs":
-      "8314c258bc6f0bbffc0e5999c9e201dbe47e4d14992bf9c964eccd3b558575c2",
+      "ef4170f4f7810a59b5e72cb59465e120b724a7324919d608eca387ae89df2ebb",
     "all/copy-overwrite/scripts/lib/npm-update-worker-inspection.mjs":
-      "3757c4b56ae0dc2248a663a8530baf5c7bddb0b93c19d596525ae167a2b9b07c",
+      "40f0bcfd4cc36498d16f66e24547705590ff79289c87bb9a1025d5bd6a30f2ee",
     "all/copy-overwrite/scripts/lib/npm-update-worker-lifecycle.mjs":
-      "3cd93f3fef88c10643d2e3efe318fc3fda00695b0c30bd1a846ae7fb366f3498",
+      "3b806089b16555ac1d512b91021b48a95952ae2d8d672b07034067261be58fa2",
     "all/copy-overwrite/scripts/lib/npm-update-worker-policy.mjs":
-      "7dea2d8dff819f36f40c2d211ab031a0fcd1e343d54ef9ed4a7ac56d1f344e16",
+      "0a9fbd4956147c229eed2a6856064729f3102731163b2cb604e132b5b9871832",
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs":
       "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs":
@@ -179,7 +179,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/worktree-dependencies.mjs":
       "31cb1cd96e7bd692d10ed2c26aa83c6b0580e48dbe6d2393edf9652970def091",
     "all/copy-overwrite/scripts/lisa-automation-provenance.mjs":
-      "a4acfd66630067f5dfdda22951ade554cb4a8e0e16558729a3770225dce2a278",
+      "b615b14813a515fb357740b692aaf881d596aeb63d95cc6b93a7181c7dff65d3",
     "all/copy-overwrite/scripts/lisa-command-envelope.mjs":
       "014a94647efc636cbce961364a82f03c1f3c1e54a55e9d21508fded88dce49c4",
     "all/copy-overwrite/scripts/lisa-commit-msg-gates.mjs":
@@ -225,7 +225,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
       "2379d4fc5174ae4727997a0d88d43a0212941d91bdebaf790caadd20a8c59810",
     "all/copy-overwrite/scripts/lisa-npm-updater.mjs":
-      "ad4158ef5cb57787b72a123f4cbdefc35681bb7982803cb7c7a19585192a3816",
+      "43b4eb085bede37441c36fa30af3c65f397bd5862a15d4bce6d05068b7497bac",
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
       "2a826523a4f4fc58bfa0a24e2cf02504218dd68b4baffb346966dff705dea9b0",
     "all/copy-overwrite/scripts/lisa-rails-prepush.mjs":
@@ -245,11 +245,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate-runtime.json":
       "5c2af03360bfd59df26934ea0a2e47baa3999cbaa0ad3a9a03dd74575589218d",
     "all/copy-overwrite/scripts/npm-updater-gate-supervisor.c":
-      "2506d8750694b93169f70e71d4c9dd68de0a0724bf9622bf9e15fa6cd2404b69",
+      "e7d6ed62ce27a466a097c879372b8c2ec18731371e682d04542de4d83f3daa00",
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
-      "260d194175737ed1cfdf6d208696bb58d035a45b2fd27c83a54e75be65ab5cb0",
+      "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "c11328d3d4fd6d0f82ad51afc21f710877bd8dd2643c9d1a7d0fd2fed60358eb",
+      "bddb9b01bb7553dfd54b13d128b053d8def52bee69b591906aa6ce4a270aafcd",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -2509,7 +2509,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-nightly-e2e-guard-certificate.mjs":
       "cfa441fced288d9e82d6b4a0a5e6c0d66b513f50b87751b879e8d2410a8054a3",
     "scripts/generate-npm-updater-helper-graph.mjs":
-      "935ada372e346a1fe546c30101d3235ba792201ede258cd18881ca44f5e29983",
+      "f128835f309f5a4b8d2015d57018da44fd558778efa4eed382747c6d6319260a",
     "scripts/generate-two-channel-couplings.ts":
       "5fae0ab51a48e45748f5ffd1f5d5641b33e4bf0ebf014f61fdbfb6b66acae04f",
     "scripts/generate-upstream-evidence-manifest.mjs":
@@ -2699,7 +2699,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "6d07ac247e81cd42c2c20abf8dfe504413d6b2422e4aba9b2c975a776f155921",
     "typescript/copy-overwrite/.prettierignore":
-      "dc5f2388b59cd594d3ac54884272b93a281b9fe0f34852797d6466d8db25e0a8",
+      "35e5d93608e9b31550da0ceed244c4a6bf1886bb448bbb45c203bc5c657de269",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
@@ -9834,6 +9834,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/safety-net-subst-fixtures.ts": true,
     "tests/helpers/shipped-mjs-roster.ts": true,
     "tests/helpers/staged-dependency-scan.ts": true,
+    "tests/helpers/supervised-unix-fixture.ts": true,
     "tests/helpers/template-toolchain.ts": true,
     "tests/helpers/test-run-child-process-analysis.ts": true,
     "tests/helpers/test-run-child-process-binding-plan.ts": true,
@@ -10536,6 +10537,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/helpers/io-latency-budget.test.ts": true,
     "tests/unit/helpers/mutation-kill-counts.test.ts": true,
     "tests/unit/helpers/staged-dependency-conformance.test.ts": true,
+    "tests/unit/helpers/supervised-unix-fixture.test.ts": true,
     "tests/unit/helpers/temp-dir-removal-race.test.ts": true,
     "tests/unit/helpers/test-budget-conformance.test.ts": true,
     "tests/unit/helpers/unbounded-spawn-conformance.test.ts": true,

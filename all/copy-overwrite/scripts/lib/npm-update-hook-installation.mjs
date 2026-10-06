@@ -1,4 +1,6 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Original manager readback preserves installed bytes; dispatch qualification is a separate obligation. */
 import { lstatSync, realpathSync } from "node:fs";
 import { join, resolve } from "node:path";

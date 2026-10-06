@@ -1,4 +1,6 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Closed runtime identities make missing platform and process policy actionable refusals. @module npm-updater */
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";

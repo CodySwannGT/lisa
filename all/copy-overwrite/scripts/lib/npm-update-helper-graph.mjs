@@ -1,4 +1,6 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Fixed authenticated data qualifies complete import and canonical-child closures without evaluating source. */
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
@@ -11,6 +13,32 @@ import {
   HELPER_PACKAGE_MEMBERS as PACKAGE,
 } from "./npm-update-helper-inventory.mjs";
 export { managedTemplateMembers } from "./npm-update-helper-inventory.mjs";
+
+/** The independently authenticated classifier retains its one literal canonical dependency. */
+export function classifierGraphMatches(bytes) {
+  const text = bytes.map(value =>
+    new TextDecoder("utf8", { fatal: true }).decode(value)
+  );
+  const importsIn = source =>
+    source
+      .split("\n")
+      .map(line =>
+        line
+          .trim()
+          .replace(/^export\s+(?:async\s+)?(?:function|const|let|class)\b/, "")
+      );
+  const dependenciesIn = source =>
+    importsIn(source).filter(line => /\b(?:import|export)\b/.test(line));
+  const imports = dependenciesIn(text[0]);
+  return (
+    imports.length === 1 &&
+    imports[0] ===
+      'import { isPreWorkLaneType } from "./intake-prework-denominator.mjs";' &&
+    !/\bimport\s*\(/.test(text[0]) &&
+    dependenciesIn(text[1]).length === 0 &&
+    !/\bimport\s*\(/.test(text[1])
+  );
+}
 
 /** Relative normalized names never authorize traversal, URLs, absolute paths or unknown helpers. */
 function memberPath(member) {

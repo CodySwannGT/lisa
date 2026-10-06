@@ -4,6 +4,7 @@ import { downloadRuntimeArchive } from "../../../all/copy-overwrite/scripts/lib/
 import { writeFileSync, linkSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 import {
   validatePolicy,
   validateProposal,
@@ -42,12 +43,45 @@ import {
 import { validateRuntime } from "../../../all/copy-overwrite/scripts/lib/npm-update-gate-install.mjs";
 import { canonicalJson } from "../../../all/copy-overwrite/scripts/lisa-automation-provenance.mjs";
 import { sha256 } from "../../../all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs";
-import { validateOwnerReceipt } from "../../../all/copy-overwrite/scripts/lib/npm-update-owner.mjs";
+import {
+  validateOwnerReceipt,
+  nativeHooksEnabled,
+} from "../../../all/copy-overwrite/scripts/lib/npm-update-owner.mjs";
 import { boundedSpawnSync as boundedTestSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const NODE_TOOL = "/opt/node/bin/node";
 const HELPER_GRAPH_FILE =
   "all/copy-overwrite/scripts/npm-updater-helper-graph.json";
+
+describe("actual native hook table state", () => {
+  it.each([
+    "[features]\nhooks = true\n",
+    "# host comment\n[features]\nhooks\t=\ttrue # enabled\n[other]\nvalue = false\n",
+    "[other]\nhooks = false\n  [features]  \r\nhooks = true\r\n",
+  ])("accepts one genuine enabled feature table: %s", native => {
+    expect(nativeHooksEnabled(native)).toBe(true);
+  });
+  it.each([
+    "# [features]\nhooks = true\n",
+    "value = '[features]'\nhooks = true\n",
+    "[features]\n[other]\nhooks = true\n",
+    "[features]\nhooks = false\n",
+    "[features]\nhooks = truejunk\n",
+    "[features]\nhooks = true.extra\n",
+    "[features]\nhooks = 'true'\n",
+    "[features]\nhooks = true\nhooks = false\n",
+    "[features]\nhooks = true\n[features]\nhooks = true\n",
+    'description = """\n[features]\nhooks = true\n"""\n',
+    "description = '''\n[features]\nhooks = true\n'''\n",
+    'description = """note"""\n[features]\nhooks = true\n',
+    "description = '''note'''\n[features]\nhooks = true\n",
+  ])(
+    "refuses commented, foreign, malformed or duplicate authority: %s",
+    native => {
+      expect(nativeHooksEnabled(native)).toBe(false);
+    }
+  );
+});
 
 const RAILS_PREPUSH = "lisa-rails-prepush.mjs";
 const WORK_ITEM_HELPER = "lisa-work-item.mjs";
@@ -860,78 +894,66 @@ async function helperAuditImports(member: string, bytes: Buffer) {
 }
 
 describe("original object reconstruction remains Git data", () => {
-  it("reconstructs the exact raw object and refuses an unqualified runtime before attributed checkout work", async () => {
-    const { mkdirSync, readFileSync } = await import("node:fs");
-    const { runProcess } =
-      await import("../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs");
-    const { descriptorFor, gateProposal } =
-      await import("../../../all/copy-overwrite/scripts/lib/npm-update-gate.mjs");
-    const { publicationObjects } =
-      await import("../../../all/copy-overwrite/scripts/lib/npm-update-publish.mjs");
-    await withPrivateRoot(async (root, env) => {
-      const cwd = join(root, "fixture");
-      mkdirSync(cwd);
-      writeFileSync(join(cwd, MANIFEST_FILE), JSON.stringify(BEFORE));
-      writeFileSync(
-        join(cwd, "package-lock.json"),
-        JSON.stringify({
-          ...LOCK,
-          packages: {
-            "": BEFORE,
-            "node_modules/is-number": {
-              ...LOCK.packages["node_modules/is-number"],
-              version: "6.0.0",
+  it(
+    "reconstructs the exact raw object and refuses an unqualified runtime before attributed checkout work",
+    async () => {
+      const { mkdirSync, readFileSync } = await import("node:fs");
+      const { runProcess } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs");
+      const { descriptorFor, gateProposal } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-gate.mjs");
+      const { publicationObjects } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-publish.mjs");
+      await withPrivateRoot(async (root, env) => {
+        const cwd = join(root, "fixture");
+        mkdirSync(cwd);
+        writeFileSync(join(cwd, MANIFEST_FILE), JSON.stringify(BEFORE));
+        writeFileSync(
+          join(cwd, "package-lock.json"),
+          JSON.stringify({
+            ...LOCK,
+            packages: {
+              "": BEFORE,
+              "node_modules/is-number": {
+                ...LOCK.packages["node_modules/is-number"],
+                version: "6.0.0",
+              },
             },
-          },
-        })
-      );
-      const git = (args: string[]) => runProcess("git", args, { cwd, env });
-      await git(["init", "--initial-branch=main"]);
-      await git(["config", "user.name", "Fixture"]);
-      await git(["config", "user.email", "fixture@example.invalid"]);
-      await git(["add", MANIFEST_FILE, "package-lock.json"]);
-      await git(["commit", "-m", "chore: establish object fixture"]);
-      const parent = (await git(["rev-parse", "HEAD"])).stdout
-        .toString()
-        .trim();
-      const policy = validatePolicy(POLICY, CONFIG);
-      const proposal = proposalFrom(policy, parent, BEFORE, FILES, UPDATES);
-      const config = { automationProvenance: { signerDigest: parent } };
-      const allocation = {
-        workItem: "acme/widgets#42",
-        claimCommentId: 123,
-        claimSha256: "c".repeat(64),
-      };
-      const preview = await descriptorFor({
-        cwd,
-        proposal,
-        policy,
-        automation: config.automationProvenance,
-        allocation,
-        runId: "123",
-        runAttempt: "1",
-        epoch: 1780000000,
-      });
-      const { descriptor, message } = preview;
-      const raw = Buffer.from(
-        `tree ${descriptor.tree}\nparent ${descriptor.parent}\nauthor ${descriptor.author}\ncommitter ${descriptor.committer}\n\n${message}`
-      );
-      const commit = validateRawCommit(raw, descriptor, cwd);
-      await publicationObjects(
-        cwd,
-        proposal,
-        policy,
-        config,
-        allocation,
-        descriptor,
-        raw,
-        commit
-      );
-      expect((await git(["cat-file", "commit", commit.sha])).stdout).toEqual(
-        raw
-      );
-      await expect(
-        publicationObjects(
+          })
+        );
+        const git = (args: string[]) => runProcess("git", args, { cwd, env });
+        await git(["init", "--initial-branch=main"]);
+        await git(["config", "user.name", "Fixture"]);
+        await git(["config", "user.email", "fixture@example.invalid"]);
+        await git(["add", MANIFEST_FILE, "package-lock.json"]);
+        await git(["commit", "-m", "chore: establish object fixture"]);
+        const parent = (await git(["rev-parse", "HEAD"])).stdout
+          .toString()
+          .trim();
+        const policy = validatePolicy(POLICY, CONFIG);
+        const proposal = proposalFrom(policy, parent, BEFORE, FILES, UPDATES);
+        const config = { automationProvenance: { signerDigest: parent } };
+        const allocation = {
+          workItem: "acme/widgets#42",
+          claimCommentId: 123,
+          claimSha256: "c".repeat(64),
+        };
+        const preview = await descriptorFor({
+          cwd,
+          proposal,
+          policy,
+          automation: config.automationProvenance,
+          allocation,
+          runId: "123",
+          runAttempt: "1",
+          epoch: 1780000000,
+        });
+        const { descriptor, message } = preview;
+        const raw = Buffer.from(
+          `tree ${descriptor.tree}\nparent ${descriptor.parent}\nauthor ${descriptor.author}\ncommitter ${descriptor.committer}\n\n${message}`
+        );
+        const commit = validateRawCommit(raw, descriptor, cwd);
+        await publicationObjects(
           cwd,
           proposal,
           policy,
@@ -939,30 +961,46 @@ describe("original object reconstruction remains Git data", () => {
           allocation,
           descriptor,
           raw,
-          { ...commit, sha: "b".repeat(40) }
-        )
-      ).rejects.toThrow(/raw object differs/);
-      await expect(
-        gateProposal({
-          cwd,
-          proposal,
-          policy,
-          allocation,
-          preview,
-          bundle: "{}",
-          token: "fixture-read-only",
-          config: {},
-        })
-      ).rejects.toThrow(/runtime|platform|isolation|hosted/);
-      expect((await git(["rev-parse", "HEAD"])).stdout.toString().trim()).toBe(
-        parent
-      );
-      expect((await git(["status", "--porcelain"])).stdout.length).toBe(0);
-      expect(
-        JSON.parse(readFileSync(join(cwd, MANIFEST_FILE), "utf8"))
-      ).toEqual(BEFORE);
-    });
-  }, 30_000);
+          commit
+        );
+        expect((await git(["cat-file", "commit", commit.sha])).stdout).toEqual(
+          raw
+        );
+        await expect(
+          publicationObjects(
+            cwd,
+            proposal,
+            policy,
+            config,
+            allocation,
+            descriptor,
+            raw,
+            { ...commit, sha: "b".repeat(40) }
+          )
+        ).rejects.toThrow(/raw object differs/);
+        await expect(
+          gateProposal({
+            cwd,
+            proposal,
+            policy,
+            allocation,
+            preview,
+            bundle: "{}",
+            token: "fixture-read-only",
+            config: {},
+          })
+        ).rejects.toThrow(/runtime|platform|isolation|hosted/);
+        expect(
+          (await git(["rev-parse", "HEAD"])).stdout.toString().trim()
+        ).toBe(parent);
+        expect((await git(["status", "--porcelain"])).stdout.length).toBe(0);
+        expect(
+          JSON.parse(readFileSync(join(cwd, MANIFEST_FILE), "utf8"))
+        ).toEqual(BEFORE);
+      });
+    },
+    ioLatencyBudgetMs(30_000)
+  );
 });
 
 describe("complete authenticated helper closure", () => {

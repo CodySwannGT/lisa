@@ -1,4 +1,6 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Bounded read-only local Git validates exact protocol identities without granting publication authority. */
 import { isAbsolute } from "node:path";
 import { boundedSpawnSync } from "./bounded-spawn.mjs";

@@ -1,4 +1,6 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Pure shared diagnostics retain one error identity without importing producer orchestration. */
 
 /** Only trusted static boundary reasons may leave a phase as a public diagnostic. */

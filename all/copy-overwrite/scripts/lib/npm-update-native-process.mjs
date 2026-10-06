@@ -1,4 +1,6 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Literal native process supervision and capture preserve argv/stdin/status and cancellation. */
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";

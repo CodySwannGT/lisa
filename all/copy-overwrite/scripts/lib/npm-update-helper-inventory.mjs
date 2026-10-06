@@ -1,4 +1,6 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** One fixed source inventory is shared by the closed validator and reproducible generator. */
 const COMMON = [
   "lisa-work-item.mjs",
@@ -93,10 +95,18 @@ export const HELPER_CONTROLS = [
   "lib/npm-update-helper-graph.mjs",
   "npm-updater-helper-graph.json",
 ];
-export const HELPER_PACKAGE_MEMBERS = [
-  "package/plugins/lisa/scripts/intake-blocker-reprobe.mjs",
-  "package/plugins/lisa/scripts/intake-prework-denominator.mjs",
+export const CLASSIFIER_MEMBERS = [
+  "plugins/lisa/scripts/intake-blocker-reprobe.mjs",
+  "plugins/lisa/scripts/intake-prework-denominator.mjs",
 ];
+export const OWNER_MEMBERS = [
+  "plugins/lisa/hooks/auto-update.mjs",
+  "plugins/lisa/hooks/auto-update.sh",
+  "plugins/lisa/.codex-plugin/hooks.json",
+];
+export const HELPER_PACKAGE_MEMBERS = CLASSIFIER_MEMBERS.map(
+  member => `package/${member}`
+);
 
 /** Only reviewed upstream templates and fixed classifier package members can enter the inventory. */
 export function managedTemplateMembers() {

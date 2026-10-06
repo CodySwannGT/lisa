@@ -7,6 +7,7 @@ import { isBuiltin } from "node:module";
 import { dirname, join, posix, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { __debug } from "prettier";
+import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import {
   managedTemplateMembers,
   validateHelperManifest,
@@ -174,10 +175,7 @@ async function main() {
   else writeFileSync(join(ROOT, OUTPUT), bytes);
 }
 
-if (
-  process.argv[1] &&
-  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-)
+if (invokedAsScript(import.meta.url))
   main().catch(error => {
     process.stderr.write(
       `updater helper graph generation failed: ${error.message}\n`

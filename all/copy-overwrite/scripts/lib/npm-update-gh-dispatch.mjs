@@ -1,9 +1,12 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Credentialed native GH runs only for immutable controller-selected canonical requests. */
 import { realpathSync, lstatSync } from "node:fs";
 import { join } from "node:path";
 import { required, keys } from "./npm-update-contract.mjs";
 import { binaryDigest } from "./npm-update-isolation.mjs";
+import { isProviderTransport } from "./npm-update-worker-environment.mjs";
 import {
   createGhRequests,
   createGhState,
@@ -20,8 +23,6 @@ const OPTIONS = new Set([
   "maxBuffer",
   "killSignal",
 ]);
-const TRANSPORT =
-  /^(?:HTTPS?_PROXY|https?_proxy|ALL_PROXY|all_proxy|NO_PROXY|no_proxy|SSL_CERT_FILE|SSL_CERT_DIR|CURL_CA_BUNDLE|SSLKEYLOGFILE|GH_DEBUG|GH_HTTP_UNIX_SOCKET|GH_CONFIG_DIR|GH_FORCE_TTY|GIT_SSL_CAINFO|GIT_PROXY_COMMAND|LD_PRELOAD|LD_LIBRARY_PATH|DYLD_.*)$/;
 
 export function validateGhProfile(profile) {
   keys(profile, [
@@ -124,7 +125,7 @@ function nativeOptions(profile, options, token) {
   );
   required(
     Object.entries(environment).every(
-      ([name, value]) => !value || !TRANSPORT.test(name)
+      ([name, value]) => !value || !isProviderTransport(name)
     ) &&
       (!environment.GH_HOST || environment.GH_HOST === "github.com") &&
       (!environment.GITHUB_API_URL ||

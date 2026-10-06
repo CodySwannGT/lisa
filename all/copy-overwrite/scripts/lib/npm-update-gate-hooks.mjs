@@ -1,4 +1,6 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Original hook transport distinguishes artifact audit from actual remote state. */
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { required, OBJECT, keys } from "./npm-update-contract.mjs";

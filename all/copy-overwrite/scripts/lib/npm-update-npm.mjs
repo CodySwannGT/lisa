@@ -1,4 +1,6 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Genuine immutable npm and released helper identity preserve native engine policy. */
 import {
   lstatSync,
@@ -8,12 +10,29 @@ import {
   closeSync,
   fstatSync,
   readSync,
+  realpathSync,
 } from "node:fs";
 import { createHash } from "node:crypto";
-import { join, dirname, isAbsolute } from "node:path";
+import { join, dirname, isAbsolute, parse } from "node:path";
 import { required } from "./npm-update-contract.mjs";
 import { readBytes, runProcess } from "./npm-update-process-core.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
+
+/** Ascend from the actual entry; a host manifest never becomes the Lisa package owner. */
+export function findLisaPackageOwner(entry) {
+  let directory = dirname(realpathSync(entry));
+  const root = parse(directory).root;
+  while (directory !== root) {
+    const manifest = join(directory, "package.json");
+    if (existsSync(manifest)) {
+      const metadata = JSON.parse(readBytes(manifest, 1_048_576, false));
+      if (metadata.name === "@codyswann/lisa")
+        return { root: directory, metadata };
+    }
+    directory = dirname(directory);
+  }
+  return undefined;
+}
 
 /** Stream a bounded regular archive so its actual bytes, not metadata, prove registry integrity. */
 export function archiveIntegrity(file) {

@@ -1,4 +1,6 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Public immutable archives are checked before the trusted daemon loads them. @module npm-updater */
 import { openSync, closeSync, writeSync, fsyncSync, constants } from "node:fs";
 import { join } from "node:path";

@@ -1,8 +1,37 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Closed guest environment carries only fixed runtime and narrowly scoped workload data. @module npm-updater */
 import { required } from "./npm-update-contract.mjs";
 
 const RUBY_INSTALL = "ruby-install";
+const PROVIDER_TRANSPORT = new Set([
+  "HTTP_PROXY",
+  "HTTPS_PROXY",
+  "http_proxy",
+  "https_proxy",
+  "ALL_PROXY",
+  "all_proxy",
+  "NO_PROXY",
+  "no_proxy",
+  "SSL_CERT_FILE",
+  "SSL_CERT_DIR",
+  "CURL_CA_BUNDLE",
+  "SSLKEYLOGFILE",
+  "GH_DEBUG",
+  "GH_HTTP_UNIX_SOCKET",
+  "GH_CONFIG_DIR",
+  "GH_FORCE_TTY",
+  "GIT_SSL_CAINFO",
+  "GIT_PROXY_COMMAND",
+  "LD_PRELOAD",
+  "LD_LIBRARY_PATH",
+]);
+
+/** Both credentialed and token-free callers reject the same native transport overrides. */
+export function isProviderTransport(name) {
+  return PROVIDER_TRANSPORT.has(name) || name.startsWith("DYLD_");
+}
 
 const ENVIRONMENT = new Set([
   "PATH",

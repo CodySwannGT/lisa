@@ -1,4 +1,6 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Read-only provider routing instruments authenticated hook code, not arbitrary application Node programs. */
 import childProcess from "node:child_process";
 import { syncBuiltinESMExports } from "node:module";

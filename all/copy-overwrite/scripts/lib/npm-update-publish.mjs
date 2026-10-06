@@ -1,11 +1,8 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Durable proof and exact gated raw-object publication. @module npm-updater */
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
-import {
-  sha256,
-  verifyDescriptorAttestation,
-  verifyCurrentProvider,
-} from "./github-attestation-verifier.mjs";
 import {
   required,
   validateProposal,
@@ -15,64 +12,20 @@ import {
   authorizeAllocation,
   destinationSnapshot,
 } from "./npm-update-authorization.mjs";
-import { readJson, readBytes, runProcess } from "./npm-update-process.mjs";
-import { existsSync } from "node:fs";
-import { verifyRecoveryOrigin } from "./github-attestation-recovery.mjs";
+import { runProcess } from "./npm-update-process.mjs";
 import { descriptorFor } from "./npm-update-gate.mjs";
 import { assertGateTransport } from "./npm-update-gate-hooks.mjs";
 import {
   publicationBody,
   assertPublicationPolicy,
   publicationBacklink,
+  publicationProof,
 } from "./npm-update-publication.mjs";
 export {
   publicationBody,
   assertPublicationPolicy,
   assertPublication,
 } from "./npm-update-publication.mjs";
-
-/** Fixed distinct proof slots select origin or recovery; partial authority always refuses. */
-function publicationProof(
-  api,
-  descriptor,
-  proof,
-  proposal,
-  policy,
-  issue,
-  commit
-) {
-  required(
-    canonicalJson(readJson(proof.descriptor, 65_536)) ===
-      canonicalJson(descriptor),
-    "publication descriptor bytes differ"
-  );
-  const digest = sha256(readBytes(proof.descriptor, 65_536));
-  const recovery = Boolean(proof.recovery && existsSync(proof.recovery));
-  const bundle = Boolean(
-    proof.recoveryBundle && existsSync(proof.recoveryBundle)
-  );
-  required(recovery === bundle, "partial publication recovery authority");
-  if (recovery) {
-    verifyRecoveryOrigin(
-      api.policy,
-      descriptor,
-      readJson(proof.recovery, 65_536),
-      digest,
-      proof,
-      {
-        npmPolicySha256: proposal.policySha256,
-        proposalKey: proposal.key,
-        leafBodySha256: sha256(issue.body),
-        commit: commit.sha,
-        maintainer: policy.maintainer,
-        recoverySha256: sha256(readBytes(proof.recovery, 65_536)),
-      }
-    );
-  } else {
-    verifyDescriptorAttestation(api.policy, descriptor, proof, digest);
-    verifyCurrentProvider(api.policy, descriptor);
-  }
-}
 
 /** Create an absent exact ref only after a second live destination and authority read. */
 async function destinationRef(api, proposal, allocation, commit, authorize) {

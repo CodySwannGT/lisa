@@ -1,4 +1,6 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Parent registry and real daemon exit/removal own every worker lifecycle verdict. @module npm-updater */
 import { required, UpdaterError } from "./npm-update-contract.mjs";
 import { canonicalJson } from "../lisa-automation-provenance.mjs";

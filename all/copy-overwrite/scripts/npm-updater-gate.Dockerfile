@@ -1,4 +1,5 @@
-# This file is managed by Lisa. Durable changes belong upstream.
+# This file is managed by Lisa and IS replaced on each `lisa` run.
+# Do not edit directly — durable changes belong upstream in Lisa.
 # Trusted fixed recipe only. Application/package files never enter this build context.
 ARG TARGETARCH
 FROM --platform=linux/amd64 node@sha256:25330af3531fb5e23318554a0aa911125b6e91b1b777edf7655501d207c067a2 AS node-amd64

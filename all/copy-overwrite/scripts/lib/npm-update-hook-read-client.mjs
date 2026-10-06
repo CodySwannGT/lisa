@@ -1,14 +1,16 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Canonical synchronous callers receive the actual broker-owned native result, without a credential. */
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
+import { invokedAsScript } from "./invoked-as-script.mjs";
+import { isProviderTransport } from "./npm-update-worker-environment.mjs";
 import { readJson } from "./npm-update-process.mjs";
 import { keys, required } from "./npm-update-contract.mjs";
 import { requestHookRead } from "./npm-update-hook-provider.mjs";
 
 const ENTRY = fileURLToPath(import.meta.url);
-const TRANSPORT =
-  /^(?:HTTPS?_PROXY|https?_proxy|ALL_PROXY|all_proxy|NO_PROXY|no_proxy|SSL_CERT_FILE|SSL_CERT_DIR|CURL_CA_BUNDLE|SSLKEYLOGFILE|GH_DEBUG|GH_HTTP_UNIX_SOCKET|GH_CONFIG_DIR|GH_FORCE_TTY|GIT_SSL_CAINFO|GIT_PROXY_COMMAND|LD_PRELOAD|LD_LIBRARY_PATH|DYLD_.*)$/;
 const OPTIONS = new Set([
   "cwd",
   "encoding",
@@ -48,7 +50,7 @@ function requestOptions(options, context) {
       !env.GH_TOKEN &&
       !env.GITHUB_TOKEN &&
       Object.entries(env).every(
-        ([key, value]) => !value || !TRANSPORT.test(key)
+        ([key, value]) => !value || !isProviderTransport(key)
       ) &&
       (!env.GH_HOST || env.GH_HOST === "github.com") &&
       (!env.GITHUB_API_URL ||
@@ -155,7 +157,7 @@ async function main() {
   process.stdout.write(JSON.stringify(result));
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === ENTRY)
+if (invokedAsScript(import.meta.url))
   main().catch(() => {
     process.stderr.write("hook provider request refused\n");
     process.exitCode = 1;

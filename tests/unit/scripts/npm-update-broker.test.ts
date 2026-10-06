@@ -1,6 +1,6 @@
 /** Native socket/child controls establish transport behavior, never hosted provider authority. */
 import { describe, expect, it } from "vitest";
-import { mkdtempSync, rmSync, realpathSync, lstatSync } from "node:fs";
+import { realpathSync, lstatSync } from "node:fs";
 import { resolve } from "node:path";
 import { createConnection } from "node:net";
 import { startControllerBroker } from "../../../all/copy-overwrite/scripts/lib/npm-update-controller-broker.mjs";
@@ -10,6 +10,8 @@ import { readFileSync } from "node:fs";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { canonicalJson } from "../../../all/copy-overwrite/scripts/lisa-automation-provenance.mjs";
 import { invokeControllerRecipe } from "../../../all/copy-overwrite/scripts/lib/npm-update-broker-client.mjs";
+import { createSupervisedUnixFixture } from "../../helpers/supervised-unix-fixture.js";
+import { SCRATCH_SUPERVISION_LEASE_ENV } from "../../../src/configs/vitest/scratch-supervision.js";
 
 const CANONICAL_ENTRY = resolve(
   "all/copy-overwrite/scripts/lisa-work-item.mjs"
@@ -18,18 +20,7 @@ const CONTRACT_PROBE = "canonical-contract-probe";
 const CONTRACT_VERSION = "contract-version";
 const SYSTEM_PATH = "/usr/bin:/bin";
 const REFUSAL = "controller request refused";
-
-/** Private mkdtemp ownership is checked before any listener or credential; long ambient TMPDIR exceeds Unix bounds. */
-function shortBrokerDirectory(bootstrap = false) {
-  /* eslint-disable sonarjs/publicly-writable-directories -- mkdtemp creates and checks an owned0700 nonce; Unix sockets require short absolute paths. */
-  const prefix = bootstrap
-    ? "/tmp/lisa-broker-bootstrap-"
-    : "/tmp/lisa-broker-";
-  /* eslint-enable sonarjs/publicly-writable-directories -- end the bounded short Unix-socket fixture exception. */
-  const root = realpathSync(mkdtempSync(prefix));
-  expect(lstatSync(root).mode & 0o077).toBe(0);
-  return root;
-}
+const CONTROLLER_SOCKET = "controller.sock";
 
 function request(path: string, value: unknown): Promise<any> {
   return new Promise((resolveResult, reject) => {
@@ -52,7 +43,12 @@ async function withBroker(
   changes: object,
   operation: (broker: any, recipe: any) => Promise<void>
 ) {
-  const root = shortBrokerDirectory();
+  const scratch = createSupervisedUnixFixture(
+    CONTROLLER_SOCKET,
+    process.env[SCRATCH_SUPERVISION_LEASE_ENV]
+  );
+  const root = scratch.root;
+  expect(lstatSync(root).mode & 0o077).toBe(0);
   const entry = CANONICAL_ENTRY;
   const node = realpathSync(process.execPath);
   const recipe = {
@@ -79,14 +75,18 @@ async function withBroker(
     await operation(broker, recipe);
   } finally {
     await broker?.close();
-    rmSync(root, { recursive: true });
+    scratch.close();
   }
 }
 
 describe("closed native controller broker", () => {
   it("runs the genuine canonical helper through its exact non-null instrumented recipe without serializing its credential", async () => {
     // Local graph/token/native-GH fixture tests bootstrap fidelity, not released graph or GitHub authority.
-    const root = shortBrokerDirectory(true);
+    const scratch = createSupervisedUnixFixture(
+      CONTROLLER_SOCKET,
+      process.env[SCRATCH_SUPERVISION_LEASE_ENV]
+    );
+    const root = scratch.root;
     const entry = CANONICAL_ENTRY;
     const adapter = resolve(
       "all/copy-overwrite/scripts/lib/npm-update-execution-adapter.mjs"
@@ -176,7 +176,7 @@ describe("closed native controller broker", () => {
       expect(result.stderr.toString()).toBe("");
     } finally {
       await broker?.close();
-      rmSync(root, { recursive: true });
+      scratch.close();
     }
   });
 
@@ -217,7 +217,11 @@ describe("closed native controller broker", () => {
     });
   });
   it("preserves genuine helper results through the closed client transport", async () => {
-    const root = shortBrokerDirectory();
+    const scratch = createSupervisedUnixFixture(
+      CONTROLLER_SOCKET,
+      process.env[SCRATCH_SUPERVISION_LEASE_ENV]
+    );
+    const root = scratch.root;
     const entry = CANONICAL_ENTRY;
     const node = realpathSync(process.execPath);
     let broker;
@@ -250,11 +254,15 @@ describe("closed native controller broker", () => {
       expect(result.stderr).toEqual(Buffer.alloc(0));
     } finally {
       await broker?.close();
-      rmSync(root, { recursive: true });
+      scratch.close();
     }
   });
   it("runs the genuine canonical contract probe and rejects worker-supplied commands", async () => {
-    const root = shortBrokerDirectory();
+    const scratch = createSupervisedUnixFixture(
+      CONTROLLER_SOCKET,
+      process.env[SCRATCH_SUPERVISION_LEASE_ENV]
+    );
+    const root = scratch.root;
     const entry = CANONICAL_ENTRY;
     const node = realpathSync(process.execPath);
     const recipe = {
@@ -304,7 +312,7 @@ describe("closed native controller broker", () => {
       ).resolves.toEqual({ ok: false, error: REFUSAL });
     } finally {
       await broker?.close();
-      rmSync(root, { recursive: true });
+      scratch.close();
     }
   });
 });

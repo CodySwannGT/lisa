@@ -1,4 +1,6 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Bounded archive bytes and the complete OCI graph are checked without host extraction. @module npm-updater */
 import { createHash } from "node:crypto";
 import { openSync, closeSync, fstatSync, constants, readSync } from "node:fs";
@@ -16,7 +18,10 @@ function tarHeader(bytes) {
     required(/^[0-7]+$/.test(field), "invalid archive numeric field");
     return parseInt(field, 8);
   };
-  const text = field => field.toString("ascii").replace(/\0.*$/s, "");
+  const text = field => {
+    const end = field.indexOf(0);
+    return field.subarray(0, end < 0 ? field.length : end).toString("ascii");
+  };
   const checksum = number(text(bytes.subarray(148, 156)).trim());
   let actual = 0;
   for (let i = 0; i < 512; i++) actual += i >= 148 && i < 156 ? 32 : bytes[i];

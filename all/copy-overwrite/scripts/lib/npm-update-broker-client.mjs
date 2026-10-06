@@ -1,4 +1,6 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Bounded native socket transport supplies a fixed recipe ID, never executable authority or credentials. */
 import { createConnection } from "node:net";
 import { lstatSync, realpathSync } from "node:fs";

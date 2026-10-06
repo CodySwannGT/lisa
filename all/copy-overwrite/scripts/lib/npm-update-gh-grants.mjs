@@ -1,4 +1,6 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Native successful responses grant only one exact canonical successor request. */
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { required } from "./npm-update-contract.mjs";

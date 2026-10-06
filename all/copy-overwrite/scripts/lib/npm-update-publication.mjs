@@ -1,8 +1,61 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Current-head checks and human approval retain their real integration and reviewer identities. @module npm-updater */
 import { workItemLines } from "../lisa-work-item.mjs";
 import { required } from "./npm-update-contract.mjs";
-import { sha256 } from "./github-attestation-verifier.mjs";
+import {
+  sha256,
+  verifyDescriptorAttestation,
+  verifyCurrentProvider,
+} from "./github-attestation-verifier.mjs";
+import { canonicalJson } from "../lisa-automation-provenance.mjs";
+import { readJson, readBytes } from "./npm-update-process.mjs";
+import { existsSync } from "node:fs";
+import { verifyRecoveryOrigin } from "./github-attestation-recovery.mjs";
+
+/** Fixed distinct proof slots select origin or recovery; partial authority always refuses. */
+export function publicationProof(
+  api,
+  descriptor,
+  proof,
+  proposal,
+  policy,
+  issue,
+  commit
+) {
+  required(
+    canonicalJson(readJson(proof.descriptor, 65_536)) ===
+      canonicalJson(descriptor),
+    "publication descriptor bytes differ"
+  );
+  const digest = sha256(readBytes(proof.descriptor, 65_536));
+  const recovery = Boolean(proof.recovery && existsSync(proof.recovery));
+  const bundle = Boolean(
+    proof.recoveryBundle && existsSync(proof.recoveryBundle)
+  );
+  required(recovery === bundle, "partial publication recovery authority");
+  if (recovery) {
+    verifyRecoveryOrigin(
+      api.policy,
+      descriptor,
+      readJson(proof.recovery, 65_536),
+      digest,
+      proof,
+      {
+        npmPolicySha256: proposal.policySha256,
+        proposalKey: proposal.key,
+        leafBodySha256: sha256(issue.body),
+        commit: commit.sha,
+        maintainer: policy.maintainer,
+        recoverySha256: sha256(readBytes(proof.recovery, 65_536)),
+      }
+    );
+  } else {
+    verifyDescriptorAttestation(api.policy, descriptor, proof, digest);
+    verifyCurrentProvider(api.policy, descriptor);
+  }
+}
 
 /** The publisher consumes evidence of the actual ordinary commit and both original hook streams. */
 export function ordinaryGateReceipt(

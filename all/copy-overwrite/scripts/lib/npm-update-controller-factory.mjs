@@ -1,6 +1,8 @@
-// This file is managed by Lisa. Durable changes belong upstream.
+// This file is managed by Lisa and IS replaced on each `lisa` run.
+// Do not edit directly — durable changes belong upstream in Lisa.
+
 /** Parent-authenticated canonical helpers receive immutable phase scopes; their token stays in broker memory. */
-import { mkdirSync, realpathSync } from "node:fs";
+import { mkdirSync, realpathSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { required, OBJECT } from "./npm-update-contract.mjs";
@@ -123,7 +125,13 @@ export function controllerTools(automation) {
     "unsupported native controller Node bootstrap"
   );
   const path = realpathSync(process.execPath);
-  const git = realpathSync("/usr/bin/git");
+  const git = realpathSync(
+    [
+      "/Library/Developer/CommandLineTools/usr/bin/git",
+      "/Applications/Xcode.app/Contents/Developer/usr/bin/git",
+      "/usr/bin/git",
+    ].find(existsSync)
+  );
   const result = boundedSpawnSync(git, ["--version"], {
     encoding: "utf8",
     timeout: 5000,

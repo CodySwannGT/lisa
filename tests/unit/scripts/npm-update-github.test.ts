@@ -931,10 +931,10 @@ describe("exact publication destination preflight", () => {
     ).toBe(12);
     for (const change of [
       { number: -1 },
-      { html_url: "https://github.com/foreign/other/pull/12" },
+      { html_url: "https://github.com/acme/other/pull/12" },
       { state: "closed" },
       { body: `${pr.body}\nWork-Item: acme/widgets#99` },
-      { head: { ...pr.head, repo: { full_name: "foreign/other" } } },
+      { head: { ...pr.head, repo: { full_name: "acme/other" } } },
     ])
       await expect(
         destinationSnapshot(

@@ -12,6 +12,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { ioLatencyBudgetMs } from "../../helpers/io-latency-budget.js";
 import { boundedSpawnSync } from "../../../all/copy-overwrite/scripts/lib/bounded-spawn.mjs";
 import {
   ACTIONS_ISSUER,
@@ -206,9 +207,13 @@ describe("bounded pinned official-verifier process contract", () => {
     }
   );
 
-  it("kills an actual nonterminating verifier and refuses a verdict", () => {
-    expect(() => ghJson(verifierProgram(), ["hang"])).toThrow();
-  }, 40_000);
+  it(
+    "kills an actual nonterminating verifier and refuses a verdict",
+    () => {
+      expect(() => ghJson(verifierProgram(), ["hang"])).toThrow();
+    },
+    ioLatencyBudgetMs(40_000)
+  );
 
   it("refuses changed executable bytes before starting it", () => {
     const policy = verifierProgram();
