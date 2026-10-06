@@ -12,10 +12,8 @@ useIoLatencyBudget();
 const root = resolve(import.meta.dirname, "../..");
 const lease = mkdtempSync(join(tmpdir(), "history-evidence-scanner-"));
 const scanner = join(lease, "gitleaks");
-// The initial CLI attempt took 31.31s before its first unactivated narrative
-// control, with zero vitest processes and 1-minute load 14.73 on 18 cores.
-// Separate groups keep each child below
-// the normal 30s quiet-equivalent margin; no case or global budget is raised.
+// The aggregate digest workload is partitioned into two 14-control children.
+// Each child and case retains the existing bounded budget and margin guard.
 const childBaseMs = 30_000;
 const expected = {
   positive: [
@@ -90,17 +88,24 @@ afterAll(() => {
 });
 
 describe("required history evidence actual CLI controls", () => {
-  it.each(["positive", "digest", "narrative"] as const)(
+  it.each([
+    ["positive", "positive", null, expected.positive],
+    ["digest-first", "digest", "first", expected.digest.slice(0, 14)],
+    ["digest-second", "digest", "second", expected.digest.slice(14)],
+    ["narrative", "narrative", null, expected.narrative],
+  ] as const)(
     "executes the exact nonempty %s controls with redaction and cleanup",
-    group => {
+    (label, group, partition, names) => {
+      expect(names.length).toBeGreaterThan(0);
       const result = boundedSpawnSync({
-        label: `actual emitted evidence CLI ${group} controls`,
+        label: `actual emitted evidence CLI ${label} controls`,
         command: process.execPath,
         args: [
           join(root, "tests/fixtures/git-history-secrets/journey.mjs"),
           "--evidence-only",
           "--evidence-group",
           group,
+          ...(partition === null ? [] : ["--evidence-partition", partition]),
           "--scanner",
           scanner,
         ],
@@ -126,7 +131,7 @@ describe("required history evidence actual CLI controls", () => {
         "all owned fixture repositories/processes removed on exit"
       );
       expect(report.observations.map(observation => observation.name)).toEqual(
-        expected[group]
+        names
       );
       for (const observation of report.observations) {
         expect(observation.exit).toBe(group === "positive" ? 0 : 42);
