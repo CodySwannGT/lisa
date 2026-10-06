@@ -361,6 +361,17 @@ information in a text that agents assemble and bots edit after review, and the
 two texts had opposite duplication rules until #2721 — the same two lines passed
 in a commit and failed in a body, with neither answer explaining the other.
 
+GitHub references may use `owner/repo#123` or the exact lowercase provider prefix
+`github/owner/repo#123`. Both resolve to the configured repository's canonical
+identity before binding, commit, push, pull-request, and shipped-declaration
+checks. The qualified form requires literal ASCII owner/repository segments and
+a positive, unpadded issue number. Foreign repositories, other provider prefixes,
+dot segments, encoding, extra path segments, and suffixes remain refused.
+Supported `https://github.com/owner/repo/issues/123` inputs retain their separate
+strict URL rules. Mixing a URL with a canonical or qualified declaration in one
+message remains ambiguous, and shipped-declaration audits still count only
+hash-number forms.
+
 **The push prover is a different command from the pull-request prover**, and the
 registry says so rather than leaving each project to discover it.
 `check:work-item` is `validate-pr`, which needs a pull request to read; at push

@@ -134,6 +134,81 @@ describe("in-process CLI: the checklist at the earliest moment", () => {
 });
 
 describe("in-process CLI: validate-commit", () => {
+  it("normalizes qualified and canonical declarations to the bound identity", () => {
+    const fixture = offlineFixture();
+    bindTo(fixture, REF);
+    const file = message(
+      fixture,
+      `fix: qualified\n\nWork-Item: github/ACME/Widgets#42\nWork-Item: ${REF}\n`
+    );
+    expect(cli(fixture, [VALIDATE, file]).stdout).toBe(
+      `WORK_ITEM_TRACKING_OK ${REF}`
+    );
+  });
+
+  it("retains binding mismatch refusal after qualified normalization", () => {
+    const fixture = offlineFixture();
+    bindTo(fixture, OTHER_REF);
+    const file = message(
+      fixture,
+      `fix: wrong binding\n\nWork-Item: github/${REF}\n`
+    );
+    const result = cli(fixture, [VALIDATE, file]);
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(OTHER_REF);
+    expect(result.stderr).toContain(REF);
+    expect(result.stderr).not.toContain("Invalid GitHub Work-Item");
+  });
+
+  it("retains closed-provider refusal after qualified normalization", () => {
+    const fixture = createFixture();
+    const file = message(fixture, `fix: closed\n\nWork-Item: github/${REF}\n`);
+    const result = cli(fixture, [VALIDATE, file], {
+      FAKE_GH_ISSUE_JSON: issueJson({ state: "CLOSED" }),
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("is closed");
+  });
+
+  it("refuses mixing a qualified reference with the supported URL representation", () => {
+    const fixture = offlineFixture();
+    const file = message(
+      fixture,
+      `fix: mixed\n\nWork-Item: github/${REF}\nWork-Item: https://github.com/acme/widgets/issues/42\n`
+    );
+    const result = cli(fixture, [VALIDATE, file]);
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(
+      "mixes URL and canonical Work-Item declarations"
+    );
+  });
+
+  it.each([
+    "GitHub/acme/widgets#42",
+    "jira/acme/widgets#42",
+    "github//acme/widgets#42",
+    "github/acme/widgets/extra#42",
+    "github/../widgets#42",
+    "github/acme/.#42",
+    "github/user@acme/widgets#42",
+    "github/acme/%77idgets#42",
+    "github/acme/widgets#42?query=1",
+    "github/acme/widgets#0",
+    "github/acme/widgets#042",
+    "github/acme/widgets#-42",
+    "github/acme/widgets#4.2",
+    "github/acmé/widgets#42",
+    "github/acme/other#42",
+  ])("refuses malformed or foreign qualified reference %s", ref => {
+    const fixture = offlineFixture();
+    const result = cli(fixture, [
+      VALIDATE,
+      message(fixture, `fix: invalid reference\n\nWork-Item: ${ref}\n`),
+    ]);
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).not.toContain("WORK_ITEM_TRACKING_OK");
+  });
+
   it("accepts a message naming the bound work item", () => {
     const fixture = offlineFixture();
     bindTo(fixture, REF);

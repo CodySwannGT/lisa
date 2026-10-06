@@ -32,6 +32,23 @@ afterEach(cleanupFixtures);
 afterAll(cleanupTemplates);
 
 describe("in-process CLI: binding lifecycle", () => {
+  it("canonicalizes a provider-qualified reference before writing the binding", () => {
+    const fixture = offlineFixture();
+    const linked = cli(fixture, ["link", "github/ACME/Widgets#42"]);
+    expect(linked.exitCode).toBeUndefined();
+    expect(JSON.parse(readFileSync(stateFile(fixture), "utf8"))).toEqual({
+      branch: BRANCH,
+      provider: "github",
+      ref: REF,
+      version: 1,
+    });
+    const message = path.join(fixture.root, MESSAGE_FILE);
+    writeFileSync(message, `fix: qualified binding\n\nWork-Item: ${REF}\n`);
+    expect(cli(fixture, [VALIDATE_COMMIT, message]).stdout).toBe(
+      `WORK_ITEM_TRACKING_OK ${REF}`
+    );
+  });
+
   it("canonicalizes a supported issue URL before binding and matching a commit", () => {
     const fixture = offlineFixture();
     const linked = cli(fixture, [

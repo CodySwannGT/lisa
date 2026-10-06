@@ -119,7 +119,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "0a9d388ac78181e23aa4a23d6b2e9af04b30f204f39a0378a5bbd60612d907ce",
+      "47677cf8b388e62fc82efdf564f94a784499f23b7f290ee1d7f9f50cc8a8abc3",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -2267,7 +2267,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/github-rulesets/quality-checks.json":
       "0ec1c366589edbaa6b8f45f940cef3ada5ed7b1a956d98d3fa6034b0f78fbc7c",
     "rails/merge/.claude/settings.json":
-      "16c30d17bc6941a1ffa7fce54a5ab2e87101f7ea77a69b1d695eccd07e156ab7",
+      "01174bd607fe8166e3b588a5679940e598a7b81affae7cd318d4efe47375c156",
     "scripts/build-plugins.sh":
       "dde267c18daf60ca6e3d7bbad3bbad9ed3d63e84c8340bed5895da588d5bbe92",
     "scripts/check-cwd-resolution-corpus.mjs":
@@ -2387,7 +2387,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/github-status-check.sh":
       "c6a4a13ff5cf689fcbd7a6aca718f9e7d46d54ccb6687f662b055c1ca20e792f",
     "scripts/install-claude-plugins.sh":
-      "f3937ab03c84775fb4d09ff9db7a8b6b84c9fc261c8e6cb0bf28c5c713b842d0",
+      "2a4c722029731c2e57837cec9662fbbbf56f1ed9fde868be593a1267e5055349",
     "scripts/install-generated-artifact-merge-driver.mjs":
       "61e2b4fc532e8b356cb751b1ff42eb712376728eec76f8edf2c3dec19acf1bd4",
     "scripts/internal-agy-skill-policy.json":
@@ -9349,6 +9349,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/migrations/migration.interface.ts": true,
     "src/migrations/preserve-verification-opt-ins.ts": true,
     "src/migrations/prune-retired-claude-deny-rules.ts": true,
+    "src/migrations/prune-retired-entire-hooks.ts": true,
     "src/migrations/reconcile-claude-stack-plugins.ts": true,
     "src/migrations/untrack-codex-marketplace.ts": true,
     "src/opencode/agent-installer.ts": true,
@@ -10517,6 +10518,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/migrations/postinstall-failure-surfacing.test.ts": true,
     "tests/unit/migrations/preserve-verification-opt-ins.test.ts": true,
     "tests/unit/migrations/prune-retired-claude-deny-rules.test.ts": true,
+    "tests/unit/migrations/prune-retired-entire-hooks.test.ts": true,
     "tests/unit/migrations/reconcile-claude-stack-plugins.test.ts": true,
     "tests/unit/migrations/seeded-gates-install-restraint.test.ts": true,
     "tests/unit/migrations/untrack-codex-marketplace.test.ts": true,

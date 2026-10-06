@@ -259,6 +259,24 @@ servers, or configuration. Other harnesses retain their existing delivery
 behavior. For a new project, run the CLI ephemerally with
 `bunx @codyswann/lisa setup-project ...`.
 
+Entire session capture is host-owned opt-in. Lisa's Rails settings and base
+Claude plugin register no Entire commands. Full apply also removes the seven
+exact automatic command strings shipped by older Lisa releases, because an
+array-union merge cannot retire installed entries by itself. Other hooks and
+settings survive, and Lisa does not inspect or delete existing session data.
+This does not change user/global settings or registrations owned by other
+plugins.
+
+To opt in, review capture, retention, and access first, then create a host-owned
+wrapper such as `scripts/private-session-hooks.sh`. Register its distinct
+command in Claude's project hook settings, for example
+`bash "$CLAUDE_PROJECT_DIR/scripts/private-session-hooks.sh" session-start`.
+Lisa preserves that wrapper on reapply. Reusing an exact retired Lisa command
+does not establish host ownership and the migration will remove it. Keep the
+Lisa governance hooks enabled; no Entire configuration flag is required or
+interpreted by Lisa. Start a fresh session after updating the installed plugin
+so it loads the current registrations.
+
 Successful starter creation records the repository, tracked branch and copied
 revision in `starter.templates`. Git clones record their own head before setup
 replaces the clone history; GitHub template creation checks the copied tree
