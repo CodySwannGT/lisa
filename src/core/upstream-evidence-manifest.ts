@@ -46,6 +46,76 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lib/kill-marks.mjs":
       "13388da7203b02ba84a845abd7885074bc8a495e215437a97122060d69367030",
+    "all/copy-overwrite/scripts/lib/npm-update-allocate.mjs":
+      "b7e08b6e432ff135caa782de65de34e8a14e12e92b1db9522a085156f41b412e",
+    "all/copy-overwrite/scripts/lib/npm-update-authorization.mjs":
+      "3750f4c343d8c7c57a1c9fe13b318f4e9c4d0dacb33f412c91018fcdea8f563d",
+    "all/copy-overwrite/scripts/lib/npm-update-checkpoint.mjs":
+      "bf1f8bd4cfd5317fb9078e0efaa8c66850616a29bf61968baacf2a1842e26a1b",
+    "all/copy-overwrite/scripts/lib/npm-update-contract.mjs":
+      "c0d43613e4675bd3ec4585040d87a21821ec40b32739502d9124863f4e3e6ee0",
+    "all/copy-overwrite/scripts/lib/npm-update-execution-adapter.mjs":
+      "6cd37d9fc0ab8350c0062595cfe4f392074793c4a3c9256ff73d2401ac8e3741",
+    "all/copy-overwrite/scripts/lib/npm-update-gate-hooks.mjs":
+      "676e5acac164284981cca96d4f414c3e336a69dcdee40c8f35232e0334fb4619",
+    "all/copy-overwrite/scripts/lib/npm-update-gate-install.mjs":
+      "bbeffd67211537624b5569059f3cf3d0d261abd8d0c2bcdcabff8cab8b60e950",
+    "all/copy-overwrite/scripts/lib/npm-update-gate.mjs":
+      "d0c34d5c553e4700591d739b66b528a353f675af734960cb97b531ce78f99651",
+    "all/copy-overwrite/scripts/lib/npm-update-github.mjs":
+      "543f6baa36e10ae5022ecc55748c439803b2e549b2c278090b213a9db7db9ec5",
+    "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs":
+      "fef3e5bcaf04e43325bd042f5aac6838b032bc50f1fa68a880d383c4f32b8e7b",
+    "all/copy-overwrite/scripts/lib/npm-update-helper.mjs":
+      "d6ad6d094f56a1d08fabbae7e2df90779f7912d3380a4c9e792b305863901dda",
+    "all/copy-overwrite/scripts/lib/npm-update-invariants.mjs":
+      "eff38b42849e37516f8b2c4fce2d6e81fe53d1999d36fe6b59ea450410131cd9",
+    "all/copy-overwrite/scripts/lib/npm-update-isolation.mjs":
+      "84e78beb0d40be335a8d41211999d6246e65ee85f3ddaaf0d4379f83de90c53d",
+    "all/copy-overwrite/scripts/lib/npm-update-leaf-contract.mjs":
+      "f2373e2e3117947a58029ae24c8027484b5d67daa4aaff5e57975d82c89e7962",
+    "all/copy-overwrite/scripts/lib/npm-update-leaf.mjs":
+      "ff9c0fb53cfbdc0565b59df6310a0af0d2bb1eb9b2055049e5de85db0a1585f9",
+    "all/copy-overwrite/scripts/lib/npm-update-npm.mjs":
+      "adbf70257ab6cf309e7dcbbc8b42a11a6cd8eee398e85e9d5ee6885ae1a2bff4",
+    "all/copy-overwrite/scripts/lib/npm-update-object.mjs":
+      "b06f1bc632aeed73744fd6aa56e8f75da34c9d68fe9b6341188c60fc5fd1f25e",
+    "all/copy-overwrite/scripts/lib/npm-update-orchestrator.mjs":
+      "3bf831d84eadaa4dc5a45b82167fc7cf7bb08515aa8741653f09de2d376d4b14",
+    "all/copy-overwrite/scripts/lib/npm-update-owner.mjs":
+      "0ef3522a95d66ad8a92282b02de5a26ad2e14fb6ea9b7dfba21df6b3dd7cb9e7",
+    "all/copy-overwrite/scripts/lib/npm-update-prepare.mjs":
+      "ab6b79fbd04ae7b39fca25321ca88087af5693d6dbe808fed19ef67ea90ee08e",
+    "all/copy-overwrite/scripts/lib/npm-update-process-core.mjs":
+      "411d626bbce095871dd4598f542643504b04fe1cef7f04125a58628ed2067247",
+    "all/copy-overwrite/scripts/lib/npm-update-process.mjs":
+      "d9400b18f1ac3638b02ed4304774967a2cd9cfe77ee1173c03b4fddfeaf699a2",
+    "all/copy-overwrite/scripts/lib/npm-update-publication.mjs":
+      "0a12748bc0226c9550400ee619e6dbf6780831d023f2f759319c7710362ba8d0",
+    "all/copy-overwrite/scripts/lib/npm-update-publish.mjs":
+      "1867661fd1a61649d2d466a07810cb0b4cec15245927d125556ebc66b79ae701",
+    "all/copy-overwrite/scripts/lib/npm-update-quality.mjs":
+      "f28c9000837d2b8b7ce6cd3c63efa60472a3b3f24bd9a22dace67f1f44f624b5",
+    "all/copy-overwrite/scripts/lib/npm-update-recovery.mjs":
+      "84104b2fa043c6bd38bcaae8fb4862f7d262aab9e64063170c991e4ece16f103",
+    "all/copy-overwrite/scripts/lib/npm-update-runtime-archive.mjs":
+      "673ba6fe275c14fb89a67c9f4e4b3b77f0dc12966e2eb3050c42380be09e3235",
+    "all/copy-overwrite/scripts/lib/npm-update-runtime-graph.mjs":
+      "bda85d501e4c87f1ed8c9b022405a326535aa4bba2ab2890e99e227406c3e9ee",
+    "all/copy-overwrite/scripts/lib/npm-update-runtime-transport.mjs":
+      "2a38692e646bdf336db754d62ecfc91d063cf28c759b3420fad44ee50847c07a",
+    "all/copy-overwrite/scripts/lib/npm-update-runtime.mjs":
+      "dbac6a9b721c7c43c53ac94ec9eadc925b277645cc1e2937ef408c6db6dfcef6",
+    "all/copy-overwrite/scripts/lib/npm-update-tool-launcher.mjs":
+      "3bbfae3c9da51d09ae987265cb9ddfa7431cf67d8f497d555ecc931e1b5d3313",
+    "all/copy-overwrite/scripts/lib/npm-update-worker-environment.mjs":
+      "90b07f2cbfa2967f5696522753eec2cfb3b3e699a00ed67ecca85151315531af",
+    "all/copy-overwrite/scripts/lib/npm-update-worker-inspection.mjs":
+      "3757c4b56ae0dc2248a663a8530baf5c7bddb0b93c19d596525ae167a2b9b07c",
+    "all/copy-overwrite/scripts/lib/npm-update-worker-lifecycle.mjs":
+      "3cd93f3fef88c10643d2e3efe318fc3fda00695b0c30bd1a846ae7fb366f3498",
+    "all/copy-overwrite/scripts/lib/npm-update-worker-policy.mjs":
+      "7dea2d8dff819f36f40c2d211ab031a0fcd1e343d54ef9ed4a7ac56d1f344e16",
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs":
       "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs":
@@ -118,6 +188,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "9b0d2d4690850a550ccc79a8c3bb1c0de1cca1f2d8a3550e2bed6daa7afcf7c4",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
       "2379d4fc5174ae4727997a0d88d43a0212941d91bdebaf790caadd20a8c59810",
+    "all/copy-overwrite/scripts/lisa-npm-updater.mjs":
+      "59d315bae8352a6ac6b532b5d0da209ab761622163e1860b0b663f2e4540ec6b",
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
       "2a826523a4f4fc58bfa0a24e2cf02504218dd68b4baffb346966dff705dea9b0",
     "all/copy-overwrite/scripts/lisa-rails-prepush.mjs":
@@ -134,6 +206,14 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "e1375d1daccfc137d91bae9eccad62e4449bb493d2a9021b35e65deb6f4a3ad0",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
+    "all/copy-overwrite/scripts/npm-updater-gate-runtime.json":
+      "5c2af03360bfd59df26934ea0a2e47baa3999cbaa0ad3a9a03dd74575589218d",
+    "all/copy-overwrite/scripts/npm-updater-gate-supervisor.c":
+      "2506d8750694b93169f70e71d4c9dd68de0a0724bf9622bf9e15fa6cd2404b69",
+    "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
+      "260d194175737ed1cfdf6d208696bb58d035a45b2fd27c83a54e75be65ab5cb0",
+    "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
+      "09352aa145bc81c3c5dab282c61d084cbbe5af6242d7d12303ad764fbad53de2",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -2517,7 +2597,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "136587c4bb38ff962100cd7cfa4ca8dc485d64716455c8b774313ae122ef1bdf",
+      "d17db18993f64452d3ee8b1c6503cddba01a8634938bd5e5f3f473061e579793",
     "scripts/update-node-version.ts":
       "0059067c14001c2f7e75beb2628d1a46f935c7b01ce61871db71b6849ef62dca",
     "scripts/update-test-skill-paths.mjs":
@@ -2873,6 +2953,41 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/history-secret-scanner.mjs": true,
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs": true,
     "all/copy-overwrite/scripts/lib/kill-marks.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-allocate.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-authorization.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-checkpoint.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-contract.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-execution-adapter.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-gate-hooks.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-gate-install.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-gate.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-github.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-helper.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-invariants.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-isolation.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-leaf-contract.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-leaf.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-npm.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-object.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-orchestrator.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-owner.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-prepare.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-process-core.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-process.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-publication.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-publish.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-quality.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-recovery.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-runtime-archive.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-runtime-graph.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-runtime-transport.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-runtime.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-tool-launcher.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-worker-environment.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-worker-inspection.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-worker-lifecycle.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-worker-policy.mjs": true,
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs": true,
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs": true,
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.d.mts": true,
@@ -2909,6 +3024,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs": true,
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh": true,
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs": true,
+    "all/copy-overwrite/scripts/lisa-npm-updater.mjs": true,
     "all/copy-overwrite/scripts/lisa-postinstall.mjs": true,
     "all/copy-overwrite/scripts/lisa-rails-prepush.mjs": true,
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs": true,
@@ -2917,6 +3033,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs": true,
     "all/copy-overwrite/scripts/lisa-work-item.mjs": true,
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs": true,
+    "all/copy-overwrite/scripts/npm-updater-gate-runtime.json": true,
+    "all/copy-overwrite/scripts/npm-updater-gate-supervisor.c": true,
+    "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile": true,
+    "all/copy-overwrite/scripts/npm-updater-helper-graph.json": true,
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json": true,
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json": true,
     "all/create-only/.agents/rules/README.md": true,
@@ -10787,6 +10907,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/nightly-e2e-tracking-observability.test.ts": true,
     "tests/unit/scripts/nightly-e2e-tracking-reconcile.test.ts": true,
     "tests/unit/scripts/nightly-e2e-waiver-record.test.ts": true,
+    "tests/unit/scripts/npm-update-contract.test.ts": true,
+    "tests/unit/scripts/npm-update-github.test.ts": true,
     "tests/unit/scripts/orphaned-branch-bindings.test.ts": true,
     "tests/unit/scripts/per-agent-hook-filter.test.ts": true,
     "tests/unit/scripts/pipeline-status-continuations.test.ts": true,

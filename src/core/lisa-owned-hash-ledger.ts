@@ -491,6 +491,111 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "7b468877e677a42987aca539e2f5e9a5fc2a2d243289b0badd8fa87c7bd8ddd0",
     "ad8e20fbc7519cfdcb6a656a5b0dabf17b7acef2de56ba700b1c53e7ba7891cc",
   ]),
+  "scripts/lib/npm-update-allocate.mjs": Object.freeze([
+    "b7e08b6e432ff135caa782de65de34e8a14e12e92b1db9522a085156f41b412e",
+  ]),
+  "scripts/lib/npm-update-authorization.mjs": Object.freeze([
+    "3750f4c343d8c7c57a1c9fe13b318f4e9c4d0dacb33f412c91018fcdea8f563d",
+  ]),
+  "scripts/lib/npm-update-checkpoint.mjs": Object.freeze([
+    "bf1f8bd4cfd5317fb9078e0efaa8c66850616a29bf61968baacf2a1842e26a1b",
+  ]),
+  "scripts/lib/npm-update-contract.mjs": Object.freeze([
+    "c0d43613e4675bd3ec4585040d87a21821ec40b32739502d9124863f4e3e6ee0",
+  ]),
+  "scripts/lib/npm-update-execution-adapter.mjs": Object.freeze([
+    "6cd37d9fc0ab8350c0062595cfe4f392074793c4a3c9256ff73d2401ac8e3741",
+  ]),
+  "scripts/lib/npm-update-gate-hooks.mjs": Object.freeze([
+    "676e5acac164284981cca96d4f414c3e336a69dcdee40c8f35232e0334fb4619",
+  ]),
+  "scripts/lib/npm-update-gate-install.mjs": Object.freeze([
+    "bbeffd67211537624b5569059f3cf3d0d261abd8d0c2bcdcabff8cab8b60e950",
+  ]),
+  "scripts/lib/npm-update-gate.mjs": Object.freeze([
+    "d0c34d5c553e4700591d739b66b528a353f675af734960cb97b531ce78f99651",
+  ]),
+  "scripts/lib/npm-update-github.mjs": Object.freeze([
+    "543f6baa36e10ae5022ecc55748c439803b2e549b2c278090b213a9db7db9ec5",
+  ]),
+  "scripts/lib/npm-update-helper-graph.mjs": Object.freeze([
+    "fef3e5bcaf04e43325bd042f5aac6838b032bc50f1fa68a880d383c4f32b8e7b",
+  ]),
+  "scripts/lib/npm-update-helper.mjs": Object.freeze([
+    "d6ad6d094f56a1d08fabbae7e2df90779f7912d3380a4c9e792b305863901dda",
+  ]),
+  "scripts/lib/npm-update-invariants.mjs": Object.freeze([
+    "eff38b42849e37516f8b2c4fce2d6e81fe53d1999d36fe6b59ea450410131cd9",
+  ]),
+  "scripts/lib/npm-update-isolation.mjs": Object.freeze([
+    "84e78beb0d40be335a8d41211999d6246e65ee85f3ddaaf0d4379f83de90c53d",
+  ]),
+  "scripts/lib/npm-update-leaf-contract.mjs": Object.freeze([
+    "f2373e2e3117947a58029ae24c8027484b5d67daa4aaff5e57975d82c89e7962",
+  ]),
+  "scripts/lib/npm-update-leaf.mjs": Object.freeze([
+    "ff9c0fb53cfbdc0565b59df6310a0af0d2bb1eb9b2055049e5de85db0a1585f9",
+  ]),
+  "scripts/lib/npm-update-npm.mjs": Object.freeze([
+    "adbf70257ab6cf309e7dcbbc8b42a11a6cd8eee398e85e9d5ee6885ae1a2bff4",
+  ]),
+  "scripts/lib/npm-update-object.mjs": Object.freeze([
+    "b06f1bc632aeed73744fd6aa56e8f75da34c9d68fe9b6341188c60fc5fd1f25e",
+  ]),
+  "scripts/lib/npm-update-orchestrator.mjs": Object.freeze([
+    "3bf831d84eadaa4dc5a45b82167fc7cf7bb08515aa8741653f09de2d376d4b14",
+  ]),
+  "scripts/lib/npm-update-owner.mjs": Object.freeze([
+    "0ef3522a95d66ad8a92282b02de5a26ad2e14fb6ea9b7dfba21df6b3dd7cb9e7",
+  ]),
+  "scripts/lib/npm-update-prepare.mjs": Object.freeze([
+    "ab6b79fbd04ae7b39fca25321ca88087af5693d6dbe808fed19ef67ea90ee08e",
+  ]),
+  "scripts/lib/npm-update-process-core.mjs": Object.freeze([
+    "411d626bbce095871dd4598f542643504b04fe1cef7f04125a58628ed2067247",
+  ]),
+  "scripts/lib/npm-update-process.mjs": Object.freeze([
+    "d9400b18f1ac3638b02ed4304774967a2cd9cfe77ee1173c03b4fddfeaf699a2",
+  ]),
+  "scripts/lib/npm-update-publication.mjs": Object.freeze([
+    "0a12748bc0226c9550400ee619e6dbf6780831d023f2f759319c7710362ba8d0",
+  ]),
+  "scripts/lib/npm-update-publish.mjs": Object.freeze([
+    "1867661fd1a61649d2d466a07810cb0b4cec15245927d125556ebc66b79ae701",
+  ]),
+  "scripts/lib/npm-update-quality.mjs": Object.freeze([
+    "f28c9000837d2b8b7ce6cd3c63efa60472a3b3f24bd9a22dace67f1f44f624b5",
+  ]),
+  "scripts/lib/npm-update-recovery.mjs": Object.freeze([
+    "84104b2fa043c6bd38bcaae8fb4862f7d262aab9e64063170c991e4ece16f103",
+  ]),
+  "scripts/lib/npm-update-runtime-archive.mjs": Object.freeze([
+    "673ba6fe275c14fb89a67c9f4e4b3b77f0dc12966e2eb3050c42380be09e3235",
+  ]),
+  "scripts/lib/npm-update-runtime-graph.mjs": Object.freeze([
+    "bda85d501e4c87f1ed8c9b022405a326535aa4bba2ab2890e99e227406c3e9ee",
+  ]),
+  "scripts/lib/npm-update-runtime-transport.mjs": Object.freeze([
+    "2a38692e646bdf336db754d62ecfc91d063cf28c759b3420fad44ee50847c07a",
+  ]),
+  "scripts/lib/npm-update-runtime.mjs": Object.freeze([
+    "dbac6a9b721c7c43c53ac94ec9eadc925b277645cc1e2937ef408c6db6dfcef6",
+  ]),
+  "scripts/lib/npm-update-tool-launcher.mjs": Object.freeze([
+    "3bbfae3c9da51d09ae987265cb9ddfa7431cf67d8f497d555ecc931e1b5d3313",
+  ]),
+  "scripts/lib/npm-update-worker-environment.mjs": Object.freeze([
+    "90b07f2cbfa2967f5696522753eec2cfb3b3e699a00ed67ecca85151315531af",
+  ]),
+  "scripts/lib/npm-update-worker-inspection.mjs": Object.freeze([
+    "3757c4b56ae0dc2248a663a8530baf5c7bddb0b93c19d596525ae167a2b9b07c",
+  ]),
+  "scripts/lib/npm-update-worker-lifecycle.mjs": Object.freeze([
+    "3cd93f3fef88c10643d2e3efe318fc3fda00695b0c30bd1a846ae7fb366f3498",
+  ]),
+  "scripts/lib/npm-update-worker-policy.mjs": Object.freeze([
+    "7dea2d8dff819f36f40c2d211ab031a0fcd1e343d54ef9ed4a7ac56d1f344e16",
+  ]),
   "scripts/lib/placeholder-expiry.mjs": Object.freeze([
     "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
     "19412df978489b6e0dfb8fd008d91895af9181bc1e6a7c9df616d9137da3e429",
@@ -1122,6 +1227,9 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "eb3593f201f570db63a9568236446d4324ee8757cda5e234965f3278d653c7db",
     "f719ca6ad02b1b62bfff329b66a1382cc58705f4ee4e6f7497216504321a906a",
   ]),
+  "scripts/lisa-npm-updater.mjs": Object.freeze([
+    "59d315bae8352a6ac6b532b5d0da209ab761622163e1860b0b663f2e4540ec6b",
+  ]),
   "scripts/lisa-postinstall.mjs": Object.freeze([
     "0dd26716c8bd9195ef901a904391097e37f319e9d5640813aa82c98acdb3c15d",
     "2a826523a4f4fc58bfa0a24e2cf02504218dd68b4baffb346966dff705dea9b0",
@@ -1435,6 +1543,18 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/nightly-e2e-tracking-config.mjs": Object.freeze([
     "4441df82d13a72000bf99c2abf3a0334b132c67a5f83ab30c5918e4bb5932f52",
     "c47826f433605c6632b551c0513273d46c5e132af2b0f3396ce9b7a5c45af125",
+  ]),
+  "scripts/npm-updater-gate-runtime.json": Object.freeze([
+    "5c2af03360bfd59df26934ea0a2e47baa3999cbaa0ad3a9a03dd74575589218d",
+  ]),
+  "scripts/npm-updater-gate-supervisor.c": Object.freeze([
+    "2506d8750694b93169f70e71d4c9dd68de0a0724bf9622bf9e15fa6cd2404b69",
+  ]),
+  "scripts/npm-updater-gate.Dockerfile": Object.freeze([
+    "260d194175737ed1cfdf6d208696bb58d035a45b2fd27c83a54e75be65ab5cb0",
+  ]),
+  "scripts/npm-updater-helper-graph.json": Object.freeze([
+    "09352aa145bc81c3c5dab282c61d084cbbe5af6242d7d12303ad764fbad53de2",
   ]),
   "scripts/reconcile-nightly-e2e-tracking-cli.mjs": Object.freeze([
     "0ca6615153c300a12ac0ec08fc0bc8bc3c5b488bad4b4802f0d9a7eb81e09a49",
@@ -1969,6 +2089,111 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "5625915bbfee5ee0025c11a33ae5dac2d3a29c73cf666d2c03c5a8b7cdf4f76a",
     "7b468877e677a42987aca539e2f5e9a5fc2a2d243289b0badd8fa87c7bd8ddd0",
     "ad8e20fbc7519cfdcb6a656a5b0dabf17b7acef2de56ba700b1c53e7ba7891cc",
+  ]),
+  "scripts/lib/npm-update-allocate.mjs": Object.freeze([
+    "b7e08b6e432ff135caa782de65de34e8a14e12e92b1db9522a085156f41b412e",
+  ]),
+  "scripts/lib/npm-update-authorization.mjs": Object.freeze([
+    "3750f4c343d8c7c57a1c9fe13b318f4e9c4d0dacb33f412c91018fcdea8f563d",
+  ]),
+  "scripts/lib/npm-update-checkpoint.mjs": Object.freeze([
+    "bf1f8bd4cfd5317fb9078e0efaa8c66850616a29bf61968baacf2a1842e26a1b",
+  ]),
+  "scripts/lib/npm-update-contract.mjs": Object.freeze([
+    "c0d43613e4675bd3ec4585040d87a21821ec40b32739502d9124863f4e3e6ee0",
+  ]),
+  "scripts/lib/npm-update-execution-adapter.mjs": Object.freeze([
+    "6cd37d9fc0ab8350c0062595cfe4f392074793c4a3c9256ff73d2401ac8e3741",
+  ]),
+  "scripts/lib/npm-update-gate-hooks.mjs": Object.freeze([
+    "676e5acac164284981cca96d4f414c3e336a69dcdee40c8f35232e0334fb4619",
+  ]),
+  "scripts/lib/npm-update-gate-install.mjs": Object.freeze([
+    "bbeffd67211537624b5569059f3cf3d0d261abd8d0c2bcdcabff8cab8b60e950",
+  ]),
+  "scripts/lib/npm-update-gate.mjs": Object.freeze([
+    "d0c34d5c553e4700591d739b66b528a353f675af734960cb97b531ce78f99651",
+  ]),
+  "scripts/lib/npm-update-github.mjs": Object.freeze([
+    "543f6baa36e10ae5022ecc55748c439803b2e549b2c278090b213a9db7db9ec5",
+  ]),
+  "scripts/lib/npm-update-helper-graph.mjs": Object.freeze([
+    "fef3e5bcaf04e43325bd042f5aac6838b032bc50f1fa68a880d383c4f32b8e7b",
+  ]),
+  "scripts/lib/npm-update-helper.mjs": Object.freeze([
+    "d6ad6d094f56a1d08fabbae7e2df90779f7912d3380a4c9e792b305863901dda",
+  ]),
+  "scripts/lib/npm-update-invariants.mjs": Object.freeze([
+    "eff38b42849e37516f8b2c4fce2d6e81fe53d1999d36fe6b59ea450410131cd9",
+  ]),
+  "scripts/lib/npm-update-isolation.mjs": Object.freeze([
+    "84e78beb0d40be335a8d41211999d6246e65ee85f3ddaaf0d4379f83de90c53d",
+  ]),
+  "scripts/lib/npm-update-leaf-contract.mjs": Object.freeze([
+    "f2373e2e3117947a58029ae24c8027484b5d67daa4aaff5e57975d82c89e7962",
+  ]),
+  "scripts/lib/npm-update-leaf.mjs": Object.freeze([
+    "ff9c0fb53cfbdc0565b59df6310a0af0d2bb1eb9b2055049e5de85db0a1585f9",
+  ]),
+  "scripts/lib/npm-update-npm.mjs": Object.freeze([
+    "adbf70257ab6cf309e7dcbbc8b42a11a6cd8eee398e85e9d5ee6885ae1a2bff4",
+  ]),
+  "scripts/lib/npm-update-object.mjs": Object.freeze([
+    "b06f1bc632aeed73744fd6aa56e8f75da34c9d68fe9b6341188c60fc5fd1f25e",
+  ]),
+  "scripts/lib/npm-update-orchestrator.mjs": Object.freeze([
+    "3bf831d84eadaa4dc5a45b82167fc7cf7bb08515aa8741653f09de2d376d4b14",
+  ]),
+  "scripts/lib/npm-update-owner.mjs": Object.freeze([
+    "0ef3522a95d66ad8a92282b02de5a26ad2e14fb6ea9b7dfba21df6b3dd7cb9e7",
+  ]),
+  "scripts/lib/npm-update-prepare.mjs": Object.freeze([
+    "ab6b79fbd04ae7b39fca25321ca88087af5693d6dbe808fed19ef67ea90ee08e",
+  ]),
+  "scripts/lib/npm-update-process-core.mjs": Object.freeze([
+    "411d626bbce095871dd4598f542643504b04fe1cef7f04125a58628ed2067247",
+  ]),
+  "scripts/lib/npm-update-process.mjs": Object.freeze([
+    "d9400b18f1ac3638b02ed4304774967a2cd9cfe77ee1173c03b4fddfeaf699a2",
+  ]),
+  "scripts/lib/npm-update-publication.mjs": Object.freeze([
+    "0a12748bc0226c9550400ee619e6dbf6780831d023f2f759319c7710362ba8d0",
+  ]),
+  "scripts/lib/npm-update-publish.mjs": Object.freeze([
+    "1867661fd1a61649d2d466a07810cb0b4cec15245927d125556ebc66b79ae701",
+  ]),
+  "scripts/lib/npm-update-quality.mjs": Object.freeze([
+    "f28c9000837d2b8b7ce6cd3c63efa60472a3b3f24bd9a22dace67f1f44f624b5",
+  ]),
+  "scripts/lib/npm-update-recovery.mjs": Object.freeze([
+    "84104b2fa043c6bd38bcaae8fb4862f7d262aab9e64063170c991e4ece16f103",
+  ]),
+  "scripts/lib/npm-update-runtime-archive.mjs": Object.freeze([
+    "673ba6fe275c14fb89a67c9f4e4b3b77f0dc12966e2eb3050c42380be09e3235",
+  ]),
+  "scripts/lib/npm-update-runtime-graph.mjs": Object.freeze([
+    "bda85d501e4c87f1ed8c9b022405a326535aa4bba2ab2890e99e227406c3e9ee",
+  ]),
+  "scripts/lib/npm-update-runtime-transport.mjs": Object.freeze([
+    "2a38692e646bdf336db754d62ecfc91d063cf28c759b3420fad44ee50847c07a",
+  ]),
+  "scripts/lib/npm-update-runtime.mjs": Object.freeze([
+    "dbac6a9b721c7c43c53ac94ec9eadc925b277645cc1e2937ef408c6db6dfcef6",
+  ]),
+  "scripts/lib/npm-update-tool-launcher.mjs": Object.freeze([
+    "3bbfae3c9da51d09ae987265cb9ddfa7431cf67d8f497d555ecc931e1b5d3313",
+  ]),
+  "scripts/lib/npm-update-worker-environment.mjs": Object.freeze([
+    "90b07f2cbfa2967f5696522753eec2cfb3b3e699a00ed67ecca85151315531af",
+  ]),
+  "scripts/lib/npm-update-worker-inspection.mjs": Object.freeze([
+    "3757c4b56ae0dc2248a663a8530baf5c7bddb0b93c19d596525ae167a2b9b07c",
+  ]),
+  "scripts/lib/npm-update-worker-lifecycle.mjs": Object.freeze([
+    "3cd93f3fef88c10643d2e3efe318fc3fda00695b0c30bd1a846ae7fb366f3498",
+  ]),
+  "scripts/lib/npm-update-worker-policy.mjs": Object.freeze([
+    "7dea2d8dff819f36f40c2d211ab031a0fcd1e343d54ef9ed4a7ac56d1f344e16",
   ]),
   "scripts/lib/placeholder-expiry.mjs": Object.freeze([
     "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
@@ -2546,6 +2771,9 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "eb3593f201f570db63a9568236446d4324ee8757cda5e234965f3278d653c7db",
     "f719ca6ad02b1b62bfff329b66a1382cc58705f4ee4e6f7497216504321a906a",
   ]),
+  "scripts/lisa-npm-updater.mjs": Object.freeze([
+    "59d315bae8352a6ac6b532b5d0da209ab761622163e1860b0b663f2e4540ec6b",
+  ]),
   "scripts/lisa-postinstall.mjs": Object.freeze([
     "0dd26716c8bd9195ef901a904391097e37f319e9d5640813aa82c98acdb3c15d",
     "2a826523a4f4fc58bfa0a24e2cf02504218dd68b4baffb346966dff705dea9b0",
@@ -2844,6 +3072,18 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   "scripts/nightly-e2e-tracking-config.mjs": Object.freeze([
     "4441df82d13a72000bf99c2abf3a0334b132c67a5f83ab30c5918e4bb5932f52",
     "c47826f433605c6632b551c0513273d46c5e132af2b0f3396ce9b7a5c45af125",
+  ]),
+  "scripts/npm-updater-gate-runtime.json": Object.freeze([
+    "5c2af03360bfd59df26934ea0a2e47baa3999cbaa0ad3a9a03dd74575589218d",
+  ]),
+  "scripts/npm-updater-gate-supervisor.c": Object.freeze([
+    "2506d8750694b93169f70e71d4c9dd68de0a0724bf9622bf9e15fa6cd2404b69",
+  ]),
+  "scripts/npm-updater-gate.Dockerfile": Object.freeze([
+    "260d194175737ed1cfdf6d208696bb58d035a45b2fd27c83a54e75be65ab5cb0",
+  ]),
+  "scripts/npm-updater-helper-graph.json": Object.freeze([
+    "09352aa145bc81c3c5dab282c61d084cbbe5af6242d7d12303ad764fbad53de2",
   ]),
   "scripts/reconcile-nightly-e2e-tracking-cli.mjs": Object.freeze([
     "0ca6615153c300a12ac0ec08fc0bc8bc3c5b488bad4b4802f0d9a7eb81e09a49",

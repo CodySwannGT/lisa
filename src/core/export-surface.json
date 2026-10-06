@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 145,
-  "$names": 1331,
+  "$modules": 181,
+  "$names": 1494,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -189,6 +189,238 @@
       "killMarkNote",
       "recentKillMarks",
       "recordKillMark"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-allocate.mjs": [
+      "allocateLeaf",
+      "discoverPrior",
+      "filingEvidence"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-authorization.mjs": [
+      "authorizeAllocation",
+      "destinationSnapshot",
+      "finalizeAuthorization",
+      "prepareAuthorization",
+      "recoveryRecord"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-checkpoint.mjs": [
+      "checkpointComments",
+      "decodeCheckpoint",
+      "persistCheckpoint"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-contract.mjs": [
+      "CLAIM",
+      "FILES",
+      "NAME",
+      "OBJECT",
+      "SECTIONS",
+      "UpdaterError",
+      "VERSION",
+      "keys",
+      "proposalFrom",
+      "required",
+      "selectionKey",
+      "validateHost",
+      "validateLock",
+      "validateManifest",
+      "validatePolicy",
+      "validateProposal",
+      "validateRawCommit"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-execution-adapter.mjs": [
+      "initializeAdapter"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-gate-hooks.mjs": [
+      "assertGateTransport",
+      "configuredRoute",
+      "controllerGraph",
+      "gateStreams",
+      "managedTemplateMembers",
+      "originalPrePush"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-gate-install.mjs": [
+      "installDependencies",
+      "installRubyDependencies",
+      "loadRuntime",
+      "rubyInstallationInputs",
+      "sealDependencies",
+      "validateRuntime"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-gate.mjs": [
+      "descriptorFor",
+      "gateProposal",
+      "refTransport"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-github.mjs": [
+      "GitHub"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs": [
+      "assertManagedSelection",
+      "auditControllerClosure",
+      "controllerMembers",
+      "helperManifest",
+      "managedClosure",
+      "managedControllerSelection",
+      "managedTemplateMembers",
+      "validateHelperManifest"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-helper.mjs": [
+      "canonicalClassifier",
+      "helperOwner",
+      "qualifiedControllerGraph",
+      "qualifiedHelperFiles",
+      "qualifiedManagedFiles"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-invariants.mjs": [
+      "UpdaterError",
+      "keys",
+      "required"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-isolation.mjs": [
+      "assertWorkerInspection",
+      "binaryDigest",
+      "executeWorker",
+      "recoverWorkers",
+      "workerArguments"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-leaf-contract.mjs": [
+      "buildDraft",
+      "environment",
+      "leafRoles"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-leaf.mjs": [
+      "authorizeAllocation",
+      "buildDraft",
+      "claimLeaf",
+      "environment",
+      "historicalFiling",
+      "inspectLeaf",
+      "leafRoles",
+      "qualityGates"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-npm.mjs": [
+      "archiveIntegrity",
+      "effectiveEngineStrict",
+      "registryVersion",
+      "runNpm"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-object.mjs": [
+      "gitObjectId",
+      "validateRawCommit"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-orchestrator.mjs": [
+      "assignNamespaceId",
+      "completeNamespace",
+      "controllerGraph",
+      "controllerRoute",
+      "currentGraph",
+      "installLaunchers",
+      "namespaceRecords",
+      "registerNamespace"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-owner.mjs": [
+      "qualifyLisaOwner",
+      "releasedLisaIdentity",
+      "validateOwnerReceipt"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-prepare.mjs": [
+      "baseline",
+      "prepareUpdate",
+      "qualifyLisaOwner"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-process-core.mjs": [
+      "candidateEnvironment",
+      "phaseDirectory",
+      "readBytes",
+      "readJson",
+      "replaceJson",
+      "runProcess",
+      "withPrivateRoot",
+      "writeJson"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-process.mjs": [
+      "candidateEnvironment",
+      "effectiveEngineStrict",
+      "phaseDirectory",
+      "readBytes",
+      "readJson",
+      "releasedLisaIdentity",
+      "replaceJson",
+      "runNpm",
+      "runProcess",
+      "withPrivateRoot",
+      "writeJson"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-publication.mjs": [
+      "assertPublication",
+      "assertPublicationPolicy",
+      "destinationSnapshot",
+      "publicationBacklink",
+      "publicationBody"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-publish.mjs": [
+      "assertPublication",
+      "assertPublicationPolicy",
+      "publicationBody",
+      "publicationObjects",
+      "publishDestination",
+      "publishProposal"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-quality.mjs": [
+      "qualityGates"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-recovery.mjs": [
+      "checkpointComments",
+      "decodeCheckpoint",
+      "finalizeAuthorization",
+      "locateCheckpoint",
+      "persistCheckpoint",
+      "recoverPartialCheckpoint",
+      "recoveryRecord"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-runtime-archive.mjs": [
+      "inspectRuntimeArchive",
+      "validateArchiveGraph"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-runtime-graph.mjs": [
+      "validateArchiveGraph"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-runtime-transport.mjs": [
+      "downloadRuntimeArchive",
+      "loadRuntimeImage",
+      "validateArchiveTransport"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-runtime.mjs": [
+      "toolIdentity",
+      "validateRuntime"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-tool-launcher.mjs": [
+      "dispatchTool",
+      "launcherContext",
+      "literalArguments",
+      "toolInvocation"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-worker-environment.mjs": [
+      "assertRubyEnvironment",
+      "inspectedEnvironment",
+      "isInstallerRole",
+      "workerEnvironment"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-worker-inspection.mjs": [
+      "assertWorkerInspection"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-worker-lifecycle.mjs": [
+      "binaryDigest",
+      "dockerClient",
+      "executeWorker",
+      "recoverWorkers",
+      "workerCaptureBudget"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-worker-policy.mjs": [
+      "inspectedEnvironment",
+      "isInstallerRole",
+      "workerArguments",
+      "workerEnvironment",
+      "workerScratch"
     ],
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs": [
       "PLACEHOLDER_MARKER",
@@ -386,6 +618,9 @@
       "probeEnv",
       "run",
       "tasksOf"
+    ],
+    "all/copy-overwrite/scripts/lisa-npm-updater.mjs": [
+      "main"
     ],
     "all/copy-overwrite/scripts/lisa-postinstall.mjs": [
       "APPLY_FAILURE_MARKER",

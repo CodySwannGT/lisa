@@ -1,0 +1,850 @@
+{
+  "version": 1,
+  "controls": {
+    "lib/npm-update-helper-graph.mjs": {
+      "staticImports": [
+        "node:assert/strict",
+        "node:crypto",
+        "node:module",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "npm-updater-helper-graph.json": {
+      "staticImports": [],
+      "dynamicImports": [],
+      "children": []
+    }
+  },
+  "members": {
+    "check-threshold-ratchet.mjs": {
+      "sha256": "5806cdc3c80757100f0cd24a8cbd3c581f9a381a925f9ebdd1f4d79881e5de2a",
+      "staticImports": [
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "node:url",
+        "threshold-ratchet-compare.mjs",
+        "threshold-ratchet-families.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/automation-provenance-contract.mjs": {
+      "sha256": "7f110aca808c9890ae917315baf5baf3b9a0c74457bfc1b138e4151e97924d0d",
+      "staticImports": [
+        "lib/github-attestation-verifier.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/automation-provenance-local.mjs": {
+      "sha256": "83080a248047f46942758c5367545a0a7e044030933d4e4fbbd70486c2331190",
+      "staticImports": [
+        "lib/automation-provenance-contract.mjs",
+        "lib/bounded-spawn.mjs",
+        "lib/github-attestation-verifier.mjs",
+        "lisa-work-item.mjs",
+        "node:fs",
+        "node:path",
+        "node:util"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/bounded-spawn.mjs": {
+      "sha256": "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
+      "staticImports": [
+        "node:child_process"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/gate-failure-diagnosis.mjs": {
+      "sha256": "c565984dcd33bc5d26a126c25cec9a0734d87c0d9540479168a77f51b980809f",
+      "staticImports": [
+        "node:fs",
+        "node:os"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/github-attestation-provider.mjs": {
+      "sha256": "d45f481ef27532fd822f6f46731083b90f61fbcdab2e26069c61616122359611",
+      "staticImports": [
+        "lib/bounded-spawn.mjs",
+        "lib/github-attestation-verifier.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/github-attestation-recovery.mjs": {
+      "sha256": "60d74d266cfacc582a3d6d6ff8be78e6b4e204370067955c2ec7a843a810f863",
+      "staticImports": [
+        "lib/automation-provenance-local.mjs",
+        "lib/bounded-spawn.mjs",
+        "lib/github-attestation-provider.mjs",
+        "lib/github-attestation-verifier.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/github-attestation-verifier.mjs": {
+      "sha256": "b8638a16ef385bba61e97663691627739011e54febc80be74a9c00281202f882",
+      "staticImports": [
+        "lib/bounded-spawn.mjs",
+        "lib/github-attestation-provider.mjs",
+        "node:crypto",
+        "node:fs",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/history-secret-git.mjs": {
+      "sha256": "102276aef106e07b2b385fe8f2d3b54a9d30381633a22e07d5d74a5db9ddf320",
+      "staticImports": [
+        "node:child_process",
+        "node:fs",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/history-secret-policy.mjs": {
+      "sha256": "ca75ebbc45fca4c52400612ae818d231a28289b50a70f6cdee6feb51b144896f",
+      "staticImports": [
+        "lib/history-secret-git.mjs",
+        "lisa-gates.mjs",
+        "node:fs",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/history-secret-scanner.mjs": {
+      "sha256": "6afcb5ea42d8f9046a17e2253d4ddbefdf9025b150870afda23db77796f05f25",
+      "staticImports": [
+        "lib/history-secret-git.mjs",
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:os",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/invoked-as-script.mjs": {
+      "sha256": "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
+      "staticImports": [
+        "node:fs",
+        "node:url"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/kill-marks.mjs": {
+      "sha256": "13388da7203b02ba84a845abd7885074bc8a495e215437a97122060d69367030",
+      "staticImports": [
+        "node:crypto",
+        "node:fs",
+        "node:os",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-allocate.mjs": {
+      "sha256": "b7e08b6e432ff135caa782de65de34e8a14e12e92b1db9522a085156f41b412e",
+      "staticImports": [
+        "lib/github-attestation-verifier.mjs",
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-leaf.mjs",
+        "lib/npm-update-npm.mjs",
+        "lib/npm-update-prepare.mjs",
+        "lib/npm-update-process.mjs",
+        "lib/npm-update-recovery.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-authorization.mjs": {
+      "sha256": "3750f4c343d8c7c57a1c9fe13b318f4e9c4d0dacb33f412c91018fcdea8f563d",
+      "staticImports": [
+        "lib/github-attestation-provider.mjs",
+        "lib/github-attestation-recovery.mjs",
+        "lib/github-attestation-verifier.mjs",
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-gate.mjs",
+        "lib/npm-update-leaf.mjs",
+        "lib/npm-update-process.mjs",
+        "lib/npm-update-publication.mjs",
+        "lib/npm-update-recovery.mjs",
+        "lisa-automation-provenance.mjs",
+        "node:fs",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-checkpoint.mjs": {
+      "sha256": "bf1f8bd4cfd5317fb9078e0efaa8c66850616a29bf61968baacf2a1842e26a1b",
+      "staticImports": [
+        "lib/github-attestation-verifier.mjs",
+        "lib/npm-update-contract.mjs",
+        "lisa-automation-provenance.mjs",
+        "node:util"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-contract.mjs": {
+      "sha256": "c0d43613e4675bd3ec4585040d87a21821ec40b32739502d9124863f4e3e6ee0",
+      "staticImports": [
+        "lib/github-attestation-verifier.mjs",
+        "lib/npm-update-invariants.mjs",
+        "lib/npm-update-object.mjs",
+        "lisa-automation-provenance.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-execution-adapter.mjs": {
+      "sha256": "6cd37d9fc0ab8350c0062595cfe4f392074793c4a3c9256ff73d2401ac8e3741",
+      "staticImports": [
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-isolation.mjs",
+        "lib/npm-update-orchestrator.mjs",
+        "lib/npm-update-tool-launcher.mjs",
+        "node:child_process",
+        "node:fs",
+        "node:module",
+        "node:path",
+        "node:url"
+      ],
+      "dynamicImports": [],
+      "children": [
+        "lib/npm-update-tool-launcher.mjs"
+      ]
+    },
+    "lib/npm-update-gate-hooks.mjs": {
+      "sha256": "676e5acac164284981cca96d4f414c3e336a69dcdee40c8f35232e0334fb4619",
+      "staticImports": [
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-helper-graph.mjs",
+        "lisa-automation-provenance.mjs",
+        "node:fs",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-gate-install.mjs": {
+      "sha256": "bbeffd67211537624b5569059f3cf3d0d261abd8d0c2bcdcabff8cab8b60e950",
+      "staticImports": [
+        "lib/github-attestation-verifier.mjs",
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-isolation.mjs",
+        "lib/npm-update-orchestrator.mjs",
+        "lib/npm-update-process.mjs",
+        "lib/npm-update-runtime.mjs",
+        "node:fs",
+        "node:path",
+        "node:url"
+      ],
+      "dynamicImports": [],
+      "children": [
+        "npm-updater-gate-runtime.json",
+        "npm-updater-gate-supervisor.c",
+        "npm-updater-gate.Dockerfile"
+      ]
+    },
+    "lib/npm-update-gate.mjs": {
+      "sha256": "d0c34d5c553e4700591d739b66b528a353f675af734960cb97b531ce78f99651",
+      "staticImports": [
+        "lib/github-attestation-verifier.mjs",
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-gate-hooks.mjs",
+        "lib/npm-update-gate-install.mjs",
+        "lib/npm-update-prepare.mjs",
+        "lib/npm-update-process.mjs",
+        "lisa-automation-provenance.mjs",
+        "node:fs",
+        "node:path",
+        "node:url"
+      ],
+      "dynamicImports": [],
+      "children": [
+        "lisa-work-item.mjs"
+      ]
+    },
+    "lib/npm-update-github.mjs": {
+      "sha256": "543f6baa36e10ae5022ecc55748c439803b2e549b2c278090b213a9db7db9ec5",
+      "staticImports": [
+        "lib/github-attestation-verifier.mjs",
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-object.mjs",
+        "lib/npm-update-process.mjs",
+        "lisa-automation-provenance.mjs",
+        "node:path",
+        "node:url"
+      ],
+      "dynamicImports": [],
+      "children": [
+        "lisa-work-item.mjs"
+      ]
+    },
+    "lib/npm-update-helper.mjs": {
+      "sha256": "d6ad6d094f56a1d08fabbae7e2df90779f7912d3380a4c9e792b305863901dda",
+      "staticImports": [
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-helper-graph.mjs",
+        "lib/npm-update-npm.mjs",
+        "lib/npm-update-process-core.mjs",
+        "node:crypto",
+        "node:fs",
+        "node:module",
+        "node:path",
+        "node:url"
+      ],
+      "dynamicImports": [
+        "package/plugins/lisa/scripts/intake-blocker-reprobe.mjs"
+      ],
+      "children": []
+    },
+    "lib/npm-update-invariants.mjs": {
+      "sha256": "eff38b42849e37516f8b2c4fce2d6e81fe53d1999d36fe6b59ea450410131cd9",
+      "staticImports": [],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-isolation.mjs": {
+      "sha256": "84e78beb0d40be335a8d41211999d6246e65ee85f3ddaaf0d4379f83de90c53d",
+      "staticImports": [
+        "lib/npm-update-worker-inspection.mjs",
+        "lib/npm-update-worker-lifecycle.mjs",
+        "lib/npm-update-worker-policy.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-leaf-contract.mjs": {
+      "sha256": "f2373e2e3117947a58029ae24c8027484b5d67daa4aaff5e57975d82c89e7962",
+      "staticImports": [
+        "lib/npm-update-contract.mjs",
+        "lisa-automation-provenance.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-leaf.mjs": {
+      "sha256": "ff9c0fb53cfbdc0565b59df6310a0af0d2bb1eb9b2055049e5de85db0a1585f9",
+      "staticImports": [
+        "lib/github-attestation-verifier.mjs",
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-helper.mjs",
+        "lib/npm-update-leaf-contract.mjs",
+        "lib/npm-update-quality.mjs",
+        "lisa-automation-provenance.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-npm.mjs": {
+      "sha256": "adbf70257ab6cf309e7dcbbc8b42a11a6cd8eee398e85e9d5ee6885ae1a2bff4",
+      "staticImports": [
+        "lib/github-attestation-verifier.mjs",
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-process-core.mjs",
+        "node:crypto",
+        "node:fs",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-object.mjs": {
+      "sha256": "b06f1bc632aeed73744fd6aa56e8f75da34c9d68fe9b6341188c60fc5fd1f25e",
+      "staticImports": [
+        "lib/bounded-spawn.mjs",
+        "lib/github-attestation-verifier.mjs",
+        "lib/npm-update-invariants.mjs",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-orchestrator.mjs": {
+      "sha256": "3bf831d84eadaa4dc5a45b82167fc7cf7bb08515aa8741653f09de2d376d4b14",
+      "staticImports": [
+        "lib/github-attestation-verifier.mjs",
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-gate-hooks.mjs",
+        "lib/npm-update-process.mjs",
+        "lisa-automation-provenance.mjs",
+        "node:crypto",
+        "node:fs",
+        "node:path",
+        "node:url"
+      ],
+      "dynamicImports": [],
+      "children": [
+        "lib/npm-update-tool-launcher.mjs"
+      ]
+    },
+    "lib/npm-update-owner.mjs": {
+      "sha256": "0ef3522a95d66ad8a92282b02de5a26ad2e14fb6ea9b7dfba21df6b3dd7cb9e7",
+      "staticImports": [
+        "lib/github-attestation-verifier.mjs",
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-helper.mjs",
+        "lib/npm-update-npm.mjs",
+        "lib/npm-update-process-core.mjs",
+        "node:fs",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-prepare.mjs": {
+      "sha256": "ab6b79fbd04ae7b39fca25321ca88087af5693d6dbe808fed19ef67ea90ee08e",
+      "staticImports": [
+        "lib/github-attestation-verifier.mjs",
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-owner.mjs",
+        "lib/npm-update-process.mjs",
+        "lisa-automation-provenance.mjs",
+        "node:fs",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-process-core.mjs": {
+      "sha256": "411d626bbce095871dd4598f542643504b04fe1cef7f04125a58628ed2067247",
+      "staticImports": [
+        "lib/npm-update-contract.mjs",
+        "lisa-automation-provenance.mjs",
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:os",
+        "node:path",
+        "node:url"
+      ],
+      "dynamicImports": [],
+      "children": [
+        "lib/process-tree-runner.mjs"
+      ]
+    },
+    "lib/npm-update-process.mjs": {
+      "sha256": "d9400b18f1ac3638b02ed4304774967a2cd9cfe77ee1173c03b4fddfeaf699a2",
+      "staticImports": [
+        "lib/npm-update-npm.mjs",
+        "lib/npm-update-owner.mjs",
+        "lib/npm-update-process-core.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-publication.mjs": {
+      "sha256": "0a12748bc0226c9550400ee619e6dbf6780831d023f2f759319c7710362ba8d0",
+      "staticImports": [
+        "lib/npm-update-contract.mjs",
+        "lisa-work-item.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-publish.mjs": {
+      "sha256": "1867661fd1a61649d2d466a07810cb0b4cec15245927d125556ebc66b79ae701",
+      "staticImports": [
+        "lib/github-attestation-recovery.mjs",
+        "lib/github-attestation-verifier.mjs",
+        "lib/npm-update-authorization.mjs",
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-gate.mjs",
+        "lib/npm-update-process.mjs",
+        "lib/npm-update-publication.mjs",
+        "lisa-automation-provenance.mjs",
+        "node:fs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-quality.mjs": {
+      "sha256": "f28c9000837d2b8b7ce6cd3c63efa60472a3b3f24bd9a22dace67f1f44f624b5",
+      "staticImports": [
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-leaf-contract.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-recovery.mjs": {
+      "sha256": "84104b2fa043c6bd38bcaae8fb4862f7d262aab9e64063170c991e4ece16f103",
+      "staticImports": [
+        "lib/github-attestation-recovery.mjs",
+        "lib/github-attestation-verifier.mjs",
+        "lib/npm-update-checkpoint.mjs",
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-leaf.mjs",
+        "lib/npm-update-process.mjs",
+        "lisa-automation-provenance.mjs",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-runtime-archive.mjs": {
+      "sha256": "673ba6fe275c14fb89a67c9f4e4b3b77f0dc12966e2eb3050c42380be09e3235",
+      "staticImports": [
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-runtime-graph.mjs",
+        "node:crypto",
+        "node:fs",
+        "node:stream",
+        "node:stream/promises",
+        "node:zlib"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-runtime-graph.mjs": {
+      "sha256": "bda85d501e4c87f1ed8c9b022405a326535aa4bba2ab2890e99e227406c3e9ee",
+      "staticImports": [
+        "lib/npm-update-contract.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-runtime-transport.mjs": {
+      "sha256": "2a38692e646bdf336db754d62ecfc91d063cf28c759b3420fad44ee50847c07a",
+      "staticImports": [
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-orchestrator.mjs",
+        "lib/npm-update-runtime-archive.mjs",
+        "lib/npm-update-worker-lifecycle.mjs",
+        "node:fs",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-runtime.mjs": {
+      "sha256": "dbac6a9b721c7c43c53ac94ec9eadc925b277645cc1e2937ef408c6db6dfcef6",
+      "staticImports": [
+        "lib/github-attestation-verifier.mjs",
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-runtime-transport.mjs",
+        "lisa-automation-provenance.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-tool-launcher.mjs": {
+      "sha256": "3bbfae3c9da51d09ae987265cb9ddfa7431cf67d8f497d555ecc931e1b5d3313",
+      "staticImports": [
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-isolation.mjs",
+        "lib/npm-update-orchestrator.mjs",
+        "lib/npm-update-process.mjs",
+        "lisa-automation-provenance.mjs",
+        "node:fs",
+        "node:path",
+        "node:url"
+      ],
+      "dynamicImports": [],
+      "children": [
+        "lib/npm-update-execution-adapter.mjs"
+      ]
+    },
+    "lib/npm-update-worker-environment.mjs": {
+      "sha256": "90b07f2cbfa2967f5696522753eec2cfb3b3e699a00ed67ecca85151315531af",
+      "staticImports": [
+        "lib/npm-update-contract.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-worker-inspection.mjs": {
+      "sha256": "3757c4b56ae0dc2248a663a8530baf5c7bddb0b93c19d596525ae167a2b9b07c",
+      "staticImports": [
+        "lib/github-attestation-verifier.mjs",
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-worker-environment.mjs",
+        "lib/npm-update-worker-policy.mjs",
+        "lisa-automation-provenance.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-worker-lifecycle.mjs": {
+      "sha256": "3cd93f3fef88c10643d2e3efe318fc3fda00695b0c30bd1a846ae7fb366f3498",
+      "staticImports": [
+        "lib/github-attestation-verifier.mjs",
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-orchestrator.mjs",
+        "lib/npm-update-process.mjs",
+        "lib/npm-update-worker-environment.mjs",
+        "lib/npm-update-worker-inspection.mjs",
+        "lib/npm-update-worker-policy.mjs",
+        "lisa-automation-provenance.mjs",
+        "node:crypto",
+        "node:fs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/npm-update-worker-policy.mjs": {
+      "sha256": "7dea2d8dff819f36f40c2d211ab031a0fcd1e343d54ef9ed4a7ac56d1f344e16",
+      "staticImports": [
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-worker-environment.mjs",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/process-tree-runner.mjs": {
+      "sha256": "d4f4641088ab01839015b09f81732f957ca1a1a8df05fdca139b8ea4553c9be9",
+      "staticImports": [
+        "lib/invoked-as-script.mjs",
+        "lib/windows-process-job.mjs",
+        "node:child_process",
+        "node:fs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/windows-process-job.cs": {
+      "sha256": "7bbe3b13bfc35ca2a0b85fbee9a8f0a6549bf8b05997f6ce4b361bd09d924218",
+      "staticImports": [],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/windows-process-job.mjs": {
+      "sha256": "599628647c03ac22fe7cd5df22219a70b67e449cc893cc85564a93d658df2c2d",
+      "staticImports": [
+        "node:child_process",
+        "node:fs",
+        "node:os",
+        "node:path",
+        "node:process",
+        "node:url"
+      ],
+      "dynamicImports": [],
+      "children": [
+        "lib/windows-process-job.ps1"
+      ]
+    },
+    "lib/windows-process-job.ps1": {
+      "sha256": "d73b15152703d7f195d1e06f7d7cee5437373237fcd74fe68afbd79fccebc1ba",
+      "staticImports": [],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lib/worktree-dependencies.mjs": {
+      "sha256": "31cb1cd96e7bd692d10ed2c26aa83c6b0580e48dbe6d2393edf9652970def091",
+      "staticImports": [
+        "lib/invoked-as-script.mjs",
+        "node:fs",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lisa-automation-provenance.mjs": {
+      "sha256": "a4acfd66630067f5dfdda22951ade554cb4a8e0e16558729a3770225dce2a278",
+      "staticImports": [
+        "lib/automation-provenance-contract.mjs",
+        "lib/automation-provenance-local.mjs",
+        "lib/github-attestation-recovery.mjs",
+        "lib/github-attestation-verifier.mjs",
+        "lib/invoked-as-script.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lisa-clean-git-env.sh": {
+      "sha256": "d15af6f13eedbca41046070972380e69fc0af8f7d903aac12b8644389b9a0c91",
+      "staticImports": [],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lisa-commit-msg-gates.mjs": {
+      "sha256": "df7a2b76125830d3e1ef95f0ab7524657603671ecd90968a78d164f9a31c4adc",
+      "staticImports": [
+        "lib/invoked-as-script.mjs",
+        "node:fs",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lisa-gates.mjs": {
+      "sha256": "f8cd07bdcdfc4066467635d86dc2a17337d4adacdd8829745482877dbd838f5e",
+      "staticImports": [
+        "lib/invoked-as-script.mjs",
+        "node:crypto",
+        "node:fs",
+        "node:module",
+        "node:path",
+        "node:url"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lisa-history-secrets.mjs": {
+      "sha256": "6887f865cee4cca397cac9f0efb366f2e5b9d4c68596f0306775709e354a85d2",
+      "staticImports": [
+        "node:fs"
+      ],
+      "dynamicImports": [
+        "lib/history-secret-git.mjs",
+        "lib/history-secret-scanner.mjs",
+        "lib/invoked-as-script.mjs"
+      ],
+      "children": []
+    },
+    "lisa-mutation.sh": {
+      "sha256": "dfe6e7a208fe72d02355548d9aba8484748b7d95eca0bf989043008311af29c4",
+      "staticImports": [],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lisa-npm-updater.mjs": {
+      "sha256": "59d315bae8352a6ac6b532b5d0da209ab761622163e1860b0b663f2e4540ec6b",
+      "staticImports": [
+        "lib/github-attestation-verifier.mjs",
+        "lib/invoked-as-script.mjs",
+        "lib/npm-update-allocate.mjs",
+        "lib/npm-update-authorization.mjs",
+        "lib/npm-update-contract.mjs",
+        "lib/npm-update-gate.mjs",
+        "lib/npm-update-github.mjs",
+        "lib/npm-update-prepare.mjs",
+        "lib/npm-update-process.mjs",
+        "lib/npm-update-publish.mjs",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lisa-rails-prepush.mjs": {
+      "sha256": "b963ce2647fd6daa95ceb5607691c5fb7d9f847a54d93a3d36718c5f7567905c",
+      "staticImports": [
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "node:url"
+      ],
+      "dynamicImports": [
+        "lib/history-secret-policy.mjs",
+        "lib/invoked-as-script.mjs",
+        "lisa-history-secrets.mjs"
+      ],
+      "children": [
+        "lisa-work-item.mjs"
+      ]
+    },
+    "lisa-run-gates.mjs": {
+      "sha256": "c94f7068de034d9ba2b0b833fb8109576aa662a67a4afa6aa7536df99d978add",
+      "staticImports": [
+        "lib/bounded-spawn.mjs",
+        "lib/gate-failure-diagnosis.mjs",
+        "lib/invoked-as-script.mjs",
+        "lib/kill-marks.mjs",
+        "lib/process-tree-runner.mjs",
+        "lib/worktree-dependencies.mjs",
+        "lisa-gates.mjs",
+        "node:fs",
+        "node:path",
+        "node:url"
+      ],
+      "dynamicImports": [],
+      "children": [
+        "lib/process-tree-runner.mjs",
+        "lisa-gates.mjs"
+      ]
+    },
+    "lisa-scratch-run.sh": {
+      "sha256": "ef3c38f8d1d2f48ba265e21f841310d25142228dac57b0a5742c7d902113ca9a",
+      "staticImports": [],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lisa-test-node.mjs": {
+      "sha256": "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
+      "staticImports": [
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "node:url"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "lisa-work-item.mjs": {
+      "sha256": "e1375d1daccfc137d91bae9eccad62e4449bb493d2a9021b35e65deb6f4a3ad0",
+      "staticImports": [
+        "lib/invoked-as-script.mjs",
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:net",
+        "node:path"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "npm-updater-gate-runtime.json": {
+      "sha256": "5c2af03360bfd59df26934ea0a2e47baa3999cbaa0ad3a9a03dd74575589218d",
+      "staticImports": [],
+      "dynamicImports": [],
+      "children": []
+    },
+    "npm-updater-gate-supervisor.c": {
+      "sha256": "2506d8750694b93169f70e71d4c9dd68de0a0724bf9622bf9e15fa6cd2404b69",
+      "staticImports": [],
+      "dynamicImports": [],
+      "children": []
+    },
+    "npm-updater-gate.Dockerfile": {
+      "sha256": "260d194175737ed1cfdf6d208696bb58d035a45b2fd27c83a54e75be65ab5cb0",
+      "staticImports": [],
+      "dynamicImports": [],
+      "children": []
+    },
+    "package/plugins/lisa/scripts/intake-blocker-reprobe.mjs": {
+      "sha256": "8656ad13f3a712f8c3a68046282acf1f2359d8a2cb238e99b8131b3cff86386a",
+      "staticImports": [
+        "package/plugins/lisa/scripts/intake-prework-denominator.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "package/plugins/lisa/scripts/intake-prework-denominator.mjs": {
+      "sha256": "0a40cb91ab1c0e810f42d035d9652af3033e97c692b93b911de851991c12eca1",
+      "staticImports": [],
+      "dynamicImports": [],
+      "children": []
+    },
+    "threshold-ratchet-compare.mjs": {
+      "sha256": "99a97f830b1ee3388e8714602a4a3f188387c0389ac9d2a7b4b898f20f39a7a7",
+      "staticImports": [
+        "threshold-ratchet-families.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
+    "threshold-ratchet-families.mjs": {
+      "sha256": "15b8dd22f25795127258cb9bf0271253bb9e285cf735177d157037a5cc4663f8",
+      "staticImports": [],
+      "dynamicImports": [],
+      "children": []
+    }
+  }
+}
