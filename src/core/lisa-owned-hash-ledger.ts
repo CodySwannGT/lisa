@@ -453,8 +453,10 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/lib/history-secret-evidence-shape.mjs": Object.freeze([
     "346393e1ba8a5fa9b35d14f86745e62de87b06b5626418e65ff6589d7a4828fc",
     "f9b606645b9f3d55031e9cd0caf874395ae17ec6425f4a2adf6ca29e87560f0e",
+    "ff421c676daf8098f15d59f46a285076b0a9e4a94bdf5484f739cffc2fe5f8eb",
   ]),
   "scripts/lib/history-secret-evidence.mjs": Object.freeze([
+    "0475ac4654e33c2f24e0f10adbe79eb9db3229e1d2eb5160418b78545043410c",
     "81247f4a85322a96e5ef049acec12b84925cc8fbac90b4a6811479f8a311e2b2",
   ]),
   "scripts/lib/history-secret-git.mjs": Object.freeze([
@@ -1924,8 +1926,10 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   "scripts/lib/history-secret-evidence-shape.mjs": Object.freeze([
     "346393e1ba8a5fa9b35d14f86745e62de87b06b5626418e65ff6589d7a4828fc",
     "f9b606645b9f3d55031e9cd0caf874395ae17ec6425f4a2adf6ca29e87560f0e",
+    "ff421c676daf8098f15d59f46a285076b0a9e4a94bdf5484f739cffc2fe5f8eb",
   ]),
   "scripts/lib/history-secret-evidence.mjs": Object.freeze([
+    "0475ac4654e33c2f24e0f10adbe79eb9db3229e1d2eb5160418b78545043410c",
     "81247f4a85322a96e5ef049acec12b84925cc8fbac90b4a6811479f8a311e2b2",
   ]),
   "scripts/lib/history-secret-git.mjs": Object.freeze([

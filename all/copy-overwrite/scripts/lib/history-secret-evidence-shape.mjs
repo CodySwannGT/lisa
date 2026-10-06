@@ -1,5 +1,5 @@
 // This file is managed by Lisa and IS replaced on each `lisa` run.
-// Durable changes belong upstream in Lisa.
+// Do not edit directly — durable changes belong upstream in Lisa.
 /** Bounded lossless evidence syntax; no digest is authenticated by syntax alone. */
 const credentialField =
   /^(?:api[_-]?key|access[_-]?token|password|passwd|secret)$/iu;
@@ -164,7 +164,11 @@ export const evidenceMaps = bytes => {
 /** Only the fixed taxonomy in ordinary prose, outside Markdown code, is a candidate. */
 export const narrativeSpan = (bytes, lineStart, lineEnd) => {
   const prior = bytes.subarray(0, lineStart).toString("utf8");
-  if ((prior.match(/^\s*(?:```|~~~)/gmu) ?? []).length % 2) return null;
+  const fences = prior.split(/[\r\n\u2028\u2029]/u).filter(part => {
+    const trimmed = part.trimStart();
+    return trimmed.startsWith("```") || trimmed.startsWith("~~~");
+  });
+  if (fences.length % 2) return null;
   const line = bytes.subarray(lineStart, lineEnd).toString("utf8");
   const prose = line.replace(/`[^`\r\n]{1,256}`/gu, "identifier");
   if (!/^(?:[-*] )?[A-Za-z][A-Za-z0-9 ,./():-]*\.$/u.test(prose)) return null;

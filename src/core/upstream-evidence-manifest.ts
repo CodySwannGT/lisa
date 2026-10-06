@@ -27,9 +27,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
       "c565984dcd33bc5d26a126c25cec9a0734d87c0d9540479168a77f51b980809f",
     "all/copy-overwrite/scripts/lib/history-secret-evidence-shape.mjs":
-      "f9b606645b9f3d55031e9cd0caf874395ae17ec6425f4a2adf6ca29e87560f0e",
+      "ff421c676daf8098f15d59f46a285076b0a9e4a94bdf5484f739cffc2fe5f8eb",
     "all/copy-overwrite/scripts/lib/history-secret-evidence.mjs":
-      "81247f4a85322a96e5ef049acec12b84925cc8fbac90b4a6811479f8a311e2b2",
+      "0475ac4654e33c2f24e0f10adbe79eb9db3229e1d2eb5160418b78545043410c",
     "all/copy-overwrite/scripts/lib/history-secret-git.mjs":
       "102276aef106e07b2b385fe8f2d3b54a9d30381633a22e07d5d74a5db9ddf320",
     "all/copy-overwrite/scripts/lib/history-secret-policy.mjs":
