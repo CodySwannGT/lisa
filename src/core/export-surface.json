@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 139,
-  "$names": 1289,
+  "$modules": 141,
+  "$names": 1293,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -111,6 +111,14 @@
       "ranNoTests",
       "tempRootPopulation",
       "terminatedDocComments"
+    ],
+    "all/copy-overwrite/scripts/lib/history-secret-evidence-shape.mjs": [
+      "evidenceMaps",
+      "narrativeSpan",
+      "safeSourcePath"
+    ],
+    "all/copy-overwrite/scripts/lib/history-secret-evidence.mjs": [
+      "classifyEvidence"
     ],
     "all/copy-overwrite/scripts/lib/history-secret-git.mjs": [
       "HistorySecretError",

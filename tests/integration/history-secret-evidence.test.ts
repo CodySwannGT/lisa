@@ -89,6 +89,41 @@ afterAll(() => {
 
 describe("required history evidence actual CLI controls", () => {
   it.each([
+    ["portable", [], 20, 8],
+    ["reserved-keys", ["--portable-credential-keys"], 6, 0],
+  ] as const)(
+    "executes exact %s committed evidence controls",
+    (_name, flags, count, positiveCount) => {
+      const result = boundedSpawnSync({
+        label: "actual portable committed evidence CLI controls",
+        command: process.execPath,
+        args: [
+          join(root, "tests/fixtures/git-history-secrets/journey.mjs"),
+          "--portable-only",
+          ...flags,
+          "--scanner",
+          scanner,
+        ],
+        cwd: root,
+        baseMs: childBaseMs,
+      });
+      expect(result.status, result.stderr).toBe(0);
+      expect(result.stderr).toBe("");
+      const report = JSON.parse(result.stdout);
+      expect(report.scanner).toBe("Gitleaks 8.30.1");
+      expect(report.redaction).toBe(true);
+      expect(report.cleanup).toBe(
+        "all owned fixture repositories/processes removed on exit"
+      );
+      expect(report.observations).toHaveLength(count);
+      expect(
+        report.observations.filter((row: { exit: number }) => row.exit === 0)
+      ).toHaveLength(positiveCount);
+      for (const row of report.observations)
+        expect(row.exit).toBe(row.expected);
+    }
+  );
+  it.each([
     ["positive", "positive", null, expected.positive],
     ["digest-first", "digest", "first", expected.digest.slice(0, 14)],
     ["digest-second", "digest", "second", expected.digest.slice(14)],
