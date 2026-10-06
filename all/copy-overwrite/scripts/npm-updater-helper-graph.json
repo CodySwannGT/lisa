@@ -569,7 +569,7 @@
       "children": []
     },
     "lib/npm-update-native-process.mjs": {
-      "sha256": "18b5dc6db69d6e03ef3e122763927eb861ae396261a45db34b9bce461cd310f7",
+      "sha256": "496a990a47f3b25a54853752f8874f6d85fdb7e5a01144bdb3875307c4bf51ed",
       "staticImports": [
         "lib/npm-update-contract.mjs",
         "node:child_process",

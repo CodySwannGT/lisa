@@ -49,7 +49,8 @@ function startSupervised(command, args, timeout, cwd, env) {
  * @param {string} command Literal executable.
  * @param {string[]} args Original argument vector.
  * @param {{cwd?: string, env?: NodeJS.ProcessEnv, input?: string | Buffer,
- * timeout?: number, allowed?: number[], maximum?: number}} [options] Bounded execution.
+ * timeout?: number, allowed?: number[], maximum?: number,
+ * signal?: AbortSignal}} [options] Bounded execution.
  * @returns {Promise<{code: number, stdout: Buffer, stderr: Buffer}>} Actual child result.
  */
 export function runProcess(

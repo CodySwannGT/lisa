@@ -1373,8 +1373,8 @@ describe("closed npm proposal", () => {
         ).toThrow(/authority environment/);
       }
       if (role === "gate") {
-        expect(env.RAILS_ENV).toBe("test");
-        expect(env.DATABASE_PASSWORD).toBe("isolated-test");
+        expect(env).toHaveProperty("RAILS_ENV", "test");
+        expect(env).toHaveProperty("DATABASE_PASSWORD", "isolated-test");
       } else {
         expect(env).not.toHaveProperty("RAILS_ENV");
         expect(env).not.toHaveProperty("DATABASE_PASSWORD");

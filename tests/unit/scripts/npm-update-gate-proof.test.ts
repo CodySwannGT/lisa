@@ -36,7 +36,7 @@ describe("canonical updater configuration", () => {
     const contract = trackerContract(config);
     expect(contract.repository).toBe("acme/widgets");
     expect(contract.verify).toBe("full");
-    expect(contract.deployBranches.get("main")).toBe("production");
+    expect(contract.deployBranches?.get("main")).toBe("production");
     expect(contract.lifecycle.claimed).toBe("status:in-progress");
     expect(environment(config)).toBe("production");
     expect(leafRoles(config, "acme/widgets").terminals).toEqual(
@@ -56,7 +56,7 @@ describe("ordinary gate stream execution", () => {
       commit,
       parent,
       commit,
-      async refs => {
+      async (refs: string) => {
         inputs.push(refs);
         return {
           code: 0,
@@ -69,8 +69,8 @@ describe("ordinary gate stream execution", () => {
       `refs/heads/${branch} ${commit} refs/heads/${branch} ${parent}\n`,
       `refs/heads/${branch} ${commit} refs/heads/${branch} ${commit}\n`,
     ]);
-    expect(receipt.audit.range).toEqual([commit]);
-    expect(receipt.destination.range).toEqual([]);
+    expect(receipt).toHaveProperty("audit.range", [commit]);
+    expect(receipt).toHaveProperty("destination.range", []);
   });
   it("does not execute the destination after a failed full-audit result", async () => {
     let calls = 0;

@@ -158,6 +158,7 @@ describe("supported publication backlink ordering", () => {
       await import("../../../all/copy-overwrite/scripts/lib/npm-update-publication.mjs");
     const calls: unknown[] = [];
     const context = {
+      controller: {},
       api: {
         workItem: async (cwd: string, args: string[]) =>
           calls.push([cwd, args]),
@@ -969,6 +970,7 @@ describe("exact publication destination preflight", () => {
     let authorization = 0;
     const args = {
       api,
+      controller: {},
       cwd: TRUSTED_CHECKOUT,
       proposal: { ...proposal, repository: policy.repository },
       allocation,
@@ -1009,6 +1011,7 @@ describe("exact publication destination preflight", () => {
     };
     const args = {
       api,
+      controller: {},
       cwd: TRUSTED_CHECKOUT,
       proposal: { ...proposal, repository: policy.repository },
       allocation,

@@ -603,6 +603,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lib/npm-update-native-process.mjs": Object.freeze([
     "18b5dc6db69d6e03ef3e122763927eb861ae396261a45db34b9bce461cd310f7",
+    "496a990a47f3b25a54853752f8874f6d85fdb7e5a01144bdb3875307c4bf51ed",
   ]),
   "scripts/lib/npm-update-npm.mjs": Object.freeze([
     "adbf70257ab6cf309e7dcbbc8b42a11a6cd8eee398e85e9d5ee6885ae1a2bff4",
@@ -1645,6 +1646,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "6ae05afed835da768a443d2286fff480925f6a81633ccbc540c859a50a720fe2",
     "7b1d6bba391f105b9d53b91773fd207c9a5e9b5bfcd638e1e6b579d507279d7d",
     "baa8ffc248ce29c30d10b579960b34b7836c7d7f47651ced3cbb551dfee65291",
+    "c11328d3d4fd6d0f82ad51afc21f710877bd8dd2643c9d1a7d0fd2fed60358eb",
     "d2ea6e10d3023a39f4e63121858beabe66e7a8139eaabd1ce9593212fd8c5980",
     "f558a2582e106b84f26e48572ac3b3cc3b45aa20988d1b7ed618c2579b05b251",
   ]),
@@ -2294,6 +2296,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lib/npm-update-native-process.mjs": Object.freeze([
     "18b5dc6db69d6e03ef3e122763927eb861ae396261a45db34b9bce461cd310f7",
+    "496a990a47f3b25a54853752f8874f6d85fdb7e5a01144bdb3875307c4bf51ed",
   ]),
   "scripts/lib/npm-update-npm.mjs": Object.freeze([
     "adbf70257ab6cf309e7dcbbc8b42a11a6cd8eee398e85e9d5ee6885ae1a2bff4",
@@ -3266,6 +3269,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "6ae05afed835da768a443d2286fff480925f6a81633ccbc540c859a50a720fe2",
     "7b1d6bba391f105b9d53b91773fd207c9a5e9b5bfcd638e1e6b579d507279d7d",
     "baa8ffc248ce29c30d10b579960b34b7836c7d7f47651ced3cbb551dfee65291",
+    "c11328d3d4fd6d0f82ad51afc21f710877bd8dd2643c9d1a7d0fd2fed60358eb",
     "d2ea6e10d3023a39f4e63121858beabe66e7a8139eaabd1ce9593212fd8c5980",
     "f558a2582e106b84f26e48572ac3b3cc3b45aa20988d1b7ed618c2579b05b251",
   ]),

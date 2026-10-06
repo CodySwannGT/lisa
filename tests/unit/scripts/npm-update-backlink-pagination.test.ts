@@ -48,8 +48,12 @@ describe("canonical backlink pagination", () => {
     const comments = githubBacklinkComments(pages);
     expect(comments).toHaveLength(101);
     expect(
-      partitionBacklinks(comments, url, comment => comment.body).mine.id
-    ).toBe(101);
+      partitionBacklinks(comments, url, comment =>
+        comment && typeof comment === "object" && "body" in comment
+          ? comment.body
+          : undefined
+      ).mine
+    ).toHaveProperty("id", 101);
     const scope = createGhRequests(subject);
     const state = createGhState(scope);
     observeGhResponse(scope, state, prepareGhRequest(scope, state, args), {
