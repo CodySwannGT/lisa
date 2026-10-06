@@ -22,18 +22,7 @@ const ENVIRONMENT = new Set([
   "NPM_CONFIG_AUDIT",
   "NPM_CONFIG_FUND",
   "NPM_CONFIG_UPDATE_NOTIFIER",
-  "GH_TOKEN",
-  "GH_HOST",
-  "GITHUB_REPOSITORY",
-  "GITHUB_RUN_ID",
-  "GITHUB_RUN_ATTEMPT",
   "GIT_TERMINAL_PROMPT",
-  "GIT_AUTHOR_NAME",
-  "GIT_AUTHOR_EMAIL",
-  "GIT_AUTHOR_DATE",
-  "GIT_COMMITTER_NAME",
-  "GIT_COMMITTER_EMAIL",
-  "GIT_COMMITTER_DATE",
   "RAILS_ENV",
   "DATABASE_USER",
   "DATABASE_PASSWORD",
@@ -57,7 +46,7 @@ export function isInstallerRole(role) {
   return role === "install" || role === RUBY_INSTALL;
 }
 
-/** Allowed names do not establish the read-only token's actual provider permission scope. */
+/** Candidate inspection rejects provider credentials and controller identity channels. */
 export function inspectedEnvironment(values) {
   required(
     Array.isArray(values) && values.length <= ENVIRONMENT.size,
@@ -116,11 +105,6 @@ export function workerEnvironment(source, boundary) {
   };
   if (!isInstallerRole(boundary?.role)) {
     for (const name of [
-      "GH_TOKEN",
-      "GH_HOST",
-      "GITHUB_REPOSITORY",
-      "GITHUB_RUN_ID",
-      "GITHUB_RUN_ATTEMPT",
       "RAILS_ENV",
       "DATABASE_USER",
       "DATABASE_PASSWORD",

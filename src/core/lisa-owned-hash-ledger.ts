@@ -585,6 +585,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "3bbfae3c9da51d09ae987265cb9ddfa7431cf67d8f497d555ecc931e1b5d3313",
   ]),
   "scripts/lib/npm-update-worker-environment.mjs": Object.freeze([
+    "8314c258bc6f0bbffc0e5999c9e201dbe47e4d14992bf9c964eccd3b558575c2",
     "90b07f2cbfa2967f5696522753eec2cfb3b3e699a00ed67ecca85151315531af",
   ]),
   "scripts/lib/npm-update-worker-inspection.mjs": Object.freeze([
@@ -1555,6 +1556,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/npm-updater-helper-graph.json": Object.freeze([
     "09352aa145bc81c3c5dab282c61d084cbbe5af6242d7d12303ad764fbad53de2",
+    "f558a2582e106b84f26e48572ac3b3cc3b45aa20988d1b7ed618c2579b05b251",
   ]),
   "scripts/reconcile-nightly-e2e-tracking-cli.mjs": Object.freeze([
     "0ca6615153c300a12ac0ec08fc0bc8bc3c5b488bad4b4802f0d9a7eb81e09a49",
@@ -2184,6 +2186,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "3bbfae3c9da51d09ae987265cb9ddfa7431cf67d8f497d555ecc931e1b5d3313",
   ]),
   "scripts/lib/npm-update-worker-environment.mjs": Object.freeze([
+    "8314c258bc6f0bbffc0e5999c9e201dbe47e4d14992bf9c964eccd3b558575c2",
     "90b07f2cbfa2967f5696522753eec2cfb3b3e699a00ed67ecca85151315531af",
   ]),
   "scripts/lib/npm-update-worker-inspection.mjs": Object.freeze([
@@ -3084,6 +3087,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/npm-updater-helper-graph.json": Object.freeze([
     "09352aa145bc81c3c5dab282c61d084cbbe5af6242d7d12303ad764fbad53de2",
+    "f558a2582e106b84f26e48572ac3b3cc3b45aa20988d1b7ed618c2579b05b251",
   ]),
   "scripts/reconcile-nightly-e2e-tracking-cli.mjs": Object.freeze([
     "0ca6615153c300a12ac0ec08fc0bc8bc3c5b488bad4b4802f0d9a7eb81e09a49",

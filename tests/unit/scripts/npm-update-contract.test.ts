@@ -19,6 +19,10 @@ import {
   withPrivateRoot,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
 import { refTransport } from "../../../all/copy-overwrite/scripts/lib/npm-update-gate.mjs";
+import {
+  inspectedEnvironment,
+  workerEnvironment,
+} from "../../../all/copy-overwrite/scripts/lib/npm-update-worker-environment.mjs";
 
 import {
   checkpointComments,
@@ -48,6 +52,7 @@ const WORK_ITEM_HELPER = "lisa-work-item.mjs";
 const MANIFEST_FILE = "package.json";
 const HISTORY_POLICY = "lib/history-secret-policy.mjs";
 const ARM64_PLATFORM = "linux/arm64";
+const RUBY_INSTALL_ROLE = "ruby-install";
 const WORKSPACE = "/workspace";
 const CANDIDATE_HOME = "/home/candidate";
 const CONTROLLER_ROOT = "/owned/controller";
@@ -782,6 +787,43 @@ describe("closed npm proposal", () => {
     expect(Object.keys(env)).not.toContain("ACTIONS_ID_TOKEN_REQUEST_TOKEN");
     expect(env.HOME).toBe("/owned/home");
   });
+  it.each(["gate", "install", RUBY_INSTALL_ROLE])(
+    "keeps provider and controller identity out of %s workers",
+    role => {
+      const names = [
+        "GH_TOKEN",
+        "GH_HOST",
+        "GITHUB_REPOSITORY",
+        "GITHUB_RUN_ID",
+        "GITHUB_RUN_ATTEMPT",
+        "GIT_AUTHOR_NAME",
+        "GIT_AUTHOR_EMAIL",
+        "GIT_AUTHOR_DATE",
+        "GIT_COMMITTER_NAME",
+        "GIT_COMMITTER_EMAIL",
+        "GIT_COMMITTER_DATE",
+      ];
+      const source = {
+        ...Object.fromEntries(names.map(name => [name, "synthetic-control"])),
+        RAILS_ENV: "test",
+        DATABASE_PASSWORD: "isolated-test",
+      };
+      const env = workerEnvironment(source, { role });
+      for (const name of names) {
+        expect(env).not.toHaveProperty(name);
+        expect(() =>
+          inspectedEnvironment([`${name}=synthetic-control`])
+        ).toThrow(/authority environment/);
+      }
+      if (role === "gate") {
+        expect(env.RAILS_ENV).toBe("test");
+        expect(env.DATABASE_PASSWORD).toBe("isolated-test");
+      } else {
+        expect(env).not.toHaveProperty("RAILS_ENV");
+        expect(env).not.toHaveProperty("DATABASE_PASSWORD");
+      }
+    }
+  );
   it("refuses an absent private JSON file", () =>
     expect(() => readJson("/no-such-owned-proof-4347.json")).toThrow());
   it("binds deterministic identities to actual two-file bytes", () => {
@@ -1181,7 +1223,7 @@ describe("closed candidate worker boundary", () => {
   it("checks the daemon-observed Ruby frozen path rather than only allowed names", () => {
     const rubyExpected = {
       ...expected,
-      role: "ruby-install",
+      role: RUBY_INSTALL_ROLE,
       uid: 2001,
       gid: 2001,
     };
@@ -1221,7 +1263,7 @@ describe("closed candidate worker boundary", () => {
   });
   it("separates Ruby installer writes from npm, gates and alternate paths", () => {
     const boundary = {
-      role: "ruby-install",
+      role: RUBY_INSTALL_ROLE,
       uid: 501,
       gid: 20,
       root: CONTROLLER_ROOT,
@@ -1265,7 +1307,7 @@ describe("closed candidate worker boundary", () => {
       ).toThrow();
     expect(() =>
       workerArguments(boundary, invocation, { ...env, GH_TOKEN: "forbidden" })
-    ).toThrow(/credentials/);
+    ).toThrow(/authority environment/);
     expect(() =>
       workerArguments(boundary, invocation, { ...env, BUNDLE_FROZEN: "false" })
     ).toThrow(/Ruby|frozen/);
@@ -1338,7 +1380,7 @@ describe("closed candidate worker boundary", () => {
     ).toThrow(/mount/);
     expect(() =>
       workerArguments(boundary, invocation, { GH_TOKEN: "not-allowed" })
-    ).toThrow(/credentials/);
+    ).toThrow(/authority environment/);
     expect(() =>
       workerArguments(
         {

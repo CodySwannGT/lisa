@@ -562,7 +562,7 @@
       ]
     },
     "lib/npm-update-worker-environment.mjs": {
-      "sha256": "90b07f2cbfa2967f5696522753eec2cfb3b3e699a00ed67ecca85151315531af",
+      "sha256": "8314c258bc6f0bbffc0e5999c9e201dbe47e4d14992bf9c964eccd3b558575c2",
       "staticImports": [
         "lib/npm-update-contract.mjs"
       ],
