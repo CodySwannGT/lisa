@@ -397,3 +397,33 @@ ROOT accepts independent current-source review e455beb3a5ffc783319c43397f572e6b5
 Different runtime review f98a8cc40c95141ea27915d5154637386e937ef9727d2d590ae8017eb9522fc8 accepts bounded Darwin evidence: retained normal four-file run had 159 passes, three intentional-signal helper failures and one original Windows skip; corrected whole verdict-file run has 21 passes and that one skip. The other three whole files and all their source inputs are unchanged, yielding composed evidence for 162 distinct passes plus one skip, not a new aggregate run. Original failures remain retained. The correction selects the existing native bounded helper for only the three intentional signals and preserves original calibration, 6000-ms base, 30000-ms runner deadline and exact native assertions. Captured process/root absence is bounded evidence, not exhaustive host quiescence.
 
 ROOT owns the ordinary focused commit using existing branch, canonical work-item binding and unchanged normal hooks. Preserve original ancestry, other checkouts, private context and all unrelated work. No push, new PR, provider mutation, service allocation, published-cohort or full issue completion follows from this commit. Genuine Windows/Linux, authenticated scoped GH dispatch, isolated service/runtime, complete hooks and published owner/provider acceptance remain required.
+
+
+## Closed GH v3 reaching-test authoring admission
+
+ROOT reuses existing builder /root/provenance_committer for exactly tests/unit/scripts/npm-update-contract.test.ts, authoring only two reaching RED controls against the current real launcherContext and existing bootstrap child dispatch. Proper owned v3 context must reach version/key validation; scoped allowed [0] must reject the actual child exit17. Existing routes, code, tests, limits and assertions remain intact. No production or new file edit is admitted.
+
+Private gh-v3-reaching-test-authoring-admission.json binds current committed cd18830d and test preimage before delegation. ROOT owns this metadata append only. The native PR coordinator owns the heavy resource; builder may not run tests/build/fixtures/install/generators or stage/commit/provider/VM operations until separate explicit resource handback and execution admission. Existing complete issue criteria and unpublished-cohort limitation remain required.
+
+
+### Exact scoped-dispatch reaching seam decision
+
+Current dispatchTool has six arguments and no caller-selectable execution contract. ROOT explicitly admits only test authorship targeting a proposed optional seventh argument with existing runProcess field names: allowed [0], timeout 120000, maximum 3145728. The test must use an admissible current v1 context and genuine child exit17, retain the ordinary six-argument native17 control, and assert the proposed restricted invocation refuses17. This is an explicit target API proposal, not a claim that the current API already accepts options. Existing defaults and provider authority remain unchanged; no production edit or runtime follows. Actual RED is required after resource handback. Private gh-v3-reaching-test-seam-decision.json and parent delegation bind the pre-edit decision.
+
+
+## Closed GH v3 bounded foundation implementation admission
+
+ROOT fully consumed DIFFERENT reaching RED review 6981349ea1756702040257bae338403053d35e9adc8f84aa08e52433062a99f4: genuine whole-file 66PASS/2 exact failures, original real child17/default transport intact. Existing builder /root/provenance_committer now owns only existing npm-update-tool-launcher.mjs and npm-update-contract.test.ts for explicit v3/null-provider context and optional seventh closed bounded controller execution contract. Exact private gh-v3-foundation-implementation-admission.json records preimages, validation/default/worker refusal, actual timeout/output controls, unchanged budgets and remaining full scope before delegation. No new source file, non-null provider authority, shared CLI, runtime/generation/staging/commit/provider/VM execution is admitted. Original native coordinator retains published heavy resource scheduling; different source review and genuine coordinated GREEN remain required.
+
+
+## Bounded GH v3 foundation normal commit
+
+DIFFERENT source review c981b54ea08497068e55beb724fa0a994b3f65690d49e640c12d76855d799c95 and DIFFERENT runtime review e0a5e783451232e41befb930bd690e2786a1f50f7c6401d9f4102bd63e8ec08b accept this focused foundation only. Genuine original AST generation retained72 inputs/zero unresolved and unchanged graph closure with only launcher content hash updated; four original generators and all seven artifact checks passed. Normal full contract file65452 completed native0 with89PASS/zero skips, original bounds and all9253 source/index/context/binding identities preserved. All31 captured process births are positively absent; observer roots were empty and receive no marker-root absence credit. Original fresh orphan checker passed with retained96-byte log. Canonical JSON ignore is respected with no formatting credit.
+
+ROOT owns ordinary seven-path focused commit on existing codex/4347-producer-source using unchanged complete hooks and original ancestry, after source-only hook/resource coordination. Only this plan/roster append follows the runtime freeze. Full non-null GH profile/canonical tracker-body-backlink-recovery/provider routing, immutable released-owner, guest/Linux/Windows/original Rails services and hosted/published delivery remain required; this commit does not complete4347. No push or new PR/test/VM/provider scope follows; retain one assembled PR delivery batch.
+
+### Native-hook lint correction and current-byte runtime
+
+The normal commit hook rejected the explicit undefined argument; the original failure is retained. The same seven arguments now pass through Reflect.apply. Exact hook ESLint and formatter passed, and independent source review accepted this test-only correction.
+
+The genuine whole 89-case suite passed on the corrected test bytes with no skipped cases. Captured process identities were absent afterward and the original orphan check passed. Source, index, context and binding stayed unchanged during the run. This supports the scoped controller foundation only; full provider, service, hosted and released qualification remain required.

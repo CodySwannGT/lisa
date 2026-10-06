@@ -545,7 +545,7 @@
       "children": []
     },
     "lib/npm-update-tool-launcher.mjs": {
-      "sha256": "3bbfae3c9da51d09ae987265cb9ddfa7431cf67d8f497d555ecc931e1b5d3313",
+      "sha256": "93f3a542e47f29a29d8a4b7a969d820b685cd716557941a69a93e3c389f19759",
       "staticImports": [
         "lib/npm-update-contract.mjs",
         "lib/npm-update-isolation.mjs",

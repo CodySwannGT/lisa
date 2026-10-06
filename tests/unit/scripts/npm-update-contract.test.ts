@@ -180,6 +180,7 @@ process.stdin.on('end', () => {
     cwd: process.cwd(), context: process.env.LISA_NPM_DISPATCH_CONTEXT,
     preloads: process.execArgv.filter(value => value === '--import').length }));
   process.exitCode = 17;
+  if (process.argv[2] === '--wait-for-scoped-deadline') setInterval(() => {}, 1000);
 });`
   );
   writeFileSync(
@@ -224,6 +225,236 @@ process.exitCode = result.code;`
 describe.skipIf(!["linux", "darwin"].includes(process.platform))(
   "distinct real direct bootstrap chains",
   () => {
+    it("accepts an owned v3 launcher context with no provider authority", async () => {
+      const { launcherContext } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-tool-launcher.mjs");
+      const { replaceJson } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs");
+      await withPrivateRoot(async root => {
+        const fixture = await directBootstrapFixture(root);
+        const context = {
+          ...fixture.context,
+          version: 3,
+          routes: [],
+          provider: null,
+        };
+        expect(launcherContext(fixture.file)).toEqual(fixture.context);
+        replaceJson(fixture.file, context);
+        expect(launcherContext(fixture.file)).toEqual(context);
+      });
+    });
+
+    it("rejects a real exit 17 when scoped helper dispatch permits only zero", async () => {
+      const { dispatchTool } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-tool-launcher.mjs");
+      await withPrivateRoot(async (root, env) => {
+        const fixture = await directBootstrapFixture(root);
+        const args = [fixture.entry, "literal \nΩ", "", "--"];
+        const input = Buffer.from(BOOTSTRAP_INPUT);
+        const original = await dispatchTool(
+          fixture.context,
+          "node",
+          args,
+          input,
+          env,
+          root
+        );
+        expect(original.code).toBe(17);
+        expect(original.stderr.toString()).toBe("");
+        expect(JSON.parse(original.stdout.toString())).toEqual({
+          args: args.slice(1),
+          input: BOOTSTRAP_INPUT,
+          cwd: root,
+          context: fixture.file,
+          preloads: 1,
+        });
+        // The seventh execution-contract argument is the admitted target API, not an existing capability.
+        await expect(
+          Reflect.apply(dispatchTool, undefined, [
+            fixture.context,
+            "node",
+            args,
+            input,
+            env,
+            root,
+            { allowed: [0], timeout: 120_000, maximum: 3_145_728 },
+          ])
+        ).rejects.toMatchObject({
+          message: "npm updater: child failed (17)",
+          code: 17,
+          stdout: original.stdout,
+          stderr: original.stderr,
+        });
+      });
+    });
+
+    it("retains v1 and v2 while requiring exact v3 keys and a null provider", async () => {
+      const { launcherContext } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-tool-launcher.mjs");
+      const { replaceJson } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs");
+      await withPrivateRoot(async root => {
+        const fixture = await directBootstrapFixture(root);
+        const v2 = { ...fixture.context, version: 2, routes: [] };
+        const v3 = { ...v2, version: 3, provider: null };
+        expect(launcherContext(fixture.file)).toEqual(fixture.context);
+        replaceJson(fixture.file, v2);
+        expect(launcherContext(fixture.file)).toEqual(v2);
+        for (const value of [
+          { ...fixture.context, provider: null },
+          { ...v2, provider: null },
+          { ...fixture.context, version: 3, routes: [] },
+          { ...fixture.context, version: 3, provider: null },
+          { ...v3, provider: {} },
+          { ...v3, provider: false },
+          { ...v3, routes: null },
+          { ...v3, extra: true },
+        ]) {
+          replaceJson(fixture.file, value);
+          expect(() => launcherContext(fixture.file)).toThrow();
+        }
+      });
+    });
+
+    it.each([
+      null,
+      {},
+      { allowed: [], timeout: 120_000, maximum: 3_145_728 },
+      { allowed: [0, 0], timeout: 120_000, maximum: 3_145_728 },
+      { allowed: Array(1), timeout: 120_000, maximum: 3_145_728 },
+      { allowed: [-1], timeout: 120_000, maximum: 3_145_728 },
+      { allowed: [256], timeout: 120_000, maximum: 3_145_728 },
+      { allowed: [0.5], timeout: 120_000, maximum: 3_145_728 },
+      { allowed: ["0"], timeout: 120_000, maximum: 3_145_728 },
+      { allowed: [0], timeout: 0, maximum: 3_145_728 },
+      { allowed: [0], timeout: 1_800_001, maximum: 3_145_728 },
+      { allowed: [0], timeout: 120_000.5, maximum: 3_145_728 },
+      { allowed: [0], timeout: 120_000, maximum: 0 },
+      { allowed: [0], timeout: 120_000, maximum: 8_388_609 },
+      { allowed: [0], timeout: 120_000, maximum: Infinity },
+      { allowed: [0], timeout: 120_000, maximum: 3_145_728, shell: true },
+    ])("refuses malformed scoped execution contract %j", async execution => {
+      const { dispatchTool } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-tool-launcher.mjs");
+      await withPrivateRoot(async (root, env) => {
+        const fixture = await directBootstrapFixture(root);
+        await expect(
+          Reflect.apply(dispatchTool, undefined, [
+            fixture.context,
+            "node",
+            [fixture.entry],
+            Buffer.alloc(0),
+            env,
+            root,
+            execution,
+          ])
+        ).rejects.toThrow(/fields|object|execution contract/);
+      });
+    });
+
+    it("preserves default execution and snapshots explicitly allowed native exits", async () => {
+      const { dispatchTool } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-tool-launcher.mjs");
+      await withPrivateRoot(async (root, env) => {
+        const fixture = await directBootstrapFixture(root);
+        const allowed = [17];
+        const args = [fixture.entry];
+        const pending = dispatchTool(
+          fixture.context,
+          "node",
+          args,
+          Buffer.from(BOOTSTRAP_INPUT),
+          env,
+          root,
+          { allowed, timeout: 120_000, maximum: 3_145_728 }
+        );
+        allowed[0] = 0;
+        const result = await pending;
+        const original = await Reflect.apply(dispatchTool, undefined, [
+          fixture.context,
+          "node",
+          args,
+          Buffer.from(BOOTSTRAP_INPUT),
+          env,
+          root,
+          undefined,
+        ]);
+        expect(result.code).toBe(17);
+        expect(original).toEqual(result);
+      });
+    });
+
+    it("refuses a scoped execution contract on the worker route before allocation", async () => {
+      const { dispatchTool } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-tool-launcher.mjs");
+      await withPrivateRoot(async (root, env) => {
+        const fixture = await directBootstrapFixture(root);
+        await expect(
+          dispatchTool(
+            { ...fixture.context, boundary: { workspace: root } },
+            "node",
+            [join(root, "unqualified-worker-entry.mjs")],
+            Buffer.alloc(0),
+            env,
+            root,
+            { allowed: [0], timeout: 120_000, maximum: 3_145_728 }
+          )
+        ).rejects.toThrow(
+          "scoped execution contract is unsupported on worker routes"
+        );
+      });
+    });
+
+    it("enforces the scoped combined-output bound on the actual bootstrap child", async () => {
+      const { dispatchTool } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-tool-launcher.mjs");
+      await withPrivateRoot(async (root, env) => {
+        const fixture = await directBootstrapFixture(root);
+        await expect(
+          dispatchTool(
+            fixture.context,
+            "node",
+            [fixture.entry],
+            Buffer.from(BOOTSTRAP_INPUT),
+            env,
+            root,
+            { allowed: [17], timeout: 120_000, maximum: 64 }
+          )
+        ).rejects.toThrow(/output exceeded bound/);
+      });
+    });
+
+    it("enforces the scoped deadline after the actual child emits its original payload", async () => {
+      const { dispatchTool } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-tool-launcher.mjs");
+      await withPrivateRoot(async (root, env) => {
+        const fixture = await directBootstrapFixture(root);
+        const args = [fixture.entry, "--wait-for-scoped-deadline"];
+        const failure = await dispatchTool(
+          fixture.context,
+          "node",
+          args,
+          Buffer.from(BOOTSTRAP_INPUT),
+          env,
+          root,
+          { allowed: [17], timeout: 1500, maximum: 3_145_728 }
+        ).then(
+          () => {
+            throw Error("deadline child unexpectedly completed");
+          },
+          error => error
+        );
+        expect(failure.message).toMatch(/deadline|child failed \(124\)/);
+        expect(JSON.parse(failure.stdout.toString())).toEqual({
+          args: args.slice(1),
+          input: BOOTSTRAP_INPUT,
+          cwd: root,
+          context: fixture.file,
+          preloads: 1,
+        });
+      });
+    });
+
     it.each([
       [INSTRUMENTED_ORIGIN, 0],
       [LAUNCHER_BOOTSTRAP, 0],

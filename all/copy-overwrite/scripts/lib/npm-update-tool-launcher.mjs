@@ -75,15 +75,20 @@ export function launcherContext(file) {
     "boundary",
     "graph",
     "controller",
-    ...(value.version === 2 ? ["routes"] : []),
+    ...([2, 3].includes(value.version) ? ["routes"] : []),
+    ...(value.version === 3 ? ["provider"] : []),
   ]);
   required(
-    [1, 2].includes(value.version) &&
+    [1, 2, 3].includes(value.version) &&
       typeof value.root === "string" &&
       resolve(file) === resolve(value.root, "launcher.json") &&
       typeof value.cwd === "string" &&
       value.cwd.startsWith("/"),
     "invalid controller launcher context"
+  );
+  required(
+    value.version !== 3 || value.provider === null,
+    "non-null provider authority is unsupported"
   );
   const root = lstatSync(value.root);
   required(
@@ -130,15 +135,51 @@ function controllerInvocation(context, tool, args, env) {
   };
 }
 
-/** Full argv/stdin cross only the chosen boundary; worker output is captured privately by the caller. */
+/** Caller constraints narrow execution only; copied exit statuses cannot change after dispatch starts. */
+function executionContract(value) {
+  if (value === undefined)
+    return {
+      allowed: Array.from({ length: 256 }, (_, code) => code),
+      timeout: 1_800_000,
+      maximum: 8_388_608,
+    };
+  keys(value, ["allowed", "timeout", "maximum"]);
+  const allowed = Array.isArray(value.allowed) ? [...value.allowed] : [];
+  required(
+    allowed.length > 0 &&
+      allowed.length <= 256 &&
+      new Set(allowed).size === allowed.length &&
+      allowed.every(
+        code => Number.isSafeInteger(code) && code >= 0 && code <= 255
+      ),
+    "invalid execution contract exit statuses"
+  );
+  required(
+    Number.isSafeInteger(value.timeout) &&
+      value.timeout > 0 &&
+      value.timeout <= 1_800_000 &&
+      Number.isSafeInteger(value.maximum) &&
+      value.maximum > 0 &&
+      value.maximum <= 8_388_608,
+    "invalid execution contract deadline or output bound"
+  );
+  return { allowed, timeout: value.timeout, maximum: value.maximum };
+}
+
+/**
+ * Full argv/stdin cross only the chosen boundary; worker output is captured privately by the caller.
+ * @param {{allowed: number[], timeout: number, maximum: number}} [execution] Optional controller-only constraints.
+ */
 export async function dispatchTool(
   context,
   tool,
   args,
   input,
   env,
-  cwd = context.cwd
+  cwd = context.cwd,
+  execution = undefined
 ) {
+  const contract = executionContract(execution);
   const actualCwd = realpathSync(cwd);
   const workspace = realpathSync(context.cwd);
   required(
@@ -171,11 +212,13 @@ export async function dispatchTool(
       cwd: actualCwd,
       env: original.env,
       input,
-      allowed: Array.from({ length: 256 }, (_, code) => code),
-      timeout: 1_800_000,
-      maximum: 8_388_608,
+      ...contract,
     });
   }
+  required(
+    execution === undefined,
+    "scoped execution contract is unsupported on worker routes"
+  );
   required(
     context.boundary.workspace === workspace,
     "unmatched candidate workspace mapping"
