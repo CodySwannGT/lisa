@@ -25,11 +25,26 @@ import {
 const BRANCH = "feature/tracked";
 const ATTACH_BRANCH = "attach-branch";
 const MALFORMED = "Malformed work-item binding";
+const MESSAGE_FILE = "MSG";
+const VALIDATE_COMMIT = "validate-commit";
 
 afterEach(cleanupFixtures);
 afterAll(cleanupTemplates);
 
 describe("in-process CLI: binding lifecycle", () => {
+  it("canonicalizes a supported issue URL before binding and matching a commit", () => {
+    const fixture = offlineFixture();
+    const linked = cli(fixture, [
+      "link",
+      "https://github.com/ACME/Widgets/issues/42",
+    ]);
+    expect(linked.exitCode).toBeUndefined();
+    expect(JSON.parse(readFileSync(stateFile(fixture), "utf8")).ref).toBe(REF);
+    const message = path.join(fixture.root, MESSAGE_FILE);
+    writeFileSync(message, `fix: URL binding\n\nWork-Item: ${REF}\n`);
+    expect(cli(fixture, [VALIDATE_COMMIT, message]).exitCode).toBeUndefined();
+  });
+
   it("links a work item and records branch, provider and ref", () => {
     const fixture = offlineFixture();
     const result = cli(fixture, ["link", REF]);
@@ -140,9 +155,9 @@ describe("in-process CLI: binding lifecycle", () => {
   it("refuses a trailer that disagrees with this worktree's binding", () => {
     const fixture = offlineFixture();
     bindTo(fixture, REF);
-    const file = path.join(fixture.root, "MSG");
+    const file = path.join(fixture.root, MESSAGE_FILE);
     writeFileSync(file, `feat: tracked\n\nWork-Item: ${OTHER_REF}\n`);
-    const result = cli(fixture, ["validate-commit", file]);
+    const result = cli(fixture, [VALIDATE_COMMIT, file]);
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain(
       `does not match this worktree's binding ${REF}`
@@ -172,9 +187,9 @@ describe("in-process CLI: attaching a branch", () => {
     git(fixture.root, ["checkout", "-q", "--detach"], fixture.env);
     cli(fixture, ["link", REF]);
     git(fixture.root, ["switch", "-q", BRANCH], fixture.env);
-    const file = path.join(fixture.root, "MSG");
+    const file = path.join(fixture.root, MESSAGE_FILE);
     writeFileSync(file, `feat: tracked\n\nWork-Item: ${REF}\n`);
-    const result = cli(fixture, ["validate-commit", file]);
+    const result = cli(fixture, [VALIDATE_COMMIT, file]);
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain(
       "pending branch attachment; run lisa-work-item.mjs attach-branch"

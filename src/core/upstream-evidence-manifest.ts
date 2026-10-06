@@ -31,7 +31,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/history-secret-policy.mjs":
       "ca75ebbc45fca4c52400612ae818d231a28289b50a70f6cdee6feb51b144896f",
     "all/copy-overwrite/scripts/lib/history-secret-scanner.mjs":
-      "6afcb5ea42d8f9046a17e2253d4ddbefdf9025b150870afda23db77796f05f25",
+      "a68a4ba784699c470e1525ed3cd2f31f399cc80472d2bf5653d936bf3252c658",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lib/kill-marks.mjs":
@@ -119,7 +119,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "bd4f958b214726b7eecdf66b17167e25f32b823a4cd54b431f87ee0c55c95d4c",
+      "0a9d388ac78181e23aa4a23d6b2e9af04b30f204f39a0378a5bbd60612d907ce",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
@@ -9703,6 +9703,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/hardcoded-invocation-fixture.ts": true,
     "tests/integration/hardcoded-invocation-inventory.test.ts": true,
     "tests/integration/history-secret-bootstrap.test.ts": true,
+    "tests/integration/history-secret-evidence.test.ts": true,
     "tests/integration/history-secret-workflow.test.ts": true,
     "tests/integration/host-lint-gate-survives-apply.test.ts": true,
     "tests/integration/host-test-scripts-survive-apply.test.ts": true,
