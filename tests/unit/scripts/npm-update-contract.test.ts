@@ -16,6 +16,7 @@ import {
   candidateEnvironment,
   readJson,
   readBytes,
+  runProcess,
   withPrivateRoot,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
 import { refTransport } from "../../../all/copy-overwrite/scripts/lib/npm-update-gate.mjs";
@@ -42,6 +43,7 @@ import { validateRuntime } from "../../../all/copy-overwrite/scripts/lib/npm-upd
 import { canonicalJson } from "../../../all/copy-overwrite/scripts/lisa-automation-provenance.mjs";
 import { sha256 } from "../../../all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs";
 import { validateOwnerReceipt } from "../../../all/copy-overwrite/scripts/lib/npm-update-owner.mjs";
+import { boundedSpawnSync as boundedTestSpawnSync } from "../../helpers/io-latency-budget.js";
 
 const NODE_TOOL = "/opt/node/bin/node";
 const HELPER_GRAPH_FILE =
@@ -59,6 +61,330 @@ const CONTROLLER_ROOT = "/owned/controller";
 const DOCKER_TOOL = "/qualified/docker";
 const SECCOMP_FILE = "/owned/controller/seccomp.json";
 const OCI_INDEX_TYPE = "application/vnd.oci.image.index.v1+json";
+const INSTRUMENTED_ORIGIN = "already-instrumented-origin";
+const LAUNCHER_BOOTSTRAP = "launcher-bootstrap";
+const BOOTSTRAP_INPUT = "actual input";
+
+describe.skipIf(!["linux", "darwin"].includes(process.platform))(
+  "actual updater direct process transport",
+  () => {
+    it("preserves literal data, stdin, cwd, env and a permitted real exit 17", async () => {
+      await withPrivateRoot(async (root, env) => {
+        const entry = join(root, "literal fixture.cjs");
+        const marker = join(root, "shell-must-not-run");
+        const args = [
+          "",
+          "a'b",
+          "\nΩ",
+          `$(touch ${marker})`,
+          "$HOME",
+          "--direct-argv",
+        ];
+        writeFileSync(
+          entry,
+          `let input = ''; process.stdin.setEncoding('utf8');
+process.stdin.on('data', value => { input += value; });
+process.stdin.on('end', () => {
+  process.stdout.write(JSON.stringify({ args: process.argv.slice(2), input,
+    cwd: process.cwd(), marker: process.env.LISA_LITERAL_MARKER }));
+  process.stderr.write('original stderr'); process.exitCode = 17;
+});`
+        );
+        const result = await runProcess(process.execPath, [entry, ...args], {
+          cwd: root,
+          env: { ...env, LISA_LITERAL_MARKER: "inherited" },
+          input: "byte stdin\nΩ",
+          allowed: [17],
+        });
+        expect(result.code).toBe(17);
+        expect(result.stderr.toString()).toBe("original stderr");
+        expect(JSON.parse(result.stdout.toString())).toEqual({
+          args,
+          input: "byte stdin\nΩ",
+          cwd: root,
+          marker: "inherited",
+        });
+        const { existsSync } = await import("node:fs");
+        expect(existsSync(marker)).toBe(false);
+      });
+    });
+
+    it("rejects combined output overflow and deadline despite allowing every numeric exit", async () => {
+      const allowed = Array.from({ length: 256 }, (_, value) => value);
+      await expect(
+        runProcess(
+          process.execPath,
+          [
+            "-e",
+            "process.stdout.write('a'.repeat(40000)); process.stderr.write('b'.repeat(40000));",
+          ],
+          { allowed, maximum: 65536 }
+        )
+      ).rejects.toThrow(/output exceeded bound/);
+      await expect(
+        runProcess(process.execPath, ["-e", "setInterval(() => {}, 1000);"], {
+          allowed,
+          timeout: 500,
+        })
+      ).rejects.toThrow(/deadline|child failed/);
+    });
+
+    it("cannot bless a real nonzero child which closes input before consuming it", async () => {
+      await expect(
+        runProcess(
+          process.execPath,
+          ["-e", "process.stdin.destroy(); process.exit(17);"],
+          { input: Buffer.alloc(1_048_576), timeout: 5000 }
+        )
+      ).rejects.toThrow(/child failed|child input failed/);
+    });
+
+    it("counts supervisor and preload overhead in the complete final vector", async () => {
+      await expect(
+        runProcess(process.execPath, [
+          "--import",
+          "file:///qualified/bootstrap.mjs",
+          ...Array(505).fill(""),
+        ])
+      ).rejects.toThrow(/unbounded supervised argument vector/);
+      await expect(
+        runProcess(process.execPath, ["x".repeat(65537)])
+      ).rejects.toThrow(/unbounded supervised argument vector/);
+      await expect(runProcess(process.execPath, ["\0"])).rejects.toThrow(
+        /unbounded supervised argument vector/
+      );
+    });
+  }
+);
+
+/** Test-local authority binds actual source bytes; this is not a released owner or provider proof. */
+async function directBootstrapFixture(root: string) {
+  const { readFileSync, realpathSync } = await import("node:fs");
+  const { resolve } = await import("node:path");
+  const { managedTemplateMembers } =
+    await import("../../../all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs");
+  const { writeJson } =
+    await import("../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs");
+  const entry = join(root, "qualified-child.mjs");
+  const caller = join(root, "qualified-caller.mjs");
+  const core = resolve(
+    "all/copy-overwrite/scripts/lib/npm-update-process-core.mjs"
+  );
+  const { pathToFileURL } = await import("node:url");
+  writeFileSync(
+    entry,
+    `let input = ''; process.stdin.setEncoding('utf8');
+process.stdin.on('data', chunk => { input += chunk; });
+process.stdin.on('end', () => {
+  process.stdout.write(JSON.stringify({ args: process.argv.slice(2), input,
+    cwd: process.cwd(), context: process.env.LISA_NPM_DISPATCH_CONTEXT,
+    preloads: process.execArgv.filter(value => value === '--import').length }));
+  process.exitCode = 17;
+});`
+  );
+  writeFileSync(
+    caller,
+    `import { runProcess } from ${JSON.stringify(pathToFileURL(core).href)};
+const chunks = []; for await (const chunk of process.stdin) chunks.push(chunk);
+const result = await runProcess(process.execPath, process.argv.slice(2), {
+  input: Buffer.concat(chunks), allowed: [17], env: process.env, cwd: process.cwd()
+}); process.stdout.write(result.stdout); process.stderr.write(result.stderr);
+process.exitCode = result.code;`
+  );
+  const graph: Record<string, string> = {};
+  for (const path of managedTemplateMembers().values())
+    if (path.endsWith(".mjs")) {
+      const absolute = realpathSync(path);
+      graph[absolute] = sha256(readFileSync(absolute));
+    }
+  for (const path of [entry, caller]) graph[path] = sha256(readFileSync(path));
+  const node = realpathSync(process.execPath);
+  expect(process.versions.node).toBe("22.23.3");
+  const identity = {
+    path: node,
+    version: process.versions.node,
+    sha256: sha256(readFileSync(node)),
+  };
+  const context = {
+    version: 1,
+    root,
+    cwd: root,
+    graph,
+    runtime: { tools: { node: identity } },
+    controller: { node: identity },
+    boundary: {},
+  };
+  const file = writeJson(join(root, "launcher.json"), context);
+  const adapter = resolve(
+    "all/copy-overwrite/scripts/lib/npm-update-execution-adapter.mjs"
+  );
+  return { entry, caller, context, file, adapter, pathToFileURL };
+}
+
+describe.skipIf(!["linux", "darwin"].includes(process.platform))(
+  "distinct real direct bootstrap chains",
+  () => {
+    it.each([
+      [INSTRUMENTED_ORIGIN, 0],
+      [LAUNCHER_BOOTSTRAP, 0],
+      [INSTRUMENTED_ORIGIN, 501],
+      [LAUNCHER_BOOTSTRAP, 503],
+    ] as const)(
+      "carries one preload and original data through %s with %i extra elements",
+      async (chain, extra) => {
+        await withPrivateRoot(async (root, env) => {
+          const fixture = await directBootstrapFixture(root);
+          const args =
+            extra === 0
+              ? [fixture.entry, "literal \nΩ", "", "--"]
+              : [fixture.entry, ...Array<string>(extra).fill("")];
+          let stdout: Buffer;
+          let code: number;
+          if (chain === LAUNCHER_BOOTSTRAP) {
+            const { dispatchTool } =
+              await import("../../../all/copy-overwrite/scripts/lib/npm-update-tool-launcher.mjs");
+            ({ stdout, code } = await dispatchTool(
+              fixture.context,
+              "node",
+              args,
+              Buffer.from(BOOTSTRAP_INPUT),
+              env,
+              root
+            ));
+          } else {
+            // This outer supervisor remains uninstrumented; the actual origin is explicitly instrumented.
+            ({ stdout, code } = await runProcess(
+              process.execPath,
+              [
+                "--import",
+                fixture.pathToFileURL(fixture.adapter).href,
+                fixture.caller,
+                ...args,
+              ],
+              {
+                cwd: root,
+                env: { ...env, LISA_NPM_DISPATCH_CONTEXT: fixture.file },
+                input: BOOTSTRAP_INPUT,
+                allowed: [17],
+              }
+            ));
+          }
+          expect(code).toBe(17);
+          expect(JSON.parse(stdout.toString())).toEqual({
+            args: args.slice(1),
+            input: BOOTSTRAP_INPUT,
+            cwd: root,
+            context: fixture.file,
+            preloads: 1,
+          });
+        });
+      }
+    );
+
+    it("retains loader, alias, transitive-byte and environment refusals", async () => {
+      const { dispatchTool } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-tool-launcher.mjs");
+      await withPrivateRoot(async (root, env) => {
+        const fixture = await directBootstrapFixture(root);
+        const dispatch = (args: string[], environment = env) =>
+          dispatchTool(
+            fixture.context,
+            "node",
+            args,
+            Buffer.alloc(0),
+            environment,
+            root
+          );
+        for (const args of [
+          [
+            "--import",
+            fixture.pathToFileURL(fixture.adapter).href,
+            fixture.entry,
+          ],
+          [
+            fixture.entry,
+            "--import",
+            fixture.pathToFileURL(fixture.adapter).href,
+          ],
+          [fixture.entry, ...Array(512).fill("")],
+          [fixture.entry, ...Array(504).fill("")],
+        ])
+          await expect(dispatch(args)).rejects.toThrow(/loader|argument/);
+        for (const name of ["NODE_OPTIONS", "NODE_PATH"])
+          await expect(
+            dispatch([fixture.entry], { ...env, [name]: "unqualified" })
+          ).rejects.toThrow(/environment loader/);
+        await expect(
+          dispatch([join(root, "unknown-caller.mjs")])
+        ).rejects.toThrow(/unmatched candidate workspace mapping/);
+        const alias = join(root, "aliased-helper.mjs");
+        symlinkSync(fixture.entry, alias);
+        await expect(
+          dispatchTool(
+            {
+              ...fixture.context,
+              graph: {
+                ...fixture.context.graph,
+                [alias]: fixture.context.graph[fixture.entry],
+              },
+            },
+            "node",
+            [fixture.entry],
+            Buffer.alloc(0),
+            env,
+            root
+          )
+        ).rejects.toThrow(/aliased/);
+        try {
+          await runProcess(
+            process.execPath,
+            [
+              "--import",
+              fixture.pathToFileURL(fixture.adapter).href,
+              fixture.caller,
+              fixture.entry,
+              "--import",
+              fixture.pathToFileURL(fixture.adapter).href,
+            ],
+            {
+              cwd: root,
+              env: { ...env, LISA_NPM_DISPATCH_CONTEXT: fixture.file },
+            }
+          );
+          throw Error("unexpected pre-instrumented generic route success");
+        } catch (error) {
+          if (!error || typeof error !== "object" || !("stderr" in error))
+            throw error;
+          expect(String(error.stderr)).toContain(
+            "unqualified controller loader route"
+          );
+        }
+        const overflow = boundedTestSpawnSync({
+          label: "actual adapter final vector refusal",
+          command: process.execPath,
+          args: [
+            "--import",
+            fixture.pathToFileURL(fixture.adapter).href,
+            fixture.caller,
+            fixture.entry,
+            ...Array<string>(505).fill(""),
+          ],
+          cwd: root,
+          env: { ...env, LISA_NPM_DISPATCH_CONTEXT: fixture.file },
+        });
+        expect(overflow.status).toBe(1);
+        expect(overflow.stderr).toContain("invalid or unbounded tool argument");
+        writeFileSync(
+          fixture.caller,
+          "throw Error('changed transitive source');"
+        );
+        await expect(dispatch([fixture.entry])).rejects.toThrow(
+          /graph changed/
+        );
+      });
+    });
+  }
+);
 
 const SHA = "a".repeat(40);
 const POLICY = {

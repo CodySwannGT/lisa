@@ -3,7 +3,7 @@
 // Do not edit directly — durable changes belong upstream in Lisa.
 
 /**
- * Run one shell command in a process boundary and reap every descendant.
+ * Run one shell command or explicit literal argv in a process boundary and reap every descendant.
  *
  * Node's synchronous timeout signals only the direct child. A gate command is
  * a tree (shell, package manager, test workers), so killing only the shell
@@ -44,6 +44,75 @@ const KILL_GRACE_MS = 750;
 const REAP_POLL_MS = 25;
 const WINDOWS_TIMEOUT_EXIT_CODE = 255;
 const TERMINATING_SIGNALS = ["SIGINT", "SIGTERM", "SIGHUP"];
+
+/** Same literal-dispatch envelope as the launcher; control overhead is not free. */
+function snapshotArguments(argv) {
+  if (!Array.isArray(argv)) throw new Error("direct argv requires an array");
+  const copied = [...argv];
+  if (
+    copied.length > 512 ||
+    copied.some(
+      value =>
+        typeof value !== "string" ||
+        value.includes("\0") ||
+        Buffer.byteLength(value) > 65_536
+    ) ||
+    Buffer.byteLength(JSON.stringify(copied)) > 262_144
+  )
+    throw new Error("invalid or unbounded direct argument vector");
+  return copied;
+}
+
+/** The direct API fails before any handlers or child backend acquire ownership. */
+function directInvocation(command, args, timeoutMs) {
+  if (!["linux", "darwin"].includes(process.platform))
+    throw new Error("direct argv requires Linux or macOS");
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 1_800_000)
+    throw new Error("invalid direct command deadline");
+  if (
+    typeof command !== "string" ||
+    command.length === 0 ||
+    !Array.isArray(args)
+  )
+    throw new Error(
+      "direct argv requires a nonempty executable and argument array"
+    );
+  return snapshotArguments([command, ...args]).slice(1);
+}
+
+/** Only the explicit new-mode prefix is closed; legacy parsing remains tolerant. */
+function parseDirectArguments(argv, separator) {
+  snapshotArguments([...process.execArgv, process.argv[1], ...argv]);
+  const vector = snapshotArguments(argv);
+  if (separator < 0) throw new Error("direct argv requires a separator");
+  const flags = vector.slice(0, separator);
+  const timeouts = flags.filter(value => /^--timeout-ms=\d+$/.test(value));
+  const capture = flags.filter(value => value === "--capture-fd=3");
+  const watches = flags.filter(value => /^--watch-pid=\d+$/.test(value));
+  if (
+    flags.filter(value => value === "--direct-argv").length !== 1 ||
+    timeouts.length !== 1 ||
+    capture.length > 1 ||
+    watches.some(
+      value => !isWatchablePid(Number(value.slice("--watch-pid=".length)))
+    ) ||
+    flags.length !== 1 + timeouts.length + capture.length + watches.length
+  )
+    throw new Error("invalid direct supervisor control prefix");
+  const command = vector[separator + 1];
+  const timeoutMs = Number(timeouts[0].slice("--timeout-ms=".length));
+  return {
+    command,
+    timeoutMs,
+    directArgs: directInvocation(
+      command,
+      vector.slice(separator + 2),
+      timeoutMs
+    ),
+    watchPids: parseWatchPids(watches),
+    captureFd: capture.length === 1 ? 3 : undefined,
+  };
+}
 
 /**
  * How often the supervisor asks whether the run it serves is still there.
@@ -106,6 +175,8 @@ function parseArguments(argv) {
   const separator = argv.indexOf("--");
   const timeoutMs = Number(timeoutArg?.slice("--timeout-ms=".length));
   const flags = separator >= 0 ? argv.slice(0, separator) : argv;
+  if (flags.includes("--direct-argv"))
+    return parseDirectArguments(argv, separator);
   const command = separator >= 0 ? argv.slice(separator + 1).join(" ") : "";
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || !command) {
     throw new Error(
@@ -125,6 +196,7 @@ function parseArguments(argv) {
     timeoutMs,
     watchPids: parseWatchPids(flags),
     captureFd: captureFlags.length === 1 ? 3 : undefined,
+    directArgs: undefined,
   };
 }
 
@@ -498,7 +570,7 @@ function captureChildOutput(child, descriptor) {
  * terminating signal, and now the run it serves going away — and all three
  * share one reap, because a tree reaped twice is a tree whose second kill
  * lands on a recycled pid.
- * @param {string} command Shell source to supervise.
+ * @param {string} command Shell source, or literal executable when directArgs is present.
  * @param {number} timeoutMs Deadline for the whole tree.
  * @param {typeof reapTree} [reap] Injectable POSIX group reaper. Windows retains its native job owner.
  * @param {object} [options] Interrupt-watch seams, injectable for tests.
@@ -508,9 +580,17 @@ function captureChildOutput(child, descriptor) {
  * @param {(line: string) => void} [options.report] Where the report goes.
  * @param {number} [options.launchParentPid] Parent pid captured at start.
  * @param {3} [options.captureFd] Fixed caller-only diagnostic descriptor.
+ * @param {readonly string[]} [options.directArgs] Literal arguments; even [] selects POSIX direct spawning.
  * @returns {Promise<{code: number|null, signal: string|null}>} The verdict.
  */
 export function supervise(command, timeoutMs, reap = reapTree, options = {}) {
+  // Snapshot before reading other option getters or arming handlers. The caller
+  // cannot change the selected argv while lifetime ownership is being set up.
+  const suppliedArgs = options.directArgs;
+  const directArgs =
+    suppliedArgs === undefined
+      ? undefined
+      : directInvocation(command, suppliedArgs, timeoutMs);
   const {
     watchPids = [],
     detect = interruptionReason,
@@ -553,12 +633,16 @@ export function supervise(command, timeoutMs, reap = reapTree, options = {}) {
           windowsJob = startWindowsProcessJob(command);
           return windowsJob.child;
         }
-        return spawn("/bin/sh", ["-c", command], {
-          detached: true,
-          env: process.env,
-          stdio:
-            captureFd === undefined ? "inherit" : ["inherit", "pipe", "pipe"],
-        });
+        return spawn(
+          directArgs === undefined ? "/bin/sh" : command,
+          directArgs === undefined ? ["-c", command] : directArgs,
+          {
+            detached: true,
+            env: process.env,
+            stdio:
+              captureFd === undefined ? "inherit" : ["inherit", "pipe", "pipe"],
+          }
+        );
       } catch (error) {
         clearSignalHandlers();
         reject(error);
@@ -726,12 +810,12 @@ export function supervise(command, timeoutMs, reap = reapTree, options = {}) {
 }
 
 async function main() {
-  const { command, timeoutMs, watchPids, captureFd } = parseArguments(
-    process.argv.slice(2)
-  );
+  const { command, timeoutMs, watchPids, captureFd, directArgs } =
+    parseArguments(process.argv.slice(2));
   const result = await supervise(command, timeoutMs, reapTree, {
     watchPids,
     captureFd,
+    directArgs,
   });
   if (result.signal) {
     process.kill(process.pid, result.signal);

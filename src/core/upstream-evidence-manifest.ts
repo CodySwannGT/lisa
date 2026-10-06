@@ -55,7 +55,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-contract.mjs":
       "c0d43613e4675bd3ec4585040d87a21821ec40b32739502d9124863f4e3e6ee0",
     "all/copy-overwrite/scripts/lib/npm-update-execution-adapter.mjs":
-      "6cd37d9fc0ab8350c0062595cfe4f392074793c4a3c9256ff73d2401ac8e3741",
+      "986356ba1f9cc157c2c21226f0fd18cbf9970131318294d15b7bd9fab851f24f",
     "all/copy-overwrite/scripts/lib/npm-update-gate-hooks.mjs":
       "676e5acac164284981cca96d4f414c3e336a69dcdee40c8f35232e0334fb4619",
     "all/copy-overwrite/scripts/lib/npm-update-gate-install.mjs":
@@ -87,7 +87,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-prepare.mjs":
       "ab6b79fbd04ae7b39fca25321ca88087af5693d6dbe808fed19ef67ea90ee08e",
     "all/copy-overwrite/scripts/lib/npm-update-process-core.mjs":
-      "411d626bbce095871dd4598f542643504b04fe1cef7f04125a58628ed2067247",
+      "b693211a0dd83dde0788c464a8db2833e76371119f792854b94e1a1751e3b11c",
     "all/copy-overwrite/scripts/lib/npm-update-process.mjs":
       "d9400b18f1ac3638b02ed4304774967a2cd9cfe77ee1173c03b4fddfeaf699a2",
     "all/copy-overwrite/scripts/lib/npm-update-publication.mjs":
@@ -119,7 +119,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/placeholder-expiry.mjs":
       "101e8e230618aa817c88534c3b22d069afa5d30fc8e742a681af2f5edff6f1af",
     "all/copy-overwrite/scripts/lib/process-tree-runner.mjs":
-      "d4f4641088ab01839015b09f81732f957ca1a1a8df05fdca139b8ea4553c9be9",
+      "7034adad8d8348eeb669ead52cb7eaffa11b592c1f1b06bcd8474b6348360eae",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.d.mts":
       "da1eebc33c5215bc81ab4202c649a5af6b39e3d42f71f94cb2424e3535849154",
     "all/copy-overwrite/scripts/lib/reusable-workflow-load-adapter.mjs":
@@ -213,7 +213,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "260d194175737ed1cfdf6d208696bb58d035a45b2fd27c83a54e75be65ab5cb0",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "f558a2582e106b84f26e48572ac3b3cc3b45aa20988d1b7ed618c2579b05b251",
+      "d2ea6e10d3023a39f4e63121858beabe66e7a8139eaabd1ce9593212fd8c5980",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":

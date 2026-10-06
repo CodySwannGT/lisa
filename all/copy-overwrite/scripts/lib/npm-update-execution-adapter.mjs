@@ -119,19 +119,32 @@ function nestedInvocation(context, contextFile, command, args, options) {
       context.routes,
       options.env ?? process.env
     ) === "controller";
-  if (canonical && tool === "node")
+  if (canonical && tool === "node") {
+    const instrumentedArgs = ["--import", pathToFileURL(ENTRY).href, ...args];
+    literalArguments(instrumentedArgs);
     return {
       command: node.path,
-      args: ["--import", pathToFileURL(ENTRY).href, ...args],
+      args: instrumentedArgs,
       options: {
         ...options,
         cwd,
         env: childEnvironment(options, contextFile, true),
       },
     };
+  }
+  const proxyArgs = [
+    LAUNCHER,
+    "--context",
+    contextFile,
+    "--tool",
+    tool,
+    "--",
+    ...args,
+  ];
+  literalArguments(proxyArgs);
   return {
     command: node.path,
-    args: [LAUNCHER, "--context", contextFile, "--tool", tool, "--", ...args],
+    args: proxyArgs,
     options: {
       ...options,
       cwd,

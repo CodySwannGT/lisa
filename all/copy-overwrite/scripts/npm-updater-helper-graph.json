@@ -212,7 +212,7 @@
       "children": []
     },
     "lib/npm-update-execution-adapter.mjs": {
-      "sha256": "6cd37d9fc0ab8350c0062595cfe4f392074793c4a3c9256ff73d2401ac8e3741",
+      "sha256": "986356ba1f9cc157c2c21226f0fd18cbf9970131318294d15b7bd9fab851f24f",
       "staticImports": [
         "lib/npm-update-contract.mjs",
         "lib/npm-update-isolation.mjs",
@@ -423,7 +423,7 @@
       "children": []
     },
     "lib/npm-update-process-core.mjs": {
-      "sha256": "411d626bbce095871dd4598f542643504b04fe1cef7f04125a58628ed2067247",
+      "sha256": "b693211a0dd83dde0788c464a8db2833e76371119f792854b94e1a1751e3b11c",
       "staticImports": [
         "lib/npm-update-contract.mjs",
         "lisa-automation-provenance.mjs",
@@ -609,7 +609,7 @@
       "children": []
     },
     "lib/process-tree-runner.mjs": {
-      "sha256": "d4f4641088ab01839015b09f81732f957ca1a1a8df05fdca139b8ea4553c9be9",
+      "sha256": "7034adad8d8348eeb669ead52cb7eaffa11b592c1f1b06bcd8474b6348360eae",
       "staticImports": [
         "lib/invoked-as-script.mjs",
         "lib/windows-process-job.mjs",

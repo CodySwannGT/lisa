@@ -7,15 +7,23 @@ import { env } from "node:process";
 import { test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
+  assertDirectRefusal,
   fixture,
   fixtureProcess,
   observe,
   runSupervisor,
+  runNode,
   supervisor,
   windowsOnly,
   windowsRoot,
   SUPERVISOR_DEADLINE,
 } from "./windows-process-fixture.mjs";
+
+test(
+  "direct mode refuses Windows before starting a native job",
+  windowsOnly,
+  assertDirectRefusal
+);
 
 test(
   "control: a Windows shell can exit while its detached descendant lives",
@@ -63,11 +71,12 @@ for (const code of [0, 17, 124, 128, 143, 255]) {
     `Windows supervisor preserves ordinary exit ${code}`,
     windowsOnly,
     () => {
-      const result = spawnSync(
-        process.execPath,
-        [supervisor, SUPERVISOR_DEADLINE, "--", `exit /b ${code}`],
-        { encoding: "utf8", timeout: 30000 }
-      );
+      const result = runNode([
+        supervisor,
+        SUPERVISOR_DEADLINE,
+        "--",
+        `exit /b ${code}`,
+      ]);
       assert.ifError(result.error);
       assert.equal(result.status, code, result.stderr);
       assert.equal(result.signal, null);
@@ -143,17 +152,11 @@ process.stdin.on('end', () => {
 });
 `
     );
-    const result = spawnSync(
-      process.execPath,
-      [supervisor, SUPERVISOR_DEADLINE, "--", command],
-      {
-        cwd: root,
-        encoding: "utf8",
-        input,
-        timeout: 30000,
-        env: { ...env, TEMP: root, LISA_TEST_JOB_MARKER: "preserved" },
-      }
-    );
+    const result = runNode([supervisor, SUPERVISOR_DEADLINE, "--", command], {
+      cwd: root,
+      input,
+      env: { ...env, TEMP: root, LISA_TEST_JOB_MARKER: "preserved" },
+    });
     assert.ifError(result.error);
     assert.equal(result.status, 17, result.stderr);
     assert.deepEqual(JSON.parse(result.stdout), {
@@ -171,10 +174,9 @@ test(
   windowsOnly,
   t => {
     const f = fixture(t, true);
-    const result = spawnSync(
-      process.execPath,
+    const result = runNode(
       [supervisor, "--timeout-ms=10000", "--", f.command],
-      { cwd: f.root, encoding: "utf8", timeout: 45000 }
+      { cwd: f.root, timeout: 45000 }
     );
     assert.ifError(result.error);
     assert.equal(result.status, 255, result.stderr);
@@ -203,10 +205,8 @@ catch (error) { if (error.code === 'ESRCH') alive = false; else throw error; }
 writeFileSync(${JSON.stringify(receipt)}, JSON.stringify({ result, alive }));
 `
     );
-    const result = spawnSync(process.execPath, [probe], {
+    const result = runNode([probe], {
       cwd: f.root,
-      encoding: "utf8",
-      timeout: 30000,
     });
     assert.ifError(result.error);
     assert.equal(result.status, 0, result.stderr);
@@ -236,8 +236,7 @@ setInterval(() => {
     const owner = spawn(process.execPath, [ownerPath], { stdio: "ignore" });
     assert.ok(owner.pid > 1);
     t.after(() => fixtureProcess(owner.pid, ownerPath, true));
-    const result = spawnSync(
-      process.execPath,
+    const result = runNode(
       [
         supervisor,
         SUPERVISOR_DEADLINE,
@@ -245,7 +244,7 @@ setInterval(() => {
         "--",
         f.command,
       ],
-      { cwd: f.root, encoding: "utf8", timeout: 30000 }
+      { cwd: f.root }
     );
     assert.ifError(result.error);
     assert.notEqual(result.status, 0);
@@ -288,10 +287,8 @@ catch (error) { if (error.code === 'ESRCH') alive = false; else throw error; }
 writeFileSync(${JSON.stringify(receipt)}, JSON.stringify({ blocked, failure, alive }));
 `
     );
-    const result = spawnSync(process.execPath, [probe], {
+    const result = runNode([probe], {
       cwd: f.root,
-      encoding: "utf8",
-      timeout: 30000,
       env: { ...env, TEMP: f.root, TMP: f.root },
     });
     assert.ifError(result.error);

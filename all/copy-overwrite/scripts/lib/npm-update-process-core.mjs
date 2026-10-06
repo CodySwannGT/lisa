@@ -176,23 +176,42 @@ export function phaseDirectory(directory) {
   );
 }
 
-/** Literal argv is quoted once into the existing original process-tree supervisor. */
+/** The complete supervisor vector, including its control overhead, is bounded literal data. */
+function supervisedArguments(vector) {
+  required(
+    vector.length <= 512 &&
+      vector.every(
+        value =>
+          typeof value === "string" &&
+          !value.includes("\0") &&
+          Buffer.byteLength(value) <= 65_536
+      ) &&
+      Buffer.byteLength(JSON.stringify(vector)) <= 262_144,
+    "invalid or unbounded supervised argument vector"
+  );
+  return vector;
+}
+
+/** Explicit direct argv preserves authenticated bootstrap arguments without a shell hop. */
 function startSupervised(command, args, timeout, cwd, env) {
   const supervisor = fileURLToPath(
     new URL("./process-tree-runner.mjs", import.meta.url)
   );
-  const quoted = [command, ...args]
-    .map(value => `'${String(value).replaceAll("'", "'\\''")}'`)
-    .join(" ");
+  required(
+    typeof command === "string" && command.length > 0 && Array.isArray(args),
+    "literal executable and arguments required"
+  );
   return spawn(
     process.execPath,
-    [
+    supervisedArguments([
       supervisor,
       `--timeout-ms=${timeout}`,
       `--watch-pid=${process.pid}`,
+      "--direct-argv",
       "--",
-      quoted,
-    ],
+      command,
+      ...args,
+    ]),
     { cwd, env, stdio: ["pipe", "pipe", "pipe"] }
   );
 }

@@ -48,7 +48,7 @@ const tokens: string[] = [];
 
 /** Quote one value for /bin/sh. POSIX-only; every case here skips Windows. */
 const shellQuote = (value: string): string =>
-  `'${value.replaceAll("'", `'"'"'`)}'`;
+  `'${value.replaceAll("'", "'\"'\"'")}'`;
 
 /** A planted descendant that keeps its unique token visible in `ps`. */
 const plantedCommand = (token: string): string =>
@@ -145,7 +145,8 @@ const SYNC_PARENT = [
   `const [supervisor, commandFile, reportFile, ...extra] =`,
   `  process.argv.slice(2);`,
   `const command = readFileSync(commandFile, "utf8");`,
-  `spawnSync(process.execPath, [supervisor, ...extra, command], {`,
+  `const tail = extra.includes('--direct-argv') ? JSON.parse(command) : [command];`,
+  `spawnSync(process.execPath, [supervisor, ...extra, ...tail], {`,
   `  stdio: ["ignore", "ignore", openSync(reportFile, "a")],`,
   `});`,
 ].join("\n");
@@ -179,6 +180,7 @@ const plantRun = async (input: {
   readonly label: string;
   readonly supervisor: "shipped" | "control";
   readonly extraArgs?: readonly string[];
+  readonly direct?: boolean;
 }): Promise<PlantedRun> => {
   const root = freshRoot(input.label);
   const token = freshToken(input.label);
@@ -187,7 +189,17 @@ const plantRun = async (input: {
   const parentFile = path.join(root, "parent.mjs");
   writeFileSync(parentFile, SYNC_PARENT);
   const commandFile = path.join(root, "command.txt");
-  writeFileSync(commandFile, plantedCommand(token));
+  writeFileSync(
+    commandFile,
+    input.direct
+      ? JSON.stringify([
+          process.execPath,
+          "-e",
+          `setTimeout(() => {}, ${String(PLANTED_LIFETIME_MS)})`,
+          token,
+        ])
+      : plantedCommand(token)
+  );
 
   let supervisorFile = PROCESS_TREE_RUNNER;
   const extra = [...(input.extraArgs ?? [])];
@@ -196,6 +208,7 @@ const plantRun = async (input: {
     writeFileSync(supervisorFile, CONTROL_SUPERVISOR);
   } else {
     extra.unshift(`--timeout-ms=${String(PLANTED_LIFETIME_MS)}`);
+    if (input.direct) extra.push("--direct-argv");
     extra.push("--");
   }
 
@@ -270,10 +283,14 @@ describe("a gate run that is interrupted takes its descendants with it", () => {
     }
   );
 
-  it.skipIf(process.platform === "win32")(
-    "the shipped supervisor reaps its tree when its run is killed",
-    async () => {
-      const run = await plantRun({ label: "orphan", supervisor: "shipped" });
+  it.skipIf(process.platform === "win32").each([false, true])(
+    "the shipped supervisor reaps its tree when its run is killed (direct %s)",
+    async direct => {
+      const run = await plantRun({
+        label: "orphan",
+        supervisor: "shipped",
+        direct,
+      });
       await killAndAwait(run.parentPid);
 
       expect(
@@ -307,9 +324,9 @@ describe("a gate run that is interrupted takes its descendants with it", () => {
     }
   );
 
-  it.skipIf(process.platform === "win32")(
-    "stops when a watched pid further up the chain dies",
-    async () => {
+  it.skipIf(process.platform === "win32").each([false, true])(
+    "stops when a watched pid further up the chain dies (direct %s)",
+    async direct => {
       // The gate runner's own case: the supervisor's parent is alive and well,
       // and the process that MATTERS — the hook two levels up — is not.
       const bystander = spawn(
@@ -325,6 +342,7 @@ describe("a gate run that is interrupted takes its descendants with it", () => {
         label: "watchpid",
         supervisor: "shipped",
         extraArgs: [`--watch-pid=${String(watched)}`],
+        direct,
       });
       expect(alive(run.parentPid)).toBe(true);
 

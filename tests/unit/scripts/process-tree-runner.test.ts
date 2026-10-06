@@ -5,6 +5,7 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -35,6 +36,16 @@ const PROCESS_TREE_RUNNER = path.resolve(
 );
 const LONG_RUNNER_TIMEOUT_ARGUMENT = "--timeout-ms=30000";
 const CAPTURE_DESCRIPTOR_ARGUMENT = "--capture-fd=3";
+const DIRECT_ARGUMENT_FLAG = "--direct-argv";
+const EMPTY_ARGUMENT_EXECUTABLE = "/usr/bin/true";
+const ENTRY_MODES = ["linux", "darwin"].includes(process.platform)
+  ? [false, true]
+  : [false];
+/** Both entry modes exercise the same native lifetime and diagnostic machinery. */
+const supervisorTail = (command: string, direct: boolean): string[] =>
+  direct
+    ? [DIRECT_ARGUMENT_FLAG, "--", "/bin/sh", "-c", command]
+    : ["--", command];
 /**
  * Enough measured-machine time for the planted Node descendant to start and
  * write its PID before the supervisor deliberately expires. A fixed 100ms
@@ -122,7 +133,7 @@ const killTokenProcesses = (token: string): void => {
 const shellQuote = (value: string): string =>
   process.platform === "win32"
     ? `"${value.replaceAll('"', '""')}"`
-    : `'${value.replaceAll("'", `'"'"'`)}'`;
+    : `'${value.replaceAll("'", "'\"'\"'")}'`;
 
 /**
  * Create a Node descendant that records its own PID before blocking.
@@ -169,6 +180,259 @@ afterEach(() => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+describe.skipIf(!["linux", "darwin"].includes(process.platform))(
+  "literal supervisor arguments",
+  () => {
+    it("preserves stdin, cwd, environment and every literal without shell expansion", () => {
+      const root = mkdtempSync(path.join(tmpdir(), "lisa-direct argv-"));
+      roots.push(root);
+      const marker = path.join(root, "shell-side-effect");
+      const entry = path.join(root, "literal fixture.mjs");
+      const executable = path.join(root, "real node with spaces");
+      symlinkSync(process.execPath, executable);
+      const args = [
+        "",
+        "a'b",
+        "line\nΩ",
+        "; exit 17",
+        `$(touch ${marker})`,
+        `\`touch ${marker}\``,
+        "$HOME",
+        "--",
+        "--capture-fd=9",
+        DIRECT_ARGUMENT_FLAG,
+      ];
+      writeFileSync(
+        entry,
+        `let input = ''; process.stdin.setEncoding('utf8');
+process.stdin.on('data', chunk => { input += chunk; });
+process.stdin.on('end', () => process.stdout.write(JSON.stringify({
+  args: process.argv.slice(2), input, cwd: process.cwd(), marker: process.env.LISA_DIRECT_MARKER
+})));`
+      );
+      const result = boundedTestSpawnSync({
+        label: "real literal supervisor",
+        command: process.execPath,
+        args: [
+          PROCESS_TREE_RUNNER,
+          LONG_RUNNER_TIMEOUT_ARGUMENT,
+          DIRECT_ARGUMENT_FLAG,
+          "--",
+          executable,
+          entry,
+          ...args,
+        ],
+        cwd: root,
+        input: "literal stdin\nΩ",
+        env: { ...process.env, LISA_DIRECT_MARKER: "inherited" },
+      });
+      expect(result.status).toBe(0);
+      expect(JSON.parse(result.stdout)).toEqual({
+        args,
+        input: "literal stdin\nΩ",
+        cwd: root,
+        marker: "inherited",
+      });
+      expect(existsSync(marker)).toBe(false);
+    });
+
+    it("selects direct execution for an empty API array and snapshots before setup", async () => {
+      const root = mkdtempSync(path.join(tmpdir(), "lisa-direct-snapshot-"));
+      roots.push(root);
+      const output = path.join(root, "snapshot.json");
+      const args = [
+        "-e",
+        `require('node:fs').writeFileSync(${JSON.stringify(output)}, 'original')`,
+      ];
+      await supervise(process.execPath, 5000, undefined, {
+        directArgs: args,
+        get detect() {
+          args[1] = "process.exit(17)";
+          return () => null;
+        },
+      });
+      expect(readFileSync(output, "utf8")).toBe("original");
+      expect(
+        await supervise(EMPTY_ARGUMENT_EXECUTABLE, 5000, undefined, {
+          directArgs: [],
+        })
+      ).toEqual({ code: 0, signal: null });
+    });
+
+    it("refuses invalid API vectors and deadlines before installing signal handlers", () => {
+      const baseline = ["SIGINT", "SIGTERM", "SIGHUP"].map(signal =>
+        process.listenerCount(signal)
+      );
+      for (const [command, args, timeout] of [
+        ["", [], 5000],
+        [42, [], 5000],
+        [process.execPath, ["\0"], 5000],
+        [process.execPath, [42], 5000],
+        [process.execPath, null, 5000],
+        [process.execPath, Array(512).fill(""), 5000],
+        [process.execPath, ["Ω".repeat(32769)], 5000],
+        [process.execPath, Array(8).fill("\\".repeat(40000)), 5000],
+        [process.execPath, [], 0],
+        [process.execPath, [], 1.5],
+        [process.execPath, [], 1800001],
+      ]) {
+        expect(() =>
+          Reflect.apply(supervise, undefined, [
+            command,
+            timeout,
+            undefined,
+            { directArgs: args },
+          ])
+        ).toThrow();
+        expect(
+          ["SIGINT", "SIGTERM", "SIGHUP"].map(signal =>
+            process.listenerCount(signal)
+          )
+        ).toEqual(baseline);
+      }
+    });
+
+    it.each([
+      [DIRECT_ARGUMENT_FLAG],
+      [LONG_RUNNER_TIMEOUT_ARGUMENT, DIRECT_ARGUMENT_FLAG, "--"],
+      [LONG_RUNNER_TIMEOUT_ARGUMENT, DIRECT_ARGUMENT_FLAG, "--", ""],
+      [
+        LONG_RUNNER_TIMEOUT_ARGUMENT,
+        DIRECT_ARGUMENT_FLAG,
+        DIRECT_ARGUMENT_FLAG,
+        "--",
+        EMPTY_ARGUMENT_EXECUTABLE,
+      ],
+      [
+        LONG_RUNNER_TIMEOUT_ARGUMENT,
+        "--timeout-ms=1",
+        DIRECT_ARGUMENT_FLAG,
+        "--",
+        EMPTY_ARGUMENT_EXECUTABLE,
+      ],
+      [
+        "--timeout-ms=1.5",
+        DIRECT_ARGUMENT_FLAG,
+        "--",
+        EMPTY_ARGUMENT_EXECUTABLE,
+      ],
+      [
+        "--timeout-ms=1800001",
+        DIRECT_ARGUMENT_FLAG,
+        "--",
+        EMPTY_ARGUMENT_EXECUTABLE,
+      ],
+      [
+        LONG_RUNNER_TIMEOUT_ARGUMENT,
+        "--watch-pid=1",
+        DIRECT_ARGUMENT_FLAG,
+        "--",
+        EMPTY_ARGUMENT_EXECUTABLE,
+      ],
+      [
+        LONG_RUNNER_TIMEOUT_ARGUMENT,
+        "--watch-pid=2.5",
+        DIRECT_ARGUMENT_FLAG,
+        "--",
+        EMPTY_ARGUMENT_EXECUTABLE,
+      ],
+      [
+        LONG_RUNNER_TIMEOUT_ARGUMENT,
+        "--unknown",
+        DIRECT_ARGUMENT_FLAG,
+        "--",
+        EMPTY_ARGUMENT_EXECUTABLE,
+      ],
+      [
+        LONG_RUNNER_TIMEOUT_ARGUMENT,
+        CAPTURE_DESCRIPTOR_ARGUMENT,
+        CAPTURE_DESCRIPTOR_ARGUMENT,
+        DIRECT_ARGUMENT_FLAG,
+        "--",
+        EMPTY_ARGUMENT_EXECUTABLE,
+      ],
+      [
+        LONG_RUNNER_TIMEOUT_ARGUMENT,
+        "--capture-fd=9",
+        DIRECT_ARGUMENT_FLAG,
+        "--",
+        EMPTY_ARGUMENT_EXECUTABLE,
+      ],
+      [
+        LONG_RUNNER_TIMEOUT_ARGUMENT,
+        DIRECT_ARGUMENT_FLAG,
+        "--",
+        EMPTY_ARGUMENT_EXECUTABLE,
+        ...Array(509).fill(""),
+      ],
+    ])("rejects a closed-prefix or complete-vector violation %#", (...args) => {
+      const result = boundedTestSpawnSync({
+        label: "direct prefix refusal",
+        command: process.execPath,
+        args: [PROCESS_TREE_RUNNER, ...args],
+      });
+      expect(result.status).toBe(1);
+      expect(result.signal).toBeNull();
+    });
+
+    it("routes a genuine ENOENT without leaking prearmed handlers", async () => {
+      const baseline = ["SIGINT", "SIGTERM", "SIGHUP"].map(signal =>
+        process.listenerCount(signal)
+      );
+      await expect(
+        supervise("/no-such-lisa-direct-executable", 5000, undefined, {
+          directArgs: [],
+        })
+      ).rejects.toThrow("did not start");
+      expect(
+        ["SIGINT", "SIGTERM", "SIGHUP"].map(signal =>
+          process.listenerCount(signal)
+        )
+      ).toEqual(baseline);
+    });
+
+    it("counts the actual outer preload and entry at the exact CLI boundary", () => {
+      const root = mkdtempSync(path.join(tmpdir(), "lisa-direct-final-bound-"));
+      roots.push(root);
+      const entry = path.join(root, "child.cjs");
+      const preload = path.join(root, "passive-preload.mjs");
+      const permitted = path.join(root, "permitted");
+      const refused = path.join(root, "refused");
+      writeFileSync(
+        entry,
+        "require('node:fs').writeFileSync(process.argv[2], 'launched');"
+      );
+      writeFileSync(preload, "export const passive = true;");
+      const invocation = (marker: string): string[] => [
+        PROCESS_TREE_RUNNER,
+        LONG_RUNNER_TIMEOUT_ARGUMENT,
+        DIRECT_ARGUMENT_FLAG,
+        "--",
+        process.execPath,
+        entry,
+        marker,
+        ...Array<string>(505).fill(""),
+      ];
+      expect(invocation(permitted)).toHaveLength(512);
+      const positive = boundedTestSpawnSync({
+        label: "complete direct vector boundary",
+        command: process.execPath,
+        args: invocation(permitted),
+      });
+      expect(positive.status).toBe(0);
+      expect(readFileSync(permitted, "utf8")).toBe("launched");
+      const negative = boundedTestSpawnSync({
+        label: "actual preload overhead refusal",
+        command: process.execPath,
+        args: ["--import", preload, ...invocation(refused)],
+      });
+      expect(negative.status).toBe(1);
+      expect(negative.stderr).toContain("unbounded direct argument vector");
+      expect(existsSync(refused)).toBe(false);
+    });
+  }
+);
 
 describe("process-tree gate deadline", () => {
   it("checks a positive Windows PID instead of assuming the tree is gone", () => {
@@ -393,14 +657,16 @@ describe("process-tree gate deadline", () => {
     }
   );
 
-  it("cleans pre-armed handlers when spawn throws before the deadline exists", () => {
-    const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-spawn-throw-"));
-    roots.push(root);
-    const preloadFile = path.join(root, "throwing-spawn.mjs");
-    const listenerReport = path.join(root, LISTENER_REPORT_FILENAME);
-    writeFileSync(
-      preloadFile,
-      `import childProcess from "node:child_process";
+  it.each(ENTRY_MODES)(
+    "cleans pre-armed handlers when spawn throws (direct %s)",
+    direct => {
+      const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-spawn-throw-"));
+      roots.push(root);
+      const preloadFile = path.join(root, "throwing-spawn.mjs");
+      const listenerReport = path.join(root, LISTENER_REPORT_FILENAME);
+      writeFileSync(
+        preloadFile,
+        `import childProcess from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { syncBuiltinESMExports } from "node:module";
 const signals = ["SIGINT", "SIGTERM", "SIGHUP"];
@@ -415,42 +681,44 @@ childProcess.spawn = () => {
 };
 syncBuiltinESMExports();
 `
-    );
+      );
 
-    const result = boundedSpawnSync(
-      process.execPath,
-      [
-        "--import",
+      const result = boundedSpawnSync(
+        process.execPath,
+        [
+          "--import",
+          preloadFile,
+          PROCESS_TREE_RUNNER,
+          LONG_RUNNER_TIMEOUT_ARGUMENT,
+          ...supervisorTail(":", direct),
+        ],
+        {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+          timeout: ioLatencyBudgetMs(5_000),
+        }
+      );
+
+      expect(result.status).toBe(1);
+      expect(result.signal).toBeNull();
+      expect(result.stderr).toContain("synthetic synchronous spawn failure");
+      expect(result.stderr).not.toContain("Cannot access 'deadline'");
+      expect(JSON.parse(readFileSync(listenerReport, "utf8"))).toEqual({
+        signalDeltas: { SIGINT: 0, SIGTERM: 0, SIGHUP: 0 },
+      });
+    }
+  );
+
+  it.each(ENTRY_MODES)(
+    "routes a late spawn error without a PID (direct %s)",
+    direct => {
+      const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-spawn-error-"));
+      roots.push(root);
+      const preloadFile = path.join(root, "missing-pid-spawn.mjs");
+      const listenerReport = path.join(root, LISTENER_REPORT_FILENAME);
+      writeFileSync(
         preloadFile,
-        PROCESS_TREE_RUNNER,
-        LONG_RUNNER_TIMEOUT_ARGUMENT,
-        "--",
-        ":",
-      ],
-      {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-        timeout: ioLatencyBudgetMs(5_000),
-      }
-    );
-
-    expect(result.status).toBe(1);
-    expect(result.signal).toBeNull();
-    expect(result.stderr).toContain("synthetic synchronous spawn failure");
-    expect(result.stderr).not.toContain("Cannot access 'deadline'");
-    expect(JSON.parse(readFileSync(listenerReport, "utf8"))).toEqual({
-      signalDeltas: { SIGINT: 0, SIGTERM: 0, SIGHUP: 0 },
-    });
-  });
-
-  it("routes a late spawn error when no child PID was assigned", () => {
-    const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-spawn-error-"));
-    roots.push(root);
-    const preloadFile = path.join(root, "missing-pid-spawn.mjs");
-    const listenerReport = path.join(root, LISTENER_REPORT_FILENAME);
-    writeFileSync(
-      preloadFile,
-      `import childProcess from "node:child_process";
+        `import childProcess from "node:child_process";
 import { EventEmitter } from "node:events";
 import { writeFileSync } from "node:fs";
 import { syncBuiltinESMExports } from "node:module";
@@ -472,164 +740,192 @@ childProcess.spawn = () => {
 };
 syncBuiltinESMExports();
 `
-    );
+      );
 
-    const result = boundedSpawnSync(
-      process.execPath,
-      [
-        "--import",
-        preloadFile,
-        PROCESS_TREE_RUNNER,
-        LONG_RUNNER_TIMEOUT_ARGUMENT,
-        "--",
-        ":",
-      ],
-      {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-        timeout: ioLatencyBudgetMs(5_000),
-      }
-    );
+      const result = boundedSpawnSync(
+        process.execPath,
+        [
+          "--import",
+          preloadFile,
+          PROCESS_TREE_RUNNER,
+          LONG_RUNNER_TIMEOUT_ARGUMENT,
+          ...supervisorTail(":", direct),
+        ],
+        {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+          timeout: ioLatencyBudgetMs(5_000),
+        }
+      );
 
-    expect(result.status).toBe(1);
-    expect(result.signal).toBeNull();
-    expect(result.stderr).toContain(
-      "gate process tree did not start: synthetic late spawn error"
-    );
-    expect(result.stderr).not.toContain("Unhandled 'error' event");
-    expect(JSON.parse(readFileSync(listenerReport, "utf8"))).toEqual({
-      atError: 1,
-      afterError: 0,
-      signalDeltas: { SIGINT: 0, SIGTERM: 0, SIGHUP: 0 },
-    });
-  });
-
-  it("kills a background grandchild before the supervisor returns", () => {
-    const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-tree-"));
-    roots.push(root);
-    const pidFile = path.join(root, GRANDCHILD_PID_FILENAME);
-    const command = blockingNodeCommand({ root, pidFile });
-
-    const result = boundedSpawnSync(
-      process.execPath,
-      [PROCESS_TREE_RUNNER, FIXTURE_RUNNER_TIMEOUT_ARGUMENT, "--", command],
-      {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-        timeout: ioLatencyBudgetMs(5_000),
-      }
-    );
-
-    expect(result.status).toBeNull();
-    expect(result.signal).toBe("SIGKILL");
-    const grandchild = Number(readFileSync(pidFile, "utf8").trim());
-    expect(grandchild).toBeGreaterThan(0);
-    // A PID can be reused between the supervisor exit and this assertion when
-    // the full suite is creating hundreds of processes. Prove the planted
-    // descendant is gone by its unguessable fixture path, not by whichever
-    // process happens to own the same integer now.
-    expect(
-      findTokenProcesses(path.join(root, BLOCKING_CHILD_FILENAME))
-    ).toEqual([]);
-  });
-
-  it("waits for a SIGKILL-reaped descendant that ignores SIGTERM", () => {
-    const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-kill-wait-"));
-    roots.push(root);
-    const pidFile = path.join(root, GRANDCHILD_PID_FILENAME);
-    const command = blockingNodeCommand({
-      root,
-      pidFile,
-      ignoreSigterm: true,
-    });
-
-    const result = boundedSpawnSync(
-      process.execPath,
-      [PROCESS_TREE_RUNNER, FIXTURE_RUNNER_TIMEOUT_ARGUMENT, "--", command],
-      {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-        timeout: ioLatencyBudgetMs(5_000),
-      }
-    );
-
-    expect(result.status).toBeNull();
-    expect(result.signal).toBe("SIGKILL");
-    const grandchild = Number(readFileSync(pidFile, "utf8").trim());
-    expect(grandchild).toBeGreaterThan(0);
-    expect(
-      findTokenProcesses(path.join(root, BLOCKING_CHILD_FILENAME))
-    ).toEqual([]);
-  });
-
-  it("reaps a detached grandchild before relaying SIGTERM", async () => {
-    const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-signal-"));
-    roots.push(root);
-    const pidFile = path.join(root, GRANDCHILD_PID_FILENAME);
-    const command = blockingNodeCommand({ root, pidFile });
-    const supervisor = spawn(
-      process.execPath,
-      [PROCESS_TREE_RUNNER, LONG_RUNNER_TIMEOUT_ARGUMENT, "--", command],
-      { stdio: "ignore" }
-    );
-
-    const started = Date.now();
-    while (!existsSync(pidFile) && Date.now() - started < 2_000) {
-      await new Promise(resolve => setTimeout(resolve, 20));
+      expect(result.status).toBe(1);
+      expect(result.signal).toBeNull();
+      expect(result.stderr).toContain(
+        "gate process tree did not start: synthetic late spawn error"
+      );
+      expect(result.stderr).not.toContain("Unhandled 'error' event");
+      expect(JSON.parse(readFileSync(listenerReport, "utf8"))).toEqual({
+        atError: 1,
+        afterError: 0,
+        signalDeltas: { SIGINT: 0, SIGTERM: 0, SIGHUP: 0 },
+      });
     }
-    expect(existsSync(pidFile)).toBe(true);
-    const grandchild = Number(readFileSync(pidFile, "utf8").trim());
-    supervisor.kill("SIGTERM");
-    const result = await new Promise<{
-      code: number | null;
-      signal: string | null;
-    }>(resolve =>
-      supervisor.once("close", (code, signal) => resolve({ code, signal }))
-    );
+  );
 
-    expect(result).toEqual({ code: null, signal: "SIGTERM" });
-    expect(processIsRunnable(grandchild)).toBe(false);
-  });
+  it.each(ENTRY_MODES)(
+    "kills a grandchild before returning (direct %s)",
+    direct => {
+      const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-tree-"));
+      roots.push(root);
+      const pidFile = path.join(root, GRANDCHILD_PID_FILENAME);
+      const command = blockingNodeCommand({ root, pidFile });
 
-  it("keeps signal handlers installed while an unresponsive tree is reaped", async () => {
-    const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-double-signal-"));
-    roots.push(root);
-    const pidFile = path.join(root, GRANDCHILD_PID_FILENAME);
-    const command = blockingNodeCommand({
-      root,
-      pidFile,
-      ignoreSigterm: true,
-    });
-    const supervisor = spawn(
-      process.execPath,
-      [PROCESS_TREE_RUNNER, LONG_RUNNER_TIMEOUT_ARGUMENT, "--", command],
-      { stdio: "ignore" }
-    );
+      const result = boundedSpawnSync(
+        process.execPath,
+        [
+          PROCESS_TREE_RUNNER,
+          FIXTURE_RUNNER_TIMEOUT_ARGUMENT,
+          ...supervisorTail(command, direct),
+        ],
+        {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+          timeout: ioLatencyBudgetMs(5_000),
+        }
+      );
 
-    const started = Date.now();
-    while (!existsSync(pidFile) && Date.now() - started < 2_000) {
-      await new Promise(resolve => setTimeout(resolve, 20));
+      expect(result.status).toBeNull();
+      expect(result.signal).toBe("SIGKILL");
+      const grandchild = Number(readFileSync(pidFile, "utf8").trim());
+      expect(grandchild).toBeGreaterThan(0);
+      // A PID can be reused between the supervisor exit and this assertion when
+      // the full suite is creating hundreds of processes. Prove the planted
+      // descendant is gone by its unguessable fixture path, not by whichever
+      // process happens to own the same integer now.
+      expect(
+        findTokenProcesses(path.join(root, BLOCKING_CHILD_FILENAME))
+      ).toEqual([]);
     }
-    expect(existsSync(pidFile)).toBe(true);
-    const grandchild = Number(readFileSync(pidFile, "utf8").trim());
-    const closed = new Promise<{
-      code: number | null;
-      signal: string | null;
-    }>(resolve =>
-      supervisor.once("close", (code, signal) => resolve({ code, signal }))
-    );
-    supervisor.kill("SIGTERM");
-    await new Promise(resolve => setTimeout(resolve, 100));
-    supervisor.kill("SIGTERM");
-    const result = await closed;
+  );
 
-    expect(result).toEqual({ code: null, signal: "SIGTERM" });
-    expect(processIsRunnable(grandchild)).toBe(false);
-  });
+  it.each(ENTRY_MODES)(
+    "waits for a TERM-ignoring descendant (direct %s)",
+    direct => {
+      const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-kill-wait-"));
+      roots.push(root);
+      const pidFile = path.join(root, GRANDCHILD_PID_FILENAME);
+      const command = blockingNodeCommand({
+        root,
+        pidFile,
+        ignoreSigterm: true,
+      });
 
-  it.skipIf(process.platform === "win32")(
-    "arms signal cleanup before a detached child can stop the supervisor",
-    async () => {
+      const result = boundedSpawnSync(
+        process.execPath,
+        [
+          PROCESS_TREE_RUNNER,
+          FIXTURE_RUNNER_TIMEOUT_ARGUMENT,
+          ...supervisorTail(command, direct),
+        ],
+        {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+          timeout: ioLatencyBudgetMs(5_000),
+        }
+      );
+
+      expect(result.status).toBeNull();
+      expect(result.signal).toBe("SIGKILL");
+      const grandchild = Number(readFileSync(pidFile, "utf8").trim());
+      expect(grandchild).toBeGreaterThan(0);
+      expect(
+        findTokenProcesses(path.join(root, BLOCKING_CHILD_FILENAME))
+      ).toEqual([]);
+    }
+  );
+
+  it.each(ENTRY_MODES)(
+    "reaps a grandchild before relaying SIGTERM (direct %s)",
+    async direct => {
+      const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-signal-"));
+      roots.push(root);
+      const pidFile = path.join(root, GRANDCHILD_PID_FILENAME);
+      const command = blockingNodeCommand({ root, pidFile });
+      const supervisor = spawn(
+        process.execPath,
+        [
+          PROCESS_TREE_RUNNER,
+          LONG_RUNNER_TIMEOUT_ARGUMENT,
+          ...supervisorTail(command, direct),
+        ],
+        { stdio: "ignore" }
+      );
+
+      const started = Date.now();
+      while (!existsSync(pidFile) && Date.now() - started < 2_000) {
+        await new Promise(resolve => setTimeout(resolve, 20));
+      }
+      expect(existsSync(pidFile)).toBe(true);
+      const grandchild = Number(readFileSync(pidFile, "utf8").trim());
+      supervisor.kill("SIGTERM");
+      const result = await new Promise<{
+        code: number | null;
+        signal: string | null;
+      }>(resolve =>
+        supervisor.once("close", (code, signal) => resolve({ code, signal }))
+      );
+
+      expect(result).toEqual({ code: null, signal: "SIGTERM" });
+      expect(processIsRunnable(grandchild)).toBe(false);
+    }
+  );
+
+  it.each(ENTRY_MODES)(
+    "keeps signal handlers through reaping (direct %s)",
+    async direct => {
+      const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-double-signal-"));
+      roots.push(root);
+      const pidFile = path.join(root, GRANDCHILD_PID_FILENAME);
+      const command = blockingNodeCommand({
+        root,
+        pidFile,
+        ignoreSigterm: true,
+      });
+      const supervisor = spawn(
+        process.execPath,
+        [
+          PROCESS_TREE_RUNNER,
+          LONG_RUNNER_TIMEOUT_ARGUMENT,
+          ...supervisorTail(command, direct),
+        ],
+        { stdio: "ignore" }
+      );
+
+      const started = Date.now();
+      while (!existsSync(pidFile) && Date.now() - started < 2_000) {
+        await new Promise(resolve => setTimeout(resolve, 20));
+      }
+      expect(existsSync(pidFile)).toBe(true);
+      const grandchild = Number(readFileSync(pidFile, "utf8").trim());
+      const closed = new Promise<{
+        code: number | null;
+        signal: string | null;
+      }>(resolve =>
+        supervisor.once("close", (code, signal) => resolve({ code, signal }))
+      );
+      supervisor.kill("SIGTERM");
+      await new Promise(resolve => setTimeout(resolve, 100));
+      supervisor.kill("SIGTERM");
+      const result = await closed;
+
+      expect(result).toEqual({ code: null, signal: "SIGTERM" });
+      expect(processIsRunnable(grandchild)).toBe(false);
+    }
+  );
+
+  it.skipIf(process.platform === "win32").each(ENTRY_MODES)(
+    "arms signal cleanup before the child can stop its supervisor (direct %s)",
+    async direct => {
       const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-signal-race-"));
       roots.push(root);
       const pidFile = path.join(root, GRANDCHILD_PID_FILENAME);
@@ -663,8 +959,7 @@ syncBuiltinESMExports();
           preloadFile,
           PROCESS_TREE_RUNNER,
           LONG_RUNNER_TIMEOUT_ARGUMENT,
-          "--",
-          command,
+          ...supervisorTail(command, direct),
         ],
         { stdio: "ignore" }
       );
@@ -714,9 +1009,14 @@ syncBuiltinESMExports();
     }
   );
 
-  it.skipIf(process.platform === "win32").each([false, true])(
-    "fails closed when process-group cleanup authority is uncertain (capture %s)",
-    async capture => {
+  it.skipIf(process.platform === "win32").each([
+    [false, false],
+    [true, false],
+    [false, true],
+    [true, true],
+  ])(
+    "fails closed for uncertain cleanup (capture %s, direct %s)",
+    async (capture, direct) => {
       const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-reap-denied-"));
       roots.push(root);
       const pidFile = path.join(root, GRANDCHILD_PID_FILENAME);
@@ -769,8 +1069,7 @@ process.on = (event, listener) => {
           PROCESS_TREE_RUNNER,
           LONG_RUNNER_TIMEOUT_ARGUMENT,
           ...(capture ? [CAPTURE_DESCRIPTOR_ARGUMENT] : []),
-          "--",
-          command,
+          ...supervisorTail(command, direct),
         ],
         { stdio: ["ignore", "ignore", "pipe", "ignore"] }
       );
@@ -837,9 +1136,9 @@ process.on = (event, listener) => {
     }
   );
 
-  it.skipIf(process.platform === "win32")(
-    "keeps an identical second signal caught until reaping settles",
-    async () => {
+  it.skipIf(process.platform === "win32").each(ENTRY_MODES)(
+    "keeps an identical second signal caught through reaping (direct %s)",
+    async direct => {
       const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-double-signal-"));
       roots.push(root);
       const pidFile = path.join(root, GRANDCHILD_PID_FILENAME);
@@ -874,8 +1173,7 @@ process.kill = (pid, signal) => {
           preloadFile,
           PROCESS_TREE_RUNNER,
           LONG_RUNNER_TIMEOUT_ARGUMENT,
-          "--",
-          command,
+          ...supervisorTail(command, direct),
         ],
         { stdio: "ignore" }
       );
@@ -918,124 +1216,153 @@ process.kill = (pid, signal) => {
 describe.skipIf(process.platform === "win32")(
   "supervisor diagnostic capture",
   () => {
-    it("retains only the bounded tail while preserving a real exit 17", () => {
-      const source =
-        'process.stdout.write("a".repeat(700000) + "TAIL"); process.exitCode = 17;';
-      const result = boundedSpawnSync(
-        process.execPath,
-        [
-          PROCESS_TREE_RUNNER,
-          LONG_RUNNER_TIMEOUT_ARGUMENT,
-          CAPTURE_DESCRIPTOR_ARGUMENT,
-          "--",
-          `${shellQuote(process.execPath)} -e ${shellQuote(source)}`,
-        ],
-        {
-          encoding: "utf8",
-          stdio: ["ignore", "pipe", "pipe", "pipe"],
-          maxBuffer: 2 * 1024 * 1024,
-          timeout: ioLatencyBudgetMs(5_000),
-        }
-      );
-      expect(result.status).toBe(17);
-      expect(result.stdout).toHaveLength(700004);
-      expect(result.output[3]).toHaveLength(512 * 1024);
-      expect(String(result.output[3])).toMatch(/TAIL$/u);
-    });
-
-    it("streams output before the command terminates", async () => {
-      const source =
-        'process.stdout.write("STREAM-READY\\n"); setTimeout(() => process.exit(17), 700);';
-      const child = spawn(
-        process.execPath,
-        [
-          PROCESS_TREE_RUNNER,
-          LONG_RUNNER_TIMEOUT_ARGUMENT,
-          CAPTURE_DESCRIPTOR_ARGUMENT,
-          "--",
-          `${shellQuote(process.execPath)} -e ${shellQuote(source)}`,
-        ],
-        { stdio: ["ignore", "pipe", "pipe", "pipe"] }
-      );
-      let streamed = "";
-      let ended = false;
-      child.stdout?.on("data", chunk => {
-        streamed += String(chunk);
-      });
-      child.stdio[3]?.on("data", () => {});
-      const completion = new Promise<{
-        code: number | null;
-        signal: string | null;
-      }>(resolve => {
-        child.once("close", (code, signal) => {
-          ended = true;
-          resolve({ code, signal });
-        });
-      });
-      try {
-        expect(
-          await waitForProcessCondition(() => streamed.includes("STREAM-READY"))
-        ).toBe(true);
-        expect(ended).toBe(false);
-        expect(await completion).toEqual({ code: 17, signal: null });
-      } finally {
-        if (!ended) child.kill("SIGTERM");
-        await completion;
+    it.each(ENTRY_MODES)(
+      "retains bounded tail and real exit 17 (direct %s)",
+      direct => {
+        const source =
+          'process.stdout.write("a".repeat(700000) + "TAIL"); process.exitCode = 17;';
+        const result = boundedSpawnSync(
+          process.execPath,
+          [
+            PROCESS_TREE_RUNNER,
+            LONG_RUNNER_TIMEOUT_ARGUMENT,
+            CAPTURE_DESCRIPTOR_ARGUMENT,
+            ...(direct
+              ? [DIRECT_ARGUMENT_FLAG, "--", process.execPath, "-e", source]
+              : [
+                  "--",
+                  `${shellQuote(process.execPath)} -e ${shellQuote(source)}`,
+                ]),
+          ],
+          {
+            encoding: "utf8",
+            stdio: ["ignore", "pipe", "pipe", "pipe"],
+            maxBuffer: 2 * 1024 * 1024,
+            timeout: ioLatencyBudgetMs(5_000),
+          }
+        );
+        expect(result.status).toBe(17);
+        expect(result.stdout).toHaveLength(700004);
+        expect(result.output[3]).toHaveLength(512 * 1024);
+        expect(String(result.output[3])).toMatch(/TAIL$/u);
       }
-    });
+    );
 
-    it("retains no-verdict identity and output after a capture-mode deadline", () => {
-      const result = boundedSpawnSync(
-        process.execPath,
-        [
-          PROCESS_TREE_RUNNER,
-          FIXTURE_RUNNER_TIMEOUT_ARGUMENT,
-          CAPTURE_DESCRIPTOR_ARGUMENT,
-          "--",
-          "printf 'TIMEOUT-READY\\n'; sleep 30",
-        ],
-        {
-          encoding: "utf8",
-          stdio: ["ignore", "pipe", "pipe", "pipe"],
-          timeout: ioLatencyBudgetMs(5_000),
+    it.each(ENTRY_MODES)(
+      "streams before command termination (direct %s)",
+      async direct => {
+        const source =
+          'process.stdout.write("STREAM-READY\\n"); setTimeout(() => process.exit(17), 700);';
+        const child = spawn(
+          process.execPath,
+          [
+            PROCESS_TREE_RUNNER,
+            LONG_RUNNER_TIMEOUT_ARGUMENT,
+            CAPTURE_DESCRIPTOR_ARGUMENT,
+            ...(direct
+              ? [DIRECT_ARGUMENT_FLAG, "--", process.execPath, "-e", source]
+              : [
+                  "--",
+                  `${shellQuote(process.execPath)} -e ${shellQuote(source)}`,
+                ]),
+          ],
+          { stdio: ["ignore", "pipe", "pipe", "pipe"] }
+        );
+        let streamed = "";
+        let ended = false;
+        child.stdout?.on("data", chunk => {
+          streamed += String(chunk);
+        });
+        child.stdio[3]?.on("data", () => {});
+        const completion = new Promise<{
+          code: number | null;
+          signal: string | null;
+        }>(resolve => {
+          child.once("close", (code, signal) => {
+            ended = true;
+            resolve({ code, signal });
+          });
+        });
+        try {
+          expect(
+            await waitForProcessCondition(() =>
+              streamed.includes("STREAM-READY")
+            )
+          ).toBe(true);
+          expect(ended).toBe(false);
+          expect(await completion).toEqual({ code: 17, signal: null });
+        } finally {
+          if (!ended) child.kill("SIGTERM");
+          await completion;
         }
-      );
-      expect(result.status).toBeNull();
-      expect(result.signal).toBe("SIGKILL");
-      expect(String(result.output[3])).toContain("TIMEOUT-READY");
-    });
+      }
+    );
 
-    it("keeps exit 17 when the diagnostic descriptor is unavailable without rerunning", () => {
-      const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-capture-fault-"));
-      roots.push(root);
-      const attempts = path.join(root, "attempts");
-      const result = boundedSpawnSync(
-        process.execPath,
-        [
-          PROCESS_TREE_RUNNER,
-          LONG_RUNNER_TIMEOUT_ARGUMENT,
-          CAPTURE_DESCRIPTOR_ARGUMENT,
-          "--",
-          `printf 'once\\n' >> ${shellQuote(attempts)}; printf 'diagnostic'; exit 17`,
-        ],
-        {
-          encoding: "utf8",
-          stdio: ["ignore", "pipe", "pipe"],
-          timeout: ioLatencyBudgetMs(5_000),
-        }
-      );
-      expect(result.status).toBe(17);
-      expect(result.stderr).toContain("OS verdict retained");
-      expect(readFileSync(attempts, "utf8")).toBe("once\n");
-    });
+    it.each(ENTRY_MODES)(
+      "retains no-verdict identity after capture deadline (direct %s)",
+      direct => {
+        const result = boundedSpawnSync(
+          process.execPath,
+          [
+            PROCESS_TREE_RUNNER,
+            FIXTURE_RUNNER_TIMEOUT_ARGUMENT,
+            CAPTURE_DESCRIPTOR_ARGUMENT,
+            ...supervisorTail("printf 'TIMEOUT-READY\\n'; sleep 30", direct),
+          ],
+          {
+            encoding: "utf8",
+            stdio: ["ignore", "pipe", "pipe", "pipe"],
+            timeout: ioLatencyBudgetMs(5_000),
+          }
+        );
+        expect(result.status).toBeNull();
+        expect(result.signal).toBe("SIGKILL");
+        expect(String(result.output[3])).toContain("TIMEOUT-READY");
+      }
+    );
 
-    it("fails boundedly when the command output close notification never arrives", () => {
-      const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-capture-drain-"));
-      roots.push(root);
-      const preloadFile = path.join(root, "missing-close-notification.mjs");
-      writeFileSync(
-        preloadFile,
-        `import childProcess from "node:child_process";
+    it.each(ENTRY_MODES)(
+      "keeps exit 17 with unavailable descriptor (direct %s)",
+      direct => {
+        const root = mkdtempSync(
+          path.join(tmpdir(), "lisa-gate-capture-fault-")
+        );
+        roots.push(root);
+        const attempts = path.join(root, "attempts");
+        const result = boundedSpawnSync(
+          process.execPath,
+          [
+            PROCESS_TREE_RUNNER,
+            LONG_RUNNER_TIMEOUT_ARGUMENT,
+            CAPTURE_DESCRIPTOR_ARGUMENT,
+            ...supervisorTail(
+              `printf 'once\\n' >> ${shellQuote(attempts)}; printf 'diagnostic'; exit 17`,
+              direct
+            ),
+          ],
+          {
+            encoding: "utf8",
+            stdio: ["ignore", "pipe", "pipe"],
+            timeout: ioLatencyBudgetMs(5_000),
+          }
+        );
+        expect(result.status).toBe(17);
+        expect(result.stderr).toContain("OS verdict retained");
+        expect(readFileSync(attempts, "utf8")).toBe("once\n");
+      }
+    );
+
+    it.each(ENTRY_MODES)(
+      "fails boundedly without output close (direct %s)",
+      direct => {
+        const root = mkdtempSync(
+          path.join(tmpdir(), "lisa-gate-capture-drain-")
+        );
+        roots.push(root);
+        const preloadFile = path.join(root, "missing-close-notification.mjs");
+        writeFileSync(
+          preloadFile,
+          `import childProcess from "node:child_process";
 import { syncBuiltinESMExports } from "node:module";
 const spawn = childProcess.spawn;
 childProcess.spawn = (...args) => {
@@ -1046,52 +1373,59 @@ childProcess.spawn = (...args) => {
 };
 syncBuiltinESMExports();
 `
-      );
-      const result = boundedSpawnSync(
-        process.execPath,
-        [
-          "--import",
-          preloadFile,
-          PROCESS_TREE_RUNNER,
-          LONG_RUNNER_TIMEOUT_ARGUMENT,
-          CAPTURE_DESCRIPTOR_ARGUMENT,
-          "--",
-          "printf 'drain-control'; exit 17",
-        ],
-        {
-          encoding: "utf8",
-          stdio: ["ignore", "pipe", "pipe", "pipe"],
-          timeout: ioLatencyBudgetMs(5_000),
-        }
-      );
-      expect(result.status).toBe(1);
-      expect(result.stderr).toContain("diagnostic output did not close");
-    });
+        );
+        const result = boundedSpawnSync(
+          process.execPath,
+          [
+            "--import",
+            preloadFile,
+            PROCESS_TREE_RUNNER,
+            LONG_RUNNER_TIMEOUT_ARGUMENT,
+            CAPTURE_DESCRIPTOR_ARGUMENT,
+            ...supervisorTail("printf 'drain-control'; exit 17", direct),
+          ],
+          {
+            encoding: "utf8",
+            stdio: ["ignore", "pipe", "pipe", "pipe"],
+            timeout: ioLatencyBudgetMs(5_000),
+          }
+        );
+        expect(result.status).toBe(1);
+        expect(result.stderr).toContain("diagnostic output did not close");
+      }
+    );
 
-    it("reaps a descendant holding output pipes before returning the shell exit", () => {
-      const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-capture-pipe-"));
-      roots.push(root);
-      const pidFile = path.join(root, GRANDCHILD_PID_FILENAME);
-      const command = blockingNodeCommand({ root, pidFile });
-      const result = boundedSpawnSync(
-        process.execPath,
-        [
-          PROCESS_TREE_RUNNER,
-          FIXTURE_RUNNER_TIMEOUT_ARGUMENT,
-          CAPTURE_DESCRIPTOR_ARGUMENT,
-          "--",
-          `${command} & while test ! -f ${shellQuote(pidFile)}; do sleep 0.01; done; exit 17`,
-        ],
-        {
-          encoding: "utf8",
-          stdio: ["ignore", "pipe", "pipe", "pipe"],
-          timeout: ioLatencyBudgetMs(5_000),
-        }
-      );
-      expect(result.status).toBe(17);
-      expect(processIsRunnable(Number(readFileSync(pidFile, "utf8")))).toBe(
-        false
-      );
-    });
+    it.each(ENTRY_MODES)(
+      "reaps pipe-holding descendants before returning (direct %s)",
+      direct => {
+        const root = mkdtempSync(
+          path.join(tmpdir(), "lisa-gate-capture-pipe-")
+        );
+        roots.push(root);
+        const pidFile = path.join(root, GRANDCHILD_PID_FILENAME);
+        const command = blockingNodeCommand({ root, pidFile });
+        const result = boundedSpawnSync(
+          process.execPath,
+          [
+            PROCESS_TREE_RUNNER,
+            FIXTURE_RUNNER_TIMEOUT_ARGUMENT,
+            CAPTURE_DESCRIPTOR_ARGUMENT,
+            ...supervisorTail(
+              `${command} & while test ! -f ${shellQuote(pidFile)}; do sleep 0.01; done; exit 17`,
+              direct
+            ),
+          ],
+          {
+            encoding: "utf8",
+            stdio: ["ignore", "pipe", "pipe", "pipe"],
+            timeout: ioLatencyBudgetMs(5_000),
+          }
+        );
+        expect(result.status).toBe(17);
+        expect(processIsRunnable(Number(readFileSync(pidFile, "utf8")))).toBe(
+          false
+        );
+      }
+    );
   }
 );
