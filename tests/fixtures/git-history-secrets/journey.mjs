@@ -19,14 +19,25 @@ const HEAD = "HEAD";
 /** Exercise evidence decisions through emitted CLI bytes and real Git preimages. */
 function evidenceCases() {
   const { initialize, write, git, command, emitted, scanner, secret } = harness;
-  const group = harness.args.includes("--evidence-group")
-    ? harness.option("--evidence-group")
-    : null;
+  const selector = flag => {
+    const matches = harness.args.filter(arg => arg.startsWith(flag));
+    if (matches.length > 1 || matches.some(arg => arg !== flag))
+      throw new Error("Duplicate or malformed evidence control selector.");
+    return matches.length ? (harness.option(flag) ?? "") : null;
+  };
+  const group = selector("--evidence-group");
+  const partition = selector("--evidence-partition");
+  if (
+    ![null, "positive", "digest", "narrative"].includes(group) ||
+    ![null, "first", "second"].includes(partition) ||
+    (partition !== null && group !== "digest")
+  )
+    throw new Error("Unknown evidence control selector.");
+  const selection = { index: 0 };
   const selected = name =>
-    group === null ||
-    (group === "positive"
-      ? name.startsWith("verified-")
-      : name.startsWith(`${group}-`));
+    (group === null ||
+      name.startsWith(group === "positive" ? "verified-" : `${group}-`)) &&
+    (partition === null || selection.index++ < 14 === (partition === "first"));
   const source = "config/credentials.yml.enc";
   const taxonomy = "Disk/missing/corrupt";
   const prefix = "AccessDenied boundaries,";
@@ -109,8 +120,6 @@ function evidenceCases() {
     if (expected === 0) prove(cwd, HEAD, source, hash);
     scan(cwd, name, expected, expected === 0);
   };
-  if (![null, "positive", "digest", "narrative"].includes(group))
-    throw new Error("Unknown evidence control group.");
   values.push(taxonomy, hash, binaryHash, substituted);
   fixture("verified-digest-exact-bytes", map(), 0);
   if (selected("verified-binary-preimage")) {
@@ -283,24 +292,16 @@ try {
         !output.includes(value),
         "Captured outward output contains a matched synthetic value; proof withheld."
       );
-  console.log(
-    JSON.stringify(
-      {
-        scanner: "Gitleaks 8.30.1",
-        observations,
-        redaction: true,
-        cleanup: "all owned fixture repositories/processes removed on exit",
-      },
-      null,
-      2
-    )
-  );
+  const report = {
+    scanner: "Gitleaks 8.30.1",
+    observations,
+    redaction: true,
+    cleanup: "all owned fixture repositories/processes removed on exit",
+  };
+  console.log(JSON.stringify(report, null, 2));
 } catch (error) {
-  console.error(
-    error instanceof Error
-      ? error.message
-      : "Journey failed; raw proof withheld."
-  );
+  const fallback = "Journey failed; raw proof withheld.";
+  console.error(error instanceof Error ? error.message : fallback);
   process.exitCode = 1;
 } finally {
   rmSync(scratch, { recursive: true, force: true });
