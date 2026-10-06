@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.70.4](https://github.com/CodySwannGT/lisa/compare/v4.70.3...v4.70.4) (2026-10-06)
+
+
+### Bug Fixes
+
+* **history:** authenticate portable checksum evidence ([7ae08e1](https://github.com/CodySwannGT/lisa/commit/7ae08e1ff16218c69d94aa361fe23d70120f7b55)), closes [CodySwannGT/lisa#4359](https://github.com/CodySwannGT/lisa/issues/4359) [CodySwannGT/lisa#4359](https://github.com/CodySwannGT/lisa/issues/4359)
+* **history:** preserve managed headers and linear fence checks ([9b1ac17](https://github.com/CodySwannGT/lisa/commit/9b1ac17ff3b7b3836af25e1948cd65b72f93ba7f)), closes [CodySwannGT/lisa#4359](https://github.com/CodySwannGT/lisa/issues/4359)
+
 ### [4.70.3](https://github.com/CodySwannGT/lisa/compare/v4.70.2...v4.70.3) (2026-10-06)
 
 
