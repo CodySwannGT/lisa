@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.70.2](https://github.com/CodySwannGT/lisa/compare/v4.70.1...v4.70.2) (2026-10-06)
+
+
+### Bug Fixes
+
+* align issue URL checks with shipped validation ([b29b96d](https://github.com/CodySwannGT/lisa/commit/b29b96d424b12ccf21f681813c17f5985286bc5f)), closes [CodySwannGT/lisa#4352](https://github.com/CodySwannGT/lisa/issues/4352)
+* normalize GitHub issue URLs in work-item traceability ([d73355d](https://github.com/CodySwannGT/lisa/commit/d73355dd48ae5c60a2fdc7950ad8da4e1c49fdc3)), closes [CodySwannGT/lisa#4352](https://github.com/CodySwannGT/lisa/issues/4352)
+* partition history evidence digest controls ([492146d](https://github.com/CodySwannGT/lisa/commit/492146d48cdf36a4e39c25ada74badfabc9e4674)), closes [CodySwannGT/lisa#4353](https://github.com/CodySwannGT/lisa/issues/4353)
+* preserve emitted history scanner formatting ([13afcbe](https://github.com/CodySwannGT/lisa/commit/13afcbe9f555ae9468be85356d689b5e2a9493fd)), closes [CodySwannGT/lisa#4353](https://github.com/CodySwannGT/lisa/issues/4353)
+* reject mixed work-item representations in PR bodies ([d31354a](https://github.com/CodySwannGT/lisa/commit/d31354a4d64d5cc65c1a697f9c93d56f125cf44b)), closes [CodySwannGT/lisa#4352](https://github.com/CodySwannGT/lisa/issues/4352)
+* validate introduced-history evidence ([1536be7](https://github.com/CodySwannGT/lisa/commit/1536be7e163dbc38a1e235c905d81f010c7432b6)), closes [CodySwannGT/lisa#4353](https://github.com/CodySwannGT/lisa/issues/4353)
+
 ### [4.70.1](https://github.com/CodySwannGT/lisa/compare/v4.70.0...v4.70.1) (2026-10-05)
 
 

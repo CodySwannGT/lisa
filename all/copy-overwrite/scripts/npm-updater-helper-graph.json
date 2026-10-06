@@ -124,7 +124,7 @@
       "children": []
     },
     "lib/history-secret-scanner.mjs": {
-      "sha256": "6afcb5ea42d8f9046a17e2253d4ddbefdf9025b150870afda23db77796f05f25",
+      "sha256": "a68a4ba784699c470e1525ed3cd2f31f399cc80472d2bf5653d936bf3252c658",
       "staticImports": [
         "lib/history-secret-git.mjs",
         "node:child_process",
@@ -788,7 +788,7 @@
       "children": []
     },
     "lisa-work-item.mjs": {
-      "sha256": "e1375d1daccfc137d91bae9eccad62e4449bb493d2a9021b35e65deb6f4a3ad0",
+      "sha256": "ec944bcf669e93f5662e838e50da2078664b30f1435fccdcaf02cb84c12f1986",
       "staticImports": [
         "lib/invoked-as-script.mjs",
         "node:child_process",

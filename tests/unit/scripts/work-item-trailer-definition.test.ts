@@ -30,6 +30,7 @@ import {
 } from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
 
 const REPOSITORY = "acme/code";
+const COMMIT_MESSAGE = "commit message";
 
 /** The tracker contract `soleWorkItem` canonicalizes against. */
 const CONTRACT = Object.freeze({
@@ -91,7 +92,7 @@ describe("the input that distinguishes the two trailer definitions (#3747)", () 
   });
 
   it("resolves it to the one canonical reference", () => {
-    expect(soleWorkItem(NON_CONTIGUOUS, CONTRACT, "commit message")).toBe(
+    expect(soleWorkItem(NON_CONTIGUOUS, CONTRACT, COMMIT_MESSAGE)).toBe(
       `${REPOSITORY}#42`
     );
   });
@@ -162,22 +163,39 @@ describe("column zero is part of the definition (#3747)", () => {
  * the gate would report "no Work-Item trailer anywhere" about a message
  * carrying exactly one, which is the #2672 failure one layer down.
  */
-describe("a malformed value is seen, then refused (#3747)", () => {
+describe("a configured GitHub issue URL is seen, then canonicalized (#4352)", () => {
   const URL_FORM = `feat: x\n\nWork-Item: https://github.com/${REPOSITORY}/issues/42\n`;
 
-  it("the reader sees the value the caller will reject", () => {
+  it("the reader sees the authored URL value", () => {
     expect(workItemLines(URL_FORM)).toEqual([
       `https://github.com/${REPOSITORY}/issues/42`,
     ]);
   });
 
-  it("the layer above refuses it by name, never as an absence", () => {
-    expect(() => soleWorkItem(URL_FORM, CONTRACT, "commit message")).toThrow(
-      /expected owner\/repo#123/
+  it("the layer above accepts it as the configured canonical reference", () => {
+    expect(soleWorkItem(URL_FORM, CONTRACT, COMMIT_MESSAGE)).toBe(
+      `${REPOSITORY}#42`
     );
   });
 
   it("the declaration audit drops it, and says nothing about the gate's verdict", () => {
     expect(declaredWorkItemNumbers(URL_FORM, REPOSITORY)).toEqual([]);
+  });
+});
+
+describe("a malformed URL remains visible, then refused (#3747, #4352)", () => {
+  it.each([
+    `https://github.com/${REPOSITORY}/issues/42?extra=1`,
+    `https://github.com/${REPOSITORY}/issues/42#fragment`,
+    `https://reader@github.com/${REPOSITORY}/issues/42`,
+    `https://github.com/${REPOSITORY}/issues/42/extra`,
+  ])("refuses the malformed reference %s without hiding it", reference => {
+    const message = `feat: x\n\nWork-Item: ${reference}\n`;
+
+    expect(workItemLines(message)).toEqual([reference]);
+    expect(() => soleWorkItem(message, CONTRACT, COMMIT_MESSAGE)).toThrow(
+      /expected owner\/repo#123/
+    );
+    expect(declaredWorkItemNumbers(message, REPOSITORY)).toEqual([]);
   });
 });
