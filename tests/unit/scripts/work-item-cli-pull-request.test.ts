@@ -165,6 +165,22 @@ describe("in-process CLI: verification level", () => {
 });
 
 describe("in-process CLI: validate-pr", () => {
+  it("matches a qualified complete commit range against the qualified PR body", () => {
+    const fixture = createFixture();
+    const base = git(fixture.root, ["rev-parse", "main"], fixture.env);
+    commit(fixture, `fix: qualified\n\nWork-Item: github/${REF}`);
+    commit(fixture, `fix: canonical\n\nWork-Item: ${REF}`);
+    const bodyFile = path.join(fixture.root, "BODY");
+    writeFileSync(bodyFile, `Work-Item: github/${REF}\nWork-Item: ${REF}\n`);
+    const result = cli(fixture, prArgs(base, bodyFile), {
+      FAKE_GH_ISSUE_JSON: issueJson({
+        closedByPullRequestsReferences: [{ url: PR_URL }],
+      }),
+    });
+    expect(result.exitCode).toBeUndefined();
+    expect(result.stdout).toContain("WORK_ITEM_TRACKING_OK 2 commit(s)");
+  });
+
   it("passes when every requirement is met, and says what it proved", () => {
     const fixture = createFixture();
     const { base, bodyFile } = goodPr(fixture);
