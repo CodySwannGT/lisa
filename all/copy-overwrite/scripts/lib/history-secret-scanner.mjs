@@ -314,7 +314,7 @@ const evidenceMap = bytes => {
     )
       return null;
     const tokens = [
-      ...text.matchAll(/"(?:\\[\s\S]|[^"\\])*"|[{}\[\],:]|[^{}\[\],:\s]+/gu),
+      ...text.matchAll(/"(?:\\[\s\S]|[^"\\])*"|[{}[\],:]|[^{}[\],:\s]+/gu),
     ];
     if (tokens.length > 8192) return null;
     let cursor = 0;
