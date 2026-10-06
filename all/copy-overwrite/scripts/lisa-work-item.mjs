@@ -1077,17 +1077,36 @@ function trackerContract(config = readConfig()) {
   );
 }
 
+/**
+ * Resolve authored references before any binding or provider decision.
+ *
+ * The literal `github/` namespace is an identity spelling, not a different
+ * tracker or an exemption. Its ASCII segments must survive unchanged; URL
+ * parsing or path normalization would incorrectly admit encoded/dot paths.
+ * @param {unknown} raw Authored work-item reference.
+ * @param {object} contract Existing configured tracker contract.
+ * @returns {string} Repository-scoped canonical identity.
+ */
 function canonicalizeRef(raw, contract = trackerContract()) {
   const value = String(raw ?? "").trim();
   if (contract.provider === "github") {
+    const qualified =
+      /^github\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)#([1-9]\d*)$/.exec(value);
     // Match authored URL bytes before normalization: URL parsers can erase a
     // port or decode a path that this input contract deliberately refuses.
     const match =
+      qualified ??
       /^([^\s/#]+\/[^\s/#]+)#([1-9]\d*)$/.exec(value) ??
       /^https:\/\/github\.com\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)\/issues\/([1-9]\d*)$/.exec(
         value
       );
-    if (!match)
+    if (
+      !match ||
+      (qualified &&
+        qualified[1]
+          .split("/")
+          .some(segment => segment === "." || segment === ".."))
+    )
       throw new TrackingError(
         `Invalid GitHub Work-Item '${value}'; expected owner/repo#123`
       );
@@ -4542,6 +4561,10 @@ function backlink(args) {
  * repository does the commit declare? — and a value the filter drops is one the
  * reader still saw. That ordering is what keeps a malformed trailer refusable
  * by the gate instead of invisible to it.
+ * Qualified `github/owner/name#number` values use the SAME canonical resolver
+ * as the gates, so the audit does not lose attribution accepted by a hook.
+ * This audit still requires a hash-number declaration; supported issue URLs
+ * remain a gate input, not a newly admitted audit declaration.
  *
  * CRLF needs nothing here, and a relayed review finding that said otherwise
  * was refuted rather than acted on. `workItemLines` splits on `/\r?\n/`, so a
@@ -4553,16 +4576,19 @@ function backlink(args) {
  * @returns {number[]} Declared issue numbers, de-duplicated, in first-seen order.
  */
 export function declaredWorkItemNumbers(body, repository) {
-  const owner = String(repository ?? "").toLowerCase();
+  const owner = String(repository ?? "");
   if (owner === "") return [];
+  const contract = { provider: "github", repository: owner };
   const numbers = [];
   for (const value of workItemLines(body)) {
-    const hash = value.indexOf("#");
-    if (hash === -1) continue;
-    if (value.slice(0, hash).toLowerCase() !== owner) continue;
-    const digits = value.slice(hash + 1);
-    if (!isIssueNumber(digits)) continue;
-    numbers.push(Number(digits));
+    if (!value.includes("#")) continue;
+    try {
+      const ref = canonicalizeRef(value, contract);
+      const digits = ref.slice(ref.indexOf("#") + 1);
+      if (isIssueNumber(digits)) numbers.push(Number(digits));
+    } catch (error) {
+      if (!(error instanceof TrackingError)) throw error;
+    }
   }
   return [...new Set(numbers)];
 }

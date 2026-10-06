@@ -880,6 +880,49 @@ describe("sweep evidence and subject list (#3907)", () => {
 describe("declaredWorkItemNumbers and shippedDeclarations (#3907)", () => {
   const REPOSITORY = "acme/code";
 
+  it("counts qualified declarations using the same normalized repository identity", () => {
+    expect(
+      declaredWorkItemNumbers(
+        "Work-Item: github/ACME/Code#42\nWork-Item: acme/code#42\nWork-Item: github/acme/code#43\n",
+        REPOSITORY
+      )
+    ).toEqual([42, 43]);
+    const declarations = shippedDeclarations(
+      "aaaaaaa\nfix: qualified\n\nWork-Item: github/acme/code#42\n\0" +
+        "bbbbbbb\nfix: canonical\n\nWork-Item: acme/code#42\n\0",
+      REPOSITORY
+    );
+    expect(declarations.get(42)).toEqual(["aaaaaaa", "bbbbbbb"]);
+  });
+
+  it.each([
+    "https://github.com/acme/code/issues/42",
+    "GitHub/acme/code#42",
+    "jira/acme/code#42",
+    "github/acme/code/extra#42",
+    "github/acme/%63ode#42",
+    "github/acme/code#42?query=1",
+    "github/acme/code#0",
+    "github/acme/code#042",
+    "github/acme/other#42",
+  ])("does not count unsupported audit declaration %s", ref => {
+    const body = `Work-Item: ${ref}`;
+    expect(declaredWorkItemNumbers(body, REPOSITORY)).toEqual([]);
+    expect(shippedDeclarations(`aaaaaaa\n${body}\0`, REPOSITORY).size).toBe(0);
+  });
+
+  it.each(["../code", "acme/.", "acmé/code", "user@acme/code"])(
+    "refuses nonliteral qualified segments even when configured as %s",
+    repository => {
+      expect(
+        declaredWorkItemNumbers(
+          `Work-Item: github/${repository}#42`,
+          repository
+        )
+      ).toEqual([]);
+    }
+  );
+
   it("reads a trailer wherever it sits in the body", () => {
     expect(
       declaredWorkItemNumbers(
