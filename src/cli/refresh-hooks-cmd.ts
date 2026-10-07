@@ -142,7 +142,7 @@ async function prepare(
         path.join(root, relative),
         constants.O_RDWR
       );
-      if ((await host.handle.stat()).nlink !== 1)
+      if ((await host.handle.stat({ bigint: true })).nlink !== 1n)
         throw new Error("Hook refresh requires single-link host files");
       const sourceBytes = await bytes(source);
       const hostBytes = await bytes(host);
@@ -183,9 +183,9 @@ async function beforeWrite(
   dirs: readonly Pin[]
 ): Promise<void> {
   for (const pin of [...dirs, pair.source, pair.host]) await checkPath(pin);
-  const actual = await pair.host.handle.stat();
+  const actual = await pair.host.handle.stat({ bigint: true });
   if (
-    actual.nlink !== 1 ||
+    actual.nlink !== 1n ||
     actual.mode !== pair.host.identity.mode ||
     !(await bytes(pair.source)).equals(pair.sourceBytes) ||
     !(await bytes(pair.host)).equals(pair.hostBytes)
@@ -226,7 +226,7 @@ export async function refreshHooks(
       await beforeWrite(pair, dirs);
       files.mark(pair);
       await pair.write(pair.sourceBytes);
-      await pair.chmod(pair.source.identity.mode & 0o777);
+      await pair.chmod(Number(pair.source.identity.mode & 0o777n));
       for (const pin of [...dirs, pair.source, pair.host]) await checkPath(pin);
       if (!(await bytes(pair.host)).equals(pair.sourceBytes))
         throw new Error("Hook refresh readback differs");

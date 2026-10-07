@@ -1,6 +1,13 @@
 /** Owned filesystem fixtures; package metadata is protocol data, not release proof. */
 import { createHash } from "node:crypto";
-import { mkdtemp, mkdir, rm, writeFile, lstat } from "node:fs/promises";
+import {
+  mkdtemp,
+  mkdir,
+  rm,
+  writeFile,
+  lstat,
+  realpath,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -28,11 +35,14 @@ class Fixtures {
 
   /**
    * Create a dirty host and complete package identity/ledger fixture.
+   * @param base - Native temporary directory or owned symlink control.
    * @returns Owned paths and synthetic shipping hashes.
    */
-  async create() {
-    const root = await mkdtemp(path.join(os.tmpdir(), "lisa-hooks-refresh-"));
-    this.roots.push(root);
+  async create(base = os.tmpdir()) {
+    const created = await mkdtemp(path.join(base, "lisa-hooks-refresh-"));
+    this.roots.push(created);
+    const root = await realpath(created);
+    this.roots.splice(this.roots.indexOf(created), 1, root);
     const host = path.join(root, "host");
     const packageDir = path.join(root, "package");
     await mkdir(path.join(host, HOOK_DIRECTORY), { recursive: true });
@@ -94,9 +104,10 @@ class Fixtures {
 const fixtures = new Fixtures();
 /**
  * Create one owned protocol fixture.
+ * @param base - Native temporary directory or owned symlink control.
  * @returns A new fixture.
  */
-export const fixture = () => fixtures.create();
+export const fixture = (base?: string) => fixtures.create(base);
 /**
  * Remove only registered fixture roots.
  * @returns Completion of owned fixture cleanup.

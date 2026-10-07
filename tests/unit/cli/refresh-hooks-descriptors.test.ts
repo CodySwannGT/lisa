@@ -1,5 +1,13 @@
 /** Native descriptor failure, permission and shared read-only cache contracts. */
-import { chmod, link, readFile, stat } from "node:fs/promises";
+import {
+  chmod,
+  link,
+  readFile,
+  stat,
+  symlink,
+  realpath,
+} from "node:fs/promises";
+import { constants } from "node:fs";
 import type { FileHandle } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -16,6 +24,7 @@ const observation = vi.hoisted(() => {
   const state: {
     before?: (filename: string, handle: FileHandle) => Promise<void>;
     handles: FileHandle[];
+    identity?: { filename: string; pathname: bigint; descriptor: bigint };
   } = { handles: [] };
   return state;
 });
@@ -25,10 +34,29 @@ vi.mock("node:fs/promises", async importOriginal => {
   const native = await importOriginal<typeof import("node:fs/promises")>();
   return {
     ...native,
+    lstat: async (...args: Parameters<typeof native.lstat>) => {
+      const result = await native.lstat(...args);
+      if (String(args[0]) === observation.identity?.filename)
+        result.ino =
+          typeof result.ino === "bigint"
+            ? observation.identity.pathname
+            : Number(observation.identity.pathname);
+      return result;
+    },
     open: async (...args: Parameters<typeof native.open>) => {
       const handle = await native.open(...args);
       const write = handle.write;
+      const nativeStat = handle.stat;
       observation.handles.push(handle);
+      vi.spyOn(handle, "stat").mockImplementation(async options => {
+        const result = await Reflect.apply(nativeStat, handle, [options]);
+        if (String(args[0]) === observation.identity?.filename)
+          result.ino =
+            typeof result.ino === "bigint"
+              ? observation.identity.descriptor
+              : Number(observation.identity.descriptor);
+        return result;
+      });
       vi.spyOn(handle, "write").mockImplementation(async (...writeArgs) => {
         await observation.before?.(String(args[0]), handle);
         return Reflect.apply(write, handle, writeArgs);
@@ -40,12 +68,42 @@ vi.mock("node:fs/promises", async importOriginal => {
 
 afterEach(async () => {
   delete observation.before;
+  delete observation.identity;
   observation.handles.length = 0;
   vi.restoreAllMocks();
   await cleanupFixtures();
 });
 
 describe("native scoped refresh descriptors", () => {
+  it("refuses distinct exact inode projections that collide as Numbers", async () => {
+    const { HookFiles } =
+      await import("../../../src/cli/hook-refresh-files.js");
+    const input = await fixture();
+    const filename = path.join(input.host, PARITY);
+    const pathname = 2n ** 53n;
+    observation.identity = { filename, pathname, descriptor: pathname + 1n };
+    expect(Number(pathname)).toBe(Number(pathname + 1n));
+    const files = new HookFiles();
+    try {
+      await expect(files.retain(filename, constants.O_RDWR)).rejects.toThrow(
+        "Hook identity changed during open"
+      );
+    } finally {
+      await files.close();
+    }
+    expect(observation.handles.every(handle => handle.fd === -1)).toBe(true);
+  });
+
+  it("canonicalizes its owned fixture root beneath a native symlink base", async () => {
+    const input = await fixture();
+    const parent = path.dirname(input.host);
+    const alias = path.join(parent, "temporary-alias");
+    await symlink(parent, alias);
+    const nested = await fixture(alias);
+    expect(nested.host).toBe(await realpath(nested.host));
+    expect(nested.packageDir).toBe(await realpath(nested.packageDir));
+  });
+
   it("retains original and rollback errors after a real later descriptor closes", async () => {
     const { refreshHooks } =
       await import("../../../src/cli/refresh-hooks-cmd.js");

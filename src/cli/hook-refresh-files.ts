@@ -1,5 +1,5 @@
 /** Confine refresh IO and rollback to held native file identities. */
-import { constants, type Stats } from "node:fs";
+import { constants, type BigIntStats } from "node:fs";
 import { lstat, open, type FileHandle } from "node:fs/promises";
 import path from "node:path";
 
@@ -9,7 +9,7 @@ const MAXIMUM = 4 * 1024 * 1024;
 export interface Pin {
   readonly filename: string;
   readonly handle: FileHandle;
-  readonly identity: Stats;
+  readonly identity: BigIntStats;
 }
 
 /**
@@ -18,7 +18,7 @@ export interface Pin {
  * @param right - Retained metadata.
  * @returns Same device and inode.
  */
-function sameIdentity(left: Stats, right: Stats): boolean {
+function sameIdentity(left: BigIntStats, right: BigIntStats): boolean {
   return left.dev === right.dev && left.ino === right.ino;
 }
 
@@ -27,7 +27,7 @@ function sameIdentity(left: Stats, right: Stats): boolean {
  * @param pin - Original native object.
  */
 export async function checkPath(pin: Pin): Promise<void> {
-  const actual = await lstat(pin.filename);
+  const actual = await lstat(pin.filename, { bigint: true });
   if (actual.isSymbolicLink() || !sameIdentity(actual, pin.identity))
     throw new Error("Hook path changed after preflight");
 }
@@ -38,14 +38,16 @@ export async function checkPath(pin: Pin): Promise<void> {
  * @returns Complete bytes.
  */
 export async function bytes(pin: Pin): Promise<Buffer> {
-  const before = await pin.handle.stat();
+  const before = await pin.handle.stat({ bigint: true });
   if (
     !before.isFile() ||
     !sameIdentity(before, pin.identity) ||
-    before.size > MAXIMUM
+    before.size < 0n ||
+    before.size > BigInt(MAXIMUM)
   )
     throw new Error("Hook refresh requires bounded regular files");
-  const buffer = Buffer.alloc(before.size + 1);
+  const size = Number(before.size);
+  const buffer = Buffer.alloc(size + 1);
   const cursor = { value: 0 };
   while (cursor.value < buffer.length) {
     const result = await pin.handle.read(
@@ -57,12 +59,12 @@ export async function bytes(pin: Pin): Promise<Buffer> {
     if (result.bytesRead === 0) break;
     cursor.value += result.bytesRead;
   }
-  const after = await pin.handle.stat();
+  const after = await pin.handle.stat({ bigint: true });
   if (
-    cursor.value !== before.size ||
+    cursor.value !== size ||
     before.size !== after.size ||
-    before.mtimeMs !== after.mtimeMs ||
-    before.ctimeMs !== after.ctimeMs
+    before.mtimeNs !== after.mtimeNs ||
+    before.ctimeNs !== after.ctimeNs
   )
     throw new Error("Hook changed during descriptor read");
   return buffer.subarray(0, cursor.value);
@@ -87,7 +89,7 @@ export class HookPair {
     readonly hostBytes: Buffer
   ) {
     this.expected = hostBytes;
-    this.expectedMode = host.identity.mode & 0o777;
+    this.expectedMode = Number(host.identity.mode & 0o777n);
   }
 
   /**
@@ -127,10 +129,10 @@ export class HookPair {
 
   /** Reject shared inodes or concurrent bytes before any further mutation. */
   private async assertOwnWrites(): Promise<void> {
-    const info = await this.host.handle.stat();
+    const info = await this.host.handle.stat({ bigint: true });
     if (
-      info.nlink > 1 ||
-      (info.mode & 0o777) !== this.expectedMode ||
+      info.nlink > 1n ||
+      Number(info.mode & 0o777n) !== this.expectedMode ||
       !(await bytes(this.host)).equals(this.expected)
     )
       throw new Error(
@@ -152,7 +154,7 @@ export class HookPair {
   async restore(): Promise<void> {
     await this.assertOwnWrites();
     await this.write(this.hostBytes);
-    await this.chmod(this.host.identity.mode & 0o777);
+    await this.chmod(Number(this.host.identity.mode & 0o777n));
     if (!(await bytes(this.host)).equals(this.hostBytes))
       throw new Error("Descriptor rollback readback differs");
   }
@@ -171,7 +173,7 @@ export class HookFiles {
    * @returns Original object.
    */
   async retain(filename: string, flags: number): Promise<Pin> {
-    const identity = await lstat(filename);
+    const identity = await lstat(filename, { bigint: true });
     if (
       identity.isSymbolicLink() ||
       (!identity.isFile() && !identity.isDirectory())
@@ -180,7 +182,7 @@ export class HookFiles {
     const handle = await open(filename, flags | constants.O_NOFOLLOW);
     const pin = { filename, handle, identity };
     this.pins.push(pin);
-    if (!sameIdentity(await handle.stat(), identity))
+    if (!sameIdentity(await handle.stat({ bigint: true }), identity))
       throw new Error("Hook identity changed during open");
     return pin;
   }
