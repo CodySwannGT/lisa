@@ -99,7 +99,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-hook-read-client.mjs":
       "724f22f7a1d5525fca6ed593f70d6da2ffc05bf66f2b178393064fd4d86708b1",
     "all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs":
-      "ec148d15f5ea4289a273acbad3326f9f42d102079718cf0e64f3e468f9dff056",
+      "787e9424114d52f6a6c8a09a67033d69b20d66ee22e1735f856f2c2d9f20aa69",
     "all/copy-overwrite/scripts/lib/npm-update-hosted-hook.mjs":
       "e3801b5908bedcc1f98d16584b4c3eb37c5529565465b2827be44aac63444577",
     "all/copy-overwrite/scripts/lib/npm-update-invariants.mjs":
@@ -129,7 +129,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-publication.mjs":
       "4bef866f22884283a43d38d417e064ddb9a8a8ef7efea55edec75852da0f15b4",
     "all/copy-overwrite/scripts/lib/npm-update-publish.mjs":
-      "54dd9a80639e1299d289615f6cbb91a4679d708111a605f1540c733a8fa53942",
+      "6dd2cc1e6fcb09c8237798bf08a392035e5a85f0de74fc4ca8777164fa5ce69a",
     "all/copy-overwrite/scripts/lib/npm-update-quality.mjs":
       "dcbdf3dc6e15caafa39184d8d5d4c978dfcc5fb8d3dcdb228053a5299936f7b6",
     "all/copy-overwrite/scripts/lib/npm-update-recovery.mjs":
@@ -249,7 +249,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "322d4edf19711c6ff19d4152172669320bf4806a2190d3b5e2aa420901acebbb",
+      "647f264e008ed9df4703ebbedc3aad71991c1c11ce6f77da69794e697448cf97",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -10975,6 +10975,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/nightly-e2e-waiver-record.test.ts": true,
     "tests/unit/scripts/npm-update-backlink-pagination.test.ts": true,
     "tests/unit/scripts/npm-update-broker.test.ts": true,
+    "tests/unit/scripts/npm-update-compatibility.test.ts": true,
     "tests/unit/scripts/npm-update-contract.test.ts": true,
     "tests/unit/scripts/npm-update-controller-factory.test.ts": true,
     "tests/unit/scripts/npm-update-gate-proof.test.ts": true,
@@ -10985,6 +10986,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/npm-update-hook-installation.test.ts": true,
     "tests/unit/scripts/npm-update-hook-provider.test.ts": true,
     "tests/unit/scripts/npm-update-hosted-gate.test.ts": true,
+    "tests/unit/scripts/npm-update-husky-compatibility.test.ts": true,
     "tests/unit/scripts/npm-update-native-process.test.ts": true,
     "tests/unit/scripts/npm-update-tracker.test.ts": true,
     "tests/unit/scripts/orphaned-branch-bindings.test.ts": true,

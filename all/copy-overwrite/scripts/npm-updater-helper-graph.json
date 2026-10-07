@@ -499,7 +499,7 @@
       "children": []
     },
     "lib/npm-update-hosted-gate.mjs": {
-      "sha256": "ec148d15f5ea4289a273acbad3326f9f42d102079718cf0e64f3e468f9dff056",
+      "sha256": "787e9424114d52f6a6c8a09a67033d69b20d66ee22e1735f856f2c2d9f20aa69",
       "staticImports": [
         "lib/github-attestation-verifier.mjs",
         "lib/npm-update-contract.mjs",
@@ -693,7 +693,7 @@
       "children": []
     },
     "lib/npm-update-publish.mjs": {
-      "sha256": "54dd9a80639e1299d289615f6cbb91a4679d708111a605f1540c733a8fa53942",
+      "sha256": "6dd2cc1e6fcb09c8237798bf08a392035e5a85f0de74fc4ca8777164fa5ce69a",
       "staticImports": [
         "lib/npm-update-authorization.mjs",
         "lib/npm-update-contract.mjs",

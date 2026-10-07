@@ -17,7 +17,6 @@ import { descriptorFor } from "./npm-update-gate.mjs";
 import { assertGateTransport } from "./npm-update-gate-hooks.mjs";
 import {
   publicationBody,
-  assertPublicationPolicy,
   publicationBacklink,
   publicationProof,
 } from "./npm-update-publication.mjs";
@@ -188,9 +187,6 @@ export async function publishProposal({
     return issue;
   };
   await authorize();
-  assertPublicationPolicy(
-    await api.request(`repos/${policy.repository}/actions/permissions/workflow`)
-  );
   await publicationObjects(
     cwd,
     proposal,

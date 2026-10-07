@@ -5,6 +5,7 @@
 import {
   existsSync,
   lstatSync,
+  realpathSync,
   readFileSync,
   mkdirSync,
   writeFileSync,
@@ -12,7 +13,7 @@ import {
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { required } from "./npm-update-contract.mjs";
-import { runProcess, writeJson } from "./npm-update-process.mjs";
+import { readBytes, runProcess, writeJson } from "./npm-update-process.mjs";
 import { qualifiedControllerGraph } from "./npm-update-helper.mjs";
 import {
   controllerTools,
@@ -109,18 +110,45 @@ async function installHostedDependencies(context, root, env) {
   return installed;
 }
 
+/** Husky 8 declares its real installer in package metadata; dependency install remains script-disabled. */
+function huskyInstaller(cwd) {
+  const root = join(cwd, "node_modules/husky");
+  const metadata = JSON.parse(
+    readBytes(join(root, "package.json"), 65_536, false)
+  );
+  const bin =
+    typeof metadata.bin === "string" ? metadata.bin : metadata.bin?.husky;
+  required(
+    metadata.name === "husky" &&
+      /^8\.\d+\.\d+$/.test(metadata.version) &&
+      typeof bin === "string" &&
+      /^(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.js$/.test(bin),
+    "original Husky 8 installer declaration is unsupported"
+  );
+  const path = join(root, bin);
+  required(
+    realpathSync(root) === root &&
+      realpathSync(path) === path &&
+      lstatSync(path).isFile(),
+    "original Husky installer is unavailable or aliased"
+  );
+  return path;
+}
+
 /** The original supported manager installs its own wrappers; no synthetic replacement hook is written. */
 async function installOriginalManager(context, env) {
   const lefthook = existsSync(join(context.cwd, "lefthook.yml"));
   if (lefthook)
     await nativeStep(context, env, "bundle", ["exec", "lefthook", "install"]);
   else {
-    const husky = join(context.cwd, "node_modules/husky/bin.js");
     required(
-      existsSync(husky) && existsSync(join(context.cwd, ".husky/pre-push")),
+      existsSync(join(context.cwd, ".husky/pre-push")),
       "original hook manager installation is unavailable"
     );
-    await nativeStep(context, env, process.execPath, [husky]);
+    await nativeStep(context, env, process.execPath, [
+      huskyInstaller(context.cwd),
+      "install",
+    ]);
   }
   const git = args => nativeStep(context, env, "/usr/bin/git", args);
   const result = await git(["rev-parse", "--git-path", "hooks"]);
