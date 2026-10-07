@@ -580,6 +580,43 @@ describe("current allocation authorization boundaries", () => {
       })
     ).toEqual({ mode: STALE_MODE, allocation: stale });
   });
+  it.each(["main", "claim", "hold"])(
+    "rechecks later %s changes after successful allocation authorization",
+    async change => {
+      const api = transport();
+      await authorizeAllocation(api, proposal, allocation, policy, config);
+      if (change === "main")
+        api.main = async () => {
+          throw Error("main changed");
+        };
+      else {
+        const original = api.issue;
+        api.issue = async () => {
+          const issue = await original();
+          return {
+            ...issue,
+            ...(change === "claim"
+              ? { comments: [{ ...claim, id: 124 }] }
+              : {
+                  labels: [
+                    ...issue.labels,
+                    { name: config.github.labels.build.human_needed },
+                  ],
+                }),
+          };
+        };
+      }
+      await expect(
+        authorizeAllocation(api, proposal, allocation, policy, config)
+      ).rejects.toThrow(
+        change === "main"
+          ? /main changed/
+          : change === "claim"
+            ? /current proposal claim differs/
+            : /current human hold is outstanding/
+      );
+    }
+  );
   it("binds a fresh recovery record to immutable original bytes and current claim/body", () => {
     const priorId = process.env.GITHUB_RUN_ID;
     const priorAttempt = process.env.GITHUB_RUN_ATTEMPT;

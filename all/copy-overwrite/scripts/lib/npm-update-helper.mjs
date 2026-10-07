@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { existsSync, lstatSync, realpathSync } from "node:fs";
 import { required, VERSION, OBJECT } from "./npm-update-contract.mjs";
+import { classifierMemo } from "./npm-update-classifier-cache.mjs";
 import {
   readBytes,
   runProcess,
@@ -33,6 +34,7 @@ import {
 } from "./npm-update-helper-graph.mjs";
 
 const PACKAGE = "@codyswann/lisa";
+const classifier = classifierMemo(helperOwner, helperBytes, MEMBERS);
 
 /** Native package resolution supports both upstream and actual emitted managed layouts. */
 export function helperOwner() {
@@ -277,7 +279,7 @@ export async function qualifiedControllerGraph(cwd, config, entries) {
 }
 
 /** No canonical package code is imported until independent authority qualifies its fixed graph. */
-export async function canonicalClassifier(config) {
+async function authenticatedClassifier(config) {
   const owner = await qualifiedHelperFiles(config, MEMBERS);
   required(
     classifierGraphMatches(MEMBERS.map(member => owner.bytes.get(member))),
@@ -288,5 +290,10 @@ export async function canonicalClassifier(config) {
     typeof module.humanGateVerdict === "function",
     "canonical hold classifier is unavailable"
   );
-  return module.humanGateVerdict;
+  return { root: owner.root, verdict: module.humanGateVerdict };
+}
+
+/** Current bytes must still match the independently authenticated imported closure. */
+export function canonicalClassifier(config) {
+  return classifier(config, () => authenticatedClassifier(config));
 }
