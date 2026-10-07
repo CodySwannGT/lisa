@@ -572,3 +572,13 @@ Task metadata:
   }
 }
 ```
+
+## Grandchild companion observation barrier
+
+The integrated original push passed the corrected inventory and budget-governance checks but failed one existing grandchild SIGKILL setup assertion: one companion was visible where two were required. Its 26,496 passing tests, one failure and two original skips are retained; coverage was unproved and integration did not run.
+
+The production protocol arms both companions before starting the payload. The fixture then independently scheduled its outcome after 500ms, while the test captured companions later. A native 750ms observation probe passed and is not credited as RED. A later native probe crossed the original 500ms outcome and two-second group drain: two genuine PID/birth identities were visible initially and none remained at the original count-two assertion. This proves the observation race; it does not reconstruct the historical one-companion interleaving.
+
+The test-only fixture now waits for an explicit observation release before starting the same 500ms pass, failure23 or SIGKILL outcome. The helper registers its exit promise before observation and retains the original count-two assertion. If observation refuses, it signals its own wrapper, waits for the original outcome and rethrows the same error. A controlled omission of that cleanup produced a real retained-root failure; the control's own finally safely drained the wrapper.
+
+The original whole concurrency file passed all 17 cases without skips: fifteen existing cases, the late-observer regression and the refusal-cleanup control. The final late-observer assertion requires at least 2,500ms and unchanged native PID/birth identities before release; transient diagnostic output is removed. Original runtime, deadlines, child bases and cleanup assertions remain unchanged. Scoped quality and the final integrated original push are required before publication; hosted updater acceptance remains pending.
