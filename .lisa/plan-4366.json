@@ -1,0 +1,53 @@
+{
+  "plan": "4366-static-ruby-send-selectors",
+  "type": "bug",
+  "work_item_ref": "CodySwannGT/lisa#4366",
+  "work_item_context": "/Users/cody/workspace/lisa-4347-gate-diagnostics/.lisa/work-item-context.md",
+  "acceptance_criteria": [
+    "Static simple symbols and noninterpolated strings or quoted symbols produce no unsafe-send error.",
+    "Dynamic and interpolated selectors produce exact diagnostics in all four call forms without and with multiple trailing arguments.",
+    "Preserve the original error severity, Rails scope, native scanner and 30-second child budget."
+  ],
+  "relevant_documentation": [
+    "rails/copy-overwrite/ast-grep/rules/ruby/no-unsafe-send.yml",
+    "tests/unit/config/ast-grep-template.test.ts",
+    "https://ast-grep.github.io/reference/yaml",
+    "https://ast-grep.github.io/reference/rule"
+  ],
+  "testing_requirements": [
+    "Eight native regression arms fail before the rule repair and pass after it; the final four paired cases preserve every sample and fourteen existing template tests remain passing.",
+    "Assert real native exit status and complete exact diagnostic membership, not only output presence.",
+    "Run original formatting, lint, types, derived artifact, commit, push and hosted gates before delivery completion."
+  ],
+  "skills": ["lisa-implement", "lisa-tdd-implementation", "lisa-git-commit"],
+  "learnings": [],
+  "required_access": [
+    {"tool": "GitHub", "probe": "gh issue view 4366 --repo CodySwannGT/lisa", "status": "pass"},
+    {"tool": "native ast-grep", "probe": "node_modules/.bin/ast-grep --version", "status": "pass"}
+  ],
+  "verification": {
+    "type": "cli-test",
+    "command": "node_modules/.bin/ast-grep scan --rule rails/copy-overwrite/ast-grep/rules/ruby/no-unsafe-send.yml --json=compact tmp/ci-defects/native-grammar.rb",
+    "expected": "Native status 1 and exactly the four dynamic/interpolated calls; all six static calls stay silent."
+  },
+  "comment_inventory": [
+    {"id": "6034961062", "flags": ["decision", "constraint"], "obligation": "Genuine claimed implementation; no premature completion."},
+    {"id": "6034979792", "flags": ["decision", "constraint"], "obligation": "Narrow static-selector and arity repair with native parent 4330; no hosted proof claim."}
+  ],
+  "metadata": {
+    "roster": {
+      "existing_team": true,
+      "new_actors": false,
+      "builder": "legacy_protocol_review",
+      "independent_reviewer": "ROOT",
+      "decision": "Reuse existing bounded implementation and independent source/spec/security review; no additional actor is required."
+    }
+  },
+  "evidence": {
+    "red": "tmp/ci-defects/unsafe-send-red.log: native 82848, 8 failed and 14 passed",
+    "intermediate": "tmp/ci-defects/unsafe-send-green.log: native 62069, Ruby comma pattern missed zero trailing arguments",
+    "green": "tmp/ci-defects/unsafe-send-green-2.log: native 74043, all 22 passed before grouping the eight arms into four paired cases for the unchanged line budget",
+    "final_green": "tmp/ci-defects/unsafe-send-green-sealed.log: native 63504, all 18 tests passed, preserving the same eight regression arms and 64 Ruby calls",
+    "scope": "Local native source proof only; hosted delivery remains pending."
+  }
+}

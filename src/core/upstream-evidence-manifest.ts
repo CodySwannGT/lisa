@@ -2337,7 +2337,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/ast-grep/rules/ruby/no-skip-before-action-without-scope.yml":
       "da03a58620aff4cb3b191e7ec78566438bf5cdd2366a5a3be667774d5f7e2bbe",
     "rails/copy-overwrite/ast-grep/rules/ruby/no-unsafe-send.yml":
-      "eb3eb2d96462f28d6815cf0261af2ed2b18e7258ec88a3338f8ae17c5741d583",
+      "0d25090e91494063a9a4daa86664d6f5914c947b8debe0ad9659dc6e3b4aa124",
     "rails/copy-overwrite/ast-grep/rules/ruby/no-update-columns.yml":
       "5036436ebb4baa703987f3a818d0e33411daa07656611c334fb110316f98cd99",
     "rails/copy-overwrite/ast-grep/utils/.gitkeep":
