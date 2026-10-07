@@ -19,6 +19,7 @@ jobs:
   update:
     uses: CodySwannGT/lisa/.github/workflows/npm-updater.yml@REVIEWED_IMMUTABLE_COMMIT
     with:
+      expected_workflow_contract_major: '1'
       npm-version: '11.21.0'
     permissions:
       contents: write

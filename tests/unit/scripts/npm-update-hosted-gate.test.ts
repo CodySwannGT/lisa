@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { parse } from "yaml";
+import { auditReusable } from "../../../scripts/check-workflow-contract-assertions.mjs";
 import {
   assertHostedGate,
   remainingGateTime,
@@ -36,7 +37,8 @@ describe("original hosted gate prerequisites", () => {
     });
     expect(workflow.jobs.prepare.permissions).toEqual({ contents: "read" });
     expect(workflow.jobs.publish.permissions["id-token"]).toBeUndefined();
-    for (const job of Object.values(workflow.jobs) as any[]) {
+    for (const phase of ["prepare", "allocate", "gate", "publish"]) {
+      const job = workflow.jobs[phase];
       expect(job["runs-on"]).toBe("ubuntu-24.04");
       const checkout = job.steps.find((step: any) =>
         step.uses?.startsWith("actions/checkout@")
@@ -58,6 +60,27 @@ describe("original hosted gate prerequisites", () => {
     expect(install(workflow.jobs.publish)).toEqual(
       install(workflow.jobs.allocate)
     );
+  });
+  it("asserts the registered caller contract before preparation and refuses a stale major", () => {
+    const workflow = parse(
+      readFileSync(".github/workflows/npm-updater.yml", "utf8")
+    );
+    const registry = JSON.parse(
+      readFileSync(".github/reusable-workflow-contracts.json", "utf8")
+    );
+    const subject = {
+      file: "npm-updater.yml",
+      major: registry.workflows["npm-updater.yml"].major,
+      document: workflow,
+      canonical: readFileSync("scripts/workflow-contract-assertion.sh", "utf8"),
+    };
+    expect(subject.major).toBe(1);
+    expect(auditReusable(subject)).toEqual([]);
+    expect(auditReusable({ ...subject, major: 2 })).toEqual([
+      expect.stringContaining("declares major 1 but"),
+    ]);
+    expect(workflow.jobs.prepare.needs).toBe("workflow_contract");
+    expect(workflow.jobs.workflow_contract.permissions).toEqual({});
   });
   it("accepts only the selected hosted Linux AMD64 parent/caller and refuses mismatches", () => {
     expect(() => assertHostedGate(context, env, "linux", "x64")).not.toThrow();

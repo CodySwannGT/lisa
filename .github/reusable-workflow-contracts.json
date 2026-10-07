@@ -20,6 +20,7 @@
     "nightly-e2e-health.yml": { "major": 1 },
     "nightly-e2e-report.yml": { "major": 1 },
     "nightly-e2e-tracking.yml": { "major": 1 },
+    "npm-updater.yml": { "major": 1 },
     "playwright-e2e.yml": { "major": 1 },
     "publish-to-npm.yml": { "major": 1 },
     "quality-rails.yml": { "major": 1 },
