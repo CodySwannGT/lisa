@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.71.2](https://github.com/CodySwannGT/lisa/compare/v4.71.1...v4.71.2) (2026-10-07)
+
+
+### Bug Fixes
+
+* **ci:** integrate updater diagnostics and supported Ruby setup ([a2673fc](https://github.com/CodySwannGT/lisa/commit/a2673fc25b00d091bf9ddccb9738fd55d840d1db)), closes [CodySwannGT/lisa#4365](https://github.com/CodySwannGT/lisa/issues/4365)
+* distinguish static Ruby send selectors ([abf7cd4](https://github.com/CodySwannGT/lisa/commit/abf7cd415358f84efbfeb9760dd9da6d93464323)), closes [CodySwannGT/lisa#4366](https://github.com/CodySwannGT/lisa/issues/4366)
+* **history-secrets:** keep recreated vendor reports private ([9efa3b7](https://github.com/CodySwannGT/lisa/commit/9efa3b7c583fd4fd782f988fda8857985b42fb20)), closes [CodySwannGT/lisa#4364](https://github.com/CodySwannGT/lisa/issues/4364)
+* retain safe npm updater failure stages ([f4c1c62](https://github.com/CodySwannGT/lisa/commit/f4c1c6254f41041a7786618b2301dd4af0faef18)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **updater:** flatten the proof command callback ([84a9dbd](https://github.com/CodySwannGT/lisa/commit/84a9dbdc350ab85c5b5d3bb8a7d624329a0368e8)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+
 ### [4.71.1](https://github.com/CodySwannGT/lisa/compare/v4.71.0...v4.71.1) (2026-10-07)
 
 
