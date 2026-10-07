@@ -93,19 +93,29 @@ function attestation(predicate: string, name: string, digest: string) {
 }
 
 describe("explicit stale cancellation intent", () => {
-  it("accepts only the actual configured maintainer and exact manual main invocation", () => {
-    expect(
-      assertManualCancellation(
-        run,
-        permission,
-        policy,
-        "maintainer",
-        proposal,
-        request,
-        invocation
-      )
-    ).toBe("56");
-  });
+  it.each([
+    [56, 56],
+    [56, "56"],
+    ["56", 56],
+  ])(
+    "accepts the same configured operator across native ID representations: %j",
+    (actorId, permissionId) => {
+      expect(
+        assertManualCancellation(
+          {
+            ...run,
+            triggering_actor: { ...run.triggering_actor, id: actorId },
+          },
+          { ...permission, user: { ...permission.user, id: permissionId } },
+          policy,
+          "maintainer",
+          proposal,
+          request,
+          invocation
+        )
+      ).toBe("56");
+    }
+  );
 
   it.each([
     { event: "schedule" },
@@ -141,6 +151,10 @@ describe("explicit stale cancellation intent", () => {
   it.each([
     { ...permission, permission: "read" },
     { ...permission, user: { ...permission.user, id: 99 } },
+    { ...permission, user: { ...permission.user, id: "056" } },
+    { ...permission, user: { ...permission.user, id: ["56"] } },
+    { ...permission, user: { ...permission.user, id: null } },
+    { ...permission, user: { ...permission.user, id: true } },
     { ...permission, user: { ...permission.user, login: "other" } },
     { ...permission, user: { ...permission.user, type: "Bot" } },
   ])("refuses missing/foreign current repository authority: %j", changed => {

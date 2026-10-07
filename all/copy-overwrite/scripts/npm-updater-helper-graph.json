@@ -240,7 +240,7 @@
       "children": []
     },
     "lib/npm-update-cancellation-proof.mjs": {
-      "sha256": "afb25ab04fceb925931d62dab568b1633b16601d352ed1763190e344e319d2cd",
+      "sha256": "56365dbe20ef540b8a3d59a3ce9e0fa33c9c4efdfb27c2b69e27cbe60b2ba204",
       "staticImports": [
         "lib/github-attestation-verifier.mjs",
         "lib/npm-update-contract.mjs",
@@ -830,7 +830,7 @@
       "children": []
     },
     "lib/npm-update-supersession.mjs": {
-      "sha256": "4d7d9923df78bb26e026f8f3ae79f5a6fdfa87dbf3b4ca5b59e417ccf9be5298",
+      "sha256": "d336e2c611f43ec2c576ddba19cad6533c1bc50e100f291e4c2cffd82bad3cde",
       "staticImports": [
         "lib/github-attestation-verifier.mjs",
         "lib/npm-update-cancel-origin.mjs",

@@ -422,7 +422,7 @@ describe("manual cancellation lifecycle", () => {
     expect(writes).toEqual([]);
   });
 
-  it.each(["genuine", "foreign", "edited", "copied"])(
+  it.each(["genuine", "foreign", "edited", "copied", "authority"])(
     "verifies recorded cancellation's actual %s checkpoint transport before granting closure authority",
     async fault => {
       const api = provider();
@@ -438,6 +438,14 @@ describe("manual cancellation lifecycle", () => {
       const record = JSON.parse(
         readFileSync(join(directory, cancellationSubjectName), "utf8")
       );
+      if (fault === "authority") {
+        const changed = { ...authority, claimActorId: "88" };
+        controlled.config.mockResolvedValueOnce({
+          ...config,
+          automationProvenance: changed,
+        });
+        record.policySha256 = sha256(canonicalJson(changed));
+      }
       const digest = sha256(`${canonicalJson(record)}\n`);
       const payload = {
         version: 1,
@@ -450,7 +458,7 @@ describe("manual cancellation lifecycle", () => {
         (body: string, index: number) => ({
           id: 200 + index,
           body,
-          user: { type: "Bot", id: 99 },
+          user: { type: "Bot", id: fault === "authority" ? 88 : 99 },
           created_at: run.updated_at,
           updated_at: run.updated_at,
         })
@@ -480,6 +488,10 @@ describe("manual cancellation lifecycle", () => {
       });
       if (fault === "genuine")
         expect(await result).toHaveProperty("digest", digest);
+      else if (fault === "authority")
+        await expect(result).rejects.toThrow(
+          /recorded cancellation authority differs/
+        );
       else
         await expect(result).rejects.toThrow(
           /checkpoint.*(edited|copied|foreign)/

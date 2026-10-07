@@ -88,10 +88,14 @@ export function assertManualCancellation(
   required(
     actor?.type === "User" &&
       actor.login === maintainer &&
-      DECIMAL.test(String(actor.id)) &&
+      [actor.id, permission.user?.id].every(id =>
+        typeof id === "string"
+          ? DECIMAL.test(id)
+          : Number.isSafeInteger(id) && id > 0
+      ) &&
       permission.user?.type === "User" &&
       permission.user.login === maintainer &&
-      permission.user.id === actor.id &&
+      String(permission.user.id) === String(actor.id) &&
       ["write", "admin"].includes(permission.permission),
     "cancellation requires the configured operator's current repository authority"
   );

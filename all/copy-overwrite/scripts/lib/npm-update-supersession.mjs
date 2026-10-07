@@ -168,9 +168,15 @@ export async function recordedCancellation({
   const historical = await committedCancellationConfig(cwd, record.parent);
   const authority = historical.automationProvenance;
   required(
-    ["repository", "repositoryId", "ownerId", "ghExecutable", "ghSha256"].every(
-      key => authority[key] === api.policy[key]
-    ) && historical.npmUpdater.maintainer === config.npmUpdater.maintainer,
+    [
+      "repository",
+      "repositoryId",
+      "ownerId",
+      "claimActorId",
+      "ghExecutable",
+      "ghSha256",
+    ].every(key => authority[key] === api.policy[key]) &&
+      historical.npmUpdater.maintainer === config.npmUpdater.maintainer,
     "recorded cancellation authority differs"
   );
   const replacement = validateProposal(
