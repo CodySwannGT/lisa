@@ -4,6 +4,10 @@
 /** Pure shared diagnostics retain one error identity without importing producer orchestration. */
 const stages = new Set([
   "configuration",
+  "cancel-intent",
+  "cancel-origin",
+  "cancel-checkpoint",
+  "cancel-close",
   "gate-input",
   "gate-validate",
   "gate-scratch",

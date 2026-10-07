@@ -38,6 +38,7 @@ const LONG_RUNNER_TIMEOUT_ARGUMENT = "--timeout-ms=30000";
 const CAPTURE_DESCRIPTOR_ARGUMENT = "--capture-fd=3";
 const DIRECT_ARGUMENT_FLAG = "--direct-argv";
 const EMPTY_ARGUMENT_EXECUTABLE = "/usr/bin/true";
+const KEEP_ALIVE_SOURCE = "setInterval(() => {}, 1000);";
 const ENTRY_MODES = ["linux", "darwin"].includes(process.platform)
   ? [false, true]
   : [false];
@@ -80,6 +81,22 @@ const readProcessObservation = (
     return undefined;
   }
   return { state, identity: identity.join(" ") };
+};
+
+/** The uncertain-cleanup fixture must establish its planted child before signalling. */
+const uncertainChildReady = (
+  pidFile: string,
+  handlersReadyFile: string,
+  identityToken: string
+): boolean => {
+  if (!existsSync(pidFile) || !existsSync(handlersReadyFile)) return false;
+  const value = readFileSync(pidFile, "utf8").trim();
+  if (!/^[1-9]\d*$/u.test(value)) return false;
+  const pid = Number(value);
+  return (
+    Number.isSafeInteger(pid) &&
+    (readProcessObservation(pid)?.identity.includes(identityToken) ?? false)
+  );
 };
 
 /** Wait for a real-process condition within the measured I/O budget. */
@@ -946,7 +963,7 @@ childProcess.spawn = (...args) => {
 syncBuiltinESMExports();
 `
       );
-      const keepAlive = "setInterval(() => {}, 1000);";
+      const keepAlive = KEEP_ALIVE_SOURCE;
       const command = `${JSON.stringify(process.execPath)} -e ${JSON.stringify(
         keepAlive
       )} ${JSON.stringify(identityToken)} & echo $! > ${JSON.stringify(
@@ -1009,6 +1026,50 @@ syncBuiltinESMExports();
     }
   );
 
+  it.skipIf(process.platform === "win32")(
+    "does not mistake an empty native PID redirection for a ready child",
+    async () => {
+      const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-empty-pid-"));
+      roots.push(root);
+      const pidFile = path.join(root, GRANDCHILD_PID_FILENAME);
+      const readyFile = path.join(root, "handlers-ready");
+      const token = path.join(root, "planted-empty-pid-child");
+      const command = `echo() { printf opened >&2; IFS= read -r release; command echo "$@"; }; ${shellQuote(process.execPath)} -e ${shellQuote(KEEP_ALIVE_SOURCE)} ${shellQuote(token)} & echo $! > ${shellQuote(pidFile)}; wait`;
+      const shell = spawn("/bin/sh", ["-c", command], {
+        detached: true,
+        stdio: ["pipe", "ignore", "pipe"],
+      });
+      const closed = new Promise(resolve => shell.once("close", resolve));
+      let diagnostic = "";
+      shell.stderr.on("data", chunk => {
+        diagnostic += String(chunk);
+      });
+      try {
+        writeFileSync(readyFile, "ready");
+        expect(
+          await waitForProcessCondition(() => diagnostic.includes("opened"))
+        ).toBe(true);
+        expect(existsSync(pidFile)).toBe(true);
+        expect(readFileSync(pidFile, "utf8").trim()).toBe("");
+        expect(uncertainChildReady(pidFile, readyFile, token)).toBe(false);
+        shell.stdin.write("continue\n");
+        expect(
+          await waitForProcessCondition(() =>
+            uncertainChildReady(pidFile, readyFile, token)
+          )
+        ).toBe(true);
+        expect(
+          readProcessObservation(Number(readFileSync(pidFile, "utf8").trim()))
+            ?.identity
+        ).toContain(token);
+      } finally {
+        killTokenProcesses(token);
+        await closed;
+        expect(findTokenProcesses(token)).toEqual([]);
+      }
+    }
+  );
+
   it.skipIf(process.platform === "win32").each([
     [false, false],
     [true, false],
@@ -1055,7 +1116,7 @@ process.on = (event, listener) => {
 };
 `
       );
-      const keepAlive = "setInterval(() => {}, 1000);";
+      const keepAlive = KEEP_ALIVE_SOURCE;
       const command = `${JSON.stringify(process.execPath)} -e ${JSON.stringify(
         keepAlive
       )} ${JSON.stringify(identityToken)} & echo $! > ${JSON.stringify(
@@ -1086,8 +1147,8 @@ process.on = (event, listener) => {
           supervisor.pid ?? -1
         )?.identity;
         expect(
-          await waitForProcessCondition(
-            () => existsSync(pidFile) && existsSync(handlersReadyFile)
+          await waitForProcessCondition(() =>
+            uncertainChildReady(pidFile, handlersReadyFile, identityToken)
           )
         ).toBe(true);
         grandchild = Number(readFileSync(pidFile, "utf8").trim());

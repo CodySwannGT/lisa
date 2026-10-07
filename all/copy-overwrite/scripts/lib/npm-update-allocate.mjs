@@ -8,6 +8,8 @@ import { locateCheckpoint } from "./npm-update-recovery.mjs";
 import { runProcess } from "./npm-update-process.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
 import { registryVersion } from "./npm-update-npm.mjs";
+import { discoverSupersession } from "./npm-update-supersession.mjs";
+import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import {
   buildDraft,
   qualityGates,
@@ -72,7 +74,7 @@ export async function filingEvidence(api, proposal, config, cwd) {
 }
 
 /** Same selected versions are discovered before deriving a new parent-bound key. */
-export async function discoverPrior(api, proposal) {
+export async function discoverPrior(api, proposal, context) {
   const query = `repo:${proposal.repository} "${proposal.selectionKey}" is:issue in:body`;
   const found = await api.request(
     `search/issues?q=${encodeURIComponent(query)}&per_page=100`
@@ -80,12 +82,14 @@ export async function discoverPrior(api, proposal) {
   required(
     found.incomplete_results === false &&
       Number.isSafeInteger(found.total_count) &&
-      found.total_count <= 1 &&
+      found.total_count <= (context ? 100 : 1) &&
       Array.isArray(found.items) &&
       found.items.length === found.total_count,
     "prior selection search is incomplete or ambiguous"
   );
   if (!found.total_count) return { status: "new" };
+  if (context && (found.total_count > 1 || found.items[0].state === "closed"))
+    return discoverSupersession(api, proposal, found.items, context);
   const issue = await api.issue(found.items[0].number);
   required(
     issue.state === "open" &&
@@ -254,7 +258,7 @@ export async function allocateLeaf({
   let proposal = suppliedProposal;
   validateProposal(proposal, policy);
   await api.main(proposal.parent);
-  const prior = await discoverPrior(api, proposal);
+  const prior = await discoverPrior(api, proposal, { cwd, config });
   if (prior.status === "stale-outstanding")
     return {
       status: prior.status,
@@ -263,6 +267,12 @@ export async function allocateLeaf({
     };
   await api.assignable(policy.maintainer);
   const currentEvidence = await filingEvidence(api, proposal, config, cwd);
+  if (prior.supersession)
+    currentEvidence.supersession = {
+      workItem: prior.supersession.workItem,
+      cancellationSha256: sha256(`${canonicalJson(prior.supersession)}\n`),
+      proposalKey: prior.supersession.oldProposalKey,
+    };
   const checkpoint = prior.issue
     ? locateCheckpoint(prior.issue.comments, proposal, policy)
     : undefined;
