@@ -1,0 +1,119 @@
+{
+  "plan": "private-scanner-reports",
+  "type": "bug",
+  "work_item_ref": "CodySwannGT/lisa#4364",
+  "base_sha": "d0b0b904116419d726e950ab45111598b41c764e",
+  "owner": "service_security_review",
+  "target_branch": "main",
+  "environment": "production",
+  "work_item_context": ".lisa/work-item-context.md",
+  "comment_inventory": [
+    "Creation comment6033736065 preserves real caller022 permission failure, original history controls and release/adoption obligations.",
+    "Claim comment6033874713 records lifecycle only; no human hold.",
+    "All five related4345 comments preserve original introduced-history contract and distinguish historical completion from current report-mode proof."
+  ],
+  "acceptance_criteria": [
+    "Actual qualified vendor recreation produces regular0600 report under caller022, native findings42/nonempty/redaction; caller mask unchanged.",
+    "Caller022/077 and neighboring file controls retain original arguments/stdin/cwd/Git environment/native exit or signal/time/capture; failure stays failure.",
+    "Safe bounded predicate and source/tool identity witness exists before assertion and owned cleanup for incorrect mode, redaction and missing/malformed/nonregular reports.",
+    "All original18 history boundaries and complete no-selector source/archive/released journeys, original hooks/current hosted checks/review/main merge/publication integrity remain required."
+  ],
+  "relevant_documentation": [
+    "Full original issue4364 and related4345 in ignored context",
+    "all/copy-overwrite/scripts/lib/history-secret-scanner.mjs",
+    "tests/fixtures/git-history-secrets/report-mode.mjs",
+    "Gitleaks v8.30.1 cmd/root.go creates/removes/recreates report",
+    "docs/history-evidence.md"
+  ],
+  "testing_requirements": [
+    "Real original reportModeCase RED before production source edits under022 with original bounds and genuine8.30.1.",
+    "Collected whole history-secret-contract unit suite: child-only mask, original argv/stdin/status/signal/error/timeout/capture and failure-witness counterexamples.",
+    "Complete affected collected history integration suites without removing old controls.",
+    "Genuine vendor GREEN under022 and077; parent mask/neighbor creation parity and positive owned cleanup.",
+    "Full no-selector source and immutable-package journeys under022 and077 before delivery acceptance.",
+    "Exact independent source review before commit; all normal local/hosted gates and released archive journey before completion."
+  ],
+  "skills": [
+    "lisa-track",
+    "lisa-github-claim",
+    "lisa-implement",
+    "lisa-tdd-implementation",
+    "lisa-security-review"
+  ],
+  "learnings": [],
+  "required_access": [
+    {
+      "tool": "GitHub configured issue/claim/leaf/main",
+      "status": "pass",
+      "probe": "Actual gh live issue4364/native GraphQL OPEN,parentnull,subIssues0; canonical claim/link/current/attach/current0. Two earlier TLS failures retained, same endpoint recovered."
+    },
+    {
+      "tool": "Gitleaks8.30.1",
+      "status": "qualified earlier; current byte/version recheck before RED",
+      "probe": "Actual official checksum/version-qualified native executable; no substitute."
+    },
+    {
+      "tool": "Node22.23.3/Bun1.3.8/declared dependencies",
+      "status": "pass: genuine frozen install and build:dist native0; inputs unchanged",
+      "probe": "Actual pinned toolpaths; clean credential-free child environment."
+    }
+  ],
+  "verification": {
+    "type": "cli-test",
+    "command": "node tests/fixtures/git-history-secrets/journey.mjs --package <genuine integrity-verified immutable archive> --scanner <qualified Gitleaks8.30.1> --lefthook <actual Lefthook2.1.16> --proof-dir <fresh private owned directory>",
+    "expected": "Complete no-selector native0 after actual assertions;0600 reports, real finding/clean/error verdicts, redaction, caller mask parity, original history coverage and positive owned cleanup; repeat against actual released archive."
+  },
+  "source_ownership": [
+    "all/copy-overwrite/scripts/lib/history-secret-scanner.mjs",
+    "tests/fixtures/git-history-secrets/report-mode.mjs",
+    "tests/fixtures/git-history-secrets/journey.mjs",
+    "tests/unit/scripts/history-secret-private-report.test.ts",
+    "tests/integration/history-secret-private-report.test.ts",
+    "docs/history-evidence.md",
+    ".lisa/plan-4364.json",
+    ".lisa/roster/CodySwannGT-lisa-4364.md",
+    "legitimate official regenerated artifacts"
+  ],
+  "roster": ".lisa/roster/CodySwannGT-lisa-4364.md",
+  "steps": [
+    "Record current-source native vendor RED.",
+    "Author meaningful collected RED controls.",
+    "Minimal constant POSIX child-only077 exec; no parent umask mutation, argument interpolation, new dependency, post-hoc-only chmod or command broker.",
+    "Make permission fixture reach actual emitted production invocation and retain safe diagnostics before assertions; independently qualify both source/archive origins.",
+    "Focused GREEN/source quality, then ROOT distinct source review.",
+    "Normal small commit and original full local/hosted delivery; exact released adoption before done."
+  ],
+  "boundaries": [
+    "No downstream names/paths, credentials, private session/history stores or unrelated sources.",
+    "No scanner version/default rule/history/ref/proof threshold/deadline/capture changes; no skips, ignores, fabricated native success.",
+    "Full acceptance and alternate hosted platforms remain pending; local focused checks cannot discharge them."
+  ],
+  "state": "Current-source real vendor RED reached0644 under caller022 before fix; minimal child-only077 source implemented. Whole affected unit20PASS and genuine vendor7PASS. Independent source review, full original history/source/package/released journeys and ordinary delivery remain pending.",
+  "execution_semantics": "Qualified vendor retains original discrete argv/stdin/cwd/environment/status/signal/deadline/capture. Shell exec startup refusal can return127 rather than direct spawn ENOENT; no errno equivalence or fabricated success is claimed.",
+  "evidence": {
+    "vendor_red": {
+      "exit": 1,
+      "scanner_exit": 42,
+      "caller_mask": "022",
+      "mode": "0644",
+      "redaction": true,
+      "caller_mask_unchanged": true
+    },
+    "current_unit": {
+      "exit": 0,
+      "cases": 20,
+      "scope": "13 new native transport/observer controls plus7 unchanged history contract controls"
+    },
+    "current_vendor": {
+      "exit": 0,
+      "cases": 7,
+      "scope": "Official checksum/version provision;022/077 native42 report0600 and five safe failure-witness controls"
+    },
+    "pending": [
+      "all original18 boundaries and complete affected history suites",
+      "full no-selector source and immutable-package journeys022/077",
+      "distinct source review before commit",
+      "normal local/hosted checks/main merge/publication integrity and actual released archive"
+    ]
+  }
+}

@@ -52,6 +52,18 @@ export const PINS = Object.freeze({
 const digest = bytes => createHash("sha256").update(bytes).digest("hex");
 const shellQuote = value => `'${value.replaceAll("'", "'\\''")}'`;
 
+/** Keep vendor recreation private without changing the calling process's mask. */
+export const scannerInvocation = (binary, argv) => ({
+  binary: "/bin/sh",
+  argv: [
+    "-c",
+    'umask 077 || exit 1; exec "$@"',
+    "lisa-private-scanner",
+    binary,
+    ...argv,
+  ],
+});
+
 /** Audit the actual vendor Git children: Gitleaks can swallow their failures. */
 const auditedGit = scratch => {
   const environment = gitEnvironment();
@@ -244,8 +256,8 @@ export const scanCommits = (commits, cwd, requested, heads = []) => {
     const report = join(scratch, "report.json");
     const ignore = join(scratch, "ignore");
     writeFileSync(config, "[extend]\nuseDefault = true\n", { mode: 0o600 });
-    // Gitleaks truncates this existing file: its report keeps private mode even
-    // when the caller's umask would otherwise create world-readable metadata.
+    // Gitleaks removes and recreates this file; its dedicated child sets umask
+    // before vendor creation, while the caller's mask remains unchanged.
     writeFileSync(report, "[]", { mode: 0o600 });
     writeFileSync(ignore, "", { mode: 0o600 });
     // An isolated bare view excludes caller ignore files even in Git metadata.
@@ -272,41 +284,38 @@ export const scanCommits = (commits, cwd, requested, heads = []) => {
     for (let offset = 0; offset < commits.length; offset += 100) {
       const group = commits.slice(offset, offset + 100);
       audit.begin();
-      const result = spawnSync(
-        scanner,
-        [
-          "git",
-          source,
-          "--config",
-          config,
-          "--gitleaks-ignore-path",
-          ignore,
-          "--ignore-gitleaks-allow",
-          "--redact=100",
-          "--no-banner",
-          "--no-color",
-          "--log-level",
-          "error",
-          "--platform",
-          "none",
-          "--exit-code",
-          "42",
-          "--timeout",
-          "120",
-          "--report-format",
-          "json",
-          "--report-path",
-          report,
-          "--log-opts",
-          `--no-walk=unsorted --root --diff-merges=separate --no-ext-diff --no-textconv --no-renames ${group.join(" ")}`,
-        ],
-        {
-          cwd: scratch,
-          env: audit.environment,
-          timeout: 130000,
-          maxBuffer: 16 * 1024 * 1024,
-        }
-      );
+      const invocation = scannerInvocation(scanner, [
+        "git",
+        source,
+        "--config",
+        config,
+        "--gitleaks-ignore-path",
+        ignore,
+        "--ignore-gitleaks-allow",
+        "--redact=100",
+        "--no-banner",
+        "--no-color",
+        "--log-level",
+        "error",
+        "--platform",
+        "none",
+        "--exit-code",
+        "42",
+        "--timeout",
+        "120",
+        "--report-format",
+        "json",
+        "--report-path",
+        report,
+        "--log-opts",
+        `--no-walk=unsorted --root --diff-merges=separate --no-ext-diff --no-textconv --no-renames ${group.join(" ")}`,
+      ]);
+      const result = spawnSync(invocation.binary, invocation.argv, {
+        cwd: scratch,
+        env: audit.environment,
+        timeout: 130000,
+        maxBuffer: 16 * 1024 * 1024,
+      });
       if (
         result.error ||
         result.signal ||

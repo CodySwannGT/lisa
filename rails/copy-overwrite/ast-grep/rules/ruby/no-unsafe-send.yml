@@ -11,4 +11,21 @@ rule:
     - pattern: public_send($ARG)
     - pattern: $OBJ.send($ARG)
     - pattern: $OBJ.public_send($ARG)
+    - pattern: send($ARG, $$$ARGS)
+    - pattern: public_send($ARG, $$$ARGS)
+    - pattern: $OBJ.send($ARG, $$$ARGS)
+    - pattern: $OBJ.public_send($ARG, $$$ARGS)
+constraints:
+  ARG:
+    not:
+      any:
+        - kind: simple_symbol
+        - all:
+            - any:
+                - kind: string
+                - kind: delimited_symbol
+            - not:
+                has:
+                  kind: interpolation
+                  stopBy: end
 note: 'If intentional, extract the method name into a constant whitelist and validate before calling.'

@@ -42,6 +42,7 @@ import {
   ordinaryGateReceipt,
 } from "./npm-update-publication.mjs";
 import { executeCanonicalHelper } from "./npm-update-controller-factory.mjs";
+import { withStage } from "./npm-update-invariants.mjs";
 
 const BOT = "github-actions[bot]";
 const MAIL = "41898282+github-actions[bot]@users.noreply.github.com";
@@ -143,7 +144,7 @@ export async function descriptorFor({
 async function stageProposal(context, env) {
   const { cwd, proposal } = context;
   const command = args => git(cwd, env, args, undefined, context.deadline);
-  await baseline(cwd, env, proposal);
+  await withStage("gate-baseline", () => baseline(cwd, env, proposal));
   const parent = (await command(["rev-parse", "HEAD"])).stdout
     .toString()
     .trim();
@@ -154,8 +155,12 @@ async function stageProposal(context, env) {
   );
   const branch = `lisa/npm-${proposal.key}`;
   await command(["checkout", "-b", branch]);
-  await executeCanonicalHelper(context, "stage-read", "link");
-  await executeCanonicalHelper(context, "stage-read", "attach-branch");
+  await withStage("gate-link", () =>
+    executeCanonicalHelper(context, "stage-read", "link")
+  );
+  await withStage("gate-attach", () =>
+    executeCanonicalHelper(context, "stage-read", "attach-branch")
+  );
   for (const file of FILES)
     writeFileSync(join(cwd, file), proposal.files[file]);
   await command(["add", "--", ...FILES]);
@@ -263,38 +268,50 @@ async function pushProposal(context, env, branch, object) {
 export async function gateProposal(context) {
   const scoped = { ...context, deadline: Date.now() + 1_800_000 };
   const { proposal, policy, token, preview } = context;
-  validateProposal(proposal, policy);
-  assertHostedGate(context);
-  validateGateProof(context);
-  required(
-    typeof token === "string" && token.length > 0,
-    "readonly gate token is absent"
-  );
-  return withPrivateRoot(async root => {
-    const env = {
-      ...candidateEnvironment(root),
-      GIT_AUTHOR_NAME: BOT,
-      GIT_AUTHOR_EMAIL: MAIL,
-      GIT_COMMITTER_NAME: BOT,
-      GIT_COMMITTER_EMAIL: MAIL,
-      GIT_AUTHOR_DATE: `${preview.epoch} +0000`,
-      GIT_COMMITTER_DATE: `${preview.epoch} +0000`,
-    };
-    const branch = await stageProposal(scoped, env);
-    const message = await installGateProof(context, root, args =>
-      git(context.cwd, env, args, undefined, scoped.deadline)
+  await withStage("gate-validate", () => {
+    validateProposal(proposal, policy);
+    assertHostedGate(context);
+    validateGateProof(context);
+    required(
+      typeof token === "string" && token.length > 0,
+      "readonly gate token is absent"
     );
-    const hosted = await createHostedGate(scoped, root, env);
-    try {
-      const gated = { ...scoped, hookInstallation: hosted.installation };
-      const object = await committedProposal(
-        gated,
-        { ...hosted.env, LISA_NPM_HOOK_ROLE: "commit" },
-        message
-      );
-      return await pushProposal(gated, hosted.env, branch, object);
-    } finally {
-      await hosted.close();
-    }
   });
+  return withStage("gate-scratch", () =>
+    withPrivateRoot(async root => {
+      const env = {
+        ...candidateEnvironment(root),
+        GIT_AUTHOR_NAME: BOT,
+        GIT_AUTHOR_EMAIL: MAIL,
+        GIT_COMMITTER_NAME: BOT,
+        GIT_COMMITTER_EMAIL: MAIL,
+        GIT_AUTHOR_DATE: `${preview.epoch} +0000`,
+        GIT_COMMITTER_DATE: `${preview.epoch} +0000`,
+      };
+      const branch = await withStage("gate-stage", () =>
+        stageProposal(scoped, env)
+      );
+      const proofGit = args =>
+        git(context.cwd, env, args, undefined, scoped.deadline);
+      const message = await withStage("gate-proof", () =>
+        installGateProof(context, root, proofGit)
+      );
+      const hosted = await createHostedGate(scoped, root, env);
+      try {
+        const gated = { ...scoped, hookInstallation: hosted.installation };
+        const object = await withStage("gate-commit", () =>
+          committedProposal(
+            gated,
+            { ...hosted.env, LISA_NPM_HOOK_ROLE: "commit" },
+            message
+          )
+        );
+        return await withStage("gate-push", () =>
+          pushProposal(gated, hosted.env, branch, object)
+        );
+      } finally {
+        await withStage("gate-close", () => hosted.close());
+      }
+    })
+  );
 }

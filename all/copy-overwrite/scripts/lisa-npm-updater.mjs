@@ -11,11 +11,11 @@ import { join, resolve } from "node:path";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import {
   required,
-  UpdaterError,
   keys,
   validatePolicy,
   validateProposal,
 } from "./lib/npm-update-contract.mjs";
+import { publicFailure, withStage } from "./lib/npm-update-invariants.mjs";
 import {
   readJson,
   writeJson,
@@ -119,6 +119,32 @@ async function publishPhase(
   process.stdout.write(`${result.status} ${result.url}\n`);
 }
 
+/** Gate input/output classification preserves the original orchestration and authority order. */
+async function gatePhase(
+  cwd,
+  output,
+  proposal,
+  policy,
+  config,
+  allocation,
+  preview
+) {
+  const result = await gateProposal({
+    cwd,
+    proposal,
+    policy,
+    allocation,
+    preview,
+    ...(await withStage("gate-input", () => readGateProof(output))),
+    token: process.env.GH_TOKEN,
+    config,
+  });
+  await withStage("gate-output", () =>
+    writeJson(join(output, "gated.json"), result)
+  );
+  process.stdout.write(`gated ${result.receipt.commit}\n`);
+}
+
 /** Strict phase and fixed directory arguments are data, never a caller recipe. */
 export async function main(argv = process.argv.slice(2)) {
   required(
@@ -131,7 +157,9 @@ export async function main(argv = process.argv.slice(2)) {
   const [phase, checkout, directory] = argv;
   const cwd = resolve(checkout);
   const output = resolve(directory);
-  const { config, policy } = await configuration(cwd);
+  const { config, policy } = await withStage("configuration", () =>
+    configuration(cwd)
+  );
   phaseDirectory(output);
   if (phase === "prepare") {
     const result = await prepareUpdate({ cwd, policy, config });
@@ -168,21 +196,16 @@ export async function main(argv = process.argv.slice(2)) {
     process.stdout.write(`${result.mode} checkpoint complete\n`);
     return;
   }
-  if (phase === "gate") {
-    const result = await gateProposal({
+  if (phase === "gate")
+    return gatePhase(
       cwd,
+      output,
       proposal,
       policy,
-      allocation,
-      preview,
-      ...readGateProof(output),
-      token: process.env.GH_TOKEN,
       config,
-    });
-    writeJson(join(output, "gated.json"), result);
-    process.stdout.write(`gated ${result.receipt.commit}\n`);
-    return;
-  }
+      allocation,
+      preview
+    );
   return publishPhase(
     cwd,
     output,
@@ -197,8 +220,6 @@ export async function main(argv = process.argv.slice(2)) {
 if (invokedAsScript(import.meta.url))
   main().catch(error => {
     // Never print candidate/provider payloads or child output that may contain credentials.
-    process.stderr.write(
-      `${error instanceof UpdaterError ? error.message : "npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable"}\n`
-    );
+    process.stderr.write(`${publicFailure(error)}\n`);
     process.exitCode = 1;
   });

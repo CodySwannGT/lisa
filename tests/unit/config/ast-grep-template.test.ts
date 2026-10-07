@@ -66,24 +66,9 @@ function scanExpectingDiagnostic(
   source: string,
   expectedRuleId: string
 ): void {
-  const tempDir = copyTemplateAstGrep(stack);
-  const absoluteFile = path.join(tempDir, filePath);
-  let status: number | null = null;
-  let output = "";
-
-  fs.mkdirSync(path.dirname(absoluteFile), { recursive: true });
-  fs.writeFileSync(absoluteFile, source, "utf-8");
-  ({ status, stdout: output } = boundedSpawnSync({
-    label: "ast-grep scan",
-    command: AST_GREP,
-    args: ["scan", "--json=compact", filePath],
-    cwd: tempDir,
-    baseMs: 30_000,
-  }));
-
-  fs.rmSync(tempDir, { recursive: true, force: true });
-  expect(status).toBe(1);
-  expect(output).toContain(expectedRuleId);
+  expect(scanForRule(stack, filePath, source, expectedRuleId, 1)).not.toEqual(
+    []
+  );
 }
 
 /** One ast-grep diagnostic, narrowed to the fields these tests assert on. */
@@ -105,21 +90,24 @@ type Diagnostic = {
  * @param filePath - Project-relative file to write and scan
  * @param source - Source text to scan
  * @param ruleId - Rule whose diagnostics should be returned
+ * @param expectedStatus - Optional exact native scanner exit status
  * @returns Diagnostics produced by that rule
  */
 function scanForRule(
   stack: Stack,
   filePath: string,
   source: string,
-  ruleId: string
+  ruleId: string,
+  expectedStatus?: 0 | 1
 ): readonly Diagnostic[] {
   const tempDir = copyTemplateAstGrep(stack);
   const absoluteFile = path.join(tempDir, filePath);
   let output = "";
+  let status: number | null = null;
 
   fs.mkdirSync(path.dirname(absoluteFile), { recursive: true });
   fs.writeFileSync(absoluteFile, source, "utf-8");
-  ({ stdout: output } = boundedSpawnSync({
+  ({ status, stdout: output } = boundedSpawnSync({
     label: "ast-grep scan",
     command: AST_GREP,
     args: ["scan", "--json=compact", filePath],
@@ -128,6 +116,7 @@ function scanForRule(
   }));
 
   fs.rmSync(tempDir, { recursive: true, force: true });
+  if (expectedStatus !== undefined) expect(status).toBe(expectedStatus);
   return (JSON.parse(output || "[]") as readonly Diagnostic[]).filter(
     diagnostic => diagnostic.ruleId === ruleId
   );
@@ -344,6 +333,27 @@ describe("ast-grep stack templates", () => {
       "no-raw-sql-in-where"
     );
   });
+
+  it.each(["send", "public_send", "obj.send", "obj.public_send"])(
+    "%s distinguishes static and unsafe selectors regardless of trailing arguments",
+    invocation => {
+      const cases = [
+        [[":name", '"name"', "'name'", ':"name"', ":'name'"], 0],
+        [["verb", '"name_#{verb}"', ':"name_#{verb}"'], 1],
+      ] as const;
+      const file = "app/models/dispatch.rb";
+      const rule = "no-unsafe-send";
+      for (const [selectors, status] of cases) {
+        const calls = selectors.flatMap(selector =>
+          ["", ", 1, 2"].map(tail => `${invocation}(${selector}${tail})`)
+        );
+        const hits = scanForRule("rails", file, calls.join("\n"), rule, status);
+        expect(hits.map(diagnostic => diagnostic.text)).toEqual(
+          status === 0 ? [] : calls
+        );
+      }
+    }
+  );
 
   it("ships Phaser ast-grep rules with the Phaser stack", () => {
     expect(readText("phaser/copy-overwrite/sgconfig.yml")).toContain(

@@ -45,7 +45,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/history-secret-policy.mjs":
       "ca75ebbc45fca4c52400612ae818d231a28289b50a70f6cdee6feb51b144896f",
     "all/copy-overwrite/scripts/lib/history-secret-scanner.mjs":
-      "d77fc82db53ffbfef6bd714b600ed9f8b711cf52bbf630020efa4841ae5f083c",
+      "07b639188c44ed5db817fc47bcdedfdd58e700024af19d464d78497b1ee236b3",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lib/kill-marks.mjs":
@@ -75,7 +75,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-gate-proof.mjs":
       "7d7ded577a86d2df88fa826d9fe325b0a378db97120f41acba6c9b81cade949f",
     "all/copy-overwrite/scripts/lib/npm-update-gate.mjs":
-      "86b3b29736b5abee8d3f53844084805f4e5d85ad6537488f7d2da284d2146207",
+      "bb6b6b8ea1e3620ee0b1b620e50331788bc99b44f431057e12a60cd138e56bc4",
     "all/copy-overwrite/scripts/lib/npm-update-gh-dispatch.mjs":
       "d78a187dfeb31aa8f5e7ecb38b5902dd4e034d52dca1527ac115dc591de90997",
     "all/copy-overwrite/scripts/lib/npm-update-gh-grants.mjs":
@@ -99,11 +99,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-hook-read-client.mjs":
       "724f22f7a1d5525fca6ed593f70d6da2ffc05bf66f2b178393064fd4d86708b1",
     "all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs":
-      "787e9424114d52f6a6c8a09a67033d69b20d66ee22e1735f856f2c2d9f20aa69",
+      "b6adf8af72067f883c83e11b7465a3f4c219a6e78d98b029b1af489967ccbaa8",
     "all/copy-overwrite/scripts/lib/npm-update-hosted-hook.mjs":
       "e3801b5908bedcc1f98d16584b4c3eb37c5529565465b2827be44aac63444577",
     "all/copy-overwrite/scripts/lib/npm-update-invariants.mjs":
-      "866525d6b23523dc5d45cd1ed7794e31f84be5cc636288cc05d0e54d0cee63a6",
+      "e7a093ceeaca34b6e0cf2ea2eccd3b5e1882e295ec2baeeaec9da0373e669687",
     "all/copy-overwrite/scripts/lib/npm-update-isolation.mjs":
       "66ec5390a0af0e016880c781eae47b8c60d6fca0c79ef500e1926e42eae043bf",
     "all/copy-overwrite/scripts/lib/npm-update-leaf-contract.mjs":
@@ -111,7 +111,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-leaf.mjs":
       "0cc4210470edf0042a61a74799d570b2a1a3e524dca03faca78e49ad88a4dfb9",
     "all/copy-overwrite/scripts/lib/npm-update-native-process.mjs":
-      "29dc444ecb1736be991faffc7439865bcecc2cf19a81f8cefd574f9bb5a40917",
+      "295d69d90f32aad9d757060ea6d3f66787a00e24c19e01e5beaf2ba752fec8da",
     "all/copy-overwrite/scripts/lib/npm-update-npm.mjs":
       "70c1b1be0acb1e0a503bddf400be32ca163847e439b192acd98a7d63c1927b15",
     "all/copy-overwrite/scripts/lib/npm-update-object.mjs":
@@ -225,7 +225,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
       "2379d4fc5174ae4727997a0d88d43a0212941d91bdebaf790caadd20a8c59810",
     "all/copy-overwrite/scripts/lisa-npm-updater.mjs":
-      "43b4eb085bede37441c36fa30af3c65f397bd5862a15d4bce6d05068b7497bac",
+      "0bfa51b90df7ef2e076d35312ece4b6b550e586f2f343a85d94e7dca52156809",
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
       "2a826523a4f4fc58bfa0a24e2cf02504218dd68b4baffb346966dff705dea9b0",
     "all/copy-overwrite/scripts/lisa-rails-prepush.mjs":
@@ -249,7 +249,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "647f264e008ed9df4703ebbedc3aad71991c1c11ce6f77da69794e697448cf97",
+      "fd96a6f85f2a3dae85c032d7a32a31258305e04aaaa0aa8ed5c25a39e5a3d73c",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -2337,7 +2337,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/ast-grep/rules/ruby/no-skip-before-action-without-scope.yml":
       "da03a58620aff4cb3b191e7ec78566438bf5cdd2366a5a3be667774d5f7e2bbe",
     "rails/copy-overwrite/ast-grep/rules/ruby/no-unsafe-send.yml":
-      "eb3eb2d96462f28d6815cf0261af2ed2b18e7258ec88a3338f8ae17c5741d583",
+      "0d25090e91494063a9a4daa86664d6f5914c947b8debe0ad9659dc6e3b4aa124",
     "rails/copy-overwrite/ast-grep/rules/ruby/no-update-columns.yml":
       "5036436ebb4baa703987f3a818d0e33411daa07656611c334fb110316f98cd99",
     "rails/copy-overwrite/ast-grep/utils/.gitkeep":
@@ -9905,6 +9905,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/hardcoded-invocation-inventory.test.ts": true,
     "tests/integration/history-secret-bootstrap.test.ts": true,
     "tests/integration/history-secret-evidence.test.ts": true,
+    "tests/integration/history-secret-private-report.test.ts": true,
     "tests/integration/history-secret-workflow.test.ts": true,
     "tests/integration/host-lint-gate-survives-apply.test.ts": true,
     "tests/integration/host-test-scripts-survive-apply.test.ts": true,
@@ -10850,6 +10851,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/github-attestation-verifier.test.ts": true,
     "tests/unit/scripts/github-governance.test.ts": true,
     "tests/unit/scripts/history-secret-contract.test.ts": true,
+    "tests/unit/scripts/history-secret-private-report.test.ts": true,
     "tests/unit/scripts/install-claude-plugins-self.test.ts": true,
     "tests/unit/scripts/invoked-as-script.test.ts": true,
     "tests/unit/scripts/jira-cli-config-consumption.test.ts": true,
@@ -10978,6 +10980,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/npm-update-compatibility.test.ts": true,
     "tests/unit/scripts/npm-update-contract.test.ts": true,
     "tests/unit/scripts/npm-update-controller-factory.test.ts": true,
+    "tests/unit/scripts/npm-update-diagnostics.test.ts": true,
     "tests/unit/scripts/npm-update-gate-proof.test.ts": true,
     "tests/unit/scripts/npm-update-gh-dispatch.test.ts": true,
     "tests/unit/scripts/npm-update-gh-requests.test.ts": true,

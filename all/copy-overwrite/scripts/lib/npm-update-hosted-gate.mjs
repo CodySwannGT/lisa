@@ -21,6 +21,7 @@ import {
 } from "./npm-update-controller-factory.mjs";
 import { startHookReadBroker } from "./npm-update-hook-provider.mjs";
 import { originalHookInstallation } from "./npm-update-hook-installation.mjs";
+import { withStage } from "./npm-update-invariants.mjs";
 import {
   sha256,
   PROPOSAL_PREDICATE,
@@ -234,22 +235,9 @@ function nodeGateway(root, context) {
   return bin;
 }
 
-/** A separate read-only capability is available during original gates; it cannot acquire publisher/issuer permissions. */
-export async function createHostedGate(context, root, env) {
-  assertHostedGate(context);
-  const native = controllerTools(context.config.automationProvenance);
-  const graph = await qualifiedControllerGraph(context.cwd, context.config, [
-    "lisa-work-item.mjs",
-    "lisa-automation-provenance.mjs",
-    "lisa-rails-prepush.mjs",
-    "lib/npm-update-hosted-hook.mjs",
-    "lib/npm-update-hook-preload.mjs",
-  ]);
-  const installed = await installHostedDependencies(context, root, env);
-  const installation = await installOriginalManager(context, installed);
-  const scope = await proofScope(context, installed);
-  mkdirSync(join(root, "gh-config"), { mode: 0o700 });
-  const profile = {
+/** The unchanged read-only subject is constructed separately so diagnostic wrapping stays within function budgets. */
+function hookProfile(context, root, native, scope) {
+  return {
     version: 1,
     deadline: context.deadline,
     cwd: context.cwd,
@@ -267,16 +255,50 @@ export async function createHostedGate(context, root, env) {
       scope.proofs
     ),
   };
-  const broker = await startHookReadBroker(profile, context.token);
+}
+
+/** A separate read-only capability is available during original gates; it cannot acquire publisher/issuer permissions. */
+export async function createHostedGate(context, root, env) {
+  await withStage("gate-validate", () => assertHostedGate(context));
+  const native = await withStage("gate-tools", () =>
+    controllerTools(context.config.automationProvenance)
+  );
+  const graph = await withStage("gate-graph", () =>
+    qualifiedControllerGraph(context.cwd, context.config, [
+      "lisa-work-item.mjs",
+      "lisa-automation-provenance.mjs",
+      "lisa-rails-prepush.mjs",
+      "lib/npm-update-hosted-hook.mjs",
+      "lib/npm-update-hook-preload.mjs",
+    ])
+  );
+  const installed = await withStage("gate-install", () =>
+    installHostedDependencies(context, root, env)
+  );
+  const installation = await withStage("gate-hooks", () =>
+    installOriginalManager(context, installed)
+  );
+  const scope = await withStage("gate-scope", () =>
+    proofScope(context, installed)
+  );
+  const profile = await withStage("gate-scope", () => {
+    mkdirSync(join(root, "gh-config"), { mode: 0o700 });
+    return hookProfile(context, root, native, scope);
+  });
+  const broker = await withStage("gate-broker", () =>
+    startHookReadBroker(profile, context.token)
+  );
   try {
-    const bin = nodeGateway(root, {
-      version: 1,
-      root,
-      cwd: context.cwd,
-      graph,
-      native,
-      reader: { root, path: broker.path, deadline: context.deadline },
-    });
+    const bin = await withStage("gate-gateway", () =>
+      nodeGateway(root, {
+        version: 1,
+        root,
+        cwd: context.cwd,
+        graph,
+        native,
+        reader: { root, path: broker.path, deadline: context.deadline },
+      })
+    );
     return {
       installation,
       env: {
@@ -294,7 +316,7 @@ export async function createHostedGate(context, root, env) {
       close: broker.close,
     };
   } catch (error) {
-    await broker.close();
+    await withStage("gate-close", () => broker.close());
     throw error;
   }
 }

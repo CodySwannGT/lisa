@@ -142,7 +142,7 @@
       "children": []
     },
     "lib/history-secret-scanner.mjs": {
-      "sha256": "d77fc82db53ffbfef6bd714b600ed9f8b711cf52bbf630020efa4841ae5f083c",
+      "sha256": "07b639188c44ed5db817fc47bcdedfdd58e700024af19d464d78497b1ee236b3",
       "staticImports": [
         "lib/history-secret-evidence.mjs",
         "lib/history-secret-git.mjs",
@@ -353,7 +353,7 @@
       "children": []
     },
     "lib/npm-update-gate.mjs": {
-      "sha256": "86b3b29736b5abee8d3f53844084805f4e5d85ad6537488f7d2da284d2146207",
+      "sha256": "bb6b6b8ea1e3620ee0b1b620e50331788bc99b44f431057e12a60cd138e56bc4",
       "staticImports": [
         "lib/github-attestation-verifier.mjs",
         "lib/npm-update-contract.mjs",
@@ -362,6 +362,7 @@
         "lib/npm-update-gate-proof.mjs",
         "lib/npm-update-github.mjs",
         "lib/npm-update-hosted-gate.mjs",
+        "lib/npm-update-invariants.mjs",
         "lib/npm-update-prepare.mjs",
         "lib/npm-update-process.mjs",
         "lib/npm-update-publication.mjs",
@@ -499,7 +500,7 @@
       "children": []
     },
     "lib/npm-update-hosted-gate.mjs": {
-      "sha256": "787e9424114d52f6a6c8a09a67033d69b20d66ee22e1735f856f2c2d9f20aa69",
+      "sha256": "b6adf8af72067f883c83e11b7465a3f4c219a6e78d98b029b1af489967ccbaa8",
       "staticImports": [
         "lib/github-attestation-verifier.mjs",
         "lib/npm-update-contract.mjs",
@@ -507,6 +508,7 @@
         "lib/npm-update-helper.mjs",
         "lib/npm-update-hook-installation.mjs",
         "lib/npm-update-hook-provider.mjs",
+        "lib/npm-update-invariants.mjs",
         "lib/npm-update-process.mjs",
         "node:fs",
         "node:path",
@@ -534,7 +536,7 @@
       ]
     },
     "lib/npm-update-invariants.mjs": {
-      "sha256": "866525d6b23523dc5d45cd1ed7794e31f84be5cc636288cc05d0e54d0cee63a6",
+      "sha256": "e7a093ceeaca34b6e0cf2ea2eccd3b5e1882e295ec2baeeaec9da0373e669687",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
@@ -573,9 +575,10 @@
       "children": []
     },
     "lib/npm-update-native-process.mjs": {
-      "sha256": "29dc444ecb1736be991faffc7439865bcecc2cf19a81f8cefd574f9bb5a40917",
+      "sha256": "295d69d90f32aad9d757060ea6d3f66787a00e24c19e01e5beaf2ba752fec8da",
       "staticImports": [
         "lib/npm-update-contract.mjs",
+        "lib/npm-update-invariants.mjs",
         "node:child_process",
         "node:url"
       ],
@@ -950,7 +953,7 @@
       "children": []
     },
     "lisa-npm-updater.mjs": {
-      "sha256": "43b4eb085bede37441c36fa30af3c65f397bd5862a15d4bce6d05068b7497bac",
+      "sha256": "0bfa51b90df7ef2e076d35312ece4b6b550e586f2f343a85d94e7dca52156809",
       "staticImports": [
         "lib/github-attestation-verifier.mjs",
         "lib/invoked-as-script.mjs",
@@ -960,6 +963,7 @@
         "lib/npm-update-gate-proof.mjs",
         "lib/npm-update-gate.mjs",
         "lib/npm-update-github.mjs",
+        "lib/npm-update-invariants.mjs",
         "lib/npm-update-prepare.mjs",
         "lib/npm-update-process.mjs",
         "lib/npm-update-publish.mjs",
