@@ -132,6 +132,32 @@ const credentialCases = credentialKeys.flatMap(key => [
 ]);
 
 /**
+ * Select disjoint bounded witnesses without changing the default full journey.
+ * @param {string[]} args - Actual fixture command arguments
+ * @returns {typeof cases} Exact authored fixture tuples
+ */
+export function selectPortableCases(args) {
+  const flag = "--portable-partition";
+  const selectors = args.filter(arg => arg.startsWith(flag));
+  const index = args.indexOf(flag);
+  const partition = index < 0 ? null : args[index + 1];
+  if (
+    selectors.length > 1 ||
+    selectors.some(arg => arg !== flag) ||
+    ![null, "first", "second"].includes(partition) ||
+    (partition !== null &&
+      (!args.includes("--portable-only") ||
+        args.includes("--portable-credential-keys")))
+  )
+    throw new Error("Unknown portable control selector.");
+  const selected = args.includes("--portable-credential-keys")
+    ? credentialCases
+    : cases;
+  if (partition === null) return [...selected];
+  return partition === "first" ? selected.slice(0, 10) : selected.slice(10);
+}
+
+/**
  * Build the genuine seed/evidence graph.
  * @param harness - Private fixture authority
  * @param fixture - Exact authored case tuple
@@ -218,14 +244,12 @@ const portableCase = (harness, fixture) => {
  * @returns Whether the portable-only path was exercised
  */
 export function runEvidenceCases(harness, original) {
+  const selected = selectPortableCases(harness.args);
   if (!harness.args.includes("--portable-only")) {
     original();
     return false;
   }
   const mismatches = [];
-  const selected = harness.args.includes("--portable-credential-keys")
-    ? credentialCases
-    : cases;
   harness.values.push(digest, missing);
   for (const fixture of selected) {
     const observation = portableCase(harness, fixture);

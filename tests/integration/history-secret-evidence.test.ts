@@ -7,14 +7,44 @@ import {
   boundedSpawnSync,
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
+import { selectPortableCases } from "../fixtures/git-history-secrets/portable-evidence.mjs";
 
 useIoLatencyBudget();
 const root = resolve(import.meta.dirname, "../..");
 const lease = mkdtempSync(join(tmpdir(), "history-evidence-scanner-"));
 const scanner = join(lease, "gitleaks");
-// The aggregate digest workload is partitioned into two 14-control children.
+// Serial native workloads are partitioned into disjoint bounded children.
 // Each child and case retains the existing bounded budget and margin guard.
 const childBaseMs = 30_000;
+const portableOnly = "--portable-only";
+const portablePartition = "--portable-partition";
+const portableCredentialKeys = "--portable-credential-keys";
+const portableNames = [
+  "portable-source-hashes",
+  "portable-source-hashes-after",
+  "portable-bare-source-map",
+  "portable-fenced-source-map",
+  "portable-proof-catalogue",
+  "portable-selected-artifact",
+  "portable-narrative-sentence",
+  "portable-source-introduced-history",
+  "portable-catalogue-mismatch",
+  "portable-catalogue-absent",
+  "portable-catalogue-symlink",
+  "portable-catalogue-foreign-head",
+  "portable-source-path-mismatch",
+  "portable-proof-credential-role",
+  "portable-duplicate-role",
+  "portable-escaped-proof-value",
+  "portable-narrative-code-fence",
+  "portable-adjacent-credential",
+  "portable-proof-unverified-sibling",
+  "portable-proof-credential-sibling",
+];
+const reservedNames = ["api_key", "access_token", "password"].flatMap(key => [
+  `portable-proof-key-${key}`,
+  `portable-source-key-${key}`,
+]);
 const expected = {
   positive: [
     "verified-digest-exact-bytes",
@@ -88,18 +118,60 @@ afterAll(() => {
 });
 
 describe("required history evidence actual CLI controls", () => {
+  it("preserves the exact default and disjoint union of all portable controls", () => {
+    const names = (flags: string[]) =>
+      selectPortableCases(flags).map(row => row[0]);
+    const first = names([portableOnly, portablePartition, "first"]);
+    const second = names([portableOnly, portablePartition, "second"]);
+    expect(names([])).toEqual(portableNames);
+    expect(first).toEqual(portableNames.slice(0, 10));
+    expect(second).toEqual(portableNames.slice(10));
+    expect([...first, ...second]).toEqual(portableNames);
+    expect(new Set([...first, ...second]).size).toBe(20);
+    expect(selectPortableCases([]).map(row => row[2])).toEqual([
+      ...Array<number>(8).fill(0),
+      ...Array<number>(12).fill(42),
+    ]);
+    expect(names([portableOnly, portableCredentialKeys])).toEqual(
+      reservedNames
+    );
+  });
   it.each([
-    ["portable", [], 20, 8],
-    ["reserved-keys", ["--portable-credential-keys"], 6, 0],
+    [portableOnly, portablePartition],
+    [portableOnly, portablePartition, "third"],
+    [portableOnly, "--portable-partition=first"],
+    [portableOnly, "--portable-partition-extra", "first"],
+    [portableOnly, portablePartition, "first", portablePartition, "second"],
+    [portablePartition, "first"],
+    [portableOnly, portableCredentialKeys, portablePartition, "first"],
+  ])("refuses malformed or incompatible portable selectors %#", (...flags) => {
+    expect(() => selectPortableCases(flags)).toThrow(
+      "Unknown portable control selector."
+    );
+  });
+  it.each([
+    [
+      "portable-first",
+      [portablePartition, "first"],
+      portableNames.slice(0, 10),
+      8,
+    ],
+    [
+      "portable-second",
+      [portablePartition, "second"],
+      portableNames.slice(10),
+      0,
+    ],
+    ["reserved-keys", [portableCredentialKeys], reservedNames, 0],
   ] as const)(
     "executes exact %s committed evidence controls",
-    (_name, flags, count, positiveCount) => {
+    (_name, flags, names, positiveCount) => {
       const result = boundedSpawnSync({
         label: "actual portable committed evidence CLI controls",
         command: process.execPath,
         args: [
           join(root, "tests/fixtures/git-history-secrets/journey.mjs"),
-          "--portable-only",
+          portableOnly,
           ...flags,
           "--scanner",
           scanner,
@@ -115,12 +187,16 @@ describe("required history evidence actual CLI controls", () => {
       expect(report.cleanup).toBe(
         "all owned fixture repositories/processes removed on exit"
       );
-      expect(report.observations).toHaveLength(count);
+      expect(
+        report.observations.map((row: { name: string }) => row.name)
+      ).toEqual(names);
       expect(
         report.observations.filter((row: { exit: number }) => row.exit === 0)
       ).toHaveLength(positiveCount);
-      for (const row of report.observations)
+      for (const [index, row] of report.observations.entries()) {
         expect(row.exit).toBe(row.expected);
+        expect(row.exit).toBe(index < positiveCount ? 0 : 42);
+      }
     }
   );
   it.each([
