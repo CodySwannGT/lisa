@@ -14,7 +14,12 @@ import {
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { createHash } from "node:crypto";
-import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  useIoLatencyBudget,
+} from "../../helpers/io-latency-budget.js";
+
+useIoLatencyBudget();
 
 const MANIFEST_FILE = "package.json";
 const PACKAGE = "@codyswann/lisa";
