@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.71.3](https://github.com/CodySwannGT/lisa/compare/v4.71.2...v4.71.3) (2026-10-07)
+
+
+### Bug Fixes
+
+* authenticate stale npm proposal cancellation ([7e5dc4c](https://github.com/CodySwannGT/lisa/commit/7e5dc4ca57a0f440f04caf4b8e6cebf606630b87)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* bind cancellation to exact operator and bot identities ([f53653c](https://github.com/CodySwannGT/lisa/commit/f53653c5e147c9f8bc5849ed869fdd044d2da8ee)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* keep cancellation phase literal clean under shipped lint ([f558e88](https://github.com/CodySwannGT/lisa/commit/f558e8893acd22fcb21da52428d8b805990a01f0)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+
 ### [4.71.2](https://github.com/CodySwannGT/lisa/compare/v4.71.1...v4.71.2) (2026-10-07)
 
 
