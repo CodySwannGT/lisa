@@ -33,12 +33,16 @@ import { describe, expect, it, afterEach } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import {
+  FAKE_TOKEN,
   SUPERVISOR_EXIT,
   SUPERVISOR_PATH,
   makeScratchBase,
+  makeProbeRoot,
+  markerBody,
   namespaceEntries,
   readTrace,
   runSupervisor,
+  writeMarker,
   type ScratchBase,
 } from "./support/rails-scratch-supervisor";
 
@@ -59,6 +63,39 @@ afterEach(() => {
 });
 
 describe("the cleanup authority acknowledges before the payload allocates", () => {
+  it.each(["rspec-mysql", "x".repeat(64)])(
+    "binds a native Chrome-shaped Unix socket for suite %s",
+    async suite => {
+      const shortBase = fs.realpathSync("/tmp");
+      const run = await runSupervisor(shortBase, [
+        "--suite",
+        suite,
+        "--",
+        "ruby",
+        "-rsocket",
+        "-rjson",
+        "-e",
+        `directory = File.join(ENV.fetch("TMPDIR"), "com.google.Chrome.123456")
+       socket = File.join(directory, "SingletonSocket")
+       Dir.mkdir(directory)
+       begin
+         server = UNIXServer.new(socket)
+         puts JSON.generate(root: ENV.fetch("LISA_SCRATCH_ROOT"), socket_bytes: socket.bytesize)
+       ensure
+         server&.close
+         File.unlink(socket) if File.socket?(socket)
+         Dir.rmdir(directory)
+       end`,
+      ]);
+      expect(run.code, run.stderr).toBe(0);
+      const observed: { root: string; socket_bytes: number } = JSON.parse(
+        run.stdout
+      );
+      expect(observed.socket_bytes + 1).toBeLessThanOrEqual(104);
+      expect(fs.existsSync(observed.root)).toBe(false);
+    }
+  );
+
   it("acknowledges, then opens the gate, then lets the payload execute", async () => {
     const scratch = base();
     const trace = path.join(scratch.base, "trace.log");
@@ -94,13 +131,14 @@ describe("the cleanup authority acknowledges before the payload allocates", () =
     // The payload copies the record out before it can be deleted, which is the
     // only way to read a record whose whole point is not to outlive the run.
     const copied = path.join(scratch.base, "arm-copy");
+    const copiedAck = path.join(scratch.base, "ack-copy");
     const run = await runSupervisor(scratch.base, [
       "--suite",
       "fields",
       "--",
       "sh",
       "-c",
-      `cat "$LISA_SCRATCH_ROOT/.lisa-scratch-arm" > "${copied}"`,
+      `cat "$LISA_SCRATCH_ROOT/.lisa-scratch-arm" > "${copied}"; cat "$LISA_SCRATCH_ROOT/.lisa-scratch-ack" > "${copiedAck}"`,
     ]);
     expect(run.code).toBe(0);
 
@@ -127,6 +165,17 @@ describe("the cleanup authority acknowledges before the payload allocates", () =
     expect(record).toMatch(/^devino=\S+ \d+$/m);
     expect(record).toMatch(/^pgid=[1-9]\d*$/m);
     expect(record).toMatch(/^birth=\S.*$/m);
+    const token = record
+      .split("\n")
+      .find(line => line.startsWith("token="))
+      ?.slice(6);
+    expect(token).toHaveLength(64);
+    expect(fs.readFileSync(copiedAck, "utf-8").split("\n")).toContain(
+      `token=${token}`
+    );
+    expect(record.split("\n")).toContain(
+      `root=${scratch.namespace}/r.${token?.slice(0, 24)}`
+    );
   });
 
   it("puts the payload in a process group of its own, with no controlling terminal", async () => {
@@ -172,7 +221,7 @@ describe("the cleanup authority acknowledges before the payload allocates", () =
       .trim()
       .split("\n");
     expect(tmpdir).toMatch(
-      new RegExp(`^${scratch.namespace}/tmpdir\\.[0-9a-f]{64}/tmp$`)
+      new RegExp(`^${scratch.namespace}/r\\.[0-9a-f]{24}/tmp$`)
     );
     expect(tmp).toBe(tmpdir);
     expect(temp).toBe(tmpdir);
@@ -180,6 +229,31 @@ describe("the cleanup authority acknowledges before the payload allocates", () =
 });
 
 describe("an arming or acknowledgement failure refuses, it does not proceed", () => {
+  it("refuses authority without the independently inherited full token", async () => {
+    const scratch = base();
+    const root = makeProbeRoot(scratch.namespace);
+    writeMarker(root, markerBody(root));
+    const run = await runSupervisor(scratch.base, ["--authority", root], {
+      LISA_SCRATCH_TOKEN: "",
+    });
+    expect(run.code).toBe(SUPERVISOR_EXIT.ambiguous);
+    expect(fs.existsSync(root)).toBe(true);
+    expect(fs.existsSync(path.join(root, ".lisa-scratch-ack"))).toBe(false);
+  });
+
+  it("refuses a locator that differs from the full marker token", async () => {
+    const scratch = base();
+    const root = path.join(scratch.namespace, `r.${"b".repeat(24)}`);
+    fs.mkdirSync(root, { recursive: true });
+    writeMarker(root, markerBody(root));
+    const run = await runSupervisor(scratch.base, ["--authority", root], {
+      LISA_SCRATCH_TOKEN: FAKE_TOKEN,
+    });
+    expect(run.code).toBe(SUPERVISOR_EXIT.ambiguous);
+    expect(fs.existsSync(root)).toBe(true);
+    expect(fs.existsSync(path.join(root, ".lisa-scratch-ack"))).toBe(false);
+  });
+
   it("never executes the payload when the authority declines to acknowledge", async () => {
     const scratch = base();
     const sentinel = path.join(scratch.base, "PAYLOAD_RAN");

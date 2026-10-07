@@ -62,6 +62,55 @@ export interface ScratchBase {
 }
 
 /**
+ * Seed entropy only for explicit collision/signal utility protocol controls.
+ * @param directory - Positively owned fixture base
+ * @returns Private utility directory, never a vendor/runtime qualification
+ */
+export function seededEntropy(directory: string): string {
+  const bin = path.join(directory, "entropy-control");
+  fs.mkdirSync(bin);
+  fs.writeFileSync(
+    path.join(bin, "od"),
+    `#!/bin/sh\nprintf '%s\\n' '${FAKE_TOKEN}'\n`,
+    { mode: 0o700 }
+  );
+  return bin;
+}
+
+/**
+ * Deliver TERM after actual mkdir returns, before parent arming resumes.
+ * @param scratch - Owned fixture base and namespace
+ * @param existing - Whether native mkdir must encounter a foreign collision
+ * @returns Exact fixture identities and utility directory for assertions
+ */
+export function creationSignalControl(scratch: ScratchBase, existing: boolean) {
+  const root = path.join(scratch.namespace, `r.${FAKE_TOKEN.slice(0, 24)}`);
+  const retained = path.join(root, "foreign-marker");
+  if (existing) {
+    fs.mkdirSync(root, { recursive: true });
+    fs.writeFileSync(retained, "preserved");
+  }
+  const inode = existing ? fs.statSync(root).ino : null;
+  const bin = seededEntropy(scratch.base);
+  fs.writeFileSync(
+    path.join(bin, "mkdir"),
+    `#!/bin/sh
+case "$1" in
+  '${root}')
+    /bin/mkdir "$@"
+    status=$?
+    kill -TERM "$PPID"
+    exit "$status"
+    ;;
+  *) exec /bin/mkdir "$@" ;;
+esac
+`,
+    { mode: 0o700 }
+  );
+  return { root, retained, inode, bin };
+}
+
+/**
  * Create an isolated temp base for one test.
  *
  * Canonicalized eagerly: on Darwin `os.tmpdir()` returns the symlinked
@@ -98,8 +147,12 @@ export function spawnSupervisor(
   args: readonly string[],
   env: SupervisorEnv = {}
 ): ChildProcess {
+  // Direct hostile authority controls retain a complete expected authority,
+  // independently of the marker the case damages. Normal runs mint their own.
+  const authorityEnv =
+    args[0] === "--authority" ? { LISA_SCRATCH_TOKEN: FAKE_TOKEN } : {};
   return spawn(SH, [SUPERVISOR_PATH, ...args], {
-    env: { ...process.env, LISA_SCRATCH_BASE: base, ...env },
+    env: { ...process.env, LISA_SCRATCH_BASE: base, ...authorityEnv, ...env },
     stdio: ["ignore", "pipe", "pipe"],
   });
 }
@@ -275,11 +328,10 @@ export function markerBody(
 /**
  * Create a probe run root directly beneath a scratch namespace.
  * @param namespace - The `lisa-rails-scratch` directory
- * @param label - Suite-shaped prefix for the directory name
  * @returns Absolute path of the created directory
  */
-export function makeProbeRoot(namespace: string, label: string): string {
-  const root = path.join(namespace, `${label}.${PROBE_SUFFIX}`);
+export function makeProbeRoot(namespace: string): string {
+  const root = path.join(namespace, `r.${FAKE_TOKEN.slice(0, 24)}`);
   fs.mkdirSync(root, { recursive: true });
   return root;
 }

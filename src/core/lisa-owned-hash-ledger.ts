@@ -1499,6 +1499,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/lisa-scratch-run.sh": Object.freeze([
     "375f52fc823be97c9d12a774b15ad353c5ef2d99e8073cc7ca94dfbdcb62fe72",
     "53dc40fb45907273b435a280a22ceb65d4edf7aecec60e154801552a3b219464",
+    "6fdec1ad0441d7636dc6749c44a23167baf7b75004f156b8a7d4ce1c18c790b7",
     "ef3c38f8d1d2f48ba265e21f841310d25142228dac57b0a5742c7d902113ca9a",
   ]),
   "scripts/lisa-self-update.mjs": Object.freeze([
@@ -3221,6 +3222,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   "scripts/lisa-scratch-run.sh": Object.freeze([
     "375f52fc823be97c9d12a774b15ad353c5ef2d99e8073cc7ca94dfbdcb62fe72",
     "53dc40fb45907273b435a280a22ceb65d4edf7aecec60e154801552a3b219464",
+    "6fdec1ad0441d7636dc6749c44a23167baf7b75004f156b8a7d4ce1c18c790b7",
     "ef3c38f8d1d2f48ba265e21f841310d25142228dac57b0a5742c7d902113ca9a",
   ]),
   "scripts/lisa-self-update.mjs": Object.freeze([
