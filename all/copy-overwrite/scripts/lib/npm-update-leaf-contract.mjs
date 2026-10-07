@@ -142,7 +142,7 @@ Git history command: ${evidence.history.command}
 Git history outcome: ${evidence.history.result}
 All-state GitHub query: ${evidence.search.query}
 Outcome: every matching record was loaded completely; unrelated work was preserved and exact proposal recovery was checked separately.
-Matches are read completely before allocating this deterministic proposal. No parent or PRD lineage is declared; this build-ready standalone Task is one leaf.
+Matches are read completely before allocating this deterministic proposal. No parent or PRD lineage is declared; this build-ready standalone Task is one leaf.${evidence.supersession ? `\nSupersedes cancelled proposal ${evidence.supersession.workItem}. Original proposal key: ${evidence.supersession.proposalKey}. Verified cancellation SHA256: ${evidence.supersession.cancellationSha256}. The previous claim, specification and checkpoint are preserved; this leaf has fresh parent-bound authority.` : ""}
 
 ## Validation Journey
 

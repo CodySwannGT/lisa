@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 199,
-  "$names": 1564,
+  "$modules": 203,
+  "$names": 1587,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -134,7 +134,8 @@
       "verifyAssignable",
       "verifyCurrentProvider",
       "verifyHistoricalProvider",
-      "verifyRecoveryProvider"
+      "verifyRecoveryProvider",
+      "verifyStaleOriginProvider"
     ],
     "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs": [
       "assertHistoricalAttestation",
@@ -214,6 +215,28 @@
     ],
     "all/copy-overwrite/scripts/lib/npm-update-broker-client.mjs": [
       "invokeControllerRecipe"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-cancel-origin.mjs": [
+      "assertOriginTransport",
+      "authenticateStaleOrigin",
+      "committedCancellationConfig",
+      "completeCheckpoints"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-cancellation-proof.mjs": [
+      "CANCELLATION_PREDICATE",
+      "assertCancellationAttestation",
+      "assertManualCancellation",
+      "assertRecordedCancellation",
+      "assertRecordedOperator",
+      "cancellationRecord",
+      "validateCancellation",
+      "verifyCancellationAttestation",
+      "verifyRecordedCancellation"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-cancellation.mjs": [
+      "assertDispatchCancellation",
+      "finalizeCancellation",
+      "prepareCancellation"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-checkpoint.mjs": [
       "checkpointComments",
@@ -379,6 +402,7 @@
       "claimLeaf",
       "environment",
       "historicalFiling",
+      "inspectCancelledLeaf",
       "inspectLeaf",
       "leafRoles",
       "qualityGates"
@@ -485,6 +509,12 @@
     "all/copy-overwrite/scripts/lib/npm-update-runtime.mjs": [
       "toolIdentity",
       "validateRuntime"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-supersession.mjs": [
+      "cancellationDestinationAbsent",
+      "discoverSupersession",
+      "recordedCancellation",
+      "selectSupersession"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-tool-launcher.mjs": [
       "dispatchTool",
@@ -714,6 +744,7 @@
       "tasksOf"
     ],
     "all/copy-overwrite/scripts/lisa-npm-updater.mjs": [
+      "cancellationRequest",
       "main"
     ],
     "all/copy-overwrite/scripts/lisa-postinstall.mjs": [

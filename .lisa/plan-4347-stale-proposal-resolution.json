@@ -1,0 +1,76 @@
+{
+  "plan": "4347-stale-proposal-resolution",
+  "type": "bug",
+  "work_item_context": ".lisa/work-item-context.md",
+  "acceptance_criteria": [
+    "An explicitly requested manual cancellation verifies the actual configured maintainer, current repository permission and exact parent through the pinned Linux control plane.",
+    "Only an authentic stale prepublication proposal with no branch or PR can be cancelled; original body, claim, checkpoints and attestation remain intact.",
+    "A distinct signed cancellation subject cannot authorize ordinary publication or recovery. A verified cancellation permits exactly one new parent-bound open leaf and fresh origin.",
+    "Partial cancellations and fresh-leaf allocation resume without duplicate issues, closed-leaf reuse, deletion, rewriting or fabricated review approval.",
+    "Original same-parent recovery, default scheduled/manual updates, hooks, publisher, checks and token isolation remain unchanged."
+  ],
+  "relevant_documentation": [
+    "CodySwannGT/lisa#4347: full live body and all eight comments",
+    "docs/npm-updater.md",
+    "all/copy-overwrite/scripts/lib/npm-update-allocate.mjs",
+    "all/copy-overwrite/scripts/lib/npm-update-invariants.mjs",
+    "all/copy-overwrite/scripts/lib/npm-update-recovery.mjs",
+    "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs",
+    ".github/workflows/npm-updater.yml"
+  ],
+  "source_ownership": [
+    "all/copy-overwrite/scripts/lisa-npm-updater.mjs",
+    "all/copy-overwrite/scripts/lib/npm-update-allocate.mjs",
+    "all/copy-overwrite/scripts/lib/npm-update-leaf.mjs",
+    "all/copy-overwrite/scripts/lib/npm-update-leaf-contract.mjs",
+    "all/copy-overwrite/scripts/lib/npm-update-cancellation-proof.mjs",
+    "all/copy-overwrite/scripts/lib/npm-update-cancel-origin.mjs",
+    "all/copy-overwrite/scripts/lib/npm-update-cancellation.mjs",
+    "all/copy-overwrite/scripts/lib/npm-update-supersession.mjs",
+    "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs",
+    "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs",
+    "all/copy-overwrite/scripts/lib/npm-update-invariants.mjs",
+    ".github/workflows/npm-updater.yml",
+    "docs/npm-updater.md",
+    "tests/unit/scripts/npm-update-cancellation.test.ts",
+    "tests/unit/scripts/npm-update-cancellation-lifecycle.test.ts",
+    "tests/unit/scripts/npm-update-cancellation-workflow.test.ts",
+    "tests/unit/scripts/npm-update-github.test.ts",
+    "tests/unit/scripts/npm-update-contract.test.ts",
+    "officially generated helper graph, ledger, export, coupling and evidence artifacts"
+  ],
+  "design": [
+    "The four small new leaves separate fixed cancellation proof/schema, historical-origin inspection, cancellation lifecycle and bounded supersession discovery; no new workflow, broker or parser.",
+    "Default empty optional cancellation inputs preserve the existing updater path. Cancellation is restricted to genuine workflow_dispatch runs on committed main and the existing qualified Ubuntu/GH target.",
+    "Native bounded dispatch input bytes are compared to the exact cancellation request; actual provider run, configured operator and current repository permission remain independently required. New cancellation diagnostics use only four source-chosen fixed stages.",
+    "The old committed policy authenticates original bytes and historical run; current committed policy independently authenticates cancellation and replacement. Existing verifier entry points remain unchanged.",
+    "Old and new work items, branches and PRs are preserve state. Cancellation closes only its positively authenticated old leaf as not_planned and never deletes evidence.",
+    "Authenticated workflow dispatch is operator intent, never evidence of human pull-request approval."
+  ],
+  "testing_requirements": [
+    "Record reaching RED before production edits, then focused source/unit GREEN using the original test wrapper.",
+    "Verify the three fixed signing purposes reject every cross-purpose substitution.",
+    "Reach authentic cancellation, interruption/resume, fresh allocation and retry; refuse forged markers, wrong operator/repository/base, hold, altered authority, existing destinations, generic closed leaves and ambiguous chains.",
+    "Preserve all existing controls, output/time/size bounds and real native nonzero status behavior.",
+    "The highest practical product surface is the native CLI and GitHub workflow; synthetic provider unit responses establish code behavior only. Real released default-token hosted cancellation/publication remains mandatory before completion."
+  ],
+  "skills": ["lisa-implement", "lisa-track", "lisa-tdd-implementation", "lisa-git-commit"],
+  "learnings": [],
+  "source_verification": {
+    "focused_controls": "Five original-wrapper suites: 187 passed, including all original GitHub/contract controls, cancellation purpose separation, preserved historical-provider refusal, native-event intent, interruption/resume and idempotence. Synthetic replies are not hosted provider proof.",
+    "typecheck": "No new or stale-quarantine errors; the existing 362 quarantined files and 1542 diagnostics remain unchanged.",
+    "inventory": "Actual base 022afb has 91 authenticated members and 159 delivered paths; four fixed new leaves produce 95 members and 163 delivered paths. External selector limit 64 is unchanged.",
+    "peer_correction": "The actual recordedCancellation path now also requires its cancellation comments to be unedited Bot posts within the independently observed cancellation run. Reaching RED accepted foreign/edited/later-copied transport; the original wrapper GREEN passes all 14 changed-boundary controls, including three exact refusals and genuine-shaped synthetic transport. Original 187-control proof remains retained separately.",
+    "pending": "Independent source review, ordinary hooks/full push, hosted checks/release/adoption and genuine manual cancellation/default-token producer acceptance. No provider cancellation performed."
+  },
+  "required_access": [
+    {"tool": "GitHub upstream issue/source", "probe": "gh api repos/CodySwannGT/lisa/issues/4347 and full paginated comments; git fetch origin main", "status": "pass"},
+    {"tool": "Native Node/Bun", "probe": "mise where node@22.23.3 and mise where bun@1.3.8", "status": "pass"},
+    {"tool": "Published host control plane", "probe": "After release: genuine manually requested native default-token run with actual configured maintainer and provider readback", "status": "pending"}
+  ],
+  "verification": {
+    "type": "api-test",
+    "command": "After reviewed release/adoption, dispatch the opted-in immutable caller with exact stale proposal/current-parent cancellation inputs, read actual cancelled leaf/receipt and fresh Actions-authored leaf/PR/current-head gates, then retry and read unchanged identities.",
+    "expected": "Preserved cancelled origin, exactly one fresh open canonical leaf before commit, identical retry reuse, genuine default-token PR with ordinary current-head checks and separate genuine human review."
+  }
+}
