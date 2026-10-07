@@ -280,7 +280,7 @@ try {
   const portable = runEvidenceCases(harness, evidenceCases);
   if (!portable && !harness.args.includes("--evidence-only")) {
     const fixture = graphCases(harness);
-    reportModeCase(harness, fixture);
+    await reportModeCase(harness, fixture);
     errorCases(harness, fixture);
     nativePushCases(harness);
   }

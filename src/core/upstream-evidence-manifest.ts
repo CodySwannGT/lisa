@@ -45,7 +45,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/history-secret-policy.mjs":
       "ca75ebbc45fca4c52400612ae818d231a28289b50a70f6cdee6feb51b144896f",
     "all/copy-overwrite/scripts/lib/history-secret-scanner.mjs":
-      "d77fc82db53ffbfef6bd714b600ed9f8b711cf52bbf630020efa4841ae5f083c",
+      "07b639188c44ed5db817fc47bcdedfdd58e700024af19d464d78497b1ee236b3",
     "all/copy-overwrite/scripts/lib/invoked-as-script.mjs":
       "fbb9b88fc85a3e22f21af39e1c17acf67ff83fc6b5a6cdc8081bde333c48faa7",
     "all/copy-overwrite/scripts/lib/kill-marks.mjs":
@@ -249,7 +249,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "647f264e008ed9df4703ebbedc3aad71991c1c11ce6f77da69794e697448cf97",
+      "fe96d8b0227ca76e2ee92bcc233fa60b011d0990e69c35e80fc752ca7977e6b9",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -9905,6 +9905,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/hardcoded-invocation-inventory.test.ts": true,
     "tests/integration/history-secret-bootstrap.test.ts": true,
     "tests/integration/history-secret-evidence.test.ts": true,
+    "tests/integration/history-secret-private-report.test.ts": true,
     "tests/integration/history-secret-workflow.test.ts": true,
     "tests/integration/host-lint-gate-survives-apply.test.ts": true,
     "tests/integration/host-test-scripts-survive-apply.test.ts": true,
@@ -10850,6 +10851,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/github-attestation-verifier.test.ts": true,
     "tests/unit/scripts/github-governance.test.ts": true,
     "tests/unit/scripts/history-secret-contract.test.ts": true,
+    "tests/unit/scripts/history-secret-private-report.test.ts": true,
     "tests/unit/scripts/install-claude-plugins-self.test.ts": true,
     "tests/unit/scripts/invoked-as-script.test.ts": true,
     "tests/unit/scripts/jira-cli-config-consumption.test.ts": true,
