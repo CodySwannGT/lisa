@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.71.0](https://github.com/CodySwannGT/lisa/compare/v4.70.4...v4.71.0) (2026-10-07)
+
+
+### Features
+
+* add fail-closed npm updater source contracts ([7e8ee15](https://github.com/CodySwannGT/lisa/commit/7e8ee15d82f4769797552229d22ab5f9a00d8807)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* bound scoped updater controller dispatch ([b8ca79a](https://github.com/CodySwannGT/lisa/commit/b8ca79a0958347fb17eb36fde14c6b24ba541db1)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **hooks:** authenticate bounded automation provenance ([677a51e](https://github.com/CodySwannGT/lisa/commit/677a51e235ee244a1360d7c0f53178366fd06ea8)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **npm-updater:** connect the opt-in hosted producer ([3bd1b91](https://github.com/CodySwannGT/lisa/commit/3bd1b91b09738ac79ab871fa223f1f03a8e15e06)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* verify fresh recovery for immutable npm proposals ([b39703e](https://github.com/CodySwannGT/lisa/commit/b39703e5c605043cdd92f7feadf1aad220cacf37)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+
+
+### Bug Fixes
+
+* exclude provider credentials from npm updater workers ([4153c74](https://github.com/CodySwannGT/lisa/commit/4153c74c737e080cadf3c17e2f20043ec53f0494)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **gates:** preserve supervised exit during diagnostic capture ([062ae74](https://github.com/CodySwannGT/lisa/commit/062ae74cc66f327b4d894098c6760cfa4117fd79)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **hooks:** scope configuration reads to their command ([c23ca1a](https://github.com/CodySwannGT/lisa/commit/c23ca1a745baed2def92c0d897b756da94892b02)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **npm-updater:** assert the reusable workflow contract ([8e9eef4](https://github.com/CodySwannGT/lisa/commit/8e9eef4278d3413e8222185da82e204c80e59844)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **npm-updater:** repair native gate conformance ([d3a6bdb](https://github.com/CodySwannGT/lisa/commit/d3a6bdb80246755dd5affda1cf39dbf31cdb7c68)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **npm-updater:** type-check native gate fixtures ([01194b7](https://github.com/CodySwannGT/lisa/commit/01194b7ce66d61f3f55b64e588b8bb7c67aa21d6)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* preserve literal argv in npm updater supervision ([cd18830](https://github.com/CodySwannGT/lisa/commit/cd18830d46834ea54b3e2563376515838b0114d3)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* preserve native gate termination diagnostics ([b9c69a5](https://github.com/CodySwannGT/lisa/commit/b9c69a58c0768aee43680f243ee03b87bffa0759)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+
+
+### Performance Improvements
+
+* **audit:** reuse committed blobs across delivery views ([5d143a6](https://github.com/CodySwannGT/lisa/commit/5d143a693be04da7d76605d6ecc10b8ce40a1cbe)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+
 ### [4.70.4](https://github.com/CodySwannGT/lisa/compare/v4.70.3...v4.70.4) (2026-10-06)
 
 
