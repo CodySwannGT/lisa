@@ -1,5 +1,5 @@
 // This file is managed by Lisa and IS replaced on each `lisa` run.
-// Durable changes belong upstream in Lisa.
+// Do not edit directly — durable changes belong upstream in Lisa.
 /** Exact Git preimages and detector spans, independent of caller suppressions. */
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
