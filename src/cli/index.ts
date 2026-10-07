@@ -40,6 +40,7 @@ import { addRemoteEnvCommand } from "./remote-env-cmd.js";
 import { addWorkstationCommand } from "./workstation-cmd.js";
 import { getPackageVersion } from "./version.js";
 import { addEffectivenessCommand } from "./effectiveness-cmd.js";
+import { addHookRefreshCommand, refreshHooks } from "./refresh-hooks-cmd.js";
 
 /**
  * Injectable collaborators for {@link createProgram}. Defaults wire the real
@@ -47,6 +48,8 @@ import { addEffectivenessCommand } from "./effectiveness-cmd.js";
  * wiring without touching the registry or the orchestrator.
  */
 export interface ProgramDependencies {
+  /** Refreshes the explicitly selected released hook cohort only. */
+  refreshHooks: typeof refreshHooks;
   /** Applies Lisa to a destination (defaults to the real {@link runApply}). */
   runApply: typeof runApply;
   /** Creates a starter-backed project and applies Lisa overlays. */
@@ -86,6 +89,7 @@ export interface ProgramDependencies {
 }
 
 const DEFAULT_DEPENDENCIES: ProgramDependencies = {
+  refreshHooks,
   runApply,
   runSetupProject,
   runSetupWiki,
@@ -320,6 +324,8 @@ export function createProgram(
     .option("--no-update-check", "Skip the npm latest-version check");
 
   addUpdateCheckHook(program, deps);
+
+  addHookRefreshCommand(program, deps.refreshHooks);
 
   // `apply` is both the explicit subcommand and the default command, so the
   // historical positional form `lisa <destination>` routes here unchanged and

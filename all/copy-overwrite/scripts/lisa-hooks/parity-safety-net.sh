@@ -527,6 +527,94 @@ follow_names=""
 follow_count=0
 follow_bytes=0
 followed_text=""
+followed_rm_text=""
+# Generated from the canonical reviewed supervisor, never from a host manifest.
+# Regenerate through scripts/generate-scratch-supervisor-profile.mjs.
+readonly SCRATCH_SUPERVISOR_SHA256='6fdec1ad0441d7636dc6749c44a23167baf7b75004f156b8a7d4ce1c18c790b7'
+readonly SCRATCH_SUPERVISOR_CLEANUP_COUNT='7'
+
+# An authenticated public supervisor owns its fixed cleanup sites. Its original
+# source remains visible to every other policy; its actual payload is followed.
+follow_supervisor() {
+  local token="$1" depth="$2" statement="$3" path="" profile="" payload="" rm_source="" original=""
+  case "$token" in *lisa-scratch-run.sh) ;; *) return 1 ;; esac
+  follow_locate "$token" || follow_refuse "$token" "supervisor source could not be resolved"
+  path="$follow_located"
+  profile="$(python3 - "$path" "$SCRATCH_SUPERVISOR_SHA256" "$statement" "$token" "$SCRATCH_SUPERVISOR_CLEANUP_COUNT" <<'PY'
+import hashlib
+import json
+import os
+import re
+import shlex
+import stat
+import sys
+
+path, digest, statement, operand, expected_count = sys.argv[1:]
+def refuse():
+    sys.exit(2)
+
+try:
+    info = os.lstat(path)
+    if not stat.S_ISREG(info.st_mode) or info.st_size > 262144:
+        refuse()
+    raw = open(path, 'rb').read(262145)
+    if len(raw) != info.st_size or not re.fullmatch(r'[0-9a-f]{64}', digest):
+        refuse()
+    if hashlib.sha256(raw).hexdigest() != digest:
+        refuse()
+    tokens = shlex.split(statement)
+    indices = [index for index, token in enumerate(tokens) if token == operand]
+    if len(indices) != 1 or '$' in operand or '`' in operand:
+        refuse()
+    index = indices[0]
+    if index < 1 or tokens[index - 1] not in ('sh', 'bash', '/bin/sh', '/bin/bash'):
+        refuse()
+    prefix = tokens[:index - 1]
+    if prefix[:1] == ['env']:
+        prefix = prefix[1:]
+    assignments = {}
+    for token in prefix:
+        if '=' not in token or re.search(r'[$`\r\n]', token):
+            refuse()
+        key, value = token.split('=', 1)
+        if key not in ('LISA_SCRATCH_BASE', 'LISA_SCRATCH_TRACE', 'TMPDIR') or key in assignments:
+            refuse()
+        assignments[key] = value
+    # Match actual shell :- precedence, including inherited and
+    # explicitly empty values. TMPDIR cannot override a nonempty inherited base.
+    effective = dict(os.environ, **assignments)
+    base = effective.get('LISA_SCRATCH_BASE') or effective.get('TMPDIR') or '/tmp'
+    if not base or not os.path.isabs(base) or re.search(r'[$`\r\n]', base):
+        refuse()
+    real_base = os.path.realpath(base)
+    roots = ['/tmp', '/var/tmp', os.environ.get('TMPDIR', '/tmp')]
+    if not any(os.path.commonpath([real_base, os.path.realpath(root)]) == os.path.realpath(root) for root in roots if root and os.path.isabs(root)):
+        refuse()
+    args = tokens[index + 1:]
+    if len(args) < 4 or args[0] != '--suite' or args[2] != '--':
+        refuse()
+    if not re.fullmatch(r'[A-Za-z0-9._-]{1,64}', args[1]):
+        refuse()
+    payload = args[3:]
+    if not payload[0] or payload[0].startswith('-') or any(re.search(r'[$`\x00\r\n]', value) for value in payload):
+        refuse()
+    source = raw.decode('utf8')
+    cleaned, count = re.subn(r'(?m)^(\s*)rm -rf "(\$_quarantine|\$_root|\$_entry|\$LISA_SCRATCH_ROOT)"', r'\1:', source)
+    if not re.fullmatch(r'[1-9][0-9]*', expected_count) or count != int(expected_count):
+        refuse()
+    print(json.dumps({'source': cleaned, 'original': source, 'payload': shlex.join(payload)}))
+except (OSError, UnicodeError, ValueError):
+    refuse()
+PY
+)" || follow_refuse "$path" "supervisor source or public entry authority could not be authenticated"
+  rm_source="$(printf '%s' "$profile" | jq -er '.source')" || follow_refuse "$path" "invalid supervisor profile"
+  original="$(printf '%s' "$profile" | jq -er '.original')" || follow_refuse "$path" "invalid supervisor source"
+  payload="$(printf '%s' "$profile" | jq -er '.payload')" || follow_refuse "$path" "invalid supervisor payload"
+  follow_take "$path" "$depth" "$rm_source" "$original"
+  [ "$depth" -lt "$FOLLOW_MAX_DEPTH" ] || follow_refuse "$path" "supervisor payload exceeds inspection depth"
+  follow_scan "$payload" "$((depth + 1))"
+  return 0
+}
 
 FOLLOW_GUIDANCE="This command EXECUTES a file. These guards classify shell text, so the script an
 invocation runs is read and scanned as part of the command — a destructive line
@@ -813,7 +901,7 @@ follow_locate() {
 # executes, to a bounded depth. Full-line comments are dropped: a commented line
 # is never executed, so scanning it can only manufacture a false refusal.
 follow_take() {
-  local path="$1" depth="$2" size="" content=""
+  local path="$1" depth="$2" size="" content="" rm_content="${3-}"
   case "$follow_paths" in
     *$'\n'"$path"$'\n'*) return 0 ;;
   esac
@@ -833,10 +921,22 @@ follow_take() {
   if [ "$follow_bytes" -gt "$FOLLOW_MAX_TOTAL_BYTES" ]; then
     follow_refuse "$path" "the files this command executes total more than the ${FOLLOW_MAX_TOTAL_BYTES}-byte inspection budget"
   fi
-  content="$(LC_ALL=C tr -d '\000' <"$path" | sed 's/^[[:space:]]*#.*$//')" \
-    || follow_refuse "$path" "it could not be read"
+  if [ "$#" -eq 4 ]; then
+    # Scan the same complete bytes whose digest was authenticated, not a
+    # second file read that could pair changed source with the cleanup view.
+    content="$(printf '%s' "$4" | sed 's/^[[:space:]]*#.*$//')" || follow_refuse "$path" "authenticated source could not be read"
+  else
+    content="$(LC_ALL=C tr -d '\000' <"$path" | sed 's/^[[:space:]]*#.*$//')" \
+      || follow_refuse "$path" "it could not be read"
+  fi
   follow_names="$follow_names $path"
   followed_text="$followed_text"$'\n'"$content"
+  if [ "$#" -lt 3 ]; then
+    rm_content="$content"
+  else
+    rm_content="$(printf '%s' "$rm_content" | sed 's/^[[:space:]]*#.*$//')" || follow_refuse "$path" "supervisor cleanup view could not be read"
+  fi
+  followed_rm_text="$followed_rm_text"$'\n'"$rm_content"
   if [ "$depth" -lt "$FOLLOW_MAX_DEPTH" ]; then
     # A `cd` inside the followed script governs what THAT script goes on to
     # execute, and nothing after it in the command that ran the script — the
@@ -855,6 +955,11 @@ follow_take() {
 follow_target() {
   local token="$1" depth="$2" path=""
   [ -n "$token" ] || return 0
+  # Entry authority belongs to each invocation, not the file-read cache. Only
+  # follow_supervisor may admit the exact public interpreter/argv profile.
+  case "$token" in
+    *lisa-scratch-run.sh) follow_refuse "$token" "supervisor requires its authenticated public interpreter entry" ;;
+  esac
   if ! follow_locate "$token"; then
     if [ "$depth" -eq 0 ]; then
       follow_refuse "$token" "no readable file could be resolved for it"
@@ -888,6 +993,9 @@ follow_direct() {
     return 0
   fi
   path="$follow_located"
+  case "$path" in
+    *lisa-scratch-run.sh) follow_refuse "$path" "supervisor requires its authenticated public interpreter entry" ;;
+  esac
   IFS= read -r -n 256 raw <"$path" 2>/dev/null || true
   while [ "$k" -lt "${#raw}" ]; do
     char="${raw:k:1}"
@@ -1219,7 +1327,9 @@ follow_scan() {
         fi
         follow_unwrap "${toks[j]}"
         tj="$follow_unwrapped"
-        follow_target "$tj" "$depth"
+        if ! follow_supervisor "$tj" "$depth" "$stmt"; then
+          follow_target "$tj" "$depth"
+        fi
         cmd_pos=0
         i=$((j + 1))
         continue
@@ -1248,6 +1358,7 @@ follow_scan() {
 }
 
 follow_scan "$command_for_guards" 0
+rm_command_for_guards="$command_for_guards"$'\n'"$followed_rm_text"
 if [ -n "$follow_names" ]; then
   command_for_guards="$command_for_guards"$'\n'"$followed_text"
   # A refusal must say WHERE the match is. Without this the operator reads
@@ -1265,6 +1376,8 @@ fi
 # protected force-push slip past. Uses awk (POSIX) instead of a GNU-only
 # `sed ':a;N;$!ba;…'`, which errors on BSD sed (macOS) and there silently no-ops.
 normalized_command_str="$(printf '%s' "$command_for_guards" \
+  | awk '{ if (sub(/\\$/, "")) printf "%s ", $0; else print }')"
+rm_normalized_command_str="$(printf '%s' "$rm_command_for_guards" \
   | awk '{ if (sub(/\\$/, "")) printf "%s ", $0; else print }')"
 
 # matches / matches_cs run an ERE against the guarded command text. matches is
@@ -1570,7 +1683,7 @@ rm_assignment_value() {
   # small lexer below preserves quoted right-hand sides such as V="/tmp/x"
   # while excluding an argument such as echo "V=/tmp/x". Any ambiguity fails
   # closed.
-  RM_ASSIGNMENT_NAME="$name" RM_ASSIGNMENT_COMMAND="$normalized_command_str" \
+  RM_ASSIGNMENT_NAME="$name" RM_ASSIGNMENT_COMMAND="$rm_normalized_command_str" \
     RM_ASSIGNMENT_STATEMENT="$rm_assignment_stmt" \
     python3 - <<'PY'
 import os
@@ -1769,7 +1882,7 @@ classify_rm_target() {
 # process substitution cannot deny anything either — it ends that subshell, not
 # this hook.
 rm_segments_status=0
-rm_segments="$(printf '%s' "$normalized_command_str" | tr '&|;' '\n' \
+rm_segments="$(printf '%s' "$rm_normalized_command_str" | tr '&|;' '\n' \
   | grep -Ei -- "$RM_CMD"'([[:space:]]|$)')" || rm_segments_status=$?
 case "$rm_segments_status" in
   0 | 1) ;;
@@ -2281,9 +2394,10 @@ git_segments="$(printf '%s' "$normalized_command_str" \
     -e 's/[0-9]*>&[0-9-]*/>/g' \
     -e 's/[0-9]*<&[0-9-]*/</g' \
     -e 's/||/;/g' \
-  | tr '&;' '\n')" || git_segments_status=$?
+  | tr '&;' '\n' \
+  | grep -E -- "$RM_RF_CLUSTER|$RM_RF_SPLIT")" || git_segments_status=$?
 case "$git_segments_status" in
-  0) ;;
+  0 | 1) ;;
   *) scan_failed "$git_segments_status" ;;
 esac
 while IFS= read -r git_stmt; do

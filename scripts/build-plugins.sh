@@ -126,6 +126,9 @@ build_per_agent_variant() {
 }
 
 # Base plugin
+if [ -f "$ROOT_DIR/scripts/generate-scratch-supervisor-profile.mjs" ]; then
+  node "$ROOT_DIR/scripts/generate-scratch-supervisor-profile.mjs"
+fi
 build_plugin base lisa
 
 # Threshold-ratchet comparator: the canonical implementation lives in the base
