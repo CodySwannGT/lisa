@@ -163,6 +163,28 @@ export function verifyHistoricalProvider(
   return providerOrigin(policy, descriptor, true, execute);
 }
 
+/** Cancellation authenticates an old origin against a separately observed current main. */
+export function verifyStaleOriginProvider(
+  policy,
+  descriptor,
+  currentParent,
+  execute = boundedSpawnSync
+) {
+  requireProof(
+    typeof currentParent === "string" &&
+      /^[a-f0-9]{40}$/.test(currentParent) &&
+      currentParent !== descriptor.parent,
+    "cancellation requires a distinct current parent"
+  );
+  const read = endpoint =>
+    ghJson(policy, [API, HOST_FLAG, PUBLIC_HOST, endpoint], execute);
+  repositoryState(read, policy, currentParent);
+  return {
+    run: runState(read, policy, descriptor, true),
+    claim: claimState(read, policy, descriptor),
+  };
+}
+
 /** Fresh permission checks its own invocation and the exact observed destination. */
 export function verifyRecoveryProvider(
   policy,

@@ -37,6 +37,119 @@ const TASK_LABEL = "type:Task";
 const STALE_MODE = "stale-outstanding";
 const REQUIRED_CHECK = "required-ci";
 
+describe("stale cancellation provider role", () => {
+  it("authenticates only the old run and claim against a separately measured current main", async () => {
+    const { verifyHistoricalProvider, verifyStaleOriginProvider } =
+      await import("../../../all/copy-overwrite/scripts/lib/github-attestation-provider.mjs");
+    const { withPrivateRoot } =
+      await import("../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs");
+    const { writeFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    await withPrivateRoot(async root => {
+      const executable = join(root, "synthetic-provider");
+      writeFileSync(executable, "synthetic provider transport", {
+        mode: 0o700,
+      });
+      const parent = "1".repeat(40),
+        current = "2".repeat(40);
+      const policy = {
+        repository: REPOSITORY,
+        repositoryId: "12",
+        ownerId: "34",
+        claimActorId: "99",
+        allowedTriggers: ["workflow_dispatch"],
+        signerWorkflow: "acme/automation/.github/workflows/update.yml",
+        signerDigest: parent,
+        ghExecutable: executable,
+        ghSha256: sha256("synthetic provider transport"),
+      };
+      const claim = {
+        id: 77,
+        issue_url: `https://api.github.com/repos/${REPOSITORY}/issues/42`,
+        user: { id: 99, type: "Bot" },
+        body: "immutable managed claim",
+      };
+      const descriptor = {
+        parent,
+        queue: REPOSITORY,
+        workItem: WORK_ITEM,
+        runId: "700",
+        runAttempt: "1",
+        claimCommentId: "77",
+        claimSha256: sha256(claim.body),
+      };
+      const run = {
+        id: 700,
+        run_attempt: 1,
+        head_sha: parent,
+        head_branch: "main",
+        status: "completed",
+        head_repository: { id: 12 },
+        event: "workflow_dispatch",
+        referenced_workflows: [{ path: policy.signerWorkflow, sha: parent }],
+      };
+      const replies = new Map<string, object>([
+        [
+          `repos/${REPOSITORY}`,
+          {
+            id: 12,
+            owner: { id: 34 },
+            full_name: REPOSITORY,
+            default_branch: "main",
+          },
+        ],
+        [
+          `repos/${REPOSITORY}/git/ref/heads/main`,
+          { ref: "refs/heads/main", object: { sha: current } },
+        ],
+        [`repos/${REPOSITORY}/actions/runs/700/attempts/1`, run],
+        [`repos/${REPOSITORY}/issues/comments/77`, claim],
+      ]);
+      // Synthetic replies exercise the fixed reader; they are not official GH or provider proof.
+      const execute = (_command: string, args: readonly string[] = []) => ({
+        pid: 0,
+        status: 0,
+        signal: null,
+        stdout: JSON.stringify(replies.get(args.at(-1)!)),
+        stderr: "",
+        output: [null, JSON.stringify(replies.get(args.at(-1)!)), ""] as [
+          null,
+          string,
+          string,
+        ],
+      });
+      expect(() =>
+        verifyHistoricalProvider(policy, descriptor, execute)
+      ).toThrow(/main base differs/);
+      expect(
+        verifyStaleOriginProvider(policy, descriptor, current, execute)
+      ).toEqual({ run, claim });
+      expect(() =>
+        verifyStaleOriginProvider(policy, descriptor, parent, execute)
+      ).toThrow(/distinct current parent/);
+      run.head_sha = current;
+      expect(() =>
+        verifyStaleOriginProvider(policy, descriptor, current, execute)
+      ).toThrow(/stale\/cancelled/);
+      run.head_sha = parent;
+      claim.user.type = "User";
+      expect(() =>
+        verifyStaleOriginProvider(policy, descriptor, current, execute)
+      ).toThrow(/claim actor differs/);
+      expect(() =>
+        verifyStaleOriginProvider(policy, descriptor, current, () => ({
+          pid: 0,
+          status: 1,
+          signal: null,
+          stdout: "{}",
+          stderr: "",
+          output: [null, "{}", ""] as [null, string, string],
+        }))
+      ).toThrow(/request failed/);
+    });
+  });
+});
+
 describe("publisher native blob refusal", () => {
   it("compares actual Git blob bytes and stops before any tree write on mismatch", async () => {
     const { GitHub } =
@@ -1058,7 +1171,7 @@ describe("unfinished proposal discovery precedes allocation writes", () => {
       parent: "f".repeat(40),
     });
     expect(result.status).toBe(STALE_MODE);
-    expect(result.issue).toBe(issue);
+    expect(result).toHaveProperty("issue", issue);
     expect(calls).toHaveLength(1);
     expect(calls[0]).toContain(encodeURIComponent(selectionKey));
   });

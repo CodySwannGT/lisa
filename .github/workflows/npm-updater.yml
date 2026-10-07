@@ -12,6 +12,21 @@ on:
         type: string
         default: '11.21.0'
         required: false
+      cancel_issue:
+        description: Explicit stale prepublication proposal issue to cancel
+        type: string
+        default: ''
+        required: false
+      cancel_proposal_key:
+        description: Exact original proposal key for the manual cancellation
+        type: string
+        default: ''
+        required: false
+      cancel_expected_main:
+        description: Exact current main commit authorizing the replacement
+        type: string
+        default: ''
+        required: false
 
 permissions: {}
 concurrency:
@@ -158,6 +173,48 @@ jobs:
           name: npm-prepared
           path: ${{ env.PHASE }}
       - run: chmod 700 "$PHASE" && chmod 600 "$PHASE"/*.json
+      - id: cancel_prepare
+        name: Authenticate the explicit stale cancellation intent
+        if: inputs.cancel_issue != '' || inputs.cancel_proposal_key != '' || inputs.cancel_expected_main != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANCEL_ISSUE: ${{ inputs.cancel_issue }}
+          CANCEL_PROPOSAL_KEY: ${{ inputs.cancel_proposal_key }}
+          CANCEL_EXPECTED_MAIN: ${{ inputs.cancel_expected_main }}
+        run: |
+          node scripts/lisa-npm-updater.mjs cancel-prepare "$GITHUB_WORKSPACE" "$PHASE"
+          node -e 'const fs=require("fs"),v=JSON.parse(fs.readFileSync(process.env.PHASE+"/cancellation-state.json")); if(!["fresh","recorded"].includes(v.mode))throw Error("cancellation mode differs"); fs.appendFileSync(process.env.GITHUB_OUTPUT,"mode="+v.mode+"\n")'
+      - id: cancel_authority
+        if: steps.cancel_prepare.outputs.mode == 'fresh'
+        name: Select the separate fixed cancellation subject
+        run: |
+          node -e 'const fs=require("fs"),crypto=require("crypto"),p=process.env.PHASE; fs.appendFileSync(process.env.GITHUB_OUTPUT,"digest=sha256:"+crypto.createHash("sha256").update(fs.readFileSync(p+"/cancellation.json")).digest("hex")+"\n")'
+      - id: cancel_attest
+        if: steps.cancel_prepare.outputs.mode == 'fresh'
+        uses: actions/attest@v4.2.2
+        with:
+          subject-name: cancellation.json
+          subject-digest: ${{ steps.cancel_authority.outputs.digest }}
+          predicate-type: https://lisa.dev/attestations/npm-cancellation/v1
+          predicate-path: ${{ env.PHASE }}/cancellation.json
+          push-to-registry: false
+          create-storage-record: false
+      - name: Persist the authenticated cancellation before fresh allocation
+        if: inputs.cancel_issue != '' || inputs.cancel_proposal_key != '' || inputs.cancel_expected_main != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANCEL_ISSUE: ${{ inputs.cancel_issue }}
+          CANCEL_PROPOSAL_KEY: ${{ inputs.cancel_proposal_key }}
+          CANCEL_EXPECTED_MAIN: ${{ inputs.cancel_expected_main }}
+          BUNDLE: ${{ steps.cancel_attest.outputs.bundle-path }}
+          MODE: ${{ steps.cancel_prepare.outputs.mode }}
+        run: |
+          case "$MODE" in
+            fresh) install -m 600 -- "$BUNDLE" "$PHASE/cancellation-bundle.json" ;;
+            recorded) test -f "$PHASE/cancellation-bundle.json" ;;
+            *) exit 1 ;;
+          esac
+          node scripts/lisa-npm-updater.mjs cancel-checkpoint "$GITHUB_WORKSPACE" "$PHASE"
       - name: Allocate or recover the exact canonical leaf
         env:
           GH_TOKEN: ${{ github.token }}

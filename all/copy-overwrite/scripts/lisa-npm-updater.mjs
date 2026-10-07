@@ -33,6 +33,62 @@ import {
 import { gateProposal } from "./lib/npm-update-gate.mjs";
 import { readGateProof } from "./lib/npm-update-gate-proof.mjs";
 import { sha256 } from "./lib/github-attestation-verifier.mjs";
+import {
+  prepareCancellation,
+  finalizeCancellation,
+} from "./lib/npm-update-cancellation.mjs";
+const CANCEL_PREPARE = "cancel-prepare";
+const PHASES = [
+  "prepare",
+  "allocate",
+  "checkpoint",
+  "gate",
+  "publish",
+  CANCEL_PREPARE,
+  "cancel-checkpoint",
+];
+
+/** Three complete literal fields identify one old leaf and the exact expected current main. */
+export function cancellationRequest(env = process.env) {
+  required(
+    typeof env.CANCEL_ISSUE === "string" && /^[1-9]\d*$/.test(env.CANCEL_ISSUE),
+    "exact cancellation issue number required"
+  );
+  const number = Number(env.CANCEL_ISSUE);
+  required(
+    Number.isSafeInteger(number) &&
+      String(number) === env.CANCEL_ISSUE &&
+      typeof env.CANCEL_PROPOSAL_KEY === "string" &&
+      /^[a-f0-9]{64}$/.test(env.CANCEL_PROPOSAL_KEY) &&
+      typeof env.CANCEL_EXPECTED_MAIN === "string" &&
+      /^[a-f0-9]{40}$/.test(env.CANCEL_EXPECTED_MAIN),
+    "complete exact cancellation identity required"
+  );
+  return {
+    number,
+    proposalKey: env.CANCEL_PROPOSAL_KEY,
+    parent: env.CANCEL_EXPECTED_MAIN,
+  };
+}
+
+/** Cancellation stays inside the same trusted issuer job and never consumes ordinary publication slots. */
+async function cancellationPhase(cwd, output, proposal, config, phase) {
+  const api = new GitHub(config.automationProvenance, process.env.GH_TOKEN);
+  const context = {
+    api,
+    cwd,
+    output,
+    proposal,
+    config,
+    request: cancellationRequest(),
+  };
+  const result = await (
+    phase === CANCEL_PREPARE ? prepareCancellation : finalizeCancellation
+  )(context);
+  process.stdout.write(
+    `${phase === CANCEL_PREPARE ? result.mode : result.status}\n`
+  );
+}
 
 /** Only committed policy grants authority; ignored/local config cannot activate Actions. */
 async function configuration(cwd) {
@@ -148,11 +204,8 @@ async function gatePhase(
 /** Strict phase and fixed directory arguments are data, never a caller recipe. */
 export async function main(argv = process.argv.slice(2)) {
   required(
-    argv.length === 3 &&
-      ["prepare", "allocate", "checkpoint", "gate", "publish"].includes(
-        argv[0]
-      ),
-    "usage: lisa-npm-updater.mjs <prepare|allocate|checkpoint|gate|publish> <owned-checkout> <private-phase-directory>"
+    argv.length === 3 && PHASES.includes(argv[0]),
+    "usage: lisa-npm-updater.mjs <prepare|allocate|checkpoint|gate|publish|cancel-prepare|cancel-checkpoint> <owned-checkout> <private-phase-directory>"
   );
   const [phase, checkout, directory] = argv;
   const cwd = resolve(checkout);
@@ -173,6 +226,9 @@ export async function main(argv = process.argv.slice(2)) {
     readJson(join(output, "proposal.json")),
     policy
   );
+  if (phase === CANCEL_PREPARE || phase === "cancel-checkpoint") {
+    return cancellationPhase(cwd, output, proposal, config, phase);
+  }
   if (phase === "allocate")
     return allocatePhase(cwd, output, proposal, policy, config);
   const allocation = readJson(join(output, "allocation.json"));

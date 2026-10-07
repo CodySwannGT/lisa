@@ -82,12 +82,29 @@ export async function claimLeaf(
 
 /** Complete provider history and immutable human policy govern every mutation. */
 export async function inspectLeaf(issue, draft, policy, config) {
-  const roles = leafRoles(config, policy.repository);
-  const labels = issue.labels.map(label => label.name);
   required(
     issue.state === "open" && !issue.pull_request && issue.number > 0,
     "closed or nonissue leaf"
   );
+  return inspectLeafFields(issue, draft, policy, config);
+}
+
+/** Closed-state inspection never grants authority without a separately verified cancellation. */
+export async function inspectCancelledLeaf(issue, draft, policy, config) {
+  required(
+    issue.state === "closed" &&
+      issue.state_reason === "not_planned" &&
+      !issue.pull_request &&
+      issue.number > 0,
+    "leaf is not explicitly cancelled"
+  );
+  return inspectLeafFields(issue, draft, policy, config);
+}
+
+/** Both fixed state entry points preserve the original complete ownership and hold checks. */
+async function inspectLeafFields(issue, draft, policy, config) {
+  const roles = leafRoles(config, policy.repository);
+  const labels = issue.labels.map(label => label.name);
   required(
     issue.children.length === 0 &&
       issue.blockers.every(item => item.state === "closed"),
@@ -151,7 +168,16 @@ export function historicalFiling(issue) {
   const value = JSON.parse(
     new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes)
   );
-  keys(value, ["history", "search", "registry", "labels", "main"]);
+  keys(value, [
+    "history",
+    "search",
+    "registry",
+    "labels",
+    "main",
+    ...(value.supersession ? ["supersession"] : []),
+  ]);
+  if (value.supersession)
+    keys(value.supersession, ["workItem", "cancellationSha256", "proposalKey"]);
   required(
     canonicalJson(value) === bytes.toString("utf8"),
     "original filing fields are noncanonical"
