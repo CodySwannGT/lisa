@@ -37,13 +37,14 @@ import {
   prepareCancellation,
   finalizeCancellation,
 } from "./lib/npm-update-cancellation.mjs";
+const CANCEL_PREPARE = "cancel-prepare";
 const PHASES = [
   "prepare",
   "allocate",
   "checkpoint",
   "gate",
   "publish",
-  "cancel-prepare",
+  CANCEL_PREPARE,
   "cancel-checkpoint",
 ];
 
@@ -82,10 +83,10 @@ async function cancellationPhase(cwd, output, proposal, config, phase) {
     request: cancellationRequest(),
   };
   const result = await (
-    phase === "cancel-prepare" ? prepareCancellation : finalizeCancellation
+    phase === CANCEL_PREPARE ? prepareCancellation : finalizeCancellation
   )(context);
   process.stdout.write(
-    `${phase === "cancel-prepare" ? result.mode : result.status}\n`
+    `${phase === CANCEL_PREPARE ? result.mode : result.status}\n`
   );
 }
 
@@ -225,7 +226,7 @@ export async function main(argv = process.argv.slice(2)) {
     readJson(join(output, "proposal.json")),
     policy
   );
-  if (phase === "cancel-prepare" || phase === "cancel-checkpoint") {
+  if (phase === CANCEL_PREPARE || phase === "cancel-checkpoint") {
     return cancellationPhase(cwd, output, proposal, config, phase);
   }
   if (phase === "allocate")
