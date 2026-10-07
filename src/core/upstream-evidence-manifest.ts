@@ -29,7 +29,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/bounded-spawn.mjs":
       "72e277ada531914d7bc51c3cb8dc67b8881aa817d96fa2f9f4d81668a3d3bbc1",
     "all/copy-overwrite/scripts/lib/gate-failure-diagnosis.mjs":
-      "c565984dcd33bc5d26a126c25cec9a0734d87c0d9540479168a77f51b980809f",
+      "31f2acced121662d6395b624aed2ae0ad642c1edb52cdb0eded1497886daad71",
     "all/copy-overwrite/scripts/lib/github-attestation-provider.mjs":
       "43be8987bd5af04130eedcc256f8a3c5667d3648dfdf37b0fb7d3ce28f417c08",
     "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs":
@@ -61,7 +61,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-contract.mjs":
       "6905dd9d5747702ab502b66bcb38b6d4dcb30127f02466d29b3905f53c27981d",
     "all/copy-overwrite/scripts/lib/npm-update-controller-broker.mjs":
-      "f9d4ac64a5793f754619d4a50ec9a57814692374503add68aaaebc56123c2ec4",
+      "c2c598f48a403707d699baadb40be7aaf2023a4d6c6e0a41b5e591c5a2af5cc6",
     "all/copy-overwrite/scripts/lib/npm-update-controller-factory.mjs":
       "8b5af4dc0a2569168869b4fd2694c7a042b446ea5ca646bfd3f127f490097ded",
     "all/copy-overwrite/scripts/lib/npm-update-controller-recipe.mjs":
@@ -233,7 +233,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "263860fba7fadae3c1096973eaf4f25dca1683ef2ce64279dea6845ac90faf6a",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
-      "c94f7068de034d9ba2b0b833fb8109576aa662a67a4afa6aa7536df99d978add",
+      "92c3de77e2158e86db54876bf9f02ccd51ef892fdd8326ab9107b08044222a6a",
     "all/copy-overwrite/scripts/lisa-schema-validate.mjs":
       "f70ecd3712dd2ca77a8851c7505ce79f948a57e5a2e28f56c5d0ccd047712688",
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
@@ -249,7 +249,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "15eceda920bf731bd12154af634b69d2f684d8672baff4d0f3e66f18b7a9806f",
+      "322d4edf19711c6ff19d4152172669320bf4806a2190d3b5e2aa420901acebbb",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":

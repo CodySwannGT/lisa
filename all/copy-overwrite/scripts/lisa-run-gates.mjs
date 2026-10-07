@@ -315,20 +315,21 @@ function formatLine(state, gate, detail) {
 /**
  * Read an executor's answer, whichever of the two shapes it returned.
  *
- * An executor may answer with a bare exit code or with `{code, output}`. Both
- * are supported on purpose: the exit code is the whole verdict, and the output
- * is only ever used to EXPLAIN a verdict already reached. An executor that
+ * An executor may answer with a bare exit code or with `{code, output}` and an
+ * optional OS-observed signal. Both retain the actual exit status; output and
+ * signal identity only EXPLAIN a verdict already reached. An executor that
  * cannot capture output — a stub, a Windows shell, a run with capture switched
  * off — therefore loses the diagnosis and nothing else.
- * @param {number|null|undefined|{code: number|null, output: string|null}} raw
+ * @param {number|null|undefined|{code: number|null, output: string|null, signal?: string}} raw
  *   Whatever the executor returned.
- * @returns {{code: number|null, output: string|null}} The normalised answer.
+ * @returns {{code: number|null, output: string|null, signal?: string}} The normalised answer.
  */
 function normaliseExec(raw) {
   if (raw !== null && typeof raw === "object") {
     return {
       code: typeof raw.code === "number" ? raw.code : null,
       output: typeof raw.output === "string" ? raw.output : null,
+      ...(typeof raw.signal === "string" ? { signal: raw.signal } : {}),
     };
   }
   return { code: typeof raw === "number" ? raw : null, output: null };
@@ -432,7 +433,7 @@ function stateFor(kind) {
 }
 
 function execute(gate, exec, declarations) {
-  const { code, output } = normaliseExec(exec(gate.command, gate));
+  const { code, output, signal } = normaliseExec(exec(gate.command, gate));
   if (code === 0) {
     // Exit 0 is ADJACENT to "the property holds"; it is not the observation.
     // A command that exited 0 while its own output says it collected zero
@@ -464,14 +465,14 @@ function execute(gate, exec, declarations) {
     };
   }
   const shown = typeof code === "number" ? code : "terminated";
-  // The code goes in as well as the output, and it is the half that matters
-  // most: a kill is legible ONLY in the exit code. `exit 143` is `128 + 15`,
-  // and on a saturated box it arrives carrying a truncated transcript that
+  // The actual status and signal go in as well as the output: a native kill
+  // retains null status, while a shell's `exit 143` is `128 + 15`. Either can
+  // arrive carrying a truncated transcript that
   // reads exactly like a real gate failure — which is how one `exit 1` came to
   // have three distinct causes with re-running a rational response to all of
   // them (CodySwannGT/lisa#2897).
   const diagnosis = withDeclarations(
-    diagnoseFailure(output, code),
+    diagnoseFailure(output, code, undefined, undefined, undefined, signal),
     output,
     declarations
   );
@@ -1253,7 +1254,7 @@ function killedOrRethrow(error) {
  * everything about capture is additive: if capture is unavailable or refused,
  * the exit code is produced by exactly the code path that produced it before.
  * @param {string} command The command line to run.
- * @returns {{code: number|null, output: null}} Exit code; null when killed.
+ * @returns {{code: number|null, output: null, signal?: string}} Exit code; null when killed.
  */
 function plainExec(command) {
   try {
@@ -1264,7 +1265,11 @@ function plainExec(command) {
     // Still reachable: a non-timeout `spawnSync` failure arrives on the result,
     // and it means nothing ran, which is the same "no verdict" answer.
     if (child.error) return { code: null, output: null };
-    return { code: child.status, output: null };
+    return {
+      code: child.status,
+      output: null,
+      ...(child.signal ? { signal: child.signal } : {}),
+    };
   } catch (error) {
     return killedOrRethrow(error);
   }
@@ -1280,7 +1285,7 @@ function plainExec(command) {
  * Windows retains its existing native-job/plain route. Capture remains opt-out
  * for commands that require inherited terminal handles.
  * @param {string} command Shell source to run once.
- * @returns {{code: number|null, output: string|null}} OS status and diagnostic tail.
+ * @returns {{code: number|null, output: string|null, signal?: string}} OS status and diagnostic tail.
  */
 export function spawnExec(command) {
   if (process.env.LISA_GATES_CAPTURE === "0" || process.platform === "win32") {
@@ -1296,6 +1301,7 @@ export function spawnExec(command) {
     const captured = child.output?.[3];
     return {
       code: child.status,
+      ...(child.signal ? { signal: child.signal } : {}),
       output:
         captured === null || captured === undefined ? null : String(captured),
     };

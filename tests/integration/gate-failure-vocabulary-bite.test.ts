@@ -195,18 +195,20 @@ describe("bite: a killed gate is not reported as a failed test", () => {
   // `exit 1` on this gate had at least three distinct causes and re-running was
   // the rational response to all of them. The real one never got looked at.
   //
-  // The kill is staged by the gate command signalling ITSELF, so the shell
-  // reports a genuine 143 and the whole path is exercised — the wrapper, the
-  // status file, `normaliseExec`, and the classifier. A stubbed executor cannot
-  // produce a real 128+N, so it cannot prove this.
+  // The kill is staged by the gate command signalling ITSELF. The native
+  // supervisor retains a null exit status and the actual SIGTERM through
+  // capture, `normaliseExec`, and the classifier. A separate real numeric
+  // exit below exercises the shell-compatible 128+N spelling.
 
-  /** SIGTERM to the gate script's own shell: a real 143, from a real signal. */
+  /** Native SIGTERM to the gate script's own shell: observed signal, null status. */
   const SELF_TERMINATE = 'kill -TERM "$$"';
 
   it("says the command was KILLED, naming the signal", () => {
     const stdout = runFailingGate(TIMEOUT_OUTPUT, SELF_TERMINATE).stdout;
 
     expect(killedLine(stdout)).toContain("SIGTERM");
+    expect(killedLine(stdout)).toContain("exit terminated");
+    expect(killedLine(stdout)).toContain("no exit code was returned");
     // The other half of the same fact, and the half #2813 could not state: the
     // word FAILED appears nowhere, because nothing was measured to fail.
     expect(
@@ -218,7 +220,7 @@ describe("bite: a killed gate is not reported as a failed test", () => {
 
   it("shows the arithmetic, so 143 stops reading as an ordinary exit code", () => {
     expect(
-      killedLine(runFailingGate(TIMEOUT_OUTPUT, SELF_TERMINATE).stdout)
+      killedLine(runFailingGate(TIMEOUT_OUTPUT, "exit 143").stdout)
     ).toContain("128 + 15");
   });
 

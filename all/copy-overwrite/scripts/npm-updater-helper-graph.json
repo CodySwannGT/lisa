@@ -63,7 +63,7 @@
       "children": []
     },
     "lib/gate-failure-diagnosis.mjs": {
-      "sha256": "c565984dcd33bc5d26a126c25cec9a0734d87c0d9540479168a77f51b980809f",
+      "sha256": "31f2acced121662d6395b624aed2ae0ad642c1edb52cdb0eded1497886daad71",
       "staticImports": [
         "node:fs",
         "node:os"
@@ -242,7 +242,7 @@
       "children": []
     },
     "lib/npm-update-controller-broker.mjs": {
-      "sha256": "f9d4ac64a5793f754619d4a50ec9a57814692374503add68aaaebc56123c2ec4",
+      "sha256": "c2c598f48a403707d699baadb40be7aaf2023a4d6c6e0a41b5e591c5a2af5cc6",
       "staticImports": [
         "lib/npm-update-contract.mjs",
         "lib/npm-update-controller-recipe.mjs",
@@ -986,7 +986,7 @@
       ]
     },
     "lisa-run-gates.mjs": {
-      "sha256": "c94f7068de034d9ba2b0b833fb8109576aa662a67a4afa6aa7536df99d978add",
+      "sha256": "92c3de77e2158e86db54876bf9f02ccd51ef892fdd8326ab9107b08044222a6a",
       "staticImports": [
         "lib/bounded-spawn.mjs",
         "lib/gate-failure-diagnosis.mjs",

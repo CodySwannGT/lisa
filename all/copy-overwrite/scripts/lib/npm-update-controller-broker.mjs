@@ -97,7 +97,7 @@ export async function startControllerBroker(authority) {
     clearTimeout(timer);
     for (const socket of connections) socket.destroy();
     await new Promise(resolve => server.close(resolve));
-    await Promise.allSettled([...running]);
+    await Promise.allSettled(running);
     try {
       const current = lstatSync(path);
       required(

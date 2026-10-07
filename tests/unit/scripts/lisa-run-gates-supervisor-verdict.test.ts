@@ -45,6 +45,7 @@ interface BoundaryRun {
   readonly boundary: {
     readonly code: number | null;
     readonly output: string | null;
+    readonly signal?: string;
   };
   /** Gate vocabulary, buckets, and outcomes derived from that answer. */
   readonly result: GateRun;
@@ -118,7 +119,11 @@ describe.skipIf(process.platform === "win32")(
       const outcome = result.results[0] as GateOutcome;
 
       // The released pre-fix boundary returned numeric 128 here.
-      expect(boundary).toEqual({ code: null, output: null });
+      expect(boundary).toEqual({
+        code: null,
+        output: null,
+        signal: "SIGTERM",
+      });
       expect(outcome.state).toBe(STATE.KILLED);
       expect(outcome.code).toBeNull();
       expect(outcome.diagnosis).toBe(DIAGNOSIS.KILLED);
@@ -129,9 +134,13 @@ describe.skipIf(process.platform === "win32")(
     });
 
     it("persists unknown status and null exit for the killed run", () => {
-      const { result } = throughGateBoundary(selfSignalCommand("SIGINT"));
+      const { boundary, result, lines } = throughGateBoundary(
+        selfSignalCommand("SIGINT")
+      );
       const row = evidenceFor(result).gates[0];
 
+      expect(boundary.signal).toBe("SIGINT");
+      expect(lines.some(line => line.includes("KILLED by SIGINT"))).toBe(true);
       expect(row.status).toBe("unknown");
       expect(row.measures.exit_code).toBeNull();
       expect(row.measures.state).toBe(STATE.KILLED);
@@ -165,10 +174,12 @@ describe.skipIf(process.platform === "win32")(
       const outcome = result.results[0] as GateOutcome;
 
       expect(boundary.code).toBeNull();
+      expect(boundary.signal).toBe("SIGTERM");
       expect(boundary.output).toContain(CAPTURE_MARKER);
       expect(outcome.state).toBe(STATE.KILLED);
       expect(result.killed.map(row => row.id)).toEqual([STYLE]);
       expect(lines.some(line => line.includes("KILLED"))).toBe(true);
+      expect(lines.some(line => line.includes("KILLED by SIGTERM"))).toBe(true);
       expect(lines.some(line => line.includes("FAILED"))).toBe(false);
     });
 
@@ -193,6 +204,43 @@ describe.skipIf(process.platform === "win32")(
 );
 
 describe("malformed executor transport fails closed", () => {
+  it("does not print an unrecognized signal as native evidence", () => {
+    const lines: string[] = [];
+    const result = runGates({
+      exec: () => ({
+        code: null,
+        output: "",
+        signal: "SIGTERM\nuntrusted-metadata",
+      }),
+      gates: GATES,
+      moment: COMMIT,
+      out: line => lines.push(line),
+      runner: RUNNER,
+    }) as GateRun;
+
+    expect(result.blocked).toBe(true);
+    expect(result.results[0]?.code).toBeNull();
+    expect(result.results[0]?.state).toBe(STATE.KILLED);
+    expect(lines.join("\n")).not.toContain("untrusted-metadata");
+    expect(lines.join("\n")).not.toContain("KILLED by SIGTERM");
+    expect(evidenceFor(result).gates[0].measures.exit_code).toBeNull();
+  });
+
+  it("never lets optional signal metadata replace a numeric OS exit", () => {
+    const result = runGates({
+      exec: () => ({ code: 128, output: "", signal: "SIGTERM" }),
+      gates: GATES,
+      moment: COMMIT,
+      out: () => {},
+      runner: RUNNER,
+    }) as GateRun;
+
+    expect(result.blocked).toBe(true);
+    expect(result.killed).toEqual([]);
+    expect(result.results[0]?.code).toBe(128);
+    expect(evidenceFor(result).gates[0].measures.exit_code).toBe(128);
+  });
+
   it("cannot turn a string status into a passing gate", () => {
     const result = runGates({
       exec: () => ({ code: "0", output: "" }) as never,
