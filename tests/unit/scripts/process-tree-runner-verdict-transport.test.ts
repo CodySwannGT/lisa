@@ -19,9 +19,14 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { boundedSpawnSync as nativeBoundedSpawnSync } from "../../../all/copy-overwrite/scripts/lib/bounded-spawn.mjs";
 import * as processTreeRunner from "../../../all/copy-overwrite/scripts/lib/process-tree-runner.mjs";
 
-import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import {
+  BOUNDED_SPAWN_BASE_MS,
+  boundedSpawnSync,
+  ioLatencyBudgetMs,
+} from "../../helpers/io-latency-budget.js";
 import {
   cleanupTokenProcesses,
   descendantSignalFixture,
@@ -104,11 +109,12 @@ describe.skipIf(process.platform === "win32")(
       const fakePs = path.join(root, "ps");
       const token = "large-process-table-token";
       const originalPath = process.env.PATH;
+      const firstRow = `1 S ${token}\n`;
       writeFileSync(
         fakePs,
         [
           "#!/usr/bin/env node",
-          `process.stdout.write(${JSON.stringify(`1 S ${token}\n`)});`,
+          `process.stdout.write(${JSON.stringify(firstRow)});`,
           'process.stdout.write(`2 S ${"x".repeat(1_100_000)}\\n`);',
         ].join("\n")
       );
@@ -147,6 +153,55 @@ describe("ordinary numeric exits are not signal evidence", () => {
     }
   );
 });
+
+describe.skipIf(!["linux", "darwin"].includes(process.platform))(
+  "direct executable OS verdicts",
+  () => {
+    it.each([0, 17, ...NUMERIC_CONTROLS])(
+      "retains deliberate exit %i",
+      code => {
+        const result = boundedSpawnSync({
+          label: "direct numeric verdict",
+          command: process.execPath,
+          args: [
+            PROCESS_TREE_RUNNER,
+            "--timeout-ms=30000",
+            "--direct-argv",
+            "--",
+            process.execPath,
+            "-e",
+            `process.exit(${String(code)})`,
+          ],
+        });
+        expect(result.error).toBeUndefined();
+        expect(result.status).toBe(code);
+        expect(result.signal).toBeNull();
+      }
+    );
+
+    it.each(POSIX_TERMINATING_SIGNALS)("retains real %s", signal => {
+      const result = nativeBoundedSpawnSync(
+        process.execPath,
+        [
+          PROCESS_TREE_RUNNER,
+          "--timeout-ms=30000",
+          "--direct-argv",
+          "--",
+          process.execPath,
+          "-e",
+          `process.kill(process.pid, ${JSON.stringify(signal)})`,
+        ],
+        {
+          encoding: "utf-8",
+          timeout: ioLatencyBudgetMs(BOUNDED_SPAWN_BASE_MS),
+        }
+      );
+      expect(result.error).toBeUndefined();
+      expect(result.status).toBeNull();
+      expect(result.signal).toBe(signal);
+    });
+  }
+);
 
 describe("the timeout verdict is pure and platform-injectable", () => {
   it("maps an injected Windows platform to explicit ordinary status 255", () => {

@@ -135,6 +135,17 @@ const BASELINE: Readonly<Record<string, ScopeMap>> = {
     contents: "read",
     issues: "write",
   },
+  // NEW opt-in route and explicit caller contract ship together in #4347.
+  // No installed caller predates this workflow. docs/npm-updater.md grants
+  // these exact scopes, which the separate phase jobs reduce independently.
+  "npm-updater.yml": {
+    actions: "read",
+    attestations: "write",
+    contents: "write",
+    "id-token": "write",
+    issues: "write",
+    "pull-requests": "write",
+  },
   // Also a NEW workflow rather than a widened one — see the note on
   // environment-prepare.yml. The Playwright jobs it carries declared exactly
   // this inside quality.yml, so no consumer's grant changes by moving them.

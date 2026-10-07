@@ -289,13 +289,14 @@ const RELEASE_TAG = /^v\d+\.\d+\.\d+$/u;
  *
  * @param {string} root - repository root.
  * @param {string} rev - the revision to test.
+ * @param {string} [head] - pinned scan commit, defaulting to HEAD.
  * @returns {boolean} true when `rev` is reachable from HEAD.
  */
-function isAncestorOfHead(root, rev) {
+function isAncestorOfHead(root, rev, head = "HEAD") {
   try {
     boundedExecFileSync(
       "git",
-      ["-C", root, "merge-base", "--is-ancestor", rev, "HEAD"],
+      ["-C", root, "merge-base", "--is-ancestor", rev, head],
       { stdio: "ignore" }
     );
     return true;
@@ -321,11 +322,12 @@ function isAncestorOfHead(root, rev) {
  *
  * @param {string} root - repository root.
  * @returns {string | null} the tag name, or null when no release tag is reachable.
+ * @param {string} [head] - pinned scan commit, defaulting to HEAD.
  */
-export function oldestReachableReleaseTag(root) {
+export function oldestReachableReleaseTag(root, head = "HEAD") {
   const listed = git(
     root,
-    ["tag", "--merged", "HEAD", "--sort=creatordate"],
+    ["tag", "--merged", head, "--sort=creatordate"],
     "could not list tags reachable from HEAD"
   );
   const tags = listed
@@ -386,12 +388,13 @@ export function oldestReachableReleaseTag(root) {
  * @param {string} root - repository root.
  * @param {string} ref - the baseline as the caller named it, for the message.
  * @param {string} sha - the commit that baseline resolved to.
+ * @param {string} [head] - pinned scan commit, defaulting to HEAD.
  * @throws {UsageError} When `sha..HEAD` contains no commits.
  */
-function assertNonEmptyWindow(root, ref, sha) {
+function assertNonEmptyWindow(root, ref, sha, head = "HEAD") {
   const span = git(
     root,
-    ["rev-list", "--count", `${sha}..HEAD`],
+    ["rev-list", "--count", `${sha}..${head}`],
     `could not measure the window ${ref}..HEAD`
   ).trim();
   if (span === "0") {
@@ -402,13 +405,21 @@ function assertNonEmptyWindow(root, ref, sha) {
   }
 }
 
-export function resolveBaseline(root, ref, mayFallBack = false) {
+/**
+ * Resolve the configured or explicit baseline against the same scan commit.
+ * @param {string} root - repository root.
+ * @param {string} ref - requested baseline.
+ * @param {boolean} [mayFallBack] - whether the ledger pin may fall back.
+ * @param {string} [head] - pinned scan commit, defaulting to HEAD.
+ * @returns {{ sha: string, ref: string, requested: string, substituted: boolean }} baseline.
+ */
+export function resolveBaseline(root, ref, mayFallBack = false, head = "HEAD") {
   const sha = git(
     root,
     ["rev-parse", "--verify", `${ref}^{commit}`],
     `baseline ${ref} does not resolve to a commit`
   ).trim();
-  if (isAncestorOfHead(root, sha)) {
+  if (isAncestorOfHead(root, sha, head)) {
     // A reachable baseline can still be HEAD itself, and then the window holds
     // no commits at all. The scan reads nothing and reports every removal
     // governed, which is a confident pass over nothing examined — the failure
@@ -416,7 +427,7 @@ export function resolveBaseline(root, ref, mayFallBack = false) {
     // below already refuses that; an explicit `--since` reached the same state
     // by a different route and did not, so the check belongs on every path out
     // of here rather than on one of them.
-    assertNonEmptyWindow(root, ref, sha);
+    assertNonEmptyWindow(root, ref, sha, head);
     return { ref, requested: ref, sha, substituted: false };
   }
   if (!mayFallBack) {
@@ -425,7 +436,7 @@ export function resolveBaseline(root, ref, mayFallBack = false) {
         `release history this gate can read`
     );
   }
-  const fallback = oldestReachableReleaseTag(root);
+  const fallback = oldestReachableReleaseTag(root, head);
   if (fallback === null) {
     throw new UsageError(
       `baseline ${ref} is not an ancestor of HEAD, and no release tag is ` +
@@ -440,7 +451,7 @@ export function resolveBaseline(root, ref, mayFallBack = false) {
   ).trim();
   const span = git(
     root,
-    ["rev-list", "--count", `${fallbackSha}..HEAD`],
+    ["rev-list", "--count", `${fallbackSha}..${head}`],
     `could not measure the window ${fallback}..HEAD`
   ).trim();
   if (span === "0") {
@@ -463,13 +474,22 @@ export function resolveBaseline(root, ref, mayFallBack = false) {
  * @param {string} [symbol] - the removed export; when given, the commit is
  *   found by pickaxe on that symbol rather than by last touch of the file, so
  *   an unrelated later edit does not get the blame.
+ * @param {string} [head] - pinned scan commit, defaulting to HEAD.
  * @returns {string} a tag name, or a description of why there is none.
  */
-export function removalRelease(root, baseline, file, symbol) {
+export function removalRelease(root, baseline, file, symbol, head = "HEAD") {
   const pickaxe = symbol === undefined ? [] : [`-S${symbol}`];
   const sha = git(
     root,
-    ["log", "-1", "--format=%H", ...pickaxe, `${baseline}..HEAD`, "--", file],
+    [
+      "log",
+      "-1",
+      "--format=%H",
+      ...pickaxe,
+      `${baseline}..${head}`,
+      "--",
+      file,
+    ],
     `could not date the removal of ${file}`
   ).trim();
   if (sha === "") return "an unidentified commit";
@@ -508,7 +528,7 @@ export function findGoverningDeletion(stack, destination, manifests) {
 /**
  * Findings for shipped FILES that existed at the baseline and are gone at HEAD.
  *
- * @param {{ root: string, baseline: string, before: Map<string, object>, after: Map<string, object>, manifests: Map<string, object>, ledger: Map<string, object> }} input
+ * @param {{ root: string, baseline: string, head?: string, before: Map<string, object>, after: Map<string, object>, manifests: Map<string, object>, ledger: Map<string, object> }} input
  *   the resolved scan inputs.
  * @returns {Array<Record<string, unknown>>} one row per ungoverned removal.
  */
@@ -529,7 +549,13 @@ export function findRemovedPaths(input) {
       kind: verdict.kind,
       path: file,
       reason: verdict.reason,
-      release: removalRelease(input.root, input.baseline, file),
+      release: removalRelease(
+        input.root,
+        input.baseline,
+        file,
+        undefined,
+        input.head
+      ),
     });
   }
   return rows.sort((left, right) => left.path.localeCompare(right.path));
@@ -579,16 +605,20 @@ export function classifyRemovedPath(destination, deletion, noted) {
 /**
  * Findings for named EXPORTS present at the baseline and gone at HEAD.
  *
- * @param {{ root: string, baseline: string, before: Map<string, object>, after: Map<string, object>, ledger: Map<string, object>, importers: Map<string, number> }} input
+ * @param {{ root: string, baseline: string, head?: string, read?: (file: string) => string, before: Map<string, object>, after: Map<string, object>, ledger: Map<string, object>, importers: Map<string, number> }} input
  *   the resolved scan inputs.
  * @returns {Array<Record<string, unknown>>} one row per unrecorded export removal.
  */
 export function findRemovedExports(input) {
   const rows = [];
-  for (const file of changedModules(input.root, input.baseline)) {
+  for (const file of changedModules(input.root, input.baseline, input.head)) {
     if (!input.before.has(file) || !input.after.has(file)) continue;
     const was = parseNamedExports(showFile(input.root, input.baseline, file));
-    const now = parseNamedExports(showFile(input.root, "HEAD", file));
+    const now = parseNamedExports(
+      input.read
+        ? input.read(file)
+        : showFile(input.root, input.head ?? "HEAD", file)
+    );
     for (const name of [...was.names].sort()) {
       if (now.names.has(name)) continue;
       if (hasUsableNote(input.ledger.get(removalKey(file, name)))) continue;
@@ -597,7 +627,13 @@ export function findRemovedExports(input) {
         importers: input.importers.get(file) ?? 0,
         kind: "unrecorded-export",
         path: file,
-        release: removalRelease(input.root, input.baseline, file, name),
+        release: removalRelease(
+          input.root,
+          input.baseline,
+          file,
+          name,
+          input.head
+        ),
       });
     }
   }
@@ -612,11 +648,12 @@ export function findRemovedExports(input) {
  * @param {string} root - repository root.
  * @param {string} baseline - the baseline sha.
  * @returns {string[]} repo-relative paths.
+ * @param {string} [head] - pinned scan commit, defaulting to HEAD.
  */
-function changedModules(root, baseline) {
+function changedModules(root, baseline, head = "HEAD") {
   const stdout = git(
     root,
-    ["diff", "--name-only", "-z", `${baseline}..HEAD`],
+    ["diff", "--name-only", "-z", `${baseline}..${head}`],
     "could not diff the baseline against HEAD"
   );
   return stdout
@@ -639,6 +676,37 @@ function changedModules(root, baseline) {
  */
 function showFile(root, ref, file) {
   return git(root, ["show", `${ref}:${file}`], `could not read ${file}@${ref}`);
+}
+
+/**
+ * One complete committed snapshot with an invocation-local blob cache.
+ * Resolve mutable refs once; never cache live files, failures or other roots.
+ * The existing output bound also caps retained UTF-8 bytes. Once full, reads
+ * continue uncached so cache capacity cannot truncate the scan.
+ * @param {string} root - repository root.
+ * @param {string} ref - revision to resolve to an immutable commit.
+ * @returns {{ commit: string, read: (file: string) => string }} snapshot reader.
+ */
+export function createBlobSnapshot(root, ref) {
+  const commit = git(
+    root,
+    ["rev-parse", "--verify", `${ref}^{commit}`],
+    `could not resolve snapshot ${ref}`
+  ).trim();
+  const cache = new Map();
+  let retainedBytes = 0;
+  /** @param {string} file - repo path. @returns {string} Complete blob text. */
+  const read = file => {
+    if (cache.has(file)) return cache.get(file);
+    const source = showFile(root, commit, file);
+    const bytes = Buffer.byteLength(source, "utf8");
+    if (bytes <= MAX_GIT_OUTPUT_BYTES - retainedBytes) {
+      cache.set(file, source);
+      retainedBytes += bytes;
+    }
+    return source;
+  };
+  return { commit, read };
 }
 
 /**
@@ -932,21 +1000,22 @@ export function countImporters(shipped, read) {
  */
 export function scan(opts) {
   const ledger = loadLedger(opts.root);
+  const { commit: head, read } = createBlobSnapshot(opts.root, "HEAD");
   const resolved = resolveBaseline(
     opts.root,
     opts.since ?? ledger.baseline,
-    opts.since === null || opts.since === undefined
+    opts.since === null || opts.since === undefined,
+    head
   );
   const baseline = resolved.sha;
   const before = shippedFilesAt(opts.root, baseline);
-  const after = shippedFilesAt(opts.root, "HEAD");
+  const after = shippedFilesAt(opts.root, head);
   if (after.size === 0) {
     throw new UsageError(
       `no shipped files found under ${opts.root} - refusing to report a clean ` +
         `scan of a tree this gate could not read`
     );
   }
-  const read = file => showFile(opts.root, "HEAD", file);
   const index = indexRemovals(ledger.removals);
   const findings = {
     exports: findRemovedExports({
@@ -954,7 +1023,9 @@ export function scan(opts) {
       baseline,
       before,
       importers: countImporters(after, read),
+      head,
       ledger: index,
+      read,
       root: opts.root,
     }),
     imports: findUnresolvedImports({ read, shipped: after }),
@@ -967,6 +1038,7 @@ export function scan(opts) {
       after,
       baseline,
       before,
+      head,
       ledger: index,
       manifests: readDeletionManifests(opts.root),
       root: opts.root,

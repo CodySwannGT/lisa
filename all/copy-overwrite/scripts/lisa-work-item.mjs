@@ -1016,7 +1016,7 @@ export function deployBranchEnvironments(config) {
   return new Map([[branch, PRODUCTION]]);
 }
 
-function trackerContract(config = readConfig()) {
+export function trackerContract(config = readConfig()) {
   const provider = requireString(config.tracker, "tracker").toLowerCase();
   const identityRepo = currentRepoIdentity(config);
   if (provider === "github") {
@@ -1484,6 +1484,38 @@ export function soleWorkItem(text, contract, subject) {
 }
 
 /**
+ * Resolve a required binding through the authoritative tracker contract.
+ * Consumers supplying trusted committed configuration avoid reparsing trailers
+ * or treating raw `current` output as a checked branch/queue identity.
+ * This does not change ordinary offline/live validation semantics.
+ * @param {string} message Complete final commit message.
+ * @param {object} [options] Trusted configuration and strict live requirement.
+ * @returns {object} Canonical identity and optional actual provider evidence.
+ */
+export function resolveWorkItemContext(message, options = {}) {
+  const contract = trackerContract(options.config ?? readConfig());
+  const state = readState(false);
+  const ref = soleWorkItem(message, contract, COMMIT_SUBJECT);
+  assertStateBranch(state);
+  assertStateMatches(ref, contract);
+  if (options.requireLive && contract.provider !== "github") {
+    throw new TrackingError("Automation provenance requires GitHub tracking");
+  }
+  const issue = options.requireLive
+    ? githubIssue(ref, contract, options.execute ?? run)
+    : undefined;
+  return {
+    ref,
+    provider: contract.provider,
+    repository: contract.repository,
+    identityRepo: contract.identityRepo,
+    branch: state.branch,
+    lifecycle: contract.lifecycle,
+    issue,
+  };
+}
+
+/**
  * The one work item a COMMIT message names.
  * @param {string} message Commit message.
  * @param {object} contract Resolved tracker contract.
@@ -1843,28 +1875,34 @@ function typeFromLabels(labels) {
  * @param {string|number} number GitHub issue number.
  * @returns {string[]} State of every sub-issue.
  */
-function githubHierarchy(ref, contract, number) {
+/** Literal typed GraphQL fields are shared by the canonical reader and closed native transport. */
+export function githubHierarchyArgs(contract, number, after) {
   const [owner, repo] = contract.repository.split("/");
   const query =
     "query($owner:String!,$repo:String!,$number:Int!,$after:String){repository(owner:$owner,name:$repo){issue(number:$number){subIssues(first:100,after:$after){nodes{state}pageInfo{hasNextPage endCursor}}}}}";
+  const args = [
+    "api",
+    "graphql",
+    "-f",
+    `query=${query}`,
+    "-F",
+    `owner=${owner}`,
+    "-F",
+    `repo=${repo}`,
+    "-F",
+    `number=${number}`,
+  ];
+  if (after) args.push("-F", `after=${after}`);
+  return args;
+}
+
+function githubHierarchy(ref, contract, number, execute = run) {
   const states = [];
   const cursor = { after: null };
 
   do {
-    const args = [
-      "api",
-      "graphql",
-      "-f",
-      `query=${query}`,
-      "-F",
-      `owner=${owner}`,
-      "-F",
-      `repo=${repo}`,
-      "-F",
-      `number=${number}`,
-    ];
-    if (cursor.after) args.push("-F", `after=${cursor.after}`);
-    const result = run("gh", args, { allowFailure: true });
+    const args = githubHierarchyArgs(contract, number, cursor.after);
+    const result = execute("gh", args, { allowFailure: true });
     if (result.status !== 0) throw githubFailure(result, ref);
 
     const response = safeJson(result.stdout, `GitHub issue ${ref} hierarchy`);
@@ -1952,20 +1990,25 @@ export function resetGhVersionCheck() {
   ghVersionChecked = false;
 }
 
-function githubIssue(ref, contract) {
-  assertGhVersion();
+/** The body is required by recovery; all ordinary canonical validation fields remain present. */
+export function githubIssueViewArgs(repository, number) {
+  return [
+    "issue",
+    "view",
+    number,
+    "--repo",
+    repository,
+    "--json",
+    "number,url,state,body,labels,comments,closedByPullRequestsReferences",
+  ];
+}
+
+function githubIssue(ref, contract, execute = run) {
+  assertGhVersion(execute);
   const number = ref.slice(ref.lastIndexOf("#") + 1);
-  const result = run(
+  const result = execute(
     "gh",
-    [
-      "issue",
-      "view",
-      number,
-      "--repo",
-      contract.repository,
-      "--json",
-      "number,url,state,labels,comments,closedByPullRequestsReferences",
-    ],
+    githubIssueViewArgs(contract.repository, number),
     {
       allowFailure: true,
     }
@@ -1985,7 +2028,7 @@ function githubIssue(ref, contract) {
   assertLeaf(
     ref,
     typeFromLabels(issue.labels),
-    githubHierarchy(ref, contract, number)
+    githubHierarchy(ref, contract, number, execute)
   );
   return issue;
 }
@@ -2410,7 +2453,7 @@ export function textContainsBacklink(value, prUrl) {
  * @param {string} prUrl Pull request URL.
  * @returns {string} The comment body.
  */
-function backlinkBody(prUrl) {
+export function backlinkBody(prUrl) {
   return `${MARKER} ${prUrl}`;
 }
 
@@ -2502,7 +2545,7 @@ function managedBacklinkTarget(body) {
  * @returns {{mine: unknown, others: number}} This PR's comment, and how many
  *   managed comments belong to OTHER pull requests.
  */
-function partitionBacklinks(comments, prUrl, bodyOf) {
+export function partitionBacklinks(comments, prUrl, bodyOf) {
   const mine = [];
   let others = 0;
   for (const comment of comments) {
@@ -2538,6 +2581,33 @@ export function backlinkReport(outcome, ref, prUrl) {
   );
 }
 
+/** Complete canonical pagination is shared by the writer and its scoped controller. */
+export function githubBacklinkListArgs(repository, number) {
+  if (
+    !/^[\w.-]+\/[\w.-]+$/.test(repository) ||
+    !/^[1-9]\d*$/.test(String(number))
+  )
+    throw new Error("invalid canonical GitHub backlink repository/issue");
+  return [
+    "api",
+    "--paginate",
+    "--slurp",
+    `repos/${repository}/issues/${number}/comments?per_page=100`,
+  ];
+}
+
+/** Complete slurped pages remain bounded and are shared by the canonical writer and controller grant. */
+export function githubBacklinkComments(pages) {
+  if (
+    !Array.isArray(pages) ||
+    pages.length < 1 ||
+    pages.length > 100 ||
+    pages.some(page => !Array.isArray(page) || page.length > 100)
+  )
+    throw new Error("invalid or over-bound GitHub backlink pages");
+  return pages.flat();
+}
+
 /**
  * Establish the backlink on a GitHub issue.
  * @param {string} ref Canonical `owner/repo#number` reference.
@@ -2547,17 +2617,13 @@ export function backlinkReport(outcome, ref, prUrl) {
  */
 function githubBacklink(ref, prUrl) {
   const [repository, number] = ref.split("#");
-  const listing = run(
-    "gh",
-    [
-      "api",
-      "--paginate",
-      `repos/${repository}/issues/${number}/comments?per_page=100`,
-    ],
-    { allowFailure: true }
-  );
+  const listing = run("gh", githubBacklinkListArgs(repository, number), {
+    allowFailure: true,
+  });
   if (listing.status !== 0) throw githubFailure(listing, ref);
-  const comments = safeJson(listing.stdout, `GitHub comments on ${ref}`);
+  const comments = githubBacklinkComments(
+    safeJson(listing.stdout, `GitHub comments on ${ref}`)
+  );
   // This listing is the read-before-write, and it is fetched here rather than
   // passed in for exactly that reason: the version you last wrote is not the
   // version that is live on a surface other agents also comment on.

@@ -36,7 +36,7 @@ const GATES = { [STYLE]: REQUIRED_AT_COMMIT };
 /** Stable observation time required by the evidence schema. */
 const OBSERVED_AT = "2026-08-28T00:00:00.000Z";
 
-/** Marker written only after the capture wrapper published both owned paths. */
+/** Marker emitted by an ordinary captured command. */
 const CAPTURE_MARKER = "lisa-3384-default-capture";
 
 /** One real executor answer plus the gate run it produces. */
@@ -45,6 +45,7 @@ interface BoundaryRun {
   readonly boundary: {
     readonly code: number | null;
     readonly output: string | null;
+    readonly signal?: string;
   };
   /** Gate vocabulary, buckets, and outcomes derived from that answer. */
   readonly result: GateRun;
@@ -74,7 +75,7 @@ afterEach(() => {
 /**
  * Drive the production supervisor and classifier through one capture mode.
  * @param command - Shell source that becomes the supervised gate command.
- * @param capture - Whether to retain the default shell, tee, and status path.
+ * @param capture - Whether to retain the default diagnostic output capture.
  * @returns The raw boundary result and classified gate run.
  */
 function throughGateBoundary(command: string, capture = false): BoundaryRun {
@@ -91,22 +92,9 @@ function throughGateBoundary(command: string, capture = false): BoundaryRun {
   return { boundary, lines, result };
 }
 
-/**
- * Refuse to run unless the default capture wrapper supplied both path facts.
- * @param command - Command that runs only after capture is established.
- * @returns Shell source with a visible tee/log marker before the command.
- */
+/** Emit a marker before an ordinary command reaches the actual capture route. */
 function requireCapture(command: string): string {
-  return (
-    'test -n "$LISA_GATE_LOG_PATH" && ' +
-    'test -n "$LISA_GATE_STATUS_PATH" || exit 7\n' +
-    `printf '${CAPTURE_MARKER}\\n'\n` +
-    "capture_attempts=0\n" +
-    `until grep -Fq '${CAPTURE_MARKER}' "$LISA_GATE_LOG_PATH" 2>/dev/null; do\n` +
-    "  capture_attempts=$((capture_attempts + 1))\n" +
-    "  test $capture_attempts -lt 10000 || exit 8\n" +
-    `done\n${command}`
-  );
+  return `printf '${CAPTURE_MARKER}\\n'\n${command}`;
 }
 
 /** Build the exact evidence row a completed gate route would persist. */
@@ -131,7 +119,11 @@ describe.skipIf(process.platform === "win32")(
       const outcome = result.results[0] as GateOutcome;
 
       // The released pre-fix boundary returned numeric 128 here.
-      expect(boundary).toEqual({ code: null, output: null });
+      expect(boundary).toEqual({
+        code: null,
+        output: null,
+        signal: "SIGTERM",
+      });
       expect(outcome.state).toBe(STATE.KILLED);
       expect(outcome.code).toBeNull();
       expect(outcome.diagnosis).toBe(DIAGNOSIS.KILLED);
@@ -142,9 +134,13 @@ describe.skipIf(process.platform === "win32")(
     });
 
     it("persists unknown status and null exit for the killed run", () => {
-      const { result } = throughGateBoundary(selfSignalCommand("SIGINT"));
+      const { boundary, result, lines } = throughGateBoundary(
+        selfSignalCommand("SIGINT")
+      );
       const row = evidenceFor(result).gates[0];
 
+      expect(boundary.signal).toBe("SIGINT");
+      expect(lines.some(line => line.includes("KILLED by SIGINT"))).toBe(true);
       expect(row.status).toBe("unknown");
       expect(row.measures.exit_code).toBeNull();
       expect(row.measures.state).toBe(STATE.KILLED);
@@ -178,10 +174,12 @@ describe.skipIf(process.platform === "win32")(
       const outcome = result.results[0] as GateOutcome;
 
       expect(boundary.code).toBeNull();
+      expect(boundary.signal).toBe("SIGTERM");
       expect(boundary.output).toContain(CAPTURE_MARKER);
       expect(outcome.state).toBe(STATE.KILLED);
       expect(result.killed.map(row => row.id)).toEqual([STYLE]);
       expect(lines.some(line => line.includes("KILLED"))).toBe(true);
+      expect(lines.some(line => line.includes("KILLED by SIGTERM"))).toBe(true);
       expect(lines.some(line => line.includes("FAILED"))).toBe(false);
     });
 
@@ -206,6 +204,43 @@ describe.skipIf(process.platform === "win32")(
 );
 
 describe("malformed executor transport fails closed", () => {
+  it("does not print an unrecognized signal as native evidence", () => {
+    const lines: string[] = [];
+    const result = runGates({
+      exec: () => ({
+        code: null,
+        output: "",
+        signal: "SIGTERM\nuntrusted-metadata",
+      }),
+      gates: GATES,
+      moment: COMMIT,
+      out: line => lines.push(line),
+      runner: RUNNER,
+    }) as GateRun;
+
+    expect(result.blocked).toBe(true);
+    expect(result.results[0]?.code).toBeNull();
+    expect(result.results[0]?.state).toBe(STATE.KILLED);
+    expect(lines.join("\n")).not.toContain("untrusted-metadata");
+    expect(lines.join("\n")).not.toContain("KILLED by SIGTERM");
+    expect(evidenceFor(result).gates[0].measures.exit_code).toBeNull();
+  });
+
+  it("never lets optional signal metadata replace a numeric OS exit", () => {
+    const result = runGates({
+      exec: () => ({ code: 128, output: "", signal: "SIGTERM" }),
+      gates: GATES,
+      moment: COMMIT,
+      out: () => {},
+      runner: RUNNER,
+    }) as GateRun;
+
+    expect(result.blocked).toBe(true);
+    expect(result.killed).toEqual([]);
+    expect(result.results[0]?.code).toBe(128);
+    expect(evidenceFor(result).gates[0].measures.exit_code).toBe(128);
+  });
+
   it("cannot turn a string status into a passing gate", () => {
     const result = runGates({
       exec: () => ({ code: "0", output: "" }) as never,
@@ -221,3 +256,21 @@ describe("malformed executor transport fails closed", () => {
     expect(evidenceFor(result).gates[0].status).toBe("unknown");
   });
 });
+
+describe.skipIf(process.platform === "win32")(
+  "OS-derived captured verdict",
+  () => {
+    it("retains a direct shell exit 17 with its output", () => {
+      const result = spawnExec(requireCapture(numericExitCommand(17)));
+      expect(result.code).toBe(17);
+      expect(result.output).toContain(CAPTURE_MARKER);
+    });
+
+    it("does not publish writable capture paths to an ordinary command", () => {
+      const result = spawnExec(
+        'test -z "$LISA_GATE_STATUS_PATH" && test -z "$LISA_GATE_LOG_PATH"; exit $?'
+      );
+      expect(result.code).toBe(0);
+    });
+  }
+);

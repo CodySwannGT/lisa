@@ -38,7 +38,9 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import * as productionSpawn from "../../../scripts/lib/bounded-spawn.mjs";
 
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 import { indexRemovals } from "../../../scripts/lib/shipped-surface.mjs";
@@ -46,6 +48,7 @@ import {
   buildReport,
   classifyRemovedPath,
   countImporters,
+  createBlobSnapshot,
   deliveryView,
   findContradictedLedger,
   findGoverningDeletion,
@@ -90,6 +93,8 @@ const EXPORTER_SOURCE = "export const present = 1;\n";
 
 /** The still-shipped module used by the contradicted-ledger fixtures. */
 const LIVE_MODULE = "all/copy-overwrite/scripts/live.mjs";
+const STAYING_SOURCE = "export const stays = 1;\n";
+const READ_FAILURE = "could not read";
 
 /** Collects what the gate writes, so exit codes can be read with the text. */
 function run(argv: readonly string[]): {
@@ -147,7 +152,7 @@ function makeRemovalFixture(
   const lane = path.join(root, "typescript", "copy-overwrite", "scripts");
   mkdirSync(lane, { recursive: true });
   writeFileSync(path.join(lane, "gone.mjs"), "export const gone = 1;\n");
-  writeFileSync(path.join(lane, "stays.mjs"), "export const stays = 1;\n");
+  writeFileSync(path.join(lane, "stays.mjs"), STAYING_SOURCE);
   writeFileSync(
     path.join(root, "shipped-removals.json"),
     `${JSON.stringify(
@@ -558,7 +563,7 @@ describe("loadLedger", () => {
   it("refuses a directory with no ledger rather than scanning nothing", () => {
     const directory = mkdtempSync(path.join(tmpdir(), "lisa-removals-"));
     temporaryDirectories.push(directory);
-    expect(() => loadLedger(directory)).toThrow("could not read");
+    expect(() => loadLedger(directory)).toThrow(READ_FAILURE);
   });
 });
 
@@ -665,6 +670,104 @@ describe("the removal detector, both arms", () => {
 });
 
 describe("the gate", () => {
+  it("reads each committed blob once while preserving a real removal finding", () => {
+    const repo = makeRemovalFixture();
+    const child = vi.spyOn(productionSpawn, "boundedExecFileSync");
+    try {
+      const result = run(["--root", repo]);
+      const reads = child.mock.calls.filter(([, args]) =>
+        args?.includes("show")
+      );
+      expect(result.code).toBe(1);
+      expect(result.stdout).toContain(FIXTURE_REMOVED_PATH);
+      expect(reads).toHaveLength(1);
+    } finally {
+      child.mockRestore();
+    }
+  });
+
+  it("binds cached bytes to a commit and never reuses another root or ref", () => {
+    const repo = makeRemovalFixture();
+    const file = "typescript/copy-overwrite/scripts/stays.mjs";
+    const first = createBlobSnapshot(repo, "HEAD");
+    const body = "export const stays = 2;\n";
+    writeFileSync(path.join(repo, file), body);
+    for (const args of [
+      ["add", "-A"],
+      ["commit", "-q", "-m", "change export"],
+    ]) {
+      boundedExecFileSync({
+        label: `fixture git ${args[0]}`,
+        command: "git",
+        args: ["-C", repo, ...args],
+        stdio: "ignore",
+      });
+    }
+    writeFileSync(path.join(repo, file), "export const stays = 999;\n");
+    expect(first.read(file)).toBe(STAYING_SOURCE);
+    expect(createBlobSnapshot(repo, "HEAD").read(file)).toBe(body);
+    expect(createBlobSnapshot(repo, "v1.0.0").read(file)).toBe(STAYING_SOURCE);
+    expect(createBlobSnapshot(makeRemovalFixture(), "HEAD").read(file)).toBe(
+      STAYING_SOURCE
+    );
+  });
+
+  it("keeps real missing-blob failures uncached", () => {
+    const snapshot = createBlobSnapshot(makeRemovalFixture(), "HEAD");
+    const child = vi.spyOn(productionSpawn, "boundedExecFileSync");
+    try {
+      expect(() => snapshot.read("missing.mjs")).toThrow(READ_FAILURE);
+      expect(() => snapshot.read("missing.mjs")).toThrow(READ_FAILURE);
+      expect(
+        child.mock.calls.filter(([, args]) => args?.includes("show"))
+      ).toHaveLength(2);
+    } finally {
+      child.mockRestore();
+    }
+  });
+
+  it("continues complete reads after the blob cache is full", () => {
+    const snapshot = createBlobSnapshot(makeRemovalFixture(), "HEAD");
+    const completeBody = "x".repeat(33 * 1024 * 1024);
+    const child = vi.spyOn(productionSpawn, "boundedExecFileSync");
+    // Synthetic complete bodies exercise the memory boundary, not Git authority.
+    child.mockReturnValue(completeBody);
+    try {
+      expect(snapshot.read("first.mjs")).toBe(completeBody);
+      expect(snapshot.read("second.mjs")).toBe(completeBody);
+      expect(snapshot.read("first.mjs")).toBe(completeBody);
+      expect(snapshot.read("second.mjs")).toBe(completeBody);
+      expect(child).toHaveBeenCalledTimes(3);
+    } finally {
+      child.mockRestore();
+    }
+  });
+
+  it("reads the live removal ledger again on the next complete scan", () => {
+    const repo = makeRemovalFixture();
+    expect(run(["--root", repo]).code).toBe(1);
+    writeFileSync(
+      path.join(repo, "shipped-removals.json"),
+      JSON.stringify({
+        baseline: "v1.0.0",
+        removals: [
+          {
+            path: FIXTURE_REMOVED_PATH,
+            note: "Retain this executable in existing hosts.",
+          },
+        ],
+      })
+    );
+    const result = run(["--root", repo, "--json"]);
+    const report = JSON.parse(result.stdout);
+    expect(result.code).toBe(0);
+    expect(report.summary).toMatchObject({
+      recordedRemovals: 1,
+      shippedFiles: 1,
+      violations: 0,
+    });
+  });
+
   it("the live repository is governed", () => {
     const result = run([]);
     expect(result.stdout).toContain(

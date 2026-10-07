@@ -12,6 +12,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { env } from "node:process";
 import { fileURLToPath } from "node:url";
+import { supervise } from "../../all/copy-overwrite/scripts/lib/process-tree-runner.mjs";
 
 export const supervisor = fileURLToPath(
   new URL(
@@ -25,6 +26,53 @@ export const windowsOnly = {
 };
 export const windowsRoot = env.SystemRoot || "C:\\Windows";
 export const SUPERVISOR_DEADLINE = "--timeout-ms=20000";
+
+/**
+ * Actual Node probes retain their original encoding, deadline and caller overrides.
+ * @param {string[]} args Original literal Node arguments.
+ * @param {object} options Original native subprocess options.
+ * @returns {object} Actual native subprocess result.
+ */
+export function runNode(args, options = {}) {
+  return spawnSync(process.execPath, args, {
+    encoding: "utf8",
+    timeout: 30000,
+    ...options,
+  });
+}
+
+/**
+ * The collected Windows test must refuse direct CLI and API before lifetime setup.
+ * @returns {void} Assertions complete only after actual refusal and listener readback.
+ */
+export function assertDirectRefusal() {
+  const result = runNode([
+    supervisor,
+    SUPERVISOR_DEADLINE,
+    "--direct-argv",
+    "--",
+    process.execPath,
+    "-e",
+    "process.stdout.write('must-not-launch');",
+  ]);
+  const before = ["SIGINT", "SIGTERM", "SIGHUP"].map(signal =>
+    process.listenerCount(signal)
+  );
+  assert.ifError(result.error);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /direct argv requires Linux or macOS/u);
+  assert.equal(result.stdout, "");
+  assert.throws(
+    () => supervise(process.execPath, 5000, undefined, { directArgs: [] }),
+    /direct argv requires Linux or macOS/u
+  );
+  assert.deepEqual(
+    ["SIGINT", "SIGTERM", "SIGHUP"].map(signal =>
+      process.listenerCount(signal)
+    ),
+    before
+  );
+}
 
 /**
  * Run a native Windows diagnostic with failures surfaced to the test.

@@ -152,6 +152,7 @@ fi
 
 if ! BLOCK_NO_VERIFY_COMMAND="$command_str" python3 - <<'PY'
 import os
+import io
 import re
 import shlex
 import sys
@@ -1284,6 +1285,57 @@ def git_skips_verification(text, depth=0):
     return False
 
 
+def git_config_reads_key(tokens, index):
+    """Whether this key is a read operand of this exact Git config invocation.
+
+    Keep the command boundary: a query cannot authorize the next command or
+    turn a later setting into a read. Unknown options remain conservative.
+    """
+    start = index
+    while start > 0 and tokens[start - 1] not in COMMAND_SEPARATORS:
+        start -= 1
+    end = index + 1
+    while end < len(tokens) and tokens[end] not in COMMAND_SEPARATORS:
+        end += 1
+    program, args, opaque = command_word(tokens[start:end])
+    if opaque or program != "git":
+        return False
+    found = subcommand_after_git(args, 0)
+    if not found or found[0] != "config":
+        return False
+    argv = found[1]
+    key_offset = index - (end - len(argv))
+    read = bool(argv and argv[0] == "get")
+    cursor = 1 if read else 0
+    operands = []
+    read_actions = {"--get", "--get-all", "--get-regexp", "--get-urlmatch"}
+    modifiers = {
+        "--local", "--global", "--system", "--worktree", "--includes",
+        "--no-includes", "--show-origin", "--show-scope", "--null", "-z",
+        "--name-only", "--all", "--regexp",
+    }
+    value_options = {"--file", "-f", "--blob", "--type", "--default", "--value"}
+    while cursor < len(argv):
+        token = argv[cursor]
+        if token in read_actions:
+            if read:
+                return False
+            read = True
+        elif token in value_options:
+            if cursor + 1 >= len(argv):
+                return False
+            cursor += 1
+        elif token in modifiers:
+            pass
+        elif token.startswith("-"):
+            if not any(token.startswith(option + "=") for option in value_options):
+                return False
+        else:
+            operands.append(cursor)
+        cursor += 1
+    return bool(operands and operands[0] == key_offset and (read or len(operands) == 1))
+
+
 def token_bypass(tokens):
     """Whether any token disables hooks by environment or by git config.
 
@@ -1295,7 +1347,7 @@ def token_bypass(tokens):
     option, and an option belongs to an argv.
 
     Args:
-        tokens: Punctuation-stripped tokens of one command or script.
+        tokens: Operator-aware tokens of one command or script.
 
     Returns:
         True when a token disables verification.
@@ -1321,7 +1373,9 @@ def token_bypass(tokens):
         if lowered.startswith("core.hookspath="):
             if not is_permitted_hooks_path(token.split("=", 1)[1]):
                 return True
-        if lowered == "core.hookspath" and i + 1 < len(tokens):
+        if (lowered == "core.hookspath" and i + 1 < len(tokens)
+                and tokens[i + 1] not in COMMAND_SEPARATORS
+                and not git_config_reads_key(tokens, i)):
             if not is_permitted_hooks_path(tokens[i + 1]):
                 return True
         # `git --config-env=core.hooksPath=SOMEVAR` sets the same config, reading
@@ -1388,8 +1442,22 @@ def token_bypass(tokens):
     return False
 
 
+class OperatorStream(io.StringIO):
+    """Remember punctuation read while shlex is inside a quote or escape."""
+
+    lexer = None
+    literal_operator = False
+
+    def read(self, size=-1):
+        value = super().read(size)
+        if (self.lexer is not None and self.lexer.state in {"'", '"', "\\"}
+                and any(char in "();|&<>" for char in value)):
+            self.literal_operator = True
+        return value
+
+
 def flat_tokens(text):
-    """Punctuation-stripped tokens, or None when the text does not lex.
+    """Operator-aware tokens without printed data, or None on a lex failure.
 
     Args:
         text: A command line or a script's contents.
@@ -1398,9 +1466,25 @@ def flat_tokens(text):
         The token list, or None.
     """
     try:
-        tokens = shell_tokens(text)
+        stream = OperatorStream(line_boundaries_as_separators(text))
+        lexer = shlex.shlex(stream, posix=True, punctuation_chars=True)
+        lexer.whitespace_split = True
+        lexer.commenters = ""
+        stream.lexer = lexer
+        tokens = []
+        while True:
+            stream.literal_operator = False
+            token = lexer.get_token()
+            if token is None:
+                break
+            # shlex otherwise makes quoted ";" indistinguishable from a real
+            # command boundary. Keep literal destinations as data, so a setter
+            # cannot masquerade as a one-operand configuration read.
+            if token in COMMAND_SEPARATORS and stream.literal_operator:
+                token = "\x00" + token
+            tokens.append(token)
         return [
-            token.strip("();|&")
+            token
             for index, token in enumerate(tokens)
             if not printed_argument(tokens, index)
         ]

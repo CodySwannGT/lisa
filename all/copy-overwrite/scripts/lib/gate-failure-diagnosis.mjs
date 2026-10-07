@@ -854,13 +854,20 @@ function wasKilled(code) {
  * @param {number|null} code The exit code, or null when none was obtained.
  * @param {LoadReading|null} [load] The machine's load at diagnosis time, from
  *   {@link machineLoad}. Omitted or null when it could not be read.
+ * @param {string|null|undefined} nativeSignal Signal observed by the OS supervisor.
  * @returns {Diagnosis} The verdict.
  */
-function killedVerdict(code, load) {
+function killedVerdict(code, load, nativeSignal) {
   const named = SIGNAL_EXITS[code];
+  const observed =
+    code === null && Object.values(SIGNAL_EXITS).includes(nativeSignal)
+      ? nativeSignal
+      : undefined;
   const cause =
     named === undefined
-      ? "a signal, and the runner obtained no exit code for it"
+      ? observed === undefined
+        ? "a signal, and the runner obtained no exit code for it"
+        : `${observed} — native signal; no exit code was returned`
       : `${named} — exit ${code} is 128 + ${code - 128}`;
   return {
     kind: DIAGNOSIS.KILLED,
@@ -1176,8 +1183,8 @@ function emptyTranscriptVerdict() {
  * @param {LoadReading|null} load The machine's load at diagnosis time.
  * @returns {object} What the failure was, before it is attributed.
  */
-function classify(output, code, load, read, tempRoot) {
-  if (wasKilled(code)) return killedVerdict(code ?? null, load);
+function classify(output, code, load, read, tempRoot, nativeSignal) {
+  if (wasKilled(code)) return killedVerdict(code ?? null, load, nativeSignal);
 
   if (typeof output !== "string") return unavailableVerdict();
 
@@ -1636,7 +1643,7 @@ export function declaredFailure(output, declarations) {
  *   when the runner could not capture it.
  * @param {number|null|undefined} [code] The command's exit code. Omitted by a
  *   caller that has none; a caller that HAS one must pass it, because a kill is
- *   only legible in the exit code and never in the output.
+ *   only legible in native status/signal metadata and never in the output.
  * @param {LoadReading|null} [load] The machine's load, for a kill's evidence
  *   line. Defaults to reading this machine; pass `null` to suppress the line,
  *   or a fixed reading to make the output deterministic.
@@ -1663,6 +1670,8 @@ export function declaredFailure(output, declarations) {
  *   triggers a default. `null` is the documented suppression that keeps test
  *   output deterministic, so it must survive. Hence the resolution moved to
  *   the single consuming call site, where the two are still distinguishable.
+ * @param {string|null|undefined} [nativeSignal] Actual OS-observed termination
+ *   signal. It explains a null exit status without manufacturing a numeric one.
  * @returns {Diagnosis} What the failure was, and whose it was.
  */
 export function diagnoseFailure(
@@ -1670,9 +1679,10 @@ export function diagnoseFailure(
   code,
   load = machineLoad(),
   read = readSourceFile,
-  tempRoot
+  tempRoot,
+  nativeSignal
 ) {
-  const verdict = classify(output, code, load, read, tempRoot);
+  const verdict = classify(output, code, load, read, tempRoot, nativeSignal);
   // A verdict that already knows whose property it is keeps that answer. The
   // static table maps a KIND to a gate, which cannot express a failure whose
   // owner is whichever gate declared the shape that matched.
