@@ -5,6 +5,7 @@
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { required } from "./npm-update-contract.mjs";
+import { recordNativeFailure } from "./npm-update-invariants.mjs";
 
 /** The complete supervisor vector, including its control overhead, is bounded literal data. */
 function supervisedArguments(vector) {
@@ -104,27 +105,37 @@ function captureProcess(
     const errors = [];
     let size = 0;
     let failure;
+    let category;
+    let errno;
     let closed = false;
-    const stop = reason => {
-      failure ??= new Error(`npm updater: ${reason}`);
+    const stop = (reason, kind) => {
+      if (!failure) {
+        failure = new Error(`npm updater: ${reason}`);
+        category = kind;
+      }
       if (!closed && child.pid) child.kill("SIGTERM");
     };
-    const abort = () => stop("child was cancelled");
+    const abort = () => stop("child was cancelled", "cancelled");
     abortSignal?.addEventListener("abort", abort, { once: true });
     if (abortSignal?.aborted) abort();
-    const timer = setTimeout(() => stop("child exceeded deadline"), timeout);
+    const timer = setTimeout(
+      () => stop("child exceeded deadline", "deadline"),
+      timeout
+    );
     const collect = target => data => {
       size += data.length;
-      if (size > maximum) stop("child output exceeded bound");
+      if (size > maximum) stop("child output exceeded bound", "output-bound");
       else target.push(data);
     };
     child.stdout.on("data", collect(chunks));
     child.stderr.on("data", collect(errors));
     child.on("error", error => {
       failure = error;
+      category = "spawn-error";
+      errno = error.code;
     });
     child.stdin.on("error", error => {
-      if (error.code !== "EPIPE") stop("child input failed");
+      if (error.code !== "EPIPE") stop("child input failed", "input-failed");
     });
     child.stdin.end(input);
     child.on("close", (code, signal) => {
@@ -134,6 +145,13 @@ function captureProcess(
       if (failure || signal || !allowed.includes(code)) {
         const error =
           failure ?? new Error(`npm updater: child failed (${code ?? signal})`);
+        recordNativeFailure(
+          error,
+          category ?? (signal ? "signal" : "exit"),
+          code,
+          signal,
+          errno
+        );
         reject(
           Object.assign(error, {
             stdout: Buffer.concat(chunks),
