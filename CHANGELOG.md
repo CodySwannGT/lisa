@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.71.1](https://github.com/CodySwannGT/lisa/compare/v4.71.0...v4.71.1) (2026-10-07)
+
+
+### Bug Fixes
+
+* **npm-updater:** support default token and declared husky installer ([3306c92](https://github.com/CodySwannGT/lisa/commit/3306c929aa72b209c3dd93fe2995c52ee1badb47)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+
 ## [4.71.0](https://github.com/CodySwannGT/lisa/compare/v4.70.4...v4.71.0) (2026-10-07)
 
 
