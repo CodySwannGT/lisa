@@ -28,7 +28,13 @@ import {
   runGates,
   STATE,
 } from "../../all/copy-overwrite/scripts/lisa-run-gates.mjs";
-import { boundedSpawnSync } from "../helpers/io-latency-budget.js";
+import { boundedSpawnSync as nativeBoundedSpawnSync } from "../../all/copy-overwrite/scripts/lib/bounded-spawn.mjs";
+import {
+  BOUNDED_SPAWN_BASE_MS,
+  boundedSpawnSync,
+  ioLatencyBudgetMs,
+} from "../helpers/io-latency-budget.js";
+import { PROCESS_TREE_RUNNER } from "../helpers/process-tree-runner-verdict.js";
 import { type GateRun, sink } from "../unit/scripts/lisa-run-gates-fixtures.js";
 
 const SCRIPT = path.join(
@@ -59,7 +65,7 @@ const GATE_KILLED = "required gate NOT PROVED — KILLED";
  * makes the runner hand the moment back to the built-in hook steps, which
  * would run nothing here and prove nothing about the report.
  */
-const CONFIG = JSON.stringify({
+const CONFIG = {
   gates: {
     runner: "sh",
     [COVERAGE_GATE]: { push: { level: "required", run: "gate.sh" } },
@@ -69,32 +75,64 @@ const CONFIG = JSON.stringify({
     traceability: { push: "off" },
     "type-correctness": { push: "off" },
   },
-});
+};
+
+/** Native command status observed independently of the gate's diagnosis. */
+type ObservedGate = SpawnSyncReturns<string> & {
+  readonly boundary: SpawnSyncReturns<string> | null;
+};
 
 /**
  * Run the real gate runner over a gate command that prints `output` and fails.
  * @param output What the gate command writes to stdout before it ends.
  * @param ending How the gate command ends. Defaults to an ordinary `exit 1`;
  *   a case staging a termination passes a `kill` instead.
+ * @param options Runner spelling and optional independent native observation.
+ * @param options.runner Shell prefix, retaining the original `sh` by default.
+ * @param options.observeBoundary Observe native status before running the CLI.
  * @returns The finished child process.
  */
 function runFailingGate(
   output: string,
-  ending = "exit 1"
-): SpawnSyncReturns<string> {
+  ending = "exit 1",
+  options: { runner?: string; observeBoundary?: boolean } = {}
+): ObservedGate {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-gate-vocab-"));
+  const runner = options.runner ?? "sh";
   try {
-    writeFileSync(path.join(root, ".lisa.config.json"), CONFIG);
+    writeFileSync(
+      path.join(root, ".lisa.config.json"),
+      JSON.stringify({ ...CONFIG, gates: { ...CONFIG.gates, runner } })
+    );
     writeFileSync(
       path.join(root, "gate.sh"),
       `cat <<'GATE_OUTPUT_EOF'\n${output}\nGATE_OUTPUT_EOF\n${ending}\n`
     );
-    return boundedSpawnSync({
+    const boundary = options.observeBoundary
+      ? nativeBoundedSpawnSync(
+          process.execPath,
+          [
+            PROCESS_TREE_RUNNER,
+            "--timeout-ms=1800000",
+            "--capture-fd=3",
+            "--",
+            `${runner} gate.sh`,
+          ],
+          {
+            cwd: root,
+            encoding: "utf8",
+            stdio: ["ignore", "pipe", "pipe", "pipe"],
+            timeout: ioLatencyBudgetMs(BOUNDED_SPAWN_BASE_MS),
+          }
+        )
+      : null;
+    const child = boundedSpawnSync({
       label: "lisa-run-gates.mjs --moment=push",
       command: process.execPath,
       args: [SCRIPT, "--moment=push"],
       cwd: root,
     });
+    return { ...child, boundary };
   } finally {
     rmSync(root, { force: true, recursive: true });
   }
@@ -195,20 +233,36 @@ describe("bite: a killed gate is not reported as a failed test", () => {
   // `exit 1` on this gate had at least three distinct causes and re-running was
   // the rational response to all of them. The real one never got looked at.
   //
-  // The kill is staged by the gate command signalling ITSELF. The native
-  // supervisor retains a null exit status and the actual SIGTERM through
-  // capture, `normaliseExec`, and the classifier. A separate real numeric
-  // exit below exercises the shell-compatible 128+N spelling.
+  // The kill is staged by the gate command signalling ITSELF. The original
+  // shell wrapper can retain SIGTERM/null or return native 143, depending on
+  // its real shell behavior. A separate exec-shell control seals SIGTERM/null;
+  // another command genuinely exits 143 without receiving a signal.
 
-  /** Native SIGTERM to the gate script's own shell: observed signal, null status. */
+  /** Native SIGTERM to the gate script's own shell. */
   const SELF_TERMINATE = 'kill -TERM "$$"';
 
   it("says the command was KILLED, naming the signal", () => {
-    const stdout = runFailingGate(TIMEOUT_OUTPUT, SELF_TERMINATE).stdout;
+    const { stdout, boundary } = runFailingGate(
+      TIMEOUT_OUTPUT,
+      SELF_TERMINATE,
+      {
+        observeBoundary: true,
+      }
+    );
 
+    expect(boundary).not.toBeNull();
+    expect(boundary?.error).toBeUndefined();
     expect(killedLine(stdout)).toContain("SIGTERM");
-    expect(killedLine(stdout)).toContain("exit terminated");
-    expect(killedLine(stdout)).toContain("no exit code was returned");
+    if (boundary?.status === null) {
+      expect(boundary.signal).toBe("SIGTERM");
+      expect(killedLine(stdout)).toContain("exit terminated");
+      expect(killedLine(stdout)).toContain("no exit code was returned");
+    } else {
+      expect(boundary).toHaveProperty("status", 143);
+      expect(boundary).toHaveProperty("signal", null);
+      expect(killedLine(stdout)).toContain("exit 143");
+      expect(killedLine(stdout)).toContain("128 + 15");
+    }
     // The other half of the same fact, and the half #2813 could not state: the
     // word FAILED appears nowhere, because nothing was measured to fail.
     expect(
@@ -218,10 +272,34 @@ describe("bite: a killed gate is not reported as a failed test", () => {
     ).toBe("");
   });
 
+  it("retains SIGTERM and null status when the script replaces its wrapper", () => {
+    const child = runFailingGate(TIMEOUT_OUTPUT, SELF_TERMINATE, {
+      runner: "exec sh",
+      observeBoundary: true,
+    });
+
+    expect(child.boundary).toHaveProperty("status", null);
+    expect(child.boundary).toHaveProperty("signal", "SIGTERM");
+    expect(child.boundary?.error).toBeUndefined();
+    expect(child.status).toBe(1);
+    expect(killedLine(child.stdout)).toContain("exit terminated");
+    expect(killedLine(child.stdout)).toContain("no exit code was returned");
+    expect(killedLine(child.stdout)).toContain("SIGTERM");
+    expect(killedLine(child.stdout)).not.toContain("60000ms");
+    expect(child.stdout).not.toContain(GATE_FAILED);
+  });
+
   it("shows the arithmetic, so 143 stops reading as an ordinary exit code", () => {
-    expect(
-      killedLine(runFailingGate(TIMEOUT_OUTPUT, "exit 143").stdout)
-    ).toContain("128 + 15");
+    const child = runFailingGate(TIMEOUT_OUTPUT, "exit 143", {
+      observeBoundary: true,
+    });
+
+    expect(child.boundary).toHaveProperty("status", 143);
+    expect(child.boundary).toHaveProperty("signal", null);
+    expect(child.boundary?.error).toBeUndefined();
+    expect(child.status).toBe(1);
+    expect(killedLine(child.stdout)).toContain("128 + 15");
+    expect(child.stdout).not.toContain(GATE_FAILED);
   });
 
   it("does not report the truncated transcript's failures as the verdict", () => {
