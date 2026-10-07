@@ -6,6 +6,22 @@ recognized evidence role and an independently authenticated preimage. Other
 findings in the same file remain blocking. This does not certify an audit
 receipt's assertions, test results or runtime behavior.
 
+The genuine scanner runs through a fixed POSIX child launcher that sets umask
+077 before directly executing its original argument vector. Gitleaks removes
+and recreates its report, so precreating a mode-0600 file alone is insufficient.
+The calling process's umask, audited Git environment, native result and existing
+time/capture bounds remain unchanged.
+
+The permission witness loads that launch boundary from the actual emitted
+source or immutable archive. With a supplied private proof directory, it retains bounded mode, detection,
+redaction and source/tool/archive identity predicates before assertions and
+owned scratch cleanup. Missing, malformed or nonregular reports remain failures.
+Predicate evidence contains no raw report, matched value, environment or local
+path, and a retained failed witness never counts as passing acceptance.
+Scanner qualification remains mandatory. An exec-startup failure can return the
+shell's nonzero status instead of a direct-spawn error object; either outcome
+fails closed, and a status never substitutes for an observed runtime errno.
+
 The bounded JSON parser rejects duplicate decoded keys, escaped attribution
 spellings, unsafe source paths, malformed maps and ambiguous vendor captures.
 It accepts at most 1 MiB of UTF-8 evidence, 8,192 tokens, depth 32 and 256 entries
