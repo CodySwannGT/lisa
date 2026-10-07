@@ -291,10 +291,10 @@ export async function gateProposal(context) {
       const branch = await withStage("gate-stage", () =>
         stageProposal(scoped, env)
       );
+      const proofGit = args =>
+        git(context.cwd, env, args, undefined, scoped.deadline);
       const message = await withStage("gate-proof", () =>
-        installGateProof(context, root, args =>
-          git(context.cwd, env, args, undefined, scoped.deadline)
-        )
+        installGateProof(context, root, proofGit)
       );
       const hosted = await createHostedGate(scoped, root, env);
       try {
