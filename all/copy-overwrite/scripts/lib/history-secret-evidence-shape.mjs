@@ -1,6 +1,9 @@
 // This file is managed by Lisa and IS replaced on each `lisa` run.
 // Do not edit directly — durable changes belong upstream in Lisa.
 /** Bounded lossless evidence syntax; no digest is authenticated by syntax alone. */
+const SOURCE_MAP_FORMAT = "json-source-map";
+const PROOF_MAP_FORMAT = "json-proof-map";
+const TAXONOMY = "Disk/missing/corrupt";
 const credentialField =
   /^(?:api[_-]?key|access[_-]?token|password|passwd|secret)$/iu;
 const credentialToken =
@@ -166,7 +169,7 @@ export const evidenceMaps = bytes => {
 
 const coordinateFormats = new Map([
   [
-    "json-source-map",
+    SOURCE_MAP_FORMAT,
     new Set([
       "/selected_artifact_hashes",
       "/source_hashes",
@@ -175,7 +178,7 @@ const coordinateFormats = new Map([
   ],
   ["json-root-map", new Set([""])],
   ["markdown-json-files", new Set(["/files"])],
-  ["json-proof-map", new Set(["/proof_sha256"])],
+  [PROOF_MAP_FORMAT, new Set(["/proof_sha256"])],
 ]);
 const record = value =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -262,13 +265,34 @@ export const coordinateManifest = (bytes, width) => {
   }
 };
 
+/** Scan maximal opening markers without backtracking across a long fence line. */
+const openingFence = line => {
+  const state = { start: 0, end: 0 };
+  while (state.start < 3 && line[state.start] === " ") state.start++;
+  state.end = state.start;
+  const marker = line[state.start];
+  if (marker !== "`" && marker !== "~") return null;
+  while (line[state.end] === marker) state.end++;
+  const info = line.slice(state.end);
+  return state.end - state.start >= 3 && !/[\r\n]/u.test(info)
+    ? [line.slice(state.start, state.end), info]
+    : null;
+};
+
+/** Strip only trailing CR/LF bytes, with a single bounded backwards pass. */
+const withoutLineEnding = line => {
+  const state = { end: line.length };
+  while (state.end > 0 && /[\r\n]/u.test(line[state.end - 1])) state.end--;
+  return line.slice(0, state.end);
+};
+
 /** Track actual Markdown fences, including nested-looking text inside another fence. */
 const markdownFences = text => {
   const result = [];
   let active = null;
   let offset = 0;
   for (const line of text.split(/(?<=\n)/u)) {
-    const clean = line.replace(/[\r\n]+$/u, "");
+    const clean = withoutLineEnding(line);
     if (active) {
       const close = clean.match(/^ {0,3}(`{3,}|~{3,})[ \t]*$/u);
       if (
@@ -285,12 +309,12 @@ const markdownFences = text => {
         active = null;
       }
     } else {
-      const open = clean.match(/^ {0,3}(`{3,}|~{3,})([^\r\n]*)$/u);
-      if (open && !(open[1][0] === "`" && open[2].includes("`")))
+      const open = openingFence(clean);
+      if (open && !(open[0][0] === "`" && open[1].includes("`")))
         active = {
           start: offset,
-          marker: open[1],
-          info: open[2].trim(),
+          marker: open[0],
+          info: open[1].trim(),
           bodyStart: offset + line.length,
         };
     }
@@ -326,7 +350,7 @@ const coordinateMap = (parsed, role, format, offset = 0) => {
   if (
     !completeMap(
       value,
-      format === "json-proof-map" ? opaqueKey : safeSourcePath
+      format === PROOF_MAP_FORMAT ? opaqueKey : safeSourcePath
     )
   )
     return null;
@@ -344,7 +368,7 @@ const coordinateMap = (parsed, role, format, offset = 0) => {
     }));
   if (spans.length !== Object.keys(value).length) return null;
   return {
-    kind: format === "json-proof-map" ? "proof" : "source",
+    kind: format === PROOF_MAP_FORMAT ? "proof" : "source",
     format,
     pointer: role === null ? "" : `/${role}`,
     value: parsed.value,
@@ -365,7 +389,7 @@ const coordinateJsonMaps = parsed => {
     coordinateMap(
       parsed,
       role,
-      role === "proof_sha256" ? "json-proof-map" : "json-source-map"
+      role === "proof_sha256" ? PROOF_MAP_FORMAT : SOURCE_MAP_FORMAT
     )
   );
   return result.some(map => map === null) ? [] : result;
@@ -440,14 +464,15 @@ const paragraphAt = (text, position) => {
 const inlineCode = text => {
   const ranges = [];
   const runs = [...text.matchAll(/`+/gu)];
-  for (let index = 0; index < runs.length; index++) {
+  let index = 0;
+  while (index < runs.length) {
     const close = runs.findIndex(
       (run, candidate) =>
         candidate > index && run[0].length === runs[index][0].length
     );
     if (close < 0) return null;
     ranges.push([runs[index].index, runs[close].index + runs[close][0].length]);
-    index = close;
+    index = close + 1;
   }
   return ranges;
 };
@@ -483,8 +508,7 @@ export const paragraphNarrativeSpan = (bytes, lineStart, lineEnd) => {
     return null;
   const paragraph = paragraphAt(text, position);
   if (!paragraph) return null;
-  const phrase =
-    "AccessDenied boundaries" + ", Disk/missing/corrupt falsifications";
+  const phrase = `AccessDenied boundaries, ${TAXONOMY} falsifications`;
   const index = paragraph.text.indexOf(phrase);
   if (
     index < 0 ||
@@ -500,7 +524,7 @@ export const paragraphNarrativeSpan = (bytes, lineStart, lineEnd) => {
     return null;
   let prose = paragraph.text;
   for (const [start, end] of [...ranges].reverse())
-    prose = prose.slice(0, start) + "identifier" + prose.slice(end);
+    prose = `${prose.slice(0, start)}identifier${prose.slice(end)}`;
   const quotes = quotedRanges(prose);
   const proseIndex = prose.indexOf(phrase);
   if (
@@ -511,26 +535,21 @@ export const paragraphNarrativeSpan = (bytes, lineStart, lineEnd) => {
   )
     return null;
   if (
-    !/^(?: {0,3}[-*+] )?[\p{L}][\p{L}\p{N}\s ,./():;!?"'-]*[.!?]\s*$/u.test(
-      prose
-    )
+    !/^(?: {0,3}[-*+] )?\p{L}[\p{L}\p{N}\s,./():;!?"'-]*[.!?]\s*$/u.test(prose)
   )
     return null;
   if (
-    /(?:^|\s)(?:api[_-]?key|access[_-]?token|password|passwd|secret|client[_-]?secret|auth[_-]?token|token|credentials?)\s*:/iu.test(
-      prose
+    [...prose.matchAll(/(?:^|\s)([a-z_-]+)\s*:/giu)].some(
+      match => credentialField.test(match[1]) || credentialToken.test(match[1])
     )
   )
     return null;
   const start = Buffer.byteLength(
-    text.slice(
-      0,
-      paragraph.start + index + phrase.indexOf("Disk/missing/corrupt")
-    )
+    text.slice(0, paragraph.start + index + phrase.indexOf(TAXONOMY))
   );
-  const end = start + "Disk/missing/corrupt".length;
+  const end = start + TAXONOMY.length;
   return start >= lineStart && end <= lineEnd
-    ? { hash: "Disk/missing/corrupt", start, end }
+    ? { hash: TAXONOMY, start, end }
     : null;
 };
 
@@ -545,7 +564,7 @@ export const narrativeSpan = (bytes, lineStart, lineEnd) => {
   const line = bytes.subarray(lineStart, lineEnd).toString("utf8");
   const prose = line.replace(/`[^`\r\n]{1,256}`/gu, "identifier");
   if (!/^(?:[-*] )?[A-Za-z][A-Za-z0-9 ,./():-]*\.$/u.test(prose)) return null;
-  const taxonomy = "Disk/missing/corrupt";
+  const taxonomy = TAXONOMY;
   const phrase = `AccessDenied boundaries, ${taxonomy} falsifications`;
   const index = line.indexOf(phrase);
   if (index < 0 || line.indexOf(phrase, index + 1) >= 0) return null;

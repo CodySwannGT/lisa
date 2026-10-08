@@ -17,6 +17,7 @@ import {
 } from "./history-secret-evidence-shape.mjs";
 const BUDGET = 64 * 1024 * 1024;
 const NO_REPLACEMENTS = "--no-replace-objects";
+const LITERAL_PATHSPECS = "--literal-pathspecs";
 const digest = bytes => createHash("sha256").update(bytes).digest("hex");
 const options = cwd => ({
   cwd,
@@ -29,7 +30,7 @@ const options = cwd => ({
 const readBlob = (file, commit, cwd, state) => {
   if (!safeSourcePath(file)) return null;
   const entries = gitRead(
-    ["--literal-pathspecs", "ls-tree", "-z", commit, "--", file],
+    [LITERAL_PATHSPECS, "ls-tree", "-z", commit, "--", file],
     cwd
   )
     .split("\0")
@@ -118,7 +119,7 @@ const sourceVersions = (file, row, cwd, commits, cache) => {
   for (let offset = 0; offset < commits.length; offset += 100) {
     const list = gitRead(
       [
-        "--literal-pathspecs",
+        LITERAL_PATHSPECS,
         "log",
         "--no-walk=unsorted",
         "--format=%H",
@@ -248,7 +249,7 @@ const selectedCoordinates = (cwd, commits, blob) => {
   for (let offset = 0; offset < commits.length; offset += 100) {
     const list = gitRead(
       [
-        "--literal-pathspecs",
+        LITERAL_PATHSPECS,
         "log",
         "--no-walk=unsorted",
         "--format=%H",
@@ -270,7 +271,7 @@ const selectedCoordinates = (cwd, commits, blob) => {
   const snapshots = new Map();
   for (const commit of candidates) {
     const exists = gitRead(
-      ["--literal-pathspecs", "ls-tree", "--name-only", commit, "--", path],
+      [LITERAL_PATHSPECS, "ls-tree", "--name-only", commit, "--", path],
       cwd
     );
     if (!exists) continue;
