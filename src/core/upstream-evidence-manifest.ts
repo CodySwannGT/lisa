@@ -25,7 +25,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
-      "fddbb47321be74b6d0a1a5e2508e0e08268560d36126d834f9de3b91f1dff15c",
+      "54b0844dd7b9f461ccd533603439164ce7dccdd83422344d1b085ed5f5fdfad3",
     "all/copy-overwrite/scripts/lib/automation-provenance-contract.mjs":
       "b12e64711bf05c357d0cfebfda90540dcac413d34de9c6f2405fe0ad37d137dc",
     "all/copy-overwrite/scripts/lib/automation-provenance-files.mjs":
