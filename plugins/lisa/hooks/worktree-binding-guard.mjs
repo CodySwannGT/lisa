@@ -805,8 +805,8 @@ function refuse(lines) {
 }
 
 function acceptanceLine(observed) {
-  const literal = (ACCEPT_PREFIX + " " + observed).replaceAll("'", "'\\''");
-  return "  echo '" + literal + "'";
+  const literal = `${ACCEPT_PREFIX} ${observed}`.replaceAll("'", "'\\''");
+  return `  echo '${literal}'`;
 }
 
 /** Read literal shell words and AND separators without evaluating expansions. */
@@ -867,9 +867,18 @@ function acknowledgementWords(text) {
   return words;
 }
 
+/** Strip only actual shell edge whitespace in linear time. */
+function acknowledgementText(command) {
+  let start = 0,
+    end = command.length;
+  while (start < end && " \t\n".includes(command[start])) start += 1;
+  while (end > start && " \t\n".includes(command[end - 1])) end -= 1;
+  return command.slice(start, end);
+}
+
 /** A literal echo, optionally preceded by a literal cd to the stated root. */
 function acceptanceRequest(command) {
-  const text = command.replace(/^[ \t\n]+|[ \t\n]+$/gu, "");
+  const text = acknowledgementText(command);
   const words = acknowledgementWords(text.replace(/;$/u, ""));
   if (!words) return null;
   const direct = words.length === 2 && words[0] === "echo";
@@ -881,7 +890,7 @@ function acceptanceRequest(command) {
     words[3] === "echo";
   if (!direct && !moving) return null;
   const message = words.at(-1);
-  if (typeof message !== "string" || !message.startsWith(ACCEPT_PREFIX + " "))
+  if (typeof message !== "string" || !message.startsWith(`${ACCEPT_PREFIX} `))
     return null;
   const stated = message.slice(ACCEPT_PREFIX.length + 1);
   // The printed protocol names absolute roots. Empty/relative operands and
