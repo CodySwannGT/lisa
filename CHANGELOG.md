@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.71.6](https://github.com/CodySwannGT/lisa/compare/v4.71.5...v4.71.6) (2026-10-08)
+
+
+### Bug Fixes
+
+* **hooks:** allow existing-item tracker operations ([74c1096](https://github.com/CodySwannGT/lisa/commit/74c10965690c8fb577bbede86380a2fe5f24d42c))
+* **hooks:** detect combined managed-file output redirects ([c066407](https://github.com/CodySwannGT/lisa/commit/c06640753bd5caca00523972ab5ceca775a8c6de))
+* read complete pull request review state ([312f544](https://github.com/CodySwannGT/lisa/commit/312f5444800e791e8cd78eae9106cab1a47c6b7c)), closes [#4313](https://github.com/CodySwannGT/lisa/issues/4313) [CodySwannGT/lisa#4302](https://github.com/CodySwannGT/lisa/issues/4302)
+* read every pull request in queue status ([ac45b62](https://github.com/CodySwannGT/lisa/commit/ac45b623de2ac70fccfde8f68bb373057708ed87)), closes [#4303](https://github.com/CodySwannGT/lisa/issues/4303) [CodySwannGT/lisa#4302](https://github.com/CodySwannGT/lisa/issues/4302)
+* **tests:** guarantee scanner fixture entropy ([df6f7e4](https://github.com/CodySwannGT/lisa/commit/df6f7e4eef8d996ff7ae939d4c77ea2dcc5a3efe))
+
 ### [4.71.5](https://github.com/CodySwannGT/lisa/compare/v4.71.4...v4.71.5) (2026-10-08)
 
 
