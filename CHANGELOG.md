@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.72.5](https://github.com/CodySwannGT/lisa/compare/v4.72.4...v4.72.5) (2026-10-08)
+
+
+### Bug Fixes
+
+* **hooks:** resolve proven script directory source paths ([b359317](https://github.com/CodySwannGT/lisa/commit/b3593172808601dec75027e1a4af2aae6c3a7f75)), closes [CodySwannGT/lisa#4320](https://github.com/CodySwannGT/lisa/issues/4320)
+
 ### [4.72.4](https://github.com/CodySwannGT/lisa/compare/v4.72.3...v4.72.4) (2026-10-08)
 
 
