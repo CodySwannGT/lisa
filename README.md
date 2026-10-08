@@ -259,6 +259,13 @@ servers, or configuration. Other harnesses retain their existing delivery
 behavior. For a new project, run the CLI ephemerally with
 `bunx @codyswann/lisa setup-project ...`.
 
+The official Sentry Claude plugin is disabled by default because Lisa already
+provides the Sentry MCP integration. To use Sentry's maintained plugin skills,
+install that plugin and set `enabledPlugins["sentry@claude-plugins-official"]`
+to `true` in your project's `.claude/settings.json`. Lisa preserves an explicit
+boolean choice during apply and plugin sync. Enabling it can register Sentry
+tools twice; the choice belongs to the project.
+
 Entire session capture is host-owned opt-in. Lisa's Rails settings and base
 Claude plugin register no Entire commands. Full apply also removes the seven
 exact automatic command strings shipped by older Lisa releases, because an
