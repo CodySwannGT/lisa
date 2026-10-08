@@ -12,6 +12,21 @@ export { runEvidenceCases } from "./portable-evidence.mjs";
 const CONFIG = ".lisa.config.json";
 const HOOK = "lefthook.yml";
 const CI = ".github/workflows/ci.yml";
+
+/**
+ * Read original scanner JSON without changing its normal report semantics.
+ * @param {string} bytes Actual native scanner output.
+ * @returns {object} Original parsed report.
+ */
+export function nativeScannerReport(bytes) {
+  try {
+    return JSON.parse(bytes);
+  } catch {
+    // SyntaxError can contain captured output; neither its text nor cause may escape.
+    throw new Error("Native scanner report malformed; raw proof withheld.");
+  }
+}
+
 /**
  * Compare actual redacted native rows with independent collected legacy and budget expectations.
  * @param expect - Collected test expectation authority

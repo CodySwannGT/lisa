@@ -10966,6 +10966,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/generated-artifact-merge-coverage.test.ts": true,
     "tests/unit/scripts/github-attestation-verifier.test.ts": true,
     "tests/unit/scripts/github-governance.test.ts": true,
+    "tests/unit/scripts/history-fixture-report-redaction.test.ts": true,
     "tests/unit/scripts/history-secret-contract.test.ts": true,
     "tests/unit/scripts/history-secret-private-report.test.ts": true,
     "tests/unit/scripts/install-claude-plugins-self.test.ts": true,

@@ -7,7 +7,8 @@ import { createHash, randomBytes } from "node:crypto";
 import { existsSync, rmSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { commitFixture, createHarness, provePreimage } from "./harness.mjs";
-import { emitArtifacts, runEvidenceCases } from "./package.mjs";
+import { emitArtifacts, nativeScannerReport } from "./package.mjs";
+import { runEvidenceCases } from "./portable-evidence.mjs";
 import { immutableCases } from "./graphs.mjs";
 import { errorCases, runTwoWorkers } from "./errors.mjs";
 import { graphCases, nativePushCases } from "./native-push.mjs";
@@ -291,7 +292,7 @@ async function runEvidenceScans(harness, requests) {
       const result = await run(process.execPath, argv, cwd, input);
       if (result.status !== request.expected)
         throw new Error(`${name}: verdict mismatch; raw proof withheld.`);
-      const report = JSON.parse(result.stdout);
+      const report = nativeScannerReport(result.stdout);
       harness.requireFact(
         report.version === "8.30.1" &&
           report.commits === request.commits &&
