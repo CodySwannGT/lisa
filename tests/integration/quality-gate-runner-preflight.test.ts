@@ -169,7 +169,16 @@ describe("🧪 gate runner existence preflight", () => {
       for (const job of jobs) {
         const steps = stepsIn(job);
         if (steps.some(step => step.name === PREFLIGHT)) guarded.push(job);
-        if (steps.some(step => (step.run ?? "").trim() === RUN_SITE)) {
+        if (
+          steps.some(
+            step =>
+              (step.run ?? "").trim() === RUN_SITE ||
+              (job === "test_unit" &&
+                (step.run ?? "")
+                  .split("\n")
+                  .some(line => line.trim() === `( ${RUN_SITE} )`))
+          )
+        ) {
           running.push(job);
         }
       }

@@ -3091,7 +3091,18 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=6144
           GATE_RUNNER: ${{ steps.gate.outputs.runner }}
           GATE_TASK: ${{ steps.gate.outputs.task }}
-        run: $GATE_RUNNER $GATE_TASK
+        run: |
+          echo "::notice title=Unit-test progress::Tests and coverage reporting can be quiet. A progress notice will appear every 30 seconds while the command runs."
+          node -e '
+            setInterval(() => {
+              const seconds = Math.floor(process.uptime());
+              console.log(`::notice title=Unit-test progress::Command is still running (${seconds} seconds). Quiet output can include coverage reporting.`);
+            }, 30000);
+          ' &
+          UNIT_PROGRESS_PID=$!
+          trap 'kill "$UNIT_PROGRESS_PID" 2>/dev/null || true; wait "$UNIT_PROGRESS_PID" 2>/dev/null || true' EXIT
+          # Keep the parent alive to reap its timer even for a runner using exec.
+          ( $GATE_RUNNER $GATE_TASK )
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🟡 Report the optional gate that failed
@@ -3114,13 +3125,24 @@ jobs:
         id: test_coverage
         if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured == 'false'
         run: |
-          if [ "$PACKAGE_MANAGER" = "npm" ]; then
-            npm run test:cov
-          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
-            yarn test:cov
-          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
-            bun run test:cov
-          fi
+          echo "::notice title=Unit-test progress::Tests and coverage reporting can be quiet. A progress notice will appear every 30 seconds while the command runs."
+          node -e '
+            setInterval(() => {
+              const seconds = Math.floor(process.uptime());
+              console.log(`::notice title=Unit-test progress::Command is still running (${seconds} seconds). Quiet output can include coverage reporting.`);
+            }, 30000);
+          ' &
+          UNIT_PROGRESS_PID=$!
+          trap 'kill "$UNIT_PROGRESS_PID" 2>/dev/null || true; wait "$UNIT_PROGRESS_PID" 2>/dev/null || true' EXIT
+          (
+            if [ "$PACKAGE_MANAGER" = "npm" ]; then
+              npm run test:cov
+            elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
+              yarn test:cov
+            elif [ "$PACKAGE_MANAGER" = "bun" ]; then
+              bun run test:cov
+            fi
+          )
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
