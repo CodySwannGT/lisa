@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   assertManualCancellation,
   assertCancellationAttestation,
+  assertRecordedCancellation,
   CANCELLATION_PREDICATE,
   validateCancellation,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-cancellation-proof.mjs";
@@ -16,6 +17,9 @@ import { selectSupersession } from "../../../all/copy-overwrite/scripts/lib/npm-
 import { assertOriginTransport } from "../../../all/copy-overwrite/scripts/lib/npm-update-cancel-origin.mjs";
 
 const sha = (digit: string, length = 64) => digit.repeat(length);
+const ORIGINAL_POSTED_AT = "2026-10-07T00:01:00Z";
+const LATER_EVIDENCE_AT = "2026-10-07T00:09:00Z";
+const FUTURE_EVIDENCE_AT = "2026-10-07T00:11:01Z";
 const policy = {
   repository: "acme/widgets",
   repositoryId: "12",
@@ -195,6 +199,49 @@ describe("explicit stale cancellation intent", () => {
 describe("three immutable signing purposes", () => {
   const identity = { parent: proposal.parent, runId: "700", runAttempt: "1" };
   const digest = sha("e");
+
+  it("bounds recorded signatures by observation for active runs and completion for finished runs", () => {
+    const now = Date.parse("2026-10-07T00:10:00Z");
+    const chronology = {
+      status: "in_progress",
+      run_started_at: "2026-10-07T00:00:00Z",
+      updated_at: ORIGINAL_POSTED_AT,
+    };
+    const proof = attestation(
+      CANCELLATION_PREDICATE,
+      cancellationSubject,
+      digest
+    );
+    proof[0]!.verificationResult.verifiedTimestamps[0]!.timestamp =
+      LATER_EVIDENCE_AT;
+    const verify = (changed = {}, observed = now) =>
+      assertRecordedCancellation(
+        proof,
+        identity,
+        digest,
+        policy,
+        { ...chronology, ...changed },
+        observed
+      );
+    expect(() => verify()).not.toThrow();
+    for (const changed of [
+      { status: "completed" },
+      { status: "queued" },
+      { status: "failure" },
+      { status: undefined },
+      { updated_at: "invalid" },
+      { updated_at: "2026-10-06T23:59:00Z" },
+      { updated_at: FUTURE_EVIDENCE_AT },
+    ])
+      expect(() => verify(changed)).toThrow();
+    expect(() => verify({}, Number.NaN)).toThrow();
+    proof[0]!.verificationResult.verifiedTimestamps[0]!.timestamp =
+      FUTURE_EVIDENCE_AT;
+    expect(() => verify()).toThrow();
+    proof[0]!.verificationResult.verifiedTimestamps[0]!.timestamp =
+      "2026-10-06T23:58:59Z";
+    expect(() => verify()).toThrow();
+  });
 
   it("accepts only the exact cancellation subject and predicate", () => {
     expect(() =>
@@ -400,6 +447,7 @@ describe("authenticated supersession topology", () => {
 
 describe("original checkpoint transport provenance", () => {
   const chronology = {
+    status: "completed",
     run_started_at: "2026-10-07T00:00:00Z",
     updated_at: "2026-10-07T00:05:00Z",
   };
@@ -407,10 +455,39 @@ describe("original checkpoint transport provenance", () => {
   const comment = {
     body: `[lisa-npm-checkpoint] v1 ${digest} complete\ntransport`,
     user: { type: "Bot", id: 99 },
-    created_at: "2026-10-07T00:01:00Z",
-    updated_at: "2026-10-07T00:01:00Z",
+    created_at: ORIGINAL_POSTED_AT,
+    updated_at: ORIGINAL_POSTED_AT,
   };
   const originPolicy = { claimActorId: "99" };
+  it("accepts later active-run transport only up to the finite observation and refuses invalid provider chronology", () => {
+    const now = Date.parse("2026-10-07T00:10:00Z");
+    const posted = {
+      ...comment,
+      created_at: LATER_EVIDENCE_AT,
+      updated_at: LATER_EVIDENCE_AT,
+    };
+    const verify = (changed = {}, observed = now) =>
+      assertOriginTransport(
+        [posted],
+        digest,
+        originPolicy,
+        { ...chronology, status: "in_progress", ...changed },
+        observed
+      );
+    expect(() => verify()).not.toThrow();
+    for (const changed of [
+      { status: "completed" },
+      { status: "queued" },
+      { status: "failure" },
+      { status: undefined },
+      { updated_at: "2026-10-06T23:59:00Z" },
+      { updated_at: FUTURE_EVIDENCE_AT },
+    ])
+      expect(() => verify(changed)).toThrow();
+    expect(() => verify({}, Number.NaN)).toThrow();
+    expect(() => verify({}, now - 120_000)).not.toThrow();
+    expect(() => verify({}, now - 120_001)).toThrow();
+  });
   it("accepts the original Bot's unedited posts within the witnessed origin run", () => {
     expect(() =>
       assertOriginTransport([comment], digest, originPolicy, chronology)
