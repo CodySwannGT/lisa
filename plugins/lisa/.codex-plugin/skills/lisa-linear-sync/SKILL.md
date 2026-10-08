@@ -3,6 +3,8 @@ name: lisa-linear-sync
 description: "Syncs plan progress to a linked…"
 allowed-tools: ["Bash", "Skill"]
 ---
+Syncs plan progress to a linked Linear Issue. Posts plan contents, progress updates, branch links, and PR links at key milestones. Use this skill throughout the plan lifecycle to keep Linear Issues in sync. The Linear counterpart of lisa-jira-sync and lisa-github-sync.
+
 
 # Sync Plan to Linear: $ARGUMENTS
 

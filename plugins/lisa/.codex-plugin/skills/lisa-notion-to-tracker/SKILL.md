@@ -2,6 +2,8 @@
 name: lisa-notion-to-tracker
 description: "Break down a Notion PRD into…"
 ---
+Break down a Notion PRD into Epics, Stories, and Sub-tasks in the configured destination tracker (JIRA, GitHub Issues, or Linear per .lisa.config.json). Use this skill whenever the user shares a Notion PRD URL and wants it converted into tracker tickets, or asks to "break down a PRD", "create tickets from a PRD", "turn this PRD into tickets", or similar. Also trigger when the user mentions creating epics/stories/tasks from a Notion document. This skill handles the full pipeline: fetching the PRD, analyzing comments, researching the codebase, identifying blockers, and creating all tickets with empirical verification plans.
+
 
 # Notion PRD to Tracker Breakdown
 

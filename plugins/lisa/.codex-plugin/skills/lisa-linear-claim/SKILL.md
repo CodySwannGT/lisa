@@ -3,6 +3,8 @@ name: lisa-linear-claim
 description: "Idempotently claims one live…"
 allowed-tools: ["Bash", "Skill", "Read"]
 ---
+Idempotently claims one live Linear leaf issue for direct Lisa work. Reuses linear-build-intake Phase 3b semantics through lisa-linear-access: configured ready-to-claimed state transition, assign-only-if-unassigned, stable managed comment, and post-write verification.
+
 
 # Claim Linear Issue: $ARGUMENTS
 

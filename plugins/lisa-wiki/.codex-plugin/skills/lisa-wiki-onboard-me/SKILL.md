@@ -2,6 +2,8 @@
 name: lisa-wiki-onboard-me
 description: "Onboard a user to the project…"
 ---
+Onboard a user to the project via its LLM Wiki. Interviews the user about themselves in relation to the project, captures that to project-scoped memory only, then gives a guided tour of what the project is and sample questions they can ask. Use when someone is new to the project or asks to be onboarded. Read-mostly — it does not open PRs or write PII into the wiki.
+
 
 # lisa-wiki-onboard-me
 

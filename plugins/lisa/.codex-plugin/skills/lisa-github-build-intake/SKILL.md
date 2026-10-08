@@ -3,6 +3,8 @@ name: lisa-github-build-intake
 description: "GitHub counterpart to…"
 allowed-tools: ["Skill", "Bash"]
 ---
+GitHub counterpart to lisa-jira-build-intake. Scans a GitHub repository for issues carrying the configured `ready` build label, processes the first eligible issue, runs leaf work via the github-agent workflow in-session (culminating in lisa-implement), relabels to the configured `done` label on completion, then exits. Enforces the claim-time arm of the `leaf-only-lifecycle` rule: a parent/container with open child work (or a childless Epic) that still carries a stale build-ready label is moved out of the ready pickup queue into the configured `claimed` label with a lifecycle-repair comment, never dispatched to the build lifecycle. The `ready` label is the human-flipped signal that an issue is truly ready for direct development pickup — mirroring how Notion PRDs work product Draft → Ready → (us) In Review → Blocked|Ticketed.
+
 
 # GitHub Build Intake: $ARGUMENTS
 

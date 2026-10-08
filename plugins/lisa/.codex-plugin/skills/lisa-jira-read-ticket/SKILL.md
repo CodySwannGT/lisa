@@ -3,6 +3,8 @@ name: lisa-jira-read-ticket
 description: "Fetches the full scope of a…"
 allowed-tools: ["Bash", "Skill"]
 ---
+Fetches the full scope of a JIRA ticket — metadata, description, acceptance criteria, all comments, remote links (PRs, Confluence, dashboards), issue links (blocks/is blocked by/relates to/duplicates/clones), epic parent with siblings, and subtasks. Produces a consolidated context bundle that downstream agents consume so they never act on a single ticket in isolation.
+
 
 # Read JIRA Ticket: $ARGUMENTS
 

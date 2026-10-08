@@ -4,6 +4,8 @@ description: "reducing the maximum…"
 allowed-tools: ["Read", "Bash", "Glob", "Grep"]
 
 ---
+This skill should be used when reducing the maximum class/module lines threshold and fixing all violations. It updates the RuboCop configuration, identifies classes and modules exceeding the new limit, generates a brief with refactoring strategies, and creates a plan with tasks to split oversized files.
+
 
 # Reduce Max Lines
 

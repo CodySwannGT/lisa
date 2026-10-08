@@ -3,6 +3,8 @@ name: lisa-github-project-v2
 description: "Shared GitHub ProjectV2…"
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
+Shared GitHub ProjectV2 coordination utility. Every GitHub writer or linked pull request flow that needs Project membership MUST delegate through this skill instead of inlining GraphQL. Resolves the configured ProjectV2 id from `github.projects.v2`, validates namespace + access, adds Issue or Pull Request node ids to the Project, optionally updates Project field values, and returns exact failures with best-effort vs required-mode branching.
+
 
 # GitHub ProjectV2: $ARGUMENTS
 

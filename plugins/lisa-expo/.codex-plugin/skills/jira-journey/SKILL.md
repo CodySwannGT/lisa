@@ -2,6 +2,8 @@
 name: jira-journey
 description: "Read a JIRA ticket's Validation…"
 ---
+Read a JIRA ticket's Validation Journey section, execute the steps using Playwright MCP browser tools across all defined viewports, capture screenshots at each marker, generate evidence templates, and post to JIRA + GitHub PR using the jira-evidence skill.
+
 
 # JIRA Validation Journey
 

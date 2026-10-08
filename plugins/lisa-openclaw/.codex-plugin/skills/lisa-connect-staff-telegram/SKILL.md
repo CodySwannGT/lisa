@@ -2,6 +2,8 @@
 name: lisa-connect-staff-telegram
 description: "Connect staff roles to Telegram…"
 ---
+Connect staff roles to Telegram via OpenClaw using a facilitator/specialist hub-and-spoke model — register bots, create/reuse the facilitator topic, wire routes, validate, and run an end-to-end route test. Requires /lisa:setup-openclaw first.
+
 ## Lisa Command Compatibility
 
 - Original Claude command: `/lisa:connect-staff-telegram`

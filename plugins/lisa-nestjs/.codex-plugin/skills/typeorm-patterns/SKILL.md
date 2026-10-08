@@ -2,6 +2,8 @@
 name: typeorm-patterns
 description: "Enforces TypeORM implementation…"
 ---
+Enforces TypeORM implementation patterns for this NestJS backend project. This skill should be used when creating or modifying TypeORM entities, repositories, database configuration, migrations, or any database-related code. It covers configuration patterns (TypeOrmModule.forRootAsync, replication, naming strategy), entity patterns (base entity, comments, indexes), and observability (X-Ray logging).
+
 
 # TypeORM Patterns
 

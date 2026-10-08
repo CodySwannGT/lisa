@@ -2,6 +2,8 @@
 name: lisa-epic-triage
 description: "9-step epic triage and 5-step…"
 ---
+9-step epic triage and 5-step implementation workflow. Ensures epics are fully scoped, broken down, and ordered before execution begins.
+
 
 # Epic Triage
 

@@ -3,6 +3,8 @@ name: jira-verify
 description: "verifying that a JIRA ticket…"
 allowed-tools: ["Skill", "mcp__atlassian__getJiraIssue", "mcp__atlassian__getAccessibleAtlassianResources"]
 ---
+This skill should be used when verifying that a JIRA ticket meets organizational standards for epic relationships and description quality. It fetches the live ticket and delegates the gate checks to jira-validate-ticket so the bar matches what jira-write-ticket enforces pre-write.
+
 
 # Verify JIRA Ticket: $ARGUMENTS
 

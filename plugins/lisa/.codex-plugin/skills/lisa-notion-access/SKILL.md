@@ -3,6 +3,8 @@ name: lisa-notion-access
 description: "Vendor-neutral access layer for…"
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
+Vendor-neutral access layer for Notion. Every notion-* skill MUST delegate through this skill rather than invoking the Notion REST API or any Notion MCP directly. Per the credential-substrate-precedence contract, resolves a substrate per operation in this order: (1) curl + Bearer auth + internal-integration token when the token is present and identity-matches the configured workspace, (2) Notion MCP as fallback if authenticated and the configured prdDatabaseId is fetchable through it. Verifies the active connection matches `.lisa.config.json` before every operation — substrates authenticated as a different Notion workspace are skipped, not used.
+
 
 # Notion Access: $ARGUMENTS
 

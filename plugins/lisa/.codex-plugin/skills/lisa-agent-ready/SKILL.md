@@ -3,6 +3,8 @@ name: lisa-agent-ready
 description: "Make a brownfield project…"
 allowed-tools: ["Skill", "Bash", "Read", "Write", "Edit", "Glob", "Grep", "WebFetch"]
 ---
+Make a brownfield project agent-ready: build the initial knowledge wiki from read-only, redacted ingestion of every inventoried source (repository, git history, connected trackers, docs, observability), then write wiki/gaps.md — the questions only a human can answer before agents can operate the project autonomously. Iterative convergence: humans answer the gaps inline, a fresh session re-runs the skill, verified answers are absorbed into wiki pages, and the loop repeats until every source is complete, zero open gaps remain, and the project is declared agent-ready. This is the knowledge half of brownfield onboarding; standards adoption (applying Lisa's lint rules, guardrails, and thresholds, then refactoring to conform without changing behavior) follows it.
+
 
 # Agent-Ready Onboarding: $ARGUMENTS
 

@@ -2,6 +2,8 @@
 name: lisa-wiki-connector-memory
 description: "Ingest the agent's…"
 ---
+Ingest the agent's PROJECT-SCOPED memory into a sanitized source note. Use only when lisa-wiki-ingest routes to the memory connector. NEVER ingests global or unrelated memory — global Codex memory and the Chronicle store are refused.
+
 
 # lisa-wiki-connector-memory
 

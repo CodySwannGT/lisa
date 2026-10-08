@@ -5,6 +5,8 @@ allowed-tools:
   - Bash
   - Read
 ---
+Manage the local Docker Compose development environment for Rails applications. Supports start, stop, restart, and status for the full stack or individual services.
+
 
 # Ops: Run Local
 

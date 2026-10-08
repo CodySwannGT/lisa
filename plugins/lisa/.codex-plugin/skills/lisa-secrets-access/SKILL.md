@@ -3,6 +3,8 @@ name: lisa-secrets-access
 description: "Vendor-neutral access layer for…"
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
+Vendor-neutral access layer for secrets. Every skill and script that needs an API key MUST resolve it through this skill rather than reading a keychain, an .env file, or a provider CLI directly. Models two independent axes — the provider a secret lives in (Bitwarden, 1Password, AWS Secrets Manager, Doppler, Vault) and the surface the code runs on (local, GitHub Actions, Codex Cloud) — resolving environment first, then a materialized file where the surface has one, then the provider by exact key name. Enforces one store per secret, fails closed on duplicate names, reads usage metadata from the provider's own note field, and never writes. Rotating credentials route through the separate rotate-secret writer, and copying one into a second store (Bitwarden → GitHub Actions) routes through the separate sync-secret-to-ci propagator.
+
 
 # Secrets Access: $ARGUMENTS
 

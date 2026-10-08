@@ -3,6 +3,8 @@ name: lisa-verify-workflow-change
 description: "a GitHub Actions workflow file…"
 allowed-tools: ["Bash", "Read"]
 ---
+Use when a GitHub Actions workflow file changed and you need pre-merge runtime proof. Classifies default-branch-only triggers, dispatches a safe workflow_dispatch sibling on the branch ref when possible, observes the exact step under test, cancels before side effects, and proves cleanup.
+
 
 # Verify Workflow Change
 

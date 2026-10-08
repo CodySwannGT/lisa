@@ -3,6 +3,8 @@ name: lisa-starter-sync
 description: "Run one starter sync using…"
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
+Run one starter sync using Lisa's existing engine and landing command. Also used by the opt-in daily starter-sync automation.
+
 
 # Sync the project's starter
 

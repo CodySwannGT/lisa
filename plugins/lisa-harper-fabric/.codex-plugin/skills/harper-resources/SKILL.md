@@ -2,6 +2,8 @@
 name: harper-resources
 description: "writing or editing Harper…"
 ---
+This skill should be used when writing or editing Harper (HarperDB/Fabric) resources — the classes in resources.js (built from TypeScript under src/) that expose custom data logic over REST and GraphQL. Use it when adding an endpoint, overriding table behavior, wrapping an external API, or wiring real-time subscriptions. Covers the Resource method-to-HTTP mapping and the TS-is-source build convention. Pairs with harper-schema-graphql, harper-config-yaml, and harper-build-and-deploy.
+
 
 # Harper Resources
 

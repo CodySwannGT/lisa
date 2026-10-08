@@ -2,6 +2,8 @@
 name: lisa-wiki-connector-git
 description: "Produce sanitized…"
 ---
+Produce sanitized git/PR-history source notes for lisa-wiki ingest. Use only when lisa-wiki-ingest routes to the git connector (self repo or a registered project). Read-only — never checks out, fetches, or mutates the target repo.
+
 
 # lisa-wiki-connector-git
 

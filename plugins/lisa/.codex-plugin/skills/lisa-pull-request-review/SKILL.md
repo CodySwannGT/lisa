@@ -3,6 +3,8 @@ name: lisa-pull-request-review
 description: "address and resolve the code…"
 allowed-tools: ["Read", "Bash", "Edit", "Write", "Glob", "Grep", "Skill"]
 ---
+This skill should be used to address and resolve the code review feedback on a pull request — human and bot (CodeRabbit, etc.). It fetches every unresolved review thread with its resolution state via GraphQL, triages each one, implements valid feedback (commit + push), replies to invalid/not-applicable feedback explaining why, and resolves every handled thread via the GraphQL resolveReviewThread mutation so branch-protection thread-resolution gates clear. Composable and chainable — runnable standalone via /lisa:pull-request:review or invoked inline by other skills (drive-pr-to-merge, verify) via the Skill tool.
+
 
 # Address & Resolve PR Review Comments
 

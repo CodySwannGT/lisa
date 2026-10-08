@@ -3,6 +3,8 @@ name: lisa-analyze-claude-remote
 description: "Audit whether the current…"
 allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
 ---
+Audit whether the current repository can run as a Claude Code remote routine (cloud session). Read-only analysis that inventories what Lisa AND the host project need to configure or build in the cloud environment — external CLIs/binaries to install, environment variables and secrets to set, startup hooks and their headless-safety, MCP server scope/transport/auth, user-scoped config and auto-memory gaps that don't replicate to the cloud, and platform constraints (bun proxy, IP allowlist, network tier, no interactivity). Reads `.lisa.config.json` `tracker`/`source` to determine which tracker/PRD-source integrations are active, resolves each to its headless-viable substrate (CLI/curl + token, never browser-OAuth MCP, never OS-keychain), and spells out the exact secret env vars, where to obtain each token, and the precise access scope required — without guessing. Emits grouped findings plus a machine-readable inventory that /lisa:generate-claude-remote-build-script consumes.
+
 
 # Analyze Claude Remote: $ARGUMENTS
 

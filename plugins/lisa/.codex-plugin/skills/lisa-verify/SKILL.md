@@ -3,6 +3,8 @@ name: lisa-verify
 description: "Ship and verify code"
 allowed-tools: ["Skill", "Bash", "Read", "Grep", "Glob"]
 ---
+Ship and verify code. Commits any pending changes, opens or updates the PR, handles the review loop, merges when green, monitors the deploy, and runs remote verification (health checks, Validation Journey replay, Sentry/log inspection) in the target environment. Folds in the legacy /ship alias.
+
 
 # Verify: $ARGUMENTS
 

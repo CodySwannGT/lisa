@@ -2,6 +2,8 @@
 name: e2e-coverage-gaps
 description: "Playwright/e2e coverage-gap…"
 ---
+Playwright/e2e coverage-gap explorer that FEEDS THE LIFECYCLE. Use when asked to find paths the automated end-to-end suite does NOT cover — routes with no test at all, or flows that are only happy-path tested (missing error, validation, permission, empty, loading, and edge states). It inventories the app's routes and the existing Playwright tests, explores the running app to confirm each uncovered or under-covered path is real and reachable, and files bounded build-ready work for worthwhile test gaps via lisa-tracker-write. For human usability/experience issues (confusing, cramped, or broken UI), use the lisa-exploratory-qa skill instead.
+
 
 # E2E Coverage Gaps
 

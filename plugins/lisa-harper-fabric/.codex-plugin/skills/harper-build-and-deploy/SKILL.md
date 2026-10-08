@@ -2,6 +2,8 @@
 name: harper-build-and-deploy
 description: "building, running locally, or…"
 ---
+This skill should be used when building, running locally, or deploying a Harper (HarperDB/Fabric) component — running harper dev/run, producing the generated resources.js and web/** from TypeScript via the project build, packaging the harper-app component, deploying to Harper Fabric, or handling deploy-time secrets. Use it for any change that affects the deployable surface or the dev loop. Pairs with harper-component-model, harper-config-yaml, and harper-resources.
+
 
 # Harper Build and Deploy
 

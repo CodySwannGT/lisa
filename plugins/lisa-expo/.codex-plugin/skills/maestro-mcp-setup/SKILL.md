@@ -5,6 +5,8 @@ allowed-tools:
   - Bash
   - Read
 ---
+Enable the Maestro CLI's built-in MCP server (`maestro mcp`, STDIO) for this machine, robustly. Detects the Maestro CLI and a usable Java runtime, installs/guides what is missing, and registers the MCP server at LOCAL (per-machine, uncommitted) scope with an absolute command path and injected JAVA_HOME/PATH so the spawn never dies on a non-login PATH. Use when an Expo project needs Maestro device-automation tools (list_devices, inspect_screen, take_screenshot, run flows). Never registers at project/committed scope — that reintroduces the fleet-wide "-32000" failure.
+
 
 # Maestro MCP Setup
 

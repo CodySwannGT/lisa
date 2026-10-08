@@ -3,6 +3,8 @@ name: lisa-improve-code-complexity
 description: "reducing the cognitive…"
 allowed-tools: ["Read", "Bash", "Glob", "Grep"]
 ---
+This skill should be used when reducing the cognitive complexity threshold of the codebase. It lowers the threshold by 2, identifies functions that exceed the new limit, generates a brief with refactoring strategies, and creates a plan with tasks to fix all violations.
+
 
 # Lower Code Complexity
 

@@ -3,6 +3,8 @@ name: lisa-delivery-effectiveness
 description: "Measure whether the work the…"
 allowed-tools: ["Read", "Grep", "Glob", "Bash"]
 ---
+Measure whether the work the factory delivers was worth shipping — gate rejection, rework, escape, first-pass yield and cost per delivered item — so autonomy rate cannot stand alone as a success measure.
+
 
 # Delivery Effectiveness
 

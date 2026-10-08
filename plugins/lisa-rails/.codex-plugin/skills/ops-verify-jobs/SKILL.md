@@ -5,6 +5,8 @@ allowed-tools:
   - Bash
   - Read
 ---
+Verify Solid Queue background jobs are running in Rails applications. Check worker health, queue depth, failed jobs, recurring job execution, and retry stuck jobs.
+
 
 # Ops: Verify Jobs
 

@@ -2,6 +2,8 @@
 name: lisa-connect-staff-slack
 description: "Connect staff roles to Slack…"
 ---
+Connect staff roles to Slack via OpenClaw using a facilitator/specialist hub-and-spoke model — register the app, create/reuse the facilitator channel, wire routes, validate, and run an end-to-end route test. Requires /lisa:setup-openclaw first.
+
 ## Lisa Command Compatibility
 
 - Original Claude command: `/lisa:connect-staff-slack`

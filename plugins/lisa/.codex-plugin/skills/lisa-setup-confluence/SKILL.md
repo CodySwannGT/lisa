@@ -3,6 +3,8 @@ name: lisa-setup-confluence
 description: "Configure Confluence as the PRD…"
 allowed-tools: ["Bash", "Read", "Write", "Edit", "Skill", "AskUserQuestion"]
 ---
+Configure Confluence as the PRD source for this project. Writes `confluence.spaceKey` and/or `confluence.parentPageId` into `.lisa.config.json` and offers to set top-level `source: "confluence"`. Depends on /lisa:setup:atlassian — atlassian.cloudId must already be present. Idempotent.
+
 
 # Setup Confluence: $ARGUMENTS
 

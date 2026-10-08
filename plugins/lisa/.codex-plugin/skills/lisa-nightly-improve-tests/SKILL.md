@@ -3,6 +3,8 @@ name: lisa-nightly-improve-tests
 description: "Nightly direct-execution skill…"
 allowed-tools: ["Edit", "MultiEdit", "Write", "Read", "Glob", "Grep", "Bash"]
 ---
+Nightly direct-execution skill for improving test quality. In nightly mode, focuses on tests for recently changed files. In general mode, scans all tests for the weakest ones. Commits and creates a PR.
+
 
 # Nightly Test Quality Improvement
 

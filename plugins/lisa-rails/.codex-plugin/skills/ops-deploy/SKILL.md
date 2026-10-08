@@ -5,6 +5,8 @@ allowed-tools:
   - Bash
   - Read
 ---
+Deploy Rails applications via Kamal or CI/CD branch push to staging or production environments.
+
 
 # Ops: Deploy
 
