@@ -293,6 +293,27 @@ describe("threshold-ratchet tier 1", () => {
       );
     });
 
+    it.each([50, 100, 250])(
+      "compares removal of hybrid forced-reflow ceiling %s against the actual default",
+      value => {
+        const base = JSON.stringify({
+          ci: { assert: { assertions: {} } },
+          assertions: { forcedReflowInsight: { maxNumericValue: value } },
+        });
+        expect(compareFile(LIGHTHOUSE_FILE, base, standardConfig({}))).toEqual(
+          value < 100
+            ? [
+                expect.objectContaining({
+                  base: value,
+                  current: 100,
+                  type: "weakened",
+                }),
+              ]
+            : []
+        );
+      }
+    );
+
     it("blocks lowering a score floor", () => {
       const findings = compareFile(
         LIGHTHOUSE_FILE,

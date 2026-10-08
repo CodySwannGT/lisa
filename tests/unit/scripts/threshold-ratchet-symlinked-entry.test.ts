@@ -22,13 +22,23 @@
  */
 
 import type { SpawnSyncReturns } from "node:child_process";
-import { mkdtempSync, rmSync, symlinkSync } from "node:fs";
+import {
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { boundedSpawnSync } from "../../helpers/io-latency-budget.js";
+import {
+  boundedSpawnSync,
+  useIoLatencyBudget,
+} from "../../helpers/io-latency-budget.js";
+import { resolveGit } from "../../support/git-executable.js";
 
 const LANES = [
   "typescript/copy-overwrite/scripts",
@@ -37,6 +47,7 @@ const LANES = [
 const SCRIPT = "check-threshold-ratchet.mjs";
 const HOOK_SOURCE = "plugins/src/base/hooks";
 const HOOK_SCRIPT = "threshold-ratchet.mjs";
+const GIT = resolveGit();
 
 /** Text the body prints when invoked with no recognised argument. */
 const USAGE = "usage: threshold-ratchet.mjs";
@@ -87,6 +98,88 @@ function output(result: SpawnSyncReturns<string>): string {
 }
 
 describe("threshold ratchet reached through a symlink", () => {
+  useIoLatencyBudget();
+
+  it.each(["--staged", "--hook"])(
+    "actually compares both tightening and weakening through %s",
+    mode => {
+      const cwd = realpathSync(
+        mkdtempSync(path.join(tmpdir(), "lisa-ratchet-cli-"))
+      );
+      temps.push(cwd);
+      const threshold = path.join(cwd, "eslint.thresholds.json");
+      for (const args of [
+        ["init", "-q"],
+        ["config", "user.name", "Ratchet Test"],
+        ["config", "user.email", "ratchet@example.invalid"],
+      ]) {
+        expect(
+          boundedSpawnSync({
+            label: "ratchet git setup",
+            command: GIT,
+            args,
+            cwd,
+          }).status
+        ).toBe(0);
+      }
+      writeFileSync(threshold, JSON.stringify({ maxWarnings: 10 }));
+      for (const args of [
+        ["add", "."],
+        ["commit", "-qm", "baseline"],
+      ]) {
+        expect(
+          boundedSpawnSync({
+            label: "ratchet git baseline",
+            command: GIT,
+            args,
+            cwd,
+          }).status
+        ).toBe(0);
+      }
+      for (const value of [5, 20]) {
+        writeFileSync(threshold, JSON.stringify({ maxWarnings: value }));
+        expect(
+          boundedSpawnSync({
+            label: "ratchet stage threshold",
+            command: GIT,
+            args: ["add", "."],
+            cwd,
+          }).status
+        ).toBe(0);
+        const result = boundedSpawnSync({
+          label: "ratchet admitted caller mode",
+          command: process.execPath,
+          args: [path.resolve(HOOK_SOURCE, HOOK_SCRIPT), mode],
+          cwd,
+          ...(mode === "--hook"
+            ? { input: JSON.stringify({ tool_name: "Bash" }) }
+            : {}),
+        });
+        expect(result.error).toBeUndefined();
+        expect(result.signal).toBeNull();
+        expect(result.status).toBe(value === 5 ? 0 : mode === "--hook" ? 2 : 1);
+        if (value === 20)
+          expect(output(result)).toContain("Quality gate weakened");
+      }
+    }
+  );
+
+  it.each([
+    { args: [], status: 2 },
+    { args: ["--stage"], status: 2 },
+    { args: ["--base"], status: 1 },
+  ])("refuses invalid CLI arguments $args", ({ args, status }) => {
+    const result = boundedSpawnSync({
+      label: "threshold ratchet invalid arguments",
+      command: process.execPath,
+      args: [path.resolve(HOOK_SOURCE, HOOK_SCRIPT), ...args],
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.signal).toBeNull();
+    expect(result.status).toBe(status);
+    expect(output(result)).toContain(status === 2 ? USAGE : "failing closed");
+  });
+
   it.each(LANES)("runs its body when invoked via a symlink: %s", dir => {
     // Output, never exit status. A guard that no-ops prints nothing and exits
     // 0, which an exit-status assertion cannot tell apart from success.

@@ -299,8 +299,8 @@ function compareLighthouse(relPath, base, current) {
       current?.ci?.assert?.assertions != null) &&
     (previous == null ||
       (typeof previous === "number" && Number.isFinite(previous))) &&
-    typeof added === "number" &&
-    Number.isFinite(added)
+    (added == null || (typeof added === "number" && Number.isFinite(added))) &&
+    !(previous == null && added == null)
   ) {
     // This checker reads top-level settings even beside canonical assertions.
     // Keep its comparison separate so a new setting cannot replace a canonical
@@ -310,7 +310,7 @@ function compareLighthouse(relPath, base, current) {
       ...compareConstraints(
         relPath,
         new Map([[key, { value: previous ?? 100, direction: "max" }]]),
-        new Map([[key, { value: added, direction: "max" }]])
+        new Map([[key, { value: added ?? 100, direction: "max" }]])
       )
     );
   }

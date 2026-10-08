@@ -58,4 +58,31 @@ a separate live missing-note control still requires both bindable refusals. The
 detector, historical baseline, empty-manifest negative and original budgets stay
 unchanged. Coverage and integration were not reached in that failed push.
 The original focused wrapper then passed all 57 removal-policy controls without
-skips, including the missing-relocation-note refusal. Full push remains pending.
+skips, including the missing-relocation-note refusal. The next original full push
+passed 26,502 unit and 3,284 integration controls, with two original skips in
+each leg and passing coverage. Four shell changes were explicitly unmeasured
+by the mutation gate. These results precede the following review corrections.
+
+## PR review corrections
+
+The substantive review identified two preexisting defects in the newly common
+ratchet modules. Unknown or absent CLI arguments printed usage and exited zero;
+they now exit two, while the valid modes and missing-base refusal are unchanged.
+Removing a stricter legacy forced-reflow ceiling beside canonical Lighthouse
+assertions skipped comparison with the detail checker's effective default of
+100; compare that removal against the real default without inventing defaults
+for other audits or changing canonical threshold comparisons.
+
+Before source edits, the original focused wrapper reproduced both invalid CLI
+statuses and the missing 50-to-100 weakening: three failures and 45 passes.
+An initial test-only missing-base diagnostic assertion was corrected to the
+actual existing stderr before that confirmed RED. Preserve both attempts.
+Regenerate all ratchet delivery copies through the existing official materializer.
+The original six-suite wrapper then passed all 102 controls, including native
+CLI refusals, symlink reachability, promotion modes, baseline checks and all
+three delivery-lane parity checks, without skips or changed budgets.
+Current shipped callers use staged, hook and base modes, with optional head
+selection in both quality workflows. Two additional real-Git caller pairs prove
+staged and hook modes both accept tightening and actually report weakening;
+the final six-suite wrapper passed all 104 controls without skips.
+Hosted validation and the released producer acceptance remain required.
