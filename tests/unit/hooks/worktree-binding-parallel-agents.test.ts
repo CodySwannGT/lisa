@@ -26,6 +26,7 @@ import {
 
 /** The state directory the guard writes under LISA_STATE_HOME. */
 const BINDING_DIR = "worktree-binding";
+const LEGACY_AGENT = "legacy-agent";
 
 describe("the binding guard scopes bindings to the agent, not just the session", () => {
   it("lets two subagents sharing a session each bind their own worktree", () => {
@@ -77,8 +78,8 @@ describe("the binding guard scopes bindings to the agent, not just the session",
   });
 
   it("keeps a session id ending in the separator apart from an agent id", () => {
-    // The composite key is a FILENAME, so the `--` joiner must be
-    // unambiguous: session "s--agent" + agent "c" and session "s" + agent
+    // The former composite filename could not distinguish session
+    // "s--agent" + agent "c" from session "s" + agent
     // "agent--c" are different pairs and must not name the same state file.
     const fixture = buildFixture();
 
@@ -90,8 +91,7 @@ describe("the binding guard scopes bindings to the agent, not just the session",
         agent: "c",
       }).status
     ).toBe(ALLOWED);
-    // A different (session, agent) pair that would spell the same key if the
-    // parts were not escaped: it must bind fresh, not displace.
+    // A different pair with the same old joined spelling must bind fresh.
     expect(
       runGuard({
         cwd: fixture.b,
@@ -112,7 +112,7 @@ describe("the binding guard scopes bindings to the agent, not just the session",
   });
 
   it("keeps a main-session key out of the agent-scoped namespace", () => {
-    // Every component is escaped, so a main session named "s%2Da--c" must NOT
+    // A main session named "s%2Da--c" must NOT
     // read the file the (session "s-a", agent "c") pair wrote — the raw
     // session id used to be able to smuggle an already-composed key.
     const fixture = buildFixture();
@@ -146,9 +146,8 @@ describe("the binding guard scopes bindings to the agent, not just the session",
   });
 
   it("keeps an agent id containing '*' filename-legal", () => {
-    // `encodeURIComponent` does not escape `*`, but NTFS forbids it in
-    // filenames — the key must hand-escape it or the write throws on
-    // Windows and the binding silently fails open. CodySwannGT/lisa#4294.
+    // NTFS forbids `*` in filenames. The state key must exclude it so writing
+    // an otherwise valid identity cannot disable enforcement on Windows.
     const fixture = buildFixture();
     const starredAgent = "agent*7";
 
@@ -159,8 +158,7 @@ describe("the binding guard scopes bindings to the agent, not just the session",
       agent: starredAgent,
     });
     expect(first.status).toBe(ALLOWED);
-    // The state file must exist under an escaped name — and since the key
-    // went through keyPart, `*` became %2A and never reached the filename.
+    // The state file exists under the bounded, filename-safe tuple key.
     expect(
       existsSync(
         path.join(
@@ -181,11 +179,10 @@ describe("the binding guard scopes bindings to the agent, not just the session",
     ).toBe(BLOCKED);
   });
 
-  it("reads a binding an older key format wrote, so an upgrade keeps it", () => {
-    // State files persist under LISA_STATE_HOME across installs. A binding
-    // recorded under the previous `session--agent` (sanitised, unescaped) key
-    // must still be honoured — silently re-baselining it is exactly the
-    // fail-open the guard exists against (CodySwannGT/lisa#4294).
+  it("requires intent before importing an older binding with no owner record", () => {
+    // An unstamped legacy composite could belong to a v1 main session or a
+    // different sanitized pair. Preserve it and require the existing explicit
+    // acknowledgement instead of silently choosing an owner or a new baseline.
     const fixture = buildFixture();
     const legacyKey = "session-under-test--legacy-agent";
     mkdirSync(path.join(fixture.state, BINDING_DIR), {
@@ -204,14 +201,23 @@ describe("the binding guard scopes bindings to the agent, not just the session",
       )}\n`
     );
 
-    // The legacy binding still binds: operating in the recorded tree allows,
-    // operating anywhere else is displaced.
+    // Matching the old path alone does not establish who owns the file.
     expect(
-      runGuard({ cwd: fixture.a, state: fixture.state, agent: "legacy-agent" })
+      runGuard({ cwd: fixture.a, state: fixture.state, agent: LEGACY_AGENT })
         .status
+    ).toBe(BLOCKED);
+    expect(
+      runGuard({
+        cwd: fixture.a,
+        state: fixture.state,
+        agent: LEGACY_AGENT,
+        input: {
+          command: `echo 'lisa-worktree-binding: accept ${realpathSync(fixture.a)}'`,
+        },
+      }).status
     ).toBe(ALLOWED);
     expect(
-      runGuard({ cwd: fixture.b, state: fixture.state, agent: "legacy-agent" })
+      runGuard({ cwd: fixture.b, state: fixture.state, agent: LEGACY_AGENT })
         .status
     ).toBe(BLOCKED);
   });
