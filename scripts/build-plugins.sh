@@ -179,6 +179,14 @@ for guard in block-no-verify parity-safety-net block-shell-json-parsing \
     chmod +x "$HOST_GUARD_DIR/$guard.sh"
   fi
 done
+# PostToolUse only: available to the OpenCode adapter, deliberately outside the
+# pre-tool enforcement dispatcher's guard roster.
+if [ -f "$SRC_DIR/base/hooks/discharge-work-item-gates.sh" ]; then
+  materialize "$SRC_DIR/base/hooks/discharge-work-item-gates.sh" \
+    "$HOST_GUARD_DIR/discharge-work-item-gates.sh"
+  materialize "$SRC_DIR/base/hooks/discharge-work-item-gates.sh" \
+    "$PLUGINS_DIR/lisa/hooks/discharge-work-item-gates.sh"
+fi
 # Companions: files a guard resolves as a SIBLING OF ITSELF at run time.
 #
 # The loop above appends `.sh` to every roster entry, so it can only ever

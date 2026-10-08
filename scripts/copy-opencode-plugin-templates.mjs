@@ -22,6 +22,7 @@ const canonicalHookDir = path.join(repoRoot, "plugins", "src", "base", "hooks");
 // that list is what the installer copies into a host, this one is what makes
 // the files reachable from `dist/` for a packaged install.
 const canonicalSupportFiles = [
+  "discharge-work-item-gates.sh",
   "block-managed-file-edits.sh",
   "block-no-verify.sh",
   "parity-safety-net.sh",

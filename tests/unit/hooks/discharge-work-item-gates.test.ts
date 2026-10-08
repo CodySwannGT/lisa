@@ -36,13 +36,25 @@ const EXIT_BLOCKED = 2;
 const EXIT_ALLOWED = 0;
 /** Marker the fake validator drops, so "did not run" is an assertion. */
 const RAN_MARKER = "validator-ran";
+const UNMET_GATE = "validator says: gate 4 unmet";
+/** The diagnostic emitted by hosts from before deferred PR gates existed. */
+const LEGACY_USAGE =
+  "❌ Work-item tracking blocked this operation: Usage: lisa-work-item.mjs link|current|attach-branch|clear|verify-level|backlink|complete|sweep|prepare-commit-msg|validate-commit|validate-push|validate-pr\n\nMention the ticket this work relates to, or ask Lisa to create one:\n  Work-Item: <configured-project-ticket>";
 
 /**
  * A throwaway git repository carrying a fake work-item validator.
  * @param exitCode - Status the fake validator exits with; omit to install none.
+ * @param output - Diagnostic returned by the validator.
+ * @param probeOutput - Optional distinct response when invoked without arguments.
+ * @param probeExitCode - Exit status of the no-argument probe.
  * @returns The repository path.
  */
-function project(exitCode?: number): string {
+function project(
+  exitCode?: number,
+  output = UNMET_GATE,
+  probeOutput = output,
+  probeExitCode = exitCode
+): string {
   const dir = mkdtempSync(path.join(tmpdir(), "lisa-discharge-hook-"));
   boundedSpawnSync({
     args: ["init", "-q", "-b", "main"],
@@ -57,8 +69,8 @@ function project(exitCode?: number): string {
     [
       `import { writeFileSync } from "node:fs";`,
       `writeFileSync(${JSON.stringify(path.join(dir, RAN_MARKER))}, process.argv.slice(2).join(" "));`,
-      `console.log("validator says: gate 4 unmet");`,
-      `process.exit(${exitCode});`,
+      `console.log(process.argv.length === 2 ? ${JSON.stringify(probeOutput)} : ${JSON.stringify(output)});`,
+      `process.exit(process.argv.length === 2 ? ${probeExitCode} : ${exitCode});`,
     ].join("\n"),
     "utf-8"
   );
@@ -86,13 +98,64 @@ function runHook(
 }
 
 describe("discharge-work-item-gates.sh", () => {
+  it.each(["create", "edit", "reopen"])(
+    "stands down on a verified older host's usage response after PR %s",
+    operation => {
+      const result = runHook(`gh pr ${operation} 7`, project(1, LEGACY_USAGE));
+
+      expect(result.status).toBe(EXIT_ALLOWED);
+      expect(result.stderr.trim().split("\n")).toHaveLength(1);
+      expect(result.stderr).toContain("Update Lisa");
+      expect(result.stderr).not.toContain("Work-item tracking blocked");
+    }
+  );
+
+  it("also recognizes an older host's bare usage response", () => {
+    const result = runHook(
+      "gh pr edit 7",
+      project(1, "Usage: lisa-work-item.mjs link|current|validate-pr")
+    );
+
+    expect(result.status).toBe(EXIT_ALLOWED);
+    expect(result.stderr.trim().split("\n")).toHaveLength(1);
+  });
+
+  it("keeps an unsuccessful capability probe blocking", () => {
+    const result = runHook(
+      "gh pr create",
+      project(1, LEGACY_USAGE, LEGACY_USAGE, 9)
+    );
+
+    expect(result.status).toBe(EXIT_BLOCKED);
+    expect(result.stderr).toContain(LEGACY_USAGE);
+  });
+
+  it.each([
+    [
+      "a supported command",
+      LEGACY_USAGE.replace("validate-pr", "validate-pr|discharge-pr-gates"),
+      undefined,
+    ],
+    ["a different probe response", LEGACY_USAGE, UNMET_GATE],
+    [
+      "a diagnostic merely quoting usage",
+      `Gate 4 unmet. Example: ${LEGACY_USAGE}`,
+      undefined,
+    ],
+  ])("keeps %s blocking", (_label, output, probeOutput) => {
+    const result = runHook("gh pr create", project(1, output, probeOutput));
+
+    expect(result.status).toBe(EXIT_BLOCKED);
+    expect(result.stderr).toContain(output);
+  });
+
   it("blocks and reports when the validator finds an unmet gate", () => {
     const dir = project(1);
 
     const result = runHook('gh pr create --title "x" --body "y"', dir);
 
     expect(result.status).toBe(EXIT_BLOCKED);
-    expect(result.stderr).toContain("validator says: gate 4 unmet");
+    expect(result.stderr).toContain(UNMET_GATE);
     expect(existsSync(path.join(dir, RAN_MARKER))).toBe(true);
   });
 

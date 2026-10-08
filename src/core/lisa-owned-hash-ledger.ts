@@ -1267,6 +1267,12 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "865f89d7504a7d1c3380449a2790801c60c1cfe5fa8f1aad54ffc51aa8d0cc7f",
     "90601e31603c440d8f19d213d63bfef8d18596c60f88cb6e28c93d12453c5c0c",
   ]),
+  "scripts/lisa-hooks/discharge-work-item-gates.sh": Object.freeze([
+    "17e67b20a3200c283a6192493ff03391df8c7d80363d97295c3f2421f050e88b",
+    "30c06593171214eb6474c083a39da41527f3338c7a472168c0dd8ecb1ad44889",
+    "68ece38c1f433e705c5bb284282468d65adbf46d8264ab0cd5855bab816bb0ea",
+    "877dc5ba2c8a26b7610346d53e47f4eac48dbe1c2474d01575b12921436b8c64",
+  ]),
   "scripts/lisa-hooks/guard-dedupe.bash": Object.freeze([
     "a64ac5d635ec54eb9cab81fce0daefd7c76f0575615bd91f4e4b11091c870600",
     "c7cb4b9c36cdd9939dc0e007b05ebf5e202b3fa6179e01279d92c5104e389899",
@@ -3093,6 +3099,12 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "3b5f074f3ab5708030af507eea962389f3b067c5dbdc76580bd9e44d3ac6c603",
     "865f89d7504a7d1c3380449a2790801c60c1cfe5fa8f1aad54ffc51aa8d0cc7f",
     "90601e31603c440d8f19d213d63bfef8d18596c60f88cb6e28c93d12453c5c0c",
+  ]),
+  "scripts/lisa-hooks/discharge-work-item-gates.sh": Object.freeze([
+    "17e67b20a3200c283a6192493ff03391df8c7d80363d97295c3f2421f050e88b",
+    "30c06593171214eb6474c083a39da41527f3338c7a472168c0dd8ecb1ad44889",
+    "68ece38c1f433e705c5bb284282468d65adbf46d8264ab0cd5855bab816bb0ea",
+    "877dc5ba2c8a26b7610346d53e47f4eac48dbe1c2474d01575b12921436b8c64",
   ]),
   "scripts/lisa-hooks/guard-dedupe.bash": Object.freeze([
     "a64ac5d635ec54eb9cab81fce0daefd7c76f0575615bd91f4e4b11091c870600",
