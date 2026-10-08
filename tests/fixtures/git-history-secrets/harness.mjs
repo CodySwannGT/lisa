@@ -5,12 +5,14 @@
  * @module history-secrets-fixtures
  */
 import { createHash, randomInt } from "node:crypto";
-import { spawnSync } from "node:child_process";
 import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { provePreimageBatch } from "./native-push.mjs";
+import { spawnSync } from "node:child_process";
+import { publicFailure } from "../../../all/copy-overwrite/scripts/lib/npm-update-invariants.mjs";
+import { runProcess } from "../../../all/copy-overwrite/scripts/lib/npm-update-native-process.mjs";
 
 /**
  * Keep generated values and captured vendor output inside one private fixture lease.
@@ -41,37 +43,7 @@ export function createHarness(args) {
   const values = [];
   const outputs = [];
   const observations = [];
-  const command = (binary, argv, cwd, input) => {
-    const result = spawnSync(binary, argv, {
-      cwd,
-      input,
-      encoding: "utf8",
-      timeout: 300000,
-      maxBuffer: 32 * 1024 * 1024,
-    });
-    outputs.push((result.stdout ?? "") + (result.stderr ?? ""));
-    if (proof)
-      writeFileSync(
-        join(proof, `${outputs.length}.json`),
-        JSON.stringify({
-          binary,
-          argv,
-          cwd,
-          input,
-          status: result.status,
-          signal: result.signal,
-          error: result.error?.code,
-          stdout: result.stdout,
-          stderr: result.stderr,
-        }),
-        { mode: 0o600 }
-      );
-    if (result.error || result.signal)
-      throw new Error(
-        "Fixture subprocess did not complete; no scanner proof is claimed."
-      );
-    return result;
-  };
+  const { command, commandAsync } = nativeCommands(outputs, proof);
   const requireFact = (condition, explanation) => {
     if (!condition) throw new Error(explanation);
   };
@@ -121,14 +93,10 @@ export function createHarness(args) {
       letters.map((letter, index) => letter + digits[index]).join("") +
       digits.slice(letters.length).join("");
     values.push(value);
-    if (proof)
-      writeFileSync(
-        join(proof, "synthetic-values.json"),
-        JSON.stringify(values),
-        {
-          mode: 0o600,
-        }
-      );
+    if (proof) {
+      const file = join(proof, "synthetic-values.json");
+      writeFileSync(file, JSON.stringify(values), { mode: 0o600 });
+    }
     return `api_key = "${value}"\n`;
   };
   const initialize = name => {
@@ -188,6 +156,7 @@ export function createHarness(args) {
     outputs,
     observations,
     command,
+    commandAsync,
     requireFact,
     git,
     write,
@@ -202,64 +171,56 @@ export function createHarness(args) {
 /**
  * Complete authored immutable case tuples, independent of runner expectations.
  */
+const SOURCE_ROLE = "source_hashes";
+const PROOF_ROLE = "proof_sha256";
 export const immutableFixtures = [
   ["immutable-selected-ancestor", "selected_artifact_hashes", null, 0],
-  ["immutable-mixed-revisions", "source_hashes", "mixed", 0],
+  ["immutable-mixed-revisions", SOURCE_ROLE, "mixed", 0],
   ["immutable-binary-preimage", "source_hashes_after", "binary", 0],
   ["immutable-unicode-offset", "root", "unicode", 0],
   ["immutable-complete-fence", "files", null, 0],
-  ["immutable-later-archive", "proof_sha256", null, 0],
-  ["immutable-typed-parent", "source_hashes", "typed", 0],
-  ["immutable-missing-sibling", "source_hashes", "missing-sibling", 42],
-  ["immutable-wrong-blob", "source_hashes", "wrong-blob", 42],
-  ["immutable-wrong-span", "source_hashes", "wrong-span", 42],
-  ["immutable-duplicate-coordinate", "source_hashes", "duplicate", 42],
-  ["immutable-unknown-field", "source_hashes", "unknown", 42],
-  ["immutable-null-parent", "source_hashes", "null-parent", 42],
-  ["immutable-wrong-role", "source_hashes", "wrong-role", 42],
-  ["immutable-conflicting-versions", "source_hashes", "versions", 42],
-  ["immutable-archive-mismatch", "proof_sha256", "archive-mismatch", 42],
-  [
-    "immutable-archive-outside-selection",
-    "proof_sha256",
-    "archive-outside",
-    42,
-  ],
-  ["immutable-archive-credential", "proof_sha256", "archive-credential", 42],
-  ["immutable-sidecar-credential", "source_hashes", "sidecar-credential", 42],
-  ["immutable-evidence-credential", "source_hashes", "evidence-credential", 42],
-  ["immutable-escaped-coordinate", "source_hashes", "escaped-coordinate", 42],
-  ["immutable-duplicate-sidecar-key", "source_hashes", "duplicate-key", 42],
-  ["immutable-overlapping-span", "source_hashes", "overlap", 42],
-  ["immutable-unsafe-integer", "source_hashes", "unsafe-integer", 42],
-  ["immutable-absolute-source", "source_hashes", "absolute-source", 42],
-  ["immutable-parent-source", "source_hashes", "parent-source", 42],
-  ["immutable-credential-role", "source_hashes", "credential-role", 42],
+  ["immutable-later-archive", PROOF_ROLE, null, 0],
+  ["immutable-typed-parent", SOURCE_ROLE, "typed", 0],
+  ["immutable-missing-sibling", SOURCE_ROLE, "missing-sibling", 42],
+  ["immutable-wrong-blob", SOURCE_ROLE, "wrong-blob", 42],
+  ["immutable-wrong-span", SOURCE_ROLE, "wrong-span", 42],
+  ["immutable-duplicate-coordinate", SOURCE_ROLE, "duplicate", 42],
+  ["immutable-unknown-field", SOURCE_ROLE, "unknown", 42],
+  ["immutable-null-parent", SOURCE_ROLE, "null-parent", 42],
+  ["immutable-wrong-role", SOURCE_ROLE, "wrong-role", 42],
+  ["immutable-conflicting-versions", SOURCE_ROLE, "versions", 42],
+  ["immutable-archive-mismatch", PROOF_ROLE, "archive-mismatch", 42],
+  ["immutable-archive-outside-selection", PROOF_ROLE, "archive-outside", 42],
+  ["immutable-archive-credential", PROOF_ROLE, "archive-credential", 42],
+  ["immutable-sidecar-credential", SOURCE_ROLE, "sidecar-credential", 42],
+  ["immutable-evidence-credential", SOURCE_ROLE, "evidence-credential", 42],
+  ["immutable-escaped-coordinate", SOURCE_ROLE, "escaped-coordinate", 42],
+  ["immutable-duplicate-sidecar-key", SOURCE_ROLE, "duplicate-key", 42],
+  ["immutable-overlapping-span", SOURCE_ROLE, "overlap", 42],
+  ["immutable-unsafe-integer", SOURCE_ROLE, "unsafe-integer", 42],
+  ["immutable-absolute-source", SOURCE_ROLE, "absolute-source", 42],
+  ["immutable-parent-source", SOURCE_ROLE, "parent-source", 42],
+  ["immutable-credential-role", SOURCE_ROLE, "credential-role", 42],
   ["immutable-multiple-fences", "files", "multiple-fences", 42],
-  ["immutable-sidecar-symlink", "source_hashes", "sidecar-symlink", 42],
-  ["immutable-source-symlink", "source_hashes", "source-symlink", 42],
-  ["immutable-archive-symlink", "proof_sha256", "archive-symlink", 42],
-  ["immutable-ancestor-blob-object", "source_hashes", "blob-revision", 42],
-  ["immutable-ancestor-tag-object", "source_hashes", "tag-revision", 42],
-  ["immutable-ancestor-off-chain", "source_hashes", "off-chain", 42],
-  ["immutable-conflicting-parent", "source_hashes", "parent-conflict", 42],
-  ["immutable-unflagged-sibling", "source_hashes", "unflagged-sibling", 42],
-  ["immutable-manifest-token-budget", "source_hashes", "token-budget", 42],
-  ["immutable-manifest-depth-budget", "source_hashes", "depth-budget", 42],
-  ["immutable-manifest-byte-budget", "source_hashes", "byte-budget", 42],
-  ["immutable-map-entry-budget", "source_hashes", "entry-budget", 42],
-  ["immutable-source-tree", "source_hashes", "source-tree", 42],
-  ["immutable-source-submodule", "source_hashes", "source-submodule", 42],
-  ["immutable-archive-worktree-only", "proof_sha256", "archive-worktree", 42],
-  ["immutable-origin-not-selected", "source_hashes", "origin-not-selected", 42],
-  ["immutable-coexist-strict-source", "source_hashes", "coexist-source", 0],
-  ["immutable-coexist-catalogue-proof", "source_hashes", "coexist-proof", 0],
-  [
-    "immutable-coexist-incomplete-map",
-    "source_hashes",
-    "coexist-incomplete",
-    42,
-  ],
+  ["immutable-sidecar-symlink", SOURCE_ROLE, "sidecar-symlink", 42],
+  ["immutable-source-symlink", SOURCE_ROLE, "source-symlink", 42],
+  ["immutable-archive-symlink", PROOF_ROLE, "archive-symlink", 42],
+  ["immutable-ancestor-blob-object", SOURCE_ROLE, "blob-revision", 42],
+  ["immutable-ancestor-tag-object", SOURCE_ROLE, "tag-revision", 42],
+  ["immutable-ancestor-off-chain", SOURCE_ROLE, "off-chain", 42],
+  ["immutable-conflicting-parent", SOURCE_ROLE, "parent-conflict", 42],
+  ["immutable-unflagged-sibling", SOURCE_ROLE, "unflagged-sibling", 42],
+  ["immutable-manifest-token-budget", SOURCE_ROLE, "token-budget", 42],
+  ["immutable-manifest-depth-budget", SOURCE_ROLE, "depth-budget", 42],
+  ["immutable-manifest-byte-budget", SOURCE_ROLE, "byte-budget", 42],
+  ["immutable-map-entry-budget", SOURCE_ROLE, "entry-budget", 42],
+  ["immutable-source-tree", SOURCE_ROLE, "source-tree", 42],
+  ["immutable-source-submodule", SOURCE_ROLE, "source-submodule", 42],
+  ["immutable-archive-worktree-only", PROOF_ROLE, "archive-worktree", 42],
+  ["immutable-origin-not-selected", SOURCE_ROLE, "origin-not-selected", 42],
+  ["immutable-coexist-strict-source", SOURCE_ROLE, "coexist-source", 0],
+  ["immutable-coexist-catalogue-proof", SOURCE_ROLE, "coexist-proof", 0],
+  ["immutable-coexist-incomplete-map", SOURCE_ROLE, "coexist-incomplete", 42],
 ];
 
 /**
@@ -277,11 +238,8 @@ export const fixtureHash = bytes =>
  * @param message - Fixed fixture message
  * @returns Native immutable commit identity
  */
-export const commitFixture = (
-  harness,
-  cwd,
-  message = "immutable evidence fixture"
-) => {
+const COMMIT_MESSAGE = "immutable evidence fixture";
+export const commitFixture = (harness, cwd, message = COMMIT_MESSAGE) => {
   harness.git(cwd, "add", ".");
   harness.git(cwd, "commit", "-qm", message);
   return harness.git(cwd, "rev-parse", "HEAD");
@@ -337,14 +295,67 @@ export const addLegacyEvidence = (harness, cwd, mode) => {
   const content = proof
     ? { proof_sha256: { "/opaque/legacy-proof.json": digest } }
     : { source_sha256: { [source]: digest } };
-  const commit = () =>
-    commitFixture(harness, cwd, "unrelated legacy evidence fixture");
+  const message = "unrelated legacy evidence fixture";
   harness.values.push(digest);
   harness.write(cwd, path, bytes);
   harness.write(cwd, "evidence/legacy.json", JSON.stringify(content, null, 2));
   return (() => {
-    const revision = commit();
+    const revision = commitFixture(harness, cwd, message);
     provePreimage(harness, cwd, revision, path, digest);
     return { commit: revision, preimageVerified: true };
   })();
 };
+
+/**
+ * Preserve actual native command observations and private proof.
+ * @param outputs - Existing private captured stream inventory.
+ * @param proof - Existing private proof directory, or null.
+ * @returns Original sync command and supervised async sibling.
+ */
+export function nativeCommands(outputs, proof) {
+  const record = (result, context) => {
+    const { status, signal, error, stdout, stderr } = result;
+    outputs.push((stdout ?? "") + (stderr ?? ""));
+    if (proof) {
+      const file = join(proof, `${outputs.length}.json`);
+      const verdict = { status, signal, error: error?.code };
+      const data = { ...context, ...verdict, stdout, stderr };
+      writeFileSync(file, JSON.stringify(data), { mode: 0o600 });
+    }
+    return result;
+  };
+  const failure = "Native fixture failed; no scanner proof is claimed.";
+  const maximum = 32 * 1024 * 1024;
+  const options = (cwd, input) => ({ cwd, input, timeout: 300000 });
+  const command = (binary, argv, cwd, input) => {
+    const context = { binary, argv, cwd, input };
+    const defaults = { encoding: "utf8", maxBuffer: maximum };
+    const settings = { ...options(cwd, input), ...defaults };
+    const result = record(spawnSync(binary, argv, settings), context);
+    if (result.error || result.signal) throw new Error(failure);
+    return result;
+  };
+  const commandAsync = async (binary, argv, cwd, input) => {
+    const context = { binary, argv, cwd, input };
+    // Authentic status is observed; the original validator decides acceptance.
+    const allowed = Array.from({ length: 256 }, (_, status) => status);
+    try {
+      const result = await runProcess(binary, argv, {
+        ...options(cwd, input),
+        maximum,
+        allowed,
+      });
+      const stdout = result.stdout.toString(),
+        stderr = result.stderr.toString();
+      const verdict = { status: result.code, signal: null, stdout, stderr };
+      return record(verdict, context);
+    } catch (error) {
+      context.nativeFailure = publicFailure(error);
+      const stdout = error.stdout?.toString() ?? "",
+        stderr = error.stderr?.toString() ?? "";
+      record({ status: error.code ?? null, error, stdout, stderr }, context);
+      throw new Error(failure);
+    }
+  };
+  return { command, commandAsync };
+}

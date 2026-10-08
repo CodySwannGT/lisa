@@ -10,6 +10,16 @@ The follow-up diagnostic commit `0513c6cc530304b272cad7531481f2c76e00596d` remai
 
 The staged #4400 repair then passed both real TypeScript/CDK packaged adoption cases, retaining complete byte comparisons, empty second-adoption and frozen-install deltas, and real CDK synthesis. The encompassing integration command finished with 189 passing files, 3,363 passing tests and nine skips, but one original digest-second scanner control exceeded its unchanged 30-second base scaled by the measured 1.61 factor. That timeout remains a failure requiring investigation; it is not whole-suite or published acceptance. Recorded owned scratch was absent afterward, but separate process cleanup was not certified clean.
 
+
+## Scanner fixture scheduling follow-up — 2026-10-08
+
+The combined candidate's tagged original full push passed 27,384 unit tests and unchanged coverage, but integration failed both original 14-case digest groups at their unchanged deadlines. Both complete TypeScript/CDK packed-host journeys passed. Diagnostic native timing attributed 18.243 of 20.299 seconds to fourteen genuine scanner invocations; limiting Go to one CPU made no measurable difference and was not adopted.
+
+The follow-up overlaps two authentic scanner invocations within the original aggregate budget, retains every selected Git graph and assertion, preserves deterministic result order and drains active children before refusal reaches scratch cleanup. It reuses existing harness, errors and journey modules under the unchanged 300-line lint limit. All 47 immutable case tuples equal the original source exactly. Independent quality, security and product reviews pass on the final source.
+
+All 25 original private-report tests and two new native queue controls passed in the collected original runner. The queue controls use real child processes to prove overlap, ordered results, stdin, a maximum of two active operations, private 0700/0600 proof and refusal drainage. A serial counterfactual failed with the actual rendezvous exit 19; restoring the reviewed worker source passed both controls. A final equivalent declaration-only lint correction retained the same operations; the original full push will verify the final committed bytes. These checks establish scoped source evidence, not hosted browser, full-suite, release or published-package acceptance.
+
+
 ## Resolved input and team
 
 The live claimed GitHub leaf is bound to `codex/4354-immutable-evidence`, branched from freshly fetched `origin/main` at `6f1e1c933b2bd8891e2153751bf95231656dce49`. Production maps to main; this is the only integration target. The input resolver captured the entire issue and all 17 primary, parent and related comments in the ignored work-item context. ROOT consumed that context in full. Published acceptance for #4353 discharges its historical dependency hold. The operator has authorized implementation and normal delivery.

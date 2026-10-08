@@ -9,17 +9,20 @@ import { join } from "node:path";
 import { commitFixture, createHarness, provePreimage } from "./harness.mjs";
 import { emitArtifacts, runEvidenceCases } from "./package.mjs";
 import { immutableCases } from "./graphs.mjs";
-import { errorCases } from "./errors.mjs";
+import { errorCases, runTwoWorkers } from "./errors.mjs";
 import { graphCases, nativePushCases } from "./native-push.mjs";
 import { reportModeCase } from "./report-mode.mjs";
+
 const harness = createHarness(process.argv.slice(2));
 const { outputs, values, requireFact, observations, scratch } = harness;
 const EVIDENCE_FILE = "evidence.json";
 const HEAD = "HEAD";
+const scanRequests = [];
+const scanEntry = join(harness.emitted, harness.SCANNER_ENTRY);
 /** Fresh original-input witnesses for the closed immutable-coordinate protocol. */
 /** Exercise evidence decisions through emitted CLI bytes and real Git preimages. */
 function evidenceCases() {
-  const { initialize, write, git, command, emitted, scanner, secret } = harness;
+  const { initialize, write, git, scanner, secret } = harness;
   const selector = flag => {
     const matches = harness.args.filter(arg => arg.startsWith(flag));
     if (matches.length > 1 || matches.some(arg => arg !== flag))
@@ -61,32 +64,15 @@ function evidenceCases() {
   const scan = (cwd, name, expected, preimageVerified = false) => {
     const head = git(cwd, "rev-parse", HEAD);
     const commits = git(cwd, "rev-list", head).split("\n").length;
-    const result = command(
-      process.execPath,
-      [join(emitted, harness.SCANNER_ENTRY), "pre-push", "--scanner", scanner],
+    scanRequests.push({
+      name,
       cwd,
-      `refs/heads/fixture ${head} refs/heads/fixture ${"0".repeat(head.length)}\n`
-    );
-    if (result.status !== expected)
-      throw new Error(
-        `${name}: unexpected evidence verdict; raw output withheld.`
-      );
-    const report = JSON.parse(result.stdout);
-    requireFact(
-      report.version === "8.30.1" &&
-        report.commits === commits &&
-        Array.isArray(report.findings) &&
-        (expected === 0
-          ? report.findings.length === 0
-          : report.findings.length > 0),
-      `${name}: actual default scanner coverage/attribution missing.`
-    );
-    if (name === "digest-other-default-rule")
-      requireFact(
-        report.findings.some(finding => finding.rule === "aws-access-token"),
-        "Other default detector attribution missing."
-      );
-    observations.push({ name, exit: result.status, commits, preimageVerified });
+      expected,
+      commits,
+      preimageVerified,
+      argv: [scanEntry, "pre-push", "--scanner", scanner],
+      input: `refs/heads/fixture ${head} refs/heads/fixture ${"0".repeat(head.length)}\n`,
+    });
   };
   const fixture = (name, content, expected = 42, setup) => {
     if (!selected(name)) return;
@@ -262,6 +248,7 @@ try {
   const immutable = harness.args.some(arg => arg.startsWith("--immutable-"));
   if (immutable) immutableCases(harness);
   const portable = immutable || runEvidenceCases(harness, evidenceCases);
+  observations.push(...(await runEvidenceScans(harness, scanRequests)));
   if (!portable && !harness.args.includes("--evidence-only")) {
     const fixture = graphCases(harness);
     await reportModeCase(harness, fixture);
@@ -288,4 +275,39 @@ try {
 } finally {
   rmSync(scratch, { recursive: true, force: true });
   requireFact(!existsSync(scratch), "Positive scratch cleanup failed.");
+}
+
+/**
+ * Exercise the same emitted CLI, Git input, detectors and verdict assertions.
+ * @param harness - Existing owned fixture authority and native command recorder.
+ * @param requests - Original selected scan roster with actual Git coordinates.
+ * @returns Original ordered redacted observations.
+ */
+async function runEvidenceScans(harness, requests) {
+  return runTwoWorkers(
+    requests.map(request => async () => {
+      const { name, argv, cwd, input } = request;
+      const run = harness.commandAsync;
+      const result = await run(process.execPath, argv, cwd, input);
+      if (result.status !== request.expected)
+        throw new Error(`${name}: verdict mismatch; raw proof withheld.`);
+      const report = JSON.parse(result.stdout);
+      harness.requireFact(
+        report.version === "8.30.1" &&
+          report.commits === request.commits &&
+          Array.isArray(report.findings) &&
+          (request.expected === 0
+            ? report.findings.length === 0
+            : report.findings.length > 0),
+        `${name}: actual default scanner attribution missing.`
+      );
+      if (request.name === "digest-other-default-rule")
+        harness.requireFact(
+          report.findings.some(finding => finding.rule === "aws-access-token"),
+          "Other default detector attribution missing."
+        );
+      const { commits, preimageVerified } = request;
+      return { name, exit: result.status, commits, preimageVerified };
+    })
+  );
 }

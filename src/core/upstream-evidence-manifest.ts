@@ -9986,6 +9986,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/gate-shipped-as-operator-surfaces.test.ts": true,
     "tests/integration/hardcoded-invocation-fixture.ts": true,
     "tests/integration/hardcoded-invocation-inventory.test.ts": true,
+    "tests/integration/history-evidence-native-queue.test.ts": true,
     "tests/integration/history-secret-bootstrap.test.ts": true,
     "tests/integration/history-secret-evidence.test.ts": true,
     "tests/integration/history-secret-private-report.test.ts": true,

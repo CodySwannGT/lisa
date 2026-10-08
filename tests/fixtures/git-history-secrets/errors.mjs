@@ -348,3 +348,30 @@ export const requireCollectedBudgetObservation = (
     )
   ).toBe(true);
 };
+
+/** Two real native scans overlap within the unchanged whole-journey deadline. */
+
+/**
+ * Preserve result order and await every active job before propagating a refusal.
+ * @param jobs - Source-owned operations, each retaining its original child bound.
+ * @returns Ordered actual observations after all active operations finish.
+ */
+export async function runTwoWorkers(jobs) {
+  const selected = [...jobs];
+  const results = [];
+  const state = { next: 0, failed: false, firstFailure: undefined };
+  const worker = async () => {
+    while (!state.failed && state.next < selected.length) {
+      const index = state.next++;
+      try {
+        results[index] = await selected[index]();
+      } catch (error) {
+        if (!state.failed) state.firstFailure = error;
+        state.failed = true;
+      }
+    }
+  };
+  await Promise.all([worker(), worker()]);
+  if (state.failed) throw state.firstFailure;
+  return results;
+}
