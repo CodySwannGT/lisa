@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.71.12](https://github.com/CodySwannGT/lisa/compare/v4.71.11...v4.71.12) (2026-10-08)
+
+
+### Bug Fixes
+
+* **intake:** recognize Markdown-escaped human holds and releases ([85f44d8](https://github.com/CodySwannGT/lisa/commit/85f44d88f4dbfb0f72eaefbae27ee23e73588d6f)), closes [CodySwannGT/lisa#4341](https://github.com/CodySwannGT/lisa/issues/4341)
+
 ### [4.71.11](https://github.com/CodySwannGT/lisa/compare/v4.71.10...v4.71.11) (2026-10-08)
 
 
