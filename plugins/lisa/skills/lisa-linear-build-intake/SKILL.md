@@ -199,6 +199,14 @@ If every pre-work lane is empty, or nothing survives Phase 2.5, exit on the **de
 
 ### Phase 2.5 — Re-probe the blockers instead of inheriting them
 
+Pass original provider bodies and comments to the shared human-gate parsers;
+they decode one Markdown escape layer after excluding code examples. For
+bookkeeping searches that set `alreadyNotified`, use
+`normalizeProviderMarkdown(comment.body)` from the same helper before checking
+the reconciled, released, normalization or evidence marker. Never pre-normalize
+text passed to the parsers: decoding twice can change literal backslashes into a
+declaration.
+
 A blocker is a **claim with a timestamp, not a fact**. It is written once and goes stale the moment its condition comes true — a dependency lands on trunk, an advisory gets patched, a package publishes. Nothing re-read one before this phase, so a discharged blocker held its Issue out of the queue indefinitely. Measured: one Issue's stated condition went true ~15 hours before anything noticed.
 
 For each pre-work candidate that is **not** in `$READY`:
