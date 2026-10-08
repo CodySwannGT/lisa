@@ -1,0 +1,435 @@
+---
+# Prepare an environment before a suite runs against it — with AWS credentials.
+#
+# The same preparation as `environment-prepare.yml` (read its header for why
+# preparation happens BEFORE a suite and why a failure here fails the suite),
+# plus one thing it cannot do: assume an AWS IAM role through GitHub OIDC before
+# the verbs run, so a project's `environment:reset` can call AWS — for example,
+# invoke a reset function that exists only in its non-production account —
+# without a long-lived key (#4374).
+#
+# ## Why this is a separate workflow, and not an input on the existing ones
+#
+# Assuming a role through OIDC needs `id-token: write`. A called workflow may
+# only DOWNGRADE its caller's grant, and GitHub compares what a callee declares
+# against what the caller grants before any job starts — so no `if:` and no
+# empty input can contain it. Adding `id-token: write` to
+# `environment-prepare.yml`, `playwright-e2e.yml` or `maestro-native-e2e.yml`
+# would `startup_failure` every already-installed caller that does not grant
+# it; Lisa has shipped that outage twice (#2046, #2566), and
+# `tests/integration/reusable-workflow-caller-scopes.test.ts` freezes those
+# three workflows' scopes for exactly this reason. A NEW workflow has no
+# installed callers, so declaring the scope here breaks nobody: only a caller
+# that opts in by calling this file needs to grant it.
+#
+# ## Why no job here sets `environment:`
+#
+# The OIDC token's `sub` claim — the value the role's trust policy matches — is
+# `repo:<owner>/<repo>:ref:refs/heads/<branch>` only while the job names no
+# GitHub environment. Naming one changes it to
+# `repo:<owner>/<repo>:environment:<name>`, and a role trusted for the branch
+# subject then refuses to be assumed. Never add an `environment:` key to a job
+# in this file; the `environment` INPUT is the target name passed to the verbs,
+# not a GitHub deployment environment.
+#
+# ## Usage
+#
+# Run this as its own job and point the suite at it with `needs:`, leaving the
+# suite's own `prepare_environment` input empty so it does not prepare twice.
+#
+# (a) A browser suite:
+#
+#   jobs:
+#     prepare:
+#       permissions:
+#         contents: read
+#         id-token: write
+#       uses: CodySwannGT/lisa/.github/workflows/environment-prepare-aws.yml@main
+#       with:
+#         expected_workflow_contract_major: 1
+#         environment: development
+#         role_to_assume: arn:aws:iam::123456789012:role/ExampleResetInvokeRole
+#     playwright:
+#       needs: [prepare]
+#       uses: CodySwannGT/lisa/.github/workflows/playwright-e2e.yml@main
+#       with:
+#         expected_workflow_contract_major: 1
+#         # prepare_environment deliberately left empty: `prepare` did it.
+#
+# (b) A native suite that still prepares again between its platform legs —
+# each leg is its own call, preceded by its own preparation:
+#
+#   jobs:
+#     prepare_ios:
+#       permissions: { contents: read, id-token: write }
+#       uses: CodySwannGT/lisa/.github/workflows/environment-prepare-aws.yml@main
+#       with:
+#         expected_workflow_contract_major: 1
+#         environment: development
+#         role_to_assume: arn:aws:iam::123456789012:role/ExampleResetInvokeRole
+#     maestro_ios:
+#       needs: [prepare_ios]
+#       uses: CodySwannGT/lisa/.github/workflows/maestro-native-e2e.yml@main
+#       with:
+#         expected_workflow_contract_major: 1
+#         platform: ios
+#     prepare_android:
+#       needs: [maestro_ios]
+#       # Android still runs when iOS failed; only a cancellation stops it.
+#       if: ${{ !cancelled() }}
+#       permissions: { contents: read, id-token: write }
+#       uses: CodySwannGT/lisa/.github/workflows/environment-prepare-aws.yml@main
+#       with:
+#         expected_workflow_contract_major: 1
+#         environment: development
+#         role_to_assume: arn:aws:iam::123456789012:role/ExampleResetInvokeRole
+#     maestro_android:
+#       needs: [prepare_android]
+#       uses: CodySwannGT/lisa/.github/workflows/maestro-native-e2e.yml@main
+#       with:
+#         expected_workflow_contract_major: 1
+#         platform: android
+#
+# Leave the suite workflows' `prepare_environment` / `prepare_verbs` inputs
+# empty in both shapes: the suite workflows cannot hold AWS credentials, which
+# is the whole reason this file exists.
+name: 🧼 Prepare Environment (AWS)
+
+on:
+  workflow_call:
+    inputs:
+      expected_workflow_contract_major:
+        description: >-
+          The contract major of THIS workflow the caller was written against.
+          Consumers track `@main`, so environment-prepare-aws.yml changes under them with no pull
+          request in their repository; comparing this value against the major
+          the workflow declares is the only way a run can tell a compatible
+          change from a breaking one — or from nothing having been looked at.
+          A caller that omits it is told so loudly and never quietly passed.
+          Seeded beside the `uses:` line in every Lisa caller template and
+          enforced by Lisa's `check-workflow-contract-assertions.mjs` gate.
+        required: false
+        default: ''
+        type: string
+      environment:
+        description: >-
+          Target environment name, forwarded to each verb as `--env=<name>`.
+          Mandatory and never defaulted: a default that is safe in one repo is
+          the production default in another. The value is classified by Lisa's
+          shipped destructive guard, which refuses production — and refuses an
+          identity it cannot classify on the same terms.
+        required: true
+        type: string
+      verbs:
+        description: >-
+          Compatibility input for callers already passing the lifecycle verbs.
+          The complete value is mandatory: reset,reseed (order is normalized).
+          A subset fails before either command runs. A project with no fixture
+          data still declares an explicit no-op environment:reseed so the same
+          reset-then-reseed interface is invoked for every prepared environment.
+        required: false
+        default: reset,reseed
+        type: string
+      node_version:
+        description: Node.js version used to run the preparation.
+        required: false
+        default: '22.23.3'
+        type: string
+      package_manager:
+        description: Package manager used to install dependencies.
+        required: false
+        default: bun
+        type: string
+      install_dependencies:
+        description: >-
+          Install the project's dependencies before preparing. Defaults TRUE,
+          unlike the equivalent seam in the native e2e workflow: a reset goes
+          through the project's own tooling and database client far more often
+          than not, and a caller that genuinely needs no install can turn this
+          off, whereas one that needed it and did not get it fails in a way that
+          reads as a broken reset rather than a missing install.
+        required: false
+        default: true
+        type: boolean
+      setup_command:
+        description: >-
+          Shell command run after dependencies are installed and BEFORE the
+          facade verbs, in the same job.
+
+          Exists because the target environment is not always a runtime
+          argument. A project may materialise it as a build-time fact — copying
+          a gitignored `.env.local`, exporting a profile — and its
+          `environment:reset` then refuses unless that file agrees with
+          `--env`. That refusal is correct: the underlying sweeper defaults to
+          a real environment when the file is absent, so "no target named" must
+          never be read as "the default one". Without this seam the job checks
+          out, installs, and runs a verb that has no way to know what it is
+          pointed at.
+
+          The direct analogue of `playwright_setup_command`, and needed for the
+          same reason.
+        required: false
+        default: ''
+        type: string
+      timeout_minutes:
+        description: >-
+          Ceiling for this job. Deliberately tight: it gates an entire suite, so
+          a wedged reset should surface as a fast, named failure rather than
+          silently spending the suite's budget before a single spec runs.
+        required: false
+        default: 20
+        type: number
+      role_to_assume:
+        description: >-
+          ARN of the IAM role to assume through GitHub OIDC before the verbs
+          run, so the project's `environment:reset` / `environment:reseed` see
+          AWS credentials in their environment. Required: a caller that needs
+          no AWS access should call environment-prepare.yml instead.
+
+          The CALLING job must grant `id-token: write` (and `contents: read`)
+          in its own `permissions:` block; without that grant the run fails to
+          start. The role's trust policy must match the OIDC `sub` claim
+          `repo:<owner>/<repo>:ref:refs/heads/<branch>` — the branch-ref
+          subject, because no job in this workflow sets `environment:`. Adding
+          one would change the subject to
+          `repo:<owner>/<repo>:environment:<name>` and the role would refuse
+          to be assumed, so never add one.
+        required: true
+        type: string
+      aws_region:
+        description: AWS region the assumed role's session is configured for.
+        required: false
+        default: 'us-east-1'
+        type: string
+      role_session_name:
+        description: >-
+          Session name recorded in the role's CloudTrail entries. Empty means
+          `lisa-environment-prepare-<run id>`, which already ties every call
+          the reset makes back to the run that made it.
+        required: false
+        default: ''
+        type: string
+
+# Workflow-level and empty: every job states its own grant. A called workflow
+# may only DOWNGRADE its caller's grant, so anything requested here that a
+# caller does not hold is a `startup_failure` for the ENTIRE run — decided
+# before the run starts, so no `if:` can save it. Only the `prepare` job asks
+# for `id-token: write`, and only callers that opted into this file grant it.
+permissions: {}
+
+# Keyed on the ENVIRONMENT, because that is what is being mutated. Two runs
+# preparing the same environment at once would have one reset landing while the
+# other reseeds, leaving a state neither asked for. Not keyed on the ref: every
+# run hits the same backend regardless of which branch dispatched it, so a
+# ref-keyed group would hand two branches two groups over one database and they
+# would not exclude each other.
+#
+# Queue, never cancel. Killing a reset mid-run leaves the environment in exactly
+# the half-converged state this workflow exists to prevent.
+concurrency:
+  group: lisa-environment-prepare-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  workflow_contract:
+    # The caller-facing half of the staleness handshake (CodySwannGT/lisa#3698).
+    # `.github/reusable-workflow-contracts.json` records the major, every shipped
+    # caller template is seeded with it, and
+    # `check-workflow-contract-assertions.mjs` in Lisa refuses a template that
+    # takes the `uses:` reference and drops the assertion — the two are one unit.
+    name: 🔖 Workflow Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: 🔖 Assert the caller still understands this workflow
+        env:
+          # The contract major THIS revision speaks. Bump it here and in
+          # .github/reusable-workflow-contracts.json in the same commit, and
+          # reseed every caller template in that commit too.
+          DECLARED_MAJOR: '1'
+          EXPECTED_MAJOR: ${{ inputs.expected_workflow_contract_major }}
+          WORKFLOW_FILE: environment-prepare-aws.yml
+        # Byte-identical to workflow-contract-assertion.sh in Lisa across every
+        # reusable workflow; the gate proves it rather than trusting it.
+        run: |
+          set -eu
+
+          # The consumer-side half of a two-party contract (CodySwannGT/lisa#3698).
+          #
+          # Every consumer reference to a Lisa reusable workflow tracks `@main` by ruling,
+          # not by accident. So this workflow changes under a consumer between two runs of
+          # one pull request, with no PR, no review and no record in their repository.
+          # That is intended. What was missing is any way for them to TELL: an unchanged
+          # workflow and a rewritten one produced the same silence, and an investigation
+          # that fetched `@main` afterwards was reading a different artifact than the run
+          # it was investigating and could not know it.
+          #
+          # This step is the signal, and it deliberately asserts the CONTRACT rather than
+          # the ref. Asserting the ref — a tag, a SHA, a tree hash — goes red on every
+          # legitimate upstream change and is deleted within a week, which is how a
+          # staleness check becomes a staleness problem. The major asserts the property a
+          # caller actually depends on: "the inputs and behaviour you were seeded against
+          # still hold". A compatible change stays green, because receiving compatible
+          # changes is the entire point of tracking `@main`; only a declared break speaks.
+          echo "workflow:                                  ${WORKFLOW_FILE}"
+          echo "contract major declared by this revision:  ${DECLARED_MAJOR}"
+          echo "contract major the caller was seeded with: ${EXPECTED_MAJOR:-<none passed>}"
+
+          # NOT DETERMINED, said out loud.
+          #
+          # A caller that passes nothing is not failed. Caller workflows ship create-only
+          # and are never overwritten, so every consumer seeded before this shipped passes
+          # nothing — while this workflow is live in all of them on their next run.
+          # Failing closed here would redden the entire fleet over a file Lisa cannot
+          # update on their behalf: the two-channel mistake this handshake exists to
+          # catch, committed in the other direction.
+          #
+          # It must not be SILENT either. Silence is the defect. So the run says plainly
+          # that it measured nothing, and says what to add.
+          case "${EXPECTED_MAJOR}" in
+            '' | *[!0-9]*)
+              echo "::warning title=Workflow contract NOT DETERMINED::This run cannot tell whether ${WORKFLOW_FILE} changed under you. Its caller passed expected_workflow_contract_major='${EXPECTED_MAJOR}', which is not a whole number, so there is nothing to compare against the major ${DECLARED_MAJOR} this revision declares. Add 'expected_workflow_contract_major: ${DECLARED_MAJOR}' to the 'with:' block beside your 'uses: ...@main' line. Until you do, this check is measuring nothing and its green means only that."
+              exit 0
+              ;;
+          esac
+
+          if [ "${EXPECTED_MAJOR}" != "${DECLARED_MAJOR}" ]; then
+            echo "::error title=Workflow contract mismatch::${WORKFLOW_FILE} on @main declares contract major ${DECLARED_MAJOR}; this caller was seeded against major ${EXPECTED_MAJOR}. A major bump is Lisa stating that an input or a behaviour you depend on changed in a way you must react to. Read the workflow header for what moved, update this caller, then set expected_workflow_contract_major: ${DECLARED_MAJOR}."
+            exit 1
+          fi
+
+          echo "contract major ${DECLARED_MAJOR} agreed: ${WORKFLOW_FILE} has not declared a break under this caller."
+
+  prepare:
+    name: 🧼 Prepare ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    # The only job in this file that may mint an OIDC token. `contents: read`
+    # is restated because a job-level block replaces the workflow-level one.
+    permissions:
+      contents: read
+      id-token: write
+    # Deliberately NO `environment:` key, here or on any job in this file.
+    # Naming a GitHub environment changes the OIDC `sub` claim from
+    # `repo:<owner>/<repo>:ref:refs/heads/<branch>` to
+    # `repo:<owner>/<repo>:environment:<name>`, and the role's trust policy is
+    # written against the branch subject — the role would refuse the token.
+    steps:
+      # A hard refusal rather than a documented convention. The gate registry
+      # deliberately points `environment-reset` at `environment:reset:verify`
+      # and NOT at the reset itself, precisely so that declaring the gate
+      # required cannot converge a shared environment on every pull request.
+      # This workflow runs the real thing, so it must not become the back door
+      # into the hazard that decision closed.
+      - name: 🚫 Refuse to prepare from a pull-request event
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'pull_request_target' }}
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          echo "::error::environment preparation refused: reached from a ${EVENT} event."
+          echo "This workflow performs a REAL reset. Running it per pull request would"
+          echo "converge a shared environment on every push to every branch — the hazard"
+          echo "the gate registry avoids by verifying the guard instead of invoking it."
+          echo "Call this from a scheduled or dispatched workflow."
+          exit 1
+
+      # Fail fast, before anything is fetched or installed. The credential
+      # action's own error for a malformed ARN arrives minutes later, after
+      # the install, and reads as an AWS fault rather than a caller typo.
+      - name: 🛂 Validate role_to_assume
+        env:
+          ROLE_TO_ASSUME: ${{ inputs.role_to_assume }}
+        run: |
+          set -eu
+          case "${ROLE_TO_ASSUME}" in
+            arn:aws:iam::[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]:role/?*) ;;
+            arn:aws-*:iam::[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]:role/?*) ;;
+            *)
+              echo "::error::role_to_assume='${ROLE_TO_ASSUME}' is not an IAM role ARN."
+              echo "Expected arn:aws:iam::<12-digit account>:role/<name>."
+              echo "A caller that needs no AWS credentials should call environment-prepare.yml instead."
+              exit 1
+              ;;
+          esac
+          echo "Assuming ${ROLE_TO_ASSUME} for the preparation verbs."
+
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: 🥟 Setup Bun
+        if: ${{ inputs.package_manager == 'bun' }}
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          # Pinned, not `latest`. This job runs a DESTRUCTIVE verb, and a
+          # toolchain that can change without a commit is a change nobody
+          # reviewed on the one path where that matters most. Matches the pin
+          # every other job in this repository's workflows already uses.
+          bun-version: '1.3.8'
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version: ${{ inputs.node_version }}
+
+      - name: 📦 Install dependencies
+        if: ${{ inputs.install_dependencies }}
+        env:
+          PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        run: |
+          case "$PACKAGE_MANAGER" in
+            npm) npm ci ;;
+            yarn) yarn install --frozen-lockfile ;;
+            pnpm) corepack enable && pnpm install --frozen-lockfile ;;
+            bun) bun install --frozen-lockfile ;;
+            *) echo "::error::unsupported package manager: $PACKAGE_MANAGER"; exit 1 ;;
+          esac
+
+      - name: 🔧 Prepare setup command
+        # Runs BEFORE the verbs, after the install — the point at which a
+        # build-time environment selection can still be materialised.
+        if: ${{ inputs.setup_command != '' }}
+        run: ${{ inputs.setup_command }}
+
+      # After the install and the setup command, immediately before the verbs:
+      # the credentials are exported into the job environment, so only the
+      # steps that need them run with them. No `if:` — the role is required.
+      - name: 🔑 Assume the AWS role through OIDC
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          role-to-assume: ${{ inputs.role_to_assume }}
+          aws-region: ${{ inputs.aws_region }}
+          role-session-name: ${{ inputs.role_session_name || format('lisa-environment-prepare-{0}', github.run_id) }}
+
+      - name: 🧼 Prepare the environment
+        env:
+          TARGET: ${{ inputs.environment }}
+          VERBS: ${{ inputs.verbs }}
+        run: |
+          set -eu
+          # Same three candidates, same order, as every other Lisa gate façade:
+          # the installed package first so a consumer that never copied the
+          # script still resolves it, then a host copy, then this repository's
+          # own tree for Lisa itself.
+          PREPARE=""
+          for candidate in \
+            "node_modules/@codyswann/lisa/all/copy-overwrite/scripts/lisa-environment-prepare.mjs" \
+            "scripts/lisa-environment-prepare.mjs" \
+            "all/copy-overwrite/scripts/lisa-environment-prepare.mjs"; do
+            if [ -f "$candidate" ]; then PREPARE="$candidate"; break; fi
+          done
+          # Resolution failure is a FAILURE, never a skip. A caller asked for a
+          # prepared environment; reporting success without having prepared one
+          # is the defect this whole subsystem exists to prevent, and it would
+          # be indistinguishable from a healthy run.
+          if [ -z "$PREPARE" ]; then
+            echo "::error::environment preparation refused: lisa-environment-prepare.mjs was not found."
+            echo "Looked for the installed package, a host copy under scripts/, and this repo's own tree."
+            echo "Install or update @codyswann/lisa, or stop calling this workflow."
+            exit 1
+          fi
+          echo "Preparing \"${TARGET}\" with lifecycle: reset then reseed"
+          node "$PREPARE" --env="${TARGET}" --verbs="${VERBS}"

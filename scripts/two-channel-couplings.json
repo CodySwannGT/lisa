@@ -102,13 +102,13 @@
     }
   },
   "inspected": {
-    "workflows": 25,
-    "steps": 798,
-    "couplings": 35,
+    "workflows": 26,
+    "steps": 808,
+    "couplings": 36,
     "inventory": 166
   },
   "counts": {
-    "package-backed": 10,
+    "package-backed": 11,
     "apply-lagged": 23,
     "never-delivered": 0,
     "undelivered": 2

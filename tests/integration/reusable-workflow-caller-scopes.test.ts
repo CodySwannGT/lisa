@@ -91,6 +91,14 @@ const BASELINE: Readonly<Record<string, ScopeMap>> = {
   // workflow that checks the repository out already declares. From here it is
   // frozen on the same terms as every other line.
   "environment-prepare.yml": { contents: "read" },
+  // A NEW workflow, added INSTEAD of widening environment-prepare.yml,
+  // playwright-e2e.yml or maestro-native-e2e.yml (#4374). Giving any of those
+  // `id-token: write` would startup-fail every installed caller that does not
+  // grant it — the #2046 / #2566 outage this file exists to stop. This file
+  // has no installed callers; only a caller that opts in by calling it needs
+  // the grant, and its documented usage grants exactly these two scopes. The
+  // `id-token` is held by the `prepare` job alone. Frozen from here.
+  "environment-prepare-aws.yml": { contents: "read", "id-token": "write" },
   // A NEW entry, which is a different act from a new scope on an existing one
   // and the reason this map distinguishes them. The hazard this baseline exists
   // to stop is an ALREADY-INSTALLED caller — frozen, create-only, unable to

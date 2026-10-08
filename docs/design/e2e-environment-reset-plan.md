@@ -92,6 +92,35 @@ target environment as an input. Fails loudly.
 - Callable **only** from a nightly or dispatch workflow. Never from a PR gate.
 - Must fail — not skip — when the verb is undeclared.
 
+### The AWS-credentialed path: `environment-prepare-aws.yml`
+
+**SHIPPED** (#4374). Layer 2 of the downstream safety contract below means a
+project's `environment:reset` often needs AWS credentials: it invokes a reset
+function through a role that can reach nothing else. The natural credential is a
+GitHub OIDC role, which needs `id-token: write`.
+
+That scope is **not** added to `environment-prepare.yml`, `playwright-e2e.yml` or
+`maestro-native-e2e.yml`. GitHub checks a callee's declared scopes against the
+caller's grant before any job runs, so every installed caller that does not grant
+it would `startup_failure` (#2046, #2566);
+`tests/integration/reusable-workflow-caller-scopes.test.ts` freezes those scopes.
+Instead, `.github/workflows/environment-prepare-aws.yml` is a separate, opt-in
+workflow: the same inputs and the same verb invocation as `environment-prepare.yml`,
+plus a required `role_to_assume`, an `aws_region` (default `us-east-1`) and a
+`role_session_name`. Its `prepare` job alone holds `id-token: write` and assumes
+the role through `aws-actions/configure-aws-credentials` immediately before the
+verbs.
+
+- The calling job grants `permissions: { contents: read, id-token: write }`.
+- The suite then runs with `needs:` on that job and its own
+  `prepare_environment` left empty. A native suite that wants a fresh
+  environment between platform legs calls the suite once per platform, each
+  preceded by its own `environment-prepare-aws.yml` job.
+- **No job in that workflow sets `environment:`, and none may.** The role's trust
+  policy matches the OIDC subject `repo:<owner>/<repo>:ref:refs/heads/<branch>`;
+  naming a GitHub environment changes it to
+  `repo:<owner>/<repo>:environment:<name>` and the role refuses the token.
+
 ---
 
 ## Phase 3 — wire into the nightly reusables

@@ -226,3 +226,24 @@ A project with no prepared e2e environment may expose none of this and declare
 the gates `off`. Once a workflow names `prepare_environment`, adoption is the
 complete lifecycle: both commands, both verifies, and reset-then-reseed on every
 preparation. There is no reset-only or reseed-only adoption state.
+
+### When the verbs need AWS credentials
+
+A project whose `environment:reset` calls AWS — for example, to invoke a reset
+function scoped to its non-production account — prepares through
+`.github/workflows/environment-prepare-aws.yml` instead of a suite's
+`prepare_environment` input. It runs the same verbs with the same inputs, after
+assuming the caller's `role_to_assume` through GitHub OIDC. The calling job
+grants `permissions: { contents: read, id-token: write }`, and the suite runs
+with `needs:` on it and its own `prepare_environment` left empty. The
+facade does not change: the verbs still take `--env=<name>` and still own what
+reset means; they simply find credentials in their environment.
+
+No job in that workflow sets a GitHub `environment:`, and none may. The role's
+trust policy matches the OIDC subject
+`repo:<owner>/<repo>:ref:refs/heads/<branch>`; naming an environment changes the
+subject to `repo:<owner>/<repo>:environment:<name>`, which the policy does not
+trust. The `environment` input is the facade's target name, not a GitHub
+deployment environment. Why this is a separate workflow rather than an input on
+the existing ones is recorded in
+[e2e-environment-reset-plan.md](./e2e-environment-reset-plan.md).
