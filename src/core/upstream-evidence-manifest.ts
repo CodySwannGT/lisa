@@ -237,11 +237,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
       "b37b843b738fd0c1c6f9639551cf64c409263064819bb820e3daa6af8c94d443",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "2b3d806137b34bfdd21be9e76ca5159f7b11fbd3ca9223d99bef298e42f49c0d",
+      "cda051c451145d6ff93a744a290176640cae39309cd346a00e73a924add089d8",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
-      "23fb6e5c1212b7cfc17842642b58719beb65df8696c0acaeabce4627ca3fd102",
+      "45dba11149355e48c4521f11889c02f629924b8843cc0436fde5b4955e5d1406",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh":
       "9b0d2d4690850a550ccc79a8c3bb1c0de1cca1f2d8a3550e2bed6daa7afcf7c4",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
@@ -999,7 +999,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "6f282d7be40377daf9455c9e4ca1f123e89ffae7ec9d1669b964582e92d5c521",
+      "b755796c218d5b397f4b4bc9077e25a7c5d9bf4fa94eee41c6191a65a80cae78",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -1025,7 +1025,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/withdrawn-rulings.sh":
       "5dbf429b6ec73c3c29fb96008efa1015feaa4812c1b4bb26aaa5d0b904a0ff9c",
     "plugins/src/base/hooks/worktree-binding-guard.mjs":
-      "6c19da2c97ca1eecafd5d012b5a8a4c70221fcf644ffc76de7be6b5a2dc0e51b",
+      "939349e27aac6b872055e3419a95e772908fa7d1d99391ce0fb6a337aa963e6a",
     "plugins/src/base/hooks/worktree-binding-guard.sh":
       "92511fa2fe3de504a78d0d79a2cacffac545baa1d0264cab0ca999a487adb98f",
     "plugins/src/base/rules/eager/00-rule-index.md":
@@ -1117,7 +1117,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/derived-branch-plan.md":
       "0a076ed19f605be8a9a1f4366e8fa6a2e00ce0cfd578b59ab9fb0a6398b21b3b",
     "plugins/src/base/rules/reference/design-source-of-truth.md":
-      "5e612ef4fe8c1b9879c315c02fbefeed4c3c7661003ecd7c260b096c4b989c54",
+      "ef8d8e63d05d676c5f7246ba31901e42898a774b036fe65e12f87fc6d61e088e",
     "plugins/src/base/rules/reference/design-value-binding.md":
       "ec74ad33f0335a5fdc16ec09b967e8bc96d04936289298b8992e374d929c90ca",
     "plugins/src/base/rules/reference/do-it-now.md":
@@ -1167,7 +1167,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/ready-role-filing.md":
       "fc0f5d4620c764dc06b4c8a0258f50f2e5182df0d4366ebc0018d299541c7ccc",
     "plugins/src/base/rules/reference/rejection-detection.md":
-      "77b412b24b9c4169b94dd8a1bfae27ca82d10b17ff47e7f484f0b0624dff4b55",
+      "716e4758e6241c03363ea0754ea9d6f5bb476fb816168266c8ebc2b5d05bd5db",
     "plugins/src/base/rules/reference/repo-scope-split.md":
       "20b1aa6999a9376d7b9990c0022f40a4d48d5d09af9c709bf1b6ead3f1443b16",
     "plugins/src/base/rules/reference/report-actionability.md":
@@ -2519,7 +2519,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-agy-plugin-artifacts.mjs":
       "dd137fcd9502db427c9679fae5088e996d92e1e013d71620612aef178a7be207",
     "scripts/generate-codex-plugin-artifacts.mjs":
-      "facb86910c07d1b8025868d24425fdaea7b6efbe282bace5ee5bf23957d6b51a",
+      "3216e23962884cf2610e65ae95a6b6b28cc23b7bd93d0254aebbcc0f6c7ee827",
     "scripts/generate-copilot-plugin-artifacts.mjs":
       "8589c8b6e7adff3aefd20463d78cb3caa4d23489fffc07fbb9d185cdc63871fa",
     "scripts/generate-cursor-plugin-artifacts.mjs":
@@ -9825,6 +9825,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/bounded-bash.ts": true,
     "tests/helpers/cdk-scratch-lifecycle.ts": true,
     "tests/helpers/child-bound-scan.ts": true,
+    "tests/helpers/codex-skill-parity.ts": true,
     "tests/helpers/committed-case-table.ts": true,
     "tests/helpers/cpu-budget.ts": true,
     "tests/helpers/enforcement-census-fixtures.ts": true,
@@ -10050,6 +10051,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-script-presence-jobs.test.ts": true,
     "tests/integration/quality-shared-web-export.test.ts": true,
     "tests/integration/quality-ungated-jobs.test.ts": true,
+    "tests/integration/quality-unit-progress.test.ts": true,
     "tests/integration/quality-verification-coverage-collapse.test.ts": true,
     "tests/integration/quality-workflow-size.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,
@@ -10685,18 +10687,25 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/operational-hazards-wiring.test.ts": true,
     "tests/unit/hooks/operational-hazards.test.ts": true,
     "tests/unit/hooks/parity-push-gate.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-and-branch-scope.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-brace-scope.test.ts": true,
     "tests/unit/hooks/parity-safety-net-cd-resolution.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-compound-pipeline.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-compound-redirection.test.ts": true,
     "tests/unit/hooks/parity-safety-net-credentials.test.ts": true,
     "tests/unit/hooks/parity-safety-net-dirty-recovery.test.ts": true,
     "tests/unit/hooks/parity-safety-net-discard-remedy-executability.test.ts": true,
     "tests/unit/hooks/parity-safety-net-false-positives.test.ts": true,
     "tests/unit/hooks/parity-safety-net-follow-execution.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-function-source-scope.test.ts": true,
     "tests/unit/hooks/parity-safety-net-guards.test.ts": true,
     "tests/unit/hooks/parity-safety-net-heredoc-body-quote-state.test.ts": true,
     "tests/unit/hooks/parity-safety-net-heredoc-continuation.test.ts": true,
     "tests/unit/hooks/parity-safety-net-heredoc-literal.test.ts": true,
     "tests/unit/hooks/parity-safety-net-heredoc.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-inline-async-scope.test.ts": true,
     "tests/unit/hooks/parity-safety-net-line-continuation.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-nested-pipeline.test.ts": true,
     "tests/unit/hooks/parity-safety-net-no-stash-advice.test.ts": true,
     "tests/unit/hooks/parity-safety-net-noexec.test.ts": true,
     "tests/unit/hooks/parity-safety-net-plumbing-discard.test.ts": true,
@@ -10704,6 +10713,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/parity-safety-net-prose-remedy.test.ts": true,
     "tests/unit/hooks/parity-safety-net-scan-failure.test.ts": true,
     "tests/unit/hooks/parity-safety-net-sql-prose.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-subshell-cd.test.ts": true,
     "tests/unit/hooks/parity-safety-net-supervisor-profile.test.ts": true,
     "tests/unit/hooks/parity-safety-net.test.ts": true,
     "tests/unit/hooks/post-checkout.test.ts": true,
@@ -10738,11 +10748,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/withdrawn-rulings-wiring.test.ts": true,
     "tests/unit/hooks/withdrawn-rulings.test.ts": true,
     "tests/unit/hooks/work-item-wiring.test.ts": true,
+    "tests/unit/hooks/worktree-binding-acknowledgement-boundaries.test.ts": true,
     "tests/unit/hooks/worktree-binding-first-call.test.ts": true,
     "tests/unit/hooks/worktree-binding-guard-script-reach.test.ts": true,
     "tests/unit/hooks/worktree-binding-guard-wrapper.test.ts": true,
     "tests/unit/hooks/worktree-binding-guard.test.ts": true,
+    "tests/unit/hooks/worktree-binding-live-identity.test.ts": true,
     "tests/unit/hooks/worktree-binding-parallel-agents.test.ts": true,
+    "tests/unit/hooks/worktree-binding-repository-recovery.test.ts": true,
     "tests/unit/hooks/worktree-binding-runtime-assumption.test.ts": true,
     "tests/unit/hooks/worktree-create-failure.test.ts": true,
     "tests/unit/hooks/worktree-create.test.ts": true,

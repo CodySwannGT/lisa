@@ -3,6 +3,8 @@ name: lisa-jira-claim
 description: "Idempotently claims one live…"
 allowed-tools: ["Bash", "Skill", "Read"]
 ---
+Idempotently claims one live Jira leaf ticket for direct Lisa work. Reuses jira-build-intake Phase 3b semantics through lisa-atlassian-access: configured ready-to-claimed transition, assign-only-if-unassigned, stable managed comment, and post-write verification.
+
 
 # Claim Jira Ticket: $ARGUMENTS
 

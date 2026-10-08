@@ -2,6 +2,8 @@
 name: jira-add-journey
 description: "Add a Validation Journey…"
 ---
+Add a Validation Journey section to an existing JIRA ticket by reading the ticket description, understanding the feature, and generating the journey steps and assertions.
+
 
 # Add Validation Journey to Existing JIRA Ticket
 

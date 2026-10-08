@@ -3,6 +3,8 @@ name: lisa-notion-write-prd
 description: "Creates or idempotently updates…"
 allowed-tools: ["Skill", "Bash"]
 ---
+Creates or idempotently updates a PRD as a page in the configured Notion PRD database, setting the lifecycle Status property to the draft value by default (or the ready value when initial_role is ready so lisa-notion-prd-intake auto-claims it). The Notion PRD-source writer behind lisa-prd-source-write. Dedupes by a stable marker embedded in the page (matched by marker, never by title). All Notion access goes through lisa-notion-access — never call the Notion API or MCP directly.
+
 
 # Write Notion PRD: $ARGUMENTS
 

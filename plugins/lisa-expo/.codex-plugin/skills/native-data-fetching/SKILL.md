@@ -4,6 +4,8 @@ description: "implementing or debugging ANY…"
 version: 1.0.0
 license: MIT
 ---
+Use when implementing or debugging ANY network request, API call, or data fetching. Covers fetch API, React Query, SWR, error handling, caching, offline support, and Expo Router data loaders (`useLoaderData`).
+
 
 # Expo Networking
 

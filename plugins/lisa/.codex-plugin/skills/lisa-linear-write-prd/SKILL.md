@@ -3,6 +3,8 @@ name: lisa-linear-write-prd
 description: "Creates or idempotently updates…"
 allowed-tools: ["Skill", "Bash"]
 ---
+Creates or idempotently updates a PRD as a Linear Project carrying exactly one PRD lifecycle project-label (`prd-draft` by default, or `prd-ready` when initial_role is ready so lisa-linear-prd-intake auto-claims it). The Linear PRD-source writer behind lisa-prd-source-write. Dedupes by a stable marker embedded in the Project description (matched by marker, never by name). Uses the Linear MCP.
+
 
 # Write Linear PRD: $ARGUMENTS
 

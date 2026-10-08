@@ -272,7 +272,7 @@ The state-only reading is what fails today, so a backward move is **not** suffic
 - **JIRA** — `lisa-atlassian-access operation: changelog key:<K>`; each changelog entry carries an `author` alongside its `from`/`to` status items.
 - **Linear** — `lisa-linear-access operation: history id:<ID>`; each history node carries an `actor` alongside `fromState` / `toState`.
 
-An actor is **this flow** when it is the configured automation identity, or when the flow's own marker note (`[lisa-repair-intake]`) sits at that transition's timestamp. Any other actor is a human. Where the surface does not expose an actor at all, the result is `unknown` — never an assumed human.
+An actor is **this flow** when it is the configured automation identity, or when the flow's own marker note (`[lisa-repair-intake]`) sits at that transition's timestamp. A different actor counts as human only when the provider positively identifies a person, rather than a bot, integration, or another automation identity. Missing or ambiguous actor information yields `unknown` — never an assumed human.
 
 **A marker and a transition on the same item say nothing until you know their order.** A hold label, a comment and a lane move routinely coexist on a reversed item, and co-occurrence reads equally well in both directions — a label applied *before* a transition guards it, the same label applied *after* records that the transition was undone. Sourcing the facts, attributing them correctly and reading the artifact all pass cleanly on an invented sequence; only ordering disconfirms it. Compare timestamps explicitly and treat an unorderable pair as `unknown`.
 

@@ -2,6 +2,8 @@
 name: lisa-maestro-mcp-setup
 description: "Enable the Maestro CLI's MCP…"
 ---
+Enable the Maestro CLI's MCP server (maestro mcp, STDIO) for this machine, robustly. Detects the Maestro CLI + a usable Java runtime (honoring mise/asdf/sdkman), installs or guides what is missing, and registers the server at LOCAL/per-machine scope with an absolute command path and injected JAVA_HOME/PATH so the spawn never dies on a non-login PATH. Never registers at committed/project scope, which would reintroduce the fleet-wide -32000 failure.
+
 ## Lisa Command Compatibility
 
 - Original Claude command: `/lisa:maestro-mcp-setup`

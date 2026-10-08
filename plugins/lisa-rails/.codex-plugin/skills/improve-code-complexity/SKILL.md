@@ -3,6 +3,8 @@ name: improve-code-complexity
 description: "reducing the code complexity…"
 allowed-tools: ["Read", "Bash", "Glob", "Grep"]
 ---
+This skill should be used when reducing the code complexity threshold of the codebase. It lowers the CyclomaticComplexity threshold by 2, identifies methods that exceed the new limit, generates a brief with refactoring strategies, and creates a plan with tasks to fix all violations.
+
 
 # Lower Code Complexity
 

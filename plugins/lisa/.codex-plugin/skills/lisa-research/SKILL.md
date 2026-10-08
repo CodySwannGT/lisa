@@ -3,6 +3,8 @@ name: lisa-research
 description: "Research a problem space and…"
 allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
 ---
+Research a problem space and create a PRD in the configured PRD source. Investigates the codebase, defines user flows, assesses technical feasibility, synthesizes the spec, then creates it in the source (Notion / Confluence / GitHub / Linear per .lisa.config.json `source`) via lisa-prd-source-write — there is no loose document artifact. Vendor-agnostic. Accepts an optional `prd_ready` flag (default false → the PRD is created in the `draft` role; true → created `ready` so lisa-intake auto-claims it) and an optional dedupe `marker`/`dedupe_key` (used when invoked by lisa-project-ideation) so re-runs reference the existing PRD instead of duplicating it.
+
 
 # Research
 

@@ -3,6 +3,8 @@ name: lisa-evaluation-suite
 description: "Build and maintain the entity's…"
 allowed-tools: ["Read", "Grep", "Glob", "Bash"]
 ---
+Build and maintain the entity's own task suite for qualifying agent, model, prompt and effort-level changes — drawn from real work, kept representative, protected from contamination, and checked for the discriminating power that makes a result mean something.
+
 
 # Evaluation Suite
 

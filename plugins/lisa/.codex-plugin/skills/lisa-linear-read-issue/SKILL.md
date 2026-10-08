@@ -3,6 +3,8 @@ name: lisa-linear-read-issue
 description: "Fetches the full scope of a…"
 allowed-tools: ["Bash", "Skill"]
 ---
+Fetches the full scope of a Linear work item — Issue or Project — including metadata, description, acceptance criteria, all comments, attachments, native relations (blocks/blocked_by/relates_to/duplicates), Project parent (if any) with siblings, and sub-Issues. Produces a consolidated context bundle that downstream agents consume so they never act on a single item in isolation.
+
 
 # Read Linear Work Item: $ARGUMENTS
 

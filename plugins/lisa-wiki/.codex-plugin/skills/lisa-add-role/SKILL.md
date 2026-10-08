@@ -2,6 +2,8 @@
 name: lisa-add-role
 description: "Scaffold a domain-expert…"
 ---
+Scaffold a domain-expert digital-staff role over the wiki — a dual-runtime subagent (Claude + Codex) plus a staff doc page — from a config.staff[] entry. The plugin only sets the subagent up; running/scheduling it is out of scope.
+
 ## Lisa Command Compatibility
 
 - Original Claude command: `/lisa:add-role`

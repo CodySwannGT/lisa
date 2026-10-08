@@ -1,7 +1,9 @@
 ---
 name: lisa-setup-aws
-description: "Provision the dev/staging/produc…"
+description: "Provision the…"
 ---
+Provision the dev/staging/production/shared AWS accounts this CDK project deploys into via the @codyswann/aws-soc2-setup CLI (Organizations, Control Tower, IAM Identity Center, SOC 2 controls), then wire them in end-to-end: SSO profiles, cdk bootstrap with pipeline trust, PLACEHOLDER account IDs in config/environments.ts, AWS_ACCOUNT_ID_* GitHub secrets, and the .lisa.config.json account map. Idempotent; console-only prerequisites (root MFA, Identity Center, landing zone) surface as a human checklist instead of being automated.
+
 ## Lisa Command Compatibility
 
 - Original Claude command: `/lisa:setup:aws`

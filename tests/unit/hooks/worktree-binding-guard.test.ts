@@ -150,13 +150,15 @@ describe("worktree-binding-guard", () => {
     );
   });
 
-  it("refuses an acknowledgement naming a worktree the session is not in", () => {
+  it("refuses an acknowledgement naming an unoffered worktree the session is not in", () => {
     const fixture = buildFixture();
     bindTo(fixture, fixture.a);
     const accept = runGuard({
       cwd: fixture.b,
       state: fixture.state,
-      input: { command: `echo 'lisa-worktree-binding: accept ${fixture.a}'` },
+      input: {
+        command: `echo 'lisa-worktree-binding: accept ${fixture.main}'`,
+      },
     });
     expect(accept.status).toBe(BLOCKED);
     expect(runGuard({ cwd: fixture.b, state: fixture.state }).status).toBe(

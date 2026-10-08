@@ -2,6 +2,8 @@
 name: jira-evidence
 description: "Upload screenshots to GitHub…"
 ---
+Upload screenshots to GitHub pr-assets release, update PR description with evidence, upload attachments to JIRA, post wiki markup comment, and move ticket to the configured review status only when `jira.workflow.review` is set (otherwise leave it in `claimed`). Reusable by any skill that captures screenshots and generates evidence/comment.txt + evidence/comment.md.
+
 
 # JIRA Evidence Posting
 

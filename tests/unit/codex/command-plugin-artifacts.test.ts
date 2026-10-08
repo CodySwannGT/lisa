@@ -85,4 +85,47 @@ describe("Codex command plugin artifacts", () => {
     expect(derived).not.toBe(source);
     expect(compactSkillFrontmatterDescription(source)).toBe(derived);
   });
+
+  it("retains the full authored routing description after metadata compaction", async () => {
+    const description =
+      "Run one starter sync using the repository's declared branch and all factory gates.";
+    const body = "# Starter sync\n\nFollow the declared workflow.\n";
+    const source = `---\nname: ${LONG_SKILL}\ndescription: ${JSON.stringify(description)}\n---\n${body}`;
+    await fs.outputFile(
+      path.join(pluginDir, SKILLS, LONG_SKILL, "SKILL.md"),
+      source
+    );
+    emitCodexSkillVariants(pluginDir);
+    const generated = await fs.readFile(
+      path.join(pluginDir, CODEX_PLUGIN, SKILLS, LONG_SKILL, "SKILL.md"),
+      "utf8"
+    );
+    const metadata = generated.split("---")[1];
+
+    expect(metadata).not.toContain(description);
+    expect(generated.split("---").slice(2).join("---")).toContain(description);
+    expect(generated).toContain(body);
+    expect(compactSkillFrontmatterDescription(generated)).toBe(generated);
+  });
+
+  it("preserves a folded routing description in the loaded skill", () => {
+    const source =
+      "---\nname: folded\ndescription: >\n  Use this skill when a declared starter sync needs\n  the repository's actual branch and verification gates.\n---\n# Workflow\n";
+    const generated = compactSkillFrontmatterDescription(source);
+
+    expect(generated.split("---").slice(2).join("---")).toContain(
+      "Use this skill when a declared starter sync needs the repository's actual branch and verification gates."
+    );
+    expect(generated).toContain("# Workflow");
+  });
+
+  it("truncates at an available early word boundary", () => {
+    const description =
+      "Run anUnbrokenRoutingWordThatExceedsTheRemainingBudget for this workflow.";
+    const source = `---\nname: bounded\ndescription: ${JSON.stringify(description)}\n---\n# Workflow\n`;
+    const generated = compactSkillFrontmatterDescription(source);
+
+    expect(generated).toContain('description: "Run…"');
+    expect(generated.split("---").slice(2).join("---")).toContain(description);
+  });
 });

@@ -5,6 +5,8 @@ allowed-tools:
   - Bash
   - Read
 ---
+Database migrations, reverts, schema generation, GraphQL codegen, and the reset/seed/verify state operations for Expo + serverless backend projects. Operates on the backend (TypeORM) and frontend (GraphQL code generation).
+
 
 # Ops: Database Operations
 

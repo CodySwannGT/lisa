@@ -3,6 +3,8 @@ name: lisa-setup-notion
 description: "Configure Notion as the PRD…"
 allowed-tools: ["Bash", "Read", "Write", "Edit", "Skill", "AskUserQuestion"]
 ---
+Configure Notion as the PRD source for this project. Walks the user through creating an internal integration in the target workspace, sharing the PRD database with it, stores the resulting `ntn_*` token in OS keychain (multi-workspace-safe — keyed by workspaceId), validates against the Notion API, and writes `notion.workspaceId`, `notion.prdDatabaseId`, and `notion.values` into `.lisa.config.json`. Idempotent — re-runs update the existing section rather than duplicating it. Offers to set top-level `source: "notion"`.
+
 
 # Setup Notion: $ARGUMENTS
 

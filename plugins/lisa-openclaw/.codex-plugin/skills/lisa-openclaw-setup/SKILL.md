@@ -2,6 +2,8 @@
 name: lisa-openclaw-setup
 description: "Set up OpenClaw as the…"
 ---
+Set up OpenClaw as the chat-surface runtime for this project's staff roles. Verifies the openclaw CLI, the ~/.openclaw/openclaw.json config, a secret provider, and the required gateway capabilities (sessions_spawn, native-reply session scoping, the NO_REPLY sentinel), then writes a lean `openclaw` section to .lisa.config.json. Prerequisite for lisa-openclaw-connect-staff and lisa-openclaw-connect-repo-topic. Use when a project wants its facilitator/specialist staff reachable from Telegram or Slack.
+
 
 # lisa-openclaw-setup
 

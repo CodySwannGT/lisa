@@ -3,6 +3,8 @@ name: lisa-tracker-sync
 description: "Vendor-neutral wrapper for…"
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
+Vendor-neutral wrapper for posting milestone updates to the linked ticket/issue. Reads the required `tracker` from .lisa.config.json and dispatches to lisa-jira-sync, lisa-github-sync, or lisa-linear-sync. Posts at: plan created, implementation in progress, PR ready, PR merged. Suggests (never auto-transitions) the next status.
+
 
 # Tracker Sync: $ARGUMENTS
 

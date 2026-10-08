@@ -2,6 +2,8 @@
 name: lisa-openclaw-connect-staff
 description: "Connect staff roles to a human…"
 ---
+Connect staff roles to a human chat surface (Telegram or Slack) via OpenClaw using a facilitator/specialist hub-and-spoke model. Registers bots/apps, creates or reuses the human-facing surface, wires routes in ~/.openclaw/openclaw.json, writes facilitator/specialist agent prompts, validates the gateway, resets stale sessions, and runs an end-to-end route test. Use when you want a "chief of staff" facilitator and its specialists reachable from chat. Requires lisa-openclaw-setup first.
+
 
 # lisa-openclaw-connect-staff
 

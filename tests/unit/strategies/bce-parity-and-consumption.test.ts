@@ -22,6 +22,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
+import { routingPrefacedBody } from "../../helpers/codex-skill-parity.js";
 
 /** Source of truth for every generated plugin root. */
 const SRC = "plugins/src/base";
@@ -58,7 +59,7 @@ const BCE_AGENTS = ["security-specialist"] as const;
 
 const BCE_HOOKS = ["hooks/enforce-verification-gate.sh"] as const;
 
-/** Roots that carry skills verbatim (Codex transforms only the frontmatter). */
+/** Roots that carry skills verbatim; Codex adds a lazy routing preface. */
 const VERBATIM_SKILL_ROOTS = [
   CLAUDE_ROOT,
   CURSOR_ROOT,
@@ -99,9 +100,9 @@ describe("BCE six-agent parity backstop (BCE-7)", () => {
       expect(read(`${root}/${rel}`)).toBe(source);
     });
 
-    it("ships in the Codex surface with only the frontmatter transformed", () => {
+    it("ships full routing text followed by the unchanged body in Codex", () => {
       const codex = read(`${CODEX_ROOT}/${rel}`);
-      expect(body(codex)).toBe(body(source));
+      expect(body(codex)).toBe(routingPrefacedBody(source).trim());
     });
   });
 

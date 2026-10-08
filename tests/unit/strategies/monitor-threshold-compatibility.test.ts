@@ -11,11 +11,12 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { routingPrefacedBody } from "../../helpers/codex-skill-parity.js";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 const SOURCE_SKILL = "plugins/src/base/skills/lisa-monitor/SKILL.md";
 const JQ_PROJECTION = /```bash\njq '(.*?)' \.lisa\.config\.json\n```/s;
-/** Four byte-identical copies; Codex is the fifth copy with transformed metadata. */
+/** Four verbatim copies; Codex compacts metadata and adds a lazy routing preface. */
 const BYTE_IDENTICAL_GENERATED_SKILLS = [
   "plugins/lisa/skills/lisa-monitor/SKILL.md",
   "plugins/lisa-copilot/skills/lisa-monitor/SKILL.md",
@@ -120,13 +121,12 @@ describe("monitor threshold compatibility contract (#1527)", () => {
     }
   );
 
-  it("keeps the Codex skill body aligned after its generated description override", () => {
+  it("keeps full routing text and the unchanged monitor body in Codex", () => {
     const codex = read(
       "plugins/lisa/.codex-plugin/skills/lisa-monitor/SKILL.md"
     );
-    const bodyStart = source.indexOf("\n---\n") + "\n---\n".length;
     const codexBodyStart = codex.indexOf("\n---\n") + "\n---\n".length;
 
-    expect(codex.slice(codexBodyStart)).toBe(source.slice(bodyStart));
+    expect(codex.slice(codexBodyStart)).toBe(routingPrefacedBody(source));
   });
 });

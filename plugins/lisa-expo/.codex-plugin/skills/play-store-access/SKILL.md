@@ -7,6 +7,8 @@ allowed-tools:
   - Bash
   - Read
 ---
+Read-only Google Play Console access layer for Expo projects. Use when an operator or agent needs to set up Play Developer API credentials, resolve the Android package name, or check the production track release state without using the Play Console UI. Reads the androidpublisher v3 API only; track promotion, rollout changes, and submissions are out of scope.
+
 
 # Play Store Access: $ARGUMENTS
 

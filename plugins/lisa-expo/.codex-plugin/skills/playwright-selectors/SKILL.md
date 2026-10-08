@@ -2,6 +2,8 @@
 name: playwright-selectors
 description: "Best practices for writing…"
 ---
+Best practices for writing reliable Playwright E2E tests and adding testID/aria-label selectors in Expo web applications using GlueStack UI and NativeWind. Use this skill when creating, debugging, or modifying Playwright tests, adding E2E test coverage, creating components that need test selectors, reviewing code for testability, or troubleshooting testID/data-testid issues. Trigger on any mention of Playwright, E2E tests, end-to-end tests, testID, data-testid, or GlueStack testing in an Expo web context.
+
 
 # Playwright E2E Testing for Expo + GlueStack UI
 

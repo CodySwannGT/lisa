@@ -2,6 +2,8 @@
 name: playwright-ci-debugging
 description: "Debug Playwright E2E tests that…"
 ---
+Debug Playwright E2E tests that pass locally but fail in CI (or vice versa) in Expo web projects. Covers local reproduction, network interception, CI environment discovery, commit SHA verification, and robust interaction patterns that eliminate flake. Use this skill when a Playwright test is failing in CI, a test is flaky, a PR is blocked by E2E checks, or you need to investigate CI-specific test behavior. Trigger on mentions of CI failure, failing Playwright test, flaky E2E test, or debugging E2E in CI.
+
 
 # Debugging Playwright E2E Failures in CI
 

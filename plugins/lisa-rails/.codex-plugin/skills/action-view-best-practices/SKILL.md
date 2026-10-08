@@ -2,6 +2,8 @@
 name: action-view-best-practices
 description: "Build or Refactor Rails views…"
 ---
+Build or Refactor Rails views, partials, and templates into clean, maintainable code. Use when views have inline Ruby logic, deeply nested partials, jQuery or legacy JavaScript, helper methods returning HTML, or when the user asks to modernize, refactor, or clean up Rails views. Applies patterns - Turbo Frames, Turbo Streams, Stimulus controllers, ViewComponent, presenters, strict locals, and proper partial extraction.
+
 
 # Rails View Refactoring
 

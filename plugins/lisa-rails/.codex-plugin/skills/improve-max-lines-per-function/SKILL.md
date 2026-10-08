@@ -4,6 +4,8 @@ description: "reducing the maximum lines per…"
 allowed-tools: ["Read", "Bash", "Glob", "Grep"]
 
 ---
+This skill should be used when reducing the maximum lines per method threshold and fixing all violations. It updates the RuboCop configuration, identifies methods exceeding the new limit, generates a brief with refactoring strategies, and creates a plan with tasks to split oversized methods.
+
 
 # Reduce Max Lines Per Method
 

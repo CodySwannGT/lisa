@@ -4,6 +4,8 @@ description: "AI debugging — given an error…"
 allowed-tools: ["Read", "Grep", "Glob", "Bash", "Edit"]
 synced-from: sentry@claude-plugins-official@1.4.0
 ---
+AI debugging — given an error message, stack trace, or failing test, analyze the signal, form ranked hypotheses, locate the root cause in the codebase with file:line evidence, and propose a minimal fix. Lisa-native reimplementation of Sentry's seer workflow, available across all agent runtimes. Use when handed an exception, crash, regression, or red test and asked to find and fix the cause.
+
 
 # Seer — AI Root-Cause Debugging
 

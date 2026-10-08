@@ -3,6 +3,8 @@ name: lisa-improve-harness
 description: "Investigate ONE failed or…"
 allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep", "Edit", "Write"]
 ---
+Investigate ONE failed or expensive factory trajectory and prove whether a fix helped. Records the job contract, observes the baseline, locates the earliest failed handoff, classifies the gap as exactly one of context | capability | domain-ownership | authority | proof | feedback-delivery | worker-limitation, makes the smallest owning intervention at the authoritative owner (larger changes become a proposed-intervention ticket and the loop stops), verifies at both layers (native gates plus the operational journey), then reruns the same job class in a fresh session and isolated worktree behind a relevance gate — a rerun that never retrieved or invoked the intervention yields no-evidence-for-intervention, never retain. Terminates by posting a fingerprinted result record on the originating work item with decision retain, revise, remove, or test-without. Headless-safe, idempotent per trajectory, single-trajectory bounded claims only.
+
 
 # Improve Harness
 

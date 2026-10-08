@@ -3,6 +3,8 @@ name: lisa-design-intake
 description: "Design-handoff gate for a work…"
 allowed-tools: ["Skill", "Bash", "Read", "Write"]
 ---
+Design-handoff gate for a work item with a UI surface. Resolves the source of truth PER AXIS (colour, spacing, typography, radius, elevation, motion) by querying the published variable collections of the configured design source — never by asking a human — then judges the work item against the five objectively checkable block conditions of the `design-value-binding` rule. Values come from design variables where a variable system exists; visual measurement is supplemental there and the legitimate primary source where none exists. Blocks on UNBOUND, never on UNSURE: aesthetic uncertainty with everything bound is not a block. Escalates a block through the vendor-neutral tracker abstraction to the configured `design.escalation.assignee`, with a plain-language comment a non-technical operator can act on, and records every value derived in an untyped axis so the gaps in the variable system accumulate on their own.
+
 
 # Design Intake: $ARGUMENTS
 

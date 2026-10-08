@@ -2,6 +2,8 @@
 name: phaser-i18n
 description: "localizing a Phaser 4 game — a…"
 ---
+This skill should be used when localizing a Phaser 4 game — a typed string catalog so no user-facing text is hardcoded, runtime locale switching that re-renders open text, interpolation/pluralization, and the BitmapText vs Text trade-offs (glyph coverage, RTL, CJK) localization forces. Use it when adding any player-facing string, building a language selector, or fixing missing-glyph/hardcoded-text issues. Pairs with phaser-services, phaser-accessibility, and phaser-asset-pipeline.
+
 
 # Phaser 4 Internationalization
 

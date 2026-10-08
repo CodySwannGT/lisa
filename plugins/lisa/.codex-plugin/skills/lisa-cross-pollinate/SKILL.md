@@ -4,6 +4,8 @@ description: "Detect a host project's…"
 allowed-tools: ["Bash", "Read", "Write", "Edit", "Glob", "Grep"]
 argument-hint: "[path] [--dry-run] [--write]"
 ---
+Detect a host project's locally-authored coding-agent definitions (skills, subagents, rules, commands, hooks, MCP) and make each available in the formats of the OTHER agents the project supports, as declared in .lisa.config.json. Any-to-any, provenance-tracked, idempotent, never clobbers hand-edited output.
+
 
 # Cross-Pollinate: $ARGUMENTS
 

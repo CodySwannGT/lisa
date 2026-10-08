@@ -2,6 +2,8 @@
 name: container-view-pattern
 description: "This skill enforces the…"
 ---
+This skill enforces the Container/View pattern for React components. It should be used when creating new components, validating existing components, or refactoring components to follow the separation of concerns pattern where Container handles logic and View handles presentation.
+
 
 # Container/View Pattern
 

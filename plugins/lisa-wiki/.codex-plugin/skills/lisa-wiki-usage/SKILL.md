@@ -2,6 +2,8 @@
 name: lisa-wiki-usage
 description: "Explain how to browse, query…"
 ---
+Explain how to browse, query, and contribute to this project's LLM Wiki. Use when a user asks how the wiki works, where knowledge lives, how to find something, or how to add to it — the read/navigation path, not an ingestion or write workflow.
+
 
 # lisa-wiki-usage
 

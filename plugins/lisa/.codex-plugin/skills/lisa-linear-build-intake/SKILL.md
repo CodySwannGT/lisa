@@ -3,6 +3,8 @@ name: lisa-linear-build-intake
 description: "Symmetric counterpart to…"
 allowed-tools: ["Skill", "Bash"]
 ---
+Symmetric counterpart to lisa-jira-build-intake on the Linear side. Scans a Linear team for Issues in the configured `ready` workflow state, claims the first eligible Issue by transitioning it to the configured `claimed` state, runs the implementation/build flow via the linear-agent workflow in-session (culminating in lisa-implement), transitions to the configured `done` state on completion, then exits. Enforces the claim-time arm of the `leaf-only-lifecycle` rule: a parent/container with open child work (or a childless Epic) that still sits in the build-ready state is skipped or safe-blocked with a lifecycle-repair comment, never claimed. The `ready` state is the human-flipped signal that an Issue is truly ready for development — mirroring how Notion PRDs work Draft → Ready → (us) In Review → Blocked|Ticketed.
+
 
 # Linear Build Intake: $ARGUMENTS
 

@@ -2,6 +2,8 @@
 name: testing-library
 description: "Enforces best practices for…"
 ---
+Enforces best practices for unit testing with Jest, @testing-library/react-native, and jest-expo in Expo projects. This skill should be used when writing, reviewing, or debugging unit tests to ensure tests are accessible, maintainable, and follow Testing Library guiding principles. Use this skill for test file creation, query selection, async handling, mocking patterns, and Expo Router testing.
+
 
 # Testing Library Best Practices
 

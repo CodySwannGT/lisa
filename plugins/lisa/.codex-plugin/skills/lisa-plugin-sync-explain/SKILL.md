@@ -3,6 +3,8 @@ name: lisa-plugin-sync-explain
 description: "Read-only diagnostic for Lisa…"
 allowed-tools: ["Bash", "Read"]
 ---
+Read-only diagnostic for Lisa plugin source/generated drift. Compares plugins/src against generated plugins/lisa* status, reports source-not-built, generated-only, and marketplace registration drift, and preserves the working tree.
+
 
 # Plugin Sync Explain: $ARGUMENTS
 

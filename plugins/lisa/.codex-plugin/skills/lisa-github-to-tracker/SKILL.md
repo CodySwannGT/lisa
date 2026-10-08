@@ -3,6 +3,8 @@ name: lisa-github-to-tracker
 description: "Break down a GitHub Issue PRD…"
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
+Break down a GitHub Issue PRD into Epics, Stories, and Sub-tasks in the configured destination tracker (JIRA via lisa-tracker-write → lisa-jira-write-ticket, or GitHub Issues itself via lisa-tracker-write → lisa-github-write-issue). Use this skill whenever the user shares a GitHub issue URL and wants it converted into tickets, or asks to "break down this GitHub PRD", "create tickets from a GitHub issue", or similar. This skill mirrors lisa-notion-to-tracker / lisa-confluence-to-tracker / lisa-linear-to-tracker for projects whose PRDs live in GitHub Issues — the workflow, gates, dry-run mode, and validation rules are identical; only the source-of-truth tool surface differs (the `gh` CLI instead of Notion / Confluence / Linear MCP).
+
 
 # GitHub PRD to Tracker Breakdown
 

@@ -3,6 +3,8 @@ name: lisa-github-claim
 description: "Idempotently claims one live…"
 allowed-tools: ["Bash", "Skill", "Read"]
 ---
+Idempotently claims one live GitHub leaf issue for direct Lisa work. Reuses github-build-intake Phase 3b semantics: configured ready-to-claimed relabel, assign-only-if-unassigned, stable managed comment, and post-write verification.
+
 
 # Claim GitHub Issue: $ARGUMENTS
 
