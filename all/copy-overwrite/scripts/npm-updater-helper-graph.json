@@ -588,7 +588,7 @@
       "children": []
     },
     "lib/npm-update-hosted-gate.mjs": {
-      "sha256": "9fc88eea79eca55b147f80d48fd0e910c1bd47c9226492d274a4b38f1bef6336",
+      "sha256": "0c54442f27521c989783cdf5bf975739f99c9f46c8e67deee4da0eefb9b327b9",
       "staticImports": [
         "lib/npm-update-bun.mjs",
         "lib/npm-update-contract.mjs",

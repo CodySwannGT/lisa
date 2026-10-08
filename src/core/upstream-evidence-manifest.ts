@@ -115,7 +115,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-hook-read-client.mjs":
       "724f22f7a1d5525fca6ed593f70d6da2ffc05bf66f2b178393064fd4d86708b1",
     "all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs":
-      "9fc88eea79eca55b147f80d48fd0e910c1bd47c9226492d274a4b38f1bef6336",
+      "0c54442f27521c989783cdf5bf975739f99c9f46c8e67deee4da0eefb9b327b9",
     "all/copy-overwrite/scripts/lib/npm-update-hosted-hook.mjs":
       "ef468e94c148b8d81125d3d374c2350b44abcb48ef9037639f0ba4a8ea9ecf03",
     "all/copy-overwrite/scripts/lib/npm-update-hosted-scope.mjs":
@@ -291,7 +291,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "5845a79f222c3db57d9d0a3da10688057c06af471dcaa057a0ca2e6f0e459e7a",
+      "8b3ef61c17d94bdf8eee99e02d396c975a12a8b8a3c2e34231eff6aaea3bf392",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -9791,6 +9791,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/npm-update-hosted-runtime/components.mjs": true,
     "tests/fixtures/npm-update-hosted-runtime/observations.mjs": true,
     "tests/fixtures/npm-update-hosted-runtime/qualify.mjs": true,
+    "tests/fixtures/npm-update-hosted-runtime/support/socket-hook.mjs": true,
     "tests/fixtures/npm-update-hosted-runtime/verify-hook.rb": true,
     "tests/fixtures/npm-update-rails-mysql-native.mjs": true,
     "tests/fixtures/npm-update-rails-mysql-native.sh": true,
@@ -10039,6 +10040,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/node-suites-pr-only.test.ts": true,
     "tests/integration/npm-update-all-host-helpers.test.ts": true,
     "tests/integration/npm-update-dual-lock.test.ts": true,
+    "tests/integration/npm-update-rails-hook-scratch.test.ts": true,
     "tests/integration/oxlint-worktree-resolution.test.ts": true,
     "tests/integration/package-manager-injection.test.ts": true,
     "tests/integration/playwright-caller-template.test.ts": true,

@@ -222,3 +222,57 @@ retains every existing runtime binding and bypass assertion. Three whole wiring,
 analyzer and invocation suites then passed all 14 controls. Scoped lint and the
 whole typecheck pass with the unchanged historical quarantine. The original
 failed push remains retained; this focused correction is not aggregate success.
+
+## Original hook scratch pathname composition
+
+Source tracing found that the original candidate's private `HOME/tmp` becomes
+the Rails scratch supervisor's base unless an explicit base is supplied. The
+supervisor then appends its namespace, 24-hex locator and private payload `tmp`.
+Adding an eight-character fixture directory and Chrome's socket suffix can
+exceed the Linux pathname limit even though each independent component is short.
+Only the returned original-hook environment for a successfully authenticated,
+prepared browser-selected Rails profile now receives fixed `LISA_SCRATCH_BASE=/tmp`.
+Setup, frozen installation, schema preparation, private HOME and candidate TMPDIR
+retain their original paths. None and nonbrowser profiles return the original
+environment unchanged. The original supervisor still exclusively creates and
+validates its full 256-bit token, root device/inode, process identities and
+bounded cleanup; no inherited arbitrary base or new timeout is accepted.
+
+The normal exact-file native regression first observed a real Node listener's
+requested overlong pathname missing after bind (`ENOENT`). The corrected fixture
+awaited its real listener close, removed only its exclusively created empty
+directory and retained child exit1. Owned supervisor root absence, namespace
+absence, private HOME/full token and foreign sentinel preservation were proved
+before the expected success assertion failed. This is macOS native pathname
+evidence, not Chrome vendor or Linux acceptance. Subsequent negative controls
+refuse an overbudget pathname before bind to prevent libuv from truncating it
+into a guessed sibling; the original kernel observation remains retained. No
+guessed or truncated address is unlinked. The new shared fixture lives in the
+existing fixture `support` lint profile, without changing configuration or rules.
+
+The positive control executes the actual hook environment projection and original
+supervisor, then genuinely binds the exact socket pathname and closes/removes it.
+Darwin uses its canonical `/private/tmp` prerequisite and verifies 62-byte
+payload TMPDIR and 103-byte socket pathname. Linux selects the production `/tmp`
+base; its corresponding controlled socket pathname is 95 bytes, while the
+eight-character directory plus Chrome suffix is 104 bytes within its 107-byte
+pathname budget. These arithmetic assertions do not establish a Linux kernel
+run. The Ubuntu component fixture now additionally executes the real original
+supervisor and socket witness, requires full-token and positive owned-root/socket
+absence, and exports only closed booleans and byte count. Actual Ubuntu job
+success and later canonical Bot acceptance remain mandatory and unproved.
+
+An initial integration script invocation appended an exact filename to a script
+that already selected the whole integration directory. This unintended OR-filter
+run was stopped through TERM to its positively identified original supervisor;
+the launcher, reaper, bootstrap, payload groups and original scratch were freshly
+absent. Its interrupted143 and unrelated partial failures are retained, with no
+RED or acceptance credit. All later controls use the declared `lisa-test-run`
+entry with only the exact affected file arguments. An initial Linux arithmetic
+fixture included an extra two-character prefix and failed106-vs104; correcting
+that fixture retained the genuine production pathname contract and original
+deadlines, assertions and floors.
+
+The final four whole affected files passed all 19 controls at their final bytes,
+including the exact native lengths and positive private HOME absence. No original
+authority, sandbox, signal, cleanup, hook, coverage or timing requirement is waived.

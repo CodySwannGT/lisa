@@ -1,11 +1,12 @@
 /** Fixed component exercise uses genuine tools/hooks while preserving provider-proof separation. */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { required } from "../../../all/copy-overwrite/scripts/lib/npm-update-contract.mjs";
 import { readBytes } from "../../../all/copy-overwrite/scripts/lib/npm-update-process-core.mjs";
 import { prepareRailsTools } from "../../../all/copy-overwrite/scripts/lib/npm-update-rails-tools.mjs";
 import { openRailsMysqlRuntime } from "../../../all/copy-overwrite/scripts/lib/npm-update-rails-mysql.mjs";
 import { runtimeBinding } from "../../../all/copy-overwrite/scripts/lib/npm-update-rails-runtime-contract.mjs";
+import { originalHookEnvironment } from "../../../all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs";
 import { prepareApplication } from "./application.mjs";
 import { failureMetadata, hookWitness } from "./observations.mjs";
 
@@ -167,6 +168,7 @@ async function closeRuntime(runtime, summary, primary) {
 
 /**
  * Frozen fixture installation precedes the same owned production runtime API and original hooks.
+ * @param {string} source Original checkout containing the real supervisor.
  * @param {string} root Owned root.
  * @param {object} tools Qualified tools.
  * @param {function(string, string, object, string, Array<string>): Promise<object>} native Original recorder.
@@ -174,7 +176,7 @@ async function closeRuntime(runtime, summary, primary) {
  * @param {number} deadline Original absolute phase expiry.
  * @returns {Promise<object | undefined>} Checked component observation or earlier refusal.
  */
-async function runtimeExercise(root, tools, native, summary, deadline) {
+async function runtimeExercise(source, root, tools, native, summary, deadline) {
   const application = await prepareApplication(root, tools, native);
   summary.fixtureLockSha256 = application.lockSha256;
   const closed = Object.fromEntries(
@@ -198,6 +200,37 @@ async function runtimeExercise(root, tools, native, summary, deadline) {
     application.env = { ...application.env, ...state.runtime.env };
     summary.hooks = await hooks(application, native);
     summary.browser = await browser(root, application, native);
+    const scratch = await native(
+      "original-push",
+      application.cwd,
+      originalHookEnvironment(application.env, PROFILE),
+      "/bin/sh",
+      [
+        join(source, "all/copy-overwrite/scripts/lisa-scratch-run.sh"),
+        "--suite",
+        "runtime-socket",
+        "--",
+        process.execPath,
+        join(
+          source,
+          "tests/fixtures/npm-update-hosted-runtime/support/socket-hook.mjs"
+        ),
+      ]
+    );
+    const witness = JSON.parse(scratch.stdout.toString());
+    required(
+      witness.nativeBind === true &&
+        witness.socketAbsent === true &&
+        witness.tokenBytes === 32 &&
+        witness.socketBytes === 95 &&
+        !existsSync(witness.root),
+      "original hook scratch socket differs"
+    );
+    summary.nestedHookScratch = {
+      syntheticSocketNativeBind: true,
+      ownedRootAbsent: true,
+      socketBytes: witness.socketBytes,
+    };
   } catch (error) {
     state.primary = error;
   } finally {
@@ -245,7 +278,7 @@ export async function qualifyComponents(
     nodeVersion: process.versions.node,
   };
   try {
-    await runtimeExercise(root, tools, native, summary, deadline);
+    await runtimeExercise(source, root, tools, native, summary, deadline);
   } catch (error) {
     state.primary = error;
   } finally {

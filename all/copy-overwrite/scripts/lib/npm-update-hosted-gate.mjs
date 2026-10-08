@@ -22,6 +22,11 @@ import { withStage } from "./npm-update-invariants.mjs";
 const INSTALL_STAGE = "gate-install";
 const VALIDATE_STAGE = "gate-validate";
 
+/** Only prepared browser hooks use a short supervisor base; candidate HOME and TMPDIR stay private. */
+export function originalHookEnvironment(env, runtime) {
+  return runtime?.browser ? { ...env, LISA_SCRATCH_BASE: "/tmp" } : env;
+}
+
 /** This diagnoses the supported caller; attestation/provider validation independently establishes actual authority. */
 export function assertHostedGate(
   context,
@@ -269,7 +274,7 @@ export async function createHostedGate(context, root, env) {
     );
     return {
       installation,
-      env: scope.environment(installed),
+      env: originalHookEnvironment(scope.environment(installed), runtime),
       close: () => closeHostedResources(application, scope),
     };
   } catch (error) {
