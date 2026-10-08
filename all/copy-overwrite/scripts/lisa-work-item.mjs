@@ -4566,9 +4566,11 @@ export function commitPendingLisaUpdate(ref, contract, cwd = process.cwd()) {
 /**
  * Pending files whose current bytes differ from what the update recorded.
  *
- * Recomputed exactly as the auto-update's `workingTreeDigests` records them: a
- * `git hash-object` blob id for a file or symlink, null for an absent path. A
- * path the record does not carry, or one that is neither, counts as changed.
+ * Recomputed exactly as the auto-update's `workingTreeDigests` records them:
+ * `<100644|100755> <blob id>` for a regular file, `120000 link:<target>` for a
+ * symlink (never hash-object, which follows the link), null for an absent
+ * path. A path the record does not carry, or one that is neither, counts as
+ * changed.
  * @param {{digests?: Record<string, string | null>}} pending The marker.
  * @param {string[]} files Pending paths still dirty.
  * @param {string} cwd Repository directory.

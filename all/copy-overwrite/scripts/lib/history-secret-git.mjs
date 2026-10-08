@@ -171,7 +171,9 @@ const remoteEnvironment = () => {
   for (const [key, value] of Object.entries(process.env))
     if (key.startsWith("GIT_CONFIG") && value !== undefined)
       environment[key] = value;
-  return { ...environment, GIT_TERMINAL_PROMPT: "0" };
+  // Never wait on a person: no terminal prompt and no askpass program, so a
+  // destination that needs an unavailable credential fails at once.
+  return { ...environment, GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "" };
 };
 
 /**
@@ -241,6 +243,16 @@ export const pushDestination = (remoteArgs, cwd) => {
  */
 export const advertisedTips = (destination, cwd) => {
   if (destination === null) return [];
+  // An `insteadOf` rule can rewrite even a URL Git already rewrote for the
+  // push, and then the probe would describe another repository. Trust the
+  // advertisement only when ls-remote would contact the destination itself.
+  // probe-direction: fail-closed — a URL that cannot be confirmed subtracts
+  // nothing.
+  if (
+    remoteRead(["ls-remote", "--get-url", "--", destination], cwd) !==
+    destination
+  )
+    return [];
   const listed = spawnSync(
     "git",
     [NO_REPLACE_OBJECTS, "ls-remote", "--", destination],

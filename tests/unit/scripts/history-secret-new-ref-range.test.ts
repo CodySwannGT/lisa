@@ -114,6 +114,18 @@ describe("introduced history of a new remote ref", () => {
     expect(introduced(cwd, published, ["upstream"])).toEqual(all);
   });
 
+  it("does not trust an advertisement an insteadOf rule redirects elsewhere", () => {
+    const { cwd, remote, root, published } = fixture();
+    const elsewhere = join(scratch, "redirected.git");
+    git(scratch, "clone", "-q", "--bare", remote, elsewhere);
+    // ls-remote would contact `elsewhere`, which holds the same history but
+    // is not the destination Git named, so its tips subtract nothing.
+    git(cwd, "config", `url.${elsewhere}.insteadOf`, remote);
+    expect(introduced(cwd, published, ["upstream", remote])).toEqual(
+      [root, published].sort(byText)
+    );
+  });
+
   it("does not trust a tracking ref the destination no longer advertises", () => {
     const { cwd, remote, published } = fixture();
     git(cwd, "checkout", "-qb", "gone");
