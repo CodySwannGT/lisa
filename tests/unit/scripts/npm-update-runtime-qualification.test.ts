@@ -160,6 +160,34 @@ describe("closed runtime qualification diagnostics", () => {
           expect.objectContaining({ code: "ESRCH" })
         );
         expect(Date.now()).toBeLessThan(deadline);
+        if (process.platform === "linux") {
+          const observed = records[0] as {
+            browserProcesses: {
+              supported: boolean;
+              samples: { rows?: object[] }[];
+            };
+          };
+          expect(observed.browserProcesses.supported).toBe(true);
+          expect(
+            observed.browserProcesses.samples.some(
+              sample => (sample.rows?.length ?? 0) > 0
+            )
+          ).toBe(true);
+          for (const sample of observed.browserProcesses.samples)
+            for (const row of sample.rows ?? [])
+              expect(
+                Object.keys(row).sort((a, b) => a.localeCompare(b))
+              ).toEqual([
+                "noNewPrivileges",
+                "role",
+                "seccomp",
+                "state",
+                "wait",
+              ]);
+          expect(JSON.stringify(observed.browserProcesses)).not.toContain(
+            process.execPath
+          );
+        }
         await expect(
           native(STAGE, root, {}, process.execPath, ["-e", ""])
         ).resolves.toMatchObject({ code: 0 });

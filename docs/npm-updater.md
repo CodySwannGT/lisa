@@ -110,3 +110,5 @@ The internal sandbox-page probe supplies Chrome's required
 seconds within the unchanged absolute phase deadline, retaining time for owned
 cleanup after an early browser refusal. All other component stage bounds and
 production gate deadlines remain unchanged.
+
+Browser qualification diagnostics also sample readable descendants of the exact verified executable on Linux. Only closed role, state, sandbox-flag and wait-channel facts are retained; identities, paths and arguments are discarded. Setup and cancellation are synchronous, pending reads and partial observations are reported, and diagnostic I/O never postpones the original native result. This evidence cannot replace the required browser sandbox result.

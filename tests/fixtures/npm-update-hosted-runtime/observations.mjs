@@ -16,6 +16,7 @@ import { publicFailure } from "../../../all/copy-overwrite/scripts/lib/npm-updat
 import { runProcess } from "../../../all/copy-overwrite/scripts/lib/npm-update-process-core.mjs";
 import { runtimeTime } from "../../../all/copy-overwrite/scripts/lib/npm-update-rails-tool-identity.mjs";
 import { join } from "node:path";
+import { startBrowserObservation } from "./browser-process-observation.mjs";
 
 const STAGES = new Set([
   "source",
@@ -204,6 +205,8 @@ export function nativeRecorder(captures, deadline, records) {
     required(STAGES.has(stage), "unknown qualification stage");
     const started = performance.now();
     const state = {};
+    if (BROWSER_STAGES.has(stage))
+      state.observer = startBrowserObservation(command);
     try {
       state.result = await runProcess(command, args, {
         cwd,
@@ -218,6 +221,8 @@ export function nativeRecorder(captures, deadline, records) {
       state.result = error;
       state.failure = error;
     }
+    const nativeElapsed = Math.round(performance.now() - started);
+    if (state.observer) state.processes = state.observer.stop();
     const sequence = records.length;
     const streams = Object.fromEntries(
       ["stdout", "stderr"].map(name => [
@@ -236,13 +241,14 @@ export function nativeRecorder(captures, deadline, records) {
     const record = {
       stage,
       status: Number.isInteger(state.result?.code) ? state.result.code : null,
-      elapsedMs: Math.round(performance.now() - started),
+      elapsedMs: nativeElapsed,
       ...facts,
       failure: failureMetadata(state.failure),
       ...(BROWSER_STAGES.has(stage)
         ? {
             nativeFailure: state.failure ? publicFailure(state.failure) : null,
             browserStderr: browserStderrMetadata(streams.stderr),
+            browserProcesses: state.processes,
           }
         : {}),
     };
