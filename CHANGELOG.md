@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.72.1](https://github.com/CodySwannGT/lisa/compare/v4.72.0...v4.72.1) (2026-10-08)
+
+
+### Bug Fixes
+
+* **guard:** preserve shell scope when inspecting executed scripts ([e56b600](https://github.com/CodySwannGT/lisa/commit/e56b6008dbbd86754014b293f64d98f132405ded)), closes [CodySwannGT/lisa#4299](https://github.com/CodySwannGT/lisa/issues/4299)
+* **guard:** resolve cwd on reached AND branches ([4952de2](https://github.com/CodySwannGT/lisa/commit/4952de2c9b2c40c6aca733b9edcd9bcf8701f1e4)), closes [CodySwannGT/lisa#4299](https://github.com/CodySwannGT/lisa/issues/4299) [CodySwannGT/lisa#4299](https://github.com/CodySwannGT/lisa/issues/4299)
+
 ## [4.72.0](https://github.com/CodySwannGT/lisa/compare/v4.71.13...v4.72.0) (2026-10-08)
 
 
