@@ -238,20 +238,28 @@ export async function startWaitingTestRun(
  * @param environment - Calling test process environment
  * @param register - Suite-local teardown registry
  * @param mode - Original payload result to preserve
+ * @param beforeObservation - Optional native observer scheduling control
  * @returns Running wrapper and every identity that must be gone on return
  */
 export async function startGrandchildTestRun(
   environment: NodeJS.ProcessEnv,
   register: (directory: string) => void,
-  mode: "grandchild-pass" | "grandchild-fail" | "grandchild-sigkill"
+  mode: "grandchild-pass" | "grandchild-fail" | "grandchild-sigkill",
+  beforeObservation?: (child: ReturnType<typeof spawn>) => void | Promise<void>
 ): Promise<{
   readonly child: ReturnType<typeof spawn>;
   readonly root: string;
   readonly descendantPid: number;
   readonly companionPids: readonly number[];
+  readonly outcome: Promise<{
+    readonly code: number | null;
+    readonly signal: NodeJS.Signals | null;
+  }>;
+  readonly release: () => void;
 }> {
   const base = temporaryTestRunDirectory("lisa-test-run-grandchild-", register);
   const marker = path.join(base, PAYLOAD_MARKER);
+  const releaseFile = path.join(base, "grandchild-release");
   const child = spawn(process.execPath, [...TEST_RUN_SOURCE_ARGS], {
     cwd: REPO_ROOT,
     env: {
@@ -261,26 +269,42 @@ export async function startGrandchildTestRun(
       TEMP: base,
       LISA_TEST_RUN_MARKER: marker,
       LISA_TEST_RUN_MODE: mode,
+      LISA_TEST_RUN_GRANDCHILD_RELEASE: releaseFile,
       LISA_TEST_SCRATCH_SUITE: "lisa",
     },
     stdio: "ignore",
   });
-  await waitForTestRun(
-    () =>
-      fs.existsSync(marker) &&
-      fs.readFileSync(marker, "utf8").trim().endsWith("}"),
-    "grandchild payload marker"
+  const outcome = new Promise<{
+    readonly code: number | null;
+    readonly signal: NodeJS.Signals | null;
+  }>(resolve =>
+    child.once("exit", (code, signal) => resolve({ code, signal }))
   );
-  const payload = JSON.parse(fs.readFileSync(marker, "utf8")) as {
-    readonly root: string;
-    readonly descendantPid: number;
-  };
-  const companionPids = testRunCompanionPids(child.pid ?? -1);
-  expect(companionPids).toHaveLength(2);
-  return {
-    child,
-    root: payload.root,
-    descendantPid: payload.descendantPid,
-    companionPids,
-  };
+  try {
+    await waitForTestRun(
+      () =>
+        fs.existsSync(marker) &&
+        fs.readFileSync(marker, "utf8").trim().endsWith("}"),
+      "grandchild payload marker"
+    );
+    const payload = JSON.parse(fs.readFileSync(marker, "utf8")) as {
+      readonly root: string;
+      readonly descendantPid: number;
+    };
+    await beforeObservation?.(child);
+    const companionPids = testRunCompanionPids(child.pid ?? -1);
+    expect(companionPids).toHaveLength(2);
+    return {
+      child,
+      root: payload.root,
+      descendantPid: payload.descendantPid,
+      companionPids,
+      outcome,
+      release: () => fs.writeFileSync(releaseFile, "observed", "utf8"),
+    };
+  } catch (error) {
+    child.kill("SIGTERM");
+    await outcome;
+    throw error;
+  }
 }

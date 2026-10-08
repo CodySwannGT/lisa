@@ -528,3 +528,57 @@ ROOT owns ordinary seven-path focused commit on existing codex/4347-producer-sou
 The normal commit hook rejected the explicit undefined argument; the original failure is retained. The same seven arguments now pass through Reflect.apply. Exact hook ESLint and formatter passed, and independent source review accepted this test-only correction.
 
 The genuine whole 89-case suite passed on the corrected test bytes with no skipped cases. Captured process identities were absent afterward and the original orphan check passed. Source, index, context and binding stayed unchanged during the run. This supports the scoped controller foundation only; full provider, service, hosted and released qualification remain required.
+
+
+## Invocation-local classifier authentication performance repair
+
+The existing builder works in an isolated branch from 2286ce399e. Ownership covers npm-update-helper.mjs, the pure sibling npm-update-classifier-cache.mjs, the focused classifier cache suite, three additional live-authority tests, the necessary inventory entry and this plan. Existing classifier MEMBERS, dynamic import, owner qualifiers and all live main/claim/hold/provider checks remain unchanged. The new managed cache leaf requires official graph regeneration after source review. Native allocation exceeded the original 15-minute limit after 45 chunks; each privileged transition currently repeats release registry/archive qualification. Synthetic registry replies with real tar/SRI/native filesystem checks establish reuse/refusal behavior, not genuine release/provider acceptance. Original deadlines and bounds remain. Source review precedes normal commit; official artifacts remain generator-owned.
+
+The reaching RED ran through canonicalClassifier: six cases passed and two failed because identical calls performed three registry/archive qualifications and a replacement owner was accepted. Independent review identified a post-import lifetime gap: a separate genuine RED showed restored files allowed both the original and a replacement config to reuse an uncertain imported URL. The repair permanently refuses the selected and actual imported owner URLs within this invocation when post-import identity becomes unprovable. A controlled omission of the new imported-owner equality guard additionally reproduced owner A changing to import owner B and reverting to A; this is a mutation control, not a shipped-baseline RED.
+
+Independent review also found a pending sibling could resume after another caller poisoned the URL. A genuine reaching RED reproduced one rejected call followed by one successful grant on restored bytes. Every post-await grant now checks the selected, imported and observed owner URLs again, including the uncached source path.
+
+Final current-byte GREEN ran the original focused wrapper on both affected suites: 53 cases passed with no skips. The 15 cache cases cover exact config isolation, member mutation, symlink/nonregular replacement, owner/version/signer changes, failed qualification, simultaneous calls, uncertain imports, pending sibling refusal, reverted import-owner selection and unpinned source qualification against two genuine Git commits. The 38 GitHub cases retain the original controls and explicitly reject later main, canonical claim and configured human-hold changes. Initial archive qualification failure still permits fresh authentication; ordinary pre-use mutation refusal does not poison an otherwise authenticated import, with restoration positively tested. Genuine hosted allocation timing and provider acceptance remain pending; no full aggregate or push ran for this repair.
+
+Final current-byte default test lint, formatter and strict shipped-profile lint passed. The shipped check retains the canonical ReDoS rule and a genuine duplicate-literal negative, with zero errors and warnings on all three runtime modules. The original full typecheck passed with the existing 1,540 test diagnostics in 362 quarantined files, no new or stale quarantine entries and zero engine-floor errors. Its ungated engine diagnostic backlog was 14,990 at both es2024 and esnext, disclosed by the original checker. The helper remains 299 lines and its dedicated cache leaf 94 lines.
+
+After independent source review, the official generators refreshed the helper graph, export surface, Lisa-owned hash ledger, upstream evidence manifest and two-channel coupling inventory. The first artifact check's sole failure was stale coupling inventory; the declared generator changed its inventory count from 163 to 164 and preserved every existing decision. The final original seven-artifact checks and helper-graph check passed. The original helper-generator suite passed all 13 cases with no skips. Five production/test source hashes remained unchanged throughout generation; no shared worktree source or artifacts were touched.
+
+Task metadata:
+```json
+{
+  "plan": ".lisa/plan-CodySwannGT-lisa-4347.md",
+  "type": "bug",
+  "acceptance_criteria": [
+    "Authenticate unchanged classifier release once per trusted config object in one invocation",
+    "Freshly reject changed owner/path/nonregular/member bytes/version/signer before reuse",
+    "Keep uncached source HEAD semantics without signer pin and all live main/claim/hold/permission/provider reads",
+    "Preserve original chunk/output/deadline bounds"
+  ],
+  "relevant_documentation": "docs/npm-updater.md; canonical helper and leaf sources",
+  "testing_requirements": [
+    "Reaching RED/GREEN through canonicalClassifier with synthetic registry replies and real tar/SRI/member checks",
+    "Mutation, symlink, identity and failed-qualification controls; existing fresh authority cases",
+    "Original focused wrapper, applicable lint/type and official artifacts later"
+  ],
+  "skills": [
+    "lisa-tdd-implementation"
+  ],
+  "learnings": [],
+  "verification": {
+    "type": "cli-test",
+    "command": "Original Lisa wrapper invokes canonicalClassifier repeatedly on a real owned archive/member fixture with synthetic registry replies",
+    "expected": "One successful release qualification, fresh holds evaluated each time, altered authority refuses; genuine hosted acceptance pending"
+  }
+}
+```
+
+## Grandchild companion observation barrier
+
+The integrated original push passed the corrected inventory and budget-governance checks but failed one existing grandchild SIGKILL setup assertion: one companion was visible where two were required. Its 26,496 passing tests, one failure and two original skips are retained; coverage was unproved and integration did not run.
+
+The production protocol arms both companions before starting the payload. The fixture then independently scheduled its outcome after 500ms, while the test captured companions later. A native 750ms observation probe passed and is not credited as RED. A later native probe crossed the original 500ms outcome and two-second group drain: two genuine PID/birth identities were visible initially and none remained at the original count-two assertion. This proves the observation race; it does not reconstruct the historical one-companion interleaving.
+
+The test-only fixture now waits for an explicit observation release before starting the same 500ms pass, failure23 or SIGKILL outcome. The helper registers its exit promise before observation and retains the original count-two assertion. If observation refuses, it signals its own wrapper, waits for the original outcome and rethrows the same error. A controlled omission of that cleanup produced a real retained-root failure; the control's own finally safely drained the wrapper.
+
+The original whole concurrency file passed all 17 cases without skips: fifteen existing cases, the late-observer regression and the refusal-cleanup control. The final late-observer assertion requires at least 2,500ms and unchanged native PID/birth identities before release; transient diagnostic output is removed. Original runtime, deadlines, child bases and cleanup assertions remain unchanged. Scoped quality and the final integrated original push are required before publication; hosted updater acceptance remains pending.

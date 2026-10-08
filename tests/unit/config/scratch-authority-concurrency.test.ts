@@ -16,9 +16,11 @@ import {
   REPO_ROOT,
   startGrandchildTestRun,
   startWaitingTestRun,
+  testRunCompanionPids,
   waitForTestRun,
 } from "../../helpers/lisa-test-run-process.js";
 import { verifyForegroundSigkillRecovery } from "../../helpers/lisa-test-run-sigkill-oracle.js";
+import { processBirthFingerprint } from "../../../src/configs/vitest/scratch-owner.js";
 import {
   verifyGatedAuthorityImmutability,
   verifyGatedReadinessFailureCleanup,
@@ -48,8 +50,99 @@ afterEach(() => {
 });
 
 describe("lisa-test-run descendant lifecycle", () => {
+  it("observes both born companions after a late native observer", async () => {
+    const run = await startGrandchildTestRun(
+      process.env,
+      registerTestRunDirectory,
+      "grandchild-sigkill",
+      child => {
+        const before = testRunCompanionPids(child.pid ?? -1).map(pid => ({
+          pid,
+          birth: processBirthFingerprint(pid),
+        }));
+        expect(before).toHaveLength(2);
+        expect(before.every(value => value.birth !== undefined)).toBe(true);
+        const started = performance.now();
+        const delayed = boundedSpawnSync({
+          label: "late native companion observer",
+          command: process.execPath,
+          // Cross the original 500ms outcome and 2s group drain before observing.
+          args: ["-e", "setTimeout(() => process.exit(0), 3000)"],
+          baseMs: 6_000,
+        });
+        expect(delayed.status).toBe(0);
+        expect(performance.now() - started).toBeGreaterThanOrEqual(2_500);
+        const after = testRunCompanionPids(child.pid ?? -1).map(pid => ({
+          pid,
+          birth: processBirthFingerprint(pid),
+        }));
+        expect(after).toEqual(before);
+      }
+    );
+    try {
+      run.release();
+      expect(await run.outcome).toEqual({ code: null, signal: "SIGKILL" });
+      expect(fs.existsSync(run.root)).toBe(false);
+      expect(isProcessAlive(run.descendantPid)).toBe(false);
+      expect(run.companionPids.every(pid => !isProcessAlive(pid))).toBe(true);
+    } finally {
+      if (isProcessAlive(run.descendantPid))
+        process.kill(run.descendantPid, "SIGKILL");
+      if (run.child.pid !== undefined && isProcessAlive(run.child.pid))
+        run.child.kill("SIGTERM");
+    }
+  });
+
   it("uses the exact prearmed reaper after foreground SIGKILL", async () => {
     await verifyForegroundSigkillRecovery(registerTestRunDirectory);
+  });
+
+  it("drains a held payload when companion observation refuses", async () => {
+    const failure = new Error("companion observation refused");
+    const observed: {
+      child: ReturnType<typeof spawn>;
+      root: string;
+      companions: readonly number[];
+    }[] = [];
+    try {
+      await expect(
+        startGrandchildTestRun(
+          process.env,
+          registerTestRunDirectory,
+          "grandchild-pass",
+          child => {
+            const base = temporaryDirectories.at(-1);
+            if (base === undefined)
+              throw new Error("owned fixture base missing");
+            const payload = JSON.parse(
+              fs.readFileSync(path.join(base, "payload.json"), "utf8")
+            ) as { root: string };
+            observed.push({
+              child,
+              root: payload.root,
+              companions: testRunCompanionPids(child.pid ?? -1),
+            });
+            throw failure;
+          }
+        )
+      ).rejects.toBe(failure);
+      expect(observed).toHaveLength(1);
+      expect(fs.existsSync(observed[0]!.root)).toBe(false);
+      expect(observed[0]!.companions.every(pid => !isProcessAlive(pid))).toBe(
+        true
+      );
+    } finally {
+      for (const run of observed) {
+        if (run.child.pid !== undefined && isProcessAlive(run.child.pid))
+          run.child.kill("SIGTERM");
+        await waitForTestRun(
+          () =>
+            !fs.existsSync(run.root) &&
+            run.companions.every(pid => !isProcessAlive(pid)),
+          "refused observation cleanup"
+        );
+      }
+    }
   });
 
   it.each([
@@ -108,14 +201,9 @@ describe("lisa-test-run descendant lifecycle", () => {
         registerTestRunDirectory,
         mode
       );
-      const outcome = new Promise<{
-        readonly code: number | null;
-        readonly signal: NodeJS.Signals | null;
-      }>(resolve =>
-        run.child.once("exit", (code, signal) => resolve({ code, signal }))
-      );
       try {
-        expect(await outcome).toEqual(expected);
+        run.release();
+        expect(await run.outcome).toEqual(expected);
         expect(fs.existsSync(run.root)).toBe(false);
         expect(isProcessAlive(run.descendantPid)).toBe(false);
         expect(run.companionPids.every(pid => !isProcessAlive(pid))).toBe(true);

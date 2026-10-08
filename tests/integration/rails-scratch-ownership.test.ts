@@ -21,12 +21,14 @@ import {
   PROBE_SUFFIX,
   SUPERVISOR_EXIT,
   collect,
+  creationSignalControl,
   isAlive,
   makeProbeRoot,
   makeScratchBase,
   markerBody,
   namespaceEntries,
   runSupervisor,
+  seededEntropy,
   spawnSupervisor,
   startOutsideService,
   waitFor,
@@ -36,6 +38,9 @@ import {
 
 /** Entry point that drives the cleanup authority directly. */
 const AUTHORITY = "--authority";
+
+/** No hostile authority may publish an acknowledgement. */
+const ACKNOWLEDGEMENT = ".lisa-scratch-ack";
 
 const bases: ScratchBase[] = [];
 
@@ -63,14 +68,12 @@ describe("concurrent runs on one machine and one temp base", () => {
       "--",
       "sh",
       "-c",
-      `touch "${siblingRunning}"; sleep 30`,
+      `printf '%s' "$LISA_SCRATCH_ROOT" > "${siblingRunning}"; sleep 30`,
     ]);
     const siblingDone = collect(sibling);
     expect(await waitFor(() => fs.existsSync(siblingRunning))).toBe(true);
-    const siblingRoot = namespaceEntries(scratch.namespace).find(entry =>
-      entry.startsWith("sibling.")
-    );
-    expect(siblingRoot).toBeDefined();
+    const siblingRoot = fs.readFileSync(siblingRunning, "utf-8");
+    expect(fs.existsSync(siblingRoot)).toBe(true);
 
     const victimRunning = path.join(scratch.base, "victim.running");
     const victim = spawnSupervisor(scratch.base, [
@@ -79,25 +82,20 @@ describe("concurrent runs on one machine and one temp base", () => {
       "--",
       "sh",
       "-c",
-      `touch "${victimRunning}"; sleep 30`,
+      `printf '%s' "$LISA_SCRATCH_ROOT" > "${victimRunning}"; sleep 30`,
     ]);
     const victimDone = collect(victim);
     expect(await waitFor(() => fs.existsSync(victimRunning))).toBe(true);
+    const victimRoot = fs.readFileSync(victimRunning, "utf-8");
     victim.kill("SIGKILL");
     await victimDone;
 
-    expect(
-      await waitFor(() =>
-        namespaceEntries(scratch.namespace).every(
-          entry => !entry.startsWith("victim.")
-        )
-      )
-    ).toBe(true);
+    expect(await waitFor(() => !fs.existsSync(victimRoot))).toBe(true);
     // The sibling's root — and the sibling itself — are untouched and usable.
-    expect(namespaceEntries(scratch.namespace)).toContain(siblingRoot);
-    expect(
-      fs.existsSync(path.join(scratch.namespace, siblingRoot as string, "tmp"))
-    ).toBe(true);
+    expect(namespaceEntries(scratch.namespace)).toContain(
+      path.basename(siblingRoot)
+    );
+    expect(fs.existsSync(path.join(siblingRoot, "tmp"))).toBe(true);
 
     sibling.kill("SIGTERM");
     await siblingDone;
@@ -130,6 +128,71 @@ describe("concurrent runs on one machine and one temp base", () => {
 });
 
 describe("uncertain ownership exits nonzero with an actionable reason", () => {
+  it("refuses a short locator collision without adopting an existing root", async () => {
+    const scratch = base();
+    const root = makeProbeRoot(scratch.namespace);
+    const retained = path.join(root, "foreign-marker");
+    const executed = path.join(scratch.base, "PAYLOAD_RAN");
+    fs.writeFileSync(retained, "preserved");
+    const before = fs.statSync(root);
+    // A deterministic utility protocol control, not a vendor/runtime proof:
+    // the real supervisor still parses all 32 bytes and exclusively allocates.
+    const bin = seededEntropy(scratch.base);
+    const run = await runSupervisor(
+      scratch.base,
+      ["--suite", "collision", "--", "sh", "-c", `touch "${executed}"`],
+      { PATH: `${bin}:${process.env.PATH ?? ""}` }
+    );
+    expect(run.code).toBe(SUPERVISOR_EXIT.arming);
+    expect(run.stderr).toContain("cannot exclusively create run root");
+    expect(fs.existsSync(executed)).toBe(false);
+    expect(fs.statSync(root).ino).toBe(before.ino);
+    expect(fs.readFileSync(retained, "utf-8")).toBe("preserved");
+    expect(fs.existsSync(path.join(root, ".lisa-scratch-arm"))).toBe(false);
+  });
+
+  it.each([true, false])(
+    "preserves creation ownership when TERM arrives at mkdir (existing=%s)",
+    async existing => {
+      const scratch = base();
+      // Native mkdir's actual status determines creation. This utility only
+      // delivers TERM at the return boundary, before the parent can arm.
+      const { root, retained, inode, bin } = creationSignalControl(
+        scratch,
+        existing
+      );
+      const run = await runSupervisor(
+        scratch.base,
+        ["--suite", "arming-signal", "--", "sh", "-c", "echo payload-ran"],
+        { PATH: `${bin}:${process.env.PATH ?? ""}` }
+      );
+      expect(run.signal).toBe("SIGTERM");
+      expect(run.stdout).not.toContain("payload-ran");
+      expect(fs.existsSync(root)).toBe(existing);
+      if (existing) {
+        expect(fs.statSync(root).ino).toBe(inode);
+        expect(fs.readFileSync(retained, "utf-8")).toBe("preserved");
+      }
+    }
+  );
+
+  it("refuses a full token replacement even when its short locator agrees", async () => {
+    const scratch = base();
+    const root = path.join(scratch.namespace, `r.${FAKE_TOKEN.slice(0, 24)}`);
+    fs.mkdirSync(root, { recursive: true });
+    const replacedToken = `${FAKE_TOKEN.slice(0, 24)}${"b".repeat(40)}`;
+    writeMarker(root, markerBody(root, { token: replacedToken }));
+    const before = fs.statSync(root);
+
+    const run = await runSupervisor(scratch.base, [AUTHORITY, root], {
+      LISA_SCRATCH_TOKEN: FAKE_TOKEN,
+    });
+    expect(run.code).toBe(SUPERVISOR_EXIT.ambiguous);
+    expect(fs.existsSync(root)).toBe(true);
+    expect(fs.statSync(root).ino).toBe(before.ino);
+    expect(fs.existsSync(path.join(root, ACKNOWLEDGEMENT))).toBe(false);
+  });
+
   it.each([
     ["a marker with no token", "version=1\n"],
     ["a malformed token", "version=1\ntoken=not-hex\n"],
@@ -144,7 +207,7 @@ describe("uncertain ownership exits nonzero with an actionable reason", () => {
     ],
   ])("refuses %s", async (_label, marker) => {
     const scratch = base();
-    const root = makeProbeRoot(scratch.namespace, "probe");
+    const root = makeProbeRoot(scratch.namespace);
     writeMarker(root, marker);
 
     const run = await runSupervisor(scratch.base, [AUTHORITY, root]);
@@ -187,7 +250,7 @@ describe("uncertain ownership exits nonzero with an actionable reason", () => {
 
   it("refuses when the run root's filesystem identity no longer matches", async () => {
     const scratch = base();
-    const root = makeProbeRoot(scratch.namespace, "swapped");
+    const root = makeProbeRoot(scratch.namespace);
     // A device+inode pair that cannot be this directory's — what an inode swap
     // underneath a live run would look like.
     writeMarker(root, markerBody(root, { devino: "0 1" }));
@@ -206,7 +269,7 @@ describe("uncertain ownership exits nonzero with an actionable reason", () => {
     "refuses %s so cleanup cannot broaden past this invocation",
     async (_label, pgid) => {
       const scratch = base();
-      const root = makeProbeRoot(scratch.namespace, "pgid");
+      const root = makeProbeRoot(scratch.namespace);
       writeMarker(root, markerBody(root, { pgid }));
 
       const run = await runSupervisor(scratch.base, [AUTHORITY, root]);
@@ -217,7 +280,7 @@ describe("uncertain ownership exits nonzero with an actionable reason", () => {
 
   it("refuses a reused PID whose birth identity does not match", async () => {
     const scratch = base();
-    const root = makeProbeRoot(scratch.namespace, "reuse");
+    const root = makeProbeRoot(scratch.namespace);
     // A live process group we do NOT own, armed with a birth identity that
     // cannot be its own. PID reuse looks exactly like this.
     const bystander = startOutsideService(20);

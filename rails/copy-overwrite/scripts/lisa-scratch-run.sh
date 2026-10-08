@@ -275,6 +275,15 @@ lisa_token_is_well_formed() {
   [ "${#1}" -eq 64 ]
 }
 
+# The basename is a 96-bit locator, never the run's 256-bit authority. Keeping
+# it independent of suite length leaves Chrome's six-character temp suffix and
+# SingletonSocket within 104 bytes including NUL under canonical /private/tmp.
+# The complete token still binds the marker, acknowledgement and quarantine.
+lisa_root_matches_token() {
+  lisa_token_is_well_formed "$2" || return 1
+  [ "${1##*/}" = "$(printf 'r.%.24s' "$2")" ]
+}
+
 lisa_suite_is_well_formed() {
   case "$1" in
     "" | *[!A-Za-z0-9._-]*) return 1 ;;
@@ -325,6 +334,10 @@ lisa_authority_main() {
     lisa_die "$EX_AMBIGUOUS" "authority: unreadable or malformed arming marker"
   lisa_token_is_well_formed "$_token" ||
     lisa_die "$EX_AMBIGUOUS" "authority: malformed run token"
+  [ "$_token" = "${LISA_SCRATCH_TOKEN:-}" ] ||
+    lisa_die "$EX_AMBIGUOUS" "authority: run token differs from supervisor authority"
+  lisa_root_matches_token "$_root" "$_token" ||
+    lisa_die "$EX_AMBIGUOUS" "authority: run locator differs from full token"
   _version="$(lisa_marker_get "$_marker" version)" ||
     lisa_die "$EX_AMBIGUOUS" "authority: arming marker has no version"
   [ "$_version" = "$LISA_SCRATCH_VERSION" ] ||
@@ -503,6 +516,10 @@ lisa_remove_root() {
     printf '%s\n' "lisa-scratch-run: run root no longer well-formed; refusing to delete" >&2
     return 1
   }
+  lisa_root_matches_token "$_root" "$_token" || {
+    printf '%s\n' "lisa-scratch-run: run locator differs from full token; refusing to delete" >&2
+    return 1
+  }
   _now="$(lisa_dev_ino "$_root")" || return 1
   if [ "$_now" != "$_dev_ino" ]; then
     printf '%s\n' "lisa-scratch-run: run root filesystem identity changed; refusing to delete" >&2
@@ -545,6 +562,9 @@ lisa_launcher_main() {
   _root="$1"
   _token="$2"
   shift 2
+
+  lisa_root_matches_token "$_root" "$_token" ||
+    lisa_die "$EX_ARM" "payload run locator differs from full token; refusing"
 
   if ! lisa_isolate_group LISA_SCRATCH_LAUNCH_REENTRY \
     "$LISA_SCRATCH_SH" "$LISA_SCRATCH_SELF" --launch "$_root" "$_token" "$@"; then
@@ -667,7 +687,11 @@ lisa_abort_arming() {
   [ -n "${LISA_SCRATCH_PAYLOAD_PID:-}" ] && kill -TERM "$LISA_SCRATCH_PAYLOAD_PID" 2>/dev/null
   [ -n "${LISA_SCRATCH_AUTHORITY_PID:-}" ] && kill -TERM "$LISA_SCRATCH_AUTHORITY_PID" 2>/dev/null
   if [ -n "${LISA_SCRATCH_ROOT:-}" ] &&
-    lisa_root_is_well_formed "$LISA_SCRATCH_ROOT" "${LISA_SCRATCH_BASE_CANONICAL:-}"; then
+    [ -n "${LISA_SCRATCH_ROOT_DEVINO:-}" ] &&
+    lisa_root_is_well_formed "$LISA_SCRATCH_ROOT" "${LISA_SCRATCH_BASE_CANONICAL:-}" &&
+    lisa_root_matches_token "$LISA_SCRATCH_ROOT" "${LISA_SCRATCH_TOKEN:-}" &&
+    [ "$(lisa_canonical_dir "$LISA_SCRATCH_ROOT")" = "$LISA_SCRATCH_ROOT" ] &&
+    [ "$(lisa_dev_ino "$LISA_SCRATCH_ROOT")" = "$LISA_SCRATCH_ROOT_DEVINO" ]; then
     rm -rf "$LISA_SCRATCH_ROOT" 2>/dev/null || true
   fi
   kill -"$_sig" $$
@@ -720,6 +744,7 @@ lisa_supervisor_main() {
   # handler is older than every resource it can be asked to release, and it
   # simply does nothing while there is nothing to release.
   LISA_SCRATCH_ROOT=""
+  LISA_SCRATCH_ROOT_DEVINO=""
   LISA_SCRATCH_BASE_CANONICAL=""
   LISA_SCRATCH_PAYLOAD_PID=""
   LISA_SCRATCH_AUTHORITY_PID=""
@@ -742,28 +767,48 @@ lisa_supervisor_main() {
     lisa_die "$EX_ARM" "cannot create scratch namespace under $_base"
   chmod 700 "$_base/$LISA_SCRATCH_NAMESPACE" 2>/dev/null || true
 
-  _root="$_base/$LISA_SCRATCH_NAMESPACE/$_suite.$_token"
+  _locator="$(printf 'r.%.24s' "$_token")"
+  _root="$_base/$LISA_SCRATCH_NAMESPACE/$_locator"
   lisa_root_is_well_formed "$_root" "$_base" ||
     lisa_die "$EX_ARM" "computed run root is not well-formed: $_root"
 
-  # The already-installed handler becomes able to act the moment these are set,
-  # which is one statement before the directory they name can exist.
+  # Naming a root does not authorize deletion: exclusive creation and its
+  # captured filesystem identity must also succeed before the handler can act.
   LISA_SCRATCH_ROOT="$_root"
   LISA_SCRATCH_TOKEN="$_token"
   LISA_SCRATCH_SUITE="$_suite"
   LISA_SCRATCH_BASE_CANONICAL="$_base"
   export LISA_SCRATCH_ROOT LISA_SCRATCH_TOKEN LISA_SCRATCH_SUITE
 
-  # Exclusive create: mkdir of an existing leaf fails, so two runs can never
-  # share a root even if a token somehow repeated.
-  mkdir "$_root" || lisa_die "$EX_ARM" "cannot exclusively create run root"
+  # Latch signals across exclusive creation and identity capture. Otherwise a
+  # signal between mkdir's success and the next assignment could either leak
+  # our newly created root or mistake a collision for something we own.
+  LISA_SCRATCH_ARM_SIGNAL=""
+  for _sig in TERM INT HUP; do
+    # shellcheck disable=SC2064
+    trap "LISA_SCRATCH_ARM_SIGNAL=$_sig" "$_sig"
+  done
+  _created=no
+  if mkdir "$_root"; then
+    _created=yes
+    LISA_SCRATCH_ROOT_DEVINO="$(lisa_dev_ino "$_root")" || LISA_SCRATCH_ROOT_DEVINO=""
+  fi
+  for _sig in TERM INT HUP; do
+    # shellcheck disable=SC2064
+    trap "lisa_abort_arming $_sig" "$_sig"
+  done
+  [ -z "$LISA_SCRATCH_ARM_SIGNAL" ] || lisa_abort_arming "$LISA_SCRATCH_ARM_SIGNAL"
+  [ "$_created" = yes ] || lisa_die "$EX_ARM" "cannot exclusively create run root"
+  [ -n "$LISA_SCRATCH_ROOT_DEVINO" ] ||
+    lisa_die "$EX_ARM" "cannot read run root filesystem identity"
   chmod 700 "$_root" 2>/dev/null || true
   _canon="$(lisa_canonical_dir "$_root")" ||
     lisa_die "$EX_ARM" "run root is not a canonical directory"
   [ "$_canon" = "$_root" ] ||
     lisa_die "$EX_ARM" "run root resolves elsewhere: $_root -> $_canon"
-  _dev_ino="$(lisa_dev_ino "$_root")" ||
-    lisa_die "$EX_ARM" "cannot read run root filesystem identity"
+  _dev_ino="$LISA_SCRATCH_ROOT_DEVINO"
+  [ "$(lisa_dev_ino "$_root")" = "$_dev_ino" ] ||
+    lisa_die "$EX_ARM" "run root filesystem identity changed during creation"
 
   lisa_trace "arm-begin suite=$_suite root=$_root"
 

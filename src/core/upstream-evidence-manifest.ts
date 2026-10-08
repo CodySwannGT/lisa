@@ -64,6 +64,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "529122fd37117526d97277de116fe0080bce85557062585bd73ce7d8be2f88b9",
     "all/copy-overwrite/scripts/lib/npm-update-checkpoint.mjs":
       "1c0c9d1442d65cc848a80bce010fc0d7d9f3792b9080df03ce3286177b4d37a0",
+    "all/copy-overwrite/scripts/lib/npm-update-classifier-cache.mjs":
+      "92272e40617ca9d620ff47e3ffe07a0e5bc1a3949d139752aa2675398ab49f9b",
     "all/copy-overwrite/scripts/lib/npm-update-contract.mjs":
       "6905dd9d5747702ab502b66bcb38b6d4dcb30127f02466d29b3905f53c27981d",
     "all/copy-overwrite/scripts/lib/npm-update-controller-broker.mjs":
@@ -93,9 +95,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-helper-graph.mjs":
       "7100aa6554d59c6a8f6fafefb983c12359b8cf727b8e4657362eba045051dd4e",
     "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs":
-      "33ab2fcba24552a378a75314fe021b25ae6862a6e3c7c4f6b83250f9749264bb",
+      "3561c20458d74eff34650d6b4366f4f03ed4e7825ae886ea78394f63f98a18bb",
     "all/copy-overwrite/scripts/lib/npm-update-helper.mjs":
-      "f4012383184237aa0a7ca21847864fdcc2241f94fd3d2cd6d82a6345763e5824",
+      "41e5a37769ec3737829ed1948d0a1442792b25d120f0fb4f4b5e424a50f34705",
     "all/copy-overwrite/scripts/lib/npm-update-hook-installation.mjs":
       "83c4503b12ae53cb894f0d03d31d9cce8c23efec56d27f7a8252120fc5ea6c47",
     "all/copy-overwrite/scripts/lib/npm-update-hook-preload.mjs":
@@ -223,7 +225,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
       "b37b843b738fd0c1c6f9639551cf64c409263064819bb820e3daa6af8c94d443",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "ff15992834e3bb911a560a6f65be76a791a8cd262f36b18972f25a8dc36d7c00",
+      "2b3d806137b34bfdd21be9e76ca5159f7b11fbd3ca9223d99bef298e42f49c0d",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
@@ -257,7 +259,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "b2f392ac7eb9f645583dfbe357d608ab266c19177230b9b4420baa8975573b2c",
+      "e9048ea95f21e9f6f400853da11a23f1159368d1768215c968a1d6d357f8bbbf",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -979,7 +981,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "f9ba6746df5639e0ac307bbfeaf8f98fc15856a4452986ae6a6b3ad884d26f15",
+      "6f282d7be40377daf9455c9e4ca1f123e89ffae7ec9d1669b964582e92d5c521",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -2359,7 +2361,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/scripts/lisa-clean-git-env.sh":
       "d15af6f13eedbca41046070972380e69fc0af8f7d903aac12b8644389b9a0c91",
     "rails/copy-overwrite/scripts/lisa-scratch-run.sh":
-      "ef3c38f8d1d2f48ba265e21f841310d25142228dac57b0a5742c7d902113ca9a",
+      "6fdec1ad0441d7636dc6749c44a23167baf7b75004f156b8a7d4ce1c18c790b7",
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
       "99a97f830b1ee3388e8714602a4a3f188387c0389ac9d2a7b4b898f20f39a7a7",
     "rails/copy-overwrite/scripts/threshold-ratchet-families.mjs":
@@ -2405,7 +2407,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/merge/.claude/settings.json":
       "01174bd607fe8166e3b588a5679940e598a7b81affae7cd318d4efe47375c156",
     "scripts/build-plugins.sh":
-      "dde267c18daf60ca6e3d7bbad3bbad9ed3d63e84c8340bed5895da588d5bbe92",
+      "8bfc51dd1720f2eaf9f75199ab34df3cfcacda8f020b5e0aa7b5b9cca58d7ce2",
     "scripts/check-cwd-resolution-corpus.mjs":
       "117248694ca2a0dc48f8e22c2a5169791fec554b3dcf61ab6cda210d84185017",
     "scripts/check-deletion-basis.mjs":
@@ -2518,6 +2520,8 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "cfa441fced288d9e82d6b4a0a5e6c0d66b513f50b87751b879e8d2410a8054a3",
     "scripts/generate-npm-updater-helper-graph.mjs":
       "f128835f309f5a4b8d2015d57018da44fd558778efa4eed382747c6d6319260a",
+    "scripts/generate-scratch-supervisor-profile.mjs":
+      "665897fc7c5f95dd4c82008b76d78d561bc1e4f1eda2aba696314e291267c6d5",
     "scripts/generate-two-channel-couplings.ts":
       "5fae0ab51a48e45748f5ffd1f5d5641b33e4bf0ebf014f61fdbfb6b66acae04f",
     "scripts/generate-upstream-evidence-manifest.mjs":
@@ -2643,7 +2647,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "2cb934412b5da2ef48983b5cd63b32a8453e12ed615f6843b0027c58f6744678",
+      "acea18d2da20d26fe2cfe39e245ba2af954998c27c392931ba275f1925a366d5",
     "scripts/update-node-version.ts":
       "0059067c14001c2f7e75beb2628d1a46f935c7b01ce61871db71b6849ef62dca",
     "scripts/update-test-skill-paths.mjs":
@@ -3009,6 +3013,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lib/npm-update-cancellation-proof.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-cancellation.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-checkpoint.mjs": true,
+    "all/copy-overwrite/scripts/lib/npm-update-classifier-cache.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-contract.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-controller-broker.mjs": true,
     "all/copy-overwrite/scripts/lib/npm-update-controller-factory.mjs": true,
@@ -3199,6 +3204,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "docs/design/uat-acceptance-verification-gate.md": true,
     "docs/e2e-bdd-coverage.md": true,
     "docs/history-evidence.md": true,
+    "docs/hook-refresh.md": true,
     "docs/kane-cli-integration.md": true,
     "docs/kane-cli-pilot.example.json": true,
     "docs/maestro-flake-classification.md": true,
@@ -9033,6 +9039,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/generate-lisa-owned-hash-ledger.mjs": true,
     "scripts/generate-nightly-e2e-guard-certificate.mjs": true,
     "scripts/generate-npm-updater-helper-graph.mjs": true,
+    "scripts/generate-scratch-supervisor-profile.mjs": true,
     "scripts/generate-two-channel-couplings.ts": true,
     "scripts/generate-upstream-evidence-manifest.mjs": true,
     "scripts/github-status-check.sh": true,
@@ -9239,6 +9246,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/gate-report-upstream.ts": true,
     "src/cli/gate-report.ts": true,
     "src/cli/health-cmd.ts": true,
+    "src/cli/hook-refresh-files.ts": true,
     "src/cli/index.ts": true,
     "src/cli/install-merge-driver-cmd.ts": true,
     "src/cli/kane-cmd.ts": true,
@@ -9256,6 +9264,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/cli/prompts.ts": true,
     "src/cli/prune-commands.ts": true,
     "src/cli/prune-report.ts": true,
+    "src/cli/refresh-hooks-cmd.ts": true,
     "src/cli/remote-env-cmd.ts": true,
     "src/cli/remote-environment-catalog.ts": true,
     "src/cli/remote-environment-contract.ts": true,
@@ -10204,6 +10213,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/cli/prompts.test.ts": true,
     "tests/unit/cli/prune-commands.test.ts": true,
     "tests/unit/cli/prune-parsing.test.ts": true,
+    "tests/unit/cli/refresh-hooks-descriptors.test.ts": true,
+    "tests/unit/cli/refresh-hooks-fixture.ts": true,
+    "tests/unit/cli/refresh-hooks.test.ts": true,
     "tests/unit/cli/serialize-legs-callee-grant.test.ts": true,
     "tests/unit/cli/setup-project.test.ts": true,
     "tests/unit/cli/setup-wiki.test.ts": true,
@@ -10664,6 +10676,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/parity-safety-net-prose-remedy.test.ts": true,
     "tests/unit/hooks/parity-safety-net-scan-failure.test.ts": true,
     "tests/unit/hooks/parity-safety-net-sql-prose.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-supervisor-profile.test.ts": true,
     "tests/unit/hooks/parity-safety-net.test.ts": true,
     "tests/unit/hooks/post-checkout.test.ts": true,
     "tests/unit/hooks/pre-push-audit-transport-parity.test.ts": true,
@@ -10992,6 +11005,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/npm-update-cancellation-lifecycle.test.ts": true,
     "tests/unit/scripts/npm-update-cancellation-workflow.test.ts": true,
     "tests/unit/scripts/npm-update-cancellation.test.ts": true,
+    "tests/unit/scripts/npm-update-classifier-cache.test.ts": true,
     "tests/unit/scripts/npm-update-compatibility.test.ts": true,
     "tests/unit/scripts/npm-update-contract.test.ts": true,
     "tests/unit/scripts/npm-update-controller-factory.test.ts": true,

@@ -308,7 +308,7 @@ describe("SIGKILL, where the process that would tidy up is the one that is gone"
 
     expect(await waitFor(() => fs.existsSync(running))).toBe(true);
     const observed = namespaceEntries(scratch.namespace)[0];
-    expect(observed).toMatch(/^supkill\.[0-9a-f]{64}$/);
+    expect(observed).toMatch(/^r\.[0-9a-f]{24}$/);
 
     child.kill("SIGKILL");
     await done;

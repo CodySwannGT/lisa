@@ -280,6 +280,14 @@
       "dynamicImports": [],
       "children": []
     },
+    "lib/npm-update-classifier-cache.mjs": {
+      "sha256": "92272e40617ca9d620ff47e3ffe07a0e5bc1a3949d139752aa2675398ab49f9b",
+      "staticImports": [
+        "lib/npm-update-contract.mjs"
+      ],
+      "dynamicImports": [],
+      "children": []
+    },
     "lib/npm-update-contract.mjs": {
       "sha256": "6905dd9d5747702ab502b66bcb38b6d4dcb30127f02466d29b3905f53c27981d",
       "staticImports": [
@@ -472,14 +480,15 @@
       "children": []
     },
     "lib/npm-update-helper-inventory.mjs": {
-      "sha256": "33ab2fcba24552a378a75314fe021b25ae6862a6e3c7c4f6b83250f9749264bb",
+      "sha256": "3561c20458d74eff34650d6b4366f4f03ed4e7825ae886ea78394f63f98a18bb",
       "staticImports": [],
       "dynamicImports": [],
       "children": []
     },
     "lib/npm-update-helper.mjs": {
-      "sha256": "f4012383184237aa0a7ca21847864fdcc2241f94fd3d2cd6d82a6345763e5824",
+      "sha256": "41e5a37769ec3737829ed1948d0a1442792b25d120f0fb4f4b5e424a50f34705",
       "staticImports": [
+        "lib/npm-update-classifier-cache.mjs",
         "lib/npm-update-contract.mjs",
         "lib/npm-update-helper-graph.mjs",
         "lib/npm-update-helper-inventory.mjs",
@@ -1076,7 +1085,7 @@
       ]
     },
     "lisa-scratch-run.sh": {
-      "sha256": "ef3c38f8d1d2f48ba265e21f841310d25142228dac57b0a5742c7d902113ca9a",
+      "sha256": "6fdec1ad0441d7636dc6749c44a23167baf7b75004f156b8a7d4ce1c18c790b7",
       "staticImports": [],
       "dynamicImports": [],
       "children": []

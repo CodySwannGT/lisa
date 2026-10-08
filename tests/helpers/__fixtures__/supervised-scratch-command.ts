@@ -46,8 +46,22 @@ if (mode === "fail") process.exitCode = 23;
 if (["extra-owned-process", "wait"].includes(mode)) {
   setInterval(() => undefined, 1_000);
 }
-if (mode === "grandchild-pass") setTimeout(() => process.exit(0), 500);
-if (mode === "grandchild-fail") setTimeout(() => process.exit(23), 500);
-if (mode === "grandchild-sigkill") {
-  setTimeout(() => process.kill(process.pid, "SIGKILL"), 500);
+/** Keep the original outcomes behind the test's companion-observation barrier. */
+function beginGrandchildOutcome(): void {
+  if (mode === "grandchild-pass") setTimeout(() => process.exit(0), 500);
+  if (mode === "grandchild-fail") setTimeout(() => process.exit(23), 500);
+  if (mode === "grandchild-sigkill") {
+    setTimeout(() => process.kill(process.pid, "SIGKILL"), 500);
+  }
+}
+
+const releaseFile = process.env["LISA_TEST_RUN_GRANDCHILD_RELEASE"];
+if (!mode.startsWith("grandchild-") || releaseFile === undefined) {
+  beginGrandchildOutcome();
+} else {
+  const observationBarrier = setInterval(() => {
+    if (!fs.existsSync(releaseFile)) return;
+    clearInterval(observationBarrier);
+    beginGrandchildOutcome();
+  }, 25);
 }
