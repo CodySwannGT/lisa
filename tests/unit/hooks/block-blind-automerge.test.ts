@@ -121,6 +121,9 @@ describe("block-blind-automerge.sh", () => {
       // separator, so the arming read as arguments of the command before it.
       ["after a |& pipe", `echo hi |& ${ARM}`],
       ["after a glued )|& pipe", `(echo hi)|&${ARM}`],
+      // A QUOTED `|&` is a selector argument (branches may be named so),
+      // not a boundary, so `--auto` after it stays in the merge argv.
+      ["with a quoted |& selector", "gh pr merge '|&' --auto --merge"],
     ])("refuses %s", (_label, command) => {
       const { bin } = fakeGh({ payload: BLOCKED_PR });
 

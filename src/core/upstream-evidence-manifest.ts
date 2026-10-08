@@ -47,7 +47,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/history-secret-evidence.mjs":
       "0475ac4654e33c2f24e0f10adbe79eb9db3229e1d2eb5160418b78545043410c",
     "all/copy-overwrite/scripts/lib/history-secret-git.mjs":
-      "534cb934e7c7e0f3d6bd1a2a8547a14a6f4179e162e14bdcb2c5ba21b71154c8",
+      "fb15dabf02d06451d36e6c10b83931c1aa6b2ddb02608c5a8e813d72cc3a6ac5",
     "all/copy-overwrite/scripts/lib/history-secret-policy.mjs":
       "ca75ebbc45fca4c52400612ae818d231a28289b50a70f6cdee6feb51b144896f",
     "all/copy-overwrite/scripts/lib/history-secret-scanner.mjs":
@@ -219,7 +219,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
-      "de712bf7fd5b7e3fc3466d9b06137d4b96511396c18912ca2efbd25f496b65ef",
+      "f7fb93926497fb4daf40cc482375d41647f87398974a542b51449cd5ef9f6cd9",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "99d33488d2ae8617a6a680f8d54ec5cb1ed3fbdebd8950145cad78c879cbfae8",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -227,7 +227,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
       "027b3c891860c101ff748d1f126de72c4920b6eb8ac2dda81aa016af61ca18cf",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "ba6586b4a17a38e29a476369ead800303331d6ad7ddf30f085c10f931d491f71",
+      "71ed48032bcddc16dbf567909595d28e7430c4e8329f1766c8279da47bb33add",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "865f89d7504a7d1c3380449a2790801c60c1cfe5fa8f1aad54ffc51aa8d0cc7f",
     "all/copy-overwrite/scripts/lisa-hooks/discharge-work-item-gates.sh":
@@ -263,7 +263,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "6a01ba966c0db49fdf99b59a988bef2e3c6f591c53f60e4d265b115dfcc4c2c4",
+      "bd486eae70a94d56391b24d4bfccd9fd9185130b05c5e7b0d82e82a66a2929af",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/npm-updater-gate-runtime.json":
@@ -273,7 +273,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "fdb4437f15a0be6a5a14377d1efcd93b2fc7b0d86d780200a4df249ec1b8f3d1",
+      "a0c61991fc833118ac62449383a1ad44f3502f94b2d340176d93c654426269d8",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -925,13 +925,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/commands/wiki/install.md":
       "51392cf053c17edd549bfbaba5d19ce669dc79021aafa7cfa100324ad38de11f",
     "plugins/src/base/hooks/auto-update.mjs":
-      "20a3d7b70df8294a57bcd0db8d9f71364bdc3505b9eb05a185eade46ee265353",
+      "d3f4a7bb3ff59094bacb71f005709976a2ffa1a6e2b5fec103ef6d05c6ec97d4",
     "plugins/src/base/hooks/auto-update.sh":
       "4e09fb31e8d697b0f62d775b8b2bd4c535f9cfcf2423d99329cd4844a614b8af",
     "plugins/src/base/hooks/block-blind-automerge.agy.sh":
       "7a1263ea15df37a24d959944a9b9bfe579df189abf8e697f967bbaba9d3ffc90",
     "plugins/src/base/hooks/block-blind-automerge.sh":
-      "5c174101bd6bab55db77d389a2da136203d91d220fd6bd738ebe3a4fc0a32999",
+      "ca35a9ec2e2baebe43067c73758cbf82e61a9f199bb731df054264499e5c88d5",
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "7ec3db9a519a5ce95277d75ab347d2ee52970bc4ccb7ae554bccba8628290c19",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
@@ -951,9 +951,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.sh":
       "a4944924ed0573f056b5d7c629be3a2d35c403f4424814ef5d8384d3205833cb",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
-      "72a83be025d37044696586b6a8091a2e951f66b1bb96f94b3f123dec8a9ad729",
+      "fcc0ce4217657acf4ca99a4276e5e3eac8c7084c3e3b4a4bd906c598de15cc35",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "08169519f904e2dc0c043b2cda2273373c4040c6c733e6d620282b82fdcae30b",
+      "af016a310a6756e44b07d706c6a5013c46af437250e956c58ef6c80499b58ba3",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":

@@ -153,17 +153,58 @@ export const eventPairs = (event, name, width) => {
 };
 
 /**
+ * Git configuration exactly as the push itself sees it.
+ *
+ * gitEnvironment pins configuration so history reads cannot be steered, which
+ * is right for walking objects and wrong for naming a destination: the push
+ * resolved its URL, `pushurl`, `pushInsteadOf` and credentials through user,
+ * system and environment configuration, and a destination resolved under any
+ * other configuration may be a different repository.
+ */
+const remoteEnvironment = () => {
+  const environment = gitEnvironment();
+  for (const key of Object.keys(environment))
+    if (key.startsWith("GIT_CONFIG")) delete environment[key];
+  for (const [key, value] of Object.entries(process.env))
+    if (key.startsWith("GIT_CONFIG") && value !== undefined)
+      environment[key] = value;
+  return { ...environment, GIT_TERMINAL_PROMPT: "0" };
+};
+
+/**
+ * Run one destination-resolution read under the push's own configuration.
+ * @param {string[]} args Git arguments.
+ * @param {string} cwd Repository directory.
+ * @returns {string | null} Trimmed stdout, or null when Git refused or failed.
+ */
+const remoteRead = (args, cwd) => {
+  const result = spawnSync("git", ["--no-replace-objects", ...args], {
+    cwd,
+    env: remoteEnvironment(),
+    encoding: "utf8",
+    timeout: 60000,
+    maxBuffer: 64 * 1024 * 1024,
+    stdio: ["ignore", "pipe", "ignore"],
+  });
+  // probe-direction: fail-closed — every caller treats null as "the
+  // destination is unproved", which subtracts nothing from the scan.
+  if (result.error || result.signal || result.status !== 0) return null;
+  return result.stdout.trim();
+};
+
+/**
  * The repository a push is actually going to, from Git's pre-push arguments.
  *
  * Git calls the hook with the remote's name (or the URL, when the push named
- * no remote) and the URL it pushes to. That URL is the destination, so it wins
- * when present. A wrapper that forwards only the name gets the remote's PUSH
- * URL, which differs from its fetch URL when `remote.<name>.pushurl` is set.
- * Anything else is taken as the URL Git was given. A value that looks like an
- * option is never used.
+ * no remote) and the URL it pushes to, already rewritten by `pushInsteadOf`.
+ * That URL is the destination, so it wins when present. A wrapper that
+ * forwards only a remote NAME gets that remote's push URL, resolved under the
+ * push's own configuration; a remote with several push URLs, or a bare URL
+ * with no `$2`, cannot be pinned to one destination and returns null. A value
+ * that looks like an option is never used.
  * @param {string[]} remoteArgs Git's pre-push `$1` and `$2`, as forwarded.
  * @param {string} cwd Repository directory.
- * @returns {string | null} The destination, or null when none was given.
+ * @returns {string | null} The destination, or null when it cannot be proved.
  */
 export const pushDestination = (remoteArgs, cwd) => {
   const [remote, url] = remoteArgs ?? [];
@@ -171,18 +212,15 @@ export const pushDestination = (remoteArgs, cwd) => {
     typeof value === "string" && value !== "" && !value.startsWith("-");
   if (usable(url)) return url;
   if (!usable(remote)) return null;
-  const names = gitRead(["remote"], cwd).split("\n").filter(Boolean);
-  if (!names.includes(remote)) return remote;
-  return gitRead(["remote", "get-url", "--push", "--", remote], cwd) || null;
-};
-
-/** Credentials live in user and system config, which gitEnvironment drops. */
-const remoteEnvironment = () => {
-  const environment = gitEnvironment();
-  for (const key of ["GIT_CONFIG_GLOBAL", "GIT_CONFIG_NOSYSTEM"])
-    if (process.env[key] === undefined) delete environment[key];
-    else environment[key] = process.env[key];
-  return { ...environment, GIT_TERMINAL_PROMPT: "0" };
+  const names = (remoteRead(["remote"], cwd) ?? "").split("\n");
+  if (!names.includes(remote)) return null;
+  const urls = (
+    remoteRead(["remote", "get-url", "--push", "--all", "--", remote], cwd) ??
+    ""
+  )
+    .split("\n")
+    .filter(Boolean);
+  return urls.length === 1 ? urls[0] : null;
 };
 
 /**

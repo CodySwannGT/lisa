@@ -29,6 +29,9 @@ describe("block-no-verify.sh treats |& as a command boundary", () => {
     "(echo hi)|&git commit --no-verify -m x",
     "echo hi ;|& git commit --no-verify -m x",
     "echo hi |& git commit -n -m x",
+    // Quoted, `|&` is an argument (a path can be named so), not a boundary.
+    "git commit -m x '|&' -n",
+    'git commit -m x "|&" -n',
   ])("blocks %s", (command: string) => {
     expect(runHook(command)).toBe(EXIT_BLOCKED);
   });

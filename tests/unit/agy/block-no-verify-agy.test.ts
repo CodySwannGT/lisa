@@ -316,6 +316,7 @@ describe("block-no-verify.agy.sh", () => {
     "echo hi |& git commit --no-verify -m x",
     "(echo hi)|&git commit --no-verify -m x",
     "echo hi |& git commit -n -m x",
+    "git commit -m x '|&' -n",
   ])("denies %s", command => {
     expect(decide(payload(command))).toBe("deny");
   });

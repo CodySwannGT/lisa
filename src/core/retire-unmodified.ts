@@ -39,7 +39,8 @@
  * @module core/retire-unmodified
  */
 import { createHash } from "node:crypto";
-import { readdir, readFile } from "node:fs/promises";
+import { constants as fsConstants } from "node:fs";
+import { open, readdir, readFile } from "node:fs/promises";
 import * as path from "node:path";
 
 import type { DeletionsConfig } from "./config.js";
@@ -108,6 +109,34 @@ export function isShippedVersion(
   const text = bytes.toString("utf8");
   if (!text.includes("\r\n")) return false;
   return digests.has(digest(Buffer.from(text.replaceAll("\r\n", "\n"))));
+}
+
+/**
+ * The bytes of a regular file at a path, read without following a symlink.
+ *
+ * The proof that a retired file is unedited has to be about the entry that
+ * will be removed. Opening with `O_NOFOLLOW` and checking the type through the
+ * same descriptor binds the check and the bytes to one inode, so a symlink, or
+ * a regular file swapped for one between a check and a read, is unprovable.
+ * @param filePath - Absolute path
+ * @returns Its bytes, or null when it is not a readable regular file
+ */
+export async function readRegularFile(
+  filePath: string
+): Promise<Buffer | null> {
+  const handle = await open(
+    filePath,
+    fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW
+  ).catch(() => null);
+  if (handle === null) return null;
+  try {
+    const entry = await handle.stat();
+    return entry.isFile() ? await handle.readFile() : null;
+  } catch {
+    return null;
+  } finally {
+    await handle.close();
+  }
 }
 
 /**

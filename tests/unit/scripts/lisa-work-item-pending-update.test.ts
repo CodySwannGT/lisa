@@ -8,10 +8,14 @@
  * @module tests/unit/scripts/lisa-work-item-pending-update
  */
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -67,13 +71,16 @@ function git(cwd: string, args: string[]): string {
 }
 
 /**
- * The blob id git would record for a working-tree file.
+ * The identity the auto-update records for a working-tree file: its git mode
+ * and blob id.
  * @param root - Repository
  * @param file - Repo-relative path
- * @returns The blob id
+ * @returns `"<mode> <blob>"`
  */
 function blobOf(root: string, file: string): string {
-  return git(root, ["hash-object", "--", file]);
+  const mode =
+    statSync(path.join(root, file)).mode & 0o111 ? "100755" : "100644";
+  return `${mode} ${git(root, ["hash-object", "--", file])}`;
 }
 
 /**
@@ -193,6 +200,39 @@ describe("lisa-work-item: a pending Lisa update is committed first", () => {
     expect(readFileSync(path.join(root, PKG), "utf8")).toBe(
       '{"v":1,"mine":true}\n'
     );
+  });
+
+  it("leaves an executable-bit change alone for a human", () => {
+    const root = repoWithPendingUpdate("feat/x");
+    chmodSync(path.join(root, PKG), 0o755);
+    commitPendingLisaUpdate(REF, CONTRACT, root);
+    expect(git(root, LAST_SUBJECT)).not.toBe(
+      `chore(deps): update Lisa to ${TO}`
+    );
+    expect(existsSync(markerFile(root))).toBe(true);
+  });
+
+  it("leaves a symlink retargeted at identical bytes alone for a human", () => {
+    const root = repoWithPendingUpdate("feat/x");
+    writeFileSync(path.join(root, "a.txt"), "same\n");
+    writeFileSync(path.join(root, "b.txt"), "same\n");
+    symlinkSync("a.txt", path.join(root, "link.txt"));
+    writeFileSync(
+      markerFile(root),
+      JSON.stringify({
+        from: "4.66.5",
+        to: TO,
+        files: ["link.txt"],
+        digests: { "link.txt": "120000 link:a.txt" },
+      })
+    );
+    rmSync(path.join(root, "link.txt"));
+    symlinkSync("b.txt", path.join(root, "link.txt"));
+    commitPendingLisaUpdate(REF, CONTRACT, root);
+    expect(git(root, LAST_SUBJECT)).not.toBe(
+      `chore(deps): update Lisa to ${TO}`
+    );
+    expect(existsSync(markerFile(root))).toBe(true);
   });
 
   it("leaves a legacy marker without digests for a human", () => {

@@ -211,6 +211,7 @@ if [ -z "$command_str" ]; then
 fi
 
 if ! BLOCK_BLIND_AUTOMERGE_COMMAND="$command_str" python3 - <<'PY'
+import io
 import json
 import os
 import re
@@ -456,12 +457,40 @@ def shell_tokens(text):
     Returns:
         The token list, with `;`, `|`, `&&`, `(` and friends standing alone.
     """
-    lexer = shlex.shlex(
-        line_boundaries_as_separators(text), posix=True, punctuation_chars=True
-    )
+    stream = OperatorStream(line_boundaries_as_separators(text))
+    lexer = shlex.shlex(stream, posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
     lexer.commenters = ""
-    return [part for token in lexer for part in split_operators(token)]
+    stream.lexer = lexer
+    tokens = []
+    while True:
+        stream.literal_operator = False
+        token = lexer.get_token()
+        if token is None:
+            return tokens
+        # Quoted punctuation is an argument, never a boundary: a branch can be
+        # named `|&`, and `gh pr merge '|&' --auto` must keep `--auto` in the
+        # merge's own argv. Only real operator runs are split.
+        if stream.literal_operator:
+            tokens.append(
+                chr(0) + token if token in COMMAND_SEPARATORS else token
+            )
+        else:
+            tokens.extend(split_operators(token))
+
+
+class OperatorStream(io.StringIO):
+    """Remember punctuation read while shlex is inside a quote or escape."""
+
+    lexer = None
+    literal_operator = False
+
+    def read(self, size=-1):
+        value = super().read(size)
+        if (self.lexer is not None and self.lexer.state in {"'", '"', chr(92)}
+                and any(char in "();|&<>" for char in value)):
+            self.literal_operator = True
+        return value
 
 
 def is_gh(token):

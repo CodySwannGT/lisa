@@ -42,6 +42,7 @@ import { execFile } from "child_process";
 import {
   existsSync,
   lstatSync,
+  readlinkSync,
   mkdirSync,
   openSync,
   closeSync,
@@ -585,11 +586,14 @@ async function applyUpdate(ctx, update) {
  * still committing the update's bytes and not an edit made since
  * (CodySwannGT/lisa#4393).
  *
- * A path maps to its `git hash-object` blob id, or to null when it is absent
- * (the update deleted it). A path that is neither a file nor a symlink (a
- * directory, a submodule) is left OUT: it cannot be proved, and the reader
- * treats a missing entry as "differs", so it never auto-commits on it.
- * `lisa-work-item.mjs` recomputes these the same way.
+ * A path maps to `"<git mode> <identity>"`, or to null when it is absent (the
+ * update deleted it). A regular file is `100644`/`100755` plus its
+ * `git hash-object` blob id, so an executable-bit change alone is caught. A
+ * symlink is `120000 link:<target>`: hash-object follows a link and hashes what
+ * it reaches, so a link retargeted at identical bytes would otherwise read as
+ * unchanged. Anything else (a directory, a submodule) is left OUT: it cannot be
+ * proved, and the reader treats a missing entry as "differs", so it never
+ * auto-commits on it. `lisa-work-item.mjs` recomputes these the same way.
  * @param {(argv: string[], options: object) => Promise<string>} run Runner.
  * @param {string} cwd Project directory.
  * @param {readonly string[]} files Pending paths.
@@ -606,10 +610,20 @@ export async function workingTreeDigests(run, cwd, files) {
       digests[file] = null;
       continue;
     }
-    if (stat.isFile() || stat.isSymbolicLink()) present.push(file);
+    if (stat.isSymbolicLink())
+      digests[file] = `120000 link:${readlinkSync(path.join(cwd, file))}`;
+    else if (stat.isFile())
+      present.push([file, stat.mode & 0o111 ? "100755" : "100644"]);
   }
   if (present.length > 0) {
-    const ids = (await run(["git", "hash-object", "--", ...present], { cwd }))
+    const ids = (
+      await run(
+        ["git", "hash-object", "--", ...present.map(([file]) => file)],
+        {
+          cwd,
+        }
+      )
+    )
       .split("\n")
       .map(line => line.trim())
       .filter(Boolean);
@@ -618,8 +632,8 @@ export async function workingTreeDigests(run, cwd, files) {
       !ids.every(id => /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/u.test(id))
     )
       return null;
-    present.forEach((file, index) => {
-      digests[file] = ids[index];
+    present.forEach(([file, mode], index) => {
+      digests[file] = `${mode} ${ids[index]}`;
     });
   }
   return digests;

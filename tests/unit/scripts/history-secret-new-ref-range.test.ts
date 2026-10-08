@@ -89,11 +89,29 @@ describe("introduced history of a new remote ref", () => {
     );
   });
 
-  it("asks a destination given only as a URL", () => {
-    const { cwd, remote } = fixture();
+  it("asks the URL Git passes as the destination", () => {
+    const { cwd, remote, root, published } = fixture();
     const tip = commit(cwd, "next.txt", "next\n");
     expect(introduced(cwd, tip, [remote, remote])).toEqual([tip]);
-    expect(introduced(cwd, tip, [remote])).toEqual([tip]);
+    // A bare URL with no `$2` cannot be pinned past pushInsteadOf rewriting.
+    expect(introduced(cwd, tip, [remote])).toEqual(
+      [root, published, tip].sort(byText)
+    );
+  });
+
+  it("resolves a name-only push through pushInsteadOf and several push URLs", () => {
+    const { cwd, remote, root, published } = fixture();
+    const all = [root, published].sort(byText);
+    const elsewhere = join(scratch, "rewritten.git");
+    git(scratch, "init", "-q", "--bare", elsewhere);
+    git(cwd, "config", `url.${elsewhere}.pushInsteadOf`, remote);
+    expect(pushDestination(["upstream"], cwd)).toBe(elsewhere);
+    expect(introduced(cwd, published, ["upstream"])).toEqual(all);
+    git(cwd, "config", "--unset", `url.${elsewhere}.pushInsteadOf`);
+    git(cwd, "remote", "set-url", "--add", "--push", "upstream", remote);
+    git(cwd, "remote", "set-url", "--add", "--push", "upstream", elsewhere);
+    expect(pushDestination(["upstream"], cwd)).toBeNull();
+    expect(introduced(cwd, published, ["upstream"])).toEqual(all);
   });
 
   it("does not trust a tracking ref the destination no longer advertises", () => {

@@ -472,9 +472,15 @@ def shell_tokens(text):
         token = lexer.get_token()
         if token is None:
             return tokens
-        # Quoted punctuation is an argument and stays whole; only real
-        # operator runs are split (see `split_operators`).
-        tokens.extend([token] if stream.literal_operator else split_operators(token))
+        # Quoted punctuation is an argument, never a boundary: it stays whole,
+        # and a quoted separator is marked so no scan stops at it (a path or
+        # branch can be named `|&`). Only real operator runs are split.
+        if stream.literal_operator:
+            tokens.append(
+                chr(0) + token if token in COMMAND_SEPARATORS else token
+            )
+        else:
+            tokens.extend(split_operators(token))
 
 
 def cluster_skips_verification(cluster):

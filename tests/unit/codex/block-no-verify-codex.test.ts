@@ -222,6 +222,7 @@ describe("block-no-verify.sh (Codex variant)", () => {
     "echo hi |& git commit --no-verify -m x",
     "(echo hi)|&git commit --no-verify -m x",
     "echo hi |& git commit -n -m x",
+    "git commit -m x '|&' -n",
   ])("denies %s", command => {
     expect(decide(command)).toBe("deny");
   });

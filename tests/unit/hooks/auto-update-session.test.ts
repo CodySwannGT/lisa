@@ -8,6 +8,7 @@
  * @module tests/unit/hooks/auto-update-session.test
  */
 import {
+  chmodSync,
   mkdirSync,
   mkdtempSync,
   rmSync,
@@ -111,9 +112,9 @@ describe("auto-update: a session start", () => {
     );
     expect(pendingMarker(root)).toMatchObject({
       digests: {
-        [MANIFEST_FILE]: "1".repeat(40),
-        "bun.lock": "2".repeat(40),
-        ".lisa/apply-receipt.json": "3".repeat(40),
+        [MANIFEST_FILE]: `100644 ${"1".repeat(40)}`,
+        "bun.lock": `100644 ${"2".repeat(40)}`,
+        ".lisa/apply-receipt.json": `100644 ${"3".repeat(40)}`,
       },
     });
   });
@@ -134,7 +135,21 @@ describe("auto-update: a session start", () => {
     expect(seen).toEqual(["git hash-object -- package.json"]);
     expect(digests).toEqual({
       "bun.lock": null,
-      [MANIFEST_FILE]: "a".repeat(40),
+      [MANIFEST_FILE]: `100644 ${"a".repeat(40)}`,
+    });
+  });
+
+  it("records a symlink by its target and an executable by its mode", async () => {
+    const root = project({});
+    symlinkSync(MANIFEST_FILE, path.join(root, "link.json"));
+    chmodSync(path.join(root, "bun.lock"), 0o755);
+    const digests = await workingTreeDigests(async () => "b".repeat(40), root, [
+      "link.json",
+      "bun.lock",
+    ]);
+    expect(digests).toEqual({
+      "link.json": `120000 link:${MANIFEST_FILE}`,
+      "bun.lock": `100755 ${"b".repeat(40)}`,
     });
   });
 

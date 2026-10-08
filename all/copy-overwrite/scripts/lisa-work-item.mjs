@@ -13,6 +13,7 @@ import {
   chmodSync,
   existsSync,
   lstatSync,
+  readlinkSync,
   mkdirSync,
   readFileSync,
   renameSync,
@@ -4586,18 +4587,30 @@ function changedSinceUpdate(pending, files, cwd) {
       current.set(file, null);
       continue;
     }
-    if (stat.isFile() || stat.isSymbolicLink()) present.push(file);
+    // Same identity the auto-update recorded: git mode plus blob id for a
+    // file (so an executable-bit change alone counts), the link target for a
+    // symlink (hash-object would follow it to whatever it now reaches).
+    if (stat.isSymbolicLink())
+      current.set(file, `120000 link:${readlinkSync(resolve(cwd, file))}`);
+    else if (stat.isFile())
+      present.push([file, stat.mode & 0o111 ? "100755" : "100644"]);
   }
   if (present.length > 0) {
-    const ids = run("git", ["hash-object", "--", ...present], {
-      cwd,
-      allowFailure: true,
-    })
+    const ids = run(
+      "git",
+      ["hash-object", "--", ...present.map(([file]) => file)],
+      {
+        cwd,
+        allowFailure: true,
+      }
+    )
       .stdout.split("\n")
       .map(line => line.trim())
       .filter(Boolean);
     if (ids.length !== present.length) return [...files];
-    present.forEach((file, index) => current.set(file, ids[index]));
+    present.forEach(([file, mode], index) =>
+      current.set(file, `${mode} ${ids[index]}`)
+    );
   }
   return files.filter(
     file =>
