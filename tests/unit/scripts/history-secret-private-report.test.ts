@@ -64,7 +64,13 @@ describe("dedicated scanner invocation native transport", () => {
           (character, position) =>
             position <= index && character === target[index]
         );
-        [state[index], state[selected]] = [state[selected], state[index]];
+        const right = state[index];
+        const left = state[selected];
+        if (right === undefined || left === undefined)
+          throw new Error(
+            "Balanced permutation index is outside the alphabet."
+          );
+        [state[index], state[selected]] = [left, right];
         vi.mocked(randomInt).mockImplementationOnce(() => selected);
       }
       expect(state.join("").startsWith(word)).toBe(true);
