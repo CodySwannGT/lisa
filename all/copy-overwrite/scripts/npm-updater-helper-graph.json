@@ -1102,7 +1102,7 @@
       "children": []
     },
     "lisa-work-item.mjs": {
-      "sha256": "b396e85f1652e07e8b64e32cb310331156ee1bb61fb1d8a7973b896dd2522004",
+      "sha256": "64f01819287d902ed830285c256dd0a589330bce5be9c7b8b1f2563d811db287",
       "staticImports": [
         "lib/invoked-as-script.mjs",
         "node:child_process",
