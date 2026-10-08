@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 208,
-  "$names": 1612,
+  "$modules": 210,
+  "$names": 1623,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -105,7 +105,13 @@
       "canonicalJson",
       "exactKeys",
       "npmProposal",
+      "optionalLockFields",
+      "proposalFileNames",
       "trustedConfiguration"
+    ],
+    "all/copy-overwrite/scripts/lib/automation-provenance-files.mjs": [
+      "fileAbsent",
+      "privateBytes"
     ],
     "all/copy-overwrite/scripts/lib/automation-provenance-local.mjs": [
       "canonicalContext",
@@ -219,11 +225,18 @@
     "all/copy-overwrite/scripts/lib/npm-update-broker-client.mjs": [
       "invokeControllerRecipe"
     ],
+    "all/copy-overwrite/scripts/lib/npm-update-bun.mjs": [
+      "committedBun",
+      "frozenBun",
+      "qualifiedBun",
+      "verifyBunLock"
+    ],
     "all/copy-overwrite/scripts/lib/npm-update-cancel-origin.mjs": [
       "assertOriginTransport",
       "authenticateStaleOrigin",
       "committedCancellationConfig",
-      "completeCheckpoints"
+      "completeCheckpoints",
+      "originalDescriptor"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-cancellation-proof.mjs": [
       "CANCELLATION_PREDICATE",
@@ -258,6 +271,7 @@
       "UpdaterError",
       "VERSION",
       "keys",
+      "proposalFileNames",
       "proposalFrom",
       "required",
       "selectionKey",
@@ -359,6 +373,7 @@
       "qualifiedManagedFiles"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-hook-installation.mjs": [
+      "installOriginalManager",
       "originalHookInstallation",
       "originalPrePush"
     ],
