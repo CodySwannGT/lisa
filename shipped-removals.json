@@ -30,6 +30,16 @@
   "baseline": "v4.0.0",
   "removals": [
     {
+      "path": "rails/copy-contents/scripts/lisa-mutation.sh",
+      "issue": "CodySwannGT/lisa#4347",
+      "note": "The unchanged canonical template moved to all/copy-contents/scripts/lisa-mutation.sh so common-only npm updater hosts receive the complete helper inventory. The installed scripts/lisa-mutation.sh destination is retained and the copy-contents strategy is unchanged; do not delete the installed script or its host-owned wiring. Apply a release containing this relocation normally. Consumers reading Lisa's package-relative template source should use the new all/copy-contents path. This ledger records the relocation; no deletion manifest or completed host notification is claimed."
+    },
+    {
+      "path": "rails/copy-overwrite/scripts/lisa-clean-git-env.sh",
+      "issue": "CodySwannGT/lisa#4347",
+      "note": "The unchanged canonical template moved to all/copy-overwrite/scripts/lisa-clean-git-env.sh so common-only npm updater hosts receive the complete helper inventory. The installed scripts/lisa-clean-git-env.sh destination is retained; do not delete the installed script or its host-owned wiring. Apply a release containing this relocation normally. Consumers reading Lisa's package-relative template source should use the new all/copy-overwrite path. This ledger records the relocation; no deletion manifest or completed host notification is claimed."
+    },
+    {
       "export": "fetchNewestRun",
       "issue": "CodySwannGT/lisa#3418",
       "note": "Renamed to `fetchRunCandidates` in v4.26.1 and its shape changed with it: it reads a bounded page of runs (RUN_CANDIDATE_PAGE_SIZE) instead of `per_page: 1`, because scoring the newest run rather than the newest CONCLUSIVE one let a displaced, cancelled run overwrite the verdict of a run that tested everything. A host importing `fetchNewestRun` should import `fetchRunCandidates` and select with `runProducedEvidence(run, jobs)`; there is no drop-in single-run replacement, and asking for one would reintroduce the defect.",

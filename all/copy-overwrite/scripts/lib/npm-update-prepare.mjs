@@ -22,6 +22,7 @@ import {
   validateHost,
   validateLock,
   proposalFrom,
+  proposalFileNames,
 } from "./npm-update-contract.mjs";
 import {
   runProcess,
@@ -33,6 +34,7 @@ import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { qualifyLisaOwner } from "./npm-update-owner.mjs";
 export { qualifyLisaOwner } from "./npm-update-owner.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
+import { committedBun, qualifiedBun, frozenBun } from "./npm-update-bun.mjs";
 
 const NPM_FLAGS = ["--ignore-scripts", "--no-audit", "--no-fund"];
 
@@ -71,6 +73,8 @@ export async function baseline(cwd, env, proposal) {
       "utf8"
     );
   }
+  const bun = await committedBun(cwd, command, proposal);
+  if (bun !== undefined) files["bun.lock"] = bun;
   if (proposal)
     required(
       parent === proposal.parent &&
@@ -146,7 +150,7 @@ async function installUpdates(updates, npm, npmFlags) {
   }
 }
 
-/** Build only a two-file proposal in a private HOME, never executing repository scripts. */
+/** Preserve the exact original lock cohort in a private HOME without repository scripts. */
 async function preparedProposal({
   app,
   npm,
@@ -158,29 +162,47 @@ async function preparedProposal({
   version,
   outdated,
   installedBefore,
+  bun,
 }) {
   await installUpdates(updates, npm, npmFlags);
+  const names = Object.keys(original.files).sort();
+  if (bun)
+    await bun(
+      [
+        "install",
+        "--lockfile-only",
+        "--ignore-scripts",
+        "--registry",
+        "https://registry.npmjs.org/",
+      ],
+      { cwd: app }
+    );
   const files = Object.fromEntries(
-    FILES.map(file => [file, readFileSync(join(app, file), "utf8")])
+    names.map(file => [file, readFileSync(join(app, file), "utf8")])
   );
   const proposal = proposalFrom(
     policy,
     original.parent,
     before,
     files,
-    updates
+    updates,
+    bun ? sha256(original.files["bun.lock"]) : undefined
   );
   const hashes = Object.fromEntries(
-    FILES.map(file => [file, sha256(readFileSync(join(app, file)))])
+    proposalFileNames(proposal).map(file => [
+      file,
+      sha256(readFileSync(join(app, file))),
+    ])
   );
   await npm(["ci", ...npmFlags]);
+  if (bun) await frozenBun(bun, app, names);
   required(
-    FILES.every(file => hashes[file] === sha256(readFileSync(join(app, file)))),
+    names.every(file => hashes[file] === sha256(readFileSync(join(app, file)))),
     "npm ci rewrote manifest or lock"
   );
   required(
     readdirSync(app).sort().join("\n") ===
-      ["node_modules", ...FILES].sort().join("\n"),
+      ["node_modules", ...names].sort().join("\n"),
     "unexpected npm output path or lifecycle effect"
   );
   return {
@@ -224,11 +246,16 @@ export async function prepareUpdate({ cwd, policy: input, config }) {
     );
     await qualifyLisaOwner(cwd, before, policy, config, engineStrict);
     validateLock(JSON.parse(original.files["package-lock.json"]), before, []);
-    for (const file of FILES)
+    for (const file of Object.keys(original.files))
       writeFileSync(join(app, file), original.files[file], { mode: 0o600 });
+    const bun =
+      original.files["bun.lock"] === undefined
+        ? undefined
+        : await qualifiedBun(env);
     const npm = (args, allowed = [0]) =>
       runNpm(args, { cwd: app, env, timeout: 120_000, allowed });
     await npm(["ci", ...npmFlags]);
+    if (bun) await frozenBun(bun, app, Object.keys(original.files));
     const installedBefore = installedVersions(app, policy.packages);
     const outdated = await npm(["outdated", "--json", "--long"], [0, 1]);
     const detected = JSON.parse(outdated.stdout.toString() || "{}");
@@ -256,6 +283,7 @@ export async function prepareUpdate({ cwd, policy: input, config }) {
       version,
       outdated,
       installedBefore,
+      bun,
     });
   });
   required(!existsSync(privatePath), "private npm resources remain");

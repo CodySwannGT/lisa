@@ -63,7 +63,7 @@ if (invokedAsScript(import.meta.url)) {
   const rendered = renderScratchProfile(
     current,
     readFileSync(
-      path.join(root, "rails/copy-overwrite/scripts/lisa-scratch-run.sh")
+      path.join(root, "all/copy-overwrite/scripts/lisa-scratch-run.sh")
     )
   );
   if (process.argv.includes("--check")) {

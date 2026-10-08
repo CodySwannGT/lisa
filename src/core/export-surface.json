@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 205,
-  "$names": 1589,
+  "$modules": 210,
+  "$names": 1624,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -87,6 +87,9 @@
       "substituteMarker",
       "substitutePosted"
     ],
+    "all/copy-overwrite/scripts/check-threshold-ratchet.mjs": [
+      "invokedAsScript"
+    ],
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs": [
       "buildPopulationTest",
       "describe",
@@ -102,7 +105,13 @@
       "canonicalJson",
       "exactKeys",
       "npmProposal",
+      "optionalLockFields",
+      "proposalFileNames",
       "trustedConfiguration"
+    ],
+    "all/copy-overwrite/scripts/lib/automation-provenance-files.mjs": [
+      "fileAbsent",
+      "privateBytes"
     ],
     "all/copy-overwrite/scripts/lib/automation-provenance-local.mjs": [
       "canonicalContext",
@@ -140,6 +149,7 @@
     "all/copy-overwrite/scripts/lib/github-attestation-recovery.mjs": [
       "assertHistoricalAttestation",
       "assertRecoveryAttestation",
+      "observedRunChronology",
       "predictedCommit",
       "validateRecovery",
       "verifyHistoricalDescriptor",
@@ -216,11 +226,18 @@
     "all/copy-overwrite/scripts/lib/npm-update-broker-client.mjs": [
       "invokeControllerRecipe"
     ],
+    "all/copy-overwrite/scripts/lib/npm-update-bun.mjs": [
+      "committedBun",
+      "frozenBun",
+      "qualifiedBun",
+      "verifyBunLock"
+    ],
     "all/copy-overwrite/scripts/lib/npm-update-cancel-origin.mjs": [
       "assertOriginTransport",
       "authenticateStaleOrigin",
       "committedCancellationConfig",
-      "completeCheckpoints"
+      "completeCheckpoints",
+      "originalDescriptor"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-cancellation-proof.mjs": [
       "CANCELLATION_PREDICATE",
@@ -255,6 +272,7 @@
       "UpdaterError",
       "VERSION",
       "keys",
+      "proposalFileNames",
       "proposalFrom",
       "required",
       "selectionKey",
@@ -356,6 +374,7 @@
       "qualifiedManagedFiles"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-hook-installation.mjs": [
+      "installOriginalManager",
       "originalHookInstallation",
       "originalPrePush"
     ],
@@ -867,6 +886,32 @@
       "classifyWorktree",
       "main",
       "recordRemoval"
+    ],
+    "all/copy-overwrite/scripts/threshold-ratchet-compare.mjs": [
+      "applyAllowList",
+      "compareConstraints",
+      "compareFile",
+      "describeAllowList",
+      "formatReport"
+    ],
+    "all/copy-overwrite/scripts/threshold-ratchet-families.mjs": [
+      "ALLOW_STATE",
+      "FAMILIES",
+      "LIGHTHOUSE_ASSERTION_DIRECTIONS",
+      "allowEntryExpiry",
+      "classifyAllowEntry",
+      "describeAllowScope",
+      "extractAllowEntries",
+      "extractK6Constraints",
+      "extractLighthouseAssertions",
+      "extractNumericLeaves",
+      "extractRubocopThresholds",
+      "extractStrykerConstraints",
+      "extractStrykerMutate",
+      "familyFor",
+      "globRoot",
+      "parseJson",
+      "parseK6Expression"
     ],
     "expo/copy-overwrite/scripts/bdd-matrix.mjs": [
       "renderMatrix"

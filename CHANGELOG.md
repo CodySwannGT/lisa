@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.71.10](https://github.com/CodySwannGT/lisa/compare/v4.71.9...v4.71.10) (2026-10-08)
+
+
+### Bug Fixes
+
+* bound active npm checkpoint chronology by observation ([5222ce4](https://github.com/CodySwannGT/lisa/commit/5222ce450d2f1eb46642c351a2d5d8bd29a99773)), closes [CodySwannGT/lisa#4386](https://github.com/CodySwannGT/lisa/issues/4386) [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347) [CodySwannGT/lisa#4383](https://github.com/CodySwannGT/lisa/issues/4383)
+
+### [4.71.9](https://github.com/CodySwannGT/lisa/compare/v4.71.8...v4.71.9) (2026-10-08)
+
+
+### Bug Fixes
+
+* preserve the host choice for the official Sentry plugin ([e377045](https://github.com/CodySwannGT/lisa/commit/e3770459ff6c35d15800d305e81ca656c7eeb8e9))
+
+### [4.71.8](https://github.com/CodySwannGT/lisa/compare/v4.71.7...v4.71.8) (2026-10-08)
+
+
+### Bug Fixes
+
+* **ci:** qualify workflow startup failure diagnosis ([07bc657](https://github.com/CodySwannGT/lisa/commit/07bc65729421741c538a08c8e2d0ae550c23961e))
+* **ci:** report known failures from incomplete workflow scans ([ae0f310](https://github.com/CodySwannGT/lisa/commit/ae0f310cc79754f21d695201ab6dfbccac622ae8))
+* integrate optional Bun lock support with common helpers ([a441dd4](https://github.com/CodySwannGT/lisa/commit/a441dd48a72edd907183c35b97910a378114e165)), closes [CodySwannGT/lisa#4376](https://github.com/CodySwannGT/lisa/issues/4376) [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* materialize complete npm updater helpers for all hosts ([d712466](https://github.com/CodySwannGT/lisa/commit/d7124664d404e1abc30695fe542529877412b15f)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* record retained npm helper relocations ([feff082](https://github.com/CodySwannGT/lisa/commit/feff0822ed7c65507c0cb0bb5d8a132cc44c991e)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* reject invalid ratchet calls and weakened defaults ([45e595e](https://github.com/CodySwannGT/lisa/commit/45e595edbc0bc3153fd572b61f4a9f8097e6f756)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **updater:** preserve optional Bun lock coherence ([f39079f](https://github.com/CodySwannGT/lisa/commit/f39079fcf066486a7f393aacaf9d405983d704e8)), closes [CodySwannGT/lisa#4376](https://github.com/CodySwannGT/lisa/issues/4376)
+
+### [4.71.7](https://github.com/CodySwannGT/lisa/compare/v4.71.6...v4.71.7) (2026-10-08)
+
+
+### Bug Fixes
+
+* **ci:** contain required-check inputs by real path ([96df700](https://github.com/CodySwannGT/lisa/commit/96df7008509bf7ddb80ef07cf57c7cd0a28b9151))
+
 ### [4.71.6](https://github.com/CodySwannGT/lisa/compare/v4.71.5...v4.71.6) (2026-10-08)
 
 

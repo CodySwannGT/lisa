@@ -4,6 +4,7 @@
 /** A manual cancellation is a third fixed signing purpose, never publication or review authority. */
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { required, keys, FILES, OBJECT } from "./npm-update-contract.mjs";
+import { observedRunChronology } from "./github-attestation-recovery.mjs";
 import {
   verifiedRole,
   matchSigningTime,
@@ -105,7 +106,12 @@ export function assertManualCancellation(
 /** The closed subject preserves one stale origin and one exact replacement, with no published destination. */
 export function validateCancellation(value, expected) {
   keys(value, RECORD_KEYS);
-  keys(value.proposalHashes, FILES);
+  keys(
+    value.proposalHashes,
+    Object.hasOwn(expected.proposalHashes, "bun.lock")
+      ? ["bun.lock", ...FILES]
+      : FILES
+  );
   keys(value.destination, ["branch", "expectedBranchHead", "prNumber"]);
   required(
     value.version === 1 &&
@@ -271,14 +277,9 @@ export function assertRecordedCancellation(
     CANCELLATION_PREDICATE,
     "cancellation.json"
   );
-  const started = Date.parse(run.run_started_at);
-  const updated = Date.parse(run.updated_at);
-  required(
-    [started, updated].every(Number.isFinite) &&
-      started <= updated &&
-      updated <= now + 60_000,
-    "invalid cancellation provider chronology"
-  );
+  const chronology = observedRunChronology(run, now);
+  required(chronology, "invalid cancellation provider chronology");
+  const { start, end } = chronology;
   matchSigningTime(
     result.verifiedTimestamps,
     { ...policy, maxAgeSeconds: Number.MAX_SAFE_INTEGER },
@@ -287,7 +288,7 @@ export function assertRecordedCancellation(
   for (const time of result.verifiedTimestamps) {
     const signed = Date.parse(time.timestamp);
     required(
-      signed >= started - 60_000 && signed <= updated + 60_000,
+      signed >= start - 60_000 && signed <= end + 60_000,
       "cancellation signed outside provider chronology"
     );
   }

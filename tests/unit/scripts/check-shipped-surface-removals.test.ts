@@ -22,13 +22,12 @@
  *     of proportion.
  *
  * The first three run against this repository's own history rather than a
- * fixture, driving the SAME three real removals with the manifests swapped
+ * fixture, driving the same real removals with the manifests swapped
  * underneath, so no assertion there can be satisfied by editing a fixture.
  *
- * `classifyRemovedPath` is tested directly rather than end to end for the
- * consumer-bindable arms: the live window happens to contain only workflow
- * removals, so there is no real bindable removal to drive them with. Saying so
- * is better than a fixture that pretends otherwise.
+ * Relocated consumer-bindable scripts retain their installed destinations and
+ * require real action notes. The live missing-note control removes only those
+ * notes and requires the actual source removals to be reported.
  *
  * Per the Test Isolation house rule, expected values are HARDCODED rather than
  * computed by calling the functions under test.
@@ -82,6 +81,9 @@ const PLAIN_DESTINATION = "docs/thing.md";
 
 /** A removed destination a host may have wired into its own package.json. */
 const BINDABLE_DESTINATION = "scripts/check-thing.mjs";
+
+/** The retained-executable refusal shared by direct and live controls. */
+const UNRECORDED_BINDABLE = "unrecorded-bindable";
 
 /** The path used by the deletion-ancestry fixtures. */
 const FORCED_DESTINATION = "scripts/forced.mjs";
@@ -287,7 +289,7 @@ describe("classifyRemovedPath", () => {
 
   it("fails an unrecorded bindable executable with the retain-and-notify remedy", () => {
     const verdict = classifyRemovedPath(BINDABLE_DESTINATION, null, false);
-    expect(verdict?.kind).toBe("unrecorded-bindable");
+    expect(verdict?.kind).toBe(UNRECORDED_BINDABLE);
     expect(verdict?.reason).toContain("must NOT be propagated");
   });
 
@@ -610,10 +612,9 @@ describe("report rendering", () => {
  * removals with the manifests swapped underneath. Nothing here is a fixture, so
  * neither assertion can be satisfied by editing one.
  *
- * The removals in the window are three workflow files retired fleet-wide, all
- * of them declared in `typescript/deletions.json`. With the live manifests they
- * are governed and the detector must stay silent; with the manifests emptied
- * they are exactly the shape this gate exists to catch, and it must name them.
+ * Workflow removals are governed by deletion manifests; relocated executable
+ * sources are governed by retained-action notes. Keep the actual ledger in both
+ * manifest arms so clearing manifests still exposes the workflow removals.
  *
  * An implementation that reported nothing passes the second and fails the
  * first. One that ignored the manifests passes the first and fails the second.
@@ -623,6 +624,13 @@ describe("the removal detector, both arms", () => {
   const BASELINE = "v4.0.0";
   const REMOVED_IN_WINDOW =
     "typescript/create-only/.github/workflows/required-checks-drift.yml";
+
+  // The canonical loader validates path/export; its JS return type keeps all
+  // JSON properties unknown. This test view passes those same entries through.
+  const liveRemovals = (): Parameters<typeof indexRemovals>[0] =>
+    loadLedger(REPO_ROOT).removals as unknown as Parameters<
+      typeof indexRemovals
+    >[0];
 
   const window = (): {
     after: Map<string, object>;
@@ -636,7 +644,7 @@ describe("the removal detector, both arms", () => {
     const rows = findRemovedPaths({
       ...window(),
       baseline: BASELINE,
-      ledger: new Map(),
+      ledger: indexRemovals(liveRemovals()),
       manifests: readDeletionManifests(REPO_ROOT),
       root: REPO_ROOT,
     });
@@ -647,7 +655,7 @@ describe("the removal detector, both arms", () => {
     const rows = findRemovedPaths({
       ...window(),
       baseline: BASELINE,
-      ledger: new Map(),
+      ledger: indexRemovals(liveRemovals()),
       manifests: new Map(),
       root: REPO_ROOT,
     });
@@ -666,6 +674,29 @@ describe("the removal detector, both arms", () => {
       root: REPO_ROOT,
     });
     expect(rows.map(row => row.path)).not.toContain(REMOVED_IN_WINDOW);
+  });
+
+  it("requires retained-action notes for relocated consumer-bound scripts", () => {
+    const relocated = [
+      "rails/copy-contents/scripts/lisa-mutation.sh",
+      "rails/copy-overwrite/scripts/lisa-clean-git-env.sh",
+    ];
+    const rows = findRemovedPaths({
+      ...window(),
+      baseline: BASELINE,
+      ledger: indexRemovals(
+        liveRemovals().filter(entry => !relocated.includes(entry.path))
+      ),
+      manifests: readDeletionManifests(REPO_ROOT),
+      root: REPO_ROOT,
+    });
+    expect(rows.map(row => [row.path, row.kind])).toEqual([
+      ["rails/copy-contents/scripts/lisa-mutation.sh", UNRECORDED_BINDABLE],
+      [
+        "rails/copy-overwrite/scripts/lisa-clean-git-env.sh",
+        UNRECORDED_BINDABLE,
+      ],
+    ]);
   });
 });
 

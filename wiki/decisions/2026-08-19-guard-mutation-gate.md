@@ -350,7 +350,7 @@ nothing in `tests/` ever executes them to see whether they refuse:
 - `scripts/setup-deploy-key.sh`
 - `plugins/src/base/skills/lisa-jira-evidence/scripts/post-evidence.sh` and its
   `rails`/`expo` twins — three `exit 1` refusal paths, source-text greps only.
-- `rails/copy-contents/scripts/lisa-mutation.sh` — every `lisa-mutation` suite
+- `all/copy-contents/scripts/lisa-mutation.sh` — every `lisa-mutation` suite
   targets the `.mjs`; the referencing tests only write it into a fixture.
 - `expo/`, `nestjs/`, `harper-fabric/create-only/scripts/zap-baseline.sh`
 - Refusal paths only, in otherwise-action scripts: `scripts/lisa-update-local.sh`,
@@ -367,7 +367,7 @@ copies (its `|| exit 2` propagation is never asserted, though
 `tests/integration/support/pre-tool-refusal-harness.ts` already exposes a
 `taskExit` option for it), `scripts/lisa-github-repo-settings.sh`,
 `scripts/lisa-github-repo-setup.sh`,
-`rails/copy-overwrite/scripts/lisa-clean-git-env.sh`,
+`all/copy-overwrite/scripts/lisa-clean-git-env.sh`,
 `remote-agent-aws-setup.sh`, and `download-attachment.sh`. The `lint-on-edit.sh`
 sibling *does* have a refusal case asserting `toBe(2)`, which is what the others
 should look like.

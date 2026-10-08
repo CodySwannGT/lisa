@@ -65,6 +65,9 @@ const T_FIRST = "2026-09-27T05:00:00Z";
 
 /** Last startup_failure timestamp shared by the outage-shape tests. */
 const T_LAST = "2026-09-27T06:00:00Z";
+const NIGHTLY_WORKFLOW_PATH = ".github/workflows/nightly.yml";
+const CI_WORKFLOW_PATH = ".github/workflows/ci.yml";
+const INCOMPLETE_REASON = "paging stopped short.";
 
 describe("the entry point actually calls the detector", () => {
   it("imports the scanner and the adapter", () => {
@@ -147,6 +150,64 @@ describe("the entry point actually calls the detector", () => {
 
     expect(text).toContain("EVERY run in the window failed to start");
   });
+
+  it.each([1, 2])(
+    "does not infer an account outage from %s failed runs of one workflow",
+    count => {
+      const text = report({
+        loadFailures: [],
+        startupFailures: Array.from({ length: count }, (_, index) => ({
+          ...startupFailure(11 + index, T_FIRST),
+          path: CI_WORKFLOW_PATH,
+        })),
+        inspected: count,
+        inWindow: count,
+        covered: true,
+        reason: "",
+      });
+      expect(text).toContain("Inspect the workflow file");
+      expect(text).not.toContain("not a workflow-file error");
+      expect(text).not.toContain("account-, plan- or billing-level outage");
+    }
+  );
+
+  it("treats failures across workflows as an availability hypothesis", () => {
+    const text = report({
+      loadFailures: [],
+      startupFailures: ["ci", "deploy"].map((name, index) => ({
+        ...startupFailure(11 + index, T_FIRST),
+        path: `.github/workflows/${name}.yml`,
+      })),
+      inspected: 2,
+      inWindow: 2,
+      covered: true,
+      reason: "",
+    });
+    expect(text).toContain("Distinct workflow path(s): 2");
+    expect(text).toContain("may indicate");
+    expect(text).not.toContain("not a workflow-file error");
+  });
+
+  it.each([true, false])(
+    "keeps mixed attribution qualified when coverage is %s",
+    covered => {
+      const text = report({
+        loadFailures: [],
+        startupFailures: [
+          { ...startupFailure(11, T_FIRST), path: CI_WORKFLOW_PATH },
+          startupFailure(12, T_LAST),
+        ],
+        inspected: 3,
+        inWindow: 3,
+        covered,
+        reason: INCOMPLETE_REASON,
+      });
+      expect(text).toContain("One workflow file is identified among");
+      expect(text).toContain("BuildFailed");
+      expect(text).not.toContain("belong to one workflow");
+      expect(text).not.toContain("EVERY run in the window");
+    }
+  );
 });
 
 describe("a scheduled surface runs it at the failing moment", () => {
@@ -216,7 +277,7 @@ describe("the entry point's own behaviour, executed", () => {
       loadFailures: [],
       inspected: 100,
       covered: false,
-      reason: "paging stopped short.",
+      reason: INCOMPLETE_REASON,
     });
 
     expect(text).toContain("INCOMPLETE");
@@ -229,7 +290,7 @@ describe("the entry point's own behaviour, executed", () => {
       loadFailures: [
         {
           id: 7,
-          path: ".github/workflows/nightly.yml",
+          path: NIGHTLY_WORKFLOW_PATH,
           verdict: "load-failure",
         },
       ],
@@ -239,8 +300,30 @@ describe("the entry point's own behaviour, executed", () => {
     });
 
     expect(text).toContain("run 7");
-    expect(text).toContain(".github/workflows/nightly.yml");
+    expect(text).toContain(NIGHTLY_WORKFLOW_PATH);
     expect(text).toContain("NO jobs");
+  });
+
+  it("retains both kinds of known failure beside incomplete coverage", () => {
+    const text = report({
+      loadFailures: [
+        {
+          id: 7,
+          path: NIGHTLY_WORKFLOW_PATH,
+          verdict: "load-failure",
+        },
+      ],
+      startupFailures: [startupFailure(11, T_FIRST)],
+      inspected: 100,
+      covered: false,
+      reason: INCOMPLETE_REASON,
+    });
+    expect(text).toContain("INCOMPLETE");
+    expect(text).toContain("run 7");
+    expect(text).toContain("run 11");
+    expect(text).toContain("at least 1");
+    expect(text).not.toContain("EVERY run in the window");
+    expect(text).not.toContain("OK.");
   });
 
   it("reports a covered clean window plainly", () => {
