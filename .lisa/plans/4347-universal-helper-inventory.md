@@ -48,3 +48,14 @@ controls passed: complete qualification and missing, mutated and symlink refusal
 Six existing parity, single-source, hook route and graph suites passed 92 controls.
 The wrappers used their original dist/plugin builds and budgets. Three moved
 canonical scripts retain identical bytes; no authority selector was removed.
+
+The first original full push failed four removal-policy assertions after 26,497
+unit passes. The canonical checker correctly required retained-action notes for
+the two relocated scripts present in its unchanged v4.0.0 window. Record those
+source relocations without deleting installed destinations or claiming completed
+host notification. Both live manifest arms now read the actual canonical ledger;
+a separate live missing-note control still requires both bindable refusals. The
+detector, historical baseline, empty-manifest negative and original budgets stay
+unchanged. Coverage and integration were not reached in that failed push.
+The original focused wrapper then passed all 57 removal-policy controls without
+skips, including the missing-relocation-note refusal. Full push remains pending.
