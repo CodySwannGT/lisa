@@ -6,6 +6,7 @@ import {
   renameSync,
   symlinkSync,
   writeFileSync,
+  chmodSync,
 } from "node:fs";
 import { join } from "node:path";
 import { createSupervisedUnixFixture } from "../../helpers/supervised-unix-fixture.js";
@@ -17,6 +18,7 @@ import {
   failureMetadata,
   hookWitness,
 } from "../../fixtures/npm-update-hosted-runtime/observations.mjs";
+import { browser } from "../../fixtures/npm-update-hosted-runtime/components.mjs";
 
 useIoLatencyBudget();
 const SUMMARY = "summary.json";
@@ -36,6 +38,56 @@ function fixture(operation: (root: string) => Promise<void> | void) {
 }
 
 describe("closed runtime qualification diagnostics", () => {
+  it("passes the required internal-URL flag to a real command consumer without changing sandbox requirements", async () => {
+    await fixture(async root => {
+      // This native synthetic consumer models Chrome's documented flag contract; it does not qualify Chrome or Ubuntu.
+      const command = join(root, "browser-consumer");
+      writeFileSync(
+        command,
+        `#!${process.execPath}\nconst args=process.argv.slice(2);\nif(!args.includes('--allow-chrome-scheme-url')) process.exit(17);\nif(!args.includes('--headless=new') || !args.includes('--dump-dom') || args.at(-1)!=='chrome://sandbox' || args.includes('--no-sandbox')) process.exit(18);\nprocess.stdout.write('You are adequately sandboxed.<td>SUID Sandbox</td><td>Yes</td>');\n`,
+        { flag: "wx", mode: 0o600 }
+      );
+      chmodSync(command, 0o700);
+      const records: object[] = [];
+      const native = nativeRecorder(root, Date.now() + 60000, records);
+      await expect(
+        browser(root, { cwd: root, env: { CHROME_BINARY: command } }, native)
+      ).resolves.toEqual({
+        nativeSandboxVerified: true,
+        suidSandboxActive: true,
+        driverSessionVerified: false,
+      });
+      expect(records).toEqual([
+        expect.objectContaining({ stage: "browser", status: 0 }),
+      ]);
+    });
+  });
+  it("bounds a real hanging browser-stage child and retains remaining phase time for cleanup observations", async () => {
+    await fixture(async root => {
+      const records: object[] = [];
+      const deadline = Date.now() + 60000;
+      const native = nativeRecorder(root, deadline, records);
+      await expect(
+        native("browser", root, {}, process.execPath, [
+          "-e",
+          "process.stdout.write(String(process.pid)); setTimeout(() => {}, 12000);",
+        ])
+      ).rejects.toMatchObject({ code: null });
+      const pid = Number(readFileSync(join(root, CAPTURE_FILE), "utf8"));
+      expect(Number.isSafeInteger(pid) && pid > 0).toBe(true);
+      expect(() => process.kill(pid, 0)).toThrow(
+        expect.objectContaining({ code: "ESRCH" })
+      );
+      expect(Date.now()).toBeLessThan(deadline);
+      await expect(
+        native(STAGE, root, {}, process.execPath, ["-e", ""])
+      ).resolves.toMatchObject({ code: 0 });
+      expect(records).toEqual([
+        expect.objectContaining({ stage: "browser", status: null }),
+        expect.objectContaining({ stage: STAGE, status: 0 }),
+      ]);
+    });
+  });
   it("retains real exit17 output privately while exporting only closed status, sizes and hashes", async () => {
     await fixture(async root => {
       const records: object[] = [];

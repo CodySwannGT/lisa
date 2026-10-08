@@ -43,7 +43,7 @@ function privateFiles(directory, user, password, created) {
   const rootPassword = randomBytes(32).toString("hex");
   const values = {
     "root-password": rootPassword,
-    "admin.cnf": `[client]\nuser=root\npassword=${rootPassword}\n`,
+    "admin.cnf": `[client]\nuser=root\npassword=${rootPassword}\nhost=127.0.0.1\nprotocol=TCP\nget-server-public-key=1\n`,
     "app.cnf": `[client]\nuser=${user}\npassword=${password}\nhost=127.0.0.1\nprotocol=TCP\nget-server-public-key=1\n`,
   };
   return Object.entries(values).map(([name, value]) => {

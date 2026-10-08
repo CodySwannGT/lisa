@@ -9,7 +9,6 @@ import { runtimeBinding } from "../../../all/copy-overwrite/scripts/lib/npm-upda
 import { originalHookEnvironment } from "../../../all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs";
 import { prepareApplication } from "./application.mjs";
 import { failureMetadata, hookWitness } from "./observations.mjs";
-
 const QUIET = "--quiet";
 const NO_TRUNC = "--no-trunc";
 const GIT = "/usr/bin/git";
@@ -67,7 +66,7 @@ async function census(native, stage, source, docker) {
  * @param {function(string, string, object, string, Array<string>): Promise<object>} native Original supervised recorder.
  * @returns {Promise<object | undefined>} Checked component observation or earlier refusal.
  */
-async function browser(root, application, native) {
+export async function browser(root, application, native) {
   const profile = join(root, "browser-profile");
   const state = {};
   mkdirSync(profile, { mode: 0o700 });
@@ -78,6 +77,7 @@ async function browser(root, application, native) {
     application.env.CHROME_BINARY,
     [
       "--headless=new",
+      "--allow-chrome-scheme-url",
       "--no-first-run",
       "--no-default-browser-check",
       `--user-data-dir=${profile}`,

@@ -12,6 +12,9 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
+import { useIoLatencyBudget } from "../../helpers/io-latency-budget.js";
+
+useIoLatencyBudget();
 
 const observation = vi.hoisted(() => ({ path: "", reads: 0 }));
 vi.mock("node:fs", async importOriginal => {
@@ -57,6 +60,55 @@ async function fixture(operation: (value: any) => Promise<void>) {
 }
 
 describe("closed native Rails tool qualification", () => {
+  it.each([false, true])(
+    "uses one immutable Ubuntu snapshot for native package update and install (browser=%s)",
+    async browser => {
+      const { installRailsPackages } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-rails-tools.mjs");
+      const { runProcess } =
+        await import("../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs");
+      await fixture(async ({ root }) => {
+        // The native child models a retired moving-mirror pin, not an Ubuntu install.
+        const entry = join(root, "apt-transport.mjs");
+        writeFileSync(
+          entry,
+          'const args = process.argv.slice(2); if (args[0] !== "-n" || args[1] !== "/usr/bin/apt-get" || !args.includes("--snapshot=20261008T000000Z")) process.exit(17); process.stdout.write(JSON.stringify(args));\n',
+          { flag: "wx", mode: 0o600 }
+        );
+        const calls: string[][] = [];
+        const libraries = await installRailsPackages(
+          async (command: string, args: string[]) => {
+            expect(command).toBe("/usr/bin/sudo");
+            const result = await runProcess(
+              process.execPath,
+              [entry, ...args],
+              {
+                env: { HOME: root, PATH: "/usr/bin:/bin" },
+                timeout: 2000,
+                maximum: 4096,
+              }
+            );
+            calls.push(JSON.parse(result.stdout.toString()));
+            return result;
+          },
+          browser
+        );
+        expect(calls).toHaveLength(2);
+        expect(calls[0]).toContain("update");
+        expect(calls[1]).toContain("install");
+        expect(calls[1]).toContain(
+          "libmariadb-dev=1:10.11.14-0ubuntu0.24.04.1"
+        );
+        expect(calls[1]).toContain(
+          "libmariadb-dev-compat=1:10.11.14-0ubuntu0.24.04.1"
+        );
+        expect(calls[1]?.filter(value => value.includes("="))).toHaveLength(
+          browser ? 22 : 3
+        );
+        expect(libraries).toHaveLength(browser ? 19 : 0);
+      });
+    }
+  );
   it("refuses an aliased Ruby path before reading its synthetic foreign target", async () => {
     const { qualifyRailsRuby } =
       await import("../../../all/copy-overwrite/scripts/lib/npm-update-rails-tool-identity.mjs");

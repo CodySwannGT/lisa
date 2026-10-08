@@ -305,3 +305,95 @@ isolation cases and ten fixed-tool qualification controls. Actual loaded version
 were Ruby 3.4.11 and ActiveRecord 8.1.4. This is focused native GREEN, including the
 previously failing boundaries, without claiming another aggregate push or hosted
 runtime result.
+
+### PR review: final-server readiness and stable Ubuntu pins
+
+The corrected original full push passed 26,882 unit tests and 3,290 integration
+tests, the original coverage gate, and positive owned supervisor/root cleanup.
+PR #4389 was published at the reviewed head. The initial hosted traceability
+failure preceded its canonical managed backlink; the exact failed job was
+rerun after that backlink was verified. The review-evidence settle timeout and
+all original failures remain retained; CodeRabbit subsequently completed a
+substantive review with two concrete findings.
+
+The administrator defaults lacked a TCP selector and could query the official
+image's temporary `--skip-networking` initialization server through its Unix
+socket. A real private-file control reached the missing host/protocol/public-key
+fields without printing credentials. The minimal defaults correction selects
+TCP `127.0.0.1`, matching the existing least-privilege application's transport.
+This control uses synthetic Docker replies and is not a native MySQL-server
+proof or an attribution of any previous failed runtime.
+
+Moving Ubuntu mirrors can retire exact package versions. The selected fixed
+snapshot `20261008T000000Z` was read through the official HTTPS service: all six
+AMD64 main/universe indexes match their InRelease SHA-256 entries and contain
+all 21 unchanged pinned package/version pairs. Native apt signature and install
+qualification remains pending. Extracting the existing two bounded apt calls
+unchanged enabled a reaching native command-transport RED: two synthetic
+retired-mirror controls failed with actual child exit 17. Both fixed update and
+install now select that same snapshot; the exact roster, signed profile,
+authentication ordering and original deadlines remain unchanged. Actual
+Ubuntu component success and composed canonical Bot acceptance remain separate
+mandatory evidence; no local command fixture supplies either claim.
+
+Final affected native controls passed 40 cases across the two complete unit
+files, and the exact-file original supervisor passed all six emitted-script
+stack cases. The first integration package-script invocation mistakenly selected
+the whole integration directory; only its freshly identified original supervisor
+received TERM. That run remains interrupted (143), with its retained process
+identities/groups and scratch-prefix inventories positively absent before the
+exact-file rerun. It supplies no aggregate acceptance. Scoped ESLint passed the
+two tests but ignored both managed source files under the existing configuration;
+no managed-source ESLint pass is claimed. The genuine whole typecheck passed
+with the existing 362-file quarantine, zero new/stale entries, and zero engine
+floor violations; the existing historical diagnostic backlog is unchanged.
+
+### Actual Ubuntu component failure and bounded internal-page probe
+
+The initial Ubuntu component run 37752346885 at PR head b50db90 failed. Its
+actual checkout was the Actions merge head 29baaea; retained executed source
+pins identify the reviewed source. The metadata confirms actual Ubuntu AMD64,
+qualified native tools, four prepared database roles and both original hook
+statuses zero. The browser stage then consumed 1,699,418 milliseconds until
+the original phase deadline. Its stderr was retained only as a size and digest
+in the uploaded summary, so the historical launch warning is unavailable.
+Runtime closing and the final foreign census refused after deadline expiry;
+owned-root absence and foreign-resource preservation are not established.
+This run remains a failure and does not supply runtime acceptance.
+
+The component command requested `chrome://sandbox` without the documented
+`--allow-chrome-scheme-url` prerequisite, required since Chrome 123. Adding that
+fixed flag preserves every sandbox setting and the actual SUID status assertion.
+This is source-backed repair of a missing prerequisite, not attribution of the
+unavailable historical stderr. The fixture recorder now bounds only its browser
+operation to the existing 10-second runtime-operation budget, still capped by
+the unchanged absolute 30-minute phase. Other stage bounds remain unchanged.
+Timeout retains actual native failure and private captures instead of exhausting
+the entire phase before owned cleanup can be attempted.
+
+Two reaching controls initially failed: a real owned synthetic command consumer
+exited 17 without the flag, and a real 12-second child completed under the former
+browser bound. These controls qualify command transport and supervision, not
+Chrome, Ubuntu, provider authority or canonical Bot acceptance. An intermediate
+corrected run exposed the fixture's nonexistent macOS `/bin/true` probe; its
+failure is retained and the harmless follow-up uses the same selected Node
+executable. Actual Ubuntu component success with positive cleanup remains
+mandatory on the revised published head before merge or release.
+
+Primary prerequisite reference:
+https://developer.chrome.com/docs/automation-and-testing/headless-cli
+
+The final formatted component unit file passed all nine controls, including
+positive ESRCH absence of its recorded owned child after the native timeout and
+a successful subsequent selected Node command within the same original phase.
+The first scoped ESLint invocation overlapped the wrapper's dist regeneration
+and failed to resolve the configured generated ESLint entry; that failure is
+retained and a sequential final check is required. It is not treated as a
+source lint pass or an unavailable external dependency.
+
+The sequential component lint then caught two definition-order findings in the
+small probe refactor. Keeping the original predeclared observation state closes
+both findings without changing probe behavior; all three component/test paths
+pass the actual scoped ESLint check. The final source remains within the original
+300-line ceiling without introducing another runtime helper or changing the
+authenticated controller inventory.

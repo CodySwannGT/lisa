@@ -151,7 +151,7 @@ export function nativeRecorder(captures, deadline, records) {
       state.result = await runProcess(command, args, {
         cwd,
         env,
-        timeout: runtimeTime(deadline, 1800000),
+        timeout: runtimeTime(deadline, stage === "browser" ? 10000 : 1800000),
         maximum: 3145728,
       });
     } catch (error) {

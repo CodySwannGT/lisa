@@ -296,6 +296,30 @@ afterEach(() => {
 });
 
 describe("fixed MySQL runtime ownership (synthetic native protocol)", () => {
+  it("pins administrator readiness to final-server TCP rather than the temporary init socket", async () => {
+    const runtime = await open();
+    try {
+      const mount = fixture.mounts.find(
+        value =>
+          (value as { Destination: string }).Destination ===
+          "/run/lisa-admin.cnf"
+      ) as { Source: string };
+      const fields = Object.fromEntries(
+        readFileSync(mount.Source, "utf8")
+          .split("\n")
+          .filter(line => line.includes("="))
+          .map(line => line.split("="))
+      );
+      // Never print the generated credential when the transport assertion fails.
+      expect({
+        host: fields.host,
+        protocol: fields.protocol,
+        publicKey: fields["get-server-public-key"],
+      }).toEqual({ host: "127.0.0.1", protocol: "TCP", publicKey: "1" });
+    } finally {
+      await runtime.close();
+    }
+  });
   it("exports only closed observed Rails headers and fixed fixture source locations", async () => {
     const { observeMysqlFailure } =
       await import("../../fixtures/npm-update-rails-mysql-observation.mjs");

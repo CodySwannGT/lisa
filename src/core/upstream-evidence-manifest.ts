@@ -157,7 +157,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-rails-mysql-resource.mjs":
       "550fe354adcd3510f932b3e19ab214dca4209f2f6d3459acabba73f749d5c54f",
     "all/copy-overwrite/scripts/lib/npm-update-rails-mysql-storage.mjs":
-      "8c68d03611e1e1e735e0f42b61db4847807a0eabbca80d5f1348b2ff3c63ea1f",
+      "23aba977c213416e9631a1996c9fde9a766015d8061412aa6daea12ba461e118",
     "all/copy-overwrite/scripts/lib/npm-update-rails-mysql.mjs":
       "d78f11d23f02fe33486c0eaf4709b517a20b8fbde2af1ce22bce1a6d1fb261ee",
     "all/copy-overwrite/scripts/lib/npm-update-rails-runtime-contract.mjs":
@@ -167,7 +167,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-rails-tool-identity.mjs":
       "fbc6299ebaa9b6af346693aa8a3e4e8db23e5b4ad86464853bfd206d7e9c94b8",
     "all/copy-overwrite/scripts/lib/npm-update-rails-tools.mjs":
-      "946d04bf25eecccd1f57c18379b3bd738dfa2e529245b42ac7a08551197fba69",
+      "a8f6be860dac7fd4f5ef663f42af3fa3e2d5e11c8e96c1ca2286b5eaaaa0ec5c",
     "all/copy-overwrite/scripts/lib/npm-update-recovery.mjs":
       "03102ec2285c99f985577e3fef20b63c32055712d46c3c9464741756a8eccff0",
     "all/copy-overwrite/scripts/lib/npm-update-runtime-archive.mjs":
@@ -291,7 +291,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "93875fef09d764a84ce9bb255b55dc0bd02e323ba32c02a8c21b276761a79cbc",
+      "cc470166e767e41237dc9f6e990078ff303766dc091edac2ec9686d81e6d7299",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":

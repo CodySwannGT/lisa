@@ -780,6 +780,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "550fe354adcd3510f932b3e19ab214dca4209f2f6d3459acabba73f749d5c54f",
   ]),
   "scripts/lib/npm-update-rails-mysql-storage.mjs": Object.freeze([
+    "23aba977c213416e9631a1996c9fde9a766015d8061412aa6daea12ba461e118",
     "8c68d03611e1e1e735e0f42b61db4847807a0eabbca80d5f1348b2ff3c63ea1f",
   ]),
   "scripts/lib/npm-update-rails-mysql.mjs": Object.freeze([
@@ -797,6 +798,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lib/npm-update-rails-tools.mjs": Object.freeze([
     "946d04bf25eecccd1f57c18379b3bd738dfa2e529245b42ac7a08551197fba69",
+    "a8f6be860dac7fd4f5ef663f42af3fa3e2d5e11c8e96c1ca2286b5eaaaa0ec5c",
   ]),
   "scripts/lib/npm-update-recovery.mjs": Object.freeze([
     "03102ec2285c99f985577e3fef20b63c32055712d46c3c9464741756a8eccff0",
@@ -1860,6 +1862,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "baa8ffc248ce29c30d10b579960b34b7836c7d7f47651ced3cbb551dfee65291",
     "bddb9b01bb7553dfd54b13d128b053d8def52bee69b591906aa6ce4a270aafcd",
     "c11328d3d4fd6d0f82ad51afc21f710877bd8dd2643c9d1a7d0fd2fed60358eb",
+    "cc470166e767e41237dc9f6e990078ff303766dc091edac2ec9686d81e6d7299",
     "d2c230dbd3530523e8d3abd6c66a5584987a2588b6861394522447854fa89f0e",
     "d2ea6e10d3023a39f4e63121858beabe66e7a8139eaabd1ce9593212fd8c5980",
     "e5c773e09e6ce00c02300d29be403fadcee92e439fd6ae25e28c5f3c93af8ccc",
@@ -2694,6 +2697,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "550fe354adcd3510f932b3e19ab214dca4209f2f6d3459acabba73f749d5c54f",
   ]),
   "scripts/lib/npm-update-rails-mysql-storage.mjs": Object.freeze([
+    "23aba977c213416e9631a1996c9fde9a766015d8061412aa6daea12ba461e118",
     "8c68d03611e1e1e735e0f42b61db4847807a0eabbca80d5f1348b2ff3c63ea1f",
   ]),
   "scripts/lib/npm-update-rails-mysql.mjs": Object.freeze([
@@ -2711,6 +2715,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lib/npm-update-rails-tools.mjs": Object.freeze([
     "946d04bf25eecccd1f57c18379b3bd738dfa2e529245b42ac7a08551197fba69",
+    "a8f6be860dac7fd4f5ef663f42af3fa3e2d5e11c8e96c1ca2286b5eaaaa0ec5c",
   ]),
   "scripts/lib/npm-update-recovery.mjs": Object.freeze([
     "03102ec2285c99f985577e3fef20b63c32055712d46c3c9464741756a8eccff0",
@@ -3704,6 +3709,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "baa8ffc248ce29c30d10b579960b34b7836c7d7f47651ced3cbb551dfee65291",
     "bddb9b01bb7553dfd54b13d128b053d8def52bee69b591906aa6ce4a270aafcd",
     "c11328d3d4fd6d0f82ad51afc21f710877bd8dd2643c9d1a7d0fd2fed60358eb",
+    "cc470166e767e41237dc9f6e990078ff303766dc091edac2ec9686d81e6d7299",
     "d2c230dbd3530523e8d3abd6c66a5584987a2588b6861394522447854fa89f0e",
     "d2ea6e10d3023a39f4e63121858beabe66e7a8139eaabd1ce9593212fd8c5980",
     "e5c773e09e6ce00c02300d29be403fadcee92e439fd6ae25e28c5f3c93af8ccc",

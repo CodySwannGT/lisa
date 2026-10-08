@@ -41,6 +41,7 @@ export { assertDockerQualified, runtimeTime, toolIdentity };
 const CLIENT = SUPPORTED_RAILS_CLIENT;
 const BROWSER = "154.0.8037.92";
 const SUDO = "/usr/bin/sudo";
+const SNAPSHOT = "--snapshot=20261008T000000Z";
 
 /** Observe the actual supported OS; no caller-supplied platform can authorize installation. */
 function hostedPlatform() {
@@ -213,6 +214,24 @@ async function prepareDocker(root, profile, step, deadline) {
   return docker;
 }
 
+/** One immutable signed Ubuntu snapshot retains the fixed roster when moving mirrors retire pins. */
+export async function installRailsPackages(step, browser) {
+  const libraries = browser ? SUPPORTED_RAILS_BROWSER : [];
+  await step(SUDO, ["-n", "/usr/bin/apt-get", SNAPSHOT, "update"]);
+  await step(SUDO, [
+    "-n",
+    "/usr/bin/apt-get",
+    SNAPSHOT,
+    "install",
+    "--yes",
+    "--no-install-recommends",
+    `libmariadb-dev=${CLIENT}`,
+    `libmariadb-dev-compat=${CLIENT}`,
+    ...libraries,
+  ]);
+  return libraries;
+}
+
 /** Caller authentication precedes this fixed route; signed policy is rechecked before all side effects. */
 export async function prepareRailsTools(context, root, env, profile) {
   assertRuntimeBinding(context.proposal, context.policy);
@@ -230,18 +249,7 @@ export async function prepareRailsTools(context, root, env, profile) {
       maximum,
     });
   const ruby = await qualifyRailsRuby(environment, context.deadline);
-  const libraries = profile.browser ? SUPPORTED_RAILS_BROWSER : [];
-  await step(SUDO, ["-n", "/usr/bin/apt-get", "update"]);
-  await step(SUDO, [
-    "-n",
-    "/usr/bin/apt-get",
-    "install",
-    "--yes",
-    "--no-install-recommends",
-    `libmariadb-dev=${CLIENT}`,
-    `libmariadb-dev-compat=${CLIENT}`,
-    ...libraries,
-  ]);
+  const libraries = await installRailsPackages(step, profile.browser);
   const client = await qualifyRailsClient(step);
   for (const library of libraries) {
     const [name, expected] = library.split("=");

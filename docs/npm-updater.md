@@ -27,6 +27,11 @@ Chrome/ChromeDriver and the qualified vendor SUID sandbox; it does not disable
 the sandbox or alter AppArmor policy. Docker fixture opt-in installs fixed
 Compose/Buildx plugins in a private config containing no inherited credentials.
 Every step and owned cleanup consumes the original absolute gate deadline.
+The fixed Ubuntu package versions come from the signed
+`20261008T000000Z` Ubuntu snapshot for both index update and installation, so
+moving archive updates cannot remove a required pinned version. Administrator
+readiness uses TCP to `127.0.0.1`; the image's temporary initialization server
+has networking disabled and cannot satisfy that check through its Unix socket.
 Source and synthetic protocol controls do not establish Ubuntu execution,
 genuine Actions Bot publication or protected-check acceptance.
 
@@ -99,3 +104,9 @@ The signed cancellation checkpoint is persisted before the old leaf closes as `n
 Publication reports `published-awaiting-review`. It neither approves nor merges its PR, changes protection rules, closes the implementation ticket or treats absent, skipped, stale or pending checks as success. Ordinary human review and actual runtime verification remain required. A local unit control is not Linux runtime qualification or hosted release proof.
 
 The project-owned `npm-updater-runtime-qualification.yml` job exercises the fixed Ubuntu tools and owned four-role Rails runtime with a generic application, original Lefthook commit/pre-push hooks and Chrome's active SUID sandbox. It uploads only bounded status, sizes, hashes and cleanup metadata; native output remains private on the ephemeral runner. The qualified browser is exposed through both `CHROME_BIN` and `CHROME_BINARY` with the same verified path. This component route explicitly reports `providerAuthorityVerified=false`, `productionHostedGateVerified=false` and `driverSessionVerified=false`. Its results cannot replace the authenticated production gate, a genuine ChromeDriver session or actual Bot publication and protected-consumer acceptance.
+
+The internal sandbox-page probe supplies Chrome's required
+`--allow-chrome-scheme-url` flag. Its native browser operation is capped at ten
+seconds within the unchanged absolute phase deadline, retaining time for owned
+cleanup after an early browser refusal. All other component stage bounds and
+production gate deadlines remain unchanged.

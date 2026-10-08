@@ -859,7 +859,7 @@
       "children": []
     },
     "lib/npm-update-rails-mysql-storage.mjs": {
-      "sha256": "8c68d03611e1e1e735e0f42b61db4847807a0eabbca80d5f1348b2ff3c63ea1f",
+      "sha256": "23aba977c213416e9631a1996c9fde9a766015d8061412aa6daea12ba461e118",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/npm-update-contract.mjs",
@@ -919,7 +919,7 @@
       "children": []
     },
     "lib/npm-update-rails-tools.mjs": {
-      "sha256": "946d04bf25eecccd1f57c18379b3bd738dfa2e529245b42ac7a08551197fba69",
+      "sha256": "a8f6be860dac7fd4f5ef663f42af3fa3e2d5e11c8e96c1ca2286b5eaaaa0ec5c",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/npm-update-contract.mjs",
