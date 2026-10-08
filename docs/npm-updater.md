@@ -8,6 +8,28 @@ Optional Bun preparation supports root registry dependencies whose Bun records a
 
 The initial gate target is a fresh GitHub-hosted Ubuntu Linux AMD64 runner with Node 22.23.3, npm 10.9.9 or 11.21.0, Bun 1.3.8 and, for Rails, Ruby 3.4.11/Bundler 2.4.10. The original Husky or Lefthook installation runs unchanged, using genuine native Git, Docker and MySQL fixtures. Other platforms refuse this gate. Commit actual GitHub repository and owner IDs, the approved reusable signer commit, caller workflow path and an assignable human maintainer. The workflow installs the fixed official [GH 2.96.0 Linux AMD64 release](https://github.com/cli/cli/releases/tag/v2.96.0) at `/usr/local/bin/gh` only after its actual extracted binary matches the committed `automationProvenance.ghSha256`; that policy must declare the same executable path. Qualification must measure those genuine Linux bytes. A macOS hash or a runner's ambient GH hash does not qualify this installation. Publishing also requires the repository's existing Actions PR creation policy to permit the genuine Actions Bot. The updater does not change that policy.
 
+Rails hosts can opt into the closed committed `npmUpdater.runtime` object:
+`{"profile":"rails-mysql","database":"app","browser":true,"dockerFixtures":true}`.
+The database base must match `[a-z][a-z0-9_]{0,40}`; the two switches are booleans.
+The caller must affirm this choice with `runtime-profile: rails-mysql`. The
+affirmation cannot override committed policy or the signed whole-profile digest.
+Omitting the object and using the default `runtime-profile: none` retains the
+ordinary gate route without extra database or browser prerequisites.
+
+The opt-in route authenticates the original canonical signed proof before any
+profile-specific installation or allocation. It qualifies fixed native tools,
+installs frozen dependencies, then creates an owned MySQL 8.4.11 AMD64 service
+and least-privilege account. Native Rails preparation and readback must establish
+the primary, queue, cache and cable schemas named `app_test`, `app_queue_test`,
+`app_cache_test` and `app_cable_test`. The original hooks receive the validated
+local database fields and qualified tool environment. Browser opt-in uses pinned
+Chrome/ChromeDriver and the qualified vendor SUID sandbox; it does not disable
+the sandbox or alter AppArmor policy. Docker fixture opt-in installs fixed
+Compose/Buildx plugins in a private config containing no inherited credentials.
+Every step and owned cleanup consumes the original absolute gate deadline.
+Source and synthetic protocol controls do not establish Ubuntu execution,
+genuine Actions Bot publication or protected-check acceptance.
+
 Install the normally released Lisa package and apply its managed scripts through the ordinary workflow. Keep the host's canonical work-item configuration and hooks. Select `npmUpdater.version: 1`, the exact `repository`, `directory: "."`, `target: "main"`, `maintainer`, `packages: [{"name": "package-name", "version": "1.2.3"}]`, and `lisaOwner: "absent"` or `"verified-local-full-apply"`. Lisa itself is excluded only when the latter ownership has been positively verified. Automation provenance must be explicitly enabled and its repository must match the configured GitHub tracker.
 
 The complete authenticated helper inventory is delivered by the common template
@@ -75,3 +97,5 @@ The allocator independently verifies the native manual event, actual triggering 
 The signed cancellation checkpoint is persisted before the old leaf closes as `not_planned`. Its body, title, claim and original attestation remain intact. The normal allocator then creates one new parent-bound canonical leaf with a fresh claim and origin, recording the verified supersession relationship. An interrupted manual run can reuse its verified complete cancellation record and finish the same closure or allocation. Bare markers, arbitrary closed leaves and disconnected or forked chains refuse; connected history is bounded to 100 proposals. Empty cancellation inputs preserve ordinary manual and scheduled callers, while partial inputs refuse. Activating this route requires the reviewed release's managed scripts and immutable signer/caller configuration together. Unit controls establish behavior, not genuine hosted operator or Actions-token proof.
 
 Publication reports `published-awaiting-review`. It neither approves nor merges its PR, changes protection rules, closes the implementation ticket or treats absent, skipped, stale or pending checks as success. Ordinary human review and actual runtime verification remain required. A local unit control is not Linux runtime qualification or hosted release proof.
+
+The project-owned `npm-updater-runtime-qualification.yml` job exercises the fixed Ubuntu tools and owned four-role Rails runtime with a generic application, original Lefthook commit/pre-push hooks and Chrome's active SUID sandbox. It uploads only bounded status, sizes, hashes and cleanup metadata; native output remains private on the ephemeral runner. The qualified browser is exposed through both `CHROME_BIN` and `CHROME_BINARY` with the same verified path. This component route explicitly reports `providerAuthorityVerified=false`, `productionHostedGateVerified=false` and `driverSessionVerified=false`. Its results cannot replace the authenticated production gate, a genuine ChromeDriver session or actual Bot publication and protected-consumer acceptance.

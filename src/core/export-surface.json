@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 210,
-  "$names": 1623,
+  "$modules": 220,
+  "$names": 1662,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -106,7 +106,9 @@
       "exactKeys",
       "npmProposal",
       "optionalLockFields",
+      "optionalRuntimeFields",
       "proposalFileNames",
+      "signedProposalFields",
       "trustedConfiguration"
     ],
     "all/copy-overwrite/scripts/lib/automation-provenance-files.mjs": [
@@ -389,6 +391,7 @@
     "all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs": [
       "assertHostedGate",
       "createHostedGate",
+      "prepareRailsApplication",
       "remainingGateTime"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-hosted-hook.mjs": [
@@ -396,6 +399,10 @@
       "hookReadSlot",
       "hostedHookContext",
       "tokenFreeHookEnvironment"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-hosted-scope.mjs": [
+      "authenticateHostedRuntime",
+      "openHostedReadScope"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-invariants.mjs": [
       "UpdaterError",
@@ -458,6 +465,11 @@
       "releasedLisaIdentity",
       "validateOwnerReceipt"
     ],
+    "all/copy-overwrite/scripts/lib/npm-update-policy.mjs": [
+      "NAME",
+      "VERSION",
+      "validatePolicy"
+    ],
     "all/copy-overwrite/scripts/lib/npm-update-prepare.mjs": [
       "baseline",
       "prepareUpdate",
@@ -505,6 +517,53 @@
     ],
     "all/copy-overwrite/scripts/lib/npm-update-quality.mjs": [
       "qualityGates"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-rails-mysql-daemon.mjs": [
+      "createMysqlDaemon",
+      "mysqlErrorData",
+      "mysqlFailure",
+      "mysqlObservation"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-rails-mysql-resource.mjs": [
+      "assertMysqlRoot",
+      "mysqlFailure",
+      "openMysqlResource"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-rails-mysql-storage.mjs": [
+      "assertMysqlRoot",
+      "createMysqlStorage"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-rails-mysql.mjs": [
+      "openRailsMysqlRuntime"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-rails-runtime-contract.mjs": [
+      "affirmRuntimeProfile",
+      "assertCommittedRuntime",
+      "assertRuntimeBinding",
+      "railsRuntime",
+      "runtimeBinding",
+      "runtimeSchemas"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-rails-tool-downloads.mjs": [
+      "assertRailsArchive",
+      "downloadRailsTool",
+      "extractRailsBrowser",
+      "railsBrowserEnvironment"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-rails-tool-identity.mjs": [
+      "SUPPORTED_RAILS_BROWSER",
+      "SUPPORTED_RAILS_CLIENT",
+      "assertDockerQualified",
+      "qualifyRailsClient",
+      "qualifyRailsRuby",
+      "runtimeTime",
+      "toolIdentity"
+    ],
+    "all/copy-overwrite/scripts/lib/npm-update-rails-tools.mjs": [
+      "assertDockerQualified",
+      "prepareRailsTools",
+      "runtimeTime",
+      "toolIdentity"
     ],
     "all/copy-overwrite/scripts/lib/npm-update-recovery.mjs": [
       "checkpointComments",

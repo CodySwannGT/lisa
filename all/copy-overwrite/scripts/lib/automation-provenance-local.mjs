@@ -14,11 +14,12 @@ import {
   canonicalJson,
   exactKeys,
   proposalFileNames,
-  optionalLockFields,
+  signedProposalFields,
   DESCRIPTOR_KEYS,
   HEX,
   OBJECT_ID,
 } from "./automation-provenance-contract.mjs";
+import { assertCommittedRuntime } from "./npm-update-rails-runtime-contract.mjs";
 
 /** Git reads always use the actual checkout and bounded shared runner. */
 export function git(args) {
@@ -98,7 +99,7 @@ export function localDescriptor(descriptor, messageBytes, reference, policy) {
   }).decode(messageBytes);
   exactKeys(
     descriptor,
-    [...DESCRIPTOR_KEYS, ...optionalLockFields(descriptor)],
+    [...DESCRIPTOR_KEYS, ...Object.keys(signedProposalFields(descriptor))],
     "descriptor"
   );
   requireProof(
@@ -142,6 +143,7 @@ export function localDescriptor(descriptor, messageBytes, reference, policy) {
     descriptor.parent === git(["rev-parse", "HEAD"]),
     "proposal parent differs"
   );
+  assertCommittedRuntime(descriptor, git);
   requireProof(
     OBJECT_ID.test(descriptor.tree) && descriptor.tree === git(["write-tree"]),
     "final staged tree differs"
