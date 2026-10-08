@@ -8,6 +8,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -147,9 +148,13 @@ describe("stillProved", () => {
       expect(await stillProved(file, proof)).toBe(true);
       writeFileSync(file, `${BODY}// edited\n`);
       expect(await stillProved(file, proof)).toBe(false);
-      rmSync(file);
       writeFileSync(file, BODY);
-      // Same bytes, different inode: not the file that was proved.
+      // Same bytes, different inode: the replacement is created while the
+      // original still exists (so it cannot reuse its inode number) and then
+      // renamed over it.
+      const replacement = path.join(dir, "replacement.mjs");
+      writeFileSync(replacement, BODY);
+      renameSync(replacement, file);
       expect(await stillProved(file, proof)).toBe(false);
     } finally {
       rmSync(dir, { recursive: true, force: true });
