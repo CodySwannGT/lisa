@@ -96,7 +96,8 @@ describe.each(ROOTS)("drive-pr-to-merge armed-unmergeable (%s)", root => {
     expect(gate).toMatch(
       /\*\*Read `reviewDecision` explicitly\. Never infer it from a check count\.\*\*/
     );
-    expect(gate).toMatch(/--json reviewDecision,reviewThreads/);
+    expect(gate).toMatch(/gh api graphql --paginate --slurp/);
+    expect(gate).toMatch(/state reviewDecision autoMergeRequest/);
   });
 
   it("refuses to arm on CHANGES_REQUESTED, and says why arming is a claim", () => {
@@ -152,9 +153,7 @@ describe.each(ROOTS)("drive-pr-to-merge armed-unmergeable (%s)", root => {
 
   it("re-reads live state immediately before reporting", () => {
     const exit = exitCheck();
-    expect(exit).toMatch(
-      /--json state,autoMergeRequest,reviewDecision,reviewThreads/
-    );
+    expect(exit).toMatch(/state reviewDecision autoMergeRequest/);
     expect(exit).toMatch(/immediately before reporting/i);
   });
 

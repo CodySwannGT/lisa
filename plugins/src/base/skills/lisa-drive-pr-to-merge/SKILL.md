@@ -582,9 +582,54 @@ sails through the arm gate and the latch goes on over the top of it.
 **Read `reviewDecision` explicitly. Never infer it from a check count.**
 
 ```bash
-gh pr view <pr> --json reviewDecision,reviewThreads \
-  --jq '{decision: .reviewDecision, unresolved: [.reviewThreads[]? | select(.isResolved == false)] | length}'
+review_pages=$(gh api graphql --paginate --slurp \
+  -F owner=<owner> -F repo=<repo> -F pr=<pr> \
+  -f query='query($owner:String!,$repo:String!,$pr:Int!,$endCursor:String){
+    repository(owner:$owner,name:$repo){pullRequest(number:$pr){
+      state reviewDecision autoMergeRequest{enabledAt}
+      reviewThreads(first:100,after:$endCursor){
+        nodes{isResolved isOutdated}
+        pageInfo{hasNextPage endCursor}
+      }
+    }}
+  }') || {
+  printf '%s\n' 'Could not read PR review threads; merge readiness is unknown.' >&2
+  exit 1
+}
+printf '%s\n' "$review_pages" | jq -e '
+  def complete_page:
+    try (
+      ((.errors // []) | length) == 0 and
+      (.data.repository.pullRequest | . as $pr |
+        has("state") and has("reviewDecision") and has("autoMergeRequest") and
+        (["OPEN", "CLOSED", "MERGED"] | index($pr.state)) != null and
+        ([null, "APPROVED", "CHANGES_REQUESTED", "REVIEW_REQUIRED"] |
+          index($pr.reviewDecision)) != null and
+        (.autoMergeRequest == null or
+          (.autoMergeRequest.enabledAt | type) == "string") and
+        (.reviewThreads.nodes | type) == "array" and
+        all(.reviewThreads.nodes[];
+          (.isResolved | type) == "boolean" and (.isOutdated | type) == "boolean") and
+        (.reviewThreads.pageInfo.hasNextPage | type) == "boolean")
+    ) catch false;
+  if type != "array" then
+    error("Incomplete PR review response; merge readiness is unknown")
+  elif length == 0 or any(.[]; complete_page | not) or
+    .[-1].data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage != false
+  then error("Incomplete PR review response; merge readiness is unknown")
+  else {
+    state: .[-1].data.repository.pullRequest.state,
+    armed: (.[-1].data.repository.pullRequest.autoMergeRequest != null),
+    decision: .[-1].data.repository.pullRequest.reviewDecision,
+    unresolved: ([.[].data.repository.pullRequest.reviewThreads.nodes[] |
+      select(.isResolved == false)] | length)
+  } end'
 ```
+
+`reviewThreads` is a GraphQL connection, not a supported `gh pr view --json`
+field. Read every page, including outdated threads that remain unresolved.
+If either the API request or response validation fails, stop with the diagnostic
+above; a failed read must never become a count of zero unresolved threads.
 
 `reviewDecision` is **not part of `statusCheckRollup`**. That is the whole reason
 this stayed invisible: a failing-check count reads **zero** on a PR that can
@@ -1440,9 +1485,48 @@ states above, but any point where this run concludes it is finished, hands back,
 or gives up. Re-read, from the live PR, immediately before reporting:
 
 ```bash
-gh pr view <pr> --json state,autoMergeRequest,reviewDecision,reviewThreads \
-  --jq '{state, armed: (.autoMergeRequest != null), decision: .reviewDecision,
-         unresolved: [.reviewThreads[]? | select(.isResolved == false)] | length}'
+review_pages=$(gh api graphql --paginate --slurp \
+  -F owner=<owner> -F repo=<repo> -F pr=<pr> \
+  -f query='query($owner:String!,$repo:String!,$pr:Int!,$endCursor:String){
+    repository(owner:$owner,name:$repo){pullRequest(number:$pr){
+      state reviewDecision autoMergeRequest{enabledAt}
+      reviewThreads(first:100,after:$endCursor){
+        nodes{isResolved isOutdated}
+        pageInfo{hasNextPage endCursor}
+      }
+    }}
+  }') || {
+  printf '%s\n' 'Could not read PR review threads; merge readiness is unknown.' >&2
+  exit 1
+}
+printf '%s\n' "$review_pages" | jq -e '
+  def complete_page:
+    try (
+      ((.errors // []) | length) == 0 and
+      (.data.repository.pullRequest | . as $pr |
+        has("state") and has("reviewDecision") and has("autoMergeRequest") and
+        (["OPEN", "CLOSED", "MERGED"] | index($pr.state)) != null and
+        ([null, "APPROVED", "CHANGES_REQUESTED", "REVIEW_REQUIRED"] |
+          index($pr.reviewDecision)) != null and
+        (.autoMergeRequest == null or
+          (.autoMergeRequest.enabledAt | type) == "string") and
+        (.reviewThreads.nodes | type) == "array" and
+        all(.reviewThreads.nodes[];
+          (.isResolved | type) == "boolean" and (.isOutdated | type) == "boolean") and
+        (.reviewThreads.pageInfo.hasNextPage | type) == "boolean")
+    ) catch false;
+  if type != "array" then
+    error("Incomplete PR review response; merge readiness is unknown")
+  elif length == 0 or any(.[]; complete_page | not) or
+    .[-1].data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage != false
+  then error("Incomplete PR review response; merge readiness is unknown")
+  else {
+    state: .[-1].data.repository.pullRequest.state,
+    armed: (.[-1].data.repository.pullRequest.autoMergeRequest != null),
+    decision: .[-1].data.repository.pullRequest.reviewDecision,
+    unresolved: ([.[].data.repository.pullRequest.reviewThreads.nodes[] |
+      select(.isResolved == false)] | length)
+  } end'
 ```
 
 If `state == OPEN` and `armed` and either `decision == "CHANGES_REQUESTED"` or

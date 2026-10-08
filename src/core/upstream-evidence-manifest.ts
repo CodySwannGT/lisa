@@ -1297,7 +1297,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-doctor/SKILL.md":
       "ab7bb855fd3ebe321e41b0143815f202b70f6ba38f6678791d6d9e933e0c3fd8",
     "plugins/src/base/skills/lisa-drive-pr-to-merge/SKILL.md":
-      "c914ecde69bd7c2c1efe8b9d4de7167f5d7f189ba62dac2bb8fa1ad2d2d8d737",
+      "870dea7be223b85c65b2017e971e98a0684300be49773669f3b8d4badbd9cb74",
     "plugins/src/base/skills/lisa-epic-triage/SKILL.md":
       "d02760411249bddbd396f283191fe3e82bb7b95bf9393a19a7025dc5a57c3ab7",
     "plugins/src/base/skills/lisa-evaluation-suite/SKILL.md":
@@ -1499,7 +1499,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-quality-review/SKILL.md":
       "c51afffe153f614bcef5bbd2a7b8ffb53c241ebd246900863448e3a6f4be7d47",
     "plugins/src/base/skills/lisa-queue-status/SKILL.md":
-      "9b82907d52f24cc8d17044bf100d1391063b94d04c436b3b0b6f2cad0fe7277f",
+      "8905a65e2c0f3d6894b4c36907723fe0b7d6048ff0fd1d0e2be529eccb5de1e3",
     "plugins/src/base/skills/lisa-remote-dispatch/SKILL.md":
       "f3c48120a206d01db45f849ca5b61690d572abc16bc36d559a4cacc8f9422c06",
     "plugins/src/base/skills/lisa-remote-dispatch/scripts/dispatch.mjs":
@@ -1843,7 +1843,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/expo/skills/expo-router-best-practices/references/official-docs.md":
       "849421c6f67795029e3492764d5788538908f0b3c92ed6f913c38aac39362f8b",
     "plugins/src/expo/skills/expo-router-best-practices/references/static-export-verification.md":
-      "7fa726d5067cb0cb4bc09448487404abce9e8a7d8d2c5bdbcb7124b9dd8c2b71",
+      "2e4848a84027c9405c431550973fc8a497a3022527094dbc8b1192985cf117e9",
     "plugins/src/expo/skills/expo-router-best-practices/scripts/generate-route.py":
       "1052201f8d85c10e4a01b5052821261c78d333906e78bda9a6a2bc935334f5d4",
     "plugins/src/expo/skills/expo-tailwind-setup/SKILL.md":
@@ -11311,6 +11311,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/drive-pr-conflict-zero-ci.test.ts": true,
     "tests/unit/strategies/drive-pr-hold-gate.test.ts": true,
     "tests/unit/strategies/drive-pr-review-re-request-contract.test.ts": true,
+    "tests/unit/strategies/drive-pr-review-state-query.test.ts": true,
     "tests/unit/strategies/easignore-worktree-exclusion.test.ts": true,
     "tests/unit/strategies/effectiveness-parity.test.ts": true,
     "tests/unit/strategies/env-promotion-completeness.test.ts": true,
@@ -11427,6 +11428,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/queue-health-classification.test.ts": true,
     "tests/unit/strategies/queue-status-build-readers.test.ts": true,
     "tests/unit/strategies/queue-status-fixture-smoke-and-read-only.test.ts": true,
+    "tests/unit/strategies/queue-status-pr-arming-query.test.ts": true,
     "tests/unit/strategies/queue-status-prd-readers.test.ts": true,
     "tests/unit/strategies/queue-status-scaffold.test.ts": true,
     "tests/unit/strategies/readiness-report-merge-exposure.test.ts": true,

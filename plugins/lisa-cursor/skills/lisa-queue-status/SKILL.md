@@ -86,10 +86,50 @@ Alongside the two work queues, report the **arming state of the repo's open pull
 Run the sweep rather than eyeballing the list — an LLM reading PR pages one at a time is exactly the shell-loop-by-prose failure #3512 records:
 
 ```bash
-gh pr list --state open --limit 200 \
-  --json number,title,url,isDraft,labels,body,autoMergeRequest \
-  | node "${CLAUDE_PLUGIN_ROOT}/scripts/pr-arming-sweep.mjs"
+repository=$(gh repo view --json nameWithOwner --jq .nameWithOwner) || {
+  printf '%s\n' 'NOT_MEASURED: could not resolve the current repository.' >&2
+  exit 2
+}
+pages=$(gh api --paginate --slurp \
+  "repos/$repository/pulls?state=open&per_page=100") || {
+  printf '%s\n' 'NOT_MEASURED: could not read every open pull request page.' >&2
+  exit 2
+}
+prs=$(printf '%s\n' "$pages" | jq -ce '
+  def complete_pr:
+    try (
+      has("auto_merge") and
+      (.auto_merge == null or
+        (.auto_merge.merge_method as $method | ["merge", "squash", "rebase"] |
+          index($method)) != null) and
+      (.number | type) == "number" and .number > 0 and
+      (.title | type) == "string" and (.html_url | type) == "string" and
+      (.draft | type) == "boolean" and has("body") and
+      (.body == null or (.body | type) == "string") and
+      (.labels | type) == "array" and all(.labels[]; (.name | type) == "string")
+    ) catch false;
+  if type != "array" then error("Invalid PR page response")
+  elif length == 0 or any(.[]; type != "array") then error("Missing PR pages")
+  elif any(.[][]; complete_pr | not) then error("Incomplete PR metadata")
+  else [.[][] | {
+    number, title, url: .html_url, isDraft: .draft, labels, body,
+    autoMergeRequest: .auto_merge
+  }] end') || {
+  printf '%s\n' 'NOT_MEASURED: incomplete pull request response.' >&2
+  exit 2
+}
+printf '%s\n' "$prs" | node \
+  "${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-node_modules/@codyswann/lisa/plugins/lisa}}/scripts/pr-arming-sweep.mjs"
 ```
+
+`gh api --paginate --slurp` follows every REST page before the sweep starts;
+there is no repository-wide row cap. Keep `auto_merge` present during conversion:
+an absent field is an unread measurement, while explicit `null` means unarmed.
+On any API or response validation failure, report `NOT_MEASURED` and stop this
+read. Never report a partial queue as clean. The script path honors an exported
+plugin root and otherwise resolves from the current project's installed Lisa
+package; bare `plugins/lisa` paths are relative to Lisa's own checkout and do not
+work from a consuming project.
 
 Report the verdict verbatim, and never translate it into an absence:
 

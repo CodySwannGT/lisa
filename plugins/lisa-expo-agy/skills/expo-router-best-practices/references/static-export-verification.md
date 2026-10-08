@@ -1,6 +1,6 @@
 # Static Export Verification
 
-When `expo export` runs with static output (`output: "static"` in app.json),
+When `expo export` runs with static output (`expo.web.output: "static"` in app.json),
 every route must produce an HTML file with the right title and the expected
 initial markup. `expo export` succeeding only proves the bundle built — a
 missing route, a wrong title, or an empty shell all ship green unless the
