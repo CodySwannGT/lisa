@@ -2691,7 +2691,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "tsconfig/typescript.json":
       "8cf66a6535640e0a723e24bdf7a2d8e58a634c451f0754875c7880811381a914",
     "typescript/copy-contents/.husky/commit-msg":
-      "9445ea1a67714baa1cba7824b94d0b2f179e7b4a961bec4ffbd508e9788861ad",
+      "d5fd8e5e77e651a7b4b21ee0aee2ad4e7930d56e0d87d35b3ca36f7834c8600d",
     "typescript/copy-contents/.husky/post-checkout":
       "f3abc4528e12d3ad2bc48b236d19f105e2817595c744156a558c62ae5551ccfb",
     "typescript/copy-contents/.husky/post-merge":

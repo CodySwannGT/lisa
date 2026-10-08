@@ -175,13 +175,16 @@ echo "🤖 Checking for AI co-authorship..."
 # "AI-Agent: <their own name>" to self-attest as the agent — the trailer is
 # the attestation surface, not a proof, so the gate documents rather than
 # polices that.) CodySwannGT/lisa#4282, CodySwannGT/lisa#4294.
-LISA_FLEET_AGENT_RE="Claude|Codex|Cursor|OpenCode|Antigravity|Copilot"
+# The exemption is an exact declared identity, never a first-name prefix.
+# Include native Claude/Codex attribution forms installed by Lisa.
+# Trailers attest attribution; the email is not cryptographic identity proof.
+LISA_FLEET_IDENTITY_RE="Claude|Claude <noreply@anthropic\.com>|Codex <(codex|noreply)@openai\.com>|Cursor <noreply@cursor\.com>|OpenCode <noreply@opencode\.ai>|Antigravity <noreply@google\.com>|Copilot <noreply@github\.com>"
 # Co-authors come from the message's trailer block via git-interpret-trailers —
 # a "Co-authored-by:" string inside prose is not attribution — and every entry
 # is judged on its own, so a fleet trailer can never cover a sibling trailer
 # whose agent owes metadata. The AI-* checks below read the SAME parsed
 # trailer block, so an "AI-Agent:" line in body prose cannot satisfy them.
-ALL_TRAILERS=$(git interpret-trailers --parse "$COMMIT_MSG_FILE" 2>/dev/null || true)
+ALL_TRAILERS=$(git interpret-trailers --parse --no-divider "$COMMIT_MSG_FILE" 2>/dev/null || true)
 COAUTHOR_TRAILERS=$(printf '%s\n' "$ALL_TRAILERS" | grep -iE "^Co-authored-by:" || true)
 
 if ! printf '%s\n' "$COAUTHOR_TRAILERS" | grep -Eiq "Co-authored-by:"; then
@@ -190,12 +193,25 @@ else
   no_coauthor=0
 fi
 
+# A driver is singular even when multiple agents pair on the commit.
+ai_agent_count=$(printf '%s\n' "$ALL_TRAILERS" | grep -icE '^AI-Agent:' || true)
+if [ "$ai_agent_count" -gt 1 ]; then
+  echo "❌ Commit attribution must name exactly one AI-Agent driver."
+  lisa_commit_gate_families ai-coauthorship
+  exit 1
+fi
+
 nonfleet_coauthor=0
+opencode_coauthor=0
 if [ "$no_coauthor" -eq 0 ]; then
   while IFS= read -r trailer; do
     [ -z "$trailer" ] && continue
     agent_name=$(printf '%s' "${trailer#*:}" | sed -e 's/<[^>]*>//g' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-    if ! printf '%s\n' "$agent_name" | grep -Eiq "^(${LISA_FLEET_AGENT_RE})([[:space:]]|$)"; then
+    identity=$(printf '%s' "${trailer#*:}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+    if printf '%s\n' "$agent_name" | grep -Eiq '^OpenCode$'; then
+      opencode_coauthor=1
+    fi
+    if ! printf '%s\n' "$identity" | grep -Eiq "^(${LISA_FLEET_IDENTITY_RE})$"; then
       nonfleet_coauthor=1
     fi
   done <<LISA_COAUTHOR_TRAILERS
@@ -203,7 +219,9 @@ $COAUTHOR_TRAILERS
 LISA_COAUTHOR_TRAILERS
 fi
 
-if [ "$nonfleet_coauthor" -eq 1 ]; then
+# OpenCode co-authorship requires metadata, but AI-Agent may name any listed
+# driver. A supplied AI-Agent driver is validated even on fleet-only commits.
+if [ "$nonfleet_coauthor" -eq 1 ] || [ "$opencode_coauthor" -eq 1 ] || [ "$ai_agent_count" -eq 1 ]; then
   missing_agent_metadata=0
   for trailer in AI-Agent AI-Model AI-Effort; do
     if ! printf '%s\n' "$ALL_TRAILERS" | grep -Eiq "^${trailer}:[[:space:]]*[^[:space:]]"; then
@@ -235,7 +253,12 @@ LISA_COAUTHOR_NAME_CHECK
   fi
   if [ "$missing_agent_metadata" -eq 1 ]; then
     echo ""
-    echo "❌ Non-fleet agents must include AI metadata trailers!"
+    if [ "$opencode_coauthor" -eq 1 ] && [ "$nonfleet_coauthor" -eq 0 ]; then
+      echo "❌ OpenCode commits must include AI metadata trailers!"
+      echo "For an OpenCode driver: AI-Agent: OpenCode"
+    else
+      echo "❌ Non-fleet agents must include AI metadata trailers!"
+    fi
     echo ""
     echo "Agents outside the supported fleet (Claude, Codex, Cursor, OpenCode,"
     echo "Antigravity, Copilot) must carry provenance metadata alongside the"
@@ -279,32 +302,6 @@ elif [ "$no_coauthor" -eq 1 ]; then
   echo ""
   lisa_commit_gate_families ai-coauthorship
   exit 1
-fi
-
-if printf '%s\n' "$COAUTHOR_TRAILERS" | grep -Eiq "Co-authored-by:.*OpenCode"; then
-  missing_opencode_metadata=0
-  if ! printf '%s\n' "$ALL_TRAILERS" | grep -Eiq "^AI-Agent:[[:space:]]*OpenCode[[:space:]]*$"; then
-    missing_opencode_metadata=1
-  fi
-  if ! printf '%s\n' "$ALL_TRAILERS" | grep -Eiq "^AI-Model:[[:space:]]*[^[:space:]].*$"; then
-    missing_opencode_metadata=1
-  fi
-  if ! printf '%s\n' "$ALL_TRAILERS" | grep -Eiq "^AI-Effort:[[:space:]]*[^[:space:]].*$"; then
-    missing_opencode_metadata=1
-  fi
-
-  if [ "$missing_opencode_metadata" -eq 1 ]; then
-    echo ""
-    echo "❌ OpenCode commits must include AI metadata trailers!"
-    echo ""
-    echo "Expected trailers:"
-    echo "  AI-Agent: OpenCode"
-    echo "  AI-Model: <provider/model>"
-    echo "  AI-Effort: <effort or runtime value>"
-    echo ""
-    lisa_commit_gate_families ai-coauthorship
-    exit 1
-  fi
 fi
 
 # END: AI GUARDRAILS
