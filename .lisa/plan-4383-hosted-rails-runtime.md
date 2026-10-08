@@ -266,10 +266,10 @@ An initial integration script invocation appended an exact filename to a script
 that already selected the whole integration directory. This unintended OR-filter
 run was stopped through TERM to its positively identified original supervisor;
 the launcher, reaper, bootstrap, payload groups and original scratch were freshly
-absent. Its interrupted143 and unrelated partial failures are retained, with no
+absent. Its interrupted status (143) and unrelated partial failures are retained, with no
 RED or acceptance credit. All later controls use the declared `lisa-test-run`
 entry with only the exact affected file arguments. An initial Linux arithmetic
-fixture included an extra two-character prefix and failed106-vs104; correcting
+fixture included an extra two-character prefix and failed (106 vs. 104); correcting
 that fixture retained the genuine production pathname contract and original
 deadlines, assertions and floors.
 
@@ -437,5 +437,16 @@ their exact existing values and assertions. The resulting authority file
 passes all 17 controls and scoped ESLint. Final whole type checking retains
 the original 362 quarantined files, with no new or stale diagnostics and no
 engine-floor violations. Shell syntax and formatting pass. Official artifact
-checks, distinct review, normal commit and another original full push are still
-required; actual Ubuntu qualification remains mandatory before merge/release.
+checks, distinct source review and ordinary commit hooks subsequently passed.
+The original full push at `d49a295ace5f439efe01edc83e1cc29ce67f3a4d`
+passed 1,418 unit files and 26,909 tests plus 182 integration files and 3,291 tests,
+with two existing skips in each gate. The later original full push at
+`a53cb633bd959fc930c23d05cc8008b70ade052b` passed 1,420 unit files and
+26,946 tests plus 182 integration files and 3,291 tests, again with two existing
+skips in each gate. All original push gates passed on both heads. Independent
+cleanup for the later push verified 84 recorded process identities, 17 groups
+and both scratch roots absent. The normal main 4.72.1 integration committed as
+`27b96cbc75cad601f0b63806b44fad972c9d0914` passed distinct source review,
+all seven artifact checks and ordinary commit hooks. Its original full push
+and exact-head Ubuntu qualification remain pending; actual Ubuntu qualification
+is mandatory before merge or release.
