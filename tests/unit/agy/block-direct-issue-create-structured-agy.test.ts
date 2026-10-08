@@ -190,6 +190,11 @@ describe("block-direct-issue-create.agy.sh, structured substrate", () => {
     it.each([
       ["update_issue", { id: "1", title: "t" }],
       ["add_comment", { body: "hi", id: "1" }],
+      ["add_issue_comment", { body: "hi", id: "1" }],
+      ["addCommentToJiraIssue", { body: "hi", id: "1" }],
+      ["add_comment_to_issue", { body: "hi", id: "1" }],
+      ["add_issue_labels", { labels: ["triaged"], id: "1" }],
+      ["add_reaction_to_issue_comment", { reaction: "eyes", comment_id: 1 }],
       ["search_issues", { query: "is:open" }],
       ["get_issue", { id: "1" }],
     ])("allows the non-creation MCP tool %s", (toolName, args) => {

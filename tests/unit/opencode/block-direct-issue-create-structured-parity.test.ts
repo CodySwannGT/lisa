@@ -69,6 +69,39 @@ interface StructuredCase {
 }
 
 const CASES: readonly StructuredCase[] = [
+  ...[
+    "mcp__github__add_issue_comment",
+    "mcp__atlassian__addCommentToJiraIssue",
+    "github_add_issue_comment",
+    "atlassian_addCommentToJiraIssue",
+    "mcp__codex_apps__github_add_comment_to_issue",
+    "mcp__codex_apps__github_add_issue_labels",
+    "mcp__codex_apps__github_add_reaction_to_issue_comment",
+    "srv_add_labels_to_issue",
+  ].map(tool => ({
+    label: `an existing-item operation through ${tool}`,
+    config: GITHUB_CALLER,
+    tool,
+    args: { body: "hi", id: "1" },
+    expected: "allow",
+  })),
+  ...[
+    "srv_createIssueWithComment",
+    "srv_create_issue_and_add_comment",
+    "srv_create_issue_and_add_issue_comment",
+    "srv_add_ticket_and_addCommentToJiraIssue",
+    "srv_create_issue_and_add_issue_labels",
+    "srv_create_issue_and_add_comment_to_issue",
+    "srv_create_issue_and_add_reaction_to_issue_comment",
+    "srv_add_ticket_and_add_labels_to_issue",
+    "srv_createIssueWithLabels",
+  ].map(tool => ({
+    label: `a compound creation remains governed through ${tool}`,
+    config: GITHUB_CALLER,
+    tool,
+    args: { body: "hi", title: "new item" },
+    expected: "deny",
+  })),
   {
     label: "an undeclared creation through a server's create tool",
     config: GITHUB_CALLER,
