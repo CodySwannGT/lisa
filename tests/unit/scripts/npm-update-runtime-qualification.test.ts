@@ -19,12 +19,17 @@ import {
   hookWitness,
   browserStderrMetadata,
 } from "../../fixtures/npm-update-hosted-runtime/observations.mjs";
-import { browser } from "../../fixtures/npm-update-hosted-runtime/components.mjs";
+import {
+  browser,
+  browserControl,
+} from "../../fixtures/npm-update-hosted-runtime/components.mjs";
 
 useIoLatencyBudget();
 const SUMMARY = "summary.json";
 const CAPTURE_FILE = "capture-0-stdout";
 const STAGE = "fixture-git";
+const BROWSER_CONSUMER = "browser-consumer";
+const CONTROL_STAGE = "browser-control";
 const SHELL = "/bin/sh";
 const NATIVE_PATH = "/usr/bin:/bin";
 
@@ -72,7 +77,7 @@ describe("closed runtime qualification diagnostics", () => {
   it("requests bounded DOM capture while retaining internal-URL and sandbox requirements", async () => {
     await fixture(async root => {
       // This native synthetic consumer models Chrome's documented flag contract; it does not qualify Chrome or Ubuntu.
-      const command = join(root, "browser-consumer");
+      const command = join(root, BROWSER_CONSUMER);
       writeFileSync(
         command,
         `#!${process.execPath}\nconst args=process.argv.slice(2);\nif(!args.includes('--allow-chrome-scheme-url')) process.exit(17);\nif(!args.includes('--headless=new') || !args.includes('--dump-dom') || args.at(-1)!=='chrome://sandbox' || args.includes('--no-sandbox')) process.exit(18);\nif(!args.includes('--timeout=5000')) process.exit(19);\nprocess.stdout.write('You are adequately sandboxed.<td>SUID Sandbox</td><td>Yes</td>');\n`,
@@ -93,47 +98,95 @@ describe("closed runtime qualification diagnostics", () => {
       ]);
     });
   });
-  it("bounds a real hanging browser-stage child and retains remaining phase time for cleanup observations", async () => {
+  it("captures an independent blank-page diagnostic without certifying the sandbox", async () => {
     await fixture(async root => {
-      const records: object[] = [];
-      const deadline = Date.now() + 60000;
-      const native = nativeRecorder(root, deadline, records);
-      await expect(
-        native("browser", root, {}, process.execPath, [
-          "-e",
-          "process.stdout.write(String(process.pid)); process.stderr.write('[1:2:1008/120000.000:ERROR:headless_command_handler.cc:378] Abnormal renderer termination. private credential /private/candidate/path\\n'); setTimeout(() => {}, 12000);",
-        ])
-      ).rejects.toMatchObject({ code: null });
-      const pid = Number(readFileSync(join(root, CAPTURE_FILE), "utf8"));
-      expect(Number.isSafeInteger(pid) && pid > 0).toBe(true);
-      expect(() => process.kill(pid, 0)).toThrow(
-        expect.objectContaining({ code: "ESRCH" })
+      const command = join(root, BROWSER_CONSUMER);
+      writeFileSync(
+        command,
+        `#!${process.execPath}\nconst args=process.argv.slice(2);\nif(!args.includes('--headless=new') || !args.includes('--dump-dom') || !args.includes('--timeout=5000') || args.at(-1)!=='about:blank' || args.includes('--no-sandbox')) process.exit(17);\nprocess.stdout.write('<html><head></head><body></body></html>');\n`,
+        { flag: "wx", mode: 0o700 }
       );
-      expect(Date.now()).toBeLessThan(deadline);
+      const records: object[] = [];
+      const native = nativeRecorder(root, Date.now() + 60000, records);
       await expect(
-        native(STAGE, root, {}, process.execPath, ["-e", ""])
-      ).resolves.toMatchObject({ code: 0 });
+        browserControl(
+          root,
+          { cwd: root, env: { CHROME_BINARY: command } },
+          native
+        )
+      ).resolves.toEqual({ diagnosticOnly: true, nativeDomVerified: true });
       expect(records).toEqual([
-        expect.objectContaining({
-          stage: "browser",
-          status: null,
-          nativeFailure: expect.stringContaining("native=deadline"),
-          browserStderr: expect.objectContaining({
-            structuredLineCount: 1,
-            records: [
-              expect.objectContaining({
-                source: "headless_command_handler.cc",
-                kind: "renderer-terminated",
-              }),
-            ],
-          }),
-        }),
-        expect.objectContaining({ stage: STAGE, status: 0 }),
+        expect.objectContaining({ stage: CONTROL_STAGE, status: 0 }),
       ]);
-      expect(JSON.stringify(records)).not.toContain("private credential");
-      expect(JSON.stringify(records)).not.toContain("/private/candidate/path");
     });
   });
+  it("retains a blank-page diagnostic refusal rather than certifying browser success", async () => {
+    await fixture(async root => {
+      const command = join(root, BROWSER_CONSUMER);
+      writeFileSync(command, `#!${process.execPath}\nprocess.exit(17);\n`, {
+        flag: "wx",
+        mode: 0o700,
+      });
+      const records: object[] = [];
+      const native = nativeRecorder(root, Date.now() + 60000, records);
+      await expect(
+        browserControl(
+          root,
+          { cwd: root, env: { CHROME_BINARY: command } },
+          native
+        )
+      ).rejects.toMatchObject({ code: 17 });
+      expect(records).toEqual([
+        expect.objectContaining({ stage: CONTROL_STAGE, status: 17 }),
+      ]);
+    });
+  });
+  it.each(["browser", CONTROL_STAGE])(
+    "bounds a real hanging %s child and retains remaining phase time for cleanup observations",
+    async stage => {
+      await fixture(async root => {
+        const records: object[] = [];
+        const deadline = Date.now() + 60000;
+        const native = nativeRecorder(root, deadline, records);
+        await expect(
+          native(stage, root, {}, process.execPath, [
+            "-e",
+            "process.stdout.write(String(process.pid)); process.stderr.write('[1:2:1008/120000.000:ERROR:headless_command_handler.cc:378] Abnormal renderer termination. private credential /private/candidate/path\\n'); setTimeout(() => {}, 12000);",
+          ])
+        ).rejects.toMatchObject({ code: null });
+        const pid = Number(readFileSync(join(root, CAPTURE_FILE), "utf8"));
+        expect(Number.isSafeInteger(pid) && pid > 0).toBe(true);
+        expect(() => process.kill(pid, 0)).toThrow(
+          expect.objectContaining({ code: "ESRCH" })
+        );
+        expect(Date.now()).toBeLessThan(deadline);
+        await expect(
+          native(STAGE, root, {}, process.execPath, ["-e", ""])
+        ).resolves.toMatchObject({ code: 0 });
+        expect(records).toEqual([
+          expect.objectContaining({
+            stage,
+            status: null,
+            nativeFailure: expect.stringContaining("native=deadline"),
+            browserStderr: expect.objectContaining({
+              structuredLineCount: 1,
+              records: [
+                expect.objectContaining({
+                  source: "headless_command_handler.cc",
+                  kind: "renderer-terminated",
+                }),
+              ],
+            }),
+          }),
+          expect.objectContaining({ stage: STAGE, status: 0 }),
+        ]);
+        expect(JSON.stringify(records)).not.toContain("private credential");
+        expect(JSON.stringify(records)).not.toContain(
+          "/private/candidate/path"
+        );
+      });
+    }
+  );
   it.each([
     [
       "<td>SUID Sandbox</td><td>Yes</td>",
@@ -147,7 +200,7 @@ describe("closed runtime qualification diagnostics", () => {
     "refuses incomplete captured sandbox evidence: %s",
     async (html, reason) => {
       await fixture(async root => {
-        const command = join(root, "browser-consumer");
+        const command = join(root, BROWSER_CONSUMER);
         writeFileSync(
           command,
           `#!${process.execPath}\nprocess.stdout.write(${JSON.stringify(html)});\n`,

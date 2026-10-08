@@ -60,18 +60,21 @@ async function census(native, stage, source, docker) {
 }
 
 /**
- * Browser startup retains the vendor sandbox and reports its actual internal status.
- * @param {string} root Private owned root.
- * @param {object} application Frozen fixture and token-free environment.
- * @param {function(string, string, object, string, Array<string>): Promise<object>} native Original supervised recorder.
- * @returns {Promise<object | undefined>} Checked component observation or earlier refusal.
+ * Both fixed browser requests retain vendor sandbox flags and original native supervision.
+ * @param {object} request Closed source-owned profile, URL, environment and recorder.
+ * @param {string} request.root Original private owned root.
+ * @param {object} request.application Frozen fixture and closed environment.
+ * @param {function(string, string, object, string, Array<string>): Promise<object>} request.native Original supervised recorder.
+ * @param {string} request.stage Fixed browser observation stage.
+ * @param {string} request.name Fixed exclusive profile directory name.
+ * @param {string} request.url Fixed source-owned diagnostic or sandbox URL.
+ * @returns {Promise<object>} Original bounded command result.
  */
-export async function browser(root, application, native) {
-  const profile = join(root, "browser-profile");
-  const state = {};
+async function captureBrowser({ root, application, native, stage, name, url }) {
+  const profile = join(root, name);
   mkdirSync(profile, { mode: 0o700 });
-  state.result = await native(
-    "browser",
+  return native(
+    stage,
     application.cwd,
     application.env,
     application.env.CHROME_BINARY,
@@ -83,9 +86,53 @@ export async function browser(root, application, native) {
       `--user-data-dir=${profile}`,
       "--dump-dom",
       "--timeout=5000",
-      "chrome://sandbox",
+      url,
     ]
   );
+}
+
+/**
+ * A separate post-failure profile distinguishes blank-page startup from internal-page capture.
+ * Its success is diagnostic only and never replaces the original sandbox refusal.
+ * @param {string} root Original private owned root.
+ * @param {object} application Original frozen fixture and closed environment.
+ * @param {function(string, string, object, string, Array<string>): Promise<object>} native Original recorder with unchanged deadlines.
+ * @returns {Promise<object>} Diagnostic DOM observation, without sandbox qualification.
+ */
+export async function browserControl(root, application, native) {
+  const result = await captureBrowser({
+    root,
+    application,
+    native,
+    stage: "browser-control",
+    name: "browser-control-profile",
+    url: "about:blank",
+  });
+  const html = result.stdout.toString();
+  required(
+    html.includes("<html") && html.includes("</html>"),
+    "native blank-page diagnostic DOM is unavailable"
+  );
+  return { diagnosticOnly: true, nativeDomVerified: true };
+}
+
+/**
+ * Original internal-page qualification still requires the real SUID sandbox evidence.
+ * @param {string} root Private owned root.
+ * @param {object} application Frozen fixture and token-free environment.
+ * @param {function(string, string, object, string, Array<string>): Promise<object>} native Original supervised recorder.
+ * @returns {Promise<object>} Checked sandbox observation or earlier refusal.
+ */
+export async function browser(root, application, native) {
+  const state = {};
+  state.result = await captureBrowser({
+    root,
+    application,
+    native,
+    stage: "browser",
+    name: "browser-profile",
+    url: "chrome://sandbox",
+  });
   state.html = state.result.stdout.toString();
   required(
     state.html.includes("You are adequately sandboxed."),
@@ -234,6 +281,21 @@ async function runtimeExercise(source, root, tools, native, summary, deadline) {
     };
   } catch (error) {
     state.primary = error;
+    if (summary.native.at(-1)?.stage === "browser") {
+      try {
+        summary.browserControl = await browserControl(
+          root,
+          application,
+          native
+        );
+      } catch (diagnosticError) {
+        summary.browserControl = {
+          diagnosticOnly: true,
+          nativeDomVerified: false,
+          failure: failureMetadata(diagnosticError),
+        };
+      }
+    }
   } finally {
     state.primary = await closeRuntime(state.runtime, summary, state.primary);
   }

@@ -26,6 +26,7 @@ const STAGES = new Set([
   "original-commit",
   "original-push",
   "browser",
+  "browser-control",
   "daemon-before",
   "daemon-after",
 ]);
@@ -37,6 +38,7 @@ const CLASSES = new Set([
   "AggregateError",
   "UpdaterError",
 ]);
+const BROWSER_STAGES = new Set(["browser", "browser-control"]);
 const BROWSER_SOURCES = new Set([
   "headless_command_handler.cc",
   "bus.cc",
@@ -206,7 +208,10 @@ export function nativeRecorder(captures, deadline, records) {
       state.result = await runProcess(command, args, {
         cwd,
         env,
-        timeout: runtimeTime(deadline, stage === "browser" ? 10000 : 1800000),
+        timeout: runtimeTime(
+          deadline,
+          BROWSER_STAGES.has(stage) ? 10000 : 1800000
+        ),
         maximum: 3145728,
       });
     } catch (error) {
@@ -234,7 +239,7 @@ export function nativeRecorder(captures, deadline, records) {
       elapsedMs: Math.round(performance.now() - started),
       ...facts,
       failure: failureMetadata(state.failure),
-      ...(stage === "browser"
+      ...(BROWSER_STAGES.has(stage)
         ? {
             nativeFailure: state.failure ? publicFailure(state.failure) : null,
             browserStderr: browserStderrMetadata(streams.stderr),
