@@ -214,6 +214,17 @@ describe("block-direct-issue-create.sh substrates", () => {
       ["an issue read", mcp("mcp__github__get_issue", { issue_number: 1 })],
       ["an issue update", mcp("mcp__linear-server__update_issue", { id: "X" })],
       ["a comment create", mcp("mcp__github__create_comment", { body: "hi" })],
+      [
+        "an issue comment",
+        mcp("mcp__github__add_issue_comment", { body: "hi", issue_number: 1 }),
+      ],
+      [
+        "a Jira issue comment",
+        mcp("mcp__atlassian__addCommentToJiraIssue", {
+          body: "hi",
+          issueId: "1",
+        }),
+      ],
       ["a search", mcp("mcp__linear-server__list_issues", { teamId: "T" })],
       [
         "a pull-request create",

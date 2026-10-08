@@ -705,8 +705,14 @@ const LisaBlockDirectIssueCreate = async () => {
     // server tool names — a list passes every row anyone thought of and misses
     // the first one nobody did.
     if (STRUCTURED_SKIP.has(tool)) return;
-    if (!STRUCTURED_VERB.test(tool)) return;
-    if (!STRUCTURED_NOUN.test(tool)) return;
+    // Comments, labels and reactions operate on existing items. Strip only the
+    // terminal action; preceding compound creations remain governed.
+    const creationTool = tool.replace(
+      /(?:[Aa]dd_[Ii]ssue_[Cc]omment|[Aa]dd[Cc]omment[Tt]o[Jj]ira[Ii]ssue|[Aa]dd_[Cc]omment_[Tt]o_[Ii]ssue|[Aa]dd_[Ii]ssue_[Ll]abels|[Aa]dd_[Ll]abels_[Tt]o_[Ii]ssue|[Aa]dd_[Rr]eaction_[Tt]o_[Ii]ssue_[Cc]omment)$/u,
+      ""
+    );
+    if (!STRUCTURED_VERB.test(creationTool)) return;
+    if (!STRUCTURED_NOUN.test(creationTool)) return;
     // The operator's ambient escape works on both substrates. There is no
     // inline form to disqualify here — a structured call has no shell in which
     // to assign one — so the override is simply honoured.

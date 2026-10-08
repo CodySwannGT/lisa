@@ -211,11 +211,29 @@ if [ "$tool_name" != "Bash" ]; then
       exit 0
       ;;
   esac
-  case "$tool_name" in
+  # These terminal actions edit an existing item, not create the item.
+  # Strip only the measured action shape, then still inspect any preceding
+  # compound operation: create_issue_and_add_issue_comment remains a filing.
+  creation_name="$tool_name"
+  case "$creation_name" in
+    *[Aa]dd_[Ii]ssue_[Cc]omment)
+      creation_name="${creation_name%[Aa]dd_[Ii]ssue_[Cc]omment}" ;;
+    *[Aa]dd[Cc]omment[Tt]o[Jj]ira[Ii]ssue)
+      creation_name="${creation_name%[Aa]dd[Cc]omment[Tt]o[Jj]ira[Ii]ssue}" ;;
+    *[Aa]dd_[Cc]omment_[Tt]o_[Ii]ssue)
+      creation_name="${creation_name%[Aa]dd_[Cc]omment_[Tt]o_[Ii]ssue}" ;;
+    *[Aa]dd_[Ii]ssue_[Ll]abels)
+      creation_name="${creation_name%[Aa]dd_[Ii]ssue_[Ll]abels}" ;;
+    *[Aa]dd_[Ll]abels_[Tt]o_[Ii]ssue)
+      creation_name="${creation_name%[Aa]dd_[Ll]abels_[Tt]o_[Ii]ssue}" ;;
+    *[Aa]dd_[Rr]eaction_[Tt]o_[Ii]ssue_[Cc]omment)
+      creation_name="${creation_name%[Aa]dd_[Rr]eaction_[Tt]o_[Ii]ssue_[Cc]omment}" ;;
+  esac
+  case "$creation_name" in
     *[Cc]reate* | *[Nn]ew* | *[Aa]dd* | *[Ff]ile*) ;;
     *) exit 0 ;;
   esac
-  case "$tool_name" in
+  case "$creation_name" in
     *[Ii]ssue* | *[Tt]icket* | *[Tt]ask* | *[Ss]tory* | *[Bb]ug* | *[Ee]pic* | *[Ww]ork*) ;;
     *) exit 0 ;;
   esac
