@@ -271,7 +271,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "a114ac60b0e390ad2518bda5871aa1c9680755f10fe36ebae26de4ad170490d5",
+      "e32628a9f832f681d084d51a80de8910ce1bee7e39f8306bb217e7b519242e6e",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -1231,7 +1231,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
       "aec9980c90fc500038f98c24329f0d8728e79a110326b33b744a68afa128de64",
     "plugins/src/base/scripts/intake-blocker-reprobe.mjs":
-      "8656ad13f3a712f8c3a68046282acf1f2359d8a2cb238e99b8131b3cff86386a",
+      "8df39b7831020bc775263b240e8852a8a8eb7dba0b6ade193e20c911438a1e05",
     "plugins/src/base/scripts/intake-prework-denominator.mjs":
       "0a40cb91ab1c0e810f42d035d9652af3033e97c692b93b911de851991c12eca1",
     "plugins/src/base/scripts/lifecycle-label-trust.mjs":
@@ -1425,7 +1425,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "e63ae35df1a928dac7b42535ce11e77e8c617e60838ba319f22081400e87886e",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
-      "6856f74e56258a622dbe0710e695f8024559155a5480cc439124e4cadcac20b7",
+      "a7ecab2631339e0c86ca70c1cc514e269fb4bfbefaccf39d627dcf84d718df03",
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md":
       "efde30b5eac8b2cc56499ce391bd3d43ebb017c4ce948b5d547b52acb66715bb",
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":
@@ -11360,6 +11360,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/harper-fabric-template-no-advisory-pollution.test.ts": true,
     "tests/unit/strategies/health-skill-contract.test.ts": true,
     "tests/unit/strategies/human-gate-declaration-precision.test.ts": true,
+    "tests/unit/strategies/human-gate-markdown-escaping.test.ts": true,
     "tests/unit/strategies/human-gate-release-authorization.test.ts": true,
     "tests/unit/strategies/human-gate-release-helpers.ts": true,
     "tests/unit/strategies/human-gate-release-inverse.test.ts": true,
