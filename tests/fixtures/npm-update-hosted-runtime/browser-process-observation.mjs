@@ -1,5 +1,5 @@
 /** Read-only Linux browser observations never export identities, arguments or paths. */
-import { open, opendir, readlink, stat } from "node:fs/promises";
+import { open, opendir, readlink, realpath, stat } from "node:fs/promises";
 import { constants } from "node:fs";
 import { performance } from "node:perf_hooks";
 
@@ -252,8 +252,11 @@ export function startBrowserObservation(command) {
           const owner = await observedRead(active, () =>
             identity(process.pid, active)
           );
-          const original = await observedRead(active, () => stat(command));
-          return { owner, original };
+          const executable = await observedRead(active, () =>
+            realpath(command)
+          );
+          const original = await observedRead(active, () => stat(executable));
+          return { owner, original, executable };
         } catch {
           if (active()) state.unavailable = true;
           return null;
@@ -273,7 +276,7 @@ export function startBrowserObservation(command) {
               if (!ready || !active()) return;
               const atMs = Math.round(performance.now() - started);
               const result = await snapshot(
-                command,
+                ready.executable,
                 ready.owner,
                 ready.original,
                 active

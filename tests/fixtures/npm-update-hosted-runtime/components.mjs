@@ -1,5 +1,5 @@
 /** Fixed component exercise uses genuine tools/hooks while preserving provider-proof separation. */
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { required } from "../../../all/copy-overwrite/scripts/lib/npm-update-contract.mjs";
 import { readBytes } from "../../../all/copy-overwrite/scripts/lib/npm-update-process-core.mjs";
@@ -9,6 +9,7 @@ import { runtimeBinding } from "../../../all/copy-overwrite/scripts/lib/npm-upda
 import { originalHookEnvironment } from "../../../all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs";
 import { prepareApplication } from "./application.mjs";
 import { failureMetadata, hookWitness } from "./observations.mjs";
+import { hookSocketWitness } from "./socket-witness.mjs";
 const QUIET = "--quiet";
 const NO_TRUNC = "--no-trunc";
 const GIT = "/usr/bin/git";
@@ -266,19 +267,7 @@ async function runtimeExercise(source, root, tools, native, summary, deadline) {
       ]
     );
     const witness = JSON.parse(scratch.stdout.toString());
-    required(
-      witness.nativeBind === true &&
-        witness.socketAbsent === true &&
-        witness.tokenBytes === 32 &&
-        witness.socketBytes === 95 &&
-        !existsSync(witness.root),
-      "original hook scratch socket differs"
-    );
-    summary.nestedHookScratch = {
-      syntheticSocketNativeBind: true,
-      ownedRootAbsent: true,
-      socketBytes: witness.socketBytes,
-    };
+    summary.nestedHookScratch = hookSocketWitness(witness);
   } catch (error) {
     state.primary = error;
     if (summary.native.at(-1)?.stage === "browser") {

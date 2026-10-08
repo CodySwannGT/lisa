@@ -148,8 +148,13 @@ describe("closed runtime qualification diagnostics", () => {
         const records: object[] = [];
         const deadline = Date.now() + 60000;
         const native = nativeRecorder(root, deadline, records);
+        const executable =
+          stage === CONTROL_STAGE
+            ? join(root, "native-executable-alias")
+            : process.execPath;
+        if (stage === CONTROL_STAGE) symlinkSync(process.execPath, executable);
         await expect(
-          native(stage, root, {}, process.execPath, [
+          native(stage, root, {}, executable, [
             "-e",
             "process.stdout.write(String(process.pid)); process.stderr.write('[1:2:1008/120000.000:ERROR:headless_command_handler.cc:378] Abnormal renderer termination. private credential /private/candidate/path\\n'); setTimeout(() => {}, 12000);",
           ])
@@ -186,6 +191,9 @@ describe("closed runtime qualification diagnostics", () => {
               ]);
           expect(JSON.stringify(observed.browserProcesses)).not.toContain(
             process.execPath
+          );
+          expect(JSON.stringify(observed.browserProcesses)).not.toContain(
+            executable
           );
         }
         await expect(
