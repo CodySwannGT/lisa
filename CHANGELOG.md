@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.71.4](https://github.com/CodySwannGT/lisa/compare/v4.71.3...v4.71.4) (2026-10-08)
+
+
+### Bug Fixes
+
+* authenticate owned Rails scratch supervision ([eff15f2](https://github.com/CodySwannGT/lisa/commit/eff15f2fe3b31cfadf9074b6b9cfb73a6e757c3c)), closes [CodySwannGT/lisa#4372](https://github.com/CodySwannGT/lisa/issues/4372)
+* preserve exact refresh identities and canonical fixture roots ([2286ce3](https://github.com/CodySwannGT/lisa/commit/2286ce399eefd964b1aa4485690493c405b0c31f)), closes [CodySwannGT/lisa#4372](https://github.com/CodySwannGT/lisa/issues/4372)
+* **rails:** bound supervised scratch paths for Unix sockets ([857e1e8](https://github.com/CodySwannGT/lisa/commit/857e1e8eb366bb77ff0fa1aad1ad05650036c95b)), closes [CodySwannGT/lisa#4371](https://github.com/CodySwannGT/lisa/issues/4371)
+* **updater:** reuse authenticated classifier within one invocation ([5fcb9a9](https://github.com/CodySwannGT/lisa/commit/5fcb9a97f6c773d9d5632293bea55f0c1a97e6df)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+
+
+### Documentation
+
+* record scratch guard integration and acceptance evidence ([a184d99](https://github.com/CodySwannGT/lisa/commit/a184d99d4c289a99d741ed5e7c3417450ea3f8ac)), closes [CodySwannGT/lisa#4372](https://github.com/CodySwannGT/lisa/issues/4372)
+
 ### [4.71.3](https://github.com/CodySwannGT/lisa/compare/v4.71.2...v4.71.3) (2026-10-07)
 
 
