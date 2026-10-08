@@ -580,16 +580,20 @@ done
 
 # Retire third-party plugins Lisa no longer curates. The base lisa plugin
 # bundles the Sentry MCP server (plugins/src/base/.mcp.json) for every agent
-# runtime, so the upstream sentry plugin registered the same server twice in
-# each Claude session (issue #1955). Likewise, the Lisa-native
+# runtime. The official Claude plugin remains disabled by default to avoid
+# duplicate registration (#1955), but an explicit host choice enables its own
+# maintained skills and must survive sync (#4318). Likewise, the Lisa-native
 # parity-safety-net.sh hook screens every Bash command, so the upstream
 # safety-net plugin double-screened each command; its material guards were
-# absorbed into the Lisa hook (issue #1960). The merge settings templates flip
-# both enabledPlugins entries to false; this removes the installs themselves.
+# absorbed into the Lisa hook (issue #1960). Remove unchosen retired installs.
 # Version-gated like the other one-time heals so same-version runs don't spawn
 # the CLI.
 if [ "$FORCE_PLUGIN_SYNC" = "true" ]; then
   for retired_plugin in "sentry@claude-plugins-official" "safety-net@cc-marketplace"; do
+    if [ "$retired_plugin" = "sentry@claude-plugins-official" ] &&
+       node -e 'try { const s = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")); process.exit(s.enabledPlugins?.["sentry@claude-plugins-official"] === true ? 0 : 1); } catch { process.exit(1); }' "$SETTINGS_FILE"; then
+      continue
+    fi
     claude plugin uninstall "$retired_plugin" --scope project </dev/null >/dev/null 2>&1 || true
   done
 fi
