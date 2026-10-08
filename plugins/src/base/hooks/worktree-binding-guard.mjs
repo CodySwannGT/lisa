@@ -39,14 +39,16 @@
  * or accept a linked target this session was explicitly offered. A selected
  * target does not prove a move: the next guarded call must actually be there.
  *
- * FAILING OPEN, LOUDLY. Anything this cannot determine — no session id, no
- * cwd, not a git repository, an unreadable state file — exits 0 with a line on
- * stderr. A guard that cannot read its input cannot tell a displacement from a
- * directory listing, and one that wedges every tool call is switched off within
- * the hour. Silence is the only outcome that is never acceptable.
+ * FAILING OPEN, LOUDLY. Missing input or unavailable I/O — no session id, no
+ * cwd, not a git repository, an unreadable state file — retains the measured
+ * fail-open behavior. A readable state file with missing, mismatched or damaged
+ * ownership is a different fact: it cannot authorize a baseline or be silently
+ * overwritten. Legacy ambiguity requires explicit intent; a conflicting reserved
+ * slot requires a new session identity.
  */
 
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   mkdirSync,
   readFileSync,
@@ -69,6 +71,9 @@ const GUARDED_TOOLS = new Set(["Bash", "Write", "Edit", "MultiEdit"]);
  */
 const ACCEPT_PREFIX = "lisa-worktree-binding: accept";
 const ACK_AND_SEPARATOR = Symbol("acknowledgement AND separator");
+const BINDING_VERSION = 4;
+const CURRENT_BINDING = Symbol("current binding state");
+const BINDING_WRITE_CONFLICT = Symbol("binding write conflict");
 
 /**
  * Resolve a path the way git reports one.
@@ -583,62 +588,111 @@ function keyPart(value) {
  * its writes were refused, or an acknowledgement rebound the file out from
  * under the sibling (CodySwannGT/lisa#4277). The payload's `agent_id` is what
  * distinguishes a subagent from the main agent, so a caller carrying one gets
- * its own state file. The main agent carries no `agent_id` and keeps the
- * session-scoped key it always had, which is also the fallback for runtimes
- * that never send the field.
+ * its own state file. The main agent carries no `agent_id` and uses a null
+ * agent component, also the fallback for runtimes that never send the field.
  *
- * Both shapes escape every component with {@link keyPart}, so the session key
- * `x` and the agent key `a--b` live in disjoint namespaces: an escaped
- * component never contains `-`, a main-session key is one component, an
- * agent key is two joined by the only `--` the string can hold. Session
- * "s%2Da--c" cannot collide with session "s-a" + agent "c", and neither can
- * collide across the two shapes (CodySwannGT/lisa#4294).
+ * v4 hashes the JSON tuple into a lowercase, bounded filename in its own
+ * directory. The digest fixes filename size and casing; the persisted exact
+ * tuple remains the authority. A conflicting owner in a reserved slot is
+ * refused, never overwritten. Earlier flat filenames were ambiguous across
+ * formats (CodySwannGT/lisa#4311).
+ * @param {object} payload - Native hook identity
+ * @returns {[string, string|null]} Session and normalized optional agent
+ */
+function bindingIdentity(payload) {
+  const agent = payload?.agent_id;
+  return [
+    payload.session_id,
+    typeof agent === "string" && agent ? agent : null,
+  ];
+}
+
+/**
+ * Resolve the reserved slot without exposing filename-unsafe identity bytes.
+ * @param {object} payload - Native hook identity
+ * @returns {string} Versioned, bounded relative state-file stem
  */
 function bindingKey(payload) {
-  const agent = payload?.agent_id;
-  if (typeof agent !== "string" || !agent) return keyPart(payload.session_id);
-  return `${keyPart(payload.session_id)}--${keyPart(agent)}`;
+  const digest = createHash("sha256")
+    .update(JSON.stringify(bindingIdentity(payload)))
+    .digest("hex");
+  return join(`v${BINDING_VERSION}`, digest);
 }
 
 /**
  * The keys earlier versions wrote for this payload, newest first.
  *
  * The v1 key was the raw `session_id` (single shared file per session). v2
- * joined raw session and agent on `--`. Both are readable on upgrade so a
- * mid-session deploy does not silently re-baseline an established binding —
- * the ambiguity in a legacy `a--b` key is resolved toward the interpretation
- * the lookup is making, and the next write lands on the current key while the
- * legacy file is left to age out.
+ * joined sanitized session and agent on `--`; v3 escaped both components.
+ * All are inspected on upgrade, but only a matching v4 owner record grants
+ * authority. An unstamped file cannot distinguish its possible owners, so the
+ * guard requires explicit intent rather than guessing or silently re-baselining.
+ * Legacy files stay untouched and only safe filename stems are inspected.
  * @param {object} payload - The hook payload
  * @returns {string[]} Zero or more legacy keys this payload may have written
  */
 function legacyKeys(payload) {
   const agent = payload?.agent_id;
   const session = payload.session_id;
-  if (typeof agent === "string" && agent) {
-    // v2 wrote the sanitised composite. v1 never wrote a per-agent file — an
-    // agent falling back to the shared session file is the #4277 bug again,
-    // so the list stops there.
-    const san = value => value.replaceAll(/[^A-Za-z0-9._-]/g, "_");
-    return [`${san(session)}--${san(agent)}`];
+  const perAgent = typeof agent === "string" && agent;
+  const san = value => value.replaceAll(/[^A-Za-z0-9._-]/g, "_");
+  const older = perAgent ? `${san(session)}--${san(agent)}` : session;
+  let escaped = null;
+  try {
+    escaped = perAgent
+      ? `${keyPart(session)}--${keyPart(agent)}`
+      : keyPart(session);
+  } catch {
+    // A lone surrogate could not have produced an escaped v3 filename.
   }
-  // v1 and v2 both keyed the main agent on the raw session id — but only when
-  // that id contains no `--`. One that does spells exactly the composite
-  // shape agent bindings now write, so reading it could hand this session a
-  // stranger's binding. Losing the v1 binding for such an id re-baselines
-  // once; the alternative is reading a file whose owner cannot be proven.
-  return session.includes("--") ? [] : [session];
+  return [...new Set([escaped, older])].filter(
+    key => typeof key === "string" && key && !/[\\/]/u.test(key)
+  );
+}
+
+/**
+ * Require the producer's version, exact tuple and an absolute binding root.
+ * A matching identity with a damaged root cannot authorize re-baselining.
+ * @param {object|null} state - Parsed local state
+ * @param {object} payload - Caller claiming the slot
+ * @returns {boolean} Whether the record identifies this caller
+ */
+function ownsState(state, payload) {
+  const expected = bindingIdentity(payload);
+  return (
+    typeof state?.boundRoot === "string" &&
+    isAbsolute(state.boundRoot) &&
+    !state.boundRoot.includes("\0") &&
+    state?.bindingVersion === BINDING_VERSION &&
+    Array.isArray(state.bindingIdentity) &&
+    state.bindingIdentity.length === expected.length &&
+    state.bindingIdentity.every((part, index) => part === expected[index])
+  );
 }
 
 function readState(bindingKeyValue, payload) {
-  for (const key of [bindingKeyValue, ...legacyKeys(payload)]) {
+  try {
+    const state = JSON.parse(readFileSync(stateFile(bindingKeyValue), "utf8"));
+    return ownsState(state, payload)
+      ? { ...state, [CURRENT_BINDING]: true }
+      : { unverifiedOwner: true, canonicalConflict: true };
+  } catch (error) {
+    if (error instanceof SyntaxError)
+      return { unverifiedOwner: true, canonicalConflict: true };
+    // Preserve the existing unreadable-state fallback; no binding was imported.
+  }
+  let ambiguous = false;
+  for (const key of legacyKeys(payload)) {
     try {
-      return JSON.parse(readFileSync(stateFile(key), "utf8"));
-    } catch {
+      const state = JSON.parse(readFileSync(stateFile(key), "utf8"));
+      if (ownsState(state, payload)) return state;
+      ambiguous = true;
+    } catch (error) {
+      if (error instanceof SyntaxError) ambiguous = true;
       // Not written under this key — try the next older one.
     }
   }
-  return null;
+  return ambiguous ? { unverifiedOwner: true } : null;
 }
 
 /**
@@ -654,23 +708,39 @@ function readState(bindingKeyValue, payload) {
  * @param state - Fields to write over the recorded state
  * @param payload - The hook payload, for legacy-key reads while a binding is
  *   migrating to the current key format
- * @returns Whether the write succeeded
+ * @param options - Validated acknowledgement or create-only baseline intent
+ * @returns True on success, false for unavailable I/O, or a conflict sentinel
  */
-function writeState(bindingKeyValue, state, payload) {
+function writeState(bindingKeyValue, state, payload, options = {}) {
   const file = stateFile(bindingKeyValue);
   const previous = readState(bindingKeyValue, payload);
+  if (
+    (options.createOnly && previous) ||
+    previous?.canonicalConflict ||
+    (previous?.unverifiedOwner && !options.acceptUnowned)
+  )
+    return BINDING_WRITE_CONFLICT;
+  const proven = previous?.unverifiedOwner ? null : previous;
+  // A runtime notice alone cannot establish a binding after a failed baseline.
+  // Every record we produce must satisfy the same authority check as a read.
+  const next = {
+    ...proven,
+    ...state,
+    bindingVersion: BINDING_VERSION,
+    bindingIdentity: bindingIdentity(payload),
+  };
+  if (!ownsState(next, payload)) return false;
   const originalRoot =
-    previous?.originalRoot ?? previous?.boundRoot ?? state.boundRoot;
+    proven?.originalRoot ?? proven?.boundRoot ?? state.boundRoot;
   const originalCommonDir =
-    previous?.originalCommonDir ?? repositoryIdentity(originalRoot);
+    proven?.originalCommonDir ?? repositoryIdentity(originalRoot);
   try {
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(
       file,
       `${JSON.stringify(
         {
-          ...previous,
-          ...state,
+          ...next,
           // Preserve the initial root after intentional rebinds. A legacy
           // state's established root is its only proven recovery anchor.
           originalRoot,
@@ -678,10 +748,12 @@ function writeState(bindingKeyValue, state, payload) {
         },
         null,
         2
-      )}\n`
+      )}\n`,
+      { flag: previous?.[CURRENT_BINDING] ? "w" : "wx" }
     );
     return true;
   } catch (error) {
+    if (error.code === "EEXIST") return BINDING_WRITE_CONFLICT;
     say(`could not record the binding (${error.message}); NOT enforcing`);
     return false;
   }
@@ -761,7 +833,8 @@ function recordBaseline(bindingKeyValue, observed, payload) {
   // Never overwrite. A resumed session, a reconnect, or anything else that
   // fires the event twice must not be able to launder a displaced binding into
   // a fresh baseline — which is the whole failure this exists to close.
-  if (readState(bindingKeyValue, payload)?.boundRoot) return;
+  const previous = readState(bindingKeyValue, payload);
+  if (previous?.boundRoot || previous?.unverifiedOwner) return;
   writeState(
     bindingKeyValue,
     {
@@ -769,7 +842,8 @@ function recordBaseline(bindingKeyValue, observed, payload) {
       claimedRoot: null,
       updatedAt: new Date().toISOString(),
     },
-    payload
+    payload,
+    { createOnly: true }
   );
 }
 
@@ -785,6 +859,7 @@ function recordClaim(payload, observed) {
   const claimed = claimedRoot(payload.tool_input, payload.cwd);
   if (!claimed || claimed === observed) return;
   const previous = readState(bindingKey(payload), payload);
+  if (previous?.unverifiedOwner) return;
   writeState(
     bindingKey(payload),
     {
@@ -792,7 +867,8 @@ function recordClaim(payload, observed) {
       claimedRoot: claimed,
       updatedAt: new Date().toISOString(),
     },
-    payload
+    payload,
+    { createOnly: !previous }
   );
 }
 
@@ -801,9 +877,39 @@ function refuse(lines) {
   return 2;
 }
 
+/** Refuse an action whose binding changed while its creation was in flight. */
+function bindingWriteConflict() {
+  return refuse([
+    "worktree-binding-guard: another hook recorded this session's binding during this call.",
+    "The existing file has been preserved. Retry the call to check its established binding.",
+  ]);
+}
+
 function acceptanceLine(observed) {
   const literal = `${ACCEPT_PREFIX} ${observed}`.replaceAll("'", "'\\''");
   return `  echo '${literal}'`;
+}
+
+/**
+ * Explain a real ownership ambiguity without treating a stranger's root as fact.
+ * @param {object} state - Unverified-state sentinel, containing no imported fields
+ * @param {string|null} observed - Measured checkout
+ * @returns {number} Blocking native-hook status
+ */
+function unownedBinding(state, observed) {
+  return refuse([
+    "worktree-binding-guard: cannot prove this binding belongs to this session.",
+    "The existing file has no matching owner record. It has not been imported or changed.",
+    ...(state.canonicalConflict
+      ? [
+          "This session's reserved state file identifies another owner or an unknown format.",
+          "Start a new session with its own identity; acknowledging cannot overwrite that file.",
+        ]
+      : [
+          "Choose the worktree you intend to use by acknowledging its measured path:",
+          acceptanceLine(observed),
+        ]),
+  ]);
 }
 
 /** Read literal shell words and AND separators without evaluating expansions. */
@@ -923,6 +1029,7 @@ function handleAcceptance(payload, observed) {
   if (!request) return null;
   const { path, validMove } = request;
   const previous = readState(bindingKey(payload), payload);
+  if (previous?.canonicalConflict) return unownedBinding(previous, observed);
   const original = previous?.originalRoot ?? previous?.boundRoot;
   const recovering = isOriginalRoot(previous, path);
   const offered =
@@ -949,8 +1056,10 @@ function handleAcceptance(payload, observed) {
       offeredRoot: null,
       updatedAt: new Date().toISOString(),
     },
-    payload
+    payload,
+    { acceptUnowned: true }
   );
+  if (written === BINDING_WRITE_CONFLICT) return bindingWriteConflict();
   if (written)
     say(
       path === observed
@@ -1185,6 +1294,7 @@ function evaluate(payload) {
   if (!GUARDED_TOOLS.has(payload.tool_name)) return 0;
 
   const state = readState(binding, payload);
+  if (state?.unverifiedOwner) return unownedBinding(state, observed);
   if (!state?.boundRoot) {
     // No baseline means SessionStart did not run for this session — an older
     // install, a runtime that fires no such event, a harness that skips it.
@@ -1193,15 +1303,17 @@ function evaluate(payload) {
     // refusing. Treating it as a refusal would turn a floor into a wall on
     // every surface where the event does not fire, and a wall gets switched
     // off, which costs the whole guard.
-    writeState(
+    const written = writeState(
       binding,
       {
         boundRoot: observed,
         claimedRoot: null,
         updatedAt: new Date().toISOString(),
       },
-      payload
+      payload,
+      { createOnly: true }
     );
+    if (written === BINDING_WRITE_CONFLICT) return bindingWriteConflict();
     return 0;
   }
   if (
@@ -1213,7 +1325,7 @@ function evaluate(payload) {
     return unconfirmedSwitch(state.claimedRoot, observed);
   }
   if (state.claimedRoot === observed) {
-    writeState(
+    const written = writeState(
       binding,
       {
         boundRoot: observed,
@@ -1223,6 +1335,7 @@ function evaluate(payload) {
       },
       payload
     );
+    if (written === BINDING_WRITE_CONFLICT) return bindingWriteConflict();
     return 0;
   }
   if (state.boundRoot !== observed) return displaced(state.boundRoot, observed);
