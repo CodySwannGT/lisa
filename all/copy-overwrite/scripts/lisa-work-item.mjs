@@ -3409,7 +3409,7 @@ function parsePushGroups(input, remote) {
   // scoped to branch-authored commits (issue #1956).
   const defaultRef = remoteDefaultRef(remote);
   for (const line of input.trim().split(/\r?\n/).filter(Boolean)) {
-    const [localRef, localOid, , remoteOid] = line.trim().split(/\s+/);
+    const [localRef, localOid, remoteRef, remoteOid] = line.trim().split(/\s+/);
     if (!localOid || ZERO_OID.test(localOid)) continue;
     const existing = Boolean(remoteOid) && !ZERO_OID.test(remoteOid);
     const args = existing
@@ -3430,6 +3430,7 @@ function parsePushGroups(input, remote) {
         ? `${localRef} ${abbreviate(remoteOid)}..${abbreviate(localOid)}`
         : `${localRef} (new branch) ${abbreviate(localOid)}`,
       localRef,
+      remoteRef,
       scope: args,
     });
   }
@@ -6094,6 +6095,7 @@ function pushGroups(input, remote) {
           commits: [],
           examinedScope: parsed[0]?.examinedScope ?? HEAD_FALLBACK_SCOPE,
           localRef: parsed[0]?.localRef,
+          remoteRef: parsed[0]?.remoteRef,
           // Empty on purpose: `ancestryUnreachable` asks a question OF A RANGE,
           // and there is no range here. `examinedScope` above is the separate,
           // human-readable answer to "what did this verdict look at".
@@ -6200,11 +6202,61 @@ export function unreachableAncestryRefusal(localRef) {
  */
 function prTargetGroup(groups, pr) {
   if (!pr) return undefined;
+  const destination = groups.find(
+    group =>
+      pr.headRefName && group.remoteRef === `${HEADS_PREFIX}${pr.headRefName}`
+  );
+  if (destination) return destination;
   if (groups.length === 1) return groups[0];
   const branch = activeBranch();
   return groups.find(
     group => branch && pushedBranchName(group.localRef ?? "") === branch
   );
+}
+
+/**
+ * Keep a stacked PR's inherited base work out of its body declaration.
+ *
+ * The raw push scope still governs ancestry validation. Only the matching
+ * child destination's declaration scope is intersected with the immutable base
+ * commit GitHub reported; other pushed branches and deploy bases retain their
+ * existing scope. An unavailable base refuses instead of guessing from a
+ * possibly stale local branch name.
+ * @param {object} group Raw pushed ref and its commits.
+ * @param {object|undefined} pr Current branch's pull request.
+ * @param {string} remote Push destination.
+ * @returns {object} The declaration scope for this push.
+ */
+function stackedPrPushGroup(group, pr, remote) {
+  if (
+    !pr?.baseRefName ||
+    deployBranchNames(remote).has(pr.baseRefName) ||
+    !pr.headRefName ||
+    group.remoteRef !== `${HEADS_PREFIX}${pr.headRefName}` ||
+    group.commits.length === 0
+  )
+    return group;
+  const base = pr.baseRefOid;
+  if (typeof base !== "string" || !/^[a-f0-9]{40}$/i.test(base))
+    throw new TrackingError(
+      "The stacked pull request's base commit could not be read. Refresh its GitHub metadata before pushing."
+    );
+  const available = run("git", ["cat-file", "-e", `${base}^{commit}`], {
+    allowFailure: true,
+  });
+  if (available.status !== 0)
+    throw new TrackingError(
+      "The stacked pull request's base commit is not available locally. Fetch the pull request's base branch, then push again."
+    );
+  // Put the exclusion before any --not toggle in the original argv. This
+  // preserves the existing incremental range and avoids walking the whole PR.
+  const scope = ["rev-list", `^${base}`, ...group.scope.slice(1)];
+  return {
+    ...group,
+    commits: git(scope).split("\n").filter(Boolean),
+    examinedScope: `${group.examinedScope}; excluding PR base ${abbreviate(base)}`,
+    scope,
+  };
 }
 
 /**
@@ -6371,7 +6423,11 @@ function validatePush(args) {
   // anything, but so could a `--no-verify`; CI is the enforcing copy.
   const configRef = remoteDefaultRef(remote);
   const groups = pushGroups(input, remote);
-  const pr = currentPullRequest();
+  const pr = currentPullRequest(
+    undefined,
+    undefined,
+    "url,body,state,baseRefName,baseRefOid,headRefName"
+  );
   const target = prTargetGroup(groups, pr);
   for (const group of groups) {
     // BEFORE the commits are judged, not after: every verdict below is computed
@@ -6380,12 +6436,17 @@ function validatePush(args) {
     // produced a refusal naming a stranger's closed ticket (#3719).
     if (ancestryUnreachable(group, remote))
       throw unreachableAncestryRefusal(group.localRef);
-    const outcome = commitOutcome(group.commits, configRef, remote);
+    const declaration = stackedPrPushGroup(
+      group,
+      group === target ? pr : undefined,
+      remote
+    );
+    const outcome = commitOutcome(declaration.commits, configRef, remote);
     reportPushGroup(
       outcome,
       group === target ? pr : undefined,
       groups.length > 1 ? `${group.localRef ?? "(stdin)"}: ` : "",
-      group.examinedScope
+      declaration.examinedScope
     );
   }
 }

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.71.11](https://github.com/CodySwannGT/lisa/compare/v4.71.10...v4.71.11) (2026-10-08)
+
+
+### Bug Fixes
+
+* **ci:** scope stacked PR push declarations to their base ([06cde4c](https://github.com/CodySwannGT/lisa/commit/06cde4c91dbbe13cdfc7de083dcbe817d08dad8f)), closes [CodySwannGT/lisa#4315](https://github.com/CodySwannGT/lisa/issues/4315) [CodySwannGT/lisa#4315](https://github.com/CodySwannGT/lisa/issues/4315)
+
 ### [4.71.10](https://github.com/CodySwannGT/lisa/compare/v4.71.9...v4.71.10) (2026-10-08)
 
 
