@@ -1499,7 +1499,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-quality-review/SKILL.md":
       "c51afffe153f614bcef5bbd2a7b8ffb53c241ebd246900863448e3a6f4be7d47",
     "plugins/src/base/skills/lisa-queue-status/SKILL.md":
-      "9b82907d52f24cc8d17044bf100d1391063b94d04c436b3b0b6f2cad0fe7277f",
+      "8905a65e2c0f3d6894b4c36907723fe0b7d6048ff0fd1d0e2be529eccb5de1e3",
     "plugins/src/base/skills/lisa-remote-dispatch/SKILL.md":
       "f3c48120a206d01db45f849ca5b61690d572abc16bc36d559a4cacc8f9422c06",
     "plugins/src/base/skills/lisa-remote-dispatch/scripts/dispatch.mjs":
@@ -11428,6 +11428,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/queue-health-classification.test.ts": true,
     "tests/unit/strategies/queue-status-build-readers.test.ts": true,
     "tests/unit/strategies/queue-status-fixture-smoke-and-read-only.test.ts": true,
+    "tests/unit/strategies/queue-status-pr-arming-query.test.ts": true,
     "tests/unit/strategies/queue-status-prd-readers.test.ts": true,
     "tests/unit/strategies/queue-status-scaffold.test.ts": true,
     "tests/unit/strategies/readiness-report-merge-exposure.test.ts": true,
