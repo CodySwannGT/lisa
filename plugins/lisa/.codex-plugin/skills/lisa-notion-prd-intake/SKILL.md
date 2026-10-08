@@ -3,6 +3,8 @@ name: lisa-notion-prd-intake
 description: "Scans a Notion PRD database for…"
 allowed-tools: ["Skill", "Bash", "Read", "Write", "Edit", "AskUserQuestion"]
 ---
+Scans a Notion PRD database for pages in the configured `ready` status and runs the first eligible one through the dry-run validation pipeline. A PRD that passes every gate gets tickets written and the status flipped to the configured `ticketed` value; a PRD that fails gets clarifying-question comments and the status flipped to the configured `blocked` value. The skill is the runtime for the ready → in_review → blocked|ticketed lifecycle. Composes existing skills (notion-to-tracker, tracker-validate, tracker-source-artifacts, product-walkthrough); does not reimplement their logic.
+
 
 # Notion PRD Intake: $ARGUMENTS
 

@@ -3,6 +3,8 @@ name: lisa-github-journey
 description: "Parse a GitHub Issue's…"
 allowed-tools: ["Bash", "Read", "Glob", "Grep", "Skill"]
 ---
+Parse a GitHub Issue's Validation Journey section, execute the verification steps using appropriate tools (curl, test commands, database queries), capture evidence at each marker, and post results via lisa-github-evidence. The GitHub counterpart of lisa-jira-journey.
+
 
 # GitHub Validation Journey
 

@@ -5,6 +5,8 @@ allowed-tools:
   - Bash
   - Read
 ---
+Monitor Sentry for unresolved errors in frontend and backend projects. Supports filtering by project, environment, and time range.
+
 
 # Ops: Monitor Errors
 

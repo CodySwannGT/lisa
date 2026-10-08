@@ -2,6 +2,8 @@
 name: expo-router-best-practices
 description: "creating new routes…"
 ---
+This skill should be used when creating new routes, configuring navigation layouts, implementing deep linking, or organizing the app/ directory structure in Expo Router projects. It provides best practices for file-based routing patterns.
+
 
 # Expo Router Best Practices
 

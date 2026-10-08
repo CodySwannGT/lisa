@@ -3,6 +3,8 @@ name: lisa-wiki-setup-automations
 description: "Set up the recurring LLM Wiki…"
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
+Set up the recurring LLM Wiki ingest automation on the local workstation using the CURRENT runtime's native scheduler — Codex automations (the native automations / automation_update mechanism) or, on Claude, /schedule. This skill is a declarative specification: it states WHICH automation to create, how often, and with which command; it does not template schedule files or run scheduling code itself — the runtime's native automation mechanism does the creating. Creates one automation: wiki-ingest, a full /lisa-wiki:ingest cycle, once a day by default (override with cadence). Named and scoped lisa-wiki-auto-<project>-* so it never collides with or clobbers the base /setup-automations set. The wiki counterpart of /lisa:setup-automations — it lives here because the wiki plugin is standalone and installable without the base plugin. Tear down with /lisa-wiki:tear-down-automations.
+
 
 # Set up LLM Wiki automations: $ARGUMENTS
 

@@ -535,9 +535,10 @@ export function emitCommandSkills(pluginDir) {
 
 /**
  * Derive Codex-only variants of authored skills with concise routing metadata.
- * Bodies and resources remain byte-identical copies inside the plugin bundle;
- * only the `description` scalar is compacted to respect Codex's fixed metadata
- * budget. Other agent variants strip `.codex-plugin/` entirely.
+ * Original bodies and resources are preserved inside the plugin bundle. The
+ * `description` scalar is compacted to respect Codex's fixed metadata budget,
+ * with full authored routing text prepended to the lazily loaded skill body.
+ * Other agent variants strip `.codex-plugin/` entirely.
  * @param {string} pluginDir Built plugin directory.
  * @returns {readonly string[]} Derived skill names.
  */
@@ -572,7 +573,7 @@ export function emitCodexSkillVariants(pluginDir) {
 }
 
 /**
- * Compact the frontmatter description while preserving the complete skill body.
+ * Compact eager metadata while retaining the full routing text in the lazy body.
  * @param {string} source Full SKILL.md source.
  * @returns {string} Source with a concise one-line routing description.
  */
@@ -609,7 +610,11 @@ export function compactSkillFrontmatterDescription(source) {
     `description: ${JSON.stringify(compact)}`,
     ...lines.slice(descriptionEnd + 1),
   ].join("\n");
-  return `---\n${nextFrontmatter}\n---\n${match[2]}`;
+  // Codex loads all descriptions at startup. Keep that budget bounded without
+  // discarding authored routing conditions when the full skill is selected.
+  const routing =
+    description.trim() === compact ? "" : `${description.trim()}\n\n`;
+  return `---\n${nextFrontmatter}\n---\n${routing}${match[2]}`;
 }
 
 /**
@@ -630,7 +635,7 @@ function compactRoutingDescription(description) {
   if (withoutPeriod.length <= 32) return withoutPeriod;
   const prefix = withoutPeriod.slice(0, 32);
   const boundary = prefix.lastIndexOf(" ");
-  return `${(boundary > 16 ? prefix.slice(0, boundary) : prefix).replace(/[,;:.\s]+$/, "")}…`;
+  return `${(boundary > 0 ? prefix.slice(0, boundary) : prefix).replace(/[,;:.\s]+$/, "")}…`;
 }
 
 /**

@@ -2,6 +2,8 @@
 name: harper-operations
 description: "operating, monitoring, or…"
 ---
+This skill should be used when operating, monitoring, or debugging a Harper (HarperDB/Fabric) component after it builds or deploys - Operations API calls, component inventory, log retrieval, health checks, job lookup, local 500 debugging, and escalation boundaries. Pairs with harper-build-and-deploy, harper-config-yaml, harper-resources, and harper-rest-queries.
+
 
 # Harper Operations
 

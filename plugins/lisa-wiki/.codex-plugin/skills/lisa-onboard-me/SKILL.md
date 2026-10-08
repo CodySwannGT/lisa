@@ -2,6 +2,8 @@
 name: lisa-onboard-me
 description: "Onboard a user to the project…"
 ---
+Onboard a user to the project via its LLM Wiki: interview them about themselves in relation to the project, then give a guided tour and sample questions. Read-mostly by default (session-local); --save-memory persists the capture to project-scoped memory only. No PRs, no PII written into the wiki, never global memory.
+
 ## Lisa Command Compatibility
 
 - Original Claude command: `/lisa:onboard-me`

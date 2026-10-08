@@ -3,6 +3,8 @@ name: lisa-confluence-prd-intake
 description: "Scans a Confluence space (or a…"
 allowed-tools: ["Skill", "Bash"]
 ---
+Scans a Confluence space (or a parent page) for PRD pages currently parented under the configured `ready` lifecycle page and runs the first eligible one through the dry-run validation pipeline. A PRD that passes every gate gets tickets written and is re-parented under the `ticketed` lifecycle page; a PRD that fails gets clarifying-question comments and is re-parented under the `blocked` lifecycle page. Confluence counterpart of `lisa-notion-prd-intake` — the workflow is identical; only the source-of-truth tools and the state encoding differ (parent-page re-parenting instead of a status property). Composes existing skills (confluence-to-tracker, tracker-validate, tracker-source-artifacts, product-walkthrough).
+
 
 # Confluence PRD Intake: $ARGUMENTS
 

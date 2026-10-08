@@ -5,6 +5,8 @@ allowed-tools:
   - Bash
   - Read
 ---
+Manage the local development environment for Expo + serverless backend projects. Supports start, stop, restart, and status for the full stack or individual services.
+
 
 # Ops: Run Local
 

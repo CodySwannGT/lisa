@@ -3,6 +3,8 @@ name: lisa-plan
 description: "Decompose a single PRD or…"
 allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
 ---
+Decompose a single PRD or specification into ordered work items in the configured tracker. Vendor-agnostic — the source can be a Notion PRD URL, a Confluence PRD URL, a Linear project URL, a GitHub Issue URL, an existing JIRA epic key, a markdown file, or a free-form description; the destination tracker is whatever the project is configured to use via `.lisa.config.json` `tracker` (JIRA, GitHub Issues, or Linear). Single-PRD mode only — for batch scanning of all Ready PRDs in a queue, use the lisa-intake skill.
+
 
 # Plan: $ARGUMENTS
 

@@ -2,6 +2,8 @@
 name: lisa-task-triage
 description: "8-step task triage and…"
 ---
+8-step task triage and implementation workflow. Ensures tasks have clear requirements, dependencies, and verification plans before implementation begins.
+
 
 # Task Triage
 

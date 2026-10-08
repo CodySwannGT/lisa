@@ -2,6 +2,8 @@
 name: lisa-openclaw-connect-repo-topic
 description: "Bind a Telegram forum topic to…"
 ---
+Bind a Telegram forum topic to an OpenClaw dispatcher+worker agent pair that runs a coding CLI against a repo, so you can drive code work from chat. Supports single-repo topics and folder-scoped topics (multiple repos with repo-confirmation). Creates/validates the agent pair, ensures the bot is a group admin, captures real group/topic ids, wires the route in ~/.openclaw/openclaw.json, validates the gateway, and runs a no-change self-test. Requires lisa-openclaw-setup first.
+
 
 # lisa-openclaw-connect-repo-topic
 

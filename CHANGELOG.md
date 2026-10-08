@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.72.4](https://github.com/CodySwannGT/lisa/compare/v4.72.3...v4.72.4) (2026-10-08)
+
+
+### Bug Fixes
+
+* **ci:** keep unit progress workflow below source limit ([2ee535d](https://github.com/CodySwannGT/lisa/commit/2ee535d855e1ec90d48d998fc770829988703874)), closes [CodySwannGT/lisa#4322](https://github.com/CodySwannGT/lisa/issues/4322) [CodySwannGT/lisa#4322](https://github.com/CodySwannGT/lisa/issues/4322)
+* **ci:** report progress during quiet unit coverage runs ([aac26b8](https://github.com/CodySwannGT/lisa/commit/aac26b8cc14a9cc9b07017d7a8ec92c38ee0d9db)), closes [CodySwannGT/lisa#4322](https://github.com/CodySwannGT/lisa/issues/4322) [CodySwannGT/lisa#4322](https://github.com/CodySwannGT/lisa/issues/4322)
+
+### [4.72.3](https://github.com/CodySwannGT/lisa/compare/v4.72.2...v4.72.3) (2026-10-08)
+
+
+### Bug Fixes
+
+* **hooks:** keep recovery acknowledgement checks linear ([1f85fc3](https://github.com/CodySwannGT/lisa/commit/1f85fc30287444f666f794b1d29a66c70fb39c52)), closes [CodySwannGT/lisa#4301](https://github.com/CodySwannGT/lisa/issues/4301)
+* **hooks:** recover worktree bindings by repository identity ([b39b688](https://github.com/CodySwannGT/lisa/commit/b39b6884e9e96edf0cc51c23baa09702dc887aa3)), closes [CodySwannGT/lisa#4301](https://github.com/CodySwannGT/lisa/issues/4301)
+
+### [4.72.2](https://github.com/CodySwannGT/lisa/compare/v4.72.1...v4.72.2) (2026-10-08)
+
+
+### Bug Fixes
+
+* **codex:** preserve complete skill routing guidance ([359826a](https://github.com/CodySwannGT/lisa/commit/359826a0540bba53e794ab41f56c6e38b05c310a)), closes [CodySwannGT/lisa#4304](https://github.com/CodySwannGT/lisa/issues/4304)
+
 ### [4.72.1](https://github.com/CodySwannGT/lisa/compare/v4.72.0...v4.72.1) (2026-10-08)
 
 

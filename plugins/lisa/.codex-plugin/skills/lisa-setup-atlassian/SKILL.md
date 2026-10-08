@@ -3,6 +3,8 @@ name: lisa-setup-atlassian
 description: "Configure Atlassian access for…"
 allowed-tools: ["Bash", "Read", "Write", "Edit", "Skill", "AskUserQuestion"]
 ---
+Configure Atlassian access for this project. Installs acli if missing, runs the OAuth or API-token login, optionally enables the Atlassian MCP, resolves the cloudId for the active site, and writes the `atlassian` section into `.lisa.config.json`. Prerequisite for /lisa:setup:jira and /lisa:setup:confluence (both need atlassian.cloudId). Idempotent — re-running updates the existing section rather than duplicating it.
+
 
 # Setup Atlassian: $ARGUMENTS
 

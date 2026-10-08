@@ -3,6 +3,8 @@ name: lisa-review-local
 description: "performing a code review on…"
 disable-model-invocation: false
 ---
+This skill should be used when performing a code review on local changes on the current branch compared to the main branch. It uses multiple parallel agents to check for bugs, CLAUDE.md compliance, git history context, previous PR comments, and code comment adherence, then scores and filters findings by confidence level.
+
 
 Provide a code review for the local changes on the current branch compared to the main branch.
 

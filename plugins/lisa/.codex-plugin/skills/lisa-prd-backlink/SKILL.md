@@ -3,6 +3,8 @@ name: lisa-prd-backlink
 description: "Update a source PRD with an…"
 allowed-tools: ["Skill", "Bash", "Read", "Edit", "Write", "Glob", "Grep"]
 ---
+Update a source PRD with an always-written, machine-readable `## Tickets` (alias `## Generated Work`) section linking back to every work item created from it. Each entry carries a parseable ref + URL + type + parent token so the generated child set is readable without scraping prose. Vendor-aware on the source side (Notion / Confluence / Linear / GitHub Issue / file) and tracker-agnostic on the ticket side; the documented section is written for every vendor, additive to native hierarchy linking. Idempotent — regenerates the section on each run rather than appending, so re-planning never accumulates stale links. Invoked by the *-to-tracker skills at the end of their pipeline and standalone if a PRD's Tickets section needs to be refreshed.
+
 
 # PRD Back-link
 

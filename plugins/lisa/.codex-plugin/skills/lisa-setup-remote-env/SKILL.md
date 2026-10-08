@@ -3,6 +3,8 @@ name: lisa-setup-remote-env
 description: "Provision and verify a remote…"
 allowed-tools: ["Bash", "Read", "Write", "Edit", "Skill"]
 ---
+Provision and verify a remote execution environment for a host project — Codex Cloud today, other remote surfaces as they are added. Generates a repository-owned setup script that installs the declared toolchain, materializes secrets through lisa-secrets-access, and runs the project's own hook. Provisions by API where one exists, by driving the vendor console where one does not, and by emitting exact config otherwise — then proves the result with the same read-back regardless of which tier did the work. Use before dispatching any work with executionEnv.
+
 
 # Setup Remote Environment: $ARGUMENTS
 

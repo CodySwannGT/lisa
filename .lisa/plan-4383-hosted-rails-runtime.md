@@ -453,7 +453,7 @@ is mandatory before merge or release.
 
 The original full push at `73fe96184e2dbf4ec548bae6fc65dc2e85fda297` subsequently passed all14 gates and published that head:1428 unit files/27150 tests and183 integration files/3324 tests, with two existing skips per test gate. Independent readback verified66 recorded original process identities,16 groups and both original supervisor scratch roots absent. The native Ubuntu component run37797449880 checked out merge5f0c13ff, which contains73fe9618; all15 qualification source hashes match the published revision. Native tools, database-role preparation and original hooks passed, but browser stdout remained empty and its original ten-second deadline expired after10066ms. The owned runtime closed and its private root was removed, with foreign resources preserved. Browser and later nested-scratch acceptance remain unproven.
 
-The bounded browser capture correction uses Chrome's documented `--timeout=5000` alongside `--dump-dom`: [official command-line reference](https://developer.chrome.com/docs/automation-and-testing/headless-cli). It captures available DOM within the original ten-second process deadline even when navigation is still loading; both adequate-sandbox text and an active SUID-sandbox row remain mandatory. This is a source-based response to the observed wait, not a proven historical root cause. The real harmless command-consumer control failed with exit19 before the flag and passed after it; all nine original runtime qualification unit controls passed afterward. Those synthetic controls establish command construction and refusal behavior, not genuine Chrome or Ubuntu acceptance. Native Ubuntu qualification remains mandatory before merge/release.
+The browser capture correction adds Chrome's documented `--timeout=5000` alongside `--dump-dom`: [official command-line reference](https://developer.chrome.com/docs/automation-and-testing/headless-cli). That timer bounds page loading after target creation and attachment; it does not guarantee the complete browser process returns within the original ten-second deadline. Both adequate-sandbox text and an active SUID-sandbox row remain mandatory. The real harmless command-consumer control failed with exit19 before the flag and passed after it; all nine original runtime qualification unit controls passed afterward. Those synthetic controls establish command construction and refusal behavior, not genuine Chrome or Ubuntu acceptance. Native Ubuntu qualification remains mandatory before merge/release.
 
 
 The published revision also failed one integration control: the malformed-report
@@ -463,11 +463,11 @@ controls reproduce an actual default-vendor behavior: a balanced hexadecimal
 nonce containing `dead` or `feed` is ignored despite its four-bit entropy. Two
 deterministic nonce controls failed before the correction, and a native pinned
 vendor control returned 0 with no findings for the controlled stopword value.
-The fixture now makes at most sixteen balanced draws and refuses if none avoids
+At that earlier revision, the fixture made at most sixteen balanced draws and refused if none avoided
 those default stopwords. Scanner configuration, production detection, entropy
 requirements and process deadlines are unchanged.
 
-The three affected full test files pass all 35 controls, including both browser
+At that earlier revision, the three affected full test files passed all 35 controls, including both browser
 sandbox refusal controls and the native vendor stopword witness. Scoped ESLint
 passes after moving the balanced shuffle into a local helper in the same existing
 fixture module. One intervening run was refused before collection in the default
@@ -475,3 +475,37 @@ macOS scratch namespace because of uncertain residue; it ran no tests, and that
 residue was preserved. The successful final run uses the original qualification
 namespace `/private/tmp`. These local controls do not establish native Ubuntu
 browser acceptance or the historical cause of the published CI failure.
+
+## Current published failure and main integration
+
+The original full push published `a29140489d3d2139f48455eb8aa3f5062c73b7dd`
+after all fourteen gates passed, including 27,154 unit and 3,325 integration
+tests with two existing skips per test gate. Independent readback verified
+191 recorded process identities, 29 groups and two scratch roots absent.
+The full hosted quality workflow 37807806187 subsequently passed.
+
+Native Ubuntu run 37807803254 still failed its browser deadline after 10,091ms
+with zero stdout bytes. Its merge checkout contained the published revision,
+and all fifteen qualification source hashes matched. The native tools, four
+database roles and original hooks passed. The owned runtime closed, its private
+root was absent and foreign resources were preserved. Browser and subsequent
+nested-scratch acceptance remain unproven.
+
+The normal diagnostic commit `e534d611e7d3619e08c0eb7454b43017fbe4d5b5`
+retains trusted native failure categories and at most sixteen fixed vendor
+source/severity/line records with message fingerprints. It publishes no original
+stderr text, paths, arguments or credentials. Its genuine timeout control first
+failed without those observations, then all twelve qualification unit controls
+passed. Scoped lint and the full original typecheck passed without changing the
+362-file historical quarantine. Browser arguments, sandbox checks and deadlines
+are unchanged. This commit is local until the next normal push succeeds.
+
+The current main integration selects the genuine 4.72.4 revision
+`5ba6829f393917b85a78cd5c4ae95f052aadd0fc`. Its complete three-file scanner
+fixture correction supersedes the retry sampler: separate balanced digit and
+letter permutations place a digit between every letter, structurally preventing
+vendor hexadecimal stopwords while retaining four copies of each symbol. The
+incoming unit and native integration controls cover this algorithm and both
+actual `dead` and `feed` vendor refusals. These exact incoming bytes have distinct
+source review; current merged-head tests, normal commit/push and native Ubuntu
+qualification remain required before merge or release.

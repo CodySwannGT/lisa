@@ -5,6 +5,8 @@ allowed-tools:
   - Bash
   - Read
 ---
+Performance analysis for Expo + serverless backend projects. Runs Lighthouse audits, bundle size analysis, and k6 load tests.
+
 
 # Ops: Performance
 

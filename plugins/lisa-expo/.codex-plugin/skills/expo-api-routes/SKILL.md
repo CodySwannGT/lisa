@@ -4,6 +4,8 @@ description: "Guidelines for creating API…"
 version: 1.0.0
 license: MIT
 ---
+Guidelines for creating API routes in Expo Router with EAS Hosting
+
 
 ## When to Use API Routes
 

@@ -5,6 +5,8 @@ allowed-tools:
   - Bash
   - Read
 ---
+Health check all services across environments. Checks frontend URLs, backend GraphQL endpoints, and reports response times.
+
 
 # Ops: Verify Health
 

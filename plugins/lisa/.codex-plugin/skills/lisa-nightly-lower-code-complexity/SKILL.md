@@ -3,6 +3,8 @@ name: lisa-nightly-lower-code-complexity
 description: "Nightly direct-execution skill…"
 allowed-tools: ["Edit", "MultiEdit", "Write", "Read", "Glob", "Grep", "Bash"]
 ---
+Nightly direct-execution skill for reducing code complexity thresholds. Receives pre-computed threshold data, refactors violations, updates thresholds, commits, and creates a PR.
+
 
 # Nightly Code Complexity Reduction
 

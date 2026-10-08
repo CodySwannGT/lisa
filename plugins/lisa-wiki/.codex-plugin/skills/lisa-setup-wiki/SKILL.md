@@ -2,6 +2,8 @@
 name: lisa-setup-wiki
 description: "Scaffold, repair, verify, or…"
 ---
+Scaffold, repair, verify, or upgrade the project's LLM Wiki from its config. Alias for lisa-wiki setup in the Lisa setup command family.
+
 ## Lisa Command Compatibility
 
 - Original Claude command: `/lisa:setup:wiki`

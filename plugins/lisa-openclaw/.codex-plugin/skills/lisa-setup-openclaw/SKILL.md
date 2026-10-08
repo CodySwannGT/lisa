@@ -2,6 +2,8 @@
 name: lisa-setup-openclaw
 description: "Set up OpenClaw as the…"
 ---
+Set up OpenClaw as the chat-surface runtime for this project's staff. Verifies the openclaw CLI, ~/.openclaw/openclaw.json, a secret provider, and required gateway capabilities, then writes a lean `openclaw` section to .lisa.config.json. Run before connect-staff / connect-repo-topic.
+
 ## Lisa Command Compatibility
 
 - Original Claude command: `/lisa:setup-openclaw`

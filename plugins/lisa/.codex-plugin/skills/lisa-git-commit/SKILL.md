@@ -3,6 +3,8 @@ name: lisa-git-commit
 description: "creating conventional commits…"
 allowed-tools: ["Bash"]
 ---
+This skill should be used when creating conventional commits for current changes. It groups related changes into logical commits, ensures all files are committed, and verifies the working directory is clean afterward.
+
 
 # Git Commit Workflow
 

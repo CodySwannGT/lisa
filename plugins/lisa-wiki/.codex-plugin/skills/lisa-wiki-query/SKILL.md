@@ -2,6 +2,8 @@
 name: lisa-wiki-query
 description: "Answer a question from the LLM…"
 ---
+Answer a question from the LLM Wiki with citations. Reads the index, drills into relevant pages, and synthesizes a cited answer. Read-only by default; only files new synthesis back into the wiki when the user explicitly asks. Use when someone asks a question the wiki should be able to answer, or wants to explore what the wiki knows.
+
 
 # lisa-wiki-query
 

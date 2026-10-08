@@ -3,6 +3,8 @@ name: lisa-linear-verify
 description: "Verifies a Linear work item…"
 allowed-tools: ["Bash", "Skill"]
 ---
+Verifies a Linear work item meets organizational standards by fetching the live item and running it through lisa-linear-validate-issue. Catches anything dropped or reformatted on write — same gates as the pre-write check, but applied to what Linear actually stored. Read-only.
+
 
 # Verify Linear Work Item: $ARGUMENTS
 

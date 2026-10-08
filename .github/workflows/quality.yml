@@ -2800,24 +2800,8 @@ jobs:
         uses: actions/checkout@v6
         with:
           persist-credentials: false
-          # Full history for Lisa's own repository, shallow for every caller.
-          #
-          # Several of Lisa's own unit tests read real revisions out of real
-          # history — `git show c32f33010f:...` and `git ls-tree v4.0.0` among
-          # them — because a test about "what this repository removed" has no
-          # honest fixture. On the default shallow checkout those objects are
-          # absent, and the tests fail with `invalid object name` and `could
-          # not list the tree`, which read as test defects rather than as a
-          # missing clone.
-          #
-          # The step below already fetches three specific tags for the same
-          # reason. An allowlist of refs is how this arrived here in the first
-          # place: it needs editing every time a test cites a new revision, and
-          # nothing fails until CI does. Full history needs no maintenance.
-          #
-          # QUOTED '0'/'1', NOT BARE. GitHub expressions treat 0 as FALSY, so
-          # `... && 0 || 1` evaluates to 1 in the true branch — silently the
-          # opposite of what it reads as. Strings are truthy and behave.
+          # Lisa's tests inspect real historical revisions; callers stay shallow.
+          # Quoted depths are truthy: bare 0 would fall through the || expression.
           fetch-depth: ${{ github.repository == 'CodySwannGT/lisa' && '0' || '1' }}
 
       - name: 📎 Fetch retained nightly guard release tags
@@ -2825,9 +2809,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # These refs exist only in Lisa. Reusable-workflow jobs otherwise run
-          # in the caller's checkout, where fetching Lisa tags would fail (and
-          # private callers deliberately have no persisted checkout credential).
+          # Lisa-only witness refs; callers have neither these tags nor credentials.
           if [ "${GITHUB_REPOSITORY:-}" != "CodySwannGT/lisa" ] || [ ! -f scripts/generate-nightly-e2e-guard-certificate.mjs ]; then
             echo "::notice::Retained nightly guard artifacts are not present in this caller; exact-ref fetch is not applicable."
             exit 0
@@ -2848,12 +2830,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # The export-surface unit test proves the real removal that motivated
-          # #3718. The gate verifies that each release baseline is an ancestor
-          # of HEAD, so isolated tag objects are insufficient in a depth-1
-          # checkout. Deepen to Git's maximum depth (which is also safe when an
-          # earlier witness fetch already completed the repository), filter
-          # historical blobs, then pin the immutable release/export witnesses.
+          # Export-removal tests need real ancestry, not isolated tag objects.
+          # Deepen history, filter blobs, and pin immutable release/export witnesses.
           git -c credential.helper= \
             -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$GH_TOKEN"; }; f' \
             fetch --deepen=2147483647 --filter=blob:none --no-tags origin \
@@ -3091,7 +3069,18 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=6144
           GATE_RUNNER: ${{ steps.gate.outputs.runner }}
           GATE_TASK: ${{ steps.gate.outputs.task }}
-        run: $GATE_RUNNER $GATE_TASK
+        run: |
+          echo "::notice title=Unit-test progress::Tests and coverage reporting can be quiet. A progress notice will appear every 30 seconds while the command runs."
+          node -e '
+            setInterval(() => {
+              const seconds = Math.floor(process.uptime());
+              console.log(`::notice title=Unit-test progress::Command is still running (${seconds} seconds). Quiet output can include coverage reporting.`);
+            }, 30000);
+          ' &
+          UNIT_PROGRESS_PID=$!
+          trap 'kill "$UNIT_PROGRESS_PID" 2>/dev/null || true; wait "$UNIT_PROGRESS_PID" 2>/dev/null || true' EXIT
+          # Keep the parent alive to reap its timer even for a runner using exec.
+          ( $GATE_RUNNER $GATE_TASK )
         working-directory: ${{ inputs.working_directory || '.' }}
 
       - name: 🟡 Report the optional gate that failed
@@ -3114,13 +3103,24 @@ jobs:
         id: test_coverage
         if: steps.check_script.outputs.exists == 'true' && steps.gate.outputs.configured == 'false'
         run: |
-          if [ "$PACKAGE_MANAGER" = "npm" ]; then
-            npm run test:cov
-          elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
-            yarn test:cov
-          elif [ "$PACKAGE_MANAGER" = "bun" ]; then
-            bun run test:cov
-          fi
+          echo "::notice title=Unit-test progress::Tests and coverage reporting can be quiet. A progress notice will appear every 30 seconds while the command runs."
+          node -e '
+            setInterval(() => {
+              const seconds = Math.floor(process.uptime());
+              console.log(`::notice title=Unit-test progress::Command is still running (${seconds} seconds). Quiet output can include coverage reporting.`);
+            }, 30000);
+          ' &
+          UNIT_PROGRESS_PID=$!
+          trap 'kill "$UNIT_PROGRESS_PID" 2>/dev/null || true; wait "$UNIT_PROGRESS_PID" 2>/dev/null || true' EXIT
+          (
+            if [ "$PACKAGE_MANAGER" = "npm" ]; then
+              npm run test:cov
+            elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
+              yarn test:cov
+            elif [ "$PACKAGE_MANAGER" = "bun" ]; then
+              bun run test:cov
+            fi
+          )
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}

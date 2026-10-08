@@ -3,6 +3,8 @@ name: lisa-setup-automations
 description: "Set up the recurring Lisa…"
 allowed-tools: ["Skill", "Bash", "Read", "Write", "Edit"]
 ---
+Set up the recurring Lisa automations on the local workstation using the CURRENT runtime's native scheduler — Codex automations (the native automations / automation_update mechanism) or, on Claude, /schedule. This skill is a declarative specification: it states WHICH automations to create, how often, and with which parameters; it does not template schedule files or run scheduling code itself — the runtime's native automation mechanism does the creating. Creates six default automations: intake-repair (every 60 min), intake PRD (every 60 min), intake tickets (every 10 min), exploratory-bugs (once a day), exploratory-prds (once a day), monitor (once a day) — plus opt-in learnings-audit (once a week, the gardener). Three flags: auto-start-prds and auto-start-tickets control whether ideated PRDs / filed bug tickets are created auto-pickup-ready (prd_ready / ready, default true) or left for human review; learnings-audit (default false) opts into the weekly gardener loop. Tear down with /tear-down-automations.
+
 
 # Set up Lisa automations: $ARGUMENTS
 

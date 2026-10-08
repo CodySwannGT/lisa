@@ -5,6 +5,8 @@ allowed-tools:
   - Bash
   - Read
 ---
+Browser-based user acceptance testing via Playwright MCP tools. Logs into the application, navigates through features, and captures visual proof with screenshots.
+
 
 # Ops: Browser UAT
 

@@ -2,6 +2,8 @@
 name: phaser-build-deploy
 description: "configuring the production…"
 ---
+This skill should be used when configuring the production build or deploying a Phaser 4 game — the Vite prod config (manualChunks to split the phaser vendor chunk, terser two-pass minification), content-hashed assets with immutable caching, the base path per host, vite-plugin-pwa (autoUpdate + globPatterns covering game assets), a bundle-size budget, and static hosting. Use it when setting up the build, fixing caching/base-path issues, adding the PWA, or enforcing bundle size. Pairs with phaser-asset-pipeline, phaser-project-structure, and phaser-testing.
+
 
 # Phaser 4 Build and Deploy
 

@@ -3,6 +3,8 @@ name: lisa-github-write-prd
 description: "Creates or idempotently updates…"
 allowed-tools: ["Skill", "Bash"]
 ---
+Creates or idempotently updates a PRD as a GitHub Issue in the configured source repo, carrying exactly one PRD lifecycle label (`prd-draft` by default, or `prd-ready` when initial_role is ready so lisa-github-prd-intake auto-claims it). The GitHub PRD-source writer behind lisa-prd-source-write — the source-side counterpart of lisa-github-write-issue. Dedupes by a stable marker embedded in the issue body (matched by marker, never by title) so re-running ideation references the existing PRD instead of opening a duplicate, and when `github.projects.v2` is enabled it coordinates PRD issue membership through `lisa-github-project-v2` without replacing the issue as the lifecycle source of truth. Uses the `gh` CLI exclusively.
+
 
 # Write GitHub PRD: $ARGUMENTS
 

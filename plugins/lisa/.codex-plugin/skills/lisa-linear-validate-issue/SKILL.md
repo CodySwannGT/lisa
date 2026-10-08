@@ -3,6 +3,8 @@ name: lisa-linear-validate-issue
 description: "Validates a proposed Linear…"
 allowed-tools: ["Skill", "Bash"]
 ---
+Validates a proposed Linear work item spec (Project, Issue, or sub-Issue) — or an existing Linear item — against the organizational quality gates without writing anything. Returns a structured PASS/FAIL report per gate with concrete remediation. Single source of truth for what makes a valid Linear item — both the write path (linear-write-issue runs it pre-write) and the dry-run path (linear-to-tracker runs it during PRD intake) call this skill so the bar can never drift.
+
 
 # Validate Linear Work Item: $ARGUMENTS
 

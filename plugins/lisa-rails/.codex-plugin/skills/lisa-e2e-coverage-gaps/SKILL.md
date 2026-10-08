@@ -2,6 +2,8 @@
 name: lisa-e2e-coverage-gaps
 description: "Explore gaps in the automated…"
 ---
+Explore gaps in the automated Playwright/e2e suite: inventory the app's routes and existing tests, find routes with no coverage or flows tested only on the happy path (missing error, permission, empty, loading, and edge cases), confirm each in the running app, and file bounded build-ready work for worthwhile test gaps via lisa-tracker-write. The optional ready flag (default true) controls build-ready vs backlog. For human usability issues, use exploratory-qa instead.
+
 ## Lisa Command Compatibility
 
 - Original Claude command: `/lisa:e2e-coverage-gaps`

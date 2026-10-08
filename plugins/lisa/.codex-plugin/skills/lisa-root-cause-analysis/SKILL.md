@@ -2,6 +2,8 @@
 name: lisa-root-cause-analysis
 description: "Prove what causes a defect…"
 ---
+Prove what causes a defect: hypotheses written down before evidence is gathered, positive confirmation by execution rather than by surviving a disproof, a symptom-keyed technique menu including git bisect, and a declared stopping point that escalates an unresolved verdict instead of drifting.
+
 
 # Root Cause Analysis
 

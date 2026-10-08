@@ -2,6 +2,8 @@
 name: lisa-performance-review
 description: "Performance review methodology"
 ---
+Performance review methodology. N+1 queries, inefficient algorithms, memory leaks, missing indexes, unnecessary re-renders, bundle size issues. Evidence-based recommendations.
+
 
 # Performance Review
 
