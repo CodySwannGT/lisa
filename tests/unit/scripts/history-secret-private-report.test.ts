@@ -13,6 +13,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { randomInt } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import * as scanner from "../../../all/copy-overwrite/scripts/lib/history-secret-scanner.mjs";
 import * as witness from "../../fixtures/git-history-secrets/report-mode.mjs";
@@ -26,7 +27,7 @@ useIoLatencyBudget();
 vi.mock("node:crypto", async importOriginal => ({
   ...(await importOriginal<typeof import("node:crypto")>()),
   randomBytes: (length: number) => Buffer.alloc(length),
-  randomInt: () => 0,
+  randomInt: vi.fn(() => 0),
 }));
 const root = resolve(import.meta.dirname, "../../..");
 const scannerPath = join(
@@ -49,6 +50,39 @@ const observe = (report: string, values: string[]) => {
 };
 
 describe("dedicated scanner invocation native transport", () => {
+  it.each(["dead", "feed"])(
+    "regenerates a balanced nonce containing the default vendor stopword %s",
+    word => {
+      const original = "0123456789abcdef".repeat(4).split("");
+      const remaining = [...original];
+      for (const character of word)
+        remaining.splice(remaining.indexOf(character), 1);
+      const target = [...word, ...remaining];
+      const state = [...original];
+      for (let index = state.length - 1; index > 0; index--) {
+        const selected = state.findIndex(
+          (character, position) =>
+            position <= index && character === target[index]
+        );
+        [state[index], state[selected]] = [state[selected], state[index]];
+        vi.mocked(randomInt).mockImplementationOnce(() => selected);
+      }
+      expect(state.join("").startsWith(word)).toBe(true);
+      const harness = fixtureHarness.createHarness([]);
+      try {
+        harness.secret();
+        const value = harness.values[0];
+        expect(/dead|feed/.test(value)).toBe(false);
+        expect(value).toMatch(/^[a-f0-9]{64}$/);
+        for (const character of new Set(original))
+          expect(
+            [...value].filter(symbol => symbol === character)
+          ).toHaveLength(4);
+      } finally {
+        rmSync(harness.scratch, { recursive: true, force: true });
+      }
+    }
+  );
   it("keeps synthetic credential entropy above the vendor floor even with repeated random bytes", () => {
     const create = Reflect.get(fixtureHarness, "createHarness") as (
       args: string[]

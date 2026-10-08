@@ -450,3 +450,28 @@ and both scratch roots absent. The normal main 4.72.1 integration committed as
 all seven artifact checks and ordinary commit hooks. Its original full push
 and exact-head Ubuntu qualification remain pending; actual Ubuntu qualification
 is mandatory before merge or release.
+
+The original full push at `73fe96184e2dbf4ec548bae6fc65dc2e85fda297` subsequently passed all14 gates and published that head:1428 unit files/27150 tests and183 integration files/3324 tests, with two existing skips per test gate. Independent readback verified66 recorded original process identities,16 groups and both original supervisor scratch roots absent. The native Ubuntu component run37797449880 checked out merge5f0c13ff, which contains73fe9618; all15 qualification source hashes match the published revision. Native tools, database-role preparation and original hooks passed, but browser stdout remained empty and its original ten-second deadline expired after10066ms. The owned runtime closed and its private root was removed, with foreign resources preserved. Browser and later nested-scratch acceptance remain unproven.
+
+The bounded browser capture correction uses Chrome's documented `--timeout=5000` alongside `--dump-dom`: [official command-line reference](https://developer.chrome.com/docs/automation-and-testing/headless-cli). It captures available DOM within the original ten-second process deadline even when navigation is still loading; both adequate-sandbox text and an active SUID-sandbox row remain mandatory. This is a source-based response to the observed wait, not a proven historical root cause. The real harmless command-consumer control failed with exit19 before the flag and passed after it; all nine original runtime qualification unit controls passed afterward. Those synthetic controls establish command construction and refusal behavior, not genuine Chrome or Ubuntu acceptance. Native Ubuntu qualification remains mandatory before merge/release.
+
+
+The published revision also failed one integration control: the malformed-report
+witness expected native exit 42 but received 0. Its historical synthetic nonce
+was not retained, so the cause of that individual failure is unknown. Separate
+controls reproduce an actual default-vendor behavior: a balanced hexadecimal
+nonce containing `dead` or `feed` is ignored despite its four-bit entropy. Two
+deterministic nonce controls failed before the correction, and a native pinned
+vendor control returned 0 with no findings for the controlled stopword value.
+The fixture now makes at most sixteen balanced draws and refuses if none avoids
+those default stopwords. Scanner configuration, production detection, entropy
+requirements and process deadlines are unchanged.
+
+The three affected full test files pass all 35 controls, including both browser
+sandbox refusal controls and the native vendor stopword witness. Scoped ESLint
+passes after moving the balanced shuffle into a local helper in the same existing
+fixture module. One intervening run was refused before collection in the default
+macOS scratch namespace because of uncertain residue; it ran no tests, and that
+residue was preserved. The successful final run uses the original qualification
+namespace `/private/tmp`. These local controls do not establish native Ubuntu
+browser acceptance or the historical cause of the published CI failure.

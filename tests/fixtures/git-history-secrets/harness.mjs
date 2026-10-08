@@ -11,6 +11,17 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+const balancedNonce = () => {
+  const symbols = "0123456789abcdef".repeat(4).split("");
+  symbols.forEach((_, offset) => {
+    const index = symbols.length - 1 - offset;
+    if (index === 0) return;
+    const selected = randomInt(index + 1);
+    [symbols[index], symbols[selected]] = [symbols[selected], symbols[index]];
+  });
+  return symbols.join("");
+};
+
 /**
  * Keep generated values and captured vendor output inside one private fixture lease.
  * @param args - Supported journey options
@@ -100,19 +111,17 @@ export function createHarness(args) {
     // Random hex bytes can fall below Gitleaks' 3.5-bit entropy floor.
     // Shuffle a balanced alphabet: every fixture remains a random
     // nonce while its measured symbol entropy is always four bits.
-    const value = (() => {
-      const symbols = "0123456789abcdef".repeat(4).split("");
-      symbols.forEach((_, offset) => {
-        const index = symbols.length - 1 - offset;
-        if (index === 0) return;
-        const selected = randomInt(index + 1);
-        [symbols[index], symbols[selected]] = [
-          symbols[selected],
-          symbols[index],
-        ];
-      });
-      return symbols.join("");
-    })();
+    // The pinned generic rule ignores values containing dead/feed; the other
+    // hexadecimal stopwords require more than four copies of one symbol.
+    const select = attempts => {
+      if (attempts <= 0)
+        throw new Error(
+          "Synthetic scanner nonce could not avoid default stopwords."
+        );
+      const candidate = balancedNonce();
+      return /dead|feed/.test(candidate) ? select(attempts - 1) : candidate;
+    };
+    const value = select(16);
     values.push(value);
     if (proof)
       writeFileSync(

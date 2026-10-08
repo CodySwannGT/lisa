@@ -58,7 +58,12 @@ const owner=mkdtempSync(join(tmpdir(),'history-private-observation-'));
 const h=createHarness(['--scanner',process.argv[1],'--proof-dir',join(owner,'proof')]);
 let succeeded=false,record=null,privateRecord=false,valuesAbsent=false;
 try {
- emitArtifacts(h);const f=h.initialize('private-report');f.earlier=h.commit(f.cwd,'credential.txt',h.secret());
+ emitArtifacts(h);const f=h.initialize('private-report');let content=h.secret();
+ if(process.argv[3]==='stopword'){
+  const symbols='0123456789abcdef'.repeat(4).split('');
+  for(const character of 'dead')symbols.splice(symbols.indexOf(character),1);
+  h.values[0]='dead'+symbols.join('');content='api_key = "'+h.values[0]+'"\\n';
+ }f.earlier=h.commit(f.cwd,'credential.txt',content);
  const command=h.command;h.command=(...args)=>{
   const result=command(...args),report=join(h.scratch,'permission-report.json'),fault=process.argv[3];
   if(args[0]==='/bin/sh') {
@@ -88,6 +93,24 @@ process.exitCode=succeeded?0:1;`;
   return JSON.parse(String(result.stdout));
 };
 describe("genuine scanner report private creation and observation", () => {
+  it("retains native refusal when a balanced synthetic value hits the vendor stopword allowlist", () => {
+    const actual = run("022", "stopword");
+    expect(actual).toMatchObject({
+      succeeded: false,
+      privateRecord: 0o600,
+      valuesAbsent: true,
+      scratchAbsent: true,
+      proofOwnerAbsent: true,
+    });
+    expect(actual.record).toMatchObject({
+      nativeReturned: true,
+      exit: 0,
+      signal: null,
+      readable: true,
+      findingsCount: 0,
+      matchedValuesAbsent: true,
+    });
+  });
   it.each(["022", "077"])(
     "preserves actual vendor mode/redaction with caller %s",
     mask => {

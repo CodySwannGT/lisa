@@ -38,13 +38,13 @@ function fixture(operation: (root: string) => Promise<void> | void) {
 }
 
 describe("closed runtime qualification diagnostics", () => {
-  it("passes the required internal-URL flag to a real command consumer without changing sandbox requirements", async () => {
+  it("bounds DOM capture inside the original browser deadline while retaining internal-URL and sandbox requirements", async () => {
     await fixture(async root => {
       // This native synthetic consumer models Chrome's documented flag contract; it does not qualify Chrome or Ubuntu.
       const command = join(root, "browser-consumer");
       writeFileSync(
         command,
-        `#!${process.execPath}\nconst args=process.argv.slice(2);\nif(!args.includes('--allow-chrome-scheme-url')) process.exit(17);\nif(!args.includes('--headless=new') || !args.includes('--dump-dom') || args.at(-1)!=='chrome://sandbox' || args.includes('--no-sandbox')) process.exit(18);\nprocess.stdout.write('You are adequately sandboxed.<td>SUID Sandbox</td><td>Yes</td>');\n`,
+        `#!${process.execPath}\nconst args=process.argv.slice(2);\nif(!args.includes('--allow-chrome-scheme-url')) process.exit(17);\nif(!args.includes('--headless=new') || !args.includes('--dump-dom') || args.at(-1)!=='chrome://sandbox' || args.includes('--no-sandbox')) process.exit(18);\nif(!args.includes('--timeout=5000')) process.exit(19);\nprocess.stdout.write('You are adequately sandboxed.<td>SUID Sandbox</td><td>Yes</td>');\n`,
         { flag: "wx", mode: 0o600 }
       );
       chmodSync(command, 0o700);
@@ -88,6 +88,37 @@ describe("closed runtime qualification diagnostics", () => {
       ]);
     });
   });
+  it.each([
+    [
+      "<td>SUID Sandbox</td><td>Yes</td>",
+      "native browser sandbox is unavailable",
+    ],
+    [
+      "You are adequately sandboxed.<td>SUID Sandbox</td><td>No</td>",
+      "native browser SUID sandbox is unavailable",
+    ],
+  ])(
+    "refuses incomplete captured sandbox evidence: %s",
+    async (html, reason) => {
+      await fixture(async root => {
+        const command = join(root, "browser-consumer");
+        writeFileSync(
+          command,
+          `#!${process.execPath}\nprocess.stdout.write(${JSON.stringify(html)});\n`,
+          { flag: "wx", mode: 0o600 }
+        );
+        chmodSync(command, 0o700);
+        const records: object[] = [];
+        const native = nativeRecorder(root, Date.now() + 60000, records);
+        await expect(
+          browser(root, { cwd: root, env: { CHROME_BINARY: command } }, native)
+        ).rejects.toThrow(reason);
+        expect(records).toEqual([
+          expect.objectContaining({ stage: "browser", status: 0 }),
+        ]);
+      });
+    }
+  );
   it("retains real exit17 output privately while exporting only closed status, sizes and hashes", async () => {
     await fixture(async root => {
       const records: object[] = [];

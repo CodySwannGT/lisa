@@ -82,6 +82,7 @@ export async function browser(root, application, native) {
       "--no-default-browser-check",
       `--user-data-dir=${profile}`,
       "--dump-dom",
+      "--timeout=5000",
       "chrome://sandbox",
     ]
   );
