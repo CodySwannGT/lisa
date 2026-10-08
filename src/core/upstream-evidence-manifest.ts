@@ -215,7 +215,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "73ac5af581d16992dd9cc273b4e2f6b55bd6a2629abe23b7658563cf433e082c",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
-      "214e45a38f60ab375934236cd3d8529f521873a5b8765261334d594534f10391",
+      "cfbbec57d4e9d9b4245957e027f85fec7fee09e0102b84aaa78af25b852590af",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
       "0fdbc84a703f503e79fc39c2cac5c40a85a04939f5977e8ed911d81ee72486b7",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
@@ -931,7 +931,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.agy.sh":
       "19cda51fcc113f0b3c184d8907913ab4b49ecb81db80ce7909639194bc9c52d6",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
-      "5d7cfcd2444a0c3251a02f7ed79917e28962cffe121e499eb5715444aa489a89",
+      "499f93b667d10c966f4a308a973743f9389220e49fc6d23b7bb14e3fb13c9246",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
       "3354b6dbf2daa4fa7e21086ce3624721e63f2527923721f2acacea75b652acf6",
     "plugins/src/base/hooks/block-no-verify.sh":
@@ -10591,6 +10591,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-instruction-file-edits.test.ts": true,
     "tests/unit/hooks/block-managed-file-edits-apply-patch.test.ts": true,
     "tests/unit/hooks/block-managed-file-edits-file-reach.test.ts": true,
+    "tests/unit/hooks/block-managed-file-edits-redirects.test.ts": true,
     "tests/unit/hooks/block-managed-file-edits.test.ts": true,
     "tests/unit/hooks/block-no-verify-command-config.test.ts": true,
     "tests/unit/hooks/block-no-verify-env-platform.test.ts": true,

@@ -134,6 +134,9 @@ describe("OpenCode block-managed-file-edits plugin", () => {
   it.each([
     ["a redirect", `echo tampered > ${MANAGED}`],
     ["an append", `echo more >> ${MANAGED}`],
+    ["combined output", `echo tampered &> ${MANAGED}`],
+    ["combined append", `echo more &>> ${MANAGED}`],
+    ["legacy combined output", `echo tampered >& ${MANAGED}`],
     ["a tee", `echo tampered | tee ${MANAGED}`],
   ])("refuses %s into a managed template", (_label, command) => {
     expect(invoke(command)).toContain("deny:");

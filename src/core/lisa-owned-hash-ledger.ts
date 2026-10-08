@@ -1165,6 +1165,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   ]),
   "scripts/lisa-hooks/block-managed-file-edits.sh": Object.freeze([
     "087569474640841ce7b767a525e311c53b1c404ec473e9947f45220ee051a7fb",
+    "0fd07d58962f5cbef9eb9b281549d769079a96cba07ff6ce2bb43d213cf1ec86",
     "12df36dbc337f6f1d7f54e7495a06cde4a7237ce67fcdff52ca40f89119cf34c",
     "133acf329582c5d4df9deb6a297df13216993c1bfec0b7df0663c69a1e2bb0db",
     "18aebaef5ea9bf6af220dc9beef80a5cfb37282c6a53047783b4cc96d8daa4e3",
@@ -1184,6 +1185,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "c1b2abf324269c0248136500eb37d7c43559552f152a7c5d07a23c219fdc70b2",
     "c6472a7f9d509a7eb7b17d665fe3f34827d4e5a50ba5b0d044dd325b468adbf8",
     "cad609dc78827ab9e8db9ffae2fc02b0ac760df74d1d6e9737753c3b0887a2ef",
+    "cfbbec57d4e9d9b4245957e027f85fec7fee09e0102b84aaa78af25b852590af",
     "d3df68b0201c1f34d1e8398f313b99705b99ae36e8944e32c32a0278200b685d",
     "d3ef2562b718156912f0877f8a0668026f5966fcca43eb9e064aa57a4e9a4976",
     "d517c6ab5dedf577ca713484cb41eb886f8580a6a351206901e4bf13f66421b5",
@@ -2948,6 +2950,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   ]),
   "scripts/lisa-hooks/block-managed-file-edits.sh": Object.freeze([
     "087569474640841ce7b767a525e311c53b1c404ec473e9947f45220ee051a7fb",
+    "0fd07d58962f5cbef9eb9b281549d769079a96cba07ff6ce2bb43d213cf1ec86",
     "12df36dbc337f6f1d7f54e7495a06cde4a7237ce67fcdff52ca40f89119cf34c",
     "133acf329582c5d4df9deb6a297df13216993c1bfec0b7df0663c69a1e2bb0db",
     "18aebaef5ea9bf6af220dc9beef80a5cfb37282c6a53047783b4cc96d8daa4e3",
@@ -2967,6 +2970,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "c1b2abf324269c0248136500eb37d7c43559552f152a7c5d07a23c219fdc70b2",
     "c6472a7f9d509a7eb7b17d665fe3f34827d4e5a50ba5b0d044dd325b468adbf8",
     "cad609dc78827ab9e8db9ffae2fc02b0ac760df74d1d6e9737753c3b0887a2ef",
+    "cfbbec57d4e9d9b4245957e027f85fec7fee09e0102b84aaa78af25b852590af",
     "d3df68b0201c1f34d1e8398f313b99705b99ae36e8944e32c32a0278200b685d",
     "d3ef2562b718156912f0877f8a0668026f5966fcca43eb9e064aa57a4e9a4976",
     "d517c6ab5dedf577ca713484cb41eb886f8580a6a351206901e4bf13f66421b5",
