@@ -6,16 +6,17 @@
 import { createHash, randomBytes } from "node:crypto";
 import { existsSync, rmSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
-import { createHarness } from "./harness.mjs";
+import { commitFixture, createHarness, provePreimage } from "./harness.mjs";
 import { emitArtifacts, runEvidenceCases } from "./package.mjs";
-import { graphCases } from "./graphs.mjs";
+import { immutableCases } from "./graphs.mjs";
 import { errorCases } from "./errors.mjs";
-import { nativePushCases } from "./native-push.mjs";
+import { graphCases, nativePushCases } from "./native-push.mjs";
 import { reportModeCase } from "./report-mode.mjs";
 const harness = createHarness(process.argv.slice(2));
 const { outputs, values, requireFact, observations, scratch } = harness;
 const EVIDENCE_FILE = "evidence.json";
 const HEAD = "HEAD";
+/** Fresh original-input witnesses for the closed immutable-coordinate protocol. */
 /** Exercise evidence decisions through emitted CLI bytes and real Git preimages. */
 function evidenceCases() {
   const { initialize, write, git, command, emitted, scanner, secret } = harness;
@@ -54,28 +55,9 @@ function evidenceCases() {
   const binary = Buffer.from([0, 255, 10, 32, 120, 10]);
   const binaryHash = digest(binary);
   const substituted = randomBytes(32).toString("hex");
-  const commitAll = cwd => {
-    git(cwd, "add", ".");
-    git(cwd, "commit", "-qm", "evidence fixture");
-  };
-  const prove = (cwd, revision, path, expected) => {
-    const proof = command(
-      process.execPath,
-      [
-        "--input-type=module",
-        "-e",
-        'import { execFileSync } from "node:child_process"; import { createHash } from "node:crypto"; const bytes = execFileSync("git", ["--no-replace-objects", "show", `${process.argv[1]}:${process.argv[2]}`]); if (createHash("sha256").update(bytes).digest("hex") !== process.argv[3]) process.exit(1); console.log("preimage-ok");',
-        revision,
-        path,
-        expected,
-      ],
-      cwd
-    );
-    requireFact(
-      proof.status === 0 && proof.stdout === "preimage-ok\n",
-      "Actual Git byte preimage witness failed."
-    );
-  };
+  const commitAll = cwd => commitFixture(harness, cwd, "evidence fixture");
+  const prove = (cwd, revision, path, expected) =>
+    provePreimage(harness, cwd, revision, path, expected);
   const scan = (cwd, name, expected, preimageVerified = false) => {
     const head = git(cwd, "rev-parse", HEAD);
     const commits = git(cwd, "rev-list", head).split("\n").length;
@@ -277,7 +259,9 @@ function evidenceCases() {
 }
 try {
   emitArtifacts(harness);
-  const portable = runEvidenceCases(harness, evidenceCases);
+  const immutable = harness.args.some(arg => arg.startsWith("--immutable-"));
+  if (immutable) immutableCases(harness);
+  const portable = immutable || runEvidenceCases(harness, evidenceCases);
   if (!portable && !harness.args.includes("--evidence-only")) {
     const fixture = graphCases(harness);
     await reportModeCase(harness, fixture);
