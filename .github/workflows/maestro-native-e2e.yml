@@ -2240,13 +2240,21 @@ jobs:
           # shellcheck disable=SC2086
           run_target() {
             if [ -n "$FLOW_RUNNER" ]; then
-              bash "$FLOW_RUNNER" "$1" maestro-debug $MAESTRO_E2E_ARGS "$2"
+              if [ ! -f "$FLOW_RUNNER" ] || [ ! -r "$FLOW_RUNNER" ]; then
+                echo "LISA_MAESTRO_RETRY_STARTUP_UNAVAILABLE: retry launcher is unavailable; no flow was started."
+                return 1
+              fi
+              bash "$FLOW_RUNNER" "$1" "${3:-maestro-debug}" $MAESTRO_E2E_ARGS "$2"
             else
+              if ! command -v maestro >/dev/null 2>&1; then
+                echo "LISA_MAESTRO_RETRY_STARTUP_UNAVAILABLE: retry launcher is unavailable; no flow was started."
+                return 1
+              fi
               maestro test "$2" \
                 $MAESTRO_E2E_ARGS \
                 --format junit \
                 --output "$1" \
-                --debug-output maestro-debug
+                --debug-output "${3:-maestro-debug}"
             fi
           }
 
@@ -2301,6 +2309,8 @@ jobs:
           RETRIED=0
           RECOVERED=0
           UNRECOVERED=0
+          RETRY_NOT_EXECUTED=0
+          RETRY_UNKNOWN=0
           BREACH=false
 
           # Count the `<testcase` elements a report actually contains. Same
@@ -2430,6 +2440,8 @@ jobs:
               echo "retried=$RETRIED"
               echo "recovered=$RECOVERED"
               echo "unrecovered=$UNRECOVERED"
+              echo "retry_not_executed=$RETRY_NOT_EXECUTED"
+              echo "retry_unknown=$RETRY_UNKNOWN"
               echo "not_eligible=$SKIPPED_COUNT"
               echo "time_declined=$TIME_DECLINED"
               echo "retry_rate_percent=$RATE"
@@ -2441,6 +2453,187 @@ jobs:
 
           record_row() {
             printf 'flow|%s|%s|%s\n' "$1" "$2" "$3" >> "$ROWS"
+          }
+
+          # Reporting only: never feed execution evidence into retry selection.
+          # Maestro cli-2.11.0 writes {command, metadata} wrappers per flow in
+          # commands.json (older CLIs use commands-(flow).json). onCommandStart
+          # sets RUNNING plus timestamp; setup entries and JUnit alone prove no
+          # failed execution. Inspect only this fresh attempt root, with bounded
+          # metadata reads, not the shared multi-GB suite debug tree.
+          classify_retry_result() {
+            python3 - "$1" "$2" "$3" "$4" "$5" maestro-android-report.xml <<'RETRY_EVIDENCE'
+          import json, math, os, re, sys, xml.etree.ElementTree as ET
+          report, debug, log, flow, succeeded, original = sys.argv[1:]
+          def exact(case):
+              return bool(case.get('file')) and os.path.abspath(case.get('file')) == os.path.abspath(flow)
+          def cases_from(source):
+              if os.path.getsize(source) > 4 * 1024 * 1024:
+                  raise ValueError('report exceeds evidence limit')
+              return list(ET.parse(source).getroot().iter('testcase'))
+          try:
+              original_cases = cases_from(original)
+          except (OSError, ValueError, ET.ParseError):
+              original_cases = []
+          names = {case.get('name') for case in original_cases if exact(case) and case.get('name')}
+          # Exact-file-correlated producer names are authoritative. A literal
+          # TOP-LEVEL header name is only a fallback when those are missing;
+          # nested env/runFlow names and unresolved expressions cannot replace it.
+          declared = None
+          declared_seen = False
+          header_readable = False
+          try:
+              if os.path.getsize(flow) > 1024 * 1024:
+                  raise ValueError('flow exceeds evidence limit')
+              with open(flow) as handle:
+                  for line in handle:
+                      if line.strip() == '---':
+                          break
+                      match = re.fullmatch(r'name[ \t]*:[ \t]*(.*)', line.rstrip('\r\n'))
+                      if match:
+                          declared_seen = True
+                          value = match.group(1)
+                          if value.startswith('"'):
+                              declared, end = json.JSONDecoder().raw_decode(value)
+                              if value[end:].strip() and not value[end:].lstrip().startswith('#'):
+                                  declared = None
+                          elif value.startswith("'"):
+                              literal = re.fullmatch(r"'((?:[^']|'')*)'\s*(?:#.*)?", value)
+                              declared = literal.group(1).replace("''", "'") if literal else None
+                          elif re.fullmatch(r'[\w ./-]+(?:\s+#.*)?', value):
+                              declared = value.split(' #', 1)[0].strip()
+                  header_readable = True
+          except (OSError, ValueError):
+              pass
+          if not names and isinstance(declared, str) and declared and '${' not in declared:
+              names = {declared}
+          if not names and header_readable and not declared_seen:
+              names = {os.path.splitext(os.path.basename(flow))[0]}
+          # A same-name sibling cannot lend this target its execution evidence.
+          foreign_names = {case.get('name') for case in original_cases if case.get('file') and not exact(case)}
+          names -= foreign_names
+          aliases = {name.replace('/', '_') for name in names}
+          report_valid = True
+          try:
+              cases = cases_from(report)
+          except (OSError, ValueError, ET.ParseError):
+              cases = []
+              report_valid = False
+          def selected(case):
+              if case.get('file'):
+                  return exact(case)
+              name = case.get('name')
+              return name in names and sum(other.get('name') == name for other in cases) == 1
+          def failed(case):
+              return case.find('failure') is not None or case.find('error') is not None or case.get('status') in ('ERROR', 'FAILURE', 'FAILED')
+          selected_cases = [case for case in cases if selected(case)]
+          failed_report = any(failed(case) for case in selected_cases)
+          # Successful commands require a readable, nonempty selected-target
+          # report. A foreign/malformed report is unverified, not zero flows.
+          if succeeded == 'true':
+              if report_valid and not cases:
+                  print('vacuous')
+              elif report_valid and selected_cases and not any(failed(case) or case.find('skipped') is not None or case.get('status') == 'SKIPPED' for case in selected_cases) and not any(failed(case) for case in cases):
+                  print('recovered')
+              else:
+                  print('retry-unknown')
+              sys.exit(0)
+          inconclusive = os.path.exists(report) and not report_valid
+          executable = set(('tapOnElement tapOnPoint tapOnPointV2Command scrollCommand swipeCommand backPressCommand '
+              'assertCommand assertConditionCommand assertScreenshotCommand assertNoDefectsWithAICommand assertWithAICommand '
+              'extractTextWithAICommand inputTextCommand inputRandomTextCommand launchAppCommand setPermissionsCommand '
+              'openLinkCommand pressKeyCommand eraseTextCommand hideKeyboardCommand takeScreenshotCommand stopAppCommand '
+              'killAppCommand clearStateCommand clearKeychainCommand runFlowCommand setLocationCommand setOrientationCommand '
+              'repeatCommand copyTextCommand setClipboardCommand pasteTextCommand runScriptCommand waitForAnimationToEndCommand '
+              'evalScriptCommand scrollUntilVisible travelCommand startRecordingCommand stopRecordingCommand addMediaCommand '
+              'setAirplaneModeCommand toggleAirplaneModeCommand setDarkModeCommand toggleDarkModeCommand assertDarkModeCommand '
+              'assertLightModeCommand retryCommand').split())
+          known = executable | {'applyConfigurationCommand', 'defineVariablesCommand'}
+          executed = False
+          any_execution = False
+          failed_command = False
+          visited = metadata_bytes = 0
+          for parent, dirs, files in os.walk(debug, followlinks=False):
+              visited += len(dirs) + len(files)
+              if visited > 512:
+                  inconclusive = True
+                  break
+              for name in files:
+                  if name != 'commands.json' and not (name.startswith('commands-(') and name.endswith(').json')):
+                      continue
+                  directory = os.path.basename(parent)
+                  attributed = any(directory == alias or re.fullmatch(re.escape(alias) + r'-shard-[1-9][0-9]*', directory) for alias in aliases) if name == 'commands.json' else any(name == 'commands-(' + alias + ').json' for alias in aliases)
+                  path = os.path.join(parent, name)
+                  try:
+                      size = os.path.getsize(path)
+                      metadata_bytes += size
+                      if os.path.islink(path) or size > 4 * 1024 * 1024 or metadata_bytes > 16 * 1024 * 1024:
+                          raise ValueError('unsafe or oversized metadata')
+                      with open(path) as handle:
+                          commands = json.load(handle)
+                      if not isinstance(commands, list):
+                          raise ValueError('unknown command wrapper format')
+                      for record in commands:
+                          if not isinstance(record, dict):
+                              raise ValueError('unknown command wrapper')
+                          command, metadata = record.get('command'), record.get('metadata')
+                          if not isinstance(command, dict) or not isinstance(metadata, dict):
+                              raise ValueError('missing command metadata')
+                          real = any(key in executable and isinstance(value, dict) for key, value in command.items())
+                          status, timestamp = metadata.get('status'), metadata.get('timestamp')
+                          if not command or any(key not in known for key in command) or status not in ('RUNNING', 'COMPLETED', 'FAILED', 'WARNED', 'PENDING', 'SKIPPED'):
+                              inconclusive = True
+                          if real and status in ('RUNNING', 'COMPLETED', 'FAILED', 'WARNED'):
+                              if isinstance(timestamp, bool) or not isinstance(timestamp, (int, float)) or not math.isfinite(timestamp) or timestamp <= 0:
+                                  inconclusive = True
+                                  continue
+                              any_execution = True
+                              if attributed:
+                                  executed = True
+                                  failed_command = failed_command or status == 'FAILED'
+                  except (OSError, ValueError, TypeError):
+                      inconclusive = True
+              if metadata_bytes > 16 * 1024 * 1024:
+                  break
+          startup_unavailable = False
+          try:
+              if os.path.getsize(log) > 16 * 1024 * 1024:
+                  raise ValueError('log exceeds evidence limit')
+              with open(log, errors='replace') as handle:
+                  text = re.sub(r'\x1b\[[0-9;]*m', '', handle.read())
+              # TestCommand's zero-device pre-shard guard, or our own verified
+              # launcher preflight. Generic device death can occur after steps.
+              startup_unavailable = bool(re.search(r'You have 0 devices connected[^\n]*Missing [1-9][0-9]* device\(s\)\.', text)) or 'LISA_MAESTRO_RETRY_STARTUP_UNAVAILABLE: retry launcher is unavailable; no flow was started.' in text
+          except (OSError, ValueError):
+              inconclusive = True
+          if startup_unavailable and not any_execution and not inconclusive:
+              print('retry-not-executed')
+          elif executed and not startup_unavailable and not inconclusive and (failed_report or failed_command):
+              print('unrecovered')
+          else:
+              print('retry-unknown')
+          RETRY_EVIDENCE
+          }
+
+          # Counters count unresolved FLOWS, not attempts. Preserve completed
+          # evidence before the next checkpoint; later scheduling cannot rewrite
+          # it. Recovery clears unresolved counters but not historical rows.
+          record_attempt() {
+            printf 'attempt|%s|%s|%s\n' "$flow" "$(( attempt + 1 ))" "$outcome" >> "$ROWS"
+            case "$outcome" in
+              unrecovered)
+                if [ "$flow_unrecovered" -eq 0 ]; then UNRECOVERED=$(( UNRECOVERED + 1 )); flow_unrecovered=1; fi ;;
+              retry-not-executed)
+                if [ "$flow_not_executed" -eq 0 ]; then RETRY_NOT_EXECUTED=$(( RETRY_NOT_EXECUTED + 1 )); flow_not_executed=1; fi ;;
+              retry-unknown)
+                if [ "$flow_unknown" -eq 0 ]; then RETRY_UNKNOWN=$(( RETRY_UNKNOWN + 1 )); flow_unknown=1; fi ;;
+              recovered)
+                RECOVERED=$(( RECOVERED + 1 ))
+                UNRECOVERED=$(( UNRECOVERED - flow_unrecovered ))
+                RETRY_NOT_EXECUTED=$(( RETRY_NOT_EXECUTED - flow_not_executed ))
+                RETRY_UNKNOWN=$(( RETRY_UNKNOWN - flow_unknown )) ;;
+            esac
+            write_ledger
           }
 
           count_report_flows() {
@@ -2577,7 +2770,10 @@ jobs:
                 continue
               fi
               attempt=0
-              outcome=unrecovered
+              outcome=retry-unknown
+              flow_unrecovered=0
+              flow_not_executed=0
+              flow_unknown=0
               while [ "$attempt" -lt "$FLOW_RETRY_ATTEMPTS" ]; do
                 if ! retry_fits_budget "$flow"; then
                   TIME_DECLINED=$(( TIME_DECLINED + 1 ))
@@ -2586,38 +2782,32 @@ jobs:
                   break
                 fi
                 attempt=$(( attempt + 1 ))
+                if [ "$attempt" -eq 1 ]; then RETRIED=$(( RETRIED + 1 )); fi
                 checkpoint_retry "$flow" "$(( attempt + 1 ))"
                 slug=$(printf '%s' "$flow" | tr -c 'A-Za-z0-9._-' '-')
                 retry_report="maestro-android-retry-${slug}-${attempt}.xml"
+                retry_log="maestro-android-retry-${slug}-${attempt}.log"
+                rm -f "$retry_report" "$retry_log"
+                mkdir -p maestro-debug
+                retry_debug=$(mktemp -d "maestro-debug/retry-android-${slug}-${attempt}-XXXXXX")
                 echo "::warning title=Maestro flow retried (android)::$flow failed and is being re-run on its own (attempt $(( attempt + 1 ))). A retry is a SYMPTOM. Read the maestro-android-retries artifact before treating this run as a clean green."
-                if run_target "$retry_report" "$flow" 2>&1 | tee "maestro-android-retry-${slug}-${attempt}.log"; then
-                  printf "Retry completed: %s (attempt %s), command returned success.\n" "$flow" "$(( attempt + 1 ))" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
-                  ran=0
-                  if [ -f "$retry_report" ]; then
-                    ran=$(count_testcases "$retry_report")
+                if run_target "$retry_report" "$flow" "$retry_debug" 2>&1 | tee "$retry_log"; then
+                  outcome=$(classify_retry_result "$retry_report" "$retry_debug" "$retry_log" "$flow" true) || outcome=retry-unknown
+                  printf "Retry completed: %s (attempt %s), %s.\n" "$flow" "$(( attempt + 1 ))" "$outcome" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+                  if [ "$outcome" = "vacuous" ]; then
+                    echo "::error title=Retry executed nothing (android)::The isolated re-run of $flow succeeded having executed 0 flows. Counting it as NOT recovered: a zero-flow re-run proves nothing."
+                  elif [ "$outcome" = "retry-unknown" ]; then
+                    echo "::error title=Retry execution unverified (android)::The isolated re-run of $flow returned success without a readable passing report for that flow. Its original failure stands."
                   fi
-                  if [ "$ran" -eq 0 ]; then
-                    # A re-run that executed nothing exits 0. Trusting that
-                    # status would turn every tag-filtered flow into a
-                    # permanent false green — the same fail-open shape as a
-                    # suite reporting success having tested nothing.
-                    echo "::error title=Retry executed nothing (android)::The isolated re-run of $flow succeeded having executed 0 flows, so this run's tag filters exclude it. Counting it as NOT recovered: a zero-flow re-run proves nothing."
-                    outcome=vacuous
-                    break
-                  fi
-                  outcome=recovered
+                  record_attempt
                   break
                 else
-                  printf "Retry completed: %s (attempt %s), command failed.\n" "$flow" "$(( attempt + 1 ))" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+                  outcome=$(classify_retry_result "$retry_report" "$retry_debug" "$retry_log" "$flow" false) || outcome=retry-unknown
+                  printf "Retry completed: %s (attempt %s), %s.\n" "$flow" "$(( attempt + 1 ))" "$outcome" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+                  record_attempt
                 fi
               done
-              if [ "$attempt" -gt 0 ]; then RETRIED=$(( RETRIED + 1 )); fi
               record_row "$flow" "$(( attempt + 1 ))" "$outcome"
-              if [ "$outcome" = "recovered" ]; then
-                RECOVERED=$(( RECOVERED + 1 ))
-              elif [ "$attempt" -gt 0 ]; then
-                UNRECOVERED=$(( UNRECOVERED + 1 ))
-              fi
             done <<< "$ELIGIBLE_LIST"
 
             write_ledger
@@ -3488,6 +3678,8 @@ jobs:
           RETRIED=$(key retried)
           RECOVERED=$(key recovered)
           UNRECOVERED=$(key unrecovered)
+          RETRY_NOT_EXECUTED=$(key retry_not_executed)
+          RETRY_UNKNOWN=$(key retry_unknown)
           NOT_ELIGIBLE=$(key not_eligible)
           TIME_DECLINED=$(key time_declined)
           RATE=$(key retry_rate_percent)
@@ -3506,6 +3698,11 @@ jobs:
               | awk -F'|' '{ printf "| `%s` | %s | %s |\n", $2, $3, $4 }'
             echo ""
             echo "Executed **$EXECUTED**; failed first attempt **$FAILED**; retried **$RETRIED**; recovered **$RECOVERED**."
+            echo "Unresolved flows with executed failed retries **${UNRECOVERED:-0}**; retries not executed **${RETRY_NOT_EXECUTED:-0}**; execution unknown **${RETRY_UNKNOWN:-0}**. A flow can have more than one evidence category."
+            echo ""
+            echo "| flow | completed attempt | evidence |"
+            echo "| --- | --- | --- |"
+            { grep '^attempt|' "$LEDGER" || true; } | awk -F'|' '{ printf "| `%s` | %s | %s |\n", $2, $3, $4 }'
             echo ""
             echo "First-attempt failure rate **${RATE}%**, budget **${THRESHOLD}%**. Per-flow retry enabled: \`$ENABLED\`."
           } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
@@ -3514,18 +3711,27 @@ jobs:
           fi
           if [[ "$BREACH" == "true" ]]; then
             echo "::error title=Android retry budget exceeded::$FAILED of $EXECUTED flow(s) failed their first attempt (${RATE}%), above the ${THRESHOLD}% budget. Nothing was retried and this arm is FAILED. Retry is not the lever here — find out why the arm is losing flows."
-            exit 1
           fi
           if [[ "${TIME_DECLINED:-0}" -gt 0 ]]; then
             echo "::error title=Maestro retry time budget::$TIME_DECLINED flow(s) had a retry declined because job time was insufficient or unknown. Their original failures stand."
-            exit 1
           fi
           if [[ "${UNRECOVERED:-0}" -gt 0 ]]; then
-            echo "::error title=Android flows failed after retry::${UNRECOVERED} flow(s) failed again when re-run on their own. An isolated re-run removes ordering and host contention as explanations, so this is the arm's most credible real-failure signal."
-            exit 1
+            echo "::error title=Android flows failed after retry::${UNRECOVERED} flow(s) executed again and failed with current-attempt evidence. This does not establish a product cause or exclude device faults or host contention."
           fi
           if [[ "${NOT_ELIGIBLE:-0}" -gt 0 ]]; then
             echo "::error title=Android flows failed and were not retried::${NOT_ELIGIBLE} failed flow(s) are not marked safe to run in isolation, so they were not re-run. Their failures stand."
+          fi
+          if [[ "${RETRY_NOT_EXECUTED:-0}" -gt 0 ]]; then
+            echo "::error title=Android retries did not execute::${RETRY_NOT_EXECUTED} flow(s) had a retry that could not start because no device or retry launcher was available. These retries added no new flow-failure evidence; their original failures stand."
+          fi
+          if [[ "${RETRY_UNKNOWN:-0}" -gt 0 ]]; then
+            echo "::error title=Android retry execution unknown::${RETRY_UNKNOWN} flow(s) had a failed retry whose execution could not be verified. No repeated flow failure is claimed from that attempt; their original failures stand."
+          fi
+          if [[ "${FAILED:-0}" -gt "${RECOVERED:-0}" ]]; then
+            echo "::error title=Android original failures retained::Not every originally failed flow was recovered. Empty, unverified or interrupted retries cannot clear the original failure."
+            exit 1
+          fi
+          if [[ "$BREACH" == "true" || "${TIME_DECLINED:-0}" -gt 0 || "${UNRECOVERED:-0}" -gt 0 || "${NOT_ELIGIBLE:-0}" -gt 0 || "${RETRY_NOT_EXECUTED:-0}" -gt 0 || "${RETRY_UNKNOWN:-0}" -gt 0 ]]; then
             exit 1
           fi
           echo "✅ Android retry budget respected (retried ${RETRIED:-0}, rate ${RATE}% of ${THRESHOLD}%)."
@@ -3891,13 +4097,21 @@ jobs:
           # shellcheck disable=SC2086
           run_target() {
             if [ -n "$FLOW_RUNNER" ]; then
-              bash "$FLOW_RUNNER" "$1" maestro-debug $MAESTRO_E2E_ARGS "$2"
+              if [ ! -f "$FLOW_RUNNER" ] || [ ! -r "$FLOW_RUNNER" ]; then
+                echo "LISA_MAESTRO_RETRY_STARTUP_UNAVAILABLE: retry launcher is unavailable; no flow was started."
+                return 1
+              fi
+              bash "$FLOW_RUNNER" "$1" "${3:-maestro-debug}" $MAESTRO_E2E_ARGS "$2"
             else
+              if ! command -v maestro >/dev/null 2>&1; then
+                echo "LISA_MAESTRO_RETRY_STARTUP_UNAVAILABLE: retry launcher is unavailable; no flow was started."
+                return 1
+              fi
               maestro test "$2" \
                 $MAESTRO_E2E_ARGS \
                 --format junit \
                 --output "$1" \
-                --debug-output maestro-debug
+                --debug-output "${3:-maestro-debug}"
             fi
           }
 
@@ -3955,6 +4169,8 @@ jobs:
           RETRIED=0
           RECOVERED=0
           UNRECOVERED=0
+          RETRY_NOT_EXECUTED=0
+          RETRY_UNKNOWN=0
           BREACH=false
 
           # Count the `<testcase` elements a report actually contains. Same
@@ -4084,6 +4300,8 @@ jobs:
               echo "retried=$RETRIED"
               echo "recovered=$RECOVERED"
               echo "unrecovered=$UNRECOVERED"
+              echo "retry_not_executed=$RETRY_NOT_EXECUTED"
+              echo "retry_unknown=$RETRY_UNKNOWN"
               echo "not_eligible=$SKIPPED_COUNT"
               echo "time_declined=$TIME_DECLINED"
               echo "retry_rate_percent=$RATE"
@@ -4095,6 +4313,187 @@ jobs:
 
           record_row() {
             printf 'flow|%s|%s|%s\n' "$1" "$2" "$3" >> "$ROWS"
+          }
+
+          # Reporting only: never feed execution evidence into retry selection.
+          # Maestro cli-2.11.0 writes {command, metadata} wrappers per flow in
+          # commands.json (older CLIs use commands-(flow).json). onCommandStart
+          # sets RUNNING plus timestamp; setup entries and JUnit alone prove no
+          # failed execution. Inspect only this fresh attempt root, with bounded
+          # metadata reads, not the shared multi-GB suite debug tree.
+          classify_retry_result() {
+            python3 - "$1" "$2" "$3" "$4" "$5" maestro-ios-report.xml <<'RETRY_EVIDENCE'
+          import json, math, os, re, sys, xml.etree.ElementTree as ET
+          report, debug, log, flow, succeeded, original = sys.argv[1:]
+          def exact(case):
+              return bool(case.get('file')) and os.path.abspath(case.get('file')) == os.path.abspath(flow)
+          def cases_from(source):
+              if os.path.getsize(source) > 4 * 1024 * 1024:
+                  raise ValueError('report exceeds evidence limit')
+              return list(ET.parse(source).getroot().iter('testcase'))
+          try:
+              original_cases = cases_from(original)
+          except (OSError, ValueError, ET.ParseError):
+              original_cases = []
+          names = {case.get('name') for case in original_cases if exact(case) and case.get('name')}
+          # Exact-file-correlated producer names are authoritative. A literal
+          # TOP-LEVEL header name is only a fallback when those are missing;
+          # nested env/runFlow names and unresolved expressions cannot replace it.
+          declared = None
+          declared_seen = False
+          header_readable = False
+          try:
+              if os.path.getsize(flow) > 1024 * 1024:
+                  raise ValueError('flow exceeds evidence limit')
+              with open(flow) as handle:
+                  for line in handle:
+                      if line.strip() == '---':
+                          break
+                      match = re.fullmatch(r'name[ \t]*:[ \t]*(.*)', line.rstrip('\r\n'))
+                      if match:
+                          declared_seen = True
+                          value = match.group(1)
+                          if value.startswith('"'):
+                              declared, end = json.JSONDecoder().raw_decode(value)
+                              if value[end:].strip() and not value[end:].lstrip().startswith('#'):
+                                  declared = None
+                          elif value.startswith("'"):
+                              literal = re.fullmatch(r"'((?:[^']|'')*)'\s*(?:#.*)?", value)
+                              declared = literal.group(1).replace("''", "'") if literal else None
+                          elif re.fullmatch(r'[\w ./-]+(?:\s+#.*)?', value):
+                              declared = value.split(' #', 1)[0].strip()
+                  header_readable = True
+          except (OSError, ValueError):
+              pass
+          if not names and isinstance(declared, str) and declared and '${' not in declared:
+              names = {declared}
+          if not names and header_readable and not declared_seen:
+              names = {os.path.splitext(os.path.basename(flow))[0]}
+          # A same-name sibling cannot lend this target its execution evidence.
+          foreign_names = {case.get('name') for case in original_cases if case.get('file') and not exact(case)}
+          names -= foreign_names
+          aliases = {name.replace('/', '_') for name in names}
+          report_valid = True
+          try:
+              cases = cases_from(report)
+          except (OSError, ValueError, ET.ParseError):
+              cases = []
+              report_valid = False
+          def selected(case):
+              if case.get('file'):
+                  return exact(case)
+              name = case.get('name')
+              return name in names and sum(other.get('name') == name for other in cases) == 1
+          def failed(case):
+              return case.find('failure') is not None or case.find('error') is not None or case.get('status') in ('ERROR', 'FAILURE', 'FAILED')
+          selected_cases = [case for case in cases if selected(case)]
+          failed_report = any(failed(case) for case in selected_cases)
+          # Successful commands require a readable, nonempty selected-target
+          # report. A foreign/malformed report is unverified, not zero flows.
+          if succeeded == 'true':
+              if report_valid and not cases:
+                  print('vacuous')
+              elif report_valid and selected_cases and not any(failed(case) or case.find('skipped') is not None or case.get('status') == 'SKIPPED' for case in selected_cases) and not any(failed(case) for case in cases):
+                  print('recovered')
+              else:
+                  print('retry-unknown')
+              sys.exit(0)
+          inconclusive = os.path.exists(report) and not report_valid
+          executable = set(('tapOnElement tapOnPoint tapOnPointV2Command scrollCommand swipeCommand backPressCommand '
+              'assertCommand assertConditionCommand assertScreenshotCommand assertNoDefectsWithAICommand assertWithAICommand '
+              'extractTextWithAICommand inputTextCommand inputRandomTextCommand launchAppCommand setPermissionsCommand '
+              'openLinkCommand pressKeyCommand eraseTextCommand hideKeyboardCommand takeScreenshotCommand stopAppCommand '
+              'killAppCommand clearStateCommand clearKeychainCommand runFlowCommand setLocationCommand setOrientationCommand '
+              'repeatCommand copyTextCommand setClipboardCommand pasteTextCommand runScriptCommand waitForAnimationToEndCommand '
+              'evalScriptCommand scrollUntilVisible travelCommand startRecordingCommand stopRecordingCommand addMediaCommand '
+              'setAirplaneModeCommand toggleAirplaneModeCommand setDarkModeCommand toggleDarkModeCommand assertDarkModeCommand '
+              'assertLightModeCommand retryCommand').split())
+          known = executable | {'applyConfigurationCommand', 'defineVariablesCommand'}
+          executed = False
+          any_execution = False
+          failed_command = False
+          visited = metadata_bytes = 0
+          for parent, dirs, files in os.walk(debug, followlinks=False):
+              visited += len(dirs) + len(files)
+              if visited > 512:
+                  inconclusive = True
+                  break
+              for name in files:
+                  if name != 'commands.json' and not (name.startswith('commands-(') and name.endswith(').json')):
+                      continue
+                  directory = os.path.basename(parent)
+                  attributed = any(directory == alias or re.fullmatch(re.escape(alias) + r'-shard-[1-9][0-9]*', directory) for alias in aliases) if name == 'commands.json' else any(name == 'commands-(' + alias + ').json' for alias in aliases)
+                  path = os.path.join(parent, name)
+                  try:
+                      size = os.path.getsize(path)
+                      metadata_bytes += size
+                      if os.path.islink(path) or size > 4 * 1024 * 1024 or metadata_bytes > 16 * 1024 * 1024:
+                          raise ValueError('unsafe or oversized metadata')
+                      with open(path) as handle:
+                          commands = json.load(handle)
+                      if not isinstance(commands, list):
+                          raise ValueError('unknown command wrapper format')
+                      for record in commands:
+                          if not isinstance(record, dict):
+                              raise ValueError('unknown command wrapper')
+                          command, metadata = record.get('command'), record.get('metadata')
+                          if not isinstance(command, dict) or not isinstance(metadata, dict):
+                              raise ValueError('missing command metadata')
+                          real = any(key in executable and isinstance(value, dict) for key, value in command.items())
+                          status, timestamp = metadata.get('status'), metadata.get('timestamp')
+                          if not command or any(key not in known for key in command) or status not in ('RUNNING', 'COMPLETED', 'FAILED', 'WARNED', 'PENDING', 'SKIPPED'):
+                              inconclusive = True
+                          if real and status in ('RUNNING', 'COMPLETED', 'FAILED', 'WARNED'):
+                              if isinstance(timestamp, bool) or not isinstance(timestamp, (int, float)) or not math.isfinite(timestamp) or timestamp <= 0:
+                                  inconclusive = True
+                                  continue
+                              any_execution = True
+                              if attributed:
+                                  executed = True
+                                  failed_command = failed_command or status == 'FAILED'
+                  except (OSError, ValueError, TypeError):
+                      inconclusive = True
+              if metadata_bytes > 16 * 1024 * 1024:
+                  break
+          startup_unavailable = False
+          try:
+              if os.path.getsize(log) > 16 * 1024 * 1024:
+                  raise ValueError('log exceeds evidence limit')
+              with open(log, errors='replace') as handle:
+                  text = re.sub(r'\x1b\[[0-9;]*m', '', handle.read())
+              # TestCommand's zero-device pre-shard guard, or our own verified
+              # launcher preflight. Generic device death can occur after steps.
+              startup_unavailable = bool(re.search(r'You have 0 devices connected[^\n]*Missing [1-9][0-9]* device\(s\)\.', text)) or 'LISA_MAESTRO_RETRY_STARTUP_UNAVAILABLE: retry launcher is unavailable; no flow was started.' in text
+          except (OSError, ValueError):
+              inconclusive = True
+          if startup_unavailable and not any_execution and not inconclusive:
+              print('retry-not-executed')
+          elif executed and not startup_unavailable and not inconclusive and (failed_report or failed_command):
+              print('unrecovered')
+          else:
+              print('retry-unknown')
+          RETRY_EVIDENCE
+          }
+
+          # Counters count unresolved FLOWS, not attempts. Preserve completed
+          # evidence before the next checkpoint; later scheduling cannot rewrite
+          # it. Recovery clears unresolved counters but not historical rows.
+          record_attempt() {
+            printf 'attempt|%s|%s|%s\n' "$flow" "$(( attempt + 1 ))" "$outcome" >> "$ROWS"
+            case "$outcome" in
+              unrecovered)
+                if [ "$flow_unrecovered" -eq 0 ]; then UNRECOVERED=$(( UNRECOVERED + 1 )); flow_unrecovered=1; fi ;;
+              retry-not-executed)
+                if [ "$flow_not_executed" -eq 0 ]; then RETRY_NOT_EXECUTED=$(( RETRY_NOT_EXECUTED + 1 )); flow_not_executed=1; fi ;;
+              retry-unknown)
+                if [ "$flow_unknown" -eq 0 ]; then RETRY_UNKNOWN=$(( RETRY_UNKNOWN + 1 )); flow_unknown=1; fi ;;
+              recovered)
+                RECOVERED=$(( RECOVERED + 1 ))
+                UNRECOVERED=$(( UNRECOVERED - flow_unrecovered ))
+                RETRY_NOT_EXECUTED=$(( RETRY_NOT_EXECUTED - flow_not_executed ))
+                RETRY_UNKNOWN=$(( RETRY_UNKNOWN - flow_unknown )) ;;
+            esac
+            write_ledger
           }
 
           count_report_flows() {
@@ -4231,7 +4630,10 @@ jobs:
                 continue
               fi
               attempt=0
-              outcome=unrecovered
+              outcome=retry-unknown
+              flow_unrecovered=0
+              flow_not_executed=0
+              flow_unknown=0
               while [ "$attempt" -lt "$FLOW_RETRY_ATTEMPTS" ]; do
                 if ! retry_fits_budget "$flow"; then
                   TIME_DECLINED=$(( TIME_DECLINED + 1 ))
@@ -4240,38 +4642,32 @@ jobs:
                   break
                 fi
                 attempt=$(( attempt + 1 ))
+                if [ "$attempt" -eq 1 ]; then RETRIED=$(( RETRIED + 1 )); fi
                 checkpoint_retry "$flow" "$(( attempt + 1 ))"
                 slug=$(printf '%s' "$flow" | tr -c 'A-Za-z0-9._-' '-')
                 retry_report="maestro-ios-retry-${slug}-${attempt}.xml"
+                retry_log="maestro-ios-retry-${slug}-${attempt}.log"
+                rm -f "$retry_report" "$retry_log"
+                mkdir -p maestro-debug
+                retry_debug=$(mktemp -d "maestro-debug/retry-ios-${slug}-${attempt}-XXXXXX")
                 echo "::warning title=Maestro flow retried (ios)::$flow failed and is being re-run on its own (attempt $(( attempt + 1 ))). A retry is a SYMPTOM. Read the maestro-ios-retries artifact before treating this run as a clean green."
-                if run_target "$retry_report" "$flow" 2>&1 | tee "maestro-ios-retry-${slug}-${attempt}.log"; then
-                  printf "Retry completed: %s (attempt %s), command returned success.\n" "$flow" "$(( attempt + 1 ))" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
-                  ran=0
-                  if [ -f "$retry_report" ]; then
-                    ran=$(count_testcases "$retry_report")
+                if run_target "$retry_report" "$flow" "$retry_debug" 2>&1 | tee "$retry_log"; then
+                  outcome=$(classify_retry_result "$retry_report" "$retry_debug" "$retry_log" "$flow" true) || outcome=retry-unknown
+                  printf "Retry completed: %s (attempt %s), %s.\n" "$flow" "$(( attempt + 1 ))" "$outcome" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+                  if [ "$outcome" = "vacuous" ]; then
+                    echo "::error title=Retry executed nothing (ios)::The isolated re-run of $flow succeeded having executed 0 flows. Counting it as NOT recovered: a zero-flow re-run proves nothing."
+                  elif [ "$outcome" = "retry-unknown" ]; then
+                    echo "::error title=Retry execution unverified (ios)::The isolated re-run of $flow returned success without a readable passing report for that flow. Its original failure stands."
                   fi
-                  if [ "$ran" -eq 0 ]; then
-                    # A re-run that executed nothing exits 0. Trusting that
-                    # status would turn every tag-filtered flow into a
-                    # permanent false green — the same fail-open shape as a
-                    # suite reporting success having tested nothing.
-                    echo "::error title=Retry executed nothing (ios)::The isolated re-run of $flow succeeded having executed 0 flows, so this run's tag filters exclude it. Counting it as NOT recovered: a zero-flow re-run proves nothing."
-                    outcome=vacuous
-                    break
-                  fi
-                  outcome=recovered
+                  record_attempt
                   break
                 else
-                  printf "Retry completed: %s (attempt %s), command failed.\n" "$flow" "$(( attempt + 1 ))" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+                  outcome=$(classify_retry_result "$retry_report" "$retry_debug" "$retry_log" "$flow" false) || outcome=retry-unknown
+                  printf "Retry completed: %s (attempt %s), %s.\n" "$flow" "$(( attempt + 1 ))" "$outcome" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+                  record_attempt
                 fi
               done
-              if [ "$attempt" -gt 0 ]; then RETRIED=$(( RETRIED + 1 )); fi
               record_row "$flow" "$(( attempt + 1 ))" "$outcome"
-              if [ "$outcome" = "recovered" ]; then
-                RECOVERED=$(( RECOVERED + 1 ))
-              elif [ "$attempt" -gt 0 ]; then
-                UNRECOVERED=$(( UNRECOVERED + 1 ))
-              fi
             done <<< "$ELIGIBLE_LIST"
 
             write_ledger
@@ -4496,6 +4892,8 @@ jobs:
           RETRIED=$(key retried)
           RECOVERED=$(key recovered)
           UNRECOVERED=$(key unrecovered)
+          RETRY_NOT_EXECUTED=$(key retry_not_executed)
+          RETRY_UNKNOWN=$(key retry_unknown)
           NOT_ELIGIBLE=$(key not_eligible)
           TIME_DECLINED=$(key time_declined)
           RATE=$(key retry_rate_percent)
@@ -4514,6 +4912,11 @@ jobs:
               | awk -F'|' '{ printf "| `%s` | %s | %s |\n", $2, $3, $4 }'
             echo ""
             echo "Executed **$EXECUTED**; failed first attempt **$FAILED**; retried **$RETRIED**; recovered **$RECOVERED**."
+            echo "Unresolved flows with executed failed retries **${UNRECOVERED:-0}**; retries not executed **${RETRY_NOT_EXECUTED:-0}**; execution unknown **${RETRY_UNKNOWN:-0}**. A flow can have more than one evidence category."
+            echo ""
+            echo "| flow | completed attempt | evidence |"
+            echo "| --- | --- | --- |"
+            { grep '^attempt|' "$LEDGER" || true; } | awk -F'|' '{ printf "| `%s` | %s | %s |\n", $2, $3, $4 }'
             echo ""
             echo "First-attempt failure rate **${RATE}%**, budget **${THRESHOLD}%**. Per-flow retry enabled: \`$ENABLED\`."
           } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
@@ -4522,18 +4925,27 @@ jobs:
           fi
           if [[ "$BREACH" == "true" ]]; then
             echo "::error title=iOS retry budget exceeded::$FAILED of $EXECUTED flow(s) failed their first attempt (${RATE}%), above the ${THRESHOLD}% budget. Nothing was retried and this arm is FAILED. Retry is not the lever here — find out why the arm is losing flows."
-            exit 1
           fi
           if [[ "${TIME_DECLINED:-0}" -gt 0 ]]; then
             echo "::error title=Maestro retry time budget::$TIME_DECLINED flow(s) had a retry declined because job time was insufficient or unknown. Their original failures stand."
-            exit 1
           fi
           if [[ "${UNRECOVERED:-0}" -gt 0 ]]; then
-            echo "::error title=iOS flows failed after retry::${UNRECOVERED} flow(s) failed again when re-run on their own. An isolated re-run removes ordering and host contention as explanations, so this is the arm's most credible real-failure signal."
-            exit 1
+            echo "::error title=iOS flows failed after retry::${UNRECOVERED} flow(s) executed again and failed with current-attempt evidence. This does not establish a product cause or exclude device faults or host contention."
           fi
           if [[ "${NOT_ELIGIBLE:-0}" -gt 0 ]]; then
             echo "::error title=iOS flows failed and were not retried::${NOT_ELIGIBLE} failed flow(s) are not marked safe to run in isolation, so they were not re-run. Their failures stand."
+          fi
+          if [[ "${RETRY_NOT_EXECUTED:-0}" -gt 0 ]]; then
+            echo "::error title=iOS retries did not execute::${RETRY_NOT_EXECUTED} flow(s) had a retry that could not start because no device or retry launcher was available. These retries added no new flow-failure evidence; their original failures stand."
+          fi
+          if [[ "${RETRY_UNKNOWN:-0}" -gt 0 ]]; then
+            echo "::error title=iOS retry execution unknown::${RETRY_UNKNOWN} flow(s) had a failed retry whose execution could not be verified. No repeated flow failure is claimed from that attempt; their original failures stand."
+          fi
+          if [[ "${FAILED:-0}" -gt "${RECOVERED:-0}" ]]; then
+            echo "::error title=iOS original failures retained::Not every originally failed flow was recovered. Empty, unverified or interrupted retries cannot clear the original failure."
+            exit 1
+          fi
+          if [[ "$BREACH" == "true" || "${TIME_DECLINED:-0}" -gt 0 || "${UNRECOVERED:-0}" -gt 0 || "${NOT_ELIGIBLE:-0}" -gt 0 || "${RETRY_NOT_EXECUTED:-0}" -gt 0 || "${RETRY_UNKNOWN:-0}" -gt 0 ]]; then
             exit 1
           fi
           echo "✅ iOS retry budget respected (retried ${RETRIED:-0}, rate ${RATE}% of ${THRESHOLD}%)."

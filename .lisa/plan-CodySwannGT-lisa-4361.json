@@ -1,0 +1,604 @@
+{
+  "tasks": [
+    {
+      "name": "resolve",
+      "status": "done",
+      "plan": "Report Maestro retry execution evidence",
+      "type": "bug",
+      "acceptance_criteria": [
+        "Both arms separate proven retry nonexecution, unknown evidence and positive failed execution.",
+        "Original failed suite remains red unless actually recovered.",
+        "Eligibility, rate, attempts, time budgets and cancellation preserved.",
+        "Fresh attempt artifacts and durable completed evidence survive later budget/interruption."
+      ],
+      "relevant_documentation": [
+        "#4361 original Expected and full issue context",
+        "/private/tmp/lisa-4361-reproduction-research.md",
+        ".github/workflows/maestro-native-e2e.yml",
+        "expo/copy-overwrite/scripts/classify-maestro-failures.mjs",
+        "primary upstream Maestro cli-2.11.0 c8c361be1cc89b2e742f185466a302a22778be6b command artifact schema"
+      ],
+      "work_item_context": "/private/tmp/lisa-4361-maestro-retry-evidence/.lisa/work-item-context.md",
+      "comment_inventory": [
+        "Comment1 codysai001 2026-10-08T22:04:44Z both-arm categories/unchanged policy decision|constraint",
+        "Comment2 codysai001 2026-10-08T22:06:02Z retain original failure/limits/currentattempt evidence decision|constraint"
+      ],
+      "testing_requirements": [
+        "Execute actual YAML-derived Bash through existing flow_runner boundary, both arms; newly named cases execute locally and in CI.",
+        "RED twice: 4 new failures; 42 original sibling controls passed.",
+        "No-device repeat twice; unknown/real commands/stale/foreign/conflict/budget/interrupt/recovery/vacuous controls."
+      ],
+      "skills": [
+        "lisa-implement"
+      ],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "GitHub repository/issues/PR/actions",
+          "probe": "gh api repos/CodySwannGT/lisa + complete issue graph + origin/main SSH",
+          "status": "pass"
+        },
+        {
+          "tool": "npm publication",
+          "probe": "exact @codyswann/lisa@4.72.6 registry/release read",
+          "status": "pass"
+        },
+        {
+          "tool": "local workflow runtime",
+          "probe": "pinned Node22.23.3/Bun1.3.8/Ruby4.0.1 frozen own install and Python3.14.3",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "Run YAML-derived runSuiteDriver and runGate through native harness and print full ledger/annotations/exit statuses; independently inspect actual release, tag ancestry and exact npm publication.",
+        "expected": "Evidence categories/counts match actual completed attempts, original redexit retained; actual production release contains final reviewed implementation head."
+      }
+    },
+    {
+      "name": "reproduce",
+      "status": "done",
+      "plan": "Report Maestro retry execution evidence",
+      "type": "bug",
+      "acceptance_criteria": [
+        "Both arms separate proven retry nonexecution, unknown evidence and positive failed execution.",
+        "Original failed suite remains red unless actually recovered.",
+        "Eligibility, rate, attempts, time budgets and cancellation preserved.",
+        "Fresh attempt artifacts and durable completed evidence survive later budget/interruption."
+      ],
+      "relevant_documentation": [
+        "#4361 original Expected and full issue context",
+        "/private/tmp/lisa-4361-reproduction-research.md",
+        ".github/workflows/maestro-native-e2e.yml",
+        "expo/copy-overwrite/scripts/classify-maestro-failures.mjs",
+        "primary upstream Maestro cli-2.11.0 c8c361be1cc89b2e742f185466a302a22778be6b command artifact schema"
+      ],
+      "work_item_context": "/private/tmp/lisa-4361-maestro-retry-evidence/.lisa/work-item-context.md",
+      "comment_inventory": [
+        "Comment1 codysai001 2026-10-08T22:04:44Z both-arm categories/unchanged policy decision|constraint",
+        "Comment2 codysai001 2026-10-08T22:06:02Z retain original failure/limits/currentattempt evidence decision|constraint"
+      ],
+      "testing_requirements": [
+        "Execute actual YAML-derived Bash through existing flow_runner boundary, both arms; newly named cases execute locally and in CI.",
+        "RED twice: 4 new failures; 42 original sibling controls passed.",
+        "No-device repeat twice; unknown/real commands/stale/foreign/conflict/budget/interrupt/recovery/vacuous controls."
+      ],
+      "skills": [
+        "lisa-implement"
+      ],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "GitHub repository/issues/PR/actions",
+          "probe": "gh api repos/CodySwannGT/lisa + complete issue graph + origin/main SSH",
+          "status": "pass"
+        },
+        {
+          "tool": "npm publication",
+          "probe": "exact @codyswann/lisa@4.72.6 registry/release read",
+          "status": "pass"
+        },
+        {
+          "tool": "local workflow runtime",
+          "probe": "pinned Node22.23.3/Bun1.3.8/Ruby4.0.1 frozen own install and Python3.14.3",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "Run YAML-derived runSuiteDriver and runGate through native harness and print full ledger/annotations/exit statuses; independently inspect actual release, tag ancestry and exact npm publication.",
+        "expected": "Evidence categories/counts match actual completed attempts, original redexit retained; actual production release contains final reviewed implementation head."
+      }
+    },
+    {
+      "name": "research",
+      "status": "done",
+      "plan": "Report Maestro retry execution evidence",
+      "type": "bug",
+      "acceptance_criteria": [
+        "Both arms separate proven retry nonexecution, unknown evidence and positive failed execution.",
+        "Original failed suite remains red unless actually recovered.",
+        "Eligibility, rate, attempts, time budgets and cancellation preserved.",
+        "Fresh attempt artifacts and durable completed evidence survive later budget/interruption."
+      ],
+      "relevant_documentation": [
+        "#4361 original Expected and full issue context",
+        "/private/tmp/lisa-4361-reproduction-research.md",
+        ".github/workflows/maestro-native-e2e.yml",
+        "expo/copy-overwrite/scripts/classify-maestro-failures.mjs",
+        "primary upstream Maestro cli-2.11.0 c8c361be1cc89b2e742f185466a302a22778be6b command artifact schema"
+      ],
+      "work_item_context": "/private/tmp/lisa-4361-maestro-retry-evidence/.lisa/work-item-context.md",
+      "comment_inventory": [
+        "Comment1 codysai001 2026-10-08T22:04:44Z both-arm categories/unchanged policy decision|constraint",
+        "Comment2 codysai001 2026-10-08T22:06:02Z retain original failure/limits/currentattempt evidence decision|constraint"
+      ],
+      "testing_requirements": [
+        "Execute actual YAML-derived Bash through existing flow_runner boundary, both arms; newly named cases execute locally and in CI.",
+        "RED twice: 4 new failures; 42 original sibling controls passed.",
+        "No-device repeat twice; unknown/real commands/stale/foreign/conflict/budget/interrupt/recovery/vacuous controls."
+      ],
+      "skills": [
+        "lisa-implement"
+      ],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "GitHub repository/issues/PR/actions",
+          "probe": "gh api repos/CodySwannGT/lisa + complete issue graph + origin/main SSH",
+          "status": "pass"
+        },
+        {
+          "tool": "npm publication",
+          "probe": "exact @codyswann/lisa@4.72.6 registry/release read",
+          "status": "pass"
+        },
+        {
+          "tool": "local workflow runtime",
+          "probe": "pinned Node22.23.3/Bun1.3.8/Ruby4.0.1 frozen own install and Python3.14.3",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "Run YAML-derived runSuiteDriver and runGate through native harness and print full ledger/annotations/exit statuses; independently inspect actual release, tag ancestry and exact npm publication.",
+        "expected": "Evidence categories/counts match actual completed attempts, original redexit retained; actual production release contains final reviewed implementation head."
+      }
+    },
+    {
+      "name": "implement",
+      "status": "done",
+      "plan": "Report Maestro retry execution evidence",
+      "type": "bug",
+      "acceptance_criteria": [
+        "Both arms separate proven retry nonexecution, unknown evidence and positive failed execution.",
+        "Original failed suite remains red unless actually recovered.",
+        "Eligibility, rate, attempts, time budgets and cancellation preserved.",
+        "Fresh attempt artifacts and durable completed evidence survive later budget/interruption."
+      ],
+      "relevant_documentation": [
+        "#4361 original Expected and full issue context",
+        "/private/tmp/lisa-4361-reproduction-research.md",
+        ".github/workflows/maestro-native-e2e.yml",
+        "expo/copy-overwrite/scripts/classify-maestro-failures.mjs",
+        "primary upstream Maestro cli-2.11.0 c8c361be1cc89b2e742f185466a302a22778be6b command artifact schema"
+      ],
+      "work_item_context": "/private/tmp/lisa-4361-maestro-retry-evidence/.lisa/work-item-context.md",
+      "comment_inventory": [
+        "Comment1 codysai001 2026-10-08T22:04:44Z both-arm categories/unchanged policy decision|constraint",
+        "Comment2 codysai001 2026-10-08T22:06:02Z retain original failure/limits/currentattempt evidence decision|constraint"
+      ],
+      "testing_requirements": [
+        "Execute actual YAML-derived Bash through existing flow_runner boundary, both arms; newly named cases execute locally and in CI.",
+        "RED twice: 4 new failures; 42 original sibling controls passed.",
+        "No-device repeat twice; unknown/real commands/stale/foreign/conflict/budget/interrupt/recovery/vacuous controls."
+      ],
+      "skills": [
+        "lisa-implement"
+      ],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "GitHub repository/issues/PR/actions",
+          "probe": "gh api repos/CodySwannGT/lisa + complete issue graph + origin/main SSH",
+          "status": "pass"
+        },
+        {
+          "tool": "npm publication",
+          "probe": "exact @codyswann/lisa@4.72.6 registry/release read",
+          "status": "pass"
+        },
+        {
+          "tool": "local workflow runtime",
+          "probe": "pinned Node22.23.3/Bun1.3.8/Ruby4.0.1 frozen own install and Python3.14.3",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "Run YAML-derived runSuiteDriver and runGate through native harness and print full ledger/annotations/exit statuses; independently inspect actual release, tag ancestry and exact npm publication.",
+        "expected": "Nested header env.name cannot certify foreign success or hide actual selected failure; original file-correlated canonical name outranks raw declaration in both arms. Native new cases RED then GREEN.",
+        "evidence": [
+          "/private/tmp/lisa-4361-name-attribution-red.log: 6 FAIL and 140 PASS",
+          "/private/tmp/lisa-4361-name-attribution-green.log: 146 PASS across 4 files",
+          "/private/tmp/lisa-4361-retry-ledger-and-gate-name-fixed-all-cases.json: 84 actual driver/gate states",
+          "/private/tmp/lisa-4361-adversarial-review-fixed.md: CLEAN, P1 closed",
+          "/private/tmp/lisa-4361-product-review-refresh.md: CLEAN",
+          "/private/tmp/lisa-4361-quality-review-fixed.md: CLEAN",
+          "local review CLEAN, workflow SHA256 4045ca7d57429328d9fd389675a2e8accb4a5cde6870f92df61ac0aa367f8ab1"
+        ]
+      }
+    },
+    {
+      "name": "regression coverage",
+      "status": "done",
+      "plan": "Report Maestro retry execution evidence",
+      "type": "bug",
+      "acceptance_criteria": [
+        "Both arms separate proven retry nonexecution, unknown evidence and positive failed execution.",
+        "Original failed suite remains red unless actually recovered.",
+        "Eligibility, rate, attempts, time budgets and cancellation preserved.",
+        "Fresh attempt artifacts and durable completed evidence survive later budget/interruption."
+      ],
+      "relevant_documentation": [
+        "#4361 original Expected and full issue context",
+        "/private/tmp/lisa-4361-reproduction-research.md",
+        ".github/workflows/maestro-native-e2e.yml",
+        "expo/copy-overwrite/scripts/classify-maestro-failures.mjs",
+        "primary upstream Maestro cli-2.11.0 c8c361be1cc89b2e742f185466a302a22778be6b command artifact schema"
+      ],
+      "work_item_context": "/private/tmp/lisa-4361-maestro-retry-evidence/.lisa/work-item-context.md",
+      "comment_inventory": [
+        "Comment1 codysai001 2026-10-08T22:04:44Z both-arm categories/unchanged policy decision|constraint",
+        "Comment2 codysai001 2026-10-08T22:06:02Z retain original failure/limits/currentattempt evidence decision|constraint"
+      ],
+      "testing_requirements": [
+        "Execute actual YAML-derived Bash through existing flow_runner boundary, both arms; newly named cases execute locally and in CI.",
+        "RED twice: 4 new failures; 42 original sibling controls passed.",
+        "No-device repeat twice; unknown/real commands/stale/foreign/conflict/budget/interrupt/recovery/vacuous controls."
+      ],
+      "skills": [
+        "lisa-implement"
+      ],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "GitHub repository/issues/PR/actions",
+          "probe": "gh api repos/CodySwannGT/lisa + complete issue graph + origin/main SSH",
+          "status": "pass"
+        },
+        {
+          "tool": "npm publication",
+          "probe": "exact @codyswann/lisa@4.72.6 registry/release read",
+          "status": "pass"
+        },
+        {
+          "tool": "local workflow runtime",
+          "probe": "pinned Node22.23.3/Bun1.3.8/Ruby4.0.1 frozen own install and Python3.14.3",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "Run YAML-derived runSuiteDriver and runGate through native harness and print full ledger/annotations/exit statuses; independently inspect actual release, tag ancestry and exact npm publication.",
+        "expected": "Evidence categories/counts match actual completed attempts, original redexit retained; actual production release contains final reviewed implementation head.",
+        "evidence": [
+          "/private/tmp/lisa-4361-name-attribution-red.log: 6 FAIL and 140 PASS",
+          "/private/tmp/lisa-4361-name-attribution-green.log: 146 PASS across 4 files",
+          "/private/tmp/lisa-4361-retry-ledger-and-gate-name-fixed-all-cases.json: 84 actual driver/gate states",
+          "/private/tmp/lisa-4361-adversarial-review-fixed.md: CLEAN, P1 closed",
+          "/private/tmp/lisa-4361-product-review-refresh.md: CLEAN",
+          "/private/tmp/lisa-4361-quality-review-fixed.md: CLEAN",
+          "local review CLEAN, workflow SHA256 4045ca7d57429328d9fd389675a2e8accb4a5cde6870f92df61ac0aa367f8ab1",
+          "/private/tmp/lisa-4361-test-structure-eslint.log: PASS",
+          "/private/tmp/lisa-4361-test-structure-typecheck.log: PASS; one cleared quarantine entry removed",
+          "/private/tmp/lisa-4361-test-structure-green.log: 146 PASS across 6 files",
+          "/private/tmp/lisa-4361-test-structure-named-case-proof.txt: identical 146 named cases",
+          "/private/tmp/lisa-4361-retry-ledger-and-gate-structure-all-cases.json: identical 84 actual states",
+          "/private/tmp/lisa-4361-runner-seam-green.log: 152 PASS across 7 files",
+          "/private/tmp/lisa-4361-runner-arguments-state.json: exact actual suite/retry argument order on both arms",
+          "/private/tmp/lisa-4361-runner-seam-typecheck.log and runner-seam-eslint.log: PASS"
+        ]
+      }
+    },
+    {
+      "name": "independent reviews",
+      "status": "done",
+      "plan": "Report Maestro retry execution evidence",
+      "type": "bug",
+      "acceptance_criteria": [
+        "Both arms separate proven retry nonexecution, unknown evidence and positive failed execution.",
+        "Original failed suite remains red unless actually recovered.",
+        "Eligibility, rate, attempts, time budgets and cancellation preserved.",
+        "Fresh attempt artifacts and durable completed evidence survive later budget/interruption."
+      ],
+      "relevant_documentation": [
+        "#4361 original Expected and full issue context",
+        "/private/tmp/lisa-4361-reproduction-research.md",
+        ".github/workflows/maestro-native-e2e.yml",
+        "expo/copy-overwrite/scripts/classify-maestro-failures.mjs",
+        "primary upstream Maestro cli-2.11.0 c8c361be1cc89b2e742f185466a302a22778be6b command artifact schema"
+      ],
+      "work_item_context": "/private/tmp/lisa-4361-maestro-retry-evidence/.lisa/work-item-context.md",
+      "comment_inventory": [
+        "Comment1 codysai001 2026-10-08T22:04:44Z both-arm categories/unchanged policy decision|constraint",
+        "Comment2 codysai001 2026-10-08T22:06:02Z retain original failure/limits/currentattempt evidence decision|constraint"
+      ],
+      "testing_requirements": [
+        "Execute actual YAML-derived Bash through existing flow_runner boundary, both arms; newly named cases execute locally and in CI.",
+        "RED twice: 4 new failures; 42 original sibling controls passed.",
+        "No-device repeat twice; unknown/real commands/stale/foreign/conflict/budget/interrupt/recovery/vacuous controls."
+      ],
+      "skills": [
+        "lisa-implement"
+      ],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "GitHub repository/issues/PR/actions",
+          "probe": "gh api repos/CodySwannGT/lisa + complete issue graph + origin/main SSH",
+          "status": "pass"
+        },
+        {
+          "tool": "npm publication",
+          "probe": "exact @codyswann/lisa@4.72.6 registry/release read",
+          "status": "pass"
+        },
+        {
+          "tool": "local workflow runtime",
+          "probe": "pinned Node22.23.3/Bun1.3.8/Ruby4.0.1 frozen own install and Python3.14.3",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "Run YAML-derived runSuiteDriver and runGate through native harness and print full ledger/annotations/exit statuses; independently inspect actual release, tag ancestry and exact npm publication.",
+        "expected": "Evidence categories/counts match actual completed attempts, original redexit retained; actual production release contains final reviewed implementation head.",
+        "evidence": [
+          "/private/tmp/lisa-4361-name-attribution-red.log: 6 FAIL and 140 PASS",
+          "/private/tmp/lisa-4361-name-attribution-green.log: 146 PASS across 4 files",
+          "/private/tmp/lisa-4361-retry-ledger-and-gate-name-fixed-all-cases.json: 84 actual driver/gate states",
+          "/private/tmp/lisa-4361-adversarial-review-fixed.md: CLEAN, P1 closed",
+          "/private/tmp/lisa-4361-product-review-refresh.md: CLEAN",
+          "/private/tmp/lisa-4361-quality-review-fixed.md: CLEAN",
+          "local review CLEAN, workflow SHA256 4045ca7d57429328d9fd389675a2e8accb4a5cde6870f92df61ac0aa367f8ab1"
+        ]
+      }
+    },
+    {
+      "name": "CLI empirical verification",
+      "status": "pending",
+      "plan": "Report Maestro retry execution evidence",
+      "type": "bug",
+      "acceptance_criteria": [
+        "Both arms separate proven retry nonexecution, unknown evidence and positive failed execution.",
+        "Original failed suite remains red unless actually recovered.",
+        "Eligibility, rate, attempts, time budgets and cancellation preserved.",
+        "Fresh attempt artifacts and durable completed evidence survive later budget/interruption."
+      ],
+      "relevant_documentation": [
+        "#4361 original Expected and full issue context",
+        "/private/tmp/lisa-4361-reproduction-research.md",
+        ".github/workflows/maestro-native-e2e.yml",
+        "expo/copy-overwrite/scripts/classify-maestro-failures.mjs",
+        "primary upstream Maestro cli-2.11.0 c8c361be1cc89b2e742f185466a302a22778be6b command artifact schema"
+      ],
+      "work_item_context": "/private/tmp/lisa-4361-maestro-retry-evidence/.lisa/work-item-context.md",
+      "comment_inventory": [
+        "Comment1 codysai001 2026-10-08T22:04:44Z both-arm categories/unchanged policy decision|constraint",
+        "Comment2 codysai001 2026-10-08T22:06:02Z retain original failure/limits/currentattempt evidence decision|constraint"
+      ],
+      "testing_requirements": [
+        "Execute actual YAML-derived Bash through existing flow_runner boundary, both arms; newly named cases execute locally and in CI.",
+        "RED twice: 4 new failures; 42 original sibling controls passed.",
+        "No-device repeat twice; unknown/real commands/stale/foreign/conflict/budget/interrupt/recovery/vacuous controls."
+      ],
+      "skills": [
+        "lisa-implement"
+      ],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "GitHub repository/issues/PR/actions",
+          "probe": "gh api repos/CodySwannGT/lisa + complete issue graph + origin/main SSH",
+          "status": "pass"
+        },
+        {
+          "tool": "npm publication",
+          "probe": "exact @codyswann/lisa@4.72.6 registry/release read",
+          "status": "pass"
+        },
+        {
+          "tool": "local workflow runtime",
+          "probe": "pinned Node22.23.3/Bun1.3.8/Ruby4.0.1 frozen own install and Python3.14.3",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "Run YAML-derived runSuiteDriver and runGate through native harness and print full ledger/annotations/exit statuses; independently inspect actual release, tag ancestry and exact npm publication.",
+        "expected": "Evidence categories/counts match actual completed attempts, original redexit retained; actual production release contains final reviewed implementation head."
+      }
+    },
+    {
+      "name": "normal gates and shipment",
+      "status": "pending",
+      "plan": "Report Maestro retry execution evidence",
+      "type": "bug",
+      "acceptance_criteria": [
+        "Both arms separate proven retry nonexecution, unknown evidence and positive failed execution.",
+        "Original failed suite remains red unless actually recovered.",
+        "Eligibility, rate, attempts, time budgets and cancellation preserved.",
+        "Fresh attempt artifacts and durable completed evidence survive later budget/interruption."
+      ],
+      "relevant_documentation": [
+        "#4361 original Expected and full issue context",
+        "/private/tmp/lisa-4361-reproduction-research.md",
+        ".github/workflows/maestro-native-e2e.yml",
+        "expo/copy-overwrite/scripts/classify-maestro-failures.mjs",
+        "primary upstream Maestro cli-2.11.0 c8c361be1cc89b2e742f185466a302a22778be6b command artifact schema"
+      ],
+      "work_item_context": "/private/tmp/lisa-4361-maestro-retry-evidence/.lisa/work-item-context.md",
+      "comment_inventory": [
+        "Comment1 codysai001 2026-10-08T22:04:44Z both-arm categories/unchanged policy decision|constraint",
+        "Comment2 codysai001 2026-10-08T22:06:02Z retain original failure/limits/currentattempt evidence decision|constraint"
+      ],
+      "testing_requirements": [
+        "Execute actual YAML-derived Bash through existing flow_runner boundary, both arms; newly named cases execute locally and in CI.",
+        "RED twice: 4 new failures; 42 original sibling controls passed.",
+        "No-device repeat twice; unknown/real commands/stale/foreign/conflict/budget/interrupt/recovery/vacuous controls."
+      ],
+      "skills": [
+        "lisa-implement"
+      ],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "GitHub repository/issues/PR/actions",
+          "probe": "gh api repos/CodySwannGT/lisa + complete issue graph + origin/main SSH",
+          "status": "pass"
+        },
+        {
+          "tool": "npm publication",
+          "probe": "exact @codyswann/lisa@4.72.6 registry/release read",
+          "status": "pass"
+        },
+        {
+          "tool": "local workflow runtime",
+          "probe": "pinned Node22.23.3/Bun1.3.8/Ruby4.0.1 frozen own install and Python3.14.3",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "Run YAML-derived runSuiteDriver and runGate through native harness and print full ledger/annotations/exit statuses; independently inspect actual release, tag ancestry and exact npm publication.",
+        "expected": "Evidence categories/counts match actual completed attempts, original redexit retained; actual production release contains final reviewed implementation head."
+      }
+    },
+    {
+      "name": "usage/evidence/learning/native closure",
+      "status": "pending",
+      "plan": "Report Maestro retry execution evidence",
+      "type": "bug",
+      "acceptance_criteria": [
+        "Both arms separate proven retry nonexecution, unknown evidence and positive failed execution.",
+        "Original failed suite remains red unless actually recovered.",
+        "Eligibility, rate, attempts, time budgets and cancellation preserved.",
+        "Fresh attempt artifacts and durable completed evidence survive later budget/interruption."
+      ],
+      "relevant_documentation": [
+        "#4361 original Expected and full issue context",
+        "/private/tmp/lisa-4361-reproduction-research.md",
+        ".github/workflows/maestro-native-e2e.yml",
+        "expo/copy-overwrite/scripts/classify-maestro-failures.mjs",
+        "primary upstream Maestro cli-2.11.0 c8c361be1cc89b2e742f185466a302a22778be6b command artifact schema"
+      ],
+      "work_item_context": "/private/tmp/lisa-4361-maestro-retry-evidence/.lisa/work-item-context.md",
+      "comment_inventory": [
+        "Comment1 codysai001 2026-10-08T22:04:44Z both-arm categories/unchanged policy decision|constraint",
+        "Comment2 codysai001 2026-10-08T22:06:02Z retain original failure/limits/currentattempt evidence decision|constraint"
+      ],
+      "testing_requirements": [
+        "Execute actual YAML-derived Bash through existing flow_runner boundary, both arms; newly named cases execute locally and in CI.",
+        "RED twice: 4 new failures; 42 original sibling controls passed.",
+        "No-device repeat twice; unknown/real commands/stale/foreign/conflict/budget/interrupt/recovery/vacuous controls."
+      ],
+      "skills": [
+        "lisa-implement"
+      ],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "GitHub repository/issues/PR/actions",
+          "probe": "gh api repos/CodySwannGT/lisa + complete issue graph + origin/main SSH",
+          "status": "pass"
+        },
+        {
+          "tool": "npm publication",
+          "probe": "exact @codyswann/lisa@4.72.6 registry/release read",
+          "status": "pass"
+        },
+        {
+          "tool": "local workflow runtime",
+          "probe": "pinned Node22.23.3/Bun1.3.8/Ruby4.0.1 frozen own install and Python3.14.3",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "Run YAML-derived runSuiteDriver and runGate through native harness and print full ledger/annotations/exit statuses; independently inspect actual release, tag ancestry and exact npm publication.",
+        "expected": "Evidence categories/counts match actual completed attempts, original redexit retained; actual production release contains final reviewed implementation head."
+      }
+    },
+    {
+      "name": "implement valid review suggestions",
+      "status": "done",
+      "plan": "Report Maestro retry execution evidence",
+      "type": "bug",
+      "acceptance_criteria": [
+        "Both arms separate proven retry nonexecution, unknown evidence and positive failed execution.",
+        "Original failed suite remains red unless actually recovered.",
+        "Eligibility, rate, attempts, time budgets and cancellation preserved.",
+        "Fresh attempt artifacts and durable completed evidence survive later budget/interruption."
+      ],
+      "relevant_documentation": [
+        "#4361 original Expected and full issue context",
+        "/private/tmp/lisa-4361-reproduction-research.md",
+        ".github/workflows/maestro-native-e2e.yml",
+        "expo/copy-overwrite/scripts/classify-maestro-failures.mjs",
+        "primary upstream Maestro cli-2.11.0 c8c361be1cc89b2e742f185466a302a22778be6b command artifact schema"
+      ],
+      "work_item_context": "/private/tmp/lisa-4361-maestro-retry-evidence/.lisa/work-item-context.md",
+      "comment_inventory": [
+        "Comment1 codysai001 2026-10-08T22:04:44Z both-arm categories/unchanged policy decision|constraint",
+        "Comment2 codysai001 2026-10-08T22:06:02Z retain original failure/limits/currentattempt evidence decision|constraint"
+      ],
+      "testing_requirements": [
+        "Execute actual YAML-derived Bash through existing flow_runner boundary, both arms; newly named cases execute locally and in CI.",
+        "RED twice: 4 new failures; 42 original sibling controls passed.",
+        "No-device repeat twice; unknown/real commands/stale/foreign/conflict/budget/interrupt/recovery/vacuous controls."
+      ],
+      "skills": [
+        "lisa-implement"
+      ],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "GitHub repository/issues/PR/actions",
+          "probe": "gh api repos/CodySwannGT/lisa + complete issue graph + origin/main SSH",
+          "status": "pass"
+        },
+        {
+          "tool": "npm publication",
+          "probe": "exact @codyswann/lisa@4.72.6 registry/release read",
+          "status": "pass"
+        },
+        {
+          "tool": "local workflow runtime",
+          "probe": "pinned Node22.23.3/Bun1.3.8/Ruby4.0.1 frozen own install and Python3.14.3",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "Run YAML-derived runSuiteDriver and runGate through native harness and print full ledger/annotations/exit statuses; independently inspect actual release, tag ancestry and exact npm publication.",
+        "expected": "Nested header env.name cannot certify foreign success or hide actual selected failure; original file-correlated canonical name outranks raw declaration in both arms. Native new cases RED then GREEN.",
+        "evidence": [
+          "/private/tmp/lisa-4361-name-attribution-red.log: 6 FAIL and 140 PASS",
+          "/private/tmp/lisa-4361-name-attribution-green.log: 146 PASS across 4 files",
+          "/private/tmp/lisa-4361-retry-ledger-and-gate-name-fixed-all-cases.json: 84 actual driver/gate states",
+          "/private/tmp/lisa-4361-adversarial-review-fixed.md: CLEAN, P1 closed",
+          "/private/tmp/lisa-4361-product-review-refresh.md: CLEAN",
+          "/private/tmp/lisa-4361-quality-review-fixed.md: CLEAN",
+          "local review CLEAN, workflow SHA256 4045ca7d57429328d9fd389675a2e8accb4a5cde6870f92df61ac0aa367f8ab1"
+        ]
+      },
+      "blockedBy": [
+        "adversarial review",
+        "local review",
+        "product review",
+        "quality review"
+      ]
+    }
+  ]
+}
