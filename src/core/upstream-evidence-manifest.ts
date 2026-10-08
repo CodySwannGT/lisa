@@ -665,7 +665,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/merge/.oxlintrc.json":
       "1de29d135744df0258e8659ee0b684acf84e687bbefade51db0576813e6ff097",
     "nestjs/package-lisa/package.lisa.json":
-      "66a5242a7486aa82a147fa6d50ec1071fda5e964f3127ab7c4f980150fae0b57",
+      "6eccb6dc8c22740451f2374da78e38aff81c730c17559872381e01f4876a8254",
     "npm-package/create-only/.github/workflows/publish-to-npm.yml":
       "20760529dd59186baf870fb2d0ac555ff95bc3dc75ea96ba4564bf37d61f708e",
     "npm-package/package-lisa/package.lisa.json":

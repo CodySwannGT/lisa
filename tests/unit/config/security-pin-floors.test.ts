@@ -36,9 +36,12 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
  * 2026-10-08 against GHSA-8r5x-fm3f-whwj and GHSA-p8wg-vrv2-v86f:
  * https://github.com/advisories/GHSA-8r5x-fm3f-whwj
  * https://github.com/advisories/GHSA-p8wg-vrv2-v86f
+ * GraphQL Tools Utils12.0.1 was rechecked on 2026-10-08 against
+ * https://github.com/advisories/GHSA-7mx3-vvmw-hjmv.
  * Other entries retain their provenance.
  */
 const ADVISORY_FLOORS: Readonly<Record<string, string>> = {
+  "@graphql-tools/utils": "12.0.1",
   "@isaacs/brace-expansion": "5.0.1",
   axios: "1.20.0",
   esbuild: "0.28.1",
