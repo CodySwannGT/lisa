@@ -241,7 +241,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
-      "23fb6e5c1212b7cfc17842642b58719beb65df8696c0acaeabce4627ca3fd102",
+      "c215a01b716dc842d3c94e55ba1436db85849ea434a2bd6f7229a4918c2661d5",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh":
       "9b0d2d4690850a550ccc79a8c3bb1c0de1cca1f2d8a3550e2bed6daa7afcf7c4",
     "all/copy-overwrite/scripts/lisa-lint-staged-preflight.mjs":
@@ -1025,7 +1025,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/withdrawn-rulings.sh":
       "5dbf429b6ec73c3c29fb96008efa1015feaa4812c1b4bb26aaa5d0b904a0ff9c",
     "plugins/src/base/hooks/worktree-binding-guard.mjs":
-      "6c19da2c97ca1eecafd5d012b5a8a4c70221fcf644ffc76de7be6b5a2dc0e51b",
+      "fc5c5e394751ac76e3e654a1c11f098fa245ef9c6d8f82918f7e6482da85faf8",
     "plugins/src/base/hooks/worktree-binding-guard.sh":
       "92511fa2fe3de504a78d0d79a2cacffac545baa1d0264cab0ca999a487adb98f",
     "plugins/src/base/rules/eager/00-rule-index.md":
@@ -10742,11 +10742,14 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/withdrawn-rulings-wiring.test.ts": true,
     "tests/unit/hooks/withdrawn-rulings.test.ts": true,
     "tests/unit/hooks/work-item-wiring.test.ts": true,
+    "tests/unit/hooks/worktree-binding-acknowledgement-boundaries.test.ts": true,
     "tests/unit/hooks/worktree-binding-first-call.test.ts": true,
     "tests/unit/hooks/worktree-binding-guard-script-reach.test.ts": true,
     "tests/unit/hooks/worktree-binding-guard-wrapper.test.ts": true,
     "tests/unit/hooks/worktree-binding-guard.test.ts": true,
+    "tests/unit/hooks/worktree-binding-live-identity.test.ts": true,
     "tests/unit/hooks/worktree-binding-parallel-agents.test.ts": true,
+    "tests/unit/hooks/worktree-binding-repository-recovery.test.ts": true,
     "tests/unit/hooks/worktree-binding-runtime-assumption.test.ts": true,
     "tests/unit/hooks/worktree-create-failure.test.ts": true,
     "tests/unit/hooks/worktree-create.test.ts": true,
