@@ -13,15 +13,21 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import * as scanner from "../../../all/copy-overwrite/scripts/lib/history-secret-scanner.mjs";
 import * as witness from "../../fixtures/git-history-secrets/report-mode.mjs";
+import * as fixtureHarness from "../../fixtures/git-history-secrets/harness.mjs";
 import {
   boundedSpawnSync,
   ioLatencyBudgetMs,
   useIoLatencyBudget,
 } from "../../helpers/io-latency-budget.js";
 useIoLatencyBudget();
+vi.mock("node:crypto", async importOriginal => ({
+  ...(await importOriginal<typeof import("node:crypto")>()),
+  randomBytes: (length: number) => Buffer.alloc(length),
+  randomInt: () => 0,
+}));
 const root = resolve(import.meta.dirname, "../../..");
 const scannerPath = join(
   root,
@@ -43,6 +49,27 @@ const observe = (report: string, values: string[]) => {
 };
 
 describe("dedicated scanner invocation native transport", () => {
+  it("keeps synthetic credential entropy above the vendor floor even with repeated random bytes", () => {
+    const create = Reflect.get(fixtureHarness, "createHarness") as (
+      args: string[]
+    ) => { scratch: string; secret: () => string; values: string[] };
+    const harness = create([]);
+    try {
+      harness.secret();
+      const value = harness.values[0] ?? "";
+      const counts = new Map<string, number>();
+      for (const character of value)
+        counts.set(character, (counts.get(character) ?? 0) + 1);
+      const entropy = [...counts.values()].reduce((sum, count) => {
+        const probability = count / value.length;
+        return sum - probability * Math.log2(probability);
+      }, 0);
+      expect(/^[a-f0-9]{64}$/.test(value)).toBe(true);
+      expect(entropy).toBeGreaterThan(3.5);
+    } finally {
+      rmSync(harness.scratch, { recursive: true, force: true });
+    }
+  });
   it.each(["022", "077"])(
     "restricts only its child under caller %s and preserves argv/stdin/cwd/env",
     mask => {

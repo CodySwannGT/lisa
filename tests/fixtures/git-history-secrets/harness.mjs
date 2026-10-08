@@ -4,7 +4,7 @@
  * @description Actual default-rule scanner witnesses on private disposable Git graphs.
  * @module history-secrets-fixtures
  */
-import { randomBytes } from "node:crypto";
+import { randomInt } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -97,7 +97,22 @@ export function createHarness(args) {
     return git(cwd, "rev-parse", "HEAD");
   };
   const secret = () => {
-    const value = randomBytes(32).toString("hex");
+    // Random hex bytes can fall below Gitleaks' 3.5-bit entropy floor.
+    // Shuffle a balanced alphabet: every fixture remains a random
+    // nonce while its measured symbol entropy is always four bits.
+    const value = (() => {
+      const symbols = "0123456789abcdef".repeat(4).split("");
+      symbols.forEach((_, offset) => {
+        const index = symbols.length - 1 - offset;
+        if (index === 0) return;
+        const selected = randomInt(index + 1);
+        [symbols[index], symbols[selected]] = [
+          symbols[selected],
+          symbols[index],
+        ];
+      });
+      return symbols.join("");
+    })();
     values.push(value);
     if (proof)
       writeFileSync(

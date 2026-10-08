@@ -598,9 +598,25 @@ BACKSLASH = chr(92)
 NEWLINE = chr(10)
 
 STATEMENT_SEPARATORS = {";", "|", "||", "&", "&&", "(", ")", "&|"}
-# `>`, `>>`, and the noclobber override `>|`.
-REDIRECT_OUT = {">", ">>", ">|"}
+# Ordinary output, noclobber override, and combined stdout/stderr output.
+# shlex separates fd prefixes (e.g. 10>>) from the operator automatically.
+REDIRECT_OUT = {">", ">>", ">|", "&>", "&>>", ">&"}
 REDIRECT_IN = "<"
+SYNTAX_OPERATORS = STATEMENT_SEPARATORS | REDIRECT_OUT | {REDIRECT_IN}
+# shlex groups adjacent punctuation even across distinct shell operators.
+# Retain other shell operators intact so a here-string is not three `<` reads.
+PUNCTUATION = re.compile(r"^[();<>|&]+$")
+SHELL_OPERATOR = re.compile("|".join(
+    re.escape(operator) for operator in sorted(
+        SYNTAX_OPERATORS | {"<<<", "<<", "<&", "<>", ";;&", ";;", ";&", "|&"},
+        key=lambda operator: (-len(operator), operator),
+    )
+))
+
+
+class LiteralOperator(str):
+    """Quoted or escaped operator text is an argument, never shell syntax."""
+
 
 SHELL_PROGRAMS = {"bash", "dash", "ksh", "sh", "zsh"}
 SOURCE_BUILTINS = {"source", "."}
@@ -664,8 +680,30 @@ def normalise_lines(text):
     Returns:
         The same text with line breaks spelled as separators.
     """
-    joined = text.replace(BACKSLASH + NEWLINE, " ")
-    return joined.replace(NEWLINE, " ; ")
+    output = []
+    quote = ""
+    position = 0
+    while position < len(text):
+        character = text[position]
+        if character == BACKSLASH and quote != "'" and position + 1 < len(text):
+            following = text[position + 1]
+            # The shell deletes continuations; inserting whitespace can split
+            # an operator or pathname and hide the actual output target.
+            if following != NEWLINE:
+                output.extend((character, following))
+            position += 2
+            continue
+        if quote:
+            if character == quote:
+                quote = ""
+        elif character in "'\"":
+            quote = character
+        if character == NEWLINE and not quote:
+            output.append(" ; ")
+        else:
+            output.append(character)
+        position += 1
+    return "".join(output)
 
 
 def tokenize(text):
@@ -677,13 +715,30 @@ def tokenize(text):
     Returns:
         The token list, or None when the text does not lex.
     """
-    lexer = shlex.shlex(normalise_lines(text), posix=True, punctuation_chars=True)
+    normalized = normalise_lines(text)
+    lexer = shlex.shlex(normalized, posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
     # `#` is not a comment introducer on a typed command line, and letting shlex
     # treat it as one silently truncates the rest of the line.
     lexer.commenters = ""
     try:
-        return list(lexer)
+        tokens = []
+        start = 0
+        for token in lexer:
+            # shlex strips quotes/escapes and reads one character ahead when
+            # emitting punctuation. Exclude its character pushback from the
+            # consumed source span so a quoted operator retains its provenance.
+            end = lexer.instream.tell() - len(lexer._pushback_chars)
+            raw = normalized[start:end].strip()
+            start = end
+            if PUNCTUATION.fullmatch(token):
+                if raw != token:
+                    tokens.append(LiteralOperator(token))
+                else:
+                    tokens.extend(SHELL_OPERATOR.findall(token))
+            else:
+                tokens.append(token)
+        return tokens
     except ValueError:
         return None
 
@@ -745,7 +800,7 @@ def statements(tokens):
     grouped = []
     current = []
     for token in tokens:
-        if token in STATEMENT_SEPARATORS:
+        if not isinstance(token, LiteralOperator) and token in STATEMENT_SEPARATORS:
             grouped.append(current)
             current = []
             continue
@@ -929,8 +984,14 @@ def write_targets(statement):
     found = []
     _token, program, args = command_word(statement)
     for index, token in enumerate(statement):
-        if token in REDIRECT_OUT and index + 1 < len(statement):
-            found.append(statement[index + 1])
+        if not isinstance(token, LiteralOperator) and token in REDIRECT_OUT and index + 1 < len(statement):
+            target = statement[index + 1]
+            # >&digit duplicates an fd, >&digit- moves it, and >&- closes it.
+            # Only the nonnumeric >&word form opens a pathname; &>1 still
+            # writes a file named 1 and must remain a write candidate.
+            if token == ">&" and re.fullmatch(r"(?:[0-9]+-?|-)", target):
+                continue
+            found.append(target)
     if program == "tee":
         found.extend(token for token in args if not token.startswith("-"))
     elif program == "sed" and any(IN_PLACE.match(token) for token in args):
@@ -956,7 +1017,7 @@ def executed_script(statement):
     if program in SHELL_PROGRAMS:
         for index, token in enumerate(statement):
             # `bash < script.sh` runs that file as surely as `bash script.sh`.
-            if token == REDIRECT_IN and index + 1 < len(statement):
+            if not isinstance(token, LiteralOperator) and token == REDIRECT_IN and index + 1 < len(statement):
                 return statement[index + 1]
         return shell_script_operand(args)
     if program in SOURCE_BUILTINS:
