@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.71.9](https://github.com/CodySwannGT/lisa/compare/v4.71.8...v4.71.9) (2026-10-08)
+
+
+### Bug Fixes
+
+* preserve the host choice for the official Sentry plugin ([e377045](https://github.com/CodySwannGT/lisa/commit/e3770459ff6c35d15800d305e81ca656c7eeb8e9))
+
 ### [4.71.8](https://github.com/CodySwannGT/lisa/compare/v4.71.7...v4.71.8) (2026-10-08)
 
 
