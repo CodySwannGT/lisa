@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.72.7](https://github.com/CodySwannGT/lisa/compare/v4.72.6...v4.72.7) (2026-10-08)
+
+
+### Bug Fixes
+
+* **ci:** report Maestro retry execution evidence ([321f65d](https://github.com/CodySwannGT/lisa/commit/321f65ddc9eaa5d7c7f716c82ba59682fdbc85d6)), closes [CodySwannGT/lisa#4361](https://github.com/CodySwannGT/lisa/issues/4361)
+
 ### [4.72.6](https://github.com/CodySwannGT/lisa/compare/v4.72.5...v4.72.6) (2026-10-08)
 
 
