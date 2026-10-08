@@ -12,6 +12,7 @@ import {
 import { dirname } from "node:path";
 import { createHash } from "node:crypto";
 import { required } from "../../../all/copy-overwrite/scripts/lib/npm-update-contract.mjs";
+import { publicFailure } from "../../../all/copy-overwrite/scripts/lib/npm-update-invariants.mjs";
 import { runProcess } from "../../../all/copy-overwrite/scripts/lib/npm-update-process-core.mjs";
 import { runtimeTime } from "../../../all/copy-overwrite/scripts/lib/npm-update-rails-tool-identity.mjs";
 import { join } from "node:path";
@@ -36,6 +37,63 @@ const CLASSES = new Set([
   "AggregateError",
   "UpdaterError",
 ]);
+const BROWSER_SOURCES = new Set([
+  "headless_command_handler.cc",
+  "bus.cc",
+  "object_proxy.cc",
+  "ssl_client_socket_impl.cc",
+  "sandbox_linux.cc",
+  "zygote_host_impl_linux.cc",
+  "zygote_communication_linux.cc",
+  "gpu_init.cc",
+  "viz_main_impl.cc",
+  "command_buffer_proxy_impl.cc",
+  "crashpad_client_linux.cc",
+  "process_singleton_posix.cc",
+]);
+
+const BROWSER_SIGNATURES = [
+  ["Page load timed out.", "page-load-timeout"],
+  ["Page load failed:", "page-load-failed"],
+  ["Abnormal renderer termination.", "renderer-terminated"],
+  ["Unexpected renderer destruction.", "renderer-destroyed"],
+];
+
+/**
+ * Only fixed vendor basenames, severity, line numbers and fingerprints survive capture cleanup.
+ * @param {Buffer} bytes Original bounded native stderr.
+ * @returns Closed counts and bounded vendor fingerprints.
+ */
+export function browserStderrMetadata(bytes) {
+  const matches = [
+    ...bytes
+      .toString("utf8")
+      .matchAll(
+        /^\[\d+:\d+:\d+\/[\d.]+:(ERROR|WARNING|FATAL|INFO):([A-Za-z0-9_./-]{1,256}):([1-9]\d{0,6})\] ([^\r\n]*)\r?$/gm
+      ),
+  ];
+  const known = matches.filter(([, , path]) =>
+    BROWSER_SOURCES.has(path.split("/").at(-1))
+  );
+  const records = known
+    .slice(0, 16)
+    .map(([, severity, path, line, message]) => ({
+      source: path.split("/").at(-1),
+      severity,
+      line: Number(line),
+      kind:
+        BROWSER_SIGNATURES.find(([prefix]) =>
+          message.startsWith(prefix)
+        )?.[1] ?? "other",
+      messageSha256: digest(message),
+    }));
+  return {
+    structuredLineCount: matches.length,
+    ignoredLineCount: matches.length - known.length,
+    records,
+    truncated: known.length > records.length,
+  };
+}
 
 /**
  * Hashes describe captured bytes without exporting command content or credentials.
@@ -179,6 +237,12 @@ export function nativeRecorder(captures, deadline, records) {
       elapsedMs: Math.round(performance.now() - started),
       ...facts,
       failure: failureMetadata(state.failure),
+      ...(stage === "browser"
+        ? {
+            nativeFailure: state.failure ? publicFailure(state.failure) : null,
+            browserStderr: browserStderrMetadata(streams.stderr),
+          }
+        : {}),
     };
     records.push(record);
     try {

@@ -17,6 +17,7 @@ import {
   nativeRecorder,
   failureMetadata,
   hookWitness,
+  browserStderrMetadata,
 } from "../../fixtures/npm-update-hosted-runtime/observations.mjs";
 import { browser } from "../../fixtures/npm-update-hosted-runtime/components.mjs";
 
@@ -38,7 +39,33 @@ function fixture(operation: (root: string) => Promise<void> | void) {
 }
 
 describe("closed runtime qualification diagnostics", () => {
-  it("bounds DOM capture inside the original browser deadline while retaining internal-URL and sandbox requirements", async () => {
+  it("caps vendor fingerprints and ignores unknown or malformed private log fields", () => {
+    const prefix = "[1:2:1008/120000.000:ERROR:";
+    const secret = "private credential /private/candidate/path";
+    const lines = Array.from(
+      { length: 20 },
+      () => `${prefix}headless_command_handler.cc:378] ${secret}`
+    );
+    const result = browserStderrMetadata(
+      Buffer.from(
+        [
+          ...lines,
+          `${prefix}private-input.cc:1] ${secret}`,
+          `${prefix}headless_command_handler.cc:0] ${secret}`,
+          secret,
+        ].join("\n")
+      )
+    );
+    expect(result).toMatchObject({
+      structuredLineCount: 21,
+      ignoredLineCount: 1,
+      truncated: true,
+    });
+    expect(result.records).toHaveLength(16);
+    expect(JSON.stringify(result)).not.toContain(secret);
+    expect(JSON.stringify(result)).not.toContain("private-input.cc");
+  });
+  it("requests bounded DOM capture while retaining internal-URL and sandbox requirements", async () => {
     await fixture(async root => {
       // This native synthetic consumer models Chrome's documented flag contract; it does not qualify Chrome or Ubuntu.
       const command = join(root, "browser-consumer");
@@ -70,7 +97,7 @@ describe("closed runtime qualification diagnostics", () => {
       await expect(
         native("browser", root, {}, process.execPath, [
           "-e",
-          "process.stdout.write(String(process.pid)); setTimeout(() => {}, 12000);",
+          "process.stdout.write(String(process.pid)); process.stderr.write('[1:2:1008/120000.000:ERROR:headless_command_handler.cc:378] Abnormal renderer termination. private credential /private/candidate/path\\n'); setTimeout(() => {}, 12000);",
         ])
       ).rejects.toMatchObject({ code: null });
       const pid = Number(readFileSync(join(root, CAPTURE_FILE), "utf8"));
@@ -83,9 +110,24 @@ describe("closed runtime qualification diagnostics", () => {
         native(STAGE, root, {}, process.execPath, ["-e", ""])
       ).resolves.toMatchObject({ code: 0 });
       expect(records).toEqual([
-        expect.objectContaining({ stage: "browser", status: null }),
+        expect.objectContaining({
+          stage: "browser",
+          status: null,
+          nativeFailure: expect.stringContaining("native=deadline"),
+          browserStderr: expect.objectContaining({
+            structuredLineCount: 1,
+            records: [
+              expect.objectContaining({
+                source: "headless_command_handler.cc",
+                kind: "renderer-terminated",
+              }),
+            ],
+          }),
+        }),
         expect.objectContaining({ stage: STAGE, status: 0 }),
       ]);
+      expect(JSON.stringify(records)).not.toContain("private credential");
+      expect(JSON.stringify(records)).not.toContain("/private/candidate/path");
     });
   });
   it.each([
