@@ -73,6 +73,7 @@ const ACCEPT_PREFIX = "lisa-worktree-binding: accept";
 const ACK_AND_SEPARATOR = Symbol("acknowledgement AND separator");
 const BINDING_VERSION = 4;
 const CURRENT_BINDING = Symbol("current binding state");
+const UNAVAILABLE_BINDING = Symbol("unavailable binding read");
 const BINDING_WRITE_CONFLICT = Symbol("binding write conflict");
 
 /**
@@ -679,7 +680,10 @@ function readState(bindingKeyValue, payload) {
   } catch (error) {
     if (error instanceof SyntaxError)
       return { unverifiedOwner: true, canonicalConflict: true };
-    // Preserve the existing unreadable-state fallback; no binding was imported.
+    // Unavailable I/O proves neither absence nor conflicting ownership. Keep
+    // it separate so an exclusive write cannot mistake EACCES for a race.
+    if (error.code !== "ENOENT")
+      return { [UNAVAILABLE_BINDING]: error.message };
   }
   let ambiguous = false;
   for (const key of legacyKeys(payload)) {
@@ -714,6 +718,12 @@ function readState(bindingKeyValue, payload) {
 function writeState(bindingKeyValue, state, payload, options = {}) {
   const file = stateFile(bindingKeyValue);
   const previous = readState(bindingKeyValue, payload);
+  if (previous?.[UNAVAILABLE_BINDING]) {
+    say(
+      `could not read the binding (${previous[UNAVAILABLE_BINDING]}); NOT enforcing`
+    );
+    return false;
+  }
   if (
     (options.createOnly && previous) ||
     previous?.canonicalConflict ||

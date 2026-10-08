@@ -32,7 +32,11 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
  * make a pin pass is reintroducing the bug this file exists to catch.
  * Axios1.20.0 and Undici6.28.1 were rechecked against primary high advisories
  * on 2026-10-03; their exact ranges are codified in
- * forced-http-security-floors.test.ts. Other entries retain their provenance.
+ * forced-http-security-floors.test.ts. Handlebars4.7.10 was rechecked on
+ * 2026-10-08 against GHSA-8r5x-fm3f-whwj and GHSA-p8wg-vrv2-v86f:
+ * https://github.com/advisories/GHSA-8r5x-fm3f-whwj
+ * https://github.com/advisories/GHSA-p8wg-vrv2-v86f
+ * Other entries retain their provenance.
  */
 const ADVISORY_FLOORS: Readonly<Record<string, string>> = {
   "@isaacs/brace-expansion": "5.0.1",
@@ -40,7 +44,7 @@ const ADVISORY_FLOORS: Readonly<Record<string, string>> = {
   esbuild: "0.28.1",
   "fast-xml-parser": "5.10.1",
   "form-data": "4.0.6",
-  handlebars: "4.7.9",
+  handlebars: "4.7.10",
   lodash: "4.18.0",
   multer: "2.3.0",
   "smol-toml": "1.7.1",
