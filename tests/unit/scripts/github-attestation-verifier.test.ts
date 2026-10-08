@@ -449,10 +449,49 @@ describe("explicit historical origin and fresh recovery roles", () => {
     runAttempt: "2",
   };
   const historicalRun = {
+    status: "completed",
     run_started_at: "2026-10-05T10:00:00Z",
     updated_at: "2026-10-05T11:01:00Z",
   };
   const claim = { created_at: "2026-10-05T10:01:00Z" };
+
+  it("authenticates a later active-run historical signature without granting ordinary freshness", () => {
+    const output = result();
+    output[0]!.verificationResult.verifiedTimestamps[0]!.timestamp =
+      EXPIRED_TIME;
+    const live = {
+      ...historicalRun,
+      status: "in_progress",
+      updated_at: "2026-10-05T10:02:00Z",
+    };
+    const verify = (changed = {}, observed = NOW) =>
+      assertHistoricalAttestation(
+        output,
+        origin,
+        DIGEST,
+        POLICY,
+        { ...live, ...changed },
+        claim,
+        observed
+      );
+    expect(() =>
+      assertVerifiedAttestation(output, origin, DIGEST, POLICY, NOW)
+    ).toThrow();
+    expect(verify().issuer).toBe(ACTIONS_ISSUER);
+    for (const changed of [
+      { status: "completed" },
+      { status: "queued" },
+      { status: "failure" },
+      { status: undefined },
+      { updated_at: "2026-10-05T09:59:00Z" },
+      { updated_at: "2026-10-05T12:01:01Z" },
+    ])
+      expect(() => verify(changed)).toThrow();
+    expect(() => verify({}, Number.NaN)).toThrow();
+    output[0]!.verificationResult.verifiedTimestamps[0]!.timestamp =
+      "2026-10-05T12:01:01Z";
+    expect(() => verify()).toThrow();
+  });
 
   it("authenticates old origin within provider chronology while ordinary v1 expires", () => {
     const output = result();
