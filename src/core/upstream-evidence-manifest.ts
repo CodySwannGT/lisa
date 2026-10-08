@@ -10050,6 +10050,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-script-presence-jobs.test.ts": true,
     "tests/integration/quality-shared-web-export.test.ts": true,
     "tests/integration/quality-ungated-jobs.test.ts": true,
+    "tests/integration/quality-unit-progress.test.ts": true,
     "tests/integration/quality-verification-coverage-collapse.test.ts": true,
     "tests/integration/quality-workflow-size.test.ts": true,
     "tests/integration/quality-workflow.test.ts": true,

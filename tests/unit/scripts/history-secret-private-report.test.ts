@@ -66,6 +66,9 @@ describe("dedicated scanner invocation native transport", () => {
       }, 0);
       expect(/^[a-f0-9]{64}$/.test(value)).toBe(true);
       expect(entropy).toBeGreaterThan(3.5);
+      // The pinned generic rule suppresses stopwords such as dead and feed.
+      // Separating every letter prevents those and its hexadecimal digest word.
+      expect(value).not.toMatch(/[a-f]{2}/);
     } finally {
       rmSync(harness.scratch, { recursive: true, force: true });
     }

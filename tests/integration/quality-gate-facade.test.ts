@@ -111,10 +111,17 @@ describe("quality.yml gate façade", () => {
         const step = stepNamed(job, gateStep, file);
         expect(step?.env?.GATE_RUNNER).toBe("${{ steps.gate.outputs.runner }}");
         expect(step?.env?.GATE_TASK).toBe("${{ steps.gate.outputs.task }}");
-        // The whole body, not a substring: the resolved command must never be
-        // interpolated into the YAML, where a PR-editable value would become
-        // workflow source rather than an argument.
-        expect(step?.run?.trim()).toBe("$GATE_RUNNER $GATE_TASK");
+        // Unit tests also carry a progress timer. Keep their command as one
+        // literal invocation and reject interpolation anywhere in the body.
+        // Every other primary gate still has the single-command exact body.
+        if (job === "test_unit") {
+          expect(
+            step?.run?.match(/^\( \$GATE_RUNNER \$GATE_TASK \)$/gm)
+          ).toHaveLength(1);
+          expect(step?.run).not.toContain("${{");
+        } else {
+          expect(step?.run?.trim()).toBe("$GATE_RUNNER $GATE_TASK");
+        }
       }
     );
 

@@ -58,7 +58,13 @@ const owner=mkdtempSync(join(tmpdir(),'history-private-observation-'));
 const h=createHarness(['--scanner',process.argv[1],'--proof-dir',join(owner,'proof')]);
 let succeeded=false,record=null,privateRecord=false,valuesAbsent=false;
 try {
- emitArtifacts(h);const f=h.initialize('private-report');f.earlier=h.commit(f.cwd,'credential.txt',h.secret());
+ emitArtifacts(h);const f=h.initialize('private-report');let credential=h.secret();
+ if(process.argv[3].startsWith('stopword-')){
+  const prefix=process.argv[3].slice('stopword-'.length),symbols='0123456789abcdef'.repeat(4).split('');
+  for(const char of prefix)symbols.splice(symbols.indexOf(char),1);
+  const value=prefix+symbols.join('');h.values[0]=value;credential='api_key = "'+value+'"'+String.fromCharCode(10);
+ }
+ f.earlier=h.commit(f.cwd,'credential.txt',credential);
  const command=h.command;h.command=(...args)=>{
   const result=command(...args),report=join(h.scratch,'permission-report.json'),fault=process.argv[3];
   if(args[0]==='/bin/sh') {
@@ -88,6 +94,30 @@ process.exitCode=succeeded?0:1;`;
   return JSON.parse(String(result.stdout));
 };
 describe("genuine scanner report private creation and observation", () => {
+  it.each(["dead", "feed"])(
+    "proves the pinned vendor suppresses a balanced value containing %s",
+    word => {
+      const actual = run("022", `stopword-${word}`);
+      expect(actual).toMatchObject({
+        succeeded: false,
+        privateRecord: 0o600,
+        valuesAbsent: true,
+        callerMask: 0o022,
+        scratchAbsent: true,
+        proofOwnerAbsent: true,
+      });
+      expect(actual.record).toMatchObject({
+        nativeReturned: true,
+        exit: 0,
+        signal: null,
+        regular: true,
+        mode: 0o600,
+        readable: true,
+        findingsCount: 0,
+        matchedValuesAbsent: true,
+      });
+    }
+  );
   it.each(["022", "077"])(
     "preserves actual vendor mode/redaction with caller %s",
     mask => {

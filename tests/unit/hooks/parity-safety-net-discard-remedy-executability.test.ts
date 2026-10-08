@@ -170,19 +170,22 @@ const dirtyRepo = (): string => {
  * @param block - The shell text to run.
  * @param root - The repository to run it in.
  * @param temp - The TMPDIR the block should write its patch into.
+ * @param baseEnv - Ambient environment to isolate from the remedy.
  * @returns The shell exit status and stderr.
  */
 const runBlock = (
   block: string,
   root: string,
-  temp: string
+  temp: string,
+  baseEnv: NodeJS.ProcessEnv = process.env
 ): { status: number | null; stderr: string } => {
   const result = boundedSpawnSync({
     label: "discard remedy",
     command: "/bin/bash",
-    args: ["-u", "-c", block],
+    args: ["--noprofile", "--norc", "-u", "-c", block],
     cwd: root,
-    env: cleanGitEnv(process.env, { TMPDIR: temp }),
+    // The subject is the printed block, not the runner's shell startup files.
+    env: cleanGitEnv(baseEnv, { TMPDIR: temp, BASH_ENV: "" }),
   });
   return { status: result.status, stderr: result.stderr ?? "" };
 };
@@ -214,6 +217,26 @@ describe("parity-safety-net: the discard remedy runs as printed", () => {
     // `patch`, so a reader of the whole guidance would see one either way —
     // but paired with the execution cases below it names the specific line.
     expect(discardBlock(refusal(SHIPPED_COPIES[0]!))).toContain("patch=");
+  });
+
+  it("isolates the remedy from an inherited shell startup script", () => {
+    const root = dirtyRepo();
+    const temp = scratch(TEMP_PREFIX);
+    const startup = path.join(temp, "startup.sh");
+    writeFileSync(startup, 'printf "%s\\n" "$PS1" >&2\n');
+    const ambient: NodeJS.ProcessEnv = { ...process.env, BASH_ENV: startup };
+    delete ambient.PS1;
+
+    const result = runBlock(
+      discardBlock(refusal(SHIPPED_COPIES[0]!)),
+      root,
+      temp,
+      ambient
+    );
+
+    expect(result.stderr).not.toContain("unbound variable");
+    expect(result.status).toBe(0);
+    expect(readFileSync(path.join(root, TRACKED), "utf-8")).toBe(COMMITTED);
   });
 
   it.each(SHIPPED_COPIES)("%s returns the tree to HEAD", copy => {
