@@ -43,7 +43,7 @@
 # Add a name here in the same commit that closes a vector. A hardening that
 # forgets to is invisible to refresh, and shows up as an unexplained diff at
 # review time instead of a named capability.
-# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, env-split-string, git-config-key, git-config-parameters, git-config-parameters-append, git-config-parameters-expansion, heredoc-shell-word, herestring-aware, no-verify-short, nested-shell-no-verify, nested-shell-long-options, env-split-string-abbrev, command-wrapper-normalization, executed-script-reach, source-builtin-reach, stdin-redirect-reach, wrapper-positional-operand, dispatcher-exec-position, tilde-script-reach, shell-option-stdin-reach, eval-payload
+# lisa-guard-capabilities: no-verify-abbrev, husky-env, hookspath-allowlist, config-env, env-split-string, git-config-key, git-config-parameters, git-config-parameters-append, git-config-parameters-expansion, heredoc-shell-word, herestring-aware, no-verify-short, nested-shell-no-verify, nested-shell-long-options, env-split-string-abbrev, command-wrapper-normalization, executed-script-reach, source-builtin-reach, stdin-redirect-reach, static-script-directory-reach, wrapper-positional-operand, dispatcher-exec-position, tilde-script-reach, shell-option-stdin-reach, eval-payload
 #
 # Shell-token matching avoids false positives from issue bodies, heredocs, and
 # commit-message prose while still catching quoted real argv values such as
@@ -1149,7 +1149,7 @@ def executed_scripts(tokens):
             if reason:
                 reasons.append((reason, statement[0]))
             elif path:
-                paths.append(path)
+                paths.append((path, "stdin"))
         previous_shell_awaiting_stdin = False
         if not statement:
             continue
@@ -1181,7 +1181,7 @@ def executed_scripts(tokens):
             if reason:
                 reasons.append((reason, operand))
             elif path:
-                paths.append(path)
+                paths.append((path, "source" if name in SOURCE_BUILTINS else "execute"))
     return paths, reasons
 
 
@@ -1196,9 +1196,527 @@ def read_script(path):
     """
     try:
         with open(path, encoding="utf-8", errors="replace") as handle:
-            return strip_shell_comments(handle.read(FOLLOW_MAX_BYTES))
+            return strip_shell_comments(strip_heredocs(handle.read(FOLLOW_MAX_BYTES)))
     except OSError:
         return ""
+
+
+def raw_reach_statements(text):
+    """Keep quotes and complete substitutions for ordered file reach.
+
+    shlex intentionally removes quotes, and splits the nested quotes in the
+    canonical dirname idiom. Those tokens cannot prove an assignment or tell
+    a literal '$DIR' from a variable. This lexer only preserves raw words; it
+    never evaluates substitutions. The existing command classifier still owns
+    interpreter options, wrappers and dispatchers.
+    """
+    text = text.replace("\\\n", "")
+
+    def quoted_end(start, quote, depth=0):
+        if depth > 32:
+            raise ValueError("shell nesting exceeds inspection budget")
+        index = start + 1
+        while index < len(text):
+            char = text[index]
+            if char == "\\" and quote != "'":
+                index += 2
+                continue
+            if quote == '"' and text.startswith("$(", index):
+                index = substitution_end(index + 1, depth + 1)
+                continue
+            if char == quote:
+                return index + 1
+            index += 1
+        raise ValueError("unclosed shell quote")
+
+    def substitution_end(start, depth=0):
+        if depth > 32:
+            raise ValueError("shell nesting exceeds inspection budget")
+        index = start + 1
+        nesting = 1
+        while index < len(text):
+            char = text[index]
+            if char == "\\":
+                index += 2
+                continue
+            if char in "'\"`":
+                index = quoted_end(index, char, depth + 1)
+                continue
+            if char == "(":
+                nesting += 1
+            elif char == ")":
+                nesting -= 1
+                if not nesting:
+                    return index + 1
+            index += 1
+        raise ValueError("unclosed command substitution")
+
+    statements = []
+    words = []
+    separator = ""
+    index = 0
+    while index < len(text):
+        char = text[index]
+        if char in " \t\r":
+            index += 1
+            continue
+        if char in "\n;|&()<>":
+            end = index + 1
+            if char in "|&<>" and end < len(text) and text[end] == char:
+                end += 1
+            statements.append((separator, words))
+            words = []
+            separator = ";" if char == "\n" else text[index:end]
+            index = end
+            continue
+        start = index
+        while index < len(text) and text[index] not in " \t\r\n;|&()<>":
+            if text[index] == "\\":
+                index += 2
+            elif text[index] in "'\"`":
+                index = quoted_end(index, text[index])
+            elif text.startswith("$(", index):
+                index = substitution_end(index + 1)
+            else:
+                index += 1
+        words.append(text[start:index])
+    statements.append((separator, words))
+    return statements
+
+
+DIRECTORY_ASSIGNMENT = re.compile(r"^([A-Za-z_][A-Za-z_0-9]*)(?:\[[^\]]*\])?(\+?=)(.*)$", re.S)
+DIRECTORY_OPERAND = re.compile(
+    r'^\$(?:\{([A-Za-z_][A-Za-z_0-9]*)\}|([A-Za-z_][A-Za-z_0-9]*))([^$`\'"\\]*)$'
+)
+DIRECTORY_MUTATORS = {
+    "eval", "read", "readarray", "mapfile", "unset", "let", "declare",
+    "typeset", "local", "export", "readonly", "trap", "alias", "unalias",
+    "enable", "getopts",
+}
+PARENT_PARAMETER_WRITE = re.compile(
+    r"\$\{[A-Za-z_][A-Za-z_0-9]*(?:\[[^\]]*\])?:?="
+)
+PARENT_ARRAY_READ = re.compile(r"\$\{[A-Za-z_][A-Za-z_0-9]*\[")
+CONSTANT_ARRAY_READ = re.compile(r"\$\{[A-Za-z_][A-Za-z_0-9]*\[[0-9]+\]")
+CONSTANT_ARRAY_ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z_0-9]*\[[0-9]+\]\+?=")
+SPECIAL_DIRECTORY_VARIABLES = {
+    "_",
+    "RANDOM", "SRANDOM", "SECONDS", "LINENO", "EPOCHSECONDS", "EPOCHREALTIME",
+    "PWD", "OLDPWD", "DIRSTACK", "FUNCNAME", "GROUPS", "PIPESTATUS",
+    "UID", "EUID", "PPID", "BASHPID", "SHLVL", "OPTIND", "OPTERR",
+}
+
+
+def bound_directory_operand(raw, context):
+    """Expand one proven binding, retaining raw quote provenance."""
+    if context is None:
+        return None
+    quoted = raw.startswith('"') and raw.endswith('"')
+    candidate = raw[1:-1] if quoted else raw
+    match = DIRECTORY_OPERAND.fullmatch(candidate)
+    if match:
+        variable = match[1] or match[2]
+        value = context["bindings"].get(variable)
+        if value is not None:
+            result = value + match[3]
+            if (quoted or (context["ifs_default"] and not re.search(r"[\s*?\[{}]", result))) and (os.path.isabs(value) or context["cwd_known"]):
+                return result
+    return None
+
+
+def directory_assignment_value(raw, context):
+    """Prove only literal directory idioms in the followed file's context."""
+    if context is None:
+        return None
+    if context["assignment_types_unknown"]:
+        return None
+    derived = bound_directory_operand(raw, context)
+    if derived is not None:
+        return derived
+    if raw == '"${BASH_SOURCE[0]%/*}"':
+        pathname = context["file"]
+        if pathname is None:
+            return None
+        return pathname.rsplit("/", 1)[0] if "/" in pathname else pathname
+    if context["shadowed"]:
+        return None
+    # $0 belongs to the outer executed script when this file was sourced.
+    source = '"${BASH_SOURCE[0]}"'
+    zero = '"$0"'
+    candidates = [(source, context["file"]), (zero, context["zero"])]
+    for reference, pathname in candidates:
+        if pathname is None or "\n" in pathname:
+            continue
+        directory = os.path.dirname(pathname) or "."
+        if raw == '"$(dirname ' + reference + ')"':
+            return directory
+        if raw == '"$(cd "$(dirname ' + reference + ')" && pwd)"':
+            if os.path.isabs(directory):
+                return os.path.normpath(directory)
+            if context["cwd_known"] and not context["cdpath"]:
+                return os.path.abspath(directory)
+    return None
+
+
+def parent_expansion_writes(raw):
+    """Detect possible parent-shell writes without reading quoted data as code."""
+    index = 0
+    double_quoted = False
+    while index < len(raw):
+        if raw[index] == "\\":
+            index += 2
+            continue
+        if raw[index] == '"':
+            double_quoted = not double_quoted
+            index += 1
+            continue
+        if raw[index] == "'" and not double_quoted:
+            end = raw.find("'", index + 1)
+            if end < 0:
+                return True
+            index = end + 1
+            continue
+        if raw.startswith("$((", index) or raw.startswith("$[", index):
+            return True
+        if raw.startswith("${", index):
+            if PARENT_PARAMETER_WRITE.match(raw, index):
+                return True
+            if PARENT_ARRAY_READ.match(raw, index) and not CONSTANT_ARRAY_READ.match(raw, index):
+                return True
+        index += 1
+    return False
+
+
+def directory_variable_write(context, name):
+    """Invalidate shell facts as well as bindings when a variable can change."""
+    if context is None:
+        return
+    match = re.fullmatch(r"([A-Za-z_][A-Za-z_0-9]*)(?:\[[0-9]+\])?(?:=.*)?", name, re.S)
+    variable = match[1] if match else None
+    if variable is not None:
+        context["bindings"].pop(variable, None)
+    if variable is None or variable == "PATH":
+        context["shadowed"] = True
+    if variable is None or variable == "CDPATH":
+        context["cdpath"] = True
+    if variable is None or variable == "IFS":
+        context["ifs_default"] = False
+    if variable is None or variable in {"BASH_ENV", "ENV"}:
+        context["startup_unknown"] = True
+    if variable is None or variable == "BASH_SOURCE":
+        context["file"] = None
+    if variable is None or variable == "BASH_ARGV0":
+        context["zero"] = None
+    if variable is None:
+        context["assignment_types_unknown"] = True
+
+
+def directory_command(words):
+    """Strip command-position control prefixes while counting their scopes."""
+    index = 0
+    openings = 0
+    braces = 0
+    while index < len(words) and words[index] in {"if", "elif", "while", "until", "then", "else", "do", "{", "!"}:
+        if words[index] in {"if", "while", "until"}:
+            openings += 1
+        if words[index] == "{":
+            braces += 1
+        index += 1
+    return words[index:], openings, braces
+
+
+def directory_reach(text, context, inspect, inspect_payload):
+    """Follow commands in order, retaining only proven parent-shell facts.
+
+    Sourcing shares bindings; a new interpreter has its own bindings and $0.
+    Assignments inside control flow, functions or subshells never authorize a
+    later source. Possible writes invalidate facts, including writes in a
+    library inspected immediately before its caller continues.
+    """
+    try:
+        statements = raw_reach_statements(text)
+    except ValueError:
+        paths, reasons = executed_scripts(shell_tokens(text))
+        if context is not None:
+            context["bindings"].clear()
+        return paths, reasons
+    bindings = context["bindings"] if context is not None else {}
+    definition_headers = set()
+    definition_bodies = {}
+    if context is not None:
+        discovered_functions = set()
+        for index, (_, raw_header) in enumerate(statements):
+            words, _, _ = directory_command(raw_header)
+            header_offset = len(raw_header) - len(words)
+            name = None
+            if len(words) >= 2 and words[0] == "function":
+                name = words[1]
+            elif len(words) == 1 and index + 2 < len(statements):
+                closing, body = statements[index + 2]
+                if statements[index + 1] == ("(", []) and closing == ")" and body and body[0] == "{":
+                    name = words[0]
+            if name is not None:
+                try:
+                    decoded_name = shlex.split(name, posix=True)
+                except ValueError:
+                    decoded_name = []
+                if len(decoded_name) == 1 and not COMPUTED_VALUE.search(decoded_name[0]):
+                    name = decoded_name[0]
+                else:
+                    context["shadowed"] = True
+                    context["assignment_types_unknown"] = True
+                definition_headers.add(index)
+                if "{" in words:
+                    definition_bodies[index] = header_offset + words.index("{")
+                elif index + 2 < len(statements) and "{" in statements[index + 2][1]:
+                    definition_bodies[index + 2] = statements[index + 2][1].index("{")
+                discovered_functions.add(name)
+                if name in {"dirname", "cd", "pwd"}:
+                    context["shadowed"] = True
+        context["functions"] = context["functions"] | discovered_functions
+    control_scope = 0
+    paren_scope = 0
+    brace_scope = 0
+    function_frames = []
+    previous_stdin = False
+    for statement_index, (separator, raw_words) in enumerate(statements):
+        if separator == "(" and statement_index and statements[statement_index - 1] == ("(", []):
+            # Arithmetic evaluates variable contents as expressions; even a
+            # seemingly unrelated counter can conceal a write through them.
+            bindings.clear()
+            if context is not None:
+                context["cdpath"] = True
+                context["shadowed"] = True
+        if separator == "(":
+            paren_scope += 1
+        elif separator == ")":
+            paren_scope = max(0, paren_scope - 1)
+        if not raw_words:
+            continue
+        head = raw_words[0]
+        enclosing_control = control_scope
+        enclosing_parens = paren_scope
+        normalized, openings, brace_openings = directory_command(raw_words)
+        control_scope += openings
+        if normalized and normalized[0] in {"for", "select", "case"}:
+            control_scope += 1
+        elif head in {"fi", "done", "esac"}:
+            control_scope = max(0, control_scope - 1)
+        brace_scope += brace_openings
+        if normalized and normalized[0] == "function" and "{" in normalized:
+            brace_scope += 1
+        if head == "}":
+            brace_scope = max(0, brace_scope - 1)
+            if function_frames and brace_scope < function_frames[-1][0]:
+                _, context, control_scope, paren_scope = function_frames.pop()
+                bindings = context["bindings"] if context is not None else {}
+                raw_words = raw_words[1:]
+                if not raw_words:
+                    continue
+                head = raw_words[0]
+        if statement_index in definition_bodies and context is not None:
+            if len(function_frames) >= FOLLOW_MAX_DEPTH:
+                return [], [("an unproved function body beyond the inspection cap", head)]
+            function_frames.append((brace_scope, context, enclosing_control, enclosing_parens))
+            # A definition does not execute its body. Inspect potential file
+            # executions without borrowing directory facts from the defining
+            # moment: the body may be called after the caller changes them.
+            # Its speculative writes must not erase the caller's facts either.
+            context = {
+                **context, "bindings": {},
+                "cwd_known": False, "assignment_types_unknown": True,
+                "startup_unknown": True,
+            }
+            bindings = context["bindings"]
+            raw_words = raw_words[definition_bodies[statement_index] + 1:]
+            if not raw_words:
+                continue
+            head = raw_words[0]
+        scope = control_scope + paren_scope + brace_scope
+        outgoing = statements[statement_index + 1][0] if statement_index + 1 < len(statements) else ""
+        parent_context = context
+        isolated = separator == "|" or outgoing in {"|", "&"}
+        if context is not None and isolated:
+            context = {**context, "bindings": bindings.copy()}
+            bindings = context["bindings"]
+        raw_command, _, _ = directory_command(raw_words)
+        if raw_command and raw_command[0] in {"for", "select"} and len(raw_command) > 1:
+            directory_variable_write(context, raw_command[1])
+        if any(parent_expansion_writes(raw) for raw in raw_words):
+            bindings.clear()
+            if context is not None:
+                context["shadowed"] = True
+                context["cdpath"] = True
+                context["ifs_default"] = False
+        # Function definitions may shadow the commands used by dirname. Do
+        # not treat a definition as an executed directory assignment.
+        for raw_assignment in raw_command:
+            assignment = DIRECTORY_ASSIGNMENT.fullmatch(raw_assignment)
+            if assignment is None:
+                break
+            variable, operator, value = assignment.groups()
+            proven = directory_assignment_value(value, context)
+            # Bash's dynamic, readonly and array variables do not have the
+            # ordinary scalar assignment/expansion semantics this proof uses.
+            if variable in SPECIAL_DIRECTORY_VARIABLES or variable.startswith("BASH_"):
+                proven = None
+            if context is not None and variable == "BASH_SOURCE":
+                context["file"] = None
+            if context is not None and variable == "BASH_ARGV0":
+                context["zero"] = None
+            if raw_assignment.startswith(variable + "[") and not CONSTANT_ARRAY_ASSIGNMENT.match(raw_assignment):
+                bindings.clear()
+                if context is not None:
+                    context["shadowed"] = True
+                    context["ifs_default"] = False
+                    context["cdpath"] = True
+            bindings.pop(variable, None)
+            if context is not None and variable == "CDPATH":
+                context["cdpath"] = True
+            if context is not None and variable == "PATH":
+                context["shadowed"] = True
+            if context is not None and variable == "IFS":
+                context["ifs_default"] = False
+            if context is not None and variable in {"BASH_ENV", "ENV"}:
+                context["startup_unknown"] = value not in {"", "''", '\"\"'}
+            if len(raw_words) == 1 and not scope and not isolated and separator not in {"&&", "||", "|", "&"} and operator == "=" and head.startswith(variable + "="):
+                if proven is not None:
+                    bindings[variable] = proven
+        words = []
+        for raw in raw_words:
+            try:
+                decoded = shlex.split(raw, posix=True)
+                word = decoded[0] if len(decoded) == 1 else raw
+            except ValueError:
+                word = raw
+            # Expansion is confined to one proven variable plus a literal
+            # suffix. Single quotes and escaped dollars never get substituted.
+            expanded = bound_directory_operand(raw, context)
+            if expanded is not None:
+                word = expanded
+            if word in COMMAND_SEPARATORS:
+                word = "\x00" + word
+            words.append(word)
+        # Prefix identity comes from raw words, before quote removal. A quoted
+        # exclamation mark is an executable name, not the negation operator.
+        command_words = words[len(raw_words) - len(raw_command):]
+        program, args, _ = command_word(command_words)
+        eval_context = {**context, "bindings": bindings.copy()} if context is not None and program == "eval" else context
+        actual_head = next((word for word in command_words if not DIRECTORY_ASSIGNMENT.fullmatch(word)), None)
+        if context is not None:
+            called_function = (program in context["functions"] or actual_head in context["functions"]) and statement_index not in definition_headers
+            arithmetic_test = program in {"test", "[", "[["} and any(
+                arg in {"-v", "-R"} and index + 1 < len(args)
+                and "[" in args[index + 1]
+                and not re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*\[[0-9]+\]", args[index + 1])
+                for index, arg in enumerate(args)
+            )
+            if program == "[[":
+                # [[ arithmetic comparisons evaluate variable contents as
+                # expressions. Literal numbers and numeric special parameters
+                # cannot conceal writes; test/[ instead parse integer strings.
+                for index, arg in enumerate(args):
+                    if arg in {"-eq", "-ne", "-lt", "-le", "-gt", "-ge"}:
+                        operands = args[max(0, index - 1):index] + args[index + 1:index + 2]
+                        if len(operands) != 2 or any(not re.fullmatch(r"[+-]?[0-9]+|\$[?#$]", value) for value in operands):
+                            arithmetic_test = True
+            if program in DIRECTORY_MUTATORS or called_function or arithmetic_test or (program == "printf" and "-v" in args) or (separator == "(" and head.startswith("(")):
+                bindings.clear()
+                context["cdpath"] = True
+                context["ifs_default"] = False
+                if program == "eval" or called_function or arithmetic_test:
+                    context["cwd_known"] = False
+                    context["shadowed"] = True
+                    context["assignment_types_unknown"] = True
+                if program == "eval" or called_function:
+                    context["startup_unknown"] = True
+            if program == "printf" and "-v" in args:
+                target_index = args.index("-v") + 1
+                directory_variable_write(context, args[target_index] if target_index < len(args) else "")
+            elif program == "getopts":
+                directory_variable_write(context, args[1] if len(args) > 1 else "")
+            elif program in {"read", "readarray", "mapfile", "unset", "declare", "typeset", "local", "export", "readonly"}:
+                for arg in args:
+                    if not arg.startswith("-"):
+                        directory_variable_write(context, arg)
+            elif program == "let":
+                directory_variable_write(context, "")
+        invocation_context = context
+        if context is not None and program in SHELL_PROGRAMS:
+            operand = shell_execution_operand(args)
+            if isinstance(operand, str) or operand is SHELL_COMMAND_STRING:
+                prefix = command_words[:len(command_words) - len(args)]
+                invocation_context = context.copy()
+                if any(word.startswith("CDPATH=") for word in prefix):
+                    invocation_context["cdpath"] = True
+                if any(word.startswith("PATH=") for word in prefix):
+                    invocation_context["shadowed"] = True
+                if any(word.startswith(("BASH_ENV=", "ENV=")) and word.split("=", 1)[1] for word in prefix):
+                    invocation_context["startup_unknown"] = True
+                startup_args = args[:args.index(operand)] if isinstance(operand, str) else args
+                if shell_startup_unknown(startup_args):
+                    invocation_context["startup_unknown"] = True
+        if context is not None:
+            if program in {"alias", "unalias", "enable"}:
+                context["shadowed"] = True
+            if program in {"declare", "typeset", "local"} and any(arg.startswith("-") and any(flag in arg[1:] for flag in "nirlu") for arg in args):
+                context["assignment_types_unknown"] = True
+            trap_args = args[1:] if args and args[0] == "--" else args
+            exit_only_trap = len(trap_args) >= 2 and all(signal in {"EXIT", "0"} for signal in trap_args[1:])
+            if program == "readonly" or (program == "trap" and not exit_only_trap):
+                context["assignment_types_unknown"] = True
+            if program in {"cd", "pushd", "popd"}:
+                context["cwd_known"] = False
+                for variable, value in list(bindings.items()):
+                    if not os.path.isabs(value):
+                        del bindings[variable]
+            # A conditional assignment is still a possible overwrite. Ignore
+            # assignment-looking data belonging to an ordinary command.
+            if head in {"then", "else", "do"}:
+                for raw in raw_words[1:]:
+                    mutation = DIRECTORY_ASSIGNMENT.fullmatch(raw)
+                    if mutation:
+                        bindings.pop(mutation[1], None)
+        tokens = (["bash", "<"] if separator == "<" and previous_stdin else []) + command_words
+        paths, reasons = executed_scripts(tokens)
+        if reasons:
+            return [], reasons
+        if program in SHELL_PROGRAMS:
+            payload = nested_shell_payload([program, *args], 0)
+            if isinstance(payload, str) and inspect_payload(payload, "execute", invocation_context):
+                return [], [("a nested shell command bypasses git's verification hooks", program)]
+        elif program == "eval":
+            for payload in eval_payloads(command_words):
+                if inspect_payload(payload, "source", eval_context):
+                    return [], [("an evaluated command bypasses git's verification hooks", program)]
+        previous_stdin = program in SHELL_PROGRAMS and shell_execution_operand(args) is SHELL_STDIN
+        for path, mode in paths:
+            if context is not None and not context["cwd_known"] and not os.path.isabs(path):
+                return [], [("a computed path after an unproved working-directory change", path)]
+            before = bindings.copy()
+            if inspect(path, mode, invocation_context):
+                return [], [("a followed script bypasses git's verification hooks", path)]
+            if mode == "source" and (scope or separator in {"&&", "||", "|", "&"}):
+                for variable, value in list(bindings.items()):
+                    if variable not in before or before[variable] != value:
+                        del bindings[variable]
+        if isolated:
+            if separator == "|" and parent_context is not None:
+                # The last pipeline command can run in the parent (`lastpipe`
+                # or another shell). Retain only facts unchanged in both
+                # execution models; never promote a child-only assignment.
+                for variable, value in list(parent_context["bindings"].items()):
+                    if bindings.get(variable) != value:
+                        del parent_context["bindings"][variable]
+                parent_context["cwd_known"] &= context["cwd_known"]
+                parent_context["ifs_default"] &= context["ifs_default"]
+                for fact in ("cdpath", "shadowed", "assignment_types_unknown", "startup_unknown"):
+                    parent_context[fact] |= context[fact]
+                if parent_context["functions"] is not context["functions"]:
+                    parent_context["functions"] |= context["functions"]
+            context = parent_context
+            bindings = context["bindings"] if context is not None else {}
+    return [], []
 
 
 def git_argv_disables_verification(argv):
@@ -1523,17 +2041,47 @@ def eval_payloads(scoped_tokens):
     return payloads
 
 
-def verdict(text, depth=0, followed=None):
+def shell_startup_unknown(args):
+    """Whether invocation options permit uninspected interactive/login startup."""
+    options = []
+    index = 0
+    while index < len(args):
+        option = args[index]
+        if option == "--" or not option.startswith(("-", "+")):
+            break
+        options.append(option)
+        if option.startswith("-") and not option.startswith("--") and "c" in option[1:]:
+            break
+        index += 2 if option in SHELL_OPTIONS_SEPARATE_VALUE else 1
+    interactive = any(option == "--interactive" or (option.startswith("-") and not option.startswith("--") and "i" in option[1:]) for option in options)
+    login = any(option == "--login" or (option.startswith("-") and not option.startswith("--") and "l" in option[1:]) for option in options)
+    return (interactive and "--norc" not in options) or (login and "--noprofile" not in options)
+
+
+def initial_directory_context(startup_unknown=False):
+    startup_unknown |= bool(os.environ.get("BASH_ENV") or os.environ.get("ENV"))
+    return {
+        "file": None, "zero": None, "bindings": {}, "cwd_known": True,
+        "cdpath": bool(os.environ.get("CDPATH")), "shadowed": False,
+        "functions": frozenset(), "ifs_default": True,
+        "assignment_types_unknown": startup_unknown,
+        "startup_unknown": startup_unknown,
+    }
+
+
+def verdict(text, depth=0, followed=None, context=None, follow_scripts=True):
     """Whether this text, or a script it runs, bypasses verification.
 
     Args:
         text: A command line or a followed script's contents.
         depth: Number of scripts already followed.
-        followed: Real paths already inspected, so a cycle terminates.
+        followed: Shared inspection count, including repeats and nested payloads.
 
     Returns:
         True when the command must be refused.
     """
+    if followed is None:
+        followed = []
     if git_skips_verification(text):
         return True
     # RECURSION, NOT A TWELFTH SPELLING (#3531). `eval` is the builtin that takes
@@ -1560,7 +2108,7 @@ def verdict(text, depth=0, followed=None):
         except ValueError:
             eval_scoped = []
         for payload in eval_payloads(eval_scoped):
-            if verdict(payload, depth + 1, followed):
+            if verdict(payload, depth + 1, followed, follow_scripts=False):
                 return True
         # AND INSIDE A NESTED SHELL. `git_skips_verification` already recurses
         # into a `bash -c` payload, but only into ITSELF — so it carries the git
@@ -1575,19 +2123,81 @@ def verdict(text, depth=0, followed=None):
             if not shell_starts_command(eval_scoped, index):
                 continue
             nested = nested_shell_payload(eval_scoped, index)
-            if isinstance(nested, str) and verdict(nested, depth + 1, followed):
+            if isinstance(nested, str) and verdict(nested, depth + 1, followed, follow_scripts=False):
                 return True
 
     tokens = flat_tokens(text)
     if tokens is not None and token_bypass(tokens):
         return True
+    if not follow_scripts:
+        return False
     try:
         scoped_tokens = shell_tokens(text)
     except ValueError:
         # Text this parser cannot lex is left to the checks above, which is the
         # same accepted fail-open the header records for an unlexable command.
         return False
-    paths, reasons = executed_scripts(scoped_tokens)
+
+    def inspect(path, mode, parent_context):
+        key = os.path.realpath(path)
+        sourced = mode == "source"
+        if len(followed) >= FOLLOW_MAX_FILES or depth >= FOLLOW_MAX_DEPTH:
+            print(
+                "block-no-verify: refusing at the script-following cap rather "
+                f"than skipping past it ({path})", file=sys.stderr,
+            )
+            return True
+        # Count inspections rather than unique names: a repeated source must
+        # be read under its current bindings, and still consumes the budget.
+        followed.append(key)
+        inherited = sourced and parent_context is not None
+        child = {
+            "file": None if mode == "stdin" else path,
+            "zero": parent_context["zero"] if inherited else (path if mode == "execute" else None),
+            "bindings": parent_context["bindings"] if inherited else {},
+            "cwd_known": parent_context["cwd_known"] if parent_context else True,
+            "cdpath": parent_context["cdpath"] if parent_context else bool(os.environ.get("CDPATH")),
+            "shadowed": parent_context["shadowed"] if parent_context else False,
+            # Exported functions can survive a new interpreter. Retain the
+            # caller's known candidates conservatively; an unused definition
+            # does not invalidate a binding, while a possible call does.
+            "functions": parent_context["functions"],
+            "ifs_default": parent_context["ifs_default"] if inherited else True,
+            "assignment_types_unknown": parent_context["assignment_types_unknown"] if inherited else parent_context["startup_unknown"],
+            "startup_unknown": parent_context["startup_unknown"],
+        }
+        refused = verdict(read_script(path), depth + 1, followed, child)
+        if inherited:
+            for fact in ("cwd_known", "cdpath", "shadowed", "ifs_default", "assignment_types_unknown", "startup_unknown", "functions", "file", "zero"):
+                if fact == "file":
+                    if child[fact] is None:
+                        parent_context[fact] = None
+                    continue
+                parent_context[fact] = child[fact]
+        if refused:
+            print(
+                f"block-no-verify: {path} — a script this command runs — "
+                "bypasses git's verification hooks.", file=sys.stderr,
+            )
+        return refused
+
+    if context is None:
+        context = initial_directory_context()
+
+    def inspect_payload(payload, mode, parent_context):
+        if depth >= FOLLOW_MAX_DEPTH:
+            print("block-no-verify: refusing at the script-following cap for a nested payload", file=sys.stderr)
+            return True
+        child = parent_context
+        if mode == "execute":
+            child = {
+                **parent_context, "file": None, "zero": None, "bindings": {},
+                "ifs_default": True,
+                "assignment_types_unknown": parent_context["startup_unknown"],
+            }
+        return verdict(payload, depth + 1, followed, child)
+
+    paths, reasons = directory_reach(text, context, inspect, inspect_payload)
     if reasons:
         reason, operand = reasons[0]
         print(
@@ -1596,29 +2206,8 @@ def verdict(text, depth=0, followed=None):
             file=sys.stderr,
         )
         return True
-    if followed is None:
-        followed = set()
-    for path in paths:
-        try:
-            key = os.path.realpath(path)
-        except OSError:
-            key = path
-        if key in followed:
-            continue
-        if len(followed) >= FOLLOW_MAX_FILES or depth >= FOLLOW_MAX_DEPTH:
-            print(
-                "block-no-verify: refusing at the script-following cap rather "
-                f"than skipping past it ({path})",
-                file=sys.stderr,
-            )
-            return True
-        followed.add(key)
-        if verdict(read_script(path), depth + 1, followed):
-            print(
-                f"block-no-verify: {path} — a script this command runs — "
-                "bypasses git's verification hooks.",
-                file=sys.stderr,
-            )
+    for path, mode in paths:
+        if inspect(path, mode, context):
             return True
     return False
 

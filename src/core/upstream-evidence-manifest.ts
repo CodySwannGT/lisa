@@ -227,7 +227,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
       "cfbbec57d4e9d9b4245957e027f85fec7fee09e0102b84aaa78af25b852590af",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "0fdbc84a703f503e79fc39c2cac5c40a85a04939f5977e8ed911d81ee72486b7",
+      "de0742cdcce834a73dca7384588fcc43ee34d33f03e2d801c8c5e6cc49282b00",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "865f89d7504a7d1c3380449a2790801c60c1cfe5fa8f1aad54ffc51aa8d0cc7f",
     "all/copy-overwrite/scripts/lisa-hooks/discharge-work-item-gates.sh":
@@ -951,9 +951,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.sh":
       "499f93b667d10c966f4a308a973743f9389220e49fc6d23b7bb14e3fb13c9246",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
-      "3354b6dbf2daa4fa7e21086ce3624721e63f2527923721f2acacea75b652acf6",
+      "43129c585f989221d3988d1b9041ac421587cf34f90d06646d62491ff2b61f33",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "7afd69744b30936a7f19bd528faf56065e5b9b0950686326e34eb7b28b5d2354",
+      "8087820d1d96f72fae8c7cbae2d6515a27f6d57625224fb9e357968af6b5d65b",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":
@@ -10619,11 +10619,17 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-managed-file-edits-redirects.test.ts": true,
     "tests/unit/hooks/block-managed-file-edits.test.ts": true,
     "tests/unit/hooks/block-no-verify-command-config.test.ts": true,
+    "tests/unit/hooks/block-no-verify-directory-boundaries.test.ts": true,
+    "tests/unit/hooks/block-no-verify-directory-flow.test.ts": true,
+    "tests/unit/hooks/block-no-verify-directory-functions.test.ts": true,
+    "tests/unit/hooks/block-no-verify-directory-parity.test.ts": true,
+    "tests/unit/hooks/block-no-verify-directory-startup.test.ts": true,
     "tests/unit/hooks/block-no-verify-env-platform.test.ts": true,
     "tests/unit/hooks/block-no-verify-eval-payload.test.ts": true,
     "tests/unit/hooks/block-no-verify-file-reach.test.ts": true,
     "tests/unit/hooks/block-no-verify-missing-jq.test.ts": true,
     "tests/unit/hooks/block-no-verify-nested-shell-parity.test.ts": true,
+    "tests/unit/hooks/block-no-verify-script-directory.test.ts": true,
     "tests/unit/hooks/block-no-verify-short-flag.test.ts": true,
     "tests/unit/hooks/block-no-verify.test.ts": true,
     "tests/unit/hooks/block-shell-json-parsing-missing-deps.test.ts": true,
