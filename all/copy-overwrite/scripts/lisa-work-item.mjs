@@ -4535,6 +4535,7 @@ export function commitPendingLisaUpdate(ref, contract, cwd = process.cwd()) {
     cwd,
   }).stdout;
   try {
+    const previous = git(["rev-parse", "--verify", "HEAD"], { cwd });
     git(["add", "--", ...files], { cwd });
     // `--only` commits exactly these paths, so a feature edit the user had
     // already staged stays staged and out of the update commit. The project's
@@ -4551,6 +4552,20 @@ export function commitPendingLisaUpdate(ref, contract, cwd = process.cwd()) {
       ],
       { cwd, timeout: 10 * 60 * 1000 }
     );
+    // `--only` reads the paths again at commit time, and the project's hooks
+    // run in between, so the comparison above does not by itself bind what
+    // was committed. Check the commit's own tree against the recorded
+    // identities; if anything differs, the commit is undone and the update
+    // left for a human, exactly as if the check above had failed.
+    const drifted = committedDrift(pending.digests, files, cwd);
+    if (drifted.length > 0) {
+      git(["reset", "--soft", previous], { cwd });
+      const restored = restoreIndexEntries(snapshot, files, cwd);
+      console.error(
+        `The pending Lisa ${pending.to} update was NOT committed automatically: these files changed while it was being committed: ${drifted.join(", ")}. The commit was undone${restored ? "" : ", but restoring what was staged for them failed; check `git status`"}. Review them and commit the Lisa update as its own commit before feature work.`
+      );
+      return;
+    }
     rmSync(marker, { force: true });
     console.log(
       `Committed the pending Lisa ${pending.to} update first, as its own commit, under ${ref}.`
@@ -4626,6 +4641,52 @@ function changedSinceUpdate(pending, files, cwd) {
       !current.has(file) ||
       current.get(file) !== recorded[file]
   );
+}
+
+/**
+ * Pending files whose entry in the new HEAD commit is not the recorded identity.
+ *
+ * Reads the commit's tree, not the working tree: a file absent from the record
+ * as null must be absent from HEAD, a `<mode> <blob>` record must match the
+ * tree entry exactly, and a `120000 link:<target>` record must be a symlink
+ * entry whose blob is that target.
+ * @param {Record<string, string | null>} recorded The marker's digests.
+ * @param {string[]} files Paths the commit carried.
+ * @param {string} cwd Repository directory.
+ * @returns {string[]} The paths the commit does not hold as recorded.
+ */
+function committedDrift(recorded, files, cwd) {
+  const listing = run("git", ["ls-tree", "-z", "HEAD", "--", ...files], {
+    cwd,
+    allowFailure: true,
+  });
+  // probe-direction: fail-closed — an unreadable tree counts every path as
+  // drifted, which undoes the commit rather than trusting it.
+  if (listing.status !== 0) return [...files];
+  const entries = new Map();
+  for (const record of listing.stdout.split("\0").filter(Boolean)) {
+    const tab = record.indexOf("\t");
+    const [mode, , blob] = record.slice(0, tab).split(" ");
+    entries.set(record.slice(tab + 1), { mode, blob });
+  }
+  return files.filter(file => {
+    const expected = recorded[file];
+    const entry = entries.get(file);
+    if (expected === null) return entry !== undefined;
+    if (entry === undefined) return true;
+    if (expected.startsWith("120000 link:")) {
+      if (entry.mode !== "120000") return true;
+      const target = run("git", ["cat-file", "blob", entry.blob], {
+        cwd,
+        allowFailure: true,
+      });
+      return (
+        target.status !== 0 ||
+        target.stdout !== expected.slice("120000 link:".length)
+      );
+    }
+    return `${entry.mode} ${entry.blob}` !== expected;
+  });
 }
 
 /**

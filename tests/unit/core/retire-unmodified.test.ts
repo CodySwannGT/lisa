@@ -114,17 +114,21 @@ describe("findHostReferences", () => {
     );
   });
 
-  it("reports unknown, not none, when a workflow cannot be read", async () => {
-    mkdirSync(path.join(dir, ".github", "workflows"), { recursive: true });
-    const locked = path.join(dir, ".github", "workflows", "locked.yml");
-    writeFileSync(locked, `run: node ${PATH}\n`);
-    chmodSync(locked, 0o000);
-    try {
-      expect(await findHostReferences(dir, PATH)).toBeNull();
-    } finally {
-      chmodSync(locked, 0o600);
+  // Root reads a mode-000 file anyway, so the case is meaningless there.
+  it.skipIf(process.getuid?.() === 0)(
+    "reports unknown, not none, when a workflow cannot be read",
+    async () => {
+      mkdirSync(path.join(dir, ".github", "workflows"), { recursive: true });
+      const locked = path.join(dir, ".github", "workflows", "locked.yml");
+      writeFileSync(locked, `run: node ${PATH}\n`);
+      chmodSync(locked, 0o000);
+      try {
+        expect(await findHostReferences(dir, PATH)).toBeNull();
+      } finally {
+        chmodSync(locked, 0o600);
+      }
     }
-  });
+  );
 
   it("reports nothing for a project without either file", async () => {
     expect(await findHostReferences(dir, PATH)).toEqual([]);

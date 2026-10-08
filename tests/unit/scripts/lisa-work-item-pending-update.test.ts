@@ -244,6 +244,28 @@ describe("lisa-work-item: a pending Lisa update is committed first", () => {
     expect(errors).toContain("cannot be proved unchanged");
   });
 
+  it("undoes the commit when a file changes between the check and the commit", () => {
+    const root = repoWithPendingUpdate("feat/x");
+    // A hook that rewrites and re-stages a pending file stands in for any
+    // change landing after the comparison: `--only` reads paths at commit time.
+    const hook = path.join(root, ".git", "hooks", "pre-commit");
+    mkdirSync(path.dirname(hook), { recursive: true });
+    writeFileSync(
+      hook,
+      `#!/bin/sh\nprintf '{"late":true}\\n' > ${PKG}\ngit add ${PKG}\n`,
+      { mode: 0o755 }
+    );
+    git(root, [
+      "config",
+      "core.hooksPath",
+      hook.slice(0, -"/pre-commit".length),
+    ]);
+    const errors = commitCapturingErrors(root);
+    expect(errors).toContain("changed while it was being committed");
+    expect(git(root, LAST_SUBJECT)).toBe(INITIAL);
+    expect(existsSync(markerFile(root))).toBe(true);
+  });
+
   it("restores what the user had staged when the commit fails", () => {
     const root = repoWithPendingUpdate("feat/x");
     // The user staged an earlier version of package.json before binding.
