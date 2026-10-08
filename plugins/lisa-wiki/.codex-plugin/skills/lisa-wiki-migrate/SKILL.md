@@ -2,6 +2,8 @@
 name: lisa-wiki-migrate
 description: "Migrate an existing…"
 ---
+Migrate an existing, hand-rolled wiki implementation onto the lisa-wiki kernel — phased and compatibility-first, with a strict no-loss guarantee. Use when adopting lisa-wiki in a repo that already has its own wiki/, ingest skills, docs, or roles. Renaming things into the canonical shape is fine; losing functionality or data is not. Ends by running /doctor.
+
 
 # lisa-wiki-migrate
 

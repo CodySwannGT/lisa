@@ -3,6 +3,8 @@ name: lisa-attribute-failure
 description: "Event-triggered root-cause…"
 allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
 ---
+Event-triggered root-cause attribution for an arbitrary failure: decide, with cited evidence, whether the defect is Lisa's fault or the project's. Accepts a failure event (defect description, implicated files, rule/skill/hook in play) and returns a verdict of lisa | project | ambiguous plus the evidence relied on. Read-only — it never files, writes, or remediates; callers (lisa-doctor findings, the learning judgment gate, rework triage) consume the verdict. Extracted from lisa-doctor's upstream Lisa change-history diagnosis (#1494) so the same attribution procedure can run on ANY failure event, not only doctor config-audit findings.
+
 
 # Attribute Failure
 

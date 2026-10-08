@@ -3,6 +3,8 @@ name: lisa-setup-kane
 description: "Configure TestMu Kane CLI as an…"
 allowed-tools: ["Bash", "Read", "Write", "Edit", "AskUserQuestion"]
 ---
+Configure TestMu Kane CLI as an optional Lisa empirical-browser provider. Performs the exterior human approval gate for mandatory cloud uploads, verifies the pinned CLI version, provisions local/CI authentication, selects a Test Manager project/folder, runs a disposable synthetic check, and writes only non-secret policy identifiers to Lisa config.
+
 
 # Setup Kane CLI
 

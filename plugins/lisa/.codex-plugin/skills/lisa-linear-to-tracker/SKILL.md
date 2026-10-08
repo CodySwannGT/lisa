@@ -3,6 +3,8 @@ name: lisa-linear-to-tracker
 description: "Break down a Linear PRD (a…"
 allowed-tools: ["Skill", "Bash"]
 ---
+Break down a Linear PRD (a Linear Project) into Epics, Stories, and Sub-tasks in the configured destination tracker (JIRA, GitHub Issues, or Linear per .lisa.config.json). Use this skill whenever the user shares a Linear project URL and wants it converted into tracker tickets, or asks to "break down this Linear project", "create tickets from a Linear project", "turn this Linear PRD into tickets", or similar. This skill mirrors `lisa-notion-to-tracker` and `lisa-confluence-to-tracker` for projects whose PRDs live in Linear — the workflow, gates, dry-run mode, and validation rules are identical; only the source-of-truth tool surface differs (Linear MCP instead of Notion / Confluence MCP).
+
 
 # Linear PRD to Tracker Breakdown
 

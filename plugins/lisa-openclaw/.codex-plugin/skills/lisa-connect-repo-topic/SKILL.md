@@ -2,6 +2,8 @@
 name: lisa-connect-repo-topic
 description: "Bind a Telegram forum topic to…"
 ---
+Bind a Telegram forum topic to an OpenClaw dispatcher+worker pair that runs a coding CLI against a repo (single-repo or folder-scoped), so you can drive code work from chat. Requires /lisa:setup-openclaw first.
+
 ## Lisa Command Compatibility
 
 - Original Claude command: `/lisa:connect-repo-topic`

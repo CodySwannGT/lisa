@@ -5,6 +5,8 @@ allowed-tools:
   - Bash
   - Read
 ---
+Check application logs from local Docker Compose or remote AWS CloudWatch for Rails applications. Supports log tailing, filtering, and error searching.
+
 
 # Ops: Check Logs
 

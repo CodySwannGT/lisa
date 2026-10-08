@@ -2,6 +2,8 @@
 name: phaser-project-structure
 description: "creating, restructuring, or…"
 ---
+This skill should be used when creating, restructuring, or reasoning about a Phaser 4 game project — the game config, the Vite + TypeScript layout, the Boot → Preloader → MainMenu → Game scene flow, scale/resolution setup for desktop and mobile, and where code and assets belong. Use it before scaffolding a project, adding a major subsystem, or deciding where a file should live. Pairs with the official scenes skill, the official loading-assets skill, the official filters-and-postfx skill, and phaser-testing.
+
 
 # Phaser 4 Project Structure
 

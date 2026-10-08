@@ -3,6 +3,8 @@ name: lisa-repair-intake
 description: "Vendor-agnostic repair scanner…"
 allowed-tools: ["Skill", "Bash", "Read", "Write", "Edit"]
 ---
+Vendor-agnostic repair scanner — the recovery counterpart to lisa-intake. Finds work that got stuck or was left half-closed across the same queues lisa-intake serves (Notion / Confluence / Linear / GitHub PRDs; JIRA / GitHub / Linear build queues): items left in `blocked`, work stalled in an in-progress role (build `claimed`, PRD `in_review`), terminal-labeled items still natively open, and rollups whose children are all terminal. Repairs every actionable candidate up to `max_candidates`: resumes stalled work in place (diagnosing a stalled build's PR/deploy state first — merged PRs get the missed env transition, behind-base PRs are re-synced, unmergeable PRs or failed deploys get a build-ready fix ticket + `blocked`), re-validates blocked PRDs and build items whose blockers cleared, performs terminal native closure, and reconciles parent rollups to their derived state. Idempotent and loop-protected; never mutates `draft`/`verified` or `ready` leaves. A /schedule cron target alongside lisa-intake.
+
 
 # Repair Intake: $ARGUMENTS
 

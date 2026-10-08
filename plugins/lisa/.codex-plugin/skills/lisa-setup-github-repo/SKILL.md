@@ -3,6 +3,8 @@ name: lisa-setup-github-repo
 description: "Apply Lisa's GitHub repository…"
 allowed-tools: ["Bash", "Read", "Edit", "AskUserQuestion"]
 ---
+Apply Lisa's GitHub repository governance baseline to the current project's repo: repository settings (merge-only, auto-merge, delete-branch-on-merge, update-branch suggestions, wiki off, secret scanning where available), branch + tag rulesets from Lisa templates (base PR gate with CodeRabbit/GitGuardian/Quality Checks, prevent delete, protect tags, stack overlays), a write-access deploy key + DEPLOY_KEY secret so release workflows can push version bumps through the rulesets' DeployKey bypass, and optional deployment environments with human-approval gates (required reviewers) from the github.environments block in .lisa.config.json. Idempotent — re-running updates settings, rulesets, and environments in place and skips an already-configured deploy key.
+
 
 # Setup GitHub Repository Governance
 

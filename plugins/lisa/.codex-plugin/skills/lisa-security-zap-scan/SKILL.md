@@ -3,6 +3,8 @@ name: lisa-security-zap-scan
 description: "Run an OWASP ZAP baseline…"
 allowed-tools: ["Bash", "Read"]
 ---
+Run an OWASP ZAP baseline security scan locally using Docker. Checks for the ZAP baseline script, executes the scan, and summarizes findings by risk level with remediation recommendations.
+
 
 # OWASP ZAP Baseline Security Scan
 

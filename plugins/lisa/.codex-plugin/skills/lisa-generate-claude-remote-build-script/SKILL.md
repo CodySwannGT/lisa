@@ -3,6 +3,8 @@ name: lisa-generate-claude-remote-build-script
 description: "Generate the setup/build script…"
 allowed-tools: ["Skill", "Bash", "Read", "Write", "Glob", "Grep"]
 ---
+Generate the setup/build script (and env-var template) to paste into a Claude Code remote routine environment so this repo runs in the cloud. Runs /lisa:analyze-claude-remote to inventory needs, then writes an idempotent, detect-before-install bash script that installs the required CLIs/binaries and package manager for both Lisa and the host project, plus a commented environment-variable template (names only, never real secrets) and a list of custom domains to allowlist. The script is fast (fits the ~5-minute environment-cache budget), re-runnable, and cloud-proxy aware.
+
 
 # Generate Claude Remote Build Script: $ARGUMENTS
 

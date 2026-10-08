@@ -2,6 +2,8 @@
 name: lisa-ingest
 description: "Ingest source material into the…"
 ---
+Ingest source material into the LLM Wiki. With an argument (URL, file path, or prompt) ingest that one source; with no argument run a full ingest across every enabled non-external-write source. Routes to the right connector and runs the ordered pipeline (source note → synthesis → index → log → verify → state → commit/PR).
+
 ## Lisa Command Compatibility
 
 - Original Claude command: `/lisa:ingest`

@@ -5,6 +5,8 @@ allowed-tools:
   - Bash
   - Read
 ---
+Check application logs from local processes, browser console, React Native device logs, or remote AWS CloudWatch. Supports log tailing, filtering, and error searching across all platforms.
+
 
 # Ops: Check Logs
 

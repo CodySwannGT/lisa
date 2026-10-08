@@ -1,4 +1,4 @@
 display_name: "Setup AWS"
-short_description: "Provision the dev/staging/produc…"
+short_description: "Provision the…"
 default_prompt:
-  - "Use $lisa-setup-aws: Provision the dev/staging/produc…."
+  - "Use $lisa-setup-aws: Provision the…."

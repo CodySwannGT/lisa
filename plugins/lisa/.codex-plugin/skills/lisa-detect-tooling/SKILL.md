@@ -3,6 +3,8 @@ name: lisa-detect-tooling
 description: "Find the command-line tools a…"
 allowed-tools: ["Bash", "Read", "AskUserQuestion"]
 ---
+Find the command-line tools a project needs but never declares, and propose pinned manifest entries for them. Reads git hooks and npm scripts for what the project actually RUNS — discovering tools no list mentions — plus MCP servers, credential usage notes and quality configuration. Subtracts whatever remoteEnv.tools, node_modules and the workstation layer already cover, and prints proposals with evidence. Writes nothing and installs nothing — a tool reaches a machine only when a human has reviewed a pinned, checksummed entry. Invoked by lisa-setup-remote-env before provisioning, and runnable on its own.
+
 
 # Detect Tooling
 

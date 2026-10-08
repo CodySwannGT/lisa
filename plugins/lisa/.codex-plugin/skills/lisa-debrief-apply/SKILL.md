@@ -3,6 +3,8 @@ name: lisa-debrief-apply
 description: "Apply human-marked dispositions…"
 allowed-tools: ["Skill", "Bash", "Read", "Edit", "Write", "Glob", "Grep"]
 ---
+Apply human-marked dispositions from a Debrief triage document. Reads the triage doc produced by lisa-debrief, parses each row's disposition (Accept / Reject / Defer), and routes Accepted items to their persistence destination. Deterministic and idempotent — safe to re-run if dispositions are added incrementally.
+
 
 # Debrief Apply: $ARGUMENTS
 

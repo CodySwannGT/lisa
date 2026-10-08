@@ -3,6 +3,8 @@ name: lisa-wiki-install
 description: "Bootstrap the LLM Wiki kernel…"
 allowed-tools: ["Bash", "Read", "Write", "Edit"]
 ---
+Bootstrap the LLM Wiki kernel (lisa-wiki plugin) in a host project. Solves the chicken-and-egg gap: the base lisa plugin can install the wiki plugin so its setup skill becomes discoverable. Edits .claude/settings.json to enable lisa-wiki@lisa and confirm the CodySwannGT/lisa marketplace, then for Codex verifies whether the .codex/skills/lisa overlay already carries lisa-wiki-* skills (printed by Lisa's apply) and nudges the user to refresh the overlay if missing. Idempotent. Never auto-runs `lisa apply`. After this skill, reload the runtime and run /setup:wiki (Claude) or $lisa-wiki-setup (Codex) to scaffold the wiki itself.
+
 
 # Install the LLM Wiki kernel
 

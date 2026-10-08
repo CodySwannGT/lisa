@@ -3,6 +3,8 @@ name: lisa-github-evidence
 description: "Upload text evidence to the…"
 allowed-tools: ["Bash"]
 ---
+Upload text evidence to the GitHub `pr-assets` release, update PR description, and post a GitHub Issue comment with code blocks. Reusable by any skill that captures evidence and generates evidence/comment.md (and optionally evidence/comment.txt). The GitHub counterpart of lisa-jira-evidence.
+
 
 # GitHub Evidence Posting
 

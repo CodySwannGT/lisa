@@ -2,6 +2,8 @@
 name: lisa-wiki-connector-jira
 description: "Produce sanitized JIRA source…"
 ---
+Produce sanitized JIRA source notes for lisa-wiki ingest via the Atlassian MCP. Use only when lisa-wiki-ingest routes to the jira connector. Read-only; tenant-guarded.
+
 
 # lisa-wiki-connector-jira
 

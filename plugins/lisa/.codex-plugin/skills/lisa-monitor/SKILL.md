@@ -3,6 +3,8 @@ name: lisa-monitor
 description: "Monitor application health AND…"
 allowed-tools: ["Skill", "Bash", "Read", "Grep", "Glob"]
 ---
+Monitor application health AND audit observability completeness for the current repo, then file build-ready tickets for what it finds. Checks health endpoints, recent logs (CloudWatch / Sentry / browser console), error-rate spikes, performance hotspots, pending migrations, and Playwright smoke flows via the stack-specific ops-specialist (Expo, Rails) or stack-agnostic base probing (any stack, incl. NestJS / CDK). Audits the repo against an observability-completeness rubric scoped to its type (frontend / backend / infra) and flags instrumentation gaps (e.g. no distributed tracing, no DB/query analytics). For each high-signal anomaly and each in-scope missing dimension it files a single-repo, build-ready leaf ticket via tracker-write (idempotent, capped, repo-scoped) so the intake cron implements it — monitor files only, it never fixes. Manual (no cron); files by default, `--dry-run` previews. Conservative by default. Also invoked as the post-deploy step of lisa-verify, where it runs report-only (never files).
+
 
 # Monitor: $ARGUMENTS
 

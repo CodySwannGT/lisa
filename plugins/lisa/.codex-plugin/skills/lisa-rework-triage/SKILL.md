@@ -3,6 +3,8 @@ name: lisa-rework-triage
 description: "Rework detection and…"
 allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
 ---
+Rework detection and agent-failure classification. When a claimed ticket turns out to be rework — previously implemented work bounced back from QA/staging — this skill detects it, classifies WHY the previous agent attempt failed (decomposition infidelity, PRD defect, missing tool access, implementation defect, environment/data, verification gap), posts a structured triage comment, and routes each cause to its hardening destination — including upstream Lisa issues so the harness itself gets fixed and the same mistake structurally cannot repeat. Vendor-neutral: consumes the lisa-tracker-read context bundle; invoked automatically by lisa-ticket-triage Phase 2.5 and runnable standalone.
+
 
 # Rework Triage: $ARGUMENTS
 

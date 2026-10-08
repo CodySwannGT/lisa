@@ -3,6 +3,8 @@ name: lisa-intake
 description: "Vendor-agnostic scanner for…"
 allowed-tools: ["Skill", "Bash"]
 ---
+Vendor-agnostic scanner for Ready queues. Notion PRD database URL → first Ready PRD → lisa-plan. Confluence space or parent page URL → first prd-ready PRD → lisa-plan. Linear workspace URL or team key → first prd-ready project → lisa-plan. GitHub repo URL or `org/repo` token → first prd-ready issue → lisa-plan, or first `status:ready` issue → lisa-implement when `tracker = github`. JIRA project key or JQL filter → first Ready ticket → lisa-implement. On the PRD side it also closes the loop: each cycle rolls a ticketed PRD up to shipped and dispatches lisa-verify-prd for one shipped PRD (shipped → verified on pass; on fail, re-opened shipped → ticketed with build-ready fix tickets that auto-build and re-verify — never blocked). Designed as the cron target for /schedule — one eligible item per invocation, exits cleanly on empty. Symmetric counterpart to the single-item lisa-plan and lisa-implement skills.
+
 
 # Intake: $ARGUMENTS
 

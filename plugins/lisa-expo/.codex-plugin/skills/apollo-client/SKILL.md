@@ -2,6 +2,8 @@
 name: apollo-client
 description: "writing or modifying GraphQL…"
 ---
+This skill should be used when writing or modifying GraphQL operations, hooks, or mutations using Apollo Client 3.10. It enforces best practices for optimistic responses, cache updates, and TypeScript type generation. Use this skill when creating new queries/mutations, reviewing Apollo code, or troubleshooting cache issues.
+
 
 # Apollo Client 3.10
 

@@ -3,6 +3,8 @@ name: lisa-improve-tests
 description: "improving test quality"
 allowed-tools: ["Read", "Bash", "Glob", "Grep"]
 ---
+This skill should be used when improving test quality. It scans the test suite for weak, brittle, or poorly-written tests, generates a brief with improvement opportunities, and creates a plan with tasks to strengthen the tests.
+
 
 # Improve Test Quality
 

@@ -3,6 +3,8 @@ name: lisa-atlassian-access
 description: "Vendor-neutral access layer for…"
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
+Vendor-neutral access layer for Atlassian (JIRA + Confluence). Every jira-* and confluence-* skill MUST delegate through this skill rather than calling Atlassian directly. Per the credential-substrate-precedence contract, resolves a substrate per operation with the ATLASSIAN_API_TOKEN curl path first for reads and writes alike whenever the token is present and identity-matched — binding JIRA writes to the configured cloudId — then acli, then the Atlassian MCP as fallbacks. acli is used when installed and switchable to a profile matching the configured site; mismatched active profiles are skipped only after switch plus re-verification fails, and acli writes are a guarded fallback with post-write tenant assertions.
+
 
 # Atlassian Access: $ARGUMENTS
 

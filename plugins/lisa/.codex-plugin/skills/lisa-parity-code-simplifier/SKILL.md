@@ -1,9 +1,11 @@
 ---
 name: lisa-parity-code-simplifier
-description: "Lisa-native, behavior-preserving…"
+description: "Lisa-native…"
 allowed-tools: ["Read", "Bash", "Grep", "Glob", "Edit", "Write"]
 synced-from: code-simplifier@claude-plugins-official@1.0.0
 ---
+Lisa-native, behavior-preserving simplification of recently-changed code. Removes duplication and dead code, reuses existing utilities, and improves readability without altering behavior — quality only, never a bug hunt. Vendor-neutral cross-agent equivalent of the upstream code-simplifier agent, runnable on Codex, agy, Copilot, Cursor, and Claude.
+
 
 # Parity Code Simplifier
 
