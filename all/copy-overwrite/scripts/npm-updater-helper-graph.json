@@ -1241,7 +1241,7 @@
       ]
     },
     "lisa-scratch-run.sh": {
-      "sha256": "6fdec1ad0441d7636dc6749c44a23167baf7b75004f156b8a7d4ce1c18c790b7",
+      "sha256": "76ccf8ca6f98b214361f02ebf6ad58041129b76ed29128455e810095db6c292f",
       "staticImports": [],
       "dynamicImports": [],
       "children": []

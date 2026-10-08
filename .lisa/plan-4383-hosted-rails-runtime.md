@@ -397,3 +397,45 @@ both findings without changing probe behavior; all three component/test paths
 pass the actual scoped ESLint check. The final source remains within the original
 300-line ceiling without introducing another runtime helper or changing the
 authenticated controller inventory.
+
+## Native marker-read disappearance during original qualification
+
+The original full push of `42332ec6` ended with exit 1 and did not publish.
+Its whole unit gate passed 1,417 files and 26,887 tests with two existing skips;
+the original coverage and correctness gates passed. Integration passed 181
+files and 3,289 tests with two existing skips, but the nested-path refusal
+control failed its unchanged empty-stderr assertion. The native shell reported
+that its arming marker disappeared before the second count read, followed by
+an empty integer comparison. Both original supervisor roots, all 38 recorded
+original process births and all seven captured groups were independently
+absent after the failed command. These observations cover the captured subset,
+not every process ever spawned. The failure and cleanup receipts are retained.
+
+The existing marker reader opens the same pathname separately for byte and
+line counts while this invocation's two cleanup participants may remove it.
+A deterministic native control removes only its synthetic marker after the
+real byte-count command completes. Before correction, that control reproduces
+the exact shell pathname and integer diagnostics, while the canonical authority
+still refuses with exit 78. The root inode and foreign sentinel remain intact,
+and no acknowledgement is published.
+
+Redirecting stderr before each count's input open and requiring numeric count
+output preserves unreadable-marker refusal without incidental shell diagnostics.
+The final marker extraction also retains its nonzero failed-read status while
+suppressing incidental pathname output. Token, inode, UID, process, count limits
+and all cleanup deadlines are unchanged. The original exact two-file supervisor
+route passes 19 controls, including the unchanged nested refusal and positive
+native socket case. This is native shell protocol qualification, not Ubuntu,
+Chrome, provider or canonical Bot acceptance. The official build regenerates
+only the authenticated runner digest in the guard source and its shipped copies;
+the cleanup-operation count and guard policy are unchanged.
+
+The seven affected authority, lifecycle, ownership, nested-path, guard-profile,
+execution-following and route files pass all 157 controls. Strict test lint
+caught two literals crossing its duplication limit; fixed constants retain
+their exact existing values and assertions. The resulting authority file
+passes all 17 controls and scoped ESLint. Final whole type checking retains
+the original 362 quarantined files, with no new or stale diagnostics and no
+engine-floor violations. Shell syntax and formatting pass. Official artifact
+checks, distinct review, normal commit and another original full push are still
+required; actual Ubuntu qualification remains mandatory before merge/release.
