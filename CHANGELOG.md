@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.72.3](https://github.com/CodySwannGT/lisa/compare/v4.72.2...v4.72.3) (2026-10-08)
+
+
+### Bug Fixes
+
+* **hooks:** keep recovery acknowledgement checks linear ([1f85fc3](https://github.com/CodySwannGT/lisa/commit/1f85fc30287444f666f794b1d29a66c70fb39c52)), closes [CodySwannGT/lisa#4301](https://github.com/CodySwannGT/lisa/issues/4301)
+* **hooks:** recover worktree bindings by repository identity ([b39b688](https://github.com/CodySwannGT/lisa/commit/b39b6884e9e96edf0cc51c23baa09702dc887aa3)), closes [CodySwannGT/lisa#4301](https://github.com/CodySwannGT/lisa/issues/4301)
+
 ### [4.72.2](https://github.com/CodySwannGT/lisa/compare/v4.72.1...v4.72.2) (2026-10-08)
 
 
