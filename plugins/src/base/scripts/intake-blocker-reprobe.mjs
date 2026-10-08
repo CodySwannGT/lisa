@@ -54,6 +54,22 @@ const LEADING_DECORATION =
   /^[ \t>*_+#-]*(?:\d+[.)][ \t]*)?(?:<!--[ \t]*)?[ \t]*/u;
 
 /**
+ * Decode one stored Markdown escape layer without changing the provider record.
+ * Linear escapes marker brackets and punctuation in reason keys. A single pass
+ * keeps literal backslash pairs intact instead of recursively inventing markers.
+ * Callers doing bookkeeping-marker searches use this same projection; hold and
+ * release parsers receive original bodies and apply it after excluding code.
+ * @param {unknown} body - Original provider text
+ * @returns {string} One-pass Markdown punctuation projection
+ */
+export function normalizeProviderMarkdown(body) {
+  return String(body ?? "").replace(
+    /\\([\u0021-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e])/gu,
+    "$1"
+  );
+}
+
+/**
  * The body with fenced blocks and inline code spans removed.
  *
  * Documentation of a declaration is not a declaration, and a fenced example is
@@ -65,9 +81,10 @@ const LEADING_DECORATION =
  * @returns {string} The body with quoted and code regions blanked out
  */
 function declarativeText(body) {
-  return String(body ?? "")
+  const withoutCode = String(body ?? "")
     .replace(/```[\s\S]*?```/gu, "")
     .replace(/`[^`\n]*`/gu, "");
+  return normalizeProviderMarkdown(withoutCode);
 }
 
 /**
@@ -160,7 +177,8 @@ function declaresOnLine(line, marker = HUMAN_GATE_MARKER) {
  */
 export function humanGateMentions(body) {
   const raw = String(body ?? "");
-  const total = raw.split(HUMAN_GATE_MARKER).length - 1;
+  const total =
+    normalizeProviderMarkdown(raw).split(HUMAN_GATE_MARKER).length - 1;
   const declared = declarativeText(raw)
     .split("\n")
     .filter(line => declaresOnLine(line)).length;
