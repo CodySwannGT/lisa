@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.72.1](https://github.com/CodySwannGT/lisa/compare/v4.72.0...v4.72.1) (2026-10-08)
+
+
+### Bug Fixes
+
+* **guard:** preserve shell scope when inspecting executed scripts ([e56b600](https://github.com/CodySwannGT/lisa/commit/e56b6008dbbd86754014b293f64d98f132405ded)), closes [CodySwannGT/lisa#4299](https://github.com/CodySwannGT/lisa/issues/4299)
+* **guard:** resolve cwd on reached AND branches ([4952de2](https://github.com/CodySwannGT/lisa/commit/4952de2c9b2c40c6aca733b9edcd9bcf8701f1e4)), closes [CodySwannGT/lisa#4299](https://github.com/CodySwannGT/lisa/issues/4299) [CodySwannGT/lisa#4299](https://github.com/CodySwannGT/lisa/issues/4299)
+
+## [4.72.0](https://github.com/CodySwannGT/lisa/compare/v4.71.13...v4.72.0) (2026-10-08)
+
+
+### Features
+
+* **workflows:** add opt-in environment-prepare-aws reusable workflow ([7cd8967](https://github.com/CodySwannGT/lisa/commit/7cd896701b93b063b6bb189aa34976ef00202e62)), closes [#2046](https://github.com/CodySwannGT/lisa/issues/2046) [#2566](https://github.com/CodySwannGT/lisa/issues/2566) [CodySwannGT/lisa#4374](https://github.com/CodySwannGT/lisa/issues/4374) [CodySwannGT/lisa#4374](https://github.com/CodySwannGT/lisa/issues/4374)
+
+
+### Bug Fixes
+
+* **workflows:** harden environment-prepare-aws role handling and caller docs ([f96e439](https://github.com/CodySwannGT/lisa/commit/f96e439177d140c44861c0c48fe24605f149741f)), closes [CodySwannGT/lisa#4374](https://github.com/CodySwannGT/lisa/issues/4374) [CodySwannGT/lisa#4374](https://github.com/CodySwannGT/lisa/issues/4374)
+
 ### [4.71.13](https://github.com/CodySwannGT/lisa/compare/v4.71.12...v4.71.13) (2026-10-08)
 
 

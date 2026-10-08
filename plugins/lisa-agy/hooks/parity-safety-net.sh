@@ -515,6 +515,8 @@ readonly FOLLOW_MAX_BYTES=262144
 readonly FOLLOW_MAX_TOTAL_BYTES=524288
 readonly FOLLOW_MAX_FILES=8
 readonly FOLLOW_MAX_DEPTH=3
+readonly FOLLOW_MAX_FUNCTION_DEPTH=16
+readonly FOLLOW_MAX_FUNCTION_CALLS=128
 
 # Effective working directory established by a literal `cd` in the command, and
 # the flag that says a `cd` happened whose target could NOT be read literally.
@@ -526,6 +528,8 @@ follow_paths=$'\n'
 follow_names=""
 follow_count=0
 follow_bytes=0
+follow_function_calls=0
+follow_function_bytes=0
 followed_text=""
 followed_rm_text=""
 # Generated from the canonical reviewed supervisor, never from a host manifest.
@@ -727,8 +731,9 @@ follow_may_invoke() {
 # `;` or `|` inside a quoted string is not a statement boundary, and splitting
 # there would invent a command position in the middle of a quoted argument and
 # make prose look like an invocation — the #3604 failure mode, arrived at from
-# the other side. Parens are NOT separators, so `eval "$(cat <file>)"` stays one
-# statement and its command word is still `eval`.
+# the other side. Literal subshell parentheses carry scope events, while quoted
+# parentheses and substitutions stay in their original statement so `eval
+# "$(cat <file>)"` retains its command position and executed-file inspection.
 #
 # awk rather than a bash char loop because this runs on EVERY intercepted Bash
 # command, and it addresses the text by index instead of accumulating it a
@@ -736,24 +741,229 @@ follow_may_invoke() {
 # arrives through the ENVIRONMENT: `awk -v` processes backslash escapes in the
 # value it is given and would rewrite the command before it was ever read.
 follow_split() {
-  SN_FOLLOW_TEXT="$1" awk '
+  LC_ALL=C SN_FOLLOW_TEXT="$1" awk '
+    # Lexical lookahead keeps an asynchronous return from ending its parent
+    # scan before the trailing & event. Aggregate work is capped linearly in
+    # input size, including overlap from nested scopes; no partial parse passes.
+    function lookahead_step() {
+      if (++lookahead_work > 8 * n + 1024) { exit 2 }
+    }
+    function brace_pipe(from, opening, closing, j, c, quote, escape, braces, nesting, tail, tail_cases, tail_header, word, word_end) {
+      quote = ""; escape = 0; braces = 1; nesting = 0; brace_redirect = ""; tail_cases = 0; tail_header = 0;
+      for (j = from; j <= n; j++) {
+        lookahead_step(); c = substr(s, j, 1);
+        if (escape) { escape = 0; continue }
+        if (c == "\\" && quote != "\047") { escape = 1; continue }
+        if (quote != "") { if (c == quote) { quote = "" } continue }
+        if (c == "\"" || c == "\047" || c == "`") { quote = c; continue }
+        if (braces > 0) {
+          # A case-pattern ) is not the closing parenthesis of its shell.
+          if (opening == "(" && c ~ /[A-Za-z_]/) {
+            word_end = j + 1;
+            while (word_end <= n && substr(s, word_end, 1) ~ /[A-Za-z_0-9-]/) { lookahead_step(); word_end++ }
+            word = substr(s, j, word_end - j); j = word_end - 1;
+            if (word == "case" && (tail_cases == 0 || !tail_patterns[tail_cases])) { tail_header++ }
+            if (word == "in" && tail_header > 0) {
+              tail_header--; tail_patterns[++tail_cases] = 1; tail_levels[tail_cases] = braces;
+            }
+            if (word == "esac" && tail_cases > 0) { tail_cases-- }
+            continue;
+          }
+          if (tail_cases > 0 && tail_levels[tail_cases] == braces) {
+            if (c == ")" && tail_patterns[tail_cases]) { tail_patterns[tail_cases] = 0; continue }
+            if (c == ";" && substr(s, j + 1, 1) == ";") { tail_patterns[tail_cases] = 1; j++; continue }
+          }
+          if (c == opening) { braces++ }
+          if (c == closing && --braces == 0) { tail = j + 1 }
+          continue;
+        }
+        # Redirections belong to the compound command too. Quoted operator
+        # bytes and nested substitutions are operands, not the pipeline edge.
+        if (c == "(") { nesting++; continue }
+        if (c == ")") { if (nesting == 0) { brace_redirect = substr(s, tail, j - tail); return 0 } nesting--; continue }
+        if (nesting > 0) { continue }
+        if (c == "|") { brace_redirect = substr(s, tail, j - tail); return substr(s, j + 1, 1) != "|" }
+        if (c == ";" || c == "\n") { brace_redirect = substr(s, tail, j - tail); return 0 }
+        if (c == "&" && substr(s, j - 1, 1) !~ /[<>]/ && substr(s, j + 1, 1) != ">") { brace_redirect = substr(s, tail, j - tail); return 0 }
+      }
+      if (tail > 0) { brace_redirect = substr(s, tail) }
+      return 0;
+    }
+    function list_async(from, j, c, quote, escape, nesting, braces) {
+      quote = ""; escape = 0; nesting = 0; braces = 0;
+      for (j = from; j <= n; j++) {
+        lookahead_step();
+        c = substr(s, j, 1);
+        if (escape) { escape = 0; continue }
+        if (c == "\\" && quote != "\047") { escape = 1; continue }
+        if (quote != "") { if (c == quote) { quote = "" } continue }
+        if (c == "\"" || c == "\047" || c == "`") { quote = c; continue }
+        if (c == "(") { nesting++; continue }
+        if (c == ")") { if (nesting == 0) { return 0 } nesting--; continue }
+        if (c == "{") { braces++; continue }
+        if (c == "}") { if (braces > 0) { braces-- } continue }
+        if (nesting > 0 || braces > 0) { continue }
+        if (c == ";" || c == "\n") { return 0 }
+        if (c == "&" && substr(s, j - 1, 1) !~ /[&<>]/ && substr(s, j + 1, 1) !~ /[&>]/) { return 1 }
+      }
+      return 0;
+    }
     BEGIN {
       s = ENVIRON["SN_FOLLOW_TEXT"]; n = length(s);
-      q = ""; esc = 0; start = 1; sep = "o";
+      q = ""; esc = 0; start = 1; sep = "o"; parens = 0;
+      functions = 0; cases = 0; backtick = 0; brace_depth = 0; post_brace = 0;
+      printf "L\t%d\n", list_async(1);
       for (i = 1; i <= n; i++) {
         c = substr(s, i, 1);
-        if (esc == 1) { esc = 0; continue }
+        if (esc == 1) { if (c == "$") { literal_dollars[i] = 1 } esc = 0; continue }
         if (c == "\\" && q != "\047") { esc = 1; continue }
-        if (q != "") { if (c == q) { q = "" } continue }
+        if (functions > 0) {
+          if (q != "") { if (c == q) { q = "" } continue }
+          if (c == "\"" || c == "\047") { q = c; continue }
+          if (c == "{") { functions++ }
+          if (c == "}" && --functions == 0) {
+            printf "N\t%s\t%s\n", sep, function_name;
+            body = substr(s, function_start, i - function_start);
+            count = split(body, body_lines, "\n");
+            for (j = 1; j <= count; j++) { printf "D\t%s\n", body_lines[j] }
+            printf "F\t\n"; start = i + 1; sep = "o";
+          }
+          continue;
+        }
+        quoted_expression = q == "\"" && ((c == "(" && substr(s, i - 1, 1) == "$" && !literal_dollars[i - 1]) || c == "`");
+        if (q != "" && !quoted_expression) { if (c == q) { q = "" } continue }
         if (c == "\"" || c == "\047") { q = c; continue }
+        if (c == "`") {
+          if (backtick) {
+            piece = substr(s, start, i - start);
+            if (piece ~ /[^[:space:]]/) { printf "%s\t%s\n", sep, piece; sep = "o" }
+            printf "]\t\n"; start = backtick_start; q = backtick_quote; backtick = 0;
+          } else {
+            backtick_start = start; backtick_quote = q; q = ""; backtick = 1;
+            printf "[\t\nL\t%d\n", list_async(i + 1); start = i + 1;
+          }
+          continue;
+        }
+        if (i == start && c ~ /[[:space:]]/) { start = i + 1; continue }
+        if (c ~ /[[:space:]]/ && substr(s, i - 1, 1) !~ /[[:space:]]/ && substr(s, start, 4) == "case") {
+          piece = substr(s, start, i - start);
+          if (piece ~ /^case[[:space:]].*[[:space:]]in$/) {
+            case_scopes[++cases] = parens;
+            case_patterns[cases] = 1; printf "C\t\n"; start = i + 1; continue;
+          }
+        }
+        if (cases > 0 && c ~ /[[:space:];&|)]/ && substr(s, start, 4) == "esac") {
+          piece = substr(s, start, i - start);
+          if (piece ~ /^esac[[:space:]]*$/) { cases--; printf "K\t\n" }
+        }
+        if (cases > 0 && case_scopes[cases] == parens && case_patterns[cases]) {
+          if (c == ")") { case_patterns[cases] = 0; start = i + 1 }
+          continue;
+        }
+        if (c == "{") {
+          piece = substr(s, start, i - start);
+          definition = piece ~ /^[[:space:]]*([A-Za-z_][A-Za-z_0-9]*[[:space:]]*\([[:space:]]*\)|function[[:space:]]+[A-Za-z_][A-Za-z_0-9]*([[:space:]]*\([[:space:]]*\))?)[[:space:]]*$/;
+          if (definition) {
+            function_name = piece;
+            sub(/^[[:space:]]*(function[[:space:]]+)?/, "", function_name);
+            sub(/[[:space:]\(].*$/, "", function_name);
+            functions = 1; function_start = i + 1;
+            continue;
+          }
+          previous = i > 1 ? substr(s, i - 1, 1) : "";
+          group = (i == 1 || previous ~ /[[:space:];&|()]/) && substr(s, i + 1, 1) ~ /[[:space:];]/ &&
+            piece ~ /^[[:space:]]*((then|do|else|!|time)[[:space:]]+)*$/;
+          brace_groups[++brace_depth] = group;
+          if (group) {
+            brace_sep = sep;
+            if (piece ~ /[^[:space:]]/) { printf "%s\t%s\n", sep, piece; sep = "o" }
+            # A pipeline owns the whole compound command, not just the final
+            # statement before |. Snapshot before any brace-body cd/return.
+            outgoing = brace_pipe(i + 1, "{", "}");
+            brace_pipes[brace_depth] = brace_sep == "|" || outgoing;
+            if (brace_pipes[brace_depth]) { printf "(\t%s%s\nL\t%d\n", (brace_sep == "|" ? "|" : ""), (outgoing ? "+" : ""), list_async(i + 1) }
+            printf "G\t%s\nL\t%d\n", brace_sep, list_async(i + 1);
+            if (brace_redirect ~ /[^[:space:]]/) { printf "I\t%s\n", brace_redirect }
+            # P retains incoming stdin provenance without wrapping each body
+            # statement in another child: all statements share the brace cwd.
+            if (brace_sep == "|") { sep = "P" }
+            start = i + 1; continue;
+          }
+        }
+        if (c == "}" && brace_depth > 0) {
+          group = brace_groups[brace_depth--];
+          if (group) {
+            piece = substr(s, start, i - start);
+            if (piece ~ /[^[:space:]]/) { printf "%s\t%s\n", sep, piece; sep = "o" }
+            printf "H\t\n";
+            if (brace_pipes[brace_depth + 1]) { printf ")\t\n" }
+            start = i + 1; post_brace = 1; continue;
+          }
+        }
+        if (c == "(") {
+          previous = i > 1 ? substr(s, i - 1, 1) : "";
+          piece = substr(s, start, i - start);
+          header = piece ~ /^[[:space:]]*(function[[:space:]]+)?[A-Za-z_][A-Za-z_0-9]*[[:space:]]*$/ && substr(s, i + 1) ~ /^[[:space:]]*\)/;
+          expression = previous ~ /[$<>]/ && !literal_dollars[i - 1] && substr(s, i + 1, 1) != "(";
+          group = (parens == 0 || scopes[parens] != 0) &&
+            (i == 1 || previous ~ /[[:space:];&|()]/) && substr(s, i + 1, 1) != "(" && !header;
+          scopes[++parens] = expression ? 2 : group;
+          if (expression) {
+            expression_starts[parens] = start;
+            expression_quotes[parens] = q; q = "";
+            printf "[\t\nL\t%d\n", list_async(i + 1); start = i + 1; continue;
+          }
+          if (group) {
+            piece = substr(s, start, i - start);
+            if (piece ~ /[^[:space:]]/) { printf "%s\t%s\n", sep, piece; sep = "o" }
+            outgoing = brace_pipe(i + 1, "(", ")");
+            printf "(\t%s%s\nL\t%d\n", sep, (outgoing ? "+" : ""), list_async(i + 1);
+            if (brace_redirect ~ /[^[:space:]]/) { printf "I\t%s\n", brace_redirect }
+            if (sep == "|") { sep = "P" }
+            start = i + 1; continue;
+          }
+        }
+        if (c == ")" && parens > 0) {
+          piece = substr(s, start, i - start);
+          group = scopes[parens--];
+          if (group == 2) {
+            if (piece ~ /[^[:space:]]/) { printf "%s\t%s\n", sep, piece; sep = "o" }
+            printf "]\t\n"; start = expression_starts[parens + 1]; q = expression_quotes[parens + 1]; continue;
+          }
+          if (group) {
+            piece = substr(s, start, i - start);
+            if (piece ~ /[^[:space:]]/) { printf "%s\t%s\n", sep, piece; sep = "o" }
+            printf ")\t\n"; start = i + 1; post_brace = 1; continue;
+          }
+        }
         if (c == ";" || c == "&" || c == "|" || c == "\n") {
-          printf "%s\t%s\n", sep, substr(s, start, i - start);
+          if (parens > 0 && scopes[parens] == 0) { continue }
+          if (c == "&" && (substr(s, i - 1, 1) ~ /[<>]/ || substr(s, i + 1, 1) == ">")) { continue }
+          piece = substr(s, start, i - start);
+          pipe = c == "|" && substr(s, i + 1, 1) != "|";
+          if (pipe || sep == "|") { printf "(\t%s%s\nL\t%d\n", (sep == "|" ? "|" : ""), (pipe ? "+" : ""), list_async(start) }
+          if (piece ~ /[^[:space:]]/) { printf "%s\t%s\n", post_brace ? "R" : sep, piece }
+          post_brace = 0;
+          if (pipe || sep == "|") { printf ")\t\n" }
+          if (c == ";" && substr(s, i + 1, 1) == ";" && cases > 0) {
+            case_patterns[cases] = 1; printf "A\t\n"; i++;
+          }
+          if (c == "|" && substr(s, i + 1, 1) == "|") {
+            i++; sep = "?";
+          } else if (c == "&" && substr(s, i + 1, 1) == "&") {
+            i++; sep = "&";
+          } else if (c == "|") { sep = "|" } else { sep = "o" }
+          if (c == "&" && sep == "o" && substr(s, i - 1, 1) !~ /[&<>]/ && substr(s, i + 1, 1) != ">") {
+            printf "B\t\n";
+          }
+          if ((c == ";" || c == "\n" || c == "&") && sep == "o") { printf "L\t%d\n", list_async(i + 1) }
           start = i + 1;
-          if (c == "|") { sep = "|" } else { sep = "o" }
           continue
         }
       }
+      if (sep == "|") { printf "(\t|\nL\t%d\n", list_async(start) }
       printf "%s\t%s\n", sep, substr(s, start, n - start + 1);
+      if (sep == "|") { printf ")\t\n" }
     }
   '
 }
@@ -818,7 +1028,12 @@ follow_cd() {
   esac
   case "$d" in
     /*) ;;
-    *) d="${follow_cwd:-$PWD}/$d" ;;
+    *)
+      # A relative cd cannot recover an unknown base. Falling back to this
+      # hook's PWD would confidently inspect another directory (#4299).
+      [ "$follow_cwd_unknown" -eq 0 ] || return 0
+      d="${follow_cwd:-$PWD}/$d"
+      ;;
   esac
   follow_normalize "$d"
   d="$follow_normalized"
@@ -902,8 +1117,14 @@ follow_locate() {
 # is never executed, so scanning it can only manufacture a false refusal.
 follow_take() {
   local path="$1" depth="$2" size="" content="" rm_content="${3-}"
+  local invocation_kind=child
+  if [ "$#" -eq 3 ]; then invocation_kind="$3"; fi
   case "$follow_paths" in
-    *$'\n'"$path"$'\n'*) return 0 ;;
+    *$'\n'"$path"$'\n'*)
+      # Sourcing executes in the caller each time; a read cache cannot erase
+      # its directory changes or newly defined functions.
+      [ "$invocation_kind" = source ] || return 0
+      ;;
   esac
   follow_paths="$follow_paths$path"$'\n'
   follow_count=$((follow_count + 1))
@@ -931,22 +1152,31 @@ follow_take() {
   fi
   follow_names="$follow_names $path"
   followed_text="$followed_text"$'\n'"$content"
-  if [ "$#" -lt 3 ]; then
+  if [ "$#" -ne 4 ]; then
     rm_content="$content"
   else
     rm_content="$(printf '%s' "$rm_content" | sed 's/^[[:space:]]*#.*$//')" || follow_refuse "$path" "supervisor cleanup view could not be read"
   fi
   followed_rm_text="$followed_rm_text"$'\n'"$rm_content"
   if [ "$depth" -lt "$FOLLOW_MAX_DEPTH" ]; then
-    # A `cd` inside the followed script governs what THAT script goes on to
-    # execute, and nothing after it in the command that ran the script — the
-    # child inherits this directory but cannot change the parent's. Saving and
-    # restoring is what keeps a nested `cd` from silently re-pointing the rest
-    # of the outer walk.
+    # Child scripts inherit cwd but cannot change their parent. A sourced
+    # script runs in the caller and keeps both cwd and function definitions.
     local saved_cwd="$follow_cwd" saved_unknown="$follow_cwd_unknown"
-    follow_scan "$content" "$((depth + 1))"
-    follow_cwd="$saved_cwd"
-    follow_cwd_unknown="$saved_unknown"
+    if [ "$#" -eq 4 ]; then
+      # Only follow_supervisor reaches this form, after exact byte identity and
+      # the public argv profile were authenticated. Its owned bootstrap is
+      # already scanned in full by every text policy; its user payload is
+      # followed separately by follow_supervisor. Re-expanding all bootstrap
+      # functions would re-interpret its internal protocol, not inspect a new
+      # user-controlled file, and multiplied its native hook time fourfold.
+      follow_scan "$content" "$((depth + 1))" 0 1
+    else
+      follow_scan "$content" "$((depth + 1))" 0 0 "$invocation_kind"
+    fi
+    if [ "$invocation_kind" != source ]; then
+      follow_cwd="$saved_cwd"
+      follow_cwd_unknown="$saved_unknown"
+    fi
   fi
 }
 
@@ -954,7 +1184,14 @@ follow_take() {
 # nested inside an already-followed script it is the documented residual above.
 follow_target() {
   local token="$1" depth="$2" path=""
+  local invocation_kind="${3:-child}"
   [ -n "$token" ] || return 0
+  if [ "$follow_cwd_unknown" -ne 0 ]; then
+    case "$token" in
+      /* | '~/'*) ;;
+      *) follow_refuse "$token" "the execution directory is unknown" ;;
+    esac
+  fi
   # Entry authority belongs to each invocation, not the file-read cache. Only
   # follow_supervisor may admit the exact public interpreter/argv profile.
   case "$token" in
@@ -967,7 +1204,7 @@ follow_target() {
     return 0
   fi
   path="$follow_located"
-  follow_take "$path" "$depth"
+  follow_take "$path" "$depth" "$invocation_kind"
 }
 
 # A command word that IS the executable (`./deploy.sh`, `/tmp/x.sh`). Followed
@@ -1024,23 +1261,422 @@ follow_next_operand() {
   follow_operand_index="$j"
 }
 
+# Resolve a piped file in the PRODUCER's directory, which can differ from the
+# interpreter's after a subshell closes. Preserve unknown-state provenance too.
+follow_pipe_target() {
+  local saved_cwd="$follow_cwd" saved_unknown="$follow_cwd_unknown"
+  follow_cwd="$3"
+  follow_cwd_unknown="$4"
+  follow_target "$1" "$2"
+  follow_cwd="$saved_cwd"
+  follow_cwd_unknown="$saved_unknown"
+}
+
+# Carry branch uncertainty into sourced declarations as well as cwd changes.
+# The local projection lasts only for this source invocation, not later scans.
+follow_source_target() {
+  local follow_source_flow_unknown="$3"
+  follow_target "$1" "$2" source
+}
+
+# Extract the literal -c operand without evaluating it or treating positional
+# arguments after its closing quote as commands. Prefix indexing matches the
+# whitespace tokens used by follow_scan; the operand keeps its internal bytes.
+follow_inline() {
+  local stmt="$1" from="$2" depth="$3" body
+  local follow_inline_depth="${follow_inline_depth:-0}"
+  [ "$follow_inline_depth" -lt "$FOLLOW_MAX_FUNCTION_DEPTH" ] || follow_refuse "-c" "inline shells exceed the inspection depth"
+  follow_inline_depth=$((follow_inline_depth + 1))
+  body="$(LC_ALL=C SN_INLINE_TEXT="$stmt" SN_INLINE_FROM="$from" awk '
+    BEGIN {
+      s = ENVIRON["SN_INLINE_TEXT"]; n = length(s); i = 1;
+      for (word = 0; word < ENVIRON["SN_INLINE_FROM"]; word++) {
+        while (i <= n && substr(s, i, 1) ~ /[[:space:]]/) { i++ }
+        while (i <= n && substr(s, i, 1) !~ /[[:space:]]/) { i++ }
+      }
+      while (i <= n && substr(s, i, 1) ~ /[[:space:]]/) { i++ }
+      q = substr(s, i, 1);
+      if (q == "\047" || q == "\"") {
+        start = ++i; esc = 0;
+        for (; i <= n; i++) {
+          c = substr(s, i, 1);
+          if (esc) { esc = 0; continue }
+          if (c == "\\" && q == "\"") { esc = 1; continue }
+          if (c == q) {
+            # Adjacent quoted/unquoted fragments are the same shell operand.
+            # Refuse unsupported concatenation instead of scanning a prefix.
+            if (i < n && substr(s, i + 1, 1) !~ /[[:space:]]/) { exit 1 }
+            printf "%s", substr(s, start, i - start); exit;
+          }
+        }
+        exit 1;
+      }
+      start = i;
+      while (i <= n && substr(s, i, 1) !~ /[[:space:]]/) {
+        c = substr(s, i, 1);
+        if (c == "\047" || c == "\"" || c == "\\") { exit 1 }
+        i++;
+      }
+      printf "%s", substr(s, start, i - start);
+    }
+  ')" || follow_refuse "-c" "its command string could not be determined"
+  local saved_cwd="$follow_cwd" saved_unknown="$follow_cwd_unknown"
+  follow_scan "$body" "$depth"
+  follow_cwd="$saved_cwd"
+  follow_cwd_unknown="$saved_unknown"
+}
+
+# Resolve literal descriptor duplication without running the proposed shell.
+# Compound input is established before its body; output is projected when the
+# producer reaches the pipe. Unknown descriptors refuse rather than drop bytes.
+follow_redirect_io() {
+  local statement="$1" mode="$2" result
+  result="$(SN_COMPOUND_REDIRECT="$statement" SN_DESCRIPTOR_MAP="$follow_descriptor_map" SN_REDIRECT_CWD="$follow_cwd" SN_REDIRECT_UNKNOWN="$follow_cwd_unknown" python3 - "$mode" <<'PY'
+import json
+import os
+import sys
+try:
+    mode = sys.argv[1]
+    text = os.environ['SN_COMPOUND_REDIRECT']
+    tokens = []
+    cursor = 0
+    # Keep syntax provenance and byte adjacency: quoted/escaped > is data,
+    # and `cat 2 >&2` names a file rather than redirecting descriptor 2.
+    while cursor < len(text):
+        if text[cursor].isspace():
+            cursor += 1
+            continue
+        start = cursor
+        syntax = text[cursor] in '<>&'
+        plain = True
+        value = ''
+        quote = ''
+        if syntax:
+            while cursor < len(text) and text[cursor] in '<>&':
+                value += text[cursor]; cursor += 1
+        else:
+            while cursor < len(text):
+                char = text[cursor]
+                if not quote and (char.isspace() or char in '<>&'):
+                    break
+                if char == '\\' and quote != "'":
+                    plain = False
+                    cursor += 1
+                    if cursor == len(text):
+                        raise ValueError('trailing escape')
+                    if text[cursor] == '\n':
+                        cursor += 1
+                        continue
+                    if quote == '"' and text[cursor] not in '$`"\\':
+                        value += '\\'
+                    value += text[cursor]; cursor += 1
+                    continue
+                if char in ('"', "'"):
+                    if not quote:
+                        quote = char; plain = False; cursor += 1
+                        continue
+                    if quote == char:
+                        quote = ''; cursor += 1
+                        continue
+                value += char; cursor += 1
+            if quote:
+                raise ValueError('unterminated quote')
+        tokens.append((value, syntax, plain, start, cursor))
+    descriptors = {int(fd): value for fd, value in json.loads(os.environ['SN_DESCRIPTOR_MAP']).items()}
+    operators = ('<', '>', '>>', '<>', '<&', '>&', '&>', '&>>')
+    index = 0
+    while index < len(tokens):
+        fd = None
+        token, syntax, plain, start, end = tokens[index]
+        if token.isdigit() and plain and index + 1 < len(tokens) and tokens[index + 1][1] and end == tokens[index + 1][3]:
+            fd = int(token); index += 1
+            token, syntax, plain, start, end = tokens[index]
+        if not syntax or token not in operators:
+            if mode == 'cat':
+                index += 1
+                continue
+            sys.exit(2)
+        if index + 1 >= len(tokens):
+            sys.exit(2)
+        operator = token
+        operand, operand_syntax, _, _, _ = tokens[index + 1]
+        if operand_syntax:
+            sys.exit(2)
+        index += 2
+        if fd is None:
+            fd = 0 if operator.startswith('<') else 1
+        if operator in ('<&', '>&'):
+            if operand == '-':
+                descriptors[fd] = {'kind': 'closed'}
+            elif operand.isdigit():
+                descriptors[fd] = descriptors.get(int(operand), {'kind': 'unknown'})
+            else:
+                sys.exit(2)
+        else:
+            descriptors[fd] = {'kind': 'file', 'path': operand, 'cwd': os.environ['SN_REDIRECT_CWD'], 'unknown': int(os.environ['SN_REDIRECT_UNKNOWN'])}
+            if operator.startswith('&>'):
+                descriptors[2] = descriptors[fd]
+    output = descriptors[1]['kind']
+    if output == 'unknown' or descriptors[0]['kind'] == 'unknown':
+        sys.exit(2)
+    print(json.dumps({'input': descriptors[0], 'output': output, 'descriptors': descriptors}))
+except (ValueError, OSError):
+    sys.exit(2)
+PY
+)" || follow_refuse "compound redirection" "its input or pipeline output could not be determined"
+  follow_redirect_input="$(printf '%s' "$result" | jq -er '.input.kind')" || follow_refuse "compound redirection" "invalid input projection"
+  follow_redirect_path="$(printf '%s' "$result" | jq -r '.input.path // ""')" || follow_refuse "compound redirection" "invalid input path"
+  follow_redirect_map="$(printf '%s' "$result" | jq -ce '.descriptors')" || follow_refuse "compound redirection" "invalid descriptor projection"
+  follow_redirect_input_cwd="$(printf '%s' "$result" | jq -r '.input.cwd // ""')" || follow_refuse "compound redirection" "invalid input cwd"
+  follow_redirect_input_unknown="$(printf '%s' "$result" | jq -r '.input.unknown // 1')" || follow_refuse "compound redirection" "invalid input uncertainty"
+  follow_redirect_output="$(printf '%s' "$result" | jq -er '.output')" || follow_refuse "compound redirection" "invalid output projection"
+}
+
 # Walk one text for the files it executes. Runs in the PARENT shell, never in a
 # command substitution: follow_refuse() must be able to deny, and an exit inside
 # a subshell ends that subshell rather than this hook — the mistake documented
 # on the rm segmentation below.
 follow_scan() {
   local text="$1" depth="$2"
+  local function_call_depth="${3:-0}"
+  local authenticated_bootstrap="${4:-0}"
+  local invocation_kind="${5:-child}"
+  local function_flow_unknown="${6:-0}" function_lookup_allowed statement_conditional function_conditional=0
+  local and_cwd="" and_unknown=1 and_ready=0 join_cwd join_unknown
+  if [ "$invocation_kind" = source ]; then
+    function_flow_unknown="${follow_source_flow_unknown:-0}"
+  fi
+  local return_scope_depth=-1
+  local return_list_depth=-1
+  local return_flow_unknown=0
+  local list_depth=0 list_index
   local split_out line sep stmt t tj i j n cmd_pos eval_mode inline arg_exec
   local heredoc redirected pipe_cat prev_cat pending_operand stdin_mode
+  local pipe_cwd pipe_unknown prev_cwd prev_unknown
+  local follow_stdin_cat="${follow_stdin_cat:-}" follow_stdin_cwd="${follow_stdin_cwd:-}" follow_stdin_unknown="${follow_stdin_unknown:-1}"
+  local follow_redirect_input follow_redirect_path follow_redirect_output follow_redirect_map follow_redirect_input_cwd follow_redirect_input_unknown
+  local follow_descriptor_map="${follow_descriptor_map:-}"
+  if [ -z "$follow_descriptor_map" ]; then
+    follow_descriptor_map='{"0":{"kind":"input"},"1":{"kind":"pipe"},"2":{"kind":"stderr"}}'
+  fi
   local find_mode dispatch_pending
+  local scope_depth=0 case_depth=0 function_name="" function_body="" function_index function_found
   local -a toks=()
-  split_out="$(follow_split "$text")"
+  local -a cwd_scopes=() unknown_scopes=() cat_scopes=() cat_cwd_scopes=() cat_unknown_scopes=() function_scopes=() flow_scopes=() return_flows=()
+  local -a list_cwds=() list_unknowns=() list_functions=() list_flows=() list_asyncs=() list_scope_depths=() list_return_flows=() brace_flows=()
+  local -a brace_descriptor_maps=() scope_descriptor_maps=()
+  local -a brace_stdin_cats=() brace_stdin_cwds=() brace_stdin_unknowns=() scope_stdin_cats=() scope_stdin_cwds=() scope_stdin_unknowns=()
+  local -a case_cwds=() case_unknowns=() case_changes=()
+  if [ "$function_call_depth" -eq 0 ] && [ "$invocation_kind" != source ]; then
+    # Ordinary child shells do not inherit unexported functions. Sourcing and
+    # function calls share the caller's definitions instead.
+    local function_count=0
+    local -a function_names=() function_bodies=() function_uncertainties=()
+  fi
+  split_out="$(follow_split "$text")" || follow_refuse "shell scope" "scope parsing exceeds the inspection budget"
   prev_cat=""
   while IFS= read -r line; do
     sep="${line%%$'\t'*}"
     stmt="${line#*$'\t'}"
-    pipe_cat=""
-    [ "$sep" != "|" ] || pipe_cat="$prev_cat"
+    statement_conditional=0
+    case "$sep" in '&' | '?') statement_conditional=1 ;; esac
+    # A reached && successor observes the preceding successful command's cwd.
+    # Scope/list events invalidate this projection; it must never carry a
+    # child's or a background list's directory into another shell/list.
+    case "$sep" in
+      L | G | H | B | N | F | C | A | K | '(' | '[' | ')' | ']') and_ready=0 ;;
+    esac
+    if [ "$return_list_depth" -ge 0 ]; then
+      case "$sep" in
+        B) [ "$list_depth" -eq "$return_list_depth" ] || continue ;;
+        '(' | '[' | ')' | ']' | G | H) ;;
+        *) continue ;;
+      esac
+    fi
+    if [ "$return_scope_depth" -ge 0 ]; then
+      # A return in a child scope ends that child, not its enclosing function.
+      # Keep only scope events until the matching close restores the parent.
+      case "$sep" in '(' | '[' | ')' | ']' | G | H) ;; *) continue ;; esac
+    fi
+    case "$sep" in
+      L)
+        list_cwds[list_depth]="$follow_cwd"
+        list_unknowns[list_depth]="$follow_cwd_unknown"
+        list_functions[list_depth]=$function_count
+        list_flows[list_depth]=$function_flow_unknown
+        list_asyncs[list_depth]="$stmt"
+        list_scope_depths[list_depth]=$scope_depth
+        list_return_flows[list_depth]=$return_flow_unknown
+        continue
+        ;;
+      G)
+        brace_flows[list_depth]=$function_flow_unknown
+        brace_descriptor_maps[list_depth]="$follow_descriptor_map"
+        brace_stdin_cats[list_depth]="$follow_stdin_cat"
+        brace_stdin_cwds[list_depth]="$follow_stdin_cwd"
+        brace_stdin_unknowns[list_depth]="$follow_stdin_unknown"
+        if [ "$stmt" = "|" ]; then
+          follow_stdin_cat="$prev_cat"; follow_stdin_cwd="${prev_cwd:-}"; follow_stdin_unknown="${prev_unknown:-1}"
+        fi
+        case "$stmt" in '&' | '?') function_flow_unknown=1 ;; esac
+        list_depth=$((list_depth + 1)); continue
+        ;;
+      H)
+        list_depth=$((list_depth - 1))
+        function_flow_unknown="${brace_flows[list_depth]}"
+        follow_descriptor_map="${brace_descriptor_maps[list_depth]}"
+        follow_stdin_cat="${brace_stdin_cats[list_depth]}"
+        follow_stdin_cwd="${brace_stdin_cwds[list_depth]}"
+        follow_stdin_unknown="${brace_stdin_unknowns[list_depth]}"
+        # A conditional return may exit this function/source before commands
+        # after the brace. Unlike a child return, that uncertainty persists.
+        if [ "$return_flow_unknown" -ne 0 ]; then function_flow_unknown=1; fi
+        continue
+        ;;
+      B)
+        # A single & runs the whole AND/OR list asynchronously. Its cwd and
+        # definitions cannot escape into the parent's next list.
+        follow_cwd="${list_cwds[list_depth]}"
+        follow_cwd_unknown="${list_unknowns[list_depth]}"
+        function_flow_unknown="${list_flows[list_depth]}"
+        return_flow_unknown="${list_return_flows[list_depth]}"
+        return_list_depth=-1
+        while [ "$function_count" -gt "${list_functions[list_depth]}" ]; do
+          function_count=$((function_count - 1))
+          function_index=$function_count
+          unset 'function_names[function_index]' 'function_bodies[function_index]' 'function_uncertainties[function_index]'
+        done
+        continue
+        ;;
+      N)
+        function_name="${stmt#*$'\t'}"; function_body=""
+        function_conditional="$function_flow_unknown"
+        case "${stmt%%$'\t'*}" in '&' | '?') function_conditional=1 ;; esac
+        continue
+        ;;
+      D)
+        if [ "$authenticated_bootstrap" -eq 0 ]; then
+          function_body="$function_body$stmt"$'\n'
+        fi
+        continue
+        ;;
+      F)
+        [ "$authenticated_bootstrap" -eq 0 ] || continue
+        function_index=$function_count
+        function_names[function_index]="$function_name"
+        function_bodies[function_index]="$function_body"
+        function_uncertainties[function_index]="$function_conditional"
+        function_count=$((function_count + 1))
+        continue
+        ;;
+      C)
+        function_flow_unknown=1
+        case_cwds[case_depth]="$follow_cwd"
+        case_unknowns[case_depth]="$follow_cwd_unknown"
+        case_changes[case_depth]=0
+        case_depth=$((case_depth + 1))
+        continue
+        ;;
+      A | K)
+        function_index=$((case_depth - 1))
+        if [ "$follow_cwd" != "${case_cwds[function_index]}" ] || [ "$follow_cwd_unknown" != "${case_unknowns[function_index]}" ]; then
+          case_changes[function_index]=1
+        fi
+        follow_cwd="${case_cwds[function_index]}"
+        follow_cwd_unknown="${case_unknowns[function_index]}"
+        if [ "$sep" = K ]; then
+          if [ "${case_changes[function_index]}" -ne 0 ]; then
+            follow_cwd=""; follow_cwd_unknown=1
+          fi
+          case_depth=$((case_depth - 1))
+        fi
+        continue
+        ;;
+      '(' | '[')
+        cwd_scopes[scope_depth]="$follow_cwd"
+        unknown_scopes[scope_depth]="$follow_cwd_unknown"
+        cat_scopes[scope_depth]="$prev_cat"
+        cat_cwd_scopes[scope_depth]="${prev_cwd:-}"
+        cat_unknown_scopes[scope_depth]="${prev_unknown:-1}"
+        scope_descriptor_maps[scope_depth]="$follow_descriptor_map"
+        function_scopes[scope_depth]=$function_count
+        flow_scopes[scope_depth]=$function_flow_unknown
+        return_flows[scope_depth]=$return_flow_unknown
+        scope_stdin_cats[scope_depth]="$follow_stdin_cat"
+        scope_stdin_cwds[scope_depth]="$follow_stdin_cwd"
+        scope_stdin_unknowns[scope_depth]="$follow_stdin_unknown"
+        if [ "$stmt" = "|" ] || [ "$stmt" = "|+" ]; then
+          follow_stdin_cat="$prev_cat"; follow_stdin_cwd="${prev_cwd:-}"; follow_stdin_unknown="${prev_unknown:-1}"
+          follow_descriptor_map="$(printf '%s' "$follow_descriptor_map" | jq -ce '.["0"] = {kind:"input"}')" || follow_refuse "pipeline input" "its descriptor could not be established"
+        fi
+        case "$stmt" in
+          *+)
+            follow_descriptor_map="$(printf '%s' "$follow_descriptor_map" | jq -ce '.["1"] = {kind:"pipe"}')" || follow_refuse "pipeline output" "its descriptor could not be established"
+            ;;
+        esac
+        scope_depth=$((scope_depth + 1))
+        list_depth=$((list_depth + 1))
+        continue
+        ;;
+      ')' | ']')
+        scope_depth=$((scope_depth - 1))
+        list_depth=$((list_depth - 1))
+        follow_cwd="${cwd_scopes[scope_depth]}"
+        follow_descriptor_map="${scope_descriptor_maps[scope_depth]}"
+        follow_cwd_unknown="${unknown_scopes[scope_depth]}"
+        function_flow_unknown="${flow_scopes[scope_depth]}"
+        return_flow_unknown="${return_flows[scope_depth]}"
+        follow_stdin_cat="${scope_stdin_cats[scope_depth]}"
+        follow_stdin_cwd="${scope_stdin_cwds[scope_depth]}"
+        follow_stdin_unknown="${scope_stdin_unknowns[scope_depth]}"
+        while [ "$function_count" -gt "${function_scopes[scope_depth]}" ]; do
+          function_count=$((function_count - 1))
+          function_index=$function_count
+          unset 'function_names[function_index]' 'function_bodies[function_index]' 'function_uncertainties[function_index]'
+        done
+        if [ "$sep" = ']' ]; then
+          prev_cat="${cat_scopes[scope_depth]}"
+          prev_cwd="${cat_cwd_scopes[scope_depth]}"
+          prev_unknown="${cat_unknown_scopes[scope_depth]}"
+        fi
+        if [ "$return_scope_depth" -ge 0 ] && [ "$scope_depth" -lt "$return_scope_depth" ]; then
+          return_scope_depth=-1
+        fi
+        continue
+        ;;
+      I)
+        follow_redirect_io "$stmt" compound
+        follow_descriptor_map="$follow_redirect_map"
+        case "$follow_redirect_input" in
+          file)
+            follow_stdin_cat="$follow_redirect_path"
+            follow_stdin_cwd="$follow_redirect_input_cwd"; follow_stdin_unknown="$follow_redirect_input_unknown"
+            ;;
+          closed) follow_stdin_cat="" ;;
+          input) ;;
+          *) follow_refuse "compound redirection" "its input source could not be determined" ;;
+        esac
+        continue
+        ;;
+      R)
+        # The whole compound tail was applied before its body by I. Its cat
+        # producer already records whether its effective output reaches pipe.
+        continue
+        ;;
+    esac
+    join_cwd="$follow_cwd"; join_unknown="$follow_cwd_unknown"
+    if [ "$sep" = '&' ] && [ "$and_ready" -eq 1 ]; then
+      follow_cwd="$and_cwd"; follow_cwd_unknown="$and_unknown"
+    fi
+    and_ready=0
+    pipe_cat="$follow_stdin_cat"
+    pipe_cwd="$follow_stdin_cwd"
+    pipe_unknown="$follow_stdin_unknown"
+    if [ "$sep" = "|" ]; then
+      pipe_cat="$prev_cat"
+      pipe_cwd="${prev_cwd:-}"
+      pipe_unknown="${prev_unknown:-1}"
+    fi
     prev_cat=""
     case "$stmt" in
       *[![:space:]]*) ;;
@@ -1056,6 +1692,7 @@ follow_scan() {
     [ "$n" -gt 0 ] || continue
     i=0
     cmd_pos=1
+    function_lookup_allowed=1
     eval_mode=0
     arg_exec=0
     pending_operand=0
@@ -1107,7 +1744,65 @@ follow_scan() {
         follow_unwrap "${toks[i]}"
         t="$follow_unwrapped"
       fi
+      function_found=0
+      for ((function_index = function_count - 1; function_lookup_allowed && function_index >= 0; function_index--)); do
+        if [ "$t" = "${function_names[function_index]}" ]; then
+          [ "${function_uncertainties[function_index]}" -eq 0 ] || follow_refuse "$t" "its function definition is conditional"
+          # Calls execute in this shell and do not consume a file-follow depth.
+          # A separate bound refuses recursion without truncating the body.
+          [ "$function_call_depth" -lt "$FOLLOW_MAX_FUNCTION_DEPTH" ] || follow_refuse "$t" "function calls exceed the inspection depth"
+          follow_function_calls=$((follow_function_calls + 1))
+          follow_function_bytes=$((follow_function_bytes + ${#function_bodies[function_index]}))
+          if [ "$follow_function_calls" -gt "$FOLLOW_MAX_FUNCTION_CALLS" ] || [ "$follow_function_bytes" -gt "$FOLLOW_MAX_TOTAL_BYTES" ]; then
+            follow_refuse "$t" "function expansion exceeds the inspection budget"
+          fi
+          local call_cwd="$follow_cwd" call_unknown="$follow_cwd_unknown"
+          follow_scan "${function_bodies[function_index]}" "$depth" "$((function_call_depth + 1))" 0 child "$((function_flow_unknown || statement_conditional))"
+          if { [ "$function_flow_unknown" -ne 0 ] || [ "$statement_conditional" -ne 0 ]; } && { [ "$follow_cwd" != "$call_cwd" ] || [ "$follow_cwd_unknown" != "$call_unknown" ]; }; then
+            follow_cwd=""; follow_cwd_unknown=1
+          fi
+          function_found=1
+          break
+        fi
+      done
+      if [ "$function_found" -eq 1 ]; then
+        cmd_pos=0; i=$((i + 1)); continue
+      fi
       case "$t" in
+        return)
+          if [ "$statement_conditional" -ne 0 ]; then function_flow_unknown=1; fi
+          if { [ "$function_call_depth" -gt 0 ] || [ "$invocation_kind" = source ]; } && [ "$function_flow_unknown" -ne 0 ]; then
+            return_flow_unknown=1
+          fi
+          if { [ "$function_call_depth" -gt 0 ] || [ "$invocation_kind" = source ]; } && [ "$function_flow_unknown" -eq 0 ]; then
+            # Ordinary braces share the shell but have distinct list frames.
+            # A surrounding background brace list ends only its child; do not
+            # cross a literal subshell boundary while finding that parent list.
+            for ((list_index = list_depth; list_index >= 0; list_index--)); do
+              [ "${list_scope_depths[list_index]}" -eq "$scope_depth" ] || break
+              if [ "${list_asyncs[list_index]}" -ne 0 ]; then
+                return_list_depth="$list_index"
+                break
+              fi
+            done
+            if [ "$return_list_depth" -ge 0 ]; then
+              :
+            elif [ "$scope_depth" -eq 0 ]; then
+              return 0
+            else
+              return_scope_depth="$scope_depth"
+            fi
+          fi
+          cmd_pos=0; i=$((i + 1)); continue
+          ;;
+        if | while | until)
+          function_flow_unknown=1
+          i=$((i + 1)); continue
+          ;;
+        for | select)
+          function_flow_unknown=1
+          cmd_pos=0; i=$((i + 1)); continue
+          ;;
         # Prefixes that keep the command position open: assignments, wrappers,
         # and the shell keywords a statement can start with. Without them
         # `if …; then bash <file>` and `env bash <file>` walk past the
@@ -1142,12 +1837,17 @@ follow_scan() {
           # which keeps working when options sit in between — `timeout -s KILL
           # 5 bash <file>` reaches `bash` just as `timeout 5 bash <file>` does.
           pending_operand=1
+          function_lookup_allowed=0
           i=$((i + 1))
           continue
           ;;
         sudo | env | command | exec | nohup | nice | time | builtin \
-          | do | then | else | while | until | if | '!' | '{' \
+          | do | then | else | '!' | '{' \
           | */sudo | */env | */nohup | */nice | */time)
+          case "$t" in
+            sudo | env | command | exec | nohup | nice | builtin | */sudo | */env | */nohup | */nice) function_lookup_allowed=0 ;;
+            do | then | else) function_flow_unknown=1 ;;
+          esac
           i=$((i + 1))
           continue
           ;;
@@ -1185,6 +1885,9 @@ follow_scan() {
             # place would resolve later tokens from a directory the shell left.
             follow_cd "${HOME:-}"
           fi
+          if [ "$function_flow_unknown" -ne 0 ]; then
+            follow_cwd=""; follow_cwd_unknown=1
+          fi
           cmd_pos=0
           i=$((i + 1))
           continue
@@ -1194,7 +1897,11 @@ follow_scan() {
           j="$follow_operand_index"
           if [ "$j" -lt "$n" ]; then
             follow_unwrap "${toks[j]}"
-            follow_target "$follow_unwrapped" "$depth"
+            local source_cwd="$follow_cwd" source_unknown="$follow_cwd_unknown"
+            follow_source_target "$follow_unwrapped" "$depth" "$((function_flow_unknown || statement_conditional))"
+            if { [ "$function_flow_unknown" -ne 0 ] || [ "$statement_conditional" -ne 0 ]; } && { [ "$follow_cwd" != "$source_cwd" ] || [ "$follow_cwd_unknown" != "$source_unknown" ]; }; then
+              follow_cwd=""; follow_cwd_unknown=1
+            fi
           fi
           cmd_pos=0
           i=$((j + 1))
@@ -1203,14 +1910,32 @@ follow_scan() {
         cat | '<')
           follow_next_operand "$i" "$n"
           j="$follow_operand_index"
-          if [ "$j" -lt "$n" ]; then
-            follow_unwrap "${toks[j]}"
+          follow_unwrapped=""
+          if [ "$j" -lt "$n" ]; then follow_unwrap "${toks[j]}"; fi
+          if [ "$t" = cat ] && { [ "$j" -ge "$n" ] || [ "$follow_unwrapped" = - ]; }; then
+            # Bare cat and cat - forward the group's named stdin unchanged.
+            prev_cat="$pipe_cat"; prev_cwd="$pipe_cwd"; prev_unknown="$pipe_unknown"
+            if [ "$eval_mode" -eq 1 ] && [ -n "$prev_cat" ]; then
+              follow_pipe_target "$prev_cat" "$depth" "$prev_cwd" "$prev_unknown"
+            fi
+          elif [ "$j" -lt "$n" ]; then
             if [ "$eval_mode" -eq 1 ]; then
               follow_target "$follow_unwrapped" "$depth"
             else
-              # Not executed here — but `cat <file> | bash` is, and the
-              # interpreter arm below reads this when the pipe hands it over.
+              # Not executed here — the pipe consumer decides whether the
+              # producer's file content becomes an executable shell input.
               prev_cat="$follow_unwrapped"
+              prev_cwd="$follow_cwd"; prev_unknown="$follow_cwd_unknown"
+            fi
+          fi
+          if [ -n "$prev_cat" ] && [ "$eval_mode" -eq 0 ]; then
+            if [[ "$stmt" == *'>'* ]] || [ "$follow_descriptor_map" != '{"0":{"kind":"input"},"1":{"kind":"pipe"},"2":{"kind":"stderr"}}' ]; then
+              follow_redirect_io "$stmt" cat
+              case "$follow_redirect_output" in
+                pipe) ;;
+                file | closed | stderr | input) prev_cat="" ;;
+                *) follow_refuse "cat redirection" "its output destination could not be determined" ;;
+              esac
             fi
           fi
           cmd_pos=0
@@ -1295,18 +2020,17 @@ follow_scan() {
           continue
         fi
         if [ "$inline" -eq 1 ]; then
-          # `-c` takes a COMMAND STRING, not a script path. That string is text
-          # the guards already read, and it can itself invoke a script, so the
-          # walk re-enters it at a fresh command position rather than reading it
-          # as a filename — this is what catches `bash -c 'bash <file>'`.
-          cmd_pos=1
-          i="$j"
+          # The command string runs in a child shell. It gets its own function
+          # map and cwd effects; positional arguments are data, not commands.
+          follow_inline "$stmt" "$j" "$depth"
+          cmd_pos=0
+          i="$n"
           continue
         fi
         if [ "$stdin_mode" -eq 1 ]; then
           # `sh -s -- -y` reads its program from stdin; tokens after `--` are
           # positional arguments to that program, never a script path.
-          [ -z "$pipe_cat" ] || follow_target "$pipe_cat" "$depth"
+          [ -z "$pipe_cat" ] || follow_pipe_target "$pipe_cat" "$depth" "$pipe_cwd" "$pipe_unknown"
           cmd_pos=0
           i="$n"
           continue
@@ -1320,7 +2044,7 @@ follow_scan() {
           fi
           # No operand: an interactive or stdin-fed interpreter. Only the
           # `cat <file> | bash` shape names a FILE, and only that is followed.
-          [ -z "$pipe_cat" ] || follow_target "$pipe_cat" "$depth"
+          [ -z "$pipe_cat" ] || follow_pipe_target "$pipe_cat" "$depth" "$pipe_cwd" "$pipe_unknown"
           cmd_pos=0
           i="$j"
           continue
@@ -1354,6 +2078,14 @@ follow_scan() {
       cmd_pos=0
       i=$((i + 1))
     done
+    # Keep successful-branch provenance separate from the continuation join.
+    # OR can skip its RHS and still reach a following &&, so it cannot prove
+    # that RHS's cwd. A semicolon observes every possible preceding outcome.
+    and_cwd="$follow_cwd"; and_unknown="$follow_cwd_unknown"
+    if [ "$sep" != '?' ] && [ "$function_flow_unknown" -eq 0 ]; then and_ready=1; fi
+    if [ "$statement_conditional" -ne 0 ] && { [ "$join_unknown" -ne 0 ] || [ "$follow_cwd_unknown" -ne 0 ] || [ "$follow_cwd" != "$join_cwd" ]; }; then
+      follow_cwd=""; follow_cwd_unknown=1
+    fi
   done <<<"$split_out"
 }
 

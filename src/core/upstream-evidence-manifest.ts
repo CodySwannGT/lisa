@@ -257,7 +257,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
       "b37b843b738fd0c1c6f9639551cf64c409263064819bb820e3daa6af8c94d443",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "5d65516d4a1c7cd41c82941596e9f3fe9b96a1030891b40a1a6080171dddede8",
+      "e63b511a942eb2735db2d1b26f13b7eabc60f56e2f40d343dbd58cd3ffe765ba",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
@@ -1019,7 +1019,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "7b2c5ea41466f0334a6100a411ca6de033964b3b054d32e0e40778a2ad53bb41",
+      "cdf796cc4f373521d35bd8e80f77d241cc9d68be6d5a1987dbbf75edf523d681",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -2679,7 +2679,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "6c8203e16eb46822e8e4ba5eb2904abfa6978810309db4236dea232c20817e7c",
+      "5f2b6e08423bb9dc9845cffc710ecde95b47ce7be38ca2cfa49273079c37ca15",
     "scripts/update-node-version.ts":
       "0059067c14001c2f7e75beb2628d1a46f935c7b01ce61871db71b6849ef62dca",
     "scripts/update-test-skill-paths.mjs":
@@ -2963,6 +2963,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/create-sentry-issue-on-failure.yml": true,
     ".github/workflows/deploy.yml": true,
     ".github/workflows/duplicate-versions.yml": true,
+    ".github/workflows/environment-prepare-aws.yml": true,
     ".github/workflows/environment-prepare.yml": true,
     ".github/workflows/gates.yml": true,
     ".github/workflows/history-secrets.yml": true,
@@ -9967,6 +9968,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/emitted-scripts-survive-shipped-fixer.test.ts": true,
     "tests/integration/enforcement-census-cli.test.ts": true,
     "tests/integration/environment-facade-gates.test.ts": true,
+    "tests/integration/environment-prepare-aws-workflow.test.ts": true,
     "tests/integration/environment-prepare-workflow.test.ts": true,
     "tests/integration/expo-host-run-scripts-survive-apply.test.ts": true,
     "tests/integration/expo-independent-checks.test.ts": true,
@@ -10720,18 +10722,25 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/operational-hazards-wiring.test.ts": true,
     "tests/unit/hooks/operational-hazards.test.ts": true,
     "tests/unit/hooks/parity-push-gate.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-and-branch-scope.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-brace-scope.test.ts": true,
     "tests/unit/hooks/parity-safety-net-cd-resolution.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-compound-pipeline.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-compound-redirection.test.ts": true,
     "tests/unit/hooks/parity-safety-net-credentials.test.ts": true,
     "tests/unit/hooks/parity-safety-net-dirty-recovery.test.ts": true,
     "tests/unit/hooks/parity-safety-net-discard-remedy-executability.test.ts": true,
     "tests/unit/hooks/parity-safety-net-false-positives.test.ts": true,
     "tests/unit/hooks/parity-safety-net-follow-execution.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-function-source-scope.test.ts": true,
     "tests/unit/hooks/parity-safety-net-guards.test.ts": true,
     "tests/unit/hooks/parity-safety-net-heredoc-body-quote-state.test.ts": true,
     "tests/unit/hooks/parity-safety-net-heredoc-continuation.test.ts": true,
     "tests/unit/hooks/parity-safety-net-heredoc-literal.test.ts": true,
     "tests/unit/hooks/parity-safety-net-heredoc.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-inline-async-scope.test.ts": true,
     "tests/unit/hooks/parity-safety-net-line-continuation.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-nested-pipeline.test.ts": true,
     "tests/unit/hooks/parity-safety-net-no-stash-advice.test.ts": true,
     "tests/unit/hooks/parity-safety-net-noexec.test.ts": true,
     "tests/unit/hooks/parity-safety-net-plumbing-discard.test.ts": true,
@@ -10739,6 +10748,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/parity-safety-net-prose-remedy.test.ts": true,
     "tests/unit/hooks/parity-safety-net-scan-failure.test.ts": true,
     "tests/unit/hooks/parity-safety-net-sql-prose.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-subshell-cd.test.ts": true,
     "tests/unit/hooks/parity-safety-net-supervisor-profile.test.ts": true,
     "tests/unit/hooks/parity-safety-net.test.ts": true,
     "tests/unit/hooks/post-checkout.test.ts": true,
