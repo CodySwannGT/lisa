@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.71.5](https://github.com/CodySwannGT/lisa/compare/v4.71.4...v4.71.5) (2026-10-08)
+
+
+### Bug Fixes
+
+* validate exact commit attribution identities ([dba3749](https://github.com/CodySwannGT/lisa/commit/dba37495a3207404faa93392a0ddf8d9cf0d92ad)), closes [#4305](https://github.com/CodySwannGT/lisa/issues/4305) [#4306](https://github.com/CodySwannGT/lisa/issues/4306) [#4307](https://github.com/CodySwannGT/lisa/issues/4307) [CodySwannGT/lisa#4317](https://github.com/CodySwannGT/lisa/issues/4317)
+
 ### [4.71.4](https://github.com/CodySwannGT/lisa/compare/v4.71.3...v4.71.4) (2026-10-08)
 
 
