@@ -1439,6 +1439,7 @@ follow_scan() {
   local authenticated_bootstrap="${4:-0}"
   local invocation_kind="${5:-child}"
   local function_flow_unknown="${6:-0}" function_lookup_allowed statement_conditional function_conditional=0
+  local and_cwd="" and_unknown=1 and_ready=0 join_cwd join_unknown
   if [ "$invocation_kind" = source ]; then
     function_flow_unknown="${follow_source_flow_unknown:-0}"
   fi
@@ -1476,6 +1477,12 @@ follow_scan() {
     stmt="${line#*$'\t'}"
     statement_conditional=0
     case "$sep" in '&' | '?') statement_conditional=1 ;; esac
+    # A reached && successor observes the preceding successful command's cwd.
+    # Scope/list events invalidate this projection; it must never carry a
+    # child's or a background list's directory into another shell/list.
+    case "$sep" in
+      L | G | H | B | N | F | C | A | K | '(' | '[' | ')' | ']') and_ready=0 ;;
+    esac
     if [ "$return_list_depth" -ge 0 ]; then
       case "$sep" in
         B) [ "$list_depth" -eq "$return_list_depth" ] || continue ;;
@@ -1654,6 +1661,11 @@ follow_scan() {
         continue
         ;;
     esac
+    join_cwd="$follow_cwd"; join_unknown="$follow_cwd_unknown"
+    if [ "$sep" = '&' ] && [ "$and_ready" -eq 1 ]; then
+      follow_cwd="$and_cwd"; follow_cwd_unknown="$and_unknown"
+    fi
+    and_ready=0
     pipe_cat="$follow_stdin_cat"
     pipe_cwd="$follow_stdin_cwd"
     pipe_unknown="$follow_stdin_unknown"
@@ -1870,7 +1882,7 @@ follow_scan() {
             # place would resolve later tokens from a directory the shell left.
             follow_cd "${HOME:-}"
           fi
-          if [ "$function_flow_unknown" -ne 0 ] || [ "$statement_conditional" -ne 0 ]; then
+          if [ "$function_flow_unknown" -ne 0 ]; then
             follow_cwd=""; follow_cwd_unknown=1
           fi
           cmd_pos=0
@@ -2063,6 +2075,14 @@ follow_scan() {
       cmd_pos=0
       i=$((i + 1))
     done
+    # Keep successful-branch provenance separate from the continuation join.
+    # OR can skip its RHS and still reach a following &&, so it cannot prove
+    # that RHS's cwd. A semicolon observes every possible preceding outcome.
+    and_cwd="$follow_cwd"; and_unknown="$follow_cwd_unknown"
+    if [ "$sep" != '?' ] && [ "$function_flow_unknown" -eq 0 ]; then and_ready=1; fi
+    if [ "$statement_conditional" -ne 0 ] && { [ "$join_unknown" -ne 0 ] || [ "$follow_cwd_unknown" -ne 0 ] || [ "$follow_cwd" != "$join_cwd" ]; }; then
+      follow_cwd=""; follow_cwd_unknown=1
+    fi
   done <<<"$split_out"
 }
 
