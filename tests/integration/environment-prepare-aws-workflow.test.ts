@@ -108,7 +108,20 @@ function raw(file: string): string {
  * @returns The step list.
  */
 function prepareSteps(file: string): Step[] {
-  return load(file).jobs.prepare.steps;
+  return prepareJob(file).steps;
+}
+
+/**
+ * The prepare job of a workflow, failing loudly when it is missing.
+ * @param file Workflow filename.
+ * @returns The prepare job.
+ */
+function prepareJob(file: string): Job {
+  const job = load(file).jobs.prepare;
+  if (job === undefined) {
+    throw new Error(`${file} has no prepare job`);
+  }
+  return job;
 }
 
 /**
@@ -207,7 +220,7 @@ describe("environment-prepare-aws — inputs", () => {
 
 describe("environment-prepare-aws — permissions", () => {
   it("grants the prepare job exactly contents:read and id-token:write", () => {
-    expect(load(AWS_FILE).jobs.prepare.permissions).toEqual({
+    expect(prepareJob(AWS_FILE).permissions).toEqual({
       contents: "read",
       "id-token": "write",
     });
