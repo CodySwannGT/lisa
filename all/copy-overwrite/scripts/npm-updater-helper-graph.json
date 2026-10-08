@@ -131,7 +131,7 @@
       "children": []
     },
     "lib/history-secret-git.mjs": {
-      "sha256": "fb15dabf02d06451d36e6c10b83931c1aa6b2ddb02608c5a8e813d72cc3a6ac5",
+      "sha256": "de8e5b9d6bc86f174596594f91d017c8012f71e30c535c023d578fcad648f914",
       "staticImports": [
         "node:child_process",
         "node:fs",

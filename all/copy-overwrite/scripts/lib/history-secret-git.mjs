@@ -44,12 +44,15 @@ export const gitEnvironment = () => {
   };
 };
 
+/** Replacement refs must never redirect which objects a proof reads. */
+const NO_REPLACE_OBJECTS = "--no-replace-objects";
+
 /** Git errors can contain arbitrary payloads; only authored guidance leaves here. */
 export const gitRead = (args, cwd, input) => {
   const result = spawnSync(
     "git",
     [
-      "--no-replace-objects",
+      NO_REPLACE_OBJECTS,
       "-c",
       "diff.external=",
       "-c",
@@ -178,7 +181,7 @@ const remoteEnvironment = () => {
  * @returns {string | null} Trimmed stdout, or null when Git refused or failed.
  */
 const remoteRead = (args, cwd) => {
-  const result = spawnSync("git", ["--no-replace-objects", ...args], {
+  const result = spawnSync("git", [NO_REPLACE_OBJECTS, ...args], {
     cwd,
     env: remoteEnvironment(),
     encoding: "utf8",
@@ -240,7 +243,7 @@ export const advertisedTips = (destination, cwd) => {
   if (destination === null) return [];
   const listed = spawnSync(
     "git",
-    ["--no-replace-objects", "ls-remote", "--", destination],
+    [NO_REPLACE_OBJECTS, "ls-remote", "--", destination],
     {
       cwd,
       env: remoteEnvironment(),
