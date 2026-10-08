@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.72.0](https://github.com/CodySwannGT/lisa/compare/v4.71.13...v4.72.0) (2026-10-08)
+
+
+### Features
+
+* **workflows:** add opt-in environment-prepare-aws reusable workflow ([7cd8967](https://github.com/CodySwannGT/lisa/commit/7cd896701b93b063b6bb189aa34976ef00202e62)), closes [#2046](https://github.com/CodySwannGT/lisa/issues/2046) [#2566](https://github.com/CodySwannGT/lisa/issues/2566) [CodySwannGT/lisa#4374](https://github.com/CodySwannGT/lisa/issues/4374) [CodySwannGT/lisa#4374](https://github.com/CodySwannGT/lisa/issues/4374)
+
+
+### Bug Fixes
+
+* **workflows:** harden environment-prepare-aws role handling and caller docs ([f96e439](https://github.com/CodySwannGT/lisa/commit/f96e439177d140c44861c0c48fe24605f149741f)), closes [CodySwannGT/lisa#4374](https://github.com/CodySwannGT/lisa/issues/4374) [CodySwannGT/lisa#4374](https://github.com/CodySwannGT/lisa/issues/4374)
+
 ### [4.71.13](https://github.com/CodySwannGT/lisa/compare/v4.71.12...v4.71.13) (2026-10-08)
 
 
