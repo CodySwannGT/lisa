@@ -8,6 +8,7 @@
  * catch, and the budget was the signal rather than the problem.
  * @module tests/unit/hooks/support/worktree-binding
  */
+import { createHash } from "node:crypto";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -31,7 +32,7 @@ export const SESSION = "session-under-test";
 /**
  * The state-file name the guard writes for a (session, agent) pair.
  *
- * Mirrors `keyPart`/`bindingKey` in the guard on purpose — the suite asserts
+ * Mirrors the versioned tuple key in the guard on purpose — the suite asserts
  * on the filename that lands in LISA_STATE_HOME, and mirroring is what makes
  * the assertion a black-box check rather than a re-derivation the guard
  * itself performed.
@@ -40,14 +41,10 @@ export const SESSION = "session-under-test";
  * @returns The `${key}.json` key the guard resolves
  */
 export function stateKey(session: string, agent?: string): string {
-  const enc = (value: string) =>
-    encodeURIComponent(value)
-      .replaceAll(
-        /[!'()*]/g,
-        c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`
-      )
-      .replaceAll("-", "%2D");
-  return agent === undefined ? enc(session) : `${enc(session)}--${enc(agent)}`;
+  const digest = createHash("sha256")
+    .update(JSON.stringify([session, agent || null]))
+    .digest("hex");
+  return path.join("v4", digest);
 }
 /** Git's quiet flag, named because the fixture repeats it. */
 export const QUIET = "-q";
