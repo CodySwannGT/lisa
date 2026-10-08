@@ -15,6 +15,7 @@ const RAW_HOOKS = "plugins/src/base/hooks";
 const GENERATED_HOOKS = "plugins/lisa/hooks";
 const STAGING_SCRIPT = "scripts/copy-opencode-plugin-templates.mjs";
 const SUPPORT_FILES = [
+  "discharge-work-item-gates.sh",
   "block-managed-file-edits.sh",
   "block-no-verify.sh",
   "parity-safety-net.sh",
