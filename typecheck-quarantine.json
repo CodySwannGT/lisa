@@ -86,7 +86,6 @@
     "tests/integration/security-floors-gate.test.ts",
     "tests/integration/standards-proof-typescript.test.ts",
     "tests/integration/support/cdk-ci-role-selection-harness.ts",
-    "tests/integration/support/maestro-android-retry-harness.ts",
     "tests/integration/support/maestro-build-step-harness.ts",
     "tests/integration/support/maestro-leg-order-harness.ts",
     "tests/integration/support/reusable-workflow-scopes.ts",

@@ -1,0 +1,29 @@
+# Report Maestro retry execution evidence
+
+Work item: CodySwannGT/lisa#4361. Full context: `/private/tmp/lisa-4361-maestro-retry-evidence/.lisa/work-item-context.md`.
+
+Target production derives to main via deploy.branches; initial base 3bc1336b619592e2cc6189bd67bb163dd6107a13.
+
+Comment inventory obligations:
+- Comment 1, codysai001, 2026-10-08T22:04:44Z: both-arm evidence categories and unchanged retry/failure policy (decision|constraint).
+- Comment 2, codysai001, 2026-10-08T22:06:02Z: retain original failure and limits; classify current-attempt evidence (decision|constraint).
+
+Effective completion: actual YAML-derived retry Bash and final gate classify proven nonexecution, unknown evidence and positively evidenced failed execution separately on Android and iOS. An unrecovered original failure exits nonzero. Completed-attempt evidence survives later budget decline/interruption. New deterministic cases execute locally and in required CI; the merged code is present in the actual published production release. No claim of real emulator or product verification follows from the runner seam.
+
+Proof command: invoke the YAML-derived Bash runner with seeded fresh per-attempt logs/reports, then read its emitted retry ledger and run the final gate, observing categories/counters/annotations/exit codes. The native Vitest harness drives that same CLI boundary. Release proof uses actual release workflow outcome, tag ancestry and exact npm version/gitHead.
+
+Required access: GitHub repository/tracker read + push + triage (resolver probes PASS); origin/main SSH (PASS); npm exact current release endpoint (resolver PASS); local pinned Node/Bun/Ruby and workflow Bash/Python (probe before reproduction). No external device access is required at this issue's explicit reporting boundary.
+
+Local probes passed: pinned Node v22.23.3, Python 3.14.3, frozen Bun 1.3.8 installation exit 0 (2,086 packages). Native attach-branch exit 0 verified the canonical GitHub binding on codex/4361-maestro-retry-evidence. Project learnings were consumed only through parseLearningsFile/projectLearnings; the actual content is valid and the bounded projection omits zero entries. An initial incorrect parser argument was corrected before applying any learning.
+
+Tasks: resolve/claim/bind, reproduction, research, implementation, regression coverage and all four independent reviews DONE. Final-head CLI verification, normal gates/PR/merge/release and usage/evidence/native completion remain PENDING. Learner audit completed with no new learnings.
+
+Current task metadata is maintained in `plan-CodySwannGT-lisa-4361.json`. Reproduction and research are DONE: two native RED runs prove four new failures, with 42 unchanged sibling controls green. Direct Bash/ledger/gate captures independently show both arms misclassify absent execution as unrecovered. Implementation and expanded regression coverage are IN PROGRESS. Primary research and immutable upstream references are in `/private/tmp/lisa-4361-reproduction-research.md`; the supported metadata statuses and command wrappers come from actual Maestro sources. Only current selected-flow command evidence may establish execution; the suite cause classifier's product fallback is unsuitable for this boundary.
+
+Initial implementation: 140 native cases PASS across four files, 54 direct driver/ledger/gate captures, no-device cases repeated twice against the latest bytes. Four independent reviews complete (three workers maximum at once is the runtime limit; quality started at the first freed slot while others ran). Product and local reviews clean; quality agrees with adversarial's single P1. The name parser incorrectly treats nested env.name as a top-level name and lets raw declarations override original selected-file-correlated names; exact classifier probes prove foreign success can become recovered. One review-correction task is gated on all four reviews. Add both-arm full-driver/gate RED regressions, then minimally fix name authority without changing retry policy. All prior green results are scoped to their recorded workflow hashes; the correction needs fresh proof.
+
+Each task carries the full context path and comment obligations above, skills [lisa-implement], learnings [], required_access as above, acceptance_criteria from the issue, and verification {type: cli-test, command: actual workflow Bash + ledger + final gate, expected: distinct evidence counters with original failure exit retained}. Relevant documentation initially: issue's original Expected, workflow at base, native Android/iOS/time-budget harnesses; researchers will record additional interfaces before implementation.
+
+Correction verified: six new full-driver/gate cases FAIL before the change while 140 controls PASS; all 146 cases PASS after the change. Both arms match only top-level declared names and prefer selected-file-correlated observed names. Fresh captures cover all 84 new cases; no-device cases pass twice on the corrected bytes. Four refreshed independent reviews are CLEAN and the attribution P1 is closed. Current workflow SHA-256: 4045ca7d57429328d9fd389675a2e8accb4a5cde6870f92df61ac0aa367f8ab1. Final-head empirical verification and normal shipping gates remain pending.
+
+Normal commit initially refused structural test lint. The same 84 new cases were split into three suites with smaller support modules; final same-config ESLint, normal test typecheck and native 146-case run all pass. All 146 full case names and all 84 direct driver/gate results are unchanged. The now-correct old harness was removed from typecheck quarantine, restoring coverage for that file. Canonical Implement usage has passed live GitHub readback and local effectiveness mirroring, with unavailable measurements recorded as null. Normal commit/push, final-head empirical verification and shipment remain pending.
