@@ -24,7 +24,7 @@ import { isExcludedFromRepoScan } from "../../../src/configs/repo-scan.js";
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 
 /** The single canonical supervisor implementation. */
-const SUPERVISOR = "rails/copy-overwrite/scripts/lisa-scratch-run.sh";
+const SUPERVISOR = "all/copy-overwrite/scripts/lisa-scratch-run.sh";
 
 /** Path the routes invoke, after `lisa` materializes the template. */
 const INSTALLED_SUPERVISOR = "scripts/lisa-scratch-run.sh";
@@ -40,7 +40,7 @@ const MUTANT_PAYLOAD = "bash scripts/lisa-mutation.sh";
 
 const WORKFLOW = ".github/workflows/quality-rails.yml";
 const LEFTHOOK = "rails/copy-overwrite/lefthook.yml";
-const MUTATION_SCRIPT = "rails/copy-contents/scripts/lisa-mutation.sh";
+const MUTATION_SCRIPT = "all/copy-contents/scripts/lisa-mutation.sh";
 
 /**
  * Read a repository file as text.
@@ -127,22 +127,22 @@ function count(haystack: string, needle: string): number {
 }
 
 describe("the Rails scratch supervisor ships exactly once", () => {
-  it("exists as a single canonical copy under the Rails copy-overwrite tree", () => {
+  it("exists as a single canonical copy under the common copy-overwrite tree", () => {
     expect(fs.existsSync(path.join(REPO_ROOT, SUPERVISOR))).toBe(true);
 
     // A second on-disk copy is the drift AC6 forbids: `copy-overwrite` puts
-    // this exact file at `scripts/lisa-scratch-run.sh` in every Rails project,
+    // this exact file at `scripts/lisa-scratch-run.sh` in every project,
     // so one template file is the whole delivery mechanism.
     const duplicates = findByBasename(REPO_ROOT, "lisa-scratch-run.sh");
     expect(duplicates).toEqual([SUPERVISOR]);
   });
 
-  it("is delivered by the npm package's Rails template directory", () => {
+  it("is delivered by the npm package's common template directory", () => {
     const files = (
       JSON.parse(read("package.json")) as { readonly files?: readonly string[] }
     ).files;
-    expect(files).toContain("rails");
-    expect(SUPERVISOR.startsWith("rails/copy-overwrite/")).toBe(true);
+    expect(files).toContain("all");
+    expect(SUPERVISOR.startsWith("all/copy-overwrite/")).toBe(true);
   });
 
   it("is a POSIX shell program with no shipped executable bit assumption", () => {

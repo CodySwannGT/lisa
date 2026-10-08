@@ -30,8 +30,6 @@ const COMMON = [
   "lib/github-attestation-recovery.mjs",
   "lib/automation-provenance-contract.mjs",
   "lib/automation-provenance-local.mjs",
-];
-const RAILS = [
   "lisa-clean-git-env.sh",
   "lisa-scratch-run.sh",
   "check-threshold-ratchet.mjs",
@@ -125,7 +123,6 @@ export function managedTemplateMembers() {
       "npm-updater-gate.Dockerfile",
       ...PRODUCER.map(name => `lib/npm-update-${name}.mjs`),
     ].map(member => [member, `all/copy-overwrite/scripts/${member}`]),
-    ...RAILS.map(member => [member, `rails/copy-overwrite/scripts/${member}`]),
-    ["lisa-mutation.sh", "rails/copy-contents/scripts/lisa-mutation.sh"],
+    ["lisa-mutation.sh", "all/copy-contents/scripts/lisa-mutation.sh"],
   ]);
 }

@@ -50,7 +50,7 @@ const classify = (command: string, hook?: string) => {
 
 describe("authenticated scratch supervisor", () => {
   const supervisor = path.resolve(
-    "rails/copy-overwrite/scripts/lisa-scratch-run.sh"
+    "all/copy-overwrite/scripts/lisa-scratch-run.sh"
   );
   const publicEntry = `LISA_SCRATCH_BASE=/tmp sh ${supervisor} --suite probe --`;
 

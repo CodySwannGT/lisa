@@ -480,7 +480,7 @@
       "children": []
     },
     "lib/npm-update-helper-inventory.mjs": {
-      "sha256": "3561c20458d74eff34650d6b4366f4f03ed4e7825ae886ea78394f63f98a18bb",
+      "sha256": "f6ce5bc9e1ce9a2a1e76e7ecbdc4feab2e1da6daa6ac12eca93a30835cf69faa",
       "staticImports": [],
       "dynamicImports": [],
       "children": []

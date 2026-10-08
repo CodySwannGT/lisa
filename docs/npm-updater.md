@@ -6,6 +6,12 @@ The initial gate target is a fresh GitHub-hosted Ubuntu Linux AMD64 runner with 
 
 Install the normally released Lisa package and apply its managed scripts through the ordinary workflow. Keep the host's canonical work-item configuration and hooks. Select `npmUpdater.version: 1`, the exact `repository`, `directory: "."`, `target: "main"`, `maintainer`, `packages: [{"name": "package-name", "version": "1.2.3"}]`, and `lisaOwner: "absent"` or `"verified-local-full-apply"`. Lisa itself is excluded only when the latter ownership has been positively verified. Automation provenance must be explicitly enabled and its repository must match the configured GitHub tracker.
 
+The complete authenticated helper inventory is delivered by the common template
+lane, including the Git environment cleaner, scratch supervisor, ratchet modules
+and mutation wrapper. A common-only npm host uses the same full byte and path
+qualification as a framework host. Materializing these helpers does not install
+framework-specific gates; the host retains its existing configured hook routes.
+
 For the supported Husky 8 host, the gate reads the actual installed package's `bin` declaration and runs that installer with `install`. Husky 8 declares `lib/bin.js`; a guessed `node_modules/husky/bin.js` path is not an installer. Missing, unsupported or aliased installer metadata refuses. The gate still verifies the real installed executable wrappers and their committed hook source. Lefthook follows its original native installation.
 
 Repository administrators configure Actions PR creation permission during opt-in activation. GitHub's [default workflow permission read](https://docs.github.com/en/rest/actions/permissions#get-default-workflow-permissions-for-a-repository) requires repository Administration read access, which is absent from the workflow's [GITHUB_TOKEN permission vocabulary](https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#permissions). The publisher does not require that admin endpoint. It attempts only the independently authorized exact publication writes and preserves GitHub's actual refusal if PR creation is forbidden. It cannot approve reviews or change repository policy. Successful native PR readback and canonical backlinks remain required.

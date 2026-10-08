@@ -20,7 +20,7 @@ import { resolveGit } from "../../support/git-executable.js";
 const GIT = resolveGit();
 const ROOT_HOOK = path.resolve(".husky/pre-push");
 const RAILS_ENV_WRAPPER = path.resolve(
-  "rails/copy-overwrite/scripts/lisa-clean-git-env.sh"
+  "all/copy-overwrite/scripts/lisa-clean-git-env.sh"
 );
 const RAILS_LEFTHOOK = path.resolve("rails/copy-overwrite/lefthook.yml");
 /** Every tracked copy of the pre-push hook, derived rather than typed. */

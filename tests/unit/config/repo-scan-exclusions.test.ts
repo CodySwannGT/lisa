@@ -9,7 +9,7 @@
  *
  * Measured on this repository (CodySwannGT/lisa#3653): a `stryker` run
  * terminated under fleet saturation left 42 MB at
- * `.stryker-tmp/bite-guard-intact/sandbox-<id>/rails/copy-overwrite/scripts/lisa-scratch-run.sh`,
+ * `.stryker-tmp/bite-guard-intact/sandbox-<id>/all/copy-overwrite/scripts/lisa-scratch-run.sh`,
  * and `rails-scratch-supervisor-routes.test.ts` — which asserts that file is
  * unique by basename — failed on the NEXT run with a clean, specific, entirely
  * plausible message about a duplicate file. Nothing in its output mentioned
