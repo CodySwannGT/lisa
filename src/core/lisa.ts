@@ -105,6 +105,7 @@ import {
   isShippedVersion,
   readRegularFile,
   retiredDigests,
+  stillProved,
 } from "./retire-unmodified.js";
 import {
   classifyWorkflowForDeletion,
@@ -778,13 +779,13 @@ export class Lisa {
       this.counters.skipped++;
       return false;
     };
-    const bytes = await readRegularFile(targetPath);
-    if (bytes === null) {
+    const proof = await readRegularFile(targetPath);
+    if (proof === null) {
       return keep(
         "Lisa retired this path, but it is not a readable file here, so Lisa cannot prove it is the copy Lisa shipped. Remove it yourself if you no longer use it."
       );
     }
-    if (!isShippedVersion(bytes, shipped)) {
+    if (!isShippedVersion(proof.bytes, shipped)) {
       return keep(
         "Lisa retired this file, but your copy differs from every version Lisa shipped, so it may hold your changes. Delete it yourself once you no longer need it."
       );
@@ -793,9 +794,21 @@ export class Lisa {
       this.config.destDir,
       relativePath
     );
+    if (references === null) {
+      return keep(
+        "Lisa retired this file, but could not read your package.json or workflows to check that nothing still uses it. Delete it yourself once you have checked."
+      );
+    }
     if (references.length > 0) {
       return keep(
         `Lisa retired this file, but ${references.join(", ")} still names it. Remove that reference, then delete the file.`
+      );
+    }
+    // The proof is re-checked last, immediately before removal: a file
+    // replaced or edited while references were read is not the one proved.
+    if (!(await stillProved(targetPath, proof))) {
+      return keep(
+        "Lisa retired this file, but it changed while Lisa was checking it, so it was left in place. Re-run lisa apply, or delete it yourself."
       );
     }
     return true;

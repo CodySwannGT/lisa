@@ -610,9 +610,15 @@ export async function workingTreeDigests(run, cwd, files) {
       digests[file] = null;
       continue;
     }
-    if (stat.isSymbolicLink())
-      digests[file] = `120000 link:${readlinkSync(path.join(cwd, file))}`;
-    else if (stat.isFile())
+    if (stat.isSymbolicLink()) {
+      // A link that vanishes before it can be read is left out, which the
+      // reader treats as "differs".
+      try {
+        digests[file] = `120000 link:${readlinkSync(path.join(cwd, file))}`;
+      } catch {
+        continue;
+      }
+    } else if (stat.isFile())
       present.push([file, stat.mode & 0o111 ? "100755" : "100644"]);
   }
   if (present.length > 0) {

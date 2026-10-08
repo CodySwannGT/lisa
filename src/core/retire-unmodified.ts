@@ -111,6 +111,37 @@ export function isShippedVersion(
   return digests.has(digest(Buffer.from(text.replaceAll("\r\n", "\n"))));
 }
 
+/** What a byte proof was computed over: the bytes and the inode they came from. */
+export interface RegularFileProof {
+  readonly bytes: Buffer;
+  readonly dev: number;
+  readonly ino: number;
+}
+
+/**
+ * Whether a path still holds exactly the file a proof was computed over.
+ *
+ * Checked immediately before removal, so a file replaced or edited after the
+ * proof (while references were being read) is not deleted on the strength of
+ * bytes it no longer has. A path-based unlink keeps a residual window between
+ * this check and the removal; Node offers no unlink-by-descriptor to close it.
+ * @param filePath - Absolute path
+ * @param proof - The earlier proof
+ * @returns True when the inode and bytes are unchanged
+ */
+export async function stillProved(
+  filePath: string,
+  proof: RegularFileProof
+): Promise<boolean> {
+  const now = await readRegularFile(filePath);
+  return (
+    now !== null &&
+    now.dev === proof.dev &&
+    now.ino === proof.ino &&
+    now.bytes.equals(proof.bytes)
+  );
+}
+
 /**
  * The bytes of a regular file at a path, read without following a symlink.
  *
@@ -119,11 +150,11 @@ export function isShippedVersion(
  * same descriptor binds the check and the bytes to one inode, so a symlink, or
  * a regular file swapped for one between a check and a read, is unprovable.
  * @param filePath - Absolute path
- * @returns Its bytes, or null when it is not a readable regular file
+ * @returns Its bytes and inode identity, or null when it is not a readable regular file
  */
 export async function readRegularFile(
   filePath: string
-): Promise<Buffer | null> {
+): Promise<RegularFileProof | null> {
   const handle = await open(
     filePath,
     fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW
@@ -131,7 +162,8 @@ export async function readRegularFile(
   if (handle === null) return null;
   try {
     const entry = await handle.stat();
-    return entry.isFile() ? await handle.readFile() : null;
+    if (!entry.isFile()) return null;
+    return { bytes: await handle.readFile(), dev: entry.dev, ino: entry.ino };
   } catch {
     return null;
   } finally {
@@ -139,16 +171,31 @@ export async function readRegularFile(
   }
 }
 
+/** A file that does not exist, as distinct from one that could not be read. */
+const ABSENT = Symbol("absent");
+
 /**
- * Read a file only if it is readable, returning null otherwise.
- * @param filePath - Absolute path
- * @returns Its text, or null
+ * Whether an error means the path is simply not there.
+ * @param error - A filesystem error
+ * @returns True for ENOENT / ENOTDIR
  */
-async function readText(filePath: string): Promise<string | null> {
+function isAbsence(error: unknown): boolean {
+  const code = (error as { code?: unknown } | null)?.code;
+  return code === "ENOENT" || code === "ENOTDIR";
+}
+
+/**
+ * Read a file's text, telling "absent" apart from "could not read".
+ * @param filePath - Absolute path
+ * @returns Its text, ABSENT when it does not exist, or null when unreadable
+ */
+async function readText(
+  filePath: string
+): Promise<string | typeof ABSENT | null> {
   try {
     return await readFile(filePath, "utf8");
-  } catch {
-    return null;
+  } catch (error) {
+    return isAbsence(error) ? ABSENT : null;
   }
 }
 
@@ -161,8 +208,7 @@ const PACKAGE_JSON = "package.json";
  * @param target - Normalized repo-relative path
  * @returns True when a script names it
  */
-function packageScriptsName(text: string | null, target: string): boolean {
-  if (text === null) return false;
+function packageScriptsName(text: string, target: string): boolean {
   try {
     const scripts = (JSON.parse(text) as { scripts?: unknown }).scripts;
     return (
@@ -182,16 +228,17 @@ function packageScriptsName(text: string | null, target: string): boolean {
  * Workflows under `.github/workflows/` whose text names a path.
  * @param projectDir - Absolute path to the consumer repository
  * @param target - Normalized repo-relative path
- * @returns Repo-relative workflow paths naming it
+ * @returns Repo-relative workflow paths naming it, or null when any could not be read
  */
 async function workflowsNaming(
   projectDir: string,
   target: string
-): Promise<readonly string[]> {
+): Promise<readonly string[] | null> {
   const workflowsDir = path.join(projectDir, ".github", "workflows");
   const entries = await readdir(workflowsDir, { withFileTypes: true }).catch(
-    () => []
+    (error: unknown) => (isAbsence(error) ? [] : null)
   );
+  if (entries === null) return null;
   const candidates = entries
     .filter(
       entry =>
@@ -202,8 +249,14 @@ async function workflowsNaming(
   const texts = await Promise.all(
     candidates.map(name => readText(path.join(workflowsDir, name)))
   );
+  // probe-direction: fail-closed — an unreadable workflow makes the whole
+  // answer unknown, and the caller keeps the file rather than guess.
+  if (texts.some(text => text === null)) return null;
   return candidates
-    .filter((_name, index) => texts[index]?.includes(target) === true)
+    .filter((_name, index) => {
+      const text = texts[index];
+      return typeof text === "string" && text.includes(target);
+    })
     .map(name => `.github/workflows/${name}`);
 }
 
@@ -218,18 +271,23 @@ async function workflowsNaming(
  * longer on disk to be read.
  * @param projectDir - Absolute path to the consumer repository
  * @param relativePath - Repo-relative path being retired
- * @returns Repo-relative paths of the files naming it, sorted
+ * @returns Repo-relative paths of the files naming it, sorted, or null when
+ *   one of them exists but could not be read (references are then unknown)
  */
 export async function findHostReferences(
   projectDir: string,
   relativePath: string
-): Promise<readonly string[]> {
+): Promise<readonly string[] | null> {
   const target = normalizeRepoPath(relativePath);
   if (target === "") return [];
   const manifest = await readText(path.join(projectDir, PACKAGE_JSON));
   const workflows = await workflowsNaming(projectDir, target);
+  // probe-direction: fail-closed — unknown references keep the file.
+  if (manifest === null || workflows === null) return null;
   return [
-    ...(packageScriptsName(manifest, target) ? [PACKAGE_JSON] : []),
+    ...(manifest !== ABSENT && packageScriptsName(manifest, target)
+      ? [PACKAGE_JSON]
+      : []),
     ...workflows,
   ].sort((left, right) => left.localeCompare(right));
 }

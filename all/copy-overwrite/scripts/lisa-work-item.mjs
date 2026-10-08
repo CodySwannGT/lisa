@@ -4592,9 +4592,15 @@ function changedSinceUpdate(pending, files, cwd) {
     // Same identity the auto-update recorded: git mode plus blob id for a
     // file (so an executable-bit change alone counts), the link target for a
     // symlink (hash-object would follow it to whatever it now reaches).
-    if (stat.isSymbolicLink())
-      current.set(file, `120000 link:${readlinkSync(resolve(cwd, file))}`);
-    else if (stat.isFile())
+    if (stat.isSymbolicLink()) {
+      // A link that vanishes before it can be read stays unrecorded, which
+      // counts as changed.
+      try {
+        current.set(file, `120000 link:${readlinkSync(resolve(cwd, file))}`);
+      } catch {
+        continue;
+      }
+    } else if (stat.isFile())
       present.push([file, stat.mode & 0o111 ? "100755" : "100644"]);
   }
   if (present.length > 0) {
