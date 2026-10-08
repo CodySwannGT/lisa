@@ -294,7 +294,10 @@
           "/private/tmp/lisa-4361-test-structure-typecheck.log: PASS; one cleared quarantine entry removed",
           "/private/tmp/lisa-4361-test-structure-green.log: 146 PASS across 6 files",
           "/private/tmp/lisa-4361-test-structure-named-case-proof.txt: identical 146 named cases",
-          "/private/tmp/lisa-4361-retry-ledger-and-gate-structure-all-cases.json: identical 84 actual states"
+          "/private/tmp/lisa-4361-retry-ledger-and-gate-structure-all-cases.json: identical 84 actual states",
+          "/private/tmp/lisa-4361-runner-seam-green.log: 152 PASS across 7 files",
+          "/private/tmp/lisa-4361-runner-arguments-state.json: exact actual suite/retry argument order on both arms",
+          "/private/tmp/lisa-4361-runner-seam-typecheck.log and runner-seam-eslint.log: PASS"
         ]
       }
     },

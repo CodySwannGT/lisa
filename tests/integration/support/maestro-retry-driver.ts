@@ -4,6 +4,7 @@ import * as path from "node:path";
 import { LEDGER_FILE, seedFixture } from "./maestro-android-retry-fixtures.js";
 import { runCapturing } from "./maestro-retry-execution.js";
 import { prepareDriver, driverEnvironment } from "./maestro-retry-project.js";
+import { runnerCalls } from "./maestro-runner-arguments.js";
 import type {
   ReusableWorkflow,
   RunOptions,
@@ -67,6 +68,9 @@ export const runSuiteDriver = async (
     const ledgerPath = path.join(dir, LEDGER_FILE.replace("android", platform));
     return {
       status,
+      runnerCalls: runnerCalls(
+        await fs.readFile(path.join(dir, "runner-arguments"), "utf-8")
+      ),
       debugRoots: (await fs.readFile(debugRoots, "utf-8")).trim().split("\n"),
       summary: await fs.readFile(summary, "utf-8"),
       attempts: Number((await fs.readFile(counter, "utf-8")).trim()),

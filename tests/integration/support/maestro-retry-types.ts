@@ -28,6 +28,7 @@ export interface StepResult {
   ledger: string | null;
   summary: string;
   debugRoots: string[];
+  runnerCalls: string[][];
 }
 
 /** Outcome of executing the retry-budget gate against a ledger. */
@@ -53,6 +54,7 @@ export type RetryMode =
 
 /** Knobs for one suite-driver execution. */
 export interface RunOptions {
+  maestroArgs?: string;
   commandEvidence?: CommandEvidence;
   debugLayout?: "legacy" | "modern";
   wrongTarget?: boolean;

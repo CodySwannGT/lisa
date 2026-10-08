@@ -107,6 +107,7 @@ const PLAIN_FLOW = "appId: ${MAESTRO_APP_ID}\n---\n- launchApp\n";
 /** The stubbed `flow_runner`: seeds the first report, then obeys `STUB_MODE`. */
 const STUB_RUNNER = [
   "#!/usr/bin/env bash",
+  'printf "%s\\0" "$#" "$@" >> "$STUB_RUNNER_ARGS"',
   'n=$(( $(cat "$STUB_ATTEMPTS") + 1 ))',
   'echo "$n" > "$STUB_ATTEMPTS"',
   'out="$1"; debug="$2"; shift 2',

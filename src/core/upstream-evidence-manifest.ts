@@ -10103,6 +10103,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/support/maestro-retry-project.ts": true,
     "tests/integration/support/maestro-retry-types.ts": true,
     "tests/integration/support/maestro-retry-workflow.ts": true,
+    "tests/integration/support/maestro-runner-arguments.ts": true,
     "tests/integration/support/pre-tool-refusal-fixture.ts": true,
     "tests/integration/support/pre-tool-refusal-harness.ts": true,
     "tests/integration/support/rails-helper-fixture.ts": true,
