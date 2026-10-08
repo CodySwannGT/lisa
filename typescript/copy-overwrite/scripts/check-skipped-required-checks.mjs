@@ -351,7 +351,12 @@
  * @module scripts/check-skipped-required-checks
  */
 
-import { appendFileSync, existsSync, readFileSync } from "node:fs";
+import {
+  appendFileSync,
+  existsSync,
+  readFileSync,
+  realpathSync,
+} from "node:fs";
 import { resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
 
@@ -393,7 +398,10 @@ const SKIP_JOBS_LINE = /^[ \t]*skip_jobs[ \t]*:[ \t]*((?:\S.*)?)$/;
  * `..` segments BEFORE the boundary test, so a traversal-shaped value fails
  * here instead of reaching `readFileSync` — the explicit refusal is also what
  * separates "read nothing because nothing was there" from "read something the
- * guard was never pointed at". (SonarCloud jssecurity:S8707 — the
+ * guard was never pointed at". Existing inputs also resolve their symlinks,
+ * including parent directories, against the real root before any content read.
+ * Missing inputs retain the caller's explicit absence refusal.
+ * (SonarCloud jssecurity:S8707 — the
  * normalise-then-bound check is the barrier the rule asks for between an
  * argv-shaped string and a filesystem read. CodySwannGT/lisa#4279.)
  *
@@ -411,7 +419,18 @@ function resolveWithinRoot(root, relative, what) {
       `check-skipped-required-checks: ${what} ${JSON.stringify(relative)} resolves outside the repository root. Refusing to read a path this guard was not pointed at.`
     );
   }
-  return target;
+  if (!existsSync(target)) return target;
+  const actualBase = realpathSync(base);
+  const actualTarget = realpathSync(target);
+  if (
+    actualTarget !== actualBase &&
+    !actualTarget.startsWith(`${actualBase}${sep}`)
+  ) {
+    throw new Error(
+      `check-skipped-required-checks: ${what} ${JSON.stringify(relative)} resolves outside the repository root. Refusing to read a path this guard was not pointed at.`
+    );
+  }
+  return actualTarget;
 }
 
 /** Matches the tail permitted after a quoted scalar's closing quote. */
