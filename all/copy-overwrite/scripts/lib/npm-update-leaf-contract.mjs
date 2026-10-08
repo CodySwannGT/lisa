@@ -78,6 +78,7 @@ export function buildDraft(proposal, policy, config, evidence) {
   const versions = proposal.updates
     .map(update => `${update.name}: ${update.from} -> ${update.to}`)
     .join("\n");
+  const bun = Object.hasOwn(proposal, "bunLockSha256");
   const body = `## Context / Business Value
 
 Keep the selected dependencies current while preserving ordinary review, required checks and runtime verification. This Task owns one exact dependency proposal; its implementation ticket is never reused for another update.
@@ -87,7 +88,7 @@ Keep the selected dependencies current while preserving ordinary review, require
 Base parent: ${proposal.parent}
 Proposal key: ${proposal.key}
 Selection key: ${proposal.selectionKey}
-Update exactly package.json and package-lock.json:
+Update exactly package.json and package-lock.json${bun ? " and bun.lock" : ""}:
 ${versions}
 Use the trusted four-job npm updater. Preparation performs an installed-tree npm outdated check and npm ci with lifecycle scripts disabled. Allocation precedes the first attributed commit. Ordinary commit and original pre-push gates remain mandatory. Publish only the exact gated unsigned raw Git object with unchanged parent, tree, identities, times and message. Preserve every unrelated dependency, script and existing assignee. Stop on stale base, unavailable authorization, hold, failed gate or mismatching bytes. Lisa is excluded only with verified local full-apply ownership.
 
@@ -97,8 +98,8 @@ Use the trusted four-job npm updater. Preparation performs an installed-tree npm
 Scenario: publish one coherent dependency proposal
   Given parent ${proposal.parent} and the selected versions above
   When the trusted updater claims this leaf and completes ordinary gates
-  Then the manifest and lock agree and npm ci preserves both file hashes
-  And the pull request into main contains exactly the gated commit and two files
+  Then the manifest and lock agree and npm ci preserves both file hashes${bun ? " and frozen Bun preserves all three hashes" : ""}
+  And the pull request into main contains exactly the gated commit and ${bun ? "three" : "two"} files
 Scenario: refuse unauthorized or stale publication
   Given a hold, changed parent, failed gate or mismatching proposal
   When publication is attempted
@@ -147,7 +148,7 @@ Matches are read completely before allocating this deterministic proposal. No pa
 ## Validation Journey
 
 1. Prepare the selected update from the exact parent with installed npm outdated; record actual exit and versions. [EVIDENCE: cli-output: npm-outdated]
-2. Run script-disabled npm ci against the proposed files and record unchanged hashes. [EVIDENCE: cli-output: npm-ci]
+2. Run script-disabled npm ci${bun ? " and Bun1.3.8 frozen installation" : ""} against the proposed files and record unchanged hashes. [EVIDENCE: cli-output: npm-ci]
 3. Record normal commit/pre-push hook exits, all-ref stdin/ranges and the exact raw commit identity. [EVIDENCE: test-run-log: ordinary-gates]
 4. Read the current-head pull request, required checks and genuine human approval. [EVIDENCE: state-dump: current-head-review]
 5. Verify ordinary application behavior in ${env}; record actual environment and deployed identity. [EVIDENCE: test-run-log: runtime-verification]
@@ -156,7 +157,7 @@ Matches are read completely before allocating this deterministic proposal. No pa
 ## Proposal Bytes
 
 package.json SHA256: ${proposal.hashes["package.json"]}
-package-lock.json SHA256: ${proposal.hashes["package-lock.json"]}
+package-lock.json SHA256: ${proposal.hashes["package-lock.json"]}${bun ? `\nbun.lock SHA256: ${proposal.hashes["bun.lock"]}\nOriginal bun.lock SHA256: ${proposal.bunLockSha256}` : ""}
 
 <!-- [lisa-npm-filing] ${Buffer.from(canonicalJson(evidence)).toString("base64")} -->
 <!-- [lisa-npm-proposal] ${proposal.key} -->

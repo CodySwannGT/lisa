@@ -138,11 +138,12 @@ build_plugin base lisa
 # copies here so they can never drift; a unit test asserts byte-equality.
 if [ -f "$SRC_DIR/base/hooks/threshold-ratchet.mjs" ]; then
   for ratchet_scripts_dir in \
+    "$ROOT_DIR/all/copy-overwrite/scripts" \
     "$ROOT_DIR/typescript/copy-overwrite/scripts" \
     "$ROOT_DIR/rails/copy-overwrite/scripts"; do
     mkdir -p "$ratchet_scripts_dir"
     # The entry point takes the template check-* naming; its relative imports
-    # (threshold-ratchet-*.mjs) keep their canonical names in both trees.
+    # (threshold-ratchet-*.mjs) keep their canonical names in all three trees.
     materialize "$SRC_DIR/base/hooks/threshold-ratchet.mjs" \
       "$ratchet_scripts_dir/check-threshold-ratchet.mjs"
     for ratchet_module in threshold-ratchet-families threshold-ratchet-compare; do

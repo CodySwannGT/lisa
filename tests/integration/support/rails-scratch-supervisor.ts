@@ -18,7 +18,7 @@ const SH = "/bin/sh";
 
 /** Repo-relative path of the single canonical supervisor implementation. */
 export const SUPERVISOR_RELATIVE_PATH =
-  "rails/copy-overwrite/scripts/lisa-scratch-run.sh";
+  "all/copy-overwrite/scripts/lisa-scratch-run.sh";
 
 /** Absolute path of the supervisor inside this checkout. */
 export const SUPERVISOR_PATH = path.resolve(

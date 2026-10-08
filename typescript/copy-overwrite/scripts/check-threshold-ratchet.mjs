@@ -520,7 +520,7 @@ function main() {
   process.stderr.write(
     "usage: threshold-ratchet.mjs --hook | --staged | --base <ref> [--head <ref>]\n"
   );
-  return 0;
+  return 2;
 }
 
 /**

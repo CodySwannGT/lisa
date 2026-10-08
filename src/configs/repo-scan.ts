@@ -12,7 +12,7 @@
  * A scratch sandbox is the dangerous one, because it is a **full second copy of
  * the tree**. Measured on this repository: a `stryker` run terminated under
  * fleet saturation left 42 MB at
- * `.stryker-tmp/bite-guard-intact/sandbox-<id>/rails/copy-overwrite/scripts/lisa-scratch-run.sh`,
+ * `.stryker-tmp/bite-guard-intact/sandbox-<id>/all/copy-overwrite/scripts/lisa-scratch-run.sh`,
  * a second copy of a file one scan asserts is unique by basename. That scan
  * failed on the NEXT run, with a clean, specific, entirely plausible message
  * about a duplicate file — and nothing in its output mentioned mutation,

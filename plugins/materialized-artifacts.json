@@ -1,4 +1,5 @@
 [
+  "all/copy-overwrite/scripts/check-threshold-ratchet.mjs",
   "all/copy-overwrite/scripts/lib/bounded-spawn.mjs",
   "all/copy-overwrite/scripts/lib/invoked-as-script.mjs",
   "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh",
@@ -14,6 +15,8 @@
   "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh",
   "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs",
   "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.sh",
+  "all/copy-overwrite/scripts/threshold-ratchet-compare.mjs",
+  "all/copy-overwrite/scripts/threshold-ratchet-families.mjs",
   "expo/copy-overwrite/scripts/lib/bounded-spawn.mjs",
   "expo/copy-overwrite/scripts/lib/invoked-as-script.mjs",
   "plugins/lisa/hooks/block-blind-automerge.sh",

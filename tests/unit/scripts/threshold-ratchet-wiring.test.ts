@@ -22,6 +22,7 @@ const RATCHET_MODULES = [
   "threshold-ratchet-compare.mjs",
 ];
 const TEMPLATE_SCRIPT_DIRS = [
+  "all/copy-overwrite/scripts",
   "typescript/copy-overwrite/scripts",
   "rails/copy-overwrite/scripts",
 ];

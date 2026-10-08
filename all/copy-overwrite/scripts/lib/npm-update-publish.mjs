@@ -127,7 +127,7 @@ export async function publishDestination({
   };
 }
 
-/** The publisher consumes signed/gated data and writes only an identical two-file commit. */
+/** The publisher consumes signed/gated data and writes only the identical original lock cohort. */
 export async function publishProposal({
   api,
   proposal,

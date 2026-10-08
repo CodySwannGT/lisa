@@ -10,6 +10,11 @@ import { required, keys } from "./npm-update-invariants.mjs";
 export { UpdaterError, required, keys } from "./npm-update-invariants.mjs";
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
+import {
+  optionalLockFields,
+  proposalFileNames,
+} from "./automation-provenance-contract.mjs";
+export { proposalFileNames } from "./automation-provenance-contract.mjs";
 
 export const FILES = ["package-lock.json", "package.json"];
 export const SECTIONS = [
@@ -207,9 +212,17 @@ export function selectionKey(policy, updates) {
 }
 
 /** Recovery binds policy as well as versions; the hook's signed proposal key is separate. */
-export function proposalFrom(policy, parent, before, files, updates) {
+export function proposalFrom(
+  policy,
+  parent,
+  before,
+  files,
+  updates,
+  bunLockSha256
+) {
   required(OBJECT.test(parent), "unsupported Git parent or object format");
-  keys(files, FILES);
+  const optional = bunLockSha256 === undefined ? {} : { bunLockSha256 };
+  const names = proposalFileNames({ files, ...optional });
   for (const value of Object.values(files))
     required(
       typeof value === "string" && Buffer.byteLength(value) <= 1_048_576,
@@ -228,6 +241,7 @@ export function proposalFrom(policy, parent, before, files, updates) {
     parent,
     policySha256: sha256(canonicalJson(policy)),
     updates: ordered,
+    ...optional,
   };
   return {
     version: 1,
@@ -235,11 +249,16 @@ export function proposalFrom(policy, parent, before, files, updates) {
     selectionKey: selectionKey(policy, ordered),
     key: sha256(canonicalJson(identity)),
     bindingKey: sha256(
-      canonicalJson({ repository: policy.repository, parent, updates: ordered })
+      canonicalJson({
+        repository: policy.repository,
+        parent,
+        updates: ordered,
+        ...optional,
+      })
     ),
     before,
     files,
-    hashes: Object.fromEntries(FILES.map(file => [file, sha256(files[file])])),
+    hashes: Object.fromEntries(names.map(file => [file, sha256(files[file])])),
   };
 }
 
@@ -260,13 +279,15 @@ export function validateProposal(value, policy) {
     "before",
     "files",
     "hashes",
+    ...optionalLockFields(value),
   ]);
   const expected = proposalFrom(
     policy,
     value.parent,
     value.before,
     value.files,
-    value.updates
+    value.updates,
+    value.bunLockSha256
   );
   required(
     canonicalJson(value) === canonicalJson(expected),
