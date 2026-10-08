@@ -209,3 +209,16 @@ and upstream manifest generation completed. All seven original artifact checks
 and the canonical graph freshness check pass. The ledger retains its historical
 digests. These checks do not establish Ubuntu runtime or Bot acceptance; actual
 main ancestry integration will require fresh generated-artifact readback.
+
+## Original full-push scanner refusal
+
+The first original integrated push stopped with 26,878 unit controls passing,
+one failure and two existing skips; coverage and integration were not proved.
+The supervision scanner called TypeScript's identifier predicate on an unnamed
+parameter from valid JSDoc function-type syntax in the new generic fixture.
+A focused control reproduced the same exception while requiring detection of
+a real unsupervised Vitest child in that source. The minimal missing-name guard
+retains every existing runtime binding and bypass assertion. Three whole wiring,
+analyzer and invocation suites then passed all 14 controls. Scoped lint and the
+whole typecheck pass with the unchanged historical quarantine. The original
+failed push remains retained; this focused correction is not aggregate success.

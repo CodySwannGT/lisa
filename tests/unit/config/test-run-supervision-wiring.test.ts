@@ -49,6 +49,18 @@ const executableSources = (directory: string): readonly string[] =>
   });
 
 describe("managed test supervision wiring", () => {
+  it("keeps unnamed JSDoc function parameters inert while detecting unsupervised children", () => {
+    const source = `
+      import { spawnSync } from "node:child_process";
+      /** @param {function(string):void} callback */
+      function run(callback) { callback("synthetic"); }
+      spawnSync("vitest", ["run"]);
+    `;
+    const analysis = analyzeVitestSpawns(source);
+    expect(analysis.vitestCallCount).toBe(1);
+    expect(analysis.bypasses).toHaveLength(1);
+    expect(analysis.findings).toEqual([]);
+  });
   it("detects every bare Vitest child, including a second call", () => {
     const source = `
       import { execFileSync, spawnSync } from "node:child_process";
