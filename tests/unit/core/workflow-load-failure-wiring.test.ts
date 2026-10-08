@@ -65,6 +65,7 @@ const T_FIRST = "2026-09-27T05:00:00Z";
 
 /** Last startup_failure timestamp shared by the outage-shape tests. */
 const T_LAST = "2026-09-27T06:00:00Z";
+const NIGHTLY_WORKFLOW_PATH = ".github/workflows/nightly.yml";
 
 describe("the entry point actually calls the detector", () => {
   it("imports the scanner and the adapter", () => {
@@ -229,7 +230,7 @@ describe("the entry point's own behaviour, executed", () => {
       loadFailures: [
         {
           id: 7,
-          path: ".github/workflows/nightly.yml",
+          path: NIGHTLY_WORKFLOW_PATH,
           verdict: "load-failure",
         },
       ],
@@ -239,8 +240,30 @@ describe("the entry point's own behaviour, executed", () => {
     });
 
     expect(text).toContain("run 7");
-    expect(text).toContain(".github/workflows/nightly.yml");
+    expect(text).toContain(NIGHTLY_WORKFLOW_PATH);
     expect(text).toContain("NO jobs");
+  });
+
+  it("retains both kinds of known failure beside incomplete coverage", () => {
+    const text = report({
+      loadFailures: [
+        {
+          id: 7,
+          path: NIGHTLY_WORKFLOW_PATH,
+          verdict: "load-failure",
+        },
+      ],
+      startupFailures: [startupFailure(11, T_FIRST)],
+      inspected: 100,
+      covered: false,
+      reason: "paging stopped short.",
+    });
+    expect(text).toContain("INCOMPLETE");
+    expect(text).toContain("run 7");
+    expect(text).toContain("run 11");
+    expect(text).toContain("at least 1");
+    expect(text).not.toContain("EVERY run in the window");
+    expect(text).not.toContain("OK.");
   });
 
   it("reports a covered clean window plainly", () => {

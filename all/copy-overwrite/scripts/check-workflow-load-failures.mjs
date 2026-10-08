@@ -73,13 +73,19 @@ export function ghRequest(repo) {
 export function describe(result) {
   // Callers built before the startup-failure arm report no such key.
   const startupFailures = result.startupFailures ?? [];
-  if (!result.covered) {
-    return `check-workflow-load-failures: INCOMPLETE. The scan ${result.reason} It inspected ${result.inspected} run(s), but that is not the same as having covered the window, so this is an error rather than a pass.`;
-  }
-  if (result.loadFailures.length === 0 && startupFailures.length === 0) {
+  if (
+    result.covered &&
+    result.loadFailures.length === 0 &&
+    startupFailures.length === 0
+  ) {
     return `check-workflow-load-failures: OK. ${result.inspected} run(s) inspected across the last ${WINDOW_HOURS}h; no reusable workflow load failures found.`;
   }
   const sections = [];
+  if (!result.covered) {
+    sections.push(
+      `check-workflow-load-failures: INCOMPLETE. The scan ${result.reason} It inspected ${result.inspected} run(s), but that is not the same as having covered the window, so this is an error rather than a pass.`
+    );
+  }
   if (result.loadFailures.length > 0) {
     const lines = result.loadFailures.map(
       finding =>
@@ -87,7 +93,7 @@ export function describe(result) {
     );
     sections.push(
       [
-        `check-workflow-load-failures: ${result.loadFailures.length} run(s) failed to LOAD a reusable workflow.`,
+        `check-workflow-load-failures: ${result.covered ? "" : "at least "}${result.loadFailures.length} run(s) failed to LOAD a reusable workflow.`,
         ...lines,
         "",
         "A load failure creates NO jobs, so there is no red job to open and no annotation naming the line. Check the upstream workflow's most recent commit for a syntax or schema error.",
@@ -108,7 +114,7 @@ export function describe(result) {
       .sort();
     const paths = [...new Set(startupFailures.map(finding => finding.path))];
     const summary = [
-      `check-workflow-load-failures: ${startupFailures.length} run(s) ended in startup_failure — GitHub never started them, whatever workflow they are recorded under.`,
+      `check-workflow-load-failures: ${result.covered ? "" : "at least "}${startupFailures.length} run(s) ended in startup_failure — GitHub never started them, whatever workflow they are recorded under.`,
       ...lines,
       "",
       `First: ${times[0] ?? "unknown"}. Last: ${times.at(-1) ?? "unknown"}. Distinct workflow path(s): ${paths.length}.`,
@@ -117,7 +123,7 @@ export function describe(result) {
     // ended paging — the outage shape is every run INSIDE the window, so the
     // comparison belongs to `inWindow` (absent on older callers → fall back).
     const inWindow = result.inWindow ?? result.inspected;
-    if (inWindow > 0 && startupFailures.length === inWindow) {
+    if (result.covered && inWindow > 0 && startupFailures.length === inWindow) {
       summary.push(
         "EVERY run in the window failed to start — that is the shape of an account-, plan- or billing-level outage (for example a private-repo org that dropped to GitHub Free), not a workflow-file error. Check the org's Actions availability before editing workflow source."
       );

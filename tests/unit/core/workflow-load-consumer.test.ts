@@ -53,6 +53,17 @@ if (mode === "denied") { console.error("API access denied"); process.exit(1); }
 if (mode === "invalid-json") { console.log("not JSON"); process.exit(0); }
 if (mode === "malformed-object") { console.log("{}"); process.exit(0); }
 const endpoint = process.argv[3];
+if (mode === "incomplete-startup" && endpoint.includes("/actions/runs?")) {
+  const page = Number(new URL(endpoint, "https://api.github.com").searchParams.get("page"));
+  const created_at = new Date(Number(process.env.LOAD_SCAN_NOW) - 3600000).toISOString();
+  console.log(JSON.stringify({workflow_runs: Array.from({length: 100}, (_, index) => ({
+    id: 1000 + (page - 1) * 100 + index,
+    path: page === 1 && index < 3 ? "BuildFailed" : ".github/workflows/deploy.yml",
+    created_at,
+    conclusion: page === 1 && index < 3 ? "startup_failure" : "success"
+  }))}));
+  process.exit(0);
+}
 let body;
 if (endpoint.includes("/jobs?")) body = { total_count: mode === "runner" ? 1 : 0 };
 else if (endpoint.endsWith("/runs/71")) body = { referenced_workflows: mode === "resolved" ? [{ sha: "resolved" }] : [] };
@@ -75,6 +86,7 @@ console.log(JSON.stringify(body));
       PATH: `${root}${path.delimiter}${process.env.PATH}`,
       GITHUB_REPOSITORY: "CodySwannGT/lisa",
       LOAD_SCAN_SCENARIO: scenario,
+      LOAD_SCAN_NOW: String(Date.now()),
     },
   });
 }
@@ -91,6 +103,17 @@ describe("workflow-load detection reaches consumers", () => {
     expect(result.status).toBe(1);
     expect(result.stdout).toContain("run 71");
     expect(result.stdout).toContain("failed to LOAD");
+  });
+
+  it("reports failures already found when paging cannot cover the window", () => {
+    const result = scan("incomplete-startup");
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("INCOMPLETE");
+    expect(result.stdout).toContain("2000 run(s)");
+    expect(result.stdout).toContain("startup_failure");
+    for (const id of [1000, 1001, 1002])
+      expect(result.stdout).toContain(`run ${id} (BuildFailed)`);
+    expect(result.stdout).not.toContain("OK.");
   });
 
   it.each([

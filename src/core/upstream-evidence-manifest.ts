@@ -21,7 +21,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/check-third-party-review-evidence.mjs":
       "95f91f2a74ed4e523d064d5d374eadd1c1114f03a3a4fa41532c9b0fd32089de",
     "all/copy-overwrite/scripts/check-workflow-load-failures.mjs":
-      "fddbb47321be74b6d0a1a5e2508e0e08268560d36126d834f9de3b91f1dff15c",
+      "ed32b56567837093d6f6d4f7af86918c455ab94bae75e356c9d9e652b379fccb",
     "all/copy-overwrite/scripts/lib/automation-provenance-contract.mjs":
       "69dba85e2a57e1b89f6dfb9dc98a253d2e5317c9d000eeafc6bbd1649e740bd3",
     "all/copy-overwrite/scripts/lib/automation-provenance-local.mjs":

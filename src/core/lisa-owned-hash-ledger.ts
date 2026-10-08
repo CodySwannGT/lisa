@@ -395,6 +395,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "5f4d14068165d58bf285bd638d3aed2692f0c5f6fba6449111abade46646b3ec",
     "bb193cdbdc581a898f0b7f194a2e9688297d2f9fd9418d50ef4cdc56c0649a4e",
     "ea31d735ec0bb40fd9f254c53f58422cb5fd3b46af3bd7136eb27de5a01a9d40",
+    "ed32b56567837093d6f6d4f7af86918c455ab94bae75e356c9d9e652b379fccb",
     "fddbb47321be74b6d0a1a5e2508e0e08268560d36126d834f9de3b91f1dff15c",
   ]),
   "scripts/classify-maestro-failures.mjs": Object.freeze([
@@ -2225,6 +2226,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "5f4d14068165d58bf285bd638d3aed2692f0c5f6fba6449111abade46646b3ec",
     "bb193cdbdc581a898f0b7f194a2e9688297d2f9fd9418d50ef4cdc56c0649a4e",
     "ea31d735ec0bb40fd9f254c53f58422cb5fd3b46af3bd7136eb27de5a01a9d40",
+    "ed32b56567837093d6f6d4f7af86918c455ab94bae75e356c9d9e652b379fccb",
     "fddbb47321be74b6d0a1a5e2508e0e08268560d36126d834f9de3b91f1dff15c",
   ]),
   "scripts/classify-maestro-failures.mjs": Object.freeze([
