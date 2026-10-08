@@ -2659,7 +2659,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "139dc455ae770a0ddcc3f823507fa66bcadc60a96a7f9fa28a653ef9011170bb",
+      "00874126ffe89c313b9acca1b507c4bff38d20ae2fe21b9442723892a00fe6bc",
     "scripts/update-node-version.ts":
       "0059067c14001c2f7e75beb2628d1a46f935c7b01ce61871db71b6849ef62dca",
     "scripts/update-test-skill-paths.mjs":
@@ -2943,6 +2943,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/create-sentry-issue-on-failure.yml": true,
     ".github/workflows/deploy.yml": true,
     ".github/workflows/duplicate-versions.yml": true,
+    ".github/workflows/environment-prepare-aws.yml": true,
     ".github/workflows/environment-prepare.yml": true,
     ".github/workflows/gates.yml": true,
     ".github/workflows/history-secrets.yml": true,
@@ -9927,6 +9928,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/emitted-scripts-survive-shipped-fixer.test.ts": true,
     "tests/integration/enforcement-census-cli.test.ts": true,
     "tests/integration/environment-facade-gates.test.ts": true,
+    "tests/integration/environment-prepare-aws-workflow.test.ts": true,
     "tests/integration/environment-prepare-workflow.test.ts": true,
     "tests/integration/expo-host-run-scripts-survive-apply.test.ts": true,
     "tests/integration/expo-independent-checks.test.ts": true,

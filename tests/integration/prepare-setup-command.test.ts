@@ -36,6 +36,7 @@ const MAESTRO = "maestro-native-e2e.yml";
 /** Every job that prepares an environment, and the workflow it lives in. */
 const PREPARE_SITES = [
   ["environment-prepare.yml", "prepare"],
+  ["environment-prepare-aws.yml", "prepare"],
   ["playwright-e2e.yml", "prepare"],
   [MAESTRO, "pre_suite"],
   [MAESTRO, "inter_leg_prepare"],
@@ -99,6 +100,7 @@ describe("the preparation setup seam", () => {
 
     for (const file of [
       "environment-prepare.yml",
+      "environment-prepare-aws.yml",
       "playwright-e2e.yml",
       MAESTRO,
     ]) {
