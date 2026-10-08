@@ -26,6 +26,9 @@ import { cleanGitEnv } from "../../helpers/test-utils.js";
 import { resolveGit } from "../../support/git-executable.js";
 
 const HOOK_PATH = path.resolve(".husky/commit-msg");
+const TEMPLATE_HOOK_PATH = path.resolve(
+  "typescript/copy-contents/.husky/commit-msg"
+);
 const BASH_PATH = "/bin/bash";
 // git runs hooks through `sh`, not bash, and the two disagree about `echo`:
 // bash prints `a\cb` verbatim while sh honours the XSI meaning of `\c` and
@@ -35,6 +38,7 @@ const SH_PATH = "/bin/sh";
 const GIT_PATH = resolveGit();
 const VALID_SUBJECT = "fix: clarify hook output";
 const PASSING_COMMITLINT_BIN = "exit 0\n";
+const CLAUDE_AGENT_TRAILER = "AI-Agent: Claude";
 const CLAUDE_TRAILER = "Co-authored-by: Claude <noreply@anthropic.com>";
 const DEVIN_TRAILER = "Co-authored-by: Devin <devin@cognition.ai>";
 const HUMAN_TRAILER = "Co-authored-by: Jane Doe <jane@example.com>";
@@ -466,16 +470,18 @@ fi\n`
  * Run the real commit-msg hook against the temp project's commit message.
  * @param project - Temporary project directory.
  * @param shell - Interpreter to run the hook under; `sh` matches what git uses.
+ * @param hookPath - Installed hook or source template to execute.
  * @returns The completed hook process.
  */
 function runHook(
   project: string,
-  shell: string = BASH_PATH
+  shell: string = BASH_PATH,
+  hookPath: string = HOOK_PATH
 ): SpawnSyncReturns<string> {
   return boundedSpawnSync({
     label: "commit-msg hook",
     command: shell,
-    args: [HOOK_PATH, "COMMIT_EDITMSG"],
+    args: [hookPath, "COMMIT_EDITMSG"],
     cwd: project,
     env: cleanGitEnv(process.env, {
       PATH: `${path.join(project, "node_modules", ".bin")}:${process.env.PATH}`,
@@ -494,6 +500,176 @@ function writeBin(project: string, name: string, body: string): void {
   writeFileSync(binPath, `#!/usr/bin/env bash\n${body}`);
   chmodSync(binPath, 0o755);
 }
+
+describe.each([
+  { hookPath: HOOK_PATH, shell: BASH_PATH },
+  { hookPath: HOOK_PATH, shell: SH_PATH },
+  { hookPath: TEMPLATE_HOOK_PATH, shell: BASH_PATH },
+  { hookPath: TEMPLATE_HOOK_PATH, shell: SH_PATH },
+])(
+  "exact commit attribution in $hookPath under $shell",
+  ({ hookPath, shell }) => {
+    it.each([
+      [
+        "body divider",
+        ["Body.", "", "---", "", "More body."],
+        [CLAUDE_TRAILER],
+        0,
+      ],
+      ["native Claude attribution", [], ["Co-authored-by: Claude"], 0],
+      [
+        "native Codex attribution",
+        [],
+        ["Co-authored-by: Codex <noreply@openai.com>"],
+        0,
+      ],
+      [
+        "fleet driver missing metadata",
+        [],
+        [CLAUDE_TRAILER, CLAUDE_AGENT_TRAILER],
+        1,
+      ],
+      [
+        "fleet with unlisted driver",
+        [],
+        [
+          CLAUDE_TRAILER,
+          DEVIN_AGENT_TRAILER,
+          DEVIN_MODEL_TRAILER,
+          DEVIN_EFFORT_TRAILER,
+        ],
+        1,
+      ],
+      [
+        "fleet with valid driver",
+        [],
+        [
+          CLAUDE_TRAILER,
+          CLAUDE_AGENT_TRAILER,
+          DEVIN_MODEL_TRAILER,
+          DEVIN_EFFORT_TRAILER,
+        ],
+        0,
+      ],
+      [
+        "human with fleet first name",
+        [],
+        ["Co-authored-by: Claude Shannon <claude@example.com>"],
+        1,
+      ],
+      [
+        "fleet name with foreign email",
+        [],
+        ["Co-authored-by: Codex <someone@example.com>"],
+        1,
+      ],
+      [
+        "OpenCoder driver",
+        [],
+        [
+          "Co-authored-by: OpenCoder <x@example.com>",
+          "AI-Agent: OpenCoder",
+          DEVIN_MODEL_TRAILER,
+          DEVIN_EFFORT_TRAILER,
+        ],
+        0,
+      ],
+      [
+        "email mentioning OpenCode",
+        [],
+        [
+          "Co-authored-by: Jane Doe <jane@opencode.dev>",
+          "AI-Agent: Jane Doe",
+          DEVIN_MODEL_TRAILER,
+          DEVIN_EFFORT_TRAILER,
+        ],
+        0,
+      ],
+      [
+        "Devin driving alongside OpenCode",
+        [],
+        [
+          DEVIN_TRAILER,
+          OPENCODE_TRAILER,
+          DEVIN_AGENT_TRAILER,
+          DEVIN_MODEL_TRAILER,
+          DEVIN_EFFORT_TRAILER,
+        ],
+        0,
+      ],
+      [
+        "Claude driving alongside OpenCode",
+        [],
+        [
+          CLAUDE_TRAILER,
+          OPENCODE_TRAILER,
+          CLAUDE_AGENT_TRAILER,
+          DEVIN_MODEL_TRAILER,
+          DEVIN_EFFORT_TRAILER,
+        ],
+        0,
+      ],
+      [
+        "two driver attestations",
+        [],
+        [
+          DEVIN_TRAILER,
+          OPENCODE_TRAILER,
+          DEVIN_AGENT_TRAILER,
+          OPENCODE_AGENT_TRAILER,
+          DEVIN_MODEL_TRAILER,
+          DEVIN_EFFORT_TRAILER,
+        ],
+        1,
+      ],
+      [
+        "duplicate identical driver",
+        [],
+        [
+          OPENCODE_TRAILER,
+          OPENCODE_AGENT_TRAILER,
+          OPENCODE_AGENT_TRAILER,
+          DEVIN_MODEL_TRAILER,
+          DEVIN_EFFORT_TRAILER,
+        ],
+        1,
+      ],
+      [
+        "unlisted OpenCode driver",
+        [],
+        [
+          "Co-authored-by: Claude <bot@opencode.ai>",
+          OPENCODE_AGENT_TRAILER,
+          DEVIN_MODEL_TRAILER,
+          DEVIN_EFFORT_TRAILER,
+        ],
+        1,
+      ],
+      [
+        "case-insensitive exact fleet identity",
+        [],
+        ["Co-authored-by: cOdEx <CODEX@OPENAI.COM>"],
+        0,
+      ],
+    ])("%s", (_name, body, trailers, status) => {
+      const project = createProject({
+        binName: "npx",
+        binBody: PASSING_COMMITLINT_BIN,
+        message: [
+          VALID_SUBJECT,
+          "",
+          ...body,
+          "",
+          WORK_ITEM_TRAILER,
+          ...trailers,
+          "",
+        ].join("\n"),
+      });
+      const result = runHook(project, shell, hookPath);
+      expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(status);
+    });
+  }
+);
 
 describe("commit message content cannot break the hook's own parsing", () => {
   const BACKSLASH_C_SUBJECT = String.raw`fix: use \copy for the bulk load`;
