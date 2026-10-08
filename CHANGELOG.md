@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.72.6](https://github.com/CodySwannGT/lisa/compare/v4.72.5...v4.72.6) (2026-10-08)
+
+
+### Bug Fixes
+
+* **deps:** raise NestJS GraphQL Tools security floor ([2a5ec47](https://github.com/CodySwannGT/lisa/commit/2a5ec47ddc032edbccdc3587cc63fc9a1173f71c)), closes [CodySwannGT/lisa#4311](https://github.com/CodySwannGT/lisa/issues/4311)
+* **hooks:** preserve unavailable binding I/O behavior ([cbfcadc](https://github.com/CodySwannGT/lisa/commit/cbfcadc11f4e57198ecc7fa09c25c09e376d24cf)), closes [CodySwannGT/lisa#4311](https://github.com/CodySwannGT/lisa/issues/4311)
+* **hooks:** require proven worktree binding ownership ([14d8fec](https://github.com/CodySwannGT/lisa/commit/14d8fec4ae7cc7b587e37e004914b7531cb573d5)), closes [CodySwannGT/lisa#4311](https://github.com/CodySwannGT/lisa/issues/4311)
+
 ### [4.72.5](https://github.com/CodySwannGT/lisa/compare/v4.72.4...v4.72.5) (2026-10-08)
 
 
