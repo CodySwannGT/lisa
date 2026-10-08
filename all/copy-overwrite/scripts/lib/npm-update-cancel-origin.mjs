@@ -28,7 +28,10 @@ import {
 import { sha256 } from "./github-attestation-verifier.mjs";
 import { verifyStaleOriginProvider } from "./github-attestation-provider.mjs";
 import { verifyHistoricalDescriptor } from "./github-attestation-recovery.mjs";
-import { DESCRIPTOR_KEYS } from "./automation-provenance-contract.mjs";
+import {
+  DESCRIPTOR_KEYS,
+  optionalLockFields,
+} from "./automation-provenance-contract.mjs";
 
 /** Only complete, digest-checked transport is considered; incomplete chunks grant nothing. */
 export function completeCheckpoints(comments) {
@@ -168,11 +171,11 @@ async function inspectOrigin(api, issue, payload, oldConfig, currentConfig) {
 }
 
 /** Descriptor fields preserve the complete original immutable proposal and claim. */
-function originalDescriptor(checkpoint, old, allocation, authority) {
+export function originalDescriptor(checkpoint, old, allocation, authority) {
   const preview = checkpoint.payload.preview;
   keys(preview, ["descriptor", "message", "epoch"]);
   const d = preview.descriptor;
-  keys(d, DESCRIPTOR_KEYS);
+  keys(d, [...DESCRIPTOR_KEYS, ...optionalLockFields(old)]);
   required(
     d.version === 1 &&
       d.parent === old.parent &&
@@ -183,6 +186,7 @@ function originalDescriptor(checkpoint, old, allocation, authority) {
       d.proposalKey === old.bindingKey &&
       d.policySha256 === sha256(canonicalJson(authority)) &&
       canonicalJson(d.files) === canonicalJson(old.hashes) &&
+      d.bunLockSha256 === old.bunLockSha256 &&
       canonicalJson(d.updates) === canonicalJson(old.updates) &&
       typeof preview.message === "string" &&
       sha256(preview.message) === d.messageSha256 &&

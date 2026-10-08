@@ -2,14 +2,9 @@
 // Do not edit directly — durable changes belong upstream in Lisa.
 
 /** Local proof snapshots and the genuine canonical resolver preserve exact final-read authority. */
-import {
-  constants,
-  closeSync,
-  fstatSync,
-  lstatSync,
-  openSync,
-  readSync,
-} from "node:fs";
+import { lstatSync } from "node:fs";
+import { fileAbsent, privateBytes } from "./automation-provenance-files.mjs";
+export { privateBytes } from "./automation-provenance-files.mjs";
 import { dirname, resolve } from "node:path";
 import { TextDecoder } from "node:util";
 import { resolveWorkItemContext, run } from "../lisa-work-item.mjs";
@@ -18,36 +13,12 @@ import { boundedSpawnSync } from "./bounded-spawn.mjs";
 import {
   canonicalJson,
   exactKeys,
-  FILES,
+  proposalFileNames,
+  optionalLockFields,
   DESCRIPTOR_KEYS,
   HEX,
   OBJECT_ID,
 } from "./automation-provenance-contract.mjs";
-
-/** Refuse aliases and oversize files; snapshots remain private, regular files. */
-export function privateBytes(file, maximum, privateFile = true) {
-  const fd = openSync(file, constants.O_RDONLY | constants.O_NOFOLLOW);
-  try {
-    const stat = fstatSync(fd);
-    requireProof(
-      stat.isFile() &&
-        stat.size <= maximum &&
-        (!privateFile || (stat.mode & 0o077) === 0),
-      "invalid regular bounded proof file"
-    );
-    const bytes = Buffer.alloc(maximum + 1);
-    let count = 0;
-    while (count < bytes.length) {
-      const added = readSync(fd, bytes, count, bytes.length - count, null);
-      if (added === 0) break;
-      count += added;
-    }
-    requireProof(count <= maximum, "proof file grew beyond limit");
-    return bytes.subarray(0, count);
-  } finally {
-    closeSync(fd);
-  }
-}
 
 /** Git reads always use the actual checkout and bounded shared runner. */
 export function git(args) {
@@ -59,7 +30,7 @@ export function git(args) {
 
 /** Alias and exact staged-blob checks run after descriptor metadata validation. */
 function stagedFiles(descriptor) {
-  for (const file of FILES) {
+  for (const file of proposalFileNames(descriptor)) {
     const entry = git(["ls-files", "--stage", "--", file]);
     requireProof(
       entry.startsWith("100644 ") && entry.split("\n").length === 1,
@@ -76,6 +47,47 @@ function stagedFiles(descriptor) {
   }
 }
 
+/** Bind optional lock presence to HEAD and refuse aliased working-tree counterparts. */
+function originalBun(descriptor) {
+  const original = git(["ls-tree", "HEAD", "--", "bun.lock"]);
+  if (!Object.hasOwn(descriptor, "bunLockSha256")) {
+    requireProof(original === "", "original Bun lock omitted from descriptor");
+    requireProof(
+      fileAbsent(resolve("bun.lock")),
+      "unexpected working Bun lock"
+    );
+    return;
+  }
+  requireProof(
+    /^100644 blob [a-f0-9]{40}\tbun\.lock$/.test(original),
+    "original Bun lock is not regular"
+  );
+  const bytes = run("git", ["show", "HEAD:bun.lock"], {
+    timeout: 30_000,
+    maxBuffer: 1_048_576,
+  }).stdout;
+  requireProof(
+    sha256(bytes) === descriptor.bunLockSha256,
+    "original Bun lock digest differs"
+  );
+  const path = resolve("bun.lock");
+  const before = lstatSync(path);
+  requireProof(
+    before.isFile() && before.nlink === 1,
+    "Bun lock path is aliased"
+  );
+  const current = privateBytes(path, 1_048_576, false);
+  const after = lstatSync(path);
+  requireProof(
+    after.isFile() &&
+      after.nlink === 1 &&
+      before.dev === after.dev &&
+      before.ino === after.ino &&
+      sha256(current) === descriptor.files["bun.lock"],
+    "working Bun lock identity differs"
+  );
+}
+
 /** Match complete message and Git metadata before any network/proof acceptance. */
 export function localDescriptor(descriptor, messageBytes, reference, policy) {
   // Parsing never supplies the signed digest. Reject malformed UTF8 only on
@@ -84,7 +96,11 @@ export function localDescriptor(descriptor, messageBytes, reference, policy) {
     fatal: true,
     ignoreBOM: true,
   }).decode(messageBytes);
-  exactKeys(descriptor, DESCRIPTOR_KEYS, "descriptor");
+  exactKeys(
+    descriptor,
+    [...DESCRIPTOR_KEYS, ...optionalLockFields(descriptor)],
+    "descriptor"
+  );
   requireProof(
     descriptor.version === 1 &&
       descriptor.runId === reference.runId &&
@@ -139,10 +155,10 @@ export function localDescriptor(descriptor, messageBytes, reference, policy) {
     .split("\n")
     .sort();
   requireProof(
-    changed.join("\n") === FILES.join("\n"),
+    changed.join("\n") === proposalFileNames(descriptor).join("\n"),
     "proposal changes foreign files"
   );
-  exactKeys(descriptor.files, FILES, "proposal files");
+  originalBun(descriptor);
   stagedFiles(descriptor);
 }
 

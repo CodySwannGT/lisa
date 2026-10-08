@@ -11,7 +11,7 @@ Work-Item: CodySwannGT/lisa#4347
 - required_access: upstream GitHub issue/source reads and genuine release source; passed
 - work_item_context: .lisa/work-item-context.md (complete live body and thirteen paginated comments)
 - relevant_documentation: docs/npm-updater.md; src/core/lisa.ts template routing; exact helper inventory and official plugin materializer
-- acceptance_criteria: actual common-only apply supplies all 94 managed members; the complete 96-member graph still authenticates before entry selection; missing, altered and aliased members refuse; installed Rails paths and original hook behavior are preserved
+- acceptance_criteria: actual common-only apply supplies all 96 current managed members; the complete 98-member graph authenticates before entry selection; missing, altered and aliased members refuse; installed Rails paths and original hook behavior are preserved
 - testing_requirements: meaningful common-only apply/qualification RED and GREEN; original ratchet parity and single canonical supervisor controls; original lint, types, artifact, push and current-head hosted review gates
 - verification: cli-test; released common-only full apply followed by native controller graph qualification; expected native success only with complete authenticated current installed bytes
 
@@ -86,3 +86,17 @@ selection in both quality workflows. Two additional real-Git caller pairs prove
 staged and hook modes both accept tightening and actually report weakening;
 the final six-suite wrapper passed all 104 controls without skips.
 Hosted validation and the released producer acceptance remain required.
+
+## Combined optional Bun lock support
+
+Ordinarily merge the separately reviewed #4376 contribution. Its two new managed
+helpers extend the original 96-member graph to 98 authenticated members, including
+96 managed templates. Preserve every original member and all selector, signature,
+provider and budget controls. The original common-only apply regression copied
+96 files and failed only its historical expected count of 94, while its three
+refusal controls passed. Correct that exact count to reflect the two added helpers;
+do not omit either helper or weaken complete-graph qualification.
+The original two-suite integration wrapper then passed all six controls without
+skips, including actual common-only apply/complete qualification and native
+optional Bun lock preparation. Current-head aggregate and hosted proofs remain
+pending for this combined source.

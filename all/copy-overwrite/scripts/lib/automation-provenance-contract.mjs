@@ -26,6 +26,25 @@ const DESCRIPTOR_KEYS = [
 const HEX = /^[0-9a-f]{64}$/;
 const OBJECT_ID = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
 
+/** Only an explicit original Bun digest extends the unchanged npm-only schema. */
+export function optionalLockFields(value) {
+  if (!Object.hasOwn(value, "bunLockSha256")) return [];
+  requireProof(
+    typeof value.bunLockSha256 === "string" && HEX.test(value.bunLockSha256),
+    "invalid original Bun lock digest"
+  );
+  return ["bunLockSha256"];
+}
+
+/** Signed original presence selects one closed two- or three-file cohort. */
+export function proposalFileNames(value) {
+  const files = optionalLockFields(value).length
+    ? ["bun.lock", ...FILES]
+    : FILES;
+  exactKeys(value.files, files, "proposal files");
+  return files;
+}
+
 /** Canonical bytes are shared by allocator and consumer, not inferred hashes. */
 export function canonicalJson(value) {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;

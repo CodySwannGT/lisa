@@ -10,7 +10,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import {
-  FILES,
+  proposalFileNames,
   OBJECT,
   required,
   validateProposal,
@@ -95,7 +95,7 @@ export async function descriptorFor({
     await baseline(cwd, env, proposal);
     const staged = { ...env, GIT_INDEX_FILE: join(root, "index") };
     await git(cwd, staged, ["read-tree", proposal.parent]);
-    for (const file of FILES) {
+    for (const file of proposalFileNames(proposal)) {
       const blob = (
         await git(
           cwd,
@@ -125,6 +125,9 @@ export async function descriptorFor({
       author: identity,
       committer: identity,
       files: proposal.hashes,
+      ...(proposal.bunLockSha256 === undefined
+        ? {}
+        : { bunLockSha256: proposal.bunLockSha256 }),
       messageSha256: sha256(message),
       updates: proposal.updates,
       proposalKey: proposal.bindingKey,
@@ -161,9 +164,9 @@ async function stageProposal(context, env) {
   await withStage("gate-attach", () =>
     executeCanonicalHelper(context, "stage-read", "attach-branch")
   );
-  for (const file of FILES)
+  for (const file of proposalFileNames(context.proposal))
     writeFileSync(join(cwd, file), proposal.files[file]);
-  await command(["add", "--", ...FILES]);
+  await command(["add", "--", ...proposalFileNames(context.proposal)]);
   return branch;
 }
 
@@ -192,7 +195,7 @@ async function committedProposal(
     .split("\n")
     .sort();
   required(
-    changed.join("\n") === FILES.join("\n"),
+    changed.join("\n") === proposalFileNames(proposal).join("\n"),
     "committed diff includes foreign paths"
   );
   const ranges = (

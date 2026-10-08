@@ -296,6 +296,23 @@ describe("closed cancellation record", () => {
     );
   });
 
+  it("binds a dual-lock cancellation to all three exact proposal hashes", () => {
+    const dual = {
+      ...expected,
+      proposalHashes: { ...expected.proposalHashes, "bun.lock": sha("c") },
+    };
+    expect(validateCancellation(structuredClone(dual), dual)).toEqual(dual);
+    for (const hashes of [
+      expected.proposalHashes,
+      { ...dual.proposalHashes, "bun.lock": sha("d") },
+      { ...dual.proposalHashes, "foreign.lock": sha("c") },
+    ])
+      expect(() =>
+        validateCancellation({ ...dual, proposalHashes: hashes }, dual)
+      ).toThrow();
+    expect(() => validateCancellation(dual, expected)).toThrow();
+  });
+
   it("refuses changed scope/identity, unexpected fields and same-parent cancellation", () => {
     for (const changed of [
       { ...expected, repository: "acme/foreign" },

@@ -7,7 +7,7 @@ import { assertPinnedVerifier } from "./github-attestation-verifier.mjs";
 import { required } from "./npm-update-contract.mjs";
 import { runProcess } from "./npm-update-process.mjs";
 import { gitObjectId } from "./npm-update-object.mjs";
-import { FILES } from "./npm-update-contract.mjs";
+import { proposalFileNames } from "./npm-update-contract.mjs";
 import { executeCanonicalHelper } from "./npm-update-controller-factory.mjs";
 /** Explicit minimum gh identity and token; no caller/candidate executable override. */
 const HOST_OPTION = "--hostname";
@@ -179,7 +179,7 @@ export class GitHub {
   async gitCommit(proposal, descriptor, commit, authorize, cwd) {
     const path = `repos/${this.policy.repository}/git`;
     const tree = [];
-    for (const file of FILES) {
+    for (const file of proposalFileNames(proposal)) {
       await authorize();
       const bytes = Buffer.from(proposal.files[file]);
       const blob = await this.request(`${path}/blobs`, "POST", {

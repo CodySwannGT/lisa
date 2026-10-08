@@ -105,7 +105,12 @@ export function assertManualCancellation(
 /** The closed subject preserves one stale origin and one exact replacement, with no published destination. */
 export function validateCancellation(value, expected) {
   keys(value, RECORD_KEYS);
-  keys(value.proposalHashes, FILES);
+  keys(
+    value.proposalHashes,
+    Object.hasOwn(expected.proposalHashes, "bun.lock")
+      ? ["bun.lock", ...FILES]
+      : FILES
+  );
   keys(value.destination, ["branch", "expectedBranchHead", "prNumber"]);
   required(
     value.version === 1 &&
