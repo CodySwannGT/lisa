@@ -855,7 +855,10 @@ export class Lisa {
    * Register plugins from merged settings.json with Claude Code at project scope
    */
   private async registerPlugins(): Promise<void> {
-    if (this.config.dryRun) {
+    if (
+      this.config.dryRun ||
+      !harnessIncludesAgent(this.config.harness, "claude")
+    ) {
       return;
     }
 

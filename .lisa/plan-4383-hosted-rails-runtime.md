@@ -2,6 +2,14 @@
 
 Work-Item: CodySwannGT/lisa#4383
 
+## Delivery checkpoint — 2026-10-08
+
+The implementation is published in [PR #4389](https://github.com/CodySwannGT/lisa/pull/4389), together with immutable history evidence. Published head `5b187b6e5618e01589c670ba0a1af127d1b2d616` passed its original full push and hosted quality checks. Native Ubuntu tools, four database roles and original hook witnesses passed, but the browser produced no DOM before its original ten-second deadline. Owned hosted cleanup passed; the separate local full-push cleanup remained unqualified and is not represented as clean.
+
+Follow-up commit `0513c6cc530304b272cad7531481f2c76e00596d` adds a post-failure blank-page diagnostic while preserving that original failure. Its ordinary push passed 27,201 unit tests and then failed two native packed-host idempotence cases, so it is not yet published. The selected-harness registration repair is tracked in #4400 and has native unit RED/GREEN evidence. The checkpoints below are historical observations, not statements that all implementation remains local. Actual Ubuntu browser success, reviewed merge and genuine release remain required.
+
+The staged #4400 repair subsequently passed both complete native TypeScript/CDK packaged adoptions, with unchanged managed-byte snapshots and frozen installation, plus real CDK synthesis. The wider integration command reported 189 passing files, 3,363 passing tests and nine skips, alongside one history-evidence digest-second timeout under its original scaled bound. This is packaged-case success and a failed overall suite, not delivery acceptance. Its recorded scratch root was absent afterward; original process survivors prevent a clean local resource claim.
+
 ## Contract and scope
 
 Implement the four acceptance scenarios in #4383. The optional committed
@@ -476,7 +484,7 @@ residue was preserved. The successful final run uses the original qualification
 namespace `/private/tmp`. These local controls do not establish native Ubuntu
 browser acceptance or the historical cause of the published CI failure.
 
-## Current published failure and main integration
+## Historical published failure and main integration
 
 The original full push published `a29140489d3d2139f48455eb8aa3f5062c73b7dd`
 after all fourteen gates passed, including 27,154 unit and 3,325 integration
