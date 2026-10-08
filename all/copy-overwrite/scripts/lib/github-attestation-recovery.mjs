@@ -17,6 +17,20 @@ import {
   RECOVERY_PREDICATE,
 } from "./github-attestation-verifier.mjs";
 
+/** An active run's update is not completion; invalid provider chronology has no usable bounds. */
+export function observedRunChronology(run, now) {
+  const start = Date.parse(run.run_started_at);
+  const updated = Date.parse(run.updated_at);
+  if (
+    ![now, start, updated].every(Number.isFinite) ||
+    !["in_progress", "completed"].includes(run.status) ||
+    start > updated ||
+    updated > now + 60_000
+  )
+    return null;
+  return { start, end: run.status === "in_progress" ? now : updated };
+}
+
 /** Historical origin authenticates bytes only within witnessed provider chronology. */
 export function assertHistoricalAttestation(
   results,
@@ -35,15 +49,13 @@ export function assertHistoricalAttestation(
     PROPOSAL_PREDICATE,
     "descriptor.json"
   );
-  const start = Date.parse(run.run_started_at),
-    updated = Date.parse(run.updated_at),
-    claimed = Date.parse(claim.created_at);
+  const chronology = observedRunChronology(run, now);
+  const claimed = Date.parse(claim.created_at);
   requireProof(
-    [start, updated, claimed].every(Number.isFinite) &&
-      start <= updated &&
-      updated <= now + 60_000,
+    chronology && Number.isFinite(claimed),
     "missing/invalid historical provider chronology"
   );
+  const { start, end } = chronology;
   // Official signature/timestamp verification already authenticates these times.
   matchSigningTime(
     result.verifiedTimestamps,
@@ -55,7 +67,7 @@ export function assertHistoricalAttestation(
     requireProof(
       signed >= start - 60_000 &&
         signed >= claimed - 60_000 &&
-        signed <= updated + 60_000,
+        signed <= end + 60_000,
       "origin signed outside provider chronology"
     );
   }

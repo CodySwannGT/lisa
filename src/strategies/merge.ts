@@ -11,17 +11,39 @@ import {
 } from "../utils/json-utils.js";
 import { JsonMergeError } from "../errors/index.js";
 
+const OFFICIAL_SENTRY_PLUGIN = "sentry@claude-plugins-official";
+
 /**
  * Produce the exact JSON merge result without filesystem access.
  * @param source - Lisa template object
  * @param destination - Existing host object
- * @returns Merged object with Lisa values taking precedence
+ * @returns Merged object with Lisa governance and explicit Sentry choice preserved
  */
 export function mergeTemplateJson(
   source: Record<string, unknown>,
   destination: Record<string, unknown>
 ): Record<string, unknown> {
-  return deepMergeWithArrayUnion(destination, source);
+  const merged = deepMergeWithArrayUnion(destination, source);
+  const existing = destination["enabledPlugins"];
+  const plugins = merged["enabledPlugins"];
+  if (
+    !existing ||
+    typeof existing !== "object" ||
+    Array.isArray(existing) ||
+    !plugins ||
+    typeof plugins !== "object" ||
+    Array.isArray(plugins)
+  )
+    return merged;
+  const choice = (existing as Record<string, unknown>)[OFFICIAL_SENTRY_PLUGIN];
+  if (typeof choice !== "boolean") return merged;
+  // The official Claude plugin is optional, not a Lisa enforcement surface.
+  // Other runtimes keep their native Sentry integrations; this preference only
+  // names Claude's plugin. Missing choices still receive the template default.
+  return {
+    ...merged,
+    enabledPlugins: { ...plugins, [OFFICIAL_SENTRY_PLUGIN]: choice },
+  };
 }
 
 /**

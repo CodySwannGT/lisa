@@ -27,7 +27,10 @@ import {
 } from "./npm-update-leaf.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
 import { verifyStaleOriginProvider } from "./github-attestation-provider.mjs";
-import { verifyHistoricalDescriptor } from "./github-attestation-recovery.mjs";
+import {
+  observedRunChronology,
+  verifyHistoricalDescriptor,
+} from "./github-attestation-recovery.mjs";
 import {
   DESCRIPTOR_KEYS,
   optionalLockFields,
@@ -99,13 +102,16 @@ function originCheckpoint(issue) {
 }
 
 /** Original chunk bytes must be the unedited Bot's posts during its witnessed run, not later copied markers. */
-export function assertOriginTransport(comments, digest, policy, run) {
-  const start = Date.parse(run.run_started_at),
-    end = Date.parse(run.updated_at);
-  required(
-    Number.isFinite(start) && Number.isFinite(end) && start <= end,
-    "invalid original transport chronology"
-  );
+export function assertOriginTransport(
+  comments,
+  digest,
+  policy,
+  run,
+  now = Date.now()
+) {
+  const chronology = observedRunChronology(run, now);
+  required(chronology, "invalid original transport chronology");
+  const { start, end } = chronology;
   const selected = comments.filter(comment =>
     comment.body?.startsWith(`[lisa-npm-checkpoint] v1 ${digest} `)
   );

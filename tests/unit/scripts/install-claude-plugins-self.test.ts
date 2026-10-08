@@ -1,4 +1,3 @@
-/* eslint-disable max-lines -- lifecycle scenarios share one executable fixture */
 /**
  * Regression tests for Lisa's postinstall script when it runs inside the Lisa
  * monorepo itself.
@@ -46,6 +45,8 @@ const CLAUDE_INSTALL_BASE = "claude plugin install lisa@lisa --scope project";
 const CLAUDE_DIR = ".claude";
 const PLUGIN_SYNC_MARKER_FILE = ".lisa-plugins-synced";
 const FAKE_LISA_VERSION = "9.9.9";
+const SENTRY_PLUGIN = "sentry@claude-plugins-official";
+const SETTINGS_FILE_NAME = "settings.json";
 
 let tempRoots: string[] = [];
 
@@ -94,7 +95,7 @@ async function writeSelfProject(root: string): Promise<void> {
   );
   await mkdir(path.join(root, CLAUDE_DIR), { recursive: true });
   await writeFile(
-    path.join(root, CLAUDE_DIR, "settings.json"),
+    path.join(root, CLAUDE_DIR, SETTINGS_FILE_NAME),
     `${JSON.stringify(
       { enabledPlugins: { "lisa@lisa": true, "lisa-typescript@lisa": true } },
       null,
@@ -367,7 +368,7 @@ describe("install-claude-plugins self postinstall path", () => {
       await writeFakeAgentBins(fakeBin);
       await writeFile(commandLog, "");
       await mkdir(path.join(root, CLAUDE_DIR), { recursive: true });
-      const settingsPath = path.join(root, CLAUDE_DIR, "settings.json");
+      const settingsPath = path.join(root, CLAUDE_DIR, SETTINGS_FILE_NAME);
       const originalSettings = '{"customSetting":"preserve me"}\n';
       await writeFile(settingsPath, originalSettings);
       const originalPackage = await readFile(
@@ -790,6 +791,42 @@ describe("install-claude-plugins self postinstall path", () => {
     expect(log).not.toContain("claude plugin uninstall safety-net");
   });
 
+  it("retains an explicitly enabled official Sentry plugin on a full sync", async () => {
+    const projectRoot = await makeTempRoot();
+    const fakeBin = path.join(projectRoot, "bin");
+    const commandLog = path.join(projectRoot, COMMAND_LOG);
+    await writeDownstreamProject(projectRoot);
+    const installedScriptPath = await writeInstalledLisaScript(projectRoot);
+    await writeFakeAgentBins(fakeBin);
+    await writeVersionedLisaPackageJson(projectRoot);
+    await mkdir(path.join(projectRoot, CLAUDE_DIR), { recursive: true });
+    await writeFile(
+      path.join(projectRoot, CLAUDE_DIR, SETTINGS_FILE_NAME),
+      JSON.stringify({ enabledPlugins: { [SENTRY_PLUGIN]: true } }),
+      "utf8"
+    );
+    await runBoundedBash(installedScriptPath, {
+      env: {
+        ...process.env,
+        HOME: projectRoot,
+        CI: "",
+        CODEX_THREAD_ID: "",
+        CLAUDE_CODE_REMOTE: "",
+        LISA_TEST_COMMAND_LOG: commandLog,
+        LISA_TEST_INSTALLED_PLUGINS: JSON.stringify([
+          { id: SENTRY_PLUGIN, projectPath: projectRoot },
+        ]),
+        PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ""}`,
+      },
+    });
+    const log = await readFile(commandLog, "utf8");
+    expect(log).not.toContain(`claude plugin uninstall ${SENTRY_PLUGIN}`);
+    expect(log).toContain(
+      "claude plugin uninstall safety-net@cc-marketplace --scope project"
+    );
+    expect(log).toContain(CLAUDE_INSTALL_BASE);
+  });
+
   it("performs a full plugin sync and records the marker when the Lisa version changes", async () => {
     const projectRoot = await makeTempRoot();
     const fakeBin = path.join(projectRoot, "bin");
@@ -990,4 +1027,3 @@ describe("install-claude-plugins self postinstall path", () => {
     expect(secondLog).not.toContain(CODEX_REMOVE_LISA);
   });
 });
-/* eslint-enable max-lines -- restore the repository default */
