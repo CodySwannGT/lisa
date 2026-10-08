@@ -97,11 +97,12 @@ export function createHarness(args) {
     return git(cwd, "rev-parse", "HEAD");
   };
   const secret = () => {
-    // Random hex bytes can fall below Gitleaks' 3.5-bit entropy floor.
-    // Shuffle a balanced alphabet: every fixture remains a random
-    // nonce while its measured symbol entropy is always four bits.
-    const value = (() => {
-      const symbols = "0123456789abcdef".repeat(4).split("");
+    // Balance all 16 symbols to stay above the pinned vendor's entropy floor.
+    // Its stopwords include dead/feed and a digest containing adjacent letters.
+    // Shuffle digits and letters separately, then separate every letter with a
+    // digit. This prevents those words; four copies also cannot spell 000000
+    // or aaaaaa. The 64-character nonce still measures exactly four bits.
+    const shuffle = symbols => {
       symbols.forEach((_, offset) => {
         const index = symbols.length - 1 - offset;
         if (index === 0) return;
@@ -111,8 +112,13 @@ export function createHarness(args) {
           symbols[index],
         ];
       });
-      return symbols.join("");
-    })();
+      return symbols;
+    };
+    const digits = shuffle("0123456789".repeat(4).split(""));
+    const letters = shuffle("abcdef".repeat(4).split(""));
+    const value =
+      letters.map((letter, index) => letter + digits[index]).join("") +
+      digits.slice(letters.length).join("");
     values.push(value);
     if (proof)
       writeFileSync(
