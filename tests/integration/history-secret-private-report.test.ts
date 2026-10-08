@@ -12,6 +12,8 @@ import {
   boundedSpawnSync,
   useIoLatencyBudget,
 } from "../helpers/io-latency-budget.js";
+import { selectPortableCases } from "../fixtures/git-history-secrets/portable-evidence.mjs";
+import { requireCollectedEvidenceObservation } from "../fixtures/git-history-secrets/package.mjs";
 useIoLatencyBudget();
 const root = resolve(import.meta.dirname, "../..");
 const lease = mkdtempSync(join(tmpdir(), "history-private-vendor-"));
@@ -24,6 +26,63 @@ const environment = Object.fromEntries(
     .filter(key => process.env[key] !== undefined)
     .map(key => [key, process.env[key]])
 );
+const childBaseMs = 30_000;
+const portableOnly = "--portable-only";
+const portablePartition = "--portable-partition";
+const portableCredentialKeys = "--portable-credential-keys";
+const expected = {
+  positive: [
+    "verified-digest-exact-bytes",
+    "verified-binary-preimage",
+    "verified-unicode-byte-attribution",
+    "verified-reachable-history",
+    "verified-narrative-paragraph",
+    "verified-narrative-no-newline",
+  ],
+  digest: [
+    "digest-wrong-role",
+    "digest-nested-role",
+    "digest-mismatch",
+    "digest-absent-preimage",
+    "digest-malformed-map",
+    "digest-duplicate-key",
+    "digest-escaped-duplicate-key",
+    "digest-escaped-path-alias",
+    "digest-escaped-value",
+    "digest-unverified-sibling",
+    "digest-unsafe-parent",
+    "digest-unsafe-absolute",
+    "digest-unavailable-revision",
+    "digest-null-revision",
+    "digest-false-revision",
+    "digest-empty-revision",
+    "digest-numeric-revision",
+    "digest-ambiguous-line",
+    "digest-invalid-utf8",
+    "digest-depth-budget",
+    "digest-token-budget",
+    "digest-byte-budget",
+    "digest-symlink-preimage",
+    "digest-source-credential",
+    "digest-adjacent-credential",
+    "digest-other-default-rule",
+    "digest-tag-object-revision",
+    "digest-unreachable-revision",
+  ],
+  narrative: [
+    "narrative-credential-assignment",
+    "narrative-credential-json",
+    "narrative-code-context",
+    "narrative-interpolation",
+    "narrative-arbitrary-substitution",
+    "narrative-adjacent-credential",
+  ],
+};
+/** Redacted native row from the original fixture report. */
+type EvidenceObservation = {
+  name: string;
+};
+
 beforeAll(() => {
   const result = boundedSpawnSync({
     label: "official pinned private-report scanner provision",
@@ -145,6 +204,105 @@ describe("genuine scanner report private creation and observation", () => {
       else if (fault === "redaction")
         expect(actual.record.matchedValuesAbsent).toBe(false);
       else expect(actual.record.readable).toBe(false);
+    }
+  );
+});
+
+describe("legacy evidence exact attribution and refusal", () => {
+  it.each([
+    [portableOnly, portablePartition],
+    [portableOnly, portablePartition, "third"],
+    [portableOnly, "--portable-partition=first"],
+    [portableOnly, "--portable-partition-extra", "first"],
+    [portableOnly, portablePartition, "first", portablePartition, "second"],
+    [portablePartition, "first"],
+    [portableOnly, portableCredentialKeys, portablePartition, "first"],
+  ])("refuses malformed or incompatible portable selectors %#", (...flags) => {
+    expect(() => selectPortableCases(flags)).toThrow(
+      "Unknown portable control selector."
+    );
+  });
+  it.each([
+    ["positive", "positive", null, expected.positive],
+    ["digest-first", "digest", "first", expected.digest.slice(0, 14)],
+    ["digest-second", "digest", "second", expected.digest.slice(14)],
+    ["narrative", "narrative", null, expected.narrative],
+    [
+      "coexistence",
+      "coexistence",
+      null,
+      [
+        "immutable-coexist-strict-source",
+        "immutable-coexist-catalogue-proof",
+        "immutable-coexist-incomplete-map",
+      ],
+    ],
+    [
+      "bytes-within",
+      "immutable-bytes-within",
+      null,
+      ["immutable-bytes-within"],
+    ],
+    [
+      "bytes-exhausted",
+      "immutable-bytes-exhausted",
+      null,
+      ["immutable-bytes-exhausted"],
+    ],
+    [
+      "blobs-within",
+      "immutable-blobs-within",
+      null,
+      ["immutable-blobs-within", "immutable-blobs-within-detector"],
+    ],
+    [
+      "blobs-exhausted",
+      "immutable-blobs-exhausted",
+      null,
+      ["immutable-blobs-exhausted", "immutable-blobs-exhausted-detector"],
+    ],
+  ] as const)(
+    "executes the exact nonempty %s controls with redaction and cleanup",
+    (label, group, partition, names) => {
+      expect(names.length).toBeGreaterThan(0);
+      const result = boundedSpawnSync({
+        label: `actual emitted evidence CLI ${label} controls`,
+        command: process.execPath,
+        args: [
+          join(root, "tests/fixtures/git-history-secrets/journey.mjs"),
+          group === "coexistence" || group.startsWith("immutable-")
+            ? "--immutable-only"
+            : "--evidence-only",
+          group === "coexistence" || group.startsWith("immutable-")
+            ? "--immutable-group"
+            : "--evidence-group",
+          group,
+          ...(partition === null ? [] : ["--evidence-partition", partition]),
+          "--scanner",
+          scanner,
+        ],
+        cwd: root,
+        baseMs: childBaseMs,
+      });
+      expect(result.status, result.stderr).toBe(0);
+      expect(result.stderr).toBe("");
+      const report = JSON.parse(result.stdout) as {
+        scanner: string;
+        redaction: boolean;
+        cleanup: string;
+        observations: EvidenceObservation[];
+      };
+      expect(report.scanner).toBe("Gitleaks 8.30.1");
+      expect(report.redaction).toBe(true);
+      expect(report.cleanup).toBe(
+        "all owned fixture repositories/processes removed on exit"
+      );
+      expect(report.observations.map(observation => observation.name)).toEqual(
+        names
+      );
+      for (const observation of report.observations) {
+        requireCollectedEvidenceObservation(expect, observation, group);
+      }
     }
   );
 });

@@ -3,6 +3,9 @@ import { createHash } from "node:crypto";
 import { rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { commitFixture, fixtureHash, provePreimage } from "./harness.mjs";
+import { scanImmutableCase } from "./report-mode.mjs";
+import { budgetGraph, retainBudgetInventory } from "./errors.mjs";
 
 const source = "config/access.rb";
 const proof = join(tmpdir(), "owned-proof-access.md");
@@ -265,3 +268,66 @@ export function runEvidenceCases(harness, original) {
   );
   return true;
 }
+
+/** Fixed genuine preimage graphs for the original aggregate/unique lookup bounds. */
+export const budgetFixtures = [
+  ["immutable-bytes-within", "bytes", 63, 0],
+  ["immutable-bytes-exhausted", "bytes", 64, 42],
+  ["immutable-blobs-within", "blobs", 126, 0],
+  ["immutable-blobs-exhausted", "blobs", 127, 42],
+];
+
+/**
+ * Require genuine scanner boundaries and preserve private, independently proved blob metrics.
+ * @param harness - Original fixture authority and unchanged native command limits
+ * @param fixture - Exact one-case selector tuple
+ */
+export const runBudgetCase = (harness, fixture) => {
+  for (const companion of fixture[1] === "blobs" ? [false, true] : [false]) {
+    const graph = budgetGraph(harness, fixture, companion, {
+      hash: fixtureHash,
+      commit: commitFixture,
+    });
+    const inventory = [graph.tuples.slice(0, 256), graph.tuples.slice(256)]
+      .filter(batch => batch.length)
+      .flatMap(batch => provePreimage(harness, graph.cwd, batch));
+    const name = `${fixture[0]}${companion ? "-detector" : ""}`;
+    const budget = retainBudgetInventory(
+      harness,
+      name,
+      graph,
+      inventory,
+      companion,
+      fixture
+    );
+    const verdict = scanImmutableCase(harness, {
+      ...graph,
+      name,
+      budget,
+      expected: companion ? 42 : fixture[3],
+      target: { commit: graph.origin, line: graph.targets[0].line },
+      targets: graph.targets,
+      findingsCount: companion ? fixture[2] : undefined,
+      preimagesVerified: companion ? 1 : graph.sources.length,
+    });
+    if (harness.proof)
+      harness.write(
+        harness.proof,
+        `${name}-selected.json`,
+        JSON.stringify(
+          {
+            ...verdict,
+            before: graph.before,
+            head: graph.head,
+            origin: graph.origin,
+            expectedCoordinates: graph.targets.map(({ file, line }) => ({
+              file,
+              line,
+            })),
+          },
+          null,
+          2
+        )
+      );
+  }
+};

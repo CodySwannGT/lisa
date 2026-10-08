@@ -43,9 +43,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs":
       "d7eb4fb96dd697f9abbd5132ffde5ec47d2972f9d5c0725529b57b8f54e06dc3",
     "all/copy-overwrite/scripts/lib/history-secret-evidence-shape.mjs":
-      "ff421c676daf8098f15d59f46a285076b0a9e4a94bdf5484f739cffc2fe5f8eb",
+      "b3e0fab20a5d3e6c702563ff69b559c72e34f43a831e65c0b51d2eb80a0e2e50",
     "all/copy-overwrite/scripts/lib/history-secret-evidence.mjs":
-      "0475ac4654e33c2f24e0f10adbe79eb9db3229e1d2eb5160418b78545043410c",
+      "34d6921095a34ccd0b889ec95c2ff0a7617e844b868a768b48091d0c88e47325",
     "all/copy-overwrite/scripts/lib/history-secret-git.mjs":
       "102276aef106e07b2b385fe8f2d3b54a9d30381633a22e07d5d74a5db9ddf320",
     "all/copy-overwrite/scripts/lib/history-secret-policy.mjs":
