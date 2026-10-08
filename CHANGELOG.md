@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.71.10](https://github.com/CodySwannGT/lisa/compare/v4.71.9...v4.71.10) (2026-10-08)
+
+
+### Bug Fixes
+
+* bound active npm checkpoint chronology by observation ([5222ce4](https://github.com/CodySwannGT/lisa/commit/5222ce450d2f1eb46642c351a2d5d8bd29a99773)), closes [CodySwannGT/lisa#4386](https://github.com/CodySwannGT/lisa/issues/4386) [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347) [CodySwannGT/lisa#4383](https://github.com/CodySwannGT/lisa/issues/4383)
+
 ### [4.71.9](https://github.com/CodySwannGT/lisa/compare/v4.71.8...v4.71.9) (2026-10-08)
 
 
