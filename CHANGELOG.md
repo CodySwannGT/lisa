@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.71.7](https://github.com/CodySwannGT/lisa/compare/v4.71.6...v4.71.7) (2026-10-08)
+
+
+### Bug Fixes
+
+* **ci:** contain required-check inputs by real path ([96df700](https://github.com/CodySwannGT/lisa/commit/96df7008509bf7ddb80ef07cf57c7cd0a28b9151))
+
 ### [4.71.6](https://github.com/CodySwannGT/lisa/compare/v4.71.5...v4.71.6) (2026-10-08)
 
 
