@@ -8,7 +8,6 @@
  * refs, and still includes every commit the remote does not have (#4345).
  * @module tests/history-secrets
  */
-import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -17,6 +16,7 @@ import {
   introducedCommits,
   pushRemoteName,
 } from "../../../all/copy-overwrite/scripts/lib/history-secret-git.mjs";
+import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
 const ZERO = "0".repeat(40);
 const byText = (left: string, right: string): number =>
@@ -24,9 +24,11 @@ const byText = (left: string, right: string): number =>
 let scratch = "";
 
 const git = (cwd: string, ...args: string[]): string =>
-  execFileSync("git", args, {
+  boundedExecFileSync({
+    label: `git ${args[0] ?? ""}`,
+    command: "git",
+    args,
     cwd,
-    encoding: "utf8",
     env: {
       ...process.env,
       GIT_CONFIG_GLOBAL: "/dev/null",
