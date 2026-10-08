@@ -8,7 +8,11 @@
  */
 import { required, keys } from "./npm-update-invariants.mjs";
 export { UpdaterError, required, keys } from "./npm-update-invariants.mjs";
-import { canonicalJson } from "../lisa-automation-provenance.mjs";
+import {
+  canonicalJson,
+  npmBindingKey,
+  npmProposalIdentity,
+} from "../lisa-automation-provenance.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
 import {
   optionalLockFields,
@@ -168,7 +172,31 @@ export function validateLock(lock, manifest, updates) {
         !item.link,
       "unsupported lock node"
     );
-    const url = new URL(item.resolved);
+    // A bundled dependency ships inside its parent's tarball, so npm records
+    // no source or integrity of its own: the parent's registry integrity is
+    // what covers its bytes. Accept it only nested under a parent this loop
+    // also validates, and never when it claims a source of its own.
+    if (item.inBundle === true) {
+      required(
+        item.resolved === undefined && item.integrity === undefined,
+        "bundled lock node declares its own source"
+      );
+      const boundary = name.lastIndexOf("/node_modules/");
+      const parent = boundary < 0 ? "" : name.slice(0, boundary);
+      required(
+        parent.startsWith("node_modules/") &&
+          Object.hasOwn(lock.packages, parent),
+        "bundled lock node has no registry parent"
+      );
+      continue;
+    }
+    required(typeof item.resolved === "string", "registry source missing");
+    let url;
+    try {
+      url = new URL(item.resolved);
+    } catch {
+      required(false, "registry source unparseable");
+    }
     required(
       url.protocol === "https:" &&
         url.hostname === "registry.npmjs.org" &&
@@ -233,29 +261,21 @@ export function proposalFrom(
   validateManifest(before, after, updates, policy);
   validateLock(lock, after, updates);
   const ordered = [...updates].sort((a, b) => a.name.localeCompare(b.name));
-  const identity = {
-    repository: policy.repository,
-    target: policy.target,
-    ecosystem: "npm",
-    directory: ".",
-    parent,
-    policySha256: sha256(canonicalJson(policy)),
-    updates: ordered,
-    ...optional,
-  };
+  // Both keys come from the same derivations the commit-time verifier uses,
+  // so a field bound here can never be missing from the re-derivation there.
+  const fields = { parent, updates: ordered, ...optional };
+  const identity = npmProposalIdentity(
+    policy.repository,
+    policy.target,
+    sha256(canonicalJson(policy)),
+    fields
+  );
   return {
     version: 1,
     ...identity,
     selectionKey: selectionKey(policy, ordered),
     key: sha256(canonicalJson(identity)),
-    bindingKey: sha256(
-      canonicalJson({
-        repository: policy.repository,
-        parent,
-        updates: ordered,
-        ...optional,
-      })
-    ),
+    bindingKey: npmBindingKey(policy.repository, fields),
     before,
     files,
     hashes: Object.fromEntries(names.map(file => [file, sha256(files[file])])),

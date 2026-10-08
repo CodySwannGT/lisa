@@ -68,7 +68,10 @@ export const main = async (remoteArgs = process.argv.slice(2)) => {
     // Import/call inside this boundary instead of forwarding raw Node bootstrap
     // stderr. The scanner receives exactly the buffered Git stream.
     const { main: scan } = await import("./lisa-history-secrets.mjs");
-    if ((await scan(["pre-push"], process.cwd(), input)) !== 0) failed = true;
+    // Git's remote arguments bound a new ref's range by what that remote
+    // already holds; without them a new branch rescans the whole history.
+    if ((await scan(["pre-push", ...remoteArgs], process.cwd(), input)) !== 0)
+      failed = true;
   } catch {
     console.error(
       "Managed history scanner is unavailable or damaged. Run full Lisa apply and retry; raw bootstrap errors are withheld."

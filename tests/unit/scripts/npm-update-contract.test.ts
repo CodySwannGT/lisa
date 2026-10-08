@@ -41,7 +41,11 @@ import {
   workerArguments,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-isolation.mjs";
 import { validateRuntime } from "../../../all/copy-overwrite/scripts/lib/npm-update-gate-install.mjs";
-import { canonicalJson } from "../../../all/copy-overwrite/scripts/lisa-automation-provenance.mjs";
+import {
+  canonicalJson,
+  npmBindingKey,
+  npmProposalIdentity,
+} from "../../../all/copy-overwrite/scripts/lisa-automation-provenance.mjs";
 import { sha256 } from "../../../all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs";
 import {
   validateOwnerReceipt,
@@ -1421,6 +1425,109 @@ describe("closed npm proposal", () => {
   );
   it("refuses an absent private JSON file", () =>
     expect(() => readJson("/no-such-owned-proof-4347.json")).toThrow());
+  describe("bundled lock nodes", () => {
+    const BUNDLED = "node_modules/is-number/node_modules/kind-of";
+    const TOP_LEVEL = "node_modules/kind-of";
+    const withNode = (key: string, node: Record<string, unknown>) => {
+      const lock = structuredClone(LOCK) as {
+        packages: Record<string, unknown>;
+      };
+      lock.packages[key] = node;
+      return () =>
+        proposalFrom(
+          POLICY,
+          SHA,
+          BEFORE,
+          { ...FILES, "package-lock.json": JSON.stringify(lock) },
+          UPDATES
+        );
+    };
+    it("accepts a bundled node nested under a validated registry parent", () => {
+      expect(
+        withNode(BUNDLED, { version: "6.0.3", inBundle: true })().key
+      ).toMatch(/^[a-f0-9]{64}$/);
+    });
+    it.each([
+      ["resolved", { resolved: "https://registry.npmjs.org/k/-/k-1.tgz" }],
+      [
+        "integrity",
+        { integrity: LOCK.packages["node_modules/is-number"].integrity },
+      ],
+    ])("refuses a bundled node declaring its own %s", (_name, extra) => {
+      expect(
+        withNode(BUNDLED, { version: "6.0.3", inBundle: true, ...extra })
+      ).toThrow(/bundled lock node declares its own source/);
+    });
+    it("refuses a top-level bundled node, which has no registry parent", () => {
+      expect(withNode(TOP_LEVEL, { version: "6.0.3", inBundle: true })).toThrow(
+        /bundled lock node has no registry parent/
+      );
+    });
+    it("refuses a bundled node whose parent entry is absent", () => {
+      expect(
+        withNode("node_modules/absent/node_modules/kind-of", {
+          version: "6.0.3",
+          inBundle: true,
+        })
+      ).toThrow(/bundled lock node has no registry parent/);
+    });
+    it("refuses a non-bundled node with no source as an authored failure", () => {
+      const build = withNode(TOP_LEVEL, { version: "6.0.3" });
+      expect(build).toThrow(/registry source missing/);
+      expect(build).not.toThrow(TypeError);
+    });
+    it("refuses an unparseable source as an authored failure", () => {
+      const build = withNode(TOP_LEVEL, {
+        version: "6.0.3",
+        resolved: "not a url",
+        integrity: LOCK.packages["node_modules/is-number"].integrity,
+      });
+      expect(build).toThrow(/registry source unparseable/);
+      expect(build).not.toThrow(TypeError);
+    });
+  });
+  it("derives both proposal keys through the verifier's shared derivations", () => {
+    const policy = validatePolicy(POLICY, CONFIG);
+    const bun = { bunLockSha256: "b".repeat(64) };
+    for (const [files, optional] of [
+      [FILES, {}],
+      [{ ...FILES, "bun.lock": "prepared Bun bytes" }, bun],
+    ] as const) {
+      const proposal = proposalFrom(
+        policy,
+        SHA,
+        BEFORE,
+        files,
+        UPDATES,
+        optional.bunLockSha256
+      );
+      const fields = { parent: SHA, updates: proposal.updates, ...optional };
+      expect(proposal.bindingKey).toBe(
+        npmBindingKey(policy.repository, fields)
+      );
+      expect(proposal.key).toBe(
+        sha256(
+          canonicalJson(
+            npmProposalIdentity(
+              policy.repository,
+              policy.target,
+              sha256(canonicalJson(policy)),
+              fields
+            )
+          )
+        )
+      );
+      // The binding key the verifier re-derives must change with the lock
+      // digest, or a substituted original Bun lock would verify.
+      if (optional.bunLockSha256)
+        expect(
+          npmBindingKey(policy.repository, {
+            ...fields,
+            bunLockSha256: "c".repeat(64),
+          })
+        ).not.toBe(proposal.bindingKey);
+    }
+  });
   it("binds deterministic identities to actual two-file bytes", () => {
     const policy = validatePolicy(POLICY, CONFIG);
     const proposal = proposalFrom(policy, SHA, BEFORE, FILES, UPDATES);

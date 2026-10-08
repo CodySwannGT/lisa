@@ -597,7 +597,13 @@ ENV_SPLIT_UNRESOLVED = 42
 BACKSLASH = chr(92)
 NEWLINE = chr(10)
 
-STATEMENT_SEPARATORS = {";", "|", "||", "&", "&&", "(", ")", "&|"}
+# `|&` pipes stdout and stderr into the next command, and the case terminators
+# end a statement as `;` does. Without them `printf x |& tee <managed>` stayed
+# one statement whose command word was `printf`, so the `tee` write target was
+# never examined.
+STATEMENT_SEPARATORS = {
+    ";", "|", "||", "&", "&&", "(", ")", "&|", "|&", ";;", ";&", ";;&",
+}
 # Ordinary output, noclobber override, and combined stdout/stderr output.
 # shlex separates fd prefixes (e.g. 10>>) from the operator automatically.
 REDIRECT_OUT = {">", ">>", ">|", "&>", "&>>", ">&"}

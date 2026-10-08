@@ -430,6 +430,22 @@ export interface DeletionsConfig {
    * @see core/deletion-basis
    */
   readonly basis?: Readonly<Record<string, string>>;
+  /**
+   * Paths Lisa itself put in consumers' repositories and now retires, each
+   * mapped to the sha256 of every version Lisa shipped there.
+   *
+   * A listed path is deleted only when the consumer's copy is byte-for-byte
+   * one of those versions (or one Lisa's hash ledger records at that path),
+   * and nothing in the consumer's `package.json` scripts or workflows still
+   * names it. That proof replaces the workflow ownership header: an unedited
+   * create-only seed carries the "this file is YOURS" header like every other
+   * seed, yet holds no work of the consumer's, so it can be retired. A copy
+   * that matches no shipped version is kept with a notice.
+   *
+   * A `force` entry for the same path outranks this one.
+   * @see core/retire-unmodified
+   */
+  readonly retireUnmodified?: Readonly<Record<string, readonly string[]>>;
 }
 
 /**

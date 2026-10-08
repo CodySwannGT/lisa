@@ -7,7 +7,13 @@
  * pending rather than mixed into the next feature commit.
  * @module tests/unit/hooks/auto-update-session.test
  */
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -16,6 +22,7 @@ import { describe, expect, it } from "vitest";
 import {
   autoUpdate,
   updateSubject,
+  workingTreeDigests,
 } from "../../../plugins/src/base/hooks/auto-update.mjs";
 import {
   APPLY,
@@ -41,6 +48,9 @@ import {
 function ran(seen: readonly string[], prefix: string): boolean {
   return seen.some(line => line.startsWith(prefix));
 }
+
+/** The manifest every fixture update changes. */
+const MANIFEST_FILE = "package.json";
 
 describe("auto-update: a session start", () => {
   it("updates, applies and commits on a clean feature branch", async () => {
@@ -87,10 +97,53 @@ describe("auto-update: a session start", () => {
     expect(ran(seen, COMMIT)).toBe(false);
     expect(pendingMarker(root)).toMatchObject({
       to: NEW,
-      files: ["package.json", "bun.lock", ".lisa/apply-receipt.json"],
+      files: [MANIFEST_FILE, "bun.lock", ".lisa/apply-receipt.json"],
     });
     expect(text).toContain("NOT committed yet");
     expect(text).toContain("main is a deploy branch");
+  });
+
+  it("records what each pending file holds, so a later edit is not swept in", async () => {
+    const root = project({ config: { tracker: "github" } });
+    const { seen } = await sessionStart(root, { branch: "main" });
+    expect(seen).toContain(
+      "git hash-object -- package.json bun.lock .lisa/apply-receipt.json"
+    );
+    expect(pendingMarker(root)).toMatchObject({
+      digests: {
+        [MANIFEST_FILE]: "1".repeat(40),
+        "bun.lock": "2".repeat(40),
+        ".lisa/apply-receipt.json": "3".repeat(40),
+      },
+    });
+  });
+
+  it("records a deleted pending file as null and leaves a directory out", async () => {
+    const root = project({});
+    rmSync(path.join(root, "bun.lock"));
+    mkdirSync(path.join(root, "sub"));
+    const seen: string[] = [];
+    const digests = await workingTreeDigests(
+      async (argv: string[]) => {
+        seen.push(argv.join(" "));
+        return "a".repeat(40);
+      },
+      root,
+      ["bun.lock", MANIFEST_FILE, "sub"]
+    );
+    expect(seen).toEqual(["git hash-object -- package.json"]);
+    expect(digests).toEqual({
+      "bun.lock": null,
+      [MANIFEST_FILE]: "a".repeat(40),
+    });
+  });
+
+  it("records no digests when git's answer cannot be matched to the files", async () => {
+    const root = project({});
+    const digests = await workingTreeDigests(async () => "", root, [
+      MANIFEST_FILE,
+    ]);
+    expect(digests).toBeNull();
   });
 
   it("leaves the update pending, unstaged, when the commit is refused", async () => {

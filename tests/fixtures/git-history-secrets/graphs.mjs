@@ -79,6 +79,46 @@ export const graphCases = harness => {
       42
     );
     scan(cwd, "empty", [], 0);
+
+    // A new ref is bounded by what the push remote already holds (#4393):
+    // history the remote published is not reintroduced by a new branch name,
+    // and a commit the remote lacks is still scanned and still blocks.
+    const published = join(cwd, "..", "published-remote.git");
+    git(cwd, "init", "--bare", "-q", published);
+    git(cwd, "remote", "add", "published", published);
+    git(cwd, "push", "-q", "published", `${second}:refs/heads/second`);
+    scan(
+      cwd,
+      "new-ref-at-published-history",
+      [{ before: zero, after: second }],
+      0,
+      ["published", published]
+    );
+    scan(
+      cwd,
+      "new-ref-at-published-history-by-url",
+      [{ before: zero, after: second }],
+      0,
+      [published, published]
+    );
+    git(cwd, "checkout", "-qb", "published-feature", second);
+    commit(cwd, "introduced.txt", secret());
+    const introduced = commit(cwd, "introduced.txt", "clean feature tip\n");
+    scan(
+      cwd,
+      "new-ref-introducing-credential-past-published",
+      [{ before: zero, after: introduced }],
+      42,
+      ["published", published]
+    );
+    scan(
+      cwd,
+      "new-ref-unknown-remote-scans-everything",
+      [{ before: zero, after: second }],
+      42,
+      ["unconfigured"]
+    );
+
     write(
       cwd,
       ".lisa.config.json",

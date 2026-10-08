@@ -131,7 +131,7 @@
       "children": []
     },
     "lib/history-secret-git.mjs": {
-      "sha256": "102276aef106e07b2b385fe8f2d3b54a9d30381633a22e07d5d74a5db9ddf320",
+      "sha256": "77a2c141112b06153b7eab1cb13cf6076e0be5bc84d7fa99e1e58198f510f677",
       "staticImports": [
         "node:child_process",
         "node:fs",
@@ -314,7 +314,7 @@
       "children": []
     },
     "lib/npm-update-contract.mjs": {
-      "sha256": "d8e7e94d7b33d0088ea01d32d659f00408487465f7d857a64daa1b09b16fcd8c",
+      "sha256": "fea08c847c4aedb84e099f218c1dc1463707619816437f79987bf1364168ce70",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/github-attestation-verifier.mjs",
@@ -996,7 +996,7 @@
       "children": []
     },
     "lisa-automation-provenance.mjs": {
-      "sha256": "b615b14813a515fb357740b692aaf881d596aeb63d95cc6b93a7181c7dff65d3",
+      "sha256": "ecc1336dfe5dfa805598a2d46a0ad626bac25eb06345aed1c068e3d33804a032",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/automation-provenance-local.mjs",
@@ -1037,7 +1037,7 @@
       "children": []
     },
     "lisa-history-secrets.mjs": {
-      "sha256": "966301ef764ddd5cfb37d26c22dd2dc4712496e67f63adddde9635fec6f6136c",
+      "sha256": "3859bab4ac82ef3fc605fa537d2eaaf240e7d0aaab0495ce281054ab1dba6341",
       "staticImports": [
         "node:fs"
       ],
@@ -1076,7 +1076,7 @@
       "children": []
     },
     "lisa-rails-prepush.mjs": {
-      "sha256": "b963ce2647fd6daa95ceb5607691c5fb7d9f847a54d93a3d36718c5f7567905c",
+      "sha256": "31a61d5c53db977fb1d6ff8f125ec785db98e79290a4ea5225e4322d9915038d",
       "staticImports": [
         "node:child_process",
         "node:fs",
@@ -1130,7 +1130,7 @@
       "children": []
     },
     "lisa-work-item.mjs": {
-      "sha256": "64f01819287d902ed830285c256dd0a589330bce5be9c7b8b1f2563d811db287",
+      "sha256": "6a01ba966c0db49fdf99b59a988bef2e3c6f591c53f60e4d265b115dfcc4c2c4",
       "staticImports": [
         "lib/invoked-as-script.mjs",
         "node:child_process",

@@ -36,6 +36,7 @@ const AI = "Co-authored-by: Codex <codex@openai.com>\n";
 const MARKER = "Automation-Provenance: actions/123/attempts/1\n";
 const MANIFEST = "package.json";
 const LOCKFILE = "package-lock.json";
+const BUN_LOCKFILE = "bun.lock";
 const CONFIG = ".lisa.config.json";
 const DESCRIPTOR_FILE = "descriptor.json";
 const PROVIDER_FILE = "fake-bin/provider.json";
@@ -157,7 +158,7 @@ console.log(typeof data[key]==='string'?data[key]:JSON.stringify(data[key]));\n`
 }
 
 /** Materialize a real two-file npm proposal on a committed trusted base. */
-function proposalFixture(recovery = false) {
+function proposalFixture(recovery = false, bun = false) {
   const f = fixture();
   const policy = transport(f);
   const config = JSON.parse(readFileSync(path.join(f.root, CONFIG), "utf8"));
@@ -195,6 +196,14 @@ function proposalFixture(recovery = false) {
       "node_modules/is-number": { version },
     },
   });
+  const bunFor = (version: string) =>
+    `{"lockfileVersion":1,"is-number":"${version}"}\n`;
+  // A present bun.lock makes the hook resolve its executor as `bunx`; give it
+  // the same passing commitlint boundary the npm fixture gets through `npx`.
+  if (bun)
+    writeFileSync(path.join(f.root, "fake-bin/bunx"), "#!/bin/sh\nexit 0\n", {
+      mode: 0o755,
+    });
   for (const version of ["6.0.0", "7.0.0"]) {
     writeFileSync(
       path.join(f.root, MANIFEST),
@@ -204,7 +213,12 @@ function proposalFixture(recovery = false) {
       path.join(f.root, LOCKFILE),
       JSON.stringify(lockFor(version))
     );
-    git(f.root, ["add", CONFIG, MANIFEST, LOCKFILE], f.env);
+    if (bun) writeFileSync(path.join(f.root, BUN_LOCKFILE), bunFor(version));
+    git(
+      f.root,
+      ["add", CONFIG, MANIFEST, LOCKFILE, ...(bun ? [BUN_LOCKFILE] : [])],
+      f.env
+    );
     if (version === "6.0.0")
       git(f.root, ["commit", "-qm", "test trusted base"], f.env);
   }
@@ -219,6 +233,7 @@ function proposalFixture(recovery = false) {
     { section: "dependencies", name: "is-number", from: "6.0.0", to: "7.0.0" },
   ];
   const claim = "[lisa-tracker-claim] deterministic fixture claim";
+  const lock = bun ? { bunLockSha256: sha256(bunFor("6.0.0")) } : {};
   const descriptor = {
     version: 1,
     runId: "123",
@@ -234,12 +249,20 @@ function proposalFixture(recovery = false) {
     queue: "acme/widgets",
     workItem: REF,
     proposalKey: sha256(
-      canonicalJson({ repository: policy.repository, parent, updates })
+      canonicalJson({ repository: policy.repository, parent, updates, ...lock })
     ),
     updates,
+    ...lock,
     files: {
       [MANIFEST]: sha256(readFileSync(path.join(f.root, MANIFEST))),
       [LOCKFILE]: sha256(readFileSync(path.join(f.root, LOCKFILE))),
+      ...(bun
+        ? {
+            [BUN_LOCKFILE]: sha256(
+              readFileSync(path.join(f.root, BUN_LOCKFILE))
+            ),
+          }
+        : {}),
     },
   };
   return { f: current, policy, descriptor, claim };
@@ -561,8 +584,8 @@ describe.each(HOOKS)("present recovery files fail closed: %s", hookPath => {
 });
 
 /** A completed-origin fixture reaches both official command boundaries, not signatures. */
-function recoveryFixture() {
-  const p = proposalFixture(true);
+function recoveryFixture(bun = false) {
+  const p = proposalFixture(true, bun);
   installProof(p);
   const data = providerData(p);
   const config = JSON.parse(readFileSync(path.join(p.f.root, CONFIG), "utf8"));
@@ -577,6 +600,7 @@ function recoveryFixture() {
       parent: p.descriptor.parent,
       policySha256: npmPolicySha256,
       updates: p.descriptor.updates,
+      ...(bun ? { bunLockSha256: p.descriptor.bunLockSha256 } : {}),
     })
   );
   const recovery = {
@@ -708,5 +732,56 @@ describe.each(HOOKS)("dual proof hook transport control: %s", hookPath => {
     if (field === "claim") data[CLAIM_ENDPOINT].body = "changed claim";
     writeFileSync(path.join(p.f.root, PROVIDER_FILE), JSON.stringify(data));
     expect(hook(p.f, hookPath, MESSAGE + MARKER).status).toBe(1);
+  });
+});
+
+/**
+ * A proposal that rewrites bun.lock binds the original lock digest into both
+ * keys (`proposalFrom`). The verifier must re-derive them from the same fields,
+ * or every Bun-lock proposal is refused at commit time.
+ */
+describe.each(HOOKS)("Bun-lock proposal keys: %s", hookPath => {
+  it("verifies a Bun-lock descriptor whose binding key carries the lock digest", () => {
+    const p = proposalFixture(false, true);
+    installProof(p);
+    const result = hook(p.f, hookPath, MESSAGE + MARKER);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("Authenticated non-AI");
+  });
+
+  it("refuses a Bun-lock binding key derived without the lock digest", () => {
+    const p = proposalFixture(false, true);
+    p.descriptor.proposalKey = sha256(
+      canonicalJson({
+        repository: p.policy.repository,
+        parent: p.descriptor.parent,
+        updates: p.descriptor.updates,
+      })
+    );
+    installProof(p);
+    expect(hook(p.f, hookPath, MESSAGE + MARKER).status).toBe(1);
+  });
+
+  it("refuses a tampered original Bun-lock digest", () => {
+    const p = proposalFixture(false, true);
+    const tampered = "c".repeat(64);
+    Object.assign(p.descriptor, {
+      bunLockSha256: tampered,
+      proposalKey: sha256(
+        canonicalJson({
+          repository: p.policy.repository,
+          parent: p.descriptor.parent,
+          updates: p.descriptor.updates,
+          bunLockSha256: tampered,
+        })
+      ),
+    });
+    installProof(p);
+    expect(hook(p.f, hookPath, MESSAGE + MARKER).status).toBe(1);
+  });
+
+  it("accepts Bun-lock recovery whose proposal key carries the lock digest", () => {
+    const { p } = recoveryFixture(true);
+    expect(hook(p.f, hookPath, MESSAGE + MARKER).status).toBe(0);
   });
 });

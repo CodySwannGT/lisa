@@ -311,6 +311,22 @@ describe("block-no-verify.agy.sh", () => {
     expect(decide("not json at all")).toBe("allow");
   });
 
+  // Parity with the Claude variant: `|&` (and glued `)|&`) is a boundary.
+  it.each([
+    "echo hi |& git commit --no-verify -m x",
+    "(echo hi)|&git commit --no-verify -m x",
+    "echo hi |& git commit -n -m x",
+  ])("denies %s", command => {
+    expect(decide(payload(command))).toBe("deny");
+  });
+
+  it.each(["make 2>&1 |& tee build.log", "git commit -m x 2>&1 | grep -n foo"])(
+    "allows %s",
+    command => {
+      expect(decide(payload(command))).toBe("allow");
+    }
+  );
+
   it("allows when CommandLine is absent", () => {
     expect(decide(JSON.stringify({ toolCall: { name: "run_command" } }))).toBe(
       "allow"

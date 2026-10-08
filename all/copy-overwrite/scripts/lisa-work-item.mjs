@@ -12,6 +12,7 @@ import { createHash } from "node:crypto";
 import {
   chmodSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   readFileSync,
   renameSync,
@@ -4515,6 +4516,23 @@ export function commitPendingLisaUpdate(ref, contract, cwd = process.cwd()) {
     rmSync(marker, { force: true });
     return;
   }
+  // The marker names paths, and a path is not the update: an edit made to one
+  // of these files after the session-start update would otherwise be swept
+  // into the update commit under its message (CodySwannGT/lisa#4393). Commit
+  // only when every file still holds the bytes the update recorded; a legacy
+  // marker with no digests cannot prove that, so it is left for a human too.
+  const changed = changedSinceUpdate(pending, files, cwd);
+  if (changed.length > 0) {
+    console.error(
+      `The pending Lisa ${pending.to} update was NOT committed automatically: ${pending.digests ? "these files changed after the update wrote them" : "its record predates content checks, so these files cannot be proved unchanged"}: ${changed.join(", ")}. Review them and commit the Lisa update as its own commit before feature work.`
+    );
+    return;
+  }
+  // Snapshot the index entries for these paths so a failed commit puts back
+  // exactly what the user had staged, rather than unstaging it.
+  const snapshot = run("git", ["ls-files", "-s", "-z", "--", ...files], {
+    cwd,
+  }).stdout;
   try {
     git(["add", "--", ...files], { cwd });
     // `--only` commits exactly these paths, so a feature edit the user had
@@ -4537,14 +4555,89 @@ export function commitPendingLisaUpdate(ref, contract, cwd = process.cwd()) {
       `Committed the pending Lisa ${pending.to} update first, as its own commit, under ${ref}.`
     );
   } catch (error) {
-    run("git", ["reset", "--quiet", "--", ...files], {
-      cwd,
-      allowFailure: true,
-    });
+    const restored = restoreIndexEntries(snapshot, files, cwd);
     console.error(
-      `The pending Lisa ${pending.to} update could not be committed (${String(error?.message ?? error).split("\n")[0]}). Its files are still in the working tree; commit them as their own commit before feature work.`
+      `The pending Lisa ${pending.to} update could not be committed (${String(error?.message ?? error).split("\n")[0]}). Its files are still in the working tree; commit them as their own commit before feature work.${restored ? "" : " Restoring what was staged for them beforehand also failed; check `git status` before committing."}`
     );
   }
+}
+
+/**
+ * Pending files whose current bytes differ from what the update recorded.
+ *
+ * Recomputed exactly as the auto-update's `workingTreeDigests` records them: a
+ * `git hash-object` blob id for a file or symlink, null for an absent path. A
+ * path the record does not carry, or one that is neither, counts as changed.
+ * @param {{digests?: Record<string, string | null>}} pending The marker.
+ * @param {string[]} files Pending paths still dirty.
+ * @param {string} cwd Repository directory.
+ * @returns {string[]} The paths that cannot be proved unchanged.
+ */
+function changedSinceUpdate(pending, files, cwd) {
+  const recorded = pending.digests;
+  if (!recorded || typeof recorded !== "object") return [...files];
+  const current = new Map();
+  const present = [];
+  for (const file of files) {
+    let stat;
+    try {
+      stat = lstatSync(resolve(cwd, file));
+    } catch {
+      current.set(file, null);
+      continue;
+    }
+    if (stat.isFile() || stat.isSymbolicLink()) present.push(file);
+  }
+  if (present.length > 0) {
+    const ids = run("git", ["hash-object", "--", ...present], {
+      cwd,
+      allowFailure: true,
+    })
+      .stdout.split("\n")
+      .map(line => line.trim())
+      .filter(Boolean);
+    if (ids.length !== present.length) return [...files];
+    present.forEach((file, index) => current.set(file, ids[index]));
+  }
+  return files.filter(
+    file =>
+      !Object.hasOwn(recorded, file) ||
+      !current.has(file) ||
+      current.get(file) !== recorded[file]
+  );
+}
+
+/**
+ * Put the index entries for `files` back to a `git ls-files -s -z` snapshot.
+ *
+ * A path absent from the snapshot was not in the index before, so it stays
+ * removed; every other path gets its recorded mode, blob and stage back.
+ *
+ * probe-direction: fail-closed — a failed git call returns false, which the
+ * caller reports to the user as an index it could not restore; it never reads
+ * as a successful restore.
+ * @param {string} snapshot NUL-delimited `ls-files -s` output taken beforehand.
+ * @param {string[]} files Paths the failed commit staged.
+ * @param {string} cwd Repository directory.
+ * @returns {boolean} Whether the restore succeeded.
+ */
+function restoreIndexEntries(snapshot, files, cwd) {
+  const entries = snapshot.split("\0").filter(Boolean);
+  // Drop every entry for these paths first, so a restored stage-0 entry does
+  // not sit beside anything `git add` wrote; then lay the snapshot back.
+  const removal = run(
+    "git",
+    ["update-index", "--force-remove", "--", ...files],
+    { cwd, allowFailure: true }
+  );
+  if (removal.status !== 0) return false;
+  if (entries.length === 0) return true;
+  const restore = run("git", ["update-index", "-z", "--index-info"], {
+    cwd,
+    input: entries.map(entry => `${entry}\0`).join(""),
+    allowFailure: true,
+  });
+  return restore.status === 0;
 }
 
 /**

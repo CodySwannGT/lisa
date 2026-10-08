@@ -45,7 +45,7 @@ export const gitEnvironment = () => {
 };
 
 /** Git errors can contain arbitrary payloads; only authored guidance leaves here. */
-export const gitRead = (args, cwd) => {
+export const gitRead = (args, cwd, input) => {
   const result = spawnSync(
     "git",
     [
@@ -60,6 +60,7 @@ export const gitRead = (args, cwd) => {
       cwd,
       env: gitEnvironment(),
       encoding: "utf8",
+      input,
       timeout: 120000,
       maxBuffer: 64 * 1024 * 1024,
     }
@@ -151,8 +152,91 @@ export const eventPairs = (event, name, width) => {
   );
 };
 
+/**
+ * Resolve Git's pre-push `$1` to a configured remote whose tracking refs may
+ * bound a new ref's range. Git passes the remote's NAME when the push named
+ * one and the URL otherwise; a URL counts only when exactly one configured
+ * remote declares it as its url or pushurl. Anything unresolvable returns null,
+ * which keeps the complete-history scan: an unknown remote proves nothing about
+ * what the destination already holds.
+ * @param {string | undefined} remote Git's pre-push remote argument.
+ * @param {string} cwd Repository directory.
+ * @returns {string | null} A configured remote name, or null.
+ */
+export const pushRemoteName = (remote, cwd) => {
+  if (typeof remote !== "string" || remote === "") return null;
+  // A remote name becomes a ref-prefix pattern below. Glob metacharacters,
+  // a leading dash and path tricks would make that prefix mean something else,
+  // so such a name never bounds the range.
+  const safe = name =>
+    /^[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*$/u.test(name) &&
+    !name.startsWith("-") &&
+    !name.split("/").some(part => part === "." || part === "..") &&
+    spawnSync("git", ["check-ref-format", `refs/remotes/${name}/probe`], {
+      env: gitEnvironment(),
+      timeout: 10000,
+      stdio: "ignore",
+    }).status === 0;
+  const names = gitRead(["remote"], cwd).split("\n").filter(Boolean);
+  if (names.includes(remote)) return safe(remote) ? remote : null;
+  // `--get-regexp` exits 1 when nothing matches, which is an answer here, not
+  // a failure, so this one read does not go through gitRead.
+  const configured = spawnSync(
+    "git",
+    ["config", "--null", "--get-regexp", "^remote\\..*\\.(url|pushurl)$"],
+    {
+      cwd,
+      env: gitEnvironment(),
+      encoding: "utf8",
+      timeout: 10000,
+      maxBuffer: 1024 * 1024,
+    }
+  );
+  // probe-direction: fail-closed — an unreadable remote list resolves no
+  // remote, so nothing is subtracted and the complete history is scanned.
+  if (configured.error || configured.signal || configured.status !== 0)
+    return null;
+  const owners = new Set();
+  for (const record of configured.stdout.split("\0").filter(Boolean)) {
+    const split = record.indexOf("\n");
+    const key = record.slice(0, split);
+    const value = record.slice(split + 1);
+    const name = key
+      .replace(/^remote\./u, "")
+      .replace(/\.(?:url|pushurl)$/u, "");
+    if (split > 0 && value === remote && names.includes(name)) owners.add(name);
+  }
+  if (owners.size !== 1) return null;
+  const [owner] = owners;
+  return safe(owner) ? owner : null;
+};
+
+/**
+ * Commit IDs the push remote already holds, read from its local tracking refs.
+ *
+ * Tracking refs are the repository's record of what the remote advertised at
+ * the last fetch or push. A stale record only ever under-reports, which widens
+ * the scan rather than narrowing it, so reading them is fail-closed.
+ * @param {string | null} remote A configured remote name from pushRemoteName.
+ * @param {string} cwd Repository directory.
+ * @returns {string[]} Commit IDs to exclude; empty when none are known.
+ */
+export const remoteTips = (remote, cwd) => {
+  if (remote === null) return [];
+  const refs = gitRead(
+    [
+      "for-each-ref",
+      "--format=%(objectname)",
+      "--end-of-options",
+      `refs/remotes/${remote}/`,
+    ],
+    cwd
+  );
+  return [...new Set(refs.split("\n").filter(Boolean))];
+};
+
 /** Pairwise subtraction prevents one ref's old tip from hiding another update. */
-export const introducedCommits = (pairs, cwd, width) => {
+export const introducedCommits = (pairs, cwd, width, remote) => {
   const oid = new RegExp(`^[a-f0-9]{${width}}$`, "u");
   for (const pair of pairs) {
     if (!oid.test(pair.before ?? "") || !oid.test(pair.after ?? ""))
@@ -175,6 +259,16 @@ export const introducedCommits = (pairs, cwd, width) => {
       "Legacy Git grafts prevent complete history proof. Use an unmodified complete repository checkout."
     );
   const commits = new Set();
+  // A new remote ref (zero `before`) has no old tip to subtract, and scanning
+  // everything reachable from it counts the remote's own published history as
+  // introduced: every new branch of an old repository then re-litigates its
+  // root commit. What a push introduces is what the destination does not
+  // already hold, so a new ref subtracts the push remote's tracking refs.
+  // Without a resolvable remote, or with no tracking refs, nothing is
+  // subtracted and the complete reachable history is scanned as before.
+  const published = updates.some(pair => /^0+$/u.test(pair.before))
+    ? remoteTips(pushRemoteName(remote, cwd), cwd)
+    : [];
   for (const { before, after } of updates) {
     const next = gitRead(["rev-parse", "--verify", `${after}^{commit}`], cwd);
     const previous = /^0+$/u.test(before)
@@ -190,9 +284,13 @@ export const introducedCommits = (pairs, cwd, width) => {
           "Required Git trees or blobs are missing. Fetch complete objects, repair the checkout and retry."
         );
     }
+    // Exclusions go through stdin: a remote can hold more refs than one
+    // command line carries.
+    const exclusions = previous ? [previous] : published;
     const list = gitRead(
-      ["rev-list", next, ...(previous ? [`^${previous}`] : [])],
-      cwd
+      ["rev-list", "--stdin", next],
+      cwd,
+      exclusions.map(oid => `^${oid}\n`).join("")
     );
     for (const commit of list.split("\n").filter(Boolean)) commits.add(commit);
   }

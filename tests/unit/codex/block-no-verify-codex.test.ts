@@ -216,4 +216,20 @@ describe("block-no-verify.sh (Codex variant)", () => {
     // The one newline that is NOT a boundary.
     expect(decide("git commit \\\n  -nm x")).toBe("deny");
   });
+
+  // Parity with the Claude variant: `|&` (and glued `)|&`) is a boundary.
+  it.each([
+    "echo hi |& git commit --no-verify -m x",
+    "(echo hi)|&git commit --no-verify -m x",
+    "echo hi |& git commit -n -m x",
+  ])("denies %s", command => {
+    expect(decide(command)).toBe("deny");
+  });
+
+  it.each(["make 2>&1 |& tee build.log", "git commit -m x 2>&1 | grep -n foo"])(
+    "allows %s",
+    command => {
+      expect(decide(command)).toBe("allow");
+    }
+  );
 });

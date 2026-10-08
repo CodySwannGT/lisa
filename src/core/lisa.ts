@@ -101,6 +101,11 @@ import {
 } from "./deletion-basis.js";
 import { findLocalWorkflowReferences } from "./workflow-reference-guard.js";
 import {
+  findHostReferences,
+  isShippedVersion,
+  retiredDigests,
+} from "./retire-unmodified.js";
+import {
   classifyWorkflowForDeletion,
   describeRefusal,
   isWorkflowDeletionPath,
@@ -637,7 +642,8 @@ export class Lisa {
         }
         await this.processSingleDeletion(
           relativePath,
-          deletions.force?.[relativePath]
+          deletions.force?.[relativePath],
+          retiredDigests(deletions, relativePath)
         );
       }
     } catch (error) {
@@ -650,10 +656,12 @@ export class Lisa {
    * Process a single deletion path
    * @param relativePath - Relative path to delete
    * @param forcedReason - Why this removal overrides the workflow ownership gate, when it does
+   * @param shipped - Digests of every version Lisa shipped, when the manifest retires this path only while unmodified
    */
   private async processSingleDeletion(
     relativePath: string,
-    forcedReason?: string
+    forcedReason?: string,
+    shipped: ReadonlySet<string> | null = null
   ): Promise<void> {
     const { logger } = this.deps;
     const normalizedRelativePath = path.normalize(relativePath);
@@ -708,13 +716,88 @@ export class Lisa {
       return;
     }
 
-    if (
-      !(await this.mayDeleteWorkflow(targetPath, relativePath, forcedReason))
-    ) {
-      return;
-    }
+    await this.deleteIfOwned(targetPath, relativePath, forcedReason, shipped);
+  }
 
-    await this.performDeletion(targetPath, relativePath, forcedReason);
+  /**
+   * Apply the ownership proof a deletion needs, then delete.
+   *
+   * A path the manifest retires only while unmodified is proved by its bytes
+   * (`mayRetireUnmodified`); every other path keeps the workflow ownership
+   * gate. A `force` reason outranks both, as it always has.
+   * @param targetPath - Absolute path to remove
+   * @param relativePath - Repo-relative path, as the manifest spelled it
+   * @param forcedReason - Why this removal overrides the ownership gate, when it does
+   * @param shipped - Digests of every version Lisa shipped, when retired only while unmodified
+   */
+  private async deleteIfOwned(
+    targetPath: string,
+    relativePath: string,
+    forcedReason: string | undefined,
+    shipped: ReadonlySet<string> | null
+  ): Promise<void> {
+    const retiring = forcedReason === undefined && shipped !== null;
+    const allowed = retiring
+      ? await this.mayRetireUnmodified(targetPath, relativePath, shipped)
+      : await this.mayDeleteWorkflow(targetPath, relativePath, forcedReason);
+    if (!allowed) return;
+    await this.performDeletion(
+      targetPath,
+      relativePath,
+      retiring ? "an unedited copy of a file Lisa retired" : forcedReason
+    );
+  }
+
+  /**
+   * Decide whether a path the manifest retires only while unmodified may go.
+   *
+   * The proof is the file's own bytes: a copy equal to a version Lisa shipped
+   * holds nothing of the consumer's, whatever ownership header it carries —
+   * see `core/retire-unmodified`. That proof stands in for the workflow
+   * ownership gate, which would otherwise refuse every create-only seed. It
+   * does not stand in for "nothing calls it", so a path the consumer's own
+   * scripts or workflows still name is kept too.
+   *
+   * Every refusal is recorded as a notice, because a retired file left in
+   * place is the consumer's to remove and they can only do that if told.
+   * @param targetPath - Absolute path of the file on disk
+   * @param relativePath - Repo-relative path the manifest named
+   * @param shipped - Digests of every version Lisa shipped at this path
+   * @returns Whether the deletion may proceed
+   */
+  private async mayRetireUnmodified(
+    targetPath: string,
+    relativePath: string,
+    shipped: ReadonlySet<string>
+  ): Promise<boolean> {
+    const keep = (reason: string): false => {
+      const notice = `Kept ${relativePath} — ${reason}`;
+      this.deps.logger.warn(notice);
+      this.deletionNotices.push(notice);
+      this.counters.skipped++;
+      return false;
+    };
+    const bytes = await readFile(targetPath).catch(() => null);
+    if (bytes === null) {
+      return keep(
+        "Lisa retired this path, but it is not a readable file here, so Lisa cannot prove it is the copy Lisa shipped. Remove it yourself if you no longer use it."
+      );
+    }
+    if (!isShippedVersion(bytes, shipped)) {
+      return keep(
+        "Lisa retired this file, but your copy differs from every version Lisa shipped, so it may hold your changes. Delete it yourself once you no longer need it."
+      );
+    }
+    const references = await findHostReferences(
+      this.config.destDir,
+      relativePath
+    );
+    if (references.length > 0) {
+      return keep(
+        `Lisa retired this file, but ${references.join(", ")} still names it. Remove that reference, then delete the file.`
+      );
+    }
+    return true;
   }
 
   /**

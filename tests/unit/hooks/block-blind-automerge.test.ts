@@ -117,6 +117,10 @@ describe("block-blind-automerge.sh", () => {
       ["wrapped in sh -c", `sh -c '${ARM}'`],
       ["after an unrelated command", `git push && ${ARM}`],
       ["with a line continuation", "gh pr merge 3720 \\\n  --auto --merge"],
+      // `|&` is ONE shlex token, and `)|&` a glued one; neither was a
+      // separator, so the arming read as arguments of the command before it.
+      ["after a |& pipe", `echo hi |& ${ARM}`],
+      ["after a glued )|& pipe", `(echo hi)|&${ARM}`],
     ])("refuses %s", (_label, command) => {
       const { bin } = fakeGh({ payload: BLOCKED_PR });
 

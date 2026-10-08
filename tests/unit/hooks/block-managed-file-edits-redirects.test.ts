@@ -132,6 +132,30 @@ describe.each(guards)("managed output redirections: %s", guard => {
     }
   );
 
+  // `|&` pipes stdout and stderr. It was in no statement-separator set, so
+  // `printf x |& tee <managed>` stayed one statement whose command word was
+  // `printf` and the `tee` write target was never examined.
+  it.each([
+    `printf x |& tee "${MANAGED}"`,
+    `(printf x)|&tee "${MANAGED}"`,
+    `printf x |& tee -a "${MANAGED}"`,
+  ])("refuses a tee write after |&: %s", command => {
+    expect(run(command)).toBe(EXIT_BLOCKED);
+  });
+
+  it("allows a tee write after |& into a project-owned file", () => {
+    expect(run(`printf x |& tee "${UNMANAGED}"`)).toBe(EXIT_ALLOWED);
+  });
+
+  it.each([";;", ";&", ";;&"])(
+    "ends a statement at the case terminator %s",
+    terminator => {
+      expect(
+        run(`case x in x) true${terminator} *) tee "${MANAGED}"; esac`)
+      ).toBe(EXIT_BLOCKED);
+    }
+  );
+
   it("still refuses a real redirect after a quoted operator argument", () => {
     expect(run(`printf '%s' '&>' &> "${MANAGED}"`)).toBe(EXIT_BLOCKED);
   });

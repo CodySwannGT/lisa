@@ -43,6 +43,60 @@ export function automationReference(message) {
   return { runId: match[1], runAttempt: match[2] };
 }
 
+/**
+ * The optional Bun-lock binding a proposal carries, spelled once.
+ *
+ * A proposal that rewrites `bun.lock` binds the original lock digest into both
+ * of its keys. Every place that derives or re-derives a key spreads this, so a
+ * verifier cannot recompute a key from fewer fields than the producer signed.
+ * Absent stays absent, so npm-only proposals keep their existing keys.
+ * @param {{ bunLockSha256?: string }} value A proposal or descriptor.
+ * @returns {{ bunLockSha256?: string }} The binding to spread, or nothing.
+ */
+export function lockBinding(value) {
+  return Object.hasOwn(value, "bunLockSha256")
+    ? { bunLockSha256: value.bunLockSha256 }
+    : {};
+}
+
+/**
+ * The deterministic binding key: the hook-signed `descriptor.proposalKey`.
+ * @param {string} repository Repository slug.
+ * @param {{ parent: string, updates: object[], bunLockSha256?: string }} value Proposal fields.
+ * @returns {string} sha256 hex digest.
+ */
+export function npmBindingKey(repository, value) {
+  return sha256(
+    canonicalJson({
+      repository,
+      parent: value.parent,
+      updates: value.updates,
+      ...lockBinding(value),
+    })
+  );
+}
+
+/**
+ * The full proposal identity whose digest is the recovery `proposalKey`.
+ * @param {string} repository Repository slug.
+ * @param {string} target Target branch.
+ * @param {string} policySha256 Digest of the canonical npm updater policy.
+ * @param {{ parent: string, updates: object[], bunLockSha256?: string }} value Proposal fields.
+ * @returns {{ repository: string, target: string, ecosystem: string, directory: string, parent: string, policySha256: string, updates: any[], bunLockSha256?: string }} The identity, in the producer's field order.
+ */
+export function npmProposalIdentity(repository, target, policySha256, value) {
+  return {
+    repository,
+    target,
+    ecosystem: "npm",
+    directory: ".",
+    parent: value.parent,
+    policySha256,
+    updates: value.updates,
+    ...lockBinding(value),
+  };
+}
+
 /** Fresh recovery is a fixed separate role; original proof never acquires current authority. */
 function recoveryPermission(
   policy,
@@ -64,15 +118,14 @@ function recoveryPermission(
   verifyRecoveryOrigin(policy, descriptor, recovery, sha256(bytes), paths, {
     npmPolicySha256,
     proposalKey: sha256(
-      canonicalJson({
-        repository: policy.repository,
-        target: "main",
-        ecosystem: "npm",
-        directory: ".",
-        parent: descriptor.parent,
-        policySha256: npmPolicySha256,
-        updates: descriptor.updates,
-      })
+      canonicalJson(
+        npmProposalIdentity(
+          policy.repository,
+          config.npmUpdater.target,
+          npmPolicySha256,
+          descriptor
+        )
+      )
     ),
     leafBodySha256: sha256(context.issue.body),
     commit: predictedCommit(descriptor, messageBytes),
@@ -97,14 +150,7 @@ export function verifyAutomationProvenance(messageFile) {
   localDescriptor(descriptor, messageBytes, reference, policy);
   npmProposal(descriptor, git);
   requireProof(
-    descriptor.proposalKey ===
-      sha256(
-        canonicalJson({
-          repository: policy.repository,
-          parent: descriptor.parent,
-          updates: descriptor.updates,
-        })
-      ),
+    descriptor.proposalKey === npmBindingKey(policy.repository, descriptor),
     "deterministic proposal key differs"
   );
   assertPinnedVerifier(policy);

@@ -55,7 +55,11 @@
  *
  * A consumer-bindable executable may still be propagated, but only with a
  * `force` reason in its `deletions.json` - the same override that already
- * exists for overriding workflow ownership, reused rather than reinvented.
+ * exists for overriding workflow ownership, reused rather than reinvented -
+ * or with a `retireUnmodified` entry, which deletes a host's copy only while
+ * it is byte-identical to a shipped version and nothing in the host's
+ * `package.json` scripts or workflows names it (CodySwannGT/lisa#4393). A host
+ * that wired the script in keeps it.
  *
  * ## Both arms, or it is not a gate
  *
@@ -215,9 +219,18 @@ export function readDeletionManifests(root) {
     if (force === null || typeof force !== "object" || Array.isArray(force)) {
       throw new UsageError(`${label}: "force" must be an object`);
     }
+    const retire = parsed.retireUnmodified ?? {};
+    if (
+      retire === null ||
+      typeof retire !== "object" ||
+      Array.isArray(retire)
+    ) {
+      throw new UsageError(`${label}: "retireUnmodified" must be an object`);
+    }
     manifests.set(entry.name, {
       deleted: effectiveDeletions(parsed, label),
       force: new Map(Object.entries(force)),
+      retireUnmodified: new Set(Object.keys(retire)),
     });
   }
   return manifests;
@@ -520,7 +533,14 @@ export function findGoverningDeletion(stack, destination, manifests) {
     const manifest = manifests.get(candidate);
     if (manifest === undefined) continue;
     if (matchDeletion(destination, manifest.deleted) === null) continue;
-    return { by: candidate, forced: manifest.force.has(destination) };
+    // An unmodified-only retirement keeps any copy a host edited or wired
+    // in, which is the capability the bindable rule protects.
+    return {
+      by: candidate,
+      forced:
+        manifest.force.has(destination) ||
+        (manifest.retireUnmodified?.has(destination) ?? false),
+    };
   }
   return null;
 }

@@ -244,7 +244,41 @@ MERGE_SEPARATE_VALUE = {
 
 COMMAND_SEPARATORS = {
     ";", "|", "||", "&", "&&", "(", ")", "<", ">", ">>", "<<", "&|",
+    # `|&` pipes stdout AND stderr into the next command, so it ends a command
+    # exactly as `|` does. shlex emits it as one token, and before it was listed
+    # here `echo hi |& git commit --no-verify` read as a single `echo` command
+    # whose arguments happened to include git. The case terminators end a
+    # command the same way.
+    "|&", ";;", ";&", ";;&",
 }
+# shlex also GLUES adjacent punctuation into one token across distinct
+# operators: `(echo hi)|&git ...` arrives as `)|&`, which no set membership
+# test can recognise. An operator-only token is therefore re-split into the
+# operators it is made of, longest first. Redirections are kept whole and are
+# deliberately NOT separators, so `git commit 2>&1 -n` keeps its `-n` inside the
+# commit's argv scope.
+OPERATOR_ONLY = re.compile(r"^[();<>|&]+$")
+SHELL_OPERATOR = re.compile("|".join(
+    re.escape(operator) for operator in sorted(
+        COMMAND_SEPARATORS | {">|", "&>", "&>>", ">&", "<&", "<>", "<<<"},
+        key=lambda operator: (-len(operator), operator),
+    )
+))
+
+
+def split_operators(token):
+    """Split a glued operator-only token into the shell operators it holds.
+
+    Args:
+        token: One shlex token that was not read inside a quote or escape.
+
+    Returns:
+        The operators, longest first, or the token itself when it is not
+        made only of shell punctuation.
+    """
+    if OPERATOR_ONLY.match(token):
+        return SHELL_OPERATOR.findall(token)
+    return [token]
 
 # Shell wrappers whose `-c` argument is a command in a string rather than argv.
 # The outer argv names bash, so the arming is invisible without recursing once.
@@ -427,7 +461,7 @@ def shell_tokens(text):
     )
     lexer.whitespace_split = True
     lexer.commenters = ""
-    return list(lexer)
+    return [part for token in lexer for part in split_operators(token)]
 
 
 def is_gh(token):

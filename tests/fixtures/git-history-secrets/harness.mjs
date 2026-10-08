@@ -134,7 +134,7 @@ export function createHarness(args) {
   };
   const emitted = join(scratch, "emitted");
   const SCANNER_ENTRY = "scripts/lisa-history-secrets.mjs";
-  const scan = (cwd, name, pairs, expected) => {
+  const scan = (cwd, name, pairs, expected, remoteArgs = []) => {
     const input = pairs
       .map(
         ({ before, after }) =>
@@ -143,7 +143,13 @@ export function createHarness(args) {
       .join("");
     const result = command(
       process.execPath,
-      [join(emitted, SCANNER_ENTRY), "pre-push", "--scanner", scanner],
+      [
+        join(emitted, SCANNER_ENTRY),
+        "pre-push",
+        ...remoteArgs,
+        "--scanner",
+        scanner,
+      ],
       cwd,
       input
     );
