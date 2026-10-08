@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.72.4](https://github.com/CodySwannGT/lisa/compare/v4.72.3...v4.72.4) (2026-10-08)
+
+
+### Bug Fixes
+
+* **ci:** keep unit progress workflow below source limit ([2ee535d](https://github.com/CodySwannGT/lisa/commit/2ee535d855e1ec90d48d998fc770829988703874)), closes [CodySwannGT/lisa#4322](https://github.com/CodySwannGT/lisa/issues/4322) [CodySwannGT/lisa#4322](https://github.com/CodySwannGT/lisa/issues/4322)
+* **ci:** report progress during quiet unit coverage runs ([aac26b8](https://github.com/CodySwannGT/lisa/commit/aac26b8cc14a9cc9b07017d7a8ec92c38ee0d9db)), closes [CodySwannGT/lisa#4322](https://github.com/CodySwannGT/lisa/issues/4322) [CodySwannGT/lisa#4322](https://github.com/CodySwannGT/lisa/issues/4322)
+
 ### [4.72.3](https://github.com/CodySwannGT/lisa/compare/v4.72.2...v4.72.3) (2026-10-08)
 
 
