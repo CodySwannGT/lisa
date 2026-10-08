@@ -44,7 +44,8 @@ describe("closed runtime qualification diagnostics", () => {
     const secret = "private credential /private/candidate/path";
     const lines = Array.from(
       { length: 20 },
-      () => `${prefix}headless_command_handler.cc:378] ${secret}`
+      (_, index) =>
+        `${prefix}headless_command_handler.cc:378] ${index === 19 ? "Abnormal renderer termination. " : ""}${secret}`
     );
     const result = browserStderrMetadata(
       Buffer.from(
@@ -62,6 +63,9 @@ describe("closed runtime qualification diagnostics", () => {
       truncated: true,
     });
     expect(result.records).toHaveLength(16);
+    expect(result.records.at(-1)).toMatchObject({
+      kind: "renderer-terminated",
+    });
     expect(JSON.stringify(result)).not.toContain(secret);
     expect(JSON.stringify(result)).not.toContain("private-input.cc");
   });

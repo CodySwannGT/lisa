@@ -75,18 +75,15 @@ export function browserStderrMetadata(bytes) {
   const known = matches.filter(([, , path]) =>
     BROWSER_SOURCES.has(path.split("/").at(-1))
   );
-  const records = known
-    .slice(0, 16)
-    .map(([, severity, path, line, message]) => ({
-      source: path.split("/").at(-1),
-      severity,
-      line: Number(line),
-      kind:
-        BROWSER_SIGNATURES.find(([prefix]) =>
-          message.startsWith(prefix)
-        )?.[1] ?? "other",
-      messageSha256: digest(message),
-    }));
+  const records = known.slice(-16).map(([, severity, path, line, message]) => ({
+    source: path.split("/").at(-1),
+    severity,
+    line: Number(line),
+    kind:
+      BROWSER_SIGNATURES.find(([prefix]) => message.startsWith(prefix))?.[1] ??
+      "other",
+    messageSha256: digest(message),
+  }));
   return {
     structuredLineCount: matches.length,
     ignoredLineCount: matches.length - known.length,
