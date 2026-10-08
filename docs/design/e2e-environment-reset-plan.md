@@ -115,7 +115,19 @@ verbs.
 - The suite then runs with `needs:` on that job and its own
   `prepare_environment` left empty. A native suite that wants a fresh
   environment between platform legs calls the suite once per platform, each
-  preceded by its own `environment-prepare-aws.yml` job.
+  preceded by its own `environment-prepare-aws.yml` job. The Android suite job
+  needs `if: ${{ !cancelled() && needs.prepare_android.result == 'success' }}`
+  so it still runs when iOS failed: the default `success()` reads every earlier
+  job, the failed iOS leg included (the precedent is the Android leg's own
+  condition in `maestro-native-e2e.yml`).
+- **The caller holds the environment lock.** The separate prepare call releases
+  its `lisa-environment-prepare-<env>` group when it ends, before the suite
+  starts, so another run could reset the environment under a running suite. A
+  caller sharing one environment across suites declares a top-level
+  `concurrency:` group in the calling workflow that covers both jobs. That
+  group must be named differently from the suite's `concurrency_group` input
+  and from `lisa-environment-prepare-*`; reusing either deadlocks a parent run
+  against its own child job.
 - **No job in that workflow sets `environment:`, and none may.** The role's trust
   policy matches the OIDC subject `repo:<owner>/<repo>:ref:refs/heads/<branch>`;
   naming a GitHub environment changes it to

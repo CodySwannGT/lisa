@@ -239,6 +239,13 @@ with `needs:` on it and its own `prepare_environment` left empty. The
 facade does not change: the verbs still take `--env=<name>` and still own what
 reset means; they simply find credentials in their environment.
 
+The prepare call releases its `lisa-environment-prepare-<env>` lock when it
+ends, before the suite starts. A caller sharing one environment across suites
+therefore holds a top-level `concurrency:` group in the calling workflow,
+covering both jobs, and names it differently from the suite's
+`concurrency_group` and from `lisa-environment-prepare-*`, so a parent run
+never waits on a group its own child job holds.
+
 No job in that workflow sets a GitHub `environment:`, and none may. The role's
 trust policy matches the OIDC subject
 `repo:<owner>/<repo>:ref:refs/heads/<branch>`; naming an environment changes the

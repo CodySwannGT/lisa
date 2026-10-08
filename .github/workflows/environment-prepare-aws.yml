@@ -37,8 +37,19 @@
 # Run this as its own job and point the suite at it with `needs:`, leaving the
 # suite's own `prepare_environment` input empty so it does not prepare twice.
 #
+# Hold the environment lock in the CALLER. This workflow's
+# `lisa-environment-prepare-<env>` group is released when the prepare job
+# ends, BEFORE the suite starts — so another run can reset the environment
+# underneath a suite that is mid-flight. A caller sharing one environment across
+# suites must declare a top-level `concurrency:` group in the calling workflow,
+# covering both jobs. Name it differently from the suite's `concurrency_group`
+# input and from `lisa-environment-prepare-*`: a parent run holding the same
+# group a child job then waits on deadlocks. Both examples below share
+# `e2e-caller-development` so the web and native suites exclude each other.
+#
 # (a) A browser suite:
 #
+#   concurrency: { group: e2e-caller-development, cancel-in-progress: false }
 #   jobs:
 #     prepare:
 #       permissions:
@@ -59,6 +70,7 @@
 # (b) A native suite that still prepares again between its platform legs —
 # each leg is its own call, preceded by its own preparation:
 #
+#   concurrency: { group: e2e-caller-development, cancel-in-progress: false }
 #   jobs:
 #     prepare_ios:
 #       permissions: { contents: read, id-token: write }
@@ -85,6 +97,9 @@
 #         role_to_assume: arn:aws:iam::123456789012:role/ExampleResetInvokeRole
 #     maestro_android:
 #       needs: [prepare_android]
+#       # The default success() reads EVERY earlier job, failed iOS included;
+#       # gate on this leg's own preparation (maestro-native-e2e.yml precedent).
+#       if: ${{ !cancelled() && needs.prepare_android.result == 'success' }}
 #       uses: CodySwannGT/lisa/.github/workflows/maestro-native-e2e.yml@main
 #       with:
 #         expected_workflow_contract_major: 1
@@ -194,6 +209,13 @@ on:
           one would change the subject to
           `repo:<owner>/<repo>:environment:<name>` and the role would refuse
           to be assumed, so never add one.
+
+          Make the role least-privilege: grant only what the verbs need (for
+          example, invoking the one reset function), and pin its trust policy
+          to the exact branch subject above, never a wildcard. Every step in
+          the prepare job — including dependency install lifecycle scripts and
+          `setup_command` — can request an OIDC token for itself, so the role's
+          own scope is the real boundary.
         required: true
         type: string
       aws_region:
@@ -340,19 +362,20 @@ jobs:
       - name: 🛂 Validate role_to_assume
         env:
           ROLE_TO_ASSUME: ${{ inputs.role_to_assume }}
+        # The input arrives through env and is matched by bash, never
+        # interpolated into the script. Neither branch echoes the full value:
+        # it carries the account id, and these logs are often public.
         run: |
           set -eu
-          case "${ROLE_TO_ASSUME}" in
-            arn:aws:iam::[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]:role/?*) ;;
-            arn:aws-*:iam::[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]:role/?*) ;;
-            *)
-              echo "::error::role_to_assume='${ROLE_TO_ASSUME}' is not an IAM role ARN."
-              echo "Expected arn:aws:iam::<12-digit account>:role/<name>."
-              echo "A caller that needs no AWS credentials should call environment-prepare.yml instead."
-              exit 1
-              ;;
-          esac
-          echo "Assuming ${ROLE_TO_ASSUME} for the preparation verbs."
+          ROLE_ARN_PATTERN='^arn:aws(-[a-z]+)*:iam::[0-9]{12}:role/[A-Za-z0-9+=,.@_/-]+$'
+          if ! [[ "${ROLE_TO_ASSUME}" =~ ${ROLE_ARN_PATTERN} ]]; then
+            echo "::error::role_to_assume is not an IAM role ARN."
+            echo "Expected arn:<partition>:iam::<12-digit account>:role/[<path>/]<name>,"
+            echo "where <partition> is aws, aws-cn, aws-us-gov or another aws-* partition."
+            echo "A caller that needs no AWS credentials should call environment-prepare.yml instead."
+            exit 1
+          fi
+          echo "Assuming role ${ROLE_TO_ASSUME##*/} for the preparation verbs."
 
       - name: 📥 Checkout repository
         uses: actions/checkout@v6
@@ -394,9 +417,13 @@ jobs:
         if: ${{ inputs.setup_command != '' }}
         run: ${{ inputs.setup_command }}
 
-      # After the install and the setup command, immediately before the verbs:
-      # the credentials are exported into the job environment, so only the
-      # steps that need them run with them. No `if:` — the role is required.
+      # After the install and the setup command, immediately before the verbs.
+      # This order keeps the EXPORTED AWS keys out of the earlier steps' env,
+      # and that is all it does. `id-token: write` is a job-level grant: any
+      # step in this job — install lifecycle scripts and `setup_command`
+      # included — can request an OIDC token and assume the role itself. The
+      # role's least-privilege scope and its branch-pinned trust policy are the
+      # real boundary. No `if:` — the role is required.
       - name: 🔑 Assume the AWS role through OIDC
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:

@@ -22,9 +22,12 @@
  *    `...:environment:<name>` and the role refuses to be assumed.
  * 3. **Credentials are assumed before the verbs run**, through the pinned
  *    action, from the caller's `role_to_assume`.
- * 4. **Everything else is the sibling's behaviour, measured from the sibling.**
- *    Shared inputs, the verb invocation and the concurrency group are compared
- *    against `environment-prepare.yml` itself, so the two cannot drift apart.
+ * 4. **Everything else is the sibling's, compared against the sibling.** The
+ *    shared inputs' type/required/default, the prepare job's parsed steps
+ *    (minus the two AWS-only ones) and the concurrency block are compared with
+ *    `environment-prepare.yml` itself, so drift in any of those fails here.
+ *    Not compared: input descriptions, YAML comments, the job's name/timeout,
+ *    and the workflow_contract job.
  * @module tests/integration/environment-prepare-aws-workflow
  */
 
@@ -263,8 +266,8 @@ describe("environment-prepare-aws — credential step", () => {
       "${{ inputs.role_to_assume }}"
     );
     expect(credential?.with?.["aws-region"]).toBe("${{ inputs.aws_region }}");
-    expect(String(credential?.with?.["role-session-name"])).toContain(
-      "inputs.role_session_name"
+    expect(credential?.with?.["role-session-name"]).toBe(
+      "${{ inputs.role_session_name || format('lisa-environment-prepare-{0}', github.run_id) }}"
     );
   });
 
@@ -283,28 +286,59 @@ describe("environment-prepare-aws — credential step", () => {
     expect(checkoutAt).toBeGreaterThan(validateAt);
   });
 
-  it.each(["", "   ", "ExampleResetInvokeRole", "arn:aws:s3:::bucket"])(
-    "refuses role_to_assume=%j",
-    role => {
-      const { status, output } = runValidation(role);
+  it.each([
+    "",
+    "   ",
+    "ExampleResetInvokeRole",
+    "arn:aws:s3:::bucket",
+    "arn:aws-x:y:iam::123456789012:role/a",
+    "arn:aws:iam::123456789012:role/a b",
+    "arn:aws:iam::12345678901:role/a",
+    "arn:aws:iam::123456789012:user/a",
+  ])("refuses role_to_assume=%j", role => {
+    const { status, output } = runValidation(role);
 
-      expect(status).not.toBe(0);
-      expect(output).toContain("::error");
-    }
-  );
+    expect(status).not.toBe(0);
+    expect(output).toContain("::error");
+    // A malformed value can still carry an account id; it is never echoed.
+    expect(output).not.toContain("123456789012");
+  });
 
-  it("accepts a well-formed role ARN", () => {
-    // The positive control: without it, the refusals above are equally
+  it.each([
+    "arn:aws:iam::123456789012:role/ExampleResetInvokeRole",
+    "arn:aws-us-gov:iam::123456789012:role/ExampleResetInvokeRole",
+    "arn:aws-cn:iam::123456789012:role/ExampleResetInvokeRole",
+    "arn:aws:iam::123456789012:role/path/to/ExampleResetInvokeRole",
+  ])("accepts role_to_assume=%j", role => {
+    // The positive controls: without them, the refusals above are equally
     // consistent with a script that cannot run at all.
-    const { status } = runValidation(
-      "arn:aws:iam::123456789012:role/ExampleResetInvokeRole"
-    );
+    const { status, output } = runValidation(role);
 
     expect(status).toBe(0);
+    // Only the role name is logged — the account id stays out of public logs.
+    expect(output).toContain("ExampleResetInvokeRole");
+    expect(output).not.toContain("123456789012");
   });
 });
 
 describe("environment-prepare-aws — parity with environment-prepare.yml", () => {
+  it("is the sibling's prepare job plus exactly the two AWS-only steps", () => {
+    // Deep equality over every parsed step field — name, if, uses, with, env,
+    // run. Nothing is excluded: the steps that legitimately differ are the two
+    // AWS-only ones removed below, and `WORKFLOW_FILE` lives in the
+    // workflow_contract job, not here. YAML comments are not compared.
+    const awsOnly = new Set([VALIDATE_STEP, "Assume the AWS role"]);
+    const aws = prepareSteps(AWS_FILE);
+    const shared = aws.filter(
+      step => ![...awsOnly].some(fragment => step.name.includes(fragment))
+    );
+
+    // Exactly the two named steps were removed — a rename would otherwise
+    // leave one in and fail below for a confusing reason, or remove nothing.
+    expect(aws.length - shared.length).toBe(awsOnly.size);
+    expect(shared).toEqual(prepareSteps(SIBLING_FILE));
+  });
+
   it("runs the identical verb invocation", () => {
     const sibling = stepNamed(prepareSteps(SIBLING_FILE), VERB_STEP);
     const aws = stepNamed(prepareSteps(AWS_FILE), VERB_STEP);
