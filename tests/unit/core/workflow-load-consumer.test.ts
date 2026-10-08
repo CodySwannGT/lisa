@@ -67,7 +67,7 @@ if (mode === "incomplete-startup" && endpoint.includes("/actions/runs?")) {
 let body;
 if (endpoint.includes("/jobs?")) body = { total_count: mode === "runner" ? 1 : 0 };
 else if (endpoint.endsWith("/runs/71")) body = { referenced_workflows: mode === "resolved" ? [{ sha: "resolved" }] : [] };
-else body = { workflow_runs: [{ id: 71, path: ".github/workflows/deploy.yml", created_at: new Date().toISOString(), conclusion: "failure" }] };
+else body = { workflow_runs: Array.from({length: mode === "two-same-file" ? 2 : 1}, (_, index) => ({ id: 71 + index, path: ".github/workflows/deploy.yml", created_at: new Date().toISOString(), conclusion: ["single-startup", "two-same-file"].includes(mode) ? "startup_failure" : "failure" })) };
 console.log(JSON.stringify(body));
 `,
     { mode: 0o755 }
@@ -115,6 +115,17 @@ describe("workflow-load detection reaches consumers", () => {
       expect(result.stdout).toContain(`run ${id} (BuildFailed)`);
     expect(result.stdout).not.toContain("OK.");
   });
+
+  it.each(["single-startup", "two-same-file"])(
+    "keeps workflow-file diagnosis available for %s",
+    scenario => {
+      const result = scan(scenario);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("startup_failure");
+      expect(result.stdout).toContain("Inspect the workflow file");
+      expect(result.stdout).not.toContain("not a workflow-file error");
+    }
+  );
 
   it.each([
     "denied",

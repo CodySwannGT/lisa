@@ -112,7 +112,13 @@ export function describe(result) {
       .map(finding => finding.createdAt)
       .filter(Boolean)
       .sort();
-    const paths = [...new Set(startupFailures.map(finding => finding.path))];
+    const paths = [
+      ...new Set(
+        startupFailures
+          .map(finding => finding.path)
+          .filter(value => value && value !== "BuildFailed")
+      ),
+    ];
     const summary = [
       `check-workflow-load-failures: ${result.covered ? "" : "at least "}${startupFailures.length} run(s) ended in startup_failure — GitHub never started them, whatever workflow they are recorded under.`,
       ...lines,
@@ -123,9 +129,19 @@ export function describe(result) {
     // ended paging — the outage shape is every run INSIDE the window, so the
     // comparison belongs to `inWindow` (absent on older callers → fall back).
     const inWindow = result.inWindow ?? result.inspected;
-    if (result.covered && inWindow > 0 && startupFailures.length === inWindow) {
+    if (
+      result.covered &&
+      inWindow > 0 &&
+      startupFailures.length === inWindow &&
+      (paths.length > 1 ||
+        startupFailures.some(finding => finding.path === "BuildFailed"))
+    ) {
       summary.push(
-        "EVERY run in the window failed to start — that is the shape of an account-, plan- or billing-level outage (for example a private-repo org that dropped to GitHub Free), not a workflow-file error. Check the org's Actions availability before editing workflow source."
+        "EVERY run in the window failed to start across multiple workflows or GitHub's BuildFailed placeholder. This may indicate an account or Actions service availability problem. Check Actions availability and account restrictions, and verify the workflow files before deciding the cause."
+      );
+    } else if (paths.length === 1) {
+      summary.push(
+        "One workflow file is identified among the observed startup failures. Inspect the workflow file and check Actions availability; the run count alone does not establish the cause."
       );
     }
     sections.push(summary.join("\n"));
