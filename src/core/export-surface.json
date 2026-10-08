@@ -182,14 +182,14 @@
     ],
     "all/copy-overwrite/scripts/lib/history-secret-git.mjs": [
       "HistorySecretError",
+      "advertisedTips",
       "eventPairs",
       "gitEnvironment",
       "gitRead",
       "introducedCommits",
       "objectWidth",
       "parsePush",
-      "pushRemoteName",
-      "remoteTips"
+      "pushDestination"
     ],
     "all/copy-overwrite/scripts/lib/history-secret-policy.mjs": [
       "HISTORY_PROPERTY",

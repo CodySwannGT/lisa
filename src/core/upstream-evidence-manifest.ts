@@ -47,7 +47,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/history-secret-evidence.mjs":
       "0475ac4654e33c2f24e0f10adbe79eb9db3229e1d2eb5160418b78545043410c",
     "all/copy-overwrite/scripts/lib/history-secret-git.mjs":
-      "77a2c141112b06153b7eab1cb13cf6076e0be5bc84d7fa99e1e58198f510f677",
+      "534cb934e7c7e0f3d6bd1a2a8547a14a6f4179e162e14bdcb2c5ba21b71154c8",
     "all/copy-overwrite/scripts/lib/history-secret-policy.mjs":
       "ca75ebbc45fca4c52400612ae818d231a28289b50a70f6cdee6feb51b144896f",
     "all/copy-overwrite/scripts/lib/history-secret-scanner.mjs":
@@ -217,7 +217,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "f8cd07bdcdfc4066467635d86dc2a17337d4adacdd8829745482877dbd838f5e",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
-      "3859bab4ac82ef3fc605fa537d2eaaf240e7d0aaab0495ce281054ab1dba6341",
+      "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
       "de712bf7fd5b7e3fc3466d9b06137d4b96511396c18912ca2efbd25f496b65ef",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
@@ -273,7 +273,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "c17d09e07c614df6843ba3bb6ae0c80874108eff22a68ef324db5f50110a27c8",
+      "fdb4437f15a0be6a5a14377d1efcd93b2fc7b0d86d780200a4df249ec1b8f3d1",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":

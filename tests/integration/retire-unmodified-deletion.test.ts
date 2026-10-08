@@ -223,6 +223,20 @@ describe("retiring unedited Lisa seeds through deletions.json", () => {
     ).toBe(true);
   });
 
+  it("keeps a symlink even when its target holds shipped bytes", async () => {
+    const target = path.join(destDir, "elsewhere.yml");
+    await fs.writeFile(target, SEEDED);
+    await fs.remove(path.join(destDir, WORKFLOW));
+    await fs.symlink(target, path.join(destDir, WORKFLOW));
+    await manifest({ [WORKFLOW]: [sha256(SEEDED)], [SCRIPT]: [] });
+
+    await apply();
+
+    expect(
+      (await fs.lstat(path.join(destDir, WORKFLOW))).isSymbolicLink()
+    ).toBe(true);
+  });
+
   it("keeps a listed path that has no usable digest", async () => {
     await manifest({ [WORKFLOW]: ["not-a-digest"], [SCRIPT]: [] });
 

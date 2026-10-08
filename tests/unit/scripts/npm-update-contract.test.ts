@@ -1493,13 +1493,16 @@ describe("closed npm proposal", () => {
       [FILES, {}],
       [{ ...FILES, "bun.lock": "prepared Bun bytes" }, bun],
     ] as const) {
+      // Narrowed once: the npm-only case carries no lock digest at all.
+      const lockDigest =
+        "bunLockSha256" in optional ? optional.bunLockSha256 : undefined;
       const proposal = proposalFrom(
         policy,
         SHA,
         BEFORE,
         files,
         UPDATES,
-        optional.bunLockSha256
+        lockDigest
       );
       const fields = { parent: SHA, updates: proposal.updates, ...optional };
       expect(proposal.bindingKey).toBe(
@@ -1519,7 +1522,7 @@ describe("closed npm proposal", () => {
       );
       // The binding key the verifier re-derives must change with the lock
       // digest, or a substituted original Bun lock would verify.
-      if (optional.bunLockSha256)
+      if (lockDigest !== undefined)
         expect(
           npmBindingKey(policy.repository, {
             ...fields,

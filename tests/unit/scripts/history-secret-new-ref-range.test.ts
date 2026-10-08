@@ -14,7 +14,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   introducedCommits,
-  pushRemoteName,
+  pushDestination,
 } from "../../../all/copy-overwrite/scripts/lib/history-secret-git.mjs";
 import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 
@@ -69,82 +69,83 @@ afterEach(() => {
   rmSync(scratch, { recursive: true, force: true });
 });
 
+const introduced = (cwd: string, after: string, remoteArgs: string[]) =>
+  introducedCommits([{ before: ZERO, after }], cwd, 40, remoteArgs);
+
 describe("introduced history of a new remote ref", () => {
-  it("introduces nothing for a new branch at history the remote already has", () => {
-    const { cwd, published } = fixture();
-    expect(
-      introducedCommits(
-        [{ before: ZERO, after: published }],
-        cwd,
-        40,
-        "upstream"
-      )
-    ).toEqual([]);
+  it("introduces nothing for a new branch at history the destination already has", () => {
+    const { cwd, remote, published } = fixture();
+    expect(introduced(cwd, published, ["upstream"])).toEqual([]);
+    expect(introduced(cwd, published, ["upstream", remote])).toEqual([]);
   });
 
-  it("introduces exactly the commits the remote does not have", () => {
+  it("introduces exactly the commits the destination does not have", () => {
     const { cwd } = fixture();
     git(cwd, "checkout", "-qb", "feature");
     const first = commit(cwd, "first.txt", "first\n");
     const second = commit(cwd, "second.txt", "second\n");
-    expect(
-      introducedCommits([{ before: ZERO, after: second }], cwd, 40, "upstream")
-    ).toEqual([first, second].sort(byText));
+    expect(introduced(cwd, second, ["upstream"])).toEqual(
+      [first, second].sort(byText)
+    );
   });
 
-  it("resolves a push by URL to the one remote configured with it", () => {
+  it("asks a destination given only as a URL", () => {
     const { cwd, remote } = fixture();
-    expect(pushRemoteName(remote, cwd)).toBe("upstream");
     const tip = commit(cwd, "next.txt", "next\n");
-    expect(
-      introducedCommits([{ before: ZERO, after: tip }], cwd, 40, remote)
-    ).toEqual([tip]);
+    expect(introduced(cwd, tip, [remote, remote])).toEqual([tip]);
+    expect(introduced(cwd, tip, [remote])).toEqual([tip]);
   });
 
-  it("scans the complete history when the remote cannot be resolved", () => {
+  it("does not trust a tracking ref the destination no longer advertises", () => {
+    const { cwd, remote, published } = fixture();
+    git(cwd, "checkout", "-qb", "gone");
+    const orphan = commit(cwd, "orphan.txt", "orphan\n");
+    git(cwd, "push", "-q", "upstream", "gone");
+    // Deleted on the remote side only; refs/remotes/upstream/gone survives.
+    git(remote, "update-ref", "-d", "refs/heads/gone");
+    expect(git(cwd, "rev-parse", "refs/remotes/upstream/gone")).toBe(orphan);
+    expect(introduced(cwd, orphan, ["upstream"])).toEqual([orphan]);
+    expect(introduced(cwd, published, ["upstream"])).toEqual([]);
+  });
+
+  it("asks the push URL, not the fetch URL, of a named remote", () => {
+    const { cwd, root, published } = fixture();
+    const elsewhere = join(scratch, "elsewhere.git");
+    git(scratch, "init", "-q", "--bare", elsewhere);
+    git(cwd, "remote", "set-url", "--push", "upstream", elsewhere);
+    expect(pushDestination(["upstream"], cwd)).toBe(elsewhere);
+    expect(introduced(cwd, published, ["upstream"])).toEqual(
+      [root, published].sort(byText)
+    );
+  });
+
+  it("scans the complete history when the destination cannot be asked", () => {
     const { cwd, root, published } = fixture();
     const all = [root, published].sort(byText);
-    for (const remote of [undefined, "", "nowhere", "/no/such/url"])
-      expect(
-        introducedCommits([{ before: ZERO, after: published }], cwd, 40, remote)
-      ).toEqual(all);
-  });
-
-  it("scans the complete history when the remote has no tracking refs", () => {
-    const { cwd, root, published } = fixture();
+    for (const remoteArgs of [[], [""], ["-x"], ["nowhere"], ["/no/such.git"]])
+      expect(introduced(cwd, published, remoteArgs)).toEqual(all);
     git(cwd, "remote", "add", "empty", join(scratch, "empty.git"));
-    expect(
-      introducedCommits([{ before: ZERO, after: published }], cwd, 40, "empty")
-    ).toEqual([root, published].sort(byText));
-  });
-
-  it("refuses a URL two remotes share and a name that is a ref glob", () => {
-    const { cwd, remote } = fixture();
-    git(cwd, "remote", "add", "mirror", remote);
-    expect(pushRemoteName(remote, cwd)).toBeNull();
-    // `git remote add` refuses such a name; a hand-edited config does not.
-    git(cwd, "config", "remote.up*.url", join(scratch, "other.git"));
-    expect(pushRemoteName("up*", cwd)).toBeNull();
-    expect(pushRemoteName(join(scratch, "other.git"), cwd)).toBeNull();
+    git(scratch, "init", "-q", "--bare", join(scratch, "empty.git"));
+    expect(introduced(cwd, published, ["empty"])).toEqual(all);
   });
 
   it("leaves an existing-branch update as new minus old", () => {
-    const { cwd, published } = fixture();
-    const next = commit(cwd, "next.txt", "next\n");
-    for (const remote of [undefined, "upstream"])
-      expect(
-        introducedCommits([{ before: published, after: next }], cwd, 40, remote)
-      ).toEqual([next]);
-  });
-
-  it("does not let a remote's refs hide an existing branch's old tip boundary", () => {
     const { cwd, root, published } = fixture();
-    // The update's own `before` bounds it; tracking refs are not consulted.
+    const next = commit(cwd, "next.txt", "next\n");
+    for (const remoteArgs of [[], ["upstream"]])
+      expect(
+        introducedCommits(
+          [{ before: published, after: next }],
+          cwd,
+          40,
+          remoteArgs
+        )
+      ).toEqual([next]);
+    // The update's own `before` bounds it; the destination is not consulted.
     git(cwd, "checkout", "-q", "--detach", root);
     const side = commit(cwd, "side.txt", "side\n");
     expect(
-      introducedCommits([{ before: root, after: side }], cwd, 40, "upstream")
+      introducedCommits([{ before: root, after: side }], cwd, 40, ["upstream"])
     ).toEqual([side]);
-    expect(published).not.toBe(side);
   });
 });

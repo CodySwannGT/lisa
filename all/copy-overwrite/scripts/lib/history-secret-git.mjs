@@ -153,90 +153,92 @@ export const eventPairs = (event, name, width) => {
 };
 
 /**
- * Resolve Git's pre-push `$1` to a configured remote whose tracking refs may
- * bound a new ref's range. Git passes the remote's NAME when the push named
- * one and the URL otherwise; a URL counts only when exactly one configured
- * remote declares it as its url or pushurl. Anything unresolvable returns null,
- * which keeps the complete-history scan: an unknown remote proves nothing about
- * what the destination already holds.
- * @param {string | undefined} remote Git's pre-push remote argument.
+ * The repository a push is actually going to, from Git's pre-push arguments.
+ *
+ * Git calls the hook with the remote's name (or the URL, when the push named
+ * no remote) and the URL it pushes to. That URL is the destination, so it wins
+ * when present. A wrapper that forwards only the name gets the remote's PUSH
+ * URL, which differs from its fetch URL when `remote.<name>.pushurl` is set.
+ * Anything else is taken as the URL Git was given. A value that looks like an
+ * option is never used.
+ * @param {string[]} remoteArgs Git's pre-push `$1` and `$2`, as forwarded.
  * @param {string} cwd Repository directory.
- * @returns {string | null} A configured remote name, or null.
+ * @returns {string | null} The destination, or null when none was given.
  */
-export const pushRemoteName = (remote, cwd) => {
-  if (typeof remote !== "string" || remote === "") return null;
-  // A remote name becomes a ref-prefix pattern below. Glob metacharacters,
-  // a leading dash and path tricks would make that prefix mean something else,
-  // so such a name never bounds the range.
-  const safe = name =>
-    /^[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*$/u.test(name) &&
-    !name.startsWith("-") &&
-    !name.split("/").some(part => part === "." || part === "..") &&
-    spawnSync("git", ["check-ref-format", `refs/remotes/${name}/probe`], {
-      env: gitEnvironment(),
-      timeout: 10000,
-      stdio: "ignore",
-    }).status === 0;
+export const pushDestination = (remoteArgs, cwd) => {
+  const [remote, url] = remoteArgs ?? [];
+  const usable = value =>
+    typeof value === "string" && value !== "" && !value.startsWith("-");
+  if (usable(url)) return url;
+  if (!usable(remote)) return null;
   const names = gitRead(["remote"], cwd).split("\n").filter(Boolean);
-  if (names.includes(remote)) return safe(remote) ? remote : null;
-  // `--get-regexp` exits 1 when nothing matches, which is an answer here, not
-  // a failure, so this one read does not go through gitRead.
-  const configured = spawnSync(
-    "git",
-    ["config", "--null", "--get-regexp", "^remote\\..*\\.(url|pushurl)$"],
-    {
-      cwd,
-      env: gitEnvironment(),
-      encoding: "utf8",
-      timeout: 10000,
-      maxBuffer: 1024 * 1024,
-    }
-  );
-  // probe-direction: fail-closed — an unreadable remote list resolves no
-  // remote, so nothing is subtracted and the complete history is scanned.
-  if (configured.error || configured.signal || configured.status !== 0)
-    return null;
-  const owners = new Set();
-  for (const record of configured.stdout.split("\0").filter(Boolean)) {
-    const split = record.indexOf("\n");
-    const key = record.slice(0, split);
-    const value = record.slice(split + 1);
-    const name = key
-      .replace(/^remote\./u, "")
-      .replace(/\.(?:url|pushurl)$/u, "");
-    if (split > 0 && value === remote && names.includes(name)) owners.add(name);
-  }
-  if (owners.size !== 1) return null;
-  const [owner] = owners;
-  return safe(owner) ? owner : null;
+  if (!names.includes(remote)) return remote;
+  return gitRead(["remote", "get-url", "--push", "--", remote], cwd) || null;
+};
+
+/** Credentials live in user and system config, which gitEnvironment drops. */
+const remoteEnvironment = () => {
+  const environment = gitEnvironment();
+  for (const key of ["GIT_CONFIG_GLOBAL", "GIT_CONFIG_NOSYSTEM"])
+    if (process.env[key] === undefined) delete environment[key];
+    else environment[key] = process.env[key];
+  return { ...environment, GIT_TERMINAL_PROMPT: "0" };
 };
 
 /**
- * Commit IDs the push remote already holds, read from its local tracking refs.
+ * Commit IDs the push destination advertises right now that exist locally.
  *
- * Tracking refs are the repository's record of what the remote advertised at
- * the last fetch or push. A stale record only ever under-reports, which widens
- * the scan rather than narrowing it, so reading them is fail-closed.
- * @param {string | null} remote A configured remote name from pushRemoteName.
+ * Asked of the destination itself (`git ls-remote`), not read from local
+ * tracking refs: a tracking ref can outlive a branch deleted or reset on the
+ * remote, and with a separate pushurl it describes a different repository, so
+ * either would exclude commits the destination lacks. An advertised ID this
+ * repository does not have cannot bound a local walk and is dropped, which
+ * only ever widens the scan.
+ * @param {string | null} destination The push destination from pushDestination.
  * @param {string} cwd Repository directory.
- * @returns {string[]} Commit IDs to exclude; empty when none are known.
+ * @returns {string[]} IDs to exclude; empty when nothing could be proved.
  */
-export const remoteTips = (remote, cwd) => {
-  if (remote === null) return [];
-  const refs = gitRead(
-    [
-      "for-each-ref",
-      "--format=%(objectname)",
-      "--end-of-options",
-      `refs/remotes/${remote}/`,
-    ],
-    cwd
+export const advertisedTips = (destination, cwd) => {
+  if (destination === null) return [];
+  const listed = spawnSync(
+    "git",
+    ["--no-replace-objects", "ls-remote", "--", destination],
+    {
+      cwd,
+      env: remoteEnvironment(),
+      encoding: "utf8",
+      timeout: 60000,
+      maxBuffer: 64 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "ignore"],
+    }
   );
-  return [...new Set(refs.split("\n").filter(Boolean))];
+  // probe-direction: fail-closed — a destination that cannot be asked
+  // advertises nothing, so nothing is subtracted and the complete history is
+  // scanned.
+  if (listed.error || listed.signal || listed.status !== 0) return [];
+  const advertised = [
+    ...new Set(
+      listed.stdout
+        .split("\n")
+        .map(line => line.split("\t")[0])
+        .filter(id => /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/u.test(id))
+    ),
+  ];
+  if (advertised.length === 0) return [];
+  const present = gitRead(
+    ["cat-file", "--batch-check=%(objectname) %(objecttype)"],
+    cwd,
+    advertised.map(id => `${id}\n`).join("")
+  );
+  return present
+    .split("\n")
+    .map(line => line.split(" "))
+    .filter(([, type]) => type === "commit" || type === "tag")
+    .map(([id]) => id);
 };
 
 /** Pairwise subtraction prevents one ref's old tip from hiding another update. */
-export const introducedCommits = (pairs, cwd, width, remote) => {
+export const introducedCommits = (pairs, cwd, width, remoteArgs = []) => {
   const oid = new RegExp(`^[a-f0-9]{${width}}$`, "u");
   for (const pair of pairs) {
     if (!oid.test(pair.before ?? "") || !oid.test(pair.after ?? ""))
@@ -263,11 +265,11 @@ export const introducedCommits = (pairs, cwd, width, remote) => {
   // everything reachable from it counts the remote's own published history as
   // introduced: every new branch of an old repository then re-litigates its
   // root commit. What a push introduces is what the destination does not
-  // already hold, so a new ref subtracts the push remote's tracking refs.
-  // Without a resolvable remote, or with no tracking refs, nothing is
-  // subtracted and the complete reachable history is scanned as before.
+  // already hold, so a new ref subtracts what the push destination advertises.
+  // Without a destination, or one that cannot be asked, nothing is subtracted
+  // and the complete reachable history is scanned as before.
   const published = updates.some(pair => /^0+$/u.test(pair.before))
-    ? remoteTips(pushRemoteName(remote, cwd), cwd)
+    ? advertisedTips(pushDestination(remoteArgs, cwd), cwd)
     : [];
   for (const { before, after } of updates) {
     const next = gitRead(["rev-parse", "--verify", `${after}^{commit}`], cwd);

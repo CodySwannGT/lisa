@@ -101,7 +101,7 @@ export const main = async (
         width
       );
     }
-    const commits = introducedCommits(pairs, cwd, width, remoteArgs[0]);
+    const commits = introducedCommits(pairs, cwd, width, remoteArgs);
     if (commits.length === 0) {
       console.log("No introduced history. Scanner was not run.");
       return 0;

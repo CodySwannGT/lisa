@@ -1,7 +1,7 @@
 /* eslint-disable max-lines -- Main orchestrator class with apply/validate operations */
 import * as fse from "fs-extra";
 import { existsSync } from "node:fs";
-import { readFile, stat, unlink, writeFile } from "node:fs/promises";
+import { lstat, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import pc from "picocolors";
 import type { IPrompter } from "../cli/prompts.js";
@@ -777,7 +777,13 @@ export class Lisa {
       this.counters.skipped++;
       return false;
     };
-    const bytes = await readFile(targetPath).catch(() => null);
+    // lstat, not stat: the proof must be about the entry that would be
+    // removed, so a symlink (to anything) is unprovable rather than followed.
+    const entry = await lstat(targetPath).catch(() => null);
+    const bytes =
+      entry?.isFile() === true
+        ? await readFile(targetPath).catch(() => null)
+        : null;
     if (bytes === null) {
       return keep(
         "Lisa retired this path, but it is not a readable file here, so Lisa cannot prove it is the copy Lisa shipped. Remove it yourself if you no longer use it."
