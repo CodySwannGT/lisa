@@ -5,6 +5,8 @@ allowed-tools:
   - Bash
   - Read
 ---
+Deploy Expo frontend (EAS Update/Build) or serverless backend (Serverless Framework) to dev, staging, or production environments.
+
 
 # Ops: Deploy
 

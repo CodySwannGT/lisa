@@ -3,6 +3,8 @@ name: lisa-parity-skill-creator
 description: "Author a new Lisa skill…"
 allowed-tools: ["Read", "Edit", "Write", "Bash"]
 ---
+Author a new Lisa skill end-to-end — scaffold the SKILL.md frontmatter (name/description/allowed-tools), write the pass-through command, follow hyphen naming, place files under plugins/src/base, and rebuild plugins. Lisa-native reimplementation of the upstream skill-creator plugin. NO drift pin: upstream publishes no semver, so it is not drift-trackable.
+
 
 # Skill Creator
 

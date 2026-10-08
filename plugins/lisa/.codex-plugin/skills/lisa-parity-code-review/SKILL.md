@@ -3,6 +3,8 @@ name: lisa-parity-code-review
 description: "Lisa-native code review of the…"
 allowed-tools: ["Read", "Bash", "Grep", "Glob"]
 ---
+Lisa-native code review of the current git diff. Walks every changed hunk and reports correctness bugs, security issues, and obvious defects as severity-ranked findings with file:line references. Vendor-neutral — the cross-agent equivalent of the upstream code-review command, runnable on Codex, agy, Copilot, Cursor, and Claude.
+
 
 # Parity Code Review
 

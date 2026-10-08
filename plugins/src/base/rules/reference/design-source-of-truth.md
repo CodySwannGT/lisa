@@ -1,7 +1,7 @@
 # Design Source of Truth
 
 > Demoted from the always-on eager tier by CodySwannGT/lisa#3992. The
-> section below is the former eager head, maintained with the full
+> section below is the former eager head, preserved verbatim; the full
 > contract follows it. Reachable on demand via [the rule index](../eager/00-rule-index.md).
 
 ## Design Source of Truth (load-bearing)

@@ -3,6 +3,8 @@ name: lisa-tear-down-automations
 description: "Remove recurring Lisa…"
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
+Remove recurring Lisa automations that /setup-automations registered for this project — either the whole lisa-auto-<project>-* fleet by default, or one named loop registration when approving a policy-obsolete proposal — using the CURRENT runtime's native scheduler — Codex automations or, on Claude, /schedule. This skill is a declarative specification: it identifies WHICH automations to remove; it does not run teardown scripts. Carries no fixed list of loops for fleet teardown: the registration set is the roster. Removes only this project's Lisa automations — never other projects' automations or non-Lisa ones. Leaves checked-in runbook files on disk. The inverse of /setup-automations.
+
 
 # Tear down Lisa automations: $ARGUMENTS
 

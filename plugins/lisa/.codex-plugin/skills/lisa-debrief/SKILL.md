@@ -3,6 +3,8 @@ name: lisa-debrief
 description: "Run the Debrief flow over a…"
 allowed-tools: ["Skill", "ToolSearch", "Bash", "Read", "Glob", "Grep", "TeamCreate"]
 ---
+Run the Debrief flow over a shipped initiative. Input: a PRD URL (Notion / Confluence / Linear / GitHub Issue / file), a JIRA epic key, or a GitHub epic issue URL. Output: a triage-ready learnings document covering every work item in the initiative — edge cases, gotchas, process friction, tooling gaps, convention drift — each with structured evidence and a human-disposition field. Persistence is deferred to lisa-debrief-apply.
+
 
 # Debrief: $ARGUMENTS
 

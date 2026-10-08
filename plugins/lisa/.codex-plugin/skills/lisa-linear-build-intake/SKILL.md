@@ -3,6 +3,8 @@ name: lisa-linear-build-intake
 description: "Symmetric counterpart to…"
 allowed-tools: ["Skill", "Bash"]
 ---
+Symmetric counterpart to lisa-jira-build-intake on the Linear side. Scans a Linear team for Issues in the configured `ready` workflow state, claims the first eligible Issue by transitioning it to the configured `claimed` state, runs the implementation/build flow via the linear-agent workflow in-session (culminating in lisa-implement), transitions to the configured `done` state on completion, then exits. Enforces the claim-time arm of the `leaf-only-lifecycle` rule: a parent/container with open child work (or a childless Epic) that still sits in the build-ready state is skipped or safe-blocked with a lifecycle-repair comment, never claimed. The `ready` state is the human-flipped signal that an Issue is truly ready for development — mirroring how Notion PRDs work Draft → Ready → (us) In Review → Blocked|Ticketed.
+
 
 # Linear Build Intake: $ARGUMENTS
 
@@ -198,6 +200,14 @@ The `./` on that default is load-bearing and is not the same as the recorder's. 
 If every pre-work lane is empty, or nothing survives Phase 2.5, exit on the **denominator-stated** summary from `summarizeDryLane` — never a bare "nothing to do". See "Run outcome" below; the run recorder rejects a dry build-intake run that does not name what it swept.
 
 ### Phase 2.5 — Re-probe the blockers instead of inheriting them
+
+Pass original provider bodies and comments to the shared human-gate parsers;
+they decode one Markdown escape layer after excluding code examples. For
+bookkeeping searches that set `alreadyNotified`, use
+`normalizeProviderMarkdown(comment.body)` from the same helper before checking
+the reconciled, released, normalization or evidence marker. Never pre-normalize
+text passed to the parsers: decoding twice can change literal backslashes into a
+declaration.
 
 A blocker is a **claim with a timestamp, not a fact**. It is written once and goes stale the moment its condition comes true — a dependency lands on trunk, an advisory gets patched, a package publishes. Nothing re-read one before this phase, so a discharged blocker held its Issue out of the queue indefinitely. Measured: one Issue's stated condition went true ~15 hours before anything noticed.
 

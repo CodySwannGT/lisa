@@ -3,6 +3,8 @@ name: lisa-setup-linear
 description: "Configure Linear as the…"
 allowed-tools: ["Bash", "Read", "Write", "Edit", "Skill", "AskUserQuestion", "mcp__linear-server__authenticate", "mcp__linear-server__complete_authentication"]
 ---
+Configure Linear as the destination tracker and/or the PRD source for this project. Verifies Linear access (MCP OAuth or a personal API key in OS keychain), resolves the workspace slug and team key, scaffolds the build-queue **workflow states** (`linear.workflow`) when Linear is the tracker and/or the PRD-lifecycle project-label namespace (`prd-*`) when Linear is the PRD source, writes the `linear` section into `.lisa.config.json`, and offers to set top-level `tracker: "linear"` and/or `source: "linear"`. Idempotent — re-running updates the existing section and reuses existing labels. No /lisa:setup:atlassian prerequisite.
+
 
 # Setup Linear: $ARGUMENTS
 

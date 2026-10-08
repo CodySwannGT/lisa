@@ -2,6 +2,8 @@
 name: lisa-query
 description: "Answer a question from the LLM…"
 ---
+Answer a question from the LLM Wiki with citations. Reads the index, drills into relevant pages, and synthesizes a cited answer. Read-only by default; files new synthesis back only when explicitly asked.
+
 ## Lisa Command Compatibility
 
 - Original Claude command: `/lisa:query`

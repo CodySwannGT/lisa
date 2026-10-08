@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# This file is managed by Lisa.
-# Do not edit directly — changes will be overwritten on the next `lisa` run.
+# This file is managed by Lisa and IS replaced on each `lisa` run.
+# Do not edit directly — durable changes belong upstream in Lisa.
+
 # =============================================================================
 # Discharge Deferred Work-Item Gates Hook (PostToolUse - Bash)
 # =============================================================================
@@ -55,6 +56,35 @@ status=$?
 case "$status" in
   0 | 3) exit 0 ;;
 esac
+
+# Plugin updates can precede a host's copied CLI. A generic usage refusal from
+# before this subcommand existed is not a ticket violation. Recognize only a
+# command-list line, then confirm that the no-argument usage probe returns the
+# SAME response and status. Never infer capabilities by grepping the entrypoint:
+# Lisa's own entrypoint is a thin import of the canonical implementation.
+# This shared hook fans out to every agent with a PostToolUse surface; agy's
+# documented lack of that surface remains covered by push/CI traceability.
+if [ "$status" -eq 1 ]; then
+  usage_commands="$(printf '%s\n' "$output" | sed -n \
+    -e 's/^Usage: lisa-work-item\.mjs //p' \
+    -e 's/^❌ Work-item tracking blocked this operation: Usage: lisa-work-item\.mjs //p')"
+  case "$usage_commands" in
+    '' | *[!a-z\|-]*) ;;
+    *)
+      case "|$usage_commands|" in
+        *'|discharge-pr-gates|'*) ;;
+        *'|validate-pr|'*)
+          probe_output="$(cd "$repo_root" && node scripts/lisa-work-item.mjs 2>&1)"
+          probe_status=$?
+          if [ "$probe_status" -eq 1 ] && [ "$probe_output" = "$output" ]; then
+            printf '%s\n' 'Lisa PR check unavailable: the host has an older Lisa command. Update Lisa in this project to enable the check.' >&2
+            exit 0
+          fi
+          ;;
+      esac
+      ;;
+  esac
+fi
 
 printf '%s\n' "$output" >&2
 exit 2

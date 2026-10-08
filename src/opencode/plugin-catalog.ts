@@ -25,6 +25,11 @@ export interface PluginCatalogEntry {
  */
 export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
   {
+    id: "discharge-work-item-gates",
+    templateFilename: "lisa-discharge-work-item-gates.ts",
+    forProjectTypes: ["*"],
+  },
+  {
     id: "parity-safety-net",
     templateFilename: "lisa-parity-safety-net.ts",
     forProjectTypes: ["*"],

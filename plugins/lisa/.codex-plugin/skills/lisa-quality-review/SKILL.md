@@ -2,6 +2,8 @@
 name: lisa-quality-review
 description: "Code quality review checklist"
 ---
+Code quality review checklist. Correctness, coding philosophy compliance, test coverage, documentation quality. Findings ranked by severity in plain English.
+
 
 # Quality Review
 

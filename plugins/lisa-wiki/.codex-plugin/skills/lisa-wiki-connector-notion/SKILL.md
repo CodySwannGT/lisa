@@ -2,6 +2,8 @@
 name: lisa-wiki-connector-notion
 description: "Produce sanitized Notion source…"
 ---
+Produce sanitized Notion source notes for lisa-wiki ingest via the Notion MCP. Use only when lisa-wiki-ingest routes to the notion connector. Read-only; teamspace-guarded.
+
 
 # lisa-wiki-connector-notion
 

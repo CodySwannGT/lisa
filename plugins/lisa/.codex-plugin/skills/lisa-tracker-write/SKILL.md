@@ -3,6 +3,8 @@ name: lisa-tracker-write
 description: "Vendor-neutral wrapper for…"
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
+Vendor-neutral wrapper for ticket creation and updates. Reads the required `tracker` from .lisa.config.json and dispatches to lisa-jira-write-ticket, lisa-github-write-issue, or lisa-linear-write-issue. Callers in vendor-neutral skills (notion-to-tracker, linear-to-tracker, confluence-to-tracker, github-to-tracker, implement, verify) MUST invoke this skill instead of the vendor-specific ones — that is what makes the tracker switchable per project. The Phase-5.5 validate-pre-write gate, post-write verify, and Phase-8 announce-comment behavior live in the vendor skills; this shim is dispatch only.
+
 
 # Tracker Write: $ARGUMENTS
 

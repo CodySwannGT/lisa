@@ -11,6 +11,7 @@
     "create-jira-issue-on-failure.yml": { "major": 1 },
     "create-linear-issue-on-failure.yml": { "major": 1 },
     "create-sentry-issue-on-failure.yml": { "major": 1 },
+    "environment-prepare-aws.yml": { "major": 1 },
     "environment-prepare.yml": { "major": 1 },
     "gates.yml": { "major": 1 },
     "history-secrets.yml": { "major": 1 },

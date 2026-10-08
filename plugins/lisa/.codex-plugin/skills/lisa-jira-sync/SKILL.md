@@ -3,6 +3,8 @@ name: lisa-jira-sync
 description: "Syncs plan progress to a linked…"
 allowed-tools: ["Skill", "Bash", "Read", "Glob", "Grep"]
 ---
+Syncs plan progress to a linked JIRA ticket. Posts plan contents, progress updates, branch links, and PR links at key milestones. Use this skill throughout the plan lifecycle to keep tickets in sync.
+
 
 # JIRA Ticket Sync
 

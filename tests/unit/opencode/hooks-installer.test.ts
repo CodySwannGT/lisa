@@ -32,15 +32,17 @@ const INSTR = "lisa-block-instruction-file-edits.ts";
 const MANAGED = "lisa-block-managed-file-edits.ts";
 const ISSUE = "lisa-block-direct-issue-create.ts";
 const NO_VERIFY = "lisa-block-no-verify.ts";
+const DISCHARGE = "lisa-discharge-work-item-gates.ts";
 const BASE_RULES = "base-rules.md";
 
 /** Emit order per stack, named so the assertions stay one line each. */
 /** Guards every project gets, in the order the installer lists them. */
-const UNIVERSAL = [ISSUE, INSTR, MANAGED, NO_VERIFY];
+const UNIVERSAL = [ISSUE, INSTR, MANAGED, NO_VERIFY, DISCHARGE];
 /** The tail every roster shares. */
 const TAIL = [SESS, SGSCAN];
-const TS_PLUGINS = [...UNIVERSAL, SUPPR, LINT, PARITY, ...TAIL];
-const RAILS_PLUGINS = [...UNIVERSAL, PARITY, RUBOCOP, ...TAIL];
+const byName = (a: string, b: string): number => a.localeCompare(b);
+const TS_PLUGINS = [...UNIVERSAL, SUPPR, LINT, PARITY, ...TAIL].sort(byName);
+const RAILS_PLUGINS = [...UNIVERSAL, PARITY, RUBOCOP, ...TAIL].sort(byName);
 
 describe("opencode/hooks-installer", () => {
   let tempDir: string;
@@ -320,13 +322,13 @@ describe("opencode/hooks-installer", () => {
       const result = await installHooks(lisaDir, destDir, ["typescript"], []);
       const files = await listInstalledPluginFiles(destDir);
       expect(result.pluginCount).toBe(files.length);
-      // Plus the five canonical support scripts, managed without being
+      // Plus the six canonical support scripts, managed without being
       // listed as plugins. Four since #3750, when the managed-file guard became
       // a shell-out and its script started being staged beside the plugin;
       // five since #3814 added the dedupe library those guards source as a
       // sibling of themselves, which has to be staged with them or the
-      // reference resolves to nothing.
-      expect(result.managedFiles).toHaveLength(files.length + 5);
+      // reference resolves to nothing. The deferred PR gate adds the sixth.
+      expect(result.managedFiles).toHaveLength(files.length + 6);
       // The auto-update engine is NOT among them: it runs from the installed
       // package (CodySwannGT/lisa#4337), so it adds nothing to this count.
     });

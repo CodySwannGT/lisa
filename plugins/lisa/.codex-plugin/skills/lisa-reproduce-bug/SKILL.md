@@ -2,6 +2,8 @@
 name: lisa-reproduce-bug
 description: "How to reproduce a bug reliably…"
 ---
+How to reproduce a bug reliably and on the real path — choosing a reproduction method from the symptom, distinguishing prerequisites from behaviour-substituting scaffolding, and reporting the observed failure rate instead of rounding it.
+
 
 # Reproduce Bug
 

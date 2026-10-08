@@ -5,6 +5,8 @@ allowed-tools:
   - Bash
   - Read
 ---
+Verify OpenTelemetry traces are being collected and exported to AWS X-Ray for Rails applications. Check collector health, trace export, and CloudWatch metrics.
+
 
 # Ops: Verify Telemetry
 

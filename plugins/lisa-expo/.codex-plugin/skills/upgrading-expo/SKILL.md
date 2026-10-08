@@ -4,6 +4,8 @@ description: "Guidelines for upgrading Expo…"
 version: 1.0.0
 license: MIT
 ---
+Guidelines for upgrading Expo SDK versions and fixing dependency issues
+
 
 ## References
 

@@ -3,6 +3,8 @@ name: lisa-nightly-add-test-coverage
 description: "Nightly direct-execution skill…"
 allowed-tools: ["Edit", "MultiEdit", "Write", "Read", "Glob", "Grep", "Bash"]
 ---
+Nightly direct-execution skill for increasing test coverage. Receives pre-computed threshold data, writes tests targeting coverage gaps, updates thresholds, commits, and creates a PR.
+
 
 # Nightly Test Coverage Improvement
 

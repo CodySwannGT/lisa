@@ -2,6 +2,8 @@
 name: lisa-status
 description: "Report Lisa wiki source…"
 ---
+Report Lisa wiki source freshness across enabled connectors. Read-only — summarizes last ingest evidence, skipped/blocker reasons, and targeted next actions without running ingestion.
+
 ## Lisa Command Compatibility
 
 - Original Claude command: `/lisa:status`

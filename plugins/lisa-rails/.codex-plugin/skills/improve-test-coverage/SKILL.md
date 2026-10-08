@@ -4,6 +4,8 @@ description: "increasing test coverage to a…"
 allowed-tools: ["Read", "Bash", "Glob", "Grep"]
 
 ---
+This skill should be used when increasing test coverage to a specified threshold percentage. It runs the test suite with SimpleCov, identifies files with the lowest coverage, generates a brief with coverage gaps, and creates a plan with tasks to add the missing tests.
+
 
 # Increase Test Coverage
 

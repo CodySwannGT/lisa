@@ -2,6 +2,8 @@
 name: lisa-wiki-ingest
 description: "Ingest source material into the…"
 ---
+Ingest source material into the LLM Wiki. With an argument (URL, file path, or prompt) it ingests that one source; with no argument it runs a full ingest across every enabled non-external-write source. Routes to the right connector, then runs the ordered pipeline (source note → synthesis → index → log → verify → state → commit/PR). Use whenever new knowledge should enter the wiki.
+
 
 # lisa-wiki-ingest
 

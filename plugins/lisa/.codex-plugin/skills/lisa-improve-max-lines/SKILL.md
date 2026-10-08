@@ -4,6 +4,8 @@ description: "reducing the maximum file lines…"
 allowed-tools: ["Read", "Bash", "Glob", "Grep"]
 
 ---
+This skill should be used when reducing the maximum file lines threshold and fixing all violations. It updates the eslint threshold configuration, identifies files exceeding the new limit, generates a brief with refactoring strategies, and creates a plan with tasks to split oversized files.
+
 
 # Reduce Max Lines
 

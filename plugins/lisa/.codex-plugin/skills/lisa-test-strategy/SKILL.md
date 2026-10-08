@@ -2,6 +2,8 @@
 name: lisa-test-strategy
 description: "Test strategy design"
 ---
+Test strategy design. Coverage matrix, edge cases, TDD sequence planning, test quality review. Behavior-focused testing over implementation details.
+
 
 # Test Strategy
 

@@ -3,6 +3,8 @@ name: lisa-automation-status
 description: "Read-only operator surface for…"
 allowed-tools: ["Skill", "Bash", "Read"]
 ---
+Read-only operator surface for the current project's Lisa automation fleet. Resolves the expected recurring jobs from the same setup-automations contract Lisa uses to create them, inspects the active runtime scheduler (Codex automations or Claude /schedule), compares live command/cadence/queue arguments against the expected contract, and reports grouped fleet health such as healthy, missing, unsupported, drifted, stale, or failing with remediation guidance.
+
 
 # Automation Status: $ARGUMENTS
 

@@ -2,6 +2,8 @@
 name: lisa-migrate
 description: "Migrate an existing hand-rolled…"
 ---
+Migrate an existing hand-rolled wiki onto the lisa-wiki kernel — phased and compatibility-first, with a strict no-loss guarantee (renaming is fine; losing functionality or data is not). Ends by running /doctor.
+
 ## Lisa Command Compatibility
 
 - Original Claude command: `/lisa:migrate`

@@ -3,6 +3,8 @@ name: lisa-setup-workstation
 description: "Prepare a machine — a fresh…"
 allowed-tools: ["Bash", "Read", "Skill"]
 ---
+Prepare a machine — a fresh laptop or a throwaway container — to run coding agents, before any repository exists. Detects which of Lisa's supported agents (Claude Code, Codex, Cursor, OpenCode, Antigravity, Copilot) are already installed, asks which credential manager the machine uses (Bitwarden, 1Password, Doppler, Vault, AWS, or none), and installs only what is missing, each by its vendor's own preferred method. Idempotent, headless by default, and emits a Dockerfile for a spin-up/spin-down environment. Run it on a new machine, in a container, or before cloning anything.
+
 
 # Setup Workstation: $ARGUMENTS
 

@@ -4,6 +4,8 @@ description: "Guide for creating and writing…"
 version: 1.0.0
 license: MIT
 ---
+Guide for creating and writing Expo native modules and views using the Expo Modules API (Swift, Kotlin, TypeScript). Covers module definition DSL, native views, shared objects, config plugins, lifecycle hooks, autolinking, and type system. Use when building or modifying native modules for Expo.
+
 
 # Writing Expo Modules
 

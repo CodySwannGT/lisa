@@ -230,12 +230,14 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "0fdbc84a703f503e79fc39c2cac5c40a85a04939f5977e8ed911d81ee72486b7",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "865f89d7504a7d1c3380449a2790801c60c1cfe5fa8f1aad54ffc51aa8d0cc7f",
+    "all/copy-overwrite/scripts/lisa-hooks/discharge-work-item-gates.sh":
+      "17e67b20a3200c283a6192493ff03391df8c7d80363d97295c3f2421f050e88b",
     "all/copy-overwrite/scripts/lisa-hooks/guard-dedupe.bash":
       "c86555450a5d0e87dce1918ded0d894a6d9c2df5f4f8ca740d134cb018322481",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py":
       "b37b843b738fd0c1c6f9639551cf64c409263064819bb820e3daa6af8c94d443",
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh":
-      "2b3d806137b34bfdd21be9e76ca5159f7b11fbd3ca9223d99bef298e42f49c0d",
+      "cda051c451145d6ff93a744a290176640cae39309cd346a00e73a924add089d8",
     "all/copy-overwrite/scripts/lisa-hooks/sonar-secrets.sh":
       "e0b0073fe44f6e78b74f05cb232d30a3121acc3600bdbd5bc4299c1c710d56a2",
     "all/copy-overwrite/scripts/lisa-hooks/worktree-binding-guard.mjs":
@@ -271,7 +273,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "a114ac60b0e390ad2518bda5871aa1c9680755f10fe36ebae26de4ad170490d5",
+      "e32628a9f832f681d084d51a80de8910ce1bee7e39f8306bb217e7b519242e6e",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -961,7 +963,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/debug-hook.sh":
       "8416fc2603cabf08245db998736a291d3b5aedf45b4a6f61c0060f07134e6530",
     "plugins/src/base/hooks/discharge-work-item-gates.sh":
-      "68ece38c1f433e705c5bb284282468d65adbf46d8264ab0cd5855bab816bb0ea",
+      "79e64379a06539584c27c9adc145a6fcf71c020040c3416234b317cb7c4649e3",
     "plugins/src/base/hooks/enforce-team-first.sh":
       "104922ba5912b797bf9ce15881dcef76916ea1782ac1e669151265b7db9fb263",
     "plugins/src/base/hooks/enforce-verification-gate.sh":
@@ -997,7 +999,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/parity-safety-net.agy.sh":
       "ce9bd2b4566ad9147e4ace56434cffbbe87edb4ccbb57549ab3fd9f4c671ced4",
     "plugins/src/base/hooks/parity-safety-net.sh":
-      "6f282d7be40377daf9455c9e4ca1f123e89ffae7ec9d1669b964582e92d5c521",
+      "b755796c218d5b397f4b4bc9077e25a7c5d9bf4fa94eee41c6191a65a80cae78",
     "plugins/src/base/hooks/secrets-preflight.sh":
       "cdc638627e5769770aefb061ea0ddfacc1888a8eab3a5fade6c43129a2d3ff6e",
     "plugins/src/base/hooks/setup-jira-cli.sh":
@@ -1115,7 +1117,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/derived-branch-plan.md":
       "0a076ed19f605be8a9a1f4366e8fa6a2e00ce0cfd578b59ab9fb0a6398b21b3b",
     "plugins/src/base/rules/reference/design-source-of-truth.md":
-      "5e612ef4fe8c1b9879c315c02fbefeed4c3c7661003ecd7c260b096c4b989c54",
+      "ef8d8e63d05d676c5f7246ba31901e42898a774b036fe65e12f87fc6d61e088e",
     "plugins/src/base/rules/reference/design-value-binding.md":
       "ec74ad33f0335a5fdc16ec09b967e8bc96d04936289298b8992e374d929c90ca",
     "plugins/src/base/rules/reference/do-it-now.md":
@@ -1165,7 +1167,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/ready-role-filing.md":
       "fc0f5d4620c764dc06b4c8a0258f50f2e5182df0d4366ebc0018d299541c7ccc",
     "plugins/src/base/rules/reference/rejection-detection.md":
-      "77b412b24b9c4169b94dd8a1bfae27ca82d10b17ff47e7f484f0b0624dff4b55",
+      "716e4758e6241c03363ea0754ea9d6f5bb476fb816168266c8ebc2b5d05bd5db",
     "plugins/src/base/rules/reference/repo-scope-split.md":
       "20b1aa6999a9376d7b9990c0022f40a4d48d5d09af9c709bf1b6ead3f1443b16",
     "plugins/src/base/rules/reference/report-actionability.md":
@@ -1231,7 +1233,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/scripts/install-remote-agent-aws.mjs":
       "aec9980c90fc500038f98c24329f0d8728e79a110326b33b744a68afa128de64",
     "plugins/src/base/scripts/intake-blocker-reprobe.mjs":
-      "8656ad13f3a712f8c3a68046282acf1f2359d8a2cb238e99b8131b3cff86386a",
+      "8df39b7831020bc775263b240e8852a8a8eb7dba0b6ade193e20c911438a1e05",
     "plugins/src/base/scripts/intake-prework-denominator.mjs":
       "0a40cb91ab1c0e810f42d035d9652af3033e97c692b93b911de851991c12eca1",
     "plugins/src/base/scripts/lifecycle-label-trust.mjs":
@@ -1425,7 +1427,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-linear-add-journey/SKILL.md":
       "e63ae35df1a928dac7b42535ce11e77e8c617e60838ba319f22081400e87886e",
     "plugins/src/base/skills/lisa-linear-build-intake/SKILL.md":
-      "6856f74e56258a622dbe0710e695f8024559155a5480cc439124e4cadcac20b7",
+      "a7ecab2631339e0c86ca70c1cc514e269fb4bfbefaccf39d627dcf84d718df03",
     "plugins/src/base/skills/lisa-linear-claim/SKILL.md":
       "efde30b5eac8b2cc56499ce391bd3d43ebb017c4ce948b5d547b52acb66715bb",
     "plugins/src/base/skills/lisa-linear-create/SKILL.md":
@@ -2417,7 +2419,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/merge/.claude/settings.json":
       "01174bd607fe8166e3b588a5679940e598a7b81affae7cd318d4efe47375c156",
     "scripts/build-plugins.sh":
-      "9424cc5225234cabc45a80826d26075222ce1d4c6c6ebcf59a410e4b7fd01667",
+      "1f7e9169cbd5a100b04c4f1c17dac7224b7adc48c438466782d5fcd0d1f25335",
     "scripts/check-cwd-resolution-corpus.mjs":
       "117248694ca2a0dc48f8e22c2a5169791fec554b3dcf61ab6cda210d84185017",
     "scripts/check-deletion-basis.mjs":
@@ -2501,7 +2503,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/copy-codex-scripts.mjs":
       "2d7082d5033088c85f66995aee9e3ee1e7751435e65bfde8e1cb002e6689d476",
     "scripts/copy-opencode-plugin-templates.mjs":
-      "83d274e782fea23cf5f4f3047a12fece9f07e8fb8634a917410f08480eddeec4",
+      "c87d1759b02d20212da37d38b7860d82770c1067ebbe885c8ab6451840fafb60",
     "scripts/deployed-guard-advice.mjs":
       "11b4248806e60491e0017e0cc7955928474af73ce53767848f6fbb9cec294ebf",
     "scripts/detect-stale-workflow-inputs.mjs":
@@ -2517,7 +2519,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/generate-agy-plugin-artifacts.mjs":
       "dd137fcd9502db427c9679fae5088e996d92e1e013d71620612aef178a7be207",
     "scripts/generate-codex-plugin-artifacts.mjs":
-      "facb86910c07d1b8025868d24425fdaea7b6efbe282bace5ee5bf23957d6b51a",
+      "3216e23962884cf2610e65ae95a6b6b28cc23b7bd93d0254aebbcc0f6c7ee827",
     "scripts/generate-copilot-plugin-artifacts.mjs":
       "8589c8b6e7adff3aefd20463d78cb3caa4d23489fffc07fbb9d185cdc63871fa",
     "scripts/generate-cursor-plugin-artifacts.mjs":
@@ -2657,7 +2659,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "b6a11e45fffe2fb7acecff12f5a5181716a7f995308811439d2c232e284309e4",
+      "00874126ffe89c313b9acca1b507c4bff38d20ae2fe21b9442723892a00fe6bc",
     "scripts/update-node-version.ts":
       "0059067c14001c2f7e75beb2628d1a46f935c7b01ce61871db71b6849ef62dca",
     "scripts/update-test-skill-paths.mjs":
@@ -2941,6 +2943,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     ".github/workflows/create-sentry-issue-on-failure.yml": true,
     ".github/workflows/deploy.yml": true,
     ".github/workflows/duplicate-versions.yml": true,
+    ".github/workflows/environment-prepare-aws.yml": true,
     ".github/workflows/environment-prepare.yml": true,
     ".github/workflows/gates.yml": true,
     ".github/workflows/history-secrets.yml": true,
@@ -3106,6 +3109,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh": true,
+    "all/copy-overwrite/scripts/lisa-hooks/discharge-work-item-gates.sh": true,
     "all/copy-overwrite/scripts/lisa-hooks/guard-dedupe.bash": true,
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net-heredoc.py": true,
     "all/copy-overwrite/scripts/lisa-hooks/parity-safety-net.sh": true,
@@ -9600,6 +9604,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/opencode/plugin-templates/lisa-block-migration-edits.ts": true,
     "src/opencode/plugin-templates/lisa-block-no-verify.ts": true,
     "src/opencode/plugin-templates/lisa-block-suppress-directives.ts": true,
+    "src/opencode/plugin-templates/lisa-discharge-work-item-gates.ts": true,
     "src/opencode/plugin-templates/lisa-lint-on-edit.ts": true,
     "src/opencode/plugin-templates/lisa-parity-safety-net.ts": true,
     "src/opencode/plugin-templates/lisa-rubocop-on-edit.ts": true,
@@ -9819,6 +9824,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/bounded-bash.ts": true,
     "tests/helpers/cdk-scratch-lifecycle.ts": true,
     "tests/helpers/child-bound-scan.ts": true,
+    "tests/helpers/codex-skill-parity.ts": true,
     "tests/helpers/committed-case-table.ts": true,
     "tests/helpers/cpu-budget.ts": true,
     "tests/helpers/enforcement-census-fixtures.ts": true,
@@ -9923,6 +9929,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/emitted-scripts-survive-shipped-fixer.test.ts": true,
     "tests/integration/enforcement-census-cli.test.ts": true,
     "tests/integration/environment-facade-gates.test.ts": true,
+    "tests/integration/environment-prepare-aws-workflow.test.ts": true,
     "tests/integration/environment-prepare-workflow.test.ts": true,
     "tests/integration/expo-host-run-scripts-survive-apply.test.ts": true,
     "tests/integration/expo-independent-checks.test.ts": true,
@@ -10675,18 +10682,25 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/operational-hazards-wiring.test.ts": true,
     "tests/unit/hooks/operational-hazards.test.ts": true,
     "tests/unit/hooks/parity-push-gate.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-and-branch-scope.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-brace-scope.test.ts": true,
     "tests/unit/hooks/parity-safety-net-cd-resolution.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-compound-pipeline.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-compound-redirection.test.ts": true,
     "tests/unit/hooks/parity-safety-net-credentials.test.ts": true,
     "tests/unit/hooks/parity-safety-net-dirty-recovery.test.ts": true,
     "tests/unit/hooks/parity-safety-net-discard-remedy-executability.test.ts": true,
     "tests/unit/hooks/parity-safety-net-false-positives.test.ts": true,
     "tests/unit/hooks/parity-safety-net-follow-execution.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-function-source-scope.test.ts": true,
     "tests/unit/hooks/parity-safety-net-guards.test.ts": true,
     "tests/unit/hooks/parity-safety-net-heredoc-body-quote-state.test.ts": true,
     "tests/unit/hooks/parity-safety-net-heredoc-continuation.test.ts": true,
     "tests/unit/hooks/parity-safety-net-heredoc-literal.test.ts": true,
     "tests/unit/hooks/parity-safety-net-heredoc.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-inline-async-scope.test.ts": true,
     "tests/unit/hooks/parity-safety-net-line-continuation.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-nested-pipeline.test.ts": true,
     "tests/unit/hooks/parity-safety-net-no-stash-advice.test.ts": true,
     "tests/unit/hooks/parity-safety-net-noexec.test.ts": true,
     "tests/unit/hooks/parity-safety-net-plumbing-discard.test.ts": true,
@@ -10694,6 +10708,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/parity-safety-net-prose-remedy.test.ts": true,
     "tests/unit/hooks/parity-safety-net-scan-failure.test.ts": true,
     "tests/unit/hooks/parity-safety-net-sql-prose.test.ts": true,
+    "tests/unit/hooks/parity-safety-net-subshell-cd.test.ts": true,
     "tests/unit/hooks/parity-safety-net-supervisor-profile.test.ts": true,
     "tests/unit/hooks/parity-safety-net.test.ts": true,
     "tests/unit/hooks/post-checkout.test.ts": true,
@@ -10777,6 +10792,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/opencode/block-no-verify-plugin.test.ts": true,
     "tests/unit/opencode/command-installer.test.ts": true,
     "tests/unit/opencode/command-transformer.test.ts": true,
+    "tests/unit/opencode/discharge-work-item-gates-plugin.test.ts": true,
     "tests/unit/opencode/hooks-installer.test.ts": true,
     "tests/unit/opencode/kane-skill-parity.test.ts": true,
     "tests/unit/opencode/manifest.test.ts": true,
@@ -11360,6 +11376,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/strategies/harper-fabric-template-no-advisory-pollution.test.ts": true,
     "tests/unit/strategies/health-skill-contract.test.ts": true,
     "tests/unit/strategies/human-gate-declaration-precision.test.ts": true,
+    "tests/unit/strategies/human-gate-markdown-escaping.test.ts": true,
     "tests/unit/strategies/human-gate-release-authorization.test.ts": true,
     "tests/unit/strategies/human-gate-release-helpers.ts": true,
     "tests/unit/strategies/human-gate-release-inverse.test.ts": true,

@@ -3,6 +3,8 @@ name: lisa-linear-write-issue
 description: "Creates or updates a Linear…"
 allowed-tools: ["Bash", "Skill"]
 ---
+Creates or updates a Linear work item — Project (Epic), Issue (Story), or sub-Issue (Sub-task) — following organizational best practices. Polymorphic: dispatches internally on issue_type to save_project (Epic) or save_issue (Story / Sub-task). Enforces description quality (three audiences), Gherkin acceptance criteria, project-as-parent for Stories, parentId for Sub-tasks, explicit relationship discovery (blocks / is blocked by / relates to / duplicates), labels, components-as-labels, project milestones for fix versions, native priority and estimate fields, and Validation Journey. Rejects thin items — use this skill any time a Linear work item is created or significantly edited.
+
 
 # Write Linear Work Item: $ARGUMENTS
 

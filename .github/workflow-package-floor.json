@@ -139,7 +139,7 @@
     },
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs": {
       "kind": "executed",
-      "why": "environment-prepare.yml, maestro-native-e2e.yml and playwright-e2e.yml run it as `node \"$PREPARE\" --env=\"${TARGET}\" --verbs=\"${VERBS}\"`. Resolution failure there is already a hard failure; a resolved copy that no longer understands the verbs would be worse, because it reports success.",
+      "why": "environment-prepare.yml, environment-prepare-aws.yml, maestro-native-e2e.yml and playwright-e2e.yml run it as `node \"$PREPARE\" --env=\"${TARGET}\" --verbs=\"${VERBS}\"`. Resolution failure there is already a hard failure; a resolved copy that no longer understands the verbs would be worse, because it reports success.",
       "probes": [
         {
           "argv": ["--env=development", "--verbs=no-such-verb"],

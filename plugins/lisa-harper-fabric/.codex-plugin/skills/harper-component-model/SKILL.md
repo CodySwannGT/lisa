@@ -2,6 +2,8 @@
 name: harper-component-model
 description: "reasoning about how a Harper…"
 ---
+This skill should be used when reasoning about how a Harper (formerly HarperDB) Fabric application is structured — what a component, application, extension, or plugin is, where code and assets belong, and how the pieces depend on each other. Use it before adding a new capability, wiring an extension, deciding where a file should live, or explaining the runtime to someone. Pairs with harper-config-yaml, harper-resources, harper-schema-graphql, and harper-build-and-deploy.
+
 
 # Harper Component Model
 

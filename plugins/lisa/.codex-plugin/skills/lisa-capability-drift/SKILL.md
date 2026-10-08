@@ -3,6 +3,8 @@ name: lisa-capability-drift
 description: "Detect the fleet getting worse…"
 allowed-tools: ["Read", "Grep", "Glob", "Bash"]
 ---
+Detect the fleet getting worse when nobody changed anything — sample the evaluation suite against a recorded baseline on a cadence, decide whether a decline is real given run-to-run variance, and attribute it to a vendor-side change, accumulated local change, or a broken harness.
+
 
 # Capability Drift
 
