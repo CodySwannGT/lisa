@@ -35,9 +35,9 @@
  * first attempt and lets the retry through is defeated by a blind retry, which
  * is the single most likely next action. So the block stands until the session
  * states, in the acknowledgement, the absolute path it now intends to work in.
- * A path that does not match what the session is actually in is refused too —
- * that is the rejection control, and it is what stops a stale acknowledgement
- * copied from another agent's transcript from silently rebinding this one.
+ * An acknowledgement can choose the observed root, return to the initial root,
+ * or accept a linked target this session was explicitly offered. A selected
+ * target does not prove a move: the next guarded call must actually be there.
  *
  * FAILING OPEN, LOUDLY. Anything this cannot determine — no session id, no
  * cwd, not a git repository, an unreadable state file — exits 0 with a line on
@@ -68,6 +68,7 @@ const GUARDED_TOOLS = new Set(["Bash", "Write", "Edit", "MultiEdit"]);
  * on its own PreToolUse pass — which is exactly where a command string arrives.
  */
 const ACCEPT_PREFIX = "lisa-worktree-binding: accept";
+const ACK_AND_SEPARATOR = Symbol("acknowledgement AND separator");
 
 /**
  * Resolve a path the way git reports one.
@@ -152,6 +153,46 @@ function mainCheckout(cwd) {
   // than returned as a quiet null (#3848).
   say("git could not resolve the main checkout, so this claim is NOT recorded");
   return null;
+}
+
+/** Registered roots of the bound repository, with Git path quoting disabled. */
+function linkedWorktreeRoots(bound) {
+  const listing = git(["worktree", "list", "--porcelain", "-z"], bound);
+  if (listing === null) {
+    say(
+      "git could not identify linked worktrees; repository identity is NOT enforced"
+    );
+    return null;
+  }
+  return new Set(
+    listing
+      .split("\0")
+      .filter(record => record.startsWith("worktree "))
+      .map(record => realpath(record.slice("worktree ".length)))
+  );
+}
+
+/** Canonical common Git directory: stable identity across linked checkouts. */
+function repositoryIdentity(root) {
+  if (typeof root !== "string") return null;
+  const common = git(["rev-parse", "--git-common-dir"], root);
+  if (common === null) {
+    say("git could not compare repository identity; identity is NOT enforced");
+    return null;
+  }
+  return realpath(resolve(root, common));
+}
+
+/** A registration is only authoritative while its live repository agrees. */
+function isLinkedWorktree(
+  bound,
+  candidate,
+  roots = linkedWorktreeRoots(bound)
+) {
+  if (!roots?.has(candidate) || worktreeRoot(candidate) !== candidate)
+    return false;
+  const common = repositoryIdentity(bound);
+  return common !== null && common === repositoryIdentity(candidate);
 }
 
 /**
@@ -297,6 +338,7 @@ function executedPath(segment) {
  * fooled by exactly that and was caught only by a known-answer control.
  */
 function foreignTreeIn(text, bound, cwd) {
+  let linkedRoots;
   const code = text
     .split("\n")
     .map(line => line.replace(/^\s*#.*$/u, ""))
@@ -317,7 +359,10 @@ function foreignTreeIn(text, bound, cwd) {
     } catch {
       continue;
     }
-    if (root && root !== bound) return root;
+    if (root && root !== bound) {
+      if (linkedRoots === undefined) linkedRoots = linkedWorktreeRoots(bound);
+      if (isLinkedWorktree(bound, root, linkedRoots)) return root;
+    }
   }
   return null;
 }
@@ -496,10 +541,10 @@ function reachesOut(script, foreign, bound) {
     `  script:    ${script}`,
     `  reaches:   ${foreign}`,
     `  bound to:  ${bound}`,
-    "The directory change lives inside the file, so it happens after this",
-    "guard has measured where the session is. Run the work from the tree it",
-    "belongs to, or acknowledge the move:",
+    "The access lives inside the file, after this guard measures the session.",
+    "Run the work from the tree it belongs to, or acknowledge that target:",
     acceptanceLine(foreign),
+    "Then move to the acknowledged tree before further guarded calls.",
   ]);
 }
 
@@ -599,9 +644,8 @@ function readState(bindingKeyValue, payload) {
 /**
  * Write the session's binding state, MERGING over whatever is already there.
  *
- * Every caller below hands in all three lifecycle fields explicitly, so the
- * merge changes nothing for them — `claimedRoot: null` still clears a claim.
- * What it buys is that a field one writer owns is not silently dropped by
+ * Explicit `claimedRoot: null` still clears a claim. Merging means that a
+ * field one writer owns is not silently dropped by
  * another writer that had no opinion about it: `runtimeNoticed` is written by
  * {@link noticeRuntimeDrift} and read by nobody else, and a clobbering write
  * would turn its "reported once" into "reported again after the next
@@ -614,12 +658,24 @@ function readState(bindingKeyValue, payload) {
  */
 function writeState(bindingKeyValue, state, payload) {
   const file = stateFile(bindingKeyValue);
+  const previous = readState(bindingKeyValue, payload);
+  const originalRoot =
+    previous?.originalRoot ?? previous?.boundRoot ?? state.boundRoot;
+  const originalCommonDir =
+    previous?.originalCommonDir ?? repositoryIdentity(originalRoot);
   try {
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(
       file,
       `${JSON.stringify(
-        { ...readState(bindingKeyValue, payload), ...state },
+        {
+          ...previous,
+          ...state,
+          // Preserve the initial root after intentional rebinds. A legacy
+          // state's established root is its only proven recovery anchor.
+          originalRoot,
+          originalCommonDir,
+        },
         null,
         2
       )}\n`
@@ -746,43 +802,161 @@ function refuse(lines) {
 }
 
 function acceptanceLine(observed) {
-  return `  echo '${ACCEPT_PREFIX} ${observed}'`;
+  const literal = `${ACCEPT_PREFIX} ${observed}`.replaceAll("'", "'\\''");
+  return `  echo '${literal}'`;
+}
+
+/** Read literal shell words and AND separators without evaluating expansions. */
+function acknowledgementWords(text) {
+  const words = [];
+  let word = "",
+    active = false,
+    quote = null;
+  const emit = () => {
+    if (active) words.push(word);
+    word = "";
+    active = false;
+  };
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    if (quote === "'") {
+      if (char === "'") quote = null;
+      else word += char;
+      continue;
+    }
+    if (char === "\\") {
+      const next = text[index + 1];
+      if (next === undefined) return null;
+      if (quote === '"' && !['"', "\\", "$", "`", "\n"].includes(next)) {
+        word += char;
+        continue;
+      }
+      index += 1;
+      if (next !== "\n") {
+        word += next;
+        active = true;
+      }
+      continue;
+    }
+    if (quote === '"') {
+      if (char === '"') quote = null;
+      else if (char === "$" || char === "`") return null;
+      else word += char;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      quote = char;
+      active = true;
+    } else if (char === " " || char === "\t") emit();
+    else if (char === "\n") return null;
+    else if (char === "&" && text[index + 1] === "&") {
+      emit();
+      words.push(ACK_AND_SEPARATOR);
+      index += 1;
+    } else if (/[&;|<>$`*?[\]{}()]/u.test(char)) return null;
+    else {
+      word += char;
+      active = true;
+    }
+  }
+  if (quote !== null) return null;
+  emit();
+  return words;
+}
+
+/** Strip only actual shell edge whitespace in linear time. */
+function acknowledgementText(command) {
+  let start = 0,
+    end = command.length;
+  while (start < end && " \t\n".includes(command[start])) start += 1;
+  while (end > start && " \t\n".includes(command[end - 1])) end -= 1;
+  return command.slice(start, end);
+}
+
+/** A literal echo, optionally preceded by a literal cd to the stated root. */
+function acceptanceRequest(command) {
+  const text = acknowledgementText(command);
+  const words = acknowledgementWords(text.replace(/;$/u, ""));
+  if (!words) return null;
+  const direct = words.length === 2 && words[0] === "echo";
+  const moving =
+    words.length === 5 &&
+    words[0] === "cd" &&
+    typeof words[1] === "string" &&
+    words[2] === ACK_AND_SEPARATOR &&
+    words[3] === "echo";
+  if (!direct && !moving) return null;
+  const message = words.at(-1);
+  if (typeof message !== "string" || !message.startsWith(`${ACCEPT_PREFIX} `))
+    return null;
+  const stated = message.slice(ACCEPT_PREFIX.length + 1);
+  // The printed protocol names absolute roots. Empty/relative operands and
+  // cd's special ~, -, or -- forms cannot authorize a move.
+  if (!isAbsolute(stated)) return null;
+  const path = realpath(stated);
+  const destination =
+    moving && isAbsolute(words[1]) ? realpath(words[1]) : null;
+  return {
+    path,
+    validMove: !moving || (destination !== null && destination === path),
+  };
 }
 
 /**
- * Handle an acknowledgement line, or return null when the command is not one.
- *
- * The path is compared against what the session is measurably in, not against
- * what it says it wants. An acknowledgement naming somewhere else is the case
- * this is for: it means the operator is reasoning about a tree they are not in.
+ * Validate the initial recovery root against the identity captured at baseline.
+ * The current checkout may have been removed or deliberately rebound elsewhere.
  */
+function isOriginalRoot(state, path) {
+  const original = state?.originalRoot ?? state?.boundRoot;
+  if (path !== original || worktreeRoot(path) !== path) return false;
+  // Older state can only prove the repository of its established binding.
+  const common = state.originalCommonDir ?? repositoryIdentity(state.boundRoot);
+  return common !== null && common === repositoryIdentity(path);
+}
+
+/** Acknowledgements select intent; the next call must prove actual movement. */
 function handleAcceptance(payload, observed) {
   const command = payload.tool_input?.command;
   if (typeof command !== "string" || !command.includes(ACCEPT_PREFIX))
     return null;
-  const stated = command.slice(
-    command.indexOf(ACCEPT_PREFIX) + ACCEPT_PREFIX.length
-  );
-  const match = /([^\s'"]+)/.exec(stated);
-  const path = match ? realpath(resolve(match[1])) : null;
-  if (path !== observed) {
+  const request = acceptanceRequest(command);
+  if (!request) return null;
+  const { path, validMove } = request;
+  const previous = readState(bindingKey(payload), payload);
+  const original = previous?.originalRoot ?? previous?.boundRoot;
+  const recovering = isOriginalRoot(previous, path);
+  const offered =
+    path === previous?.offeredRoot &&
+    isLinkedWorktree(previous.boundRoot, path);
+  if (!validMove || (path !== observed && !recovering && !offered)) {
+    const suggestion = observed ?? original;
     return refuse([
       `worktree-binding-guard: this acknowledgement names ${path ?? "no path"},`,
-      `but this session is operating in ${observed}. Not rebinding.`,
-      `If ${observed} is where you mean to work, acknowledge that path:`,
-      acceptanceLine(observed),
+      "but it is not a valid move to the observed, original, or offered worktree. Not rebinding.",
+      ...(suggestion
+        ? [
+            "Acknowledge the measured or original worktree:",
+            acceptanceLine(suggestion),
+          ]
+        : []),
     ]);
   }
-  writeState(
+  const written = writeState(
     bindingKey(payload),
     {
-      boundRoot: observed,
+      boundRoot: path,
       claimedRoot: null,
+      offeredRoot: null,
       updatedAt: new Date().toISOString(),
     },
     payload
   );
-  say(`bound to ${observed}`);
+  if (written)
+    say(
+      path === observed
+        ? `bound to ${path}`
+        : `binding set to ${path}; move there before further guarded calls`
+    );
   return 0;
 }
 
@@ -982,6 +1156,11 @@ function evaluate(payload) {
   }
   const binding = bindingKey(payload);
   const observed = worktreeRoot(cwd);
+  // The initial-root recovery acknowledgement also works outside any repo.
+  if (GUARDED_TOOLS.has(payload.tool_name)) {
+    const accepted = handleAcceptance(payload, observed);
+    if (accepted !== null) return accepted;
+  }
   if (!observed) return 0;
 
   if (payload.hook_event_name === "SessionStart") {
@@ -993,13 +1172,17 @@ function evaluate(payload) {
     return 0;
   }
   if (payload.tool_name === "EnterWorktree") {
+    const previous = readState(binding, payload);
+    if (
+      previous?.boundRoot &&
+      previous.boundRoot !== observed &&
+      !isLinkedWorktree(previous.boundRoot, observed)
+    )
+      return 0;
     recordClaim(payload, observed);
     return 0;
   }
   if (!GUARDED_TOOLS.has(payload.tool_name)) return 0;
-
-  const accepted = handleAcceptance(payload, observed);
-  if (accepted !== null) return accepted;
 
   const state = readState(binding, payload);
   if (!state?.boundRoot) {
@@ -1021,6 +1204,11 @@ function evaluate(payload) {
     );
     return 0;
   }
+  if (
+    state.boundRoot !== observed &&
+    !isLinkedWorktree(state.boundRoot, observed)
+  )
+    return 0;
   if (state.claimedRoot && state.claimedRoot !== observed) {
     return unconfirmedSwitch(state.claimedRoot, observed);
   }
@@ -1030,6 +1218,7 @@ function evaluate(payload) {
       {
         boundRoot: observed,
         claimedRoot: null,
+        offeredRoot: null,
         updatedAt: new Date().toISOString(),
       },
       payload
@@ -1040,7 +1229,10 @@ function evaluate(payload) {
   // Last, and only once the session is provably where it should be: a script
   // that moves somewhere else after this check has already run.
   const reach = scriptReachingForeignTree(payload, observed);
-  if (reach) return reachesOut(reach.script, reach.foreign, observed);
+  if (reach) {
+    writeState(binding, { offeredRoot: reach.foreign }, payload);
+    return reachesOut(reach.script, reach.foreign, observed);
+  }
   return 0;
 }
 

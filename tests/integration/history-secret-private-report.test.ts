@@ -21,6 +21,21 @@ const scanner = join(lease, "gitleaks");
 const helper = "all/copy-overwrite/scripts/lib/history-secret-scanner.mjs";
 const hash = (path: string) =>
   createHash("sha256").update(readFileSync(path)).digest("hex");
+const expectPrivateCleanup = (
+  actual: object,
+  mask: string,
+  succeeded: boolean
+) => {
+  expect(actual).toMatchObject({
+    succeeded,
+    privateRecord: 0o600,
+    valuesAbsent: true,
+    callerMask: Number.parseInt(mask, 8),
+    initialMask: Number.parseInt(mask, 8),
+    scratchAbsent: true,
+    proofOwnerAbsent: true,
+  });
+};
 const environment = Object.fromEntries(
   ["PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "TZ"]
     .filter(key => process.env[key] !== undefined)
@@ -39,36 +54,20 @@ const expected = {
     "verified-narrative-paragraph",
     "verified-narrative-no-newline",
   ],
-  digest: [
-    "digest-wrong-role",
-    "digest-nested-role",
-    "digest-mismatch",
-    "digest-absent-preimage",
-    "digest-malformed-map",
-    "digest-duplicate-key",
-    "digest-escaped-duplicate-key",
-    "digest-escaped-path-alias",
-    "digest-escaped-value",
-    "digest-unverified-sibling",
-    "digest-unsafe-parent",
-    "digest-unsafe-absolute",
-    "digest-unavailable-revision",
-    "digest-null-revision",
-    "digest-false-revision",
-    "digest-empty-revision",
-    "digest-numeric-revision",
-    "digest-ambiguous-line",
-    "digest-invalid-utf8",
-    "digest-depth-budget",
-    "digest-token-budget",
-    "digest-byte-budget",
-    "digest-symlink-preimage",
-    "digest-source-credential",
-    "digest-adjacent-credential",
-    "digest-other-default-rule",
-    "digest-tag-object-revision",
-    "digest-unreachable-revision",
-  ],
+  digest: `
+    digest-wrong-role digest-nested-role digest-mismatch
+    digest-absent-preimage digest-malformed-map digest-duplicate-key
+    digest-escaped-duplicate-key digest-escaped-path-alias digest-escaped-value
+    digest-unverified-sibling digest-unsafe-parent digest-unsafe-absolute
+    digest-unavailable-revision digest-null-revision digest-false-revision
+    digest-empty-revision digest-numeric-revision digest-ambiguous-line
+    digest-invalid-utf8 digest-depth-budget digest-token-budget
+    digest-byte-budget digest-symlink-preimage digest-source-credential
+    digest-adjacent-credential digest-other-default-rule digest-tag-object-revision
+    digest-unreachable-revision
+  `
+    .trim()
+    .split(/\s+/),
   narrative: [
     "narrative-credential-assignment",
     "narrative-credential-json",
@@ -117,7 +116,13 @@ const owner=mkdtempSync(join(tmpdir(),'history-private-observation-'));
 const h=createHarness(['--scanner',process.argv[1],'--proof-dir',join(owner,'proof')]);
 let succeeded=false,record=null,privateRecord=false,valuesAbsent=false;
 try {
- emitArtifacts(h);const f=h.initialize('private-report');f.earlier=h.commit(f.cwd,'credential.txt',h.secret());
+ emitArtifacts(h);const f=h.initialize('private-report');let credential=h.secret();
+ if(process.argv[3].startsWith('stopword-')){
+  const prefix=process.argv[3].slice('stopword-'.length),symbols='0123456789abcdef'.repeat(4).split('');
+  for(const char of prefix)symbols.splice(symbols.indexOf(char),1);
+  const value=prefix+symbols.join('');h.values[0]=value;credential='api_key = "'+value+'"'+String.fromCharCode(10);
+ }
+ f.earlier=h.commit(f.cwd,'credential.txt',credential);
  const command=h.command;h.command=(...args)=>{
   const result=command(...args),report=join(h.scratch,'permission-report.json'),fault=process.argv[3];
   if(args[0]==='/bin/sh') {
@@ -147,19 +152,28 @@ process.exitCode=succeeded?0:1;`;
   return JSON.parse(String(result.stdout));
 };
 describe("genuine scanner report private creation and observation", () => {
+  it.each(["dead", "feed"])(
+    "proves the pinned vendor suppresses a balanced value containing %s",
+    word => {
+      const actual = run("022", `stopword-${word}`);
+      expectPrivateCleanup(actual, "022", false);
+      expect(actual.record).toMatchObject({
+        nativeReturned: true,
+        exit: 0,
+        signal: null,
+        regular: true,
+        mode: 0o600,
+        readable: true,
+        findingsCount: 0,
+        matchedValuesAbsent: true,
+      });
+    }
+  );
   it.each(["022", "077"])(
     "preserves actual vendor mode/redaction with caller %s",
     mask => {
       const actual = run(mask, "none");
-      expect(actual).toMatchObject({
-        succeeded: true,
-        privateRecord: 0o600,
-        valuesAbsent: true,
-        callerMask: Number.parseInt(mask, 8),
-        initialMask: Number.parseInt(mask, 8),
-        scratchAbsent: true,
-        proofOwnerAbsent: true,
-      });
+      expectPrivateCleanup(actual, mask, true);
       expect(actual.record).toMatchObject({
         nativeReturned: true,
         exit: 42,
@@ -182,14 +196,7 @@ describe("genuine scanner report private creation and observation", () => {
     "retains safe failed %s predicates before owned cleanup",
     fault => {
       const actual = run("022", fault);
-      expect(actual).toMatchObject({
-        succeeded: false,
-        privateRecord: 0o600,
-        valuesAbsent: true,
-        callerMask: 0o022,
-        scratchAbsent: true,
-        proofOwnerAbsent: true,
-      });
+      expectPrivateCleanup(actual, "022", false);
       expect(actual.record).toMatchObject({
         nativeReturned: true,
         exit: 42,
@@ -237,30 +244,22 @@ describe("legacy evidence exact attribution and refusal", () => {
         "immutable-coexist-incomplete-map",
       ],
     ],
-    [
-      "bytes-within",
-      "immutable-bytes-within",
-      null,
-      ["immutable-bytes-within"],
-    ],
-    [
-      "bytes-exhausted",
-      "immutable-bytes-exhausted",
-      null,
-      ["immutable-bytes-exhausted"],
-    ],
-    [
-      "blobs-within",
-      "immutable-blobs-within",
-      null,
-      ["immutable-blobs-within", "immutable-blobs-within-detector"],
-    ],
-    [
-      "blobs-exhausted",
-      "immutable-blobs-exhausted",
-      null,
-      ["immutable-blobs-exhausted", "immutable-blobs-exhausted-detector"],
-    ],
+    ...(
+      [
+        "bytes-within",
+        "bytes-exhausted",
+        "blobs-within",
+        "blobs-exhausted",
+      ] as const
+    ).map(label => {
+      const group = `immutable-${label}`;
+      return [
+        label,
+        group,
+        null,
+        label.startsWith("blobs-") ? [group, `${group}-detector`] : [group],
+      ] as const;
+    }),
   ] as const)(
     "executes the exact nonempty %s controls with redaction and cleanup",
     (label, group, partition, names) => {
