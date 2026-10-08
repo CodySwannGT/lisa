@@ -218,7 +218,7 @@ export async function qualifyRailsRuby(env, deadline) {
     const text = result.stdout.toString();
     required(
       name === "ruby"
-        ? /^ruby 3\.4\.11 /.test(text)
+        ? text.startsWith("ruby 3.4.11 ")
         : text === "Bundler version 2.4.10\n",
       "supported native Ruby/Bundler identity differs"
     );

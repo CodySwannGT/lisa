@@ -907,7 +907,7 @@
       "children": []
     },
     "lib/npm-update-rails-tool-identity.mjs": {
-      "sha256": "f33f9c8398d64142dedbbb42fad7c75ed29e5c4d8f302854f9c36a5e84548a2e",
+      "sha256": "fbc6299ebaa9b6af346693aa8a3e4e8db23e5b4ad86464853bfd206d7e9c94b8",
       "staticImports": [
         "lib/npm-update-contract.mjs",
         "lib/npm-update-process.mjs",

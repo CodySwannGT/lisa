@@ -276,3 +276,32 @@ deadlines, assertions and floors.
 The final four whole affected files passed all 19 controls at their final bytes,
 including the exact native lengths and positive private HOME absence. No original
 authority, sandbox, signal, cleanup, hook, coverage or timing requirement is waived.
+
+### Original push: shipped fixer and declared Ruby prerequisite
+
+The second original full push at the committed scratch-path correction passed
+all 1,417 unit files (26,882 tests, two existing skips) and its unchanged coverage
+gate, then failed integration: 180 files passed and two failed, with 3,247 tests
+passing and 43 failing. Six stack controls identified the same emitted Ruby
+prefix regex being rewritten by Lisa's shipped fixer. The minimal correction
+uses the equivalent literal `startsWith` expression; supported version, identity
+and refusal requirements stay unchanged. The original byte-drift assertions are
+retained as the reaching RED.
+
+The other 37 failures reached `require 'active_record'` before their intended
+Rails isolation boundary. The selected Ruby 3.4.11 had no installed ActiveRecord;
+the existing quality workflow already declares ActiveRecord 8.1.4. Its genuine
+installer was executed for that selected Ruby, retaining the actual install and
+loaded-version readback. No fixture, dependency declaration, original hook,
+assertion or deadline was altered to substitute for the missing prerequisite.
+Both original push supervisor roots, retained process identities and groups were
+freshly absent after the failed run. The failed aggregate receipt remains a
+failure; a focused correction cannot establish a new full-push result or actual
+Ubuntu component acceptance.
+
+The corrected original exact-file wrapper passed all 70 controls across the
+three complete affected files: six shipped-fixer stack cases, 54 emitted Rails
+isolation cases and ten fixed-tool qualification controls. Actual loaded versions
+were Ruby 3.4.11 and ActiveRecord 8.1.4. This is focused native GREEN, including the
+previously failing boundaries, without claiming another aggregate push or hosted
+runtime result.
