@@ -42,11 +42,22 @@ describe("canonical backlink pagination", () => {
     expect(args).toEqual([
       "api",
       "--paginate",
-      "--slurp",
       "repos/acme/widgets/issues/42/comments?per_page=100",
+      "--jq",
+      '{sourceCount:length,comments:map(select(.body | contains("[lisa-pr-link]")))}',
     ]);
-    const comments = githubBacklinkComments(pages);
-    expect(comments).toHaveLength(101);
+    const output = pages
+      .map(page =>
+        JSON.stringify({
+          sourceCount: page.length,
+          comments: page.filter(comment =>
+            comment.body.includes("[lisa-pr-link]")
+          ),
+        })
+      )
+      .join("\n");
+    const comments = githubBacklinkComments(output);
+    expect(comments).toHaveLength(1);
     expect(
       partitionBacklinks(comments, url, comment =>
         comment && typeof comment === "object" && "body" in comment
@@ -58,7 +69,7 @@ describe("canonical backlink pagination", () => {
     const state = createGhState(scope);
     observeGhResponse(scope, state, prepareGhRequest(scope, state, args), {
       status: 0,
-      stdout: JSON.stringify(pages),
+      stdout: output,
     });
     const write = [
       "api",
@@ -79,6 +90,8 @@ describe("canonical backlink pagination", () => {
       Array(101).fill([]),
       { pages: [] },
     ])
-      expect(() => githubBacklinkComments(value)).toThrow(/page/);
+      expect(() => githubBacklinkComments(JSON.stringify(value))).toThrow(
+        /page/
+      );
   });
 });

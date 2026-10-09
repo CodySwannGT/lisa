@@ -1992,7 +1992,7 @@ export function resetGhVersionCheck() {
   ghVersionChecked = false;
 }
 
-/** The body is required by recovery; all ordinary canonical validation fields remain present. */
+/** Checkpoint history cannot exhaust capture; complete backlink candidates and all other canonical fields survive. */
 export function githubIssueViewArgs(repository, number) {
   return [
     "issue",
@@ -2002,6 +2002,8 @@ export function githubIssueViewArgs(repository, number) {
     repository,
     "--json",
     "number,url,state,body,labels,comments,closedByPullRequestsReferences",
+    "--jq",
+    '.comments |= map(select(.body | contains("[lisa-pr-link]")))',
   ];
 }
 
@@ -2593,21 +2595,58 @@ export function githubBacklinkListArgs(repository, number) {
   return [
     "api",
     "--paginate",
-    "--slurp",
     `repos/${repository}/issues/${number}/comments?per_page=100`,
+    "--jq",
+    '{sourceCount:length,comments:map(select(.body | contains("[lisa-pr-link]")))}',
   ];
 }
 
-/** Complete slurped pages remain bounded and are shared by the canonical writer and controller grant. */
-export function githubBacklinkComments(pages) {
+/**
+ * Native successful pagination emits one compact projected envelope per page.
+ * Counts precede filtering so checkpoint removal cannot evade the original
+ * 100-page/10,000-comment bounds. Decode the entire completed response before
+ * selecting any writer target; full original candidate objects stay ordered.
+ * @param {string} output Complete stdout from a successful bounded native listing.
+ * @returns {object[]} Complete marker candidates, including prose the ownership parser may refuse.
+ */
+export function githubBacklinkComments(output) {
+  if (typeof output !== "string" || !output.trim())
+    throw new Error("invalid or incomplete GitHub backlink pages");
+  const pages = output
+    .trim()
+    .split(/\r?\n/)
+    .map(line => JSON.parse(line));
   if (
-    !Array.isArray(pages) ||
-    pages.length < 1 ||
     pages.length > 100 ||
-    pages.some(page => !Array.isArray(page) || page.length > 100)
+    pages.some(
+      page =>
+        !page ||
+        typeof page !== "object" ||
+        Array.isArray(page) ||
+        Object.keys(page).length !== 2 ||
+        !Object.hasOwn(page, "sourceCount") ||
+        !Object.hasOwn(page, "comments") ||
+        !Number.isSafeInteger(page.sourceCount) ||
+        page.sourceCount < 0 ||
+        page.sourceCount > 100 ||
+        !Array.isArray(page.comments) ||
+        page.comments.length > page.sourceCount ||
+        page.comments.some(
+          comment =>
+            !comment ||
+            typeof comment.body !== "string" ||
+            !comment.body.includes(MARKER) ||
+            !(
+              (typeof comment.id === "string" ||
+                Number.isSafeInteger(comment.id)) &&
+              /^[1-9]\d*$/.test(String(comment.id))
+            )
+        )
+    ) ||
+    pages.reduce((count, page) => count + page.sourceCount, 0) > 10000
   )
     throw new Error("invalid or over-bound GitHub backlink pages");
-  return pages.flat();
+  return pages.flatMap(page => page.comments);
 }
 
 /**
@@ -2623,9 +2662,7 @@ function githubBacklink(ref, prUrl) {
     allowFailure: true,
   });
   if (listing.status !== 0) throw githubFailure(listing, ref);
-  const comments = githubBacklinkComments(
-    safeJson(listing.stdout, `GitHub comments on ${ref}`)
-  );
+  const comments = githubBacklinkComments(listing.stdout);
   // This listing is the read-before-write, and it is fetched here rather than
   // passed in for exactly that reason: the version you last wrote is not the
   // version that is live on a surface other agents also comment on.

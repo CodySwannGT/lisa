@@ -206,9 +206,9 @@ case "\${1:-} \${2:-}" in
     [ "\${FAKE_GH_PR_MISSING:-0}" != "1" ] || exit 1
     printf '%s\\n' "$FAKE_GH_PR_JSON" ;;
   "repo view") printf '%s\\n' '{"nameWithOwner":"acme/code"}' ;;
-  "api --paginate") case " $* " in
-    *" --slurp "*) printf '[%s]\\n' "\${FAKE_GH_COMMENTS_JSON:-[]}" ;;
-    *) printf '%s\\n' "\${FAKE_GH_COMMENTS_JSON:-[]}" ;; esac ;;
+  "api --paginate")
+    [ "\${4:-}" = "--jq" ] || exit 70
+    "${process.execPath}" -e 'const comments = JSON.parse(process.env.FAKE_GH_COMMENTS_JSON || "[]"); console.log(JSON.stringify({ sourceCount: comments.length, comments: comments.filter(comment => comment.body.includes("[lisa-pr-link]")) }));' ;;
   "api --method") printf '%s\\n' '{"id":1}' ;;
   *)
     case "$*" in
