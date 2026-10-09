@@ -63,7 +63,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-broker-client.mjs":
       "bb785fc64de1dfeb09241d228c11eaf7aaf3821bafa96da4bc37f2bac28cd8d0",
     "all/copy-overwrite/scripts/lib/npm-update-bun.mjs":
-      "898cdafe2e119b9c3004ea55ae222d2f33d8b668020cda09e90184474055a676",
+      "0329fde91a497e8ec527b9c7d8ade979cc637f63a796fbb4b9b8b9a480f06739",
     "all/copy-overwrite/scripts/lib/npm-update-cancel-origin.mjs":
       "626965a5a18f90e90883cc8bd6f33e6a22504e051f203f9f35390f7ccaad2a26",
     "all/copy-overwrite/scripts/lib/npm-update-cancellation-proof.mjs":
