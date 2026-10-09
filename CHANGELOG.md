@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.73.1](https://github.com/CodySwannGT/lisa/compare/v4.73.0...v4.73.1) (2026-10-09)
+
+
+### Bug Fixes
+
+* **deps:** accept registry identities for npm aliases ([4591d10](https://github.com/CodySwannGT/lisa/commit/4591d10c67262ca2952eaa2282d8808a8b05e384)), closes [CodySwannGT/lisa#4376](https://github.com/CodySwannGT/lisa/issues/4376)
+
 ## [4.73.0](https://github.com/CodySwannGT/lisa/compare/v4.72.7...v4.73.0) (2026-10-09)
 
 
