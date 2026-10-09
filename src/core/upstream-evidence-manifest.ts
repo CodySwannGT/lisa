@@ -2683,7 +2683,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "41c5ea84d19f29d68ac84b45ccea41f01e0d45689426411a1d2f6f1fef77adc2",
+      "1786f2bb645700cc152f1072c41d2401e51d802a06866fa83dfe5efba8353ae2",
     "scripts/update-node-version.ts":
       "0059067c14001c2f7e75beb2628d1a46f935c7b01ce61871db71b6849ef62dca",
     "scripts/update-test-skill-paths.mjs":
@@ -9771,6 +9771,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/edit-time-pre-facade/typescript-format-on-edit.sh": true,
     "tests/fixtures/edit-time-pre-facade/typescript-lint-on-edit.sh": true,
     "tests/fixtures/edit-time-pre-facade/typescript-sg-scan-on-edit.sh": true,
+    "tests/fixtures/freshness-native-timing/Dockerfile": true,
+    "tests/fixtures/freshness-native-timing/README.md": true,
+    "tests/fixtures/freshness-native-timing/evaluate.py": true,
+    "tests/fixtures/freshness-native-timing/run-linux.py": true,
+    "tests/fixtures/freshness-native-timing/run.py": true,
     "tests/fixtures/git-history-secrets/errors.mjs": true,
     "tests/fixtures/git-history-secrets/graphs.mjs": true,
     "tests/fixtures/git-history-secrets/harness.mjs": true,

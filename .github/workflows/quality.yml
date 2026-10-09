@@ -3687,6 +3687,24 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
 
+      # The physical deadline benchmark uses its qualified Docker init reaper
+      # and native syscall traces. Consumers do not carry this Lisa-only fixture.
+      - name: ⏱️ Verify native freshness diagnostic deadlines
+        if: github.repository == 'CodySwannGT/lisa'
+        run: |
+          mkdir -p tmp
+          bun run lisa-test-run -- --adapter direct -- python3 tests/fixtures/freshness-native-timing/run.py \
+            --source . --output tmp/freshness-native-timing-ci --expected-head "$(git rev-parse HEAD)"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 📎 Retain native freshness timing evidence
+        if: always() && github.repository == 'CodySwannGT/lisa'
+        uses: actions/upload-artifact@v7
+        with:
+          name: freshness-native-timing-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ inputs.working_directory || '.' }}/tmp/freshness-native-timing-ci
+          if-no-files-found: error
+
       - name: ⏭️ Skip integration tests (no test:integration script)
         if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'
         env:
