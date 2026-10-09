@@ -17,6 +17,7 @@ import { runProcess } from "../../../all/copy-overwrite/scripts/lib/npm-update-p
 import { runtimeTime } from "../../../all/copy-overwrite/scripts/lib/npm-update-rails-tool-identity.mjs";
 import { join } from "node:path";
 import { startBrowserObservation } from "./browser-process-observation.mjs";
+import { driverDiagnostic } from "./driver-diagnostic.mjs";
 
 const STAGES = new Set([
   "source",
@@ -28,6 +29,7 @@ const STAGES = new Set([
   "original-push",
   "browser",
   "browser-control",
+  "browser-driver",
   "daemon-before",
   "daemon-after",
 ]);
@@ -40,6 +42,7 @@ const CLASSES = new Set([
   "UpdaterError",
 ]);
 const BROWSER_STAGES = new Set(["browser", "browser-control"]);
+const DRIVER_STAGE = "browser-driver";
 const BROWSER_SOURCES = new Set([
   "headless_command_handler.cc",
   "bus.cc",
@@ -213,7 +216,7 @@ export function nativeRecorder(captures, deadline, records) {
         env,
         timeout: runtimeTime(
           deadline,
-          BROWSER_STAGES.has(stage) ? 10000 : 1800000
+          BROWSER_STAGES.has(stage) || stage === DRIVER_STAGE ? 10000 : 1800000
         ),
         maximum: 3145728,
       });
@@ -238,6 +241,16 @@ export function nativeRecorder(captures, deadline, records) {
         [`${name}Sha256`, digest(bytes)],
       ])
     );
+    if (stage === DRIVER_STAGE) {
+      try {
+        state.driver = driverDiagnostic(streams.stdout);
+      } catch (error) {
+        state.driver = {
+          diagnosticOnly: true,
+          failure: failureMetadata(error),
+        };
+      }
+    }
     const record = {
       stage,
       status: Number.isInteger(state.result?.code) ? state.result.code : null,
@@ -251,6 +264,7 @@ export function nativeRecorder(captures, deadline, records) {
             browserProcesses: state.processes,
           }
         : {}),
+      ...(stage === DRIVER_STAGE ? { driverDiagnostic: state.driver } : {}),
     };
     records.push(record);
     try {

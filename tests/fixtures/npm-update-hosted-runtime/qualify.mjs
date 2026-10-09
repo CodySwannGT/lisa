@@ -32,6 +32,8 @@ const SOURCES = [
   "all/copy-overwrite/scripts/lib/npm-update-rails-mysql-daemon.mjs",
   "tests/fixtures/npm-update-hosted-runtime/application.mjs",
   "tests/fixtures/npm-update-hosted-runtime/observations.mjs",
+  "tests/fixtures/npm-update-hosted-runtime/driver-probe.mjs",
+  "tests/fixtures/npm-update-hosted-runtime/driver-diagnostic.mjs",
   "tests/fixtures/npm-update-hosted-runtime/browser-process-observation.mjs",
   "tests/fixtures/npm-update-hosted-runtime/qualify.mjs",
   "tests/fixtures/npm-update-hosted-runtime/verify-hook.rb",

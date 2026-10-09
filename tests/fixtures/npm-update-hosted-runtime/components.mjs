@@ -10,6 +10,7 @@ import { originalHookEnvironment } from "../../../all/copy-overwrite/scripts/lib
 import { prepareApplication } from "./application.mjs";
 import { failureMetadata, hookWitness } from "./observations.mjs";
 import { hookSocketWitness } from "./socket-witness.mjs";
+import { browserDriverControl } from "./driver-diagnostic.mjs";
 const QUIET = "--quiet";
 const NO_TRUNC = "--no-trunc";
 const GIT = "/usr/bin/git";
@@ -282,6 +283,18 @@ async function runtimeExercise(source, root, tools, native, summary, deadline) {
           diagnosticOnly: true,
           nativeDomVerified: false,
           failure: failureMetadata(diagnosticError),
+        };
+      }
+      try {
+        summary.browserDriver = await browserDriverControl(
+          root,
+          application,
+          native
+        );
+      } catch (driverError) {
+        summary.browserDriver = {
+          diagnosticOnly: true,
+          failure: failureMetadata(driverError),
         };
       }
     }
