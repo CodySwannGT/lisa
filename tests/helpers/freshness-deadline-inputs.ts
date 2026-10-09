@@ -18,7 +18,7 @@ const NODE_SHIM = [
   'printf "%s\\n" "$$" >> "$LISA_DEADLINE_ENTRIES"',
   'case "$LISA_DEADLINE_MODE" in',
   ' normal|delayed-qualification|missing-runner|unsafe-tmp|anchor-startup|anchor-qualification) exec "$LISA_DEADLINE_REAL_NODE" "$@" ;;',
-  ' stall|post-start-ps-failure) printf "installed\\t9.9.9\\nguard0\\tmatching\\n"; trap "" TERM; /bin/sleep 30 & printf "%s\\n" "$!" >> "$LISA_DEADLINE_ENTRIES"; wait ;;',
+  ' stall|post-start-ps-failure|early-parent-exit) printf "installed\\t9.9.9\\nguard0\\tmatching\\n"; trap "" TERM; /bin/sleep 30 & printf "%s\\n" "$!" >> "$LISA_DEADLINE_ENTRIES"; wait ;;',
   // Keep this child alive for two census periods before successful completion.
   ' surviving-child) /bin/sleep 30 & printf "%s\\n" "$!" >> "$LISA_DEADLINE_ENTRIES"; /bin/sleep 0.2; exec "$LISA_DEADLINE_REAL_NODE" "$@" ;;',
   ' *) printf "installed\\t9.9.9\\n"; for i in 0 1 2 3 4 5 6 7; do printf "guard%s\\tmatching\\n" "$i"; done',
@@ -53,6 +53,7 @@ export interface DeadlineFixture {
 function deadlineStartup(mode: string): string {
   return [
     'trap \'case "${BASH_SOURCE[0]}" in */scripts/lisa-hooks/*.sh) printf "%s\\n" "${BASH_SOURCE[0]##*/}" >> "$LISA_DEADLINE_GUARDS"; trap - DEBUG ;; esac\' DEBUG',
+    deadlineAdmission(mode),
     ...(mode === "anchor-startup"
       ? [
           // BASH_ENV runs before Bash assigns the custom command-string $0.
@@ -79,6 +80,37 @@ function deadlineStartup(mode: string): string {
         ]
       : []),
     "",
+  ].join("\n");
+}
+
+/**
+ * Reach private admission faults without altering production dispatcher bytes.
+ * @param mode Diagnostic-only fault mode.
+ * @returns Builtin interceptor delegating every unrelated operation intact.
+ */
+function deadlineAdmission(mode: string): string {
+  if (
+    ![
+      "missing-handshake",
+      "partial-handshake",
+      "group-absent",
+      "early-parent-exit",
+    ].includes(mode)
+  )
+    return "";
+  return [
+    "builtin() {",
+    ' case "$1" in',
+    '  set) if [ "$2" = -m ] && [ "$LISA_DEADLINE_MODE" = group-absent ]; then command builtin printf "group-absent\\n" >> "$LISA_DEADLINE_PHASES"; command builtin set +m; return; fi ;;',
+    '  printf) if [ "$2" = \'anchor:%s\\nstop\\n\' ]; then case "$LISA_DEADLINE_MODE" in',
+    '    missing-handshake) command builtin printf "missing-handshake\\n" >> "$LISA_DEADLINE_PHASES"; return 0 ;;',
+    '    partial-handshake) command builtin printf "partial-handshake\\n" >> "$LISA_DEADLINE_PHASES"; command builtin printf "anchor:"; return ;;',
+    "   esac; fi ;;",
+    '  wait) if [ "$LISA_DEADLINE_MODE" = early-parent-exit ] && [ "${LISA_DEADLINE_EXIT_ONCE-0}" = 0 ]; then LISA_DEADLINE_EXIT_ONCE=1; command builtin printf "early-parent-exit\\n" >> "$LISA_DEADLINE_PHASES"; exit 1; fi ;;',
+    " esac",
+    ' command builtin "$@"',
+    "}",
+    "export -f builtin",
   ].join("\n");
 }
 
