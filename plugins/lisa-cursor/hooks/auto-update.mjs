@@ -42,6 +42,7 @@ import { execFile } from "child_process";
 import {
   existsSync,
   lstatSync,
+  readlinkSync,
   mkdirSync,
   openSync,
   closeSync,
@@ -581,6 +582,70 @@ async function applyUpdate(ctx, update) {
 }
 
 /**
+ * What each pending file holds right now, so the later commit can prove it is
+ * still committing the update's bytes and not an edit made since
+ * (CodySwannGT/lisa#4393).
+ *
+ * A path maps to `"<git mode> <identity>"`, or to null when it is absent (the
+ * update deleted it). A regular file is `100644`/`100755` plus its
+ * `git hash-object` blob id, so an executable-bit change alone is caught. A
+ * symlink is `120000 link:<target>`: hash-object follows a link and hashes what
+ * it reaches, so a link retargeted at identical bytes would otherwise read as
+ * unchanged. Anything else (a directory, a submodule) is left OUT: it cannot be
+ * proved, and the reader treats a missing entry as "differs", so it never
+ * auto-commits on it. `lisa-work-item.mjs` recomputes these the same way.
+ * @param {(argv: string[], options: object) => Promise<string>} run Runner.
+ * @param {string} cwd Project directory.
+ * @param {readonly string[]} files Pending paths.
+ * @returns {Promise<Record<string, string | null> | null>} Digests, or null when they could not be read.
+ */
+export async function workingTreeDigests(run, cwd, files) {
+  const digests = {};
+  const present = [];
+  for (const file of files) {
+    let stat;
+    try {
+      stat = lstatSync(path.join(cwd, file));
+    } catch {
+      digests[file] = null;
+      continue;
+    }
+    if (stat.isSymbolicLink()) {
+      // A link that vanishes before it can be read is left out, which the
+      // reader treats as "differs".
+      try {
+        digests[file] = `120000 link:${readlinkSync(path.join(cwd, file))}`;
+      } catch {
+        continue;
+      }
+    } else if (stat.isFile())
+      present.push([file, stat.mode & 0o111 ? "100755" : "100644"]);
+  }
+  if (present.length > 0) {
+    const ids = (
+      await run(
+        ["git", "hash-object", "--", ...present.map(([file]) => file)],
+        {
+          cwd,
+        }
+      )
+    )
+      .split("\n")
+      .map(line => line.trim())
+      .filter(Boolean);
+    if (
+      ids.length !== present.length ||
+      !ids.every(id => /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/u.test(id))
+    )
+      return null;
+    present.forEach(([file, mode], index) => {
+      digests[file] = `${mode} ${ids[index]}`;
+    });
+  }
+  return digests;
+}
+
+/**
  * Commit the update now, or leave it pending for the first work-item binding.
  * @param {object} ctx Context.
  * @param {{from: string, to: string}} update The update.
@@ -635,10 +700,13 @@ async function settle(ctx, update) {
     projectDir,
     await gitPath("lisa/pending-update.json")
   );
+  const digests = await workingTreeDigests(run, projectDir, changed).catch(
+    () => null
+  );
   mkdirSync(path.dirname(marker), { recursive: true });
   writeFileSync(
     marker,
-    `${JSON.stringify({ from: update.from, to: update.to, files: changed }, null, 2)}\n`
+    `${JSON.stringify({ from: update.from, to: update.to, files: changed, ...(digests ? { digests } : {}) }, null, 2)}\n`
   );
   return `It is NOT committed yet (${decision.reason}). The ${changed.length} changed file(s) are left in the working tree and recorded as a pending update; binding a work item on a feature branch (\`lisa-work-item.mjs link\` / \`attach-branch\`, which /lisa:track runs) commits them first, as their own commit. Do not fold these files into a feature commit.`;
 }

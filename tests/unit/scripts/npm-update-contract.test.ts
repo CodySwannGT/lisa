@@ -1421,6 +1421,67 @@ describe("closed npm proposal", () => {
   );
   it("refuses an absent private JSON file", () =>
     expect(() => readJson("/no-such-owned-proof-4347.json")).toThrow());
+  describe("bundled lock nodes", () => {
+    const BUNDLED = "node_modules/is-number/node_modules/kind-of";
+    const TOP_LEVEL = "node_modules/kind-of";
+    const withNode = (key: string, node: Record<string, unknown>) => {
+      const lock = structuredClone(LOCK) as {
+        packages: Record<string, unknown>;
+      };
+      lock.packages[key] = node;
+      return () =>
+        proposalFrom(
+          POLICY,
+          SHA,
+          BEFORE,
+          { ...FILES, "package-lock.json": JSON.stringify(lock) },
+          UPDATES
+        );
+    };
+    it("accepts a bundled node nested under a validated registry parent", () => {
+      expect(
+        withNode(BUNDLED, { version: "6.0.3", inBundle: true })().key
+      ).toMatch(/^[a-f0-9]{64}$/);
+    });
+    it.each([
+      ["resolved", { resolved: "https://registry.npmjs.org/k/-/k-1.tgz" }],
+      [
+        "integrity",
+        { integrity: LOCK.packages["node_modules/is-number"].integrity },
+      ],
+    ])("refuses a bundled node declaring its own %s", (_name, extra) => {
+      expect(
+        withNode(BUNDLED, { version: "6.0.3", inBundle: true, ...extra })
+      ).toThrow(/bundled lock node declares its own source/);
+    });
+    it("refuses a top-level bundled node, which has no registry parent", () => {
+      expect(withNode(TOP_LEVEL, { version: "6.0.3", inBundle: true })).toThrow(
+        /bundled lock node has no registry parent/
+      );
+    });
+    it("refuses a bundled node whose parent entry is absent", () => {
+      expect(
+        withNode("node_modules/absent/node_modules/kind-of", {
+          version: "6.0.3",
+          inBundle: true,
+        })
+      ).toThrow(/bundled lock node has no registry parent/);
+    });
+    it("refuses a non-bundled node with no source as an authored failure", () => {
+      const build = withNode(TOP_LEVEL, { version: "6.0.3" });
+      expect(build).toThrow(/registry source missing/);
+      expect(build).not.toThrow(TypeError);
+    });
+    it("refuses an unparseable source as an authored failure", () => {
+      const build = withNode(TOP_LEVEL, {
+        version: "6.0.3",
+        resolved: "not a url",
+        integrity: LOCK.packages["node_modules/is-number"].integrity,
+      });
+      expect(build).toThrow(/registry source unparseable/);
+      expect(build).not.toThrow(TypeError);
+    });
+  });
   it("binds deterministic identities to actual two-file bytes", () => {
     const policy = validatePolicy(POLICY, CONFIG);
     const proposal = proposalFrom(policy, SHA, BEFORE, FILES, UPDATES);

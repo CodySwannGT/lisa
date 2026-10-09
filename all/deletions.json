@@ -136,7 +136,8 @@
     ".claude/rules/security-audit-handling.md",
     ".claude/rules/verification.md",
     ".lisa-manifest",
-    ".github/workflows/lisa-update.yml"
+    ".github/workflows/lisa-update.yml",
+    "scripts/lisa-self-update.mjs"
   ],
   "keep": [
     "scripts/setup-deploy-key.sh",
@@ -277,6 +278,22 @@
     ".claude/rules/security-audit-handling.md": "needs-review",
     ".claude/rules/verification.md": "needs-review",
     ".lisa-manifest": "needs-review",
-    ".github/workflows/lisa-update.yml": "legacy: the scheduled Lisa Update workflow (4.67.0-4.68.x) opened update pull requests as a bot and so needed a PAT secret in every repository; replaced by the local session-start auto-update (CodySwannGT/lisa#4337), which needs no token"
+    ".github/workflows/lisa-update.yml": "legacy: the scheduled Lisa Update workflow (4.67.0-4.68.x) opened update pull requests as a bot and so needed a PAT secret in every repository; replaced by the local session-start auto-update (CodySwannGT/lisa#4337), which needs no token",
+    "scripts/lisa-self-update.mjs": "legacy: the self-update script (4.67.0-4.68.x) only ever ran from the scheduled Lisa Update workflow, retired with it in CodySwannGT/lisa#4337; removed only while unedited and unreferenced (CodySwannGT/lisa#4393)"
+  },
+  "retireUnmodified": {
+    ".github/workflows/lisa-update.yml": [
+      "5fb8822126277d0e4c89d3086857653f313f74a13d96f3aeeae97a0f4ccd81b6",
+      "7fd71e48b7b84460eeef86e2f8e00b59001bd23071a54a9406d8e7e604e7fc4d",
+      "9c1c05ffe39a6d5e41a3e82afbbc227097e071b26d2bbc56281ef1373c5a035d"
+    ],
+    "scripts/lisa-self-update.mjs": [
+      "1a455b97fc2e978a3bd039e327067b4c7ced7395808eed8eb4baa25c2b9c05e7",
+      "37f02f512e8d347885c302612895873087e0a62bb81f22436862764ff26c8a06",
+      "80d07132cffc8532e79f75acb1d1053c034800bec9b81b354131d4248934b02e",
+      "80dc15053af22133cfe50e48484b24b098eb9f2095999b649694ad11ce64175a",
+      "a123e9cdc7b090cec1ebaad1061487ed3fe7ae41ff29114182decb739c58ca7e",
+      "afbc340a6512e495b80ddfd327202812fc4ae333be8b6bfad74fb6d46df6fdca"
+    ]
   }
 }

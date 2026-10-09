@@ -109,7 +109,31 @@ export function validateLock(lock, manifest, updates) {
         !item.link,
       "unsupported lock node"
     );
-    const url = new URL(item.resolved);
+    // A bundled dependency ships inside its parent's tarball, so npm records
+    // no source or integrity of its own: the parent's registry integrity is
+    // what covers its bytes. Accept it only nested under a parent this loop
+    // also validates, and never when it claims a source of its own.
+    if (item.inBundle === true) {
+      required(
+        item.resolved === undefined && item.integrity === undefined,
+        "bundled lock node declares its own source"
+      );
+      const boundary = name.lastIndexOf("/node_modules/");
+      const parent = boundary < 0 ? "" : name.slice(0, boundary);
+      required(
+        parent.startsWith("node_modules/") &&
+          Object.hasOwn(lock.packages, parent),
+        "bundled lock node has no registry parent"
+      );
+      continue;
+    }
+    required(typeof item.resolved === "string", "registry source missing");
+    let url;
+    try {
+      url = new URL(item.resolved);
+    } catch {
+      required(false, "registry source unparseable");
+    }
     required(
       url.protocol === "https:" &&
         url.hostname === "registry.npmjs.org" &&

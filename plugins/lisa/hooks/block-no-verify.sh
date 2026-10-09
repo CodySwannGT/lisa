@@ -271,7 +271,41 @@ def disables_verification(token):
 # tokens, so the invocation's boundary is a token the scan can stop at.
 COMMAND_SEPARATORS = {
     ";", "|", "||", "&", "&&", "(", ")", "<", ">", ">>", "<<", "&|",
+    # `|&` pipes stdout AND stderr into the next command, so it ends a command
+    # exactly as `|` does. shlex emits it as one token, and before it was listed
+    # here `echo hi |& git commit --no-verify` read as a single `echo` command
+    # whose arguments happened to include git. The case terminators end a
+    # command the same way.
+    "|&", ";;", ";&", ";;&",
 }
+# shlex also GLUES adjacent punctuation into one token across distinct
+# operators: `(echo hi)|&git ...` arrives as `)|&`, which no set membership
+# test can recognise. An operator-only token is therefore re-split into the
+# operators it is made of, longest first. Redirections are kept whole and are
+# deliberately NOT separators, so `git commit 2>&1 -n` keeps its `-n` inside the
+# commit's argv scope.
+OPERATOR_ONLY = re.compile(r"^[();<>|&]+$")
+SHELL_OPERATOR = re.compile("|".join(
+    re.escape(operator) for operator in sorted(
+        COMMAND_SEPARATORS | {">|", "&>", "&>>", ">&", "<&", "<>", "<<<"},
+        key=lambda operator: (-len(operator), operator),
+    )
+))
+
+
+def split_operators(token):
+    """Split a glued operator-only token into the shell operators it holds.
+
+    Args:
+        token: One shlex token that was not read inside a quote or escape.
+
+    Returns:
+        The operators, longest first, or the token itself when it is not
+        made only of shell punctuation.
+    """
+    if OPERATOR_ONLY.match(token):
+        return SHELL_OPERATOR.findall(token)
+    return [token]
 
 SHELL_PROGRAMS = {"bash", "dash", "ksh", "sh", "zsh"}
 MAX_SHELL_NESTING = 8
@@ -425,14 +459,28 @@ def shell_tokens(text):
     Returns:
         The token list, with `;`, `|`, `&&`, `(` and friends standing alone.
     """
-    lexer = shlex.shlex(
-        line_boundaries_as_separators(text), posix=True, punctuation_chars=True
-    )
+    stream = OperatorStream(line_boundaries_as_separators(text))
+    lexer = shlex.shlex(stream, posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
     # shlex treats `#` as a comment introducer by default and would silently
     # truncate the rest of the line; `shlex.split` disables it, and so must this.
     lexer.commenters = ""
-    return list(lexer)
+    stream.lexer = lexer
+    tokens = []
+    while True:
+        stream.literal_operator = False
+        token = lexer.get_token()
+        if token is None:
+            return tokens
+        # Quoted punctuation is an argument, never a boundary: it stays whole,
+        # and a quoted separator is marked so no scan stops at it (a path or
+        # branch can be named `|&`). Only real operator runs are split.
+        if stream.literal_operator:
+            tokens.append(
+                chr(0) + token if token in COMMAND_SEPARATORS else token
+            )
+        else:
+            tokens.extend(split_operators(token))
 
 
 def cluster_skips_verification(cluster):
@@ -1048,6 +1096,10 @@ def resolve_script(token):
     """
     if COMPUTED_VALUE.search(token):
         return (None, "a computed path the guard cannot resolve before the shell does")
+    # A quoted separator carries a NUL marker from shell_tokens; the path the
+    # shell passes is the argument without it.
+    if token.startswith(chr(0)):
+        token = token[1:]
     text = os.path.expanduser(token.strip().strip("'\""))
     # `bash -` and a bare `-` read the script from stdin; there is no file.
     if not text or text == "-":
@@ -1998,9 +2050,12 @@ def flat_tokens(text):
             # shlex otherwise makes quoted ";" indistinguishable from a real
             # command boundary. Keep literal destinations as data, so a setter
             # cannot masquerade as a one-operand configuration read.
-            if token in COMMAND_SEPARATORS and stream.literal_operator:
-                token = "\x00" + token
-            tokens.append(token)
+            if stream.literal_operator:
+                if token in COMMAND_SEPARATORS:
+                    token = "\x00" + token
+                tokens.append(token)
+            else:
+                tokens.extend(split_operators(token))
         return [
             token
             for index, token in enumerate(tokens)

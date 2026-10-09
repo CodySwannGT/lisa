@@ -102,9 +102,16 @@ function hostRoot(): string {
   temporaries.push(root);
   mkdirSync(hooks, { recursive: true });
   for (const guard of GUARDS) {
-    writeFileSync(path.join(hooks, `${guard}.sh`), "#!/bin/bash\nexit 0\n", {
-      mode: 0o755,
-    });
+    // The stub drains its stdin like every real guard. One that exits without
+    // reading races the dispatcher's `printf | bash`, and under load the
+    // writer takes SIGPIPE, which pipefail reports as exit 141.
+    writeFileSync(
+      path.join(hooks, `${guard}.sh`),
+      "#!/bin/bash\ncat >/dev/null\nexit 0\n",
+      {
+        mode: 0o755,
+      }
+    );
   }
   mkdirSync(path.join(root, ".lisa"), { recursive: true });
   writeFileSync(
