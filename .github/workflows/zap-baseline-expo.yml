@@ -22,7 +22,7 @@ on:
       node_version:
         description: 'Node.js version to use'
         required: false
-        default: '22.23.3'
+        default: '24.21.0'
         type: string
       package_manager:
         description: 'Package manager to use (npm, yarn, or bun)'

@@ -166,7 +166,7 @@ on:
       node_version:
         description: Node.js version used to run the gates.
         required: false
-        default: '22.23.3'
+        default: '24.21.0'
         type: string
       package_manager:
         description: Package manager used to install dependencies (npm, yarn, bun).

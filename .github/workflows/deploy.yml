@@ -75,7 +75,7 @@ jobs:
     needs: [determine_environment]
     with:
       moment: pre-deploy:${{ needs.determine_environment.outputs.environment }}
-      node_version: '22.23.3'
+      node_version: '24.21.0'
       package_manager: 'bun'
     secrets: inherit
 
@@ -92,7 +92,7 @@ jobs:
       require_signatures: false
       generate_sbom: true
       override_blackout: true
-      node_version: '22.23.3'
+      node_version: '24.21.0'
       package_manager: 'bun'
     secrets: inherit
 
@@ -106,7 +106,7 @@ jobs:
       tag: ${{ needs.release.outputs.tag }}
       version: ${{ needs.release.outputs.version }}
       release_commit: ${{ needs.release.outputs.release_commit }}
-      node_version: '22.23.3'
+      node_version: '24.21.0'
       package_manager: 'bun'
 
   # The deploy-outcome guard.
@@ -213,7 +213,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           package-manager-cache: false
-          node-version: '22.23.3'
+          node-version: '24.21.0'
 
       - name: Ask the registry whether the version landed
         id: landed
@@ -326,6 +326,6 @@ jobs:
     if: ${{ always() && !cancelled() && needs.release.result == 'success' }}
     with:
       moment: post-deploy:${{ needs.determine_environment.outputs.environment }}
-      node_version: '22.23.3'
+      node_version: '24.21.0'
       package_manager: 'bun'
     secrets: inherit

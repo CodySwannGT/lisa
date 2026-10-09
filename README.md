@@ -186,7 +186,7 @@ any direct override in the current directory's `package.json`. It preserves the
 original error and does not change dependencies. Nested selectors and unreadable
 manifests remain unverified; this diagnostic is not a full lockfile audit.
 
-Clean TypeScript and CDK hosts receive the shared Node 22.23.3 baseline,
+Clean TypeScript and CDK hosts receive the shared Node 24.21.0 LTS baseline,
 Vitest and coverage-v8 4.1.11 minimums, and a Vite 8.3.2 minimum within Vite 8.
 Lisa retains the TypeScript 6, ESLint 9, Knip 5, Husky 8 and Vitest 4 families.
 New CDK hosts default to `aws-cdk-github-oidc ^5.2.0` with `constructs ^10.7.2`
@@ -204,11 +204,42 @@ lockfile alongside the host's test, typecheck and offline synth commands.
 Package template ownership still applies. Explicit TypeScript Node and test-tool
 `defaults` survive an apply, while CDK's `force` test tools advance to the shared
 patch floor. Existing create-only workflow and Expo EAS files stay host-owned.
-The overwritten `.nvmrc` supplies the shared Node runtime. Review older explicit
+The managed `.nvmrc` supplies the shared Node runtime. Known older Lisa copies
+advance with historical hash protection; unknown or newer custom bytes remain
+protected. `.lisaignore` keeps an intentional runtime override outside Lisa
+management. Review older explicit
 pins and create-only workflow inputs before adopting this baseline in an
 existing host. Maintainers can run `bun run update-node-version` after changing
 the root `.nvmrc` to update current tracked runtime surfaces without rewriting
-historical plans or generic test fixtures.
+historical plans or generic test fixtures. The npm updater has a separately
+qualified Node22.23.3 runtime, which this shared-default updater leaves alone.
+
+### Moving an existing host to Node24
+
+Review explicit `engines.node` and existing create-only workflow/EAS inputs;
+Lisa seeds missing values and preserves those existing host-owned choices.
+Remove `.nvmrc` from `.lisaignore` only when adopting Lisa's managed baseline.
+If an unknown custom `.nvmrc` is preserved, deliberately select that exact file
+with `lisa apply . --refresh-templates=.nvmrc`, then review the result. Run the
+host's install, typecheck, build and tests on the selected runtime before deploy.
+
+AWS Lambda `nodejs24.x` removes callback handlers and legacy context completion
+APIs, including `callbackWaitsForEmptyEventLoop`. Use supported async/await,
+synchronous-return or streaming forms; do not assign removed context properties.
+Earlier non-streaming async handlers already completed without waiting for
+unresolved promises. Node24 aligns streaming completion with that behavior:
+await required work before returning or ending the stream. Local Node execution
+does not prove deployed Lambda completion. See [AWS's runtime changes](https://aws.amazon.com/blogs/compute/node-js-24-runtime-now-available-in-aws-lambda/).
+
+For unwrapped scheduled, queue or Cognito handlers using Sentry, await a finite
+`Sentry.flush(timeoutMs)` on success and error paths. Handle false/rejected flush
+without replacing the original return value or thrown error; do not call
+`close()` per invocation, which disables the warm client. A compatible Sentry
+Lambda wrapper already flushes, by default for up to2000ms via `flushTimeout`.
+SDK compatibility matters: `@sentry/aws-serverless`11.6.0 still assigns the removed
+context property and cannot wrap a non-extensible context lacking it. The
+[SDK setup guidance](https://github.com/CodySwannGT/lisa/blob/main/plugins/src/base/skills/lisa-parity-sentry-sdk-setup/SKILL.md#node24-lambda-completion)
+includes the safe unwrapped pattern, wrapper limits and migration checks.
 
 When Lisa is invoked during installation it prints this next step. Package
 managers that do not run its lifecycle scripts cannot display that notice.
@@ -444,6 +475,24 @@ A downstream project can add the same knowledge base on demand rather than recei
 Rails consumers can follow the [test helper isolation and existing-consumer migration guide](docs/rails-test-isolation.md).
 
 If you're changing Lisa itself: author agent content and templates at their source, never in generated output, and rebuild so the distributed artifacts regenerate. Lisa applies its own standards to itself, so the same gates that guard downstream projects guard this one — including the requirement to prove your change works.
+
+Lisa's main test suite runs on Node24.21.0. Its npm updater remains separately
+qualified on Node22.23.3, so unit coverage, push gates and the shell-guard tracer
+also need that real executable. On a Unix checkout using mise:
+
+```sh
+mise install node@22.23.3 node@24.21.0 bun@1.3.8 bun@1.3.11
+export LISA_TEST_UPDATER_NODE="$(mise where node@22.23.3)/bin/node"
+export LISA_TEST_HOST_BUN="$(mise where bun@1.3.11)/bin/bun"
+"$LISA_TEST_UPDATER_NODE" -p process.versions.node
+mise exec node@24.21.0 bun@1.3.8 -- bun run test:unit
+```
+
+The probe must print22.23.3; the fixtures verify its actual version and bytes.
+On macOS, select the short, non-symlink temp base `/private/tmp` before the
+native wrapper when running Unix-socket fixtures. Inherited Harper and Phaser
+native host checks also require their unchanged Bun1.3.11 floor; keep that
+host runtime distinct from Lisa's Bun1.3.8 tooling.
 
 > **Prompt for your coding agent**
 > "I want to add or change a skill, rule, hook, or agent in Lisa. Show me the source location, the build step, what I must commit alongside it, and the CI check that fails if I edit a generated artifact directly. Then check my change against those rules before I commit."

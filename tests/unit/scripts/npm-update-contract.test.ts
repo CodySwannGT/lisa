@@ -1,3 +1,4 @@
+import { qualifiedUpdaterNode } from "../../support/qualified-updater-node.js";
 /** Closed proposal controls keep candidate data out of privileged execution. */
 import { describe, expect, it, vi } from "vitest";
 import { downloadRuntimeArchive } from "../../../all/copy-overwrite/scripts/lib/npm-update-runtime-transport.mjs";
@@ -233,13 +234,7 @@ process.exitCode = result.code;`
       graph[absolute] = sha256(readFileSync(absolute));
     }
   for (const path of [entry, caller]) graph[path] = sha256(readFileSync(path));
-  const node = realpathSync(process.execPath);
-  expect(process.versions.node).toBe("22.23.3");
-  const identity = {
-    path: node,
-    version: process.versions.node,
-    sha256: sha256(readFileSync(node)),
-  };
+  const identity = qualifiedUpdaterNode();
   const context = {
     version: 1,
     root,
@@ -519,7 +514,7 @@ describe.skipIf(!["linux", "darwin"].includes(process.platform))(
           } else {
             // This outer supervisor remains uninstrumented; the actual origin is explicitly instrumented.
             ({ stdout, code } = await runProcess(
-              process.execPath,
+              fixture.context.controller.node.path,
               [
                 "--import",
                 fixture.pathToFileURL(fixture.adapter).href,
@@ -602,7 +597,7 @@ describe.skipIf(!["linux", "darwin"].includes(process.platform))(
         ).rejects.toThrow(/aliased/);
         try {
           await runProcess(
-            process.execPath,
+            fixture.context.controller.node.path,
             [
               "--import",
               fixture.pathToFileURL(fixture.adapter).href,
@@ -626,7 +621,7 @@ describe.skipIf(!["linux", "darwin"].includes(process.platform))(
         }
         const overflow = boundedTestSpawnSync({
           label: "actual adapter final vector refusal",
-          command: process.execPath,
+          command: fixture.context.controller.node.path,
           args: [
             "--import",
             fixture.pathToFileURL(fixture.adapter).href,

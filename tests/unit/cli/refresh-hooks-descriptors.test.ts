@@ -50,6 +50,11 @@ vi.mock("node:fs/promises", async importOriginal => {
       observation.handles.push(handle);
       vi.spyOn(handle, "stat").mockImplementation(async options => {
         const result = await Reflect.apply(nativeStat, handle, [options]);
+        if (result === undefined) {
+          throw new Error(
+            "Native fixture descriptor stat returned no identity"
+          );
+        }
         if (String(args[0]) === observation.identity?.filename)
           result.ino =
             typeof result.ino === "bigint"

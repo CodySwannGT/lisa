@@ -1,7 +1,7 @@
+import { qualifiedUpdaterNode } from "../../support/qualified-updater-node.js";
 /** Native IPC/process controls use a synthetic GH executable, never authentic provider proof. */
 import { describe, expect, it } from "vitest";
 import {
-  realpathSync,
   readFileSync,
   writeFileSync,
   mkdirSync,
@@ -89,7 +89,8 @@ const COMMIT_WORK_ITEM_SLOT = "commit-work-item";
 function gatewayFixture(state: any, code: string, name = "lisa-work-item.mjs") {
   const entry = join(state.root, name);
   writeFileSync(entry, code);
-  const node = realpathSync(process.execPath);
+  const runtime = qualifiedUpdaterNode();
+  const node = runtime.path;
   const file = join(state.root, "hosted-hooks.json");
   writeJson(file, {
     version: 1,
@@ -97,7 +98,7 @@ function gatewayFixture(state: any, code: string, name = "lisa-work-item.mjs") {
     cwd: state.root,
     graph: { [entry]: sha256(code) },
     native: {
-      node: { path: node, version: "22.23.3", sha256: binaryDigest(node) },
+      node: runtime,
       git: { path: node, sha256: binaryDigest(node) },
       gh: state.profile.nativeGh,
     },

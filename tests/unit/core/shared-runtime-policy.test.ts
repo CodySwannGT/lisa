@@ -11,7 +11,7 @@ import { GIT_BIN } from "../../support/git-executable.js";
 import { cleanupTempDir, createTempDir } from "../../helpers/test-utils.js";
 
 const ROOT = path.resolve(import.meta.dirname, "../../..");
-const NODE_PATCH = "22.23.3";
+const NODE_PATCH = "24.21.0";
 const VITEST_FLOOR = "4.1.11";
 const VITE_FLOOR = "8.3.2";
 const PACKAGE_JSON = "package.json";
@@ -217,6 +217,26 @@ describe("shared runtime patch policy", () => {
     );
     expect(source.force?.overrides?.["deepmerge-ts"]).toBe("^8.0.1");
   });
+
+  it("seeds all three TypeScript workflow channels while keeping variable precedence", async () => {
+    const workflows = path.join(
+      ROOT,
+      "typescript/create-only/.github/workflows"
+    );
+    expect(await fs.readFile(path.join(workflows, "ci.yml"), "utf8")).toContain(
+      `node_version: '${NODE_PATCH}'`
+    );
+    expect(
+      await fs.readFile(path.join(workflows, "review-evidence.yml"), "utf8")
+    ).toContain(`node-version: '${NODE_PATCH}'`);
+    expect(
+      await fs.readFile(
+        path.join(workflows, "third-party-review-evidence.yml"),
+        "utf8"
+      )
+    ).toContain(`node-version: \${{ vars.NODE_VERSION || '${NODE_PATCH}' }}`);
+  });
+
   it("the Node updater reaches current tracked surfaces and leaves historical data alone", async () => {
     const updater = "scripts/update-node-version.ts";
     const previous = "22.21.1";
@@ -233,7 +253,10 @@ describe("shared runtime patch policy", () => {
         build: { node: previous },
       }),
       [caller]: `node-version: ${previous}\nnode-version: \${{ vars.NODE_VERSION || '${previous}' }}\n`,
-      [reusable]: `node_version:\n  description: Node runtime\n  required: false\n  default: '${previous}'\nother_version:\n  default: '1.2.3'\n`,
+      [reusable]: `node_version:\n  description: Node runtime\n  required: false\n  default: '${previous}'\nother_version:\n  default: '1.2.3'\nnode-version: '22.23.3' # lisa-preserve-node-version: independently qualified updater (#4367)\n`,
+      ".github/workflows/npm-updater.yml": "node-version: '22.23.3'\n",
+      ".github/workflows/npm-updater-runtime-qualification.yml":
+        "node-version: '22.23.3'\n",
       "tests/fixtures/historical/package.json": JSON.stringify({
         engines: { node: previous },
       }),
@@ -261,7 +284,9 @@ describe("shared runtime patch policy", () => {
       });
     run();
     for (const file of Object.keys(fixtures).filter(
-      file => !file.startsWith("tests/")
+      file =>
+        !file.startsWith("tests/") &&
+        !file.startsWith(".github/workflows/npm-updater")
     )) {
       expect(await fs.readFile(path.join(tempDir, file), "utf8")).toContain(
         NODE_PATCH
@@ -273,6 +298,9 @@ describe("shared runtime patch policy", () => {
     expect(await fs.readFile(path.join(tempDir, reusable), "utf8")).toContain(
       "default: '1.2.3'"
     );
+    expect(await fs.readFile(path.join(tempDir, reusable), "utf8")).toContain(
+      "node-version: '22.23.3' # lisa-preserve-node-version:"
+    );
     expect(
       await fs.readFile(
         path.join(tempDir, "tests/fixtures/historical/package.json"),
@@ -280,5 +308,12 @@ describe("shared runtime patch policy", () => {
       )
     ).toContain(previous);
     expect(run()).toContain("Files updated: 0");
+    for (const file of Object.keys(fixtures).filter(file =>
+      file.startsWith(".github/workflows/npm-updater")
+    )) {
+      expect(await fs.readFile(path.join(tempDir, file), "utf8")).toBe(
+        fixtures[file]
+      );
+    }
   });
 });

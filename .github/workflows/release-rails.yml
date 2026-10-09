@@ -154,7 +154,7 @@ jobs:
         if: steps.skip.outputs.skip != 'true'
         with:
           package-manager-cache: false
-          node-version: '22.23.3'
+          node-version: '24.21.0'
 
       - name: Configure Git
         if: steps.skip.outputs.skip != 'true'

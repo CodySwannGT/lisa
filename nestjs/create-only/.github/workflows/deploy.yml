@@ -110,7 +110,7 @@ jobs:
       # (CodySwannGT/lisa#3698).
       expected_workflow_contract_major: '1'
       moment: pre-deploy:${{ needs.determine_environment.outputs.environment }}
-      node_version: '22.23.3'
+      node_version: '24.21.0'
       package_manager: 'bun'
     # No `secrets:` key: gates.yml declares none in its `workflow_call`, so
     # passing any grants everything to a callee that reads nothing (#3065).
@@ -139,7 +139,7 @@ jobs:
       require_approval: ${{ needs.determine_environment.outputs.require_approval == 'true' }}
       approval_environment: ${{ needs.determine_environment.outputs.approval_environment }}
       require_signatures: false
-      node_version: '22.23.3'
+      node_version: '24.21.0'
       package_manager: 'bun'
     secrets:
       DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
@@ -306,10 +306,10 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v6
-      - name: Use Node.js 22.23.3
+      - name: Use Node.js 24.21.0
         uses: actions/setup-node@v6
         with:
-          node-version: 22.23.3
+          node-version: 24.21.0
           package-manager-cache: false
       - uses: noliran/branch-based-secrets@ef9182f16f118c7c3d05c36973546ebc990b8c69 # v1 (2020-10-09, no semver tag)
         with:
@@ -462,7 +462,7 @@ jobs:
       # (CodySwannGT/lisa#3698).
       expected_workflow_contract_major: '1'
       moment: post-deploy:${{ needs.determine_environment.outputs.environment }}
-      node_version: '22.23.3'
+      node_version: '24.21.0'
       package_manager: 'bun'
     # No `secrets:` key: gates.yml declares none in its `workflow_call`, so
     # passing any grants everything to a callee that reads nothing (#3065).

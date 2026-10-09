@@ -1,12 +1,7 @@
+import { qualifiedUpdaterNode } from "../../support/qualified-updater-node.js";
 /** Real owned Unix listeners/Git paths qualify scope cleanup, not hosted/provider authority. */
 import { describe, expect, it, vi } from "vitest";
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  realpathSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import {
   openHostedReadScope,
@@ -66,7 +61,8 @@ async function fixture(operation: (state: any) => Promise<void>) {
       timeout: 5000,
       maximum: 65536,
     });
-  const nativePath = realpathSync(process.execPath);
+  const runtime = qualifiedUpdaterNode();
+  const nativePath = runtime.path;
   const context = {
     cwd: root,
     deadline: Date.now() + 10000,
@@ -102,11 +98,7 @@ async function fixture(operation: (state: any) => Promise<void>) {
     },
   };
   const native = {
-    node: {
-      path: nativePath,
-      version: "22.23.3",
-      sha256: binaryDigest(nativePath),
-    },
+    node: runtime,
     git: { path: GIT_PATH, sha256: binaryDigest(GIT_PATH) },
     gh: { path: nativePath, sha256: binaryDigest(nativePath) },
   };
