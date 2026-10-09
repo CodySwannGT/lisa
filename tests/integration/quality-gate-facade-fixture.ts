@@ -67,6 +67,23 @@ export const PREEXISTING_CONTINUE_ON_ERROR = [
 export const GATE_RUN_ID = "gate_run";
 
 /**
+ * Literal configured gate source, including Lisa's integration reporting.
+ * @param job The primary gate job.
+ * @returns The exact expected shell body, independent of the workflow.
+ */
+export function expectedGateRun(job: string): string {
+  return job === "test_integration"
+    ? [
+        `if [ "$GITHUB_REPOSITORY" = 'CodySwannGT/lisa' ]; then`,
+        "  $GATE_RUNNER $GATE_TASK --reporter=verbose",
+        "else",
+        "  $GATE_RUNNER $GATE_TASK",
+        "fi",
+      ].join("\n")
+    : "$GATE_RUNNER $GATE_TASK";
+}
+
+/**
  * The only conditional `continue-on-error` the façade may carry.
  *
  * Not a literal `true` anywhere, and not keyed on `configured`: the value is
