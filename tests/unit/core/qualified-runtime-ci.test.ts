@@ -77,6 +77,7 @@ describe("qualified runtimes in required CI execution paths", () => {
 
   it("integration retains actual native host Bun and the unchanged native test command", () => {
     const items = steps(".github/workflows/quality.yml", "test_integration");
+    assertUpdaterNode(items);
     assertHostBun(items);
     expect(
       items.some(step => step.run?.includes("bun run test:integration"))

@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { useIoLatencyBudget } from "../helpers/io-latency-budget.js";
-import { prepareUpdate } from "../../all/copy-overwrite/scripts/lib/npm-update-prepare.mjs";
+import { prepareNativeUpdate as prepareUpdate } from "./support/npm-update-native-prepare.js";
 import {
   qualifiedBun,
   verifyBunLock,
@@ -131,7 +131,7 @@ describe("native optional Bun lock preparation", () => {
         );
       const before = await parse();
       expect(before.packages["fixture-react-is"][0]).toBe("react-is@18.3.1");
-      const prepared = await prepareUpdate({ cwd, policy, config });
+      const prepared = await prepareUpdate({ cwd, policy, config }, env);
       expect(prepared.status).toBe("prepared");
       if (!("proposal" in prepared) || !("installedAfter" in prepared.npm))
         throw new Error("native alias preparation did not produce an update");
@@ -234,7 +234,7 @@ describe("native optional Bun lock preparation", () => {
       fixtureRoot = root;
       const { cwd, bun } = await baseline(root, env);
       const oldBun = readFileSync(join(cwd, BUN_LOCK_FILE));
-      const prepared = await prepareUpdate({ cwd, policy, config });
+      const prepared = await prepareUpdate({ cwd, policy, config }, env);
       expect(prepared.status).toBe("prepared");
       if (!("proposal" in prepared) || !("installedAfter" in prepared.npm))
         throw new Error("native preparation did not produce an update");
@@ -285,7 +285,7 @@ describe("native optional Bun lock preparation", () => {
         });
         expect(unavailable.code).toBe(1);
         expect(unavailable.stderr.toString()).toContain("ENOENT");
-        const prepared = await prepareUpdate({ cwd, policy, config });
+        const prepared = await prepareUpdate({ cwd, policy, config }, env);
         expect(prepared.status).toBe("prepared");
         if (!("proposal" in prepared) || !("installedAfter" in prepared.npm))
           throw new Error("native preparation did not produce an update");

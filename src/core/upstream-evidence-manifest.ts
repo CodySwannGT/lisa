@@ -1665,7 +1665,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/skills/lisa-setup-workstation/scripts/cli.mjs":
       "53b369907ce168991169521f50070f9741640c0c466ece7c7c4736455903fb00",
     "plugins/src/base/skills/lisa-setup-workstation/scripts/workstation.mjs":
-      "a7c7850ceaa0ff5e1c2a3959c1fa464f44820ffbef5037f3a92fbd5f8021a582",
+      "d023914c7ea3e46eadcf33cba44fc12ec9df37cf94745e20da196c88a596c269",
     "plugins/src/base/skills/lisa-sonarcloud-access/SKILL.md":
       "c8145b880f2595e73b2b7a5a117037e56f1f32d7be3b2ce485d83f420c7c1ea9",
     "plugins/src/base/skills/lisa-spec-conformance/SKILL.md":
@@ -2683,7 +2683,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "5180f57b5287ef820639a1bc2153edf08abe74c0443bb24dcb9dfa53827aa91f",
+      "2a556bb6355559440b2005be982e27eaefe79c0887573c5fb100bd591fba302b",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
@@ -10177,6 +10177,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/support/maestro-retry-types.ts": true,
     "tests/integration/support/maestro-retry-workflow.ts": true,
     "tests/integration/support/maestro-runner-arguments.ts": true,
+    "tests/integration/support/npm-update-native-prepare.ts": true,
     "tests/integration/support/pre-tool-refusal-fixture.ts": true,
     "tests/integration/support/pre-tool-refusal-harness.ts": true,
     "tests/integration/support/rails-helper-fixture.ts": true,
@@ -11696,6 +11697,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/workstation/fixtures.ts": true,
     "tests/unit/workstation/link-into-bin-dir.test.ts": true,
     "tests/unit/workstation/workstation-install.test.ts": true,
+    "tests/unit/workstation/workstation-locate-native.test.ts": true,
     "tests/unit/workstation/workstation-plan.test.ts": true,
     "transcripts/.gitkeep": true,
     "tsconfig.eslint.json": true,
