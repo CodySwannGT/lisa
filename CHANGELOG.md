@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.73.0](https://github.com/CodySwannGT/lisa/compare/v4.72.7...v4.73.0) (2026-10-09)
+
+
+### Features
+
+* qualify immutable history evidence coordinates ([575f2c8](https://github.com/CodySwannGT/lisa/commit/575f2c860ed7ee0614851bb73335ccf1e14111b7)), closes [CodySwannGT/lisa#4354](https://github.com/CodySwannGT/lisa/issues/4354)
+
+
+### Bug Fixes
+
+* **npm-updater:** bound browser capture and stabilize scanner witnesses ([a83dcdc](https://github.com/CodySwannGT/lisa/commit/a83dcdc0394b6bcf6fd5123fd80bd924304ffa3c)), closes [CodySwannGT/lisa#4383](https://github.com/CodySwannGT/lisa/issues/4383)
+* **npm-updater:** bound browser hook scratch paths ([b24ebd5](https://github.com/CodySwannGT/lisa/commit/b24ebd52413c8ac2983b9b693f7f8c0852e19c03)), closes [CodySwannGT/lisa#4383](https://github.com/CodySwannGT/lisa/issues/4383) [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347) [CodySwannGT/lisa#4371](https://github.com/CodySwannGT/lisa/issues/4371)
+* **npm-updater:** prepare authenticated Rails runtime gates ([e60d46b](https://github.com/CodySwannGT/lisa/commit/e60d46b100d3d4f3c159380e9b504bc0518fdf3f)), closes [CodySwannGT/lisa#4383](https://github.com/CodySwannGT/lisa/issues/4383) [#4376](https://github.com/CodySwannGT/lisa/issues/4376) [#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **npm-updater:** preserve shipped Ruby identity bytes ([b50db90](https://github.com/CodySwannGT/lisa/commit/b50db90f6c89561874f37092f54e3227ed9d0610)), closes [CodySwannGT/lisa#4383](https://github.com/CodySwannGT/lisa/issues/4383) [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **npm-updater:** qualify Rails runtime probes deterministically ([42332ec](https://github.com/CodySwannGT/lisa/commit/42332ec6b809c8f1af31bc22c6f5422657637c2b)), closes [CodySwannGT/lisa#4383](https://github.com/CodySwannGT/lisa/issues/4383) [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* **plugins:** respect selected harness during registration ([39cd09e](https://github.com/CodySwannGT/lisa/commit/39cd09e5e7497625546a3d54e897cec0d4b0086e))
+* **qualification:** verify native sandbox status through ChromeDriver ([e94e6b6](https://github.com/CodySwannGT/lisa/commit/e94e6b65dbe207ca1ed7ae73feef70e9d8062b33))
+* **rails:** refuse disappearing scratch markers quietly ([a8323ec](https://github.com/CodySwannGT/lisa/commit/a8323ec1f7846712371617ad0fbacb55e2ade56a)), closes [CodySwannGT/lisa#4383](https://github.com/CodySwannGT/lisa/issues/4383) [CodySwannGT/lisa#4371](https://github.com/CodySwannGT/lisa/issues/4371)
+* retain terminal browser diagnostic records ([f9f5694](https://github.com/CodySwannGT/lisa/commit/f9f5694e946e398acc977ed7d39f32037054743c))
+* **runtime:** retain bounded browser qualification diagnostics ([e534d61](https://github.com/CodySwannGT/lisa/commit/e534d611e7d3619e08c0eb7454b43017fbe4d5b5)), closes [CodySwannGT/lisa#4383](https://github.com/CodySwannGT/lisa/issues/4383)
+* satisfy shipped evidence validation contracts ([4750174](https://github.com/CodySwannGT/lisa/commit/4750174682ad9b9faa579e4e1c2d0f505388d210))
+* **test:** ignore unnamed JSDoc parameter bindings ([7e1a758](https://github.com/CodySwannGT/lisa/commit/7e1a75873a476d47af19ddd33b19920bd7e6a3ce)), closes [CodySwannGT/lisa#4383](https://github.com/CodySwannGT/lisa/issues/4383) [CodySwannGT/lisa#4383](https://github.com/CodySwannGT/lisa/issues/4383)
+
+
+### Documentation
+
+* **npm-updater:** record published validation results ([73fe961](https://github.com/CodySwannGT/lisa/commit/73fe96184e2dbf4ec548bae6fc65dc2e85fda297)), closes [CodySwannGT/lisa#4383](https://github.com/CodySwannGT/lisa/issues/4383)
+
 ### [4.72.7](https://github.com/CodySwannGT/lisa/compare/v4.72.6...v4.72.7) (2026-10-08)
 
 
