@@ -80,7 +80,7 @@ describe("closed runtime qualification diagnostics", () => {
       const command = join(root, BROWSER_CONSUMER);
       writeFileSync(
         command,
-        `#!${process.execPath}\nconst args=process.argv.slice(2);\nif(!args.includes('--allow-chrome-scheme-url')) process.exit(17);\nif(!args.includes('--headless=new') || !args.includes('--dump-dom') || args.at(-1)!=='chrome://sandbox' || args.includes('--no-sandbox')) process.exit(18);\nif(!args.includes('--timeout=5000')) process.exit(19);\nprocess.stdout.write('You are adequately sandboxed.<td>SUID Sandbox</td><td>Yes</td>');\n`,
+        `#!${process.execPath}\nconst args=process.argv.slice(2);\nif(!args.includes('--allow-chrome-scheme-url')) process.exit(17);\nif(!args.includes('--headless=new') || !args.includes('--dump-dom') || args.at(-1)!=='chrome://sandbox' || args.includes('--no-sandbox')) process.exit(18);\nif(!args.includes('--timeout=5000')) process.exit(19);\nprocess.stdout.write('You are adequately sandboxed.<tr><td>Layer 1 Sandbox</td><td>SUID</td></tr>');\n`,
         { flag: "wx", mode: 0o600 }
       );
       chmodSync(command, 0o700);
@@ -224,6 +224,10 @@ describe("closed runtime qualification diagnostics", () => {
     }
   );
   it.each([
+    [
+      "You are adequately sandboxed.You are NOT adequately sandboxed.<tr><td>Layer 1 Sandbox</td><td>SUID</td></tr>",
+      "native browser sandbox is unavailable",
+    ],
     [
       "<td>SUID Sandbox</td><td>Yes</td>",
       "native browser sandbox is unavailable",

@@ -10,7 +10,11 @@ import { originalHookEnvironment } from "../../../all/copy-overwrite/scripts/lib
 import { prepareApplication } from "./application.mjs";
 import { failureMetadata, hookWitness } from "./observations.mjs";
 import { hookSocketWitness } from "./socket-witness.mjs";
-import { browserDriverControl } from "./driver-diagnostic.mjs";
+import {
+  browserDriverControl,
+  browserDriverQualification,
+} from "./driver-diagnostic.mjs";
+import { sandboxStatus } from "./sandbox-status.mjs";
 const QUIET = "--quiet";
 const NO_TRUNC = "--no-trunc";
 const GIT = "/usr/bin/git";
@@ -136,12 +140,13 @@ export async function browser(root, application, native) {
     url: "chrome://sandbox",
   });
   state.html = state.result.stdout.toString();
+  state.sandbox = sandboxStatus(state.html);
   required(
-    state.html.includes("You are adequately sandboxed."),
+    state.sandbox.nativeSandboxVerified,
     "native browser sandbox is unavailable"
   );
   required(
-    /<td[^>]*>SUID Sandbox<\/td>\s*<td[^>]*>Yes<\/td>/.test(state.html),
+    state.sandbox.suidSandboxActive,
     "native browser SUID sandbox is unavailable"
   );
   return {
@@ -249,7 +254,11 @@ async function runtimeExercise(source, root, tools, native, summary, deadline) {
     await state.runtime.prepareSchemas();
     application.env = { ...application.env, ...state.runtime.env };
     summary.hooks = await hooks(application, native);
-    summary.browser = await browser(root, application, native);
+    summary.browser = await browserDriverQualification(
+      root,
+      application,
+      native
+    );
     const scratch = await native(
       "original-push",
       application.cwd,
@@ -271,7 +280,7 @@ async function runtimeExercise(source, root, tools, native, summary, deadline) {
     summary.nestedHookScratch = hookSocketWitness(witness);
   } catch (error) {
     state.primary = error;
-    if (summary.native.at(-1)?.stage === "browser") {
+    if (summary.native.at(-1)?.stage === "browser-driver-qualification") {
       try {
         summary.browserControl = await browserControl(
           root,

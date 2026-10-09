@@ -34,6 +34,7 @@ const SOURCES = [
   "tests/fixtures/npm-update-hosted-runtime/observations.mjs",
   "tests/fixtures/npm-update-hosted-runtime/driver-probe.mjs",
   "tests/fixtures/npm-update-hosted-runtime/driver-diagnostic.mjs",
+  "tests/fixtures/npm-update-hosted-runtime/sandbox-status.mjs",
   "tests/fixtures/npm-update-hosted-runtime/browser-process-observation.mjs",
   "tests/fixtures/npm-update-hosted-runtime/qualify.mjs",
   "tests/fixtures/npm-update-hosted-runtime/verify-hook.rb",

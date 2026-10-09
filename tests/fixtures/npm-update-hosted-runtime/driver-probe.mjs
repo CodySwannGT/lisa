@@ -1,9 +1,10 @@
-/** Genuine fixed ChromeDriver is a post-failure diagnostic, never substitute acceptance. */
+/** Genuine fixed ChromeDriver serves separately declared qualification and diagnostic requests. */
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { lstatSync, realpathSync } from "node:fs";
 import { isAbsolute } from "node:path";
 import { invokedAsScript } from "../../../all/copy-overwrite/scripts/lib/invoked-as-script.mjs";
+import { sandboxStatus } from "./sandbox-status.mjs";
 
 const REFUSAL = "native driver diagnostic refused";
 const DRIVER_START = "driver-start";
@@ -137,9 +138,17 @@ async function closeDriver(child, closed) {
  * @param {string} profile Fresh source-owned profile.
  * @param {object} tools Original qualified browser and driver paths.
  * @param {function(object):void} publish Closed diagnostic progress writer.
- * @returns {Promise<object>} Closed diagnostic facts only.
+ * @param {string} purpose Source-owned diagnostic or qualification request.
+ * @returns {Promise<object>} Closed native facts with the declared purpose.
  */
-export async function probeDriver(profile, tools, publish = () => {}) {
+export async function probeDriver(
+  profile,
+  tools,
+  publish = () => {},
+  purpose = "diagnostic"
+) {
+  if (!["diagnostic", "qualification"].includes(purpose))
+    throw new Error(REFUSAL);
   const identity = profileIdentity(profile);
   const deadline = Date.now() + 8000;
   const state = { stage: DRIVER_START, session: null, endpoint: null };
@@ -148,11 +157,12 @@ export async function probeDriver(profile, tools, publish = () => {}) {
     publish({ phase: stage });
   };
   const report = {
-    diagnosticOnly: true,
+    diagnosticOnly: purpose === "diagnostic",
     driverLaunchVerified: false,
     driverSessionVerified: false,
     nativeSandboxVerified: false,
     suidSandboxActive: false,
+    layer1Sandbox: "unreported",
     sessionDeleted: false,
     driverClosed: false,
     failureStage: null,
@@ -217,12 +227,7 @@ export async function probeDriver(profile, tools, publish = () => {}) {
       undefined,
       deadline
     );
-    report.nativeSandboxVerified =
-      typeof html === "string" &&
-      html.includes("You are adequately sandboxed.");
-    report.suidSandboxActive =
-      typeof html === "string" &&
-      /<td[^>]*>SUID Sandbox<\/td>\s*<td[^>]*>Yes<\/td>/.test(html);
+    Object.assign(report, sandboxStatus(html));
     if (!report.nativeSandboxVerified || !report.suidSandboxActive)
       throw new Error(REFUSAL);
   } catch (error) {
@@ -276,7 +281,8 @@ if (invokedAsScript(import.meta.url)) {
         chrome: process.argv[3],
         driver: process.argv[4],
       },
-      publish
+      publish,
+      process.argv[5]
     );
     publish({ result: report });
     if (report.failureStage) process.exitCode = 1;

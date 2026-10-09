@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   browserDriverControl,
+  browserDriverQualification,
   driverDiagnostic,
 } from "../../fixtures/npm-update-hosted-runtime/driver-diagnostic.mjs";
 import { nativeRecorder } from "../../fixtures/npm-update-hosted-runtime/observations.mjs";
@@ -22,6 +23,7 @@ const RESULT = {
   driverSessionVerified: true,
   nativeSandboxVerified: true,
   suidSandboxActive: true,
+  layer1Sandbox: "SUID",
   sessionDeleted: true,
   driverClosed: true,
   failureStage: null,
@@ -58,7 +60,7 @@ const server=createServer(async(req,res)=>{
   }else if(req.url.endsWith('/url')){
     if(JSON.parse(body).url!=='chrome://sandbox')process.exit(24);
   }else if(req.url.endsWith('/source')){
-    value='You are adequately sandboxed.<td>SUID Sandbox</td><td>Yes</td>';
+    value='You are adequately sandboxed.<tr><td class="medium">Layer 1 Sandbox</td><td class="medium">SUID</td></tr>';
   }
   res.setHeader('Content-Type','application/json');res.end(JSON.stringify({value}));
 });
@@ -119,41 +121,55 @@ describe("bounded native driver diagnostics", () => {
     }
   );
 
-  it("reaches the native protocol consumer and waits for owned driver closure", async () => {
-    await fixture(async root => {
-      const records: object[] = [];
-      const result = await browserDriverControl(
-        root,
-        {
-          cwd: root,
-          env: {
-            CHROME_BINARY: process.execPath,
-            CHROMEDRIVER: nativeDriver(root, "accept"),
+  it.each([false, true])(
+    "reaches the native protocol consumer and waits for owned driver closure (qualification=%s)",
+    async qualification => {
+      await fixture(async root => {
+        const records: object[] = [];
+        const run = qualification
+          ? browserDriverQualification
+          : browserDriverControl;
+        const result = await run(
+          root,
+          {
+            cwd: root,
+            env: {
+              CHROME_BINARY: process.execPath,
+              CHROMEDRIVER: nativeDriver(root, "accept"),
+            },
           },
-        },
-        nativeRecorder(root, Date.now() + 60000, records)
-      );
-      expect(result.report).toEqual(RESULT);
-      const trace = JSON.parse(readFileSync(join(root, TRACE), "utf8"));
-      expect(
-        trace.requests.map(
-          (row: { method: string; url: string }) => `${row.method} ${row.url}`
-        )
-      ).toEqual([
-        "POST /session",
-        `POST /session/${"a".repeat(32)}/url`,
-        `GET /session/${"a".repeat(32)}/source`,
-        `DELETE /session/${"a".repeat(32)}`,
-      ]);
-      expect(trace.closed).toBe(true);
-      expect(() => process.kill(trace.pid, 0)).toThrow(
-        expect.objectContaining({ code: "ESRCH" })
-      );
-      expect(records).toEqual([
-        expect.objectContaining({ stage: DRIVER_STAGE, status: 0 }),
-      ]);
-    });
-  });
+          nativeRecorder(root, Date.now() + 60000, records)
+        );
+        expect(result.report).toEqual({
+          ...RESULT,
+          diagnosticOnly: !qualification,
+        });
+        const trace = JSON.parse(readFileSync(join(root, TRACE), "utf8"));
+        expect(
+          trace.requests.map(
+            (row: { method: string; url: string }) => `${row.method} ${row.url}`
+          )
+        ).toEqual([
+          "POST /session",
+          `POST /session/${"a".repeat(32)}/url`,
+          `GET /session/${"a".repeat(32)}/source`,
+          `DELETE /session/${"a".repeat(32)}`,
+        ]);
+        expect(trace.closed).toBe(true);
+        expect(() => process.kill(trace.pid, 0)).toThrow(
+          expect.objectContaining({ code: "ESRCH" })
+        );
+        expect(records).toEqual([
+          expect.objectContaining({
+            stage: qualification
+              ? "browser-driver-qualification"
+              : DRIVER_STAGE,
+            status: 0,
+          }),
+        ]);
+      });
+    }
+  );
 
   it("retains failed native status and private streams when diagnostic output is malformed", async () => {
     await fixture(async root => {
