@@ -1,0 +1,74 @@
+{
+  "success": true,
+  "source": [
+    {
+      "path": "all/copy-overwrite/scripts/lisa-work-item.mjs",
+      "sha256": "cd1b16e056fefac17018d5c96ad063dc4002f304e4400765e473403186b7175a"
+    },
+    {
+      "path": "all/copy-overwrite/scripts/lib/npm-update-gh-grants.mjs",
+      "sha256": "62f81b0d6c669594356c8ad63f544d679407100f3fc46723985f286e4d033e50"
+    }
+  ],
+  "sourceUnchanged": true,
+  "checks": [
+    {
+      "name": "large-history-issue",
+      "status": 0,
+      "bytes": 11445,
+      "sha256": "9f574d7a47879efae49e4ef0cd32b94bb68aacf1cf6b1be2633b36ddfd1aba81"
+    },
+    {
+      "name": "large-history-pages",
+      "status": 0,
+      "bytes": 67,
+      "sha256": "0d530cff8dfca86f3b9bd0f2f1c535f2bd49f01de195698532d929611fefbffe"
+    },
+    {
+      "name": "large-history-semantic-equivalence",
+      "success": true,
+      "rawCounts": [
+        100,
+        33
+      ],
+      "relevantComments": 0,
+      "nativeReferences": 0
+    },
+    {
+      "name": "native-managed-backlink-reference-issue",
+      "status": 0,
+      "bytes": 14917,
+      "sha256": "0a5184bcd39188eccc627425ee4b6991b095145d90ec690e1810e25e953c32db"
+    },
+    {
+      "name": "native-managed-backlink-reference-pages",
+      "status": 0,
+      "bytes": 12835,
+      "sha256": "156a09080c029274a46b8c71287aef8fa19e3206ab560d000dc33e90ee94d1eb"
+    },
+    {
+      "name": "native-managed-backlink-issue",
+      "status": 0,
+      "bytes": 10725,
+      "sha256": "e6cdc58e3d7c0ddd6bd4e4094e5c13b3f81ade885061882ef44897dd37fb8f10"
+    },
+    {
+      "name": "native-managed-backlink-pages",
+      "status": 0,
+      "bytes": 3425,
+      "sha256": "b370083f2dccdfcf7e0a373191c27fa89f0fd6747a0f8d96e8149a767f983a33"
+    },
+    {
+      "name": "native-managed-backlink-semantic-equivalence",
+      "success": true,
+      "rawCounts": [
+        6
+      ],
+      "relevantComments": 2,
+      "nativeReferences": 0
+    }
+  ],
+  "captureBytes": 1048576,
+  "requestMilliseconds": 30000,
+  "boundary": "read-only native provider acquisition and complete parser equivalence; no external writes, signature acceptance, failed-cohort reuse or publisher authority"
+}

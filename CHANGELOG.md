@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.73.4](https://github.com/CodySwannGT/lisa/compare/v4.73.3...v4.73.4) (2026-10-09)
+
+
+### Bug Fixes
+
+* bound canonical issue and backlink reads ([88ace6c](https://github.com/CodySwannGT/lisa/commit/88ace6cd4121e0abbfca3ccff3da0b9b54b503b3)), closes [CodySwannGT/lisa#4405](https://github.com/CodySwannGT/lisa/issues/4405)
+
 ### [4.73.3](https://github.com/CodySwannGT/lisa/compare/v4.73.2...v4.73.3) (2026-10-09)
 
 

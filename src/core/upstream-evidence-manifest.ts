@@ -95,7 +95,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-gh-dispatch.mjs":
       "d78a187dfeb31aa8f5e7ecb38b5902dd4e034d52dca1527ac115dc591de90997",
     "all/copy-overwrite/scripts/lib/npm-update-gh-grants.mjs":
-      "4be8bcfa098b7f7f9cdfe6d7a1f110e5e4fb1e6181bd12d0b7f620f569293f09",
+      "62f81b0d6c669594356c8ad63f544d679407100f3fc46723985f286e4d033e50",
     "all/copy-overwrite/scripts/lib/npm-update-gh-requests.mjs":
       "0bfd950560242d6b9ecb93f8d7162e68cb420b631e39d24663ccf803712a4c22",
     "all/copy-overwrite/scripts/lib/npm-update-github.mjs":
@@ -285,7 +285,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "203f110fd4752ff89d906276a5115500a2f42289d00cb5435345c90c433edf46",
+      "cd1b16e056fefac17018d5c96ad063dc4002f304e4400765e473403186b7175a",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/npm-updater-gate-runtime.json":
@@ -295,7 +295,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "24c58b0831c5af5186f91272a40135038c1697c540d9ed29997b640a84c25d60",
+      "7c8b9d5b8f7d77dbf520c1009497d041eeb9930103c7f52bfd8b04a4492eb023",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -3408,6 +3408,8 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "evidence/4326/security-audit-review.md": true,
     "evidence/4326/state.json": true,
     "evidence/4326/verdict.json": true,
+    "evidence/4405/native-reader-green.json": true,
+    "evidence/4405/reader-repair.md": true,
     "evidence/copilot-hook-mcp-probe-1056.md": true,
     "evidence/cursor-rule-probe-1055.md": true,
     "expo/copy-overwrite/.easignore.extra": true,
@@ -11243,6 +11245,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/work-item-cli-rebase.test.ts": true,
     "tests/unit/scripts/work-item-cli-trackers.test.ts": true,
     "tests/unit/scripts/work-item-cli-writes.test.ts": true,
+    "tests/unit/scripts/work-item-comment-projection.test.ts": true,
     "tests/unit/scripts/work-item-contract-version.test.ts": true,
     "tests/unit/scripts/work-item-gate-scope-advice.test.ts": true,
     "tests/unit/scripts/work-item-github-failure-diagnosis.test.ts": true,
