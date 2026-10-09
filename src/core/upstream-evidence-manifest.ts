@@ -2727,7 +2727,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "typescript/copy-overwrite/.nvmrc":
       "6d07ac247e81cd42c2c20abf8dfe504413d6b2422e4aba9b2c975a776f155921",
     "typescript/copy-overwrite/.prettierignore":
-      "35e5d93608e9b31550da0ceed244c4a6bf1886bb448bbb45c203bc5c657de269",
+      "fb5e38bf154cf26f90e6a16bfc7df0ebbca673b4690602a83fa9851d1bfdfaf8",
     "typescript/copy-overwrite/.prettierrc.json":
       "a20621f79a064486fba53cc0ea3000a2ece3f312ff38495c6a6606a27d2a727c",
     "typescript/copy-overwrite/.versionrc":
