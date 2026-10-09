@@ -211,6 +211,103 @@ note_version() {
 
 plugin_tree_version=""
 
+# Node cannot supervise its own stalled startup. Bash owns a live group anchor
+# and an independent builtin-read timer instead. The real child Bash has its own
+# $$, waits for group qualification before starting Node, and drains its OWN
+# group. No remembered PID receives a later external signal. Its live anchor
+# pins the group even after Node returns, until all descendants are terminated.
+# Only this optional subprocess is bounded; enforcement below is unchanged.
+run_optional_freshness() (
+  command -v mkfifo >/dev/null 2>&1 && command -v ps >/dev/null 2>&1 || exit 1
+  ps -o pid= -p "$$" >/dev/null 2>&1 || exit 1
+  # Bash 3.2 unwinds function locals before EXIT on an explicit exit inside
+  # command substitution. This function already isolates all state in a subshell.
+  scratch="" anchor="" scratch_identity="" current_identity="" helper_status=1
+  [ -n "$notice_temp_base" ] && notice_parent_chain_trusted "$notice_temp_base" || exit 1
+  scratch="$(umask 077 && mktemp -d "$notice_temp_base/lisa-freshness.XXXXXX")" || exit 1
+  case "$scratch" in "$notice_temp_base"/lisa-freshness.*) ;; *) exit 1 ;; esac
+  [ -d "$scratch" ] && [ ! -L "$scratch" ] && [ -O "$scratch" ] || exit 1
+  scratch_identity="$(stat -f '%d:%i:%Lp' "$scratch" 2>/dev/null)" ||
+    scratch_identity="$(stat -c '%d:%i:%a' "$scratch" 2>/dev/null)" || exit 1
+  [ "${scratch_identity##*:}" = 700 ] || exit 1
+  cleanup_diagnostic() {
+    if [ -n "$anchor" ]; then
+      printf 'stop\n' >&8
+      wait "$anchor" 2>/dev/null || true
+    fi
+    exec 8>&- 9>&-
+    current_identity="$(stat -f '%d:%i:%Lp' "$scratch" 2>/dev/null)" ||
+      current_identity="$(stat -c '%d:%i:%a' "$scratch" 2>/dev/null)" || current_identity=""
+    if [ "$current_identity" = "$scratch_identity" ] &&
+      [ -d "$scratch" ] && [ ! -L "$scratch" ] && [ -O "$scratch" ] &&
+      notice_parent_chain_trusted "$notice_temp_base"; then
+      rm -rf "$scratch"
+    fi
+  }
+  trap cleanup_diagnostic EXIT
+  trap 'exit 1' HUP INT TERM
+  mkfifo "$scratch/start" "$scratch/done" || exit 1
+  exec 8<>"$scratch/start" 9<>"$scratch/done" || exit 1
+  set -m
+  /bin/bash -c '
+    set +m
+    scratch="$1"
+    shift
+    # This live anchor qualifies its own group before launching any Node work.
+    # Native qualification must not race a separate parent/start countdown.
+    [ "$(ps -o pgid= -p "$$" 2>/dev/null | tr -d " ")" = "$$" ] || exit 1
+    (
+      node "$@" </dev/null >"$scratch/output" 2>/dev/null
+      printf "%s\n" "$?" >"$scratch/status"
+      printf "done\n" >&9
+    ) &
+    # Bash 3.2 accepts integer timeouts. One second leaves headroom beneath
+    # the two-second diagnostic ceiling without delaying real enforcement.
+    if read -r -t 1 -u 9 done && [ "$done" = done ]; then
+      printf "complete\n" >"$scratch/complete"
+      # Parent acceptance or its bounded absence both terminate the group.
+      read -r -t 1 -u 8 stop || true
+    fi
+    kill -KILL -- -"$$"
+  ' lisa-freshness "$scratch" "$@" &
+  anchor=$!
+  while [ ! -f "$scratch/status" ] && [ "$(jobs -pr)" = "$anchor" ]; do sleep 0.01; done
+  printf 'stop\n' >&8
+  wait "$anchor" 2>/dev/null || true
+  anchor=""
+  [ -f "$scratch/complete" ] && [ -f "$scratch/status" ] || exit 1
+  read -r helper_status <"$scratch/status"
+  [ "$helper_status" = 0 ] || exit 1
+  cat "$scratch/output"
+)
+
+# Do not promote even one partial fact. Successful exit plus a terminal protocol
+# row and every requested guard result are required before globals are changed.
+valid_freshness_result() {
+  local line key value seen="|" complete=0 count=0
+  while IFS= read -r line; do
+    [ "$complete" -eq 0 ] || return 1
+    case "$line" in *$'\t'*) ;; *) return 1 ;; esac
+    key="${line%%$'\t'*}"
+    value="${line#*$'\t'}"
+    case "$value" in ''|*$'\t'*|*$'\r'*) return 1 ;; esac
+    case "$seen" in *"|$key|"*) return 1 ;; esac
+    seen="$seen$key|"
+    case "$key" in
+      installed|applied|plugin|marketplace|channel)
+        [[ "$value" =~ ^[0-9]{1,6}\.[0-9]{1,6}\.[0-9]{1,6}([-+][A-Za-z0-9.-]{1,48})?$ ]] || return 1 ;;
+      channel_path) ;;
+      guard[0-7])
+        [ "${key#guard}" -lt "$guard_count" ] || return 1
+        case "$value" in matching|different|unknown) ;; *) return 1 ;; esac
+        count=$((count + 1)) ;;
+      complete) [ "$value" = 1 ] || return 1; complete=1 ;;
+      *) return 1 ;;
+    esac
+  done <<< "$1"
+  [ "$complete" -eq 1 ] && [ "$count" -eq "$guard_count" ]
+}
+
 # Resolve once PER PROCESS at the existing lazy diagnostic boundary. A later
 # refusal in the same session gets fresh content evidence in its new process;
 # an already-noticed permitted call invokes neither Node nor a comparison.
@@ -220,13 +317,15 @@ resolve_vintages() {
   local config_dir="${CLAUDE_CONFIG_DIR-}"
   [ -n "$config_dir" ] || config_dir="${HOME-}/.claude"
   local helper="${BASH_SOURCE[0]%/*}/lisa-enforcement-freshness.mjs"
-  local key value state_index
+  local key value state_index result
   local state_count=0
   while [ "$state_count" -lt "$guard_count" ]; do
     host_guard_states+=("unknown")
     state_count=$((state_count + 1))
   done
-  if [ -f "$helper" ] && [ -r "$helper" ] && command -v node >/dev/null 2>&1; then
+  if [ -f "$helper" ] && [ -r "$helper" ] && command -v node >/dev/null 2>&1 &&
+    result="$(run_optional_freshness "$helper" "$repo_root" "$config_dir" "${guard_evidence_names[@]}" 2>/dev/null)" &&
+    valid_freshness_result "$result"; then
     while IFS=$'\t' read -r key value; do
       case "$key" in
         installed) installed_version="$value" ;;
@@ -240,7 +339,7 @@ resolve_vintages() {
           case "$value" in matching|different|unknown) host_guard_states[$state_index]="$value" ;; esac
           ;;
       esac
-    done < <(node "$helper" "$repo_root" "$config_dir" "${guard_evidence_names[@]}" 2>/dev/null)
+    done <<< "$result"
   fi
   note_version "$installed_version" "$repo_root/node_modules/@codyswann/lisa/package.json"
   note_version "$plugin_tree_version" "$plugin_tree"

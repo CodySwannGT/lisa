@@ -5,6 +5,7 @@
  */
 import { chmodSync, cpSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { validPreimageTuples } from "./errors.mjs";
 const CREDENTIAL_FILE = "credential.txt";
 export const nativePushCases = harness => {
@@ -280,24 +281,14 @@ export const graphCases = harness => {
  * @returns Raw identity inventory for private closure metrics
  */
 export const provePreimageBatch = (harness, cwd, tuples) => {
-  const script = String.raw`import {execFileSync} from 'node:child_process';
-import {createHash} from 'node:crypto';
-const git=(...args)=>execFileSync('git',['--no-replace-objects',...args],{maxBuffer:1024*1024});
-const records=JSON.parse(process.argv[1]);
-const inventory=records.map(([commit,path,expected])=>{
- const row=git('--literal-pathspecs','ls-tree','-z',commit,'--',path).toString().match(/^(100644|100755) blob ([a-f0-9]{40}|[a-f0-9]{64})\t([^\0]*)\0$/u);
- if(!row||row[3]!==path||row[2].length!==commit.length)throw Error('Unproved blob');
- const bytes=git('show',commit+':'+path);
- const oid=createHash(commit.length===40?'sha1':'sha256').update('blob '+bytes.length+'\0').update(bytes).digest('hex');
- if(oid!==row[2]||(expected!==null&&createHash('sha256').update(bytes).digest('hex')!==expected))throw Error('Unproved preimage');
- return {commit,path,oid,size:bytes.length};
-});
-console.log(JSON.stringify(inventory));`;
   if (!validPreimageTuples(tuples))
     throw new Error("Invalid native preimage proof batch.");
   const proof = harness.command(
     process.execPath,
-    ["--input-type=module", "-e", script, JSON.stringify(tuples)],
+    [
+      fileURLToPath(new URL("./preimage-batch.mjs", import.meta.url)),
+      JSON.stringify(tuples),
+    ],
     cwd
   );
   harness.requireFact(

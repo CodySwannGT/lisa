@@ -311,16 +311,18 @@ describe("the guard channel the dispatcher races", () => {
     // One child invocation, inside the same lazy latched resolver. Actual
     // no-invocation proof is in the file-backed integration laziness suite.
     const callSites = source.filter(line =>
-      /^\s+done < <\(node "\$helper"/.test(line)
+      /^\s+result="\$\(run_optional_freshness "\$helper"/.test(line)
     );
     const latch = lineOf(/^resolve_vintages\(\) \{/);
-    const callSite = lineOf(/^\s+done < <\(node "\$helper"/);
+    const callSite = lineOf(
+      /^\s+result="\$\(run_optional_freshness "\$helper"/
+    );
 
     // One call site, and it is inside the body of the lazy, latched resolver.
     expect(callSites).toHaveLength(1);
     expect(latch).toBeGreaterThan(-1);
     expect(callSite).toBeGreaterThan(latch);
-    expect(source[callSite + 1]).toBe("  fi");
+    expect(source[callSite + 1]).toMatch(/valid_freshness_result "\$result"/);
   });
 
   it("lets a permitted command through whatever the verdict is", () => {

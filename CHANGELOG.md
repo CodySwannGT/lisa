@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.73.5](https://github.com/CodySwannGT/lisa/compare/v4.73.4...v4.73.5) (2026-10-09)
+
+
+### Bug Fixes
+
+* bound optional enforcement freshness diagnostics ([8a7591f](https://github.com/CodySwannGT/lisa/commit/8a7591fd51dd3b4eec2bd91a299b7e0672e30882)), closes [CodySwannGT/lisa#4407](https://github.com/CodySwannGT/lisa/issues/4407)
+* keep the diagnostic benchmark workflow loadable ([d619e63](https://github.com/CodySwannGT/lisa/commit/d619e63b9cce80855b568cda936918cc52bd4bc6)), closes [CodySwannGT/lisa#4407](https://github.com/CodySwannGT/lisa/issues/4407)
+* preserve diagnostic bounds under test contention ([d0c3a22](https://github.com/CodySwannGT/lisa/commit/d0c3a2268725a5cb21339bcd9c9f383f2a1e5490)), closes [CodySwannGT/lisa#4407](https://github.com/CodySwannGT/lisa/issues/4407)
+* preserve diagnostic cleanup state on Bash 3.2 ([2244207](https://github.com/CodySwannGT/lisa/commit/22442079131cc5a758f265fae3aba2c9bbbdb1d8)), closes [CodySwannGT/lisa#4407](https://github.com/CodySwannGT/lisa/issues/4407)
+* qualify the live diagnostic group before producer startup ([19c5133](https://github.com/CodySwannGT/lisa/commit/19c5133a6ef884b5d44aef3b9cbe98e8d0575809)), closes [CodySwannGT/lisa#4407](https://github.com/CodySwannGT/lisa/issues/4407)
+
 ### [4.73.4](https://github.com/CodySwannGT/lisa/compare/v4.73.3...v4.73.4) (2026-10-09)
 
 
