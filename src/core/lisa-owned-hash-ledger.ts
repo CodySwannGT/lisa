@@ -547,6 +547,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "e493b2556fbc9a7b16fb1d1ba46f9a8b1bff06a616bbe7df8ad3454a4946202d",
   ]),
   "scripts/lib/npm-update-bun.mjs": Object.freeze([
+    "0329fde91a497e8ec527b9c7d8ade979cc637f63a796fbb4b9b8b9a480f06739",
     "898cdafe2e119b9c3004ea55ae222d2f33d8b668020cda09e90184474055a676",
   ]),
   "scripts/lib/npm-update-cancel-origin.mjs": Object.freeze([
@@ -2496,6 +2497,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "e493b2556fbc9a7b16fb1d1ba46f9a8b1bff06a616bbe7df8ad3454a4946202d",
   ]),
   "scripts/lib/npm-update-bun.mjs": Object.freeze([
+    "0329fde91a497e8ec527b9c7d8ade979cc637f63a796fbb4b9b8b9a480f06739",
     "898cdafe2e119b9c3004ea55ae222d2f33d8b668020cda09e90184474055a676",
   ]),
   "scripts/lib/npm-update-cancel-origin.mjs": Object.freeze([
