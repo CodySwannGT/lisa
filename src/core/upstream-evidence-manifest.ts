@@ -47,7 +47,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/history-secret-evidence.mjs":
       "73ac45a343dd0457704e7f9cf2c98bef7bd60629cc404741881ef01bf0cd59a3",
     "all/copy-overwrite/scripts/lib/history-secret-git.mjs":
-      "102276aef106e07b2b385fe8f2d3b54a9d30381633a22e07d5d74a5db9ddf320",
+      "7e0939373625ef741f9a455a1959abfaef6c69961ed4a30044d4dab0fa2d9916",
     "all/copy-overwrite/scripts/lib/history-secret-policy.mjs":
       "ca75ebbc45fca4c52400612ae818d231a28289b50a70f6cdee6feb51b144896f",
     "all/copy-overwrite/scripts/lib/history-secret-scanner.mjs":
@@ -63,7 +63,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-broker-client.mjs":
       "bb785fc64de1dfeb09241d228c11eaf7aaf3821bafa96da4bc37f2bac28cd8d0",
     "all/copy-overwrite/scripts/lib/npm-update-bun.mjs":
-      "898cdafe2e119b9c3004ea55ae222d2f33d8b668020cda09e90184474055a676",
+      "0329fde91a497e8ec527b9c7d8ade979cc637f63a796fbb4b9b8b9a480f06739",
     "all/copy-overwrite/scripts/lib/npm-update-cancel-origin.mjs":
       "626965a5a18f90e90883cc8bd6f33e6a22504e051f203f9f35390f7ccaad2a26",
     "all/copy-overwrite/scripts/lib/npm-update-cancellation-proof.mjs":
@@ -75,7 +75,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lib/npm-update-classifier-cache.mjs":
       "92272e40617ca9d620ff47e3ffe07a0e5bc1a3949d139752aa2675398ab49f9b",
     "all/copy-overwrite/scripts/lib/npm-update-contract.mjs":
-      "553f75ff705aa1c03d6480a377b530c4096e836e716846fbb8bed989fd32c732",
+      "d5c4bf65603bb212e1e8f99a39c38d9c5eff103b1f1b28966e20557bb7f3e85d",
     "all/copy-overwrite/scripts/lib/npm-update-controller-broker.mjs":
       "c2c598f48a403707d699baadb40be7aaf2023a4d6c6e0a41b5e591c5a2af5cc6",
     "all/copy-overwrite/scripts/lib/npm-update-controller-factory.mjs":
@@ -239,17 +239,17 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-gates.mjs":
       "f8cd07bdcdfc4066467635d86dc2a17337d4adacdd8829745482877dbd838f5e",
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
-      "966301ef764ddd5cfb37d26c22dd2dc4712496e67f63adddde9635fec6f6136c",
+      "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
-      "b17d73c02245d64ae96ba4b9ec642f5a54a827accb1af292a4600a98e1a596f4",
+      "86c5d99fa55d83633e8cb025689925d68dc7b708f559e0395d5828e4710c8082",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "99d33488d2ae8617a6a680f8d54ec5cb1ed3fbdebd8950145cad78c879cbfae8",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
       "73ac5af581d16992dd9cc273b4e2f6b55bd6a2629abe23b7658563cf433e082c",
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
-      "cfbbec57d4e9d9b4245957e027f85fec7fee09e0102b84aaa78af25b852590af",
+      "027b3c891860c101ff748d1f126de72c4920b6eb8ac2dda81aa016af61ca18cf",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "de0742cdcce834a73dca7384588fcc43ee34d33f03e2d801c8c5e6cc49282b00",
+      "74ef6acdbb278a6ac2bfd569b885c55c0ee9a13a21b4f2fa0a6de866c592934d",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "865f89d7504a7d1c3380449a2790801c60c1cfe5fa8f1aad54ffc51aa8d0cc7f",
     "all/copy-overwrite/scripts/lisa-hooks/discharge-work-item-gates.sh":
@@ -273,7 +273,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-postinstall.mjs":
       "2a826523a4f4fc58bfa0a24e2cf02504218dd68b4baffb346966dff705dea9b0",
     "all/copy-overwrite/scripts/lisa-rails-prepush.mjs":
-      "b963ce2647fd6daa95ceb5607691c5fb7d9f847a54d93a3d36718c5f7567905c",
+      "31a61d5c53db977fb1d6ff8f125ec785db98e79290a4ea5225e4322d9915038d",
     "all/copy-overwrite/scripts/lisa-reconcile-policy.mjs":
       "263860fba7fadae3c1096973eaf4f25dca1683ef2ce64279dea6845ac90faf6a",
     "all/copy-overwrite/scripts/lisa-run-gates.mjs":
@@ -285,7 +285,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "64f01819287d902ed830285c256dd0a589330bce5be9c7b8b1f2563d811db287",
+      "203f110fd4752ff89d906276a5115500a2f42289d00cb5435345c90c433edf46",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/npm-updater-gate-runtime.json":
@@ -295,7 +295,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/npm-updater-gate.Dockerfile":
       "c1f56c254f188d394fea0c0b9995ebf185c280aa1079233443c1eed1425d0239",
     "all/copy-overwrite/scripts/npm-updater-helper-graph.json":
-      "60cabe901481efe958d2cedc88a2452cce88aebcc72de969184b48884e631f27",
+      "24c58b0831c5af5186f91272a40135038c1697c540d9ed29997b640a84c25d60",
     "all/copy-overwrite/scripts/schemas/lisa-command-envelope.v1.schema.json":
       "d153b7c2953a30f180e38f09e98240c63327f5196eeba9bdf545e5a1f125a879",
     "all/copy-overwrite/scripts/schemas/lisa-state-contract.v1.schema.json":
@@ -321,7 +321,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/create-only/state/state-contract.example.json":
       "e7fd3cdc25b42c85a7e4d0e199d92b1442222f02cb9921b34334fb724625a6c2",
     "all/deletions.json":
-      "4a24e217d3a876b0874f7ece26eca1ed4d5e0daf9776d608bdc35efd5ae30680",
+      "ee7e164214b4355273b5f6571a31d79864ed589203c803665d7abf62030d3658",
     "all/github-rulesets/prevent-delete.json":
       "e4fb26390a8bfee34b27be5b369f376a1a9a00b797fd8d3ce51cb71facb826a4",
     "all/github-rulesets/protect-tags.json":
@@ -947,13 +947,13 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/commands/wiki/install.md":
       "51392cf053c17edd549bfbaba5d19ce669dc79021aafa7cfa100324ad38de11f",
     "plugins/src/base/hooks/auto-update.mjs":
-      "a1d362923eb274fa1102c7dc990940f0acc01ccc1881e409f1a36d7901f00ba5",
+      "91c7061635221798cf875ad4fbc17720192022395eb81b7e9feb067868989cac",
     "plugins/src/base/hooks/auto-update.sh":
       "4e09fb31e8d697b0f62d775b8b2bd4c535f9cfcf2423d99329cd4844a614b8af",
     "plugins/src/base/hooks/block-blind-automerge.agy.sh":
       "7a1263ea15df37a24d959944a9b9bfe579df189abf8e697f967bbaba9d3ffc90",
     "plugins/src/base/hooks/block-blind-automerge.sh":
-      "5a40256c38537993f25028e436653a0fc8b407d5f2914db13153b4c6940ea69d",
+      "6a23c0e60a9a33d21a481d24311fcbe493ac3610e9e88d490a6877fca66f9088",
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "7ec3db9a519a5ce95277d75ab347d2ee52970bc4ccb7ae554bccba8628290c19",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
@@ -971,11 +971,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.agy.sh":
       "19cda51fcc113f0b3c184d8907913ab4b49ecb81db80ce7909639194bc9c52d6",
     "plugins/src/base/hooks/block-managed-file-edits.sh":
-      "499f93b667d10c966f4a308a973743f9389220e49fc6d23b7bb14e3fb13c9246",
+      "a4944924ed0573f056b5d7c629be3a2d35c403f4424814ef5d8384d3205833cb",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
-      "43129c585f989221d3988d1b9041ac421587cf34f90d06646d62491ff2b61f33",
+      "1f29974a29ff7fa54e0231914140df0bbac98fe612d3f74d9b07ea84617fc01d",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "8087820d1d96f72fae8c7cbae2d6515a27f6d57625224fb9e357968af6b5d65b",
+      "79214397fcb11d56edb144c36ac8a4a060da261f397020c2f2952cf77015932b",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":
@@ -2489,7 +2489,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-shell-guard-refusal-coverage.mjs":
       "95e4086965dde95d0aa17cb3db64a94c9e2d21822039aaf89aad4a8acc99689e",
     "scripts/check-shipped-surface-removals.mjs":
-      "845603591a43d43f7d34cab0c8702f1d04d04020de7e3ad2c0a76a7c85cc4bf2",
+      "2ff9e161d101cc55ffe099f0a7b4fc83e023e79215ff09e53c5d0c889a9594bb",
     "scripts/check-state-classification.mjs":
       "26baaa85c0758fa41f1f66257f7d3a31ea4dd5cf17a9c0acaa3e89caaaf6265a",
     "scripts/check-template-workflow-refs.mjs":
@@ -9545,6 +9545,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "src/core/project-config.ts": true,
     "src/core/rails-deploy-production-intent.ts": true,
     "src/core/reconciliation-report.ts": true,
+    "src/core/retire-unmodified.ts": true,
     "src/core/reusable-workflow-pin.ts": true,
     "src/core/safe-relative-markdown-path.ts": true,
     "src/core/self-apply.ts": true,
@@ -9773,6 +9774,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/git-history-secrets/harness.mjs": true,
     "tests/fixtures/git-history-secrets/journey.mjs": true,
     "tests/fixtures/git-history-secrets/native-push.mjs": true,
+    "tests/fixtures/git-history-secrets/new-ref-destination.mjs": true,
     "tests/fixtures/git-history-secrets/package.mjs": true,
     "tests/fixtures/git-history-secrets/portable-evidence.mjs": true,
     "tests/fixtures/git-history-secrets/report-mode.mjs": true,
@@ -10134,6 +10136,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/release-strategy-tag-namespace.test.ts": true,
     "tests/integration/release-version-injection.test.ts": true,
     "tests/integration/required-checks-drift-removed.test.ts": true,
+    "tests/integration/retire-unmodified-deletion.test.ts": true,
     "tests/integration/reusable-workflow-caller-scopes.test.ts": true,
     "tests/integration/review-evidence-gate.test.ts": true,
     "tests/integration/review-evidence-template-policy.test.ts": true,
@@ -10603,6 +10606,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/core/project-config-nightly-e2e.test.ts": true,
     "tests/unit/core/project-config.test.ts": true,
     "tests/unit/core/rails-deploy-production-intent.test.ts": true,
+    "tests/unit/core/retire-unmodified.test.ts": true,
     "tests/unit/core/reusable-workflow-deliberate-pin.test.ts": true,
     "tests/unit/core/reusable-workflow-load-adapter.test.ts": true,
     "tests/unit/core/reusable-workflow-load-failure.test.ts": true,
@@ -10701,6 +10705,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/hooks/block-no-verify-file-reach.test.ts": true,
     "tests/unit/hooks/block-no-verify-missing-jq.test.ts": true,
     "tests/unit/hooks/block-no-verify-nested-shell-parity.test.ts": true,
+    "tests/unit/hooks/block-no-verify-pipe-stderr.test.ts": true,
     "tests/unit/hooks/block-no-verify-script-directory.test.ts": true,
     "tests/unit/hooks/block-no-verify-short-flag.test.ts": true,
     "tests/unit/hooks/block-no-verify.test.ts": true,
@@ -10996,6 +11001,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/github-governance.test.ts": true,
     "tests/unit/scripts/history-fixture-report-redaction.test.ts": true,
     "tests/unit/scripts/history-secret-contract.test.ts": true,
+    "tests/unit/scripts/history-secret-new-ref-range.test.ts": true,
     "tests/unit/scripts/history-secret-private-report.test.ts": true,
     "tests/unit/scripts/install-claude-plugins-self.test.ts": true,
     "tests/unit/scripts/invoked-as-script.test.ts": true,

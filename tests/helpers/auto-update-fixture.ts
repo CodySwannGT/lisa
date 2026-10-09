@@ -201,6 +201,16 @@ export function fakeRunner(
       () => (world.subjects ?? []).join("\n"),
     ],
     [line => line === "git rev-parse --short HEAD", () => "abc1234"],
+    [
+      line => line.startsWith("git hash-object -- "),
+      () =>
+        log.current
+          .at(-1)!
+          .slice("git hash-object -- ".length)
+          .split(" ")
+          .map((_, index) => String(index + 1).repeat(40))
+          .join("\n"),
+    ],
   ];
   const run = async (argv: string[]): Promise<string> => {
     const line = argv.join(" ");

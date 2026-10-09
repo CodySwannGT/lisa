@@ -12,6 +12,7 @@ import { runEvidenceCases } from "./portable-evidence.mjs";
 import { immutableCases } from "./graphs.mjs";
 import { errorCases, runTwoWorkers } from "./errors.mjs";
 import { graphCases, nativePushCases } from "./native-push.mjs";
+import { newRefDestinationCases } from "./new-ref-destination.mjs";
 import { reportModeCase } from "./report-mode.mjs";
 
 const harness = createHarness(process.argv.slice(2));
@@ -252,6 +253,7 @@ try {
   observations.push(...(await runEvidenceScans(harness, scanRequests)));
   if (!portable && !harness.args.includes("--evidence-only")) {
     const fixture = graphCases(harness);
+    newRefDestinationCases(harness, fixture);
     await reportModeCase(harness, fixture);
     errorCases(harness, fixture);
     nativePushCases(harness);

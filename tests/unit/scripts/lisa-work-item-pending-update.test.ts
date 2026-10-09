@@ -7,7 +7,17 @@
  * else swept into it, and no commit at all on a deploy branch.
  * @module tests/unit/scripts/lisa-work-item-pending-update
  */
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -19,6 +29,8 @@ import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 /** The work item being bound. */
 const REF = "o/r#7";
 /** Version the pending update moves to. */
+const PRE_COMMIT = "pre-commit";
+const HOOKS_PATH = "core.hooksPath";
 const TO = "4.68.0";
 /** The manifest the update changes. */
 const PKG = "package.json";
@@ -26,6 +38,8 @@ const PKG = "package.json";
 const LAST_SUBJECT = ["log", "-1", "--format=%s"];
 /** `git show` arguments listing the files the last commit touched. */
 const HEAD_FILES = ["show", "--name-only", "--format=", "HEAD"];
+/** Subject of the first fixture commit. */
+const INITIAL = "init";
 /** An unrelated feature edit sitting beside the pending update. */
 const FEATURE_FILE = "feature.ts";
 
@@ -59,6 +73,19 @@ function git(cwd: string, args: string[]): string {
 }
 
 /**
+ * The identity the auto-update records for a working-tree file: its git mode
+ * and blob id.
+ * @param root - Repository
+ * @param file - Repo-relative path
+ * @returns `"<mode> <blob>"`
+ */
+function blobOf(root: string, file: string): string {
+  const mode =
+    statSync(path.join(root, file)).mode & 0o111 ? "100755" : "100644";
+  return `${mode} ${git(root, ["hash-object", "--", file])}`;
+}
+
+/**
  * A repository on `branch` with a pending update to package.json and an
  * unrelated feature edit alongside it.
  * @param branch - Branch to sit on
@@ -74,16 +101,52 @@ function repoWithPendingUpdate(branch: string): string {
   writeFileSync(path.join(root, PKG), "{}\n");
   writeFileSync(path.join(root, FEATURE_FILE), "export {};\n");
   git(root, ["add", "-A"]);
-  git(root, ["commit", "--quiet", "-m", "init"]);
+  git(root, ["commit", "--quiet", "-m", INITIAL]);
   if (branch !== "main") git(root, ["checkout", "--quiet", "-b", branch]);
   writeFileSync(path.join(root, PKG), '{"v":1}\n');
   writeFileSync(path.join(root, FEATURE_FILE), "export const x = 1;\n");
   mkdirSync(path.join(root, ".git", "lisa"), { recursive: true });
+  writeMarker(root, { [PKG]: blobOf(root, PKG) });
+  return root;
+}
+
+/**
+ * Write the pending marker for package.json.
+ * @param root - Repository root
+ * @param digests - Recorded digests, or undefined for a legacy marker
+ */
+function writeMarker(
+  root: string,
+  digests: Record<string, string | null> | undefined
+): void {
   writeFileSync(
     markerFile(root),
-    JSON.stringify({ from: "4.66.5", to: TO, files: [PKG] })
+    JSON.stringify({
+      from: "4.66.5",
+      to: TO,
+      files: [PKG],
+      ...(digests ? { digests } : {}),
+    })
   );
-  return root;
+}
+
+/**
+ * Run the commit, capturing what it printed to stderr.
+ * @param root - Repository root
+ * @returns The stderr text
+ */
+function commitCapturingErrors(root: string): string {
+  const lines: string[] = [];
+  const original = console.error;
+  console.error = (...args: unknown[]): void => {
+    lines.push(args.map(String).join(" "));
+  };
+  try {
+    commitPendingLisaUpdate(REF, CONTRACT, root);
+  } finally {
+    console.error = original;
+  }
+  return lines.join("\n");
 }
 
 /** A contract whose only deploy branch is main. */
@@ -115,7 +178,7 @@ describe("lisa-work-item: a pending Lisa update is committed first", () => {
   it("never commits on a deploy branch", () => {
     const root = repoWithPendingUpdate("main");
     commitPendingLisaUpdate(REF, CONTRACT, root);
-    expect(git(root, LAST_SUBJECT)).toBe("init");
+    expect(git(root, LAST_SUBJECT)).toBe(INITIAL);
     expect(existsSync(markerFile(root))).toBe(true);
   });
 
@@ -126,6 +189,138 @@ describe("lisa-work-item: a pending Lisa update is committed first", () => {
     commitPendingLisaUpdate(REF, CONTRACT, root);
     expect(git(root, LAST_SUBJECT)).toBe("by hand");
     expect(existsSync(markerFile(root))).toBe(false);
+  });
+
+  it("does not sweep an edit made after the update into the update commit", () => {
+    const root = repoWithPendingUpdate("feat/x");
+    writeFileSync(path.join(root, PKG), '{"v":1,"mine":true}\n');
+    const errors = commitCapturingErrors(root);
+    expect(git(root, LAST_SUBJECT)).toBe(INITIAL);
+    expect(existsSync(markerFile(root))).toBe(true);
+    expect(errors).toContain(PKG);
+    expect(errors).toContain("NOT committed automatically");
+    expect(readFileSync(path.join(root, PKG), "utf8")).toBe(
+      '{"v":1,"mine":true}\n'
+    );
+  });
+
+  it("leaves an executable-bit change alone for a human", () => {
+    const root = repoWithPendingUpdate("feat/x");
+    chmodSync(path.join(root, PKG), 0o755);
+    commitPendingLisaUpdate(REF, CONTRACT, root);
+    expect(git(root, LAST_SUBJECT)).not.toBe(
+      `chore(deps): update Lisa to ${TO}`
+    );
+    expect(existsSync(markerFile(root))).toBe(true);
+  });
+
+  it("leaves a symlink retargeted at identical bytes alone for a human", () => {
+    const root = repoWithPendingUpdate("feat/x");
+    writeFileSync(path.join(root, "a.txt"), "same\n");
+    writeFileSync(path.join(root, "b.txt"), "same\n");
+    symlinkSync("a.txt", path.join(root, "link.txt"));
+    writeFileSync(
+      markerFile(root),
+      JSON.stringify({
+        from: "4.66.5",
+        to: TO,
+        files: ["link.txt"],
+        digests: { "link.txt": "120000 link:a.txt" },
+      })
+    );
+    rmSync(path.join(root, "link.txt"));
+    symlinkSync("b.txt", path.join(root, "link.txt"));
+    commitPendingLisaUpdate(REF, CONTRACT, root);
+    expect(git(root, LAST_SUBJECT)).not.toBe(
+      `chore(deps): update Lisa to ${TO}`
+    );
+    expect(existsSync(markerFile(root))).toBe(true);
+  });
+
+  it("leaves a legacy marker without digests for a human", () => {
+    const root = repoWithPendingUpdate("feat/x");
+    writeMarker(root, undefined);
+    const errors = commitCapturingErrors(root);
+    expect(git(root, LAST_SUBJECT)).toBe(INITIAL);
+    expect(existsSync(markerFile(root))).toBe(true);
+    expect(errors).toContain("cannot be proved unchanged");
+  });
+
+  it("undoes the commit when a file changes between the check and the commit", () => {
+    const root = repoWithPendingUpdate("feat/x");
+    // A hook that rewrites and re-stages a pending file stands in for any
+    // change landing after the comparison: `--only` reads paths at commit time.
+    const hook = path.join(root, ".git", "hooks", PRE_COMMIT);
+    mkdirSync(path.dirname(hook), { recursive: true });
+    writeFileSync(
+      hook,
+      `#!/bin/sh\nprintf '{"late":true}\\n' > ${PKG}\ngit add ${PKG}\n`,
+      { mode: 0o755 }
+    );
+    git(root, ["config", HOOKS_PATH, hook.slice(0, -"/pre-commit".length)]);
+    const errors = commitCapturingErrors(root);
+    expect(errors).toContain("changed while it was being committed");
+    expect(git(root, LAST_SUBJECT)).toBe(INITIAL);
+    expect(existsSync(markerFile(root))).toBe(true);
+  });
+
+  it("says the commit landed when it cannot be undone", () => {
+    const root = repoWithPendingUpdate("feat/x");
+    const hooks = path.join(root, ".git", "hooks");
+    mkdirSync(hooks, { recursive: true });
+    writeFileSync(
+      path.join(hooks, PRE_COMMIT),
+      `#!/bin/sh\nprintf '{"late":true}\\n' > ${PKG}\ngit add ${PKG}\n`,
+      { mode: 0o755 }
+    );
+    // Refuse any ref update back to the starting commit, so the undo fails.
+    const start = git(root, ["rev-parse", "HEAD"]);
+    writeFileSync(
+      path.join(hooks, "reference-transaction"),
+      `#!/bin/sh\n[ "$1" = prepared ] || exit 0\nwhile read -r old new ref; do [ "$new" = "${start}" ] && exit 1; done\nexit 0\n`,
+      { mode: 0o755 }
+    );
+    git(root, ["config", HOOKS_PATH, hooks]);
+    const errors = commitCapturingErrors(root);
+    expect(errors).toContain(
+      "committed as HEAD, but it could not be verified or undone"
+    );
+    expect(errors).not.toContain("could not be committed");
+  });
+
+  it("restores what the user had staged when the commit fails", () => {
+    const root = repoWithPendingUpdate("feat/x");
+    // The user staged an earlier version of package.json before binding.
+    writeFileSync(path.join(root, PKG), '{"v":0}\n');
+    git(root, ["add", PKG]);
+    const staged = git(root, ["rev-parse", `:${PKG}`]);
+    writeFileSync(path.join(root, PKG), '{"v":1}\n');
+    // A pending file that was never in the index.
+    const fresh = "fresh.json";
+    writeFileSync(path.join(root, fresh), "{}\n");
+    writeFileSync(
+      markerFile(root),
+      JSON.stringify({
+        from: "4.66.5",
+        to: TO,
+        files: [PKG, fresh],
+        digests: {
+          [PKG]: blobOf(root, PKG),
+          [fresh]: blobOf(root, fresh),
+        },
+      })
+    );
+    const hook = path.join(root, ".git", "hooks", PRE_COMMIT);
+    mkdirSync(path.dirname(hook), { recursive: true });
+    writeFileSync(hook, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+    // Repository-local, so a global hooksPath on the runner cannot bypass it.
+    git(root, ["config", HOOKS_PATH, hook.slice(0, -"/pre-commit".length)]);
+    const errors = commitCapturingErrors(root);
+    expect(errors).toContain("could not be committed");
+    expect(errors).not.toContain("also failed");
+    expect(git(root, LAST_SUBJECT)).toBe(INITIAL);
+    expect(git(root, ["rev-parse", `:${PKG}`])).toBe(staged);
+    expect(git(root, ["ls-files", "--", fresh])).toBe("");
   });
 
   it("does nothing when no update is pending", () => {

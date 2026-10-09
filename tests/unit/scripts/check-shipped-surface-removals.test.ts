@@ -311,6 +311,28 @@ describe("findGoverningDeletion", () => {
     ["cdk", { deleted: new Set(["docs/child.md"]), force: new Map() }],
   ]);
 
+  it("treats an unmodified-only retirement as governing a bindable script", () => {
+    const retiring = new Map([
+      [
+        "all",
+        {
+          deleted: new Set([BINDABLE_DESTINATION]),
+          force: new Map(),
+          retireUnmodified: new Set([BINDABLE_DESTINATION]),
+        },
+      ],
+    ]);
+    const deletion = findGoverningDeletion(
+      "typescript",
+      BINDABLE_DESTINATION,
+      retiring
+    );
+    expect(deletion).toEqual({ by: "all", forced: true });
+    expect(
+      classifyRemovedPath(BINDABLE_DESTINATION, deletion, false)
+    ).toBeNull();
+  });
+
   it("finds a deletion declared by the stack's own manifest", () => {
     expect(
       findGoverningDeletion("typescript", FORCED_DESTINATION, manifests)

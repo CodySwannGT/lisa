@@ -211,6 +211,7 @@ if [ -z "$command_str" ]; then
 fi
 
 if ! BLOCK_BLIND_AUTOMERGE_COMMAND="$command_str" python3 - <<'PY'
+import io
 import json
 import os
 import re
@@ -244,7 +245,41 @@ MERGE_SEPARATE_VALUE = {
 
 COMMAND_SEPARATORS = {
     ";", "|", "||", "&", "&&", "(", ")", "<", ">", ">>", "<<", "&|",
+    # `|&` pipes stdout AND stderr into the next command, so it ends a command
+    # exactly as `|` does. shlex emits it as one token, and before it was listed
+    # here `echo hi |& git commit --no-verify` read as a single `echo` command
+    # whose arguments happened to include git. The case terminators end a
+    # command the same way.
+    "|&", ";;", ";&", ";;&",
 }
+# shlex also GLUES adjacent punctuation into one token across distinct
+# operators: `(echo hi)|&git ...` arrives as `)|&`, which no set membership
+# test can recognise. An operator-only token is therefore re-split into the
+# operators it is made of, longest first. Redirections are kept whole and are
+# deliberately NOT separators, so `git commit 2>&1 -n` keeps its `-n` inside the
+# commit's argv scope.
+OPERATOR_ONLY = re.compile(r"^[();<>|&]+$")
+SHELL_OPERATOR = re.compile("|".join(
+    re.escape(operator) for operator in sorted(
+        COMMAND_SEPARATORS | {">|", "&>", "&>>", ">&", "<&", "<>", "<<<"},
+        key=lambda operator: (-len(operator), operator),
+    )
+))
+
+
+def split_operators(token):
+    """Split a glued operator-only token into the shell operators it holds.
+
+    Args:
+        token: One shlex token that was not read inside a quote or escape.
+
+    Returns:
+        The operators, longest first, or the token itself when it is not
+        made only of shell punctuation.
+    """
+    if OPERATOR_ONLY.match(token):
+        return SHELL_OPERATOR.findall(token)
+    return [token]
 
 # Shell wrappers whose `-c` argument is a command in a string rather than argv.
 # The outer argv names bash, so the arming is invisible without recursing once.
@@ -422,12 +457,40 @@ def shell_tokens(text):
     Returns:
         The token list, with `;`, `|`, `&&`, `(` and friends standing alone.
     """
-    lexer = shlex.shlex(
-        line_boundaries_as_separators(text), posix=True, punctuation_chars=True
-    )
+    stream = OperatorStream(line_boundaries_as_separators(text))
+    lexer = shlex.shlex(stream, posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
     lexer.commenters = ""
-    return list(lexer)
+    stream.lexer = lexer
+    tokens = []
+    while True:
+        stream.literal_operator = False
+        token = lexer.get_token()
+        if token is None:
+            return tokens
+        # Quoted punctuation is an argument, never a boundary: a branch can be
+        # named `|&`, and `gh pr merge '|&' --auto` must keep `--auto` in the
+        # merge's own argv. Only real operator runs are split.
+        if stream.literal_operator:
+            tokens.append(
+                chr(0) + token if token in COMMAND_SEPARATORS else token
+            )
+        else:
+            tokens.extend(split_operators(token))
+
+
+class OperatorStream(io.StringIO):
+    """Remember punctuation read while shlex is inside a quote or escape."""
+
+    lexer = None
+    literal_operator = False
+
+    def read(self, size=-1):
+        value = super().read(size)
+        if (self.lexer is not None and self.lexer.state in {"'", '"', chr(92)}
+                and any(char in "();|&<>" for char in value)):
+            self.literal_operator = True
+        return value
 
 
 def is_gh(token):
@@ -493,6 +556,22 @@ def arms_auto_merge(argv):
     return False
 
 
+def literal_value(token):
+    """The argument a token stands for, without the quoted-separator marker.
+
+    `shell_tokens` prefixes a QUOTED separator with NUL so no scan stops at it.
+    That marker is for boundary checks only: a value handed to a gh probe
+    (a selector, a base ref, a repo) must be the argument the shell passes.
+
+    Args:
+        token: One token from `shell_tokens`.
+
+    Returns:
+        The token as the shell would pass it.
+    """
+    return token[1:] if token.startswith(chr(0)) else token
+
+
 def pr_selector(argv, separate_value=MERGE_SEPARATE_VALUE):
     """The PR the command names, as gh itself would read it.
 
@@ -518,7 +597,7 @@ def pr_selector(argv, separate_value=MERGE_SEPARATE_VALUE):
             index += 1
             continue
         if not token.startswith("-"):
-            return token
+            return literal_value(token)
     return None
 
 
@@ -538,7 +617,7 @@ def retarget_target(argv):
         if token in COMMAND_SEPARATORS:
             return None
         if token in BASE_FLAGS and index < len(argv):
-            return argv[index]
+            return literal_value(argv[index])
         if token.startswith("--base="):
             return token.split("=", 1)[1]
         if token in EDIT_SEPARATE_VALUE:
@@ -562,7 +641,7 @@ def repo_flag(tokens, start):
         if token in COMMAND_SEPARATORS:
             break
         if token in {"-R", "--repo"} and index + 1 < len(tokens):
-            return ["--repo", tokens[index + 1]]
+            return ["--repo", literal_value(tokens[index + 1])]
         if token.startswith("--repo="):
             return ["--repo", token.split("=", 1)[1]]
         index += 1

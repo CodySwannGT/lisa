@@ -112,10 +112,14 @@ function hostRoot(): string {
     JSON.stringify({ name: "@codyswann/lisa", version: DISPATCHER_VINTAGE })
   );
   for (const guard of GUARDS) {
-    writeFileSync(path.join(hooks, `${guard}.sh`), "#!/bin/bash\nexit 0\n", {
+    // The stub drains its stdin like every real guard. One that exits without
+    // reading races the dispatcher's `printf | bash`, and under load the
+    // writer takes SIGPIPE, which pipefail reports as exit 141.
+    const body = "#!/bin/bash\ncat >/dev/null\nexit 0\n";
+    writeFileSync(path.join(hooks, `${guard}.sh`), body, {
       mode: 0o755,
     });
-    writeFileSync(path.join(templates, `${guard}.sh`), "#!/bin/bash\nexit 0\n");
+    writeFileSync(path.join(templates, `${guard}.sh`), body);
   }
   mkdirSync(path.join(root, ".lisa"), { recursive: true });
   writeFileSync(

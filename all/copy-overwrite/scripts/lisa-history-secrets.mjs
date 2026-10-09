@@ -41,9 +41,23 @@ export const main = async (
     const scannerIndex = args.indexOf("--scanner");
     const scanner = scannerIndex < 0 ? undefined : args[scannerIndex + 1];
     const mode = args[0];
+    // Git hands a pre-push hook the remote's name (or URL) and URL as $1/$2.
+    // Both are optional so an older wrapper that forwards neither keeps the
+    // complete-history scan; neither may look like an option.
+    const remoteArgs =
+      mode === "pre-push"
+        ? args.slice(1, scannerIndex < 0 ? undefined : scannerIndex)
+        : [];
     const accepted =
       mode === "pre-push"
-        ? ["pre-push", ...(scanner ? ["--scanner", scanner] : [])]
+        ? [
+            "pre-push",
+            ...(remoteArgs.length <= 2 &&
+            remoteArgs.every(value => value !== "" && !value.startsWith("-"))
+              ? remoteArgs
+              : []),
+            ...(scanner ? ["--scanner", scanner] : []),
+          ]
         : [
             "ci",
             ...(args[1] === "--event"
@@ -56,7 +70,7 @@ export const main = async (
       !["pre-push", "ci"].includes(mode)
     )
       throw new HistorySecretError(
-        "Invalid scanner command. Use pre-push with actual stdin or ci --event <event-json> --event-name <push|pull_request>; optional --scanner <pinned-executable>."
+        "Invalid scanner command. Use pre-push [<remote> [<url>]] with actual stdin or ci --event <event-json> --event-name <push|pull_request>; optional --scanner <pinned-executable>."
       );
     const width = objectWidth(cwd);
     let pairs;
@@ -87,7 +101,7 @@ export const main = async (
         width
       );
     }
-    const commits = introducedCommits(pairs, cwd, width);
+    const commits = introducedCommits(pairs, cwd, width, remoteArgs);
     if (commits.length === 0) {
       console.log("No introduced history. Scanner was not run.");
       return 0;

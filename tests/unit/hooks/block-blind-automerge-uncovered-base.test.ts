@@ -193,6 +193,9 @@ describe("block-blind-automerge.sh — uncovered base", () => {
         "a title whose value could be read as the selector",
         `gh pr edit --title "fix 12" 3922 --base ${STACK_BASE}`,
       ],
+      // A quoted separator is a legal branch name and must reach the probe as
+      // itself, not with the tokenizer's boundary marker attached.
+      ["a quoted |& base", "gh pr edit 3922 --base '|&'"],
     ])("refuses %s", (_label, command) => {
       const { bin } = routingGh({
         pr: CHECK_BLOCKED_PR,
