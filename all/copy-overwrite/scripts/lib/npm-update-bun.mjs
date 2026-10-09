@@ -112,7 +112,10 @@ export async function qualifiedBun(env, { executable, deadline } = {}) {
   return invoke;
 }
 
-/** Native JSONC parsing is data-only; every Bun package must match a public npm lock identity. */
+/**
+ * Native JSONC parsing is data-only; every Bun package must match a public npm lock identity.
+ * npm aliases record their real registry name separately from the installation path.
+ */
 export async function verifyBunLock(bun, app, options = {}) {
   const text = readBytes(join(app, "bun.lock"), 1_048_576, false);
   const parsed = await bun(
@@ -156,7 +159,8 @@ export async function verifyBunLock(bun, app, options = {}) {
     );
     const matching = nodes.some(
       ([path, node]) =>
-        row[0] === `${path.split("node_modules/").at(-1)}@${node.version}` &&
+        row[0] ===
+          `${node.name ?? path.split("node_modules/").at(-1)}@${node.version}` &&
         row[3] === node.integrity &&
         (row[1] === "" || row[1] === node.resolved)
     );

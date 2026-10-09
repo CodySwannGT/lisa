@@ -233,7 +233,7 @@
       "children": []
     },
     "lib/npm-update-bun.mjs": {
-      "sha256": "898cdafe2e119b9c3004ea55ae222d2f33d8b668020cda09e90184474055a676",
+      "sha256": "0329fde91a497e8ec527b9c7d8ade979cc637f63a796fbb4b9b8b9a480f06739",
       "staticImports": [
         "lib/automation-provenance-contract.mjs",
         "lib/github-attestation-verifier.mjs",
