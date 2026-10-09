@@ -553,6 +553,22 @@ def arms_auto_merge(argv):
     return False
 
 
+def literal_value(token):
+    """The argument a token stands for, without the quoted-separator marker.
+
+    `shell_tokens` prefixes a QUOTED separator with NUL so no scan stops at it.
+    That marker is for boundary checks only: a value handed to a gh probe
+    (a selector, a base ref, a repo) must be the argument the shell passes.
+
+    Args:
+        token: One token from `shell_tokens`.
+
+    Returns:
+        The token as the shell would pass it.
+    """
+    return token[1:] if token.startswith(chr(0)) else token
+
+
 def pr_selector(argv, separate_value=MERGE_SEPARATE_VALUE):
     """The PR the command names, as gh itself would read it.
 
@@ -578,7 +594,7 @@ def pr_selector(argv, separate_value=MERGE_SEPARATE_VALUE):
             index += 1
             continue
         if not token.startswith("-"):
-            return token
+            return literal_value(token)
     return None
 
 
@@ -598,7 +614,7 @@ def retarget_target(argv):
         if token in COMMAND_SEPARATORS:
             return None
         if token in BASE_FLAGS and index < len(argv):
-            return argv[index]
+            return literal_value(argv[index])
         if token.startswith("--base="):
             return token.split("=", 1)[1]
         if token in EDIT_SEPARATE_VALUE:
@@ -622,7 +638,7 @@ def repo_flag(tokens, start):
         if token in COMMAND_SEPARATORS:
             break
         if token in {"-R", "--repo"} and index + 1 < len(tokens):
-            return ["--repo", tokens[index + 1]]
+            return ["--repo", literal_value(tokens[index + 1])]
         if token.startswith("--repo="):
             return ["--repo", token.split("=", 1)[1]]
         index += 1

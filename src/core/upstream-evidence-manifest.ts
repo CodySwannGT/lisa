@@ -239,7 +239,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-history-secrets.mjs":
       "815fd6403aed6194d30939b59dc5ce894f7122a9da598acee4cd529a1b520de3",
     "all/copy-overwrite/scripts/lisa-hooks/block-blind-automerge.sh":
-      "f7fb93926497fb4daf40cc482375d41647f87398974a542b51449cd5ef9f6cd9",
+      "86c5d99fa55d83633e8cb025689925d68dc7b708f559e0395d5828e4710c8082",
     "all/copy-overwrite/scripts/lisa-hooks/block-direct-issue-create.sh":
       "99d33488d2ae8617a6a680f8d54ec5cb1ed3fbdebd8950145cad78c879cbfae8",
     "all/copy-overwrite/scripts/lisa-hooks/block-instruction-file-edits.sh":
@@ -247,7 +247,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-hooks/block-managed-file-edits.sh":
       "027b3c891860c101ff748d1f126de72c4920b6eb8ac2dda81aa016af61ca18cf",
     "all/copy-overwrite/scripts/lisa-hooks/block-no-verify.sh":
-      "43eaa1779759be3ecd35efeb787796cb7b367a110f2b2846fad2c5add7809854",
+      "74ef6acdbb278a6ac2bfd569b885c55c0ee9a13a21b4f2fa0a6de866c592934d",
     "all/copy-overwrite/scripts/lisa-hooks/block-shell-json-parsing.sh":
       "865f89d7504a7d1c3380449a2790801c60c1cfe5fa8f1aad54ffc51aa8d0cc7f",
     "all/copy-overwrite/scripts/lisa-hooks/discharge-work-item-gates.sh":
@@ -951,7 +951,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-blind-automerge.agy.sh":
       "7a1263ea15df37a24d959944a9b9bfe579df189abf8e697f967bbaba9d3ffc90",
     "plugins/src/base/hooks/block-blind-automerge.sh":
-      "ca35a9ec2e2baebe43067c73758cbf82e61a9f199bb731df054264499e5c88d5",
+      "6a23c0e60a9a33d21a481d24311fcbe493ac3610e9e88d490a6877fca66f9088",
     "plugins/src/base/hooks/block-direct-issue-create.agy.sh":
       "7ec3db9a519a5ce95277d75ab347d2ee52970bc4ccb7ae554bccba8628290c19",
     "plugins/src/base/hooks/block-direct-issue-create.sh":
@@ -971,9 +971,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/hooks/block-managed-file-edits.sh":
       "a4944924ed0573f056b5d7c629be3a2d35c403f4424814ef5d8384d3205833cb",
     "plugins/src/base/hooks/block-no-verify.agy.sh":
-      "95ca2fe439acab097085a7d7aaf91cebb195cc28589a334b1e583c2321c78aef",
+      "1f29974a29ff7fa54e0231914140df0bbac98fe612d3f74d9b07ea84617fc01d",
     "plugins/src/base/hooks/block-no-verify.sh":
-      "2fdaf389378d3ee8b361a855820a02c3d2d16d9efe5876d47bd528dc1c0ad19d",
+      "79214397fcb11d56edb144c36ac8a4a060da261f397020c2f2952cf77015932b",
     "plugins/src/base/hooks/block-shell-json-parsing.agy.sh":
       "dc688efe382e7b8fe6f6c88bb0fde851527128cae778599559f23a93f1c9ec86",
     "plugins/src/base/hooks/block-shell-json-parsing.sh":

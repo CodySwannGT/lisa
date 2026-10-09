@@ -4,8 +4,9 @@
  *
  * CodySwannGT/lisa#4393: a new-branch push used to scan everything reachable
  * from its tip, so a finding in a years-old commit the remote already held
- * failed every new branch. The range now subtracts the push remote's tracking
- * refs, and still includes every commit the remote does not have (#4345).
+ * failed every new branch. The range now subtracts the tips the push
+ * destination itself advertises (ls-remote), never local tracking refs, and
+ * still includes every commit the destination does not have (#4345).
  * @module tests/history-secrets
  */
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";

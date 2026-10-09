@@ -1096,6 +1096,10 @@ def resolve_script(token):
     """
     if COMPUTED_VALUE.search(token):
         return (None, "a computed path the guard cannot resolve before the shell does")
+    # A quoted separator carries a NUL marker from shell_tokens; the path the
+    # shell passes is the argument without it.
+    if token.startswith(chr(0)):
+        token = token[1:]
     text = os.path.expanduser(token.strip().strip("'\""))
     # `bash -` and a bare `-` read the script from stdin; there is no file.
     if not text or text == "-":
