@@ -8,17 +8,16 @@
  */
 import { required, keys } from "./npm-update-invariants.mjs";
 export { UpdaterError, required, keys } from "./npm-update-invariants.mjs";
-import {
-  canonicalJson,
-  npmBindingKey,
-  npmProposalIdentity,
-} from "../lisa-automation-provenance.mjs";
+import { canonicalJson } from "../lisa-automation-provenance.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
 import {
   optionalLockFields,
+  optionalRuntimeFields,
   proposalFileNames,
+  signedProposalFields,
 } from "./automation-provenance-contract.mjs";
 export { proposalFileNames } from "./automation-provenance-contract.mjs";
+import { runtimeBinding } from "./npm-update-rails-runtime-contract.mjs";
 
 export const FILES = ["package-lock.json", "package.json"];
 export const SECTIONS = [
@@ -28,71 +27,9 @@ export const SECTIONS = [
 ];
 export const CLAIM =
   "[lisa-tracker-claim] Claimed by Lisa. Starting implementation.";
-export const NAME = /^(?:@[a-z0-9][a-z0-9_.-]*\/)?[a-z0-9][a-z0-9_.-]*$/;
-export const VERSION =
-  /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[A-Za-z0-9.-]+)?$/;
+export { NAME, VERSION, validatePolicy } from "./npm-update-policy.mjs";
+import { VERSION } from "./npm-update-policy.mjs";
 export const OBJECT = /^[a-f0-9]{40}$/;
-
-/** Configured tracking and an explicit owner are prerequisites, never inferred. */
-export function validatePolicy(value, config) {
-  keys(value, [
-    "version",
-    "repository",
-    "directory",
-    "target",
-    "maintainer",
-    "packages",
-    "lisaOwner",
-  ]);
-  required(
-    value.version === 1 && value.directory === "." && value.target === "main",
-    "only root npm on main is supported"
-  );
-  required(
-    config.tracker === "github" &&
-      value.repository === `${config.github?.org}/${config.github?.repo}`,
-    "configured repository/tracker differs"
-  );
-  required(
-    /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(value.repository),
-    "invalid repository"
-  );
-  required(
-    typeof value.maintainer === "string" &&
-      /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/.test(value.maintainer),
-    "explicit assignable maintainer required"
-  );
-  required(
-    ["absent", "verified-local-full-apply"].includes(value.lisaOwner),
-    "Lisa requires a verified local full-apply owner"
-  );
-  required(
-    Array.isArray(value.packages) &&
-      value.packages.length > 0 &&
-      value.packages.length <= 64,
-    "invalid package selection"
-  );
-  const names = new Set();
-  for (const selection of value.packages) {
-    keys(selection, ["name", "version"]);
-    required(
-      typeof selection.name === "string" &&
-        selection.name.length <= 214 &&
-        NAME.test(selection.name),
-      "invalid npm name"
-    );
-    required(
-      typeof selection.version === "string" && VERSION.test(selection.version),
-      "exact registry version required"
-    );
-    required(
-      !names.has(selection.name) && selection.name !== "@codyswann/lisa",
-      "duplicate selection or Lisa version-only update"
-    );
-    names.add(selection.name);
-  }
-  return structuredClone(value);
-}
 
 /** Host declarations are checked before npm or lifecycle execution. */
 export function validateHost(before) {
@@ -249,7 +186,10 @@ export function proposalFrom(
   bunLockSha256
 ) {
   required(OBJECT.test(parent), "unsupported Git parent or object format");
-  const optional = bunLockSha256 === undefined ? {} : { bunLockSha256 };
+  const optional = {
+    ...(bunLockSha256 === undefined ? {} : { bunLockSha256 }),
+    ...runtimeBinding(policy),
+  };
   const names = proposalFileNames({ files, ...optional });
   for (const value of Object.values(files))
     required(
@@ -261,21 +201,29 @@ export function proposalFrom(
   validateManifest(before, after, updates, policy);
   validateLock(lock, after, updates);
   const ordered = [...updates].sort((a, b) => a.name.localeCompare(b.name));
-  // Both keys come from the same derivations the commit-time verifier uses,
-  // so a field bound here can never be missing from the re-derivation there.
-  const fields = { parent, updates: ordered, ...optional };
-  const identity = npmProposalIdentity(
-    policy.repository,
-    policy.target,
-    sha256(canonicalJson(policy)),
-    fields
-  );
+  const identity = {
+    repository: policy.repository,
+    target: policy.target,
+    ecosystem: "npm",
+    directory: ".",
+    parent,
+    policySha256: sha256(canonicalJson(policy)),
+    updates: ordered,
+    ...optional,
+  };
   return {
     version: 1,
     ...identity,
     selectionKey: selectionKey(policy, ordered),
     key: sha256(canonicalJson(identity)),
-    bindingKey: npmBindingKey(policy.repository, fields),
+    bindingKey: sha256(
+      canonicalJson({
+        repository: policy.repository,
+        parent,
+        updates: ordered,
+        ...signedProposalFields(optional),
+      })
+    ),
     before,
     files,
     hashes: Object.fromEntries(names.map(file => [file, sha256(files[file])])),
@@ -300,6 +248,7 @@ export function validateProposal(value, policy) {
     "files",
     "hashes",
     ...optionalLockFields(value),
+    ...optionalRuntimeFields(value),
   ]);
   const expected = proposalFrom(
     policy,

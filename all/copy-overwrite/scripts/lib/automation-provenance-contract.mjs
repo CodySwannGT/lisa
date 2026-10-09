@@ -36,6 +36,25 @@ export function optionalLockFields(value) {
   return ["bunLockSha256"];
 }
 
+/** Optional runtime authority is a digest, never an unsigned executable profile. */
+export function optionalRuntimeFields(value) {
+  if (!Object.hasOwn(value, "runtimeSha256")) return [];
+  requireProof(
+    typeof value.runtimeSha256 === "string" && HEX.test(value.runtimeSha256),
+    "invalid original Rails runtime digest"
+  );
+  return ["runtimeSha256"];
+}
+
+/** One exact optional projection preserves historical keys at producer and verifier boundaries. */
+export function signedProposalFields(value) {
+  return Object.fromEntries(
+    [...optionalLockFields(value), ...optionalRuntimeFields(value)].map(
+      name => [name, value[name]]
+    )
+  );
+}
+
 /** Signed original presence selects one closed two- or three-file cohort. */
 export function proposalFileNames(value) {
   const files = optionalLockFields(value).length

@@ -146,6 +146,7 @@ export async function publishProposal({
   required(
     descriptor.parent === proposal.parent &&
       descriptor.proposalKey === proposal.bindingKey &&
+      descriptor.runtimeSha256 === proposal.runtimeSha256 &&
       canonicalJson(descriptor.files) === canonicalJson(proposal.hashes) &&
       canonicalJson(descriptor.updates) === canonicalJson(proposal.updates) &&
       descriptor.workItem === allocation.workItem &&

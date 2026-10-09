@@ -7,6 +7,8 @@ import { createHash } from "node:crypto";
 import { lstatSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { commitFixture } from "./harness.mjs";
+import { proveCredentialParagraphRefusal } from "./native-push.mjs";
 
 const REPORT = "permission-report.json";
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
@@ -186,5 +188,150 @@ export const reportModeCase = async (harness, fixture) => {
     throw new Error(
       "Actual scanner report permission/redaction witness failed; raw proof withheld."
     );
+  }
+};
+
+/**
+ * Require exact native status, selected commits and original finding attribution.
+ * @param harness - Bounded native fixture operations
+ * @param fixture - Exact expected status and source coordinates
+ * @returns Actual bounded native observation after every original assertion
+ */
+export const scanImmutableCase = (harness, fixture) => {
+  const { cwd, name, expected, before, head, target } = fixture;
+  const { git, command, emitted, scanner, requireFact, observations } = harness;
+  const selectedCommits = git(cwd, "rev-list", `${before}..${head}`)
+    .split("\n")
+    .filter(Boolean);
+  const result = command(
+    process.execPath,
+    [join(emitted, harness.SCANNER_ENTRY), "pre-push", "--scanner", scanner],
+    cwd,
+    `refs/heads/fixture ${head} refs/heads/fixture ${before}\n`
+  );
+  const report = (() => {
+    requireFact(
+      result.status === expected,
+      `${name}: immutable verdict differs; raw output withheld.`
+    );
+    return JSON.parse(result.stdout);
+  })();
+  requireFact(
+    report.version === "8.30.1" &&
+      report.commits === selectedCommits.length &&
+      !report.findings.some(row => row.commit === fixture.legacyCommit) &&
+      (expected === 0
+        ? report.findings.length === 0
+        : report.findings.some(
+            row =>
+              row.rule === "generic-api-key" &&
+              row.commit === target.commit &&
+              row.line === target.line
+          )),
+    `${name}: actual default scanner coverage missing.`
+  );
+  if (fixture.targets)
+    requireFact(
+      report.findings.every(
+        row =>
+          row.rule === "generic-api-key" &&
+          row.commit === fixture.origin &&
+          fixture.targets.some(target => target.line === row.line)
+      ) &&
+        (fixture.findingsCount === undefined ||
+          report.findings.length === fixture.findingsCount),
+      `${name}: complete actual detector attribution differs.`
+    );
+  observations.push({
+    name,
+    exit: result.status,
+    expected,
+    selectedCommits: selectedCommits.length,
+    preimagesVerified: fixture.preimagesVerified ?? 0,
+    legacyPreimageVerified: fixture.legacyPreimageVerified ?? false,
+    ...(fixture.budget
+      ? { budget: fixture.budget, findingsCount: report.findings.length }
+      : {}),
+  });
+  return observations.at(-1);
+};
+
+/**
+ * Exercise all eight full-paragraph positive and refusal controls.
+ * @param harness - Private fixture operations
+ * @param group - Exact narrative partition
+ */
+export const immutableNarrativeCases = (harness, group) => {
+  const { values, initialize, write } = harness;
+  if (group.startsWith("narrative")) {
+    const phrase =
+      "AccessDenied boundaries" + ", Disk/missing/corrupt falsifications";
+    const credentialParagraph = `password: ${phrase}, while describing the example.\n`;
+    values.push("Disk/missing/corrupt");
+    const narrativeCases =
+      group === "narrative"
+        ? [
+            [
+              "immutable-larger-paragraph",
+              `These controls establish validation.\nThey cover ${phrase},\nand the \`node probe\` invocation while preserving detection.\n`,
+              0,
+            ],
+            [
+              "immutable-quoted-paragraph",
+              `These controls report '${phrase},' as the example.\n`,
+              42,
+            ],
+            [
+              "immutable-inline-paragraph",
+              `These controls report \`${phrase},\` as the example.\n`,
+              42,
+            ],
+            [
+              "immutable-linked-paragraph",
+              `These controls report [${phrase},](https://example.invalid) as the example.\n`,
+              42,
+            ],
+          ]
+        : [
+            [
+              "immutable-lazy-blockquote",
+              `> These controls are quoted.\nThey cover ${phrase}, while describing the example.\n`,
+              42,
+            ],
+            [
+              "immutable-credential-field-prose",
+              `password:\nThese controls cover ${phrase}, while describing the example.\n`,
+              42,
+            ],
+            [
+              "immutable-unrelated-quotation",
+              `These controls use "ordinary examples".\nThey cover ${phrase},\nand the \`node probe\` invocation while preserving detection.\n`,
+              0,
+            ],
+            [
+              "immutable-fenced-paragraph",
+              `\`\`\`text\nThese controls cover ${phrase}, while describing the example.\n\`\`\`\n`,
+              42,
+            ],
+          ];
+    for (const [name, text, expected] of narrativeCases) {
+      if (name === "immutable-credential-field-prose")
+        proveCredentialParagraphRefusal(harness, credentialParagraph);
+      const { cwd, base } = initialize(name);
+      write(cwd, "evidence/validation.md", text);
+      const head = commitFixture(harness, cwd);
+      scanImmutableCase(harness, {
+        cwd,
+        name,
+        expected,
+        before: base,
+        head,
+        target: {
+          commit: head,
+          line: text.slice(0, text.indexOf("Disk/missing/corrupt")).split("\n")
+            .length,
+        },
+      });
+    }
   }
 };

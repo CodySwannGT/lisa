@@ -12,6 +12,11 @@ on:
         type: string
         default: '11.21.0'
         required: false
+      runtime-profile:
+        description: Affirm committed signed runtime selection (none or rails-mysql)
+        type: string
+        default: 'none'
+        required: false
       cancel_issue:
         description: Explicit stale prepublication proposal issue to cancel
         type: string
@@ -35,6 +40,7 @@ concurrency:
 
 env:
   NPM_VERSION: ${{ inputs.npm-version }}
+  LISA_NPM_RUNTIME_PROFILE: ${{ inputs.runtime-profile }}
 
 jobs:
   workflow_contract:

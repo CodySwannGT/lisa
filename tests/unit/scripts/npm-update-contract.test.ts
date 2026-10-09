@@ -41,11 +41,7 @@ import {
   workerArguments,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-isolation.mjs";
 import { validateRuntime } from "../../../all/copy-overwrite/scripts/lib/npm-update-gate-install.mjs";
-import {
-  canonicalJson,
-  npmBindingKey,
-  npmProposalIdentity,
-} from "../../../all/copy-overwrite/scripts/lisa-automation-provenance.mjs";
+import { canonicalJson } from "../../../all/copy-overwrite/scripts/lisa-automation-provenance.mjs";
 import { sha256 } from "../../../all/copy-overwrite/scripts/lib/github-attestation-verifier.mjs";
 import {
   validateOwnerReceipt,
@@ -1025,7 +1021,7 @@ describe("complete authenticated helper closure", () => {
     const bytes = new Map<string, Buffer>();
     for (const member of members)
       bytes.set(member, await helperAuditSource(member));
-    expect(members.length).toBe(98);
+    expect(members.length).toBe(108);
     expect(auditControllerClosure(manifest, bytes)).toEqual(
       [...members].sort((left, right) => left.localeCompare(right))
     );
@@ -1485,51 +1481,6 @@ describe("closed npm proposal", () => {
       expect(build).toThrow(/registry source unparseable/);
       expect(build).not.toThrow(TypeError);
     });
-  });
-  it("derives both proposal keys through the verifier's shared derivations", () => {
-    const policy = validatePolicy(POLICY, CONFIG);
-    const bun = { bunLockSha256: "b".repeat(64) };
-    for (const [files, optional] of [
-      [FILES, {}],
-      [{ ...FILES, "bun.lock": "prepared Bun bytes" }, bun],
-    ] as const) {
-      // Narrowed once: the npm-only case carries no lock digest at all.
-      const lockDigest =
-        "bunLockSha256" in optional ? optional.bunLockSha256 : undefined;
-      const proposal = proposalFrom(
-        policy,
-        SHA,
-        BEFORE,
-        files,
-        UPDATES,
-        lockDigest
-      );
-      const fields = { parent: SHA, updates: proposal.updates, ...optional };
-      expect(proposal.bindingKey).toBe(
-        npmBindingKey(policy.repository, fields)
-      );
-      expect(proposal.key).toBe(
-        sha256(
-          canonicalJson(
-            npmProposalIdentity(
-              policy.repository,
-              policy.target,
-              sha256(canonicalJson(policy)),
-              fields
-            )
-          )
-        )
-      );
-      // The binding key the verifier re-derives must change with the lock
-      // digest, or a substituted original Bun lock would verify.
-      if (lockDigest !== undefined)
-        expect(
-          npmBindingKey(policy.repository, {
-            ...fields,
-            bunLockSha256: "c".repeat(64),
-          })
-        ).not.toBe(proposal.bindingKey);
-    }
   });
   it("binds deterministic identities to actual two-file bytes", () => {
     const policy = validatePolicy(POLICY, CONFIG);

@@ -128,6 +128,9 @@ export async function descriptorFor({
       ...(proposal.bunLockSha256 === undefined
         ? {}
         : { bunLockSha256: proposal.bunLockSha256 }),
+      ...(proposal.runtimeSha256 === undefined
+        ? {}
+        : { runtimeSha256: proposal.runtimeSha256 }),
       messageSha256: sha256(message),
       updates: proposal.updates,
       proposalKey: proposal.bindingKey,

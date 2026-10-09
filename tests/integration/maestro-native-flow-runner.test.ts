@@ -7,6 +7,12 @@ import yaml from "js-yaml";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
+import {
+  loadWorkflow,
+  runSuiteDriver,
+} from "./support/maestro-android-retry-harness.js";
+import { runCapturing } from "./support/maestro-retry-execution.js";
+import { runnerCalls } from "./support/maestro-runner-arguments.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REUSABLE_YML = path.join(
@@ -96,7 +102,7 @@ describe("maestro-native flow_runner seam", () => {
     expect(script).not.toContain(FLOWS_DIR_EXPANSION);
     expect(driver?.run).not.toContain(FLOWS_DIR_EXPANSION);
     expect(driver?.run).toContain(
-      'bash "$FLOW_RUNNER" "$1" maestro-debug $MAESTRO_E2E_ARGS "$2"'
+      'bash "$FLOW_RUNNER" "$1" "${3:-maestro-debug}" $MAESTRO_E2E_ARGS "$2"'
     );
     expect(driver?.run).toContain(
       'run_target maestro-android-report.xml "$FLOWS_DIR"'
@@ -131,10 +137,10 @@ describe("maestro-native flow_runner seam", () => {
     // per-flow retry re-runs one flow file through the same seam and writes it
     // to its own report. The caller's runner therefore still receives the
     // report path first, the debug dir second, the assembled args, and the
-    // thing to run last — the contract is unchanged, only the two variable
-    // positions are.
+    // thing to run last. The internal third parameter chooses a fresh debug
+    // root for a selected retry; the original suite keeps maestro-debug.
     expect(iosRun?.run).toContain(
-      'bash "$FLOW_RUNNER" "$1" maestro-debug $MAESTRO_E2E_ARGS "$2"'
+      'bash "$FLOW_RUNNER" "$1" "${3:-maestro-debug}" $MAESTRO_E2E_ARGS "$2"'
     );
     // …and the suite call still supplies exactly the pair the assertion above
     // used to spell out inline.
@@ -147,6 +153,73 @@ describe("maestro-native flow_runner seam", () => {
     // assembled args still reach the same command, not how deep it sits.
     expect(iosRun?.run.replace(/\n\s+/g, " ")).toContain(
       'maestro test "$2" \\ $MAESTRO_E2E_ARGS'
+    );
+  });
+
+  it.each(["android", "ios"] as const)(
+    "passes report, debug directory, exact flags, and target in order for the %s suite and selected retry",
+    async platform => {
+      const flags = [
+        "--include-tags",
+        "smoke",
+        "--exclude-tags",
+        "quarantined",
+        "--env",
+        "FIXTURE_TOKEN=value",
+      ];
+      const result = await runSuiteDriver(await loadWorkflow(), {
+        platform,
+        maestroArgs: flags.join(" "),
+      });
+      expect(result.status).toBe(0);
+      expect(result.attempts).toBe(2);
+      expect(result.runnerCalls).toHaveLength(2);
+      expect(result.runnerCalls[0]).toEqual([
+        `maestro-${platform}-report.xml`,
+        "maestro-debug",
+        ...flags,
+        ".maestro/flows",
+      ]);
+      const retry = result.runnerCalls[1];
+      expect(retry).toEqual([
+        expect.stringMatching(
+          new RegExp(`^maestro-${platform}-retry-.+-1\\.xml$`)
+        ),
+        result.debugRoots[1],
+        ...flags,
+        ".maestro/flows/flow-07.yaml",
+      ]);
+      expect(result.debugRoots[1]).toMatch(
+        new RegExp(`^maestro-debug/retry-${platform}-.+-1-[A-Za-z0-9]+$`)
+      );
+      expect(result.debugRoots[1]).not.toBe(result.debugRoots[0]);
+    }
+  );
+
+  it("retains empty arguments and embedded delimiters in the shell's argc-framed trace", () => {
+    const argumentsWithDelimiters = [
+      "",
+      "line\nbreak",
+      "tab\tvalue",
+      "pipe|value",
+    ];
+    const captured = runCapturing(
+      "/bin/bash",
+      [
+        "-c",
+        'printf "%s\\0" "$#" "$@"; printf "%s\\0" 0',
+        "runner-trace",
+        ...argumentsWithDelimiters,
+      ],
+      { cwd: process.cwd(), env: process.env }
+    );
+    expect(captured.status).toBe(0);
+    expect(runnerCalls(captured.output)).toEqual([argumentsWithDelimiters, []]);
+    expect(() => runnerCalls("2\0only-one\0")).toThrow(
+      "Invalid runner argument count"
+    );
+    expect(() => runnerCalls("1\0unterminated")).toThrow(
+      "Unterminated runner argument trace"
     );
   });
 });

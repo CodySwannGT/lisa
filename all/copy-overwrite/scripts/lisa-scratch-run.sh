@@ -223,14 +223,17 @@ lisa_marker_get() {
   _key="$2"
   [ -f "$_file" ] || return 1
   if [ -L "$_file" ]; then return 1; fi
-  _bytes="$(wc -c <"$_file" 2>/dev/null | tr -d ' ')" || return 1
-  [ -n "$_bytes" ] || return 1
+  # Cleanup may remove this invocation's marker between native reads. A
+  # failed open remains a refusal, without leaking shell pathname diagnostics.
+  _bytes="$(wc -c 2>/dev/null <"$_file" | tr -d ' ')" || return 1
+  case "$_bytes" in "" | *[!0-9]*) return 1 ;; esac
   [ "$_bytes" -le "$LISA_SCRATCH_MARKER_MAX_BYTES" ] || return 1
-  _lines="$(wc -l <"$_file" 2>/dev/null | tr -d ' ')" || return 1
+  _lines="$(wc -l 2>/dev/null <"$_file" | tr -d ' ')" || return 1
+  case "$_lines" in "" | *[!0-9]*) return 1 ;; esac
   [ "$_lines" -le "$LISA_SCRATCH_MARKER_MAX_LINES" ] || return 1
   _hits="$(grep -c "^${_key}=" "$_file" 2>/dev/null || true)"
   [ "$_hits" = "1" ] || return 1
-  sed -n "s/^${_key}=//p" "$_file"
+  sed -n "s/^${_key}=//p" "$_file" 2>/dev/null
 }
 
 # --- path safety -------------------------------------------------------------

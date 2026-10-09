@@ -531,7 +531,7 @@ followed_text=""
 followed_rm_text=""
 # Generated from the canonical reviewed supervisor, never from a host manifest.
 # Regenerate through scripts/generate-scratch-supervisor-profile.mjs.
-readonly SCRATCH_SUPERVISOR_SHA256='6fdec1ad0441d7636dc6749c44a23167baf7b75004f156b8a7d4ce1c18c790b7'
+readonly SCRATCH_SUPERVISOR_SHA256='76ccf8ca6f98b214361f02ebf6ad58041129b76ed29128455e810095db6c292f'
 readonly SCRATCH_SUPERVISOR_CLEANUP_COUNT='7'
 
 # An authenticated public supervisor owns its fixed cleanup sites. Its original
