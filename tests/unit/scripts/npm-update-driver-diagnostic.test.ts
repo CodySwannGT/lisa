@@ -200,7 +200,7 @@ describe("bounded native driver diagnostics", () => {
         driverClosed: true,
         failureStage: SESSION_CREATE,
       });
-      expect(result.report.failureSha256).toBe(
+      expect(result.report?.failureSha256).toBe(
         createHash("sha256")
           .update(
             JSON.stringify({

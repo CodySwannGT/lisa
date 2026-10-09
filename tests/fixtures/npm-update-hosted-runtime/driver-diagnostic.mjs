@@ -16,9 +16,31 @@ const DRIVER_BOOLEANS = [
 ];
 
 /**
+ * @typedef {object} DriverReport
+ * @property {true} diagnosticOnly No primary acceptance authority.
+ * @property {boolean} driverLaunchVerified Native readiness reached.
+ * @property {boolean} driverSessionVerified Native session reached.
+ * @property {boolean} nativeSandboxVerified Original sandbox text reached.
+ * @property {boolean} suidSandboxActive Original active SUID row reached.
+ * @property {boolean} sessionDeleted Owned session deletion completed.
+ * @property {boolean} driverClosed Owned child close completed.
+ * @property {string | null} failureStage Closed failing phase, if any.
+ * @property {string | null} failureSha256 Private failure fingerprint, if any.
+ */
+
+/**
+ * @typedef {object} DriverDiagnostic
+ * @property {true} diagnosticOnly No primary acceptance authority.
+ * @property {string[]} phases Closed native progress.
+ * @property {{refusalStage: string, messageSha256: string} | null} refusal Closed refusal, if any.
+ * @property {boolean} reportReceived Native final report reached.
+ * @property {DriverReport | null} report Validated native final report, if any.
+ */
+
+/**
  * Closed phase progress survives native timeout without exporting URLs or profiles.
  * @param {Buffer} bytes Actual bounded helper output.
- * @returns {object} Closed diagnostic progress and optional final report.
+ * @returns {DriverDiagnostic} Closed diagnostic progress and optional final report.
  */
 export function driverDiagnostic(bytes) {
   const lines = bytes.toString().trim().split("\n").filter(Boolean);
@@ -91,7 +113,7 @@ export function driverDiagnostic(bytes) {
  * @param {string} root Original owned runtime root.
  * @param {object} application Original frozen fixture and qualified tool paths.
  * @param {function} native Original supervised native recorder.
- * @returns {Promise<object>} Closed diagnostic observation, never primary acceptance.
+ * @returns {Promise<DriverDiagnostic>} Closed diagnostic observation, never primary acceptance.
  */
 export async function browserDriverControl(root, application, native) {
   const profile = join(root, "browser-driver-profile");
