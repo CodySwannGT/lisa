@@ -1611,25 +1611,9 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
 
-  # A `test` job running bare `npm test` used to sit here (#2485). It was
-  # deleted, not made required, for two reasons:
-  #
-  #   1. It was pure duplication. `🧪 Run Unit Tests` runs `test:cov` and
-  #      `🧪 Run Integration Tests` runs `test:integration` over the same
-  #      suites WITH coverage, and both are required contexts. Lisa force-ships
-  #      the `test:unit` script into every host package.json, so no project
-  #      lost its only test execution when the bare job went away.
-  #   2. It was a confusable-pair hazard. `🧪 Run Tests`, `🧪 Run Unit Tests`,
-  #      and `🧪 Run Integration Tests` are three near-identical names, and the
-  #      one that did NOT block was the one whose failure read most alarmingly
-  #      — "Run Tests failed" reasonably reads as the required test gate. It
-  #      merged red on #2456 and #2461 with nobody noticing.
-  #
-  # The `test` skip token went with it. Removing it changes no other token's
-  # semantics: every gate here matches with the sentinel-comma idiom
-  # (`,test,`), which is exact-byte, so `test:unit` / `test:integration` /
-  # `test:e2e` were never affected by it and are not affected by its absence.
-  # A caller still passing `skip_jobs: 'test'` is inert rather than broken.
+  # #2485 removed the duplicate bare npm-test job and its confusable name.
+  # Required unit/integration jobs retain execution and coverage. Retired
+  # skip_jobs: 'test' is inert; exact comma-token matching preserves other tokens.
 
   verification_coverage:
     permissions:
@@ -3503,11 +3487,8 @@ jobs:
       contents: read
     name: 🧪 Run Integration Tests
     runs-on: ubuntu-latest
-    # Seven baseline runs measured 19.9–26.5 minutes (mean22.9, sd2.8;
-    # mean+3sd31.4), so30 cancelled healthy runs. 60 matches test_mutation's
-    # Stryker budget and leaves room for shorter GATE_RUN_BUDGET_MS cases.
-    # This resource limit changes no quality assertion; the ~1→~25 minute
-    # regression remains separately tracked.
+    # Baseline19.9–26.5min (mean22.9, sd2.8) outgrew30min. The60min
+    # resource limit preserves quality assertions; the regression is tracked.
     timeout-minutes: 60
     needs: [gate_plan]
     if: ${{ always() && !cancelled() && !contains(format(',{0},', inputs.skip_jobs), ',test:integration,') && (needs.gate_plan.result != 'success' || !contains(needs.gate_plan.outputs.plan, '"test_integration":"skip"')) }}
@@ -3686,6 +3667,24 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         working-directory: ${{ inputs.working_directory || '.' }}
+
+      # The physical deadline benchmark uses its qualified Docker init reaper
+      # and native syscall traces. Consumers do not carry this Lisa-only fixture.
+      - name: ⏱️ Verify native freshness diagnostic deadlines
+        if: github.repository == 'CodySwannGT/lisa'
+        run: |
+          mkdir -p tmp
+          bun run lisa-test-run -- --adapter direct -- python3 tests/fixtures/freshness-native-timing/run.py \
+            --source . --output tmp/freshness-native-timing-ci --expected-head "$(git rev-parse HEAD)"
+        working-directory: ${{ inputs.working_directory || '.' }}
+
+      - name: 📎 Retain native freshness timing evidence
+        if: always() && github.repository == 'CodySwannGT/lisa'
+        uses: actions/upload-artifact@v7
+        with:
+          name: freshness-native-timing-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ inputs.working_directory || '.' }}/tmp/freshness-native-timing-ci
+          if-no-files-found: error
 
       - name: ⏭️ Skip integration tests (no test:integration script)
         if: steps.check_script.outputs.exists == 'false' && steps.gate.outputs.configured == 'false'

@@ -33,7 +33,45 @@ const scratchPrefixes =
   ]);
 
 const config: ViteUserConfig = {
+  plugins: [
+    {
+      name: "lisa:freshness-deadline-groups",
+      configureVitest({ vitest, project }) {
+        const deadlineSuite =
+          "tests/integration/enforcement-fallback-freshness-deadline.test.ts";
+        const deadlineProject = project.name === "freshness-deadline";
+        if (!deadlineProject && project.name !== "lisa") return;
+
+        // Resolution concatenates inherited arrays and omits CLI exclusions
+        // from child overrides. Use the normalized root before collection.
+        /* eslint-disable functional/immutable-data -- native configuration hook assigns each resolved project's scheduling and discovery */
+        project.config.include = deadlineProject
+          ? [deadlineSuite]
+          : [...vitest.config.include];
+        project.config.exclude = [
+          ...new Set([
+            ...vitest.config.exclude,
+            ...(deadlineProject ? [] : [deadlineSuite]),
+          ]),
+        ];
+        project.config.maxWorkers = vitest.config.maxWorkers;
+        project.config.sequence = {
+          ...project.config.sequence,
+          groupOrder: deadlineProject ? 0 : 1,
+        };
+        // Native initialization also runs the root's global setup. Keep
+        // admission, scratch audit and coverage guard there once, while both
+        // children retain their inherited per-worker setup and environment.
+        project.config.globalSetup = [];
+        /* eslint-enable functional/immutable-data -- remaining configuration is immutable */
+      },
+    },
+  ],
   test: {
+    projects: [
+      { extends: true, test: { name: "freshness-deadline" } },
+      { extends: true, test: { name: "lisa" } },
+    ],
     // The bounded scratch space, wired from source rather than from the built
     // package. Downstream projects reach the same modules through the shipped
     // factory (`getTypescriptVitestConfig`), which resolves them out of `dist/`.

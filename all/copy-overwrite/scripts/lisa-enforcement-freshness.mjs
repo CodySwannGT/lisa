@@ -177,4 +177,7 @@ if (
       emit("channel_path", entry.installPath);
     }
   }
+  // Bash stages all facts until this terminal row and successful process exit;
+  // a killed or failed helper must not lend authority to its earlier output.
+  emit("complete", "1");
 }

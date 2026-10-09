@@ -229,9 +229,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
-      "8e6c5058c1ca79f4b797709c0ee029e14f356166fe5ed68c31c859c0fcf36831",
+      "07159250b1172ed0b15896ad251af0ffc84a22f5f24806c06b4e1478f20c9bd8",
     "all/copy-overwrite/scripts/lisa-enforcement-freshness.mjs":
-      "781bb4da7d2e2ce383c9fb2f1f80d48536697f8c581458c326ffb96b8fefe8db",
+      "f02571c6766dd2ed0914b4cf7e62b045dee8fcd33a0b2298f0be1f5ac0989639",
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "94d1d76b5c25059d93ee888dc824d1621adc8e3dbe368904543b37a82259c4a3",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
@@ -2625,9 +2625,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-enforcement-census.mjs":
       "41490f30f30cbb5ff05454a52caa1d3286db225667847eee22b7b994809e64d4",
     "scripts/lisa-enforcement-fallback.sh":
-      "fea21f379ebf5410b19d3a6da309775d276a40380a2c6e629a58a3aa45cad985",
+      "60fb718c13b9706fe07fc9a8f930be2fb994a06f1d51dfb515d5efe7cfbabd1d",
     "scripts/lisa-enforcement-freshness.mjs":
-      "6da5ce9d16136b9915f903e44b599386616c3296afbf988e456492b817d84c29",
+      "e9b5d8c534af9f3c3109e3629f5311d4564889d67d0fe17045d47f579151b46e",
     "scripts/lisa-github-environments.sh":
       "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
     "scripts/lisa-github-repo-settings.sh":
@@ -2683,7 +2683,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "41c5ea84d19f29d68ac84b45ccea41f01e0d45689426411a1d2f6f1fef77adc2",
+      "1786f2bb645700cc152f1072c41d2401e51d802a06866fa83dfe5efba8353ae2",
     "scripts/update-node-version.ts":
       "0059067c14001c2f7e75beb2628d1a46f935c7b01ce61871db71b6849ef62dca",
     "scripts/update-test-skill-paths.mjs":
@@ -9771,6 +9771,11 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/edit-time-pre-facade/typescript-format-on-edit.sh": true,
     "tests/fixtures/edit-time-pre-facade/typescript-lint-on-edit.sh": true,
     "tests/fixtures/edit-time-pre-facade/typescript-sg-scan-on-edit.sh": true,
+    "tests/fixtures/freshness-native-timing/Dockerfile": true,
+    "tests/fixtures/freshness-native-timing/README.md": true,
+    "tests/fixtures/freshness-native-timing/evaluate.py": true,
+    "tests/fixtures/freshness-native-timing/run-linux.py": true,
+    "tests/fixtures/freshness-native-timing/run.py": true,
     "tests/fixtures/git-history-secrets/errors.mjs": true,
     "tests/fixtures/git-history-secrets/graphs.mjs": true,
     "tests/fixtures/git-history-secrets/harness.mjs": true,
@@ -9779,6 +9784,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/git-history-secrets/new-ref-destination.mjs": true,
     "tests/fixtures/git-history-secrets/package.mjs": true,
     "tests/fixtures/git-history-secrets/portable-evidence.mjs": true,
+    "tests/fixtures/git-history-secrets/preimage-batch.mjs": true,
     "tests/fixtures/git-history-secrets/report-mode.mjs": true,
     "tests/fixtures/git-history-secrets/vendor-errors.mjs": true,
     "tests/fixtures/harness-parity-council/first-round-failed.json": true,
@@ -9885,6 +9891,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/enforcement-census-fixtures.ts": true,
     "tests/helpers/enforcement-fallback-fixtures.ts": true,
     "tests/helpers/enforcement-vintage-harness.ts": true,
+    "tests/helpers/freshness-deadline-fixture.ts": true,
+    "tests/helpers/freshness-deadline-inputs.ts": true,
+    "tests/helpers/freshness-owned-processes.ts": true,
     "tests/helpers/fs-latency-budget.ts": true,
     "tests/helpers/gate-capture.ts": true,
     "tests/helpers/gate-coverage-harness.ts": true,
@@ -9985,6 +9994,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/emitted-scripts-survive-shipped-fixer.test.ts": true,
     "tests/integration/enforcement-census-cli.test.ts": true,
     "tests/integration/enforcement-fallback-freshness-channels.test.ts": true,
+    "tests/integration/enforcement-fallback-freshness-deadline.test.ts": true,
     "tests/integration/enforcement-fallback-freshness-delivery.test.ts": true,
     "tests/integration/enforcement-fallback-freshness-edges.test.ts": true,
     "tests/integration/enforcement-fallback-freshness-laziness.test.ts": true,
@@ -10660,6 +10670,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/helpers/bounded-spawn-sync.test.ts": true,
     "tests/unit/helpers/child-completion-diagnostics.test.ts": true,
     "tests/unit/helpers/committed-case-table.test.ts": true,
+    "tests/unit/helpers/freshness-owned-processes.test.ts": true,
     "tests/unit/helpers/fs-latency-budget.test.ts": true,
     "tests/unit/helpers/gate-capture.test.ts": true,
     "tests/unit/helpers/io-latency-budget.test.ts": true,
@@ -11002,6 +11013,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/github-attestation-verifier.test.ts": true,
     "tests/unit/scripts/github-governance.test.ts": true,
     "tests/unit/scripts/history-fixture-report-redaction.test.ts": true,
+    "tests/unit/scripts/history-preimage-batch.test.ts": true,
     "tests/unit/scripts/history-secret-contract.test.ts": true,
     "tests/unit/scripts/history-secret-new-ref-range.test.ts": true,
     "tests/unit/scripts/history-secret-private-report.test.ts": true,
