@@ -245,8 +245,8 @@ case "\${1:-} \${2:-}" in
   # nonzero through the catch-all below, which is invisible to any assertion
   # that does not check the status — see the positive-control test.
   "api --paginate")
-    [ "\${3:-}" = "--slurp" ] || { echo 'missing native slurp pagination' >&2; exit 70; }
-    printf '[%s]\\n' "\${FAKE_GH_COMMENTS_JSON:-[]}"
+    [ "\${4:-}" = "--jq" ] || { echo 'missing native projected pagination' >&2; exit 70; }
+    "${process.execPath}" -e 'const comments = JSON.parse(process.env.FAKE_GH_COMMENTS_JSON || "[]"); console.log(JSON.stringify({ sourceCount: comments.length, comments: comments.filter(comment => comment.body.includes("[lisa-pr-link]")) }));'
     ;;
   "api --method")
     [ -z "\${FAKE_GH_POSTED_FILE:-}" ] || printf 'posted\\n' > "$FAKE_GH_POSTED_FILE"
@@ -2485,7 +2485,7 @@ if (method === "GET") {
   const pages = [];
   for (let offset = 0; offset < comments.length; offset += 100) pages.push(comments.slice(offset, offset + 100));
   if (!pages.length) pages.push([]);
-  process.stdout.write(args.includes("--slurp") ? JSON.stringify(pages) : pages.map(page => JSON.stringify(page)).join("\\n"));
+  process.stdout.write(pages.map(page => JSON.stringify({ sourceCount: page.length, comments: page.filter(comment => comment.body.includes("[lisa-pr-link]")) })).join("\\n"));
   process.exit(0);
 }
 if (method === "POST") comments.push({ id: comments.length + 1, body });
@@ -2513,7 +2513,7 @@ process.stdout.write(JSON.stringify({ id: 1 }));
       : [];
   }
 
-  it("updates the same PR on a later native slurped comment page and preserves all earlier human comments", () => {
+  it("updates the same PR on a later native projected comment page and preserves all earlier human comments", () => {
     const fixture = createFixture();
     const store = statefulGh(fixture);
     const humans = Array.from({ length: 100 }, (_, index) => ({

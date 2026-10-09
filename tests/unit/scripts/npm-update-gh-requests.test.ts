@@ -10,6 +10,7 @@ import {
   githubHierarchyArgs,
   githubIssueViewArgs,
   backlinkBody,
+  githubBacklinkListArgs,
 } from "../../../all/copy-overwrite/scripts/lisa-work-item.mjs";
 
 const subject = {
@@ -140,12 +141,7 @@ describe("closed canonical GH request families", () => {
       pr,
     });
     const state = createGhState(scope);
-    const get = [
-      "api",
-      "--paginate",
-      "--slurp",
-      "repos/acme/widgets/issues/42/comments?per_page=100",
-    ];
+    const get = githubBacklinkListArgs(subject.tracker, subject.issue);
     const patch = [
       "api",
       "--method",
@@ -160,15 +156,16 @@ describe("closed canonical GH request families", () => {
       scope,
       state,
       request,
-      native([
-        [
+      native({
+        sourceCount: 2,
+        comments: [
           { id: 77, body: `[lisa-pr-link] ${pr.url}\n` },
           {
             id: 78,
             body: "[lisa-pr-link] https://github.com/acme/widgets/pull/9",
           },
         ],
-      ])
+      })
     );
     expect(prepareGhRequest(scope, state, patch).kind).toBe("write");
     expect(() => prepareGhRequest(scope, state, patch)).toThrow();

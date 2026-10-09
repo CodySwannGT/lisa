@@ -86,7 +86,10 @@ export function observeGhResponse(scope, state, request, result) {
       Buffer.byteLength(result.stdout) <= 3_145_728,
     "unbounded GH response grant"
   );
-  const value = JSON.parse(result.stdout);
+  const value =
+    request.kind === "comments"
+      ? githubBacklinkComments(result.stdout)
+      : JSON.parse(result.stdout);
   let successor;
   if (request.kind === "hierarchy") {
     const page = value.data?.repository?.issue?.subIssues;
@@ -119,7 +122,7 @@ export function observeGhResponse(scope, state, request, result) {
       };
     }
   } else if (request.kind === "comments")
-    successor = backlinkRequest(scope.subject, githubBacklinkComments(value));
+    successor = backlinkRequest(scope.subject, value);
   if (successor) state.grants.set(key(successor.args), successor);
 }
 
