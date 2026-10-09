@@ -116,7 +116,7 @@ describe("qualified runtimes in required CI execution paths", () => {
     expect(producer["timeout-minutes"]).toBe(30);
     const collect = items.find(step => step.run?.includes("--collect-only"))!;
     expect(collect.run).toContain(
-      "node dist/cli/lisa-test-run.js --profile lisa --adapter direct"
+      "bun run lisa-test-run -- --adapter direct -- node"
     );
     expect(collect.run).toContain(
       'scripts/check-shell-guard-refusal-coverage.mjs --collect-only --shard "${{ matrix.shard }}/3"'
@@ -124,7 +124,15 @@ describe("qualified runtimes in required CI execution paths", () => {
     expect(
       items.some(step => step.run === "bun install --frozen-lockfile")
     ).toBe(true);
-    expect(items.some(step => step.run === "bun run build")).toBe(true);
+    // Use the real named package script, including its single build and profile;
+    // unnamed Bun launches make packed CLI apply inherit an install context.
+    const manifest = JSON.parse(
+      readFileSync(path.join(ROOT, "package.json"), "utf8")
+    ) as { scripts: Record<string, string> };
+    expect(manifest.scripts["lisa-test-run"]).toBe(
+      "node scripts/lib/worktree-dependencies.mjs && bun run build && node dist/cli/lisa-test-run.js --profile lisa"
+    );
+    expect(items.some(step => step.run === "bun run build")).toBe(false);
     expect(
       items.find(step => step.uses?.startsWith("actions/upload-artifact@"))
         ?.with?.["name"]
