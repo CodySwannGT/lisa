@@ -150,11 +150,16 @@ describe("check:learnings-budget", () => {
   });
 
   it("accepts an absent resolved overflow as an explicit no-op verdict", () => {
-    const result = runCheckerDirect(OVERFLOW_FLAG);
+    // Capture may legitimately create this checkout's overflow. Establish
+    // absence in an isolated source tree instead of relying on repo state.
+    const root = createTemporaryDirectory();
+    stageSourceChecker(root);
+    const result = runStagedSourceChecker(root, OVERFLOW_FLAG);
 
     expect(result.status).toBe(0);
-    expect(result.output).toContain("no learnings overflow file");
-    expect(result.output).toContain("PROJECT_LEARNINGS.overflow.md");
+    expect(result.stdout).toContain("no learnings overflow file");
+    expect(result.stdout).toContain("PROJECT_LEARNINGS.overflow.md");
+    expect(result.stderr).toBe("");
   });
 
   it("checks a relocated overflow from staged source with no dependencies installed", () => {

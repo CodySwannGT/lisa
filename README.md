@@ -333,6 +333,26 @@ agent configuration changes. This retirement
 boundary belongs to the Codex project overlay. The other supported agents do
 not delete this shell-command layout during apply.
 
+Fallback diagnostics compare each selected host guard entry file with the
+installed package's template, separately from its historical apply receipt.
+Matching bytes need no apply repair; differing bytes and unknown evidence are
+reported separately. Installed plugin channel versions remain independent
+evidence and do not prove those hooks are live. The optional Node helper ships
+beside the fallback; without it, enforcement still runs and freshness is unknown.
+Diagnostics are offline and lazy: at most eight guard/template pairs (1 MiB per
+file), four 64 KiB manifests/receipts and one 4 MiB plugin registry, with one
+additional byte per read to detect overflow. After the session notice, permitted
+calls invoke no freshness helper. Later refusals re-evaluate their own evidence.
+
+| Agent | Fallback diagnostic surface |
+| --- | --- |
+| Claude Code | Repository PreToolUse fallback; independent plugin guards remain registered. |
+| Codex | Tagged project hook dispatches the same delivered fallback after project trust. |
+| Cursor | Native individual guard registrations; the common host fallback is delivered, but its aggregate diagnostic is not registered natively. |
+| OpenCode | Native TypeScript guard adapters; the common host fallback is delivered, but its aggregate diagnostic is not represented by those adapters. |
+| Antigravity | Native adapted guard commands; the common host fallback is delivered, but its aggregate diagnostic is not registered natively. |
+| Copilot | Native individual guard registrations; the common host fallback is delivered, but its aggregate diagnostic is not registered natively. |
+
 Remote coding environments use one vendor-neutral AWS bootstrap rather than
 repository-specific or agent-specific IAM users. Run `/lisa:setup-remote-aws`
 to install the common setup script and native Cursor/Copilot adapters; Claude,

@@ -103,8 +103,8 @@ plugin_tree="$repo_root/plugins/lisa/hooks"
 #
 # Enforcement resolves from THE CHECKOUT, never from npm. Publishing a guard
 # fix and refreshing the marketplace does not reach the copy governing an agent
-# working in a branch cut before that fix — and because the aggregate takes the
-# strongest refusal, the oldest resolved copy governs (CodySwannGT/lisa#3205).
+# working in a branch cut before that fix. First-wins resolution chooses each
+# guard; the strongest refusal aggregates DIFFERENT guards (#3205).
 # One guard measured 22/22 on `main`, 22/22 in the installed clone, and 19/22
 # on the copy actually in force on the machine the fix had been written on.
 #
@@ -116,54 +116,29 @@ plugin_tree="$repo_root/plugins/lisa/hooks"
 #
 # Three constraints shape how the dating is done, and each rules something out:
 #
-#   - It runs on EVERY tool call, so nothing here may fork. Versions are read
-#     with the `read` builtin, matched with bash's own regex, and returned
-#     through globals rather than `$(...)`, which would fork a subshell per
-#     lookup.
+#   - Already-noticed permitted calls perform no diagnostic reads or forks.
+#     Notices/refusals use one bounded optional helper per process, off that
+#     hot path, to validate JSON and compare selected entry-file bytes.
 #   - It must work offline, and there is no network lookup anywhere below. A
 #     guard that stalls or fails when the network does is a guard whoever it
 #     slows down switches off.
-#   - It compares only against evidence on the same disk. Staleness is claimed
-#     only when a demonstrably newer Lisa can be pointed at, so the worst case
-#     is silence rather than a fleet-wide false alarm.
+#   - Host content differences are not a claim of older/newer code. Historical
+#     receipt versions never date current bytes. Plugin-channel age remains a
+#     distinct version-backed diagnostic; missing evidence is explicit unknown.
 #
 # Bash 3.2 is the floor — macOS ships it as /bin/bash, and that is what the
 # repository hook entry invokes — so there are no associative arrays
 # here. There are exactly two possible trees, which is what makes plain
 # variables enough.
 
-# Result of the last read_json_version call. A global because command
-# substitution forks and this runs on every tool call.
-json_version=""
-
-# The version a JSON file states, without forking or requiring jq.
-#
-# Deliberately the FIRST occurrence of the key: in all three files read here —
-# a package manifest, a plugin manifest, the apply receipt — that occurrence is
-# the top-level one. A file that does not state the key leaves the result
-# empty, which is reported as an unknown vintage rather than guessed at.
-read_json_version() {
-  json_version=""
-  [ -f "$1" ] || return 1
-  # Built as a variable and matched unquoted: in bash 3.2 a quoted portion of
-  # an `=~` pattern is literal text, so an inline pattern would stop being a
-  # regex on exactly the interpreter this has to work under.
-  #
-  # Anchored to at most three leading spaces so a NESTED key cannot answer for
-  # a top-level one. `node_modules/@codyswann/lisa/package.json` carries its
-  # `"version"` at line 118 of 255 — measured, not assumed — with a dependency
-  # block below it, and a package literally named `version` would otherwise
-  # match first and report its range as a Lisa version.
-  local pattern="^[[:space:]]{0,3}\"$2\"[[:space:]]*:[[:space:]]*\"([^\"]+)\""
-  local line
-  while IFS= read -r line || [ -n "$line" ]; do
-    if [[ "$line" =~ $pattern ]]; then
-      json_version="${BASH_REMATCH[1]}"
-      return 0
-    fi
-  done <"$1"
-  return 1
-}
+# The receipt records history, not the current contents of a selected guard.
+# Read strict bounded JSON and actual selected host/template pairs only when a
+# notice or refusal needs evidence. The optional Node helper is shipped beside
+# this dispatcher; its absence cannot alter enforcement, only make evidence
+# unknown. There is no network, directory scan or persistent content cache.
+installed_version=""
+last_applied_version=""
+host_guard_states=()
 
 # Numeric release fields of the last split_version call.
 v1=0
@@ -234,54 +209,41 @@ note_version() {
   fi
 }
 
-host_tree_version=""
 plugin_tree_version=""
 
-# Date every tree, and find the newest Lisa on this disk.
-#
-# Called lazily — at most once, and only when something is actually going to be
-# said. On the overwhelmingly common path (a permitted call in a session that
-# has already printed its notice) it never runs at all, so those three file
-# reads leave the hot path entirely.
+# Resolve once PER PROCESS at the existing lazy diagnostic boundary. A later
+# refusal in the same session gets fresh content evidence in its new process;
+# an already-noticed permitted call invokes neither Node nor a comparison.
 resolve_vintages() {
   [ "$vintages_resolved" -eq 0 ] || return 0
   vintages_resolved=1
-
-  # The marketplace clone is the installed release in the literal sense — it is
-  # the copy `claude plugin` put on this machine, and it is a full checkout of
-  # Lisa, so it dates itself.
   local config_dir="${CLAUDE_CONFIG_DIR-}"
   [ -n "$config_dir" ] || config_dir="${HOME-}/.claude"
-  local marketplace_manifest="$config_dir/plugins/marketplaces/lisa/plugins/lisa/.claude-plugin/plugin.json"
-  if read_json_version "$marketplace_manifest" version; then
-    note_version "$json_version" "$marketplace_manifest"
+  local helper="${BASH_SOURCE[0]%/*}/lisa-enforcement-freshness.mjs"
+  local key value state_index
+  local state_count=0
+  while [ "$state_count" -lt "$guard_count" ]; do
+    host_guard_states+=("unknown")
+    state_count=$((state_count + 1))
+  done
+  if [ -f "$helper" ] && [ -r "$helper" ] && command -v node >/dev/null 2>&1; then
+    while IFS=$'\t' read -r key value; do
+      case "$key" in
+        installed) installed_version="$value" ;;
+        applied) last_applied_version="$value" ;;
+        plugin) plugin_tree_version="$value" ;;
+        marketplace) note_version "$value" "$config_dir/plugins/marketplaces/lisa/plugins/lisa/.claude-plugin/plugin.json" ;;
+        channel) plugin_channel_version="$value" ;;
+        channel_path) plugin_channel_path="$value" ;;
+        guard[0-7])
+          state_index="${key#guard}"
+          case "$value" in matching|different|unknown) host_guard_states[$state_index]="$value" ;; esac
+          ;;
+      esac
+    done < <(node "$helper" "$repo_root" "$config_dir" "${guard_evidence_names[@]}" 2>/dev/null)
   fi
-
-  local installed_manifest="$repo_root/node_modules/@codyswann/lisa/package.json"
-  if read_json_version "$installed_manifest" version; then
-    note_version "$json_version" "$installed_manifest"
-  fi
-
-  # `scripts/lisa-hooks/` is written into a host by `lisa apply`, and the apply
-  # receipt records which Lisa version performed that write. The receipt IS
-  # that tree's vintage: the same run produced both, so they cannot disagree.
-  if read_json_version "$repo_root/.lisa/apply-receipt.json" lisa_version; then
-    host_tree_version="$json_version"
-  fi
-  note_version "$host_tree_version" "$host_tree"
-
-  # `plugins/lisa/hooks/` is the Lisa monorepo's own copy, dated by the plugin
-  # manifest beside it, which the release bumps in lockstep with the package.
-  if read_json_version "$repo_root/plugins/lisa/.claude-plugin/plugin.json" version; then
-    plugin_tree_version="$json_version"
-  fi
+  note_version "$installed_version" "$repo_root/node_modules/@codyswann/lisa/package.json"
   note_version "$plugin_tree_version" "$plugin_tree"
-
-  # The channel this dispatcher races. Deliberately NOT folded into
-  # `note_version`: the newest-on-disk maximum answers "is this copy behind
-  # something local", and the plugin channel's age is a separate question
-  # about a copy that runs in parallel rather than instead.
-  resolve_plugin_channel || true
 }
 
 # ---------------------------------------------------------------------------
@@ -330,51 +292,8 @@ resolve_vintages() {
 plugin_channel_version=""
 plugin_channel_path=""
 
-# Resolve the vintage of the guard channel the PLUGIN MANIFEST runs.
-#
-# `plugins/installed_plugins.json` records installs PER PROJECT DIRECTORY —
-# which is exactly why one checkout sits versions behind another on the same
-# disk — so the lookup is keyed on this repo root, not on the machine.
-#
-# A record is claimed only when its `installPath` sits under a `lisa/lisa/`
-# marketplace cache. A locally-installed plugin does not match and is left
-# UNRESOLVED on purpose: reporting "agree" about a copy that was never read is
-# the failure this whole section exists to end, and an honest "I could not
-# tell" is the safe direction.
-#
-# `grep` does the scanning because the record runs to tens of thousands of
-# lines; the bash loop then sees a handful. Called only from resolve_vintages,
-# so it inherits that latch and never runs on the silent allow path.
-resolve_plugin_channel() {
-  local config_dir="${CLAUDE_CONFIG_DIR-}"
-  [ -n "$config_dir" ] || config_dir="${HOME-}/.claude"
-  local record="$config_dir/plugins/installed_plugins.json"
-  [ -f "$record" ] || return 1
-
-  local install_pattern="^[[:space:]]*\"installPath\"[[:space:]]*:[[:space:]]*\"(.*/lisa/lisa/[^\"]+)\""
-  local version_pattern="^[[:space:]]*\"version\"[[:space:]]*:[[:space:]]*\"([^\"]+)\""
-  local line
-  local candidate=""
-  while IFS= read -r line || [ -n "$line" ]; do
-    # `grep -A` separates non-adjacent groups with `--`. A candidate must not
-    # survive across that boundary or one plugin's installPath answers for
-    # another plugin's version.
-    if [ "$line" = "--" ]; then
-      candidate=""
-      continue
-    fi
-    if [[ "$line" =~ $install_pattern ]]; then
-      candidate="${BASH_REMATCH[1]}"
-      continue
-    fi
-    if [ -n "$candidate" ] && [[ "$line" =~ $version_pattern ]]; then
-      plugin_channel_path="$candidate"
-      plugin_channel_version="${BASH_REMATCH[1]}"
-      return 0
-    fi
-  done < <(grep -F -A4 "\"projectPath\": \"$repo_root\"," "$record" 2>/dev/null)
-  return 1
-}
+# The bounded helper reads the runtime record for exactly lisa@lisa and this
+# project. It reports installed version/path, never whether hooks are live.
 
 # Verdict of the last classify_channel_skew call: agree | skew | undetermined.
 #
@@ -411,43 +330,57 @@ channel_skew_line=""
 # of the channel the plugin manifest runs.
 classify_channel_skew() {
   local mine=""
-  if [ "$host_tree_used" -eq 1 ]; then
-    mine="$host_tree_version"
-  elif [ "$plugin_tree_used" -eq 1 ]; then
-    mine="$plugin_tree_version"
-  fi
-
-  if [ -z "$mine" ] || [ -z "$plugin_channel_version" ]; then
-    channel_skew_verdict="undetermined"
-    channel_skew_line="  cross-channel vintage UNDETERMINED — this dispatcher's guards could not be
-    compared with the plugin manifest's copies. Not agreement: an unread copy
-    can be any age, and a relaxation shipped to one channel stays inert until
-    the other catches up.
+  local source=""
+  local tree
+  local channel_repair=""
+  local compared=0
+  channel_skew_line=""
+  channel_skew_verdict="undetermined"
+  for tree in host plugin; do
+    if [ "$tree" = host ] && [ "$host_tree_used" -eq 1 ]; then
+      mine="$installed_version"
+      source="installed Lisa package"
+    elif [ "$tree" = plugin ] && [ "$plugin_tree_used" -eq 1 ]; then
+      mine="$plugin_tree_version"
+      source="this checkout's plugin manifest"
+    else
+      continue
+    fi
+    if [ -z "$mine" ] || [ -z "$plugin_channel_version" ]; then
+      channel_skew_line="$channel_skew_line  cross-channel vintage UNDETERMINED — $source could not be
+    compared with the plugin manifest's installed copies. Not agreement:
+    missing version evidence does not establish either channel's age or liveness.
 "
-    return 0
-  fi
-
-  if [ "$mine" = "$plugin_channel_version" ]; then
-    channel_skew_verdict="agree"
-    channel_skew_line=""
-    return 0
-  fi
-
-  channel_skew_verdict="skew"
-  # The sentence is kept whole on one line on purpose: it is the finding, and
-  # an operator greps for it.
-  channel_skew_line="  cross-channel vintage SKEW — this dispatcher runs lisa $mine; the plugin
+    elif [ "$mine" != "$plugin_channel_version" ]; then
+      channel_skew_verdict="skew"
+      if version_older "$plugin_channel_version" "$mine"; then
+        channel_repair="update the installed plugin for this project"
+      elif version_older "$mine" "$plugin_channel_version"; then
+        if [ "$tree" = host ]; then
+          channel_repair="update the installed Lisa package, then inspect guard/template content differences before choosing a template refresh"
+        else
+          channel_repair="$PLUGIN_REPAIR"
+        fi
+      else
+        channel_repair="inspect the differing installed channel versions; their release fields do not establish an older channel"
+      fi
+      channel_skew_line="$channel_skew_line  cross-channel vintage SKEW — $source is lisa $mine; the plugin
     installed for this project is lisa $plugin_channel_version at $plugin_channel_path.
-    When both fire on one tool call the agent sees the UNION of their verdicts,
-    which means:
+    These are installed channel versions, not a date for current host guard bytes.
+    When both fire on one tool call the agent sees the UNION of their verdicts:
       YOU CANNOT RETIRE A REFUSAL BY SHIPPING A FIX.
-    A relaxation on the newer channel does nothing until the older one is
-    refreshed, so a block you cannot explain from \`main\` is the older copy
-    still enforcing.
-      repair: refresh both — \`npx @codyswann/lisa apply\` for this checkout's
-      guards, and update the installed plugin for the manifest's copies.
+    A relaxation on one channel stays inert until the other catches up.
+      repair: $channel_repair;
+      host content differences, if any, are reported separately below.
 "
-  return 0
+      compared=1
+    else
+      compared=1
+    fi
+  done
+  if [ "$compared" -eq 1 ] && [ -z "$channel_skew_line" ]; then
+    channel_skew_verdict="agree"
+  fi
 }
 
 # Description of the last describe_vintage call.
@@ -479,6 +412,30 @@ describe_vintage() {
   fi
 }
 
+# Content state is per selected guard. Neither an equal package/receipt
+# version nor some OTHER matching guard can prove this refusing copy current.
+# Unknown evidence suggests inspection, not applying over already-matching code.
+describe_host_guard() {
+  vintage_is_stale=1
+  local facts="installed lisa ${installed_version:-unknown}; last applied lisa ${last_applied_version:-unknown}"
+  case "${host_guard_states[$1]-unknown}" in
+    matching)
+      vintage_label="matches installed template; $facts"
+      vintage_is_stale=0
+      ;;
+    different) vintage_label="DIFFERENT from installed template; $facts" ;;
+    *) vintage_label="host content unknown; $facts" ;;
+  esac
+}
+
+host_guard_repair() {
+  if [ "${host_guard_states[$1]-unknown}" = different ]; then
+    printf '%s' "$HOST_REPAIR"
+  else
+    printf 'inspect the selected guard and installed Lisa template evidence (missing, unreadable, invalid or beyond bounds); content freshness is unknown'
+  fi
+}
+
 # ---------------------------------------------------------------------------
 # Resolution
 #
@@ -490,6 +447,7 @@ guard_count=0
 guard_names=()
 guard_scripts=()
 guard_trees=()
+guard_evidence_names=()
 missing=""
 shadowed=""
 host_tree_used=0
@@ -504,6 +462,7 @@ for guard in block-no-verify parity-safety-net block-shell-json-parsing \
     # The TREE, not its version: vintages are resolved lazily, so what a guard
     # records here is which tree to ask about it later.
     guard_trees+=("host")
+    guard_evidence_names+=("$guard")
     guard_count=$((guard_count + 1))
     host_tree_used=1
     # The shadowed copy never runs, and nothing used to say so. Two copies of
@@ -517,6 +476,7 @@ for guard in block-no-verify parity-safety-net block-shell-json-parsing \
     guard_names+=("$guard")
     guard_scripts+=("$plugin_tree/$guard.sh")
     guard_trees+=("plugin")
+    guard_evidence_names+=("")
     guard_count=$((guard_count + 1))
     plugin_tree_used=1
   else
@@ -780,7 +740,19 @@ note_tree_staleness() {
 if [ "$notice_due" -eq 1 ]; then
   resolve_vintages
   if [ "$host_tree_used" -eq 1 ]; then
-    note_tree_staleness "$host_tree" "$host_tree_version" "$HOST_REPAIR"
+    host_notice_index=0
+    while [ "$host_notice_index" -lt "$guard_count" ]; do
+      if [ "${guard_trees[$host_notice_index]}" = host ]; then
+        describe_host_guard "$host_notice_index"
+        stale_notice="$stale_notice  ${guard_scripts[$host_notice_index]} — $vintage_label
+"
+        if [ "$vintage_is_stale" -eq 1 ]; then
+          stale_notice="$stale_notice      repair: $(host_guard_repair "$host_notice_index")
+"
+        fi
+      fi
+      host_notice_index=$((host_notice_index + 1))
+    done
   fi
   if [ "$plugin_tree_used" -eq 1 ]; then
     note_tree_staleness "$plugin_tree" "$plugin_tree_version" "$PLUGIN_REPAIR"
@@ -813,7 +785,7 @@ if [ "$notice_due" -eq 1 ]; then
     if [ "$notice_should_print" -eq 1 ]; then
       {
         printf 'Lisa enforcement is running guards from this checkout, not from npm,\n'
-        printf 'so publishing a guard fix does not reach the copies below.\n'
+        printf 'selected host contents are compared with installed templates only for diagnostics.\n'
         if [ -n "$stale_notice" ]; then
           printf '%s' "$stale_notice"
         fi
@@ -902,7 +874,7 @@ while [ "$index" -lt "$guard_count" ]; do
     # vintage is certainly worth its three file reads.
     resolve_vintages
     if [ "${guard_trees[$index]}" = "host" ]; then
-      describe_vintage "$host_tree_version"
+      describe_host_guard "$index"
     else
       describe_vintage "$plugin_tree_version"
     fi
@@ -943,13 +915,15 @@ while [ "$index" -lt "$guard_count" ]; do
         printf '\nTHIS VERDICT MAY NOT REFLECT CURRENT SOURCE — the copy that produced it\n'
         printf 'is not provably current (%s).\n' "$vintage_label"
         if [ "${guard_trees[$index]}" = "host" ]; then
-          printf '  repair: %s\n' "$HOST_REPAIR"
+          printf '  repair: '
+          host_guard_repair "$index"
+          printf '\n'
         else
           printf '  repair: %s\n' "$PLUGIN_REPAIR"
         fi
         printf 'Before filing a defect on this behaviour, read the guard on your\n'
         printf 'integration branch. Re-running the command confirms nothing: it asks\n'
-        printf 'the same stale copy again.\n'
+        printf 'the same selected copy again.\n'
       } >&2
     fi
   fi

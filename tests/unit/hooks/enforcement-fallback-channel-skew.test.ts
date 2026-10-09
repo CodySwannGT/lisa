@@ -68,7 +68,7 @@ const GUARDS = [
   "worktree-binding-guard",
 ] as const;
 
-/** The vintage the dispatcher's own channel reports, via the apply receipt. */
+/** The independently installed package version, not historical apply state. */
 const DISPATCHER_VINTAGE = "4.10.0";
 
 /** A different vintage for the plugin channel, so the two disagree. */
@@ -99,19 +99,27 @@ afterEach(() => {
 function hostRoot(): string {
   const root = mkdtempSync(path.join(tmpdir(), "lisa-skew-host-"));
   const hooks = path.join(root, "scripts", "lisa-hooks");
+  const installed = path.join(root, "node_modules/@codyswann/lisa");
+  const templates = path.join(
+    installed,
+    "all/copy-overwrite/scripts/lisa-hooks"
+  );
   temporaries.push(root);
   mkdirSync(hooks, { recursive: true });
+  mkdirSync(templates, { recursive: true });
+  writeFileSync(
+    path.join(installed, "package.json"),
+    JSON.stringify({ name: "@codyswann/lisa", version: DISPATCHER_VINTAGE })
+  );
   for (const guard of GUARDS) {
     // The stub drains its stdin like every real guard. One that exits without
     // reading races the dispatcher's `printf | bash`, and under load the
     // writer takes SIGPIPE, which pipefail reports as exit 141.
-    writeFileSync(
-      path.join(hooks, `${guard}.sh`),
-      "#!/bin/bash\ncat >/dev/null\nexit 0\n",
-      {
-        mode: 0o755,
-      }
-    );
+    const body = "#!/bin/bash\ncat >/dev/null\nexit 0\n";
+    writeFileSync(path.join(hooks, `${guard}.sh`), body, {
+      mode: 0o755,
+    });
+    writeFileSync(path.join(templates, `${guard}.sh`), body);
   }
   mkdirSync(path.join(root, ".lisa"), { recursive: true });
   writeFileSync(
@@ -243,8 +251,8 @@ describe("the guard channel the dispatcher races", () => {
     expect(output).toContain(
       path.join(config, "plugins", "cache", "lisa", "lisa", PLUGIN_VINTAGE)
     );
-    expect(output).toContain("npx @codyswann/lisa apply");
-    expect(output).toContain("update the installed plugin");
+    expect(output).not.toContain("npx @codyswann/lisa apply");
+    expect(output).toContain("update the installed Lisa package");
   });
 
   it("stays silent when the two channels agree", () => {
@@ -300,20 +308,19 @@ describe("the guard channel the dispatcher races", () => {
     const source = readFileSync(FALLBACK, "utf8").split("\n");
     const lineOf = (pattern: RegExp): number =>
       source.findIndex(line => pattern.test(line));
-    // The definition line matches the name too, so it is excluded explicitly.
-    const callSites = source.filter(
-      line =>
-        /^\s*resolve_plugin_channel\b/.test(line) &&
-        !/resolve_plugin_channel\(\)/.test(line)
+    // One child invocation, inside the same lazy latched resolver. Actual
+    // no-invocation proof is in the file-backed integration laziness suite.
+    const callSites = source.filter(line =>
+      /^\s+done < <\(node "\$helper"/.test(line)
     );
     const latch = lineOf(/^resolve_vintages\(\) \{/);
-    const callSite = lineOf(/^\s+resolve_plugin_channel \|\| true$/);
+    const callSite = lineOf(/^\s+done < <\(node "\$helper"/);
 
     // One call site, and it is inside the body of the lazy, latched resolver.
     expect(callSites).toHaveLength(1);
     expect(latch).toBeGreaterThan(-1);
     expect(callSite).toBeGreaterThan(latch);
-    expect(source[callSite + 1]).toBe("}");
+    expect(source[callSite + 1]).toBe("  fi");
   });
 
   it("lets a permitted command through whatever the verdict is", () => {

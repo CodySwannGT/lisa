@@ -44,6 +44,7 @@ import {
   dateHostTree,
   datePluginTree,
   installRealGuards,
+  installCurrentTemplates,
   runFallback,
   scratchRoot,
   write,
@@ -178,6 +179,7 @@ describe("two resolved copies of different vintage that disagree", () => {
     mkdirSync(hostTree, { recursive: true });
     writeBehindGuard(path.join(hostTree, `${PARITY_SAFETY_NET}.sh`));
     dateHostTree(root, BEHIND);
+    installCurrentTemplates(root);
 
     installRealGuards(
       path.join(root, PLUGIN_TREE),
@@ -223,11 +225,13 @@ describe("two resolved copies of different vintage that disagree", () => {
     expect(output).toContain(`Refused by ${producer}`);
   });
 
-  it("says how far behind that copy is, and against what", () => {
-    // A path names the copy; only a version says it is OLD rather than wrong.
+  it("states the actual content difference and keeps installed/apply versions separate", () => {
     const { output } = runFallback(CONTESTED, rootWithDisagreeingCopies());
 
-    expect(output).toContain(`lisa ${BEHIND}, STALE — ${CURRENT}`);
+    expect(output).toContain("DIFFERENT from installed template");
+    expect(output).toContain(
+      `installed lisa ${CURRENT}; last applied lisa ${BEHIND}`
+    );
   });
 
   it("reports the staleness before anything is refused", () => {
@@ -235,8 +239,10 @@ describe("two resolved copies of different vintage that disagree", () => {
     // being told too late to act on it.
     const { output } = runFallback(CONTESTED, rootWithDisagreeingCopies());
 
-    expect(output.indexOf("behind")).toBeGreaterThanOrEqual(0);
-    expect(output.indexOf("behind")).toBeLessThan(output.indexOf("Refused by"));
+    expect(output.indexOf("DIFFERENT")).toBeGreaterThanOrEqual(0);
+    expect(output.indexOf("DIFFERENT")).toBeLessThan(
+      output.indexOf("Refused by")
+    );
   });
 
   it("reports the staleness on a run that refuses nothing at all", () => {
