@@ -5,6 +5,13 @@ import { qualifiedUpdaterNode } from "../../support/qualified-updater-node.js";
 import { runProcess } from "../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
 import type { prepareUpdate } from "../../../all/copy-overwrite/scripts/lib/npm-update-prepare.mjs";
 
+/** Only these JSON-data inputs cross this fixture's native process boundary. */
+interface NativeUpdateInput {
+  readonly cwd: string;
+  readonly policy: Readonly<Record<string, unknown>>;
+  readonly config: Readonly<Record<string, unknown>>;
+}
+
 const ENTRY = new URL(
   "../../../all/copy-overwrite/scripts/lib/npm-update-prepare.mjs",
   import.meta.url
@@ -23,7 +30,7 @@ process.stdout.write(JSON.stringify({node:process.versions.node,abi:process.vers
  * @returns The actual production updater result from the qualified subprocess.
  */
 export async function prepareNativeUpdate(
-  input: Parameters<typeof prepareUpdate>[0],
+  input: NativeUpdateInput,
   env: NodeJS.ProcessEnv
 ): Promise<Awaited<ReturnType<typeof prepareUpdate>>> {
   const runtime = qualifiedUpdaterNode();
