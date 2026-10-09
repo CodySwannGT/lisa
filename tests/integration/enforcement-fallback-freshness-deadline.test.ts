@@ -28,6 +28,7 @@ describe("optional freshness diagnostic deadline", () => {
     const result = await observeDeadline();
     expectDiagnosticCleanup(result);
     expect(result.entered).toBe(true);
+    expect(result.unobservedHelperPids).toEqual([]);
     expect(result.timedOut).toBe(false);
     expect(result.status).toBe(2);
     expect(result.guards).toEqual(SELECTED_GUARDS.map(name => `${name}.sh`));
@@ -59,6 +60,7 @@ describe("optional freshness diagnostic deadline", () => {
     const result = await observeDeadline("stall", true);
     expectDiagnosticCleanup(result);
     expect(result.entered).toBe(true);
+    expect(result.unobservedHelperPids).toEqual([]);
     expect(result.status).toBe(0);
     expect(result.timedOut).toBe(false);
     expect(result.guards).toEqual(SELECTED_GUARDS.map(name => `${name}.sh`));
@@ -99,6 +101,7 @@ describe("optional freshness diagnostic deadline", () => {
     const result = await observeDeadline("post-start-ps-failure");
     expectDiagnosticCleanup(result);
     expect(result.entered).toBe(true);
+    expect(result.unobservedHelperPids).toEqual([]);
     expect(result.timedOut).toBe(false);
     expect(result.status).toBe(2);
     expect(result.diagnosticMs).toBeLessThanOrEqual(3_000);
@@ -111,6 +114,7 @@ describe("optional freshness diagnostic deadline", () => {
     const result = await observeDeadline("surviving-child");
     expectDiagnosticCleanup(result);
     expect(result.entered).toBe(true);
+    expect(result.unobservedHelperPids).toEqual([]);
     expect(result.status).toBe(2);
     expect(result.timedOut).toBe(false);
     expect(result.output).toContain("matches installed template");

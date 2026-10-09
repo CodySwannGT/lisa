@@ -31,6 +31,9 @@ export interface DeadlineObservation {
   readonly diagnosticScratchLeaves: readonly DiagnosticLeaf[];
   readonly watchdogMs: number;
   readonly spawnSlowdown: number;
+  readonly censusIntervalMs: number;
+  readonly helperPids: readonly number[];
+  readonly unobservedHelperPids: readonly number[];
 }
 
 /** Actual diagnostic leaves still present before fixture teardown. */
@@ -69,6 +72,7 @@ interface Capture {
   enteredAt: number | null;
   guardAt: number | null;
   timedOut: boolean;
+  observerFailure?: unknown;
 }
 
 /**
@@ -80,20 +84,30 @@ interface Capture {
  * @param start Monotonic launch time.
  * @returns Result before any emergency cleanup of a failed control.
  */
-function summarize(
+async function summarize(
   fixture: DeadlineFixture,
   state: Capture,
   status: number | null,
   owned: ReturnType<typeof ownedProcesses>,
   start: number
-): DeadlineObservation {
-  const survivors = owned.active();
+): Promise<DeadlineObservation> {
+  const survivors = await owned.active();
+  const helperPids = readFileSync(fixture.entries, "utf8")
+    .trim()
+    .split("\n")
+    .filter(Boolean)
+    .map(Number);
   const result = {
     status,
     output: state.output,
     diagnosticScratchLeaves: diagnosticLeaves(fixture.scratch),
     watchdogMs: ioLatencyBudgetMs(5_000),
     spawnSlowdown: workerSpawnSlowdown(),
+    censusIntervalMs: 100,
+    helperPids,
+    unobservedHelperPids: helperPids.filter(
+      pid => !owned.captured().includes(pid)
+    ),
     entered: readFileSync(fixture.entries, "utf8").length > 0,
     timedOut: state.timedOut,
     elapsedMs: performance.now() - start,
@@ -114,7 +128,7 @@ function summarize(
         ? null
         : state.guardAt - state.enteredAt,
   };
-  if (survivors.length) owned.drain();
+  if (survivors.length) await owned.drain();
   return result;
 }
 
@@ -146,7 +160,6 @@ async function captureDeadline(
   const owned = ownedProcesses(child.pid);
   /** Capture real helper entry and first genuine guard execution. */
   const poll = (): void => {
-    owned.observe();
     /* eslint-disable functional/immutable-data -- these event timestamps record mutable OS observations */
     if (readFileSync(fixture.entries, "utf8") && state.enteredAt === null)
       state.enteredAt = performance.now();
@@ -155,27 +168,46 @@ async function captureDeadline(
     /* eslint-enable functional/immutable-data -- all other fixture values remain immutable */
   };
   const interval = setInterval(poll, 20);
+  /** Keep native census work outside the fast marker-file timing loop. */
+  const observe = (): void => {
+    void owned.observe().catch(error => {
+      // eslint-disable-next-line functional/immutable-data -- preserve the actual observer failure instead of accepting empty evidence
+      state.observerFailure = error;
+      child.kill("SIGKILL");
+    });
+  };
+  // One pending census is shared inside ownedProcesses. Shorter-lived children
+  // can evade this 100ms sampling interval; empty evidence is not universal proof.
+  const censusInterval = setInterval(observe, 100);
   const detector = setTimeout(() => {
     // eslint-disable-next-line functional/immutable-data -- the live outer detector records its actual expiry
     state.timedOut = true;
     poll();
-    owned.drain();
+    void owned.drain().catch(error => {
+      // eslint-disable-next-line functional/immutable-data -- an unknown cleanup census must fail the actual observation
+      state.observerFailure = error;
+      child.kill("SIGKILL");
+    });
   }, ioLatencyBudgetMs(5_000));
   const closed = new Promise<number | null>((resolve, reject) => {
     child.once("error", reject);
     child.once("close", resolve);
   });
-  owned.observe();
   /* eslint-disable functional/immutable-data -- captured stream data is accumulated until the real process closes */
   child.stdout.on("data", chunk => (state.output += String(chunk)));
   child.stderr.on("data", chunk => (state.output += String(chunk)));
   /* eslint-enable functional/immutable-data -- no state writes after process completion */
+  observe();
   return closed
     .finally(() => {
       clearTimeout(detector);
       clearInterval(interval);
+      clearInterval(censusInterval);
     })
-    .then(status => {
+    .then(async status => {
+      // Wait for the last pending census, then take a fresh completion snapshot.
+      await owned.observe();
+      if (state.observerFailure !== undefined) throw state.observerFailure;
       poll();
       return summarize(fixture, state, status, owned, start);
     });

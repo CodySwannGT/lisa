@@ -256,7 +256,9 @@ run_optional_freshness() (
       printf "%s\n" "$?" >"$scratch/status"
       printf "done\n" >&9
     ) &
-    if read -r -t 2 -u 9 done && [ "$done" = done ]; then
+    # Bash 3.2 accepts integer timeouts. One second leaves headroom beneath
+    # the two-second diagnostic ceiling without delaying real enforcement.
+    if read -r -t 1 -u 9 done && [ "$done" = done ]; then
       printf "complete\n" >"$scratch/complete"
       # Parent acceptance or its bounded absence both terminate the group.
       read -r -t 1 -u 8 stop || true

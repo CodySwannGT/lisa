@@ -208,6 +208,23 @@
           "repair": "Use canonical ioLatencyBudgetMs5000 only for the completion watchdog and record actual watchdogMs/spawnSlowdown; retain unscaled diagnosticMs<=3000 and every enforcement/cleanup assertion.",
           "green": "tmp/4407-completion-watchdog-green.log: ordinary wrapper terminal0; 39 tests across two files PASS, including all14 controls and entire unchanged legacy history suite",
           "review": "Independent deadline_cleanup_review GO on exact diff and actual39PASS; source scripts863efdfc/e9b5d8c unchanged; fresh full gates pending."
+        },
+        "delivery_convergence": {
+          "third_full_push": "tmp/4407-push-1791556291427326000/terminal.json: exit1; all27556 unit tests and coverage passed; two integration failures",
+          "native_failure": "Failed-helper injection never entered, although all eight guards, original refusal and unknown diagnostics were preserved. Observer formerly ran synchronous machine-wide process scans in its20ms timer loop.",
+          "observer_repair": "Bounded asynchronous census, one request in flight,20ms marker polling and100ms census; preserve sticky failures, birth/group authority, entry, survivor and pre-sweep assertions. Long-lived fixtures assert every declared helper PID was actually captured.",
+          "history_failure": "Exact blobs-within controls timed out at35.710/38.242s in full suites. Independent actual phase diagnosis found1020 Git startups in fixture-only preimage proofs, not a scanner verdict failure.",
+          "history_repair": "Independent bounded literal-tree/raw-object batches retain every original coordinate, mode, GitOID, SHA256, byte limit, output order, verdict, redaction and cleanup check. Production history scanner is unchanged.",
+          "history_proof": "Ordinary34tests passed:9 new unit controls and unchanged25-case history suite. Instrumented proof phases5.705s\u21920.223s and complete journey16.44s\u219211.51s; timing includes instrumentation overhead and different measured host conditions. New38 native starts is closed-call-structure derivation, not direct telemetry.",
+          "review_regressions": "Independent review found UTF8 replacement path alias and high-bit ASCII header alias. Actual same12-control run failed3 cases before minimal round-trip/Latin1 repair, then passed12. A malformed requested surrogate is refused before native reads.",
+          "producer_timer": "Supported Bash3.2 integer read-t1 leaves headroom beneath the required at-most2second ceiling. Slow diagnostics may become unknown sooner; complete results retain attribution and genuine enforcement is unchanged.",
+          "freshness_green": "tmp/4407-observer-focused-ibzfg9ik:91 tests/11files passed, including normal/lazy/read-bound/channel regressions. After stronger captured-PID assertions, tmp/4407-observer-focused-nmki2hw5:14 actual native cases passed; every long-lived declared helper PID observed, no pre-sweep leaves or matching live survivors.",
+          "maximum_combined_marker_ms": 959.7700409999998,
+          "not_established": [
+            "Fresh full ordinary gates and hosted current-head Linux",
+            "Independent separate expiry/cleanup performance trace",
+            "Reviewed merge, actual publication/archive identity and exact released replay"
+          ]
         }
       }
     },

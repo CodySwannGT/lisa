@@ -343,8 +343,10 @@ Diagnostics are offline and lazy: at most eight guard/template pairs (1 MiB per
 file), four 64 KiB manifests/receipts and one 4 MiB plugin registry, with one
 additional byte per read to detect overflow. After the session notice, permitted
 calls invoke no freshness helper. Later refusals re-evaluate their own evidence.
-The optional subprocess has a two-second Bash deadline independent of Node,
-with a private, trusted temporary buffer and an owned process-group anchor.
+The optional subprocess has a one-second Bash timer independent of Node,
+leaving headroom beneath its two-second diagnostic ceiling. Slower diagnostics
+become unknown; complete results within the budget retain their attribution.
+It uses a private, trusted temporary buffer and an owned process-group anchor.
 Timeout, unavailable runner, failure or incomplete output leaves all evidence
 unknown while every original guard still runs. Complete successful output is
 accepted only after the helper's ordinary descendants are drained. The timer

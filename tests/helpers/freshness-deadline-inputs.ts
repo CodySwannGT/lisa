@@ -19,7 +19,8 @@ const NODE_SHIM = [
   'case "$LISA_DEADLINE_MODE" in',
   ' normal|missing-runner|unsafe-tmp) exec "$LISA_DEADLINE_REAL_NODE" "$@" ;;',
   ' stall|post-start-ps-failure) printf "installed\\t9.9.9\\nguard0\\tmatching\\n"; trap "" TERM; /bin/sleep 30 & printf "%s\\n" "$!" >> "$LISA_DEADLINE_ENTRIES"; wait ;;',
-  ' surviving-child) /bin/sleep 30 & printf "%s\\n" "$!" >> "$LISA_DEADLINE_ENTRIES"; exec "$LISA_DEADLINE_REAL_NODE" "$@" ;;',
+  // Keep this child alive for two census periods before successful completion.
+  ' surviving-child) /bin/sleep 30 & printf "%s\\n" "$!" >> "$LISA_DEADLINE_ENTRIES"; /bin/sleep 0.2; exec "$LISA_DEADLINE_REAL_NODE" "$@" ;;',
   ' *) printf "installed\\t9.9.9\\n"; for i in 0 1 2 3 4 5 6 7; do printf "guard%s\\tmatching\\n" "$i"; done',
   '    case "$LISA_DEADLINE_MODE" in duplicate) printf "installed\\t9.9.9\\n" ;; malformed) printf "garbage\\n" ;; unknown) printf "extra\\tfact\\n" ;; esac',
   '    [ "$LISA_DEADLINE_MODE" = incomplete ] || printf "complete\\t1\\n"',

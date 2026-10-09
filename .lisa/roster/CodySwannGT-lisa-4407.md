@@ -54,3 +54,16 @@ diagnosis. Root implemented the minimal corrective patch and regression
 assertions. `deadline_cleanup_review` independently reviews the changed diff;
 the verification specialist owns the subsequent actual current-head proof.
 Root retains Git, generated artifacts and provider ownership.
+
+## Delivery fixture ownership
+
+The bug fixer owns only the independent preimage batch fixture and its native
+falsification tests. The verifier owns only the asynchronous process observer,
+its fixture integration and six unit controls. Root owns the stricter compatible
+producer timer, captured-PID assertions, documentation, plans, all generated
+artifacts and all Git/provider writes. The independent delivery fixture reviewer
+owns read-only quality/security review; byte-alias regressions were implemented
+by the fixture author and retain actual RED/GREEN proof. The spec-conformance
+specialist owns the complete requirements matrix and timing-proof assessment.
+The team runs one build or test session at a time. No source claim substitutes for Linux, separate
+performance tracing, genuine publication or released-package replay.
