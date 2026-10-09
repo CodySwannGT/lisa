@@ -157,7 +157,7 @@ describe("all-only npm host controller materialization", () => {
       }
       for (const entry of ENTRIES)
         expect(graph).toHaveProperty(join(cwd, "scripts", entry));
-      expect(managedTemplateMembers().size).toBe(96);
+      expect(managedTemplateMembers().size).toBe(106);
     },
     ioLatencyBudgetMs(30_000)
   );

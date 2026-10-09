@@ -245,7 +245,7 @@ function parameterEvents(
 ): readonly BindingEvent[] {
   return ts.isFunctionLike(node)
     ? node.parameters.flatMap(parameter =>
-        ts.isIdentifier(parameter.name)
+        parameter.name !== undefined && ts.isIdentifier(parameter.name)
           ? [
               {
                 kind: "bind" as const,

@@ -83,6 +83,14 @@ export function hookReadSlot(entry, args, role) {
       return `${role}-work-item`;
   }
   if (name === "lisa-automation-provenance.mjs") {
+    if (
+      role === "commit" &&
+      args.length === 2 &&
+      typeof args[1] === "string" &&
+      args[1].length > 0 &&
+      !args[1].startsWith("-")
+    )
+      return "commit-provenance";
     if (args[1] === "check-commit") return "commit-provenance";
     if (args[1] === "check-push" && ["audit", "destination"].includes(role))
       return `${role}-provenance`;

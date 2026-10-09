@@ -18,6 +18,7 @@ import {
   canonicalJson,
   trustedConfiguration,
   npmProposal,
+  signedProposalFields,
 } from "./lib/automation-provenance-contract.mjs";
 import {
   git,
@@ -72,6 +73,7 @@ function recoveryPermission(
         parent: descriptor.parent,
         policySha256: npmPolicySha256,
         updates: descriptor.updates,
+        ...signedProposalFields(descriptor),
       })
     ),
     leafBodySha256: sha256(context.issue.body),
@@ -103,6 +105,7 @@ export function verifyAutomationProvenance(messageFile) {
           repository: policy.repository,
           parent: descriptor.parent,
           updates: descriptor.updates,
+          ...signedProposalFields(descriptor),
         })
       ),
     "deterministic proposal key differs"

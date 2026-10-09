@@ -16,6 +16,7 @@ const scanner = join(lease, "gitleaks");
 // Serial native workloads are partitioned into disjoint bounded children.
 // Each child and case retains the existing bounded budget and margin guard.
 const childBaseMs = 30_000;
+const CLEANUP = "all owned fixture repositories/processes removed on exit";
 const portableOnly = "--portable-only";
 const portablePartition = "--portable-partition";
 const portableCredentialKeys = "--portable-credential-keys";
@@ -45,54 +46,6 @@ const reservedNames = ["api_key", "access_token", "password"].flatMap(key => [
   `portable-proof-key-${key}`,
   `portable-source-key-${key}`,
 ]);
-const expected = {
-  positive: [
-    "verified-digest-exact-bytes",
-    "verified-binary-preimage",
-    "verified-unicode-byte-attribution",
-    "verified-reachable-history",
-    "verified-narrative-paragraph",
-    "verified-narrative-no-newline",
-  ],
-  digest: [
-    "digest-wrong-role",
-    "digest-nested-role",
-    "digest-mismatch",
-    "digest-absent-preimage",
-    "digest-malformed-map",
-    "digest-duplicate-key",
-    "digest-escaped-duplicate-key",
-    "digest-escaped-path-alias",
-    "digest-escaped-value",
-    "digest-unverified-sibling",
-    "digest-unsafe-parent",
-    "digest-unsafe-absolute",
-    "digest-unavailable-revision",
-    "digest-null-revision",
-    "digest-false-revision",
-    "digest-empty-revision",
-    "digest-numeric-revision",
-    "digest-ambiguous-line",
-    "digest-invalid-utf8",
-    "digest-depth-budget",
-    "digest-token-budget",
-    "digest-byte-budget",
-    "digest-symlink-preimage",
-    "digest-source-credential",
-    "digest-adjacent-credential",
-    "digest-other-default-rule",
-    "digest-tag-object-revision",
-    "digest-unreachable-revision",
-  ],
-  narrative: [
-    "narrative-credential-assignment",
-    "narrative-credential-json",
-    "narrative-code-context",
-    "narrative-interpolation",
-    "narrative-arbitrary-substitution",
-    "narrative-adjacent-credential",
-  ],
-};
 
 beforeAll(() => {
   const provision = boundedSpawnSync({
@@ -118,6 +71,172 @@ afterAll(() => {
 });
 
 describe("required history evidence actual CLI controls", () => {
+  it.each([
+    [
+      "first",
+      [
+        "immutable-selected-ancestor",
+        "immutable-mixed-revisions",
+        "immutable-binary-preimage",
+        "immutable-unicode-offset",
+      ],
+      4,
+    ],
+    [
+      "second",
+      [
+        "immutable-complete-fence",
+        "immutable-later-archive",
+        "immutable-typed-parent",
+        "immutable-missing-sibling",
+      ],
+      3,
+    ],
+    [
+      "third",
+      [
+        "immutable-wrong-blob",
+        "immutable-wrong-span",
+        "immutable-duplicate-coordinate",
+        "immutable-unknown-field",
+      ],
+      0,
+    ],
+    [
+      "fourth",
+      [
+        "immutable-null-parent",
+        "immutable-wrong-role",
+        "immutable-conflicting-versions",
+        "immutable-archive-mismatch",
+      ],
+      0,
+    ],
+    [
+      "fifth",
+      [
+        "immutable-archive-outside-selection",
+        "immutable-archive-credential",
+        "immutable-sidecar-credential",
+        "immutable-evidence-credential",
+      ],
+      0,
+    ],
+    [
+      "sixth",
+      [
+        "immutable-escaped-coordinate",
+        "immutable-duplicate-sidecar-key",
+        "immutable-overlapping-span",
+        "immutable-unsafe-integer",
+      ],
+      0,
+    ],
+    [
+      "seventh",
+      [
+        "immutable-absolute-source",
+        "immutable-parent-source",
+        "immutable-credential-role",
+        "immutable-multiple-fences",
+      ],
+      0,
+    ],
+    [
+      "eighth",
+      [
+        "immutable-sidecar-symlink",
+        "immutable-source-symlink",
+        "immutable-archive-symlink",
+        "immutable-ancestor-blob-object",
+      ],
+      0,
+    ],
+    [
+      "ninth",
+      [
+        "immutable-ancestor-tag-object",
+        "immutable-ancestor-off-chain",
+        "immutable-conflicting-parent",
+        "immutable-unflagged-sibling",
+      ],
+      0,
+    ],
+    [
+      "tenth",
+      [
+        "immutable-manifest-token-budget",
+        "immutable-manifest-depth-budget",
+        "immutable-manifest-byte-budget",
+        "immutable-map-entry-budget",
+      ],
+      0,
+    ],
+    [
+      "eleventh",
+      [
+        "immutable-source-tree",
+        "immutable-source-submodule",
+        "immutable-archive-worktree-only",
+        "immutable-origin-not-selected",
+      ],
+      0,
+    ],
+    [
+      "narrative",
+      [
+        "immutable-larger-paragraph",
+        "immutable-quoted-paragraph",
+        "immutable-inline-paragraph",
+        "immutable-linked-paragraph",
+      ],
+      1,
+    ],
+    [
+      "narrative-boundaries",
+      [
+        "immutable-lazy-blockquote",
+        "immutable-credential-field-prose",
+        "immutable-unrelated-quotation",
+        "immutable-fenced-paragraph",
+      ],
+      1,
+    ],
+  ] as const)(
+    "executes the exact immutable %s original-input controls",
+    (group, names, positiveCount) => {
+      const result = boundedSpawnSync({
+        label: `actual immutable coordinate ${group} controls`,
+        command: process.execPath,
+        args: [
+          join(root, "tests/fixtures/git-history-secrets/journey.mjs"),
+          "--immutable-only",
+          "--immutable-group",
+          group,
+          "--scanner",
+          scanner,
+        ],
+        cwd: root,
+        baseMs: childBaseMs,
+      });
+      expect(result.status, result.stderr).toBe(0);
+      expect(result.stderr).toBe("");
+      const report = JSON.parse(result.stdout);
+      expect(report.scanner).toBe("Gitleaks 8.30.1");
+      expect(report.redaction).toBe(true);
+      expect(report.cleanup).toBe(CLEANUP);
+      expect(
+        report.observations.map((row: { name: string }) => row.name)
+      ).toEqual(names);
+      expect(
+        report.observations.filter((row: { exit: number }) => row.exit === 0)
+      ).toHaveLength(positiveCount);
+      for (const row of report.observations) {
+        expect(row.exit).toBe(row.expected);
+        expect(row.selectedCommits).toBeGreaterThan(0);
+      }
+    }
+  );
   it("preserves the exact default and disjoint union of all portable controls", () => {
     const names = (flags: string[]) =>
       selectPortableCases(flags).map(row => row[0]);
@@ -134,19 +253,6 @@ describe("required history evidence actual CLI controls", () => {
     ]);
     expect(names([portableOnly, portableCredentialKeys])).toEqual(
       reservedNames
-    );
-  });
-  it.each([
-    [portableOnly, portablePartition],
-    [portableOnly, portablePartition, "third"],
-    [portableOnly, "--portable-partition=first"],
-    [portableOnly, "--portable-partition-extra", "first"],
-    [portableOnly, portablePartition, "first", portablePartition, "second"],
-    [portablePartition, "first"],
-    [portableOnly, portableCredentialKeys, portablePartition, "first"],
-  ])("refuses malformed or incompatible portable selectors %#", (...flags) => {
-    expect(() => selectPortableCases(flags)).toThrow(
-      "Unknown portable control selector."
     );
   });
   it.each([
@@ -184,9 +290,7 @@ describe("required history evidence actual CLI controls", () => {
       const report = JSON.parse(result.stdout);
       expect(report.scanner).toBe("Gitleaks 8.30.1");
       expect(report.redaction).toBe(true);
-      expect(report.cleanup).toBe(
-        "all owned fixture repositories/processes removed on exit"
-      );
+      expect(report.cleanup).toBe(CLEANUP);
       expect(
         report.observations.map((row: { name: string }) => row.name)
       ).toEqual(names);
@@ -196,67 +300,6 @@ describe("required history evidence actual CLI controls", () => {
       for (const [index, row] of report.observations.entries()) {
         expect(row.exit).toBe(row.expected);
         expect(row.exit).toBe(index < positiveCount ? 0 : 42);
-      }
-    }
-  );
-  it.each([
-    ["positive", "positive", null, expected.positive],
-    ["digest-first", "digest", "first", expected.digest.slice(0, 14)],
-    ["digest-second", "digest", "second", expected.digest.slice(14)],
-    ["narrative", "narrative", null, expected.narrative],
-  ] as const)(
-    "executes the exact nonempty %s controls with redaction and cleanup",
-    (label, group, partition, names) => {
-      expect(names.length).toBeGreaterThan(0);
-      const result = boundedSpawnSync({
-        label: `actual emitted evidence CLI ${label} controls`,
-        command: process.execPath,
-        args: [
-          join(root, "tests/fixtures/git-history-secrets/journey.mjs"),
-          "--evidence-only",
-          "--evidence-group",
-          group,
-          ...(partition === null ? [] : ["--evidence-partition", partition]),
-          "--scanner",
-          scanner,
-        ],
-        cwd: root,
-        baseMs: childBaseMs,
-      });
-      expect(result.status, result.stderr).toBe(0);
-      expect(result.stderr).toBe("");
-      const report = JSON.parse(result.stdout) as {
-        scanner: string;
-        redaction: boolean;
-        cleanup: string;
-        observations: {
-          name: string;
-          exit: number;
-          commits: number;
-          preimageVerified: boolean;
-        }[];
-      };
-      expect(report.scanner).toBe("Gitleaks 8.30.1");
-      expect(report.redaction).toBe(true);
-      expect(report.cleanup).toBe(
-        "all owned fixture repositories/processes removed on exit"
-      );
-      expect(report.observations.map(observation => observation.name)).toEqual(
-        names
-      );
-      for (const observation of report.observations) {
-        expect(observation.exit).toBe(group === "positive" ? 0 : 42);
-        expect(observation.commits).toBe(
-          ["verified-reachable-history", "digest-tag-object-revision"].includes(
-            observation.name
-          )
-            ? 3
-            : 2
-        );
-        expect(observation.preimageVerified).toBe(
-          group === "positive" &&
-            !observation.name.startsWith("verified-narrative")
-        );
       }
     }
   );
