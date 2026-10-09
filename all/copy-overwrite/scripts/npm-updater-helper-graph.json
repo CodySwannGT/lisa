@@ -474,7 +474,7 @@
       "children": []
     },
     "lib/npm-update-gh-grants.mjs": {
-      "sha256": "4be8bcfa098b7f7f9cdfe6d7a1f110e5e4fb1e6181bd12d0b7f620f569293f09",
+      "sha256": "62f81b0d6c669594356c8ad63f544d679407100f3fc46723985f286e4d033e50",
       "staticImports": [
         "lib/npm-update-contract.mjs",
         "lisa-automation-provenance.mjs",
@@ -1258,7 +1258,7 @@
       "children": []
     },
     "lisa-work-item.mjs": {
-      "sha256": "203f110fd4752ff89d906276a5115500a2f42289d00cb5435345c90c433edf46",
+      "sha256": "cd1b16e056fefac17018d5c96ad063dc4002f304e4400765e473403186b7175a",
       "staticImports": [
         "lib/invoked-as-script.mjs",
         "node:child_process",
