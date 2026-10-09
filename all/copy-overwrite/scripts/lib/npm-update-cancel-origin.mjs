@@ -34,6 +34,7 @@ import {
 import {
   DESCRIPTOR_KEYS,
   optionalLockFields,
+  optionalRuntimeFields,
 } from "./automation-provenance-contract.mjs";
 
 /** Only complete, digest-checked transport is considered; incomplete chunks grant nothing. */
@@ -181,7 +182,11 @@ export function originalDescriptor(checkpoint, old, allocation, authority) {
   const preview = checkpoint.payload.preview;
   keys(preview, ["descriptor", "message", "epoch"]);
   const d = preview.descriptor;
-  keys(d, [...DESCRIPTOR_KEYS, ...optionalLockFields(old)]);
+  keys(d, [
+    ...DESCRIPTOR_KEYS,
+    ...optionalLockFields(old),
+    ...optionalRuntimeFields(old),
+  ]);
   required(
     d.version === 1 &&
       d.parent === old.parent &&
@@ -193,6 +198,7 @@ export function originalDescriptor(checkpoint, old, allocation, authority) {
       d.policySha256 === sha256(canonicalJson(authority)) &&
       canonicalJson(d.files) === canonicalJson(old.hashes) &&
       d.bunLockSha256 === old.bunLockSha256 &&
+      d.runtimeSha256 === old.runtimeSha256 &&
       canonicalJson(d.updates) === canonicalJson(old.updates) &&
       typeof preview.message === "string" &&
       sha256(preview.message) === d.messageSha256 &&

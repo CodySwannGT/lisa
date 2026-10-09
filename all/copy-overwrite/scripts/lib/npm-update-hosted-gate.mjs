@@ -2,24 +2,30 @@
 // Do not edit directly — durable changes belong upstream in Lisa.
 
 /** Supported disposable Actions Linux gates use original native tools; publisher authority stays in another job. */
-import { existsSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { required, proposalFileNames } from "./npm-update-contract.mjs";
 import { qualifiedBun, frozenBun } from "./npm-update-bun.mjs";
-import { runProcess, writeJson } from "./npm-update-process.mjs";
+import { runProcess } from "./npm-update-process.mjs";
 import { qualifiedControllerGraph } from "./npm-update-helper.mjs";
+import { controllerTools } from "./npm-update-controller-factory.mjs";
 import {
-  controllerTools,
-  controllerSubject,
-} from "./npm-update-controller-factory.mjs";
-import { startHookReadBroker } from "./npm-update-hook-provider.mjs";
+  openHostedReadScope,
+  authenticateHostedRuntime,
+} from "./npm-update-hosted-scope.mjs";
+import { affirmRuntimeProfile } from "./npm-update-rails-runtime-contract.mjs";
+import { prepareRailsTools } from "./npm-update-rails-tools.mjs";
+import { openRailsMysqlRuntime } from "./npm-update-rails-mysql.mjs";
 import { installOriginalManager } from "./npm-update-hook-installation.mjs";
 import { withStage } from "./npm-update-invariants.mjs";
-import {
-  PROPOSAL_PREDICATE,
-  RECOVERY_PREDICATE,
-} from "./github-attestation-verifier.mjs";
+
+const INSTALL_STAGE = "gate-install";
+const VALIDATE_STAGE = "gate-validate";
+
+/** Only prepared browser hooks use a short supervisor base; candidate HOME and TMPDIR stay private. */
+export function originalHookEnvironment(env, runtime) {
+  return runtime?.browser ? { ...env, LISA_SCRATCH_BASE: "/tmp" } : env;
+}
 
 /** This diagnoses the supported caller; attestation/provider validation independently establishes actual authority. */
 export function assertHostedGate(
@@ -111,88 +117,113 @@ async function installHostedDependencies(context, root, env) {
   return installed;
 }
 
-/** Proof paths are the actual fixed slots installed for the unchanged canonical verifier. */
-async function proofScope(context, env) {
-  const result = await nativeStep(context, env, "/usr/bin/git", [
-    "rev-parse",
-    "--git-common-dir",
-  ]);
-  const text = result.stdout.toString();
-  required(
-    text.endsWith("\n") && !/[\n\r\0]/.test(text.slice(0, -1)),
-    "original Git control path is unsupported"
+/** Authenticate before tools; keep frozen application setup separate from hook/tool authority. */
+export async function prepareRailsApplication(
+  context,
+  root,
+  env,
+  scope,
+  profile
+) {
+  await withStage(VALIDATE_STAGE, () =>
+    authenticateHostedRuntime(context, root, scope, nativeStep)
   );
-  const control = resolve(
-    context.cwd,
-    text.slice(0, -1),
-    "lisa/automation-provenance"
+  const tools = await withStage("gate-tools", () =>
+    prepareRailsTools(context, root, env, profile)
   );
-  const policy = context.config.automationProvenance;
-  const record = (file, bundle, predicate) => ({
-    file: join(control, file),
-    bundle: join(control, bundle),
-    predicate,
-    signerWorkflow: policy.signerWorkflow,
-    signerDigest: policy.signerDigest,
-  });
-  const proofs = [record("descriptor.json", "bundle.json", PROPOSAL_PREDICATE)];
-  if (context.recovery !== undefined)
-    proofs.push(
-      record("recovery.json", "recovery-bundle.json", RECOVERY_PREDICATE)
+  const installed = await withStage(INSTALL_STAGE, () =>
+    installHostedDependencies(context, root, tools.env)
+  );
+  const application = Object.fromEntries(
+    [
+      "PATH",
+      "HOME",
+      "LANG",
+      "LC_ALL",
+      "TZ",
+      "TMPDIR",
+      "BUNDLE_PATH",
+      "BUNDLE_APP_CONFIG",
+      "BUNDLE_FROZEN",
+      "BUNDLE_SILENCE_ROOT_WARNING",
+      "BUNDLER_VERSION",
+    ]
+      .filter(name => installed[name] !== undefined)
+      .map(name => [name, installed[name]])
+  );
+  const runtime = await withStage(INSTALL_STAGE, () =>
+    openRailsMysqlRuntime(
+      {
+        cwd: context.cwd,
+        root,
+        deadline: context.deadline,
+        profile,
+        docker: tools.docker,
+      },
+      application
+    )
+  );
+  try {
+    await withStage(INSTALL_STAGE, () => runtime.prepareSchemas());
+    const databases = Object.fromEntries(
+      [
+        "DATABASE_NAME",
+        "DATABASE_USER",
+        "DATABASE_PASSWORD",
+        "DATABASE_PORT",
+        "PRIMARY_DB_HOST",
+        "DATABASE_REPLICA_HOST",
+        "DATABASE_SSL",
+        "DATABASE_IAM_AUTH",
+        "RAILS_ENV",
+        "RACK_ENV",
+      ].map(name => [name, runtime.env[name]])
     );
-  const recoveryDescriptor =
-    context.recovery === undefined
-      ? undefined
-      : JSON.parse(context.recovery.toString());
-  return { proofs, recoveryDescriptor };
+    required(
+      Object.values(databases).every(value => typeof value === "string"),
+      "prepared database environment differs"
+    );
+    return { env: { ...installed, ...databases }, close: runtime.close };
+  } catch (error) {
+    try {
+      await runtime.close();
+    } catch (cleanup) {
+      throw new AggregateError(
+        [error, cleanup],
+        "hosted schema preparation and cleanup failed",
+        { cause: error }
+      );
+    }
+    throw error;
+  }
 }
 
-/** PATH preserves original native commands; the sole Node gateway carries no provider token. */
-function nodeGateway(root, context) {
-  const bin = join(root, "hook-bin");
-  mkdirSync(bin, { mode: 0o700 });
-  const entry = fileURLToPath(
-    new URL("./npm-update-hosted-hook.mjs", import.meta.url)
-  );
-  const quote = text => {
-    required(!/[\0\n\r]/.test(text), "unsupported hosted gateway path");
-    return `'${text.replaceAll("'", "'\\''")}'`;
-  };
-  const file = join(root, "hosted-hooks.json");
-  writeJson(file, context);
-  writeFileSync(
-    join(bin, "node"),
-    `#!/bin/sh\nexec ${quote(context.native.node.path)} ${quote(entry)} --context ${quote(file)} -- "$@"\n`,
-    { flag: "wx", mode: 0o700 }
-  );
-  return bin;
-}
-
-/** The unchanged read-only subject is constructed separately so diagnostic wrapping stays within function budgets. */
-function hookProfile(context, root, native, scope) {
-  return {
-    version: 1,
-    deadline: context.deadline,
-    cwd: context.cwd,
-    home: root,
-    nativeGh: native.gh,
-    invocation: {
-      entry: join(context.cwd, "scripts/lisa-npm-updater.mjs"),
-      args: [join(context.cwd, "scripts/lisa-npm-updater.mjs"), "gate"],
-      cwd: context.cwd,
-    },
-    subject: controllerSubject(
-      { ...context, recoveryDescriptor: scope.recoveryDescriptor },
-      "hook-read",
-      null,
-      scope.proofs
-    ),
-  };
+/** Attempt every owned close within its original deadline, preserving all actual failures. */
+async function closeHostedResources(...resources) {
+  const errors = [];
+  for (const resource of resources) {
+    if (!resource) continue;
+    try {
+      await resource.close();
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+  if (errors.length === 1) throw errors[0];
+  if (errors.length)
+    throw new AggregateError(errors, "hosted resources cleanup failed");
 }
 
 /** A separate read-only capability is available during original gates; it cannot acquire publisher/issuer permissions. */
 export async function createHostedGate(context, root, env) {
-  await withStage("gate-validate", () => assertHostedGate(context));
+  await withStage(VALIDATE_STAGE, () => assertHostedGate(context));
+  const runtime = await withStage(VALIDATE_STAGE, () =>
+    affirmRuntimeProfile(
+      context.proposal,
+      context.policy,
+      process.env.LISA_NPM_RUNTIME_PROFILE ?? "none"
+    )
+  );
   const native = await withStage("gate-tools", () =>
     controllerTools(context.config.automationProvenance)
   );
@@ -205,51 +236,61 @@ export async function createHostedGate(context, root, env) {
       "lib/npm-update-hook-preload.mjs",
     ])
   );
-  const installed = await withStage("gate-install", () =>
-    installHostedDependencies(context, root, env)
-  );
-  const installation = await withStage("gate-hooks", () =>
-    installOriginalManager(context, installed, nativeStep)
-  );
-  const scope = await withStage("gate-scope", () =>
-    proofScope(context, installed)
-  );
-  const profile = await withStage("gate-scope", () => {
-    mkdirSync(join(root, "gh-config"), { mode: 0o700 });
-    return hookProfile(context, root, native, scope);
-  });
-  const broker = await withStage("gate-broker", () =>
-    startHookReadBroker(profile, context.token)
-  );
+  let scope;
+  let application;
   try {
-    const bin = await withStage("gate-gateway", () =>
-      nodeGateway(root, {
-        version: 1,
+    if (runtime) {
+      scope = await openHostedReadScope(
+        context,
         root,
-        cwd: context.cwd,
-        graph,
+        env,
         native,
-        reader: { root, path: broker.path, deadline: context.deadline },
-      })
+        graph,
+        nativeStep
+      );
+      application = await prepareRailsApplication(
+        context,
+        root,
+        env,
+        scope,
+        runtime
+      );
+    }
+    const installed =
+      application?.env ??
+      (await withStage(INSTALL_STAGE, () =>
+        installHostedDependencies(context, root, env)
+      ));
+    const installation = await withStage("gate-hooks", () =>
+      installOriginalManager(context, installed, nativeStep)
+    );
+    scope ??= await openHostedReadScope(
+      context,
+      root,
+      installed,
+      native,
+      graph,
+      nativeStep
     );
     return {
       installation,
-      env: {
-        ...installed,
-        PATH: `${bin}:${installed.PATH}`,
-        CI: "true",
-        GITHUB_ACTIONS: "true",
-        GITHUB_REPOSITORY: context.policy.repository,
-        GITHUB_RUN_ID: process.env.GITHUB_RUN_ID,
-        GITHUB_RUN_ATTEMPT: process.env.GITHUB_RUN_ATTEMPT,
-        GITHUB_SHA: context.proposal.parent,
-        GITHUB_REF: "refs/heads/main",
-        GITHUB_EVENT_NAME: process.env.GITHUB_EVENT_NAME,
-      },
-      close: broker.close,
+      env: originalHookEnvironment(scope.environment(installed), runtime),
+      close: () => closeHostedResources(application, scope),
     };
   } catch (error) {
-    await withStage("gate-close", () => broker.close());
+    if (scope) {
+      try {
+        await withStage("gate-close", () =>
+          closeHostedResources(application, scope)
+        );
+      } catch (cleanup) {
+        throw new AggregateError(
+          [error, cleanup],
+          "hosted preparation and scope cleanup failed",
+          { cause: error }
+        );
+      }
+    }
     throw error;
   }
 }

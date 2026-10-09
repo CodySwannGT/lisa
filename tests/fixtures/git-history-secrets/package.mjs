@@ -7,10 +7,60 @@ import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, cpSync } from "node:fs";
 import { join } from "node:path";
 import { load } from "js-yaml";
+import { requireCollectedBudgetObservation } from "./errors.mjs";
 export { runEvidenceCases } from "./portable-evidence.mjs";
 const CONFIG = ".lisa.config.json";
 const HOOK = "lefthook.yml";
 const CI = ".github/workflows/ci.yml";
+
+/**
+ * Read original scanner JSON without changing its normal report semantics.
+ * @param {string} bytes Actual native scanner output.
+ * @returns {object} Original parsed report.
+ */
+export function nativeScannerReport(bytes) {
+  try {
+    return JSON.parse(bytes);
+  } catch {
+    // SyntaxError can contain captured output; neither its text nor cause may escape.
+    throw new Error("Native scanner report malformed; raw proof withheld.");
+  }
+}
+
+/**
+ * Compare actual redacted native rows with independent collected legacy and budget expectations.
+ * @param expect - Collected test expectation authority
+ * @param observation - Actual redacted native fixture row
+ * @param group - Independently authored collected selector
+ * @returns No value after the required assertions pass
+ */
+export const requireCollectedEvidenceObservation = (
+  expect,
+  observation,
+  group
+) => {
+  if (group.startsWith("immutable-"))
+    return requireCollectedBudgetObservation(expect, observation, group);
+  if (group === "coexistence") {
+    expect(observation.exit).toBe(
+      observation.name === "immutable-coexist-incomplete-map" ? 42 : 0
+    );
+    expect(observation.selectedCommits).toBeGreaterThan(0);
+    expect(observation.legacyPreimageVerified).toBe(true);
+    return;
+  }
+  expect(observation.exit).toBe(group === "positive" ? 0 : 42);
+  expect(observation.commits).toBe(
+    ["verified-reachable-history", "digest-tag-object-revision"].includes(
+      observation.name
+    )
+      ? 3
+      : 2
+  );
+  expect(observation.preimageVerified).toBe(
+    group === "positive" && !observation.name.startsWith("verified-narrative")
+  );
+};
 /**
  * Resolve the installed archive's caller through the same authority as full apply.
  * Release stamps are bound to the version tag by the publish identity gate.

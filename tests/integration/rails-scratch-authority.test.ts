@@ -47,6 +47,8 @@ import {
 } from "./support/rails-scratch-supervisor";
 
 const bases: ScratchBase[] = [];
+const AUTHORITY_MODE = "--authority";
+const ACK_MARKER = ".lisa-scratch-ack";
 
 /**
  * Allocate a temp base that is torn down when the test finishes.
@@ -229,16 +231,48 @@ describe("the cleanup authority acknowledges before the payload allocates", () =
 });
 
 describe("an arming or acknowledgement failure refuses, it does not proceed", () => {
+  it("refuses a marker removed between native count reads without shell diagnostics", async () => {
+    const scratch = base();
+    const root = makeProbeRoot(scratch.namespace);
+    const marker = path.join(root, ".lisa-scratch-arm");
+    const sentinel = path.join(root, "foreign-sentinel");
+    writeMarker(root, markerBody(root));
+    fs.writeFileSync(sentinel, "preserved", { flag: "wx", mode: 0o600 });
+    const identity = fs.statSync(root);
+    const bin = path.join(scratch.base, "count-control");
+    fs.mkdirSync(bin, { mode: 0o700 });
+    // Only this synthetic marker is removed after wc reads its real bytes.
+    fs.writeFileSync(
+      path.join(bin, "wc"),
+      `#!/bin/sh\n/usr/bin/wc "$@"\nstatus=$?\nif [ "$1" = '-c' ]; then /bin/rm '${marker}'; fi\nexit "$status"\n`,
+      { mode: 0o700 }
+    );
+
+    const run = await runSupervisor(scratch.base, [AUTHORITY_MODE, root], {
+      PATH: `${bin}:${process.env.PATH}`,
+    });
+
+    expect(run.code).toBe(SUPERVISOR_EXIT.ambiguous);
+    expect(run.stdout).toBe("");
+    expect(run.stderr).toBe(
+      "lisa-scratch-run: authority: unreadable or malformed arming marker\n"
+    );
+    expect(fs.existsSync(marker)).toBe(false);
+    expect(fs.statSync(root).ino).toBe(identity.ino);
+    expect(fs.readFileSync(sentinel, "utf8")).toBe("preserved");
+    expect(fs.existsSync(path.join(root, ACK_MARKER))).toBe(false);
+  });
+
   it("refuses authority without the independently inherited full token", async () => {
     const scratch = base();
     const root = makeProbeRoot(scratch.namespace);
     writeMarker(root, markerBody(root));
-    const run = await runSupervisor(scratch.base, ["--authority", root], {
+    const run = await runSupervisor(scratch.base, [AUTHORITY_MODE, root], {
       LISA_SCRATCH_TOKEN: "",
     });
     expect(run.code).toBe(SUPERVISOR_EXIT.ambiguous);
     expect(fs.existsSync(root)).toBe(true);
-    expect(fs.existsSync(path.join(root, ".lisa-scratch-ack"))).toBe(false);
+    expect(fs.existsSync(path.join(root, ACK_MARKER))).toBe(false);
   });
 
   it("refuses a locator that differs from the full marker token", async () => {
@@ -246,12 +280,12 @@ describe("an arming or acknowledgement failure refuses, it does not proceed", ()
     const root = path.join(scratch.namespace, `r.${"b".repeat(24)}`);
     fs.mkdirSync(root, { recursive: true });
     writeMarker(root, markerBody(root));
-    const run = await runSupervisor(scratch.base, ["--authority", root], {
+    const run = await runSupervisor(scratch.base, [AUTHORITY_MODE, root], {
       LISA_SCRATCH_TOKEN: FAKE_TOKEN,
     });
     expect(run.code).toBe(SUPERVISOR_EXIT.ambiguous);
     expect(fs.existsSync(root)).toBe(true);
-    expect(fs.existsSync(path.join(root, ".lisa-scratch-ack"))).toBe(false);
+    expect(fs.existsSync(path.join(root, ACK_MARKER))).toBe(false);
   });
 
   it("never executes the payload when the authority declines to acknowledge", async () => {

@@ -9,12 +9,15 @@ import {
   HistorySecretError,
 } from "./history-secret-git.mjs";
 import {
+  coordinateManifest,
+  coordinateMaps,
   evidenceMaps,
-  narrativeSpan,
+  paragraphNarrativeSpan,
   safeSourcePath,
 } from "./history-secret-evidence-shape.mjs";
 const BUDGET = 64 * 1024 * 1024;
 const NO_REPLACEMENTS = "--no-replace-objects";
+const LITERAL_PATHSPECS = "--literal-pathspecs";
 const digest = bytes => createHash("sha256").update(bytes).digest("hex");
 const options = cwd => ({
   cwd,
@@ -27,7 +30,7 @@ const options = cwd => ({
 const readBlob = (file, commit, cwd, state) => {
   if (!safeSourcePath(file)) return null;
   const entries = gitRead(
-    ["--literal-pathspecs", "ls-tree", "-z", commit, "--", file],
+    [LITERAL_PATHSPECS, "ls-tree", "-z", commit, "--", file],
     cwd
   )
     .split("\0")
@@ -116,7 +119,7 @@ const sourceVersions = (file, row, cwd, commits, cache) => {
   for (let offset = 0; offset < commits.length; offset += 100) {
     const list = gitRead(
       [
-        "--literal-pathspecs",
+        LITERAL_PATHSPECS,
         "log",
         "--no-walk=unsorted",
         "--format=%H",
@@ -224,12 +227,156 @@ const verifiedMap = (map, row, cwd, commits, heads, blob, versions) => {
   return map.spans;
 };
 
+const coordinateKey = origin =>
+  JSON.stringify([
+    origin.commit,
+    origin.blob,
+    origin.path,
+    origin.format,
+    origin.map_pointer,
+    ...origin.value_span,
+  ]);
+const blobIdentity = (bytes, width) =>
+  createHash(width === 40 ? "sha1" : "sha256")
+    .update(`blob ${bytes.length}\0`)
+    .update(bytes)
+    .digest("hex");
+
+/** Discover only sidecar snapshots in the original selected commit set. */
+const selectedCoordinates = (cwd, commits, blob) => {
+  const path = ".lisa/history-secret-evidence.json";
+  const candidates = new Set();
+  for (let offset = 0; offset < commits.length; offset += 100) {
+    const list = gitRead(
+      [
+        LITERAL_PATHSPECS,
+        "log",
+        "--no-walk=unsorted",
+        "--format=%H",
+        ...commits.slice(offset, offset + 100),
+        "--",
+        path,
+      ],
+      cwd
+    );
+    for (const commit of list.split("\n").filter(Boolean)) {
+      if (!commits.includes(commit))
+        throw new HistorySecretError(
+          "Evidence selection is invalid; safety is unproved."
+        );
+      candidates.add(commit);
+    }
+  }
+  if (!candidates.size) return { present: false, entries: new Map() };
+  const snapshots = new Map();
+  for (const commit of candidates) {
+    const exists = gitRead(
+      [LITERAL_PATHSPECS, "ls-tree", "--name-only", commit, "--", path],
+      cwd
+    );
+    if (!exists) continue;
+    const bytes = blob(path, commit);
+    if (bytes === null) return { present: true, entries: null };
+    snapshots.set(blobIdentity(bytes, commit.length), bytes);
+  }
+  if (!snapshots.size) return { present: false, entries: new Map() };
+  if (snapshots.size !== 1) return { present: true, entries: null };
+  const entries = coordinateManifest(
+    [...snapshots.values()][0],
+    commits[0].length
+  );
+  if (entries === null) return { present: true, entries: null };
+  const indexed = new Map();
+  const spans = new Map();
+  const documents = new Set();
+  for (const entry of entries) {
+    if (!commits.includes(entry.origin.commit))
+      return { present: true, entries: null };
+    const key = coordinateKey(entry.origin);
+    const file = JSON.stringify([
+      entry.origin.commit,
+      entry.origin.blob,
+      entry.origin.path,
+    ]);
+    const intervals = spans.get(file) ?? [];
+    const [start, end] = entry.origin.value_span;
+    if (indexed.has(key) || intervals.some(([a, b]) => start < b && end > a))
+      return { present: true, entries: null };
+    intervals.push([start, end]);
+    spans.set(file, intervals);
+    indexed.set(key, entry.preimage);
+    documents.add(JSON.stringify([entry.origin.commit, entry.origin.path]));
+  }
+  return { present: true, entries: indexed, documents };
+};
+
+/** Explicit and typed ancestor claims require independent original commit verification. */
+const coordinateRevision = (map, preimage, row, cwd) => {
+  const hasTyped = Object.hasOwn(map.value, "commit_parent");
+  const typed = map.value.commit_parent;
+  if (
+    hasTyped &&
+    Object.hasOwn(preimage, "commit") &&
+    typed !== preimage.commit
+  )
+    return null;
+  if (!hasTyped && !Object.hasOwn(preimage, "commit")) return row.Commit;
+  const revision = hasTyped ? typed : preimage.commit;
+  return revisionFor({ value: { source_revision: revision } }, row, cwd);
+};
+
+/** Every literal, including unflagged siblings, needs its own exact coordinate and preimage. */
+const verifiedCoordinateMap = (
+  map,
+  row,
+  bytes,
+  coordinates,
+  cwd,
+  selected,
+  blob
+) => {
+  if (coordinates === null) return [];
+  const identity = blobIdentity(bytes, row.Commit.length);
+  for (const span of map.spans) {
+    const preimage = coordinates.get(
+      coordinateKey({
+        commit: row.Commit,
+        blob: identity,
+        path: row.File,
+        format: map.format,
+        map_pointer: map.pointer,
+        value_span: [span.start, span.end],
+      })
+    );
+    if (
+      !preimage ||
+      bytes.subarray(span.start, span.end).toString("ascii") !== span.hash
+    )
+      return [];
+    let original;
+    if (map.kind === "proof") {
+      if (preimage.kind !== "archive" || !selected.has(preimage.commit))
+        return [];
+      original = blob(preimage.path, preimage.commit);
+    } else {
+      if (preimage.kind !== "source") return [];
+      const revision = coordinateRevision(map, preimage, row, cwd);
+      if (revision === null) return [];
+      original = blob(span.file, revision);
+    }
+    if (original === null || digest(original) !== span.hash) return [];
+  }
+  return map.spans;
+};
+
 /** Clear a finding only after syntax, original span and independently verified bytes agree. */
 export const classifyEvidence = (cwd, commits, heads) => {
   const state = { remaining: BUDGET, blobs: new Map() };
   const refs = new Map();
   const maps = new Map();
   const versions = new Map();
+  const selected = new Set(commits);
+  let coordinates;
   const blob = (file, commit) => {
     const key = `${commit}\0${file}`;
     if (!refs.has(key)) {
@@ -241,6 +388,7 @@ export const classifyEvidence = (cwd, commits, heads) => {
   return row => {
     if (
       row.RuleID !== "generic-api-key" ||
+      !selected.has(row.Commit) ||
       !safeSourcePath(row.File) ||
       row.SymlinkFile !== "" ||
       row.Secret !== "REDACTED" ||
@@ -256,15 +404,35 @@ export const classifyEvidence = (cwd, commits, heads) => {
     if (!bytes) return false;
     const span = attribution(row, bytes);
     if (!span) return false;
-    const narrative = narrativeSpan(bytes, span.lineStart, span.lineEnd);
+    const narrative = paragraphNarrativeSpan(
+      bytes,
+      span.lineStart,
+      span.lineEnd
+    );
     if (narrative !== null && span.matches(narrative)) return true;
     const key = `${row.Commit}\0${row.File}`;
+    if (coordinates === undefined)
+      coordinates = selectedCoordinates(cwd, commits, blob);
     if (!maps.has(key))
       maps.set(
         key,
-        evidenceMaps(bytes).flatMap(map =>
-          verifiedMap(map, row, cwd, commits, heads, blob, versions)
-        )
+        coordinates.present &&
+          (coordinates.entries === null ||
+            coordinates.documents.has(JSON.stringify([row.Commit, row.File])))
+          ? coordinateMaps(bytes).flatMap(map =>
+              verifiedCoordinateMap(
+                map,
+                row,
+                bytes,
+                coordinates.entries,
+                cwd,
+                selected,
+                blob
+              )
+            )
+          : evidenceMaps(bytes).flatMap(map =>
+              verifiedMap(map, row, cwd, commits, heads, blob, versions)
+            )
       );
     return maps.get(key).filter(span.matches).length === 1;
   };

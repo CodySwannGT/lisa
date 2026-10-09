@@ -6,6 +6,7 @@ import { auditReusable } from "../../../scripts/check-workflow-contract-assertio
 import {
   assertHostedGate,
   remainingGateTime,
+  originalHookEnvironment,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs";
 
 const context = {
@@ -23,6 +24,29 @@ const env = {
 };
 
 describe("original hosted gate prerequisites", () => {
+  it("shortens only browser-selected original hooks while preserving private candidate paths", () => {
+    const original = {
+      HOME: "/owned/candidate",
+      TMPDIR: "/owned/candidate/tmp",
+      PATH: "/qualified/tools:/usr/bin",
+      BUNDLE_PATH: "/owned/candidate/bundle",
+    };
+    expect(originalHookEnvironment(original, undefined)).toBe(original);
+    expect(originalHookEnvironment(original, { browser: false })).toBe(
+      original
+    );
+    expect(originalHookEnvironment(original, { browser: true })).toEqual({
+      ...original,
+      LISA_SCRATCH_BASE: "/tmp",
+    });
+    expect(original).not.toHaveProperty("LISA_SCRATCH_BASE");
+  });
+  it("fits the supported Linux socket pathname without shortening full authority tokens", () => {
+    const temporary = `/tmp/lisa-rails-scratch/r.${"a".repeat(24)}/tmp`;
+    const chrome = `${temporary}/${"b".repeat(8)}/com.google.Chrome.ABCDEF/SingletonSocket`;
+    expect(Buffer.byteLength(chrome)).toBe(104);
+    expect(Buffer.byteLength(chrome)).toBeLessThanOrEqual(107);
+  });
   it("keeps original application gates on their own read-only runner and privileged jobs on the trusted parent", () => {
     const workflow = parse(
       readFileSync(".github/workflows/npm-updater.yml", "utf8")

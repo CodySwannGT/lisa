@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AutoAcceptPrompter } from "../../../src/cli/prompts.js";
+import type { Harness } from "../../../src/core/config.js";
 import { NoOpGitService } from "../../../src/core/git-service.js";
 import { Lisa } from "../../../src/core/lisa.js";
 import { runPluginCommand } from "../../../src/core/plugin-command.js";
@@ -22,6 +23,7 @@ vi.mock("../../../src/core/plugin-command.js", async importOriginal => ({
 
 const PLUGIN_ID = "lisa@lisa";
 const MARKER_NAME = ".lisa-plugins-synced";
+const SETTINGS_NAME = "settings.json";
 const MARKETPLACE_UPDATE = "claude plugin marketplace update lisa";
 const PLUGIN_INSTALL = "claude plugin install lisa@lisa --scope project";
 
@@ -37,37 +39,85 @@ interface RegistrationSurface {
   ): Promise<void>;
 }
 
+/**
+ * Create the real registration orchestrator for a selected harness.
+ * @param root - Owned project fixture.
+ * @param harness - Explicit supported runtime selection.
+ * @returns Existing private registration surface.
+ */
+function createRegistration(
+  root: string,
+  harness: Harness
+): RegistrationSurface {
+  const logger = new SilentLogger();
+  return new Lisa(
+    {
+      destDir: root,
+      lisaDir: root,
+      dryRun: false,
+      harness,
+      skipGitCheck: true,
+      validateOnly: false,
+      yesMode: true,
+    },
+    {
+      logger,
+      prompter: new AutoAcceptPrompter(),
+      gitService: new NoOpGitService(),
+      backupService: new BackupService(logger),
+      detectorRegistry: new DetectorRegistry(),
+      migrationRegistry: new MigrationRegistry(),
+      strategyRegistry: new StrategyRegistry(),
+    }
+  ) as unknown as RegistrationSurface;
+}
+
 describe("optional plugin registration retry state", () => {
   let root: string;
   let registration: RegistrationSurface;
   beforeEach(async () => {
     vi.mocked(runPluginCommand).mockClear();
     root = await createTempDir();
-    const logger = new SilentLogger();
-    registration = new Lisa(
-      {
-        destDir: root,
-        lisaDir: root,
-        dryRun: false,
-        harness: "claude",
-        skipGitCheck: true,
-        validateOnly: false,
-        yesMode: true,
-      },
-      {
-        logger,
-        prompter: new AutoAcceptPrompter(),
-        gitService: new NoOpGitService(),
-        backupService: new BackupService(logger),
-        detectorRegistry: new DetectorRegistry(),
-        migrationRegistry: new MigrationRegistry(),
-        strategyRegistry: new StrategyRegistry(),
-      }
-    ) as unknown as RegistrationSurface;
+    registration = createRegistration(root, "claude");
   });
   afterEach(async () => {
     await cleanupTempDir(root);
   });
+
+  it.each(["codex", "cursor", "agy", "copilot", "opencode"] as const)(
+    "%s leaves Claude registration and its existing marker untouched",
+    async harness => {
+      await mkdir(path.join(root, ".claude"));
+      await writeFile(
+        path.join(root, ".claude", SETTINGS_NAME),
+        JSON.stringify({ enabledPlugins: { [PLUGIN_ID]: true } })
+      );
+      const marker = path.join(root, ".claude", MARKER_NAME);
+      await writeFile(marker, "previous-machine-sync\n");
+      await createRegistration(root, harness).registerPlugins();
+      expect(runPluginCommand).not.toHaveBeenCalled();
+      expect(await readFile(marker, "utf8")).toBe("previous-machine-sync\n");
+    }
+  );
+
+  it.each(["claude", "fleet"] as const)(
+    "%s retains normal project plugin registration",
+    async harness => {
+      await mkdir(path.join(root, ".claude"));
+      await writeFile(
+        path.join(root, ".claude", SETTINGS_NAME),
+        JSON.stringify({ enabledPlugins: { [PLUGIN_ID]: true } })
+      );
+      await createRegistration(root, harness).registerPlugins();
+      expect(runPluginCommand).toHaveBeenCalledWith(
+        ["--version"],
+        expect.objectContaining({ cwd: root })
+      );
+      expect(
+        await readFile(path.join(root, ".claude", MARKER_NAME), "utf8")
+      ).toMatch(/^\d+\.\d+\.\d+\n$/);
+    }
+  );
 
   it("does not claim a complete sync when an attempted install fails", async () => {
     const commands: string[] = [];
@@ -88,7 +138,7 @@ describe("optional plugin registration retry state", () => {
   it("does not attempt explicitly disabled project plugins", async () => {
     await mkdir(path.join(root, ".claude"));
     await writeFile(
-      path.join(root, ".claude", "settings.json"),
+      path.join(root, ".claude", SETTINGS_NAME),
       JSON.stringify({ enabledPlugins: { "disabled@marketplace": false } })
     );
     await registration.registerPlugins();

@@ -86,8 +86,8 @@ const options = {
 const SYSTEM_PATH = "/usr/bin:/bin";
 const COMMIT_WORK_ITEM_SLOT = "commit-work-item";
 
-function gatewayFixture(state: any, code: string) {
-  const entry = join(state.root, "lisa-work-item.mjs");
+function gatewayFixture(state: any, code: string, name = "lisa-work-item.mjs") {
+  const entry = join(state.root, name);
   writeFileSync(entry, code);
   const node = realpathSync(process.execPath);
   const file = join(state.root, "hosted-hooks.json");
@@ -114,29 +114,52 @@ function gatewayFixture(state: any, code: string) {
 }
 
 describe("hosted gate read-only provider transport", () => {
+  it.each([
+    { role: "commit", args: ["message"], code: 7 },
+    { role: "audit", args: ["message"], code: 1 },
+    { role: undefined, args: ["message"], code: 1 },
+    { role: "commit", args: [], code: 1 },
+    { role: "commit", args: ["message", "extra"], code: 1 },
+    { role: "commit", args: ["--import=foreign"], code: 1 },
+    { role: "commit", args: ["message"], code: 1, foreign: true },
+  ])("routes only the real canonical commit CLI %#", async selection => {
+    await fixture(async state => {
+      const code =
+        'import { spawnSync } from "node:child_process"; const result=spawnSync("gh",["--version"],{encoding:"utf8",timeout:5000,maxBuffer:65536}); process.stdout.write(JSON.stringify({token:process.env.GH_TOKEN??null,status:result.status})); process.exitCode=result.status??1;';
+      const { node, gateway, file, entry } = gatewayFixture(
+        state,
+        code,
+        selection.foreign ? "foreign.mjs" : "lisa-automation-provenance.mjs"
+      );
+      const result = await runProcess(
+        node,
+        [gateway, "--context", file, "--", entry, ...selection.args],
+        {
+          cwd: state.root,
+          env: {
+            PATH: SYSTEM_PATH,
+            HOME: state.root,
+            GH_TOKEN: "synthetic-must-be-removed",
+            ...(selection.role ? { LISA_NPM_HOOK_ROLE: selection.role } : {}),
+          },
+          timeout: 8000,
+          maximum: 65536,
+          allowed: [1, 7],
+        }
+      );
+      expect(result.code).toBe(selection.code);
+      if (selection.code === 7)
+        expect(JSON.parse(result.stdout.toString())).toEqual({
+          token: null,
+          status: 7,
+        });
+    });
+  });
   it("reaches the actual token-free Node gateway/preload/client and preserves binary stdin and native refusal", async () => {
     await fixture(async state => {
-      const entry = join(state.root, "lisa-work-item.mjs");
       const code =
         'import { spawnSync } from "node:child_process"; import { readFileSync } from "node:fs"; const input=readFileSync(0); const result=spawnSync("gh",["--version"],{encoding:"utf8",timeout:5000,maxBuffer:65536}); process.stdout.write(JSON.stringify({input:input.toString("hex"),token:process.env.GH_TOKEN??null,...result})); process.exitCode=result.status??1;';
-      writeFileSync(entry, code);
-      const node = realpathSync(process.execPath);
-      const file = join(state.root, "hosted-hooks.json");
-      writeJson(file, {
-        version: 1,
-        root: state.root,
-        cwd: state.root,
-        graph: { [entry]: sha256(code) },
-        native: {
-          node: { path: node, version: "22.23.3", sha256: binaryDigest(node) },
-          git: { path: node, sha256: binaryDigest(node) },
-          gh: state.profile.nativeGh,
-        },
-        reader: state.context,
-      });
-      const gateway = resolve(
-        "all/copy-overwrite/scripts/lib/npm-update-hosted-hook.mjs"
-      );
+      const { node, file, gateway, entry } = gatewayFixture(state, code);
       const result = await runProcess(
         node,
         [gateway, "--context", file, "--", entry, "validate-commit", "message"],
