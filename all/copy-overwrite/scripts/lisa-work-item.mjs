@@ -4534,6 +4534,9 @@ export function commitPendingLisaUpdate(ref, contract, cwd = process.cwd()) {
   const snapshot = run("git", ["ls-files", "-s", "-z", "--", ...files], {
     cwd,
   }).stdout;
+  // Set once the commit has landed, so a later failure (reading its tree,
+  // undoing it) is never reported as "not committed".
+  let landed = false;
   try {
     const previous = git(["rev-parse", "--verify", "HEAD"], { cwd });
     git(["add", "--", ...files], { cwd });
@@ -4552,6 +4555,7 @@ export function commitPendingLisaUpdate(ref, contract, cwd = process.cwd()) {
       ],
       { cwd, timeout: 10 * 60 * 1000 }
     );
+    landed = true;
     // `--only` reads the paths again at commit time, and the project's hooks
     // run in between, so the comparison above does not by itself bind what
     // was committed. Check the commit's own tree against the recorded
@@ -4560,6 +4564,7 @@ export function commitPendingLisaUpdate(ref, contract, cwd = process.cwd()) {
     const drifted = committedDrift(pending.digests, files, cwd);
     if (drifted.length > 0) {
       git(["reset", "--soft", previous], { cwd });
+      landed = false;
       const restored = restoreIndexEntries(snapshot, files, cwd);
       console.error(
         `The pending Lisa ${pending.to} update was NOT committed automatically: these files changed while it was being committed: ${drifted.join(", ")}. The commit was undone${restored ? "" : ", but restoring what was staged for them failed; check `git status`"}. Review them and commit the Lisa update as its own commit before feature work.`
@@ -4571,6 +4576,12 @@ export function commitPendingLisaUpdate(ref, contract, cwd = process.cwd()) {
       `Committed the pending Lisa ${pending.to} update first, as its own commit, under ${ref}.`
     );
   } catch (error) {
+    if (landed) {
+      console.error(
+        `The pending Lisa ${pending.to} update was committed as HEAD, but it could not be verified or undone (${String(error?.message ?? error).split("\n")[0]}). Inspect HEAD before feature work; if it holds anything besides the Lisa update, undo it with git reset --soft HEAD~1.`
+      );
+      return;
+    }
     const restored = restoreIndexEntries(snapshot, files, cwd);
     console.error(
       `The pending Lisa ${pending.to} update could not be committed (${String(error?.message ?? error).split("\n")[0]}). Its files are still in the working tree; commit them as their own commit before feature work.${restored ? "" : " Restoring what was staged for them beforehand also failed; check `git status` before committing."}`

@@ -29,6 +29,8 @@ import { boundedExecFileSync } from "../../helpers/io-latency-budget.js";
 /** The work item being bound. */
 const REF = "o/r#7";
 /** Version the pending update moves to. */
+const PRE_COMMIT = "pre-commit";
+const HOOKS_PATH = "core.hooksPath";
 const TO = "4.68.0";
 /** The manifest the update changes. */
 const PKG = "package.json";
@@ -248,22 +250,42 @@ describe("lisa-work-item: a pending Lisa update is committed first", () => {
     const root = repoWithPendingUpdate("feat/x");
     // A hook that rewrites and re-stages a pending file stands in for any
     // change landing after the comparison: `--only` reads paths at commit time.
-    const hook = path.join(root, ".git", "hooks", "pre-commit");
+    const hook = path.join(root, ".git", "hooks", PRE_COMMIT);
     mkdirSync(path.dirname(hook), { recursive: true });
     writeFileSync(
       hook,
       `#!/bin/sh\nprintf '{"late":true}\\n' > ${PKG}\ngit add ${PKG}\n`,
       { mode: 0o755 }
     );
-    git(root, [
-      "config",
-      "core.hooksPath",
-      hook.slice(0, -"/pre-commit".length),
-    ]);
+    git(root, ["config", HOOKS_PATH, hook.slice(0, -"/pre-commit".length)]);
     const errors = commitCapturingErrors(root);
     expect(errors).toContain("changed while it was being committed");
     expect(git(root, LAST_SUBJECT)).toBe(INITIAL);
     expect(existsSync(markerFile(root))).toBe(true);
+  });
+
+  it("says the commit landed when it cannot be undone", () => {
+    const root = repoWithPendingUpdate("feat/x");
+    const hooks = path.join(root, ".git", "hooks");
+    mkdirSync(hooks, { recursive: true });
+    writeFileSync(
+      path.join(hooks, PRE_COMMIT),
+      `#!/bin/sh\nprintf '{"late":true}\\n' > ${PKG}\ngit add ${PKG}\n`,
+      { mode: 0o755 }
+    );
+    // Refuse any ref update back to the starting commit, so the undo fails.
+    const start = git(root, ["rev-parse", "HEAD"]);
+    writeFileSync(
+      path.join(hooks, "reference-transaction"),
+      `#!/bin/sh\n[ "$1" = prepared ] || exit 0\nwhile read -r old new ref; do [ "$new" = "${start}" ] && exit 1; done\nexit 0\n`,
+      { mode: 0o755 }
+    );
+    git(root, ["config", HOOKS_PATH, hooks]);
+    const errors = commitCapturingErrors(root);
+    expect(errors).toContain(
+      "committed as HEAD, but it could not be verified or undone"
+    );
+    expect(errors).not.toContain("could not be committed");
   });
 
   it("restores what the user had staged when the commit fails", () => {
@@ -288,15 +310,11 @@ describe("lisa-work-item: a pending Lisa update is committed first", () => {
         },
       })
     );
-    const hook = path.join(root, ".git", "hooks", "pre-commit");
+    const hook = path.join(root, ".git", "hooks", PRE_COMMIT);
     mkdirSync(path.dirname(hook), { recursive: true });
     writeFileSync(hook, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
     // Repository-local, so a global hooksPath on the runner cannot bypass it.
-    git(root, [
-      "config",
-      "core.hooksPath",
-      hook.slice(0, -"/pre-commit".length),
-    ]);
+    git(root, ["config", HOOKS_PATH, hook.slice(0, -"/pre-commit".length)]);
     const errors = commitCapturingErrors(root);
     expect(errors).toContain("could not be committed");
     expect(errors).not.toContain("also failed");

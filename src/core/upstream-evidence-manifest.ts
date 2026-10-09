@@ -263,7 +263,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-test-node.mjs":
       "cd436584d756442fc393557a3244bbdacdf915bd0fb1a472ebe7afa8103d3475",
     "all/copy-overwrite/scripts/lisa-work-item.mjs":
-      "c41e09152fa5cef8a2dcc347e490be6bf94e8df80b15b270c609218b993598ab",
+      "203f110fd4752ff89d906276a5115500a2f42289d00cb5435345c90c433edf46",
     "all/copy-overwrite/scripts/lisa-worktree-guard.mjs":
       "2535ef2a60b3413dacb8491c008ab28f0a07929196277d1d1fed54a04740c025",
     "all/copy-overwrite/scripts/npm-updater-gate-runtime.json":
