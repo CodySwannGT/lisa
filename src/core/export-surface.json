@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 220,
-  "$names": 1670,
+  "$modules": 222,
+  "$names": 1683,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -1625,6 +1625,23 @@
       "judge",
       "parseTrace",
       "tracerIndex"
+    ],
+    "scripts/lib/shell-guard-shard-runner.mjs": [
+      "collectShard",
+      "mergeCollected",
+      "snapshot"
+    ],
+    "scripts/lib/shell-guard-shards.mjs": [
+      "completeReportedFiles",
+      "identityHash",
+      "mergeBundles",
+      "nativeArgv",
+      "parseShard",
+      "sha256",
+      "strictTrace",
+      "terminalTask",
+      "validateBundle",
+      "validateSnapshot"
     ],
     "scripts/lib/shipped-surface.mjs": [
       "BINDABLE_ROOT",

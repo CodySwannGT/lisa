@@ -2487,7 +2487,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/check-self-dependency-pin.mjs":
       "f517c44a1058a87051b6bb9520e8596a37521f475ca67e0d47159163999ff692",
     "scripts/check-shell-guard-refusal-coverage.mjs":
-      "95e4086965dde95d0aa17cb3db64a94c9e2d21822039aaf89aad4a8acc99689e",
+      "db5d8a16ec58562c20dfb067b21e1af8d79189ddbcc784913e7d3949a1aa0f03",
     "scripts/check-shipped-surface-removals.mjs":
       "2ff9e161d101cc55ffe099f0a7b4fc83e023e79215ff09e53c5d0c889a9594bb",
     "scripts/check-state-classification.mjs":
@@ -2604,6 +2604,12 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "134ee2a327290f066f1eb318b5ed53c711557c3e10ed462c00ff5c97cfb20863",
     "scripts/lib/shell-guard-refusal-coverage.mjs":
       "9bd530bae922022870c8bb1b69925778fa609c67561228cc8cfa94a0ee3f5e7c",
+    "scripts/lib/shell-guard-shard-runner.mjs":
+      "e66b9acee96812374bc63d3569614aef5095124ddec08287128893889847cbcf",
+    "scripts/lib/shell-guard-shards.mjs":
+      "a5724f75bea3469aae76c9eb8ff13e0ba446c73a0466c43d9a670b3b7628dce1",
+    "scripts/lib/shell-guard-terminal-reporter.mjs":
+      "5af1615782b5c0608c5218fd88149def957a6856000c699662356bba1f2cab93",
     "scripts/lib/shell-guard-trace.mjs":
       "c3ec8f0a9c52090d8044bbc99fae50eaebc45a1469f62ef2f4fd21c80aa67277",
     "scripts/lib/shipped-surface.mjs":
@@ -9121,6 +9127,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "scripts/lib/reusable-workflow-contract.d.mts": true,
     "scripts/lib/reusable-workflow-contract.mjs": true,
     "scripts/lib/shell-guard-refusal-coverage.mjs": true,
+    "scripts/lib/shell-guard-shard-runner.mjs": true,
+    "scripts/lib/shell-guard-shards.mjs": true,
+    "scripts/lib/shell-guard-terminal-reporter.mjs": true,
     "scripts/lib/shell-guard-trace.mjs": true,
     "scripts/lib/shipped-surface.mjs": true,
     "scripts/lib/upstream-manifest-staleness.mjs": true,
@@ -11210,6 +11219,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/security-floors.test.ts": true,
     "tests/unit/scripts/setup-jira-cli-config.test.ts": true,
     "tests/unit/scripts/setup-jira-cli-project-dir.test.ts": true,
+    "tests/unit/scripts/shell-guard-shards.test.ts": true,
     "tests/unit/scripts/shipped-surface.test.ts": true,
     "tests/unit/scripts/skipped-required-checks-cli.test.ts": true,
     "tests/unit/scripts/skipped-required-checks-containment.test.ts": true,

@@ -13,6 +13,19 @@ interface Step {
   readonly with?: Readonly<Record<string, string>>;
 }
 
+/** Native workflow dependency and execution contract. */
+interface Job {
+  readonly name?: string;
+  readonly needs?: string;
+  readonly if?: string;
+  readonly "timeout-minutes"?: number;
+  readonly strategy?: {
+    readonly "fail-fast": boolean;
+    readonly matrix: { readonly shard: readonly number[] };
+  };
+  readonly steps: readonly Step[];
+}
+
 /**
  * Read actual required workflow job steps through a YAML parser.
  * @param file - Repository-relative workflow path
@@ -20,10 +33,19 @@ interface Step {
  * @returns Parsed ordered steps
  */
 function steps(file: string, job: string): readonly Step[] {
+  return jobs(file)[job]!.steps;
+}
+
+/**
+ * Parse dependency and step contracts from the actual native workflow.
+ * @param file - Repository-relative workflow path
+ * @returns Native workflow jobs
+ */
+function jobs(file: string): Readonly<Record<string, Job>> {
   const workflow = parse(readFileSync(path.join(ROOT, file), "utf8")) as {
-    jobs: Record<string, { steps: Step[] }>;
+    jobs: Record<string, Job>;
   };
-  return workflow.jobs[job]!.steps;
+  return workflow.jobs;
 }
 
 /**
@@ -84,12 +106,62 @@ describe("qualified runtimes in required CI execution paths", () => {
     ).toBe(true);
   });
 
-  it("required shell tracing retains both runtimes and still executes the full tracer", () => {
-    const items = steps(".github/workflows/plugins-sync.yml", "plugins-sync");
+  it("full native shell-trace shards retain both qualified runtimes and original budgets", () => {
+    const producer = jobs(".github/workflows/plugins-sync.yml")["guard-trace"]!;
+    const items = producer.steps;
     assertUpdaterNode(items);
     assertHostBun(items);
+    expect(producer.strategy?.matrix.shard).toEqual([1, 2, 3]);
+    expect(producer.strategy?.["fail-fast"]).toBe(false);
+    expect(producer["timeout-minutes"]).toBe(30);
+    const collect = items.find(step => step.run?.includes("--collect-only"))!;
+    expect(collect.run).toContain(
+      "node dist/cli/lisa-test-run.js --profile lisa --adapter direct"
+    );
+    expect(collect.run).toContain(
+      'scripts/check-shell-guard-refusal-coverage.mjs --collect-only --shard "${{ matrix.shard }}/3"'
+    );
     expect(
-      items.some(step => step.run === "bun run check:shell-guard-refusals")
+      items.some(step => step.run === "bun install --frozen-lockfile")
     ).toBe(true);
+    expect(items.some(step => step.run === "bun run build")).toBe(true);
+    expect(
+      items.find(step => step.uses?.startsWith("actions/upload-artifact@"))
+        ?.with?.["name"]
+    ).toBe(
+      "lisa-shell-guard-${{ github.run_id }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}"
+    );
+  });
+
+  it("required shell judgment retains both runtimes and refuses incomplete native shard dependencies", () => {
+    const aggregate = jobs(".github/workflows/plugins-sync.yml")[
+      "plugins-sync"
+    ]!;
+    const items = aggregate.steps;
+    assertUpdaterNode(items);
+    assertHostBun(items);
+    expect(aggregate.name).toBe("🧩 Plugin artifacts match source");
+    expect(aggregate.needs).toBe("guard-trace");
+    expect(aggregate.if).toBe("always()");
+    expect(aggregate["timeout-minutes"]).toBe(30);
+    expect(
+      items.some(step =>
+        step.run?.includes('process.env.TRACE_SHARDS_RESULT !== "success"')
+      )
+    ).toBe(true);
+    expect(
+      items.find(step => step.uses?.startsWith("actions/download-artifact@"))
+        ?.with?.["pattern"]
+    ).toBe(
+      "lisa-shell-guard-${{ github.run_id }}-${{ github.run_attempt }}-shard-*"
+    );
+    const merge = items.find(step => step.run?.includes("--merge-traces"))!;
+    expect(merge.run).toContain(
+      "node dist/cli/lisa-test-run.js --profile lisa --adapter direct"
+    );
+    expect(merge.run).toContain(
+      "scripts/check-shell-guard-refusal-coverage.mjs --merge-traces"
+    );
+    expect(merge.run).toContain("--trace-out .lisa/shell-guard-trace.jsonl");
   });
 });

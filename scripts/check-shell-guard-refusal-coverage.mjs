@@ -35,9 +35,17 @@
  *   --trace-out FILE
  *                  also write the judged trace to FILE, so a later step in the
  *                  same job can read what this run observed. Never commit it.
+ *   --collect-only --shard I/3 --trace-out NEW_DIRECTORY/trace.jsonl
+ *                  collect one complete native Actions shard without judging
+ *                  its individual trace. All canonical candidates are supplied.
+ *   --merge-traces DIRECTORY --trace-out FILE
+ *                  validate all three current run/attempt shard receipts, then
+ *                  apply the original judge once to their combined trace.
+ *                  A new Actions attempt must reproduce all three shards.
  *
  * Exit codes (mirroring the sibling check-* scripts):
- *   0 — every guard the run drove was observed refusing and allowing.
+ *   0 — the judgment passed, or --collect-only retained a complete eligible
+ *       shard without judging its individual trace.
  *   1 — >=1 finding.
  *   2 — operational error: unknown flag, vitest could not run, or ZERO guards
  *       observed.
@@ -59,9 +67,15 @@ import {
   parseTrace,
   tracerIndex,
 } from "./lib/shell-guard-refusal-coverage.mjs";
+import {
+  collectShard,
+  mergeCollected,
+} from "./lib/shell-guard-shard-runner.mjs";
 
 /** The flag naming a file the produced trace should also be written to. */
 const TRACE_OUT_FLAG = "--trace-out";
+/** Collection receipts to combine before the original judgment. */
+const MERGE_TRACES_FLAG = "--merge-traces";
 
 /** Wall-clock ceiling for the traced vitest run. */
 const RUN_TIMEOUT_MS = 45 * 60_000;
@@ -233,8 +247,20 @@ function keepTrace(root, args, trace) {
  */
 export function main() {
   const args = process.argv.slice(2);
-  const known = new Set(["--json", "--trace", TRACE_OUT_FLAG]);
-  const valueFlags = new Set(["--trace", TRACE_OUT_FLAG]);
+  const known = new Set([
+    "--json",
+    "--trace",
+    TRACE_OUT_FLAG,
+    "--collect-only",
+    "--shard",
+    MERGE_TRACES_FLAG,
+  ]);
+  const valueFlags = new Set([
+    "--trace",
+    TRACE_OUT_FLAG,
+    "--shard",
+    MERGE_TRACES_FLAG,
+  ]);
   const unknown = args.find(
     (arg, at) =>
       arg.startsWith("--") &&
@@ -249,13 +275,45 @@ export function main() {
     return;
   }
   const root = process.cwd();
+  if (args.includes("--collect-only")) {
+    try {
+      collectShard(root, candidateSuites, args);
+    } catch (error) {
+      console.error(`check:shell-guard-refusal-coverage: ${String(error)}`);
+      process.exitCode = 2;
+    }
+    return;
+  }
+  if (args.includes("--shard")) {
+    console.error(
+      "check:shell-guard-refusal-coverage: --shard requires --collect-only"
+    );
+    process.exitCode = 2;
+    return;
+  }
   const population = guardPopulation(root);
   const at = args.indexOf("--trace");
   const supplied = at === -1 ? undefined : args[at + 1];
-  const produced =
-    supplied === undefined
-      ? produceTrace(root, population)
-      : { trace: readOrEmpty(root, supplied), suites: 0, ok: true, detail: "" };
+  let produced;
+  if (args.includes(MERGE_TRACES_FLAG)) {
+    try {
+      produced = mergeCollected(root, candidateSuites, args);
+    } catch (error) {
+      console.error(`check:shell-guard-refusal-coverage: ${String(error)}`);
+      process.exitCode = 2;
+      return;
+    }
+  } else {
+    produced =
+      supplied === undefined
+        ? produceTrace(root, population)
+        : {
+            trace: readOrEmpty(root, supplied),
+            suites: 0,
+            ok: true,
+            detail: "",
+          };
+  }
   if (!produced.ok) {
     console.error(`check:shell-guard-refusal-coverage: ${produced.detail}`);
     process.exitCode = 2;
