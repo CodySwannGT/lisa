@@ -3,7 +3,7 @@
  * Process names never confer cleanup authority; ancestry and identity do.
  * @module tests/helpers/freshness-owned-processes
  */
-import { spawnSync } from "node:child_process";
+import { boundedSpawnSync } from "./io-latency-budget.js";
 
 /** Native process identity observed while under the live fixture leader. */
 interface Identity {
@@ -19,8 +19,11 @@ interface Identity {
  * @returns Native rows with the complete process birth time.
  */
 function census(): readonly Identity[] {
-  return spawnSync("/bin/ps", ["-axo", "pid=,ppid=,pgid=,lstart=,stat="], {
-    encoding: "utf8",
+  return boundedSpawnSync({
+    command: "/bin/ps",
+    args: ["-axo", "pid=,ppid=,pgid=,lstart=,stat="],
+    baseMs: 1_000,
+    label: "birth-bound freshness fixture process census",
   })
     .stdout.split("\n")
     .flatMap(line => {

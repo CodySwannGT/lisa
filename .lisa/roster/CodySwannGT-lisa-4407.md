@@ -46,3 +46,11 @@ EXCLUDE - lisa-tracker-mining-specialist - No initiative debrief.
 Context: `.lisa/work-item-context.md` is complete, ignored and local only. Every teammate reads it in full and receives the resolver comment inventory. All flagged obligations remain explicit in the plan and verification. Public artifacts contain no downstream identities.
 
 The optional diagnostic must terminate within two seconds with at most one additional second for owned cleanup. Failure, absent bounded runner or incomplete output yields unknown, then every original guard dispatches and refusal aggregation remains unchanged. macOS Bash 3.2 and Linux execution, meaningful stalled-helper RED/GREEN, missing-runner and complete normal-output controls, named hosted regression execution and exact genuine released-package replay are mandatory. No whole-dispatcher timeout, unbounded fallback, hook bypass or changed enforcement policy is permitted.
+# Delivery follow-up ownership
+
+After the first ordinary push exposed two unit failures and independent output
+exposed a Bash 3.2 cleanup error, the bug fixer supplied the reaching language
+diagnosis. Root implemented the minimal corrective patch and regression
+assertions. `deadline_cleanup_review` independently reviews the changed diff;
+the verification specialist owns the subsequent actual current-head proof.
+Root retains Git, generated artifacts and provider ownership.

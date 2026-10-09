@@ -217,7 +217,9 @@ plugin_tree_version=""
 run_optional_freshness() (
   command -v mkfifo >/dev/null 2>&1 && command -v ps >/dev/null 2>&1 || exit 1
   ps -o pid= -p "$$" >/dev/null 2>&1 || exit 1
-  local scratch anchor="" scratch_identity="" current_identity="" helper_status=1
+  # Bash 3.2 unwinds function locals before EXIT on an explicit exit inside
+  # command substitution. This function already isolates all state in a subshell.
+  scratch="" anchor="" scratch_identity="" current_identity="" helper_status=1
   [ -n "$notice_temp_base" ] && notice_parent_chain_trusted "$notice_temp_base" || exit 1
   scratch="$(umask 077 && mktemp -d "$notice_temp_base/lisa-freshness.XXXXXX")" || exit 1
   case "$scratch" in "$notice_temp_base"/lisa-freshness.*) ;; *) exit 1 ;; esac

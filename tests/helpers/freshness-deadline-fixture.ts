@@ -4,7 +4,7 @@
  * @module tests/helpers/freshness-deadline-fixture
  */
 import { spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { lstatSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import type { DeadlineFixture } from "./freshness-deadline-inputs.js";
 import {
@@ -27,6 +27,37 @@ export interface DeadlineObservation {
   readonly diagnosticMs: number | null;
   readonly ownedPids: readonly number[];
   readonly foreignSentinelUnchanged: boolean;
+  readonly diagnosticScratchLeaves: readonly DiagnosticLeaf[];
+}
+
+/** Actual diagnostic leaves still present before fixture teardown. */
+interface DiagnosticLeaf {
+  readonly name: string;
+  readonly device: number;
+  readonly inode: number;
+  readonly mode: number;
+  readonly entries: readonly string[] | null;
+}
+
+/**
+ * Inspect only diagnostic leaves under this fixture's owned scratch directory.
+ * @param scratch Private fixture scratch parent.
+ * @returns Leaf identities before broad fixture cleanup can hide a leak.
+ */
+function diagnosticLeaves(scratch: string): readonly DiagnosticLeaf[] {
+  return readdirSync(scratch)
+    .filter(name => name.startsWith("lisa-freshness."))
+    .map(name => {
+      const leaf = path.join(scratch, name);
+      const info = lstatSync(leaf);
+      return {
+        name,
+        device: info.dev,
+        inode: info.ino,
+        mode: info.mode & 0o777,
+        entries: info.isDirectory() ? readdirSync(leaf) : null,
+      };
+    });
 }
 
 /** Event state is necessarily updated while the real fixture runs. */
@@ -57,6 +88,7 @@ function summarize(
   const result = {
     status,
     output: state.output,
+    diagnosticScratchLeaves: diagnosticLeaves(fixture.scratch),
     entered: readFileSync(fixture.entries, "utf8").length > 0,
     timedOut: state.timedOut,
     elapsedMs: performance.now() - start,
