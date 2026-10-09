@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.73.3](https://github.com/CodySwannGT/lisa/compare/v4.73.2...v4.73.3) (2026-10-09)
+
+
+### Bug Fixes
+
+* **hooks:** complete freshness helper packaging ([9e2123a](https://github.com/CodySwannGT/lisa/commit/9e2123a0728226c7d2e3c09f0d2da1caf0bf8351)), closes [CodySwannGT/lisa#4321](https://github.com/CodySwannGT/lisa/issues/4321)
+* **hooks:** separate host guard contents from apply history ([31f334e](https://github.com/CodySwannGT/lisa/commit/31f334ee23ce294928ccb44d76f1eb598762e482)), closes [CodySwannGT/lisa#4321](https://github.com/CodySwannGT/lisa/issues/4321)
+
 ### [4.73.2](https://github.com/CodySwannGT/lisa/compare/v4.73.1...v4.73.2) (2026-10-09)
 
 
