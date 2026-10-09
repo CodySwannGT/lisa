@@ -75,7 +75,10 @@ const fault = (kind: string) => (args: string[], input?: string) => {
     if (kind === "truncated") return raw.subarray(0, raw.length - 1);
     if (kind === "bytes") {
       const changed = Buffer.from(raw);
-      changed[changed.indexOf(10) + 1] ^= 1;
+      const offset = changed.indexOf(10) + 1;
+      const byte = changed[offset];
+      if (byte === undefined) throw new Error("Missing native object byte");
+      changed[offset] = byte ^ 1;
       return changed;
     }
   }
@@ -87,10 +90,16 @@ describe("independent native preimage batches", () => {
     const tuples = [tuple(), [revision, path, null], tuple()];
     const inventory = verifyPreimageBatch(tuples, git);
     expect(inventory).toHaveLength(3);
-    expect(inventory.map(row => [row.commit, row.path, row.size])).toEqual(
-      tuples.map(row => [row[0], row[1], bytes.length])
+    expect(
+      inventory.map((row: { commit: string; path: string; size: number }) => [
+        row.commit,
+        row.path,
+        row.size,
+      ])
+    ).toEqual(tuples.map(row => [row[0], row[1], bytes.length]));
+    expect(provePreimage(harness, cwd, tuples, undefined, undefined)).toEqual(
+      inventory
     );
-    expect(provePreimage(harness, cwd, tuples)).toEqual(inventory);
   });
   it.each(["mode", "path", "oid", "truncated", "bytes"])(
     "rejects actual Git reply falsified at %s",
@@ -126,7 +135,9 @@ describe("independent native preimage batches", () => {
         .subarray(0, changed.indexOf(10))
         .findIndex(byte => byte >= 0x61 && byte <= 0x66);
       expect(offset).toBeGreaterThanOrEqual(0);
-      changed[offset] |= 0x80;
+      const byte = changed[offset];
+      if (byte === undefined) throw new Error("Missing native header byte");
+      changed[offset] = byte | 0x80;
       return changed;
     };
     expect(() => verifyPreimageBatch([tuple()], read)).toThrow(unproved);
@@ -180,6 +191,8 @@ describe("independent native preimage batches", () => {
     expect(inventory).toHaveLength(20);
     expect(calls.filter(args => args.includes("ls-tree"))).toHaveLength(1);
     expect(calls.filter(args => args.includes("--batch"))).toHaveLength(2);
-    expect(inventory.map(row => row.path)).toEqual(tuples.map(row => row[1]));
+    expect(inventory.map((row: { path: string }) => row.path)).toEqual(
+      tuples.map(row => row[1])
+    );
   });
 });

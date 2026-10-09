@@ -123,7 +123,7 @@ function census(): Promise<readonly Identity[]> {
  */
 function sharedCensus(): () => Promise<readonly Identity[]> {
   const state: {
-    inFlight?: Promise<readonly Identity[]>;
+    inFlight?: Promise<readonly Identity[]> | undefined;
     failure?: unknown;
   } = {};
   return async (): Promise<readonly Identity[]> => {
