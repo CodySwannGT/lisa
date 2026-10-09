@@ -343,6 +343,10 @@ Diagnostics are offline and lazy: at most eight guard/template pairs (1 MiB per
 file), four 64 KiB manifests/receipts and one 4 MiB plugin registry, with one
 additional byte per read to detect overflow. After the session notice, permitted
 calls invoke no freshness helper. Later refusals re-evaluate their own evidence.
+The live anchor verifies its own process group before launching Node, so native
+qualification cannot race a separate parent/start countdown. Qualification is
+setup outside the producer timer; arbitrary native `ps` or scheduler stalls are
+not bounded by that timer.
 The optional subprocess has a one-second Bash timer independent of Node,
 leaving headroom beneath its two-second diagnostic ceiling. Slower diagnostics
 become unknown; complete results within the budget retain their attribution.

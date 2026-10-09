@@ -13,6 +13,7 @@ import { SELECTED_GUARDS } from "../helpers/host-guard-freshness-fixtures.js";
 afterEach(cleanupScratchRoots);
 
 const UNKNOWN = "host content unknown";
+const MATCHING = "matches installed template";
 
 /**
  * Check production cleanup before the broad fixture teardown runs.
@@ -52,7 +53,7 @@ describe("optional freshness diagnostic deadline", () => {
       expect(result.stateUnchanged).toBe(true);
       expect(result.output).toContain("4.72.7");
       expect(result.output).toContain("4.33.1");
-      expect(result.output).toContain("matches installed template");
+      expect(result.output).toContain(MATCHING);
     }
   );
 
@@ -67,6 +68,21 @@ describe("optional freshness diagnostic deadline", () => {
     expect(result.diagnosticMs).toBeLessThanOrEqual(3_000);
     expect(result.survivingPids).toEqual([]);
     expect(result.output).not.toContain("9.9.9");
+  });
+
+  it("qualifies the live group before starting the producer deadline", async () => {
+    const result = await observeDeadline("delayed-qualification");
+    expectDiagnosticCleanup(result);
+    expect(result.entered).toBe(true);
+    expect(result.status).toBe(2);
+    expect(result.timedOut).toBe(false);
+    expect(result.guards).toEqual(SELECTED_GUARDS.map(name => `${name}.sh`));
+    expect(result.diagnosticMs).toBeLessThanOrEqual(3_000);
+    expect(result.survivingPids).toEqual([]);
+    expect(result.stateUnchanged).toBe(true);
+    expect(result.output).toContain("4.72.7");
+    expect(result.output).toContain("4.33.1");
+    expect(result.output).toContain(MATCHING);
   });
 
   it.each([
@@ -117,7 +133,7 @@ describe("optional freshness diagnostic deadline", () => {
     expect(result.unobservedHelperPids).toEqual([]);
     expect(result.status).toBe(2);
     expect(result.timedOut).toBe(false);
-    expect(result.output).toContain("matches installed template");
+    expect(result.output).toContain(MATCHING);
     expect(result.output).toContain("4.72.7");
     expect(result.survivingPids).toEqual([]);
     expect(result.guards).toEqual(SELECTED_GUARDS.map(name => `${name}.sh`));

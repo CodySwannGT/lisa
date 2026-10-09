@@ -250,7 +250,9 @@ run_optional_freshness() (
     set +m
     scratch="$1"
     shift
-    read -r -t 1 -u 8 start && [ "$start" = start ] || exit 1
+    # This live anchor qualifies its own group before launching any Node work.
+    # Native qualification must not race a separate parent/start countdown.
+    [ "$(ps -o pgid= -p "$$" 2>/dev/null | tr -d " ")" = "$$" ] || exit 1
     (
       node "$@" </dev/null >"$scratch/output" 2>/dev/null
       printf "%s\n" "$?" >"$scratch/status"
@@ -266,8 +268,6 @@ run_optional_freshness() (
     kill -KILL -- -"$$"
   ' lisa-freshness "$scratch" "$@" &
   anchor=$!
-  [ "$(ps -o pgid= -p "$anchor" 2>/dev/null | tr -d ' ')" = "$anchor" ] || exit 1
-  printf 'start\n' >&8
   while [ ! -f "$scratch/status" ] && [ "$(jobs -pr)" = "$anchor" ]; do sleep 0.01; done
   printf 'stop\n' >&8
   wait "$anchor" 2>/dev/null || true

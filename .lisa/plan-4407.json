@@ -225,6 +225,36 @@
             "Independent separate expiry/cleanup performance trace",
             "Reviewed merge, actual publication/archive identity and exact released replay"
           ]
+        },
+        "startup_qualification_repair": {
+          "owner": "root",
+          "verifier": "diagnostic_deadline_verifier",
+          "reviewer": "diagnostic_delivery_fixture_review",
+          "status": "source repaired; focused proof passed; delivery pending",
+          "native_cause": "A delayed real pgid query outlived the anchor fd8 startup countdown. Corrected native xtrace directly captured the read and Exit1. Historical full-suite phases remain untraced.",
+          "repair": "Live child verifies native pgid equals its own current PID before Node. Parent qualification/start token and initial fd8 countdown removed. Producer fd9 read-t1, self-group KILL, parent wait/stop and positive scratch identity cleanup unchanged.",
+          "green": {
+            "tests": 92,
+            "files": 11,
+            "physical_cases": 15
+          },
+          "stopped_full_run": {
+            "unit_pass": 27574,
+            "unit_skip": 2,
+            "integration_pass": 3510,
+            "integration_fail": 4,
+            "integration_skip": 2,
+            "history_batch_suite": "passed"
+          },
+          "native_trace_limit": "Anchor-only xtrace and private existing-stderr redirection add observer perturbation. Two earlier failed trace captures remain qualification failures.",
+          "scope": "Native process qualification is setup outside the producer deadline. No arbitrary native ps, loader, scheduler or uninterruptible-I/O bound; no publication/released replay claim.",
+          "receipt_sha256": {
+            "controlled_startup_cause": "217b327fbe01bc38938879ea54884af1e33c920bcafe0e21169512c46f07bf2a",
+            "startup_regression_red": "9b940cc180e0188df955eeba7d9d314f07da57e13d16508c5aca12466c8bba97",
+            "startup_repair_green": "6218c012b29bb4bb4f25185754e830a354e67d646bb038abfb811e270eee8b93",
+            "stopped_full_push": "c39070a29f939c0378f3c682317f7b5a90c140be0fa1f73f5ece41a658068a22"
+          },
+          "learnings": []
         }
       }
     },

@@ -17,7 +17,7 @@ const NODE_SHIM = [
   'case "$1" in *lisa-enforcement-freshness.mjs) ;; *) exec "$LISA_DEADLINE_REAL_NODE" "$@" ;; esac',
   'printf "%s\\n" "$$" >> "$LISA_DEADLINE_ENTRIES"',
   'case "$LISA_DEADLINE_MODE" in',
-  ' normal|missing-runner|unsafe-tmp) exec "$LISA_DEADLINE_REAL_NODE" "$@" ;;',
+  ' normal|delayed-qualification|missing-runner|unsafe-tmp) exec "$LISA_DEADLINE_REAL_NODE" "$@" ;;',
   ' stall|post-start-ps-failure) printf "installed\\t9.9.9\\nguard0\\tmatching\\n"; trap "" TERM; /bin/sleep 30 & printf "%s\\n" "$!" >> "$LISA_DEADLINE_ENTRIES"; wait ;;',
   // Keep this child alive for two census periods before successful completion.
   ' surviving-child) /bin/sleep 30 & printf "%s\\n" "$!" >> "$LISA_DEADLINE_ENTRIES"; /bin/sleep 0.2; exec "$LISA_DEADLINE_REAL_NODE" "$@" ;;',
@@ -99,6 +99,11 @@ export function prepareDeadline(
       'trap \'case "${BASH_SOURCE[0]}" in */scripts/lisa-hooks/*.sh) printf "%s\\n" "${BASH_SOURCE[0]##*/}" >> "$LISA_DEADLINE_GUARDS"; trap - DEBUG ;; esac\' DEBUG',
       ...(mode === "missing-runner"
         ? ["ps() { return 127; }; export -f ps"]
+        : []),
+      ...(mode === "delayed-qualification"
+        ? [
+            'ps() { if [ "$1" = -o ] && [ "$2" = pgid= ]; then /bin/sleep 1.25; fi; command ps "$@"; }; export -f ps',
+          ]
         : []),
       ...(mode === "post-start-ps-failure"
         ? [

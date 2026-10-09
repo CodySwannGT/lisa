@@ -992,6 +992,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
   ]),
   "scripts/lisa-enforcement-fallback.sh": Object.freeze([
+    "07159250b1172ed0b15896ad251af0ffc84a22f5f24806c06b4e1478f20c9bd8",
     "1bec5f3c284b3febdc471487ee6a23ffb72bd4e7b293f9e26b0188f32318c722",
     "27f4e4b54986f49ddb9a3bf6e02b926d41d85ecd46ab2263cb17a5746820f8bd",
     "3049c2f1051c7c02dd60b62355964651e1565ebe6bdcb5e37634cd686cf1deb1",
@@ -2993,6 +2994,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
   ]),
   "scripts/lisa-enforcement-fallback.sh": Object.freeze([
+    "07159250b1172ed0b15896ad251af0ffc84a22f5f24806c06b4e1478f20c9bd8",
     "1bec5f3c284b3febdc471487ee6a23ffb72bd4e7b293f9e26b0188f32318c722",
     "27f4e4b54986f49ddb9a3bf6e02b926d41d85ecd46ab2263cb17a5746820f8bd",
     "3049c2f1051c7c02dd60b62355964651e1565ebe6bdcb5e37634cd686cf1deb1",

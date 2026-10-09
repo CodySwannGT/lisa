@@ -67,3 +67,13 @@ by the fixture author and retain actual RED/GREEN proof. The spec-conformance
 specialist owns the complete requirements matrix and timing-proof assessment.
 The team runs one build or test session at a time. No source claim substitutes for Linux, separate
 performance tracing, genuine publication or released-package replay.
+
+## Startup race follow-up
+
+The verifier owns the bounded native startup diagnosis and separated Linux
+timing proof. Root owns the new native delayed-qualification regression, the
+live-anchor qualification repair, its focused execution, generated artifacts,
+commits and provider delivery. The delivery reviewer independently checks
+positive group authority and unchanged enforcement. The spec specialist audits
+the final current-head and released evidence. Only one local runtime session
+runs at a time; preparation and read-only review do not imply execution.
