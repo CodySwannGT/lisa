@@ -132,6 +132,13 @@ const MATERIALIZED: readonly { shipped: string; source: string }[] = [
     shipped: SHIPPED_FALLBACK,
     source: path.join(REPO_ROOT, SCRIPTS, FALLBACK_NAME),
   },
+  {
+    shipped: path.join(
+      REPO_ROOT,
+      "all/copy-overwrite/scripts/lisa-enforcement-freshness.mjs"
+    ),
+    source: path.join(REPO_ROOT, "scripts/lisa-enforcement-freshness.mjs"),
+  },
 ];
 
 const temporaries: string[] = [];

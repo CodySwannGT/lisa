@@ -15,6 +15,7 @@ import {
   mkdirSync,
   mkdtempSync,
   realpathSync,
+  readdirSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -167,10 +168,7 @@ export function installRealGuards(
 }
 
 /**
- * Write the apply receipt that dates a host's `scripts/lisa-hooks/` tree.
- *
- * The receipt and the guards are written by the same `lisa apply`, which is
- * what makes it that tree's vintage rather than a guess about it.
+ * Write historical apply evidence, independent of current host guard bytes.
  * @param root Project root.
  * @param version Lisa version that performed the apply.
  */
@@ -190,6 +188,29 @@ export function dateHostTree(root: string, version: string): void {
       null,
       2
     )}\n`
+  );
+}
+
+/**
+ * Supply authoritative installed templates without fabricating an apply.
+ * @param root Fixture project root.
+ * @param version Installed package version.
+ */
+export function installCurrentTemplates(root: string, version = CURRENT): void {
+  const installed = path.join(root, "node_modules/@codyswann/lisa");
+  const templates = path.join(
+    installed,
+    "all/copy-overwrite/scripts/lisa-hooks"
+  );
+  mkdirSync(templates, { recursive: true });
+  for (const name of readdirSync(PLUGIN_HOOKS)) {
+    if (/\.(?:sh|bash|mjs|py)$/u.test(name)) {
+      copyFileSync(path.join(PLUGIN_HOOKS, name), path.join(templates, name));
+    }
+  }
+  writeFileSync(
+    path.join(installed, "package.json"),
+    JSON.stringify({ name: "@codyswann/lisa", version }, null, 2)
   );
 }
 

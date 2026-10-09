@@ -45,6 +45,7 @@ import {
   dateHostTree,
   datePluginTree,
   installRealGuards,
+  installCurrentTemplates,
   runFallback,
   runFallbackConcurrently,
   scratchRoot,
@@ -72,6 +73,7 @@ function staleRoot(): string {
 
   installRealGuards(path.join(root, HOST_TREE));
   dateHostTree(root, BEHIND);
+  installCurrentTemplates(root);
   installRealGuards(path.join(root, PLUGIN_TREE));
   datePluginTree(root, CURRENT);
   return root;
@@ -242,6 +244,8 @@ describe("a refusal after the notice has been spent", () => {
     expect(output).toContain(
       `Refused by ${path.join(root, HOST_TREE, "parity-safety-net.sh")}`
     );
-    expect(output).toContain(`lisa ${BEHIND}, STALE — ${CURRENT}`);
+    expect(output).toContain(
+      `installed lisa ${CURRENT}; last applied lisa ${BEHIND}`
+    );
   });
 });

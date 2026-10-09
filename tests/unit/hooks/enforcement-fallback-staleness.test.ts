@@ -17,6 +17,7 @@
  * reading the branch that handles it.
  * @module tests/unit/hooks/enforcement-fallback-staleness
  */
+import { appendFileSync } from "node:fs";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -35,6 +36,7 @@ import {
   dateHostTree,
   datePluginTree,
   installRealGuards,
+  installCurrentTemplates,
   runFallback,
   scratchRoot,
 } from "../../helpers/enforcement-fallback-fixtures.js";
@@ -65,7 +67,7 @@ describe("a resolved copy carrying no version at all", () => {
     // one, which is the same invisibility by another road.
     const { output } = runFallback(HARMLESS, rootWithUndateableGuards());
 
-    expect(output).toContain("vintage unknown");
+    expect(output).toContain("host content unknown");
   });
 
   it("still permits, because unknown age is not an offence", () => {
@@ -77,7 +79,7 @@ describe("a resolved copy carrying no version at all", () => {
     const { status, output } = runFallback(BYPASS, rootWithUndateableGuards());
 
     expect(status).toBe(BLOCKED);
-    expect(output).toMatch(/Refused by .*\(vintage unknown\)/u);
+    expect(output).toMatch(/Refused by .*\(host content unknown;/u);
   });
 });
 
@@ -104,6 +106,11 @@ describe("the repair a stale tree is told to run", () => {
 
     installRealGuards(path.join(root, HOST_TREE));
     dateHostTree(root, BEHIND);
+    installCurrentTemplates(root);
+    appendFileSync(
+      path.join(root, HOST_TREE, "block-no-verify.sh"),
+      "\n# differing historical guard bytes\n"
+    );
     installRealGuards(path.join(root, PLUGIN_TREE));
     datePluginTree(root, CURRENT);
 
@@ -123,6 +130,7 @@ describe("the repair a stale tree is told to run", () => {
       GUARDS.filter(guard => guard !== PARITY_SAFETY_NET)
     );
     dateHostTree(root, CURRENT);
+    installCurrentTemplates(root);
     installRealGuards(path.join(root, PLUGIN_TREE), [PARITY_SAFETY_NET]);
     datePluginTree(root, BEHIND);
 
@@ -155,6 +163,11 @@ describe("a refusal from a copy that cannot be shown current", () => {
 
     installRealGuards(path.join(root, HOST_TREE));
     dateHostTree(root, BEHIND);
+    installCurrentTemplates(root);
+    appendFileSync(
+      path.join(root, HOST_TREE, "block-no-verify.sh"),
+      "\n# differing historical guard bytes\n"
+    );
     installRealGuards(path.join(root, PLUGIN_TREE));
     datePluginTree(root, CURRENT);
     return root;
@@ -194,6 +207,7 @@ describe("a refusal from a copy that cannot be shown current", () => {
     const root = scratchRoot();
 
     dateHostTree(root, CURRENT);
+    installCurrentTemplates(root);
     installRealGuards(path.join(root, PLUGIN_TREE));
     datePluginTree(root, BEHIND);
 

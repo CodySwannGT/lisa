@@ -1,0 +1,331 @@
+{
+  "work_item_ref": "CodySwannGT/lisa#4321",
+  "tracker_provider": "github",
+  "plan": "4321 accurate host guard freshness reporting",
+  "branch": "codex/4321-stale-guard-banner",
+  "base_branch": "main",
+  "base_sha": "0ff901294afde67c20b1db2ef1056add09209e1e",
+  "roster": "/Users/codysai/workspace/lisa/.lisa/roster/CodySwannGT-lisa-4321.md",
+  "report": "/private/tmp/lisa-4321-explore-reproduction-report.md",
+  "comment_inventory": [
+    "codysai001 | 2026-10-08T22:47:57Z | decision|constraint: preserve original occurrence evidence, reporting-only enforcement, receipt history, independent channels, bounded diagnostics, reliable RED/GREEN, independent runtime proof, parity and shipment",
+    "codysai001 | 2026-10-08T22:48:12Z | decision|constraint: verified claim, isolated implementation branch/binding, roster, reliable real-guard reproduction before source edits"
+  ],
+  "tasks": [
+    {
+      "title": "Codify RED and implement accurate host freshness diagnostics",
+      "plan": "4321 accurate host guard freshness reporting",
+      "type": "bug",
+      "owner": "implementation specialist",
+      "acceptance_criteria": [
+        "AC-1 original exit2/refusal with current host bytes and historical receipt, no false STALE/apply repair",
+        "AC-2 difference/unknown never current from version equality",
+        "AC-3 installed/last-applied/content/channel evidence separate, receipt unchanged",
+        "AC-4 offline bounded lazy comparisons; after-notice permitted calls perform none"
+      ],
+      "work_item_context": "/Users/codysai/workspace/lisa/.lisa/work-item-context.md",
+      "relevant_documentation": "Full ignored context and comment inventory; reproduction report/record; scripts/lisa-enforcement-fallback.sh owner; scripts/build-plugins.sh236-240 materializes template; tests/helpers/enforcement-fallback-fixtures.ts; existing staleness, notice-rate, channel-skew, attribution and status-aggregation tests; completed3205 mechanism correction/4071/4337; tool-access-gate, claim-evidence-mapping, falsifiable-checks, control-reachability and regenerating-derived-artifacts contracts",
+      "testing_requirements": [
+        "New named real-process integration CLI regression for exact input; reliable named RED twice before code edits, then GREEN before ship",
+        "Real generated guards and authoritative installed template pairs, no policy stubs for central refusal",
+        "Edge, mixed-selected-guard, channel, metadata/readability/file-size/comparator-error cases in report",
+        "Fresh/same-session and changed-after-notice refusal cases; trace0comparison0network after-notice permit",
+        "Unchanged sibling same-mode6/6PASS; normal full local and hosted quality gates; actual named new spec execution in CI"
+      ],
+      "skills": [
+        "lisa-implement",
+        "lisa-reproduce-bug",
+        "lisa-root-cause-analysis",
+        "lisa-tdd-implementation",
+        "lisa-codify-verification"
+      ],
+      "learnings": [
+        {
+          "kind": "mistake",
+          "note": "Initial delivery equality assertion omitted required materializer filePath argument; corrected and re-executed.",
+          "evidence": "/private/tmp/lisa-4321-target-green-2.log -> /private/tmp/lisa-4321-channels-delivery-final.log"
+        },
+        {
+          "kind": "learning",
+          "note": "Node --import filesystem observer also sees the helper module loader read; bounded diagnostic evidence is accounted separately.",
+          "evidence": "tests/integration/enforcement-fallback-freshness-read-bounds.test.ts"
+        }
+      ],
+      "required_access": [
+        {
+          "tool": "Local real Bash/Node/Bun and repository",
+          "probe": "Actual fixture subprocess and pinned Vitest unchanged sibling",
+          "status": "pass"
+        },
+        {
+          "tool": "GitHub repository/tracker/Actions",
+          "probe": "gh api repos/CodySwannGT/lisa plus issue4321 and actual Actions run read",
+          "status": "pass"
+        },
+        {
+          "tool": "npm exact-version registry",
+          "probe": "HTTPS GET registry.npmjs.org/@codyswann%2flisa/4.72.7 returned200/version/gitHead/integrity",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "Run actual /bin/bash scripts/lisa-enforcement-fallback.sh with owned payload.json on stdin, fixture CLAUDE_PROJECT_DIR/private CLAUDE_CONFIG_DIR/TMPDIR; capture status/fullstderr, then compare before/after receipt and selected-guard SHA256",
+        "expected": "Exit2/original refusal, matching current bytes distinguished from historical receipt, no false hostSTALE/nonexistent-drift apply repair; differing/unknown cases honest; receipt/guards unchanged"
+      },
+      "status": "implemented-awaiting-scoped-review-readback",
+      "implementation": "Optional colocated Node helper validates strict bounded metadata and actual selected host entry-file bytes at lazy boundary; preserves enforcement/history and distinct channel evidence; generated dispatcher/helper consumer delivery and six-agent representation gaps recorded."
+    },
+    {
+      "title": "Regenerate and prove six-agent delivery and representation gaps",
+      "plan": "4321 accurate host guard freshness reporting",
+      "type": "task",
+      "owner": "implementation specialist",
+      "acceptance_criteria": [
+        "AC-4 shared delivered fallback exactly materialized from owner; actual agent fallback surfaces corrected; unsupported diagnostic callers documented without weakening enforcement"
+      ],
+      "work_item_context": "/Users/codysai/workspace/lisa/.lisa/work-item-context.md",
+      "relevant_documentation": "scripts/build-plugins.sh, materialize-copy-overwrite.mjs, per-agent-hook-filter.mjs, hook-registration-audit.mjs, src/codex/enforcement-fallback-installer.ts, Claude settings, generated agent manifests and README Codex hook delivery; host regenerating-derived-artifacts rule",
+      "testing_requirements": [
+        "Inspect generated script equality and all six agent registration/representation outcomes",
+        "Run build:plugins/check:plugins with pinned runtime; stage-first regenerate ledger and upstream manifest then artifact checks",
+        "If helper added, real delivered companion reaches fallback without source repository dependencies"
+      ],
+      "skills": [
+        "lisa-implement",
+        "lisa-review-implementation"
+      ],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "Local generators/repository",
+          "probe": "Pinned runtime plus repo/source reads proven; generator run belongs implementation",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "Invoke delivered all/copy-overwrite/scripts/lisa-enforcement-fallback.sh against same real fixture, capture output and SHA256; read generated native registrations for Claude/Codex/Cursor/OpenCode/agy/Copilot",
+        "expected": "Delivered CLI behavior matches source; digest/path evidence and explicit actual representation gaps for every supported agent"
+      },
+      "status": "implemented-awaiting-scoped-review-readback",
+      "implementation": "Optional colocated Node helper validates strict bounded metadata and actual selected host entry-file bytes at lazy boundary; preserves enforcement/history and distinct channel evidence; generated dispatcher/helper consumer delivery and six-agent representation gaps recorded."
+    },
+    {
+      "title": "Independent acceptance, code, quality and adversarial review",
+      "plan": "4321 accurate host guard freshness reporting",
+      "type": "task",
+      "owner": "independent review specialists",
+      "acceptance_criteria": [
+        "All originalAC1-4/comment obligations reviewed against final diff; reporting-only semantics, bounds and enforcement invariant preserved"
+      ],
+      "work_item_context": "/Users/codysai/workspace/lisa/.lisa/work-item-context.md",
+      "relevant_documentation": "Full original context and report; exact final-head branch diff; new named regression execution and unchanged control; convergent-review contract",
+      "testing_requirements": [
+        "Final-head independent product/local/quality/adversarial review",
+        "Challenge negative/unknown/comparison-error paths, plugin guidance, hot-path and receipt mutability",
+        "No reopened resolved review without new evidence"
+      ],
+      "skills": [
+        "lisa-review-local",
+        "lisa-quality-review",
+        "lisa-product-walkthrough",
+        "lisa-parity-code-review"
+      ],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "Local final-head diff and real CLI fixture",
+          "probe": "Repository reads and real CLI fixture proven",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "Reviewer drives actual fallback with matching/different/unknown fixture inputs and reads observed exit/output/hash trace",
+        "expected": "No concrete correctness/contract violation remains; final-head evidence covers every originalAC/comment constraint"
+      },
+      "status": "reviews-complete-scoped-readback-pending"
+    },
+    {
+      "title": "Independent local and released CLI/state/performance proof",
+      "plan": "4321 accurate host guard freshness reporting",
+      "type": "task",
+      "owner": "verification specialist",
+      "acceptance_criteria": [
+        "AllAC established at actual CLI/data/performance boundary; release identity/shipment established at deploy-health boundary; schema-v2 artifact/evidence digests agree"
+      ],
+      "work_item_context": "/Users/codysai/workspace/lisa/.lisa/work-item-context.md",
+      "relevant_documentation": "Validation Journey and full original context; report effective completion; lisa-verification-lifecycle, claim-evidence-mapping, falsifiable-checks, before/after source identities and published package metadata",
+      "testing_requirements": [
+        "Independent file-backed liveCLI outside test assertions; central real guards fresh/already-noticed cases",
+        "All edge and channel cases; hash state and0comparison0network trace",
+        "Actual named CI regression line and normal required check results",
+        "Fresh exact npm tarball/release/tag/gitHead/integrity and execute same released CLI cases; not artifact-only acceptance"
+      ],
+      "skills": [
+        "lisa-verify",
+        "lisa-verification-lifecycle",
+        "lisa-codify-verification"
+      ],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "Local real CLI",
+          "probe": "Real Bash fixture proven",
+          "status": "pass"
+        },
+        {
+          "tool": "GitHub Actions/release",
+          "probe": "Authenticated exact run37861035786 and latest release read",
+          "status": "pass"
+        },
+        {
+          "tool": "npm distribution",
+          "probe": "Exact4.72.7 metadata200; refresh future fix release",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "Fetch exact published package with integrity/gitHead validation; run its actual delivered fallback with owned realguard fixture/filebacked payloads; capture output/status/hash/performance trace and successful release log",
+        "expected": "Original refusal2/no falsehostSTALE, honestedges/channels/unchangedhistory/0hotpathcompare; all v2 claims established using evidence pinned to actual releasedSHA"
+      }
+    },
+    {
+      "title": "Ship, monitor, post evidence/usage and complete canonical lifecycle",
+      "plan": "4321 accurate host guard freshness reporting",
+      "type": "task",
+      "owner": "lead with ops and learner specialists",
+      "acceptance_criteria": [
+        "Reviewed finalhead PR/main merge, normal CI, true exact-version publication and independent runtime proof accepted; evidence/usage/backlink present before nativecompletion; binding/context cleared only afterwards"
+      ],
+      "work_item_context": "/Users/codysai/workspace/lisa/.lisa/work-item-context.md",
+      "relevant_documentation": "lisa-git-submit-pr, lisa-drive-pr-to-merge, lisa-tracker-sync/evidence, lisa-monitor report-only, usage-accounting, learner bounded contract; roster and schema-v2 finalverdict",
+      "testing_requirements": [
+        "All normal requiredchecks success with named spec execution",
+        "Exact-head independent review and truthful vendor review outcome",
+        "Release run terminalsuccess, exactnpmpositive/tag/tarball identity",
+        "Opsreport-only realCLI distribution scope; no invented web/device/cloudhealth",
+        "Evidence artifactidentity and Notestablished explicit; canonicalcomplete/clear readbacks"
+      ],
+      "skills": [
+        "lisa-git-submit-pr",
+        "lisa-drive-pr-to-merge",
+        "lisa-tracker-sync",
+        "lisa-github-evidence",
+        "lisa-monitor",
+        "lisa-usage-accounting",
+        "lisa-persist-learning"
+      ],
+      "learnings": [],
+      "required_access": [
+        {
+          "tool": "GitHub push/tracker/releases/Actions",
+          "probe": "Repospermission pushtrue/triagetrue; actual issue/run/release scopedreads",
+          "status": "pass"
+        },
+        {
+          "tool": "npm registry",
+          "probe": "Exactcurrent metadata200/gitHead/integrity; hostedworkflow publish and futurefix publication verification required",
+          "status": "pass"
+        }
+      ],
+      "verification": {
+        "type": "cli-test",
+        "command": "Read finalPR/mergeancestry, exactreleaserun/npmidentity and independent verdict; run canonicalcomplete then current/clear/contextabsence checks only after evidence/usage/backlink",
+        "expected": "Issue4321 terminal only with proved releasedruntime behavior; no remaining4321 binding/context and no unrelated checkout changes"
+      }
+    }
+  ],
+  "learnings": [
+    {
+      "kind": "learning",
+      "note": "Safe receipt version alone does not establish supported historical evidence; mirror canonical schema and required historical fields.",
+      "evidence": "/private/tmp/lisa-4321-product-review.md"
+    },
+    {
+      "kind": "learning",
+      "note": "Final path state can expose post-descriptor changes including same-size restored-mtime edits through ctime; validate all observed evidence.",
+      "evidence": "/private/tmp/lisa-4321-adversarial-review.md"
+    },
+    {
+      "kind": "mistake",
+      "note": "New observer fixture initially lacked interface JSDoc and placed definitions after side effects; reorganized fixture, no assertion weakening.",
+      "evidence": "/private/tmp/lisa-4321-correction-lint.log"
+    }
+  ],
+  "implementation_evidence": {
+    "named_red": [
+      "/private/tmp/lisa-4321-named-red-1.log",
+      "/private/tmp/lisa-4321-named-red-2.log"
+    ],
+    "targeted_green": "/private/tmp/lisa-4321-target-green-3.log",
+    "last_channels_delivery": "/private/tmp/lisa-4321-channels-delivery-final.log",
+    "bounded_fs_green": "/private/tmp/lisa-4321-read-bounds-max-green.log",
+    "real_cli_state": "/private/tmp/lisa-4321-implementation-green/record.json",
+    "cap_and_path_falsification": "Private copied helper only; production not mutated. See original plan implementation section."
+  },
+  "convergent_review": {
+    "reviewed_staged_patch_sha256": "13db5ea26a15c53c3283861904509cde73db6635035d25ffe7f5f8141dddb2d8",
+    "reports": [
+      "/private/tmp/lisa-4321-local-review.md",
+      "/private/tmp/lisa-4321-product-review.md",
+      "/private/tmp/lisa-4321-quality-review.md",
+      "/private/tmp/lisa-4321-adversarial-review.md"
+    ],
+    "root_dispositions": "/private/tmp/lisa-4321-review-convergence.md",
+    "unique_blockers": 2,
+    "findings": [
+      {
+        "id": "P1",
+        "provenance": "product; quality/adversarial corroboration",
+        "severity": "medium",
+        "disposition": "implemented-awaiting-scoped-readback",
+        "change": "Require supported schema1, string applied_at and existing safe version before historical emission; content proof independent; optional fields remain optional."
+      },
+      {
+        "id": "A1",
+        "provenance": "adversarial; quality corroboration",
+        "severity": "medium",
+        "disposition": "implemented-awaiting-scoped-readback",
+        "change": "Validate final regular/readable/size/mtime/mode/ctime/identity and descriptor-after ctime against initial evidence; real late-stat growth/mode000/restored-mtime controls."
+      },
+      {
+        "id": "Q3",
+        "provenance": "quality",
+        "severity": "suggestion",
+        "disposition": "implemented-awaiting-scoped-readback",
+        "change": "No historical receipt read/emission when no host guard is selected; actual open negative control."
+      },
+      {
+        "id": "Q2",
+        "provenance": "quality measured 40 interleaved real-guard pairs, inherited Node22.22.0",
+        "severity": "warning-nonblocking",
+        "disposition": "root accepted measured recurring cost; final pinned measurement pending independent verifier",
+        "median_delta_ms": 15.107,
+        "median_delta_percent": 2.59,
+        "change": "No marker semantics or content cache changes."
+      }
+    ],
+    "red": {
+      "logs": [
+        "/private/tmp/lisa-4321-correction-red-1.log",
+        "/private/tmp/lisa-4321-correction-red-2.log"
+      ],
+      "each": {
+        "failed": 6,
+        "matching_control_passed": 1
+      },
+      "before_production_correction": true
+    },
+    "targeted_green": {
+      "log": "/private/tmp/lisa-4321-correction-green.log",
+      "passed": 52,
+      "files": 7,
+      "skipped": 0
+    },
+    "fresh_real_cli": "/private/tmp/lisa-4321-implementation-correction-green/record.json",
+    "status": "correction-implemented-awaiting-readbacks-verifier-and-normal-gates"
+  }
+}

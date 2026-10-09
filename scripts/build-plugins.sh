@@ -240,6 +240,13 @@ if [ -f "$ROOT_DIR/scripts/lisa-enforcement-fallback.sh" ]; then
   chmod +x "$ROOT_DIR/all/copy-overwrite/scripts/lisa-enforcement-fallback.sh"
 fi
 
+# Optional bounded diagnostic helper. Delivered beside the dispatcher so host
+# reporting needs no Lisa source checkout; absent Node/evidence stays unknown.
+if [ -f "$ROOT_DIR/scripts/lisa-enforcement-freshness.mjs" ]; then
+  materialize "$ROOT_DIR/scripts/lisa-enforcement-freshness.mjs" \
+    "$ROOT_DIR/all/copy-overwrite/scripts/lisa-enforcement-freshness.mjs"
+fi
+
 # The shared ESM entry guard, into every lane that has a consumer of it.
 #
 # Downstream, all of these land flat in one `scripts/` directory, so a single
