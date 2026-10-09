@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.73.2](https://github.com/CodySwannGT/lisa/compare/v4.73.1...v4.73.2) (2026-10-09)
+
+
+### Bug Fixes
+
+* address second review round on destination, guards and pending identity ([03dfdc2](https://github.com/CodySwannGT/lisa/commit/03dfdc27f601b0fcc32ff61cd9319774d86cb601)), closes [CodySwannGT/lisa#4393](https://github.com/CodySwannGT/lisa/issues/4393) [CodySwannGT/lisa#4393](https://github.com/CodySwannGT/lisa/issues/4393)
+* bind retirement to the proved inode and keep on unknown references ([20f5066](https://github.com/CodySwannGT/lisa/commit/20f5066f0d87991490e8ca8eaab3fcca8e914e53)), closes [CodySwannGT/lisa#4393](https://github.com/CodySwannGT/lisa/issues/4393) [CodySwannGT/lisa#4393](https://github.com/CodySwannGT/lisa/issues/4393)
+* bind the pending Lisa update commit to the recorded identities ([78d14ab](https://github.com/CodySwannGT/lisa/commit/78d14ab46072be6847be67ff28ebd979f12468d3)), closes [CodySwannGT/lisa#4393](https://github.com/CodySwannGT/lisa/issues/4393) [CodySwannGT/lisa#4393](https://github.com/CodySwannGT/lisa/issues/4393)
+* bound new-ref scans by what the push destination advertises ([82e37b3](https://github.com/CodySwannGT/lisa/commit/82e37b33bb6a7783f56ede6d2d73c5af599a9d06)), closes [CodySwannGT/lisa#4393](https://github.com/CodySwannGT/lisa/issues/4393) [CodySwannGT/lisa#4393](https://github.com/CodySwannGT/lisa/issues/4393)
+* confirm the probed URL is the push destination and never wait on askpass ([2c2f279](https://github.com/CodySwannGT/lisa/commit/2c2f2792e6cfac6902d216e3cf736608c24afab5)), closes [CodySwannGT/lisa#4393](https://github.com/CodySwannGT/lisa/issues/4393) [CodySwannGT/lisa#4393](https://github.com/CodySwannGT/lisa/issues/4393)
+* pass quoted-separator arguments to probes without the boundary marker ([85977f2](https://github.com/CodySwannGT/lisa/commit/85977f2eeb8acbceff1a698522f2b8166db7d3d7)), closes [CodySwannGT/lisa#4393](https://github.com/CodySwannGT/lisa/issues/4393) [CodySwannGT/lisa#4393](https://github.com/CodySwannGT/lisa/issues/4393)
+* report a landed pending-update commit that cannot be undone ([9371357](https://github.com/CodySwannGT/lisa/commit/9371357d399a6170198daae5e4ca63fbf2037cb3)), closes [CodySwannGT/lisa#4393](https://github.com/CodySwannGT/lisa/issues/4393) [CodySwannGT/lisa#4393](https://github.com/CodySwannGT/lisa/issues/4393)
+* scope new-branch history scans, retire unedited seeds, close |& guard gap ([b6958d8](https://github.com/CodySwannGT/lisa/commit/b6958d8890c17e23dea4de5134c142f325026754)), closes [CodySwannGT/lisa#4393](https://github.com/CodySwannGT/lisa/issues/4393) [CodySwannGT/lisa#4393](https://github.com/CodySwannGT/lisa/issues/4393)
+
+
+### Code Refactoring
+
+* name the no-replace-objects flag once in the history scanner ([d1da552](https://github.com/CodySwannGT/lisa/commit/d1da5526b5de840312bc32e432b92badaef2242d)), closes [CodySwannGT/lisa#4393](https://github.com/CodySwannGT/lisa/issues/4393) [CodySwannGT/lisa#4393](https://github.com/CodySwannGT/lisa/issues/4393)
+
 ### [4.73.1](https://github.com/CodySwannGT/lisa/compare/v4.73.0...v4.73.1) (2026-10-09)
 
 
