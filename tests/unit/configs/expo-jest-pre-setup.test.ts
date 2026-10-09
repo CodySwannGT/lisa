@@ -2,6 +2,12 @@ import { readFileSync } from "node:fs";
 import * as path from "node:path";
 import { runInNewContext } from "node:vm";
 import { describe, expect, it, vi } from "vitest";
+import {
+  ioLatencyBudgetMs,
+  useIoLatencyBudget,
+} from "../../helpers/io-latency-budget.js";
+
+useIoLatencyBudget();
 
 const MANAGED_SETUP = readFileSync(
   path.resolve(
@@ -38,7 +44,7 @@ function loadSetup(registry: Readonly<Record<string, unknown>>) {
   };
   globals["global"] = globals;
   // eslint-disable-next-line sonarjs/code-eval -- Execute repository-owned setup only in an isolated VM; project imports are inert fixtures.
-  runInNewContext(MANAGED_SETUP, globals, { timeout: 1000 });
+  runInNewContext(MANAGED_SETUP, globals, { timeout: ioLatencyBudgetMs(1000) });
   expect(globals["__turboModuleProxy"]).toBeTypeOf("function");
   return globals["__turboModuleProxy"] as (name: string) => unknown;
 }

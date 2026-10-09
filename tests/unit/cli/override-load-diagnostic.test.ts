@@ -113,7 +113,11 @@ it("explains a failed CLI import using the parent's actual nested dependency and
   await prepare();
   const result = invoke();
   expect(result.status).toBe(1);
-  expect(result.stderr).toContain("Named export 'expand' not found");
+  // Node 24 reports this missing CommonJS export with the module name;
+  // earlier supported Node versions use the named-export diagnostic.
+  expect(result.stderr).toMatch(
+    /(?:Named export 'expand' not found|The requested module 'brace-expansion' does not provide an export named 'expand')/u
+  );
   expect(result.stderr).toContain(
     "minimatch@10.2.5 declares brace-expansion ^5.0.5"
   );

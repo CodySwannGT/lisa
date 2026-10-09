@@ -163,7 +163,7 @@ const FS_EXTRA_VIOLATION =
  */
 function fsExtraNamespaceMembers(): ReadonlySet<string> {
   const script =
-    'import * as fse from "fs-extra"; process.stdout.write(JSON.stringify(Object.keys(fse)));';
+    'import * as fse from "fs-extra"; if ("module.exports" in fse && fse["module.exports"] !== fse.default) throw new Error("CommonJS namespace marker does not alias default"); process.stdout.write(JSON.stringify(Object.keys(fse)));';
   return new Set(
     JSON.parse(
       boundedSpawnSync({
@@ -304,9 +304,12 @@ describe("ast-grep stack templates", () => {
     expect(actual.has("pathExists")).toBe(true);
     expect(actual.has("readJson")).toBe(false);
 
-    const byName = (left: string, right: string): number =>
-      left.localeCompare(right);
-    const expected = [...actual].sort(byName);
+    const byName = (a: string, b: string): number => a.localeCompare(b);
+    // Node 23+ adds a string-only CommonJS namespace marker. The rule matches
+    // dot members ($NS.$MEMBER), so that marker cannot be one of its captures.
+    // Keep every ordinary member in this equality to retain the drift guard.
+    const expected = [...actual].filter(key => key !== "module.exports");
+    expected.sort(byName);
 
     for (const rule of FS_EXTRA_RULES) {
       expect([...allowListFromRule(rule)].sort(byName)).toEqual(expected);
