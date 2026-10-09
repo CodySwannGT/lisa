@@ -229,7 +229,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
-      "07159250b1172ed0b15896ad251af0ffc84a22f5f24806c06b4e1478f20c9bd8",
+      "42de2aa02c12e324a7a78e6b6e24de497ace2c2062d3e77b60b014496330ae1d",
     "all/copy-overwrite/scripts/lisa-enforcement-freshness.mjs":
       "f02571c6766dd2ed0914b4cf7e62b045dee8fcd33a0b2298f0be1f5ac0989639",
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
@@ -2625,7 +2625,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-enforcement-census.mjs":
       "41490f30f30cbb5ff05454a52caa1d3286db225667847eee22b7b994809e64d4",
     "scripts/lisa-enforcement-fallback.sh":
-      "60fb718c13b9706fe07fc9a8f930be2fb994a06f1d51dfb515d5efe7cfbabd1d",
+      "5e3d1221e9c4db759aec49cf0bbca4a89200ea2c9cb0b73e8a78f769d8a8ac8e",
     "scripts/lisa-enforcement-freshness.mjs":
       "e9b5d8c534af9f3c3109e3629f5311d4564889d67d0fe17045d47f579151b46e",
     "scripts/lisa-github-environments.sh":
@@ -9993,6 +9993,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/edit-time-scripts-resolve-gates.test.ts": true,
     "tests/integration/emitted-scripts-survive-shipped-fixer.test.ts": true,
     "tests/integration/enforcement-census-cli.test.ts": true,
+    "tests/integration/enforcement-fallback-freshness-anchor-startup.test.ts": true,
     "tests/integration/enforcement-fallback-freshness-channels.test.ts": true,
     "tests/integration/enforcement-fallback-freshness-deadline.test.ts": true,
     "tests/integration/enforcement-fallback-freshness-delivery.test.ts": true,
