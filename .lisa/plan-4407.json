@@ -1,0 +1,667 @@
+{
+  "work_item_ref": "CodySwannGT/lisa#4407",
+  "target": "production",
+  "base": "main",
+  "tasks": [
+    {
+      "owner": "explorer",
+      "title": "research",
+      "status": "complete",
+      "comment_inventory": [
+        "- #4407 comment 6081267423 \u2014 CodySwannGT \u2014 2026-10-09T12:52:19Z \u2014 Filed build-ready deadline correction; require physical stalled-helper RED/GREEN, original enforcement and released replay. \u2014 flags: repro|constraint",
+        "- #4407 comment 6081274830 \u2014 CodySwannGT \u2014 2026-10-09T12:52:48Z \u2014 Claimed by Lisa; implementation may begin after verified binding. \u2014 flags: decision",
+        "- Related #4321 comment 6070582527 \u2014 codysai001 \u2014 2026-10-08T22:47:57Z \u2014 Preserve enforcement, historical receipts and bounded offline diagnostics. \u2014 flags: constraint|repro",
+        "- Related #4321 comment 6070585909 \u2014 codysai001 \u2014 2026-10-08T22:48:12Z \u2014 Prior freshness correction claimed. \u2014 flags: decision",
+        "- Related #4321 comment 6072695382 \u2014 codysai001 \u2014 2026-10-09T01:58:28Z \u2014 Prior canonical PR backlink #4403. \u2014 flags: decision",
+        "- Related #4321 comment 6072729011 \u2014 codysai001 \u2014 2026-10-09T02:01:39Z \u2014 Prior local checks and runtime observations are scoped; shipment was pending at that time. \u2014 flags: constraint|repro",
+        "- Related #4321 comment 6079086492 \u2014 codysai001 \u2014 2026-10-09T10:28:51Z \u2014 Prior fix merged with exact lineage; merge alone did not establish publication acceptance. \u2014 flags: decision|constraint",
+        "- Related #4321 comment 6079637603 \u2014 codysai001 \u2014 2026-10-09T11:06:09Z \u2014 Exact 4.73.3 released runtime proof, native controls and stated limitations; no universal latency bound was established. \u2014 flags: constraint|repro",
+        "- Related #3995 comment 5552148828 \u2014 CodySwannGT \u2014 2026-09-05T13:30:41Z \u2014 Prior canonical PR backlink #4003. \u2014 flags: decision"
+      ],
+      "metadata": {
+        "plan": "optional-diagnostic-deadline-4407",
+        "type": "bug",
+        "acceptance_criteria": [
+          "Entered stalled helper terminated within diagnostic deadline<=2s and owned cleanup<=1s.",
+          "Every original guard receives original payload; genuine refusal2 and allowed0 unchanged.",
+          "Incomplete, failed, expired or unavailable diagnostic leaves unknown; no direct unbounded Node fallback.",
+          "Normal facts, historical receipt bytes and already-noticed laziness preserved.",
+          "No owned helper, descendant or watchdog survives; foreign resources preserved.",
+          "Native macOS Bash3.2 and Linux controls executed; named hosted regression executes.",
+          "Generated source parity and genuine release tag/archive exact replay proven before completion."
+        ],
+        "relevant_documentation": {
+          "source_owners": [
+            "scripts/lisa-enforcement-fallback.sh",
+            "scripts/lisa-enforcement-freshness.mjs"
+          ],
+          "generated_destinations": [
+            "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh",
+            "all/copy-overwrite/scripts/lisa-enforcement-freshness.mjs"
+          ],
+          "generation": [
+            "scripts/build-plugins.sh",
+            "plugins/materialized-artifacts.json",
+            ".agents/rules/regenerating-derived-artifacts.md"
+          ],
+          "runtime_patterns": [
+            "scripts/lisa-scratch-run.sh:143-181",
+            "scripts/lisa-scratch-run.sh:434-499"
+          ],
+          "regression_harness": [
+            "tests/integration",
+            "currentHost",
+            "template snapshots",
+            "existing seven freshness integration suites"
+          ],
+          "diagnosis": "First-notice helper precedes all guard dispatch; process substitution currently accepts partial facts without a successful completion gate. Native Bash3.2 isolated child pid=pgid in a reaching probe. No GNU timeout/gtimeout exists on this host. Node-based supervision cannot bound stalled Node startup.",
+          "runtime_pins": "package.json engines: Node22.23.3/Bun1.3.8. Preliminary66 focused proof used native Node22.22/Bun1.3.11; final independent/full normal gates use exact policy pins."
+        },
+        "work_item_context": "/Users/cody/workspace/lisa-bounded-canonical-npm-context/.lisa/work-item-context.md",
+        "testing_requirements": [
+          "Repeated reaching physical RED before production edit, identical fixture GREEN after fix.",
+          "New tests/integration/enforcement-fallback-freshness-deadline.test.ts drives actual Bash and genuine guards.",
+          "Same-mode normal, missing-runner, failed/incomplete-output, refusal/allow and lazy controls.",
+          "Ordinary normal wrapper and unchanged hook/coverage budgets; exact named CI execution."
+        ],
+        "skills": [
+          "lisa-implement"
+        ],
+        "learnings": [],
+        "required_access": [
+          {
+            "tool": "GitHub repository/tracker",
+            "probe": "gh api repos/CodySwannGT/lisa; gh issue view 4407; git fetch origin main",
+            "status": "pass"
+          },
+          {
+            "tool": "native macOS Bash",
+            "probe": "/bin/bash --version: 3.2.57",
+            "status": "pass"
+          },
+          {
+            "tool": "Node and Bun",
+            "probe": "node --version: 22.22.0; bun --version: 1.3.11",
+            "status": "pass"
+          },
+          {
+            "tool": "GitHub hosted Linux integration runner",
+            "probe": "Authenticated repository/actions access and current CI workflow on Ubuntu; exact new-head named-spec execution required after PR submission.",
+            "status": "pass"
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "Execute the file-backed stalled/helper-control driver produced by the regression fixture with /bin/bash scripts/lisa-enforcement-fallback.sh on native macOS and Linux, then repeat using exact qualified published package. Record concrete driver path and command before execution.",
+          "expected": "Completion within <=3s, exit2 for genuine refused input and exit0 for allowed input, every guard observed, unknown partial/failed evidence, no owned survivors, accurate normal and lazy behavior."
+        }
+      }
+    },
+    {
+      "owner": "lisa-bug-fixer",
+      "title": "reproduce-and-fix",
+      "status": "complete",
+      "comment_inventory": [
+        "- #4407 comment 6081267423 \u2014 CodySwannGT \u2014 2026-10-09T12:52:19Z \u2014 Filed build-ready deadline correction; require physical stalled-helper RED/GREEN, original enforcement and released replay. \u2014 flags: repro|constraint",
+        "- #4407 comment 6081274830 \u2014 CodySwannGT \u2014 2026-10-09T12:52:48Z \u2014 Claimed by Lisa; implementation may begin after verified binding. \u2014 flags: decision",
+        "- Related #4321 comment 6070582527 \u2014 codysai001 \u2014 2026-10-08T22:47:57Z \u2014 Preserve enforcement, historical receipts and bounded offline diagnostics. \u2014 flags: constraint|repro",
+        "- Related #4321 comment 6070585909 \u2014 codysai001 \u2014 2026-10-08T22:48:12Z \u2014 Prior freshness correction claimed. \u2014 flags: decision",
+        "- Related #4321 comment 6072695382 \u2014 codysai001 \u2014 2026-10-09T01:58:28Z \u2014 Prior canonical PR backlink #4403. \u2014 flags: decision",
+        "- Related #4321 comment 6072729011 \u2014 codysai001 \u2014 2026-10-09T02:01:39Z \u2014 Prior local checks and runtime observations are scoped; shipment was pending at that time. \u2014 flags: constraint|repro",
+        "- Related #4321 comment 6079086492 \u2014 codysai001 \u2014 2026-10-09T10:28:51Z \u2014 Prior fix merged with exact lineage; merge alone did not establish publication acceptance. \u2014 flags: decision|constraint",
+        "- Related #4321 comment 6079637603 \u2014 codysai001 \u2014 2026-10-09T11:06:09Z \u2014 Exact 4.73.3 released runtime proof, native controls and stated limitations; no universal latency bound was established. \u2014 flags: constraint|repro",
+        "- Related #3995 comment 5552148828 \u2014 CodySwannGT \u2014 2026-09-05T13:30:41Z \u2014 Prior canonical PR backlink #4003. \u2014 flags: decision"
+      ],
+      "metadata": {
+        "plan": "optional-diagnostic-deadline-4407",
+        "type": "bug",
+        "acceptance_criteria": [
+          "Entered stalled helper terminated within diagnostic deadline<=2s and owned cleanup<=1s.",
+          "Every original guard receives original payload; genuine refusal2 and allowed0 unchanged.",
+          "Incomplete, failed, expired or unavailable diagnostic leaves unknown; no direct unbounded Node fallback.",
+          "Normal facts, historical receipt bytes and already-noticed laziness preserved.",
+          "No owned helper, descendant or watchdog survives; foreign resources preserved.",
+          "Native macOS Bash3.2 and Linux controls executed; named hosted regression executes.",
+          "Generated source parity and genuine release tag/archive exact replay proven before completion."
+        ],
+        "relevant_documentation": {
+          "source_owners": [
+            "scripts/lisa-enforcement-fallback.sh",
+            "scripts/lisa-enforcement-freshness.mjs"
+          ],
+          "generated_destinations": [
+            "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh",
+            "all/copy-overwrite/scripts/lisa-enforcement-freshness.mjs"
+          ],
+          "generation": [
+            "scripts/build-plugins.sh",
+            "plugins/materialized-artifacts.json",
+            ".agents/rules/regenerating-derived-artifacts.md"
+          ],
+          "runtime_patterns": [
+            "scripts/lisa-scratch-run.sh:143-181",
+            "scripts/lisa-scratch-run.sh:434-499"
+          ],
+          "regression_harness": [
+            "tests/integration",
+            "currentHost",
+            "template snapshots",
+            "existing seven freshness integration suites"
+          ],
+          "diagnosis": "First-notice helper precedes all guard dispatch; process substitution currently accepts partial facts without a successful completion gate. Native Bash3.2 isolated child pid=pgid in a reaching probe. No GNU timeout/gtimeout exists on this host. Node-based supervision cannot bound stalled Node startup.",
+          "runtime_pins": "package.json engines: Node22.23.3/Bun1.3.8. Preliminary66 focused proof used native Node22.22/Bun1.3.11; final independent/full normal gates use exact policy pins."
+        },
+        "work_item_context": "/Users/cody/workspace/lisa-bounded-canonical-npm-context/.lisa/work-item-context.md",
+        "testing_requirements": [
+          "Repeated reaching physical RED before production edit, identical fixture GREEN after fix.",
+          "New tests/integration/enforcement-fallback-freshness-deadline.test.ts drives actual Bash and genuine guards.",
+          "Same-mode normal, missing-runner, failed/incomplete-output, refusal/allow and lazy controls.",
+          "Ordinary normal wrapper and unchanged hook/coverage budgets; exact named CI execution."
+        ],
+        "skills": [
+          "lisa-implement"
+        ],
+        "learnings": [],
+        "required_access": [
+          {
+            "tool": "GitHub repository/tracker",
+            "probe": "gh api repos/CodySwannGT/lisa; gh issue view 4407; git fetch origin main",
+            "status": "pass"
+          },
+          {
+            "tool": "native macOS Bash",
+            "probe": "/bin/bash --version: 3.2.57",
+            "status": "pass"
+          },
+          {
+            "tool": "Node and Bun",
+            "probe": "node --version: 22.22.0; bun --version: 1.3.11",
+            "status": "pass"
+          },
+          {
+            "tool": "GitHub hosted Linux integration runner",
+            "probe": "Authenticated repository/actions access and current CI workflow on Ubuntu; exact new-head named-spec execution required after PR submission.",
+            "status": "pass"
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "bun run lisa-test-run -- --adapter vitest -- vitest run tests/integration/enforcement-fallback-freshness-deadline.test.ts; physical Bash dispatcher exercised by tests/helpers/freshness-deadline-fixture.ts::observeDeadline with file-backed payload/driver and descendant census",
+          "expected": "Completion within <=3s, exit2 for genuine refused input and exit0 for allowed input, every guard observed, unknown partial/failed evidence, no owned survivors, accurate normal and lazy behavior."
+        },
+        "reaching_red": "tmp/4407-reaching-red.json",
+        "green": "tmp/4407-green-related.log; 8files/66passed including14new; source fallback5a978f2d9a93fbab916bca7f2fda4de7c9f6112370773b5047ee17e323e1f8b0/helper e9b5d8c534af9f3c3109e3629f5311d4564889d67d0fe17045d47f579151b46e; generated files supplied by required wrapper; MLD[]"
+      }
+    },
+    {
+      "owner": "lisa-quality-specialist",
+      "title": "quality-review",
+      "status": "complete",
+      "comment_inventory": [
+        "- #4407 comment 6081267423 \u2014 CodySwannGT \u2014 2026-10-09T12:52:19Z \u2014 Filed build-ready deadline correction; require physical stalled-helper RED/GREEN, original enforcement and released replay. \u2014 flags: repro|constraint",
+        "- #4407 comment 6081274830 \u2014 CodySwannGT \u2014 2026-10-09T12:52:48Z \u2014 Claimed by Lisa; implementation may begin after verified binding. \u2014 flags: decision",
+        "- Related #4321 comment 6070582527 \u2014 codysai001 \u2014 2026-10-08T22:47:57Z \u2014 Preserve enforcement, historical receipts and bounded offline diagnostics. \u2014 flags: constraint|repro",
+        "- Related #4321 comment 6070585909 \u2014 codysai001 \u2014 2026-10-08T22:48:12Z \u2014 Prior freshness correction claimed. \u2014 flags: decision",
+        "- Related #4321 comment 6072695382 \u2014 codysai001 \u2014 2026-10-09T01:58:28Z \u2014 Prior canonical PR backlink #4403. \u2014 flags: decision",
+        "- Related #4321 comment 6072729011 \u2014 codysai001 \u2014 2026-10-09T02:01:39Z \u2014 Prior local checks and runtime observations are scoped; shipment was pending at that time. \u2014 flags: constraint|repro",
+        "- Related #4321 comment 6079086492 \u2014 codysai001 \u2014 2026-10-09T10:28:51Z \u2014 Prior fix merged with exact lineage; merge alone did not establish publication acceptance. \u2014 flags: decision|constraint",
+        "- Related #4321 comment 6079637603 \u2014 codysai001 \u2014 2026-10-09T11:06:09Z \u2014 Exact 4.73.3 released runtime proof, native controls and stated limitations; no universal latency bound was established. \u2014 flags: constraint|repro",
+        "- Related #3995 comment 5552148828 \u2014 CodySwannGT \u2014 2026-09-05T13:30:41Z \u2014 Prior canonical PR backlink #4003. \u2014 flags: decision"
+      ],
+      "metadata": {
+        "plan": "optional-diagnostic-deadline-4407",
+        "type": "bug",
+        "acceptance_criteria": [
+          "Entered stalled helper terminated within diagnostic deadline<=2s and owned cleanup<=1s.",
+          "Every original guard receives original payload; genuine refusal2 and allowed0 unchanged.",
+          "Incomplete, failed, expired or unavailable diagnostic leaves unknown; no direct unbounded Node fallback.",
+          "Normal facts, historical receipt bytes and already-noticed laziness preserved.",
+          "No owned helper, descendant or watchdog survives; foreign resources preserved.",
+          "Native macOS Bash3.2 and Linux controls executed; named hosted regression executes.",
+          "Generated source parity and genuine release tag/archive exact replay proven before completion."
+        ],
+        "relevant_documentation": {
+          "source_owners": [
+            "scripts/lisa-enforcement-fallback.sh",
+            "scripts/lisa-enforcement-freshness.mjs"
+          ],
+          "generated_destinations": [
+            "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh",
+            "all/copy-overwrite/scripts/lisa-enforcement-freshness.mjs"
+          ],
+          "generation": [
+            "scripts/build-plugins.sh",
+            "plugins/materialized-artifacts.json",
+            ".agents/rules/regenerating-derived-artifacts.md"
+          ],
+          "runtime_patterns": [
+            "scripts/lisa-scratch-run.sh:143-181",
+            "scripts/lisa-scratch-run.sh:434-499"
+          ],
+          "regression_harness": [
+            "tests/integration",
+            "currentHost",
+            "template snapshots",
+            "existing seven freshness integration suites"
+          ],
+          "diagnosis": "First-notice helper precedes all guard dispatch; process substitution currently accepts partial facts without a successful completion gate. Native Bash3.2 isolated child pid=pgid in a reaching probe. No GNU timeout/gtimeout exists on this host. Node-based supervision cannot bound stalled Node startup.",
+          "runtime_pins": "package.json engines: Node22.23.3/Bun1.3.8. Preliminary66 focused proof used native Node22.22/Bun1.3.11; final independent/full normal gates use exact policy pins."
+        },
+        "work_item_context": "/Users/cody/workspace/lisa-bounded-canonical-npm-context/.lisa/work-item-context.md",
+        "testing_requirements": [
+          "Repeated reaching physical RED before production edit, identical fixture GREEN after fix.",
+          "New tests/integration/enforcement-fallback-freshness-deadline.test.ts drives actual Bash and genuine guards.",
+          "Same-mode normal, missing-runner, failed/incomplete-output, refusal/allow and lazy controls.",
+          "Ordinary normal wrapper and unchanged hook/coverage budgets; exact named CI execution."
+        ],
+        "skills": [
+          "lisa-implement"
+        ],
+        "learnings": [],
+        "required_access": [
+          {
+            "tool": "GitHub repository/tracker",
+            "probe": "gh api repos/CodySwannGT/lisa; gh issue view 4407; git fetch origin main",
+            "status": "pass"
+          },
+          {
+            "tool": "native macOS Bash",
+            "probe": "/bin/bash --version: 3.2.57",
+            "status": "pass"
+          },
+          {
+            "tool": "Node and Bun",
+            "probe": "node --version: 22.22.0; bun --version: 1.3.11",
+            "status": "pass"
+          },
+          {
+            "tool": "GitHub hosted Linux integration runner",
+            "probe": "Authenticated repository/actions access and current CI workflow on Ubuntu; exact new-head named-spec execution required after PR submission.",
+            "status": "pass"
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "Execute the file-backed stalled/helper-control driver produced by the regression fixture with /bin/bash scripts/lisa-enforcement-fallback.sh on native macOS and Linux, then repeat using exact qualified published package. Record concrete driver path and command before execution.",
+          "expected": "Completion within <=3s, exit2 for genuine refused input and exit0 for allowed input, every guard observed, unknown partial/failed evidence, no owned survivors, accurate normal and lazy behavior."
+        }
+      }
+    },
+    {
+      "owner": "lisa-security-specialist",
+      "title": "security-review",
+      "status": "complete",
+      "comment_inventory": [
+        "- #4407 comment 6081267423 \u2014 CodySwannGT \u2014 2026-10-09T12:52:19Z \u2014 Filed build-ready deadline correction; require physical stalled-helper RED/GREEN, original enforcement and released replay. \u2014 flags: repro|constraint",
+        "- #4407 comment 6081274830 \u2014 CodySwannGT \u2014 2026-10-09T12:52:48Z \u2014 Claimed by Lisa; implementation may begin after verified binding. \u2014 flags: decision",
+        "- Related #4321 comment 6070582527 \u2014 codysai001 \u2014 2026-10-08T22:47:57Z \u2014 Preserve enforcement, historical receipts and bounded offline diagnostics. \u2014 flags: constraint|repro",
+        "- Related #4321 comment 6070585909 \u2014 codysai001 \u2014 2026-10-08T22:48:12Z \u2014 Prior freshness correction claimed. \u2014 flags: decision",
+        "- Related #4321 comment 6072695382 \u2014 codysai001 \u2014 2026-10-09T01:58:28Z \u2014 Prior canonical PR backlink #4403. \u2014 flags: decision",
+        "- Related #4321 comment 6072729011 \u2014 codysai001 \u2014 2026-10-09T02:01:39Z \u2014 Prior local checks and runtime observations are scoped; shipment was pending at that time. \u2014 flags: constraint|repro",
+        "- Related #4321 comment 6079086492 \u2014 codysai001 \u2014 2026-10-09T10:28:51Z \u2014 Prior fix merged with exact lineage; merge alone did not establish publication acceptance. \u2014 flags: decision|constraint",
+        "- Related #4321 comment 6079637603 \u2014 codysai001 \u2014 2026-10-09T11:06:09Z \u2014 Exact 4.73.3 released runtime proof, native controls and stated limitations; no universal latency bound was established. \u2014 flags: constraint|repro",
+        "- Related #3995 comment 5552148828 \u2014 CodySwannGT \u2014 2026-09-05T13:30:41Z \u2014 Prior canonical PR backlink #4003. \u2014 flags: decision"
+      ],
+      "metadata": {
+        "plan": "optional-diagnostic-deadline-4407",
+        "type": "bug",
+        "acceptance_criteria": [
+          "Entered stalled helper terminated within diagnostic deadline<=2s and owned cleanup<=1s.",
+          "Every original guard receives original payload; genuine refusal2 and allowed0 unchanged.",
+          "Incomplete, failed, expired or unavailable diagnostic leaves unknown; no direct unbounded Node fallback.",
+          "Normal facts, historical receipt bytes and already-noticed laziness preserved.",
+          "No owned helper, descendant or watchdog survives; foreign resources preserved.",
+          "Native macOS Bash3.2 and Linux controls executed; named hosted regression executes.",
+          "Generated source parity and genuine release tag/archive exact replay proven before completion."
+        ],
+        "relevant_documentation": {
+          "source_owners": [
+            "scripts/lisa-enforcement-fallback.sh",
+            "scripts/lisa-enforcement-freshness.mjs"
+          ],
+          "generated_destinations": [
+            "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh",
+            "all/copy-overwrite/scripts/lisa-enforcement-freshness.mjs"
+          ],
+          "generation": [
+            "scripts/build-plugins.sh",
+            "plugins/materialized-artifacts.json",
+            ".agents/rules/regenerating-derived-artifacts.md"
+          ],
+          "runtime_patterns": [
+            "scripts/lisa-scratch-run.sh:143-181",
+            "scripts/lisa-scratch-run.sh:434-499"
+          ],
+          "regression_harness": [
+            "tests/integration",
+            "currentHost",
+            "template snapshots",
+            "existing seven freshness integration suites"
+          ],
+          "diagnosis": "First-notice helper precedes all guard dispatch; process substitution currently accepts partial facts without a successful completion gate. Native Bash3.2 isolated child pid=pgid in a reaching probe. No GNU timeout/gtimeout exists on this host. Node-based supervision cannot bound stalled Node startup.",
+          "runtime_pins": "package.json engines: Node22.23.3/Bun1.3.8. Preliminary66 focused proof used native Node22.22/Bun1.3.11; final independent/full normal gates use exact policy pins."
+        },
+        "work_item_context": "/Users/cody/workspace/lisa-bounded-canonical-npm-context/.lisa/work-item-context.md",
+        "testing_requirements": [
+          "Repeated reaching physical RED before production edit, identical fixture GREEN after fix.",
+          "New tests/integration/enforcement-fallback-freshness-deadline.test.ts drives actual Bash and genuine guards.",
+          "Same-mode normal, missing-runner, failed/incomplete-output, refusal/allow and lazy controls.",
+          "Ordinary normal wrapper and unchanged hook/coverage budgets; exact named CI execution."
+        ],
+        "skills": [
+          "lisa-implement"
+        ],
+        "learnings": [],
+        "required_access": [
+          {
+            "tool": "GitHub repository/tracker",
+            "probe": "gh api repos/CodySwannGT/lisa; gh issue view 4407; git fetch origin main",
+            "status": "pass"
+          },
+          {
+            "tool": "native macOS Bash",
+            "probe": "/bin/bash --version: 3.2.57",
+            "status": "pass"
+          },
+          {
+            "tool": "Node and Bun",
+            "probe": "node --version: 22.22.0; bun --version: 1.3.11",
+            "status": "pass"
+          },
+          {
+            "tool": "GitHub hosted Linux integration runner",
+            "probe": "Authenticated repository/actions access and current CI workflow on Ubuntu; exact new-head named-spec execution required after PR submission.",
+            "status": "pass"
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "Execute the file-backed stalled/helper-control driver produced by the regression fixture with /bin/bash scripts/lisa-enforcement-fallback.sh on native macOS and Linux, then repeat using exact qualified published package. Record concrete driver path and command before execution.",
+          "expected": "Completion within <=3s, exit2 for genuine refused input and exit0 for allowed input, every guard observed, unknown partial/failed evidence, no owned survivors, accurate normal and lazy behavior."
+        }
+      }
+    },
+    {
+      "owner": "lisa-verification-specialist",
+      "title": "runtime-and-release-verification",
+      "status": "pending",
+      "comment_inventory": [
+        "- #4407 comment 6081267423 \u2014 CodySwannGT \u2014 2026-10-09T12:52:19Z \u2014 Filed build-ready deadline correction; require physical stalled-helper RED/GREEN, original enforcement and released replay. \u2014 flags: repro|constraint",
+        "- #4407 comment 6081274830 \u2014 CodySwannGT \u2014 2026-10-09T12:52:48Z \u2014 Claimed by Lisa; implementation may begin after verified binding. \u2014 flags: decision",
+        "- Related #4321 comment 6070582527 \u2014 codysai001 \u2014 2026-10-08T22:47:57Z \u2014 Preserve enforcement, historical receipts and bounded offline diagnostics. \u2014 flags: constraint|repro",
+        "- Related #4321 comment 6070585909 \u2014 codysai001 \u2014 2026-10-08T22:48:12Z \u2014 Prior freshness correction claimed. \u2014 flags: decision",
+        "- Related #4321 comment 6072695382 \u2014 codysai001 \u2014 2026-10-09T01:58:28Z \u2014 Prior canonical PR backlink #4403. \u2014 flags: decision",
+        "- Related #4321 comment 6072729011 \u2014 codysai001 \u2014 2026-10-09T02:01:39Z \u2014 Prior local checks and runtime observations are scoped; shipment was pending at that time. \u2014 flags: constraint|repro",
+        "- Related #4321 comment 6079086492 \u2014 codysai001 \u2014 2026-10-09T10:28:51Z \u2014 Prior fix merged with exact lineage; merge alone did not establish publication acceptance. \u2014 flags: decision|constraint",
+        "- Related #4321 comment 6079637603 \u2014 codysai001 \u2014 2026-10-09T11:06:09Z \u2014 Exact 4.73.3 released runtime proof, native controls and stated limitations; no universal latency bound was established. \u2014 flags: constraint|repro",
+        "- Related #3995 comment 5552148828 \u2014 CodySwannGT \u2014 2026-09-05T13:30:41Z \u2014 Prior canonical PR backlink #4003. \u2014 flags: decision"
+      ],
+      "metadata": {
+        "plan": "optional-diagnostic-deadline-4407",
+        "type": "bug",
+        "acceptance_criteria": [
+          "Entered stalled helper terminated within diagnostic deadline<=2s and owned cleanup<=1s.",
+          "Every original guard receives original payload; genuine refusal2 and allowed0 unchanged.",
+          "Incomplete, failed, expired or unavailable diagnostic leaves unknown; no direct unbounded Node fallback.",
+          "Normal facts, historical receipt bytes and already-noticed laziness preserved.",
+          "No owned helper, descendant or watchdog survives; foreign resources preserved.",
+          "Native macOS Bash3.2 and Linux controls executed; named hosted regression executes.",
+          "Generated source parity and genuine release tag/archive exact replay proven before completion."
+        ],
+        "relevant_documentation": {
+          "source_owners": [
+            "scripts/lisa-enforcement-fallback.sh",
+            "scripts/lisa-enforcement-freshness.mjs"
+          ],
+          "generated_destinations": [
+            "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh",
+            "all/copy-overwrite/scripts/lisa-enforcement-freshness.mjs"
+          ],
+          "generation": [
+            "scripts/build-plugins.sh",
+            "plugins/materialized-artifacts.json",
+            ".agents/rules/regenerating-derived-artifacts.md"
+          ],
+          "runtime_patterns": [
+            "scripts/lisa-scratch-run.sh:143-181",
+            "scripts/lisa-scratch-run.sh:434-499"
+          ],
+          "regression_harness": [
+            "tests/integration",
+            "currentHost",
+            "template snapshots",
+            "existing seven freshness integration suites"
+          ],
+          "diagnosis": "First-notice helper precedes all guard dispatch; process substitution currently accepts partial facts without a successful completion gate. Native Bash3.2 isolated child pid=pgid in a reaching probe. No GNU timeout/gtimeout exists on this host. Node-based supervision cannot bound stalled Node startup.",
+          "runtime_pins": "package.json engines: Node22.23.3/Bun1.3.8. Preliminary66 focused proof used native Node22.22/Bun1.3.11; final independent/full normal gates use exact policy pins."
+        },
+        "work_item_context": "/Users/cody/workspace/lisa-bounded-canonical-npm-context/.lisa/work-item-context.md",
+        "testing_requirements": [
+          "Repeated reaching physical RED before production edit, identical fixture GREEN after fix.",
+          "New tests/integration/enforcement-fallback-freshness-deadline.test.ts drives actual Bash and genuine guards.",
+          "Same-mode normal, missing-runner, failed/incomplete-output, refusal/allow and lazy controls.",
+          "Ordinary normal wrapper and unchanged hook/coverage budgets; exact named CI execution."
+        ],
+        "skills": [
+          "lisa-implement"
+        ],
+        "learnings": [],
+        "required_access": [
+          {
+            "tool": "GitHub repository/tracker",
+            "probe": "gh api repos/CodySwannGT/lisa; gh issue view 4407; git fetch origin main",
+            "status": "pass"
+          },
+          {
+            "tool": "native macOS Bash",
+            "probe": "/bin/bash --version: 3.2.57",
+            "status": "pass"
+          },
+          {
+            "tool": "Node and Bun",
+            "probe": "node --version: 22.22.0; bun --version: 1.3.11",
+            "status": "pass"
+          },
+          {
+            "tool": "GitHub hosted Linux integration runner",
+            "probe": "Authenticated repository/actions access and current CI workflow on Ubuntu; exact new-head named-spec execution required after PR submission.",
+            "status": "pass"
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "Execute the file-backed stalled/helper-control driver produced by the regression fixture with /bin/bash scripts/lisa-enforcement-fallback.sh on native macOS and Linux, then repeat using exact qualified published package. Record concrete driver path and command before execution.",
+          "expected": "Completion within <=3s, exit2 for genuine refused input and exit0 for allowed input, every guard observed, unknown partial/failed evidence, no owned survivors, accurate normal and lazy behavior."
+        }
+      }
+    },
+    {
+      "owner": "lisa-spec-conformance-specialist",
+      "title": "all-ac-audit",
+      "status": "pending",
+      "comment_inventory": [
+        "- #4407 comment 6081267423 \u2014 CodySwannGT \u2014 2026-10-09T12:52:19Z \u2014 Filed build-ready deadline correction; require physical stalled-helper RED/GREEN, original enforcement and released replay. \u2014 flags: repro|constraint",
+        "- #4407 comment 6081274830 \u2014 CodySwannGT \u2014 2026-10-09T12:52:48Z \u2014 Claimed by Lisa; implementation may begin after verified binding. \u2014 flags: decision",
+        "- Related #4321 comment 6070582527 \u2014 codysai001 \u2014 2026-10-08T22:47:57Z \u2014 Preserve enforcement, historical receipts and bounded offline diagnostics. \u2014 flags: constraint|repro",
+        "- Related #4321 comment 6070585909 \u2014 codysai001 \u2014 2026-10-08T22:48:12Z \u2014 Prior freshness correction claimed. \u2014 flags: decision",
+        "- Related #4321 comment 6072695382 \u2014 codysai001 \u2014 2026-10-09T01:58:28Z \u2014 Prior canonical PR backlink #4403. \u2014 flags: decision",
+        "- Related #4321 comment 6072729011 \u2014 codysai001 \u2014 2026-10-09T02:01:39Z \u2014 Prior local checks and runtime observations are scoped; shipment was pending at that time. \u2014 flags: constraint|repro",
+        "- Related #4321 comment 6079086492 \u2014 codysai001 \u2014 2026-10-09T10:28:51Z \u2014 Prior fix merged with exact lineage; merge alone did not establish publication acceptance. \u2014 flags: decision|constraint",
+        "- Related #4321 comment 6079637603 \u2014 codysai001 \u2014 2026-10-09T11:06:09Z \u2014 Exact 4.73.3 released runtime proof, native controls and stated limitations; no universal latency bound was established. \u2014 flags: constraint|repro",
+        "- Related #3995 comment 5552148828 \u2014 CodySwannGT \u2014 2026-09-05T13:30:41Z \u2014 Prior canonical PR backlink #4003. \u2014 flags: decision"
+      ],
+      "metadata": {
+        "plan": "optional-diagnostic-deadline-4407",
+        "type": "bug",
+        "acceptance_criteria": [
+          "Entered stalled helper terminated within diagnostic deadline<=2s and owned cleanup<=1s.",
+          "Every original guard receives original payload; genuine refusal2 and allowed0 unchanged.",
+          "Incomplete, failed, expired or unavailable diagnostic leaves unknown; no direct unbounded Node fallback.",
+          "Normal facts, historical receipt bytes and already-noticed laziness preserved.",
+          "No owned helper, descendant or watchdog survives; foreign resources preserved.",
+          "Native macOS Bash3.2 and Linux controls executed; named hosted regression executes.",
+          "Generated source parity and genuine release tag/archive exact replay proven before completion."
+        ],
+        "relevant_documentation": {
+          "source_owners": [
+            "scripts/lisa-enforcement-fallback.sh",
+            "scripts/lisa-enforcement-freshness.mjs"
+          ],
+          "generated_destinations": [
+            "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh",
+            "all/copy-overwrite/scripts/lisa-enforcement-freshness.mjs"
+          ],
+          "generation": [
+            "scripts/build-plugins.sh",
+            "plugins/materialized-artifacts.json",
+            ".agents/rules/regenerating-derived-artifacts.md"
+          ],
+          "runtime_patterns": [
+            "scripts/lisa-scratch-run.sh:143-181",
+            "scripts/lisa-scratch-run.sh:434-499"
+          ],
+          "regression_harness": [
+            "tests/integration",
+            "currentHost",
+            "template snapshots",
+            "existing seven freshness integration suites"
+          ],
+          "diagnosis": "First-notice helper precedes all guard dispatch; process substitution currently accepts partial facts without a successful completion gate. Native Bash3.2 isolated child pid=pgid in a reaching probe. No GNU timeout/gtimeout exists on this host. Node-based supervision cannot bound stalled Node startup.",
+          "runtime_pins": "package.json engines: Node22.23.3/Bun1.3.8. Preliminary66 focused proof used native Node22.22/Bun1.3.11; final independent/full normal gates use exact policy pins."
+        },
+        "work_item_context": "/Users/cody/workspace/lisa-bounded-canonical-npm-context/.lisa/work-item-context.md",
+        "testing_requirements": [
+          "Repeated reaching physical RED before production edit, identical fixture GREEN after fix.",
+          "New tests/integration/enforcement-fallback-freshness-deadline.test.ts drives actual Bash and genuine guards.",
+          "Same-mode normal, missing-runner, failed/incomplete-output, refusal/allow and lazy controls.",
+          "Ordinary normal wrapper and unchanged hook/coverage budgets; exact named CI execution."
+        ],
+        "skills": [
+          "lisa-implement"
+        ],
+        "learnings": [],
+        "required_access": [
+          {
+            "tool": "GitHub repository/tracker",
+            "probe": "gh api repos/CodySwannGT/lisa; gh issue view 4407; git fetch origin main",
+            "status": "pass"
+          },
+          {
+            "tool": "native macOS Bash",
+            "probe": "/bin/bash --version: 3.2.57",
+            "status": "pass"
+          },
+          {
+            "tool": "Node and Bun",
+            "probe": "node --version: 22.22.0; bun --version: 1.3.11",
+            "status": "pass"
+          },
+          {
+            "tool": "GitHub hosted Linux integration runner",
+            "probe": "Authenticated repository/actions access and current CI workflow on Ubuntu; exact new-head named-spec execution required after PR submission.",
+            "status": "pass"
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "Execute the file-backed stalled/helper-control driver produced by the regression fixture with /bin/bash scripts/lisa-enforcement-fallback.sh on native macOS and Linux, then repeat using exact qualified published package. Record concrete driver path and command before execution.",
+          "expected": "Completion within <=3s, exit2 for genuine refused input and exit0 for allowed input, every guard observed, unknown partial/failed evidence, no owned survivors, accurate normal and lazy behavior."
+        }
+      }
+    },
+    {
+      "owner": "lisa-learner",
+      "title": "judged-capture",
+      "status": "pending",
+      "comment_inventory": [
+        "- #4407 comment 6081267423 \u2014 CodySwannGT \u2014 2026-10-09T12:52:19Z \u2014 Filed build-ready deadline correction; require physical stalled-helper RED/GREEN, original enforcement and released replay. \u2014 flags: repro|constraint",
+        "- #4407 comment 6081274830 \u2014 CodySwannGT \u2014 2026-10-09T12:52:48Z \u2014 Claimed by Lisa; implementation may begin after verified binding. \u2014 flags: decision",
+        "- Related #4321 comment 6070582527 \u2014 codysai001 \u2014 2026-10-08T22:47:57Z \u2014 Preserve enforcement, historical receipts and bounded offline diagnostics. \u2014 flags: constraint|repro",
+        "- Related #4321 comment 6070585909 \u2014 codysai001 \u2014 2026-10-08T22:48:12Z \u2014 Prior freshness correction claimed. \u2014 flags: decision",
+        "- Related #4321 comment 6072695382 \u2014 codysai001 \u2014 2026-10-09T01:58:28Z \u2014 Prior canonical PR backlink #4403. \u2014 flags: decision",
+        "- Related #4321 comment 6072729011 \u2014 codysai001 \u2014 2026-10-09T02:01:39Z \u2014 Prior local checks and runtime observations are scoped; shipment was pending at that time. \u2014 flags: constraint|repro",
+        "- Related #4321 comment 6079086492 \u2014 codysai001 \u2014 2026-10-09T10:28:51Z \u2014 Prior fix merged with exact lineage; merge alone did not establish publication acceptance. \u2014 flags: decision|constraint",
+        "- Related #4321 comment 6079637603 \u2014 codysai001 \u2014 2026-10-09T11:06:09Z \u2014 Exact 4.73.3 released runtime proof, native controls and stated limitations; no universal latency bound was established. \u2014 flags: constraint|repro",
+        "- Related #3995 comment 5552148828 \u2014 CodySwannGT \u2014 2026-09-05T13:30:41Z \u2014 Prior canonical PR backlink #4003. \u2014 flags: decision"
+      ],
+      "metadata": {
+        "plan": "optional-diagnostic-deadline-4407",
+        "type": "bug",
+        "acceptance_criteria": [
+          "Entered stalled helper terminated within diagnostic deadline<=2s and owned cleanup<=1s.",
+          "Every original guard receives original payload; genuine refusal2 and allowed0 unchanged.",
+          "Incomplete, failed, expired or unavailable diagnostic leaves unknown; no direct unbounded Node fallback.",
+          "Normal facts, historical receipt bytes and already-noticed laziness preserved.",
+          "No owned helper, descendant or watchdog survives; foreign resources preserved.",
+          "Native macOS Bash3.2 and Linux controls executed; named hosted regression executes.",
+          "Generated source parity and genuine release tag/archive exact replay proven before completion."
+        ],
+        "relevant_documentation": {
+          "source_owners": [
+            "scripts/lisa-enforcement-fallback.sh",
+            "scripts/lisa-enforcement-freshness.mjs"
+          ],
+          "generated_destinations": [
+            "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh",
+            "all/copy-overwrite/scripts/lisa-enforcement-freshness.mjs"
+          ],
+          "generation": [
+            "scripts/build-plugins.sh",
+            "plugins/materialized-artifacts.json",
+            ".agents/rules/regenerating-derived-artifacts.md"
+          ],
+          "runtime_patterns": [
+            "scripts/lisa-scratch-run.sh:143-181",
+            "scripts/lisa-scratch-run.sh:434-499"
+          ],
+          "regression_harness": [
+            "tests/integration",
+            "currentHost",
+            "template snapshots",
+            "existing seven freshness integration suites"
+          ],
+          "diagnosis": "First-notice helper precedes all guard dispatch; process substitution currently accepts partial facts without a successful completion gate. Native Bash3.2 isolated child pid=pgid in a reaching probe. No GNU timeout/gtimeout exists on this host. Node-based supervision cannot bound stalled Node startup.",
+          "runtime_pins": "package.json engines: Node22.23.3/Bun1.3.8. Preliminary66 focused proof used native Node22.22/Bun1.3.11; final independent/full normal gates use exact policy pins."
+        },
+        "work_item_context": "/Users/cody/workspace/lisa-bounded-canonical-npm-context/.lisa/work-item-context.md",
+        "testing_requirements": [
+          "Repeated reaching physical RED before production edit, identical fixture GREEN after fix.",
+          "New tests/integration/enforcement-fallback-freshness-deadline.test.ts drives actual Bash and genuine guards.",
+          "Same-mode normal, missing-runner, failed/incomplete-output, refusal/allow and lazy controls.",
+          "Ordinary normal wrapper and unchanged hook/coverage budgets; exact named CI execution."
+        ],
+        "skills": [
+          "lisa-implement"
+        ],
+        "learnings": [],
+        "required_access": [
+          {
+            "tool": "GitHub repository/tracker",
+            "probe": "gh api repos/CodySwannGT/lisa; gh issue view 4407; git fetch origin main",
+            "status": "pass"
+          },
+          {
+            "tool": "native macOS Bash",
+            "probe": "/bin/bash --version: 3.2.57",
+            "status": "pass"
+          },
+          {
+            "tool": "Node and Bun",
+            "probe": "node --version: 22.22.0; bun --version: 1.3.11",
+            "status": "pass"
+          },
+          {
+            "tool": "GitHub hosted Linux integration runner",
+            "probe": "Authenticated repository/actions access and current CI workflow on Ubuntu; exact new-head named-spec execution required after PR submission.",
+            "status": "pass"
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "Execute the file-backed stalled/helper-control driver produced by the regression fixture with /bin/bash scripts/lisa-enforcement-fallback.sh on native macOS and Linux, then repeat using exact qualified published package. Record concrete driver path and command before execution.",
+          "expected": "Completion within <=3s, exit2 for genuine refused input and exit0 for allowed input, every guard observed, unknown partial/failed evidence, no owned survivors, accurate normal and lazy behavior."
+        }
+      }
+    }
+  ]
+}

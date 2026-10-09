@@ -229,9 +229,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
-      "8e6c5058c1ca79f4b797709c0ee029e14f356166fe5ed68c31c859c0fcf36831",
+      "a61653e9a4788804249ae6e66924e6c7a69cd06b013b91881361d992b935fbcf",
     "all/copy-overwrite/scripts/lisa-enforcement-freshness.mjs":
-      "781bb4da7d2e2ce383c9fb2f1f80d48536697f8c581458c326ffb96b8fefe8db",
+      "f02571c6766dd2ed0914b4cf7e62b045dee8fcd33a0b2298f0be1f5ac0989639",
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
       "94d1d76b5c25059d93ee888dc824d1621adc8e3dbe368904543b37a82259c4a3",
     "all/copy-overwrite/scripts/lisa-floor-collisions.mjs":
@@ -2625,9 +2625,9 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-enforcement-census.mjs":
       "41490f30f30cbb5ff05454a52caa1d3286db225667847eee22b7b994809e64d4",
     "scripts/lisa-enforcement-fallback.sh":
-      "fea21f379ebf5410b19d3a6da309775d276a40380a2c6e629a58a3aa45cad985",
+      "5a978f2d9a93fbab916bca7f2fda4de7c9f6112370773b5047ee17e323e1f8b0",
     "scripts/lisa-enforcement-freshness.mjs":
-      "6da5ce9d16136b9915f903e44b599386616c3296afbf988e456492b817d84c29",
+      "e9b5d8c534af9f3c3109e3629f5311d4564889d67d0fe17045d47f579151b46e",
     "scripts/lisa-github-environments.sh":
       "0a76e92f108519abaf3e29991299ec3b0db20ea533e69e6d2a53d802dba9c370",
     "scripts/lisa-github-repo-settings.sh":
@@ -9885,6 +9885,9 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/helpers/enforcement-census-fixtures.ts": true,
     "tests/helpers/enforcement-fallback-fixtures.ts": true,
     "tests/helpers/enforcement-vintage-harness.ts": true,
+    "tests/helpers/freshness-deadline-fixture.ts": true,
+    "tests/helpers/freshness-deadline-inputs.ts": true,
+    "tests/helpers/freshness-owned-processes.ts": true,
     "tests/helpers/fs-latency-budget.ts": true,
     "tests/helpers/gate-capture.ts": true,
     "tests/helpers/gate-coverage-harness.ts": true,
@@ -9985,6 +9988,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/emitted-scripts-survive-shipped-fixer.test.ts": true,
     "tests/integration/enforcement-census-cli.test.ts": true,
     "tests/integration/enforcement-fallback-freshness-channels.test.ts": true,
+    "tests/integration/enforcement-fallback-freshness-deadline.test.ts": true,
     "tests/integration/enforcement-fallback-freshness-delivery.test.ts": true,
     "tests/integration/enforcement-fallback-freshness-edges.test.ts": true,
     "tests/integration/enforcement-fallback-freshness-laziness.test.ts": true,

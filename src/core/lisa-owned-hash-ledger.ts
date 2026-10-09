@@ -1007,6 +1007,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "916b2b48a2b55c2090468c48c972b6c7c5fad39fb53956ceffebdd1ff0c69230",
     "9cab71562d01421d57c6719318a4d03a6249a45c1aea434db3ff26e3065eeb66",
     "9cfad1d691235fa70ccf97603eea2ef177bbded4a34d85aeedc41018c894b591",
+    "a61653e9a4788804249ae6e66924e6c7a69cd06b013b91881361d992b935fbcf",
     "aafd027c4b6092da15d0389f9e8dcedbd9105e9083057e2da39f78fd5f72e0df",
     "acf05ef7bd86f58042e57b6d4dd3d519efb46131bb38c6bf3b7c05f6d15b20ad",
     "b456ad79aae18ea3af4ae462327653a88ab865ec31c84aa233c3ded512acff32",
@@ -1024,6 +1025,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
   "scripts/lisa-enforcement-freshness.mjs": Object.freeze([
     "781bb4da7d2e2ce383c9fb2f1f80d48536697f8c581458c326ffb96b8fefe8db",
     "edc243b4f79a1cbbf16890356ddec15592896d0736e74d13663ba7f548bb0c1f",
+    "f02571c6766dd2ed0914b4cf7e62b045dee8fcd33a0b2298f0be1f5ac0989639",
   ]),
   "scripts/lisa-environment-prepare.mjs": Object.freeze([
     "0c2c2aeed3a8d843b3019e5263aab26790856c0c33f028925d2f0f795a26872d",
@@ -3004,6 +3006,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "916b2b48a2b55c2090468c48c972b6c7c5fad39fb53956ceffebdd1ff0c69230",
     "9cab71562d01421d57c6719318a4d03a6249a45c1aea434db3ff26e3065eeb66",
     "9cfad1d691235fa70ccf97603eea2ef177bbded4a34d85aeedc41018c894b591",
+    "a61653e9a4788804249ae6e66924e6c7a69cd06b013b91881361d992b935fbcf",
     "aafd027c4b6092da15d0389f9e8dcedbd9105e9083057e2da39f78fd5f72e0df",
     "acf05ef7bd86f58042e57b6d4dd3d519efb46131bb38c6bf3b7c05f6d15b20ad",
     "b456ad79aae18ea3af4ae462327653a88ab865ec31c84aa233c3ded512acff32",
@@ -3021,6 +3024,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   "scripts/lisa-enforcement-freshness.mjs": Object.freeze([
     "781bb4da7d2e2ce383c9fb2f1f80d48536697f8c581458c326ffb96b8fefe8db",
     "edc243b4f79a1cbbf16890356ddec15592896d0736e74d13663ba7f548bb0c1f",
+    "f02571c6766dd2ed0914b4cf7e62b045dee8fcd33a0b2298f0be1f5ac0989639",
   ]),
   "scripts/lisa-environment-prepare.mjs": Object.freeze([
     "0c2c2aeed3a8d843b3019e5263aab26790856c0c33f028925d2f0f795a26872d",
