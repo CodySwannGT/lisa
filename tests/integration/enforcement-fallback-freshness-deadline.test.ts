@@ -1,6 +1,7 @@
 /**
  * A stalled optional process must not hold real enforcement or promote partial
- * evidence. These are reaching CLI controls, with a five-second RED detector.
+ * evidence. These are reaching CLI controls with a calibrated completion
+ * watchdog and an unscaled three-second optional-boundary assertion.
  * @module tests/integration/enforcement-fallback-freshness-deadline
  */
 import { afterEach, describe, expect, it } from "vitest";

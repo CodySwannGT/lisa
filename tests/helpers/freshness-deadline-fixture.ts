@@ -13,6 +13,7 @@ import {
 } from "./freshness-deadline-inputs.js";
 import { ownedProcesses } from "./freshness-owned-processes.js";
 import { hostState } from "./host-guard-freshness-fixtures.js";
+import { ioLatencyBudgetMs, workerSpawnSlowdown } from "./io-latency-budget.js";
 
 /** A marker-backed real-process observation, including cleanup evidence. */
 export interface DeadlineObservation {
@@ -28,6 +29,8 @@ export interface DeadlineObservation {
   readonly ownedPids: readonly number[];
   readonly foreignSentinelUnchanged: boolean;
   readonly diagnosticScratchLeaves: readonly DiagnosticLeaf[];
+  readonly watchdogMs: number;
+  readonly spawnSlowdown: number;
 }
 
 /** Actual diagnostic leaves still present before fixture teardown. */
@@ -89,6 +92,8 @@ function summarize(
     status,
     output: state.output,
     diagnosticScratchLeaves: diagnosticLeaves(fixture.scratch),
+    watchdogMs: ioLatencyBudgetMs(5_000),
+    spawnSlowdown: workerSpawnSlowdown(),
     entered: readFileSync(fixture.entries, "utf8").length > 0,
     timedOut: state.timedOut,
     elapsedMs: performance.now() - start,
@@ -114,7 +119,8 @@ function summarize(
 }
 
 /**
- * Capture the actual process with a five-second outer RED detector only.
+ * Capture the actual process with a calibrated five-second base completion
+ * watchdog. The diagnostic boundary retains its unscaled three-second assertion.
  * @param fixture Prepared real-guard inputs.
  * @param mode Optional diagnostic injection.
  * @returns Native result with positively owned process observations.
@@ -154,7 +160,7 @@ async function captureDeadline(
     state.timedOut = true;
     poll();
     owned.drain();
-  }, 5_000);
+  }, ioLatencyBudgetMs(5_000));
   const closed = new Promise<number | null>((resolve, reject) => {
     child.once("error", reject);
     child.once("close", resolve);
