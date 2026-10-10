@@ -2,7 +2,8 @@
 // Do not edit directly — durable changes belong upstream in Lisa.
 
 /** Controller-derived literal GH requests narrow canonical parsing without replacing it. */
-import { canonicalJson } from "../lisa-automation-provenance.mjs";
+// Preload dependencies must not execute the entry CLI before instrumentation.
+import { canonicalJson } from "./automation-provenance-contract.mjs";
 import { required, keys } from "./npm-update-contract.mjs";
 import {
   githubIssueViewArgs,

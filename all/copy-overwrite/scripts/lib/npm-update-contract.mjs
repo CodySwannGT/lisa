@@ -8,7 +8,8 @@
  */
 import { required, keys } from "./npm-update-invariants.mjs";
 export { UpdaterError, required, keys } from "./npm-update-invariants.mjs";
-import { canonicalJson } from "../lisa-automation-provenance.mjs";
+// Preload dependencies must not execute the entry CLI before instrumentation.
+import { canonicalJson } from "./automation-provenance-contract.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
 import {
   optionalLockFields,

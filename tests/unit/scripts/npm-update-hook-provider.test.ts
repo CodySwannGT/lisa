@@ -9,6 +9,7 @@ import {
   existsSync,
 } from "node:fs";
 import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import {
   startHookReadBroker,
   requestHookRead,
@@ -115,6 +116,38 @@ function gatewayFixture(state: any, code: string, name = "lisa-work-item.mjs") {
 }
 
 describe("hosted gate read-only provider transport", () => {
+  it("refuses absent preload context before executing the genuine provenance CLI", async () => {
+    await fixture(async state => {
+      const node = qualifiedUpdaterNode();
+      const preload = resolve(
+        "all/copy-overwrite/scripts/lib/npm-update-hook-preload.mjs"
+      );
+      const entry = resolve(
+        "all/copy-overwrite/scripts/lisa-automation-provenance.mjs"
+      );
+      // A missing message exposes premature CLI IO without fabricating provider proof.
+      const result = await runProcess(
+        node.path,
+        [
+          "--import",
+          pathToFileURL(preload).href,
+          entry,
+          join(state.root, "message"),
+        ],
+        {
+          cwd: state.root,
+          env: { PATH: SYSTEM_PATH, HOME: state.root },
+          timeout: 8000,
+          maximum: 65536,
+          allowed: [1],
+        }
+      );
+      expect(result.stderr.toString()).toContain(
+        "hosted hook context is absent"
+      );
+      expect(result.stderr.toString()).not.toContain("phase=local-proof");
+    });
+  });
   it.each([
     { role: "commit", args: ["message"], code: 7 },
     { role: "audit", args: ["message"], code: 1 },

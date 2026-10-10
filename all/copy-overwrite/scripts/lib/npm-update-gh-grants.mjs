@@ -2,7 +2,8 @@
 // Do not edit directly — durable changes belong upstream in Lisa.
 
 /** Native successful responses grant only one exact canonical successor request. */
-import { canonicalJson } from "../lisa-automation-provenance.mjs";
+// Preload dependencies must not execute the entry CLI before instrumentation.
+import { canonicalJson } from "./automation-provenance-contract.mjs";
 import { required } from "./npm-update-contract.mjs";
 import {
   githubHierarchyArgs,

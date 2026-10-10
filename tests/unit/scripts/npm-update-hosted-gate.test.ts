@@ -57,7 +57,6 @@ describe("original hosted gate prerequisites", () => {
       contents: "read",
       actions: "read",
       issues: "read",
-      "pull-requests": "read",
       attestations: "read",
     });
     expect(workflow.jobs.prepare.permissions).toEqual({ contents: "read" });

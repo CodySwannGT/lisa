@@ -26,7 +26,8 @@ import {
 import { join, resolve, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { randomBytes } from "node:crypto";
-import { canonicalJson } from "../lisa-automation-provenance.mjs";
+// Preload dependencies must not execute the entry CLI before instrumentation.
+import { canonicalJson } from "./automation-provenance-contract.mjs";
 import { required } from "./npm-update-contract.mjs";
 
 /** A fresh HOME and allowlist remove ambient Git/npm/issuer/write authority. */
