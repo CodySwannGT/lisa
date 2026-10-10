@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.73.6](https://github.com/CodySwannGT/lisa/compare/v4.73.5...v4.73.6) (2026-10-10)
+
+
+### Bug Fixes
+
+* bound freshness anchor startup before guard dispatch ([09ea2e2](https://github.com/CodySwannGT/lisa/commit/09ea2e23e01b911b06abd0865d482bbf98d57d77)), closes [CodySwannGT/lisa#4410](https://github.com/CodySwannGT/lisa/issues/4410)
+
 ### [4.73.5](https://github.com/CodySwannGT/lisa/compare/v4.73.4...v4.73.5) (2026-10-09)
 
 
