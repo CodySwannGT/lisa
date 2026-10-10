@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.74.2](https://github.com/CodySwannGT/lisa/compare/v4.74.1...v4.74.2) (2026-10-10)
+
+
+### Bug Fixes
+
+* allow hosted npm gate to read linked pull requests ([9e99564](https://github.com/CodySwannGT/lisa/commit/9e9956498d540d02401a97747668a76ccfd5492c)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+* defer provenance entry until preload initialization ([e366e7a](https://github.com/CodySwannGT/lisa/commit/e366e7a8489414ccf8ba668e8f3614b2a7445101)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+
 ### [4.74.1](https://github.com/CodySwannGT/lisa/compare/v4.74.0...v4.74.1) (2026-10-10)
 
 
