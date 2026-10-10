@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.74.0](https://github.com/CodySwannGT/lisa/compare/v4.73.9...v4.74.0) (2026-10-10)
+
+
+### Features
+
+* move TypeScript defaults to Node 24 ([6910a25](https://github.com/CodySwannGT/lisa/commit/6910a25f9720aa81685d9e04f9ddc41e0c4f9c46)), closes [CodySwannGT/lisa#4367](https://github.com/CodySwannGT/lisa/issues/4367)
+
+
+### Bug Fixes
+
+* **ci:** shard exhaustive shell guard trace execution ([94715a2](https://github.com/CodySwannGT/lisa/commit/94715a2d1bb2042731eb453d10a08779d347d953)), closes [CodySwannGT/lisa#4367](https://github.com/CodySwannGT/lisa/issues/4367)
+* launch guard shards through named test lifecycle ([db1f164](https://github.com/CodySwannGT/lisa/commit/db1f164942bf45ae0c7272a01be4108f6a7fd079)), closes [CodySwannGT/lisa#4367](https://github.com/CodySwannGT/lisa/issues/4367)
+* preserve Bun runner identity in guard trace shards ([af7883c](https://github.com/CodySwannGT/lisa/commit/af7883c1ac22596f928aef001de75b43761b4081)), closes [CodySwannGT/lisa#4367](https://github.com/CodySwannGT/lisa/issues/4367)
+* provision complete guard shard prerequisites ([d312a23](https://github.com/CodySwannGT/lisa/commit/d312a2358266e243afe1cef24a7c331424178b1c)), closes [CodySwannGT/lisa#4367](https://github.com/CodySwannGT/lisa/issues/4367)
+* qualify integration checks under Node 24 ([126aa12](https://github.com/CodySwannGT/lisa/commit/126aa12d9cff244ef4b5cce07f0623502a590ac3)), closes [CodySwannGT/lisa#4367](https://github.com/CodySwannGT/lisa/issues/4367)
+
 ### [4.73.9](https://github.com/CodySwannGT/lisa/compare/v4.73.8...v4.73.9) (2026-10-10)
 
 
