@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.74.1](https://github.com/CodySwannGT/lisa/compare/v4.74.0...v4.74.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **bdd:** commit reports by feature source path ([aea3448](https://github.com/CodySwannGT/lisa/commit/aea3448715c4d67d9bf8d4f095d4d5c55b8eec50)), closes [CodySwannGT/lisa#4316](https://github.com/CodySwannGT/lisa/issues/4316)
+* **bdd:** share the generated matrix heading literal ([728b91d](https://github.com/CodySwannGT/lisa/commit/728b91d9862d23244fefca5669a614f3db114ea0)), closes [CodySwannGT/lisa#4316](https://github.com/CodySwannGT/lisa/issues/4316)
+
 ## [4.74.0](https://github.com/CodySwannGT/lisa/compare/v4.73.9...v4.74.0) (2026-10-10)
 
 
