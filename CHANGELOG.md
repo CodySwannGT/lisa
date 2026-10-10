@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.73.9](https://github.com/CodySwannGT/lisa/compare/v4.73.8...v4.73.9) (2026-10-10)
+
+
+### Bug Fixes
+
+* expose closed inner provenance failure phases ([3b016c1](https://github.com/CodySwannGT/lisa/commit/3b016c1ccfb75e5af9dca2722f2fde3796f9e706)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+
 ### [4.73.8](https://github.com/CodySwannGT/lisa/compare/v4.73.7...v4.73.8) (2026-10-10)
 
 
