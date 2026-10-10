@@ -148,7 +148,7 @@ jobs:
     needs: prepare
     if: needs.prepare.outputs.status == 'prepared'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 120
     permissions:
       contents: read
       actions: read
