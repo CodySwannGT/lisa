@@ -40,17 +40,75 @@ on:
       #      `main` to `production` and is passed as `RAILS_ENV`.
       #
       # Until then production is still reachable by hand: `workflow_dispatch`
-      # takes no inputs, so you can run this workflow against any branch from
+      # lets you select a branch and optionally approve a deliberate rollback from
       # the Actions tab. What is switched off here is the AUTOMATIC deploy on
       # every push to `main`.
       # - main
   workflow_dispatch:
+    inputs:
+      rollback_commit:
+        description: 'Commit SHA to deploy for a deliberate rollback; leave empty for the run commit'
+        required: false
+        default: ''
+        type: string
+      force_stale_deploy:
+        description: "Allow a deliberate rollback to this run's old commit (may overwrite a newer deployment)"
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: ${{ github.ref }}-deploy
   cancel-in-progress: true
 
 jobs:
+  # Re-runs retain their original SHA. Refuse an old run before release or deployment.
+  validate_deploy_commit:
+    name: 🚦 Validate Deployment Commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback_commit || github.sha }}
+      # Check the actual checkout again on job-only retries; earlier jobs may not rerun.
+      - name: 🚦 Refuse stale deployment
+        shell: bash
+        env:
+          DEPLOY_BRANCH: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || github.ref_name }}
+          DEPLOY_EVENT: ${{ github.event_name }}
+          FORCE_STALE_DEPLOY: ${{ github.event_name == 'workflow_dispatch' && inputs.force_stale_deploy == true }}
+        run: |
+          set -euo pipefail
+          DEPLOY_SHA=$(git rev-parse HEAD)
+          TARGET_REF="refs/heads/$DEPLOY_BRANCH"
+          if ! git check-ref-format "$TARGET_REF"; then
+            echo "::error::Invalid deployment branch: $DEPLOY_BRANCH. Choose an existing branch."
+            exit 1
+          fi
+          if ! REMOTE=$(git ls-remote --exit-code --heads origin "$TARGET_REF"); then
+            echo "::error::Cannot read the current tip of $DEPLOY_BRANCH. Nothing will be deployed. Check repository access and the branch name, then retry."
+            exit 1
+          fi
+          read -r TIP RESOLVED_REF <<< "$REMOTE"
+          if [[ ! "$TIP" =~ ^[0-9a-f]{40}$ ]] || [ "$RESOLVED_REF" != "$TARGET_REF" ]; then
+            echo "::error::Could not verify the current tip of $DEPLOY_BRANCH. Nothing will be deployed."
+            exit 1
+          fi
+          if [ "$DEPLOY_SHA" = "$TIP" ]; then
+            echo "✅ Deployment commit $DEPLOY_SHA is the current tip of $DEPLOY_BRANCH."
+            exit 0
+          fi
+          if [ "$DEPLOY_EVENT" = "workflow_dispatch" ] && [ "$FORCE_STALE_DEPLOY" = "true" ]; then
+            echo "::warning title=Deliberate stale deployment::Deploying non-tip commit $DEPLOY_SHA to $DEPLOY_BRANCH; the current branch tip is $TIP. force_stale_deploy was explicitly enabled."
+            echo "### ⚠️ Deliberate rollback: deploying $DEPLOY_SHA to $DEPLOY_BRANCH instead of current tip $TIP." >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}"
+            exit 0
+          fi
+          echo "::error title=Stale deployment refused::This run would deploy $DEPLOY_SHA, but $DEPLOY_BRANCH is now at $TIP. This is probably a re-run of an old run and would roll the environment back. Re-run the latest deploy run for this branch, or start workflow_dispatch on the branch tip. For a deliberate rollback only, explicitly enable force_stale_deploy in a manual run."
+          exit 1
+
   # ── Pre-deploy gates ──────────────────────────────────────────────────────
   # Resolves `pre-deploy:<branch>` from the `gates` block of .lisa.config.json
   # and runs whatever is declared there, BEFORE the release.
@@ -70,6 +128,7 @@ jobs:
   # provers need Bundler should point `runner` in .lisa.config.json at a command
   # that sets it up, or replace this job with one that does.
   pre_deploy_gates:
+    needs: [validate_deploy_commit]
     name: 🚦 Pre-Deploy Gates
     uses: CodySwannGT/lisa/.github/workflows/gates.yml@main
     with:
@@ -170,7 +229,43 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          ref: ${{ github.ref_name }}
+          ref: ${{ inputs.force_stale_deploy == true && (inputs.rollback_commit || github.sha) || github.ref_name }}
+
+      # Check the actual checkout again on job-only retries; earlier jobs may not rerun.
+      - name: 🚦 Refuse stale deployment
+        shell: bash
+        env:
+          DEPLOY_BRANCH: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || github.ref_name }}
+          DEPLOY_EVENT: ${{ github.event_name }}
+          FORCE_STALE_DEPLOY: ${{ github.event_name == 'workflow_dispatch' && inputs.force_stale_deploy == true }}
+        run: |
+          set -euo pipefail
+          DEPLOY_SHA=$(git rev-parse HEAD)
+          TARGET_REF="refs/heads/$DEPLOY_BRANCH"
+          if ! git check-ref-format "$TARGET_REF"; then
+            echo "::error::Invalid deployment branch: $DEPLOY_BRANCH. Choose an existing branch."
+            exit 1
+          fi
+          if ! REMOTE=$(git ls-remote --exit-code --heads origin "$TARGET_REF"); then
+            echo "::error::Cannot read the current tip of $DEPLOY_BRANCH. Nothing will be deployed. Check repository access and the branch name, then retry."
+            exit 1
+          fi
+          read -r TIP RESOLVED_REF <<< "$REMOTE"
+          if [[ ! "$TIP" =~ ^[0-9a-f]{40}$ ]] || [ "$RESOLVED_REF" != "$TARGET_REF" ]; then
+            echo "::error::Could not verify the current tip of $DEPLOY_BRANCH. Nothing will be deployed."
+            exit 1
+          fi
+          if [ "$DEPLOY_SHA" = "$TIP" ]; then
+            echo "✅ Deployment commit $DEPLOY_SHA is the current tip of $DEPLOY_BRANCH."
+            exit 0
+          fi
+          if [ "$DEPLOY_EVENT" = "workflow_dispatch" ] && [ "$FORCE_STALE_DEPLOY" = "true" ]; then
+            echo "::warning title=Deliberate stale deployment::Deploying non-tip commit $DEPLOY_SHA to $DEPLOY_BRANCH; the current branch tip is $TIP. force_stale_deploy was explicitly enabled."
+            echo "### ⚠️ Deliberate rollback: deploying $DEPLOY_SHA to $DEPLOY_BRANCH instead of current tip $TIP." >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}"
+            exit 0
+          fi
+          echo "::error title=Stale deployment refused::This run would deploy $DEPLOY_SHA, but $DEPLOY_BRANCH is now at $TIP. This is probably a re-run of an old run and would roll the environment back. Re-run the latest deploy run for this branch, or start workflow_dispatch on the branch tip. For a deliberate rollback only, explicitly enable force_stale_deploy in a manual run."
+          exit 1
 
       - uses: noliran/branch-based-secrets@ef9182f16f118c7c3d05c36973546ebc990b8c69 # v1 (2020-10-09, no semver tag)
         with:

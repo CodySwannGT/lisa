@@ -351,7 +351,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "cdk/create-only/.github/workflows/ci.yml":
       "a487a4f77f9bb5733e2f99f112821f2b88ac15d5274b71f6951a846693234ad9",
     "cdk/create-only/.github/workflows/deploy.yml":
-      "1679abd401033cfe3b83a471f32dfd6c9b98ff3705a98fc0fc8f5ceba586b2c7",
+      "2d4e445d2460efe936b7b6457ac4aa4302237ea13b01969eca382e70325d73bb",
     "cdk/create-only/cdk.json":
       "f89030d8fe145a1dbabd59d89ddee4e16984f222d737f7fcf6b778d911e9fe40",
     "cdk/create-only/stryker.conf.json":
@@ -515,7 +515,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/create-only/.github/workflows/ci.yml":
       "f4a95f3895d906429b82e33bb13c77c7a2d63027634da61c249c0a800d353f44",
     "expo/create-only/.github/workflows/deploy.yml":
-      "68edef86a0bc9e55b049d3a2b95f3d01fba6ec3a7ca3b51de04078adb94bf529",
+      "d8abfa607942eb72b99d928d789befb94c2b9c18e5cb3b4a20e83392e1079566",
     "expo/create-only/.github/workflows/maestro-e2e.yml":
       "11e6db515412702672edea910223b808be168b3d1f9ec15c349f44f3edcff247",
     "expo/create-only/.github/workflows/nightly-e2e-bypass-reaper.yml":
@@ -599,7 +599,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "harper-fabric/copy-overwrite/vitest.config.ts":
       "94ee60be0e9a4b735cf1b053143751c9968465ff04fb59fbdfc252e7413ff337",
     "harper-fabric/create-only/.github/workflows/deploy.yml":
-      "3f6e69c9a80b6cfdd1ed8b3baaccb2925dd98c7f8d7ca1f7524d780c68b704ba",
+      "a60575f6d7a9434f3eb59d7b377e8430ad0ea0426ace6c2461051a4ff83c3df8",
     "harper-fabric/create-only/.github/workflows/zap-baseline.yml":
       "37e02f04709c11dcd7a0a65110f19def3f06a5039dbb80d31e1bc3757bb4e330",
     "harper-fabric/create-only/.zap/baseline.conf":
@@ -683,7 +683,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "nestjs/create-only/.github/workflows/ci.yml":
       "5355a0152b04ba54bf2d207df536de18e2734429a1c030487b80aa3db0693df5",
     "nestjs/create-only/.github/workflows/deploy.yml":
-      "7c130d9c88170bb4b63881b4b73fa8857dfa1eddcbb38609150fea4ca53db51e",
+      "0dcef1749870398170361fe84ef85c997f6e1b63e3a7a7d068f4c42e5f0c90f8",
     "nestjs/create-only/.zap/baseline.conf":
       "a7cd559b014555ef2efe7a6ce129384ec376ce4d66d5bc3ae9e2f3f883172c4d",
     "nestjs/create-only/scripts/zap-baseline.sh":
@@ -2419,7 +2419,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/create-only/.github/workflows/ci.yml":
       "5aa2401acc1373afd0b9a114f7fd6b5904b3fcbaa2940f8eb527b2ce5ddf23f8",
     "rails/create-only/.github/workflows/deploy.yml":
-      "50b3266ec38a9cca83236b486b2e545a88cb67f244fd7d531db8e2680081aac4",
+      "68fdb813f30cfa71121a96022021f4d351e1e2497c472796c56bb8d47b9655c8",
     "rails/create-only/.mise.toml":
       "28be5746256a30ad2260da7d37244cc461f8963ce5d5a81ddce71b48f0ab6ef0",
     "rails/create-only/.mutant.yml":
@@ -2703,7 +2703,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "cfb9ac9f3fe7d0f8aad29ad49adfbf80fa4b83eea46558a046dbad6ceb2ff825",
+      "a77de0e72af86aafb718a0cf7161262d72aa16dfee6855e6db634203fde3ad24",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
@@ -3280,6 +3280,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "docs/bdd-scenario-matrix/bdd/features/lisa-ui-starter-settings.feature.md": true,
     "docs/bdd-scenario-matrix/bdd/features/lisa-ui-starter-sync.feature.md": true,
     "docs/ci-efficiency.md": true,
+    "docs/deploy-stale-run-guard.md": true,
     "docs/design/e2e-environment-reset-plan.md": true,
     "docs/design/e2e-wiring-contract.md": true,
     "docs/design/environment-facade-contract.md": true,
@@ -10561,6 +10562,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/config/security-pin-floors.test.ts": true,
     "tests/unit/config/shipped-mjs-roster.test.ts": true,
     "tests/unit/config/sonar-coverage-handoff.test.ts": true,
+    "tests/unit/config/stale-deploy-guard.test.ts": true,
     "tests/unit/config/synthesis-scratch-reclaim.test.ts": true,
     "tests/unit/config/template-script-toolchain.test.ts": true,
     "tests/unit/config/test-run-child-process-analyzer.test.ts": true,
