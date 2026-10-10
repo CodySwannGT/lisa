@@ -97,6 +97,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "dffce71d49d79a1a25dada9e4ec37be06e2e5800da24450f8ce8aade39667149",
   ]),
   "scripts/bdd/projection-ownership.mjs": Object.freeze([
+    "0fe1e576393fcbdffd4d24248e70ed8be68f9ef067053e043f7cf02484e9a5d9",
     "b92852cf7a7689398692e3e60c295272c2198b78e5ded1b0c0c31412dd6e2f8b",
   ]),
   "scripts/bdd/projection-paths.mjs": Object.freeze([
@@ -2160,6 +2161,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "dffce71d49d79a1a25dada9e4ec37be06e2e5800da24450f8ce8aade39667149",
   ]),
   "scripts/bdd/projection-ownership.mjs": Object.freeze([
+    "0fe1e576393fcbdffd4d24248e70ed8be68f9ef067053e043f7cf02484e9a5d9",
     "b92852cf7a7689398692e3e60c295272c2198b78e5ded1b0c0c31412dd6e2f8b",
   ]),
   "scripts/bdd/projection-paths.mjs": Object.freeze([

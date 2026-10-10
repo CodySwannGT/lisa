@@ -473,7 +473,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/projection-model.mjs":
       "dffce71d49d79a1a25dada9e4ec37be06e2e5800da24450f8ce8aade39667149",
     "expo/copy-overwrite/scripts/bdd/projection-ownership.mjs":
-      "b92852cf7a7689398692e3e60c295272c2198b78e5ded1b0c0c31412dd6e2f8b",
+      "0fe1e576393fcbdffd4d24248e70ed8be68f9ef067053e043f7cf02484e9a5d9",
     "expo/copy-overwrite/scripts/bdd/projection-paths.mjs":
       "7c31a792ec2266f946250448d2028ea7a079bb709ced92748ebea2ee9fbeff25",
     "expo/copy-overwrite/scripts/bdd/projection-render.mjs":
