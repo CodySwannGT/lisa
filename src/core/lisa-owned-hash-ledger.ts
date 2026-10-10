@@ -997,6 +997,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "27f4e4b54986f49ddb9a3bf6e02b926d41d85ecd46ab2263cb17a5746820f8bd",
     "3049c2f1051c7c02dd60b62355964651e1565ebe6bdcb5e37634cd686cf1deb1",
     "3ded18220361672c577baa73768ce1ab20260feaca7aef11f2c4d7d638e44a37",
+    "3f4e8f03ba3fa588bd6a19131077d6c46e11a57aba48d64c4587359b04cbaa04",
     "42de2aa02c12e324a7a78e6b6e24de497ace2c2062d3e77b60b014496330ae1d",
     "531ef11fc42705826d5fa6fe80a972218411fdf5915a69f9c84d620968fdca8b",
     "67ee5b39aefc1ebcc4f61551d00a179b1a31b0d67ed9f8a7dcc5754530e2a943",
@@ -1027,6 +1028,7 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
     "f558e398ff72a8cd3515316880fa648a679b8bfed3ce04afced136d22f1a4fd8",
   ]),
   "scripts/lisa-enforcement-freshness.mjs": Object.freeze([
+    "3db0a7de30a0e0fb499e620353cf67842a1c429472cebf53d4b1a5e11bb4b07a",
     "781bb4da7d2e2ce383c9fb2f1f80d48536697f8c581458c326ffb96b8fefe8db",
     "edc243b4f79a1cbbf16890356ddec15592896d0736e74d13663ba7f548bb0c1f",
     "f02571c6766dd2ed0914b4cf7e62b045dee8fcd33a0b2298f0be1f5ac0989639",
@@ -3000,6 +3002,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "27f4e4b54986f49ddb9a3bf6e02b926d41d85ecd46ab2263cb17a5746820f8bd",
     "3049c2f1051c7c02dd60b62355964651e1565ebe6bdcb5e37634cd686cf1deb1",
     "3ded18220361672c577baa73768ce1ab20260feaca7aef11f2c4d7d638e44a37",
+    "3f4e8f03ba3fa588bd6a19131077d6c46e11a57aba48d64c4587359b04cbaa04",
     "42de2aa02c12e324a7a78e6b6e24de497ace2c2062d3e77b60b014496330ae1d",
     "531ef11fc42705826d5fa6fe80a972218411fdf5915a69f9c84d620968fdca8b",
     "67ee5b39aefc1ebcc4f61551d00a179b1a31b0d67ed9f8a7dcc5754530e2a943",
@@ -3030,6 +3033,7 @@ export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
     "f558e398ff72a8cd3515316880fa648a679b8bfed3ce04afced136d22f1a4fd8",
   ]),
   "scripts/lisa-enforcement-freshness.mjs": Object.freeze([
+    "3db0a7de30a0e0fb499e620353cf67842a1c429472cebf53d4b1a5e11bb4b07a",
     "781bb4da7d2e2ce383c9fb2f1f80d48536697f8c581458c326ffb96b8fefe8db",
     "edc243b4f79a1cbbf16890356ddec15592896d0736e74d13663ba7f548bb0c1f",
     "f02571c6766dd2ed0914b4cf7e62b045dee8fcd33a0b2298f0be1f5ac0989639",
