@@ -427,3 +427,8 @@ ROOT owns ordinary seven-path focused commit on existing codex/4347-producer-sou
 The normal commit hook rejected the explicit undefined argument; the original failure is retained. The same seven arguments now pass through Reflect.apply. Exact hook ESLint and formatter passed, and independent source review accepted this test-only correction.
 
 The genuine whole 89-case suite passed on the corrected test bytes with no skipped cases. Captured process identities were absent afterward and the original orphan check passed. Source, index, context and binding stayed unchanged during the run. This supports the scoped controller foundation only; full provider, service, hosted and released qualification remain required.
+
+
+## Hosted allocation deadline followup ownership
+
+The existing team is retained. ROOT owns the allocation-only workflow budget repair and declared plan metadata. The input resolver owns the reused live claim, worktree-local binding and ignored canonical context. Independent quality, conformance and local source/security reviewers own read-only review after implementation; their review tasks precede any feedback edit or commit. ROOT owns the serialized runtime lane, official generation, normal delivery and genuine hosted acceptance. No new team, leaf, session runtime, automation trigger or relaxed authorization is introduced. #4347 remains active until its original acceptance is complete.
