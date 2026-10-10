@@ -1,20 +1,26 @@
 /** The actual CLI catch and orchestration retain failure while emitting only source-selected closed facts. */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { join, resolve } from "node:path";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, mkdirSync } from "node:fs";
 import * as invariants from "../../../all/copy-overwrite/scripts/lib/npm-update-invariants.mjs";
 import * as controller from "../../../all/copy-overwrite/scripts/lib/npm-update-controller-factory.mjs";
 import * as contract from "../../../all/copy-overwrite/scripts/lib/npm-update-contract.mjs";
 import * as proof from "../../../all/copy-overwrite/scripts/lib/npm-update-gate-proof.mjs";
 import * as preparation from "../../../all/copy-overwrite/scripts/lib/npm-update-prepare.mjs";
 import { gateProposal } from "../../../all/copy-overwrite/scripts/lib/npm-update-gate.mjs";
-import { createHostedGate } from "../../../all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs";
+import {
+  createHostedGate,
+  prepareRailsApplication,
+} from "../../../all/copy-overwrite/scripts/lib/npm-update-hosted-gate.mjs";
 import {
   runProcess,
   withPrivateRoot,
 } from "../../../all/copy-overwrite/scripts/lib/npm-update-process.mjs";
 
+import * as railsTools from "../../../all/copy-overwrite/scripts/lib/npm-update-rails-tools.mjs";
+
 const CANARY = "SENSITIVE_DIAGNOSTIC_CANARY";
+const CONTEXT_PHASE = "canonical-context";
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
@@ -35,6 +41,117 @@ async function projectedHost(action: () => Promise<void>) {
 }
 
 describe("closed updater failure diagnostics", () => {
+  it("keeps the original synchronous provenance error and innermost fixed phase without reading hostile properties", () => {
+    const error = Object.freeze(new Error(CANARY));
+    expect(() =>
+      invariants.withProvenancePhase("local-proof", () =>
+        invariants.withProvenancePhase(CONTEXT_PHASE, () => {
+          throw error;
+        })
+      )
+    ).toThrow(error);
+    expect(invariants.provenanceFailure(error)).toBe(
+      "Invalid automation provenance: required proof, policy or provider evidence failed (phase=canonical-context)"
+    );
+    expect(invariants.provenanceFailure(new Error(CANARY))).toContain(
+      "phase=unknown"
+    );
+  });
+
+  it.each([
+    [CONTEXT_PHASE, "", "", 1, true],
+    ["gateway-context", "", "", 1, true],
+    [CONTEXT_PHASE, CANARY, "", 1, false],
+    [CONTEXT_PHASE, "", CANARY, 1, false],
+    [CANARY, "", "", 1, false],
+    [CONTEXT_PHASE, "", "", 23, false],
+    [CONTEXT_PHASE, "", "", 10, false],
+  ])(
+    "uses only a complete native closed diagnostic with failing status: %s/%s/%s/%s",
+    async (phase, prefix, suffix, status, accepted) => {
+      const line = `${prefix}Invalid automation provenance: required proof, policy or provider evidence failed (phase=${phase})\n${suffix}`;
+      await withPrivateRoot(async (root, env) => {
+        const error = await runProcess(
+          process.execPath,
+          [
+            "-e",
+            `process.stderr.write(${JSON.stringify(line)});process.exitCode=${status};`,
+          ],
+          { cwd: root, env }
+        ).catch(value => value);
+        const retained = error;
+        Object.defineProperty(error, "stderr", {
+          get() {
+            throw new Error(CANARY);
+          },
+        });
+        invariants.inheritProvenanceFailure(error);
+        expect(error).toBe(retained);
+        const diagnostic = invariants.publicFailure(error);
+        expect(diagnostic.includes(`provenance=${phase}`)).toBe(accepted);
+        expect(diagnostic).toContain(`native=exit status=${status}`);
+        expect(diagnostic).not.toContain(CANARY);
+      });
+    }
+  );
+
+  it("rejects a forged diagnostic property without inspecting it", () => {
+    const error = new Error(CANARY);
+    Object.defineProperty(error, "stderr", {
+      get() {
+        throw new Error(CANARY);
+      },
+    });
+    invariants.inheritProvenanceFailure(error);
+    expect(invariants.publicFailure(error)).not.toContain("provenance=");
+  });
+
+  it("propagates the actual canonical command failure through hosted authentication before application setup", async () => {
+    const tools = vi.spyOn(railsTools, "prepareRailsTools");
+    await withPrivateRoot(async (root, env) => {
+      const bin = join(root, "bin");
+      mkdirSync(bin);
+      writeFileSync(
+        join(bin, "node"),
+        "#!/bin/sh\nprintf 'Invalid automation provenance: required proof, policy or provider evidence failed (phase=canonical-context)\\n' >&2\nexit 1\n",
+        { mode: 0o700 }
+      );
+      const context = { cwd: root, deadline: Date.now() + 30_000 };
+      const scope = { env: { ...env, HOME: root, PATH: `${bin}:${env.PATH}` } };
+      const error = await prepareRailsApplication(
+        context,
+        root,
+        env,
+        scope,
+        {}
+      ).catch(value => value);
+      expect(invariants.publicFailure(error)).toContain(
+        "stage=gate-validate native=exit status=1 provenance=canonical-context"
+      );
+      expect(tools).not.toHaveBeenCalled();
+    });
+  });
+
+  it("reaches the real gateway catch without exposing malformed context bytes", async () => {
+    await withPrivateRoot(async (root, env) => {
+      const file = join(root, "hosted-hooks.json");
+      writeFileSync(file, `{${CANARY}`);
+      const result = await runProcess(
+        process.execPath,
+        [
+          resolve("all/copy-overwrite/scripts/lib/npm-update-hosted-hook.mjs"),
+          "--context",
+          file,
+          "--",
+        ],
+        { cwd: root, env, allowed: [1] }
+      );
+      expect(result.stderr.toString()).toContain("phase=gateway-context");
+      expect(result.stderr.toString()).not.toContain(CANARY);
+      expect(result.stderr.toString()).not.toContain(root);
+    });
+  });
+
   it("reaches the actual script catch after malformed committed configuration without revealing its content", async () => {
     await withPrivateRoot(async (root, env) => {
       await runProcess("git", ["init", "--object-format=sha1"], {

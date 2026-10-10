@@ -29,6 +29,73 @@ const stages = new Set([
   "gate-output",
 ]);
 const diagnostics = new WeakMap();
+const capturedErrors = new WeakMap();
+const provenancePhases = new Set([
+  "local-proof",
+  "configuration",
+  "verifier",
+  "canonical-context",
+  "recovery-local",
+  "historical-provider",
+  "historical-signature",
+  "recovery-signature",
+  "recovery-provider",
+  "assignable",
+  "ordinary-signature",
+  "ordinary-provider",
+  "final-proof",
+  "gateway-context",
+  "gateway-entry",
+  "gateway-input",
+  "gateway-child",
+]);
+const provenancePrefix =
+  "Invalid automation provenance: required proof, policy or provider evidence failed";
+
+/** A synchronous verifier keeps its original exception and innermost source-selected phase. */
+export function withProvenancePhase(phase, operation) {
+  required(provenancePhases.has(phase), "invalid provenance diagnostic phase");
+  try {
+    return operation();
+  } catch (error) {
+    recordProvenancePhase(error, phase);
+    throw error;
+  }
+}
+
+/** Shared sync/async catches never inspect exception properties, including hostile getters. */
+export function recordProvenancePhase(error, phase) {
+  required(provenancePhases.has(phase), "invalid provenance diagnostic phase");
+  if (
+    error !== null &&
+    (typeof error === "object" || typeof error === "function")
+  ) {
+    const prior = diagnostics.get(error) ?? {};
+    diagnostics.set(error, { ...prior, provenance: prior.provenance ?? phase });
+  }
+}
+
+/** Canonical CLI and gateway failures expose one closed label, never provider or exception text. */
+export function provenanceFailure(error) {
+  return `${provenancePrefix} (phase=${diagnostics.get(error)?.provenance ?? "unknown"})`;
+}
+
+/** Only a complete fixed diagnostic from an observed native exit-one can add a phase, never authority. */
+export function inheritProvenanceFailure(error) {
+  const facts = diagnostics.get(error);
+  const bytes = capturedErrors.get(error);
+  if (
+    facts?.native !== "exit" ||
+    facts.status !== 1 ||
+    !bytes ||
+    bytes.length > 256
+  )
+    return;
+  const text = bytes.toString("utf8");
+  for (const phase of provenancePhases)
+    if (text === `${provenancePrefix} (phase=${phase})\n`)
+      recordProvenancePhase(error, phase);
+}
 const signals = new Set([
   "SIGTERM",
   "SIGINT",
@@ -81,7 +148,16 @@ export async function withStage(stage, operation) {
 }
 
 /** Only native capture registers observed close facts; exception properties never establish provenance. */
-export function recordNativeFailure(error, category, status, signal, errno) {
+export function recordNativeFailure(
+  error,
+  category,
+  status,
+  signal,
+  errno,
+  stderr
+) {
+  if (Buffer.isBuffer(stderr) && stderr.length <= 256)
+    capturedErrors.set(error, Buffer.from(stderr));
   diagnostics.set(error, {
     ...diagnostics.get(error),
     native: categories.has(category) ? category : "unknown",
@@ -101,6 +177,7 @@ export function publicFailure(error) {
     if (facts.signal) parts.push(`signal=${facts.signal}`);
     if (facts.errno) parts.push(`errno=${facts.errno}`);
   }
+  if (facts?.provenance) parts.push(`provenance=${facts.provenance}`);
   return `npm updater failed: required policy, authorization, installation, gate or exact publication evidence was unavailable (${parts.join(" ")})`;
 }
 

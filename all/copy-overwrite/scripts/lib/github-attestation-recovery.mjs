@@ -8,6 +8,7 @@ import {
   verifyAssignable,
 } from "./github-attestation-provider.mjs";
 import { boundedSpawnSync } from "./bounded-spawn.mjs";
+import { withProvenancePhase } from "./npm-update-invariants.mjs";
 import {
   requireProof,
   verifiedRole,
@@ -251,45 +252,57 @@ export function verifyRecoveryOrigin(
   scope,
   execute = boundedSpawnSync
 ) {
-  validateRecovery(recovery, descriptor, digest, policy);
-  for (const key of [
-    "npmPolicySha256",
-    "proposalKey",
-    "leafBodySha256",
-    "commit",
-  ])
+  withProvenancePhase("recovery-local", () => {
+    validateRecovery(recovery, descriptor, digest, policy);
+    for (const key of [
+      "npmPolicySha256",
+      "proposalKey",
+      "leafBodySha256",
+      "commit",
+    ])
+      requireProof(
+        recovery[key] === scope[key],
+        `current recovery ${key} differs`
+      );
     requireProof(
-      recovery[key] === scope[key],
-      `current recovery ${key} differs`
+      process.env.GITHUB_RUN_ID === recovery.runId &&
+        process.env.GITHUB_RUN_ATTEMPT === recovery.runAttempt,
+      "recovery replayed into different current invocation"
     );
-  requireProof(
-    process.env.GITHUB_RUN_ID === recovery.runId &&
-      process.env.GITHUB_RUN_ATTEMPT === recovery.runAttempt,
-    "recovery replayed into different current invocation"
+  });
+  const origin = withProvenancePhase("historical-provider", () =>
+    verifyHistoricalProvider(policy, descriptor, execute)
   );
-  const origin = verifyHistoricalProvider(policy, descriptor, execute);
-  verifyHistoricalDescriptor(
-    policy,
-    descriptor,
-    paths,
-    digest,
-    origin.run,
-    origin.claim,
-    execute
+  withProvenancePhase("historical-signature", () =>
+    verifyHistoricalDescriptor(
+      policy,
+      descriptor,
+      paths,
+      digest,
+      origin.run,
+      origin.claim,
+      execute
+    )
   );
-  verifyRecoveryAttestation(
-    policy,
-    recovery,
-    paths,
-    scope.recoverySha256,
-    execute
+  withProvenancePhase("recovery-signature", () =>
+    verifyRecoveryAttestation(
+      policy,
+      recovery,
+      paths,
+      scope.recoverySha256,
+      execute
+    )
   );
-  verifyRecoveryProvider(
-    policy,
-    descriptor,
-    recovery,
-    scope.maintainer,
-    execute
+  withProvenancePhase("recovery-provider", () =>
+    verifyRecoveryProvider(
+      policy,
+      descriptor,
+      recovery,
+      scope.maintainer,
+      execute
+    )
   );
-  verifyAssignable(policy, scope.maintainer, execute);
+  withProvenancePhase("assignable", () =>
+    verifyAssignable(policy, scope.maintainer, execute)
+  );
 }

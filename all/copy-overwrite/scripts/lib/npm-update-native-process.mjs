@@ -95,6 +95,29 @@ export function runProcess(
   });
 }
 
+/** Retain the original native error and captured bytes while registering only observed close facts. */
+function observedFailure(error, observation) {
+  const {
+    chunks,
+    errors,
+    command,
+    code,
+    nativeCompleted,
+    category,
+    signal,
+    errno,
+  } = observation;
+  const stderr = Buffer.concat(errors);
+  recordNativeFailure(error, category, code, signal, errno, stderr);
+  return Object.assign(error, {
+    stdout: Buffer.concat(chunks),
+    stderr,
+    command,
+    code,
+    nativeCompleted,
+  });
+}
+
 /** Native close, not cancellation delivery, completes an owned child. */
 function captureProcess(
   child,
@@ -145,20 +168,16 @@ function captureProcess(
       if (failure || signal || !allowed.includes(code)) {
         const error =
           failure ?? new Error(`npm updater: child failed (${code ?? signal})`);
-        recordNativeFailure(
-          error,
-          category ?? (signal ? "signal" : "exit"),
-          code,
-          signal,
-          errno
-        );
         reject(
-          Object.assign(error, {
-            stdout: Buffer.concat(chunks),
-            stderr: Buffer.concat(errors),
+          observedFailure(error, {
+            chunks,
+            errors,
             command,
             code,
             nativeCompleted: !failure && !signal,
+            category: category ?? (signal ? "signal" : "exit"),
+            signal,
+            errno,
           })
         );
         return;

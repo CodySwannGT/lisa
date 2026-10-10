@@ -12,6 +12,7 @@ import {
   deadlineEnvironment,
 } from "./freshness-deadline-inputs.js";
 import { ownedProcesses } from "./freshness-owned-processes.js";
+import type { Identity } from "./freshness-owned-processes.js";
 import { hostState } from "./host-guard-freshness-fixtures.js";
 import { ioLatencyBudgetMs, workerSpawnSlowdown } from "./io-latency-budget.js";
 
@@ -23,10 +24,12 @@ export interface DeadlineObservation {
   readonly timedOut: boolean;
   readonly elapsedMs: number;
   readonly guards: readonly string[];
+  readonly phases: readonly string[];
   readonly survivingPids: readonly number[];
   readonly stateUnchanged: boolean;
   readonly diagnosticMs: number | null;
   readonly ownedPids: readonly number[];
+  readonly ownedIdentities: readonly Identity[];
   readonly foreignSentinelUnchanged: boolean;
   readonly diagnosticScratchLeaves: readonly DiagnosticLeaf[];
   readonly watchdogMs: number;
@@ -115,8 +118,13 @@ async function summarize(
       .trim()
       .split("\n")
       .filter(Boolean),
+    phases: readFileSync(fixture.phases, "utf8")
+      .trim()
+      .split("\n")
+      .filter(Boolean),
     survivingPids: survivors,
     ownedPids: owned.captured(),
+    ownedIdentities: owned.identities(),
     foreignSentinelUnchanged:
       readFileSync(path.join(fixture.scratch, "foreign-sentinel"), "utf8") ===
       "preserve unrelated fixture state\n",

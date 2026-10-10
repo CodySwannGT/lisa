@@ -1,5 +1,17 @@
 # Roster Decision: CodySwannGT/lisa#4347
 
+## Hosted provenance diagnostic followup
+
+The bounded input resolver refreshed the complete canonical context, reused the sole claim, and verified the binding on `codex/4347-gate-auth-diagnostics` at the published main. The existing exhaustive type catalogue remains applicable, with these current assignments taking precedence. Inclusion does not grant provider or delivery authority to a worker.
+
+INCLUDE - explorer - Existing input resolver completed the fresh claim, context and binding gate.
+INCLUDE - lisa-builder - A distinct bounded implementer owns safe native provenance diagnostics and their reaching tests.
+INCLUDE - lisa-quality-specialist - Existing independent reviewer checks exact changed source, secrecy and failure preservation.
+INCLUDE - lisa-spec-conformance-specialist - Existing independent reviewer preserves original acceptance and distinguishes diagnostic evidence from runtime qualification.
+INCLUDE - lisa-verification-specialist - A different actor verifies the real changed CLI after implementation.
+
+ROOT owns this metadata, official derived generation, native commits, PR delivery and genuine hosted qualification. The builder is not alone and must preserve every other checkout and change. No raw exception output, credential output, new authorization, altered policy, deadline relaxation or Snyk configuration is admitted.
+
 Producer responsibility transition after accepted normal prerequisite: reuse provenance_committer as included lisa-builder for the already enumerated original eight producer paths, short README pointer, four official derived effects and own metadata. Commit-only stage ended at 677a51e235ee244a1360d7c0f53178366fd06ea8; ROOT independently verified all thirteen blobs and normal hooks. Existing full catalogue and research apply. ROOT source/security review and a DIFFERENT empirical specialist follow the new freeze. No new claim, team, path expansion, provider/settings writes or delivery before those separate gates.
 
 Before edits, extend this same builder's source ownership only to four named managed lib modules npm-update-process.mjs, npm-update-prepare.mjs, npm-update-leaf.mjs and npm-update-gate.mjs, with the exact bounded responsibilities recorded in the plan. Required budgets and authority separation justify decomposition; existing tests and four official derived outputs cover them. No acceptance weakening, copied canonical parser, additional actor, provider write or delivery is admitted.
@@ -427,3 +439,8 @@ ROOT owns ordinary seven-path focused commit on existing codex/4347-producer-sou
 The normal commit hook rejected the explicit undefined argument; the original failure is retained. The same seven arguments now pass through Reflect.apply. Exact hook ESLint and formatter passed, and independent source review accepted this test-only correction.
 
 The genuine whole 89-case suite passed on the corrected test bytes with no skipped cases. Captured process identities were absent afterward and the original orphan check passed. Source, index, context and binding stayed unchanged during the run. This supports the scoped controller foundation only; full provider, service, hosted and released qualification remain required.
+
+
+## Hosted allocation deadline followup ownership
+
+The existing team is retained. ROOT owns the allocation-only workflow budget repair and declared plan metadata. The input resolver owns the reused live claim, worktree-local binding and ignored canonical context. Independent quality, conformance and local source/security reviewers own read-only review after implementation; their review tasks precede any feedback edit or commit. ROOT owns the serialized runtime lane, official generation, normal delivery and genuine hosted acceptance. No new team, leaf, session runtime, automation trigger or relaxed authorization is introduced. #4347 remains active until its original acceptance is complete.

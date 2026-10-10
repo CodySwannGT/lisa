@@ -374,10 +374,11 @@ Diagnostics are offline and lazy: at most eight guard/template pairs (1 MiB per
 file), four 64 KiB manifests/receipts and one 4 MiB plugin registry, with one
 additional byte per read to detect overflow. After the session notice, permitted
 calls invoke no freshness helper. Later refusals re-evaluate their own evidence.
-The live anchor verifies its own process group before launching Node, so native
-qualification cannot race a separate parent/start countdown. Qualification is
-setup outside the producer timer; arbitrary native `ps` or scheduler stalls are
-not bounded by that timer.
+The live anchor is forked directly from Bash without a second shell startup or
+native process census. A private handshake admits only the parent's fresh live
+job identity, and the child checks that group with a Bash builtin before Node
+starts. A separate one-second builtin timer bounds an absent handshake; the
+parent waits directly for the anchor instead of polling with external tools.
 The optional subprocess has a one-second Bash timer independent of Node,
 leaving headroom beneath its two-second diagnostic ceiling. Slower diagnostics
 become unknown; complete results within the budget retain their attribution.
@@ -385,8 +386,9 @@ It uses a private, trusted temporary buffer and an owned process-group anchor.
 Timeout, unavailable runner, failure or incomplete output leaves all evidence
 unknown while every original guard still runs. Complete successful output is
 accepted only after the helper's ordinary descendants are drained. The timer
-does not bound enforcement guards, operating-system scheduling or arbitrary
-native-tool startup, and cannot guarantee reaping kernel-uninterruptible I/O.
+does not bound enforcement guards, operating-system scheduling, initial dispatcher
+startup or native filesystem setup, and cannot guarantee reaping
+kernel-uninterruptible I/O.
 
 | Agent | Fallback diagnostic surface |
 | --- | --- |
