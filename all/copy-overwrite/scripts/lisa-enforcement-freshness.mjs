@@ -91,10 +91,20 @@ function json(file, limit = METADATA_LIMIT) {
   }
 }
 
+/**
+ * Accept only the bounded version syntax used by diagnostic facts.
+ * @param {unknown} value Untrusted metadata version to validate.
+ * @returns {string} Accepted version, or an empty string for unknown evidence.
+ */
 function version(value) {
   return typeof value === "string" && VERSION.test(value) ? value : "";
 }
 
+/**
+ * Emit known facts as tab-delimited stdout rows, omitting empty unknown values.
+ * @param {string} key Diagnostic field selected by the caller.
+ * @param {string} value Validated fact, or an empty string when unavailable.
+ */
 function emit(key, value) {
   if (value) process.stdout.write(`${key}\t${value}\n`);
 }

@@ -230,6 +230,9 @@ run_optional_freshness() (
   scratch_identity="$(stat -f '%d:%i:%Lp' "$scratch" 2>/dev/null)" ||
     scratch_identity="$(stat -c '%d:%i:%a' "$scratch" 2>/dev/null)" || exit 1
   [ "${scratch_identity##*:}" = 700 ] || exit 1
+  # If the anchor is still set, send the private stop handshake and wait for it
+  # before closing descriptors. Remove scratch only while its captured identity
+  # and trusted parent still match, preserving replaced or unrelated resources.
   cleanup_diagnostic() {
     if [ -n "$anchor" ]; then
       printf 'stop\n' >&8
@@ -533,6 +536,8 @@ describe_host_guard() {
   esac
 }
 
+# Choose apply repair only for demonstrated different guard bytes; otherwise
+# request inspection without claiming uncertain host content is fresh.
 host_guard_repair() {
   if [ "${host_guard_states[$1]-unknown}" = different ]; then
     printf '%s' "$HOST_REPAIR"

@@ -1,0 +1,14 @@
+{
+  "work_item": "CodySwannGT/lisa#4414",
+  "context": ".lisa/work-item-context.md",
+  "branch": "codex/4414-managed-helper-docstrings",
+  "baseline": "259101d9e6e65fdf49cd77fe5d811afa7483839e",
+  "tasks": [
+    {"id":"document", "owner":"builder", "metadata":{"owner":"builder"}, "status":"done", "criterion":"Four directly associated accurate function comments; reverse insertion reproduces baseline bytes exactly"},
+    {"id":"materialize", "owner":"root", "metadata":{"owner":"root"}, "status":"in_progress", "criterion":"Normal canonical generator, derived artifacts and unchanged authenticated helper graph"},
+    {"id":"review", "owner":"quality", "metadata":{"owner":"quality"}, "status":"pending", "criterion":"Independent scope and unchanged executable review; ordinary required local and hosted checks, including genuine documentation review"},
+    {"id":"publish", "owner":"root", "metadata":{"owner":"root"}, "status":"pending", "criterion":"Reviewed merge, successful real publication and archive identity/integrity with four delivered comments"},
+    {"id":"closeout", "owner":"root", "metadata":{"owner":"root"}, "status":"pending", "criterion":"Independent conformance, three typed journey artifacts, real usage/evidence, native completion and binding/context cleanup"}
+  ],
+  "limits": ["Documentation only; no new behavior test or timing cohort", "Provider aggregate coverage does not expose internal per-function attribution", "Historical runtime proof keeps its original identity"]
+}
