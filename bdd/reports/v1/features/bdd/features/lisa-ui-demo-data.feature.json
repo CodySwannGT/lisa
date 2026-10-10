@@ -1,0 +1,777 @@
+{
+  "generator": "lisa-bdd-feature-projection",
+  "scenarios": [
+    {
+      "feature": "Lisa console demo-data boundary",
+      "featureIdTags": [],
+      "featureLine": 2,
+      "id": "BDD-UI-001",
+      "inheritedTags": [
+        "gh-1547",
+        "ratified-github-1547",
+        "web"
+      ],
+      "lifecycle": [],
+      "line": 5,
+      "mappings": [
+        {
+          "evidence": "every-section-live-or-empty",
+          "evidenceResolution": {
+            "ok": true
+          },
+          "execution": {
+            "runId": null,
+            "status": "not supplied",
+            "supplied": false
+          },
+          "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+          "level": "behavioral",
+          "platforms": [
+            "web"
+          ],
+          "runner": "playwright",
+          "scenario": "BDD-UI-001"
+        }
+      ],
+      "name": "Live console sections render sourced values or an explicit empty state",
+      "obligations": [
+        {
+          "covered": true,
+          "gap": false,
+          "platform": "web",
+          "runners": [
+            "playwright"
+          ],
+          "waived": false
+        }
+      ],
+      "ownTags": [
+        "BDD-UI-001"
+      ],
+      "platforms": [
+        "web"
+      ],
+      "primarySteps": [
+        "Given",
+        "When",
+        "Then"
+      ],
+      "provenance": [
+        "ratified-github-1547"
+      ],
+      "required": true,
+      "retirements": [],
+      "tags": [
+        "BDD-UI-001",
+        "gh-1547",
+        "ratified-github-1547",
+        "web"
+      ],
+      "trackers": [
+        {
+          "number": 1547,
+          "repo": null,
+          "scheme": "gh",
+          "tag": "gh-1547",
+          "url": "https://github.com/CodySwannGT/lisa/issues/1547"
+        }
+      ],
+      "waivers": []
+    },
+    {
+      "feature": "Lisa console demo-data boundary",
+      "featureIdTags": [],
+      "featureLine": 2,
+      "id": "BDD-UI-002",
+      "inheritedTags": [
+        "gh-1547",
+        "ratified-github-1547",
+        "web"
+      ],
+      "lifecycle": [],
+      "line": 12,
+      "mappings": [
+        {
+          "evidence": "no-sourceless-row-renders-live (including before hydration)",
+          "evidenceResolution": {
+            "ok": true
+          },
+          "execution": {
+            "runId": null,
+            "status": "not supplied",
+            "supplied": false
+          },
+          "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+          "level": "behavioral",
+          "platforms": [
+            "web"
+          ],
+          "runner": "playwright",
+          "scenario": "BDD-UI-002"
+        }
+      ],
+      "name": "Live rendering never exposes an unclassified catalog value",
+      "obligations": [
+        {
+          "covered": true,
+          "gap": false,
+          "platform": "web",
+          "runners": [
+            "playwright"
+          ],
+          "waived": false
+        }
+      ],
+      "ownTags": [
+        "BDD-UI-002"
+      ],
+      "platforms": [
+        "web"
+      ],
+      "primarySteps": [
+        "Given",
+        "When",
+        "Then"
+      ],
+      "provenance": [
+        "ratified-github-1547"
+      ],
+      "required": true,
+      "retirements": [],
+      "tags": [
+        "BDD-UI-002",
+        "gh-1547",
+        "ratified-github-1547",
+        "web"
+      ],
+      "trackers": [
+        {
+          "number": 1547,
+          "repo": null,
+          "scheme": "gh",
+          "tag": "gh-1547",
+          "url": "https://github.com/CodySwannGT/lisa/issues/1547"
+        }
+      ],
+      "waivers": []
+    },
+    {
+      "feature": "Lisa console demo-data boundary",
+      "featureIdTags": [],
+      "featureLine": 2,
+      "id": "BDD-UI-003",
+      "inheritedTags": [
+        "gh-1547",
+        "ratified-github-1547",
+        "web"
+      ],
+      "lifecycle": [],
+      "line": 18,
+      "mappings": [
+        {
+          "evidence": "empty-source-no-demo-fallback",
+          "evidenceResolution": {
+            "ok": true
+          },
+          "execution": {
+            "runId": null,
+            "status": "not supplied",
+            "supplied": false
+          },
+          "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+          "level": "behavioral",
+          "platforms": [
+            "web"
+          ],
+          "runner": "playwright",
+          "scenario": "BDD-UI-003"
+        }
+      ],
+      "name": "Empty live sources never fall back to demo values",
+      "obligations": [
+        {
+          "covered": true,
+          "gap": false,
+          "platform": "web",
+          "runners": [
+            "playwright"
+          ],
+          "waived": false
+        }
+      ],
+      "ownTags": [
+        "BDD-UI-003"
+      ],
+      "platforms": [
+        "web"
+      ],
+      "primarySteps": [
+        "Given",
+        "When",
+        "Then"
+      ],
+      "provenance": [
+        "ratified-github-1547"
+      ],
+      "required": true,
+      "retirements": [],
+      "tags": [
+        "BDD-UI-003",
+        "gh-1547",
+        "ratified-github-1547",
+        "web"
+      ],
+      "trackers": [
+        {
+          "number": 1547,
+          "repo": null,
+          "scheme": "gh",
+          "tag": "gh-1547",
+          "url": "https://github.com/CodySwannGT/lisa/issues/1547"
+        }
+      ],
+      "waivers": []
+    },
+    {
+      "feature": "Lisa console demo-data boundary",
+      "featureIdTags": [],
+      "featureLine": 2,
+      "id": "BDD-UI-004",
+      "inheritedTags": [
+        "gh-1547",
+        "ratified-github-1547",
+        "web"
+      ],
+      "lifecycle": [],
+      "line": 25,
+      "mappings": [
+        {
+          "evidence": "direct-file-open-still-renders-demo",
+          "evidenceResolution": {
+            "ok": true
+          },
+          "execution": {
+            "runId": null,
+            "status": "not supplied",
+            "supplied": false
+          },
+          "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+          "level": "behavioral",
+          "platforms": [
+            "web"
+          ],
+          "runner": "playwright",
+          "scenario": "BDD-UI-004"
+        }
+      ],
+      "name": "Direct file opening preserves the demo catalog",
+      "obligations": [
+        {
+          "covered": true,
+          "gap": false,
+          "platform": "web",
+          "runners": [
+            "playwright"
+          ],
+          "waived": false
+        }
+      ],
+      "ownTags": [
+        "BDD-UI-004"
+      ],
+      "platforms": [
+        "web"
+      ],
+      "primarySteps": [
+        "Given",
+        "When",
+        "Then"
+      ],
+      "provenance": [
+        "ratified-github-1547"
+      ],
+      "required": true,
+      "retirements": [],
+      "tags": [
+        "BDD-UI-004",
+        "gh-1547",
+        "ratified-github-1547",
+        "web"
+      ],
+      "trackers": [
+        {
+          "number": 1547,
+          "repo": null,
+          "scheme": "gh",
+          "tag": "gh-1547",
+          "url": "https://github.com/CodySwannGT/lisa/issues/1547"
+        }
+      ],
+      "waivers": []
+    },
+    {
+      "feature": "Lisa console demo-data boundary",
+      "featureIdTags": [],
+      "featureLine": 2,
+      "id": "BDD-UI-005",
+      "inheritedTags": [
+        "gh-1547",
+        "ratified-github-1547",
+        "web"
+      ],
+      "lifecycle": [],
+      "line": 31,
+      "mappings": [
+        {
+          "evidence": "guard-fails-on-sourceless-row",
+          "evidenceResolution": {
+            "ok": true
+          },
+          "execution": {
+            "runId": null,
+            "status": "not supplied",
+            "supplied": false
+          },
+          "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+          "level": "behavioral",
+          "platforms": [
+            "web"
+          ],
+          "runner": "playwright",
+          "scenario": "BDD-UI-005"
+        }
+      ],
+      "name": "The catalog guard rejects an unclassified rendered value",
+      "obligations": [
+        {
+          "covered": true,
+          "gap": false,
+          "platform": "web",
+          "runners": [
+            "playwright"
+          ],
+          "waived": false
+        }
+      ],
+      "ownTags": [
+        "BDD-UI-005"
+      ],
+      "platforms": [
+        "web"
+      ],
+      "primarySteps": [
+        "Given",
+        "When",
+        "Then"
+      ],
+      "provenance": [
+        "ratified-github-1547"
+      ],
+      "required": true,
+      "retirements": [],
+      "tags": [
+        "BDD-UI-005",
+        "gh-1547",
+        "ratified-github-1547",
+        "web"
+      ],
+      "trackers": [
+        {
+          "number": 1547,
+          "repo": null,
+          "scheme": "gh",
+          "tag": "gh-1547",
+          "url": "https://github.com/CodySwannGT/lisa/issues/1547"
+        }
+      ],
+      "waivers": []
+    },
+    {
+      "feature": "Lisa console demo-data boundary",
+      "featureIdTags": [],
+      "featureLine": 2,
+      "id": "BDD-UI-006",
+      "inheritedTags": [
+        "gh-1547",
+        "ratified-github-1547",
+        "web"
+      ],
+      "lifecycle": [],
+      "line": 37,
+      "mappings": [
+        {
+          "evidence": "acme live negative control",
+          "evidenceResolution": {
+            "ok": true
+          },
+          "execution": {
+            "runId": null,
+            "status": "not supplied",
+            "supplied": false
+          },
+          "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+          "level": "behavioral",
+          "platforms": [
+            "web"
+          ],
+          "runner": "playwright",
+          "scenario": "BDD-UI-006"
+        }
+      ],
+      "name": "A demo-like identifier from a live source remains valid",
+      "obligations": [
+        {
+          "covered": true,
+          "gap": false,
+          "platform": "web",
+          "runners": [
+            "playwright"
+          ],
+          "waived": false
+        }
+      ],
+      "ownTags": [
+        "BDD-UI-006"
+      ],
+      "platforms": [
+        "web"
+      ],
+      "primarySteps": [
+        "Given",
+        "When",
+        "Then"
+      ],
+      "provenance": [
+        "ratified-github-1547"
+      ],
+      "required": true,
+      "retirements": [],
+      "tags": [
+        "BDD-UI-006",
+        "gh-1547",
+        "ratified-github-1547",
+        "web"
+      ],
+      "trackers": [
+        {
+          "number": 1547,
+          "repo": null,
+          "scheme": "gh",
+          "tag": "gh-1547",
+          "url": "https://github.com/CodySwannGT/lisa/issues/1547"
+        }
+      ],
+      "waivers": []
+    },
+    {
+      "feature": "Lisa console demo-data boundary",
+      "featureIdTags": [],
+      "featureLine": 2,
+      "id": "BDD-UI-007",
+      "inheritedTags": [
+        "gh-1547",
+        "ratified-github-1547",
+        "web"
+      ],
+      "lifecycle": [],
+      "line": 44,
+      "mappings": [
+        {
+          "evidence": "malformed live control shapes and partial composites render unknown",
+          "evidenceResolution": {
+            "ok": true
+          },
+          "execution": {
+            "runId": null,
+            "status": "not supplied",
+            "supplied": false
+          },
+          "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+          "level": "behavioral",
+          "platforms": [
+            "web"
+          ],
+          "runner": "playwright",
+          "scenario": "BDD-UI-007"
+        }
+      ],
+      "name": "Malformed live control shapes and partial composites stay truthful",
+      "obligations": [
+        {
+          "covered": true,
+          "gap": false,
+          "platform": "web",
+          "runners": [
+            "playwright"
+          ],
+          "waived": false
+        }
+      ],
+      "ownTags": [
+        "BDD-UI-007"
+      ],
+      "platforms": [
+        "web"
+      ],
+      "primarySteps": [
+        "Given",
+        "When",
+        "Then"
+      ],
+      "provenance": [
+        "ratified-github-1547"
+      ],
+      "required": true,
+      "retirements": [],
+      "tags": [
+        "BDD-UI-007",
+        "gh-1547",
+        "ratified-github-1547",
+        "web"
+      ],
+      "trackers": [
+        {
+          "number": 1547,
+          "repo": null,
+          "scheme": "gh",
+          "tag": "gh-1547",
+          "url": "https://github.com/CodySwannGT/lisa/issues/1547"
+        }
+      ],
+      "waivers": []
+    },
+    {
+      "feature": "Lisa console demo-data boundary",
+      "featureIdTags": [],
+      "featureLine": 2,
+      "id": "BDD-UI-008",
+      "inheritedTags": [
+        "gh-1547",
+        "ratified-github-1547",
+        "web"
+      ],
+      "lifecycle": [],
+      "line": 52,
+      "mappings": [
+        {
+          "evidence": "unknown renderer fails closed before exposing its control",
+          "evidenceResolution": {
+            "ok": true
+          },
+          "execution": {
+            "runId": null,
+            "status": "not supplied",
+            "supplied": false
+          },
+          "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+          "level": "behavioral",
+          "platforms": [
+            "web"
+          ],
+          "runner": "playwright",
+          "scenario": "BDD-UI-008"
+        }
+      ],
+      "name": "An unknown renderer cannot expose an unclassified control",
+      "obligations": [
+        {
+          "covered": true,
+          "gap": false,
+          "platform": "web",
+          "runners": [
+            "playwright"
+          ],
+          "waived": false
+        }
+      ],
+      "ownTags": [
+        "BDD-UI-008"
+      ],
+      "platforms": [
+        "web"
+      ],
+      "primarySteps": [
+        "Given",
+        "When",
+        "Then"
+      ],
+      "provenance": [
+        "ratified-github-1547"
+      ],
+      "required": true,
+      "retirements": [],
+      "tags": [
+        "BDD-UI-008",
+        "gh-1547",
+        "ratified-github-1547",
+        "web"
+      ],
+      "trackers": [
+        {
+          "number": 1547,
+          "repo": null,
+          "scheme": "gh",
+          "tag": "gh-1547",
+          "url": "https://github.com/CodySwannGT/lisa/issues/1547"
+        }
+      ],
+      "waivers": []
+    },
+    {
+      "feature": "Lisa console demo-data boundary",
+      "featureIdTags": [],
+      "featureLine": 2,
+      "id": "BDD-UI-009",
+      "inheritedTags": [
+        "gh-1547",
+        "ratified-github-1547",
+        "web"
+      ],
+      "lifecycle": [],
+      "line": 59,
+      "mappings": [
+        {
+          "evidence": "preserved Quality jobs rejects an added sourceless row",
+          "evidenceResolution": {
+            "ok": true
+          },
+          "execution": {
+            "runId": null,
+            "status": "not supplied",
+            "supplied": false
+          },
+          "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+          "level": "behavioral",
+          "platforms": [
+            "web"
+          ],
+          "runner": "playwright",
+          "scenario": "BDD-UI-009"
+        }
+      ],
+      "name": "Preserved live tables reject newly added sourceless rows",
+      "obligations": [
+        {
+          "covered": true,
+          "gap": false,
+          "platform": "web",
+          "runners": [
+            "playwright"
+          ],
+          "waived": false
+        }
+      ],
+      "ownTags": [
+        "BDD-UI-009"
+      ],
+      "platforms": [
+        "web"
+      ],
+      "primarySteps": [
+        "Given",
+        "When",
+        "Then"
+      ],
+      "provenance": [
+        "ratified-github-1547"
+      ],
+      "required": true,
+      "retirements": [],
+      "tags": [
+        "BDD-UI-009",
+        "gh-1547",
+        "ratified-github-1547",
+        "web"
+      ],
+      "trackers": [
+        {
+          "number": 1547,
+          "repo": null,
+          "scheme": "gh",
+          "tag": "gh-1547",
+          "url": "https://github.com/CodySwannGT/lisa/issues/1547"
+        }
+      ],
+      "waivers": []
+    },
+    {
+      "feature": "Lisa console demo-data boundary",
+      "featureIdTags": [],
+      "featureLine": 2,
+      "id": "BDD-UI-010",
+      "inheritedTags": [
+        "gh-1547",
+        "ratified-github-1547",
+        "web"
+      ],
+      "lifecycle": [],
+      "line": 66,
+      "mappings": [
+        {
+          "evidence": "callout provenance has a browser bite and sourced control",
+          "evidenceResolution": {
+            "ok": true
+          },
+          "execution": {
+            "runId": null,
+            "status": "not supplied",
+            "supplied": false
+          },
+          "file": "tests/e2e/ui-demo-data-gate.spec.ts",
+          "level": "behavioral",
+          "platforms": [
+            "web"
+          ],
+          "runner": "playwright",
+          "scenario": "BDD-UI-010"
+        }
+      ],
+      "name": "Callouts carry provenance before entering the live DOM",
+      "obligations": [
+        {
+          "covered": true,
+          "gap": false,
+          "platform": "web",
+          "runners": [
+            "playwright"
+          ],
+          "waived": false
+        }
+      ],
+      "ownTags": [
+        "BDD-UI-010"
+      ],
+      "platforms": [
+        "web"
+      ],
+      "primarySteps": [
+        "Given",
+        "When",
+        "Then"
+      ],
+      "provenance": [
+        "ratified-github-1547"
+      ],
+      "required": true,
+      "retirements": [],
+      "tags": [
+        "BDD-UI-010",
+        "gh-1547",
+        "ratified-github-1547",
+        "web"
+      ],
+      "trackers": [
+        {
+          "number": 1547,
+          "repo": null,
+          "scheme": "gh",
+          "tag": "gh-1547",
+          "url": "https://github.com/CodySwannGT/lisa/issues/1547"
+        }
+      ],
+      "waivers": []
+    }
+  ],
+  "schemaVersion": "lisa-bdd-feature-projection-v1",
+  "sourceFile": "bdd/features/lisa-ui-demo-data.feature"
+}

@@ -1,0 +1,416 @@
+{
+  "plan": "4316-bdd-report-projection",
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Real Git merge regression and RED",
+      "owner": "/root/adversarial_4321_second_sync",
+      "status": "completed",
+      "blockedBy": [],
+      "description": "Only new regression/support; read full context and comment inventory from task_defaults; work_item_context: /private/tmp/lisa-4316-worktree-20261009/.lisa/work-item-context.md; read in full before acting; 6089308485 codysai001 2026-10-09T21:09:52Z automated claim decision; 6089448826 codysai001 2026-10-09T21:20:11Z historical access block credential/constraint/repro see comment2; 6097553659 codysai001 2026-10-10T12:35:53Z resumption and branch plan decision/constraint",
+      "metadata": {
+        "plan": "4316-bdd-report-projection",
+        "type": "task",
+        "acceptance_criteria": [
+          "Both independent-feature merge orders succeed without generated conflicts",
+          "Fresh complete paths/bytes equal committed reports; genuine CI totals remain visible",
+          "All consumers migrated/documented"
+        ],
+        "relevant_documentation": [
+          "/private/tmp/lisa-4316-bdd-projection-current-source-research.md",
+          "docs/bdd-coverage-schema.md",
+          "plugins/src/base/rules/reference/bdd-e2e-coverage.md"
+        ],
+        "work_item_context": "/private/tmp/lisa-4316-worktree-20261009/.lisa/work-item-context.md",
+        "comment_inventory": [
+          "6089308485 codysai001 2026-10-09T21:09:52Z automated claim decision",
+          "6089448826 codysai001 2026-10-09T21:20:11Z historical access block credential/constraint/repro see comment2",
+          "6097553659 codysai001 2026-10-10T12:35:53Z resumption and branch plan decision/constraint"
+        ],
+        "testing_requirements": [
+          "Actual Git/canonical writers, positive floor, unequal additions, both merge orders; intended RED then local GREEN before push and named protected execution",
+          "Preserve runtime schema3/enforcement and output path/ownership safety; exact published replay"
+        ],
+        "skills": [
+          "lisa-implement"
+        ],
+        "learnings": [],
+        "required_access": [
+          {
+            "tool": "Git/origin",
+            "probe": "Current base fetch and canonical binding readback",
+            "status": "pass"
+          },
+          {
+            "tool": "GitHub tracker/Actions/releases/npm",
+            "probe": "Fresh resolver, unchanged protected prerequisite success and independently reconciled actual v4.74.0 publication",
+            "status": "pass"
+          },
+          {
+            "tool": "Node24.21.0/Bun1.3.8 normal wrapper",
+            "probe": "Fresh literal Node24.21.0/Bun1.3.8 probes; explicit-pinned normal wrapper known-good bdd-render.test.ts1PASS and3 intended summaryRED; actual two-orderGit controls2PASS plus2 generated-conflictRED",
+            "status": "pass"
+          },
+          {
+            "tool": "Actual native Git/writer fixture",
+            "probe": "Pinned realGit RED executed: 2input-only controls merge bothways and union11/floor100/schema3PASS; reportwriters succeed then2 ordinarymerges conflict solely3generatedpaths",
+            "status": "pass"
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "Actual canonical writers on common-base branches; ordinary Git merges both orders; rerun writers and compare full path set/bytes; --report with GITHUB_STEP_SUMMARY",
+          "expected": "Both merges exit0/no unmerged stages without conflict-time regeneration; fresh full paths/bytes match; genuine totals show scenario union"
+        },
+        "owner": "/root/adversarial_4321_second_sync",
+        "red_evidence": "/private/tmp/lisa-4316-pinned-real-git-red.log: pinned wrapper2input-onlyPASS and2reportmergeRED at generated3pathconflicts only; original positivefloor/schema3 intact",
+        "local_green_evidence": "/private/tmp/lisa-4316-index-upgrade-bdd-tests.log: pinned normal wrapper24files290testsPASS; realbothmerges/freshfullsetbytes/CI summary/safety/schemaadmission/staticupgrade/retirement; /private/tmp/lisa-4316-typecheck-corrected.lognormaltypecheckPASS",
+        "implementation_state": "Complete local implementation; protected execution and exact publication lifecycle remain T5/T6",
+        "independent_review": "Corrected current working tree independently reviewed in /private/tmp/lisa-4316-final-precommit-independent-review.md plus disjoint source/consumer cross-reviews; no remaining blockers"
+      }
+    },
+    {
+      "id": "T2",
+      "title": "Versioned feature model/render/safe writer",
+      "owner": "/root/adversarial_4321_main_sync",
+      "status": "completed",
+      "blockedBy": [],
+      "description": "Only new projection modules; read full context and comment inventory from task_defaults; work_item_context: /private/tmp/lisa-4316-worktree-20261009/.lisa/work-item-context.md; read in full before acting; 6089308485 codysai001 2026-10-09T21:09:52Z automated claim decision; 6089448826 codysai001 2026-10-09T21:20:11Z historical access block credential/constraint/repro see comment2; 6097553659 codysai001 2026-10-10T12:35:53Z resumption and branch plan decision/constraint",
+      "metadata": {
+        "plan": "4316-bdd-report-projection",
+        "type": "task",
+        "acceptance_criteria": [
+          "Both independent-feature merge orders succeed without generated conflicts",
+          "Fresh complete paths/bytes equal committed reports; genuine CI totals remain visible",
+          "All consumers migrated/documented"
+        ],
+        "relevant_documentation": [
+          "/private/tmp/lisa-4316-bdd-projection-current-source-research.md",
+          "docs/bdd-coverage-schema.md",
+          "plugins/src/base/rules/reference/bdd-e2e-coverage.md"
+        ],
+        "work_item_context": "/private/tmp/lisa-4316-worktree-20261009/.lisa/work-item-context.md",
+        "comment_inventory": [
+          "6089308485 codysai001 2026-10-09T21:09:52Z automated claim decision",
+          "6089448826 codysai001 2026-10-09T21:20:11Z historical access block credential/constraint/repro see comment2",
+          "6097553659 codysai001 2026-10-10T12:35:53Z resumption and branch plan decision/constraint"
+        ],
+        "testing_requirements": [
+          "Actual Git/canonical writers, positive floor, unequal additions, both merge orders; intended RED then local GREEN before push and named protected execution",
+          "Preserve runtime schema3/enforcement and output path/ownership safety; exact published replay"
+        ],
+        "skills": [
+          "lisa-implement"
+        ],
+        "learnings": [
+          {
+            "type": "mistake",
+            "text": "Initial aggregate command guidance described committed writes; corrected to explicit runtime aggregate commands and declared-mapping caveat before validation."
+          }
+        ],
+        "required_access": [
+          {
+            "tool": "Git/origin",
+            "probe": "Current base fetch and canonical binding readback",
+            "status": "pass"
+          },
+          {
+            "tool": "GitHub tracker/Actions/releases/npm",
+            "probe": "Fresh resolver, unchanged protected prerequisite success and independently reconciled actual v4.74.0 publication",
+            "status": "pass"
+          },
+          {
+            "tool": "Node24.21.0/Bun1.3.8 normal wrapper",
+            "probe": "Fresh literal Node24.21.0/Bun1.3.8 probes; explicit-pinned normal wrapper known-good bdd-render.test.ts1PASS and3 intended summaryRED; actual two-orderGit controls2PASS plus2 generated-conflictRED",
+            "status": "pass"
+          },
+          {
+            "tool": "Actual native Git/writer fixture",
+            "probe": "Pinned realGit RED executed: 2input-only controls merge bothways and union11/floor100/schema3PASS; reportwriters succeed then2 ordinarymerges conflict solely3generatedpaths",
+            "status": "pass"
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "Actual canonical writers on common-base branches; ordinary Git merges both orders; rerun writers and compare full path set/bytes; --report with GITHUB_STEP_SUMMARY",
+          "expected": "Both merges exit0/no unmerged stages without conflict-time regeneration; fresh full paths/bytes match; genuine totals show scenario union"
+        },
+        "owner": "/root/adversarial_4321_main_sync",
+        "local_green_evidence": "/private/tmp/lisa-4316-index-upgrade-bdd-tests.log: pinned normal wrapper24files290testsPASS; realbothmerges/freshfullsetbytes/CI summary/safety/schemaadmission/staticupgrade/retirement; /private/tmp/lisa-4316-typecheck-corrected.lognormaltypecheckPASS",
+        "implementation_state": "Complete local implementation; protected execution and exact publication lifecycle remain T5/T6",
+        "independent_review": "Corrected current working tree independently reviewed in /private/tmp/lisa-4316-final-precommit-independent-review.md plus disjoint source/consumer cross-reviews; no remaining blockers"
+      }
+    },
+    {
+      "id": "T3",
+      "title": "Integration CI totals and consumers",
+      "owner": "/root",
+      "status": "completed",
+      "blockedBy": [],
+      "description": "Existing gate/matrix tests/docs/rule/workflow; read full context and comment inventory from task_defaults; work_item_context: /private/tmp/lisa-4316-worktree-20261009/.lisa/work-item-context.md; read in full before acting; 6089308485 codysai001 2026-10-09T21:09:52Z automated claim decision; 6089448826 codysai001 2026-10-09T21:20:11Z historical access block credential/constraint/repro see comment2; 6097553659 codysai001 2026-10-10T12:35:53Z resumption and branch plan decision/constraint",
+      "metadata": {
+        "plan": "4316-bdd-report-projection",
+        "type": "task",
+        "acceptance_criteria": [
+          "Both independent-feature merge orders succeed without generated conflicts",
+          "Fresh complete paths/bytes equal committed reports; genuine CI totals remain visible",
+          "All consumers migrated/documented"
+        ],
+        "relevant_documentation": [
+          "/private/tmp/lisa-4316-bdd-projection-current-source-research.md",
+          "docs/bdd-coverage-schema.md",
+          "plugins/src/base/rules/reference/bdd-e2e-coverage.md"
+        ],
+        "work_item_context": "/private/tmp/lisa-4316-worktree-20261009/.lisa/work-item-context.md",
+        "comment_inventory": [
+          "6089308485 codysai001 2026-10-09T21:09:52Z automated claim decision",
+          "6089448826 codysai001 2026-10-09T21:20:11Z historical access block credential/constraint/repro see comment2",
+          "6097553659 codysai001 2026-10-10T12:35:53Z resumption and branch plan decision/constraint"
+        ],
+        "testing_requirements": [
+          "Actual Git/canonical writers, positive floor, unequal additions, both merge orders; intended RED then local GREEN before push and named protected execution",
+          "Preserve runtime schema3/enforcement and output path/ownership safety; exact published replay"
+        ],
+        "skills": [
+          "lisa-implement"
+        ],
+        "learnings": [
+          {
+            "type": "learning",
+            "text": "Explicit pinned PATH is required because ambient Node/Bun differ from repository engines."
+          },
+          {
+            "type": "mistake",
+            "text": "New test imports initially omitted NodeNext extensions; fixed imports and passed unchanged test typecheck gate."
+          }
+        ],
+        "required_access": [
+          {
+            "tool": "Git/origin",
+            "probe": "Current base fetch and canonical binding readback",
+            "status": "pass"
+          },
+          {
+            "tool": "GitHub tracker/Actions/releases/npm",
+            "probe": "Fresh resolver, unchanged protected prerequisite success and independently reconciled actual v4.74.0 publication",
+            "status": "pass"
+          },
+          {
+            "tool": "Node24.21.0/Bun1.3.8 normal wrapper",
+            "probe": "Fresh literal Node24.21.0/Bun1.3.8 probes; explicit-pinned normal wrapper known-good bdd-render.test.ts1PASS and3 intended summaryRED; actual two-orderGit controls2PASS plus2 generated-conflictRED",
+            "status": "pass"
+          },
+          {
+            "tool": "Actual native Git/writer fixture",
+            "probe": "Pinned realGit RED executed: 2input-only controls merge bothways and union11/floor100/schema3PASS; reportwriters succeed then2 ordinarymerges conflict solely3generatedpaths",
+            "status": "pass"
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "Actual canonical writers on common-base branches; ordinary Git merges both orders; rerun writers and compare full path set/bytes; --report with GITHUB_STEP_SUMMARY",
+          "expected": "Both merges exit0/no unmerged stages without conflict-time regeneration; fresh full paths/bytes match; genuine totals show scenario union"
+        },
+        "owner": "/root",
+        "local_green_evidence": "/private/tmp/lisa-4316-index-upgrade-bdd-tests.log: pinned normal wrapper24files290testsPASS; realbothmerges/freshfullsetbytes/CI summary/safety/schemaadmission/staticupgrade/retirement; /private/tmp/lisa-4316-typecheck-corrected.lognormaltypecheckPASS",
+        "implementation_state": "Complete local implementation; protected execution and exact publication lifecycle remain T5/T6",
+        "independent_review": "Corrected current working tree independently reviewed in /private/tmp/lisa-4316-final-precommit-independent-review.md plus disjoint source/consumer cross-reviews; no remaining blockers"
+      }
+    },
+    {
+      "id": "T4",
+      "title": "Independent product/code/quality/security review",
+      "owner": "/root/verify_4321",
+      "status": "completed",
+      "blockedBy": [],
+      "description": "Read-only independent review; read full context and comment inventory from task_defaults; work_item_context: /private/tmp/lisa-4316-worktree-20261009/.lisa/work-item-context.md; read in full before acting; 6089308485 codysai001 2026-10-09T21:09:52Z automated claim decision; 6089448826 codysai001 2026-10-09T21:20:11Z historical access block credential/constraint/repro see comment2; 6097553659 codysai001 2026-10-10T12:35:53Z resumption and branch plan decision/constraint",
+      "metadata": {
+        "plan": "4316-bdd-report-projection",
+        "type": "task",
+        "acceptance_criteria": [
+          "Both independent-feature merge orders succeed without generated conflicts",
+          "Fresh complete paths/bytes equal committed reports; genuine CI totals remain visible",
+          "All consumers migrated/documented"
+        ],
+        "relevant_documentation": [
+          "/private/tmp/lisa-4316-bdd-projection-current-source-research.md",
+          "docs/bdd-coverage-schema.md",
+          "plugins/src/base/rules/reference/bdd-e2e-coverage.md"
+        ],
+        "work_item_context": "/private/tmp/lisa-4316-worktree-20261009/.lisa/work-item-context.md",
+        "comment_inventory": [
+          "6089308485 codysai001 2026-10-09T21:09:52Z automated claim decision",
+          "6089448826 codysai001 2026-10-09T21:20:11Z historical access block credential/constraint/repro see comment2",
+          "6097553659 codysai001 2026-10-10T12:35:53Z resumption and branch plan decision/constraint"
+        ],
+        "testing_requirements": [
+          "Actual Git/canonical writers, positive floor, unequal additions, both merge orders; intended RED then local GREEN before push and named protected execution",
+          "Preserve runtime schema3/enforcement and output path/ownership safety; exact published replay"
+        ],
+        "skills": [
+          "lisa-implement"
+        ],
+        "learnings": [],
+        "required_access": [
+          {
+            "tool": "Git/origin",
+            "probe": "Current base fetch and canonical binding readback",
+            "status": "pass"
+          },
+          {
+            "tool": "GitHub tracker/Actions/releases/npm",
+            "probe": "Fresh resolver, unchanged protected prerequisite success and independently reconciled actual v4.74.0 publication",
+            "status": "pass"
+          },
+          {
+            "tool": "Node24.21.0/Bun1.3.8 normal wrapper",
+            "probe": "Fresh literal Node24.21.0/Bun1.3.8 probes; explicit-pinned normal wrapper known-good bdd-render.test.ts1PASS and3 intended summaryRED; actual two-orderGit controls2PASS plus2 generated-conflictRED",
+            "status": "pass"
+          },
+          {
+            "tool": "Actual native Git/writer fixture",
+            "probe": "Pinned realGit RED executed: 2input-only controls merge bothways and union11/floor100/schema3PASS; reportwriters succeed then2 ordinarymerges conflict solely3generatedpaths",
+            "status": "pass"
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "Actual canonical writers on common-base branches; ordinary Git merges both orders; rerun writers and compare full path set/bytes; --report with GITHUB_STEP_SUMMARY",
+          "expected": "Both merges exit0/no unmerged stages without conflict-time regeneration; fresh full paths/bytes match; genuine totals show scenario union"
+        },
+        "owner": "/root/verify_4321",
+        "review_evidence": "/private/tmp/lisa-4316-final-precommit-independent-review.md; /private/tmp/lisa-4316-projection-quality-cross-review.md; /private/tmp/lisa-4316-product-consumer-cross-review.md; all concrete findings fixed"
+      }
+    },
+    {
+      "id": "T5",
+      "title": "Normal quality commit PR and protected execution",
+      "owner": "/root",
+      "status": "in_progress",
+      "blockedBy": [],
+      "description": "Normal lifecycle; read full context and comment inventory from task_defaults; work_item_context: /private/tmp/lisa-4316-worktree-20261009/.lisa/work-item-context.md; read in full before acting; 6089308485 codysai001 2026-10-09T21:09:52Z automated claim decision; 6089448826 codysai001 2026-10-09T21:20:11Z historical access block credential/constraint/repro see comment2; 6097553659 codysai001 2026-10-10T12:35:53Z resumption and branch plan decision/constraint",
+      "metadata": {
+        "plan": "4316-bdd-report-projection",
+        "type": "task",
+        "acceptance_criteria": [
+          "Both independent-feature merge orders succeed without generated conflicts",
+          "Fresh complete paths/bytes equal committed reports; genuine CI totals remain visible",
+          "All consumers migrated/documented"
+        ],
+        "relevant_documentation": [
+          "/private/tmp/lisa-4316-bdd-projection-current-source-research.md",
+          "docs/bdd-coverage-schema.md",
+          "plugins/src/base/rules/reference/bdd-e2e-coverage.md"
+        ],
+        "work_item_context": "/private/tmp/lisa-4316-worktree-20261009/.lisa/work-item-context.md",
+        "comment_inventory": [
+          "6089308485 codysai001 2026-10-09T21:09:52Z automated claim decision",
+          "6089448826 codysai001 2026-10-09T21:20:11Z historical access block credential/constraint/repro see comment2",
+          "6097553659 codysai001 2026-10-10T12:35:53Z resumption and branch plan decision/constraint"
+        ],
+        "testing_requirements": [
+          "Actual Git/canonical writers, positive floor, unequal additions, both merge orders; intended RED then local GREEN before push and named protected execution",
+          "Preserve runtime schema3/enforcement and output path/ownership safety; exact published replay"
+        ],
+        "skills": [
+          "lisa-implement"
+        ],
+        "learnings": [],
+        "required_access": [
+          {
+            "tool": "Git/origin",
+            "probe": "Current base fetch and canonical binding readback",
+            "status": "pass"
+          },
+          {
+            "tool": "GitHub tracker/Actions/releases/npm",
+            "probe": "Fresh resolver, unchanged protected prerequisite success and independently reconciled actual v4.74.0 publication",
+            "status": "pass"
+          },
+          {
+            "tool": "Node24.21.0/Bun1.3.8 normal wrapper",
+            "probe": "Fresh literal Node24.21.0/Bun1.3.8 probes; explicit-pinned normal wrapper known-good bdd-render.test.ts1PASS and3 intended summaryRED; actual two-orderGit controls2PASS plus2 generated-conflictRED",
+            "status": "pass"
+          },
+          {
+            "tool": "Actual native Git/writer fixture",
+            "probe": "Pinned realGit RED executed: 2input-only controls merge bothways and union11/floor100/schema3PASS; reportwriters succeed then2 ordinarymerges conflict solely3generatedpaths",
+            "status": "pass"
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "Actual canonical writers on common-base branches; ordinary Git merges both orders; rerun writers and compare full path set/bytes; --report with GITHUB_STEP_SUMMARY",
+          "expected": "Both merges exit0/no unmerged stages without conflict-time regeneration; fresh full paths/bytes match; genuine totals show scenario union"
+        },
+        "owner": "/root"
+      }
+    },
+    {
+      "id": "T6",
+      "title": "Published verification monitoring evidence completion",
+      "owner": "/root",
+      "status": "pending",
+      "blockedBy": [
+        "T5"
+      ],
+      "description": "Exact released replay and terminal lifecycle; read full context and comment inventory from task_defaults; work_item_context: /private/tmp/lisa-4316-worktree-20261009/.lisa/work-item-context.md; read in full before acting; 6089308485 codysai001 2026-10-09T21:09:52Z automated claim decision; 6089448826 codysai001 2026-10-09T21:20:11Z historical access block credential/constraint/repro see comment2; 6097553659 codysai001 2026-10-10T12:35:53Z resumption and branch plan decision/constraint",
+      "metadata": {
+        "plan": "4316-bdd-report-projection",
+        "type": "task",
+        "acceptance_criteria": [
+          "Both independent-feature merge orders succeed without generated conflicts",
+          "Fresh complete paths/bytes equal committed reports; genuine CI totals remain visible",
+          "All consumers migrated/documented"
+        ],
+        "relevant_documentation": [
+          "/private/tmp/lisa-4316-bdd-projection-current-source-research.md",
+          "docs/bdd-coverage-schema.md",
+          "plugins/src/base/rules/reference/bdd-e2e-coverage.md"
+        ],
+        "work_item_context": "/private/tmp/lisa-4316-worktree-20261009/.lisa/work-item-context.md",
+        "comment_inventory": [
+          "6089308485 codysai001 2026-10-09T21:09:52Z automated claim decision",
+          "6089448826 codysai001 2026-10-09T21:20:11Z historical access block credential/constraint/repro see comment2",
+          "6097553659 codysai001 2026-10-10T12:35:53Z resumption and branch plan decision/constraint"
+        ],
+        "testing_requirements": [
+          "Actual Git/canonical writers, positive floor, unequal additions, both merge orders; intended RED then local GREEN before push and named protected execution",
+          "Preserve runtime schema3/enforcement and output path/ownership safety; exact published replay"
+        ],
+        "skills": [
+          "lisa-implement"
+        ],
+        "learnings": [],
+        "required_access": [
+          {
+            "tool": "Git/origin",
+            "probe": "Current base fetch and canonical binding readback",
+            "status": "pass"
+          },
+          {
+            "tool": "GitHub tracker/Actions/releases/npm",
+            "probe": "Fresh resolver, unchanged protected prerequisite success and independently reconciled actual v4.74.0 publication",
+            "status": "pass"
+          },
+          {
+            "tool": "Node24.21.0/Bun1.3.8 normal wrapper",
+            "probe": "Fresh literal Node24.21.0/Bun1.3.8 probes; explicit-pinned normal wrapper known-good bdd-render.test.ts1PASS and3 intended summaryRED; actual two-orderGit controls2PASS plus2 generated-conflictRED",
+            "status": "pass"
+          },
+          {
+            "tool": "Actual native Git/writer fixture",
+            "probe": "Pinned realGit RED executed: 2input-only controls merge bothways and union11/floor100/schema3PASS; reportwriters succeed then2 ordinarymerges conflict solely3generatedpaths",
+            "status": "pass"
+          }
+        ],
+        "verification": {
+          "type": "cli-test",
+          "command": "Actual canonical writers on common-base branches; ordinary Git merges both orders; rerun writers and compare full path set/bytes; --report with GITHUB_STEP_SUMMARY",
+          "expected": "Both merges exit0/no unmerged stages without conflict-time regeneration; fresh full paths/bytes match; genuine totals show scenario union"
+        },
+        "owner": "/root"
+      }
+    }
+  ]
+}

@@ -15,6 +15,7 @@ import {
   SCRIPT_REL,
   SEED_MAP_REL,
   read,
+  runReport,
 } from "./bdd/support";
 
 const RULESET_REL = "expo/github-rulesets/bdd-coverage.json";
@@ -52,6 +53,8 @@ describe("shipped wiring", () => {
       "expo/copy-overwrite/scripts/bdd/baseline.mjs",
       "expo/copy-overwrite/scripts/bdd/discover.mjs",
       "expo/copy-overwrite/scripts/bdd/envelope.mjs",
+      "expo/copy-overwrite/scripts/bdd/projection.mjs",
+      "expo/copy-overwrite/scripts/bdd/ci-summary.mjs",
     ]) {
       expect(fs.existsSync(path.join(REPO_ROOT, relative)), relative).toBe(
         true
@@ -146,9 +149,17 @@ describe("shipped wiring", () => {
     expect(
       burndown.startsWith("# BDD behavior contract — coverage burndown\n")
     ).toBe(true);
-    expect(matrix).toContain("\n## Lisa console demo-data boundary\n");
-    expect(burndown).toContain("\n## What each number means\n");
-    expect(burndown).toContain("2 carry a computed title");
+    expect(matrix).toContain("bdd-scenario-matrix/");
+    expect(burndown).toContain("e2e-bdd-coverage/");
+    expect(matrix).not.toContain("Lisa console demo-data boundary");
+    expect(burndown).not.toContain("2 carry a computed title");
+    const featureMatrix = read(
+      "docs/bdd-scenario-matrix/bdd/features/lisa-ui-demo-data.feature.md"
+    );
+    expect(featureMatrix).toContain("Lisa console demo-data boundary");
+    expect(featureMatrix).toContain("BDD-UI-001");
+    const aggregate = runReport(REPO_ROOT, { BDD_BASE_SHA: "HEAD" });
+    expect(aggregate.testInventory.dynamicTitles).toBe(2);
   });
 
   it("wires bdd_coverage behind the behavior-contract declaration alone", () => {

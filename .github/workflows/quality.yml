@@ -2515,7 +2515,7 @@ jobs:
                 ;;
             esac
             echo
-            echo "Traceability coverage is not execution coverage and is not a pass rate — see \`docs/e2e-bdd-coverage.md\`."
+            echo "Traceability coverage is not execution coverage and is not a pass rate. The configured Lisa coverage CLI appends its calculated aggregate and findings to this summary; committed feature reports are linked from \`docs/e2e-bdd-coverage.md\`."
           } >> "$GITHUB_STEP_SUMMARY"
 
   learnings_budget:

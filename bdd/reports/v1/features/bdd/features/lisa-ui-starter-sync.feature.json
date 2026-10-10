@@ -1,0 +1,84 @@
+{
+  "generator": "lisa-bdd-feature-projection",
+  "scenarios": [
+    {
+      "feature": "Starter sync results in the Lisa console",
+      "featureIdTags": [],
+      "featureLine": 2,
+      "id": "BDD-STARTER-003",
+      "inheritedTags": [
+        "gh-1534",
+        "ratified-github-1534",
+        "web"
+      ],
+      "lifecycle": [],
+      "line": 5,
+      "mappings": [
+        {
+          "evidence": "reports a PR, nothing to do, and a real failure without generic success",
+          "evidenceResolution": {
+            "ok": true
+          },
+          "execution": {
+            "runId": null,
+            "status": "not supplied",
+            "supplied": false
+          },
+          "file": "tests/e2e/ui-starter-sync.spec.ts",
+          "level": "behavioral",
+          "platforms": [
+            "web"
+          ],
+          "runner": "playwright",
+          "scenario": "BDD-STARTER-003"
+        }
+      ],
+      "name": "Sync reports the engine result and preserves failures",
+      "obligations": [
+        {
+          "covered": true,
+          "gap": false,
+          "platform": "web",
+          "runners": [
+            "playwright"
+          ],
+          "waived": false
+        }
+      ],
+      "ownTags": [
+        "BDD-STARTER-003"
+      ],
+      "platforms": [
+        "web"
+      ],
+      "primarySteps": [
+        "Given",
+        "When",
+        "Then"
+      ],
+      "provenance": [
+        "ratified-github-1534"
+      ],
+      "required": true,
+      "retirements": [],
+      "tags": [
+        "BDD-STARTER-003",
+        "gh-1534",
+        "ratified-github-1534",
+        "web"
+      ],
+      "trackers": [
+        {
+          "number": 1534,
+          "repo": null,
+          "scheme": "gh",
+          "tag": "gh-1534",
+          "url": "https://github.com/CodySwannGT/lisa/issues/1534"
+        }
+      ],
+      "waivers": []
+    }
+  ],
+  "schemaVersion": "lisa-bdd-feature-projection-v1",
+  "sourceFile": "bdd/features/lisa-ui-starter-sync.feature"
+}

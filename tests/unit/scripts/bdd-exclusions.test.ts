@@ -12,13 +12,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   HOME_SPEC,
-  type Report,
+  HOME_EVIDENCE,
   codes,
   healthyProject,
   messages,
   readProjectFile,
   runGate,
   runGateWrite,
+  runReport,
 } from "./bdd/support";
 
 const UNDISCLOSED = "spec-undisclosed";
@@ -84,11 +85,17 @@ describe("a defect never wedges the artifacts that document it", () => {
       { files: { [HOME_SPEC]: STRAY_SOURCE, [STRAY_SPEC]: STRAY_SOURCE } }
     );
     const burndown = runGateWrite(root);
-    const report = JSON.parse(
+    const report = runReport(root);
+    const descriptor = JSON.parse(
       readProjectFile(root, "bdd/coverage-report.json")
-    ) as Report;
-    expect(burndown).toContain(STRAY_TITLE);
+    );
+    expect(descriptor.schemaVersion).toBe("lisa-bdd-projection-index-v1");
+    expect(descriptor).not.toHaveProperty("testInventory");
+    expect(burndown).toContain(HOME_EVIDENCE);
     expect(report.testInventory.undisclosed).toHaveLength(2);
+    expect(report.testInventory.undisclosed.map(item => item.evidence)).toEqual(
+      [STRAY_TITLE, STRAY_TITLE]
+    );
     expect(report.traceability.overall.covered).toBe(0);
     expect(runGate(root).status).toBe(1);
   });
