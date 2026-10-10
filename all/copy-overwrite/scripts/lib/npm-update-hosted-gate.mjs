@@ -17,7 +17,10 @@ import { affirmRuntimeProfile } from "./npm-update-rails-runtime-contract.mjs";
 import { prepareRailsTools } from "./npm-update-rails-tools.mjs";
 import { openRailsMysqlRuntime } from "./npm-update-rails-mysql.mjs";
 import { installOriginalManager } from "./npm-update-hook-installation.mjs";
-import { withStage } from "./npm-update-invariants.mjs";
+import {
+  withStage,
+  inheritProvenanceFailure,
+} from "./npm-update-invariants.mjs";
 
 const INSTALL_STAGE = "gate-install";
 const VALIDATE_STAGE = "gate-validate";
@@ -66,6 +69,17 @@ function nativeStep(context, env, command, args, maximum = 3_145_728) {
     env,
     timeout: remainingGateTime(context.deadline),
     maximum,
+  }).catch(error => {
+    if (
+      command === "node" &&
+      env.LISA_NPM_HOOK_ROLE === "commit" &&
+      typeof env.HOME === "string" &&
+      args.length === 2 &&
+      args[0] === "scripts/lisa-automation-provenance.mjs" &&
+      args[1] === join(env.HOME, "message")
+    )
+      inheritProvenanceFailure(error);
+    throw error;
   });
 }
 

@@ -61,6 +61,27 @@ afterEach(cleanupFixtures);
 afterAll(cleanupTemplates);
 
 describe("focused provenance module boundaries", () => {
+  it("reaches the real canonical CLI and exposes only its failed local-proof phase", () => {
+    const f = fixture();
+    writeFileSync(
+      path.join(f.root, "MSG"),
+      "Automation-Provenance: hostile-canary\n"
+    );
+    const result = boundedSpawnSync({
+      label: "canonical provenance diagnostic",
+      command: process.execPath,
+      args: [
+        path.join(f.root, "scripts/lisa-automation-provenance.mjs"),
+        "MSG",
+      ],
+      cwd: f.root,
+      env: f.env,
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("(phase=local-proof)");
+    expect(result.stderr).not.toContain("hostile-canary");
+    expect(result.stderr).not.toContain(f.root);
+  });
   it("imports the same public canonical contract without top-level provider work", async () => {
     const contract =
       await import("../../../all/copy-overwrite/scripts/lib/automation-provenance-contract.mjs");
@@ -799,6 +820,16 @@ describe.each(HOOKS)("dual proof hook transport control: %s", hookPath => {
         "foreign";
     if (field === "claim") data[CLAIM_ENDPOINT].body = "changed claim";
     writeFileSync(path.join(p.f.root, PROVIDER_FILE), JSON.stringify(data));
-    expect(hook(p.f, hookPath, MESSAGE + MARKER).status).toBe(1);
+    const result = hook(p.f, hookPath, MESSAGE + MARKER);
+    expect(result.status).toBe(1);
+    const phases: Record<string, string> = {
+      "current-run": "recovery-local",
+      body: "recovery-local",
+      "origin-time": "historical-signature",
+      "fresh-time": "recovery-signature",
+      signer: "recovery-signature",
+      claim: "historical-provider",
+    };
+    expect(result.stderr).toContain(`phase=${phases[field]}`);
   });
 });
