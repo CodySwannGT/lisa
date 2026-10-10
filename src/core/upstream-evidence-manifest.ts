@@ -229,7 +229,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "all/copy-overwrite/scripts/lisa-destructive-guard.mjs":
       "f0f3c43bbb6d1e389135b0205a051e64891e539d4272df2a87841ee82a8b7a55",
     "all/copy-overwrite/scripts/lisa-enforcement-fallback.sh":
-      "3f4e8f03ba3fa588bd6a19131077d6c46e11a57aba48d64c4587359b04cbaa04",
+      "480c23ba7ad52cf11b1a00b964c2ac6d244edd83292145e5212471ba86e43af3",
     "all/copy-overwrite/scripts/lisa-enforcement-freshness.mjs":
       "3db0a7de30a0e0fb499e620353cf67842a1c429472cebf53d4b1a5e11bb4b07a",
     "all/copy-overwrite/scripts/lisa-environment-prepare.mjs":
@@ -2625,7 +2625,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/lisa-enforcement-census.mjs":
       "41490f30f30cbb5ff05454a52caa1d3286db225667847eee22b7b994809e64d4",
     "scripts/lisa-enforcement-fallback.sh":
-      "d69d823a123acd3888374380499dc38d1c0132ff14c9888cb95492527c60801b",
+      "7d2c1d27ef8a7463005dffbe679bb5654cede2eb896c03dace9ed28c090af6b7",
     "scripts/lisa-enforcement-freshness.mjs":
       "e40fafc358ca76c8bf1ae6479af4ec94dbdda0aa3b544d414b85ab5272a25d08",
     "scripts/lisa-github-environments.sh":
