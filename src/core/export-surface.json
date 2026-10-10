@@ -1,8 +1,8 @@
 {
   "$generatedBy": "scripts/generate-export-surface.mjs",
   "$doNotEdit": "The public export surface this package ships, recorded so a removal is an OBSERVATION rather than an inference from commit-message conventions. This file's diff is what makes a removed export visible in the pull request that causes it (CodySwannGT/lisa#3718).",
-  "$modules": 222,
-  "$names": 1687,
+  "$modules": 229,
+  "$names": 1721,
   "surface": {
     "all/copy-overwrite/scripts/check-conflict-markers.mjs": [
       "UsageError",
@@ -998,6 +998,9 @@
       "showAtRevision",
       "waivedKeys"
     ],
+    "expo/copy-overwrite/scripts/bdd/ci-summary.mjs": [
+      "appendCiSummary"
+    ],
     "expo/copy-overwrite/scripts/bdd/contract.mjs": [
       "GATE_LEVELS",
       "ID_PATTERN",
@@ -1044,6 +1047,50 @@
       "resolveInsideRepo",
       "scenarioIdsIn"
     ],
+    "expo/copy-overwrite/scripts/bdd/projection-model.mjs": [
+      "buildFeatureModels"
+    ],
+    "expo/copy-overwrite/scripts/bdd/projection-ownership.mjs": [
+      "ownedFeatureLeaf",
+      "prepareProjectionWrite",
+      "validateProjectionTarget"
+    ],
+    "expo/copy-overwrite/scripts/bdd/projection-paths.mjs": [
+      "FEATURE_PROJECTION_SCHEMA",
+      "PROJECTION_DIRECTORIES",
+      "PROJECTION_GENERATOR",
+      "featureArtifactPaths",
+      "inspectProjectionPath",
+      "listProjectionFiles",
+      "listProjectionPaths",
+      "projectionSourceFile",
+      "projectionStat",
+      "refuseProjection",
+      "relativeProjectionPath",
+      "validateProjectionCollisions",
+      "validateProjectionTargets"
+    ],
+    "expo/copy-overwrite/scripts/bdd/projection-render.mjs": [
+      "AGGREGATE_MATRIX_COMMAND",
+      "COVERAGE_COMMAND",
+      "MATRIX_COMMAND",
+      "PROJECTION_INDEX_SCHEMA",
+      "REPORT_COMMAND",
+      "STATIC_ARTIFACTS",
+      "projectionCell",
+      "projectionJson",
+      "projectionMarker",
+      "renderFeatureArtifacts"
+    ],
+    "expo/copy-overwrite/scripts/bdd/projection-write.mjs": [
+      "writeProjectionArtifacts"
+    ],
+    "expo/copy-overwrite/scripts/bdd/projection.mjs": [
+      "FEATURE_PROJECTION_SCHEMA",
+      "PROJECTION_INDEX_SCHEMA",
+      "buildFeatureArtifacts",
+      "writeFeatureArtifacts"
+    ],
     "expo/copy-overwrite/scripts/bdd/render.mjs": [
       "renderBurndown"
     ],
@@ -1072,6 +1119,7 @@
       "refuseRetiredMode",
       "retiredAdoptionDefects",
       "run",
+      "schemaDefect",
       "toCommandEnvelope"
     ],
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs": [

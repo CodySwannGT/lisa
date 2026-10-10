@@ -1,0 +1,546 @@
+{
+  "generator": "lisa-bdd-feature-projection",
+  "scenarios": [
+    {
+      "feature": "Save configuration in the live Lisa console",
+      "featureIdTags": [],
+      "featureLine": 2,
+      "id": "BDD-SAVE-001",
+      "inheritedTags": [
+        "gh-1528",
+        "ratified-github-1528",
+        "web"
+      ],
+      "lifecycle": [],
+      "line": 5,
+      "mappings": [
+        {
+          "evidence": "Save writes only three changed keys, rehydrates, and Discard uses the latest saved values",
+          "evidenceResolution": {
+            "ok": true
+          },
+          "execution": {
+            "runId": null,
+            "status": "not supplied",
+            "supplied": false
+          },
+          "file": "tests/e2e/ui-config-save.spec.ts",
+          "level": "behavioral",
+          "platforms": [
+            "web"
+          ],
+          "runner": "playwright",
+          "scenario": "BDD-SAVE-001"
+        }
+      ],
+      "name": "Save and Discard use the last confirmed configuration",
+      "obligations": [
+        {
+          "covered": true,
+          "gap": false,
+          "platform": "web",
+          "runners": [
+            "playwright"
+          ],
+          "waived": false
+        }
+      ],
+      "ownTags": [
+        "BDD-SAVE-001"
+      ],
+      "platforms": [
+        "web"
+      ],
+      "primarySteps": [
+        "Given",
+        "When",
+        "Then"
+      ],
+      "provenance": [
+        "ratified-github-1528"
+      ],
+      "required": true,
+      "retirements": [],
+      "tags": [
+        "BDD-SAVE-001",
+        "gh-1528",
+        "ratified-github-1528",
+        "web"
+      ],
+      "trackers": [
+        {
+          "number": 1528,
+          "repo": null,
+          "scheme": "gh",
+          "tag": "gh-1528",
+          "url": "https://github.com/CodySwannGT/lisa/issues/1528"
+        }
+      ],
+      "waivers": []
+    },
+    {
+      "feature": "Save configuration in the live Lisa console",
+      "featureIdTags": [],
+      "featureLine": 2,
+      "id": "BDD-SAVE-002",
+      "inheritedTags": [
+        "gh-1528",
+        "ratified-github-1528",
+        "web"
+      ],
+      "lifecycle": [],
+      "line": 13,
+      "mappings": [
+        {
+          "evidence": "text, select, toggle and environment changes preserve their types and local routing",
+          "evidenceResolution": {
+            "ok": true
+          },
+          "execution": {
+            "runId": null,
+            "status": "not supplied",
+            "supplied": false
+          },
+          "file": "tests/e2e/ui-config-save.spec.ts",
+          "level": "behavioral",
+          "platforms": [
+            "web"
+          ],
+          "runner": "playwright",
+          "scenario": "BDD-SAVE-002"
+        }
+      ],
+      "name": "Different controls preserve their value types and storage destination",
+      "obligations": [
+        {
+          "covered": true,
+          "gap": false,
+          "platform": "web",
+          "runners": [
+            "playwright"
+          ],
+          "waived": false
+        }
+      ],
+      "ownTags": [
+        "BDD-SAVE-002"
+      ],
+      "platforms": [
+        "web"
+      ],
+      "primarySteps": [
+        "Given",
+        "When",
+        "Then"
+      ],
+      "provenance": [
+        "ratified-github-1528"
+      ],
+      "required": true,
+      "retirements": [],
+      "tags": [
+        "BDD-SAVE-002",
+        "gh-1528",
+        "ratified-github-1528",
+        "web"
+      ],
+      "trackers": [
+        {
+          "number": 1528,
+          "repo": null,
+          "scheme": "gh",
+          "tag": "gh-1528",
+          "url": "https://github.com/CodySwannGT/lisa/issues/1528"
+        }
+      ],
+      "waivers": []
+    },
+    {
+      "feature": "Save configuration in the live Lisa console",
+      "featureIdTags": [],
+      "featureLine": 2,
+      "id": "BDD-SAVE-003",
+      "inheritedTags": [
+        "gh-1528",
+        "ratified-github-1528",
+        "web"
+      ],
+      "lifecycle": [],
+      "line": 20,
+      "mappings": [
+        {
+          "evidence": "Save prevents overlapping edits and refuses an unconfirmed response",
+          "evidenceResolution": {
+            "ok": true
+          },
+          "execution": {
+            "runId": null,
+            "status": "not supplied",
+            "supplied": false
+          },
+          "file": "tests/e2e/ui-config-save.spec.ts",
+          "level": "behavioral",
+          "platforms": [
+            "web"
+          ],
+          "runner": "playwright",
+          "scenario": "BDD-SAVE-003"
+        }
+      ],
+      "name": "A pending or unconfirmed save cannot discard edits",
+      "obligations": [
+        {
+          "covered": true,
+          "gap": false,
+          "platform": "web",
+          "runners": [
+            "playwright"
+          ],
+          "waived": false
+        }
+      ],
+      "ownTags": [
+        "BDD-SAVE-003"
+      ],
+      "platforms": [
+        "web"
+      ],
+      "primarySteps": [
+        "Given",
+        "When",
+        "Then"
+      ],
+      "provenance": [
+        "ratified-github-1528"
+      ],
+      "required": true,
+      "retirements": [],
+      "tags": [
+        "BDD-SAVE-003",
+        "gh-1528",
+        "ratified-github-1528",
+        "web"
+      ],
+      "trackers": [
+        {
+          "number": 1528,
+          "repo": null,
+          "scheme": "gh",
+          "tag": "gh-1528",
+          "url": "https://github.com/CodySwannGT/lisa/issues/1528"
+        }
+      ],
+      "waivers": []
+    },
+    {
+      "feature": "Save configuration in the live Lisa console",
+      "featureIdTags": [],
+      "featureLine": 2,
+      "id": "BDD-SAVE-004",
+      "inheritedTags": [
+        "gh-1528",
+        "ratified-github-1528",
+        "web"
+      ],
+      "lifecycle": [],
+      "line": 27,
+      "mappings": [
+        {
+          "evidence": "editing a legacy environment string preserves its production value",
+          "evidenceResolution": {
+            "ok": true
+          },
+          "execution": {
+            "runId": null,
+            "status": "not supplied",
+            "supplied": false
+          },
+          "file": "tests/e2e/ui-config-save.spec.ts",
+          "level": "behavioral",
+          "platforms": [
+            "web"
+          ],
+          "runner": "playwright",
+          "scenario": "BDD-SAVE-004"
+        }
+      ],
+      "name": "Editing a legacy environment setting preserves production",
+      "obligations": [
+        {
+          "covered": true,
+          "gap": false,
+          "platform": "web",
+          "runners": [
+            "playwright"
+          ],
+          "waived": false
+        }
+      ],
+      "ownTags": [
+        "BDD-SAVE-004"
+      ],
+      "platforms": [
+        "web"
+      ],
+      "primarySteps": [
+        "Given",
+        "When",
+        "Then"
+      ],
+      "provenance": [
+        "ratified-github-1528"
+      ],
+      "required": true,
+      "retirements": [],
+      "tags": [
+        "BDD-SAVE-004",
+        "gh-1528",
+        "ratified-github-1528",
+        "web"
+      ],
+      "trackers": [
+        {
+          "number": 1528,
+          "repo": null,
+          "scheme": "gh",
+          "tag": "gh-1528",
+          "url": "https://github.com/CodySwannGT/lisa/issues/1528"
+        }
+      ],
+      "waivers": []
+    },
+    {
+      "feature": "Save configuration in the live Lisa console",
+      "featureIdTags": [],
+      "featureLine": 2,
+      "id": "BDD-SAVE-005",
+      "inheritedTags": [
+        "gh-1528",
+        "ratified-github-1528",
+        "web"
+      ],
+      "lifecycle": [],
+      "line": 33,
+      "mappings": [
+        {
+          "evidence": "a late status render preserves the draft ${JSON.stringify(draft)} before blur",
+          "evidenceResolution": {
+            "ok": true
+          },
+          "execution": {
+            "runId": null,
+            "status": "not supplied",
+            "supplied": false
+          },
+          "file": "tests/e2e/ui-config-save.spec.ts",
+          "level": "behavioral",
+          "platforms": [
+            "web"
+          ],
+          "runner": "playwright",
+          "scenario": "BDD-SAVE-005"
+        }
+      ],
+      "name": "Background status rendering preserves an unfinished edit",
+      "obligations": [
+        {
+          "covered": true,
+          "gap": false,
+          "platform": "web",
+          "runners": [
+            "playwright"
+          ],
+          "waived": false
+        }
+      ],
+      "ownTags": [
+        "BDD-SAVE-005"
+      ],
+      "platforms": [
+        "web"
+      ],
+      "primarySteps": [
+        "Given",
+        "When",
+        "Then"
+      ],
+      "provenance": [
+        "ratified-github-1528"
+      ],
+      "required": true,
+      "retirements": [],
+      "tags": [
+        "BDD-SAVE-005",
+        "gh-1528",
+        "ratified-github-1528",
+        "web"
+      ],
+      "trackers": [
+        {
+          "number": 1528,
+          "repo": null,
+          "scheme": "gh",
+          "tag": "gh-1528",
+          "url": "https://github.com/CodySwannGT/lisa/issues/1528"
+        }
+      ],
+      "waivers": []
+    },
+    {
+      "feature": "Save configuration in the live Lisa console",
+      "featureIdTags": [],
+      "featureLine": 2,
+      "id": "BDD-SAVE-006",
+      "inheritedTags": [
+        "gh-1528",
+        "ratified-github-1528",
+        "web"
+      ],
+      "lifecycle": [],
+      "line": 39,
+      "mappings": [
+        {
+          "evidence": "removing one duplicate tag preserves the remaining visible values",
+          "evidenceResolution": {
+            "ok": true
+          },
+          "execution": {
+            "runId": null,
+            "status": "not supplied",
+            "supplied": false
+          },
+          "file": "tests/e2e/ui-config-save.spec.ts",
+          "level": "behavioral",
+          "platforms": [
+            "web"
+          ],
+          "runner": "playwright",
+          "scenario": "BDD-SAVE-006"
+        }
+      ],
+      "name": "Tag removal preserves the exact visible pending array",
+      "obligations": [
+        {
+          "covered": true,
+          "gap": false,
+          "platform": "web",
+          "runners": [
+            "playwright"
+          ],
+          "waived": false
+        }
+      ],
+      "ownTags": [
+        "BDD-SAVE-006"
+      ],
+      "platforms": [
+        "web"
+      ],
+      "primarySteps": [
+        "Given",
+        "When",
+        "Then"
+      ],
+      "provenance": [
+        "ratified-github-1528"
+      ],
+      "required": true,
+      "retirements": [],
+      "tags": [
+        "BDD-SAVE-006",
+        "gh-1528",
+        "ratified-github-1528",
+        "web"
+      ],
+      "trackers": [
+        {
+          "number": 1528,
+          "repo": null,
+          "scheme": "gh",
+          "tag": "gh-1528",
+          "url": "https://github.com/CodySwannGT/lisa/issues/1528"
+        }
+      ],
+      "waivers": []
+    },
+    {
+      "feature": "Save configuration in the live Lisa console",
+      "featureIdTags": [],
+      "featureLine": 2,
+      "id": "BDD-SAVE-007",
+      "inheritedTags": [
+        "gh-1528",
+        "ratified-github-1528",
+        "web"
+      ],
+      "lifecycle": [],
+      "line": 47,
+      "mappings": [
+        {
+          "evidence": "a real read-only file refusal preserves pending edits and never reports success",
+          "evidenceResolution": {
+            "ok": true
+          },
+          "execution": {
+            "runId": null,
+            "status": "not supplied",
+            "supplied": false
+          },
+          "file": "tests/e2e/ui-config-save.spec.ts",
+          "level": "behavioral",
+          "platforms": [
+            "web"
+          ],
+          "runner": "playwright",
+          "scenario": "BDD-SAVE-007"
+        }
+      ],
+      "name": "An unwritable file retains the draft",
+      "obligations": [
+        {
+          "covered": true,
+          "gap": false,
+          "platform": "web",
+          "runners": [
+            "playwright"
+          ],
+          "waived": false
+        }
+      ],
+      "ownTags": [
+        "BDD-SAVE-007"
+      ],
+      "platforms": [
+        "web"
+      ],
+      "primarySteps": [
+        "Given",
+        "When",
+        "Then"
+      ],
+      "provenance": [
+        "ratified-github-1528"
+      ],
+      "required": true,
+      "retirements": [],
+      "tags": [
+        "BDD-SAVE-007",
+        "gh-1528",
+        "ratified-github-1528",
+        "web"
+      ],
+      "trackers": [
+        {
+          "number": 1528,
+          "repo": null,
+          "scheme": "gh",
+          "tag": "gh-1528",
+          "url": "https://github.com/CodySwannGT/lisa/issues/1528"
+        }
+      ],
+      "waivers": []
+    }
+  ],
+  "schemaVersion": "lisa-bdd-feature-projection-v1",
+  "sourceFile": "bdd/features/lisa-ui-config-save.feature"
+}

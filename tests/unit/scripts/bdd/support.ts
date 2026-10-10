@@ -391,7 +391,7 @@ export function runReport(
 }
 
 /**
- * Run the gate with `--write` and return the regenerated burndown.
+ * Run the gate with `--write` and read the actual home feature burndown.
  * @param root - Project root.
  * @param env - Extra environment.
  * @returns The burndown Markdown.
@@ -415,7 +415,14 @@ export function runGateWrite(
     },
   });
   return fs.readFileSync(
-    path.join(root, "docs", "e2e-bdd-coverage.md"),
+    path.join(
+      root,
+      "docs",
+      "e2e-bdd-coverage",
+      "bdd",
+      "features",
+      `${HOME_FEATURE_FILE}.md`
+    ),
     "utf-8"
   );
 }

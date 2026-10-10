@@ -74,8 +74,9 @@ import {
   missingDiscoveryDefects,
 } from "./bdd/discover.mjs";
 import { loadScenarios } from "./bdd/parse.mjs";
+import { appendCiSummary } from "./bdd/ci-summary.mjs";
+import { writeFeatureArtifacts } from "./bdd/projection.mjs";
 import { buildReport } from "./bdd/report.mjs";
-import { renderBurndown } from "./bdd/render.mjs";
 import {
   unresolvedEvidenceKeys,
   validateMappings,
@@ -447,7 +448,12 @@ export function run(root, options) {
     }),
     ...completenessDefects({ contract, scenarios, report, discovery }),
   ];
-  return result({ defects, report, contract });
+  return result({
+    defects,
+    report,
+    contract,
+    projectionInputs: { contract, scenarios, runs: execution.runs, cache },
+  });
 }
 
 /**
@@ -474,7 +480,7 @@ function configFatals(loaded) {
  * @param {object} contract - Parsed coverage map.
  * @returns {object|null} The defect, or null.
  */
-function schemaDefect(contract) {
+export function schemaDefect(contract) {
   const version = contract.schemaVersion;
   if (SUPPORTED_MAP_SCHEMA_VERSIONS.includes(version)) return null;
   return defect(
@@ -505,12 +511,13 @@ const INVALID_CODES = Object.freeze([
  * @param {object} input - Defects, report, and the parsed contract.
  * @returns {object} The internal result.
  */
-function result({ defects, report, contract }) {
+function result({ defects, report, contract, projectionInputs = null }) {
   return {
     status: statusFor({ defects, fatal: hasFatalDefect(defects), report }),
     defects,
     report,
     contract,
+    projectionInputs,
   };
 }
 
@@ -646,10 +653,31 @@ async function main() {
     return;
   }
   const options = parseArgs(process.argv.slice(2), process.env);
-  const gateRun = run(root, options);
-  const filesWritten =
-    options.write && gateRun.report ? writeArtifacts(root, gateRun.report) : 0;
-  const envelope = await sealEnvelope({ gateRun, options, filesWritten });
+  let gateRun = run(root, options);
+  let filesWritten = 0;
+  if (options.write && gateRun.report && gateRun.status !== "invalid") {
+    try {
+      filesWritten = writeFeatureArtifacts(root, gateRun.projectionInputs);
+    } catch (error) {
+      gateRun = result({
+        ...gateRun,
+        defects: [...gateRun.defects, defect("report-write", error.message)],
+      });
+    }
+  }
+  let envelope = await sealEnvelope({ gateRun, options, filesWritten });
+  try {
+    appendCiSummary(
+      { ...gateRun, status: envelope.status },
+      process.env.GITHUB_STEP_SUMMARY
+    );
+  } catch (error) {
+    gateRun = result({
+      ...gateRun,
+      defects: [...gateRun.defects, defect("ci-summary-write", error.message)],
+    });
+    envelope = await sealEnvelope({ gateRun, options, filesWritten });
+  }
   // Exactly ONE machine-readable object on stdout. `--report` is a diagnostic
   // that swaps the envelope for the detailed report; it never adds a second
   // document, because a stream carrying two shapes has no schema at all.
@@ -704,25 +732,6 @@ async function sealEnvelope({ gateRun, options, filesWritten }) {
       reason: `the result could not be sealed into a valid command envelope: ${error.message}`,
     };
   }
-}
-
-/**
- * Write the regenerated machine report and burndown.
- * @param {string} root - Repo root.
- * @param {object} report - The report.
- * @returns {number} How many files were written, for the envelope's counters.
- */
-function writeArtifacts(root, report) {
-  fs.writeFileSync(
-    path.join(root, "bdd", "coverage-report.json"),
-    `${JSON.stringify(report, null, 2)}\n`
-  );
-  fs.mkdirSync(path.join(root, "docs"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "docs", "e2e-bdd-coverage.md"),
-    `${renderBurndown(report).trim()}\n`
-  );
-  return 2;
 }
 
 /**

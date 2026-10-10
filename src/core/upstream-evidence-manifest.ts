@@ -455,9 +455,11 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/plugins/withAndroidSplashNoClientExit.js":
       "8e3cad4fcbd7e0a97b30cd2f68882740c74b690dd44473d925479ca5d3754a84",
     "expo/copy-overwrite/scripts/bdd-matrix.mjs":
-      "8611fa2329660bcb1cbffaf70091c35d49f1635c13d89b85a68fbbe7ec25e69e",
+      "70cc3e07214450b50376274629870eac8b37b16f2a0c26fc1e02bfc33aba8169",
     "expo/copy-overwrite/scripts/bdd/baseline.mjs":
       "75fc14f851792b4a77d9a9857626a0dd8e7f77574cd45bac8a54f4105163bd16",
+    "expo/copy-overwrite/scripts/bdd/ci-summary.mjs":
+      "d6f02d08aa0e72a2c44f879e4a45c30e380ccb1353ff562903640f34789a5603",
     "expo/copy-overwrite/scripts/bdd/contract.mjs":
       "7b47fd4a705aecd7c898f7fbbda4689d3fceda2dfe1bc959a06941f119d2e313",
     "expo/copy-overwrite/scripts/bdd/discover.mjs":
@@ -468,6 +470,18 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
       "eafddef7d95b88652ef46fe87f9b62176a1ca08913e13e47c5eca8cd979f29e2",
     "expo/copy-overwrite/scripts/bdd/parse.mjs":
       "46584d61812fb6684cc7a5fe4a2331d8fc486c0ed44f228b5049e2b1e6034fb8",
+    "expo/copy-overwrite/scripts/bdd/projection-model.mjs":
+      "dffce71d49d79a1a25dada9e4ec37be06e2e5800da24450f8ce8aade39667149",
+    "expo/copy-overwrite/scripts/bdd/projection-ownership.mjs":
+      "0fe1e576393fcbdffd4d24248e70ed8be68f9ef067053e043f7cf02484e9a5d9",
+    "expo/copy-overwrite/scripts/bdd/projection-paths.mjs":
+      "7c31a792ec2266f946250448d2028ea7a079bb709ced92748ebea2ee9fbeff25",
+    "expo/copy-overwrite/scripts/bdd/projection-render.mjs":
+      "daadf1da064db34ecf0307643bc1faf571aab27adbddec37029670e45766d645",
+    "expo/copy-overwrite/scripts/bdd/projection-write.mjs":
+      "b8323877c162b0fef354bb78800211b9b6a923b9c20abef3400836a5228824b7",
+    "expo/copy-overwrite/scripts/bdd/projection.mjs":
+      "867aaa8b0fa92538156c6c453d4a6266f01b302e7a82af5be680682985622161",
     "expo/copy-overwrite/scripts/bdd/render.mjs":
       "18e44366be7a46a00f91127093f94ab392813aba9cdfc8b970930fe277a7bbc4",
     "expo/copy-overwrite/scripts/bdd/report.mjs":
@@ -477,7 +491,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "expo/copy-overwrite/scripts/bdd/waivers.mjs":
       "4011bcc9643b93522d2082363a2e9de3309d92f82ec054d2988860bb7cd3d16c",
     "expo/copy-overwrite/scripts/check-bdd-coverage.mjs":
-      "2f7252fb80fc397cd3fbc5b54ca71ea02ffca1b8cd92c1f94846be8de2e65674",
+      "5b45f4d37eb2faa40870f2ab75884d914d7a08bf1cbd7fb45929f91ede1e18e2",
     "expo/copy-overwrite/scripts/check-e2e-coverage.mjs":
       "99764b136eaa7bba3b7abf78f60bc6805f8c008a9cac59c78c5eadba35cecdc7",
     "expo/copy-overwrite/scripts/check-lighthouse-details.mjs":
@@ -1109,7 +1123,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "plugins/src/base/rules/reference/base-rules.md":
       "938173f9e048a0f8e09bd825d97f2e3a3e97f03fc99037fcdae47a9bfa99f307",
     "plugins/src/base/rules/reference/bdd-e2e-coverage.md":
-      "05491cdf9b64327cd0ba8f205242128749700113a61de3c62e43e8787d1971c1",
+      "a32f44a8800403f6d4210e3a8f7e2968e79f9a1aedad911da136bcc91f7440bb",
     "plugins/src/base/rules/reference/blocker-containment.md":
       "b88a8a58cebd4dabcc130439df65b1be54a6f78a6098359e86135d267e41f096",
     "plugins/src/base/rules/reference/claim-archaeology.md":
@@ -2689,7 +2703,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "scripts/test-intent-routing.sh":
       "97b9dc86cbd805df8a7fdb8c99ffab9b8c5e751ba2e84c05420b2a124f80635d",
     "scripts/two-channel-couplings.json":
-      "c7745b28b0e5714c70d90d56f3029f88253a34d2a658c0119878e3417058c567",
+      "cfb9ac9f3fe7d0f8aad29ad49adfbf80fa4b83eea46558a046dbad6ceb2ff825",
     "scripts/update-node-version.ts":
       "9d37599ef73d5d624751f862cda330a867f6774392c1ab045b4fc885132582e4",
     "scripts/update-test-skill-paths.mjs":
@@ -3231,6 +3245,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "bdd/features/lisa-ui-demo-data.feature": true,
     "bdd/features/lisa-ui-starter-settings.feature": true,
     "bdd/features/lisa-ui-starter-sync.feature": true,
+    "bdd/reports/v1/features/bdd/features/lisa-ui-config-save.feature.json": true,
+    "bdd/reports/v1/features/bdd/features/lisa-ui-demo-data.feature.json": true,
+    "bdd/reports/v1/features/bdd/features/lisa-ui-starter-settings.feature.json": true,
+    "bdd/reports/v1/features/bdd/features/lisa-ui-starter-sync.feature.json": true,
     "bun.lock": true,
     "cdk/copy-overwrite/.github/workflows/.keep": true,
     "cdk/copy-overwrite/eslint.cdk.ts": true,
@@ -3257,6 +3275,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "docs/agentic-readiness-questionnaire.md": true,
     "docs/bdd-coverage-schema.md": true,
     "docs/bdd-scenario-matrix.md": true,
+    "docs/bdd-scenario-matrix/bdd/features/lisa-ui-config-save.feature.md": true,
+    "docs/bdd-scenario-matrix/bdd/features/lisa-ui-demo-data.feature.md": true,
+    "docs/bdd-scenario-matrix/bdd/features/lisa-ui-starter-settings.feature.md": true,
+    "docs/bdd-scenario-matrix/bdd/features/lisa-ui-starter-sync.feature.md": true,
     "docs/ci-efficiency.md": true,
     "docs/design/e2e-environment-reset-plan.md": true,
     "docs/design/e2e-wiring-contract.md": true,
@@ -3267,6 +3289,10 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "docs/design/two-channel-delivery.md": true,
     "docs/design/uat-acceptance-verification-gate.md": true,
     "docs/e2e-bdd-coverage.md": true,
+    "docs/e2e-bdd-coverage/bdd/features/lisa-ui-config-save.feature.md": true,
+    "docs/e2e-bdd-coverage/bdd/features/lisa-ui-demo-data.feature.md": true,
+    "docs/e2e-bdd-coverage/bdd/features/lisa-ui-starter-settings.feature.md": true,
+    "docs/e2e-bdd-coverage/bdd/features/lisa-ui-starter-sync.feature.md": true,
     "docs/history-evidence.md": true,
     "docs/hook-refresh.md": true,
     "docs/kane-cli-integration.md": true,
@@ -3430,11 +3456,18 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "expo/copy-overwrite/plugins/withAndroidSplashNoClientExit.js": true,
     "expo/copy-overwrite/scripts/bdd-matrix.mjs": true,
     "expo/copy-overwrite/scripts/bdd/baseline.mjs": true,
+    "expo/copy-overwrite/scripts/bdd/ci-summary.mjs": true,
     "expo/copy-overwrite/scripts/bdd/contract.mjs": true,
     "expo/copy-overwrite/scripts/bdd/discover.mjs": true,
     "expo/copy-overwrite/scripts/bdd/envelope.mjs": true,
     "expo/copy-overwrite/scripts/bdd/markdown-cell.mjs": true,
     "expo/copy-overwrite/scripts/bdd/parse.mjs": true,
+    "expo/copy-overwrite/scripts/bdd/projection-model.mjs": true,
+    "expo/copy-overwrite/scripts/bdd/projection-ownership.mjs": true,
+    "expo/copy-overwrite/scripts/bdd/projection-paths.mjs": true,
+    "expo/copy-overwrite/scripts/bdd/projection-render.mjs": true,
+    "expo/copy-overwrite/scripts/bdd/projection-write.mjs": true,
+    "expo/copy-overwrite/scripts/bdd/projection.mjs": true,
     "expo/copy-overwrite/scripts/bdd/render.mjs": true,
     "expo/copy-overwrite/scripts/bdd/report.mjs": true,
     "expo/copy-overwrite/scripts/bdd/validate.mjs": true,
@@ -10940,6 +10973,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/ast-grep-enforcement.test.ts": true,
     "tests/unit/scripts/automation-provenance.test.ts": true,
     "tests/unit/scripts/bdd-adoption.test.ts": true,
+    "tests/unit/scripts/bdd-ci-summary.test.ts": true,
     "tests/unit/scripts/bdd-deploy-chain.test.ts": true,
     "tests/unit/scripts/bdd-discovery.test.ts": true,
     "tests/unit/scripts/bdd-envelope.test.ts": true,
@@ -10953,12 +10987,17 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/unit/scripts/bdd-grammar.test.ts": true,
     "tests/unit/scripts/bdd-markdown-cell.test.ts": true,
     "tests/unit/scripts/bdd-nonregression.test.ts": true,
+    "tests/unit/scripts/bdd-projection-merge.test.ts": true,
+    "tests/unit/scripts/bdd-projection-safety.test.ts": true,
     "tests/unit/scripts/bdd-ratchet-removal.test.ts": true,
     "tests/unit/scripts/bdd-rename-hint.test.ts": true,
     "tests/unit/scripts/bdd-render.test.ts": true,
     "tests/unit/scripts/bdd-reporting.test.ts": true,
     "tests/unit/scripts/bdd-validation.test.ts": true,
     "tests/unit/scripts/bdd-wiring.test.ts": true,
+    "tests/unit/scripts/bdd-writer-admission.test.ts": true,
+    "tests/unit/scripts/bdd/projection-merge-support.ts": true,
+    "tests/unit/scripts/bdd/projection-safety-support.ts": true,
     "tests/unit/scripts/bdd/regression-support.ts": true,
     "tests/unit/scripts/bdd/sources.ts": true,
     "tests/unit/scripts/bdd/support.ts": true,

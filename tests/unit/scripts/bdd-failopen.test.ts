@@ -144,7 +144,12 @@ describe("a stale mapping stops counting as covered", () => {
     // A renamed title once wedged regeneration entirely in a fleet fork, so a
     // waiver could not be recorded until an unrelated string was repaired.
     const root = healthyProject({}, { files: { [HOME_SPEC]: STALE_SOURCE } });
-    expect(runGateWrite(root)).toContain(STALE_TITLE);
+    expect(runGateWrite(root)).toContain(HOME_EVIDENCE);
+    const report = runReport(root);
+    expect(report.gaps.map(gap => gap.scenario)).toContain(HOME_ID);
+    expect(
+      report.testInventory.undisclosed.map(item => item.evidence)
+    ).toContain(STALE_TITLE);
     expect(runGate(root).status).toBe(1);
   });
 });

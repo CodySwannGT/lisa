@@ -28,6 +28,19 @@ stops receiving upstream fixes, and nothing fails. Fix these upstream:
 
 Seeded once, never overwritten (create-only): `bdd/coverage-map.json`, `bdd/features/.keep`.
 
+The `node scripts/...` commands in generated entrypoints refer to installed
+host projects. In the Lisa monorepo, the shipped source lives in the Expo
+template directory. From this repository root, obtain the runtime aggregates
+with these commands:
+
+```sh
+BDD_COVERAGE_ROOT=. BDD_BASE_SHA="$(git merge-base HEAD origin/HEAD)" node expo/copy-overwrite/scripts/check-bdd-coverage.mjs --report
+BDD_COVERAGE_ROOT=. node expo/copy-overwrite/scripts/bdd-matrix.mjs
+```
+
+The canonical `bun run bdd:coverage:write` and `bun run bdd:matrix` writer
+commands already resolve the template paths for this monorepo.
+
 ## The five numbers, kept apart
 
 Collapsing these is how a "100% BDD coverage" headline comes to mean nothing. The
@@ -109,8 +122,10 @@ document.
 
 `--report` swaps the envelope for the full report below. It is a diagnostic, not
 the standard result, and it never prints *alongside* the envelope: a stream
-carrying two shapes has no schema at all. The same document is written to
-`bdd/coverage-report.json` by `--write`.
+carrying two shapes has no schema at all. This runtime schema3 document keeps
+all aggregate counters and enforcement results. Committed files use the
+separately versioned feature projection below; `--write` never commits the
+runtime aggregate.
 
 ```json
 {
@@ -260,17 +275,67 @@ it at all.
 
 ## A defect never wedges the artifacts that document it
 
-`--write` regenerates `bdd/coverage-report.json` and `docs/e2e-bdd-coverage.md`
-whenever a report could be built **at all**, no matter how many defects the run found.
+`--write` regenerates feature JSON, matrix and burndown leaves plus the three
+static entry points
+whenever a supported report can be built and output ownership preflight succeeds,
+no matter how many ordinary coverage defects the run found.
 The fleet hit the opposite behavior in a fork that returned no report once it had any
 error: one renamed test title made regeneration refuse to run, so a new waiver could
 not even be recorded until an unrelated string was repaired.
 
 Stale evidence remains a defect and still loses its coverage credit — it simply does
-not hold the paperwork hostage. The only runs that write nothing are the ones with no
-report to write: an absent, malformed, or unsupported coverage map.
+not hold the paperwork hostage. An absent, malformed, or unsupported coverage map
+writes nothing. Output preflight also writes nothing when it refuses unknown or
+handwritten content, unsafe paths, collisions, or symlinks, preserving that content
+for the operator to resolve.
 
 ## Compatibility policy
+
+### Committed feature projection
+
+The committed JSON leaf schema is `lisa-bdd-feature-projection-v1`. A source
+`bdd/features/account/login.feature` owns these outputs:
+
+- `bdd/reports/v1/features/bdd/features/account/login.feature.json`
+- `docs/bdd-scenario-matrix/bdd/features/account/login.feature.md`
+- `docs/e2e-bdd-coverage/bdd/features/account/login.feature.md`
+
+The complete repository-relative source path identifies a leaf; display titles
+may repeat. Leaves contain local scenario declarations, actual mapping/evidence
+validity, per-mapping execution results and applicable waiver/retirement records.
+They contain no global counts or feature membership. A waiver does not count as
+mapped coverage. Missing run evidence remains unknown; retries retain the worst
+result. Project-owned `bdd/coverage-map.json` remains the input and is never
+rewritten by a generator.
+
+`bdd/coverage-report.json` now has the distinct static descriptor schema
+`lisa-bdd-projection-index-v1`; `docs/bdd-scenario-matrix.md` and
+`docs/e2e-bdd-coverage.md` are static navigation and regeneration guidance.
+Consumers previously parsing the committed JSON as runtime schema3 must move to
+`node scripts/check-bdd-coverage.mjs --report`, or deliberately adopt the new
+per-feature schema. Reject unexpected schema versions explicitly. Global
+discovery/exclusion inventory, floor outcomes and tracker aggregation stay in
+the runtime report and the native CI job summary, calculated from the same gate
+run. The summary retains the gate's status and findings; unavailable input never
+becomes zero totals. A summary write failure is visible and fails the command.
+
+Both canonical `--write` entry points generate the same owned set. Regenerate
+with identical date/results inputs and compare the **complete path set and all
+bytes**, including removed/renamed leaves; checking only surviving files misses
+stale output. Two independent feature changes use ordinary Git merges, without
+custom merge drivers or regeneration to resolve a conflict. Concurrent edits to
+the project-owned coverage map can still conflict and require normal input
+resolution.
+
+The writer validates every planned path and existing owned output before
+mutation. Case/Unicode collisions, traversal, symlinks and unknown content at a
+desired output path refuse the write. Unknown unrelated files are preserved;
+only proven obsolete generated leaves are removed. Recognized older generated
+entry points migrate on the first write. Handwritten content is not claimed as
+generator-owned. Rollback readers use a pinned older distribution and regenerate
+its older report shape; repinning alone does not rewrite the committed descriptor.
+
+### Runtime and input compatibility
 
 Consumers pin an immutable Lisa tag or SHA (Lisa distribution policy A5); nothing
 here "reaches every repo at once".

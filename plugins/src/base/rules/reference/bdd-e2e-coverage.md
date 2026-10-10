@@ -22,8 +22,9 @@ Default locations (a project that already has an equivalent contract keeps its o
 |---|---|---|
 | Scenarios | `bdd/features/*.feature` | Gherkin, the product-level behavior contract |
 | Coverage map | `bdd/coverage-map.json` | scenario → runner/platform/file/evidence mappings, plus waivers, per-runner test-discovery roots, and exclusions |
-| Generated matrix | `docs/bdd-scenario-matrix.md` | regenerated, never hand-edited |
-| Burndown | `docs/e2e-bdd-coverage.md` | current coverage per platform |
+| Generated matrix | `docs/bdd-scenario-matrix/` | per-source-file leaves, regenerated, never hand-edited; static navigation at `docs/bdd-scenario-matrix.md` |
+| Burndown | `docs/e2e-bdd-coverage/` | per-source-file mapping gaps and waivers; static navigation at `docs/e2e-bdd-coverage.md` |
+| Feature JSON | `bdd/reports/v1/features/` | versioned local declarations/evidence; full aggregate remains in runtime `--report` and CI |
 
 ## Scenario shape
 
@@ -180,9 +181,10 @@ exclusion whose file is gone, whose title was renamed, or that no discovery root
 
 Two commands, wired into the project's script surface and into CI:
 
-1. **Regenerate** — recompute coverage from features + map, rewrite the generated matrix
-   (`docs/bdd-scenario-matrix.md`) and the burndown (`docs/e2e-bdd-coverage.md`), and refresh the
-   machine-readable report. Low coverage is reported honestly and does **not** fail this command.
+1. **Regenerate** — recompute coverage from features + map and write the feature-local matrix,
+   burndown and JSON under `docs/bdd-scenario-matrix/`, `docs/e2e-bdd-coverage/` and
+   `bdd/reports/v1/features/`. Shared entry points contain static guidance. Reportable coverage
+   defects still produce paperwork; the coverage CLI keeps its original failing exit.
 2. **Check** — the CI gate. It fails on contract defects, not on ambition:
    - a duplicate or malformed scenario ID;
    - a scenario declaring a platform with no configured runner;
@@ -197,7 +199,7 @@ Two commands, wired into the project's script surface and into CI:
    - coverage given back: an obligation mapped at the base revision that nothing maps here;
    - new behavior nobody mapped or waived.
 
-   Regeneration is never blocked by the check: `--write` rewrites the report and burndown whenever a
+   Regeneration is never blocked by a reportable coverage defect: `--write` rewrites feature reports whenever a
    report can be built at all, so a stale evidence string can never hold hostage the paperwork that
    documents it.
 
@@ -277,7 +279,7 @@ A repo with no contract yet, taking its first frontend work item:
    Pre-existing tests that align to no product behavior are recorded as `exclusions` with reasons
    during this step, never left undisclosed.
 3. **Write only this item's scenarios.** The first item is not a backfill project. Pre-existing
-   uncovered behavior becomes burndown in `docs/e2e-bdd-coverage.md`, and the floor starts where the
+   uncovered behavior becomes feature-local burndown under `docs/e2e-bdd-coverage/`, and the floor starts where the
    repo actually is. That is a one-time act, not a recurring one: from here on the floor stays put
    and what protects each new obligation is the per-obligation check, not the number.
 4. **Seal this item's obligations** and commit the regenerated matrix and burndown with the change.
