@@ -37,8 +37,10 @@ const config: ViteUserConfig = {
     {
       name: "lisa:freshness-deadline-groups",
       configureVitest({ vitest, project }) {
-        const deadlineSuite =
-          "tests/integration/enforcement-fallback-freshness-deadline.test.ts";
+        const deadlineSuites = [
+          "tests/integration/enforcement-fallback-freshness-deadline.test.ts",
+          "tests/integration/enforcement-fallback-freshness-anchor-startup.test.ts",
+        ];
         const deadlineProject = project.name === "freshness-deadline";
         if (!deadlineProject && project.name !== "lisa") return;
 
@@ -46,15 +48,19 @@ const config: ViteUserConfig = {
         // from child overrides. Use the normalized root before collection.
         /* eslint-disable functional/immutable-data -- native configuration hook assigns each resolved project's scheduling and discovery */
         project.config.include = deadlineProject
-          ? [deadlineSuite]
+          ? deadlineSuites
           : [...vitest.config.include];
         project.config.exclude = [
           ...new Set([
             ...vitest.config.exclude,
-            ...(deadlineProject ? [] : [deadlineSuite]),
+            ...(deadlineProject ? [] : deadlineSuites),
           ]),
         ];
-        project.config.maxWorkers = vitest.config.maxWorkers;
+        // Physical startup/deadline assertions keep their unscaled limits and
+        // run before the bulk suite, with no sibling test worker competing.
+        project.config.maxWorkers = deadlineProject
+          ? 1
+          : vitest.config.maxWorkers;
         project.config.sequence = {
           ...project.config.sequence,
           groupOrder: deadlineProject ? 0 : 1,

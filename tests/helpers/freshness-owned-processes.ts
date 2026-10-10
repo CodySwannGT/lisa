@@ -13,7 +13,7 @@ const CENSUS_LABEL = "birth-bound freshness fixture process census";
 const MAX_CAPTURE_BYTES = 2 * 1024 * 1024;
 
 /** Native process identity observed while under the live fixture leader. */
-interface Identity {
+export interface Identity {
   readonly pid: number;
   readonly parent: number;
   readonly group: number;
@@ -153,6 +153,7 @@ export function ownedProcesses(leader: number): {
   readonly active: () => Promise<readonly number[]>;
   readonly drain: () => Promise<void>;
   readonly captured: () => readonly number[];
+  readonly identities: () => readonly Identity[];
 } {
   const owned = new Map<number, Identity>();
   const read = sharedCensus();
@@ -211,6 +212,7 @@ export function ownedProcesses(leader: number): {
     observe,
     active: async () => (await live()).map(item => item.pid),
     captured: () => [...owned.keys()],
+    identities: () => [...owned.values()],
     drain: async () => {
       for (const group of new Set((await live()).map(item => item.group))) {
         // Re-read just before signaling, and require a live matching member.

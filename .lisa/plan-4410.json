@@ -1,0 +1,477 @@
+{
+  "work_item_ref": "CodySwannGT/lisa#4410",
+  "target": "production",
+  "base": "main",
+  "plan": "bound-anchor-startup",
+  "context": ".lisa/work-item-context.md",
+  "local_runtime_owner": "root",
+  "tasks": [
+    {
+      "title": "research",
+      "owner": "explorer",
+      "status": "complete",
+      "metadata": {
+        "acceptance_criteria": [
+          "Former second-Bash startup and native group qualification stalls cannot delay every guard.",
+          "All eight original guard entries receive unchanged payload; genuine refusal 2 and allowance 0 remain.",
+          "Incomplete diagnostics remain unknown; valid complete facts and already-noticed laziness remain.",
+          "Independent supervision preserves the existing two-second producer and one-second cleanup budgets.",
+          "Native Bash 3.2 and Linux live anchor/group ownership and ordinary descendant cleanup are proven.",
+          "Canonical/generated parity, normal quality gates, actual merge/publication/archive replay and all five typed artifacts establish completion."
+        ],
+        "relevant_documentation": [
+          "scripts/lisa-enforcement-fallback.sh",
+          "scripts/build-plugins.sh",
+          ".agents/rules/regenerating-derived-artifacts.md",
+          "tests/helpers/freshness-deadline-inputs.ts",
+          "tests/helpers/freshness-deadline-fixture.ts",
+          "tests/helpers/freshness-owned-processes.ts",
+          "README.md optional freshness setup/timer limits",
+          "Prior anonymized native design proof; prototype only, not production verification",
+          "all/copy-overwrite/scripts/lib/npm-update-helper-inventory.mjs fixed COMMON inventory excludes fallback",
+          "scripts/generate-npm-updater-helper-graph.mjs --check establishes unchanged graph",
+          "src/core/lisa-owned-hash-ledger.ts and src/core/upstream-evidence-manifest.ts depend on materialized fallback",
+          "check:plugins requires committed generated copies before reproducibility check"
+        ],
+        "testing_requirements": [
+          "New reaching real-dispatcher anchor-startup regression twice RED before production edits; identical GREEN after.",
+          "Ordinary lisa-test-run wrapper, immutable timing thresholds, real guard scripts and owned process identity observation.",
+          "Both startup variants, intact normal/refusal/allowance, unavailable machinery, failed handshake, early parent exit and lazy cases.",
+          "Native macOS and Linux separated phase timings with deliberate rejected over-budget control.",
+          "Normal commit/push/hosted checks and genuine published-package replay; no mock provider success."
+        ],
+        "skills": [
+          "lisa-implement",
+          "lisa-codify-verification",
+          "lisa-github-evidence",
+          "lisa-drive-pr-to-merge"
+        ],
+        "learnings": [],
+        "verification": {
+          "type": "cli-test",
+          "command": "bun run lisa-test-run -- --adapter vitest -- vitest run tests/integration/enforcement-fallback-freshness-anchor-startup.test.ts",
+          "expected": "Reaching RED before source correction, GREEN with every real guard and unchanged payload/state, native phase budgets and owned cleanup."
+        },
+        "required_access": [
+          "authenticated GitHub source/tracker/workflows",
+          "native macOS Bash 3.2",
+          "Node/Bun declared toolchain",
+          "owned Docker Linux runtime",
+          "public npm registry"
+        ],
+        "owner": "explorer"
+      },
+      "evidence": "Focused artifact explorer source analysis; runtime and publication remain separate."
+    },
+    {
+      "title": "reaching-red-and-canonical-fix",
+      "owner": "root",
+      "status": "in_progress",
+      "metadata": {
+        "acceptance_criteria": [
+          "Former second-Bash startup and native group qualification stalls cannot delay every guard.",
+          "All eight original guard entries receive unchanged payload; genuine refusal 2 and allowance 0 remain.",
+          "Incomplete diagnostics remain unknown; valid complete facts and already-noticed laziness remain.",
+          "Independent supervision preserves the existing two-second producer and one-second cleanup budgets.",
+          "Native Bash 3.2 and Linux live anchor/group ownership and ordinary descendant cleanup are proven.",
+          "Canonical/generated parity, normal quality gates, actual merge/publication/archive replay and all five typed artifacts establish completion."
+        ],
+        "relevant_documentation": [
+          "scripts/lisa-enforcement-fallback.sh",
+          "scripts/build-plugins.sh",
+          ".agents/rules/regenerating-derived-artifacts.md",
+          "tests/helpers/freshness-deadline-inputs.ts",
+          "tests/helpers/freshness-deadline-fixture.ts",
+          "tests/helpers/freshness-owned-processes.ts",
+          "README.md optional freshness setup/timer limits",
+          "Prior anonymized native design proof; prototype only, not production verification"
+        ],
+        "testing_requirements": [
+          "New reaching real-dispatcher anchor-startup regression twice RED before production edits; identical GREEN after.",
+          "Ordinary lisa-test-run wrapper, immutable timing thresholds, real guard scripts and owned process identity observation.",
+          "Both startup variants, intact normal/refusal/allowance, unavailable machinery, failed handshake, early parent exit and lazy cases.",
+          "Native macOS and Linux separated phase timings with deliberate rejected over-budget control.",
+          "Normal commit/push/hosted checks and genuine published-package replay; no mock provider success."
+        ],
+        "skills": [
+          "lisa-implement",
+          "lisa-codify-verification",
+          "lisa-github-evidence",
+          "lisa-drive-pr-to-merge"
+        ],
+        "learnings": [],
+        "verification": {
+          "type": "cli-test",
+          "command": "bun run lisa-test-run -- --adapter vitest -- vitest run tests/integration/enforcement-fallback-freshness-anchor-startup.test.ts",
+          "expected": "Reaching RED before source correction, GREEN with every real guard and unchanged payload/state, native phase budgets and owned cleanup."
+        },
+        "required_access": [
+          "authenticated GitHub source/tracker/workflows",
+          "native macOS Bash 3.2",
+          "Node/Bun declared toolchain",
+          "owned Docker Linux runtime",
+          "public npm registry"
+        ],
+        "owner": "root"
+      }
+    },
+    {
+      "title": "quality-review",
+      "owner": "lisa-quality-specialist",
+      "status": "pending",
+      "metadata": {
+        "acceptance_criteria": [
+          "Former second-Bash startup and native group qualification stalls cannot delay every guard.",
+          "All eight original guard entries receive unchanged payload; genuine refusal 2 and allowance 0 remain.",
+          "Incomplete diagnostics remain unknown; valid complete facts and already-noticed laziness remain.",
+          "Independent supervision preserves the existing two-second producer and one-second cleanup budgets.",
+          "Native Bash 3.2 and Linux live anchor/group ownership and ordinary descendant cleanup are proven.",
+          "Canonical/generated parity, normal quality gates, actual merge/publication/archive replay and all five typed artifacts establish completion."
+        ],
+        "relevant_documentation": [
+          "scripts/lisa-enforcement-fallback.sh",
+          "scripts/build-plugins.sh",
+          ".agents/rules/regenerating-derived-artifacts.md",
+          "tests/helpers/freshness-deadline-inputs.ts",
+          "tests/helpers/freshness-deadline-fixture.ts",
+          "tests/helpers/freshness-owned-processes.ts",
+          "README.md optional freshness setup/timer limits",
+          "Prior anonymized native design proof; prototype only, not production verification"
+        ],
+        "testing_requirements": [
+          "New reaching real-dispatcher anchor-startup regression twice RED before production edits; identical GREEN after.",
+          "Ordinary lisa-test-run wrapper, immutable timing thresholds, real guard scripts and owned process identity observation.",
+          "Both startup variants, intact normal/refusal/allowance, unavailable machinery, failed handshake, early parent exit and lazy cases.",
+          "Native macOS and Linux separated phase timings with deliberate rejected over-budget control.",
+          "Normal commit/push/hosted checks and genuine published-package replay; no mock provider success."
+        ],
+        "skills": [
+          "lisa-implement",
+          "lisa-codify-verification",
+          "lisa-github-evidence",
+          "lisa-drive-pr-to-merge"
+        ],
+        "learnings": [],
+        "verification": {
+          "type": "cli-test",
+          "command": "bun run lisa-test-run -- --adapter vitest -- vitest run tests/integration/enforcement-fallback-freshness-anchor-startup.test.ts",
+          "expected": "Reaching RED before source correction, GREEN with every real guard and unchanged payload/state, native phase budgets and owned cleanup."
+        },
+        "required_access": [
+          "authenticated GitHub source/tracker/workflows",
+          "native macOS Bash 3.2",
+          "Node/Bun declared toolchain",
+          "owned Docker Linux runtime",
+          "public npm registry"
+        ],
+        "owner": "lisa-quality-specialist"
+      }
+    },
+    {
+      "title": "ownership-security-review",
+      "owner": "lisa-security-specialist",
+      "status": "pending",
+      "metadata": {
+        "acceptance_criteria": [
+          "Former second-Bash startup and native group qualification stalls cannot delay every guard.",
+          "All eight original guard entries receive unchanged payload; genuine refusal 2 and allowance 0 remain.",
+          "Incomplete diagnostics remain unknown; valid complete facts and already-noticed laziness remain.",
+          "Independent supervision preserves the existing two-second producer and one-second cleanup budgets.",
+          "Native Bash 3.2 and Linux live anchor/group ownership and ordinary descendant cleanup are proven.",
+          "Canonical/generated parity, normal quality gates, actual merge/publication/archive replay and all five typed artifacts establish completion."
+        ],
+        "relevant_documentation": [
+          "scripts/lisa-enforcement-fallback.sh",
+          "scripts/build-plugins.sh",
+          ".agents/rules/regenerating-derived-artifacts.md",
+          "tests/helpers/freshness-deadline-inputs.ts",
+          "tests/helpers/freshness-deadline-fixture.ts",
+          "tests/helpers/freshness-owned-processes.ts",
+          "README.md optional freshness setup/timer limits",
+          "Prior anonymized native design proof; prototype only, not production verification"
+        ],
+        "testing_requirements": [
+          "New reaching real-dispatcher anchor-startup regression twice RED before production edits; identical GREEN after.",
+          "Ordinary lisa-test-run wrapper, immutable timing thresholds, real guard scripts and owned process identity observation.",
+          "Both startup variants, intact normal/refusal/allowance, unavailable machinery, failed handshake, early parent exit and lazy cases.",
+          "Native macOS and Linux separated phase timings with deliberate rejected over-budget control.",
+          "Normal commit/push/hosted checks and genuine published-package replay; no mock provider success."
+        ],
+        "skills": [
+          "lisa-implement",
+          "lisa-codify-verification",
+          "lisa-github-evidence",
+          "lisa-drive-pr-to-merge"
+        ],
+        "learnings": [],
+        "verification": {
+          "type": "cli-test",
+          "command": "bun run lisa-test-run -- --adapter vitest -- vitest run tests/integration/enforcement-fallback-freshness-anchor-startup.test.ts",
+          "expected": "Reaching RED before source correction, GREEN with every real guard and unchanged payload/state, native phase budgets and owned cleanup."
+        },
+        "required_access": [
+          "authenticated GitHub source/tracker/workflows",
+          "native macOS Bash 3.2",
+          "Node/Bun declared toolchain",
+          "owned Docker Linux runtime",
+          "public npm registry"
+        ],
+        "owner": "lisa-security-specialist"
+      }
+    },
+    {
+      "title": "native-and-published-verification",
+      "owner": "lisa-verification-specialist",
+      "status": "pending",
+      "metadata": {
+        "acceptance_criteria": [
+          "Former second-Bash startup and native group qualification stalls cannot delay every guard.",
+          "All eight original guard entries receive unchanged payload; genuine refusal 2 and allowance 0 remain.",
+          "Incomplete diagnostics remain unknown; valid complete facts and already-noticed laziness remain.",
+          "Independent supervision preserves the existing two-second producer and one-second cleanup budgets.",
+          "Native Bash 3.2 and Linux live anchor/group ownership and ordinary descendant cleanup are proven.",
+          "Canonical/generated parity, normal quality gates, actual merge/publication/archive replay and all five typed artifacts establish completion."
+        ],
+        "relevant_documentation": [
+          "scripts/lisa-enforcement-fallback.sh",
+          "scripts/build-plugins.sh",
+          ".agents/rules/regenerating-derived-artifacts.md",
+          "tests/helpers/freshness-deadline-inputs.ts",
+          "tests/helpers/freshness-deadline-fixture.ts",
+          "tests/helpers/freshness-owned-processes.ts",
+          "README.md optional freshness setup/timer limits",
+          "Prior anonymized native design proof; prototype only, not production verification"
+        ],
+        "testing_requirements": [
+          "New reaching real-dispatcher anchor-startup regression twice RED before production edits; identical GREEN after.",
+          "Ordinary lisa-test-run wrapper, immutable timing thresholds, real guard scripts and owned process identity observation.",
+          "Both startup variants, intact normal/refusal/allowance, unavailable machinery, failed handshake, early parent exit and lazy cases.",
+          "Native macOS and Linux separated phase timings with deliberate rejected over-budget control.",
+          "Normal commit/push/hosted checks and genuine published-package replay; no mock provider success."
+        ],
+        "skills": [
+          "lisa-implement",
+          "lisa-codify-verification",
+          "lisa-github-evidence",
+          "lisa-drive-pr-to-merge"
+        ],
+        "learnings": [],
+        "verification": {
+          "type": "cli-test",
+          "command": "bun run lisa-test-run -- --adapter vitest -- vitest run tests/integration/enforcement-fallback-freshness-anchor-startup.test.ts",
+          "expected": "Reaching RED before source correction, GREEN with every real guard and unchanged payload/state, native phase budgets and owned cleanup."
+        },
+        "required_access": [
+          "authenticated GitHub source/tracker/workflows",
+          "native macOS Bash 3.2",
+          "Node/Bun declared toolchain",
+          "owned Docker Linux runtime",
+          "public npm registry"
+        ],
+        "owner": "lisa-verification-specialist"
+      }
+    },
+    {
+      "title": "all-requirement-audit",
+      "owner": "lisa-spec-conformance-specialist",
+      "status": "pending",
+      "metadata": {
+        "acceptance_criteria": [
+          "Former second-Bash startup and native group qualification stalls cannot delay every guard.",
+          "All eight original guard entries receive unchanged payload; genuine refusal 2 and allowance 0 remain.",
+          "Incomplete diagnostics remain unknown; valid complete facts and already-noticed laziness remain.",
+          "Independent supervision preserves the existing two-second producer and one-second cleanup budgets.",
+          "Native Bash 3.2 and Linux live anchor/group ownership and ordinary descendant cleanup are proven.",
+          "Canonical/generated parity, normal quality gates, actual merge/publication/archive replay and all five typed artifacts establish completion."
+        ],
+        "relevant_documentation": [
+          "scripts/lisa-enforcement-fallback.sh",
+          "scripts/build-plugins.sh",
+          ".agents/rules/regenerating-derived-artifacts.md",
+          "tests/helpers/freshness-deadline-inputs.ts",
+          "tests/helpers/freshness-deadline-fixture.ts",
+          "tests/helpers/freshness-owned-processes.ts",
+          "README.md optional freshness setup/timer limits",
+          "Prior anonymized native design proof; prototype only, not production verification"
+        ],
+        "testing_requirements": [
+          "New reaching real-dispatcher anchor-startup regression twice RED before production edits; identical GREEN after.",
+          "Ordinary lisa-test-run wrapper, immutable timing thresholds, real guard scripts and owned process identity observation.",
+          "Both startup variants, intact normal/refusal/allowance, unavailable machinery, failed handshake, early parent exit and lazy cases.",
+          "Native macOS and Linux separated phase timings with deliberate rejected over-budget control.",
+          "Normal commit/push/hosted checks and genuine published-package replay; no mock provider success."
+        ],
+        "skills": [
+          "lisa-implement",
+          "lisa-codify-verification",
+          "lisa-github-evidence",
+          "lisa-drive-pr-to-merge"
+        ],
+        "learnings": [],
+        "verification": {
+          "type": "cli-test",
+          "command": "bun run lisa-test-run -- --adapter vitest -- vitest run tests/integration/enforcement-fallback-freshness-anchor-startup.test.ts",
+          "expected": "Reaching RED before source correction, GREEN with every real guard and unchanged payload/state, native phase budgets and owned cleanup."
+        },
+        "required_access": [
+          "authenticated GitHub source/tracker/workflows",
+          "native macOS Bash 3.2",
+          "Node/Bun declared toolchain",
+          "owned Docker Linux runtime",
+          "public npm registry"
+        ],
+        "owner": "lisa-spec-conformance-specialist"
+      }
+    },
+    {
+      "title": "judged-learning-capture",
+      "owner": "lisa-learner",
+      "status": "pending",
+      "metadata": {
+        "acceptance_criteria": [
+          "Former second-Bash startup and native group qualification stalls cannot delay every guard.",
+          "All eight original guard entries receive unchanged payload; genuine refusal 2 and allowance 0 remain.",
+          "Incomplete diagnostics remain unknown; valid complete facts and already-noticed laziness remain.",
+          "Independent supervision preserves the existing two-second producer and one-second cleanup budgets.",
+          "Native Bash 3.2 and Linux live anchor/group ownership and ordinary descendant cleanup are proven.",
+          "Canonical/generated parity, normal quality gates, actual merge/publication/archive replay and all five typed artifacts establish completion."
+        ],
+        "relevant_documentation": [
+          "scripts/lisa-enforcement-fallback.sh",
+          "scripts/build-plugins.sh",
+          ".agents/rules/regenerating-derived-artifacts.md",
+          "tests/helpers/freshness-deadline-inputs.ts",
+          "tests/helpers/freshness-deadline-fixture.ts",
+          "tests/helpers/freshness-owned-processes.ts",
+          "README.md optional freshness setup/timer limits",
+          "Prior anonymized native design proof; prototype only, not production verification"
+        ],
+        "testing_requirements": [
+          "New reaching real-dispatcher anchor-startup regression twice RED before production edits; identical GREEN after.",
+          "Ordinary lisa-test-run wrapper, immutable timing thresholds, real guard scripts and owned process identity observation.",
+          "Both startup variants, intact normal/refusal/allowance, unavailable machinery, failed handshake, early parent exit and lazy cases.",
+          "Native macOS and Linux separated phase timings with deliberate rejected over-budget control.",
+          "Normal commit/push/hosted checks and genuine published-package replay; no mock provider success."
+        ],
+        "skills": [
+          "lisa-implement",
+          "lisa-codify-verification",
+          "lisa-github-evidence",
+          "lisa-drive-pr-to-merge"
+        ],
+        "learnings": [],
+        "verification": {
+          "type": "cli-test",
+          "command": "bun run lisa-test-run -- --adapter vitest -- vitest run tests/integration/enforcement-fallback-freshness-anchor-startup.test.ts",
+          "expected": "Reaching RED before source correction, GREEN with every real guard and unchanged payload/state, native phase budgets and owned cleanup."
+        },
+        "required_access": [
+          "authenticated GitHub source/tracker/workflows",
+          "native macOS Bash 3.2",
+          "Node/Bun declared toolchain",
+          "owned Docker Linux runtime",
+          "public npm registry"
+        ],
+        "owner": "lisa-learner"
+      }
+    },
+    {
+      "title": "normal-pr-release-and-closeout",
+      "owner": "root",
+      "status": "pending",
+      "metadata": {
+        "acceptance_criteria": [
+          "Former second-Bash startup and native group qualification stalls cannot delay every guard.",
+          "All eight original guard entries receive unchanged payload; genuine refusal 2 and allowance 0 remain.",
+          "Incomplete diagnostics remain unknown; valid complete facts and already-noticed laziness remain.",
+          "Independent supervision preserves the existing two-second producer and one-second cleanup budgets.",
+          "Native Bash 3.2 and Linux live anchor/group ownership and ordinary descendant cleanup are proven.",
+          "Canonical/generated parity, normal quality gates, actual merge/publication/archive replay and all five typed artifacts establish completion."
+        ],
+        "relevant_documentation": [
+          "scripts/lisa-enforcement-fallback.sh",
+          "scripts/build-plugins.sh",
+          ".agents/rules/regenerating-derived-artifacts.md",
+          "tests/helpers/freshness-deadline-inputs.ts",
+          "tests/helpers/freshness-deadline-fixture.ts",
+          "tests/helpers/freshness-owned-processes.ts",
+          "README.md optional freshness setup/timer limits",
+          "Prior anonymized native design proof; prototype only, not production verification"
+        ],
+        "testing_requirements": [
+          "New reaching real-dispatcher anchor-startup regression twice RED before production edits; identical GREEN after.",
+          "Ordinary lisa-test-run wrapper, immutable timing thresholds, real guard scripts and owned process identity observation.",
+          "Both startup variants, intact normal/refusal/allowance, unavailable machinery, failed handshake, early parent exit and lazy cases.",
+          "Native macOS and Linux separated phase timings with deliberate rejected over-budget control.",
+          "Normal commit/push/hosted checks and genuine published-package replay; no mock provider success."
+        ],
+        "skills": [
+          "lisa-implement",
+          "lisa-codify-verification",
+          "lisa-github-evidence",
+          "lisa-drive-pr-to-merge"
+        ],
+        "learnings": [],
+        "verification": {
+          "type": "cli-test",
+          "command": "bun run lisa-test-run -- --adapter vitest -- vitest run tests/integration/enforcement-fallback-freshness-anchor-startup.test.ts",
+          "expected": "Reaching RED before source correction, GREEN with every real guard and unchanged payload/state, native phase budgets and owned cleanup."
+        },
+        "required_access": [
+          "authenticated GitHub source/tracker/workflows",
+          "native macOS Bash 3.2",
+          "Node/Bun declared toolchain",
+          "owned Docker Linux runtime",
+          "public npm registry"
+        ],
+        "owner": "root"
+      }
+    }
+  ],
+  "metadata": {
+    "acceptance_criteria": [
+      "Former second-Bash startup and native group qualification stalls cannot delay every guard.",
+      "All eight original guard entries receive unchanged payload; genuine refusal 2 and allowance 0 remain.",
+      "Incomplete diagnostics remain unknown; valid complete facts and already-noticed laziness remain.",
+      "Independent supervision preserves the existing two-second producer and one-second cleanup budgets.",
+      "Native Bash 3.2 and Linux live anchor/group ownership and ordinary descendant cleanup are proven.",
+      "Canonical/generated parity, normal quality gates, actual merge/publication/archive replay and all five typed artifacts establish completion."
+    ],
+    "relevant_documentation": [
+      "scripts/lisa-enforcement-fallback.sh",
+      "scripts/build-plugins.sh",
+      ".agents/rules/regenerating-derived-artifacts.md",
+      "tests/helpers/freshness-deadline-inputs.ts",
+      "tests/helpers/freshness-deadline-fixture.ts",
+      "tests/helpers/freshness-owned-processes.ts",
+      "README.md optional freshness setup/timer limits",
+      "Prior anonymized native design proof; prototype only, not production verification"
+    ],
+    "testing_requirements": [
+      "New reaching real-dispatcher anchor-startup regression twice RED before production edits; identical GREEN after.",
+      "Ordinary lisa-test-run wrapper, immutable timing thresholds, real guard scripts and owned process identity observation.",
+      "Both startup variants, intact normal/refusal/allowance, unavailable machinery, failed handshake, early parent exit and lazy cases.",
+      "Native macOS and Linux separated phase timings with deliberate rejected over-budget control.",
+      "Normal commit/push/hosted checks and genuine published-package replay; no mock provider success."
+    ],
+    "skills": [
+      "lisa-implement",
+      "lisa-codify-verification",
+      "lisa-github-evidence",
+      "lisa-drive-pr-to-merge"
+    ],
+    "learnings": [],
+    "verification": {
+      "type": "cli-test",
+      "command": "bun run lisa-test-run -- --adapter vitest -- vitest run tests/integration/enforcement-fallback-freshness-anchor-startup.test.ts",
+      "expected": "Reaching RED before source correction, GREEN with every real guard and unchanged payload/state, native phase budgets and owned cleanup."
+    },
+    "required_access": [
+      "authenticated GitHub source/tracker/workflows",
+      "native macOS Bash 3.2",
+      "Node/Bun declared toolchain",
+      "owned Docker Linux runtime",
+      "public npm registry"
+    ]
+  }
+}

@@ -211,15 +211,15 @@ note_version() {
 
 plugin_tree_version=""
 
-# Node cannot supervise its own stalled startup. Bash owns a live group anchor
-# and an independent builtin-read timer instead. The real child Bash has its own
-# $$, waits for group qualification before starting Node, and drains its OWN
-# group. No remembered PID receives a later external signal. Its live anchor
-# pins the group even after Node returns, until all descendants are terminated.
+# Node cannot supervise its own stalled startup. A directly forked Bash job owns
+# a live group anchor and an independent builtin-read timer. No second Bash is
+# exec'd, so its BASH_ENV and native ps startup cannot precede that timer. The
+# parent passes only its fresh live job identity through a private FIFO; the
+# child qualifies that group before Node starts and drains its OWN group while
+# its anchor still pins the identity. No later external numeric signal is used.
 # Only this optional subprocess is bounded; enforcement below is unchanged.
 run_optional_freshness() (
-  command -v mkfifo >/dev/null 2>&1 && command -v ps >/dev/null 2>&1 || exit 1
-  ps -o pid= -p "$$" >/dev/null 2>&1 || exit 1
+  command -v mkfifo >/dev/null 2>&1 || exit 1
   # Bash 3.2 unwinds function locals before EXIT on an explicit exit inside
   # command substitution. This function already isolates all state in a subshell.
   scratch="" anchor="" scratch_identity="" current_identity="" helper_status=1
@@ -248,32 +248,38 @@ run_optional_freshness() (
   trap 'exit 1' HUP INT TERM
   mkfifo "$scratch/start" "$scratch/done" || exit 1
   exec 8<>"$scratch/start" 9<>"$scratch/done" || exit 1
-  set -m
-  /bin/bash -c '
-    set +m
-    scratch="$1"
-    shift
-    # This live anchor qualifies its own group before launching any Node work.
-    # Native qualification must not race a separate parent/start countdown.
-    [ "$(ps -o pgid= -p "$$" 2>/dev/null | tr -d " ")" = "$$" ] || exit 1
+  builtin set -m
+  (
+    # A fork inherits the parent's traps and $$ on Bash 3.2. Reset the traps,
+    # and never mistake inherited $$ for this fresh job's process-group identity.
+    builtin trap - EXIT HUP INT TERM
+    builtin set +m
+    builtin read -r -t 1 -u 8 admission || exit 1
+    case "$admission" in anchor:*) group="${admission#anchor:}" ;; *) exit 1 ;; esac
+    case "$group" in ''|*[!0-9]*|0*) exit 1 ;; esac
+    # Bash can continue after a setpgid failure. Job-table admission alone is
+    # insufficient: require the fresh group to exist before work or signaling.
+    builtin kill -0 -- -"$group" 2>/dev/null || exit 1
     (
       node "$@" </dev/null >"$scratch/output" 2>/dev/null
-      printf "%s\n" "$?" >"$scratch/status"
-      printf "done\n" >&9
+      builtin printf "%s\n" "$?" >"$scratch/status"
+      builtin printf "done\n" >&9
     ) &
     # Bash 3.2 accepts integer timeouts. One second leaves headroom beneath
     # the two-second diagnostic ceiling without delaying real enforcement.
-    if read -r -t 1 -u 9 done && [ "$done" = done ]; then
-      printf "complete\n" >"$scratch/complete"
-      # Parent acceptance or its bounded absence both terminate the group.
-      read -r -t 1 -u 8 stop || true
+    if builtin read -r -t 1 -u 9 done && [ "$done" = done ]; then
+      builtin printf "complete\n" >"$scratch/complete"
+      builtin read -r -t 1 -u 8 stop || true
     fi
-    kill -KILL -- -"$$"
-  ' lisa-freshness "$scratch" "$@" &
+    builtin kill -KILL -- -"$group"
+  ) &
   anchor=$!
-  while [ ! -f "$scratch/status" ] && [ "$(jobs -pr)" = "$anchor" ]; do sleep 0.01; done
-  printf 'stop\n' >&8
-  wait "$anchor" 2>/dev/null || true
+  if [ "$(builtin jobs -pr)" = "$anchor" ]; then
+    # Preauthorize termination only after the helper finishes. This removes
+    # parent polling and external sleep startup without accepting partial facts.
+    builtin printf 'anchor:%s\nstop\n' "$anchor" >&8
+  fi
+  builtin wait "$anchor" 2>/dev/null || true
   anchor=""
   [ -f "$scratch/complete" ] && [ -f "$scratch/status" ] || exit 1
   read -r helper_status <"$scratch/status"
