@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.74.3](https://github.com/CodySwannGT/lisa/compare/v4.74.2...v4.74.3) (2026-10-10)
+
+
+### Bug Fixes
+
+* **ci:** refuse stale deployment retries ([3d1749c](https://github.com/CodySwannGT/lisa/commit/3d1749c06e9067919bce14aa85528e641b48354e)), closes [#4351](https://github.com/CodySwannGT/lisa/issues/4351)
+
 ### [4.74.2](https://github.com/CodySwannGT/lisa/compare/v4.74.1...v4.74.2) (2026-10-10)
 
 
