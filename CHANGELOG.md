@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.73.8](https://github.com/CodySwannGT/lisa/compare/v4.73.7...v4.73.8) (2026-10-10)
+
+
+### Bug Fixes
+
+* allow bounded npm allocation checkpoint transport ([78d7c5d](https://github.com/CodySwannGT/lisa/commit/78d7c5da32ecda6d397544efb66de483950ea777)), closes [CodySwannGT/lisa#4347](https://github.com/CodySwannGT/lisa/issues/4347)
+
 ### [4.73.7](https://github.com/CodySwannGT/lisa/compare/v4.73.6...v4.73.7) (2026-10-10)
 
 
