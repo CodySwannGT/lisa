@@ -1,5 +1,9 @@
 # Roster Decision: CodySwannGT/lisa#4347
 
+## Canonical context read scope followup — 2026-10-10
+
+The input resolver reused the original claim and attached `codex/4347-canonical-context-fix` at actual main `fb7ed7c4d51c760b1855d4a68321a96ec0daf050`. The source now declares Node 24.21.0 and Bun 1.3.8; use that profile for source verification. The existing builder owns only the gate's reusable workflow permission declaration and its focused regression expectation, after root supplies the actual hosted read comparison. It may prepare the regression before that result, but must not infer the failure cause or change production permissions from the phase label alone. The existing independent verification specialist reviews the source change and hosted evidence separately. Root owns normal hooks, public anonymous tracker evidence, release qualification and external delivery. Preserve the six original acceptance scenarios and all authority, freshness, request and execution boundaries. This is a bounded fix within the current leaf, not another automation framework.
+
 ## Hosted provenance diagnostic followup
 
 The bounded input resolver refreshed the complete canonical context, reused the sole claim, and verified the binding on `codex/4347-gate-auth-diagnostics` at the published main. The existing exhaustive type catalogue remains applicable, with these current assignments taking precedence. Inclusion does not grant provider or delivery authority to a worker.
@@ -444,3 +448,7 @@ The genuine whole 89-case suite passed on the corrected test bytes with no skipp
 ## Hosted allocation deadline followup ownership
 
 The existing team is retained. ROOT owns the allocation-only workflow budget repair and declared plan metadata. The input resolver owns the reused live claim, worktree-local binding and ignored canonical context. Independent quality, conformance and local source/security reviewers own read-only review after implementation; their review tasks precede any feedback edit or commit. ROOT owns the serialized runtime lane, official generation, normal delivery and genuine hosted acceptance. No new team, leaf, session runtime, automation trigger or relaxed authorization is introduced. #4347 remains active until its original acceptance is complete.
+
+## Parallel permission candidate preparation — 2026-10-10
+
+Root admits the existing builder to prepare and run RED/GREEN for the two already assigned paths while the anonymous opted-in host completes its ordinary test run. This is a reversible candidate: the missing pull-request read scope is still a hypothesis. The builder may add only that read permission and its existing exact permission regression, with no other privileges, source changes or provider writes. Root owns derived artifacts, commits, publication and review. No candidate merge or cause claim is admitted until the actual hosted comparison discriminates the failure and establishes the fix. This amendment replaces the earlier requirement to await that result before any local candidate edit, preserving the requirement to prove it before delivery.
