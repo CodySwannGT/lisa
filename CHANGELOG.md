@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.73.7](https://github.com/CodySwannGT/lisa/compare/v4.73.6...v4.73.7) (2026-10-10)
+
+
+### Bug Fixes
+
+* clarify conditional anchor cleanup documentation ([79e8702](https://github.com/CodySwannGT/lisa/commit/79e87026a9b2774ce77aff0fd10848b60269e942)), closes [CodySwannGT/lisa#4414](https://github.com/CodySwannGT/lisa/issues/4414)
+* document managed freshness helper contracts ([158c040](https://github.com/CodySwannGT/lisa/commit/158c040308f717cfe6b4a49e9b22d45fdf50b290)), closes [CodySwannGT/lisa#4414](https://github.com/CodySwannGT/lisa/issues/4414)
+
 ### [4.73.6](https://github.com/CodySwannGT/lisa/compare/v4.73.5...v4.73.6) (2026-10-10)
 
 
