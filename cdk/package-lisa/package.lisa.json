@@ -60,7 +60,7 @@
       "yarn": "please-use-npm",
       "pnpm": "please-use-npm",
       "bun": "please-use-npm",
-      "node": "22.23.3"
+      "node": "24.21.0"
     },
     "scripts": {
       "lint": "$npm_execpath run lint:lisa",

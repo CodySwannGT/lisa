@@ -19,6 +19,7 @@ import {
   PREEXISTING_CONTINUE_ON_ERROR,
   QUALITY_YML,
   WORKFLOW_FILES,
+  expectedGateRun,
   jobIn,
   resolveStep,
   source,
@@ -113,14 +114,14 @@ describe("quality.yml gate façade", () => {
         expect(step?.env?.GATE_TASK).toBe("${{ steps.gate.outputs.task }}");
         // Unit tests also carry a progress timer. Keep their command as one
         // literal invocation and reject interpolation anywhere in the body.
+        // Integration names Lisa's evidence without changing consumer argv.
         // Every other primary gate still has the single-command exact body.
         if (job === "test_unit") {
-          expect(
-            step?.run?.match(/^\( \$GATE_RUNNER \$GATE_TASK \)$/gm)
-          ).toHaveLength(1);
+          const runs = step?.run?.match(/^\( \$GATE_RUNNER \$GATE_TASK \)$/gm);
+          expect(runs).toHaveLength(1);
           expect(step?.run).not.toContain("${{");
         } else {
-          expect(step?.run?.trim()).toBe("$GATE_RUNNER $GATE_TASK");
+          expect(step?.run?.trim()).toBe(expectedGateRun(job));
         }
       }
     );

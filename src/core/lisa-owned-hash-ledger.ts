@@ -12,6 +12,12 @@
 export const LISA_OWNED_HASH_LEDGER: Readonly<
   Record<string, readonly string[]>
 > = Object.freeze({
+  ".nvmrc": Object.freeze([
+    "0775c6feb7638122e8b68d611cd709bf270f7b5adb5d0d2baa9afab8a6c0fc42",
+    "5f8c52a9e86a47799ed18c8f9d1e34580cbd81a1a3c9664ebd2443fa50dd198b",
+    "6d07ac247e81cd42c2c20abf8dfe504413d6b2422e4aba9b2c975a776f155921",
+    "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
+  ]),
   "scripts/bdd-matrix.mjs": Object.freeze([
     "4173a1c18d34285ab645314e0a99944f8baa02ae2632264b850c727347c8a836",
     "519273668f08db7c14053ba1f25830e4cbb6e34ddf11f06264e72d0f7a80b98d",
@@ -2048,6 +2054,12 @@ export const LISA_OWNED_HASH_LEDGER: Readonly<
 export const LISA_OWNED_HASH_HISTORY_DERIVED: Readonly<
   Record<string, readonly string[]>
 > = Object.freeze({
+  ".nvmrc": Object.freeze([
+    "0775c6feb7638122e8b68d611cd709bf270f7b5adb5d0d2baa9afab8a6c0fc42",
+    "5f8c52a9e86a47799ed18c8f9d1e34580cbd81a1a3c9664ebd2443fa50dd198b",
+    "6d07ac247e81cd42c2c20abf8dfe504413d6b2422e4aba9b2c975a776f155921",
+    "73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f",
+  ]),
   "scripts/bdd-matrix.mjs": Object.freeze([
     "4173a1c18d34285ab645314e0a99944f8baa02ae2632264b850c727347c8a836",
     "519273668f08db7c14053ba1f25830e4cbb6e34ddf11f06264e72d0f7a80b98d",

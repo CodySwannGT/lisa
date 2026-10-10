@@ -13,8 +13,8 @@
  * the vulnerable guard, until someone deleted the files by hand so the create
  * path would recreate them.
  *
- * Ownership is recognised two ways, and the second exists because the first was
- * not enough on its own.
+ * Ownership is recognised by the reserved namespace, enforcement tree and the
+ * exact root runtime-policy destination described below.
  *
  * The original marker is the `lisa-` namespace in the path. Lisa names much of
  * what it owns outright that way — `lisa-hooks/`, `lisa-enforcement-fallback.sh`,
@@ -57,6 +57,13 @@
  * A project that genuinely wants to hold its own version of one of these still
  * can: `.lisaignore` is filtered before any strategy runs, and an ignored path
  * is never a candidate here.
+ *
+ * `.nvmrc` is the third, narrowly named owner: its bare version cannot carry a
+ * management header, and a known older Lisa baseline must take the runtime
+ * upgrade. Only that exact root-relative destination is included; nested or
+ * similarly named host files are not. Its historical/current hashes enrol in
+ * the same ledger, so unknown custom bytes remain protected. Explicit engines
+ * and create-only workflow inputs retain their existing ownership semantics.
  * @module core/lisa-owned-templates
  */
 
@@ -66,6 +73,9 @@ const LISA_NAMESPACE_PREFIX = "lisa-";
 /** The tree Lisa installs enforcement gates and their machinery into. */
 const ENFORCEMENT_TREE = "scripts/";
 
+/** Managed runtime baseline; explicit host opt-out remains .lisaignore. */
+const MANAGED_NODE_VERSION = ".nvmrc";
+
 /**
  * Whether a managed file is Lisa's own artifact rather than shared host content.
  * @param relativePath - Repo-relative destination path of the managed file
@@ -74,6 +84,7 @@ const ENFORCEMENT_TREE = "scripts/";
 export function isLisaOwnedTemplate(relativePath: string): boolean {
   const normalised = relativePath.replaceAll("\\", "/");
   return (
+    normalised === MANAGED_NODE_VERSION ||
     normalised.startsWith(ENFORCEMENT_TREE) ||
     normalised
       .split("/")

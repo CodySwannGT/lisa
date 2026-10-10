@@ -22,6 +22,15 @@ import * as path from "node:path";
 // Literals named once — each was repeated enough times that a typo in one
 // copy would diverge silently.
 const VERSION_REPLACEMENT = "$1{{version}}$2";
+const PRESERVE_RUNTIME_MARKER = "lisa-preserve-node-version:";
+
+// These workflows execute a separately qualified, hash-bound updater runtime.
+// Their Node22 identities cannot advance with host defaults without a complete
+// updater requalification (CodySwannGT/lisa#4367).
+const QUALIFIED_UPDATER_WORKFLOWS = new Set([
+  ".github/workflows/npm-updater.yml",
+  ".github/workflows/npm-updater-runtime-qualification.yml",
+]);
 
 const PROJECT_ROOT = path.resolve(import.meta.dirname, "..");
 
@@ -74,6 +83,7 @@ function filesToUpdate(): readonly string[] {
     encoding: "utf8",
   })
     .split("\0")
+    .filter(file => !QUALIFIED_UPDATER_WORKFLOWS.has(file))
     .filter(
       file =>
         [
@@ -116,6 +126,40 @@ function getMajorVersion(version: string): string {
 }
 
 /**
+ * Replace shared defaults while retaining explicitly qualified workflow pins.
+ * @param content - Original configuration bytes
+ * @param pattern - Runtime expression with two ownership-preserving captures
+ * @param replacement - Resolved replacement containing $1 and $2 captures
+ * @param workflow - Whether inline workflow qualification markers apply
+ * @returns Updated bytes and the number of changed, non-qualified values
+ */
+function replaceRuntimeMatches(
+  content: string,
+  pattern: RegExp,
+  replacement: string,
+  workflow: boolean
+): { content: string; changes: number } {
+  let changes = 0;
+  const updated = content.replace(
+    pattern,
+    (match: string, first: string, second: string, offset: number) => {
+      const lineEnd = content.indexOf("\n", offset);
+      const line = content.slice(
+        offset,
+        lineEnd < 0 ? content.length : lineEnd
+      );
+      if (workflow && line.includes(PRESERVE_RUNTIME_MARKER)) return match;
+      const next = replacement.replace(/\$([12])/g, (_token, group: string) =>
+        group === "1" ? first : second
+      );
+      changes += Number(next !== match);
+      return next;
+    }
+  );
+  return { content: updated, changes };
+}
+
+/**
  * Updates a file with the new Node version
  */
 function updateFile(
@@ -150,12 +194,14 @@ function updateFile(
       .replace("{{version}}", version)
       .replace("{{major}}", majorVersion);
 
-    const matches = content.match(pattern);
-    if (matches) {
-      totalChanges += matches.length;
-    }
-
-    content = content.replace(pattern, resolvedReplacement);
+    const result = replaceRuntimeMatches(
+      content,
+      pattern,
+      resolvedReplacement,
+      /\.ya?ml$/.test(filePath)
+    );
+    totalChanges += result.changes;
+    content = result.content;
   });
 
   if (content !== originalContent) {

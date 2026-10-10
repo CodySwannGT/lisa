@@ -63,7 +63,9 @@ import {
 export function locate(name, exec = boundedChildOutput) {
   try {
     return String(
-      exec("command", ["-v", name], { encoding: "utf8", shell: true })
+      exec("sh", ["-c", 'command -v -- "$1"', "lisa-locate", name], {
+        encoding: "utf8",
+      })
     ).trim();
   } catch {
     // probe-direction: fail-closed — null means "not proven present", and the

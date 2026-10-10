@@ -71,7 +71,7 @@ function sha256(relative: string): string {
 describe("legacy #2448 compatibility", () => {
   // These digests track whatever the legacy reporter is on main, and are
   // refreshed only when its bytes deliberately change under their own review --
-  // The shared Node22 patch refresh changes only the node_version default.
+  // The shared Node24 migration changes only the node_version default.
   // Schedule, permissions, input cardinality and reporting logic remain locked.
   // most recently the `@main` staleness handshake, which gave the reusable an
   // `expected_workflow_contract_major` input plus the job that asserts it, and
@@ -83,7 +83,7 @@ describe("legacy #2448 compatibility", () => {
   // describes the same reporter.
   it("preserves the exact reviewed reusable and caller bytes", () => {
     expect(sha256(LEGACY_REL)).toBe(
-      "9ce3eb6db588b5d9438ca53fbeb493aa7b10f7fb292279f1a823f7c113d4b7a4"
+      "35d3d13fedfb4614c3c415c6b6bc18d2c0d6d988e40b990db4dff4cad18ff46b"
     );
     expect(sha256(LEGACY_CALLER_REL)).toBe(
       "002f9a3bb88e1ff964195f413e385313c6d6f868e6d003b787663903d6bbd3a9"

@@ -1015,6 +1015,9 @@ describe("the gate end to end", () => {
     });
     delete process.env.MUTATION_ENABLED;
     delete process.env.MUTATION_SINCE;
+    // Each repository below owns its evidence, including the absent-source
+    // control. An enclosing guard run's trace belongs to the outer repository.
+    vi.stubEnv("LISA_SHELL_GUARD_TRACE", path.join(root, TRACE_FILE));
     // The cases below assert the gate's EXACT output, and one line of that
     // output is conditional on the environment rather than on the tree: the
     // `::warning` denial `finish` emits only under GitHub Actions. Left to the

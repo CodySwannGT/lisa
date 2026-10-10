@@ -361,7 +361,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           package-manager-cache: false
-          node-version: ${{ vars.NODE_VERSION || '22.23.3' }}
+          node-version: ${{ vars.NODE_VERSION || '24.21.0' }}
 
       - name: 🕵️ Refuse a required check that reviewed nothing
         id: review_evidence

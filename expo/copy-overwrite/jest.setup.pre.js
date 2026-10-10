@@ -66,8 +66,22 @@ global.nativeFabricUIManager = {};
 // Mock TurboModuleRegistry using external mock configuration
 const mockModules = require("./jest.config.react-native-mock");
 
+// Baseline native modules needed to load real View/Text under Jest. These
+// fallbacks also support older project-owned registries without editing them.
+// SourceCode matches @react-native/jest-preset's null scriptURL unit seam;
+// PaperUIManager reads getConstants during initialization, with no native views.
+const defaultMockModules = {
+  SourceCode: { getConstants: () => ({ scriptURL: null }) },
+  UIManager: { getConstants: () => ({}) },
+};
+
 global.__turboModuleProxy = function (moduleName) {
-  return mockModules[moduleName] || null;
+  return (
+    mockModules[moduleName] ??
+    (Object.hasOwn(defaultMockModules, moduleName)
+      ? defaultMockModules[moduleName]
+      : null)
+  );
 };
 
 // Ensure global timers are available (required by @testing-library/react-native)

@@ -50,7 +50,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           package-manager-cache: false
-          node-version: '22.23.3'
+          node-version: '24.21.0'
       - name: Sweep the ready and claimed lanes
         id: sweep
         env:

@@ -160,6 +160,9 @@ function git(root, args) {
  */
 export function isLisaOwned(destination) {
   return (
+    // Exact runtime-policy destination only, mirrored by the runtime predicate.
+    // Enrol historical hashes too so custom/newer host content stays protected.
+    destination === ".nvmrc" ||
     destination.startsWith(ENFORCEMENT_TREE) ||
     destination
       .split("/")

@@ -19,7 +19,7 @@ jobs:
       pull-requests: read
     uses: ./.github/workflows/quality.yml
     with:
-      node_version: '22.23.3'
+      node_version: '24.21.0'
       package_manager: 'bun'
       skip_jobs: ''
     secrets: inherit
@@ -31,7 +31,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           package-manager-cache: false
-          node-version: '22.23.3'
+          node-version: '24.21.0'
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -58,7 +58,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           package-manager-cache: false
-          node-version: '22.23.3'
+          node-version: '24.21.0'
       - name: Verify native Windows tool resolution
         run: node --test tests/platform/lint-staged-preflight.test.mjs
       - name: Verify Windows gate process containment

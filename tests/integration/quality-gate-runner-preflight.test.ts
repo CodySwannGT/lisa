@@ -46,7 +46,7 @@ const BASH = "/bin/bash";
 /** The preflight step's exact name, as inserted at every run site. */
 const PREFLIGHT = "🧪 Verify the configured gate runner is installed";
 
-/** The one line every gate job runs to execute its declared task. */
+/** The literal invocation every gate job uses to execute its declared task. */
 const RUN_SITE = "$GATE_RUNNER $GATE_TASK";
 
 /** The job whose preflight stands in for all twenty-eight façade copies. */
@@ -161,6 +161,38 @@ describe("🧪 gate runner existence preflight", () => {
     });
   });
 
+  it.each([
+    ["CodySwannGT/lisa", "run\ntest:integration\n--reporter=verbose\n"],
+    ["example/consumer", "run\ntest:integration\n"],
+  ])(
+    "executes the actual integration task argv for %s",
+    async (repository, argv) => {
+      await fs.writeFile(
+        path.join(bindir, "npm"),
+        '#!/bin/sh\nprintf "%s\\n" "$@"\n'
+      );
+      const script =
+        stepNamed("test_integration", "🧪 Run the test-integration gate")
+          ?.run ?? "";
+      expect(script).not.toBe("");
+      const result = boundedSpawnSync({
+        label: "actual configured integration branch",
+        command: BASH,
+        args: ["-c", script],
+        cwd: workdir,
+        env: {
+          PATH: bindir,
+          GITHUB_REPOSITORY: repository,
+          GATE_RUNNER: "npm run",
+          GATE_TASK: "test:integration",
+        },
+      });
+      expect(result.status).toBe(0);
+      expect(result.stdout).toBe(argv);
+      expect(result.stderr).toBe("");
+    }
+  );
+
   describe("its placement", () => {
     it("guards every job that runs a declared gate", () => {
       const jobs = Object.keys(workflowIn(QUALITY_YML).jobs);
@@ -173,6 +205,14 @@ describe("🧪 gate runner existence preflight", () => {
           steps.some(
             step =>
               (step.run ?? "").trim() === RUN_SITE ||
+              (job === "test_integration" &&
+                (step.run ?? "")
+                  .split("\n")
+                  .some(line =>
+                    [RUN_SITE, `${RUN_SITE} --reporter=verbose`].includes(
+                      line.trim()
+                    )
+                  )) ||
               (job === "test_unit" &&
                 (step.run ?? "")
                   .split("\n")
@@ -188,15 +228,22 @@ describe("🧪 gate runner existence preflight", () => {
       expect(running.length).toBeGreaterThan(0);
     });
 
-    it("runs immediately before the gate it guards", () => {
-      const steps = stepsIn(JOB_ID);
-      const probe = steps.findIndex(step => step.name === PREFLIGHT);
-      const run = steps.findIndex(step => (step.run ?? "").trim() === RUN_SITE);
-      expect(probe).toBeGreaterThanOrEqual(0);
-      // Anything between them could provision or remove the very command the
-      // probe just proved present.
-      expect(run).toBe(probe + 1);
-    });
+    it.each([JOB_ID, "test_integration"])(
+      "runs immediately before the gate it guards in %s",
+      job => {
+        const steps = stepsIn(job);
+        const probe = steps.findIndex(step => step.name === PREFLIGHT);
+        const run = steps.findIndex(step =>
+          job === "test_integration"
+            ? step.id === "gate_run"
+            : (step.run ?? "").trim() === RUN_SITE
+        );
+        expect(probe).toBeGreaterThanOrEqual(0);
+        // Anything between them could provision or remove the very command the
+        // probe just proved present.
+        expect(run).toBe(probe + 1);
+      }
+    );
 
     it("is the complement of the fallback preflight, not a second copy", () => {
       // The defect this fixes: the file's only other tool-existence check is

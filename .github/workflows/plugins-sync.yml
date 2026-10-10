@@ -20,15 +20,98 @@ name: 🧩 Plugins Sync
 # Waiting for status to be reported" and the pull request can never merge.
 # Measured, not assumed: PR #2496 touched only .github/workflows/
 # maestro-native-e2e.yml and a test file, and reported no plugins-sync context
-# whatsoever. The job is deterministic, offline, and finishes in ~25s, so it
-# runs on every pull request instead.
+# whatsoever. Every pull request therefore receives this required context.
+# Current full-population tracing runs on three independent native shards;
+# the final job validates all complete receipts and judges one merged trace.
 
 on:
   pull_request:
   workflow_dispatch:
 
 jobs:
+  guard-trace:
+    name: Shell guard trace shard ${{ matrix.shard }}/3
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    env:
+      LISA_GUARD_PR_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Full history: the commit-message gate below validates every commit
+          # the pull request adds, and the default shallow clone does not
+          # contain the base commit, so `commitlint --from <base>` fails in
+          # `getHistoryCommits` before it lints anything. It failed loudly
+          # rather than passing vacuously, which is the correct direction — but
+          # it is exactly the sort of thing a check verified only locally will
+          # get wrong, since a local clone always has the history.
+          fetch-depth: 0
+          # Nothing after checkout touches the remote: `bun install` resolves
+          # from the lockfile, the checks are offline, and commitlint reads the
+          # history `fetch-depth: 0` already fetched. So the token has no reason
+          # to outlive the checkout step, and leaving it in .git/config lends
+          # authenticated push access to every command that follows.
+          persist-credentials: false
+      # The shell-guard tracer includes genuine updater fixtures. Retain their
+      # qualified executable while the enclosing suite uses the shared runtime.
+      - name: Provision separately qualified updater test runtime
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          # lisa-allow-duplicate-version: independently qualified updater identity (#4367)
+          node-version: '22.23.3' # lisa-preserve-node-version: independently qualified updater (#4367)
+      - name: Preserve actual updater test executable
+        run: |
+          node -e 'if (process.versions.node !== "22.23.3") throw Error("Wrong updater test runtime"); require("node:fs").appendFileSync(process.env.GITHUB_ENV, `LISA_TEST_UPDATER_NODE=${require("node:fs").realpathSync(process.execPath)}\n`);'
+      - name: Select shared Node runtime
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version-file: '.nvmrc'
+      - name: Provision native inherited-host Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          # lisa-allow-duplicate-version: unchanged Harper/Phaser native host floor (#4367)
+          bun-version: '1.3.11'
+
+      - name: Preserve actual native host Bun before selecting Lisa tooling
+        run: |
+          bun -e 'if (Bun.version !== "1.3.11") throw Error("Wrong native host Bun"); const fs = require("node:fs"); const path = require("node:path"); const nativeBun = path.join(process.env.RUNNER_TEMP, "lisa-native-bun", "bin", "bun"); fs.mkdirSync(path.dirname(nativeBun), { recursive: true }); fs.copyFileSync(fs.realpathSync(process.execPath), nativeBun); fs.chmodSync(nativeBun, 0o755); if (require("node:child_process").execFileSync(nativeBun, ["--version"], { encoding: "utf8", timeout: 15_000 }).trim() !== "1.3.11") throw Error("Wrong preserved native host Bun"); fs.appendFileSync(process.env.GITHUB_ENV, `LISA_TEST_HOST_BUN=${nativeBun}\n`);'
+
+      - name: '🍞 Setup Bun'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.3.8'
+      # Full discovery includes the real generated Rails helper regression.
+      - name: Setup Ruby for traced Rails template regression
+        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        with:
+          ruby-version: '4.0.1'
+      - name: Install Rails configuration resolver for traced regression
+        run: gem install activerecord --version 8.1.4 --no-document
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Collect complete native shard with original admission/profile
+        # The named script builds once and supplies genuine Bun lifecycle context.
+        # An unnamed `bun run <binary>` makes intentional fixture applies skip.
+        run: bun run lisa-test-run -- --adapter direct -- node scripts/check-shell-guard-refusal-coverage.mjs --collect-only --shard "${{ matrix.shard }}/3" --trace-out "${{ runner.temp }}/lisa-shell-guard-shard-${{ matrix.shard }}/trace.jsonl"
+      - name: Retain actual complete or failed shard diagnostics
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7, existing repository pin
+        with:
+          name: lisa-shell-guard-${{ github.run_id }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/lisa-shell-guard-shard-${{ matrix.shard }}/
+          if-no-files-found: error
+
   plugins-sync:
+    needs: guard-trace
+    if: always()
+    env:
+      LISA_GUARD_PR_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
     name: 🧩 Plugin artifacts match source
     runs-on: ubuntu-latest
     # 30, not 15, because `check:shell-guard-refusals` had already grown into
@@ -42,9 +125,10 @@ jobs:
     # whose own output had been the thing telling us what was wrong — twice
     # it was read as a genuine coverage failure before the clock was noticed.
     #
-    # Raising the ceiling is the stopgap. The real cost is that the check
-    # re-runs a large share of the suite; if it approaches 30 minutes, make it
-    # cheaper rather than moving this number again.
+    # Raising the ceiling was the historical stopgap. Full tracing reached
+    # this limit again. Three independent native shards now retain the entire
+    # dynamically discovered population under the same per-job ceiling; this
+    # final required job fails on any incomplete shard before one merged judge.
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
@@ -63,6 +147,32 @@ jobs:
           # to outlive the checkout step, and leaving it in .git/config lends
           # authenticated push access to every command that follows.
           persist-credentials: false
+      # The shell-guard tracer includes genuine updater fixtures. Retain their
+      # qualified executable while the enclosing suite uses the shared runtime.
+      - name: Provision separately qualified updater test runtime
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          # lisa-allow-duplicate-version: independently qualified updater identity (#4367)
+          node-version: '22.23.3' # lisa-preserve-node-version: independently qualified updater (#4367)
+      - name: Preserve actual updater test executable
+        run: |
+          node -e 'if (process.versions.node !== "22.23.3") throw Error("Wrong updater test runtime"); require("node:fs").appendFileSync(process.env.GITHUB_ENV, `LISA_TEST_UPDATER_NODE=${require("node:fs").realpathSync(process.execPath)}\n`);'
+      - name: Select shared Node runtime
+        uses: actions/setup-node@v6
+        with:
+          package-manager-cache: false
+          node-version-file: '.nvmrc'
+      - name: Provision native inherited-host Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          # lisa-allow-duplicate-version: unchanged Harper/Phaser native host floor (#4367)
+          bun-version: '1.3.11'
+
+      - name: Preserve actual native host Bun before selecting Lisa tooling
+        run: |
+          bun -e 'if (Bun.version !== "1.3.11") throw Error("Wrong native host Bun"); const fs = require("node:fs"); const path = require("node:path"); const nativeBun = path.join(process.env.RUNNER_TEMP, "lisa-native-bun", "bin", "bun"); fs.mkdirSync(path.dirname(nativeBun), { recursive: true }); fs.copyFileSync(fs.realpathSync(process.execPath), nativeBun); fs.chmodSync(nativeBun, 0o755); if (require("node:child_process").execFileSync(nativeBun, ["--version"], { encoding: "utf8", timeout: 15_000 }).trim() !== "1.3.11") throw Error("Wrong preserved native host Bun"); fs.appendFileSync(process.env.GITHUB_ENV, `LISA_TEST_HOST_BUN=${nativeBun}\n`);'
+
       - name: '🍞 Setup Bun'
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -296,8 +406,20 @@ jobs:
       # roster — a written one is what went stale in #2847. Like its neighbours
       # it refuses to pass an inspection it did not perform: it prints how many
       # guards it observed and exits 2 at zero.
+      - name: Require every native shard to complete successfully
+        env:
+          TRACE_SHARDS_RESULT: ${{ needs.guard-trace.result }}
+        run: node -e 'if (process.env.TRACE_SHARDS_RESULT !== "success") throw Error("Native trace shard failed, cancelled, skipped or incomplete")'
+      - name: Download current workflow shard receipts
+        uses: actions/download-artifact@v8 # existing repository first-party version; no new third-party action
+        with:
+          pattern: lisa-shell-guard-${{ github.run_id }}-${{ github.run_attempt }}-shard-*
+          path: ${{ runner.temp }}/lisa-shell-guard-download
+          merge-multiple: false
+      - name: Build current prepared Lisa wrapper once
+        run: bun run build
       - name: Check every driven shell guard was seen refusing
-        run: bun run check:shell-guard-refusals
+        run: node dist/cli/lisa-test-run.js --profile lisa --adapter direct -- node scripts/check-shell-guard-refusal-coverage.mjs --merge-traces "${{ runner.temp }}/lisa-shell-guard-download" --trace-out .lisa/shell-guard-trace.jsonl
       # #3768: `lisa apply` refreshes the `@codyswann/lisa` pin in every host
       # repository and deliberately skips doing so here — applying to a manifest
       # whose own name is `@codyswann/lisa` is restricted to security pins. So

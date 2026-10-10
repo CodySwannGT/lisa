@@ -122,6 +122,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
+          # lisa-allow-duplicate-version: separately qualified updater runtime (#4367)
           node-version: '22.23.3'
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         if: hashFiles('bun.lock') != ''
@@ -164,6 +165,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
+          # lisa-allow-duplicate-version: separately qualified updater runtime (#4367)
           node-version: '22.23.3'
       - run: |
           case "$NPM_VERSION" in 10.9.9|11.21.0) ;; *) exit 1 ;; esac
@@ -276,6 +278,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
+          # lisa-allow-duplicate-version: separately qualified updater runtime (#4367)
           node-version: '22.23.3'
       - run: |
           case "$NPM_VERSION" in 10.9.9|11.21.0) ;; *) exit 1 ;; esac
@@ -334,6 +337,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
+          # lisa-allow-duplicate-version: separately qualified updater runtime (#4367)
           node-version: '22.23.3'
       - run: |
           case "$NPM_VERSION" in 10.9.9|11.21.0) ;; *) exit 1 ;; esac

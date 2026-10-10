@@ -522,3 +522,250 @@ The flag is a no-op on the current prover and a correction on the
 older one, so one invocation is right on both — which is the same
 both-layouts principle as the candidate list above.
 ```
+
+## Note 12
+
+```text
+-----------------------------------------------------------------------------
+Least-privilege token scope (deliberate, audited — see #1769)
+-----------------------------------------------------------------------------
+`contents: read` is the FLOOR for every job in this workflow. An audit of all
+32 jobs found ZERO uses of `gh`, `github.rest.*`, `github.request`,
+`GITHUB_TOKEN`, or `github.token` anywhere in the file, so no job needs a
+write scope:
+  - SonarCloud PR decoration is performed server-side by the GitHub App, not
+    by the workflow token (the scan action receives SONAR_TOKEN only).
+  - Snyk / GitGuardian / FOSSA / Maestro authenticate with their own secrets.
+  - `zaproxy/action-baseline` runs with `allow_issue_writing: false`; if that
+    flag is ever flipped to true, that job — and only that job — needs
+    `issues: write` added at the job level.
+  - `actions/github-script` in audit_logger only writes a local file and the
+    step summary; artifact upload/download and cache use the run-scoped
+    runtime token, not GITHUB_TOKEN.
+  - verification_coverage deliberately reads PR labels from the event payload
+    instead of the API, so it must NEVER gain a `pull-requests` scope.
+This workflow is `workflow_call`-only and consumed fleet-wide via @main.
+Reusable-workflow tokens can only be DOWNGRADED relative to the caller's
+grant, never escalated, so this floor is safe for every consumer: callers
+granting >= read keep working, and no job relies on a write scope.
+Jobs that touch neither the repository nor the API declare `permissions: {}`.
+Never widen this floor — grant a job its minimal scope at the job level.
+```
+
+## Note 13
+
+```text
+─── Which Lisa ran this ─────────────────────────────────────────────────
+A CONSUMER RUNS TWO LISAS AT ONCE. Its `package.json` pins
+`@codyswann/lisa` at a version and that pinned copy governs the local
+pre-push gate; its CI calls this reusable workflow at a floating ref and
+THAT governs everything below. So a push-gate observation and a CI
+observation are claims about different code at different versions, and
+knowing the pin says nothing about what CI ran.
+
+The consequence that made this a job rather than a note: a floating ref
+means CI behaviour changes with NO COMMIT IN THE CONSUMING REPOSITORY, so a
+true, well-evidenced warning about gate behaviour can go stale with nothing
+in either repository able to notice. One such warning circulated for a day
+after the behaviour it described had been repaired upstream. Nothing was
+wrong with it except elapsed time, and no artifact carried a version the
+claim could have been checked against.
+
+ITS OWN JOB, NOT A STEP INSIDE A GATE. Every gate job below can be skipped
+by a plan, fail early, or stand down; a stamp inside one is present exactly
+when that gate ran. This job has no `needs` and no `if`, so the identity is
+on the run whether the gates passed, failed, or were optional.
+
+REPORT ONLY. It cannot fail a run and is not a branch-protection context:
+a stamp that could redden CI would be a new gate nobody declared, shipped
+to a fleet where every project reports.
+```
+
+## Note 14
+
+```text
+REPORT ONLY — it never fails the job and never changes what runs.
+`|| true` is what makes that true rather than merely intended: the
+body runs under `set -euo pipefail`, and the resolver is whatever
+copy of the registry the project happens to have installed, which
+may predate `unconfigured` and exit non-zero on it. Without it a
+reporter would fail a branch-protection context — a new gate
+nobody declared, shipped to a fleet where every project reports.
+
+The steps below this one run a command written into this workflow,
+and on essentially every installed project that is the DEFAULT rather
+than the exception: nothing seeds a `gates` block into a consumer, so
+`configured` is false and the property is proved by something the
+settings file has no idea about. That was invisible until here.
+
+Deliberately not a failure. The fallback cannot be deleted and an
+absent declaration cannot be made fatal until a declaration is
+guaranteed to exist, because this job's `name:` is a
+branch-protection context and a required context that runs zero steps
+reports GREEN. Order: seed declarations, then fail closed, then the
+fallback is unreachable. This is the step that makes the size of the
+gap measurable per repository in the meantime.
+
+Uniform across every façade job by construction: the gate id and the
+resolver both come from the resolve step's outputs, so this block is
+byte-identical everywhere and cannot drift into naming the wrong gate.
+```
+
+## Note 15
+
+```text
+FALLBACK — for a project with no `gates` block.
+
+Lisa's own source repo: check against ITS OWN source contract instead of
+a published release. A pin necessarily lags by at least one release, so a
+commit that changes the budget and migrates the ledger in the same breath
+would be judged by the OLD budget — exactly the skew that failed the
+#2001 deploy (ledger already at 11577 for the derived 12000 budget, pin
+still enforcing the flat 4000). Detection is content-based (not a
+repo-name match) so forks of the Lisa source behave identically.
+
+Host projects: THE VERSION COMES FROM THE PROJECT. It used to be the
+literal `2.297.0`, written here, which no project could override and
+which sat sixty-odd releases behind — so every consumer's gate enforced
+a contract none of them was on, and bumping it was an edit to a workflow
+they do not own. The project's own `@codyswann/lisa` dependency range is
+the version it actually runs, and `bunx` resolves a range. There is no
+literal to fall back to: a project with no such dependency FAILS, because
+guessing a version is how the stale pin happened.
+
+The floor is >= 2.243.0 — earlier CLIs lack the relocated .lisa/ resolver
+or this subcommand, and pre-2.237.0 CLIs self-skip in non-interactive
+environments with exit 0. That floor is enforced by BEHAVIOUR rather than
+by comparing version strings: the marker grep below refuses a run that
+printed neither verdict, which is exactly what a self-skipping CLI does.
+```
+
+## Note 16
+
+```text
+NO GATE, AND NO CONDITION THAT CAN SKIP IT. This job is not declarable and
+not skippable, by the same rule that exempts `🧭 Gate Config Validity`
+above: a gate whose job is to detect silencing cannot itself be silenceable.
+`if: always()` below is the opposite of an off-switch. Without it the
+`needs:` edge would SKIP this job whenever a sibling failed or skipped, and a
+skipped sibling is the one thing it exists to report.
+
+It carried a `skipped_required_checks` skip token until #2933. #2846 read
+the missing registry row as an oversight and proposed making it a declarable
+gate; the owner's ruling was the opposite, and rests on the comparison the
+issue itself drew. `gate_config_validity` is exempt and has NO skip token,
+which is why nothing can silence it. This job was exempt and had one — so
+the exemption bought it nothing and the off-switch was the whole problem.
+Declaring it `off`, by either mechanism, means "I may silence a required
+check without anyone objecting". Relocating that declaration from a workflow
+input into a settings file would not have made it less self-defeating.
+
+The general rule is recorded in `NON_DECLARABLE_JOBS` in
+scripts/lisa-gates.mjs, so the next meta-gate inherits it rather than
+re-arguing it, and `tests/integration/quality-non-declarable-jobs.test.ts`
+refuses a skip token or a gate row for anything in that table.
+
+WHAT IT JUDGES: OUTCOMES, NOT DECLARATIONS. It used to compare `skip_jobs`
+TOKENS against the ruleset snapshot. `skip_jobs` was retired in favour of
+gate levels, which skip a job through the gate plan and leave no token, so
+the token arm kept printing `✅ 0 skip_jobs token(s) examined` — measured on
+a caller pull request that merged with a ruleset-required context
+`skipped`. It now `needs:` every other job, reads their results from
+`toJSON(needs)` (no token, no API read), and FAILS when a required context's
+job concluded `skipped` at the `pull-request` moment. The full argument, and
+what it deliberately does not examine, is the `--outcomes` section of the
+prover's header.
+```
+
+## Note 17
+
+```text
+THE PROVER TRAVELS WITH THE WORKFLOW, NEVER WITH THE CALLER'S PIN.
+`quality.yml` is consumed `@main`; `scripts/` arrives by `lisa apply`
+at whatever version the caller pinned. A copy predating `--outcomes`
+ignores the flag and prints the vestigial token line as though it were
+a verdict — the false green this job was retargeted to stop. The
+workflow defines the arguments, so the code reading them has to come
+from the workflow's side, and the caller's `scripts/` copy is not read
+here at all.
+
+Two sources, one rule — take the copy that ships with THIS workflow:
+
+ - In this repository the workspace already holds it, at the template
+   path, at exactly the revision under test. `hashFiles` is how a
+   condition can ask that: it returns the empty string when nothing
+   matches, so this step is skipped here and a change to the prover is
+   proved by the pull request that makes it.
+ - Everywhere else it is fetched from `main`, which is the ref every
+   caller names in `uses:`. A caller pinning some other ref gets
+   `main`'s prover; the two halves are released together at `main`, so
+   that is the pairing to keep — and it is stated here rather than
+   silently assumed.
+
+`job.workflow_repository` / `job.workflow_sha` would say this exactly,
+and GitHub REJECTS THE WHOLE FILE for using them: they are documented
+on the `job` context and the expression validator does not define them
+(measured — the run refuses to start, with no job and no annotation
+beyond "workflow file issue"). Do not reintroduce them.
+```
+
+## Note 18
+
+```text
+DELIBERATELY no `permissions:` block. This job needs pull-requests:read
+(`gh pr view`) and issues:read (`gh issue view`), but a called workflow
+may only DOWNGRADE the caller's grant: requesting a scope the caller never
+held is a startup_failure for the ENTIRE run, not a skipped job (#2046,
+#2566). These workflows are consumed @main by repos whose ci.yml is
+create-only, so an escalation here would break every one of them —
+including on push paths where this job does not even run. Inheriting the
+caller's token instead keeps the blast radius inside this job.
+
+"Inherits the caller's grant" is only true because this workflow declares
+NO workflow-level `permissions:` block. A workflow-level block is not a
+floor — it is a CEILING that also zeroes every scope it omits, for every
+job that declares none of its own. This workflow used to carry
+`permissions: contents: read` at the top, and that silently capped this
+job at contents+metadata no matter what the caller granted. Each job now
+carries its own copy of that floor instead; this one, and only this one,
+is left blank on purpose. Do not reintroduce a workflow-level block.
+
+Corrects the record from #2476, which claimed this was measured working on
+a consumer granting all three scopes. It was not: on 2026-08-14 two
+consumers granting contents/issues/pull-requests read both received
+`Contents: read, Metadata: read` and nothing else. The earlier red result
+was read as a genuine missing trailer when it was this scope gap.
+
+The readiness probe below FAILS when a scope is missing — it used to exit 0
+with a warning, which reported success for a gate that had verified
+nothing. That strictness is correct and must stay; the bug was the
+plumbing, not the refusal.
+```
+
+## Note 19
+
+```text
+Gate façade — contract and fallback rationale documented in full on the
+🧹 Lint job above, with ONE difference that matters: this is the SECOND
+prover of `dependency-vulnerability`. 🔒 Security Scan proves the same
+property and carries its label, so that job is the one a ruleset matches
+and this one must never be renamed onto that string — two jobs posting
+one context is a check that cannot be reasoned about.
+
+Which is why this job is named for the property and NOT for its gate's
+label: `🛡️ Supply Chain Scan`, not `🛡️ Snyk Dependency Scan` and not
+`🔒 Security Scan`. A check name that carries a vendor compiles that
+vendor into every ruleset matching it, which turns swapping the scanner
+into a coordinated migration instead of an edit here.
+
+The two are kept because they answer the question at different depths,
+which the fallback comment on the other job already states: ship-scope
+audit there, dev-dependency and supply-chain coverage here via
+`--all-projects`. That is a reason to run both, and equally a reason one
+green cannot speak for both.
+
+Resolving the declaration here is what makes `off` mean `off`. Before
+this, declaring `dependency-vulnerability` off silenced the audit and
+left this scan running — a declaration satisfied in one job and ignored
+in another, which is the defect this epic keeps finding one layer up.
+```

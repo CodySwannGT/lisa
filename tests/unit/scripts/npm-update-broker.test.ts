@@ -1,3 +1,4 @@
+import { qualifiedUpdaterNode } from "../../support/qualified-updater-node.js";
 /** Native socket/child controls establish transport behavior, never hosted provider authority. */
 import { describe, expect, it } from "vitest";
 import { realpathSync, lstatSync } from "node:fs";
@@ -91,11 +92,7 @@ describe("closed native controller broker", () => {
     const adapter = resolve(
       "all/copy-overwrite/scripts/lib/npm-update-execution-adapter.mjs"
     );
-    const node = {
-      path: realpathSync(process.execPath),
-      version: "22.23.3",
-      sha256: binaryDigest(realpathSync(process.execPath)),
-    };
+    const node = qualifiedUpdaterNode();
     const git = {
       path: realpathSync("/usr/bin/git"),
       version: "native unit control",

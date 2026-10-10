@@ -86,6 +86,8 @@ Inspect the project before choosing an SDK. Read `package.json`
 - `pyproject.toml` / `requirements.txt`; `django`/`flask`/`fastapi` →
   **Python** (and which web framework)
 - A plain Node library/CLI → **Node**
+- AWS Lambda handlers or a Serverless/SAM/CDK function runtime → inspect the
+  function's actual runtime and wrapper before choosing **Node/Lambda**.
 
 If the runtime is genuinely ambiguous, ask which app to instrument rather than
 guessing. Respect the project's package manager (bun/npm/pnpm/yarn — match the
@@ -100,6 +102,7 @@ Use the project's package manager. Examples (swap `bun add` for your manager):
 | React (browser) | `@sentry/react` |
 | Next.js | `@sentry/nextjs` |
 | Node / Express / Fastify | `@sentry/node` (+ `@sentry/profiling-node` for profiling) |
+| AWS Lambda | `@sentry/aws-serverless` for a compatible Lambda wrapper, or `@sentry/node` for an unwrapped async handler |
 | NestJS | `@sentry/nestjs` (+ `@sentry/node`) |
 | React Native / Expo | `@sentry/react-native` |
 | Vue | `@sentry/vue` |
@@ -149,6 +152,107 @@ Sentry.init({
 ```
 
 Then, after routes are defined: `Sentry.setupExpressErrorHandler(app);`
+
+### Node24 Lambda completion
+
+Review the actual function runtime and installed SDK before migrating. Node24
+LTS is Lisa's default for new TypeScript hosts; an existing host's explicit
+engine and create-only workflows remain host-owned. On AWS Lambda `nodejs24.x`,
+callback-style handlers and legacy context completion APIs, including
+`callbackWaitsForEmptyEventLoop`, are removed. Do not assign those properties,
+including to frozen/non-extensible context objects. Supported async handlers,
+synchronous returns and response streaming are distinct forms; follow the
+[AWS handler contract](https://docs.aws.amazon.com/lambda/latest/dg/nodejs-handler.html).
+
+Earlier non-streaming async handlers already returned without waiting for
+unresolved background promises. Node24 aligns streaming completion with that
+behavior; await work that must finish before returning or ending the stream.
+Do not claim all Node20/22 async handlers drained arbitrary background work.
+For streaming, flush at the appropriate point before `responseStream.end()` or
+inside the awaited streaming pipeline, rather than after the stream is ended.
+[AWS's Node24 migration explanation](https://aws.amazon.com/blogs/compute/node-js-24-runtime-now-available-in-aws-lambda/)
+is the runtime authority; ordinary local Node process behavior is not deployed
+Lambda evidence.
+
+For an **unwrapped async** scheduled, queue or Cognito handler, initialize Sentry
+once at module startup with the DSN from the environment. Await a finite positive
+flush budget on both success and original-error paths. A false flush result or
+rejection must not turn successful queue work into a retry or replace its real
+error. Keep diagnostics local and non-throwing, and preserve the client for warm
+invocations: `close()` disables it. The following helper wraps the host's existing
+business operation; it neither mutates context nor adds a Lambda callback.
+
+<!-- lisa-node24-unwrapped-example:start -->
+```ts
+import * as Sentry from "@sentry/node";
+
+// Initialize early, once outside the handler, with DSN from the environment.
+function reportFlushProblem(message: string): void {
+  try {
+    console.warn(message);
+  } catch {
+    // Telemetry diagnostics must preserve the business outcome too.
+  }
+}
+
+export async function withSentryFlush<T>(
+  work: () => Promise<T>,
+  timeoutMs = 2000
+): Promise<T> {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    throw new RangeError("Choose a finite positive Sentry flush budget");
+  }
+  try {
+    return await work();
+  } catch (originalError) {
+    try {
+      Sentry.captureException(originalError);
+    } catch {
+      // Preserve the original handler error even if capture fails.
+    }
+    throw originalError;
+  } finally {
+    try {
+      if (!(await Sentry.flush(timeoutMs))) {
+        reportFlushProblem("Sentry flush did not finish in time");
+      }
+    } catch {
+      reportFlushProblem("Sentry flush rejected");
+    }
+  }
+}
+```
+<!-- lisa-node24-unwrapped-example:end -->
+
+In the existing async handler, return
+`withSentryFlush(() => performBusinessWork(event, context))`; use the host's
+actual business operation and preserve its return/error contract. Select a
+positive budget that fits remaining invocation time with a safety margin.
+Do not omit the timeout or use zero as a finite cap. The SDK's timeout argument
+does not cancel every custom transport or guarantee completion before Lambda's
+hard timeout, and a drained local queue does not prove tenant ingestion.
+[Sentry API semantics](https://docs.sentry.io/platforms/javascript/guides/aws-lambda/configuration/apis.md)
+describe `flush()` and `close()`.
+
+For a **compatible `Sentry.wrapHandler`**, its documented default flush is up
+to2000ms, configurable through `flushTimeout`; avoid a redundant manual flush
+when that wrapper already handles completion. Check the installed version's
+context behavior, too: `@sentry/aws-serverless`11.6.0 unconditionally assigns
+`context.callbackWaitsForEmptyEventLoop` before invoking the business handler.
+It throws on a non-extensible context lacking that removed property. Changing
+the option does not remove the assignment. Use the unwrapped form when this
+incompatibility applies; do not clone/unfreeze context or pre-add an obsolete
+property to claim compatibility. See the [wrapper documentation](https://docs.sentry.io/platforms/javascript/guides/aws-lambda/configuration/lambda-wrapper.md)
+and [versioned implementation](https://github.com/getsentry/sentry-javascript/blob/11.6.0/packages/aws-serverless/src/sdk.ts).
+
+Treat Node types and optional native profiling as migration checks. Examples
+using `Array.at` need an ES2022-or-later TypeScript `lib`; keep a host's business
+compiler target deliberate. Confirm optional profiling prebuilds against the
+actual Node ABI (Node24 uses137) only when profiling is in use; do not install an
+unused profiling package. Verify the helper with the real installed SDK and
+local transport, including success/error, timeout/false, rejected flush and a
+second warm invocation. Label local observations honestly; actual Lambda
+deployment and Sentry event ingestion require their own provider proof.
 
 **NestJS** — import `./instrument` first in `main.ts`, then add Sentry's module:
 

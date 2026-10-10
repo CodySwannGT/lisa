@@ -5,7 +5,7 @@ import { expect } from "vitest";
 import { assertInstalledBytes, type Candidate } from "./artifact.js";
 import { run } from "./process.js";
 
-const NODE_VERSION = "22.23.3";
+const NODE_VERSION = "24.21.0";
 const MANIFEST = "package.json";
 /**
  * Check literal accepted floors before invoking any expensive host install.
@@ -19,6 +19,19 @@ export function assertGeneratedPolicy(host: string): void {
   expect(fs.readFileSync(path.join(host, ".nvmrc"), "utf8").trim()).toBe(
     NODE_VERSION
   );
+  const workflows = path.join(host, ".github/workflows");
+  expect(fs.readFileSync(path.join(workflows, "ci.yml"), "utf8")).toContain(
+    `node_version: '${NODE_VERSION}'`
+  );
+  expect(
+    fs.readFileSync(path.join(workflows, "review-evidence.yml"), "utf8")
+  ).toContain(`node-version: '${NODE_VERSION}'`);
+  expect(
+    fs.readFileSync(
+      path.join(workflows, "third-party-review-evidence.yml"),
+      "utf8"
+    )
+  ).toContain(`node-version: \${{ vars.NODE_VERSION || '${NODE_VERSION}' }}`);
   expect(manifest.devDependencies.vitest).toBe("^4.1.11");
   expect(manifest.devDependencies["@vitest/coverage-v8"]).toBe("^4.1.11");
   expect(
@@ -26,6 +39,37 @@ export function assertGeneratedPolicy(host: string): void {
       ? manifest.devDependencies.vite
       : manifest.overrides.vite
   ).toBe("^8.3.2");
+}
+
+/**
+ * Inspect all five distinct source channels in the genuine extracted package.
+ * @param candidate - Immutable packed source and identity
+ */
+export function assertPackedRuntimePolicy(candidate: Candidate): void {
+  const root = path.join(candidate.oracle, "typescript");
+  expect(
+    fs.readFileSync(path.join(root, "copy-overwrite/.nvmrc"), "utf8").trim()
+  ).toBe(NODE_VERSION);
+  expect(
+    JSON.parse(
+      fs.readFileSync(path.join(root, "package-lisa/package.lisa.json"), "utf8")
+    ).defaults.engines.node
+  ).toBe(NODE_VERSION);
+  for (const [name, value] of [
+    ["ci.yml", `node_version: '${NODE_VERSION}'`],
+    ["review-evidence.yml", `node-version: '${NODE_VERSION}'`],
+    [
+      "third-party-review-evidence.yml",
+      `node-version: \${{ vars.NODE_VERSION || '${NODE_VERSION}' }}`,
+    ],
+  ]) {
+    expect(
+      fs.readFileSync(
+        path.join(root, "create-only/.github/workflows", name!),
+        "utf8"
+      )
+    ).toContain(value);
+  }
 }
 
 /**
