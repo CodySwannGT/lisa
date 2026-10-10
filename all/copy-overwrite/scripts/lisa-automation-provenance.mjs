@@ -8,6 +8,10 @@ import {
 } from "./lib/github-attestation-recovery.mjs";
 import { invokedAsScript } from "./lib/invoked-as-script.mjs";
 import {
+  withProvenancePhase,
+  provenanceFailure,
+} from "./lib/npm-update-invariants.mjs";
+import {
   assertPinnedVerifier,
   requireProof,
   sha256,
@@ -28,6 +32,8 @@ import {
   canonicalContext,
 } from "./lib/automation-provenance-local.mjs";
 export { canonicalJson } from "./lib/automation-provenance-contract.mjs";
+
+const LOCAL_PROOF = "local-proof";
 
 /** A present but malformed reference is a failure, even with ordinary AI trailers. */
 export function automationReference(message) {
@@ -88,14 +94,8 @@ function recoveryPermission(
   );
 }
 
-/** Verify fixed private proof against the final message, tree, binding and provider. */
-export function verifyAutomationProvenance(messageFile) {
-  const messageBytes = privateBytes(messageFile, 65_536, false);
-  const message = messageBytes.toString("utf8");
-  const reference = automationReference(message);
-  if (!reference) return false;
-  const { config, policy } = trustedConfiguration(git);
-  const { paths, optional, bytes, bundleBytes, descriptor } = proofSnapshot();
+/** Keep unchanged local authorization together without obscuring the canonical phase. */
+function verifyLocalProposal(descriptor, messageBytes, reference, policy) {
   localDescriptor(descriptor, messageBytes, reference, policy);
   npmProposal(descriptor, git);
   requireProof(
@@ -110,30 +110,18 @@ export function verifyAutomationProvenance(messageFile) {
       ),
     "deterministic proposal key differs"
   );
-  assertPinnedVerifier(policy);
-  const context = canonicalContext(message, config, policy, descriptor);
-  const recoveryBytes = optional[0]
-    ? privateBytes(paths.recovery, 65_536)
-    : null;
-  const recoveryBundle = optional[0]
-    ? privateBytes(paths.recoveryBundle, 1_048_576)
-    : null;
-  if (recoveryBytes) {
-    recoveryPermission(
-      policy,
-      descriptor,
-      context,
-      config,
-      bytes,
-      paths,
-      recoveryBytes,
-      recoveryBundle,
-      messageBytes
-    );
-  } else {
-    verifyDescriptorAttestation(policy, descriptor, paths, sha256(bytes));
-    verifyCurrentProvider(policy, descriptor);
-  }
+}
+
+/** Final rereads preserve the original mutation checks after all provider verification. */
+function verifyFinalSnapshot(
+  paths,
+  bundleBytes,
+  bytes,
+  descriptor,
+  messageFile,
+  reference,
+  policy
+) {
   requireProof(
     privateBytes(paths.bundle, 1_048_576).equals(bundleBytes),
     "origin bundle changed during verification"
@@ -148,17 +136,78 @@ export function verifyAutomationProvenance(messageFile) {
     reference,
     policy
   );
-  return true;
+}
+
+/** Verify fixed private proof against the final message, tree, binding and provider. */
+export function verifyAutomationProvenance(messageFile) {
+  const messageBytes = withProvenancePhase(LOCAL_PROOF, () =>
+    privateBytes(messageFile, 65_536, false)
+  );
+  const message = messageBytes.toString("utf8");
+  const reference = withProvenancePhase(LOCAL_PROOF, () =>
+    automationReference(message)
+  );
+  if (!reference) return false;
+  const { config, policy } = withProvenancePhase("configuration", () =>
+    trustedConfiguration(git)
+  );
+  const { paths, optional, bytes, bundleBytes, descriptor } =
+    withProvenancePhase(LOCAL_PROOF, proofSnapshot);
+  withProvenancePhase(LOCAL_PROOF, () =>
+    verifyLocalProposal(descriptor, messageBytes, reference, policy)
+  );
+  withProvenancePhase("verifier", () => assertPinnedVerifier(policy));
+  const context = withProvenancePhase("canonical-context", () =>
+    canonicalContext(message, config, policy, descriptor)
+  );
+  return withProvenancePhase("final-proof", () => {
+    const recoveryBytes = optional[0]
+      ? privateBytes(paths.recovery, 65_536)
+      : null;
+    const recoveryBundle = optional[0]
+      ? privateBytes(paths.recoveryBundle, 1_048_576)
+      : null;
+    if (recoveryBytes) {
+      withProvenancePhase("recovery-local", () =>
+        recoveryPermission(
+          policy,
+          descriptor,
+          context,
+          config,
+          bytes,
+          paths,
+          recoveryBytes,
+          recoveryBundle,
+          messageBytes
+        )
+      );
+    } else {
+      withProvenancePhase("ordinary-signature", () =>
+        verifyDescriptorAttestation(policy, descriptor, paths, sha256(bytes))
+      );
+      withProvenancePhase("ordinary-provider", () =>
+        verifyCurrentProvider(policy, descriptor)
+      );
+    }
+    verifyFinalSnapshot(
+      paths,
+      bundleBytes,
+      bytes,
+      descriptor,
+      messageFile,
+      reference,
+      policy
+    );
+    return true;
+  });
 }
 
 if (invokedAsScript(import.meta.url)) {
   try {
     const verified = verifyAutomationProvenance(process.argv[2]);
     process.exitCode = verified ? 0 : 10;
-  } catch {
-    console.error(
-      "Invalid automation provenance: required proof, policy or provider evidence failed"
-    );
+  } catch (error) {
+    console.error(provenanceFailure(error));
     process.exitCode = 1;
   }
 }

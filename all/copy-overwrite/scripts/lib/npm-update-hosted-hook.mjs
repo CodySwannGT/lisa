@@ -9,6 +9,11 @@ import { realpathSync, lstatSync } from "node:fs";
 import { resolve, join, basename } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { binaryDigest } from "./npm-update-isolation.mjs";
+import {
+  withProvenancePhase,
+  recordProvenancePhase,
+  provenanceFailure,
+} from "./npm-update-invariants.mjs";
 
 const ENTRY = fileURLToPath(import.meta.url);
 const PRELOAD = fileURLToPath(
@@ -111,55 +116,79 @@ export function tokenFreeHookEnvironment(source) {
   return env;
 }
 
+/** Input consumes the same fixed bound and one original deadline observation before native execution. */
+async function originalHookInput(context) {
+  const chunks = [];
+  let size = 0;
+  try {
+    for await (const chunk of process.stdin) {
+      size += chunk.length;
+      required(size <= 4_194_304, "original hook stdin exceeded");
+      chunks.push(chunk);
+    }
+    const timeout = Math.min(1_800_000, context.deadline - Date.now());
+    required(timeout > 0, "original hook phase expired");
+    return { input: Buffer.concat(chunks), timeout };
+  } catch (error) {
+    recordProvenancePhase(error, "gateway-input");
+    throw error;
+  }
+}
+
 async function main() {
   const args = process.argv.slice(2);
-  required(
-    args.length >= 3 && args[0] === "--context" && args[2] === "--",
-    "invalid hosted Node gateway"
-  );
-  const context = hostedHookContext(args[1]);
-  const original = args.slice(3);
-  const entry = hookEntry(context, original, realpathSync(process.cwd()));
-  if (entry)
+  withProvenancePhase("gateway-context", () =>
     required(
-      !original.some(arg =>
-        /^(?:-r|--require|--import|--(?:experimental-)?loader)(?:=|$)/.test(arg)
-      ) &&
-        !process.env.NODE_OPTIONS &&
-        !process.env.NODE_PATH,
-      "unqualified original canonical hook loader"
-    );
+      args.length >= 3 && args[0] === "--context" && args[2] === "--",
+      "invalid hosted Node gateway"
+    )
+  );
+  const context = withProvenancePhase("gateway-context", () =>
+    hostedHookContext(args[1])
+  );
+  const original = args.slice(3);
+  const entry = withProvenancePhase("gateway-entry", () =>
+    hookEntry(context, original, realpathSync(process.cwd()))
+  );
+  withProvenancePhase("gateway-entry", () => {
+    if (entry)
+      required(
+        !original.some(arg =>
+          /^(?:-r|--require|--import|--(?:experimental-)?loader)(?:=|$)/.test(
+            arg
+          )
+        ) &&
+          !process.env.NODE_OPTIONS &&
+          !process.env.NODE_PATH,
+        "unqualified original canonical hook loader"
+      );
+  });
   const env = tokenFreeHookEnvironment(process.env);
   if (entry) env.LISA_NPM_HOSTED_HOOK_CONTEXT = context.file;
   else delete env.LISA_NPM_HOSTED_HOOK_CONTEXT;
-  const chunks = [];
-  let size = 0;
-  for await (const chunk of process.stdin) {
-    size += chunk.length;
-    required(size <= 4_194_304, "original hook stdin exceeded");
-    chunks.push(chunk);
-  }
-  const timeout = Math.min(1_800_000, context.deadline - Date.now());
-  required(timeout > 0, "original hook phase expired");
+  const { input, timeout } = await originalHookInput(context);
   const result = await runProcess(
     context.native.node.path,
     entry ? ["--import", pathToFileURL(PRELOAD).href, ...original] : original,
     {
       cwd: process.cwd(),
       env,
-      input: Buffer.concat(chunks),
+      input,
       timeout,
       maximum: 8_388_608,
       allowed: Array.from({ length: 256 }, (_, code) => code),
     }
-  );
+  ).catch(error => {
+    recordProvenancePhase(error, "gateway-child");
+    throw error;
+  });
   process.stdout.write(result.stdout);
   process.stderr.write(result.stderr);
   process.exitCode = result.code;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === ENTRY)
-  main().catch(() => {
-    process.stderr.write("original hosted hook command failed\n");
+  main().catch(error => {
+    process.stderr.write(`${provenanceFailure(error)}\n`);
     process.exitCode = 1;
   });
