@@ -3,7 +3,8 @@
 
 /** Parent registry and real daemon exit/removal own every worker lifecycle verdict. @module npm-updater */
 import { required, UpdaterError } from "./npm-update-contract.mjs";
-import { canonicalJson } from "../lisa-automation-provenance.mjs";
+// Preload dependencies must not execute the entry CLI before instrumentation.
+import { canonicalJson } from "./automation-provenance-contract.mjs";
 import { readBytes, runProcess } from "./npm-update-process.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
 import {

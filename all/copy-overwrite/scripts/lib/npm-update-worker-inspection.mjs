@@ -3,7 +3,8 @@
 
 /** Effective daemon observations must match all parent-selected namespace controls. @module npm-updater */
 import { required } from "./npm-update-contract.mjs";
-import { canonicalJson } from "../lisa-automation-provenance.mjs";
+// Preload dependencies must not execute the entry CLI before instrumentation.
+import { canonicalJson } from "./automation-provenance-contract.mjs";
 import { sha256 } from "./github-attestation-verifier.mjs";
 import { workerScratch } from "./npm-update-worker-policy.mjs";
 import {
