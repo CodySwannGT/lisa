@@ -57,6 +57,8 @@ const ROOT = path.resolve(__dirname, "../../..");
  * appended.
  */
 const RELEASE_SCAFFOLDING: readonly string[] = [
+  // Read-only branch-tip validation; this job never releases or deploys (#4351).
+  "validate_deploy_commit",
   "determine_environment",
   "pre_deploy_gates",
   "release",
