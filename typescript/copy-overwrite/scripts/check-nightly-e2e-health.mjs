@@ -1239,6 +1239,7 @@ export function assessSuite(suite, observation, context) {
     label: suite.label,
     workflow: suite.workflow,
     ...(observation.selection ? { selection: observation.selection } : {}),
+    ...(observation.discovery ? { discovery: observation.discovery } : {}),
   };
   const blank = { conclusion: null, url: null, createdAt: null, event: null };
   // An observation with no `scope` at all is the same fact as an artifacts list
@@ -2204,7 +2205,11 @@ export function formatReport(verdict, context) {
     ...verdict.findings.flatMap(finding => {
       const line = `- ${formatFinding(finding)}`;
       const selection = formatSelection(finding.selection);
-      return selection === null ? [line] : [line, `  - ${selection}`];
+      return [
+        line,
+        ...(selection === null ? [] : [`  - ${selection}`]),
+        ...(finding.discovery ?? []).map(entry => `  - Discovery: ${entry}`),
+      ];
     })
   );
   lines.push("");
@@ -3094,17 +3099,16 @@ export async function apiGet(api, path, wait = sleep) {
  *
  * @param {object} api - API coordinates
  * @param {string} file - Workflow file name
- * @param {string} branch - Branch to read
- * @param {string} event - Run event
+ * @param {string|null} branch - Branch to read; null for client-filtered discovery
+ * @param {string|null} event - Run event; null to omit status/event filters
  * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep
  * @returns {Promise<{runs: ReadonlyArray<object>, missing: boolean}>} The candidates, or a 404 marker
  */
 export async function fetchRunCandidates(api, file, branch, event, wait) {
   const query = new URLSearchParams({
-    branch,
-    status: "completed",
-    event,
-    per_page: String(RUN_CANDIDATE_PAGE_SIZE),
+    ...(branch ? { branch } : {}),
+    ...(event ? { status: "completed", event } : {}),
+    per_page: String(event ? RUN_CANDIDATE_PAGE_SIZE : 100),
   });
   const result = await apiGet(
     api,
@@ -3112,10 +3116,189 @@ export async function fetchRunCandidates(api, file, branch, event, wait) {
     wait
   );
   if (result === null) return { runs: Object.freeze([]), missing: true };
+  if (!Array.isArray(result.body.workflow_runs)) {
+    throw staleRunList(file, ["the run list was not an array"]);
+  }
   return {
-    runs: Object.freeze(result.body.workflow_runs ?? []),
+    runs: Object.freeze(result.body.workflow_runs),
     missing: false,
   };
+}
+
+/**
+ * Refuses untrustworthy discovery separately from a suite's actual verdict.
+ * The API-failure path cannot offer a waiver for a suite it never observed.
+ * @param {string} file - Workflow whose discovery could not be established
+ * @param {ReadonlyArray<string>} diagnostics - Raw list and detail observations
+ * @returns {GateApiError} A distinct platform-read refusal
+ */
+function staleRunList(file, diagnostics) {
+  const error = new GateApiError(
+    `[list_stale] GitHub's run history for ${file} could not establish a current, trustworthy completed run. The platform returned old or conflicting run information; this is not evidence that the nightly suite failed. Re-run this check to retry the platform read.\n\nDiscovery observations:\n${diagnostics.join("\n")}`
+  );
+  error.reason = "list_stale";
+  return error;
+}
+
+/**
+ * Checks the fields the server-side filters were supposed to establish.
+ * Branchless discovery has to apply the same scope locally, and direct reads
+ * have to prove that scope independently rather than inherit the list's claim.
+ * @param {object} run - A list entry or single-run payload
+ * @param {string} file - The declared workflow file
+ * @param {string} branch - The declared branch
+ * @returns {boolean} Whether this run is eligible for this workflow and branch
+ */
+function eligibleDiscoveredRun(run, file, branch) {
+  return (
+    run !== null &&
+    typeof run === "object" &&
+    Number.isSafeInteger(run.id) &&
+    run.id > 0 &&
+    typeof run.created_at === "string" &&
+    Number.isFinite(Date.parse(run.created_at)) &&
+    run.status === "completed" &&
+    run.head_branch === branch &&
+    COUNTED_EVENTS.includes(run.event) &&
+    typeof run.path === "string" &&
+    run.path.split("@")[0] === `.github/workflows/${file}`
+  );
+}
+
+/**
+ * Discovers IDs while retaining the newest eligible observation across every
+ * snapshot. Old heads get bounded alternative reads without status/event, then
+ * without branch. A later stale snapshot cannot erase a run already seen.
+ * @param {object} api - API coordinates and bounded retry settings
+ * @param {string} file - Workflow file
+ * @param {string} branch - Branch to inspect
+ * @param {number} freshnessHours - This suite's existing freshness limit
+ * @param {Date} now - Evaluation instant
+ * @param {(ms: number) => Promise<void>} [wait] - Injectable bounded backoff
+ * @returns {Promise<object>} Candidates plus raw discovery diagnostics
+ */
+async function discoverRunCandidates(
+  api,
+  file,
+  branch,
+  freshnessHours,
+  now,
+  wait = sleep
+) {
+  const diagnostics = [];
+  const byId = new Map();
+  const ingest = (result, strategy) => {
+    const raw = result.runs.map(
+      run => `${run?.id ?? "?"}@${run?.created_at ?? "?"}`
+    );
+    const line = `${file} ${strategy}: ${result.missing ? "404" : raw.join(", ") || "empty"}`;
+    diagnostics.push(line);
+    process.stderr.write(`[nightly discovery] ${line}\n`);
+    for (const run of result.runs) {
+      if (!eligibleDiscoveredRun(run, file, branch)) continue;
+      const previous = byId.get(run.id);
+      // An ID's creation time and workflow identity do not change. Disagreement
+      // is an unreadable platform observation, never grounds to overwrite it.
+      if (
+        previous &&
+        (previous.created_at !== run.created_at ||
+          previous.workflow_id !== run.workflow_id ||
+          previous.head_sha !== run.head_sha ||
+          previous.event !== run.event)
+      ) {
+        throw staleRunList(file, [
+          ...diagnostics,
+          `run ${run.id} changed identity between list reads`,
+        ]);
+      }
+      byId.set(run.id, run);
+    }
+  };
+  const sorted = () =>
+    [...byId.values()].sort(
+      (left, right) =>
+        Date.parse(right.created_at) - Date.parse(left.created_at) ||
+        right.id - left.id
+    );
+  const primary = await Promise.all(
+    COUNTED_EVENTS.map(event =>
+      fetchRunCandidates(api, file, branch, event, wait)
+    )
+  );
+  primary.forEach((result, index) =>
+    ingest(result, `filtered ${COUNTED_EVENTS[index]}`)
+  );
+  if (primary.every(result => result.missing))
+    return { missing: true, candidates: [], diagnostics };
+  let candidates = sorted();
+  // One initial filtered snapshot plus at most maxAttempts-1 alternatives.
+  // This shares the existing clamped retry budget instead of adding an
+  // independently configurable source of unbounded merge-time requests.
+  for (
+    let attempt = 1;
+    !isFresh(candidates[0], freshnessHours, now) && attempt < api.maxAttempts;
+    attempt += 1
+  ) {
+    await wait(retryDelayMs({ headers: null }, attempt, api.retryMaxSeconds));
+    const alternateBranch = attempt === 1 ? branch : null;
+    const result = await fetchRunCandidates(
+      api,
+      file,
+      alternateBranch,
+      null,
+      wait
+    );
+    ingest(
+      result,
+      alternateBranch
+        ? "unfiltered events, branch"
+        : "unfiltered events, all branches"
+    );
+    candidates = sorted();
+  }
+  if (
+    !isFresh(candidates[0], freshnessHours, now) &&
+    (candidates.length > 0 || primary.some(result => result.runs.length > 0))
+  ) {
+    throw staleRunList(file, diagnostics);
+  }
+  return { missing: false, candidates, diagnostics };
+}
+
+/**
+ * Reads a discovered ID independently before any verdict or cancellation walk.
+ * A single-run 404 or conflict cannot prove that a newer run tested nothing.
+ * @param {object} api - API coordinates
+ * @param {object} candidate - The list's discovery claim
+ * @param {object} discovery - Workflow, branch, diagnostics and detail cache
+ * @param {(ms: number) => Promise<void>} [wait] - Injectable retry sleep
+ * @returns {Promise<object>} Verified single-run payload
+ */
+async function verifyDiscoveredRun(api, candidate, discovery, wait) {
+  if (discovery.verified.has(candidate.id))
+    return discovery.verified.get(candidate.id);
+  const result = await apiGet(
+    api,
+    `/repos/${api.repo}/actions/runs/${candidate.id}`,
+    wait
+  );
+  const run = result?.body;
+  const matches =
+    eligibleDiscoveredRun(run, discovery.file, discovery.branch) &&
+    run.id === candidate.id &&
+    run.created_at === candidate.created_at &&
+    Number.isSafeInteger(run.workflow_id) &&
+    run.workflow_id === candidate.workflow_id &&
+    run.event === candidate.event &&
+    typeof run.head_sha === "string" &&
+    /^[a-f0-9]{40}$/i.test(run.head_sha) &&
+    run.head_sha === candidate.head_sha;
+  const line = `${discovery.file} detail ${candidate.id}: ${matches ? "verified" : "missing or conflicting"} ${run?.id ?? "?"}@${run?.created_at ?? "?"}`;
+  discovery.diagnostics.push(line);
+  process.stderr.write(`[nightly discovery] ${line}\n`);
+  if (!matches) throw staleRunList(discovery.file, discovery.diagnostics);
+  discovery.verified.set(candidate.id, run);
+  return run;
 }
 
 /**
@@ -3424,8 +3607,8 @@ export async function fetchRunArtifacts(api, runId, wait) {
  * worse one.
  *
  * When nothing conclusive is found inside the window it falls back to the NEWEST
- * candidate — the run the gate scored before this walk existed — so `stale_run`,
- * `indecisive_conclusion` and the rest still fire and the gate still blocks.
+ * verified candidate, so `indecisive_conclusion` and the rest still fire and
+ * the gate still blocks. Old discovery heads are refused before this walk.
  * That fallback is what makes selection unable to invent a pass: it may only
  * ever promote an older fresh, conclusive run over a run that tested nothing.
  *
@@ -3434,14 +3617,23 @@ export async function fetchRunArtifacts(api, runId, wait) {
  * @param {number} freshnessHours - This arm's freshness window
  * @param {Date} now - Evaluation instant
  * @param {(ms: number) => Promise<void>} [wait] - Injectable sleep
+ * @param {object} discovery - Workflow scope, diagnostics and verified detail cache
  * @returns {Promise<{run: object, jobs: ReadonlyArray<object>, jobsComplete: boolean, selection: object}>} The scored run, its jobs, whether that job list was read to its end, and the audit
  */
-async function selectScoredRun(api, candidates, freshnessHours, now, wait) {
+async function selectScoredRun(
+  api,
+  candidates,
+  freshnessHours,
+  now,
+  wait,
+  discovery
+) {
   const jobsById = new Map();
   const walkedPast = [];
   let chosen = null;
-  for (const candidate of candidates) {
-    if (!isFresh(candidate, freshnessHours, now)) break;
+  for (const listed of candidates) {
+    if (!isFresh(listed, freshnessHours, now)) break;
+    const candidate = await verifyDiscoveredRun(api, listed, discovery, wait);
     const read = await fetchAllJobs(api, candidate.id, wait);
     const { jobs, complete } = read;
     jobsById.set(candidate.id, read);
@@ -3457,7 +3649,8 @@ async function selectScoredRun(api, candidates, freshnessHours, now, wait) {
       totalJobs: jobs.length,
     });
   }
-  const run = chosen ?? candidates[0];
+  const run =
+    chosen ?? (await verifyDiscoveredRun(api, candidates[0], discovery, wait));
   const read = jobsById.get(run.id) ?? (await fetchAllJobs(api, run.id, wait));
   const { jobs, complete: jobsComplete } = read;
   // A run cannot be both scored and skipped. When the walk falls back onto a
@@ -3469,8 +3662,8 @@ async function selectScoredRun(api, candidates, freshnessHours, now, wait) {
   // Asked only of the one shape that is ambiguous: a run that reached no
   // verdict of its own yet scored some of its jobs. A decisive run has already
   // said what happened, and a run with nothing decisive tested nothing — both
-  // are named without this, so neither pays for it. That keeps the common path
-  // at exactly the request count it had before.
+  // are named without this, so neither pays for an annotation read. Independent
+  // run-detail verification still applies on the common path.
   const timedOut =
     jobsComplete &&
     !DECISIVE_CONCLUSIONS.has(run.conclusion ?? null) &&
@@ -3509,31 +3702,18 @@ async function selectScoredRun(api, candidates, freshnessHours, now, wait) {
 export async function observe(api, suites, branch, context, wait) {
   return await Promise.all(
     suites.map(async suite => {
-      const perEvent = await Promise.all(
-        COUNTED_EVENTS.map(event =>
-          fetchRunCandidates(api, suite.workflow, branch, event, wait)
-        )
+      const freshnessHours = suite.freshness_hours ?? context.freshnessHours;
+      const { missing, candidates, diagnostics } = await discoverRunCandidates(
+        api,
+        suite.workflow,
+        branch,
+        freshnessHours,
+        context.now,
+        wait
       );
-      if (perEvent.every(result => result.missing)) {
+      if (missing) {
         return { workflowMissing: true, run: null, jobs: [] };
       }
-      // Newest FIRST by created_at, so a fresh dispatch supersedes an older
-      // failed schedule. ISO-8601 UTC compares correctly as strings.
-      const candidates = perEvent
-        .flatMap(result => result.runs)
-        .filter(
-          candidate => candidate && typeof candidate.created_at === "string"
-        )
-        // Equal timestamps compare 0 rather than falling through to -1, which
-        // would make the sort unstable and let two runs created in the same
-        // second swap places between reads of the same history.
-        .sort((left, right) =>
-          left.created_at === right.created_at
-            ? 0
-            : left.created_at < right.created_at
-              ? 1
-              : -1
-        );
       // Jobs are read for EVERY match mode, `run` included. A run-scoped suite
       // needs them to prove the run was complete (row 26) — a `success` run
       // that skipped half its jobs is not evidence about the half it skipped.
@@ -3543,9 +3723,10 @@ export async function observe(api, suites, branch, context, wait) {
       const { run, jobs, jobsComplete, selection } = await selectScoredRun(
         api,
         candidates,
-        suite.freshness_hours ?? context.freshnessHours,
+        freshnessHours,
         context.now,
-        wait
+        wait,
+        { file: suite.workflow, branch, diagnostics, verified: new Map() }
       );
       // Artifacts are read for every suite, not only the ones declaring
       // `min_flows`: a run that recorded ITSELF as filtered disqualifies with no
@@ -3559,6 +3740,7 @@ export async function observe(api, suites, branch, context, wait) {
         jobs,
         jobsComplete,
         selection,
+        discovery: Object.freeze([...diagnostics]),
         scope: readSuiteScope(artifacts),
       };
     })
@@ -4749,7 +4931,11 @@ async function main(argv) {
     const failure = {
       verdict: "fail",
       blocked: true,
-      error: { kind, message },
+      error: {
+        kind,
+        message,
+        ...(error.reason ? { reason: error.reason } : {}),
+      },
       findings: [],
     };
     // A downstream job reading `verdict`/`blocked` must see the gate's OWN

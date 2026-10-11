@@ -24,7 +24,6 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import {
   BRANCH,
-  FRESH,
   type Finding,
   type GateModule,
   ISSUE_ACTION,
@@ -338,6 +337,18 @@ describe("nightly e2e reporting — rows 27-31", () => {
     // reusable gate workflow requesting no `issues:` scope (workflow contract
     // tests).
     const methods: (string | undefined)[] = [];
+    const run = {
+      id: 42,
+      conclusion: "success",
+      created_at: new Date(Date.now() - 3_600_000).toISOString(),
+      event: "schedule",
+      head_branch: BRANCH,
+      html_url: "https://example.test/run/42",
+      status: "completed",
+      workflow_id: 50,
+      path: ".github/workflows/maestro-e2e.yml",
+      head_sha: "a".repeat(40),
+    };
     (globalThis as { fetch: unknown }).fetch = async (
       url: string,
       init?: { method?: string }
@@ -345,22 +356,18 @@ describe("nightly e2e reporting — rows 27-31", () => {
       methods.push(init?.method);
       if (url.includes("/jobs"))
         return fakeResponse(200, {}, { jobs: [GREEN] });
-      return fakeResponse(
-        200,
-        {},
-        {
-          workflow_runs: [
-            {
-              id: 42,
-              conclusion: "success",
-              created_at: FRESH,
-              event: "schedule",
-              head_branch: BRANCH,
-              html_url: "https://example.test/run/42",
-            },
-          ],
-        }
-      );
+      if (url.includes("/artifacts"))
+        return fakeResponse(200, {}, { artifacts: [] });
+      if (url.endsWith("/actions/runs/42")) return fakeResponse(200, {}, run);
+      if (url.includes("/actions/workflows/maestro-e2e.yml/runs?"))
+        return fakeResponse(
+          200,
+          {},
+          {
+            workflow_runs: url.includes("event=workflow_dispatch") ? [] : [run],
+          }
+        );
+      return fakeResponse(404);
     };
     await mod.runGate(
       {

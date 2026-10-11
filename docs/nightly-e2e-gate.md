@@ -128,6 +128,7 @@ are not, which is why the blocking rows are not contiguous.
 | 40 | A pull request whose LIVE labels and body cannot be read — 404, an unreadable API, a missing `pull-requests: read` scope, or a response carrying no `labels` array | — | — | **`fail`**, bypass rejected `pr_state_unreadable`; **never** falls back to the event payload (§6.3) |
 | 41 | The newest completed run produced **no evidence** — an indecisive conclusion and not one job that reached a decisive one — and an older run **inside the freshness window** did | as that older run's row | as that older run's row | **that older run's row**, with the skip named in the report (§2.6) |
 | 42 | No run inside the freshness window produced evidence | as the newest run's row | as the newest run's row | **the newest run's row** — falls back and still blocks, with the fallback named in the report (§2.6) |
+| 43 | GitHub run lists remain old or conflict with independently read run details | **fail** | **fail** | **`fail`**, API reason `list_stale`; retry the platform read, without suite-failure or waiver advice (§2.7) |
 
 ### 2.1 Rows 17–19 in one sentence
 
@@ -311,9 +312,11 @@ time (`RUN_CANDIDATE_PAGE_SIZE`, 10; the measured displacement chain was 2)
 rather than the `per_page: 1` that made "the newest run" and "the newest run
 that tested anything" the same query.
 
-When nothing conclusive is found inside the window, row 42 **falls back to the
-newest run** so `stale_run`, `indecisive_conclusion` and `no_run` still fire and
-the gate still blocks. That fallback is what makes this unable to invent a pass:
+When nothing conclusive is found inside a trustworthy discovery window, row 42
+**falls back to the newest verified run** so `indecisive_conclusion` still fires
+and the gate still blocks. An empty history still produces `no_run`; an old
+discovery head follows §2.7 instead of scoring an obsolete `stale_run`.
+That fallback is what makes this unable to invent a pass:
 it may only ever promote an older **fresh, conclusive** run over a run that
 tested nothing. Selection is also **match-mode agnostic** — `mode: "run"` and
 `mode: "job_pattern"` suites go through the same walk.
@@ -408,6 +411,41 @@ The residual is deliberately **not** called "an operator cancel". Nothing here
 proves a human did anything; the evidence says a ceiling was hit or does not say
 so, and claiming the negative as a positive would repeat the category error one
 layer along.
+
+### 2.7 Row 43 — discovering a run is not verifying it
+
+GitHub can return an old snapshot with HTTP 200 from the filtered workflow-runs
+endpoint. The gate uses lists to discover IDs, checks branch, workflow, event
+and completion locally, and keeps the newest eligible observation across every
+read. A later old snapshot cannot erase a newer run already discovered.
+
+If the head is outside this suite's existing freshness window, discovery retries
+with bounded backoff: first the workflow list without status/event filters,
+then without the branch filter, using a larger page. The existing clamped
+`api_max_attempts` budget bounds discovery rounds; the normal default permits
+the initial filtered reads plus two alternatives. No new freshness policy or
+schedule assumption is introduced. An empty history remains `no_run`, and a
+workflow whose initial event reads both return 404 remains missing.
+
+Before reading a candidate's jobs, the gate independently reads
+`GET /repos/{owner}/{repo}/actions/runs/{id}`. Its ID, creation time, workflow,
+branch, event, completion status and commit must agree with discovery. The
+direct read supplies the verdict. Both the newest run and any older conclusive
+run reached through §2.6 are verified; a failed or unreadable direct read cannot
+be walked past as if it proved a cancellation tested nothing.
+
+The freshness floor detects old discovery heads. Direct verification proves the
+chosen ID's identity and scope; it cannot prove that a newer run does not exist
+if every snapshot omits it. An old snapshot whose head remains inside the
+freshness window cannot be identified from its age alone.
+
+Logs and the job summary name raw IDs and creation times, the discovery strategy
+and direct-read outcome. If old lists persist or details conflict, the ordinary
+CLI exits 1 and writes `blocked=true` with API error reason `list_stale` in the
+audit. It explains that GitHub's run history could not establish current evidence
+and asks the operator to retry the check. It does not accuse an obsolete nightly
+run of failing or advise applying a waiver. This failure stays closed even during
+bootstrap or first-seen grace: those windows cannot establish a trustworthy read.
 
 ### 2.5 Rows 36–39 — a run that tested a SLICE is not a green suite
 
