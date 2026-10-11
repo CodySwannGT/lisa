@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.74.6](https://github.com/CodySwannGT/lisa/compare/v4.74.5...v4.74.6) (2026-10-11)
+
+
+### Bug Fixes
+
+* **rulesets:** keep a live bypass_mode and name every mode change ([0fea5d6](https://github.com/CodySwannGT/lisa/commit/0fea5d60414c0546d0cf538f97416eca4302c79a))
+* **rulesets:** preserve live bypass actors unless config declares them ([15424db](https://github.com/CodySwannGT/lisa/commit/15424db015f4817374b24a263bbc835c06201ee0))
+* **rulesets:** refuse malformed bypass declarations and default bypass_mode ([c49ea5d](https://github.com/CodySwannGT/lisa/commit/c49ea5dfe1ca79599e81c6d6f992ad626df6b9db)), closes [#4422](https://github.com/CodySwannGT/lisa/issues/4422)
+* **rulesets:** validate declared actor_id and bypass_mode locally ([1c52a4e](https://github.com/CodySwannGT/lisa/commit/1c52a4ea92c2aa3dea01ba5aa5005c1cb8ef90ed)), closes [#4422](https://github.com/CodySwannGT/lisa/issues/4422)
+
 ### [4.74.5](https://github.com/CodySwannGT/lisa/compare/v4.74.4...v4.74.5) (2026-10-11)
 
 
