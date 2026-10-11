@@ -129,7 +129,7 @@ export const verifyAppliedRoutes = (emitted, requireFact, expectedCaller) => {
   const callerChain = [job.name ?? id, "History Secrets"];
   const declaration = config.gates["introduced-history-credential-leakage"];
   const hook = load(readFileSync(join(emitted, HOOK), "utf8"));
-  const route = hook["pre-push"]?.commands?.["work-item"];
+  const route = hook["pre-push"]?.commands?.["rails-prepush"];
   requireFact(
     job.uses ===
       `CodySwannGT/lisa/.github/workflows/quality-rails.yml@${expectedCaller.ref}` &&

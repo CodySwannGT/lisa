@@ -224,7 +224,7 @@ export const graphCases = harness => {
         "pre-push",
         "origin",
         "--command",
-        "work-item",
+        "rails-prepush",
         "--no-auto-install",
         "--no-tty",
         "--colors",
@@ -236,7 +236,10 @@ export const graphCases = harness => {
     requireFact(
       hook.status === 1 &&
         readFileSync(join(cwd, "trace-input"), "utf8") === multi.input &&
-        hook.stdout.includes("generic-api-key"),
+        hook.stdout.includes("generic-api-key") &&
+        (hook.stdout + hook.stderr).includes(
+          "Rails pre-push refused (exit 1)."
+        ),
       "Actual emitted Lefthook stdin route failed."
     );
     observations.push({

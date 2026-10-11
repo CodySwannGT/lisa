@@ -2407,7 +2407,7 @@ export const UPSTREAM_EVIDENCE_MANIFEST: Readonly<Record<string, string>> =
     "rails/copy-overwrite/config/initializers/version.rb":
       "9304268500aada31d8bd158dca4274888d10db4e30f8dadd9bf23a01d67f2480",
     "rails/copy-overwrite/lefthook.yml":
-      "193bd1a14ffbd97a669922dd9d9dd5a8a849d07b4c09e4cdc4d73a36fa6ab176",
+      "6b639926b7c93417ac4a92fbfd278b5fa61685a80fcb59f9aa0f37ddb7c8c41f",
     "rails/copy-overwrite/scripts/check-threshold-ratchet.mjs":
       "d4afc90ba8faf10925fff5fb0d6cd0ace22df2eaa0ec609ee969d0ec84092299",
     "rails/copy-overwrite/scripts/threshold-ratchet-compare.mjs":
@@ -9828,6 +9828,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/fixtures/git-history-secrets/package.mjs": true,
     "tests/fixtures/git-history-secrets/portable-evidence.mjs": true,
     "tests/fixtures/git-history-secrets/preimage-batch.mjs": true,
+    "tests/fixtures/git-history-secrets/rails-prepush-hook.mjs": true,
     "tests/fixtures/git-history-secrets/report-mode.mjs": true,
     "tests/fixtures/git-history-secrets/scanner-path.mjs": true,
     "tests/fixtures/git-history-secrets/vendor-errors.mjs": true,
@@ -10188,6 +10189,7 @@ export const UPSTREAM_SURFACE_MANIFEST: Readonly<Record<string, true>> =
     "tests/integration/quality-workflow.test.ts": true,
     "tests/integration/rails-helper-test-isolation.test.ts": true,
     "tests/integration/rails-learnings-budget-gate.test.ts": true,
+    "tests/integration/rails-prepush-hook.test.ts": true,
     "tests/integration/rails-scratch-authority.test.ts": true,
     "tests/integration/rails-scratch-lifecycle.test.ts": true,
     "tests/integration/rails-scratch-ownership.test.ts": true,

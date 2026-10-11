@@ -6,6 +6,13 @@ recognized evidence role and an independently authenticated preimage. Other
 findings in the same file remain blocking. This does not certify an audit
 receipt's assertions, test results or runtime behavior.
 
+The Rails `rails-prepush` Lefthook step runs both history scanning and work-item
+traceability. When either refuses the push, its output includes `Rails pre-push
+refused` with the returned exit status and a reminder to inspect both checks.
+Retry the same `git push` command to preserve its remote and complete input.
+Missing or damaged managed tooling reports a safe repair instruction and
+withholds raw bootstrap errors. Run full Lisa apply before retrying that case.
+
 The scanner requires the official Gitleaks 8.30.1 release for the current
 Linux/macOS x64/arm64 platform, qualified by its binary SHA256 and exact version.
 It walks PATH in order and uses the first fully qualified executable, skipping

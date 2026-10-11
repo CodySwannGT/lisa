@@ -202,7 +202,7 @@ describe("immutable package history caller witness", () => {
         join(cwd, "lefthook.yml"),
         `pre-push:
   commands:
-    work-item:
+    rails-prepush:
       use_stdin: true
       run: 'await import("./scripts/lisa-rails-prepush.mjs"); await main(process.argv.slice(1))'
 `
