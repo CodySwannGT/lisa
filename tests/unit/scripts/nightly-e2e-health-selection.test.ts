@@ -55,6 +55,10 @@ const PASSED_RUN: Run = Object.freeze({
   html_url: "https://example.test/run/33226168060",
   event: "workflow_dispatch",
   head_branch: BRANCH,
+  head_sha: "a".repeat(40),
+  status: "completed",
+  workflow_id: 50,
+  path: ".github/workflows/maestro-e2e.yml",
 });
 
 /** Its jobs, as the real run reported them. */
@@ -73,6 +77,10 @@ const DISPLACED_RUN: Run = Object.freeze({
   html_url: "https://example.test/run/33226173248",
   event: "workflow_dispatch",
   head_branch: BRANCH,
+  head_sha: "a".repeat(40),
+  status: "completed",
+  workflow_id: 50,
+  path: ".github/workflows/maestro-e2e.yml",
 });
 
 /** Its job list, as the real run reported it. */
@@ -138,6 +146,11 @@ function stubActions(
     if (url.includes(ARTIFACTS_PATH)) {
       return fakeResponse(200, {}, { artifacts: [] });
     }
+    const detail = /\/actions\/runs\/(\d+)$/u.exec(url);
+    if (detail) {
+      const run = runs.find(candidate => candidate.id === Number(detail[1]));
+      return run ? fakeResponse(200, {}, run) : fakeResponse(404);
+    }
     return fakeResponse(
       200,
       {},
@@ -168,6 +181,18 @@ function stubArms(
   jobsByRunId: Readonly<Record<number, readonly Job[]>>
 ): string[] {
   const paths: string[] = [];
+  const apiArms = Object.fromEntries(
+    Object.entries(armsByWorkflow).map(([file, runs]) => [
+      file,
+      runs.map(run => ({
+        ...run,
+        status: "completed",
+        workflow_id: file === "playwright-e2e.yml" ? 51 : 50,
+        path: `.github/workflows/${file}`,
+        head_sha: "a".repeat(40),
+      })),
+    ])
+  );
   (globalThis as { fetch: unknown }).fetch = async (
     url: string
   ): Promise<unknown> => {
@@ -183,6 +208,13 @@ function stubArms(
     if (url.includes(ARTIFACTS_PATH)) {
       return fakeResponse(200, {}, { artifacts: [] });
     }
+    const detail = /\/actions\/runs\/(\d+)$/u.exec(url);
+    if (detail) {
+      const run = Object.values(apiArms)
+        .flat()
+        .find(candidate => candidate.id === Number(detail[1]));
+      return run ? fakeResponse(200, {}, run) : fakeResponse(404);
+    }
     const workflow = Object.keys(armsByWorkflow).find(file =>
       url.includes(`/workflows/${encodeURIComponent(file)}/runs`)
     );
@@ -192,7 +224,7 @@ function stubArms(
       {
         workflow_runs:
           workflow !== undefined && url.includes(DISPATCH_QUERY)
-            ? [...(armsByWorkflow[workflow] ?? [])]
+            ? [...(apiArms[workflow] ?? [])]
             : [],
       }
     );
@@ -345,6 +377,13 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
         if (url.includes(ARTIFACTS_PATH)) {
           return fakeResponse(200, {}, { artifacts: [] });
         }
+        const detail = /\/actions\/runs\/(\d+)$/u.exec(url);
+        if (detail) {
+          const run = [truncated, PASSED_RUN].find(
+            candidate => candidate.id === Number(detail[1])
+          );
+          return run ? fakeResponse(200, {}, run) : fakeResponse(404);
+        }
         return fakeResponse(
           200,
           {},
@@ -404,6 +443,8 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
         if (url.includes(ARTIFACTS_PATH)) {
           return fakeResponse(200, {}, { artifacts: [] });
         }
+        if (url.endsWith(`/actions/runs/${truncated.id}`))
+          return fakeResponse(200, {}, truncated);
         return fakeResponse(
           200,
           {},
@@ -1197,6 +1238,8 @@ describe("nightly e2e gate — rows 41-42: selection reads evidence, not recency
           }
           if (url.includes(ARTIFACTS_PATH))
             return fakeResponse(200, {}, { artifacts: [] });
+          if (url.endsWith(`/actions/runs/${run.id}`))
+            return fakeResponse(200, {}, run);
           return fakeResponse(
             200,
             {},

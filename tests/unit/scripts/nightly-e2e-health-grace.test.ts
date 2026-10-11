@@ -308,30 +308,40 @@ describe("nightly e2e gate — truth table rows 32-35 (per-suite grace)", () => 
       // that `runGate` resolves each suite's window and carries it into the
       // verdict. Before this row, `decide` saw one flag for every finding.
       const twoDaysAgo = new Date(Date.now() - 2 * 86_400_000).toISOString();
+      const run = {
+        id: 7,
+        conclusion: "success",
+        created_at: new Date(Date.now() - 3_600_000).toISOString(),
+        event: "schedule",
+        head_branch: BRANCH,
+        status: "completed",
+        workflow_id: 50,
+        path: ".github/workflows/maestro-e2e.yml",
+        head_sha: "a".repeat(40),
+      };
       (globalThis as { fetch: unknown }).fetch = async (
         url: string
       ): Promise<unknown> => {
         if (url.includes("/jobs")) {
           return fakeResponse(200, {}, GREEN_JOBS);
         }
-        if (url.includes(NEW_WORKFLOW)) {
+        if (url.includes(`/actions/workflows/${NEW_WORKFLOW}/runs?`)) {
           return fakeResponse(200, {}, { workflow_runs: [] });
         }
-        return fakeResponse(
-          200,
-          {},
-          {
-            workflow_runs: [
-              {
-                id: 7,
-                conclusion: "success",
-                created_at: new Date(Date.now() - 3_600_000).toISOString(),
-                event: "schedule",
-                head_branch: BRANCH,
-              },
-            ],
-          }
-        );
+        if (url.includes("/artifacts"))
+          return fakeResponse(200, {}, { artifacts: [] });
+        if (url.endsWith("/actions/runs/7")) return fakeResponse(200, {}, run);
+        if (url.includes("/actions/workflows/maestro-e2e.yml/runs?"))
+          return fakeResponse(
+            200,
+            {},
+            {
+              workflow_runs: url.includes("event=workflow_dispatch")
+                ? []
+                : [run],
+            }
+          );
+        return fakeResponse(404);
       };
 
       const verdict = (await mod.runGate(
@@ -373,7 +383,9 @@ describe("nightly e2e gate — truth table rows 32-35 (per-suite grace)", () => 
         if (url.includes("/jobs")) {
           return fakeResponse(200, {}, GREEN_JOBS);
         }
-        return fakeResponse(200, {}, { workflow_runs: [] });
+        if (url.includes(`/actions/workflows/${NEW_WORKFLOW}/runs?`))
+          return fakeResponse(200, {}, { workflow_runs: [] });
+        return fakeResponse(404);
       };
 
       const verdict = (await mod.runGate(

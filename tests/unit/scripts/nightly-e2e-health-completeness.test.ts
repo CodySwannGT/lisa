@@ -27,7 +27,6 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import {
   BRANCH,
-  FRESH,
   type Finding,
   type GateModule,
   type Job,
@@ -189,31 +188,23 @@ describe("nightly e2e gate — truth table row 26", () => {
     // so `observe` has to gather them for `mode: "run"` too. Before row 26 it
     // deliberately did not, which is what made the filtered dispatch read green.
     const paths: string[] = [];
-    let calls = 0;
+    const completed = runWith("success", { id: 42 });
     (globalThis as { fetch: unknown }).fetch = async (
       url: string
     ): Promise<unknown> => {
-      calls += 1;
       paths.push(url);
       if (url.includes("/jobs")) {
         return fakeResponse(200, {}, { jobs: [IOS_SKIPPED] });
       }
+      if (url.endsWith("/actions/runs/42"))
+        return fakeResponse(200, {}, completed);
+      if (url.includes("/artifacts"))
+        return fakeResponse(200, {}, { artifacts: [] });
       return fakeResponse(
         200,
         {},
         {
-          workflow_runs:
-            calls === 1
-              ? [
-                  {
-                    id: 42,
-                    conclusion: "success",
-                    created_at: FRESH,
-                    event: "schedule",
-                    head_branch: BRANCH,
-                  },
-                ]
-              : [],
+          workflow_runs: url.includes("event=schedule") ? [completed] : [],
         }
       );
     };
