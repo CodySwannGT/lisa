@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.74.4](https://github.com/CodySwannGT/lisa/compare/v4.74.3...v4.74.4) (2026-10-11)
+
+
+### Bug Fixes
+
+* verify nightly run discovery before scoring ([5e138f2](https://github.com/CodySwannGT/lisa/commit/5e138f2f9e9c5abf86136bb58b2a0be172b29732)), closes [CodySwannGT/lisa#4319](https://github.com/CodySwannGT/lisa/issues/4319)
+
 ### [4.74.3](https://github.com/CodySwannGT/lisa/compare/v4.74.2...v4.74.3) (2026-10-10)
 
 
