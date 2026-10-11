@@ -947,7 +947,7 @@
       "children": []
     },
     "lib/npm-update-recovery.mjs": {
-      "sha256": "c0201c500f0526de68a115d90b832b0f7c83afd2b357f778bca571e393e3e952",
+      "sha256": "3dcb1826fb92c37ecbd6e46863b48b7ebae8826117ed876ae0c0749444b1c4ff",
       "staticImports": [
         "lib/github-attestation-recovery.mjs",
         "lib/github-attestation-verifier.mjs",

@@ -23,7 +23,6 @@ import { persistCheckpoint } from "./npm-update-checkpoint.mjs";
 import { required, validateProposal } from "./npm-update-contract.mjs";
 
 import {
-  checkpointComments,
   decodeCheckpoint,
   recoverPartialCheckpoint,
 } from "./npm-update-checkpoint.mjs";
