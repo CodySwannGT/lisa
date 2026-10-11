@@ -20,12 +20,16 @@ import { join, resolve } from "node:path";
 import { load } from "js-yaml";
 
 const args = process.argv.slice(2);
+const nativeRequested = args.includes("--lefthook");
 const option = name => args[args.indexOf(name) + 1];
 const selected = option("--case");
 if (!["healthy", "returned", "throw", "missing", "scanner"].includes(selected))
   throw new Error("Select a supported Rails hook control.");
 const root = resolve(import.meta.dirname, "../../..");
 const cwd = mkdtempSync(join(tmpdir(), "lisa-rails-hook-"));
+const missingSelected = selected === "missing";
+const traceInput = join(cwd, "trace-input");
+const traceArgs = join(cwd, "trace-args");
 const captures = [];
 const value = randomBytes(32).toString("hex");
 const execute = (command, argv, options = {}) => {
@@ -75,7 +79,7 @@ try {
     writeFileSync(join(cwd, "scripts/lisa-work-item.mjs"), trace, {
       mode: 0o600,
     });
-  } else if (selected !== "missing") {
+  } else if (!missingSelected) {
     const result =
       selected === "throw"
         ? `throw new Error(${JSON.stringify(value)});`
@@ -127,15 +131,21 @@ try {
     options
   );
   const preserved = () =>
-    selected === "missing" ||
-    (readFileSync(join(cwd, "trace-input"), "utf8") === input &&
-      readFileSync(join(cwd, "trace-args"), "utf8") ===
+    missingSelected ||
+    (readFileSync(traceInput, "utf8") === input &&
+      readFileSync(traceArgs, "utf8") ===
         JSON.stringify(
           selected === "scanner" ? ["validate-push", "origin"] : ["origin"]
         ));
   if (!preserved())
     throw new Error("Rails shell command lost Git stdin or remote arguments.");
-  const native = args.includes("--lefthook")
+  const nativeTracesCleared = nativeRequested && !missingSelected;
+  if (nativeTracesCleared) {
+    // Native forwarding must create fresh evidence, not reuse the shell trace.
+    rmSync(traceInput);
+    rmSync(traceArgs);
+  }
+  const native = nativeRequested
     ? execute(
         resolve(option("--lefthook")),
         [
@@ -180,7 +190,15 @@ try {
     commandCount: Object.keys(commands).filter(key =>
       ["rails-prepush", "work-item"].includes(key)
     ).length,
-    stdinAndRemotePreserved: selected !== "missing",
+    stdinAndRemotePreserved: !missingSelected,
+    nativeForwarding:
+      nativeTracesCleared && native
+        ? {
+            previousTracesRemoved: true,
+            input: readFileSync(traceInput, "utf8"),
+            args: JSON.parse(readFileSync(traceArgs, "utf8")),
+          }
+        : null,
     redaction: true,
     shell: { status: shell.status, stdout: shell.stdout, stderr: shell.stderr },
     native: native && {
