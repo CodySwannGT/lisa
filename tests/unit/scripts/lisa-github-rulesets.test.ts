@@ -862,6 +862,7 @@ describe("lisa-github-rulesets.sh", () => {
      * @param options.liveName The name the ruleset list reports for id 7.
      * @param options.config The `.lisa.config.json` contents, if any.
      * @param options.dryRun Whether to pass `--dry-run`.
+     * @param options.expectedStatus The exit status the run must end with.
      * @returns The update payload sent (if any) and the script stdout.
      */
     function applyAgainst(options: {
@@ -869,7 +870,12 @@ describe("lisa-github-rulesets.sh", () => {
       readonly liveName: string;
       readonly config?: unknown;
       readonly dryRun?: boolean;
-    }): { updated: RulesetPayload | undefined; stdout: string } {
+      readonly expectedStatus?: number;
+    }): {
+      updated: RulesetPayload | undefined;
+      stdout: string;
+      stderr: string;
+    } {
       const projectDir = createProject();
       const captureDir = mkdtempSync(path.join(tmpdir(), "lisa-gh-bypass-"));
       const lisaInstall = createLisaInstall();
@@ -911,7 +917,7 @@ describe("lisa-github-rulesets.sh", () => {
           [options.dryRun === true ? "--dry-run" : "--yes", projectDir],
           ghBin
         );
-        expect(result.status).toBe(0);
+        expect(result.status).toBe(options.expectedStatus ?? 0);
         const captured = readdirSync(captureDir);
         return {
           updated: captured.includes("updated.json")
@@ -920,6 +926,7 @@ describe("lisa-github-rulesets.sh", () => {
               ) as RulesetPayload)
             : undefined,
           stdout: result.stdout as string,
+          stderr: result.stderr as string,
         };
       } finally {
         rmSync(projectDir, { recursive: true, force: true });
@@ -1047,6 +1054,53 @@ describe("lisa-github-rulesets.sh", () => {
       expect(updated?.bypass_actors).toEqual([DEPLOY_KEY, INTEGRATION]);
       expect(stdout).toContain(
         "+ bypass actor added: Integration 98765 (pull_request)"
+      );
+    });
+
+    // A declaration that is not a list is an operator mistake. Reading it as
+    // "nothing declared" would quietly preserve the very actors the operator
+    // tried to remove, and the run would still report success.
+    it("refuses a bypass declaration that is not a list, and sends nothing", () => {
+      const { stderr, updated } = applyAgainst({
+        live: liveNightly([DEPLOY_KEY, ADMIN_ROLE]),
+        liveName: NIGHTLY_RULESET,
+        config: {
+          github: {
+            rulesets: { bypassActors: { [NIGHTLY_RULESET]: DEPLOY_KEY } },
+          },
+        },
+        expectedStatus: 1,
+      });
+
+      expect(updated).toBeUndefined();
+      expect(stderr).toContain(
+        `github.rulesets.bypassActors["${NIGHTLY_RULESET}"] must be a list`
+      );
+    });
+
+    // GitHub defaults an omitted bypass_mode to `always`, so a declaration
+    // that leaves it out changes nothing and must not be reported as a change.
+    it("defaults an omitted declared bypass_mode to always", () => {
+      const { stdout, updated } = applyAgainst({
+        live: liveNightly([DEPLOY_KEY, ADMIN_ROLE]),
+        liveName: NIGHTLY_RULESET,
+        config: {
+          github: {
+            rulesets: {
+              bypassActors: {
+                [NIGHTLY_RULESET]: [
+                  { actor_type: "DeployKey", actor_id: null },
+                ],
+              },
+            },
+          },
+        },
+      });
+
+      expect(updated?.bypass_actors).toEqual([DEPLOY_KEY]);
+      expect(stdout).not.toContain("mode changed");
+      expect(stdout).toContain(
+        "- bypass actor removed: RepositoryRole 5 (always)"
       );
     });
 

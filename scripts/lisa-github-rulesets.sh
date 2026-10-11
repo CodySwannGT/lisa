@@ -775,14 +775,47 @@ config_bypass_actors() {
     filter='.policy.ruleset.bypass_actors // null'
   fi
 
+  # An omitted bypass_mode is GitHub's default, `always`, and an omitted
+  # actor_id is null (DeployKey). Filled in here so a declaration that leaves
+  # them out compares equal to what GitHub stores, rather than reporting a
+  # change that never happens.
   local declared
   if ! declared=$(jq -c --arg name "$ruleset_name" \
-    "($filter) | if type == \"array\" then . else null end" "$config" 2>/dev/null); then
+    "($filter) | if type == \"array\" then map(. + {actor_id: (.actor_id // null), bypass_mode: (.bypass_mode // \"always\")}) else null end" \
+    "$config" 2>/dev/null); then
     log_warning ".lisa.config.json could not be parsed — ignoring github.rulesets overrides" >&2
     echo "null"
     return 0
   fi
   echo "$declared"
+}
+
+# Print why this ruleset's bypass declaration is unusable, or nothing when it
+# is absent or well-formed. A malformed declaration must stop the ruleset: read
+# as "nothing declared" it would quietly PRESERVE the actors the operator tried
+# to remove, and the run would still report success.
+bypass_declaration_error() {
+  local project_path="$1"
+  local ruleset_name="$2"
+  local config="$project_path/.lisa.config.json"
+
+  [[ -f "$config" ]] || return 0
+
+  local key="github.rulesets.bypassActors[\"$ruleset_name\"]"
+  local filter='.github.rulesets.bypassActors[$name]?'
+  if [[ "$ruleset_name" == "base" ]]; then
+    key="policy.ruleset.bypass_actors"
+    filter='.policy.ruleset.bypass_actors?'
+  fi
+
+  jq -r --arg name "$ruleset_name" --arg key "$key" "
+    ($filter) as \$declared
+    | if \$declared == null then empty
+      elif (\$declared | type) != \"array\" then
+        \"\(\$key) must be a list of bypass actors, got \(\$declared | type)\"
+      elif any(\$declared[]; type != \"object\" or (.actor_type | type) != \"string\") then
+        \"\(\$key) has an entry without a string actor_type\"
+      else empty end" "$config" 2>/dev/null || true
 }
 
 # Replace a template's bypass list with the declared one, when there is one.
@@ -900,6 +933,13 @@ apply_ruleset() {
 
   local ruleset_name
   ruleset_name=$(echo "$template_content" | jq -r '.name')
+
+  local bypass_error
+  bypass_error=$(bypass_declaration_error "$project_path" "$ruleset_name")
+  if [[ -n "$bypass_error" ]]; then
+    log_error "Not applying ruleset '$ruleset_name': $bypass_error"
+    return 1
+  fi
 
   local clean_template
   clean_template=$(strip_readonly_fields "$template_content")
