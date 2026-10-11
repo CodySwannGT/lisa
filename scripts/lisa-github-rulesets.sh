@@ -815,7 +815,12 @@ bypass_declaration_error() {
         \"\(\$key) must be a list of bypass actors, got \(\$declared | type)\"
       elif any(\$declared[]; type != \"object\" or (.actor_type | type) != \"string\") then
         \"\(\$key) has an entry without a string actor_type\"
-      else empty end" "$config" 2>/dev/null || true
+      elif any(\$declared[]; .actor_id != null and ((.actor_id | type) != \"number\" or .actor_id != (.actor_id | floor))) then
+        \"\(\$key) has an actor_id that is neither an integer nor null\"
+      elif any(\$declared[]; .bypass_mode as \$mode | \$mode != null and ([\"always\", \"pull_request\", \"exempt\"] | index(\$mode)) == null) then
+        \"\(\$key) has a bypass_mode other than always, pull_request or exempt\"
+      else empty end" "$config" 2>/dev/null \
+    || echo "$key could not be validated — refusing to apply a declaration nobody checked"
 }
 
 # Replace a template's bypass list with the declared one, when there is one.

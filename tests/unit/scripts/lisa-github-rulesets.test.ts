@@ -1080,6 +1080,50 @@ describe("lisa-github-rulesets.sh", () => {
 
     // GitHub defaults an omitted bypass_mode to `always`, so a declaration
     // that leaves it out changes nothing and must not be reported as a change.
+    // GitHub would reject these remotely, after the run had already started
+    // writing; a local refusal names the declaration instead.
+    it.each([
+      [
+        "a non-integer actor_id",
+        { actor_type: "RepositoryRole", actor_id: "5", bypass_mode: "always" },
+        "actor_id that is neither an integer nor null",
+      ],
+      [
+        "an unsupported bypass_mode",
+        { ...DEPLOY_KEY, bypass_mode: "sometimes" },
+        "bypass_mode other than always, pull_request or exempt",
+      ],
+    ])("refuses a declared actor with %s", (_label, actor, message) => {
+      const { stderr, updated } = applyAgainst({
+        live: liveNightly([DEPLOY_KEY]),
+        liveName: NIGHTLY_RULESET,
+        config: {
+          github: {
+            rulesets: { bypassActors: { [NIGHTLY_RULESET]: [actor] } },
+          },
+        },
+        expectedStatus: 1,
+      });
+
+      expect(updated).toBeUndefined();
+      expect(stderr).toContain(message);
+    });
+
+    it("accepts the exempt bypass_mode", () => {
+      const exempt = { ...DEPLOY_KEY, bypass_mode: "exempt" };
+      const { updated } = applyAgainst({
+        live: liveNightly([DEPLOY_KEY]),
+        liveName: NIGHTLY_RULESET,
+        config: {
+          github: {
+            rulesets: { bypassActors: { [NIGHTLY_RULESET]: [exempt] } },
+          },
+        },
+      });
+
+      expect(updated?.bypass_actors).toEqual([exempt]);
+    });
+
     it("defaults an omitted declared bypass_mode to always", () => {
       const { stdout, updated } = applyAgainst({
         live: liveNightly([DEPLOY_KEY, ADMIN_ROLE]),
